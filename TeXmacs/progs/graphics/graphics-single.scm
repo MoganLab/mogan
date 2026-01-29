@@ -120,58 +120,50 @@
          (set-point-sub (list-ref obj (+ no 1)) #f x y))
         (else #f)))
 
-;; Basic operations (set & add point) ;; 关键的重点在于修改这两个函数，object_set-point 和 object_add-point，从而使得能够实现按住 Cmd 能够让矩形变成正方形
+;; Basic operations (set & add point)
 (define (sgn x)
   (cond ((> x 0)  1)
         ((< x 0) -1)
         (else     0)))
 
-(define (special-key-process obj x-in y-in) ;; Mod2Mask == Cmd 键
+(define (special-key-process obj x-in y-in)
   (if (and (== (car obj) 'rectangle)
            (!= (logand (get-keyboard-modifiers) Mod2Mask) 0))
       (begin
         (display* obj "\n")
         (let* ((p0 (cadr obj))
-               (x0 (string->number (cadr p0)))
-               (y0 (string->number (caddr p0)))
-               (x1 (string->number x-in))
-               (y1 (string->number y-in))
-               (dx (- x1 x0))
-               (dy (- y1 y0))
-               (sgnx (sgn dx))
-               (sgny (sgn dy))
+               (x0 (string->number (cadr p0))) (y0 (string->number (caddr p0)))
+               (x1 (string->number x-in))      (y1 (string->number y-in))
+               (dx (- x1 x0))                  (dy (- y1 y0))
+               (sgnx (sgn dx))                 (sgny (sgn dy))
                (minlen (min (abs dx) (abs dy)))
-               (x (+ (* sgnx minlen) x0))
-               (y (+ (* sgny minlen) y0))
-               (x-out (number->string x))
-               (y-out (number->string y)))
+               (x (+ (* sgnx minlen) x0))      (y (+ (* sgny minlen) y0))
+               (x-out (number->string x))      (y-out (number->string y)))
           (values x-out y-out)))
       (values x-in y-in)))
 
 (define (object_set-point no xcur-in ycur-in)
   (define obj (stree-radical (car (sketch-get1))))
-  ;; 在这里要把 xcur, ycur 改成合适的点
   (let-values (((xcur ycur) (special-key-process obj xcur-in ycur-in)))
     (set-point-sub obj no xcur ycur)
     (object-set! (car (sketch-get)))))
 
-(define (object_add-point no xcur-in ycur-in x-in y-in dirn) ;; 这里 xcur, ycur 是 x-current 和 y-current 的意思，然而实际上 x, y 才是鼠标所在的位置
+(define (object_add-point no xcur-in ycur-in x-in y-in dirn)
   (define obj (stree-radical (car (sketch-get1))))
-  ;; 在这里要把 xcur, ycur, x, y 改成合适的点
   (let-values (((xcur ycur) (special-key-process obj xcur-in ycur-in))
                ((x y) (special-key-process obj x-in y-in)))
     (if (not (graphics-complete? obj))
       (with l (list-tail (cdr obj) no)
         (graphics-store-state #f)
-        (if dirn ;; For start-move, the dirn is #t ;; by llz
-            (begin ;; if's condition == true ;; by llz
-              (set-cdr! l (cons `(point ,x ,y) (cdr l))) ;; ((point x_val y_val) (cdr l)), for example, x == 1, y == 2, l == `(a b c d), then (cons `(point ,x ,y) (cdr l)) == ((point 1 2) b c d) ;; 这个代码的意义是，在 l 的头部（car）的后面一个位置插入 (point ,x ,y)
+        (if dirn
+            (begin
+              (set-cdr! l (cons `(point ,x ,y) (cdr l)))
               (if (and xcur ycur)
                   (set-car! l `(point ,xcur ,ycur)))
               (set! current-point-no (+ no 1)))
-            (begin ;; if's condition == false ;; by llz ;; 所以这个 dirn 的意义就在于在活动点的后面插入，还是在活动点的前面插入。活动点是 xcur, ycur，需要被插入的点是 x, y。如果 dirn == true，那么就会在活动点 (xcur, ycur) 的后面插入一个 (x, y)，否则，如果 dirn == false，那么就会在活动点的前面插入 (x, y)
+            (begin
               (set-cdr! l (cons (car l) (cdr l)))
-              (set-car! l `(point ,x ,y)) ;; 逗号是求值的含义 ;; by llz ;; 这里 l 就会在头部插入一个 (point ,x ,y) 了。而如果是 dirn == true 的话，那么这里将会在 l 的第二个位置插入（也就是 point-no 的后面一个位置插入）
+              (set-car! l `(point ,x ,y))
               (if (and xcur ycur)
                   (set-car! (cdr l) `(point ,xcur ,ycur)))
               (set! current-point-no no))
@@ -316,18 +308,14 @@
   (graphics-store-state #f))
 
 (define (move-point)
-  (if (and leftclick-waiting (not (hardly-moved?))) ;; not (hardly-moved?) == true 当且仅当鼠标移动了很多，hardly-moved? == true 当且仅当鼠标没有怎么移动过
-      ;; 所以这个 if's condition == true 当且仅当 leftclick-waiting == true && mouse-moved-a-lot == true
+  (if (and leftclick-waiting (not (hardly-moved?)))
       (begin
-        (display* (get-keyboard-modifiers)) ;; 调试信息 ;; 按住 Shift -> 256，没有按下 Shift -> 0
         (set! leftclick-waiting #f)
         (object_add-point
          current-point-no
          (cadr previous-leftclick) (caddr previous-leftclick)
-         current-x current-y ;; current-x 和 current-y 就是当前鼠标所在的位置（xcur, ycur），这里 cur = current 而不是 cursor ;; llz
-         #t)) ;; 这里 #t 就可以，#t 表示在后面插入
-        ;;  (== (logand (get-keyboard-modifiers) ShiftMask) 0))) ;; 试一下改掉 ;; by llz
-      ;; 这里是 else
+         current-x current-y
+         #t))
       (begin
         (if leftclick-waiting
             (set-message "Left click: finish; Shift+Left click or Right click: undo"
@@ -425,7 +413,7 @@
 ;; Global dispatching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (edit_move mode x y) ;; 这里很重要 ;; llz
+(tm-define (edit_move mode x y)
   (:require (== mode 'edit))
   (:state graphics-state)
   (set-texmacs-pointer 'graphics-cross #t)
@@ -435,7 +423,7 @@
             (set! current-point-no 1))
         (if sticky-point
             (move-point)
-            (move-over))) ;; move-over 的意思就是，当没有正在编辑一个图形的时候，那么在自由的情况下，将鼠标移动到一个图形上方，那么这个就是 move-over
+            (move-over)))
       (begin
         (set-message "Left click: new object" "Graphics")
         (graphics-decorations-reset))))
