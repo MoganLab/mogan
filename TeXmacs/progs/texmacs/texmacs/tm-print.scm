@@ -77,7 +77,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (user-confirm-open-pdf fname)
-  (user-confirm "PDF导出完成，是否要打开文件？" #f
+  (user-confirm "Open PDF?" #f
     (lambda (open?)
       (when open? (preview-file fname)))))
 
