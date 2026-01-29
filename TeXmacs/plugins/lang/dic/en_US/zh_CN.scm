@@ -50,7 +50,7 @@
 ("Only convert changes with respect to imported version" "仅转换相较于已导入版本的更改")
 ("Only convert changes with respect to tracked version" "仅转换相较于已追踪版本的更改")
 ("Only show paragraphs with hits" "仅显示包含匹配项的段落")
-("Open Pdf?" "打开 Pdf？")
+("Open PDF?" "PDF导出完成，是否要打开文件？")
 ("PageDown::keyboard" "PageDown")
 ("PageUp::keyboard" "PageUp")
 ("Parentheses ( )" "小括号 ( )")

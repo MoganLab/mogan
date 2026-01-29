@@ -77,7 +77,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (user-confirm-open-pdf fname)
-  (user-confirm "Open Pdf?" #f
+  (user-confirm "Open PDF?" #f
     (lambda (open?)
       (when open? (preview-file fname)))))
 
