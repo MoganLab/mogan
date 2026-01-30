@@ -1365,6 +1365,8 @@ init_std_drd () {
   init_var (CELL_VMODE, TYPE_STRING);
   init_var (CELL_HALIGN, TYPE_STRING);
   init_var (CELL_VALIGN, TYPE_STRING);
+  init_var (CELL_HSCALE, TYPE_NUMERIC);
+  init_var (CELL_VSCALE, TYPE_NUMERIC);
   init_var (CELL_LSEP, TYPE_LENGTH);
   init_var (CELL_RSEP, TYPE_LENGTH);
   init_var (CELL_BSEP, TYPE_LENGTH);

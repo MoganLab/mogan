@@ -45,6 +45,8 @@ public:
 
   SI     width;      // the (suggested) width of the table
   SI     height;     // the (suggested) height of the table
+  double hscale;     // horizontal scaling factor
+  double vscale;     // vertical scaling factor
   SI     lsep;       // left padding around table
   SI     rsep;       // right padding around table
   SI     bsep;       // bottom padding around table
@@ -118,6 +120,8 @@ public:
   bool   orientation;  // portrait or landscape
   SI     width;        // the width of the cell
   SI     height;       // the height of the cell
+  double hscale;       // horizontal scaling factor
+  double vscale;       // vertical scaling factor
   double hpart;        // part in unused horizontal space
   double vpart;        // part in unused vertical space
   SI     lsep;         // left padding

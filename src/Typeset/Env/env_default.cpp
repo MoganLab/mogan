@@ -247,6 +247,8 @@ initialize_default_env () {
   env (CELL_VMODE)      = "auto"; // height determination mode
   env (CELL_HALIGN)     = "l";    // horizontal alignment
   env (CELL_VALIGN)     = "B";    // vertical alignment
+  env (CELL_HSCALE)    = "1.0";   // horizontal scaling factor
+  env (CELL_VSCALE)    = "1.0";   // vertical scaling factor
   env (CELL_LSEP)       = "1spc"; // left cell padding
   env (CELL_RSEP)       = "1spc"; // right cell padding
   env (CELL_BSEP)       = "1sep"; // bottom cell padding

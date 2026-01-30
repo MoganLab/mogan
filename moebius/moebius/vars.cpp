@@ -250,6 +250,8 @@ string CELL_HMODE ("cell-hmode");
 string CELL_VMODE ("cell-vmode");
 string CELL_HALIGN ("cell-halign");
 string CELL_VALIGN ("cell-valign");
+string CELL_HSCALE ("cell-hscale");
+string CELL_VSCALE ("cell-vscale");
 string CELL_LSEP ("cell-lsep");
 string CELL_RSEP ("cell-rsep");
 string CELL_BSEP ("cell-bsep");

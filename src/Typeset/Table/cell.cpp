@@ -19,7 +19,7 @@ using namespace moebius;
  * Cells
  ******************************************************************************/
 
-cell_rep::cell_rep (edit_env env2) : var (""), env (env2), border_flags (0) {}
+cell_rep::cell_rep (edit_env env2) : var (""), env (env2), border_flags (0), hscale (1.0), vscale (1.0) {}
 
 void
 cell_rep::typeset (tree fm, tree t, path iq) {
@@ -234,6 +234,12 @@ cell_rep::format_cell (tree fm) {
   if (var->contains (CELL_VALIGN))
     valign= as_string (env->exec (var[CELL_VALIGN]));
   else valign= "B";
+  if (var->contains (CELL_HSCALE))
+      hscale = as_double (env->exec (var[CELL_HSCALE]));
+  else hscale = 1.0;
+  if (var->contains (CELL_VSCALE))
+      vscale = as_double (env->exec (var[CELL_VSCALE]));
+  else vscale = 1.0;
   if (var->contains (CELL_VCORRECT))
     vcorrect= as_string (env->exec (var[CELL_VCORRECT]));
   else vcorrect= "a";
@@ -323,6 +329,11 @@ cell_rep::compute_width (SI& mw, SI& lw, SI& rw, bool large) {
     }
     else lw-= d;
   }
+
+  if (hscale != 1.0) {
+    // TODO: adjust lw and rw accordingly
+    mw *= hscale;
+  }
 }
 
 void
@@ -361,6 +372,11 @@ cell_rep::compute_height (SI& mh, SI& bh, SI& th, SI xh) {
       th-= ((d + 1) >> 1);
     }
     else bh-= d;
+  }
+
+  if (vscale != 1.0) {
+    // TODO: adjust bh and th accordingly
+    mh *= vscale;
   }
 }
 

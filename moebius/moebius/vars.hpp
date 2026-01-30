@@ -229,6 +229,8 @@ extern string CELL_HMODE;
 extern string CELL_VMODE;
 extern string CELL_HALIGN;
 extern string CELL_VALIGN;
+extern string CELL_HSCALE;
+extern string CELL_VSCALE;
 extern string CELL_LSEP;
 extern string CELL_RSEP;
 extern string CELL_BSEP;

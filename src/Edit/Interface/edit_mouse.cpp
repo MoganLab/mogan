@@ -732,27 +732,22 @@ edit_interface_rep::table_scale_apply (SI x, SI y) {
         0.1, (double) (table_scale_initial_height + table_scale_start_y - y) /
                  (double) table_scale_initial_height);
 
-  array<int> extents= et->table_get_extents ();
-  int        rows= extents[0], cols= extents[1];
+  double current_hscale = 1.0;
+  double current_vscale = 1.0;
+  string hscale_str = et->table_get_format ("cell-hscale");
+  string vscale_str = et->table_get_format ("cell-vscale");
+  if (hscale_str != "") current_hscale = as_double (hscale_str);
+  if (vscale_str != "") current_vscale = as_double (vscale_str);
+  double new_hscale = current_hscale * scale_x;
+  double new_vscale = current_vscale * scale_y;
 
   if (scale_x != 1.0) {
-    SI col_width=
-        max ((SI) (table_scale_initial_width * scale_x) / cols, 16 * PIXEL);
-    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-hmode",
-                                 tree ("exact"));
-    et->table_set_format_region (
-        table_scale_path, 1, 1, -1, -1, "cell-width",
-        tree (as_string (col_width) * string ("tmpt")));
+    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-hscale",
+                                 tree (as_string (new_hscale)));
   }
-
   if (scale_y != 1.0) {
-    SI row_height=
-        max ((SI) (table_scale_initial_height * scale_y) / rows, 16 * PIXEL);
-    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-vmode",
-                                 tree ("exact"));
-    et->table_set_format_region (
-        table_scale_path, 1, 1, -1, -1, "cell-height",
-        tree (as_string (row_height) * string ("tmpt")));
+    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-vscale",
+                                 tree (as_string (new_vscale)));
   }
 
   table_resize_notify ();
