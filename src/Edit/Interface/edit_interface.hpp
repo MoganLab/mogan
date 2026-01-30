@@ -242,6 +242,7 @@ public:
   void      update_mouse_loci ();
   void      update_focus_loci ();
   bool      should_show_image_popup (tree t);
+  bool      should_show_code_popup (tree t);
 
   /* the footer */
   tree compute_text_footer (tree st);

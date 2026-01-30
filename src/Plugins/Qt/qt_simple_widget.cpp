@@ -16,6 +16,7 @@
 #include "qt_utilities.hpp"
 #include "qt_window_widget.hpp"
 
+#include "QTMCodePopup.hpp"
 #include "QTMCompletionPopup.hpp"
 #include "QTMImagePopup.hpp"
 #include "QTMMathCompletionPopup.hpp"
@@ -746,8 +747,10 @@ qt_simple_widget_rep::scroll_math_completion_popup_by (SI x, SI y) {
 }
 
 /******************************************************************************
- * Image popup support
- ******************************************************************************/
+
+ * * Image popup support
+
+ * ******************************************************************************/
 
 void
 qt_simple_widget_rep::ensure_image_popup () {
@@ -788,5 +791,53 @@ qt_simple_widget_rep::scroll_image_popup_by (SI x, SI y) {
     imagePopUp->scrollBy (p.x1, p.x2);
     qt_renderer_rep* ren= the_qt_renderer ();
     imagePopUp->updatePosition (ren);
+  }
+}
+
+/******************************************************************************
+
+ * * Code popup support
+
+ * ******************************************************************************/
+
+void
+qt_simple_widget_rep::ensure_code_popup () {
+  if (!codePopUp && canvas ()) {
+    codePopUp= new QTMCodePopup (canvas (), this);
+    if (is_empty (tm_style_sheet)) {
+      codePopUp->setStyle (qtmstyle ());
+    }
+  }
+}
+
+void
+qt_simple_widget_rep::show_code_popup (tree current_tree, rectangle selr,
+                                       double magf, int scroll_x, int scroll_y,
+                                       int canvas_x, int canvas_y) {
+  ensure_code_popup ();
+  codePopUp->setCodeTree (current_tree);
+  qt_renderer_rep* ren= the_qt_renderer ();
+  codePopUp->showCodePopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                            canvas_y);
+}
+
+void
+qt_simple_widget_rep::hide_code_popup () {
+  if (codePopUp) {
+    codePopUp->hide ();
+    codePopUp->setParent (nullptr);
+    codePopUp->deleteLater ();
+    codePopUp= nullptr;
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_code_popup_by (SI x, SI y) {
+  if (codePopUp) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    codePopUp->scrollBy (p.x1, p.x2);
+    qt_renderer_rep* ren= the_qt_renderer ();
+    codePopUp->updatePosition (ren);
   }
 }

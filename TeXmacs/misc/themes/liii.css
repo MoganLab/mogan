@@ -719,6 +719,31 @@ QToolButton#image-align-button:checked:hover {
 }
 
 /****************************************************************************
+* 代码悬浮菜单样式
+****************************************************************************/
+
+QWidget#code_popup {
+  background: #ffffff;
+  border: none;
+  border-radius: 8px;
+}
+
+QToolButton#code-popup-button {
+  background-color: transparent;
+  border: none;
+  padding: 4px 10px;
+  color: #1d1d1f;
+}
+
+QToolButton#code-popup-button:hover {
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+QToolButton#code-popup-button:pressed {
+  background-color: rgba(128, 128, 128, 0.5);
+}
+
+/****************************************************************************
 * 分组框样式
 ****************************************************************************/
 QGroupBox {
