@@ -14,6 +14,7 @@
 
 #include <QPainter>
 #include <QPen>
+#include <QTimer>
 #include <cmath>
 
 QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
@@ -108,6 +109,7 @@ QTMMathCompletionPopup::showMathCompletions (struct cursor cu, double magf,
   raise ();
   show ();
   this->adjustSize ();
+  QTimer::singleShot (0, this, [this] () { updatePosition (); });
 }
 
 void
