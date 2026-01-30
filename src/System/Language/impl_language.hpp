@@ -93,8 +93,13 @@ struct prog_language_rep : abstract_language_rep {
   void customize_path (tree config);
   tree get_parser_config (string lan, string key);
 
-  bool inline_comment_requires_space;
-  bool path_parser_enabled;
+  bool        inline_comment_requires_space;
+  bool        path_parser_enabled;
+  bool        string_start_disallow_after_alpha;
+  bool        string_start_disallow_after_digit;
+  bool        string_start_disallow_after_underscore;
+  array<char> string_start_disallow_after_chars;
+  bool        string_skip_escaped;
 };
 
 struct scheme_language_rep : language_rep {

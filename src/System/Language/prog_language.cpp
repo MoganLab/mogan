@@ -25,8 +25,13 @@ prog_language_rep::prog_language_rep (string name)
     : abstract_language_rep (name) {
   if (DEBUG_PARSER)
     debug_packrat << "Building the " * name * " language parser" << LF;
-  inline_comment_requires_space= false;
-  path_parser_enabled          = false;
+  inline_comment_requires_space         = false;
+  path_parser_enabled                   = false;
+  string_start_disallow_after_alpha     = false;
+  string_start_disallow_after_digit     = false;
+  string_start_disallow_after_underscore= false;
+  string_start_disallow_after_chars     = array<char> ();
+  string_skip_escaped                   = false;
 
   string use_modules= "(use-modules (code " * name * "-lang))";
   eval (use_modules);
@@ -164,6 +169,7 @@ prog_language_rep::customize_number (tree config) {
 void
 prog_language_rep::customize_string (tree config) {
   hashmap<string, string> pairs;
+  array<string>           double_escapes;
   int                     config_N= N (config);
   for (int i= 0; i < config_N; i++) {
     tree   feature  = config[i];
@@ -189,9 +195,30 @@ prog_language_rep::customize_string (tree config) {
         pairs (key)= key;
       }
     }
+    else if (name == "double_escape") {
+      for (int j= 0; j < feature_N; j++) {
+        string key= get_label (feature[j]);
+        double_escapes << key;
+      }
+    }
+    else if (name == "start_disallow_after") {
+      for (int j= 0; j < feature_N; j++) {
+        string key= get_label (feature[j]);
+        if (key == "alpha") string_start_disallow_after_alpha= true;
+        else if (key == "digit") string_start_disallow_after_digit= true;
+        else if (key == "underscore")
+          string_start_disallow_after_underscore= true;
+        else if (N (key) == 1) string_start_disallow_after_chars << key[0];
+      }
+    }
+    else if (name == "skip_escaped") {
+      string_skip_escaped= true;
+    }
   }
 
   string_parser.set_escaped_char_parser (escaped_char_parser);
+  string_parser.skip_escaped (string_skip_escaped);
+  string_parser.set_double_escapes (double_escapes);
   if (N (pairs) == 0) {
     pairs ("\"")= "\"";
     pairs ("\'")= "\'";
@@ -251,6 +278,35 @@ is_path_token_delim (char c) {
   return is_space (c) || c == '(' || c == ')' || c == '{' || c == '}' ||
          c == '[' || c == ']' || c == ';' || c == '|' || c == '&' || c == '<' ||
          c == '>';
+}
+
+static bool
+string_start_disallowed_after (prog_language_rep* lan, string s, int pos) {
+  if (pos < 0 || pos >= N (s)) return false;
+  if (s[pos] != '\'') return false;
+  if (!lan->string_start_disallow_after_alpha &&
+      !lan->string_start_disallow_after_digit &&
+      !lan->string_start_disallow_after_underscore &&
+      N (lan->string_start_disallow_after_chars) == 0)
+    return false;
+
+  int  i        = pos - 1;
+  bool had_space= false;
+  while (i >= 0 && is_space (s[i])) {
+    had_space= true;
+    i--;
+  }
+  if (i < 0) return false;
+  if (had_space) return false;
+  char prev= s[i];
+
+  if (lan->string_start_disallow_after_alpha && is_alpha (prev)) return true;
+  if (lan->string_start_disallow_after_digit && is_digit (prev)) return true;
+  if (lan->string_start_disallow_after_underscore && prev == '_') return true;
+  for (int j= 0; j < N (lan->string_start_disallow_after_chars); j++) {
+    if (lan->string_start_disallow_after_chars[j] == prev) return true;
+  }
+  return false;
 }
 
 static bool
@@ -331,7 +387,8 @@ prog_language_rep::advance (tree t, int& pos) {
     current_parser= preprocessor_parser.get_parser_name ();
     return &tp_normal_rep;
   }
-  if (string_parser.parse (s, pos)) {
+  if (!string_start_disallowed_after (this, s, pos) &&
+      string_parser.parse (s, pos)) {
     current_parser= string_parser.get_parser_name ();
     return &tp_normal_rep;
   }

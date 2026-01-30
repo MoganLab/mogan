@@ -99,7 +99,10 @@
   `(,(string->symbol key)
     (bool_features
       "escape_char_after_backslash")
-    (escape_sequences "\\" "\"" "n" "t" "b" "r" "f" "a" "v" "0")))
+    (escape_sequences "\\" "\"" "n" "t" "b" "r" "f" "a" "v" "0")
+    (double_escape "'")
+    (start_disallow_after
+      "alpha" "digit" "underscore" ")" "]" "}" "." "'")))
 
 ;;------------------------------------------------------------------------------
 ;; 注释格式定义

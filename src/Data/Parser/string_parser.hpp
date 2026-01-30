@@ -25,6 +25,7 @@ public:
   string to_string ();
 
   void set_pairs (hashmap<string, string> p_pairs);
+  void set_double_escapes (array<string> p_double_escapes);
 
   bool unfinished ();
   void reset ();
@@ -59,8 +60,10 @@ private:
   bool                    use_esc_parser;
   bool                    m_escaped;
   bool                    m_skip_escaped;
+  array<string>           m_double_escapes;
 
   void do_parse (string s, int& pos);
+  bool can_double_escape (string closing);
 };
 
 #endif

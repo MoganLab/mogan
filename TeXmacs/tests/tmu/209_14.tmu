@@ -1,0 +1,226 @@
+<TMU|<tuple|1.1.0|2026.1.2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|matlab>>
+
+<\body>
+  <\matlab-code>
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % MATLAB Quote / Transpose / String Highlight Test
+
+    % For Mogan / TeXmacs syntax highlighting
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \;
+
+    clc;
+
+    clear;
+
+    \;
+
+    %% 1. Basic string tests
+
+    \;
+
+    s1 = 'hello';
+
+    s2 = 'world';
+
+    s3 = 'it''s ok';
+
+    s4 = '';
+
+    s5 = '12345';
+
+    ['a' 'b']
+
+    disp(s1);
+
+    disp(s3);
+
+    \;
+
+    \;
+
+    %% 2. Basic transpose tests
+
+    \;
+
+    A = rand(3,3);
+
+    B = A';
+
+    C = A'';
+
+    D = (A + B)';
+
+    E = A(1,:)';
+
+    F = A(:,2)';
+
+    \;
+
+    disp(B);
+
+    disp(D);
+
+    \;
+
+    \;
+
+    %% 3. Multiply + transpose
+
+    \;
+
+    x = rand(3,1);
+
+    y = rand(3,1);
+
+    \;
+
+    r1 = x' * y;
+
+    r2 = x'*y;
+
+    r3 = (x + y)' * x;
+
+    \;
+
+    disp(r1);
+
+    \;
+
+    \;
+
+    %% 4. String + transpose mixed
+
+    \;
+
+    s = 'abc';
+
+    T = A';
+
+    \;
+
+    u = 'x' + A'; \ \ \ \ \ \ \ \ \ \ % string + transpose
+
+    v = ['a','b','c']'; \ \ \ \ % char array + transpose
+
+    \;
+
+    disp(s);
+
+    disp(T);
+
+    \;
+
+    \;
+
+    %% 5. Function arguments
+
+    \;
+
+    sprintf('value = %f', pi);
+
+    disp('hello world');
+
+    \;
+
+    \;
+
+    %% 6. Complex nested cases
+
+    \;
+
+    M = rand(4,4);
+
+    \;
+
+    result = (M(1:2,2:3)' * M(3:4,1:2))';
+
+    \;
+
+    name = 'matrix';
+
+    msg \ = ['Result of ', name, ' is OK'];
+
+    \;
+
+    disp(msg);
+
+    \;
+
+    %% 7. Edge cases
+
+    \;
+
+    A2 = rand(2);
+
+    \;
+
+    B1 = A2'; C1 = A2'; D1 = A2';
+
+    \;
+
+    s6 = 'a'; t6 = 'b';
+
+    \;
+
+    x1 = (A2')';
+
+    y1 = ((A2)')';
+
+    \;
+
+    z1 = A2'';
+
+    \;
+
+    \;
+
+    %% 8. Minimal reproduction cases
+
+    \;
+
+    P = rand(3);
+
+    \;
+
+    Q = P';
+
+    R = 'abc';
+
+    S = P' + 1;
+
+    T2 = 'x' + P';
+
+    \;
+
+    \;
+
+    %% 9. Visual check block
+
+    \;
+
+    disp('===== Highlight Check Finished =====');
+
+    \;
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % End of test file
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    \;
+  </matlab-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

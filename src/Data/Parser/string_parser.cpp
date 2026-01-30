@@ -14,7 +14,8 @@
 #include "iterator.hpp"
 
 string_parser_rep::string_parser_rep () {
-  use_esc_parser= false;
+  use_esc_parser  = false;
+  m_double_escapes= array<string> ();
   reset ();
 }
 
@@ -71,7 +72,13 @@ string_parser_rep::do_parse (string s, int& pos) {
 
   // Advance until the end or the escaped sequence
   string closing= m_pairs (m_start);
-  while (pos < N (s) && !test (s, pos, closing)) {
+  while (pos < N (s)) {
+    if (can_double_escape (closing) && test (s, pos, closing) &&
+        test (s, pos + N (closing), closing)) {
+      pos+= 2 * N (closing);
+      continue;
+    }
+    if (test (s, pos, closing)) break;
     if (use_esc_parser && m_esc_parser.can_parse (s, pos)) {
       if (m_skip_escaped) {
         m_esc_parser.parse (s, pos);
@@ -110,6 +117,11 @@ string_parser_rep::set_pairs (hashmap<string, string> p_pairs) {
   m_pairs= p_pairs;
 }
 
+void
+string_parser_rep::set_double_escapes (array<string> p_double_escapes) {
+  m_double_escapes= p_double_escapes;
+}
+
 bool
 string_parser_rep::escaped () {
   return m_escaped;
@@ -136,6 +148,14 @@ string_parser_rep::skip_escaped (bool skip) {
   m_skip_escaped= skip;
 }
 
+bool
+string_parser_rep::can_double_escape (string closing) {
+  for (int i= 0; i < N (m_double_escapes); i++) {
+    if (m_double_escapes[i] == closing) return true;
+  }
+  return false;
+}
+
 string
 string_parser_rep::to_string () {
   string ret= parser_rep::to_string ();
@@ -144,6 +164,11 @@ string_parser_rep::to_string () {
   iterator<string> iter= iterate (m_pairs);
   while (iter->busy ()) {
     ret << "    - " << iter->next () << "\n";
+  }
+  ret << "  double_escape:"
+      << "\n";
+  for (int i= 0; i < N (m_double_escapes); i++) {
+    ret << "    - " << m_double_escapes[i] << "\n";
   }
   ret << m_esc_parser.to_string ();
   return ret;
