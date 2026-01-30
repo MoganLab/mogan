@@ -557,27 +557,26 @@ detect_right_drag (void* handle, string type, SI x, SI y, time_t t, int m,
  ******************************************************************************/
 
 bool
-edit_interface_rep::table_resize_hit (SI x, SI y, table_hit& hit) {
+edit_interface_rep::table_line_hit (SI x, SI y, table_hit& hit) {
   rectangles rs;
   tree       r= eb->message (tree ("table-loc?"), x, y, rs);
   if (!is_func (r, TUPLE) || r[0] != "table-loc") return false;
 
-  string orient= as_string (r[1]);
-  if ((orient != "col" && orient != "row") || N (r) < 10) return false;
+  hit.orient   = as_string (r[1]);
+  hit.wide_flag= (as_string (r[N (r) - 1]) == "wide");
+  if ((hit.orient != "col" && hit.orient != "row") || N (r) < 10) return false;
 
-  hit.vertical   = (orient == "col");
   hit.index      = as_int (r[2]);
   hit.first_size = as_int (r[4]);
   hit.second_size= as_int (r[5]);
   hit.fp         = as_path (as_string (r[8]));
-  hit.wide_flag  = (as_string (r[9]) == "wide");
 
   if (is_nil (hit.fp) || hit.index <= 0) return false;
   return true;
 }
 
 void
-edit_interface_rep::table_resize_start (const table_hit& hit, SI x, SI y) {
+edit_interface_rep::table_line_start (const table_hit& hit, SI x, SI y) {
   path sp= find_innermost_scroll (eb, tp);
   path tp= tree_path (sp, x, y, 0);
   while (!is_nil (tp) && !has_subtree (et, tp))
@@ -587,59 +586,59 @@ edit_interface_rep::table_resize_start (const table_hit& hit, SI x, SI y) {
   path fp= ::table_search_format (et, tp);
   if (is_nil (fp)) return;
 
-  table_resizing          = true;
-  table_resize_vertical   = hit.vertical;
-  table_resize_path       = fp;
-  table_resize_index      = hit.index;
-  table_resize_start_x    = x;
-  table_resize_start_y    = y;
-  table_resize_first_size = hit.first_size;
-  table_resize_second_size= hit.second_size;
-  table_resize_wide_flag  = hit.wide_flag;
-  table_resize_mark       = new_marker ();
-  mark_start (table_resize_mark);
+  table_resizing_type   = 1;
+  table_line_vertical   = hit.orient == "col";
+  table_line_path       = fp;
+  table_line_index      = hit.index;
+  table_line_start_x    = x;
+  table_line_start_y    = y;
+  table_line_first_size = hit.first_size;
+  table_line_second_size= hit.second_size;
+  table_line_wide_flag  = hit.wide_flag;
+  table_line_mark       = new_marker ();
+  mark_start (table_line_mark);
 }
 
 void
-edit_interface_rep::table_resize_apply (SI x, SI y) {
-  if (!table_resizing || is_nil (table_resize_path)) return;
+edit_interface_rep::table_line_apply (SI x, SI y) {
+  if (table_resizing_type != 1 || is_nil (table_line_path)) return;
 
   edit_table_rep* et= dynamic_cast<edit_table_rep*> (this);
   if (et == nullptr) return;
 
-  SI delta   = table_resize_vertical ? (x - table_resize_start_x)
-                                     : (table_resize_start_y - y);
+  SI delta=
+      table_line_vertical ? (x - table_line_start_x) : (table_line_start_y - y);
   SI min_size= 16 * PIXEL;
 
-  SI first = table_resize_first_size + delta;
-  SI second= table_resize_second_size - delta;
+  SI first = table_line_first_size + delta;
+  SI second= table_line_second_size - delta;
 
-  if (table_resize_vertical) {
-    if (table_resize_wide_flag && table_resize_second_size != -1) {
+  if (table_line_vertical) {
+    if (table_line_wide_flag && table_line_second_size != -1) {
       if (first < min_size || second < min_size) return;
 
-      int col1= table_resize_index;
-      int col2= table_resize_index + 1;
+      int col1= table_line_index;
+      int col2= table_line_index + 1;
 
-      et->table_set_format_region (table_resize_path, 1, col1, -1, col1,
+      et->table_set_format_region (table_line_path, 1, col1, -1, col1,
                                    "cell-hmode", tree ("exact"));
-      et->table_set_format_region (table_resize_path, 1, col2, -1, col2,
+      et->table_set_format_region (table_line_path, 1, col2, -1, col2,
                                    "cell-hmode", tree ("exact"));
-      et->table_set_format_region (table_resize_path, 1, col1, -1, col1,
+      et->table_set_format_region (table_line_path, 1, col1, -1, col1,
                                    "cell-width",
                                    tree (as_string (first) * string ("tmpt")));
-      et->table_set_format_region (table_resize_path, 1, col2, -1, col2,
+      et->table_set_format_region (table_line_path, 1, col2, -1, col2,
                                    "cell-width",
                                    tree (as_string (second) * string ("tmpt")));
     }
     else {
       if (first < min_size) return;
 
-      int col= table_resize_index;
+      int col= table_line_index;
 
-      et->table_set_format_region (table_resize_path, 1, col, -1, col,
+      et->table_set_format_region (table_line_path, 1, col, -1, col,
                                    "cell-hmode", tree ("exact"));
-      et->table_set_format_region (table_resize_path, 1, col, -1, col,
+      et->table_set_format_region (table_line_path, 1, col, -1, col,
                                    "cell-width",
                                    tree (as_string (first) * string ("tmpt")));
     }
@@ -647,11 +646,11 @@ edit_interface_rep::table_resize_apply (SI x, SI y) {
   else {
     if (first < min_size) return;
 
-    int row= table_resize_index;
+    int row= table_line_index;
 
-    et->table_set_format_region (table_resize_path, row, 1, row, -1,
-                                 "cell-vmode", tree ("exact"));
-    et->table_set_format_region (table_resize_path, row, 1, row, -1,
+    et->table_set_format_region (table_line_path, row, 1, row, -1, "cell-vmode",
+                                 tree ("exact"));
+    et->table_set_format_region (table_line_path, row, 1, row, -1,
                                  "cell-height",
                                  tree (as_string (first) * string ("tmpt")));
   }
@@ -660,14 +659,112 @@ edit_interface_rep::table_resize_apply (SI x, SI y) {
 }
 
 void
-edit_interface_rep::table_resize_stop () {
-  if (table_resize_mark != 0.0) {
-    mark_end (table_resize_mark);
-    table_resize_mark= 0.0;
+edit_interface_rep::table_line_stop () {
+  if (table_line_mark != 0.0) {
+    mark_end (table_line_mark);
+    table_line_mark= 0.0;
   }
-  table_resizing        = false;
-  table_resize_path     = path ();
-  table_resize_wide_flag= false;
+  table_resizing_type = 0;
+  table_line_path     = path ();
+  table_line_wide_flag= false;
+}
+
+/******************************************************************************
+ * mouse detection for table scale resizing
+ ******************************************************************************/
+
+bool
+edit_interface_rep::table_scale_hit (SI x, SI y) {
+  if (is_zero (last_table_brec) || last_table_hr == 0) return false;
+
+  SI x1= last_table_brec->x1;
+  SI y1= last_table_brec->y1 + 2 * last_table_hr;
+  SI x2= last_table_brec->x2 - 2 * last_table_hr;
+  SI y2= last_table_brec->y2;
+
+  SI hs= last_table_hr;
+
+  SI hx[3]= {(x1 + x2) / 2, x2 + hs, x2 + hs};
+  SI hy[3]= {y1 - hs, (y1 + y2) / 2, y1 - hs};
+
+  int ed= table_scale_wide_flag ? 1 : 3;
+  for (int i= 0; i < ed; i++)
+    if (abs (x - hx[i]) <= hs && abs (y - hy[i]) <= hs) {
+      table_scale_handle_type= i + 1;
+      return true;
+    }
+
+  return false;
+}
+
+void
+edit_interface_rep::table_scale_start (SI x, SI y) {
+  SI x1= last_table_brec->x1;
+  SI y1= last_table_brec->y1 + 2 * last_table_hr;
+  SI x2= last_table_brec->x2 - 2 * last_table_hr;
+  SI y2= last_table_brec->y2;
+
+  table_resizing_type       = 2;
+  table_scale_start_x       = x;
+  table_scale_start_y       = y;
+  table_scale_initial_width = x2 - x1;
+  table_scale_initial_height= y2 - y1;
+  table_scale_mark          = new_marker ();
+  mark_start (table_scale_mark);
+}
+
+void
+edit_interface_rep::table_scale_apply (SI x, SI y) {
+  if (table_resizing_type != 2 || is_nil (table_scale_path)) return;
+
+  edit_table_rep* et= dynamic_cast<edit_table_rep*> (this);
+  if (et == nullptr) return;
+
+  double scale_x= 1.0, scale_y= 1.0;
+
+  if (table_scale_handle_type == 2 || table_scale_handle_type == 3)
+    scale_x= max (
+        0.1, (double) (table_scale_initial_width + x - table_scale_start_x) /
+                 (double) table_scale_initial_width);
+
+  if (table_scale_handle_type == 1 || table_scale_handle_type == 3)
+    scale_y= max (
+        0.1, (double) (table_scale_initial_height + table_scale_start_y - y) /
+                 (double) table_scale_initial_height);
+
+  array<int> extents= et->table_get_extents ();
+  int        rows= extents[0], cols= extents[1];
+
+  if (scale_x != 1.0) {
+    SI col_width=
+        max ((SI) (table_scale_initial_width * scale_x) / cols, 16 * PIXEL);
+    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-hmode",
+                                 tree ("exact"));
+    et->table_set_format_region (
+        table_scale_path, 1, 1, -1, -1, "cell-width",
+        tree (as_string (col_width) * string ("tmpt")));
+  }
+
+  if (scale_y != 1.0) {
+    SI row_height=
+        max ((SI) (table_scale_initial_height * scale_y) / rows, 16 * PIXEL);
+    et->table_set_format_region (table_scale_path, 1, 1, -1, -1, "cell-vmode",
+                                 tree ("exact"));
+    et->table_set_format_region (
+        table_scale_path, 1, 1, -1, -1, "cell-height",
+        tree (as_string (row_height) * string ("tmpt")));
+  }
+
+  table_resize_notify ();
+}
+
+void
+edit_interface_rep::table_scale_stop () {
+  if (table_scale_mark != 0.0) {
+    mark_end (table_scale_mark);
+    table_scale_mark= 0.0;
+  }
+  table_resizing_type= 0;
 }
 
 /******************************************************************************
@@ -754,8 +851,17 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   static path      current_path  = path ();
   static rectangle selr          = rectangle ();
   if (type == "move") {
-    if (!is_zero (last_image_brec)) { // already clicked on image
-      // 检测鼠标是否在handles上
+    if (!is_zero (last_table_brec)) {
+      // 检测鼠标是否在表格 handles 上
+      if (table_scale_hit (x, y)) {
+        over_handles= true;
+        if (table_scale_handle_type == 1) handle_cursor= "size_ver";
+        else if (table_scale_handle_type == 2) handle_cursor= "size_hor";
+        else if (table_scale_handle_type == 3) handle_cursor= "size_fdiag";
+      }
+    }
+    else if (!is_zero (last_image_brec)) { // already clicked on image
+      // 检测鼠标是否在图片 handles 上
       SI        handle_r= last_image_hr > 0 ? last_image_hr : 10 * pixel;
       rectangle h       = last_image_brec;
       SI        x1      = h->x1 + handle_r;
@@ -867,21 +973,35 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     };
   }
 
-  // table line resizing
+  // table line & scale resizing
   if ((type == "press-left" || type == "start-drag-left") && mods <= 1 &&
-      !table_resizing) {
+      !table_resizing_type) {
     table_hit hit;
-    if (table_resize_hit (x, y, hit)) {
-      table_resize_start (hit, x, y);
+    if (table_line_hit (x, y, hit)) {
+      table_line_start (hit, x, y);
+      return;
+    }
+    if (table_scale_hit (x, y)) {
+      table_scale_start (x, y);
       return;
     }
   }
-  if (type == "dragging-left" && table_resizing) {
-    table_resize_apply (x, y);
+  if (type == "dragging-left" && table_resizing_type == 1) {
+    table_line_apply (x, y);
     return;
   }
-  if ((type == "release-left" || type == "end-drag-left") && table_resizing) {
-    table_resize_stop ();
+  if ((type == "release-left" || type == "end-drag-left") &&
+      table_resizing_type == 1) {
+    table_line_stop ();
+    return;
+  }
+  if (type == "dragging-left" && table_resizing_type == 2) {
+    table_scale_apply (x, y);
+    return;
+  }
+  if ((type == "release-left" || type == "end-drag-left") &&
+      table_resizing_type == 2) {
+    table_scale_stop ();
     return;
   }
 

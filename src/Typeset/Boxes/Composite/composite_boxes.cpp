@@ -465,7 +465,8 @@ table_box_rep::message (tree t, SI x, SI y, rectangles& rs) {
       if (child_res != "") return child_res;
 
       tree res (TUPLE);
-      res << tree ("table-loc") << tree ("cell");
+      res << tree ("table-loc") << tree ("cell")
+          << tree (wide_flag ? "wide" : "plain");
       return res;
     }
   }

@@ -181,6 +181,7 @@ edit_interface_rep::draw_selection (renderer ren, rectangle r) {
   }
 
   draw_image_resize_handles (ren);
+  draw_table_resize_handles (ren);
 }
 
 void
@@ -244,6 +245,78 @@ edit_interface_rep::draw_image_resize_handles (renderer ren) {
     ren->set_brush (brush (white));
     ren->fill_arc (cx - inner_r, cy - inner_r, cx + inner_r, cy + inner_r, 0,
                    64 * 360);
+  }
+}
+
+void
+edit_interface_rep::draw_table_resize_handles (renderer ren) {
+  // 鼠标位于表格中时，绘制 handles
+  SI        hs            = 8 * ren->pixel; // handles 半径（正方形半边长）
+  rectangle new_table_brec= rectangle (0, 0, 0, 0);
+  SI        x1= 0, y1= 0, x2= 0, y2= 0, mx= 0, my= 0;
+  bool      have_bbox= false;
+
+  // 检测当前路径往上的祖先有没有是 TABLE 的
+  for (path p= path_up (tp); !is_nil (p) && p != rp; p= path_up (p)) {
+    tree st= subtree (et, p);
+    if (!is_func (st, TABLE)) continue;
+
+    selection sel= eb->find_check_selection (p * 0, p * 1);
+    if (!sel->valid || is_nil (sel->rs)) break;
+
+    table_scale_path= ::table_search_format (et, p); // 这里就可以缓存 path 了
+
+    rectangle bbox= least_upper_bound (sel->rs); // 获取盒子边界
+    x1            = bbox->x1;
+    y1            = bbox->y1;
+    x2            = bbox->x2;
+    y2            = bbox->y2;
+    mx            = (x1 + x2) / 2;
+    my            = (y1 + y2) / 2;
+    new_table_brec= rectangle (x1, y1 - 2 * hs, x2 + 2 * hs, y2);
+    have_bbox     = true;
+    break; // 只处理最近的 TABLE 祖先
+  }
+
+  if (new_table_brec != last_table_brec) {
+    if (!is_zero (last_table_brec)) invalidate (last_table_brec);
+    if (!is_zero (new_table_brec)) invalidate (new_table_brec);
+    last_table_brec= new_table_brec;
+  }
+
+  if (!have_bbox) { // 不用画，但要设置缓存
+    last_table_hr= 0;
+    return;
+  }
+  last_table_hr= hs;
+
+  // 3 个 handles：右侧、下侧、右下角
+  color border_col= get_env_color (FOCUS_COLOR);
+  SI    border_w  = max (2 * ren->pixel, hs / 3);
+
+  // 3 个点分别是：下侧中点、右侧中点、右下角
+  SI hx[3]= {(x1 + x2) / 2, x2 + hs, x2 + hs};
+  SI hy[3]= {y1 - hs, (y1 + y2) / 2, y1 - hs};
+
+  // 通过光标位置定位表格信息
+  table_hit current_hit;
+  cursor    current_cursor= get_cursor ();
+  if (current_cursor->valid)
+    table_line_hit (current_cursor->ox, current_cursor->oy, current_hit);
+  table_scale_wide_flag= current_hit.wide_flag;
+
+  int ed= table_scale_wide_flag ? 1 : 3;
+  for (int i= 0; i < ed; i++) {
+    SI cx= hx[i], cy= hy[i];
+
+    // 外正方形作为边框
+    ren->set_brush (brush (border_col));
+    ren->fill (cx - hs, cy - hs, cx + hs, cy + hs);
+
+    // 内正方形作为填充（留出边框）
+    SI inner_hs= max (hs - border_w, ren->pixel);
+    ren->set_brush (brush (white));
+    ren->fill (cx - inner_hs, cy - inner_hs, cx + inner_hs, cy + inner_hs);
   }
 }
 

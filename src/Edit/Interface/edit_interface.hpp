@@ -74,31 +74,45 @@ protected:
   int        mouse_adjusting; // mask with active key modifiers upon click
   rectangles selection_rects;
   struct table_hit {
-    bool vertical;
-    path fp;
-    int  index;
-    SI   first_size;
-    SI   second_size;
-    bool wide_flag;
+    string orient;
+    path   fp;
+    int    index;
+    SI     first_size;
+    SI     second_size;
+    bool   wide_flag;
   };
-  bool              table_resizing          = false;
-  bool              table_resize_vertical   = false;
-  path              table_resize_path       = path ();
-  int               table_resize_index      = 0;
-  SI                table_resize_start_x    = 0;
-  SI                table_resize_start_y    = 0;
-  SI                table_resize_first_size = 0;
-  SI                table_resize_second_size= 0;
-  bool              table_resize_wide_flag  = false;
-  double            table_resize_mark       = 0.0;
-  bool              table_resize_hit (SI x, SI y, table_hit& hit);
-  void              table_resize_start (const table_hit& hit, SI x, SI y);
-  void              table_resize_apply (SI x, SI y);
-  void              table_resize_stop ();
+  int    table_resizing_type= 0; // 0: N/A; 1: line resizing; 2: scale resizing
+  bool   table_line_vertical= false;
+  path   table_line_path    = path ();
+  int    table_line_index   = 0;
+  SI     table_line_start_x = 0;
+  SI     table_line_start_y = 0;
+  SI     table_line_first_size = 0;
+  SI     table_line_second_size= 0;
+  bool   table_line_wide_flag  = false; // 用于格线移动的标记，只在点击时更新
+  double table_line_mark       = 0.0;
+  bool   table_line_hit (SI x, SI y, table_hit& hit);
+  void   table_line_start (const table_hit& hit, SI x, SI y);
+  void   table_line_apply (SI x, SI y);
+  void   table_line_stop ();
+  int    table_scale_handle_type   = 0; // 0: N/A; 1: 下方; 2: 右方; 3: 右下方
+  path   table_scale_path          = path (); // 重绘时实时更新
+  SI     table_scale_start_x       = 0;
+  SI     table_scale_start_y       = 0;
+  SI     table_scale_initial_width = 0;
+  SI     table_scale_initial_height= 0;
+  bool   table_scale_wide_flag= false; // 用于整体缩放的标记，重绘时实时更新
+  double table_scale_mark     = 0.0;
+  bool   table_scale_hit (SI x, SI y);
+  void   table_scale_start (SI x, SI y);
+  void   table_scale_apply (SI x, SI y);
+  void   table_scale_stop ();
   array<rectangles> alt_selection_rects;
   rectangle         last_visible;
   rectangle         last_image_brec; // 图片 bbox 缓存
   SI                last_image_hr;   // 图片 handle 半径缓存
+  rectangle         last_table_brec; // 表格 bbox 缓存
+  SI                last_table_hr;   // 表格 handles 半径缓存
   rectangles        env_rects;
   rectangles        foc_rects;
   rectangles        sem_rects;
@@ -164,6 +178,7 @@ public:
   void draw_cursor (renderer ren);
   void draw_selection (renderer ren, rectangle r);
   void draw_image_resize_handles (renderer ren);
+  void draw_table_resize_handles (renderer ren);
   void draw_graphics (renderer ren);
   void draw_pre (renderer win, renderer ren, rectangle r);
   void draw_post (renderer win, renderer ren, rectangle r);
