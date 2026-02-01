@@ -12,7 +12,9 @@
 #include "Boxes/construct.hpp"
 #include "analyze.hpp"
 #include "env.hpp"
+#include "font.hpp"
 #include "page_type.hpp"
+#include "tm_debug.hpp"
 #include "typesetter.hpp"
 
 using namespace moebius;
@@ -487,9 +489,10 @@ edit_env_rep::get_art_box_parameters (tree t) {
  * Various font sizes for scripts
  ******************************************************************************/
 
-static array<int>
-determine_sizes (tree szt, int sz) {
-  array<int> r;
+static array<double>
+determine_sizes (tree szt, double sz) {
+  bench_start ("determine_sizes");
+  array<double> r;
   r << sz;
   if (is_tuple (szt))
     for (int i= 0; i < N (szt); i++)
@@ -498,7 +501,7 @@ determine_sizes (tree szt, int sz) {
           for (int j= 1; j < N (szt[i]); j++)
             if (is_atomic (szt[i][j])) {
               string s= szt[i][j]->label;
-              if (is_int (s)) r << as_int (s);
+              if (is_int (s)) r << (double) as_int (s);
               else if (starts (s, "*")) {
                 s       = s (1, N (s));
                 double x= 1.0;
@@ -507,28 +510,40 @@ determine_sizes (tree szt, int sz) {
                     is_double (s (d + 1, N (s))))
                   x= as_double (s (0, d)) / as_double (s (d + 1, N (s)));
                 else if (is_double (s)) x= as_double (s);
-                int xsz= (int) ceil ((x - 0.001) * sz);
+                double xsz= ceil ((x - 0.001) * sz);
                 r << xsz;
               }
             }
           // cout << szt << ", " << sz << " -> " << r << LF;
+          bench_cumul ("determine_sizes");
           return r;
         }
   r << script (sz, 1);
   r << script (sz, 2);
   // cout << szt << ", " << sz << " -> " << r << LF;
+  bench_cumul ("determine_sizes");
   return r;
 }
 
-int
-edit_env_rep::get_script_size (int sz, int level) {
-  while (sz >= N (size_cache)) {
-    int xsz= N (size_cache);
+double
+edit_env_rep::get_script_size (double sz, int level) {
+  bench_start ("get_script_size");
+  double result= 0.0;
+
+  sz= normalize_half_multiple_size (sz);
+  // 将0.5倍数转换为整数索引（乘以2）
+  int isz= (int) (sz * 2.0);
+  while (isz >= N (size_cache)) {
+    // 需要为整数尺寸 xsz/2.0 计算缓存
+    double xsz= (double) N (size_cache) / 2.0;
     size_cache << determine_sizes (math_font_sizes, xsz);
   }
-  array<int>& a (size_cache[sz]);
-  if (level < N (a)) return a[level];
-  else return a[N (a) - 1];
+  array<double>& a (size_cache[isz]);
+  if (level < N (a)) result= a[level];
+  else result= a[N (a) - 1];
+
+  bench_cumul ("get_script_size");
+  return result;
 }
 
 /******************************************************************************
@@ -537,8 +552,8 @@ edit_env_rep::get_script_size (int sz, int level) {
 
 void
 edit_env_rep::update_font () {
-  fn_size= (int) (((double) get_int (FONT_BASE_SIZE)) * get_double (FONT_SIZE) +
-                  0.5);
+  double base_size= get_double (FONT_BASE_SIZE);
+  fn_size= base_size * get_double (FONT_SIZE); // fn_size现在应该是double类型
   switch (mode) {
   case 0:
   case 1:
@@ -914,7 +929,7 @@ edit_env_rep::update () {
   preamble       = get_bool (PREAMBLE);
   spacing_policy = get_spacing_id (env[SPACING_POLICY]);
   math_font_sizes= env[MATH_FONT_SIZES];
-  size_cache     = array<array<int>> ();
+  size_cache     = array<array<double>> ();
 
   update_mode ();
   update_info_level ();
@@ -997,7 +1012,7 @@ edit_env_rep::update (string s) {
     break;
   case Env_Font_Sizes:
     math_font_sizes= env[MATH_FONT_SIZES];
-    size_cache     = array<array<int>> ();
+    size_cache     = array<array<double>> ();
     update_font ();
     break;
   case Env_Index_Level:

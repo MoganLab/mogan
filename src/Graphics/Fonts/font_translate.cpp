@@ -290,9 +290,12 @@ find_closest (string& family, string& variant, string& series, string& shape,
 
 font
 closest_font (string family, string variant, string series, string shape,
-              int sz, int dpi, int attempt) {
-  string extra=
-      as_string (sz) * "-" * as_string (dpi) * "-" * as_string (attempt);
+              double sz, int dpi, int attempt) {
+  // 浮点尺寸字符串处理：整数如"10"，0.5倍数如"10.5"
+  string sz_str;
+  if (sz == round (sz)) sz_str= as_string ((int) sz); // 整数
+  else sz_str= as_string (sz);                        // 0.5倍数，保留一位小数
+  string extra= sz_str * "-" * as_string (dpi) * "-" * as_string (attempt);
   string s= family * "-" * variant * "-" * series * "-" * shape * "-" * extra;
   if (font::instances->contains (s)) return font (s);
   string orig_family= family;

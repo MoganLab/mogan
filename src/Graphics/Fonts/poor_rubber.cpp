@@ -91,7 +91,8 @@ poor_rubber_font_rep::get_font (int nr) {
   else if (nr == 2 * MAGNIFIED_NUMBER + 2 || nr == 2 * MAGNIFIED_NUMBER + 3) {
     int    hdpi= (72 * base->wpt + (PIXEL / 2)) / PIXEL;
     int    vdpi= (72 * base->hpt + (PIXEL / 2)) / PIXEL;
-    font   vfn= virtual_font (base, "emu-large", base->size, hdpi, vdpi, false);
+    font   vfn = virtual_font (base, "emu-large", base->effective_size (), hdpi,
+                               vdpi, false);
     double zoomy= pow (2.0, ((double) MAGNIFIED_NUMBER) / 4.0);
     double zoomx= sqrt (zoomy);
     if ((nr & 1) == 1) zoomx= sqrt (zoomx);
@@ -101,7 +102,8 @@ poor_rubber_font_rep::get_font (int nr) {
   else if (nr == 2 * MAGNIFIED_NUMBER + 5) {
     int  hdpi = (72 * this->wpt + (PIXEL / 2)) / PIXEL;
     int  vdpi = (72 * this->hpt + (PIXEL / 2)) / PIXEL;
-    font vfn  = virtual_font (this, "emu-large", this->size, hdpi, vdpi, false);
+    font vfn  = virtual_font (this, "emu-large", this->effective_size (), hdpi,
+                              vdpi, false);
     larger[nr]= vfn;
   }
   else larger[nr]= rubber_unicode_font (base);

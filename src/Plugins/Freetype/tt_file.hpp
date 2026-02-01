@@ -23,7 +23,7 @@ url        tt_font_find (string font_basename);
 string     tt_find_name (string name, int size);
 
 #ifdef USE_FREETYPE
-font_glyphs tt_font_glyphs (string family, int size, int hdpi, int vdpi);
+font_glyphs tt_font_glyphs (string family, double size, int hdpi, int vdpi);
 #endif // USE_FREETYPE
 
 #endif // TT_FILE_H

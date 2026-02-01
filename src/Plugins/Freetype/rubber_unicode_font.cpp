@@ -138,10 +138,10 @@ rubber_unicode_font_rep::get_font (int nr) {
     subfn[nr]= font_rep::make_rubber_font (base);
     break;
   case 6:
-    int hdpi= (72 * base->wpt + (PIXEL / 2)) / PIXEL;
-    int vdpi= (72 * base->hpt + (PIXEL / 2)) / PIXEL;
-    subfn[nr]=
-        virtual_font (base, virt->res_name, base->size, hdpi, vdpi, false);
+    int hdpi = (72 * base->wpt + (PIXEL / 2)) / PIXEL;
+    int vdpi = (72 * base->hpt + (PIXEL / 2)) / PIXEL;
+    subfn[nr]= virtual_font (base, virt->res_name, base->effective_size (),
+                             hdpi, vdpi, false);
     break;
   }
   return subfn[nr];

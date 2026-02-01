@@ -228,8 +228,8 @@ concater_rep::typeset_sound (tree t, path ip) {
     sound      = resolve (relative (env->base_file_name, sound_u));
   }
   if (!is_none (sound)) {
-    int  sz= script (env->fn_size, env->index_level);
-    font gfn (tex_font ("cmr", sz, (int) (env->magn * env->dpi)));
+    double sz= script (env->fn_size, env->index_level);
+    font   gfn (tex_font ("cmr", sz, (int) (env->magn * env->dpi)));
     print (sound_box (ip, pl, sound, gfn->yx));
     flag ("sound", ip, brown);
   }

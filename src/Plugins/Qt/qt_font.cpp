@@ -26,18 +26,26 @@
  * The implementation
  ******************************************************************************/
 
-qt_font_rep::qt_font_rep (string name, string family2, int size2, int dpi2)
+qt_font_rep::qt_font_rep (string name, string family2, double size2, int dpi2)
     : font_rep (name), family (family2), size (size2), dpi (dpi2),
       qfn (to_qstring (family), size),
       // qfn (to_qstring (family), size, QFont::Normal, false),
       qfm (qfn) {
+  double normalized_size= normalize_half_multiple_size (size);
+  if (fabs (normalized_size - size) > 1e-6) {
+    size= normalized_size;
+    // 重新初始化 QFont 和 QFontMetricsF 使用修正后的尺寸
+    qfn= QFont (to_qstring (family), size);
+    qfm= QFontMetricsF (qfn);
+  }
+  set_font_size (this, size);
   type= FONT_TYPE_QT;
 
   // get main font parameters
   y1          = FLOOR (-qfm.descent ());
   y2          = CEIL (qfm.ascent () + 1);
   display_size= y2 - y1;
-  design_size = size << 8;
+  design_size = (SI) (size * 256.0);
 
   // get character dimensions
   metric ex;
@@ -125,8 +133,13 @@ qt_font_rep::magnify (double zoomx, double zoomy) {
  ******************************************************************************/
 
 font
-qt_font (string family, int size, int dpi) {
-  string name= "qt:" * family * as_string (size) * "@" * as_string (dpi);
+qt_font (string family, double size, int dpi) {
+  size= normalize_half_multiple_size (size);
+  // 浮点尺寸字符串处理：整数如"10"，0.5倍数如"10.5"
+  string sz_str;
+  if (size == round (size)) sz_str= as_string ((int) size); // 整数
+  else sz_str= as_string (size); // 0.5倍数，保留一位小数
+  string name= "qt:" * family * sz_str * "@" * as_string (dpi);
   if (font::instances->contains (name)) return font (name);
   else return tm_new<qt_font_rep> (name, family, size, dpi);
 }

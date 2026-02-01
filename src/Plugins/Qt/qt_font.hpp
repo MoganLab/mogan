@@ -23,12 +23,12 @@
 
 struct qt_font_rep : font_rep {
   string        family;
-  int           size;
+  double        size;
   int           dpi;
   QFont         qfn;
   QFontMetricsF qfm;
 
-  qt_font_rep (string name, string family, int size, int dpi);
+  qt_font_rep (string name, string family, double size, int dpi);
   bool supports (string c);
   void get_extents (string s, metric& ex);
   void draw_fixed (renderer ren, string s, SI x, SI y);

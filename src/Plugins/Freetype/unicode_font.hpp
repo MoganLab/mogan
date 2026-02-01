@@ -41,7 +41,8 @@ struct unicode_font_rep : font_rep {
   bool is_ot_integral (string s);
   hashset<unsigned int> ot_integral;
 
-  unicode_font_rep (string name, string family, int size, int hdpi, int vdpi);
+  unicode_font_rep (string name, string family, double size, int hdpi,
+                    int vdpi);
   void tex_gyre_operators ();
 
   unsigned int get_glyphID (string s);

@@ -82,45 +82,77 @@ rubber_stix_font_rep::get_font_sub (int nr) {
   case 2:
     return base->magnify (2.0);
   case 3:
-    if (reg) return unicode_font ("STIXIntegralsD-Regular", base->size, dpi);
-    else return unicode_font ("STIXIntegralsD-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXIntegralsD-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXIntegralsD-Bold", base->effective_size (), dpi);
   case 4:
-    if (reg) return unicode_font ("STIXIntegralsUp-Regular", base->size, dpi);
-    else return unicode_font ("STIXIntegralsD-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXIntegralsUp-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXIntegralsD-Bold", base->effective_size (), dpi);
   case 5:
-    if (reg) return unicode_font ("STIXIntegralsUpD-Regular", base->size, dpi);
-    else return unicode_font ("STIXIntegralsUpD-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXIntegralsUpD-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXIntegralsUpD-Bold", base->effective_size (),
+                           dpi);
   case 6:
-    if (reg) return unicode_font ("STIXSizeOneSym-Regular", base->size, dpi);
-    else return unicode_font ("STIXSizeOneSym-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXSizeOneSym-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXSizeOneSym-Bold", base->effective_size (), dpi);
   case 7:
-    if (reg) return unicode_font ("STIXSizeOneSym-Regular", base->size, dpi);
-    else return unicode_font ("STIXSizeOneSym-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXSizeOneSym-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXSizeOneSym-Bold", base->effective_size (), dpi);
   case 8:
-    if (reg) return unicode_font ("STIXSizeTwoSym-Regular", base->size, dpi);
-    else return unicode_font ("STIXSizeTwoSym-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXSizeTwoSym-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXSizeTwoSym-Bold", base->effective_size (), dpi);
   case 9:
-    if (reg) return unicode_font ("STIXSizeThreeSym-Regular", base->size, dpi);
-    else return unicode_font ("STIXSizeThreeSym-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXSizeThreeSym-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXSizeThreeSym-Bold", base->effective_size (),
+                           dpi);
   case 10:
-    if (reg) return unicode_font ("STIXSizeFourSym-Regular", base->size, dpi);
-    else return unicode_font ("STIXSizeFourSym-Bold", base->size, dpi);
+    if (reg)
+      return unicode_font ("STIXSizeFourSym-Regular", base->effective_size (),
+                           dpi);
+    else
+      return unicode_font ("STIXSizeFourSym-Bold", base->effective_size (),
+                           dpi);
   case 11:
-    return unicode_font ("STIXSizeOneSym-Regular", base->size, dpi);
+    return unicode_font ("STIXSizeOneSym-Regular", base->effective_size (),
+                         dpi);
   case 12:
-    return unicode_font ("STIXSizeTwoSym-Regular", base->size, dpi);
+    return unicode_font ("STIXSizeTwoSym-Regular", base->effective_size (),
+                         dpi);
   case 13:
-    return unicode_font ("STIXSizeThreeSym-Regular", base->size, dpi);
+    return unicode_font ("STIXSizeThreeSym-Regular", base->effective_size (),
+                         dpi);
   case 14:
-    return unicode_font ("STIXSizeFourSym-Regular", base->size, dpi);
+    return unicode_font ("STIXSizeFourSym-Regular", base->effective_size (),
+                         dpi);
   case 15:
-    return unicode_font ("STIXSizeFiveSym-Regular", base->size, dpi);
+    return unicode_font ("STIXSizeFiveSym-Regular", base->effective_size (),
+                         dpi);
   case 16:
     return rubber_assemble_font (base);
   case 17:
     return rubber_assemble_font (get_font (11));
   case 18:
-    return unicode_font ("STIXMath-Regular", base->size, dpi);
+    return unicode_font ("STIXMath-Regular", base->effective_size (), dpi);
   default:
     return base;
   }

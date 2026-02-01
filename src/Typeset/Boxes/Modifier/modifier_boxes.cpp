@@ -446,7 +446,9 @@ struct macro_box_rep : public composite_box_rep {
   }
   SI sup_lo_base (int l) {
     if (is_nil (big_fn)) return box_rep::sup_lo_base (l);
-    SI syx= big_fn->yx * script (big_fn->size, 1) / big_fn->size;
+    SI syx= (SI) (big_fn->yx * script (big_fn->effective_size (), 1) /
+                      big_fn->effective_size () +
+                  0.5);
     if ((y2 - y1) <= 3 * big_fn->yx) syx-= (l < 0 ? 0 : big_fn->yshift);
     return y2 - syx;
   }

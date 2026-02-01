@@ -90,8 +90,8 @@ load_tt_face (string name) {
 
 static metric error_metric;
 
-tt_font_metric_rep::tt_font_metric_rep (string name, string family, int size2,
-                                        int hdpi2, int vdpi2)
+tt_font_metric_rep::tt_font_metric_rep (string name, string family,
+                                        double size2, int hdpi2, int vdpi2)
     : font_metric_rep (name), size (size2), hdpi (hdpi2), vdpi (vdpi2),
       fnm (NULL) {
   face                = load_tt_face (family);
@@ -99,8 +99,9 @@ tt_font_metric_rep::tt_font_metric_rep (string name, string family, int size2,
   if (!face->bad_face) {
     if (!is_nil (face->cbdt_table)) {
       // Try to select the closest fixed size for bitmap fonts
-      int best_size_index  = 0;
-      int target_pixel_size= size * hdpi / 72; // Convert point size to pixels
+      int best_size_index= 0;
+      int target_pixel_size=
+          (int) (size * hdpi / 72 + 0.5); // Convert point size to pixels
       int best_diff=
           abs (face->ft_face->available_sizes[0].height - target_pixel_size);
       for (int i= 1; i < face->ft_face->num_fixed_sizes; i++) {
@@ -116,7 +117,8 @@ tt_font_metric_rep::tt_font_metric_rep (string name, string family, int size2,
     else {
       // For scalable fonts, use ft_set_char_size
       size_set_failed=
-          ft_set_char_size (face->ft_face, 0, size << 6, hdpi, vdpi) != 0;
+          ft_set_char_size (face->ft_face, 0, (FT_F26Dot6) (size * 64.0 + 0.5),
+                            hdpi, vdpi) != 0;
     }
   }
   bad_font_metric=
@@ -143,7 +145,8 @@ tt_font_metric_rep::get (int i) {
 
     // For fonts with CBDT table, skip ft_set_char_size
     if (is_nil (face->cbdt_table)) {
-      ft_set_char_size (face->ft_face, 0, size << 6, hdpi, vdpi);
+      ft_set_char_size (face->ft_face, 0, (FT_F26Dot6) (size * 64.0 + 0.5),
+                        hdpi, vdpi);
     }
     FT_UInt glyph_index= decode_index (face->ft_face, i);
     if (ft_load_glyph (face->ft_face, glyph_index, FT_LOAD_DEFAULT))
@@ -167,7 +170,7 @@ tt_font_metric_rep::get (int i) {
       // For PNG fonts (CBDT), apply scaling factor to make them scalable
       double scale_factor= 1.0;
       if (!is_nil (face->cbdt_table)) {
-        int target_pixel_size= size * hdpi / 72;
+        int target_pixel_size= (int) (size * hdpi / 72 + 0.5);
         int actual_pixel_size= face->ft_face->size->metrics.y_ppem;
         scale_factor         = (double) target_pixel_size / actual_pixel_size;
       }
@@ -216,14 +219,29 @@ tt_font_metric_rep::kerning (int left, int right) {
   FT_Vector k;
   FT_UInt   l= decode_index (face->ft_face, left);
   FT_UInt   r= decode_index (face->ft_face, right);
-  ft_set_char_size (face->ft_face, 0, size << 6, hdpi, vdpi);
+  ft_set_char_size (face->ft_face, 0, (FT_F26Dot6) (size * 64.0 + 0.5), hdpi,
+                    vdpi);
   if (ft_get_kerning (face->ft_face, l, r, FT_KERNING_DEFAULT, &k)) return 0;
   return tt_si (k.x);
 }
 
 font_metric
-tt_font_metric (string family, int size, int hdpi, int vdpi) {
-  string name= family * as_string (size) * "@" * as_string (hdpi);
+tt_font_metric (string family, double size, int hdpi, int vdpi) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  if (!is_half_multiple (size)) {
+    size= round_to_half_multiple (size);
+  }
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+
+  string name= family * size_str * "@" * as_string (hdpi);
   if (vdpi != hdpi) name << "x" << as_string (vdpi);
   return make (font_metric, name,
                tm_new<tt_font_metric_rep> (name, family, size, hdpi, vdpi));
@@ -235,8 +253,8 @@ tt_font_metric (string family, int size, int hdpi, int vdpi) {
 
 static glyph error_glyph;
 
-tt_font_glyphs_rep::tt_font_glyphs_rep (string name, string family, int size2,
-                                        int hdpi2, int vdpi2)
+tt_font_glyphs_rep::tt_font_glyphs_rep (string name, string family,
+                                        double size2, int hdpi2, int vdpi2)
     : font_glyphs_rep (name), size (size2), hdpi (hdpi2), vdpi (vdpi2),
       fng (glyph ()) {
   face                = load_tt_face (family);
@@ -246,8 +264,9 @@ tt_font_glyphs_rep::tt_font_glyphs_rep (string name, string family, int size2,
     // first
     if (!is_nil (face->cbdt_table)) {
       // Try to select the closest fixed size for bitmap fonts
-      int best_size_index  = 0;
-      int target_pixel_size= size * hdpi / 72; // Convert point size to pixels
+      int best_size_index= 0;
+      int target_pixel_size=
+          (int) (size * hdpi / 72 + 0.5); // Convert point size to pixels
       int best_diff=
           abs (face->ft_face->available_sizes[0].height - target_pixel_size);
 
@@ -264,7 +283,8 @@ tt_font_glyphs_rep::tt_font_glyphs_rep (string name, string family, int size2,
     else {
       // For scalable fonts, use ft_set_char_size
       size_set_failed=
-          ft_set_char_size (face->ft_face, 0, size << 6, hdpi, vdpi) != 0;
+          ft_set_char_size (face->ft_face, 0, (FT_F26Dot6) (size * 64.0 + 0.5),
+                            hdpi, vdpi) != 0;
     }
   }
   bad_font_glyphs=
@@ -276,7 +296,8 @@ glyph&
 tt_font_glyphs_rep::get (int i) {
   if (!face->bad_face && !fng->contains (i)) {
     if (is_nil (face->cbdt_table)) {
-      ft_set_char_size (face->ft_face, 0, size << 6, hdpi, vdpi);
+      ft_set_char_size (face->ft_face, 0, (FT_F26Dot6) (size * 64.0 + 0.5),
+                        hdpi, vdpi);
     }
     FT_UInt glyph_index= decode_index (face->ft_face, i);
     if (ft_load_glyph (face->ft_face, glyph_index, FT_LOAD_DEFAULT))
@@ -318,7 +339,7 @@ tt_font_glyphs_rep::get (int i) {
       // For PNG fonts (CBDT), apply scaling factor to make them scalable
       double scale_factor= 1.0;
       if (!is_nil (face->cbdt_table)) {
-        int target_pixel_size= size * hdpi / 72;
+        int target_pixel_size= (int) (size * hdpi / 72 + 0.5);
         int actual_pixel_size= face->ft_face->size->metrics.y_ppem;
         scale_factor         = (double) target_pixel_size / actual_pixel_size;
       }
@@ -346,8 +367,22 @@ tt_font_glyphs_rep::get (int i) {
 }
 
 font_glyphs
-tt_font_glyphs (string family, int size, int hdpi, int vdpi) {
-  string name= family * ":" * as_string (size) * "." * as_string (hdpi);
+tt_font_glyphs (string family, double size, int hdpi, int vdpi) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  if (!is_half_multiple (size)) {
+    size= round_to_half_multiple (size);
+  }
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+
+  string name= family * ":" * size_str * "." * as_string (hdpi);
   if (vdpi != hdpi) name << "x" << as_string (vdpi);
   name << "tt";
   return make (font_glyphs, name,

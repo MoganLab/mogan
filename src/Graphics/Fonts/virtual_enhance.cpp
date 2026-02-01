@@ -50,7 +50,7 @@ virtual_enhance_font_rep::virtual_enhance_font_rep (string name, font base2,
   this->copy_math_pars (base);
   int hdpi= (72 * base->wpt + (PIXEL / 2)) / PIXEL;
   int vdpi= (72 * base->hpt + (PIXEL / 2)) / PIXEL;
-  extra   = virtual_font (base, virt, base->size, hdpi, vdpi, true);
+  extra= virtual_font (base, virt, base->effective_size (), hdpi, vdpi, true);
 }
 
 bool

@@ -16,7 +16,9 @@
 
 void setup_tex ();
 void init_tex ();
-void load_tex (string family, int size, int dpi, int dsize,
+void load_tex (string family, double size, int dpi, int dsize,
                tex_font_metric& tfm, font_glyphs& pk);
+
+double to_tex_font_size (double sz);
 
 #endif // defined LOAD_TEX_H

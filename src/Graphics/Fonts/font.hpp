@@ -17,6 +17,7 @@
 #include "renderer.hpp"
 #include "resource.hpp"
 #include "space.hpp"
+#include <cmath>
 
 RESOURCE (font);
 
@@ -30,6 +31,7 @@ struct font_glyphs;
 #define FONT_TYPE_UNICODE 1
 #define FONT_TYPE_QT 2
 #define FONT_TYPE_OTHER 3
+#define FONT_TYPE_TT 4
 
 #define MATH_TYPE_NORMAL 0
 #define MATH_TYPE_STIX 1
@@ -51,12 +53,32 @@ struct font_glyphs;
  * The font structure
  ******************************************************************************/
 
+// 浮点字体尺寸支持辅助函数（只支持0.5倍数）
+inline bool
+is_half_multiple (double sz) {
+  double doubled= sz * 2.0;
+  return fabs (doubled - round (doubled)) < 0.001;
+}
+
+inline double
+round_to_half_multiple (double sz) {
+  return round (sz * 2.0) / 2.0;
+}
+
+// 验证输入是否为0.5倍数，如果不是则四舍五入到最近的0.5倍数
+inline double
+normalize_half_multiple_size (double sz) {
+  if (!is_half_multiple (sz)) return round_to_half_multiple (sz);
+  return sz;
+}
+
 struct font_rep : rep<font> {
   int    type;         // font type
   int    math_type;    // For TeX Gyre math fonts and Stix and OpenType fonts
-  SI     size;         // requested size
+  SI     size_int;     // 整数字体尺寸（向后兼容）
   SI     design_size;  // design size in points/256
   SI     display_size; // display size in points/PIXEL
+  double size_float;   // 浮点字体尺寸（新功能，默认0.0表示未使用）
   double slope;        // italic slope
   space  spc;          // usual space between words
   space  extra;        // extra space at end of words
@@ -163,6 +185,14 @@ struct font_rep : rep<font> {
   virtual glyph get_glyph (string s);
   virtual int   index_glyph (string s, font_metric& fnm, font_glyphs& fng);
 
+  // 获取有效字体尺寸（优先使用浮点尺寸，验证0.5倍数）
+  double effective_size () const {
+    if (size_float > 0.0) {
+      return normalize_half_multiple_size (size_float);
+    }
+    return (double) size_int;
+  }
+
   array<space> get_spacing_table (int mode, int id, array<array<space>>& t);
   space        get_spacing_entry (int mode, tree t, int i);
   space        get_spacing_entry (int mode, tree t, int i, string kind);
@@ -187,7 +217,8 @@ string default_korean_font_name ();
 string default_emoji_font_name ();
 
 font error_font (font fn);
-font virtual_font (font base, string fam, int sz, int hdpi, int vdpi, bool ext);
+font virtual_font (font base, string fam, double sz, int hdpi, int vdpi,
+                   bool ext);
 font virtual_enhance_font (font base, string virt);
 font rubber_font (font base);
 bool use_poor_rubber (font fn);
@@ -206,15 +237,15 @@ font poor_distorted_font (font base, tree kind);
 font poor_effected_font (font base, tree kind);
 font recolored_font (font base, tree kind);
 font superposed_font (array<font> fns, int ref);
-font x_font (string family, int size, int dpi);
-font qt_font (string family, int size, int dpi);
-font tex_font (string fam, int size, int dpi, int dsize= 10);
-font tex_cm_font (string fam, int size, int dpi, int dsize= 10);
-font tex_ec_font (string fam, int size, int dpi, int dsize= 10);
-font tex_la_font (string fam, int size, int dpi, int dsize= 10);
-font tex_gr_font (string fam, int size, int dpi, int dsize= 10);
-font tex_adobe_font (string fam, int size, int dpi, int dsize= 10);
-font tex_rubber_font (string trl_name, string fam, int size, int dpi,
+font x_font (string family, double size, int dpi);
+font qt_font (string family, double size, int dpi);
+font tex_font (string fam, double size, int dpi, int dsize= 10);
+font tex_cm_font (string fam, double size, int dpi, int dsize= 10);
+font tex_ec_font (string fam, double size, int dpi, int dsize= 10);
+font tex_la_font (string fam, double size, int dpi, int dsize= 10);
+font tex_gr_font (string fam, double size, int dpi, int dsize= 10);
+font tex_adobe_font (string fam, double size, int dpi, int dsize= 10);
+font tex_rubber_font (string trl_name, string fam, double size, int dpi,
                       int dsize= 10);
 font tex_dummy_rubber_font (font base_fn);
 
@@ -222,26 +253,26 @@ void font_rule (tree which, tree by);
 font find_font (scheme_tree t);
 font find_magnified_font (scheme_tree t, double zoomx, double zoomy);
 font find_font (string family, string fn_class, string series, string shape,
-                int sz, int dpi);
+                double sz, int dpi);
 bool find_closest (string& family, string& variant, string& series,
                    string& shape, int attempt= 1);
 font closest_font (string family, string variant, string series, string shape,
-                   int sz, int dpi, int attempt= 1);
+                   double sz, int dpi, int attempt= 1);
 
 font math_font (scheme_tree t, font base_fn, font error_fn, double zoomx,
                 double zoomy);
 font compound_font (scheme_tree def, double zoomx, double zoomy);
 font smart_font (string family, string variant, string series, string shape,
-                 int sz, int dpi);
+                 double sz, int dpi);
 font math_smart_font (string family, string variant, string series,
                       string shape, string tf, string tv, string tw, string ts,
-                      int sz, int dpi);
+                      double sz, int dpi);
 font prog_smart_font (string family, string variant, string series,
                       string shape, string tf, string tv, string tw, string ts,
-                      int sz, int dpi);
+                      double sz, int dpi);
 font apply_effects (font fn, string effects);
 
-int script (int sz, int level);
+double script (double sz, int level);
 
 // Microtypography
 void adjust_char (hashmap<string, double>& t, string c, double delta);
@@ -325,19 +356,41 @@ bool          use_macos_fonts ();
  */
 pair<string, int> font_name_unpack (string font_name);
 
+// 辅助函数，用于双字段兼容性处理（包含0.5倍数验证）
+inline double
+get_font_size (const font_rep* rep) {
+  return rep->effective_size (); // 使用effective_size()获取实际尺寸
+}
+
+// 设置字体尺寸（自动处理双字段，验证0.5倍数）
+inline void
+set_font_size (font_rep* rep, double size) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  size= normalize_half_multiple_size (size);
+  // 可记录日志或发出警告
+  rep->size_float= size;
+  rep->size_int  = (SI) (size + 0.5); // 同时更新整数字段用于兼容
+}
+
+// 兼容性包装函数（用于现有整数代码）
+inline int
+font_size_as_int (double sz) {
+  return (int) (sz + 0.5);
+} // 四舍五入
+
 #ifdef USE_FREETYPE
 
-font unicode_font (string family, int size, int dpi);
+font unicode_font (string family, double size, int dpi);
 font unicode_math_font (font up, font it, font bup, font bit, font fb);
 font rubber_unicode_font (font base);
 font rubber_stix_font (font base);
 font rubber_assemble_font (font base);
-font tt_font (string family, int size, int dpi);
+font tt_font (string family, double size, int dpi);
 
 #else
 
 inline font
-unicode_font (string family, int size, int dpi) {
+unicode_font (string family, double size, int dpi) {
   string name= "unicode:" * family * as_string (size) * "@" * as_string (dpi);
   failed_error << "Font name= " << name << "\n";
   TM_FAILED ("true type support was disabled");
@@ -378,8 +431,18 @@ rubber_assemble_font (font base) {
 }
 
 inline font
-tt_font (string family, int size, int dpi) {
-  string name= "tt:" * family * as_string (size) * "@" * as_string (dpi);
+tt_font (string family, double size, int dpi) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  size= normalize_half_multiple_size (size);
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+  string name= "tt:" * family * size_str * "@" * as_string (dpi);
   failed_error << "Font name= " << name << "\n";
   TM_FAILED ("true type support was disabled");
   return font ();

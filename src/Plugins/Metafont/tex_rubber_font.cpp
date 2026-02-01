@@ -30,7 +30,7 @@ struct tex_rubber_font_rep : font_rep {
   font_glyphs     pk;
   double          unit;
 
-  tex_rubber_font_rep (string name, string trl_name, string family, int size,
+  tex_rubber_font_rep (string name, string trl_name, string family, double size,
                        int dpi, int dsize);
   bool  supports (string c);
   void  get_raw_extents (int c, metric& ex);
@@ -63,14 +63,20 @@ struct tex_dummy_rubber_font_rep : font_rep {
 #define conv(x) ((SI) (((double) (x)) * unit))
 
 tex_rubber_font_rep::tex_rubber_font_rep (string name, string trl_name,
-                                          string family2, int size2, int dpi2,
-                                          int dsize2)
+                                          string family2, double size2,
+                                          int dpi2, int dsize2)
     : font_rep (name), trl (trl_name), dsize (dsize2),
       ext (load_translator (trl_name)) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  if (!is_half_multiple (size2)) {
+    size2= round_to_half_multiple (size2);
+  }
+  type= FONT_TYPE_TEX;
+  set_font_size (this, size2); // 使用辅助函数设置双字段
+
   load_tex (family2, size2, dpi2, dsize, tfm, pk);
 
   family      = family2;
-  size        = size2;
   dpi         = dpi2;
   design_size = tfm->design_size () >> 12;
   display_size= (((design_size * dpi) / 72) * PIXEL) >> 8;
@@ -104,9 +110,23 @@ tex_rubber_font_rep::tex_rubber_font_rep (string name, string trl_name,
 }
 
 font
-tex_rubber_font (string trl_name, string family, int size, int dpi, int dsize) {
-  string name=
-      "tex-rubber:" * family * as_string (size) * "@" * as_string (dpi);
+tex_rubber_font (string trl_name, string family, double size, int dpi,
+                 int dsize) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  if (!is_half_multiple (size)) {
+    size= round_to_half_multiple (size);
+  }
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+
+  string name= "tex-rubber:" * family * size_str * "@" * as_string (dpi);
   return make (
       font, name,
       tm_new<tex_rubber_font_rep> (name, trl_name, family, size, dpi, dsize));
@@ -297,7 +317,7 @@ font
 tex_rubber_font_rep::magnify (double zoomx, double zoomy) {
   if (zoomx != zoomy) return poor_magnify (zoomx, zoomy);
   int ndpi= (int) tm_round (dpi * zoomx);
-  return tex_rubber_font (trl, family, size, ndpi, dsize);
+  return tex_rubber_font (trl, family, effective_size (), ndpi, dsize);
 }
 
 glyph

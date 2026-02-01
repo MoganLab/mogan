@@ -158,7 +158,7 @@ public:
   array<tree>            redefined;   // redefined labels
   hashmap<string, bool>  touched;     // touched refs
   link_repository        link_env;    // current links
-  array<array<int>>      size_cache;  // math font size cache
+  array<array<double>>   size_cache;  // math font size cache
   array<rectangle>       white_zones; // text exclusion zones for curves
 
   int      dpi;
@@ -175,7 +175,7 @@ public:
   language lan;
   int      hl_lan;
   font     fn;
-  int      fn_size;
+  double   fn_size;
   int      index_level;
   bool     display_style;
   bool     math_condensed;
@@ -518,24 +518,24 @@ public:
   SI   get_pages_width (bool deco);
   SI   get_page_height (bool deco);
   tree decode_arrow (tree t, string l, string h);
-  int  get_script_size (int sz, int level);
-  void update_font ();
-  void update_color ();
-  void update_pattern_mode ();
-  void update_mode ();
-  void update_info_level ();
-  void update_language ();
-  void update_geometry ();
-  void update_frame ();
-  void update_src_style ();
-  void update_src_special ();
-  void update_src_compact ();
-  void update_src_close ();
-  void update_dash_style ();
-  void update_dash_style_unit ();
-  void update_line_arrows ();
-  void update ();
-  void update (string env_var);
+  double get_script_size (double sz, int level);
+  void   update_font ();
+  void   update_color ();
+  void   update_pattern_mode ();
+  void   update_mode ();
+  void   update_info_level ();
+  void   update_language ();
+  void   update_geometry ();
+  void   update_frame ();
+  void   update_src_style ();
+  void   update_src_special ();
+  void   update_src_compact ();
+  void   update_src_close ();
+  void   update_dash_style ();
+  void   update_dash_style_unit ();
+  void   update_line_arrows ();
+  void   update ();
+  void   update (string env_var);
 
   /* lengths */
   bool   is_length (string s);

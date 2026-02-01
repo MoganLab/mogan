@@ -73,7 +73,7 @@ struct tex_font_rep : font_rep {
   double          unit;
   bool            exec; // execute ligature and kerning program?
 
-  tex_font_rep (string name, int status, string family, int size, int dpi,
+  tex_font_rep (string name, int status, string family, double size, int dpi,
                 int dsize);
 
   bool  raw_supports (unsigned char c);
@@ -112,14 +112,16 @@ struct tex_font_rep : font_rep {
 
 #define conv(x) ((SI) (((double) (x)) * unit))
 
-tex_font_rep::tex_font_rep (string name, int status2, string family2, int size2,
-                            int dpi2, int dsize2)
+tex_font_rep::tex_font_rep (string name, int status2, string family2,
+                            double size2, int dpi2, int dsize2)
     : font_rep (name), status (status2), dsize (dsize2) {
+  size2= normalize_half_multiple_size (size2);
+  type = FONT_TYPE_TEX;
+  set_font_size (this, size2); // 使用辅助函数设置双字段
+
   load_tex (family2, size2, dpi2, dsize, tfm, pk);
 
   family      = family2;
-  type        = FONT_TYPE_TEX;
-  size        = size2;
   dpi         = dpi2;
   design_size = tfm->design_size () >> 12;
   display_size= (((design_size * dpi) / 72) * PIXEL) >> 8;
@@ -153,12 +155,15 @@ tex_font_rep::tex_font_rep (string name, int status2, string family2, int size2,
   wquad= conv (tfm->spc_quad ());
 
   if ((family == "cmr") || (family == "ecrm") || (family == "cmmi")) {
-    if (size < 8) wline= wfn / (size == 7 ? 16 : (size == 6 ? 14 : 12));
-    else if (size < 10) yfrac+= (size * wfn) / 1600;
-    else if (size <= 14) yfrac+= (size * wfn) / 1000;
+    double sz= effective_size ();
+    if (sz < 8)
+      wline= wfn /
+             (fabs (sz - 7.0) < 0.1 ? 16 : (fabs (sz - 6.0) < 0.1 ? 14 : 12));
+    else if (sz < 10) yfrac+= (sz * wfn) / 1600;
+    else if (sz <= 14) yfrac+= (sz * wfn) / 1000;
     else {
-      wline= wfn / (size > 16 ? 28 : 24);
-      yfrac+= (size * wfn) / 700;
+      wline= wfn / (sz > 16 ? 28 : 24);
+      yfrac+= (sz * wfn) / 700;
     }
   }
 
@@ -839,22 +844,23 @@ tex_font_rep::draw_fixed (renderer ren, string s, SI ox, SI y) {
 font
 tex_font_rep::magnify (double zoomx, double zoomy) {
   if (zoomx != zoomy) return poor_magnify (zoomx, zoomy);
-  int ndpi= (int) tm_round (dpi * zoomx);
+  int    ndpi= (int) tm_round (dpi * zoomx);
+  double sz  = effective_size ();
   switch (status) {
   case TEX_ANY:
-    return tex_font (family, size, ndpi, dsize);
+    return tex_font (family, sz, ndpi, dsize);
   case TEX_EC:
-    return tex_ec_font (family, size, ndpi, dsize);
+    return tex_ec_font (family, sz, ndpi, dsize);
   case TEX_LA:
-    return tex_la_font (family, size, ndpi, dsize);
+    return tex_la_font (family, sz, ndpi, dsize);
   case TEX_GR:
-    return tex_gr_font (family, size, ndpi, dsize);
+    return tex_gr_font (family, sz, ndpi, dsize);
   case TEX_CM:
-    return tex_cm_font (family, size, ndpi, dsize);
+    return tex_cm_font (family, sz, ndpi, dsize);
   case TEX_ADOBE:
-    return tex_adobe_font (family, size, ndpi, dsize);
+    return tex_adobe_font (family, sz, ndpi, dsize);
   }
-  return tex_font (family, size, ndpi, dsize);
+  return tex_font (family, sz, ndpi, dsize);
 }
 
 SI
@@ -1115,42 +1121,48 @@ tfm_font_metric (tex_font_metric tfm, font_glyphs pk, double unit) {
  ******************************************************************************/
 
 font
-tex_font (string family, int size, int dpi, int dsize) {
+tex_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "tex:" * family * as_string (size) * "@" * as_string (dpi);
   return make (font, name,
                tm_new<tex_font_rep> (name, TEX_ANY, family, size, dpi, dsize));
 }
 
 font
-tex_cm_font (string family, int size, int dpi, int dsize) {
+tex_cm_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "cm:" * family * as_string (size) * "@" * as_string (dpi);
   return make (font, name,
                tm_new<tex_font_rep> (name, TEX_CM, family, size, dpi, dsize));
 }
 
 font
-tex_ec_font (string family, int size, int dpi, int dsize) {
+tex_ec_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "ec:" * family * as_string (size) * "@" * as_string (dpi);
   return make (font, name,
                tm_new<tex_font_rep> (name, TEX_EC, family, size, dpi, dsize));
 }
 
 font
-tex_la_font (string family, int size, int dpi, int dsize) {
+tex_la_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "la:" * family * as_string (size) * "@" * as_string (dpi);
   return make (font, name,
                tm_new<tex_font_rep> (name, TEX_LA, family, size, dpi, dsize));
 }
 
 font
-tex_gr_font (string family, int size, int dpi, int dsize) {
+tex_gr_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "gr:" * family * as_string (size) * "@" * as_string (dpi);
   return make (font, name,
                tm_new<tex_font_rep> (name, TEX_GR, family, size, dpi, dsize));
 }
 
 font
-tex_adobe_font (string family, int size, int dpi, int dsize) {
+tex_adobe_font (string family, double size, int dpi, int dsize) {
+  size       = normalize_half_multiple_size (size);
   string name= "adobe:" * family * as_string (size) * "@" * as_string (dpi);
   return make (
       font, name,

@@ -41,7 +41,7 @@ struct virtual_font_rep : font_rep {
   hashmap<string, bool>               sup_bit;
   hashmap<string, bool>               sup_svg;
 
-  virtual_font_rep (string name, font base, string vname, int size, int hdpi,
+  virtual_font_rep (string name, font base, string vname, double size, int hdpi,
                     int vdpi, bool extend);
   scheme_tree exec (scheme_tree t);
   bool        supported (scheme_tree t, bool svg);
@@ -79,7 +79,7 @@ struct virtual_font_rep : font_rep {
 };
 
 virtual_font_rep::virtual_font_rep (string name, font base, string vname,
-                                    int size2, int hdpi2, int vdpi2,
+                                    double size2, int hdpi2, int vdpi2,
                                     bool extend2)
     : font_rep (name, base), base_fn (base), fn_name (vname),
       virt (load_translator (vname)), size (size2), hdpi (hdpi2), vdpi (vdpi2),
@@ -2053,11 +2053,25 @@ virtually_defined (string c, string name) {
 }
 
 font
-virtual_font (font base, string name, int size, int hdpi, int vdpi,
+virtual_font (font base, string name, double size, int hdpi, int vdpi,
               bool extend) {
+  // 验证输入是否为0.5倍数，如果不是则修正
+  if (!is_half_multiple (size)) {
+    size= round_to_half_multiple (size);
+  }
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+
   string full_name= base->res_name *
                     (extend ? string ("#enhance-") : string ("#virtual-")) *
-                    name * as_string (size) * "@" * as_string (hdpi);
+                    name * size_str * "@" * as_string (hdpi);
   if (vdpi != hdpi) full_name << "x" << vdpi;
   return make (font, full_name,
                tm_new<virtual_font_rep> (full_name, base, name, size, hdpi,

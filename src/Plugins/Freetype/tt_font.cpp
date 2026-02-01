@@ -23,7 +23,7 @@
   (((((l * hdpi + (std_dpi - 1)) / std_dpi) + std_pixel - 1) / std_pixel) *    \
    std_pixel)
 
-font tt_font (string family, int size, int hdpi, int vdpi);
+font tt_font (string family, double size, int hdpi, int vdpi);
 
 /******************************************************************************
  * True Type fonts
@@ -36,7 +36,7 @@ struct tt_font_rep : font_rep {
   font_metric fnm;
   font_glyphs fng;
 
-  tt_font_rep (string name, string family, int size, int hdpi, int vdpi);
+  tt_font_rep (string name, string family, double size, int hdpi, int vdpi);
 
   bool  supports (string c);
   void  get_extents (string s, metric& ex);
@@ -52,17 +52,19 @@ struct tt_font_rep : font_rep {
  * Initialization of main font parameters
  ******************************************************************************/
 
-tt_font_rep::tt_font_rep (string name, string family2, int size2, int hdpi2,
+tt_font_rep::tt_font_rep (string name, string family2, double size2, int hdpi2,
                           int vdpi2)
     : font_rep (name), family (family2), hdpi (hdpi2), vdpi (vdpi2) {
-  size= size2;
-  fnm = tt_font_metric (family, size, std_dpi, (std_dpi * vdpi) / hdpi);
-  fng = tt_font_glyphs (family, size, hdpi, vdpi);
+  size2= normalize_half_multiple_size (size2);
+  type = FONT_TYPE_TT;
+  set_font_size (this, size2); // 使用辅助函数设置双字段
+  fnm= tt_font_metric (family, size2, std_dpi, (std_dpi * vdpi) / hdpi);
+  fng= tt_font_glyphs (family, size2, hdpi, vdpi);
   if (fnm->bad_font_metric || fng->bad_font_glyphs) {
     fnm= std_font_metric (res_name, NULL, 0, -1);
     fng= std_font_glyphs (res_name, NULL, 0, -1);
     if (DEBUG_AUTO)
-      debug_fonts << "Font " << family << " " << size << "pt "
+      debug_fonts << "Font " << family << " " << size2 << "pt "
                   << "at " << hdpi << " dpi could not be loaded\n";
   }
 
@@ -72,7 +74,7 @@ tt_font_rep::tt_font_rep (string name, string family2, int size2, int hdpi2,
   y1          = ex->y1;
   y2          = ex->y2;
   display_size= y2 - y1;
-  design_size = size << 8;
+  design_size = (SI) (size2 * 256.0);
 
   // get character dimensions
   get_extents ("x", ex);
@@ -194,7 +196,7 @@ tt_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
 
 font
 tt_font_rep::magnify (double zoomx, double zoomy) {
-  return tt_font (family, size, (int) tm_round (hdpi * zoomx),
+  return tt_font (family, effective_size (), (int) tm_round (hdpi * zoomx),
                   (int) tm_round (vdpi * zoomy));
 }
 
@@ -229,14 +231,25 @@ tt_font_rep::index_glyph (string s, font_metric& rm, font_glyphs& rg) {
  ******************************************************************************/
 
 font
-tt_font (string family, int size, int hdpi, int vdpi) {
-  string name= "tt:" * family * as_string (size) * "@" * as_string (hdpi);
+tt_font (string family, double size, int hdpi, int vdpi) {
+  size= normalize_half_multiple_size (size);
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string size_str;
+  if (size == round (size)) {
+    size_str= as_string ((int) size); // 整数
+  }
+  else {
+    size_str= as_string (size); // 0.5倍数，保留一位小数
+  }
+
+  string name= "tt:" * family * size_str * "@" * as_string (hdpi);
   if (vdpi != hdpi) name << "x" << as_string (vdpi);
   return make (font, name,
                tm_new<tt_font_rep> (name, family, size, hdpi, vdpi));
 }
 
 font
-tt_font (string family, int size, int dpi) {
+tt_font (string family, double size, int dpi) {
   return tt_font (family, size, dpi, dpi);
 }

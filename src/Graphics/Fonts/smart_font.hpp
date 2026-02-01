@@ -93,7 +93,7 @@ struct smart_font_rep : font_rep {
   string series;
   string shape;
   string rshape;
-  int    sz;
+  double sz;
   int    hdpi;
   int    dpi;
   int    math_kind;
@@ -103,8 +103,8 @@ struct smart_font_rep : font_rep {
   smart_map   sm;
 
   smart_font_rep (string name, font base_fn, font err_fn, string family,
-                  string variant, string series, string shape, int sz, int hdpi,
-                  int vdpi);
+                  string variant, string series, string shape, double sz,
+                  int hdpi, int vdpi);
   font adjust_subfont (font fn);
   font get_math_font (string fam, string var, string ser, string sh);
   font get_cyrillic_font (string fam, string var, string ser, string sh);

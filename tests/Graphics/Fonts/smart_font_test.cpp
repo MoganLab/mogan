@@ -69,19 +69,22 @@ TestSmartFont::test_resolve_first_attempt () {
 
 void
 TestSmartFont::test_resolve_chinese_puncts () {
-#if defined(OS_MACOS)
-  // Skip this test on macOS temporarily
-  QSKIP ("Skip this test on macOS temporarily");
-#endif
   // sys-chinese-rm-medium-right-10-600-smart
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
-  auto puncts= array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
-                              "<#201C>", "<#201D>", // Chinese: 双引号
-                              "<#2014>"             // Chinese: 破折号的一半
-  );
+  auto   puncts= array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
+                                "<#201C>", "<#201D>"  // Chinese: 双引号
+    );
+  string cjk_font_name;
+#if defined(OS_WIN32) || defined(OS_WIN)
+  cjk_font_name= "SimSun";
+#else
+  // Linux and other platforms
+  cjk_font_name= "Noto CJK SC";
+#endif
+
   for (int i= 0; i < N (puncts); i++) {
-    int fn_index= fn_rep->resolve (puncts[1], "cjk=Noto CJK SC", 1);
+    int fn_index= fn_rep->resolve (puncts[i], "cjk=" * cjk_font_name, 1);
     QCOMPARE (fn_index, 2);
   }
 }

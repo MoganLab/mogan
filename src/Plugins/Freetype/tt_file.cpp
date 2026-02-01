@@ -32,9 +32,9 @@
 // Caching for Font in tuple (filename, path)
 // eg. (basename.ttf, url(/path/to/basename.ttf))
 static hashmap<string, url> tt_font_locations;
-// A hashset of all basename of the fonts
-static hashset<string> tt_fonts;
-static array<string>   tt_allowed_suffixes= array<string> ("ttf", "ttc", "otf");
+// A hashmap of all basename of the fonts with existence status
+static hashmap<string, bool> tt_fonts;
+static array<string> tt_allowed_suffixes= array<string> ("ttf", "ttc", "otf");
 
 static void
 tt_locate_update_cache (url font_u, bool must_in_db= true) {
@@ -53,7 +53,7 @@ tt_locate_update_cache (url font_u, bool must_in_db= true) {
   }
 
   tt_font_locations (name)= font_u;
-  tt_fonts->insert (base_name);
+  tt_fonts (base_name)    = true;
   cache_set ("font_basename.scm", name, as_string (font_u));
 }
 
@@ -256,10 +256,11 @@ tt_font_find (string font_basename) {
 
 bool
 tt_font_exists (string name) {
-  if (tt_fonts->contains (name)) return true;
+  if (tt_fonts->contains (name)) return tt_fonts (name);
   bench_start ("tt_font_exists " * name);
   bool yes= !is_none (tt_font_find (name));
-  if (yes) tt_fonts->insert (name);
+  // Cache the result (true if exists, false if not)
+  tt_fonts (name)= yes;
   bench_end ("tt_font_exists " * name, 10);
   return yes;
 }

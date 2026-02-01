@@ -1032,7 +1032,7 @@ get_default_font (bool tt, bool mini, bool bold) {
  You are not forced to provide any system fonts.
  */
 void
-load_system_font (string fam, int sz, int dpi, font_metric& fnm,
+load_system_font (string fam, double sz, int dpi, font_metric& fnm,
                   font_glyphs& fng) {
   (void) fam;
   (void) sz;

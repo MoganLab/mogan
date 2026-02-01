@@ -70,10 +70,10 @@ find_font_bis (tree t) {
   if (is_tuple (t, "compound")) return compound_font (t (1, N (t)), 1.0, 1.0);
 
   if (is_tuple (t, "truetype", 3))
-    return tt_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return tt_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "unicode", 3))
-    return unicode_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return unicode_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "unimath", 5)) {
     font up = find_font (t[1]);
@@ -90,62 +90,62 @@ find_font_bis (tree t) {
   }
 
   if (is_tuple (t, "x", 3))
-    return x_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return x_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "qt", 3))
-    return qt_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return qt_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "tex", 3))
-    return tex_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return tex_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "tex", 4))
-    return tex_font (as_string (t[1]), as_int (t[2]), as_int (t[3]),
+    return tex_font (as_string (t[1]), as_double (t[2]), as_int (t[3]),
                      as_int (t[4]));
 
   if (is_tuple (t, "cm", 3))
-    return tex_cm_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return tex_cm_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "cm", 4))
-    return tex_cm_font (as_string (t[1]), as_int (t[2]), as_int (t[3]),
+    return tex_cm_font (as_string (t[1]), as_double (t[2]), as_int (t[3]),
                         as_int (t[4]));
 
   if (is_tuple (t, "ec", 3))
-    return tex_ec_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return tex_ec_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "ec", 4))
-    return tex_ec_font (as_string (t[1]), as_int (t[2]), as_int (t[3]),
+    return tex_ec_font (as_string (t[1]), as_double (t[2]), as_int (t[3]),
                         as_int (t[4]));
 
   if (is_tuple (t, "la", 3))
-    return tex_la_font (as_string (t[1]), as_int (t[2]) * 100, as_int (t[3]),
-                        1000);
+    return tex_la_font (as_string (t[1]), as_double (t[2]) * 100.0,
+                        as_int (t[3]), 1000);
 
   if (is_tuple (t, "la", 4))
-    return tex_la_font (as_string (t[1]), as_int (t[2]) * 100, as_int (t[3]),
-                        as_int (t[4]) * 100);
+    return tex_la_font (as_string (t[1]), as_double (t[2]) * 100.0,
+                        as_int (t[3]), as_int (t[4]) * 100);
 
   if (is_tuple (t, "gr", 3))
-    return tex_gr_font (as_string (t[1]), as_int (t[2]) * 100, as_int (t[3]),
-                        1000);
+    return tex_gr_font (as_string (t[1]), as_double (t[2]) * 100.0,
+                        as_int (t[3]), 1000);
 
   if (is_tuple (t, "gr", 4))
-    return tex_gr_font (as_string (t[1]), as_int (t[2]) * 100, as_int (t[3]),
-                        as_int (t[4]) * 100);
+    return tex_gr_font (as_string (t[1]), as_double (t[2]) * 100.0,
+                        as_int (t[3]), as_int (t[4]) * 100);
 
   if (is_tuple (t, "adobe", 3))
-    return tex_adobe_font (as_string (t[1]), as_int (t[2]), as_int (t[3]));
+    return tex_adobe_font (as_string (t[1]), as_double (t[2]), as_int (t[3]));
 
   if (is_tuple (t, "adobe", 4))
-    return tex_adobe_font (as_string (t[1]), as_int (t[2]), as_int (t[3]),
+    return tex_adobe_font (as_string (t[1]), as_double (t[2]), as_int (t[3]),
                            as_int (t[4]));
 
   if (is_tuple (t, "tex-rubber", 4))
-    return tex_rubber_font (as_string (t[1]), as_string (t[2]), as_int (t[3]),
-                            as_int (t[4]));
+    return tex_rubber_font (as_string (t[1]), as_string (t[2]),
+                            as_double (t[3]), as_int (t[4]));
 
   if (is_tuple (t, "tex-rubber", 5))
-    return tex_rubber_font (as_string (t[1]), as_string (t[2]), as_int (t[3]),
-                            as_int (t[4]), as_int (t[5]));
+    return tex_rubber_font (as_string (t[1]), as_string (t[2]),
+                            as_double (t[3]), as_int (t[4]), as_int (t[5]));
 
   if (is_tuple (t, "tex-dummy-rubber", 1)) {
     font fn= find_font (t[1]);
@@ -181,7 +181,7 @@ find_font_bis (tree t) {
         pair<string, int> f_pair       = font_name_unpack (font_name);
         string            font_basename= f_pair.x1;
         if (tt_font_exists (font_basename))
-          return unicode_font (font_name, as_int (t[4]), as_int (t[5]));
+          return unicode_font (font_name, as_double (t[4]), as_int (t[5]));
       }
     }
     return font ();
@@ -218,10 +218,14 @@ find_magnified_font (tree t, double zoomx, double zoomy) {
  ******************************************************************************/
 
 font
-find_font (string family, string variant, string series, string shape, int sz,
-           int dpi) {
-  string s= family * "-" * variant * "-" * series * "-" * shape * "-" *
-            as_string (sz) * "-" * as_string (dpi);
+find_font (string family, string variant, string series, string shape,
+           double sz, int dpi) {
+  // 浮点尺寸字符串处理：整数如"10"，0.5倍数如"10.5"
+  string sz_str;
+  if (sz == round (sz)) sz_str= as_string ((int) sz); // 整数
+  else sz_str= as_string (sz);                        // 0.5倍数，保留一位小数
+  string s= family * "-" * variant * "-" * series * "-" * shape * "-" * sz_str *
+            "-" * as_string (dpi);
   if (font::instances->contains (s)) return font (s);
 
   if (ends (shape, "-poorit")) {
@@ -276,11 +280,13 @@ find_font (string family, string variant, string series, string shape, int sz,
   }
 
   tree t1 (TUPLE, 6);
-  t1[0]  = family;
-  t1[1]  = variant;
-  t1[2]  = series;
-  t1[3]  = shape;
-  t1[4]  = as_string (sz);
+  t1[0]= family;
+  t1[1]= variant;
+  t1[2]= series;
+  t1[3]= shape;
+  // 浮点尺寸字符串处理
+  if (sz == round (sz)) t1[4]= as_string ((int) sz); // 整数
+  else t1[4]= as_string (sz);                        // 0.5倍数，保留一位小数
   t1[5]  = as_string (dpi);
   font fn= find_font (t1);
   if (!is_nil (fn)) {

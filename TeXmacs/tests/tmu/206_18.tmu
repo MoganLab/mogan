@@ -1,0 +1,84 @@
+<TMU|<tuple|1.1.0|2026.1.2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\hide-preamble>
+    <assign|font|math=Latin Modern Math,cjk=simsun,Times New Roman>
+
+    \;
+  </hide-preamble>
+
+  <section|测试说明>
+
+  本文件测试字体大小支持0.5倍数的功能。验证以下内容：
+
+  <\itemize>
+    <item>整数字体大小（如10、11、12）正常工作
+
+    <item>0.5倍数字体大小（如10.5、11.5、12.5）正常工作
+
+    <item>非0.5倍数自动修正（如10.3\<rightarrow\>10.5、10.8\<rightarrow\>11）
+
+    <item>数学公式中的字体大小支持
+  </itemize>
+
+  <section|基本字体大小测试>
+
+  <subsection|混合（整数+0.5倍数）字体大小>
+
+  <tabular*|<tformat|<cwith|1|1|1|-1|cell-vmode|exact>|<cwith|2|2|1|-1|cell-vmode|exact>|<cwith|1|1|1|-1|cell-height|28159tmpt>|<cwith|2|2|1|-1|cell-height|24701tmpt>|<cwith|1|-1|1|-1|cell-valign|c>|<cwith|2|2|2|2|font-base-size|10.5>|<cwith|2|2|3|3|font-base-size|11>|<cwith|3|3|1|1|cell-vmode|exact>|<cwith|4|4|1|1|cell-vmode|exact>|<cwith|3|3|1|1|cell-height|28159tmpt>|<cwith|4|4|1|1|cell-height|24701tmpt>|<cwith|3|4|1|1|cell-valign|c>|<cwith|4|4|1|1|font-base-size|10.5>|<cwith|5|5|1|1|cell-vmode|exact>|<cwith|6|6|1|1|cell-vmode|exact>|<cwith|5|5|1|1|cell-height|28159tmpt>|<cwith|6|6|1|1|cell-height|24701tmpt>|<cwith|5|6|1|1|cell-valign|c>|<cwith|6|6|1|1|font-base-size|11>|<table|<row|<cell|10pt>|<cell|10.5pt>|<cell|11pt>>|<row|<cell|你好>|<cell|你好>|<cell|你好>>|<row|<cell|10.5pt>|<cell|>|<cell|>>|<row|<cell|你好>|<cell|>|<cell|>>|<row|<cell|11pt>|<cell|>|<cell|>>|<row|<cell|你好>|<cell|>|<cell|>>>>>
+
+  <tabular|<tformat|<table|<row|<cell|10pt:>|<cell|<with|font-base-size|10|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.5pt:>|<cell|<with|font-base-size|10.5|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|11pt:>|<cell|<with|font-base-size|11|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|11.5pt:>|<cell|<with|font-base-size|11.5|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|12pt:>|<cell|<with|font-base-size|12|测试文本 The quick brown fox jumps over the lazy dog.>>>>>>
+
+  <subsection|非0.5倍数自动修正测试>
+
+  <tabular|<tformat|<table|<row|<cell|10pt:>|<cell|<with|font-base-size|10|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.24pt:>|<cell|<with|font-base-size|10.24|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.25pt:>|<cell|<with|font-base-size|10.25|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.5pt:>|<cell|<with|font-base-size|10.5|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.74pt:>|<cell|<with|font-base-size|10.74|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|10.75pt:>|<cell|<with|font-base-size|10.75|测试文本 The quick brown fox jumps over the lazy dog.>>>|<row|<cell|11pt:>|<cell|<with|font-base-size|11|测试文本 The quick brown fox jumps over the lazy dog.>>>>>>
+
+  <subsection|公式测试>
+
+  <tabular|<tformat|<table|<row|<cell|10pt:>|<cell|<with|font-base-size|10|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.24pt:>|<cell|<with|font-base-size|10.24|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.25pt:>|<cell|<with|font-base-size|10.25|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.5pt:>|<cell|<with|font-base-size|10.5|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.74pt:>|<cell|<with|font-base-size|10.74|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.75pt:>|<cell|<with|font-base-size|10.75|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|11pt:>|<cell|<with|font-base-size|11|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>>>><tabular|<tformat|<cwith|1|1|2|2|cell-valign|t>|<table|<row|<cell|10pt:>|<cell|<with|font-base-size|10|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|10.5pt:>|<cell|<with|font-base-size|10.5|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|11pt:>|<cell|<with|font-base-size|11|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|11.5pt:>|<cell|<with|font-base-size|11.5|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|12pt:>|<cell|<with|font-base-size|12|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|12.5pt:>|<cell|<with|font-base-size|12.5|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>|<row|<cell|13pt:>|<cell|<with|font-base-size|13|<frac|1|2>+<frac|1|3>=<frac|5|6>>>>>>>
+
+  <subsection|混合测试>
+
+  <with|font-base-size|10|The <with|font|math=Latin Modern Math,Times New Roman|font-base-size|10.5|quick> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|11|brown> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|11.5|fox> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|12|jumps> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|12.5|over> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|13|the> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|13.5|lazy> <with|font|math=Latin Modern Math,Times New Roman|font-base-size|14|dog>.>
+
+  \ 10 \ \ 10.5 \ \ \ \ \ 11 \ \ \ 11.5 \ \ 12 \ \ \ \ \ \ 12.5 \ \ \ 13 \ \ 13.5 \ \ \ 14
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|papyrus>
+    <associate|page-screen-margin|false>
+    <associate|preamble|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+    <associate|auto-2|<tuple|2|?>>
+    <associate|auto-3|<tuple|2.1|?>>
+    <associate|auto-4|<tuple|2.2|?>>
+    <associate|auto-5|<tuple|2.3|?>>
+    <associate|auto-6|<tuple|2.4|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>测试说明><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|2<space|2spc>基本字体大小测试><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|2.1<space|2spc>混合（整数+0.5倍数）字体大小<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <with|par-left|<quote|1tab>|2.2<space|2spc>非0.5倍数自动修正测试<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4>>
+
+      <with|par-left|<quote|1tab>|2.3<space|2spc>公式测试<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-5>>
+
+      <with|par-left|<quote|1tab>|2.4<space|2spc>混合测试<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-6>>
+    </associate>
+  </collection>
+</auxiliary>

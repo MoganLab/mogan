@@ -46,7 +46,7 @@ void
 concater_rep::marker (path ip) {
   if (is_decoration (ip)) ip= path (0, ip);
   string fn_name= "cmr";
-  int    sz     = env->get_script_size (env->fn_size, env->index_level);
+  double sz     = env->get_script_size (env->fn_size, env->index_level);
   font   gfn (tex_font (fn_name, sz, (int) (env->magn * env->dpi)));
   box    b= text_box (ip->next, ip->item, "", gfn, blue);
   a << line_item (MARKER_ITEM, OP_SKIP, b, HYPH_INVALID);
@@ -93,7 +93,7 @@ concater_rep::ghost (string s, path ip, color col) {
       s      = "g";
     }
   }
-  int        sz= env->get_script_size (env->fn_size, env->index_level);
+  double     sz= env->get_script_size (env->fn_size, env->index_level);
   font       gfn (tex_font (fn_name, sz, (int) (env->magn * env->dpi)));
   box        b= text_box (decorate (ip), 0, s, gfn, col);
   array<box> bs (1);
@@ -126,8 +126,8 @@ concater_rep::flag_ok (string s, path ip, color col) {
     }
   }
   else if (info == INFO_DETAILED || info == INFO_PAPER) {
-    int  sz= env->get_script_size (env->fn_size, env->index_level + 2);
-    font gfn;
+    double sz= env->get_script_size (env->fn_size, env->index_level + 2);
+    font   gfn;
     if (lolly::data::has_cjk_unified_ideographs (s)) {
       gfn= smart_font (env->get_string (FONT), env->get_string (FONT_FAMILY),
                        env->get_string (FONT_SERIES),

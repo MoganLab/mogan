@@ -54,7 +54,8 @@ rubber_assemble_font_rep::rubber_assemble_font_rep (string name, font base2)
   int hdpi= (72 * base->wpt + (PIXEL / 2)) / PIXEL;
   int vdpi= (72 * base->hpt + (PIXEL / 2)) / PIXEL;
   initialized << true;
-  larger << virtual_font (base, "emu-alt-large", base->size, hdpi, vdpi, false);
+  larger << virtual_font (base, "emu-alt-large", base->effective_size (), hdpi,
+                          vdpi, false);
   virt= load_translator ("emu-alt-large");
 }
 

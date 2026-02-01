@@ -31,8 +31,8 @@ using lolly::data::decode_from_utf8;
 using lolly::data::to_Hex;
 
 bool virtually_defined (string c, string name);
-font smart_font_bis (string f, string v, string s, string sh, int sz, int hdpi,
-                     int vdpi);
+font smart_font_bis (string f, string v, string s, string sh, double sz,
+                     int hdpi, int vdpi);
 
 smart_map
 get_smart_map (tree fn) {
@@ -613,7 +613,7 @@ typedef hashmap<string, int> int_table;
 
 smart_font_rep::smart_font_rep (string name, font base_fn, font err_fn,
                                 string family2, string variant2, string series2,
-                                string shape2, int sz2, int hdpi2, int vdpi2)
+                                string shape2, double sz2, int hdpi2, int vdpi2)
     : font_rep (name, base_fn), mfam (main_family (family2)), family (family2),
       variant (variant2), series (series2), shape (shape2), rshape (shape2),
       sz (sz2), hdpi (hdpi2), dpi (vdpi2), math_kind (0), italic_nr (-1),
@@ -1722,13 +1722,23 @@ smart_font_rep::get_wide_correction (string s, int mode) {
 
 font
 smart_font_bis (string family, string variant, string series, string shape,
-                int sz, int hdpi, int vdpi) {
+                double sz, int hdpi, int vdpi) {
+  sz= normalize_half_multiple_size (sz);
+
+  // 将浮点尺寸转换为字符串表示，只保留一位小数（0.5倍数）
+  string sz_str;
+  if (sz == round (sz)) {
+    sz_str= as_string ((int) sz); // 整数
+  }
+  else {
+    sz_str= as_string (sz); // 0.5倍数，保留一位小数
+  }
+
   string name= family * "-" * variant * "-" * series * "-" * shape * "-" *
-               as_string (sz) * "-" * as_string (vdpi) * "-smart";
+               sz_str * "-" * as_string (vdpi) * "-smart";
   if (hdpi != vdpi)
-    name= family * "-" * variant * "-" * series * "-" * shape * "-" *
-          as_string (sz) * "-" * as_string (hdpi) * "-" * as_string (vdpi) *
-          "-smart";
+    name= family * "-" * variant * "-" * series * "-" * shape * "-" * sz_str *
+          "-" * as_string (hdpi) * "-" * as_string (vdpi) * "-smart";
   if (font::instances->contains (name)) return font (name);
   if (starts (family, "tc")) {
     // FIXME: temporary hack for symbols from std-symbol.ts
@@ -1768,8 +1778,9 @@ smart_font_bis (string family, string variant, string series, string shape,
 }
 
 font
-smart_font (string family, string variant, string series, string shape, int sz,
-            int dpi) {
+smart_font (string family, string variant, string series, string shape,
+            double sz, int dpi) {
+  sz= normalize_half_multiple_size (sz);
   if (variant == "rm")
     return smart_font_bis (family, variant, series, shape, sz, dpi, dpi);
   array<string> lfn1= logical_font (family, "rm", series, shape);
@@ -1788,8 +1799,9 @@ smart_font (string family, string variant, string series, string shape, int sz,
 
 font
 math_smart_font (string family, string variant, string series, string shape,
-                 string tfam, string tvar, string tser, string tsh, int sz,
+                 string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
+  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman" || starts (tfam, "sys-")) {
     tfam= family;
   }
@@ -1803,8 +1815,9 @@ math_smart_font (string family, string variant, string series, string shape,
 
 font
 prog_smart_font (string family, string variant, string series, string shape,
-                 string tfam, string tvar, string tser, string tsh, int sz,
+                 string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
+  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman") {
     tfam= family;
   }
@@ -1934,7 +1947,7 @@ apply_effects (font fn, string effects) {
         double rad_val = 1.0;
         string rad_unit= "pt";
         get_length_parameter (b[1], 0, rad_val, rad_unit);
-        if (rad_unit == "pt") rad_val= rad_val / fn->size;
+        if (rad_unit == "pt") rad_val= rad_val / fn->effective_size ();
         if (rad_val < 0.01) rad_val= 0.01;
         if (rad_val > 1.00) rad_val= 1.00;
         tree kind= tuple ("blurred", as_string (rad_val));
@@ -1946,7 +1959,7 @@ apply_effects (font fn, string effects) {
         get_length_parameter (b[1], 0, rad_val, rad_unit);
         string shadow= get_string_parameter (b[1], 1, "black");
         string sunny = get_string_parameter (b[1], 2, "white");
-        if (rad_unit == "pt") rad_val= rad_val / fn->size;
+        if (rad_unit == "pt") rad_val= rad_val / fn->effective_size ();
         if (rad_val < 0.01) rad_val= 0.01;
         if (rad_val > 1.00) rad_val= 1.00;
         double      m       = sqrt (0.5);
