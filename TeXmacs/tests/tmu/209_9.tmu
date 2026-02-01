@@ -1,0 +1,36 @@
+<TMU|<tuple|1.1.0|2026.1.1>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|python|r>>
+
+<\body>
+  code模式示例：
+
+  <\cpp-code>
+    <code|<code*|z中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中>>
+  </cpp-code>
+
+  python-code模式示例：
+
+  <\python-code>
+    <code*|z中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中>
+  </python-code>
+
+  cpp-code模式示例：
+
+  <\cpp-code>
+    <code*|z中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中>
+  </cpp-code>
+
+  r-code模式示例：
+
+  <\r-code>
+    <code*|z中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中中>
+  </r-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

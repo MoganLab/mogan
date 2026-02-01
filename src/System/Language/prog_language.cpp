@@ -11,6 +11,7 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
+#include "code_wrap.hpp"
 #include "convert.hpp"
 #include "converter.hpp"
 #include "cork.hpp"
@@ -377,8 +378,9 @@ prog_language_rep::get_hyphens (string s) {
 void
 prog_language_rep::hyphenate (string s, int after, string& left,
                               string& right) {
-  left = s (0, after);
-  right= s (after, N (s));
+  int a= tm_snap_after_boundary_for_code_wrap (s, after);
+  left = s (0, a);
+  right= s (a, N (s));
 }
 
 string

@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
+#include "code_wrap.hpp"
 #include "impl_language.hpp"
 #include "observers.hpp"
 #include "packrat.hpp"
@@ -64,8 +65,9 @@ verb_language_rep::get_hyphens (string s) {
 void
 verb_language_rep::hyphenate (string s, int after, string& left,
                               string& right) {
-  left = s (0, after);
-  right= s (after, N (s));
+  int a= tm_snap_after_boundary_for_code_wrap (s, after);
+  left = s (0, a);
+  right= s (a, N (s));
 }
 
 string
