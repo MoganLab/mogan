@@ -648,6 +648,11 @@ edit_interface_rep::notify_change (int change) {
   needs_update ();
   if ((change & (THE_TREE | THE_SELECTION | THE_CURSOR)) != 0)
     manual_focus_set (path (), (change & THE_TREE) != 0);
+
+  // 当选区改变时，更新文本工具栏
+  if ((change & THE_SELECTION) != 0) {
+    update_text_toolbar ();
+  }
 }
 
 bool
@@ -990,6 +995,8 @@ edit_interface_rep::apply_changes () {
       selection_rects= rs;
       invalidate (selection_rects);
     }
+    // 选区改变后更新文本工具栏
+    update_text_toolbar ();
   }
 
   // cout << "Handling alternative selection\n";

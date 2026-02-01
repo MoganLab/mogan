@@ -850,3 +850,67 @@ QWidget#auxiliary_container {
 #guestNotificationCloseButton:pressed {
   background-color: rgba(0, 0, 0, 0.2);
 }
+
+/*文本工具栏窗口样式*/
+
+/*文本工具栏窗口样式*/
+QWidget#text_toolbar {
+  background: #ffffff;
+  border: none;
+  border-radius: 8px;
+}
+
+/*文本工具栏按钮图标*/
+QToolButton#text-toolbar-button[icon-name="bold"] {
+  qproperty-icon: url(":/pixmaps/liii/20x20/mode/tm_bold.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="italic"] {
+  qproperty-icon: url(":/pixmaps/liii/20x20/mode/tm_italic.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="underline"] {
+  qproperty-icon: url(":/pixmaps/liii/20x20/mode/tm_underline.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="highlight"] {
+  qproperty-icon: url(":/pixmaps/liii/20x20/mode/tm_marked.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="color"] {
+  qproperty-icon: url(":/pixmaps/liii/20x20/mode/tm_color.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="left-align"] {
+  qproperty-icon: url(":/ocr-button/left-align.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="middle-align"] {
+  qproperty-icon: url(":/ocr-button/middle-align.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="right-align"] {
+  qproperty-icon: url(":/ocr-button/right-align.svg");
+}
+
+QToolButton#text-toolbar-button[icon-name="align-justify"] {
+  qproperty-icon: url(":/text-toolbar/align-justify.svg");
+}
+
+/*文本工具栏按钮样式*/
+QToolButton#text-toolbar-button {
+  background-color: transparent; 
+  border: none;
+}
+
+/*文本工具栏按钮悬停样式*/
+QToolButton#text-toolbar-button:hover { 
+  background-color: rgba(128, 128, 128, 0.3); 
+  border: none; 
+} 
+
+/*文本工具栏按钮按下样式*/
+QToolButton#text-toolbar-button:pressed {
+  background-color: rgba(128, 128, 128, 0.5); 
+  border: none;
+}

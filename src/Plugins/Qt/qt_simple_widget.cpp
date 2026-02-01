@@ -21,6 +21,7 @@
 #include "QTMMathCompletionPopup.hpp"
 #include "QTMMenuHelper.hpp"
 #include "QTMStyle.hpp"
+#include "QTMTextToolbar.hpp"
 #include "QTMWidget.hpp"
 #include <QLayout>
 #include <QPixmap>
@@ -789,4 +790,65 @@ qt_simple_widget_rep::scroll_image_popup_by (SI x, SI y) {
     qt_renderer_rep* ren= the_qt_renderer ();
     imagePopUp->updatePosition (ren);
   }
+}
+
+/******************************************************************************
+ * Text toolbar support
+ ******************************************************************************/
+
+void
+qt_simple_widget_rep::ensure_text_toolbar () {
+  if (!textToolbar && canvas ()) {
+    textToolbar= new QTMTextToolbar (canvas (), this);
+    if (is_empty (tm_style_sheet)) {
+      textToolbar->setStyle (qtmstyle ());
+    }
+  }
+}
+
+void
+qt_simple_widget_rep::show_text_toolbar (rectangle selr, double magf,
+                                         int scroll_x, int scroll_y,
+                                         int canvas_x, int canvas_y) {
+  ensure_text_toolbar ();
+  qt_renderer_rep* ren= the_qt_renderer ();
+  textToolbar->showTextToolbar (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                                canvas_y);
+}
+
+void
+qt_simple_widget_rep::hide_text_toolbar () {
+  if (textToolbar) {
+    textToolbar->hide ();
+    textToolbar->setParent (nullptr);
+    textToolbar->deleteLater ();
+    textToolbar= nullptr;
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_text_toolbar_by (SI x, SI y) {
+  if (textToolbar) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    textToolbar->scrollBy (p.x1, p.x2);
+    qt_renderer_rep* ren= the_qt_renderer ();
+    textToolbar->updatePosition (ren);
+  }
+}
+
+bool
+qt_simple_widget_rep::is_point_in_text_toolbar (SI x, SI y) {
+  if (!textToolbar) return false;
+
+  // 将逻辑坐标转换为像素坐标
+  double inv_unit= 1.0 / 256.0;
+  int    px      = int (std::round (x * inv_unit));
+  int    py      = int (std::round (y * inv_unit));
+
+  // 获取工具栏的几何位置
+  QRect toolbarRect= textToolbar->geometry ();
+
+  // 检查点是否在工具栏内
+  return toolbarRect.contains (px, py);
 }
