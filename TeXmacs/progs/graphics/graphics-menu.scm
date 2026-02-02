@@ -758,7 +758,7 @@
   ((check (balloon (icon "tm_elliptical.xpm") "Insert ellipses")
           "v" (== (graphics-mode) '(edit ellipse)))
    (graphics-set-mode '(edit ellipse)))
-  ((check (balloon (icon "tm_line_mode.xpm") "Insert rectangles")
+  ((check (balloon (icon "tm_rectangle_mode.xpm") "Insert rectangles")
           "v" (== (graphics-mode) '(edit rectangle)))
    (graphics-set-mode '(edit rectangle)))
   /
