@@ -188,8 +188,8 @@
          sodipodi:role="line"
          id="tspan5439"></tspan></text>
     <path
-       style="fill:none;stroke:#404040;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"
-       d="M 4,4 L 16,4 L 16,16 L 4,16 Z"
+       style="fill:#c0c0e0;stroke:#404040;stroke-width:2;stroke-linecap:butt;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;fill-opacity:1"
+       d="M 4,6 L 16,6 L 16,14 L 4,14 Z"
        id="path6378"
        inkscape:connector-curvature="0"
        transform="translate(0,-4)"
