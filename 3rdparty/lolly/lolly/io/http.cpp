@@ -27,7 +27,7 @@ const char* HTTP_USER_AGENT= "User-Agent";
 // Timeout settings for HTTP operations (in milliseconds)
 // Total timeout: 30 seconds (reasonable for downloading small to medium files)
 // Connect timeout: 10 seconds (fail fast if server is unreachable)
-constexpr long HTTP_TIMEOUT_MS= 30000;
+constexpr long HTTP_TIMEOUT_MS        = 30000;
 constexpr long HTTP_CONNECT_TIMEOUT_MS= 10000;
 
 template <typename T>
