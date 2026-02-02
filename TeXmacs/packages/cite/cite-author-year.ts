@@ -1,4 +1,4 @@
-<TeXmacs|1.99.19>
+<TeXmacs|2.1.4>
 
 <style|source>
 
@@ -63,12 +63,16 @@
   <active*|<src-short-comment|The LaTeX standard actually uses brackets ( )
   instead>>
 
+  <assign|render-year|<macro|x|(<arg|x>)>>
+
   <assign|cite-sep|<macro|; >>
 
-  <assign|natbib-show|<macro|nr|text|<natbib-author*|<arg|text>><if|<equal|<natbib-year|<arg|text>>|?>||,
-  <natbib-year|<arg|text>>>>>
+  <assign|natbib-show|<macro|nr|text|<natbib-author*|<arg|text>><if|<equal|<natbib-year|<arg|text>>|?>||.
+  <natbib-year|<arg|text>>.>>>
 
   <assign|natbib-bind|<macro|nr|text|<arg|text>>>
+
+  <assign|transform-bibitem|<macro|body|<arg|body> \ >>
 
   <active*|<src-short-comment|Use nr argument instead for short style
   references>>
@@ -92,10 +96,10 @@
   <cite-year|<arg|key>>>>>
 
   <assign|cite-author-year*|<macro|key|<cite-author|<arg|key>><if|<equal|<natbib-year|<cite-data|<arg|key>>>|?>||
-  <render-cite|<cite-year|<arg|key>>>>>>
+  <render-year|<cite-year|<arg|key>>>>>>
 
   <assign|cite-author*-year*|<macro|key|<cite-author*|<arg|key>><if|<equal|<natbib-year|<cite-data|<arg|key>>>|?>||
-  <render-cite|<cite-year|<arg|key>>>>>>
+  <render-year|<cite-year|<arg|key>>>>>>
 
   \;
 
@@ -135,9 +139,9 @@
 
   \;
 
-  <assign|cite|<xmacro|x|<render-cite|<cite-raw-1|<arg|x|0>><map-args|cite-raw+|concat|x|1>>>>
+  <assign|cite|<value|cite-textual>>
 
-  <assign|cite*|<xmacro|x|<render-cite|<cite-raw*-1|<arg|x|0>><map-args|cite-raw*+|concat|x|1>>>>
+  <assign|cite*|<value|cite-textual*>>
 
   <assign|cite-detail|<macro|key|details|<render-cite-detail|<cite-raw-1|<arg|key>>|<arg|details>>>>
 

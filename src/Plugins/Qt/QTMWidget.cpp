@@ -673,7 +673,9 @@ QTMWidget::dropEvent (QDropEvent* event) {
 
             tree t (IMAGE, tuple (tree (RAW_DATA, imagedata), "png"), w, h, "",
                     "");
-            doc << t;
+            tree with (WITH);
+            with << tree ("par-mode") << tree ("center") << t;
+            doc << with;
           }
           else {
             // 如果图片加载失败，回退到文本链接
@@ -711,7 +713,9 @@ QTMWidget::dropEvent (QDropEvent* event) {
         qt_pretty_image_size (ww, hh, w, h);
 #endif
         tree t (IMAGE, tuple (tree (RAW_DATA, imagedata), name), w, h, "", "");
-        doc << t;
+        tree with (WITH);
+        with << tree ("par-mode") << tree ("center") << t;
+        doc << with;
       }
       else {
         doc << name;
@@ -730,21 +734,27 @@ QTMWidget::dropEvent (QDropEvent* event) {
     tree t (IMAGE,
             tree (RAW_DATA, string (buf.constData (), buf.size ()), "png"), w,
             h, "", "");
-    doc << t;
+    tree with (WITH);
+    with << tree ("par-mode") << tree ("center") << t;
+    doc << with;
   }
   else if (md->hasFormat ("application/postscript")) {
     buf= md->data ("application/postscript");
     tree t (IMAGE,
             tree (RAW_DATA, string (buf.constData (), buf.size ()), "ps"), "",
             "", "", "");
-    doc << t;
+    tree with (WITH);
+    with << tree ("par-mode") << tree ("center") << t;
+    doc << with;
   }
   else if (md->hasFormat ("application/pdf")) {
     buf= md->data ("application/pdf");
     tree t (IMAGE,
             tree (RAW_DATA, string (buf.constData (), buf.size ()), "pdf"), "",
             "", "", "");
-    doc << t;
+    tree with (WITH);
+    with << tree ("par-mode") << tree ("center") << t;
+    doc << with;
   }
   else if (md->hasText ()) {
     buf= md->text ().toUtf8 ();

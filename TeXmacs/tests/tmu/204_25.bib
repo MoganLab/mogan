@@ -12,6 +12,11 @@
   urldate = {2025-12-25}
 }
 
+@book{bib-format-article1,
+  author  = {王青 and 张志学 and 张立峰},
+  year    = {2024},
+}
+
 % 2. 图书 book
 @book{bib-format-book,
   author    = {李清泉 and 张远},
@@ -27,8 +32,35 @@
   urldate   = {2025-12-25}
 }
 
+@book{bib-format-book1,
+  author    = {李清泉 and 张远},
+  title     = {人工智能导论},
+  edition   = {3},
+  address   = {北京},
+  publisher = {电子工业出版社},
+  year      = {2023},
+  pages     = {101--150},
+  isbn      = {978-7-121-23456-7},
+  doi       = {10.1002/9781119123456},
+  url       = {https://doi.org/10.1002/9781119123456},
+  urldate   = {2025-12-25}
+}
+
 % 3. 会议论文 inproceedings
 @inproceedings{bib-format-inproceedings,
+  author       = {Li, Yan Song and Han, Shuo},
+  title        = {Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity},
+  booktitle    = {Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024)},
+  year         = {2024},
+  pages        = {2363--2365},
+  address      = {Auckland, New Zealand},
+  organization = {International Foundation for Autonomous Agents and Multiagent Systems},
+  doi          = {10.5555/3635637.3663161},
+  url          = {https://doi.org/10.5555/3635637.3663161},
+  urldate      = {2025-12-25}
+}
+
+@inproceedings{bib-format-inproceedings1,
   author       = {Li, Yan Song and Han, Shuo},
   title        = {Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity},
   booktitle    = {Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024)},
@@ -66,9 +98,20 @@
   urldate   = {2025-12-26}
 }
 
+@manual{bib-format-manual1,
+  author    = {华为技术有限公司},
+  title     = {华为云会议 用户使用手册},
+  edition   = {3.2},
+  address   = {深圳},
+  year      = {2024},
+  pages     = {1--60},
+  url       = {https://support.huaweicloud.com/usermanual-meeting/},
+  urldate   = {2025-12-26}
+}
+
 % 6. 杂项 misc（无明确类型）
 @misc{bib-format-misc,
-  author  = {{中国载人航天工程办公室}},
+  author  = {中国载人航天工程办公室},
   title   = {中国空间站科学实验资源手册},
   year    = {2022},
   url     = {http://www.cmse.gov.cn/kxzy/kxzyzy/202207/P020220704356248569283.pdf},
@@ -126,9 +169,30 @@
   urldate = {2025-12-25}
 }
 
+@patent{bib-format-patent1,
+  author  = {李建军 and 王雪},
+  title   = {一种面向自动驾驶的多模态融合感知系统},
+  number  = {CN114123456A},
+  type    = {发明专利},
+  address = {中国},
+  year    = {2022},
+  date    ={2022-08-30},
+  url     = {https://pss-system.cponline.cnipa.gov.cn/documents/detail/CN114123456A},
+  urldate = {2025-12-25}
+}
+
 % 11. 电子公告 electronic（政策/网页）
 @electronic{bib-format-electronic,
-  author  = {{中华人民共和国教育部}},
+  author  = {中华人民共和国教育部},
+  title   = {教育部关于印发《研究生教育学科专业目录（2022年）》的通知},
+  year    = {2022},
+  date    = {2022-09-13},
+  url     = {http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html},
+  urldate = {2025-12-25}
+}
+
+@electronic{bib-format-electronic1,
+  author  = {中华人民共和国教育部},
   title   = {教育部关于印发《研究生教育学科专业目录（2022年）》的通知},
   year    = {2022},
   date    = {2022-09-13},
@@ -159,7 +223,7 @@
 
 % 14. 纯网络公告/网页 online
 @online{bib-format-online,
-  author  = {{国家互联网信息办公室}},
+  author  = {国家互联网信息办公室},
   title   = {《生成式人工智能服务管理办法（征求意见稿）》公开征求意见},
   year    = {2023},
   date    = {2023-04-11},
@@ -172,6 +236,7 @@
   author  = {王姝},
   title   = {“双减”后首批中考学生迎考: 命题难度降低, 分流力度不变},
   journal = {新京报},
+  year    = {2023},
   date    = {2023-06-21},
   pages   = {A06},
   url     = {https://www.bjnews.com.cn/detail/1687312345167891.html},
@@ -224,7 +289,7 @@
 
 % 20. map 舆图（CM/OL）
 @map{bib-format-map,
-  author  = {{国家基础地理信息中心}},
+  author  = {国家基础地理信息中心},
   title   = {中国1∶100万数字地貌图},
   edition = {3},
   address = {北京},
@@ -244,8 +309,25 @@
   urldate = {2025-12-25}
 }
 
+@dataset{bib-format-dataset1,
+  author  = {He, Kaiming and Gkioxari, Georgia and Dollár, Piotr and Girshick, Ross},
+  title   = {COCO 2017 Dataset},
+  year    = {2017},
+  doi     = {10.5281/zenodo.3243629},
+  url     = {https://doi.org/10.5281/zenodo.3243629},
+  urldate = {2025-12-25}
+}
+
 % 22. other 其他（Z)
 @other{bib-format-other,
+author         = {赵一 and 钱二 and 孙三 and 李四},
+title          = {内部工作手册},
+year           = {2020},
+address        = {北京},
+publisher      = {内部发行}
+}
+
+@other{bib-format-other1,
 author         = {赵一 and 钱二 and 孙三 and 李四},
 title          = {内部工作手册},
 year           = {2020},

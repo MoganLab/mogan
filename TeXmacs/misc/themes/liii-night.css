@@ -563,6 +563,43 @@ QDialog QPushButton:disabled {
   border: 1px solid #4c4c4c;
 }
 
+/* QMessageBox 样式 */
+QMessageBox {
+    background: #2c2c2c;
+    border: 1.5px solid #4c4c4c;
+    border-radius: 8px;
+    padding: 24px;
+    min-width: 400px;
+    color: #ffffff;
+}
+
+QMessageBox QLabel {
+    font-size: 14px;
+    color: #ffffff;
+    margin-bottom: 16px;
+}
+
+QMessageBox QPushButton {
+    background-color: #2c2c2c;
+    color: #ffffff;
+    border: 1px solid #bdbdbd;
+    border-radius: 6px;
+    padding: 8px 20px;
+    min-width: 80px;
+    font-weight: 500;
+}
+
+QMessageBox QPushButton:hover {
+    background-color: #4c4c4c;
+    border-color: #ffffff;
+}
+
+QMessageBox QPushButton:default {
+    background-color: #ffffff;
+    color: #2c2c2c;
+    border-color: #ffffff;
+}
+
 /****************************************************************************
 * 登录对话框样式
 ****************************************************************************/

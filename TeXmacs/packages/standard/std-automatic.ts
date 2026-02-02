@@ -84,7 +84,7 @@
 
   <assign|bibitem-width|3em>
 
-  <assign|transform-bibitem|<macro|body|<strong|[<arg|body>] \ >>>
+  <assign|transform-bibitem|<macro|body|[<arg|body>] \ >>
 
   <assign|render-bibitem|<macro|text|<style-with|src-compact|none|<with|par-first|<minus|1tmpt|<value|bibitem-width>>|<yes-indent>><resize|<arg|text>|||<maximum|1r|<value|bibitem-width>>|>>>>
 

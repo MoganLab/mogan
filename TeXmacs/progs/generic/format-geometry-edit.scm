@@ -518,6 +518,7 @@
 (define image-resize-start-y #f)
 (define image-resize-orig-w #f)
 (define image-resize-orig-h #f)
+(define image-resize-mark #f)
 
 (define (image-get-bbox t)
   ;; 获取图片节点的边界框坐标列表 (x1 y1 x2 y2)
@@ -592,7 +593,10 @@
         ((s)  (when (> (- oh sy) 0.1) (tree-set! t 2 (cm->str (- oh sy))) (refresh-window)))))))
 
 (define (image-reset-drag-state!)
-  ;; 重置5个拖拽变量的值，以便下一次重新使用
+  ;; 重置拖拽变量和编辑会话标记的值，以便下一次重新使用
+  (when image-resize-mark
+    (mark-cancel image-resize-mark)
+    (set! image-resize-mark #f))
   (set! image-resize-handle #f)
   (set! image-resize-start-x #f)
   (set! image-resize-start-y #f)
@@ -615,7 +619,9 @@
              (set! image-resize-start-x x)
              (set! image-resize-start-y y)
              (set! image-resize-orig-w (if dims (car dims) (cm->tmpt 1)))
-             (set! image-resize-orig-h (if dims (cadr dims) (cm->tmpt 1))))))
+             (set! image-resize-orig-h (if dims (cadr dims) (cm->tmpt 1)))
+             (set! image-resize-mark (mark-new))
+             (mark-start image-resize-mark))))
        (former key x y mods time data))
       ((== key "dragging-left")
        (if image-resize-handle
@@ -624,5 +630,8 @@
                                   (- x image-resize-start-x) (- y image-resize-start-y)))
            (former key x y mods time data)))
       ((== key "end-drag-left")
+       (when image-resize-mark
+         (mark-end image-resize-mark)
+         (set! image-resize-mark #f))
        (image-reset-drag-state!)
        (former key x y mods time data)))))

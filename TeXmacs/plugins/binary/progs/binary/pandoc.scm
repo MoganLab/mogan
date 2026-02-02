@@ -18,8 +18,8 @@
          (list "/usr/local/bin/pandoc"
                "/opt/homebrew/bin/pandoc"))
         ((os-win32?)
-         (list "C:\\Program Files\\Pandoc\\pandoc.exe"
-               "$TEXMACS_HOME_PATH\\pandoc.exe"))
+         (list "$TEXMACS_PATH\\bin\\pandoc.exe"
+               "C:\\Program Files\\Pandoc\\pandoc.exe"))
         (else
          (list "/usr/bin/pandoc" "/usr/local/bin/pandoc"))))
 
