@@ -24,6 +24,12 @@ namespace io {
 
 const char* HTTP_USER_AGENT= "User-Agent";
 
+// Timeout settings for HTTP operations (in milliseconds)
+// Total timeout: 30 seconds (reasonable for downloading small to medium files)
+// Connect timeout: 10 seconds (fail fast if server is unreachable)
+constexpr long HTTP_TIMEOUT_MS= 30000;
+constexpr long HTTP_CONNECT_TIMEOUT_MS= 10000;
+
 template <typename T>
 inline http_tree
 blackbox_tree (int label, T data) {
@@ -97,6 +103,8 @@ http_get (url u, http_headers headers) {
   session.SetHeader (as_cpr_header (headers));
   session.SetUserAgent (
       cpr::UserAgent (std::string (c_string (headers[HTTP_USER_AGENT]))));
+  session.SetTimeout (cpr::Timeout{HTTP_TIMEOUT_MS});
+  session.SetConnectTimeout (cpr::ConnectTimeout{HTTP_CONNECT_TIMEOUT_MS});
   cpr::Response r= session.Get ();
   return response_to_tree (r, u_str);
 }
@@ -110,6 +118,8 @@ http_head (url u, http_headers headers) {
   session.SetHeader (as_cpr_header (headers));
   session.SetUserAgent (
       cpr::UserAgent (std::string (c_string (headers[HTTP_USER_AGENT]))));
+  session.SetTimeout (cpr::Timeout{HTTP_TIMEOUT_MS});
+  session.SetConnectTimeout (cpr::ConnectTimeout{HTTP_CONNECT_TIMEOUT_MS});
   cpr::Response r= session.Head ();
   return response_to_tree (r, u_str);
 }
@@ -126,6 +136,8 @@ download (url from, url to, http_headers headers) {
   session.SetHeader (as_cpr_header (headers));
   session.SetUserAgent (
       cpr::UserAgent (std::string (c_string (headers[HTTP_USER_AGENT]))));
+  session.SetTimeout (cpr::Timeout{HTTP_TIMEOUT_MS});
+  session.SetConnectTimeout (cpr::ConnectTimeout{HTTP_CONNECT_TIMEOUT_MS});
   std::ofstream to_stream (to_cstr, std::ios::binary);
   cpr::Response r= session.Download (to_stream);
   return response_to_tree (r, from_str);
