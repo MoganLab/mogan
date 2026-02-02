@@ -24,6 +24,11 @@
 
 #include <lolly/io/http.hpp>
 
+#ifdef QTTEXMACS
+#include <QApplication>
+#include <QEventLoop>
+#endif
+
 using lolly::io::http_head;
 using lolly::io::http_headers;
 using lolly::io::http_label;
@@ -101,6 +106,13 @@ fetch_tool () {
 url
 get_from_web (url name) {
   if (!is_rooted_web (name)) return url_none ();
+
+#ifdef QTTEXMACS
+  // HACK:
+  // Process pending events to ensure the wait dialog is rendered
+  // before the synchronous download blocks the main thread
+  qApp->processEvents (QEventLoop::ExcludeUserInputEvents);
+#endif
 
   http_tree head_res   = http_head (name);
   long      status_code= open_box<long> (

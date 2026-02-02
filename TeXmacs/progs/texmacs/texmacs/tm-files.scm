@@ -655,6 +655,10 @@
          (!= (url-suffix name) "tm")
          (!= (url-suffix name) "tmu"))
          (load-external name))
+        ((url-rooted-web? name)
+         ;; Show wait dialog during remote file loading
+         (system-wait "Loading remote file" (url->system name))
+         (load-buffer name))
         ((url-rooted-web? (current-buffer)) (load-buffer name))
         (else (load-buffer name))))
 
