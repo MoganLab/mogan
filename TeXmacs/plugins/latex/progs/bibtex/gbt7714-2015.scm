@@ -191,8 +191,8 @@
              (max-authors 3)
              (author-count (- n 1))
              (show-count (min author-count max-authors))
-             ;; 逗号分隔符：中文不加空格，英文加空格
-             (comma-sep (if chinese? "," ", ")))
+             ;; 逗号分隔符：中文和英文都加空格
+             (comma-sep (if chinese? ", " ", ")))
         (cond
           ((equal? author-count 1)
            (bib-format-name (list-ref a 1)))

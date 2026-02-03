@@ -67,7 +67,7 @@
 
   <assign|cite-sep|<macro|; >>
 
-  <assign|natbib-show|<macro|nr|text|<natbib-author*|<arg|text>><if|<equal|<natbib-year|<arg|text>>|?>||.
+  <assign|natbib-show|<macro|nr|text|<natbib-author*|<arg|text>><if|<equal|<natbib-year|<arg|text>>|?>||,
   <natbib-year|<arg|text>>.>>>
 
   <assign|natbib-bind|<macro|nr|text|<arg|text>>>

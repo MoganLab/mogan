@@ -202,8 +202,8 @@
                (max-authors 3)
                (show-count (min author-count max-authors))
                (has-more (> author-count max-authors))
-               ;; 分隔符：中文不加空格，英文加空格
-               (separator (if chinese? "," ", ")))
+               ;; 分隔符：中文和英文都加空格
+               (separator (if chinese? ", " ", ")))
           (cond
             ((= author-count 1)
              (let ((author-name (bib-format-name (list-ref field-list 1))))
@@ -311,6 +311,28 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; 辅助函数
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 检查是否有URL/DOI/urldate
+(tm-define (gbt-has-url-doi? x)
+  (:mode bib-gbt7714-2015?)
+  (let* ((url (bib-field x "url"))
+         (doi (bib-field x "doi"))
+         (urldate (bib-field x "urldate")))
+    (or (not (bib-null? url)) (not (bib-null? doi)) (not (bib-null? urldate)))))
+
+;; 智能句子函数：如果有URL/DOI/urldate则不添加句点，否则添加句点
+(tm-define (gbt-new-smart-sentence x ref)
+  (:mode bib-gbt7714-2015?)
+  (if (gbt-has-url-doi? ref)
+      (bib-upcase-first (bib-new-list ", " x))
+      (bib-add-period (bib-upcase-first (bib-new-list ", " x)))))
+
+;; 智能块函数：包装智能句子，包含URL/DOI，不添加额外空格
+(tm-define (gbt-new-smart-block-with-url x ref)
+  (:mode bib-gbt7714-2015?)
+  (if (bib-null? x) ""
+      `(concat ,(gbt-new-smart-sentence x ref)
+               ,(bib-new-case-preserved-block (bib-format-url-doi ref)))))
 
 ;; 将URL里rsub表达式转换回下划线：将(rsub "x")转换为_x
 (define (convert-rsub-to-underscore expr)
@@ -420,8 +442,8 @@
              (max-authors 3)
              (author-count (- n 1))
              (show-count (min author-count max-authors))
-             ;; 逗号分隔符：中文不加空格，英文加空格
-             (comma-sep (if chinese? "," ", ")))
+             ;; 逗号分隔符：中文和英文都加空格
+             (comma-sep (if chinese? ", " ", ")))
         (cond
           ((equal? author-count 1)
            (bib-format-name (list-ref a 1)))
@@ -592,18 +614,25 @@
   (:mode bib-gbt7714-2015-author-year?)
   (let* ((url-raw (bib-field x "url"))
          (doi-raw (bib-field x "doi"))
+         (urldate (bib-field x "urldate"))
          ;; 转换rsub表达式为下划线
          (url (convert-rsub-to-underscore url-raw))
          (doi (convert-rsub-to-underscore doi-raw))
          (has-url (not (bib-null? url-raw)))
-         (has-doi (not (bib-null? doi-raw))))
+         (has-doi (not (bib-null? doi-raw)))
+         (has-urldate (not (bib-null? urldate))))
     (cond
       (has-doi
        ;; 有 DOI（优先使用，忽略 URL）：添加https://doi.org/前缀
-       `(concat "https://doi.org/" ,doi))
+       (let ((doi-url `(concat "https://doi.org/" ,doi)))
+         (if has-urldate
+             `(concat "[" ,urldate "]. " ,doi-url)
+             doi-url)))
       (has-url
        ;; 只有 URL（没有 DOI）
-       `(concat ,url))
+       (if has-urldate
+           `(concat "[" ,urldate "]. " ,url)
+           `(concat ,url)))
       (else ""))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -620,11 +649,9 @@
        `(,(bib-new-block
            `(concat ,(bib-format-field-preserve-case x "title")
                     ,(bib-document-type-identifier x "article")))
-         ,(bib-new-block
-            (bib-new-sentence
-              `(,(bib-format-field x "journal")
-                ,(bib-format-vol-num-pages x))))
-         ,(bib-new-case-preserved-block (bib-format-url-doi x))))))
+         ,(gbt-new-smart-block-with-url
+           `(,(bib-format-field x "journal")
+             ,(bib-format-vol-num-pages x)) x)))))
 
 ;; 重写图书格式以添加文献类型标识符 [M]
 (tm-define (bib-format-book n x)

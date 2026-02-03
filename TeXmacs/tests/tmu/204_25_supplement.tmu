@@ -1,6 +1,6 @@
 <TMU|<tuple|1.1.0|2026.1.2>>
 
-<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|cite-author-year>>
 
 <\body>
   <cite|bib-format-techreport>
@@ -15,19 +15,19 @@
 
   <cite|bib-format-dataset>
 
-  <\bibliography|bib|tm-gbt7714-2015|204_25>
+  <\bibliography|bib|tm-gbt7714-2015-author-year|204_25>
     <\bib-list|6>
-      <bibitem*|1><label|bib-bib-format-techreport>张凯,王磊. <newblock>城市快速路交通流状态判别与预测技术报告[R/OL]. <newblock>北京: 交通运输部公路科学研究院, 2023: 2023-ITSC-TR-05[2025-12-25]. https://www.rioh.cn/uploads/tech/2023ITSC.pdf.<newblock>
+      <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022>><label|bib-bib-format-electronic>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
 
-      <bibitem*|2><label|bib-bib-format-standard>GB/T 40973-2023 信息技术 人工智能 伦理审查指南[S/OL]. <newblock>北京: 中国标准出版社, 2023: 1-30[2025-12-25]. https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=8D8A8E8F8A8B8C8D8E8F.<newblock>
+      <bibitem*|<natbib-triple|国家互联网信息办公室|国家互联网信息办公室|2023>><label|bib-bib-format-online>《生成式人工智能服务管理办法（征求意见稿）》公开征求意见[EB/OL]. <newblock>[2025-12-25]. http://www.cac.gov.cn/2023-04/11/c_1683617348175741.htm.<newblock>
 
-      <bibitem*|3><label|bib-bib-format-database>Kaggle. <newblock>COVID-19 Open Research Dataset Challenge (CORD-19)[DB/OL]. <newblock>2020[2025-12-25]. https://www.kaggle.com/datasets/allen-institute/CORD-19-research-challenge.<newblock>
+      <bibitem*|<natbib-triple|国家市场监督管理总局,国家标准化管理委员会|国家市场监督管理总局和国家标准化管理委员会|2023>><label|bib-bib-format-standard>GB/T 40973-2023 信息技术 人工智能 伦理审查指南[S/OL]. <newblock>北京: 中国标准出版社. <newblock>[2025-12-25]. https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=8D8A8E8F8A8B8C8D8E8F.<newblock>
 
-      <bibitem*|4><label|bib-bib-format-electronic>中华人民共和国教育部. <newblock>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>(2022-09-13)[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
+      <bibitem*|<natbib-triple|张凯,王磊|张凯和王磊|2023>><label|bib-bib-format-techreport>城市快速路交通流状态判别与预测技术报告[R/OL]. <newblock>北京: 交通运输部公路科学研究院: 2023-ITSC-TR-05. <newblock>[2025-12-25]. https://www.rioh.cn/uploads/tech/2023ITSC.pdf.<newblock>
 
-      <bibitem*|5><label|bib-bib-format-online>国家互联网信息办公室. <newblock>《生成式人工智能服务管理办法（征求意见稿）》公开征求意见[EB/OL]. <newblock>(2023-04-11)[2025-12-25]. http://www.cac.gov.cn/2023-04/11/c_1683617348175741.htm.<newblock>
+      <bibitem*|<natbib-triple|HE K, GKIOXARI G, DOLLÁR P, et al|He et al.|2017>><label|bib-bib-format-dataset>COCO 2017 Dataset[DS/OL]. <newblock>[2025-12-25]. https://doi.org/10.5281/zenodo.3243629.<newblock>
 
-      <bibitem*|6><label|bib-bib-format-dataset>HE K, GKIOXARI G, DOLLÁR P, et al. <newblock>COCO 2017 Dataset[DS/OL]. <newblock>2017[2025-12-25]. https://doi.org/10.5281/zenodo.3243629.<newblock>
+      <bibitem*|<natbib-triple|Kaggle|Kaggle|2020>><label|bib-bib-format-database>COVID-19 Open Research Dataset Challenge (CORD-19)[DB/OL]. <newblock>[2025-12-25]. https://www.kaggle.com/datasets/allen-institute/CORD-19-research-challenge.<newblock>
     </bib-list>
   </bibliography>
 </body>
@@ -42,12 +42,12 @@
 <\references>
   <\collection>
     <associate|auto-1|<tuple|?|1>>
-    <associate|bib-bib-format-database|<tuple|3|1>>
-    <associate|bib-bib-format-dataset|<tuple|6|1>>
-    <associate|bib-bib-format-electronic|<tuple|4|1>>
-    <associate|bib-bib-format-online|<tuple|5|1>>
-    <associate|bib-bib-format-standard|<tuple|2|1>>
-    <associate|bib-bib-format-techreport|<tuple|1|1>>
+    <associate|bib-bib-format-database|<tuple|Kaggle (2020)Kaggle|1>>
+    <associate|bib-bib-format-dataset|<tuple|He et al. (2017)HE K, GKIOXARI G, DOLLÁR P, et al|1>>
+    <associate|bib-bib-format-electronic|<tuple|中华人民共和国教育部 (2022)中华人民共和国教育部|1>>
+    <associate|bib-bib-format-online|<tuple|国家互联网信息办公室 (2023)国家互联网信息办公室|1>>
+    <associate|bib-bib-format-standard|<tuple|国家市场监督管理总局和国家标准化管理委员会 (2023)国家市场监督管理总局,国家标准化管理委员会|1>>
+    <associate|bib-bib-format-techreport|<tuple|张凯和王磊 (2023)张凯,王磊|1>>
   </collection>
 </references>
 
@@ -56,13 +56,25 @@
     <\associate|bib>
       bib-format-techreport
 
+      bib-format-techreport
+
       bib-format-standard
+
+      bib-format-standard
+
+      bib-format-database
 
       bib-format-database
 
       bib-format-electronic
 
+      bib-format-electronic
+
       bib-format-online
+
+      bib-format-online
+
+      bib-format-dataset
 
       bib-format-dataset
     </associate>
