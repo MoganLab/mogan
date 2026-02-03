@@ -41,7 +41,7 @@
     You are using <strong|v<Xmacs-version>>. The current latest stable version is <strong|v<include|https://liiistem.cn/mogan_latest_version.tm>>. Visit the official website <hlink|https://mogan.app|https://mogan.app/en/?from=app> to download the latest stable version.
   </ornamented>>
 
-  <section*|魔法粘贴>
+  <section*|Magic Paste>
 
   <\itemize-dot>
     <item>When you see great content on DeepSeek, ChatGPT, Zhihu, etc., and want to copy it down, try the <strong|Magic Paste> feature. Here's a DeepSeek answer <hlink|How to prove the contraction mapping theorem|https://chat.deepseek.com/share/p7r2vi7ja048xhu90k>, you can click the link, copy a section of content and paste it back into this document.
