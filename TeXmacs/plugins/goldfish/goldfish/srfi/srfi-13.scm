@@ -18,7 +18,7 @@
   (import (liii base) (srfi srfi-1))
   (export string-null? string-copy string-join string-every string-any string-take string-take-right
           string-drop string-drop-right string-pad string-pad-right string-trim string-trim-right
-          string-trim-both string-prefix? string-suffix? string-index string-index-right
+          string-trim-both string-prefix? string-suffix? string-index string-index-right string-skip string-skip-right
           string-contains string-count string-upcase string-downcase string-fold string-fold-right
           string-for-each-index string-reverse string-tokenize)
   (begin
@@ -265,6 +265,34 @@
              (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-index-right-sub str-sub pred?)))
+        (if ret (+ start ret) ret)))
+
+    (define (string-skip str char/pred? . start+end)
+      (define (string-skip-sub str pred?)
+        (let loop ((i 0))
+          (cond ((>= i (string-length str)) #f)
+                ((pred? (string-ref str i)) (loop (+ i 1)))
+                (else i))))
+      (let* ((start (if (null-list? start+end)
+                        0
+                        (car start+end)))
+             (str-sub (%string-from-range str start+end))
+             (pred? (%make-criterion char/pred?))
+             (ret (string-skip-sub str-sub pred?)))
+        (if ret (+ start ret) ret)))
+
+    (define (string-skip-right str char/pred? . start+end)
+      (define (string-skip-right-sub str pred?)
+        (let loop ((i (- (string-length str) 1)))
+          (cond ((< i 0) #f)
+                ((pred? (string-ref str i)) (loop (- i 1)))
+                (else i))))
+      (let* ((start (if (null-list? start+end)
+                        0
+                        (car start+end)))
+             (str-sub (%string-from-range str start+end))
+             (pred? (%make-criterion char/pred?))
+             (ret (string-skip-right-sub str-sub pred?)))
         (if ret (+ start ret) ret)))
 
     (define (string-contains str sub-str)

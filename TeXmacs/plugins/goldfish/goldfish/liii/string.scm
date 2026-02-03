@@ -26,7 +26,7 @@
     string-take string-take-right string-drop string-drop-right
     string-pad string-pad-right
     string-trim string-trim-right string-trim-both
-    string-index string-index-right
+    string-index string-index-right string-skip string-skip-right
     string-contains string-count
     string-upcase string-downcase
     string-fold string-fold-right string-for-each-index

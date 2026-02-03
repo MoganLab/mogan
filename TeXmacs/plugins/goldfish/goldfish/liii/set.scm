@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2024 The Goldfish Scheme Authors
+; Copyright (C) 2026 The Goldfish Scheme Authors
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -15,55 +15,27 @@
 ;
 
 (define-library (liii set)
-  (import (liii lang)(liii hash-table)(srfi srfi-128))
-  (export hash-set)
-  (begin
+  (import (rename (srfi srfi-113)
+                  (set make-set-with-comparator)
+                  (list->set list->set-with-comparator))
+          (srfi srfi-128))
+  (export set set-unfold list->set list->set! set-copy set->list list->set-with-comparator make-set-with-comparator
+          set? set-contains? set-empty? set-disjoint?
+          set-element-comparator set-size
+          set=? set<? set>? set<=? set>=?
+          set-any? set-every? set-find set-count set-member set-search! set-map
+          set-for-each set-fold set-filter set-filter! set-remove set-remove!
+          set-partition set-partition! set-union set-intersection set-difference set-xor
+          set-union! set-intersection! set-difference! set-xor!
+          set-adjoin set-adjoin! set-replace set-replace!
+          set-delete set-delete! set-delete-all set-delete-all!)
+  
+  (define comp (make-default-comparator))
 
+  (define (set . elements)
+    (apply make-set-with-comparator comp elements))
 
-    (define-case-class hash-set ((data hash-table?))
-
-      ;; Factory methods
-      (chained-define (@empty) 
-        (hash-set (make-hash-table)))
-                   
-      ;; Basic operations
-      (define (%size) (hash-table-size data))
-
-      (define (%empty?) (hash-table-empty? data))
-
-      (define (%contains element)
-        (hash-table-contains? data element))
-
-      ;; Modification operations
-      (chained-define (%add-one! element)
-        (hash-table-set! data element #t)
-        (%this))
-
-      (chained-define (%remove! element)
-        (hash-table-delete! data element)
-        (%this))
-
-      (chained-define (%add-one element)
-        (let ((ht (make-hash-table)))
-          (hash-table-for-each
-            (lambda (k v) (hash-table-set! ht k v))
-            data)
-          (hash-table-set! ht element #t)
-          (hash-set ht)))
-
-      (chained-define (%remove element)
-        (let ((ht (make-hash-table)))
-          (hash-table-for-each
-            (lambda (k v) (hash-table-set! ht k v))
-            data)
-          (hash-table-delete! ht element)
-          (hash-set ht)))
-
-      (chained-define (%clear!)
-        (hash-table-clear! data)
-        (%this))
-
-      ) ; end of define-case-class
-    ) ; end of begin
-  ) ; end of define-library
-
+  (define (list->set elements)
+    (list->set-with-comparator comp elements))
+  
+) ; end of define-library

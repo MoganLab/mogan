@@ -1,0 +1,236 @@
+<TMU|<tuple|1.1.0|2026.1.2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (import (liii json))
+    <|folded-io>
+      #1=(inlet 'json-\<gtr\>string json-\<gtr\>string 'string-\<gtr\>json string-\<gtr\>json 'json-string-escape json-string-escape 'json-ref json-ref 'json-set json-set 'json-push json-push 'json-drop json-drop 'json-reduce json-reduce 'json-null? json-null? 'json-object? json-object? 'json-array? json-array? 'json-string? json-string? 'json-number? json-number? 'json-integer? json-integer? 'json-float? json-float? 'json-boolean? json-boolean? 'json-contains-key? json-contains-key? 'json-get-or-else json-get-or-else 'json-ref-string json-ref-string 'json-ref-number json-ref-number 'json-ref-integer json-ref-integer 'json-ref-boolean json-ref-boolean 'json-keys json-keys 'json-\<gtr\>string json-\<gtr\>string 'string-\<gtr\>json string-\<gtr\>json 'json-string-escape json-string-escape 'json-ref json-ref 'json-set json-set 'json-push json-push 'json-drop json-drop 'json-reduce json-reduce 'json-null? json-null? 'json-object? json-object? 'json-array? json-array? 'json-string? json-string? 'json-number? json-number? 'json-integer? json-integer? 'json-float? json-float? 'json-boolean? json-boolean? 'json-contains-key? json-contains-key? ...)
+    </folded-io>
+  </session>
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (define sample-j
+
+      \ \ '((user . ((id . 1001)
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (name . "Alice")
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (active . #t)
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (score . 98)
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (height . 168.5)
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (email . null)
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (tags . #("dev" "scheme" "json"))
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (prefs . ((theme . "dark")
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (notify . #f)))
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (emptyObj . (()))
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (emptyArr . #())
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ (history . #(((date . "2026-02-01") (ok . #t))
+
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ ((date . "2026-02-02") (ok . #f))))))
+
+      \ \ \ \ (nums . #(1 2 3 4.5))
+
+      \ \ \ \ (status . "ok")))
+
+      \;
+    <|folded-io>
+      ((user (id . 1001) (name . "Alice") (active . #t) (score . 98) (height . 168.5) (email . null) (tags . #("dev" "scheme" "json")) (prefs (theme . "dark") (notify . #f)) (emptyObj ()) (emptyArr . #()) (history . #(((date . "2026-02-01") (ok . #t)) ((date . "2026-02-02") (ok . #f))))) (nums . #(1 2 3 4.5)) (status . "ok"))
+    </folded-io>
+  </session>
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (define sample-json-str
+
+      \ \ "{user:{id:1001,name:\\"Alice\\",active:true,score:98,height:168.5,email:null,tags:[\\"dev\\",\\"scheme\\",\\"json\\"],prefs:{theme:\\"dark\\",notify:false},emptyObj:{},emptyArr:[],history:[{date:\\"2026-02-01\\",ok:true},{date:\\"2026-02-02\\",ok:false}]},nums:[1,2,3,4.5],status:\\"ok\\"}")
+
+      \;
+    <|folded-io>
+      {user:{id:1001,name:"Alice",active:true,score:98,height:168.5,email:null,tags:["dev","scheme","json"],prefs:{theme:"dark",notify:false},emptyObj:{},emptyArr:[],history:[{date:"2026-02-01",ok:true},{date:"2026-02-02",ok:false}]},nums:[1,2,3,4.5],status:"ok"}
+    </folded-io>
+  </session>
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (string-\<gtr\>json sample-json-str)
+    <|folded-io>
+      ((user (id . 1001) (name . "Alice") (active . true) (score . 98) (height . 168.5) (email . null) (tags . #("dev" "scheme" "json")) (prefs (theme . "dark") (notify . false)) (emptyObj ()) (emptyArr . #()) (history . #(((date . "2026-02-01") (ok . true)) ((date . "2026-02-02") (ok . false))))) (nums . #(1 2 3 4.5)) (status . "ok"))
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-\<gtr\>string sample-j)
+    <|folded-io>
+      {user:{id:1001,name:"Alice",active:true,score:98,height:168.5,email:null,tags:["dev","scheme","json"],prefs:{theme:"dark",notify:false},emptyObj:{},emptyArr:[],history:[{date:"2026-02-01",ok:true},{date:"2026-02-02",ok:false}]},nums:[1,2,3,4.5],status:"ok"}
+    </folded-io>
+  </session>
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'user)
+    <|folded-io>
+      ((id . 1001) (name . "Alice") (active . #t) (score . 98) (height . 168.5) (email . null) (tags . #("dev" "scheme" "json")) (prefs (theme . "dark") (notify . #f)) (emptyObj ()) (emptyArr . #()) (history . #(((date . "2026-02-01") (ok . #t)) ((date . "2026-02-02") (ok . #f)))))
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'user 'id)
+    <|folded-io>
+      1001
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'user 'tags 1)
+    <|folded-io>
+      scheme
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'user 'name)
+    <|folded-io>
+      Alice
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'user 'history 0 'date)
+    <|folded-io>
+      2026-02-01
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'nums \ 1)
+    <|folded-io>
+      2
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (json-ref sample-j 'num)
+    <|folded-io>
+      ()
+    </folded-io>
+  </session>
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      (json-ref (json-set sample-j 'user 'id 20) 'user 'id)
+    <|folded-io>
+      20
+    </folded-io>
+
+    <\unfolded-io|Scheme] >
+      (json-ref (json-set sample-j 'nums 1 10) 'nums 1)
+    <|unfolded-io>
+      10
+    </unfolded-io>
+
+    <\input|Scheme] >
+      \;
+    </input>
+  </session>
+
+  \;
+
+  <\session|scheme|default>
+    <\folded-io|Scheme] >
+      \ (import (liii check)
+
+      \ (liii http)
+
+      \ (liii string)
+
+      \ (liii rich-json)
+
+      \ (only (liii lang) display*)
+
+      \ (only (liii base) let1))
+    <|folded-io>
+      #1=(inlet 'let1 let1 'display* display* 'json-reduce* json-reduce* 'json-reduce json-reduce 'json-drop* json-drop* 'json-drop json-drop 'json-push* json-push* 'json-push json-push 'json-set* json-set* 'json-set json-set 'json-ref* json-ref* 'json-ref json-ref 'json-\<gtr\>string json-\<gtr\>string 'string-\<gtr\>json string-\<gtr\>json 'json-string-escape json-string-escape 'rich-json rich-json 'string-tokenize string-tokenize 'string-for-each-index string-for-each-index 'string-fold-right string-fold-right 'string-fold string-fold 'string-reverse string-reverse 'string-downcase string-downcase 'string-upcase string-upcase 'string-count string-count 'string-contains string-contains 'string-skip-right string-skip-right 'string-skip string-skip 'string-index-right string-index-right 'string-index string-index 'string-trim-both string-trim-both 'string-trim-right string-trim-right 'string-trim string-trim 'string-pad-right string-pad-right 'string-pad string-pad 'string-drop-right string-drop-right 'string-drop string-drop 'string-take-right string-take-right 'string-take string-take 'string-any string-any 'string-every string-every ...)
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (define r (http-head "https://httpbin.org"))
+
+      \;
+    <|folded-io>
+      (hash-table 'text "" 'elapsed 1.58963 'url "https://httpbin.org/" 'headers (hash-table "connection" "keep-alive" "content-type" "text/html; charset=utf-8" "date" "Tue, 03 Feb 2026 07:14:46 GMT" "content-length" "9593" "access-control-allow-origin" "*" "access-control-allow-credentials" "true" "server" "gunicorn/19.9.0") 'status-code 200 'reason "OK")
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check (r 'status-code) =\<gtr\> 200)
+    <|folded-io>
+      38
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check (r 'url) =\<gtr\> "https://httpbin.org/")
+    <|folded-io>
+      39
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check-true (real? (r 'elapsed)))
+    <|folded-io>
+      40
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check-true (or (equal? (r 'reason) "OK")
+
+      \ (equal? (r 'reason) "")))
+    <|folded-io>
+      41
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check (r 'text) =\<gtr\> "")
+    <|folded-io>
+      42
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check ((r 'headers) "content-length") =\<gtr\> "9593")
+    <|folded-io>
+      43
+    </folded-io>
+
+    <\folded-io|Scheme] >
+      (check ((r 'headers) "content-type") =\<gtr\> "text/html; charset=utf-8")
+    <|folded-io>
+      44
+    </folded-io>
+
+    <\input|Scheme] >
+      \;
+    </input>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+    <associate|auto-10|<tuple|1|?>>
+    <associate|auto-2|<tuple|1.1|?>>
+    <associate|auto-3|<tuple|1.2|?>>
+    <associate|auto-4|<tuple|1.3|?>>
+    <associate|auto-7|<tuple|1.3|?>>
+    <associate|auto-9|<tuple|1|?>>
+  </collection>
+</references>

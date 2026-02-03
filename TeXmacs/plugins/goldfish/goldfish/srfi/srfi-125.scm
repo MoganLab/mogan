@@ -15,13 +15,14 @@
 ;
 
 (define-library (srfi srfi-125)
-  (import (srfi srfi-1) (liii base) (liii error))
+  (import (srfi srfi-1) (srfi srfi-128) (liii base) (liii error))
   (export make-hash-table hash-table hash-table-unfold alist->hash-table hash-table?
           hash-table-contains? hash-table-empty? hash-table=? hash-table-mutable? hash-table-ref
           hash-table-ref/default hash-table-set! hash-table-delete! hash-table-intern!
           hash-table-update! hash-table-update!/default hash-table-pop! hash-table-clear!
           hash-table-size hash-table-keys hash-table-values hash-table-entries hash-table-find
-          hash-table-count hash-table-for-each hash-table-map->list hash-table->alist)
+          hash-table-count hash-table-fold hash-table-for-each hash-table-map->list
+          hash-table->alist)
   (begin
 
     (define (assert-hash-table-type ht f)
@@ -128,6 +129,15 @@
       (typed-lambda ((pred? procedure?) (ht hash-table?))
         (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))))
 
+    (define (hash-table-fold proc seed ht)
+      (assert-hash-table-type ht hash-table-fold)
+      (let ((result seed))
+        (hash-table-for-each
+         (lambda (k v)
+           (set! result (proc k v result)))
+         ht)
+        result))
+
     (define hash-table-for-each
       (typed-lambda ((proc procedure?) (ht hash-table?))
         (for-each (lambda (x) (proc (car x) (cdr x))) ht)))
@@ -139,4 +149,3 @@
     (define hash-table->alist
       (typed-lambda ((ht hash-table?))
         (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))))))
-

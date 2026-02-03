@@ -29,7 +29,7 @@
           (liii error)
           (liii list)
           (liii option)
-          (liii either)
+          (liii rich-either)
           (liii rich-list)
           (liii rich-char)
           (liii rich-vector)
