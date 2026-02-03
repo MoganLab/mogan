@@ -816,7 +816,13 @@
                     ,(bib-document-type-identifier x "techreport")))
          ,(bib-new-block
            (bib-new-sentence
-            `(,(bib-format-address-institution x))))
+            `(,(let ((addr-inst (bib-format-address-institution x))
+                  (number (bib-field x "number")))
+              (if (bib-null? number)
+                  addr-inst
+                  (if (equal? addr-inst "")
+                      number
+                      `(concat ,addr-inst ": " ,number)))))))
          ,(bib-new-case-preserved-block (bib-format-url-doi x))))))
 
 ;; 重写杂项格式以添加文献类型标识符 [Z]
@@ -856,11 +862,13 @@
      ,(bib-new-list-spc
        `(,(bib-new-block
            (let* ((title (bib-format-field-preserve-case x "title"))
+                  (key (bib-field x "key"))
                   (number (bib-field x "number"))
+                  (std-num (if (bib-null? key) number key))
                   (identifier (bib-document-type-identifier x "standard")))
-             (if (bib-null? number)
+             (if (bib-null? std-num)
                  `(concat ,title ,identifier)
-                 `(concat ,title ": " ,number ,identifier))))
+                 `(concat ,std-num " " ,title ,identifier))))
          ,(bib-new-block
            (bib-new-sentence
             (let ((address-institution (bib-format-address-institution x)))

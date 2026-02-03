@@ -648,7 +648,13 @@
                     ,(bib-document-type-identifier x "techreport")))
          ,(gbt-new-smart-block-with-url
                `(,(bib-format-address-institution x)
-                 ,(bib-format-date x)) x)))))
+                 ,(let ((date-str (bib-format-date x))
+                        (number (bib-field x "number")))
+                    (if (bib-null? number)
+                        date-str
+                        (if (equal? date-str "")
+                            number
+                            `(concat ,date-str ": " ,number))))) x)))))
 
 ;; 重写杂项格式以添加文献类型标识符 [Z]
 (tm-define (bib-format-misc n x)
@@ -695,14 +701,15 @@
      ,(bib-format-bibitem n x)
      ,(bib-label (list-ref x 2))
      ,(bib-new-list-spc
-       `(,(bib-new-block (bib-format-author x))
-         ,(bib-new-block
+       `(,(bib-new-block
            (let* ((title (bib-format-field-preserve-case x "title"))
+                  (key (bib-field x "key"))
                   (number (bib-field x "number"))
+                  (std-num (if (bib-null? key) number key))
                   (identifier (bib-document-type-identifier x "standard")))
-             (if (bib-null? number)
+             (if (bib-null? std-num)
                  `(concat ,title ,identifier)
-                 `(concat ,title ": " ,number ,identifier))))
+                 `(concat ,std-num " " ,title ,identifier))))
          ,(gbt-new-smart-block-with-url
                (let ((address-institution (bib-format-address-institution x))
                      (date (bib-format-date x)))
@@ -729,42 +736,30 @@
 ;; 重写电子公告格式以添加文献类型标识符 [EB]
 (tm-define (bib-format-electronic n x)
   (:mode bib-gbt7714-2015?)
-  (let ((date-str (let ((d (bib-field x "date"))
-                        (y (bib-field x "year")))
-                    (cond
-                      ((not (bib-null? d)) d)  ;; EB类型：date不加括号
-                      ((not (bib-null? y)) y)
-                      (else "")))))
-    `(concat
-       ,(bib-format-bibitem n x)
-       ,(bib-label (list-ref x 2))
-       ,(bib-new-list-spc
-         `(,(bib-new-block (bib-format-author x))
-           ,(bib-new-block
-             `(concat ,(bib-format-field-preserve-case x "title")
-                      ,(bib-document-type-identifier x "electronic")))
-           ,(gbt-new-smart-block-with-url
-                 `(,date-str) x))))))
+  `(concat
+     ,(bib-format-bibitem n x)
+     ,(bib-label (list-ref x 2))
+     ,(bib-new-list-spc
+       `(,(bib-new-block (bib-format-author x))
+         ,(bib-new-block
+           `(concat ,(bib-format-field-preserve-case x "title")
+                    ,(bib-document-type-identifier x "electronic")))
+         ,(gbt-new-smart-block-with-url
+               `(,(bib-format-date x)) x)))))
 
 ;; 重写在线网页格式以添加文献类型标识符 [EB]
 (tm-define (bib-format-online n x)
   (:mode bib-gbt7714-2015?)
-  (let ((date-str (let ((d (bib-field x "date"))
-                        (y (bib-field x "year")))
-                    (cond
-                      ((not (bib-null? d)) d)  ;; EB类型：date不加括号
-                      ((not (bib-null? y)) y)
-                      (else "")))))
-    `(concat
-       ,(bib-format-bibitem n x)
-       ,(bib-label (list-ref x 2))
-       ,(bib-new-list-spc
-         `(,(bib-new-block (bib-format-author x))
-           ,(bib-new-block
-             `(concat ,(bib-format-field-preserve-case x "title")
-                      ,(bib-document-type-identifier x "online")))
-           ,(gbt-new-smart-block-with-url
-                 `(,date-str) x))))))
+  `(concat
+     ,(bib-format-bibitem n x)
+     ,(bib-label (list-ref x 2))
+     ,(bib-new-list-spc
+       `(,(bib-new-block (bib-format-author x))
+         ,(bib-new-block
+           `(concat ,(bib-format-field-preserve-case x "title")
+                    ,(bib-document-type-identifier x "online")))
+         ,(gbt-new-smart-block-with-url
+               `(,(bib-format-date x)) x)))))
 
 ;; 重写报纸格式以添加文献类型标识符 [N]
 (tm-define (bib-format-newspaper n x)

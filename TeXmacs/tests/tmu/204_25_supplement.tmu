@@ -1,0 +1,73 @@
+<TMU|<tuple|1.1.0|2026.1.2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <cite|bib-format-techreport>
+
+  <cite|bib-format-standard>
+
+  <cite|bib-format-database>
+
+  <cite|bib-format-electronic>
+
+  <cite|bib-format-online>
+
+  <cite|bib-format-dataset>
+
+  <\bibliography|bib|tm-gbt7714-2015|204_25>
+    <\bib-list|6>
+      <bibitem*|1><label|bib-bib-format-techreport>张凯,王磊. <newblock>城市快速路交通流状态判别与预测技术报告[R/OL]. <newblock>北京: 交通运输部公路科学研究院, 2023: 2023-ITSC-TR-05[2025-12-25]. https://www.rioh.cn/uploads/tech/2023ITSC.pdf.<newblock>
+
+      <bibitem*|2><label|bib-bib-format-standard>GB/T 40973-2023 信息技术 人工智能 伦理审查指南[S/OL]. <newblock>北京: 中国标准出版社, 2023: 1-30[2025-12-25]. https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=8D8A8E8F8A8B8C8D8E8F.<newblock>
+
+      <bibitem*|3><label|bib-bib-format-database>Kaggle. <newblock>COVID-19 Open Research Dataset Challenge (CORD-19)[DB/OL]. <newblock>2020[2025-12-25]. https://www.kaggle.com/datasets/allen-institute/CORD-19-research-challenge.<newblock>
+
+      <bibitem*|4><label|bib-bib-format-electronic>中华人民共和国教育部. <newblock>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>(2022-09-13)[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
+
+      <bibitem*|5><label|bib-bib-format-online>国家互联网信息办公室. <newblock>《生成式人工智能服务管理办法（征求意见稿）》公开征求意见[EB/OL]. <newblock>(2023-04-11)[2025-12-25]. http://www.cac.gov.cn/2023-04/11/c_1683617348175741.htm.<newblock>
+
+      <bibitem*|6><label|bib-bib-format-dataset>HE K, GKIOXARI G, DOLLÁR P, et al. <newblock>COCO 2017 Dataset[DS/OL]. <newblock>2017[2025-12-25]. https://doi.org/10.5281/zenodo.3243629.<newblock>
+    </bib-list>
+  </bibliography>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|?|1>>
+    <associate|bib-bib-format-database|<tuple|3|1>>
+    <associate|bib-bib-format-dataset|<tuple|6|1>>
+    <associate|bib-bib-format-electronic|<tuple|4|1>>
+    <associate|bib-bib-format-online|<tuple|5|1>>
+    <associate|bib-bib-format-standard|<tuple|2|1>>
+    <associate|bib-bib-format-techreport|<tuple|1|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|bib>
+      bib-format-techreport
+
+      bib-format-standard
+
+      bib-format-database
+
+      bib-format-electronic
+
+      bib-format-online
+
+      bib-format-dataset
+    </associate>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|参考文献><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
