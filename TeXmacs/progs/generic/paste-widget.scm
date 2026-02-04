@@ -99,7 +99,8 @@
          (selected-format "verbatim")
          (tips1 "Please select...")
          (tips2 "")
-         (tips3 (string-append (translate "shortcut") ": " (translate "none")))
+         (tips3 (translate "Try Ctrl+Shift+v, auto-detects format."))
+         (tips4 (translate "Wrong result? Use Selective Paste here."))
          (plain-format-list    (list "Markdown" "LaTeX" "HTML" (translate "Plain text")))
          (math-format-list     (list "LaTeX" "MathML"))
          (program-format-list  (list (translate "Code")))
@@ -116,8 +117,7 @@
     (invisible (set! selected-format (convert-format-string-to-symbol (car l))))
     (invisible (set! tips1 (translate (get-tips selected-format))))
     (invisible (set! tips2 (translate "ENTER to confirm, ESC to cancel")))
-    (invisible (set! tips3 (string-append (translate "shortcut") ": " (shortcut selected-format))))
-    (resize "320px" "270px"
+    (resize "320px" "310px"
       (padded
         (vertical
           (horizontal
@@ -137,7 +137,6 @@
                   (choice (begin
                             (set! selected-format (convert-format-string-to-symbol (translate answer)))
                             (set! tips1 (translate (get-tips selected-format)))
-                            (set! tips3 (string-append (translate "shortcut") ": " (shortcut selected-format)))
                             (refresh-now "format-explanation")
                             (refresh-now "paste-shortcut"))
                           l
@@ -145,11 +144,11 @@
           ===
           (refreshable "format-explanation"
             (bold (text "Tips"))
-            (resize "320px" "90px"
+            (resize "320px" "110px"
             (texmacs-output
               `(with "bg-color" "white"
                 "font-base-size" "18"
-                (document ,tips1 ,tips3 ,tips2))
+                (document ,tips1 ,tips2 ,tips3 ,tips4))
               '(style "generic")))))))
       (bottom-buttons
         >> ("ok" (cmd selected-format)) // ("cancel" (cmd #f)))))
