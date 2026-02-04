@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.1.1>>
+<TMU|<tuple|1.1.0|2026.1.2>>
 
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|cite-author-year>>
 
@@ -69,69 +69,69 @@
 
   <\bibliography|bib|tm-gbt7714-2015-author-year|204_25>
     <\bib-list|32>
-      <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022a>><label|bib-bib-format-electronic>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
+      <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022a>><label|bib-bib-format-electronic>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>(2022-09-13)[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
 
-      <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022b>><label|bib-bib-format-electronic1>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
+      <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022b>><label|bib-bib-format-electronic1>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>(2022-09-13)[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
 
-      <bibitem*|<natbib-triple|中国载人航天工程办公室|中国载人航天工程办公室|2022>><label|bib-bib-format-misc>中国空间站科学实验资源手册[Z/OL]. <newblock>http://www.cmse.gov.cn/kxzy/kxzyzy/202207/P020220704356248569283.pdf.<newblock>
+      <bibitem*|<natbib-triple|中国载人航天工程办公室|中国载人航天工程办公室|2022>><label|bib-bib-format-misc>中国空间站科学实验资源手册[Z/OL].<newblock>
 
-      <bibitem*|<natbib-triple|刘思雨|刘思雨|2022>><label|bib-bib-format-mastersthesis>基于深度学习的肺结节检测算法研究[D/OL]. <newblock>上海: 上海交通大学. <newblock>https://dspace.sjtu.edu.cn/handle/12699/12345.<newblock>
+      <bibitem*|<natbib-triple|刘思雨|刘思雨|2022>><label|bib-bib-format-mastersthesis>基于深度学习的肺结节检测算法研究[D/OL]. <newblock>上海: 上海交通大学[2025-12-25]. https://dspace.sjtu.edu.cn/handle/12699/12345.<newblock>
 
-      <bibitem*|<natbib-triple|华为技术有限公司|华为技术有限公司|2024a>><label|bib-bib-format-manual>华为云会议 用户使用手册: 第3.2版[M/OL]. <newblock>深圳. <newblock>https://support.huaweicloud.com/usermanual-meeting/.<newblock>
+      <bibitem*|<natbib-triple|华为技术有限公司|华为技术有限公司|2024a>><label|bib-bib-format-manual>华为云会议 用户使用手册: 第3.2版[M/OL]. <newblock>深圳[2025-12-26]. https://support.huaweicloud.com/usermanual-meeting/.<newblock>
 
-      <bibitem*|<natbib-triple|华为技术有限公司|华为技术有限公司|2024b>><label|bib-bib-format-manual1>华为云会议 用户使用手册: 第3.2版[M/OL]. <newblock>深圳. <newblock>https://support.huaweicloud.com/usermanual-meeting/.<newblock>
+      <bibitem*|<natbib-triple|华为技术有限公司|华为技术有限公司|2024b>><label|bib-bib-format-manual1>华为云会议 用户使用手册: 第3.2版[M/OL]. <newblock>深圳[2025-12-26]. https://support.huaweicloud.com/usermanual-meeting/.<newblock>
 
-      <bibitem*|<natbib-triple|南京市档案馆|南京市档案馆|1969>><label|bib-bib-format-archive>南京长江大桥建设档案[A/OL]. <newblock>南京: 南京市档案馆. <newblock>http://www.njdaj.gov.cn/daanc/J007-001-123.<newblock>
+      <bibitem*|<natbib-triple|南京市档案馆|南京市档案馆|1969>><label|bib-bib-format-archive>南京长江大桥建设档案[A/OL]. <newblock>南京: 南京市档案馆[2025-12-25]. http://www.njdaj.gov.cn/daanc/J007-001-123.<newblock>
 
-      <bibitem*|<natbib-triple|国家互联网信息办公室|国家互联网信息办公室|2023>><label|bib-bib-format-online>《生成式人工智能服务管理办法（征求意见稿）》公开征求意见[EB/OL]. <newblock>http://www.cac.gov.cn/2023-04/11/c_1683617348175741.htm.<newblock>
+      <bibitem*|<natbib-triple|国家互联网信息办公室|国家互联网信息办公室|2023>><label|bib-bib-format-online>《生成式人工智能服务管理办法（征求意见稿）》公开征求意见[EB/OL]. <newblock>(2023-04-11)[2025-12-25]. http://www.cac.gov.cn/2023-04/11/c_1683617348175741.htm.<newblock>
 
-      <bibitem*|<natbib-triple|国家基础地理信息中心|国家基础地理信息中心|2021>><label|bib-bib-format-map>中国1∶100万数字地貌图[CM/OL]. <newblock>第3版. <newblock>北京. <newblock>https://doi.org/10.12345/CM202103.<newblock>
+      <bibitem*|<natbib-triple|国家基础地理信息中心|国家基础地理信息中心|2021>><label|bib-bib-format-map>中国1∶100万数字地貌图[CM/OL]. <newblock>第3版. <newblock>北京[2025-12-25]. https://doi.org/10.12345/CM202103.<newblock>
 
-      <bibitem*|<natbib-triple|国家市场监督管理总局,国家标准化管理委员会|国家市场监督管理总局和国家标准化管理委员会|2023>><label|bib-bib-format-standard>信息技术 人工智能 伦理审查指南: GB/T 43264-2023[S/OL]. <newblock>北京: 中国标准出版社. <newblock>https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=8D8A8E8F8A8B8C8D8E8F.<newblock>
+      <bibitem*|<natbib-triple|国家市场监督管理总局, 国家标准化管理委员会|国家市场监督管理总局和国家标准化管理委员会|2023>><label|bib-bib-format-standard>GB/T 40973-2023 信息技术 人工智能 伦理审查指南[S/OL]. <newblock>北京: 中国标准出版社[2025-12-25]. https://openstd.samr.gov.cn/bzgk/gb/newGbInfo?hcno=8D8A8E8F8A8B8C8D8E8F.<newblock>
 
-      <bibitem*|<natbib-triple|张凯,王磊|张凯和王磊|2023>><label|bib-bib-format-techreport>城市快速路交通流状态判别与预测技术报告[R/OL]. <newblock>北京: 交通运输部公路科学研究院. <newblock>https://www.rioh.cn/uploads/tech/2023ITSC.pdf.<newblock>
+      <bibitem*|<natbib-triple|张凯, 王磊|张凯和王磊|2023>><label|bib-bib-format-techreport>城市快速路交通流状态判别与预测技术报告[R/OL]. <newblock>北京: 交通运输部公路科学研究院: 2023-ITSC-TR-05[2025-12-25]. https://www.rioh.cn/uploads/tech/2023ITSC.pdf.<newblock>
 
-      <bibitem*|<natbib-triple|李建军,王雪|李建军和王雪|2022a>><label|bib-bib-format-patent>一种面向自动驾驶的多模态融合感知系统: CN114123456A[P/OL]. <newblock>https://pss-system.cponline.cnipa.gov.cn/documents/detail/CN114123456A.<newblock>
+      <bibitem*|<natbib-triple|李建军, 王雪|李建军和王雪|2022a>><label|bib-bib-format-patent>一种面向自动驾驶的多模态融合感知系统: CN114123456A[P/OL].<newblock>
 
-      <bibitem*|<natbib-triple|李建军,王雪|李建军和王雪|2022b>><label|bib-bib-format-patent1>一种面向自动驾驶的多模态融合感知系统: CN114123456A[P/OL]. <newblock>https://pss-system.cponline.cnipa.gov.cn/documents/detail/CN114123456A.<newblock>
+      <bibitem*|<natbib-triple|李建军, 王雪|李建军和王雪|2022b>><label|bib-bib-format-patent1>一种面向自动驾驶的多模态融合感知系统: CN114123456A[P/OL].<newblock>
 
-      <bibitem*|<natbib-triple|李清泉,张远|李清泉和张远|2023a>><label|bib-bib-format-book>人工智能导论[M/OL]. <newblock>第3版. <newblock>北京: 电子工业出版社. <newblock>https://doi.org/10.1002/9781119123456.<newblock>
+      <bibitem*|<natbib-triple|李清泉, 张远|李清泉和张远|2023a>><label|bib-bib-format-book>人工智能导论[M/OL]. <newblock>第3版. <newblock>北京: 电子工业出版社[2025-12-25]. https://doi.org/10.1002/9781119123456.<newblock>
 
-      <bibitem*|<natbib-triple|李清泉,张远|李清泉和张远|2023b>><label|bib-bib-format-book1>人工智能导论[M/OL]. <newblock>第3版. <newblock>北京: 电子工业出版社. <newblock>https://doi.org/10.1002/9781119123456.<newblock>
+      <bibitem*|<natbib-triple|李清泉, 张远|李清泉和张远|2023b>><label|bib-bib-format-book1>人工智能导论[M/OL]. <newblock>第3版. <newblock>北京: 电子工业出版社[2025-12-25]. https://doi.org/10.1002/9781119123456.<newblock>
 
-      <bibitem*|<natbib-triple|王姝|王姝|2023>><label|bib-bib-format-newspaper>“双减”后首批中考学生迎考: 命题难度降低, 分流力度不变[N/OL]. <newblock>新京报, (A06). <newblock>https://www.bjnews.com.cn/detail/1687312345167891.html.<newblock>
+      <bibitem*|<natbib-triple|王姝|王姝|2023>><label|bib-bib-format-newspaper>“双减”后首批中考学生迎考: 命题难度降低, 分流力度不变[N/OL]. <newblock>新京报, A06[2025-12-25]. https://www.bjnews.com.cn/detail/1687312345167891.html.<newblock>
 
-      <bibitem*|<natbib-triple|王重|王重|2020>><label|bib-bib-format-inbook>南京长江大桥结构设计[M]//铁道部大桥工程局. 南京长江大桥技术总结: 第2版. <newblock>北京: 人民交通出版社.<newblock>
+      <bibitem*|<natbib-triple|王重|王重|2020>><label|bib-bib-format-inbook>南京长江大桥结构设计[M]//铁道部大桥工程局. 南京长江大桥技术总结: 第2版. <newblock>北京: 人民交通出版社.
 
-      <bibitem*|<natbib-triple|王青,张志学,张立峰|王青等|2024a>><label|bib-bib-format-article1>[M].<newblock>
+      <bibitem*|<natbib-triple|王青, 张志学, 张立峰|王青等|2024a>><label|bib-bib-format-article1>[M]. <newblock>
 
-      <bibitem*|<natbib-triple|王青,张志学,张立峰|王青等|2024b>><label|bib-bib-format-article>基于深度学习的肺癌病理图像分类方法[J/OL]. <newblock>中国医学影像技术, 40(1): 52-58. <newblock>https://doi.org/10.13929/j.issn.1003-3289.2024.01.012.<newblock>
+      <bibitem*|<natbib-triple|王青, 张志学, 张立峰|王青等|2024b>><label|bib-bib-format-article>基于深度学习的肺癌病理图像分类方法[J/OL]. <newblock>中国医学影像技术, 40(1): 52-58[2025-12-25]. https://doi.org/10.13929/j.issn.1003-3289.2024.01.012.<newblock>
 
-      <bibitem*|<natbib-triple|赵一,钱二,孙三,等|赵一等|2020a>><label|bib-bib-format-other>内部工作手册[Z]. <newblock>北京: 内部发行.<newblock>
+      <bibitem*|<natbib-triple|赵一, 钱二, 孙三, 等|赵一等|2020a>><label|bib-bib-format-other>内部工作手册[Z].<newblock>
 
-      <bibitem*|<natbib-triple|赵一,钱二,孙三,等|赵一等|2020b>><label|bib-bib-format-other1>内部工作手册[Z]. <newblock>北京: 内部发行.<newblock>
+      <bibitem*|<natbib-triple|赵一, 钱二, 孙三, 等|赵一等|2020b>><label|bib-bib-format-other1>内部工作手册[Z].<newblock>
 
-      <bibitem*|<natbib-triple|赵军|赵军|2020>><label|bib-bib-format-incollection>长江岸线资源评价方法[G]//刘昌明,杨桂山. 长江岸线资源调查与评估. <newblock>北京: 科学出版社.<newblock>
+      <bibitem*|<natbib-triple|赵军|赵军|2020>><label|bib-bib-format-incollection>长江岸线资源评价方法[G]//刘昌明, 杨桂山. 长江岸线资源调查与评估. <newblock>北京: 科学出版社.
 
-      <bibitem*|<natbib-triple|陈聪|陈聪|2023>><label|bib-bib-format-phdthesis>面向自动驾驶的鲁棒感知关键技术研究[D/OL]. <newblock>北京: 清华大学. <newblock>https://doi.org/10.5000/THU2023PC001.<newblock>
+      <bibitem*|<natbib-triple|陈聪|陈聪|2023>><label|bib-bib-format-phdthesis>面向自动驾驶的鲁棒感知关键技术研究[D/OL]. <newblock>北京: 清华大学[2025-12-25]. https://doi.org/10.5000/THU2023PC001.<newblock>
 
-      <bibitem*|<natbib-triple|Apache Software Foundation|Apache Software Foundation|2023a>><label|bib-bib-format-software>Apache Kafka[CP/OL]. <newblock>Version 3.5.0. <newblock>https://downloads.apache.org/kafka/3.5.0/kafka-3.5.0-src.tgz.<newblock>
+      <bibitem*|<natbib-triple|Apache Software Foundation|Apache Software Foundation|2023a>><label|bib-bib-format-software>Apache Kafka[CP/OL]. <newblock>Version 3.5.0[2025-12-25]. https://downloads.apache.org/kafka/3.5.0/kafka-3.5.0-src.tgz.<newblock>
 
-      <bibitem*|<natbib-triple|Apache Software Foundation|Apache Software Foundation|2023b>><label|bib-bib-format-program>Apache Kafka[CP/OL]. <newblock>Version 3.5.0. <newblock>https://downloads.apache.org/kafka/3.5.0/kafka-3.5.0-src.tgz.<newblock>
+      <bibitem*|<natbib-triple|Apache Software Foundation|Apache Software Foundation|2023b>><label|bib-bib-format-program>Apache Kafka[CP/OL]. <newblock>Version 3.5.0[2025-12-25]. https://downloads.apache.org/kafka/3.5.0/kafka-3.5.0-src.tgz.<newblock>
 
-      <bibitem*|<natbib-triple|周济,谢友柏|周济和谢友柏|2022>><label|bib-bib-format-collection>中国机械工程学会年会论文集[G/OL]. <newblock>上海: 上海交通大学出版社. <newblock>https://doi.org/10.5000/CME2022G001.<newblock>
+      <bibitem*|<natbib-triple|周济, 谢友柏|周济和谢友柏|2022>><label|bib-bib-format-collection>中国机械工程学会年会论文集[G/OL]. <newblock>上海: 上海交通大学出版社[2025-12-25]. https://doi.org/10.5000/CME2022G001.<newblock>
 
-      <bibitem*|<natbib-triple|DIGNUM F, OMICINI A, TUYLS K|Dignum et al.|2024>><label|bib-bib-format-proceedings>Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems[C/OL]. <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems. <newblock>https://doi.org/10.5555/3635637.<newblock>
+      <bibitem*|<natbib-triple|DIGNUM F, OMICINI A, TUYLS K|Dignum et al.|2024>><label|bib-bib-format-proceedings>Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems[C/OL]. <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems[2025-12-25]. https://doi.org/10.5555/3635637.<newblock>
 
-      <bibitem*|<natbib-triple|HE K, GKIOXARI G, DOLLÁR P, et al|He et al.|2017a>><label|bib-bib-format-dataset>COCO 2017 Dataset[DS/OL]. <newblock>https://doi.org/10.5281/zenodo.3243629.<newblock>
+      <bibitem*|<natbib-triple|HE K, GKIOXARI G, DOLLáR P, et al|He et al.|2017a>><label|bib-bib-format-dataset>COCO 2017 Dataset[DS/OL]. <newblock>[2025-12-25]. https://doi.org/10.5281/zenodo.3243629.<newblock>
 
-      <bibitem*|<natbib-triple|HE K, GKIOXARI G, DOLLÁR P, et al|He et al.|2017b>><label|bib-bib-format-dataset1>COCO 2017 Dataset[DS/OL]. <newblock>https://doi.org/10.5281/zenodo.3243629.<newblock>
+      <bibitem*|<natbib-triple|HE K, GKIOXARI G, DOLLáR P, et al|He et al.|2017b>><label|bib-bib-format-dataset1>COCO 2017 Dataset[DS/OL]. <newblock>[2025-12-25]. https://doi.org/10.5281/zenodo.3243629.<newblock>
 
-      <bibitem*|<natbib-triple|Kaggle|Kaggle|2020>><label|bib-bib-format-database>COVID-19 Open Research Dataset Challenge (CORD-19)[DB/OL]. <newblock>https://www.kaggle.com/datasets/allen-institute/CORD-19-research-challenge.<newblock>
+      <bibitem*|<natbib-triple|Kaggle|Kaggle|2020>><label|bib-bib-format-database>COVID-19 Open Research Dataset Challenge (CORD-19)[DB/OL]. <newblock>[2025-12-25]. https://www.kaggle.com/datasets/allen-institute/CORD-19-research-challenge.<newblock>
 
-      <bibitem*|<natbib-triple|LI Y S, HAN S|Li & Han|2024a>><label|bib-bib-format-inproceedings>Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity[C/OL]//Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024). <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems. <newblock>https://doi.org/10.5555/3635637.3663161.<newblock>
+      <bibitem*|<natbib-triple|LI Y S, HAN S|Li & Han|2024a>><label|bib-bib-format-inproceedings>Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity[C/OL]//Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024). <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems[2025-12-25]. https://doi.org/10.5555/3635637.3663161.<newblock>
 
-      <bibitem*|<natbib-triple|LI Y S, HAN S|Li & Han|2024b>><label|bib-bib-format-inproceedings1>Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity[C/OL]//Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024). <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems. <newblock>https://doi.org/10.5555/3635637.3663161.<newblock>
+      <bibitem*|<natbib-triple|LI Y S, HAN S|Li & Han|2024b>><label|bib-bib-format-inproceedings1>Efficient collaboration with unknown agents: Ignoring similar agents without checking similarity[C/OL]//Proceedings of the 23rd International Conference on Autonomous Agents and Multiagent Systems (AAMAS 2024). <newblock>Auckland, New Zealand: International Foundation for Autonomous Agents and Multiagent Systems[2025-12-25]. https://doi.org/10.5555/3635637.3663161.<newblock>
     </bib-list>
   </bibliography>
 </body>
@@ -147,38 +147,38 @@
 <\references>
   <\collection>
     <associate|auto-1|<tuple|?|1>>
-    <associate|bib-bib-format-archive|<tuple|南京市档案馆 (1969)南京市档案馆|1>>
-    <associate|bib-bib-format-article|<tuple|王青等 (2024b)王青,张志学,张立峰|2>>
-    <associate|bib-bib-format-article1|<tuple|王青等 (2024a)王青,张志学,张立峰|?>>
-    <associate|bib-bib-format-book|<tuple|李清泉和张远 (2023a)李清泉,张远|2>>
-    <associate|bib-bib-format-book1|<tuple|李清泉和张远 (2023b)李清泉,张远|?>>
-    <associate|bib-bib-format-collection|<tuple|周济和谢友柏 (2022)周济,谢友柏|2>>
-    <associate|bib-bib-format-database|<tuple|Kaggle (2020)Kaggle|2>>
-    <associate|bib-bib-format-dataset|<tuple|He et al. (2017a)HE K, GKIOXARI G, DOLLÁR P, et al|2>>
-    <associate|bib-bib-format-dataset1|<tuple|He et al. (2017b)HE K, GKIOXARI G, DOLLÁR P, et al|?>>
-    <associate|bib-bib-format-electronic|<tuple|中华人民共和国教育部 (2022a)中华人民共和国教育部|1>>
+    <associate|bib-bib-format-archive|<tuple|南京市档案馆 (1969)南京市档案馆|?>>
+    <associate|bib-bib-format-article|<tuple|王青等 (2024b)王青, 张志学, 张立峰|?>>
+    <associate|bib-bib-format-article1|<tuple|王青等 (2024a)王青, 张志学, 张立峰|?>>
+    <associate|bib-bib-format-book|<tuple|李清泉和张远 (2023a)李清泉, 张远|?>>
+    <associate|bib-bib-format-book1|<tuple|李清泉和张远 (2023b)李清泉, 张远|?>>
+    <associate|bib-bib-format-collection|<tuple|周济和谢友柏 (2022)周济, 谢友柏|?>>
+    <associate|bib-bib-format-database|<tuple|Kaggle (2020)Kaggle|?>>
+    <associate|bib-bib-format-dataset|<tuple|He et al. (2017a)HE K, GKIOXARI G, DOLLáR P, et al|?>>
+    <associate|bib-bib-format-dataset1|<tuple|He et al. (2017b)HE K, GKIOXARI G, DOLLáR P, et al|?>>
+    <associate|bib-bib-format-electronic|<tuple|中华人民共和国教育部 (2022a)中华人民共和国教育部|?>>
     <associate|bib-bib-format-electronic1|<tuple|中华人民共和国教育部 (2022b)中华人民共和国教育部|?>>
-    <associate|bib-bib-format-inbook|<tuple|王重 (2020)王重|2>>
-    <associate|bib-bib-format-incollection|<tuple|赵军 (2020)赵军|2>>
-    <associate|bib-bib-format-inproceedings|<tuple|Li & Han (2024a)LI Y S, HAN S|2>>
+    <associate|bib-bib-format-inbook|<tuple|王重 (2020)王重|?>>
+    <associate|bib-bib-format-incollection|<tuple|赵军 (2020)赵军|?>>
+    <associate|bib-bib-format-inproceedings|<tuple|Li & Han (2024a)LI Y S, HAN S|?>>
     <associate|bib-bib-format-inproceedings1|<tuple|Li & Han (2024b)LI Y S, HAN S|?>>
-    <associate|bib-bib-format-manual|<tuple|华为技术有限公司 (2024a)华为技术有限公司|1>>
+    <associate|bib-bib-format-manual|<tuple|华为技术有限公司 (2024a)华为技术有限公司|?>>
     <associate|bib-bib-format-manual1|<tuple|华为技术有限公司 (2024b)华为技术有限公司|?>>
-    <associate|bib-bib-format-map|<tuple|国家基础地理信息中心 (2021)国家基础地理信息中心|1>>
-    <associate|bib-bib-format-mastersthesis|<tuple|刘思雨 (2022)刘思雨|1>>
-    <associate|bib-bib-format-misc|<tuple|中国载人航天工程办公室 (2022)中国载人航天工程办公室|1>>
-    <associate|bib-bib-format-newspaper|<tuple|王姝 (2023)王姝|2>>
-    <associate|bib-bib-format-online|<tuple|国家互联网信息办公室 (2023)国家互联网信息办公室|1>>
-    <associate|bib-bib-format-other|<tuple|赵一等 (2020a)赵一,钱二,孙三,等|2>>
-    <associate|bib-bib-format-other1|<tuple|赵一等 (2020b)赵一,钱二,孙三,等|?>>
-    <associate|bib-bib-format-patent|<tuple|李建军和王雪 (2022a)李建军,王雪|2>>
-    <associate|bib-bib-format-patent1|<tuple|李建军和王雪 (2022b)李建军,王雪|?>>
-    <associate|bib-bib-format-phdthesis|<tuple|陈聪 (2023)陈聪|2>>
-    <associate|bib-bib-format-proceedings|<tuple|Dignum et al. (2024)DIGNUM F, OMICINI A, TUYLS K|2>>
-    <associate|bib-bib-format-program|<tuple|Apache Software Foundation (2023b)Apache Software Foundation|2>>
-    <associate|bib-bib-format-software|<tuple|Apache Software Foundation (2023a)Apache Software Foundation|2>>
-    <associate|bib-bib-format-standard|<tuple|国家市场监督管理总局和国家标准化管理委员会 (2023)国家市场监督管理总局,国家标准化管理委员会|1>>
-    <associate|bib-bib-format-techreport|<tuple|张凯和王磊 (2023)张凯,王磊|2>>
+    <associate|bib-bib-format-map|<tuple|国家基础地理信息中心 (2021)国家基础地理信息中心|?>>
+    <associate|bib-bib-format-mastersthesis|<tuple|刘思雨 (2022)刘思雨|?>>
+    <associate|bib-bib-format-misc|<tuple|中国载人航天工程办公室 (2022)中国载人航天工程办公室|?>>
+    <associate|bib-bib-format-newspaper|<tuple|王姝 (2023)王姝|?>>
+    <associate|bib-bib-format-online|<tuple|国家互联网信息办公室 (2023)国家互联网信息办公室|?>>
+    <associate|bib-bib-format-other|<tuple|赵一等 (2020a)赵一, 钱二, 孙三, 等|?>>
+    <associate|bib-bib-format-other1|<tuple|赵一等 (2020b)赵一, 钱二, 孙三, 等|?>>
+    <associate|bib-bib-format-patent|<tuple|李建军和王雪 (2022a)李建军, 王雪|?>>
+    <associate|bib-bib-format-patent1|<tuple|李建军和王雪 (2022b)李建军, 王雪|?>>
+    <associate|bib-bib-format-phdthesis|<tuple|陈聪 (2023)陈聪|?>>
+    <associate|bib-bib-format-proceedings|<tuple|Dignum et al. (2024)DIGNUM F, OMICINI A, TUYLS K|?>>
+    <associate|bib-bib-format-program|<tuple|Apache Software Foundation (2023b)Apache Software Foundation|?>>
+    <associate|bib-bib-format-software|<tuple|Apache Software Foundation (2023a)Apache Software Foundation|?>>
+    <associate|bib-bib-format-standard|<tuple|国家市场监督管理总局和国家标准化管理委员会 (2023)国家市场监督管理总局, 国家标准化管理委员会|?>>
+    <associate|bib-bib-format-techreport|<tuple|张凯和王磊 (2023)张凯, 王磊|?>>
   </collection>
 </references>
 
