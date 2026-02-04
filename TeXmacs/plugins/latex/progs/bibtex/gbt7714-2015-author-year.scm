@@ -764,7 +764,7 @@
          ,(gbt-new-smart-block-with-url
                `(,(bib-format-address-institution x)) x)))))
 
-;; 重写手册格式以添加文献类型标识符 [S]
+;; 重写手册格式以添加文献类型标识符 [M]
 (tm-define (bib-format-manual n x)
   (:mode bib-gbt7714-2015-author-year?)
   (let ((chinese? (authors-contain-chinese?
