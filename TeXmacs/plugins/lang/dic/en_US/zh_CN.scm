@@ -2302,6 +2302,7 @@
 ("this page header" "当前页页眉")
 ("this page" "")
 ("this row" "此行")
+("three line table" "三线表")
 ("three times" "三次")
 ("three-points-circle" "三点画圆")
 ("through popup windows" "通过弹出窗口")

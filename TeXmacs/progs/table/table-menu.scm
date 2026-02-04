@@ -34,6 +34,7 @@
   (if (and (style-has? "calc-dtd") (calc-ready?))
       (link calc-table-menu)
       ---)
+  ("Three line table" (make 'three-line-table))
   (if (not (in-math?))
       ("Wide tabular" (make 'wide-tabular)))
   (when (not (selection-active-non-small?))

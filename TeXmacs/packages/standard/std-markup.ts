@@ -331,6 +331,8 @@
     <arg|body>
   </cell>>>>>>>
 
+  <assign|three-line-table|<macro|body|<tformat|<twith|table-min-cols|2>|<cwith|1|-1|1|-1|cell-halign|c>|<cwith|1|1|1|-1|cell-tborder|1ln>|<cwith|-1|-1|1|-1|cell-bborder|1ln>|<cwith|1|1|1|-1|cell-bborder|0.5ln>|<arg|body>>>>
+
   <\active*>
     <\src-comment>
       Transparency.
