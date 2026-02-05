@@ -1066,7 +1066,34 @@ target("stem") do
         target:add("forceincludes", path.absolute("src/System/config.h"))
         target:add("forceincludes", path.absolute("src/System/tm_configure.hpp"))
     end)
-end 
+
+    -- After install callback for Linux to rename MIME icon files
+    after_install(function (target, opt)
+        if is_plat("linux") then
+            local install_dir = target:installdir()
+            local mime_icon_sizes = {"16", "20", "22", "24", "32", "36", "40", "48", "64", "72", "96", "128", "192", "256", "512"}
+
+            -- Rename texmacs-document-{size}.png to texmacs-document.png in each size directory
+            for _, size in ipairs(mime_icon_sizes) do
+                local src_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document-" .. size .. ".png")
+                local dst_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document.png")
+
+                if os.isfile(src_file) then
+                    os.cp(src_file, dst_file)
+                    os.rm(src_file)
+                    print("Renamed MIME icon: " .. src_file .. " -> " .. dst_file)
+                end
+            end
+
+            -- Also rename the SVG file if needed (should already be correct name)
+            local svg_src = path.join(install_dir, "share/icons/hicolor/scalable/mimetypes", "texmacs-document.svg")
+            if os.isfile(svg_src) then
+                -- SVG file should already have correct name
+                print("SVG MIME icon installed at: " .. svg_src)
+            end
+        end
+    end)
+end
 
 function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
     local testname = path.basename(filepath)
@@ -1294,32 +1321,6 @@ xpack("stem") do
         add_installfiles(path.join(os.projectdir(), "build/packages/stem/data/bin/(**)|" .. stem_binary_windows), {prefixdir = "bin"})
     end
 
-    -- After install callback for Linux to rename MIME icon files
-    after_install(function (target, opt)
-        if is_plat("linux") then
-            local install_dir = target:installdir()
-            local mime_icon_sizes = {"16", "20", "22", "24", "32", "36", "40", "48", "64", "72", "96", "128", "192", "256", "512"}
-
-            -- Rename texmacs-document-{size}.png to texmacs-document.png in each size directory
-            for _, size in ipairs(mime_icon_sizes) do
-                local src_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document-" .. size .. ".png")
-                local dst_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document.png")
-
-                if os.isfile(src_file) then
-                    os.cp(src_file, dst_file)
-                    os.rm(src_file)
-                    print("Renamed MIME icon: " .. src_file .. " -> " .. dst_file)
-                end
-            end
-
-            -- Also rename the SVG file if needed (should already be correct name)
-            local svg_src = path.join(install_dir, "share/icons/hicolor/scalable/mimetypes", "texmacs-document.svg")
-            if os.isfile(svg_src) then
-                -- SVG file should already have correct name
-                print("SVG MIME icon installed at: " .. svg_src)
-            end
-        end
-    end)
 
     set_basename(stem_binary_name)
     add_targets("stem")
