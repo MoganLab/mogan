@@ -920,10 +920,18 @@ target("stem") do
     end
 
     if is_plat("linux") then
-        -- add_installfiles("$(projectdir)/TeXmacs/misc/images/text-x-mogan.svg", {prefixdir="share/icons/hicolor/scalable/mimetypes"})
         add_installfiles("$(projectdir)/TeXmacs/misc/mime/" .. stem_binary_name .. ".desktop", {prefixdir="share/applications"})
         add_installfiles("$(projectdir)/TeXmacs/misc/images/" .. stem_binary_name .. ".png", {prefixdir="share/icons/hicolor/512x512/apps"})
-        -- add_installfiles("$(projectdir)/TeXmacs/misc/mime/mogan.xml", {prefixdir="share/mime/packages"})
+
+        add_installfiles("$(projectdir)/TeXmacs/misc/images/texmacs-document.svg", {prefixdir="share/icons/hicolor/scalable/mimetypes"})
+
+        local mime_icon_sizes = {"16", "20", "22", "24", "32", "36", "40", "48", "64", "72", "96", "128", "192", "256", "512"}
+        for _, size in ipairs(mime_icon_sizes) do
+            add_installfiles("$(projectdir)/TeXmacs/misc/images/texmacs-document-" .. size .. ".png",
+                            {prefixdir="share/icons/hicolor/" .. size .. "x" .. size .. "/mimetypes"})
+        end
+
+        add_installfiles("$(projectdir)/TeXmacs/misc/mime/texmacs.xml", {prefixdir="share/mime/packages"})
     end
 
 
@@ -1285,6 +1293,33 @@ xpack("stem") do
         set_bindir("bin")
         add_installfiles(path.join(os.projectdir(), "build/packages/stem/data/bin/(**)|" .. stem_binary_windows), {prefixdir = "bin"})
     end
+
+    -- After install callback for Linux to rename MIME icon files
+    after_install(function (target, opt)
+        if is_plat("linux") then
+            local install_dir = target:installdir()
+            local mime_icon_sizes = {"16", "20", "22", "24", "32", "36", "40", "48", "64", "72", "96", "128", "192", "256", "512"}
+
+            -- Rename texmacs-document-{size}.png to texmacs-document.png in each size directory
+            for _, size in ipairs(mime_icon_sizes) do
+                local src_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document-" .. size .. ".png")
+                local dst_file = path.join(install_dir, "share/icons/hicolor", size .. "x" .. size, "mimetypes", "texmacs-document.png")
+
+                if os.isfile(src_file) then
+                    os.cp(src_file, dst_file)
+                    os.rm(src_file)
+                    print("Renamed MIME icon: " .. src_file .. " -> " .. dst_file)
+                end
+            end
+
+            -- Also rename the SVG file if needed (should already be correct name)
+            local svg_src = path.join(install_dir, "share/icons/hicolor/scalable/mimetypes", "texmacs-document.svg")
+            if os.isfile(svg_src) then
+                -- SVG file should already have correct name
+                print("SVG MIME icon installed at: " .. svg_src)
+            end
+        end
+    end)
 
     set_basename(stem_binary_name)
     add_targets("stem")
