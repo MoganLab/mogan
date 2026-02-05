@@ -2347,7 +2347,7 @@
 ("triangle" "三角形")
 ("trigonometry" "三角函数")
 ("try to import formulas using LaTeX annotations" "尝试使用 LaTeX 注释导入公式")
-("Try ⌘+⇧+v, auto-detects format." "试试⌘+⇧+v，自动识别格式。")
+("Try Command+Shift+v, auto-detects format." "试试Command+Shift+v，自动识别格式。")
 ("Try Ctrl+Shift+v, auto-detects format." "试试Ctrl+Shift+v，自动识别格式。")
 ("Wrong result? Use Selective Paste here." "结果不准确？请用此处的选择性粘贴。")
 ("tuple" "元组")
