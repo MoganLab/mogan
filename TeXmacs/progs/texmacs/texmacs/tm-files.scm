@@ -34,7 +34,8 @@
 (tm-define (set-last-file-dialog-directory dir)
   "Set the last directory used in file dialog"
   (let ((u (system->url dir)))
-    (when (and (string? dir) (url-exists? u) (url-directory? u))
+    (when (and (string? dir) (url-exists? u) (url-directory? u)
+               (not (url-descends? u (get-texmacs-path))))
       (set! last-file-dialog-directory dir)
       (set-preference "last-file-dialog-directory" dir))))
 
