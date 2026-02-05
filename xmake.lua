@@ -1181,6 +1181,8 @@ target("stem_packager") do
         local resources_dir = app_dir .. "/Contents/Resources"
         os.cp(path.join(project_dir, "packages", "macos", "stem.icns"), resources_dir)
         os.cp(path.join(project_dir, "packages", "macos", "TeXmacs-document.icns"), resources_dir)
+        -- 复制DMG相关的图标到build目录，供create-dmg使用
+        os.cp(path.join(project_dir, "packages", "macos", "driver.icns"), build_dir)
         print("Copied icon files to: " .. resources_dir)
         
         os.execv("codesign", {"--force", "--deep", "--sign", "-", app_dir})
@@ -1241,6 +1243,7 @@ target("stem_packager") do
                 -- 检查背景图片
                 local background_image = path.join(project_dir, "packages", "macos", stem_dmg_bg_name_local)
                 local args_with_bg = {
+                    "--volicon", "driver.icns",
                     "--background", background_image,
                     "--volname", stem_project_name_local,
                     "--window-pos", "200", "120",
@@ -1252,6 +1255,7 @@ target("stem_packager") do
                     app_path
                 }
                 local args_no_bg = {
+                    "--volicon", "driver.icns",
                     "--volname", stem_project_name_local,
                     "--window-pos", "200", "120",
                     "--window-size", "720", "480",
