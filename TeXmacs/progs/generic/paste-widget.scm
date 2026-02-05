@@ -99,7 +99,7 @@
          (selected-format "verbatim")
          (tips1 "Please select...")
          (tips2 "")
-         (tips3 (translate "Try Ctrl+Shift+v, auto-detects format."))
+         (tips3 (translate "Try Ctrl/⌘+Shift+v, auto-detects format."))
          (tips4 (translate "Wrong result? Use Selective Paste here."))
          (plain-format-list    (list "Markdown" "LaTeX" "HTML" (translate "Plain text")))
          (math-format-list     (list "LaTeX" "MathML"))
