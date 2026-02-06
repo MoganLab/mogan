@@ -912,6 +912,7 @@ target("stem") do
 
     if is_plat("windows") then
         add_installfiles(stem_files)
+        add_installfiles(path.join(os.projectdir(), "packages/windows/TeXmacs.ico"), {prefixdir = ""})
     else
         add_installfiles(stem_files, {prefixdir=stem_prefix_dir})
     end
@@ -1326,7 +1327,7 @@ xpack("stem") do
         set_iconfile(path.join(os.projectdir(), "packages/windows/Xmacs.ico"))
         set_bindir("bin")
         add_installfiles(path.join(os.projectdir(), "build/packages/stem/data/bin/(**)|" .. stem_binary_windows), {prefixdir = "bin"})
-        add_installfiles("$(projectdir)/packages/windows/TeXmacs.ico", {prefixdir = ""})
+        add_installfiles(path.join(os.projectdir(), "packages/windows/TeXmacs.ico"), {prefixdir = "."})
     end
 
 
