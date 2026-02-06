@@ -104,8 +104,8 @@ if [ ! -f "$DESKTOP_PATH" ]; then
 [Desktop Entry]
 Version=$VERSION
 Type=Application
-Name=Mogan Stem
-GenericName=Mogan Stem
+Name=Mogan STEM
+GenericName=Mogan STEM
 Comment=Scientific Editor
 MimeType=text/x-texmacs.doc;text/x-texmacs.sty;text/plain;text/x-tex;
 Exec=$BINARY_NAME
