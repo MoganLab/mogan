@@ -13,12 +13,13 @@
 
 (texmacs-module (source shortcut-edit)
   (:use (source macro-edit)))
+(import (liii json))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Management of the list of user keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.scm")
+(define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.json")
 (define current-user-shortcuts (list))
 
 (define (apply-user-shortcut sh cmd)
@@ -28,9 +29,29 @@
 (define (unapply-user-shortcut sh)
   (eval `(kbd-unmap ,sh)))
 
+(define (shortcuts->json l)
+  `((shortcuts . ,(list->vector
+                   (map (lambda (entry)
+                          (with (sh cmd) entry
+                            `((sh . ,sh) (cmd . ,cmd))))
+                        l)))))
+
+(define (json->shortcuts j)
+  (let ((arr (json-ref j 'shortcuts)))
+    (if (not arr)
+        (list)
+        (map (lambda (item)
+               (list (json-ref item 'sh)
+                     (json-ref item 'cmd)))
+             (vector->list arr)))))
+
+(define (load-user-shortcuts-json)
+  (with j (string->json (string-load (string->url user-shortcuts-file)))
+    (json->shortcuts j)))
+
 (define (load-user-shortcuts)
   (when (url-exists? user-shortcuts-file)
-    (set! current-user-shortcuts (load-object user-shortcuts-file))
+    (set! current-user-shortcuts (load-user-shortcuts-json))
     (for (entry current-user-shortcuts)
       (with (sh cmd) entry
         (apply-user-shortcut sh cmd)))))
@@ -38,7 +59,8 @@
 (define (save-user-shortcuts)
   (if (null? current-user-shortcuts)
       (url-remove user-shortcuts-file)
-      (save-object user-shortcuts-file current-user-shortcuts)))
+      (string-save (json->string (shortcuts->json current-user-shortcuts))
+                   (string->url user-shortcuts-file))))
 
 (tm-define (init-user-shortcuts)
   (load-user-shortcuts))
@@ -67,6 +89,7 @@
     (car val)))
 
 (tm-define (remove-user-shortcut sh)
+  ;(display* "\n 删除自定义快捷键：" current-user-shortcuts "\n" "sh: " sh "\n")
   (set! current-user-shortcuts
         (assoc-remove! current-user-shortcuts sh))
   (save-user-shortcuts)

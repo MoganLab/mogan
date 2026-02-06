@@ -65,8 +65,11 @@
           (explicit-buttons
             ("Remove" (and-with sh (get-shortcut u)
                         (global-set u :sh "")
+                        (global-set u :cmd "")
+                        (set-shortcut u "")
                         (remove-user-shortcut sh)
-                        (refresh-now "shortcuts-list")))
+                        (refresh-now "shortcuts-list")
+                        (refresh-now "current-shortcut")))
             // //
             ("Clear" (set-shortcut u ""))
             // //
@@ -98,8 +101,11 @@
         (hlist >>
           ("Remove" (and-with sh (get-shortcut u)
                       (global-set u :sh "")
+                      (global-set u :cmd "")
+                      (set-shortcut u "")
                       (remove-user-shortcut sh)
-                      (refresh-now* win "shortcuts-list")))
+                      (refresh-now* win "shortcuts-list")
+                      (refresh-now* win "current-shortcut")))
           // //
           ("Clear" (set-shortcut u ""))
           // //
