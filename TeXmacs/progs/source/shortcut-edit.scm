@@ -89,7 +89,6 @@
     (car val)))
 
 (tm-define (remove-user-shortcut sh)
-  ;(display* "\n 删除自定义快捷键：" current-user-shortcuts "\n" "sh: " sh "\n")
   (set! current-user-shortcuts
         (assoc-remove! current-user-shortcuts sh))
   (save-user-shortcuts)
