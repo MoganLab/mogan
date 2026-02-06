@@ -876,6 +876,9 @@ if is_plat("windows") then
         add_configfiles("$(projectdir)/packages/windows/Xmacs.ico", {
             onlycopy = true
         })
+        add_configfiles("$(projectdir)/packages/windows/TeXmacs.ico", {
+            onlycopy = true
+        })
         add_files("$(buildir)/resource.rc")
     end
 end
@@ -1323,6 +1326,7 @@ xpack("stem") do
         set_iconfile(path.join(os.projectdir(), "packages/windows/Xmacs.ico"))
         set_bindir("bin")
         add_installfiles(path.join(os.projectdir(), "build/packages/stem/data/bin/(**)|" .. stem_binary_windows), {prefixdir = "bin"})
+        add_installfiles("$(projectdir)/packages/windows/TeXmacs.ico", {prefixdir = ""})
     end
 
 
