@@ -2284,6 +2284,7 @@
 ("The OCR feature requires an internet connection to use..." "OCR功能需要连接网络才能使用...")
 ("Connect to the network to enjoy convenient and fast OCR features!" "连接网络享受方便又快捷的OCR功能！")
 ("You have reached the limit of free uses..." "免费次数已达到上限...")
+("Use your invite code to bring a friend, and get rewards together!" "使用邀请码邀请好友，两人均可获得会员奖励！")
 ("Buy it! Convenient and fast OCR features!" "快来买！方便又快捷的OCR功能！")
 ("Copy the image and press Ctrl+Shift+v to paste the OCR recognition result" "复制图片，按 Ctrl+Shift+V 粘贴OCR识别结果")
 ("Copy the image and press Command+Shift+v to paste the OCR recognition result" "复制图片，按 Command+Shift+v 粘贴OCR识别结果")
