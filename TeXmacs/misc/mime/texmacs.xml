@@ -48,8 +48,8 @@
 			<match type="string" value="TeXmacs" offset="1:7"/>
 		</magic>
 		<glob weight="90" pattern="*.ts"/>
-  	<icon name="text-x-texmacs"/>
-  	<generic-icon name="text-x-texmacs"/>
+  	<icon name="texmacs-document"/>
+  	<generic-icon name="texmacs-document"/>
 	</mime-type>
 	<mime-type type="text/x-texmacs.doc">
 		<comment>TeXmacs document</comment>
@@ -94,12 +94,17 @@
 			<match type="string" value="TeXmacs" offset="1:7"/>
 		</magic> 
 		<glob weight="90" pattern="*.tm"/>
-	  <icon name="text-x-texmacs"/>
-  	<generic-icon name="text-x-texmacs"/>
+	  <icon name="texmacs-document"/>
+  	<generic-icon name="texmacs-document"/>
 	</mime-type>
 	<mime-type type="text/x-tmu-doc">
 		<comment>TMU document</comment>
 		<comment xml:lang="zh_CN">TMU文档</comment>
-		<glob pattern="*.tmu"/>
+		<magic priority="90">
+			<match type="string" value="TeXmacs" offset="1:7"/>
+		</magic>
+		<glob weight="90" pattern="*.tmu"/>
+  	<icon name="texmacs-document"/>
+  	<generic-icon name="texmacs-document"/>
 	</mime-type>
 </mime-info>

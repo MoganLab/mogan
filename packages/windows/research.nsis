@@ -352,6 +352,10 @@ Function CleanupOldVersionRegistry
   ; Clean up file associations
   DeleteRegKey HKCR "Applications\MGResearch.exe"
   DeleteRegKey HKCR "Applications\${PACKAGE_NAME}.exe"
+  DeleteRegKey HKCR ".tmu"
+  DeleteRegKey HKCR ".tm"
+  DeleteRegKey HKCR ".ts"
+  DeleteRegKey HKCR "TeXmacs.Document"
 FunctionEnd
 
 Section "${PACKAGE_NAME} (required)" InstallExecutable
@@ -436,6 +440,11 @@ Section "Uninstall"
   DeleteRegKey HKCR "Applications\MGResearch.exe"
   ; delete register key for Mogan Research
   DeleteRegKey HKCR "Applications\${PACKAGE_NAME}.exe"
+  ; delete file extension registrations
+  DeleteRegKey HKCR ".tmu"
+  DeleteRegKey HKCR ".tm"
+  DeleteRegKey HKCR ".ts"
+  DeleteRegKey HKCR "TeXmacs.Document"
 
   ; add uninstall commands
   ${PACKAGE_UNINSTALLCMDS}
@@ -463,6 +472,15 @@ SectionEnd
 
 Section "File Associations" SEC02
   WriteRegExpandStr HKCR "Applications\${PACKAGE_NAME}.exe\shell\open\command" "" '"$INSTDIR\bin\${PACKAGE_NAME}.exe" "%1"'
+
+  ; Register file extensions with TeXmacs.ico icon
+  WriteRegStr HKCR ".tmu" "" "TeXmacs.Document"
+  WriteRegStr HKCR ".tm" "" "TeXmacs.Document"
+  WriteRegStr HKCR ".ts" "" "TeXmacs.Document"
+
+  WriteRegStr HKCR "TeXmacs.Document" "" "TeXmacs Document"
+  WriteRegStr HKCR "TeXmacs.Document\DefaultIcon" "" "$INSTDIR\TeXmacs.ico"
+  WriteRegStr HKCR "TeXmacs.Document\shell\open\command" "" '"$INSTDIR\bin\${PACKAGE_NAME}.exe" "%1"'
 SectionEnd
 
 Section "Check and Install Visual C++ Redistributables" SEC03
