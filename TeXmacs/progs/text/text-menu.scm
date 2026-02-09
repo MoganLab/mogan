@@ -139,7 +139,10 @@
     (begin 
       (make-unnamed-section 'prologue)
       (insert-return)))
-  ("Epilogue" (make-unnamed-section 'epilogue))
+  ("Epilogue" 
+    (begin 
+      (make-unnamed-section 'epilogue)
+      (insert-return)))
   ("List of abbreviations" (make-unnamed-section 'list-of-abbreviations)))
   
 
