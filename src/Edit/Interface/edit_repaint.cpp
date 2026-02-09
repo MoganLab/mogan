@@ -302,7 +302,7 @@ edit_interface_rep::draw_table_resize_handles (renderer ren) {
   table_hit current_hit;
   cursor    current_cursor= get_cursor ();
   if (current_cursor->valid)
-    table_line_hit (current_cursor->ox, current_cursor->oy, current_hit);
+    table_line_hit (current_cursor->ox + 1, current_cursor->oy, current_hit);
   table_scale_wide_flag= current_hit.wide_flag;
 
   int ed= table_scale_wide_flag ? 1 : 3;
