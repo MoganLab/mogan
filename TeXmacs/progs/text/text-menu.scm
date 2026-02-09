@@ -467,7 +467,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind automatic-menu
-  ("Table of contents" (make-aux "table-of-contents" "toc-prefix" "toc"))
+  ("Table of contents"
+   (begin
+     (make-aux "table-of-contents" "toc-prefix" "toc")
+     (update-document "all")))
   (assuming (get-boolean-preference "gui:new bibliography dialogue")
     ("Bibliography" (open-bibliography-inserter)))
   (assuming (not (get-boolean-preference "gui:new bibliography dialogue"))
