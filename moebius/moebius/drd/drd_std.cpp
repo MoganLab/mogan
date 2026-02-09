@@ -1352,6 +1352,7 @@ init_std_drd () {
   init_var (TABLE_MIN_COLS, TYPE_INTEGER);
   init_var (TABLE_MAX_ROWS, TYPE_INTEGER);
   init_var (TABLE_MAX_COLS, TYPE_INTEGER);
+  init_var (TABLE_HANDLES, TYPE_STRING);
 
   init_var (CELL_FORMAT, TYPE_ADHOC);
   init_var (CELL_DECORATION, TYPE_ADHOC);

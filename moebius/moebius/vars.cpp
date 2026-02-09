@@ -233,6 +233,7 @@ string TABLE_MIN_ROWS ("table-min-rows");
 string TABLE_MIN_COLS ("table-min-cols");
 string TABLE_MAX_ROWS ("table-max-rows");
 string TABLE_MAX_COLS ("table-max-cols");
+string TABLE_HANDLES ("table-handles");
 
 /******************************************************************************
  * Environment variables for cells of tables

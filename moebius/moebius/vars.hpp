@@ -216,6 +216,7 @@ extern string TABLE_MIN_ROWS;
 extern string TABLE_MIN_COLS;
 extern string TABLE_MAX_ROWS;
 extern string TABLE_MAX_COLS;
+extern string TABLE_HANDLES;
 
 extern string CELL_FORMAT;
 extern string CELL_DECORATION;

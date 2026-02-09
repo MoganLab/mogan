@@ -234,6 +234,7 @@ initialize_default_env () {
   env (TABLE_MIN_COLS)  = "";     // suggested minimal number of columns
   env (TABLE_MAX_ROWS)  = "";     // suggested maximal number of rows
   env (TABLE_MAX_COLS)  = "";     // suggested maximal number of columns
+  env (TABLE_HANDLES)   = "true"; // show table resize handles
 
   env (CELL_DECORATION) = "";             // decorating table of cell
   env (CELL_FORMAT)     = tree (TFORMAT); // format of cell
