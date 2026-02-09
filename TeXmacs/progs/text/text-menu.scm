@@ -478,12 +478,24 @@
         ("Bibliography" (make-database-bib)))
     (if (not (with-database-tool?))
         ("Bibliography" (choose-file make-bib "Bibliography file" "tmbib"))))
-  ("Index" (make-aux "the-index" "index-prefix" "idx"))
-  ("Glossary" (make-aux "the-glossary" "glossary-prefix" "gly"))
+  ("Index" 
+    (begin 
+      (make-aux "the-index" "index-prefix" "idx")
+      (update-document "all")))
+  ("Glossary" 
+    (begin
+      (make-aux "the-glossary" "glossary-prefix" "gly")
+      (update-document "all")))
   ;;("List of figures" (make-aux* "the-glossary*" "figure-list-prefix" "figure" "List of figures"))
   ;;("List of tables" (make-aux* "the-glossary*" "table-list-prefix" "table" "List of tables"))
-  ("List of figures" (make-aux "list-of-figures" "figure-list-prefix" "figure"))
-  ("List of tables" (make-aux "list-of-tables" "table-list-prefix" "table")))
+  ("List of figures" 
+    (begin
+      (make-aux "list-of-figures" "figure-list-prefix" "figure")
+      (update-document "all")))
+  ("List of tables" 
+    (begin
+      (make-aux "list-of-tables" "table-list-prefix" "table")
+      (update-document "all"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Text menus for inserting block content
