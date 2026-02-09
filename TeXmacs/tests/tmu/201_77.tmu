@@ -1,0 +1,105 @@
+<TMU|<tuple|1.1.0|2026.2.0-rc1>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  在这里点击插入-\<gtr\>自动-\<gtr\>目录，会自动生成相应目录
+
+  \;
+
+  <section|>
+
+  <subsection|>
+
+  <subsubsection|>
+
+  \;
+
+  11<index|111>11<index|这是索引>1
+
+  333333
+
+  555<index|4444>55555<glossary|这是术语>55
+
+  在这里点击插入-\<gtr\>自动-\<gtr\>索引，会自动生成相应索引
+
+  \;
+
+  \;
+
+  在这里点击插入-\<gtr\>自动-\<gtr\>术语表，会自动生成相应术语表
+
+  \;
+
+  \;
+
+  <\small-figure>
+    图形目录
+  </small-figure|>
+
+  \;
+
+  \;
+
+  在这里点击插入-\<gtr\>自动-\<gtr\>术语表，会自动生成相应图形目录
+
+  \;
+
+  <small-table|<tabular|<tformat|<table|<row|<cell|>>>>>|>
+
+  \;
+
+  在这里点击插入-\<gtr\>自动-\<gtr\>术语表，会自动生成相应表格目录
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1>>
+    <associate|auto-10|<tuple|1|1>>
+    <associate|auto-2|<tuple|1.1|1>>
+    <associate|auto-3|<tuple|1.1.1|1>>
+    <associate|auto-4|<tuple|111|1>>
+    <associate|auto-5|<tuple|这是索引|1>>
+    <associate|auto-6|<tuple|4444|1>>
+    <associate|auto-7|<tuple|这是术语|1>>
+    <associate|auto-8|<tuple|1|1>>
+    <associate|auto-9|<tuple|1|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|figure>
+      <tuple|normal|<surround|<hidden-binding|<tuple|auto-8>|1>||>|<pageref|auto-8>>
+    </associate>
+    <\associate|gly>
+      <tuple|normal|这是术语|<pageref|auto-7>>
+    </associate>
+    <\associate|idx>
+      <tuple|<tuple|111>|<pageref|auto-4>>
+
+      <tuple|<tuple|这是索引>|<pageref|auto-5>>
+
+      <tuple|<tuple|4444>|<pageref|auto-6>>
+    </associate>
+    <\associate|table>
+      <tuple|normal|<surround|<hidden-binding|<tuple|auto-9>|1>||>|<pageref|auto-9>>
+    </associate>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|1.1<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+      <with|par-left|<quote|2tab>|1.1.1<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|表格目录><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-10><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
