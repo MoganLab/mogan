@@ -1383,6 +1383,8 @@
   ("% - . ." "<veebar><cdots><veebar>")
 
   ("/ /" "<varparallel>")
+  ("/ / var" "<parallel>")
+  ("/ / var var" "//")
   ("| /" "<nmid>")
   ("| / var" "<ndivides>")
   ("| var" "|")
