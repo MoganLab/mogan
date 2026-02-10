@@ -101,6 +101,8 @@
 
   <assign|textemdash|\V>
 
+  <assign|mathbfcal|<macro|var|<with|font|cal|<with|font-series|bold|<arg|var>>>>>
+
   \;
 </body>
 
