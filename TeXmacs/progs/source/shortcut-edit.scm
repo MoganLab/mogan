@@ -140,11 +140,22 @@
 (tm-define (encode-shortcut sh)
   (translate (kbd-system-rewrite sh)))
 
-(tm-define (decode-shortcut sh)
-  (with all (map (lambda (x) (cons (encode-shortcut x) x))
-                 (map shortcut-entry-shortcut (current-user-shortcuts-list)))
-    (or (assoc-ref all sh) sh)))
+(define (normalize-shortcut-string sh)
+  (if (not (string? sh)) sh
+      (let* ((s1 (string-replace sh "<less>" "<"))
+             (s2 (string-replace s1 "<gtr>" ">"))
+             (l (list-filter (string-tokenize-by-char s2 #\space)
+                             (lambda (x) (!= x "")))))
+        (string-join l " "))))
 
+(tm-define (decode-shortcut sh)
+  (let* ((sh* (normalize-shortcut-string sh))
+         (all (map (lambda (x) (cons (encode-shortcut x) x))
+                   (map shortcut-entry-shortcut (current-user-shortcuts-list)))))
+    (or (assoc-ref all sh)
+        (assoc-ref all sh*)
+        sh*)))
+            
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Editing keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -75,7 +75,6 @@
             // //
             ("Apply" (and-with sh (get-shortcut u)
                        (global-set u :sh sh)
-                       ;(display* "shortcut: " sh " cmd: " (global-ref u :cmd) "\n")
                        (set-user-shortcut sh (global-ref u :cmd))
                        (refresh-now "shortcuts-list")))
             // //
