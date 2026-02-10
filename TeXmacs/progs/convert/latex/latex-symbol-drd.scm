@@ -132,7 +132,7 @@
   precnapprox precneqq precnsim precsim propto rhd rightarrowtail
   rightleftarrows rightleftharpoons rightrightarrows rightsquigarrow
   rightthreetimes risingdotseq rtimes rvert rVert shortleftarrow shortmid
-  shortparallel shortrightarrow smalldash smallfrown smallsetminus
+  shortparallel varparallel shortrightarrow smalldash smallfrown smallsetminus
   smallsmile smile sphericalangle subseteqq
   subsetneq subsetneqq succapprox succcurlyeq succnapprox succneqq
   succnsim succsim supseteqq supsetneq supsetneqq therefore

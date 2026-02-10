@@ -1382,6 +1382,7 @@
   ("% -" "<veebar>")
   ("% - . ." "<veebar><cdots><veebar>")
 
+  ("/ /" "<varparallel>")
   ("| /" "<nmid>")
   ("| / var" "<ndivides>")
   ("| var" "|")
