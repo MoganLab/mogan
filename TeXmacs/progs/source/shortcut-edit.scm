@@ -20,7 +20,59 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.json")
-(define current-user-shortcuts (list))
+(define user-shortcuts-version 1)
+
+(define (make-shortcut-entry sh cmd)
+  `(("shortcut" . ,sh)
+    ("command" . ,cmd)))
+
+(define (shortcut-entry-shortcut entry)
+  (json-ref entry "shortcut"))
+
+(define (shortcut-entry-command entry)
+  (json-ref entry "command"))
+
+(define (shortcut-entry-valid? entry)
+  (and (json-object? entry)
+       (string? (shortcut-entry-shortcut entry))
+       (string? (shortcut-entry-command entry))))
+
+(define (make-user-shortcuts-json shortcuts)
+  `(("meta" . (("version" . ,user-shortcuts-version)
+               ("total" . ,(vector-length shortcuts))))
+    ("shortcuts" . ,shortcuts)))
+
+(define (make-empty-user-shortcuts-json)
+  (make-user-shortcuts-json #()))
+
+(define current-user-shortcuts (make-empty-user-shortcuts-json))
+
+(define (current-user-shortcuts-vector)
+  (with shortcuts (json-ref current-user-shortcuts "shortcuts")
+    (if (vector? shortcuts) shortcuts #())))
+
+(define (current-user-shortcuts-list)
+  (vector->list (current-user-shortcuts-vector)))
+
+(define (normalize-user-shortcuts-json json)
+  (let* ((shortcuts (if (and (json-object? json) (vector? (json-ref json "shortcuts")))
+                        (json-ref json "shortcuts")
+                        #()))
+         (entries (vector->list shortcuts))
+         (valid (list-filter entries shortcut-entry-valid?)))
+    (make-user-shortcuts-json (list->vector valid))))
+
+(define (set-current-user-shortcuts-list entries)
+  (set! current-user-shortcuts
+        (make-user-shortcuts-json (list->vector entries))))
+
+(define (find-user-shortcut-entry sh)
+  (let loop ((entries (current-user-shortcuts-list)))
+    (and (nnull? entries)
+         (let ((entry (car entries)))
+           (if (== (shortcut-entry-shortcut entry) sh)
+               entry
+               (loop (cdr entries)))))))
 
 (define (apply-user-shortcut sh cmd)
   (and-with val (string->object cmd)
@@ -29,38 +81,19 @@
 (define (unapply-user-shortcut sh)
   (eval `(kbd-unmap ,sh)))
 
-(define (shortcuts->json l)
-  `((shortcuts . ,(list->vector
-                   (map (lambda (entry)
-                          (with (sh cmd) entry
-                            `((sh . ,sh) (cmd . ,cmd))))
-                        l)))))
-
-(define (json->shortcuts j)
-  (let ((arr (json-ref j 'shortcuts)))
-    (if (not arr)
-        (list)
-        (map (lambda (item)
-               (list (json-ref item 'sh)
-                     (json-ref item 'cmd)))
-             (vector->list arr)))))
-
-(define (load-user-shortcuts-json)
-  (with j (string->json (string-load (string->url user-shortcuts-file)))
-    (json->shortcuts j)))
-
 (define (load-user-shortcuts)
+  (set! current-user-shortcuts (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
-    (set! current-user-shortcuts (load-user-shortcuts-json))
-    (for (entry current-user-shortcuts)
-      (with (sh cmd) entry
-        (apply-user-shortcut sh cmd)))))
+    (set! current-user-shortcuts
+          (normalize-user-shortcuts-json
+            (string->json (string-load user-shortcuts-file)))))
+  (for (entry (current-user-shortcuts-list))
+    (apply-user-shortcut (shortcut-entry-shortcut entry)
+                         (shortcut-entry-command entry))))
 
 (define (save-user-shortcuts)
-  (if (null? current-user-shortcuts)
-      (url-remove user-shortcuts-file)
-      (string-save (json->string (shortcuts->json current-user-shortcuts))
-                   (string->url user-shortcuts-file))))
+  (string-save (json->string current-user-shortcuts)
+               user-shortcuts-file))
 
 (tm-define (init-user-shortcuts)
   (load-user-shortcuts))
@@ -76,33 +109,40 @@
   (string<=? (shortcut-rewrite s1) (shortcut-rewrite s2)))
 
 (tm-define (user-shortcuts-list)
-  (list-sort (map car current-user-shortcuts) shortcut<=?))
+  (list-sort (map shortcut-entry-shortcut (current-user-shortcuts-list))
+             shortcut<=?))
 
 (tm-define (set-user-shortcut sh cmd)
-  (set! current-user-shortcuts
-        (assoc-set! current-user-shortcuts sh (list cmd)))
+  (let* ((entries (current-user-shortcuts-list))
+         (others (list-filter entries
+                              (lambda (entry)
+                                (!= (shortcut-entry-shortcut entry) sh))))
+         (next (append others (list (make-shortcut-entry sh cmd)))))
+    (set-current-user-shortcuts-list next))
   (save-user-shortcuts)
   (apply-user-shortcut sh cmd))
 
 (tm-define (get-user-shortcut sh)
-  (and-with val (assoc-ref current-user-shortcuts sh)
-    (car val)))
+  (and-with entry (find-user-shortcut-entry sh)
+    (shortcut-entry-command entry)))
 
 (tm-define (remove-user-shortcut sh)
-  (set! current-user-shortcuts
-        (assoc-remove! current-user-shortcuts sh))
+  (set-current-user-shortcuts-list
+    (list-filter (current-user-shortcuts-list)
+                 (lambda (entry)
+                   (!= (shortcut-entry-shortcut entry) sh))))
   (save-user-shortcuts)
   (unapply-user-shortcut sh))
 
 (tm-define (has-user-shortcut? cmd)
-  (in? cmd (map cadr current-user-shortcuts)))
+  (in? cmd (map shortcut-entry-command (current-user-shortcuts-list))))
 
 (tm-define (encode-shortcut sh)
   (translate (kbd-system-rewrite sh)))
 
 (tm-define (decode-shortcut sh)
   (with all (map (lambda (x) (cons (encode-shortcut x) x))
-                 (map car current-user-shortcuts))
+                 (map shortcut-entry-shortcut (current-user-shortcuts-list)))
     (or (assoc-ref all sh) sh)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
