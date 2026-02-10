@@ -166,6 +166,26 @@
                 ("total" . 0)))
       ("files" . #())))
 
+(define (recent-file-item-valid? item)
+  (and (json-object? item)
+       (string? (json-ref item "path"))
+       (string? (json-ref item "name"))
+       (number? (json-ref item "last_open"))
+       (number? (json-ref item "open_count"))
+       (boolean? (json-ref item "show"))))
+
+(define (recent-files-json-valid? recent-files)
+  (and (json-object? recent-files)
+       (let* ((meta (json-ref recent-files "meta"))
+              (files (json-ref recent-files "files"))
+              (version (and (json-object? meta) (json-ref meta "version")))
+              (total (and (json-object? meta) (json-ref meta "total"))))
+         (and (json-object? meta)
+              (number? version)
+              (integer? total) (>= total 0)
+              (vector? files)
+              (every recent-file-item-valid? (vector->list files))))))
+
 
 #|
 recent-files-remove-by-path
@@ -558,9 +578,21 @@ unspecified
         (set! interactive-arg-table (decode l))))
   (when (url-exists? "$TEXMACS_HOME_PATH/system/recent-files.json")
       (set! interactive-arg-recent-file-json
-            (string->json
-             (string-load
-               (string->url "$TEXMACS_HOME_PATH/system/recent-files.json"))))))
+            (catch #t
+              (lambda ()
+                (let ((recent-files
+                       (string->json
+                        (string-load
+                         (string->url "$TEXMACS_HOME_PATH/system/recent-files.json")))))
+                  (if (recent-files-json-valid? recent-files)
+                      recent-files
+                      `(("meta" . (("version" . 1)
+                                    ("total" . 0)))
+                        ("files" . #())))))
+              (lambda args
+                `(("meta" . (("version" . 1)
+                              ("total" . 0)))
+                  ("files" . #())))))))
 
 
 (on-entry (retrieve-learned))
