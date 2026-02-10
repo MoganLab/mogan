@@ -267,7 +267,7 @@ edit_interface_rep::draw_table_resize_handles (renderer ren) {
   for (path p= path_up (tp); !is_nil (p) && p != rp; p= path_up (p)) {
     tree st= subtree (et, p);
     if (!is_func (st, TABLE)) continue;
-    if (as_string (get_env_value (MODE, p)) == "math") break;
+    if (!is_true_table (p)) break;
 
     selection sel= eb->find_check_selection (p * 0, p * 1);
     if (!sel->valid || is_nil (sel->rs)) break;

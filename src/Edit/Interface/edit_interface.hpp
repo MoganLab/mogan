@@ -278,6 +278,7 @@ public:
   /* event handlers */
   bool is_editor_widget ();
   bool is_embedded_widget ();
+  bool is_true_table (path p);
   void handle_get_size_hint (SI& w, SI& h);
   void handle_notify_resize (SI w, SI h);
   void handle_keypress (string key, time_t t);

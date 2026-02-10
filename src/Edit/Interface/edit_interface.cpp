@@ -1184,6 +1184,21 @@ edit_interface_rep::is_embedded_widget () {
   // FIXME: could be made more robust: test should not be based on file name
 }
 
+bool
+edit_interface_rep::is_true_table (path p) {
+  for (path q= p; !is_nil (q) && q != rp; q= path_up (q)) {
+    tree qt= subtree (et, q);
+    if (is_compound (qt, "align") || is_compound (qt, "align*") ||
+        is_compound (qt, "eqnarray") || is_compound (qt, "eqnarray*") ||
+        is_compound (qt, "gather") || is_compound (qt, "gather*") ||
+        is_compound (qt, "multline") || is_compound (qt, "multline*") ||
+        is_compound (qt, "alignat") || is_compound (qt, "alignat*") ||
+        is_compound (qt, "flalign") || is_compound (qt, "flalign*"))
+      return false;
+  }
+  return true;
+}
+
 void
 edit_interface_rep::handle_get_size_hint (SI& w, SI& h) {
   gui_root_extents (w, h);
