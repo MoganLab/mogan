@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.1.2>>
+<TMU|<tuple|1.1.0|2026.1.4-rc2>>
 
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|smart-ref|doc-tmu>>
 
@@ -7,7 +7,7 @@
     2026/01/27
   </author-affiliation>>>>
 
-  使用<key|std O>快捷键查看源码。
+  使用<key|ctrl O>快捷键查看源码。
 
   <section|LaTeX 较多的文件>
 
@@ -77,7 +77,7 @@
 <\references>
   <\collection>
     <associate|auto-1|<tuple|1|1>>
-    <associate|auto-2|<tuple|2|2>>
+    <associate|auto-2|<tuple|2|1>>
     <associate|auto-3|<tuple|3|2>>
     <associate|auto-4|<tuple|4|2>>
     <associate|auto-5|<tuple|5|2>>
@@ -87,7 +87,7 @@
     <associate|part:../tm/201_68_HTML.tm|<tuple|6|3>>
     <associate|part:../tm/201_68_LaTeX.tm|<tuple|5|2>>
     <associate|part:../tm/201_68_markdown.tm|<tuple|7|3>>
-    <associate|part:./201_68_HTML.tmu|<tuple|2|2>>
+    <associate|part:./201_68_HTML.tmu|<tuple|2|1>>
     <associate|part:./201_68_LaTeX.tmu|<tuple|1|1>>
     <associate|part:./201_68_markdown.tmu|<tuple|3|2>>
     <associate|part:https://liiistem.cn/mogan_latest_version.tm|<tuple|4|2>>
