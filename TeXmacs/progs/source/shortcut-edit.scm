@@ -37,6 +37,25 @@
        (string? (shortcut-entry-shortcut entry))
        (string? (shortcut-entry-command entry))))
 
+(define (shortcut-entries-valid? entries)
+  (or (null? entries)
+      (and (shortcut-entry-valid? (car entries))
+           (shortcut-entries-valid? (cdr entries)))))
+
+(define (user-shortcuts-json-valid? json)
+  (and (json-object? json)
+       (let* ((meta (json-ref json "meta"))
+              (shortcuts (json-ref json "shortcuts"))
+              (version (and (json-object? meta) (json-ref meta "version")))
+              (total (and (json-object? meta) (json-ref meta "total"))))
+         (and (json-object? meta)
+              (integer? version)
+              (integer? total)
+              (>= total 0)
+              (vector? shortcuts)
+              (== total (vector-length shortcuts))
+              (shortcut-entries-valid? (vector->list shortcuts))))))
+
 (define (make-user-shortcuts-json shortcuts)
   `(("meta" . (("version" . ,user-shortcuts-version)
                ("total" . ,(vector-length shortcuts))))
@@ -81,12 +100,22 @@
 (define (unapply-user-shortcut sh)
   (eval `(kbd-unmap ,sh)))
 
+(define (reset-user-shortcuts)
+  (set! current-user-shortcuts (make-empty-user-shortcuts-json))
+  (save-user-shortcuts))
+
 (define (load-user-shortcuts)
   (set! current-user-shortcuts (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
-    (set! current-user-shortcuts
-          (normalize-user-shortcuts-json
-            (string->json (string-load user-shortcuts-file)))))
+    (let ((loaded
+           (catch #t
+             (lambda ()
+               (string->json (string-load user-shortcuts-file)))
+             (lambda args #f))))
+      (if (user-shortcuts-json-valid? loaded)
+          (set! current-user-shortcuts
+                (normalize-user-shortcuts-json loaded))
+          (reset-user-shortcuts))))
   (for (entry (current-user-shortcuts-list))
     (apply-user-shortcut (shortcut-entry-shortcut entry)
                          (shortcut-entry-command entry))))
