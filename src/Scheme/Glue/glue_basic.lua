@@ -1974,12 +1974,12 @@ function main()
             },
             {
                 scm_name = "stem-user-agent",
-                cpp_name = "http_user_agent",
+                cpp_name = "stem_user_agent",
                 ret_type = "string"
             },
             {
                 scm_name = "stem-device-id",
-                cpp_name = "http_device_id",
+                cpp_name = "stem_device_id",
                 ret_type = "string"
             },
         }

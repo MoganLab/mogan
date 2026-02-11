@@ -129,7 +129,7 @@ get_linux_detailed_version () {
 // LiiiSTEM-v2026.2.1 Debian_GNU/Linux_13_(trixie) x86_64
 
 string
-qt_http_user_agent () {
+qt_stem_user_agent () {
   QString appVersion= QString ("LiiiSTEM-v") + XMACS_VERSION;
 #ifdef Q_OS_WINDOWS
   QString osName= get_windows_detailed_version ();
@@ -147,7 +147,7 @@ qt_http_user_agent () {
 }
 
 string
-qt_http_device_id () {
+qt_stem_device_id () {
   QByteArray combinedData;
 
   QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();

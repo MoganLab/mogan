@@ -44,7 +44,7 @@ void system_wait (string message, string argument= "", int level= 0);
 
 bool is_community_stem ();
 
-string http_user_agent ();
-string http_device_id ();
+string stem_user_agent ();
+string stem_device_id ();
 
 #endif

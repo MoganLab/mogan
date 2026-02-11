@@ -252,22 +252,22 @@ is_community_stem () {
 }
 
 /******************************************************************************
- * HTTP User-Agent and Device ID
+ * STEM User-Agent and Device ID
  ******************************************************************************/
 
 string
-http_user_agent () {
+stem_user_agent () {
 #ifdef QTTEXMACS
-  return qt_http_user_agent ();
+  return qt_stem_user_agent ();
 #else
   return "unknown";
 #endif
 }
 
 string
-http_device_id () {
+stem_device_id () {
 #ifdef QTTEXMACS
-  return qt_http_device_id ();
+  return qt_stem_device_id ();
 #else
   return "unknown";
 #endif
