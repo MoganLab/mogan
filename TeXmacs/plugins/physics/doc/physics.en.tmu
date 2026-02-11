@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2025.2.2>>
+<TMU|<tuple|1.1.0|2026.2.0-rc2>>
 
 <style|<tuple|tmudoc|no-page-numbers|british|physics>>
 
@@ -34,6 +34,102 @@
 
     <\equation*>
       <bra*|<frac|\<phi\>|2>>
+    </equation*>
+
+    <item*|<markup|braket>>
+
+    <\equation*>
+      <braket||<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|braket*>>
+
+    <\equation*>
+      <braket*|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|comm>>
+
+    <\equation*>
+      <comm|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|comm*>>
+
+    <\equation*>
+      <comm*|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|commutator>>
+
+    <\equation*>
+      <commutator|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|commutator*>>
+
+    <\equation*>
+      <commutator*|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|acomm>>
+
+    <\equation*>
+      <acomm|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|acomm*>>
+
+    <\equation*>
+      <acomm*|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|anticommutator>>
+
+    <\equation*>
+      <anticommutator|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|anticommutator*>>
+
+    <\equation*>
+      <anticommutator*|<frac|\<phi\>|2>|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|mel>>
+
+    <\equation*>
+      <mel|<frac|\<phi\>|2>|A|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|mel*>>
+
+    <\equation*>
+      <mel*|<frac|\<phi\>|2>|A|<frac|\<psi\>|2>>
+    </equation*>
+
+    <item*|<markup|vu>>
+
+    <\equation*>
+      <vu|\<varphi\>>
+    </equation*>
+
+    <item*|<markup|vb>>
+
+    <\equation*>
+      <vb|ab>
+    </equation*>
+
+    <item*|<markup|vb*>>
+
+    <\equation*>
+      <vb*|a b>
+    </equation*>
+
+    <item*|<markup|va*>>
+
+    <\equation*>
+      <va|a>
     </equation*>
   </description>
 
