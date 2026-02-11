@@ -1972,6 +1972,16 @@ function main()
                     "url"
                 }
             },
+            {
+                scm_name = "stem-user-agent",
+                cpp_name = "http_user_agent",
+                ret_type = "string"
+            },
+            {
+                scm_name = "stem-device-id",
+                cpp_name = "http_device_id",
+                ret_type = "string"
+            },
         }
     }
 end

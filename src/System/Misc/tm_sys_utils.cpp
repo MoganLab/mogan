@@ -250,3 +250,25 @@ is_community_stem () {
   return false;
 #endif
 }
+
+/******************************************************************************
+ * HTTP User-Agent and Device ID
+ ******************************************************************************/
+
+string
+http_user_agent () {
+#ifdef QTTEXMACS
+  return qt_http_user_agent ();
+#else
+  return "unknown";
+#endif
+}
+
+string
+http_device_id () {
+#ifdef QTTEXMACS
+  return qt_http_device_id ();
+#else
+  return "unknown";
+#endif
+}

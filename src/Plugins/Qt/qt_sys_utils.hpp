@@ -17,6 +17,8 @@
 
 string qt_get_current_cpu_arch ();
 string qt_get_pretty_os_name ();
+string qt_http_user_agent ();
+string qt_http_device_id ();
 void   qt_open_url (url u);
 
 #endif // defined QT_SYS_UTILS_H

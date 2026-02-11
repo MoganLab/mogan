@@ -1,4 +1,3 @@
-
 /******************************************************************************
  * MODULE     : qt_sys_utils.cpp
  * DESCRIPTION: external command launcher
@@ -14,13 +13,22 @@
 #include "file.hpp"
 #include "qt_utilities.hpp"
 #include "string.hpp"
+#include "tm_configure.hpp"
 #include "tm_debug.hpp"
 
 #include <QDesktopServices>
+#include <QFile>
+#include <QNetworkInterface>
+#include <QCryptographicHash>
 #include <QProcess>
 #include <QString>
 #include <QSysInfo>
 #include <QUrl>
+
+#ifdef Q_OS_WINDOWS
+#include <windows.h>
+#include <qt_windows.h>
+#endif
 
 string
 qt_get_current_cpu_arch () {
@@ -30,6 +38,109 @@ qt_get_current_cpu_arch () {
 string
 qt_get_pretty_os_name () {
   return from_qstring (QSysInfo::prettyProductName ());
+}
+
+#ifdef Q_OS_WINDOWS
+QString
+get_windows_detailed_version() {
+  RTL_OSVERSIONINFOW osvi;
+  osvi.dwOSVersionInfoSize = sizeof(osvi);
+  if (RtlGetVersion(&osvi) != 0) {
+    return QSysInfo::prettyProductName();
+  }
+
+  QString productName;
+  if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0) {
+    if (osvi.dwBuildNumber >= 22000) productName = "Windows 11";
+    else productName = "Windows 10";
+  } else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 3) {
+    productName = "Windows 8.1";
+  } else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 2) {
+    productName = "Windows 8";
+  } else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 1) {
+    productName = "Windows 7";
+  } else {
+    productName = QString("Windows %1.%2").arg(osvi.dwMajorVersion).arg(osvi.dwMinorVersion);
+  }
+
+  return QString("%1 %2.%3.%4").arg(productName).arg(osvi.dwMajorVersion).arg(osvi.dwMinorVersion).arg(osvi.dwBuildNumber).replace(" ", "_");
+}
+#endif
+
+#ifdef Q_OS_MACOS
+QString
+get_macos_detailed_version() {
+  QProcess p;
+  QStringList env = QProcess::systemEnvironment();
+  p.setEnvironment(env);
+  p.start("sh", QStringList() << "-c" << "sw_vers -productVersion; sw_vers -productName; uname -m");
+  if (!p.waitForFinished(1000)) return QSysInfo::prettyProductName();
+
+  QString output = p.readAllStandardOutput().trimmed();
+  QStringList lines = output.split("\n");
+  if (lines.size() < 3) return QSysInfo::prettyProductName();
+
+  return QString("%1 %2 (%3)").arg(lines[1]).arg(lines[0]).arg(lines[2]).replace(" ", "_");
+}
+#endif
+
+#ifdef Q_OS_LINUX
+QString
+get_linux_detailed_version() {
+  QFile file("/etc/os-release");
+  if (!file.open(QIODevice::ReadOnly)) return QSysInfo::prettyProductName();
+
+  QString prettyName;
+  while (!file.atEnd()) {
+    QString line = file.readLine().trimmed();
+    if (line.startsWith("PRETTY_NAME=")) {
+      prettyName = line.section('=', 1).remove('"');
+      break;
+    }
+  }
+  file.close();
+
+  if (prettyName.isEmpty()) return QSysInfo::prettyProductName();
+  return prettyName.replace(" ", "_");
+}
+#endif
+
+// User-Agent 格式:
+// LiiiSTEM-v2026.2.1 Windows_11_10.0.26100 x86_64
+// LiiiSTEM-v2026.2.1 macOS_15.3_(arm64) arm64
+// LiiiSTEM-v2026.2.1 Debian_GNU/Linux_13_(trixie) x86_64
+
+string
+qt_http_user_agent(){
+  QString appVersion= QString("LiiiSTEM-v") + XMACS_VERSION;
+#ifdef Q_OS_WINDOWS
+  QString osName= get_windows_detailed_version ();
+#elif defined(Q_OS_MACOS)
+  QString osName= get_macos_detailed_version ();
+#elif defined(Q_OS_LINUX)
+  QString osName= get_linux_detailed_version ();
+#else
+  QString osName= QSysInfo::prettyProductName ();
+#endif
+  QString arch= QSysInfo::currentCpuArchitecture ();
+
+  return from_qstring (QString ("%1 %2 %3").arg (appVersion).arg (osName).arg (arch));
+}
+
+string
+qt_http_device_id () {
+  QByteArray combinedData;
+
+  QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces();
+  for (const QNetworkInterface &interface : interfaces) {
+    if (!(interface.flags() & QNetworkInterface::IsLoopBack) &&
+        (interface.flags() & QNetworkInterface::IsUp)) {
+      combinedData.append(interface.hardwareAddress().toUtf8());
+    }
+  }
+
+  QByteArray hashed = QCryptographicHash::hash(combinedData, QCryptographicHash::Sha256);
+  return from_qstring (QString (hashed.toHex()));
 }
 
 void
