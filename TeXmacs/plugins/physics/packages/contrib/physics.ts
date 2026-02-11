@@ -22,13 +22,13 @@
 
   <use-module|(contrib physics physics-drd)>
 
+  <active*|<\src-comment>
+    Braket operators
+  </src-comment>>
+
   <assign|bra|<macro|x|<around*|\<langle\>|<arg|x>|\|>>>
 
   <assign|bra*|<macro|x|\<langle\><arg|x>\|>>
-
-  <assign|ket|<macro|x|<around*|\||<arg|x>|\<rangle\>>>>
-
-  <assign|ket*|<macro|x|\|<arg|x>\<rangle\>>>
 
   <assign|ket|<macro|x|<around*|\||<arg|x>|\<rangle\>>>>
 
@@ -59,6 +59,10 @@
   <assign|mel*|<macro|var1|var2|var3|\<langle\><arg|var1>\|<arg|var2>\|<arg|var3>\<rangle\>>>
 
   \;
+
+  <active*|<\src-comment>
+    vectors
+  </src-comment>>
 
   <assign|vb|<macro|var|<with|font-series|bold|<arg|var>>>>
 
