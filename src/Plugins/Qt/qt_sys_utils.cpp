@@ -16,6 +16,14 @@
 #include "tm_configure.hpp"
 #include "tm_debug.hpp"
 
+#ifdef Q_OS_WINDOWS
+#include <qt_windows.h>
+#include <windows.h>
+
+#undef IsUp
+#undef IsLoopBack
+#endif
+
 #include <QCryptographicHash>
 #include <QDesktopServices>
 #include <QFile>
@@ -24,14 +32,6 @@
 #include <QString>
 #include <QSysInfo>
 #include <QUrl>
-
-#ifdef Q_OS_WINDOWS
-#include <qt_windows.h>
-#include <windows.h>
-
-#undef IsUp
-#undef IsLoopBack
-#endif
 
 string
 qt_get_current_cpu_arch () {
@@ -175,29 +175,39 @@ qt_stem_user_agent () {
       QString ("%1 %2 %3").arg (appVersion).arg (osName).arg (arch));
 }
 
-string
-qt_stem_device_id () {
-  QByteArray combinedData;
 
+#ifdef Q_OS_MACOS || Q_OS_LINUX
+QString
+get_linux_or_macos_device_id () {
+  QByteArray combinedData;
   QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces ();
   for (int i = 0; i < interfaces.size(); ++i) {
     const QNetworkInterface& interface = interfaces.at(i);
-#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
     if (!(interface.flags () & QNetworkInterface::IsLoopBack) &&
         (interface.flags () & QNetworkInterface::IsUp)) {
       combinedData.append (interface.hardwareAddress ().toUtf8 ());
     }
-#elif defined(Q_OS_WINDOWS)
-    QString hwAddr = interface.hardwareAddress();
-    if (!hwAddr.isEmpty() && hwAddr != "00:00:00:00:00:00") {
-      combinedData.append (hwAddr.toUtf8 ());
-    }
-#endif
   }
-
   QByteArray hashed=
       QCryptographicHash::hash (combinedData, QCryptographicHash::Sha256);
-  return from_qstring (QString (hashed.toHex ()));
+  return QString (hashed.toHex ());
+}
+#endif
+
+#ifdef Q_OS_WINDOWS
+QString
+get_windows_device_id () {
+  return QStringLiteral ("000000000000");
+}
+#endif
+
+string
+qt_stem_device_id () {
+#if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
+  return from_qstring (get_linux_or_macos_device_id ());
+#elif defined(Q_OS_WINDOWS)
+  return from_qstring (get_windows_device_id ());
+#endif
 }
 
 void
