@@ -46,64 +46,64 @@ qt_get_pretty_os_name () {
 #ifdef Q_OS_WINDOWS
 
 // Helper function to get Windows version info using dynamic loading
-static bool GetWindowsVersionInfo(ULONG& major, ULONG& minor, ULONG& build) {
-    HMODULE hNtDll = ::GetModuleHandleW(L"ntdll.dll");
-    if (!hNtDll) return false;
+static bool
+GetWindowsVersionInfo (ULONG& major, ULONG& minor, ULONG& build) {
+  HMODULE hNtDll= ::GetModuleHandleW (L"ntdll.dll");
+  if (!hNtDll) return false;
 
-    // Define the function pointer type - RtlGetVersion returns LONG and takes a pointer to OSVERSIONINFO
-    typedef LONG (WINAPI* RtlGetVersionFunc)(void*);
-    auto pRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(
-        ::GetProcAddress(hNtDll, "RtlGetVersion"));
+  // Define the function pointer type - RtlGetVersion returns LONG and takes a
+  // pointer to OSVERSIONINFO
+  typedef LONG (WINAPI * RtlGetVersionFunc) (void*);
+  auto pRtlGetVersion= reinterpret_cast<RtlGetVersionFunc> (
+      ::GetProcAddress (hNtDll, "RtlGetVersion"));
 
-    if (!pRtlGetVersion) return false;
+  if (!pRtlGetVersion) return false;
 
-    OSVERSIONINFOW osvi;
-    osvi.dwOSVersionInfoSize = sizeof(osvi);
-    LONG status = pRtlGetVersion(&osvi);
+  OSVERSIONINFOW osvi;
+  osvi.dwOSVersionInfoSize= sizeof (osvi);
+  LONG status             = pRtlGetVersion (&osvi);
 
-    // RtlGetVersion returns 0 (STATUS_SUCCESS) on success
-    if (status != 0) return false;
+  // RtlGetVersion returns 0 (STATUS_SUCCESS) on success
+  if (status != 0) return false;
 
-    major = osvi.dwMajorVersion;
-    minor = osvi.dwMinorVersion;
-    build = osvi.dwBuildNumber;
-    return true;
+  major= osvi.dwMajorVersion;
+  minor= osvi.dwMinorVersion;
+  build= osvi.dwBuildNumber;
+  return true;
 }
 
 QString
 get_windows_detailed_version () {
-    ULONG major = 0, minor = 0, build = 0;
+  ULONG major= 0, minor= 0, build= 0;
 
-    if (!GetWindowsVersionInfo(major, minor, build)) {
-        return QSysInfo::prettyProductName();
-    }
+  if (!GetWindowsVersionInfo (major, minor, build)) {
+    return QSysInfo::prettyProductName ();
+  }
 
-    QString productName;
-    if (major == 10 && minor == 0) {
-        if (build >= 22000) productName = "Windows 11";
-        else productName = "Windows 10";
-    }
-    else if (major == 6 && minor == 3) {
-        productName = "Windows 8.1";
-    }
-    else if (major == 6 && minor == 2) {
-        productName = "Windows 8";
-    }
-    else if (major == 6 && minor == 1) {
-        productName = "Windows 7";
-    }
-    else {
-        productName = QString("Windows %1.%2")
-                         .arg(major)
-                         .arg(minor);
-    }
+  QString productName;
+  if (major == 10 && minor == 0) {
+    if (build >= 22000) productName= "Windows 11";
+    else productName= "Windows 10";
+  }
+  else if (major == 6 && minor == 3) {
+    productName= "Windows 8.1";
+  }
+  else if (major == 6 && minor == 2) {
+    productName= "Windows 8";
+  }
+  else if (major == 6 && minor == 1) {
+    productName= "Windows 7";
+  }
+  else {
+    productName= QString ("Windows %1.%2").arg (major).arg (minor);
+  }
 
-    return QString("%1 %2.%3.%4")
-        .arg(productName)
-        .arg(major)
-        .arg(minor)
-        .arg(build)
-        .replace(" ", "_");
+  return QString ("%1 %2.%3.%4")
+      .arg (productName)
+      .arg (major)
+      .arg (minor)
+      .arg (build)
+      .replace (" ", "_");
 }
 #endif
 
@@ -175,14 +175,13 @@ qt_stem_user_agent () {
       QString ("%1 %2 %3").arg (appVersion).arg (osName).arg (arch));
 }
 
-
 #if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
 QString
 get_linux_or_macos_device_id () {
-  QByteArray combinedData;
-  QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces ();
-  for (int i = 0; i < interfaces.size(); ++i) {
-    const QNetworkInterface& interface = interfaces.at(i);
+  QByteArray               combinedData;
+  QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
+  for (int i= 0; i < interfaces.size (); ++i) {
+    const QNetworkInterface& interface= interfaces.at (i);
     if (!(interface.flags () & QNetworkInterface::IsLoopBack) &&
         (interface.flags () & QNetworkInterface::IsUp)) {
       combinedData.append (interface.hardwareAddress ().toUtf8 ());
@@ -197,21 +196,14 @@ get_linux_or_macos_device_id () {
 #ifdef Q_OS_WINDOWS
 QString
 get_windows_device_id () {
-  DWORD serialNumber = 0;
-  BOOL success = GetVolumeInformationW (
-    L"C:\\",
-    NULL,
-    0,
-    &serialNumber,
-    NULL,
-    NULL,
-    NULL,
-    0
-  );
+  DWORD serialNumber= 0;
+  BOOL  success= GetVolumeInformationW (L"C:\\", NULL, 0, &serialNumber, NULL,
+                                        NULL, NULL, 0);
 
   if (success && serialNumber != 0) {
-    QByteArray data = QByteArray::number (serialNumber, 16).toUpper ();
-    QByteArray hashed = QCryptographicHash::hash (data, QCryptographicHash::Sha256);
+    QByteArray data= QByteArray::number (serialNumber, 16).toUpper ();
+    QByteArray hashed=
+        QCryptographicHash::hash (data, QCryptographicHash::Sha256);
     return QString (hashed.toHex ());
   }
 
