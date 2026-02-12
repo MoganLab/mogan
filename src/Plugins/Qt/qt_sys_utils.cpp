@@ -29,6 +29,8 @@
 #include <qt_windows.h>
 #include <windows.h>
 
+#undef IsUp
+#undef IsLoopBack
 #endif
 
 string
@@ -55,16 +57,7 @@ static bool GetWindowsVersionInfo(ULONG& major, ULONG& minor, ULONG& build) {
 
     if (!pRtlGetVersion) return false;
 
-    // Define the OSVERSIONINFO structure locally (matches RTL_OSVERSIONINFOW layout)
-    struct os_version_info {
-        ULONG dwOSVersionInfoSize;
-        ULONG dwMajorVersion;
-        ULONG dwMinorVersion;
-        ULONG dwBuildNumber;
-        ULONG dwPlatformId;
-        WCHAR szCSDVersion[128];
-    } osvi;
-
+    OSVERSIONINFOW osvi;
     osvi.dwOSVersionInfoSize = sizeof(osvi);
     LONG status = pRtlGetVersion(&osvi);
 
