@@ -25,9 +25,9 @@
 #include <lolly/io/http.hpp>
 
 #ifdef QTTEXMACS
+#include "tm_sys_utils.hpp"
 #include <QApplication>
 #include <QEventLoop>
-#include "tm_sys_utils.hpp"
 #endif
 
 using lolly::io::http_head;
@@ -139,9 +139,9 @@ get_from_web (url name) {
     }
   }
 
-  url          tmp      = url_temp (suf);
-  http_headers headers  = http_headers ();
-  headers ("User-Agent")= stem_user_agent();
+  url          tmp       = url_temp (suf);
+  http_headers headers   = http_headers ();
+  headers ("User-Agent") = stem_user_agent ();
   headers ("X-Device-Id")= stem_device_id ();
   lolly::io::download (name, tmp, headers);
   if (DEBUG_IO) {

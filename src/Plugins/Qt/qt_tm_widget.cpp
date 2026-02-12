@@ -1994,8 +1994,10 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token) {
   request.setUrl (QUrl (to_qstring (userInfoUrl)));
   request.setRawHeader ("Authorization", to_qstring (auth_str).toUtf8 ());
   request.setRawHeader ("Content-Type", "application/json");
-  request.setRawHeader ("User-Agent", to_qstring (stem_user_agent ()).toUtf8 ());
-  request.setRawHeader ("X-Device-Id", to_qstring (stem_device_id ()).toUtf8 ());
+  request.setRawHeader ("User-Agent",
+                        to_qstring (stem_user_agent ()).toUtf8 ());
+  request.setRawHeader ("X-Device-Id",
+                        to_qstring (stem_device_id ()).toUtf8 ());
 
   // 发送请求
   QNetworkReply* reply= manager->get (request);

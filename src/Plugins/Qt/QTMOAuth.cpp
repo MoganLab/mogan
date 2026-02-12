@@ -11,8 +11,8 @@
 
 #include "QTMOAuth.hpp"
 #include "qt_utilities.hpp"
-#include "tm_sys_utils.hpp"
 #include "scheme.hpp"
+#include "tm_sys_utils.hpp"
 
 #include <QtGui/qdesktopservices.h>
 
@@ -179,8 +179,10 @@ QTMOAuth::handleAuthorizationCode (const QString& code) {
   QNetworkRequest request (url);
   request.setHeader (QNetworkRequest::ContentTypeHeader,
                      "application/x-www-form-urlencoded");
-  request.setRawHeader ("User-Agent", to_qstring (stem_user_agent ()).toUtf8 ());
-  request.setRawHeader ("X-Device-Id", to_qstring (stem_device_id ()).toUtf8 ());
+  request.setRawHeader ("User-Agent",
+                        to_qstring (stem_user_agent ()).toUtf8 ());
+  request.setRawHeader ("X-Device-Id",
+                        to_qstring (stem_device_id ()).toUtf8 ());
 
   QNetworkAccessManager* manager= new QNetworkAccessManager (this);
   QNetworkReply*         reply=
@@ -255,8 +257,10 @@ QTMOAuth::refreshToken () {
   QNetworkRequest request (url);
   request.setHeader (QNetworkRequest::ContentTypeHeader,
                      "application/x-www-form-urlencoded");
-  request.setRawHeader ("User-Agent", to_qstring (stem_user_agent ()).toUtf8 ());
-  request.setRawHeader ("X-Device-Id", to_qstring (stem_device_id ()).toUtf8 ());
+  request.setRawHeader ("User-Agent",
+                        to_qstring (stem_user_agent ()).toUtf8 ());
+  request.setRawHeader ("X-Device-Id",
+                        to_qstring (stem_device_id ()).toUtf8 ());
 
   // 发送刷新请求
   QNetworkAccessManager* manager= new QNetworkAccessManager (this);
