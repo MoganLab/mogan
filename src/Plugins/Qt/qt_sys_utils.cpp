@@ -29,21 +29,6 @@
 #include <qt_windows.h>
 #include <windows.h>
 
-// 声明 RtlGetVersion 函数
-extern "C" {
-    typedef LONG NTSTATUS;
-    typedef struct _RTL_OSVERSIONINFOW {
-        ULONG dwOSVersionInfoSize;
-        ULONG dwMajorVersion;
-        ULONG dwMinorVersion;
-        ULONG dwBuildNumber;
-        ULONG dwPlatformId;
-        WCHAR szCSDVersion[128];
-    } RTL_OSVERSIONINFOW, *PRTL_OSVERSIONINFOW;
-    
-    NTSTATUS WINAPI RtlGetVersion(PRTL_OSVERSIONINFOW lpVersionInformation);
-}
-
 #endif
 
 string
@@ -57,40 +42,75 @@ qt_get_pretty_os_name () {
 }
 
 #ifdef Q_OS_WINDOWS
+
+// Helper function to get Windows version info using dynamic loading
+static bool GetWindowsVersionInfo(ULONG& major, ULONG& minor, ULONG& build) {
+    HMODULE hNtDll = ::GetModuleHandleW(L"ntdll.dll");
+    if (!hNtDll) return false;
+
+    // Define the function pointer type - RtlGetVersion returns LONG and takes a pointer to OSVERSIONINFO
+    typedef LONG (WINAPI* RtlGetVersionFunc)(void*);
+    auto pRtlGetVersion = reinterpret_cast<RtlGetVersionFunc>(
+        ::GetProcAddress(hNtDll, "RtlGetVersion"));
+
+    if (!pRtlGetVersion) return false;
+
+    // Define the OSVERSIONINFO structure locally (matches RTL_OSVERSIONINFOW layout)
+    struct os_version_info {
+        ULONG dwOSVersionInfoSize;
+        ULONG dwMajorVersion;
+        ULONG dwMinorVersion;
+        ULONG dwBuildNumber;
+        ULONG dwPlatformId;
+        WCHAR szCSDVersion[128];
+    } osvi;
+
+    osvi.dwOSVersionInfoSize = sizeof(osvi);
+    LONG status = pRtlGetVersion(&osvi);
+
+    // RtlGetVersion returns 0 (STATUS_SUCCESS) on success
+    if (status != 0) return false;
+
+    major = osvi.dwMajorVersion;
+    minor = osvi.dwMinorVersion;
+    build = osvi.dwBuildNumber;
+    return true;
+}
+
 QString
 get_windows_detailed_version () {
-  RTL_OSVERSIONINFOW osvi;
-  osvi.dwOSVersionInfoSize= sizeof (osvi);
-  if (RtlGetVersion (&osvi) != 0) {
-    return QSysInfo::prettyProductName ();
-  }
+    ULONG major = 0, minor = 0, build = 0;
 
-  QString productName;
-  if (osvi.dwMajorVersion == 10 && osvi.dwMinorVersion == 0) {
-    if (osvi.dwBuildNumber >= 22000) productName= "Windows 11";
-    else productName= "Windows 10";
-  }
-  else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 3) {
-    productName= "Windows 8.1";
-  }
-  else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 2) {
-    productName= "Windows 8";
-  }
-  else if (osvi.dwMajorVersion == 6 && osvi.dwMinorVersion == 1) {
-    productName= "Windows 7";
-  }
-  else {
-    productName= QString ("Windows %1.%2")
-                     .arg (osvi.dwMajorVersion)
-                     .arg (osvi.dwMinorVersion);
-  }
+    if (!GetWindowsVersionInfo(major, minor, build)) {
+        return QSysInfo::prettyProductName();
+    }
 
-  return QString ("%1 %2.%3.%4")
-      .arg (productName)
-      .arg (osvi.dwMajorVersion)
-      .arg (osvi.dwMinorVersion)
-      .arg (osvi.dwBuildNumber)
-      .replace (" ", "_");
+    QString productName;
+    if (major == 10 && minor == 0) {
+        if (build >= 22000) productName = "Windows 11";
+        else productName = "Windows 10";
+    }
+    else if (major == 6 && minor == 3) {
+        productName = "Windows 8.1";
+    }
+    else if (major == 6 && minor == 2) {
+        productName = "Windows 8";
+    }
+    else if (major == 6 && minor == 1) {
+        productName = "Windows 7";
+    }
+    else {
+        productName = QString("Windows %1.%2")
+                         .arg(major)
+                         .arg(minor);
+    }
+
+    return QString("%1 %2.%3.%4")
+        .arg(productName)
+        .arg(major)
+        .arg(minor)
+        .arg(build)
+        .replace(" ", "_");
 }
 #endif
 
@@ -166,8 +186,9 @@ string
 qt_stem_device_id () {
   QByteArray combinedData;
 
-  QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
-  for (const QNetworkInterface& interface : interfaces) {
+  QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces ();
+  for (int i = 0; i < interfaces.size(); ++i) {
+    const QNetworkInterface& interface = interfaces.at(i);
     if (!(interface.flags () & QNetworkInterface::IsLoopBack) &&
         (interface.flags () & QNetworkInterface::IsUp)) {
       combinedData.append (interface.hardwareAddress ().toUtf8 ());
