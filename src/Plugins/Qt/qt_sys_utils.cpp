@@ -176,7 +176,7 @@ qt_stem_user_agent () {
 }
 
 
-#ifdef Q_OS_MACOS || Q_OS_LINUX
+#if defined(Q_OS_MACOS) || defined(Q_OS_LINUX)
 QString
 get_linux_or_macos_device_id () {
   QByteArray combinedData;
