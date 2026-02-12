@@ -148,11 +148,6 @@ get_linux_detailed_version () {
 }
 #endif
 
-// User-Agent 格式:
-// LiiiSTEM-v2026.2.1 Windows_11_10.0.26100 x86_64
-// LiiiSTEM-v2026.2.1 macOS_15.3_(arm64) arm64
-// LiiiSTEM-v2026.2.1 Debian_GNU/Linux_13_(trixie) x86_64
-
 string
 qt_stem_user_agent () {
   QString appVersion= QString ("LiiiSTEM-v") + XMACS_VERSION;
