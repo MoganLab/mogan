@@ -28,6 +28,22 @@
 #ifdef Q_OS_WINDOWS
 #include <qt_windows.h>
 #include <windows.h>
+
+// 声明 RtlGetVersion 函数
+extern "C" {
+    typedef LONG NTSTATUS;
+    typedef struct _RTL_OSVERSIONINFOW {
+        ULONG dwOSVersionInfoSize;
+        ULONG dwMajorVersion;
+        ULONG dwMinorVersion;
+        ULONG dwBuildNumber;
+        ULONG dwPlatformId;
+        WCHAR szCSDVersion[128];
+    } RTL_OSVERSIONINFOW, *PRTL_OSVERSIONINFOW;
+    
+    NTSTATUS WINAPI RtlGetVersion(PRTL_OSVERSIONINFOW lpVersionInformation);
+}
+
 #endif
 
 string
