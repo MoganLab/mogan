@@ -182,10 +182,17 @@ qt_stem_device_id () {
   QList<QNetworkInterface> interfaces = QNetworkInterface::allInterfaces ();
   for (int i = 0; i < interfaces.size(); ++i) {
     const QNetworkInterface& interface = interfaces.at(i);
+#if defined(Q_OS_LINUX) || defined(Q_OS_MACOS)
     if (!(interface.flags () & QNetworkInterface::IsLoopBack) &&
         (interface.flags () & QNetworkInterface::IsUp)) {
       combinedData.append (interface.hardwareAddress ().toUtf8 ());
     }
+#elif defined(Q_OS_WINDOWS)
+    QString hwAddr = interface.hardwareAddress();
+    if (!hwAddr.isEmpty() && hwAddr != "00:00:00:00:00:00") {
+      combinedData.append (hwAddr.toUtf8 ());
+    }
+#endif
   }
 
   QByteArray hashed=
