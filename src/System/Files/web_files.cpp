@@ -27,6 +27,7 @@
 #ifdef QTTEXMACS
 #include <QApplication>
 #include <QEventLoop>
+#include "tm_sys_utils.hpp"
 #endif
 
 using lolly::io::http_head;
@@ -140,9 +141,8 @@ get_from_web (url name) {
 
   url          tmp      = url_temp (suf);
   http_headers headers  = http_headers ();
-  headers ("User-Agent")= string ("Mogan/") * XMACS_VERSION * " (" *
-                          get_pretty_os_name () * "; " *
-                          get_current_cpu_arch () * ")";
+  headers ("User-Agent")= stem_user_agent();
+  headers ("X-Device-Id")= stem_device_id ();
   lolly::io::download (name, tmp, headers);
   if (DEBUG_IO) {
     debug_io << "Download from " << name << "=> " << tmp << LF;
