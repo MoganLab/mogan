@@ -123,10 +123,9 @@ get_macos_detailed_version () {
   QStringList lines = output.split ("\n");
   if (lines.size () < 3) return QSysInfo::prettyProductName ();
 
-  return QString ("%1 %2 (%3)")
+  return QString ("%1 %2")
       .arg (lines[1])
       .arg (lines[0])
-      .arg (lines[2])
       .replace (" ", "_");
 }
 #endif
