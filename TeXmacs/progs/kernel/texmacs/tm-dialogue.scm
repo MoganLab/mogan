@@ -158,13 +158,70 @@
 ;; Interactive commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define interactive-arg-table (make-ahash-table))
+(define interactive-arg-version 1)
+(define interactive-arg-file "$TEXMACS_HOME_PATH/system/interactive.json")
+(define interactive-arg-recent-file-path "$TEXMACS_HOME_PATH/system/recent-files.json")
+
+(define (make-empty-interactive-arg-json)
+  `(("meta" . (("version" . ,interactive-arg-version)))
+    ("commands" . (()))))
+
+(define interactive-arg-json
+  (make-empty-interactive-arg-json))
 
 
 (define interactive-arg-recent-file-json
   `(("meta" . (("version" . 1)
                 ("total" . 0)))
       ("files" . #())))
+
+(define (interactive-arg-item-valid? item)
+  (and (json-object? item)
+       (let ((keys (json-keys item)))
+         (and (every string? keys)
+              (every (lambda (k) (string? (json-ref item k))) keys)))))
+
+(define (interactive-args-json-valid? interactive-args)
+  (and (json-object? interactive-args)
+       (let* ((meta (json-ref interactive-args "meta"))
+              (commands (json-ref interactive-args "commands"))
+              (version (and (json-object? meta) (json-ref meta "version"))))
+         (and (json-object? meta)
+              (integer? version)
+              (>= version 1)
+              (json-object? commands)
+              (every string? (json-keys commands))
+              (every (lambda (cmd)
+                       (let ((items (json-ref commands cmd)))
+                         (and (vector? items)
+                              (every interactive-arg-item-valid?
+                                     (vector->list items)))))
+                     (json-keys commands))))))
+
+(define (interactive-command-learned command-name)
+  (let* ((commands (json-ref interactive-arg-json "commands"))
+         (items (and (json-object? commands)
+                     (json-ref commands command-name))))
+    (if (vector? items) (vector->list items) '())))
+
+(define (set-interactive-command-learned command-name items)
+  (let* ((commands (json-ref interactive-arg-json "commands"))
+         (commands (if (json-object? commands) commands '(())))
+         (payload (list->vector items))
+         (commands* (if (json-contains-key? commands command-name)
+                        (json-set commands command-name payload)
+                        (json-push commands command-name payload))))
+    (set! interactive-arg-json
+          (json-set interactive-arg-json "commands" commands*))))
+
+(define (remove-interactive-command-learned command-name)
+  (let* ((commands (json-ref interactive-arg-json "commands"))
+         (commands (if (json-object? commands) commands '(())))
+         (commands* (if (json-contains-key? commands command-name)
+                        (json-drop commands command-name)
+                        commands)))
+    (set! interactive-arg-json
+          (json-set interactive-arg-json "commands" commands*))))
 
 (define (recent-file-item-valid? item)
   (and (json-object? item)
@@ -315,6 +372,26 @@ unspecified
         ((== x #t) "true")
         (else x)))
 
+(define (interactive-key->string x)
+  (cond ((string? x) x)
+        ((symbol? x) (symbol->string x))
+        ((number? x) (number->string x))
+        (else (object->string x))))
+
+(define (interactive-value->string x)
+  (with y (as-stree x)
+    (cond ((string? y) y)
+          ((symbol? y) (symbol->string y))
+          ((number? y) (number->string y))
+          ((boolean? y) (if y "true" "false"))
+          (else (object->string y)))))
+
+(define (normalize-interactive-assoc assoc-t)
+  (map (lambda (x)
+         (cons (interactive-key->string (car x))
+               (interactive-value->string (cdr x))))
+       assoc-t))
+
 (define-public (procedure-symbol-name fun)
   (cond ((symbol? fun) fun)
         ((string? fun) (string->symbol fun))
@@ -337,15 +414,16 @@ unspecified
 
 (define-public (learn-interactive fun assoc-t)
   "Learn interactive values for @fun"
-  (set! assoc-t (map (lambda (x) (cons (car x) (as-stree (cdr x)))) assoc-t))
+  (set! assoc-t (normalize-interactive-assoc assoc-t))
   (set! fun (procedure-symbol-name fun))
   (when (symbol? fun)
-    (let* ((l1 (or (ahash-ref interactive-arg-table fun) '()))
+    (let* ((name (symbol->string fun))
+           (l1 (interactive-command-learned name))
            (l2 (cons assoc-t (list-but l1 (list assoc-t)))))
       (case fun
         ((recent-buffer)
           (recent-buffer-json (cdr (car (car l2)))))
-        (else (ahash-set! interactive-arg-table fun l2)))
+        (else (set-interactive-command-learned name l2)))
       )))
 
 
@@ -367,14 +445,14 @@ fun : procedure | symbol | string
 list
 - 当命令是 `recent-buffer` 时：返回最近文件路径列表，元素形如
   `(("0" . 文件路径))`。
-- 其他命令：返回 `interactive-arg-table` 中为该命令记录的历史参数列表。
+- 其他命令：返回 `interactive-arg-json` 中为该命令记录的历史参数列表。
 - 若无记录，返回空列表 `()`。
 
 逻辑
 ----
 1. 归一化：将 `fun` 转为符号名。
 2. 分支：`recent-buffer` 走最近文件 JSON 缓存分支。
-3. 默认：从 `interactive-arg-table` 读取命令历史，缺省为 `()`。
+3. 默认：从 `interactive-arg-json` 读取命令历史，缺省为 `()`。
 |#
 (define-public (learned-interactive fun)
   "Return learned list of interactive values for @fun"
@@ -383,7 +461,10 @@ list
     ((recent-buffer)
      (recent-files-paths interactive-arg-recent-file-json))
     (else
-     (or (ahash-ref interactive-arg-table fun) '()))))
+     (with name (procedure-string-name fun)
+       (if (string? name)
+           (interactive-command-learned name)
+           '())))))
 
 
 
@@ -413,7 +494,7 @@ unspecified
 2. 校验：仅当 `fun` 是符号时继续。
 3. 分支清理：
    - `recent-buffer`：将最近文件列表重置为空向量 `#()`，并把计数清零。
-   - 其他命令：从 `interactive-arg-table` 中删除对应键。
+   - 其他命令：从 `interactive-arg-json` 中删除对应键。
 |#
 (define-public (forget-interactive fun)
   "Forget interactive values for @fun"
@@ -426,7 +507,9 @@ unspecified
                           ("total" . 0)))
                ("files" . #()))))
       (else
-       (ahash-remove! interactive-arg-table fun)))))
+       (with name (procedure-string-name fun)
+         (when (string? name)
+           (remove-interactive-command-learned name)))))))
 
 
 (define (learned-interactive-arg fun nr)
@@ -539,51 +622,36 @@ unspecified
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (save-learned)
-  (with l (ahash-table->list interactive-arg-table)
-    (save-object "$TEXMACS_HOME_PATH/system/interactive.scm" l)
-    (string-save
-      (json->string interactive-arg-recent-file-json)
-      (string->url "$TEXMACS_HOME_PATH/system/recent-files.json"))))
-
-(define (ahash-set-2! t x)
-  (with (key . l) x
-    (with (form arg) key
-      (with a (or (ahash-ref t form) '())
-        (set! a (assoc-set! a arg l))
-        (ahash-set! t form a)))))      
-
-(define (rearrange-old x)
-  (with (form . l) x
-    (let* ((len (apply min (map length l)))
-           (truncl (map (cut sublist <> 0 len) l))
-           (sl (sort truncl (lambda (l1 l2) (< (car l1) (car l2)))))
-           (nl (map (lambda (x) (cons (number->string (car x)) (cdr x))) sl))
-           (build (lambda args (map cons (map car nl) args)))
-           (r (apply map (cons build (map cdr nl)))))
-      (cons form r))))
-
-(define (decode-old l)
-  (let* ((t (make-ahash-table))
-         (setter (cut ahash-set-2! t <>)))
-    (for-each setter l)
-    (let* ((r (ahash-table->list t))
-           (m (map rearrange-old r)))
-      (list->ahash-table m))))
+  (string-save
+    (json->string interactive-arg-json)
+    (string->url interactive-arg-file))
+  (string-save
+    (json->string interactive-arg-recent-file-json)
+    (string->url interactive-arg-recent-file-path)))
 
 (define (retrieve-learned)
-  (if (url-exists? "$TEXMACS_HOME_PATH/system/interactive.scm")
-      (let* ((l (load-object "$TEXMACS_HOME_PATH/system/interactive.scm"))
-             (old? (and (pair? l) (pair? (car l)) (list-2? (caar l))))
-             (decode (if old? decode-old list->ahash-table)))
-        (set! interactive-arg-table (decode l))))
-  (when (url-exists? "$TEXMACS_HOME_PATH/system/recent-files.json")
+  (set! interactive-arg-json (make-empty-interactive-arg-json))
+  (when (url-exists? interactive-arg-file)
+      (set! interactive-arg-json
+            (catch #t
+              (lambda ()
+                (let ((interactive-args
+                       (string->json
+                        (string-load
+                         (string->url interactive-arg-file)))))
+                  (if (interactive-args-json-valid? interactive-args)
+                      interactive-args
+                      (make-empty-interactive-arg-json))))
+              (lambda args
+                (make-empty-interactive-arg-json)))))
+  (when (url-exists? interactive-arg-recent-file-path)
       (set! interactive-arg-recent-file-json
             (catch #t
               (lambda ()
                 (let ((recent-files
                        (string->json
                         (string-load
-                         (string->url "$TEXMACS_HOME_PATH/system/recent-files.json")))))
+                         (string->url interactive-arg-recent-file-path)))))
                   (if (recent-files-json-valid? recent-files)
                       recent-files
                       `(("meta" . (("version" . 1)
