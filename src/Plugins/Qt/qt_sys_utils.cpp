@@ -197,7 +197,25 @@ get_linux_or_macos_device_id () {
 #ifdef Q_OS_WINDOWS
 QString
 get_windows_device_id () {
-  return QStringLiteral ("000000000000");
+  DWORD serialNumber = 0;
+  BOOL success = GetVolumeInformationW (
+    L"C:\\",
+    NULL,
+    0,
+    &serialNumber,
+    NULL,
+    NULL,
+    NULL,
+    0
+  );
+
+  if (success && serialNumber != 0) {
+    QByteArray data = QByteArray::number (serialNumber, 16).toUpper ();
+    QByteArray hashed = QCryptographicHash::hash (data, QCryptographicHash::Sha256);
+    return QString (hashed.toHex ());
+  }
+
+  return "";
 }
 #endif
 
