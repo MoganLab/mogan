@@ -78,6 +78,7 @@ tm_buffer              concrete_buffer_insist (url name);
  ******************************************************************************/
 
 array<url> get_all_buffers ();
+url        make_welcome_buffer ();
 url        make_new_buffer ();
 void       remove_buffer (url name);
 int        number_buffers ();

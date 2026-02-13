@@ -16,6 +16,9 @@
 #include "file.hpp"
 #include "language.hpp"
 #include "merge_sort.hpp"
+#include "moebius/tree_label.hpp"
+#include "new_buffer.hpp"
+#include "new_window.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
 #include "sys_utils.hpp"
@@ -898,12 +901,14 @@ TeXmacs_main (int argc, char** argv) {
   { // opening scope for server sv
     server sv (app_type::RESEARCH);
     string where     = "";
+    bool   has_initial_file= false;
     bool   first_file= true;
     for (i= 1; i < argc; i++) {
       if (argv[i] == NULL) break;
       string s= argv[i];
       if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
       if ((s[0] != '-') && (s[0] != '+')) {
+        has_initial_file= true;
         if (DEBUG_STD) debug_boot << "Loading " << s << "...\n";
         url u= url_system (s);
         if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
@@ -911,13 +916,14 @@ TeXmacs_main (int argc, char** argv) {
         string cmd;
         // only open window once
         if (first_file) {
-          cmd       = "(load-buffer " * b * " " * where * ")";
+          buffer_load (u);
+          new_buffer_in_new_window(u, tree (moebius::DOCUMENT)); 
           first_file= false;
         }
         else {
           cmd= "(switch-to-buffer " * b * ")";
+          exec_delayed (scheme_cmd (cmd));
         }
-        exec_delayed (scheme_cmd (cmd));
       }
       if ((s == "-c") || (s == "-convert")) i+= 2;
       else if ((s == "-b") || (s == "-initialize-buffer") || (s == "-fn") ||
@@ -929,14 +935,14 @@ TeXmacs_main (int argc, char** argv) {
         i++;
       }
     }
+    
+    bool has_initial_welcome= false;
     if (install_status == 1 || install_status == 2) {
+      has_initial_welcome= true;
       load_welcome_doc ();
     }
 
-    if (number_buffers () == 0) {
-      if (DEBUG_STD) debug_boot << "Creating 'no name' buffer...\n";
-      open_window ();
-    }
+    if (!has_initial_file || !has_initial_welcome) ensure_window ();
 
     if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
     bench_reset ("initialize texmacs");

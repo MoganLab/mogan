@@ -12,6 +12,7 @@
 #include "convert.hpp"
 #include "converter.hpp"
 #include "dictionary.hpp"
+#include "locale.hpp"
 #include "file.hpp"
 #include "merge_sort.hpp"
 #include "message.hpp"
@@ -164,6 +165,23 @@ rename_buffer (url name, url new_name) {
   tree   doc  = subtree (the_et, buf->rp);
   string title= propose_title (buf->buf->title, new_name, doc);
   set_title_buffer (new_name, title);
+}
+
+url
+make_welcome_buffer () {
+  string lan= language_to_locale (get_output_language ());
+  if (N (lan) > 2) lan= lan (0, 2);
+  if (lan == "") lan= "en";
+
+  url localized= url_system ("$TEXMACS_PATH/doc/about/mogan/stem." * lan * ".tmu");
+  url fallback = url_system ("$TEXMACS_PATH/doc/about/mogan/stem.en.tmu");
+
+  url target= localized;
+  if (!exists (target)) target= fallback;
+  if (!exists (target)) return url_none ();
+
+  if (buffer_load (target)) return url_none ();
+  return target;
 }
 
 url

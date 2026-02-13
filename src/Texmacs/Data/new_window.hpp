@@ -28,6 +28,7 @@ void       switch_to_parent_window ();
 url  create_buffer ();
 url  new_window (bool map_flag= true, tree geom= "");
 url  open_window (tree geom= "");
+url  ensure_window (tree geom= "");
 void clone_window ();
 void kill_buffer (url name);
 void kill_window (url name);

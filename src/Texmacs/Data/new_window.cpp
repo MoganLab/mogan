@@ -293,6 +293,34 @@ open_window (tree geom) {
   return new_buffer_in_new_window (name, tree (DOCUMENT), geom);
 }
 
+url
+ensure_window (tree geom) {
+  if (number_buffers () == 0) {
+    url name= make_welcome_buffer ();
+    return new_buffer_in_new_window (name, tree (DOCUMENT), geom);
+  }
+
+  array<url> all_views= get_all_views ();
+  bool has_window= false;
+  for (int i= 0; i < N (all_views); i++) {
+    url win= view_to_window (all_views[i]);
+    if (!is_none (win)) {
+      has_window= true;
+      break;
+    }
+  }
+
+  if (!has_window) {
+    array<url> buffers= get_all_buffers ();
+    if (N (buffers) > 0) {
+      url first_buffer= buffers[0];
+      return new_buffer_in_new_window (first_buffer, tree (DOCUMENT), geom);
+    }
+  }
+
+  return get_current_window ();
+}
+
 void
 clone_window () {
   url win= new_window ();
