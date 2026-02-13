@@ -7,7 +7,8 @@
 (import (liii hash-table)
         (liii alist))
 (export http-head http-get http-post http-ok?
-        http-stream-get http-stream-post)
+        http-stream-get http-stream-post
+        http-async-get http-async-post http-async-head http-poll http-wait-all)
 (begin
 
 (define (http-ok? r)
@@ -64,6 +65,43 @@
   (cond ((and (string? data) (> (string-length data) 0) (null? headers))
          (g_http-stream-post url params data '(("Content-Type" . "text/plain")) proxy userdata callback))
         (else (g_http-stream-post url params data headers proxy userdata callback))))
+
+;; Async HTTP API wrapper functions
+
+(define* (http-async-get url callback (params '()) (headers '()) (proxy '()))
+  (when (not (alist? params))
+    (type-error params "is not a association list"))
+  (when (not (alist? proxy))
+    (type-error proxy "is not a association list"))
+  (when (not (procedure? callback))
+    (type-error callback "is not a procedure"))
+  (g_http-async-get url params headers proxy callback))
+
+(define* (http-async-post url callback (params '()) (data "") (headers '()) (proxy '()))
+  (when (not (alist? params))
+    (type-error params "is not a association list"))
+  (when (not (alist? proxy))
+    (type-error proxy "is not a association list"))
+  (when (not (procedure? callback))
+    (type-error callback "is not a procedure"))
+  (cond ((and (string? data) (> (string-length data) 0) (null? headers))
+         (g_http-async-post url params data '(("Content-Type" . "text/plain")) proxy callback))
+        (else (g_http-async-post url params data headers proxy callback))))
+
+(define* (http-async-head url callback (params '()) (headers '()) (proxy '()))
+  (when (not (alist? params))
+    (type-error params "is not a association list"))
+  (when (not (alist? proxy))
+    (type-error proxy "is not a association list"))
+  (when (not (procedure? callback))
+    (type-error callback "is not a procedure"))
+  (g_http-async-head url params headers proxy callback))
+
+(define (http-poll)
+  (g_http-poll))
+
+(define* (http-wait-all (timeout -1))
+  (g_http-wait-all timeout))
 
 ) ; end of begin
 ) ; end of define-library

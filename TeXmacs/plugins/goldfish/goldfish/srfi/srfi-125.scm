@@ -22,7 +22,7 @@
           hash-table-update! hash-table-update!/default hash-table-pop! hash-table-clear!
           hash-table-size hash-table-keys hash-table-values hash-table-entries hash-table-find
           hash-table-count hash-table-fold hash-table-for-each hash-table-map->list
-          hash-table->alist)
+          hash-table->alist hash-table-copy)
   (begin
 
     (define (assert-hash-table-type ht f)
@@ -148,4 +148,14 @@
 
     (define hash-table->alist
       (typed-lambda ((ht hash-table?))
-        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))))))
+        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))))
+
+    (define hash-table-copy
+      (typed-lambda ((ht hash-table?) . rest)
+        (let ((new-ht (make-hash-table))
+              (mutable? (if (null? rest) #t (car rest))))
+          (hash-table-for-each
+           (lambda (k v)
+             (hash-table-set! new-ht k v))
+           ht)
+          new-ht)))))

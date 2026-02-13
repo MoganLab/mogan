@@ -58,7 +58,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.25"
+#define GOLDFISH_VERSION "17.11.26"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -359,6 +359,303 @@ glue_http_stream (s7_scheme* sc) {
   glue_http_stream_post(sc);
 }
 
+// -------------------------------- Async HTTP --------------------------------
+// Data structure to store async HTTP request state
+struct AsyncHttpRequest {
+  s7_scheme* sc;
+  s7_pointer callback;
+  int gc_loc;
+  std::shared_ptr<cpr::Session> session;  // Keep session alive
+  cpr::AsyncResponse async_response;
+  bool completed;
+  cpr::Response response;
+  std::mutex mutex;
+  
+  AsyncHttpRequest(s7_scheme* scheme, s7_pointer cb, int gc_protect_loc, 
+                   std::shared_ptr<cpr::Session> sess, cpr::AsyncResponse&& ar)
+    : sc(scheme), callback(cb), gc_loc(gc_protect_loc), 
+      session(std::move(sess)), async_response(std::move(ar)), completed(false) {}
+};
+
+// Global list of pending async requests
+static std::mutex g_async_requests_mutex;
+static std::vector<std::shared_ptr<AsyncHttpRequest>> g_async_requests;
+
+// Check if any async requests have completed and process their callbacks
+// This function should be called periodically from the main thread
+// Returns the number of callbacks executed
+static int
+process_async_http_callbacks () {
+  std::vector<std::shared_ptr<AsyncHttpRequest>> completed_requests;
+  
+  // Find completed requests
+  {
+    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
+    for (auto it = g_async_requests.begin(); it != g_async_requests.end(); ) {
+      bool is_ready = false;
+      {
+        std::lock_guard<std::mutex> req_lock((*it)->mutex);
+        if (!(*it)->completed) {
+          // Check if the future is ready (non-blocking)
+          if ((*it)->async_response.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            (*it)->response = (*it)->async_response.get();
+            (*it)->completed = true;
+            is_ready = true;
+          }
+        }
+      }
+      
+      if (is_ready) {
+        completed_requests.push_back(*it);
+        it = g_async_requests.erase(it);
+      } else {
+        ++it;
+      }
+    }
+  }
+  
+  // Execute callbacks for completed requests (outside the lock)
+  for (auto& req : completed_requests) {
+    s7_pointer ht = response2hashtable(req->sc, req->response);
+    s7_call(req->sc, req->callback, s7_cons(req->sc, ht, s7_nil(req->sc)));
+    s7_gc_unprotect_at(req->sc, req->gc_loc);
+  }
+  
+  return static_cast<int>(completed_requests.size());
+}
+
+// Start an async HTTP GET request
+static s7_pointer
+f_http_async_get (s7_scheme* sc, s7_pointer args) {
+  const char* url = s7_string(s7_car(args));
+  s7_pointer params = s7_cadr(args);
+  s7_pointer headers = s7_caddr(args);
+  s7_pointer proxy = s7_cadddr(args);
+  s7_pointer callback = s7_car(s7_cddddr(args));
+  
+  if (!s7_is_procedure(callback)) {
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                    s7_list(sc, 2, s7_make_string(sc, "http-async-get: callback must be a procedure"), callback));
+  }
+  
+  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
+  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  
+  // Protect callback from GC
+  int gc_loc = s7_gc_protect(sc, callback);
+  
+  // Create session on heap with shared_ptr to keep it alive
+  auto session = std::make_shared<cpr::Session>();
+  session->SetUrl(cpr::Url(url));
+  session->SetParameters(cpr_params);
+  session->SetHeader(cpr_headers);
+  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
+    session->SetProxies(cpr_proxies);
+  }
+  
+  // Start async request using libcpr's built-in thread pool
+  // Session is captured by shared_ptr, so it stays alive until async operation completes
+  auto async_resp = session->GetAsync();
+  
+  // Store the request (session is also stored to keep reference)
+  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
+  {
+    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
+    g_async_requests.push_back(req);
+  }
+  
+  return s7_make_boolean(sc, true);
+}
+
+inline void
+glue_http_async_get (s7_scheme* sc) {
+  s7_pointer cur_env = s7_curlet(sc);
+  const char* name = "g_http-async-get";
+  const char* doc = "(g_http-async-get url params headers proxy callback) => boolean, start async http get. callback receives response hashtable. Use g_http-poll to check for completion.";
+  auto func = s7_make_typed_function(sc, name, f_http_async_get, 5, 0, false, doc, NULL);
+  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
+}
+
+// Start an async HTTP POST request
+static s7_pointer
+f_http_async_post (s7_scheme* sc, s7_pointer args) {
+  const char* url = s7_string(s7_car(args));
+  s7_pointer params = s7_cadr(args);
+  const char* body = s7_string(s7_caddr(args));
+  s7_pointer headers = s7_cadddr(args);
+  s7_pointer proxy = s7_car(s7_cddddr(args));
+  s7_pointer callback = s7_cadr(s7_cddddr(args));
+  
+  if (!s7_is_procedure(callback)) {
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                    s7_list(sc, 2, s7_make_string(sc, "http-async-post: callback must be a procedure"), callback));
+  }
+  
+  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
+  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  
+  // Protect callback from GC
+  int gc_loc = s7_gc_protect(sc, callback);
+  
+  // Create session on heap with shared_ptr to keep it alive
+  auto session = std::make_shared<cpr::Session>();
+  session->SetUrl(cpr::Url(url));
+  session->SetParameters(cpr_params);
+  session->SetBody(cpr::Body(body));
+  session->SetHeader(cpr_headers);
+  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
+    session->SetProxies(cpr_proxies);
+  }
+  
+  // Start async request using libcpr's built-in thread pool
+  auto async_resp = session->PostAsync();
+  
+  // Store the request (session is also stored to keep reference)
+  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
+  {
+    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
+    g_async_requests.push_back(req);
+  }
+  
+  return s7_make_boolean(sc, true);
+}
+
+inline void
+glue_http_async_post (s7_scheme* sc) {
+  s7_pointer cur_env = s7_curlet(sc);
+  const char* name = "g_http-async-post";
+  const char* doc = "(g_http-async-post url params body headers proxy callback) => boolean, start async http post. callback receives response hashtable. Use g_http-poll to check for completion.";
+  auto func = s7_make_typed_function(sc, name, f_http_async_post, 6, 0, false, doc, NULL);
+  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
+}
+
+// Start an async HTTP HEAD request
+static s7_pointer
+f_http_async_head (s7_scheme* sc, s7_pointer args) {
+  const char* url = s7_string(s7_car(args));
+  s7_pointer params = s7_cadr(args);
+  s7_pointer headers = s7_caddr(args);
+  s7_pointer proxy = s7_cadddr(args);
+  s7_pointer callback = s7_car(s7_cddddr(args));
+  
+  if (!s7_is_procedure(callback)) {
+    return s7_error(sc, s7_make_symbol(sc, "type-error"),
+                    s7_list(sc, 2, s7_make_string(sc, "http-async-head: callback must be a procedure"), callback));
+  }
+  
+  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
+  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  
+  // Protect callback from GC
+  int gc_loc = s7_gc_protect(sc, callback);
+  
+  // Create session on heap with shared_ptr to keep it alive
+  auto session = std::make_shared<cpr::Session>();
+  session->SetUrl(cpr::Url(url));
+  session->SetParameters(cpr_params);
+  session->SetHeader(cpr_headers);
+  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
+    session->SetProxies(cpr_proxies);
+  }
+  
+  // Start async request using libcpr's built-in thread pool
+  auto async_resp = session->HeadAsync();
+  
+  // Store the request (session is also stored to keep reference)
+  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
+  {
+    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
+    g_async_requests.push_back(req);
+  }
+  
+  return s7_make_boolean(sc, true);
+}
+
+inline void
+glue_http_async_head (s7_scheme* sc) {
+  s7_pointer cur_env = s7_curlet(sc);
+  const char* name = "g_http-async-head";
+  const char* doc = "(g_http-async-head url params headers proxy callback) => boolean, start async http head. callback receives response hashtable. Use g_http-poll to check for completion.";
+  auto func = s7_make_typed_function(sc, name, f_http_async_head, 5, 0, false, doc, NULL);
+  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
+}
+
+// Poll for completed async HTTP requests and execute their callbacks
+static s7_pointer
+f_http_poll (s7_scheme* sc, s7_pointer args) {
+  int executed = process_async_http_callbacks();
+  return s7_make_integer(sc, executed);
+}
+
+inline void
+glue_http_poll (s7_scheme* sc) {
+  s7_pointer cur_env = s7_curlet(sc);
+  const char* name = "g_http-poll";
+  const char* doc = "(g_http-poll) => integer, check for completed async http requests and execute their callbacks. Returns number of callbacks executed.";
+  auto func = s7_make_typed_function(sc, name, f_http_poll, 0, 0, false, doc, NULL);
+  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
+}
+
+// Wait for all pending async HTTP requests to complete (blocking)
+static s7_pointer
+f_http_wait_all (s7_scheme* sc, s7_pointer args) {
+  s7_double timeout_sec = -1.0; // -1 means wait forever
+  if (s7_is_real(s7_car(args))) {
+    timeout_sec = s7_real(s7_car(args));
+  }
+  
+  auto start = std::chrono::steady_clock::now();
+  bool has_pending = true;
+  int total_executed = 0;
+  
+  while (has_pending) {
+    int executed = process_async_http_callbacks();
+    total_executed += executed;
+    
+    // Check if there are still pending requests
+    {
+      std::lock_guard<std::mutex> lock(g_async_requests_mutex);
+      has_pending = !g_async_requests.empty();
+    }
+    
+    if (has_pending) {
+      // Check timeout
+      if (timeout_sec >= 0) {
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+          std::chrono::steady_clock::now() - start).count() / 1000.0;
+        if (elapsed >= timeout_sec) {
+          break; // Timeout
+        }
+      }
+      // Small sleep to avoid busy waiting
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+  }
+  
+  return s7_make_integer(sc, total_executed);
+}
+
+inline void
+glue_http_wait_all (s7_scheme* sc) {
+  s7_pointer cur_env = s7_curlet(sc);
+  const char* name = "g_http-wait-all";
+  const char* doc = "(g_http-wait-all [timeout-seconds]) => integer, wait for all pending async http requests to complete. timeout < 0 means wait forever. Returns number of callbacks executed.";
+  auto func = s7_make_typed_function(sc, name, f_http_wait_all, 0, 1, false, doc, NULL);
+  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
+}
+
+inline void
+glue_http_async (s7_scheme* sc) {
+  glue_http_async_get(sc);
+  glue_http_async_post(sc);
+  glue_http_async_head(sc);
+  glue_http_poll(sc);
+  glue_http_wait_all(sc);
+}
+
 
 inline s7_pointer
 string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
@@ -404,25 +701,59 @@ glue_goldfish (s7_scheme* sc) {
              s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
 }
 
+// old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
+//                        NOTE(jinser): use a new name for tai
+// `current-second` impl by g_get-time-of-day now
 static s7_pointer
-f_current_second (s7_scheme* sc, s7_pointer args) {
-  // TODO: use std::chrono::tai_clock::now() when using C++ 20
-  tb_timeval_t tp= {0};
-  tb_gettimeofday (&tp, tb_null);
-  s7_double res= (time_t) tp.tv_sec + (tp.tv_usec / 1000000.0);
-  return s7_make_real (sc, res);
+f_get_time_of_day (s7_scheme* sc, s7_pointer args) {
+  using namespace std::chrono;
+  auto now = time_point_cast<microseconds>(system_clock::now());
+  auto since_epoch = now.time_since_epoch();
+  auto sec = duration_cast<seconds>(since_epoch);
+
+  s7_pointer vs = s7_list(sc, 2,
+                          s7_make_integer(sc, sec.count()),
+                          s7_make_integer(sc, (since_epoch - sec).count()));
+  return s7_values(sc, vs);
+}
+
+static s7_pointer
+f_monotonic_nanosecond (s7_scheme* sc, s7_pointer args) {
+  using namespace std::chrono;
+  auto now = steady_clock::now();
+  auto duration = now.time_since_epoch();
+  auto count = duration_cast<std::chrono::nanoseconds>(duration).count();
+  return s7_make_integer(sc, count);
+}
+
+template<typename Clock>
+constexpr int64_t clock_resolution_ns() {
+  typedef std::chrono::duration<double, std::nano> NS;
+  NS ns = typename Clock::duration(1);
+  return ns.count();
 }
 
 inline void
 glue_scheme_time (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
 
-  const char* s_current_second= "g_current-second";
-  const char* d_current_second= "(g_current-second): () => double, return the "
-                                "current unix timestamp in double";
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_current_second),
-             s7_make_typed_function (sc, s_current_second, f_current_second, 0, 0, false, d_current_second, NULL));
+  const char* s_get_time_of_day= "g_get-time-of-day";
+  const char* d_get_time_of_day= "(g_get-time-of-day): () => (integer, integer), return the "
+                                "current second and microsecond in integer";
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_get_time_of_day),
+             s7_make_typed_function (sc, s_get_time_of_day, f_get_time_of_day, 0, 0, false, d_get_time_of_day, NULL));
+
+  const char* s_monotonic_nanosecond= "g_monotonic-nanosecond";
+  const char* d_monotonic_nanosecond= "(g_monotonic-nanosecond): () => integer, returns the steady clock's monotonic nanoseconds since an unspecified epoch";
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_monotonic_nanosecond),
+             s7_make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false, d_monotonic_nanosecond, NULL));
+
+  s7_define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
+                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::system_clock>()));
+  s7_define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
+                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::steady_clock>()));
 }
+
 
 static s7_pointer
 f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
@@ -872,83 +1203,219 @@ glue_liii_uuid (s7_scheme* sc) {
   glue_uuid4 (sc);
 }
 
-static s7_pointer f_md5(s7_scheme* sc, s7_pointer args) {
-    const char* searchString = s7_string(s7_car(args));
-    tb_size_t len = tb_strlen(searchString);
-    tb_byte_t ob[16];
-    tb_char_t hex_output[33] = {0};
-    tb_md5_t md5;
-    tb_md5_init(&md5, 0); 
-    if (len > 0) {
-        tb_md5_spak(&md5, (tb_byte_t const*)searchString, len);
-    }
-    tb_md5_exit(&md5, ob, 16);
-    for (tb_size_t i = 0; i < 16; ++i) {
-        tb_snprintf(hex_output + (i << 1), 3, "%02x", ob[i]);
-    }
-    return s7_make_string(sc, hex_output);
+inline void
+hash_bytes_to_hex (const tb_byte_t* bytes, tb_size_t length, tb_char_t* hex_output) {
+  static const tb_char_t hex_digits[]= "0123456789abcdef";
+  for (tb_size_t i= 0; i < length; ++i) {
+    hex_output[i * 2]    = hex_digits[bytes[i] >> 4];
+    hex_output[i * 2 + 1]= hex_digits[bytes[i] & 0x0f];
+  }
+  hex_output[length * 2]= '\0';
 }
 
-inline void 
-glue_md5(s7_scheme* sc) {
-  const char* name = "g_md5";
-  const char* desc = "(g_md5 str) => string";
-  glue_define(sc, name, desc, f_md5, 1, 0);
+static bool
+md5_file_to_hex (const char* path, tb_char_t* hex_output) {
+  if (!path) {
+    return false;
+  }
+
+  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+  if (file == tb_null) {
+    return false;
+  }
+
+  tb_md5_t md5;
+  tb_md5_init (&md5, 0);
+
+  tb_size_t size  = tb_file_size (file);
+  tb_size_t offset= 0;
+  tb_byte_t buffer[4096];
+  while (offset < size) {
+    tb_size_t want     = ((size - offset) > sizeof (buffer)) ? sizeof (buffer) : (size - offset);
+    tb_size_t real_size= tb_file_read (file, buffer, want);
+    if (real_size == 0) {
+      tb_file_exit (file);
+      return false;
+    }
+    tb_md5_spak (&md5, buffer, real_size);
+    offset += real_size;
+  }
+
+  tb_file_exit (file);
+
+  tb_byte_t digest[16];
+  tb_md5_exit (&md5, digest, sizeof (digest));
+  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
+  return true;
 }
 
-static s7_pointer f_sha1(s7_scheme* sc, s7_pointer args) {
-    const char* searchString = s7_string(s7_car(args));
-    tb_size_t len = tb_strlen(searchString);
-    tb_byte_t ob[20]; // SHA1 produces 20 bytes
-    tb_char_t hex_output[41] = {0}; // 20 bytes * 2 hex digits per byte + null terminator
-    tb_sha_t sha;
-    tb_sha_init(&sha, 160); // TB_SHA_MODE_SHA1_160 = 160
-    if (len > 0) {
-        tb_sha_spak(&sha, (tb_byte_t const*)searchString, len);
+static bool
+sha_file_to_hex (const char* path, tb_size_t mode, tb_size_t digest_size, tb_char_t* hex_output) {
+  if (!path) {
+    return false;
+  }
+
+  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
+  if (file == tb_null) {
+    return false;
+  }
+
+  tb_sha_t sha;
+  tb_sha_init (&sha, mode);
+
+  tb_size_t size  = tb_file_size (file);
+  tb_size_t offset= 0;
+  tb_byte_t buffer[4096];
+  while (offset < size) {
+    tb_size_t want     = ((size - offset) > sizeof (buffer)) ? sizeof (buffer) : (size - offset);
+    tb_size_t real_size= tb_file_read (file, buffer, want);
+    if (real_size == 0) {
+      tb_file_exit (file);
+      return false;
     }
-    tb_sha_exit(&sha, ob, 20);
-    for (tb_size_t i = 0; i < 20; ++i) {
-        tb_snprintf(hex_output + (i << 1), 3, "%02x", ob[i]);
-    }
-    return s7_make_string(sc, hex_output);
+    tb_sha_spak (&sha, buffer, real_size);
+    offset += real_size;
+  }
+
+  tb_file_exit (file);
+
+  tb_byte_t digest[32];
+  tb_sha_exit (&sha, digest, digest_size);
+  hash_bytes_to_hex (digest, digest_size, hex_output);
+  return true;
+}
+
+static s7_pointer
+f_md5 (s7_scheme* sc, s7_pointer args) {
+  const char* search_string= s7_string (s7_car (args));
+  tb_size_t   len          = tb_strlen (search_string);
+  tb_byte_t   digest[16];
+  tb_char_t   hex_output[33]= {0};
+  tb_md5_t    md5;
+
+  tb_md5_init (&md5, 0);
+  if (len > 0) {
+    tb_md5_spak (&md5, (tb_byte_t const*) search_string, len);
+  }
+  tb_md5_exit (&md5, digest, sizeof (digest));
+  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
+  return s7_make_string (sc, hex_output);
 }
 
 inline void
-glue_sha1(s7_scheme* sc) {
-  const char* name = "g_sha1";
-  const char* desc = "(g_sha1 str) => string";
-  glue_define(sc, name, desc, f_sha1, 1, 0);
+glue_md5 (s7_scheme* sc) {
+  const char* name= "g_md5";
+  const char* desc= "(g_md5 str) => string";
+  glue_define (sc, name, desc, f_md5, 1, 0);
 }
 
-static s7_pointer f_sha256(s7_scheme* sc, s7_pointer args) {
-    const char* searchString = s7_string(s7_car(args));
-    tb_size_t len = tb_strlen(searchString);
-    tb_byte_t ob[32]; // SHA256 produces 32 bytes
-    tb_char_t hex_output[65] = {0}; // 32 bytes * 2 hex digits per byte + null terminator
-    tb_sha_t sha;
-    tb_sha_init(&sha, 256); // TB_SHA_MODE_SHA2_256 = 256
-    if (len > 0) {
-        tb_sha_spak(&sha, (tb_byte_t const*)searchString, len);
-    }
-    tb_sha_exit(&sha, ob, 32);
-    for (tb_size_t i = 0; i < 32; ++i) {
-        tb_snprintf(hex_output + (i << 1), 3, "%02x", ob[i]);
-    }
-    return s7_make_string(sc, hex_output);
+static s7_pointer
+f_md5_file (s7_scheme* sc, s7_pointer args) {
+  const char* path= s7_string (s7_car (args));
+  tb_char_t   hex_output[33]= {0};
+  if (!md5_file_to_hex (path, hex_output)) {
+    return s7_make_boolean (sc, false);
+  }
+  return s7_make_string (sc, hex_output);
 }
 
 inline void
-glue_sha256(s7_scheme* sc) {
-  const char* name = "g_sha256";
-  const char* desc = "(g_sha256 str) => string";
-  glue_define(sc, name, desc, f_sha256, 1, 0);
+glue_md5_file (s7_scheme* sc) {
+  const char* name= "g_md5-by-file";
+  const char* desc= "(g_md5-by-file path) => string|#f";
+  glue_define (sc, name, desc, f_md5_file, 1, 0);
+}
+
+static s7_pointer
+f_sha1 (s7_scheme* sc, s7_pointer args) {
+  const char* search_string= s7_string (s7_car (args));
+  tb_size_t   len          = tb_strlen (search_string);
+  tb_byte_t   digest[20];
+  tb_char_t   hex_output[41]= {0};
+  tb_sha_t    sha;
+
+  tb_sha_init (&sha, 160);
+  if (len > 0) {
+    tb_sha_spak (&sha, (tb_byte_t const*) search_string, len);
+  }
+  tb_sha_exit (&sha, digest, sizeof (digest));
+  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
+  return s7_make_string (sc, hex_output);
+}
+
+inline void
+glue_sha1 (s7_scheme* sc) {
+  const char* name= "g_sha1";
+  const char* desc= "(g_sha1 str) => string";
+  glue_define (sc, name, desc, f_sha1, 1, 0);
+}
+
+static s7_pointer
+f_sha1_file (s7_scheme* sc, s7_pointer args) {
+  const char* path= s7_string (s7_car (args));
+  tb_char_t   hex_output[41]= {0};
+  if (!sha_file_to_hex (path, 160, 20, hex_output)) {
+    return s7_make_boolean (sc, false);
+  }
+  return s7_make_string (sc, hex_output);
+}
+
+inline void
+glue_sha1_file (s7_scheme* sc) {
+  const char* name= "g_sha1-by-file";
+  const char* desc= "(g_sha1-by-file path) => string|#f";
+  glue_define (sc, name, desc, f_sha1_file, 1, 0);
+}
+
+static s7_pointer
+f_sha256 (s7_scheme* sc, s7_pointer args) {
+  const char* search_string= s7_string (s7_car (args));
+  tb_size_t   len          = tb_strlen (search_string);
+  tb_byte_t   digest[32];
+  tb_char_t   hex_output[65]= {0};
+  tb_sha_t    sha;
+
+  tb_sha_init (&sha, 256);
+  if (len > 0) {
+    tb_sha_spak (&sha, (tb_byte_t const*) search_string, len);
+  }
+  tb_sha_exit (&sha, digest, sizeof (digest));
+  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
+  return s7_make_string (sc, hex_output);
+}
+
+inline void
+glue_sha256 (s7_scheme* sc) {
+  const char* name= "g_sha256";
+  const char* desc= "(g_sha256 str) => string";
+  glue_define (sc, name, desc, f_sha256, 1, 0);
+}
+
+static s7_pointer
+f_sha256_file (s7_scheme* sc, s7_pointer args) {
+  const char* path= s7_string (s7_car (args));
+  tb_char_t   hex_output[65]= {0};
+  if (!sha_file_to_hex (path, 256, 32, hex_output)) {
+    return s7_make_boolean (sc, false);
+  }
+  return s7_make_string (sc, hex_output);
+}
+
+inline void
+glue_sha256_file (s7_scheme* sc) {
+  const char* name= "g_sha256-by-file";
+  const char* desc= "(g_sha256-by-file path) => string|#f";
+  glue_define (sc, name, desc, f_sha256_file, 1, 0);
 }
 
 inline void
 glue_liii_hashlib (s7_scheme* sc) {
   glue_md5 (sc);
+  glue_md5_file (sc);
   glue_sha1 (sc);
+  glue_sha1_file (sc);
   glue_sha256 (sc);
+  glue_sha256_file (sc);
 }
 
 
@@ -1398,6 +1865,7 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_hashlib (sc);
   glue_http (sc);
   glue_http_stream (sc);
+  glue_http_async (sc);
 }
 
 static void
@@ -2068,4 +2536,3 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 }
 
 } // namespace goldfish
-
