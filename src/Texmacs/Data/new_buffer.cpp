@@ -12,8 +12,8 @@
 #include "convert.hpp"
 #include "converter.hpp"
 #include "dictionary.hpp"
-#include "locale.hpp"
 #include "file.hpp"
+#include "locale.hpp"
 #include "merge_sort.hpp"
 #include "message.hpp"
 #include "new_document.hpp"
@@ -173,8 +173,9 @@ make_welcome_buffer () {
   if (N (lan) > 2) lan= lan (0, 2);
   if (lan == "") lan= "en";
 
-  url localized= url_system ("$TEXMACS_PATH/doc/about/mogan/stem." * lan * ".tmu");
-  url fallback = url_system ("$TEXMACS_PATH/doc/about/mogan/stem.en.tmu");
+  url localized=
+      url_system ("$TEXMACS_PATH/doc/about/mogan/stem." * lan * ".tmu");
+  url fallback= url_system ("$TEXMACS_PATH/doc/about/mogan/stem.en.tmu");
 
   url target= localized;
   if (!exists (target)) target= fallback;

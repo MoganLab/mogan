@@ -900,9 +900,9 @@ TeXmacs_main (int argc, char** argv) {
   if (DEBUG_STD) debug_boot << "Starting server...\n";
   { // opening scope for server sv
     server sv (app_type::RESEARCH);
-    string where     = "";
+    string where           = "";
     bool   has_initial_file= false;
-    bool   first_file= true;
+    bool   first_file      = true;
     for (i= 1; i < argc; i++) {
       if (argv[i] == NULL) break;
       string s= argv[i];
@@ -917,7 +917,7 @@ TeXmacs_main (int argc, char** argv) {
         // only open window once
         if (first_file) {
           buffer_load (u);
-          new_buffer_in_new_window(u, tree (moebius::DOCUMENT)); 
+          new_buffer_in_new_window (u, tree (moebius::DOCUMENT));
           first_file= false;
         }
         else {
@@ -935,7 +935,7 @@ TeXmacs_main (int argc, char** argv) {
         i++;
       }
     }
-    
+
     bool has_initial_welcome= false;
     if (install_status == 1 || install_status == 2) {
       has_initial_welcome= true;

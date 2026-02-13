@@ -300,8 +300,8 @@ ensure_window (tree geom) {
     return new_buffer_in_new_window (name, tree (DOCUMENT), geom);
   }
 
-  array<url> all_views= get_all_views ();
-  bool has_window= false;
+  array<url> all_views = get_all_views ();
+  bool       has_window= false;
   for (int i= 0; i < N (all_views); i++) {
     url win= view_to_window (all_views[i]);
     if (!is_none (win)) {
