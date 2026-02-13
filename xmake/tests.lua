@@ -118,7 +118,7 @@ function add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
             elseif is_plat("mingw", "windows") then
-                binary = path.join(INSTALL_DIR, "build", "packages", "stem", "data", "bin", "LiiiSTEM.exe")
+                binary = path.join(INSTALL_DIR, "build", "packages", "stem", "data", "bin", "MoganSTEM.exe")
             else
                 print("Unsupported plat $(plat)")
             end
@@ -155,7 +155,7 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
             elseif is_plat("mingw", "windows") then
-                binary = path.join(INSTALL_DIR, "build", "packages", "stem", "data", "bin", "LiiiSTEM.exe")
+                binary = path.join(INSTALL_DIR, "build", "packages", "stem", "data", "bin", "MoganSTEM.exe")
             else
                 print("Unsupported plat $(plat)")
             end
