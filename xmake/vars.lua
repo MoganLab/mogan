@@ -9,7 +9,7 @@
 -- It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
-XMACS_VERSION="2026.2.0-rc5"
+XMACS_VERSION="2026.2.0-rc6"
 TEXMACS_VERSION = "2.1.2"
 GOLDFISH_VERSION = "17.11.2"
 DEVEL_VERSION = TEXMACS_VERSION
