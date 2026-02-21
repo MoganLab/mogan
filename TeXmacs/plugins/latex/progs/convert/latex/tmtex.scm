@@ -1612,7 +1612,8 @@
 
 (define (post-process-math-text t)
   (cond ((or (nlist? t) (!= (length t) 2)) t)
-        ((nin? (car t) '(mathrm mathbf mathsf mathit mathsl mathtt tmop)) t)
+        ((nin? (car t) '(mathrm mathbf mathsf mathit mathsl mathtt tmop bold)) t)
+        ((func? t 'bold 1) (post-process-math-text (list 'mathbf (cadr t))))
         ((and (string? (cadr t)) (string-alpha? (cadr t))) t)
         ((func? t 'mathrm 1) `(textrm ,(cadr t)))
         ((func? t 'mathbf 1) `(textbf ,(cadr t)))
@@ -1641,7 +1642,7 @@
       (let ((w (tmtex-get-with-cmd var val))
             (a (tmtex-get-assign-cmd var val)))
         (cond ((and w (tm-func? arg w 1)) arg)
-              ((in? w '(mathrm mathbf mathsf mathit mathtt mathsl))
+              ((in? w '(mathrm mathbf mathsf mathit mathtt mathsl bold))
                (post-process-math-text (list w arg)))
               (w (list w arg))
               (a (list '!group (tex-concat (list (list a) " " arg))))
