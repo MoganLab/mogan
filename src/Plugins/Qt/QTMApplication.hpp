@@ -18,10 +18,11 @@
 #include "tm_url.hpp"
 #include "url.hpp"
 #include <QApplication>
+#include <QFont>
 #include <QIcon>
-#include <QStyle>
-
 #include <QScreen>
+#include <QStringList>
+#include <QStyle>
 
 #if (QT_VERSION < 0x060000)
 #include <QGuiApplication>
@@ -122,6 +123,14 @@ public:
   QTMApplication (int& argc, char** argv) : QApplication (argc, argv) {
     init_palette (this);
     init_style_sheet (this);
+
+#if defined(Q_OS_LINUX)
+    QFont       defaultFont= font ();
+    QStringList fallbacks;
+    fallbacks << "FreeSerif" << "DejaVu Sans";
+    // Safely insert fallbacks globally for the default font family
+    QFont::insertSubstitutions (defaultFont.family (), fallbacks);
+#endif
 
 #if (QT_VERSION < 0x060000)
     if (!retina_manual) {
