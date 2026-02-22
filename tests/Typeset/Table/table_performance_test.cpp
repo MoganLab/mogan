@@ -22,6 +22,7 @@
 #include <chrono>
 #include <algorithm>
 #include <vector>
+#include <utility>
 
 using namespace moebius;
 using moebius::drd::std_drd;
@@ -371,18 +372,6 @@ TestTablePerformance::test_eqnarray_5x20_rows () {
   QVERIFY (total_time >= 0);
 }
 
-// Helper function to measure table creation time multiple times and return average
-long long measure_average_table_creation_time (edit_env& env, const tree& table_tree,
-                                              const string& operation_name,
-                                              int iterations = 3) {
-  long long total = 0;
-  for (int i = 0; i < iterations; i++) {
-    total += measure_table_creation_time (env, table_tree,
-                                         operation_name * " #" * as_string (i + 1));
-  }
-  return total / iterations;
-}
-
 double
 measure_median_table_creation_time (edit_env& env, const tree& table_tree,
                                     const string& operation_name,
@@ -395,6 +384,36 @@ measure_median_table_creation_time (edit_env& env, const tree& table_tree,
   }
   std::sort (samples.begin (), samples.end ());
   return (double) samples[iterations / 2];
+}
+
+void
+add_cell_decoration (tree& tformat, int row, int col, const tree& decoration) {
+  tformat << tree (CWITH, as_string (row), as_string (row), as_string (col),
+                   as_string (col), "cell-decoration", decoration);
+}
+
+template <typename Func>
+std::pair<double, double>
+measure_two_calls_us (Func&& func, int iterations) {
+  long long total_first= 0, total_second= 0;
+  for (int i= 0; i < iterations; i++) {
+    auto start1= std::chrono::high_resolution_clock::now ();
+    func ();
+    auto end1= std::chrono::high_resolution_clock::now ();
+
+    auto start2= std::chrono::high_resolution_clock::now ();
+    func ();
+    auto end2= std::chrono::high_resolution_clock::now ();
+
+    total_first +=
+        std::chrono::duration_cast<std::chrono::microseconds> (end1 - start1)
+            .count ();
+    total_second +=
+        std::chrono::duration_cast<std::chrono::microseconds> (end2 - start2)
+            .count ();
+  }
+  return std::make_pair (total_first / (double) iterations,
+                         total_second / (double) iterations);
 }
 
 // Helper function to create a decoration tree which really expands table size
@@ -415,58 +434,35 @@ tree create_expanding_decoration_tree () {
   return tree (TFORMAT, decoration_table);
 }
 
-// Test decorated table performance to validate handle_decorations optimization
+// Decorated table performance
 void
 TestTablePerformance::test_decorated_table_performance () {
   edit_env env= create_test_env ();
 
-  // Use moderate sized table for meaningful measurement
   const int size = 40;
-
-  // Create plain table for comparison
   tree plain_table= create_matrix_tree (size, size);
 
-  // Create a table with decorations that should trigger handle_decorations
-  // Based on code analysis, we need to set "cell-decoration" property
-  // Try different decoration values that might actually create decoration tables
   tree T (TABLE, size);
   for (int i= 0; i < size; i++) {
     tree R (ROW, size);
     for (int j= 0; j < size; j++) {
-      // Create cell with text content
       R[j]= tree (CELL, tree (as_string (i) * "," * as_string (j)));
     }
     T[i]= R;
   }
 
-  // Create TFORMAT with decoration settings
-  // Use a 3x3 decoration with center TMARKER to force expansion.
   tree decoration_tree= create_expanding_decoration_tree ();
-
   tree tformat (TFORMAT);
-
-  // Apply decoration to first cell (row 1, column 1)
-  // CWITH format: row_start, col_start, row_end, col_end, property, value
-  // Note: rows and columns are 1-indexed in CWITH
-  tformat << tree (CWITH, "1", "1", "1", "1", "cell-decoration", decoration_tree);
-
-  // Also apply to several sparse cells to keep test stable and measurable.
-  // Avoid dense overlapping decorations, which may stress undefined paths.
-  tformat << tree (CWITH, "6", "6", "6", "6", "cell-decoration",
-                   decoration_tree);
-  tformat << tree (CWITH, "6", "6", "30", "30", "cell-decoration",
-                   decoration_tree);
-  tformat << tree (CWITH, "20", "20", "20", "20", "cell-decoration",
-                   decoration_tree);
-  tformat << tree (CWITH, "30", "30", "6", "6", "cell-decoration",
-                   decoration_tree);
-  tformat << tree (CWITH, "30", "30", "30", "30", "cell-decoration",
-                   decoration_tree);
+  add_cell_decoration (tformat, 1, 1, decoration_tree);
+  add_cell_decoration (tformat, 6, 6, decoration_tree);
+  add_cell_decoration (tformat, 6, 30, decoration_tree);
+  add_cell_decoration (tformat, 20, 20, decoration_tree);
+  add_cell_decoration (tformat, 30, 6, decoration_tree);
+  add_cell_decoration (tformat, 30, 30, decoration_tree);
 
   tformat << T;
 
-  // Structural validation: decoration should really expand dimensions.
-  // This prevents false-positive "decoration works" conclusions.
+  // Structural check: decorations must expand table dimensions.
   table structural_tab (env);
   structural_tab->typeset (tformat, path ());
   int rows_before= structural_tab->nr_rows;
@@ -483,145 +479,90 @@ TestTablePerformance::test_decorated_table_performance () {
 
   qDebug() << "Testing " << size << "x" << size << " table performance...";
 
-    // Warm up each path once; do not include in statistics.
-    measure_table_creation_time (env, plain_table, "40x40 plain warmup");
-    measure_table_creation_time (env, tformat, "40x40 decorated warmup");
+  // Warmup (excluded from stats)
+  measure_table_creation_time (env, plain_table, "40x40 plain warmup");
+  measure_table_creation_time (env, tformat, "40x40 decorated warmup");
 
-    // Median-based measurement is more robust against jitter.
-    const int iterations = 5;
-    double plain_time= measure_median_table_creation_time (
+  const int iterations = 5;
+  double plain_time= measure_median_table_creation_time (
       env, plain_table, "40x40 plain table", iterations);
-    double decorated_time= measure_median_table_creation_time (
+  double decorated_time= measure_median_table_creation_time (
       env, tformat, "40x40 decorated table", iterations);
 
-    qDebug() << "Median plain table: " << plain_time << " μs";
-    qDebug() << "Median decorated table: " << decorated_time << " μs";
+  qDebug() << "Median plain table: " << plain_time << " μs";
+  qDebug() << "Median decorated table: " << decorated_time << " μs";
 
-    double ratio = decorated_time / plain_time;
+  double ratio = decorated_time / plain_time;
   qDebug() << "Decorated/Plain ratio: " << ratio;
 
   // Basic validation
   QVERIFY (plain_time > 0);
   QVERIFY (decorated_time > 0);
 
-  // Small speed differences can be noise. Only flag if gap is large.
+  // Small differences are often noise.
   if (ratio < 0.8) {
     qDebug() << "WARNING: Decorated table is much faster than plain table.";
     qDebug() << "Please re-check decoration shape and overlap assumptions.";
   }
 }
 
-// Test width/height cache efficiency
+// Width/height cache efficiency
 void
 TestTablePerformance::test_width_cache_efficiency () {
   edit_env env= create_test_env ();
-  // Use larger table for more meaningful measurement
   const int size = 60;
   tree table_tree= create_matrix_tree (size, size);
 
-  // Create table and do initial typesetting
   table tab (env);
   tab->typeset (table_tree, path ());
   tab->handle_decorations ();
   tab->handle_span ();
   tab->merge_borders ();
 
-  // Warm up - call once to ensure any lazy initialization is done
   tab->position_columns (true);
   tab->position_rows ();
 
-  // Test position_columns cache
-  long long total_first = 0, total_second = 0;
   const int iterations = 5;
-
-  for (int iter = 0; iter < iterations; iter++) {
-    // First call to position_columns - should compute widths
-    auto start1= std::chrono::high_resolution_clock::now ();
-    tab->position_columns (true);
-    auto end1= std::chrono::high_resolution_clock::now ();
-    auto time1= std::chrono::duration_cast<std::chrono::microseconds> (end1 - start1);
-
-    // Second call to position_columns - should use cache if optimization exists
-    auto start2= std::chrono::high_resolution_clock::now ();
-    tab->position_columns (true);
-    auto end2= std::chrono::high_resolution_clock::now ();
-    auto time2= std::chrono::duration_cast<std::chrono::microseconds> (end2 - start2);
-
-    total_first += time1.count ();
-    total_second += time2.count ();
-  }
-
-  double avg_first = total_first / (double)iterations;
-  double avg_second = total_second / (double)iterations;
+  auto col_times= measure_two_calls_us ([&] { tab->position_columns (true); },
+                                        iterations);
+  double avg_first = col_times.first;
+  double avg_second = col_times.second;
   double ratio = avg_first / avg_second;
 
   qDebug() << "Average first position_columns: " << avg_first << " μs";
   qDebug() << "Average second position_columns: " << avg_second << " μs";
   qDebug() << "Cache efficiency ratio: " << ratio;
 
-  // Test position_rows cache similarly
-  total_first = total_second = 0;
-  for (int iter = 0; iter < iterations; iter++) {
-    auto start1= std::chrono::high_resolution_clock::now ();
-    tab->position_rows ();
-    auto end1= std::chrono::high_resolution_clock::now ();
-    auto time1= std::chrono::duration_cast<std::chrono::microseconds> (end1 - start1);
-
-    auto start2= std::chrono::high_resolution_clock::now ();
-    tab->position_rows ();
-    auto end2= std::chrono::high_resolution_clock::now ();
-    auto time2= std::chrono::duration_cast<std::chrono::microseconds> (end2 - start2);
-
-    total_first += time1.count ();
-    total_second += time2.count ();
-  }
-
-  avg_first = total_first / (double)iterations;
-  avg_second = total_second / (double)iterations;
+  auto row_times=
+      measure_two_calls_us ([&] { tab->position_rows (); }, iterations);
+  avg_first = row_times.first;
+  avg_second = row_times.second;
   double rows_ratio = avg_first / avg_second;
 
   qDebug() << "Average first position_rows: " << avg_first << " μs";
   qDebug() << "Average second position_rows: " << avg_second << " μs";
   qDebug() << "Rows cache efficiency ratio: " << rows_ratio;
 
-  // If caching is effective, second calls should be faster
-  // But we can't assert it since optimization might not be implemented
-  // Just log the results for analysis
+  // No strict assertion: optimization may be absent in this branch.
   QVERIFY (avg_first > 0 && avg_second > 0);
 }
 
-// Test incremental update performance
+// Incremental update baseline
 void
 TestTablePerformance::test_incremental_update_performance () {
   edit_env env= create_test_env ();
 
-  // Create a moderate sized table
   const int size = 50;
   tree table_tree= create_matrix_tree (size, size);
 
-  // Measure full table creation time
-  auto full_start= std::chrono::high_resolution_clock::now ();
-  table tab (env);
-  tab->typeset (table_tree, path ());
-  tab->handle_decorations ();
-  tab->handle_span ();
-  tab->merge_borders ();
-  tab->position_columns (true);
-  tab->finish_horizontal ();
-  tab->position_rows ();
-  tab->finish ();
-  auto full_end= std::chrono::high_resolution_clock::now ();
-  auto full_time= std::chrono::duration_cast<std::chrono::microseconds> (full_end - full_start);
+  auto full_time= measure_table_creation_time (
+      env, table_tree, "Full 50x50 table creation");
 
-  qDebug() << "Full " << size << "x" << size << " table creation: " << full_time.count () << " μs";
-
-  // Note: Incremental update testing requires mark_dirty() methods
-  // which are part of the optimization in another branch.
-  // These methods are not available in the current codebase.
+  Q_UNUSED (size);
   qDebug() << "Note: Incremental update optimization not tested";
   qDebug() << "(mark_dirty() interfaces not available in current branch)";
 
-  QVERIFY (full_time.count () > 0);
+  QVERIFY (full_time > 0);
 }
 
 void
