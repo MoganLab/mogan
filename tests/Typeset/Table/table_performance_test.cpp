@@ -376,6 +376,11 @@ double
 measure_median_table_creation_time (edit_env& env, const tree& table_tree,
                                     const string& operation_name,
                                     int iterations = 5) {
+  if (iterations <= 0) {
+    qWarning() << "iterations must be > 0 for" << as_charp (operation_name);
+    return 0.0;
+  }
+
   std::vector<long long> samples;
   samples.reserve (iterations);
   for (int i= 0; i < iterations; i++) {
@@ -395,6 +400,8 @@ add_cell_decoration (tree& tformat, int row, int col, const tree& decoration) {
 template <typename Func>
 std::pair<double, double>
 measure_two_calls_us (Func&& func, int iterations) {
+  if (iterations <= 0) return std::make_pair (0.0, 0.0);
+
   long long total_first= 0, total_second= 0;
   for (int i= 0; i < iterations; i++) {
     auto start1= std::chrono::high_resolution_clock::now ();
@@ -492,12 +499,12 @@ TestTablePerformance::test_decorated_table_performance () {
   qDebug() << "Median plain table: " << plain_time << " μs";
   qDebug() << "Median decorated table: " << decorated_time << " μs";
 
-  double ratio = decorated_time / plain_time;
-  qDebug() << "Decorated/Plain ratio: " << ratio;
-
   // Basic validation
   QVERIFY (plain_time > 0);
   QVERIFY (decorated_time > 0);
+
+  double ratio = decorated_time / plain_time;
+  qDebug() << "Decorated/Plain ratio: " << ratio;
 
   // Small differences are often noise.
   if (ratio < 0.8) {
