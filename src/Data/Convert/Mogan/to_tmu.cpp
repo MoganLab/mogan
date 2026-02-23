@@ -275,6 +275,15 @@ tmu_writer::write (tree t) {
  ******************************************************************************/
 
 string
+mogan_tree_serialize (tree t) {
+  tmu_writer tmw;
+  tmw.write (t);
+  tmw.flush ();
+  tmw.buf << "\n";
+  return tmw.buf;
+}
+
+string
 tree_to_tmu (tree t) {
   if (!is_snippet (t)) {
     int  t_N= N (t);
@@ -294,9 +303,5 @@ tree_to_tmu (tree t) {
     t= r;
   }
 
-  tmu_writer tmw;
-  tmw.write (t);
-  tmw.flush ();
-  tmw.buf << "\n"; // append an extra newline at the end of TMU file
-  return tmw.buf;
+  return mogan_tree_serialize (t);
 }

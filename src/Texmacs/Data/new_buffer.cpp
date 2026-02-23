@@ -508,17 +508,33 @@ buffer_load (url name) {
 
 hashmap<string, tree> style_tree_cache ("");
 
+static tree
+style_document_to_tree (string doc_s, url name) {
+  if (ends (as_string (name), ".tsu") || starts (doc_s, "<TSU|"))
+    return tsu_document_to_tree (doc_s);
+  return texmacs_document_to_tree (doc_s);
+}
+
 tree
 load_style_tree (string package) {
   if (style_tree_cache->contains (package)) return style_tree_cache[package];
   url name= url_none ();
   url styp= "$TEXMACS_STYLE_PATH";
   if (ends (package, ".ts")) name= package;
-  else name= styp * (package * ".ts");
-  name= resolve (name);
+  else if (ends (package, ".tsu")) name= package;
+  else {
+    name= styp * (package * ".ts");
+    name= resolve (name);
+    if (is_none (name)) {
+      name= styp * (package * ".tsu");
+      name= resolve (name);
+    }
+  }
+  if (ends (package, ".ts") || ends (package, ".tsu"))
+    name= resolve (name);
   string doc_s;
   if (!load_string (name, doc_s, false)) {
-    tree doc= texmacs_document_to_tree (doc_s);
+    tree doc= style_document_to_tree (doc_s, name);
     if (is_compound (doc)) doc= extract (doc, "body");
     style_tree_cache (package)= doc;
     return doc;

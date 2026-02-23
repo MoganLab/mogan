@@ -135,8 +135,9 @@ do_cache_stat (string name) {
 
 bool
 do_cache_stat_fail (string name) {
-  return !ends (name, ".ts") && (starts (name, texmacs_path_string) ||
-                                 starts (name, texmacs_doc_path_string));
+  return !ends (name, ".ts") && !ends (name, ".tsu") &&
+         (starts (name, texmacs_path_string) ||
+          starts (name, texmacs_doc_path_string));
 }
 
 /******************************************************************************

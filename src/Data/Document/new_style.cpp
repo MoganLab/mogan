@@ -63,6 +63,10 @@ static url
 resolve_local_style (string style_name) {
   string pack= style_name * ".ts";
   url    ret = resolve (url ("$TEXMACS_STYLE_PATH") * pack);
+  if (is_none (ret)) {
+    pack= style_name * ".tsu";
+    ret = resolve (url ("$TEXMACS_STYLE_PATH") * pack);
+  }
   if (DEBUG_IO) {
     debug_io << "Resolved local style: " << style_name << " -> " << ret << LF;
   }
@@ -73,6 +77,10 @@ static url
 resolve_relative_style (string style_name, url master) {
   string pack= style_name * ".ts";
   url    ret = resolve (expand (head (master) * url_ancestor () * pack));
+  if (is_none (ret)) {
+    pack= style_name * ".tsu";
+    ret = resolve (expand (head (master) * url_ancestor () * pack));
+  }
   if (DEBUG_IO) {
     debug_io << "Resolved relative style: (" << style_name << ", " << master
              << ")" << LF << "-> " << ret << LF;
@@ -135,7 +143,7 @@ static string
 cache_file_name_sub (tree t) {
   if (is_atomic (t)) {
     string s= t->label;
-    if (ends (s, ".ts")) {
+    if (ends (s, ".ts") || ends (s, ".tsu")) {
       url style= url_system (s);
       if (is_rooted_web (style)) {
         url local_style= get_from_web (s);
@@ -372,6 +380,7 @@ hidden_package (url u, string name, bool hidden) {
   if (hidden && is_atomic (u)) {
     string l= as_string (u);
     if (ends (l, ".ts")) l= l (0, N (l) - 3);
+    else if (ends (l, ".tsu")) l= l (0, N (l) - 4);
     else if (ends (l, ".hook")) l= l (0, N (l) - 5);
     else return false;
     return name == l;
@@ -415,6 +424,7 @@ compute_style_menu (url u, int kind) {
   if (is_atomic (u)) {
     string l= as_string (u);
     if (ends (l, ".ts")) l= l (0, N (l) - 3);
+    else if (ends (l, ".tsu")) l= l (0, N (l) - 4);
     else if (ends (l, ".hook")) l= l (0, N (l) - 5);
     else return "";
     string cmd ("set-main-style");

@@ -235,7 +235,7 @@
   (learn-interactive 'recent-buffer (list (cons "0" (url->system name)))))
 
 (define (has-faithful-format? name)
-  (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu")))
+  (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu" "tsu")))
 
 (define (save-buffer-post name opts)
   ;;(display* "save-buffer-post " name "\n")
@@ -252,10 +252,10 @@
           (buffer-pretend-modified name)
           (set-message `(concat "Could not save " ,vname) "Save file"))
         (begin
-          (if (== (url-suffix name) "ts") (style-clear-cache))
+          (if (in? (url-suffix name) '("ts" "tsu")) (style-clear-cache))
           (autosave-remove name)
           (buffer-notify-recent name)
-          ;; Remember directory for file dialog 
+          ;; Remember directory for file dialog
           (remember-file-dialog-directory name)
           (set-message `(concat "Saved " ,vname) "Save file")
           (save-buffer-post name opts)))))
@@ -478,7 +478,7 @@
            (suffix (if (rescue-mode?) "#" "~"))
            (aname (if (url-scratch? name) name (url-autosave name suffix)))
            (fm (url-format name)))
-      (cond ((nin? fm (list "texmacs" "stm" "mgs" "tmu"))
+      (cond ((nin? fm (list "texmacs" "stm" "mgs" "tmu" "tsu"))
              (when (not (rescue-mode?))
                (set-message `(concat "Warning: " ,vname " not auto-saved")
                             "Auto-save file")))

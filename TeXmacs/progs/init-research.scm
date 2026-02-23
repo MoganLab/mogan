@@ -343,6 +343,7 @@
 (lazy-format (data mgs) mgs)
 (lazy-format (data stm) stm)
 (lazy-format (data tmu) tmu)
+(lazy-format (data tsu) tsu)
 (lazy-format (data docx) docx)
 (lazy-format (data html) html)
 (lazy-define (convert images tmimage)

@@ -1216,12 +1216,22 @@ edit_env_rep::exec_use_package (tree t) {
       styp= styp | ::expand (head (base_file_name) * url_ancestor ());
     else styp= styp | head (base_file_name);
     if (ends (as_string (t[i]), ".ts")) name= url_system (as_string (t[i]));
-    else name= styp * (as_string (t[i]) * string (".ts"));
+    else if (ends (as_string (t[i]), ".tsu")) name= url_system (as_string (t[i]));
+    else {
+      name= styp * (as_string (t[i]) * string (".ts"));
+      name= resolve (name);
+      if (is_none (name))
+        name= styp * (as_string (t[i]) * string (".tsu"));
+    }
     name= resolve (name);
     // cout << as_string (t[i]) << " -> " << name << "\n";
     string doc_s;
     if (!load_string (name, doc_s, false)) {
-      tree doc= texmacs_document_to_tree (doc_s);
+      tree doc;
+      if (ends (as_string (name), ".tsu") || starts (doc_s, "<TSU|"))
+        doc= tsu_document_to_tree (doc_s);
+      else
+        doc= texmacs_document_to_tree (doc_s);
       if (is_compound (doc)) exec (filter_style (extract (doc, "body")));
     }
   }

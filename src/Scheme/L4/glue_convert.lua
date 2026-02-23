@@ -72,6 +72,30 @@ function main()
                 }
             },
             {
+                scm_name = "parse-tsu",
+                cpp_name = "tsu_document_to_tree",
+                ret_type = "tree",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "serialize-tsu",
+                cpp_name = "tree_to_tsu",
+                ret_type = "string",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
+                scm_name = "parse-tsu-snippet",
+                cpp_name = "tmu_to_tree",
+                ret_type = "tree",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "texmacs->stm",
                 cpp_name = "tree_to_scheme",
                 ret_type = "string",

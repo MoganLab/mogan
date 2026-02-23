@@ -357,7 +357,7 @@
             (set-message `(concat "Could not save " ,vname) "Save file")
             (callback #f))
           (begin
-            (if (== (url-suffix name) "ts") (style-clear-cache))
+            (if (in? (url-suffix name) '("ts" "tsu")) (style-clear-cache))
             (set-message `(concat "Saved " ,vname) "Save file")
             (save-buffer-post name opts)
             (callback #t))))))
