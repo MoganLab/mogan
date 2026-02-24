@@ -520,10 +520,11 @@ TestTablePerformance::test_handle_decorations_performance () {
   cache_refresh ();
   edit_env env= create_test_env ();
 
-  // Test different table sizes for real decoration expansion workload
-  const int sizes[]        = {30, 60, 100};
-  const int num_sizes      = sizeof (sizes) / sizeof (sizes[0]);
-  tree      decoration_tree= create_expanding_decoration_tree ();
+  // Test different table sizes for real decoration expansion workload.
+  // Keep a single test but make decoration size grow with table size,
+  // to amplify complexity differences.
+  const int sizes[]  = {20, 30, 40, 50};
+  const int num_sizes= sizeof (sizes) / sizeof (sizes[0]);
 
   for (int idx= 0; idx < num_sizes; idx++) {
     const int size= sizes[idx];
@@ -538,21 +539,41 @@ TestTablePerformance::test_handle_decorations_performance () {
       T[i]= R;
     }
 
+    // Make decoration size scale with table size (odd, >=3).
+    int d= size / 2;
+    if (d < 3) d= 3;
+    if ((d % 2) == 0) d++;
+
+    tree decoration_table (TABLE, d);
+    int  c= d / 2;
+    for (int di= 0; di < d; di++) {
+      tree decoration_row (ROW, d);
+      for (int dj= 0; dj < d; dj++) {
+        if (di == c && dj == c) decoration_row[dj]= tree (TMARKER);
+        else decoration_row[dj]= tree (CELL, "•");
+      }
+      decoration_table[di]= decoration_row;
+    }
+    tree decoration_tree= tree (TFORMAT, decoration_table);
+
     tree tformat (TFORMAT);
 
     // Add real cell-decoration (with TMARKER) so handle_decorations()
     // enters expansion path (status == 1), not only format scanning.
     // NOTE: CWITH row/col indices are 1-based in this codebase.
+    int decorations= 0;
     for (int i= 1; i <= size; i+= 2)
-      for (int j= 1; j <= size; j+= 2)
+      for (int j= 1; j <= size; j+= 2) {
         add_cell_decoration (tformat, i, j, decoration_tree);
+        decorations++;
+      }
 
     tformat << T;
 
     // Measure handle_decorations itself (avoid mixing typeset cost)
     // Use warmup + median to reduce micro-benchmark noise.
-    const int              warmup_iterations= 5;
-    const int              iterations= 31; // odd number for stable median
+    const int              warmup_iterations= 2;
+    const int              iterations       = 9; // odd number for stable median
     std::vector<long long> samples;
     samples.reserve (iterations);
 
@@ -589,9 +610,18 @@ TestTablePerformance::test_handle_decorations_performance () {
     long long min_us   = samples.front ();
     long long max_us   = samples.back ();
 
+    double per_n2= median_us / ((double) size * (double) size);
+    double per_n4= median_us / ((double) size * (double) size * (double) size *
+                                (double) size);
+    double per_n2d2=
+        median_us / ((double) size * (double) size * (double) d * (double) d);
+
     qDebug () << as_charp (as_string (size) * "x" * as_string (size) *
                            " handle_decorations median")
               << ":" << median_us << "μs"
+              << "(d:" << d << "decorations:" << decorations << ")"
+              << "(us/n^2:" << per_n2 << "us/n^4:" << per_n4
+              << "us/(n^2*d^2):" << per_n2d2 << ")"
               << "(min:" << min_us << "max:" << max_us << ")"
               << "(" << rows_before << "x" << cols_before << "->" << rows_after
               << "x" << cols_after << ")";
