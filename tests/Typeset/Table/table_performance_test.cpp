@@ -415,6 +415,12 @@ add_cell_decoration (tree& tformat, int row, int col, const tree& decoration) {
                    as_string (col), "cell-decoration", decoration);
 }
 
+void
+add_cell_background (tree& tformat, int row, int col, const string& color) {
+  tformat << tree (CWITH, as_string (row), as_string (row), as_string (col),
+                   as_string (col), "cell-background", color);
+}
+
 template <typename Func>
 std::pair<double, double>
 measure_two_calls_us (Func&& func, int iterations) {
@@ -521,7 +527,7 @@ TestTablePerformance::test_handle_decorations_performance () {
   edit_env env= create_test_env ();
 
   // Test different table sizes - use smaller sizes for dense decorations
-  const int sizes[]  = {5, 10, 15, 20};
+  const int sizes[]  = {50, 100, 200};
   const int num_sizes= sizeof (sizes) / sizeof (sizes[0]);
 
   for (int idx= 0; idx < num_sizes; idx++) {
@@ -537,13 +543,22 @@ TestTablePerformance::test_handle_decorations_performance () {
       T[i]= R;
     }
 
-    tree decoration_tree= create_expanding_decoration_tree ();
     tree tformat (TFORMAT);
 
-    // Add decoration to EVERY cell - this will stress the loop optimization
+    // Define a list of colors to use for background decorations
+    array<string> colors;
+    colors << string ("red") << string ("blue") << string ("green")
+           << string ("yellow") << string ("purple") << string ("orange")
+           << string ("pink") << string ("brown") << string ("gray")
+           << string ("cyan");
+
+    // Add background color to EVERY cell - this will stress the loop
+    // optimization
     for (int i= 0; i < size; i++) {
       for (int j= 0; j < size; j++) {
-        add_cell_decoration (tformat, i, j, decoration_tree);
+        // Use different colors for each cell to increase processing complexity
+        string color= colors[(i * size + j) % N (colors)];
+        add_cell_background (tformat, i, j, color);
       }
     }
 
@@ -558,7 +573,7 @@ TestTablePerformance::test_handle_decorations_performance () {
           Q_UNUSED (tab);
         },
         as_string (size) * "x" * as_string (size) *
-            " decorated table handle_decorations");
+            " background color table handle_decorations");
 
     QVERIFY (time_us >= 0);
   }
