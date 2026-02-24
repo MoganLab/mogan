@@ -415,12 +415,6 @@ add_cell_decoration (tree& tformat, int row, int col, const tree& decoration) {
                    as_string (col), "cell-decoration", decoration);
 }
 
-void
-add_cell_background (tree& tformat, int row, int col, const string& color) {
-  tformat << tree (CWITH, as_string (row), as_string (row), as_string (col),
-                   as_string (col), "cell-background", color);
-}
-
 template <typename Func>
 std::pair<double, double>
 measure_two_calls_us (Func&& func, int iterations) {
@@ -526,14 +520,15 @@ TestTablePerformance::test_handle_decorations_performance () {
   cache_refresh ();
   edit_env env= create_test_env ();
 
-  // Test different table sizes - use smaller sizes for dense decorations
-  const int sizes[]  = {50, 100, 200};
-  const int num_sizes= sizeof (sizes) / sizeof (sizes[0]);
+  // Test different table sizes for real decoration expansion workload
+  const int sizes[]        = {30, 60, 100};
+  const int num_sizes      = sizeof (sizes) / sizeof (sizes[0]);
+  tree      decoration_tree= create_expanding_decoration_tree ();
 
   for (int idx= 0; idx < num_sizes; idx++) {
     const int size= sizes[idx];
 
-    // Create a table with decorations
+    // Base table content
     tree T (TABLE, size);
     for (int i= 0; i < size; i++) {
       tree R (ROW, size);
@@ -545,37 +540,65 @@ TestTablePerformance::test_handle_decorations_performance () {
 
     tree tformat (TFORMAT);
 
-    // Define a list of colors to use for background decorations
-    array<string> colors;
-    colors << string ("red") << string ("blue") << string ("green")
-           << string ("yellow") << string ("purple") << string ("orange")
-           << string ("pink") << string ("brown") << string ("gray")
-           << string ("cyan");
-
-    // Add background color to EVERY cell - this will stress the loop
-    // optimization
-    for (int i= 0; i < size; i++) {
-      for (int j= 0; j < size; j++) {
-        // Use different colors for each cell to increase processing complexity
-        string color= colors[(i * size + j) % N (colors)];
-        add_cell_background (tformat, i, j, color);
-      }
-    }
+    // Add real cell-decoration (with TMARKER) so handle_decorations()
+    // enters expansion path (status == 1), not only format scanning.
+    // NOTE: CWITH row/col indices are 1-based in this codebase.
+    for (int i= 1; i <= size; i+= 2)
+      for (int j= 1; j <= size; j+= 2)
+        add_cell_decoration (tformat, i, j, decoration_tree);
 
     tformat << T;
 
-    // Measure the time for typeset + handle_decorations
-    auto time_us= measure_time (
-        [&] {
-          table tab (env);
-          tab->typeset (tformat, path ());
-          tab->handle_decorations ();
-          Q_UNUSED (tab);
-        },
-        as_string (size) * "x" * as_string (size) *
-            " background color table handle_decorations");
+    // Measure handle_decorations itself (avoid mixing typeset cost)
+    // Use warmup + median to reduce micro-benchmark noise.
+    const int              warmup_iterations= 5;
+    const int              iterations= 31; // odd number for stable median
+    std::vector<long long> samples;
+    samples.reserve (iterations);
 
-    QVERIFY (time_us >= 0);
+    int rows_before= 0, cols_before= 0;
+    int rows_after= 0, cols_after= 0;
+
+    // Warmup
+    for (int k= 0; k < warmup_iterations; k++) {
+      table tab (env);
+      tab->typeset (tformat, path ());
+      tab->handle_decorations ();
+    }
+
+    for (int k= 0; k < iterations; k++) {
+      table tab (env);
+      tab->typeset (tformat, path ());
+
+      rows_before= tab->nr_rows;
+      cols_before= tab->nr_cols;
+
+      auto start= std::chrono::high_resolution_clock::now ();
+      tab->handle_decorations ();
+      auto end= std::chrono::high_resolution_clock::now ();
+
+      rows_after= tab->nr_rows;
+      cols_after= tab->nr_cols;
+      samples.push_back (
+          std::chrono::duration_cast<std::chrono::microseconds> (end - start)
+              .count ());
+    }
+
+    std::sort (samples.begin (), samples.end ());
+    double    median_us= (double) samples[iterations / 2];
+    long long min_us   = samples.front ();
+    long long max_us   = samples.back ();
+
+    qDebug () << as_charp (as_string (size) * "x" * as_string (size) *
+                           " handle_decorations median")
+              << ":" << median_us << "μs"
+              << "(min:" << min_us << "max:" << max_us << ")"
+              << "(" << rows_before << "x" << cols_before << "->" << rows_after
+              << "x" << cols_after << ")";
+
+    QVERIFY (median_us >= 0.0);
+    QVERIFY (rows_after > rows_before);
+    QVERIFY (cols_after > cols_before);
   }
 }
 
