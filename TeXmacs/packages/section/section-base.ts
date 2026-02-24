@@ -318,9 +318,9 @@
     <render-bibliography|<localize|<arg|name>>|<arg|body>>
   </macro>>
 
-  <drd-props|bibliography|arity|4|identifier|0|string|1|url|2>
+  <drd-props|bibliography|arity|4|accessible|3|identifier|0|string|1|url|2>
 
-  <drd-props|bibliography*|arity|5|identifier|0|string|1|url|2>
+  <drd-props|bibliography*|arity|5|accessible|4|identifier|0|string|1|url|2>
 
   <assign|thebibliography|<\macro|largest|body>
     <render-bibliography|<bibliography-text>|<bib-list|<arg|largest>|<arg|body>>>
