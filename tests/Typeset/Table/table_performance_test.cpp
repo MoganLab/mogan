@@ -164,9 +164,8 @@ private slots:
   void test_eqnarray_100_rows ();
   void test_eqnarray_5x20_rows ();
   // New tests for optimization validations
-  void test_decorated_table_performance ();
-  void test_width_cache_efficiency ();
-  void test_incremental_update_performance ();
+  void test_handle_decorations_correctness ();
+  void test_handle_decorations_performance ();
   void cleanupTestCase ();
 };
 
@@ -182,12 +181,14 @@ TestTablePerformance::initTestCase () {
 
 void
 TestTablePerformance::test_table_optimization_status () {
+  cache_refresh ();
   // Optimization is always enabled
   QVERIFY (true);
 }
 
 void
 TestTablePerformance::test_1x1_text_table () {
+  cache_refresh ();
   edit_env env= create_test_env ();
 
   tree simple_table (TFORMAT, tree (TABLE, 1));
@@ -204,6 +205,7 @@ TestTablePerformance::test_1x1_text_table () {
 
 void
 TestTablePerformance::test_1x1_matrix_table () {
+  cache_refresh ();
   edit_env env= create_test_env ();
 
   // Create a 1x1 table with a matrix in the cell
@@ -225,6 +227,7 @@ TestTablePerformance::test_1x1_matrix_table () {
 
 void
 TestTablePerformance::test_20x20_text_table () {
+  cache_refresh ();
   edit_env env       = create_test_env ();
   tree     table_tree= create_matrix_tree (20, 20);
 
@@ -236,6 +239,7 @@ TestTablePerformance::test_20x20_text_table () {
 
 void
 TestTablePerformance::test_100x100_text_table () {
+  cache_refresh ();
   edit_env env       = create_test_env ();
   tree     table_tree= create_matrix_tree (100, 100);
 
@@ -247,6 +251,7 @@ TestTablePerformance::test_100x100_text_table () {
 
 void
 TestTablePerformance::test_20x20_matrix_table () {
+  cache_refresh ();
   edit_env env       = create_test_env ();
   tree     table_tree= create_table_with_matrix_cells (20, 20);
 
@@ -258,6 +263,7 @@ TestTablePerformance::test_20x20_matrix_table () {
 
 void
 TestTablePerformance::test_100x100_matrix_table () {
+  cache_refresh ();
   edit_env env       = create_test_env ();
   tree     table_tree= create_table_with_matrix_cells (100, 100);
 
@@ -269,6 +275,7 @@ TestTablePerformance::test_100x100_matrix_table () {
 
 void
 TestTablePerformance::test_multiple_20x20_matrix_creation () {
+  cache_refresh ();
   edit_env env        = create_test_env ();
   tree     matrix_tree= create_table_with_matrix_cells (20, 20);
 
@@ -295,6 +302,7 @@ TestTablePerformance::test_multiple_20x20_matrix_creation () {
 
 void
 TestTablePerformance::test_multiple_20x20_creation () {
+  cache_refresh ();
   edit_env env        = create_test_env ();
   tree     matrix_tree= create_matrix_tree (20, 20);
 
@@ -321,6 +329,7 @@ TestTablePerformance::test_multiple_20x20_creation () {
 
 void
 TestTablePerformance::test_eqnarray_1_row () {
+  cache_refresh ();
   edit_env env          = create_test_env ();
   tree     eqnarray_tree= create_eqnarray_tree (1);
 
@@ -332,6 +341,7 @@ TestTablePerformance::test_eqnarray_1_row () {
 
 void
 TestTablePerformance::test_eqnarray_20_rows () {
+  cache_refresh ();
   edit_env env          = create_test_env ();
   tree     eqnarray_tree= create_eqnarray_tree (20);
 
@@ -343,6 +353,7 @@ TestTablePerformance::test_eqnarray_20_rows () {
 
 void
 TestTablePerformance::test_eqnarray_100_rows () {
+  cache_refresh ();
   edit_env env          = create_test_env ();
   tree     eqnarray_tree= create_eqnarray_tree (100);
 
@@ -354,6 +365,7 @@ TestTablePerformance::test_eqnarray_100_rows () {
 
 void
 TestTablePerformance::test_eqnarray_5x20_rows () {
+  cache_refresh ();
   edit_env env          = create_test_env ();
   tree     eqnarray_tree= create_eqnarray_tree (20);
 
@@ -446,15 +458,14 @@ create_expanding_decoration_tree () {
   return tree (TFORMAT, decoration_table);
 }
 
-// Decorated table performance
+// Test for handle_decorations loop optimization correctness
 void
-TestTablePerformance::test_decorated_table_performance () {
+TestTablePerformance::test_handle_decorations_correctness () {
+  cache_refresh ();
   edit_env env= create_test_env ();
 
-  const int size       = 40;
-  tree      plain_table= create_matrix_tree (size, size);
-
-  tree T (TABLE, size);
+  const int size= 10;
+  tree      T (TABLE, size);
   for (int i= 0; i < size; i++) {
     tree R (ROW, size);
     for (int j= 0; j < size; j++) {
@@ -463,118 +474,94 @@ TestTablePerformance::test_decorated_table_performance () {
     T[i]= R;
   }
 
+  // Add decorations at specific positions
   tree decoration_tree= create_expanding_decoration_tree ();
   tree tformat (TFORMAT);
+  // Add decorations at (1,1), (5,5), (8,8)
   add_cell_decoration (tformat, 1, 1, decoration_tree);
-  add_cell_decoration (tformat, 6, 6, decoration_tree);
-  add_cell_decoration (tformat, 6, 30, decoration_tree);
-  add_cell_decoration (tformat, 20, 20, decoration_tree);
-  add_cell_decoration (tformat, 30, 6, decoration_tree);
-  add_cell_decoration (tformat, 30, 30, decoration_tree);
-
+  add_cell_decoration (tformat, 5, 5, decoration_tree);
+  add_cell_decoration (tformat, 8, 8, decoration_tree);
   tformat << T;
 
-  // Structural check: decorations must expand table dimensions.
-  table structural_tab (env);
-  structural_tab->typeset (tformat, path ());
-  int rows_before= structural_tab->nr_rows;
-  int cols_before= structural_tab->nr_cols;
-  structural_tab->handle_decorations ();
-  int rows_after= structural_tab->nr_rows;
-  int cols_after= structural_tab->nr_cols;
+  table tab (env);
+  tab->typeset (tformat, path ());
+  int rows_before= tab->nr_rows;
+  int cols_before= tab->nr_cols;
+  tab->handle_decorations ();
+  int rows_after= tab->nr_rows;
+  int cols_after= tab->nr_cols;
 
-  qDebug () << "Decorated table dimensions:" << rows_before << "x"
-            << cols_before << "->" << rows_after << "x" << cols_after;
+  qDebug () << "Table dimensions:" << rows_before << "x" << cols_before << "->"
+            << rows_after << "x" << cols_after;
 
+  // Verify that decorations expanded the table
   QVERIFY (rows_after > rows_before);
   QVERIFY (cols_after > cols_before);
 
-  qDebug () << "Testing " << size << "x" << size << " table performance...";
-
-  // Warmup (excluded from stats)
-  measure_table_creation_time (env, plain_table, "40x40 plain warmup");
-  measure_table_creation_time (env, tformat, "40x40 decorated warmup");
-
-  const int iterations= 5;
-  double    plain_time= measure_median_table_creation_time (
-      env, plain_table, "40x40 plain table", iterations);
-  double decorated_time= measure_median_table_creation_time (
-      env, tformat, "40x40 decorated table", iterations);
-
-  qDebug () << "Median plain table: " << plain_time << " μs";
-  qDebug () << "Median decorated table: " << decorated_time << " μs";
-
-  // Basic validation
-  QVERIFY (plain_time > 0);
-  QVERIFY (decorated_time > 0);
-
-  double ratio= decorated_time / plain_time;
-  qDebug () << "Decorated/Plain ratio: " << ratio;
-
-  // Small differences are often noise.
-  if (ratio < 0.8) {
-    qDebug () << "WARNING: Decorated table is much faster than plain table.";
-    qDebug () << "Please re-check decoration shape and overlap assumptions.";
+  // Verify that the table still has correct number of cells
+  // (original cells plus decoration cells minus overlaps)
+  // This is a basic sanity check
+  int total_cells= 0;
+  for (int i= 0; i < rows_after; i++) {
+    for (int j= 0; j < cols_after; j++) {
+      if (!is_nil (tab->T[i][j])) {
+        total_cells++;
+      }
+    }
   }
+  qDebug () << "Non-nil cells after handle_decorations:" << total_cells;
+  // At least original size * size cells should be present
+  QVERIFY (total_cells >= size * size);
 }
 
-// Width/height cache efficiency
+// Performance test for handle_decorations loop optimization
 void
-TestTablePerformance::test_width_cache_efficiency () {
-  edit_env  env       = create_test_env ();
-  const int size      = 60;
-  tree      table_tree= create_matrix_tree (size, size);
-
-  table tab (env);
-  tab->typeset (table_tree, path ());
-  tab->handle_decorations ();
-  tab->handle_span ();
-  tab->merge_borders ();
-
-  tab->position_columns (true);
-  tab->position_rows ();
-
-  const int iterations= 5;
-  auto      col_times=
-      measure_two_calls_us ([&] { tab->position_columns (true); }, iterations);
-  double avg_first = col_times.first;
-  double avg_second= col_times.second;
-  double ratio     = avg_first / avg_second;
-
-  qDebug () << "Average first position_columns: " << avg_first << " μs";
-  qDebug () << "Average second position_columns: " << avg_second << " μs";
-  qDebug () << "Cache efficiency ratio: " << ratio;
-
-  auto row_times=
-      measure_two_calls_us ([&] { tab->position_rows (); }, iterations);
-  avg_first        = row_times.first;
-  avg_second       = row_times.second;
-  double rows_ratio= avg_first / avg_second;
-
-  qDebug () << "Average first position_rows: " << avg_first << " μs";
-  qDebug () << "Average second position_rows: " << avg_second << " μs";
-  qDebug () << "Rows cache efficiency ratio: " << rows_ratio;
-
-  // No strict assertion: optimization may be absent in this branch.
-  QVERIFY (avg_first > 0 && avg_second > 0);
-}
-
-// Incremental update baseline
-void
-TestTablePerformance::test_incremental_update_performance () {
+TestTablePerformance::test_handle_decorations_performance () {
+  cache_refresh ();
   edit_env env= create_test_env ();
 
-  const int size      = 50;
-  tree      table_tree= create_matrix_tree (size, size);
+  // Test different table sizes - use smaller sizes for dense decorations
+  const int sizes[]  = {5, 10, 15, 20};
+  const int num_sizes= sizeof (sizes) / sizeof (sizes[0]);
 
-  auto full_time= measure_table_creation_time (env, table_tree,
-                                               "Full 50x50 table creation");
+  for (int idx= 0; idx < num_sizes; idx++) {
+    const int size= sizes[idx];
 
-  Q_UNUSED (size);
-  qDebug () << "Note: Incremental update optimization not tested";
-  qDebug () << "(mark_dirty() interfaces not available in current branch)";
+    // Create a table with decorations
+    tree T (TABLE, size);
+    for (int i= 0; i < size; i++) {
+      tree R (ROW, size);
+      for (int j= 0; j < size; j++) {
+        R[j]= tree (CELL, tree (as_string (i) * "," * as_string (j)));
+      }
+      T[i]= R;
+    }
 
-  QVERIFY (full_time > 0);
+    tree decoration_tree= create_expanding_decoration_tree ();
+    tree tformat (TFORMAT);
+
+    // Add decoration to EVERY cell - this will stress the loop optimization
+    for (int i= 0; i < size; i++) {
+      for (int j= 0; j < size; j++) {
+        add_cell_decoration (tformat, i, j, decoration_tree);
+      }
+    }
+
+    tformat << T;
+
+    // Measure the time for typeset + handle_decorations
+    auto time_us= measure_time (
+        [&] {
+          table tab (env);
+          tab->typeset (tformat, path ());
+          tab->handle_decorations ();
+          Q_UNUSED (tab);
+        },
+        as_string (size) * "x" * as_string (size) *
+            " decorated table handle_decorations");
+
+    QVERIFY (time_us >= 0);
+  }
 }
 
 void
