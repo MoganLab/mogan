@@ -20,11 +20,16 @@
 
 (define-group inline-code-tag
   verbatim scm cpp mmx r fortran
-  python scilab shell)
+  python scilab shell
+  bash csv gnuplot goldfish java javascript json julia lua matlab moonbit
+  r7rs scala sql)
 
 (define-group block-code-tag
   verbatim-code scm-code cpp-code mmx-code r-code fortran-code
-  python-code scilab-code shell-code)
+  python-code scilab-code shell-code
+  bash-code csv-code gnuplot-code goldfish-code java-code javascript-code
+  json-code julia-code lua-code matlab-code moonbit-code r7rs-code
+  scala-code sql-code)
 
 ;; Listings
 (define-group listing-tag

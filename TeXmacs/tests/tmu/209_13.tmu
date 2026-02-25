@@ -1,0 +1,92 @@
+<TMU|<tuple|1.1.0|2026.1.2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|python|java>>
+
+<\body>
+  C++代码块：
+
+  <\cpp-code>
+    #include \<less\>stdio.h\<gtr\>
+
+    cout\<less\>\<less\>"Hello World!"
+  </cpp-code>
+
+  C++行内代码：
+
+  <cpp|cout\<less\>\<less\>"Hello World!";>
+
+  C++代码清单：
+
+  <\cpp-listing>
+    #include \<less\>stdio.h\<gtr\>
+
+    cout\<less\>\<less\>"Hello World!";
+  </cpp-listing>
+
+  <with|par-mode|center|>
+
+  \;
+
+  Python代码块：
+
+  <\python>
+    nums = [1, 2, 3, 4]
+
+    for x in nums:
+
+    \ \ \ \ print(x)
+  </python>
+
+  Python行内代码
+
+  \;
+
+  <\python>
+    print("Hello, World!")
+
+    \;
+  </python>
+
+  \;
+
+  Scheme代码清单：
+
+  <\scm-listing>
+    (display "Hello, World!")
+
+    (newline)
+  </scm-listing>
+
+  \;
+
+  Java代码块：
+
+  <\java-code>
+    public class Main {
+
+    \ \ \ \ public static void main(String[] args) {
+
+    \ \ \ \ \ \ \ \ System.out.println("Hello, World!");
+
+    \ \ \ \ }
+
+    }
+  </java-code>
+
+  \;
+
+  Java行内代码：
+
+  <java|System.out.println("Hello, World!");>
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

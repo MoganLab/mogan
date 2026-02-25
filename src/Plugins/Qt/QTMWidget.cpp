@@ -156,6 +156,7 @@ QTMWidget::scrollContentsBy (int dx, int dy) {
   tm_widget ()->scroll_completion_popup_by (dx, dy);
   tm_widget ()->scroll_math_completion_popup_by (dx, dy);
   tm_widget ()->scroll_image_popup_by (dx, dy);
+  tm_widget ()->scroll_code_popup_by (dx, dy);
 }
 
 void

@@ -380,10 +380,29 @@ verbatim_document_to_tree (string s, bool wrap, string enc) {
 
 bool
 is_verbatim (tree t) {
-  return is_compound (t, "cpp-code") || is_compound (t, "mmx-code") ||
-         is_compound (t, "scm-code") || is_compound (t, "shell-code") ||
-         is_compound (t, "code") || is_compound (t, "verbatim") ||
-         is_compound (t, "scilab-code") || is_compound (t, "scala-code") ||
-         is_compound (t, "java-code") || is_compound (t, "latex_preview") ||
-         is_compound (t, "picture-mixed");
+  return is_compound (t, "code") || is_compound (t, "verbatim") ||
+         is_compound (t, "verbatim-code") || is_compound (t, "scm") ||
+         is_compound (t, "cpp") || is_compound (t, "mmx") ||
+         is_compound (t, "r") || is_compound (t, "fortran") ||
+         is_compound (t, "python") || is_compound (t, "scilab") ||
+         is_compound (t, "shell") || is_compound (t, "bash") ||
+         is_compound (t, "csv") || is_compound (t, "gnuplot") ||
+         is_compound (t, "goldfish") || is_compound (t, "goldfish-lang") ||
+         is_compound (t, "java") || is_compound (t, "javascript") ||
+         is_compound (t, "json") || is_compound (t, "julia") ||
+         is_compound (t, "lua") || is_compound (t, "matlab") ||
+         is_compound (t, "moonbit") || is_compound (t, "r7rs") ||
+         is_compound (t, "scala") || is_compound (t, "sql") ||
+         is_compound (t, "scm-code") || is_compound (t, "cpp-code") ||
+         is_compound (t, "mmx-code") || is_compound (t, "r-code") ||
+         is_compound (t, "fortran-code") || is_compound (t, "python-code") ||
+         is_compound (t, "scilab-code") || is_compound (t, "shell-code") ||
+         is_compound (t, "bash-code") || is_compound (t, "csv-code") ||
+         is_compound (t, "gnuplot-code") || is_compound (t, "goldfish-code") ||
+         is_compound (t, "java-code") || is_compound (t, "javascript-code") ||
+         is_compound (t, "json-code") || is_compound (t, "julia-code") ||
+         is_compound (t, "lua-code") || is_compound (t, "matlab-code") ||
+         is_compound (t, "moonbit-code") || is_compound (t, "r7rs-code") ||
+         is_compound (t, "scala-code") || is_compound (t, "sql-code") ||
+         is_compound (t, "latex_preview") || is_compound (t, "picture-mixed");
 }
