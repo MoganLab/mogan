@@ -19,6 +19,30 @@
 #include "sys_utils.hpp"
 #include "tm_file.hpp"
 
+// Quote a path for use in Ghostscript commands on macOS/Linux.
+// Wraps in double quotes (to preserve spaces in GS option values like
+// -sOutputFile=) and escapes $, backticks, ", and \ so that wordexp
+// does not perform variable/command expansion on the result.
+static string
+gs_path_quote (string s) {
+  string r= "\"";
+  int    n= N (s);
+  for (int i= 0; i < n; i++) {
+    switch (s[i]) {
+    case '$':
+    case '`':
+    case '"':
+    case '\\':
+      r << '\\' << s[i];
+      break;
+    default:
+      r << s[i];
+    }
+  }
+  r << "\"";
+  return r;
+}
+
 static string
 gs_executable () {
   eval ("(use-modules (binary gs))");
@@ -104,7 +128,7 @@ gs_image_size (url image, int& w_pt, int& h_pt) {
         // reading a ps page
         //  real eps pages with proper bounding boxes have been recognized
         //  before this and will have their BoundingBox respected
-        cmd << sys_concretize (image);
+        cmd << gs_path_quote (concretize (image));
         lolly::system::check_stderr (cmd, buf);
         if (DEBUG_CONVERT)
           debug_convert << "gs cmd :" << cmd << LF << "answer :" << buf;
@@ -159,18 +183,20 @@ gs_PDFimage_size (url image, int& w_pt, int& h_pt) {
   string buf;
   string cmd= gs_prefix ();
   if (gs_version () >= 9.50)
-    cmd << "--permit-file-read=" << sys_concretize (image) << " ";
+    cmd << "--permit-file-read=" << gs_path_quote (concretize (image)) << " ";
   cmd << "-dNODISPLAY -q -sFile=";
-  cmd << sys_concretize (image);
+  cmd << gs_path_quote (concretize (image));
   cmd << " pdf_info.ps";
   buf= eval_system (cmd);
   if (occurs ("Unrecoverable error", buf)) {
     cmd= gs_prefix ();
     if (gs_version () >= 9.50)
-      cmd << "--permit-file-read=" << sys_concretize (image) << " ";
+      cmd << "--permit-file-read=" << gs_path_quote (concretize (image)) << " ";
     cmd << "-dNODISPLAY -q -sFile=";
-    cmd << sys_concretize (image);
-    cmd << " " << sys_concretize ("$TEXMACS_PATH/misc/convert/pdf_info.ps");
+    cmd << gs_path_quote (concretize (image));
+    cmd << " "
+        << gs_path_quote (
+               concretize (url ("$TEXMACS_PATH/misc/convert/pdf_info.ps")));
     buf= eval_system (cmd);
   }
   if (DEBUG_CONVERT)
@@ -241,14 +267,14 @@ gs_to_eps (url image,
   cmd= gs_prefix ();
   cmd << "-dQUIET -dNOPAUSE -dBATCH -dSAFER ";
   cmd << "-sDEVICE=" << eps_device ();
-  cmd << " -sOutputFile=" << sys_concretize (eps) << " ";
+  cmd << " -sOutputFile=" << gs_path_quote (concretize (eps)) << " ";
   if (suffix (image) == "pdf") {
     image_size (image, bx2, by2);
     bx1= by1= 0;
     cmd << "-dUseCropBox "
         << " -dDEVICEWIDTHPOINTS=" << as_string (bx2)
         << " -dDEVICEHEIGHTPOINTS=" << as_string (by2) << " "
-        << sys_concretize (image);
+        << gs_path_quote (concretize (image));
   }
   else {
     ps_bounding_box (image, bx1, by1, bx2, by2);
@@ -256,7 +282,7 @@ gs_to_eps (url image,
         << " -dDEVICEHEIGHTPOINTS=" << as_string (by2 - by1) << " ";
     // don't use -dEPSCrop which works incorrectly if (bx1 != 0 || by1 != 0)
     cmd << "-c \" " << as_string (-bx1) << " " << as_string (-by1)
-        << " translate gsave \" " << sys_concretize (image)
+        << " translate gsave \" " << gs_path_quote (concretize (image))
         << " -c \" grestore \"";
   }
   string ans= eval_system (cmd);
@@ -283,8 +309,8 @@ gs_to_ps (url doc, url ps, bool landscape, double paper_h, double paper_w) {
         << " -dDEVICEHEIGHTPOINTS="
         << as_string ((int) (28.36 * paper_h + 0.5));
 
-  cmd << " -sOutputFile=" << sys_concretize (ps) << " ";
-  cmd << sys_concretize (doc);
+  cmd << " -sOutputFile=" << gs_path_quote (concretize (ps)) << " ";
+  cmd << gs_path_quote (concretize (doc));
   cmd << " -c \"[ /Title (" << as_string (tail (ps)) << ") /DOCINFO pdfmark\" ";
 
   // NOTE: when converting from pdf to ps the title of the document is
@@ -301,6 +327,6 @@ void
 tm_gs (url image) {
   string cmd= gs_prefix ();
   cmd << "-q -sDEVICE=x11alpha -dBATCH -dNOPAUSE -dSAFER -dNOEPS ";
-  cmd << sys_concretize (image);
+  cmd << gs_path_quote (concretize (image));
   lolly::system::call (cmd);
 }
