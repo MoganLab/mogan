@@ -254,7 +254,7 @@
 (logic-group latex-modifier-1%
   textnormalfont
   textrm texttt textsf textmd textbf textup textit textsl textsc emph
-  mathrm mathtt mathsf mathmd mathbf mathup mathit mathsl mathnormal bold
+  mathrm mathtt mathsf mathmd mathbf mathup mathit mathsl mathnormal
   mathcal mathfrak mathbb mathbbm mathscr operatorname boldsymbol
   lowercase MakeLowercase uppercase MakeUppercase selectlanguage)
 
