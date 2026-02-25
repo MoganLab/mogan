@@ -103,6 +103,10 @@
 
   <assign|mathbfcal|<macro|var|<with|font|cal|<with|font-series|bold|<arg|var>>>>>
 
+  <assign|bold|<macro|x|<with|font-series|bold|<arg|x>>>>
+
+  <assign|italic|<macro|x|<with|font-shape|italic|<arg|x>>>>
+
   \;
 </body>
 
