@@ -150,6 +150,10 @@
 
   <assign|mathbb|<macro|x|<with|font|Bbb*|font-shape|right|math-font-shape|right|<arg|x>>>>
 
+  <assign|bold|<macro|x|<with|font|bold|<arg|x>>>>
+
+  <assign|italic|<macro|x|<with|font|italic|<arg|x>>>>
+
   <active*|<\src-comment>
     A few symbols for personal use.
   </src-comment>>

@@ -2128,10 +2128,7 @@ latex_command_to_tree (tree t) {
   if (is_tuple (t, "\\mathtt", 1)) return var_m2e (t, MATH_FONT_FAMILY, "tt");
   if (is_tuple (t, "\\mathsf", 1)) return var_m2e (t, MATH_FONT_FAMILY, "ss");
   if (is_tuple (t, "\\mathbf", 1)) return var_m2e (t, MATH_FONT_FAMILY, "bf");
-  if (is_tuple (t, "\\bold", 1)) return var_m2e (t, MATH_FONT_SERIES, "bold");
   if (is_tuple (t, "\\mathit", 1)) return var_m2e (t, MATH_FONT_FAMILY, "it");
-  if (is_tuple (t, "\\italic", 1))
-    return var_m2e (t, MATH_FONT_SERIES, "italic");
   if (is_tuple (t, "\\mathsl", 1)) return var_m2e (t, MATH_FONT_FAMILY, "sl");
   if (is_tuple (t, "\\mathup", 1)) return var_m2e (t, MATH_FONT_FAMILY, "up");
   if (is_tuple (t, "\\mathcal", 1)) return m2e (t, MATH_FONT, "cal");
