@@ -32,6 +32,8 @@
 
   <assign|cursor-color|white>
 
+  <assign|context-color|#5C8086>
+
   <assign|locus-color|white>
 
   <assign|visited-color|white>
