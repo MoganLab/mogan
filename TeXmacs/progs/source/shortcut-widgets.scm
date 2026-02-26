@@ -52,7 +52,7 @@
       (vertical
         (aligned
           (item (text "Shortcut")
-            (resize "350px" "30px"
+            (resize "350px" "60px"
               (texmacs-input `(document (preview-shortcut ,(global-ref u :sh)))
                              `(style (tuple "generic" "shortcut-editor")) u)))
           (item (text "Command")
@@ -89,7 +89,7 @@
     (vertical
       (aligned
         (item (text "Shortcut")
-          (resize "250px" "30px"
+          (resize "250px" "60px"
             (texmacs-input `(document (preview-shortcut ,(global-ref u :sh)))
                            `(style (tuple "generic" "shortcut-editor")) u)))
         (item (text "Command")
