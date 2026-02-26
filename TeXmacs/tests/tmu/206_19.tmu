@@ -1,0 +1,42 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  TeXmacs Computer Roman
+
+  <\equation*>
+    g\<times\>h\<times\>i
+  </equation*>
+
+  Asana Math
+
+  <\equation*>
+    <with|font|Asana Math|g\<times\>h\<times\>i\<times\>ℎ>
+  </equation*>
+
+  Stix Math
+
+  <\equation*>
+    <with|font|Stix Math|g\<times\>h\<times\>i>
+  </equation*>
+
+  Latin Modern Math
+
+  <\equation*>
+    <with|font|Latin Modern Math|g\<times\>h\<times\>i>
+  </equation*>
+
+  Libetinus Math
+
+  <\equation*>
+    <with|font|Libertinus Math|g\<times\>h\<times\>i>
+  </equation*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
