@@ -62,17 +62,20 @@
 ### 安装
 
 #### 墨干（社区版）
-**从 Release 下载**：从 [GitHub releases](https://github.com/XmacsLabs/mogan/releases) 下载针对你平台的最新发行版本。
+**从 Release 下载**：从 [GitHub releases](https://github.com/MoganLab/mogan/releases) 下载针对你平台的最新发行版本。
 
 **从源码构建**：
-```bash
-# 克隆仓库
-git clone https://github.com/XmacsLabs/mogan.git
-cd mogan
 
-# 使用 xmake 构建 stem
-xmake build stem
+克隆仓库：
+```bash
+git clone https://github.com/MoganLab/mogan.git
+cd mogan
 ```
+
+具体的环境配置、依赖安装、构建和运行说明，请参考对应平台的开发指南：
+- [GNU/Linux 开发指南](devel/Develop_on_Linux_ZH.md)
+- [Windows 开发指南](devel/Develop_on_Windows_ZH.md)
+- [macOS 开发指南](devel/Develop_on_macOS_ZH.md)
 
 #### Liii STEM（商业版）
 如需带 AI 能力的商业版，请访问 [Liii STEM 官方网站](https://liiistem.cn) 获取安装选项。
@@ -83,7 +86,7 @@ xmake build stem
 
 ### 社区版资源
 - **墨干官网**: [https://mogan.app](https://mogan.app)
-- **GitHub 仓库**: [github.com/XmacsLabs/mogan](https://github.com/XmacsLabs/mogan)
+- **GitHub 仓库**: [github.com/MoganLab/mogan](https://github.com/MoganLab/mogan)
 - **用户手册**: [Liii/Mogan STEM官方文档](https://liiistem.cn/docs/welcome.html)
 - **视频教程**: 分步学习资料
 
