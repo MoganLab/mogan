@@ -12,6 +12,18 @@ target ("goldfish") do
     set_languages("c++17")
     set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
+    add_files({
+        "$(projectdir)/3rdparty/json-schema-validator/src/smtp-address-validator.cpp",
+        "$(projectdir)/3rdparty/json-schema-validator/src/json-schema-draft7.json.cpp",
+        "$(projectdir)/3rdparty/json-schema-validator/src/json-uri.cpp",
+        "$(projectdir)/3rdparty/json-schema-validator/src/json-validator.cpp",
+        "$(projectdir)/3rdparty/json-schema-validator/src/json-patch.cpp",
+        "$(projectdir)/3rdparty/json-schema-validator/src/string-format-check.cpp",
+    })
+    add_includedirs({
+        "$(projectdir)/3rdparty/nlohmann_json/include",
+        "$(projectdir)/3rdparty/json-schema-validator/src",
+    })
     add_packages("s7")
     add_packages("tbox")
     add_packages("cpr")

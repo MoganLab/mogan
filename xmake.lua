@@ -777,7 +777,9 @@ target("libmogan") do
             "src/Typeset/Page",
             "TeXmacs/include",
             "$(buildir)/glue",
-            "$(projectdir)/TeXmacs/plugins/goldfish/src/"
+            "$(projectdir)/TeXmacs/plugins/goldfish/src/",
+            "$(projectdir)/3rdparty/nlohmann_json/include",
+            "$(projectdir)/3rdparty/json-schema-validator/src"
         }, {public = true})
 
     add_files({
@@ -809,7 +811,8 @@ target("libmogan") do
             "src/Plugins/Xml/**.cpp",
             "src/Plugins/Html/**.cpp",
             "src/Plugins/Updater/**.cpp",
-            "$(projectdir)/TeXmacs/plugins/goldfish/src/**.cpp"})
+            "$(projectdir)/TeXmacs/plugins/goldfish/src/**.cpp",
+            "$(projectdir)/3rdparty/json-schema-validator/src/**.cpp"})
 
     add_files("src/Plugins/Qt/**.cpp", "src/Plugins/Qt/**.hpp")
 

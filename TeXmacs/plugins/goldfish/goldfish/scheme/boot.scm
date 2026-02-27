@@ -1,3 +1,6 @@
+(unless (defined? 'texmacs-module)
+  (set! (*s7* 'scheme-version) 'r7rs))
+
 (define (file-exists? path)
   (if (string? path)
     (if (not (g_access path 0)) ; F_OK

@@ -15,11 +15,14 @@
 ;
 
 (define-library (scheme process-context)
-  (export get-environment-variable command-line)
+  (export get-environment-variable get-environment-variables command-line)
   (begin
 
     (define (get-environment-variable key)
       (g_get-environment-variable key))
+
+    (define (get-environment-variables)
+      (g_getenvs))
 
     (define (command-line)
       (g_command-line))

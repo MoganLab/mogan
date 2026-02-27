@@ -67,9 +67,10 @@
     ;; Time comparison procedures
     time<=? time<? time=? time>=? time>?
     ;; Time arithmetic procedures
-    time-difference
+    add-duration subtract-duration time-difference
     ;; Current time and clock resolution
     current-date current-julian-day current-time time-resolution
+    local-tz-offset
     ;; Date object and accessors
     make-date date?
     date-nanosecond date-second date-minute date-hour
@@ -77,9 +78,15 @@
     date-year-day
     date-week-day date-week-number
     ;; Time/Date/Julian Day/Modified Julian Day Converters
+    time-utc->time-tai time-tai->time-utc
+    time-utc->time-monotonic time-monotonic->time-utc
+    time-tai->time-monotonic time-monotonic->time-tai
     time-utc->date date->time-utc
+    time-tai->date date->time-tai 
+    time-monotonic->date date->time-monotonic
+    date->julian-day date->modified-julian-day
     ;; Date to String/String to Date Converters
-    date->string)
+    date->string string->date)
   (begin
 
     ;; ====================
@@ -211,6 +218,31 @@
     (define (time-difference time1 time2)
       (priv:time-difference time1 time2 (%make-time TIME-DURATION 0 0)))
 
+    (define (priv:time-arithmetic time1 time-duration op)
+      (unless (time? time1)
+        (error 'wrong-type-arg
+               "time arithmetic: time1 must be a time object"
+               (list time1 time-duration)))
+      (unless (and (time? time-duration)
+                   (eq? (time-type time-duration) TIME-DURATION))
+        (error 'wrong-type-arg
+               "time arithmetic: time-duration must be a TIME-DURATION object"
+               (list time1 time-duration)))
+      (receive (secs nanos)
+               (floor/ (op (priv:time->nanoseconds time1)
+                           (priv:time->nanoseconds time-duration))
+                       priv:NANO)
+        (let ((type (time-type time1)))
+          (if (eq? type TIME-DURATION)
+            (%make-time type nanos secs)
+            (make-time type nanos secs)))))
+
+    (define (add-duration time1 time-duration)
+      (priv:time-arithmetic time1 time-duration +))
+
+    (define (subtract-duration time1 time-duration)
+      (priv:time-arithmetic time1 time-duration -))
+
     ;; ====================
     ;; Current time and clock resolution
     ;; ====================
@@ -312,8 +344,34 @@
 
     ;; ====================
 
-    (define* (current-date (tz-offset 'TODO-GET-LOCAL-TZ-FROM-OS))
-      (error 'todo "TODO"))
+    (define (priv:round-offset-to-minute offset)
+      (let* ((sign (if (negative? offset) -1 1))
+             (abs-off (abs offset))
+             (q (quotient abs-off 60))
+             (r (remainder abs-off 60)))
+        (* sign (if (>= r 30) (+ q 1) q) 60)))
+
+    (define (local-tz-offset)
+      (let ((time-vec (g_datetime-now)))
+        (if (and (vector? time-vec) (= (vector-length time-vec) 7))
+          (let* ((year   (vector-ref time-vec 0))
+                 (month  (vector-ref time-vec 1))
+                 (day    (vector-ref time-vec 2))
+                 (hour   (vector-ref time-vec 3))
+                 (minute (vector-ref time-vec 4))
+                 (second (vector-ref time-vec 5)))
+            (receive (utc-sec utc-usec) (glue:get-time-of-day)
+              (let* ((days (priv:days-since-epoch year month day))
+                     (local-sec (+ (* days priv:SID)
+                                   (* hour 3600)
+                                   (* minute 60)
+                                   second))
+                     (offset (- local-sec utc-sec)))
+                (priv:round-offset-to-minute offset))))
+          0)))
+
+    (define* (current-date (tz-offset (local-tz-offset)))
+      (time-utc->date (current-time TIME-UTC) tz-offset))
 
     (define (current-julian-day)
       (error 'todo "TODO"))
@@ -418,6 +476,65 @@
     ;; Time/Date/Julian Day/Modified Julian Day Converters
     ;; ====================
 
+    (define (priv:tai->utc-seconds tai-sec)
+      (let lp ((table priv:leap-second-table))
+        (cond
+          ((null? table) (- tai-sec 10))
+          (else
+            (let* ((utc-start (caar table))
+                   (delta (cdar table))
+                   (tai-start (+ utc-start delta)))
+              (if (>= tai-sec tai-start)
+                (- tai-sec delta)
+                (lp (cdr table))))))))
+
+    (define (time-utc->time-tai time-utc)
+      (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
+        (error 'wrong-type-arg "time-utc->time-tai: time-utc must be a TIME-UTC object" time-utc))
+      (make-time TIME-TAI
+                 (time-nanosecond time-utc)
+                 (+ (time-second time-utc)
+                    (priv:leap-second-delta (time-second time-utc)))))
+
+    (define (time-tai->time-utc time-tai)
+      (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
+        (error 'wrong-type-arg "time-tai->time-utc: time-tai must be a TIME-TAI object" time-tai))
+      (make-time TIME-UTC
+                 (time-nanosecond time-tai)
+                 (priv:tai->utc-seconds (time-second time-tai))))
+
+    (define (time-utc->time-monotonic time-utc)
+      (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
+        (error 'wrong-type-arg "time-utc->time-monotonic: time-utc must be a TIME-UTC object" time-utc))
+      (make-time TIME-MONOTONIC
+                 (time-nanosecond time-utc)
+                 (time-second time-utc)))
+
+    (define (time-monotonic->time-utc time-monotonic)
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->time-utc: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (make-time TIME-UTC
+                 (time-nanosecond time-monotonic)
+                 (time-second time-monotonic)))
+
+    (define (time-tai->time-monotonic time-tai)
+      (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
+        (error 'wrong-type-arg
+               "time-tai->time-monotonic: time-tai must be a TIME-TAI object"
+               time-tai))
+      (time-utc->time-monotonic (time-tai->time-utc time-tai)))
+
+    (define (time-monotonic->time-tai time-monotonic)
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->time-tai: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (time-utc->time-tai (time-monotonic->time-utc time-monotonic)))
+
     (define (priv:days-since-epoch year month day)
       ;; Howard Hinnant's days_from_civil algorithm, inverse of civil-from-days
       (let* ((y (- year (if (<= month 2) 1 0)))
@@ -454,9 +571,8 @@
              (y (if (<= m 2) (+ y 1) y)))
         (values y m d)))
 
-    ;; TODO: spec says default tz-offset should be local time zone.
-    ;; We don't have a local tz interface yet, so default is 0 (UTC).
-    (define* (time-utc->date time-utc (tz-offset 0))
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-utc->date time-utc (tz-offset (local-tz-offset)))
       (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
         (error 'wrong-type-arg "time-utc->date: time-utc must be a TIME-UTC object" time-utc))
       (unless (integer? tz-offset)
@@ -481,6 +597,45 @@
                            (date-second date)))
              (utc-sec (- local-sec (date-zone-offset date))))
         (make-time TIME-UTC (date-nanosecond date) utc-sec)))
+
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-tai->date time-tai (tz-offset (local-tz-offset)))
+      (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
+        (error 'wrong-type-arg "time-tai->date: time-tai must be a TIME-TAI object" time-tai))
+      (unless (integer? tz-offset)
+        (error 'wrong-type-arg "time-tai->date: tz-offset must be an integer" tz-offset))
+      (time-utc->date (time-tai->time-utc time-tai) tz-offset))
+
+    (define (date->time-tai date)
+      (time-utc->time-tai (date->time-utc date)))
+
+    ;; Default tz-offset uses local time zone from OS.
+    (define* (time-monotonic->date time-monotonic (tz-offset (local-tz-offset)))
+      (unless (and (time? time-monotonic)
+                   (eq? (time-type time-monotonic) TIME-MONOTONIC))
+        (error 'wrong-type-arg
+               "time-monotonic->date: time-monotonic must be a TIME-MONOTONIC object"
+               time-monotonic))
+      (unless (integer? tz-offset)
+        (error 'wrong-type-arg "time-monotonic->date: tz-offset must be an integer" tz-offset))
+      (time-utc->date (time-monotonic->time-utc time-monotonic) tz-offset))
+
+    (define (date->time-monotonic date)
+      (unless (date? date)
+        (error 'wrong-type-arg "date->time-monotonic: date must be a date object" date))
+      (time-utc->time-monotonic (date->time-utc date)))
+
+    (define (date->julian-day date)
+      (unless (date? date)
+        (error 'wrong-type-arg "date->julian-day: date must be a date object" date))
+      (let* ((t (time-utc->time-monotonic (date->time-utc date)))
+             (secs (time-second t))
+             (nsecs (time-nanosecond t))
+             (total-secs (+ secs (/ nsecs priv:NANO))))
+        (+ priv:TAI-EPOCH-IN-JD (/ total-secs priv:SID))))
+
+    (define (date->modified-julian-day date)
+      (- (date->julian-day date) 4800001/2))
 
     ;; ====================
     ;; Date to String/String to Date Converters
@@ -677,4 +832,392 @@
         (priv:date-printer date format-string
                    (open-input-string format-string)
                    str-port)
-        (get-output-string str-port)))))
+        (get-output-string str-port)))
+
+    (define (priv:string-ci-prefix? str pos prefix)
+      (let* ((plen (string-length prefix))
+             (slen (string-length str)))
+        (and (<= (+ pos plen) slen)
+             (let loop ((i 0))
+               (cond
+                 ((= i plen) #t)
+                 ((char=? (char-downcase (string-ref str (+ pos i)))
+                          (char-downcase (string-ref prefix i)))
+                  (loop (+ i 1)))
+                 (else #f))))))
+
+    (define (priv:skip-to pred str pos)
+      (let ((len (string-length str)))
+        (let loop ((i pos))
+          (cond
+            ((>= i len)
+             (value-error "string->date: input does not match template" str))
+            ((pred (string-ref str i)) i)
+            (else (loop (+ i 1)))))))
+
+    (define (priv:read-digits str pos)
+      (let ((len (string-length str)))
+        (let loop ((i pos))
+          (if (and (< i len) (char-numeric? (string-ref str i)))
+            (loop (+ i 1))
+            (if (= i pos)
+              (value-error "string->date: expected digits" str)
+              (values (substring str pos i) i))))))
+
+    (define (priv:read-fixed-digits str pos n)
+      (let ((end (+ pos n))
+            (len (string-length str)))
+        (when (> end len)
+          (value-error "string->date: expected digits" str))
+        (let loop ((i pos))
+          (if (= i end)
+            (values (substring str pos end) end)
+            (if (char-numeric? (string-ref str i))
+              (loop (+ i 1))
+              (value-error "string->date: expected digits" str))))))
+
+    (define (priv:match-locale str pos vec)
+      (let ((len (vector-length vec)))
+        (let loop ((i 0) (best-index #f) (best-len 0))
+          (if (= i len)
+            (if best-index
+              (values best-index (+ pos best-len))
+              (value-error "string->date: invalid locale name" str))
+            (let ((name (vector-ref vec i)))
+              (if (and (string? name)
+                       (> (string-length name) 0)
+                       (priv:string-ci-prefix? str pos name))
+                (let ((nlen (string-length name)))
+                  (if (> nlen best-len)
+                    (loop (+ i 1) i nlen)
+                    (loop (+ i 1) best-index best-len)))
+                (loop (+ i 1) best-index best-len)))))))
+
+    (define (string->date input-string template-string)
+      (unless (and (string? input-string) (string? template-string))
+        (error 'wrong-type-arg
+               "string->date: input-string and template-string must be strings"
+               (list input-string template-string)))
+      (let* ((input input-string)
+             (len (string-length input))
+             (year #f)
+             (month #f)
+             (day #f)
+             (hour #f)
+             (minute #f)
+             (second #f)
+             (nanosecond #f)
+             (zone-offset #f)
+             (year-day #f)
+             (week-day #f)
+             (week-number #f)
+             (week-start #f)
+             (week-number-iso #f)
+             (hour12 #f)
+             (ampm #f))
+
+        (define (priv:expect-char pos ch)
+          (if (and (< pos len) (char=? (string-ref input pos) ch))
+            (+ pos 1)
+            (value-error "string->date: input does not match template"
+                         (list input template-string))))
+
+        (define (priv:read-number pos skip-pred allow-space? allow-sign?)
+          (let* ((pos (if skip-pred (priv:skip-to skip-pred input pos) pos))
+                 (pos (if (and allow-space?
+                               (< pos len)
+                               (char=? (string-ref input pos) #\space))
+                        (+ pos 1)
+                        pos))
+                 (start pos)
+                 (pos (if (and allow-sign?
+                               (< pos len)
+                               (or (char=? (string-ref input pos) #\+)
+                                   (char=? (string-ref input pos) #\-)))
+                        (+ pos 1)
+                        pos)))
+            (receive (digits end) (priv:read-digits input pos)
+              (values (string->number (substring input start end)) end))))
+
+        (define (priv:parse-tz-offset pos)
+          (cond
+            ((and (< pos len) (char=? (string-ref input pos) #\Z))
+             (values 0 (+ pos 1)))
+            ((and (< pos len)
+                  (or (char=? (string-ref input pos) #\+)
+                      (char=? (string-ref input pos) #\-)))
+             (let* ((sign (if (char=? (string-ref input pos) #\-) -1 1))
+                    (pos (+ pos 1)))
+               (receive (hh pos1) (priv:read-fixed-digits input pos 2)
+                 (let ((pos2 pos1))
+                   (if (and (< pos2 len) (char=? (string-ref input pos2) #\:))
+                     (set! pos2 (+ pos2 1)))
+                   (receive (mm pos3) (priv:read-fixed-digits input pos2 2)
+                     (values (* sign (+ (* (string->number hh) 3600)
+                                        (* (string->number mm) 60)))
+                             pos3))))))
+            (else
+             (value-error "string->date: invalid time zone offset" input))))
+
+        (define (priv:resolve-two-digit-year y)
+          (let* ((y2 (modulo y 100))
+                 (cur-year (date-year (current-date 0)))
+                 (century (* (quotient cur-year 100) 100))
+                 (candidate (+ century y2)))
+            (cond
+              ((< candidate (- cur-year 50)) (+ candidate 100))
+              ((> candidate (+ cur-year 49)) (- candidate 100))
+              (else candidate))))
+
+        (define (priv:parse-directive dir pos)
+          (case dir
+            ((#\~) (priv:expect-char pos #\~))
+            ((#\n) (priv:expect-char pos #\newline))
+            ((#\t) (priv:expect-char pos #\tab))
+            ((#\a)
+             (let ((pos (priv:skip-to char-alphabetic? input pos)))
+               (receive (idx pos2) (priv:match-locale input pos
+                                                     priv:LOCALE-ABBR-WEEKDAY-VECTOR)
+                 pos2)))
+            ((#\A)
+             (let ((pos (priv:skip-to char-alphabetic? input pos)))
+               (receive (idx pos2) (priv:match-locale input pos
+                                                     priv:LOCALE-LONG-WEEKDAY-VECTOR)
+                 pos2)))
+            ((#\b #\h)
+             (let ((pos (priv:skip-to char-alphabetic? input pos)))
+               (receive (idx pos2) (priv:match-locale input pos
+                                                     priv:LOCALE-ABBR-MONTH-VECTOR)
+                 (set! month idx)
+                 pos2)))
+            ((#\B)
+             (let ((pos (priv:skip-to char-alphabetic? input pos)))
+               (receive (idx pos2) (priv:match-locale input pos
+                                                     priv:LOCALE-LONG-MONTH-VECTOR)
+                 (set! month idx)
+                 pos2)))
+            ((#\c) (priv:parse-template priv:LOCALE-DATE-TIME-FORMAT pos))
+            ((#\D) (priv:parse-template "~m/~d/~y" pos))
+            ((#\d)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! day v)
+               pos2))
+            ((#\e)
+             (receive (v pos2) (priv:read-number pos #f #t #f)
+               (set! day v)
+               pos2))
+            ((#\f)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! second v)
+               (let ((pos3 pos2))
+                 (if (and (< pos3 len)
+                          (char=? (string-ref input pos3)
+                                  (string-ref priv:LOCALE-DECIMAL-POINT 0)))
+                   (begin
+                     (set! pos3 (+ pos3 1))
+                     (receive (frac pos4) (priv:read-digits input pos3)
+                       (let ((flen (string-length frac)))
+                         (when (> flen 9)
+                           (value-error "string->date: invalid fractional seconds" input))
+                         (set! nanosecond
+                               (* (string->number frac) (expt 10 (- 9 flen)))))
+                       pos4))
+                   (begin
+                     (set! nanosecond 0)
+                     pos3)))))
+            ((#\H)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! hour v)
+               pos2))
+            ((#\I)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! hour12 v)
+               pos2))
+            ((#\j)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! year-day v)
+               pos2))
+            ((#\k)
+             (receive (v pos2) (priv:read-number pos #f #t #f)
+               (set! hour v)
+               pos2))
+            ((#\l)
+             (receive (v pos2) (priv:read-number pos #f #t #f)
+               (set! hour12 v)
+               pos2))
+            ((#\m)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! month v)
+               pos2))
+            ((#\M)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! minute v)
+               pos2))
+            ((#\N)
+             (let ((pos (priv:skip-to char-numeric? input pos)))
+               (receive (digits pos2) (priv:read-digits input pos)
+                 (when (> (string-length digits) 9)
+                   (value-error "string->date: invalid nanosecond" input))
+                 (set! nanosecond (string->number digits))
+                 pos2)))
+            ((#\p)
+             (let ((pos (priv:skip-to char-alphabetic? input pos)))
+               (cond
+                 ((priv:string-ci-prefix? input pos priv:LOCALE-AM)
+                  (set! ampm 'am)
+                  (+ pos (string-length priv:LOCALE-AM)))
+                 ((priv:string-ci-prefix? input pos priv:LOCALE-PM)
+                  (set! ampm 'pm)
+                  (+ pos (string-length priv:LOCALE-PM)))
+                 (else
+                  (value-error "string->date: invalid am/pm" input)))))
+            ((#\r) (priv:parse-template "~I:~M:~S ~p" pos))
+            ((#\s) (error "Not Implement"))
+            ((#\S)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! second v)
+               pos2))
+            ((#\T) (priv:parse-template "~H:~M:~S" pos))
+            ((#\U)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! week-number v)
+               (set! week-start 0)
+               pos2))
+            ((#\V)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! week-number-iso v)
+               pos2))
+            ((#\w)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! week-day v)
+               pos2))
+            ((#\W)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! week-number v)
+               (set! week-start 1)
+               pos2))
+            ((#\x) (priv:parse-template priv:LOCALE-SHORT-DATE-FORMAT pos))
+            ((#\X) (priv:parse-template priv:LOCALE-TIME-FORMAT pos))
+            ((#\y)
+             (receive (v pos2) (priv:read-number pos #f #f #f)
+               (set! year (priv:resolve-two-digit-year v))
+               pos2))
+            ((#\Y)
+             (receive (v pos2) (priv:read-number pos char-numeric? #f #f)
+               (set! year v)
+               pos2))
+            ((#\z)
+             (receive (v pos2) (priv:parse-tz-offset pos)
+               (set! zone-offset v)
+               pos2))
+            ((#\Z) (error "Not Implement"))
+            ((#\1) (priv:parse-template "~Y-~m-~d" pos))
+            ((#\2) (priv:parse-template "~H:~M:~S~z" pos))
+            ((#\3) (priv:parse-template "~H:~M:~S" pos))
+            ((#\4) (priv:parse-template "~Y-~m-~dT~H:~M:~S~z" pos))
+            ((#\5) (priv:parse-template "~Y-~m-~dT~H:~M:~S" pos))
+            (else (priv:bad-format-error template-string))))
+
+        (define (priv:parse-template tmpl pos)
+          (let ((tlen (string-length tmpl)))
+            (let loop ((ti 0) (pos pos))
+              (if (>= ti tlen)
+                pos
+                (let ((ch (string-ref tmpl ti)))
+                  (if (char=? ch #\~)
+                    (let* ((ti1 (+ ti 1)))
+                      (when (>= ti1 tlen)
+                        (priv:bad-format-error tmpl))
+                      (let* ((next (string-ref tmpl ti1))
+                             (pad? (or (char=? next #\-) (char=? next #\_)))
+                             (dir (if pad?
+                                    (begin
+                                      (when (>= (+ ti1 1) tlen)
+                                        (priv:bad-format-error tmpl))
+                                      (string-ref tmpl (+ ti1 1)))
+                                    next))
+                             (pos2 (priv:parse-directive dir pos))
+                             (ti2 (if pad? (+ ti 3) (+ ti 2))))
+                        (loop ti2 pos2)))
+                    (begin
+                      (when (or (>= pos len)
+                                (not (char=? (string-ref input pos) ch)))
+                        (value-error "string->date: input does not match template"
+                                     (list input template-string)))
+                      (loop (+ ti 1) (+ pos 1)))))))))
+
+        (let ((pos (priv:parse-template template-string 0)))
+          (when (< pos len)
+            (value-error "string->date: input does not match template"
+                         (list input template-string)))
+
+          (let* ((year* (or year 0))
+                 (month* (or month 0))
+                 (day* (or day 0))
+                 (hour* (or hour 0))
+                 (minute* (or minute 0))
+                 (second* (or second 0))
+                 (nanosecond* (or nanosecond 0))
+                 (zone-offset* (or zone-offset 0)))
+
+            (when (and (not hour) hour12)
+              (let ((h (modulo hour12 12)))
+                (set! hour* (if (eq? ampm 'pm) (+ h 12) h))))
+
+            (when (and year-day (or (not month) (not day)))
+              (let ((days-in-year (if (priv:leap-year? year*) 366 365)))
+                (unless (and (integer? year-day)
+                             (<= 1 year-day days-in-year))
+                  (value-error "string->date: invalid day-of-year" input))
+                (receive (yy mm dd)
+                         (priv:civil-from-days
+                           (+ (priv:days-since-epoch year* 1 1)
+                              (- year-day 1)))
+                  (set! month* mm)
+                  (set! day* dd))))
+
+            (when (and (or (not month) (not day))
+                       week-number
+                       (integer? week-start)
+                       (integer? week-day))
+              (let* ((wday-jan1 (priv:week-day 1 1 year*))
+                     (offset (modulo (- week-start wday-jan1) 7))
+                     (wday (modulo (- week-day week-start) 7))
+                     (yday (if (= week-number 0)
+                             (+ 1 (modulo (- week-day wday-jan1) 7))
+                             (+ 1 offset (* (- week-number 1) 7) wday)))
+                     (days-in-year (if (priv:leap-year? year*) 366 365)))
+                (unless (and (integer? yday)
+                             (<= 1 yday days-in-year))
+                  (value-error "string->date: invalid week number" input))
+                (receive (yy mm dd)
+                         (priv:civil-from-days
+                           (+ (priv:days-since-epoch year* 1 1)
+                              (- yday 1)))
+                  (set! month* mm)
+                  (set! day* dd))))
+
+            (when (and (or (not month) (not day))
+                       week-number-iso
+                       (integer? week-day))
+              (let* ((iso-wday (if (= week-day 0) 7 week-day))
+                     (jan4-days (priv:days-since-epoch year* 1 4))
+                     (jan4-wday (priv:week-day 4 1 year*))
+                     (jan4-iso (if (= jan4-wday 0) 7 jan4-wday))
+                     (week1-monday (- jan4-days (- jan4-iso 1)))
+                     (target-days (+ week1-monday
+                                     (* (- week-number-iso 1) 7)
+                                     (- iso-wday 1))))
+                (receive (yy mm dd) (priv:civil-from-days target-days)
+                  (set! month* mm)
+                  (set! day* dd))))
+
+            (make-date nanosecond*
+                       second*
+                       minute*
+                       hour*
+                       day*
+                       month*
+                       year*
+                       zone-offset*)))))
+    ))

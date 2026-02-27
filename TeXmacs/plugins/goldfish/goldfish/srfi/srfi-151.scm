@@ -31,7 +31,7 @@
     (define bitwise-xor logxor)
 
     (define (bitwise-eqv a b)
-      (= (bitwise-xor a b) 0))
+      (bitwise-not (bitwise-xor a b)))
 
     (define (bitwise-nor a b)
       (lognot (bitwise-ior a b)))
