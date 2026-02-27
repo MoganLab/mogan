@@ -36,7 +36,7 @@ xmake build stem
 ```
 
 ### Step 3: Testing
-Refer to [How to Test](Test_ZH.md)
+Refer to [How to Test](Test_EN.md)
 
 ### Step 4: Launch Mogan STEM
 ``` bash
@@ -62,4 +62,4 @@ xmake project -k compile_commands
 This command will generate a compile_commands.json file in the mogan folder. Clangd reads this file to understand the project's structure, thereby avoiding errors related to missing header files.
 
 ## Please format code before committing
-[Formating Guide](https://gitee.com/XmacsLabs/mogan/blob/main/devel/Format_ZH.md)
+[Formatting Guide](Format_EN.md)

@@ -35,7 +35,7 @@ xmake build stem
 ```
 
 ## Step 4: Testing
-Refer to [How to Test](Test_ZH.md)
+Refer to [How to Test](Test_EN.md)
 
 ## Step 5: Launch Mogan STEM
 ``` bash
@@ -43,4 +43,4 @@ xmake run stem
 ```
 
 ## Please format code before committing
-[Formatting Guide](https://gitee.com/XmacsLabs/mogan/blob/main/devel/Format_ZH.md)
+[Formatting Guide](Format_EN.md)

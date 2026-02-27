@@ -34,7 +34,7 @@
 
 ```powershell
 cd E:\TestFile
-git clone git@gitee.com:XmacsLabs/mogan.git
+git clone https://github.com/MoganLab/mogan.git
 cd mogan
 ```
 
@@ -72,4 +72,4 @@ xmake run stem
 ```
 
 ## commit前请格式化
-[格式化链接](https://gitee.com/XmacsLabs/mogan/blob/main/devel/Format_ZH.md)
+[格式化指南](Format_ZH.md)
