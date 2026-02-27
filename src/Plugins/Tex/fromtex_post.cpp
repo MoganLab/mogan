@@ -338,6 +338,7 @@ parse_pmatrix (tree& r, tree t, int& i, string lb, string rb, string fm) {
     else if (v == tree (END, "bmatrix")) break;
     else if (v == tree (END, "vmatrix")) break;
     else if (v == tree (END, "smallmatrix")) break;
+    else if (v == tree (END, "aligned")) break;
     else if (v == tree (APPLY, "hline")) {
       int howmany= 1;
       while (i + 1 < N (t) &&
@@ -446,6 +447,8 @@ finalize_pmatrix (tree t) {
                  u[i][0] == "tabularx" || u[i][0] == "tabularx*")
           parse_pmatrix (r, u, i, "", "", "tabular*");
         else if (u[i][0] == "cases") parse_pmatrix (r, u, i, "", "", "choice");
+        else if (u[i][0] == "aligned")
+          parse_pmatrix (r, u, i, "", "", "tabular*");
         else if (u[i][0] == "stack") parse_pmatrix (r, u, i, "", "", "stack");
         else if (u[i][0] == "matrix")
           parse_pmatrix (r, u, i, "", "", "tabular*");
