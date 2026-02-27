@@ -43,12 +43,20 @@
         (set! bibwid-style bibwid-default-style)))
   (refresh-now "bibwid-preview"))
 
+(define (bibwid-preview-bg-color)
+  (if (== (get-preference "gui theme") "liii-night") "#202020" "#ffffff"))
+
+(define (bibwid-preview-fg-color)
+  (if (== (get-preference "gui theme") "liii-night") "#ffffff" "#000000"))
+
 (define (bibwid-output-content t style)
   (if (tree-is? t 'string) 
-      '(with "bg-color" "white"
+      `(with "bg-color" ,(bibwid-preview-bg-color)
+         "color" ,(bibwid-preview-fg-color)
          (mini-paragraph "480guipx"
-           (document (concat "Please choose a valid " (BibTeX) " file"))))
-      `(with "bg-color" "#ffffff"
+           (document ,(replace "Please choose a valid %1 file" "BibTeX"))))
+      `(with "bg-color" ,(bibwid-preview-bg-color)
+         "color" ,(bibwid-preview-fg-color)
          (mini-paragraph "480px" ,(bib-process "bib" style (tree->stree t))))))
 
 (define (bibwid-output)

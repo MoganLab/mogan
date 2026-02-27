@@ -18,7 +18,8 @@
 
 (tm-define (bib-sorted-entries l)
   (:mode bib-elsart-num?)
-  l)
+	(with is-entry? (lambda (x) (func? x 'bib-entry))
+		(list-filter l is-entry?)))
 
 (tm-define (bib-format-name x)
   (:mode bib-elsart-num?)

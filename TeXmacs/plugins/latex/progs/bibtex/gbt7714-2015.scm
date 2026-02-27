@@ -18,7 +18,8 @@
 
 (tm-define (bib-sorted-entries l)
   (:mode bib-gbt7714-2015?)
-  l)
+  (with is-entry? (lambda (x) (func? x 'bib-entry))
+    (list-filter l is-entry?)))
 
 ;; 重写条目格式函数以支持所有文献类型
 (tm-define (bib-format-entry n x)
@@ -55,7 +56,6 @@
            ((equal? doctype "newspaper") (bib-format-newspaper n x))
            ((equal? doctype "collection") (bib-format-collection n x))
            ((equal? doctype "patent") (bib-format-patent n x))
-           ((equal? doctype "other") (bib-format-other n x))
            (else (bib-format-misc n x)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -256,7 +256,7 @@
          (has-doi (not (bib-null? (bib-field x "doi"))))
          (online (or has-url has-doi)))
     (cond
-      ((and (not (bib-null? note)) (not (equal? note ""))) note)  ;; 优先使用note字段
+      ((and (not (bib-null? note)) (not (equal? note ""))) note)   ;; 优先使用note字段
       ((equal? type "article") (if online "[J/OL]" "[J]"))         ;; 期刊!
       ((equal? type "book") (if online "[M/OL]" "[M]"))            ;; 普通图书!
       ((equal? type "inbook") (if online "[M/OL]" "[M]"))          ;; 析出图书!
@@ -266,7 +266,7 @@
       ((equal? type "mastersthesis") (if online "[D/OL]" "[D]"))   ;; 学位论文-硕士!
       ((equal? type "techreport") (if online "[R/OL]" "[R]"))      ;; 报告!
       ((equal? type "collection") (if online "[G/OL]" "[G]"))      ;; 汇编!
-      ((equal? type "incollection") (if online "[G/OL]" "[G]"))      ;; 析出汇编!
+      ((equal? type "incollection") (if online "[G/OL]" "[G]"))    ;; 析出汇编!
       ((equal? type "manual") (if online "[M/OL]" "[M]"))          ;; 手册/说明书!
       ((equal? type "standard") (if online "[S/OL]" "[S]"))        ;; 标准!
       ((equal? type "patent") (if online "[P/OL]" "[P]"))          ;; 专利!
@@ -280,7 +280,6 @@
       ((equal? type "dataset") (if online "[DS/OL]" "[DS]"))       ;; 数据集!
       ((equal? type "newspaper") (if online "[N/OL]" "[N]"))       ;; 报纸!
       ((equal? type "misc") (if online "[Z/OL]" "[Z]"))            ;; 其他!
-      ((equal? type "other") (if online "[Z/OL]" "[Z]"))           ;; 其他!
       (else ""))))
 
 ;; 地址:机构格式
@@ -935,18 +934,3 @@
                     ,(bib-document-type-identifier x "dataset")))
          ,(gbt-new-smart-block-with-url
                `(,(bib-format-date x)) x)))))
-
-;; 重写其他格式以添加文献类型标识符 [Z]
-(tm-define (bib-format-other n x)
-  (:mode bib-gbt7714-2015?)
-  `(concat
-     ,(bib-format-bibitem n x)
-     ,(bib-label (list-ref x 2))
-     ,(bib-new-list-spc
-       `(,(bib-new-block (bib-format-author x))
-         ,(bib-new-block
-           `(concat ,(bib-format-field-preserve-case x "title")
-                    ,(bib-document-type-identifier x "other")))
-         ,(gbt-new-smart-block-with-url
-               `(,(bib-format-address-institution x)
-                 ,(bib-format-date x)) x)))))

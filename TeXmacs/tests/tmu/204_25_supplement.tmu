@@ -15,7 +15,7 @@
 
   <cite|bib-format-dataset>
 
-  <\bibliography|bib|tm-gbt7714-2015-author-year|204_25>
+  <\bibliography|bib|tm-gbt7714-2015-author-year|../bib/204_25>
     <\bib-list|6>
       <bibitem*|<natbib-triple|中华人民共和国教育部|中华人民共和国教育部|2022>><label|bib-bib-format-electronic>教育部关于印发《研究生教育学科专业目录（2022年）》的通知[EB/OL]. <newblock>(2022-09-13)[2025-12-25]. http://www.moe.gov.cn/srcsite/A22/moe_833/202209/t20220913_660658.html.<newblock>
 

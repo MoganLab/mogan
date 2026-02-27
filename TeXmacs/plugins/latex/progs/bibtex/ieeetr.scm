@@ -18,7 +18,8 @@
 
 (tm-define (bib-sorted-entries l)
   (:mode bib-ieeetr?)
-  l)
+	(with is-entry? (lambda (x) (func? x 'bib-entry))
+		(list-filter l is-entry?)))
 
 (tm-define (new-list-rec s x)
   (:mode bib-ieeetr?)

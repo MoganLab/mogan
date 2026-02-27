@@ -161,7 +161,7 @@
 
   赵军. 长江岸线资源评价方法[G]//刘昌明,杨桂山. 长江岸线资源调查与评估. 北京: 科学出版社, \ 2020: 45-58.
 
-  <\bibliography|bib|tm-gbt7714-2015|204_25>
+  <\bibliography|bib|tm-gbt7714-2015|../bib/204_25>
     <\bib-list|24>
       <bibitem*|1><label|bib-bib-format-article>王青, 张志学, 张立峰. <newblock>基于深度学习的肺癌病理图像分类方法[J/OL]. <newblock>中国医学影像技术, 2024, 40(1): 52-58[2025-12-25]. https://doi.org/10.13929/j.issn.1003-3289.2024.01.012.<newblock>
 

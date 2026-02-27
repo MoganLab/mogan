@@ -18,4 +18,5 @@
 
 (tm-define (bib-sorted-entries l)
   (:mode bib-unsrt?)
-  l)
+  (with is-entry? (lambda (x) (func? x 'bib-entry))
+    (list-filter l is-entry?)))
