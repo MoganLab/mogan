@@ -1134,28 +1134,22 @@ smart_font_rep::resolve (string c) {
   }
   array<string> a= trimmed_tokenize (family, ",");
 
-  // Special handling for emoji characters:
-  // Prefer text-capable fonts first, fallback to explicit emoji font.
+  // Emoji 字符的特殊处理：优先使用可显示该字符的主字体，其次回退到显式指定的 emoji 字体。
   string range= get_unicode_range (c);
   if (range == "emoji") {
+    // 如果主字体已经支持该字符，则优先使用主字体。
+    // 将字符注册到 smart_map 的 "main" 子字体条目，以避免额外创建
     if (fn[SUBFONT_MAIN]->supports (c)) {
       return sm->add_char (tuple ("main"), c);
     }
 
-    font cfn= closest_font ("Noto CJK SC", variant, series, rshape, sz, dpi, 1);
-    if (!is_nil (cfn) && cfn->supports (c)) {
-      tree key= tuple ("subfont", "Noto CJK SC");
-      int  nr = sm->add_font (key, REWRITE_NONE);
-      initialize_font (nr);
-      return sm->add_char (key, c);
-    }
-
-    // Fallback to explicit emoji family entries.
+    // 回退到显式声明的 emoji 字体配置项。
     for (int i= 0; i < N (a); i++) {
       array<string> parts= trimmed_tokenize (a[i], "=");
       if (N (parts) >= 2 && parts[0] == "emoji") {
-        font efn= closest_font (parts[1], "rm", "medium", "right", sz, dpi, 1);
-        if (!is_nil (efn) && efn->supports (c)) {
+        // 直接创建字体以避免递归调用
+        font cfn= closest_font (parts[1], "rm", "medium", "right", sz, dpi, 1);
+        if (!is_nil (cfn) && cfn->supports (c)) {
           tree key= tuple ("emoji-font", parts[1]);
           int  nr = sm->add_font (key, REWRITE_NONE);
           initialize_font (nr);
