@@ -36,7 +36,7 @@ Mogan STEM is a professional scientific writing platform targeted at mathematics
 - Clear structure for different content types and well-organized document hierarchy
 - Click to insert environments; complex typesetting becomes simple
 
-![hesis-level Edits PRE](./public/images/Thesis-level-Edits.png)
+![Thesis-level Edits PRE](./public/images/Thesis-level-Edits.png)
 
 ### Scientific Document Creation
 - High-quality typesetting: professional document formatting with TeX quality output
@@ -58,14 +58,14 @@ Mogan STEM is a professional scientific writing platform targeted at mathematics
 ### Installation
 
 #### Option 1: Mogan STEM (Community Version)
-From Release: Download the latest release for your platform from [GitHub releases](https://github.com/XmacsLabs/mogan/releases).
+From Release: Download the latest release for your platform from [GitHub releases](https://github.com/MoganLab/mogan/releases).
 
 #### Option 2: Build from Source
 
 Clone the repository:
 
 ```bash
-git clone https://github.com/XmacsLabs/mogan.git
+git clone https://github.com/MoganLab/mogan.git
 cd mogan
 ```
 
@@ -82,7 +82,7 @@ For the commercial version with built-in AI features, please visit the [Liii STE
 
 ### Community Version Resources
 - Mogan website: [https://mogan.app](https://mogan.app)
-- GitHub repository: [github.com/XmacsLabs/mogan](https://github.com/XmacsLabs/mogan)
+- GitHub repository: [github.com/MoganLab/mogan](https://github.com/MoganLab/mogan)
 - User manual: comprehensive guide covering all features ([Liii/Mogan STEM docs](https://liiistem.cn/docs/welcome.html))
 - Video tutorials: step-by-step learning materials
 
