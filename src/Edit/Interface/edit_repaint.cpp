@@ -67,7 +67,11 @@ edit_interface_rep::draw_env (renderer ren) {
     if (!is_nil (foc_rects)) {
       color col= get_env_color (FOCUS_COLOR);
       ren->set_pencil (pencil (col, ren->pixel));
+#ifdef QTTEXMACS
+      ren->draw_selection (foc_rects);
+#else
       ren->draw_rectangles (foc_rects);
+#endif
     }
     if (!is_nil (sem_rects)) {
       if (sem_correct) {

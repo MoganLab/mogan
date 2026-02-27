@@ -630,8 +630,10 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       else selection_correct (p1, p2, q1, q2);
       selection sel= eb->find_check_selection (q1, q2);
       if (N (focus_get ()) >= N (p))
-        if (!recurse || get_preference ("show full context") == "on")
-          rs << outlines (sel->rs, pixel);
+        if (!recurse || get_preference ("show full context") == "on") {
+          if (recurse) rs << outlines (sel->rs, pixel);
+          else rs << thicken (sel->rs, 0, 2 * pixel);
+        }
     }
     set_access_mode (old_mode);
     if (recurse || N (rs) == 0) compute_env_rects (path_up (p), rs, recurse);

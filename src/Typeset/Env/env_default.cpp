@@ -59,7 +59,7 @@ initialize_default_env () {
 
   env (CURSOR_COLOR)         = "#000000";   // cursor color in user interface
   env (MATH_CURSOR_COLOR)    = "#b0f";      // cursor color in math mode
-  env (FOCUS_COLOR)          = "#0ff";      // color of focus rectangles
+  env (FOCUS_COLOR)          = "#00ffff1a"; // color of focus background
   env (CONTEXT_COLOR)        = "#00555518"; // color of context rectangles
   env (SELECTION_COLOR)      = "#2d69f033"; // color of selections
   env (TABLE_SELECTION_COLOR)= "#50f3";   // color of selections of table cells
