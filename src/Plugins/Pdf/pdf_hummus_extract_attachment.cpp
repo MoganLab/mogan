@@ -11,7 +11,10 @@
 
 #include "analyze.hpp"
 #include "file.hpp"
+#include "hashset.hpp"
+#include "lolly/data/lolly_tree.hpp"
 #include "new_buffer.hpp"
+#include "string.hpp"
 #include "sys_utils.hpp"
 #include "tm_debug.hpp"
 #include "tree_helper.hpp"
@@ -28,6 +31,7 @@
 #include "PDFWriter/PDFWriter.h"
 #include "PDFWriter/SafeBufferMacrosDefs.h"
 #include "PDFWriter/Trace.h"
+#include "url.hpp"
 using namespace PDFHummus;
 using namespace IOBasicTypes;
 
@@ -213,6 +217,7 @@ is_internal_style (string style) {
 // return all include or image file url
 static url
 get_url_image_or_include_tree (tree t, url path) {
+  if (is_atomic (t) || N (t) == 0) return url_none ();
   if (is_atomic (t[0])) {
     url pre_url= url (get_label (t[0]));
     if (!exists (pre_url)) {
@@ -276,7 +281,7 @@ array<url>
 get_linked_file_paths (tree t, url path) {
   array<url> tm_and_linked_file;
   string     label= get_label (t);
-  if (label == "image" || label == "include") {
+  if (!is_atomic (t) && N (t) > 0 && (label == "image" || label == "include")) {
     url incl_url= get_url_image_or_include_tree (t, path);
     if (!is_none (incl_url)) tm_and_linked_file << incl_url;
     return tm_and_linked_file;
@@ -371,7 +376,7 @@ replace_url_style_tree (tree t, url path) {
 tree
 replace_with_relative_path (tree t, url path) {
   string label= get_label (t);
-  if (label == "image" || label == "include") {
+  if (!is_atomic (t) && N (t) > 0 && (label == "image" || label == "include")) {
     replace_url_image_or_include_tree (t, path);
     return t;
   }
