@@ -54,11 +54,11 @@
   (if (tree-is? t 'string) 
       `(with "bg-color" ,(bibwid-preview-bg-color)
          "color" ,(bibwid-preview-fg-color)
-         (mini-paragraph "480guipx"
+         (mini-paragraph "1250px"
            (document ,(replace "Please choose a valid %1 file" "BibTeX"))))
       `(with "bg-color" ,(bibwid-preview-bg-color)
          "color" ,(bibwid-preview-fg-color)
-         (mini-paragraph "480px" ,(bib-process "bib" style (tree->stree t))))))
+         (mini-paragraph "1250px" ,(bib-process "bib" style (tree->stree t))))))
 
 (define (bibwid-output)
   (with style (if (and (>= (string-length bibwid-style) 3)
