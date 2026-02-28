@@ -1,0 +1,19 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|number-europe>>
+
+<\body>
+  英文字体下
+
+  光标向右移动到括号里时就会（　）crash
+</body>
+
+<\initial>
+  <\collection>
+    <associate|font|roman>
+    <associate|font-family|rm>
+    <associate|math-font|roman>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
