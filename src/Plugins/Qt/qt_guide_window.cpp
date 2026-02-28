@@ -54,8 +54,8 @@ StartupLoginDialog::setupUi () {
 
   // 创建功能特性标签
   featureLabel1= new QLabel (
-      "1. " + qt_translate ("Register now and receive a 14-day membership."),
-      this); // Register now and receive a 14-day membership.
+      "1. " + qt_translate ("Register now and receive a 7-day membership."),
+      this); // Register now and receive a 7-day membership.
   featureLabel2= new QLabel (
       "2. " + qt_translate ("Log in to sync settings and access all features"),
       this); // Log in to sync settings and access all features
@@ -463,7 +463,7 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
 
   if (success) {
     // 初始化成功
-    updateProgressUI (100, qt_translate ("初始化完成，注册即送14天会员！"),
+    updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
                       qt_translate ("准备就绪"));
 
     // 如果用户已经做出选择，触发过渡
