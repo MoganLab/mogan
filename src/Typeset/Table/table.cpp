@@ -113,8 +113,13 @@ table_rep::typeset_row (int i, tree fm, tree t, path ip) {
   T[i]   = tm_new_array<cell> (nr_cols);
   STACK_NEW_ARRAY (subformat, tree, nr_cols);
   extract_format (fm, subformat, nr_cols);
-  tree old_defer= env->local_begin ("defer-tags", string ("row"));
-  tree old_tags = env->local_begin ("the-tags", tree (TUPLE));
+  bool can_make_tags= (hyphen == "y" && env->read (MODE) == "math" &&
+                       env->read (MATH_DISPLAY) == "true");
+  tree old_defer, old_tags;
+  if (can_make_tags) {
+    old_defer= env->local_begin ("defer-tags", string ("row"));
+    old_tags = env->local_begin ("the-tags", tree (TUPLE));
+  }
   for (j= 0; j < nr_cols; j++) {
     cell& C= T[i][j];
     C      = cell (env);
@@ -127,8 +132,10 @@ table_rep::typeset_row (int i, tree fm, tree t, path ip) {
     C->col_span= min (C->col_span, nr_cols - j);
     if (hyphen == "y") C->row_span= 1;
   }
-  env->local_end ("the-tags", old_tags);
-  env->local_end ("defer-tags", old_defer);
+  if (can_make_tags) {
+    env->local_end ("the-tags", old_tags);
+    env->local_end ("defer-tags", old_defer);
+  }
   STACK_DELETE_ARRAY (subformat);
 }
 

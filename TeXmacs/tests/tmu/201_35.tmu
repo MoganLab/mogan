@@ -1,8 +1,20 @@
-<TMU|<tuple|1.1.0|2025.2.2>>
+<TMU|<tuple|1.1.0|2026.2.0>>
 
 <style|<tuple|generic|number-europe|smart-ref>>
 
 <\body>
+  <\frame>
+    <\equation>
+      A x=B<label|eq1>
+    </equation>
+
+    <\equation>
+      x=A<rsup|-1>B<label|eq2>
+    </equation>
+  </frame>
+
+  \;
+
   <\align>
     <tformat|<table|<row|<cell|f<around*|(|x|)>\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><label|l1a><eq-number><label|l1b>>>|<row|<cell|\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-z<around*|(|x|)>|\<\|\|\>>+<around*|\<\|\|\>|z<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><label|l2a><eq-number><label|l2b><with|math-display|false|<with|math-display|true|>>>>>>
   </align>
@@ -17,16 +29,22 @@
     sin<around*|(|x|)>=cos<around*|(|<frac|\<pi\>|2>-x|)><label|l4>
   </equation>
 
+  \;
+
   <with|font-series|bold|reference>:
 
   <\itemize>
-    <item>in align, line1 label before eq-number: <reference|l1a>, label after eq-number: <reference|l1b>
+    <item>in frame, line1 label: <reference|eq1>, line2 label: <reference|eq2>
+  </itemize>
 
-    <item>in align, line2 label before eq-number: <reference|l2a>, label after eq-number: <reference|l2b>
+  <\itemize>
+    <item>in align, line3 label before eq-number: <reference|l1a>, label after eq-number: <reference|l1b>
 
-    <item>in equation, line3 label: <reference|l3>
+    <item>in align, line4 label before eq-number: <reference|l2a>, label after eq-number: <reference|l2b>
 
-    <item>in equation, line4 label: <reference|l4>
+    <item>in equation, line5 label: <reference|l3>
+
+    <item>in equation, line6 label: <reference|l4>
   </itemize>
 
   \;
@@ -34,13 +52,15 @@
   <with|font-series|bold|smart-ref>:
 
   <\itemize>
-    <item>in align line1 label before eq-number:<smart-ref|l1a>, label after eq-number: <smart-ref|l1b>
+    <item>in frame, line1 label: <smart-ref|eq1>, line2 label: <smart-ref|eq2>
 
-    <item>in align line2 label before eq-number:<smart-ref|l2a>, label after eq-number: <smart-ref|l2b>
+    <item>in align line3 label before eq-number:<smart-ref|l1a>, label after eq-number: <smart-ref|l1b>
 
-    <item>in equation, line3 label: <smart-ref|l3>
+    <item>in align line4 label before eq-number:<smart-ref|l2a>, label after eq-number: <smart-ref|l2b>
 
-    <item>in equation, line4 label: <smart-ref|l4>
+    <item>in equation, line5 label: <smart-ref|l3>
+
+    <item>in equation, line6 label: <smart-ref|l4>
   </itemize>
 
   \;
@@ -55,11 +75,13 @@
 
 <\references>
   <\collection>
-    <associate|l1a|<tuple|1|1>>
-    <associate|l1b|<tuple|1|1>>
-    <associate|l2a|<tuple|2|1>>
-    <associate|l2b|<tuple|2|1>>
-    <associate|l3|<tuple|3|1>>
-    <associate|l4|<tuple|4|?>>
+    <associate|eq1|<tuple|1|1>>
+    <associate|eq2|<tuple|2|1>>
+    <associate|l1a|<tuple|3|1>>
+    <associate|l1b|<tuple|3|1>>
+    <associate|l2a|<tuple|4|1>>
+    <associate|l2b|<tuple|4|1>>
+    <associate|l3|<tuple|5|1>>
+    <associate|l4|<tuple|6|1>>
   </collection>
 </references>
