@@ -1,0 +1,58 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  Unicode优先级：
+
+  <\itemize>
+    <item>当前字体
+
+    <item>Noto Color Emoji
+  </itemize>
+
+  \;
+
+  不设置字体
+
+  ♤♡♢♧
+
+  \<spadesuit\>\<heartsuit\>\<diamondsuit\>\<clubsuit\>
+
+  \;
+
+  设置字体为 Arial
+
+  <\with|font|Arial>
+    ♤♡♢♧
+
+    \<spadesuit\>\<heartsuit\>\<diamondsuit\>\<clubsuit\>
+  </with>
+
+  \;
+
+  设置字体为 Noto CJK SC
+
+  <\with|font|Noto CJK SC>
+    ♤♡♢♧
+
+    \<spadesuit\>\<heartsuit\>\<diamondsuit\>\<clubsuit\>
+  </with>
+
+  \;
+
+  设置字体为 Noto Color Emoji
+
+  <\with|font|Noto Color Emoji>
+    ♤♡♢♧
+
+    \<spadesuit\>\<heartsuit\>\<diamondsuit\>\<clubsuit\>
+  </with>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
