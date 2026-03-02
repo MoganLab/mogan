@@ -170,9 +170,36 @@
 (define (enumerate-tag-list)
   '(enumerate enumerate-1 enumerate-2 enumerate-3 enumerate-4))
 
+;; 辅助函数：定义 itemize-tag-list
+(define (itemize-tag-list)
+  '(itemize itemize-dot itemize-minus itemize-arrow))
+
+;; 辅助函数：定义 description-tag-list
+(define (description-tag-list)
+  '(description description-compact description-aligned description-dash description-long description-paragraphs))
+
 ;; 辅助函数：检查是否在有序列表环境中
 (define (in-enumerate-context?)
   (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (enumerate-tag-list)))))))
+
+;; 辅助函数：检查是否在无序列表环境中
+(define (in-itemize-context?)
+  (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (itemize-tag-list)))))))
+
+;; 辅助函数：检查是否在描述列表环境中
+(define (in-description-context?)
+  (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (description-tag-list)))))))
+
+;; 辅助函数：获取当前列表的类型
+;; 辅助函数：获取当前列表的类型
+(define (get-list-type)
+  (cond
+    ((in-description-context?) 'description)
+    ((in-itemize-context?) 'itemize)
+    ((in-enumerate-context?) 'enumerate)
+    (else #f)
+  )
+)
 
 ;; 辅助函数：查找包含 item 的 concat 包装和真正的 item list
 (define (find-item-wrapper-and-list item)
@@ -192,24 +219,10 @@
 )
 
 ;; 辅助函数：提取 item 内容（处理 concat 包装）
-(define (extract-item-content item wrapper)
-  (if (and item (> (tree-arity item) 0))
-      (tree-copy (tree-ref item 0))
-      (if (and wrapper (> (tree-arity wrapper) 1))
-          (let ((content #f))
-            (do ((i 1 (+ i 1)))
-                ((or content (>= i (tree-arity wrapper))))
-              (let ((child (tree-ref wrapper i)))
-                (if (not (tree-is? child 'item))
-                    (set! content (tree-copy child))
-                    #f
-                )
-              )
-            )
-            content
-          )
-          #f
-      )
+(define (extract-item-content wrapper)
+  (if (and wrapper (> (tree-arity wrapper) 1))
+      (tree-copy (tree-ref wrapper 1))
+      #f
   )
 )
 
@@ -227,59 +240,104 @@
   )
 )
 
-;; 在有序列表中实现缩进功能
+;; 在有序和无序列表中实现缩进功能
 (tm-define (kbd-variant t forwards?)
-  (:require (and in-enumerate-context? (tree-is? (focus-tree) 'item)))
-  "在有序列表中按Tab键创建子列表"
+  (:require 
+    (or
+      ;; 有序列表或者无序列表
+      (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
+      ;; 描述列表
+      (and in-description-context? (tree-is? (focus-tree) 'item*))
+    )
+  )
+
+  (display "=== kbd-variant 函数调用开始 ===\n")
+  (display "t: ") (display (tree->stree t)) (display "\n")
+  (display "forwards?: ") (display forwards?) (display "\n")
+  (display "focus-tree: ") (display (tree->stree (focus-tree))) (display "\n")
 
   (let ((item (focus-tree)))
+    
+    (display "item: ") (display (tree->stree item)) (display "\n")
     
     ;; 步骤 1: 查找包装和列表
     (call-with-values (lambda () (find-item-wrapper-and-list item))
       (lambda (wrapper item-list)
         
+        (display "wrapper: ") (display (if wrapper (tree->stree wrapper) #f)) (display "\n")
+        (display "item-list: ") (display (if item-list (tree->stree item-list) #f)) (display "\n")
+        
         (if (and item item-list)
             (let ((item-index (if wrapper (tree-index wrapper) (tree-index item))))
               
+            (display "item-index: ") (display item-index) (display "\n")
+
               (if (> item-index 0)
                   (let ((prev-item (tree-ref item-list (- item-index 1))))
-                    
+
+                    (display "prev-item: ") (display (tree->stree prev-item)) (display "\n")
+                   
                     ;; 步骤 2: 提取内容
-                    (let ((item-content (extract-item-content item wrapper)))
+                    (let ((item-content (extract-item-content wrapper)))
                       
+                      (display "item-content: ") (display (if item-content (tree->stree item-content) #f)) (display "\n")
+
                       ;; 步骤 3: 创建子列表并移动内容
                       (tree-go-to prev-item :end)
                       (insert-return)
-                      (make-tmlist 'enumerate)
+                      (let ((list-type (get-list-type)))
+
+                        (display "list-type: ") (display list-type) (display "\n")
+                        
+                        (if list-type
+                            (make-tmlist list-type)
+                            (make-tmlist 'enumerate) ; 默认使用有序列表
+                        )
+                      )
                       
+                      ;; 步骤4：拷贝内容
                       (if item-content
-                          (let ((new-item (focus-tree)))
-                              (let ((content-stree (tree->stree item-content)))
-                                (tree-set! new-item `(concat (item), content-stree))
-                                (tree-go-to new-item)
+                          (let ((new-item (focus-tree))
+                                (list-type (get-list-type)))
+
+                            (display "new-item: ") (display (tree->stree new-item)) (display "\n")
+                            
+                            (let ((content-stree (tree->stree item-content)))
+                              (if (eq? list-type 'description)
+                                  (tree-set! new-item `(concat (item*), content-stree))
+                                  (tree-set! new-item `(concat (item), content-stree))
                               )
+                              
+                              (display "new-item after set: ") (display (tree->stree new-item)) (display "\n")
+
+                              (tree-go-to new-item)
                             )
+                          )
                           #f
                       )
                       
-                      ;; 步骤 4: 从原列表中移除
+                      ;; 步骤 5: 从原列表中移除
+
+                      (display "Removing item from list...\n")
                       (remove-item-from-list item wrapper item-list)
+                      (display "Item removed successfully\n")
                     )
                   )
                   (begin
+                    (display "item-index is 0, no operation\n")
                     (noop)
                   )
               )
             )
             (begin
-              (and-with p (tree-outer t)
-                (kbd-variant p forwards?)
-              )
+              (display "item or item-list is null, no operation\n")
+              (noop)
             )
         )
       )
     )
   )
+  (display "=== kbd-variant 函数调用结束 ===\n")
 )
 
 (tm-define (kbd-variant t forwards?)
