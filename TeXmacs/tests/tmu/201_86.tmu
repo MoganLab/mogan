@@ -3,27 +3,25 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
+  \;
+
   <doc-data|<doc-title|Title>>
 
   <chapter|Markdown>
 
   <section|section>
 
-  <\equation*>
-    E=m*c<rsup|2>
-  </equation*>
+  <equation*|<around*|(|sin x-cos x|)><rsup|2>=sin<rsup|2>x+cos<rsup|2>x-2sin x cos x=1-2 sin x cos x>
 
   <subsection|subsection>
 
   <\equation*>
-    E=m*c<rsup|2>
+    <frac|1|2><big|int>u<rsup|2>+1 \<mathd\>u=<frac|1|2><big|int>u<rsup|2> \<mathd\>u+<big|int>1\<mathd\>u=<frac|1|2><around*|(|<frac|u<rsup|3>|3>+u|)>+C
   </equation*>
 
   <subsubsection|subsubsection>
 
-  <\equation*>
-    E=m*c<rsup|2>
-  </equation*>
+  <equation*|<big|int><around*|(|sin<rsup|3>x+cos<rsup|3 >x|)>\<mathd\>x=<big|int><around*|(|sin x+cos x|)><frac|<around*|(|sin x-cos x|)><rsup|2>+1|2>\<mathd\>x>
 
   <section|align>
 
@@ -76,20 +74,80 @@
   <section|eunciation>
 
   <\theorem>
-    \;
+    <math|a=b>
   </theorem>
 
   <\proposition>
-    \;
+    <math|a=b>
   </proposition>
+
+  <section|Table>
+
+  <\wide-block>
+    <tformat|<table|<row|<\cell>
+      1
+    </cell>|<\cell>
+      2
+    </cell>|<\cell>
+      3
+    </cell>|<\cell>
+      4
+    </cell>>|<row|<\cell>
+      5
+    </cell>|<\cell>
+      6
+    </cell>|<\cell>
+      7
+    </cell>|<\cell>
+      8
+    </cell>>|<row|<\cell>
+      9
+    </cell>|<\cell>
+      11
+    </cell>|<\cell>
+      10
+    </cell>|<\cell>
+      12
+    </cell>>>>
+  </wide-block>
+
+  \;
+
+  <\big-table|<wide-block|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<table|<row|<\cell>
+    a
+  </cell>|<\cell>
+    d
+  </cell>|<\cell>
+    g
+  </cell>>|<row|<\cell>
+    b
+  </cell>|<\cell>
+    e
+  </cell>|<\cell>
+    h
+  </cell>>|<row|<\cell>
+    c
+  </cell>|<\cell>
+    f
+  </cell>|<\cell>
+    j
+  </cell>>>>>>
+    table1
+  </big-table>
+
+  \;
+
+  <section|Fig>
+
+  \;
+
+  <section|Link>
+
+  <hlink|LiiiSTEM|www.liiistem.cn>
 
   \;
 
   <appendix|>
-
-  \;
-
-  \;
 
   \;
 </body>
@@ -105,7 +163,12 @@
   <\collection>
     <associate|auto-1|<tuple|1|1>>
     <associate|auto-10|<tuple|7|2>>
-    <associate|auto-11|<tuple|A|2>>
+    <associate|auto-11|<tuple|8|2>>
+    <associate|auto-12|<tuple|1|2>>
+    <associate|auto-13|<tuple|9|2>>
+    <associate|auto-14|<tuple|10|2>>
+    <associate|auto-15|<tuple|A|2>>
+    <associate|auto-16|<tuple|A|3>>
     <associate|auto-2|<tuple|1|1>>
     <associate|auto-3|<tuple|1.1|1>>
     <associate|auto-4|<tuple|1.1.1|1>>
@@ -113,12 +176,22 @@
     <associate|auto-6|<tuple|3|1>>
     <associate|auto-7|<tuple|4|1>>
     <associate|auto-8|<tuple|5|1>>
-    <associate|auto-9|<tuple|6|1>>
+    <associate|auto-9|<tuple|6|2>>
   </collection>
 </references>
 
 <\auxiliary>
   <\collection>
+    <\associate|figure>
+      <tuple|normal|<\surround|<hidden-binding|<tuple|auto-14>|1>|>
+        figure1
+      </surround>|<pageref|auto-14>>
+    </associate>
+    <\associate|table>
+      <tuple|normal|<\surround|<hidden-binding|<tuple|auto-12>|1>|>
+        table1
+      </surround>|<pageref|auto-12>>
+    </associate>
     <\associate|toc>
       <vspace*|2fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|font-size|<quote|1.19>|1<space|2spc>Markdown><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|1fn>
 
@@ -138,9 +211,15 @@
 
       <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|6<space|2spc>code><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-9><vspace|0.5fn>
 
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|7<space|2spc>yuyikuai><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-10><vspace|0.5fn>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|7<space|2spc>eunciation><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-10><vspace|0.5fn>
 
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|附录 A<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-11><vspace|0.5fn>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|8<space|2spc>Table><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-11><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|9<space|2spc>Fig><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-13><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|10<space|2spc>Link><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-15><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|附录 A<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-16><vspace|0.5fn>
     </associate>
   </collection>
 </auxiliary>
