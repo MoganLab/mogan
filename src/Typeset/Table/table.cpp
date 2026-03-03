@@ -880,7 +880,29 @@ table_rep::finish () {
   array<string> ha;
   bool          ext_flag = true;
   bool          wide_flag= false;
-  for (i= 0; i < nr_rows; i++)
+// Fix #861: zero borders on cells consumed by row/col spans
+  for (int fi= 0; fi < nr_rows; fi++)
+    for (int fj= 0; fj < nr_cols; fj++)
+      if (!is_nil (T[fi][fj])) {
+        cell C= T[fi][fj];
+        if (C->row_span > 1)
+          for (int di= 1; di < C->row_span && (fi + di) < nr_rows; di++) {
+            cell& D= T[fi + di][fj];
+            if (!is_nil (D)) {
+              D->lborder= 0; D->rborder= 0;
+              D->bborder= 0; D->tborder= 0;
+            }
+          }
+        if (C->col_span > 1)
+          for (int dj= 1; dj < C->col_span && (fj + dj) < nr_cols; dj++) {
+            cell& D= T[fi][fj + dj];
+            if (!is_nil (D)) {
+              D->lborder= 0; D->rborder= 0;
+              D->bborder= 0; D->tborder= 0;
+            }
+          }
+      }
+  // End fix #861  for (i= 0; i < nr_rows; i++)
     for (j= 0; j < nr_cols; j++)
       if (!is_nil (T[i][j])) {
         cell C= T[i][j];

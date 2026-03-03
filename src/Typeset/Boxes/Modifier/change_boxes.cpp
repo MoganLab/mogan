@@ -693,10 +693,10 @@ cell_box_rep::pre_display (renderer& ren) {
 
   if ((l > 0) || (r > 0) || (b > 0) || (t > 0)) {
     ren->set_pencil (fg);
-    ren->fill (lx1, by1, lx2, ty2);
-    ren->fill (rx1, by1, rx2, ty2);
-    ren->fill (lx1, by1, rx2, by2);
-    ren->fill (lx1, ty1, rx2, ty2);
+    if (l > 0) ren->fill (lx1, by1, lx2, ty2);
+    if (r > 0) ren->fill (rx1, by1, rx2, ty2);
+    if (b > 0) ren->fill (lx1, by1, rx2, by2);
+    if (t > 0) ren->fill (lx1, ty1, rx2, ty2);
   }
 }
 
