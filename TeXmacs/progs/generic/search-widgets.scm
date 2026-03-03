@@ -667,9 +667,6 @@ tree 或 #f
            #t))))
 
 (define (replace-next by)
-  ;; Keep searching from the end of the freshly inserted replacement.
-  ;; This prevents replace-all from re-matching inside injected text
-  ;; (e.g. replacing "a" by "axa"), which may lead to crashes.
   (with old-p (cursor-path)
     (and (replace-next* by)
          (with mid-p (cursor-path)
