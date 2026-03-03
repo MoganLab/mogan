@@ -666,18 +666,24 @@ tree 或 #f
              (insert-go-to (tree-copy by*) (path-end by* '())))
            #t))))
 
+(define replace-search-max-limit 1000000)
+
+(define (replace-search-next-after mid-p)
+  (let loop ((limit 100))
+    (set-search-reference mid-p)
+    (set! search-serial (+ search-serial 1))
+    (perform-search-sub limit #t)
+    (set-search-reference mid-p)
+    (cond ((search-next-match #t) #t)
+          ((>= limit replace-search-max-limit) #f)
+          (else (loop (* 2 limit))))))
+
 (define (replace-next by)
   (with old-p (cursor-path)
     (and (replace-next* by)
          (with mid-p (cursor-path)
-           (set-search-reference mid-p)
-           (perform-search*)
-           (with new-p (cursor-path)
-             (or (and (path-less? old-p new-p)
-                      (path-less-eq? mid-p new-p))
-                 (begin
-                   (set-search-reference mid-p)
-                   (search-next-match #t))))))))
+           (and (replace-search-next-after mid-p)
+                (path-less? old-p (cursor-path)))))))
 
 (tm-define (replace-one . args)
   (let ((u    (if (null? args) (master-buffer)  (car args)))
