@@ -42,12 +42,9 @@
                                   (cdr tip-st)))))
     (stree->tree merged-st)))
 
-(define (texmacs-tree->markdown-snippet-with-tip t)
-  (texmacs->generic (markdown-tree-with-tip t) "verbatim-snippet"))
-
 (tm-define (texmacs-tree->markdown-snippet t)
   (:synopsis "Export TeXmacs snippet as plain text and append markdown tip")
-  (texmacs-tree->markdown-snippet-with-tip t))
+  (texmacs->generic (markdown-tree-with-tip t) "verbatim-snippet"))
 
 (converter texmacs-tree markdown-snippet
   (:function texmacs-tree->markdown-snippet))
