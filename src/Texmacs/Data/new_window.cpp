@@ -350,7 +350,15 @@ kill_window (url wname) {
     url win= view_to_window (vs[i]);
     if (!is_none (win) && win != wname) {
       set_current_view (vs[i]);
-      // FIXME: make sure that win obtains the focus of the GUI too
+      // Ensure the editor is properly resumed so that rendering
+      // state (fonts, zoom, extents) is recalculated correctly
+      {
+        tm_view vw= concrete_view (vs[i]);
+        if (vw != NULL && vw->ed != NULL) {
+          vw->ed->resume ();
+          send_keyboard_focus (vw->ed);
+        }
+      }
       delete_window (wname);
       return;
     }
