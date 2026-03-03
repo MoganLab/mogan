@@ -345,6 +345,7 @@
 (lazy-format (data tmu) tmu)
 (lazy-format (data docx) docx)
 (lazy-format (data html) html)
+(lazy-format (data markdown) markdown)
 (lazy-define (convert images tmimage)
              export-selection-as-graphics clipboard-copy-image)
 (lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
@@ -525,4 +526,3 @@
                   (display "Timing:") (display (- (texmacs-time) start-time)) (newline)
                   ;(quit-TeXmacs)
                   ))))))))))))
-
