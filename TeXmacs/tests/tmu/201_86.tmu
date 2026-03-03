@@ -1,0 +1,32 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  aaaaaaa
+
+  \;
+
+  aa
+
+  \;
+
+  \;
+
+  aaaaaaaaa
+
+  \;
+
+  aaa
+
+  \;
+
+  a
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
