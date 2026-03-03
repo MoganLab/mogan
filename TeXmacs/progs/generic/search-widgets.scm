@@ -668,13 +668,28 @@ tree 或 #f
 
 (define replace-search-max-limit 1000000)
 
+(define (replace-next-selection-after-start sels cur)
+  (cond ((or (null? sels) (null? (cdr sels))) #f)
+        ((path-less-eq? cur (car sels))
+         (list (car sels) (cadr sels)))
+        (else (replace-next-selection-after-start (cddr sels) cur))))
+
+(define (replace-move-to-next-after mid-p)
+  (and-with sel (replace-next-selection-after-start
+                  (get-alt-selection "alternate")
+                  mid-p)
+    (selection-set-range-set sel)
+    (go-to* (car sel))
+    (set-search-reference (car sel))
+    (update-search-pos-text "next")
+    #t))
+
 (define (replace-search-next-after mid-p)
   (let loop ((limit 100))
     (set-search-reference mid-p)
     (set! search-serial (+ search-serial 1))
     (perform-search-sub limit #t)
-    (set-search-reference mid-p)
-    (cond ((search-next-match #t) #t)
+    (cond ((replace-move-to-next-after mid-p) #t)
           ((>= limit replace-search-max-limit) #f)
           (else (loop (* 2 limit))))))
 
