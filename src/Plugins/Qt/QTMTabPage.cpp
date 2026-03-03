@@ -21,6 +21,7 @@
 const int MIN_TAB_PAGE_WIDTH= 150;
 // The maximum width of a single tab page (in pixels).
 const int MAX_TAB_PAGE_WIDTH= 200;
+const int STARTUP_TAB_MAX_WIDTH= 100;
 
 // The horizontal padding for tab container (in pixels).
 #ifdef Q_OS_MAC
@@ -99,6 +100,24 @@ url                  g_mostRecentlyClosedTab = url_none ();
 url                  g_mostRecentlyDraggedTab= url_none ();
 QTMTabPageContainer* g_mostRecentlyDraggedBar= nullptr;
 QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
+
+static url
+startup_tab_buffer_name () {
+  return url ("tmfs://startup-tab");
+}
+
+static bool
+is_startup_tab_view (url viewUrl) {
+  if (is_none (viewUrl)) return false;
+  return view_to_buffer (viewUrl) == startup_tab_buffer_name ();
+}
+
+static int
+startup_tab_index (const QList<QTMTabPage*>& tabs) {
+  for (int i= 0; i < tabs.size (); ++i)
+    if (tabs[i] != nullptr && is_startup_tab_view (tabs[i]->m_viewUrl)) return i;
+  return -1;
+}
 
 /******************************************************************************
  * QTMTabPage
@@ -196,6 +215,9 @@ QTMTabPage::resizeEvent (QResizeEvent* e) {
 
 void
 QTMTabPage::mousePressEvent (QMouseEvent* e) {
+  if (is_startup_tab_view (m_viewUrl)) {
+    return QToolButton::mousePressEvent (e);
+  }
   if (e->button () == Qt::LeftButton) {
     g_mostRecentlyDraggedTab= this->m_viewUrl;
     g_mostRecentlyDraggedBar=
@@ -208,6 +230,9 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
+  if (is_startup_tab_view (m_viewUrl)) {
+    return QToolButton::mouseMoveEvent (e);
+  }
   if (!(e->buttons () & Qt::LeftButton)) return QToolButton::mouseMoveEvent (e);
   if ((e->pos () - m_dragStartPos).manhattanLength () < 3) {
     // avoid treating small movement(more like a click) as dragging
@@ -255,8 +280,7 @@ QTMTabPage::leaveEvent (QEvent* e) {
 
 void
 QTMTabPage::updateCloseButtonVisibility () {
-  // 始终显示关闭按钮（无论是否选中或悬停）
-  bool shouldShow= true;
+  bool shouldShow= !is_startup_tab_view (m_viewUrl);
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 
@@ -356,6 +380,12 @@ QTMTabPageContainer::extractTabPages (QList<QAction*>* p_src) {
     // which will be deleted by the parent widget (QTMTabPageBar) when it
     // is destroyed (by shedule_destruction).
   }
+
+  int startupIndex= startup_tab_index (m_tabPageList);
+  if (startupIndex > 0) {
+    QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
+    m_tabPageList.prepend (startupTab);
+  }
 }
 
 void
@@ -405,21 +435,25 @@ QTMTabPageContainer::arrangeTabPages () {
   // Set new positions for all tabs
   for (int i= 0; i < m_tabPageList.size (); ++i) {
     QTMTabPage* tab= m_tabPageList[i];
+    int         currentTabWidth= tabWidth;
+    if (is_startup_tab_view (tab->m_viewUrl)) {
+      currentTabWidth= std::min (tabWidth, STARTUP_TAB_MAX_WIDTH);
+    }
 
     if (g_pointingIndex == i) {
       // construct a dummy rectangle widget for indication of the inser place of
       // the dragged tab
-      dummyTabPage->setGeometry (accumWidth, 0, tabWidth, m_rowHeight);
+      dummyTabPage->setGeometry (accumWidth, 0, currentTabWidth, m_rowHeight);
       dummyTabPage->show ();
-      accumWidth+= tabWidth;
+      accumWidth+= currentTabWidth;
     }
     if (g_mostRecentlyClosedTab == tab->m_viewUrl) {
       tab->hide ();
       continue;
     }
 
-    tab->setGeometry (accumWidth, 0, tabWidth, m_rowHeight);
-    accumWidth+= tabWidth;
+    tab->setGeometry (accumWidth, 0, currentTabWidth, m_rowHeight);
+    accumWidth+= currentTabWidth;
     tab->show ();
   }
   if (g_pointingIndex >= m_tabPageList.size ()) {
@@ -473,26 +507,29 @@ QTMTabPageContainer::setHitTestVisibleForTabPages (
 int
 QTMTabPageContainer::mapToPointing (QDropEvent* e, QPoint& p_indicatorPos) {
   QPoint pos= e->position ().toPoint ();
-  // Now we use g_tabWidth to calculate the pointing index, instead of geometry
-  if (g_tabWidth <= 0) {
+  if (m_tabPageList.isEmpty ()) {
     p_indicatorPos= QPoint (0, 0);
     return 0;
   }
-  int index= pos.x () / g_tabWidth;
-  index    = qMax (0, qMin (index, m_tabPageList.size ()));
-  if (index < m_tabPageList.size ()) {
-    QRect rect = m_tabPageList[index]->geometry ();
+
+  int index= m_tabPageList.size ();
+  for (int i= 0; i < m_tabPageList.size (); ++i) {
+    QTMTabPage* tab= m_tabPageList[i];
+    if (!tab || !tab->isVisible ()) continue;
+    QRect rect = tab->geometry ();
     int   x_mid= rect.x () + rect.width () / 2;
-    if (pos.x () >= x_mid) {
-      p_indicatorPos= rect.topRight ();
-      return std::min (index + 1, int (m_tabPageList.size ()));
+    if (pos.x () < x_mid) {
+      index       = i;
+      p_indicatorPos= rect.topLeft ();
+      break;
     }
-    p_indicatorPos= rect.topLeft ();
-    return index;
+    index       = i + 1;
+    p_indicatorPos= rect.topRight ();
   }
-  // no valid pointing tab, p_indicatorPos should be at the end
-  p_indicatorPos= m_tabPageList.last ()->geometry ().topRight ();
-  return m_tabPageList.size ();
+
+  int startupIndex= startup_tab_index (m_tabPageList);
+  if (startupIndex == 0) index= qMax (1, index);
+  return std::min (index, static_cast<int> (m_tabPageList.size ()));
 }
 
 void
@@ -533,6 +570,17 @@ QTMTabPageContainer::dropEvent (QDropEvent* e) {
     QTMTabPage* draggingTab  = m_tabPageList[m_draggingTabIndex];
     int         oldIndex     = m_draggingTabIndex;
     int newIndex= pointingIndex > oldIndex ? pointingIndex - 1 : pointingIndex;
+    int startupIndex= startup_tab_index (m_tabPageList);
+    if (startupIndex == oldIndex) {
+      g_mostRecentlyClosedTab= url_none ();
+      g_pointingIndex        = -1;
+      m_draggingTabIndex     = -1;
+      arrangeTabPages ();
+      m_indicator->hide ();
+      dummyTabPage->hide ();
+      return;
+    }
+    if (startupIndex == 0) newIndex= qMax (1, newIndex);
     g_mostRecentlyClosedTab= url_none ();
     g_pointingIndex        = -1;
 
@@ -553,6 +601,14 @@ QTMTabPageContainer::dropEvent (QDropEvent* e) {
     QObject* src= e->source ();
     if (src && src != this) {
       url       dragged_view  = g_mostRecentlyDraggedTab;
+      if (is_startup_tab_view (dragged_view)) {
+        g_mostRecentlyDraggedTab= url_none ();
+        g_mostRecentlyDraggedBar= nullptr;
+        g_pointingIndex        = -1;
+        m_indicator->hide ();
+        dummyTabPage->hide ();
+        return;
+      }
       tm_window dragged_window= concrete_view (dragged_view)->win_tabpage;
       url target_view= m_tabPageList[0]->m_viewUrl; // 通过view来获取window
       tm_window target_window= concrete_view (target_view)->win_tabpage;

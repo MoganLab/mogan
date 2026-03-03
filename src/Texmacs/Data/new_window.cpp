@@ -338,6 +338,7 @@ clone_window () {
 
 void
 kill_buffer (url name) {
+  if (name == url ("tmfs://startup-tab")) return;
   array<url> vs= buffer_to_views (name);
   for (int i= 0; i < N (vs); i++)
     if (!is_none (vs[i])) {

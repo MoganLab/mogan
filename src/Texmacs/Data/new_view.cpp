@@ -430,6 +430,9 @@ kill_tabpage (url win_u, url u) {
   // 在关闭文档，或标签页时都将调用此方法。
   tm_view vw= concrete_view (u);
   if (vw == NULL) return;
+  if (vw->buf != NULL && vw->buf->buf->name == url ("tmfs://startup-tab")) {
+    return;
+  }
   tm_window win        = vw->win;
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
