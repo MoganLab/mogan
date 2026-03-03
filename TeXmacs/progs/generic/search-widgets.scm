@@ -667,19 +667,20 @@ tree 或 #f
            #t))))
 
 (define (replace-next by)
-  ;; TODO: replacing all occurrences of 'a' by 'axa' may result in
-  ;; a segmentation fault.  We may wish to protect against that
+  ;; Keep searching from the end of the freshly inserted replacement.
+  ;; This prevents replace-all from re-matching inside injected text
+  ;; (e.g. replacing "a" by "axa"), which may lead to crashes.
   (with old-p (cursor-path)
     (and (replace-next* by)
          (with mid-p (cursor-path)
+           (set-search-reference mid-p)
            (perform-search*)
            (with new-p (cursor-path)
              (or (and (path-less? old-p new-p)
-                      ;; (path-less? mid-p new-p)
-                      ;; Commenting fixes bug #62534
-                      ;; Check also bug #59508
-                      )
-                 (search-next-match #t)))))))
+                      (path-less-eq? mid-p new-p))
+                 (begin
+                   (set-search-reference mid-p)
+                   (search-next-match #t))))))))
 
 (tm-define (replace-one . args)
   (let ((u    (if (null? args) (master-buffer)  (car args)))
