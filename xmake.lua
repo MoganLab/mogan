@@ -30,6 +30,11 @@ option_end()
 -- Temporary statement to move into MuPDF
 set_config("mupdf", true)
 
+option("startup_tab")
+    set_default(false)
+    set_description("Enable startup tab with left navigation")
+option_end()
+
 -- Adjust community or commercial version
 option("is_community")
     set_default(true)
@@ -76,6 +81,7 @@ add_configfiles("src/System/config.h.xmake", {
         USE_FONTCONFIG = true,
         PDFHUMMUS_NO_TIFF = true,
         USE_MUPDF_RENDERER = has_config("mupdf"),
+        USE_STARTUP_TAB = has_config("startup_tab"),
         IS_COMMUNITY = has_config("is_community"),
         DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
     }
@@ -682,6 +688,7 @@ target("libmogan") do
                 USE_PLUGIN_SPARKLE = false,
                 USE_PLUGIN_HTML = true,
                 USE_MUPDF_RENDERER = has_config("mupdf"),
+                USE_STARTUP_TAB = has_config("startup_tab"),
                 IS_COMMUNITY = has_config("is_community"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})

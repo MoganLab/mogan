@@ -942,7 +942,7 @@ TeXmacs_main (int argc, char** argv) {
       load_welcome_doc ();
     }
 
-    if (!has_initial_file || !has_initial_welcome) ensure_window ();
+    if (!has_initial_file) ensure_window ();
 
     if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
     bench_reset ("initialize texmacs");
