@@ -643,3 +643,12 @@
 	((balloon (icon "tm_cell_join.xpm")
 		  "Join selected cells")
 	 (cell-set-span-selection)))))
+(tm-menu (focus-toggle-icons t)
+  (:require (table-markup-context? t))
+  (push-focus t
+   (assuming (numbered-context? t)
+    ((check (balloon (icon "tm_numbered.xpm") "Toggle cell alignment") "v"
+    (pull-focus t
+     (numbered-numbered? t)))
+     (pull-focus t (numbered-toggle t))))))
+     
