@@ -3,34 +3,34 @@ This development guide is written for Mogan Research. Other components can also 
 
 ## Step 1: Install xmake and xrepo
 For Homebrew users:
-``` bash
+```bash
 brew install xmake qt
 brew install pkg-config
 ```
 
 Keep xrepo updated:
-``` bash
+```bash
 xrepo update-repo
 ```
 
 ## Step 2: Configuration
-``` bash
+```bash
 xmake config -vD --yes 
 ```
 
 If you encounter Qt dependency issues, you can use this command to delete xmake's Qt global cache:
-``` bash
+```bash
 rm -rf ~/.xmake/cache ~/.xmake/packages/qt
 ```
 
 If Qt cannot be found, you can manually specify the Qt path, for example:
-``` bash
+```bash
 xmake config --qt=/opt/homebrew/share/qt
 ```
 Please adjust the Qt-related directory as needed; it may not necessarily be `/opt/homebrew/share/qt`.
 
 ## Step 3: Build
-``` bash
+```bash
 xmake build stem
 ```
 
@@ -38,7 +38,7 @@ xmake build stem
 Refer to [How to Test](Test_EN.md)
 
 ## Step 5: Launch Mogan STEM
-``` bash
+```bash
 xmake run stem
 ```
 
