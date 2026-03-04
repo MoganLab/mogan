@@ -2556,3 +2556,4 @@
 ("You are currently in guest mode, login to enable AI, MathOCR,and other features" "您当前处于访客状态，登录激活AI和公式识别等功能")
 ("Login Now" "立即登录")
 ("Use extensible brackets" "使用可伸缩括号")
+("text fro note" "笔记摘录")
