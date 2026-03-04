@@ -17,7 +17,13 @@
 (define-library (liii njson)
   (import (liii base)
           (liii error)
-          (liii path))
+          (liii path)
+          (rename (liii json)
+                  (string->json ljson-string->json)
+                  (json->string ljson-json->string)
+                  (json-object? ljson-object?)
+                  (json-array? ljson-array?)
+                  (json-ref ljson-ref)))
   (export njson?
           njson-null?
           njson-object?
@@ -29,16 +35,23 @@
           njson-size
           njson-empty?
           njson-free
-          njson-string->json
-          njson-file->json
-          njson-json->string
-          njson-json->file
+          string->njson
+          file->njson
+          njson->string
+          njson-format-string
+          njson->file
+          json->njson
+          njson->json
           let-njson
           njson-ref
           njson-set
+          njson-append
           njson-set!
-          njson-push
-          njson-push!
+          njson-append!
+          njson-merge
+          njson-merge!
+          njson-deep-merge
+          njson-deep-merge!
           njson-drop
           njson-drop!
           njson-contains-key?
@@ -50,6 +63,11 @@
 
     (define (njson-json-value? x)
       (or (njson? x) (string? x) (number? x) (boolean? x) (njson-null-symbol? x)))
+
+    (define (ljson-json-value? x)
+      (or (ljson-object? x) (ljson-array? x) (string? x) (number? x) (boolean? x) (njson-null-symbol? x)))
+
+    (define njson-bridge-key "__njson_bridge")
 
     (define (njson? x)
       (g_njson-handle? x))
@@ -142,27 +160,56 @@
         (type-error "njson-empty?: json must be njson-handle" json))
       (g_njson-empty? json))
 
-    (define (njson-string->json json-string)
+    (define (string->njson json-string)
       (unless (string? json-string)
-        (type-error "njson-string->json: input must be string" json-string))
+        (type-error "string->njson: input must be string" json-string))
       (g_njson-string->json json-string))
 
-    (define (njson-file->json path)
+    (define (file->njson path)
       (unless (string? path)
-        (type-error "njson-file->json: path must be string" path))
-      (njson-string->json (path-read-text path)))
+        (type-error "file->njson: path must be string" path))
+      (string->njson (path-read-text path)))
 
-    (define (njson-json->string x)
+    (define (njson->string x)
       (unless (njson-json-value? x)
-        (type-error "njson-json->string: input must be njson-handle or strict json scalar" x))
+        (type-error "njson->string: input must be njson-handle or strict json scalar" x))
       (g_njson-json->string x))
 
-    (define (njson-json->file path x)
+    (define (njson-format-string json-string . rest)
+      (unless (string? json-string)
+        (type-error "njson-format-string: input must be string" json-string))
+      (cond
+        ((null? rest)
+         (g_njson-format-string json-string))
+        ((and (pair? rest) (null? (cdr rest)))
+         (let ((indent (car rest)))
+           (unless (integer? indent)
+             (type-error "njson-format-string: indent must be integer?" indent))
+           (when (< indent 0)
+             (value-error "njson-format-string: indent must be >= 0" indent))
+           (g_njson-format-string json-string indent)))
+        (else
+         (value-error "njson-format-string: expected (json-string [indent])" rest))))
+
+    (define (njson->file path x)
       (unless (string? path)
-        (type-error "njson-json->file: path must be string" path))
+        (type-error "njson->file: path must be string" path))
       (unless (njson-json-value? x)
-        (type-error "njson-json->file: input must be njson-handle or strict json scalar" x))
-      (path-write-text path (njson-json->string x)))
+        (type-error "njson->file: input must be njson-handle or strict json scalar" x))
+      (path-write-text path (njson-format-string (njson->string x))))
+
+    (define (json->njson x)
+      (unless (ljson-json-value? x)
+        (type-error "json->njson: input must be liii-json value or strict json scalar" x))
+      (if (or (ljson-object? x) (ljson-array? x))
+          (string->njson (ljson-json->string x))
+          (string->njson (njson->string x))))
+
+    (define (njson->json x)
+      (unless (njson-json-value? x)
+        (type-error "njson->json: input must be njson-handle or strict json scalar" x))
+      (let ((wrapped (ljson-string->json (string-append "{\"" njson-bridge-key "\":" (njson->string x) "}"))))
+        (ljson-ref wrapped njson-bridge-key)))
 
     (define (njson-ref json key . keys)
       (unless (njson? json)
@@ -177,6 +224,16 @@
         (type-error "njson-set: json must be njson-handle" json))
       (apply g_njson-set (cons json (cons key (cons val keys)))))
 
+    ;; Append value to target array:
+    ;; (njson-append j value)                   ; root must be array
+    ;; (njson-append j k1 k2 ... kn value)      ; target path must be array
+    (define (njson-append json . args)
+      (unless (njson? json)
+        (type-error "njson-append: json must be njson-handle" json))
+      (when (null? args)
+        (key-error "njson-append: expected (json [key ...] value)" json))
+      (apply g_njson-append (cons json args)))
+
     ;; In-place update style:
     ;; (njson-set! j key value)
     ;; (njson-set! j k1 k2 ... kn value)
@@ -185,21 +242,37 @@
         (type-error "njson-set!: json must be njson-handle" json))
       (apply g_njson-set! (cons json (cons key (cons val keys)))))
 
-    ;; Same calling style as (liii json):
-    ;; (njson-push j key value)
-    ;; (njson-push j k1 k2 ... kn value)
-    (define (njson-push json key val . keys)
+    ;; Append value to target array in place:
+    ;; (njson-append! j value)                   ; root must be array
+    ;; (njson-append! j k1 k2 ... kn value)      ; target path must be array
+    (define (njson-append! json . args)
       (unless (njson? json)
-        (type-error "njson-push: json must be njson-handle" json))
-      (apply g_njson-push (cons json (cons key (cons val keys)))))
+        (type-error "njson-append!: json must be njson-handle" json))
+      (when (null? args)
+        (key-error "njson-append!: expected (json [key ...] value)" json))
+      (apply g_njson-append! (cons json args)))
 
-    ;; In-place update style:
-    ;; (njson-push! j key value)
-    ;; (njson-push! j k1 k2 ... kn value)
-    (define (njson-push! json key val . keys)
-      (unless (njson? json)
-        (type-error "njson-push!: json must be njson-handle" json))
-      (apply g_njson-push! (cons json (cons key (cons val keys)))))
+    (define (njson%%check-merge api-name target-json source-json)
+      (unless (njson-object? target-json)
+        (type-error (string-append api-name ": target-json must be njson object-handle") target-json))
+      (unless (njson-object? source-json)
+        (type-error (string-append api-name ": source-json must be njson object-handle") source-json)))
+
+    (define (njson-merge target-json source-json)
+      (njson%%check-merge "njson-merge" target-json source-json)
+      (g_njson-merge target-json source-json))
+
+    (define (njson-merge! target-json source-json)
+      (njson%%check-merge "njson-merge!" target-json source-json)
+      (g_njson-merge! target-json source-json))
+
+    (define (njson-deep-merge target-json source-json)
+      (njson%%check-merge "njson-deep-merge" target-json source-json)
+      (g_njson-deep-merge target-json source-json))
+
+    (define (njson-deep-merge! target-json source-json)
+      (njson%%check-merge "njson-deep-merge!" target-json source-json)
+      (g_njson-deep-merge! target-json source-json))
 
     (define (njson-drop json key . keys)
       (unless (njson? json)

@@ -35,7 +35,15 @@ target("libs7") do
     add_defines("WITH_WARNINGS")
     add_defines("WITH_R7RS=1")
     set_basename("s7")
-    add_files("s7.c")
+    add_files(
+        "s7.c",
+        "s7_scheme_base.c",
+        "s7_scheme_inexact.c",
+        "s7_scheme_complex.c",
+        "s7_scheme_char.c",
+        "s7_liii_bitwise.c",
+        "s7_liii_string.c"
+    )
     add_headerfiles("s7.h")
     add_includedirs(".", {public = true})
     add_options("gmp")
