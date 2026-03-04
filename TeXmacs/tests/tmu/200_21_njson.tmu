@@ -9,32 +9,32 @@
     <\folded-io|Scheme] >
       (import (liii njson))
     <|folded-io>
-      #1=(inlet 'njson? njson? 'njson-null? njson-null? 'njson-object? njson-object? 'njson-array? njson-array? 'njson-string? njson-string? 'njson-number? njson-number? 'njson-integer? njson-integer? 'njson-boolean? njson-boolean? 'let-njson let-njson 'njson-free njson-free 'njson-size njson-size 'njson-empty? njson-empty? 'njson-string-\<gtr\>json njson-string-\<gtr\>json 'njson-file-\<gtr\>json njson-file-\<gtr\>json 'njson-json-\<gtr\>string njson-json-\<gtr\>string 'njson-json-\<gtr\>file njson-json-\<gtr\>file 'njson-ref njson-ref 'njson-set njson-set 'njson-set! njson-set! 'njson-push njson-push 'njson-push! njson-push! 'njson-drop njson-drop 'njson-drop! njson-drop! 'njson-contains-key? njson-contains-key? 'njson-keys njson-keys 'njson-schema-report njson-schema-report (symbol "(liii njson)") (inlet 'njson-schema-report njson-schema-report 'njson-keys njson-keys 'njson-contains-key? njson-contains-key? 'njson-drop! njson-drop! 'njson-drop njson-drop 'njson-push! njson-push! 'njson-push njson-push 'njson-set! njson-set! 'njson-set njson-set 'njson-ref njson-ref 'njson-json-\<gtr\>file njson-json-\<gtr\>file 'njson-json-\<gtr\>string njson-json-\<gtr\>string 'njson-file-\<gtr\>json njson-file-\<gtr\>json 'njson-string-\<gtr\>json njson-string-\<gtr\>json 'njson-empty? njson-empty? 'njson-size njson-size 'njson-free njson-free 'let-njson let-njson 'njson-boolean? njson-boolean? 'njson-integer? njson-integer? 'njson-number? njson-number? 'njson-string? njson-string? 'njson-array? njson-array? 'njson-object? njson-object? 'njson-null? njson-null? 'njson? njson?) (symbol "(liii path)") (inlet 'path path 'path-touch path-touch 'path-append-text path-append-text 'path-write-text path-write-text 'path-read-bytes path-read-bytes 'path-read-text path-read-text 'path-getsize path-getsize 'path-exists? path-exists? 'path-file? path-file? 'path-dir? path-dir?) (symbol "(liii os)") (inlet 'getpid getpid 'getlogin getlogin 'getcwd getcwd 'listdir listdir 'chdir chdir 'remove remove 'rmdir rmdir 'mkdir mkdir 'os-temp-dir os-temp-dir 'unsetenv unsetenv 'putenv putenv 'getenv getenv 'access access 'os-call os-call 'pathsep pathsep 'os-sep os-sep 'os-windows? os-windows? 'os-macos? os-macos? 'os-linux? os-linux? 'os-type os-type 'os-arch os-arch) (symbol "(scheme process-context)") (inlet 'command-line command-line 'get-environment-variables get-environment-variables 'get-environment-variable get-environment-variable) '{gensym}-600 {gensym}-600 '{gensym}-599 {gensym}-599 (symbol "(liii lang)") (inlet 'array rich-vector 'rich-float rich-float 'rich-integer rich-integer '$ $ 'box box 'class=? class=? 'rich-hash-table rich-hash-table 'rich-string rich-string 'rich-vector rich-vector 'rich-char rich-char 'rich-list rich-list 'left left 'right right 'option option 'none none 'object-\<gtr\>string object-\<gtr\>string 'define-class define-class 'define-object define-object 'chained-define chained-define 'case-class? case-class? 'typed-define typed-define '@ @ 'display* display* 'define-case-class define-case-class) (symbol "(liii rich-hash-table)") (inlet 'rich-hash-table rich-hash-table) '{gensym}-594 {gensym}-594 (symbol "(liii rich-string)") (inlet 'rich-string rich-string) '{gensym}-592 {gensym}-592 (symbol "(liii rich-vector)") (inlet 'rich-vector rich-vector) (symbol "(liii vector)") (inlet 'vector-filter vector-filter 'string-\<gtr\>vector string-\<gtr\>vector 'vector-\<gtr\>string vector-\<gtr\>string 'vector-copy! vector-copy! 'vector-fill! fill! 'vector-for-each for-each 'vector-map vector-map 'vector-copy vector-copy 'vector-copy vector-copy 'vector-copy! vector-copy! 'vector-empty? vector-empty? 'vector= vector= 'vector-fold vector-fold 'vector-fold-right vector-fold-right 'vector-count vector-count 'vector-cumulate vector-cumulate 'vector-any vector-any 'vector-every vector-every 'vector-index vector-index 'vector-index-right vector-index-right 'vector-skip vector-skip 'vector-skip-right vector-skip-right 'vector-partition vector-partition 'vector-swap! vector-swap! 'vector-reverse! vector-reverse! 'reverse-list-\<gtr\>vector reverse-list-\<gtr\>vector) (symbol "(srfi srfi-133)") (inlet 'reverse-list-\<gtr\>vector reverse-list-\<gtr\>vector 'vector-reverse! vector-reverse! 'vector-swap! vector-swap! 'vector-partition vector-partition 'vector-skip-right vector-skip-right 'vector-skip vector-skip 'vector-index-right vector-index-right 'vector-index vector-index 'vector-every vector-every 'vector-any vector-any 'vector-cumulate vector-cumulate 'vector-count vector-count 'vector-fold-right vector-fold-right 'vector-fold vector-fold 'vector= vector= 'vector-empty? vector-empty? 'vector-copy! vector-copy! 'vector-copy vector-copy) ...)
+      #1=(inlet 'njson? njson? 'njson-null? njson-null? 'njson-object? njson-object? 'njson-array? njson-array? 'njson-string? njson-string? 'njson-number? njson-number? 'njson-integer? njson-integer? 'njson-boolean? njson-boolean? 'let-njson let-njson 'njson-free njson-free 'njson-size njson-size 'njson-empty? njson-empty? 'string-\<gtr\>njson string-\<gtr\>njson 'file-\<gtr\>njson file-\<gtr\>njson 'njson-\<gtr\>string njson-\<gtr\>string 'njson-format-string njson-format-string 'njson-\<gtr\>file njson-\<gtr\>file 'json-\<gtr\>njson json-\<gtr\>njson 'njson-\<gtr\>json njson-\<gtr\>json 'njson-ref njson-ref 'njson-set njson-set 'njson-append njson-append 'njson-set! njson-set! 'njson-append! njson-append! 'njson-merge njson-merge 'njson-merge! njson-merge! 'njson-deep-merge njson-deep-merge 'njson-deep-merge! njson-deep-merge! 'njson-drop njson-drop 'njson-drop! njson-drop! 'njson-contains-key? njson-contains-key? 'njson-keys njson-keys 'njson-schema-report njson-schema-report (symbol "(liii njson)") (inlet 'njson-schema-report njson-schema-report 'njson-keys njson-keys 'njson-contains-key? njson-contains-key? 'njson-drop! njson-drop! 'njson-drop njson-drop 'njson-deep-merge! njson-deep-merge! 'njson-deep-merge njson-deep-merge 'njson-merge! njson-merge! 'njson-merge njson-merge 'njson-append! njson-append! 'njson-set! njson-set! 'njson-append njson-append 'njson-set njson-set 'njson-ref njson-ref 'njson-\<gtr\>json njson-\<gtr\>json 'json-\<gtr\>njson json-\<gtr\>njson 'njson-\<gtr\>file njson-\<gtr\>file 'njson-format-string njson-format-string 'njson-\<gtr\>string njson-\<gtr\>string 'file-\<gtr\>njson file-\<gtr\>njson 'string-\<gtr\>njson string-\<gtr\>njson 'njson-empty? njson-empty? 'njson-size njson-size 'njson-free njson-free 'let-njson let-njson 'njson-boolean? njson-boolean? 'njson-integer? njson-integer? 'njson-number? njson-number? 'njson-string? njson-string? 'njson-array? njson-array? 'njson-object? njson-object? 'njson-null? njson-null? 'njson? njson?) (symbol "(liii json)") (inlet 'json-keys json-keys 'json-ref-boolean json-ref-boolean 'json-ref-integer json-ref-integer 'json-ref-number json-ref-number 'json-ref-string json-ref-string 'json-get-or-else json-get-or-else 'json-contains-key? json-contains-key? 'json-boolean? json-boolean? 'json-float? json-float? 'json-integer? json-integer? 'json-number? json-number? 'json-string? json-string? 'json-array? json-array? 'json-object? json-object? 'json-null? json-null? 'json-reduce json-reduce 'json-drop json-drop 'json-push json-push 'json-set json-set 'json-ref json-ref 'json-string-escape json-string-escape 'string-\<gtr\>json string-\<gtr\>json 'json-\<gtr\>string json-\<gtr\>string) (symbol "(guenchi json)") (inlet 'json-reduce* json-reduce* 'json-reduce json-reduce 'json-drop* json-drop* 'json-drop json-drop 'json-push* json-push* 'json-push json-push 'json-set* json-set* 'json-set json-set 'json-ref* json-ref* 'json-ref json-ref 'json-\<gtr\>string json-\<gtr\>string 'string-\<gtr\>json string-\<gtr\>json 'json-string-escape json-string-escape) (symbol "(liii alist)") (inlet 'vector-\<gtr\>alist vector-\<gtr\>alist 'alist-ref/default alist-ref/default 'alist-ref alist-ref 'alist? alist? 'alist-cons alist-cons) '{gensym}-641 {gensym}-641 (symbol "(liii chez)") (inlet 'atom? atom?) '{gensym}-640 {gensym}-640 ...)
     </folded-io>
 
-    <\unfolded-io|Scheme] >
+    <\folded-io|Scheme] >
       (define sample-json
 
       \ "{\\"name\\":\\"Goldfish\\",\\"version\\":\\"17.11.26\\",\\"active\\":true,\\"score\\":3.14,\\"nums\\":[1,2,3,4,5],\\"meta\\":{\\"arch\\":\\"x86_64\\",\\"os\\":\\"linux\\"}}")
 
       \ \ 
-    <|unfolded-io>
+    <|folded-io>
       {"name":"Goldfish","version":"17.11.26","active":true,"score":3.14,"nums":[1,2,3,4,5],"meta":{"arch":"x86_64","os":"linux"}}
-    </unfolded-io>
+    </folded-io>
 
-    <\unfolded-io|Scheme] >
-      (define j (njson-string-\<gtr\>json sample-json))
-    <|unfolded-io>
-      (njson-handle . 1)
-    <|unfolded-io>
+    <\folded-io|Scheme] >
+      (define j (string-\<gtr\>njson sample-json))
+    <|folded-io>
+      (njson-handle 1 . 1)
+    <|folded-io>
       \;
-    </unfolded-io>
+    </folded-io>
 
-    <\unfolded-io|Scheme] >
+    <\folded-io|Scheme] >
       (njson? j)
-    <|unfolded-io>
+    <|folded-io>
       #t
-    </unfolded-io>
+    </folded-io>
 
     <\unfolded-io|Scheme] >
       (njson-object? j)
@@ -55,7 +55,7 @@
     </unfolded-io>
 
     <\unfolded-io|Scheme] >
-      (njson-empty? (njson-string-\<gtr\>json "{}"))
+      (njson-empty? (string-\<gtr\>njson "{}"))
     <|unfolded-io>
       #t
     <|unfolded-io>
