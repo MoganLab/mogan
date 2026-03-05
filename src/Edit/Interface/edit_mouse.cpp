@@ -571,7 +571,7 @@ edit_interface_rep::table_line_hit (SI x, SI y, table_hit& hit) {
   hit.second_size= as_int (r[5]);
   hit.fp         = as_path (as_string (r[8]));
 
-  if (is_nil (hit.fp) || hit.index <= 0 || !is_true_table (hit.fp))
+  if (is_nil (hit.fp) || hit.index <= 0 || !is_true_table (reverse (hit.fp)))
     return false;
   return true;
 }
