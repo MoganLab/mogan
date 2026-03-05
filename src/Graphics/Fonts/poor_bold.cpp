@@ -353,8 +353,7 @@ get_bold_factor (string font_name) {
   if (occurs ("kaiti_gb2312", lname)) return 0.3;
   if (occurs ("simhei", lname)) return 0.5;
   if (occurs ("fangsong_gb2312", lname)) return 0.3;
-  // 其他中文字体...
-  return 0.5;
+  return 1.0;
 }
 
 font
