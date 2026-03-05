@@ -132,6 +132,11 @@
 (use-modules (texmacs menus tabpage-menu))
 (lazy-define (texmacs menus file-menu) recent-file-list recent-directory-list)
 (lazy-define (texmacs menus view-menu) set-bottom-bar test-bottom-bar?)
+;; Load AI Assistant module
+(use-modules (ai init-ai))
+
+;; Load AI Test module (for testing, temporarily disabled)
+;; (use-modules (ai init-ai-test))
 (tm-define (notify-set-attachment name key val) (noop))
 ;;(display* "time: " (- (texmacs-time) boot-start) "\n")
 ;;(display* "memory: " (texmacs-memory) " bytes\n")

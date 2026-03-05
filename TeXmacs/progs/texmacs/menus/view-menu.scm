@@ -16,7 +16,10 @@
     (texmacs texmacs tm-view)
     (texmacs texmacs tm-server)
     (texmacs texmacs tm-files)
-    (texmacs menus view-widgets)))
+    (texmacs menus view-widgets)
+    (ai ai-widget)
+    ;; (ai ai-widget-test)  ; Test version
+    ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Extra toolbars at the bottom
@@ -152,4 +155,6 @@
       ("Right side tools" (toggle-visible-side-tools 0))
       ("GUI through markup" (toggle-markup-gui)))
   ---
-  ("Animation toolbar" (toggle-bottom-bar "animate")))
+  ("Animation toolbar" (toggle-bottom-bar "animate"))
+  ---
+  ("AI Assistant" (toggle-ai-panel)))
