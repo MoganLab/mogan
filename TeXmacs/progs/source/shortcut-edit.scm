@@ -189,8 +189,23 @@
 ;; Editing keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (in-shortcut-editor?)
+  (tree-func? (cursor-tree) 'preview-shortcut 1))
+
+(tm-define (zoom-in x)
+  (:require (in-shortcut-editor?))
+  (noop))
+
+(tm-define (zoom-out x)
+  (:require (in-shortcut-editor?))
+  (noop))
+
+(tm-define (change-zoom-factor z)
+  (:require (in-shortcut-editor?))
+  (noop))
+
 (tm-define (keyboard-press key time)
-  (if (not (tree-func? (cursor-tree) 'preview-shortcut 1))
+  (if (not (in-shortcut-editor?))
       (former key time)
       (and-let* ((t (cursor-tree))
                  (sh (tm-ref t 0))
