@@ -359,8 +359,8 @@ get_bold_factor (string font_name) {
 
 font
 poor_bold_font (font base) {
-  double lofat= ((double) base->wline) / ((double) base->wfn);
+  double lofat = ((double) base->wline) / ((double) base->wfn);
   double factor= get_bold_factor (base->res_name);
-  lofat= lofat * factor;
+  lofat        = lofat * factor;
   return poor_bold_font (base, lofat, lofat);
 }
