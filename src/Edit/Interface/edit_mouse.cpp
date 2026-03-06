@@ -1187,7 +1187,7 @@ edit_interface_rep::should_show_text_toolbar () {
     return text_toolbar_last_result;
   }
   text_toolbar_last_check= now;
-  
+
   if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
       as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
     text_toolbar_last_result= false;
@@ -1281,11 +1281,11 @@ edit_interface_rep::update_text_toolbar () {
       hide_text_toolbar ();
       return;
     }
-    
+
     update_visible ();
     // 使用原始坐标检查选区是否在视图内
     // （无需min/max，因为已经验证过矩形有效性）
-    bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 || 
+    bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 ||
                         text_selr->y2 < vy1 || text_selr->y1 > vy2);
     if (!sel_in_view) {
       hide_text_toolbar ();
