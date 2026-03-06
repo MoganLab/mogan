@@ -91,6 +91,10 @@ protected:
   SI     table_line_second_size= 0;
   bool   table_line_wide_flag  = false; // 用于格线移动的标记，只在点击时更新
   double table_line_mark       = 0.0;
+  
+  // Text toolbar cache for performance optimization
+  time_t text_toolbar_last_check = 0;
+  bool   text_toolbar_last_result = false;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
   void   table_line_start (const table_hit& hit, SI x, SI y);
   void   table_line_apply (SI x, SI y);

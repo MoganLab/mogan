@@ -1181,16 +1181,32 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
 
 bool
 edit_interface_rep::should_show_text_toolbar () {
+  // Cache result for 100ms to avoid excessive Scheme calls
+  time_t now= texmacs_time ();
+  if (now - text_toolbar_last_check < 100) {
+    return text_toolbar_last_result;
+  }
+  text_toolbar_last_check= now;
+  
   if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
-      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?")))
+      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
+    text_toolbar_last_result= false;
     return false;
+  }
   // 检查是否有活动的文本选区
-  if (!selection_active_any ()) return false;
+  if (!selection_active_any ()) {
+    text_toolbar_last_result= false;
+    return false;
+  }
 
   // 检查选区是否非空
   tree sel_tree= selection_get ();
-  if (is_atomic (sel_tree) && as_string (sel_tree) == "") return false;
+  if (is_atomic (sel_tree) && as_string (sel_tree) == "") {
+    text_toolbar_last_result= false;
+    return false;
+  }
 
+  text_toolbar_last_result= true;
   return true;
 }
 
@@ -1198,11 +1214,14 @@ rectangle
 edit_interface_rep::get_text_selection_rect () {
   rectangle sel_rect;
 
-  if (selection_active_any () && !is_nil (selection_rects)) {
+  // Single check for selection_active_any to avoid redundant calls
+  if (!selection_active_any ()) return sel_rect;
+
+  if (!is_nil (selection_rects)) {
     // 使用现有的选区矩形
     sel_rect= least_upper_bound (selection_rects);
   }
-  else if (selection_active_any ()) {
+  else {
     // 如果没有选区矩形，但选区存在，计算一个默认矩形
     path p1, p2;
     selection_get (p1, p2);
@@ -1258,27 +1277,22 @@ edit_interface_rep::update_text_toolbar () {
   if (should_show_text_toolbar ()) {
     rectangle text_selr= get_text_selection_rect ();
     // 检查矩形是否有效（非零面积）
-    // 注意：rectangle 不是 list 类型，不能使用 is_nil
-    // 我们检查矩形坐标是否有效
-    if (text_selr->x1 < text_selr->x2 && text_selr->y1 < text_selr->y2) {
-      update_visible ();
-      SI   sel_x1= min (text_selr->x1, text_selr->x2);
-      SI   sel_x2= max (text_selr->x1, text_selr->x2);
-      SI   sel_y1= min (text_selr->y1, text_selr->y2);
-      SI   sel_y2= max (text_selr->y1, text_selr->y2);
-      bool sel_in_view=
-          !(sel_x2 < vx1 || sel_x1 > vx2 || sel_y2 < vy1 || sel_y1 > vy2);
-      if (!sel_in_view) {
-        hide_text_toolbar ();
-        return;
-      }
-      show_text_toolbar (text_selr, magf, get_scroll_x (), get_scroll_y (),
-                         get_canvas_x (), get_canvas_y ());
-    }
-    else {
-      // 即使矩形无效，也尝试显示工具栏（例如单个字符选区）
+    if (text_selr->x1 >= text_selr->x2 || text_selr->y1 >= text_selr->y2) {
       hide_text_toolbar ();
+      return;
     }
+    
+    update_visible ();
+    // Check if selection is in view using raw coordinates
+    // (no need for min/max since we already validated the rectangle)
+    bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 || 
+                        text_selr->y2 < vy1 || text_selr->y1 > vy2);
+    if (!sel_in_view) {
+      hide_text_toolbar ();
+      return;
+    }
+    show_text_toolbar (text_selr, magf, get_scroll_x (), get_scroll_y (),
+                       get_canvas_x (), get_canvas_y ());
   }
   else {
     hide_text_toolbar ();
