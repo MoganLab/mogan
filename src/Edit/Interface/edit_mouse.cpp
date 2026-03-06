@@ -1247,24 +1247,34 @@ edit_interface_rep::show_text_toolbar (rectangle selr, double magf,
                                        int scroll_x, int scroll_y, int canvas_x,
                                        int canvas_y) {
   // 通过qt_simple_widget显示文本工具栏
-  // this指针实际上是edit_interface_rep，它继承自editor_rep，而editor_rep继承自simple_widget_rep
-  // 在Qt环境下，simple_widget_rep实际上是qt_simple_widget_rep
-  qt_simple_widget_rep* qsw= static_cast<qt_simple_widget_rep*> (this);
-  qsw->show_text_toolbar (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  // 使用dynamic_cast进行安全的类型转换
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->show_text_toolbar (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  }
+  // 如果转换失败，静默返回（非Qt环境）
 }
 
 void
 edit_interface_rep::hide_text_toolbar () {
   // 通过qt_simple_widget隐藏文本工具栏
-  qt_simple_widget_rep* qsw= static_cast<qt_simple_widget_rep*> (this);
-  qsw->hide_text_toolbar ();
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->hide_text_toolbar ();
+  }
 }
 
 bool
 edit_interface_rep::is_point_in_text_toolbar (SI x, SI y) {
   // 通过qt_simple_widget检查点是否在文本工具栏内
-  qt_simple_widget_rep* qsw= static_cast<qt_simple_widget_rep*> (this);
-  return qsw->is_point_in_text_toolbar (x, y);
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    return qsw->is_point_in_text_toolbar (x, y);
+  }
+  return false;
+}
+
+void
+edit_interface_rep::invalidate_text_toolbar_cache () {
+  // 重置工具栏缓存，强制下次重新检查
+  text_toolbar_last_check = 0;
 }
 
 void

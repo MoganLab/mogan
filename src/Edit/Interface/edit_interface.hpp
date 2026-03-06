@@ -268,6 +268,7 @@ public:
   void      hide_text_toolbar ();
   bool      is_point_in_text_toolbar (SI x, SI y);
   void      update_text_toolbar ();
+  void      invalidate_text_toolbar_cache (); // 重置工具栏缓存
 
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
