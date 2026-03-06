@@ -1181,7 +1181,7 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
 
 bool
 edit_interface_rep::should_show_text_toolbar () {
-  // Cache result for 100ms to avoid excessive Scheme calls
+  // 缓存结果100ms，避免过多的Scheme调用
   time_t now= texmacs_time ();
   if (now - text_toolbar_last_check < 100) {
     return text_toolbar_last_result;
@@ -1214,7 +1214,7 @@ rectangle
 edit_interface_rep::get_text_selection_rect () {
   rectangle sel_rect;
 
-  // Single check for selection_active_any to avoid redundant calls
+  // 单次检查selection_active_any，避免重复调用
   if (!selection_active_any ()) return sel_rect;
 
   if (!is_nil (selection_rects)) {
@@ -1283,8 +1283,8 @@ edit_interface_rep::update_text_toolbar () {
     }
     
     update_visible ();
-    // Check if selection is in view using raw coordinates
-    // (no need for min/max since we already validated the rectangle)
+    // 使用原始坐标检查选区是否在视图内
+    // （无需min/max，因为已经验证过矩形有效性）
     bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 || 
                         text_selr->y2 < vy1 || text_selr->y1 > vy2);
     if (!sel_in_view) {

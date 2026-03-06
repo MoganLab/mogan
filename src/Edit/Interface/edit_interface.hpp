@@ -92,7 +92,7 @@ protected:
   bool   table_line_wide_flag  = false; // 用于格线移动的标记，只在点击时更新
   double table_line_mark       = 0.0;
   
-  // Text toolbar cache for performance optimization
+  // 文本工具栏缓存，用于性能优化
   time_t text_toolbar_last_check = 0;
   bool   text_toolbar_last_result = false;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
