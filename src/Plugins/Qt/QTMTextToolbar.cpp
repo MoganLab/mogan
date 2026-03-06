@@ -44,7 +44,6 @@ QTMTextToolbar::QTMTextToolbar (QWidget* parent, qt_simple_widget_rep* owner)
       cached_scroll_x (0), cached_scroll_y (0), cached_canvas_x (0),
       cached_canvas_y (0), cached_magf (0.0), painted (false),
       painted_count (0) {
-  Q_INIT_RESOURCE (images);
   setObjectName ("text_toolbar");
   setWindowFlags (Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);

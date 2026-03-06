@@ -266,7 +266,6 @@ public:
   void      update_text_toolbar ();
 
   /* the footer */
-  tree get_shortcut_suffix (string cmd_s);
   tree compute_text_footer (tree st);
   tree compute_operation_footer (tree st);
   tree compute_compound_footer (tree t, path p);
