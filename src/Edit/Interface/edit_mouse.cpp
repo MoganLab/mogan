@@ -1274,7 +1274,7 @@ edit_interface_rep::is_point_in_text_toolbar (SI x, SI y) {
 void
 edit_interface_rep::invalidate_text_toolbar_cache () {
   // 重置工具栏缓存，强制下次重新检查
-  text_toolbar_last_check = 0;
+  text_toolbar_last_check= 0;
 }
 
 void
