@@ -16,6 +16,9 @@
 #include "init_glue_l5.hpp"
 #include "init_glue_plugins.hpp"
 
+// Claw AI Glue
+#include "init_glue_claw_ai.cpp"
+
 void
 initialize_glue () {
   initialize_glue_l2 ();
@@ -23,4 +26,5 @@ initialize_glue () {
   initialize_glue_l4 ();
   initialize_glue_l5 ();
   initialize_glue_plugins ();
+  initialize_claw_ai_glue ();  // Initialize Claw AI
 }

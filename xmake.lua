@@ -916,8 +916,12 @@ target("stem") do
     if is_plat("windows") then
         add_installfiles(stem_files)
         add_installfiles(path.join(os.projectdir(), "packages/windows/TeXmacs.ico"), {prefixdir = ""})
+        -- Explicitly install claw-ai module
+        add_installfiles("$(projectdir)/TeXmacs/progs/claw-ai/*.scm", {prefixdir = "progs/claw-ai"})
     else
         add_installfiles(stem_files, {prefixdir=stem_prefix_dir})
+        -- Explicitly install claw-ai module
+        add_installfiles("$(projectdir)/TeXmacs/progs/claw-ai/*.scm", {prefixdir = path.join(stem_prefix_dir, "progs/claw-ai")})
     end
 
     if is_plat("windows") then
