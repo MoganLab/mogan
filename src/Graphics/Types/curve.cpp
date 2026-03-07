@@ -1074,9 +1074,9 @@ ellipse_rep::get_control_points (array<double>& abs, array<point>& pts,
   // range of parameter values. Since we have a closed curve here, we just need
   // to ensure that the starting point has a parameter value of 0 and the ending
   // point has a parameter value of 1.
-  abs = array<double> ();
+  abs= array<double> ();
   abs << 0.0 << 0.5 << 1.0;
-  pts = points;
+  pts= points;
   rcip= cip;
   return N (points);
 }
