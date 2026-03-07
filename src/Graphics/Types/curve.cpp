@@ -1076,7 +1076,7 @@ ellipse_rep::get_control_points (array<double>& abs, array<point>& pts,
   // point has a parameter value of 1.
   abs= array<double> ();
   abs << 0.0 << 0.5 << 1.0;
-  pts= points;
+  pts = points;
   rcip= cip;
   return N (points);
 }
