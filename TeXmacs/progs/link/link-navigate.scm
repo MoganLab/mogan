@@ -546,10 +546,31 @@
         (and (resolve-id id)
              (delayed (:idle 25) (apply go-to-id (cons id opt-from)))))))
 
+(define (url-string-has-protocol? s)
+  "Check if a string already has a URL protocol prefix"
+  (or (string-starts? s "http://")
+      (string-starts? s "https://")
+      (string-starts? s "ftp://")
+      (string-starts? s "file://")
+      (string-starts? s "tmfs://")
+      (string-starts? s "blank://")))
+
+(define (url-string-looks-like-web? s)
+  "Check if a string looks like a bare web URL without protocol"
+  (and (not (url-string-has-protocol? s))
+       (not (string-starts? s "/"))
+       (not (string-starts? s "."))
+       (not (string-starts? s "~"))
+       (not (string-starts? s "#"))
+       (string-index s #\.)
+       (not (url-exists? (system->url s)))))
+
 (tm-define (go-to-url u . opt-from)
   (:synopsis "Jump to the url @u")
   (:argument opt-from "Optional path for the cursor history")
   (if (nnull? opt-from) (cursor-history-add (car opt-from)))
+  (when (and (string? u) (url-string-looks-like-web? u))
+    (set! u (string-append "https://" u)))
   (if (string? u) (set! u (system->url u)))
   (with (action post) (url-handlers u) 
     (action u) (post u))
