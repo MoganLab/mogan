@@ -108,7 +108,21 @@ url
 get_texmacs_home_path () {
   string path= get_env ("TEXMACS_HOME_PATH");
   if (is_empty (path)) {
-    path= "$HOME/.TeXmacs";
+    if (os_mingw () || os_win ()) {
+      path= get_env ("APPDATA") * "/" * PREFIX_DIR;
+    }
+    else if (os_macos ()) {
+      path= get_env ("HOME") * "/Library/Application Support/" * PREFIX_DIR;
+    }
+    else if (os_wasm ()) {
+      path= string ("/.") * PREFIX_DIR;
+    }
+    else {
+      string xdg_data_home= get_env ("XDG_DATA_HOME");
+      if (is_empty (xdg_data_home))
+        xdg_data_home= get_env ("HOME") * "/.local/share";
+      path= xdg_data_home * "/" * PREFIX_DIR;
+    }
   }
   return url_system (path);
 }

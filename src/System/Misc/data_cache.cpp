@@ -212,8 +212,20 @@ cache_refresh () {
 void
 cache_initialize () {
   texmacs_path= url_system ("$TEXMACS_PATH");
-  if (get_env ("TEXMACS_HOME_PATH") == "")
-    texmacs_home_path= url_system ("$HOME/.TeXmacs");
+  if (get_env ("TEXMACS_HOME_PATH") == "") {
+#if defined(OS_MINGW) || defined(OS_WIN)
+    texmacs_home_path= url_system (string ("$APPDATA/") * PREFIX_DIR);
+#elif defined(OS_MACOS)
+    texmacs_home_path= url_system (string ("$HOME/Library/Application Support/") *
+                                   PREFIX_DIR);
+#elif defined(OS_WASM)
+    texmacs_home_path= url_system (string ("/.") * PREFIX_DIR);
+#else
+    string xdg_data_home= get_env ("XDG_DATA_HOME");
+    if (is_empty (xdg_data_home)) xdg_data_home= "$HOME/.local/share";
+    texmacs_home_path= url_system (xdg_data_home * "/" * PREFIX_DIR);
+#endif
+  }
   else texmacs_home_path= url_system ("$TEXMACS_HOME_PATH");
   if (get_env ("TEXMACS_DOC_PATH") == "")
     texmacs_doc_path= url_system ("$TEXMACS_PATH/doc");

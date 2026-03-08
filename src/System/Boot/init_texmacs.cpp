@@ -300,14 +300,22 @@ init_main_paths () {
   url default_path;
 #if defined(OS_MINGW) || defined(OS_WIN)
   default_path= get_env ("APPDATA") * "/" * PREFIX_DIR;
+#elif defined(OS_MACOS)
+  default_path= get_env ("HOME") * "/Library/Application Support/" *
+                PREFIX_DIR;
+#elif defined(OS_WASM)
+  default_path= string ("/.") * PREFIX_DIR;
 #else
-  default_path= "~/.TeXmacs";
+  string xdg_data_home= get_env ("XDG_DATA_HOME");
+  if (is_empty (xdg_data_home)) xdg_data_home= get_env ("HOME") * "/.local/share";
+  default_path= xdg_data_home * "/" * PREFIX_DIR;
 #endif
   url home_path= get_env_path ("TEXMACS_HOME_PATH", default_path);
   if (is_none (home_path)) {
     boot_error << "\n";
     boot_error << "Installation problem: please send a bug report.\n";
-    boot_error << "'TEXMACS_HOME_PATH' could not be set to '~/.TeXmacs'.\n";
+    boot_error <<
+        "'TEXMACS_HOME_PATH' could not be set to the default user data path.\n";
     boot_error << "You may try to set this environment variable manually\n";
     boot_error << "\n";
     TM_FAILED ("installation problem");
