@@ -651,4 +651,10 @@
     (pull-focus t
      (numbered-numbered? t)))
      (pull-focus t (numbered-toggle t))))))
-     
+ (tm-define (alternate-first-icon t)
+  (:require (table-markup-context? t))
+  "tm_cell_left.xpm")
+
+(tm-define (alternate-second-icon t)
+  (:require (table-markup-context? t))
+  "tm_cell_center.xpm")
