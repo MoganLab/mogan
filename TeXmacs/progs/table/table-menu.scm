@@ -553,6 +553,31 @@
 	---
 	("Table properties" (open-table-properties)))))
 
+(define (table-inline-variant-context? t)
+  (tree-in? t '(tabular tabular* wide-tabular block block* wide-block)))
+
+(define (table-inline-variants)
+  (if (in-math?)
+      '(tabular tabular* block block*)
+      '(tabular tabular* wide-tabular block block* wide-block)))
+
+(tm-define (focus-variants-of t)
+  (:require (table-inline-variant-context? t))
+  (table-inline-variants))
+
+(tm-define (variant-circulate t forward?)
+  (:require (table-inline-variant-context? t))
+  (variant-circulate-in t (table-inline-variants) forward?))
+
+(tm-define (variant-set-keep-numbering t v)
+  (:require (table-inline-variant-context? t))
+  (variant-set t v))
+
+(tm-define (focus-tag-name l)
+  (cond ((== l 'tabular*) "centered tabular")
+        ((== l 'block*) "centered block")
+        (else (former l))))
+
 (define (cell-halign-icon)
   (with h (cell-get-format "cell-halign")
     (cond ((== h "l") "tm_cell_left.xpm")

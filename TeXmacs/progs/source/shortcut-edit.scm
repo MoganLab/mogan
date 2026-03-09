@@ -13,13 +13,15 @@
 
 (texmacs-module (source shortcut-edit)
   (:use (source macro-edit)))
-(import (liii json))
+(import (liii njson))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Management of the list of user keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.json")
+(define user-shortcuts-file-system
+  (url->system (string->url user-shortcuts-file)))
 (define user-shortcuts-version 1)
 
 (define (make-shortcut-entry sh cmd)
@@ -27,63 +29,62 @@
     ("command" . ,cmd)))
 
 (define (shortcut-entry-shortcut entry)
-  (json-ref entry "shortcut"))
+  (assoc-ref entry "shortcut"))
 
 (define (shortcut-entry-command entry)
-  (json-ref entry "command"))
+  (assoc-ref entry "command"))
 
 (define (shortcut-entry-valid? entry)
-  (and (json-object? entry)
+  (and (pair? entry)
        (string? (shortcut-entry-shortcut entry))
        (string? (shortcut-entry-command entry))))
 
-(define (shortcut-entries-valid? entries)
-  (or (null? entries)
-      (and (shortcut-entry-valid? (car entries))
-           (shortcut-entries-valid? (cdr entries)))))
+(define user-shortcuts-schema-v1
+  (string->njson
+   "{\"type\":\"object\",\"required\":[\"meta\",\"shortcuts\"],\"properties\":{\"meta\":{\"type\":\"object\",\"required\":[\"version\",\"total\"],\"properties\":{\"version\":{\"type\":\"integer\"},\"total\":{\"type\":\"integer\",\"minimum\":0}}},\"shortcuts\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"shortcut\",\"command\"],\"properties\":{\"shortcut\":{\"type\":\"string\"},\"command\":{\"type\":\"string\"}}}}}}"))
 
-(define (user-shortcuts-json-valid? json)
-  (and (json-object? json)
-       (let* ((meta (json-ref json "meta"))
-              (shortcuts (json-ref json "shortcuts"))
-              (version (and (json-object? meta) (json-ref meta "version")))
-              (total (and (json-object? meta) (json-ref meta "total"))))
-         (and (json-object? meta)
-              (integer? version)
-              (integer? total)
-              (>= total 0)
-              (vector? shortcuts)
-              (== total (vector-length shortcuts))
-              (shortcut-entries-valid? (vector->list shortcuts))))))
+(define (njson-schema-valid? schema instance)
+  (catch #t
+    (lambda ()
+      (let ((report (njson-schema-report schema instance)))
+        (hash-table-ref report 'valid?)))
+    (lambda args #f)))
 
-(define (make-user-shortcuts-json shortcuts)
-  `(("meta" . (("version" . ,user-shortcuts-version)
-               ("total" . ,(vector-length shortcuts))))
-    ("shortcuts" . ,shortcuts)))
+(define (user-shortcuts-json-valid? data)
+  (and (njson-schema-valid? user-shortcuts-schema-v1 data)
+       (let-njson ((shortcuts (njson-ref data "shortcuts"))
+                   (total (njson-ref data "meta" "total")))
+         (and (integer? total)
+              (== total (njson-size shortcuts))))))
+
+(define (make-user-shortcuts-json entries)
+  (json->njson
+   `(("meta" . (("version" . ,user-shortcuts-version)
+                ("total" . ,(length entries))))
+     ("shortcuts" . ,(list->vector entries)))))
 
 (define (make-empty-user-shortcuts-json)
-  (make-user-shortcuts-json #()))
+  (make-user-shortcuts-json '()))
 
 (define current-user-shortcuts (make-empty-user-shortcuts-json))
 
+(define (replace-current-user-shortcuts! next)
+  (njson-free current-user-shortcuts)
+  (set! current-user-shortcuts next))
+
 (define (current-user-shortcuts-vector)
-  (with shortcuts (json-ref current-user-shortcuts "shortcuts")
-    (if (vector? shortcuts) shortcuts #())))
+  (catch #t
+    (lambda ()
+      (let-njson ((shortcuts (njson-ref current-user-shortcuts "shortcuts")))
+        (if (njson-array? shortcuts) (njson->json shortcuts) #())))
+    (lambda args #())))
 
 (define (current-user-shortcuts-list)
   (vector->list (current-user-shortcuts-vector)))
 
-(define (normalize-user-shortcuts-json json)
-  (let* ((shortcuts (if (and (json-object? json) (vector? (json-ref json "shortcuts")))
-                        (json-ref json "shortcuts")
-                        #()))
-         (entries (vector->list shortcuts))
-         (valid (list-filter entries shortcut-entry-valid?)))
-    (make-user-shortcuts-json (list->vector valid))))
-
 (define (set-current-user-shortcuts-list entries)
-  (set! current-user-shortcuts
-        (make-user-shortcuts-json (list->vector entries))))
+  (replace-current-user-shortcuts!
+   (make-user-shortcuts-json entries)))
 
 (define (find-user-shortcut-entry sh)
   (let loop ((entries (current-user-shortcuts-list)))
@@ -101,28 +102,30 @@
   (eval `(kbd-unmap ,sh)))
 
 (define (reset-user-shortcuts)
-  (set! current-user-shortcuts (make-empty-user-shortcuts-json))
+  (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (save-user-shortcuts))
 
 (define (load-user-shortcuts)
-  (set! current-user-shortcuts (make-empty-user-shortcuts-json))
+  (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
     (let ((loaded
            (catch #t
              (lambda ()
-               (string->json (string-load user-shortcuts-file)))
+               (file->njson user-shortcuts-file-system))
              (lambda args #f))))
       (if (user-shortcuts-json-valid? loaded)
-          (set! current-user-shortcuts
-                (normalize-user-shortcuts-json loaded))
-          (reset-user-shortcuts))))
+          (replace-current-user-shortcuts! loaded)
+          (begin
+            (catch #t
+              (lambda () (njson-free loaded))
+              (lambda args #f))
+            (reset-user-shortcuts)))))
   (for (entry (current-user-shortcuts-list))
     (apply-user-shortcut (shortcut-entry-shortcut entry)
                          (shortcut-entry-command entry))))
 
 (define (save-user-shortcuts)
-  (string-save (json->string current-user-shortcuts)
-               user-shortcuts-file))
+  (njson->file user-shortcuts-file-system current-user-shortcuts))
 
 (tm-define (init-user-shortcuts)
   (load-user-shortcuts))
@@ -189,8 +192,23 @@
 ;; Editing keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (in-shortcut-editor?)
+  (tree-func? (cursor-tree) 'preview-shortcut 1))
+
+(tm-define (zoom-in x)
+  (:require (in-shortcut-editor?))
+  (noop))
+
+(tm-define (zoom-out x)
+  (:require (in-shortcut-editor?))
+  (noop))
+
+(tm-define (change-zoom-factor z)
+  (:require (in-shortcut-editor?))
+  (noop))
+
 (tm-define (keyboard-press key time)
-  (if (not (tree-func? (cursor-tree) 'preview-shortcut 1))
+  (if (not (in-shortcut-editor?))
       (former key time)
       (and-let* ((t (cursor-tree))
                  (sh (tm-ref t 0))

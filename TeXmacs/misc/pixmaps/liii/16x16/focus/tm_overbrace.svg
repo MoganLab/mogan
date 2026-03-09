@@ -1,0 +1,21 @@
+<svg style="vertical-align: -0.023ex;" xmlns="http://www.w3.org/2000/svg" width="1.197ex" height="1.934ex" role="img" focusable="false" viewBox="-66.125 -1000 700 1100" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <path id="a-char" d="M33 157Q33 258 109 349T280 441Q331 441 370 392Q386 422 416 422Q429 422 439 414T449 394Q449 381 412 234T374 68Q374 43 381 35T402 26Q411 27 422 35Q443 55 463 131Q469 151 473 152Q475 153 483 153H487Q506 153 506 144Q506 138 501 117T481 63T449 13Q436 0 417 -8Q409 -10 393 -10Q359 -10 336 5T306 36L300 51Q299 52 296 50Q294 48 292 46Q233 -10 172 -10Q117 -10 75 30T33 157ZM351 328Q351 334 346 350T323 385T277 405Q242 405 210 374T160 293Q131 214 119 129Q119 126 119 118T118 106Q118 61 136 44T179 26Q217 26 254 59T298 110Q300 114 325 217T351 328Z"></path>
+    
+    <path id="sharp-curly-brace" d="M 0 0 
+             C 0 50, 60 50, 130 50 
+             C 200 50, 220 120, 260 120 
+             M 520 0
+             C 520 50, 460 50, 390 50
+             C 320 50, 300 120, 260 120" 
+          fill="none" stroke="black" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
+  </defs>
+
+  <g stroke="currentColor" fill="currentColor" stroke-width="0" transform="scale(1,-1)">
+    <use xlink:href="#a-char"></use>
+    
+    <g transform="translate(10, 500)">
+      <use xlink:href="#sharp-curly-brace"></use>
+    </g>
+  </g>
+</svg>

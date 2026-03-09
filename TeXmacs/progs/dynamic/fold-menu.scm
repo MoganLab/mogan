@@ -467,7 +467,7 @@
   (=> (balloon (eval (upcase-first (short-font-menu-name)))
                "Main document font")
       (link document-short-font-menu))
-  (=> (balloon (eval (string-append (get-init "font-base-size") "pt"))
+  (=> (balloon (eval (font-base-size-menu-name))
                "Font size")
       (link document-font-base-size-menu))
   (=> (balloon (icon (eval (current-page-icon))) "Page layout")

@@ -268,10 +268,26 @@
       ("Roman" (init-env "prog-font" "roman"))
       ("Times" (init-env "prog-font" "times"))))
 
+(tm-define (init-font-base-size-interactive)
+  (:interactive #t)
+  (interactive (lambda (s)
+    (let* ((num (string->number s))
+           (normalized (if (and num (> num 0)) (/ (floor (+ (* num 2) 0.5)) 2) 10))
+           (val (if (= normalized (floor normalized))
+                    (number->string (inexact->exact (floor normalized)))
+                    (number->string normalized))))
+      (set-init-env "font-base-size" val)))
+    (list "Font size" "string" (get-init-env "font-base-size"))))
+
 (define (font-base-size-menu-name)
-  (if (== (get-init "font-base-size") "10")
-      "Font size"
-      (string-append (get-init "font-base-size") "pt")))
+  (let* ((raw (string->number (get-init "font-base-size")))
+         (normalized (if (and raw (> raw 0)) (/ (floor (+ (* raw 2) 0.5)) 2) 10))
+         (sz-str (if (= normalized (floor normalized))
+                     (number->string (inexact->exact (floor normalized)))
+                     (number->string normalized))))
+    (if (== sz-str "10")
+        "Font size"
+        (string-append sz-str "pt"))))
 
 (menu-bind document-font-base-size-menu
   ("Default" (init-default "font-base-size"))
@@ -283,7 +299,7 @@
   ("12" (init-env "font-base-size" "12"))
   ("14" (init-env "font-base-size" "14"))
   ---
-  ("Other" (init-interactive-env "font-base-size")))
+  ("Other" (init-font-base-size-interactive)))
 
 (menu-bind document-font-dpi-menu
   ("Default" (init-default "dpi"))

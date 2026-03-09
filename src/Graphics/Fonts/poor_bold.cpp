@@ -346,8 +346,20 @@ poor_bold_font (font base, double lofat, double upfat) {
                tm_new<poor_bold_font_rep> (name, base, lofat, upfat));
 }
 
+static double
+get_bold_factor (string font_name) {
+  string lname= locase_all (font_name);
+  if (occurs ("simsun", lname)) return 0.5;
+  if (occurs ("kaiti_gb2312", lname)) return 0.3;
+  if (occurs ("simhei", lname)) return 0.5;
+  if (occurs ("fangsong_gb2312", lname)) return 0.3;
+  return 1.0;
+}
+
 font
 poor_bold_font (font base) {
-  double lofat= ((double) base->wline) / ((double) base->wfn);
+  double lofat = ((double) base->wline) / ((double) base->wfn);
+  double factor= get_bold_factor (base->res_name);
+  lofat        = lofat * factor;
   return poor_bold_font (base, lofat, lofat);
 }

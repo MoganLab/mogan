@@ -571,7 +571,8 @@ edit_interface_rep::table_line_hit (SI x, SI y, table_hit& hit) {
   hit.second_size= as_int (r[5]);
   hit.fp         = as_path (as_string (r[8]));
 
-  if (is_nil (hit.fp) || hit.index <= 0) return false;
+  if (is_nil (hit.fp) || hit.index <= 0 || !is_true_table (reverse (hit.fp)))
+    return false;
   return true;
 }
 
@@ -822,13 +823,11 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
 
   int hovering_table= 0;
   if (type == "move" || type == "dragging-left" || type == "dragging-right") {
-    rectangles rs;
-    tree       r= eb->message (tree ("table-loc?"), x, y, rs);
-    if (is_func (r, TUPLE) && r[0] == "table-loc") {
-      string orient= as_string (r[1]);
-      if (orient == "cell") hovering_table= -1;
-      else if (orient == "row") hovering_table= 1;
-      else if (orient == "col") hovering_table= 2;
+    table_hit hit;
+    if (table_line_hit (x, y, hit)) {
+      if (hit.orient == "cell") hovering_table= -1;
+      else if (hit.orient == "row") hovering_table= 1;
+      else if (hit.orient == "col") hovering_table= 2;
     }
   }
   bool hovering_hlink= false;
@@ -907,13 +906,8 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     if (handle_cursor != "") set_cursor_style (handle_cursor);
     else set_cursor_style ("size_all");
   }
-  else if (hovering_table) {
-    if (hovering_table == -1) {
-      set_cursor_style ("normal");
-      // draw table resizing handles
-    }
-    else set_cursor_style (hovering_table == 1 ? "size_ver" : "size_hor");
-  }
+  else if (hovering_table)
+    set_cursor_style (hovering_table == 1 ? "size_ver" : "size_hor");
   else if (hovering_hlink) set_cursor_style ("pointing_hand");
   else if (hovering_image) {
     set_cursor_style ("pointing_hand");

@@ -11,7 +11,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic generic-test)
-  (:use (generic generic-menu) ))
+  (:use (generic generic-menu)
+        (table table-menu) ))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; generic menu functions
@@ -23,6 +24,11 @@
    focus-tag-name :none
    (test "bmatrix" 'bmatrix "bmatrix")
    (test "Bmatrix" 'Bmatrix "Bmatrix")
+   (test "tabular" 'tabular "tabular")
+   (test "tabular*" 'tabular* "centered tabular")
+   (test "block" 'block "block")
+   (test "block*" 'block* "centered block")
+   (test "big-table" 'big-table "big table")
   ))
 
 (tm-define (regtest-generic)

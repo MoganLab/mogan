@@ -811,17 +811,29 @@ list | boolean
              (cond
                ((not (pair? body)) #f)
                ((null? (cdr body)) #f)
-               ((not (string? (cadr body))) #f)
                (else
-                (let ((func-name (car body))
-                      (arg (cadr body)))
+                (let ((func-name (car body)))
                   (case func-name
                     ;; Case 1: math-big-operator (处理积分、求和等大运算符)
                     ;; 转换目标: "<big-int-2>" (TeXmacs 内部字体图标名)
                     ((math-big-operator)
-                     `(symbol-completion 
-                       ,(string-append "<big-" arg "-2>")))
-                    
+                     (and (string? (cadr body))
+                          `(symbol-completion
+                            ,(string-append "<big-" (cadr body) "-2>"))))
+                    ;; Case 2: make-lprime (左上标/prime 符号)
+                    ((make-lprime)
+                     (and (string? (cadr body))
+                          `(symbol-completion ,(cadr body))))
+                    ;; Case 3: math-bracket-open (括号对)
+                    ;; 提取左右括号并组合为 "lb…rb" 格式，确保每个变体唯一
+                    ((math-bracket-open)
+                     (and (>= (length (cdr body)) 2)
+                          (string? (cadr body))
+                          (string? (caddr body))
+                          (let ((lb (cadr body))
+                                (rb (caddr body)))
+                            `(symbol-completion
+                              ,(string-append lb rb)))))
                     ;; 预留位置：可以在此添加其他函数的处理逻辑
                     
                     (else #f)))))))))))
@@ -894,9 +906,13 @@ list | boolean
            (kbd-sym (and (pair? kbd-res) (car kbd-res)))
            ;; primary-sym 是当前已输入的符号 (pre 的绑定)
            (primary-sym kbd-sym)
-           (base (if (string? primary-sym)
-                     `((symbol-completion ,primary-sym))
-                     '()))
+           (base (cond
+                    ((string? primary-sym)
+                     `((symbol-completion ,primary-sym)))
+                    ((procedure? primary-sym)
+                     (let ((sym (function-to-symbol kbd-res)))
+                       (if sym (list sym) '())))
+                    (else '())))
            ;; 使用新的 kbd-find-prefix-tab 获取所有 tab 切换候选
            (tab-pairs (kbd-find-prefix-tab pre)))
       (let ((others (filter-map (lambda (pair)
@@ -905,13 +921,17 @@ list | boolean
                                         `(symbol-completion ,(car val))
                                         (function-to-symbol val))))
                                 tab-pairs)))
-        (if (string? primary-sym)
-            (let ((filtered (filter (lambda (entry)
-                                      (or (not (pair? entry))
-                                          (not (= (length entry) 2))
-                                          (not (string? (cadr entry)))
-                                          (not (string=? (cadr entry) primary-sym))))
-                                    others)))
+        (if (not (null? base))
+            (let* ((primary-name (and (pair? (car base))
+                                      (= (length (car base)) 2)
+                                      (cadr (car base))))
+                   (filtered (filter (lambda (entry)
+                                       (or (not (pair? entry))
+                                           (not (= (length entry) 2))
+                                           (not (string? (cadr entry)))
+                                           (not primary-name)
+                                           (not (string=? (cadr entry) primary-name))))
+                                     others)))
               (append base filtered))
             '())))))
 

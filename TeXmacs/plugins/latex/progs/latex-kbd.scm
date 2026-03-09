@@ -196,7 +196,7 @@
   ("coth" "Insert coth" (insert "coth"))
   ("csc" "Insert csc" (insert "csc"))
   ("deg" "Insert deg" (insert "deg"))
-  ("det" "Insert det" (insert "det"))
+  ("det" "Insert det" (make 'det))
   ("dim" "Insert dim" (insert "dim"))
   ("exp" "Insert exp" (insert "exp"))
   ("gcd" "Insert gcd" (insert "gcd"))

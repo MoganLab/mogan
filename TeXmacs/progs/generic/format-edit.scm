@@ -257,6 +257,22 @@
 (tm-define (toggle-underlined)
   (toggle-with-like '(underline "") #f))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Predicates for toolbar button state synchronization
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (inside-bold?)
+  (== (get-env "font-series") "bold"))
+
+(tm-define (inside-italic?)
+  (== (get-env "font-shape") "italic"))
+
+(tm-define (inside-underline?)
+  (not (not (tree-innermost 'underline #t))))
+
+(tm-define (inside-strike-through?)
+  (not (not (tree-innermost 'strike-through #t))))
+
 (tm-define (make-alternate prompt default-val tag)
   (:interactive #t)
   (interactive (lambda (x) (make-with-like `(,tag ,x "")))

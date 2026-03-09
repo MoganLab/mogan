@@ -1197,6 +1197,14 @@ edit_interface_rep::is_true_table (path p) {
         is_compound (qt, "alignat") || is_compound (qt, "alignat*") ||
         is_compound (qt, "flalign") || is_compound (qt, "flalign*"))
       return false;
+    if (is_compound (qt, "cases") || is_compound (qt, "choice") ||
+        is_compound (qt, "det") || is_compound (qt, "stack") ||
+        is_compound (qt, "array") || is_compound (qt, "array*") ||
+        is_compound (qt, "matrix") || is_compound (qt, "matrix*") ||
+        is_compound (qt, "bmatrix") || is_compound (qt, "Bmatrix") ||
+        is_compound (qt, "pmatrix") || is_compound (qt, "vmatrix") ||
+        is_compound (qt, "Vmatrix") || is_compound (qt, "smallmatrix"))
+      return false;
   }
   return true;
 }

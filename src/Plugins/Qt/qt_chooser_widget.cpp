@@ -286,6 +286,12 @@ qt_chooser_widget_rep::perform_dialog () {
 
   QFileDialog* dialog= new QFileDialog (this->as_qwidget (), caption, path);
 
+#ifdef OS_MACOS
+  // Use Qt's custom dialog on macOS to fix keyboard shortcuts
+  // (Command+V, Command+C, etc.)
+  dialog->setOption (QFileDialog::DontUseNativeDialog, true);
+#endif
+
   dialog->setViewMode (QFileDialog::Detail);
   if (type == "directory") dialog->setFileMode (QFileDialog::Directory);
   else if (type == "image" && prompt == "")

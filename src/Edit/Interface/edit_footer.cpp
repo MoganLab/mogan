@@ -39,7 +39,7 @@ edit_interface_rep::append_left_footer (tree& l, string env_var) {
 void
 edit_interface_rep::set_left_footer () {
   tree   s      = concat ();
-  double base_sz= get_env_int (FONT_BASE_SIZE);
+  double base_sz= get_env_double (FONT_BASE_SIZE);
   double sz     = get_env_double (FONT_SIZE);
   /*
   tree the_style= get_style ();
@@ -55,14 +55,20 @@ edit_interface_rep::set_left_footer () {
   if ((mode == "text") || (mode == "src")) {
     s << tree (" ") << verbatim (main_family (get_env_string (FONT)));
     append_left_footer (s, FONT_FAMILY);
-    s << tree (" ") << as_string ((int) ((base_sz + 0.5) * sz));
+    {
+      double display_sz= round (base_sz * sz * 2.0) / 2.0;
+      s << tree (" ") << as_string (display_sz);
+    }
     append_left_footer (s, FONT_SERIES);
     append_left_footer (s, FONT_SHAPE);
   }
   else if (mode == "math") {
     s << tree (" ") << verbatim (get_env_string (MATH_FONT));
     append_left_footer (s, MATH_FONT_FAMILY);
-    s << " " << as_string ((int) ((base_sz + 0.5) * sz));
+    {
+      double display_sz= round (base_sz * sz * 2.0) / 2.0;
+      s << tree (" ") << as_string (display_sz);
+    }
     append_left_footer (s, MATH_FONT_SERIES);
     append_left_footer (s, MATH_FONT_SHAPE);
   }
@@ -71,7 +77,10 @@ edit_interface_rep::set_left_footer () {
     if (session_name != "default") s << "-" << session_name;
     s << tree (" ") << verbatim (get_env_string (PROG_FONT));
     append_left_footer (s, PROG_FONT_FAMILY);
-    s << " " << as_string ((int) ((base_sz + 0.5) * sz));
+    {
+      double display_sz= round (base_sz * sz * 2.0) / 2.0;
+      s << tree (" ") << as_string (display_sz);
+    }
     append_left_footer (s, PROG_FONT_SERIES);
     append_left_footer (s, PROG_FONT_SHAPE);
   }
@@ -130,6 +139,24 @@ edit_interface_rep::set_middle_footer () {
  * Set right footer with information about cursor position
  ******************************************************************************/
 
+// Cache for keyboard shortcuts
+static hashmap<string, tree> shortcut_cache ("");
+
+tree
+edit_interface_rep::get_shortcut_suffix (string cmd_s) {
+  if (shortcut_cache->contains (cmd_s)) return shortcut_cache[cmd_s];
+
+  object result_obj= call ("kbd-find-inv-binding", object (cmd_s));
+  string binding   = as_string (result_obj);
+  tree   result    = "";
+  if (binding != "" && binding != "#f") {
+    tree shortcut_tree= sv->kbd_system_rewrite (binding);
+    result            = concat (" [", shortcut_tree, "]");
+  }
+  shortcut_cache (cmd_s)= result;
+  return result;
+}
+
 void
 edit_interface_rep::set_right_footer (tree r) {
   SERVER (
@@ -147,9 +174,12 @@ edit_interface_rep::compute_text_footer (tree st) {
   if (r == "") r= "start";
   if (r == " ") r= "space";
   if (r == "space" && get_env_string (MODE) == "math") r= "apply";
-  if (starts (r, "<") && !starts (r, "<#"))
+  if (starts (r, "<") && !starts (r, "<#")) {
+    tree suffix= get_shortcut_suffix (r);
     if (cork_to_utf8 (r) != r) r= r * " (" * r (1, N (r) - 1) * ")";
-  if (starts (r, "<")) return verbatim (r);
+    if (suffix != "") return concat (verbatim (r), suffix);
+    return verbatim (r);
+  }
   return r;
 }
 

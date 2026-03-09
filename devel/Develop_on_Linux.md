@@ -5,17 +5,17 @@
 On Debian or Debian derivatives:
 
 Since the project uses xmake to manage Qt, you need to remove the local Qt installation:
-``` bash
+```bash
 sudo apt remove qt6-base-dev qt6-base-dev-tools qmake6 
 ```
 
 If you encounter Qt dependency issues, you can use this command to delete xmake's Qt global cache:
-``` bash
+```bash
 rm -rf ~/.xmake/cache ~/.xmake/packages/qt
 ```
 
 Install xmake and related dependencies:
-``` bash
+```bash
 sudo apt install xmake
 
 sudo apt update
@@ -23,14 +23,14 @@ sudo apt install -y gcc git 7zip unzip curl build-essential fonts-noto-cjk libcu
 ```
 
 Keep xrepo updated:
-``` bash
+```bash
 xrepo update-repo
 ```
 
 ### Step 2: Compile
 -vD shows detailed debug logs. Qt installation cache is located at: /home/username/.xmake/packages
 For example: /home/jiadong/.xmake/packages/q/qt6base/6.8.3/7c1ea54729db483fa6eee7744bd4a333
-``` bash
+```bash
 xmake config --yes -vD
 xmake build stem
 ```
@@ -39,24 +39,24 @@ xmake build stem
 Refer to [How to Test](Test_EN.md)
 
 ### Step 4: Launch Mogan STEM
-``` bash
+```bash
 xmake run stem
 ```
 
 ### In some case, clearing the cache may be necessary (eg., when manu bar disappears, etc.)
 Cache directory:
-``` bash
+```bash
 rm -rf ~/.cache/MoganLab 
 ```
 Runtime cache:
-``` bash
+```bash
 rm -rf ~/.local/share/moganlab
 ```
 
 ### Using VSCode for code completion assistance
 Install VSCode, Clangd, and the Clangd extension for VSCode.
 Then execute the following command in the mogan folder:
-``` bash
+```bash
 xmake project -k compile_commands
 ```
 This command will generate a compile_commands.json file in the mogan folder. Clangd reads this file to understand the project's structure, thereby avoiding errors related to missing header files.

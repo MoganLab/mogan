@@ -13,7 +13,6 @@
 #include "analyze.hpp"
 #include "font.hpp"
 #include "tm_debug.hpp"
-#include "universal.hpp"
 
 using namespace moebius;
 
@@ -299,7 +298,6 @@ closest_font (string family, string variant, string series, string shape,
   string s= family * "-" * variant * "-" * series * "-" * shape * "-" * extra;
   if (font::instances->contains (s)) return font (s);
   string orig_family= family;
-  string orig_series= series;
   find_closest (family, variant, series, shape, attempt);
   if (orig_family != family) {
     string s2=
@@ -308,18 +306,6 @@ closest_font (string family, string variant, string series, string shape,
   }
   font fn= find_font (family, variant, series, shape, sz, dpi);
   // cout << "Found " << fn->res_name << "\n";
-
-  // Apply fake bold for CJK fonts when bold series was requested
-  // but the font doesn't support real bold (series changed from "bold")
-  if (orig_series == "bold" &&
-      (series != "bold" || occurs ("-poorbf", series))) {
-    string res_name= fn->res_name;
-    string lname   = locase_all (res_name);
-    if (occurs ("simsun", lname)) {
-      fn= apply_effects (fn, "bold=1.5");
-    }
-  }
-
   font::instances (s)= (pointer) fn.rep;
   return fn;
 }

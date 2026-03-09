@@ -21,14 +21,14 @@
 - **chocolatey**：
   
   ```powershell
-  choco  install xmake
+  choco install xmake
   ```
 - Verify:
   ```powershell
   xmake --version
   ```
 ## Step 2: Get Source Code, Compile and Run
-### Chose your working directory, for example E:\TestFile:
+### Choose your working directory, for example E:\TestFile:
 
 ```powershell
 cd E:\TestFile

@@ -1,0 +1,57 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\with|par-columns|2>
+    Noto CJK SC
+
+    你好
+
+    <with|font-series|bold|你好>
+
+    simsun
+
+    <\with|font|SimSong>
+      你好
+
+      <with|font-series|bold|<with|font|SimSun|你好>>
+    </with>
+
+    simhei
+
+    <\with|font|SimHei>
+      你好
+
+      <with|font-series|bold|你好>
+    </with>
+
+    \;
+
+    \;
+
+    kaiti_gb2312
+
+    <\with|font|KaiTi_GB2312>
+      你好
+
+      <with|font-series|bold|你好>
+    </with>
+
+    fangsong_gb2312（macos上 好 字加粗有些问题）
+
+    <\with|font|FangSong_GB2312>
+      你好
+
+      <with|font-series|bold|你好>
+    </with>
+  </with>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|font-base-size|12>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

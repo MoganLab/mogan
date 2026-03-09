@@ -20,7 +20,7 @@ Integration test code and test documents are located in the `TeXmacs/tests` dire
 
 ## Listing All Targets
 The following command lists all targets. Targets ending in `_test` are C++ unit tests; targets matching `[0-9]*_[0-9]*` are integration tests.
-``` shell
+```shell
 $ xmake show -l targets
 11_36               converter_test         convert_test
 12_1                tm_url_test            24_19

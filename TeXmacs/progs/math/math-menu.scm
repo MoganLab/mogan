@@ -1257,7 +1257,11 @@
             ((balloon (icon "tm_dot.xpm") "keyboard equivalent:") (make-wide "<dot>"))
             ((balloon (icon "tm_ddot.xpm") "keyboard equivalent:") (make-wide "<ddot>"))
             ((balloon (icon "tm_acute.xpm") "keyboard equivalent:") (make-wide "<acute>"))
-            ((balloon (icon "tm_grave.xpm") "keyboard equivalent:") (make-wide "<grave>"))))
+            ((balloon (icon "tm_grave.xpm") "keyboard equivalent:") (make-wide "<grave>"))
+            ((balloon (icon "tm_overbrace.xpm") "keyboard equivalent:") (make-wide "<wide-overbrace>"))
+            ((balloon (icon "tm_underbrace.xpm") "keyboard equivalent:") (make-wide-under "<wide-underbrace>"))
+            ((balloon (icon "tm_underbar.xpm") "keyboard equivalent:") (make-wide-under "<wide-bar>"))))
+
   /
   (=> (balloon (icon "tm_binop.xpm") "Insert a binary operation")
       (tile 8 (link binary-operation-menu)))

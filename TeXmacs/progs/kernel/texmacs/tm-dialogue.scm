@@ -13,7 +13,7 @@
 
 (texmacs-module (kernel texmacs tm-dialogue)
   (:use (kernel texmacs tm-define)))
-(import (liii json)
+(import (liii njson)
         (liii time)
         (liii list))
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -167,87 +167,67 @@
 (define interactive-arg-version 1)
 (define interactive-arg-file "$TEXMACS_HOME_PATH/system/interactive.json")
 (define interactive-arg-recent-file-path "$TEXMACS_HOME_PATH/system/recent-files.json")
+(define interactive-arg-file-system
+  (url->system (string->url interactive-arg-file)))
+(define interactive-arg-recent-file-system
+  (url->system (string->url interactive-arg-recent-file-path)))
 
-(define (make-empty-interactive-arg-json)
-  `(("meta" . (("version" . ,interactive-arg-version)))
-    ("commands" . (()))))
+(define (make-empty-state kind)
+  (case kind
+    ((interactive-arg)
+     (let ((root (string->njson "{\"meta\":{},\"commands\":{}}")))
+       (njson-set! root "meta" "version" interactive-arg-version)
+       root))
+    ((recent-file)
+     (string->njson "{\"meta\":{\"version\":1,\"total\":0},\"files\":[]}"))
+    (else
+     (string->njson "{}"))))
 
 (define interactive-arg-json
-  (make-empty-interactive-arg-json))
+  (make-empty-state 'interactive-arg))
 
 
 (define interactive-arg-recent-file-json
-  `(("meta" . (("version" . 1)
-                ("total" . 0)))
-      ("files" . #())))
+  (make-empty-state 'recent-file))
 
-(define (interactive-arg-item-valid? item)
-  (and (json-object? item)
-       (let ((keys (json-keys item)))
-         (and (every string? keys)
-              (every (lambda (k) (string? (json-ref item k))) keys)))))
+(define interactive-args-schema-v1
+  (string->njson
+   "{\"type\":\"object\",\"required\":[\"meta\",\"commands\"],\"properties\":{\"meta\":{\"type\":\"object\",\"required\":[\"version\"],\"properties\":{\"version\":{\"type\":\"integer\",\"minimum\":1}}},\"commands\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"additionalProperties\":{\"type\":\"string\"}}}}}}"))
+
+(define recent-files-schema-v1
+  (string->njson
+   "{\"type\":\"object\",\"required\":[\"meta\",\"files\"],\"properties\":{\"meta\":{\"type\":\"object\",\"required\":[\"version\",\"total\"],\"properties\":{\"version\":{\"type\":\"number\"},\"total\":{\"type\":\"integer\",\"minimum\":0}}},\"files\":{\"type\":\"array\",\"items\":{\"type\":\"object\",\"required\":[\"path\",\"name\",\"last_open\",\"open_count\",\"show\"],\"properties\":{\"path\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},\"last_open\":{\"type\":\"number\"},\"open_count\":{\"type\":\"number\"},\"show\":{\"type\":\"boolean\"}}}}}}"))
+
+(define (njson-schema-valid? schema instance)
+  (catch #t
+    (lambda ()
+      (let ((report (njson-schema-report schema instance)))
+        (hash-table-ref report 'valid?)))
+    (lambda args #f)))
 
 (define (interactive-args-json-valid? interactive-args)
-  (and (json-object? interactive-args)
-       (let* ((meta (json-ref interactive-args "meta"))
-              (commands (json-ref interactive-args "commands"))
-              (version (and (json-object? meta) (json-ref meta "version"))))
-         (and (json-object? meta)
-              (integer? version)
-              (>= version 1)
-              (json-object? commands)
-              (every string? (json-keys commands))
-              (every (lambda (cmd)
-                       (let ((items (json-ref commands cmd)))
-                         (and (vector? items)
-                              (every interactive-arg-item-valid?
-                                     (vector->list items)))))
-                     (json-keys commands))))))
+  (njson-schema-valid? interactive-args-schema-v1 interactive-args))
 
 (define (interactive-command-learned command-name)
-  (let* ((commands (json-ref interactive-arg-json "commands"))
-         (items (and (json-object? commands)
-                     (json-ref commands command-name))))
-    (if (vector? items) (vector->list items) '())))
+  (let-njson ((commands (njson-ref interactive-arg-json "commands")))
+    (if (njson-contains-key? commands command-name)
+        (let-njson ((items (njson-ref commands command-name)))
+          (if (njson-array? items)
+              (vector->list (njson->json items))
+              '()))
+        '())))
 
 (define (set-interactive-command-learned command-name items)
-  (let* ((commands (json-ref interactive-arg-json "commands"))
-         (commands (if (json-object? commands) commands '(())))
-         (payload (list->vector items))
-         (commands* (if (json-contains-key? commands command-name)
-                        (json-set commands command-name payload)
-                        (json-push commands command-name payload))))
-    (set! interactive-arg-json
-          (json-set interactive-arg-json "commands" commands*))))
+  (let-njson ((payload (json->njson (list->vector items))))
+    (njson-set! interactive-arg-json "commands" command-name payload)))
 
 (define (remove-interactive-command-learned command-name)
-  (let* ((commands (json-ref interactive-arg-json "commands"))
-         (commands (if (json-object? commands) commands '(())))
-         (commands* (if (json-contains-key? commands command-name)
-                        (json-drop commands command-name)
-                        commands)))
-    (set! interactive-arg-json
-          (json-set interactive-arg-json "commands" commands*))))
-
-(define (recent-file-item-valid? item)
-  (and (json-object? item)
-       (string? (json-ref item "path"))
-       (string? (json-ref item "name"))
-       (number? (json-ref item "last_open"))
-       (number? (json-ref item "open_count"))
-       (boolean? (json-ref item "show"))))
+  (let-njson ((commands (njson-ref interactive-arg-json "commands")))
+    (when (njson-contains-key? commands command-name)
+      (njson-drop! interactive-arg-json "commands" command-name))))
 
 (define (recent-files-json-valid? recent-files)
-  (and (json-object? recent-files)
-       (let* ((meta (json-ref recent-files "meta"))
-              (files (json-ref recent-files "files"))
-              (version (and (json-object? meta) (json-ref meta "version")))
-              (total (and (json-object? meta) (json-ref meta "total"))))
-         (and (json-object? meta)
-              (number? version)
-              (integer? total) (>= total 0)
-              (vector? files)
-              (every recent-file-item-valid? (vector->list files))))))
+  (njson-schema-valid? recent-files-schema-v1 recent-files))
 
 
 #|
@@ -273,98 +253,82 @@ unspecified
 逻辑
 ----
 1. 调用 `recent-files-index-by-path` 查找 `path` 在 `files` 中的索引。
-2. 若找到索引，调用 `json-drop` 删除该项。
+2. 若找到索引，调用 `njson-drop!` 删除该项。
 3. 将 `meta.total` 减一（不低于 0）。
 4. 将更新后的 JSON 结构回写到 `interactive-arg-recent-file-json`。
 |#
 (define-public (recent-files-remove-by-path path)
   (let ((idx (recent-files-index-by-path interactive-arg-recent-file-json path)))
     (when idx
-      (let* ((total (json-ref interactive-arg-recent-file-json "meta" "total"))
+      (let* ((total (njson-ref interactive-arg-recent-file-json "meta" "total"))
              (total (if (number? total) total 0))
-             (new-total (if (<= total 0) 0 (- total 1)))
-             (r1 (json-drop interactive-arg-recent-file-json "files" idx)))
-        (set! interactive-arg-recent-file-json
-              (json-set r1 "meta" "total" new-total))))))
+             (new-total (if (<= total 0) 0 (- total 1))))
+        (njson-drop! interactive-arg-recent-file-json "files" idx)
+        (njson-set! interactive-arg-recent-file-json "meta" "total" new-total)))))
 
 
 
 (define (recent-files-apply-lru recent-files limit)
-  (let* ((files (json-ref recent-files "files"))
-         (n (vector-length files))
-         (indexed
-          (let loop ((i 0) (acc '()))
-            (if (>= i n) acc
-                (let* ((item (vector-ref files i))
-                       (t (json-ref item "last_open"))
-                       (t (if (number? t) t 0)))
-                  (loop (+ i 1) (cons (cons i t) acc))))))
-         (sorted (sort indexed (lambda (a b) (> (cdr a) (cdr b))))))
-    (if (<= n limit)
-        (json-set recent-files "files"
-                  (list->vector
-                   (map (lambda (p) (vector-ref files (car p))) sorted)))
-        (let* ((keep (take sorted limit))
-               (drop (drop sorted limit))
-               (new-files
-                (list->vector
-                 (append
-                  (map (lambda (p)
-                         (let* ((item (vector-ref files (car p))))
-                           (json-set item "show" #t)))
-                       keep)
-                  (map (lambda (p)
-                         (let* ((item (vector-ref files (car p))))
-                           (json-set item "show" #f)))
-                       drop)))))
-          (json-set recent-files "files" new-files)))))
+  (let-njson ((files (njson-ref recent-files "files")))
+    (let* ((n (njson-size files))
+           (indexed
+            (let loop ((i 0) (acc '()))
+              (if (>= i n) acc
+                  (let* ((t (njson-ref files i "last_open"))
+                         (t (if (number? t) t 0)))
+                    (loop (+ i 1) (cons (cons i t) acc))))))
+           (sorted (sort indexed (lambda (a b) (> (cdr a) (cdr b))))))
+      (let-njson ((new-files (string->njson "[]")))
+        (let loop ((rank 0) (rest sorted))
+          (when (pair? rest)
+            (let* ((p (car rest))
+                   (idx (car p))
+                   (show? (< rank limit)))
+              (let-njson ((item (njson-ref files idx)))
+                (njson-set! item "show" show?)
+                (njson-append! new-files item))
+              (loop (+ rank 1) (cdr rest)))))
+        (njson-set! recent-files "files" new-files)))
+    recent-files))
 
 (define (recent-files-add recent-files path name)
-  (let* ((files (json-ref recent-files "files"))
-         (idx (vector-length files))
-         (item `(("path" . ,path)
-                 ("name" . ,name)
-                 ("last_open" . ,(current-second))
-                 ("open_count" . 1)
-                 ("show" . #t)))
-         (total (json-ref recent-files "meta" "total"))
-         (total (if (number? total) total 0))
-         (r1 (json-set
-               (json-push recent-files "files" idx item)
-               "meta" "total" (+ total 1))))
-    (recent-files-apply-lru r1 25)))
+  (let-njson ((item (json->njson
+                      `(("path" . ,path)
+                        ("name" . ,name)
+                        ("last_open" . ,(current-second))
+                        ("open_count" . 1)
+                        ("show" . #t)))))
+    (njson-append! recent-files "files" item))
+  (let* ((total (njson-ref recent-files "meta" "total"))
+         (total (if (number? total) total 0)))
+    (njson-set! recent-files "meta" "total" (+ total 1)))
+  (recent-files-apply-lru recent-files 25))
 
 (define (recent-files-set recent-files idx)
-  (let* ((item (json-ref recent-files "files" idx))
-         (path* (json-ref item "path"))
-         (name* (json-ref item "name"))
-         (count* (json-ref item "open_count"))
-         (count* (if (number? count*) count* 0))
-         (new-item `(("path" . ,path*)
-                     ("name" . ,name*)
-                     ("last_open" . ,(current-second))
-                     ("open_count" . ,(+ count* 1))
-                     ("show" . #t)))
-         (r1 (json-set recent-files "files" idx new-item)))
-    (recent-files-apply-lru r1 25)))
+  (let* ((count* (njson-ref recent-files "files" idx "open_count"))
+         (count* (if (number? count*) count* 0)))
+    (njson-set! recent-files "files" idx "last_open" (current-second))
+    (njson-set! recent-files "files" idx "open_count" (+ count* 1))
+    (njson-set! recent-files "files" idx "show" #t)
+    (recent-files-apply-lru recent-files 25)))
 
 
 
 (define (recent-files-index-by-path recent-files path)
-  (let ((files (json-ref recent-files "files")))
+  (let-njson ((files (njson-ref recent-files "files")))
     (let loop ((i 0))
-      (if (>= i (vector-length files))
+      (if (>= i (njson-size files))
           #f
-          (let ((item (vector-ref files i)))
-            (if (equal? (json-ref item "path") path)
-                i
-                (loop (+ i 1))))))))
+          (if (equal? (njson-ref files i "path") path)
+              i
+              (loop (+ i 1)))))))
 
 (define (recent-files-paths recent-files)
-  (let ((files (json-ref recent-files "files")))
-    (map (lambda (item)
-           (list (cons "0" (json-ref item "path"))))
-         (vector->list files))))
+  (let-njson ((files (njson-ref recent-files "files")))
+    (let loop ((i 0) (n (njson-size files)) (acc '()))
+      (if (>= i n) (reverse acc)
+          (loop (+ i 1) n
+                (cons (list (cons "0" (njson-ref files i "path"))) acc))))))
 
 
 (define (list-but l1 l2)
@@ -508,10 +472,9 @@ unspecified
   (when (symbol? fun)
     (case fun
       ((recent-buffer)
+       (njson-free interactive-arg-recent-file-json)
        (set! interactive-arg-recent-file-json
-             `(("meta" . (("version" . 1)
-                          ("total" . 0)))
-               ("files" . #()))))
+             (make-empty-state 'recent-file)))
       (else
        (with name (procedure-string-name fun)
          (when (string? name)
@@ -628,45 +591,36 @@ unspecified
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (save-learned)
-  (string-save
-    (json->string interactive-arg-json)
-    (string->url interactive-arg-file))
-  (string-save
-    (json->string interactive-arg-recent-file-json)
-    (string->url interactive-arg-recent-file-path)))
+  (njson->file interactive-arg-file-system interactive-arg-json)
+  (njson->file interactive-arg-recent-file-system interactive-arg-recent-file-json))
+
+(define (load-njson-with-fallback file valid? fallback-maker)
+  (catch #t
+    (lambda ()
+      (let ((parsed (file->njson file)))
+        (if (valid? parsed)
+            parsed
+            (begin
+              (njson-free parsed)
+              (fallback-maker)))))
+    (lambda args
+      (fallback-maker))))
+
+(define (reload-state current-state file valid? fallback-maker)
+  (njson-free current-state)
+  (load-njson-with-fallback file valid? fallback-maker))
 
 (define (retrieve-learned)
-  (set! interactive-arg-json (make-empty-interactive-arg-json))
-  (when (url-exists? interactive-arg-file)
-      (set! interactive-arg-json
-            (catch #t
-              (lambda ()
-                (let ((interactive-args
-                       (string->json
-                        (string-load
-                         (string->url interactive-arg-file)))))
-                  (if (interactive-args-json-valid? interactive-args)
-                      interactive-args
-                      (make-empty-interactive-arg-json))))
-              (lambda args
-                (make-empty-interactive-arg-json)))))
-  (when (url-exists? interactive-arg-recent-file-path)
-      (set! interactive-arg-recent-file-json
-            (catch #t
-              (lambda ()
-                (let ((recent-files
-                       (string->json
-                        (string-load
-                         (string->url interactive-arg-recent-file-path)))))
-                  (if (recent-files-json-valid? recent-files)
-                      recent-files
-                      `(("meta" . (("version" . 1)
-                                    ("total" . 0)))
-                        ("files" . #())))))
-              (lambda args
-                `(("meta" . (("version" . 1)
-                              ("total" . 0)))
-                  ("files" . #())))))))
+  (set! interactive-arg-json
+        (reload-state interactive-arg-json
+                      interactive-arg-file-system
+                      interactive-args-json-valid?
+                      (lambda () (make-empty-state 'interactive-arg))))
+  (set! interactive-arg-recent-file-json
+        (reload-state interactive-arg-recent-file-json
+                      interactive-arg-recent-file-system
+                      recent-files-json-valid?
+                      (lambda () (make-empty-state 'recent-file)))))
 
 
 (on-entry (retrieve-learned))
