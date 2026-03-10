@@ -65,13 +65,27 @@ edit_interface_rep::draw_env (renderer ren) {
       ren->draw_rectangles (env_rects);
     }
     if (!is_nil (foc_rects)) {
-      color col= get_env_color (FOCUS_COLOR);
-      ren->set_pencil (pencil (col, ren->pixel));
+      if (inside_active_graphics ()) {
+        ren->set_pencil (pencil (black, 2 * ren->pixel));
+        rectangles rs = foc_rects;
+        while (!is_nil (rs)) {
+          rectangle current = rs->item;
+          ren->line (current->x1, current->y1, current->x2, current->y1);
+          ren->line (current->x1, current->y2, current->x2, current->y2);
+          ren->line (current->x1, current->y1, current->x1, current->y2);
+          ren->line (current->x2, current->y1, current->x2, current->y2);
+          rs = rs->next;
+        }
+      }
+      else{
+        color col= get_env_color (FOCUS_COLOR);
+        ren->set_pencil (pencil (col, ren->pixel));
 #ifdef QTTEXMACS
       ren->draw_selection (foc_rects);
 #else
       ren->draw_rectangles (foc_rects);
 #endif
+      }
     }
     if (!is_nil (sem_rects)) {
       if (sem_correct) {
@@ -174,14 +188,28 @@ edit_interface_rep::draw_selection (renderer ren, rectangle r) {
 #endif
   }
   if (!is_nil (selection_rects)) {
-    color col= get_env_color (SELECTION_COLOR);
-    if (table_selection) col= get_env_color (TABLE_SELECTION_COLOR);
+    if (inside_active_graphics ()) {
+      ren->set_pencil (pencil (black, 2 * ren->pixel));
+      rectangles rs = selection_rects & visible;
+      while (!is_nil (rs)) {
+        rectangle current = rs->item;
+        ren->line (current->x1, current->y1, current->x2, current->y1);
+        ren->line (current->x1, current->y2, current->x2, current->y2);
+        ren->line (current->x1, current->y1, current->x1, current->y2);
+        ren->line (current->x2, current->y1, current->x2, current->y2);
+        rs = rs->next;
+      }
+    }
+    else{
+      color col= get_env_color (SELECTION_COLOR);
+      if (table_selection) col= get_env_color (TABLE_SELECTION_COLOR);
     ren->set_pencil (pencil (col, ren->pixel));
 #ifdef QTTEXMACS
     ren->draw_selection (selection_rects & visible);
 #else
     ren->draw_rectangles (selection_rects & visible);
 #endif
+    }
   }
 
   draw_image_resize_handles (ren);
