@@ -1,0 +1,146 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\hide-preamble>
+    编号编辑区
+
+    <assign|homework-number|01>
+
+    <assign|course-number|09>
+
+    \;
+
+    \;
+
+    \;
+
+    宏
+
+    <assign|header-homework|大学物理第 <value|homework-number> 次作业>
+
+    <assign|header-course|课序：<value|course-number>>
+
+    \;
+
+    <assign|homework-title|<\macro>
+      <\doc-title>
+        大学物理第 <value|homework-number> 次作业
+      </doc-title>
+    </macro>>
+
+    <assign|data|<\macro|name|student-ID|Class>
+      <\wide-tabular>
+        <tformat|<cwith|1|-1|1|1|cell-halign|r>|<cwith|1|-1|1|-1|cell-lsep|0>|<cwith|1|-1|1|-1|cell-rsep|0>|<table|<row|<\cell>
+          课序：
+        </cell>|<\cell>
+          <value|course-number>
+        </cell>>|<row|<\cell>
+          姓名：
+        </cell>|<\cell>
+          <arg|name>
+        </cell>>|<row|<\cell>
+          学号：
+        </cell>|<\cell>
+          <arg|student-ID>
+        </cell>>|<row|<\cell>
+          班级：
+        </cell>|<\cell>
+          <arg|Class>
+        </cell>>>>
+      </wide-tabular>
+    </macro>>
+
+    \;
+
+    <assign|homework-using-books|<macro|book|<surround|<vspace*|0.5fn>|<vspace|0.5fn>|<title-block|<with|font-series|bold|<with|font|Noto CJK SC|font-base-size|16|作业内容：<arg|book>>>>>>>
+
+    <assign|title-block|<\macro|body>
+      <tabular|<tformat|<twith|table-width|1par>|<cwith|1|1|1|1|cell-lsep|0spc>|<cwith|1|1|1|1|cell-rsep|0spc>|<cwith|1|1|1|1|cell-bsep|0spc>|<cwith|1|1|1|1|cell-tsep|0spc>|<cwith|1|1|1|1|cell-hyphen|t>|<table|<row|<\cell>
+        <arg|body>
+      </cell>>>>>
+    </macro>>
+
+    \;
+
+    <assign|solution-text|<macro|解>>
+
+    <assign|exercise-sep|<macro|：>>
+
+    <assign|problem-solution|<\macro|problem|solution>
+      <subsection|题目：<arg|problem>>
+
+      <\solution*>
+        <arg|solution>
+      </solution*>
+    </macro>>
+  </hide-preamble>
+
+  <\homework-title>
+    01
+  </homework-title>
+
+  \;
+
+  <data|||>
+
+  \;
+
+  \;
+
+  <homework-using-books|《大学物理学（第三版）》>
+
+  \;
+
+  <problem-solution||>
+
+  <\note*>
+    \;
+  </note*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|font-base-size|12>
+    <associate|page-even-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-even-header|<\wide-tabular>
+      <tformat|<cwith|1|1|1|1|cell-rborder|0ln>|<cwith|1|1|1|-1|cell-tborder|0ln>|<cwith|1|1|1|-1|cell-bborder|1ln>|<cwith|1|1|1|1|cell-lborder|0ln>|<cwith|1|1|3|3|cell-rborder|0ln>|<cwith|1|1|2|2|cell-halign|c>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<\cell>
+        <value|header-homework>
+      </cell>|<\cell>
+        \;
+      </cell>|<\cell>
+        <value|header-course>
+      </cell>>>>
+    </wide-tabular>>
+    <associate|page-medium|paper>
+    <associate|page-odd-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-odd-header|<\wide-tabular>
+      <tformat|<cwith|1|1|1|1|cell-rborder|0ln>|<cwith|1|1|1|-1|cell-tborder|0ln>|<cwith|1|1|1|-1|cell-bborder|1ln>|<cwith|1|1|1|1|cell-lborder|0ln>|<cwith|1|1|3|3|cell-rborder|0ln>|<cwith|1|1|2|2|cell-halign|c>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<\cell>
+        <value|header-homework>
+      </cell>|<\cell>
+        \;
+      </cell>|<\cell>
+        <value|header-course>
+      </cell>>>>
+    </wide-tabular>>
+    <associate|page-screen-margin|false>
+    <associate|par-par-sep|0fn>
+    <associate|par-sep|0.5fn>
+    <associate|preamble|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <with|par-left|<quote|1tab>|1<space|2spc>题目：<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1>>
+    </associate>
+  </collection>
+</auxiliary>
