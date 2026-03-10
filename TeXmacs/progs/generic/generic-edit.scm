@@ -29,6 +29,22 @@
   (and-with p (tree-outer t)
     (kbd-horizontal p forwards?)))
 
+(tm-define (kbd-horizontal t forwards?)
+  (:require (bibliography-context? t))
+  (cond
+    ;; When moving right and cursor is before the bibliography
+    ((and forwards? (tree-at-start? t))
+     (tree-go-to t :down :start))
+    
+    ;; When moving left and cursor is at the start inside bibliography
+    ((and (not forwards?) (tree-at-start? t :down))
+     (tree-go-to t :start))
+    
+    ;; Otherwise, use default navigation
+    (else
+     (and-with p (tree-outer t)
+       (kbd-horizontal p forwards?)))))
+
 (tm-define (kbd-vertical t downwards?)
   (and-with p (tree-outer t)
     (kbd-vertical p downwards?)))
@@ -514,6 +530,13 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
 
 (tm-define (focus-can-search? t) #f)
 (tm-define (focus-has-search-menu? t) #f)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Bibliography context predicate
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (bibliography-context? t)
+  (tree-in? t '(bibliography bibliography* thebibliography bib-list)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tree traversal
