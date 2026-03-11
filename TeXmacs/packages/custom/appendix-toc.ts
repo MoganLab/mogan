@@ -22,8 +22,22 @@
     </src-license>
   </src-title>>
 
+  ;; 附录章节：同时写入主目录(toc)和子目录(appendix-toc)
   <assign|appendix|<\macro|title>
-    <with|toc-prefix|appendix-toc|<assign|appendix-numbered|<compound|appendix-display-numbers>><assign|appendix-prefix|<macro|<the-appendix>.>><next-appendix><appendix-clean><appendix-header|<arg|title>><appendix-toc|<arg|title>><if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>>
+    <style-with|src-compact|none|
+      ;; 先写入主目录
+      <with|toc-prefix|toc|<appendix-toc|<arg|title>>>
+      ;; 再写入子目录
+      <with|toc-prefix|appendix-toc|<style-with|src-compact|none|
+        <assign|appendix-numbered|<compound|appendix-display-numbers>>
+        <assign|appendix-prefix|<macro|<the-appendix>.>>
+        <next-appendix>
+        <appendix-clean>
+        <appendix-header|<arg|title>>
+        <appendix-toc|<arg|title>>
+        <if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>
+      >>
+    >
   </macro>>
 
   <assign|appendix-section|<\macro|title>
