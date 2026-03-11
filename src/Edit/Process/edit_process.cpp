@@ -226,6 +226,28 @@ edit_process_rep::generate_bibliography (string bib, string style,
  * Automatically generate table of contents
  ******************************************************************************/
 
+// Helper function to check if a toc item has the toc-item-type marker set to "appendix"
+static bool
+has_toc_appendix_marker (tree t) {
+  if (!is_compound (t)) return false;
+  // Check for (with "toc-item-type" "appendix" ...) pattern
+  if (is_func (t, WITH) && N (t) >= 3) {
+    if (is_atomic (t[0]) && t[0]->label == "toc-item-type" &&
+        is_atomic (t[1]) && t[1]->label == "appendix") {
+      return true;
+    }
+    // The marker might be nested inside, check children
+    for (int i= 2; i < N (t); i++) {
+      if (has_toc_appendix_marker (t[i])) return true;
+    }
+  }
+  // Also check all children recursively
+  for (int i= 0; i < N (t); i++) {
+    if (has_toc_appendix_marker (t[i])) return true;
+  }
+  return false;
+}
+
 void
 edit_process_rep::generate_table_of_contents (string toc, string filter_mode) {
   if (DEBUG_AUTO)
@@ -246,21 +268,19 @@ edit_process_rep::generate_table_of_contents (string toc, string filter_mode) {
       bool include= true;
 
       // Check if item is from appendix by looking for appendix markers
-      // We check the raw tree content for appendix-like patterns
       bool is_appendix= false;
-      if (is_compound (item)) {
-        // Recursively search for appendix indicators in the tree
-        // Appendix sections typically have ids or markers starting with
-        // "appendix"
+      
+      // First check for explicit toc-item-type marker (set by appendix-toc macro)
+      if (has_toc_appendix_marker (item)) {
+        is_appendix= true;
+      }
+      // Fallback: check for legacy patterns (A., B., etc. at start)
+      else if (is_compound (item)) {
         tree t= item;
-        // Simple heuristic: check first few elements for appendix pattern
-        // In TeXmacs, appendix items often contain specific markers
         if (N (t) > 0) {
-          // Check if any string in the tree indicates appendix
           for (int k= 0; k < N (t) && k < 3; k++) {
             if (is_atomic (t[k])) {
               string label= t[k]->label;
-              // Check for appendix-like patterns (A., B., etc. at start)
               if (N (label) >= 2) {
                 char c1= label[0];
                 char c2= label[1];

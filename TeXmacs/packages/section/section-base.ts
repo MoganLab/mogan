@@ -251,8 +251,8 @@
 
   <assign|subparagraph-toc|<macro|name|<toc-small-2|<toc-title|subparagraph|<arg|name>>>>>
 
-  <assign|appendix-toc|<macro|name|<style-with|src-compact|none|<toc-main-2|<appendix-text><if|<appendix-numbered>|
-  <the-appendix>><appendix-sep><arg|name>>>>>
+  <assign|appendix-toc|<macro|name|<style-with|src-compact|none|<toc-main-2|<with|toc-item-type|appendix|<appendix-text><if|<appendix-numbered>|
+  <the-appendix>><appendix-sep><arg|name>>>>>>
 
   <\active*>
     <\src-comment>

@@ -469,9 +469,9 @@
 (menu-bind automatic-menu
   ("Table of contents"
    (begin
-     (init-env "toc-filter" "default")
-     (make-aux "table-of-contents" "toc-prefix" "toc")
-     (update-document "all")))
+     (with "toc-filter" "default"
+       (make-aux "table-of-contents" "toc-prefix" "toc")
+       (update-document "all")))))
   ("Bibliography" (open-bibliography-inserter))
   ("Index" 
     (begin 
