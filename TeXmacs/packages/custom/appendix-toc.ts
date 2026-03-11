@@ -22,10 +22,6 @@
     </src-license>
   </src-title>>
 
-  <assign|appendix|<\macro|title>
-    <style-with|src-compact|none|<with|toc-prefix|toc|<appendix-toc|<arg|title>>><assign|appendix-numbered|<compound|appendix-display-numbers>><assign|appendix-prefix|<macro|<the-appendix>.>><next-appendix><appendix-clean><appendix-header|<arg|title>><if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>>
-  </macro>>
-
   <assign|appendix-section|<\macro|title>
     <section|<arg|title>><with|toc-prefix|appendix-toc|<toc-main-2|<the-section><section-sep><arg|title>>>
   </macro>>
