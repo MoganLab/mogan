@@ -27,15 +27,15 @@
   </macro>>
 
   <assign|appendix-section|<\macro|title>
-    <with|toc-prefix|appendix-toc|<section|<arg|title>>>
+    <with|toc-prefix|appendix-toc|in-appendix|false|<section|<arg|title>>>
   </macro>>
 
   <assign|appendix-subsection|<\macro|title>
-    <with|toc-prefix|appendix-toc|<subsection|<arg|title>>>
+    <with|toc-prefix|appendix-toc|in-appendix|false|<subsection|<arg|title>>>
   </macro>>
 
   <assign|appendix-subsubsection|<\macro|title>
-    <with|toc-prefix|appendix-toc|<subsubsection|<arg|title>>>
+    <with|toc-prefix|appendix-toc|in-appendix|false|<subsubsection|<arg|title>>>
   </macro>>
 
   <assign|appendix-table-of-contents|<macro|<\table-of-contents|appendix-toc>
