@@ -38,9 +38,11 @@
     <with|toc-prefix|appendix-toc|in-appendix|false|<subsubsection|<arg|title>>>
   </macro>>
 
-  <assign|appendix-table-of-contents|<macro|<\table-of-contents|appendix-toc>
-    \;
-  </table-of-contents>>>
+  <assign|section-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-2|<toc-title|section|<arg|name>>>|<if|<value|in-appendix>||<toc-normal-2|<toc-title|section|<arg|name>>>>>>>>
+
+  <assign|subsection-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-normal-2|<toc-title|subsection|<arg|name>>>|<if|<value|in-appendix>||<toc-normal-3|<toc-title|subsection|<arg|name>>>>>>>>
+
+  <assign|subsubsection-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-normal-3|<toc-title|subsubsection|<arg|name>>>|>>>>
 
   <assign|with-subtoc|<\macro|prefix|body>
     <with|toc-prefix|<arg|prefix>|<arg|body>>
