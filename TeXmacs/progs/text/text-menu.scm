@@ -135,7 +135,7 @@
   ("Subparagraph" (make-section 'subparagraph))
   ---
   ("Appendix" (make-section 'appendix))
-  (if (style-has? "appendix-toc")
+  (if (has-style-package? "appendix-toc")
     ("Appendix section" (make-section 'appendix-section))
     ("Appendix subsection" (make-section 'appendix-subsection))
     ("Appendix subsubsection" (make-section 'appendix-subsubsection)))
@@ -475,10 +475,10 @@
    (begin
      (make-aux "table-of-contents" "toc-prefix" "toc")
      (update-document "all")))
-  (if (style-has? "appendix-toc")
-      ("Appendix Table of Contents"
+  (if (has-style-package? "appendix-toc")
+      ("Appendix table of contents"
        (begin
-         (make-aux "table-of-contents" "toc-prefix" "appendix-toc")
+         (insert `(table-of-contents "appendix-toc" (document "")))
          (update-document "all"))))
   ("Bibliography" (open-bibliography-inserter))
   ("Index" 
