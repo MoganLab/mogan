@@ -466,12 +466,25 @@
 ;; Automatically generated content
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(tm-define (get-toc-filter)
+  (:synopsis "Get current toc-filter setting")
+  (with filter (get-init-env "toc-filter")
+    (if (== filter "") "default" filter)))
+
+(tm-define (set-toc-filter filter)
+  (:synopsis "Set toc-filter and insert table of contents")
+  (set-init-env "toc-filter" filter)
+  (make-aux "table-of-contents" "toc-prefix" "toc")
+  (update-document "all"))
+
+(menu-bind toc-filter-menu
+  ("Default (all sections)" (set-toc-filter "default"))
+  ("Only appendix" (set-toc-filter "only-appendix"))
+  ("Exclude appendix" (set-toc-filter "exclude-appendix"))
+  ("Include all" (set-toc-filter "include-all")))
+
 (menu-bind automatic-menu
-  ("Table of contents"
-   (begin
-     (with "toc-filter" "default"
-       (make-aux "table-of-contents" "toc-prefix" "toc")
-       (update-document "all")))))
+  (-> "Table of contents" (link toc-filter-menu))
   ("Bibliography" (open-bibliography-inserter))
   ("Index" 
     (begin 

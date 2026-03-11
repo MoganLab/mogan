@@ -226,7 +226,8 @@ edit_process_rep::generate_bibliography (string bib, string style,
  * Automatically generate table of contents
  ******************************************************************************/
 
-// Helper function to check if a toc item has the toc-item-type marker set to "appendix"
+// Helper function to check if a toc item has the toc-item-type marker set to
+// "appendix"
 static bool
 has_toc_appendix_marker (tree t) {
   if (!is_compound (t)) return false;
@@ -269,8 +270,9 @@ edit_process_rep::generate_table_of_contents (string toc, string filter_mode) {
 
       // Check if item is from appendix by looking for appendix markers
       bool is_appendix= false;
-      
-      // First check for explicit toc-item-type marker (set by appendix-toc macro)
+
+      // First check for explicit toc-item-type marker (set by appendix-toc
+      // macro)
       if (has_toc_appendix_marker (item)) {
         is_appendix= true;
       }
