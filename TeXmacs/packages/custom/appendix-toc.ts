@@ -27,22 +27,22 @@
   </macro>>
 
   <assign|appendix-section|<\macro|title>
-    <with|toc-prefix|appendix-toc|in-appendix|false|<section|<arg|title>>>
+    <style-with|src-compact|none|<with|toc-prefix|appendix-toc|in-appendix|false|<appendix-section-toc|<arg|title>>><section|<arg|title>>>
   </macro>>
 
   <assign|appendix-subsection|<\macro|title>
-    <with|toc-prefix|appendix-toc|in-appendix|false|<subsection|<arg|title>>>
+    <style-with|src-compact|none|<with|toc-prefix|appendix-toc|in-appendix|false|<appendix-subsection-toc|<arg|title>>><subsection|<arg|title>>>
   </macro>>
 
   <assign|appendix-subsubsection|<\macro|title>
-    <with|toc-prefix|appendix-toc|in-appendix|false|<subsubsection|<arg|title>>>
+    <style-with|src-compact|none|<with|toc-prefix|appendix-toc|in-appendix|false|<appendix-subsubsection-toc|<arg|title>>><subsubsection|<arg|title>>>
   </macro>>
 
-  <assign|section-toc|<macro|name|<toc-main-2|<toc-title|section|<arg|name>>>>>
+  <assign|appendix-section-toc|<macro|name|<toc-main-2|<toc-title|section|<arg|name>>>>>
 
-  <assign|subsection-toc|<macro|name|<toc-normal-2|<toc-title|subsection|<arg|name>>>>>>
+  <assign|appendix-subsection-toc|<macro|name|<toc-normal-2|<toc-title|subsection|<arg|name>>>>>
 
-  <assign|subsubsection-toc|<macro|name|<toc-normal-3|<toc-title|subsubsection|<arg|name>>>>>
+  <assign|appendix-subsubsection-toc|<macro|name|<toc-normal-3|<toc-title|subsubsection|<arg|name>>>>>
 
   <assign|with-subtoc|<\macro|prefix|body>
     <with|toc-prefix|<arg|prefix>|<arg|body>>
