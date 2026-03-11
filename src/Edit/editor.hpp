@@ -480,7 +480,8 @@ public:
 
   /* public routines from edit_process */
   virtual void generate_bibliography (string bib, string sty, string fname)= 0;
-  virtual void generate_table_of_contents (string toc)                     = 0;
+  virtual void generate_table_of_contents (string toc,
+                                           string filter_mode= "default")  = 0;
   virtual void generate_index (string idx)                                 = 0;
   virtual void generate_glossary (string glo)                              = 0;
   virtual void generate_aux (string which= "")                             = 0;

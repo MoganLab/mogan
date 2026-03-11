@@ -227,11 +227,68 @@ edit_process_rep::generate_bibliography (string bib, string style,
  ******************************************************************************/
 
 void
-edit_process_rep::generate_table_of_contents (string toc) {
+edit_process_rep::generate_table_of_contents (string toc, string filter_mode) {
   if (DEBUG_AUTO)
-    debug_automatic << "Generating table of contents [" << toc << "]\n";
+    debug_automatic << "Generating table of contents [" << toc
+                    << "] with filter [" << filter_mode << "]\n";
   tree toc_t= buf->data->aux[toc];
   if (buf->prj != NULL) toc_t= copy (buf->prj->data->aux[toc]);
+
+  // Apply toc-filter logic
+  if (filter_mode == "") filter_mode= "default";
+
+  if (filter_mode != "default" && filter_mode != "include-all") {
+    // Filter the toc based on filter_mode setting
+    tree filtered_toc= tree (DOCUMENT);
+    int  n           = N (toc_t);
+    for (int i= 0; i < n; i++) {
+      tree item   = toc_t[i];
+      bool include= true;
+
+      // Check if item is from appendix by looking for appendix markers
+      // We check the raw tree content for appendix-like patterns
+      bool is_appendix= false;
+      if (is_compound (item)) {
+        // Recursively search for appendix indicators in the tree
+        // Appendix sections typically have ids or markers starting with
+        // "appendix"
+        tree t= item;
+        // Simple heuristic: check first few elements for appendix pattern
+        // In TeXmacs, appendix items often contain specific markers
+        if (N (t) > 0) {
+          // Check if any string in the tree indicates appendix
+          for (int k= 0; k < N (t) && k < 3; k++) {
+            if (is_atomic (t[k])) {
+              string label= t[k]->label;
+              // Check for appendix-like patterns (A., B., etc. at start)
+              if (N (label) >= 2) {
+                char c1= label[0];
+                char c2= label[1];
+                if (c1 >= 'A' && c1 <= 'Z' && (c2 == '.' || c2 == ' ')) {
+                  is_appendix= true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      // Apply filter logic
+      if (filter_mode == "exclude-appendix") {
+        include= !is_appendix;
+      }
+      else if (filter_mode == "only-appendix") {
+        include= is_appendix;
+      }
+
+      if (include) {
+        filtered_toc << item;
+      }
+    }
+    toc_t= filtered_toc;
+  }
+
   if (N (toc_t) > 0) insert_tree (remove_labels (toc_t));
 }
 
@@ -549,10 +606,23 @@ edit_process_rep::generate_aux_recursively (string which, tree st, path p) {
             ((which == "") || (which == "bibliography")))
           generate_bibliography (as_string (t[0]), as_string (t[1]),
                                  as_string (t[2]));
-        if ((is_compound (t, "table-of-contents") ||
-             is_compound (t, "table-of-contents*")) &&
-            ((which == "") || (which == "table-of-contents")))
-          generate_table_of_contents (as_string (t[0]));
+        if (is_compound (t, "table-of-contents") &&
+            ((which == "") || (which == "table-of-contents"))) {
+          // Read filter mode from environment variable
+          string filter_mode= get_env_string ("toc-filter");
+          if (filter_mode == "") filter_mode= "default";
+          generate_table_of_contents (as_string (t[0]), filter_mode);
+        }
+        if (is_compound (t, "table-of-contents*") &&
+            ((which == "") || (which == "table-of-contents"))) {
+          generate_table_of_contents (as_string (t[0]), "default");
+        }
+        if (is_compound (t, "table-of-contents-filtered") &&
+            ((which == "") || (which == "table-of-contents"))) {
+          string filter_mode= "default";
+          if (N (t) >= 2) filter_mode= as_string (t[1]);
+          generate_table_of_contents (as_string (t[0]), filter_mode);
+        }
         if ((is_compound (t, "the-index") || is_compound (t, "the-index*")) &&
             ((which == "") || (which == "the-index")))
           generate_index (as_string (t[0]));
