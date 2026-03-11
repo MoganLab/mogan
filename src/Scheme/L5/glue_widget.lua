@@ -467,6 +467,12 @@ function main()
                 }
             },
             {
+                scm_name = "make-tm-chat-messages-widget",
+                cpp_name = "tm_chat_messages_widget",
+                ret_type = "widget",
+                arg_list = {}
+            },
+            {
                 scm_name = "qt-clipboard-format",
                 cpp_name = "qt_clipboard_format",
                 ret_type = "string"

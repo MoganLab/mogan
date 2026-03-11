@@ -261,6 +261,10 @@ widget refreshable_widget (object prom, string kind= "any");
 // the contents should also be updated dynamically by reevaluating
 // the scheme widget promise (in case of matching kind)
 
+widget tm_chat_messages_widget ();
+// a widget which displays a list of chat messages with support for
+// adding, removing, and clearing messages via slot messages
+
 /******************************************************************************
  * Besides the widget constructors, any GUI implementation should also provide
  * a simple_widget_rep class with the following virtual methods:

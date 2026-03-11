@@ -47,8 +47,17 @@
     ;; Refresh UI
     (refresh-now "ai-chat")))
 
+(tm-define (tm-chat-add-message role content)
+  ;; Add message to C++ chat widget via widget slot
+  ;; This is a placeholder - real implementation would send to widget
+  (display* "[Scheme] Adding message: " role " -> " content "\n"))
+
+(tm-define (tm-chat-clear)
+  ;; Clear all messages in chat widget
+  (display* "[Scheme] Clearing chat\n"))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Main Widget definition
+;; Main Widget definition - Using new C++ component
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (ai-dialog-panel)
@@ -61,19 +70,11 @@
         (explicit-buttons 
           ("Close" (show-ai-panel #f))))
       ===
-      ;; Message display area (REFRESHABLE WITH LOOP)
+      ;; Message list using new C++ component (no more refreshable!)
       (resize "500px" "700px"
-        (scrollable
-          (resize "500px" "1000px"
-            (refreshable "ai-chat"
-              (loop (msg ai-message-history)
-                (with (role content) msg
-                  (if (eq? role 'user)
-                      (hlist (bold (text "You: ")) (text content)))
-                  (if (eq? role 'assistant)
-                      (hlist (bold (text "AI: ")) (text content)))))))))
+        (widget-chat-messages))
       ===
-      ;; Input area (LARGER)
+      ;; Input area
       (hlist
         (resize "300px" "50px"
           (input (ai-update-input answer) "string" 
@@ -81,13 +82,17 @@
         >>
         (explicit-buttons 
           ("Send" 
-           ;; Send message and refresh
            (when (not (string-null? ai-current-input))
+             ;; Call C++ component to add message
+             (tm-chat-add-message "user" ai-current-input)
+             
+             ;; Also keep local history for now (for debugging)
              (set! ai-message-history 
-               (append ai-message-history (list (list 'user ai-current-input))))
-             (set! ai-message-count (+ ai-message-count 1))
-             (set! ai-current-input ""))
-           (refresh-now "ai-chat")))))))
+               (append ai-message-history 
+                       (list (list 'user ai-current-input))))
+             
+             ;; Clear input
+             (set! ai-current-input ""))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Show/hide panel

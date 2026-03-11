@@ -92,6 +92,15 @@ enum slot_id {
   SLOT_FILE,
   SLOT_DIRECTORY,
 
+  // ========== NEW: AI Chat Widget Slots ==========
+  SLOT_CHAT_ADD_MESSAGE,      // Add message (role, content)
+  SLOT_CHAT_REMOVE_MESSAGE,   // Remove message by id
+  SLOT_CHAT_CLEAR,            // Clear all messages
+  SLOT_CHAT_LOAD_HISTORY,     // Load history from file
+  SLOT_CHAT_SAVE_HISTORY,     // Save history to file
+  SLOT_CHAT_GET_MESSAGES,     // Query messages (returns scheme list)
+  // ================================================
+
   slot_id__LAST // Please leave last and don't assign integer values to members
 };
 

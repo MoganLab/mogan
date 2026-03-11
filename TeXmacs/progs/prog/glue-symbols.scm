@@ -664,6 +664,7 @@
 "widget-refresh"
 "widget-refreshable"
 "widget-tab-page"
+"widget-chat-messages"
 "object->promise-widget"
 "tree-bounding-rectangle"
 "widget-size"

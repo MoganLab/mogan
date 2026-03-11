@@ -269,6 +269,10 @@
   (require-format x '(scrollable :*))
   `($scrollable ,@(map gui-make (cdr x))))
 
+(define (gui-make-widget-chat-messages x)
+  (require-format x '(widget-chat-messages))
+  `($widget-chat-messages))
+
 (define (gui-make-resize x)
   (require-format x '(resize :%2 :*))
   `($resize ,(cadr x) ,(caddr x) ,@(map gui-make (cdddr x))))
@@ -450,6 +454,7 @@
   (verb ,gui-make-verb)
   (tile ,gui-make-tile)
   (scrollable ,gui-make-scrollable)
+  (widget-chat-messages ,gui-make-widget-chat-messages)
   (resize ,gui-make-resize)
   (hsplit ,gui-make-hsplit)
   (vsplit ,gui-make-vsplit)

@@ -141,7 +141,11 @@ public:
     filtered_choice_widget,
     tree_view_widget,
     division_widget,
-    tab_page_widget
+    tab_page_widget,
+    
+    // ========== NEW: AI Chat Components ==========
+    tm_chat_messages_widget,    // 聊天消息列表
+    // ================================================
   };
 
   types type;
@@ -209,7 +213,8 @@ public:
                                                   "filtered_choice_widget",
                                                   "tree_view_widget",
                                                   "division_widget",
-                                                  "tab_page_widget"};
+                                                  "tab_page_widget",
+                                                  "tm_chat_messages_widget"};
     return string (qt_widget_type_strings[type]) * "\t id: " * as_string (id);
   }
 

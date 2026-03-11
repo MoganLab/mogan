@@ -673,6 +673,10 @@
     (with inner (make-menu-items (list (cons 'vertical items)) style #f)
       (widget-scrollable (car inner) style))))
 
+(define (make-widget-chat-messages p style)
+  "Make @(widget-chat-messages) item."
+  (list (make-tm-chat-messages-widget)))
+
 (define (decode-resize x default)
   (cond ((string? x) (list x x x default))
         ((list-3? x) (append x (list default)))
@@ -937,7 +941,9 @@
   (refreshable (:%1 :*)
                ,(lambda (p style bar?) (make-refreshable p style bar?)))
   (cached (:%1 :%1 :*)
-               ,(lambda (p style bar?) (make-cached p style bar?))))
+               ,(lambda (p style bar?) (make-cached p style bar?)))
+  (widget-chat-messages ()
+               ,(lambda (p style bar?) (list (make-widget-chat-messages p style)))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menu expansion
@@ -1145,7 +1151,8 @@
   (promise ,menu-expand-promise)
   (refresh ,replace-procedures)
   (refreshable ,replace-procedures)
-  (cached ,replace-procedures))
+  (cached ,replace-procedures)
+  (widget-chat-messages ,make-widget-chat-messages))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface

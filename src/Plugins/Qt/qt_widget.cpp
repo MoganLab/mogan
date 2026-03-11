@@ -20,6 +20,7 @@
 #include "qt_ui_element.hpp"
 #include "qt_widget.hpp"
 #include "qt_window_widget.hpp"
+#include "qtm_chat_widget.hpp"  // NEW: AI Chat Widget
 
 #include "QTMMenuHelper.hpp"
 #include "QTMWindow.hpp"
@@ -658,4 +659,14 @@ wait_widget (SI width, SI height, string message) {
   (void) height;
   (void) message;
   return widget ();
+}
+
+/******************************************************************************
+ * NEW: AI Chat Widget Factory
+ ******************************************************************************/
+
+widget
+tm_chat_messages_widget () {
+  if (headless_mode) return headless_widget ();
+  return abstract (tm_new<QTMChatWidget> ());
 }
