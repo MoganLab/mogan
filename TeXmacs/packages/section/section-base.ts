@@ -56,6 +56,8 @@
 
   <assign|table-of-contents-text|<macro|<localize|Table of contents>>>
 
+  <assign|appendix-table-of-contents-text|<macro|<localize|Appendix table of contents>>>
+
   <assign|index-text|<macro|<localize|Index>>>
 
   <assign|glossary-text|<macro|<localize|Glossary>>>

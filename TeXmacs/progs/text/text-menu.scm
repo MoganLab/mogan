@@ -135,6 +135,10 @@
   ("Subparagraph" (make-section 'subparagraph))
   ---
   ("Appendix" (make-section 'appendix))
+  (if (style-has? "appendix-toc")
+    ("Appendix section" (make-section 'appendix-section))
+    ("Appendix subsection" (make-section 'appendix-subsection))
+    ("Appendix subsubsection" (make-section 'appendix-subsubsection)))
   ("Prologue::menu" 
     (begin 
       (make-unnamed-section 'prologue)
@@ -471,6 +475,11 @@
    (begin
      (make-aux "table-of-contents" "toc-prefix" "toc")
      (update-document "all")))
+  (if (style-has? "appendix-toc")
+      ("Appendix Table of Contents"
+       (begin
+         (make-aux "table-of-contents" "toc-prefix" "appendix-toc")
+         (update-document "all"))))
   ("Bibliography" (open-bibliography-inserter))
   ("Index" 
     (begin 

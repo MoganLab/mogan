@@ -4,6 +4,7 @@
 ("Advanced page numbering" "高级页码")
 ("Allow multiple spaces" "允许多个空格")
 ("Angle brackets ⟨ ⟩" "尖括号 ⟨ ⟩")
+("Appendix Table of Contents" "附录目录")
 ("Applying from" "起始于")
 ("Applying to" "结束于")
 ("As" "作为")

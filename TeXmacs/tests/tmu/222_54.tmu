@@ -1,0 +1,81 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|appendix-toc>>
+
+<\body>
+  <\hide-preamble>
+    <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<ordinal-text> <the-chapter> <chapter-text><chapter-sep><vspace|1fn><arg|title>>>>>
+  </hide-preamble>
+
+  <\table-of-contents|toc>
+    <vspace*|1fn><with|font-series|bold|math-font-series|bold|第 1 章<space|2spc>chapter><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+    <with|par-left|1tab|1.1<space|2spc>section<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+    <with|par-left|2tab|1.1.1<space|2spc>subsection<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+    <vspace*|1fn><with|font-series|bold|math-font-series|bold|附录<space|2spc>appendix><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4><vspace|0.5fn>
+  </table-of-contents>
+
+  <chapter|chapter>
+
+  <section|section>
+
+  <subsection|subsection>
+
+  \;
+
+  <appendix|appendix>
+
+  <\table-of-contents|appendix-toc>
+    <vspace*|1fn><with|font-series|bold|math-font-series|bold|A.1<space|2spc>section><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-5><vspace|0.5fn>
+
+    <with|par-left|1tab|A.1.1<space|2spc>subsecton<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-6>>
+  </table-of-contents>
+
+  <\appendix-section>
+    section
+  </appendix-section>
+
+  <\appendix-subsection>
+    subsecton
+  </appendix-subsection>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|sectional-short-style|<macro|false>>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1>>
+    <associate|auto-2|<tuple|1.1|1>>
+    <associate|auto-3|<tuple|1.1.1|1>>
+    <associate|auto-4|<tuple|1.1.1|1>>
+    <associate|auto-5|<tuple|A.1|1>>
+    <associate|auto-6|<tuple|A.1.1|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|appendix-toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|A.1<space|2spc>section><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-5><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|A.1.1<space|2spc>subsecton<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-6>>
+    </associate>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|第 1 章<space|2spc>chapter><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|1.1<space|2spc>section<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+      <with|par-left|<quote|2tab>|1.1.1<space|2spc>subsection<datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|附录<space|2spc>appendix><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>

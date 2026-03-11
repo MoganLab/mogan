@@ -12,7 +12,7 @@
       appendix chapters, sections, and subsections.
     </src-purpose>
 
-    <src-copyright|2026|Soyo>
+    <src-copyright|2026|Soyo and Yuki>
 
     <\src-license>
       This software falls under the <hlink|GNU general public license,
@@ -41,6 +41,17 @@
   <assign|with-subtoc|<\macro|prefix|body>
     <with|toc-prefix|<arg|prefix>|<arg|body>>
   </macro>>
+
+  <assign|table-of-contents|<\macro|aux|body>
+    <render-table-of-contents|<if|<value|in-appendix>|<appendix-table-of-contents-text>|<table-of-contents-text>>|<arg|body>>
+  </macro>>
+
+  <assign|render-table-of-contents|<\macro|name|body>
+    <with|chapter-toc|<macro|name|>|section-toc|<macro|name|>|<section*|<arg|name>>>
+
+    <with|par-first|0fn|par-par-sep|0fn|<arg|body>>
+  </macro>>
+
 </body>
 
 <\initial>
