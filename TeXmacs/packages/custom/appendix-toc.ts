@@ -38,11 +38,11 @@
     <style-with|src-compact|none|<with|toc-prefix|appendix-toc|in-appendix|false|<appendix-subsubsection-toc|<arg|title>>><subsubsection|<arg|title>>>
   </macro>>
 
-  <assign|appendix-section-toc|<macro|name|<toc-main-2|<toc-title|section|<arg|name>>>>>
+  <assign|appendix-section-toc|<macro|name|<toc-main-2|<style-with|src-compact|none|<the-section><section-sep><arg|name>>>>>>
 
-  <assign|appendix-subsection-toc|<macro|name|<toc-normal-2|<toc-title|subsection|<arg|name>>>>>
+  <assign|appendix-subsection-toc|<macro|name|<toc-normal-2|<style-with|src-compact|none|<the-subsection><subsection-sep><arg|name>>>>>>
 
-  <assign|appendix-subsubsection-toc|<macro|name|<toc-normal-3|<toc-title|subsubsection|<arg|name>>>>>
+  <assign|appendix-subsubsection-toc|<macro|name|<toc-normal-3|<style-with|src-compact|none|<the-subsubsection><subsubsection-sep><arg|name>>>>>>
 
   <assign|with-subtoc|<\macro|prefix|body>
     <with|toc-prefix|<arg|prefix>|<arg|body>>
