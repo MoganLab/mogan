@@ -23,15 +23,7 @@
   </src-title>>
 
   <assign|appendix|<\macro|title>
-    <with|toc-prefix|appendix-toc|<style-with|src-compact|none|
-      <assign|appendix-numbered|<compound|appendix-display-numbers>>
-      <assign|appendix-prefix|<macro|<the-appendix>.>>
-      <next-appendix>
-      <appendix-clean>
-      <appendix-header|<arg|title>>
-      <appendix-toc|<arg|title>>
-      <if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>
-    >>
+    <with|toc-prefix|appendix-toc|<assign|appendix-numbered|<compound|appendix-display-numbers>><assign|appendix-prefix|<macro|<the-appendix>.>><next-appendix><appendix-clean><appendix-header|<arg|title>><appendix-toc|<arg|title>><if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>>
   </macro>>
 
   <assign|appendix-section|<\macro|title>
