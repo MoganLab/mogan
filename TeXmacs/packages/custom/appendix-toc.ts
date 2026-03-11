@@ -1,4 +1,4 @@
-<TeXmacs|2.1.2>
+<TeXmacs|2.1.4>
 
 <style|<tuple|source|std|section-base>>
 
@@ -7,9 +7,9 @@
     <src-package|appendix-toc|1.0>
 
     <\src-purpose>
-      Support for independent table of contents in appendix sections.
-      This package allows creating a separate table of contents that only
-      includes appendix chapters, sections, and subsections.
+      Support for independent table of contents in appendix sections. This
+      package allows creating a separate table of contents that only includes
+      appendix chapters, sections, and subsections.
     </src-purpose>
 
     <src-copyright|2026|Soyo>
@@ -22,71 +22,38 @@
     </src-license>
   </src-title>>
 
-  <\active*>
-    <\src-comment>
-      Appendix table of contents support.
-      
-      Usage:
-      1. Add <use-package|appendix-toc> to your document
-      2. Use <appendix|title> to start appendix sections
-      3. Use <appendix-table-of-contents> to display appendix-only TOC
-      
-      The appendix sections will be written to "appendix-toc" prefix
-      instead of the default "toc" prefix, creating an independent TOC.
-    </src-comment>
-  </active*>
+  <assign|appendix-backup|<\macro|title>
+    <with|toc-prefix|appendix-toc|<style-with|src-compact|none|
+    <assign|appendix-numbered|<value|section-display-numbers>>
+    <assign|appendix-prefix|<macro|<compound|<if|<sectional-short-style>|the-section|the-chapter>>>>
+    <next-appendix> <appendix-clean> <appendix-header>|<arg|title>><with|toc-prefix|appendix-toc|<appendix-toc>|<arg|title>>><style-with|src-compact|none|
+    <if|<value|appendix-numbered>| <appendix-numbered-title>|<arg|title>>
+    <appendix-unnumbered-title>|<arg|title>>
+  </macro>>
 
-  ;; Redefine appendix to use "appendix-toc" prefix for TOC entries
-  <assign|appendix|<macro|title|
-    <with|toc-prefix|appendix-toc|
-      <style-with|src-compact|none|
-        <assign|appendix-numbered|<value|section-display-numbers>>
-        <assign|appendix-prefix|<macro|<compound|<if|<sectional-short-style>|the-section|the-chapter>>>>
-        <next-appendix>
-        <appendix-clean>
-        <appendix-header>|<arg|title>>
-        ;; Write to appendix-toc instead of default toc
-        <with|toc-prefix|appendix-toc|<appendix-toc>|<arg|title>>>
-        <style-with|src-compact|none|
-          <if|<value|appendix-numbered>|
-            <appendix-numbered-title>|<arg|title>>
-            <appendix-unnumbered-title>|<arg|title>>
-          >
-        >
-      >
-    >
-  >>
+  <assign|appendix|<\macro|title>
+    <assign|appendix-numbered|<compound|appendix-display-numbers>><assign|appendix-prefix|<macro|<the-appendix>.>><next-appendix><appendix-clean><appendix-header|<arg|title>><appendix-toc|<arg|title>><if|<value|appendix-numbered>|<appendix-numbered-title|<arg|title>>|<appendix-unnumbered-title|<arg|title>>>
+  </macro>>
 
-  ;; Appendix section - also uses appendix-toc prefix
-  <assign|appendix-section|<macro|title|
-    <with|toc-prefix|appendix-toc|
-      <section|<arg|title>>
-    >
-  >>
+  <assign|appendix-section|<\macro|title>
+    <with|toc-prefix|appendix-toc|<section|<arg|title>>>
+  </macro>>
 
-  ;; Appendix subsection - also uses appendix-toc prefix
-  <assign|appendix-subsection|<macro|title|
-    <with|toc-prefix|appendix-toc|
-      <subsection|<arg|title>>
-    >
-  >>
+  <assign|appendix-subsection|<\macro|title>
+    <with|toc-prefix|appendix-toc|<subsection|<arg|title>>>
+  </macro>>
 
-  ;; Appendix subsubsection - also uses appendix-toc prefix
-  <assign|appendix-subsubsection|<macro|title|
-    <with|toc-prefix|appendix-toc|
-      <subsubsection|<arg|title>>
-    >
-  >>
+  <assign|appendix-subsubsection|<\macro|title>
+    <with|toc-prefix|appendix-toc|<subsubsection|<arg|title>>>
+  </macro>>
 
-  ;; Convenient macro to display appendix table of contents
-  <assign|appendix-table-of-contents|<macro|
-    <table-of-contents|appendix-toc|<document|>>
-  >>
+  <assign|appendix-table-of-contents|<macro|<\table-of-contents|appendix-toc>
+    \;
+  </table-of-contents>>>
 
-  ;; Alternative: use with-toc to wrap any content with custom TOC prefix
-  <assign|with-subtoc|<macro|prefix|body|
+  <assign|with-subtoc|<\macro|prefix|body>
     <with|toc-prefix|<arg|prefix>|<arg|body>>
-  >>
+  </macro>>
 </body>
 
 <\initial>
