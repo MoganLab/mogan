@@ -668,3 +668,19 @@
 	((balloon (icon "tm_cell_join.xpm")
 		  "Join selected cells")
 	 (cell-set-span-selection)))))
+
+(tm-define (alternate-first-icon t)
+  (:require (table-markup-context? t))
+  "tm_cell_left.xpm")
+
+(tm-define (alternate-second-icon t)
+  (:require (table-markup-context? t))
+  "tm_cell_center.xpm")
+
+(tm-define (alternate-first-name t)
+  (:require (table-markup-context? t))
+  "Toggle cell alignment")
+
+(tm-define (alternate-second-name t)
+  (:require (table-markup-context? t))
+  "Toggle cell alignment")
