@@ -653,8 +653,7 @@ edit_interface_rep::notify_change (int change) {
   // 选区变化时，使文本工具栏缓存失效
   // 注意：不监听 THE_ENVIRONMENT，因为排版过于频繁会导致缓存永远失效
   // 输入字符时选区变化会触发 THE_SELECTION，进而隐藏工具栏
-  if ((change & THE_SELECTION) != 0)
-    invalidate_text_toolbar_cache ();
+  if ((change & THE_SELECTION) != 0) invalidate_text_toolbar_cache ();
 }
 
 bool
