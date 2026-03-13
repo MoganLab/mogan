@@ -354,6 +354,7 @@ edit_interface_rep::session_complete_command (tree tt) {
   if (pos == -1) return "";
   s= s (0, pos) * s (pos + N (cursor_symbol), N (s));
   // cout << s << ", " << pos << LF;
+  set_input_normal();
   return "(complete " * scm_quote (s) * " " * as_string (pos) * ")";
 }
 
