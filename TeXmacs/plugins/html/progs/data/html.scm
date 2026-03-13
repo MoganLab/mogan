@@ -34,7 +34,7 @@
             (else (loop (+ i 1) start result))))))
 
 ;; 某个字符在文本中的含量
-(define (charater-from-string s ch)
+(define (character-from-string s ch)
   (if (not (string-null? s)) 
       (let* ((len (string-length s))
              (limit (if (>= len html-detected-limit) html-detected-limit len)))
@@ -68,8 +68,8 @@
         (let* ((len (string-length s))
                (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit)))
-          (/ (+ (charater-from-string substr #\<)
-                (charater-from-string substr #\>))
+          (/ (+ (character-from-string substr #\<)
+                (character-from-string substr #\>))
              len))))
 
 ;; 完整的tag子串在文本中的字符含量
@@ -125,8 +125,8 @@
         (let* ((len (string-length s))
                (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit)))
-          (/ (+ (charater-from-string substr #\=)
-                (charater-from-string substr #\"))
+          (/ (+ (character-from-string substr #\=)
+                (character-from-string substr #\"))
              len))))
 
 ;; 这一行文本是否包含html标签
@@ -187,8 +187,8 @@
     (let* ((len (string-length s)))
       (cond
         ((or
-          (and (> (charater-from-string s #\<) 0)
-               (> (charater-from-string s #\>) 0)
+          (and (> (character-from-string s #\<) 0)
+               (> (character-from-string s #\>) 0)
                (> (html-string-count-substring s "</") 0))
           (> (html-string-count-substring (string-downcase s) "class=") 0)
           (> (html-string-count-substring (string-downcase s) "id=") 0)
