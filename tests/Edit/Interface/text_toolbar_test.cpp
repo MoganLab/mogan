@@ -40,21 +40,21 @@ TestTextToolbar::test_cache_timeout_boundary () {
 void
 TestTextToolbar::test_cache_invalidation () {
   // 测试缓存失效的核心逻辑：重置时间戳会使缓存失效
-  time_t last_check = 1000;  // 模拟一个过去的时间戳
-  
+  time_t last_check= 1000; // 模拟一个过去的时间戳
+
   // 验证初始状态
   QVERIFY (last_check == 1000);
-  
+
   // 模拟 invalidate_text_toolbar_cache()：重置为0
-  last_check = 0;
-  
+  last_check= 0;
+
   // 验证缓存已失效（时间戳被重置）
   QVERIFY (last_check == 0);
-  
+
   // 验证逻辑：任何正数时间戳与0的差都 >= 100（假设当前时间 >= 100）
   // 这个测试不依赖 texmacs_time() 的具体值，只测试逻辑
-  time_t simulated_now = 200;  // 模拟当前时间
-  QVERIFY ((simulated_now - last_check) >= 100);  // 200 - 0 >= 100
+  time_t simulated_now= 200;                     // 模拟当前时间
+  QVERIFY ((simulated_now - last_check) >= 100); // 200 - 0 >= 100
 }
 
 // 测试矩形有效性检查
