@@ -1,3 +1,4 @@
+
 /******************************************************************************
  * MODULE     : text_toolbar_test.cpp
  * DESCRIPTION: Test text toolbar functionality
