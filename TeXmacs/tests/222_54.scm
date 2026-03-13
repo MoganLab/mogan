@@ -18,9 +18,11 @@
 ;; The dependent function
 ;; ============================================================================
 
+(define html-detected-limit 1000)
+
 ;; 按行分割文本
 (define (html-string-split-lines s)
-  (let ((len (if (>= (string-length s) 1000) 1000 (string-length s))))
+  (let ((len (if (>= (string-length s) html-detected-limit) html-detected-limit (string-length s))))
     (let loop ((i 0)
               (start 0)
               (result '()))
@@ -33,10 +35,10 @@
             (else (loop (+ i 1) start result))))))
 
 ;; 某个字符在文本中的含量
-(define (charactor-from-string s ch)
+(define (character-from-string s ch)
   (if (not (string-null? s)) 
       (let* ((len (string-length s))
-             (limit (if (>= len 1000) 1000 len)))
+             (limit (if (>= len html-detected-limit) html-detected-limit len)))
         (let loop ((ref 0)
                    (count 0))
           (if (>= ref limit)
@@ -65,10 +67,10 @@
     (if (string-null? s)
         0
         (let* ((len (string-length s))
-               (limit (if (>= len 1000) 1000 len))
+               (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit)))
-          (/ (+ (charactor-from-string substr #\<)
-                (charactor-from-string substr #\>))
+          (/ (+ (character-from-string substr #\<)
+                (character-from-string substr #\>))
              len))))
 
 ;; 完整的tag子串在文本中的字符含量
@@ -76,7 +78,7 @@
     (if (string-null? s)
         0
         (let* ((len (string-length s))
-               (limit (if (>= len 1000) 1000 len))
+               (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit))
                (lc-substr (string-downcase substr)))
           (let ((count (+ (html-string-count-substring lc-substr "<div")
@@ -122,10 +124,10 @@
     (if (string-null? s)
         0
         (let* ((len (string-length s))
-               (limit (if (>= len 1000) 1000 len))
+               (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit)))
-          (/ (+ (charactor-from-string substr #\=)
-                (charactor-from-string substr #\"))
+          (/ (+ (character-from-string substr #\=)
+                (character-from-string substr #\"))
              len))))
 
 ;; 这一行文本是否包含html标签
@@ -186,8 +188,8 @@
     (let* ((len (string-length s)))
       (cond
         ((or
-          (and (> (charactor-from-string s #\<) 0)
-               (> (charactor-from-string s #\>) 0)
+          (and (> (character-from-string s #\<) 0)
+               (> (character-from-string s #\>) 0)
                (> (html-string-count-substring s "</") 0))
           (> (html-string-count-substring (string-downcase s) "class=") 0)
           (> (html-string-count-substring (string-downcase s) "id=") 0)
@@ -424,7 +426,7 @@ context. The document continues for many lines to ensure it's long enough for st
   (check (html-recognizes-at? non-html-text15 0) => #f)
   (check (html-recognizes-at? non-html-text16 0) => #f))
 
-(tm-define (test_222_33)
+(tm-define (test_222_54)
   (test-html-format-determine)
   (check-report))
 
