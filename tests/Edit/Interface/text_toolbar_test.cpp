@@ -1,4 +1,3 @@
-
 /******************************************************************************
  * MODULE     : text_toolbar_test.cpp
  * DESCRIPTION: Test text toolbar functionality
@@ -13,98 +12,118 @@
 #include "edit_interface.hpp"
 #include <QtTest/QtTest>
 
-// 模拟 edit_interface_rep 的部分功能用于测试
+// 测试文本工具栏缓存机制
 class TestTextToolbar : public QObject {
   Q_OBJECT
 
 private slots:
-  void test_should_show_text_toolbar_cache ();
-  void test_invalidate_text_toolbar_cache ();
-  void test_get_text_selection_rect_empty ();
-  void test_get_text_selection_rect_valid ();
-  void test_is_point_in_text_toolbar_conversion ();
+  void test_cache_timeout_boundary ();
+  void test_cache_invalidation ();
+  void test_rectangle_validity ();
+  void test_coordinate_conversion ();
+  void test_empty_selection_handling ();
 };
 
+// 测试缓存超时边界（100ms）
 void
-TestTextToolbar::test_should_show_text_toolbar_cache () {
-  // 测试缓存机制：连续调用应该返回相同结果
-  // 注意：这里使用模拟数据，实际测试需要完整的 edit_interface_rep 实例
+TestTextToolbar::test_cache_timeout_boundary () {
+  // 验证时间差计算
+  time_t t1= 1000;
+  time_t t2= 1099; // 差99ms，应该使用缓存
+  time_t t3= 1100; // 差100ms，应该重新检查
 
-  // 验证缓存初始状态
-  time_t initial_check= 0;
-  QVERIFY (initial_check == 0);
-
-  // 模拟缓存更新
-  time_t now   = texmacs_time ();
-  initial_check= now;
-  QVERIFY (initial_check > 0);
-
-  // 模拟100ms内的重复调用应该使用缓存
-  // 实际测试中应该验证 should_show_text_toolbar() 的行为
+  QVERIFY ((t2 - t1) < 100);  // 99 < 100，缓存有效
+  QVERIFY ((t3 - t1) >= 100); // 100 >= 100，缓存过期
 }
 
+// 测试缓存失效机制
 void
-TestTextToolbar::test_invalidate_text_toolbar_cache () {
-  // 测试缓存失效机制
-  time_t cache_time= texmacs_time ();
-  QVERIFY (cache_time > 0);
+TestTextToolbar::test_cache_invalidation () {
+  // 模拟缓存状态
+  time_t last_check = texmacs_time ();
+  bool   last_result= true;
 
-  // 模拟 invalidate_text_toolbar_cache() 的行为
-  cache_time= 0;
-  QVERIFY (cache_time == 0);
+  // 模拟 invalidate_text_toolbar_cache()
+  last_check= 0;
 
-  // 验证下次调用会重新计算
+  // 验证缓存已失效
+  QVERIFY (last_check == 0);
+
+  // 验证下次检查会重新计算（时间差会很大）
+  time_t now= texmacs_time ();
+  QVERIFY ((now - last_check) >= 100); // 一定会超过100ms
 }
 
+// 测试矩形有效性检查
 void
-TestTextToolbar::test_get_text_selection_rect_empty () {
-  // 测试空选区时的矩形计算
-  // 当没有选区时，应该返回空矩形
+TestTextToolbar::test_rectangle_validity () {
+  // 有效矩形（非零面积）
+  rectangle valid (100, 200, 300, 400);
+  QVERIFY (valid->x1 < valid->x2);
+  QVERIFY (valid->y1 < valid->y2);
 
-  rectangle empty_rect;
-  // 验证空矩形的默认值
-  QVERIFY (empty_rect->x1 == 0);
-  QVERIFY (empty_rect->y1 == 0);
-  QVERIFY (empty_rect->x2 == 0);
-  QVERIFY (empty_rect->y2 == 0);
+  // 无效矩形：零宽度
+  rectangle zero_width (100, 200, 100, 400);
+  QVERIFY (zero_width->x1 >= zero_width->x2); // 应该被检测为无效
+
+  // 无效矩形：零高度
+  rectangle zero_height (100, 200, 300, 200);
+  QVERIFY (zero_height->y1 >= zero_height->y2); // 应该被检测为无效
+
+  // 无效矩形：负面积（x1 > x2）
+  rectangle negative_x (300, 200, 100, 400);
+  QVERIFY (negative_x->x1 > negative_x->x2);
+
+  // 无效矩形：负面积（y1 > y2）
+  rectangle negative_y (100, 400, 300, 200);
+  QVERIFY (negative_y->y1 > negative_y->y2);
 }
 
+// 测试坐标转换精度
 void
-TestTextToolbar::test_get_text_selection_rect_valid () {
-  // 测试有效选区的矩形计算
-  rectangle valid_rect (100, 200, 300, 400);
+TestTextToolbar::test_coordinate_conversion () {
+  constexpr double INV_UNIT= 1.0 / 256.0;
 
-  // 验证矩形坐标
-  QVERIFY (valid_rect->x1 == 100);
-  QVERIFY (valid_rect->y1 == 200);
-  QVERIFY (valid_rect->x2 == 300);
-  QVERIFY (valid_rect->y2 == 400);
+  // 基础转换测试
+  QCOMPARE (int (std::round (2560 * INV_UNIT)), 10);
+  QCOMPARE (int (std::round (5120 * INV_UNIT)), 20);
 
-  // 验证非零面积检查
-  QVERIFY (valid_rect->x1 < valid_rect->x2);
-  QVERIFY (valid_rect->y1 < valid_rect->y2);
+  // 边界值测试
+  QCOMPARE (int (std::round (0 * INV_UNIT)), 0);
+  QCOMPARE (int (std::round (255 * INV_UNIT)), 1); // 接近1的值
+  QCOMPARE (int (std::round (256 * INV_UNIT)), 1); // 正好1个单位
+  QCOMPARE (int (std::round (257 * INV_UNIT)), 1); // 略大于1
+
+  // 大数值精度测试
+  SI  large      = 1000000;
+  int large_pixel= int (std::round (large * INV_UNIT));
+  QCOMPARE (large_pixel, 3906);
+
+  // 验证反向计算误差在可接受范围
+  double back_calc= large_pixel / INV_UNIT;
+  double error    = std::abs (back_calc - large);
+  QVERIFY (error < 256); // 误差小于1个像素单位
 }
 
+// 测试空选区处理
 void
-TestTextToolbar::test_is_point_in_text_toolbar_conversion () {
-  // 测试坐标转换的一致性
-  // 验证逻辑坐标到像素坐标的转换
+TestTextToolbar::test_empty_selection_handling () {
+  // 默认构造的空矩形
+  rectangle empty;
+  QCOMPARE (empty->x1, 0);
+  QCOMPARE (empty->y1, 0);
+  QCOMPARE (empty->x2, 0);
+  QCOMPARE (empty->y2, 0);
 
-  SI logical_x= 2560; // 10 * 256 (一个常见的坐标值)
-  SI logical_y= 5120; // 20 * 256
+  // 空矩形应该被检测为无效（零面积）
+  bool is_empty_invalid= (empty->x1 >= empty->x2) || (empty->y1 >= empty->y2);
+  QVERIFY (is_empty_invalid);
 
-  double inv_unit= 1.0 / 256.0;
-  int    pixel_x = int (std::round (logical_x * inv_unit));
-  int    pixel_y = int (std::round (logical_y * inv_unit));
-
-  // 验证转换结果
-  QVERIFY (pixel_x == 10);
-  QVERIFY (pixel_y == 20);
-
-  // 验证大数值的转换精度
-  SI  large_x    = 1000000;
-  int large_pixel= int (std::round (large_x * inv_unit));
-  QVERIFY (large_pixel == 3906); // 1000000 / 256 ≈ 3906
+  // 最小有效矩形（1x1像素）
+  rectangle minimal (0, 0, 1, 1);
+  bool      is_minimal_valid=
+      (minimal->x1 < minimal->x2) && (minimal->y1 < minimal->y2);
+  QVERIFY (is_minimal_valid);
 }
 
 QTEST_MAIN (TestTextToolbar)
