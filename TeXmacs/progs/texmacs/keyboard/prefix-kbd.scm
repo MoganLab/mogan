@@ -44,7 +44,7 @@
   ("special" "M-C-")
   ("extra" "M-A-")
   ("accent" "M-" #t)
-  ("copyto" "M-W")
+  ("copyto" "M-w")
   ("cutto" "emacs W")
   ("structured:cmd" "C-")
   ("structured:move" "M-A-")

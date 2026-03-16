@@ -279,7 +279,7 @@
       (set-init-env "font-base-size" val)))
     (list "Font size" "string" (get-init-env "font-base-size"))))
 
-(define (font-base-size-menu-name)
+(tm-define (font-base-size-menu-name)
   (let* ((raw (string->number (get-init "font-base-size")))
          (normalized (if (and raw (> raw 0)) (/ (floor (+ (* raw 2) 0.5)) 2) 10))
          (sz-str (if (= normalized (floor normalized))

@@ -21,6 +21,7 @@
 #include "path.hpp"
 #include "qapplication.h"
 #include "qnamespace.h"
+#include "qt_simple_widget.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
 #include "tm_buffer.hpp"
@@ -917,10 +918,14 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       show_image_popup (tree_of_image_parent, selr, magf, get_scroll_x (),
                         get_scroll_y (), get_canvas_x (), get_canvas_y ());
     }
+    hide_text_toolbar ();
   }
   else {
     set_cursor_style ("normal");
     hide_image_popup ();
+
+    // 检查是否应该显示文本工具栏
+    update_text_toolbar ();
   }
 
   if (type == "move") mouse_message ("move", x, y);
@@ -1030,10 +1035,14 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   if (type == "press-up") mouse_scroll (x, y, true);
   if (type == "press-down") mouse_scroll (x, y, false);
 
-  if ((type == "press-left") || (type == "release-left") ||
-      (type == "end-drag-left") || (type == "press-middle") ||
-      (type == "press-right"))
+  if ((type == "press-left") || (type == "press-middle") ||
+      (type == "press-right")) {
+    // 当用户点击其他地方（不在文本工具栏内）时，隐藏文本工具栏
+    if (!is_point_in_text_toolbar (x, y)) {
+      hide_text_toolbar ();
+    }
     notify_change (THE_DECORATIONS);
+  }
 
   if (type == "wheel" && N (data) == 2)
     eval ("(wheel-event " * as_string (data[0]) * " " * as_string (data[1]) *
@@ -1164,4 +1173,138 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
     if (started) cancel_editing ();
   }
   handle_exceptions ();
+}
+
+/******************************************************************************
+ * Text toolbar support
+ ******************************************************************************/
+
+bool
+edit_interface_rep::should_show_text_toolbar () {
+  // 缓存结果100ms，避免过多的Scheme调用
+  time_t now= texmacs_time ();
+  if (now - text_toolbar_last_check < 100) {
+    return text_toolbar_last_result;
+  }
+  text_toolbar_last_check= now;
+
+  if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
+      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
+    text_toolbar_last_result= false;
+    return false;
+  }
+  // 检查是否有活动的文本选区
+  if (!selection_active_any ()) {
+    text_toolbar_last_result= false;
+    return false;
+  }
+
+  // 检查选区是否非空
+  tree sel_tree= selection_get ();
+  if (is_atomic (sel_tree) && as_string (sel_tree) == "") {
+    text_toolbar_last_result= false;
+    return false;
+  }
+
+  text_toolbar_last_result= true;
+  return true;
+}
+
+rectangle
+edit_interface_rep::get_text_selection_rect () {
+  rectangle sel_rect;
+
+  // 单次检查selection_active_any，避免重复调用
+  if (!selection_active_any ()) return sel_rect;
+
+  if (!is_nil (selection_rects)) {
+    // 使用现有的选区矩形
+    sel_rect= least_upper_bound (selection_rects);
+  }
+  else {
+    // 如果没有选区矩形，但选区存在，计算一个默认矩形
+    path p1, p2;
+    selection_get (p1, p2);
+    if (p1 != p2) {
+      selection sel= search_selection (p1, p2);
+      if (!is_nil (sel->rs)) {
+        sel_rect= least_upper_bound (sel->rs);
+      }
+      else {
+        // 如果选区矩形为空，使用光标位置创建一个最小矩形
+        cursor cu= get_cursor ();
+        sel_rect = rectangle (cu->ox - 10 * pixel, cu->oy - 5 * pixel,
+                              cu->ox + 10 * pixel, cu->oy + 5 * pixel);
+      }
+    }
+  }
+
+  return sel_rect;
+}
+
+void
+edit_interface_rep::show_text_toolbar (rectangle selr, double magf,
+                                       int scroll_x, int scroll_y, int canvas_x,
+                                       int canvas_y) {
+  // 通过qt_simple_widget显示文本工具栏
+  // 使用dynamic_cast进行安全的类型转换
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->show_text_toolbar (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  }
+  // 如果转换失败，静默返回（非Qt环境）
+}
+
+void
+edit_interface_rep::hide_text_toolbar () {
+  // 通过qt_simple_widget隐藏文本工具栏
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    qsw->hide_text_toolbar ();
+  }
+}
+
+bool
+edit_interface_rep::is_point_in_text_toolbar (SI x, SI y) {
+  // 通过qt_simple_widget检查点是否在文本工具栏内
+  if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
+    return qsw->is_point_in_text_toolbar (x, y);
+  }
+  return false;
+}
+
+void
+edit_interface_rep::invalidate_text_toolbar_cache () {
+  // 重置工具栏缓存，强制下次重新检查
+  text_toolbar_last_check= 0;
+}
+
+void
+edit_interface_rep::update_text_toolbar () {
+  if (left_dragging) {
+    hide_text_toolbar ();
+    return;
+  }
+  // 检查是否应该显示文本工具栏
+  if (should_show_text_toolbar ()) {
+    rectangle text_selr= get_text_selection_rect ();
+    // 检查矩形是否有效（非零面积）
+    if (text_selr->x1 >= text_selr->x2 || text_selr->y1 >= text_selr->y2) {
+      hide_text_toolbar ();
+      return;
+    }
+
+    update_visible ();
+    // 使用原始坐标检查选区是否在视图内
+    // （无需min/max，因为已经验证过矩形有效性）
+    bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 ||
+                        text_selr->y2 < vy1 || text_selr->y1 > vy2);
+    if (!sel_in_view) {
+      hide_text_toolbar ();
+      return;
+    }
+    show_text_toolbar (text_selr, magf, get_scroll_x (), get_scroll_y (),
+                       get_canvas_x (), get_canvas_y ());
+  }
+  else {
+    hide_text_toolbar ();
+  }
 }

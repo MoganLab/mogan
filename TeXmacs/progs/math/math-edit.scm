@@ -834,6 +834,18 @@ list | boolean
                                 (rb (caddr body)))
                             `(symbol-completion
                               ,(string-append lb rb)))))
+                    ;; Case 4: math-separator 
+                    ((math-separator)
+                     (and (string? (cadr body))
+                          `(symbol-completion
+                            ,(if (== (cadr body) "<nobracket>")
+                                 "<mid-.>"
+                                 (string-append "<mid-"
+                                                (if (and (string-starts? (cadr body) "<")
+                                                         (string-ends? (cadr body) ">"))
+                                                    (substring (cadr body) 1
+                                                               (- (string-length (cadr body)) 1))
+                                                    (cadr body)) ">")))))
                     ;; 预留位置：可以在此添加其他函数的处理逻辑
                     
                     (else #f)))))))))))

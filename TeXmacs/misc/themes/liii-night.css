@@ -932,3 +932,28 @@ QWidget#centralWidget QWidget {
   background: #202020;
   color: #ffffff;
 }
+
+/*文本工具栏窗口样式*/
+QWidget#text_toolbar {
+  background: #333333;
+  border: none;
+  border-radius: 8px;
+}
+
+/*文本工具栏按钮样式*/
+QToolButton#text-toolbar-button {
+  background-color: transparent; 
+  border: none;
+}
+
+/*文本工具栏按钮悬停样式*/
+QToolButton#text-toolbar-button:hover { 
+  background-color: rgba(255, 255, 255, 0.1); 
+  border: none; 
+} 
+
+/*文本工具栏按钮按下样式*/
+QToolButton#text-toolbar-button:pressed {
+  background-color: rgba(255, 255, 255, 0.2); 
+  border: none;
+}

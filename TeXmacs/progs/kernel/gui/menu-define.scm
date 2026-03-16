@@ -691,17 +691,6 @@
 (define (gui-make-pick-background x)
   `(menu-dynamic
      (dynamic (standard-color-menu (lambda (answer) ,@(cddr x))))
-     ---
-     (dynamic (standard-pattern-menu (lambda (answer) ,@(cddr x))
-                                     "$TEXMACS_PATH/misc/patterns/vintage"
-                                     ,(cadr x)))
-     (when (nnull? (get-preferred-list "my patterns" 32))
-       ---
-       (dynamic (my-pattern-menu (lambda (answer) ,@(cddr x)))))
-     ;;(assuming (nnull? (clipart-list))
-     ;;  ---
-     ;;  (dynamic (clipart-pattern-menu (lambda (answer) ,@(cddr x))
-     ;;                                 ,(cadr x))))
      ))
 
 (extend-table gui-make-table

@@ -1139,6 +1139,11 @@ smart_font_rep::resolve (string c) {
 
   // Special handling for emoji characters - bypass font-family restrictions
   string range= get_unicode_range (c);
+  // 如果设置了字体，就优先使用当前设置的字体
+  if (fn[SUBFONT_MAIN]->supports (c)) {
+    return sm->add_char (tuple ("main"), c);
+  }
+
   if (range == "emoji") {
     for (int i= 0; i < N (a); i++) {
       array<string> parts= trimmed_tokenize (a[i], "=");

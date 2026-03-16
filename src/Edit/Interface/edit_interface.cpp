@@ -992,6 +992,8 @@ edit_interface_rep::apply_changes () {
       selection_rects= rs;
       invalidate (selection_rects);
     }
+    // 选区改变后更新文本工具栏
+    update_text_toolbar ();
   }
 
   // cout << "Handling alternative selection\n";

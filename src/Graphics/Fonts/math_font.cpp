@@ -153,7 +153,8 @@ math_font_rep::search_font (string& s, font& fn) {
     int i, n= N (s);
     for (i= 0; i < n; i++)
       if ((!is_digit (s[i])) && (!is_alpha (s[i])) && (s[i] != '.') &&
-          (s[i] != '\\') && (s[i] != '_')) {
+          (s[i] != '\\') && (s[i] != '_') && (s[i] != '[') && (s[i] != ']') &&
+          (s[i] != '|')) {
         fn= error_fn;
         return;
       }

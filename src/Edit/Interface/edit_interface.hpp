@@ -91,6 +91,10 @@ protected:
   SI     table_line_second_size= 0;
   bool   table_line_wide_flag  = false; // 用于格线移动的标记，只在点击时更新
   double table_line_mark       = 0.0;
+
+  // 文本工具栏缓存，用于性能优化
+  time_t text_toolbar_last_check = 0;
+  bool   text_toolbar_last_result= false;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
   void   table_line_start (const table_hit& hit, SI x, SI y);
   void   table_line_apply (SI x, SI y);
@@ -257,6 +261,14 @@ public:
   void      update_mouse_loci ();
   void      update_focus_loci ();
   bool      should_show_image_popup (tree t);
+  bool      should_show_text_toolbar ();
+  rectangle get_text_selection_rect ();
+  void      show_text_toolbar (rectangle selr, double magf, int scroll_x,
+                               int scroll_y, int canvas_x, int canvas_y);
+  void      hide_text_toolbar ();
+  bool      is_point_in_text_toolbar (SI x, SI y);
+  void      update_text_toolbar ();
+  void      invalidate_text_toolbar_cache (); // 重置工具栏缓存
 
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
