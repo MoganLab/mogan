@@ -32,7 +32,7 @@ private slots:
   void update_label ();
 
 private:
-  Entry currentEntry_;
+  Entry   currentEntry_;
   QLabel* label_;
 };
 

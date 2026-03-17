@@ -546,7 +546,8 @@ attach_view (url win_u, url u) {
   notify_set_view (u);
   vw->ed->resume ();
   win->set_window_name (vw->buf->buf->title);
-  win->set_window_url (vw->buf->buf->name);
+  // set_window_url 移到 window_set_view 中，在 set_current_view 之后调用
+  // win->set_window_url (vw->buf->buf->name);
   // cout << "View attached\n";
 }
 
@@ -585,6 +586,9 @@ window_set_view (url win_u, url new_u, bool focus) {
   if (!is_none (old_u)) detach_view (old_u);
   attach_view (win_u, new_u);
   if (focus || get_current_view () == old_u) set_current_view (new_u);
+  // 在 set_current_view 之后调用 set_window_url，确保 SLOT_FILE 处理时 current
+  // view 已更新
+  win->set_window_url (new_vw->buf->buf->name);
   exec_delayed (scheme_cmd ("(make-cursor-visible '" *
                             scm_quote (as_string (new_u)) * ")"));
   exec_delayed (scheme_cmd ("(when (defined? 'refresh-auxiliary-widget) "

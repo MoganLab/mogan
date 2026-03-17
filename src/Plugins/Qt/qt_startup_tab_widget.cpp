@@ -11,10 +11,10 @@
 
 #include "qt_startup_tab_widget.hpp"
 
-#include <QLabel>
-#include <QVBoxLayout>
 #include <QHBoxLayout>
+#include <QLabel>
 #include <QPushButton>
+#include <QVBoxLayout>
 
 namespace {
 const char*
@@ -39,8 +39,8 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   setMinimumSize (400, 300);
   setStyleSheet ("background-color: #f0f0f0;");
   setFocusPolicy (Qt::NoFocus);
-  label_= new QLabel (
-      "Mogan STEM Startup Tab (File/Template/Recent/Settings)", this);
+  label_= new QLabel ("Mogan STEM Startup Tab (File/Template/Recent/Settings)",
+                      this);
   label_->setAlignment (Qt::AlignCenter);
 
   // Create buttons for each entry
@@ -54,18 +54,14 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   settingsButton->setFocusPolicy (Qt::NoFocus);
 
   // Connect button clicks to set current entry
-  connect (fileButton, &QPushButton::clicked, this, [this]() {
-    set_current_entry (Entry::File);
-  });
-  connect (templateButton, &QPushButton::clicked, this, [this]() {
-    set_current_entry (Entry::Template);
-  });
-  connect (recentButton, &QPushButton::clicked, this, [this]() {
-    set_current_entry (Entry::Recent);
-  });
-  connect (settingsButton, &QPushButton::clicked, this, [this]() {
-    set_current_entry (Entry::Settings);
-  });
+  connect (fileButton, &QPushButton::clicked, this,
+           [this] () { set_current_entry (Entry::File); });
+  connect (templateButton, &QPushButton::clicked, this,
+           [this] () { set_current_entry (Entry::Template); });
+  connect (recentButton, &QPushButton::clicked, this,
+           [this] () { set_current_entry (Entry::Recent); });
+  connect (settingsButton, &QPushButton::clicked, this,
+           [this] () { set_current_entry (Entry::Settings); });
 
   // Arrange buttons horizontally
   QHBoxLayout* buttonLayout= new QHBoxLayout;
@@ -99,6 +95,6 @@ void
 QTStartupTabWidget::update_label () {
   if (label_) {
     label_->setText (QString ("Mogan STEM Startup Tab - Current: %1")
-                        .arg (entry_to_string (currentEntry_)));
+                         .arg (entry_to_string (currentEntry_)));
   }
 }

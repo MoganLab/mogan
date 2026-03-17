@@ -1370,18 +1370,15 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
     QWidget* q= main_widget->qwid;
     QLayout* l= centralwidget ()->layout ();
-    if (q && l->indexOf (q) >= 0) l->removeWidget (q);
+    if (q && l->indexOf (q) >= 0) {
+      l->removeWidget (q);
+      q->hide (); // 隐藏旧的 widget
+    }
 
     q= concrete (w)->as_qwidget (); // force creation of the new QWidget
-    main_widget    = concrete (w);
-    url currentView= get_current_view_safe ();
-    if (is_none (currentView)) {
-      startupTabMode= true;
-    }
-    else {
-      startupTabMode= is_startup_tab_current_view ();
-    }
-    sync_startup_tab_mode ();
+    // SLOT_SCROLLABLE 只更新 main_widget，不设置 startupTabMode
+    // startupTabMode 的判定和界面更新由 SLOT_FILE 处理
+    main_widget= concrete (w);
   } break;
 
   case SLOT_MAIN_MENU:
