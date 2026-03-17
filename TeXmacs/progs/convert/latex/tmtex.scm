@@ -2642,7 +2642,7 @@
   (tex-concat (list (list 'item (list '!option (tmtex (car l)))) " ")))
 
 (define (tmtex-render-proof s l)
-  (list (list '!begin "proof*" (tmtex (car l))) (tmtex (cadr l))))
+  (list (list '!begin "proof") (tmtex (cadr l)) (list '!end "proof")))
 
 (define (tmtex-nbsp s l)
   '(!nbsp))
