@@ -767,6 +767,11 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
 
   // clear any residual waiting menu installation
   waiting_widgets= remove (waiting_widgets, this);
+
+  // delete startup content widget
+  if (startupContentWidget) {
+    delete startupContentWidget;
+  }
 }
 
 void
@@ -809,6 +814,25 @@ qt_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
   return this;
 }
 
+// Helper functions to show/hide widgets in layout
+static void
+show_widget_in_layout (QWidget* widget, QLayout* layout) {
+  if (!widget || !layout) return;
+  if (layout->indexOf (widget) < 0) {
+    layout->addWidget (widget);
+  }
+  widget->show ();
+}
+
+static void
+hide_widget_from_layout (QWidget* widget, QLayout* layout) {
+  if (!widget || !layout) return;
+  widget->hide ();
+  if (layout->indexOf (widget) >= 0) {
+    layout->removeWidget (widget);
+  }
+}
+
 void
 qt_tm_widget_rep::sync_startup_tab_mode () {
   QWidget* editorWidget= main_widget->qwid;
@@ -824,34 +848,19 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
 
   if (startupTabMode) {
     // Show Backstage/Startup view
-    if (editorWidget) {
-      editorWidget->hide ();
-      if (layout->indexOf (editorWidget) >= 0)
-        layout->removeWidget (editorWidget);
-    }
+    hide_widget_from_layout (editorWidget, layout);
 
     update_visibility ();
 
     if (!startupContentWidget) {
       startupContentWidget= new QTStartupTabWidget (centralwidget ());
     }
-    if (layout->indexOf (startupContentWidget) < 0) {
-      layout->addWidget (startupContentWidget);
-    }
-    startupContentWidget->show ();
+    show_widget_in_layout (startupContentWidget, layout);
   }
   else {
     // Show normal editor view
-    if (startupContentWidget) {
-      startupContentWidget->hide ();
-      if (layout->indexOf (startupContentWidget) >= 0)
-        layout->removeWidget (startupContentWidget);
-    }
-
-    if (editorWidget) {
-      if (layout->indexOf (editorWidget) < 0) layout->addWidget (editorWidget);
-      editorWidget->show ();
-    }
+    hide_widget_from_layout (startupContentWidget, layout);
+    show_widget_in_layout (editorWidget, layout);
 
     update_visibility ();
 

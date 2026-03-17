@@ -44,31 +44,23 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   label_->setAlignment (Qt::AlignCenter);
 
   // Create buttons for each entry
-  QPushButton* fileButton= new QPushButton ("File", this);
-  fileButton->setFocusPolicy (Qt::NoFocus);
-  QPushButton* templateButton= new QPushButton ("Template", this);
-  templateButton->setFocusPolicy (Qt::NoFocus);
-  QPushButton* recentButton= new QPushButton ("Recent", this);
-  recentButton->setFocusPolicy (Qt::NoFocus);
-  QPushButton* settingsButton= new QPushButton ("Settings", this);
-  settingsButton->setFocusPolicy (Qt::NoFocus);
+  struct ButtonInfo {
+    const char* text;
+    Entry       entry;
+  };
+  ButtonInfo buttons[]= {{"File", Entry::File},
+                         {"Template", Entry::Template},
+                         {"Recent", Entry::Recent},
+                         {"Settings", Entry::Settings}};
 
-  // Connect button clicks to set current entry
-  connect (fileButton, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::File); });
-  connect (templateButton, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Template); });
-  connect (recentButton, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Recent); });
-  connect (settingsButton, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Settings); });
-
-  // Arrange buttons horizontally
   QHBoxLayout* buttonLayout= new QHBoxLayout;
-  buttonLayout->addWidget (fileButton);
-  buttonLayout->addWidget (templateButton);
-  buttonLayout->addWidget (recentButton);
-  buttonLayout->addWidget (settingsButton);
+  for (const auto& info : buttons) {
+    QPushButton* btn= new QPushButton (info.text, this);
+    btn->setFocusPolicy (Qt::NoFocus);
+    connect (btn, &QPushButton::clicked, this,
+             [this, entry= info.entry] () { set_current_entry (entry); });
+    buttonLayout->addWidget (btn);
+  }
   buttonLayout->addStretch ();
 
   // Main vertical layout
@@ -93,8 +85,6 @@ QTStartupTabWidget::set_current_entry (Entry entry) {
 
 void
 QTStartupTabWidget::update_label () {
-  if (label_) {
-    label_->setText (QString ("Mogan STEM Startup Tab - Current: %1")
-                         .arg (entry_to_string (currentEntry_)));
-  }
+  label_->setText (QString ("Mogan STEM Startup Tab - Current: %1")
+                       .arg (entry_to_string (currentEntry_)));
 }
