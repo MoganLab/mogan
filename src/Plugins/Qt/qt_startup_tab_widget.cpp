@@ -34,12 +34,13 @@ entry_to_string (QTStartupTabWidget::Entry entry) {
 
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File) {
-  setMinimumSize(400, 300);
-  setStyleSheet("background-color: #f0f0f0;");
-  QLabel* label = new QLabel("Mogan STEM Startup Tab (File/Template/Recent/Settings)", this);
-  label->setAlignment(Qt::AlignCenter);
-  QVBoxLayout* layout = new QVBoxLayout(this);
-  layout->addWidget(label);
+  setMinimumSize (400, 300);
+  setStyleSheet ("background-color: #f0f0f0;");
+  QLabel* label= new QLabel (
+      "Mogan STEM Startup Tab (File/Template/Recent/Settings)", this);
+  label->setAlignment (Qt::AlignCenter);
+  QVBoxLayout* layout= new QVBoxLayout (this);
+  layout->addWidget (label);
 }
 
 QTStartupTabWidget::Entry

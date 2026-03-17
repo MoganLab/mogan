@@ -826,7 +826,8 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     // Show Backstage/Startup view
     if (editorWidget) {
       editorWidget->hide ();
-      if (layout->indexOf (editorWidget) >= 0) layout->removeWidget (editorWidget);
+      if (layout->indexOf (editorWidget) >= 0)
+        layout->removeWidget (editorWidget);
     }
 
     update_visibility ();
@@ -876,7 +877,8 @@ qt_tm_widget_rep::update_visibility () {
   bool old_bottomVisibility= bottomTools->isVisible ();
   bool old_extraVisibility = extraTools->isVisible ();
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
-  bool old_tabVisibility   = tabPageContainer ? tabPageContainer->isVisible () : false;
+  bool old_tabVisibility=
+      tabPageContainer ? tabPageContainer->isVisible () : false;
   bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
   bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
 
@@ -1371,7 +1373,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
     if (q && l->indexOf (q) >= 0) l->removeWidget (q);
 
     q= concrete (w)->as_qwidget (); // force creation of the new QWidget
-    main_widget= concrete (w);
+    main_widget    = concrete (w);
     url currentView= get_current_view_safe ();
     if (is_none (currentView)) {
       startupTabMode= true;

@@ -297,12 +297,12 @@ url
 ensure_window (tree geom) {
   if (number_buffers () == 0) {
 #ifdef USE_STARTUP_TAB
-  url name= "tmfs://startup-tab";
-  if (is_nil (concrete_buffer (name))) create_buffer (name, tree (DOCUMENT));
-  url win= new_window (true, geom, true);
-  window_set_view (win, get_passive_view (name), true);
+    url name= "tmfs://startup-tab";
+    if (is_nil (concrete_buffer (name))) create_buffer (name, tree (DOCUMENT));
+    url win= new_window (true, geom, true);
+    window_set_view (win, get_passive_view (name), true);
     set_title_buffer (name, "Mogan STEM");
-  return win;
+    return win;
 #else
     url name= make_welcome_buffer ();
     return new_buffer_in_new_window (name, tree (DOCUMENT), geom);

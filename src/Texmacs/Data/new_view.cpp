@@ -541,10 +541,12 @@ attach_view (url win_u, url u) {
   set_scrollable (wid, vw->ed);
   vw->ed->cvw= wid.rep;
   ASSERT (is_attached (wid), "widget should be attached");
+  // 先通知 view 被设置，确保 view_history 更新后再调用 resume
+  // 这样 resume() 中的菜单刷新能获取到正确的 view 列表
+  notify_set_view (u);
   vw->ed->resume ();
   win->set_window_name (vw->buf->buf->title);
   win->set_window_url (vw->buf->buf->name);
-  notify_set_view (u);
   // cout << "View attached\n";
 }
 

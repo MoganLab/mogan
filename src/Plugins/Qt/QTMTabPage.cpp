@@ -20,7 +20,7 @@
 // The minimum width of a single tab page (in pixels).
 const int MIN_TAB_PAGE_WIDTH= 150;
 // The maximum width of a single tab page (in pixels).
-const int MAX_TAB_PAGE_WIDTH= 200;
+const int MAX_TAB_PAGE_WIDTH   = 200;
 const int STARTUP_TAB_MAX_WIDTH= 100;
 
 // The horizontal padding for tab container (in pixels).
@@ -115,7 +115,8 @@ is_startup_tab_view (url viewUrl) {
 static int
 startup_tab_index (const QList<QTMTabPage*>& tabs) {
   for (int i= 0; i < tabs.size (); ++i)
-    if (tabs[i] != nullptr && is_startup_tab_view (tabs[i]->m_viewUrl)) return i;
+    if (tabs[i] != nullptr && is_startup_tab_view (tabs[i]->m_viewUrl))
+      return i;
   return -1;
 }
 
@@ -434,7 +435,7 @@ QTMTabPageContainer::arrangeTabPages () {
 
   // Set new positions for all tabs
   for (int i= 0; i < m_tabPageList.size (); ++i) {
-    QTMTabPage* tab= m_tabPageList[i];
+    QTMTabPage* tab            = m_tabPageList[i];
     int         currentTabWidth= tabWidth;
     if (is_startup_tab_view (tab->m_viewUrl)) {
       currentTabWidth= std::min (tabWidth, STARTUP_TAB_MAX_WIDTH);
@@ -519,11 +520,11 @@ QTMTabPageContainer::mapToPointing (QDropEvent* e, QPoint& p_indicatorPos) {
     QRect rect = tab->geometry ();
     int   x_mid= rect.x () + rect.width () / 2;
     if (pos.x () < x_mid) {
-      index       = i;
+      index         = i;
       p_indicatorPos= rect.topLeft ();
       break;
     }
-    index       = i + 1;
+    index         = i + 1;
     p_indicatorPos= rect.topRight ();
   }
 
@@ -600,11 +601,11 @@ QTMTabPageContainer::dropEvent (QDropEvent* e) {
     // Attach当前标签页到其他窗口
     QObject* src= e->source ();
     if (src && src != this) {
-      url       dragged_view  = g_mostRecentlyDraggedTab;
+      url dragged_view= g_mostRecentlyDraggedTab;
       if (is_startup_tab_view (dragged_view)) {
         g_mostRecentlyDraggedTab= url_none ();
         g_mostRecentlyDraggedBar= nullptr;
-        g_pointingIndex        = -1;
+        g_pointingIndex         = -1;
         m_indicator->hide ();
         dummyTabPage->hide ();
         return;
