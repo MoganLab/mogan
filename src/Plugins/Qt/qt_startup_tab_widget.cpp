@@ -13,6 +13,8 @@
 
 #include <QLabel>
 #include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QPushButton>
 
 namespace {
 const char*
@@ -33,14 +35,53 @@ entry_to_string (QTStartupTabWidget::Entry entry) {
 } // namespace
 
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
-    : QWidget (parent), currentEntry_ (Entry::File) {
+    : QWidget (parent), currentEntry_ (Entry::File), label_ (nullptr) {
   setMinimumSize (400, 300);
   setStyleSheet ("background-color: #f0f0f0;");
-  QLabel* label= new QLabel (
+  setFocusPolicy (Qt::NoFocus);
+  label_= new QLabel (
       "Mogan STEM Startup Tab (File/Template/Recent/Settings)", this);
-  label->setAlignment (Qt::AlignCenter);
+  label_->setAlignment (Qt::AlignCenter);
+
+  // Create buttons for each entry
+  QPushButton* fileButton= new QPushButton ("File", this);
+  fileButton->setFocusPolicy (Qt::NoFocus);
+  QPushButton* templateButton= new QPushButton ("Template", this);
+  templateButton->setFocusPolicy (Qt::NoFocus);
+  QPushButton* recentButton= new QPushButton ("Recent", this);
+  recentButton->setFocusPolicy (Qt::NoFocus);
+  QPushButton* settingsButton= new QPushButton ("Settings", this);
+  settingsButton->setFocusPolicy (Qt::NoFocus);
+
+  // Connect button clicks to set current entry
+  connect (fileButton, &QPushButton::clicked, this, [this]() {
+    set_current_entry (Entry::File);
+  });
+  connect (templateButton, &QPushButton::clicked, this, [this]() {
+    set_current_entry (Entry::Template);
+  });
+  connect (recentButton, &QPushButton::clicked, this, [this]() {
+    set_current_entry (Entry::Recent);
+  });
+  connect (settingsButton, &QPushButton::clicked, this, [this]() {
+    set_current_entry (Entry::Settings);
+  });
+
+  // Arrange buttons horizontally
+  QHBoxLayout* buttonLayout= new QHBoxLayout;
+  buttonLayout->addWidget (fileButton);
+  buttonLayout->addWidget (templateButton);
+  buttonLayout->addWidget (recentButton);
+  buttonLayout->addWidget (settingsButton);
+  buttonLayout->addStretch ();
+
+  // Main vertical layout
   QVBoxLayout* layout= new QVBoxLayout (this);
-  layout->addWidget (label);
+  layout->addWidget (label_);
+  layout->addLayout (buttonLayout);
+  layout->addStretch ();
+
+  update_label ();
 }
 
 QTStartupTabWidget::Entry
@@ -51,4 +92,13 @@ QTStartupTabWidget::current_entry () const {
 void
 QTStartupTabWidget::set_current_entry (Entry entry) {
   currentEntry_= entry;
+  update_label ();
+}
+
+void
+QTStartupTabWidget::update_label () {
+  if (label_) {
+    label_->setText (QString ("Mogan STEM Startup Tab - Current: %1")
+                        .arg (entry_to_string (currentEntry_)));
+  }
 }

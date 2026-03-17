@@ -14,7 +14,11 @@
 
 #include <QWidget>
 
+class QLabel;
+
 class QTStartupTabWidget : public QWidget {
+  Q_OBJECT
+
 public:
   enum class Entry { File, Template, Recent, Settings };
 
@@ -24,8 +28,12 @@ public:
   Entry current_entry () const;
   void  set_current_entry (Entry entry);
 
+private slots:
+  void update_label ();
+
 private:
   Entry currentEntry_;
+  QLabel* label_;
 };
 
 #endif
