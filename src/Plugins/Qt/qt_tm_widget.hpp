@@ -138,6 +138,8 @@ private:
   qt_widget tab_bar_widget;
   qt_widget auxiliary_widget;
   qt_widget dock_window_widget; // trick to return correct widget position
+  QWidget*  startupContentWidget;
+  bool      startupTabMode;
 
 public:
   qt_tm_widget_rep (int mask, command _quit);
@@ -157,6 +159,7 @@ public:
   static void tweak_iconbar_size (QSize& sz);
   void        openRenewalPage ();
   void        checkNetworkAvailable ();
+  void        sync_startup_tab_mode ();
 
   friend class QTMInteractiveInputHelper;
 

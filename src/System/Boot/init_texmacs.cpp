@@ -936,11 +936,7 @@ TeXmacs_main (int argc, char** argv) {
       }
     }
 
-    bool has_initial_welcome= false;
-    if (install_status == 1 || install_status == 2) {
-      has_initial_welcome= true;
-      load_welcome_doc ();
-    }
+    if (install_status == 1) load_welcome_doc ();
 
     if (!has_initial_file) ensure_window ();
 

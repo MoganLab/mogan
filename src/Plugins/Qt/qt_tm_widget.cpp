@@ -44,6 +44,7 @@
 #include "qt_gui.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
+#include "qt_startup_tab_widget.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 
@@ -70,6 +71,18 @@ using moebius::data::scm_quote;
 
 int menu_count= 0; // zero if no menu is currently being displayed
 list<qt_tm_widget_rep*> waiting_widgets;
+
+static bool
+is_startup_tab_file (const string& file) {
+  return file == "tmfs://startup-tab";
+}
+
+static bool
+is_startup_tab_current_view () {
+  url view= get_current_view_safe ();
+  if (is_none (view)) return false;
+  return view_to_buffer (view) == url ("tmfs://startup-tab");
+}
 
 static void
 replaceActions (QWidget* dest, QList<QAction*>* src) {
@@ -132,7 +145,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
       titleBarVisibleCache (false), membershipTitleLabel (nullptr),
-      m_userId ("") {
+      m_userId (""), startupContentWidget (nullptr), startupTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -797,6 +810,66 @@ qt_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
 }
 
 void
+qt_tm_widget_rep::sync_startup_tab_mode () {
+  QWidget* editorWidget= main_widget->qwid;
+  QLayout* layout      = centralwidget ()->layout ();
+  if (!layout) return;
+  bool hasActiveView= !is_none (get_current_view_safe ());
+
+  if (!hasActiveView) startupTabMode= true;
+  if (editorWidget == nullptr) startupTabMode= true;
+
+  if (!startupTabMode && !hasActiveView) {
+    if (editorWidget) {
+      editorWidget->hide ();
+      if (layout->indexOf (editorWidget) >= 0) layout->removeWidget (editorWidget);
+    }
+    update_visibility (); // 先更新可见性，确保标签页容器可见
+    if (!startupContentWidget)
+      startupContentWidget= new QTStartupTabWidget (centralwidget ());
+    if (layout->indexOf (startupContentWidget) < 0)
+      layout->addWidget (startupContentWidget);
+    startupContentWidget->show ();
+    return;
+  }
+
+  if (startupTabMode) {
+    if (editorWidget) {
+      editorWidget->hide ();
+      if (layout->indexOf (editorWidget) >= 0) layout->removeWidget (editorWidget);
+    }
+    update_visibility ();
+    if (!startupContentWidget)
+      startupContentWidget= new QTStartupTabWidget (centralwidget ());
+    if (layout->indexOf (startupContentWidget) < 0)
+      layout->addWidget (startupContentWidget);
+    startupContentWidget->show ();
+    return;
+  }
+  else {
+    if (startupContentWidget) {
+      startupContentWidget->hide ();
+      if (layout->indexOf (startupContentWidget) >= 0)
+        layout->removeWidget (startupContentWidget);
+    }
+
+    if (editorWidget) {
+      if (layout->indexOf (editorWidget) < 0) layout->addWidget (editorWidget);
+      editorWidget->show ();
+    }
+  }
+
+  update_visibility ();
+  if (!startupTabMode) {
+    if (scrollarea ())
+      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                                QSizePolicy::Fixed);
+    url currentView= get_current_view_safe ();
+    if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+  }
+}
+
+void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
 
@@ -810,6 +883,7 @@ qt_tm_widget_rep::update_visibility () {
   bool old_bottomVisibility= bottomTools->isVisible ();
   bool old_extraVisibility = extraTools->isVisible ();
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
+  bool old_tabVisibility   = tabPageContainer ? tabPageContainer->isVisible () : false;
   bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
   bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
 
@@ -826,6 +900,22 @@ qt_tm_widget_rep::update_visibility () {
   bool new_tabVisibility   = visibility[10] && visibility[0];
   bool new_auxVisibility   = visibility[11];
   bool new_titleVisibility = visibility[0];
+
+  if (startupTabMode) {
+    new_mainVisibility  = false;
+    new_menuVisibility  = false;
+    new_modeVisibility  = false;
+    new_focusVisibility = false;
+    new_userVisibility  = false;
+    new_statusVisibility= false;
+    new_sideVisibility  = false;
+    new_leftVisibility  = false;
+    new_bottomVisibility= false;
+    new_extraVisibility = false;
+    new_auxVisibility   = false;
+    new_tabVisibility   = true;
+    new_titleVisibility = true;
+  }
 
   if (XOR (old_mainVisibility, new_mainVisibility))
     mainToolBar->setVisible (new_mainVisibility);
@@ -847,6 +937,8 @@ qt_tm_widget_rep::update_visibility () {
     extraTools->setVisible (new_extraVisibility);
   if (XOR (old_auxVisibility, new_auxVisibility))
     auxiliaryWidget->setVisible (new_auxVisibility);
+  if (tabPageContainer && XOR (old_tabVisibility, new_tabVisibility))
+    tabPageContainer->setVisible (new_tabVisibility);
   if (XOR (old_titleVisibility, new_titleVisibility))
     windowAgent->titleBar ()->setVisible (new_titleVisibility);
   if (XOR (old_statusVisibility, new_statusVisibility))
@@ -1074,6 +1166,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     string file= open_box<string> (val);
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
+    startupTabMode= is_startup_tab_file (file);
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);
@@ -1280,23 +1373,19 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
     check_type_void (index, s);
 
     QWidget* q= main_widget->qwid;
-    q->hide ();
     QLayout* l= centralwidget ()->layout ();
-    l->removeWidget (q);
+    if (q && l->indexOf (q) >= 0) l->removeWidget (q);
 
     q= concrete (w)->as_qwidget (); // force creation of the new QWidget
-    l->addWidget (q);
-    /* " When you use a layout, you do not need to pass a parent when
-     constructing the child widgets. The layout will automatically reparent
-     the widgets (using QWidget::setParent()) so that they are children of
-     the widget on which the layout is installed " */
     main_widget= concrete (w);
-    // canvas() now returns the new QTMWidget (or 0)
-
-    if (scrollarea ()) // Fix size to draw margins around.
-      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
-                                                QSizePolicy::Fixed);
-    send_keyboard_focus (abstract (main_widget));
+    url currentView= get_current_view_safe ();
+    if (is_none (currentView)) {
+      startupTabMode= true;
+    }
+    else {
+      startupTabMode= is_startup_tab_current_view ();
+    }
+    sync_startup_tab_mode ();
   } break;
 
   case SLOT_MAIN_MENU:

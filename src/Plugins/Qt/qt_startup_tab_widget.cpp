@@ -11,8 +11,36 @@
 
 #include "qt_startup_tab_widget.hpp"
 
+#include <QLabel>
+#include <QVBoxLayout>
+
+namespace {
+const char*
+entry_to_string (QTStartupTabWidget::Entry entry) {
+  switch (entry) {
+  case QTStartupTabWidget::Entry::File:
+    return "File";
+  case QTStartupTabWidget::Entry::Template:
+    return "Template";
+  case QTStartupTabWidget::Entry::Recent:
+    return "Recent";
+  case QTStartupTabWidget::Entry::Settings:
+    return "Settings";
+  default:
+    return "Unknown";
+  }
+}
+} // namespace
+
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
-    : QWidget (parent), currentEntry_ (Entry::File) {}
+    : QWidget (parent), currentEntry_ (Entry::File) {
+  setMinimumSize(400, 300);
+  setStyleSheet("background-color: #f0f0f0;");
+  QLabel* label = new QLabel("Mogan STEM Startup Tab (File/Template/Recent/Settings)", this);
+  label->setAlignment(Qt::AlignCenter);
+  QVBoxLayout* layout = new QVBoxLayout(this);
+  layout->addWidget(label);
+}
 
 QTStartupTabWidget::Entry
 QTStartupTabWidget::current_entry () const {
