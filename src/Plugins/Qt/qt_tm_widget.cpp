@@ -814,39 +814,33 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
   QWidget* editorWidget= main_widget->qwid;
   QLayout* layout      = centralwidget ()->layout ();
   if (!layout) return;
+
   bool hasActiveView= !is_none (get_current_view_safe ());
 
-  if (!hasActiveView) startupTabMode= true;
-  if (editorWidget == nullptr) startupTabMode= true;
-
-  if (!startupTabMode && !hasActiveView) {
-    if (editorWidget) {
-      editorWidget->hide ();
-      if (layout->indexOf (editorWidget) >= 0) layout->removeWidget (editorWidget);
-    }
-    update_visibility (); // 先更新可见性，确保标签页容器可见
-    if (!startupContentWidget)
-      startupContentWidget= new QTStartupTabWidget (centralwidget ());
-    if (layout->indexOf (startupContentWidget) < 0)
-      layout->addWidget (startupContentWidget);
-    startupContentWidget->show ();
-    return;
+  // Auto-enable startup mode when no active view or no editor widget
+  if (!hasActiveView || editorWidget == nullptr) {
+    startupTabMode= true;
   }
 
   if (startupTabMode) {
+    // Show Backstage/Startup view
     if (editorWidget) {
       editorWidget->hide ();
       if (layout->indexOf (editorWidget) >= 0) layout->removeWidget (editorWidget);
     }
+
     update_visibility ();
-    if (!startupContentWidget)
+
+    if (!startupContentWidget) {
       startupContentWidget= new QTStartupTabWidget (centralwidget ());
-    if (layout->indexOf (startupContentWidget) < 0)
+    }
+    if (layout->indexOf (startupContentWidget) < 0) {
       layout->addWidget (startupContentWidget);
+    }
     startupContentWidget->show ();
-    return;
   }
   else {
+    // Show normal editor view
     if (startupContentWidget) {
       startupContentWidget->hide ();
       if (layout->indexOf (startupContentWidget) >= 0)
@@ -857,10 +851,9 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
       if (layout->indexOf (editorWidget) < 0) layout->addWidget (editorWidget);
       editorWidget->show ();
     }
-  }
 
-  update_visibility ();
-  if (!startupTabMode) {
+    update_visibility ();
+
     if (scrollarea ())
       scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
                                                 QSizePolicy::Fixed);
@@ -1167,6 +1160,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
     startupTabMode= is_startup_tab_file (file);
+    sync_startup_tab_mode ();
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);
