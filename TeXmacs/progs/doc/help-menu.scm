@@ -43,6 +43,5 @@
   ("Welcome" (mogan-welcome))
   (-> "Manual"
     (link help-manual-menu))
-  ("Template" (load-local-doc "main/template"))
   (-> "Plugins"
     (link help-plugins-menu)))
