@@ -1,0 +1,39 @@
+name: CI1 Bump Version
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: '新版本号 (如 v2026.2.1-rc4)'
+        required: true
+        default: 'v2026.2.2'
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PAT_TOKEN }} # 需要一个具有写权限的个人访问令牌
+
+      - name: Set new version to env
+        run: |
+          echo "NEW_VERSION=${{ github.events.inputs.version }}" >> $GITHUB_ENV
+          echo "NEW_VERSION_DATE=$(date +'%Y/%m/%d')" >> $GITHUB_ENV
+
+      - name: Update devel/200_22.md
+        run: |
+          sed -i '3i## ${{ env.NEW_VERSION_DATE }} ${{ env.NEW_VERSION }}    打包\n' devel/200_22.md
+
+      - name: Update xmake/vars.lua and Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          sed -i 's/^XMACS_VERSION="[^"]*"/XMACS_VERSION="${{ env.NEW_VERSION }}"/' xmake/vars.lua
+
+          git add .
+          git commit -m "[200_22] bump to Mogan STEM ${{ env.NEW_VERSION }}"
+          
+          git push origin ${{ github.ref_name }}
