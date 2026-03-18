@@ -616,11 +616,6 @@ load_settings_and_check_version () {
     install_status= 1;
   }
 
-  if (get_setting ("VERSION") != XMACS_VERSION) {
-    init_upgrade ();
-    install_status= 2;
-  }
-
   return install_status;
 }
 
