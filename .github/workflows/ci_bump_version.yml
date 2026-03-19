@@ -6,7 +6,6 @@ on:
       version:
         description: '新版本号 (如 v2026.2.1)'
         required: true
-        default: 'v2026.2.2'
 
 jobs:
   bump:
