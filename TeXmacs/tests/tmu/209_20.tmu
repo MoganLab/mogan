@@ -1,0 +1,34 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc4>>
+
+<style|<tuple|generic|number-europe|preview-ref|fish>>
+
+<\body>
+  Line Code Example :\ 
+
+  <fish|zone face apply velocity-z [vel * math.sin(freq * model.mech.time)]>
+
+  Bar Code Example :\ 
+
+  <\fish-code>
+    fish define calc_stress(depth, gamma)
+
+    \ \ \ \ local pore = 9810.0 * depth
+
+    \ \ \ \ local total = gamma * depth
+
+    \ \ \ \ local eff = total - pore
+
+    \ \ \ \ io.out('Force:' + string(eff) + ' Pa')
+
+    \ \ \ \ calc_stress = eff
+
+    end
+  </fish-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
