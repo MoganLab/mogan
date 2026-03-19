@@ -47,5 +47,8 @@ jobs:
 
           git add .
           git commit -m "[200_22] bump to Mogan STEM ${{ env.NEW_VERSION }}"
+          # 打 Tag
+          git tag ${{ env.NEW_VERSION }}
           
           git push origin ${{ github.ref_name }}
+          git push origin ${{ env.NEW_VERSION }}
