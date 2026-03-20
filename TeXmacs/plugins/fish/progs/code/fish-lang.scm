@@ -35,14 +35,17 @@
     (constant
       "true" "false" "null")
     (declare_function
-      "define")
+      "define" "struct" "structure")
     (declare_identifier
       "local" "global")
     (keyword_conditional
-      "if" "then" "else" "endif")
+      "if" "else if" "else" "endif"
+      "caseof" "case" "endcase")
     (keyword_control
-      "loop" "endloop" "while" "for" "foreach"
-      "exitloop" "continue" "return" "end")))
+      "loop" "endloop" "exit loop" "continue"
+      "section" "endsection" "exit section"
+      "command" "endcommand"
+      "return" "exit" "end" "lock")))
 
 ;;------------------------------------------------------------------------------
 ;; 操作符定义

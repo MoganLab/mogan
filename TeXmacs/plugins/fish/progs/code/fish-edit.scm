@@ -35,15 +35,15 @@
 
 ;; 定义fish特定的关键字，这些关键字后面需要增加缩进
 (define fish-increase-indent-keys
-  '("define" "if" "loop"))
+  '("define" "if" "loop" "case" "caseof" "section" "command"))
 
 ;; 定义fish特定的配对关键字，这些关键字会减少缩进
 (define fish-decrease-indent-keys
-  '("else"))
+  '("else" "case"))
 
 ;; 定义fish特定的结束关键字，这些关键字会减少缩进
 (define fish-end-keys
-  '("end" "endif" "endloop"))
+  '("end" "endif" "endloop" "endsection" "endcase" "endcommand"))
 
 ;; 去除字符串右侧的空白字符
 (define (string-strip-right s)
