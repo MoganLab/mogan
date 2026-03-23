@@ -118,10 +118,10 @@
 
 (define (parse-magic-line magic-line)
   (let ((parser (make-argument-parser)))
-    (parser 'add '((name . "width") (short . "width") (default . "0.8par")))
-    (parser 'add '((name . "height") (short . "height") (default . "0px")))
-    (parser 'add '((name . "output") (short . "output") (default . "")))
-    (parser 'parse (cdr (string-tokenize magic-line)))
+    (parser :add '((name . "width") (short . "width") (default . "0.8par")))
+    (parser :add '((name . "height") (short . "height") (default . "0px")))
+    (parser :add '((name . "output") (short . "output") (default . "")))
+    (parser :parse (cdr (string-tokenize magic-line)))
     (list (parser 'width) (parser 'height) (parser 'output))))
   
 (define (flush-image path width height)

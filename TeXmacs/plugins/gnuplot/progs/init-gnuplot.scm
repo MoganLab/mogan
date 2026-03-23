@@ -31,7 +31,7 @@
     (string-append
       (string-quote (url->system (find-binary-goldfish)))
       " "
-      "-l"
+      "load"
       " "
       (string-quote
         (string-append (url->system (get-texmacs-path))
