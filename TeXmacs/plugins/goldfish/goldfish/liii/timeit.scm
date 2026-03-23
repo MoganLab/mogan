@@ -17,30 +17,38 @@
 (define-library (liii timeit)
   (export timeit)
   (import (liii base)
-          (scheme time))
+          (scheme time)
+  ) ;import
   (begin
 
     (define* (timeit stmt (setup '()) (number 1000000))
       (if (not (procedure? stmt))
-        (error 'type-error "(timeit stmt setup number): stmt must be a procedure"))
+        (error 'type-error "(timeit stmt setup number): stmt must be a procedure")
+      ) ;if
       (if (not (or (procedure? setup) (null? setup)))
-        (error 'type-error "(timeit stmt setup number): setup must be a procedure or '()"))
+        (error 'type-error "(timeit stmt setup number): setup must be a procedure or '()")
+      ) ;if
       (if (not (and (integer? number) (positive? number)))
-        (error 'type-error "(timeit stmt setup number): number must be a positive integer"))
+        (error 'type-error "(timeit stmt setup number): number must be a positive integer")
+      ) ;if
 
       ; Execute setup once if it's not '()
       (unless (null? setup)
-        (setup))
+        (setup)
+      ) ;unless
 
       ; Get start time
       (let ((start-time (current-second)))
         ; Execute stmt number times
         (do ((i 0 (+ i 1)))
             ((= i number))
-          (stmt))
+          (stmt)
+        ) ;do
 
         ; Calculate elapsed time
-        (- (current-second) start-time)))
+        (- (current-second) start-time)
+      ) ;let
+    ) ;define*
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library

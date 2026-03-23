@@ -12,7 +12,9 @@
       (let* ((convert (or converter (lambda (x) x)))
              (old-values ()) ; see below -- this is part of the funclet
              (value (convert init)))
-        (lambda () value)))
+        (lambda () value)
+      ) ;let*
+    ) ;define*
 
     (define-macro (parameterize vars . body)
       `(dynamic-wind
@@ -29,7 +31,8 @@
                     `(with-let (funclet ,(car var))
                        (set! value (car old-values))
                        (set! old-values (cdr old-values))))
-                  vars))))
+                  vars)))
+    ) ;define-macro
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library

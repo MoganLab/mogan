@@ -20,21 +20,24 @@
                 utf8-string-length any? receive u8-substring)
           (only (liii oop)
                 define-case-class display* @ typed-define case-class? chained-define
-                define-object define-class chain-apply object->string)
+                define-object define-class chain-apply object->string
+          ) ;only
           (only (liii sort) list-stable-sort vector-stable-sort)
           (only (liii hash-table)
                 hash-table-update!/default hash-table-for-each hash-table-ref/default hash-table-contains? hash-table-delete!
-                hash-table-count)
+                hash-table-count
+          ) ;only
           (only (liii bitwise) bitwise-and bitwise-ior arithmetic-shift)
           (liii error)
           (liii list)
-          (liii option)
+          (rename (liii rich-option) (rich-option option) (rich-none none))
           (liii rich-either)
           (liii rich-list)
           (liii rich-char)
           (liii rich-vector)
           (liii rich-string)
-          (liii rich-hash-table))
+          (liii rich-hash-table)
+  ) ;import
 
   (export
     @ typed-define define-case-class define-object define-class
@@ -43,19 +46,25 @@
     rich-integer rich-float rich-char rich-string
     rich-vector rich-list array rich-hash-table
     box $
-    )
+  ) ;export
   (begin
 
     (define (class=? left right)
       (cond
         ((and (case-class? left) (case-class? right))
-         (left :equals right))
+         (left :equals right)
+        ) ;
         ((case-class? left)
-         (left :equals ($ right)))
+         (left :equals ($ right))
+        ) ;
         ((case-class? right)
-         ($ left :equals right))
+         ($ left :equals right)
+        ) ;
         (else
-         (equal? left right))))
+         (equal? left right)
+        ) ;else
+      ) ;cond
+    ) ;define
 
     (define (box x)
       (cond ((integer? x) (rich-integer x))
@@ -66,7 +75,9 @@
             ((list? x) (rich-list x))
             ((vector? x) (rich-vector x))
             ((hash-table? x) (rich-hash-table x))
-            (else (type-error "box: x must be integer?, rational?, float?, char?, string?, list?, vector?, hash-table?"))))
+            (else (type-error "box: x must be integer?, rational?, float?, char?, string?, list?, vector?, hash-table?"))
+      ) ;cond
+    ) ;define
 
     #|
 $
@@ -114,7 +125,8 @@ arg1, arg2, ... : any
 - 与chain-apply模式无缝协作
 |#
     (define ($ x . xs)
-      (if (null? xs) (box x) (apply (box x) xs)))
+      (if (null? xs) (box x) (apply (box x) xs))
+    ) ;define
 
     (define-case-class rich-integer ((data integer?))
 
@@ -124,25 +136,37 @@ arg1, arg2, ... : any
         (unless (integer? n) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    %to '(n) 'n "integer" (object->string n))))
+                    %to '(n) 'n "integer" (object->string n)
+            ) ;format
+          ) ;type-error
+        ) ;unless
         (if (< n data) 
           (rich-list (list)) 
-          (rich-list (iota (+ (- n data) 1) data))))
+          (rich-list (iota (+ (- n data) 1) data))
+        ) ;if
+      ) ;define
 
       (define (%until n) 
         (unless (integer? n) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-                    %until '(n) 'n "integer" (object->string n))))
+                    %until '(n) 'n "integer" (object->string n)
+            ) ;format
+          ) ;type-error
+        ) ;unless
         (if (<= n data) 
           (rich-list (list)) 
-          (rich-list (iota (+ (- n data)) data))))
+          (rich-list (iota (+ (- n data)) data))
+        ) ;if
+      ) ;define
 
       (define (%to-rich-char)
-        (rich-char data))
+        (rich-char data)
+      ) ;define
 
       (define (%to-string)
-        (number->string data))
+        (number->string data)
+      ) ;define
 
       (define (@max-value) 9223372036854775807)
 
@@ -152,10 +176,13 @@ arg1, arg2, ... : any
       (define (%sqrt)
         (if (< data 0)
             (value-error
-              (format #f "sqrt of negative integer is undefined!         ** Got ~a **" data))
-            (inexact->exact (floor (sqrt data)))))
+              (format #f "sqrt of negative integer is undefined!         ** Got ~a **" data)
+            ) ;value-error
+            (inexact->exact (floor (sqrt data))))
+        ) ;if
 
-      )
+ ;define
+    ) ;define-case-class
 
     (define-case-class rich-rational ((data rational?))
 
@@ -164,9 +191,11 @@ arg1, arg2, ... : any
       (define (%abs) 
         (if (< data 0)
             (- 0 data)
-            data))
+            data)
+        ) ;if
   
-      )
+ ;define
+    ) ;define-case-class
 
     (define-case-class rich-float ((data float?))
                    
@@ -175,24 +204,29 @@ arg1, arg2, ... : any
       (define (%abs) 
         (if (< data 0)
             (- 0 data)
-            data))
+            data
+        ) ;if
+      ) ;define
   
       (define (%to-string)
-        (number->string data))
+        (number->string data)
+      ) ;define
 
       (define (%sqrt)
         (if (< data 0)
             (value-error
-              (format #f "sqrt of negative float is undefined!         ** Got ~a **" data))
-            (sqrt data)))
+              (format #f "sqrt of negative float is undefined!         ** Got ~a **" data)
+            ) ;value-error
+            (sqrt data))
+        ) ;if
 
-      )
+      ) ;define
 
 
     (define array rich-vector)
 
 
 
-    ) ; end of begin
-  ) ; end of library
+    ) ;define-case-class
+  ) ;begin
 

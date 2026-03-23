@@ -19,13 +19,16 @@
   (begin
 
     (define (get-environment-variable key)
-      (g_get-environment-variable key))
+      (g_get-environment-variable key)
+    ) ;define
 
     (define (get-environment-variables)
-      (g_getenvs))
+      (g_getenvs)
+    ) ;define
 
     (define (command-line)
-      (g_command-line))
+      (g_command-line)
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library

@@ -17,7 +17,8 @@
 (define-library (srfi srfi-26)
   (export cut cute)
   (import (liii list)
-          (liii error))
+          (liii error)
+  ) ;import
   (begin
 
     (define-macro (cut . paras)
@@ -35,24 +36,37 @@
                ((not (list? paras)) paras)
                ((more-slot? (car paras)) `(,rest ,@(parse xs (cdr paras))))
                ((slot? (car paras)) `(,(car xs) ,@(parse (cdr xs) (cdr paras))))
-               (else `(,(car paras) ,@(parse xs (cdr paras))))))))
+               (else `(,(car paras) ,@(parse xs (cdr paras))))
+             ) ;cond
+           ) ;lambda
+         ) ;parse
+        ) ;
         (cond
           ((null? more-slots)
-           `(lambda ,xs ,(parse xs paras)))
+           `(lambda ,xs ,(parse xs paras))
+          ) ;
           (else
             (when
               (or (> (length more-slots) 1)
-                  (not (more-slot? (last paras))))
-              (error 'syntax-error "<...> must be the last parameter of cut"))
+                  (not (more-slot? (last paras)))
+              ) ;or
+              (error 'syntax-error "<...> must be the last parameter of cut")
+            ) ;when
             (let ((parsed (parse xs paras)))
-              `(lambda (,@xs . ,rest) (apply ,@parsed)))))))
+              `(lambda (,@xs . ,rest) (apply ,@parsed))
+            ) ;let
+          ) ;else
+        ) ;cond
+      ) ;letrec*
+    ) ;define-macro
 
     (define-macro (cute . paras)
       (letrec*
         ((slot? (lambda (x) (equal? '<> x)))
          (more-slot? (lambda (x) (equal? '<...> x)))
          (exprs (filter (lambda (x) (not (or (slot? x) (more-slot? x))))
-                        paras))
+                        paras)
+         ) ;exprs
          (xs (map (lambda (x) (gensym)) exprs))
          (lets (map list xs exprs))
          (parse
@@ -61,10 +75,17 @@
                ((null? paras) paras)
                ((not (list? paras)) paras)
                ((not (or (slot? (car paras)) (more-slot? (car paras))))
-                `(,(car xs) ,@(parse (cdr xs) (cdr paras))))
-               (else `(,(car paras) ,@(parse xs (cdr paras))))))))
-        `(let ,lets (cut ,@(parse xs paras)))))
+                `(,(car xs) ,@(parse (cdr xs) (cdr paras)))
+               ) ;
+               (else `(,(car paras) ,@(parse xs (cdr paras))))
+             ) ;cond
+           ) ;lambda
+         ) ;parse
+        ) ;
+        `(let ,lets (cut ,@(parse xs paras)))
+      ) ;letrec*
+    ) ;define-macro
 
-    ) ; end of begin
-  ) ; end of library
+  ) ;begin
+) ;define-library
 

@@ -17,39 +17,51 @@
 (define-library (liii check)
   (export test check check-set-mode! check:proc
     check-catch check-report check-failed?
-    check-true check-false check-float)
+    check-true check-false check-float
+  ) ;export
   (import (srfi srfi-78)
           (rename (srfi srfi-78)
-                  (check-report srfi-78-check-report)))
+                  (check-report srfi-78-check-report)
+          ) ;rename
+  ) ;import
   (begin
 
     (define-macro (check-true body)
-      `(check ,body => #t))
+      `(check ,body => #t)
+    ) ;define-macro
 
     (define-macro (check-false body)
-      `(check ,body => #f))
+      `(check ,body => #f)
+    ) ;define-macro
 
     (define-macro (check-catch error-id body)
       `(check
         (catch ,error-id
           (lambda () ,body)
           (lambda args ,error-id))
-        => ,error-id))
+        => ,error-id)
+    ) ;define-macro
 
     (define-macro (test left right)
-      `(check ,left => ,right))
+      `(check ,left => ,right)
+    ) ;define-macro
 
     (define (check-report . msg)
       (if (not (null? msg))
         (begin
-          (display (car msg))))
+          (display (car msg))
+        ) ;begin
+      ) ;if
       (srfi-78-check-report)
-      (if (check-failed?) (exit -1)))
+      (if (check-failed?) (exit -1))
+    ) ;define
 
     (define* (check-float a b (epsilon 1e-10))
       (or (= a b)
-          (< (abs (- a b)) epsilon)))
+          (< (abs (- a b)) epsilon)
+      ) ;or
+    ) ;define*
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

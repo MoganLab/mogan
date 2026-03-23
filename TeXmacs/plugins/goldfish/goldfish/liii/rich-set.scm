@@ -24,7 +24,8 @@
 
       ;; Factory methods
       (chained-define (@empty) 
-        (rich-hash-set (make-hash-table)))
+        (rich-hash-set (make-hash-table))
+      ) ;chained-define
                    
       ;; Basic operations
       (define (%size) (hash-table-size data))
@@ -32,38 +33,48 @@
       (define (%empty?) (hash-table-empty? data))
 
       (define (%contains element)
-        (hash-table-contains? data element))
+        (hash-table-contains? data element)
+      ) ;define
 
       ;; Modification operations
       (chained-define (%add-one! element)
         (hash-table-set! data element #t)
-        (%this))
+        (%this)
+      ) ;chained-define
 
       (chained-define (%remove! element)
         (hash-table-delete! data element)
-        (%this))
+        (%this)
+      ) ;chained-define
 
       (chained-define (%add-one element)
         (let ((ht (make-hash-table)))
           (hash-table-for-each
             (lambda (k v) (hash-table-set! ht k v))
-            data)
+            data
+          ) ;hash-table-for-each
           (hash-table-set! ht element #t)
-          (rich-hash-set ht)))
+          (rich-hash-set ht)
+        ) ;let
+      ) ;chained-define
 
       (chained-define (%remove element)
         (let ((ht (make-hash-table)))
           (hash-table-for-each
             (lambda (k v) (hash-table-set! ht k v))
-            data)
+            data
+          ) ;hash-table-for-each
           (hash-table-delete! ht element)
-          (rich-hash-set ht)))
+          (rich-hash-set ht)
+        ) ;let
+      ) ;chained-define
 
       (chained-define (%clear!)
         (hash-table-clear! data)
-        (%this))
+        (%this)
+      ) ;chained-define
 
-      ) ; end of define-case-class
-    ) ; end of begin
-  ) ; end of define-library
+    ) ;define-case-class
+  ) ;begin
+) ;define-library
 

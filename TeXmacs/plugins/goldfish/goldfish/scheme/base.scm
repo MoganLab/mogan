@@ -45,7 +45,8 @@
     ; Control flow
     string-map vector-map string-for-each vector-for-each
     ; Exception
-    raise guard read-error? file-error?)
+    raise guard read-error? file-error?
+  ) ;export
   (begin
 
     ; 0-clause BSD
@@ -79,12 +80,15 @@
                                                     (args->proper-list (cdr args)))))))))
                        ,(cadr v)))
                    vars)))
-            ,@body)))
+            ,@body)
+      ) ;if
+    ) ;define-macro
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: s7test.scm
     (define-macro (define-values vars expression)
       `(if (not (null? ',vars))
-           (varlet (curlet) ((lambda ,vars (curlet)) ,expression))))
+           (varlet (curlet) ((lambda ,vars (curlet)) ,expression)))
+    ) ;define-macro
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: r7rs.scm
     (define-macro (define-record-type type make ? . fields)
@@ -93,8 +97,11 @@
             (args (map (lambda (field)
                          (values (list 'quote (car field))
                                  (let ((par (memq (car field) (cdr make))))
-                                   (and (pair? par) (car par)))))
-                       fields)))
+                                   (and (pair? par) (car par)))
+                                 ) ;let
+                         ) ;values
+                       fields))
+            ) ;args
         `(begin
            (define (,? ,obj)
              (and (let? ,obj)
@@ -117,7 +124,9 @@
                              (define (,(caddr field) ,obj val)
                                (let-set! ,obj ',(car field) val)))))))
               fields)
-           ',type)))
+           ',type)
+      ) ;let
+    ) ;define-macro
 
     (define exact inexact->exact)
 
@@ -127,72 +136,98 @@
 
     (define (max2 x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'type-error "max: parameter must be real number"))
+        (error 'type-error "max: parameter must be real number")
+      ) ;when
       (if (or (inexact? x) (inexact? y))
           (inexact (s7-max x y))
-          (s7-max x y)))
+          (s7-max x y)
+      ) ;if
+    ) ;define
 
     (define (max x . xs)
       (let loop ((current-max x) (remaining xs))
         (if (null? remaining)
             current-max
             (loop (max2 current-max (car remaining))
-                  (cdr remaining)))))
+                  (cdr remaining)
+            ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define s7-min min)
 
     (define (min2 x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'type-error "min: parameter must be real number"))
+        (error 'type-error "min: parameter must be real number")
+      ) ;when
       (if (or (inexact? x) (inexact? y))
           (inexact (s7-min x y))
-          (s7-min x y)))
+          (s7-min x y)
+      ) ;if
+    ) ;define
 
     (define (min x . xs)
       (let loop ((current-min x) (remaining xs))
         (if (null? remaining)
             current-min
             (loop (min2 current-min (car remaining))
-                  (cdr remaining)))))
+                  (cdr remaining)
+            ) ;loop
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define s7-floor floor)
 
     (define (floor x)
       (if (inexact? x)
           (inexact (s7-floor x))
-          (s7-floor x)))
+          (s7-floor x)
+      ) ;if
+    ) ;define
 
     (define s7-ceiling ceiling)
 
     (define (ceiling x)
       (if (inexact? x)
           (inexact (s7-ceiling x))
-          (s7-ceiling x)))
+          (s7-ceiling x)
+      ) ;if
+    ) ;define
 
     (define s7-truncate truncate)
 
     (define (truncate x)
       (if (inexact? x)
           (inexact (s7-truncate x))
-          (s7-truncate x)))
+          (s7-truncate x)
+      ) ;if
+    ) ;define
 
     (define s7-round round)
 
     (define (round x)
       (if (inexact? x)
           (inexact (s7-round x))
-          (s7-round x)))
+          (s7-round x)
+      ) ;if
+    ) ;define
 
     (define (floor-quotient x y) (floor (/ x y)))
 
     (define (floor/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "floor/: parameters must be real numbers"))
+        (error 'wrong-type-arg "floor/: parameters must be real numbers")
+      ) ;when
       (when (zero? y)
-        (error 'division-by-zero "floor/: division by zero"))
+        (error 'division-by-zero "floor/: division by zero")
+      ) ;when
       (let ((q (floor (/ x y)))
             (r (modulo x y)))
-        (values q r)))
+        (values q r)
+      ) ;let
+    ) ;define
 
 #|
 floor/
@@ -230,10 +265,13 @@ wrong-type-arg
 
     (define (floor-remainder x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'type-error "floor-remainder: parameters must be reals"))
+        (error 'type-error "floor-remainder: parameters must be reals")
+      ) ;when
       (when (zero? y)
-        (error 'division-by-zero "floor-remainder: division by zero"))
-      (modulo x y))
+        (error 'division-by-zero "floor-remainder: division by zero")
+      ) ;when
+      (modulo x y)
+    ) ;define
 
 #|
 floor-remainder
@@ -301,57 +339,79 @@ wrong-type-arg
 |#
     (define (truncate/ x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'wrong-type-arg "truncate/: parameters must be real numbers"))
+        (error 'wrong-type-arg "truncate/: parameters must be real numbers")
+      ) ;when
       (when (zero? y)
-        (error 'division-by-zero "truncate/: division by zero"))
+        (error 'division-by-zero "truncate/: division by zero")
+      ) ;when
       (let* ((q (truncate (/ x y)))
              (r (- x (* q y))))
-        (values q r)))
+        (values q r)
+      ) ;let*
+    ) ;define
 
     (define s7-modulo modulo)
 
     (define (modulo x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'type-error "modulo: parameters must be reals"))
+        (error 'type-error "modulo: parameters must be reals")
+      ) ;when
       (when (zero? y)
-        (error 'division-by-zero "modulo: division by zero"))
-      (s7-modulo x y))
+        (error 'division-by-zero "modulo: division by zero")
+      ) ;when
+      (s7-modulo x y)
+    ) ;define
 
     (define s7-lcm lcm)
 
     (define (lcm2 x y)
       (when (or (not (real? x)) (not (real? y)))
-        (error 'type-error "lcm: parameters must be reals"))
+        (error 'type-error "lcm: parameters must be reals")
+      ) ;when
       (cond ((and (inexact? x) (exact? y))
              (inexact (s7-lcm (exact x) y)))
             ((and (exact? x) (inexact? y))
-             (inexact (s7-lcm x (exact y))))
+             (inexact (s7-lcm x (exact y)))
+            ) ;
             ((and (inexact? x) (inexact? y))
-             (inexact (s7-lcm (exact x) (exact y))))
-            (else (s7-lcm x y))))
+             (inexact (s7-lcm (exact x) (exact y)))
+            ) ;
+            (else (s7-lcm x y))
+      ) ;cond
+    ) ;define
 
     (define (lcm . args)
       (cond ((null? args) 1)
             ((null? (cdr args))
-             (lcm2 (car args) 1))
+             (lcm2 (car args) 1)
+            ) ;
             ((null? (cddr args))
-             (lcm2 (car args) (cadr args)))
+             (lcm2 (car args) (cadr args))
+            ) ;
             (else (apply lcm (cons (lcm (car args) (cadr args))
-                                   (cddr args))))))
+                                   (cddr args)))
+            ) ;else
+      ) ;cond
+    ) ;define
 
     (define (square x) (* x x))
 
     (define (exact-integer-sqrt n)
       (when (not (integer? n))
-        (type-error "n must be an integer" n))
+        (type-error "n must be an integer" n)
+      ) ;when
       (when (< n 0)
-        (value-error "n must be non-negative" n))
+        (value-error "n must be non-negative" n)
+      ) ;when
       (let* ((a (sqrt n))
              (b (inexact->exact (floor a)))
              (square-b (square b)))
         (if (= square-b n)
             (values b 0)
-            (values b (- n square-b)))))
+            (values b (- n square-b))
+        ) ;if
+      ) ;let*
+    ) ;define
 
     (define exact-integer? integer?)
 
@@ -360,22 +420,32 @@ wrong-type-arg
         (if (null? rest)
             #t
             (and (equal? obj (car rest))
-                 (same-boolean obj (cdr rest)))))
+                 (same-boolean obj (cdr rest))
+            ) ;and
+        ) ;if
+      ) ;define
       (cond ((not (boolean? obj1)) #f)
             ((not (boolean? obj2)) #f)
             ((not (equal? obj1 obj2)) #f)
-            (else (same-boolean obj1 rest))))
+            (else (same-boolean obj1 rest))
+      ) ;cond
+    ) ;define
 
     (define (symbol=? sym1 sym2 . rest)
       (define (same-symbol sym rest)
         (if (null? rest)
             #t
             (and (eq? sym (car rest))
-                 (same-symbol sym (cdr rest)))))
+                 (same-symbol sym (cdr rest))
+            ) ;and
+        ) ;if
+      ) ;define
       (cond ((not (symbol? sym1)) #f)
             ((not (symbol? sym2)) #f)
             ((not (eq? sym1 sym2)) #f)
-            (else (same-symbol sym1 rest))))
+            (else (same-symbol sym1 rest))
+      ) ;cond
+    ) ;define
 
     (define bytevector byte-vector)
 
@@ -391,14 +461,20 @@ wrong-type-arg
 
     (define* (bytevector-copy v (start 0) (end (bytevector-length v)))
       (if (or (< start 0) (> start end) (> end (bytevector-length v)))
-          (error 'out-of-range "bytevector-copy"))
+          (error 'out-of-range "bytevector-copy")
+      ) ;if
       (let ((new-v (make-bytevector (- end start))))
         (let loop ((i start) (j 0))
           (if (>= i end)
               new-v
               (begin
                 (bytevector-u8-set! new-v j (bytevector-u8-ref v i))
-                (loop (+ i 1) (+ j 1)))))))
+                (loop (+ i 1) (+ j 1))
+              ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define*
 
     (define bytevector-append append)
 
@@ -409,7 +485,8 @@ wrong-type-arg
             (cond
              ;; 1-byte sequence (0xxxxxxx)
              ((< byte #x80)
-              (+ index 1))
+              (+ index 1)
+             ) ;
            
              ;; 2-byte sequence (110xxxxx 10xxxxxx)
              ((< byte #xe0)
@@ -418,7 +495,11 @@ wrong-type-arg
                   (let ((next-byte (bv (+ index 1))))
                     (if (not (= (logand next-byte #xc0) #x80))
                         index  ; Invalid continuation byte
-                        (+ index 2)))))
+                        (+ index 2)
+                    ) ;if
+                  ) ;let
+              ) ;if
+             ) ;
            
              ;; 3-byte sequence (1110xxxx 10xxxxxx 10xxxxxx)
              ((< byte #xf0)
@@ -429,7 +510,11 @@ wrong-type-arg
                     (if (or (not (= (logand next-byte1 #xc0) #x80))
                             (not (= (logand next-byte2 #xc0) #x80)))
                         index  ; Invalid continuation byte(s)
-                        (+ index 3)))))
+                        (+ index 3)
+                    ) ;if
+                  ) ;let
+              ) ;if
+             ) ;
            
              ;; 4-byte sequence (11110xxx 10xxxxxx 10xxxxxx 10xxxxxx)
              ((< byte #xf8)
@@ -442,8 +527,16 @@ wrong-type-arg
                             (not (= (logand next-byte2 #xc0) #x80))
                             (not (= (logand next-byte3 #xc0) #x80)))
                         index  ; Invalid continuation byte(s)
-                        (+ index 4)))))
-             (else index)))))  ; Invalid leading byte
+                        (+ index 4)
+                    ) ;if
+                  ) ;let
+              ) ;if
+             ) ;
+             (else index)  ; Invalid leading byte
+            ) ;cond
+          ) ;let
+      ) ;if
+    ) ;define*
 
     (define (utf8-string-length str)
       (let ((bv (string->byte-vector str))
@@ -454,10 +547,18 @@ wrong-type-arg
               (let ((next-pos (bytevector-advance-utf8 bv pos N)))
                 (cond
                  ((= next-pos N)
-                  (+ cnt 1))
+                  (+ cnt 1)
+                 ) ;
                  ((= next-pos pos)
-                  (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-                 (else (loop next-pos (+ cnt 1)))))))))
+                  (error 'value-error "Invalid UTF-8 sequence at index: " pos)
+                 ) ;
+                 (else (loop next-pos (+ cnt 1)))
+                ) ;cond
+              ) ;let
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define* (utf8->string bv (start 0) (end (bytevector-length bv)))
       (if (or (< start 0) (> end (bytevector-length bv)) (> start end))
@@ -466,11 +567,19 @@ wrong-type-arg
             (let ((next-pos (bytevector-advance-utf8 bv pos end)))
               (cond
                ((= next-pos end)
-                (copy bv (make-string (- end start)) start end))
+                (copy bv (make-string (- end start)) start end)
+               ) ;
                ((= next-pos pos)
-                (error 'value-error "Invalid UTF-8 sequence at index: " pos))
+                (error 'value-error "Invalid UTF-8 sequence at index: " pos)
+               ) ;
                (else
-                (loop next-pos)))))))
+                (loop next-pos)
+               ) ;else
+              ) ;cond
+            ) ;let
+          ) ;let
+      ) ;if
+    ) ;define*
 
     (define* (string->utf8 str (start 0) (end #t))
       ; start < end in this case
@@ -481,34 +590,54 @@ wrong-type-arg
             (let ((next-pos (bytevector-advance-utf8 bv pos N)))
               (cond
                ((and (not (zero? start)) (zero? start-pos) (= cnt start))
-                (loop next-pos (+ cnt 1) pos))
+                (loop next-pos (+ cnt 1) pos)
+               ) ;
                ((and (integer? end) (= cnt end))
-                (copy bv (make-byte-vector (- pos start-pos)) start-pos pos))
+                (copy bv (make-byte-vector (- pos start-pos)) start-pos pos)
+               ) ;
                ((and end (= next-pos N))
-                (copy bv (make-byte-vector (- N start-pos)) start-pos N))
+                (copy bv (make-byte-vector (- N start-pos)) start-pos N)
+               ) ;
                ((= next-pos pos)
-                (error 'value-error "Invalid UTF-8 sequence at index: " pos))
+                (error 'value-error "Invalid UTF-8 sequence at index: " pos)
+               ) ;
                (else
-                (loop next-pos (+ cnt 1) start-pos)))))))
+                (loop next-pos (+ cnt 1) start-pos)
+               ) ;else
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;define
   
       (when (not (string? str))
-        (error 'type-error "str must be string"))
+        (error 'type-error "str must be string")
+      ) ;when
       (let ((N (utf8-string-length str)))
         (when (and (> N 0) (or (< start 0) (>= start N)))
           (error 'out-of-range
-                 (string-append "start must >= 0 and < " (number->string N))))
+                 (string-append "start must >= 0 and < " (number->string N))
+          ) ;error
+        ) ;when
         (when (and (integer? end) (or (< end 0) (>= end (+ N 1))))
               (error 'out-of-range
-                     (string-append "end must >= 0 and < " (number->string (+ N 1)))))         
+                     (string-append "end must >= 0 and < " (number->string (+ N 1)))         
+              ) ;error
+        ) ;when
         (when (and (integer? end) (> start end))
-              (error 'out-of-range "start <= end failed" start end))
+              (error 'out-of-range "start <= end failed" start end)
+        ) ;when
     
         (if (and (integer? end) (= start end))
           (byte-vector)
-          (string->utf8-sub str start end))))
+          (string->utf8-sub str start end)
+        ) ;if
+      ) ;let
+    ) ;define*
 
     (define (raise . args)
-      (apply throw #t args))
+      (apply throw #t args)
+    ) ;define
 
     (define-macro (guard results . body)
       `(let ((,(car results) 
@@ -523,7 +652,8 @@ wrong-type-arg
                (else 
                 (if (procedure? ,(car results)) 
                     (,(car results))
-                    ,(car results))))))
+                    ,(car results)))))
+    ) ;define-macro
 
     (define (read-error? obj) (eq? (car obj) 'read-error))
 
@@ -532,7 +662,9 @@ wrong-type-arg
     (define (call-with-port port proc)
       (let ((res (proc port)))
         (if res (close-port port))
-        res))
+        res
+      ) ;let
+    ) ;define
 
     (define (port? p) (or (input-port? p) (output-port? p)))
 
@@ -547,7 +679,9 @@ wrong-type-arg
     (define (close-port p)
       (if (input-port? p)
           (close-input-port p)
-          (close-output-port p)))
+          (close-output-port p)
+      ) ;if
+    ) ;define
 
     (define (eof-object) #<eof>)
 
@@ -558,10 +692,14 @@ wrong-type-arg
       (cond ((null? start_end)
              (substring str 0))
             ((= (length start_end) 1)
-             (substring str (car start_end)))
+             (substring str (car start_end))
+            ) ;
             ((= (length start_end) 2)
-             (substring str (car start_end) (cadr start_end)))
-            (else (error 'wrong-number-of-args))))
+             (substring str (car start_end) (cadr start_end))
+            ) ;
+            (else (error 'wrong-number-of-args))
+      ) ;cond
+    ) ;define
 
     (define (string-map p . args) (apply string (apply map p args)))
 
@@ -576,7 +714,13 @@ wrong-type-arg
                   new-v
                   (begin
                     (vector-set! new-v j (vector-ref v i))
-                    (loop (+ i 1) (+ j 1))))))))
+                    (loop (+ i 1) (+ j 1))
+                  ) ;begin
+              ) ;if
+            ) ;let
+          ) ;let
+      ) ;if
+    ) ;define*
 
     (define (vector-map p . args) (apply vector (apply map p args)))
 
@@ -597,22 +741,31 @@ wrong-type-arg
                 to
                 (begin
                   (vector-set! to to-i (vector-ref from from-i))
-                  (loop (+ to-i 1) (+ from-i 1)))))))
+                  (loop (+ to-i 1) (+ from-i 1))
+                ) ;begin
+            ) ;if
+          ) ;let
+      ) ;if
+    ) ;define*
 
     ; 0-clause BSD
     ; Bill Schottstaedt
     ; from S7 source repo: r7rs.scm
     (define* (vector->string v (start 0) end) 
       (let ((stop (or end (length v)))) 
-        (copy v (make-string (- stop start)) start stop)))
+        (copy v (make-string (- stop start)) start stop)
+      ) ;let
+    ) ;define*
 
     ; 0-clause BSD
     ; Bill Schottstaedt
     ; from S7 source repo: r7rs.scm
     (define* (string->vector s (start 0) end)
       (let ((stop (or end (length s))))
-        (copy s (make-vector (- stop start)) start stop)))
+        (copy s (make-vector (- stop start)) start stop)
+      ) ;let
+    ) ;define*
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

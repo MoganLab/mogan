@@ -15,104 +15,147 @@
 ;
 
 (define-library (liii rich-either)
-  (import (liii option) (liii oop) (liii base))
+  (import (rename (liii rich-option) (rich-option option) (rich-none none))
+          (liii oop) (liii base))
   (export rich-either left right)
   (begin
 
     (define-case-class rich-either
       ((type symbol?)
-       (value any?))
+       (value any?)
+      ) ;
 
       (define (%left?)
-        (eq? type 'left))
+        (eq? type 'left)
+      ) ;define
 
       (define (%right?)
-        (eq? type 'right))
+        (eq? type 'right)
+      ) ;define
 
       (define (%get)
-        value)
+        value
+      ) ;define
 
       (define (%or-else default)
         (when (not (rich-either :is-type-of default))
-          (type-error "The first parameter of either%or-else must be a either case class"))
+          (type-error "The first parameter of either%or-else must be a either case class")
+        ) ;when
 
         (if (%right?)
             (%this)
-            default))
+            default
+        ) ;if
+      ) ;define
 
       (define (%get-or-else default)
         (cond ((%right?) value)
               ((and (procedure? default) (not (case-class? default)))
-               (default))
-              (else default)))
+               (default)
+              ) ;
+              (else default)
+        ) ;cond
+      ) ;define
 
       (define (%filter-or-else pred zero)
         (unless (procedure? pred) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-              %filter-or-else '(pred zero) 'pred "procedure" (object->string pred))))
+              %filter-or-else '(pred zero) 'pred "procedure" (object->string pred)
+            ) ;format
+          ) ;type-error
+        ) ;unless
   
         (unless (any? zero) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-              %filter-or-else '(pred zero) 'zero "any" (object->string zero))))  
+              %filter-or-else '(pred zero) 'zero "any" (object->string zero)  
+            ) ;format
+          ) ;type-error
+        ) ;unless
         (if (%right?)
             (if (pred value)
                 (%this)
-                (left zero))
-            (%this)))
+                (left zero)
+            ) ;if
+            (%this)
+        ) ;if
+      ) ;define
 
       (define (%contains x)
         (and (%right?)
-             (class=? x value)))
+             (class=? x value)
+        ) ;and
+      ) ;define
 
       (define (%for-each f)
         (when (%right?)
-          (f value)))
+          (f value)
+        ) ;when
+      ) ;define
 
       (define (%to-option)
         (if (%right?)
             (option value)
-            (none)))
+            (none)
+        ) ;if
+      ) ;define
 
       (define (%map f . args)
         (chain-apply args
           (if (%right?)
             (right (f value))
-            (%this))))
+            (%this)
+          ) ;if
+        ) ;chain-apply
+      ) ;define
 
       (define (%flat-map f . args)
         (chain-apply args
           (if (%right?)
             (f value)
-            (%this))))
+            (%this)
+          ) ;if
+        ) ;chain-apply
+      ) ;define
 
       (define (%forall pred)
         (unless (procedure? pred) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-              %forall '(pred) 'pred "procedure" (object->string pred))))
+              %forall '(pred) 'pred "procedure" (object->string pred)
+            ) ;format
+          ) ;type-error
+        ) ;unless
         (if (%right?)
             (pred value)
-            #t))
+            #t
+        ) ;if
+      ) ;define
 
       (define (%exists pred)
         (unless (procedure? pred) 
           (type-error 
             (format #f "In funtion #<~a ~a>: argument *~a* must be *~a*!    **Got ~a**" 
-              %exists '(pred) 'pred "procedure" (object->string pred))))
+              %exists '(pred) 'pred "procedure" (object->string pred)
+            ) ;format
+          ) ;type-error
+        ) ;unless
         (if (%right?)
             (pred value)
-            #f))
+            #f)
+        ) ;if
 
-      )
+      ) ;define
 
     (define (left v)
-      (rich-either 'left v))
+      (rich-either 'left v)
+    ) ;define
 
     (define (right v)
-      (rich-either 'right v))
+      (rich-either 'right v)
+    ) ;define
 
 
-    ) ; end of begin
-  ) ; end of define-library
+    ) ;define-case-class
+  ) ;begin

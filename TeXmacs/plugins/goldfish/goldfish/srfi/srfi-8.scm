@@ -21,8 +21,9 @@
     (define-macro (receive formals expression . body)
       `(call-with-values
         (lambda () (values ,expression))
-        (lambda ,formals ,@body)))
+        (lambda ,formals ,@body))
+    ) ;define-macro
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

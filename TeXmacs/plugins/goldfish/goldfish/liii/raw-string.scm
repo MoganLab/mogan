@@ -29,7 +29,8 @@
   (import (srfi srfi-267)
           (srfi srfi-1)
           (srfi srfi-13)
-          (liii error))
+          (liii error)
+  ) ;import
   (export deindent &-)
   (begin
     (define (string-split-lines str)
@@ -39,18 +40,26 @@
             (if (not nl-pos)
               (reverse (cons (substring str start len) result))
               (loop (+ nl-pos 1)
-                    (cons (substring str start nl-pos) result)))))))
+                    (cons (substring str start nl-pos) result)
+              ) ;loop
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
 
     (define (f-deindent str)
       (when (or (string-null? str)
                 (not (char=? #\newline (string-ref str 0))))
-          (value-error "Raw string must start on a new line after the opening delimiter"))
+          (value-error "Raw string must start on a new line after the opening delimiter")
+      ) ;when
 
       (let* ((lines (string-split-lines (substring str 1 (string-length str))))
              (closing-line (last lines))
              (ref-indent (if (string-null? closing-line)
                              (value-error "Raw string delimiter must be on its own line")
-                             (string-count closing-line #\space)))
+                             (string-count closing-line #\space))
+             ) ;ref-indent
              (content-lines (drop-right lines 1)))
 
         ;; check indentation
@@ -58,22 +67,35 @@
                     (unless (string-null? line)
                       (let ((indent (or (string-skip line #\space) 0)))
                         (when (< indent ref-indent)
-                          (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string" (+ idx 1))))))
+                          (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string" (+ idx 1)))
+                        ) ;when
+                      ) ;let
+                    ) ;unless
                   content-lines
-                  (iota (length content-lines)))
+                  (iota (length content-lines))
+        ) ;for-each
 
         (string-join
          (map (lambda (line)
                 (if (string-null? line)
                     ""
-                    (substring line ref-indent)))
-              content-lines)
-         "\n")))
+                    (substring line ref-indent))
+                ) ;if
+              content-lines
+         ) ;map
+         "\n"
+        ) ;string-join
+      ) ;let*
+    ) ;define
 
     (define-macro (stx-deindent v)
       (if (string? v)
           `(quote ,(f-deindent v))
-          `(quote ,v)))
+          `(quote ,v)
+      ) ;if
+    ) ;define-macro
 
     (define deindent stx-deindent)
-    (define &-       stx-deindent)))
+    (define &-       stx-deindent)
+  ) ;begin
+) ;define-library

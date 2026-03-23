@@ -27,32 +27,46 @@
               ((integer? data)
                (if (and (>= data 0) (<= data #x10FFFF))
                    data
-                   (value-error "rich-char: code point out of range" data)))
+                   (value-error "rich-char: code point out of range" data)
+               ) ;if
+              ) ;
               (else
-               (type-error "rich-char: only accept char and integer"))))
+               (type-error "rich-char: only accept char and integer")
+              ) ;else
+        ) ;cond
+      ) ;define
 
       (define (%equals that)
         (cond ((char? that)
                (= code-point (char->integer that)))
               ((rich-char :is-type-of that)
-               (= code-point (that :to-integer)))
-              (else #f)))
+               (= code-point (that :to-integer))
+              ) ;
+              (else #f)
+        ) ;cond
+      ) ;define
 
       (define (%ascii?)
-        (and (>= code-point 0) (<= code-point 127)))
+        (and (>= code-point 0) (<= code-point 127))
+      ) ;define
 
 
       (define (%numeric?)
         (if (and (>= code-point 0) (<= code-point 255))
             (let ((ch (integer->char code-point)))
-              (char-numeric? ch))
-            #f))
+              (char-numeric? ch)
+            ) ;let
+            #f
+        ) ;if
+      ) ;define
 
       (define (%upper?)
-        (and (>= code-point #x41) (<= code-point #x5A)))
+        (and (>= code-point #x41) (<= code-point #x5A))
+      ) ;define
 
       (define (%lower?)
-        (and (>= code-point #x61) (<= code-point #x7A)))
+        (and (>= code-point #x61) (<= code-point #x7A))
+      ) ;define
 
       (define (%digit?)
         (or
@@ -74,51 +88,71 @@
          (and (>= code-point #x0F20) (<= code-point #x0F29))
          (and (>= code-point #x1040) (<= code-point #x1049))
          (and (>= code-point #x17E0) (<= code-point #x17E9))
-         (and (>= code-point #x1810) (<= code-point #x1819))))
+         (and (>= code-point #x1810) (<= code-point #x1819))
+        ) ;or
+      ) ;define
   
       (define (%to-upper . args)
         (chain-apply args
           (rich-char
             (if (and (>= code-point #x61) (<= code-point #x7A))
                 (bitwise-and code-point #b11011111)
-                code-point))))
+                code-point
+            ) ;if
+          ) ;rich-char
+        ) ;chain-apply
+      ) ;define
 
       (define (%to-lower . args)
         (chain-apply args
           (rich-char
             (if (and (>= code-point #x41) (<= code-point #x5A))
                 (bitwise-ior code-point #b00100000)
-                code-point))))
+                code-point
+            ) ;if
+          ) ;rich-char
+        ) ;chain-apply
+      ) ;define
 
       (define (%to-bytevector)
-        (codepoint->utf8 code-point))
+        (codepoint->utf8 code-point)
+      ) ;define
 
       (define (@from-bytevector x)
-        (rich-char (utf8->codepoint x)))
+        (rich-char (utf8->codepoint x))
+      ) ;define
 
       (define (%to-string)
         (if (%ascii?)
             (object->string (integer->char code-point))
-            (string-append "#\\" (utf8->string (%to-bytevector)))))
+            (string-append "#\\" (utf8->string (%to-bytevector)))
+        ) ;if
+      ) ;define
 
       (define (@from-string x)
         (when (not (string-starts? x "#\\"))
-          (value-error "char@from-string: the input must start with #\\"))
+          (value-error "char@from-string: the input must start with #\\")
+        ) ;when
         (if (= 1 ($ x :drop 2 :length))
             (rich-char :from-bytevector (string->utf8 ($ x :drop 2 :get)))
-            (value-error "rich-char: must be u8 string which length equals 1")))
+            (value-error "rich-char: must be u8 string which length equals 1")
+        ) ;if
+      ) ;define
 
       (define (%make-string)
-        (utf8->string (%to-bytevector)))
+        (utf8->string (%to-bytevector))
+      ) ;define
 
       (define (@from-integer x . args)
         (chain-apply args
-          (rich-char x)))
+          (rich-char x)
+        ) ;chain-apply
+      ) ;define
 
       (define (%to-integer)
         code-point)
 
-      )
+      ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+    ) ;define-case-class
+  ) ;begin

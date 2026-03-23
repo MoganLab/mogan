@@ -21,10 +21,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <sstream>
+#include <stdexcept>
 #include "s7.h"
 #include <string>
 #include <unordered_map>
@@ -65,7 +69,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.29"
+#define GOLDFISH_VERSION "17.11.32"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -82,6 +86,8 @@ using std::cout;
 using std::endl;
 using std::string;
 using std::vector;
+
+namespace fs = std::filesystem;
 
 using nlohmann::json;
 
@@ -507,11 +513,7 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
 }
 
 static s7_pointer
-njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
-  if (value.is_object () || value.is_array ()) {
-    s7_int id = store_njson_value (sc, value);
-    return make_njson_handle (sc, id);
-  }
+njson_scalar_value_to_scheme (s7_scheme* sc, const json& value) {
   if (value.is_null ()) {
     return s7_make_symbol (sc, "null");
   }
@@ -536,6 +538,116 @@ njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
     return s7_make_string (sc, text.c_str ());
   }
   return s7_nil (sc);
+}
+
+enum class njson_scheme_tree_mode {
+  alist_list,
+  hash_vector
+};
+
+static s7_pointer njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode);
+
+static s7_pointer
+njson_object_to_alist_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  // Match (liii json): empty object is '(()) so {} stays distinct from [].
+  if (value.empty ()) {
+    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
+  }
+  s7_pointer out = s7_nil (sc);
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    const std::string& key = it.key ();
+    s7_pointer key_s7 = s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ()));
+    s7_pointer val_s7 = njson_value_to_scheme_tree (sc, it.value (), mode);
+    out = s7_cons (sc, s7_cons (sc, key_s7, val_s7), out);
+  }
+  return s7_reverse (sc, out);
+}
+
+static s7_pointer
+njson_array_to_list_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_nil (sc);
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    out = s7_cons (sc, njson_value_to_scheme_tree (sc, *it, mode), out);
+  }
+  return s7_reverse (sc, out);
+}
+
+static s7_pointer
+njson_object_to_hash_table_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_make_hash_table (sc, static_cast<s7_int> (value.size ()));
+  for (auto it = value.begin (); it != value.end (); ++it) {
+    const std::string& key = it.key ();
+    s7_hash_table_set (sc, out, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())),
+                       njson_value_to_scheme_tree (sc, it.value (), mode));
+  }
+  return out;
+}
+
+static s7_pointer
+njson_array_to_vector_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  s7_pointer out = s7_make_vector (sc, static_cast<s7_int> (value.size ()));
+  for (size_t i = 0; i < value.size (); i++) {
+    s7_vector_set (sc, out, static_cast<s7_int> (i), njson_value_to_scheme_tree (sc, value[i], mode));
+  }
+  return out;
+}
+
+static s7_pointer
+njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
+  if (value.is_object ()) {
+    return (mode == njson_scheme_tree_mode::alist_list) ? njson_object_to_alist_tree (sc, value, mode)
+                                                        : njson_object_to_hash_table_tree (sc, value, mode);
+  }
+  if (value.is_array ()) {
+    return (mode == njson_scheme_tree_mode::alist_list) ? njson_array_to_list_tree (sc, value, mode)
+                                                        : njson_array_to_vector_tree (sc, value, mode);
+  }
+  return njson_scalar_value_to_scheme (sc, value);
+}
+
+enum class njson_structure_root_kind {
+  object,
+  array
+};
+
+static s7_pointer
+njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_name, njson_structure_root_kind root_kind,
+                                njson_scheme_tree_mode mode) {
+  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
+  if (thread_err) {
+    return thread_err;
+  }
+
+  s7_pointer  handle = s7_car (args);
+  s7_int      id = 0;
+  std::string error_msg;
+  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
+  }
+
+  const json* root = njson_value_by_id_const (sc, id);
+  if (!root) {
+    return njson_error (sc, "type-error",
+                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+  }
+
+  if ((root_kind == njson_structure_root_kind::object) && !root->is_object ()) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be object", handle);
+  }
+  if ((root_kind == njson_structure_root_kind::array) && !root->is_array ()) {
+    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be array", handle);
+  }
+
+  return njson_value_to_scheme_tree (sc, *root, mode);
+}
+
+static s7_pointer
+njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
+  if (value.is_object () || value.is_array ()) {
+    s7_int id = store_njson_value (sc, value);
+    return make_njson_handle (sc, id);
+  }
+  return njson_scalar_value_to_scheme (sc, value);
 }
 
 static s7_pointer
@@ -1169,6 +1281,30 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
   return s7_nil (sc);
 }
 
+static s7_pointer
+f_njson_object_to_alist (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-object->alist", njson_structure_root_kind::object,
+                                         njson_scheme_tree_mode::alist_list);
+}
+
+static s7_pointer
+f_njson_object_to_hash_table (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-object->hash-table", njson_structure_root_kind::object,
+                                         njson_scheme_tree_mode::hash_vector);
+}
+
+static s7_pointer
+f_njson_array_to_list (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-array->list", njson_structure_root_kind::array,
+                                         njson_scheme_tree_mode::alist_list);
+}
+
+static s7_pointer
+f_njson_array_to_vector (s7_scheme* sc, s7_pointer args) {
+  return njson_run_structure_conversion (sc, args, "g_njson-array->vector", njson_structure_root_kind::array,
+                                         njson_scheme_tree_mode::hash_vector);
+}
+
 struct njson_schema_error_entry {
   std::string instance_path;
   std::string message;
@@ -1315,6 +1451,14 @@ glue_njson (s7_scheme* sc) {
   const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
   const char* keys_name = "g_njson-keys";
   const char* keys_desc = "(g_njson-keys handle) => (list-of string?)";
+  const char* object_alist_name = "g_njson-object->alist";
+  const char* object_alist_desc = "(g_njson-object->alist object-handle) => alist";
+  const char* object_hash_name = "g_njson-object->hash-table";
+  const char* object_hash_desc = "(g_njson-object->hash-table object-handle) => hash-table";
+  const char* array_list_name = "g_njson-array->list";
+  const char* array_list_desc = "(g_njson-array->list array-handle) => list";
+  const char* array_vector_name = "g_njson-array->vector";
+  const char* array_vector_desc = "(g_njson-array->vector array-handle) => vector";
   const char* schema_report_name = "g_njson-schema-report";
   const char* schema_report_desc = "(g_njson-schema-report schema-handle instance) => hash-table";
   glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
@@ -1344,6 +1488,10 @@ glue_njson (s7_scheme* sc) {
   glue_define (sc, deep_merge_x_name, deep_merge_x_desc, f_njson_deep_merge_x, 2, 0);
   glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
   glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
+  glue_define (sc, object_alist_name, object_alist_desc, f_njson_object_to_alist, 1, 0);
+  glue_define (sc, object_hash_name, object_hash_desc, f_njson_object_to_hash_table, 1, 0);
+  glue_define (sc, array_list_name, array_list_desc, f_njson_array_to_list, 1, 0);
+  glue_define (sc, array_vector_name, array_vector_desc, f_njson_array_to_vector, 1, 0);
   glue_define (sc, schema_report_name, schema_report_desc, f_njson_schema_report, 2, 0);
 }
 
@@ -2356,6 +2504,26 @@ glue_remove_file (s7_scheme* sc) {
 }
 
 static s7_pointer
+f_rename (s7_scheme* sc, s7_pointer args) {
+  const char* src = s7_string (s7_car (args));
+  const char* dst = s7_string (s7_cadr (args));
+  try {
+    fs::rename (src, dst);
+    return s7_make_boolean (sc, true);
+  }
+  catch (const fs::filesystem_error& e) {
+    return s7_make_boolean (sc, false);
+  }
+}
+
+inline void
+glue_rename (s7_scheme* sc) {
+  const char* name= "g_rename";
+  const char* desc= "(g_rename src dst) => boolean, rename file or directory from src to dst";
+  glue_define (sc, name, desc, f_rename, 2, 0);
+}
+
+static s7_pointer
 f_chdir (s7_scheme* sc, s7_pointer args) {
   const char* dir_c= s7_string (s7_car (args));
   return s7_make_boolean (sc, tb_directory_current_set (dir_c));
@@ -2493,6 +2661,7 @@ glue_liii_os (s7_scheme* sc) {
   glue_mkdir (sc);
   glue_rmdir (sc);
   glue_remove_file (sc);
+  glue_rename (sc);
   glue_chdir (sc);
   glue_listdir (sc);
   glue_getlogin (sc);
@@ -3187,20 +3356,33 @@ glue_for_community_edition (s7_scheme* sc) {
 static void
 display_help () {
   cout << "Goldfish Scheme " << GOLDFISH_VERSION << " by LiiiLabs" << endl;
-  cout << "--help, -h    \tDisplay this help message" << endl;
-  cout << "--version, -v \tDisplay version" << endl;
-  cout << "--mode, -m    \tAllowed mode: default, liii, sicp, r7rs, s7" << endl;
-  cout << "--eval, -e    \tLoad and evaluate Scheme code from the command line" << endl
-       << "\t\t  e.g. -e '(begin (display `Hello) (+ 1 2))'" << endl;
-  cout << "--load, -l FILE\tLoad Scheme code from FILE" << endl;
+  cout << endl;
+  cout << "Commands:" << endl;
+  cout << "  help               Display this help message" << endl;
+  cout << "  version            Display version" << endl;
+  cout << "  eval CODE          Evaluate Scheme code" << endl;
+  cout << "  load FILE          Load Scheme code from FILE, then enter REPL" << endl;
+  cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  test [options]     Run tests (all *-test.scm files under tests/)" << endl;
+  cout << "                     Options:" << endl;
+  cout << "                       --only PATTERN  Run tests matching PATTERN" << endl;
+  cout << "                                         (e.g. json, sicp, list-test.scm)" << endl;
+  cout << "  run TARGET         Run main function from TARGET" << endl;
+  cout << "                     TARGET can be:" << endl;
+  cout << "                       FILE.scm       Load file and run main" << endl;
+  cout << "                       x/y/z.scm      Load file and run main" << endl;
+  cout << "                       module.name    Import (module name) and run main" << endl;
 #ifdef GOLDFISH_WITH_REPL
-  cout << "--repl, -i    \tEnter interactive REPL mode" << endl;
-#else
-  cout << "--repl, -i    \t*Interactive REPL is not available in this build*" << endl;
+  cout << "  repl               Enter interactive REPL mode" << endl;
 #endif
-  cout << "FILE [FILE...]\tLoad and evaluate Scheme code from one or more files" << endl
-       << "\t\t  (all non-option arguments are treated as files to load)" << endl;
-  cout << endl << "If no FILE is specified, REPL is entered by default (if available)." << endl;
+  cout << "  FILE               Load and evaluate Scheme code from FILE" << endl;
+  cout << endl;
+  cout << "Options:" << endl;
+  cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
+  cout << endl;
+  cout << "If no command is specified, help is displayed by default." << endl;
 }
 
 static void
@@ -3236,10 +3418,306 @@ goldfish_eval_code (s7_scheme* sc, string code) {
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
+struct GoldfixCliOptions {
+  bool   enabled= false;
+  bool   dry_run= false;
+  string path;
+  string error;
+};
+
+static bool
+string_starts_with (const string& value, const string& prefix) {
+  return value.rfind (prefix, 0) == 0;
+}
+
+static GoldfixCliOptions
+parse_goldfix_cli_options (int argc, char** argv) {
+  GoldfixCliOptions opts;
+
+  // Look for 'fix' subcommand
+  int fix_index= -1;
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+    if (arg == "fix") {
+      fix_index= i;
+      break;
+    }
+  }
+
+  if (fix_index == -1) {
+    return opts; // No fix subcommand found
+  }
+
+  opts.enabled= true;
+
+  // Parse options after 'fix' subcommand
+  bool path_set= false;
+  for (int i= fix_index + 1; i < argc; ++i) {
+    string arg= argv[i];
+
+    if (arg == "--dry-run") {
+      if (opts.dry_run) {
+        opts.error= "Error: '--dry-run' can only be specified once.";
+        return opts;
+      }
+      opts.dry_run= true;
+      continue;
+    }
+
+    // Check for options that start with '-' but are not recognized
+    if (arg.length () > 0 && arg[0] == '-') {
+      // This is an unrecognized option, will be caught by invalid flag check
+      continue;
+    }
+
+    // This should be the PATH argument
+    if (!path_set) {
+      opts.path  = arg;
+      path_set   = true;
+    }
+  }
+
+  if (!path_set || opts.path.empty ()) {
+    opts.error= "Error: 'fix' requires a PATH argument.";
+    return opts;
+  }
+
+  return opts;
+}
+
+static bool
+is_goldfix_option_flag (const string& flag) {
+  return flag == "fix" || flag == "--dry-run" || flag == "dry-run";
+}
+
+static vector<string>
+filter_invalid_options_for_goldfix (const vector<string>& flags) {
+  vector<string> filtered;
+  for (const auto& flag : flags) {
+    if (!is_goldfix_option_flag (flag)) {
+      filtered.push_back (flag);
+    }
+  }
+  return filtered;
+}
+
+static string
+find_goldfix_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldfix", fs::path (gf_lib).parent_path () / "tools" / "goldfix"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static string
+find_goldtest_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static void
+add_goldfix_load_path_if_present (s7_scheme* sc, const char* gf_lib) {
+  string tool_root= find_goldfix_tool_root (gf_lib);
+  if (!tool_root.empty ()) {
+    s7_add_to_load_path (sc, tool_root.c_str ());
+  }
+}
+
+static string
+current_scheme_error_output (s7_scheme* sc) {
+  const char* errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+  if ((errmsg) && (*errmsg)) {
+    return string (errmsg);
+  }
+  return "";
+}
+
+static string
+read_text_file_exact (const fs::path& path) {
+  std::ifstream input (path, std::ios::binary);
+  if (!input.is_open ()) {
+    throw std::runtime_error ("Failed to open file for reading: " + path.string ());
+  }
+
+  std::ostringstream buffer;
+  buffer << input.rdbuf ();
+  if (input.bad ()) {
+    throw std::runtime_error ("Failed to read file: " + path.string ());
+  }
+
+  return buffer.str ();
+}
+
+static void
+write_text_file_exact (const fs::path& path, const string& content) {
+  std::ofstream output (path, std::ios::binary | std::ios::trunc);
+  if (!output.is_open ()) {
+    throw std::runtime_error ("Failed to open file for writing: " + path.string ());
+  }
+
+  output.write (content.data (), static_cast<std::streamsize> (content.size ()));
+  if (!output) {
+    throw std::runtime_error ("Failed to write file: " + path.string ());
+  }
+}
+
+static bool
+is_scheme_source_file (const fs::path& path) {
+  return path.has_extension () && path.extension () == ".scm";
+}
+
+static vector<fs::path>
+collect_goldfix_targets (const fs::path& input_path, bool dry_run) {
+  std::error_code ec;
+  if (!fs::exists (input_path, ec)) {
+    throw std::runtime_error ("Path does not exist: " + input_path.string ());
+  }
+
+  if (fs::is_regular_file (input_path, ec)) {
+    return {input_path};
+  }
+
+  if (dry_run) {
+    throw std::runtime_error ("'fix --dry-run' only supports files.");
+  }
+
+  if (!fs::is_directory (input_path, ec)) {
+    throw std::runtime_error ("Unsupported path: " + input_path.string ());
+  }
+
+  vector<fs::path> files;
+  for (fs::recursive_directory_iterator it (input_path, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
+    if (ec) {
+      throw std::runtime_error ("Failed to walk directory: " + input_path.string ());
+    }
+    if (it->is_regular_file (ec) && is_scheme_source_file (it->path ())) {
+      files.push_back (it->path ());
+    }
+    ec.clear ();
+  }
+
+  std::sort (files.begin (), files.end (), [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  return files;
+}
+
+static s7_pointer
+require_goldfix_fix_content (s7_scheme* sc, const char* gf_lib) {
+  string tool_root= find_goldfix_tool_root (gf_lib);
+  if (tool_root.empty ()) {
+    throw std::runtime_error ("Goldfix module directory does not exist.");
+  }
+
+  s7_add_to_load_path (sc, tool_root.c_str ());
+  s7_eval_c_string (sc, "(import (liii goldfix))");
+  string scheme_error= current_scheme_error_output (sc);
+  if (!scheme_error.empty ()) {
+    throw std::runtime_error ("Failed to import (liii goldfix).");
+  }
+
+  s7_pointer fix_content= s7_name_to_value (sc, "fix-content");
+  if ((!fix_content) || (!s7_is_procedure (fix_content))) {
+    throw std::runtime_error ("Failed to resolve fix-content from (liii goldfix).");
+  }
+
+  return fix_content;
+}
+
+static string
+goldfix_fix_content (s7_scheme* sc, s7_pointer fix_content, const string& content) {
+  s7_pointer result= s7_call (sc, fix_content, s7_list (sc, 1, s7_make_string (sc, content.c_str ())));
+  if (!result || !s7_is_string (result)) {
+    throw std::runtime_error ("(liii goldfix) fix-content did not return a string.");
+  }
+  return string (s7_string (result));
+}
+
+static string
+goldfix_progress_prefix (std::size_t index, std::size_t total) {
+  std::ostringstream out;
+  out << "[" << index << "/" << total << "]";
+  return out.str ();
+}
+
+static int
+goldfish_run_fix_mode (s7_scheme* sc, const char* gf_lib, const GoldfixCliOptions& opts) {
+  try {
+    s7_pointer      fix_content= require_goldfix_fix_content (sc, gf_lib);
+    vector<fs::path> files     = collect_goldfix_targets (fs::path (opts.path), opts.dry_run);
+    std::ostream&    status_out= std::cerr;
+
+    if (opts.dry_run) {
+      if (files.empty ()) {
+        throw std::runtime_error ("No input file provided for 'fix --dry-run'.");
+      }
+      const fs::path& file  = files.front ();
+      string          prefix= goldfix_progress_prefix (1, 1);
+      status_out << prefix << " Processing " << file.string () << std::endl;
+      cout << goldfix_fix_content (sc, fix_content, read_text_file_exact (file));
+      status_out << prefix << " Dry-run complete " << file.string () << std::endl;
+      return current_scheme_error_output (sc).empty () ? 0 : -1;
+    }
+
+    std::size_t changed_count= 0;
+    for (std::size_t i= 0; i < files.size (); ++i) {
+      const fs::path& file  = files[i];
+      string          prefix= goldfix_progress_prefix (i + 1, files.size ());
+      status_out << prefix << " Processing " << file.string () << std::endl;
+
+      try {
+        string original= read_text_file_exact (file);
+        string fixed   = goldfix_fix_content (sc, fix_content, original);
+        if (!current_scheme_error_output (sc).empty ()) {
+          status_out << prefix << " Failed " << file.string () << std::endl;
+          return -1;
+        }
+        if (fixed != original) {
+          write_text_file_exact (file, fixed);
+          ++changed_count;
+          status_out << prefix << " Updated " << file.string () << std::endl;
+        }
+        else {
+          status_out << prefix << " Unchanged " << file.string () << std::endl;
+        }
+      }
+      catch (const std::exception& err) {
+        status_out << prefix << " Failed " << file.string () << ": " << err.what () << std::endl;
+        return 1;
+      }
+    }
+
+    if (fs::is_directory (fs::path (opts.path))) {
+      status_out << "Processed " << files.size () << " .scm file(s), updated " << changed_count << std::endl;
+    }
+    return 0;
+  }
+  catch (const std::exception& err) {
+    cerr << err.what () << endl;
+    return 1;
+  }
+}
+
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
   s7_scheme* sc= s7_init ();
   s7_add_to_load_path (sc, gf_lib);
+  add_goldfix_load_path_if_present (sc, gf_lib);
 
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
@@ -3739,6 +4217,31 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
 }
 #endif
 
+// Parse command line options including --mode
+static std::string
+parse_mode_option (int argc, char** argv) {
+  std::string mode= "default";
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+    if ((arg == "--mode" || arg == "-m") && (i + 1) < argc) {
+      mode= argv[++i];
+    }
+    else if (arg.rfind ("--mode=", 0) == 0) {
+      mode= arg.substr (7);
+    }
+    else if (arg.rfind ("-m=", 0) == 0) {
+      mode= arg.substr (3);
+    }
+  }
+  return mode;
+}
+
+// Check if an option is valid (for --mode only)
+static bool
+is_valid_global_option (const string& flag) {
+  return flag == "--mode" || flag == "-m" || flag.rfind ("--mode=", 0) == 0 || flag.rfind ("-m=", 0) == 0;
+}
+
 int
 repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string      gf_lib_dir  = find_goldfish_library ();
@@ -3749,54 +4252,71 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 供 goldfish `g_command-line` procedure 查询
   command_args.assign (argv, argv + argc);
 
-  // params: 如 `--mode r7rs` 或 `-m=r7rs`，使用 operator() 取值
-  // flag  : 如 `--mode`      或 `-m`，     使用 operator[] 取存在与否
+  // 解析 mode 选项
+  std::string mode= parse_mode_option (argc, argv);
 
-  const std::vector<std::pair<std::string, std::string>> reg_params_pairs= {
-      {"--mode", "-m"}, {"--eval", "-e"}, {"--load", "-l"}};
-
-  // 初始化解析器（使用预定义的向量来注册 params）
-  argh::parser cmdl;
-  for (const auto& fp : reg_params_pairs) {
-    cmdl.add_params ({fp.first.c_str (), fp.second.c_str ()});
-  }
-  cmdl.parse (argc, argv);
-
-  // 只要存在 help 或 version 参数，忽略其他所有参数，打印相应信息后正常退出
-  if (cmdl[{"--help", "-h"}]) {
-    display_help ();
-    exit (0);
-  }
-  if (cmdl[{"--version", "-v"}]) {
-    display_version ();
-    exit (0);
+  // 查找第一个非选项参数作为命令（跳过 mode 选项）
+  string command;
+  int    command_index= -1;
+  for (int i= 1; i < argc; ++i) {
+    string arg= argv[i];
+    if (arg == "--mode" || arg == "-m") {
+      i++; // 跳过 mode 的值
+      continue;
+    }
+    if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+      continue;
+    }
+    // 这不是 mode 选项，那就是命令
+    command      = arg;
+    command_index= i;
+    break;
   }
 
-  // --mode / -m: Load the standard library by mode
-  std::string mode    = "default";
-  auto        mode_arg= cmdl ({"--mode", "-m"});
-  auto        eval_arg= cmdl ({"--eval", "-e"});
-  auto        load_arg= cmdl ({"--load", "-l"});
+  // 检查是否是 fix/test 子命令（它们有自己特殊的选项处理）
+  bool is_fix_command= (command == "fix");
+  bool is_test_command= (command == "test");
 
-  for (const auto& reg_params : reg_params_pairs) {
-    // 使用 operator[] 检查是否是 flag，即非 params
-    if (cmdl[{reg_params.first.c_str (), reg_params.second.c_str ()}]) {
-      std::cerr << "Error: '" << reg_params.first << "' or '" << reg_params.second << "' requires a parameter."
-                << std::endl;
-      exit (1);
+  // 检查无效的全局选项（除了 --mode 之外的其他选项都不再支持）
+  // 只检查命令之前的选项，命令之后的参数属于脚本
+  // fix/test 子命令有自己的选项解析逻辑，这里跳过对它们的选项检查
+  if (!is_fix_command && !is_test_command) {
+    int limit= (command_index > 0) ? command_index : argc;
+    for (int i= 1; i < limit; ++i) {
+      string arg= argv[i];
+      if (arg.length () > 0 && arg[0] == '-') {
+        if (!is_valid_global_option (arg)) {
+          std::cerr << "Invalid option: " << arg << "\n\n";
+          display_help ();
+          exit (1);
+        }
+      }
     }
   }
 
-  auto repl_flag=
-      cmdl[{"--repl", "-i"}] || (cmdl.get_unaccessed_flags ().empty () && cmdl.get_unaccessed_params ().empty ());
+  // 如果没有找到命令或没有参数，显示帮助
+  if (argc <= 1 || command.empty ()) {
+    display_help ();
+    return 0;
+  }
 
-  // 没有注册为 params 的默认都是 flag，因此只需要检查未访问的 flag
-  if (!cmdl.get_unaccessed_flags ().empty ()) {
-    display_for_invalid_options (cmdl.get_unaccessed_flags ());
+  // 处理旧版的 --help, -h, --version, -v（为了向后兼容）
+  if (command == "--help" || command == "-h") {
+    display_help ();
+    return 0;
+  }
+  if (command == "--version" || command == "-v") {
+    display_version ();
+    return 0;
+  }
+
+  // 解析 fix 子命令（它有自己的参数解析）
+  GoldfixCliOptions goldfix_opts= parse_goldfix_cli_options (argc, argv);
+  if (!goldfix_opts.error.empty ()) {
+    cerr << goldfix_opts.error << endl;
     exit (1);
   }
 
-  if (mode_arg) mode= mode_arg.str ();
   customize_goldfish_by_mode (sc, mode, gf_boot);
 
   // start capture error output
@@ -3805,25 +4325,118 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   int         gc_loc  = -1;
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
-  if (eval_arg) {
-    std::string code= eval_arg.str ();
+  // 处理 fix 子命令
+  if (goldfix_opts.enabled) {
+    int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
+    errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+
+    if ((errmsg) && (*errmsg) && (fix_ret == 0)) return -1;
+    return fix_ret;
+  }
+
+  // 处理 help 子命令
+  if (command == "help") {
+    display_help ();
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 version 子命令
+  if (command == "version") {
+    display_version ();
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 eval 子命令
+  if (command == "eval") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 查找 CODE 参数（跳过 mode 选项，从命令位置之后开始）
+    string code;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      code= arg;
+      break;
+    }
+    if (code.empty ()) {
+      std::cerr << "Error: 'eval' requires CODE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
     goldfish_eval_code (sc, code);
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if ((errmsg) && (*errmsg)) return -1;
+    return 0;
   }
-  if (load_arg) {
-    std::string file= load_arg.str ();
+
+  // 处理 load 子命令（加载文件后进入 REPL）
+  if (command == "load") {
+    if (argc < command_index + 1) {
+      std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 查找 FILE 参数（跳过 mode 选项，从命令位置之后开始）
+    string file;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      file= arg;
+      break;
+    }
+    if (file.empty ()) {
+      std::cerr << "Error: 'load' requires FILE argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    // 加载文件
     goldfish_eval_file (sc, file, true);
-  }
-
-  // eval only the first file passed as positional argument
-  auto& files= cmdl.pos_args ();
-  if (files.size () > 1) {
-    auto it= files.begin () + 1;
-    goldfish_eval_file (sc, *it, true);
-    // 如果有指定文件且没有显示传入 --repl, -i 参数，不进入 repl
-    if (repl_flag && !cmdl[{"--repl", "-i"}]) repl_flag= false;
-  }
-
-  if (repl_flag) {
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cout << errmsg;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      return -1;
+    }
+    // 加载成功后进入 REPL
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
@@ -3834,21 +4447,183 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     goldfish_repl (sc, mode);
     return 0;
 #else
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
-    // 如果没有指定 --repl, -i，额外打印 help 消息
-    if (!cmdl[{"--repl", "-i"}]) display_help ();
     exit (-1);
 #endif
   }
 
-  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-  if ((errmsg) && (*errmsg)) cout << errmsg;
+  // 处理 repl 子命令
+  if (command == "repl") {
+#ifdef GOLDFISH_WITH_REPL
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+
+    goldfish_repl (sc, mode);
+    return 0;
+#else
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
+    exit (-1);
+#endif
+  }
+
+  // 处理 test 子命令
+  if (command == "test") {
+    // 添加 tools/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
+    string goldtest_root = find_goldtest_tool_root (gf_lib);
+    if (goldtest_root.empty ()) {
+      cerr << "Error: tools/goldtest directory not found." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_add_to_load_path (sc, goldtest_root.c_str ());
+
+    // Load the goldtest.scm file
+    string goldtest_scm = goldtest_root + "/liii/goldtest.scm";
+    s7_pointer load_result = s7_load (sc, goldtest_scm.c_str ());
+    if (!load_result) {
+      cerr << "Error: Failed to load " << goldtest_scm << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cerr << "Error loading goldtest.scm: " << errmsg << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // Get the run-goldtest function
+    s7_pointer run_goldtest = s7_name_to_value (sc, "run-goldtest");
+    if ((!run_goldtest) || (!s7_is_procedure (run_goldtest))) {
+      cerr << "Error: Failed to find run-goldtest function." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_call (sc, run_goldtest, s7_nil (sc));
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理 run 子命令
+  if (command == "run") {
+    // 获取 TARGET 参数
+    string target;
+    for (int i= command_index + 1; i < argc; ++i) {
+      string arg= argv[i];
+      if (arg == "--mode" || arg == "-m") {
+        i++; // skip mode value
+        continue;
+      }
+      if (arg.rfind ("--mode=", 0) == 0 || arg.rfind ("-m=", 0) == 0) {
+        continue;
+      }
+      target= arg;
+      break;
+    }
+    if (target.empty ()) {
+      std::cerr << "Error: 'run' requires TARGET argument.\n" << std::endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    // 判断类型并处理
+    if (target.find ('/') != string::npos || target.rfind (".scm") == target.length () - 4) {
+      // 包含 / 或以 .scm 结尾，按文件路径处理
+      // 检查文件是否存在
+      std::error_code ec;
+      if (!fs::exists (target, ec) || !fs::is_regular_file (target, ec)) {
+        s7_close_output_port (sc, s7_current_error_port (sc));
+        s7_set_current_error_port (sc, old_port);
+        if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+        std::cerr << "Error: File not found: " << target << std::endl;
+        return 1;
+      }
+      goldfish_eval_file (sc, target, true);
+    }
+    else {
+      // 按模块名处理，例如: liii.string -> (liii string)
+      string import_expr= "(import (" + target + "))";
+      // 将 . 替换为空格
+      for (size_t i= 0; i < import_expr.length (); ++i) {
+        if (import_expr[i] == '.') import_expr[i]= ' ';
+      }
+      s7_eval_c_string (sc, import_expr.c_str ());
+    }
+
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cout << errmsg;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      return 1;
+    }
+
+    // 检查并调用 main 函数
+    s7_pointer main_func= s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      std::cerr << "Error: No main function found in target: " << target << std::endl;
+      return 1;
+    }
+
+    // 调用 main 函数
+    s7_call (sc, main_func, s7_nil (sc));
+
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    return 0;
+  }
+
+  // 处理直接执行文件（以 .scm 结尾或存在的文件）
+  // 检查是否是文件
+  std::error_code ec;
+  if (fs::exists (command, ec) && fs::is_regular_file (command, ec)) {
+    goldfish_eval_file (sc, command, true);
+    errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) cout << errmsg;
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if ((errmsg) && (*errmsg)) return -1;
+    return 0;
+  }
+
+  // 未知命令
+  std::cerr << "Unknown command: " << command << "\n\n";
+  display_help ();
   s7_close_output_port (sc, s7_current_error_port (sc));
   s7_set_current_error_port (sc, old_port);
   if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-
-  if ((errmsg) && (*errmsg)) return -1;
-  else return 0;
+  return 1;
 }
 
 } // namespace goldfish

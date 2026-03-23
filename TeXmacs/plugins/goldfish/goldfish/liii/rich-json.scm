@@ -20,47 +20,63 @@
   rich-json
   json-string-escape json-string-unescape string->json json->string
   json-ref json-ref*
-  json-set json-set* json-push json-push* json-drop json-drop* json-reduce json-reduce*)
+  json-set json-set* json-push json-push* json-drop json-drop* json-reduce json-reduce*
+) ;export
 (begin
 
 (define-class rich-json
   ((data any? #f))
 
   (define (%get)
-    data)
+    data
+  ) ;define
 
   (define (%get-or-else default)
     (if (%null?)
         default
-        data))
+        data
+    ) ;if
+  ) ;define
   
   (typed-define (%get-string (key any?) (default string?))
-    (let1 r (json-ref data key)
-      (if (string? r) r default)))
+    (let ((r (json-ref data key)))
+      (if (string? r) r default)
+    ) ;let
+  ) ;typed-define
   
   (typed-define (%get-number (key any?) (default number?))
-    (let1 r (json-ref data key)
-      (if (number? r) r default)))
+    (let ((r (json-ref data key)))
+      (if (number? r) r default)
+    ) ;let
+  ) ;typed-define
 
   (typed-define (%get-boolean (key any?) (default boolean?))
-    (let1 r (json-ref data key)
-      (if (boolean? r) r default)))
+    (let ((r (json-ref data key)))
+      (if (boolean? r) r default)
+    ) ;let
+  ) ;typed-define
   
   (define (%keys)
     (if (not (%object?))
         '()
-        ((box data) :map car :collect)))
+        ((box data) :map car :collect)
+    ) ;if
+  ) ;define
   
   (define (%apply x . xs)
-    (@make (apply json-ref* (cons data (cons x xs)))))
+    (@make (apply json-ref* (cons data (cons x xs))))
+  ) ;define
 
   (define (%set x . xs)
     (let ((processed-xs (map (lambda (arg)
                               (if (case-class? arg)
                                   (arg :get)
-                                  arg))
+                                  arg)
+                              ) ;if
                             xs)))
-      (rich-json (apply json-set* (cons data (cons x processed-xs))))))
+      (rich-json (apply json-set* (cons data (cons x processed-xs))))
+    ) ;let
+  ) ;define
   
   (define (%transform key . args)
     (if (null? args)
@@ -69,69 +85,95 @@
               (all-args (append (list data key) args)))
           (if (null? more-keys)
               (rich-json (apply json-reduce all-args))
-              (rich-json (apply json-reduce* all-args))))))
+              (rich-json (apply json-reduce* all-args))
+          ) ;if
+        ) ;let
+    ) ;if
+  ) ;define
 
   (define (%drop key . args)
     (if (null? args)
         (rich-json (json-drop data key))
-        (rich-json (apply json-drop* (append (list data key) args)))))
+        (rich-json (apply json-drop* (append (list data key) args)))
+    ) ;if
+  ) ;define
 
   (define (%push x . xs)
     (let ((processed-xs (map (lambda (arg)
                               (if (case-class? arg)
                                   (arg :get)
-                                  arg))
+                                  arg)
+                              ) ;if
                             xs)))
-      (@make (apply json-push* (cons data (cons x processed-xs))))))
+      (@make (apply json-push* (cons data (cons x processed-xs))))
+    ) ;let
+  ) ;define
 
   (define (%null?)
-    (eq? data 'null))
+    (eq? data 'null)
+  ) ;define
   
   (define (%object?)
-    (and (list? data) (not (null? data))))
+    (and (list? data) (not (null? data)))
+  ) ;define
   
   (define (%contains-key? key)
     (if (not (%object?))
         #f
         ((box data)
-         :exists (lambda (x) (equal? (car x) key)))))
+         :exists (lambda (x) (equal? (car x) key))
+        ) ;
+    ) ;if
+  ) ;define
   
   (define (%array?)
-    (vector? data))
+    (vector? data)
+  ) ;define
   
   (define (%string?)
-    (string? data))
+    (string? data)
+  ) ;define
   
   (define (%number?)
-    (number? data))
+    (number? data)
+  ) ;define
   
   (define (%integer?)
-    (integer? data))
+    (integer? data)
+  ) ;define
   
   (define (%float?)
-    (float? data))
+    (float? data)
+  ) ;define
   
   (define (%boolean?)
-    (boolean? data))
+    (boolean? data)
+  ) ;define
 
   
   (define (%to-string)
     (cond ((integer? data) (number->string data))
           ((symbol? data) (symbol->string data))
           ((string? data) data)
-          (else (json->string data))))
+          (else (json->string data))
+    ) ;cond
+  ) ;define
   
   (chained-define (@null)
-    (rich-json 'null))
+    (rich-json 'null)
+  ) ;chained-define
   
   (chained-define (@true)
-    (rich-json 'true))
+    (rich-json 'true)
+  ) ;chained-define
   
   (chained-define (@false)
-    (rich-json 'false))
+    (rich-json 'false)
+  ) ;chained-define
   
   (chained-define (@parse s)
-    (@apply (string->json s)))
+    (@apply (string->json s))
+  ) ;chained-define
 
   (chained-define (@apply x)
     (let ((j (rich-json)))
@@ -141,13 +183,18 @@
         ((boolean? x) (if x (j :set-data! 'true) (j :set-data! 'false)))
         ((number? x) (j :set-data! x))
         ((procedure? x)
-         (type-error "rich-json: a procedure could not be converted to rich-json case class"))
-        (else (j :set-data! x)))
-      j))
+         (type-error "rich-json: a procedure could not be converted to rich-json case class")
+        ) ;
+        (else (j :set-data! x))
+      ) ;cond
+      j
+    ) ;let
+  ) ;chained-define
 
   (chained-define (@make x)
-    (@apply x))
-)
+    (@apply x)
+  ) ;chained-define
+) ;define-class
 
-) ; end of begin
-) ; end of define-library
+) ;begin
+) ;define-library

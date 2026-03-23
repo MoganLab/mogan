@@ -38,120 +38,163 @@
           symbol-hash number-hash make-default-comparator default-hash
           comparator-type-test-predicate comparator-equality-predicate comparator-ordering-predicate
           comparator-hash-function comparator-test-type comparator-check-type comparator-hash =? <?
-          >? <=? >=?)
+          >? <=? >=?
+  ) ;export
   (begin
 
     (define-record-type comparator
       (make-raw-comparator type-test equality ordering hash ordering? hash?) comparator?
       (type-test comparator-type-test-predicate) (equality comparator-equality-predicate)
       (ordering comparator-ordering-predicate) (hash comparator-hash-function)
-      (ordering? comparator-ordered?) (hash? comparator-hashable?))
+      (ordering? comparator-ordered?) (hash? comparator-hashable?)
+    ) ;define-record-type
 
     ; ; Invoke the test type
     (define (comparator-test-type comparator obj)
-      ((comparator-type-test-predicate comparator) obj))
+      ((comparator-type-test-predicate comparator) obj)
+    ) ;define
 
     (define (comparator-check-type comparator obj)
       (if (comparator-test-type comparator obj)
           #t
-          (type-error "comparator type check failed" comparator obj)))
+          (type-error "comparator type check failed" comparator obj)
+      ) ;if
+    ) ;define
 
     (define (comparator-hash comparator obj)
-      ((comparator-hash-function comparator) obj))
+      ((comparator-hash-function comparator) obj)
+    ) ;define
 
     (define (binary=? comparator a b)
-      ((comparator-equality-predicate comparator) a b))
+      ((comparator-equality-predicate comparator) a b)
+    ) ;define
 
     (define (binary<? comparator a b)
-      ((comparator-ordering-predicate comparator) a b))
+      ((comparator-ordering-predicate comparator) a b)
+    ) ;define
 
     (define (binary>? comparator a b)
-      (binary<? comparator b a))
+      (binary<? comparator b a)
+    ) ;define
 
     (define (binary<=? comparator a b)
-      (not (binary>? comparator a b)))
+      (not (binary>? comparator a b))
+    ) ;define
 
     (define (binary>=? comparator a b)
-      (not (binary<? comparator a b)))
+      (not (binary<? comparator a b))
+    ) ;define
 
     (define (%salt%)
-      16064047)
+      16064047
+    ) ;define
 
     (define (hash-bound)
-      33554432)
+      33554432
+    ) ;define
 
     (define (make-hasher)
       (let ((result (%salt%)))
         (case-lambda (() result)
-                     ((n) (set! result (+ (modulo (* result 33) (hash-bound)) n)) result))))
+                     ((n) (set! result (+ (modulo (* result 33) (hash-bound)) n)) result)
+        ) ;case-lambda
+      ) ;let
+    ) ;define
 
     (define (make-comparator type-test equality ordering hash)
       (make-raw-comparator (if (eq? type-test #t)
             (lambda (x)
-              #t)
+              #t
+            ) ;lambda
             type-test)
         (if (eq? equality #t)
             (lambda (x y)
-              (eqv? (ordering x y) 0))
-            equality)
+              (eqv? (ordering x y) 0)
+            ) ;lambda
+            equality
+        ) ;if
         (if ordering
             ordering
             (lambda (x y)
-              (error "ordering not supported")))
+              (error "ordering not supported")
+            ) ;lambda
+        ) ;if
         (if hash
             hash
             (lambda (x y)
               (error "hashing not supported"))) (if ordering #t #f)
-        (if hash #t #f)))
+        (if hash #t #f)
+      ) ;make-raw-comparator
+    ) ;define
 
     (define (make-eq-comparator)
-      (make-comparator #t eq? #f default-hash))
+      (make-comparator #t eq? #f default-hash)
+    ) ;define
 
     (define (make-eqv-comparator)
-      (make-comparator #t eqv? #f default-hash))
+      (make-comparator #t eqv? #f default-hash)
+    ) ;define
 
     (define (make-equal-comparator)
-      (make-comparator #t equal? #f default-hash))
+      (make-comparator #t equal? #f default-hash)
+    ) ;define
 
     (define (make-pair-type-test car-comparator cdr-comparator)
       (lambda (obj)
         (and (pair? obj)
              (comparator-test-type car-comparator (car obj))
-             (comparator-test-type cdr-comparator (cdr obj)))))
+             (comparator-test-type cdr-comparator (cdr obj))
+        ) ;and
+      ) ;lambda
+    ) ;define
 
     (define (make-pair=? car-comparator cdr-comparator)
       (lambda (a b)
         (and ((comparator-equality-predicate car-comparator) (car a) (car b))
-             ((comparator-equality-predicate cdr-comparator) (cdr a) (cdr b)))))
+             ((comparator-equality-predicate cdr-comparator) (cdr a) (cdr b))
+        ) ;and
+      ) ;lambda
+    ) ;define
 
     (define (make-pair<? car-comparator cdr-comparator)
       (lambda (a b)
         (if (=? car-comparator (car a) (car b))
             (<? cdr-comparator (cdr a) (cdr b))
-            (<? car-comparator (car a) (car b)))))
+            (<? car-comparator (car a) (car b))
+        ) ;if
+      ) ;lambda
+    ) ;define
 
     (define (make-pair-hash car-comparator cdr-comparator)
       (lambda (obj)
         (let ((acc (make-hasher)))
           (acc (comparator-hash car-comparator (car obj)))
           (acc (comparator-hash cdr-comparator (cdr obj)))
-          (acc))))
+          (acc)
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (make-pair-comparator car-comparator cdr-comparator)
       (make-comparator (make-pair-type-test car-comparator cdr-comparator)
                        (make-pair=? car-comparator cdr-comparator)
                        (make-pair<? car-comparator cdr-comparator)
-                       (make-pair-hash car-comparator cdr-comparator)))
+                       (make-pair-hash car-comparator cdr-comparator)
+      ) ;make-comparator
+    ) ;define
 
     ; ; Cheap test for listness
     (define (norp? obj)
-      (or (null? obj) (pair? obj)))
+      (or (null? obj) (pair? obj))
+    ) ;define
 
     (define (make-list-comparator element-comparator type-test empty? head tail)
       (make-comparator (make-list-type-test element-comparator type-test empty? head tail)
                        (make-list=? element-comparator type-test empty? head tail)
                        (make-list<? element-comparator type-test empty? head tail)
-                       (make-list-hash element-comparator type-test empty? head tail)))
+                       (make-list-hash element-comparator type-test empty? head tail)
+      ) ;make-comparator
+    ) ;define
 
     (define (make-list-type-test element-comparator type-test empty? head tail)
       (lambda (obj)
@@ -160,7 +203,13 @@
                (let loop ((obj obj))
                  (cond ((empty? obj) #t)
                        ((not (elem-type-test (head obj))) #f)
-                       (else (loop (tail obj)))))))))
+                       (else (loop (tail obj)))
+                 ) ;cond
+               ) ;let
+             ) ;let
+        ) ;and
+      ) ;lambda
+    ) ;define
 
     (define (make-list=? element-comparator type-test empty? head tail)
       (lambda (a b)
@@ -171,7 +220,12 @@
                   ((empty? a) #f)
                   ((empty? b) #f)
                   ((elem=? (head a) (head b)) (loop (tail a) (tail b)))
-                  (else #f))))))
+                  (else #f)
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (make-list<? element-comparator type-test empty? head tail)
       (lambda (a b)
@@ -184,7 +238,12 @@
                   ((empty? b) #f)
                   ((elem=? (head a) (head b)) (loop (tail a) (tail b)))
                   ((elem<? (head a) (head b)) #t)
-                  (else #f))))))
+                  (else #f)
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (make-list-hash element-comparator type-test empty? head tail)
       (lambda (obj)
@@ -194,13 +253,21 @@
             (cond ((empty? obj) (acc))
                   (else
                    (acc (elem-hash (head obj)))
-                   (loop (tail obj))))))))
+                   (loop (tail obj))
+                  ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (make-vector-comparator element-comparator type-test length ref)
       (make-comparator (make-vector-type-test element-comparator type-test length ref)
                        (make-vector=? element-comparator type-test length ref)
                        (make-vector<? element-comparator type-test length ref)
-                       (make-vector-hash element-comparator type-test length ref)))
+                       (make-vector-hash element-comparator type-test length ref)
+      ) ;make-comparator
+    ) ;define
 
     (define (make-vector-type-test element-comparator type-test length ref)
       (lambda (obj)
@@ -210,7 +277,13 @@
                (let loop ((n 0))
                  (cond ((= n len) #t)
                        ((not (elem-type-test (ref obj n))) #f)
-                       (else (loop (+ n 1)))))))))
+                       (else (loop (+ n 1)))
+                 ) ;cond
+               ) ;let
+             ) ;let
+        ) ;and
+      ) ;lambda
+    ) ;define
 
     (define (make-vector=? element-comparator type-test length ref)
       (lambda (a b)
@@ -220,7 +293,13 @@
                (let loop ((n 0))
                  (cond ((= n len) #t)
                        ((elem=? (ref a n) (ref b n)) (loop (+ n 1)))
-                       (else #f)))))))
+                       (else #f)
+                 ) ;cond
+               ) ;let
+             ) ;let
+        ) ;and
+      ) ;lambda
+    ) ;define
 
     (define (make-vector<? element-comparator type-test length ref)
       (lambda (a b)
@@ -234,7 +313,14 @@
                    (cond ((= n len) #f)
                          ((elem=? (ref a n) (ref b n)) (loop (+ n 1)))
                          ((elem<? (ref a n) (ref b n)) #t)
-                         (else #f))))))))
+                         (else #f)
+                   ) ;cond
+                 ) ;let
+               ) ;let
+              ) ;else
+        ) ;cond
+      ) ;lambda
+    ) ;define
 
     (define (make-vector-hash element-comparator type-test length ref)
       (lambda (obj)
@@ -245,7 +331,13 @@
             (cond ((= n len) (acc))
                   (else
                    (acc (elem-hash (ref obj n)))
-                   (loop (+ n 1))))))))
+                   (loop (+ n 1))
+                  ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (object-type obj)
       (cond ((null? obj) 0)
@@ -257,19 +349,25 @@
             ((number? obj) 6)
             ((vector? obj) 7)
             ((bytevector? obj) 8)
-            (else 65535)))
+            (else 65535)
+      ) ;cond
+    ) ;define
 
     (define (boolean<? a b)
       ; ; #f < #t but not otherwise
-      (and (not a) b))
+      (and (not a) b)
+    ) ;define
 
     (define (complex<? a b)
       (if (= (real-part a) (real-part b))
           (< (imag-part a) (imag-part b))
-          (< (real-part a) (real-part b))))
+          (< (real-part a) (real-part b))
+      ) ;if
+    ) ;define
 
     (define (symbol<? a b)
-      (string<? (symbol->string a) (symbol->string b)))
+      (string<? (symbol->string a) (symbol->string b))
+    ) ;define
 
     (define boolean-hash hash-code)
     (define char-hash hash-code)
@@ -284,52 +382,71 @@
       (case type
         ((0) 0)
         ((1)
-         ((make-pair<? (make-default-comparator) (make-default-comparator)) a b))
+         ((make-pair<? (make-default-comparator) (make-default-comparator)) a b)
+        ) ;
         ((2) (boolean<? a b))
         ((3) (char<? a b))
         ((4) (string<? a b))
         ((5) (symbol<? a b))
         ((6) (complex<? a b))
         ((7)
-         ((make-vector<? (make-default-comparator) vector? vector-length vector-ref) a b))
+         ((make-vector<? (make-default-comparator) vector? vector-length vector-ref) a b)
+        ) ;
         ((8)
          ((make-vector<? (make-comparator exact-integer? = < default-hash) bytevector? bytevector-length bytevector-u8-ref) a
-           b))
-        (else (binary<? (registered-comparator type) a b))))
+           b
+         ) ;
+        ) ;
+        (else (binary<? (registered-comparator type) a b))
+      ) ;case
+    ) ;define
 
     (define (default-ordering a b)
       (let ((a-type (object-type a))
             (b-type (object-type b)))
         (cond ((< a-type b-type) #t)
               ((> a-type b-type) #f)
-              (else (dispatch-ordering a-type a b)))))
+              (else (dispatch-ordering a-type a b))
+        ) ;cond
+      ) ;let
+    ) ;define
 
     (define (dispatch-equality type a b)
       (case type
         ((0) #t)
         ((1)
-         ((make-pair=? (make-default-comparator) (make-default-comparator)) a b))
+         ((make-pair=? (make-default-comparator) (make-default-comparator)) a b)
+        ) ;
         ((2) (boolean=? a b))
         ((3) (char=? a b))
         ((4) (string=? a b))
         ((5) (symbol=? a b))
         ((6) (= a b))
         ((7)
-         ((make-vector=? (make-default-comparator) vector? vector-length vector-ref) a b))
+         ((make-vector=? (make-default-comparator) vector? vector-length vector-ref) a b)
+        ) ;
         ((8)
          ((make-vector=? (make-comparator exact-integer? = < default-hash) bytevector? bytevector-length bytevector-u8-ref) a
-           b))
-        (else (binary=? (registered-comparator type) a b))))
+           b
+         ) ;
+        ) ;
+        (else (binary=? (registered-comparator type) a b))
+      ) ;case
+    ) ;define
 
     (define (default-equality a b)
       (let ((a-type (object-type a))
             (b-type (object-type b)))
         (if (= a-type b-type)
             (dispatch-equality a-type a b)
-            #f)))
+            #f
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (make-default-comparator)
-      (make-comparator (lambda (obj) #t) default-equality default-ordering default-hash))
+      (make-comparator (lambda (obj) #t) default-equality default-ordering default-hash)
+    ) ;define
 
     (define (=? comparator a b . objs)
       (let loop ((a a)
@@ -338,7 +455,11 @@
         (and (binary=? comparator a b)
              (if (null? objs)
                  #t
-                 (loop b (car objs) (cdr objs))))))
+                 (loop b (car objs) (cdr objs))
+             ) ;if
+        ) ;and
+      ) ;let
+    ) ;define
 
     (define (<? comparator a b . objs)
       (let loop ((a a)
@@ -347,7 +468,11 @@
         (and (binary<? comparator a b)
              (if (null? objs)
                  #t
-                 (loop b (car objs) (cdr objs))))))
+                 (loop b (car objs) (cdr objs))
+             ) ;if
+        ) ;and
+      ) ;let
+    ) ;define
 
     (define (>? comparator a b . objs)
       (let loop ((a a)
@@ -356,7 +481,11 @@
         (and (binary>? comparator a b)
              (if (null? objs)
                  #t
-                 (loop b (car objs) (cdr objs))))))
+                 (loop b (car objs) (cdr objs))
+             ) ;if
+        ) ;and
+      ) ;let
+    ) ;define
 
     (define (<=? comparator a b . objs)
       (let loop ((a a)
@@ -365,7 +494,11 @@
         (and (binary<=? comparator a b)
              (if (null? objs)
                  #t
-                 (loop b (car objs) (cdr objs))))))
+                 (loop b (car objs) (cdr objs))
+             ) ;if
+        ) ;and
+      ) ;let
+    ) ;define
 
     (define (>=? comparator a b . objs)
       (let loop ((a a)
@@ -374,5 +507,11 @@
         (and (binary>=? comparator a b)
              (if (null? objs)
                  #t
-                 (loop b (car objs) (cdr objs))))))))
+                 (loop b (car objs) (cdr objs))
+             ) ;if
+        ) ;and
+      ) ;let
+    ) ;define
+  ) ;begin
+) ;define-library
 

@@ -18,7 +18,8 @@
   (import (only (scheme base) let-values s7-round))
   (export current-second current-jiffy jiffies-per-second
           get-time-of-day monotonic-nanosecond
-          system-clock-resolution steady-clock-resolution)
+          system-clock-resolution steady-clock-resolution
+  ) ;export
   (begin
 
     (define (jiffies-per-second) 1000000)
@@ -30,11 +31,14 @@
 
     (define (current-second)
       (let-values (((sec usec) (get-time-of-day)))
-        (+ sec (exact->inexact (/ usec 1000000)))))
+        (+ sec (exact->inexact (/ usec 1000000)))
+      ) ;let-values
+    ) ;define
 
     (define (current-jiffy)
       ;; NOTE: use the s7-round to ensure that a natural number is returned.
-      (s7-round (* (current-second) (jiffies-per-second))))
+      (s7-round (* (current-second) (jiffies-per-second)))
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library

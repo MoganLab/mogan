@@ -22,7 +22,9 @@
             (json-set g:json-set) (json-set* g:json-set*)
             (json-push g:json-push) (json-push* g:json-push*)
             (json-drop g:json-drop) (json-drop* g:json-drop*)
-            (json-reduce g:json-reduce) (json-reduce* g:json-reduce*)))
+            (json-reduce g:json-reduce) (json-reduce* g:json-reduce*)
+          ) ;rename
+  ) ;import
   (export
     json-string-escape 
     string->json 
@@ -36,7 +38,8 @@
     
     json-ref-string json-ref-number json-ref-integer json-ref-boolean json-get-or-else   
     
-    json-keys)
+    json-keys
+  ) ;export
   
   (begin
 
@@ -46,7 +49,9 @@
 
     (define (ensure-json-structure x)
       (unless (or (json-object? x) (json-array? x))
-        (type-error "Value is not a JSON object or array" x)))
+        (type-error "Value is not a JSON object or array" x)
+      ) ;unless
+    ) ;define
 
     (define (json-ref json key . args)
       (if (null? json) ; Allow () to pass through as "not found" to support safe navigation
@@ -58,37 +63,57 @@
                            (g:json-ref json key))))
               (if (null? args)
                   val
-                  (apply json-ref (cons val args)))))))
+                  (apply json-ref (cons val args))
+              ) ;if
+            ) ;let
+          ) ;begin
+      ) ;if
+    ) ;define
 
     (define (json-set json key val . args)
       (ensure-json-structure json)
       (if (null? args)
           (if (and (json-object? json) (equal? json '(())))
               json
-              (g:json-set json key val))
+              (g:json-set json key val)
+          ) ;if
           (json-set json key 
                     (lambda (x)
-                      (apply json-set (cons x (cons val args)))))))
+                      (apply json-set (cons x (cons val args)))
+                    ) ;lambda
+          ) ;json-set
+      ) ;if
+    ) ;define
 
     (define (json-push json key val . args)
       (ensure-json-structure json)
       (if (null? args)
           (if (and (json-object? json) (equal? json '(())))
               (g:json-push '() key val)
-              (g:json-push json key val))
+              (g:json-push json key val)
+          ) ;if
           (json-set json key
                     (lambda (x)
-                      (apply json-push (cons x (cons val args)))))))
+                      (apply json-push (cons x (cons val args)))
+                    ) ;lambda
+          ) ;json-set
+      ) ;if
+    ) ;define
 
     (define (json-drop json key . args)
       (ensure-json-structure json)
       (if (null? args)
           (if (and (json-object? json) (equal? json '(())))
               json
-              (g:json-drop json key))
+              (g:json-drop json key)
+          ) ;if
           (json-set json key
                     (lambda (x)
-                      (apply json-drop (cons x args))))))
+                      (apply json-drop (cons x args))
+                    ) ;lambda
+          ) ;json-set
+      ) ;if
+    ) ;define
 
     (define (json-reduce json key . args)
       (if (null? json)
@@ -102,7 +127,9 @@
                     (let ((proc (car args)))
                       (if (and (json-object? json) (equal? json '(())))
                           json
-                          (g:json-reduce json key proc)))
+                          (g:json-reduce json key proc)
+                      ) ;if
+                    ) ;let
                     ;; Multi level
                     (let* ((keys (cons key (drop-right args 1)))
                            (proc (last args))
@@ -110,38 +137,56 @@
                            (rest-keys (cdr keys)))
                       (json-reduce json top-key 
                                    (lambda (k v)
-                                     (apply json-reduce (append (list v) rest-keys (list proc)))))))))))
+                                     (apply json-reduce (append (list v) rest-keys (list proc)))
+                                   ) ;lambda
+                      ) ;json-reduce
+                    ) ;let*
+                ) ;if
+            ) ;if
+          ) ;begin
+      ) ;if
+    ) ;define
 
     ;;; ---------------------------------------------------------
     ;;; 1. 类型谓词 
     ;;; ---------------------------------------------------------
 
     (define (json-null? x)
-      (eq? x 'null))
+      (eq? x 'null)
+    ) ;define
 
     (define (json-object? x)
       (and (list? x)
            (not (null? x))
            (or (equal? x '(()))
-               (every pair? x))))
+               (every pair? x)
+           ) ;or
+      ) ;and
+    ) ;define
 
     (define (json-array? x)
-      (vector? x))
+      (vector? x)
+    ) ;define
 
     (define (json-string? x)
-      (string? x))
+      (string? x)
+    ) ;define
 
     (define (json-number? x)
-      (number? x))
+      (number? x)
+    ) ;define
       
     (define (json-integer? x)
-      (integer? x))
+      (integer? x)
+    ) ;define
 
     (define (json-float? x)
-      (float? x))
+      (float? x)
+    ) ;define
 
     (define (json-boolean? x)
-      (boolean? x))
+      (boolean? x)
+    ) ;define
 
     ;;; ---------------------------------------------------------
     ;;; 2. 状态检查
@@ -152,7 +197,10 @@
           #f
           (if (equal? json '(()))
               #f
-              (if (assoc key json) #t #f))))
+              (if (assoc key json) #t #f)
+          ) ;if
+      ) ;if
+    ) ;define
 
     ;;; ---------------------------------------------------------
     ;;; 3. 安全获取器
@@ -161,23 +209,33 @@
     (define (json-get-or-else json default)
       (if (json-null? json)
           default
-          json))
+          json
+      ) ;if
+    ) ;define
 
     (define (json-ref-string json key default)
       (let ((val (json-ref json key)))
-        (if (string? val) val default)))
+        (if (string? val) val default)
+      ) ;let
+    ) ;define
 
     (define (json-ref-number json key default)
       (let ((val (json-ref json key)))
-        (if (number? val) val default)))
+        (if (number? val) val default)
+      ) ;let
+    ) ;define
     
     (define (json-ref-integer json key default)
       (let ((val (json-ref json key)))
-        (if (integer? val) val default)))
+        (if (integer? val) val default)
+      ) ;let
+    ) ;define
 
     (define (json-ref-boolean json key default)
       (let ((val (json-ref json key)))
-        (if (boolean? val) val default)))
+        (if (boolean? val) val default)
+      ) ;let
+    ) ;define
 
     ;;; ---------------------------------------------------------
     ;;; 4. 辅助工具
@@ -187,8 +245,11 @@
       (if (json-object? json)
           (if (equal? json '(()))
               '()
-              (map car json))
-          '()))
+              (map car json)
+          ) ;if
+          '()
+      ) ;if
+    ) ;define
 
-  ) ; end of begin
-) ; end of define-library
+  ) ;begin
+) ;define-library

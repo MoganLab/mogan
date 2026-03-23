@@ -41,11 +41,16 @@
        (let ((ch (read-char))) ; (read-char (current-input-string))
          (if (eof-object? ch)
              (error (list "eof in raw string literal" location))
-             ch)))
+             ch
+         ) ;if
+       ) ;let
+     ) ;define
      (define delimiter
        ;; always expect `"`
        (let ((ch (read-char* 'delim)))
-         (append (string->list S) (list ch))))
+         (append (string->list S) (list ch))
+       ) ;let
+     ) ;define
      (call-with-port (open-output-string)
        (lambda (out)
          (define (read-delimiter n rest-of-delimiter)
@@ -57,17 +62,30 @@
                      (do ((n n (- n 1))
                           (delimiter delimiter (cdr delimiter)))
                          ((zero? n) (read-raw ch))
-                       (write-char (car delimiter) out))))))
+                       (write-char (car delimiter) out)
+                     ) ;do
+                 ) ;if
+               ) ;let
+           ) ;if
+         ) ;define
          (define (read-raw ch)
            (if (char=? ch (car delimiter))
                (read-delimiter 1 (cdr delimiter))
                (begin (write-char ch out)
-                      (read-raw (read-char* 'read)))))
-         (read-raw (read-char* 'read)))))
+                      (read-raw (read-char* 'read))
+               ) ;begin
+           ) ;if
+         ) ;define
+         (read-raw (read-char* 'read))
+       ) ;lambda
+     ) ;call-with-port
+   ) ;define
 
      (set! *#readers*
        (cons (cons #\" read-raw-string)
-             *#readers*))
+             *#readers*
+       ) ;cons
+     ) ;set!
 
-    ) ; end of begin
-  ) ; end of library
+  ) ;begin
+) ;define-library

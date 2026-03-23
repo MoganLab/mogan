@@ -17,7 +17,8 @@
 (define-library (liii base)
   (import (scheme base)
           (srfi srfi-2)
-          (srfi srfi-8))
+          (srfi srfi-8)
+  ) ;import
   (export
     ; (scheme base) defined by R7RS
     let-values
@@ -60,21 +61,26 @@
     loose-car loose-cdr compose identity any?
     ; Extra structure
     let1  typed-lambda
-    )
+  ) ;export
   (begin
 
     (define* (u8-substring str (start 0) (end #t))
-      (utf8->string (string->utf8 str start end)))
+      (utf8->string (string->utf8 str start end))
+    ) ;define*
 
     (define (loose-car pair-or-empty)
       (if (eq? '() pair-or-empty)
           '()
-          (car pair-or-empty)))
+          (car pair-or-empty)
+      ) ;if
+    ) ;define
 
     (define (loose-cdr pair-or-empty)
       (if (eq? '() pair-or-empty)
           '()
-          (cdr pair-or-empty)))
+          (cdr pair-or-empty)
+      ) ;if
+    ) ;define
 
     (define identity (lambda (x) x))
 
@@ -82,13 +88,17 @@
       (if (null? fs)
           (lambda (x) x)
           (lambda (x)
-            ((car fs) ((apply compose (cdr fs)) x)))))
+            ((car fs) ((apply compose (cdr fs)) x))
+          ) ;lambda
+      ) ;if
+    ) ;define
   
     (define (any? x) #t)
 
     (define-macro (let1 name1 value1 . body)
       `(let ((,name1 ,value1))
-         ,@body))
+         ,@body)
+    ) ;define-macro
 
     ; 0 clause BSD, from S7 repo stuff.scm
     (define-macro (typed-lambda args . body)
@@ -99,7 +109,9 @@
             (do ((p new-args (cdr p)))
                 ((not (pair? p)))
                 (if (pair? (car p))
-                    (set-car! p (caar p))))
+                    (set-car! p (caar p))
+                ) ;if
+            ) ;do
             `(lambda ,new-args
                ,@(map (lambda (arg)
                         (if (pair? arg)
@@ -108,8 +120,11 @@
                                  "~S is not ~S~%" ',(car arg) ',(cadr arg)))
                             (values)))
                       args)
-               ,@body))))
+               ,@body)
+          ) ;let
+      ) ;if
+    ) ;define-macro
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

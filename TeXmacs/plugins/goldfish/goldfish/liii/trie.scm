@@ -37,24 +37,29 @@
           trie-ref
           trie-ref*
           trie-value
-          trie->list)
+          trie->list
+  ) ;export
   (import (srfi srfi-1)
           (srfi srfi-2)
           (srfi srfi-9)
-          (liii alist))
+          (liii alist)
+  ) ;import
 
   (begin
     (define-record-type :trie
       (make-trie* children value)
       trie?
       (children trie-children trie-children-set!)
-      (value trie-value trie-value-set!))
+      (value trie-value trie-value-set!)
+    ) ;define-record-type
 
     (define (make-trie)
-      (make-trie* (list) (list)))
+      (make-trie* (list) (list))
+    ) ;define
 
     (define (trie-ref* trie key)
-      (alist-ref/default (trie-children trie) key #f))
+      (alist-ref/default (trie-children trie) key #f)
+    ) ;define
 
     (define* (trie-ref trie key (default #f))
       (let loop ((node trie)
@@ -62,15 +67,23 @@
         (if (null? key)
           (if (null? (trie-value node))
             default
-            (car (trie-value node)))
+            (car (trie-value node))
+          ) ;if
           (let ((child (trie-ref* node (car key))))
             (if child
               (loop child (cdr key))
-              default)))))
+              default
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define*
 
     (define (add-child! trie key child)
       (trie-children-set!
-        trie (alist-cons key child (trie-children trie))))
+        trie (alist-cons key child (trie-children trie))
+      ) ;trie-children-set!
+    ) ;define
 
     (define (trie-insert! trie key val)
       (let loop ((node trie)
@@ -81,17 +94,28 @@
                  (child (or (trie-ref* node ckey)
                             (let ((child (make-trie)))
                               (add-child! node ckey child)
-                              child))))
-            (loop child (cdr key))))))
+                              child))
+                            ) ;let
+                 ) ;child
+            (loop child (cdr key))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (trie->list trie)
       (cons
         (let loop ((trie trie))
           (map (lambda (child)
                  (cons (car child)
-                       (trie->list (cdr child))))
-               (trie-children trie)))
-        (trie-value trie)))
+                       (trie->list (cdr child)))
+                 ) ;cons
+               (trie-children trie)
+          ) ;map
+        ) ;let
+        (trie-value trie)
+      ) ;cons
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of library
+  ) ;begin
+) ;define-library

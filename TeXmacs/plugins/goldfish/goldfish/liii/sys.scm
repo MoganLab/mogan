@@ -22,6 +22,6 @@
     
     (define (executable) (g_executable))
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

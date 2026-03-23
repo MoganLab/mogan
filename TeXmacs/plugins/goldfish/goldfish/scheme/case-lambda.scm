@@ -16,8 +16,9 @@
                         `(else (apply (lambda ,(car choice) ,@(cdr choice)) args))
                         `((,(length (car choice))) 
                           (apply (lambda ,(car choice) ,@(cdr choice)) args))))
-                  choices))))
+                  choices)))
+    ) ;define-macro
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

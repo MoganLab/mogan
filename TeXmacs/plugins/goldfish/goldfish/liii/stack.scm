@@ -29,29 +29,37 @@
       (define (%top)
         (if (null? data)
             (error 'out-of-range)
-            (car data)))
+            (car data)
+        ) ;if
+      ) ;define
 
       (chained-define (%pop)
         (if (null? data)
             (error 'out-of-range "Cannot pop from an empty stack")
-            (stack (cdr data))))
+            (stack (cdr data))
+        ) ;if
+      ) ;chained-define
 
       (chained-define (%pop!)
         (if (null? data)
             (error 'out-of-range)
-            (stack (set! data (cdr data))))
-        (%this))
+            (stack (set! data (cdr data)))
+        ) ;if
+        (%this)
+      ) ;chained-define
 
       (chained-define (%push element)
-        (stack (cons element data)))
+        (stack (cons element data))
+      ) ;chained-define
 
       (chained-define (%push! element) 
                       (stack (set! data (cons element data))) 
-                      (%this))
+                      (%this)
+      ) ;chained-define
 
       (define (%to-list) data)
 
       (define (%to-rich-list) (rich-list data))
-    ) ; end of define-case-class
-  ) ; end of begin
-) ; end of define-library
+    ) ;define-case-class
+  ) ;begin
+) ;define-library

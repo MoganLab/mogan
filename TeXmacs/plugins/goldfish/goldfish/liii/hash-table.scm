@@ -16,7 +16,8 @@
 
 (define-library (liii hash-table)
   (import (srfi srfi-125)
-          (srfi srfi-128))
+          (srfi srfi-128)
+  ) ;import
   (export
     make-hash-table hash-table hash-table-unfold alist->hash-table
     hash-table? hash-table-contains? hash-table-empty? hash-table=?
@@ -28,7 +29,7 @@
     hash-table-find hash-table-count hash-table-fold
     hash-table-for-each hash-table-map->list
     hash-table->alist hash-table-copy
-    )
+  ) ;export
   (begin
-    ) ; end of begin
-  ) ; end of library
+  ) ;begin
+) ;define-library

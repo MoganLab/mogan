@@ -22,12 +22,15 @@
           hash-table-update! hash-table-update!/default hash-table-pop! hash-table-clear!
           hash-table-size hash-table-keys hash-table-values hash-table-entries hash-table-find
           hash-table-count hash-table-fold hash-table-for-each hash-table-map->list
-          hash-table->alist hash-table-copy)
+          hash-table->alist hash-table-copy
+  ) ;export
   (begin
 
     (define (assert-hash-table-type ht f)
       (when (not (hash-table? ht))
-        (error 'type-error f "this parameter must be typed as hash-table")))
+        (error 'type-error f "this parameter must be typed as hash-table")
+      ) ;when
+    ) ;define
 
     (define s7-hash-table-set! hash-table-set!)
     (define s7-make-hash-table make-hash-table)
@@ -38,79 +41,114 @@
             ((comparator? (car args))
              (let* ((equiv (comparator-equality-predicate (car args)))
                     (hash-func (comparator-hash-function (car args))))
-               (s7-make-hash-table 8 (cons equiv hash-func) (cons #t #t))))
-            (else (type-error "make-hash-table"))))
+               (s7-make-hash-table 8 (cons equiv hash-func) (cons #t #t))
+             ) ;let*
+            ) ;
+            (else (type-error "make-hash-table"))
+      ) ;cond
+    ) ;define
 
     (define alist->hash-table
       (typed-lambda ((lst list?))
         (when (odd? (length lst))
-          (value-error "The length of lst must be even!"))
-        (let1 ht (make-hash-table)
+          (value-error "The length of lst must be even!")
+        ) ;when
+        (let ((ht (make-hash-table)))
           (let loop ((rest lst))
             (if (null? rest)
                 ht
                 (begin
                   (hash-table-set! ht (car rest) (cadr rest))
-                  (loop (cddr rest))))))))
+                  (loop (cddr rest))
+                ) ;begin
+            ) ;if
+          ) ;let
+        ) ;let
+      ) ;typed-lambda
+    ) ;define
 
     (define (hash-table-contains? ht key)
-      (not (not (hash-table-ref ht key))))
+      (not (not (hash-table-ref ht key)))
+    ) ;define
 
     (define (hash-table-empty? ht)
-      (zero? (hash-table-size ht)))
+      (zero? (hash-table-size ht))
+    ) ;define
 
     (define (hash-table=? ht1 ht2)
-      (equal? ht1 ht2))
+      (equal? ht1 ht2)
+    ) ;define
 
     (define (hash-table-ref/default ht key default)
       (or (hash-table-ref ht key)
           (if (procedure? default)
               (default)
-              default)))
+              default
+          ) ;if
+      ) ;or
+    ) ;define
 
     (define (hash-table-set! ht . rest)
       (assert-hash-table-type ht hash-table-set!)
-      (let1 len (length rest)
+      (let ((len (length rest)))
         (when (or (odd? len) (zero? len))
-          (error 'wrong-number-of-args len "but must be even and non-zero"))
+          (error 'wrong-number-of-args len "but must be even and non-zero")
+        ) ;when
         (s7-hash-table-set! ht (car rest) (cadr rest))
         (when (> len 2)
-          (apply hash-table-set! (cons ht (cddr rest))))))
+          (apply hash-table-set! (cons ht (cddr rest)))
+        ) ;when
+      ) ;let
+    ) ;define
 
     (define (hash-table-delete! ht key . keys)
       (assert-hash-table-type ht hash-table-delete!)
-      (let1 all-keys (cons key keys)
+      (let ((all-keys (cons key keys)))
         (length
          (filter (lambda (x)
                    (if (hash-table-contains? ht x)
                        (begin
                          (s7-hash-table-set! ht x #f)
-                         #t)
-                       #f))
-                 all-keys))))
+                         #t
+                       ) ;begin
+                       #f)
+                   ) ;if
+                 all-keys
+         ) ;filter
+        ) ;length
+      ) ;let
+    ) ;define
 
     (define (hash-table-update! ht key value)
-      (hash-table-set! ht key value))
+      (hash-table-set! ht key value)
+    ) ;define
 
     (define (hash-table-update!/default ht key updater default)
-      (hash-table-set! ht key (updater (hash-table-ref/default ht key default))))
+      (hash-table-set! ht key (updater (hash-table-ref/default ht key default)))
+    ) ;define
 
     (define (hash-table-clear! ht)
-      (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht)))
+      (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
+    ) ;define
 
     (define hash-table-size s7-hash-table-entries)
 
     (define (hash-table-keys ht)
-      (map car ht))
+      (map car ht)
+    ) ;define
 
     (define (hash-table-values ht)
-      (map cdr ht))
+      (map cdr ht)
+    ) ;define
 
     (define hash-table-entries
       (typed-lambda ((ht hash-table?))
         (let ((ks (hash-table-keys ht))
               (vs (hash-table-values ht)))
-          (values ks vs))))
+          (values ks vs)
+        ) ;let
+      ) ;typed-lambda
+    ) ;define
 
     (define (hash-table-find proc ht failure)
       (let ((keys (hash-table-keys ht)))
@@ -118,37 +156,56 @@
           (if (null? keys)
               (if (procedure? failure)
                   (failure)
-                  failure)
+                  failure
+              ) ;if
               (let* ((key (car keys))
                      (value (hash-table-ref ht key)))
                 (if (proc key value)
                     value
-                    (loop (cdr keys))))))))
+                    (loop (cdr keys))
+                ) ;if
+              ) ;let*
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
 
     (define hash-table-count
       (typed-lambda ((pred? procedure?) (ht hash-table?))
-        (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))))
+        (count (lambda (x) (pred? (car x) (cdr x))) (map values ht))
+      ) ;typed-lambda
+    ) ;define
 
     (define (hash-table-fold proc seed ht)
       (assert-hash-table-type ht hash-table-fold)
       (let ((result seed))
         (hash-table-for-each
          (lambda (k v)
-           (set! result (proc k v result)))
-         ht)
-        result))
+           (set! result (proc k v result))
+         ) ;lambda
+         ht
+        ) ;hash-table-for-each
+        result
+      ) ;let
+    ) ;define
 
     (define hash-table-for-each
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (for-each (lambda (x) (proc (car x) (cdr x))) ht)))
+        (for-each (lambda (x) (proc (car x) (cdr x))) ht)
+      ) ;typed-lambda
+    ) ;define
 
     (define hash-table-map->list
       (typed-lambda ((proc procedure?) (ht hash-table?))
-        (map (lambda (x) (proc (car x) (cdr x))) ht)))
+        (map (lambda (x) (proc (car x) (cdr x))) ht)
+      ) ;typed-lambda
+    ) ;define
 
     (define hash-table->alist
       (typed-lambda ((ht hash-table?))
-        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))))
+        (append-map (lambda (x) (list (car x) (cdr x))) (map values ht))
+      ) ;typed-lambda
+    ) ;define
 
     (define hash-table-copy
       (typed-lambda ((ht hash-table?) . rest)
@@ -156,6 +213,13 @@
               (mutable? (if (null? rest) #t (car rest))))
           (hash-table-for-each
            (lambda (k v)
-             (hash-table-set! new-ht k v))
-           ht)
-          new-ht)))))
+             (hash-table-set! new-ht k v)
+           ) ;lambda
+           ht
+          ) ;hash-table-for-each
+          new-ht
+        ) ;let
+      ) ;typed-lambda
+    ) ;define
+  ) ;begin
+) ;define-library

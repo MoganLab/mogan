@@ -17,7 +17,8 @@
 (define-library (liii vector)
   (import (srfi srfi-133)
           (srfi srfi-13)
-          (liii base))
+          (liii base)
+  ) ;import
   (export
     ; S7 Scheme built-in
     make-vector vector vector-length vector-ref vector-set! vector->list list->vector
@@ -31,17 +32,20 @@
     vector-any vector-every vector-copy vector-copy!
     vector-index vector-index-right vector-skip vector-skip-right vector-partition
     vector-swap! vector-reverse! vector-cumulate reverse-list->vector
-    vector=
+    vector= vector-contains?
     ; Liii Extras
-    vector-filter
-    )
+    vector-filter vector-contains?
+    ; Scala-style take/drop with boundary tolerance
+    vector-take vector-drop vector-take-right vector-drop-right
+  ) ;export
   (begin
 
     (define (vector-filter pred vec)
       (let* ((result-list (vector-fold (lambda (elem acc)
                                          (if (pred elem)
                                              (cons elem acc)
-                                             acc))
+                                             acc)
+                                         ) ;if
                                        '()
                                        vec))
              (result-length (length result-list))
@@ -51,9 +55,79 @@
               result-vec
               (begin
                 (vector-set! result-vec i (car lst))
-                (loop (- i 1) (cdr lst)))))))
+                (loop (- i 1) (cdr lst))
+              ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let*
+    ) ;define
 
+    (define (vector-contains? vec elem . args)
+      (let ((cmp (if (null? args) equal? (car args))))
+        (not (not (vector-index (lambda (x) (cmp x elem)) vec)))
+      ) ;let
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+    (define (vector-take vec n)
+      (unless (vector? vec)
+        (type-error "vector-take: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-take: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) (vector))
+              ((>= n len) vec)
+              (else (vector-copy vec 0 n))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-drop vec n)
+      (unless (vector? vec)
+        (type-error "vector-drop: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-drop: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) vec)
+              ((>= n len) (vector))
+              (else (vector-copy vec n))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-take-right vec n)
+      (unless (vector? vec)
+        (type-error "vector-take-right: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-take-right: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) (vector))
+              ((>= n len) vec)
+              (else (vector-copy vec (- len n)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (vector-drop-right vec n)
+      (unless (vector? vec)
+        (type-error "vector-drop-right: first argument must be a vector" vec)
+      ) ;unless
+      (unless (integer? n)
+        (type-error "vector-drop-right: second argument must be an integer" n)
+      ) ;unless
+      (let ((len (vector-length vec)))
+        (cond ((< n 0) vec)
+              ((>= n len) (vector))
+              (else (vector-copy vec 0 (- len n)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+  ) ;begin
+) ;define-library
 

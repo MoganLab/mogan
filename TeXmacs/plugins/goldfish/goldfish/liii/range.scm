@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2024 The Goldfish Scheme Authors
+; Copyright (C) 2025 The Goldfish Scheme Authors
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -15,76 +15,17 @@
 ;
 
 (define-library (liii range)
-  (import (liii oop) 
-          (liii rich-list)
-          (liii error)) 
-  (export range)
+  (import (srfi srfi-196))
+  (export range numeric-range vector-range string-range range-append
+          iota-range range? range=? range-length range-ref range-first
+          range-last subrange range-segment range-split-at range-take
+          range-take-right range-drop range-drop-right range-count
+          range-map->list range-for-each range-fold range-fold-right
+          range-any range-every range-filter->list range-remove->list
+          range-reverse range-map->vector range-filter->vector
+          range-remove->vector vector->range range->list range->vector
+          range->string range->generator))
   (begin
-
-    (define-case-class range
-      ((start integer?) (end integer?) (step integer? 1) (inclusive? boolean? #f))
-
-      (define* (@inclusive start end (step 1))
-        (range start end step #t))
-
-      (define (check-step)
-        (when (zero? step)
-          (value-error "step can't be zero")))
-
-      (define (in-range? x)
-        (or (and (> step 0) (if inclusive? (and (<= x end) (>= x start)) (and (< x end) (>= x start))))
-            (and (< step 0) (if inclusive? (and (>= x end) (<= x start)) (and (> x end) (<= x start))))))
-
-      (define (not-in-range? x)
-        (or (and (> step 0) (or (> x end) (< x start)))
-            (and (< step 0) (or (< x end) (> x start)))
-            (and (= x end) (not inclusive?))))
-
-      (define (%empty?)
-        (check-step)
-        (or (and (> start end) (> step 0))
-            (and (< start end) (< step 0))
-            (and (= start end) (not inclusive?))))
-
-      (define (%map map-func)
-        (if (%empty?)
-            (rich-list :empty)
-            (let loop ((current start) (result '()))
-              (if (not-in-range? current)
-                  (rich-list (reverse result))
-                  (loop (+ current step)
-                        (cons (map-func current) result))))))
-
-      (define (%for-each proc)
-        (when (not (%empty?))
-          (let loop ((current start))
-               (when (in-range? current)
-                     (proc current)
-                     (loop (+ current step))))))
-
-      (define (%filter f)
-        (if (%empty?)
-            (rich-list :empty)
-            (let loop ((i start) (return '()))
-              (if (not-in-range? i)
-                  (rich-list (reverse return))
-                  (loop (+ i step)
-                        (if (f i)
-                            (cons i return)
-                            return))))))
-
-      (define (%contains elem)
-        (check-step)
-        (if (%empty?)
-            #f
-            (if (in-range? elem) ;判断是否在范围内
-                (zero? (modulo (- elem start) (abs step)))
-                #f)))
-
-           
-           
-
-      ) ; define-case-cass
-    ) ; begin
-  ) ; define-library
-
+    ; (liii range) 重新导出 (srfi srfi-196) 的所有函数
+  )
+)

@@ -35,34 +35,45 @@
     ; Liii extras
     string-starts? string-ends?
     string-remove-prefix string-remove-suffix
-    )
+  ) ;export
   (import (srfi srfi-13)
           (liii base)
-          (liii error))
+          (liii error)
+  ) ;import
   (begin
 
     (define (string-starts? str prefix)
       (if (and (string? str) (string? prefix))
           (string-prefix? prefix str)
-          (type-error "string-starts? parameter is not a string")))
+          (type-error "string-starts? parameter is not a string")
+      ) ;if
+    ) ;define
 
     (define (string-ends? str suffix)
       (if (and (string? str) (string? suffix))
           (string-suffix? suffix str)
-          (type-error "string-ends? parameter is not a string")))
+          (type-error "string-ends? parameter is not a string")
+      ) ;if
+    ) ;define
 
     (define string-remove-prefix
       (typed-lambda ((str string?) (prefix string?))
         (if (string-prefix? prefix str)
             (substring str (string-length prefix))
-            str)))
+            str
+        ) ;if
+      ) ;typed-lambda
+    ) ;define
 
     (define string-remove-suffix
       (typed-lambda ((str string?) (suffix string?))
         (if (string-suffix? suffix str)
             (substring str 0 (- (string-length str) (string-length suffix)))
-            (string-copy str))))
+            (string-copy str)
+        ) ;if
+      ) ;typed-lambda
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

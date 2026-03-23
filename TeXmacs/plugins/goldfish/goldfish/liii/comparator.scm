@@ -22,6 +22,8 @@
           symbol-hash number-hash make-default-comparator default-hash
           comparator-type-test-predicate comparator-equality-predicate comparator-ordering-predicate
           comparator-hash-function comparator-test-type comparator-check-type comparator-hash =? <?
-          >? <=? >=?)
-  (begin))
+          >? <=? >=?
+  ) ;export
+  (begin)
+) ;define-library
 

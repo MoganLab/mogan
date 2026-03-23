@@ -41,7 +41,8 @@
   (import (liii lang))
   (export check check-set-mode! check-report check-reset!
           check-passed? check-failed?
-          check:proc)
+          check:proc
+  ) ;export
   (begin
 
     (define check:write display*)
@@ -55,7 +56,10 @@
               ((summary)       1)
               ((report-failed) 10)
               ((report)        100)
-              (else (error "unrecognized mode" mode)))))
+              (else (error "unrecognized mode" mode))
+            ) ;case
+      ) ;set!
+    ) ;define
 
 
     (check-set-mode! 'report)
@@ -65,51 +69,68 @@
 
     (define (check-reset!)
       (set! check:correct 0)
-      (set! check:failed '()))
+      (set! check:failed '())
+    ) ;define
 
     (define (check:add-correct!)
-      (set! check:correct (+ check:correct 1)))
+      (set! check:correct (+ check:correct 1))
+    ) ;define
 
     (define (check:add-failed! expression actual-result expected-result file line call-stack)
       (set! check:failed
             (cons (list expression actual-result expected-result file line call-stack)
-                  check:failed)))
+                  check:failed
+            ) ;cons
+      ) ;set!
+    ) ;define
 
     (define (check:get-source-location expr)
       (if (pair? expr)
           (list (or (pair-filename expr) "unknown")
-                (or (pair-line-number expr) 0))
-          (list "unknown" 0)))
+                (or (pair-line-number expr) 0)
+          ) ;list
+          (list "unknown" 0)
+      ) ;if
+    ) ;define
 
     (define (check:get-stacktrace-safely)
       (let ((stack (stacktrace)))
         (if (and (string? stack) (> (string-length stack) 0))
             stack
-            "[no stacktrace available]")))
+            "[no stacktrace available]"
+        ) ;if
+      ) ;let
+    ) ;define
 
     (define (check:report-expression expression)
       (newline)
       (check:write expression)
-      (display " => "))
+      (display " => ")
+    ) ;define
 
     (define (check:report-actual-result actual-result)
       (check:write actual-result)
-      (display " ; "))
+      (display " ; ")
+    ) ;define
 
     (define (check:report-correct cases)
       (display "correct")
       (if (not (= cases 1))
           (begin (display " (")
                  (display cases)
-                 (display " cases checked)")))
-      (newline))
+                 (display " cases checked)")
+          ) ;begin
+      ) ;if
+      (newline)
+    ) ;define
 
     (define (check:report-failed expected-result)
       (display "*** failed ***")
       (newline)
       (display "; expected result: ")
       (check:write expected-result)
-      (newline))
+      (newline)
+    ) ;define
 
     (define (report-location-and-stacktrace location-info call-stack)
       (unless (and (string=? "unknown" (car location-info))
@@ -118,18 +139,23 @@
         (display (car location-info))
         (display ":")
         (display (cadr location-info))
-        (newline))
+        (newline)
+      ) ;unless
       (display "; stacktrace:")
       (newline)
       (display call-stack)
-      (newline))
+      (newline)
+    ) ;define
 
     (define (check-passed? expected-total-count)
       (and (= (length check:failed) 0)
-           (= check:correct expected-total-count)))
+           (= check:correct expected-total-count)
+      ) ;and
+    ) ;define
 
     (define (check-failed?)
-      (>= (length check:failed) 1))
+      (>= (length check:failed) 1)
+    ) ;define
 
     (define* (check:proc expression thunk expected-result (equal class=?))
       (let ((location-info (check:get-source-location expression)))
@@ -141,7 +167,12 @@
                  (check:add-correct!)
                  (let ((call-stack (check:get-stacktrace-safely)))
                    (check:add-failed! expression actual-result expected-result
-                                     (car location-info) (cadr location-info) call-stack)))))
+                                     (car location-info) (cadr location-info) call-stack
+                   ) ;check:add-failed!
+                 ) ;let
+             ) ;if
+           ) ;let
+          ) ;
           ((10)
            (let ((actual-result (thunk)))
              (if (equal actual-result expected-result)
@@ -153,14 +184,21 @@
                      (check:report-failed expected-result)
                      (report-location-and-stacktrace location-info call-stack)
                      (check:add-failed! expression actual-result expected-result
-                                       (car location-info) (cadr location-info) call-stack))))))
+                                       (car location-info) (cadr location-info) call-stack
+                     ) ;check:add-failed!
+                   ) ;begin
+                 ) ;let
+             ) ;if
+           ) ;let
+          ) ;
           ((100)
            (check:report-expression expression)
            (let ((actual-result (thunk)))
              (check:report-actual-result actual-result)
              (if (equal actual-result expected-result)
                  (begin (check:report-correct 1)
-                        (check:add-correct!))
+                        (check:add-correct!)
+                 ) ;begin
                  (let ((call-stack (check:get-stacktrace-safely)))
                    (begin
                      (check:report-failed expected-result)
@@ -168,11 +206,21 @@
                      (check:add-failed! expression 
                                         actual-result 
                                         expected-result
-                                        (car location-info) (cadr location-info) call-stack))))))
-          (else (error "unrecognized check:mode" check:mode)))))
+                                        (car location-info) (cadr location-info) call-stack
+                     ) ;check:add-failed!
+                   ) ;begin
+                 ) ;let
+             ) ;if
+           ) ;let
+          ) ;
+          (else (error "unrecognized check:mode" check:mode))
+        ) ;case
+      ) ;let
+    ) ;define*
 
     (define-macro (check expr => expected)
-      `(check:proc ',expr (lambda () ,expr) ,expected))
+      `(check:proc ',expr (lambda () ,expr) ,expected)
+    ) ;define-macro
 
     (define (check-report)
       (if (>= check:mode 1)
@@ -183,8 +231,11 @@
             (display " correct, ")
             (display (length check:failed))
             (display " failed.")
-            (newline))))
+            (newline)
+          ) ;begin
+      ) ;if
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

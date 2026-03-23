@@ -95,7 +95,8 @@
           bytevector-accumulator
           bytevector-accumulator!
           sum-accumulator
-          product-accumulator)
+          product-accumulator
+  ) ;export
 
   (begin
     ;; Chibi Scheme version of any
@@ -103,7 +104,10 @@
       (if (null? (cdr ls))
         (pred (car ls))
         ((lambda (x) (if x x (any pred (cdr ls))))
-         (pred (car ls)))))
+         (pred (car ls))
+        ) ;
+      ) ;if
+    ) ;define
 
     ;; list->bytevector
     (define (list->bytevector list)
@@ -113,7 +117,12 @@
             vec
             (begin
               (bytevector-u8-set! vec i (car list))
-              (loop (+ i 1) (cdr list)))))))
+              (loop (+ i 1) (cdr list))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
 
 
     ;; generator
@@ -122,36 +131,52 @@
                    (eof-object)
                    (let ((next (car args)))
                      (set! args (cdr args))
-                     next))))
+                     next)
+                   ) ;let
+      ) ;lambda
+    ) ;define
 
     ;; circular-generator
     (define (circular-generator . args)
       (let ((base-args args))
         (lambda ()
           (when (null? args)
-            (set! args base-args))
+            (set! args base-args)
+          ) ;when
           (let ((next (car args)))
             (set! args (cdr args))
-            next))))
+            next
+          ) ;let
+        ) ;lambda
+      ) ;let
+    ) ;define
 
 
     ;; make-iota-generator
     (define make-iota-generator
       (case-lambda ((count) (make-iota-generator count 0 1))
                    ((count start) (make-iota-generator count start 1))
-                   ((count start step) (make-iota count start step))))
+                   ((count start step) (make-iota count start step))
+      ) ;case-lambda
+    ) ;define
 
     ;; make-iota
     (define (make-iota count start step)
       (lambda ()
         (cond
           ((<= count 0)
-           (eof-object))
+           (eof-object)
+          ) ;
           (else
             (let ((result start))
              (set! count (- count 1))
              (set! start (+ start step))
-             result)))))
+             result
+            ) ;let
+          ) ;else
+        ) ;cond
+      ) ;lambda
+    ) ;define
 
 
     ;; make-range-generator
@@ -163,14 +188,22 @@
                     (lambda () (if (< start end)
                                  (let ((v start))
                                   (set! start (+ start step))
-                                  v)
-                                 (eof-object))))))
+                                  v
+                                 ) ;let
+                                 (eof-object))
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
     (define (make-infinite-range-generator start)
       (lambda ()
         (let ((result start))
          (set! start (+ start 1))
-         result)))
+         result
+        ) ;let
+      ) ;lambda
+    ) ;define
 
 
 
@@ -184,7 +217,11 @@
                               (resume (if #f #f))  ; void? or yield again?
                               (begin (proc yield)
                                      (set! resume (lambda (v) (return (eof-object))))
-                                     (return (eof-object))))))))
+                                     (return (eof-object))))
+                              ) ;begin
+                            ) ;if
+      ) ;lambda
+    ) ;define
 
 
     ;; list->generator
@@ -193,7 +230,10 @@
                    (eof-object)
                    (let ((next (car lst)))
                      (set! lst (cdr lst))
-                     next))))
+                     next)
+                   ) ;let
+      ) ;lambda
+    ) ;define
 
 
     ;; vector->generator
@@ -205,7 +245,12 @@
                                  (eof-object)
                                  (let ((next (vector-ref vec start)))
                                    (set! start (+ start 1))
-                                   next))))))
+                                   next)
+                                 ) ;let
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
     ;; reverse-vector->generator
@@ -217,7 +262,12 @@
                                  (eof-object)
                                  (let ((next (vector-ref vec (- end 1))))
                                    (set! end (- end 1))
-                                   next))))))
+                                   next)
+                                 ) ;let
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
     ;; string->generator
@@ -229,7 +279,12 @@
                                  (eof-object)
                                  (let ((next (string-ref str start)))
                                    (set! start (+ start 1))
-                                   next))))))
+                                   next)
+                                 ) ;let
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
     ;; bytevector->generator
@@ -241,13 +296,19 @@
                                  (eof-object)
                                  (let ((next (bytevector-u8-ref str start)))
                                    (set! start (+ start 1))
-                                   next))))))
+                                   next)
+                                 ) ;let
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
     ;; make-for-each-generator
     ;FIXME: seems to fail test
     (define (make-for-each-generator for-each obj)
-      (make-coroutine-generator (lambda (yield) (for-each yield obj))))
+      (make-coroutine-generator (lambda (yield) (for-each yield obj)))
+    ) ;define
 
 
     ;; make-unfold-generator
@@ -257,7 +318,12 @@
                                    (if (stop? s)
                                      (if #f #f)
                                      (begin (yield (mapper s))
-                                            (loop (successor s))))))))
+                                            (loop (successor s)))
+                                     ) ;begin
+                                   ) ;if
+                                  ) ;let
+      ) ;make-coroutine-generator
+    ) ;define
 
 
     ;; gcons*
@@ -268,7 +334,11 @@
                      ((car args))
                      (let ((v (car args)))
                       (set! args (cdr args))
-                      v)))))
+                      v)
+                     ) ;let
+                   ) ;if
+      ) ;lambda
+    ) ;define
 
 
     ;; gappend
@@ -280,8 +350,14 @@
                       (begin (set! args (cdr args))
                              (if (null? args)
                                (eof-object)
-                               (loop ((car args)))))
-                      v)))))
+                               (loop ((car args)))
+                             ) ;if
+                      ) ;begin
+                      v)
+                    ) ;if
+                   ) ;let
+      ) ;lambda
+    ) ;define
 
     ;; gflatten
     (define (gflatten gen)
@@ -292,15 +368,24 @@
             state
             (let ((obj (car state)))
               (set! state (cdr state))
-              obj)))))
+              obj
+            ) ;let
+          ) ;if
+        ) ;lambda
+      ) ;let
+    ) ;define
 
     ;; ggroup
     (define ggroup
       (case-lambda
         ((gen k)
-         (simple-ggroup gen k))
+         (simple-ggroup gen k)
+        ) ;
         ((gen k padding)
-         (padded-ggroup (simple-ggroup gen k) k padding))))
+         (padded-ggroup (simple-ggroup gen k) k padding)
+        ) ;
+      ) ;case-lambda
+    ) ;define
 
     (define (simple-ggroup gen k)
       (lambda ()
@@ -309,7 +394,12 @@
             (if (null? result) item (reverse result))
             (if (= count 0)
               (reverse (cons item result))
-              (loop (gen) (cons item result) (- count 1)))))))
+              (loop (gen) (cons item result) (- count 1))
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     (define (padded-ggroup gen k padding)
       (lambda ()
@@ -319,7 +409,13 @@
             (let ((len (length item)))
               (if (= len k)
                   item
-                  (append item (make-list (- k len) padding))))))))
+                  (append item (make-list (- k len) padding))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;lambda
+    ) ;define
 
     ;; gmerge
     (define gmerge
@@ -332,22 +428,38 @@
            (lambda ()
              (cond
               ((and (eof-object? left) (eof-object? right))
-               left)
+               left
+              ) ;
               ((eof-object? left)
-               (let ((obj right)) (set! right (genright)) obj))
+               (let ((obj right)) (set! right (genright)) obj)
+              ) ;
               ((eof-object? right)
-               (let ((obj left))  (set! left (genleft)) obj))
+               (let ((obj left))  (set! left (genleft)) obj)
+              ) ;
               ((< right left)
-               (let ((obj right)) (set! right (genright)) obj))
+               (let ((obj right)) (set! right (genright)) obj)
+              ) ;
               (else
-               (let ((obj left)) (set! left (genleft)) obj))))))
+               (let ((obj left)) (set! left (genleft)) obj)
+              ) ;else
+             ) ;cond
+           ) ;lambda
+         ) ;let
+        ) ;
         ((< . gens)
          (apply gmerge <
                 (let loop ((gens gens) (gs '()))
                   (cond ((null? gens) (reverse gs))
                         ((null? (cdr gens)) (reverse (cons (car gens) gs)))
                         (else (loop (cddr gens)
-                                    (cons (gmerge < (car gens) (cadr gens)) gs)))))))))
+                                    (cons (gmerge < (car gens) (cadr gens)) gs))
+                        ) ;else
+                  ) ;cond
+                ) ;let
+         ) ;apply
+        ) ;
+      ) ;case-lambda
+    ) ;define
 
     ;; gmap
     (define gmap
@@ -356,11 +468,19 @@
         ((proc gen)
          (lambda ()
            (let ((item (gen)))
-             (if (eof-object? item) item (proc item)))))
+             (if (eof-object? item) item (proc item))
+           ) ;let
+         ) ;lambda
+        ) ;
         ((proc . gens)
          (lambda ()
            (let ((items (map (lambda (x) (x)) gens)))
-             (if (any eof-object? items) (eof-object) (apply proc items)))))))
+             (if (any eof-object? items) (eof-object) (apply proc items))
+           ) ;let
+         ) ;lambda
+        ) ;
+      ) ;case-lambda
+    ) ;define
 
     ;; gcombine
     (define (gcombine proc seed . gens)
@@ -371,7 +491,11 @@
           (let ()
            (define-values (value newseed) (apply proc (append items (list seed))))
            (set! seed newseed)
-           value))))
+           value
+          ) ;let
+        ) ;if
+      ) ;lambda
+    ) ;define
 
     ;; gfilter
     (define (gfilter pred gen)
@@ -380,7 +504,11 @@
                     (if (or (eof-object? next)
                             (pred next))
                       next
-                      (loop))))))
+                      (loop))
+                    ) ;if
+                  ) ;let
+      ) ;lambda
+    ) ;define
 
     ;; gstate-filter
     (define (gstate-filter proc seed gen)
@@ -393,13 +521,21 @@
                 (set! state newstate)
                 (if yes
                    item
-                   (loop (gen)))))))))
+                   (loop (gen))
+                ) ;if
+              ) ;let-values
+            ) ;if
+          ) ;let
+        ) ;lambda
+      ) ;let
+    ) ;define
 
 
 
     ;; gremove
     (define (gremove pred gen)
-      (gfilter (lambda (v) (not (pred v))) gen))
+      (gfilter (lambda (v) (not (pred v))) gen)
+    ) ;define
 
 
 
@@ -413,15 +549,25 @@
                                                    (begin (if (eof-object? v) (yield padding) (yield v))
                                                           (if (< (+ 1 i) k)
                                                             (loop (+ 1 i) (gen))
-                                                            (eof-object))))
-                                                  (eof-object)))))))
+                                                            (eof-object)
+                                                          ) ;if
+                                                   ) ;begin
+                                                  ) ;let
+                                                  (eof-object))
+                                                ) ;if
+                    ) ;make-coroutine-generator
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
 
     ;; gdrop
     (define (gdrop gen k)
       (lambda () (do () ((<= k 0)) (set! k (- k 1)) (gen))
-        (gen)))
+        (gen)
+      ) ;lambda
+    ) ;define
 
 
 
@@ -433,7 +579,12 @@
          (let ((val (gen)))
           (cond (found val)
                 ((and (not (eof-object? val)) (pred val)) (loop))
-                (else (set! found #t) val))))))
+                (else (set! found #t) val)
+          ) ;cond
+         ) ;let
+        ) ;let
+      ) ;lambda
+    ) ;define
 
 
     ;; gtake-while
@@ -444,7 +595,12 @@
                      (if (pred next)
                        next
                        (begin (set! gen (generator))
-                              (gen)))))))
+                              (gen))
+                       ) ;begin
+                     ) ;if
+                   ) ;if
+      ) ;lambda
+    ) ;define
 
 
 
@@ -456,7 +612,12 @@
                                 (cond
                                   ((eof-object? v) (eof-object))
                                   ((== item v) (loop (gen)))
-                                  (else v)))))))
+                                  (else v))
+                                ) ;cond
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
 
@@ -470,16 +631,26 @@
                     (lambda () (if firsttime
                                  (begin (set! firsttime #f)
                                         (set! prev (gen))
-                                        prev)
+                                        prev
+                                 ) ;begin
                                  (let loop ((v (gen)))
                                   (cond
                                     ((eof-object? v)
-                                     v)
+                                     v
+                                    ) ;
                                     ((== prev v)
-                                     (loop (gen)))
+                                     (loop (gen))
+                                    ) ;
                                     (else
                                       (set! prev v)
-                                      v))))))))
+                                      v)
+                                    ) ;else
+                                  ) ;cond
+                                 ) ;let
+                    ) ;lambda
+                   ) ;
+      ) ;case-lambda
+    ) ;define
 
 
     ;; gindex
@@ -492,13 +663,22 @@
             (cond
               ((or (eof-object? value) (eof-object? index))
                (set! done? #t)
-               (eof-object))
+               (eof-object)
+              ) ;
               ((= index count)
                (set! count (+ count 1))
-               value)
+               value
+              ) ;
               (else
                 (set! count (+ count 1))
-                (loop (value-gen) index))))))))
+                (loop (value-gen) index)
+              ) ;else
+            ) ;cond
+           ) ;let
+         ) ;if
+       ) ;lambda
+      ) ;let
+    ) ;define
 
 
     ;; gselect
@@ -511,30 +691,47 @@
             (cond
               ((or (eof-object? value) (eof-object? truth))
                (set! done? #t)
-               (eof-object))
+               (eof-object)
+              ) ;
               (truth value)
-              (else (loop (value-gen) (truth-gen)))))))))
+              (else (loop (value-gen) (truth-gen)))
+            ) ;cond
+           ) ;let
+         ) ;if
+       ) ;lambda
+      ) ;let
+    ) ;define
 
     ;; generator->list
     (define generator->list
       (case-lambda
         ((gen n)
-         (generator->list (gtake gen n)))
+         (generator->list (gtake gen n))
+        ) ;
         ((gen)
-         (reverse (generator->reverse-list gen)))))
+         (reverse (generator->reverse-list gen))
+        ) ;
+      ) ;case-lambda
+    ) ;define
 
     ;; generator->reverse-list
     (define generator->reverse-list
       (case-lambda
         ((gen n)
-         (generator->reverse-list (gtake gen n)))
+         (generator->reverse-list (gtake gen n))
+        ) ;
         ((gen)
-         (generator-fold cons '() gen))))
+         (generator-fold cons '() gen)
+        ) ;
+      ) ;case-lambda
+    ) ;define
 
     ;; generator->vector
     (define generator->vector
       (case-lambda ((gen) (list->vector (generator->list gen)))
-                   ((gen n) (list->vector (generator->list gen n)))))
+                   ((gen n) (list->vector (generator->list gen n)))
+      ) ;case-lambda
+    ) ;define
 
 
     ;; generator->vector!
@@ -545,13 +742,19 @@
          ((>= at (vector-length vector)) count)
          (else (begin
                  (vector-set! vector at value)
-                 (loop (gen) (+ count 1) (+ at 1)))))))
+                 (loop (gen) (+ count 1) (+ at 1)))
+         ) ;else
+       ) ;cond
+      ) ;let
+    ) ;define
 
 
     ;; generator->string
     (define generator->string
       (case-lambda ((gen) (list->string (generator->list gen)))
-                   ((gen n) (list->string (generator->list gen n)))))
+                   ((gen n) (list->string (generator->list gen n)))
+      ) ;case-lambda
+    ) ;define
 
 
 
@@ -562,8 +765,12 @@
         (let ((vs (map (lambda (g) (g)) gs)))
          (if (any eof-object? vs)
            seed
-           (inner-fold (apply f (append vs (list seed)))))))
-      (inner-fold seed))
+           (inner-fold (apply f (append vs (list seed))))
+         ) ;if
+        ) ;let
+      ) ;define
+      (inner-fold seed)
+    ) ;define
 
 
 
@@ -574,7 +781,12 @@
         (if (any eof-object? vs)
           (if #f #f)
           (begin (apply f vs)
-                 (loop))))))
+                 (loop)
+          ) ;begin
+        ) ;if
+       ) ;let
+      ) ;let
+    ) ;define
 
     ;; generator-map->list
     (define (generator-map->list f . gs)
@@ -582,7 +794,11 @@
        (let ((vs (map (lambda (g) (g)) gs)))
         (if (any eof-object? vs)
           (reverse result)
-          (loop (cons (apply f vs) result))))))
+          (loop (cons (apply f vs) result))
+        ) ;if
+       ) ;let
+      ) ;let
+    ) ;define
 
 
     ;; generator-find
@@ -590,11 +806,15 @@
       (let loop ((v (g)))
         (cond ((eof-object? v) #f)
               ((pred v) v)
-              (else (loop (g))))))
+              (else (loop (g)))
+        ) ;cond
+      ) ;let
+    ) ;define
 
     ;; generator-count
     (define (generator-count pred g)
-      (generator-fold (lambda (v n) (if (pred v) (+ 1 n) n)) 0 g))
+      (generator-fold (lambda (v n) (if (pred v) (+ 1 n) n)) 0 g)
+    ) ;define
 
 
     ;; generator-any
@@ -602,7 +822,10 @@
       (let loop ((item (gen)))
         (cond ((eof-object? item) #f)
               ((pred item))
-              (else (loop (gen))))))
+              (else (loop (gen)))
+        ) ;cond
+      ) ;let
+    ) ;define
 
 
     ;; generator-every
@@ -613,12 +836,18 @@
           (let ((r (pred item)))
             (if r
               (loop (gen) r)
-              #f)))))
+              #f
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
 
 
     ;; generator-unfold
     (define (generator-unfold g unfold . args)
-      (apply unfold eof-object? (lambda (x) x) (lambda (x) (g)) (g) args))
+      (apply unfold eof-object? (lambda (x) x) (lambda (x) (g)) (g) args)
+    ) ;define
 
 
     ;; make-accumulator
@@ -627,12 +856,17 @@
         (lambda (obj)
           (if (eof-object? obj)
             (finalize state)
-            (set! state (kons obj state))))))
+            (set! state (kons obj state))
+          ) ;if
+        ) ;lambda
+      ) ;let
+    ) ;define
 
 
     ;; count-accumulator
     (define (count-accumulator) (make-accumulator)
-                                (lambda (obj state) (+ 1 state)) 0 (lambda (x) x))
+                                (lambda (obj state) (+ 1 state)) 0 (lambda (x) x)
+    ) ;define
 
     ;; list-accumulator
     (define (list-accumulator) (make-accumulator cons '() reverse))
@@ -642,11 +876,13 @@
 
     ;; vector-accumulator
     (define (vector-accumulator)
-      (make-accumulator cons '() (lambda (x) (list->vector (reverse x)))))
+      (make-accumulator cons '() (lambda (x) (list->vector (reverse x))))
+    ) ;define
 
     ;; reverse-vector-accumulator
     (define (reverse-vector-accumulator)
-      (make-accumulator cons '() list->vector))
+      (make-accumulator cons '() list->vector)
+    ) ;define
 
     ;; vector-accumulator!
     (define (vector-accumulator! vec at)
@@ -655,11 +891,16 @@
           vec
           (begin
             (vector-set! vec at obj)
-            (set! at (+ at 1))))))
+            (set! at (+ at 1))
+          ) ;begin
+        ) ;if
+      ) ;lambda
+    ) ;define
 
     ;; bytevector-accumulator
     (define (bytevector-accumulator)
-      (make-accumulator cons '() (lambda (x) (list->bytevector (reverse x)))))
+      (make-accumulator cons '() (lambda (x) (list->bytevector (reverse x))))
+    ) ;define
 
     ;; bytevector-accumulator!
     (define (bytevector-accumulator! bytevec at)
@@ -668,15 +909,23 @@
           bytevec
           (begin
             (bytevector-u8-set! bytevec at obj)
-            (set! at (+ at 1))))))
+            (set! at (+ at 1))
+          ) ;begin
+        ) ;if
+      ) ;lambda
+    ) ;define
 
     ;; string-accumulator
     (define (string-accumulator)
       (make-accumulator cons '()
-            (lambda (lst) (list->string (reverse lst)))))
+            (lambda (lst) (list->string (reverse lst)))
+      ) ;make-accumulator
+    ) ;define
 
     ;; sum-accumulator
     (define (sum-accumulator) (make-accumulator + 0 (lambda (x) x)))
 
     ;; product-accumulator
-    (define (product-accumulator) (make-accumulator * 1 (lambda (x) x)))))
+    (define (product-accumulator) (make-accumulator * 1 (lambda (x) x)))
+  ) ;begin
+) ;define-library

@@ -22,6 +22,6 @@
 
     (define open-binary-output-file open-output-file)
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

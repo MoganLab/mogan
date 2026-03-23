@@ -25,13 +25,17 @@
     (define (sqrt x)
       (if (and (exact? x) (negative? x))
         (s7-sqrt (inexact x))
-        (s7-sqrt x)))
+        (s7-sqrt x)
+      ) ;if
+    ) ;define
 
     (define (finite? x)
       (and (number? x)
            (not (infinite? x))
-           (not (nan? x))))
+           (not (nan? x))
+      ) ;and
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 
