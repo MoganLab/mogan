@@ -162,6 +162,10 @@
              open-replace toolbar-replace-start interactive-replace
              search-next-match)
 (lazy-keyboard (generic search-kbd))
+
+;; Booting simple-message (AI chat)
+(lazy-define (simple-message message-widgets) simple-message open-simple-message-window)
+(lazy-menu (simple-message message-menu) tools-menu)
 (lazy-define (generic spell-widgets) spell-toolbar
              open-spell toolbar-spell-start interactive-spell)
 (lazy-define (generic format-widgets) open-paragraph-format open-page-format)

@@ -23,7 +23,8 @@
         (source source-edit)
         (texmacs texmacs tm-files)
         (texmacs texmacs tm-print)
-        (doc help-funcs)))
+        (doc help-funcs)
+        (simple-message message-widgets)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General shortcuts for all modes
@@ -787,6 +788,8 @@
   ("std S" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
   ("std u" (toggle-underlined))
   ("std v" (kbd-paste))
+  ("cmd i" (simple-message))
+
   ("std A-v" (interactive-paste-special))
   ("std V" (kbd-magic-paste))
   ("std w" (close-document))
