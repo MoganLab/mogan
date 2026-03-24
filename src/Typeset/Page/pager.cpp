@@ -208,24 +208,22 @@ decode_images_in_tree (tree t) {
   if (is_atomic (t)) return t;
   if (is_func (t, IMAGE) && N (t) >= 1 && is_func (t[0], TUPLE, 2) &&
       is_func (t[0][0], RAW_DATA, 1)) {
-    // 检查图片数据是否是 base64 编码
-    string img_data = as_string (t[0][0][0]);
-    bool   is_base64= true;
-    for (int i= 0; i < min (100, N (img_data)); i++) {
-      char c= img_data[i];
-      if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-            (c >= '0' && c <= '9') || c == '+' || c == '/' || c == '=')) {
-        is_base64= false;
-        break;
+    // 简单检查：base64 以 A-Za-z0-9+/ 开头，原始二进制以控制字符开头
+    string img_data= as_string (t[0][0][0]);
+    if (N (img_data) > 0) {
+      char c= img_data[0];
+      // 如果第一个字符是 base64 字符，尝试解码
+      if ((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
+          (c >= '0' && c <= '9') || c == '+' || c == '/') {
+        string decoded= lolly::data::decode_base64 (img_data);
+        if (N (decoded) > 0) {
+          tree new_raw_data (RAW_DATA, decoded);
+          tree new_tuple (TUPLE, new_raw_data, t[0][1]);
+          tree result= t;
+          result[0]  = new_tuple;
+          return result;
+        }
       }
-    }
-    if (is_base64) {
-      string decoded= lolly::data::decode_base64 (img_data);
-      tree   new_raw_data (RAW_DATA, decoded);
-      tree   new_tuple (TUPLE, new_raw_data, t[0][1]);
-      tree   result= t;
-      result[0]    = new_tuple;
-      return result;
     }
     return t;
   }
