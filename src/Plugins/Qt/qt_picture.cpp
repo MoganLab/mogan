@@ -297,6 +297,17 @@ get_image_for_real (url u, int w, int h, tree eff, SI pixel) {
     QPainter painter (pm);
     renderer.render (&painter);
   }
+  else if (is_ramdisc (u)) {
+    // ramdisc URL: concat(root("ramdisc", data), filename)
+    url    root_part= u[1];
+    url    data_url = root_part[2];
+    string img_data = data_url->t->label;
+    pm              = new QImage ();
+    if (!pm->loadFromData ((const uchar*) img_data.begin (), N (img_data))) {
+      delete pm;
+      pm= NULL;
+    }
+  }
   else if (qt_supports (u)) {
     pm= new QImage (utf8_to_qstring (concretize (u)));
   }

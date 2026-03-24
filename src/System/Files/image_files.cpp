@@ -330,7 +330,8 @@ image_size_sub (url p_image, int& w,
                 int& h) { // returns w,h in units of pt (1/72 inch)
   if (DEBUG_CONVERT)
     debug_convert << "image_size not cached for :" << p_image << LF;
-  url    image= concretize (p_image);
+  // For ramdisc URLs, skip concretize to avoid creating temporary files
+  url    image= is_ramdisc (p_image) ? p_image : concretize (p_image);
   string suf  = suffix (image);
   if (suf == "pdf") {
     pdf_image_size (image, w, h);
@@ -470,7 +471,8 @@ image_to_pdf (url image, url pdf, int w_pt, int h_pt, int dpi) {
 
 void
 image_to_png (url p_image, url png, int w, int h) { // IN PIXEL UNITS!
-  url image= concretize (p_image);
+  // For ramdisc URLs, skip concretize to avoid creating temporary files
+  url image= is_ramdisc (p_image) ? p_image : concretize (p_image);
 
 #ifdef QTTEXMACS
   if (qt_supports (image)) {
