@@ -834,7 +834,7 @@ list | boolean
                                 (rb (caddr body)))
                             `(symbol-completion
                               ,(string-append lb rb)))))
-                    ;; Case 4: math-separator 
+                    ;; Case 4: math-separator
                     ((math-separator)
                      (and (string? (cadr body))
                           `(symbol-completion
@@ -847,7 +847,7 @@ list | boolean
                                                                (- (string-length (cadr body)) 1))
                                                     (cadr body)) ">")))))
                     ;; 预留位置：可以在此添加其他函数的处理逻辑
-                    
+
                     (else #f)))))))))))
 
 #|
@@ -998,17 +998,17 @@ list
                   ;; 情况 B: 绑定是函数 (例如 math-big-operator 的闭包)
                   ((procedure? raw-cmd)
                    ;; 利用 function-to-symbol 解析
-                   (let ((parsed (function-to-symbol res))) 
+                   (let ((parsed (function-to-symbol res)))
                      ;; function-to-symbol 返回的是 (symbol-completion "名字")
                      (if (and (pair? parsed)
                               (eq? (car parsed) 'symbol-completion))
                          (cadr parsed)
                          #f)))
-                  
+
                   (else #f))))
-          
+
           (if (string? bind-name)
-              (map (lambda (x) 
+              (map (lambda (x)
                      (if (and (pair? x)
                               (eq? (car x) 'symbol-completion)
                               ;; 用解析出来的 bind-name 进行比对

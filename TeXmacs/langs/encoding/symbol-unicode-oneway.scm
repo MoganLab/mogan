@@ -16,11 +16,59 @@
 ;; Admit variants <mathD*>, <mathd*>, etc.
 
 ("<mathcatalan>"   "#43")   ; Catalan constant
+
+("<mathA>"	   "#41")   ; for standard A
+("<mathB>"	   "#42")   ; for standard B
+("<mathC>"	   "#43")   ; for standard C
 ("<mathD>"	   "#44")   ; Derivation operator
+("<mathE>"	   "#45")   ; for standard E
+("<mathF>"	   "#46")   ; for standard F
+("<mathG>"	   "#47")   ; for standard G
+("<mathH>"	   "#48")   ; for standard H
+("<mathI>"	   "#49")   ; for standard I
+("<mathJ>"	   "#4A")   ; for standard J
+("<mathK>"	   "#4B")   ; for standard K
+("<mathL>"	   "#4C")   ; for standard L
+("<mathM>"	   "#4D")   ; for standard M
+("<mathN>"	   "#4E")   ; for standard N
+("<mathO>"	   "#4F")   ; for standard O
+("<mathP>"	   "#50")   ; for standard P
+("<mathQ>"	   "#51")   ; for standard Q
+("<mathR>"	   "#52")   ; for standard R
+("<mathS>"	   "#53")   ; for standard S
+("<mathT>"	   "#54")   ; for standard T
+("<mathU>"	   "#55")   ; for standard U
+("<mathV>"	   "#56")   ; for standard V
+("<mathW>"	   "#57")   ; for standard W
+("<mathX>"	   "#58")   ; for standard X
+("<mathY>"	   "#59")   ; for standard Y
+("<mathZ>"	   "#5A")   ; for standard Z
+("<matha>"     "#61")   ; for standard a
+("<mathb>"     "#62")   ; for standard b
+("<mathc>"     "#63")   ; for standard c
 ("<mathd>"	   "#64")   ; differential (for d x inside integrals)
 ("<mathe>"	   "#65")   ; exp(1)
+("<mathf>"     "#66")   ; for standard f
+("<mathg>"     "#67")   ; for standard g
+("<mathh>"     "#68")   ; for standard h
 ("<mathi>"	   "#69")   ; imaginary unit
 ("<mathj>"	   "#6A")   ; variant of imaginary unit
+("<mathk>"     "#6B")   ; for standard k
+("<mathl>"     "#6C")   ; for standard l
+("<mathm>"     "#6D")   ; for standard m
+("<mathn>"     "#6E")   ; for standard n
+("<matho>"     "#6F")   ; for standard o
+("<mathp>"     "#70")   ; for standard p
+("<mathq>"     "#71")   ; for standard q
+("<mathr>"     "#72")   ; for standard r
+("<maths>"     "#73")   ; for standard s
+("<matht>"     "#74")   ; for standard t
+("<mathu>"     "#75")   ; for standard u
+("<mathv>"     "#76")   ; for standard v
+("<mathw>"     "#77")   ; for standard w
+("<mathx>"     "#78")   ; for standard x
+("<mathy>"     "#79")   ; for standard y
+("<mathz>"     "#7A")   ; for standard z
 ("<mathGamma>"	   "#0393") ; Gamma function
 ("<mathLaplace>"   "#0394") ; Laplace operator
 ("<mathpi>"	   "#03C0") ; pi constant
@@ -112,7 +160,7 @@
 
 ;; These symbols should only be used internally by TeXmacs in the
 ;; LEFT, RIGHT, MID and BIG primitive. If they are explicitly
-;; present, they are exported as a regular-sized character.	
+;; present, they are exported as a regular-sized character.
 
 ("<lvert>"		"|")
 ("<rvert>"		"|")
