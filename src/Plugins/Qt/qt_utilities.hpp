@@ -98,6 +98,9 @@ QString fromNSUrl (const QUrl& url);
 bool qt_supports (url u);
 bool qt_image_size (url image, int& w, int& h);
 bool qt_native_image_size (url image, int& w, int& h);
+
+// Helper to load image from ramdisc URL (returns true if successful)
+bool qt_load_image_from_ramdisc (url u, QImage& im);
 void qt_pretty_image_size (int ww, int hh, string& w, string& h);
 bool qt_pretty_image_size (url image, string& w, string& h);
 void qt_convert_image (url image, url dest, int w= 0, int h= 0);

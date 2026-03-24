@@ -550,16 +550,21 @@ qt_supports (url u) {
 }
 
 bool
+qt_load_image_from_ramdisc (url u, QImage& im) {
+  // ramdisc URL: concat(root("ramdisc", data), filename)
+  url    root_part= u[1];
+  url    data_url = root_part[2];
+  string img_data = data_url->t->label;
+  im              = QImage ();
+  return im.loadFromData ((const uchar*) img_data.begin (), N (img_data));
+}
+
+bool
 qt_image_size (url image, int& w, int& h) { // w, h in points
   if (DEBUG_CONVERT) debug_convert << "qt_image_size :" << LF;
   QImage im;
   if (is_ramdisc (image)) {
-    // ramdisc URL: concat(root("ramdisc", data), filename)
-    url    root_part= image[1];
-    url    data_url = root_part[2];
-    string img_data = data_url->t->label;
-    im              = QImage ();
-    im.loadFromData ((const uchar*) img_data.begin (), N (img_data));
+    qt_load_image_from_ramdisc (image, im);
   }
   else {
     string concrete= concretize (image);
@@ -588,13 +593,7 @@ qt_native_image_size (url image, int& w, int& h) {
   if (DEBUG_CONVERT) debug_convert << "qt_image_size :" << LF;
   QImage im;
   if (is_ramdisc (image)) {
-    // ramdisc URL: concat(root("ramdisc", data), filename)
-    url      root_part= image[1];
-    url      data_url = root_part[2];
-    string   img_data = data_url->t->label;
-    c_string buf (img_data);
-    im= QImage ();
-    im.loadFromData ((uchar*) (char*) buf, N (img_data));
+    qt_load_image_from_ramdisc (image, im);
   }
   else {
     im= QImage (utf8_to_qstring (concretize (image)));
@@ -645,12 +644,7 @@ qt_convert_image (url image, url dest, int w, int h) { // w, h in pixels
     debug_convert << "qt_convert_image " << image << " -> " << dest << LF;
   QImage im;
   if (is_ramdisc (image)) {
-    // ramdisc URL: concat(root("ramdisc", data), filename)
-    url    root_part= image[1];
-    url    data_url = root_part[2];
-    string img_data = data_url->t->label;
-    im              = QImage ();
-    im.loadFromData ((const uchar*) img_data.begin (), N (img_data));
+    qt_load_image_from_ramdisc (image, im);
   }
   else {
     im= QImage (utf8_to_qstring (concretize (image)));
