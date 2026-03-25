@@ -20,12 +20,12 @@ int call (string cmd);
 int check_output (string cmd, string& result, bool stderr_only,
                   int64_t timeout);
 inline int
-check_stdout (string cmd, string& result) {
-  return check_output (cmd, result, false, 20);
+check_stdout (string cmd, string& result, int64_t timeout = 5000) {
+  return check_output (cmd, result, false, timeout);
 }
 inline int
-check_stderr (string cmd, string& result) {
-  return check_output (cmd, result, true, 20);
+check_stderr (string cmd, string& result, int64_t timeout = 5000) {
+  return check_output (cmd, result, true, timeout);
 }
 } // namespace system
 } // namespace lolly
