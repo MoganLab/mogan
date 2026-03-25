@@ -551,8 +551,17 @@ qt_supports (url u) {
 
 bool
 qt_load_image_from_ramdisc (url u, QImage& im) {
-  // ramdisc URL: concat(root("ramdisc", data), filename)
-  url    root_part= u[1];
+  // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+  // 在访问树节点子元素前进行边界检查
+  if (N (u->t) < 2) {
+    im= QImage ();
+    return false;
+  }
+  url root_part= u[1];
+  if (N (root_part->t) < 3) {
+    im= QImage ();
+    return false;
+  }
   url    data_url = root_part[2];
   string img_data = data_url->t->label;
   im              = QImage ();

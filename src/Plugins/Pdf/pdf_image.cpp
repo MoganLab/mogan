@@ -201,7 +201,14 @@ static string
 judge_picture_format (url image) {
   string data;
   if (is_ramdisc (image)) {
-    data= as_string (image[1][2]);
+    // 在访问树节点子元素前进行边界检查
+    // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+    if (N (image->t) < 2 || N (image[1]->t) < 3) {
+      data= string ();
+    }
+    else {
+      data= as_string (image[1][2]);
+    }
   }
   else {
     load_string (concretize_url (image), data, false);

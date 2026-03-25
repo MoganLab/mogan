@@ -1398,10 +1398,17 @@ mupdf_read_from_url (url u) {
   fz_buffer*  buf= NULL;
   fz_try (ctx) {
     if (is_ramdisc (u)) {
-      string image_data= as_string (u[1][2]);
-      buf              = fz_new_buffer_from_copied_data (
-          ctx, reinterpret_cast<const unsigned char*> (image_data.begin ()),
-          N (image_data));
+      // 在访问树节点子元素前进行边界检查
+      // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+      if (N (u->t) < 2 || N (u[1]->t) < 3) {
+        buf= NULL;
+      }
+      else {
+        string image_data= as_string (u[1][2]);
+        buf              = fz_new_buffer_from_copied_data (
+            ctx, reinterpret_cast<const unsigned char*> (image_data.begin ()),
+            N (image_data));
+      }
     }
     else {
       c_string path (concretize (u));
