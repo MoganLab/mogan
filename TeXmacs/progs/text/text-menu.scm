@@ -900,7 +900,7 @@
   "检查是否为短样式（section作为顶层章节）"
   (!= (get-init-tree "sectional-short-style") (tree 'macro "false")))
 
-(define (section-parent-type label sections)
+(define (section-parent-type label)
   "获取父章节类型"
   (let ((base (section-base-type label)))
     (cond ((eq? base 'appendix) (if (short-style?) #f 'part))
@@ -945,69 +945,61 @@
            (number->string num))
           (else (number->string num)))))
 
-(define (find-nearest-parent s sections parent-type)
-  "在当前章节之前查找最近的父类型章节"
-  (let ((s-path (tree->path s)))
-    (define (iter secs best)
-      (cond ((null? secs) best)
-            ((equal? (tree->path (car secs)) s-path) best)
-            ((and (path<? (tree->path (car secs)) s-path)
-                  (eq? (section-base-type (tree-label (car secs))) parent-type))
-             (iter (cdr secs) (car secs)))
-            (else (iter (cdr secs) best))))
-    (iter sections #f)))
+(define (section-counter-key type parent-path)
+  (if parent-path (list type parent-path) (list type 'root)))
 
-(define (find-nearest-parent-or-appendix s sections)
-  "在当前章节之前查找最近的父类型章节（chapter 或 appendix）"
-  (let ((s-path (tree->path s)))
-    (define (iter secs best)
-      (cond ((null? secs) best)
-            ((equal? (tree->path (car secs)) s-path) best)
-            ((and (path<? (tree->path (car secs)) s-path)
-                  (let ((t (section-base-type (tree-label (car secs)))))
-                    (or (eq? t 'chapter) (eq? t 'appendix))))
-             (iter (cdr secs) (car secs)))
-            (else (iter (cdr secs) best))))
-    (iter sections #f)))
+(define (section-structure-signature sections)
+  (map (lambda (s) (cons (tree-label s) (tree->path s))) sections))
 
-(define (section-get-full-number-rec/cached s sections cache)
-  "递归计算章节完整编号（带缓存）"
-  (let* ((s-path (tree->path s))
-         (cached (and s-path (ahash-ref cache s-path))))
-    (if cached
-        cached
-        (let* ((label (tree-label s))
-               (parent-type (section-parent-type label sections))
-               (result
-                (if (not (section-numbered? label))
-                    ""
-                    (let ((parent-section
-                           (if (eq? parent-type 'chapter-or-appendix)
-                               (find-nearest-parent-or-appendix s sections)
-                               (and parent-type
-                                    (find-nearest-parent s sections parent-type)))))
-                      (if parent-section
-                          (let* ((parent-num
-                                  (section-get-full-number-rec/cached parent-section sections cache))
-                                 (display-num (section-get-number-display s sections parent-section)))
-                            (if (> (string-length parent-num) 0)
-                                (string-append parent-num "." display-num)
-                                display-num))
-                          (section-get-number-display s sections #f))))))
-          (when s-path (ahash-set! cache s-path result))
-          result))))
+(define focus-section-cache-signature #f)
+(define focus-section-cache-numbers #f)
+(define focus-section-cache-titles #f)
 
-(define (path<? p1 p2)
-  "比较两个路径，返回 #t 如果 p1 在 p2 之前"
-  (cond ((null? p1) (not (null? p2)))
-        ((null? p2) #f)
-        ((< (car p1) (car p2)) #t)
-        ((> (car p1) (car p2)) #f)
-        (else (path<? (cdr p1) (cdr p2)))))
+(define (rebuild-focus-section-cache sections)
+  "一次遍历预计算章节编号与标题缓存"
+  (let ((latest-by-type (make-ahash-table))
+        (latest-chapter-or-appendix #f)
+        (counters (make-ahash-table))
+        (number-map (make-ahash-table))
+        (title-map (make-ahash-table)))
+    (for (s sections)
+      (let* ((path (tree->path s))
+             (label (tree-label s))
+             (base (section-base-type label))
+             (parent-type (section-parent-type label))
+             (parent-section
+              (cond ((eq? parent-type 'chapter-or-appendix) latest-chapter-or-appendix)
+                    (parent-type (ahash-ref latest-by-type parent-type))
+                    (else #f)))
+             (parent-path (and parent-section (tree->path parent-section)))
+             (counter-key (section-counter-key base parent-path))
+             (current-count (or (ahash-ref counters counter-key) 0))
+             (num (if (section-numbered? label) (+ current-count 1) current-count))
+             (display-num (if (section-numbered? label)
+                              (if (eq? base 'appendix)
+                                  (number->letter num)
+                                  (number->string num))
+                              ""))
+             (parent-num (if parent-path (or (ahash-ref number-map parent-path) "") ""))
+             (full-num (if (section-numbered? label)
+                           (if (> (string-length parent-num) 0)
+                               (string-append parent-num "." display-num)
+                               display-num)
+                           "")))
+        (ahash-set! counters counter-key num)
+        (ahash-set! number-map path full-num)
+        (ahash-set! title-map path (tm/section-get-title-string s #f))
+        (ahash-set! latest-by-type base s)
+        (when (or (eq? base 'chapter) (eq? base 'appendix))
+          (set! latest-chapter-or-appendix s))))
+    (set! focus-section-cache-signature (section-structure-signature sections))
+    (set! focus-section-cache-numbers number-map)
+    (set! focus-section-cache-titles title-map)))
 
-(define (section-get-full-number s sections cache)
-  "获取章节的完整编号字符串，无编号章节返回空字符串"
-  (section-get-full-number-rec/cached s sections cache))
+(define (ensure-focus-section-cache sections)
+  (let ((signature (section-structure-signature sections)))
+    (if (not (equal? signature focus-section-cache-signature))
+        (rebuild-focus-section-cache sections))))
 
 ;; Section indent prefixes
 (define section-indent-levels
@@ -1024,9 +1016,14 @@
   (let ((level (assoc-ref section-indent-levels (tree-label s))))
     (if level (string-multiply "   " level) "")))
 
-(define (get-verbatim-section-title s sections cache indent?)
-  (let* ((title (tm/section-get-title-string s #f))
-         (full-number (section-get-full-number s sections cache))
+(define (get-verbatim-section-title s indent?)
+  (let* ((path (tree->path s))
+         (title (or (and path focus-section-cache-titles
+                         (ahash-ref focus-section-cache-titles path))
+                    (tm/section-get-title-string s #f)))
+         (full-number (or (and path focus-section-cache-numbers
+                               (ahash-ref focus-section-cache-numbers path))
+                          ""))
          (prefix (if indent? (get-indent-prefix s) ""))
          (display-title (if (> (string-length full-number) 0)
                            (string-append prefix full-number " " title)
@@ -1085,12 +1082,12 @@
            (filter-sections main-sections is-current-tree is-book-top-level)))))
 
 (tm-menu (focus-section-menu)
-  (let ((all-secs (all-sections)))
-    (let ((number-cache (make-ahash-table)))
-      (for (s all-secs)
-        ((eval (get-verbatim-section-title s all-secs number-cache #t))
-         (when (and (tree->path s) (section-context? s))
-           (tree-go-to s 0 :end)))))))
+  (let* ((all-secs (all-sections))
+         (_ (ensure-focus-section-cache all-secs)))
+    (for (s all-secs)
+      ((eval (get-verbatim-section-title s #t))
+       (when (and (tree->path s) (section-context? s))
+         (tree-go-to s 0 :end))))))
 
 (tm-menu (focus-document-extra-menu t)
   (:require (previous-section))
@@ -1098,11 +1095,11 @@
 
 (tm-menu (focus-document-extra-icons t)
   (:require (previous-section))
-  (let ((all-secs (all-sections)))
-    (let ((number-cache (make-ahash-table)))
-      (mini #t
-        (=> (eval (get-verbatim-section-title (previous-section) all-secs number-cache #f))
-            (link focus-section-menu))))))
+  (let* ((all-secs (all-sections))
+         (_ (ensure-focus-section-cache all-secs)))
+    (mini #t
+      (=> (eval (get-verbatim-section-title (previous-section) #f))
+          (link focus-section-menu)))))
 
 (tm-menu (focus-extra-menu t)
   (:require (section-context? t))
@@ -1112,12 +1109,12 @@
 
 (tm-menu (focus-extra-icons t)
   (:require (section-context? t))
-  (let ((all-secs (all-sections)))
-    (let ((number-cache (make-ahash-table)))
-      (mini #t
-        //
-        (=> (eval (get-verbatim-section-title t all-secs number-cache #f))
-            (link focus-section-menu))))))
+  (let* ((all-secs (all-sections))
+         (_ (ensure-focus-section-cache all-secs)))
+    (mini #t
+      //
+      (=> (eval (get-verbatim-section-title t #f))
+          (link focus-section-menu)))))
 
 (tm-define (child-proposals t i)
   (:require (and (tree-in? t '(bibliography bibliography*)) (<= i 1)))
