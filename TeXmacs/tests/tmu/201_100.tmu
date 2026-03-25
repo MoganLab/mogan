@@ -1,0 +1,40 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc5>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\equation*>
+    <with|color|red|d d d> d d d
+  </equation*>
+
+  <\equation*>
+    <with|color|#a66|d d d>d d d
+  </equation*>
+
+  <\equation*>
+    <with|color|blue|d d d> d d d
+  </equation*>
+
+  \;
+
+  \;
+
+  \\[ {\\color{red}{d d d}} d d d \\]
+
+  \\[ {\\color[HTML]{AA6666}d d d} d d d \\]
+
+  \\[ {\\color{blue}{d d d}} d d d \\]
+
+  \;
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

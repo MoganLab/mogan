@@ -1588,10 +1588,10 @@
 
 (define (tmtex-decode-color s . force-html)
   (with cm (if (string-starts? s "#") "HTML" (named-color->xcolormap s))
-    (cond ((and (== cm "none") (nnull? force-html))
+    (cond ((== cm "HTML")
+           (string-append "#" (html-color->latex-xcolor s)))
+          ((and (== cm "none") (nnull? force-html))
            (tmtex-decode-color (get-hex-color s) force-html))
-          ((and (== cm "HTML") (nnull? force-html))
-           `((!option "HTML") ,(html-color->latex-xcolor s)))
           ((== cm "texmacs")
            (when (nin? s tmtex-colors)
              (set! tmtex-colors (append (list s) tmtex-colors)))
@@ -1607,7 +1607,7 @@
 (define (tmtex-make-color val arg)
   (with ltxcolor (tmtex-decode-color val #t)
     (if (list? ltxcolor)
-        `(!group (!append (color ,@ltxcolor) ,arg))
+        `(!group (!append (color ,@ltxcolor) (!group ,arg)))
         `(tmcolor ,ltxcolor ,arg))))
 
 (define (post-process-math-text t)
