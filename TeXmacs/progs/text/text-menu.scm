@@ -942,6 +942,36 @@
     (=> (eval (get-verbatim-section-title t #f))
         (link focus-section-menu))))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Focus menu preferences for section titles
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (focus-section-title-style-var t)
+  (with l (tree-label t)
+    (cond ((in? l '(chapter chapter*)) "chapter-title-style")
+          ((in? l '(section section*)) "section-title-style")
+          ((in? l '(subsection subsection*)) "subsection-title-style")
+          ((in? l '(subsubsection subsubsection*)) "subsubsection-title-style")
+          ((in? l '(paragraph paragraph*)) "paragraph-title-style")
+          ((in? l '(subparagraph subparagraph*)) "subparagraph-title-style")
+          (else #f))))
+
+(tm-define (focus-has-preferences? t)
+  (:require (section-context? t))
+  #t)
+
+(tm-menu (focus-preferences-menu t)
+  (:require (section-context? t))
+  (with var (focus-section-title-style-var t)
+    (when var
+      (group "Title style")
+      ((check "Centered" "v" (== (get-init-env var) "center"))
+       (init-env var "center"))
+      ((check "Left aligned" "v" (== (get-init-env var) "left"))
+       (init-env var "left"))
+      ---))
+  (former t))
+
 (tm-define (child-proposals t i)
   (:require (and (tree-in? t '(bibliography bibliography*)) (<= i 1)))
   (if (== i 0)
