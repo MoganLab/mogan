@@ -116,9 +116,9 @@
   (captionof "capt-of")
   (widthof "calc")
   
-  (color     "xcolor")
-  (fcolorbox "xcolor")
-  (textcolor "xcolor")
+  (color        "xcolor")
+  (fcolorbox    "xcolor")
+  (textcolor    "xcolor")
 
   (euro "eurosym")
 
