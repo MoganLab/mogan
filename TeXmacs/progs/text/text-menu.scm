@@ -859,48 +859,52 @@
 (define (is-section-top-level t)
   (in? (tree-label t) '(section)))
 
-(define (symbol-ends-char? s ch)
-  "检查符号s是否以字符ch结尾"
-  (let* ((str (symbol->string s))
-         (len (string-length str)))
-    (and (> len 0)
-         (char=? (string-ref str (- len 1)) ch))))
+;; String utilities
+(define (string-suffix? s suffix)
+  "检查字符串是否以指定后缀结尾"
+  (let ((s-len (string-length s))
+        (suffix-len (string-length suffix)))
+    (and (>= s-len suffix-len)
+         (string=? (substring s (- s-len suffix-len) s-len) suffix))))
+
+(define (string-multiply s n)
+  "将字符串重复n次"
+  (if (<= n 0)
+      ""
+      (string-append s (string-multiply s (- n 1)))))
+
+;; Section type utilities
+(define (section-base-type label)
+  "获取章节基础类型（去除*后缀）"
+  (let ((s (symbol->string label)))
+    (if (string-suffix? s "*")
+        (string->symbol (string-drop-right s 1))
+        label)))
+
+(define (section-numbered? label)
+  "检查章节是否为编号章节"
+  (not (string-suffix? (symbol->string label) "*")))
+
+;; Section hierarchy: child -> parent
+(define section-hierarchy
+  '((subparagraph . paragraph)
+    (paragraph . subsubsection)
+    (subsubsection . subsection)
+    (subsection . section)
+    (section . chapter-or-appendix)  ; special handling needed
+    (chapter . part)
+    (appendix . part)))
 
 (define (short-style?)
   "检查是否为短样式（section作为顶层章节）"
   (!= (get-init-tree "sectional-short-style") (tree 'macro "false")))
 
-(define (section-type label)
-  "获取章节类型，无编号章节去除*后缀"
-  (let ((label-str (symbol->string label)))
-    (if (symbol-ends-char? label #\*)
-        (string->symbol (string-drop-right label-str 1))
-        label)))
-
-(define (section-numbered? label)
-  "检查章节是否为编号章节"
-  (not (symbol-ends-char? label #\*)))
-
-(define (has-chapter-in-doc? sections)
-  "检查文档中是否有 chapter 类型的章节"
-  (list-any (lambda (s) (eq? (section-type (tree-label s)) 'chapter)) sections))
-
-
 (define (section-parent-type label sections)
-  "获取父章节类型，根据文档实际结构决定"
-  (let ((type (section-type label)))
-    (cond ((eq? type 'subparagraph) 'paragraph)
-          ((eq? type 'paragraph) 'subsubsection)
-          ((eq? type 'subsubsection) 'subsection)
-          ((eq? type 'subsection) 'section)
-          ((eq? type 'section)
-           ;; section 的父是最近的 chapter 或 appendix
-           'chapter-or-appendix)
-          ((eq? type 'appendix)
-           ;; appendix 在非短样式中父是 part，短样式中无父
-           (if (short-style?) #f 'part))
-          ((eq? type 'chapter) 'part)
-          (else #f))))
+  "获取父章节类型"
+  (let ((base (section-base-type label)))
+    (cond ((eq? base 'appendix) (if (short-style?) #f 'part))
+          ((eq? base 'section) 'chapter-or-appendix)
+          (else (assoc-ref section-hierarchy base)))))
 
 (define (number->letter n)
   "将数字转换为字母 (1->A, 2->B, ...)"
@@ -909,7 +913,7 @@
 (define (section-get-number s sections parent-section)
   "计算章节在父章节范围内的编号"
   (let* ((label (tree-label s))
-         (type (section-type label))
+         (type (section-base-type label))
          (s-path (tree->path s)))
     (define (count-iter secs acc)
       (cond ((null? secs) acc)
@@ -920,7 +924,7 @@
                   (equal? (tree->path (car secs)) (tree->path parent-section)))
              (count-iter (cdr secs) 0))
             ;; 同类型编号章节，增加计数
-            ((and (eq? (section-type (tree-label (car secs))) type)
+            ((and (eq? (section-base-type (tree-label (car secs))) type)
                   (section-numbered? (tree-label (car secs))))
              (count-iter (cdr secs) (+ acc 1)))
             (else (count-iter (cdr secs) acc))))
@@ -929,26 +933,23 @@
 (define (section-get-number-display s sections parent-section)
   "获取章节的显示编号（数字或字母）"
   (let* ((label (tree-label s))
-         (type (section-type label))
+         (type (section-base-type label))
          (num (section-get-number s sections parent-section)))
     (cond ((eq? type 'appendix) (number->letter num))
           ;; 如果父是 appendix，section 也使用字母编号（基于 appendix 的字母）
           ((and parent-section
-                (eq? (section-type (tree-label parent-section)) 'appendix))
+                (eq? (section-base-type (tree-label parent-section)) 'appendix))
            (number->string num))
           (else (number->string num)))))
 
 (define (find-nearest-parent s sections parent-type)
   "在当前章节之前查找最近的父类型章节"
   (let ((s-path (tree->path s)))
-    ;; 在 sections 中找出所有在当前章节之前、类型匹配的章节，返回最后一个
     (define (iter secs best)
       (cond ((null? secs) best)
-            ;; 如果找到当前章节，停止搜索
             ((equal? (tree->path (car secs)) s-path) best)
-            ;; 如果当前章节在当前章节之前且类型匹配，更新 best
             ((and (path<? (tree->path (car secs)) s-path)
-                  (eq? (section-type (tree-label (car secs))) parent-type))
+                  (eq? (section-base-type (tree-label (car secs))) parent-type))
              (iter (cdr secs) (car secs)))
             (else (iter (cdr secs) best))))
     (iter sections #f)))
@@ -960,8 +961,8 @@
       (cond ((null? secs) best)
             ((equal? (tree->path (car secs)) s-path) best)
             ((and (path<? (tree->path (car secs)) s-path)
-                  (or (eq? (section-type (tree-label (car secs))) 'chapter)
-                      (eq? (section-type (tree-label (car secs))) 'appendix)))
+                  (let ((t (section-base-type (tree-label (car secs)))))
+                    (or (eq? t 'chapter) (eq? t 'appendix))))
              (iter (cdr secs) (car secs)))
             (else (iter (cdr secs) best))))
     (iter sections #f)))
@@ -969,17 +970,14 @@
 (define (section-get-full-number-rec s sections)
   "递归计算章节的完整编号"
   (let* ((label (tree-label s))
-         (type (section-type label))
          (parent-type (section-parent-type label sections)))
     (if (not (section-numbered? label))
         #f
-        (let* ((parent-section
-                (cond ((eq? parent-type 'chapter-or-appendix)
-                       ;; section 的父是最近的 chapter 或 appendix
-                       (find-nearest-parent-or-appendix s sections))
-                      (parent-type
-                       (find-nearest-parent s sections parent-type))
-                      (else #f))))
+        (let ((parent-section
+               (if (eq? parent-type 'chapter-or-appendix)
+                   (find-nearest-parent-or-appendix s sections)
+                   (and parent-type
+                        (find-nearest-parent s sections parent-type)))))
           (if parent-section
               (let ((parent-num (section-get-full-number-rec parent-section sections))
                     (display-num (section-get-number-display s sections parent-section)))
@@ -996,26 +994,24 @@
         ((> (car p1) (car p2)) #f)
         (else (path<? (cdr p1) (cdr p2)))))
 
-(define (path<=? p1 p2)
-  "比较两个路径，返回 #t 如果 p1 在 p2 之前或相同"
-  (or (equal? p1 p2) (path<? p1 p2)))
-
 (define (section-get-full-number s sections)
   "获取章节的完整编号字符串，无编号章节返回空字符串"
-  (let ((num (section-get-full-number-rec s sections)))
-    (if num num "")))
+  (or (section-get-full-number-rec s sections) ""))
+
+;; Section indent prefixes
+(define section-indent-levels
+  '((chapter . 0) (chapter* . 0)
+    (appendix . 0) (appendix* . 0)
+    (section . 1) (section* . 1)
+    (subsection . 2) (subsection* . 2)
+    (subsubsection . 3) (subsubsection* . 3)
+    (paragraph . 3) (paragraph* . 3)
+    (subparagraph . 3) (subparagraph* . 3)))
 
 (define (get-indent-prefix s)
   "获取章节类型的缩进前缀"
-  (let ((sec (tree-label s)))
-    (cond ((in? sec '(chapter chapter*)) "")
-          ((in? sec '(appendix appendix*)) "")
-          ((in? sec '(section section*)) "   ")
-          ((in? sec '(subsection subsection*)) "      ")
-          ((in? sec '(subsubsection subsubsection*)) "         ")
-          ((in? sec '(paragraph paragraph*)) "         ")
-          ((in? sec '(subparagraph subparagraph*)) "         ")
-          (else ""))))
+  (let ((level (assoc-ref section-indent-levels (tree-label s))))
+    (if level (string-multiply "   " level) "")))
 
 (define (get-verbatim-section-title s sections indent?)
   (let* ((title (tm/section-get-title-string s #f))
