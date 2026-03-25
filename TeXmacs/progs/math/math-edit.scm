@@ -40,7 +40,7 @@
            (let* ((s (tm->string b))
                   (last (and (!= s "") (tmstring-reverse-ref s 0)))
                   (type (and last (math-symbol-type last))))
-             (nin? type (list "prefix" "infix" "separator" "prefix-infix"
+             (nin? type (list "prefix" "infix" "prefix-infix"
                               "opening-bracket" "middle-bracket"))))))
 
 (tm-define (skip-decorations-leftwards t)
