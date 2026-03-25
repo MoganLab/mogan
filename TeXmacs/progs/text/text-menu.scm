@@ -869,9 +869,10 @@
 
 (define (string-multiply s n)
   "将字符串重复n次"
-  (if (<= n 0)
-      ""
-      (string-append s (string-multiply s (- n 1)))))
+  (let loop ((i n) (acc ""))
+    (if (<= i 0)
+        acc
+        (loop (- i 1) (string-append acc s)))))
 
 ;; Section type utilities
 (define (section-base-type label)
@@ -908,7 +909,9 @@
 
 (define (number->letter n)
   "将数字转换为字母 (1->A, 2->B, ...)"
-  (string (integer->char (+ 64 n))))
+  (if (and (>= n 1) (<= n 26))
+      (string (integer->char (+ 64 n)))
+      (number->string n)))
 
 (define (section-get-number s sections parent-section)
   "计算章节在父章节范围内的编号"
