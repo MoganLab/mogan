@@ -350,9 +350,9 @@ static double
 get_bold_factor (string font_name) {
   string lname= locase_all (font_name);
   if (occurs ("simsun", lname)) return 0.5;
-  if (occurs ("kaiti_gb2312", lname)) return 0.3;
+  if (occurs ("kaiti_gb2312", lname)) return 0.2;
   if (occurs ("simhei", lname)) return 0.5;
-  if (occurs ("fangsong_gb2312", lname)) return 0.3;
+  if (occurs ("fangsong_gb2312", lname)) return 0.2;
   return 1.0;
 }
 
