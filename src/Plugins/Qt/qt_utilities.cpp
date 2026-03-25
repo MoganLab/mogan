@@ -562,9 +562,9 @@ qt_load_image_from_ramdisc (url u, QImage& im) {
     im= QImage ();
     return false;
   }
-  url    data_url = root_part[2];
-  string img_data = data_url->t->label;
-  im              = QImage ();
+  url    data_url= root_part[2];
+  string img_data= data_url->t->label;
+  im             = QImage ();
   return im.loadFromData ((const uchar*) img_data.begin (), N (img_data));
 }
 
