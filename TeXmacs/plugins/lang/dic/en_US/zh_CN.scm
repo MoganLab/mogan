@@ -2560,3 +2560,8 @@
 ("You are currently in guest mode, login to enable AI, MathOCR,and other features" "您当前处于访客状态，登录激活AI和公式识别等功能")
 ("Login Now" "立即登录")
 ("Use extensible brackets" "使用可伸缩括号")
+;; 版本更新提示
+("New version available" "发现新版本")
+("current" "当前")
+("Update now" "立即更新")
+("Remind later" "稍后提醒")

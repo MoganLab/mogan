@@ -926,6 +926,68 @@ QWidget#auxiliary_container {
 }
 
 /****************************************************************************
+* 版本更新提示条样式
+****************************************************************************/
+#updateNotificationBar {
+  background-color: #0d2b4a;
+  border: 1px solid #1a4a7a;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+#updateNotificationMessage {
+  color: #64b5f6;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#updateNotificationUpdateButton {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+#updateNotificationUpdateButton:hover {
+  background-color: #1565c0;
+}
+
+#updateNotificationSnoozeButton {
+  background-color: transparent;
+  border: 1px solid #4a7a9a;
+  color: #64b5f6;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+#updateNotificationSnoozeButton:hover {
+  background-color: #1a3a5a;
+}
+
+#updateNotificationCloseButton {
+  background-color: transparent;
+  color: #64b5f6;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+#updateNotificationCloseButton:hover {
+  background-color: rgba(100, 181, 246, 0.1);
+}
+
+/****************************************************************************
 * 文档编辑区域样式
 ****************************************************************************/
 QWidget#centralWidget QWidget {

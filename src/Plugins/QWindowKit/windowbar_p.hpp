@@ -11,6 +11,9 @@
 
 namespace QWK {
 
+class GuestNotificationBar;
+class UpdateNotificationBar;
+
 class WindowBarPrivate {
   Q_DECLARE_PUBLIC (WindowBar)
 public:
@@ -37,6 +40,12 @@ public:
   };
 
   QHBoxLayout* layout;
+
+  // Notification bars container (vertical layout)
+  QWidget*               notificationContainer;
+  QVBoxLayout*           notificationLayout;
+  GuestNotificationBar*  guestNotificationBar;
+  UpdateNotificationBar* updateNotificationBar;
 
   inline QWidget* widgetAt (int index) const {
     return layout->itemAt (index)->widget ();

@@ -13,6 +13,8 @@
 namespace QWK {
 
 class WindowBarPrivate;
+class GuestNotificationBar;
+class UpdateNotificationBar;
 
 class WindowBar : public QFrame {
   Q_OBJECT
@@ -31,6 +33,10 @@ public:
   QAbstractButton* minButton () const;
   QAbstractButton* maxButton () const;
   QAbstractButton* closeButton () const;
+
+  // Notification bars
+  GuestNotificationBar*  guestNotificationBar () const;
+  UpdateNotificationBar* updateNotificationBar () const;
 
   void setMenuBar (QMenuBar* menuBar);
   void setTitleLabel (QLabel* label);
