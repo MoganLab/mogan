@@ -51,7 +51,7 @@
   <assign|chapter-long-title|<macro|first-title|second-title|<style-with|src-compact|none|<chapter-title|<style-with|src-compact|none|<very-huge|<arg|first-title>><right-flush><vspace|1.5fn><new-line><left-flush><arg|second-title>>>>>>
 
   <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-long-title|<chapter-text>
-  <the-chapter>|<arg|title>>>>>
+  <the-chapter-formatted>|<arg|title>>>>>
 
   <assign|appendix-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-long-title|<appendix-text>
   <the-appendix>|<arg|title>>>>>

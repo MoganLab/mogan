@@ -108,7 +108,7 @@
   <assign|chapter-title|<macro|name|<style-with|src-compact|none|<sectional-centered-bold|<vspace*|2fn><headline|<very-large|<arg|name>>><vspace|1fn>>>>>
 
   <assign|chapter-numbered-title|<macro|name|<style-with|src-compact|none|<chapter*|<style-with|src-compact|none|<headline|<very-large|<chapter-text>
-  <the-chapter>>><right-flush><vspace|1.5fn><new-line><left-flush><headline|<arg|name>>>>>>>
+  <the-chapter-formatted>>><right-flush><vspace|1.5fn><new-line><left-flush><headline|<arg|name>>>>>>>
 
   <assign|section-title|<macro|name|<style-with|src-compact|none|<sectional-normal-bold|<vspace*|1fn><headline|<large|<arg|name>>><vspace|0.5fn>>>>>
 

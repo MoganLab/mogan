@@ -989,8 +989,6 @@
        (init-env num-var "Alpha"))
       ((check "alpha (a, b, c)" "v" (== (get-init-env num-var) "alpha"))
        (init-env num-var "alpha"))
-      ((check "Circle (①, ②, ③)" "v" (== (get-init-env num-var) "circle"))
-       (init-env num-var "circle"))
       ---))
   (former t))
 

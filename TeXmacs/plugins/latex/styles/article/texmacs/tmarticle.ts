@@ -75,7 +75,7 @@
   <assign|chapter-title|<macro|name|<style-with|src-compact|none|<sectional-centered-bold|<vspace*|3fn><with|font-shape|small-caps|<really-large|<arg|name>>><vspace|2fn>>>>>
 
   <assign|chapter-numbered-title|<macro|name|<style-with|src-compact|none|<chapter*|<style-with|src-compact|none|<very-huge|<chapter-text>
-  <the-chapter>><right-flush><vspace|1.5fn><new-line><left-flush><arg|name>>>>>>
+  <the-chapter-formatted>><right-flush><vspace|1.5fn><new-line><left-flush><arg|name>>>>>>
 
   <assign|section-title|<macro|name|<style-with|src-compact|none|<sectional-centered-bold|<vspace*|2fn><with|font-shape|small-caps|<larger|<arg|name>>><vspace|1fn>>>>>
 
