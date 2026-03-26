@@ -48,9 +48,21 @@
 
   <assign|chapter-number-style|arabic>
 
+  <assign|section-number-style|arabic>
+
+  <assign|subsection-number-style|arabic>
+
+  <assign|subsubsection-number-style|arabic>
+
   <drd-props|sectional-short-style|macro-parameter|boolean>
 
   <drd-props|chapter-number-style|macro-parameter|string>
+
+  <drd-props|section-number-style|macro-parameter|string>
+
+  <drd-props|subsection-number-style|macro-parameter|string>
+
+  <drd-props|subsubsection-number-style|macro-parameter|string>
 
   <drd-props|sectional-sep|macro-parameter|regular>
 
@@ -221,7 +233,13 @@
 
   <assign|display-part|<macro|nr|<number|<arg|nr>|Roman>>>
 
-  <assign|the-chapter-formatted|<macro|<number|<value|chapter-nr>|<value|chapter-number-style>>>>
+  <assign|the-chapter|<macro|<number|<value|chapter-nr>|<value|chapter-number-style>>>>
+
+  <assign|the-section|<macro|<number|<value|section-nr>|<value|section-number-style>>>>
+
+  <assign|the-subsection|<macro|<section-prefix><number|<value|subsection-nr>|<value|subsection-number-style>>>>
+
+  <assign|the-subsubsection|<macro|<subsection-prefix><number|<value|subsubsection-nr>|<value|subsubsection-number-style>>>>
 
   <assign|display-section|<macro|nr|<if|<sectional-short-style>|<arg|nr>|<chapter-prefix><arg|nr>>>>
 
@@ -283,7 +301,7 @@
 
   <assign|part-toc|<macro|name|<toc-main-1|<toc-title|part|<arg|name>>>>>
 
-  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<chapter-text> <the-chapter-formatted><chapter-sep><arg|name>|<arg|name>>>>>>>
+  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<chapter-text> <the-chapter><chapter-sep><arg|name>|<arg|name>>>>>>>
 
   <assign|section-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-2|<toc-title|section|<arg|name>>>|<if|<value|in-appendix>||<toc-normal-2|<toc-title|section|<arg|name>>>>>>>>
 
@@ -304,7 +322,7 @@
     </src-comment>
   </active*>
 
-  <assign|chapter-header|<macro|name|<style-with|src-compact|none|<if|<not|<sectional-short-style>>|<style-with|src-compact|none|<header-primary|<arg|name>|<if|<chapter-numbered>|<the-chapter-formatted>>|<chapter-text>>>>>>>
+  <assign|chapter-header|<macro|name|<style-with|src-compact|none|<if|<not|<sectional-short-style>>|<style-with|src-compact|none|<header-primary|<arg|name>|<if|<chapter-numbered>|<the-chapter>>|<chapter-text>>>>>>>
 
   <assign|section-header|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<style-with|src-compact|none|<header-primary|<arg|name>|<if|<section-numbered>|<the-section>>|<section-text>>>|<style-with|src-compact|none|<header-secondary|<arg|name>|<if|<section-numbered>|<the-section>>|<section-text>>>>>>>
 

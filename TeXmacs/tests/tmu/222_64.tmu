@@ -1,0 +1,67 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc5>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\hide-preamble>
+    \;
+
+    <assign|sectional-short-style|false>
+  </hide-preamble>
+
+  <\table-of-contents|toc>
+    <vspace*|1fn><with|font-series|bold|math-font-series|bold|第 一 章<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+    <with|par-left|1tab|一<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+    <with|par-left|2tab|一.一<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+    <with|par-left|2tab|一.二<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4>>
+  </table-of-contents>
+
+  <chapter|>
+
+  <section|>
+
+  <subsection|>
+
+  <subsubsection|>
+
+  <subsubsection|>
+
+  <subsection|>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|chapter-number-style|hanzi>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|section-number-style|hanzi>
+    <associate|subsection-number-style|hanzi>
+    <associate|subsubsection-number-style|hanzi>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|一|1>>
+    <associate|auto-2|<tuple|一|1>>
+    <associate|auto-3|<tuple|一.一|1>>
+    <associate|auto-4|<tuple|一.二|1>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|第 一 章<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|一<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+      <with|par-left|<quote|2tab>|一.一<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <with|par-left|<quote|2tab>|一.二<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4>>
+    </associate>
+  </collection>
+</auxiliary>

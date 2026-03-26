@@ -32,7 +32,7 @@
 
   <assign|chapter-title|<macro|name|<style-with|src-compact|none|<chapter-title-render|<vspace*|2fn><huge|<arg|name>><vspace|1fn>>>>>
 
-  <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<chapter-text> <the-chapter-formatted><chapter-sep><arg|title>>>>>
+  <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<chapter-text> <the-chapter><chapter-sep><arg|title>>>>>
 
   <assign|appendix-numbered-title|<macro|title|<style-with|src-compact|none|<appendix-title|<appendix-text> <the-appendix><appendix-sep><arg|title>>>>>
 

@@ -50,7 +50,7 @@
   <assign|chapter-title|<macro|name|<style-with|src-compact|none|<new-dpage*><no-indent><new-line><no-indent><vspace*|5fn><with|math-font-series|bold|font-series|bold|<really-huge|<arg|name>>><vspace|2fn><no-page-break><no-indent*>>>>
 
   <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<chapter-text>
-  <the-chapter-formatted><vspace|1fn><new-line><arg|title>>>>>
+  <the-chapter><vspace|1fn><new-line><arg|title>>>>>
 
   <assign|appendix-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<appendix-text>
   <the-appendix><vspace|1fn><new-line><arg|title>>>>>

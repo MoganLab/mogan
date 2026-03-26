@@ -157,7 +157,7 @@
 
   <assign|chapter-title|<macro|title|<chapter-number-title||<arg|title>>>>
 
-  <assign|chapter-numbered-title|<macro|title|<chapter-number-title|<the-chapter-formatted>|<arg|title>>>>
+  <assign|chapter-numbered-title|<macro|title|<chapter-number-title|<the-chapter>|<arg|title>>>>
 
   <assign|appendix-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-number-title|<appendix-text>
   <the-appendix>|<arg|title>>>>>
