@@ -46,7 +46,23 @@
 
   <assign|subparagraph-title-style|left>
 
+  <assign|chapter-number-style|arabic>
+
+  <assign|section-number-style|arabic>
+
+  <assign|subsection-number-style|arabic>
+
+  <assign|subsubsection-number-style|arabic>
+
   <drd-props|sectional-short-style|macro-parameter|boolean>
+
+  <drd-props|chapter-number-style|macro-parameter|string>
+
+  <drd-props|section-number-style|macro-parameter|string>
+
+  <drd-props|subsection-number-style|macro-parameter|string>
+
+  <drd-props|subsubsection-number-style|macro-parameter|string>
 
   <drd-props|sectional-sep|macro-parameter|regular>
 
@@ -217,11 +233,13 @@
 
   <assign|display-part|<macro|nr|<number|<arg|nr>|Roman>>>
 
-  <assign|display-section|<macro|nr|<if|<sectional-short-style>|<arg|nr>|<chapter-prefix><arg|nr>>>>
+  <assign|display-chapter|<macro|nr|<number|<arg|nr>|<value|chapter-number-style>>>>
 
-  <assign|display-subsection|<macro|nr|<section-prefix><arg|nr>>>
+  <assign|display-section|<macro|nr|<if|<sectional-short-style>|<number|<arg|nr>|<value|section-number-style>>|<chapter-prefix><number|<arg|nr>|<value|section-number-style>>>>>
 
-  <assign|display-subsubsection|<macro|nr|<subsection-prefix><arg|nr>>>
+  <assign|display-subsection|<macro|nr|<section-prefix><number|<arg|nr>|<value|subsection-number-style>>>>
+
+  <assign|display-subsubsection|<macro|nr|<subsection-prefix><number|<arg|nr>|<value|subsubsection-number-style>>>>
 
   <assign|display-paragraph|<macro|nr|<subsubsection-prefix><arg|nr>>>
 
