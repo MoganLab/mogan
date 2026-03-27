@@ -183,7 +183,7 @@ poor_bold_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI* xpos,
     int start= i;
     base->advance_glyph (s, i, ligf);
     string ss= s (start, i);
-    if (ren->is_screen || ren->is_printer()) {
+    if (ren->is_screen || ren->is_printer ()) {
       font_metric fnm;
       font_glyphs fng;
       int         c= index_glyph (ss, fnm, fng);
