@@ -29,6 +29,16 @@
 (define (unescape-link-args s)
   (string-replace s "%3A" ":"))
 
+(tm-define (slink-url-normalize u)
+  (:synopsis "Normalize a URL by prepending https:// if it looks like a domain")
+  (if (and (string? u)
+           (not (string-contains? u "://"))
+           (string-contains? u ".")
+           (not (string-starts? u "/"))
+           (not (string-starts? u "~")))
+      (string-append "https://" u)
+      u))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -550,6 +560,7 @@
   (:synopsis "Jump to the url @u")
   (:argument opt-from "Optional path for the cursor history")
   (if (nnull? opt-from) (cursor-history-add (car opt-from)))
+  (if (string? u) (set! u (slink-url-normalize u)))
   (if (string? u) (set! u (system->url u)))
   (with (action post) (url-handlers u) 
     (action u) (post u))
