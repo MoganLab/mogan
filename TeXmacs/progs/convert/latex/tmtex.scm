@@ -3419,8 +3419,7 @@
   (cond ((npair? t) (noop))
         ((and (user-definition? t) (> (string-length (cadr t)) 0))
          (ahash-set! tmtex-user-defs-table (string->symbol (cadr t)) #t))
-        (else (for-each collect-user-defs-sub (cdr t)))))
-        
+        (else (for-each collect-user-defs-sub (cdr t)))))       
 (define (collect-user-defs t)
   (set! tmtex-user-defs-table (make-ahash-table))
   (collect-user-defs-sub (cons 'document (tmtex-filter-preamble t)))
