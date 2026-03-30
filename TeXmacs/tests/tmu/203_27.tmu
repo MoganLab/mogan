@@ -1,0 +1,18 @@
+<TMU|<tuple|1.1.0|2026.1.2-rc2>>
+
+<style|<tuple|generic>>
+
+<\body>
+  <\hide-preamble>
+    <assign||<macro|>>
+  </hide-preamble>
+
+  This is an automated test for PR 3051.
+  This document contains an empty macro in the preamble.
+  Exporting this to LaTeX should succeed and not crash the Scheme engine.
+</body>
+
+<\initial>
+  <\collection>
+  </collection>
+</initial>
