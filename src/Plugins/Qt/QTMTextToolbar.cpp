@@ -292,7 +292,7 @@ QTMTextToolbar::autoSize () {
       Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
   int btn_size;
 
-btn_size= int (40 * totalScale);
+  btn_size= int (40 * totalScale);
 
   if (cached_magf <= 0.16) {
     btn_size= 25;
