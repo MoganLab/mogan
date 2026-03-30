@@ -900,10 +900,23 @@ QWidget#text_toolbar {
   border-radius: 8px;
 }
 
+/*macOS 文本工具栏窗口样式*/
+QWidget#text_toolbar[platform="mac"] {
+  border-radius: 6px;
+}
+
 /*文本工具栏按钮样式*/
 QToolButton#text-toolbar-button {
-  background-color: transparent; 
+  background-color: transparent;
   border: none;
+}
+
+/*macOS 文本工具栏按钮样式*/
+QToolButton#text-toolbar-button[platform="mac"] {
+  min-width: 20px;
+  min-height: 20px;
+  max-width: 20px;
+  max-height: 20px;
 }
 
 /*文本工具栏按钮悬停样式*/

@@ -49,6 +49,9 @@ QTMTextToolbar::QTMTextToolbar (QWidget* parent, qt_simple_widget_rep* owner)
   setAttribute (Qt::WA_ShowWithoutActivating);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
+#if defined(Q_OS_MAC)
+  setProperty ("platform", "mac");
+#endif
   layout= new QHBoxLayout (this);
   layout->setContentsMargins (0, 0, 0, 0);
   layout->setSizeConstraint (QLayout::SetMinimumSize);
@@ -126,6 +129,9 @@ QTMTextToolbar::rebuildButtonsFromScheme () {
     button->setAutoRaise (true);
     button->setDefaultAction (action);
     button->setPopupMode (QToolButton::InstantPopup);
+#if defined(Q_OS_MAC)
+    button->setProperty ("platform", "mac");
+#endif
     if (tm_style_sheet == "") button->setStyle (qtmstyle ());
     layout->addWidget (button);
   }
@@ -286,11 +292,7 @@ QTMTextToolbar::autoSize () {
       Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
   int btn_size;
 
-#if defined(Q_OS_MAC)
-  btn_size= int (50 * totalScale);
-#else
-  btn_size= int (40 * totalScale);
-#endif
+btn_size= int (40 * totalScale);
 
   if (cached_magf <= 0.16) {
     btn_size= 25;
