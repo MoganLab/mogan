@@ -1038,35 +1038,35 @@
 (tm-menu (focus-preferences-menu t)
   (:require (section-context? t))
   (with var (focus-section-title-style-var t)
-    (when var
-      (group "Title style")
-      ((check "Centered" "v" (== (safe-init-env var) "center"))
-       (init-env var "center"))
-      ((check "Left aligned" "v" (== (safe-init-env var) "left"))
-       (init-env var "left"))
-      ---))
+    (if var
+        (group "Title style")
+        ((check "Centered" "v" (== (safe-init-env var) "center"))
+         (init-env var "center"))
+        ((check "Left aligned" "v" (== (safe-init-env var) "left"))
+         (init-env var "left"))
+        ---))
   (with num-var (section-number-style-var t)
-    (when num-var
-      (-> "Number style" (link section-number-style-menu))
-      ---))
-  (with l (tree-label t)
-    (when (in? l '(chapter section subsection subsubsection appendix))
-      (group "Section prefix")
-      ((check "Short numbering" "v"
-              (== (get-init-env "sectional-short-style") "true"))
-       (init-env "sectional-short-style" "true"))
-      ((check "Long numbering" "v"
-              (!= (get-init-env "sectional-short-style") "true"))
-       (init-env "sectional-short-style" "false"))
-      ---))
+    (if num-var
+        (-> "Number style" (link section-number-style-menu))
+        ---))
+  (with prefix-num-var (section-number-style-var t)
+    (if prefix-num-var
+        (group "Section prefix")
+        ((check "Short numbering" "v"
+                (== (get-init-env "sectional-short-style") "true"))
+         (init-env "sectional-short-style" "true"))
+        ((check "Long numbering" "v"
+                (!= (get-init-env "sectional-short-style") "true"))
+         (init-env "sectional-short-style" "false"))
+        ---))
   (with sep-var (section-sep-var t)
-    (when sep-var
-      (-> "Separator" (link section-sep-menu))
-      ---))
+    (if sep-var
+        (-> "Separator" (link section-sep-menu))
+        ---))
   (with prefix-sep-var (section-prefix-sep-var t)
-    (when prefix-sep-var
-      (-> "Prefix separator" (link section-prefix-sep-menu))
-      ---))
+    (if prefix-sep-var
+        (-> "Prefix separator" (link section-prefix-sep-menu))
+        ---))
   (dynamic (focus-tag-edit-menu (tree-label t))))
 
 (tm-menu (focus-preferences-menu t)
