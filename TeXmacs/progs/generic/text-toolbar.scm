@@ -18,10 +18,6 @@
         (generic generic-edit)))
 
 (menu-bind text-toolbar-icons
-  (=> (balloon (icon "tm_section.xpm") "chapter::menu")
-      (link chapter-menu))
-  (=> (balloon (icon "tm_theorem.xpm") "enunciation")
-      (link enunciation-menu))  
   ((balloon (icon "tm_bold.xpm") "Write bold text")
    (toggle-bold))
   ((balloon (icon "tm_italic.xpm") "Write italic text")
