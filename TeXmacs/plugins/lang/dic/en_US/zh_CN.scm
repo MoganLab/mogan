@@ -2008,6 +2008,7 @@
 ("secondary" "")
 ("section" "节")
 ("Section prefix" "节前缀")
+("Section numbers show chapter number prefix" "节编号显示章编号的前缀")
 ("sector" "扇形")
 ("security" "安全")
 ("Seed User" "种子用户")

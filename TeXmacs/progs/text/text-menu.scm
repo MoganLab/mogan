@@ -1052,12 +1052,10 @@
   (with prefix-num-var (section-number-style-var t)
     (if prefix-num-var
         (group "Section prefix")
-        ((check "Short numbering" "v"
-                (== (get-init-env "sectional-short-style") "true"))
-         (init-env "sectional-short-style" "true"))
-        ((check "Long numbering" "v"
-                (!= (get-init-env "sectional-short-style") "true"))
-         (init-env "sectional-short-style" "false"))
+        ((check "Section numbers show chapter number prefix" "v"
+                (== (get-init-env "sectional-short-style") "false"))
+         (init-env "sectional-short-style"
+                  (if (== (get-init-env "sectional-short-style") "true") "false" "true")))
         ---))
   (with sep-var (section-sep-var t)
     (if sep-var
