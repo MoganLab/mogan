@@ -1059,11 +1059,11 @@
         ---))
   (with sep-var (section-sep-var t)
     (if sep-var
-        (-> "Separator" (link section-sep-menu))
+        (-> "Number-title separator" (link section-sep-menu))
         ---))
   (with prefix-sep-var (section-prefix-sep-var t)
     (if prefix-sep-var
-        (-> "Prefix separator" (link section-prefix-sep-menu))
+        (-> "Hierarchical separator" (link section-prefix-sep-menu))
         ---))
   (dynamic (focus-tag-edit-menu (tree-label t))))
 
