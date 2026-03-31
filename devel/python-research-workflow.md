@@ -13,10 +13,10 @@
 - **综合渲染支持**：验证表格、矢量图与数学公式的自动转换与渲染。
 
 ## 维护者如何手动验证
-1. **准备环境**：在终端运行 `conda create -n mogan_test python=3.10 pandas matplotlib sympy`。
+1. **准备环境**：在终端运行 `conda create -n mogan_research python=3.10 pandas matplotlib sympy`。
 2. **执行验证**：
    - 启动 Mogan STEM，打开 `TeXmacs/plugins/python/doc/workflow.zh.tmu`。
-   - 确保 Session 切换为 `conda_mogan_test`。
+   - 确保 Session 切换为 `conda_mogan_research`。
    - 依次执行 Pandas、Matplotlib 和 SymPy 代码块。
 3. **验收标准**：
    - 确认 Pandas DataFrame 自动转为规整表格。
@@ -24,4 +24,5 @@
    - 确认 SymPy 对象自动渲染为数学公式。
 
 ## 说明
-为保持首个贡献的最小化与稳定性，本次 PR 未引入独立的自动化测试文件，验证逻辑完全集成在用户可见的示例文档中，方便维护者与用户共同监督。
+为保持首个贡献的最小化与稳定性，本次 PR 未引入独立的自动化测试文件。验证逻辑已完全集成在用户可见的示例文档 `workflow.zh.tmu` 中，维护者可通过执行该文档完成手动验证。
+
