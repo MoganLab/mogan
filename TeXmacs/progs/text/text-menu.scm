@@ -1052,7 +1052,7 @@
   (with prefix-num-var (section-number-style-var t)
     (if prefix-num-var
         (group "Section prefix")
-        ((check "Section numbers show chapter number prefix" "v"
+        ((check "Prepend chapter number prefix for section numbers" "v"
                 (== (get-init-env "sectional-short-style") "false"))
          (init-env "sectional-short-style"
                   (if (== (get-init-env "sectional-short-style") "true") "false" "true")))
