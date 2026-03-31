@@ -17,6 +17,7 @@
 #include "merge_sort.hpp"
 #include "message.hpp"
 #include "new_document.hpp"
+#include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
@@ -29,6 +30,27 @@ using namespace moebius;
 array<tm_buffer> bufs;
 
 string propose_title (string old_title, url u, tree doc);
+
+static bool
+use_dark_style_package_for_gui_theme () {
+  string theme= get_preference ("gui theme", "default");
+  return theme == "liii-night" || theme == "dark";
+}
+
+static tree
+sync_dark_style_with_gui_theme (tree doc) {
+  tree style= copy (extract (doc, "style"));
+  if (is_atomic (style)) style= tuple (style);
+  else if (!is_tuple (style)) style= tree (TUPLE);
+
+  tree normalized (TUPLE);
+  for (int i= 0; i < N (style); ++i)
+    if (style[i] != "dark") normalized << style[i];
+
+  if (use_dark_style_package_for_gui_theme ()) normalized << "dark";
+  if (normalized != style) doc= change_doc_attr (doc, "style", normalized);
+  return doc;
+}
 
 /******************************************************************************
  * Check for changes in the buffer
@@ -485,6 +507,7 @@ bool
 buffer_import (url name, url src, string fm) {
   tree t= import_tree (src, fm);
   if (t == "error") return true;
+  t= sync_dark_style_with_gui_theme (t);
   set_buffer_tree (name, t);
 
   // Check if the file is read-only and update the buffer's read_only flag
