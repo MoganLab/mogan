@@ -202,6 +202,16 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   if (conform && (medium != "paper")) conform= false;
   // FIXME: better command for conform printing
 
+  // Save current style and remove dark theme for printing
+  tree saved_style= the_style;
+  if (the_style == "dark") the_style= tree (TUPLE);
+  else if (is_func (the_style, TUPLE)) {
+    tree style (TUPLE);
+    for (int i= 0; i < N (the_style); ++i)
+      if (the_style[i] != "dark") style << the_style[i];
+    the_style= style;
+  }
+
   typeset_preamble ();
   // FIXME: when printing several files via aux buffers,
   // it seems that the style can be corrupted.  Why?
@@ -281,6 +291,9 @@ edit_main_rep::print_doc (url name, bool conform, int first, int last) {
   }
   tm_delete (ren);
   delete_typesetter (ttt);
+
+  // Restore original style
+  the_style= saved_style;
 }
 
 void
