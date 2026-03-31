@@ -1,0 +1,100 @@
+<TMU|<tuple|1.1.0|2026.3.31>>
+
+<style|<tuple|tmudoc|old-spacing|old-dots|old-lengths|chinese|python>>
+
+<\body>
+  <tmdoc-title|Python 可复现科研工作流示例>
+
+  本指南旨在展示如何在 Mogan STEM 中利用 Python 插件与 Conda 环境构建一个可复现、端到端的科研工作流。
+
+  <section|1. 前置条件>
+
+  在开始本示例前，请确保您的系统中已安装 Conda (Anaconda 或 Miniconda)，并已创建包含以下库的虚拟环境：
+
+  <\verbatim>
+    conda create -n mogan_research python=3.10 pandas matplotlib sympy
+    conda activate mogan_research
+  </verbatim>
+
+  <section|2. 启动会话 (Session)>
+
+  在 Mogan STEM 的顶部菜单栏中，通过以下路径选择您的 Conda 环境：
+
+  <menu|Plugins|Sessions|Python|conda_mogan_research>
+
+  <remark*>
+    如果您在菜单中未发现新创建的环境，请尝试点击 <menu|Tools|Update|Plugins> 刷新插件列表，或重启 Mogan STEM。
+  </remark*>
+
+  <section|3. 端到端工作流示例>
+
+  本节演示如何在一个文档中串联数据处理、可视化与理论推导。
+
+  <\subsection|3.1 数据处理 (Pandas)>
+    使用 Pandas 处理实验数据并以表格形式实时展示。
+    <\session|python|conda_mogan_research>
+      <\unfolded-io>
+        \<gtr\>\<gtr\>\<gtr\>\ 
+      <|unfolded-io>
+        import pandas as pd
+        df = pd.DataFrame({'实验组': ['A', 'B'], '均值': [15.2, 28.4]})
+        df
+      <|unfolded-io>
+        (预期结果：自动渲染为 Scheme 表格)
+      </unfolded-io>
+    </session>
+  </subsection>
+
+  <\subsection|3.2 结果可视化 (Matplotlib)>
+    将上述数据可视化为矢量图表，自动插入文档。
+    <\session|python|conda_mogan_research>
+      <\unfolded-io>
+        \<gtr\>\<gtr\>\<gtr\>\ 
+      <|unfolded-io>
+        import matplotlib.pyplot as plt
+        plt.bar(df['实验组'], df['均值'])
+        plt.gcf()
+      <|unfolded-io>
+        (预期结果：自动插入 PDF 格式的矢量图)
+      </unfolded-io>
+    </session>
+  </subsection>
+
+  <\subsection|3.3 理论公式关联 (SymPy)>
+    使用 SymPy 进行数学推导，并直接渲染为 LaTeX 公式。
+    <\session|python|conda_mogan_research>
+      <\unfolded-io>
+        \<gtr\>\<gtr\>\<gtr\>\ 
+      <|unfolded-io>
+        import sympy as sp
+        x = sp.Symbol('x')
+        sp.integrate(sp.sin(x)**2, x)
+      <|unfolded-io>
+        (预期结果：自动渲染为美观的数学公式)
+      </unfolded-io>
+    </session>
+  </subsection>
+
+  <section|4. 预期结果与复现确认>
+
+  若操作正确，您将在文档中依次看到：
+  <itemize>
+    <item>一个格式规整的数据表格。
+    <item>一个矢量化的柱状图。
+    <item>一个精美的数学积分公式。
+  </itemize>
+
+  通过这种方式，您的文档不仅记录了结论，还完整保留了产生结论的代码与环境，确保了科研过程的可复现性。
+
+  <tmdoc-copyright|2026|MoganLab Developer>\ 
+
+  <tmdoc-license|GNU Free Documentation License>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-type|letter>
+    <associate|preamble|false>
+    <associate|prog-scripts|python>
+  </collection>
+</initial>
