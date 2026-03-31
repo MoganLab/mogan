@@ -74,9 +74,9 @@
 
   <assign|pre-edit|<macro|body|<with|ornament-color|#707070|ornament-sunny-color|#808080|ornament-shadow-color|#606060|ornament-border|1px|ornament-hpadding|2px|ornament-vpadding|2px|<smash|<ornament|<with|color|white|<arg|body>>>>>>>
 
-  <assign|focus-color|#3A86FF33>
+  <assign|focus-color|#ffffff0e>
 
-  <assign|selection-color|#3A86FF33>
+  <assign|selection-color|#ffffff20>
 
   <assign|scheme-prompt-color|dark green>
 
