@@ -1,4 +1,3 @@
-
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : python-lang.scm
@@ -108,26 +107,24 @@
 ;; 语法高亮偏好设置
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 通知Python语法更改的函数
-(define (notify-python-syntax var val)
+(define (notify-python-pref var val)
   (syntax-read-preferences "python"))
 
-;; 定义语法高亮颜色偏好设置
 (define-preferences
-  ("syntax:python:none" "#ff6b6b" notify-python-syntax)                   ;; 浅红色 (light red)
-  ("syntax:python:comment" "#d4a373" notify-python-syntax)                ;; 浅棕色 (light brown)
-  ("syntax:python:error" "#ff4d4d" notify-python-syntax)                  ;; 亮红色 (bright red)
-  ("syntax:python:constant" "#6a8cff" notify-python-syntax)               ;; 浅蓝色 (light blue)
-  ("syntax:python:constant_number" "#6a8cff" notify-python-syntax)        ;; 浅蓝色 (light blue)
-  ("syntax:python:constant_string" "#a9a9a9" notify-python-syntax)        ;; 浅灰色 (light grey)
-  ("syntax:python:constant_char" "#b0b0b0" notify-python-syntax)          ;; 浅灰色 (light grey)
-  ("syntax:python:declare_function" "#4d7eff" notify-python-syntax)       ;; 浅蓝色 (light blue)
-  ("syntax:python:declare_type" "#4d7eff" notify-python-syntax)           ;; 浅蓝色 (light blue)
-  ("syntax:python:declare_module" "#4d7eff" notify-python-syntax)         ;; 浅蓝色 (light blue)
-  ("syntax:python:operator" "#e066ff" notify-python-syntax)               ;; 浅洋红色 (light magenta)
-  ("syntax:python:operator_openclose" "#ff6666" notify-python-syntax)     ;; 浅红色 (light red)
-  ("syntax:python:operator_field" "#d1d1d1" notify-python-syntax)         ;; 浅灰色 (light grey)
-  ("syntax:python:operator_special" "#ffb347" notify-python-syntax)       ;; 浅橙色 (light orange)
-  ("syntax:python:keyword" "#4db8b8" notify-python-syntax)                ;; 浅青色 (light teal/cyan)
-  ("syntax:python:keyword_conditional" "#4db8b8" notify-python-syntax)    ;; 浅青色 (light teal/cyan)
-  ("syntax:python:keyword_control" "#4db8b8" notify-python-syntax))
+  ("syntax:python:none" "syntax-python-none" notify-python-pref)
+  ("syntax:python:comment" "syntax-python-comment" notify-python-pref)
+  ("syntax:python:error" "syntax-python-error" notify-python-pref)
+  ("syntax:python:constant" "syntax-python-constant" notify-python-pref)
+  ("syntax:python:constant_number" "syntax-python-constant-number" notify-python-pref)
+  ("syntax:python:constant_string" "syntax-python-constant-string" notify-python-pref)
+  ("syntax:python:constant_char" "syntax-python-constant-char" notify-python-pref)
+  ("syntax:python:declare_function" "syntax-python-declare-function" notify-python-pref)
+  ("syntax:python:declare_type" "syntax-python-declare-type" notify-python-pref)
+  ("syntax:python:declare_module" "syntax-python-declare-module" notify-python-pref)
+  ("syntax:python:operator" "syntax-python-operator" notify-python-pref)
+  ("syntax:python:operator_openclose" "syntax-python-operator-openclose" notify-python-pref)
+  ("syntax:python:operator_field" "syntax-python-operator-field" notify-python-pref)
+  ("syntax:python:operator_special" "syntax-python-operator-special" notify-python-pref)
+  ("syntax:python:keyword" "syntax-python-keyword" notify-python-pref)
+  ("syntax:python:keyword_conditional" "syntax-python-keyword-conditional" notify-python-pref)
+  ("syntax:python:keyword_control" "syntax-python-keyword-control" notify-python-pref))

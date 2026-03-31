@@ -1,0 +1,67 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc3>>
+
+<style|<tuple|generic|python>>
+
+<\body>
+  <\python-code>
+    # Test for Python syntax highlighting (Issue 209_17)
+
+    import math
+
+    from datetime import datetime
+
+    class TestClass:
+
+    \ \ \ \ """A simple class for testing."""
+
+    \ \ \ \ def __init__(self, value):
+
+    \ \ \ \ \ \ \ \ self.value = value
+
+    \ \ \ \ \ \ \ \ self.is_active = True
+
+    \ \ \ \ @staticmethod
+
+    \ \ \ \ def calculate(x, y):
+
+    \ \ \ \ \ \ \ \ if x is None or y is None:
+
+    \ \ \ \ \ \ \ \ \ \ \ \ raise ValueError("Arguments cannot be None")
+
+    \ \ \ \ \ \ \ \ result = (x ** 2) + (y / 2.0) - 10
+
+    \ \ \ \ \ \ \ \ return result
+
+    def main():
+
+    \ \ \ \ string_val = "Hello World"
+
+    \ \ \ \ char_val = 'c'
+
+    \ \ \ \ num_val = 42
+
+    \ \ \ \ hex_val = 0xFF
+
+    \ \ \ \ complex_val = 1 + 2j
+
+    \ \ \ \ try:
+
+    \ \ \ \ \ \ \ \ obj = TestClass(num_val)
+
+    \ \ \ \ \ \ \ \ print(f"Result: {obj.calculate(10, 5)}")
+
+    \ \ \ \ except Exception as e:
+
+    \ \ \ \ \ \ \ \ print(f"Error: {e}")
+
+    if __name__ == "__main__":
+
+    \ \ \ \ main()
+  </python-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

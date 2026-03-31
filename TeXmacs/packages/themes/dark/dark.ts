@@ -76,6 +76,40 @@
 
   <assign|focus-color|#3A86FF33>
 
+  <assign|syntax-python-none|#ff6b6b>
+
+  <assign|syntax-python-comment|#d4a373>
+
+  <assign|syntax-python-error|#ff4d4d>
+
+  <assign|syntax-python-constant|#6a8cff>
+
+  <assign|syntax-python-constant-number|#6a8cff>
+
+  <assign|syntax-python-constant-string|#a9a9a9>
+
+  <assign|syntax-python-constant-char|#b0b0b0>
+
+  <assign|syntax-python-declare-function|#4d7eff>
+
+  <assign|syntax-python-declare-type|#4d7eff>
+
+  <assign|syntax-python-declare-module|#4d7eff>
+
+  <assign|syntax-python-operator|#e066ff>
+
+  <assign|syntax-python-operator-openclose|#ff6666>
+
+  <assign|syntax-python-operator-field|#d1d1d1>
+
+  <assign|syntax-python-operator-special|#ffb347>
+
+  <assign|syntax-python-keyword|#4db8b8>
+
+  <assign|syntax-python-keyword-conditional|#4db8b8>
+
+  <assign|syntax-python-keyword-control|#4db8b8>
+
   <assign|selection-color|#3A86FF33>
 
   <assign|scheme-prompt-color|dark green>
