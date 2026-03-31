@@ -189,7 +189,8 @@ class concater_rep {
   void glue (box b, int ref, int arg1, int arg2);
   void clean_and_correct ();
   void handle_scripts (int start, int end);
-  void handle_matching (int start, int end);
+  void handle_matching (int start, int end, bool use_pending, SI pending_y1,
+                        SI pending_y2, SI& out_y1, SI& out_y2);
   void handle_brackets ();
   void kill_spaces ();
 

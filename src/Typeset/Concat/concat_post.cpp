@@ -294,8 +294,84 @@ concater_rep::clean_and_correct () {
  * Resize brackets
  ******************************************************************************/
 
+struct bracket_match_state {
+  bool left_seen;
+  bool right_seen;
+  bool start_empty;
+  bool end_empty;
+  bracket_match_state ()
+      : left_seen (false), right_seen (false), start_empty (false),
+        end_empty (false) {}
+};
+
+static bool
+is_empty_left_delimiter (const string& s) {
+  return starts (s, "<left-.");
+}
+
+static bool
+is_empty_right_delimiter (const string& s) {
+  return starts (s, "<right-.");
+}
+
+static bracket_match_state
+classify_bracket_match (array<line_item>& a, int start, int end) {
+  bracket_match_state st;
+  for (int i= start; i <= end; i++) {
+    int tp= a[i]->type;
+    if (tp == LEFT_BRACKET_ITEM) {
+      st.left_seen= true;
+      if (i == start)
+        st.start_empty= is_empty_left_delimiter (a[i]->b->get_leaf_string ());
+    }
+    else if (tp == RIGHT_BRACKET_ITEM) {
+      st.right_seen= true;
+      if (i == end)
+        st.end_empty= is_empty_right_delimiter (a[i]->b->get_leaf_string ());
+    }
+  }
+  return st;
+}
+
+static string
+bracket_pending_key (edit_env env) {
+  tree row= env->read (CELL_ROW_NR);
+  tree col= env->read (CELL_COL_NR);
+  if (!is_atomic (row) || !is_int (row)) return "";
+  if (!is_atomic (col) || !is_int (col)) return "";
+
+  string key= "math-bracket-pending";
+  key << "-" << col->label;
+  return key;
+}
+
+static bool
+get_bracket_pending (edit_env env, const string& key, SI& y1, SI& y2) {
+  if (N (key) == 0) return false;
+  tree pending= env->read (key);
+  if (!is_tuple (pending) || N (pending) != 2) return false;
+  if (!is_int (pending[0]) || !is_int (pending[1])) return false;
+  y1= as_int (pending[0]);
+  y2= as_int (pending[1]);
+  return true;
+}
+
+static void
+set_bracket_pending (edit_env env, const string& key, SI y1, SI y2) {
+  if (N (key) == 0) return;
+  env->write (key, tree (TUPLE, as_string ((int) y1), as_string ((int) y2)));
+}
+
+static void
+clear_bracket_pending (edit_env env, const string& key) {
+  if (N (key) == 0) return;
+  env->write (key, tree (TUPLE));
+}
+
 void
-concater_rep::handle_matching (int start, int end) {
+concater_rep::handle_matching (int start, int end, bool use_pending,
+                               SI pending_y1, SI pending_y2, SI& out_y1,
+                               SI& out_y2) {
   // cout << "matching " << start << " -- " << end << "\n";
   // cout << a << "\n\n";
   int  i;
@@ -320,6 +396,12 @@ concater_rep::handle_matching (int start, int end) {
     y1= min (a[start]->b->y1, a[end]->b->y2);
     y2= max (a[start]->b->y1, a[end]->b->y2);
   }
+  if (use_pending) {
+    y1= min (y1, pending_y1);
+    y2= max (y2, pending_y2);
+  }
+  out_y1= y1;
+  out_y2= y2;
 
   for (i= start; i <= end; i++) {
     int tp= a[i]->type;
@@ -407,6 +489,14 @@ concater_rep::handle_matching (int start, int end) {
 
 void
 concater_rep::handle_brackets () {
+  string pending_key= bracket_pending_key (env);
+  SI     pending_y1 = 0;
+  SI     pending_y2 = 0;
+  bool   has_pending=
+      get_bracket_pending (env, pending_key, pending_y1, pending_y2);
+  bool pending_was_present= has_pending;
+  bool pending_touched    = false;
+
   int first= -1, start= 0, i= 0;
   while (i < N (a)) {
     if (a[i]->type == LEFT_BRACKET_ITEM) {
@@ -414,8 +504,24 @@ concater_rep::handle_brackets () {
       start= i;
     }
     if (a[i]->type == RIGHT_BRACKET_ITEM) {
+      bracket_match_state st= classify_bracket_match (a, start, i);
+      bool                use_pending=
+          has_pending && (st.start_empty || (!st.left_seen && st.right_seen));
+      SI match_y1= 0, match_y2= 0;
       handle_scripts (succ (start), prec (i));
-      handle_matching (start, i);
+      handle_matching (start, i, use_pending, pending_y1, pending_y2, match_y1,
+                       match_y2);
+      if (st.end_empty || (st.left_seen && !st.right_seen)) {
+        pending_y1     = match_y1;
+        pending_y2     = match_y2;
+        has_pending    = true;
+        pending_touched= true;
+      }
+      else if ((st.start_empty && !st.end_empty) ||
+               (!st.left_seen && st.right_seen)) {
+        has_pending    = false;
+        pending_touched= true;
+      }
       if (first != -1) i= first - 1;
       start= 0;
       first= -1;
@@ -423,9 +529,33 @@ concater_rep::handle_brackets () {
     i++;
   }
   if (N (a) > 0) {
+    bracket_match_state st= classify_bracket_match (a, 0, N (a) - 1);
+    bool                use_pending=
+        has_pending && (st.start_empty || (!st.left_seen && st.right_seen));
+    SI match_y1= 0, match_y2= 0;
     handle_scripts (0, N (a) - 1);
-    handle_matching (0, N (a) - 1);
+    handle_matching (0, N (a) - 1, use_pending, pending_y1, pending_y2,
+                     match_y1, match_y2);
+    if (st.end_empty || (st.left_seen && !st.right_seen)) {
+      pending_y1     = match_y1;
+      pending_y2     = match_y2;
+      has_pending    = true;
+      pending_touched= true;
+    }
+    else if ((st.start_empty && !st.end_empty) ||
+             (!st.left_seen && st.right_seen)) {
+      has_pending    = false;
+      pending_touched= true;
+    }
   }
+
+  if (has_pending && pending_was_present && !pending_touched)
+    has_pending= false;
+
+  if (has_pending)
+    set_bracket_pending (env, pending_key, pending_y1, pending_y2);
+  else if (pending_was_present || pending_touched)
+    clear_bracket_pending (env, pending_key);
 }
 
 /******************************************************************************
