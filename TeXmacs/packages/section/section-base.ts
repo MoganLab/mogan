@@ -269,7 +269,7 @@
 
   <new-section|appendix>
 
-  <assign|display-appendix|<macro|nr|<style-with|src-compact|none|<if|<sectional-short-style>|<display-section|<number|<arg|nr>|Alpha>>|<display-chapter|<number|<arg|nr>|Alpha>>>>>>
+  <assign|display-appendix|<macro|nr|<number|<arg|nr>|Alpha>>>
 
   <assign|appendix-clean|<macro|<style-with|src-compact|none|<if|<sectional-short-style>|<style-with|src-compact|none|<reset-subsection><section-clean><assign|section-prefix|<value|appendix-prefix>>>|<style-with|src-compact|none|<reset-section><chapter-clean><assign|in-appendix|true><assign|chapter-prefix|<value|appendix-prefix>>>>>>>
 

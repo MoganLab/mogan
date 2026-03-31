@@ -1050,7 +1050,7 @@
       (-> "Number style" (link section-number-style-menu))
       ---))
   (with l (tree-label t)
-    (when (in? l '(section subsection))
+    (when (in? l '(chapter section subsection subsubsection appendix))
       (group "Section prefix")
       ((check "Short numbering" "v"
               (== (get-init-env "sectional-short-style") "true"))
