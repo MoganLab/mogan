@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs texmacs tm-server)
-  (:use (generic document-edit)))
+  (:use (generic document-edit)
+        (utils library cursor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Preferences
@@ -33,7 +34,19 @@
   (set-message "Restart in order to let the new look and feel take effect"
                "configure look and feel"))
 
+(define (sync-open-buffers-dark-style-with-gui-theme)
+  (for-each
+   (lambda (buf)
+     (with-buffer buf
+       (if (== (get-preference "gui theme") "liii-night")
+           (when (not (has-style-package? "dark"))
+             (add-style-package "dark"))
+           (when (has-style-package? "dark")
+             (remove-style-package "dark")))))
+   (buffer-list)))
+
 (define (notify-gui-theme var val)
+  (sync-open-buffers-dark-style-with-gui-theme)
   (set-message "Restart in order to let the new theme take effect"
                "graphical interface theme"))
 

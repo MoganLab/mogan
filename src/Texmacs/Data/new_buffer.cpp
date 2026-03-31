@@ -567,6 +567,24 @@ bool
 buffer_export (url name, url dest, string fm) {
   tm_view vw= concrete_view (get_recent_view (name));
   ASSERT (vw != NULL, "view expected");
+  new_data export_data;
+
+  vw->ed->get_data (vw->buf->data);
+  export_data->project= copy (vw->buf->data->project);
+  export_data->style  = copy (vw->buf->data->style);
+  export_data->init   = copy (vw->buf->data->init);
+  export_data->fin    = copy (vw->buf->data->fin);
+  export_data->ref    = copy (vw->buf->data->ref);
+  export_data->aux    = copy (vw->buf->data->aux);
+  export_data->att    = copy (vw->buf->data->att);
+
+  if (export_data->style == "dark") export_data->style= tree (TUPLE);
+  else if (is_func (export_data->style, TUPLE)) {
+    tree style (TUPLE);
+    for (int i= 0; i < N (export_data->style); ++i)
+      if (export_data->style[i] != "dark") style << export_data->style[i];
+    export_data->style= style;
+  }
 
   if (fm == "postscript" || fm == "pdf") {
     int old_stamp= last_modified (dest);
@@ -581,8 +599,7 @@ buffer_export (url name, url dest, string fm) {
   // if (fm == "latex")
   // body= vw->ed->exec_latex (body);
 
-  vw->ed->get_data (vw->buf->data);
-  tree doc= attach_data (body, vw->buf->data, !vw->ed->get_save_aux ());
+  tree doc= attach_data (body, export_data, !vw->ed->get_save_aux ());
 
   if (fm == "latex")
     doc= change_doc_attr (doc, "view", as_string (abstract_view (vw)));
