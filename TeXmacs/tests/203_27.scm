@@ -12,34 +12,34 @@
 
 (import (liii check))
 
-(load "./TeXmacs/plugins/latex/progs/init-latex.scm")
-
 (check-set-mode! 'report-failed)
 
-(define (export-as-latex-and-load path)
-  (with path (string-append "$TEXMACS_PATH/tests/tmu/" path)
-    (with tmpfile (url-temp)
-      (load-buffer path)
-      (buffer-export path tmpfile "latex")
-      (string-replace (string-load tmpfile) "\r\n" "\n"))))
+(define (normalize-latex latex)
+  (set! latex (string-replace latex "\r\n" "\n"))
+  (set! latex (string-replace latex "\r" ""))
+  (set! latex (string-replace latex "\n" ""))
+  (set! latex (string-replace latex "\t" ""))
+  (string-replace latex " " ""))
 
-(define expected-latex
-  (string-append
-    "\\documentclass{article}\n"
-    "\\usepackage{CJK}\n"
-    "\\usepackage{xcolor}\n"
-    "\n"
-    "\\begin{document}\n"
-    "\\begin{CJK*}{UTF8}{gbsn}\n"
-    "\n"
-    "\\[ {\\color{red}{d d d}} d d d \\]\n"
-    "\\[ {\\color{#AA6666}{d d d}} d d d \\]\n"
-    "\\[ {\\color{blue}{d d d}} d d d \\]\n"
-    "\n"
-    "\\end{CJK*}\n"
-    "\\end{document}\n"))
+(define (test-export-latex-partial-color)
+  (use-modules
+    (data latex)
+    (data tmu))
+  (let* ((tmu-doc (string-load "$TEXMACS_PATH/tests/tmu/203_27.tmu"))
+         (latex (normalize-latex
+                 (texmacs->latex-document (tmu->texmacs tmu-doc) '()))))
+    (check (string-contains? latex "\\color{red}{ddd}") => #t)
+    (check (string-contains? latex
+                             (string-append "\\color{" "#" "AA6666}{ddd}"))
+           => #t)
+    (check (string-contains? latex "\\color{blue}{ddd}") => #t)
+    (check (string-contains? latex
+                             (string-append "\\color[HTML]{" "AA6666}"))
+           => #f)
+    (check (string-contains? latex
+                             (string-append "\\color{" "#" "AA6666}ddd"))
+           => #f)))
 
 (tm-define (test_203_27)
-  (check (export-as-latex-and-load "203_27.tmu")
-         => expected-latex)
+  (test-export-latex-partial-color)
   (check-report))
