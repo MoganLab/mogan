@@ -182,4 +182,9 @@ string from_key_release_event (const QKeyEvent* event);
 string qt_clipboard_format ();
 string qt_clipboard_text ();
 
+/******************************************************************************
+ * DPI and scale factor utilities
+ ******************************************************************************/
+#include "qt_dpi_utils.hpp"
+
 #endif // QT_UTILITIES_HPP
