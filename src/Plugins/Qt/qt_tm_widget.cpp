@@ -342,7 +342,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   notificationLayout->setSpacing (0);
 
   // 初始化版本更新提示条（在上）
-  updateNotificationBar= new UpdateNotificationBar ();
+  updateNotificationBar= new QWK::UpdateNotificationBar ();
   notificationLayout->addWidget (updateNotificationBar);
   updateNotificationBar->hide ();
 
@@ -376,20 +376,20 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
   // 连接版本更新提示条信号
   QObject::connect (updateNotificationBar,
-                    &UpdateNotificationBar::updateNowRequested, [this] () {
+                    &QWK::UpdateNotificationBar::updateNowRequested, [this] () {
                       eval ("(use-modules (utils misc version-update))");
                       string url= as_string (call ("get-update-download-url"));
                       open_url (url);
                       // 不隐藏提示条，保持显示直到用户实际更新版本
                     });
   QObject::connect (updateNotificationBar,
-                    &UpdateNotificationBar::snoozeRequested, [this] () {
+                    &QWK::UpdateNotificationBar::snoozeRequested, [this] () {
                       eval ("(use-modules (utils misc version-update))");
                       call ("snooze-version-update");
                       updateNotificationBar->hide ();
                     });
   QObject::connect (updateNotificationBar,
-                    &UpdateNotificationBar::closeRequested,
+                    &QWK::UpdateNotificationBar::closeRequested,
                     [this] () { updateNotificationBar->hide (); });
 
   // 延迟检查版本更新（启动后10秒）

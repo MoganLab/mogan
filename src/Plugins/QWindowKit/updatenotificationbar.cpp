@@ -9,6 +9,8 @@
 
 #include <QApplication>
 
+namespace QWK {
+
 UpdateNotificationBar::UpdateNotificationBar (QWidget* parent)
     : QFrame (parent) {
   setupUI ();
@@ -90,3 +92,5 @@ UpdateNotificationBar::setVersionInfo (const QString& currentVersion,
                    .arg (currentVersion);
   m_messageLabel->setText (msg);
 }
+
+} // namespace QWK

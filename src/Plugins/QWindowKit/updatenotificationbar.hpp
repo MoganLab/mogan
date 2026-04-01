@@ -12,6 +12,8 @@
 #include <QLabel>
 #include <QPushButton>
 
+namespace QWK {
+
 class UpdateNotificationBar : public QFrame {
   Q_OBJECT
 
@@ -37,5 +39,7 @@ private:
   QPushButton* m_snoozeBtn;
   QPushButton* m_closeBtn;
 };
+
+} // namespace QWK
 
 #endif // UPDATENOTIFICATIONBAR_H

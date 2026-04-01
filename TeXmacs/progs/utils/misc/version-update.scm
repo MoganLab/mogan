@@ -15,24 +15,35 @@
 
 ;; Mock 远程版本号（用于测试，设为 #f 则使用真实网络请求）
 ;; 示例：(define MOCK-REMOTE-VERSION "2026.3.0")
-(define MOCK-REMOTE-VERSION "2026.3.0")
+(define MOCK-REMOTE-VERSION #f)
 
 ;; ============================================
 ;; 内部实现
 ;; ============================================
 
-;; 获取/设置 Mock 远程版本号（用于测试）
+;; 获取 Mock 远程版本号（优先从持久化存储读取）
 (tm-define (get-mock-remote-version)
   (:secure #t)
-  MOCK-REMOTE-VERSION)
+  (let ((stored (persistent-get (get-texmacs-home-path) MOCK-VERSION-KEY)))
+    (if (and stored (!= stored ""))
+        stored
+        MOCK-REMOTE-VERSION)))
 
+;; 设置 Mock 远程版本号（同时保存到持久化存储）
 (tm-define (set-mock-remote-version! version)
   (:secure #t)
-  (set! MOCK-REMOTE-VERSION version))
+  (set! MOCK-REMOTE-VERSION version)
+  (persistent-set (get-texmacs-home-path) MOCK-VERSION-KEY version))
+
+;; 清除 Mock 远程版本号（恢复默认 #f）
+(tm-define (clear-mock-remote-version)
+  (:secure #t)
+  (set! MOCK-REMOTE-VERSION #f)
+  (persistent-remove (get-texmacs-home-path) MOCK-VERSION-KEY))
 
 (define LAST-CHECK-KEY "version_last_check")
-(define IGNORED-VERSION-KEY "version_ignored")
 (define SNOOZE-UNTIL-KEY "version_snooze_until")
+(define MOCK-VERSION-KEY "version_mock_remote")
 
 (define (current-timestamp)
   (current-time))
@@ -49,8 +60,7 @@
 (tm-define (clear-version-update-history)
   (:secure #t)
   (persistent-remove (get-texmacs-home-path) SNOOZE-UNTIL-KEY)
-  (persistent-remove (get-texmacs-home-path) IGNORED-VERSION-KEY)
-  (display "Version update history cleared\n"))
+  (clear-mock-remote-version))
 
 ;; 稍后提醒（使用默认间隔）
 (tm-define (snooze-version-update)
@@ -59,17 +69,6 @@
          (future (+ now (* SNOOZE-DAYS 24 3600))))
     (persistent-set (get-texmacs-home-path) SNOOZE-UNTIL-KEY
                     (number->string future))))
-
-;; 跳过此版本
-(tm-define (ignore-version version)
-  (:secure #t)
-  (persistent-set (get-texmacs-home-path) IGNORED-VERSION-KEY version)
-  (persistent-remove (get-texmacs-home-path) SNOOZE-UNTIL-KEY))
-
-;; 检查版本是否被忽略
-(tm-define (is-version-ignored? version)
-  (:secure #t)
-  (== (persistent-get (get-texmacs-home-path) IGNORED-VERSION-KEY) version))
 
 ;; 获取下载页URL
 ;; 社区版跳转到 mogan.app，商业版跳转到 liiistem.cn/com

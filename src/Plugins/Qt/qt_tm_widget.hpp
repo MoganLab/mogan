@@ -81,8 +81,8 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QTMTabPageContainer*       tabPageContainer;
   QTMAuxiliaryWidget*        auxiliaryWidget;
   QWK::WidgetWindowAgent*    windowAgent;
-  QWK::GuestNotificationBar* guestNotificationBar;  // 访客提示条
-  UpdateNotificationBar*     updateNotificationBar; // 版本更新提示条
+  QWK::GuestNotificationBar*  guestNotificationBar;  // 访客提示条
+  QWK::UpdateNotificationBar* updateNotificationBar; // 版本更新提示条
   QWK::LoginButton*          loginButton;
   QWK::LoginDialog*          m_loginDialog;
   QLabel*                    avatarLabel;
