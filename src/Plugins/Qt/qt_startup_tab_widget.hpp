@@ -45,8 +45,8 @@ private slots:
 
 private:
   // 界面构建辅助函数
-  void setup_left_sidebar (QVBoxLayout* sidebarLayout);
-  void setup_right_content (QStackedWidget* stackedWidget);
+  void         setup_left_sidebar (QVBoxLayout* sidebarLayout);
+  void         setup_right_content (QStackedWidget* stackedWidget);
   QPushButton* create_nav_button (const QString& text);
 
   // 页面创建函数
@@ -59,7 +59,7 @@ private:
   void set_active_nav_button (Entry entry);
 
 private:
-  Entry   currentEntry_;
+  Entry currentEntry_;
 
   // Navigation buttons
   QPushButton* navFileBtn_;
