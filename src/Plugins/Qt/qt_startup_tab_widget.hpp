@@ -16,9 +16,9 @@
 
 class QLabel;
 class QVBoxLayout;
-class QHBoxLayout;
 class QPushButton;
 class QStackedWidget;
+class QButtonGroup;
 
 class QTStartupTabWidget : public QWidget {
   Q_OBJECT
@@ -67,6 +67,9 @@ private:
   QPushButton* navRecentBtn_;
   QPushButton* navSettingsBtn_;
   QPushButton* navQuitBtn_;
+
+  // 互斥按钮组
+  QButtonGroup* navButtonGroup_;
 };
 
 #endif

@@ -11,6 +11,7 @@
 
 #include "qt_startup_tab_widget.hpp"
 
+#include <QButtonGroup>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
@@ -31,7 +32,8 @@
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
       navTemplateBtn_ (nullptr), navRecentBtn_ (nullptr),
-      navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr) {
+      navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
+      navButtonGroup_ (nullptr) {
 
   setMinimumSize (600, 400);
   setFocusPolicy (Qt::NoFocus);
@@ -95,11 +97,23 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navTitle->setObjectName ("startup-tab-nav-title");
   sidebarLayout->addWidget (navTitle);
 
+  // 创建互斥按钮组
+  navButtonGroup_= new QButtonGroup (this);
+  navButtonGroup_->setExclusive (true);
+
   // 导航按钮（4个入口）
   navFileBtn_    = create_nav_button ("File");
   navTemplateBtn_= create_nav_button ("Template");
   navRecentBtn_  = create_nav_button ("Recent");
   navSettingsBtn_= create_nav_button ("Settings");
+
+  // 添加到按钮组和布局
+  navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
+  navButtonGroup_->addButton (navTemplateBtn_,
+                              static_cast<int> (Entry::Template));
+  navButtonGroup_->addButton (navRecentBtn_, static_cast<int> (Entry::Recent));
+  navButtonGroup_->addButton (navSettingsBtn_,
+                              static_cast<int> (Entry::Settings));
 
   sidebarLayout->addWidget (navFileBtn_);
   sidebarLayout->addWidget (navTemplateBtn_);
@@ -282,29 +296,14 @@ QTStartupTabWidget::create_settings_page () {
 /**
  * @brief 更新导航按钮的选中状态
  * @param entry 当前选中的入口
+ *
+ * 使用 QButtonGroup 的互斥特性，自动取消其他按钮的选中状态
  */
 void
 QTStartupTabWidget::set_active_nav_button (Entry entry) {
-  // 清除所有导航按钮的选中状态
-  navFileBtn_->setChecked (false);
-  navTemplateBtn_->setChecked (false);
-  navRecentBtn_->setChecked (false);
-  navSettingsBtn_->setChecked (false);
-
-  // 设置当前入口对应的按钮为选中状态
-  switch (entry) {
-  case Entry::File:
-    navFileBtn_->setChecked (true);
-    break;
-  case Entry::Template:
-    navTemplateBtn_->setChecked (true);
-    break;
-  case Entry::Recent:
-    navRecentBtn_->setChecked (true);
-    break;
-  case Entry::Settings:
-    navSettingsBtn_->setChecked (true);
-    break;
+  QAbstractButton* btn= navButtonGroup_->button (static_cast<int> (entry));
+  if (btn) {
+    btn->setChecked (true);
   }
 }
 
