@@ -121,7 +121,7 @@
               (else #f))
       (if (and display-var (== (get-init-env display-var) "false"))
           (dialogue-window (message-widget "Global numbering is hidden, toggle has no effect")
-                           noop "Indication")
+                           noop "Notification")
           (let* ((old (tree-label t))
                  (new (symbol-toggle-number old)))
             (variant-set t new))))))
