@@ -994,6 +994,26 @@
           ((== l 'subparagraph) "subparagraph-display-numbers")
           (else #f))))
 
+(tm-define (section-display-label t)
+  (with l (tree-label t)
+    (cond ((== l 'chapter) "Global hide chapter numbers")
+          ((== l 'section) "Global hide section numbers")
+          ((== l 'subsection) "Global hide subsection numbers")
+          ((== l 'subsubsection) "Global hide subsubsection numbers")
+          ((== l 'paragraph) "Global hide paragraph numbers")
+          ((== l 'subparagraph) "Global hide subparagraph numbers")
+          (else "Global hide section numbers"))))
+
+(tm-define (section-numbering-label t)
+  (with l (tree-label t)
+    (cond ((== l 'chapter) "Chapter numbering")
+          ((== l 'section) "Section numbering")
+          ((== l 'subsection) "Subsection numbering")
+          ((== l 'subsubsection) "Subsubsection numbering")
+          ((== l 'paragraph) "Paragraph numbering")
+          ((== l 'subparagraph) "Subparagraph numbering")
+          (else "Section numbering"))))
+
 (tm-define (safe-init-env var)
   (if (or (string? var) (symbol? var))
       (get-init-env var)
@@ -1061,9 +1081,9 @@
         ---))
   (with display-num-var (section-display-numbers-var t)
     (if display-num-var
-        (group "Section numbering")
-        ((check "Show section numbers" "v"
-                (== (get-init-env display-num-var) "true"))
+        (group (eval (section-numbering-label t)))
+        ((check (eval (section-display-label t)) "v"
+                (== (get-init-env display-num-var) "false"))
          (init-env display-num-var
                   (if (== (get-init-env display-num-var) "true") "false" "true")))
         ---))
