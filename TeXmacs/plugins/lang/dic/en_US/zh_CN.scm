@@ -937,7 +937,7 @@
 ("help" "帮助")
 ("here" "这里")
 ("hidden" "隐藏")
-("Hierarchical separator" "当前节的下一层级的分隔符")
+("Sub-level separator" "当前节的下一层级的分隔符")
 ("High resolution screen settings" "高分屏设置")
 ("high resolution settings" "高分屏设置")
 ("highlight errors" "高亮错误")

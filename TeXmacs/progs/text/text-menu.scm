@@ -1060,7 +1060,7 @@
         ---))
   (with prefix-sep-var (section-prefix-sep-var t)
     (if prefix-sep-var
-        (-> "Hierarchical separator" (link section-prefix-sep-menu))
+        (-> "Sub-level separator" (link section-prefix-sep-menu))
         ---))
   (dynamic (focus-tag-edit-menu (tree-label t))))
 
