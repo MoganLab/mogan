@@ -105,6 +105,15 @@
   (with t (tree->stree (get-style-tree))
     (and (pair? t) (== (car t) 'tuple) (null? (cdr t)))))
 
+(define (sync-buffer-dark-style-with-gui-theme . opt-buf)
+  (with buf (if (null? opt-buf) (current-buffer) (car opt-buf))
+    (with-buffer buf
+      (if (== (get-preference "gui theme") "liii-night")
+          (when (not (has-style-package? "dark"))
+            (add-style-package "dark"))
+          (when (has-style-package? "dark")
+            (remove-style-package "dark"))))))
+
 (tm-define (buffer-set-default-style)
   (init-style "generic")
   (with lan (get-preference "language")
@@ -120,9 +129,7 @@
     (init-env "prog-scripts" (get-preference "scripting language")))
   (add-style-package "number-europe")
   (add-style-package "preview-ref")
-  (when (== (get-preference "gui theme") "liii-night")
-    (when (not (has-style-package? "dark"))
-      (add-style-package "dark")))
+  (sync-buffer-dark-style-with-gui-theme (current-buffer))
   (buffer-pretend-saved (current-buffer)))
 
 (tm-define (propose-name-buffer)
@@ -583,7 +590,9 @@
   (let* ((path (url->system name))
          (vname `(verbatim ,(utf8->cork path))))
     (cond ((buffer-exists? name)
-           (load-buffer-open name opts))
+           (begin
+             (load-buffer-open name opts)
+             (sync-buffer-dark-style-with-gui-theme name)))
           ((url-exists? name)
            (if (buffer-load name)
                (set-message `(concat "Could not load " ,vname) "Load file")
