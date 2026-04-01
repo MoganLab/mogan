@@ -185,8 +185,8 @@ edit_interface_rep::get_operation_shortcut_suffix (tree st) {
     if (N (st) >= 1 && is_atomic (st[0])) {
       string op= as_string (st[0]);
       if (starts (op, "<") && ends (op, ">")) op= op (1, N (op) - 1);
-      return get_shortcut_suffix (
-          "(math-big-operator " * object_to_string (object (op)) * ")");
+      return get_shortcut_suffix ("(math-big-operator " *
+                                  object_to_string (object (op)) * ")");
     }
     return "";
   case AROUND:
@@ -195,20 +195,23 @@ edit_interface_rep::get_operation_shortcut_suffix (tree st) {
       string lb   = object_to_string (object (as_string (st[0])));
       string rb   = object_to_string (object (as_string (st[2])));
       string large= (L (st) == VAR_AROUND) ? "#t" : "'default";
-      tree   ret  = get_display_shortcut_suffix (
-          "(math-bracket-open " * lb * " " * rb * " " * large * ")");
+      tree ret= get_display_shortcut_suffix ("(math-bracket-open " * lb * " " *
+                                             rb * " " * large * ")");
       if (ret != "") return ret;
-      return get_display_shortcut_suffix (
-          "(math-bracket-close " * rb * " " * lb * " " * large * ")");
+      return get_display_shortcut_suffix ("(math-bracket-close " * rb * " " *
+                                          lb * " " * large * ")");
     }
     return "";
   case WIDE:
     if (N (st) >= 2)
-      return get_shortcut_suffix ("(make-wide " * object_to_string (object (as_string (st[1]))) * ")");
+      return get_shortcut_suffix (
+          "(make-wide " * object_to_string (object (as_string (st[1]))) * ")");
     return "";
   case VAR_WIDE:
     if (N (st) >= 2)
-      return get_shortcut_suffix ("(make-wide-under " * object_to_string (object (as_string (st[1]))) * ")");
+      return get_shortcut_suffix (
+          "(make-wide-under " * object_to_string (object (as_string (st[1]))) *
+          ")");
     return "";
   default: {
     string op= drd->get_name (L (st));
@@ -287,7 +290,7 @@ get_with_text (tree t) {
 
 tree
 edit_interface_rep::compute_operation_footer (tree st) {
-  tree r= "";
+  tree r     = "";
   tree suffix= "";
   if (N (st) >= 2) {
     switch (L (st)) {
@@ -549,21 +552,21 @@ edit_interface_rep::set_right_footer () {
   if (is_atomic (st) && N (tp) >= 2) {
     tree parent= subtree (et, path_up (tp, 2));
     switch (L (parent)) {
-      case LSUB:
-      case LSUP:
-      case RSUB:
-      case RSUP:
-      case FRAC:
-      case SQRT:
-      case ABOVE:
-      case BELOW:
-      case WIDE:
-      case VAR_WIDE:
-        lf= compute_operation_footer (parent);
-        break;
-      default:
-        lf= compute_text_footer (st);
-        break;
+    case LSUB:
+    case LSUP:
+    case RSUB:
+    case RSUP:
+    case FRAC:
+    case SQRT:
+    case ABOVE:
+    case BELOW:
+    case WIDE:
+    case VAR_WIDE:
+      lf= compute_operation_footer (parent);
+      break;
+    default:
+      lf= compute_text_footer (st);
+      break;
     }
   }
   else if (is_atomic (st)) lf= compute_text_footer (st);
