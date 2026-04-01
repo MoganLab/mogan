@@ -2313,7 +2313,10 @@ qt_tm_widget_rep::checkVersionUpdate () {
       QString    remoteVersion= parseVersionFromTM (data);
       QString    localVersion = XMACS_VERSION;
 
-      if (isVersionNewer (remoteVersion, localVersion)) {
+      if (remoteVersion.isEmpty ()) {
+        std_error << "Failed to parse version from remote response" << LF;
+      }
+      else if (isVersionNewer (remoteVersion, localVersion)) {
         m_remoteVersion= remoteVersion;
         updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
         updateNotificationBar->show ();

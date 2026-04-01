@@ -66,33 +66,33 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
    tab_tools_visibility     = 1024
    } visibility_t;
    */
-  QLabel*                    rightLabel;
-  QLabel*                    leftLabel;
-  QLabel*                    middleLabel;
-  QToolBar*                  menuToolBar;
-  QToolBar*                  mainToolBar;
-  QToolBar*                  modeToolBar;
-  QToolBar*                  focusToolBar;
-  QToolBar*                  userToolBar;
-  QDockWidget*               sideTools;
-  QDockWidget*               leftTools;
-  QDockWidget*               bottomTools;
-  QDockWidget*               extraTools;
-  QTMTabPageContainer*       tabPageContainer;
-  QTMAuxiliaryWidget*        auxiliaryWidget;
-  QWK::WidgetWindowAgent*    windowAgent;
+  QLabel*                     rightLabel;
+  QLabel*                     leftLabel;
+  QLabel*                     middleLabel;
+  QToolBar*                   menuToolBar;
+  QToolBar*                   mainToolBar;
+  QToolBar*                   modeToolBar;
+  QToolBar*                   focusToolBar;
+  QToolBar*                   userToolBar;
+  QDockWidget*                sideTools;
+  QDockWidget*                leftTools;
+  QDockWidget*                bottomTools;
+  QDockWidget*                extraTools;
+  QTMTabPageContainer*        tabPageContainer;
+  QTMAuxiliaryWidget*         auxiliaryWidget;
+  QWK::WidgetWindowAgent*     windowAgent;
   QWK::GuestNotificationBar*  guestNotificationBar;  // 访客提示条
   QWK::UpdateNotificationBar* updateNotificationBar; // 版本更新提示条
-  QWK::LoginButton*          loginButton;
-  QWK::LoginDialog*          m_loginDialog;
-  QLabel*                    avatarLabel;
-  QLabel*                    nameLabel;
-  QLabel*                    accountIdLabel;
-  QLabel*                    membershipPeriodLabel;
-  QLabel*                    membershipTitleLabel;
-  QPushButton*               loginActionButton;
-  QPushButton*               logoutButton;
-  QString                    m_remoteVersion; // 远程版本号
+  QWK::LoginButton*           loginButton;
+  QWK::LoginDialog*           m_loginDialog;
+  QLabel*                     avatarLabel;
+  QLabel*                     nameLabel;
+  QLabel*                     accountIdLabel;
+  QLabel*                     membershipPeriodLabel;
+  QLabel*                     membershipTitleLabel;
+  QPushButton*                loginActionButton;
+  QPushButton*                logoutButton;
+  QString                     m_remoteVersion; // 远程版本号
 
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;
@@ -128,10 +128,8 @@ private:
   void logout ();
 
   // Version update notification
-  void    setupUpdateNotificationBar ();
   void    checkVersionUpdate ();
   QString parseVersionFromTM (const QByteArray& data);
-  void    showUpdateNotification (const QString& version);
   bool    isVersionNewer (const QString& remote, const QString& local);
 
   qt_widget main_widget;
