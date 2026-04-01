@@ -24,7 +24,7 @@
           either-get-or-else
           either-or-else
           either-filter-or-else
-          either-contains
+          either-contains?
           either-every
           either-any
   ) ;export
@@ -160,8 +160,8 @@
     ) ;define
 
     ;; 包含：如果是右值且内部值等于 x
-    (define (either-contains either x)
-      (check-either either "either-contains")
+    (define (either-contains? either x)
+      (check-either either "either-contains?")
       (and (either-right? either)
            (equal? x (car either))
       ) ;and

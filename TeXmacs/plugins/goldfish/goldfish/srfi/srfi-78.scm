@@ -38,14 +38,14 @@
 ; Follow the same License as the original one
 
 (define-library (srfi srfi-78)
-  (import (liii lang))
+  (import (scheme base))
   (export check check-set-mode! check-report check-reset!
           check-passed? check-failed?
           check:proc
   ) ;export
   (begin
 
-    (define check:write display*)
+    (define check:write display)
 
     (define check:mode #f)
 
@@ -157,7 +157,7 @@
       (>= (length check:failed) 1)
     ) ;define
 
-    (define* (check:proc expression thunk expected-result (equal class=?))
+    (define* (check:proc expression thunk expected-result (equal equal?))
       (let ((location-info (check:get-source-location expression)))
         (case check:mode
           ((0) #f)
