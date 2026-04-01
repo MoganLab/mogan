@@ -879,6 +879,7 @@
 ("Global hide section numbers" "全局隐藏节编号")
 ("Global hide subsection numbers" "全局隐藏小节编号")
 ("Global hide subsubsection numbers" "全局隐藏子节编号")
+("Global numbering is hidden, toggle has no effect" "已设置全局隐藏编号，此处切换不生效")
 ("global history" "全局历史")
 ("global status" "全局状态")
 ("glossary entry" "术语项")
