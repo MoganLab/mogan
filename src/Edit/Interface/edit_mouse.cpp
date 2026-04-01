@@ -1219,8 +1219,8 @@ edit_interface_rep::should_show_text_popup () {
   }
   text_popup_last_check= now;
 
-  if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
-      as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
+  if (as_bool (call ("in-prog?")) || as_bool (call ("in-code?")) ||
+      as_bool (call ("in-verbatim?"))) {
     text_popup_last_result= false;
     return false;
   }
