@@ -16,6 +16,7 @@
   (:use (generic format-edit)
         (generic format-menu)
         (generic generic-edit)
+        (table table-menu)
         (text text-menu)
         (math math-menu)))
 
@@ -89,6 +90,42 @@
   (=> (balloon (icon "tm_color.xpm") "Select a foreground color")
       (link color-menu)))
 
+(menu-bind text-toolbar-table-icons
+  (=> (balloon (icon "tm_cell_border.xpm") "Change border of cell")
+      (mini #f
+        (group "Border")
+        (link cell-alt-border-menu)
+        ---
+        (group "Pen width")
+        (link cell-compact-pen-width-menu)
+        ---
+        (group "Padding")
+        (link cell-padding-menu)))
+  (=> (balloon (icon "tm_cell_center.xpm") "Modify cell alignment")
+      (mini #f
+        (group "Horizontal alignment")
+        (link cell-halign-menu)
+        ---
+        (group "Vertical alignment")
+        (link cell-valign-menu)))
+  (=> (balloon (icon "tm_cell_background.xpm") "Set background color of cell")
+      (mini #f
+        ("None" (cell-set-background ""))
+        ("Foreground" (cell-set-background "foreground"))
+        ---
+        (pick-background "" (cell-set-background answer))
+        ---
+        ("Other" (interactive cell-set-background)))))
+
+(tm-define (table-selection-context? t)
+  (or (selection-active-table?)
+      (and (selection-active-any?)
+           (table-markup-context? (selection-tree)))))
+
 (menu-bind text-toolbar-icons
-  (if (in-text?) (link text-toolbar-text-icons))
-  (if (in-math?) (link text-toolbar-math-icons)))
+  (cond
+   ((table-selection-context? (focus-tree))
+    (link text-toolbar-table-icons))
+   (else
+    (if (in-text?) (link text-toolbar-text-icons))
+    (if (in-math?) (link text-toolbar-math-icons)))))

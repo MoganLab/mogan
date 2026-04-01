@@ -111,6 +111,7 @@ void
 QTMTextPopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
                          int scroll_x, int scroll_y, int canvas_x,
                          int canvas_y) {
+  rebuildButtonsFromScheme ();
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   autoSize ();
   if (!selectionInView ()) {
