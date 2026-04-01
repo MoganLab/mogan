@@ -2310,7 +2310,7 @@ qt_tm_widget_rep::checkVersionUpdate () {
   }
 
   QNetworkAccessManager* manager= new QNetworkAccessManager (mainwindow ());
-  QNetworkRequest        request (QUrl (versionUrl));
+  QNetworkRequest        request (versionUrl);
   request.setRawHeader ("User-Agent",
                         to_qstring (stem_user_agent ()).toUtf8 ());
 
@@ -2321,14 +2321,22 @@ qt_tm_widget_rep::checkVersionUpdate () {
       QString    remoteVersion= parseVersionFromTM (data);
       QString    localVersion = XMACS_VERSION;
 
+      if (!remoteVersion.isEmpty ()) {
+        qDebug () << "[VersionUpdate] Parsed remote version:" << remoteVersion;
+      }
+
       if (remoteVersion.isEmpty ()) {
-        std_error << "Failed to parse version from remote response" << LF;
+        qDebug () << "[VersionUpdate] Failed to parse version from response";
       }
       else if (isVersionNewer (remoteVersion, localVersion)) {
         m_remoteVersion= remoteVersion;
         updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
         updateNotificationBar->show ();
       }
+    }
+    else {
+      qDebug () << "[VersionUpdate] Failed to fetch remote version:"
+                << reply->errorString ();
     }
     reply->deleteLater ();
     manager->deleteLater ();
@@ -2338,8 +2346,8 @@ qt_tm_widget_rep::checkVersionUpdate () {
 QString
 qt_tm_widget_rep::parseVersionFromTM (const QByteArray& data) {
   QString content= QString::fromUtf8 (data);
-  // 简单解析 <body> 标签内容
-  QRegularExpression      re ("<body>\\s*([\\d\\.\\-rc]+)");
+  // 解析 TeXmacs 格式的 <\body> 标签内容
+  QRegularExpression      re ("<\\\\?body>\\s*([\\d\\.\\-rc]+)");
   QRegularExpressionMatch match= re.match (content);
   return match.captured (1).trimmed ();
 }
