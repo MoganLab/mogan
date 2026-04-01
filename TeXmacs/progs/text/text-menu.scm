@@ -984,6 +984,16 @@
           ((== l 'subsubsection) "subsubsection-prefix-sep")
           (else #f))))
 
+(tm-define (section-display-numbers-var t)
+  (with l (tree-label t)
+    (cond ((== l 'chapter) "chapter-display-numbers")
+          ((== l 'section) "section-display-numbers")
+          ((== l 'subsection) "subsection-display-numbers")
+          ((== l 'subsubsection) "subsubsection-display-numbers")
+          ((== l 'paragraph) "paragraph-display-numbers")
+          ((== l 'subparagraph) "subparagraph-display-numbers")
+          (else #f))))
+
 (tm-define (safe-init-env var)
   (if (or (string? var) (symbol? var))
       (get-init-env var)
@@ -1048,6 +1058,14 @@
   (with num-var (section-number-style-var t)
     (if num-var
         (-> "Number style" (link section-number-style-menu))
+        ---))
+  (with display-num-var (section-display-numbers-var t)
+    (if display-num-var
+        (group "Section numbering")
+        ((check "Show section numbers" "v"
+                (== (get-init-env display-num-var) "true"))
+         (init-env display-num-var
+                  (if (== (get-init-env display-num-var) "true") "false" "true")))
         ---))
   (with prefix-num-var (section-number-style-var t)
     (if prefix-num-var
