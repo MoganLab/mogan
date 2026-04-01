@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils edit variants)
-  (:use (utils library tree)))
+  (:use (utils library tree)
+        (kernel gui menu-widget)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definition of tag groups (could be done using drds in the future)
@@ -109,9 +110,21 @@
 
 (tm-define (numbered-toggle t)
   (:require (numbered-standard-context? t))
-  (let* ((old (tree-label t))
-         (new (symbol-toggle-number old)))
-    (variant-set t new)))
+  (with l (tree-label t)
+    (with display-var
+        (cond ((in? l '(chapter chapter*)) "chapter-display-numbers")
+              ((in? l '(section section*)) "section-display-numbers")
+              ((in? l '(subsection subsection*)) "subsection-display-numbers")
+              ((in? l '(subsubsection subsubsection*)) "subsubsection-display-numbers")
+              ((in? l '(paragraph paragraph*)) "paragraph-display-numbers")
+              ((in? l '(subparagraph subparagraph*)) "subparagraph-display-numbers")
+              (else #f))
+      (if (and display-var (== (get-init-env display-var) "false"))
+          (dialogue-window (message-widget "Global numbering is hidden, toggle has no effect")
+                           noop "Notification")
+          (let* ((old (tree-label t))
+                 (new (symbol-toggle-number old)))
+            (variant-set t new))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Alternate between two possibilities

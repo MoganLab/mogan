@@ -150,6 +150,10 @@
     ;;  (display* what " -> " r " -> " (kbd-system r menu-flag?) "\n"))
     (kbd-system r menu-flag?)))
 
+(tm-define (kbd-find-shortcut-export what)
+  (:synopsis "Find display shortcut string for command @what")
+  (kbd-find-shortcut what #f))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menu labels
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

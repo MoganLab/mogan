@@ -272,6 +272,8 @@ public:
 
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
+  tree get_display_shortcut_suffix (string cmd_s);
+  tree get_operation_shortcut_suffix (tree st);
   tree compute_text_footer (tree st);
   tree compute_operation_footer (tree st);
   tree compute_compound_footer (tree t, path p);

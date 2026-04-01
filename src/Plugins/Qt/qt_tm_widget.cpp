@@ -348,8 +348,20 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (loginButton, &QWK::LoginButton::clicked,
                     [this] () { checkLocalTokenAndLogin (); });
 
-  // 初始化访客提示条
-  guestNotificationBar= new QWK::GuestNotificationBar (mw);
+  // 创建通知条容器（垂直布局，放在标题栏下方）
+  QWidget*     notificationContainer= new QWidget (mw);
+  QVBoxLayout* notificationLayout   = new QVBoxLayout (notificationContainer);
+  notificationLayout->setContentsMargins (0, 0, 0, 0);
+  notificationLayout->setSpacing (0);
+
+  // 初始化版本更新提示条（在上）
+  updateNotificationBar= new QWK::UpdateNotificationBar ();
+  notificationLayout->addWidget (updateNotificationBar);
+  updateNotificationBar->hide ();
+
+  // 初始化访客提示条（在下）
+  guestNotificationBar= new QWK::GuestNotificationBar ();
+  notificationLayout->addWidget (guestNotificationBar);
 
   // 连接提示条信号
   QObject::connect (guestNotificationBar,
@@ -374,6 +386,27 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     guestNotificationBar->hide ();
     checkNetworkAvailable ();
   }
+
+  // 连接版本更新提示条信号
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::updateNowRequested, [this] () {
+                      eval ("(use-modules (utils misc version-update))");
+                      string url= as_string (call ("get-update-download-url"));
+                      open_url (url);
+                      // 不隐藏提示条，保持显示直到用户实际更新版本
+                    });
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::snoozeRequested, [this] () {
+                      eval ("(use-modules (utils misc version-update))");
+                      call ("snooze-version-update");
+                      updateNotificationBar->hide ();
+                    });
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::closeRequested,
+                    [this] () { updateNotificationBar->hide (); });
+
+  // 延迟检查版本更新（启动后10秒）
+  QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
 
   // there is a bug in the early implementation of toolbars in Qt 4.6
   // which has been fixed in 4.6.2 (at least)
@@ -532,7 +565,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QWidget* q= main_widget->as_qwidget (); // force creation of QWidget
   q->setParent (
       qwid); // q->layout()->removeWidget(q) will reset the parent to this
-  bl->addWidget (guestNotificationBar); // 添加访客提示条
+  bl->addWidget (
+      notificationContainer); // 添加通知容器（包含版本更新和访客提示条）
   bl->addWidget (q);
 
   mw->setCentralWidget (cw);
@@ -2326,4 +2360,107 @@ qt_tm_widget_rep::checkNetworkAvailable () {
       }
     }
   });
+}
+
+// 检查版本更新，根据条件显示提示条
+// 流程：1.检查稍后提醒时间 -> 2.获取远程版本 -> 3.比较并显示
+// 社区版和商业版都显示版本更新提示，但跳转到不同的官网
+void
+qt_tm_widget_rep::checkVersionUpdate () {
+  eval ("(use-modules (utils misc version-update))");
+
+  // 检查是否处于稍后提醒期间
+  bool shouldCheck= as_bool (call ("should-check-version-update?"));
+  if (!shouldCheck) return;
+
+  // 检查是否有 mock 版本（用于测试）
+  object mockVersion= call ("get-mock-remote-version");
+  bool   hasMock    = !is_bool (mockVersion) || as_bool (mockVersion);
+
+  if (hasMock) {
+    // 使用 mock 版本进行测试
+    QString remoteVersion= to_qstring (as_string (mockVersion));
+    QString localVersion = XMACS_VERSION;
+
+    if (isVersionNewer (remoteVersion, localVersion)) {
+      m_remoteVersion= remoteVersion;
+      updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
+      updateNotificationBar->show ();
+    }
+    return;
+  }
+
+  // 发送HTTP请求获取远程版本
+  // 商业版和社区版使用不同的版本号接口
+  QString versionUrl;
+  if (is_community_stem ()) {
+    versionUrl= "https://liiistem.cn/mogan_latest_version.tm";
+  }
+  else {
+    versionUrl= "https://liiistem.cn/latest_version.tm";
+  }
+
+  QNetworkAccessManager* manager= new QNetworkAccessManager (mainwindow ());
+  QNetworkRequest        request (versionUrl);
+  request.setRawHeader ("User-Agent",
+                        to_qstring (stem_user_agent ()).toUtf8 ());
+
+  QNetworkReply* reply= manager->get (request);
+  QObject::connect (reply, &QNetworkReply::finished, [this, reply, manager] () {
+    if (reply->error () == QNetworkReply::NoError) {
+      QByteArray data         = reply->readAll ();
+      QString    remoteVersion= parseVersionFromTM (data);
+      QString    localVersion = XMACS_VERSION;
+
+      if (!remoteVersion.isEmpty ()) {
+        qDebug () << "[VersionUpdate] Parsed remote version:" << remoteVersion;
+      }
+
+      if (remoteVersion.isEmpty ()) {
+        qDebug () << "[VersionUpdate] Failed to parse version from response";
+      }
+      else if (isVersionNewer (remoteVersion, localVersion)) {
+        m_remoteVersion= remoteVersion;
+        updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
+        updateNotificationBar->show ();
+      }
+    }
+    else {
+      qDebug () << "[VersionUpdate] Failed to fetch remote version:"
+                << reply->errorString ();
+    }
+    reply->deleteLater ();
+    manager->deleteLater ();
+  });
+}
+
+QString
+qt_tm_widget_rep::parseVersionFromTM (const QByteArray& data) {
+  QString content= QString::fromUtf8 (data);
+  // 解析 TeXmacs 格式的 <\body> 标签内容
+  QRegularExpression      re ("<\\\\?body>\\s*([\\d\\.\\-rc]+)");
+  QRegularExpressionMatch match= re.match (content);
+  return match.captured (1).trimmed ();
+}
+
+bool
+qt_tm_widget_rep::isVersionNewer (const QString& remote, const QString& local) {
+  // 提取纯数字版本号（去掉 -rcX 后缀）
+  QString remoteClean= remote.split ("-")[0];
+  QString localClean = local.split ("-")[0];
+
+  // 语义化版本号比较（只比较前三位）
+  QStringList remoteParts= remoteClean.split (".");
+  QStringList localParts = localClean.split (".");
+
+  // 只比较前三位版本号
+  for (int i= 0; i < 3; i++) {
+    int remoteNum= (i < remoteParts.size ()) ? remoteParts[i].toInt () : 0;
+    int localNum = (i < localParts.size ()) ? localParts[i].toInt () : 0;
+
+    if (remoteNum != localNum) {
+      return remoteNum > localNum;
+    }
+  }
+  return false; // 版本相同
 }
