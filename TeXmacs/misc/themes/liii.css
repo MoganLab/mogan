@@ -927,6 +927,113 @@ QToolButton#text-toolbar-button:hover {
 
 /*文本工具栏按钮按下样式*/
 QToolButton#text-toolbar-button:pressed {
-  background-color: rgba(128, 128, 128, 0.5); 
+  background-color: rgba(128, 128, 128, 0.5);
   border: none;
+}
+
+/****************************************************************************
+* 启动标签页样式 (Startup Tab) - 墨绿主题
+* 主色: #215a6a (深墨绿)
+* 辅色: #2791ad (浅墨绿/青色)
+* 文字: 白色 / 黑色
+****************************************************************************/
+
+/* 启动标签页主窗口 - 左侧导航栏 */
+QWidget#startup-tab-sidebar {
+  background-color: #215a6a;
+  min-width: 120px;
+  max-width: 120px;
+}
+
+/* 导航栏分组标题 */
+QLabel#startup-tab-nav-title {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 11px;
+  font-weight: bold;
+  padding: 4px;
+}
+
+/* 导航按钮 - 普通状态 */
+QPushButton#startup-tab-nav-btn {
+  color: #ffffff;
+  background-color: transparent;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 13px;
+}
+
+QPushButton#startup-tab-nav-btn:hover {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+/* 导航按钮 - 选中状态 */
+QPushButton#startup-tab-nav-btn:checked {
+  background-color: #2791ad;
+}
+
+/* 退出按钮 */
+QPushButton#startup-tab-quit-btn {
+  color: #ffffff;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  border-radius: 4px;
+  padding: 8px 12px;
+  text-align: center;
+  font-size: 13px;
+}
+
+QPushButton#startup-tab-quit-btn:hover {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: #ffffff;
+}
+
+/* 右侧内容区 */
+QWidget#startup-tab-content {
+  background-color: #ffffff;
+}
+
+/* 页面标题 */
+QLabel#startup-tab-page-title {
+  font-size: 24px;
+  font-weight: bold;
+  color: #215a6a;
+}
+
+/* 页面描述文字 */
+QLabel#startup-tab-page-desc {
+  font-size: 14px;
+  color: #666666;
+  margin-top: 8px;
+  margin-bottom: 24px;
+}
+
+/* File页主按钮 - New Document */
+QPushButton#startup-tab-primary-btn {
+  background-color: #2791ad;
+  color: #ffffff;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+QPushButton#startup-tab-primary-btn:hover {
+  background-color: #215a6a;
+}
+
+/* File页次按钮 - Open Document */
+QPushButton#startup-tab-secondary-btn {
+  background-color: #ffffff;
+  color: #215a6a;
+  border: 2px solid #2791ad;
+  border-radius: 6px;
+  padding: 12px 32px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+QPushButton#startup-tab-secondary-btn:hover {
+  background-color: #e8f4f6;
 }

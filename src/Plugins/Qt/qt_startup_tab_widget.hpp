@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_startup_tab_widget.hpp
- * DESCRIPTION: Startup tab widget skeleton for Mogan STEM
+ * DESCRIPTION: Startup tab widget with left sidebar navigation for Mogan STEM
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -15,6 +15,10 @@
 #include <QWidget>
 
 class QLabel;
+class QVBoxLayout;
+class QHBoxLayout;
+class QPushButton;
+class QStackedWidget;
 
 class QTStartupTabWidget : public QWidget {
   Q_OBJECT
@@ -28,12 +32,41 @@ public:
   Entry current_entry () const;
   void  set_current_entry (Entry entry);
 
+signals:
+  void entry_changed (Entry entry);
+
 private slots:
-  void update_label ();
+  // File operations
+  void on_file_new ();
+  void on_file_open ();
+
+  // Application operation
+  void on_app_quit ();
+
+private:
+  // 界面构建辅助函数
+  void setup_left_sidebar (QVBoxLayout* sidebarLayout);
+  void setup_right_content (QStackedWidget* stackedWidget);
+  QPushButton* create_nav_button (const QString& text);
+
+  // 页面创建函数
+  QWidget* create_file_page ();
+  QWidget* create_template_page ();
+  QWidget* create_recent_page ();
+  QWidget* create_settings_page ();
+
+  // 导航按钮状态管理
+  void set_active_nav_button (Entry entry);
 
 private:
   Entry   currentEntry_;
-  QLabel* label_;
+
+  // Navigation buttons
+  QPushButton* navFileBtn_;
+  QPushButton* navTemplateBtn_;
+  QPushButton* navRecentBtn_;
+  QPushButton* navSettingsBtn_;
+  QPushButton* navQuitBtn_;
 };
 
 #endif
