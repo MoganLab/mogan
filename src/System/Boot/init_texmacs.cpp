@@ -203,8 +203,7 @@ init_texmacs_path (int& argc, char** argv) {
   // is in a .app bundle on MacOSX.
   // Always trust the bundled resource path instead of any inherited
   // TEXMACS_PATH from the user's environment.
-  builtin_texmacs_path=
-      as_string (exedir * "../Resources/share/" * PREFIX_DIR);
+  builtin_texmacs_path= as_string (exedir * "../Resources/share/" * PREFIX_DIR);
   set_env ("TEXMACS_PATH", builtin_texmacs_path);
 #endif
 
