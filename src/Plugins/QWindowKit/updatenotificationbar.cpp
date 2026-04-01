@@ -41,6 +41,9 @@ UpdateNotificationBar::setupUI () {
   m_messageLabel->setWordWrap (false);
   m_layout->addWidget (m_messageLabel);
 
+  // 消息和按钮之间的间距
+  m_layout->addSpacing (16);
+
   // 按钮容器
   QWidget*     btnWidget= new QWidget (this);
   QHBoxLayout* btnLayout= new QHBoxLayout (btnWidget);
