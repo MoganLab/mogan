@@ -33,10 +33,22 @@ jobs:
         run: |
           VERSION="${{ github.event.inputs.version }}"
           echo "NEW_VERSION_WITHOUT_V=${VERSION#v}" >> $GITHUB_ENV
+          # 为 Debian 包去除 -rc 后缀
+          DEBIAN_VERSION="${VERSION#v}"
+          DEBIAN_VERSION="${DEBIAN_VERSION%-*}"
+          echo "NEW_VERSION_DEBIAN=$DEBIAN_VERSION" >> $GITHUB_ENV
 
       - name: Update devel/200_22.md
         run: |
+          # 在第3行插入新版本记录
           sed -i "3i## ${{ env.NEW_VERSION_DATE }} ${{ env.NEW_VERSION }}    打包" devel/200_22.md
+          # 在第4行插入空行作为分隔
+          sed -i "4i\\" devel/200_22.md
+
+      - name: Update packages/debian/package.sh
+        run: |
+          # 更新 Debian 打包脚本中的默认版本号（不带 -rc 后缀）
+          sed -i 's/^    VERSION="[^"]*"/    VERSION="${{ env.NEW_VERSION_DEBIAN }}"/' packages/debian/package.sh
 
       - name: Update xmake/vars.lua and Git
         run: |
@@ -49,6 +61,6 @@ jobs:
           git commit -m "[200_22] bump to Mogan STEM ${{ env.NEW_VERSION }}"
           # 打 Tag
           git tag ${{ env.NEW_VERSION }}
-          
+
           git push origin ${{ github.ref_name }}
           git push origin ${{ env.NEW_VERSION }}
