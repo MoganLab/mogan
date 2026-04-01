@@ -16,6 +16,7 @@
   (:use (generic format-edit)
         (generic format-menu)
         (generic generic-edit)
+        (generic generic-menu)
         (table table-menu)
         (text text-menu)
         (math math-menu)))
@@ -117,15 +118,46 @@
         ---
         ("Other" (interactive cell-set-background)))))
 
+(tm-define (semantic-block-selection-tree)
+  (and (selection-active-any?)
+       (with t (path->tree (selection-path))
+         (and (== (selection-tree) t)
+              (let loop ((t t))
+                (cond ((or (tree-in? t (numbered-unnumbered-append (enunciation-tag-list)))
+                           (tree-in? t (render-enunciation-tag-list)))
+                       t)
+                      ((tm-func? t 'document 1)
+                       (loop (tree-ref t 0)))
+                      (else #f)))))))
+
+
+(menu-bind text-toolbar-semantic-icons
+  (with t (semantic-block-selection-tree)
+    (when (and t (numbered-context? t))
+      ((check (balloon (icon "tm_numbered.xpm") "Numbered") "v"
+              (numbered-numbered? t))
+       (numbered-toggle t)))
+    ((check (balloon (icon "tm_cell_border.xpm") "Framed theorems") "v"
+            (has-style-package? "framed-theorems"))
+     (toggle-style-package "framed-theorems"))
+    (when (and t (> (length (focus-variants-of t)) 1))
+      (=> (balloon (icon "tm_switch.xpm") "Structured variant")
+          (dynamic (focus-variant-menu t))))))
+
 (tm-define (table-selection-context? t)
   (or (selection-active-table?)
       (and (selection-active-any?)
            (table-markup-context? (selection-tree)))))
 
+(tm-define (semantic-block-selection-context? t)
+  (not (not (semantic-block-selection-tree))))
+
 (menu-bind text-toolbar-icons
   (cond
    ((table-selection-context? (focus-tree))
     (link text-toolbar-table-icons))
+   ((semantic-block-selection-context? (focus-tree))
+    (link text-toolbar-semantic-icons))
    (else
     (if (in-text?) (link text-toolbar-text-icons))
     (if (in-math?) (link text-toolbar-math-icons)))))
