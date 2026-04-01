@@ -2300,9 +2300,17 @@ qt_tm_widget_rep::checkVersionUpdate () {
   }
 
   // 发送HTTP请求获取远程版本
+  // 商业版和社区版使用不同的版本号接口
+  QString versionUrl;
+  if (is_community_stem ()) {
+    versionUrl= "https://liiistem.cn/mogan_latest_version.tm";
+  }
+  else {
+    versionUrl= "https://liiistem.cn/latest_version.tm";
+  }
+
   QNetworkAccessManager* manager= new QNetworkAccessManager (mainwindow ());
-  QNetworkRequest        request (
-      QUrl ("https://liiistem.cn/mogan_latest_version.tm"));
+  QNetworkRequest        request (QUrl (versionUrl));
   request.setRawHeader ("User-Agent",
                         to_qstring (stem_user_agent ()).toUtf8 ());
 
