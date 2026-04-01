@@ -15,6 +15,7 @@
 #include "cork.hpp"
 #include "dictionary.hpp"
 #include "edit_interface.hpp"
+#include "moebius/tree_label.hpp"
 #include "tree_helper.hpp"
 
 using namespace moebius;
@@ -148,7 +149,7 @@ edit_interface_rep::get_shortcut_suffix (string cmd_s) {
   tree   result    = "";
   if (binding != "" && binding != "#f") {
     tree shortcut_tree= sv->kbd_system_rewrite (binding);
-    result            = concat (" [", shortcut_tree, "]");
+    result            = concat (" [ ", shortcut_tree, " ]");
   }
   return result;
 }
@@ -158,7 +159,7 @@ edit_interface_rep::get_display_shortcut_suffix (string cmd_s) {
   object query= starts (cmd_s, "(") ? string_to_object (cmd_s) : object (cmd_s);
   string sh   = as_string (call ("kbd-find-shortcut-export", query));
   if (sh == "" || sh == "#f") return "";
-  return concat (" [", sh, "]");
+  return concat (" [ ", sh, " ]");
 }
 
 tree
@@ -562,6 +563,8 @@ edit_interface_rep::set_right_footer () {
     case BELOW:
     case WIDE:
     case VAR_WIDE:
+    case AROUND:
+    case VAR_AROUND:
       lf= compute_operation_footer (parent);
       break;
     default:
