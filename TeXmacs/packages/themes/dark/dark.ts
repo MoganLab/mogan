@@ -116,6 +116,10 @@
 
   <assign|src-length|<macro|body|<with|mode|src|color|#2aadad|<arg|body>>>>
 
+  <assign|version-notice-bg-color|#6b5600>
+
+  <assign|version-notice-fg-color|#fff4cc>
+
   \;
 </body>
 
