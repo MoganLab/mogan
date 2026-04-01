@@ -158,13 +158,13 @@ init_texmacs_path (int& argc, char** argv) {
   }
 #endif
 
-  string current_texmacs_path= get_env ("TEXMACS_PATH");
+  string builtin_texmacs_path;
 
 #ifdef OS_GNU_LINUX
-  if (is_empty (current_texmacs_path) &&
-      exists (exedir * "../share/" * PREFIX_DIR)) {
-    set_env ("TEXMACS_PATH", as_string (exedir * "../share/" * PREFIX_DIR));
-  }
+  if (exists (exedir * "../share/" * PREFIX_DIR))
+    builtin_texmacs_path= as_string (exedir * "../share/" * PREFIX_DIR);
+  if (!is_empty (builtin_texmacs_path))
+    set_env ("TEXMACS_PATH", builtin_texmacs_path);
 #endif
 
 #ifdef OS_MACOS
@@ -200,22 +200,25 @@ init_texmacs_path (int& argc, char** argv) {
 #if defined(AQUATEXMACS) || defined(OS_MACOS) || defined(MACOSX_EXTENSIONS)
   // Mac bundle environment initialization
   // We set some environment variables when the executable
-  // is in a .app bundle on MacOSX
-  if (is_empty (current_texmacs_path)) {
-    set_env ("TEXMACS_PATH",
-             as_string (exedir * "../Resources/share/" * PREFIX_DIR));
-  }
+  // is in a .app bundle on MacOSX.
+  // Always trust the bundled resource path instead of any inherited
+  // TEXMACS_PATH from the user's environment.
+  builtin_texmacs_path=
+      as_string (exedir * "../Resources/share/" * PREFIX_DIR);
+  set_env ("TEXMACS_PATH", builtin_texmacs_path);
 #endif
 
 #if defined(OS_MINGW) || defined(OS_WIN)
   // Win bundle environment initialization
   // TEXMACS_PATH is set by assuming that the executable is in TeXmacs/bin/
+  // Always trust the bundled resource path instead of any inherited
+  // TEXMACS_PATH from the user's environment.
   // HOME is set to USERPROFILE
   // PWD is set to HOME
   // if PWD is lacking, then the path resolution machinery may not work
 
-  if (is_empty (current_texmacs_path))
-    set_env ("TEXMACS_PATH", as_string (exedir * ".."));
+  builtin_texmacs_path= as_string (exedir * "..");
+  set_env ("TEXMACS_PATH", builtin_texmacs_path);
   // if (get_env ("HOME") == "") //now set in immediate_options otherwise
   // --setup option fails
   //   set_env ("HOME", get_env("USERPROFILE"));
@@ -232,14 +235,14 @@ init_texmacs_path (int& argc, char** argv) {
 #ifdef OS_WASM
   set_env ("PWD", "/");
   set_env ("HOME", "/");
-  if (is_empty (current_texmacs_path)) set_env ("TEXMACS_PATH", "/TeXmacs");
+  set_env ("TEXMACS_PATH", "/TeXmacs");
 #endif
 
   // check on the latest $TEXMACS_PATH
-  current_texmacs_path= get_env ("TEXMACS_PATH");
-  if (is_empty (current_texmacs_path) ||
-      !exists (url_system (current_texmacs_path))) {
-    cout << "The required TEXMACS_PATH(" << current_texmacs_path
+  string resolved_texmacs_path= get_env ("TEXMACS_PATH");
+  if (is_empty (resolved_texmacs_path) ||
+      !exists (url_system (resolved_texmacs_path))) {
+    cout << "The required TEXMACS_PATH(" << resolved_texmacs_path
          << ") does not exists" << LF;
     exit (1);
   }
