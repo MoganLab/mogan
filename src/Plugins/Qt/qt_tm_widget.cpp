@@ -2272,15 +2272,11 @@ qt_tm_widget_rep::checkNetworkAvailable () {
 }
 
 // 检查版本更新，根据条件显示提示条
-// 流程：1.检查商业版/社区版开关 -> 2.检查稍后提醒时间 -> 3.获取远程版本
-// -> 4.比较并显示
+// 流程：1.检查稍后提醒时间 -> 2.获取远程版本 -> 3.比较并显示
+// 社区版和商业版都显示版本更新提示，但跳转到不同的官网
 void
 qt_tm_widget_rep::checkVersionUpdate () {
   eval ("(use-modules (utils misc version-update))");
-
-  // 非商业版且未开启社区版测试开关时不检查
-  bool forCommunity= as_bool (call ("version-update-for-community?"));
-  if (is_community_stem () && !forCommunity) return;
 
   // 检查是否处于稍后提醒期间
   bool shouldCheck= as_bool (call ("should-check-version-update?"));

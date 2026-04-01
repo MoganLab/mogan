@@ -17,17 +17,6 @@
 ;; 示例：(define MOCK-REMOTE-VERSION "2026.3.0")
 (define MOCK-REMOTE-VERSION "2026.3.0")
 
-;; 社区版是否显示版本更新提示（用于测试）
-(define VERSION-UPDATE-FOR-COMMUNITY #f)
-
-(tm-define (version-update-for-community?)
-  (:secure #t)
-  VERSION-UPDATE-FOR-COMMUNITY)
-
-(tm-define (set-version-update-for-community! enabled)
-  (:secure #t)
-  (set! VERSION-UPDATE-FOR-COMMUNITY enabled))
-
 ;; ============================================
 ;; 内部实现
 ;; ============================================
@@ -83,8 +72,15 @@
   (== (persistent-get (get-texmacs-home-path) IGNORED-VERSION-KEY) version))
 
 ;; 获取下载页URL
+;; 社区版跳转到 mogan.app，商业版跳转到 liiistem.cn/com
 (tm-define (get-update-download-url)
   (:secure #t)
-  (if (== (get-output-language) "chinese")
-      "https://liiistem.cn/install.html"
-      "https://liiistem.com/install.html"))
+  (if (community-stem?)
+      ;; 社区版官网
+      (if (== (get-output-language) "chinese")
+          "https://mogan.app/zh/"
+          "https://mogan.app/en/")
+      ;; 商业版官网
+      (if (== (get-output-language) "chinese")
+          "https://liiistem.cn/install.html"
+          "https://liiistem.com/install.html")))
