@@ -93,6 +93,10 @@
   <assign|preview-bg-color|#5a7cc2>
 
   <assign|table-selection-color|#5500ff10>
+  
+  <assign|todo-color|#ffb3b3>
+
+  <assign|todo-bg-color|#5a1f1f>
 
   <assign|gr-grid-aspect|<tuple|<tuple|axes|#999999>|<tuple|1|#666666>|<tuple|10|#003153>>>
 
