@@ -45,9 +45,9 @@
     <item>Mogan STEM是<hlink|Liii STEM|https://liiistem.cn/docs/about-what-is-liiistem.html?from=app>的社区版，永久免费且开源，如果您想支持我们，欢迎购买Liii STEM。
   </enumerate-numeric>
 
-  <with|framed-color|pastel magenta|ornament-border|0ln|ornament-color|pastel yellow|<\ornamented>
+  <\version-notice>
     您正在使用<strong|v<Xmacs-version>>，当前最新稳定版是<strong|v<include|https://liiistem.cn/mogan_latest_version.tm>>，可访问官网<hlink|https://mogan.app/zh|https://mogan.app/zh?from=app>下载最新稳定版。
-  </ornamented>>
+  </version-notice>
 
   <section*|示例文档：我能用墨干做什么？>
 
