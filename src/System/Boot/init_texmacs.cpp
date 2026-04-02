@@ -209,6 +209,8 @@ init_texmacs_path (int& argc, char** argv) {
 #if defined(OS_MINGW) || defined(OS_WIN)
   // Win bundle environment initialization
   // TEXMACS_PATH is set by assuming that the executable is in TeXmacs/bin/
+  // Always trust the bundled resource path instead of any inherited
+  // TEXMACS_PATH from the user's environment.
   // HOME is set to USERPROFILE
   // PWD is set to HOME
   // if PWD is lacking, then the path resolution machinery may not work
