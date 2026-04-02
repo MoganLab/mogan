@@ -35,6 +35,11 @@ option("startup_tab")
     set_description("Enable startup tab with left navigation")
 option_end()
 
+option("text_toolbar")
+    set_default(false)
+    set_description("Enable text selection floating toolbar")
+option_end()
+
 -- Adjust community or commercial version
 option("is_community")
     set_default(true)
@@ -82,6 +87,7 @@ add_configfiles("src/System/config.h.xmake", {
         PDFHUMMUS_NO_TIFF = true,
         USE_MUPDF_RENDERER = has_config("mupdf"),
         USE_STARTUP_TAB = has_config("startup_tab"),
+        USE_TEXT_TOOLBAR = has_config("text_toolbar"),
         IS_COMMUNITY = has_config("is_community"),
         DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
     }
@@ -689,6 +695,7 @@ target("libmogan") do
                 USE_PLUGIN_HTML = true,
                 USE_MUPDF_RENDERER = has_config("mupdf"),
                 USE_STARTUP_TAB = has_config("startup_tab"),
+                USE_TEXT_TOOLBAR = has_config("text_toolbar"),
                 IS_COMMUNITY = has_config("is_community"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})

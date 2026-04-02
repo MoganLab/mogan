@@ -91,4 +91,6 @@ ${define USE_MUPDF_RENDERER}
 
 ${define USE_STARTUP_TAB}
 
+${define USE_TEXT_TOOLBAR}
+
 ${define IS_COMMUNITY}
