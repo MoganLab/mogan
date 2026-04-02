@@ -1219,8 +1219,13 @@ edit_interface_rep::should_show_text_popup () {
   }
   text_popup_last_check= now;
 
-  if (as_bool (call ("in-prog?")) || as_bool (call ("in-code?")) ||
-      as_bool (call ("in-verbatim?"))) {
+  static bool text_popup_module_loaded= false;
+  if (!text_popup_module_loaded) {
+    eval ("(use-modules (generic text-toolbar))");
+    text_popup_module_loaded= true;
+  }
+
+  if (!as_bool (call ("text-toolbar-allowed-context?"))) {
     text_popup_last_result= false;
     return false;
   }

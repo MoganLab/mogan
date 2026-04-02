@@ -21,6 +21,11 @@
         (text text-menu)
         (math math-menu)))
 
+(tm-define (text-toolbar-allowed-context?)
+  (and (not (in-prog?))
+       (not (in-code?))
+       (not (in-verbatim?))))
+
 (menu-bind text-toolbar-text-icons
   ((balloon (icon "tm_bold.xpm") "Write bold text")
    (toggle-bold))
