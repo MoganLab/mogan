@@ -23,23 +23,26 @@
     ; (scheme base) defined by R7RS
     let-values
     ; R7RS 5: Program Structure
-    define-values define-record-type
+    define-values define-record-type lambda case cond if
     ; R7RS 6.2: Numbers
-    square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
+    + - * / abs square exact inexact max min floor floor/ s7-floor ceiling s7-ceiling truncate truncate/ s7-truncate
     round s7-round floor-quotient floor-remainder gcd lcm s7-lcm modulo exact-integer-sqrt
-    numerator denominator exact-integer? number->string string->number
+    quotient remainder rationalize numerator denominator
+    zero? positive? negative? odd? even?
+    complex? real? rational? integer? exact? inexact? exact-integer?
+    number? number->string string->number
     ; R7RS 6.3: Booleans
-    boolean=?
+    boolean=? boolean? not
     ; R7RS 6.4: list
     pair? cons car cdr set-car! set-cdr! caar cadr cdar cddr
     null? list? make-list list length append reverse list-tail
-    list-ref list-set! memq memv member assq assv assoc list-copy
+    list-ref list-set! memq memv member assq assv assoc list-copy map
     ; R7RS 6.5: Symbol
-    symbol? symbol=? string->symbol symbol->string
+    symbol? symbol=? eq? eqv? equal? string->symbol symbol->string
     ; R7RS 6.6: Characters
-    digit-value
+    char? char=? char<? char>? char<=? char>=? char->integer integer->char digit-value
     ; R7RS 6.7: String
-    string-copy
+    string? make-string string=? string-ci=? string-length string-ref string-set! string-copy
     ; R7RS 6.8 Vector
     vector->string string->vector vector-copy vector-copy! vector-fill! vector-append
     ; R7RS 6.9 Bytevectors
@@ -49,8 +52,9 @@
     ; Input and Output
     call-with-port port? binary-port? textual-port? input-port-open? output-port-open?
     open-binary-input-file open-binary-output-file close-port eof-object
+    open-input-string open-output-string get-output-string read write
     ; Control flow
-    string-map vector-map string-for-each vector-for-each
+    string-map vector-map string-for-each vector-for-each and
     ; Exception
     raise guard read-error? file-error?
     ; SRFI-2
@@ -127,4 +131,3 @@
 
   ) ;begin
 ) ;define-library
-

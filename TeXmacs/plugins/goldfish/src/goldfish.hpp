@@ -17,6 +17,7 @@
 #include <algorithm>
 #include <argh.h>
 #include <chrono>
+#include <cctype>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -69,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.35"
+#define GOLDFISH_VERSION "17.11.37"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -3365,6 +3366,7 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
+  cout << "  source ORG/LIB     Display exact library source from *load-path*" << endl;
   cout << "  doc ORG/LIB        Display exact library documentation from tests/" << endl;
   cout << "  doc FUNC           Display exact function documentation from tests/" << endl;
   cout << "  doc --build-json   Rebuild function-library-index.json under tests/" << endl;
@@ -3420,9 +3422,133 @@ goldfish_eval_file (s7_scheme* sc, string path, bool quiet) {
   }
 }
 
+static string
+goldfish_cli_program_name () {
+  if (!command_args.empty ()) {
+    string program= fs::path (command_args.front ()).filename ().string ();
+    if (!program.empty ()) {
+      return program;
+    }
+  }
+  return "gf";
+}
+
+static bool
+goldfish_is_fix_hint_candidate_error (const string& errmsg) {
+  return errmsg.find ("unexpected close paren") != string::npos || errmsg.find ("missing close paren") != string::npos;
+}
+
+static string
+goldfish_extract_scheme_path_from_error (const string& errmsg) {
+  size_t marker= errmsg.find (".scm[");
+  while (marker != string::npos) {
+    size_t start= marker;
+    while (start > 0) {
+      unsigned char ch= static_cast<unsigned char> (errmsg[start - 1]);
+      if (std::isspace (ch) || ch == '"' || ch == '\'' || ch == '`' || ch == '(' || ch == ')' || ch == ',' || ch == ';') {
+        break;
+      }
+      --start;
+    }
+
+    string candidate= errmsg.substr (start, marker + 4 - start);
+    if (!candidate.empty ()) {
+      return candidate;
+    }
+
+    marker= errmsg.find (".scm[", marker + 1);
+  }
+
+  return "";
+}
+
+static string
+goldfish_extract_unbound_function_name_from_error (const string& errmsg) {
+  const string prefix= "unbound variable ";
+  size_t       start = errmsg.find (prefix);
+  if (start == string::npos) {
+    return "";
+  }
+
+  start += prefix.size ();
+  size_t end= start;
+  while (end < errmsg.size ()) {
+    unsigned char ch= static_cast<unsigned char> (errmsg[end]);
+    if (std::isspace (ch) || ch == '(' || ch == ')' || ch == ';') {
+      break;
+    }
+    ++end;
+  }
+
+  if (end == start) {
+    return "";
+  }
+
+  string function_name= errmsg.substr (start, end - start);
+  if (errmsg.find ("in (" + function_name, end) == string::npos) {
+    return "";
+  }
+
+  return function_name;
+}
+
+static string
+goldfish_format_scheme_error_message (const char* errmsg) {
+  if ((!errmsg) || (!*errmsg)) {
+    return "";
+  }
+
+  string formatted= errmsg;
+  if (formatted.find ("Hint: try `") != string::npos) {
+    return formatted;
+  }
+  if (!goldfish_is_fix_hint_candidate_error (formatted)) {
+    return formatted;
+  }
+
+  string path= goldfish_extract_scheme_path_from_error (formatted);
+  if (path.empty ()) {
+    return formatted;
+  }
+
+  if ((!formatted.empty ()) && (formatted.back () != '\n')) {
+    formatted += '\n';
+  }
+  formatted += "Hint: try `" + goldfish_cli_program_name () + " fix " + path + "` to repair common parenthesis issues.\n";
+  return formatted;
+}
+
+static string
+goldfish_append_doc_hint_if_needed (const string& errmsg) {
+  if (errmsg.find ("Hint: try `") != string::npos) {
+    return errmsg;
+  }
+
+  string function_name= goldfish_extract_unbound_function_name_from_error (errmsg);
+  if (function_name.empty ()) {
+    return errmsg;
+  }
+
+  string formatted= errmsg;
+  if ((!formatted.empty ()) && (formatted.back () != '\n')) {
+    formatted += '\n';
+  }
+  formatted += "Hint: try `" + goldfish_cli_program_name () + " doc \"" + function_name +
+               "\"` to look up related documentation.\n";
+  return formatted;
+}
+
+static void
+goldfish_print_scheme_error_message (const char* errmsg) {
+  if ((errmsg) && (*errmsg)) {
+    cout << goldfish_append_doc_hint_if_needed (goldfish_format_scheme_error_message (errmsg));
+  }
+}
+
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
-  s7_pointer x= s7_eval_c_string (sc, code.c_str ());
+  string wrapped_code = "(begin " + code + " )";
+  s7_pointer x= s7_eval_c_string (sc, wrapped_code.c_str ());
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
@@ -3543,6 +3669,21 @@ static string
 find_golddoc_tool_root (const char* gf_lib) {
   std::error_code ec;
   vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "golddoc", fs::path (gf_lib).parent_path () / "tools" / "golddoc"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+
+  return "";
+}
+
+static string
+find_goldsource_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldsource", fs::path (gf_lib).parent_path () / "tools" / "goldsource"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -4544,7 +4685,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (goldfix_opts.enabled) {
     int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
     errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4603,7 +4744,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     goldfish_eval_code (sc, code);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4645,7 +4786,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     goldfish_eval_file (sc, file, true);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cout << errmsg;
+      goldfish_print_scheme_error_message (errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4654,7 +4795,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     // 加载成功后进入 REPL
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
+    if ((errmsg) && (*errmsg)) {
+      string formatted_errmsg= goldfish_format_scheme_error_message (errmsg);
+      ic_printf ("[red]%s[/]\n", formatted_errmsg.c_str ());
+    }
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4674,7 +4818,10 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (command == "repl") {
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) ic_printf ("[red]%s[/]\n", errmsg);
+    if ((errmsg) && (*errmsg)) {
+      string formatted_errmsg= goldfish_format_scheme_error_message (errmsg);
+      ic_printf ("[red]%s[/]\n", formatted_errmsg.c_str ());
+    }
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4732,7 +4879,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4781,7 +4928,56 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
+    s7_close_output_port (sc, s7_current_error_port (sc));
+    s7_set_current_error_port (sc, old_port);
+    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    if (s7_is_integer (result)) {
+      return static_cast<int> (s7_integer (result));
+    }
+    return 0;
+  }
+
+  // 处理 source 子命令
+  if (command == "source") {
+    string goldsource_root = find_goldsource_tool_root (gf_lib);
+    if (goldsource_root.empty ()) {
+      cerr << "Error: tools/goldsource directory not found." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_add_to_load_path (sc, goldsource_root.c_str ());
+
+    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldsource))");
+    if (!import_result) {
+      cerr << "Error: Failed to import (liii goldsource) module." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    if ((errmsg) && (*errmsg)) {
+      cerr << "Error importing (liii goldsource): " << errmsg << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+
+    s7_pointer main_func = s7_name_to_value (sc, "main");
+    if ((!main_func) || (!s7_is_procedure (main_func))) {
+      cerr << "Error: Failed to find main function in (liii goldsource)." << endl;
+      s7_close_output_port (sc, s7_current_error_port (sc));
+      s7_set_current_error_port (sc, old_port);
+      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+      exit (1);
+    }
+    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
+    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4841,7 +5037,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cout << errmsg;
+      goldfish_print_scheme_error_message (errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4862,7 +5058,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     s7_call (sc, main_func, s7_nil (sc));
 
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4875,7 +5071,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (fs::exists (command, ec) && fs::is_regular_file (command, ec)) {
     goldfish_eval_file (sc, command, true);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) cout << errmsg;
+    goldfish_print_scheme_error_message (errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
