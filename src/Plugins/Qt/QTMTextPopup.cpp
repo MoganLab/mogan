@@ -61,7 +61,6 @@ QTMTextPopup::clearButtons () {
 
 void
 QTMTextPopup::rebuildButtonsFromScheme () {
-  eval ("(use-modules (generic text-toolbar))");
   object menu= eval ("'(horizontal (link text-toolbar-icons))");
   object obj = call ("make-menu-widget", menu, 0);
   if (!is_widget (obj)) return;
