@@ -283,10 +283,9 @@ QTMTextToolbar::selectionInView () const {
 void
 QTMTextToolbar::autoSize () {
   // 根据DPI和缩放因子自动调整大小
-  const double Scale= DpiUtils::scaleFactor ();
-  const double totalScale=
-      Scale * cached_magf * 12.0;
-  int btn_size;
+  const double Scale     = DpiUtils::scaleFactor ();
+  const double totalScale= Scale * cached_magf * 12.0;
+  int          btn_size;
 
   btn_size= int (40 * totalScale);
 
@@ -295,9 +294,9 @@ QTMTextToolbar::autoSize () {
   }
 
   // 设置按钮大小（使用 DpiUtils 处理内边距）
-  QSize icon_size (btn_size, btn_size);
-  int   padding= DpiUtils::scaled (16);
-  QSize fixed_size (btn_size + padding, btn_size + padding);
+  QSize                     icon_size (btn_size, btn_size);
+  int                       padding= DpiUtils::scaled (16);
+  QSize                     fixed_size (btn_size + padding, btn_size + padding);
   const QList<QToolButton*> buttons=
       findChildren<QToolButton*> (QString (), Qt::FindChildrenRecursively);
   for (QToolButton* button : buttons) {
