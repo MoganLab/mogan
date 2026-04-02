@@ -12,16 +12,15 @@
 #ifndef QTMAPPLICATION_HPP
 #define QTMAPPLICATION_HPP
 
+#include "qt_utilities.hpp"
 #include "renderer.hpp"
 #include "string.hpp"
 #include "sys_utils.hpp"
 #include "tm_url.hpp"
 #include "url.hpp"
-#include "qt_utilities.hpp"
 #include <QApplication>
 #include <QIcon>
 #include <QStyle>
-
 
 #if (QT_VERSION < 0x060000)
 #include <QGuiApplication>

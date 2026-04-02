@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #include "QTMTabPage.hpp"
-#include "qt_utilities.hpp"
 #include "new_view.hpp"
+#include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
 #include <QSize>

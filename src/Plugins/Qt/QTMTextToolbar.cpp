@@ -283,8 +283,9 @@ QTMTextToolbar::selectionInView () const {
 void
 QTMTextToolbar::autoSize () {
   // 根据DPI和缩放因子自动调整大小
-  const double Scale      = DpiUtils::scaleFactor ();
-  const double totalScale = Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
+  const double Scale= DpiUtils::scaleFactor ();
+  const double totalScale=
+      Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
   int btn_size;
 
   btn_size= int (40 * totalScale);

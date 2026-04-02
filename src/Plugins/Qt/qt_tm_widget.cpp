@@ -204,12 +204,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     mw->setMenuWidget (outBar);
   };
 
-  double   scale         = DpiUtils::scaleFactor ();
-  int      titleBarHeight= int (32 * scale);
-  int      buttonWidth   = int (46 * scale);
-  int      buttonHeight  = int (32 * scale);
-  int      iconBaseSize  = int (12 * scale);
-  int      macosiconSize = int (20 * scale);
+  double scale         = DpiUtils::scaleFactor ();
+  int    titleBarHeight= int (32 * scale);
+  int    buttonWidth   = int (46 * scale);
+  int    buttonHeight  = int (32 * scale);
+  int    iconBaseSize  = int (12 * scale);
+  int    macosiconSize = int (20 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
@@ -1334,7 +1334,7 @@ qt_tm_widget_rep::install_main_menu () {
   main_menu_widget    = waiting_main_menu_widget;
   QList<QAction*>* src= main_menu_widget->get_qactionlist ();
   if (!src) return;
-  QMenuBar* dest  = new QMenuBar ();
+  QMenuBar* dest= new QMenuBar ();
   // 设置与 menuToolBar 匹配的固定高度
   double scale= DpiUtils::scaleFactor ();
 #ifdef Q_OS_WIN
