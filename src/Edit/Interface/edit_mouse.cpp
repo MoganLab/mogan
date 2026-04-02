@@ -1181,11 +1181,7 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
 
 bool
 edit_interface_rep::should_show_text_toolbar () {
-#ifndef USE_TEXT_TOOLBAR
-  // 文本选中悬浮框已全局关闭。
-  text_toolbar_last_result= false;
-  return false;
-#else
+#ifdef USE_TEXT_TOOLBAR
   // 缓存结果100ms，避免过多的Scheme调用
   time_t now= texmacs_time ();
   if (now - text_toolbar_last_check < 100) {
@@ -1213,6 +1209,9 @@ edit_interface_rep::should_show_text_toolbar () {
 
   text_toolbar_last_result= true;
   return true;
+#else
+  // 文本选中悬浮框已全局关闭。
+  return false;
 #endif
 }
 
