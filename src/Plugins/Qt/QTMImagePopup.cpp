@@ -159,21 +159,22 @@ QTMImagePopup::updatePosition (qt_renderer_rep* ren) {
 // 根据DPI缩放和图片缩放比例自动调整按钮大小和窗口尺寸
 void
 QTMImagePopup::autoSize () {
-  const double Scale     = DpiUtils::scaleFactor ();
-  const int    baseWidth = 200;
-  const int    baseHeight= 50;
-  double       totalScale= Scale * cached_magf * 3.0;
-  int          IconSize;
+  const double Scale= DpiUtils::scaleFactor ();
+  // 基准窗口大小按 DPI 缩放
+  const int baseWidth = DpiUtils::scaled (200);
+  const int baseHeight= DpiUtils::scaled (50);
+  double    totalScale= Scale * cached_magf * 3.0;
+  int       IconSize;
 #if defined(Q_OS_MAC)
-  IconSize= int (50 * totalScale);
+  IconSize= int (36 * totalScale); // macOS 上稍微缩小
 #else
   IconSize= int (40 * totalScale);
 #endif
   if (cached_magf <= 0.16) {
-    cached_width = 169;
-    cached_height= 42;
+    cached_width = DpiUtils::scaled (169);
+    cached_height= DpiUtils::scaled (42);
     IconSize     = 25;
-    setFixedSize (169, 42);
+    setFixedSize (cached_width, cached_height);
   }
   else {
     cached_width = baseWidth * totalScale;

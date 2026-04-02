@@ -294,10 +294,10 @@ QTMTextToolbar::autoSize () {
     btn_size= 25;
   }
 
-  // 设置按钮大小
-  QSize                     icon_size (btn_size, btn_size);
-  QSize                     fixed_size (btn_size + 32,
-                                        btn_size + 32); // 内边距也扩大4倍 (8 * 4.0 = 32)
+  // 设置按钮大小（使用 DpiUtils 处理内边距）
+  QSize icon_size (btn_size, btn_size);
+  int   padding= DpiUtils::scaled (32); // 8px * 4.0，按 DPI 缩放
+  QSize fixed_size (btn_size + padding, btn_size + padding);
   const QList<QToolButton*> buttons=
       findChildren<QToolButton*> (QString (), Qt::FindChildrenRecursively);
   for (QToolButton* button : buttons) {
