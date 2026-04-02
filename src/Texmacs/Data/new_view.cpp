@@ -16,6 +16,7 @@
 #include "new_document.hpp"
 #include "new_window.hpp"
 #include "tm_data.hpp"
+#include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tm_url.hpp"
 #include "view_history.hpp"
@@ -372,13 +373,14 @@ get_passive_view_of_tabpage (url name) {
   if (is_nil (buf)) return url_none ();
   array<url> vs  = buffer_to_views (name);
   int        vs_N= N (vs);
+  url cur_win= has_current_view () && has_current_window () ? get_current_window ()
+                                                            : url_none ();
   for (int i= 0; i < vs_N; i++) {
     url win        = view_to_window (vs[i]);
     url win_tabpage= view_to_window_of_tabpage (vs[i]);
     if (is_none (win_tabpage)) return vs[i];
-    else if (is_none (win) && win_tabpage == get_current_window ()) {
-      return vs[i];
-    }
+    if (!is_none (cur_win) && win_tabpage == cur_win) return vs[i];
+    if (is_none (win) && win_tabpage == cur_win) return vs[i];
   }
   return get_new_view (buf->buf->name);
 }
