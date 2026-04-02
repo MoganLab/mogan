@@ -1,7 +1,8 @@
+
 /******************************************************************************
- * MODULE     : qtm_dpi_utils.cpp
+ * MODULE     : qt_dpi_utils.cpp
  * DESCRIPTION: Unified DPI and scale factor utilities for Qt widgets
- * COPYRIGHT  : (C) 2026  Liii Labs
+ * COPYRIGHT  : (C) 2026  Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  ******************************************************************************/
