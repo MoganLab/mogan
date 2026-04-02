@@ -371,10 +371,11 @@ get_passive_view_of_tabpage (url name) {
   // Create a new view if no such view exists
   tm_buffer buf= concrete_buffer_insist (name);
   if (is_nil (buf)) return url_none ();
-  array<url> vs  = buffer_to_views (name);
-  int        vs_N= N (vs);
-  url cur_win= has_current_view () && has_current_window () ? get_current_window ()
-                                                            : url_none ();
+  array<url> vs     = buffer_to_views (name);
+  int        vs_N   = N (vs);
+  url        cur_win= has_current_view () && has_current_window ()
+                          ? get_current_window ()
+                          : url_none ();
   for (int i= 0; i < vs_N; i++) {
     url win        = view_to_window (vs[i]);
     url win_tabpage= view_to_window_of_tabpage (vs[i]);
