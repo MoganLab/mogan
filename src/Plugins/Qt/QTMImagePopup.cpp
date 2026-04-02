@@ -160,21 +160,22 @@ QTMImagePopup::updatePosition (qt_renderer_rep* ren) {
 void
 QTMImagePopup::autoSize () {
   const double Scale= DpiUtils::scaleFactor ();
-  // 基准窗口大小按 DPI 缩放
-  const int baseWidth = DpiUtils::scaled (200);
-  const int baseHeight= DpiUtils::scaled (50);
-  double    totalScale= Scale * cached_magf * 3.0;
+  // 基准窗口大小（逻辑像素）
+  const int baseWidth = 200;
+  const int baseHeight= 50;
+  double    totalScale= Scale * cached_magf * 2.0; // 减小缩放因子
   int       IconSize  = int (40 * totalScale);
   if (cached_magf <= 0.16) {
+    // 文档缩放很小时，使用固定大小（仅DPI缩放）
     cached_width = DpiUtils::scaled (169);
     cached_height= DpiUtils::scaled (42);
     IconSize     = 25;
     setFixedSize (cached_width, cached_height);
   }
   else {
-    cached_width = baseWidth * totalScale;
-    cached_height= baseHeight * totalScale;
-    this->resize (int (baseWidth * totalScale), int (baseHeight * totalScale));
+    cached_width = int (baseWidth * totalScale);
+    cached_height= int (baseHeight * totalScale);
+    this->resize (cached_width, cached_height);
   }
   leftBtn->setIconSize (QSize (IconSize, IconSize));
   middleBtn->setIconSize (QSize (IconSize, IconSize));
