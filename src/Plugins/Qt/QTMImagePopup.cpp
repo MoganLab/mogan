@@ -164,12 +164,7 @@ QTMImagePopup::autoSize () {
   const int baseWidth = DpiUtils::scaled (200);
   const int baseHeight= DpiUtils::scaled (50);
   double    totalScale= Scale * cached_magf * 3.0;
-  int       IconSize;
-#if defined(Q_OS_MAC)
-  IconSize= int (36 * totalScale); // macOS 上稍微缩小
-#else
-  IconSize= int (40 * totalScale);
-#endif
+  int       IconSize  = int (40 * totalScale);
   if (cached_magf <= 0.16) {
     cached_width = DpiUtils::scaled (169);
     cached_height= DpiUtils::scaled (42);

@@ -48,7 +48,7 @@ getDPIScaleFactor () {
 static int
 getScaledSystemBarHeight () {
 #ifdef Q_OS_MAC
-  constexpr int baseHeight= 30;
+  constexpr int baseHeight= 22;
 #else
   constexpr int baseHeight= 36;
 #endif
@@ -58,7 +58,7 @@ getScaledSystemBarHeight () {
 static int
 getScaledSystemButtonHeight () {
 #ifdef Q_OS_MAC
-  constexpr int baseHeight= 20;
+  constexpr int baseHeight= 15;
 #else
   constexpr int baseHeight= 24;
 #endif
@@ -68,7 +68,7 @@ getScaledSystemButtonHeight () {
 static QSize
 getScaledTabCloseButtonSize () {
 #ifdef Q_OS_MAC
-  constexpr int baseSize= 16;
+  constexpr int baseSize= 12;
 #else
   constexpr int baseSize= 20;
 #endif

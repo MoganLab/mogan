@@ -22,19 +22,16 @@ DpiUtils::scaleFactor (QScreen* screen) {
     }
   }
 
-#ifdef Q_OS_WIN
-  // Windows: 使用逻辑 DPI 计算缩放比例
-  // 与 Windows 自身的缩放行为保持一致
-  qreal dpi= screen->logicalDotsPerInch ();
-  return dpi / BASE_DPI;
-#elif defined(Q_OS_MAC)
+#ifdef Q_OS_MAC
   // macOS: 使用逻辑 DPI / 72.0
   // macOS 传统上使用 72 DPI 作为基准
   qreal dpi= screen->logicalDotsPerInch ();
   return dpi / MACOS_BASE_DPI;
 #else
-  // Linux: 使用 devicePixelRatio
-  return screen->devicePixelRatio ();
+  // Windows/Linux: 使用逻辑 DPI 计算缩放比例
+  // 与系统自身的缩放行为保持一致（基准 96 DPI）
+  qreal dpi= screen->logicalDotsPerInch ();
+  return dpi / BASE_DPI;
 #endif
 }
 
