@@ -22,14 +22,12 @@
 #include "tm_ostream.hpp"
 
 #include <QFrame>
-#include <QGuiApplication>
 #include <QHelpEvent>
 #include <QIcon>
 #include <QLabel>
 #include <QLayoutItem>
 #include <QPainter>
 #include <QPen>
-#include <QScreen>
 #include <QSizePolicy>
 #include <QToolButton>
 #include <QToolTip>
@@ -285,11 +283,8 @@ QTMTextToolbar::selectionInView () const {
 void
 QTMTextToolbar::autoSize () {
   // 根据DPI和缩放因子自动调整大小
-  QScreen*     Screen= QGuiApplication::primaryScreen ();
-  const double Dpi   = Screen ? Screen->logicalDotsPerInch () : 96.0;
-  const double Scale = Dpi / 96.0;
-  const double totalScale=
-      Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
+  const double Scale      = DpiUtils::scaleFactor ();
+  const double totalScale = Scale * cached_magf * 12.0; // 原始3.0倍，扩大4倍后为12.0倍
   int btn_size;
 
   btn_size= int (40 * totalScale);

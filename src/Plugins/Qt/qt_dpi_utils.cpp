@@ -20,15 +20,15 @@ qreal DpiUtils::scaleFactor(QScreen* screen) {
             return 1.0;
         }
     }
-    
+
 #ifdef Q_OS_WIN
-    // Windows: Use logical DPI to calculate scale factor
-    // This matches Windows' own scaling behavior
+    // Windows: 使用逻辑 DPI 计算缩放比例
+    // 与 Windows 自身的缩放行为保持一致
     qreal dpi = screen->logicalDotsPerInch();
     return dpi / BASE_DPI;
 #else
-    // macOS/Linux: Use devicePixelRatio
-    // On macOS this accounts for Retina displays automatically
+    // macOS/Linux: 使用 devicePixelRatio
+    // 在 macOS Retina 屏幕上返回 2.0，用于计算物理像素尺寸
     return screen->devicePixelRatio();
 #endif
 }
@@ -42,9 +42,8 @@ int DpiUtils::scaled(int baseSize, QScreen* screen) {
 }
 
 int DpiUtils::scaled(int baseSize, qreal scale) {
-    // Use floor(x + 0.5) for proper rounding to nearest integer
-    // This ensures pixel-perfect alignment
-    return static_cast<int>(qFloor(baseSize * scale + 0.5));
+    // 使用 qRound 进行四舍五入，确保像素对齐
+    return qRound(baseSize * scale);
 }
 
 qreal DpiUtils::scaledF(qreal baseSize, QScreen* screen) {
@@ -55,58 +54,58 @@ qreal DpiUtils::scaledF(qreal baseSize, qreal scale) {
     return baseSize * scale;
 }
 
-// ========== Coordinate Conversion: Logical → Physical ==========
+// ========== 坐标转换：逻辑 → 物理 ==========
 
 QRect DpiUtils::toPhysicalRect(const QRect& logicalRect, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QRect(
-        static_cast<int>(logicalRect.x() * scale),
-        static_cast<int>(logicalRect.y() * scale),
-        static_cast<int>(logicalRect.width() * scale),
-        static_cast<int>(logicalRect.height() * scale)
+        qRound(logicalRect.x() * scale),
+        qRound(logicalRect.y() * scale),
+        qRound(logicalRect.width() * scale),
+        qRound(logicalRect.height() * scale)
     );
 }
 
 QPoint DpiUtils::toPhysicalPoint(const QPoint& logicalPoint, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QPoint(
-        static_cast<int>(logicalPoint.x() * scale),
-        static_cast<int>(logicalPoint.y() * scale)
+        qRound(logicalPoint.x() * scale),
+        qRound(logicalPoint.y() * scale)
     );
 }
 
 QSize DpiUtils::toPhysicalSize(const QSize& logicalSize, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QSize(
-        static_cast<int>(logicalSize.width() * scale),
-        static_cast<int>(logicalSize.height() * scale)
+        qRound(logicalSize.width() * scale),
+        qRound(logicalSize.height() * scale)
     );
 }
 
-// ========== Coordinate Conversion: Physical → Logical ==========
+// ========== 坐标转换：物理 → 逻辑 ==========
 
 QRect DpiUtils::toLogicalRect(const QRect& physicalRect, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QRect(
-        static_cast<int>(physicalRect.x() / scale),
-        static_cast<int>(physicalRect.y() / scale),
-        static_cast<int>(physicalRect.width() / scale),
-        static_cast<int>(physicalRect.height() / scale)
+        qRound(physicalRect.x() / scale),
+        qRound(physicalRect.y() / scale),
+        qRound(physicalRect.width() / scale),
+        qRound(physicalRect.height() / scale)
     );
 }
 
 QPoint DpiUtils::toLogicalPoint(const QPoint& physicalPoint, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QPoint(
-        static_cast<int>(physicalPoint.x() / scale),
-        static_cast<int>(physicalPoint.y() / scale)
+        qRound(physicalPoint.x() / scale),
+        qRound(physicalPoint.y() / scale)
     );
 }
 
 QSize DpiUtils::toLogicalSize(const QSize& physicalSize, QScreen* screen) {
     qreal scale = scaleFactor(screen);
     return QSize(
-        static_cast<int>(physicalSize.width() / scale),
-        static_cast<int>(physicalSize.height() / scale)
+        qRound(physicalSize.width() / scale),
+        qRound(physicalSize.height() / scale)
     );
 }

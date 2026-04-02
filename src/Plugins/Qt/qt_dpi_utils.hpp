@@ -17,79 +17,78 @@
 class QScreen;
 
 /**
- * Unified DPI/Scale factor utilities for cross-platform HiDPI handling.
- * 
- * Windows: Uses logicalDotsPerInch() / 96.0
- * macOS/Linux: Uses devicePixelRatio()
+ * DPI/Scale 工具类，用于跨平台 HiDPI 处理。
+ *
+ * Windows: 使用 logicalDotsPerInch() / 96.0 计算缩放比例
+ * macOS/Linux: 使用 devicePixelRatio()
  */
 class DpiUtils {
 public:
     /**
-     * Get the scale factor for the given screen.
-     * @param screen The screen to query. If null, uses primary screen.
-     * @return Scale factor (1.0 = 96 DPI standard)
+     * 获取指定屏幕的缩放比例。
+     * @param screen 目标屏幕，传入 nullptr 则使用主屏幕
+     * @return 缩放比例 (1.0 = 96 DPI 标准)
      */
     static qreal scaleFactor(QScreen* screen = nullptr);
-    
+
     /**
-     * Get the scale factor for the primary screen.
-     * Convenience method for scaleFactor() with no arguments.
+     * 获取主屏幕的缩放比例。
+     * 等同于调用 scaleFactor() 无参版本。
      */
     static qreal mainScreenScale();
     
     /**
-     * Scale an integer size by the screen's scale factor.
-     * Uses floor(x * scale + 0.5) for proper pixel alignment.
-     * @param baseSize Base size at 96 DPI
-     * @param screen Target screen (null = primary)
-     * @return Scaled and rounded size
+     * 按屏幕缩放比例对整数值进行缩放。
+     * @param baseSize 96 DPI 下的基准大小
+     * @param screen 目标屏幕，传入 nullptr 则使用主屏幕
+     * @return 缩放后并四舍五入的整数
      */
     static int scaled(int baseSize, QScreen* screen = nullptr);
-    
+
     /**
-     * Scale an integer size by a specific scale factor.
-     * @param baseSize Base size at 96 DPI
-     * @param scale Scale factor to apply
-     * @return Scaled and rounded size
+     * 按指定缩放比例对整数值进行缩放。
+     * @param baseSize 96 DPI 下的基准大小
+     * @param scale 要应用的缩放比例
+     * @return 缩放后并四舍五入的整数
      */
     static int scaled(int baseSize, qreal scale);
-    
+
     /**
-     * Scale a floating-point size by the screen's scale factor.
-     * @param baseSize Base size at 96 DPI
-     * @param screen Target screen (null = primary)
-     * @return Scaled size (not rounded)
+     * 按屏幕缩放比例对浮点值进行缩放。
+     * @param baseSize 96 DPI 下的基准大小
+     * @param screen 目标屏幕，传入 nullptr 则使用主屏幕
+     * @return 缩放后的浮点值（不进行四舍五入）
      */
     static qreal scaledF(qreal baseSize, QScreen* screen = nullptr);
-    
+
     /**
-     * Scale a floating-point size by a specific scale factor.
-     * @param baseSize Base size at 96 DPI
-     * @param scale Scale factor to apply
-     * @return Scaled size
+     * 按指定缩放比例对浮点值进行缩放。
+     * @param baseSize 96 DPI 下的基准大小
+     * @param scale 要应用的缩放比例
+     * @return 缩放后的浮点值
      */
     static qreal scaledF(qreal baseSize, qreal scale);
     
     /**
-     * Convert logical (device-independent) rectangle to physical pixels.
-     * Used for screenshot coordinates, image extraction, etc.
+     * 将逻辑坐标（设备无关）转换为物理像素坐标。
+     * 用于截图坐标、图像提取等场景。
      */
     static QRect toPhysicalRect(const QRect& logicalRect, QScreen* screen = nullptr);
     static QPoint toPhysicalPoint(const QPoint& logicalPoint, QScreen* screen = nullptr);
     static QSize toPhysicalSize(const QSize& logicalSize, QScreen* screen = nullptr);
-    
+
     /**
-     * Convert physical pixel coordinates to logical (device-independent) coordinates.
+     * 将物理像素坐标转换为逻辑坐标（设备无关）。
      */
     static QRect toLogicalRect(const QRect& physicalRect, QScreen* screen = nullptr);
     static QPoint toLogicalPoint(const QPoint& physicalPoint, QScreen* screen = nullptr);
     static QSize toLogicalSize(const QSize& physicalSize, QScreen* screen = nullptr);
 
 private:
-    // Base DPI for Windows (standard 96 DPI)
+    // Windows 基准 DPI（标准 96 DPI）
     static constexpr qreal BASE_DPI = 96.0;
-    
-    // Prevent instantiation - static utility class
+
+    // 禁止实例化 - 静态工具类
     DpiUtils() = delete;
 };
 
