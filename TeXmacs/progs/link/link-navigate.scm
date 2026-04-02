@@ -684,7 +684,8 @@
                      "Hold down COMMAND and click the mouse to follow the link"
                      "Hold down CTRL and click the mouse to follow the link"))
            (text (string-append (translate base) ": " url))
-           (tip `(preview-balloon (verbatim ,text))))
+           (tip `(preview-balloon
+                   ,(verbatim-snippet->texmacs (cork->utf8 text)))))
       (close-tooltip)
       (delayed
         (:idle 100)
