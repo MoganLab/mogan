@@ -10,11 +10,10 @@
  ******************************************************************************/
 
 #include "QTMTabPage.hpp"
+#include "qt_utilities.hpp"
 #include "new_view.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
-#include <QGuiApplication>
-#include <QScreen>
 #include <QSize>
 
 // The minimum width of a single tab page (in pixels).
@@ -40,12 +39,10 @@ constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 0;
 constexpr int TAB_RIGHT_EXTRA_GAP           = 66;
 #endif
 
-// DPI scaling utility functions
+// DPI scaling utility functions (使用 DpiUtils)
 static double
 getDPIScaleFactor () {
-  QScreen* screen= QGuiApplication::primaryScreen ();
-  double   dpi   = screen ? screen->logicalDotsPerInch () : 96.0;
-  return dpi / 96.0;
+  return DpiUtils::scaleFactor ();
 }
 
 static int

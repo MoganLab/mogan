@@ -29,7 +29,6 @@
 #include <QNetworkRequest>
 #include <QObject>
 #include <QResource>
-#include <QScreen>
 #include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
@@ -205,9 +204,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     mw->setMenuWidget (outBar);
   };
 
-  QScreen* screen        = QGuiApplication::primaryScreen ();
-  double   dpi           = screen ? screen->logicalDotsPerInch () : 96.0;
-  double   scale         = dpi / 96.0;
+  double   scale         = DpiUtils::scaleFactor ();
   int      titleBarHeight= int (32 * scale);
   int      buttonWidth   = int (46 * scale);
   int      buttonHeight  = int (32 * scale);
@@ -1338,18 +1335,12 @@ qt_tm_widget_rep::install_main_menu () {
   QList<QAction*>* src= main_menu_widget->get_qactionlist ();
   if (!src) return;
   QMenuBar* dest  = new QMenuBar ();
-  QScreen*  screen= QGuiApplication::primaryScreen ();
-#ifdef Q_OS_WIN
   // 设置与 menuToolBar 匹配的固定高度
-  // 使用 devicePixelRatio() 获取正确的屏幕缩放比
-  // 获取屏幕DPI缩放比例
-  double dpi  = screen ? screen->logicalDotsPerInch () : 96.0;
-  double scale= dpi / 96.0;
-
-  int h= (int) floor (72 * scale + 0.5);
+  double scale= DpiUtils::scaleFactor ();
+#ifdef Q_OS_WIN
+  int h= DpiUtils::scaled (72);
 #else
-  double scale= screen ? screen->devicePixelRatio () : 1.0; // 正确的屏幕缩放比
-  int    h    = (int) floor (108 * scale + 0.5);
+  int h= DpiUtils::scaled (108);
 #endif
   dest->setFixedHeight (h);
 
@@ -1959,10 +1950,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   infoLayout->setSpacing (4);
 
   // 登出按钮 - 登录成功后显示（使用图标）
-  QScreen*     logoutScreen= QGuiApplication::primaryScreen ();
-  const double logoutDpi=
-      logoutScreen ? logoutScreen->logicalDotsPerInch () : 96.0;
-  const double logoutScale= logoutDpi / 96.0;
+  const double logoutScale= DpiUtils::scaleFactor ();
 #if defined(Q_OS_MAC)
   const int logoutIconSize= int (30 * logoutScale);
 #else

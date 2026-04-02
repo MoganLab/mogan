@@ -159,9 +159,7 @@ QTMImagePopup::updatePosition (qt_renderer_rep* ren) {
 // 根据DPI缩放和图片缩放比例自动调整按钮大小和窗口尺寸
 void
 QTMImagePopup::autoSize () {
-  QScreen*     Screen    = QGuiApplication::primaryScreen ();
-  const double Dpi       = Screen ? Screen->logicalDotsPerInch () : 96.0;
-  const double Scale     = Dpi / 96.0;
+  const double Scale     = DpiUtils::scaleFactor ();
   const int    baseWidth = 200;
   const int    baseHeight= 50;
   double       totalScale= Scale * cached_magf * 3.0;

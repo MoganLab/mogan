@@ -17,11 +17,11 @@
 #include "sys_utils.hpp"
 #include "tm_url.hpp"
 #include "url.hpp"
+#include "qt_utilities.hpp"
 #include <QApplication>
 #include <QIcon>
 #include <QStyle>
 
-#include <QScreen>
 
 #if (QT_VERSION < 0x060000)
 #include <QGuiApplication>
@@ -125,12 +125,12 @@ public:
 
 #if (QT_VERSION < 0x060000)
     if (!retina_manual) {
-      qreal ratio  = QGuiApplication::primaryScreen ()->devicePixelRatio ();
+      qreal ratio  = DpiUtils::scaleFactor ();
       retina_factor= qRound (ratio - 0.1);
     }
 #else
     if (!retina_manual) {
-      qreal ratio  = QApplication::primaryScreen ()->devicePixelRatio ();
+      qreal ratio  = DpiUtils::scaleFactor ();
       retina_factor= qRound (ratio - 0.1);
     }
 #endif
