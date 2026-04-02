@@ -20,7 +20,8 @@ class QScreen;
  * DPI/Scale 工具类，用于跨平台 HiDPI 处理。
  *
  * Windows: 使用 logicalDotsPerInch() / 96.0 计算缩放比例
- * macOS/Linux: 使用 devicePixelRatio()
+ * macOS: 使用 logicalDotsPerInch() / 72.0 计算缩放比例（macOS 传统基准）
+ * Linux: 使用 devicePixelRatio()
  */
 class DpiUtils {
 public:
@@ -92,7 +93,9 @@ public:
 
 private:
   // Windows 基准 DPI（标准 96 DPI）
-  static constexpr qreal BASE_DPI= 96.0;
+  static constexpr qreal BASE_DPI      = 96.0;
+  // macOS 传统基准 DPI（72 DPI）
+  static constexpr qreal MACOS_BASE_DPI= 72.0;
 
   // 禁止实例化 - 静态工具类
   DpiUtils ()= delete;
