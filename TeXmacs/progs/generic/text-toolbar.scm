@@ -130,7 +130,6 @@
                        (loop (tree-ref t 0)))
                       (else #f)))))))
 
-
 (menu-bind text-toolbar-semantic-icons
   (with t (semantic-block-selection-tree)
     (when (and t (numbered-context? t))
@@ -144,6 +143,73 @@
       (=> (balloon (icon "tm_switch.xpm") "Structured variant")
           (dynamic (focus-variant-menu t))))))
 
+(tm-define (chatper-selection-tree . opt-t)
+  (with l '(chapter section subsection subsubsection)
+    (if (nnull? opt-t)
+        (and (tree-in? (car opt-t) (numbered-unnumbered-append l))
+             l)
+        (and (selection-active-any?)
+             (with t (path->tree (selection-path))
+               (and (== (selection-tree) t)
+                    (let loop ((t t))
+                      (cond ((tree-in? t (numbered-unnumbered-append l))
+                             t)
+                            ((tm-func? t 'document 1)
+                             (loop (tree-ref t 0)))
+                            (else #f)))))))))
+
+(tm-define (focus-variants-of t)
+  (:require (chatper-selection-tree t))
+  (chatper-selection-tree t))
+
+(menu-bind text-toolbar-chatper-icons
+  (with t (chatper-selection-tree)
+    (when (and t (numbered-context? t))
+      ((check (balloon (icon "tm_numbered.xpm") "Numbered") "v"
+              (numbered-numbered? t))
+       (numbered-toggle t)))
+    (when t
+      (mini #t
+        (with l (focus-variants-of t)
+          (assuming (<= (length l) 1)
+            (inert ((eval `(verbatim ,(focus-tag-name (tree-label t))))
+                    (noop))))
+          (assuming (> (length l) 1)
+            (=> (balloon (eval `(verbatim ,(focus-tag-name (tree-label t))))
+                         (eval
+                          (string-append "Structured variant ("
+                           (string-append (translate (kbd-system-rewrite "A-S-up"))
+                            (string-append "/"
+                             (string-append (translate (kbd-system-rewrite "A-S-down"))
+                              (string-append ")")))))))
+                (dynamic (focus-variant-menu t)))))))
+    (with var (and t (focus-section-title-style-var t))
+      (when var
+        ((check (balloon (icon "tm_cell_left.xpm") "Left aligned") "v"
+                (== (safe-init-env var) "left"))
+         (init-env var "left"))
+        ((check (balloon (icon "tm_cell_center.xpm") "Centered") "v"
+                (== (safe-init-env var) "center"))
+         (init-env var "center"))))
+    (with num-var (and t (section-number-style-var t))
+      (when num-var
+        (=> (balloon (icon "tm_focus_prefs.xpm") "number style")
+            ((check "Arabic (1, 2, 3)" "v" (== (safe-init-env num-var) "arabic"))
+             (init-env num-var "arabic"))
+            ((check "Hanzi (一, 二, 三)" "v" (== (safe-init-env num-var) "hanzi"))
+             (init-env num-var "hanzi"))
+            ((check "Roman (I, II, III)" "v" (== (safe-init-env num-var) "Roman"))
+             (init-env num-var "Roman"))
+            ((check "roman (i, ii, iii)" "v" (== (safe-init-env num-var) "roman"))
+             (init-env num-var "roman"))
+            ((check "Alpha (A, B, C)" "v" (== (safe-init-env num-var) "Alpha"))
+             (init-env num-var "Alpha"))
+            ((check "alpha (a, b, c)" "v" (== (safe-init-env num-var) "alpha"))
+             (init-env num-var "alpha"))
+            ((check (verbatim "Circle (①, ②, ③)") "v"
+                    (== (safe-init-env num-var) "circle"))
+             (init-env num-var "circle")))))))
+
 (tm-define (table-selection-context? t)
   (or (selection-active-table?)
       (and (selection-active-any?)
@@ -152,10 +218,15 @@
 (tm-define (semantic-block-selection-context? t)
   (not (not (semantic-block-selection-tree))))
 
+(tm-define (chatper-selection-context? t)
+  (not (not (chatper-selection-tree))))
+
 (menu-bind text-toolbar-icons
   (cond
    ((table-selection-context? (focus-tree))
     (link text-toolbar-table-icons))
+   ((chatper-selection-context? (focus-tree))
+    (link text-toolbar-chatper-icons))
    ((semantic-block-selection-context? (focus-tree))
     (link text-toolbar-semantic-icons))
    (else
