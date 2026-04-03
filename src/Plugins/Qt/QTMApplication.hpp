@@ -12,7 +12,6 @@
 #ifndef QTMAPPLICATION_HPP
 #define QTMAPPLICATION_HPP
 
-#include "qt_utilities.hpp"
 #include "renderer.hpp"
 #include "string.hpp"
 #include "sys_utils.hpp"
@@ -21,6 +20,8 @@
 #include <QApplication>
 #include <QIcon>
 #include <QStyle>
+
+#include <QScreen>
 
 #if (QT_VERSION < 0x060000)
 #include <QGuiApplication>
@@ -124,12 +125,12 @@ public:
 
 #if (QT_VERSION < 0x060000)
     if (!retina_manual) {
-      qreal ratio  = DpiUtils::scaleFactor ();
+      qreal ratio  = QGuiApplication::primaryScreen ()->devicePixelRatio ();
       retina_factor= qRound (ratio - 0.1);
     }
 #else
     if (!retina_manual) {
-      qreal ratio  = DpiUtils::scaleFactor ();
+      qreal ratio  = QGuiApplication::primaryScreen ()->devicePixelRatio ();
       retina_factor= qRound (ratio - 0.1);
     }
 #endif

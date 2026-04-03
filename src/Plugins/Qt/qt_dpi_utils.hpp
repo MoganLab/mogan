@@ -32,12 +32,6 @@ public:
   static qreal scaleFactor (QScreen* screen= nullptr);
 
   /**
-   * 获取主屏幕的缩放比例。
-   * 等同于调用 scaleFactor() 无参版本。
-   */
-  static qreal mainScreenScale ();
-
-  /**
    * 按屏幕缩放比例对整数值进行缩放。
    * @param baseSize 96 DPI 下的基准大小
    * @param screen 目标屏幕，传入 nullptr 则使用主屏幕

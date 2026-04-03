@@ -11,7 +11,6 @@
 
 #include <QGuiApplication>
 #include <QScreen>
-#include <QtMath>
 
 qreal
 DpiUtils::scaleFactor (QScreen* screen) {
@@ -33,11 +32,6 @@ DpiUtils::scaleFactor (QScreen* screen) {
   qreal dpi= screen->logicalDotsPerInch ();
   return dpi / BASE_DPI;
 #endif
-}
-
-qreal
-DpiUtils::mainScreenScale () {
-  return scaleFactor ();
 }
 
 int
