@@ -170,11 +170,12 @@
       ("Warning" (make 'warning))
       ("Acknowledgments" (make 'acknowledgments*))
       ---)
+  ("Question" (make 'question))
+  ("Answer" (make 'answer*))
+  ---
   ("Exercise" (make 'exercise))
   ("Problem" (make 'problem))
-  ("Question" (make 'question))
-  ("Solution" (make 'solution*))
-  ("Answer" (make 'answer*)))
+  ("Solution" (make 'solution*)))
 
 (menu-bind prominent-menu
   ("Quote" (make 'quote-env))
