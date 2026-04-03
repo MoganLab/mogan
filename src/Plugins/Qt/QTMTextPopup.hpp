@@ -39,6 +39,7 @@ public:
 
 protected:
   void rebuildButtonsFromScheme ();
+  void updateButtonsFromScheme ();
   void clearButtons ();
 };
 
