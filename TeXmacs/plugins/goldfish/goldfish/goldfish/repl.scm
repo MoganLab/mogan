@@ -24,7 +24,7 @@
 (begin
 
 (define (goldfish-welcome)
-  (let1 mode (last (argv))
+  (let ((mode (last (argv))))
     (if (string=? mode "default")
         (flush-prompt "> ")
         (flush-prompt (string-append (string-upcase mode) "] "))))
