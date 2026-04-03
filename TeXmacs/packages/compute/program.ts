@@ -12,7 +12,7 @@
       evaluated in their context.
     </src-purpose>
 
-    <src-copyright|1998--2014|Joris van der Hoeven, Fran�ois Poulain>
+    <src-copyright|1998--2014|Joris van der Hoeven, François Poulain>
 
     <\src-license>
       This software falls under the <hlink|GNU general public license,
