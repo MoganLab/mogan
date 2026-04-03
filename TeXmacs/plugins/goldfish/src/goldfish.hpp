@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.37"
+#define GOLDFISH_VERSION "17.11.38"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -94,6 +94,15 @@ using nlohmann::json;
 
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional);
+
+static s7_pointer
+f_function_libraries (s7_scheme* sc, s7_pointer args);
+
+static bool
+split_library_query (const string& query, string& group, string& library);
+
+static vector<string>
+find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
 
 static const char* NJSON_HANDLE_TAG = "njson-handle";
 struct NjsonState {
@@ -2114,16 +2123,23 @@ inline void
 glue_goldfish (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
 
-  const char* s_version    = "version";
-  const char* d_version    = "(version) => string";
-  const char* s_delete_file= "g_delete-file";
-  const char* d_delete_file= "(g_delete-file string) => boolean";
+  const char* s_version           = "version";
+  const char* d_version           = "(version) => string";
+  const char* s_delete_file       = "g_delete-file";
+  const char* d_delete_file       = "(g_delete-file string) => boolean";
+  const char* s_function_libraries= "g_function-libraries";
+  const char* d_function_libraries=
+    "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
+    "export function-name in the current *load-path*";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_delete_file),
              s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_function_libraries),
+             s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -3366,10 +3382,25 @@ display_help () {
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
   cout << "                       --dry-run  Print formatted result to stdout" << endl;
-  cout << "  source ORG/LIB     Display exact library source from *load-path*" << endl;
-  cout << "  doc ORG/LIB        Display exact library documentation from tests/" << endl;
-  cout << "  doc FUNC           Display exact function documentation from tests/" << endl;
-  cout << "  doc --build-json   Rebuild function-library-index.json under tests/" << endl;
+  cout << "  source ORG/LIB     Print the exact source of ORG/LIB from current *load-path*" << endl;
+  cout << "                     Reads the real library file, not tests/ or generated docs" << endl;
+  cout << "                     Example: gf source liii/path" << endl;
+  cout << "  doc ORG/LIB        Show the library overview for ORG/LIB from tests/" << endl;
+  cout << "                     Usually reads tests/ORG/LIB-test.scm" << endl;
+  cout << "                     Example: gf doc liii/path" << endl;
+  cout << "  doc ORG/LIB FUNC   Show the function doc/test file for FUNC under a specific library" << endl;
+  cout << "                     Best when you already know the library, or the name is ambiguous" << endl;
+  cout << "                     Example: gf doc liii/path \"path-read-text\"" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
+  cout << "                     This preserves symbols such as ! ? > < and keeps FUNC as one shell argument" << endl;
+  cout << "  doc FUNC           Search visible libraries for exported FUNC, then show its doc/test file" << endl;
+  cout << "                     If multiple libraries export it, candidates are listed" << endl;
+  cout << "                     Example: gf doc \"string-split\"" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
+  cout << "                     This keeps shell-sensitive symbols intact and makes it clear FUNC is one argument" << endl;
+  cout << "  doc --build-json   Rebuild tests/function-library-index.json for global gf doc FUNC lookup" << endl;
+  cout << "                     Needed by function-name search and fuzzy suggestions" << endl;
+  cout << "                     Run this after changing exports, or before packaging" << endl;
   cout << "  test [PATTERN]     Run tests (all *-test.scm files under tests/)" << endl;
   cout << "                     PATTERN can be:" << endl;
   cout << "                       (none)          Run all tests" << endl;
@@ -3463,7 +3494,68 @@ goldfish_extract_scheme_path_from_error (const string& errmsg) {
 }
 
 static string
-goldfish_extract_unbound_function_name_from_error (const string& errmsg) {
+goldfish_extract_error_expression (const string& errmsg, size_t search_start) {
+  const string infix= " in ";
+  size_t       start= errmsg.find (infix, search_start);
+  if (start == string::npos) {
+    return "";
+  }
+
+  start += infix.size ();
+  size_t end= errmsg.find ('\n', start);
+  if (end == string::npos) {
+    end= errmsg.size ();
+  }
+
+  return errmsg.substr (start, end - start);
+}
+
+static bool
+goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const string& function_name) {
+  if (s7_is_pair (form)) {
+    s7_pointer operator_form= s7_car (form);
+    if (s7_is_symbol (operator_form) && (function_name == s7_symbol_name (operator_form))) {
+      return true;
+    }
+
+    for (s7_pointer iter= form; s7_is_pair (iter); iter= s7_cdr (iter)) {
+      if (goldfish_form_contains_called_symbol (sc, s7_car (iter), function_name)) {
+        return true;
+      }
+    }
+
+    s7_pointer tail= form;
+    while (s7_is_pair (tail)) {
+      tail= s7_cdr (tail);
+    }
+    if ((!s7_is_null (sc, tail)) && goldfish_form_contains_called_symbol (sc, tail, function_name)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool
+goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& expression, const string& function_name) {
+  if (expression.empty ()) {
+    return false;
+  }
+
+  s7_pointer port     = s7_open_input_string (sc, expression.c_str ());
+  s7_pointer eof_object= s7_eof_object (sc);
+  s7_pointer form     = s7_read (sc, port);
+  s7_close_input_port (sc, port);
+
+  if ((form == eof_object) || (!form)) {
+    return expression.find ("(" + function_name) != string::npos;
+  }
+
+  return goldfish_form_contains_called_symbol (sc, form, function_name);
+}
+
+static string
+goldfish_extract_unbound_function_name_from_error (s7_scheme* sc, const string& errmsg) {
   const string prefix= "unbound variable ";
   size_t       start = errmsg.find (prefix);
   if (start == string::npos) {
@@ -3485,7 +3577,12 @@ goldfish_extract_unbound_function_name_from_error (const string& errmsg) {
   }
 
   string function_name= errmsg.substr (start, end - start);
-  if (errmsg.find ("in (" + function_name, end) == string::npos) {
+  if (errmsg.find ("in (" + function_name, end) != string::npos) {
+    return function_name;
+  }
+
+  string error_expression= goldfish_extract_error_expression (errmsg, end);
+  if (!goldfish_error_expression_contains_function_call (sc, error_expression, function_name)) {
     return "";
   }
 
@@ -3519,12 +3616,63 @@ goldfish_format_scheme_error_message (const char* errmsg) {
 }
 
 static string
-goldfish_append_doc_hint_if_needed (const string& errmsg) {
+goldfish_shell_double_quote (const string& value) {
+  string quoted= "\"";
+  for (char ch : value) {
+    switch (ch) {
+      case '\\':
+        quoted += "\\\\";
+        break;
+      case '"':
+        quoted += "\\\"";
+        break;
+      case '$':
+        quoted += "\\$";
+        break;
+      case '`':
+        quoted += "\\`";
+        break;
+      default:
+        quoted += ch;
+        break;
+    }
+  }
+  quoted += "\"";
+  return quoted;
+}
+
+static string
+goldfish_library_display_name (const string& library_query) {
+  string group;
+  string library;
+  if (!split_library_query (library_query, group, library)) {
+    return library_query;
+  }
+  return "(" + group + " " + library + ")";
+}
+
+static string
+goldfish_library_import_form (const string& library_query) {
+  string group;
+  string library;
+  if (!split_library_query (library_query, group, library)) {
+    return "";
+  }
+  return "(import (" + group + " " + library + "))";
+}
+
+static string
+goldfish_library_doc_command (const string& library_query, const string& function_name) {
+  return goldfish_cli_program_name () + " doc " + library_query + " " + goldfish_shell_double_quote (function_name);
+}
+
+static string
+goldfish_append_doc_hint_if_needed (s7_scheme* sc, const string& errmsg) {
   if (errmsg.find ("Hint: try `") != string::npos) {
     return errmsg;
   }
 
-  string function_name= goldfish_extract_unbound_function_name_from_error (errmsg);
+  string function_name= goldfish_extract_unbound_function_name_from_error (sc, errmsg);
   if (function_name.empty ()) {
     return errmsg;
   }
@@ -3533,15 +3681,73 @@ goldfish_append_doc_hint_if_needed (const string& errmsg) {
   if ((!formatted.empty ()) && (formatted.back () != '\n')) {
     formatted += '\n';
   }
-  formatted += "Hint: try `" + goldfish_cli_program_name () + " doc \"" + function_name +
-               "\"` to look up related documentation.\n";
+
+  vector<string> library_queries;
+  try {
+    library_queries= find_function_libraries_in_load_path (sc, function_name);
+  }
+  catch (const std::exception&) {
+    library_queries.clear ();
+  }
+
+  if (library_queries.empty ()) {
+    formatted += "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) +
+                 "`\n";
+    formatted += "`" + goldfish_cli_program_name () + " doc` may show similarly named functions when there is no exact match.\n";
+    formatted += "If it finds nothing similar, try searching the codebase with `git grep "
+                 + goldfish_shell_double_quote (function_name)
+                 + "`, implement that function yourself, or stop using it.\n";
+    return formatted;
+  }
+
+  if (library_queries.size () == 1) {
+    string import_form= goldfish_library_import_form (library_queries.front ());
+    formatted += "Hint: function `" + function_name + "` exists in library `" +
+                 goldfish_library_display_name (library_queries.front ()) + "`.\n";
+    if (!import_form.empty ()) {
+      formatted += "Please import that library first: `" + import_form + "`.\n";
+    }
+    return formatted;
+  }
+
+  formatted += "Hint: function `" + function_name + "` exists in multiple visible libraries:\n";
+  for (const auto& library_query : library_queries) {
+    formatted += "  " + goldfish_library_display_name (library_query) + "\n";
+  }
+  formatted += "Try one of these commands to decide which library to use:\n";
+  for (const auto& library_query : library_queries) {
+    formatted += "  " + goldfish_library_doc_command (library_query, function_name) + "\n";
+  }
   return formatted;
 }
 
 static void
-goldfish_print_scheme_error_message (const char* errmsg) {
+goldfish_render_scheme_error_message (s7_scheme* sc, const char* errmsg, string& rendered) {
+  rendered= goldfish_append_doc_hint_if_needed (sc, goldfish_format_scheme_error_message (errmsg));
+  if ((!rendered.empty ()) && (rendered.back () != '\n')) {
+    rendered += '\n';
+  }
+}
+
+static void
+goldfish_print_scheme_error_message (s7_scheme* sc, const char* errmsg) {
   if ((errmsg) && (*errmsg)) {
-    cout << goldfish_append_doc_hint_if_needed (goldfish_format_scheme_error_message (errmsg));
+    string rendered;
+    goldfish_render_scheme_error_message (sc, errmsg, rendered);
+    cout << rendered;
+  }
+}
+
+static void
+goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefix, const char* errmsg) {
+  if ((errmsg) && (*errmsg)) {
+    string rendered;
+    goldfish_render_scheme_error_message (sc, errmsg, rendered);
+    cerr << prefix;
+    if ((!prefix.empty ()) && (prefix.back () != '\n')) {
+      cerr << '\n';
+    }
+    cerr << rendered;
   }
 }
 
@@ -4011,7 +4217,9 @@ ic_goldfish_eval (s7_scheme* sc, const char* code) {
   const char* errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
 
   if (errmsg && *errmsg) {
-    ic_printf ("[error]%s[/]\n", errmsg); // 美化输出
+    string rendered;
+    goldfish_render_scheme_error_message (sc, errmsg, rendered);
+    ic_printf ("[error]%s[/]", rendered.c_str ());
   }
   if (result) {
     history_values.push_back (result);
@@ -4339,9 +4547,16 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
   ic_style_def ("symbol", "cyan");
 
   ic_printf ("[b gold]Goldfish Scheme[/] [b plum]%s[/] by LiiiLabs\n"
-             "[i]Based on S7 Scheme %s [dim](%s)[/][/]\n"
-             "[b]Mode:[/] [b]%s[/]\n\n",
-             GOLDFISH_VERSION, S7_VERSION, S7_DATE, mode.c_str ());
+             "[i]Based on S7 Scheme %s [dim](%s)[/][/]\n",
+             GOLDFISH_VERSION, S7_VERSION, S7_DATE);
+  // Display mode info; liii mode shows extra imported libraries
+  if (mode == "liii" || mode == "default") {
+    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (liii base) (liii error) (liii string) compared to r7rs)\n\n",
+               mode.c_str ());
+  }
+  else {
+    ic_printf ("[b]Mode:[/] [b]%s[/]\n\n", mode.c_str ());
+  }
   ic_printf ("- Type ',quit' or ',q' to quit. (or use [kbd]ctrl-d[/]).\n"
              "- Type ',help' for REPL commands help.\n"
              "- Press [kbd]F1[/] for help on editing commands.\n"
@@ -4391,8 +4606,8 @@ struct StartupCliOptions {
 };
 
 static std::string
-parse_mode_option (int argc, char** argv) {
-  std::string mode= "default";
+parse_mode_option (int argc, char** argv, const std::string& default_mode= "default") {
+  std::string mode= default_mode;
   for (int i= 1; i < argc; ++i) {
     string arg= argv[i];
     if ((arg == "--mode" || arg == "-m") && (i + 1) < argc) {
@@ -4562,6 +4777,258 @@ append_load_path_entries (s7_scheme* sc, const vector<string>& append_dirs) {
   }
 }
 
+static bool
+append_unique_exact_string (vector<string>& items, const string& value) {
+  if (value.empty ()) return false;
+  if (std::find (items.begin (), items.end (), value) != items.end ()) return false;
+  items.push_back (value);
+  return true;
+}
+
+static bool
+string_is_decimal_integer (const string& value) {
+  if (value.empty ()) return false;
+
+  size_t index= 0;
+  if (value[0] == '+' || value[0] == '-') {
+    index= 1;
+  }
+  if (index >= value.size ()) return false;
+
+  return std::all_of (value.begin () + static_cast<std::ptrdiff_t> (index), value.end (),
+                      [] (unsigned char ch) { return std::isdigit (ch) != 0; });
+}
+
+static s7_pointer
+make_library_name_part (s7_scheme* sc, const string& part) {
+  if (string_is_decimal_integer (part)) {
+    try {
+      return s7_make_integer (sc, std::stoll (part));
+    }
+    catch (const std::exception&) {
+    }
+  }
+  return s7_make_symbol (sc, part.c_str ());
+}
+
+static bool
+split_library_query (const string& query, string& group, string& library) {
+  size_t slash_pos= query.find ('/');
+  if (slash_pos == string::npos || slash_pos == 0 || slash_pos == query.size () - 1) {
+    return false;
+  }
+  if (query.find ('/', slash_pos + 1) != string::npos) {
+    return false;
+  }
+  group  = query.substr (0, slash_pos);
+  library= query.substr (slash_pos + 1);
+  return true;
+}
+
+static bool
+is_named_symbol (s7_pointer value, const char* name) {
+  return s7_is_symbol (value) && (strcmp (s7_symbol_name (value), name) == 0);
+}
+
+static bool
+library_name_part_to_string (s7_pointer value, string& out) {
+  if (s7_is_symbol (value)) {
+    out= s7_symbol_name (value);
+    return true;
+  }
+  if (s7_is_integer (value)) {
+    out= std::to_string (s7_integer (value));
+    return true;
+  }
+  return false;
+}
+
+static bool
+extract_library_name_from_form (s7_scheme* sc, s7_pointer library_name_form, string& group, string& library) {
+  if ((!s7_is_list (sc, library_name_form)) || (s7_list_length (sc, library_name_form) != 2)) {
+    return false;
+  }
+
+  return library_name_part_to_string (s7_car (library_name_form), group) &&
+         library_name_part_to_string (s7_cadr (library_name_form), library);
+}
+
+static bool
+export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& function_name) {
+  if (s7_is_symbol (export_spec)) {
+    return function_name == s7_symbol_name (export_spec);
+  }
+
+  if (s7_is_list (sc, export_spec) && (s7_list_length (sc, export_spec) == 3) && is_named_symbol (s7_car (export_spec), "rename")) {
+    string renamed_export;
+    if (library_name_part_to_string (s7_caddr (export_spec), renamed_export)) {
+      return function_name == renamed_export;
+    }
+  }
+
+  return false;
+}
+
+static bool
+define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const string& function_name, string& group, string& library) {
+  if ((!s7_is_list (sc, form)) || s7_is_null (sc, form) || (!is_named_symbol (s7_car (form), "define-library"))) {
+    return false;
+  }
+
+  string form_group;
+  string form_library;
+  if (!extract_library_name_from_form (sc, s7_cadr (form), form_group, form_library)) {
+    return false;
+  }
+
+  for (s7_pointer declarations= s7_cddr (form); s7_is_pair (declarations); declarations= s7_cdr (declarations)) {
+    s7_pointer declaration= s7_car (declarations);
+    if ((!s7_is_list (sc, declaration)) || s7_is_null (sc, declaration) || (!is_named_symbol (s7_car (declaration), "export"))) {
+      continue;
+    }
+
+    for (s7_pointer export_specs= s7_cdr (declaration); s7_is_pair (export_specs); export_specs= s7_cdr (export_specs)) {
+      if (export_spec_name_matches (sc, s7_car (export_specs), function_name)) {
+        group  = form_group;
+        library= form_library;
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+static bool
+source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const string& function_name, string& group, string& library) {
+  string     source_text= read_text_file_exact (source_file);
+  s7_pointer port       = s7_open_input_string (sc, source_text.c_str ());
+  s7_pointer eof_object = s7_eof_object (sc);
+
+  while (true) {
+    s7_pointer form= s7_read (sc, port);
+    if (form == eof_object) break;
+    if (define_library_form_exports_function (sc, form, function_name, group, library)) {
+      s7_close_input_port (sc, port);
+      return true;
+    }
+  }
+
+  s7_close_input_port (sc, port);
+  return false;
+}
+
+static s7_pointer
+make_library_name_list (s7_scheme* sc, const string& group, const string& library) {
+  return s7_list (sc, 2, make_library_name_part (sc, group), make_library_name_part (sc, library));
+}
+
+static vector<fs::path>
+sorted_child_directories (const fs::path& root) {
+  vector<fs::path> directories;
+  std::error_code  ec;
+
+  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+    if (ec) {
+      ec.clear ();
+      continue;
+    }
+    if (it->is_directory (ec)) {
+      directories.push_back (it->path ());
+    }
+    ec.clear ();
+  }
+
+  std::sort (directories.begin (), directories.end (),
+             [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  return directories;
+}
+
+static vector<fs::path>
+sorted_scheme_source_files (const fs::path& dir) {
+  vector<fs::path> files;
+  std::error_code  ec;
+
+  for (fs::directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+    if (ec) {
+      ec.clear ();
+      continue;
+    }
+    if (it->is_regular_file (ec) && (it->path ().extension () == ".scm")) {
+      files.push_back (it->path ());
+    }
+    ec.clear ();
+  }
+
+  std::sort (files.begin (), files.end (), [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  return files;
+}
+
+static vector<string>
+find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name) {
+  vector<string> library_queries;
+  std::error_code ec;
+
+  for (const auto& load_root_string : current_load_path_entries (sc)) {
+    fs::path load_root (load_root_string);
+    if ((!fs::exists (load_root, ec)) || (!fs::is_directory (load_root, ec))) {
+      ec.clear ();
+      continue;
+    }
+    ec.clear ();
+
+    for (const auto& group_dir : sorted_child_directories (load_root)) {
+      for (const auto& source_file : sorted_scheme_source_files (group_dir)) {
+        string group;
+        string library;
+        if (source_file_exports_function (sc, source_file, function_name, group, library)) {
+          append_unique_exact_string (library_queries, group + "/" + library);
+        }
+      }
+    }
+  }
+
+  std::sort (library_queries.begin (), library_queries.end ());
+  return library_queries;
+}
+
+static s7_pointer
+make_library_name_list_list (s7_scheme* sc, const vector<string>& library_queries) {
+  s7_pointer result= s7_nil (sc);
+  for (auto it= library_queries.rbegin (); it != library_queries.rend (); ++it) {
+    string group;
+    string library;
+    if (!split_library_query (*it, group, library)) continue;
+    result= s7_cons (sc, make_library_name_list (sc, group, library), result);
+  }
+  return result;
+}
+
+static s7_pointer
+f_function_libraries (s7_scheme* sc, s7_pointer args) {
+  s7_pointer function_name_arg= s7_car (args);
+  if (!s7_is_string (function_name_arg)) {
+    return s7_error (sc, s7_make_symbol (sc, "type-error"),
+                     s7_list (sc, 2, s7_make_string (sc, "g_function-libraries: function-name must be string?"),
+                              function_name_arg));
+  }
+
+  string         function_name= s7_string (function_name_arg);
+  vector<string> visible_library_queries;
+
+  try {
+    visible_library_queries= find_function_libraries_in_load_path (sc, function_name);
+  }
+  catch (const std::exception& ex) {
+    return s7_error (sc, s7_make_symbol (sc, "read-error"),
+                     s7_list (sc, 2,
+                              s7_make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
+                              function_name_arg));
+  }
+
+  return make_library_name_list_list (sc, visible_library_queries);
+}
+
 static StartupCliOptions
 parse_startup_cli_options (int argc, char** argv) {
   StartupCliOptions opts;
@@ -4647,13 +5114,21 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
-  string mode         = parse_mode_option (argc, argv);
 
   // 如果没有找到命令或没有参数，显示帮助
   if (argc <= 1 || command.empty ()) {
     display_help ();
     return 0;
   }
+
+  // 根据命令类型确定默认模式：
+  // - repl/load 命令默认使用 liii 模式
+  // - 其他命令（eval, run, 直接执行脚本）默认使用 r7rs 模式
+  string default_mode= "r7rs";
+  if (command == "repl" || command == "load") {
+    default_mode= "liii";
+  }
+  string mode= parse_mode_option (argc, argv, default_mode);
 
   // 处理旧版的 --help, -h, --version, -v（为了向后兼容）
   if (command == "--help" || command == "-h") {
@@ -4685,7 +5160,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (goldfix_opts.enabled) {
     int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
     errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4744,7 +5219,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     goldfish_eval_code (sc, code);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4786,7 +5261,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     goldfish_eval_file (sc, file, true);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      goldfish_print_scheme_error_message (errmsg);
+      goldfish_print_scheme_error_message (sc, errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4796,8 +5271,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      string formatted_errmsg= goldfish_format_scheme_error_message (errmsg);
-      ic_printf ("[red]%s[/]\n", formatted_errmsg.c_str ());
+      string rendered;
+      goldfish_render_scheme_error_message (sc, errmsg, rendered);
+      ic_printf ("[red]%s[/]", rendered.c_str ());
     }
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
@@ -4819,8 +5295,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 #ifdef GOLDFISH_WITH_REPL
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      string formatted_errmsg= goldfish_format_scheme_error_message (errmsg);
-      ic_printf ("[red]%s[/]\n", formatted_errmsg.c_str ());
+      string rendered;
+      goldfish_render_scheme_error_message (sc, errmsg, rendered);
+      ic_printf ("[red]%s[/]", rendered.c_str ());
     }
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
@@ -4861,7 +5338,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cerr << "Error importing (liii goldtest): " << errmsg << endl;
+      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii goldtest):", errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4879,7 +5356,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4911,7 +5388,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cerr << "Error importing (liii golddoc): " << errmsg << endl;
+      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii golddoc):", errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4928,7 +5405,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4960,7 +5437,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      cerr << "Error importing (liii goldsource): " << errmsg << endl;
+      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii goldsource):", errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -4977,7 +5454,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     }
     s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
     errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -5037,7 +5514,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
     if ((errmsg) && (*errmsg)) {
-      goldfish_print_scheme_error_message (errmsg);
+      goldfish_print_scheme_error_message (sc, errmsg);
       s7_close_output_port (sc, s7_current_error_port (sc));
       s7_set_current_error_port (sc, old_port);
       if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -5058,7 +5535,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     s7_call (sc, main_func, s7_nil (sc));
 
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
@@ -5071,7 +5548,7 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (fs::exists (command, ec) && fs::is_regular_file (command, ec)) {
     goldfish_eval_file (sc, command, true);
     errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (errmsg);
+    goldfish_print_scheme_error_message (sc, errmsg);
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);

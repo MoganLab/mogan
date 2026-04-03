@@ -64,7 +64,7 @@
     ; Extra routines
     loose-car loose-cdr compose identity any?
     ; Extra structure
-    let1  typed-lambda
+    typed-lambda
   ) ;export
   (begin
 
@@ -98,11 +98,6 @@
     ) ;define
   
     (define (any? x) #t)
-
-    (define-macro (let1 name1 value1 . body)
-      `(let ((,name1 ,value1))
-         ,@body)
-    ) ;define-macro
 
     ; 0 clause BSD, from S7 repo stuff.scm
     (define-macro (typed-lambda args . body)

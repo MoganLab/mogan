@@ -89,9 +89,12 @@
 ;;;; Utility
 
 (define (assume condition . args)
-  (if (not condition)
-      (apply error args)
-  ) ;if
+  (when (not condition)
+    (if (null? args)
+        (error "assume failed")
+        (apply error args)
+    ) ;if
+  ) ;when
 ) ;define
 
 ;;;; Record type and internal utilities
@@ -639,15 +642,17 @@
         (let lp ((i 0) (acc knil))
           (if (>= i len) acc (lp (+ i 1) (kons acc (flexvector-ref fv1 i))))
         ) ;let
-        (let lp ((i 0) (acc knil))
-          (if (>= i len)
-              acc
-              (lp (+ i 1)
-                  (apply kons acc (flexvector-ref fv1 i)
-                         (map (lambda (fv) (flexvector-ref fv i)) o)
-                  ) ;apply
-              ) ;lp
-          ) ;if
+        (let ((len (apply min len (map flexvector-length o))))
+          (let lp ((i 0) (acc knil))
+            (if (>= i len)
+                acc
+                (lp (+ i 1)
+                    (apply kons acc (flexvector-ref fv1 i)
+                           (map (lambda (fv) (flexvector-ref fv i)) o)
+                    ) ;apply
+                ) ;lp
+            ) ;if
+          ) ;let
         ) ;let
     ) ;if
   ) ;let
@@ -659,17 +664,23 @@
   (let ((len (flexvector-length fv1)))
     (if (null? o)
         (let lp ((i (- len 1)) (acc knil))
-          (if (negative? i) acc (lp (- i 1) (kons acc (flexvector-ref fv1 i))))
+          (if (negative? i) acc (lp (- i 1) (kons (flexvector-ref fv1 i) acc)))
         ) ;let
-        (let lp ((i (- len 1)) (acc knil))
-          (if (negative? i)
-              acc
-              (lp (- i 1)
-                  (apply kons acc (flexvector-ref fv1 i)
-                         (map (lambda (fv) (flexvector-ref fv i)) o)
-                  ) ;apply
-              ) ;lp
-          ) ;if
+        (let ((len (apply min len (map flexvector-length o))))
+          (let lp ((i (- len 1)) (acc knil))
+            (if (negative? i)
+                acc
+                (lp (- i 1)
+                    (apply kons
+                           (append
+                             (cons (flexvector-ref fv1 i)
+                                   (map (lambda (fv) (flexvector-ref fv i)) o))
+                             (list acc)
+                           ) ;append
+                    ) ;apply
+                ) ;lp
+            ) ;if
+          ) ;let
         ) ;let
     ) ;if
   ) ;let
@@ -687,7 +698,7 @@
              fv
            ) ;
            ((pred? i (vector-ref v i))
-             (unless (= i j) (vector-set! v j (vector-ref v i)))
+             (when (not (= i j)) (vector-set! v j (vector-ref v i)))
              (lp (+ i 1) (+ j 1))
            ) ;
            (else
@@ -710,7 +721,7 @@
                    i
                    (vector-ref v i)
                    (map (lambda (fv) (flexvector-ref fv i)) fvs))
-             (unless (= i j) (vector-set! v j (vector-ref v i)))
+             (when (not (= i j)) (vector-set! v j (vector-ref v i)))
              (lp (+ i 1) (+ j 1))
            ) ;
            (else
@@ -817,7 +828,8 @@
 (define (flexvector-skip pred? fv1 . o)
   (assume (procedure? pred?))
   (assume (flexvector? fv1))
-  (apply flexvector-index (complement pred?) fv1 o)
+  (or (apply flexvector-index (complement pred?) fv1 o)
+      (flexvector-length fv1))
 ) ;define
 
 (define (flexvector-skip-right pred? fv1 . o)
