@@ -261,9 +261,165 @@
                               (if (eq? list-type 'description)
                                   (tree-set! new-item `(concat (item*), content-stree))
                                   (tree-set! new-item `(concat (item), content-stree)))
-                              (tree-go-to new-item))))
+                              (tree-go-to new-item 0 :end))))
                       ;; 步骤 5: 从原列表中移除
                       (remove-item-from-list item wrapper item-list))))))))))
+
+;; 辅助函数：输出调试信息
+(define (shift-tab-debug . msgs)
+  (let ((msg (apply string-append msgs)))
+    (display msg)
+    (newline)))
+
+;; 在有序和无序列表中实现反缩进功能
+;;
+;; 处理逻辑：
+;; 当用户按 Shift+Tab 时，将当前 item 从嵌套列表中移出到上一级列表
+;;
+;; 两种 Case：
+;; 1. NOT first item: 当前 item 前面还有其他 items
+;;    - 保留原 sublist（因为前面还有 items）
+;;    - 从 doc 中移除当前 item 和后续 items
+;;    - 在 parent-list 中 sublist 之后插入当前 item
+;;    - 如有后续 items，创建新 sublist 插入到当前 item 之后
+;;
+;; 2. FIRST item: 当前 item 是第一个，后面可能有 items
+;;    - 从 doc 中移除当前 item（保留后续 items）
+;;    - 从 parent-list 中移除整个 sublist
+;;    - 在 parent-list 中原 sublist 位置插入当前 item
+;;    - 如有后续 items，创建新 sublist 插入到当前 item 之后
+;;
+(tm-define (kbd-variant t forwards?)
+  (:require
+    (and (not forwards?)
+         (or
+           (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
+           (and in-description-context? (tree-is? (focus-tree) 'item*)))))
+
+  (shift-tab-debug "\n=== Shift+Tab Debug Start ===\n")
+
+  (let* ((item (focus-tree))
+         (item-stree (tree->stree item))
+         (wrapper #f)
+         (doc (tree-outer item)))
+
+    (shift-tab-debug "item: " (object->string item-stree) "\n")
+    (shift-tab-debug "doc: " (object->string (tree->stree doc)) "\n")
+
+    ;; 处理 concat 包装
+    (when (tree-is? doc 'concat)
+      (set! wrapper doc)
+      (set! doc (tree-outer wrapper))
+      (set! item-stree (tree->stree wrapper))
+      (shift-tab-debug "after concat handling, doc: " (object->string (tree->stree doc)) "\n"))
+
+    ;; 验证 doc 是 document
+    (when (tree-is? doc 'document)
+      (let* ((sublist (tree-outer doc))
+             (parent-list (if sublist (tree-outer sublist) #f)))
+
+        (shift-tab-debug "sublist: " (if sublist (object->string (tree->stree sublist)) "#f") "\n")
+        (shift-tab-debug "parent-list: " (if parent-list (object->string (tree->stree parent-list)) "#f") "\n")
+
+        (when parent-list
+          (let* ((sublist-idx (tree-index sublist))
+                 (doc-arity (tree-arity doc))
+                 (item-idx (if wrapper (tree-index wrapper) (tree-index item)))
+                 (items-before-count item-idx)
+                 (items-after-count (- doc-arity item-idx 1)))
+
+            (shift-tab-debug "sublist-idx: " (number->string sublist-idx) "\n")
+            (shift-tab-debug "doc-arity: " (number->string doc-arity) "\n")
+            (shift-tab-debug "item-idx: " (number->string item-idx) "\n")
+            (shift-tab-debug "items-before-count: " (number->string items-before-count) "\n")
+            (shift-tab-debug "items-after-count: " (number->string items-after-count) "\n")
+
+            ;; 保存后续 items 的 stree（必须在移除之前提取）
+            (with items-after-stree
+                  (if (> items-after-count 0)
+                      (map (lambda (i)
+                             (tree->stree (tree-copy (tree-ref doc (+ item-idx 1 i)))))
+                           (iota items-after-count))
+                      '())
+
+              (shift-tab-debug "items-after-stree: " (object->string items-after-stree) "\n")
+              (shift-tab-debug "item-stree: " (object->string item-stree) "\n")
+
+              ;; 声明变量用于保存两种 case 的共同结果
+              (let* ((current-doc (tree-ref sublist 0))
+                     (current-parent (tree-outer sublist))
+                     (item-insert-pos #f))
+
+                ;; 处理 doc 和 parent-list（两种 case 的差异）
+                (if (> items-before-count 0)
+                    ;; Case 1: 不是第一个 item，保留 sublist
+                    (begin
+                      (shift-tab-debug "\n*** Case 1: NOT first item ***\n")
+                      (shift-tab-debug "current-doc: " (object->string (tree->stree current-doc)) "\n")
+                      ;; 从 doc 中移除当前 item 和后续 items
+                      (let loop ((i (- doc-arity 1))
+                                 (cd current-doc))
+                        (when (>= i item-idx)
+                          (shift-tab-debug "removing item at index: " (number->string i) "\n")
+                          (set! cd (tree-remove! cd i 1))
+                          (loop (- i 1) cd)))
+                      ;; 重新获取 current-doc（修改后）
+                      (set! current-doc (tree-ref sublist 0))
+                      (shift-tab-debug "after removal, current-doc: " (object->string (tree->stree current-doc)) "\n")
+                      ;; item 插入位置：sublist 之后
+                      (set! item-insert-pos (+ sublist-idx 1)))
+
+                    ;; Case 2: 是第一个 item，删除 sublist
+                    (begin
+                      (shift-tab-debug "\n*** Case 2: FIRST item ***\n")
+                      (shift-tab-debug "current-doc: " (object->string (tree->stree current-doc)) "\n")
+                      (shift-tab-debug "current-parent: " (object->string (tree->stree current-parent)) "\n")
+                      (shift-tab-debug "list-type: " (symbol->string (tree-label sublist)) "\n")
+                      ;; 从 doc 中移除当前 item
+                      (shift-tab-debug "removing item at index: " (number->string item-idx) "\n")
+                      (set! current-doc (tree-remove! current-doc item-idx 1))
+                      (shift-tab-debug "after item removal, current-doc: " (object->string (tree->stree current-doc)) "\n")
+                      ;; 从 parent-list 中移除 sublist
+                      (shift-tab-debug "removing sublist at index: " (number->string sublist-idx) "\n")
+                      (set! current-parent (tree-remove! current-parent sublist-idx 1))
+                      (shift-tab-debug "after sublist removal, current-parent: " (object->string (tree->stree current-parent)) "\n")
+                      ;; item 插入位置：原 sublist 位置
+                      (set! item-insert-pos sublist-idx)))
+
+                ;; 共同逻辑：在 parent-list 中插入当前 item
+                (shift-tab-debug "\n>>> CALLING tree-insert (item) <<<\n")
+                (shift-tab-debug "  current-parent: " (object->string (tree->stree current-parent)) "\n")
+                (shift-tab-debug "  position: " (number->string item-insert-pos) "\n")
+                (shift-tab-debug "  item-stree: " (object->string item-stree) "\n")
+                (shift-tab-debug ">>> END tree-insert params <<<\n\n")
+                (set! current-parent (tree-insert current-parent item-insert-pos (list item-stree)))
+                (shift-tab-debug "after item insert, current-parent: " (object->string (tree->stree current-parent)) "\n")
+
+                ;; 共同逻辑：如有后续 items，创建新 sublist 并插入
+                (when (> (length items-after-stree) 0)
+                  (let ((new-sublist-stree `(,(tree-label sublist) (document ,@items-after-stree)))
+                        (sublist-pos (+ item-insert-pos 1)))
+                    (shift-tab-debug "\n>>> CALLING tree-insert (sublist) <<<\n")
+                    (shift-tab-debug "  current-parent: " (object->string (tree->stree current-parent)) "\n")
+                    (shift-tab-debug "  position: " (number->string sublist-pos) "\n")
+                    (shift-tab-debug "  new-sublist-stree: " (object->string new-sublist-stree) "\n")
+                    (shift-tab-debug ">>> END tree-insert params <<<\n\n")
+                    (set! current-parent (tree-insert current-parent sublist-pos (list new-sublist-stree)))
+                    (shift-tab-debug "after sublist insert, current-parent: " (object->string (tree->stree current-parent)) "\n")))
+
+                ;; 共同逻辑：移动光标到新插入的 item
+                (with moved-item (tree-ref current-parent item-insert-pos)
+                  (shift-tab-debug "Moving cursor to moved item: " (object->string (tree->stree moved-item)) "\n")
+                  ;; 根据 moved-item 类型决定光标位置
+                  (if (tree-is? moved-item 'concat)
+                      ;; concat 包装：定位到第0个子元素（document）的结束位置
+                      (tree-go-to moved-item 0 :end)
+                      ;; item：先定位到开始位置，再向右移动一位
+                      (begin
+                        (tree-go-to (+ moved-item 1) 1 :end)))))))))))
+
+  (shift-tab-debug "=== Shift+Tab Debug End ===\n"))
+
 
 (tm-define (kbd-variant t forwards?)
   (:require (and (tree-in? t '(label reference pageref eqref smart-ref))
