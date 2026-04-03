@@ -77,9 +77,7 @@
   <assign|generic-prompt|<macro|prompt|<with|mode|prog|<arg|prompt>>>>
 
   <assign|generic-input|<\macro|prompt|body>
-    <tabular|<tformat|<twith|table-width|1par>|<cwith|1|1|2|2|cell-hpart|1>|<cwith|1|1|1|1|cell-lsep|0fn>|<cwith|1|1|1|1|cell-rsep|0fn>|<cwith|1|1|2|2|cell-lsep|0fn>|<cwith|1|1|2|2|cell-rsep|0fn>|<cwith|1|1|2|2|cell-hyphen|t>|<twith|table-hyphen|y>|<table|<row|<cell|<id-function|<with|color|<value|generic-prompt-color>|<arg|prompt>>>>|<\cell>
-      <with|color|<value|generic-input-color>|math-display|true|<arg|body>>
-    </cell>>>>>
+    <with|color|<value|generic-input-color>|math-display|true|<alt-prefixed-line|<id-function|<with|color|<value|generic-prompt-color>|<arg|prompt>>>|<arg|body>>>
   </macro>>
 
   <assign|scheme-prompt|<macro|prompt|<with|mode|text|language|verbatim|font-family|tt|<style-with|src-compact|none|<arg|prompt>>>>>
