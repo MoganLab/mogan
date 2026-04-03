@@ -150,7 +150,7 @@
         (if (not i/false)
             (list code "")
             (list (substring code 0 i/false)
-                  (substring code (+ i/false 1))))))))
+                  (substring code (+ i/false 1)))))))
 
 (define (read-eval-print)
   (let* ((raw-code (gnuplot-read-code))
