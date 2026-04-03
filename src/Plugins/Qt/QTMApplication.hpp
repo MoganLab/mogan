@@ -130,7 +130,7 @@ public:
     }
 #else
     if (!retina_manual) {
-      qreal ratio  = QGuiApplication::primaryScreen ()->devicePixelRatio ();
+      qreal ratio  = QApplication::primaryScreen ()->devicePixelRatio ();
       retina_factor= qRound (ratio - 0.1);
     }
 #endif
