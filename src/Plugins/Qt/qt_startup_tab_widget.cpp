@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_startup_tab_widget.hpp"
+#include "qt_template_page.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -198,6 +199,11 @@ QTStartupTabWidget::create_file_page () {
   QVBoxLayout* layout= new QVBoxLayout (page);
   layout->setContentsMargins (32, 32, 32, 32);
 
+  // 标题
+  QLabel* title= new QLabel ("File", page);
+  title->setObjectName ("startup-tab-page-title");
+  layout->addWidget (title);
+
   // 按钮行布局
   QHBoxLayout* btnLayout= new QHBoxLayout;
   btnLayout->setSpacing (16);
@@ -228,24 +234,19 @@ QTStartupTabWidget::create_file_page () {
 }
 
 /**
- * @brief 创建 Template 页面（占位）
+ * @brief 创建 Template 页面
  */
 QWidget*
 QTStartupTabWidget::create_template_page () {
-  QWidget*     page  = new QWidget (this);
-  QVBoxLayout* layout= new QVBoxLayout (page);
-  layout->setContentsMargins (32, 32, 32, 32);
+  QTTemplatePage* page = new QTTemplatePage (this);
+  page->initialize ();
 
-  QLabel* title= new QLabel ("Template Center", page);
-  title->setObjectName ("startup-tab-page-title");
-  layout->addWidget (title);
+  // Connect template opened signal to load document
+  connect (page, &QTTemplatePage::templateOpened, this, [] (const QString& filePath) {
+    QString schemeCmd = QString ("(load-document \"%1\")").arg (filePath);
+    eval_scheme (schemeCmd.toUtf8 ().constData ());
+  });
 
-  QLabel* desc= new QLabel (
-      "Coming soon: Browse and download templates from Gitee Releases.", page);
-  desc->setObjectName ("startup-tab-page-desc");
-  layout->addWidget (desc);
-
-  layout->addStretch ();
   return page;
 }
 
