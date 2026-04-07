@@ -830,6 +830,7 @@ target("libmogan") do
             "$(projectdir)/3rdparty/json-schema-validator/src/**.cpp"})
 
     add_files("src/Plugins/Qt/**.cpp", "src/Plugins/Qt/**.hpp")
+    add_files("src/Mogan/TemplateCenter/**.cpp", "src/Mogan/TemplateCenter/**.hpp")
 
     -- Add Qt resource file
     add_rules("qt.qrc")
@@ -993,8 +994,6 @@ target("stem") do
 
     add_includedirs(moe_includedirs)
     add_files("src/Mogan/Research/research.cpp")
-    add_files("src/Mogan/TemplateCenter/**.cpp")
-    add_files("src/Mogan/TemplateCenter/**.hpp")
 
     -- install tm files for testing purpose
     if is_mode("releasedbg") then
