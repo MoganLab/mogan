@@ -238,14 +238,16 @@ QTStartupTabWidget::create_file_page () {
  */
 QWidget*
 QTStartupTabWidget::create_template_page () {
-  QTTemplatePage* page = new QTTemplatePage (this);
+  QTTemplatePage* page= new QTTemplatePage (this);
   page->initialize ();
 
   // Connect template opened signal to load document
-  connect (page, &QTTemplatePage::templateOpened, this, [] (const QString& filePath) {
-    QString schemeCmd = QString ("(load-document \"%1\")").arg (filePath);
-    eval_scheme (schemeCmd.toUtf8 ().constData ());
-  });
+  connect (page, &QTTemplatePage::templateOpened, this,
+           [] (const QString& filePath) {
+             QString schemeCmd=
+                 QString ("(load-document \"%1\")").arg (filePath);
+             eval_scheme (schemeCmd.toUtf8 ().constData ());
+           });
 
   return page;
 }

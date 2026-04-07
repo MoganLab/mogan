@@ -12,12 +12,12 @@
 #ifndef TEMPLATE_MANAGER_HPP
 #define TEMPLATE_MANAGER_HPP
 
-#include <QObject>
+#include <QDateTime>
 #include <QHash>
 #include <QList>
-#include <QString>
-#include <QDateTime>
+#include <QObject>
 #include <QSharedPointer>
+#include <QString>
 
 // Forward declarations
 class TemplateCache;
@@ -27,21 +27,20 @@ class TemplateAPI;
  * @brief Template metadata structure
  */
 struct TemplateMetadata {
-    QString   id;                // Unique template identifier
-    QString   name;              // Display name
-    QString   description;       // Template description
-    QString   category;          // Category ID
-    QString   author;            // Author name
-    QString   version;           // Template version
-    QString   thumbnailUrl;      // Thumbnail image URL
-    QString   fileUrl;           // Template file (.tmu) download URL
-    qint64    fileSize;          // File size in bytes
-    QDateTime updatedAt;         // Last update time
-    QString   localPath;         // Local cached file path (if downloaded)
-    bool      isLocal;           // Whether template is locally available
+  QString   id;           // Unique template identifier
+  QString   name;         // Display name
+  QString   description;  // Template description
+  QString   category;     // Category ID
+  QString   author;       // Author name
+  QString   version;      // Template version
+  QString   thumbnailUrl; // Thumbnail image URL
+  QString   fileUrl;      // Template file (.tmu) download URL
+  qint64    fileSize;     // File size in bytes
+  QDateTime updatedAt;    // Last update time
+  QString   localPath;    // Local cached file path (if downloaded)
+  bool      isLocal;      // Whether template is locally available
 
-    TemplateMetadata ()
-        : fileSize (0), isLocal (false) {}
+  TemplateMetadata () : fileSize (0), isLocal (false) {}
 };
 
 using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
@@ -50,12 +49,12 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
  * @brief Template category structure
  */
 struct TemplateCategory {
-    QString id;          // Unique category identifier
-    QString name;        // Display name (localized)
-    QString icon;        // Icon name or path
-    int     order;       // Display order
+  QString id;    // Unique category identifier
+  QString name;  // Display name (localized)
+  QString icon;  // Icon name or path
+  int     order; // Display order
 
-    TemplateCategory () : order (0) {}
+  TemplateCategory () : order (0) {}
 };
 
 /**
@@ -68,97 +67,102 @@ struct TemplateCategory {
  * - Handle template download and local storage
  */
 class TemplateManager : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit TemplateManager (QObject* parent= nullptr);
-    ~TemplateManager ();
+  explicit TemplateManager (QObject* parent= nullptr);
+  ~TemplateManager ();
 
-    // Singleton instance
-    static TemplateManager* instance ();
+  // Singleton instance
+  static TemplateManager* instance ();
 
-    // Initialization
-    void initialize ();
-    bool isInitialized () const { return initialized_; }
+  // Initialization
+  void initialize ();
+  bool isInitialized () const { return initialized_; }
 
-    // Category operations
-    QList<TemplateCategory> categories () const;
-    QString                 categoryName (const QString& categoryId) const;
+  // Category operations
+  QList<TemplateCategory> categories () const;
+  QString                 categoryName (const QString& categoryId) const;
 
-    // Template queries
-    QList<TemplateMetadataPtr> templates () const;
-    QList<TemplateMetadataPtr> templatesByCategory (const QString& categoryId) const;
-    TemplateMetadataPtr        templateById (const QString& templateId) const;
+  // Template queries
+  QList<TemplateMetadataPtr> templates () const;
+  QList<TemplateMetadataPtr>
+                      templatesByCategory (const QString& categoryId) const;
+  TemplateMetadataPtr templateById (const QString& templateId) const;
 
-    // Template availability
-    bool isTemplateAvailableLocally (const QString& templateId) const;
-    QString localTemplatePath (const QString& templateId) const;
+  // Template availability
+  bool    isTemplateAvailableLocally (const QString& templateId) const;
+  QString localTemplatePath (const QString& templateId) const;
 
-    // Operations
-    void refreshTemplates ();     // Force refresh from remote
-    void checkForUpdates ();      // Check for updates without full refresh
+  // Operations
+  void refreshTemplates (); // Force refresh from remote
+  void checkForUpdates ();  // Check for updates without full refresh
 
-    // Template download
-    void downloadTemplate (const QString& templateId);
-    void cancelDownload (const QString& templateId);
+  // Template download
+  void downloadTemplate (const QString& templateId);
+  void cancelDownload (const QString& templateId);
 
-    // Signals for UI updates
-    void onNetworkStateChanged (bool isOnline);
+  // Signals for UI updates
+  void onNetworkStateChanged (bool isOnline);
 
 signals:
-    // Initialization
-    void initialized (bool success);
+  // Initialization
+  void initialized (bool success);
 
-    // Data updates
-    void templatesLoaded ();
-    void templatesLoadFailed (const QString& error);
+  // Data updates
+  void templatesLoaded ();
+  void templatesLoadFailed (const QString& error);
 
-    // Category updates
-    void categoriesLoaded ();
+  // Category updates
+  void categoriesLoaded ();
 
-    // Template download progress
-    void downloadProgress (const QString& templateId, qint64 bytesReceived,
-                           qint64 bytesTotal);
-    void downloadCompleted (const QString& templateId, const QString& localPath);
-    void downloadFailed (const QString& templateId, const QString& error);
+  // Template download progress
+  void downloadProgress (const QString& templateId, qint64 bytesReceived,
+                         qint64 bytesTotal);
+  void downloadCompleted (const QString& templateId, const QString& localPath);
+  void downloadFailed (const QString& templateId, const QString& error);
 
-    // Update notifications
-    void updateAvailable (int newTemplatesCount, int updatedTemplatesCount);
+  // Update notifications
+  void updateAvailable (int newTemplatesCount, int updatedTemplatesCount);
 
 private slots:
-    void onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
-    void onRemoteMetadataFailed (const QString& error);
-    void onTemplateDownloaded (const QString& templateId, const QString& localPath);
-    void onTemplateDownloadFailed (const QString& templateId, const QString& error);
+  void
+  onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
+  void onRemoteMetadataFailed (const QString& error);
+  void onTemplateDownloaded (const QString& templateId,
+                             const QString& localPath);
+  void onTemplateDownloadFailed (const QString& templateId,
+                                 const QString& error);
 
 private:
-    // Load local templates
-    void loadLocalTemplates ();
-    void loadLocalCategories ();
+  // Load local templates
+  void loadLocalTemplates ();
+  void loadLocalCategories ();
 
-    // Merge remote metadata with local cache
-    void mergeMetadata (const QHash<QString, TemplateMetadataPtr>& remoteMetadata);
+  // Merge remote metadata with local cache
+  void
+  mergeMetadata (const QHash<QString, TemplateMetadataPtr>& remoteMetadata);
 
-    // Utility functions
-    QString localTemplatesDir () const;
-    QString templateFilePath (const QString& templateId) const;
+  // Utility functions
+  QString localTemplatesDir () const;
+  QString templateFilePath (const QString& templateId) const;
 
 private:
-    bool initialized_;
+  bool initialized_;
 
-    // Data storage
-    QList<TemplateCategory>                       categories_;
-    QHash<QString, TemplateCategory>              categoryMap_;
-    QHash<QString, TemplateMetadataPtr>           templates_;
-    QHash<QString, TemplateMetadataPtr>           templatesByCategory_;
+  // Data storage
+  QList<TemplateCategory>             categories_;
+  QHash<QString, TemplateCategory>    categoryMap_;
+  QHash<QString, TemplateMetadataPtr> templates_;
+  QHash<QString, TemplateMetadataPtr> templatesByCategory_;
 
-    // Components
-    TemplateCache* cache_;
-    TemplateAPI*   api_;
+  // Components
+  TemplateCache* cache_;
+  TemplateAPI*   api_;
 
-    // State
-    bool isOnline_;
-    bool isRefreshing_;
+  // State
+  bool isOnline_;
+  bool isRefreshing_;
 };
 
 #endif // TEMPLATE_MANAGER_HPP

@@ -12,11 +12,11 @@
 #ifndef TEMPLATE_API_HPP
 #define TEMPLATE_API_HPP
 
-#include <QObject>
 #include <QHash>
-#include <QSharedPointer>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QObject>
+#include <QSharedPointer>
 
 // Forward declaration
 struct TemplateMetadata;
@@ -32,80 +32,80 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
  * - Support offline fallback
  */
 class TemplateAPI : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit TemplateAPI (QObject* parent= nullptr);
-    ~TemplateAPI ();
+  explicit TemplateAPI (QObject* parent= nullptr);
+  ~TemplateAPI ();
 
-    // Configuration
-    void    setRepository (const QString& owner, const QString& repo);
-    QString owner () const { return owner_; }
-    QString repo () const { return repo_; }
+  // Configuration
+  void    setRepository (const QString& owner, const QString& repo);
+  QString owner () const { return owner_; }
+  QString repo () const { return repo_; }
 
-    // API operations
-    void fetchMetadata ();
-    void downloadTemplate (const QString& templateId, const QString& downloadUrl,
-                           const QString& targetPath);
-    void cancelDownload (const QString& templateId);
+  // API operations
+  void fetchMetadata ();
+  void downloadTemplate (const QString& templateId, const QString& downloadUrl,
+                         const QString& targetPath);
+  void cancelDownload (const QString& templateId);
 
-    // Network state
-    bool isOnline () const;
-    void setOfflineMode (bool offline);
+  // Network state
+  bool isOnline () const;
+  void setOfflineMode (bool offline);
 
 signals:
-    // Metadata fetch results
-    void metadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
-    void metadataLoadFailed (const QString& error);
+  // Metadata fetch results
+  void metadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
+  void metadataLoadFailed (const QString& error);
 
-    // Download progress
-    void downloadProgress (const QString& templateId, qint64 bytesReceived,
-                           qint64 bytesTotal);
-    void downloadCompleted (const QString& templateId, const QString& localPath);
-    void downloadFailed (const QString& templateId, const QString& error);
+  // Download progress
+  void downloadProgress (const QString& templateId, qint64 bytesReceived,
+                         qint64 bytesTotal);
+  void downloadCompleted (const QString& templateId, const QString& localPath);
+  void downloadFailed (const QString& templateId, const QString& error);
 
-    // Network state
-    void networkStateChanged (bool isOnline);
+  // Network state
+  void networkStateChanged (bool isOnline);
 
 private slots:
-    void onMetadataReplyFinished ();
-    void onDownloadProgress (qint64 bytesReceived, qint64 bytesTotal);
-    void onDownloadFinished ();
-    void onNetworkError (QNetworkReply::NetworkError error);
+  void onMetadataReplyFinished ();
+  void onDownloadProgress (qint64 bytesReceived, qint64 bytesTotal);
+  void onDownloadFinished ();
+  void onNetworkError (QNetworkReply::NetworkError error);
 
 private:
-    // API URL construction
-    QString metadataUrl () const;
-    QString releasesApiUrl () const;
+  // API URL construction
+  QString metadataUrl () const;
+  QString releasesApiUrl () const;
 
-    // Response parsing
-    QHash<QString, TemplateMetadataPtr> parseMetadataResponse (
-        const QByteArray& data);
+  // Response parsing
+  QHash<QString, TemplateMetadataPtr>
+  parseMetadataResponse (const QByteArray& data);
 
-    // Request management
-    void setupRequestHeaders (QNetworkRequest& request);
+  // Request management
+  void setupRequestHeaders (QNetworkRequest& request);
 
 private:
-    // Repository configuration
-    QString owner_;
-    QString repo_;
+  // Repository configuration
+  QString owner_;
+  QString repo_;
 
-    // Network
-    QNetworkAccessManager* networkManager_;
-    bool                   offlineMode_;
+  // Network
+  QNetworkAccessManager* networkManager_;
+  bool                   offlineMode_;
 
-    // Active requests
-    QHash<QString, QNetworkReply*> downloadReplies_;
-    QNetworkReply*                 metadataReply_;
+  // Active requests
+  QHash<QString, QNetworkReply*> downloadReplies_;
+  QNetworkReply*                 metadataReply_;
 
-    // Retry configuration
-    static constexpr int    MAX_RETRY_COUNT    = 3;
-    static constexpr int    RETRY_DELAY_MS     = 1000;
-    static constexpr int    REQUEST_TIMEOUT_MS = 30000;
+  // Retry configuration
+  static constexpr int MAX_RETRY_COUNT   = 3;
+  static constexpr int RETRY_DELAY_MS    = 1000;
+  static constexpr int REQUEST_TIMEOUT_MS= 30000;
 
-    // Default repository
-    static constexpr const char* DEFAULT_OWNER = "LiiiLabs";
-    static constexpr const char* DEFAULT_REPO  = "liiistem-template";
+  // Default repository
+  static constexpr const char* DEFAULT_OWNER= "LiiiLabs";
+  static constexpr const char* DEFAULT_REPO = "liiistem-template";
 };
 
 #endif // TEMPLATE_API_HPP

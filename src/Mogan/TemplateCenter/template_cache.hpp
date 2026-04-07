@@ -12,9 +12,9 @@
 #ifndef TEMPLATE_CACHE_HPP
 #define TEMPLATE_CACHE_HPP
 
-#include <QObject>
-#include <QHash>
 #include <QDateTime>
+#include <QHash>
+#include <QObject>
 #include <QSharedPointer>
 
 // Forward declaration
@@ -25,14 +25,14 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
  * @brief Cache entry metadata
  */
 struct CacheEntry {
-    QString   templateId;
-    QString   localPath;
-    QString   etag;           // For HTTP caching
-    QDateTime cachedAt;
-    QDateTime expiresAt;      // Cache expiration time
-    qint64    fileSize;
+  QString   templateId;
+  QString   localPath;
+  QString   etag; // For HTTP caching
+  QDateTime cachedAt;
+  QDateTime expiresAt; // Cache expiration time
+  qint64    fileSize;
 
-    CacheEntry () : fileSize (0) {}
+  CacheEntry () : fileSize (0) {}
 };
 
 /**
@@ -45,70 +45,68 @@ struct CacheEntry {
  * - Provide offline access to templates
  */
 class TemplateCache : public QObject {
-    Q_OBJECT
+  Q_OBJECT
 
 public:
-    explicit TemplateCache (QObject* parent= nullptr);
-    ~TemplateCache ();
+  explicit TemplateCache (QObject* parent= nullptr);
+  ~TemplateCache ();
 
-    // Initialization
-    bool initialize ();
-    bool isInitialized () const { return initialized_; }
+  // Initialization
+  bool initialize ();
+  bool isInitialized () const { return initialized_; }
 
-    // Metadata cache operations
-    QHash<QString, TemplateMetadataPtr> loadMetadataCache ();
-    void                                saveMetadataCache (
-        const QHash<QString, TemplateMetadataPtr>& metadata);
+  // Metadata cache operations
+  QHash<QString, TemplateMetadataPtr> loadMetadataCache ();
+  void saveMetadataCache (const QHash<QString, TemplateMetadataPtr>& metadata);
 
-    // Template file operations
-    bool              isTemplateCached (const QString& templateId) const;
-    QString           cachedTemplatePath (const QString& templateId) const;
-    void              registerCachedTemplate (const QString& templateId,
-                                              const QString& localPath,
-                                              qint64         fileSize);
-    void              removeCachedTemplate (const QString& templateId);
-    QList<CacheEntry> cachedTemplates () const;
+  // Template file operations
+  bool              isTemplateCached (const QString& templateId) const;
+  QString           cachedTemplatePath (const QString& templateId) const;
+  void              registerCachedTemplate (const QString& templateId,
+                                            const QString& localPath, qint64 fileSize);
+  void              removeCachedTemplate (const QString& templateId);
+  QList<CacheEntry> cachedTemplates () const;
 
-    // Cache management
-    void clearCache ();
-    void cleanupExpiredCache ();
-    qint64 cacheSize () const;
+  // Cache management
+  void   clearCache ();
+  void   cleanupExpiredCache ();
+  qint64 cacheSize () const;
 
-    // Last update tracking
-    QDateTime lastMetadataUpdate () const;
-    void      setLastMetadataUpdate (const QDateTime& time);
+  // Last update tracking
+  QDateTime lastMetadataUpdate () const;
+  void      setLastMetadataUpdate (const QDateTime& time);
 
-    // Cache info
-    QString cacheDirectory () const;
+  // Cache info
+  QString cacheDirectory () const;
 
 signals:
-    void cacheCleared ();
-    void cacheEntryRemoved (const QString& templateId);
+  void cacheCleared ();
+  void cacheEntryRemoved (const QString& templateId);
 
 private:
-    // Cache file paths
-    QString metadataCachePath () const;
-    QString templatesCacheDir () const;
-    QString cacheIndexPath () const;
+  // Cache file paths
+  QString metadataCachePath () const;
+  QString templatesCacheDir () const;
+  QString cacheIndexPath () const;
 
-    // Cache index management
-    void loadCacheIndex ();
-    void saveCacheIndex ();
+  // Cache index management
+  void loadCacheIndex ();
+  void saveCacheIndex ();
 
-    // Utility functions
-    void ensureCacheDirectory () const;
+  // Utility functions
+  void ensureCacheDirectory () const;
 
 private:
-    bool initialized_;
+  bool initialized_;
 
-    // Cache storage
-    QHash<QString, CacheEntry> cacheIndex_;
-    QDateTime                  lastMetadataUpdate_;
+  // Cache storage
+  QHash<QString, CacheEntry> cacheIndex_;
+  QDateTime                  lastMetadataUpdate_;
 
-    // Cache configuration
-    static constexpr int    CACHE_EXPIRY_DAYS     = 7;
-    static constexpr qint64 MAX_CACHE_SIZE_BYTES  = 100 * 1024 * 1024; // 100MB
-    static constexpr int    MAX_CACHED_TEMPLATES  = 50;
+  // Cache configuration
+  static constexpr int    CACHE_EXPIRY_DAYS   = 7;
+  static constexpr qint64 MAX_CACHE_SIZE_BYTES= 100 * 1024 * 1024; // 100MB
+  static constexpr int    MAX_CACHED_TEMPLATES= 50;
 };
 
 #endif // TEMPLATE_CACHE_HPP

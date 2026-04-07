@@ -12,333 +12,335 @@
 #include "template_cache.hpp"
 #include "template_manager.hpp"
 
+#include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
-#include <QJsonArray>
 #include <QStandardPaths>
-#include <QDebug>
 
-TemplateCache::TemplateCache (QObject* parent) : QObject (parent), initialized_ (false) {
-}
+TemplateCache::TemplateCache (QObject* parent)
+    : QObject (parent), initialized_ (false) {}
 
-TemplateCache::~TemplateCache () {
-}
+TemplateCache::~TemplateCache () {}
 
 bool
 TemplateCache::initialize () {
-    if (initialized_) {
-        return true;
-    }
-
-    // Ensure cache directories exist
-    ensureCacheDirectory ();
-
-    // Load cache index
-    loadCacheIndex ();
-
-    initialized_= true;
+  if (initialized_) {
     return true;
+  }
+
+  // Ensure cache directories exist
+  ensureCacheDirectory ();
+
+  // Load cache index
+  loadCacheIndex ();
+
+  initialized_= true;
+  return true;
 }
 
 QHash<QString, TemplateMetadataPtr>
 TemplateCache::loadMetadataCache () {
-    QHash<QString, TemplateMetadataPtr> metadata;
+  QHash<QString, TemplateMetadataPtr> metadata;
 
-    QString cachePath= metadataCachePath ();
-    if (!QFile::exists (cachePath)) {
-        return metadata;
-    }
-
-    QFile file (cachePath);
-    if (!file.open (QIODevice::ReadOnly)) {
-        qWarning () << "Failed to open metadata cache:" << cachePath;
-        return metadata;
-    }
-
-    QByteArray    data= file.readAll ();
-    QJsonDocument doc = QJsonDocument::fromJson (data);
-    if (doc.isNull () || !doc.isObject ()) {
-        qWarning () << "Invalid metadata cache format";
-        return metadata;
-    }
-
-    QJsonObject root= doc.object ();
-
-    // Parse last update time
-    QString lastUpdate= root.value ("lastUpdated").toString ();
-    if (!lastUpdate.isEmpty ()) {
-        lastMetadataUpdate_= QDateTime::fromString (lastUpdate, Qt::ISODate);
-    }
-
-    // Parse templates
-    QJsonArray templates= root.value ("templates").toArray ();
-    for (const auto& tmplValue : templates) {
-        QJsonObject tmplObj= tmplValue.toObject ();
-
-        TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
-        tmpl->id          = tmplObj.value ("id").toString ();
-        tmpl->name        = tmplObj.value ("name").toString ();
-        tmpl->description = tmplObj.value ("description").toString ();
-        tmpl->category    = tmplObj.value ("category").toString ();
-        tmpl->author      = tmplObj.value ("author").toString ();
-        tmpl->version     = tmplObj.value ("version").toString ();
-        tmpl->thumbnailUrl= tmplObj.value ("thumbnail_url").toString ();
-        tmpl->fileUrl     = tmplObj.value ("file_url").toString ();
-        tmpl->updatedAt   = QDateTime::fromString (
-            tmplObj.value ("updated_at").toString (), Qt::ISODate);
-
-        // Check if locally cached
-        tmpl->isLocal= isTemplateCached (tmpl->id);
-        if (tmpl->isLocal) {
-            tmpl->localPath= cachedTemplatePath (tmpl->id);
-        }
-
-        metadata.insert (tmpl->id, tmpl);
-    }
-
+  QString cachePath= metadataCachePath ();
+  if (!QFile::exists (cachePath)) {
     return metadata;
+  }
+
+  QFile file (cachePath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    qWarning () << "Failed to open metadata cache:" << cachePath;
+    return metadata;
+  }
+
+  QByteArray    data= file.readAll ();
+  QJsonDocument doc = QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    qWarning () << "Invalid metadata cache format";
+    return metadata;
+  }
+
+  QJsonObject root= doc.object ();
+
+  // Parse last update time
+  QString lastUpdate= root.value ("lastUpdated").toString ();
+  if (!lastUpdate.isEmpty ()) {
+    lastMetadataUpdate_= QDateTime::fromString (lastUpdate, Qt::ISODate);
+  }
+
+  // Parse templates
+  QJsonArray templates= root.value ("templates").toArray ();
+  for (const auto& tmplValue : templates) {
+    QJsonObject tmplObj= tmplValue.toObject ();
+
+    TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
+    tmpl->id                = tmplObj.value ("id").toString ();
+    tmpl->name              = tmplObj.value ("name").toString ();
+    tmpl->description       = tmplObj.value ("description").toString ();
+    tmpl->category          = tmplObj.value ("category").toString ();
+    tmpl->author            = tmplObj.value ("author").toString ();
+    tmpl->version           = tmplObj.value ("version").toString ();
+    tmpl->thumbnailUrl      = tmplObj.value ("thumbnail_url").toString ();
+    tmpl->fileUrl           = tmplObj.value ("file_url").toString ();
+    tmpl->updatedAt         = QDateTime::fromString (
+        tmplObj.value ("updated_at").toString (), Qt::ISODate);
+
+    // Check if locally cached
+    tmpl->isLocal= isTemplateCached (tmpl->id);
+    if (tmpl->isLocal) {
+      tmpl->localPath= cachedTemplatePath (tmpl->id);
+    }
+
+    metadata.insert (tmpl->id, tmpl);
+  }
+
+  return metadata;
 }
 
 void
-TemplateCache::saveMetadataCache (const QHash<QString, TemplateMetadataPtr>& metadata) {
-    QJsonObject root;
-    root.insert ("version", "1.0");
-    root.insert ("lastUpdated", QDateTime::currentDateTime ().toString (Qt::ISODate));
+TemplateCache::saveMetadataCache (
+    const QHash<QString, TemplateMetadataPtr>& metadata) {
+  QJsonObject root;
+  root.insert ("version", "1.0");
+  root.insert ("lastUpdated",
+               QDateTime::currentDateTime ().toString (Qt::ISODate));
 
-    QJsonArray templates;
-    for (const auto& tmpl : metadata) {
-        QJsonObject tmplObj;
-        tmplObj.insert ("id", tmpl->id);
-        tmplObj.insert ("name", tmpl->name);
-        tmplObj.insert ("description", tmpl->description);
-        tmplObj.insert ("category", tmpl->category);
-        tmplObj.insert ("author", tmpl->author);
-        tmplObj.insert ("version", tmpl->version);
-        tmplObj.insert ("thumbnail_url", tmpl->thumbnailUrl);
-        tmplObj.insert ("file_url", tmpl->fileUrl);
-        tmplObj.insert ("updated_at", tmpl->updatedAt.toString (Qt::ISODate));
-        templates.append (tmplObj);
-    }
-    root.insert ("templates", templates);
+  QJsonArray templates;
+  for (const auto& tmpl : metadata) {
+    QJsonObject tmplObj;
+    tmplObj.insert ("id", tmpl->id);
+    tmplObj.insert ("name", tmpl->name);
+    tmplObj.insert ("description", tmpl->description);
+    tmplObj.insert ("category", tmpl->category);
+    tmplObj.insert ("author", tmpl->author);
+    tmplObj.insert ("version", tmpl->version);
+    tmplObj.insert ("thumbnail_url", tmpl->thumbnailUrl);
+    tmplObj.insert ("file_url", tmpl->fileUrl);
+    tmplObj.insert ("updated_at", tmpl->updatedAt.toString (Qt::ISODate));
+    templates.append (tmplObj);
+  }
+  root.insert ("templates", templates);
 
-    QJsonDocument doc (root);
+  QJsonDocument doc (root);
 
-    QString cachePath= metadataCachePath ();
-    QFile   file (cachePath);
-    if (!file.open (QIODevice::WriteOnly)) {
-        qWarning () << "Failed to write metadata cache:" << cachePath;
-        return;
-    }
+  QString cachePath= metadataCachePath ();
+  QFile   file (cachePath);
+  if (!file.open (QIODevice::WriteOnly)) {
+    qWarning () << "Failed to write metadata cache:" << cachePath;
+    return;
+  }
 
-    file.write (doc.toJson (QJsonDocument::Compact));
+  file.write (doc.toJson (QJsonDocument::Compact));
 }
 
 bool
 TemplateCache::isTemplateCached (const QString& templateId) const {
-    return cacheIndex_.contains (templateId);
+  return cacheIndex_.contains (templateId);
 }
 
 QString
 TemplateCache::cachedTemplatePath (const QString& templateId) const {
-    auto it= cacheIndex_.find (templateId);
-    if (it != cacheIndex_.end ()) {
-        const QString& path= it->localPath;
-        if (QFile::exists (path)) {
-            return path;
-        }
+  auto it= cacheIndex_.find (templateId);
+  if (it != cacheIndex_.end ()) {
+    const QString& path= it->localPath;
+    if (QFile::exists (path)) {
+      return path;
     }
-    return QString ();
+  }
+  return QString ();
 }
 
 void
 TemplateCache::registerCachedTemplate (const QString& templateId,
-                                        const QString& localPath, qint64 fileSize) {
-    CacheEntry entry;
-    entry.templateId= templateId;
-    entry.localPath = localPath;
-    entry.fileSize  = fileSize;
-    entry.cachedAt  = QDateTime::currentDateTime ();
-    entry.expiresAt = entry.cachedAt.addDays (CACHE_EXPIRY_DAYS);
+                                       const QString& localPath,
+                                       qint64         fileSize) {
+  CacheEntry entry;
+  entry.templateId= templateId;
+  entry.localPath = localPath;
+  entry.fileSize  = fileSize;
+  entry.cachedAt  = QDateTime::currentDateTime ();
+  entry.expiresAt = entry.cachedAt.addDays (CACHE_EXPIRY_DAYS);
 
-    cacheIndex_[templateId]= entry;
-    saveCacheIndex ();
+  cacheIndex_[templateId]= entry;
+  saveCacheIndex ();
 }
 
 void
 TemplateCache::removeCachedTemplate (const QString& templateId) {
-    auto it= cacheIndex_.find (templateId);
-    if (it != cacheIndex_.end ()) {
-        // Remove file
-        QFile::remove (it->localPath);
+  auto it= cacheIndex_.find (templateId);
+  if (it != cacheIndex_.end ()) {
+    // Remove file
+    QFile::remove (it->localPath);
 
-        cacheIndex_.erase (it);
-        saveCacheIndex ();
+    cacheIndex_.erase (it);
+    saveCacheIndex ();
 
-        emit cacheEntryRemoved (templateId);
-    }
+    emit cacheEntryRemoved (templateId);
+  }
 }
 
 QList<CacheEntry>
 TemplateCache::cachedTemplates () const {
-    return cacheIndex_.values ();
+  return cacheIndex_.values ();
 }
 
 void
 TemplateCache::clearCache () {
-    // Remove all cached files
-    for (const auto& entry : cacheIndex_) {
-        QFile::remove (entry.localPath);
-    }
+  // Remove all cached files
+  for (const auto& entry : cacheIndex_) {
+    QFile::remove (entry.localPath);
+  }
 
-    cacheIndex_.clear ();
-    saveCacheIndex ();
+  cacheIndex_.clear ();
+  saveCacheIndex ();
 
-    // Clear metadata cache
-    QString metadataPath= metadataCachePath ();
-    QFile::remove (metadataPath);
+  // Clear metadata cache
+  QString metadataPath= metadataCachePath ();
+  QFile::remove (metadataPath);
 
-    emit cacheCleared ();
+  emit cacheCleared ();
 }
 
 void
 TemplateCache::cleanupExpiredCache () {
-    QDateTime now= QDateTime::currentDateTime ();
+  QDateTime now= QDateTime::currentDateTime ();
 
-    QList<QString> toRemove;
-    for (auto it= cacheIndex_.begin (); it != cacheIndex_.end (); ++it) {
-        if (it->expiresAt < now) {
-            toRemove.append (it.key ());
-        }
+  QList<QString> toRemove;
+  for (auto it= cacheIndex_.begin (); it != cacheIndex_.end (); ++it) {
+    if (it->expiresAt < now) {
+      toRemove.append (it.key ());
     }
+  }
 
-    for (const QString& templateId : toRemove) {
-        removeCachedTemplate (templateId);
-    }
+  for (const QString& templateId : toRemove) {
+    removeCachedTemplate (templateId);
+  }
 }
 
 qint64
 TemplateCache::cacheSize () const {
-    qint64 total= 0;
-    for (const auto& entry : cacheIndex_) {
-        total+= entry.fileSize;
-    }
-    return total;
+  qint64 total= 0;
+  for (const auto& entry : cacheIndex_) {
+    total+= entry.fileSize;
+  }
+  return total;
 }
 
 QDateTime
 TemplateCache::lastMetadataUpdate () const {
-    return lastMetadataUpdate_;
+  return lastMetadataUpdate_;
 }
 
 void
 TemplateCache::setLastMetadataUpdate (const QDateTime& time) {
-    lastMetadataUpdate_= time;
+  lastMetadataUpdate_= time;
 }
 
 QString
 TemplateCache::cacheDirectory () const {
-    QString dataDir= QStandardPaths::writableLocation (
-        QStandardPaths::AppDataLocation);
-    return QDir (dataDir).filePath ("template_cache");
+  QString dataDir=
+      QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
+  return QDir (dataDir).filePath ("template_cache");
 }
 
 QString
 TemplateCache::metadataCachePath () const {
-    return QDir (cacheDirectory ()).filePath ("metadata.json");
+  return QDir (cacheDirectory ()).filePath ("metadata.json");
 }
 
 QString
 TemplateCache::templatesCacheDir () const {
-    return QDir (cacheDirectory ()).filePath ("templates");
+  return QDir (cacheDirectory ()).filePath ("templates");
 }
 
 QString
 TemplateCache::cacheIndexPath () const {
-    return QDir (cacheDirectory ()).filePath ("index.json");
+  return QDir (cacheDirectory ()).filePath ("index.json");
 }
 
 void
 TemplateCache::loadCacheIndex () {
-    QString indexPath= cacheIndexPath ();
-    if (!QFile::exists (indexPath)) {
-        return;
+  QString indexPath= cacheIndexPath ();
+  if (!QFile::exists (indexPath)) {
+    return;
+  }
+
+  QFile file (indexPath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    return;
+  }
+
+  QByteArray    data= file.readAll ();
+  QJsonDocument doc = QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    return;
+  }
+
+  QJsonObject root   = doc.object ();
+  QJsonArray  entries= root.value ("entries").toArray ();
+
+  for (const auto& entryValue : entries) {
+    QJsonObject entryObj= entryValue.toObject ();
+
+    CacheEntry entry;
+    entry.templateId= entryObj.value ("templateId").toString ();
+    entry.localPath = entryObj.value ("localPath").toString ();
+    entry.etag      = entryObj.value ("etag").toString ();
+    entry.fileSize  = entryObj.value ("fileSize").toVariant ().toLongLong ();
+    entry.cachedAt  = QDateTime::fromString (
+        entryObj.value ("cachedAt").toString (), Qt::ISODate);
+    entry.expiresAt= QDateTime::fromString (
+        entryObj.value ("expiresAt").toString (), Qt::ISODate);
+
+    // Only add if file still exists
+    if (QFile::exists (entry.localPath)) {
+      cacheIndex_[entry.templateId]= entry;
     }
-
-    QFile file (indexPath);
-    if (!file.open (QIODevice::ReadOnly)) {
-        return;
-    }
-
-    QByteArray    data= file.readAll ();
-    QJsonDocument doc = QJsonDocument::fromJson (data);
-    if (doc.isNull () || !doc.isObject ()) {
-        return;
-    }
-
-    QJsonObject root= doc.object ();
-    QJsonArray  entries= root.value ("entries").toArray ();
-
-    for (const auto& entryValue : entries) {
-        QJsonObject entryObj= entryValue.toObject ();
-
-        CacheEntry entry;
-        entry.templateId= entryObj.value ("templateId").toString ();
-        entry.localPath = entryObj.value ("localPath").toString ();
-        entry.etag      = entryObj.value ("etag").toString ();
-        entry.fileSize  = entryObj.value ("fileSize").toVariant ().toLongLong ();
-        entry.cachedAt  = QDateTime::fromString (
-            entryObj.value ("cachedAt").toString (), Qt::ISODate);
-        entry.expiresAt = QDateTime::fromString (
-            entryObj.value ("expiresAt").toString (), Qt::ISODate);
-
-        // Only add if file still exists
-        if (QFile::exists (entry.localPath)) {
-            cacheIndex_[entry.templateId]= entry;
-        }
-    }
+  }
 }
 
 void
 TemplateCache::saveCacheIndex () {
-    QJsonObject root;
-    root.insert ("version", "1.0");
+  QJsonObject root;
+  root.insert ("version", "1.0");
 
-    QJsonArray entries;
-    for (const auto& entry : cacheIndex_) {
-        QJsonObject entryObj;
-        entryObj.insert ("templateId", entry.templateId);
-        entryObj.insert ("localPath", entry.localPath);
-        entryObj.insert ("etag", entry.etag);
-        entryObj.insert ("fileSize", static_cast<qint64>(entry.fileSize));
-        entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
-        entryObj.insert ("expiresAt", entry.expiresAt.toString (Qt::ISODate));
-        entries.append (entryObj);
-    }
-    root.insert ("entries", entries);
+  QJsonArray entries;
+  for (const auto& entry : cacheIndex_) {
+    QJsonObject entryObj;
+    entryObj.insert ("templateId", entry.templateId);
+    entryObj.insert ("localPath", entry.localPath);
+    entryObj.insert ("etag", entry.etag);
+    entryObj.insert ("fileSize", static_cast<qint64> (entry.fileSize));
+    entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
+    entryObj.insert ("expiresAt", entry.expiresAt.toString (Qt::ISODate));
+    entries.append (entryObj);
+  }
+  root.insert ("entries", entries);
 
-    QJsonDocument doc (root);
+  QJsonDocument doc (root);
 
-    QString indexPath= cacheIndexPath ();
-    QFile   file (indexPath);
-    if (!file.open (QIODevice::WriteOnly)) {
-        qWarning () << "Failed to write cache index:" << indexPath;
-        return;
-    }
+  QString indexPath= cacheIndexPath ();
+  QFile   file (indexPath);
+  if (!file.open (QIODevice::WriteOnly)) {
+    qWarning () << "Failed to write cache index:" << indexPath;
+    return;
+  }
 
-    file.write (doc.toJson (QJsonDocument::Compact));
+  file.write (doc.toJson (QJsonDocument::Compact));
 }
 
 void
 TemplateCache::ensureCacheDirectory () const {
-    QDir cacheDir (cacheDirectory ());
-    if (!cacheDir.exists ()) {
-        cacheDir.mkpath (".");
-    }
+  QDir cacheDir (cacheDirectory ());
+  if (!cacheDir.exists ()) {
+    cacheDir.mkpath (".");
+  }
 
-    QDir templatesDir (templatesCacheDir ());
-    if (!templatesDir.exists ()) {
-        templatesDir.mkpath (".");
-    }
+  QDir templatesDir (templatesCacheDir ());
+  if (!templatesDir.exists ()) {
+    templatesDir.mkpath (".");
+  }
 }
