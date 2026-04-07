@@ -18,16 +18,19 @@
 #include <QObject>
 #include <QSharedPointer>
 
+// Common type definitions
+#include "template_types.hpp"
+
 // Forward declaration
-struct TemplateMetadata;
-using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
+class QJsonObject;
+class QJsonObject;
 
 /**
- * @brief Gitee Releases API client
+ * @brief liiistem.cn API client
  *
  * Responsibilities:
- * - Fetch template metadata from Gitee Releases
- * - Download template files (.tmu)
+ * - Fetch template metadata from liiistem.cn API
+ * - Download template files (.tm)
  * - Handle network errors and retries
  * - Support offline fallback
  */
@@ -38,10 +41,9 @@ public:
   explicit TemplateAPI (QObject* parent= nullptr);
   ~TemplateAPI ();
 
-  // Configuration
-  void    setRepository (const QString& owner, const QString& repo);
-  QString owner () const { return owner_; }
-  QString repo () const { return repo_; }
+  // Configuration (liiistem.cn API - no repository config needed)
+  void    setApiBaseUrl (const QString& baseUrl);
+  QString apiBaseUrl () const { return apiBaseUrl_; }
 
   // API operations
   void fetchMetadata ();
@@ -54,8 +56,9 @@ public:
   void setOfflineMode (bool offline);
 
 signals:
-  // Metadata fetch results
-  void metadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
+  // Metadata fetch results (liiistem.cn API format)
+  void metadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata,
+                       const QList<TemplateCategory>&             categories);
   void metadataLoadFailed (const QString& error);
 
   // Download progress
@@ -76,19 +79,23 @@ private slots:
 private:
   // API URL construction
   QString metadataUrl () const;
-  QString releasesApiUrl () const;
 
-  // Response parsing
+  // Response parsing (liiistem.cn API format with nested categories)
   QHash<QString, TemplateMetadataPtr>
-  parseMetadataResponse (const QByteArray& data);
+  parseMetadataResponse (const QByteArray&        data,
+                         QList<TemplateCategory>& outCategories);
+
+  // Helper to parse individual template objects
+  void parseTemplateObject (const QJsonObject& tmplObj,
+                            const QString&     defaultCategoryId,
+                            QHash<QString, TemplateMetadataPtr>& metadata);
 
   // Request management
   void setupRequestHeaders (QNetworkRequest& request);
 
 private:
-  // Repository configuration
-  QString owner_;
-  QString repo_;
+  // API configuration
+  QString apiBaseUrl_;
 
   // Network
   QNetworkAccessManager* networkManager_;
@@ -98,9 +105,8 @@ private:
   QHash<QString, QNetworkReply*> downloadReplies_;
   QNetworkReply*                 metadataReply_;
 
-  // Default repository
-  static constexpr const char* DEFAULT_OWNER= "LiiiLabs";
-  static constexpr const char* DEFAULT_REPO = "liiistem-template";
+  // Default API endpoint
+  static constexpr const char* DEFAULT_API_BASE_URL= "https://liiistem.cn/template-api";
 };
 
 #endif // TEMPLATE_API_HPP

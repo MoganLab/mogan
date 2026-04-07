@@ -15,11 +15,9 @@
 #include <QDateTime>
 #include <QHash>
 #include <QObject>
-#include <QSharedPointer>
 
-// Forward declaration
-struct TemplateMetadata;
-using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
+// Common type definitions
+#include "template_types.hpp"
 
 /**
  * @brief Cache entry metadata

@@ -12,50 +12,16 @@
 #ifndef TEMPLATE_MANAGER_HPP
 #define TEMPLATE_MANAGER_HPP
 
-#include <QDateTime>
 #include <QHash>
 #include <QList>
 #include <QObject>
-#include <QSharedPointer>
-#include <QString>
+
+// Common type definitions
+#include "template_types.hpp"
 
 // Forward declarations
 class TemplateCache;
 class TemplateAPI;
-
-/**
- * @brief Template metadata structure
- */
-struct TemplateMetadata {
-  QString   id;           // Unique template identifier
-  QString   name;         // Display name
-  QString   description;  // Template description
-  QString   category;     // Category ID
-  QString   author;       // Author name
-  QString   version;      // Template version
-  QString   thumbnailUrl; // Thumbnail image URL
-  QString   fileUrl;      // Template file (.tmu) download URL
-  qint64    fileSize;     // File size in bytes
-  QDateTime updatedAt;    // Last update time
-  QString   localPath;    // Local cached file path (if downloaded)
-  bool      isLocal;      // Whether template is locally available
-
-  TemplateMetadata () : fileSize (0), isLocal (false) {}
-};
-
-using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
-
-/**
- * @brief Template category structure
- */
-struct TemplateCategory {
-  QString id;    // Unique category identifier
-  QString name;  // Display name (localized)
-  QString icon;  // Icon name or path
-  int     order; // Display order
-
-  TemplateCategory () : order (0) {}
-};
 
 /**
  * @brief Template manager - main entry point for template operations
@@ -126,8 +92,10 @@ signals:
   void updateAvailable (int newTemplatesCount, int updatedTemplatesCount);
 
 private slots:
+  // liiistem.cn API format with categories
   void
-  onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
+  onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata,
+                          const QList<TemplateCategory>& categories);
   void onRemoteMetadataFailed (const QString& error);
   void onTemplateDownloaded (const QString& templateId,
                              const QString& localPath);

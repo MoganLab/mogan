@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "template_cache.hpp"
-#include "template_manager.hpp"
 
 #include <QDebug>
 #include <QDir>
@@ -83,11 +82,27 @@ TemplateCache::loadMetadataCache () {
     tmpl->category          = tmplObj.value ("category").toString ();
     tmpl->author            = tmplObj.value ("author").toString ();
     tmpl->version           = tmplObj.value ("version").toString ();
+    tmpl->license           = tmplObj.value ("license").toString ();
     tmpl->thumbnailUrl      = tmplObj.value ("thumbnail_url").toString ();
-    tmpl->fileUrl           = tmplObj.value ("file_url").toString ();
+    tmpl->previewUrl        = tmplObj.value ("preview_url").toString ();
+    // Support both download_url (new) and file_url (legacy)
+    tmpl->fileUrl= tmplObj.value ("download_url")
+                       .toString (tmplObj.value ("file_url").toString ());
     tmpl->fileSize = tmplObj.value ("file_size").toVariant ().toLongLong ();
+    tmpl->fileMd5  = tmplObj.value ("file_md5").toString ();
+    tmpl->createdAt= QDateTime::fromString (
+        tmplObj.value ("created_at").toString (), Qt::ISODate);
     tmpl->updatedAt= QDateTime::fromString (
         tmplObj.value ("updated_at").toString (), Qt::ISODate);
+    tmpl->language= tmplObj.value ("language").toString ();
+
+    // Parse tags array
+    QJsonArray  tagsArray= tmplObj.value ("tags").toArray ();
+    QStringList tags;
+    for (const auto& tag : tagsArray) {
+      tags.append (tag.toString ());
+    }
+    tmpl->tags= tags;
 
     // Check if locally cached
     tmpl->isLocal= isTemplateCached (tmpl->id);
@@ -118,10 +133,23 @@ TemplateCache::saveMetadataCache (
     tmplObj.insert ("category", tmpl->category);
     tmplObj.insert ("author", tmpl->author);
     tmplObj.insert ("version", tmpl->version);
+    tmplObj.insert ("license", tmpl->license);
     tmplObj.insert ("thumbnail_url", tmpl->thumbnailUrl);
+    tmplObj.insert ("preview_url", tmpl->previewUrl);
     tmplObj.insert ("file_url", tmpl->fileUrl);
     tmplObj.insert ("file_size", static_cast<qint64> (tmpl->fileSize));
+    tmplObj.insert ("file_md5", tmpl->fileMd5);
+    tmplObj.insert ("created_at", tmpl->createdAt.toString (Qt::ISODate));
     tmplObj.insert ("updated_at", tmpl->updatedAt.toString (Qt::ISODate));
+    tmplObj.insert ("language", tmpl->language);
+
+    // Save tags array
+    QJsonArray tagsArray;
+    for (const auto& tag : tmpl->tags) {
+      tagsArray.append (tag);
+    }
+    tmplObj.insert ("tags", tagsArray);
+
     templates.append (tmplObj);
   }
   root.insert ("templates", templates);

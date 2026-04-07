@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "template_api.hpp"
-#include "template_manager.hpp"
 
 #include <QDebug>
 #include <QDir>
@@ -26,9 +25,8 @@ TemplateAPI::TemplateAPI (QObject* parent)
       metadataReply_ (nullptr) {
   networkManager_= new QNetworkAccessManager (this);
 
-  // Set default repository
-  owner_= QString (DEFAULT_OWNER);
-  repo_ = QString (DEFAULT_REPO);
+  // Set default API endpoint
+  apiBaseUrl_= QString (DEFAULT_API_BASE_URL);
 }
 
 TemplateAPI::~TemplateAPI () {
@@ -45,9 +43,8 @@ TemplateAPI::~TemplateAPI () {
 }
 
 void
-TemplateAPI::setRepository (const QString& owner, const QString& repo) {
-  owner_= owner;
-  repo_ = repo;
+TemplateAPI::setApiBaseUrl (const QString& baseUrl) {
+  apiBaseUrl_= baseUrl;
 }
 
 void
@@ -143,8 +140,9 @@ TemplateAPI::onMetadataReplyFinished () {
   QByteArray response= reply->readAll ();
   reply->deleteLater ();
 
-  auto metadata= parseMetadataResponse (response);
-  emit metadataLoaded (metadata);
+  QList<TemplateCategory> categories;
+  auto metadata= parseMetadataResponse (response, categories);
+  emit metadataLoaded (metadata, categories);
 }
 
 void
@@ -189,8 +187,14 @@ TemplateAPI::onDownloadFinished () {
     return;
   }
 
-  file.write (reply->readAll ());
+  QByteArray data   = reply->readAll ();
+  qint64     written= file.write (data);
   file.close ();
+  if (written != data.size ()) {
+    emit downloadFailed (templateId, tr ("Failed to write complete file"));
+    reply->deleteLater ();
+    return;
+  }
 
   emit downloadCompleted (templateId, targetPath);
   reply->deleteLater ();
@@ -223,19 +227,13 @@ TemplateAPI::onNetworkError (QNetworkReply::NetworkError error) {
 
 QString
 TemplateAPI::metadataUrl () const {
-  // Fetch templates.json from Gitee raw content
-  return QString ("https://gitee.com/%1/%2/raw/main/templates.json")
-      .arg (owner_, repo_);
-}
-
-QString
-TemplateAPI::releasesApiUrl () const {
-  return QString ("https://gitee.com/api/v5/repos/%1/%2/releases/latest")
-      .arg (owner_, repo_);
+  // Fetch templates.json from liiistem.cn API
+  return QString ("%1/templates.json").arg (apiBaseUrl_);
 }
 
 QHash<QString, TemplateMetadataPtr>
-TemplateAPI::parseMetadataResponse (const QByteArray& data) {
+TemplateAPI::parseMetadataResponse (const QByteArray&        data,
+                                    QList<TemplateCategory>& outCategories) {
   QHash<QString, TemplateMetadataPtr> metadata;
 
   QJsonDocument doc= QJsonDocument::fromJson (data);
@@ -246,29 +244,87 @@ TemplateAPI::parseMetadataResponse (const QByteArray& data) {
 
   QJsonObject root= doc.object ();
 
-  // Parse templates array
-  QJsonArray templates= root.value ("templates").toArray ();
-  for (const auto& tmplValue : templates) {
-    QJsonObject tmplObj= tmplValue.toObject ();
+  // Check if this is the nested categories format (liiistem.cn API v2)
+  QJsonArray categories= root.value ("categories").toArray ();
+  if (!categories.isEmpty ()) {
+    // Parse categories array with nested templates
+    for (const auto& catValue : categories) {
+      QJsonObject catObj= catValue.toObject ();
 
-    TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
-    tmpl->id                = tmplObj.value ("id").toString ();
-    tmpl->name              = tmplObj.value ("name").toString ();
-    tmpl->description       = tmplObj.value ("description").toString ();
-    tmpl->category          = tmplObj.value ("category").toString ();
-    tmpl->author            = tmplObj.value ("author").toString ();
-    tmpl->version           = tmplObj.value ("version").toString ();
-    tmpl->thumbnailUrl      = tmplObj.value ("thumbnail_url").toString ();
-    tmpl->fileUrl           = tmplObj.value ("file_url").toString ();
-    tmpl->updatedAt         = QDateTime::fromString (
-        tmplObj.value ("updated_at").toString (), Qt::ISODate);
+      // Parse category info
+      TemplateCategory category;
+      category.id         = catObj.value ("id").toString ();
+      category.name       = catObj.value ("name").toString ();
+      category.description= catObj.value ("description").toString ();
+      category.icon       = catObj.value ("icon").toString ();
+      category.order      = catObj.value ("order").toInt ();
+      outCategories.append (category);
 
-    if (!tmpl->id.isEmpty ()) {
-      metadata.insert (tmpl->id, tmpl);
+      QString categoryId= category.id;
+
+      QJsonArray templates= catObj.value ("templates").toArray ();
+      for (const auto& tmplValue : templates) {
+        parseTemplateObject (tmplValue.toObject (), categoryId, metadata);
+      }
+    }
+  }
+  else {
+    // Fallback: flat templates array format (legacy/Gitee style)
+    QJsonArray templates= root.value ("templates").toArray ();
+    for (const auto& tmplValue : templates) {
+      parseTemplateObject (tmplValue.toObject (), QString (), metadata);
     }
   }
 
   return metadata;
+}
+
+void
+TemplateAPI::parseTemplateObject (
+    const QJsonObject& tmplObj, const QString& defaultCategoryId,
+    QHash<QString, TemplateMetadataPtr>& metadata) {
+  TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
+  tmpl->id                = tmplObj.value ("id").toString ();
+  tmpl->name              = tmplObj.value ("name").toString ();
+  tmpl->description       = tmplObj.value ("description").toString ();
+  // Use category field if present, otherwise use parent category
+  tmpl->category    = tmplObj.value ("category").toString (defaultCategoryId);
+  tmpl->author      = tmplObj.value ("author").toString ();
+  tmpl->version     = tmplObj.value ("version").toString ();
+  tmpl->license     = tmplObj.value ("license").toString ();
+  tmpl->thumbnailUrl= tmplObj.value ("thumbnail_url").toString ();
+  tmpl->previewUrl  = tmplObj.value ("preview_url").toString ();
+  // Support both download_url (new) and file_url (legacy)
+  tmpl->fileUrl= tmplObj.value ("download_url")
+                     .toString (tmplObj.value ("file_url").toString ());
+  tmpl->fileSize = tmplObj.value ("file_size").toVariant ().toLongLong ();
+  tmpl->fileMd5  = tmplObj.value ("file_md5").toString ();
+  tmpl->createdAt= QDateTime::fromString (
+      tmplObj.value ("created_at").toString (), Qt::ISODate);
+  tmpl->updatedAt= QDateTime::fromString (
+      tmplObj.value ("updated_at").toString (), Qt::ISODate);
+  tmpl->language= tmplObj.value ("language").toString ();
+
+  // Parse tags array
+  QJsonArray  tagsArray= tmplObj.value ("tags").toArray ();
+  QStringList tags;
+  for (const auto& tag : tagsArray) {
+    tags.append (tag.toString ());
+  }
+  tmpl->tags= tags;
+
+  // Parse compatibility info
+  QJsonObject compatObj= tmplObj.value ("compatibility").toObject ();
+  tmpl->moganMinVersion= compatObj.value ("mogan_min_version").toString ();
+
+  // Parse statistics
+  QJsonObject statsObj= tmplObj.value ("statistics").toObject ();
+  tmpl->downloadCount = statsObj.value ("downloads").toInt ();
+  tmpl->rating        = statsObj.value ("rating").toDouble ();
+
+  if (!tmpl->id.isEmpty ()) {
+    metadata.insert (tmpl->id, tmpl);
+  }
 }
 
 void

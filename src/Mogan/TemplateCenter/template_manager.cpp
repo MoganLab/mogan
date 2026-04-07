@@ -30,9 +30,13 @@ TemplateManager::TemplateManager (QObject* parent)
   cache_= new TemplateCache (this);
   api_  = new TemplateAPI (this);
 
-  // Connect API signals
-  connect (api_, &TemplateAPI::metadataLoaded, this,
-           &TemplateManager::onRemoteMetadataLoaded);
+  // Connect API signals (liiistem.cn API format)
+  connect (
+      api_,
+      QOverload<
+          const QHash<QString, TemplateMetadataPtr>&,
+          const QList<TemplateCategory>&>::of (&TemplateAPI::metadataLoaded),
+      this, &TemplateManager::onRemoteMetadataLoaded);
   connect (api_, &TemplateAPI::metadataLoadFailed, this,
            &TemplateManager::onRemoteMetadataFailed);
   connect (api_, &TemplateAPI::downloadCompleted, this,
@@ -77,11 +81,21 @@ TemplateManager::initialize () {
       cache_->loadMetadataCache ();
   if (!cachedMetadata.isEmpty ()) {
     mergeMetadata (cachedMetadata);
-    emit templatesLoaded ();
+    // Don't emit templatesLoaded here - wait for remote data or emit after
+    // checking
   }
 
   // Try to fetch remote metadata
+  // If remote fetch fails, we'll emit templatesLoaded from
+  // onRemoteMetadataFailed
   checkForUpdates ();
+
+  // If no remote update check needed (cache is fresh), emit loaded
+  QDateTime lastUpdate= cache_->lastMetadataUpdate ();
+  if (lastUpdate.isValid () &&
+      lastUpdate.secsTo (QDateTime::currentDateTime ()) <= 3600) {
+    emit templatesLoaded ();
+  }
 
   initialized_= true;
   emit initialized (true);
@@ -96,53 +110,33 @@ TemplateManager::loadLocalTemplates () {
 
 void
 TemplateManager::loadLocalCategories () {
-  // Load categories from TeXmacs/templates/categories.scm
-  // This provides the category structure even when offline
-
-  // Default categories (fallback)
+  // Load categories matching liiistem.cn API format
+  // These match the categories used in the frontend repository
   QList<TemplateCategory> defaultCategories;
 
-  TemplateCategory academic;
-  academic.id   = "academic";
-  academic.name = tr ("Academic");
-  academic.icon = "template-academic";
-  academic.order= 1;
-  defaultCategories.append (academic);
+  TemplateCategory thesis;
+  thesis.id         = "thesis";
+  thesis.name       = tr ("Thesis");
+  thesis.description= tr ("Academic thesis and dissertation templates");
+  thesis.icon       = "📄";
+  thesis.order      = 1;
+  defaultCategories.append (thesis);
 
-  TemplateCategory report;
-  report.id   = "report";
-  report.name = tr ("Report");
-  report.icon = "template-report";
-  report.order= 2;
-  defaultCategories.append (report);
+  TemplateCategory labReport;
+  labReport.id         = "lab-report";
+  labReport.name       = tr ("Lab Report");
+  labReport.description= tr ("Laboratory report templates");
+  labReport.icon       = "🔬";
+  labReport.order      = 2;
+  defaultCategories.append (labReport);
 
-  TemplateCategory slides;
-  slides.id   = "slides";
-  slides.name = tr ("Slides");
-  slides.icon = "template-slides";
-  slides.order= 3;
-  defaultCategories.append (slides);
-
-  TemplateCategory letter;
-  letter.id   = "letter";
-  letter.name = tr ("Letter");
-  letter.icon = "template-letter";
-  letter.order= 4;
-  defaultCategories.append (letter);
-
-  TemplateCategory book;
-  book.id   = "book";
-  book.name = tr ("Book");
-  book.icon = "template-book";
-  book.order= 5;
-  defaultCategories.append (book);
-
-  TemplateCategory exam;
-  exam.id   = "exam";
-  exam.name = tr ("Exam");
-  exam.icon = "template-exam";
-  exam.order= 6;
-  defaultCategories.append (exam);
+  TemplateCategory mathModeling;
+  mathModeling.id         = "math-modeling";
+  mathModeling.name       = tr ("Math Modeling");
+  mathModeling.description= tr ("Mathematical modeling competition templates");
+  mathModeling.icon       = "📐";
+  mathModeling.order      = 3;
+  defaultCategories.append (mathModeling);
 
   // Sort by order
   std::sort (defaultCategories.begin (), defaultCategories.end (),
@@ -268,7 +262,8 @@ TemplateManager::onNetworkStateChanged (bool isOnline) {
 
 void
 TemplateManager::onRemoteMetadataLoaded (
-    const QHash<QString, TemplateMetadataPtr>& remoteMetadata) {
+    const QHash<QString, TemplateMetadataPtr>& remoteMetadata,
+    const QList<TemplateCategory>&             remoteCategories) {
   isRefreshing_= false;
 
   int newCount    = 0;
@@ -287,6 +282,16 @@ TemplateManager::onRemoteMetadataLoaded (
     else if (remoteTmpl->updatedAt > existingTmpl->updatedAt) {
       updatedCount++;
     }
+  }
+
+  // Update categories from remote (liiistem.cn API format)
+  if (!remoteCategories.isEmpty ()) {
+    categories_= remoteCategories;
+    categoryMap_.clear ();
+    for (const auto& cat : categories_) {
+      categoryMap_[cat.id]= cat;
+    }
+    emit categoriesLoaded ();
   }
 
   // Merge with existing data
@@ -340,6 +345,18 @@ TemplateManager::onTemplateDownloadFailed (const QString& templateId,
 void
 TemplateManager::mergeMetadata (
     const QHash<QString, TemplateMetadataPtr>& remoteMetadata) {
+  // Remove templates that are no longer in the remote list
+  QList<QString> toRemove;
+  for (auto it= templates_.constBegin (); it != templates_.constEnd (); ++it) {
+    if (!remoteMetadata.contains (it.key ())) {
+      toRemove.append (it.key ());
+    }
+  }
+  for (const QString& id : toRemove) {
+    templates_.remove (id);
+    cache_->removeCachedTemplate (id);
+  }
+
   for (auto it= remoteMetadata.constBegin (); it != remoteMetadata.constEnd ();
        ++it) {
     const QString&            id        = it.key ();
@@ -358,10 +375,19 @@ TemplateManager::mergeMetadata (
       existing->category          = remoteTmpl->category;
       existing->author            = remoteTmpl->author;
       existing->version           = remoteTmpl->version;
+      existing->license           = remoteTmpl->license;
       existing->thumbnailUrl      = remoteTmpl->thumbnailUrl;
+      existing->previewUrl        = remoteTmpl->previewUrl;
       existing->fileUrl           = remoteTmpl->fileUrl;
       existing->fileSize          = remoteTmpl->fileSize;
+      existing->fileMd5           = remoteTmpl->fileMd5;
+      existing->createdAt         = remoteTmpl->createdAt;
       existing->updatedAt         = remoteTmpl->updatedAt;
+      existing->language          = remoteTmpl->language;
+      existing->tags              = remoteTmpl->tags;
+      existing->moganMinVersion   = remoteTmpl->moganMinVersion;
+      existing->downloadCount     = remoteTmpl->downloadCount;
+      existing->rating            = remoteTmpl->rating;
       // Preserve local path if file still exists
       if (!existing->localPath.isEmpty () &&
           !QFile::exists (existing->localPath)) {

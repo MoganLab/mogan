@@ -13,6 +13,7 @@
 
 class QGridLayout;
 class QLabel;
+class QNetworkAccessManager;
 class QProgressDialog;
 class QPushButton;
 class QScrollArea;
@@ -49,14 +50,15 @@ private slots:
   void onDownloadCompleted (const QString& templateId,
                             const QString& localPath);
   void onDownloadFailed (const QString& templateId, const QString& error);
-  void onCategoryClicked ();
 
 private:
   void     setupUI ();
-  void     createCategoryButtons ();
   QWidget* createTemplateCard (const TemplateMetadataPtr& tmpl);
   void     refreshTemplateGrid (const QString& category);
-  void     downloadTemplate (const QString& templateId);
+  void     showTemplatePreview (const QString& templateId);
+  void     downloadAndUseTemplate (const QString& templateId);
+  void     loadThumbnail (QLabel* label, const QString& url);
+  void     loadPdfPreview (QLabel* label, const QString& url);
 
   // UI components
   QLabel*          titleLabel_;
@@ -70,6 +72,9 @@ private:
   TemplateManager* templateManager_;
   QString          currentCategory_;
   QPushButton*     activeCategoryBtn_;
+
+  // Network
+  QNetworkAccessManager* networkManager_;
 };
 
 #endif // QT_TEMPLATE_PAGE_HPP
