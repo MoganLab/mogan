@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.41"
+#define GOLDFISH_VERSION "17.11.42"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -1531,36 +1531,26 @@ response2hashtable (s7_scheme* sc, cpr::Response r) {
 
 inline cpr::Parameters
 to_cpr_parameters (s7_scheme* sc, s7_pointer args) {
-  cpr::Parameters params= cpr::Parameters{};
-  if (s7_is_list(sc, args)) {
-    s7_pointer iter= args;
-    while (!s7_is_null (sc, iter)) {
-      s7_pointer pair= s7_car (iter);
-      if (s7_is_pair (pair)) {
-        const char* key= s7_string (s7_car (pair));
-        const char* value= s7_string (s7_cdr (pair));
-        params.Add (cpr::Parameter (string (key), string (value)));
-      }
-      iter= s7_cdr (iter);
-    }
+  cpr::Parameters params = cpr::Parameters{};
+  s7_pointer iter = args;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair = s7_car (iter);
+    params.Add (cpr::Parameter (s7_string (s7_car (pair)),
+                                s7_string (s7_cdr (pair))));
+    iter = s7_cdr (iter);
   }
   return params;
 }
 
 inline cpr::Header
 to_cpr_headers (s7_scheme* sc, s7_pointer args) {
-  cpr::Header headers= cpr::Header{};
-  if (s7_is_list(sc, args)) {
-    s7_pointer iter= args;
-    while (!s7_is_null (sc, iter)) {
-      s7_pointer pair= s7_car (iter);
-      if (s7_is_pair (pair)) {
-        const char* key= s7_string (s7_car (pair));
-        const char* value= s7_string (s7_cdr (pair));
-        headers.insert (std::make_pair (key, value));
-      }
-      iter= s7_cdr (iter);
-    }
+  cpr::Header headers = cpr::Header{};
+  s7_pointer iter = args;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair = s7_car (iter);
+    headers.insert ({s7_string (s7_car (pair)),
+                     s7_string (s7_cdr (pair))});
+    iter = s7_cdr (iter);
   }
   return headers;
 }
@@ -1568,20 +1558,90 @@ to_cpr_headers (s7_scheme* sc, s7_pointer args) {
 inline cpr::Proxies
 to_cpr_proxies (s7_scheme* sc, s7_pointer args) {
   std::map<std::string, std::string> proxy_map;
-  if (s7_is_list(sc, args)) {
-    s7_pointer iter= args;
-    while (!s7_is_null (sc, iter)) {
-      s7_pointer pair= s7_car (iter);
-      if (s7_is_pair (pair)) {
-        const char* key= s7_string (s7_car (pair));
-        const char* value= s7_string (s7_cdr (pair));
-        proxy_map[key] = value;
-      }
-      iter= s7_cdr (iter);
-    }
+  s7_pointer iter = args;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair = s7_car (iter);
+    proxy_map[s7_string (s7_car (pair))] = s7_string (s7_cdr (pair));
+    iter = s7_cdr (iter);
   }
-  return cpr::Proxies(proxy_map);
+  return cpr::Proxies (proxy_map);
 }
+
+static cpr::Part
+to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
+  std::string name;
+  std::string value;
+  std::string file_path;
+  std::string filename;
+  std::string content_type;
+  bool has_file = false;
+
+  s7_pointer iter = part_spec;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer entry = s7_car (iter);
+    s7_pointer raw_key = s7_car (entry);
+    const char* key = s7_is_symbol (raw_key)
+                      ? s7_symbol_name (raw_key)
+                      : s7_string (raw_key);
+    const char* raw_value = s7_string (s7_cdr (entry));
+
+    if (strcmp (key, "name") == 0) {
+      name = raw_value;
+    } else if (strcmp (key, "value") == 0) {
+      value = raw_value;
+    } else if (strcmp (key, "file") == 0) {
+      file_path = raw_value;
+      has_file = true;
+    } else if (strcmp (key, "filename") == 0) {
+      filename = raw_value;
+    } else if (strcmp (key, "content-type") == 0) {
+      content_type = raw_value;
+    }
+
+    iter = s7_cdr (iter);
+  }
+
+  if (has_file) {
+    cpr::Files files;
+    if (filename.empty ()) {
+      files.push_back (cpr::File (file_path));
+    } else {
+      files.push_back (cpr::File (file_path, filename));
+    }
+    return cpr::Part (name, files, content_type);
+  }
+
+  return cpr::Part (name, value, content_type);
+}
+
+static void
+append_cpr_multipart_file_parts (s7_scheme* sc, s7_pointer files, std::vector<cpr::Part>& parts) {
+  s7_pointer iter = files;
+  while (!s7_is_null (sc, iter)) {
+    parts.push_back (to_cpr_multipart_part (sc, s7_car (iter)));
+    iter = s7_cdr (iter);
+  }
+}
+
+static void
+append_cpr_multipart_form_parts (s7_scheme* sc, s7_pointer data, std::vector<cpr::Part>& parts) {
+  s7_pointer iter = data;
+  while (!s7_is_null (sc, iter)) {
+    s7_pointer pair = s7_car (iter);
+    parts.push_back (cpr::Part (s7_string (s7_car (pair)),
+                                s7_string (s7_cdr (pair))));
+    iter = s7_cdr (iter);
+  }
+}
+
+static cpr::Multipart
+to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
+  std::vector<cpr::Part> parts;
+  append_cpr_multipart_form_parts (sc, data, parts);
+  append_cpr_multipart_file_parts (sc, files, parts);
+  return cpr::Multipart (parts);
+}
+
 static s7_pointer
 f_http_head (s7_scheme* sc, s7_pointer args) {
   const char* url= s7_string (s7_car (args));
@@ -1604,11 +1664,12 @@ static s7_pointer
 f_http_get (s7_scheme* sc, s7_pointer args) {
   const char* url= s7_string (s7_car (args));
   s7_pointer params= s7_cadr (args);
-  cpr::Parameters cpr_params= to_cpr_parameters(sc, params);
   s7_pointer headers= s7_caddr (args);
-  cpr::Header cpr_headers= to_cpr_headers (sc, headers);
   s7_pointer proxy= s7_cadddr (args);
-  cpr::Proxies cpr_proxies= to_cpr_proxies(sc, proxy);
+  s7_pointer callback= s7_car (s7_cddddr (args));
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
 
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
@@ -1616,6 +1677,27 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
   session.SetHeader (cpr_headers);
   if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
     session.SetProxies(cpr_proxies);
+  }
+
+  if (s7_is_procedure (callback)) {
+    session.SetWriteCallback (cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t) -> bool {
+      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
+      s7_pointer call_args = s7_cons (sc, data_str, s7_nil (sc));
+
+      s7_pointer ret = s7_call (sc, callback, call_args);
+      if (s7_is_boolean (ret)) {
+        return s7_boolean (sc, ret);
+      }
+
+      return true;
+    }});
+
+    try {
+      cpr::Response response = session.Get ();
+    } catch (const std::exception& e) {
+      return s7_make_integer (sc, 500);
+    }
+    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Get ();
@@ -1626,8 +1708,8 @@ inline void
 glue_http_get (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
   const char* s_http_get= "g_http-get";
-  const char* d_http_get= "(g_http-get url params headers proxy) => hash-table?";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 4, 0, false, d_http_get, NULL);
+  const char* d_http_get= "(g_http-get url params headers proxy callback) => hash-table? | undefined";
+  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 0, false, d_http_get, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
 }
 
@@ -1635,21 +1717,51 @@ static s7_pointer
 f_http_post (s7_scheme* sc, s7_pointer args) {
   const char* url= s7_string (s7_car (args));
   s7_pointer params= s7_cadr (args);
-  cpr::Parameters cpr_params= to_cpr_parameters(sc, params);
-  const char* body= s7_string (s7_caddr (args));
-  cpr::Body cpr_body= cpr::Body (body);
+  s7_pointer body_or_data = s7_caddr (args);
   s7_pointer headers= s7_cadddr (args);
-  cpr::Header cpr_headers= to_cpr_headers (sc, headers);
   s7_pointer proxy= s7_car (s7_cddddr (args));
-  cpr::Proxies cpr_proxies= to_cpr_proxies (sc, proxy);
+  s7_pointer files= s7_cadr (s7_cddddr (args));
+  s7_pointer callback= s7_list_ref (sc, args, 6);
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
 
   cpr::Session session;
   session.SetUrl (cpr::Url (url));
   session.SetParameters (cpr_params);
-  session.SetBody (cpr_body);
   session.SetHeader (cpr_headers);
   if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
     session.SetProxies(cpr_proxies);
+  }
+
+  if (s7_is_list(sc, files) && !s7_is_null(sc, files)) {
+    session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
+  }
+  else {
+    const char* body= s7_string (body_or_data);
+    cpr::Body cpr_body= cpr::Body (body);
+    session.SetBody (cpr_body);
+  }
+
+  if (s7_is_procedure (callback)) {
+    session.SetWriteCallback (cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t) -> bool {
+      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
+      s7_pointer call_args = s7_cons (sc, data_str, s7_nil (sc));
+
+      s7_pointer ret = s7_call (sc, callback, call_args);
+      if (s7_is_boolean (ret)) {
+        return s7_boolean (sc, ret);
+      }
+
+      return true;
+    }});
+
+    try {
+      cpr::Response response = session.Post ();
+    } catch (const std::exception& e) {
+      return s7_make_integer (sc, 500);
+    }
+    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Post ();
@@ -1660,124 +1772,9 @@ inline void
 glue_http_post (s7_scheme* sc) {
   s7_pointer cur_env= s7_curlet (sc);
   const char* name= "g_http-post";
-  const char* doc= "(g_http-post url params body headers proxy) => hash-table?";
-  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 5, 0, false, doc, NULL);
+  const char* doc= "(g_http-post url params body-or-data headers proxy files callback) => hash-table? | undefined";
+  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 0, false, doc, NULL);
   s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
-}
-
-static s7_pointer
-f_http_stream_get (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string (s7_car (args));
-  s7_pointer params = s7_cadr (args);
-  s7_pointer proxy = s7_caddr (args);
-  s7_pointer userdata = s7_cadddr (args);
-  s7_pointer callback = s7_car(s7_cddddr(args));
-
-  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
-  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session.SetProxies (cpr_proxies);
-  }
-
-  session.SetWriteCallback(cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t cpr_userdata) -> bool {
-    // Retrieve userdata from intptr_t
-    s7_pointer userdata_ptr = (s7_pointer)cpr_userdata;
-
-    // Call the scheme callback inline
-    s7_pointer data_str = s7_make_string_with_length(sc, data.data(), data.length());
-    s7_pointer args = s7_cons(sc, data_str, s7_cons(sc, userdata_ptr, s7_nil(sc)));
-
-    s7_pointer ret = s7_call(sc, callback, args);
-    if (s7_is_boolean(ret)) {
-      return s7_boolean(sc, ret);
-    }
-
-    return true; // Continue receiving
-  }, reinterpret_cast<intptr_t>(userdata)});
-
-  try {
-    cpr::Response response = session.Get();
-  } catch (const std::exception& e) {
-    return s7_make_integer(sc, 500); // Error case
-  }
-  return s7_undefined(sc);
-}
-
-inline void
-glue_http_stream_get (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-  const char* s_stream_get = "g_http-stream-get";
-  const char* d_stream_get = "(g_http-stream-get url params proxy userdata callback) => undefined";
-  auto func_stream_get = s7_make_typed_function (sc, s_stream_get, f_http_stream_get, 5, 0, false, d_stream_get, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_stream_get), func_stream_get);
-}
-
-static s7_pointer
-f_http_stream_post (s7_scheme* sc, s7_pointer args) {
-  s7_pointer url_arg = s7_car (args);
-  s7_pointer params = s7_cadr (args);
-  s7_pointer body_arg = s7_caddr (args);
-  s7_pointer headers = s7_cadddr (args);
-  s7_pointer proxy = s7_car(s7_cddddr(args));
-  s7_pointer userdata = s7_cadr(s7_cddddr(args));
-  s7_pointer callback = s7_list_ref(sc, args, 6);
-
-  const char* url = s7_string(url_arg);
-  const char* body = s7_string(body_arg);
-
-  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
-  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetBody (cpr::Body (body));
-  session.SetHeader (cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session.SetProxies (cpr_proxies);
-  }
-
-
-  // Store userdata in s7 managed memory to prevent GC
-  s7_pointer userdata_loc = s7_make_c_pointer(sc, (void*)userdata);
-
-  session.SetWriteCallback(cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t cpr_userdata) -> bool {
-    // Retrieve userdata from intptr_t
-    s7_pointer userdata_ptr = (s7_pointer)cpr_userdata;
-
-    // Call the scheme callback inline
-    s7_pointer data_str = s7_make_string_with_length(sc, data.data(), data.length());
-    s7_pointer args = s7_cons(sc, data_str, s7_cons(sc, userdata_ptr, s7_nil(sc)));
-
-    s7_pointer ret = s7_call(sc, callback, args);
-    if (s7_is_boolean(ret)) {
-      return s7_boolean(sc, ret);
-    }
-
-    return true; // Continue receiving
-  }, reinterpret_cast<intptr_t>(userdata)});
-
-  try {
-    cpr::Response response = session.Post();
-  } catch (const std::exception& e) {
-    return s7_make_integer(sc, 500); // Error case
-  }
-  return s7_undefined(sc);
-}
-
-inline void
-glue_http_stream_post (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-
-  const char* s_stream_post = "g_http-stream-post";
-  const char* d_stream_post = "(g_http-stream-post url params body headers proxy userdata callback) => undefined";
-  auto func_stream_post = s7_make_typed_function (sc, s_stream_post, f_http_stream_post, 7, 0, false, d_stream_post, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_stream_post), func_stream_post);
 }
 
 inline void
@@ -1785,12 +1782,6 @@ glue_http (s7_scheme* sc) {
   glue_http_head (sc);
   glue_http_get (sc);
   glue_http_post (sc);
-}
-
-inline void
-glue_http_stream (s7_scheme* sc) {
-  glue_http_stream_get(sc);
-  glue_http_stream_post(sc);
 }
 
 // -------------------------------- Async HTTP --------------------------------
@@ -1872,9 +1863,9 @@ f_http_async_get (s7_scheme* sc, s7_pointer args) {
                     s7_list(sc, 2, s7_make_string(sc, "http-async-get: callback must be a procedure"), callback));
   }
   
-  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
-  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
   
   // Protect callback from GC
   int gc_loc = s7_gc_protect(sc, callback);
@@ -1926,9 +1917,9 @@ f_http_async_post (s7_scheme* sc, s7_pointer args) {
                     s7_list(sc, 2, s7_make_string(sc, "http-async-post: callback must be a procedure"), callback));
   }
   
-  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
-  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
   
   // Protect callback from GC
   int gc_loc = s7_gc_protect(sc, callback);
@@ -1979,9 +1970,9 @@ f_http_async_head (s7_scheme* sc, s7_pointer args) {
                     s7_list(sc, 2, s7_make_string(sc, "http-async-head: callback must be a procedure"), callback));
   }
   
-  cpr::Parameters cpr_params = to_cpr_parameters(sc, params);
-  cpr::Header cpr_headers = to_cpr_headers(sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies(sc, proxy);
+  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
+  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
+  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
   
   // Protect callback from GC
   int gc_loc = s7_gc_protect(sc, callback);
@@ -3384,7 +3375,6 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_hashlib (sc);
   glue_njson (sc);
   glue_http (sc);
-  glue_http_stream (sc);
   glue_http_async (sc);
 }
 

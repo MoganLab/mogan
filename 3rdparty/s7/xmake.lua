@@ -42,7 +42,8 @@ target("libs7") do
         "s7_scheme_complex.c",
         "s7_scheme_char.c",
         "s7_liii_bitwise.c",
-        "s7_liii_string.c"
+        "s7_liii_string.c",
+        "s7_liii_hash_table.c"
     )
     add_headerfiles("s7.h")
     add_includedirs(".", {public = true})

@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2025.2.2>>
+<TMU|<tuple|1.1.0|2026.2.1>>
 
 <style|<tuple|tmudoc|old-spacing|old-dots|old-lengths|goldfish|chinese>>
 
@@ -39,7 +39,7 @@
     <\unfolded-io>
       \<gtr\>\ 
     <|unfolded-io>
-      (import (liii base))
+      (import (liii base)(liii unicode))
     <|unfolded-io>
       <goldfish-result|(rootlet)>
     </unfolded-io>
@@ -303,7 +303,7 @@
     <|unfolded-io>
       (runtime)
     <|unfolded-io>
-      <goldfish-result|1762239312547>
+      <goldfish-result|1775569990384>
     </unfolded-io>
 
     <\input>
@@ -409,7 +409,7 @@
     <|unfolded-io>
       (*s7* 'bignum-precision)
     <|unfolded-io>
-      <goldfish-result|256>
+      <goldfish-result|128>
     </unfolded-io>
 
     <\unfolded-io>
@@ -475,7 +475,7 @@
     <|unfolded-io>
       (floor 1.4)
     <|unfolded-io>
-      <goldfish-result|1.0>
+      <goldfish-result|1>
     </unfolded-io>
 
     <\unfolded-io>
@@ -563,7 +563,7 @@
     <|unfolded-io>
       (random 1.0)
     <|unfolded-io>
-      <goldfish-result|0.5305625789950791>
+      <goldfish-result|0.7679399311039526>
     </unfolded-io>
 
     <\unfolded-io>
@@ -571,7 +571,7 @@
     <|unfolded-io>
       (random 3/4)
     <|unfolded-io>
-      <goldfish-result|83234/394675>
+      <goldfish-result|370488/777455>
     </unfolded-io>
 
     <\input>
@@ -721,6 +721,12 @@
     <|input>
       \;
     </input>
+
+    <\input>
+      \<gtr\>\ 
+    <|input>
+      \;
+    </input>
   </session>
 
   <paragraph|format>
@@ -823,7 +829,7 @@
     <|unfolded-io>
       (getenv "HOME")
     <|unfolded-io>
-      <goldfish-result|"/home/da">
+      <goldfish-result|"/home/wumo">
     </unfolded-io>
 
     <\input>
