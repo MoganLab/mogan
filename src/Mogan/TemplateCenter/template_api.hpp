@@ -106,7 +106,8 @@ private:
   QNetworkReply*                 metadataReply_;
 
   // Default API endpoint
-  static constexpr const char* DEFAULT_API_BASE_URL= "https://liiistem.cn/template-api";
+  static constexpr const char* DEFAULT_API_BASE_URL=
+      "https://liiistem.cn/template-api";
 };
 
 #endif // TEMPLATE_API_HPP
