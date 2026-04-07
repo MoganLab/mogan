@@ -122,7 +122,6 @@ private:
   QList<TemplateCategory>             categories_;
   QHash<QString, TemplateCategory>    categoryMap_;
   QHash<QString, TemplateMetadataPtr> templates_;
-  QHash<QString, TemplateMetadataPtr> templatesByCategory_;
 
   // Components
   TemplateCache* cache_;

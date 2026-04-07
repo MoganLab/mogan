@@ -58,7 +58,6 @@ private:
   void     showTemplatePreview (const QString& templateId);
   void     downloadAndUseTemplate (const QString& templateId);
   void     loadThumbnail (QLabel* label, const QString& url);
-  void     loadPdfPreview (QLabel* label, const QString& url);
 
   // UI components
   QLabel*          titleLabel_;

@@ -28,11 +28,8 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include "qt_pdf_preview_widget.hpp"
 #include "template_manager.hpp"
-
-// MuPDF for PDF preview
-#include "MuPDF/mupdf_picture.hpp"
-#include <mupdf/fitz.h>
 
 QTTemplatePage::QTTemplatePage (QWidget* parent)
     : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
@@ -50,19 +47,15 @@ void
 QTTemplatePage::initialize () {
   templateManager_= TemplateManager::instance ();
 
-  // Only connect signals once
-  static bool signalsConnected= false;
-  if (!signalsConnected) {
-    connect (templateManager_, &TemplateManager::templatesLoaded, this,
-             &QTTemplatePage::onTemplatesLoaded);
-    connect (templateManager_, &TemplateManager::downloadProgress, this,
-             &QTTemplatePage::onDownloadProgress);
-    connect (templateManager_, &TemplateManager::downloadCompleted, this,
-             &QTTemplatePage::onDownloadCompleted);
-    connect (templateManager_, &TemplateManager::downloadFailed, this,
-             &QTTemplatePage::onDownloadFailed);
-    signalsConnected= true;
-  }
+  // Connect signals (safe to call multiple times due to Qt's auto-connection)
+  connect (templateManager_, &TemplateManager::templatesLoaded, this,
+           &QTTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::downloadProgress, this,
+           &QTTemplatePage::onDownloadProgress, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::downloadCompleted, this,
+           &QTTemplatePage::onDownloadCompleted, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::downloadFailed, this,
+           &QTTemplatePage::onDownloadFailed, Qt::UniqueConnection);
 
   // Check if already initialized with data
   if (templateManager_->isInitialized () &&
@@ -235,85 +228,6 @@ QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
   });
 }
 
-void
-QTTemplatePage::loadPdfPreview (QLabel* label, const QString& url) {
-  // Download PDF and render first page using MuPDF
-  QNetworkRequest request (url);
-  QNetworkReply*  reply= networkManager_->get (request);
-
-  connect (reply, &QNetworkReply::finished, [label, reply] () {
-    if (reply->error () == QNetworkReply::NoError) {
-      QByteArray pdfData= reply->readAll ();
-
-      // Create temporary file for MuPDF
-      QTemporaryFile tempFile;
-      if (tempFile.open ()) {
-        tempFile.write (pdfData);
-        tempFile.flush ();
-
-        // Use MuPDF to render first page
-        fz_context* ctx= fz_new_context (NULL, NULL, FZ_STORE_DEFAULT);
-        if (ctx) {
-          fz_document* doc= NULL;
-          fz_pixmap*   pix= NULL;
-          fz_try (ctx) {
-            doc= fz_open_document (ctx,
-                                   tempFile.fileName ().toUtf8 ().constData ());
-            if (doc) {
-              // Render first page at 150 DPI
-              float     dpi = 150;
-              fz_matrix ctms= fz_scale (dpi / 72.0f, dpi / 72.0f);
-              fz_page*  page= fz_load_page (ctx, doc, 0);
-              fz_rect   bbox= fz_bound_page (ctx, page);
-              fz_matrix ctm = fz_pre_scale (fz_translate (0, -bbox.y1),
-                                            dpi / 72.0f, dpi / 72.0f);
-              pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx),
-                                            0);
-              fz_drop_page (ctx, page);
-
-              if (pix) {
-                // Convert fz_pixmap to QImage
-                int    w= fz_pixmap_width (ctx, pix);
-                int    h= fz_pixmap_height (ctx, pix);
-                QImage image (w, h, QImage::Format_RGB888);
-
-                unsigned char* samples= fz_pixmap_samples (ctx, pix);
-                for (int y= 0; y < h; y++) {
-                  memcpy (image.scanLine (y),
-                          samples + y * fz_pixmap_stride (ctx, pix), w * 3);
-                }
-
-                QPixmap pixmap= QPixmap::fromImage (image);
-                pixmap        = pixmap.scaled (550, 300, Qt::KeepAspectRatio,
-                                               Qt::SmoothTransformation);
-                label->setPixmap (pixmap);
-
-                fz_drop_pixmap (ctx, pix);
-              }
-            }
-          }
-          fz_catch (ctx) {
-            label->setText (QTTemplatePage::tr ("PDF Preview"));
-          }
-
-          if (doc) fz_drop_document (ctx, doc);
-          fz_drop_context (ctx);
-        }
-        else {
-          label->setText (QTTemplatePage::tr ("PDF Preview"));
-        }
-      }
-      else {
-        label->setText (QTTemplatePage::tr ("PDF Preview"));
-      }
-    }
-    else {
-      label->setText (QTTemplatePage::tr ("PDF Preview"));
-    }
-    reply->deleteLater ();
-  });
-}
-
 bool
 QTTemplatePage::eventFilter (QObject* watched, QEvent* event) {
   if (event->type () == QEvent::MouseButtonRelease) {
@@ -365,41 +279,34 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   infoLayout->addStretch ();
   layout->addLayout (infoLayout);
 
-  // Preview area (large thumbnail or placeholder)
-  QLabel* previewLabel= new QLabel (dialog);
-  previewLabel->setFixedSize (550, 300);
-  previewLabel->setAlignment (Qt::AlignCenter);
-  previewLabel->setStyleSheet (
-      "background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px;");
+  // Preview area using reusable PDF preview widget
+  QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
 
   // Load preview (PDF or image)
   if (!tmpl->previewUrl.isEmpty ()) {
     if (tmpl->previewUrl.endsWith (".pdf")) {
-      // Load PDF preview using MuPDF
-      loadPdfPreview (previewLabel, tmpl->previewUrl);
+      // Load PDF preview using QTPdfPreviewWidget
+      previewWidget->loadFromUrl (tmpl->previewUrl);
     }
     else {
       // Load image preview
       QNetworkRequest request (tmpl->previewUrl);
       QNetworkReply*  reply= networkManager_->get (request);
-      connect (reply, &QNetworkReply::finished, [previewLabel, reply] () {
+      connect (reply, &QNetworkReply::finished, [previewWidget, reply] () {
         if (reply->error () == QNetworkReply::NoError) {
           QByteArray data= reply->readAll ();
           QPixmap    pixmap;
           if (pixmap.loadFromData (data)) {
             pixmap= pixmap.scaled (550, 300, Qt::KeepAspectRatio,
                                    Qt::SmoothTransformation);
-            previewLabel->setPixmap (pixmap);
+            previewWidget->setPixmap (pixmap);
           }
         }
         reply->deleteLater ();
       });
     }
   }
-  else {
-    previewLabel->setText (tr ("No Preview Available"));
-  }
-  layout->addWidget (previewLabel, 0, Qt::AlignCenter);
+  layout->addWidget (previewWidget, 0, Qt::AlignCenter);
 
   // Buttons
   QHBoxLayout* btnLayout= new QHBoxLayout ();

@@ -23,7 +23,6 @@
 
 // Forward declaration
 class QJsonObject;
-class QJsonObject;
 
 /**
  * @brief liiistem.cn API client
