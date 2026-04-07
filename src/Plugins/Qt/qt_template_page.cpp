@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QEvent>
 #include <QGridLayout>
+#include <QShowEvent>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
@@ -52,10 +53,17 @@ void QTTemplatePage::initialize() {
     connect(templateManager_, &TemplateManager::downloadFailed, this,
             &QTTemplatePage::onDownloadFailed);
 
-    // Initialize asynchronously
-    QTimer::singleShot(0, this, [this]() {
-        templateManager_->initialize();
-    });
+    // Check if already initialized with data
+    if (templateManager_->isInitialized() &&
+        !templateManager_->templates().isEmpty()) {
+        // Already have data, refresh immediately
+        onTemplatesLoaded();
+    } else {
+        // Initialize asynchronously
+        QTimer::singleShot(0, this, [this]() {
+            templateManager_->initialize();
+        });
+    }
 }
 
 void QTTemplatePage::setupUI() {
@@ -267,6 +275,15 @@ void QTTemplatePage::downloadTemplate(const QString& templateId) {
 
 void QTTemplatePage::onTemplatesLoaded() {
     refreshTemplateGrid(currentCategory_);
+
+    // Force layout update to ensure content is visible
+    if (gridWidget_) {
+        gridWidget_->update();
+        gridWidget_->adjustSize();
+    }
+    if (scrollArea_) {
+        scrollArea_->update();
+    }
 }
 
 void QTTemplatePage::onDownloadProgress(const QString& templateId,
@@ -299,4 +316,14 @@ void QTTemplatePage::onDownloadFailed(const QString& templateId,
 
     QMessageBox::warning(this, "Download Failed",
                          QString("Failed to download template: %1").arg(error));
+}
+
+void QTTemplatePage::showEvent(QShowEvent* event) {
+    QWidget::showEvent(event);
+
+    // Refresh grid when page becomes visible
+    if (templateManager_ && templateManager_->isInitialized() &&
+        !templateManager_->templates().isEmpty()) {
+        refreshTemplateGrid(currentCategory_);
+    }
 }
