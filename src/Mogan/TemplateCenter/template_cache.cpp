@@ -85,7 +85,8 @@ TemplateCache::loadMetadataCache () {
     tmpl->version           = tmplObj.value ("version").toString ();
     tmpl->thumbnailUrl      = tmplObj.value ("thumbnail_url").toString ();
     tmpl->fileUrl           = tmplObj.value ("file_url").toString ();
-    tmpl->updatedAt         = QDateTime::fromString (
+    tmpl->fileSize = tmplObj.value ("file_size").toVariant ().toLongLong ();
+    tmpl->updatedAt= QDateTime::fromString (
         tmplObj.value ("updated_at").toString (), Qt::ISODate);
 
     // Check if locally cached
@@ -119,6 +120,7 @@ TemplateCache::saveMetadataCache (
     tmplObj.insert ("version", tmpl->version);
     tmplObj.insert ("thumbnail_url", tmpl->thumbnailUrl);
     tmplObj.insert ("file_url", tmpl->fileUrl);
+    tmplObj.insert ("file_size", static_cast<qint64> (tmpl->fileSize));
     tmplObj.insert ("updated_at", tmpl->updatedAt.toString (Qt::ISODate));
     templates.append (tmplObj);
   }
@@ -313,7 +315,7 @@ TemplateCache::saveCacheIndex () {
     entryObj.insert ("templateId", entry.templateId);
     entryObj.insert ("localPath", entry.localPath);
     entryObj.insert ("etag", entry.etag);
-    entryObj.insert ("fileSize", static_cast<qint64> (entry.fileSize));
+    entryObj.insert ("fileSize", entry.fileSize);
     entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
     entryObj.insert ("expiresAt", entry.expiresAt.toString (Qt::ISODate));
     entries.append (entryObj);

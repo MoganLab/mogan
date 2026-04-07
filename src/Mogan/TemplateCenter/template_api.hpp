@@ -98,11 +98,6 @@ private:
   QHash<QString, QNetworkReply*> downloadReplies_;
   QNetworkReply*                 metadataReply_;
 
-  // Retry configuration
-  static constexpr int MAX_RETRY_COUNT   = 3;
-  static constexpr int RETRY_DELAY_MS    = 1000;
-  static constexpr int REQUEST_TIMEOUT_MS= 30000;
-
   // Default repository
   static constexpr const char* DEFAULT_OWNER= "LiiiLabs";
   static constexpr const char* DEFAULT_REPO = "liiistem-template";

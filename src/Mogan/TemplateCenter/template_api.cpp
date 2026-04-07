@@ -198,22 +198,27 @@ TemplateAPI::onDownloadFinished () {
 
 void
 TemplateAPI::onNetworkError (QNetworkReply::NetworkError error) {
+  Q_UNUSED (error);
   QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
   if (!reply) return;
 
   // Check if this is a metadata reply
   if (reply == metadataReply_) {
+    metadataReply_= nullptr;
     emit metadataLoadFailed (
         tr ("Network error: %1").arg (reply->errorString ()));
   }
   // Otherwise it's a download reply
   else {
     QString templateId= reply->property ("templateId").toString ();
+    downloadReplies_.remove (templateId);
     if (!templateId.isEmpty ()) {
       emit downloadFailed (
           templateId, tr ("Network error: %1").arg (reply->errorString ()));
     }
   }
+
+  reply->deleteLater ();
 }
 
 QString

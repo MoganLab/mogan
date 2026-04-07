@@ -67,7 +67,7 @@ QTTemplatePage::setupUI () {
   layout->setSpacing (24);
 
   // Title
-  titleLabel_= new QLabel ("Template Center", this);
+  titleLabel_= new QLabel (tr ("Template Center"), this);
   titleLabel_->setObjectName ("startup-tab-page-title");
   layout->addWidget (titleLabel_);
 
@@ -90,7 +90,7 @@ QTTemplatePage::setupUI () {
   layout->addWidget (scrollArea_, 1);
 
   // Loading label
-  QLabel* loadingLabel= new QLabel ("Loading templates...", gridWidget_);
+  QLabel* loadingLabel= new QLabel (tr ("Loading templates..."), gridWidget_);
   loadingLabel->setObjectName ("startup-tab-loading");
   loadingLabel->setAlignment (Qt::AlignCenter);
   gridLayout_->addWidget (loadingLabel, 0, 0, 1, 3);
@@ -167,7 +167,7 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
   }
 
   if (!templateManager_ || !templateManager_->isInitialized ()) {
-    QLabel* label= new QLabel ("Initializing...", gridWidget_);
+    QLabel* label= new QLabel (tr ("Initializing..."), gridWidget_);
     label->setAlignment (Qt::AlignCenter);
     gridLayout_->addWidget (label, 0, 0, 1, 3);
     return;
@@ -177,7 +177,7 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
       templateManager_->templatesByCategory (category);
 
   if (templates.isEmpty ()) {
-    QLabel* label= new QLabel ("No templates available.", gridWidget_);
+    QLabel* label= new QLabel (tr ("No templates available."), gridWidget_);
     label->setAlignment (Qt::AlignCenter);
     gridLayout_->addWidget (label, 0, 0, 1, 3);
     return;
@@ -265,8 +265,14 @@ QTTemplatePage::downloadTemplate (const QString& templateId) {
     emit    templateOpened (localPath);
   }
   else {
-    progressDialog_=
-        new QProgressDialog ("Downloading template...", "Cancel", 0, 100, this);
+    // Close existing progress dialog if any
+    if (progressDialog_) {
+      progressDialog_->close ();
+      progressDialog_->deleteLater ();
+    }
+
+    progressDialog_= new QProgressDialog (tr ("Downloading template..."),
+                                          tr ("Cancel"), 0, 100, this);
     progressDialog_->setWindowModality (Qt::WindowModal);
     progressDialog_->setAutoClose (true);
     progressDialog_->show ();
@@ -319,9 +325,8 @@ QTTemplatePage::onDownloadFailed (const QString& templateId,
     progressDialog_= nullptr;
   }
 
-  QMessageBox::warning (
-      this, "Download Failed",
-      QString ("Failed to download template: %1").arg (error));
+  QMessageBox::warning (this, tr ("Download Failed"),
+                        tr ("Failed to download template: %1").arg (error));
 }
 
 void

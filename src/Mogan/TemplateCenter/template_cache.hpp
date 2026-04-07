@@ -104,9 +104,7 @@ private:
   QDateTime                  lastMetadataUpdate_;
 
   // Cache configuration
-  static constexpr int    CACHE_EXPIRY_DAYS   = 7;
-  static constexpr qint64 MAX_CACHE_SIZE_BYTES= 100 * 1024 * 1024; // 100MB
-  static constexpr int    MAX_CACHED_TEMPLATES= 50;
+  static constexpr int CACHE_EXPIRY_DAYS= 7;
 };
 
 #endif // TEMPLATE_CACHE_HPP
