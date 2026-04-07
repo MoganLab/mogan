@@ -21,10 +21,9 @@
         (text text-menu)
         (math math-menu)))
 
+;; 判断当前焦点位置是否存在可显示的选区工具栏上下文。
 (tm-define (text-toolbar-allowed-context?)
-  (and (not (in-prog?))
-       (not (in-code?))
-       (not (in-verbatim?))))
+  (not (not (text-toolbar-context (focus-tree)))))
 
 (menu-bind text-toolbar-text-icons
   ((balloon (icon "tm_bold.xpm") "Write bold text")
@@ -123,6 +122,7 @@
         ---
         ("Other" (interactive cell-set-background)))))
 
+;; 提取当前选区对应的语义块根节点，例如定理、命题等环境。
 (tm-define (semantic-block-selection-tree)
   (and (selection-active-any?)
        (with t (path->tree (selection-path))
@@ -148,6 +148,7 @@
       (=> (balloon (icon "tm_switch.xpm") "Structured variant")
           (dynamic (focus-variant-menu t))))))
 
+;; 提取当前选区对应的章节层级节点。
 (tm-define (chatper-selection-tree . opt-t)
   (with l '(chapter section subsection subsubsection)
     (if (nnull? opt-t)
@@ -163,6 +164,7 @@
                              (loop (tree-ref t 0)))
                             (else #f)))))))))
 
+;; 返回当前章节节点可切换的结构变体列表。
 (tm-define (focus-variants-of t)
   (:require (chatper-selection-tree t))
   (chatper-selection-tree t))
@@ -177,16 +179,10 @@
       (mini #t
         (with l (focus-variants-of t)
           (assuming (<= (length l) 1)
-            (inert ((eval `(verbatim ,(focus-tag-name (tree-label t))))
+            (inert ((balloon (icon "tm_section.xpm") "Structured variant")
                     (noop))))
           (assuming (> (length l) 1)
-            (=> (balloon (eval `(verbatim ,(focus-tag-name (tree-label t))))
-                         (eval
-                          (string-append "Structured variant ("
-                           (string-append (translate (kbd-system-rewrite "A-S-up"))
-                            (string-append "/"
-                             (string-append (translate (kbd-system-rewrite "A-S-down"))
-                              (string-append ")")))))))
+            (=> (balloon (icon "tm_section.xpm") "Structured variant")
                 (dynamic (focus-variant-menu t)))))))
     (with var (and t (focus-section-title-style-var t))
       (when var
@@ -215,25 +211,115 @@
                     (== (safe-init-env num-var) "circle"))
              (init-env num-var "circle")))))))
 
+;; 判断当前选区是否处于表格或单元格相关上下文中。
 (tm-define (table-selection-context? t)
   (or (selection-active-table?)
       (and (selection-active-any?)
            (table-markup-context? (selection-tree)))))
 
+;; 判断当前选区是否处于语义块上下文中。
 (tm-define (semantic-block-selection-context? t)
   (not (not (semantic-block-selection-tree))))
 
+;; 判断当前选区是否处于章节标题上下文中。
 (tm-define (chatper-selection-context? t)
   (not (not (chatper-selection-tree))))
 
+;; 合并两个模式列表，并去掉重复项。
+(define (mode-list-union l1 l2)
+  (if (null? l1) l2
+      (with mode (car l1)
+        (mode-list-union
+         (cdr l1)
+         (let loop ((l l2))
+           (cond ((null? l) (cons mode l2))
+                 ((== (car l) mode) l2)
+                 (else (loop (cdr l)))))))))
+
+;; 递归计算当前选区树实际携带的所有 mode。
+(define (selection-tree-modes t mode)
+  (cond ((tree-atomic? t)
+         (list mode))
+        ((and (tm-func? t 'with) (>= (tree-arity t) 3))
+         (with n (- (tree-arity t) 1)
+           (let loop ((i 0) (mode* mode))
+             (if (>= i n)
+                 (selection-tree-modes (tree-ref t n) mode*)
+                 (with var (tree->string (tree-ref t i))
+                   (with val (tree->string (tree-ref t (+ i 1)))
+                     (loop (+ i 2)
+                           (if (== var "mode") val mode*))))))))
+        (else
+         (let loop ((i 0) (modes '()))
+           (if (>= i (tree-arity t))
+               (if (null? modes) (list mode) modes)
+               (loop (+ i 1)
+                     (mode-list-union
+                      modes
+                      (selection-tree-modes
+                       (tree-ref t i)
+                       (or (tm->string (tree-child-env t i "mode" mode))
+                           mode)))))))))
+
+;; 计算当前选区内容的唯一 mode；若混合了多种 mode 则返回 #f。
+(tm-define (selection-content-mode)
+  (and (selection-active-any?)
+       ;; `selection-path` 是选区两端的公共祖先，可能已经位于外层环境。
+       ;; 这里使用选区起点恢复实际生效的 mode。
+       (with mode (tree->string (get-env-tree-at "mode" (selection-get-start)))
+         (with modes (selection-tree-modes (selection-tree) mode)
+           (and (== (length modes) 1) (car modes))))))
+
+;; 判断当前选区是否位于目录区域中，或直接包含整个目录节点。
+(tm-define (table-of-contents-selection-context? t)
+  (and (selection-active-any?)
+       (or (tree-search-upwards t
+                                (lambda (u) (tm-func? u 'table-of-contents 2)))
+           (tm-func? (path->tree (selection-path)) 'table-of-contents 2)
+           (with sel (selection-tree)
+             (or (tm-func? sel 'table-of-contents 2)
+                 (nnull? (tree-search sel
+                                      (lambda (u)
+                                        (tm-func? u 'table-of-contents 2)))))))))
+
+;; 判断当前选区是否包含图片节点。
+(tm-define (image-selection-context? t)
+  (and (selection-active-any?)
+       (or (not (not (any-image-context?)))
+           (nnull? (tree-search (selection-tree)
+                                (lambda (u) (tree-is? u 'image)))))))
+
+;; 判断当前选区是否为纯文本上下文。
+(tm-define (text-selection-context? t)
+  (== (selection-content-mode) "text"))
+
+;; 判断当前选区是否为纯数学上下文。
+(tm-define (math-selection-context? t)
+  (== (selection-content-mode) "math"))
+
+;; 根据当前选区推导应显示的工具栏类别。
+(tm-define (text-toolbar-context t)
+  (and (selection-active-any?)
+       (cond
+        ((table-of-contents-selection-context? t) #f)
+        ((image-selection-context? t) #f)
+        ((table-selection-context? t) 'table)
+        ((chatper-selection-context? t) 'chatper)
+        ((semantic-block-selection-context? t) 'semantic)
+        ((math-selection-context? t) 'math)
+        ((text-selection-context? t) 'text)
+        (else #f))))
+
 (menu-bind text-toolbar-icons
-  (cond
-   ((table-selection-context? (focus-tree))
-    (link text-toolbar-table-icons))
-   ((chatper-selection-context? (focus-tree))
-    (link text-toolbar-chatper-icons))
-   ((semantic-block-selection-context? (focus-tree))
-    (link text-toolbar-semantic-icons))
-   (else
-    (if (in-text?) (link text-toolbar-text-icons))
-    (if (in-math?) (link text-toolbar-math-icons)))))
+  (with context (text-toolbar-context (focus-tree))
+    (cond
+     ((== context 'table)
+      (link text-toolbar-table-icons))
+     ((== context 'chatper)
+      (link text-toolbar-chatper-icons))
+     ((== context 'semantic)
+      (link text-toolbar-semantic-icons))
+     ((== context 'text)
+      (link text-toolbar-text-icons))
+     ((== context 'math)
+      (link text-toolbar-math-icons)))))
