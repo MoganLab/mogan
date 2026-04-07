@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2024 The Goldfish Scheme Authors
+; Copyright (C) 2026 The Goldfish Scheme Authors
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -14,18 +14,13 @@
 ; under the License.
 ;
 
-(define-library (scheme file)
-  (export call-with-input-file call-with-output-file
-          delete-file file-exists?
-          open-binary-input-file open-binary-output-file
-          open-input-file open-output-file
-          with-input-from-file with-output-to-file)
-  (begin
-
-    (define open-binary-input-file open-input-file)
-
-    (define open-binary-output-file open-output-file)
-
-  ) ;begin
+(define-library (liii tree)
+  (export
+    tree-cyclic?
+    tree-leaves
+    tree-memq
+    tree-set-memq
+    tree-count
+  ) ;export
+  (import (scheme base))
 ) ;define-library
-

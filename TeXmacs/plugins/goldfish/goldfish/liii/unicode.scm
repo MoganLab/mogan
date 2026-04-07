@@ -17,7 +17,7 @@
 (define-library (liii unicode)
   (export
    ;; UTF-8 函数
-   utf8->string string->utf8 utf8-string-length u8-substring bytevector-advance-utf8
+   utf8->string string->utf8 utf8-string-length utf8-substring bytevector-advance-utf8
    codepoint->utf8 utf8->codepoint
 
    ;; UTF-16BE 函数
@@ -33,9 +33,18 @@
    unicode-max-codepoint unicode-replacement-char
   ) ;export
 
-  (import (liii base) (liii bitwise) (liii error))
+  (import (scheme base)
+          (liii base)
+          (liii bitwise)
+          (liii error)
+  ) ;import
 
   (begin
+
+    (define* (utf8-substring str (start 0) (end #t))
+      (utf8->string (string->utf8 str start end))
+    ) ;define*
+
     (define (codepoint->utf8 codepoint)
       (unless (integer? codepoint)
         (error 'type-error "codepoint->utf8: expected integer, got" codepoint)
@@ -313,7 +322,6 @@
         ) ;let*
       ) ;let
     ) ;define
-  ) ;begin
 
     (define (codepoint->utf16le codepoint)
       (unless (integer? codepoint)
@@ -408,7 +416,6 @@
         ) ;let*
       ) ;let
     ) ;define
-) ;define-library
 
     (define (utf8->utf16le bv)
       (unless (bytevector? bv)
@@ -629,3 +636,6 @@
         ) ;if
       ) ;let
     ) ;define
+
+  ) ;begin
+) ;define-library

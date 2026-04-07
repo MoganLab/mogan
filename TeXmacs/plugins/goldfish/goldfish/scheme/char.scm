@@ -18,6 +18,8 @@
   (export
     char-upcase char-downcase char-foldcase char-upper-case? char-lower-case? digit-value
     char-numeric? char-alphabetic? char-whitespace? char-ci=? char-ci<? char-ci>? char-ci<=? char-ci>=?
+    string-ci=? string-ci<? string-ci>? string-ci<=? string-ci>=?
+    string-upcase string-downcase string-foldcase
   ) ;export
   (begin
     (define (digit-value ch)
@@ -230,6 +232,168 @@
             ) ;let
         ) ;if
       ) ;let
+    ) ;define
+
+    ; ==== 字符串大小写无关比较函数 ====
+    (define s7-string-ci=? string-ci=?)
+
+    (define (string-ci=? str1 str2 . rest)
+      (unless (string? str1)
+        (error 'type-error "string-ci=?: first parameter must be string")
+      ) ;unless
+      (unless (string? str2)
+        (error 'type-error "string-ci=?: second parameter must be string")
+      ) ;unless
+      (let loop ((current (s7-string-ci=? str1 str2))
+                 (remaining rest))
+        (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci=?: parameter must be string")
+              ) ;unless
+              (and current
+                   (loop (s7-string-ci=? str2 next-str)
+                         (cdr remaining)
+                   ) ;loop
+              ) ;and
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define s7-string-ci<? string-ci<?)
+
+    (define (string-ci<? str1 str2 . rest)
+      (unless (string? str1)
+        (error 'type-error "string-ci<?: first parameter must be string")
+      ) ;unless
+      (unless (string? str2)
+        (error 'type-error "string-ci<?: second parameter must be string")
+      ) ;unless
+      (let loop ((current (s7-string-ci<? str1 str2))
+                 (remaining rest))
+        (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci<?: parameter must be string")
+              ) ;unless
+              (and current
+                   (loop (s7-string-ci<? str2 next-str)
+                         (cdr remaining)
+                   ) ;loop
+              ) ;and
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define s7-string-ci>? string-ci>?)
+
+    (define (string-ci>? str1 str2 . rest)
+      (unless (string? str1)
+        (error 'type-error "string-ci>?: first parameter must be string")
+      ) ;unless
+      (unless (string? str2)
+        (error 'type-error "string-ci>?: second parameter must be string")
+      ) ;unless
+      (let loop ((current (s7-string-ci>? str1 str2))
+                 (remaining rest))
+        (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci>?: parameter must be string")
+              ) ;unless
+              (and current
+                   (loop (s7-string-ci>? str2 next-str)
+                         (cdr remaining)
+                   ) ;loop
+              ) ;and
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define s7-string-ci<=? string-ci<=?)
+
+    (define (string-ci<=? str1 str2 . rest)
+      (unless (string? str1)
+        (error 'type-error "string-ci<=?: first parameter must be string")
+      ) ;unless
+      (unless (string? str2)
+        (error 'type-error "string-ci<=?: second parameter must be string")
+      ) ;unless
+      (let loop ((current (s7-string-ci<=? str1 str2))
+                 (remaining rest))
+        (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci<=?: parameter must be string")
+              ) ;unless
+              (and current
+                   (loop (s7-string-ci<=? str2 next-str)
+                         (cdr remaining)
+                   ) ;loop
+              ) ;and
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define s7-string-ci>=? string-ci>=?)
+
+    (define (string-ci>=? str1 str2 . rest)
+      (unless (string? str1)
+        (error 'type-error "string-ci>=?: first parameter must be string")
+      ) ;unless
+      (unless (string? str2)
+        (error 'type-error "string-ci>=?: second parameter must be string")
+      ) ;unless
+      (let loop ((current (s7-string-ci>=? str1 str2))
+                 (remaining rest))
+        (if (null? remaining)
+            current
+            (let ((next-str (car remaining)))
+              (unless (string? next-str)
+                (error 'type-error "string-ci>=?: parameter must be string")
+              ) ;unless
+              (and current
+                   (loop (s7-string-ci>=? str2 next-str)
+                         (cdr remaining)
+                   ) ;loop
+              ) ;and
+            ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ; ==== 字符串大小写转换函数 ====
+    (define s7-string-upcase string-upcase)
+
+    (define (string-upcase str)
+      (unless (string? str)
+        (error 'type-error "string-upcase: parameter must be string")
+      ) ;unless
+      (s7-string-upcase str)
+    ) ;define
+
+    (define s7-string-downcase string-downcase)
+
+    (define (string-downcase str)
+      (unless (string? str)
+        (error 'type-error "string-downcase: parameter must be string")
+      ) ;unless
+      (s7-string-downcase str)
+    ) ;define
+
+    (define (string-foldcase str)
+      (unless (string? str)
+        (error 'type-error "string-foldcase: parameter must be string")
+      ) ;unless
+      (string-downcase str)
     ) ;define
 
   ) ;begin

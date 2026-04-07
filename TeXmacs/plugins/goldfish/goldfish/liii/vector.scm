@@ -15,21 +15,17 @@
 ;
 
 (define-library (liii vector)
-  (import (srfi srfi-133)
+  (import (scheme base)
+          (srfi srfi-133)
           (srfi srfi-13)
-          (liii base)
   ) ;import
   (export
-    ; S7 Scheme built-in
-    make-vector vector vector-length vector-ref vector-set! vector->list list->vector
-    ; from (scheme base)
-    vector-copy vector-fill! vector-copy! vector->string string->vector
-    vector-map vector-for-each vector-append
-    ; from (srfi srfi-133)
+    ; R7RS 6.8 Vector 函数从 (scheme base) 继承
+    ; SRFI-133 扩展函数
     vector-empty?
     vector-fold vector-fold-right
     vector-count
-    vector-any vector-every vector-copy vector-copy!
+    vector-any vector-every
     vector-index vector-index-right vector-skip vector-skip-right vector-partition
     vector-swap! vector-reverse! vector-cumulate reverse-list->vector
     vector= vector-contains?
@@ -37,6 +33,18 @@
     vector-filter vector-contains?
     ; Scala-style take/drop with boundary tolerance
     vector-take vector-drop vector-take-right vector-drop-right
+    ; int-vector 函数 (s7 内置)
+    int-vector int-vector?
+    make-int-vector
+    int-vector-ref int-vector-set!
+    ; complex-vector 函数 (s7 内置)
+    complex-vector complex-vector?
+    make-complex-vector
+    complex-vector-ref complex-vector-set!
+    ; float-vector 函数 (s7 内置)
+    float-vector float-vector?
+    make-float-vector
+    float-vector-ref float-vector-set!
   ) ;export
   (begin
 

@@ -16,10 +16,9 @@
 
 (define-library (liii list)
   (export
-    ; S7 built-in
-    cons car cdr map for-each
+    ; S7 built-in 和 R7RS 6.4 函数从 (scheme base) 继承
     ; SRFI 1: Constructors
-    circular-list iota list-copy xcons cons*
+    circular-list iota xcons cons*
     ; SRFI 1: Predicates
     null-list? circular-list? proper-list? dotted-list?
     ; SRFI 1: Selectors
@@ -36,8 +35,8 @@
     take-while drop-while
     ; SRFI 1: Deleting
     delete
-    ; SRFI 1: Association List
-    assoc assq assv alist-cons
+    ; SRFI 1: Association List (assoc assq assv 从 scheme base 继承)
+    alist-cons
     ; Liii List extensions
     flat-map
     list-null? list-not-null? not-null-list?
@@ -45,7 +44,8 @@
     ; Scala-style take/drop with boundary tolerance
     list-take list-drop list-take-right list-drop-right
   ) ;export
-  (import (srfi srfi-1)
+  (import (scheme base)
+          (srfi srfi-1)
           (srfi srfi-13)
           (liii error)
   ) ;import

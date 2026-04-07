@@ -16,10 +16,6 @@
 
 (define-library (liii string)
   (export
-    ; S7 built-in
-    string? string-ref string-length
-    ; from (scheme base)
-    string-copy string-for-each string-map
     ; from (srfi srfi-13)
     string-null? string-join
     string-every string-any
@@ -38,8 +34,10 @@
     string-remove-prefix string-remove-suffix
   ) ;export
   (import (except (srfi srfi-13) string-replace)
+          (scheme base)
           (liii base)
           (liii error)
+          (liii unicode)
   ) ;import
   (begin
 
@@ -64,7 +62,7 @@
             (if (= i input-len)
                 (reverse parts)
                 (loop (+ i 1)
-                      (cons (u8-substring input i (+ i 1))
+                      (cons (utf8-substring input i (+ i 1))
                             parts
                       ) ;cons
                 ) ;loop

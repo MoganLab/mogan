@@ -29,7 +29,7 @@
     path-absolute? path-relative?
     path-join path-parent
     path-list path-list-path
-    path-rmdir path-unlink
+    path-rmdir path-unlink path-rename
   ) ;export
   (import (liii base)
           (liii error)
@@ -663,6 +663,11 @@
         ) ;cond
       ) ;let
     ) ;define*
+
+    ;;; Rename file or directory
+    (define (path-rename src dst)
+      (rename (path->string src) (path->string dst))
+    ) ;define
 
   ) ;begin
 ) ;define-library

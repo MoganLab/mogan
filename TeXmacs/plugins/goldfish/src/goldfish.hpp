@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.38"
+#define GOLDFISH_VERSION "17.11.41"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -3013,7 +3013,25 @@ f_path_read_text (s7_scheme* sc, s7_pointer args) {
   std::string content (reinterpret_cast<char*> (buffer), real_size);
   delete[] buffer;
 
-  return s7_make_string (sc, content.c_str ());
+  // Normalize line endings: convert \r\n to \n (also handles standalone \r)
+  std::string normalized;
+  normalized.reserve (content.size ());
+  for (size_t i= 0; i < content.size (); ++i) {
+    if (content[i] == '\r') {
+      // Skip \r, but if next char is \n, we'll output just \n below
+      if (i + 1 < content.size () && content[i + 1] == '\n') {
+        // \r\n sequence: skip \r, output \n on next iteration
+        continue;
+      }
+      // Standalone \r: treat as \n
+      normalized.push_back ('\n');
+    }
+    else {
+      normalized.push_back (content[i]);
+    }
+  }
+
+  return s7_make_string (sc, normalized.c_str ());
 }
 
 inline void
