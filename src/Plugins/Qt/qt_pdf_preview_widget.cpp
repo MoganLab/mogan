@@ -349,9 +349,10 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
   if (!reply) return;
 
   if (reply->error () != QNetworkReply::NoError) {
-    errorString_= tr ("图片下载失败: %1").arg (reply->errorString ());
+    errorString_= tr ("Image download failed: %1").arg (reply->errorString ());
     showError (errorString_);
     reply->deleteLater ();
+    currentLoadType_= LoadType::None;
     return;
   }
 
@@ -359,8 +360,9 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
   reply->deleteLater ();
 
   if (imageData.isEmpty ()) {
-    errorString_= tr ("接收到的图片数据为空");
+    errorString_= tr ("Received empty image data");
     showError (errorString_);
+    currentLoadType_= LoadType::None;
     return;
   }
 
@@ -373,7 +375,7 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
     setPreviewPixmap (pixmap);
   }
   else {
-    errorString_= tr ("无法加载图片数据");
+    errorString_= tr ("Failed to load image data");
     showError (errorString_);
   }
 
