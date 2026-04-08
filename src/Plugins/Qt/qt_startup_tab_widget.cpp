@@ -11,6 +11,7 @@
 
 #include "qt_startup_tab_widget.hpp"
 #include "qt_template_page.hpp"
+#include "qt_settings_page.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -34,7 +35,7 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
       navTemplateBtn_ (nullptr), navRecentBtn_ (nullptr),
       navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
-      navButtonGroup_ (nullptr) {
+      navButtonGroup_ (nullptr), settingsPage_ (nullptr) {
 
   setMinimumSize (600, 400);
   setFocusPolicy (Qt::NoFocus);
@@ -282,25 +283,12 @@ QTStartupTabWidget::create_recent_page () {
 }
 
 /**
- * @brief 创建 Settings 页面（占位）
+ * @brief 创建 Settings 页面
  */
 QWidget*
 QTStartupTabWidget::create_settings_page () {
-  QWidget*     page  = new QWidget (this);
-  QVBoxLayout* layout= new QVBoxLayout (page);
-  layout->setContentsMargins (32, 32, 32, 32);
-
-  QLabel* title= new QLabel ("Settings", page);
-  title->setObjectName ("startup-tab-page-title");
-  layout->addWidget (title);
-
-  QLabel* desc= new QLabel (
-      "Coming soon: Configure startup tab behavior and preferences.", page);
-  desc->setObjectName ("startup-tab-page-desc");
-  layout->addWidget (desc);
-
-  layout->addStretch ();
-  return page;
+  settingsPage_= new QTSettingsPage (this);
+  return settingsPage_;
 }
 
 /**

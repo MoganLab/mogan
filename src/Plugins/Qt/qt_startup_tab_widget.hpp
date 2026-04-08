@@ -19,6 +19,7 @@ class QVBoxLayout;
 class QPushButton;
 class QStackedWidget;
 class QButtonGroup;
+class QTSettingsPage;
 class QTTemplatePage;
 
 class QTStartupTabWidget : public QWidget {
@@ -71,6 +72,9 @@ private:
 
   // 互斥按钮组
   QButtonGroup* navButtonGroup_;
+
+  // 各页面实例
+  QTSettingsPage* settingsPage_;
 
   // Template page (separate widget)
   QTTemplatePage* templatePage_;
