@@ -13,15 +13,16 @@
 #include <QObject>
 #include <QPixmap>
 #include <QSharedPointer>
+#include <QSize>
 
 /**
- * @brief PDF preview widget - reusable component for rendering PDF pages
+ * @brief PDF预览控件 - 可重用的PDF页面渲染组件
  *
- * Features:
- * - Load PDF from URL or local file
- * - Render specific page at specified DPI
- * - Async loading with network support
- * - Error handling with fallback display
+ * 功能特性:
+ * - 从URL或本地文件加载PDF
+ * - 渲染指定页面和DPI
+ * - 支持异步网络加载
+ * - 错误处理与后备显示
  */
 class QTPdfPreviewWidget : public QLabel {
   Q_OBJECT
@@ -30,32 +31,35 @@ public:
   explicit QTPdfPreviewWidget (QWidget* parent= nullptr);
   ~QTPdfPreviewWidget ();
 
-  // Load PDF from URL (async)
+  // 从URL加载PDF（异步）
   void loadFromUrl (const QString& url, int pageNumber= 0, int dpi= 150);
 
-  // Load PDF from local file (sync)
+  // 从本地文件加载PDF（同步）
   bool loadFromFile (const QString& filePath, int pageNumber= 0, int dpi= 150);
 
-  // Load PDF from QByteArray (sync)
+  // 从字节数组加载PDF（同步）
   bool loadFromData (const QByteArray& data, int pageNumber= 0, int dpi= 150);
 
-  // Set/get target DPI
+  // 从URL加载图片（异步）
+  void loadImageFromUrl (const QString& url, const QSize& targetSize= QSize ());
+
+  // 设置/获取目标DPI
   void setDpi (int dpi) { targetDpi_= dpi; }
   int  dpi () const { return targetDpi_; }
 
-  // Set/get target page
+  // 设置/获取目标页码
   void setPageNumber (int page) { targetPage_= page; }
   int  pageNumber () const { return targetPage_; }
 
-  // Status
+  // 状态
   bool    isLoading () const { return isLoading_; }
   bool    hasError () const { return hasError_; }
   QString errorString () const { return errorString_; }
 
-  // Cancel current loading
+  // 取消当前加载
   void cancelLoading ();
 
-  // Clear preview and show placeholder
+  // 清除预览并显示占位符
   void clearPreview (const QString& text= QString ());
 
 signals:
@@ -63,33 +67,42 @@ signals:
   void loadingFinished (bool success);
   void error (const QString& errorMessage);
 
+private:
+  // 加载类型枚举
+  enum class LoadType { None, PDF, Image };
+
 private slots:
   void onNetworkReplyFinished ();
+  void onImageNetworkReplyFinished ();
 
 private:
-  // MuPDF rendering
+  // MuPDF渲染
   bool renderPdfPage (const QByteArray& data, int pageNumber, int dpi);
 
-  // UI helpers
+  // UI辅助函数
   void showLoading ();
   void showError (const QString& message);
   void setPreviewPixmap (const QPixmap& pixmap);
 
 private:
-  // Network
+  // 网络
   QNetworkAccessManager* networkManager_;
   QNetworkReply*         currentReply_;
 
-  // Settings
+  // 设置
   int targetDpi_;
   int targetPage_;
 
-  // State
+  // 状态
   bool    isLoading_;
   bool    hasError_;
   QString errorString_;
 
-  // Default size
+  // 图片加载相关
+  LoadType currentLoadType_;
+  QSize    targetSize_;
+
+  // 默认尺寸
   static constexpr int DEFAULT_WIDTH = 550;
   static constexpr int DEFAULT_HEIGHT= 300;
   static constexpr int DEFAULT_DPI   = 150;

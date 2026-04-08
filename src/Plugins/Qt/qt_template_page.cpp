@@ -19,6 +19,7 @@
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
+#include <QPointer>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QScrollArea>
@@ -30,6 +31,17 @@
 
 #include "qt_pdf_preview_widget.hpp"
 #include "template_manager.hpp"
+
+namespace {
+// 预览图片尺寸
+constexpr int PREVIEW_IMAGE_WIDTH = 550;
+constexpr int PREVIEW_IMAGE_HEIGHT= 300;
+
+// 缩略图尺寸
+constexpr int THUMBNAIL_WIDTH = 196;
+constexpr int THUMBNAIL_HEIGHT= 110;
+
+} // namespace
 
 QTTemplatePage::QTTemplatePage (QWidget* parent)
     : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
@@ -329,8 +341,8 @@ QTTemplatePage::processThumbnailQueue () {
           QByteArray data= reply->readAll ();
           QImage     image;
           if (image.loadFromData (data)) {
-            image= image.scaled (196, 110, Qt::KeepAspectRatio,
-                                 Qt::SmoothTransformation);
+            image= image.scaled (THUMBNAIL_WIDTH, THUMBNAIL_HEIGHT,
+                                 Qt::KeepAspectRatio, Qt::SmoothTransformation);
             req.label->setPixmap (QPixmap::fromImage (image));
             req.label->setStyleSheet ("border-radius: 4px;");
           }
@@ -408,25 +420,13 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   // Load preview (PDF or image)
   if (!tmpl->previewUrl.isEmpty ()) {
     if (tmpl->previewUrl.endsWith (".pdf")) {
-      // Load PDF preview using QTPdfPreviewWidget
+      // 使用QTPdfPreviewWidget加载PDF预览
       previewWidget->loadFromUrl (tmpl->previewUrl);
     }
     else {
-      // Load image preview
-      QNetworkRequest request (tmpl->previewUrl);
-      QNetworkReply*  reply= networkManager_->get (request);
-      connect (reply, &QNetworkReply::finished, [previewWidget, reply] () {
-        if (reply->error () == QNetworkReply::NoError) {
-          QByteArray data= reply->readAll ();
-          QPixmap    pixmap;
-          if (pixmap.loadFromData (data)) {
-            pixmap= pixmap.scaled (550, 300, Qt::KeepAspectRatio,
-                                   Qt::SmoothTransformation);
-            previewWidget->setPixmap (pixmap);
-          }
-        }
-        reply->deleteLater ();
-      });
+      // 使用QTPdfPreviewWidget加载图片预览
+      previewWidget->loadImageFromUrl (
+          tmpl->previewUrl, QSize (PREVIEW_IMAGE_WIDTH, PREVIEW_IMAGE_HEIGHT));
     }
   }
   layout->addWidget (previewWidget, 0, Qt::AlignCenter);
