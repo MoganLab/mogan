@@ -35,6 +35,24 @@
 #include <algorithm>
 #include <cmath>
 
+void
+QTMTextPopup::prepareTextPopupButton (QToolButton* button, QAction* action) {
+  if (button == nullptr || action == nullptr) return;
+
+  // Match focus-toolbar semantics: TeXmacs marks active toggle actions
+  // through the checkable flag when building the popup menu actions.
+  action->setChecked (action->isCheckable ());
+
+  button->setObjectName ("base_popup_button");
+  button->setAutoRaise (true);
+  button->setDefaultAction (action);
+  button->setPopupMode (QToolButton::InstantPopup);
+  if (tm_style_sheet == "") button->setStyle (qtmstyle ());
+  button->setCheckable (action->isCheckable ());
+  button->setChecked (action->isChecked ());
+  button->update ();
+}
+
 // 悬浮工具栏创建函数
 QTMTextPopup::QTMTextPopup (QWidget* parent, qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner) {
@@ -97,11 +115,7 @@ QTMTextPopup::rebuildButtonsFromScheme () {
     }
 
     QToolButton* button= new QToolButton (this);
-    button->setObjectName ("base_popup_button");
-    button->setAutoRaise (true);
-    button->setDefaultAction (action);
-    button->setPopupMode (QToolButton::InstantPopup);
-    if (tm_style_sheet == "") button->setStyle (qtmstyle ());
+    prepareTextPopupButton (button, action);
     layout->addWidget (button);
   }
 }
@@ -199,9 +213,7 @@ QTMTextPopup::updateButtonsFromScheme () {
         if (stale_action) button->removeAction (stale_action);
       }
       button->setMenu (nullptr);
-      button->setDefaultAction (action);
-      button->setPopupMode (QToolButton::InstantPopup);
-      if (tm_style_sheet == "") button->setStyle (qtmstyle ());
+      prepareTextPopupButton (button, action);
     }
     cached_width = width ();
     cached_height= height ();
@@ -237,11 +249,7 @@ QTMTextPopup::updateButtonsFromScheme () {
     }
 
     QToolButton* button= new QToolButton (this);
-    button->setObjectName ("base_popup_button");
-    button->setAutoRaise (true);
-    button->setDefaultAction (action);
-    button->setPopupMode (QToolButton::InstantPopup);
-    if (tm_style_sheet == "") button->setStyle (qtmstyle ());
+    prepareTextPopupButton (button, action);
     if (old_icon_size.isValid ()) button->setIconSize (old_icon_size);
     if (old_button_size.isValid ()) button->setFixedSize (old_button_size);
     layout->addWidget (button);

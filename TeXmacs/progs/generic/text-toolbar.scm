@@ -149,7 +149,7 @@
           (dynamic (focus-variant-menu t))))))
 
 ;; 提取当前选区对应的章节层级节点。
-(tm-define (chatper-selection-tree . opt-t)
+(tm-define (chapter-selection-tree . opt-t)
   (with l '(chapter section subsection subsubsection)
     (if (nnull? opt-t)
         (and (tree-in? (car opt-t) (numbered-unnumbered-append l))
@@ -166,11 +166,11 @@
 
 ;; 返回当前章节节点可切换的结构变体列表。
 (tm-define (focus-variants-of t)
-  (:require (chatper-selection-tree t))
-  (chatper-selection-tree t))
+  (:require (chapter-selection-tree t))
+  (chapter-selection-tree t))
 
-(menu-bind text-toolbar-chatper-icons
-  (with t (chatper-selection-tree)
+(menu-bind text-toolbar-chapter-icons
+  (with t (chapter-selection-tree)
     (when (and t (numbered-context? t))
       ((check (balloon (icon "tm_numbered.xpm") "Numbered") "v"
               (numbered-numbered? t))
@@ -222,8 +222,8 @@
   (not (not (semantic-block-selection-tree))))
 
 ;; 判断当前选区是否处于章节标题上下文中。
-(tm-define (chatper-selection-context? t)
-  (not (not (chatper-selection-tree))))
+(tm-define (chapter-selection-context? t)
+  (not (not (chapter-selection-tree))))
 
 ;; 合并两个模式列表，并去掉重复项。
 (define (mode-list-union l1 l2)
@@ -304,7 +304,7 @@
         ((table-of-contents-selection-context? t) #f)
         ((image-selection-context? t) #f)
         ((table-selection-context? t) 'table)
-        ((chatper-selection-context? t) 'chatper)
+        ((chapter-selection-context? t) 'chapter)
         ((semantic-block-selection-context? t) 'semantic)
         ((math-selection-context? t) 'math)
         ((text-selection-context? t) 'text)
@@ -315,8 +315,8 @@
     (cond
      ((== context 'table)
       (link text-toolbar-table-icons))
-     ((== context 'chatper)
-      (link text-toolbar-chatper-icons))
+     ((== context 'chapter)
+      (link text-toolbar-chapter-icons))
      ((== context 'semantic)
       (link text-toolbar-semantic-icons))
      ((== context 'text)
