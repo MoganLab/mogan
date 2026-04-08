@@ -309,7 +309,8 @@ QTTemplatePage::processThumbnailQueue () {
     ThumbnailRequest req= thumbnailQueue_.dequeue ();
 
     // Check if the label is still valid (not deleted)
-    if (!req.label || req.label->parent () == nullptr) {
+    // QPointer automatically becomes nullptr when QLabel is deleted
+    if (req.label.isNull ()) {
       continue; // Skip invalid labels
     }
 
@@ -322,7 +323,8 @@ QTTemplatePage::processThumbnailQueue () {
       activeThumbnailRequests_--;
 
       // Check if label is still valid before updating
-      if (req.label && req.label->parent () != nullptr) {
+      // QPointer automatically becomes nullptr when QLabel is deleted
+      if (!req.label.isNull ()) {
         if (reply->error () == QNetworkReply::NoError) {
           QByteArray data= reply->readAll ();
           QImage     image;
@@ -470,6 +472,16 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
                                           tr ("Cancel"), 0, 100, this);
     progressDialog_->setWindowModality (Qt::WindowModal);
     progressDialog_->setAutoClose (true);
+
+    // Connect cancel button to actually cancel the download
+    connect (progressDialog_, &QProgressDialog::canceled, [this, templateId] () {
+      templateManager_->cancelDownload (templateId);
+      if (progressDialog_) {
+        progressDialog_->deleteLater ();
+        progressDialog_= nullptr;
+      }
+    });
+
     progressDialog_->show ();
 
     templateManager_->downloadTemplate (templateId);
@@ -498,8 +510,15 @@ void
 QTTemplatePage::onDownloadProgress (const QString& templateId,
                                     qint64 bytesReceived, qint64 bytesTotal) {
   if (progressDialog_) {
-    progressDialog_->setMaximum (static_cast<int> (bytesTotal));
-    progressDialog_->setValue (static_cast<int> (bytesReceived));
+    // Handle case where Content-Length is not available (bytesTotal == -1)
+    if (bytesTotal < 0) {
+      // Switch to indeterminate mode when total size is unknown
+      progressDialog_->setRange (0, 0);
+    }
+    else {
+      progressDialog_->setMaximum (static_cast<int> (bytesTotal));
+      progressDialog_->setValue (static_cast<int> (bytesReceived));
+    }
   }
 }
 

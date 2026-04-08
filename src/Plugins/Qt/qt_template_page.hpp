@@ -25,10 +25,11 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
 
 /**
  * @brief Structure to hold pending thumbnail load request
+ * Uses QPointer to automatically handle QLabel deletion
  */
 struct ThumbnailRequest {
-  QLabel* label;
-  QString url;
+  QPointer<QLabel> label;
+  QString          url;
 };
 
 /**

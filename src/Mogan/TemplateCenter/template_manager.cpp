@@ -322,7 +322,7 @@ TemplateManager::cancelDownload (const QString& templateId) {
 void
 TemplateManager::onNetworkStateChanged (bool isOnline) {
   isOnline_= isOnline;
-  if (isOnline && !initialized_) {
+  if (isOnline && initialized_) {
     // Try to fetch metadata when coming back online
     checkForUpdates ();
   }
