@@ -91,7 +91,7 @@ private:
 
   // Thumbnail loading queue for concurrency control
   QQueue<ThumbnailRequest> thumbnailQueue_;
-  int                      activeThumbnailRequests_= 0;
+  int                      activeThumbnailRequests_         = 0;
   static constexpr int     MAX_CONCURRENT_THUMBNAIL_REQUESTS= 6;
 };
 

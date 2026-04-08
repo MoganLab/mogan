@@ -178,7 +178,8 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   }
 
   // Register document handlers (needed to open PDF files)
-  // Note: handlersRegistered is a function-local static, which is thread-safe in C++11+
+  // Note: handlersRegistered is a function-local static, which is thread-safe
+  // in C++11+
   static std::atomic<bool> handlersRegistered{false};
   static std::mutex        handlerMutex;
 
@@ -186,9 +187,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     std::lock_guard<std::mutex> lock (handlerMutex);
     if (!handlersRegistered.load (std::memory_order_relaxed)) {
       bool success= true;
-      fz_try (ctx) {
-        fz_register_document_handlers (ctx);
-      }
+      fz_try (ctx) { fz_register_document_handlers (ctx); }
       fz_catch (ctx) {
         qWarning () << "Failed to register document handlers:"
                     << fz_caught_message (ctx);
