@@ -659,23 +659,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (startup-settings-widget)
-  (centered
+  (padded
     (icon-tabs
       (icon-tab "tm_prefs_general.xpm" (text "Startup")
-        (centered
-          (dynamic (startup-tab-preferences-widget))))
+        (padded
+          (vlist
+            (dynamic (startup-tab-preferences-widget))
+            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_general.xpm" (text "General")
-        (centered
-          (dynamic (startup-general-preferences-widget))))
+        (padded
+          (vlist
+            (dynamic (startup-general-preferences-widget))
+            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_keyboard.xpm" (text "Keyboard")
-        (centered
-          (dynamic (startup-keyboard-preferences-widget))))
+        (padded
+          (vlist
+            (dynamic (startup-keyboard-preferences-widget))
+            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_other.xpm" (text "Mathematics")
-        (centered
-          (dynamic (startup-math-preferences-widget))))
+        (padded
+          (vlist
+            (dynamic (startup-math-preferences-widget))
+            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_convert.xpm" (text "Convert")
-        (centered
-          (dynamic (startup-conversion-preferences-widget))))
+        (padded
+          (vlist
+            (dynamic (startup-conversion-preferences-widget))
+            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_other.xpm" (text "Other")
-        (centered
-          (dynamic (startup-other-preferences-widget)))))))
+        (padded
+          (vlist
+            (dynamic (startup-other-preferences-widget))
+            (glue #f #t 0 1)))))))

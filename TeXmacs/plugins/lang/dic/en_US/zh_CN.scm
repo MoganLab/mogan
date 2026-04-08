@@ -2175,6 +2175,7 @@
 ("start a new section" "新起一节")
 ("start an interactive session" "插入交互会话")
 ("start" "开始")
+("Startup" "启动页")
 ("stats information" "统计信息")
 ("statistics" "统计信息")
 ("status bar" "状态栏")
