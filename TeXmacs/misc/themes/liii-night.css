@@ -1126,3 +1126,17 @@ QPushButton#startup-tab-secondary-btn {
 QPushButton#startup-tab-secondary-btn:hover {
   background-color: rgba(39, 145, 173, 0.2);
 }
+
+/* 模板使用按钮 - Template Use Button */
+QPushButton#template-use-btn {
+  background-color: #4CAF50;
+  color: white;
+  padding: 8px 24px;
+  border-radius: 4px;
+  font-weight: bold;
+  border: none;
+}
+
+QPushButton#template-use-btn:hover {
+  background-color: #45a049;
+}

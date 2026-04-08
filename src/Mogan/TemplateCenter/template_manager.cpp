@@ -91,13 +91,6 @@ TemplateManager::initialize () {
   // onRemoteMetadataFailed
   checkForUpdates ();
 
-  // If no remote update check needed (cache is fresh), emit loaded
-  QDateTime lastUpdate= cache_->lastMetadataUpdate ();
-  if (lastUpdate.isValid () &&
-      lastUpdate.secsTo (QDateTime::currentDateTime ()) <= 3600) {
-    emit templatesLoaded ();
-  }
-
   initialized_= true;
   emit initialized (true);
 }

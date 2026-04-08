@@ -8,18 +8,28 @@
 #ifndef QT_TEMPLATE_PAGE_HPP
 #define QT_TEMPLATE_PAGE_HPP
 
+#include <QQueue>
 #include <QSharedPointer>
 #include <QWidget>
 
 class QGridLayout;
 class QLabel;
 class QNetworkAccessManager;
+class QNetworkReply;
 class QProgressDialog;
 class QPushButton;
 class QScrollArea;
 class TemplateManager;
 struct TemplateMetadata;
 using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
+
+/**
+ * @brief Structure to hold pending thumbnail load request
+ */
+struct ThumbnailRequest {
+  QLabel* label;
+  QString url;
+};
 
 /**
  * @brief Template page widget for startup tab
@@ -61,6 +71,7 @@ private:
   void     showTemplatePreview (const QString& templateId);
   void     downloadAndUseTemplate (const QString& templateId);
   void     loadThumbnail (QLabel* label, const QString& url);
+  void     processThumbnailQueue ();
 
   // UI components
   QLabel*          titleLabel_;
@@ -77,6 +88,11 @@ private:
 
   // Network
   QNetworkAccessManager* networkManager_;
+
+  // Thumbnail loading queue for concurrency control
+  QQueue<ThumbnailRequest> thumbnailQueue_;
+  int                      activeThumbnailRequests_= 0;
+  static constexpr int     MAX_CONCURRENT_THUMBNAIL_REQUESTS= 6;
 };
 
 #endif // QT_TEMPLATE_PAGE_HPP

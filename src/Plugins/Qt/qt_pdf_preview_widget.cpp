@@ -13,6 +13,9 @@
 #include <QPainter>
 #include <QVBoxLayout>
 
+#include <atomic>
+#include <mutex>
+
 #include "MuPDF/mupdf_renderer.hpp"
 #include <mupdf/fitz.h>
 
@@ -175,13 +178,28 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   }
 
   // Register document handlers (needed to open PDF files)
-  static bool handlersRegistered= false;
-  if (!handlersRegistered) {
-    fz_try (ctx) {
-      fz_register_document_handlers (ctx);
-      handlersRegistered= true;
+  // Note: handlersRegistered is a function-local static, which is thread-safe in C++11+
+  static std::atomic<bool> handlersRegistered{false};
+  static std::mutex        handlerMutex;
+
+  if (!handlersRegistered.load (std::memory_order_acquire)) {
+    std::lock_guard<std::mutex> lock (handlerMutex);
+    if (!handlersRegistered.load (std::memory_order_relaxed)) {
+      bool success= true;
+      fz_try (ctx) {
+        fz_register_document_handlers (ctx);
+      }
+      fz_catch (ctx) {
+        qWarning () << "Failed to register document handlers:"
+                    << fz_caught_message (ctx);
+        success= false;
+      }
+      // Only set to true if registration succeeded
+      // If it fails, we don't want to prevent future retries
+      if (success) {
+        handlersRegistered.store (true, std::memory_order_release);
+      }
     }
-    fz_catch (ctx) { qWarning () << "Failed to register document handlers"; }
   }
 
   fz_document* doc    = nullptr;

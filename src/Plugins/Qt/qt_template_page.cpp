@@ -296,28 +296,57 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
 
 void
 QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
-  QNetworkRequest request (url);
-  QNetworkReply*  reply= networkManager_->get (request);
+  // Add to queue and process
+  thumbnailQueue_.enqueue ({label, url});
+  processThumbnailQueue ();
+}
 
-  connect (reply, &QNetworkReply::finished, [label, reply] () {
-    if (reply->error () == QNetworkReply::NoError) {
-      QByteArray data= reply->readAll ();
-      QImage     image;
-      if (image.loadFromData (data)) {
-        image= image.scaled (196, 110, Qt::KeepAspectRatio,
-                             Qt::SmoothTransformation);
-        label->setPixmap (QPixmap::fromImage (image));
-        label->setStyleSheet ("border-radius: 4px;");
-      }
-      else {
-        label->setText (tr ("Preview"));
-      }
+void
+QTTemplatePage::processThumbnailQueue () {
+  // Process queued requests up to the concurrency limit
+  while (!thumbnailQueue_.isEmpty () &&
+         activeThumbnailRequests_ < MAX_CONCURRENT_THUMBNAIL_REQUESTS) {
+    ThumbnailRequest req= thumbnailQueue_.dequeue ();
+
+    // Check if the label is still valid (not deleted)
+    if (!req.label || req.label->parent () == nullptr) {
+      continue; // Skip invalid labels
     }
-    else {
-      label->setText (tr ("Preview"));
-    }
-    reply->deleteLater ();
-  });
+
+    activeThumbnailRequests_++;
+
+    QNetworkRequest request (req.url);
+    QNetworkReply*  reply= networkManager_->get (request);
+
+    connect (reply, &QNetworkReply::finished, this, [this, req, reply] () {
+      activeThumbnailRequests_--;
+
+      // Check if label is still valid before updating
+      if (req.label && req.label->parent () != nullptr) {
+        if (reply->error () == QNetworkReply::NoError) {
+          QByteArray data= reply->readAll ();
+          QImage     image;
+          if (image.loadFromData (data)) {
+            image= image.scaled (196, 110, Qt::KeepAspectRatio,
+                                 Qt::SmoothTransformation);
+            req.label->setPixmap (QPixmap::fromImage (image));
+            req.label->setStyleSheet ("border-radius: 4px;");
+          }
+          else {
+            req.label->setText (tr ("Preview"));
+          }
+        }
+        else {
+          req.label->setText (tr ("Preview"));
+        }
+      }
+
+      reply->deleteLater ();
+
+      // Process next items in queue
+      processThumbnailQueue ();
+    });
+  }
 }
 
 bool
@@ -411,10 +440,6 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   QPushButton* useBtn= new QPushButton (tr ("Use Template"), dialog);
   useBtn->setObjectName ("template-use-btn");
   useBtn->setDefault (true);
-  useBtn->setStyleSheet (
-      "QPushButton { background: #4CAF50; color: white; padding: 8px 24px; "
-      "border-radius: 4px; font-weight: bold; }"
-      "QPushButton:hover { background: #45a049; }");
   connect (useBtn, &QPushButton::clicked, [this, dialog, templateId] () {
     dialog->accept ();
     downloadAndUseTemplate (templateId);
@@ -424,7 +449,6 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   layout->addLayout (btnLayout);
 
   dialog->exec ();
-  delete dialog;
 }
 
 void
