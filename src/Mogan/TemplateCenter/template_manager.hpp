@@ -19,6 +19,9 @@
 // Common type definitions
 #include "template_types.hpp"
 
+// Forward declaration for Scheme integration
+class string;
+
 // Forward declarations
 class TemplateCache;
 class TemplateAPI;
@@ -103,9 +106,10 @@ private slots:
                                  const QString& error);
 
 private:
-  // Load local templates
-  void loadLocalTemplates ();
-  void loadLocalCategories ();
+  // Load local templates and categories
+  void                    loadLocalTemplates ();
+  void                    loadLocalCategories ();
+  QList<TemplateCategory> loadCategoriesFromScheme (const string& filePath);
 
   // Merge remote metadata with local cache
   void

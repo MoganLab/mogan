@@ -21,6 +21,11 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 
+// Scheme integration for loading local config
+#include "s7_tm.hpp"
+#include "tm_file.hpp"
+#include "tm_sys_utils.hpp"
+
 // Singleton instance
 static TemplateManager* g_instance= nullptr;
 
@@ -31,12 +36,8 @@ TemplateManager::TemplateManager (QObject* parent)
   api_  = new TemplateAPI (this);
 
   // Connect API signals (liiistem.cn API format)
-  connect (
-      api_,
-      QOverload<
-          const QHash<QString, TemplateMetadataPtr>&,
-          const QList<TemplateCategory>&>::of (&TemplateAPI::metadataLoaded),
-      this, &TemplateManager::onRemoteMetadataLoaded);
+  connect (api_, &TemplateAPI::metadataLoaded, this,
+           &TemplateManager::onRemoteMetadataLoaded);
   connect (api_, &TemplateAPI::metadataLoadFailed, this,
            &TemplateManager::onRemoteMetadataFailed);
   connect (api_, &TemplateAPI::downloadCompleted, this,
@@ -110,46 +111,114 @@ TemplateManager::loadLocalTemplates () {
 
 void
 TemplateManager::loadLocalCategories () {
-  // Load categories matching liiistem.cn API format
-  // These match the categories used in the frontend repository
-  QList<TemplateCategory> defaultCategories;
+  QList<TemplateCategory> categories;
 
-  TemplateCategory thesis;
-  thesis.id         = "thesis";
-  thesis.name       = tr ("Thesis");
-  thesis.description= tr ("Academic thesis and dissertation templates");
-  thesis.icon       = "📄";
-  thesis.order      = 1;
-  defaultCategories.append (thesis);
+  // Load categories from Scheme file
+  url categoriesFile= url_system ("$TEXMACS_PATH/templates/categories.scm");
+  if (exists (categoriesFile)) {
+    categories= loadCategoriesFromScheme (as_string (categoriesFile));
+  }
 
-  TemplateCategory labReport;
-  labReport.id         = "lab-report";
-  labReport.name       = tr ("Lab Report");
-  labReport.description= tr ("Laboratory report templates");
-  labReport.icon       = "🔬";
-  labReport.order      = 2;
-  defaultCategories.append (labReport);
-
-  TemplateCategory mathModeling;
-  mathModeling.id         = "math-modeling";
-  mathModeling.name       = tr ("Math Modeling");
-  mathModeling.description= tr ("Mathematical modeling competition templates");
-  mathModeling.icon       = "📐";
-  mathModeling.order      = 3;
-  defaultCategories.append (mathModeling);
-
-  // Sort by order
-  std::sort (defaultCategories.begin (), defaultCategories.end (),
-             [] (const TemplateCategory& a, const TemplateCategory& b) {
-               return a.order < b.order;
-             });
-
-  categories_= defaultCategories;
+  categories_= categories;
+  categoryMap_.clear ();
   for (const auto& cat : categories_) {
     categoryMap_[cat.id]= cat;
   }
 
   emit categoriesLoaded ();
+}
+
+QList<TemplateCategory>
+TemplateManager::loadCategoriesFromScheme (const string& filePath) {
+  QList<TemplateCategory> categories;
+
+  // Check if Scheme interpreter is available
+  if (!tm_s7) {
+    qWarning () << "Scheme interpreter not available";
+    return categories;
+  }
+
+  // Load and evaluate the Scheme file
+  tmscm result= eval_scheme_file (filePath);
+  if (tmscm_is_null (result)) {
+    qWarning () << "Failed to load categories from Scheme file:"
+                << QString::fromUtf8 (as_charp (filePath));
+    return categories;
+  }
+
+  // Call (template-get-categories) to get the category list
+  tmscm categoriesFunc= s7_name_to_value (tm_s7, "template-get-categories");
+  if (categoriesFunc == s7_undefined (tm_s7)) {
+    qWarning () << "template-get-categories function not found";
+    return categories;
+  }
+
+  tmscm categoriesList= call_scheme (categoriesFunc);
+  if (tmscm_is_null (categoriesList) || !tmscm_is_list (categoriesList)) {
+    qWarning () << "Invalid categories list from Scheme";
+    return categories;
+  }
+
+  // Parse the Scheme list
+  tmscm current= categoriesList;
+  while (!tmscm_is_null (current)) {
+    tmscm catObj= tmscm_car (current);
+
+    if (tmscm_is_list (catObj)) {
+      TemplateCategory category;
+
+      // Parse category properties from association list format:
+      // ((id . "thesis") (name . "Thesis") (icon . "template-thesis") (order .
+      // 1))
+      tmscm catProps= catObj;
+      while (!tmscm_is_null (catProps)) {
+        tmscm pair= tmscm_car (catProps);
+        catProps  = tmscm_cdr (catProps);
+
+        if (tmscm_is_pair (pair)) {
+          tmscm key  = tmscm_car (pair);
+          tmscm value= tmscm_cdr (pair);
+
+          if (tmscm_is_symbol (key)) {
+            string keyStr= tmscm_to_symbol (key);
+            if (keyStr == "id" && tmscm_is_string (value)) {
+              category.id=
+                  QString::fromUtf8 (as_charp (tmscm_to_string (value)));
+            }
+            else if (keyStr == "name" && tmscm_is_string (value)) {
+              category.name=
+                  QString::fromUtf8 (as_charp (tmscm_to_string (value)));
+            }
+            else if (keyStr == "description" && tmscm_is_string (value)) {
+              category.description=
+                  QString::fromUtf8 (as_charp (tmscm_to_string (value)));
+            }
+            else if (keyStr == "icon" && tmscm_is_string (value)) {
+              category.icon=
+                  QString::fromUtf8 (as_charp (tmscm_to_string (value)));
+            }
+            else if (keyStr == "order" && tmscm_is_int (value)) {
+              category.order= tmscm_to_int (value);
+            }
+          }
+        }
+      }
+
+      if (!category.id.isEmpty () && !category.name.isEmpty ()) {
+        categories.append (category);
+      }
+    }
+
+    current= tmscm_cdr (current);
+  }
+
+  // Sort by order
+  std::sort (categories.begin (), categories.end (),
+             [] (const TemplateCategory& a, const TemplateCategory& b) {
+               return a.order < b.order;
+             });
+
+  return categories;
 }
 
 QList<TemplateCategory>

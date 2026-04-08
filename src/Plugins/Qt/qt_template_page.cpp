@@ -35,7 +35,7 @@ QTTemplatePage::QTTemplatePage (QWidget* parent)
     : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
       scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
       progressDialog_ (nullptr), templateManager_ (nullptr),
-      currentCategory_ ("university-thesis"), activeCategoryBtn_ (nullptr),
+      currentCategory_ (""), activeCategoryBtn_ (nullptr),
       networkManager_ (nullptr) {
   networkManager_= new QNetworkAccessManager (this);
   setupUI ();
@@ -50,6 +50,8 @@ QTTemplatePage::initialize () {
   // Connect signals (safe to call multiple times due to Qt's auto-connection)
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
            &QTTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
+  connect (templateManager_, &TemplateManager::categoriesLoaded, this,
+           &QTTemplatePage::onCategoriesLoaded, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::downloadProgress, this,
            &QTTemplatePage::onDownloadProgress, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::downloadCompleted, this,
@@ -81,6 +83,13 @@ QTTemplatePage::setupUI () {
   titleLabel_->setObjectName ("startup-tab-page-title");
   layout->addWidget (titleLabel_);
 
+  // Category bar
+  categoryBar_               = new QWidget (this);
+  QHBoxLayout* categoryLayout= new QHBoxLayout (categoryBar_);
+  categoryLayout->setContentsMargins (0, 0, 0, 0);
+  categoryLayout->setSpacing (8);
+  layout->addWidget (categoryBar_);
+
   // Scroll area for templates
   scrollArea_= new QScrollArea (this);
   scrollArea_->setWidgetResizable (true);
@@ -103,9 +112,86 @@ QTTemplatePage::setupUI () {
 }
 
 void
-QTTemplatePage::refreshTemplateGrid (const QString& category) {
-  Q_UNUSED (category);
+QTTemplatePage::setupCategoryBar () {
+  if (!categoryBar_) return;
 
+  // Clear existing buttons
+  QLayout* layout= categoryBar_->layout ();
+  if (layout) {
+    QLayoutItem* item;
+    while ((item= layout->takeAt (0)) != nullptr) {
+      if (item->widget ()) {
+        delete item->widget ();
+      }
+      delete item;
+    }
+  }
+
+  if (!templateManager_) return;
+
+  QHBoxLayout* categoryLayout= qobject_cast<QHBoxLayout*> (layout);
+  if (!categoryLayout) return;
+
+  // Add "All" button
+  QPushButton* allBtn= new QPushButton (tr ("All"), categoryBar_);
+  allBtn->setObjectName ("startup-tab-category-btn");
+  allBtn->setCheckable (true);
+  allBtn->setChecked (currentCategory_.isEmpty ());
+  allBtn->setProperty ("categoryId", QString ());
+  connect (allBtn, &QPushButton::clicked, this,
+           &QTTemplatePage::onCategoryClicked);
+  categoryLayout->addWidget (allBtn);
+
+  if (currentCategory_.isEmpty ()) {
+    activeCategoryBtn_= allBtn;
+  }
+
+  // Add category buttons
+  QList<TemplateCategory> categories= templateManager_->categories ();
+  for (const auto& cat : categories) {
+    QPushButton* btn= new QPushButton (cat.name, categoryBar_);
+    btn->setObjectName ("startup-tab-category-btn");
+    btn->setCheckable (true);
+    btn->setChecked (cat.id == currentCategory_);
+    btn->setProperty ("categoryId", cat.id);
+    connect (btn, &QPushButton::clicked, this,
+             &QTTemplatePage::onCategoryClicked);
+    categoryLayout->addWidget (btn);
+
+    if (cat.id == currentCategory_) {
+      activeCategoryBtn_= btn;
+    }
+  }
+
+  categoryLayout->addStretch ();
+}
+
+void
+QTTemplatePage::onCategoriesLoaded () {
+  setupCategoryBar ();
+}
+
+void
+QTTemplatePage::onCategoryClicked () {
+  QPushButton* btn= qobject_cast<QPushButton*> (sender ());
+  if (!btn) return;
+
+  // Uncheck previous button
+  if (activeCategoryBtn_ && activeCategoryBtn_ != btn) {
+    activeCategoryBtn_->setChecked (false);
+  }
+
+  // Check current button
+  btn->setChecked (true);
+  activeCategoryBtn_= btn;
+
+  // Update current category and refresh
+  currentCategory_= btn->property ("categoryId").toString ();
+  refreshTemplateGrid (currentCategory_);
+}
+
+void
+QTTemplatePage::refreshTemplateGrid (const QString& category) {
   // Clear existing content
   QLayoutItem* item;
   while ((item= gridLayout_->takeAt (0)) != nullptr) {
@@ -122,8 +208,14 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
     return;
   }
 
-  // Show all templates from all categories
-  QList<TemplateMetadataPtr> templates= templateManager_->templates ();
+  // Get templates by category or all templates
+  QList<TemplateMetadataPtr> templates;
+  if (category.isEmpty ()) {
+    templates= templateManager_->templates ();
+  }
+  else {
+    templates= templateManager_->templatesByCategory (category);
+  }
 
   if (templates.isEmpty ()) {
     QLabel* label= new QLabel (tr ("No templates available."), gridWidget_);
@@ -362,6 +454,10 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
 
 void
 QTTemplatePage::onTemplatesLoaded () {
+  // Initialize category bar if not already done
+  if (categoryBar_ && categoryBar_->layout ()->count () == 0) {
+    setupCategoryBar ();
+  }
   refreshTemplateGrid (currentCategory_);
 
   // Force layout update to ensure content is visible

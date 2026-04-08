@@ -246,7 +246,8 @@ QTStartupTabWidget::create_template_page () {
            [] (const QString& filePath) {
              QString schemeCmd=
                  QString ("(load-document \"%1\")").arg (filePath);
-             eval_scheme (schemeCmd.toUtf8 ().constData ());
+             QByteArray utf8= schemeCmd.toUtf8 ();
+             eval_scheme (utf8.constData ());
            });
 
   return page;

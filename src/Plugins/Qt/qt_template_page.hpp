@@ -45,14 +45,17 @@ protected:
 
 private slots:
   void onTemplatesLoaded ();
+  void onCategoriesLoaded ();
   void onDownloadProgress (const QString& templateId, qint64 bytesReceived,
                            qint64 bytesTotal);
   void onDownloadCompleted (const QString& templateId,
                             const QString& localPath);
   void onDownloadFailed (const QString& templateId, const QString& error);
+  void onCategoryClicked ();
 
 private:
   void     setupUI ();
+  void     setupCategoryBar ();
   QWidget* createTemplateCard (const TemplateMetadataPtr& tmpl);
   void     refreshTemplateGrid (const QString& category);
   void     showTemplatePreview (const QString& templateId);

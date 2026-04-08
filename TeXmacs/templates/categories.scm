@@ -14,24 +14,25 @@
 (texmacs-module (templates categories))
 
 (tm-define template-default-categories
-  '((id "thesis"
-        name "Thesis"
-        icon "template-thesis"
-        order 1)
+  '(((id . "university-thesis")
+     (name . "University Thesis")
+     (icon . "🎓")
+     (order . 1))
 
-    (id "lab-report"
-        name "Lab Report"
-        icon "template-lab"
-        order 2)
+    ((id . "lab-report")
+     (name . "Lab Report")
+     (icon . "📊")
+     (order . 2))
 
-    (id "math-modeling"
-        name "Math Modeling"
-        icon "template-math"
-        order 3)))
+    ((id . "math-modeling")
+     (name . "Math Modeling")
+     (icon . "🧪")
+     (order . 3))))
 
 (tm-define (template-get-category-name category-id)
   (:synopsis "Get the display name for a category")
-  (let ((cat (assoc category-id template-default-categories)))
+  (let ((cat (list-find template-default-categories
+                        (lambda (c) (equal? (assoc-ref c 'id) category-id)))))
     (if cat
         (assoc-ref cat 'name)
         category-id)))
