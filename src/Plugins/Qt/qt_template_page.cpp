@@ -462,14 +462,13 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
     emit    templateOpened (localPath);
   }
   else {
+    // Track this download to distinguish user cancellation from real errors
+    downloadCancelledByUser_= false;
     // Close existing progress dialog if any
     if (progressDialog_) {
       progressDialog_->close ();
       progressDialog_->deleteLater ();
     }
-
-    // Track this download to distinguish user cancellation from real errors
-    downloadCancelledByUser_= false;
 
     progressDialog_= new QProgressDialog (tr ("Downloading template..."),
                                           tr ("Cancel"), 0, 100, this);
