@@ -284,7 +284,9 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
 
     if (image.isNull ()) {
       fz_drop_pixmap (ctx, pix);
+      pix= nullptr;
       fz_drop_page (ctx, page);
+      page= nullptr;
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
     }
 
