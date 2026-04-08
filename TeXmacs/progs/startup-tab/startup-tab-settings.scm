@@ -659,16 +659,23 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (startup-settings-widget)
-  (tabs
-    (tab (text "Startup")
-      (dynamic (startup-tab-preferences-widget)))
-    (tab (text "General")
-      (dynamic (startup-general-preferences-widget)))
-    (tab (text "Keyboard")
-      (dynamic (startup-keyboard-preferences-widget)))
-    (tab (text "Mathematics")
-      (dynamic (startup-math-preferences-widget)))
-    (tab (text "Conversion")
-      (dynamic (startup-conversion-preferences-widget)))
-    (tab (text "Other")
-      (dynamic (startup-other-preferences-widget)))))
+  (centered
+    (icon-tabs
+      (icon-tab "tm_prefs_general.xpm" (text "Startup")
+        (centered
+          (dynamic (startup-tab-preferences-widget))))
+      (icon-tab "tm_prefs_general.xpm" (text "General")
+        (centered
+          (dynamic (startup-general-preferences-widget))))
+      (icon-tab "tm_prefs_keyboard.xpm" (text "Keyboard")
+        (centered
+          (dynamic (startup-keyboard-preferences-widget))))
+      (icon-tab "tm_prefs_other.xpm" (text "Mathematics")
+        (centered
+          (dynamic (startup-math-preferences-widget))))
+      (icon-tab "tm_prefs_convert.xpm" (text "Convert")
+        (centered
+          (dynamic (startup-conversion-preferences-widget))))
+      (icon-tab "tm_prefs_other.xpm" (text "Other")
+        (centered
+          (dynamic (startup-other-preferences-widget)))))))
