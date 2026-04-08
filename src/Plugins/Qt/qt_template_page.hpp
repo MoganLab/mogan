@@ -8,6 +8,7 @@
 #ifndef QT_TEMPLATE_PAGE_HPP
 #define QT_TEMPLATE_PAGE_HPP
 
+#include <QPointer>
 #include <QQueue>
 #include <QSharedPointer>
 #include <QWidget>
