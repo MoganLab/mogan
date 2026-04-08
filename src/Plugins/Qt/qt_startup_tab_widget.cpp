@@ -244,8 +244,14 @@ QTStartupTabWidget::create_template_page () {
   // Connect template opened signal to load document
   connect (page, &QTTemplatePage::templateOpened, this,
            [] (const QString& filePath) {
+             // Escape special characters for Scheme string literal
+             // Handle backslash (Windows paths) and double quote
+             QString escapedPath= filePath;
+             escapedPath.replace ("\\", "\\\\"); // Escape backslash first
+             escapedPath.replace ("\"", "\\\""); // Escape double quote
+
              QString schemeCmd=
-                 QString ("(load-document \"%1\")").arg (filePath);
+                 QString ("(load-document \"%1\")").arg (escapedPath);
              QByteArray utf8= schemeCmd.toUtf8 ();
              eval_scheme (utf8.constData ());
            });

@@ -468,20 +468,24 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
       progressDialog_->deleteLater ();
     }
 
+    // Track this download to distinguish user cancellation from real errors
+    downloadCancelledByUser_= false;
+
     progressDialog_= new QProgressDialog (tr ("Downloading template..."),
                                           tr ("Cancel"), 0, 100, this);
     progressDialog_->setWindowModality (Qt::WindowModal);
     progressDialog_->setAutoClose (true);
 
     // Connect cancel button to actually cancel the download
-    connect (progressDialog_, &QProgressDialog::canceled,
-             [this, templateId] () {
-               templateManager_->cancelDownload (templateId);
-               if (progressDialog_) {
-                 progressDialog_->deleteLater ();
-                 progressDialog_= nullptr;
-               }
-             });
+    connect (progressDialog_, &QProgressDialog::canceled, [this] () {
+      // Mark as user-cancelled so onDownloadFailed won't show error dialog
+      downloadCancelledByUser_= true;
+      templateManager_->cancelDownload (templateId);
+      if (progressDialog_) {
+        progressDialog_->deleteLater ();
+        progressDialog_= nullptr;
+      }
+    });
 
     progressDialog_->show ();
 
@@ -544,8 +548,14 @@ QTTemplatePage::onDownloadFailed (const QString& templateId,
     progressDialog_= nullptr;
   }
 
-  QMessageBox::warning (this, tr ("Download Failed"),
-                        tr ("Failed to download template: %1").arg (error));
+  // Check if this download was cancelled by the user
+  // If so, don't show the error dialog
+  if (!downloadCancelledByUser_) {
+    QMessageBox::warning (this, tr ("Download Failed"),
+                          tr ("Failed to download template: %1").arg (error));
+  }
+  // Reset the flag for next download
+  downloadCancelledByUser_= false;
 }
 
 void

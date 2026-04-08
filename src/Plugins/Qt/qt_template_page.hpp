@@ -95,6 +95,9 @@ private:
   QQueue<ThumbnailRequest> thumbnailQueue_;
   int                      activeThumbnailRequests_         = 0;
   static constexpr int     MAX_CONCURRENT_THUMBNAIL_REQUESTS= 6;
+
+  // Track user-cancelled downloads to avoid showing error dialogs
+  bool downloadCancelledByUser_= false;
 };
 
 #endif // QT_TEMPLATE_PAGE_HPP
