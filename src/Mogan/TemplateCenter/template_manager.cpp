@@ -147,7 +147,8 @@ TemplateManager::loadCategoriesFromScheme (const string& filePath) {
     return categories;
   }
 
-  tmscm categoriesList= call_scheme (categoriesFunc);
+  // Use eval_scheme with string expression to call the function
+  tmscm categoriesList= eval_scheme ("(template-get-categories)");
   if (tmscm_is_null (categoriesList) || !tmscm_is_list (categoriesList)) {
     qWarning () << "Invalid categories list from Scheme";
     return categories;

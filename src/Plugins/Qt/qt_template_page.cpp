@@ -476,15 +476,17 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
     progressDialog_->setAutoClose (true);
 
     // Connect cancel button to actually cancel the download
-    connect (progressDialog_, &QProgressDialog::canceled, [this] () {
-      // Mark as user-cancelled so onDownloadFailed won't show error dialog
-      downloadCancelledByUser_= true;
-      templateManager_->cancelDownload (templateId);
-      if (progressDialog_) {
-        progressDialog_->deleteLater ();
-        progressDialog_= nullptr;
-      }
-    });
+    connect (progressDialog_, &QProgressDialog::canceled,
+             [this, templateId] () {
+               // Mark as user-cancelled so onDownloadFailed won't show error
+               // dialog
+               downloadCancelledByUser_= true;
+               templateManager_->cancelDownload (templateId);
+               if (progressDialog_) {
+                 progressDialog_->deleteLater ();
+                 progressDialog_= nullptr;
+               }
+             });
 
     progressDialog_->show ();
 
