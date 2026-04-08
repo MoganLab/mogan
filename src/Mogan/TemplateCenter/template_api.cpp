@@ -31,14 +31,19 @@ TemplateAPI::TemplateAPI (QObject* parent)
 
 TemplateAPI::~TemplateAPI () {
   // Cancel all active downloads
-  for (auto* reply : downloadReplies_) {
-    if (reply && reply->isRunning ()) {
-      reply->abort ();
-    }
+  for (auto reply : downloadReplies_) {
+    if (!reply) continue;
+    disconnect (reply, nullptr, this, nullptr);
+    reply->abort ();
+    reply->deleteLater ();
   }
+  downloadReplies_.clear ();
 
-  if (metadataReply_ && metadataReply_->isRunning ()) {
+  if (metadataReply_) {
+    disconnect (metadataReply_, nullptr, this, nullptr);
     metadataReply_->abort ();
+    metadataReply_->deleteLater ();
+    metadataReply_= nullptr;
   }
 }
 
@@ -56,6 +61,7 @@ TemplateAPI::fetchMetadata () {
 
   // Cancel any existing request
   if (metadataReply_) {
+    disconnect (metadataReply_, nullptr, this, nullptr);
     metadataReply_->abort ();
     metadataReply_->deleteLater ();
     metadataReply_= nullptr;
@@ -105,7 +111,8 @@ TemplateAPI::downloadTemplate (const QString& templateId,
 void
 TemplateAPI::cancelDownload (const QString& templateId) {
   auto it= downloadReplies_.find (templateId);
-  if (it != downloadReplies_.end () && it.value () != nullptr) {
+  if (it != downloadReplies_.end () && it.value ()) {
+    disconnect (it.value (), nullptr, this, nullptr);
     it.value ()->abort ();
     it.value ()->deleteLater ();
     downloadReplies_.erase (it);

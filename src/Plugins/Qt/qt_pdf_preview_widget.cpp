@@ -145,8 +145,8 @@ QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
 
 void
 QTPdfPreviewWidget::onNetworkReplyFinished () {
-  QNetworkReply* reply= currentReply_;
-  currentReply_       = nullptr;
+  QPointer<QNetworkReply> reply= currentReply_;
+  currentReply_                = nullptr;
 
   if (!reply) return;
 
@@ -210,6 +210,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
 
   fz_document* doc    = nullptr;
   fz_pixmap*   pix    = nullptr;
+  fz_page*     page   = nullptr;
   fz_buffer*   buf    = nullptr;
   fz_stream*   stream = nullptr;
   bool         success= false;
@@ -217,6 +218,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   // 为异常处理保护变量
   fz_var (doc);
   fz_var (pix);
+  fz_var (page);
   fz_var (buf);
   fz_var (stream);
 
@@ -248,7 +250,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     }
 
     // 获取页面
-    fz_page* page= fz_load_page (ctx, doc, pageNumber);
+    page= fz_load_page (ctx, doc, pageNumber);
     if (!page) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
     }
@@ -263,7 +265,6 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     // 使用RGB色彩空间渲染页面
     pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
     if (!pix) {
-      fz_drop_page (ctx, page);
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to render page");
     }
 
@@ -296,8 +297,6 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     success= true;
 
     // 清理
-    fz_drop_pixmap (ctx, pix);
-    fz_drop_page (ctx, page);
   }
   fz_catch (ctx) {
     qWarning () << "MuPDF error:" << fz_caught_message (ctx);
@@ -308,6 +307,8 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   }
 
   // 清理资源
+  if (pix) fz_drop_pixmap (ctx, pix);
+  if (page) fz_drop_page (ctx, page);
   if (stream) fz_drop_stream (ctx, stream);
   if (buf) fz_drop_buffer (ctx, buf);
   if (doc) fz_drop_document (ctx, doc);
@@ -343,8 +344,8 @@ QTPdfPreviewWidget::loadImageFromUrl (const QString& url,
 
 void
 QTPdfPreviewWidget::onImageNetworkReplyFinished () {
-  QNetworkReply* reply= currentReply_;
-  currentReply_       = nullptr;
+  QPointer<QNetworkReply> reply= currentReply_;
+  currentReply_                = nullptr;
 
   if (!reply) return;
 

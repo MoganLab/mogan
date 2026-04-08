@@ -16,6 +16,7 @@
 #include <QNetworkAccessManager>
 #include <QNetworkReply>
 #include <QObject>
+#include <QPointer>
 #include <QSharedPointer>
 
 // Common type definitions
@@ -101,8 +102,8 @@ private:
   bool                   offlineMode_;
 
   // Active requests
-  QHash<QString, QNetworkReply*> downloadReplies_;
-  QNetworkReply*                 metadataReply_;
+  QHash<QString, QPointer<QNetworkReply>> downloadReplies_;
+  QPointer<QNetworkReply>                 metadataReply_;
 
   // Default API endpoint
   static constexpr const char* DEFAULT_API_BASE_URL=

@@ -12,6 +12,7 @@
 #include <QNetworkAccessManager>
 #include <QObject>
 #include <QPixmap>
+#include <QPointer>
 #include <QSharedPointer>
 #include <QSize>
 
@@ -86,8 +87,8 @@ private:
 
 private:
   // 网络
-  QNetworkAccessManager* networkManager_;
-  QNetworkReply*         currentReply_;
+  QNetworkAccessManager*  networkManager_;
+  QPointer<QNetworkReply> currentReply_;
 
   // 设置
   int targetDpi_;

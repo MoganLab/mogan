@@ -76,12 +76,12 @@ private:
   void     processThumbnailQueue ();
 
   // UI components
-  QLabel*          titleLabel_;
-  QWidget*         categoryBar_;
-  QScrollArea*     scrollArea_;
-  QWidget*         gridWidget_;
-  QGridLayout*     gridLayout_;
-  QProgressDialog* progressDialog_;
+  QLabel*                   titleLabel_;
+  QWidget*                  categoryBar_;
+  QScrollArea*              scrollArea_;
+  QWidget*                  gridWidget_;
+  QGridLayout*              gridLayout_;
+  QPointer<QProgressDialog> progressDialog_;
 
   // Data
   TemplateManager* templateManager_;

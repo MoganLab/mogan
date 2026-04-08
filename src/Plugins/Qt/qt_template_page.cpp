@@ -457,6 +457,15 @@ void
 QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
   if (!templateManager_) return;
 
+  auto cleanupProgressDialog= [this] () {
+    QPointer<QProgressDialog> dialog= progressDialog_;
+    progressDialog_                 = nullptr;
+    if (!dialog) return;
+    dialog->disconnect (this);
+    dialog->hide ();
+    dialog->deleteLater ();
+  };
+
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
     QString localPath= templateManager_->localTemplatePath (templateId);
     emit    templateOpened (localPath);
@@ -466,8 +475,7 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
     downloadCancelledByUser_= false;
     // Close existing progress dialog if any
     if (progressDialog_) {
-      progressDialog_->close ();
-      progressDialog_->deleteLater ();
+      cleanupProgressDialog ();
     }
 
     progressDialog_= new QProgressDialog (tr ("Downloading template..."),
@@ -480,11 +488,14 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
              [this, templateId] () {
                // Mark as user-cancelled so onDownloadFailed won't show error
                // dialog
-               downloadCancelledByUser_= true;
+               downloadCancelledByUser_        = true;
+               QPointer<QProgressDialog> dialog= progressDialog_;
+               progressDialog_                 = nullptr;
                templateManager_->cancelDownload (templateId);
-               if (progressDialog_) {
-                 progressDialog_->deleteLater ();
-                 progressDialog_= nullptr;
+               if (dialog) {
+                 dialog->disconnect (this);
+                 dialog->hide ();
+                 dialog->deleteLater ();
                }
              });
 
@@ -532,9 +543,11 @@ void
 QTTemplatePage::onDownloadCompleted (const QString& templateId,
                                      const QString& localPath) {
   if (progressDialog_) {
-    progressDialog_->close ();
-    progressDialog_->deleteLater ();
-    progressDialog_= nullptr;
+    QPointer<QProgressDialog> dialog= progressDialog_;
+    progressDialog_                 = nullptr;
+    dialog->disconnect (this);
+    dialog->hide ();
+    dialog->deleteLater ();
   }
 
   emit templateOpened (localPath);
@@ -544,9 +557,11 @@ void
 QTTemplatePage::onDownloadFailed (const QString& templateId,
                                   const QString& error) {
   if (progressDialog_) {
-    progressDialog_->close ();
-    progressDialog_->deleteLater ();
-    progressDialog_= nullptr;
+    QPointer<QProgressDialog> dialog= progressDialog_;
+    progressDialog_                 = nullptr;
+    dialog->disconnect (this);
+    dialog->hide ();
+    dialog->deleteLater ();
   }
 
   // Check if this download was cancelled by the user
