@@ -36,6 +36,12 @@
   ;;(:option "texmacs->image:raster-resolution" "300")
   )
 
+(converter pdf-file tif-file
+  (:require (has-binary-pdftocairo?))
+  (:function-with-options pdf-file->pdftocairo-raster)
+  ;;(:option "texmacs->image:raster-resolution" "300")
+  )
+
 ;;(converter pdf-file postscript-document
 ;;  (:require (has-pdftocairo?))
 ;;  (:shell "pdftocairo" "-eps" from to))

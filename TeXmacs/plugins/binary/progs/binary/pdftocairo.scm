@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (binary pdftocairo)
-  (:use (binary common)))
+  (:use (binary common)
+        (convert images image-format)))
 
 (define (pdftocairo-binary-candidates)
   (cond ((os-macos?)
@@ -36,9 +37,10 @@
 (tm-define (pdf-file->pdftocairo-raster x opts)
   (let* ((dest (assoc-ref opts 'dest))
          (fullname (url-concretize dest))
-         (fm (url-format fullname))
-         (transp (if (== fm "png") "-transp " ""))
          (suffix (url-suffix fullname))
+         (fm* (format-from-suffix suffix))
+         (fm (if (== fm* "tif") "tiff" fm*))
+         (transp (if (== fm "png") "-transp " ""))
          (name (string-drop-right fullname (+ 1 (string-length suffix))))
          (res (get-raster-resolution opts))
          (cmd (url->system (find-binary-pdftocairo))))

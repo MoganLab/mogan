@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (binary convert)
-  (:use (binary common)))
+  (:use (binary common)
+        (convert images image-format)))
 
 (define (convert-binary-candidates)
   (cond ((os-macos?)
