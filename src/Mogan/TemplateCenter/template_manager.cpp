@@ -19,6 +19,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRegularExpression>
 #include <QStandardPaths>
 
 // Scheme integration for loading local config
@@ -305,6 +306,11 @@ TemplateManager::downloadTemplate (const QString& templateId) {
   }
 
   QString targetPath= templateFilePath (templateId);
+  if (targetPath.isEmpty ()) {
+    emit downloadFailed (templateId, tr ("Invalid template ID"));
+    return;
+  }
+
   api_->downloadTemplate (templateId, tmpl->fileUrl, targetPath);
 }
 
@@ -478,6 +484,15 @@ TemplateManager::localTemplatesDir () const {
 
 QString
 TemplateManager::templateFilePath (const QString& templateId) const {
+  // Security: Validate templateId to prevent directory traversal attacks
+  // Only allow alphanumeric characters, hyphens, underscores, and dots
+  static const QRegularExpression validIdRegex ("^[a-zA-Z0-9._-]+$");
+  if (!validIdRegex.match (templateId).hasMatch ()) {
+    qWarning () << "Invalid templateId (potential path traversal attempt):"
+                << templateId;
+    return QString ();
+  }
+
   QDir dir (localTemplatesDir ());
   if (!dir.exists ()) {
     dir.mkpath (".");
