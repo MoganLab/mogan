@@ -188,6 +188,19 @@ lazy_ornament_rep::query (lazy_type request, format fm) {
   return lazy_rep::query (request, fm);
 }
 
+/**
+ * @brief 生成 ornament 的延迟排版结果。
+ *
+ * 该函数根据请求类型返回加框内容对应的 box 或 vstream。对于
+ * `LAZY_VSTREAM` 路径，除了生成外框 box 之外，还会重新请求正文的
+ * vstream，并收集其内部 `page_item` 上附着的 `fl`。这样在 ornament
+ * 将正文重新包装成新的外层 `page_item` 时，脚注等页面插入对象不会丢失。
+ *
+ * @param request 当前请求的延迟对象类型，支持 `LAZY_BOX` 和 `LAZY_VSTREAM`。
+ * @param fm 当前排版格式；在 vstream/cell 场景下会用于推导正文可用宽度。
+ * @return 生成后的延迟对象；若请求为 `LAZY_BOX` 则返回 box，否则返回携带
+ *         附着 floats 的 vstream。
+ */
 lazy
 lazy_ornament_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
@@ -278,6 +291,19 @@ lazy_art_box_rep::query (lazy_type request, format fm) {
   return lazy_rep::query (request, fm);
 }
 
+/**
+ * @brief 生成 art box 的延迟排版结果。
+ *
+ * 该函数与 `lazy_ornament_rep::produce` 类似，但外层包装使用 `art_box`。
+ * 在 `LAZY_VSTREAM` 路径下，函数会先根据正文宽度重新生成内部 vstream，
+ * 收集其中附着的 `fl`，再在构造外层 `page_item` 时一并挂回去，确保脚注、
+ * 浮动对象等页面插入语义在 art box 包装后仍然保留。
+ *
+ * @param request 当前请求的延迟对象类型，支持 `LAZY_BOX` 和 `LAZY_VSTREAM`。
+ * @param fm 当前排版格式；在 vstream/cell 场景下会用于推导正文可用宽度。
+ * @return 生成后的延迟对象；若请求为 `LAZY_BOX` 则返回 box，否则返回携带
+ *         附着 floats 的 vstream。
+ */
 lazy
 lazy_art_box_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
