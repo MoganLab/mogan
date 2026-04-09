@@ -10,8 +10,8 @@
  ******************************************************************************/
 
 #include "qt_startup_tab_widget.hpp"
-#include "qt_template_page.hpp"
 #include "qt_settings_page.hpp"
+#include "qt_template_page.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
