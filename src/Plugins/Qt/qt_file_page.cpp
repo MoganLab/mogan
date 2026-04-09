@@ -41,7 +41,13 @@ static const int MAX_RECENT_DOCS= 10;
 
 StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
     : QWidget (parent), styleId_ (style.id), isSelected_ (false) {
-  setFixedSize (100, 120);
+  // 根据 DPI 计算尺寸，确保在高分辨率屏幕上显示正常
+  int scale   = physicalDpiX () >= 192 ? 2 : 1; // 简单的高 DPI 检测
+  int width   = 100 * scale;
+  int height  = 120 * scale;
+  int iconSize= 64 * scale;
+
+  setFixedSize (width, height);
   setCursor (Qt::PointingHandCursor);
   setFocusPolicy (Qt::NoFocus);
 
@@ -52,7 +58,7 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
 
   // 预览图占位（使用 QLabel 作为图标容器）
   iconLabel_= new QLabel (this);
-  iconLabel_->setFixedSize (64, 64);
+  iconLabel_->setFixedSize (iconSize, iconSize);
   iconLabel_->setAlignment (Qt::AlignCenter);
   iconLabel_->setObjectName ("style-card-icon");
   // 显示样式ID的首字母作为占位
@@ -376,7 +382,12 @@ QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
   QString path= item->data (Qt::UserRole).toString ();
   if (path.isEmpty ()) return;
 
-  QString schemeCmd= QString ("(load-document \"%1\")").arg (path);
+  // 转义路径中的双引号和反斜杠，防止 Scheme 注入
+  QString escapedPath= path;
+  escapedPath.replace ("\\", "\\\\"); // 先替换反斜杠
+  escapedPath.replace ("\"", "\\\""); // 再替换双引符
+
+  QString schemeCmd= QString ("(load-document \"%1\")").arg (escapedPath);
   eval_scheme (schemeCmd.toUtf8 ().constData ());
 }
 
@@ -398,6 +409,14 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
 
 void
 QtFilePage::createDocumentWithStyle (const QString& styleId) {
+  // 验证 styleId 是预定义的合法值，防止注入攻击
+  static const QStringList validStyles= {"generic", "beamer", "book",
+                                         "exam",    "letter", "article"};
+  if (!validStyles.contains (styleId)) {
+    qWarning () << "Invalid style ID:" << styleId;
+    return;
+  }
+
   // 调用 Scheme 函数创建指定样式的文档
   QString schemeCmd= QString ("(new-document-with-style \"%1\")").arg (styleId);
   eval_scheme (schemeCmd.toUtf8 ().constData ());
