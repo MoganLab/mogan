@@ -25,6 +25,7 @@ protected:
   bridge body;
   tree   with;
   int    idx;
+  array<lazy> ornament_fl;
 
 public:
   bridge_ornamented_rep (typesetter ttt, tree st, path ip, int idx);
@@ -158,6 +159,14 @@ make_ornament_body (path ip, array<page_item> l) {
   return move_box (decorate (ip), stack_box (ip, lines_bx, lines_ht), 0, dy);
 }
 
+static array<lazy>
+collect_attached_floats (array<page_item> items) {
+  array<lazy> fl;
+  for (int i= 0; i < N (items); i++)
+    if (N (items[i]->fl) > 0) fl << items[i]->fl;
+  return fl;
+}
+
 box
 bridge_ornamented_rep::typeset_ornament (int desired_status) {
   int  i;
@@ -178,6 +187,7 @@ bridge_ornamented_rep::typeset_ornament (int desired_status) {
   ttt->a= a2;
   ttt->b= b2;
   ttt->local_end (l2, sb2);
+  ornament_fl= collect_attached_floats (l2);
   for (i-= 2; i >= 0; i-= 2)
     env->write_update (with[i]->label, old[i + 1]);
   return make_ornament_body (ip, l2);
@@ -196,6 +206,14 @@ bridge_ornamented_rep::insert_ornament (box b) {
   par->a << line_item (STD_ITEM, env->mode_op, b, HYPH_INVALID);
   par->a << ttt->b;
   par->format_paragraph ();
+  if (N (ornament_fl) > 0) {
+    int i= N (par->sss->l) - 1;
+    while (i >= 0 && par->sss->l[i]->type == PAGE_CONTROL_ITEM) i--;
+    if (i >= 0) {
+      par->sss->l[i]= copy (par->sss->l[i]);
+      par->sss->l[i]->fl << ornament_fl;
+    }
+  }
   ttt->insert_stack (par->sss->l, par->sss->sb);
 }
 

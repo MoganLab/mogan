@@ -22,6 +22,14 @@ using namespace moebius;
 box surround (edit_env env, box b, path ip, array<line_item> l,
               array<line_item> r, format fm);
 
+static array<lazy>
+collect_attached_floats (array<page_item> items) {
+  array<lazy> fl;
+  for (int i= 0; i < N (items); i++)
+    if (N (items[i]->fl) > 0) fl << items[i]->fl;
+  return fl;
+}
+
 /******************************************************************************
  * Canvases
  ******************************************************************************/
@@ -185,12 +193,27 @@ lazy_ornament_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
     format bfm= fm;
+    SI     body_width= 0;
+    bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
       SI             dw = ps->lpad + ps->rpad;
       bfm               = make_format_width (fvs->width - dw);
+      body_width        = fvs->width - dw;
+      have_body_width   = true;
     }
-    box b = (box) par->produce (LAZY_BOX, bfm);
+    else if (fm->type == FORMAT_CELL) {
+      format_cell fc= (format_cell) fm;
+      SI          dw= ps->lpad + ps->rpad;
+      body_width     = fc->width - dw;
+      have_body_width= true;
+    }
+    box         b = (box) par->produce (LAZY_BOX, bfm);
+    array<lazy> fl;
+    if (have_body_width) {
+      lazy body= par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl       = collect_attached_floats (((lazy_vstream) body)->l);
+    }
     box hb= highlight_box (ip, b, xb, ps);
     // FIXME: this dirty hack ensures that shoving is correct
     hb= move_box (decorate (ip), hb, 1, 0);
@@ -203,7 +226,7 @@ lazy_ornament_rep::produce (lazy_type request, format fm) {
     if (request == LAZY_BOX) return make_lazy_box (hb);
     else {
       array<page_item> l;
-      l << page_item (hb);
+      l << page_item (hb, fl);
       return lazy_vstream (ip, "", l, stack_border ());
     }
   }
@@ -259,12 +282,27 @@ lazy_art_box_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
     format bfm= fm;
+    SI     body_width= 0;
+    bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
       SI             dw = ps->lpad + ps->rpad;
       bfm               = make_format_width (fvs->width - dw);
+      body_width        = fvs->width - dw;
+      have_body_width   = true;
+    }
+    else if (fm->type == FORMAT_CELL) {
+      format_cell fc= (format_cell) fm;
+      SI          dw= ps->lpad + ps->rpad;
+      body_width     = fc->width - dw;
+      have_body_width= true;
     }
     box b = (box) par->produce (LAZY_BOX, bfm);
+    array<lazy> fl;
+    if (have_body_width) {
+      lazy body= par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl       = collect_attached_floats (((lazy_vstream) body)->l);
+    }
     box hb= art_box (ip, b, ps);
     hb    = move_box (decorate (ip), hb, 0, b->y1 - ps->bpad);
     // FIXME: this dirty hack ensures that shoving is correct
@@ -278,7 +316,7 @@ lazy_art_box_rep::produce (lazy_type request, format fm) {
     if (request == LAZY_BOX) return make_lazy_box (hb);
     else {
       array<page_item> l;
-      l << page_item (hb);
+      l << page_item (hb, fl);
       return lazy_vstream (ip, "", l, stack_border ());
     }
   }
