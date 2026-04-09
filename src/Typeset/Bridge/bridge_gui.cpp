@@ -159,14 +159,6 @@ make_ornament_body (path ip, array<page_item> l) {
   return move_box (decorate (ip), stack_box (ip, lines_bx, lines_ht), 0, dy);
 }
 
-static array<lazy>
-collect_attached_floats (array<page_item> items) {
-  array<lazy> fl;
-  for (int i= 0; i < N (items); i++)
-    if (N (items[i]->fl) > 0) fl << items[i]->fl;
-  return fl;
-}
-
 /**
  * @brief 对 ornament 正文做局部排版，并生成用于插入主段落的外框 box。
  *

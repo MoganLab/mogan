@@ -22,14 +22,6 @@ using namespace moebius;
 box surround (edit_env env, box b, path ip, array<line_item> l,
               array<line_item> r, format fm);
 
-static array<lazy>
-collect_attached_floats (array<page_item> items) {
-  array<lazy> fl;
-  for (int i= 0; i < N (items); i++)
-    if (N (items[i]->fl) > 0) fl << items[i]->fl;
-  return fl;
-}
-
 /******************************************************************************
  * Canvases
  ******************************************************************************/

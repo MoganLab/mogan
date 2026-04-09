@@ -60,3 +60,11 @@ operator<< (tm_ostream& out, page_item item) {
   }
   return out << "unknown";
 }
+
+array<lazy>
+collect_attached_floats (array<page_item> items) {
+  array<lazy> fl;
+  for (int i= 0; i < N (items); i++)
+    if (N (items[i]->fl) > 0) fl << items[i]->fl;
+  return fl;
+}

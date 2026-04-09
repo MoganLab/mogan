@@ -52,5 +52,6 @@ class page_item {
 CONCRETE_NULL_CODE (page_item);
 
 tm_ostream& operator<< (tm_ostream& out, page_item item);
+array<lazy> collect_attached_floats (array<page_item> items);
 
 #endif // defined PAGE_ITEM_H
