@@ -22,9 +22,9 @@ using namespace moebius;
 
 class bridge_ornamented_rep : public bridge_rep {
 protected:
-  bridge body;
-  tree   with;
-  int    idx;
+  bridge      body;
+  tree        with;
+  int         idx;
   array<lazy> ornament_fl;
 
 public:
@@ -208,7 +208,8 @@ bridge_ornamented_rep::insert_ornament (box b) {
   par->format_paragraph ();
   if (N (ornament_fl) > 0) {
     int i= N (par->sss->l) - 1;
-    while (i >= 0 && par->sss->l[i]->type == PAGE_CONTROL_ITEM) i--;
+    while (i >= 0 && par->sss->l[i]->type == PAGE_CONTROL_ITEM)
+      i--;
     if (i >= 0) {
       par->sss->l[i]= copy (par->sss->l[i]);
       par->sss->l[i]->fl << ornament_fl;

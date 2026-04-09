@@ -192,8 +192,8 @@ lazy
 lazy_ornament_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
-    format bfm= fm;
-    SI     body_width= 0;
+    format bfm            = fm;
+    SI     body_width     = 0;
     bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
@@ -203,16 +203,17 @@ lazy_ornament_rep::produce (lazy_type request, format fm) {
       have_body_width   = true;
     }
     else if (fm->type == FORMAT_CELL) {
-      format_cell fc= (format_cell) fm;
-      SI          dw= ps->lpad + ps->rpad;
+      format_cell fc = (format_cell) fm;
+      SI          dw = ps->lpad + ps->rpad;
       body_width     = fc->width - dw;
       have_body_width= true;
     }
-    box         b = (box) par->produce (LAZY_BOX, bfm);
+    box         b= (box) par->produce (LAZY_BOX, bfm);
     array<lazy> fl;
     if (have_body_width) {
-      lazy body= par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
-      fl       = collect_attached_floats (((lazy_vstream) body)->l);
+      lazy body=
+          par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl= collect_attached_floats (((lazy_vstream) body)->l);
     }
     box hb= highlight_box (ip, b, xb, ps);
     // FIXME: this dirty hack ensures that shoving is correct
@@ -281,8 +282,8 @@ lazy
 lazy_art_box_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
-    format bfm= fm;
-    SI     body_width= 0;
+    format bfm            = fm;
+    SI     body_width     = 0;
     bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
@@ -292,16 +293,17 @@ lazy_art_box_rep::produce (lazy_type request, format fm) {
       have_body_width   = true;
     }
     else if (fm->type == FORMAT_CELL) {
-      format_cell fc= (format_cell) fm;
-      SI          dw= ps->lpad + ps->rpad;
+      format_cell fc = (format_cell) fm;
+      SI          dw = ps->lpad + ps->rpad;
       body_width     = fc->width - dw;
       have_body_width= true;
     }
-    box b = (box) par->produce (LAZY_BOX, bfm);
+    box         b= (box) par->produce (LAZY_BOX, bfm);
     array<lazy> fl;
     if (have_body_width) {
-      lazy body= par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
-      fl       = collect_attached_floats (((lazy_vstream) body)->l);
+      lazy body=
+          par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl= collect_attached_floats (((lazy_vstream) body)->l);
     }
     box hb= art_box (ip, b, ps);
     hb    = move_box (decorate (ip), hb, 0, b->y1 - ps->bpad);
