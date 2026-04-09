@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (startup-tab startup-tab)
-  (:use (texmacs texmacs tm-files)))
+  (:use (texmacs texmacs tm-files))
+  (:use (startup-tab startup-tab-file)))
 
 (tm-define (startup-tab-enabled?)
   #t)

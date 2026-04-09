@@ -1097,36 +1097,6 @@ QLabel#startup-tab-page-desc {
   margin-bottom: 24px;
 }
 
-/* File页主按钮 - New Document */
-QPushButton#startup-tab-primary-btn {
-  background-color: #2791ad;
-  color: #ffffff;
-  border: none;
-  border-radius: 6px;
-  padding: 12px 32px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-QPushButton#startup-tab-primary-btn:hover {
-  background-color: #1e7891;
-}
-
-/* File页次按钮 - Open Document */
-QPushButton#startup-tab-secondary-btn {
-  background-color: transparent;
-  color: #ffffff;
-  border: 2px solid #2791ad;
-  border-radius: 6px;
-  padding: 12px 32px;
-  font-size: 14px;
-  font-weight: bold;
-}
-
-QPushButton#startup-tab-secondary-btn:hover {
-  background-color: rgba(39, 145, 173, 0.2);
-}
-
 /* 模板使用按钮 - Template Use Button */
 QPushButton#template-use-btn {
   background-color: #4CAF50;

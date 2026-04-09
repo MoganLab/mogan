@@ -19,6 +19,7 @@ class QVBoxLayout;
 class QPushButton;
 class QStackedWidget;
 class QButtonGroup;
+class QtFilePage;
 class QTSettingsPage;
 class QTTemplatePage;
 
@@ -26,7 +27,7 @@ class QTStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  enum class Entry { File, Template, Recent, Settings };
+  enum class Entry { File, Template, OpenFolder, Settings };
 
 public:
   explicit QTStartupTabWidget (QWidget* parent= nullptr);
@@ -38,12 +39,9 @@ signals:
   void entry_changed (Entry entry);
 
 private slots:
-  // File operations
-  void on_file_new ();
-  void on_file_open ();
-
   // Application operation
   void on_app_quit ();
+  void on_file_open ();
 
 private:
   // 界面构建辅助函数
@@ -54,7 +52,6 @@ private:
   // 页面创建函数
   QWidget* create_file_page ();
   QWidget* create_template_page ();
-  QWidget* create_recent_page ();
   QWidget* create_settings_page ();
 
   // 导航按钮状态管理
@@ -66,12 +63,15 @@ private:
   // Navigation buttons
   QPushButton* navFileBtn_;
   QPushButton* navTemplateBtn_;
-  QPushButton* navRecentBtn_;
+  QPushButton* navOpenFolderBtn_;
   QPushButton* navSettingsBtn_;
   QPushButton* navQuitBtn_;
 
   // 互斥按钮组
   QButtonGroup* navButtonGroup_;
+
+  // 各页面实例
+  QtFilePage* filePage_;
 
   // 各页面实例
   QTSettingsPage* settingsPage_;

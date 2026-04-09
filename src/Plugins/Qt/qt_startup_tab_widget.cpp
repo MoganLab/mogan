@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_startup_tab_widget.hpp"
+#include "qt_file_page.hpp"
 #include "qt_settings_page.hpp"
 #include "qt_template_page.hpp"
 
@@ -33,9 +34,9 @@
  */
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
-      navTemplateBtn_ (nullptr), navRecentBtn_ (nullptr),
+      navTemplateBtn_ (nullptr), navOpenFolderBtn_ (nullptr),
       navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
-      navButtonGroup_ (nullptr), settingsPage_ (nullptr) {
+      navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr) {
 
   setMinimumSize (600, 400);
   setFocusPolicy (Qt::NoFocus);
@@ -104,22 +105,21 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_->setExclusive (true);
 
   // 导航按钮（4个入口）
-  navFileBtn_    = create_nav_button ("File");
-  navTemplateBtn_= create_nav_button ("Template");
-  navRecentBtn_  = create_nav_button ("Recent");
-  navSettingsBtn_= create_nav_button ("Settings");
+  navFileBtn_      = create_nav_button ("File");
+  navTemplateBtn_  = create_nav_button ("Template");
+  navOpenFolderBtn_= create_nav_button ("Open Folder");
+  navSettingsBtn_  = create_nav_button ("Settings");
 
-  // 添加到按钮组和布局
+  // 添加到按钮组和布局（Open Folder 不在互斥组中，因为它没有对应页面）
   navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
   navButtonGroup_->addButton (navTemplateBtn_,
                               static_cast<int> (Entry::Template));
-  navButtonGroup_->addButton (navRecentBtn_, static_cast<int> (Entry::Recent));
   navButtonGroup_->addButton (navSettingsBtn_,
                               static_cast<int> (Entry::Settings));
 
   sidebarLayout->addWidget (navFileBtn_);
   sidebarLayout->addWidget (navTemplateBtn_);
-  sidebarLayout->addWidget (navRecentBtn_);
+  sidebarLayout->addWidget (navOpenFolderBtn_);
   sidebarLayout->addWidget (navSettingsBtn_);
 
   // 导航按钮点击事件：切换到对应页面
@@ -127,10 +127,13 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
            [this] () { set_current_entry (Entry::File); });
   connect (navTemplateBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Template); });
-  connect (navRecentBtn_, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Recent); });
+  connect (navOpenFolderBtn_, &QPushButton::clicked, this,
+           &QTStartupTabWidget::on_file_open);
   connect (navSettingsBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Settings); });
+
+  // Open Folder 不是 checkable 按钮（没有对应页面）
+  navOpenFolderBtn_->setCheckable (false);
 
   // 弹性空间，将 Quit 按钮推到底部
   sidebarLayout->addStretch ();
@@ -170,16 +173,30 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
  */
 void
 QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
-  // 添加4个页面到堆叠控件
+  // 添加3个页面到堆叠控件（OpenFolder没有页面，直接触发操作）
   stackedWidget->addWidget (create_file_page ());     // index 0 - File
   stackedWidget->addWidget (create_template_page ()); // index 1 - Template
-  stackedWidget->addWidget (create_recent_page ());   // index 2 - Recent
-  stackedWidget->addWidget (create_settings_page ()); // index 3 - Settings
+  stackedWidget->addWidget (create_settings_page ()); // index 2 - Settings
 
   // 入口切换时，同步切换堆叠控件的当前页面
+  // 注意：OpenFolder 没有对应页面，需要调整索引映射
   connect (this, &QTStartupTabWidget::entry_changed, stackedWidget,
            [stackedWidget] (QTStartupTabWidget::Entry entry) {
-             int index= static_cast<int> (entry);
+             int index;
+             switch (entry) {
+             case QTStartupTabWidget::Entry::File:
+               index= 0;
+               break;
+             case QTStartupTabWidget::Entry::Template:
+               index= 1;
+               break;
+             case QTStartupTabWidget::Entry::Settings:
+               index= 2;
+               break;
+             default:
+               index= 0;
+               break;
+             }
              stackedWidget->setCurrentIndex (index);
            });
 }
@@ -188,50 +205,15 @@ QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
  * @brief 创建 File 页面
  * @return File 页面控件
  *
- * 页面内容:
- * - 标题 "File"
- * - 说明文字
- * - New Document 按钮（主按钮）
- * - Open Document 按钮（次按钮）
+ * 使用 QtFilePage 实现，包含:
+ * - 文档样式选择卡片
+ * - 最近文档列表
+ * - 打开文件按钮
  */
 QWidget*
 QTStartupTabWidget::create_file_page () {
-  QWidget*     page  = new QWidget (this);
-  QVBoxLayout* layout= new QVBoxLayout (page);
-  layout->setContentsMargins (32, 32, 32, 32);
-
-  // 标题
-  QLabel* title= new QLabel ("File", page);
-  title->setObjectName ("startup-tab-page-title");
-  layout->addWidget (title);
-
-  // 按钮行布局
-  QHBoxLayout* btnLayout= new QHBoxLayout;
-  btnLayout->setSpacing (16);
-
-  // New Document 按钮（主按钮）
-  QPushButton* newBtn= new QPushButton ("New Document", page);
-  newBtn->setObjectName ("startup-tab-primary-btn");
-  newBtn->setFocusPolicy (Qt::NoFocus);
-  newBtn->setCursor (Qt::PointingHandCursor);
-  connect (newBtn, &QPushButton::clicked, this,
-           &QTStartupTabWidget::on_file_new);
-  btnLayout->addWidget (newBtn);
-
-  // Open Document 按钮（次按钮）
-  QPushButton* openBtn= new QPushButton ("Open Document", page);
-  openBtn->setObjectName ("startup-tab-secondary-btn");
-  openBtn->setFocusPolicy (Qt::NoFocus);
-  openBtn->setCursor (Qt::PointingHandCursor);
-  connect (openBtn, &QPushButton::clicked, this,
-           &QTStartupTabWidget::on_file_open);
-  btnLayout->addWidget (openBtn);
-
-  btnLayout->addStretch ();
-  layout->addLayout (btnLayout);
-
-  layout->addStretch ();
-  return page;
+  filePage_= new QtFilePage (this);
+  return filePage_;
 }
 
 /**
@@ -261,28 +243,6 @@ QTStartupTabWidget::create_template_page () {
 }
 
 /**
- * @brief 创建 Recent 页面（占位）
- */
-QWidget*
-QTStartupTabWidget::create_recent_page () {
-  QWidget*     page  = new QWidget (this);
-  QVBoxLayout* layout= new QVBoxLayout (page);
-  layout->setContentsMargins (32, 32, 32, 32);
-
-  QLabel* title= new QLabel ("Recent Documents", page);
-  title->setObjectName ("startup-tab-page-title");
-  layout->addWidget (title);
-
-  QLabel* desc= new QLabel (
-      "Coming soon: Recently opened documents will appear here.", page);
-  desc->setObjectName ("startup-tab-page-desc");
-  layout->addWidget (desc);
-
-  layout->addStretch ();
-  return page;
-}
-
-/**
  * @brief 创建 Settings 页面
  */
 QWidget*
@@ -306,12 +266,12 @@ QTStartupTabWidget::set_active_nav_button (Entry entry) {
 }
 
 /**
- * @brief 新建文档
- * 调用 Scheme 函数 (new-document)
+ * @brief 退出程序
+ * 调用 Scheme 函数 (quit-TeXmacs)
  */
 void
-QTStartupTabWidget::on_file_new () {
-  eval_scheme ("(new-document)");
+QTStartupTabWidget::on_app_quit () {
+  eval_scheme ("(quit-TeXmacs)");
 }
 
 /**
@@ -321,13 +281,4 @@ QTStartupTabWidget::on_file_new () {
 void
 QTStartupTabWidget::on_file_open () {
   eval_scheme ("(open-document)");
-}
-
-/**
- * @brief 退出程序
- * 调用 Scheme 函数 (quit-TeXmacs)
- */
-void
-QTStartupTabWidget::on_app_quit () {
-  eval_scheme ("(quit-TeXmacs)");
 }
