@@ -104,8 +104,6 @@ TemplateAPI::downloadTemplate (const QString& templateId,
            &TemplateAPI::onDownloadFinished);
   connect (reply, &QNetworkReply::downloadProgress, this,
            &TemplateAPI::onDownloadProgress);
-  connect (reply, &QNetworkReply::errorOccurred, this,
-           &TemplateAPI::onNetworkError);
 }
 
 void
@@ -213,23 +211,14 @@ TemplateAPI::onNetworkError (QNetworkReply::NetworkError error) {
   QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
   if (!reply) return;
 
-  // Check if this is a metadata reply
+  // Only handle metadata reply errors here
+  // Download errors are handled in onDownloadFinished
   if (reply == metadataReply_) {
     metadataReply_= nullptr;
     emit metadataLoadFailed (
         tr ("Network error: %1").arg (reply->errorString ()));
+    reply->deleteLater ();
   }
-  // Otherwise it's a download reply
-  else {
-    QString templateId= reply->property ("templateId").toString ();
-    downloadReplies_.remove (templateId);
-    if (!templateId.isEmpty ()) {
-      emit downloadFailed (
-          templateId, tr ("Network error: %1").arg (reply->errorString ()));
-    }
-  }
-
-  reply->deleteLater ();
 }
 
 QString
