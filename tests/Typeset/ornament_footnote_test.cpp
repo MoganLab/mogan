@@ -9,8 +9,8 @@
  ******************************************************************************/
 
 #include "Format/format.hpp"
-#include "Metafont/load_tex.hpp"
 #include "Line/lazy_vstream.hpp"
+#include "Metafont/load_tex.hpp"
 #include "base.hpp"
 #include "data_cache.hpp"
 #include "env.hpp"
@@ -79,7 +79,7 @@ private slots:
 
 void
 TestOrnamentFootnote::lazy_ornament_keeps_footnote_float () {
-  edit_env env= create_test_env ();
+  edit_env env     = create_test_env ();
   tree     ornament= create_ornament_with_footnote ();
 
   lazy lz= make_lazy (env, ornament, path ());
