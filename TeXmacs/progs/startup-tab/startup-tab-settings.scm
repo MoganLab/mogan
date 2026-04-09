@@ -647,12 +647,11 @@
                 (get-boolean-preference "texlive:fonts"))))))
 
 (tm-widget (startup-other-preferences-widget)
-  (centered
-    (dynamic (startup-misc-preferences-widget))
-    ======
-    (bold (text "Experimental features (to be used with care)"))
-    ======
-    (dynamic (startup-experimental-preferences-widget))))
+  (dynamic (startup-misc-preferences-widget))
+  ======
+  (bold (text "Experimental features (to be used with care)"))
+  ======
+  (dynamic (startup-experimental-preferences-widget)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main settings widget with tabs
@@ -664,22 +663,26 @@
       (icon-tab "tm_prefs_general.xpm" (text "Startup")
         (padded
           (vlist
-            (dynamic (startup-tab-preferences-widget))
+            (centered
+              (dynamic (startup-tab-preferences-widget)))
             (glue #f #t 0 1))))
       (icon-tab "tm_prefs_general.xpm" (text "General")
         (padded
           (vlist
-            (dynamic (startup-general-preferences-widget))
+            (centered
+              (dynamic (startup-general-preferences-widget)))
             (glue #f #t 0 1))))
       (icon-tab "tm_prefs_keyboard.xpm" (text "Keyboard")
         (padded
           (vlist
-            (dynamic (startup-keyboard-preferences-widget))
+            (centered
+              (dynamic (startup-keyboard-preferences-widget)))
             (glue #f #t 0 1))))
       (icon-tab "tm_prefs_other.xpm" (text "Mathematics")
         (padded
           (vlist
-            (dynamic (startup-math-preferences-widget))
+            (centered
+              (dynamic (startup-math-preferences-widget)))
             (glue #f #t 0 1))))
       (icon-tab "tm_prefs_convert.xpm" (text "Convert")
         (padded
@@ -689,5 +692,6 @@
       (icon-tab "tm_prefs_other.xpm" (text "Other")
         (padded
           (vlist
-            (dynamic (startup-other-preferences-widget))
+            (centered
+              (dynamic (startup-other-preferences-widget)))
             (glue #f #t 0 1)))))))

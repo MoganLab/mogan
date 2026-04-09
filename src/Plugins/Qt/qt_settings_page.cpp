@@ -6,13 +6,15 @@
 
 #include "qt_settings_page.hpp"
 
+#include <QTabWidget>
 #include <QVBoxLayout>
 
 #include "qt_widget.hpp"
-#include "scheme.hpp"
 #include "s7_tm.hpp"
+#include "scheme.hpp"
 #include "widget.hpp"
 
+#include "QTMMenuHelper.hpp"
 #include "object.hpp"
 
 // External declaration from tm_window.cpp
@@ -22,6 +24,9 @@ QTSettingsPage::QTSettingsPage (QWidget* parent) : QWidget (parent) {
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (0, 0, 0, 0);
   layout->setSpacing (0);
+
+  // Mark this window to disable tab auto-resize
+  this->setProperty ("tm_no_tab_auto_resize", true);
 
   // Load settings UI from Scheme
   eval_scheme ("(use-modules (startup-tab startup-tab-settings))");
