@@ -24,7 +24,7 @@
 (define-library (srfi srfi-196)
   (import (scheme base)
           (scheme case-lambda)
-  )
+  ) ;import
   (export range numeric-range vector-range string-range range-append
           iota-range range? range=? range-length range-ref range-first
           range-last subrange range-segment range-split-at range-take
@@ -400,7 +400,8 @@
                  nil
                  (apply proc
                         (append (map (lambda (r) (%range-ref-no-check r i)) rs)
-                                (list (rec (+ i 1))))
+                                (list (rec (+ i 1)))
+                        ) ;append
                  ) ;apply
              ) ;if
            ) ;let

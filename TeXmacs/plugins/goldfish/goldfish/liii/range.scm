@@ -24,5 +24,6 @@
           range-any range-every range-filter->list range-remove->list
           range-reverse range-map->vector range-filter->vector
           range-remove->vector vector->range range->list range->vector
-          range->string range->generator)
+          range->string range->generator
+  ) ;export
 ) ;define-library

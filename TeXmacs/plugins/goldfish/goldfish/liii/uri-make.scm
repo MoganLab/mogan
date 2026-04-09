@@ -38,7 +38,8 @@
       (let ((colon-pos (string-index str #\:)))
         (if colon-pos
           (cons (substring str 0 colon-pos)
-                (substring str (+ colon-pos 1) (string-length str)))
+                (substring str (+ colon-pos 1) (string-length str))
+          ) ;cons
           (cons #f str)
         ) ;if
       ) ;let
@@ -58,14 +59,18 @@
                          (substring str slash-pos
                                    (or question-pos
                                        hash-pos
-                                       (string-length str)))
+                                       (string-length str)
+                                   ) ;or
+                         ) ;substring
                          ""
                       ) ;if
                 ) ;path
                 (query (if question-pos
                           (substring str (+ question-pos 1)
                                     (or hash-pos
-                                        (string-length str)))
+                                        (string-length str)
+                                    ) ;or
+                          ) ;substring
                           ""
                        ) ;if
                 ) ;query
@@ -84,20 +89,20 @@
                  (loop (+ i 1) slash-pos question-pos hash-pos)
                  (loop (+ i 1) i question-pos hash-pos)
                ) ;if
-              ) ;case /
+              ) ;
               ((char=? c #\?)
                (loop (+ i 1) (or slash-pos i) i hash-pos)
-              ) ;case ?
+              ) ;
               ((char=? c #\#)
                (loop (+ i 1) (or slash-pos i) question-pos i)
-              ) ;case #
+              ) ;
               (else
                 (loop (+ i 1) slash-pos question-pos hash-pos)
               ) ;else
             ) ;cond
           ) ;let
         ) ;if
-      ) ;loop
+      ) ;let
     ) ;define
 
     ;; 分割路径和查询字符串
@@ -105,7 +110,8 @@
       (let ((q-pos (string-index path+query #\?)))
         (if q-pos
           (cons (substring path+query 0 q-pos)
-                (substring path+query (+ q-pos 1) (string-length path+query)))
+                (substring path+query (+ q-pos 1) (string-length path+query))
+          ) ;cons
           (cons path+query "")
         ) ;if
       ) ;let
@@ -123,7 +129,9 @@
                  (not (string-starts? str "ssh://"))
                  (let ((colon-pos (string-index str #\:)))
                    (and colon-pos
-                        (> colon-pos (string-index str #\@)))))
+                        (> colon-pos (string-index str #\@)))
+                   ) ;and
+                 ) ;let
           ;; Git SSH 格式: git@host:path
           (let* ((at-pos (string-index str #\@))
                  (colon-pos (string-index str #\:))
@@ -158,7 +166,8 @@
                     (build-netloc user password host port)
                     (or path "")
                     query
-                    fragment)
+                    fragment
+      ) ;make-uri-raw
     ) ;define*
 
     ;; string->uri 是 make-uri 的别名

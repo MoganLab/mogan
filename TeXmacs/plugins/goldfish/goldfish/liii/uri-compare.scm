@@ -46,7 +46,7 @@
             (if (null? query) "" (string-append "?" (alist->query-string query)))
             (if fragment (string-append "#" fragment) "")
           ) ;string-append
-        ) ;let
+        ) ;let*
       ) ;if
     ) ;define
 

@@ -67,7 +67,7 @@
                       ) ;cons
                 ) ;loop
             ) ;if
-          ) ;let loop
+          ) ;let
         ) ;let
       ) ;define
 
@@ -79,7 +79,7 @@
                             ((char? sep) (string sep))
                             (else (type-error "string-split: second parameter must be string or char"))
                       ) ;cond
-             )
+             ) ;
              (str-len (string-length str))
              (sep-len (string-length sep-str)))
         (if (zero? sep-len)
@@ -100,7 +100,7 @@
                     ) ;reverse
                 ) ;if
               ) ;let
-            ) ;let loop
+            ) ;let
         ) ;if
       ) ;let*
     ) ;define
@@ -108,7 +108,8 @@
     (define (string-replace str old new . rest)
       ; 参数数量检查
       (when (> (length rest) 1)
-        (error 'wrong-number-of-args "string-replace: too many arguments"))
+        (error 'wrong-number-of-args "string-replace: too many arguments")
+      ) ;when
       ; 参数类型检查
       (unless (string? str) (type-error "string-replace: str must be a string"))
       (unless (string? old) (type-error "string-replace: old must be a string"))
@@ -132,17 +133,27 @@
                      (cond
                        ((and (= i str-len) (> r 0))
                         ; 字符已用完，但还有剩余的 count，添加末尾 new
-                        (apply string-append (reverse (cons new acc))))
+                        (apply string-append (reverse (cons new acc)))
+                       ) ;
                        ((= i str-len)
                         ; 字符已用完，没有剩余 count
-                        (apply string-append (reverse acc)))
+                        (apply string-append (reverse acc))
+                       ) ;
                        ((zero? r)
                         ; count 用完，添加剩余字符
-                        (apply string-append (reverse (cons (substring str i str-len) acc))))
+                        (apply string-append (reverse (cons (substring str i str-len) acc)))
+                       ) ;
                        (else
                         (loop (+ i 1)
                               (cons (substring str i (+ i 1)) (cons new acc))
-                              (- r 1))))))))
+                              (- r 1)
+                        ) ;loop
+                       ) ;else
+                     ) ;cond
+                   ) ;let
+                 ) ;let*
+             ) ;if
+            ) ;
             ; 正常替换逻辑
             (else
              (let ((remaining (if (negative? count) -1 count)))
@@ -171,8 +182,8 @@
                        ) ;if
                    ) ;if
                  ) ;let
-               ) ;let loop
-             ) ;let remaining
+               ) ;let
+             ) ;let
             ) ;else
           ) ;cond
         ) ;let

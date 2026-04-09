@@ -31,7 +31,16 @@
           (srfi srfi-13)
           (liii error)
   ) ;import
-  (export deindent &-)
+  (export raw-string-read-error?
+          raw-string-write-error?
+          read-raw-string
+          read-raw-string-after-prefix
+          can-delimit?
+          generate-delimiter
+          write-raw-string
+          deindent
+          &-
+  ) ;export
   (begin
     (define (string-split-lines str)
       (let ((len (string-length str)))

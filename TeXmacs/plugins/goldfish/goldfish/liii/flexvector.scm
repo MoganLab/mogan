@@ -78,5 +78,5 @@
     flexvector-unfold flexvector-unfold-right
     ;; Generators
     flexvector->generator generator->flexvector
-  )
+  ) ;export
 ) ;define-library

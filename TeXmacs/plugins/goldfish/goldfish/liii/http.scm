@@ -183,7 +183,7 @@
                      (if content-type `((content-type . ,content-type)) '())
              ) ;append
            ) ;let*
-          ) ;cond
+          ) ;
           (else
             (type-error
               (string-append who ": files value must be a path string or file spec alist")
@@ -210,7 +210,7 @@
         ((and (string? data) (= (string-length data) 0)) '())
         ((alist? data)
          (http-normalize-string-alist who "data" data)
-        ) ;cond
+        ) ;
         (else
           (type-error
             (string-append who ": data must be an association list when files is provided")
@@ -240,7 +240,7 @@
           )
           ((and (not output-file) (not callback))
            (value-error "http-get: stream mode requires output-file or callback")
-          )
+          ) ;
           (else
             (let ((stream-callback
                     (lambda (chunk)
@@ -304,13 +304,14 @@
                '(("Content-Type" . "text/plain"))
                headers
              ) ;if
-           ))
+           )
+           ) ;headers
       (cond ((not stream)
              (g_http-post url params body-or-data headers proxy files #f)
             )
             ((and (not output-file) (not callback))
              (value-error "http-post: stream mode requires output-file or callback")
-            )
+            ) ;
             (else
               (let ((stream-callback
                       (lambda (chunk)

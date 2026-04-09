@@ -188,7 +188,8 @@
      (let* ((len (flexvector-length fv))
             (v (if (< len (cap fv)) (vec fv) (grow! fv))))
        (when (or (< i 0) (> i len))
-         (error 'value-error "flexvector-add!: index out of bounds"))
+         (error 'value-error "flexvector-add!: index out of bounds")
+       ) ;when
        (vector-copy! v (+ i 1) v i len)
        (vector-set! v i x)
        (set-flexvector-length! fv (+ len 1))
@@ -230,7 +231,8 @@
               (if (< (+ len xvlen) (vector-length v)) v (lp (grow! fv)))))
          ) ;v
     (when (or (< i 0) (> i len))
-      (error 'value-error "flexvector-add!: index out of bounds"))
+      (error 'value-error "flexvector-add!: index out of bounds")
+    ) ;when
     (vector-copy! v (+ i xvlen) v i len)
     (vector-copy! v i xv 0 xvlen)
     (set-flexvector-length! fv (+ len xvlen))
@@ -674,7 +676,8 @@
                     (apply kons
                            (append
                              (cons (flexvector-ref fv1 i)
-                                   (map (lambda (fv) (flexvector-ref fv i)) o))
+                                   (map (lambda (fv) (flexvector-ref fv i)) o)
+                             ) ;cons
                              (list acc)
                            ) ;append
                     ) ;apply
@@ -829,7 +832,8 @@
   (assume (procedure? pred?))
   (assume (flexvector? fv1))
   (or (apply flexvector-index (complement pred?) fv1 o)
-      (flexvector-length fv1))
+      (flexvector-length fv1)
+  ) ;or
 ) ;define
 
 (define (flexvector-skip-right pred? fv1 . o)

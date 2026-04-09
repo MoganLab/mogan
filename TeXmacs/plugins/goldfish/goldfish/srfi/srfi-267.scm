@@ -28,64 +28,248 @@
 ;;    in Scheme raw string discussions
 
 (define-library (srfi srfi-267)
-  (export read-raw-string)
+  (import (only (srfi srfi-13) string-contains string-suffix?))
+  (export raw-string-read-error?
+          raw-string-write-error?
+          read-raw-string
+          read-raw-string-after-prefix
+          can-delimit?
+          generate-delimiter
+          write-raw-string
+  ) ;export
   (begin
 
-   (define (read-raw-string S)
-     ;; This parser starts reading after `"`.
-     ;; In the given examples, the parser starts at the dot:
-     ;;
-     ;; #"."asdf""
-     ;; #"--."#"()""--"
-     (define (read-char* location)
-       (let ((ch (read-char))) ; (read-char (current-input-string))
-         (if (eof-object? ch)
-             (error (list "eof in raw string literal" location))
-             ch
-         ) ;if
-       ) ;let
-     ) ;define
-     (define delimiter
-       ;; always expect `"`
-       (let ((ch (read-char* 'delim)))
-         (append (string->list S) (list ch))
-       ) ;let
-     ) ;define
-     (call-with-port (open-output-string)
-       (lambda (out)
-         (define (read-delimiter n rest-of-delimiter)
-           (if (null? rest-of-delimiter)
-               (get-output-string out)
-               (let ((ch (read-char* 'check)))
-                 (if (char=? ch (car rest-of-delimiter))
-                     (read-delimiter (+ n 1) (cdr rest-of-delimiter))
-                     (do ((n n (- n 1))
-                          (delimiter delimiter (cdr delimiter)))
-                         ((zero? n) (read-raw ch))
-                       (write-char (car delimiter) out)
-                     ) ;do
-                 ) ;if
-               ) ;let
-           ) ;if
-         ) ;define
-         (define (read-raw ch)
-           (if (char=? ch (car delimiter))
-               (read-delimiter 1 (cdr delimiter))
-               (begin (write-char ch out)
-                      (read-raw (read-char* 'read))
-               ) ;begin
-           ) ;if
-         ) ;define
-         (read-raw (read-char* 'read))
-       ) ;lambda
-     ) ;call-with-port
-   ) ;define
+    (define (raw-string-read-error? obj)
+      (or (eq? obj 'raw-string-read-error)
+          (and (pair? obj)
+               (eq? (car obj) 'raw-string-read-error)
+          ) ;and
+      ) ;or
+    ) ;define
 
-     (set! *#readers*
-       (cons (cons #\" read-raw-string)
-             *#readers*
-       ) ;cons
-     ) ;set!
+    (define (raw-string-write-error? obj)
+      (or (eq? obj 'raw-string-write-error)
+          (and (pair? obj)
+               (eq? (car obj) 'raw-string-write-error)
+          ) ;and
+      ) ;or
+    ) ;define
+
+    (define (raise-raw-string-read-error . args)
+      (throw 'raw-string-read-error
+             (cons 'raw-string-read-error args)
+      ) ;throw
+    ) ;define
+
+    (define (raise-raw-string-write-error . args)
+      (throw 'raw-string-write-error
+             (cons 'raw-string-write-error args)
+      ) ;throw
+    ) ;define
+
+    (define (valid-delimiter? delimiter)
+      (and (string? delimiter)
+           (not (string-contains delimiter "\""))
+      ) ;and
+    ) ;define
+
+    (define (can-delimit? str delimiter)
+      (when (not (string? str))
+        (error 'type-error "can-delimit?: first parameter must be string")
+      ) ;when
+      (when (not (string? delimiter))
+        (error 'type-error "can-delimit?: second parameter must be string")
+      ) ;when
+      (and (valid-delimiter? delimiter)
+           (let ((needle (string-append "\"" delimiter "\""))
+                 (suffix (string-append "\"" delimiter)))
+             (and (not (string-contains str needle))
+                  (not (string-suffix? suffix str))
+             ) ;and
+           ) ;let
+      ) ;and
+    ) ;define
+
+    (define (generate-delimiter str)
+      (when (not (string? str))
+        (error 'type-error "generate-delimiter: parameter must be string")
+      ) ;when
+      (let loop ((n 0))
+        (let ((candidate (make-string n #\-)))
+          (if (can-delimit? str candidate)
+              candidate
+              (loop (+ n 1))
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (read-raw-body delimiter port)
+      (let ((out (open-output-string))
+            (delimiter-len (string-length delimiter)))
+        (define (read-next-char where)
+          (let ((ch (read-char port)))
+            (if (eof-object? ch)
+                (raise-raw-string-read-error
+                 "unexpected end of input while reading raw string"
+                 where
+                ) ;raise-raw-string-read-error
+                ch
+            ) ;if
+          ) ;let
+        ) ;define
+        (define (write-prefix matched-count)
+          (let loop ((i 0))
+            (when (< i matched-count)
+              (write-char (string-ref delimiter i) out)
+              (loop (+ i 1))
+            ) ;when
+          ) ;let
+        ) ;define
+        (define (read-body-from-char ch)
+          (if (char=? ch (string-ref delimiter 0))
+              (match-delimiter 1)
+              (begin
+                (write-char ch out)
+                (read-body)
+              ) ;begin
+          ) ;if
+        ) ;define
+        (define (match-delimiter matched-count)
+          (if (= matched-count delimiter-len)
+              (get-output-string out)
+              (let ((ch (read-next-char 'delimiter)))
+                (if (char=? ch (string-ref delimiter matched-count))
+                    (match-delimiter (+ matched-count 1))
+                    (begin
+                      (write-prefix matched-count)
+                      (read-body-from-char ch)
+                    ) ;begin
+                ) ;if
+              ) ;let
+          ) ;if
+        ) ;define
+        (define (read-body)
+          (read-body-from-char (read-next-char 'body))
+        ) ;define
+        (read-body)
+      ) ;let
+    ) ;define
+
+    (define (read-raw-string-after-prefix-fragment prefix-fragment port)
+      ;; The fragment starts immediately after the #, so it must begin with ".
+      ;; The sharp-reader hook can stop before the delimiter is complete, so we
+      ;; continue reading until the opener's closing quote is found.
+      (when (not (string? prefix-fragment))
+        (raise-raw-string-read-error "reader prefix fragment must be string")
+      ) ;when
+      (when (or (= (string-length prefix-fragment) 0)
+                (not (char=? #\" (string-ref prefix-fragment 0))))
+        (raise-raw-string-read-error
+         "raw string prefix must begin with a double quote"
+        ) ;raise-raw-string-read-error
+      ) ;when
+      (let ((prefix-out (open-output-string)))
+        (display prefix-fragment prefix-out)
+        (let loop ()
+          (let ((ch (read-char port)))
+            (cond
+              ((eof-object? ch)
+               (raise-raw-string-read-error
+                "unexpected end of input while reading raw string delimiter"
+               ) ;raise-raw-string-read-error
+              ) ;
+              ((char=? ch #\")
+               (read-raw-body (string-append (get-output-string prefix-out) "\"")
+                              port
+               ) ;read-raw-body
+              ) ;
+              (else
+               (write-char ch prefix-out)
+               (loop)
+              ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (read-raw-string-after-prefix . maybe-port)
+      (let ((port (cond
+                    ((null? maybe-port) (current-input-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+                  ) ;cond
+            ))
+        (read-raw-string-after-prefix-fragment "\"" port)
+      ) ;let
+    ) ;define
+
+    (define (read-raw-string . maybe-port)
+      (let ((port (cond
+                    ((null? maybe-port) (current-input-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+                  ) ;cond
+            ))
+        (let ((hash (read-char port)))
+          (when (or (eof-object? hash)
+                    (not (char=? hash #\#)))
+            (raise-raw-string-read-error
+             "expected raw string to start with #\""
+            ) ;raise-raw-string-read-error
+          ) ;when
+          (let ((quote (read-char port)))
+            (when (or (eof-object? quote)
+                      (not (char=? quote #\")))
+              (raise-raw-string-read-error
+               "expected raw string to start with #\""
+              ) ;raise-raw-string-read-error
+            ) ;when
+            (read-raw-string-after-prefix port)
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (write-raw-string str delimiter . maybe-port)
+      (when (not (string? str))
+        (error 'type-error "write-raw-string: first parameter must be string")
+      ) ;when
+      (when (not (string? delimiter))
+        (error 'type-error "write-raw-string: second parameter must be string")
+      ) ;when
+      (let ((port (cond
+                    ((null? maybe-port) (current-output-port))
+                    ((null? (cdr maybe-port)) (car maybe-port))
+                    (else (error 'wrong-number-of-args))
+                  ) ;cond
+            ))
+        (when (not (can-delimit? str delimiter))
+          (raise-raw-string-write-error
+           "delimiter cannot represent the given string"
+           delimiter
+          ) ;raise-raw-string-write-error
+        ) ;when
+        (display "#\"" port)
+        (display delimiter port)
+        (write-char #\" port)
+        (display str port)
+        (write-char #\" port)
+        (display delimiter port)
+        (write-char #\" port)
+      ) ;let
+    ) ;define
+
+    (define (reader-read-raw-string prefix-fragment)
+      (read-raw-string-after-prefix-fragment prefix-fragment (current-input-port))
+    ) ;define
+
+    (set! *#readers*
+      (cons (cons #\" reader-read-raw-string)
+            *#readers*
+      ) ;cons
+    ) ;set!
 
   ) ;begin
 ) ;define-library

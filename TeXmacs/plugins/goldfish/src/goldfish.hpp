@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.42"
+#define GOLDFISH_VERSION "17.11.44"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -3386,6 +3386,8 @@ display_help () {
   cout << "  help               Display this help message" << endl;
   cout << "  version            Display version" << endl;
   cout << "  eval CODE          Evaluate Scheme code" << endl;
+  cout << "                     Example: gf eval '(+ 1 2)'" << endl;
+  cout << "                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping" << endl;
   cout << "  load FILE          Load Scheme code from FILE, then enter REPL" << endl;
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;

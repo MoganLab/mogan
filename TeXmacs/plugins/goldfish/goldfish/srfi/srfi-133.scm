@@ -222,7 +222,7 @@
              (end (if (<= args-length 1)
                       (vector-length vec)
                       (cadr args)))
-             ) ;
+             ) ;end
 
         (unless (and (< args-length 3)
                      (>= args-length 0))

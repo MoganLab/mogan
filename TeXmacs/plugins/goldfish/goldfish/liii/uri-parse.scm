@@ -36,7 +36,8 @@
         (let* ((user+host (if (string-index netloc-str #\@)
                              (let ((at-pos (string-index netloc-str #\@)))
                                (cons (substring netloc-str 0 at-pos)
-                                     (substring netloc-str (+ at-pos 1) (string-length netloc-str)))
+                                     (substring netloc-str (+ at-pos 1) (string-length netloc-str))
+                               ) ;cons
                              ) ;let
                              (cons #f netloc-str)
                            ) ;if
@@ -63,11 +64,12 @@
                (host+port (if (and host-part (string-index host-part #\:))
                              (let ((colon-pos (string-index host-part #\:)))
                                (cons (substring host-part 0 colon-pos)
-                                     (string->number (substring host-part (+ colon-pos 1) (string-length host-part))))
+                                     (string->number (substring host-part (+ colon-pos 1) (string-length host-part)))
+                               ) ;cons
                              ) ;let
                              (cons host-part #f)
                           ) ;if
-                     ) ;host+port
+               ) ;host+port
               ) ;let*
           (list user password (car host+port) (cdr host+port))
         ) ;let*
@@ -82,7 +84,7 @@
           (if user
             (string-append user (if password (string-append ":" password) "") "@")
             ""
-          ) ;if user
+          ) ;if
           host
           (if port (string-append ":" (number->string port)) "")
         ) ;string-append

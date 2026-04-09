@@ -43,8 +43,9 @@
             (if (not (string=? netloc "")) netloc "")
             (or path "")
             (if (null? query) "" (string-append "?" (alist->query-string query)))
-            (if fragment (string-append "#" fragment) ""))
-        ) ;let
+            (if fragment (string-append "#" fragment) "")
+          ) ;string-append
+        ) ;let*
       ) ;if
     ) ;define
 
@@ -61,8 +62,9 @@
             (if scheme (string-append scheme "://") "")
             (or host "")
             (if port (string-append ":" (number->string port)) "")
-            (or path "/"))
-        ) ;let
+            (or path "/")
+          ) ;string-append
+        ) ;let*
       ) ;if
     ) ;define
 

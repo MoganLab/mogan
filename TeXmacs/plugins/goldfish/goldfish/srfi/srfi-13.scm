@@ -237,7 +237,7 @@
                              (number? (caddr opt)))
                         (caddr opt)
                         (string-length str))
-               ) ;
+               ) ;end
                (str (substring str start end)))
           (let loop ((i 0)
                      (len (string-length str)))
@@ -268,7 +268,7 @@
                              (number? (caddr opt)))
                         (caddr opt)
                         (string-length str))
-               ) ;
+               ) ;end
                (str (substring str start end)))
           (let loop ((j (- (string-length str) 1)))
             (if (or (< j 0)
@@ -298,7 +298,7 @@
                              (number? (caddr opt)))
                         (caddr opt)
                         (string-length str))
-               ) ;
+               ) ;end
                (str (substring str start end)))
           (let loop-left ((i 0)
                           (len (string-length str)))
