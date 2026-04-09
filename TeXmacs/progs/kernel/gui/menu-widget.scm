@@ -527,13 +527,34 @@
 ;; Symbol fields
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (menu-symbol-needs-typeset-preview? sym)
+  (in? sym '("<lefttimesthree>" "<righttimesthree>")))
+
+(define (make-menu-symbol-typeset-widget sym col-name)
+  (let* ((pre (document-get-preamble (buffer-tree)))
+         (master (url->system (current-buffer)))
+         (inits* (map cdr (cdr (tm->stree (get-all-inits)))))
+         (env (append (apply append inits*) (list "magnification" "1.4")))
+         (doc `(with ,@env "project" ,master
+                 (surround (hide-preamble ,pre) ""
+                   (document (math (with "color" ,col-name ,sym)))))))
+    (widget-texmacs-output-transparent doc '(style (tuple "generic")))))
+
+(define (make-menu-symbol-widget font sym col col-name)
+  (if (menu-symbol-needs-typeset-preview? sym)
+      (make-menu-symbol-typeset-widget sym col-name)
+      (widget-box font sym col #t #t)))
+
 (define (make-menu-symbol-button style font sym opt-cmd clr)
-  (with col (if (greyed? style) (color "dark grey") clr)
+  (let* ((col-name (if (greyed? style) "dark grey"
+                       (if (string? clr) clr "black")))
+         (col (if (greyed? style) (color "dark grey")
+                  (if (string? clr) (color clr) clr))))
     (if opt-cmd
-        (widget-menu-button (widget-box font sym col #t #t)
+        (widget-menu-button (make-menu-symbol-widget font sym col col-name)
                             (make-menu-command (apply opt-cmd '()))
                             "" "" style)
-        (widget-menu-button (widget-box font sym col #t #t)
+        (widget-menu-button (make-menu-symbol-widget font sym col col-name)
                             (make-menu-command (insert sym))
                             "" "" style))))
 
@@ -851,11 +872,11 @@
   (symbol-completion (:string? :*)
           ,(lambda (p style bar?)
              (let ((symbol-color (if (== (get-preference "gui theme") "liii-night") "white" "black")))
-               (list (make-menu-symbol p style '(roman mr medium normal 10 600 0) (color symbol-color))))))
+               (list (make-menu-symbol p style '(roman mr medium normal 10 600 0) symbol-color)))))
   (symbol-completion* (:string? :*)
           ,(lambda (p style bar?)
              (let ((symbol-color (if (== (get-preference "gui theme") "liii-night") "#ff6666" "red")))
-               (list (make-menu-symbol p style '(roman mr medium normal 10 600 -2) (color symbol-color))))))
+               (list (make-menu-symbol p style '(roman mr medium normal 10 600 -2) symbol-color)))))
   (texmacs-output (:%2)
     ,(lambda (p style bar?) (list (make-texmacs-output p style))))
   (texmacs-input (:%3)
