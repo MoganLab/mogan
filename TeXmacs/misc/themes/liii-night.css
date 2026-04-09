@@ -26,13 +26,13 @@ QMenuBar QWidget {
 }
 
 QMenuBar {
-  padding-top: 6px;
-  spacing: 8px;
+  padding-top: 2px;
+  spacing: 4px;
 }
 
 QMenuBar::item {
   background: transparent;
-  padding: 6px 12px;
+  padding: 3px 10px;
   border-radius: 4px;
 }
 
@@ -119,16 +119,31 @@ QToolBar {
   background: #2c2c2c;
   color: #ffffff;
   border-bottom: none;
-  spacing: 3px;
-  padding: 4px;
-  min-height: 36px !important;
-  max-height: 36px !important;
+  spacing: 1px;
+  padding: 1px;
+  min-height: 28px !important;
+  max-height: 28px !important;
+}
+
+QToolBar#focusToolBar,
+QToolBar#modeToolBar,
+QToolBar#mainToolBar,
+QToolBar#tabToolBar {
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 2px;
+}
+
+QToolBar#menuToolBar {
+  min-height: 28px !important;
+  max-height: 28px !important;
+  padding: 0px;
 }
 
 QToolButton {
-  border-radius: 8px;
-  padding: 4px;
-  margin: 2px;
+  border-radius: 6px;
+  padding: 2px;
+  margin: 1px;
   background-color: transparent;
   border: 1px solid transparent;
   color: #ffffff;

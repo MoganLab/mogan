@@ -910,6 +910,12 @@ void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
 
+#ifdef Q_OS_MAC
+  bool use_native_menu_bar_in_window= use_native_menubar;
+#else
+  bool use_native_menu_bar_in_window= false;
+#endif
+
   bool old_mainVisibility  = mainToolBar->isVisible ();
   bool old_menuVisibility  = menuToolBar->isVisible ();
   bool old_modeVisibility  = modeToolBar->isVisible ();
@@ -926,7 +932,7 @@ qt_tm_widget_rep::update_visibility () {
   bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
 
   bool new_mainVisibility  = visibility[1] && visibility[0];
-  bool new_menuVisibility  = visibility[0];
+  bool new_menuVisibility  = visibility[0] && !use_native_menu_bar_in_window;
   bool new_modeVisibility  = visibility[2] && visibility[0];
   bool new_focusVisibility = visibility[3] && visibility[0];
   bool new_userVisibility  = visibility[4] && visibility[0];
@@ -1333,12 +1339,19 @@ qt_tm_widget_rep::query (slot s, int type_id) {
 
 void
 qt_tm_widget_rep::install_main_menu () {
+#ifdef Q_OS_MAC
+  bool use_native_menu_bar_in_window= use_native_menubar;
+#else
+  bool use_native_menu_bar_in_window= false;
+#endif
+
   if (main_menu_widget == waiting_main_menu_widget) return;
   main_menu_widget    = waiting_main_menu_widget;
   QList<QAction*>* src= main_menu_widget->get_qactionlist ();
   if (!src) return;
-  QMenuBar* dest  = new QMenuBar ();
-  QScreen*  screen= QGuiApplication::primaryScreen ();
+  QMenuBar* dest= new QMenuBar ();
+#ifndef Q_OS_MAC
+  QScreen* screen= QGuiApplication::primaryScreen ();
 #ifdef Q_OS_WIN
   // 设置与 menuToolBar 匹配的固定高度
   // 使用 devicePixelRatio() 获取正确的屏幕缩放比
@@ -1352,10 +1365,17 @@ qt_tm_widget_rep::install_main_menu () {
   int    h    = (int) floor (108 * scale + 0.5);
 #endif
   dest->setFixedHeight (h);
+#endif
 
   if (tm_style_sheet == "") dest->setStyle (qtmstyle ());
   if (!use_native_menubar) {
     dest->setNativeMenuBar (false);
+#ifdef Q_OS_MAC
+    if (tm_style_sheet != "") {
+      int min_h= (int) floor (28 * retina_scale);
+      dest->setMinimumHeight (min_h);
+    }
+#endif
   }
 
   dest->clear ();
@@ -1382,7 +1402,7 @@ qt_tm_widget_rep::install_main_menu () {
     w->setParent (nullptr);
   }
   // 确保 menuToolBar 可见
-  if (!menuToolBar->isVisible ()) {
+  if (!use_native_menu_bar_in_window && !menuToolBar->isVisible ()) {
     menuToolBar->setVisible (true);
   }
 
