@@ -13,6 +13,7 @@
 #ifndef QT_TEXT_TOOLBAR_HPP
 #define QT_TEXT_TOOLBAR_HPP
 
+#include "QTMBasePopup.hpp"
 #include "qt_simple_widget.hpp"
 #include "rectangles.hpp"
 
@@ -22,40 +23,30 @@
 #include <QPaintEvent>
 #include <QWidget>
 
-class QTMTextToolbar : public QWidget {
+class QTMTextToolbar : public QTMBasePopup {
 protected:
-  qt_simple_widget_rep*      owner;
-  QHBoxLayout*               layout;
-  QGraphicsDropShadowEffect* effect;
-  int                        cached_selection_mid_x;
-  int                        cached_selection_mid_y;
-  rectangle                  cached_rect;
-  int                        cached_scroll_x; // 页面滚动位置x
-  int                        cached_scroll_y; // 页面滚动位置y
-  int                        cached_canvas_x;
-  int                        cached_canvas_y;
-  int                        cached_width;
-  int                        cached_height;
-  double                     cached_magf; // 缩放因子
-  bool                       painted;
-  int                        painted_count;
-  qt_widget                  text_toolbar_widget;
+  int       cached_selection_mid_x;
+  int       cached_selection_mid_y;
+  bool      painted;
+  int       painted_count;
+  qt_widget text_toolbar_widget;
 
 public:
   QTMTextToolbar (QWidget* parent, qt_simple_widget_rep* owner);
   ~QTMTextToolbar ();
 
-  void showTextToolbar (qt_renderer_rep* ren, rectangle selr, double magf,
-                        int scroll_x, int scroll_y, int canvas_x, int canvas_y);
-  void updatePosition (qt_renderer_rep* ren);
-  void scrollBy (int x, int y);
-  void autoSize ();
+  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
+                  int scroll_x, int scroll_y, int canvas_x,
+                  int canvas_y) override;
+  void updatePosition (qt_renderer_rep* ren) override;
+  void scrollBy (int x, int y) override;
+  void autoSize () override;
 
 protected:
   void cachePosition (rectangle selr, double magf, int scroll_x, int scroll_y,
-                      int canvas_x, int canvas_y);
-  void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
-  bool selectionInView () const;
+                      int canvas_x, int canvas_y) override;
+  void getCachedPosition (qt_renderer_rep* ren, int& x, int& y) override;
+  bool selectionInView () const override;
   void rebuildButtonsFromScheme ();
   void clearButtons ();
   bool eventFilter (QObject* obj, QEvent* event) override;

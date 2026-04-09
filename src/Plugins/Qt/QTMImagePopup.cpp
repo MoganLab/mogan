@@ -31,42 +31,24 @@ const string right_str= "\"right\"";
 
 // 悬浮菜单创建函数
 QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
-    : QWidget (parent), owner (owner), layout (nullptr), cached_image_mid_x (0),
-      cached_image_mid_y (0), cached_scroll_x (0), cached_scroll_y (0),
-      cached_canvas_x (0), cached_canvas_y (0), cached_magf (0.0),
-      current_align (""), painted (false), painted_count (0) {
+    : QTMBasePopup (parent, owner), cached_image_mid_x (0),
+      cached_image_mid_y (0), current_align ("") {
   Q_INIT_RESOURCE (images);
-  setObjectName ("image_popup");
-  setWindowFlags (Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-  setAttribute (Qt::WA_ShowWithoutActivating);
-  setMouseTracking (true);
-  setFocusPolicy (Qt::NoFocus);
-  layout= new QHBoxLayout (this);
-  layout->setContentsMargins (0, 0, 0, 0);
-  layout->setSizeConstraint (QLayout::SetMinimumSize);
-  layout->setSpacing (1);
-  setLayout (layout);
-
-  QGraphicsDropShadowEffect* effect= new QGraphicsDropShadowEffect (this);
-  effect->setBlurRadius (40);
-  effect->setOffset (0, 4);
-  effect->setColor (QColor (0, 0, 0, 120));
-  this->setGraphicsEffect (effect);
 
   leftBtn= new QToolButton ();
-  leftBtn->setObjectName ("image-align-button");
+  leftBtn->setObjectName ("base_popup_button");
   leftBtn->setProperty ("icon-name", "left");
   leftBtn->setCheckable (true);
   middleBtn= new QToolButton ();
-  middleBtn->setObjectName ("image-align-button");
+  middleBtn->setObjectName ("base_popup_button");
   middleBtn->setProperty ("icon-name", "center");
   middleBtn->setCheckable (true);
   rightBtn= new QToolButton ();
-  rightBtn->setObjectName ("image-align-button");
+  rightBtn->setObjectName ("base_popup_button");
   rightBtn->setProperty ("icon-name", "right");
   rightBtn->setCheckable (true);
   ocrBtn= new QToolButton ();
-  ocrBtn->setObjectName ("image-align-button");
+  ocrBtn->setObjectName ("base_popup_button");
   ocrBtn->setProperty ("icon-name", "ocr");
   // 设置tooltip - 由于tooltip会挡住图片，建议用户将鼠标移到按钮右侧查看完整提示
 #if defined(Q_OS_MAC)
@@ -110,23 +92,19 @@ QTMImagePopup::~QTMImagePopup () {}
 
 // 显示图片悬浮菜单，根据缩放比例决定是否显示
 void
-QTMImagePopup::showImagePopup (qt_renderer_rep* ren, rectangle selr,
-                               double magf, int scroll_x, int scroll_y,
-                               int canvas_x, int canvas_y) {
-  if (painted) return;
+QTMImagePopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
+                          int scroll_x, int scroll_y, int canvas_x,
+                          int canvas_y) {
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   autoSize ();
-  int x, y;
-  getCachedPosition (ren, x, y);
-  move (x, y);
+  if (!selectionInView ()) {
+    hide ();
+    return;
+  }
+  updatePosition (ren);
   updateButtonStates ();
-  if (painted_count == 2) {
-    show ();
-    painted= true;
-  }
-  else {
-    painted_count++;
-  }
+  show ();
+  raise ();
 }
 
 void
@@ -141,19 +119,6 @@ QTMImagePopup::updateButtonStates () {
   if (current_align == "left") leftBtn->setChecked (true);
   else if (current_align == "center") middleBtn->setChecked (true);
   else if (current_align == "right") rightBtn->setChecked (true);
-}
-
-void
-QTMImagePopup::scrollBy (int x, int y) {
-  cached_scroll_x-= (int) (x / cached_magf);
-  cached_scroll_y-= (int) (y / cached_magf);
-}
-
-void
-QTMImagePopup::updatePosition (qt_renderer_rep* ren) {
-  int pos_x, pos_y;
-  getCachedPosition (ren, pos_x, pos_y);
-  move (pos_x, pos_y);
 }
 
 // 根据DPI缩放和图片缩放比例自动调整按钮大小和窗口尺寸
@@ -187,42 +152,13 @@ QTMImagePopup::autoSize () {
 void
 QTMImagePopup::cachePosition (rectangle selr, double magf, int scroll_x,
                               int scroll_y, int canvas_x, int canvas_y) {
+  QTMBasePopup::cachePosition (selr, magf, scroll_x, scroll_y, canvas_x,
+                               canvas_y);
   cached_image_mid_x= (selr->x1 + selr->x2) / 2;
   cached_image_mid_y= selr->y2;
-  cached_rect       = selr;
-  cached_scroll_x   = scroll_x;
-  cached_scroll_y   = scroll_y;
-  cached_canvas_x   = canvas_x;
-  cached_canvas_y   = canvas_y;
-  cached_magf       = magf;
 }
 
-// 计算菜单显示位置 / 2
-void
-QTMImagePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
-  rectangle selr     = cached_rect;
-  double    inv_unit = 1.0 / 256.0;
-  double    cx_logic = (selr->x1 + selr->x2) * 0.5;
-  double    top_logic= selr->y2;
-
-  // use the formula to calculate the QT coordinates
-  double cx_px=
-      ((cx_logic - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double top_px= -(top_logic - cached_scroll_y) * cached_magf * inv_unit;
-
-  // fix: viewport > surface: blank_top exists
-  double blank_top= 0.0;
-  if (owner && owner->scrollarea () && owner->scrollarea ()->viewport () &&
-      owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
-  top_px+= blank_top;
-
-  x= int (std::round (cx_px - cached_width * 0.5));
-  y= int (std::round (top_px - cached_height));
-}
+// 计算菜单显示位置
 
 // 事件过滤器，用于控制OCR按钮的tooltip位置
 bool
@@ -249,4 +185,41 @@ QTMImagePopup::eventFilter (QObject* obj, QEvent* event) {
   }
   // 其他事件传递给基类处理
   return QWidget::eventFilter (obj, event);
+}
+
+bool
+QTMImagePopup::selectionInView () const {
+  if (!owner || !owner->scrollarea () || !owner->scrollarea ()->viewport ())
+    return true;
+
+  rectangle selr    = cached_rect;
+  double    inv_unit= 1.0 / 256.0;
+
+  double x1_px=
+      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
+  double x2_px=
+      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
+  double y1_px= -(selr->y1 - cached_scroll_y) * cached_magf * inv_unit;
+  double y2_px= -(selr->y2 - cached_scroll_y) * cached_magf * inv_unit;
+
+  double blank_top= 0.0;
+  if (owner->scrollarea ()->surface ()) {
+    int vp_h  = owner->scrollarea ()->viewport ()->height ();
+    int surf_h= owner->scrollarea ()->surface ()->height ();
+    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
+  }
+  y1_px+= blank_top;
+  y2_px+= blank_top;
+
+  double left  = std::min (x1_px, x2_px);
+  double right = std::max (x1_px, x2_px);
+  double top   = std::min (y1_px, y2_px);
+  double bottom= std::max (y1_px, y2_px);
+
+  int vp_w= owner->scrollarea ()->viewport ()->width ();
+  int vp_h= owner->scrollarea ()->viewport ()->height ();
+
+  if (right < 0.0 || left > vp_w) return false;
+  if (bottom < 0.0 || top > vp_h) return false;
+  return true;
 }

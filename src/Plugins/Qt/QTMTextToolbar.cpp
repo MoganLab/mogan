@@ -37,31 +37,12 @@
 
 // 悬浮工具栏创建函数
 QTMTextToolbar::QTMTextToolbar (QWidget* parent, qt_simple_widget_rep* owner)
-    : QWidget (parent), owner (owner), layout (nullptr),
-      cached_selection_mid_x (0), cached_selection_mid_y (0),
-      cached_scroll_x (0), cached_scroll_y (0), cached_canvas_x (0),
-      cached_canvas_y (0), cached_magf (0.0), painted (false),
-      painted_count (0) {
-  setObjectName ("text_toolbar");
-  setWindowFlags (Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
-  setAttribute (Qt::WA_ShowWithoutActivating);
-  setMouseTracking (true);
-  setFocusPolicy (Qt::NoFocus);
+    : QTMBasePopup (parent, owner), cached_selection_mid_x (0),
+      cached_selection_mid_y (0), painted (false), painted_count (0) {
+  setObjectName ("base_popup");
 #if defined(Q_OS_MAC)
   setProperty ("platform", "mac");
 #endif
-  layout= new QHBoxLayout (this);
-  layout->setContentsMargins (0, 0, 0, 0);
-  layout->setSizeConstraint (QLayout::SetMinimumSize);
-  layout->setSpacing (1);
-  setLayout (layout);
-
-  // 添加阴影效果
-  QGraphicsDropShadowEffect* effect= new QGraphicsDropShadowEffect (this);
-  effect->setBlurRadius (40);
-  effect->setOffset (0, 4);
-  effect->setColor (QColor (0, 0, 0, 120));
-  this->setGraphicsEffect (effect);
 
   rebuildButtonsFromScheme ();
 }
@@ -123,7 +104,7 @@ QTMTextToolbar::rebuildButtonsFromScheme () {
     }
 
     QToolButton* button= new QToolButton (this);
-    button->setObjectName ("text-toolbar-button");
+    button->setObjectName ("base_popup_button");
     button->setAutoRaise (true);
     button->setDefaultAction (action);
     button->setPopupMode (QToolButton::InstantPopup);
@@ -138,9 +119,9 @@ QTMTextToolbar::rebuildButtonsFromScheme () {
 }
 
 void
-QTMTextToolbar::showTextToolbar (qt_renderer_rep* ren, rectangle selr,
-                                 double magf, int scroll_x, int scroll_y,
-                                 int canvas_x, int canvas_y) {
+QTMTextToolbar::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
+                           int scroll_x, int scroll_y, int canvas_x,
+                           int canvas_y) {
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   if (!selectionInView ()) {
     hide ();
@@ -164,19 +145,14 @@ QTMTextToolbar::updatePosition (qt_renderer_rep* ren) {
 
 void
 QTMTextToolbar::scrollBy (int x, int y) {
-  cached_scroll_x-= (int) (x / cached_magf);
-  cached_scroll_y-= (int) (y / cached_magf);
+  QTMBasePopup::scrollBy (x, y);
 }
 
 void
 QTMTextToolbar::cachePosition (rectangle selr, double magf, int scroll_x,
                                int scroll_y, int canvas_x, int canvas_y) {
-  cached_rect    = selr;
-  cached_magf    = magf;
-  cached_scroll_x= scroll_x;
-  cached_scroll_y= scroll_y;
-  cached_canvas_x= canvas_x;
-  cached_canvas_y= canvas_y;
+  QTMBasePopup::cachePosition (selr, magf, scroll_x, scroll_y, canvas_x,
+                               canvas_y);
 
   // 计算选区中心位置
   cached_selection_mid_x= (selr->x1 + selr->x2) * 0.5;
@@ -245,39 +221,7 @@ QTMTextToolbar::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
 
 bool
 QTMTextToolbar::selectionInView () const {
-  if (!owner || !owner->scrollarea () || !owner->scrollarea ()->viewport ())
-    return true;
-
-  rectangle selr    = cached_rect;
-  double    inv_unit= 1.0 / 256.0;
-
-  double x1_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double x2_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double y1_px= -(selr->y1 - cached_scroll_y) * cached_magf * inv_unit;
-  double y2_px= -(selr->y2 - cached_scroll_y) * cached_magf * inv_unit;
-
-  double blank_top= 0.0;
-  if (owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
-  y1_px+= blank_top;
-  y2_px+= blank_top;
-
-  double left  = std::min (x1_px, x2_px);
-  double right = std::max (x1_px, x2_px);
-  double top   = std::min (y1_px, y2_px);
-  double bottom= std::max (y1_px, y2_px);
-
-  int vp_w= owner->scrollarea ()->viewport ()->width ();
-  int vp_h= owner->scrollarea ()->viewport ()->height ();
-
-  if (right < 0.0 || left > vp_w) return false;
-  if (bottom < 0.0 || top > vp_h) return false;
-  return true;
+  return QTMBasePopup::selectionInView ();
 }
 
 void
@@ -302,7 +246,7 @@ QTMTextToolbar::autoSize () {
   for (QToolButton* button : buttons) {
     if (!button) continue;
     if (button->objectName ().isEmpty ())
-      button->setObjectName ("text-toolbar-button");
+      button->setObjectName ("base_popup_button");
     button->setIconSize (icon_size);
     button->setFixedSize (fixed_size);
   }

@@ -741,55 +741,55 @@ QPushButton#logout-button {
 }
 
 /****************************************************************************
-* 图片悬浮菜单样式
+* 悬浮菜单样式
 ****************************************************************************/
 
-/*图片悬浮菜单窗口样式*/
-QWidget#image_popup {
+QToolButton#base_popup_button[icon-name="left"] {
+  qproperty-icon: url(":/ocr-button/left-align-white.svg");
+}
+
+QToolButton#base_popup_button[icon-name="center"] {
+  qproperty-icon: url(":/ocr-button/middle-align-white.svg");
+}
+
+QToolButton#base_popup_button[icon-name="right"] {
+  qproperty-icon: url(":/ocr-button/right-align-white.svg");
+}
+
+QToolButton#base_popup_button[icon-name="ocr"] {
+  qproperty-icon: url(":/ocr-button/ocr-white.svg");
+}
+
+/*悬浮框窗口样式（基类）*/
+QWidget#base_popup {
   background: #2c2c2c;
   border: none;
   border-radius: 8px;
 }
 
-QToolButton#image-align-button[icon-name="left"] {
-  qproperty-icon: url(":/ocr-button/left-align-white.svg");
-}
-
-QToolButton#image-align-button[icon-name="center"] {
-  qproperty-icon: url(":/ocr-button/middle-align-white.svg");
-}
-
-QToolButton#image-align-button[icon-name="right"] {
-  qproperty-icon: url(":/ocr-button/right-align-white.svg");
-}
-
-QToolButton#image-align-button[icon-name="ocr"] {
-  qproperty-icon: url(":/ocr-button/ocr-white.svg");
-}
-
-/*图片悬浮菜单按钮样式*/
-QToolButton#image-align-button {
-  background-color: transparent; 
+/*悬浮框按钮样式（基类）*/
+QToolButton#base_popup_button {
+  background-color: transparent;
   border: none;
 }
 
-/*图片悬浮菜单按钮悬停样式*/
-QToolButton#image-align-button:hover { 
-  background-color: rgba(128, 128, 128, 0.3); 
-  border: none; 
+/*悬浮框按钮悬停样式*/
+QToolButton#base_popup_button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  border: none;
 } 
 
-/*图片悬浮菜单按钮按下样式*/
-QToolButton#image-align-button:pressed {
-  background-color: rgba(128, 128, 128, 0.5); 
-  border: none; 
+/*悬浮框按钮按下样式*/
+QToolButton#base_popup_button:pressed {
+  background-color: rgba(255, 255, 255, 0.2);
+  border: none;
 }
 
-QToolButton#image-align-button:checked {
+QToolButton#base_popup_button:checked {
   background: rgb(133, 133, 133);
 }
 
-QToolButton#image-align-button:checked:hover {
+QToolButton#base_popup_button:checked:hover {
   background: rgb(133, 133, 133);
 }
 
@@ -993,31 +993,6 @@ QWidget#auxiliary_container {
 QWidget#centralWidget QWidget {
   background: #202020;
   color: #ffffff;
-}
-
-/*文本工具栏窗口样式*/
-QWidget#text_toolbar {
-  background: #333333;
-  border: none;
-  border-radius: 8px;
-}
-
-/*文本工具栏按钮样式*/
-QToolButton#text-toolbar-button {
-  background-color: transparent; 
-  border: none;
-}
-
-/*文本工具栏按钮悬停样式*/
-QToolButton#text-toolbar-button:hover { 
-  background-color: rgba(255, 255, 255, 0.1); 
-  border: none; 
-} 
-
-/*文本工具栏按钮按下样式*/
-QToolButton#text-toolbar-button:pressed {
-  background-color: rgba(255, 255, 255, 0.2);
-  border: none;
 }
 
 /****************************************************************************

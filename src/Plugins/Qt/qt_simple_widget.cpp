@@ -768,8 +768,8 @@ qt_simple_widget_rep::show_image_popup (tree current_tree, rectangle selr,
   ensure_image_popup ();
   imagePopUp->setImageTree (current_tree);
   qt_renderer_rep* ren= the_qt_renderer ();
-  imagePopUp->showImagePopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                              canas_y);
+  imagePopUp->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                         canas_y);
 }
 
 void
@@ -818,8 +818,8 @@ qt_simple_widget_rep::show_text_toolbar (rectangle selr, double magf,
                                          int canvas_x, int canvas_y) {
   ensure_text_toolbar ();
   qt_renderer_rep* ren= the_qt_renderer ();
-  textToolbar->showTextToolbar (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                                canvas_y);
+  textToolbar->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                          canvas_y);
 }
 
 void
