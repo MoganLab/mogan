@@ -74,8 +74,6 @@ TemplateAPI::fetchMetadata () {
 
   connect (metadataReply_, &QNetworkReply::finished, this,
            &TemplateAPI::onMetadataReplyFinished);
-  connect (metadataReply_, &QNetworkReply::errorOccurred, this,
-           &TemplateAPI::onNetworkError);
 }
 
 void
@@ -146,7 +144,12 @@ TemplateAPI::onMetadataReplyFinished () {
   reply->deleteLater ();
 
   QList<TemplateCategory> categories;
-  auto metadata= parseMetadataResponse (response, categories);
+  bool                    isValidResponse= false;
+  auto metadata= parseMetadataResponse (response, categories, &isValidResponse);
+  if (!isValidResponse) {
+    emit metadataLoadFailed (tr ("Invalid metadata response"));
+    return;
+  }
   emit metadataLoaded (metadata, categories);
 }
 
@@ -229,8 +232,12 @@ TemplateAPI::metadataUrl () const {
 
 QHash<QString, TemplateMetadataPtr>
 TemplateAPI::parseMetadataResponse (const QByteArray&        data,
-                                    QList<TemplateCategory>& outCategories) {
+                                    QList<TemplateCategory>& outCategories,
+                                    bool*                    isValidResponse) {
   QHash<QString, TemplateMetadataPtr> metadata;
+  if (isValidResponse) {
+    *isValidResponse= false;
+  }
 
   QJsonDocument doc= QJsonDocument::fromJson (data);
   if (doc.isNull () || !doc.isObject ()) {
@@ -241,6 +248,14 @@ TemplateAPI::parseMetadataResponse (const QByteArray&        data,
   QJsonObject root= doc.object ();
 
   // Check if this is the nested categories format (liiistem.cn API v2)
+  bool hasSchemaField=
+      (root.contains ("categories") && root.value ("categories").isArray ()) ||
+      (root.contains ("templates") && root.value ("templates").isArray ());
+  if (!hasSchemaField) {
+    qWarning () << "Invalid metadata schema";
+    return metadata;
+  }
+
   QJsonArray categories= root.value ("categories").toArray ();
   if (!categories.isEmpty ()) {
     // Parse categories array with nested templates
@@ -272,6 +287,9 @@ TemplateAPI::parseMetadataResponse (const QByteArray&        data,
     }
   }
 
+  if (isValidResponse) {
+    *isValidResponse= true;
+  }
   return metadata;
 }
 

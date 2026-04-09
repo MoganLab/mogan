@@ -168,7 +168,11 @@ TemplateCache::saveMetadataCache (
 
 bool
 TemplateCache::isTemplateCached (const QString& templateId) const {
-  return cacheIndex_.contains (templateId);
+  auto it= cacheIndex_.find (templateId);
+  if (it == cacheIndex_.end ()) {
+    return false;
+  }
+  return QFile::exists (it->localPath);
 }
 
 QString

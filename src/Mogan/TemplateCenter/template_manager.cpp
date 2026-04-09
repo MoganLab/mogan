@@ -335,6 +335,14 @@ TemplateManager::onRemoteMetadataLoaded (
     const QList<TemplateCategory>&             remoteCategories) {
   isRefreshing_= false;
 
+  if (remoteMetadata.isEmpty () && !templates_.isEmpty ()) {
+    QString error= tr ("Remote metadata is empty");
+    qWarning () << "Skip metadata merge:" << error;
+    emit templatesLoaded ();
+    emit templatesLoadFailed (error);
+    return;
+  }
+
   int newCount    = 0;
   int updatedCount= 0;
 
@@ -423,7 +431,6 @@ TemplateManager::mergeMetadata (
   }
   for (const QString& id : toRemove) {
     templates_.remove (id);
-    cache_->removeCachedTemplate (id);
   }
 
   for (auto it= remoteMetadata.constBegin (); it != remoteMetadata.constEnd ();

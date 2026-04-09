@@ -126,6 +126,7 @@ QTTemplatePage::setupUI () {
 void
 QTTemplatePage::setupCategoryBar () {
   if (!categoryBar_) return;
+  activeCategoryBtn_= nullptr;
 
   // Clear existing buttons
   QLayout* layout= categoryBar_->layout ();
@@ -160,6 +161,7 @@ QTTemplatePage::setupCategoryBar () {
 
   // Add category buttons
   QList<TemplateCategory> categories= templateManager_->categories ();
+  bool hasMatchedCurrentCategory    = currentCategory_.isEmpty ();
   for (const auto& cat : categories) {
     QPushButton* btn= new QPushButton (cat.name, categoryBar_);
     btn->setObjectName ("startup-tab-category-btn");
@@ -171,8 +173,15 @@ QTTemplatePage::setupCategoryBar () {
     categoryLayout->addWidget (btn);
 
     if (cat.id == currentCategory_) {
-      activeCategoryBtn_= btn;
+      activeCategoryBtn_       = btn;
+      hasMatchedCurrentCategory= true;
     }
+  }
+
+  if (!hasMatchedCurrentCategory) {
+    currentCategory_.clear ();
+    allBtn->setChecked (true);
+    activeCategoryBtn_= allBtn;
   }
 
   categoryLayout->addStretch ();
@@ -468,7 +477,12 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
 
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
     QString localPath= templateManager_->localTemplatePath (templateId);
-    emit    templateOpened (localPath);
+    if (localPath.isEmpty ()) {
+      QMessageBox::warning (this, tr ("Template Error"),
+                            tr ("Local template file is missing"));
+      return;
+    }
+    emit templateOpened (localPath);
   }
   else {
     // Track this download to distinguish user cancellation from real errors

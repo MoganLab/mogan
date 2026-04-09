@@ -83,7 +83,8 @@ private:
   // Response parsing (liiistem.cn API format with nested categories)
   QHash<QString, TemplateMetadataPtr>
   parseMetadataResponse (const QByteArray&        data,
-                         QList<TemplateCategory>& outCategories);
+                         QList<TemplateCategory>& outCategories,
+                         bool*                    isValidResponse= nullptr);
 
   // Helper to parse individual template objects
   void parseTemplateObject (const QJsonObject& tmplObj,
