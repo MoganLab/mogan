@@ -1,6 +1,6 @@
 /******************************************************************************
- * MODULE     : ornament_footnote_test.cpp
- * DESCRIPTION: Tests for footnote propagation through ornament wrappers
+ * MODULE     : lazy_ornament_rep_test.cpp
+ * DESCRIPTION: Tests for footnote propagation in lazy_ornament_rep
  * COPYRIGHT   : (C) 2026 Mingshen Chu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -63,7 +63,7 @@ has_footnote (array<page_item> items) {
   return count_footnotes (items) > 0;
 }
 
-class TestOrnamentFootnote : public QObject {
+class TestLazyOrnamentRep : public QObject {
   Q_OBJECT
 
 private slots:
@@ -74,11 +74,11 @@ private slots:
     init_tex ();
   }
 
-  void lazy_ornament_keeps_footnote_float ();
+  void keeps_footnote_float ();
 };
 
 void
-TestOrnamentFootnote::lazy_ornament_keeps_footnote_float () {
+TestLazyOrnamentRep::keeps_footnote_float () {
   edit_env env     = create_test_env ();
   tree     ornament= create_ornament_with_footnote ();
 
@@ -90,5 +90,5 @@ TestOrnamentFootnote::lazy_ornament_keeps_footnote_float () {
   QVERIFY (has_footnote (vs->l));
 }
 
-QTEST_MAIN (TestOrnamentFootnote)
-#include "ornament_footnote_test.moc"
+QTEST_MAIN (TestLazyOrnamentRep)
+#include "lazy_ornament_rep_test.moc"
