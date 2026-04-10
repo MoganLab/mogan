@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<!-- Generator: Adobe Illustrator 23.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 48 48" style="enable-background:new 0 0 48 48;" xml:space="preserve">
+<path style="fill:none;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="
+	M40.5,14.5v-3c0-2.209-1.791-4-4-4h-3"/>
+<path style="fill:none;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="
+	M14.5,7.5h-3c-2.209,0-4,1.791-4,4v3"/>
+<path style="fill:none;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="
+	M33.5,40.5h3c2.209,0,4-1.791,4-4v-3"/>
+<path style="fill:none;stroke:#ffffff;stroke-width:3;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:10;" d="
+	M7.5,33.5v3c0,2.209,1.791,4,4,4h3"/>
+<path style= "fill:#ffffff" d="M15,28c-1.93,0-3.5-1.794-3.5-4c0-2.206,1.57-4,3.5-4c1.93,0,3.5,1.794,3.5,4C18.5,26.206,16.93,28,15,28 M15,22
+	c-0.813,0-1.5,0.916-1.5,2c0,1.084,0.687,2,1.5,2c0.813,0,1.5-0.916,1.5-2C16.5,22.916,15.813,22,15,22"/>
+<path style= "fill:#ffffff" d="M24.302,28c-1.815,0-3.292-1.794-3.292-4c0-2.206,1.477-4,3.292-4c1.447,0,2.313,0.981,2.596,1.561
+	c0.242,0.496,0.037,1.095-0.46,1.337c-0.49,0.241-1.082,0.041-1.329-0.442C25.063,22.374,24.826,22,24.302,22
+	c-0.688,0-1.292,0.935-1.292,2c0,1.065,0.604,2,1.292,2c0.559,0,0.797-0.435,0.799-0.439c0.242-0.496,0.841-0.701,1.337-0.459
+	c0.497,0.242,0.702,0.841,0.46,1.337C26.615,27.019,25.749,28,24.302,28"/>
+<g>
+	<path style= "fill:#ffffff" d="M31,28c-0.552,0-1-0.448-1-1v-6c0-0.552,0.448-1,1-1c0.552,0,1,0.448,1,1v6C32,27.552,31.552,28,31,28"/>
+	<path style= "fill:#ffffff" d="M33,26h-2c-0.552,0-1-0.448-1-1c0-0.552,0.448-1,1-1h2c0.551,0,1-0.449,1-1c0-0.551-0.449-1-1-1h-2c-0.552,0-1-0.448-1-1
+		c0-0.552,0.448-1,1-1h2c1.654,0,3,1.346,3,3C36,24.654,34.654,26,33,26"/>
+	<path style= "fill:#ffffff" d="M35.001,28c-0.304,0-0.604-0.138-0.801-0.4l-1.54-2.053c-0.331-0.442-0.242-1.069,0.2-1.4c0.444-0.332,1.069-0.241,1.4,0.2
+		L35.8,26.4c0.331,0.442,0.242,1.069-0.2,1.4C35.42,27.935,35.209,28,35.001,28"/>
+</g>
+</svg>

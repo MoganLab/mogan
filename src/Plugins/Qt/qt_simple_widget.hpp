@@ -24,7 +24,7 @@
 class QTMCompletionPopup;
 class QTMMathCompletionPopup;
 class QTMImagePopup;
-class QTMTextToolbar;
+class QTMTextPopup;
 
 /*! A widget containing a TeXmacs canvas.
 
@@ -140,7 +140,7 @@ protected:
   QPointer<QTMCompletionPopup>     completionPopUp;
   QPointer<QTMMathCompletionPopup> mathCompletionPopUp;
   QPointer<QTMImagePopup>          imagePopUp;
-  QPointer<QTMTextToolbar>         textToolbar;
+  QPointer<QTMTextPopup>           textToolbar;
 #ifdef USE_MUPDF_RENDERER
   double  bs_zoomf;
   picture backing_store;

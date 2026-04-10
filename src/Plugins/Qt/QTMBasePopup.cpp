@@ -12,6 +12,7 @@
 #include "QTMBasePopup.hpp"
 #include "qt_utilities.hpp"
 
+#include <QToolButton>
 #include <cmath>
 
 QTMBasePopup::QTMBasePopup (QWidget* parent, qt_simple_widget_rep* owner)
@@ -76,15 +77,18 @@ QTMBasePopup::cachePosition (rectangle selr, double magf, int scroll_x,
 
 void
 QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
-  rectangle selr     = cached_rect;
-  double    inv_unit = 1.0 / 256.0;
-  double    cx_logic = (selr->x1 + selr->x2) * 0.5;
-  double    top_logic= selr->y2; // 使用选区底部作为参考点
+  rectangle selr            = cached_rect;
+  double    inv_unit        = 1.0 / 256.0;
+  double    cx_logic        = (selr->x1 + selr->x2) * 0.5;
+  double    sel_top_logic   = (selr->y1 > selr->y2) ? selr->y1 : selr->y2;
+  double    sel_bottom_logic= (selr->y1 > selr->y2) ? selr->y2 : selr->y1;
 
   // 使用公式计算QT坐标
   double cx_px=
       ((cx_logic - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double top_px= -(top_logic - cached_scroll_y) * cached_magf * inv_unit;
+  double top_px= -(sel_top_logic - cached_scroll_y) * cached_magf * inv_unit;
+  double bottom_px=
+      -(sel_bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
 
   // 修正：视口 > 表面：存在空白顶部
   double blank_top= 0.0;
@@ -95,32 +99,38 @@ QTMBasePopup::getCachedPosition (qt_renderer_rep* ren, int& x, int& y) {
     if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
   }
   top_px+= blank_top;
+  bottom_px+= blank_top;
 
-  // 基础位置：在选区上方居中显示
+  const int above_y=
+      int (std::round (top_px - cached_height - 10)); // 在选区顶部上方显示
+  const int below_y=
+      int (std::round (bottom_px + 10)); // 如果上面空间不够，显示在选区下方
+
   x= int (std::round (cx_px - cached_width * 0.5));
-  y= int (std::round (top_px - cached_height));
+  y= above_y;
 
   // 确保悬浮框在视口内
   if (owner && owner->scrollarea () && owner->scrollarea ()->viewport ()) {
     int vp_w= owner->scrollarea ()->viewport ()->width ();
     int vp_h= owner->scrollarea ()->viewport ()->height ();
 
-    // 如果上方空间不足，尝试显示在选区下方
-    if (y < 0) {
-      double bottom_logic= selr->y1;
-      double bottom_px=
-          -(bottom_logic - cached_scroll_y) * cached_magf * inv_unit;
-      bottom_px+= blank_top;
-      y= int (std::round (bottom_px + 10)); // 选区下方10像素
+    const bool above_fits= (above_y >= 0) && (above_y + cached_height <= vp_h);
+    const bool below_fits= (below_y >= 0) && (below_y + cached_height <= vp_h);
+
+    if (above_fits) y= above_y;
+    else if (below_fits) y= below_y;
+    else {
+      x= std::max (0, (vp_w - cached_width) / 2);
+      y= std::max (0, (vp_h - cached_height) / 2);
     }
 
-    // 水平边界检查
     if (x < 0) x= 0;
     if (x + cached_width > vp_w) x= vp_w - cached_width;
-
-    // 垂直边界检查
     if (y < 0) y= 0;
     if (y + cached_height > vp_h) y= vp_h - cached_height;
+  }
+  else {
+    if (y < 0) y= below_y;
   }
 }
 
@@ -159,4 +169,34 @@ QTMBasePopup::selectionInView () const {
   if (right < 0.0 || left > vp_w) return false;
   if (bottom < 0.0 || top > vp_h) return false;
   return true;
+}
+
+void
+QTMBasePopup::autoSize () {
+  const double Scale     = DpiUtils::scaleFactor ();
+  const double totalScale= Scale * cached_magf * 12.0;
+  int          btn_size  = int (40 * totalScale);
+
+  if (cached_magf <= 0.16) {
+    btn_size= 25;
+  }
+
+  // 设置按钮大小（使用 DpiUtils 处理内边距）
+  QSize                     icon_size (btn_size, btn_size);
+  int                       padding= DpiUtils::scaled (16);
+  QSize                     fixed_size (btn_size + padding, btn_size + padding);
+  const QList<QToolButton*> buttons=
+      findChildren<QToolButton*> (QString (), Qt::FindChildrenRecursively);
+  for (QToolButton* button : buttons) {
+    if (!button) continue;
+    if (button->objectName ().isEmpty ())
+      button->setObjectName ("base_popup_button");
+    button->setIconSize (icon_size);
+    button->setFixedSize (fixed_size);
+  }
+
+  // 调整窗口大小
+  adjustSize ();
+  cached_width = width ();
+  cached_height= height ();
 }

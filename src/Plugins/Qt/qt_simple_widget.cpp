@@ -21,7 +21,7 @@
 #include "QTMMathCompletionPopup.hpp"
 #include "QTMMenuHelper.hpp"
 #include "QTMStyle.hpp"
-#include "QTMTextToolbar.hpp"
+#include "QTMTextPopup.hpp"
 #include "QTMWidget.hpp"
 #include <QLayout>
 #include <QPixmap>
@@ -806,7 +806,7 @@ qt_simple_widget_rep::ensure_text_toolbar () {
     }
     return;
   }
-  textToolbar= new QTMTextToolbar (canvas (), this);
+  textToolbar= new QTMTextPopup (canvas (), this);
   if (is_empty (tm_style_sheet)) {
     textToolbar->setStyle (qtmstyle ());
   }

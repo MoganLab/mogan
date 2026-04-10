@@ -48,8 +48,8 @@ public:
   // 滚动时调整位置
   virtual void scrollBy (int x, int y);
 
-  // 自动调整大小（纯虚函数，子类实现具体调整逻辑）
-  virtual void autoSize ()= 0;
+  // 自动调整大小（有默认实现，子类可重写）
+  virtual void autoSize ();
 
 protected:
   // 缓存位置信息

@@ -734,19 +734,6 @@ QWidget#base_popup {
   border-radius: 8px;
 }
 
-/*macOS 悬浮框窗口样式*/
-QWidget#base_popup[platform="mac"] {
-  border-radius: 6px;
-}
-
-/*macOS 悬浮框按钮样式*/
-QToolButton#base_popup_button[platform="mac"] {
-  min-width: 20px;
-  min-height: 20px;
-  max-width: 20px;
-  max-height: 20px;
-}
-
 /*悬浮框按钮样式（基类）*/
 QToolButton#base_popup_button {
   background-color: transparent;
