@@ -385,7 +385,7 @@ QtFilePage::saveRecentDocs () {
     obj["name"]      = doc.fileName;
     obj["last_open"] = static_cast<double> (doc.openedAt.toSecsSinceEpoch ());
     obj["show"]      = true;
-    obj["open_count"]= qMax (1, obj["open_count"].toInt ());
+    obj["open_count"]= qMax (1, obj["open_count"].toInt () + 1);
     updatedFiles.append (obj);
     existingByPath.remove (doc.filePath);
   }
