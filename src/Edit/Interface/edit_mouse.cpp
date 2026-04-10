@@ -895,10 +895,40 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
         path      p= reverse (obtain_ip (current_tree));
         selection sel=
             search_selection (p * start (current_tree), p * end (current_tree));
-        selr= least_upper_bound (sel->rs);
-        if (last_x >= selr->x1 && last_y >= selr->y1 && last_x <= selr->x2 &&
-            last_y <= selr->y2 * 0.8) {
+        selr       = least_upper_bound (sel->rs);
+        SI w       = selr->x2 - selr->x1;
+        SI h       = selr->y2 - selr->y1;
+        SI margin_x= (SI) (w * 0.1);
+        SI margin_y= (SI) (h * 0.1);
+        if (last_x >= selr->x1 - margin_x && last_y >= selr->y1 - margin_y &&
+            last_x <= selr->x2 + margin_x &&
+            last_y <= selr->y2 * 0.8 + margin_y) {
           hovering_image= true;
+          // 缓存图片区域和路径用于扩大区域检测
+          hover_image_rect= selr;
+          hover_image_path= current_path;
+        }
+      }
+      else if (!is_zero (hover_image_rect)) {
+        // 检测鼠标是否在图片扩大区域内（图片外10%范围）
+        SI        w       = hover_image_rect->x2 - hover_image_rect->x1;
+        SI        h       = hover_image_rect->y2 - hover_image_rect->y1;
+        SI        margin_x= (SI) (w * 0.1);
+        SI        margin_y= (SI) (h * 0.1);
+        rectangle expanded (hover_image_rect->x1 - margin_x,
+                            hover_image_rect->y1 - margin_y,
+                            hover_image_rect->x2 + margin_x,
+                            hover_image_rect->y2 * 0.8 + margin_y);
+        if (last_x >= expanded->x1 && last_y >= expanded->y1 &&
+            last_x <= expanded->x2 && last_y <= expanded->y2) {
+          hovering_image= true;
+          current_path  = hover_image_path;
+          selr          = hover_image_rect;
+        }
+        else {
+          // 移出扩大区域，清空缓存
+          hover_image_rect= rectangle (0, 0, 0, 0);
+          hover_image_path= path ();
         }
       }
     }
