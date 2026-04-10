@@ -71,8 +71,9 @@ edit_interface_rep::edit_interface_rep ()
       cursor_blink_period (500), table_selection (false),
       mouse_adjusting (false), oc (0, 0), temp_invalid_cursor (false),
       shadow (NULL), stored (NULL), cur_sb (2), cur_wb (2) {
-  user_active= false;
-  input_mode = INPUT_NORMAL;
+  user_active       = false;
+  input_mode        = INPUT_NORMAL;
+  editor_interrupted= false;
   gui_root_extents (cur_wx, cur_wy);
 }
 

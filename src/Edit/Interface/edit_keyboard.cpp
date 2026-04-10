@@ -63,6 +63,7 @@ edit_interface_rep::set_input_normal () {
   }
   prev_math_comb= "";
   hide_math_completion_popup ();
+  editor_interrupted= false;
 }
 
 bool
@@ -99,6 +100,21 @@ edit_interface_rep::interrupt_shortcut () {
   if (sh_mark != 0) mark_end (sh_mark);
   sh_s   = "";
   sh_mark= 0;
+}
+
+void
+edit_interface_rep::interrupt_editor () {
+  editor_interrupted= true;
+}
+
+bool
+edit_interface_rep::is_editor_interrupted () {
+  return editor_interrupted;
+}
+
+void
+edit_interface_rep::clear_editor_interrupt () {
+  editor_interrupted= false;
 }
 
 bool

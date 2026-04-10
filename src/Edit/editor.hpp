@@ -180,6 +180,9 @@ public:
   virtual bool      in_replace_mode ()                                     = 0;
   virtual bool      in_spell_mode ()                                       = 0;
   virtual void      interrupt_shortcut ()                                  = 0;
+  virtual void      interrupt_editor ()                                    = 0;
+  virtual bool      is_editor_interrupted ()                               = 0;
+  virtual void      clear_editor_interrupt ()                              = 0;
   virtual bool   kbd_get_command (string cmd_s, string& help, command& cmd)= 0;
   virtual void   key_press (string key)                                    = 0;
   virtual void   emulate_keyboard (string keys, string action= "")         = 0;

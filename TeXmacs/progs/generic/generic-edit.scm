@@ -329,6 +329,23 @@
 (tm-define (kbd-cancel)
   (clipboard-clear "primary"))
 
+(tm-define (general-cancel)
+  (:synopsis "Cancel the current ongoing operation or selection")
+  (cond
+    ((or (and (defined? 'toolbar-search-active?) toolbar-search-active?)
+         (and (defined? 'toolbar-replace-active?) toolbar-replace-active?))
+     (toolbar-search-end))
+    ((and (defined? 'toolbar-spell-active?) toolbar-spell-active?)
+     (toolbar-spell-end))
+    ((in-search-mode?)
+     (key-press-search "C-g"))
+    ((in-replace-mode?)
+     (key-press-replace "C-g"))
+    ((in-spell-mode?)
+     (key-press-spell "C-g"))
+    (else
+     (selection-cancel))))
+
 #|
 ocr-paste
 剪贴板中的内容是图像时，OCR并插入已识别的内容到当前光标处

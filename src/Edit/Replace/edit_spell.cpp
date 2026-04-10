@@ -12,6 +12,7 @@
 #include "Interface/edit_interface.hpp"
 #include "Replace/edit_replace.hpp"
 #include "analyze.hpp"
+#include "gui.hpp"
 
 #ifdef USE_PLUGIN_ISPELL
 #ifdef MACOSX_EXTENSIONS
@@ -124,6 +125,11 @@ message_ispell (tree t) {
 void
 edit_replace_rep::spell_next () {
   while (true) {
+    if (gui_interrupted (true)) {
+      spell_end ();
+      set_message ("Spell check interrupted", "correct text");
+      return;
+    }
     if (path_inf (spell_end_p, search_at)) search_at= rp;
     if (search_at == rp) {
       spell_end ();

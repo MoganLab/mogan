@@ -1821,6 +1821,21 @@ function main()
                     "string"
                 }
             },
+            {
+                scm_name = "editor-interrupt",
+                cpp_name = "interrupt_editor",
+                ret_type = "void"
+            },
+            {
+                scm_name = "editor-interrupted?",
+                cpp_name = "is_editor_interrupted",
+                ret_type = "bool"
+            },
+            {
+                scm_name = "editor-clear-interrupt",
+                cpp_name = "clear_editor_interrupt",
+                ret_type = "void"
+            },
             
             -- sessions
             {

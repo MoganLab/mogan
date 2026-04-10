@@ -12,6 +12,7 @@
 #include "Interface/edit_interface.hpp"
 #include "Replace/edit_replace.hpp"
 #include "analyze.hpp"
+#include "gui.hpp"
 
 #include <moebius/drd/drd_mode.hpp>
 #include <moebius/drd/drd_std.hpp>
@@ -130,6 +131,7 @@ path
 edit_replace_rep::search_previous_compound (path init, string which) {
   path p= init;
   while (true) {
+    if (gui_interrupted (true)) return init;
     if (p == rp) return init;
     if (last_item (p) == 0) p= path_up (p);
     else {
@@ -149,6 +151,7 @@ path
 edit_replace_rep::search_next_compound (path init, string which) {
   path p= init;
   while (true) {
+    if (gui_interrupted (true)) return init;
     if (p == rp) return init;
     if (last_item (p) == (N (subtree (et, path_up (p))) - 1)) p= path_up (p);
     else {
@@ -344,6 +347,13 @@ void
 edit_replace_rep::next_match (bool forward) {
   // cout << "Next match at " << search_at << "\n";
   while (true) {
+    if (gui_interrupted (true)) {
+      search_at= rp;
+      set_selection (tp, tp);
+      notify_change (THE_SELECTION);
+      set_message ("Search interrupted", "");
+      return;
+    }
     if (search_at == rp) {
       set_selection (tp, tp);
       notify_change (THE_SELECTION);
@@ -438,7 +448,7 @@ edit_replace_rep::search_keypress (string s) {
       search_stop ();
       return false;
     }
-    else if ((s == "C-c") || (s == "C-g")) search_stop ();
+    else if ((s == "C-c") || (s == "C-g") || (s == "escape")) search_stop ();
     else if ((s == "next") || (s == "previous")) {
       if (search_what == "") {
         tree t= selection_raw_get ("search");
@@ -549,6 +559,13 @@ edit_replace_rep::replace_keypress (string s) {
   }
   else if (s == "a" || s == "!") {
     while (search_at != rp) {
+      if (gui_interrupted (true)) {
+        set_message (concat ("Replaced ", as_string (nr_replaced),
+                             " occurrences (interrupted)"),
+                     "replace");
+        set_input_normal ();
+        return true;
+      }
       nr_replaced++;
       go_to (copy (search_end));
       cut (search_at, search_end);

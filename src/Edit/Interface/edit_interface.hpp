@@ -58,6 +58,7 @@ protected:
   SI         zpixel;        // pixel multiplied by zoom factor
   rectangles copy_always;   // for wiping out cursor
   int        input_mode;    // INPUT_NORMAL, INPUT_SEARCH, INPUT_REPLACE
+  bool       editor_interrupted; // set by Ctrl+G, checked by long-running loops
 
 protected:
   SI         last_x, last_y;
@@ -222,6 +223,9 @@ public:
   bool   in_spell_mode ();
   bool   kbd_get_command (string which, string& help, command& cmd);
   void   interrupt_shortcut ();
+  void   interrupt_editor ();
+  bool   is_editor_interrupted ();
+  void   clear_editor_interrupt ();
   bool   try_shortcut (string comb);
   tree   kbd (string s);
   tree   kbd_shortcut (string s);
