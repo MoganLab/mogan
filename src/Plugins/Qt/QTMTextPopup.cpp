@@ -38,8 +38,6 @@
 // 悬浮工具栏创建函数
 QTMTextPopup::QTMTextPopup (QWidget* parent, qt_simple_widget_rep* owner)
     : QTMBasePopup (parent, owner) {
-  setObjectName ("base_popup");
-
   rebuildButtonsFromScheme ();
 }
 
@@ -138,10 +136,4 @@ QTMTextPopup::updatePosition (qt_renderer_rep* ren) {
 void
 QTMTextPopup::scrollBy (int x, int y) {
   QTMBasePopup::scrollBy (x, y);
-}
-
-bool
-QTMTextPopup::eventFilter (QObject* obj, QEvent* event) {
-  // 处理事件过滤
-  return QWidget::eventFilter (obj, event);
 }

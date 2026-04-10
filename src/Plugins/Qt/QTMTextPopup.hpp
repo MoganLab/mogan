@@ -40,7 +40,6 @@ public:
 protected:
   void rebuildButtonsFromScheme ();
   void clearButtons ();
-  bool eventFilter (QObject* obj, QEvent* event) override;
 };
 
 #endif // QT_TEXT_POPUP_HPP
