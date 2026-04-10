@@ -30,6 +30,7 @@
 #include <QStyleOption>
 #include <QVBoxLayout>
 
+#include "qt_dpi_utils.hpp"
 #include "s7_tm.hpp"
 
 // 最多显示的最近文档数量
@@ -41,11 +42,11 @@ static const int MAX_RECENT_DOCS= 10;
 
 StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
     : QWidget (parent), styleId_ (style.id), isSelected_ (false) {
-  // 根据 DPI 计算尺寸，确保在高分辨率屏幕上显示正常
-  int scale   = physicalDpiX () >= 192 ? 2 : 1; // 简单的高 DPI 检测
-  int width   = 100 * scale;
-  int height  = 120 * scale;
-  int iconSize= 64 * scale;
+  // 使用 DpiUtils 计算缩放后的尺寸
+  int scale   = qRound (DpiUtils::scaleFactor ());
+  int width   = DpiUtils::scaled (100);
+  int height  = DpiUtils::scaled (120);
+  int iconSize= DpiUtils::scaled (64);
 
   setFixedSize (width, height);
   setCursor (Qt::PointingHandCursor);
@@ -94,19 +95,18 @@ StyleCard::setSelected (bool selected) {
 }
 
 void
+StyleCard::enterEvent (QEnterEvent* event) {
+  // 悬停时选中
+  emit hovered ();
+  QWidget::enterEvent (event);
+}
+
+void
 StyleCard::mousePressEvent (QMouseEvent* event) {
   if (event->button () == Qt::LeftButton) {
     emit clicked ();
   }
   QWidget::mousePressEvent (event);
-}
-
-void
-StyleCard::mouseDoubleClickEvent (QMouseEvent* event) {
-  if (event->button () == Qt::LeftButton) {
-    emit doubleClicked ();
-  }
-  QWidget::mouseDoubleClickEvent (event);
 }
 
 void
@@ -186,8 +186,8 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
     styleCards_.append (card);
     cardsLayout->addWidget (card);
 
-    connect (card, &StyleCard::clicked, this, [this, card] () {
-      // 单击：高亮选中
+    connect (card, &StyleCard::hovered, this, [this, card] () {
+      // 悬停时选中
       if (selectedCard_ != card) {
         if (selectedCard_) {
           selectedCard_->setSelected (false);
@@ -197,8 +197,8 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
       }
     });
 
-    connect (card, &StyleCard::doubleClicked, this, [this, card] () {
-      // 双击：创建文档
+    connect (card, &StyleCard::clicked, this, [this, card] () {
+      // 单击：创建文档
       createDocumentWithStyle (card->styleId ());
     });
 

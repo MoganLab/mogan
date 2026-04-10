@@ -58,12 +58,12 @@ public:
   bool    isSelected () const { return isSelected_; }
 
 signals:
-  void clicked ();
-  void doubleClicked ();
+  void hovered (); // 悬停时触发（用于选中）
+  void clicked (); // 单击时触发（用于打开）
 
 protected:
+  void enterEvent (QEnterEvent* event) override;
   void mousePressEvent (QMouseEvent* event) override;
-  void mouseDoubleClickEvent (QMouseEvent* event) override;
   void paintEvent (QPaintEvent* event) override;
 
 private:
