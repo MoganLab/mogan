@@ -31,7 +31,7 @@ option_end()
 set_config("mupdf", true)
 
 option("startup_tab")
-    set_default(false)
+    set_default(true)
     set_description("Enable startup tab with left navigation")
 option_end()
 
