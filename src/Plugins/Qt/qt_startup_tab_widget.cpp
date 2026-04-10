@@ -36,7 +36,8 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
       navTemplateBtn_ (nullptr), navOpenFolderBtn_ (nullptr),
       navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
-      navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr) {
+      navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr),
+      templatePage_ (nullptr) {
 
   setMinimumSize (600, 400);
   setFocusPolicy (Qt::NoFocus);
@@ -221,11 +222,11 @@ QTStartupTabWidget::create_file_page () {
  */
 QWidget*
 QTStartupTabWidget::create_template_page () {
-  QTTemplatePage* page= new QTTemplatePage (this);
-  page->initialize ();
+  templatePage_= new QTTemplatePage (this);
+  templatePage_->initialize ();
 
   // Connect template opened signal to load document
-  connect (page, &QTTemplatePage::templateOpened, this,
+  connect (templatePage_, &QTTemplatePage::templateOpened, this,
            [] (const QString& filePath) {
              // Escape special characters for Scheme string literal
              // Handle backslash (Windows paths) and double quote
@@ -239,7 +240,7 @@ QTStartupTabWidget::create_template_page () {
              eval_scheme (utf8.constData ());
            });
 
-  return page;
+  return templatePage_;
 }
 
 /**
