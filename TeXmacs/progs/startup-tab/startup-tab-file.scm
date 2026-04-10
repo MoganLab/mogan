@@ -12,6 +12,7 @@
 (texmacs-module (startup-tab startup-tab-file)
   (:use (texmacs texmacs tm-server))
   (:use (texmacs texmacs tm-files))
+  (:use (kernel texmacs tm-dialogue))
   (:use (utils library cursor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -43,17 +44,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (startup-tab-get-recent-docs)
-  ;; Get list of recent documents
-  ;; Returns: list of (filename path timestamp) tuples
-  '())
+  ;; Get list of recent document paths from global recent-file state
+  (learned-interactive 'recent-buffer))
 
 (tm-define (startup-tab-add-recent-doc path)
-  ;; Add a document to recent list
-  (noop))
+  ;; Add or refresh a document in global recent-file state
+  (learn-interactive 'recent-buffer (list (cons "0" path))))
 
 (tm-define (startup-tab-clear-recent-doc path)
-  ;; Remove a specific document from recent list
-  (noop))
+  ;; Remove a specific document from global recent-file state
+  (recent-files-remove-by-path path))
 
 (tm-define (startup-tab-clear-all-recent)
   ;; Clear all recent documents

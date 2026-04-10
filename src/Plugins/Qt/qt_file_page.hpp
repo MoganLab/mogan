@@ -85,6 +85,7 @@ public:
   ~QtFilePage ();
 
   void refreshRecentDocs ();
+  void addRecentDoc (const QString& path);
 
 private:
   void onRecentDocClicked (QListWidgetItem* item);
@@ -94,9 +95,9 @@ private:
   void setupUI ();
   void setupStyleCards (QVBoxLayout* layout);
   void setupRecentDocs (QVBoxLayout* layout);
+  void renderRecentDocs ();
   void loadRecentDocs ();
   void saveRecentDocs ();
-  void addRecentDoc (const QString& path);
   void removeRecentDoc (const QString& path);
   void createDocumentWithStyle (const QString& styleId);
 

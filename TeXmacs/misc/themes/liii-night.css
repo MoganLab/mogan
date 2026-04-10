@@ -1110,3 +1110,70 @@ QPushButton#template-use-btn {
 QPushButton#template-use-btn:hover {
   background-color: #45a049;
 }
+
+/* Startup tab - file page */
+QFrame#startup-tab-separator {
+  color: #4a4f57;
+}
+
+QLabel#startup-tab-section-title {
+  font-weight: 600;
+  color: #f0f4f7;
+}
+
+QListWidget#recent-docs-list {
+  border: 1px solid #4a4f57;
+  border-radius: 8px;
+  background-color: #3f434a;
+  outline: none;
+}
+
+QListWidget#recent-docs-list::item {
+  border: none;
+}
+
+QListWidget#recent-docs-list::item:selected {
+  background-color: #4e5d68;
+}
+
+QWidget#startup-tab-recent-item {
+  background: transparent;
+}
+
+QLabel#startup-tab-recent-name {
+  font-weight: 700;
+  color: #f2f6f8;
+}
+
+QLabel#startup-tab-recent-path {
+  color: #b5bfca;
+}
+
+QWidget#style-card {
+  border: 1px solid #4b5560;
+  border-radius: 8px;
+}
+
+QWidget#style-card[selected="true"] {
+  border: 2px solid #2791ad;
+}
+
+QLabel#style-card-icon {
+  border-radius: 8px;
+  color: #ecf3f6;
+  font-weight: 700;
+}
+
+QLabel#style-card-name {
+  color: #e2e8ee;
+}
+
+QLabel#style-card-badge {
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 1px 6px;
+}
+
+QWidget#style-card:hover QLabel#style-card-badge {
+  background-color: #2791ad;
+}

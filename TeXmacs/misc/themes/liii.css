@@ -1083,3 +1083,67 @@ QPushButton#template-use-btn {
 QPushButton#template-use-btn:hover {
   background-color: #45a049;
 }
+
+/* Startup tab - file page */
+QFrame#startup-tab-separator {
+  color: #d8dde2;
+}
+
+QLabel#startup-tab-section-title {
+  font-weight: 600;
+  color: #215a6a;
+}
+
+QListWidget#recent-docs-list {
+  border: 1px solid #d7dce2;
+  border-radius: 8px;
+  background-color: #ffffff;
+  outline: none;
+}
+
+QListWidget#recent-docs-list::item {
+  border: none;
+}
+
+QListWidget#recent-docs-list::item:selected {
+  background-color: #e8f3f7;
+}
+
+QWidget#startup-tab-recent-item {
+  background: transparent;
+}
+
+QLabel#startup-tab-recent-name {
+  font-weight: 700;
+  color: #1f2933;
+}
+
+QLabel#startup-tab-recent-path {
+  color: #6b7785;
+}
+
+QWidget#style-card {
+  border: 1px solid #d4dde6;
+  border-radius: 8px;
+}
+
+QWidget#style-card[selected="true"] {
+  border: 2px solid #2791ad;
+}
+
+QLabel#style-card-icon {
+  border-radius: 8px;
+  color: #215a6a;
+  font-weight: 700;
+}
+
+QLabel#style-card-name {
+  color: #2b3b45;
+}
+
+QLabel#style-card-badge {
+  color: #ffffff;
+  background-color: #2791ad;
+  border-radius: 8px;
+  padding: 1px 6px;
+}

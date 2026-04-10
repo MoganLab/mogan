@@ -227,7 +227,10 @@ QTStartupTabWidget::create_template_page () {
 
   // Connect template opened signal to load document
   connect (templatePage_, &QTTemplatePage::templateOpened, this,
-           [] (const QString& filePath) {
+           [this] (const QString& filePath) {
+             if (filePage_) {
+               filePage_->addRecentDoc (filePath);
+             }
              // Escape special characters for Scheme string literal
              // Handle backslash (Windows paths) and double quote
              QString escapedPath= filePath;
@@ -282,4 +285,7 @@ QTStartupTabWidget::on_app_quit () {
 void
 QTStartupTabWidget::on_file_open () {
   eval_scheme ("(open-document)");
+  if (filePage_) {
+    filePage_->refreshRecentDocs ();
+  }
 }
