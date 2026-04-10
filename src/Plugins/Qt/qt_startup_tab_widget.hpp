@@ -56,6 +56,7 @@ private:
 
   // 导航按钮状态管理
   void set_active_nav_button (Entry entry);
+  void refresh_recent_docs_on_file_entry (Entry entry);
 
 private:
   Entry currentEntry_;

@@ -82,6 +82,14 @@ QTStartupTabWidget::set_current_entry (Entry entry) {
     emit entry_changed (entry); // 通知右侧内容区切换页面
   }
   set_active_nav_button (entry); // 更新导航按钮选中状态（无论是否变化都更新）
+  refresh_recent_docs_on_file_entry (entry);
+}
+
+void
+QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
+  if (entry == Entry::File && filePage_) {
+    filePage_->refreshRecentDocs ();
+  }
 }
 
 /**
@@ -285,7 +293,4 @@ QTStartupTabWidget::on_app_quit () {
 void
 QTStartupTabWidget::on_file_open () {
   eval_scheme ("(open-document)");
-  if (filePage_) {
-    filePage_->refreshRecentDocs ();
-  }
 }
