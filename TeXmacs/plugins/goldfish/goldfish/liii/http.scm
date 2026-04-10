@@ -18,20 +18,22 @@
   (let ((status-code (r 'status-code))
         (reason (r 'reason))
         (url (r 'url)))
-    (cond ((and (>= status-code 400) (< status-code 500))
-           (error 'http-error
-             (string-append (number->string status-code)
-                            " Client Error: " reason " for url: " url)
-             ) ;string-append
-           ) ;error
-          ((and (>= status-code 500) (< status-code 600))
-           (error 'http-error
-             (string-append (number->string status-code)
-                            " Server Error: " reason " for url: " url
-             ) ;string-append
-           ) ;error
-          ) ;
-          (else #t)
+    (cond
+      ((and (>= status-code 400) (< status-code 500))
+       (error 'http-error
+         (string-append (number->string status-code)
+                        " Client Error: " reason " for url: " url
+         ) ;string-append
+       ) ;error
+      ) ;
+      ((and (>= status-code 500) (< status-code 600))
+       (error 'http-error
+         (string-append (number->string status-code)
+                        " Server Error: " reason " for url: " url
+         ) ;string-append
+       ) ;error
+      ) ;
+      (else #t)
     ) ;cond
   ) ;let
 ) ;define
@@ -100,10 +102,11 @@
   (when (not (alist? entries))
     (type-error (string-append who ": " field " must be an association list") entries)
   ) ;when
-  (map (lambda (entry)
-         (http-normalize-string-alist-entry who field entry)
-       ) ;lambda
-       entries
+  (map
+    (lambda (entry)
+      (http-normalize-string-alist-entry who field entry)
+    ) ;lambda
+    entries
   ) ;map
 ) ;define
 
@@ -154,42 +157,47 @@
   ) ;when
   (let* ((name (http-scalar->string who "files key" (car entry)))
          (spec (cdr entry)))
-    (cond ((string? spec)
-           (when (not (file-exists? spec))
-             (value-error (string-append who ": file does not exist") spec)
-           ) ;when
-           `((name . ,name)
-             (file . ,spec))
-          ) ;cond
-          ((alist? spec)
-           (let* ((normalized-spec (map (lambda (item)
-                                          (http-normalize-file-spec-entry who item)
-                                        ) ;lambda
-                                        spec
-                                   ) ;map
-                  )
-                  (file (http-part-ref normalized-spec "file"))
-                  (filename (http-part-ref normalized-spec "filename"))
-                  (content-type (http-part-ref normalized-spec "content-type")))
-             (when (not file)
-               (value-error (string-append who ": file spec requires a file path") spec)
-             ) ;when
-             (when (not (file-exists? file))
-               (value-error (string-append who ": file does not exist") file)
-             ) ;when
-             (append `((name . ,name)
-                       (file . ,file))
-                     (if filename `((filename . ,filename)) '())
-                     (if content-type `((content-type . ,content-type)) '())
-             ) ;append
-           ) ;let*
-          ) ;
-          (else
-            (type-error
-              (string-append who ": files value must be a path string or file spec alist")
+    (cond
+      ((string? spec)
+       (when (not (file-exists? spec))
+         (value-error (string-append who ": file does not exist") spec)
+       ) ;when
+       `((name . ,name)
+         (file . ,spec))
+      ) ;
+      ((alist? spec)
+       (let*
+         ((normalized-spec
+            (map
+              (lambda (item)
+                (http-normalize-file-spec-entry who item)
+              ) ;lambda
               spec
-            ) ;type-error
-          ) ;else
+            ) ;map
+          ) ;normalized-spec
+          (file (http-part-ref normalized-spec "file"))
+          (filename (http-part-ref normalized-spec "filename"))
+          (content-type (http-part-ref normalized-spec "content-type"))
+         ) ;
+         (when (not file)
+           (value-error (string-append who ": file spec requires a file path") spec)
+         ) ;when
+         (when (not (file-exists? file))
+           (value-error (string-append who ": file does not exist") file)
+         ) ;when
+         (append `((name . ,name)
+                   (file . ,file))
+                 (if filename `((filename . ,filename)) '())
+                 (if content-type `((content-type . ,content-type)) '())
+         ) ;append
+       ) ;let*
+      ) ;
+      (else
+        (type-error
+          (string-append who ": files value must be a path string or file spec alist")
+          spec
+        ) ;type-error
+      ) ;else
     ) ;cond
   ) ;let*
 ) ;define
@@ -198,10 +206,11 @@
   (when (not (alist? files))
     (type-error (string-append who ": files must be an association list") files)
   ) ;when
-  (map (lambda (entry)
-         (http-normalize-file-entry who entry)
-       ) ;lambda
-       files
+  (map
+    (lambda (entry)
+      (http-normalize-file-entry who entry)
+    ) ;lambda
+    files
   ) ;map
 ) ;define
 
@@ -235,48 +244,51 @@
          (output-file (http-optional-string "http-get" "output-file" output-file))
          (stream (http-require-boolean "http-get" "stream" stream))
          (callback (http-optional-procedure "http-get" "callback" callback)))
-    (cond ((not stream)
-           (g_http-get url params headers proxy #f)
-          )
-          ((and (not output-file) (not callback))
-           (value-error "http-get: stream mode requires output-file or callback")
+    (cond
+      ((not stream)
+       (g_http-get url params headers proxy #f)
+      ) ;
+      ((and (not output-file) (not callback))
+       (value-error "http-get: stream mode requires output-file or callback")
+      ) ;
+      (else
+        (let
+          ((stream-callback
+             (lambda (chunk)
+               (if callback
+                 (let ((ret (callback chunk)))
+                   (if (boolean? ret) ret #t)
+                 ) ;let
+                 #t
+               ) ;if
+             ) ;lambda
+           ) ;stream-callback
           ) ;
-          (else
-            (let ((stream-callback
+          (if output-file
+            (let ((port (open-binary-output-file output-file)))
+              (dynamic-wind
+                (lambda () #f)
+                (lambda ()
+                  (g_http-get
+                    url
+                    params
+                    headers
+                    proxy
                     (lambda (chunk)
-                      (if callback
-                        (let ((ret (callback chunk)))
-                          (if (boolean? ret) ret #t)
-                        ) ;let
-                        #t
-                      ) ;if
+                      (write-string chunk port)
+                      (stream-callback chunk)
                     ) ;lambda
-                  ))
-              (if output-file
-                (let ((port (open-binary-output-file output-file)))
-                  (dynamic-wind
-                    (lambda () #f)
-                    (lambda ()
-                      (g_http-get
-                        url
-                        params
-                        headers
-                        proxy
-                        (lambda (chunk)
-                          (write-string chunk port)
-                          (stream-callback chunk)
-                        ) ;lambda
-                      ) ;g_http-get
-                    ) ;lambda
-                    (lambda ()
-                      (close-port port)
-                    ) ;lambda
-                  ) ;dynamic-wind
-                ) ;let
-                (g_http-get url params headers proxy stream-callback)
-              ) ;if
+                  ) ;g_http-get
+                ) ;lambda
+                (lambda ()
+                  (close-port port)
+                ) ;lambda
+              ) ;dynamic-wind
             ) ;let
-          ) ;else
+            (g_http-get url params headers proxy stream-callback)
+          ) ;if
+        ) ;let
+      ) ;else
     ) ;cond
   ) ;let*
 ) ;define*
@@ -291,65 +303,69 @@
          (output-file (http-optional-string "http-post" "output-file" output-file))
          (stream (http-require-boolean "http-post" "stream" stream))
          (callback (http-optional-procedure "http-post" "callback" callback)))
-    (let* ((body-or-data
-             (if (null? files)
-               (http-require-string "http-post" "data" data)
-               (http-normalize-post-form-data "http-post" data)
-             ) ;if
-           )
-           (headers
-             (if (and (null? files)
-                      (> (string-length body-or-data) 0)
-                      (null? headers))
-               '(("Content-Type" . "text/plain"))
-               headers
-             ) ;if
-           )
-           ) ;headers
-      (cond ((not stream)
-             (g_http-post url params body-or-data headers proxy files #f)
-            )
-            ((and (not output-file) (not callback))
-             (value-error "http-post: stream mode requires output-file or callback")
+    (let*
+      ((body-or-data
+         (if (null? files)
+           (http-require-string "http-post" "data" data)
+           (http-normalize-post-form-data "http-post" data)
+         ) ;if
+       ) ;body-or-data
+       (headers
+         (if (and (null? files)
+                  (> (string-length body-or-data) 0)
+                  (null? headers))
+           '(("Content-Type" . "text/plain"))
+           headers
+         ) ;if
+       ) ;headers
+      ) ;
+      (cond
+        ((not stream)
+         (g_http-post url params body-or-data headers proxy files #f)
+        ) ;
+        ((and (not output-file) (not callback))
+         (value-error "http-post: stream mode requires output-file or callback")
+        ) ;
+        (else
+          (let
+            ((stream-callback
+               (lambda (chunk)
+                 (if callback
+                   (let ((ret (callback chunk)))
+                     (if (boolean? ret) ret #t)
+                   ) ;let
+                   #t
+                 ) ;if
+               ) ;lambda
+             ) ;stream-callback
             ) ;
-            (else
-              (let ((stream-callback
+            (if output-file
+              (let ((port (open-binary-output-file output-file)))
+                (dynamic-wind
+                  (lambda () #f)
+                  (lambda ()
+                    (g_http-post
+                      url
+                      params
+                      body-or-data
+                      headers
+                      proxy
+                      files
                       (lambda (chunk)
-                        (if callback
-                          (let ((ret (callback chunk)))
-                            (if (boolean? ret) ret #t)
-                          ) ;let
-                          #t
-                        ) ;if
+                        (write-string chunk port)
+                        (stream-callback chunk)
                       ) ;lambda
-                    ))
-                (if output-file
-                  (let ((port (open-binary-output-file output-file)))
-                    (dynamic-wind
-                      (lambda () #f)
-                      (lambda ()
-                        (g_http-post
-                          url
-                          params
-                          body-or-data
-                          headers
-                          proxy
-                          files
-                          (lambda (chunk)
-                            (write-string chunk port)
-                            (stream-callback chunk)
-                          ) ;lambda
-                        ) ;g_http-post
-                      ) ;lambda
-                      (lambda ()
-                        (close-port port)
-                      ) ;lambda
-                    ) ;dynamic-wind
-                  ) ;let
-                  (g_http-post url params body-or-data headers proxy files stream-callback)
-                ) ;if
+                    ) ;g_http-post
+                  ) ;lambda
+                  (lambda ()
+                    (close-port port)
+                  ) ;lambda
+                ) ;dynamic-wind
               ) ;let
-            ) ;else
+              (g_http-post url params body-or-data headers proxy files stream-callback)
+            ) ;if
+          ) ;let
+        ) ;else
       ) ;cond
     ) ;let*
   ) ;let*
@@ -374,9 +390,11 @@
          (data (http-require-string "http-async-post" "data" data))
          (headers (http-normalize-string-alist "http-async-post" "headers" headers))
          (proxy (http-normalize-string-alist "http-async-post" "proxy" proxy)))
-    (cond ((and (> (string-length data) 0) (null? headers))
-           (g_http-async-post url params data '(("Content-Type" . "text/plain")) proxy callback))
-          (else (g_http-async-post url params data headers proxy callback))
+    (cond
+      ((and (> (string-length data) 0) (null? headers))
+       (g_http-async-post url params data '(("Content-Type" . "text/plain")) proxy callback)
+      ) ;
+      (else (g_http-async-post url params data headers proxy callback))
     ) ;cond
   ) ;let*
 ) ;define*

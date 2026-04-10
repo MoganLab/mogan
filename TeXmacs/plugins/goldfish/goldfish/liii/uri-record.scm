@@ -269,18 +269,19 @@
       (if (or (not (string? qs)) (string=? qs ""))
         '()
         (let ((pairs (string-split qs "&")))
-          (map (lambda (pair)
-                 (let ((eq-pos (string-index pair #\=)))
-                   (if eq-pos
-                     (cons (substring pair 0 eq-pos)
-                           (uri-decode (substring pair (+ eq-pos 1) (string-length pair)))
-                     ) ;cons
-                     (cons pair "")
-                   ) ;if
-                 ) ;let
-          ) ;map
-            pairs
-        ) ;let
+          (map
+            (lambda (pair)
+              (let ((eq-pos (string-index pair #\=)))
+                (if eq-pos
+                  (cons (substring pair 0 eq-pos)
+                        (uri-decode (substring pair (+ eq-pos 1) (string-length pair)))
+                  ) ;cons
+                  (cons pair "")
+                ) ;if
+              ) ;let
+            ) ;lambda
+         pairs
+     ) ;let
       ) ;if
     ) ;define
   ) ;begin
@@ -290,14 +291,15 @@
       (if (null? alist)
         ""
         (string-join
-          (map (lambda (pair)
-                 (if (cdr pair)
-                   (string-append (car pair) "=" (uri-encode (cdr pair)))
-                   (car pair)
-                 ) ;if
+          (map
+            (lambda (pair)
+              (if (cdr pair)
+                (string-append (car pair) "=" (uri-encode (cdr pair)))
+                (car pair)
+              ) ;if
+            ) ;lambda
+            alist
           ) ;map
-               alist
-        ) ;string-join
           "&"
       ) ;if
     ) ;define

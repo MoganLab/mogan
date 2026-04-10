@@ -85,16 +85,17 @@
                          (values ,@(map (lambda (name)
                                           (values (symbol->keyword name) name))
                                      (let args->proper-list ((args (car v)))
-                                       (cond ((symbol? args)
-                                              (list args))
-                                             ((not (pair? args))
-                                              args)
-                                             ((pair? (car args))
-                                              (cons (caar args)
-                                                    (args->proper-list (cdr args))))
-                                             (else
-                                              (cons (car args)
-                                                    (args->proper-list (cdr args)))))))))
+                                       (cond
+                                         ((symbol? args)
+                                          (list args))
+                                         ((not (pair? args))
+                                          args)
+                                         ((pair? (car args))
+                                          (cons (caar args)
+                                                (args->proper-list (cdr args))))
+                                         (else
+                                          (cons (car args)
+                                                (args->proper-list (cdr args)))))))))
                        ,(cadr v)))
                    vars)))
             ,@body)
@@ -109,16 +110,20 @@
 
     ; 0-clause BSD by Bill Schottstaedt from S7 source repo: r7rs.scm
     (define-macro (define-record-type type make ? . fields)
-      (let ((obj (gensym))
-            (typ (gensym)) ; this means each call on this macro makes a new type
-            (args (map (lambda (field)
-                         (values (list 'quote (car field))
-                                 (let ((par (memq (car field) (cdr make))))
-                                   (and (pair? par) (car par)))
-                                 ) ;let
-                         ) ;values
-                       fields))
-            ) ;args
+      (let
+        ((obj (gensym))
+         (typ (gensym)) ; this means each call on this macro makes a new type
+         (args
+           (map
+             (lambda (field)
+               (values (list 'quote (car field))
+                       (let ((par (memq (car field) (cdr make))))
+                         (and (pair? par) (car par)))
+                       ) ;let
+               ) ;values
+             fields)
+           ) ;map
+         ) ;args
         `(begin
            (define (,? ,obj)
              (and (let? ,obj)
@@ -385,15 +390,17 @@ wrong-type-arg
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "lcm: parameters must be reals")
       ) ;when
-      (cond ((and (inexact? x) (exact? y))
-             (inexact (s7-lcm (exact x) y)))
-            ((and (exact? x) (inexact? y))
-             (inexact (s7-lcm x (exact y)))
-            ) ;
-            ((and (inexact? x) (inexact? y))
-             (inexact (s7-lcm (exact x) (exact y)))
-            ) ;
-            (else (s7-lcm x y))
+      (cond
+        ((and (inexact? x) (exact? y))
+         (inexact (s7-lcm (exact x) y))
+        ) ;
+        ((and (exact? x) (inexact? y))
+         (inexact (s7-lcm x (exact y)))
+        ) ;
+        ((and (inexact? x) (inexact? y))
+         (inexact (s7-lcm (exact x) (exact y)))
+        ) ;
+        (else (s7-lcm x y))
       ) ;cond
     ) ;define
 
@@ -405,8 +412,10 @@ wrong-type-arg
             ((null? (cddr args))
              (lcm2 (car args) (cadr args))
             ) ;
-            (else (apply lcm (cons (lcm (car args) (cadr args))
-                                   (cddr args)))
+            (else
+             (apply lcm (cons (lcm (car args) (cadr args))
+                              (cddr args))
+             ) ;apply
             ) ;else
       ) ;cond
     ) ;define
@@ -657,14 +666,15 @@ wrong-type-arg
     ) ;define
 
     (define-macro (guard results . body)
-      `(let ((,(car results) 
-              (catch #t 
-                (lambda () 
-                  ,@body) 
-                (lambda (type info)
-                  (if (pair? (*s7* 'catches))
-                      (lambda () (apply throw type info))
-                      (car info))))))
+      `(let
+         ((,(car results)
+           (catch #t 
+             (lambda () 
+               ,@body) 
+             (lambda (type info)
+               (if (pair? (*s7* 'catches))
+                   (lambda () (apply throw type info))
+                   (car info))))))
          (cond ,@(cdr results)
                (else 
                 (if (procedure? ,(car results)) 
@@ -706,15 +716,17 @@ wrong-type-arg
     (define list-copy copy)
 
     (define (string-copy str . start_end)
-      (cond ((null? start_end)
-             (substring str 0))
-            ((= (length start_end) 1)
-             (substring str (car start_end))
-            ) ;
-            ((= (length start_end) 2)
-             (substring str (car start_end) (cadr start_end))
-            ) ;
-            (else (error 'wrong-number-of-args))
+      (cond
+        ((null? start_end)
+         (substring str 0)
+        ) ;
+        ((= (length start_end) 1)
+         (substring str (car start_end))
+        ) ;
+        ((= (length start_end) 2)
+         (substring str (car start_end) (cadr start_end))
+        ) ;
+        (else (error 'wrong-number-of-args))
       ) ;cond
     ) ;define
 

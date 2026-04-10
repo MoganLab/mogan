@@ -173,39 +173,41 @@
     ) ;define
 
     (define-macro (define-computation-type make-environment run . vars)
-      (letrec ((process-vars 
-                (lambda (vars n acc)
-                  (if (null? vars)
-                      (reverse acc)
-                      (let ((v (car vars))
-                            (rest (cdr vars)))
-                        (cond
-                         ((and (pair? v) (pair? (cdr v)) (pair? (cddr v))
-                               (string=? (caddr v) "immutable"))
-                          (let ((var (car v))
-                                (default (cadr v)))
-                            (process-vars rest (+ n 1)
-                                          (cons (list var default #t n) acc)
-                            ) ;process-vars
-                          ) ;let
-                         ) ;
-                         ((and (pair? v) (pair? (cdr v)))
-                          (let ((var (car v))
-                                (default (cadr v)))
-                            (process-vars rest (+ n 1)
-                                          (cons (list var default #f n) acc)
-                            ) ;process-vars
-                          ) ;let
-                         ) ;
-                         (else
-                          (process-vars rest (+ n 1)
-                                        (cons (list v #f #f n) acc)))
-                          ) ;process-vars
-                         ) ;else
-                        ) ;cond
-                      ) ;let
-                  ) ;if
-                ) ;lambda
+      (letrec
+        ((process-vars
+          (lambda (vars n acc)
+            (if (null? vars)
+                (reverse acc)
+                (let ((v (car vars))
+                      (rest (cdr vars)))
+                  (cond
+                   ((and (pair? v) (pair? (cdr v)) (pair? (cddr v))
+                         (string=? (caddr v) "immutable")
+                    ) ;and
+                    (let ((var (car v))
+                          (default (cadr v)))
+                      (process-vars rest (+ n 1)
+                                    (cons (list var default #t n) acc)
+                      ) ;process-vars
+                    ) ;let
+                   ) ;
+                   ((and (pair? v) (pair? (cdr v)))
+                    (let ((var (car v))
+                          (default (cadr v)))
+                      (process-vars rest (+ n 1)
+                                    (cons (list var default #f n) acc)
+                      ) ;process-vars
+                    ) ;let
+                   ) ;
+                   (else
+                    (process-vars rest (+ n 1)
+                                  (cons (list v #f #f n) acc)))
+                    ) ;process-vars
+                   ) ;else
+                  ) ;cond
+                ) ;let
+            ) ;if
+          ) ;lambda
         (let* ((processed (process-vars vars 0 '()))
                (n (length processed))
                (default-syms (map (lambda (x) (gensym "default")) processed))
@@ -213,17 +215,19 @@
           `(begin
              ,@(map (lambda (p ds) `(define ,ds ,(cadr p)))
                     processed default-syms)
-             ,@(map (lambda (p ds)
-                      `(define ,(car p)
-                         (,make-environment-variable ',(car p) ,ds ,(caddr p) ,(cadddr p))))
-                    processed default-syms)
+             ,@(map
+                 (lambda (p ds)
+                   `(define ,(car p)
+                      (,make-environment-variable ',(car p) ,ds ,(caddr p) ,(cadddr p))))
+                 processed default-syms)
              (define (,make-environment)
                (let ((,env-sym (make-vector ,(+ n 2))))
                  (,environment-set-global! ,env-sym (make-hash-table variable-comparator))
                  (,environment-set-local! ,env-sym '())
-                 ,@(map (lambda (p ds)
-                          `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds)))
-                        processed default-syms)
+                 ,@(map
+                     (lambda (p ds)
+                       `(vector-set! ,env-sym ,(+ (cadddr p) 2) (,box ,ds)))
+                     processed default-syms)
                  ,env-sym))
              (define (,run computation)
                (,execute computation (,make-environment))))
@@ -306,11 +310,13 @@
     ) ;define
 
     (define (execute computation env)
-      (let ((coerce (if (procedure? computation)
-                        values
-                        (or (computation-environment-ref env default-computation)
-                            (error "not a computation" computation))))
-                        ) ;or
+      (let
+        ((coerce (if (procedure? computation)
+                     values
+                     (or (computation-environment-ref env default-computation)
+                         (error "not a computation" computation)))
+                     ) ;or
+         ) ;coerce
         ((coerce computation) env)
       ) ;let
     ) ;define
@@ -382,18 +388,19 @@
       (let ((clauses (car args))
             (body (cdr args)))
         (define (parse-clauses clauses)
-          (map (lambda (c)
-                 (if (pair? c)
-                     (let ((id (car c))
-                           (var (cadr c)))
-                       (list id var (gensym "tmp"))
-                     ) ;let
-                     (let ((id c))
-                       (list id id (gensym "tmp")))
-                     ) ;let
-                 ) ;if
-               clauses
-          ) ;map
+          (map
+            (lambda (c)
+              (if (pair? c)
+                  (let ((id (car c))
+                        (var (cadr c)))
+                    (list id var (gensym "tmp"))
+                  ) ;let
+                  (let ((id c))
+                    (list id id (gensym "tmp")))
+                  ) ;let
+              ) ;if
+            clauses
+       ) ;map
         ) ;define
         (let* ((parsed (parse-clauses clauses))
                (env-sym (gensym "env"))
@@ -439,9 +446,10 @@
            (computation-bind
             (computation-ask)
             (lambda (,env-sym)
-              ,@(map (lambda (vt val-t)
-                       `(computation-environment-update! ,env-sym ,vt ,val-t))
-                     var-tmps val-tmps)
+              ,@(map
+                  (lambda (vt val-t)
+                    `(computation-environment-update! ,env-sym ,vt ,val-t))
+                  var-tmps val-tmps)
               (computation-pure (if #f #f)))))
       ) ;let
     ) ;define-macro

@@ -966,24 +966,28 @@
 
     (define (bag-any? predicate bag)
       (check-bag bag)
-      (let ((found
-             (hash-table-find
-              (lambda (k entry) (predicate k))
-              (bag-entries bag)
-              #f))
-             ) ;hash-table-find
+      (let
+        ((found
+          (hash-table-find
+           (lambda (k entry) (predicate k))
+           (bag-entries bag)
+           #f)
+          ) ;hash-table-find
+         ) ;found
         (if found #t #f)
       ) ;let
     ) ;define
 
     (define (bag-every? predicate bag)
       (check-bag bag)
-      (let ((found
-             (hash-table-find
-              (lambda (k entry) (not (predicate k)))
-              (bag-entries bag)
-              #f))
-             ) ;hash-table-find
+      (let
+        ((found
+          (hash-table-find
+           (lambda (k entry) (not (predicate k)))
+           (bag-entries bag)
+           #f)
+          ) ;hash-table-find
+         ) ;found
         (if found #f #t)
       ) ;let
     ) ;define
@@ -1093,12 +1097,14 @@
        (lambda (return)
          (let ((e1 (bag-entries b1))
                (e2 (bag-entries b2)))
-           (let ((smaller-count
-                  (cond
-                   ((< (hash-table-size e1) (hash-table-size e2)) 1)
-                   ((= (hash-table-size e1) (hash-table-size e2)) 0)
-                   (else (return #f))))
-                  ) ;cond
+           (let
+             ((smaller-count
+               (cond
+                ((< (hash-table-size e1) (hash-table-size e2)) 1)
+                ((= (hash-table-size e1) (hash-table-size e2)) 0)
+                (else (return #f)))
+               ) ;cond
+              ) ;smaller-count
              (hash-table-for-each
               (lambda (k count1)
                 (let ((count2 (hash-table-ref/default e2 k 0)))
@@ -1442,21 +1448,25 @@
 
     (define (bag-search! bag element failure success)
       (check-bag bag)
-      (let* ((comp (bag-comparator bag))
-             (same? (comparator-equality-predicate comp))
-             (entries (bag-entries bag))
-             (not-found (list 'not-found))
-             (found (call/cc
-                     (lambda (return)
-                       (hash-table-for-each
-                        (lambda (k entry)
-                          (when (same? k element) (return k))
-                        ) ;lambda
-                        entries
-                       ) ;hash-table-for-each
-                       not-found))
-                     ) ;lambda
-             ) ;found
+      (let*
+        ((comp (bag-comparator bag))
+         (same? (comparator-equality-predicate comp))
+         (entries (bag-entries bag))
+         (not-found (list 'not-found))
+         (found
+           (call/cc
+            (lambda (return)
+              (hash-table-for-each
+               (lambda (k entry)
+                 (when (same? k element) (return k))
+               ) ;lambda
+               entries
+              ) ;hash-table-for-each
+              not-found
+            ) ;lambda
+           ) ;call/cc
+         ) ;found
+        ) ;
         (if (eq? found not-found)
             (failure (lambda (obj)
                        (bag-increment! bag element 1)

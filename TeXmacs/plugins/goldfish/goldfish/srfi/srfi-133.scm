@@ -217,12 +217,14 @@
     ) ;define
 
     (define (vector-reverse! vec . args)
-      (let* ((args-length (length args))
-             (start (if (null? args) 0 (car args)))
-             (end (if (<= args-length 1)
-                      (vector-length vec)
-                      (cadr args)))
-             ) ;end
+      (let*
+        ((args-length (length args))
+         (start (if (null? args) 0 (car args)))
+         (end (if (<= args-length 1)
+                  (vector-length vec)
+                  (cadr args))
+         ) ;end
+        ) ;
 
         (unless (and (< args-length 3)
                      (>= args-length 0))

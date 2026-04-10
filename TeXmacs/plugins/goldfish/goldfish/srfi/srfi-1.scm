@@ -200,7 +200,8 @@
       (cond ((null? lists) initial)
             ((and (pair? lists)
                   (null? (cdr lists))
-                  (list? (car lists)))
+                  (list? (car lists))
+             ) ;and
              (let loop ((acc initial)
                         (lst (car lists)))
                (if (null? lst)
@@ -231,7 +232,8 @@
       (cond ((null? lists) initial)
             ((and (pair? lists)
                   (null? (cdr lists))
-                  (list? (car lists)))
+                  (list? (car lists))
+             ) ;and
              (let loop ((lst (car lists)))
                (if (null? lst)
                    initial

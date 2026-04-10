@@ -49,15 +49,19 @@
   (begin
 
     (define (vector-filter pred vec)
-      (let* ((result-list (vector-fold (lambda (elem acc)
-                                         (if (pred elem)
-                                             (cons elem acc)
-                                             acc)
-                                         ) ;if
-                                       '()
-                                       vec))
-             (result-length (length result-list))
-             (result-vec (make-vector result-length)))
+      (let*
+        ((result-list
+           (vector-fold (lambda (elem acc)
+                          (if (pred elem)
+                              (cons elem acc)
+                              acc)
+                          ) ;if
+                        '()
+                        vec)
+           ) ;vector-fold
+         (result-length (length result-list))
+         (result-vec (make-vector result-length))
+        ) ;
         (let loop ((i (- result-length 1)) (lst result-list))
           (if (null? lst)
               result-vec

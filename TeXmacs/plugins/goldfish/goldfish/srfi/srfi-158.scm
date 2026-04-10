@@ -451,8 +451,10 @@
                 (let loop ((gens gens) (gs '()))
                   (cond ((null? gens) (reverse gs))
                         ((null? (cdr gens)) (reverse (cons (car gens) gs)))
-                        (else (loop (cddr gens)
-                                    (cons (gmerge < (car gens) (cadr gens)) gs))
+                        (else
+                         (loop (cddr gens)
+                               (cons (gmerge < (car gens) (cadr gens)) gs)
+                         ) ;loop
                         ) ;else
                   ) ;cond
                 ) ;let

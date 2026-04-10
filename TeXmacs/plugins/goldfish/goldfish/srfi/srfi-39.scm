@@ -19,19 +19,21 @@
     (define-macro (parameterize vars . body)
       `(dynamic-wind
          (lambda ()
-           ,@(map (lambda (var)
-                    `(with-let (funclet ,(car var))
-                       (set! old-values (cons value old-values))
-                       (set! value (convert ,(cadr var)))))
-                  vars))
+           ,@(map
+               (lambda (var)
+                 `(with-let (funclet ,(car var))
+                    (set! old-values (cons value old-values))
+                    (set! value (convert ,(cadr var)))))
+               vars))
          (lambda () 
            ,@body)
          (lambda ()
-           ,@(map (lambda (var)
-                    `(with-let (funclet ,(car var))
-                       (set! value (car old-values))
-                       (set! old-values (cdr old-values))))
-                  vars)))
+           ,@(map
+               (lambda (var)
+                 `(with-let (funclet ,(car var))
+                    (set! value (car old-values))
+                    (set! old-values (cdr old-values))))
+               vars)))
     ) ;define-macro
 
   ) ;begin

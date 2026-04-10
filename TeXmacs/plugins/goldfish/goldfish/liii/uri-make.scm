@@ -50,36 +50,37 @@
       ;; 查找路径开始（/）、查询（?）或片段（#）
       (let loop ((i 0) (slash-pos #f) (question-pos #f) (hash-pos #f))
         (if (>= i (string-length str))
-          (let ((netloc (if slash-pos
-                           (substring str 0 slash-pos)
-                           str
-                        ) ;if
-                  ) ;netloc
-                (path (if slash-pos
-                         (substring str slash-pos
-                                   (or question-pos
-                                       hash-pos
-                                       (string-length str)
-                                   ) ;or
-                         ) ;substring
-                         ""
-                      ) ;if
-                ) ;path
-                (query (if question-pos
-                          (substring str (+ question-pos 1)
-                                    (or hash-pos
-                                        (string-length str)
-                                    ) ;or
-                          ) ;substring
-                          ""
+          (let
+            ((netloc (if slash-pos
+                        (substring str 0 slash-pos)
+                        str
+                     ) ;if
+             ) ;netloc
+             (path (if slash-pos
+                      (substring str slash-pos
+                                (or question-pos
+                                    hash-pos
+                                    (string-length str)
+                                ) ;or
+                      ) ;substring
+                      ""
+                   ) ;if
+             ) ;path
+             (query (if question-pos
+                       (substring str (+ question-pos 1)
+                                 (or hash-pos
+                                     (string-length str)
+                                 ) ;or
+                       ) ;substring
+                       ""
+                    ) ;if
+             ) ;query
+             (fragment (if hash-pos
+                          (substring str (+ hash-pos 1) (string-length str))
+                          #f
                        ) ;if
-                ) ;query
-                (fragment (if hash-pos
-                             (substring str (+ hash-pos 1) (string-length str))
-                             #f
-                          ) ;if
-                ) ;fragment
-               ) ;let
+             ) ;fragment
+            ) ;
             (list netloc path query fragment)
           ) ;let
           (let ((c (string-ref str i)))
@@ -141,18 +142,20 @@
             (make-uri-raw "ssh" (build-netloc user #f host #f) path '() #f)
           ) ;let*
           ;; 标准 URI 格式
-          (let* ((scheme+rest (split-scheme str))
-                 (scheme (car scheme+rest))
-                 (rest (cdr scheme+rest))
-                 (authority+path+query+frag (if (string-starts? rest "//")
-                                               (split-authority (substring rest 2 (string-length rest)))
-                                               (list "" rest "" "")
-                                            ) ;if
-                 ) ;authority+path+query+frag
-                 (netloc (list-ref authority+path+query+frag 0))
-                 (path (list-ref authority+path+query+frag 1))
-                 (query-str (list-ref authority+path+query+frag 2))
-                 (fragment (list-ref authority+path+query+frag 3)))
+          (let*
+            ((scheme+rest (split-scheme str))
+             (scheme (car scheme+rest))
+             (rest (cdr scheme+rest))
+             (authority+path+query+frag (if (string-starts? rest "//")
+                                           (split-authority (substring rest 2 (string-length rest)))
+                                           (list "" rest "" "")
+                                        ) ;if
+             ) ;authority+path+query+frag
+             (netloc (list-ref authority+path+query+frag 0))
+             (path (list-ref authority+path+query+frag 1))
+             (query-str (list-ref authority+path+query+frag 2))
+             (fragment (list-ref authority+path+query+frag 3))
+            ) ;
             (make-uri-raw scheme netloc path (query-string->alist query-str) fragment)
           ) ;let*
         ) ;if

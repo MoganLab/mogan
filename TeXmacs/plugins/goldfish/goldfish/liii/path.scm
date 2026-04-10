@@ -122,11 +122,13 @@
                      (char=? (string-ref s 2) #\/))
                  ) ;or
           ;; Absolute Windows path like "C:\Users\..."
-          (let* ((rest (substring s 3 (string-length s)))
-                 (parts (if (string-null? rest)
-                          #()
-                          (string-split-vec rest sep)))
-                 ) ;parts
+          (let*
+            ((rest (substring s 3 (string-length s)))
+             (parts (if (string-null? rest)
+                      #()
+                      (string-split-vec rest sep))
+             ) ;parts
+            ) ;
             parts
           ) ;let*
           ;; Relative to drive like "C:file.txt"
@@ -396,7 +398,8 @@
               ((string=? name ".") "")
               ((string=? name "..") "..")
               ((and (string=? (car splits) "")
-                    (= count 2))
+                    (= count 2)
+               ) ;and
                name
               ) ;
               (else
@@ -429,7 +432,8 @@
               ((string=? name ".") "")
               ((string=? name "..") "")
               ((and (string=? (car splits) "")
-                    (= count 2))
+                    (= count 2)
+               ) ;and
                ""
               ) ;
               (else
@@ -465,12 +469,14 @@
       (let ((s (path->string p)))
         (let ((sep (os-sep)))
           ;; First, remove trailing separator if present (except for root)
-          (let ((s-trimmed
-                  (if (and (> (string-length s) 1)
-                           (char=? (string-ref s (- (string-length s) 1)) sep))
-                    (substring s 0 (- (string-length s) 1))
-                    s))
-                  ) ;if
+          (let
+            ((s-trimmed
+               (if (and (> (string-length s) 1)
+                        (char=? (string-ref s (- (string-length s) 1)) sep))
+                 (substring s 0 (- (string-length s) 1))
+                 s)
+               ) ;if
+             ) ;s-trimmed
             (let loop ((i (- (string-length s-trimmed) 1)))
               (cond
                 ((< i 0)
@@ -570,24 +576,25 @@
                  (string? (vector-ref parts 0))
                  (windows-path-with-drive? (vector-ref parts 0)))
           ;; Windows path with drive letter like "C:"
-          (let* ((drive-str (vector-ref parts 0))
-                 (drive (extract-drive drive-str))
-                 ;; Build result parts without drive part
-                 (clean-parts (let loop ((i 1)
-                                        (result '()))
-                               (if (>= i (vector-length parts))
-                                 (list->vector (reverse result))
-                                 (let ((part (vector-ref parts i)))
-                                   ;; Skip empty parts and separator parts
-                                   (if (or (string-null? part)
-                                           (string=? part "/")
-                                           (string=? part "\\"))
-                                     (loop (+ i 1) result)
-                                     (loop (+ i 1) (cons part result))))
-                                   ) ;if
-                                 ) ;let
+          (let*
+            ((drive-str (vector-ref parts 0))
+             (drive (extract-drive drive-str))
+             ;; Build result parts without drive part
+             (clean-parts (let loop ((i 1)
+                                    (result '()))
+                           (if (>= i (vector-length parts))
+                             (list->vector (reverse result))
+                             (let ((part (vector-ref parts i)))
+                               ;; Skip empty parts and separator parts
+                               (if (or (string-null? part)
+                                       (string=? part "/")
+                                       (string=? part "\\"))
+                                 (loop (+ i 1) result)
+                                 (loop (+ i 1) (cons part result))))
                                ) ;if
-                 ) ;clean-parts
+                             ) ;let
+                           ) ;if
+             ) ;clean-parts
             (make-path-record clean-parts 'windows drive)
           ) ;let*
           ;; Regular POSIX-style path

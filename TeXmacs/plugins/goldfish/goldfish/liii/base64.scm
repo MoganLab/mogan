@@ -55,15 +55,17 @@
           (let loop ((i 0)
                      (j 0))
             (when (< i input-N)
-              (let* ((b1 (bv i))
-                     (b2 (if (< (+ i 1) input-N)
-                             (bv (+ i 1))
-                             #f)
-                     ) ;b2
-                     (b3 (if (< (+ i 2) input-N)
-                             (bv (+ i 2))
-                             #f))
-                     ) ;b3
+              (let*
+                ((b1 (bv i))
+                 (b2 (if (< (+ i 1) input-N)
+                         (bv (+ i 1))
+                         #f)
+                 ) ;b2
+                 (b3 (if (< (+ i 2) input-N)
+                         (bv (+ i 2))
+                         #f)
+                 ) ;b3
+                ) ;
                 (receive (r1 r2 r3 r4) (encode b1 b2 b3) (bytevector-u8-set! output j r1)
                          (bytevector-u8-set! output (+ j 1) r2)
                          (bytevector-u8-set! output (+ j 2) r3)

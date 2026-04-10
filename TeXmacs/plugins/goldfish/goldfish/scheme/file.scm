@@ -19,7 +19,8 @@
           delete-file file-exists?
           open-binary-input-file open-binary-output-file
           open-input-file open-output-file
-          with-input-from-file with-output-to-file)
+          with-input-from-file with-output-to-file
+  ) ;export
   (begin
 
     (define open-binary-input-file open-input-file)

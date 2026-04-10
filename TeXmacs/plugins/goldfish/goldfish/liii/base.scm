@@ -89,13 +89,14 @@
                 ) ;if
             ) ;do
             `(lambda ,new-args
-               ,@(map (lambda (arg)
-                        (if (pair? arg)
-                            `(unless (,(cadr arg) ,(car arg))
-                               (error 'type-error
-                                 "~S is not ~S~%" ',(car arg) ',(cadr arg)))
-                            (values)))
-                      args)
+               ,@(map
+                   (lambda (arg)
+                     (if (pair? arg)
+                         `(unless (,(cadr arg) ,(car arg))
+                            (error 'type-error
+                              "~S is not ~S~%" ',(car arg) ',(cadr arg)))
+                         (values)))
+                   args)
                ,@body)
           ) ;let
       ) ;if

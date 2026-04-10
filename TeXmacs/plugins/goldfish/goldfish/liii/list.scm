@@ -139,12 +139,14 @@
     ) ;define
 
     (define (not-null-list? l)
-      (cond ((pair? l)
-             (or (null? (cdr l)) (pair? (cdr l))))
-            ((null? l) #f)
-            (else
-             (error 'type-error "type mismatch")
-            ) ;else
+      (cond
+        ((pair? l)
+         (or (null? (cdr l)) (pair? (cdr l)))
+        ) ;
+        ((null? l) #f)
+        (else
+         (error 'type-error "type mismatch")
+        ) ;else
       ) ;cond
     ) ;define
 
@@ -164,23 +166,25 @@
             res-node
             (let ((first (car rest))
                   (tail  (cdr rest)))
-              (cond ((and (null? first) (not (= 0 depth)))
-                     (flatten-depth-iter tail depth res-node))
-                    ((or (= depth 0) (not (pair? first)))
-                     (set-cdr! res-node (cons first '()))
-                     (flatten-depth-iter tail depth (cdr res-node))
-                    ) ;
-                    (else
-                     (flatten-depth-iter
-                      tail
-                      depth
-                      (flatten-depth-iter
-                       first
-                       (- depth 1)
-                       res-node
-                      ) ;flatten-depth-iter
-                     ) ;flatten-depth-iter
-                    ) ;else
+              (cond
+                ((and (null? first) (not (= 0 depth)))
+                 (flatten-depth-iter tail depth res-node)
+                ) ;
+                ((or (= depth 0) (not (pair? first)))
+                 (set-cdr! res-node (cons first '()))
+                 (flatten-depth-iter tail depth (cdr res-node))
+                ) ;
+                (else
+                 (flatten-depth-iter
+                  tail
+                  depth
+                  (flatten-depth-iter
+                   first
+                   (- depth 1)
+                   res-node
+                  ) ;flatten-depth-iter
+                 ) ;flatten-depth-iter
+                ) ;else
               ) ;cond
             ) ;let
         ) ;if
@@ -197,21 +201,22 @@
           res-node
           (let ((first (car rest))
                 (tail  (cdr rest)))
-            (cond ((pair? first)
-                   (flatten-deepest-iter
-                    tail
-                    (flatten-deepest-iter
-                     first
-                     res-node)
-                    ) ;flatten-deepest-iter
-                   ) ;flatten-deepest-iter
-                  ((null? first)
-                   (flatten-deepest-iter tail res-node)
-                  ) ;
-                  (else
-                   (set-cdr! res-node (cons first '()))
-                   (flatten-deepest-iter tail (cdr res-node))
-                  ) ;else
+            (cond
+              ((pair? first)
+               (flatten-deepest-iter
+                tail
+                (flatten-deepest-iter
+                 first
+                 res-node)
+                ) ;flatten-deepest-iter
+               ) ;flatten-deepest-iter
+              ((null? first)
+               (flatten-deepest-iter tail res-node)
+              ) ;
+              (else
+               (set-cdr! res-node (cons first '()))
+               (flatten-deepest-iter tail (cdr res-node))
+              ) ;else
             ) ;cond
           ) ;let
         ) ;if
@@ -223,17 +228,19 @@
         ) ;let
       ) ;define
 
-      (cond ((eq? depth 'deepest)
-             (flatten-deepest lst))
-            ((integer? depth)
-             (flatten-depth lst depth)
-            ) ;
-            (else
-             (type-error
-              (string-append
-                "flatten: the second argument depth should be symbol "
-                "`deepest' or a integer, which will be uesd as depth,"
-                " but got a ~A") depth)))
+      (cond
+        ((eq? depth 'deepest)
+         (flatten-deepest lst)
+        ) ;
+        ((integer? depth)
+         (flatten-depth lst depth)
+        ) ;
+        (else
+         (type-error
+          (string-append
+            "flatten: the second argument depth should be symbol "
+            "`deepest' or a integer, which will be uesd as depth,"
+            " but got a ~A") depth)))
     ) ;define*
 
   ) ;begin

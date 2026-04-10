@@ -74,12 +74,14 @@
                             (number? ,rel-tol)
                             (number? ,abs-tol)
                             (or (= actual expected)
-                                (let* ((difference (abs (- actual expected)))
-                                       (relative-tolerance (abs ,rel-tol))
-                                       (absolute-tolerance (abs ,abs-tol))
-                                       (scale (max (abs actual) (abs expected)))
-                                       (limit (max absolute-tolerance
-                                                   (* relative-tolerance scale))))
+                                (let*
+                                  ((difference (abs (- actual expected)))
+                                   (relative-tolerance (abs ,rel-tol))
+                                   (absolute-tolerance (abs ,abs-tol))
+                                   (scale (max (abs actual) (abs expected)))
+                                   (limit
+                                     (max absolute-tolerance
+                                          (* relative-tolerance scale))))
                                   (<= difference limit)
                                 ) ;let*
                             ) ;or

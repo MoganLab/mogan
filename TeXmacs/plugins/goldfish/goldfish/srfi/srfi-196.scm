@@ -185,7 +185,8 @@
                      (let lp ((i 0))
                        (cond ((= i la) #t)
                              ((not (equal (range-ref ra i)
-                                          (range-ref rb i)))
+                                          (range-ref rb i))
+                              ) ;not
                               #f
                              ) ;
                              (else (lp (+ i 1)))
@@ -224,16 +225,17 @@
     ) ;define
 
     (define (range-segment r k)
-      (let ((len (range-length r))
-            (%subrange-no-check
-             (lambda (s e)
-               (raw-range (+ (range-start-index r) s)
-                          (- e s)
-                          (range-indexer r)
-                          (range-complexity r))
-               ) ;raw-range
-             ) ;lambda
-            ) ;%subrange-no-check
+      (let
+        ((len (range-length r))
+         (%subrange-no-check
+          (lambda (s e)
+            (raw-range (+ (range-start-index r) s)
+                       (- e s)
+                       (range-indexer r)
+                       (range-complexity r))
+            ) ;raw-range
+          ) ;lambda
+         ) ;%subrange-no-check
         (let loop ((i 0) (result '()))
           (if (>= i len)
               (reverse result)
@@ -246,10 +248,12 @@
     (define (range-take r count)
       (cond ((zero? count) (%empty-range-from r))
             ((= count (range-length r)) r)
-            (else (raw-range (range-start-index r)
-                             count
-                             (range-indexer r)
-                             (range-complexity r))
+            (else
+             (raw-range (range-start-index r)
+                        count
+                        (range-indexer r)
+                        (range-complexity r)
+             ) ;raw-range
             ) ;else
       ) ;cond
     ) ;define

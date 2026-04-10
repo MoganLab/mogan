@@ -125,10 +125,14 @@
                (unless (and (<= #x80 byte2 #xBF) (<= #x80 byte3 #xBF))
                  (error 'value-error "utf8->codepoint: invalid continuation byte")
                ) ;unless
-               (let ((codepoint (bitwise-ior
-                                 (ash (bitwise-and first-byte #b00001111) 12)
-                                 (ash (bitwise-and byte2 #b00111111) 6)
-                                 (bitwise-and byte3 #b00111111))))
+               (let
+                 ((codepoint
+                    (bitwise-ior
+                     (ash (bitwise-and first-byte #b00001111) 12)
+                     (ash (bitwise-and byte2 #b00111111) 6)
+                     (bitwise-and byte3 #b00111111))
+                    ) ;bitwise-ior
+                  ) ;codepoint
                  (when (or (<= #xD800 codepoint #xDFFF)
                            (and (= first-byte #xE0) (< codepoint #x0800))
                            (and (= first-byte #xED) (>= codepoint #xD800)))
@@ -149,11 +153,15 @@
                (unless (and (<= #x80 byte2 #xBF) (<= #x80 byte3 #xBF) (<= #x80 byte4 #xBF))
                  (error 'value-error "utf8->codepoint: invalid continuation byte")
                ) ;unless
-               (let ((codepoint (bitwise-ior
-                                 (ash (bitwise-and first-byte #b00000111) 18)
-                                 (ash (bitwise-and byte2 #b00111111) 12)
-                                 (ash (bitwise-and byte3 #b00111111) 6)
-                                 (bitwise-and byte4 #b00111111))))
+               (let
+                 ((codepoint
+                    (bitwise-ior
+                     (ash (bitwise-and first-byte #b00000111) 18)
+                     (ash (bitwise-and byte2 #b00111111) 12)
+                     (ash (bitwise-and byte3 #b00111111) 6)
+                     (bitwise-and byte4 #b00111111))
+                    ) ;bitwise-ior
+                  ) ;codepoint
                  (when (or (< codepoint #x10000)
                            (> codepoint #x10FFFF)
                            (and (= first-byte #xF0) (< codepoint #x10000))
@@ -302,8 +310,12 @@
                  (error 'value-error "utf16be->codepoint: invalid low surrogate")
                ) ;unless
 
-               (let ((codepoint-prime (+ (ash (- first-codepoint #xD800) 10)
-                                         (- second-codepoint #xDC00))))
+               (let
+                 ((codepoint-prime
+                    (+ (ash (- first-codepoint #xD800) 10)
+                       (- second-codepoint #xDC00))
+                    ) ;+
+                  ) ;codepoint-prime
                  (+ codepoint-prime #x10000)
                ) ;let
              ) ;let*
@@ -396,8 +408,12 @@
                  (error 'value-error "utf16le->codepoint: invalid low surrogate")
                ) ;unless
 
-               (let ((codepoint-prime (+ (ash (- first-codepoint #xD800) 10)
-                                         (- second-codepoint #xDC00))))
+               (let
+                 ((codepoint-prime
+                    (+ (ash (- first-codepoint #xD800) 10)
+                       (- second-codepoint #xDC00))
+                    ) ;+
+                  ) ;codepoint-prime
                  (+ codepoint-prime #x10000)
                ) ;let
              ) ;let*

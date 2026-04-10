@@ -154,8 +154,12 @@
                            (if (and (>= code-point #xD800) (<= code-point #xDBFF)  ; 高代理
                                     (>= next-code-point #xDC00) (<= next-code-point #xDFFF))  ; 低代理
                                ;; 满足代理对条件，使用 unicode 模块计算码点并转换为字符串
-                               (let ((surrogate-code-point (+ (* (- code-point #xD800) #x400)
-                                                              (- next-code-point #xDC00) #x10000)))  ; 计算码点
+                               (let
+                                 ((surrogate-code-point
+                                    (+ (* (- code-point #xD800) #x400)
+                                       (- next-code-point #xDC00) #x10000)  ; 计算码点
+                                    ) ;+
+                                  ) ;surrogate-code-point
                                  (values (utf8->string (codepoint->utf8 surrogate-code-point)) 12)
                                ) ;let
                                ;; 不满足代理对条件，仅对第一个 \u 进行转换
@@ -276,18 +280,19 @@
           (string-append x 
             (let loop-v ((len (vector-length lst)) (n 0) (y ""))
               (if (< n len)
-                  (let* ((k (vector-ref lst n))
-                         (result (cond 
-                                  ((vector? k) 
-                                   (loop k "[")
-                                  ) ;
-                                  ((pair? k) 
-                                   (loop k "{")
-                                  ) ;
-                                  (else 
-                                   (f k)))
-                                  ) ;else
-                         ) ;result
+                  (let*
+                    ((k (vector-ref lst n))
+                     (result (cond 
+                              ((vector? k) 
+                               (loop k "[")
+                              ) ;
+                              ((pair? k) 
+                               (loop k "{")
+                              ) ;
+                              (else 
+                               (f k)))
+                              ) ;else
+                     ) ;result
                     (loop-v len (+ n 1)
                       (string-append y (delim n) result)
                     ) ;loop-v

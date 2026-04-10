@@ -98,51 +98,58 @@
     ) ;define
 
     (define (bit-set? index n)
-      (cond ((negative? index)
-             (error 'out-of-range "bit-set?: Index cannot be negative" index))
-            ((> index 63)
-             (error 'out-of-range "bit-set?: Index cannot exceed 63" index)
-            ) ;
-            ((= index 63) (negative? n))
-            (else
-             (not
-              (zero? (bitwise-and n (arithmetic-shift 1 index)))
-             ) ;not
-            ) ;else
+      (cond
+        ((negative? index)
+         (error 'out-of-range "bit-set?: Index cannot be negative" index)
+        ) ;
+        ((> index 63)
+         (error 'out-of-range "bit-set?: Index cannot exceed 63" index)
+        ) ;
+        ((= index 63) (negative? n))
+        (else
+         (not
+          (zero? (bitwise-and n (arithmetic-shift 1 index)))
+         ) ;not
+        ) ;else
       ) ;cond
     ) ;define
 
     (define (copy-bit index n boolean)
-      (cond ((negative? index)
-             (error 'out-of-range "copy-bit: Index cannot be negative" index))
-            ((> index 63)
-             (error 'out-of-range "copy-bit: Index cannot exceed 63" index)
-            ) ;
-            ((= index 63)
-             (if boolean
-                 (bitwise-ior n -9223372036854775808)
-                 (bitwise-and n 9223372036854775807)
-             ) ;if
-            ) ;
-            (else
-             (if boolean
-                 (bitwise-ior n (arithmetic-shift 1 index))
-                 (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
-             ) ;if
-            ) ;else
+      (cond
+        ((negative? index)
+         (error 'out-of-range "copy-bit: Index cannot be negative" index)
+        ) ;
+        ((> index 63)
+         (error 'out-of-range "copy-bit: Index cannot exceed 63" index)
+        ) ;
+        ((= index 63)
+         (if boolean
+             (bitwise-ior n -9223372036854775808)
+             (bitwise-and n 9223372036854775807)
+         ) ;if
+        ) ;
+        (else
+         (if boolean
+             (bitwise-ior n (arithmetic-shift 1 index))
+             (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
+         ) ;if
+        ) ;else
       ) ;cond
     ) ;define
 
     (define (bit-swap index1 index2 n)
-      (cond ((or (negative? index1)
-                 (negative? index2))
-             (error 'out-of-range "bit-swap: Index cannot be negative" index1 index2))
-            ((or (> index1 63) (> index2 63))
-             (error 'out-of-range "bit-swap: Index cannot exceed 63" index1 index2)
-            ) ;
-            (else
-             (copy-bit index2 (copy-bit index1 n (bit-set? index2 n)) (bit-set? index1 n))
-            ) ;else
+      (cond
+        ((or (negative? index1)
+             (negative? index2)
+         ) ;or
+         (error 'out-of-range "bit-swap: Index cannot be negative" index1 index2)
+        ) ;
+        ((or (> index1 63) (> index2 63))
+         (error 'out-of-range "bit-swap: Index cannot exceed 63" index1 index2)
+        ) ;
+        (else
+         (copy-bit index2 (copy-bit index1 n (bit-set? index2 n)) (bit-set? index1 n))
+        ) ;else
       ) ;cond
     ) ;define
 

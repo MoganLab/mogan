@@ -200,10 +200,12 @@
 
     ;; 路径归一化
     (define (normalize-path path)
-      (let ((segments (string-split path "/"))
-            (absolute? (and (> (string-length path) 0)
-                            (char=? (string-ref path 0) #\/)))
-            ) ;absolute?
+      (let
+        ((segments (string-split path "/"))
+         (absolute? (and (> (string-length path) 0)
+                         (char=? (string-ref path 0) #\/))
+         ) ;absolute?
+        ) ;
         (let loop ((segs segments) (result '()))
           (if (null? segs)
             (if (null? result)

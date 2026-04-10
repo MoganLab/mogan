@@ -237,7 +237,7 @@
             ) ;if
        ) ;and
      ) ;lambda
-   ) ;
+    ) ;search
     (if (branch? trie)
         (if (negative? (branch-branching-bit trie))
             (search (branch-right trie))
@@ -259,7 +259,7 @@
             ) ;if
        ) ;and
      ) ;lambda
-   ) ;
+    ) ;search
     (if (branch? trie)
         (if (negative? (branch-branching-bit trie))
             (search (branch-left trie))
@@ -302,7 +302,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;ins
     (ins trie)
   ) ;letrec
 ) ;define
@@ -326,7 +326,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;cata
     (if (branch? trie)
         (let ((p (branch-prefix trie))
               (m (branch-branching-bit trie))
@@ -367,7 +367,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;cata
     (if (branch? trie)
         (let ((p (branch-prefix trie))
               (m (branch-branching-bit trie))
@@ -437,7 +437,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;part
     (part trie)
   ) ;letrec
 ) ;define
@@ -535,7 +535,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;update/min
     (if (branch? trie)
         (let ((p (branch-prefix trie))
               (m (branch-branching-bit trie))
@@ -580,7 +580,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;update/max
     (if (branch? trie)
         (let ((p (branch-prefix trie))
               (m (branch-branching-bit trie))
@@ -606,39 +606,41 @@
     (letrec
      ((search
        (lambda (t build)
-         (cond ((not t)
-                (failure (lambda (obj) (build key-leaf obj))
-                         (lambda (obj) (build #f obj)))
-                ) ;failure
-               ((leaf? t)
-                (leaf-search t key failure success build)
-               ) ;
-               (else
-                (let ((p (branch-prefix t))
-                      (m (branch-branching-bit t))
-                      (l (branch-left t))
-                      (r (branch-right t)))
-                  (if (match-prefix? key p m)
-                      (if (zero-bit? key m)
-                          (search l (lambda (l* obj)
-                                      (build (branch p m l* r) obj))
-                          ) ;search
-                          (search r (lambda (r* obj)
-                                      (build (branch p m l r*) obj))
-                          ) ;search
-                      ) ;if
-                      (failure (lambda (obj)
-                                 (build (%trie-join kp 0 key-leaf p m t)
-                                        obj)
-                                 ) ;build
-                               (lambda (obj) (build t obj)))
-                      ) ;failure
+         (cond
+           ((not t)
+            (failure (lambda (obj) (build key-leaf obj))
+                     (lambda (obj) (build #f obj))
+            ) ;failure
+           ) ;
+           ((leaf? t)
+            (leaf-search t key failure success build)
+           ) ;
+           (else
+            (let ((p (branch-prefix t))
+                  (m (branch-branching-bit t))
+                  (l (branch-left t))
+                  (r (branch-right t)))
+              (if (match-prefix? key p m)
+                  (if (zero-bit? key m)
+                      (search l (lambda (l* obj)
+                                  (build (branch p m l* r) obj))
+                      ) ;search
+                      (search r (lambda (r* obj)
+                                  (build (branch p m l r*) obj))
+                      ) ;search
                   ) ;if
-                ) ;let
-               ) ;else
+                  (failure (lambda (obj)
+                             (build (%trie-join kp 0 key-leaf p m t)
+                                    obj)
+                             ) ;build
+                           (lambda (obj) (build t obj)))
+                  ) ;failure
+              ) ;if
+            ) ;let
+           ) ;else
          ) ;cond
        ) ;lambda
-     ) ;
+      ) ;search
       (if (branch? trie)
           (let ((p (branch-prefix trie))
                 (m (branch-branching-bit trie))
@@ -732,23 +734,25 @@
               (n (branch-branching-bit t))
               (t1 (branch-left t))
               (t2 (branch-right t)))
-          (cond ((and (= m n) (= p q))
-                 (branch p m (merge s1 t1) (merge s2 t2)))
-                ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                 (if (zero-bit? q m)
-                     (branch p m (merge s1 t) s2)
-                     (branch p m s1 (merge s2 t))
-                 ) ;if
-                ) ;
-                ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                 (if (zero-bit? p n)
-                     (branch q n (merge s t1) t2)
-                     (branch q n t1 (merge s t2))
-                 ) ;if
-                ) ;
-                (else
-                 (%trie-join p m s q n t)
-                ) ;else
+          (cond
+            ((and (= m n) (= p q))
+             (branch p m (merge s1 t1) (merge s2 t2))
+            ) ;
+            ((and (branching-bit-higher? m n) (match-prefix? q p m))
+             (if (zero-bit? q m)
+                 (branch p m (merge s1 t) s2)
+                 (branch p m s1 (merge s2 t))
+             ) ;if
+            ) ;
+            ((and (branching-bit-higher? n m) (match-prefix? p q n))
+             (if (zero-bit? p n)
+                 (branch q n (merge s t1) t2)
+                 (branch q n t1 (merge s t2))
+             ) ;if
+            ) ;
+            (else
+             (%trie-join p m s q n t)
+            ) ;else
           ) ;cond
         ) ;let
       ) ;lambda
@@ -804,7 +808,7 @@
                ) ;else
          ) ;cond
        ) ;lambda
-     ) ;
+      ) ;ins
       (ins trie)
     ) ;letrec
   ) ;let
@@ -858,25 +862,26 @@
              (n (branch-branching-bit t))
              (tl (branch-left t))
              (tr (branch-right t)))
-         (cond ((branching-bit-higher? m n)
-                (and (match-prefix? q p m)
-                     (if (zero-bit? q m)
-                         (intersect sl t)
-                         (intersect sr t))
-                     ) ;if
-                ) ;and
-               ((branching-bit-higher? n m)
-                (and (match-prefix? p q n)
-                     (if (zero-bit? p n)
-                         (intersect s tl)
-                         (intersect s tr)
-                     ) ;if
-                ) ;and
-               ) ;
-               ((= p q)
-                (branch p m (intersect sl tl) (intersect sr tr))
-               ) ;
-               (else #f)
+         (cond
+           ((branching-bit-higher? m n)
+            (and (match-prefix? q p m)
+                 (if (zero-bit? q m)
+                     (intersect sl t)
+                     (intersect sr t))
+                 ) ;if
+            ) ;and
+           ((branching-bit-higher? n m)
+            (and (match-prefix? p q n)
+                 (if (zero-bit? p n)
+                     (intersect s tl)
+                     (intersect s tr)
+                 ) ;if
+            ) ;and
+           ) ;
+           ((= p q)
+            (branch p m (intersect sl tl) (intersect sr tr))
+           ) ;
+           (else #f)
          ) ;cond
        ) ;let
      ) ;lambda
@@ -940,21 +945,23 @@
              (n (branch-branching-bit t))
              (tl (branch-left t))
              (tr (branch-right t)))
-         (cond ((and (= m n) (= p q))
-                (branch p m (difference sl tl) (difference sr tr)))
-               ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                (if (zero-bit? q m)
-                    (branch p m (difference sl t) sr)
-                    (branch p m sl (difference sr t))
-                ) ;if
-               ) ;
-               ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                (if (zero-bit? p n)
-                    (difference s tl)
-                    (difference s tr)
-                ) ;if
-               ) ;
-               (else s)
+         (cond
+           ((and (= m n) (= p q))
+            (branch p m (difference sl tl) (difference sr tr))
+           ) ;
+           ((and (branching-bit-higher? m n) (match-prefix? q p m))
+            (if (zero-bit? q m)
+                (branch p m (difference sl t) sr)
+                (branch p m sl (difference sr t))
+            ) ;if
+           ) ;
+           ((and (branching-bit-higher? n m) (match-prefix? p q n))
+            (if (zero-bit? p n)
+                (difference s tl)
+                (difference s tr)
+            ) ;if
+           ) ;
+           (else s)
          ) ;cond
        ) ;let
      ) ;lambda
@@ -1010,8 +1017,10 @@
   (let accum ((siz 0) (t trie))
     (cond ((not t) siz)
           ((leaf? t) (+ siz (bit-count (leaf-bitmap t))))
-          (else (accum (accum siz (branch-left t))
-                       (branch-right t))
+          (else
+           (accum (accum siz (branch-left t))
+                  (branch-right t)
+           ) ;accum
           ) ;else
     ) ;cond
   ) ;let
@@ -1111,12 +1120,14 @@
                ) ;
                ((= p q)
                 (let ((cl (compare sl tl)) (cr (compare sr tr)))
-                  (cond ((or (eqv? cl 'greater) (eqv? cr 'greater))
-                         'greater)
-                        ((and (eqv? cl 'equal) (eqv? cr 'equal))
-                         'equal
-                        ) ;
-                        (else 'less)
+                  (cond
+                    ((or (eqv? cl 'greater) (eqv? cr 'greater))
+                     'greater
+                    ) ;
+                    ((and (eqv? cl 'equal) (eqv? cr 'equal))
+                     'equal
+                    ) ;
+                    (else 'less)
                   ) ;cond
                 ) ;let
                ) ;
@@ -1181,21 +1192,23 @@
              (n (branch-branching-bit t))
              (tl (branch-left t))
              (tr (branch-right t)))
-         (cond ((and (= m n) (= p q))
-                (and (disjoint? sl tl) (disjoint? sr tr)))
-               ((and (branching-bit-higher? m n) (match-prefix? q p m))
-                (if (zero-bit? q m)
-                    (disjoint? sl t)
-                    (disjoint? sr t)
-                ) ;if
-               ) ;
-               ((and (branching-bit-higher? n m) (match-prefix? p q n))
-                (if (zero-bit? p n)
-                    (disjoint? s tl)
-                    (disjoint? s tr)
-                ) ;if
-               ) ;
-               (else #t)
+         (cond
+           ((and (= m n) (= p q))
+            (and (disjoint? sl tl) (disjoint? sr tr))
+           ) ;
+           ((and (branching-bit-higher? m n) (match-prefix? q p m))
+            (if (zero-bit? q m)
+                (disjoint? sl t)
+                (disjoint? sr t)
+            ) ;if
+           ) ;
+           ((and (branching-bit-higher? n m) (match-prefix? p q n))
+            (if (zero-bit? p n)
+                (disjoint? s tl)
+                (disjoint? s tr)
+            ) ;if
+           ) ;
+           (else #t)
          ) ;cond
        ) ;let
      ) ;lambda
@@ -1234,7 +1247,7 @@
               ) ;else
         ) ;cond
       ) ;lambda
-    ) ;
+     ) ;split
     (if (and (branch? trie) (negative? (branch-branching-bit trie)))
         (if (negative? k)
             (split (branch-right trie))
@@ -1289,7 +1302,7 @@
              ) ;else
        ) ;cond
      ) ;lambda
-   ) ;
+    ) ;split
     (if (and (branch? trie) (negative? (branch-branching-bit trie)))
         (if (negative? k)
             (trie-union (split (branch-right trie)) (branch-left trie))
@@ -1360,15 +1373,19 @@
     ) ;branch-interval
    ) ;
     (if (and (branch? trie) (negative? (branch-branching-bit trie)))
-        (cond ((and (negative? a) (negative? b))
-               (interval (branch-right trie)))
-              ((and (positive? a) (positive? b))
-               (interval (branch-left trie))
-              ) ;
-              (else (trie-union
-                     (subtrie> (branch-right trie) a low-inclusive)
-                     (subtrie< (branch-left trie) b high-inclusive))
-              ) ;else
+        (cond
+          ((and (negative? a) (negative? b))
+           (interval (branch-right trie))
+          ) ;
+          ((and (positive? a) (positive? b))
+           (interval (branch-left trie))
+          ) ;
+          (else
+           (trie-union
+            (subtrie> (branch-right trie) a low-inclusive)
+            (subtrie< (branch-left trie) b high-inclusive)
+           ) ;trie-union
+          ) ;else
         ) ;cond
         (interval trie)
     ) ;if
@@ -1380,21 +1397,29 @@
         (lb (ibitmap low))
         (hp (iprefix high))
         (hb (ibitmap high)))
-    (let ((low-mask (- (if low-inclusive
-                           lb
-                           (arithmetic-shift lb 1))))
-          (high-mask (- (if high-inclusive
-                            (arithmetic-shift hb 1)
-                            hb)
-                         1))
-          ) ;high-mask
-      (cond ((< prefix hp)
-             (cond ((< prefix lp) 0)
-                   ((> prefix lp) bitmap)
-                   (else (logand low-mask bitmap)))
-             ) ;cond
-            ((> prefix hp) 0)
-            (else (logand (logand low-mask high-mask) bitmap))
+    (let
+      ((low-mask
+         (- (if low-inclusive
+                lb
+                (arithmetic-shift lb 1))
+         ) ;-
+       ) ;low-mask
+       (high-mask
+         (- (if high-inclusive
+                (arithmetic-shift hb 1)
+                hb)
+             1)
+         ) ;-
+       ) ;high-mask
+      (cond
+        ((< prefix hp)
+         (cond ((< prefix lp) 0)
+               ((> prefix lp) bitmap)
+               (else (logand low-mask bitmap))
+         ) ;cond
+        ) ;
+        ((> prefix hp) 0)
+        (else (logand (logand low-mask high-mask) bitmap))
       ) ;cond
     ) ;let
   ) ;let
@@ -1780,11 +1805,13 @@
 
 (define (iset=? set1 set2 . sets)
   (assume (iset? set1))
-  (let ((iset-eq1 (lambda (set)
-                    (assume (iset? set))
-                    (or (eqv? set1 set)
-                        (trie=? (iset-trie set1) (iset-trie set)))))
-                    ) ;or
+  (let
+    ((iset-eq1 (lambda (set)
+                 (assume (iset? set))
+                 (or (eqv? set1 set)
+                     (trie=? (iset-trie set1) (iset-trie set))))
+                 ) ;or
+     ) ;iset-eq1
     (and (iset-eq1 set2)
          (or (null? sets)
              (every iset-eq1 sets)

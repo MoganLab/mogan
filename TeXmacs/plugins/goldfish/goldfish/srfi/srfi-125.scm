@@ -105,15 +105,17 @@
       (assert-hash-table-type ht hash-table-delete!)
       (let ((all-keys (cons key keys)))
         (length
-         (filter (lambda (x)
-                   (if (hash-table-contains? ht x)
-                       (begin
-                         (s7-hash-table-set! ht x #f)
-                         #t
-                       ) ;begin
-                       #f)
-                   ) ;if
-                 all-keys
+         (filter
+           (lambda (x)
+             (if (hash-table-contains? ht x)
+                 (begin
+                   (s7-hash-table-set! ht x #f)
+                   #t
+                 ) ;begin
+                 #f
+             ) ;if
+           ) ;lambda
+           all-keys
          ) ;filter
         ) ;length
       ) ;let

@@ -63,13 +63,15 @@
           (value-error "Raw string must start on a new line after the opening delimiter")
       ) ;when
 
-      (let* ((lines (string-split-lines (substring str 1 (string-length str))))
-             (closing-line (last lines))
-             (ref-indent (if (string-null? closing-line)
-                             (value-error "Raw string delimiter must be on its own line")
-                             (string-count closing-line #\space))
-             ) ;ref-indent
-             (content-lines (drop-right lines 1)))
+      (let*
+        ((lines (string-split-lines (substring str 1 (string-length str))))
+         (closing-line (last lines))
+         (ref-indent (if (string-null? closing-line)
+                         (value-error "Raw string delimiter must be on its own line")
+                         (string-count closing-line #\space))
+         ) ;ref-indent
+         (content-lines (drop-right lines 1))
+        ) ;
 
         ;; check indentation
         (for-each (lambda (line idx)
@@ -85,12 +87,14 @@
         ) ;for-each
 
         (string-join
-         (map (lambda (line)
-                (if (string-null? line)
-                    ""
-                    (substring line ref-indent))
-                ) ;if
-              content-lines
+         (map
+           (lambda (line)
+             (if (string-null? line)
+                 ""
+                 (substring line ref-indent)
+             ) ;if
+           ) ;lambda
+           content-lines
          ) ;map
          "\n"
         ) ;string-join

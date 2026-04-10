@@ -69,16 +69,18 @@
     ) ;define
 
     (define (%check-dir-andthen path f)
-      (cond ((not (file-exists? path))
-             (file-not-found-error
-               (string-append "No such file or directory: '" path "'"))
-             ) ;file-not-found-error
-            ((not (g_isdir path))
-             (not-a-directory-error
-               (string-append "Not a directory: '" path "'")
-             ) ;not-a-directory-error
-            ) ;
-            (else (f path))
+      (cond
+        ((not (file-exists? path))
+         (file-not-found-error
+           (string-append "No such file or directory: '" path "'")
+         ) ;file-not-found-error
+        ) ;
+        ((not (g_isdir path))
+         (not-a-directory-error
+           (string-append "Not a directory: '" path "'")
+         ) ;not-a-directory-error
+        ) ;
+        (else (f path))
       ) ;cond
     ) ;define
 
