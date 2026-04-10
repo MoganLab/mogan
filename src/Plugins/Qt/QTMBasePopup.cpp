@@ -174,8 +174,8 @@ QTMBasePopup::selectionInView () const {
 void
 QTMBasePopup::autoSize () {
   const double Scale     = DpiUtils::scaleFactor ();
-  const double totalScale= Scale * cached_magf * 12.0;
-  int          btn_size  = int (40 * totalScale);
+  const double totalScale= Scale * cached_magf * 2.0;
+  int          btn_size  = int (50 * totalScale);
 
   if (cached_magf <= 0.16) {
     btn_size= 25;
@@ -195,8 +195,9 @@ QTMBasePopup::autoSize () {
     button->setFixedSize (fixed_size);
   }
 
-  // 调整窗口大小
-  adjustSize ();
-  cached_width = width ();
-  cached_height= height ();
+  // 同步窗口外框尺寸到当前按钮布局
+  QSize popup_size= layout ? layout->sizeHint () : sizeHint ();
+  setFixedSize (popup_size);
+  cached_width = popup_size.width ();
+  cached_height= popup_size.height ();
 }

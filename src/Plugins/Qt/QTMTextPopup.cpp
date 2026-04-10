@@ -107,8 +107,6 @@ QTMTextPopup::rebuildButtonsFromScheme () {
     if (tm_style_sheet == "") button->setStyle (qtmstyle ());
     layout->addWidget (button);
   }
-
-  autoSize ();
 }
 
 void
@@ -116,6 +114,7 @@ QTMTextPopup::showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
                          int scroll_x, int scroll_y, int canvas_x,
                          int canvas_y) {
   cachePosition (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+  autoSize ();
   if (!selectionInView ()) {
     hide ();
     return;

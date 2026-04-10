@@ -11,13 +11,13 @@
 
 #include "QTMImagePopup.hpp"
 #include "bitmap_font.hpp"
-#include "qbuttongroup.h"
 #include "qt_renderer.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "server.hpp"
 #include "tm_ostream.hpp"
 
+#include <QButtonGroup>
 #include <QHelpEvent>
 #include <QIcon>
 #include <QPainter>
@@ -25,14 +25,9 @@
 #include <QToolTip>
 #include <cmath>
 
-const string left_str = "\"left\"";
-const string mid_str  = "\"center\"";
-const string right_str= "\"right\"";
-
 // 悬浮菜单创建函数
 QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
-    : QTMBasePopup (parent, owner), cached_image_mid_x (0),
-      cached_image_mid_y (0), current_align ("") {
+    : QTMBasePopup (parent, owner), current_align ("") {
   Q_INIT_RESOURCE (images);
 
   leftBtn= new QToolButton ();
@@ -114,51 +109,14 @@ QTMImagePopup::setImageTree (tree t) {
 
 void
 QTMImagePopup::updateButtonStates () {
-  if (current_align == "")
-    current_align= as_string (call ("get-image-alignment", current_tree));
+  current_align= as_string (call ("get-image-alignment", current_tree));
+  leftBtn->setChecked (false);
+  middleBtn->setChecked (false);
+  rightBtn->setChecked (false);
   if (current_align == "left") leftBtn->setChecked (true);
   else if (current_align == "center") middleBtn->setChecked (true);
   else if (current_align == "right") rightBtn->setChecked (true);
 }
-
-// 根据DPI缩放和图片缩放比例自动调整按钮大小和窗口尺寸
-void
-QTMImagePopup::autoSize () {
-  const double Scale= DpiUtils::scaleFactor ();
-  // 基准窗口大小（逻辑像素）
-  const int baseWidth = 200;
-  const int baseHeight= 50;
-  double    totalScale= Scale * cached_magf * 2.0; // 减小缩放因子
-  int       IconSize  = int (40 * totalScale);
-  if (cached_magf <= 0.16) {
-    // 文档缩放很小时，使用固定大小（仅DPI缩放）
-    cached_width = DpiUtils::scaled (169);
-    cached_height= DpiUtils::scaled (42);
-    IconSize     = 25;
-    setFixedSize (cached_width, cached_height);
-  }
-  else {
-    cached_width = int (baseWidth * totalScale);
-    cached_height= int (baseHeight * totalScale);
-    this->resize (cached_width, cached_height);
-  }
-  leftBtn->setIconSize (QSize (IconSize, IconSize));
-  middleBtn->setIconSize (QSize (IconSize, IconSize));
-  rightBtn->setIconSize (QSize (IconSize, IconSize));
-  ocrBtn->setIconSize (QSize (IconSize, IconSize));
-}
-
-// 缓存菜单显示位置
-void
-QTMImagePopup::cachePosition (rectangle selr, double magf, int scroll_x,
-                              int scroll_y, int canvas_x, int canvas_y) {
-  QTMBasePopup::cachePosition (selr, magf, scroll_x, scroll_y, canvas_x,
-                               canvas_y);
-  cached_image_mid_x= (selr->x1 + selr->x2) / 2;
-  cached_image_mid_y= selr->y2;
-}
-
-// 计算菜单显示位置
 
 // 事件过滤器，用于控制OCR按钮的tooltip位置
 bool
@@ -187,39 +145,14 @@ QTMImagePopup::eventFilter (QObject* obj, QEvent* event) {
   return QWidget::eventFilter (obj, event);
 }
 
-bool
-QTMImagePopup::selectionInView () const {
-  if (!owner || !owner->scrollarea () || !owner->scrollarea ()->viewport ())
-    return true;
+void
+QTMImagePopup::enterEvent (QEvent* event) {
+  if (owner) owner->cancel_image_popup_hide ();
+  QWidget::enterEvent (event);
+}
 
-  rectangle selr    = cached_rect;
-  double    inv_unit= 1.0 / 256.0;
-
-  double x1_px=
-      ((selr->x1 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double x2_px=
-      ((selr->x2 - cached_scroll_x) * cached_magf + cached_canvas_x) * inv_unit;
-  double y1_px= -(selr->y1 - cached_scroll_y) * cached_magf * inv_unit;
-  double y2_px= -(selr->y2 - cached_scroll_y) * cached_magf * inv_unit;
-
-  double blank_top= 0.0;
-  if (owner->scrollarea ()->surface ()) {
-    int vp_h  = owner->scrollarea ()->viewport ()->height ();
-    int surf_h= owner->scrollarea ()->surface ()->height ();
-    if (vp_h > surf_h) blank_top= (vp_h - surf_h) * 0.5;
-  }
-  y1_px+= blank_top;
-  y2_px+= blank_top;
-
-  double left  = std::min (x1_px, x2_px);
-  double right = std::max (x1_px, x2_px);
-  double top   = std::min (y1_px, y2_px);
-  double bottom= std::max (y1_px, y2_px);
-
-  int vp_w= owner->scrollarea ()->viewport ()->width ();
-  int vp_h= owner->scrollarea ()->viewport ()->height ();
-
-  if (right < 0.0 || left > vp_w) return false;
-  if (bottom < 0.0 || top > vp_h) return false;
-  return true;
+void
+QTMImagePopup::leaveEvent (QEvent* event) {
+  if (owner) owner->schedule_image_popup_hide (1000);
+  QWidget::leaveEvent (event);
 }

@@ -26,15 +26,12 @@
 
 class QTMImagePopup : public QTMBasePopup {
 protected:
-  int          cached_image_mid_x;
-  int          cached_image_mid_y;
   tree         current_tree;
   string       current_align;
   QToolButton* leftBtn;
   QToolButton* middleBtn;
   QToolButton* rightBtn;
   QToolButton* ocrBtn;
-  QString      btn_style;
 
 public:
   QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner);
@@ -43,15 +40,13 @@ public:
   void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
                   int scroll_x, int scroll_y, int canvas_x,
                   int canvas_y) override;
-  void autoSize () override;
-  void cachePosition (rectangle selr, double magf, int scroll_x, int scroll_y,
-                      int canvas_x, int canvas_y) override;
-  bool selectionInView () const override;
   void setImageTree (tree t);
   void updateButtonStates ();
 
 protected:
   bool eventFilter (QObject* obj, QEvent* event) override;
+  void enterEvent (QEvent* event) override;
+  void leaveEvent (QEvent* event) override;
 };
 
 #endif // QT_IMAGE_POPUP_HPP
