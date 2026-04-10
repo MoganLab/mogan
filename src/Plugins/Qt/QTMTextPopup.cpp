@@ -68,8 +68,8 @@ QTMTextPopup::rebuildButtonsFromScheme () {
   object obj = call ("make-menu-widget", menu, 0);
   if (!is_widget (obj)) return;
 
-  text_toolbar_widget  = concrete (as_widget (obj));
-  QList<QAction*>* list= text_toolbar_widget->get_qactionlist ();
+  text_popup_widget    = concrete (as_widget (obj));
+  QList<QAction*>* list= text_popup_widget->get_qactionlist ();
   if (!list) return;
 
   clearButtons ();

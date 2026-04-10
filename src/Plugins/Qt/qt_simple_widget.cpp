@@ -47,7 +47,7 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
   if (backingPixmap != NULL) delete backingPixmap;
 #endif
   if (completionPopUp != nullptr) delete completionPopUp;
-  if (textToolbar != nullptr) delete textToolbar;
+  if (textPopup != nullptr) delete textPopup;
 }
 
 QWidget*
@@ -794,55 +794,55 @@ qt_simple_widget_rep::scroll_image_popup_by (SI x, SI y) {
 }
 
 /******************************************************************************
- * Text toolbar support
+ * Text popup support
  ******************************************************************************/
 
 void
-qt_simple_widget_rep::ensure_text_toolbar () {
+qt_simple_widget_rep::ensure_text_popup () {
   if (!canvas ()) return;
-  if (textToolbar) {
-    if (textToolbar->parent () != canvas ()) {
-      textToolbar->setParent (canvas ());
+  if (textPopup) {
+    if (textPopup->parent () != canvas ()) {
+      textPopup->setParent (canvas ());
     }
     return;
   }
-  textToolbar= new QTMTextPopup (canvas (), this);
+  textPopup= new QTMTextPopup (canvas (), this);
   if (is_empty (tm_style_sheet)) {
-    textToolbar->setStyle (qtmstyle ());
+    textPopup->setStyle (qtmstyle ());
   }
 }
 
 void
-qt_simple_widget_rep::show_text_toolbar (rectangle selr, double magf,
-                                         int scroll_x, int scroll_y,
-                                         int canvas_x, int canvas_y) {
-  ensure_text_toolbar ();
+qt_simple_widget_rep::show_text_popup (rectangle selr, double magf,
+                                       int scroll_x, int scroll_y, int canvas_x,
+                                       int canvas_y) {
+  ensure_text_popup ();
   qt_renderer_rep* ren= the_qt_renderer ();
-  textToolbar->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
-                          canvas_y);
+  textPopup->showPopup (ren, selr, magf, scroll_x, scroll_y, canvas_x,
+                        canvas_y);
 }
 
 void
-qt_simple_widget_rep::hide_text_toolbar () {
-  if (textToolbar) {
-    textToolbar->hide ();
+qt_simple_widget_rep::hide_text_popup () {
+  if (textPopup) {
+    textPopup->hide ();
   }
 }
 
 void
-qt_simple_widget_rep::scroll_text_toolbar_by (SI x, SI y) {
-  if (textToolbar) {
+qt_simple_widget_rep::scroll_text_popup_by (SI x, SI y) {
+  if (textPopup) {
     QPoint qp (x, y);
     coord2 p= from_qpoint (qp);
-    textToolbar->scrollBy (p.x1, p.x2);
+    textPopup->scrollBy (p.x1, p.x2);
     qt_renderer_rep* ren= the_qt_renderer ();
-    textToolbar->updatePosition (ren);
+    textPopup->updatePosition (ren);
   }
 }
 
 bool
-qt_simple_widget_rep::is_point_in_text_toolbar (SI x, SI y) {
-  if (!textToolbar) return false;
+qt_simple_widget_rep::is_point_in_text_popup (SI x, SI y) {
+  if (!textPopup) return false;
 
   // 将逻辑坐标转换为像素坐标
   double inv_unit= 1.0 / 256.0;
@@ -850,7 +850,7 @@ qt_simple_widget_rep::is_point_in_text_toolbar (SI x, SI y) {
   int    py      = int (std::round (y * inv_unit));
 
   // 获取工具栏的几何位置
-  QRect toolbarRect= textToolbar->geometry ();
+  QRect toolbarRect= textPopup->geometry ();
 
   // 检查点是否在工具栏内
   return toolbarRect.contains (px, py);

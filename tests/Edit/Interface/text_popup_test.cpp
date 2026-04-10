@@ -1,7 +1,7 @@
 
 /******************************************************************************
- * MODULE     : text_toolbar_test.cpp
- * DESCRIPTION: Test text toolbar functionality
+ * MODULE     : text_popup_test.cpp
+ * DESCRIPTION: Test text popup functionality
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -13,8 +13,8 @@
 #include "edit_interface.hpp"
 #include <QtTest/QtTest>
 
-// 测试文本工具栏缓存机制
-class TestTextToolbar : public QObject {
+// 测试文本悬浮框缓存机制
+class TestTextPopup : public QObject {
   Q_OBJECT
 
 private slots:
@@ -27,7 +27,7 @@ private slots:
 
 // 测试缓存超时边界（100ms）
 void
-TestTextToolbar::test_cache_timeout_boundary () {
+TestTextPopup::test_cache_timeout_boundary () {
   // 验证时间差计算
   time_t t1= 1000;
   time_t t2= 1099; // 差99ms，应该使用缓存
@@ -39,14 +39,14 @@ TestTextToolbar::test_cache_timeout_boundary () {
 
 // 测试缓存失效机制
 void
-TestTextToolbar::test_cache_invalidation () {
+TestTextPopup::test_cache_invalidation () {
   // 测试缓存失效的核心逻辑：重置时间戳会使缓存失效
   time_t last_check= 1000; // 模拟一个过去的时间戳
 
   // 验证初始状态
   QVERIFY (last_check == 1000);
 
-  // 模拟 invalidate_text_toolbar_cache()：重置为0
+  // 模拟 invalidate_text_popup_cache()：重置为0
   last_check= 0;
 
   // 验证缓存已失效（时间戳被重置）
@@ -60,7 +60,7 @@ TestTextToolbar::test_cache_invalidation () {
 
 // 测试矩形有效性检查
 void
-TestTextToolbar::test_rectangle_validity () {
+TestTextPopup::test_rectangle_validity () {
   // 有效矩形（非零面积）
   rectangle valid (100, 200, 300, 400);
   QVERIFY (valid->x1 < valid->x2);
@@ -85,7 +85,7 @@ TestTextToolbar::test_rectangle_validity () {
 
 // 测试坐标转换精度
 void
-TestTextToolbar::test_coordinate_conversion () {
+TestTextPopup::test_coordinate_conversion () {
   constexpr double INV_UNIT= 1.0 / 256.0;
 
   // 基础转换测试
@@ -111,7 +111,7 @@ TestTextToolbar::test_coordinate_conversion () {
 
 // 测试空选区处理
 void
-TestTextToolbar::test_empty_selection_handling () {
+TestTextPopup::test_empty_selection_handling () {
   // 默认构造的空矩形
   rectangle empty;
   QCOMPARE (empty->x1, 0);
@@ -130,5 +130,5 @@ TestTextToolbar::test_empty_selection_handling () {
   QVERIFY (is_minimal_valid);
 }
 
-QTEST_MAIN (TestTextToolbar)
-#include "text_toolbar_test.moc"
+QTEST_MAIN (TestTextPopup)
+#include "text_popup_test.moc"

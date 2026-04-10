@@ -25,7 +25,7 @@
 
 class QTMTextPopup : public QTMBasePopup {
 protected:
-  qt_widget text_toolbar_widget;
+  qt_widget text_popup_widget;
 
 public:
   QTMTextPopup (QWidget* parent, qt_simple_widget_rep* owner);

@@ -45,8 +45,6 @@ public:
 
 protected:
   bool eventFilter (QObject* obj, QEvent* event) override;
-  void enterEvent (QEvent* event) override;
-  void leaveEvent (QEvent* event) override;
 };
 
 #endif // QT_IMAGE_POPUP_HPP

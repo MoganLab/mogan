@@ -144,15 +144,3 @@ QTMImagePopup::eventFilter (QObject* obj, QEvent* event) {
   // 其他事件传递给基类处理
   return QWidget::eventFilter (obj, event);
 }
-
-void
-QTMImagePopup::enterEvent (QEvent* event) {
-  if (owner) owner->cancel_image_popup_hide ();
-  QWidget::enterEvent (event);
-}
-
-void
-QTMImagePopup::leaveEvent (QEvent* event) {
-  if (owner) owner->schedule_image_popup_hide (1000);
-  QWidget::leaveEvent (event);
-}
