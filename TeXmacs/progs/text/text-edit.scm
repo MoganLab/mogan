@@ -378,6 +378,17 @@
       (make l)
       (if flag? (insert '(item* "")) (make-item)))))
 
+(tm-define (line-start-empty-text?)
+  (with t (cursor-tree)
+    (and t
+         (match? t "")
+         (tree-at-start? t))))
+
+(tm-define (make-tmlist-if-line-start l fallback)
+  (if (line-start-empty-text?)
+      (make-tmlist l)
+      (insert fallback)))
+
 (tm-define (make-item)
   (if (not (make-return-after))
       (with lab (inside-which (list-tag-list))
