@@ -17,7 +17,6 @@
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
 #include "tm_file.hpp"
-#include "tree_helper.hpp"
 
 #include <QApplication>
 #include <QDir>
@@ -38,10 +37,9 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-#include <moebius/data/scheme.hpp>
+#include <nlohmann/json.hpp>
 
-using moebius::data::block_to_scheme_tree;
-using moebius::data::scm_unquote;
+using nlohmann::json;
 
 namespace {
 
@@ -56,23 +54,6 @@ mapRectToWindow (QWidget* widget, QMainWindow* window) {
   }
 
   return QRect (topLeft, widget->size ());
-}
-
-tree
-normalizeTuple (tree t) {
-  while (is_func (t, TUPLE, 1))
-    t= t[0];
-  return t;
-}
-
-bool
-treeToQString (tree t, QString& out) {
-  if (!is_atomic (t)) return false;
-
-  string label= t->label;
-  if (is_quoted (label)) label= scm_unquote (label);
-  out= to_qstring (label);
-  return true;
 }
 
 bool
@@ -104,26 +85,6 @@ parseBoolLike (const QString& value, bool& out) {
   return false;
 }
 
-QString
-readField (tree entries, const QString& key, bool* found= nullptr) {
-  if (found != nullptr) *found= false;
-
-  for (int i= 0; i < N (entries); ++i) {
-    if (!is_func (entries[i], TUPLE, 2)) continue;
-
-    QString currentKey;
-    if (!treeToQString (entries[i][0], currentKey)) continue;
-    if (currentKey != key) continue;
-
-    QString value;
-    if (!treeToQString (entries[i][1], value)) return QString ();
-    if (found != nullptr) *found= true;
-    return value;
-  }
-
-  return QString ();
-}
-
 url firstLaunchTutorialConfigPath ();
 
 QString
@@ -146,36 +107,42 @@ resolveTutorialMediaPath (const QString& rawPath) {
 }
 
 bool
-parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
+parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
                 QString* errorMessage) {
-  if (!is_func (entry, TUPLE, 2)) {
+  if (!stepJson.is_object ()) {
     if (errorMessage != nullptr)
-      *errorMessage= "Tutorial step entry must be a tuple";
+      *errorMessage= "Tutorial step entry must be an object";
     return false;
   }
 
-  QString entryKey;
-  if (!treeToQString (entry[0], entryKey) || entryKey != "step") {
-    if (errorMessage != nullptr)
-      *errorMessage= "Tutorial config contains invalid step key";
-    return false;
-  }
-
-  tree stepTree= normalizeTuple (entry[1]);
-  if (!is_tuple (stepTree)) {
-    if (errorMessage != nullptr)
-      *errorMessage= "Tutorial step payload must be a tuple";
-    return false;
-  }
+  const auto readStringField= [&stepJson] (const char* key, QString& out,
+                                           bool* found= nullptr) {
+    if (found != nullptr) *found= false;
+    const auto it= stepJson.find (key);
+    if (it == stepJson.end () || it->is_null ()) return true;
+    if (!it->is_string ()) return false;
+    out= QString::fromStdString (it->get<std::string> ());
+    if (found != nullptr) *found= true;
+    return true;
+  };
 
   bool found= false;
-  step.id   = readField (stepTree, "id", &found);
+  if (!readStringField ("id", step.id, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage= "Tutorial step id must be a string";
+    return false;
+  }
   if (!found || step.id.isEmpty ()) {
     if (errorMessage != nullptr) *errorMessage= "Tutorial step is missing id";
     return false;
   }
 
-  step.title= readField (stepTree, "title", &found);
+  if (!readStringField ("title", step.title, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 title must be a string").arg (step.id);
+    return false;
+  }
   if (!found || step.title.isEmpty ()) {
     if (errorMessage != nullptr)
       *errorMessage=
@@ -183,12 +150,32 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  step.topText              = readField (stepTree, "top-text", &found);
+  if (!readStringField ("top-text", step.topText, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 top-text must be a string").arg (step.id);
+    return false;
+  }
   const bool hasTopTextField= found && !step.topText.isEmpty ();
 
-  step.mediaPath     = readField (stepTree, "media-path", &found);
-  step.bottomText    = readField (stepTree, "bottom-text", &found);
-  step.onEnterCommand= readField (stepTree, "on-enter", &found);
+  if (!readStringField ("media-path", step.mediaPath)) {
+    if (errorMessage != nullptr)
+      *errorMessage= QString ("Tutorial step %1 media-path must be a string")
+                         .arg (step.id);
+    return false;
+  }
+  if (!readStringField ("bottom-text", step.bottomText)) {
+    if (errorMessage != nullptr)
+      *errorMessage= QString ("Tutorial step %1 bottom-text must be a string")
+                         .arg (step.id);
+    return false;
+  }
+  if (!readStringField ("on-enter", step.onEnterCommand)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 on-enter must be a string").arg (step.id);
+    return false;
+  }
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
       step.bottomText.isEmpty ()) {
@@ -198,7 +185,12 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  step.targetId= readField (stepTree, "target-id", &found);
+  if (!readStringField ("target-id", step.targetId, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 target-id must be a string").arg (step.id);
+    return false;
+  }
   if (!found || step.targetId.isEmpty ()) {
     if (errorMessage != nullptr)
       *errorMessage=
@@ -206,7 +198,13 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  const QString placement= readField (stepTree, "placement", &found);
+  QString placement;
+  if (!readStringField ("placement", placement, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 placement must be a string").arg (step.id);
+    return false;
+  }
   if (found && !placement.isEmpty () &&
       !parsePlacement (placement, step.placement)) {
     if (errorMessage != nullptr)
@@ -215,11 +213,17 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  const QString padding= readField (stepTree, "highlight-padding", &found);
-  if (found && !padding.isEmpty ()) {
-    bool ok= false;
-    int  v = padding.toInt (&ok);
-    if (!ok || v < 0) {
+  const auto paddingIt= stepJson.find ("highlight-padding");
+  if (paddingIt != stepJson.end () && !paddingIt->is_null ()) {
+    if (!paddingIt->is_number_integer ()) {
+      if (errorMessage != nullptr)
+        *errorMessage=
+            QString ("Tutorial step %1 has invalid highlight-padding")
+                .arg (step.id);
+      return false;
+    }
+    const int v= paddingIt->get<int> ();
+    if (v < 0) {
       if (errorMessage != nullptr)
         *errorMessage=
             QString ("Tutorial step %1 has invalid highlight-padding")
@@ -229,12 +233,25 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     step.highlightPadding= v;
   }
 
-  const QString skip= readField (stepTree, "skip-if-missing", &found);
-  if (found && !skip.isEmpty () && !parseBoolLike (skip, step.skipIfMissing)) {
-    if (errorMessage != nullptr)
-      *errorMessage= QString ("Tutorial step %1 has invalid skip-if-missing")
-                         .arg (step.id);
-    return false;
+  const auto skipIt= stepJson.find ("skip-if-missing");
+  if (skipIt != stepJson.end () && !skipIt->is_null ()) {
+    if (skipIt->is_boolean ()) step.skipIfMissing= skipIt->get<bool> ();
+    else if (skipIt->is_string ()) {
+      const QString skip= QString::fromStdString (skipIt->get<std::string> ());
+      if (!skip.isEmpty () && !parseBoolLike (skip, step.skipIfMissing)) {
+        if (errorMessage != nullptr)
+          *errorMessage=
+              QString ("Tutorial step %1 has invalid skip-if-missing")
+                  .arg (step.id);
+        return false;
+      }
+    }
+    else {
+      if (errorMessage != nullptr)
+        *errorMessage= QString ("Tutorial step %1 has invalid skip-if-missing")
+                           .arg (step.id);
+      return false;
+    }
   }
 
   return true;
@@ -242,7 +259,8 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
 
 url
 firstLaunchTutorialConfigPath () {
-  return url_system ("$TEXMACS_PATH/progs/tutorial/first-launch-tutorial.scm");
+  return url_system (
+      "$TEXMACS_PATH/plugins/tutorial/data/first-launch-tutorial.json");
 }
 
 } // namespace
@@ -301,68 +319,64 @@ TutorialConfigLoader::loadFlow (url path, TutorialFlowConfig& config,
     return false;
   }
 
-  tree root= normalizeTuple (block_to_scheme_tree (string_load (path)));
-  if (!is_tuple (root)) {
+  json root;
+  try {
+    const string      configTextTm= string_load (path);
+    const c_string    configTextC (configTextTm);
+    const std::string configText= (char*) configTextC;
+    root                        = json::parse (configText);
+  } catch (const std::exception& e) {
     if (errorMessage != nullptr)
-      *errorMessage= "Tutorial config root must be a tuple";
+      *errorMessage=
+          QString ("Tutorial config JSON parse error: %1").arg (e.what ());
     return false;
   }
 
-  bool flowIdFound = false;
-  bool versionFound= false;
-  for (int i= 0; i < N (root); ++i) {
-    if (!is_func (root[i], TUPLE, 2)) continue;
-
-    QString key;
-    if (!treeToQString (root[i][0], key)) continue;
-
-    if (key == "flow-id") {
-      if (!treeToQString (root[i][1], config.flowId) ||
-          config.flowId.isEmpty ()) {
-        if (errorMessage != nullptr)
-          *errorMessage= "Tutorial config flow-id is invalid";
-        return false;
-      }
-      flowIdFound= true;
-      continue;
-    }
-
-    if (key == "version") {
-      QString versionValue;
-      if (!treeToQString (root[i][1], versionValue)) {
-        if (errorMessage != nullptr)
-          *errorMessage= "Tutorial config version is invalid";
-        return false;
-      }
-      bool ok= false;
-      int  v = versionValue.toInt (&ok);
-      if (!ok || v <= 0) {
-        if (errorMessage != nullptr)
-          *errorMessage= "Tutorial config version must be positive";
-        return false;
-      }
-      config.version= v;
-      versionFound  = true;
-      continue;
-    }
-
-    if (key == "step") {
-      TutorialStepConfig step;
-      if (!parseStepEntry (root[i], step, errorMessage)) return false;
-      config.steps << step;
-    }
-  }
-
-  if (!flowIdFound) {
+  if (!root.is_object ()) {
     if (errorMessage != nullptr)
-      *errorMessage= "Tutorial config is missing flow-id";
+      *errorMessage= "Tutorial config root must be an object";
     return false;
   }
-  if (!versionFound) {
+
+  const auto flowIdIt= root.find ("flow-id");
+  if (flowIdIt == root.end () || !flowIdIt->is_string ()) {
     if (errorMessage != nullptr)
-      *errorMessage= "Tutorial config is missing version";
+      *errorMessage= "Tutorial config flow-id is invalid";
     return false;
   }
+  config.flowId= QString::fromStdString (flowIdIt->get<std::string> ());
+  if (config.flowId.isEmpty ()) {
+    if (errorMessage != nullptr)
+      *errorMessage= "Tutorial config flow-id is invalid";
+    return false;
+  }
+
+  const auto versionIt= root.find ("version");
+  if (versionIt == root.end () || !versionIt->is_number_integer ()) {
+    if (errorMessage != nullptr)
+      *errorMessage= "Tutorial config version is invalid";
+    return false;
+  }
+  config.version= versionIt->get<int> ();
+  if (config.version <= 0) {
+    if (errorMessage != nullptr)
+      *errorMessage= "Tutorial config version must be positive";
+    return false;
+  }
+
+  const auto stepsIt= root.find ("steps");
+  if (stepsIt == root.end () || !stepsIt->is_array ()) {
+    if (errorMessage != nullptr)
+      *errorMessage= "Tutorial config steps must be an array";
+    return false;
+  }
+
+  for (const auto& stepJson : *stepsIt) {
+    TutorialStepConfig step;
+    if (!parseStepEntry (stepJson, step, errorMessage)) return false;
+    config.steps << step;
+  }
+
   if (config.steps.isEmpty ()) {
     if (errorMessage != nullptr) *errorMessage= "Tutorial config has no steps";
     return false;

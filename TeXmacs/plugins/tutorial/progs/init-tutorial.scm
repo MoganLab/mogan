@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : init-tutorial.scm
-;; DESCRIPTION : tutorial module entrypoint
+;; DESCRIPTION : tutorial plugin entrypoint
 ;; COPYRIGHT   : (C) 2026
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -10,5 +10,5 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (tutorial init-tutorial)
-  (:use (tutorial tutorial-actions)))
+(tm-define (tutorial-open-something)
+  (display* "tutorial enter editor step\n"))

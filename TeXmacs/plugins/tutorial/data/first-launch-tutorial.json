@@ -1,0 +1,55 @@
+{
+  "flow-id": "first-launch",
+  "version": 1,
+  "steps": [
+    {
+      "id": "welcome",
+      "title": "认识一下主窗口",
+      "top-text": "这是 Liii STEM 的主工作区。教程会依次指出最常用的几个区域，帮助你快速建立基本认知。",
+      "media-path": ":/tutorial/test.gif",
+      "bottom-text": "动图测试步骤，上方动图是否正确显示？",
+      "target-id": "mainWindowSafeArea",
+      "placement": "bottom",
+      "highlight-padding": 12,
+      "on-enter": "(tutorial-open-something)",
+      "skip-if-missing": true
+    },
+    {
+      "id": "windowbar",
+      "title": "这里是窗口顶部",
+      "top-text": "这里包含窗口切换、标签页和常用入口。你以后会频繁从这里切换文档和访问全局功能。",
+      "target-id": "windowbar",
+      "placement": "bottom",
+      "highlight-padding": 10,
+      "on-enter": "(display \"top window\")",
+      "skip-if-missing": true
+    },
+    {
+      "id": "toolbar",
+      "title": "这里是主工具栏",
+      "top-text": "常见的格式、插入和排版操作会集中在这一带。不同编辑场景下，这里的按钮也会变化。",
+      "target-id": "toolbarArea",
+      "placement": "bottom",
+      "highlight-padding": 10,
+      "skip-if-missing": true
+    },
+    {
+      "id": "editor",
+      "title": "这里是编辑区",
+      "top-text": "文档内容主要在这里输入、排版和修改。无论是公式、文本还是结构化内容，核心操作都围绕这个区域展开。",
+      "target-id": "editorArea",
+      "placement": "top",
+      "highlight-padding": 12,
+      "skip-if-missing": true
+    },
+    {
+      "id": "assistant",
+      "title": "这里是扩展能力入口",
+      "top-text": "这一侧用于放置辅助能力或扩展面板；如果当前面板未显示，教程会退化到登录与能力入口，帮助你找到后续探索的位置。",
+      "target-id": "assistantEntry",
+      "placement": "left",
+      "highlight-padding": 10,
+      "skip-if-missing": true
+    }
+  ]
+}
