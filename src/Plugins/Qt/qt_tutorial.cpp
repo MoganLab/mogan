@@ -186,8 +186,8 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
   step.topText              = readField (stepTree, "top-text", &found);
   const bool hasTopTextField= found && !step.topText.isEmpty ();
 
-  step.mediaPath = readField (stepTree, "media-path", &found);
-  step.bottomText= readField (stepTree, "bottom-text", &found);
+  step.mediaPath     = readField (stepTree, "media-path", &found);
+  step.bottomText    = readField (stepTree, "bottom-text", &found);
   step.onEnterCommand= readField (stepTree, "on-enter", &found);
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
@@ -242,8 +242,7 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
 
 url
 firstLaunchTutorialConfigPath () {
-  return url_system (
-      "$TEXMACS_PATH/progs/tutorial/first-launch-tutorial.scm");
+  return url_system ("$TEXMACS_PATH/progs/tutorial/first-launch-tutorial.scm");
 }
 
 } // namespace
@@ -766,12 +765,12 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
 
   if (isActive ()) stop (TutorialFinishReason::Cancelled);
 
-  m_hostWindow  = hostWindow;
-  m_registry    = registry;
-  m_config      = config;
-  m_currentIndex= -1;
+  m_hostWindow    = hostWindow;
+  m_registry      = registry;
+  m_config        = config;
+  m_currentIndex  = -1;
   m_displayedIndex= -1;
-  m_overlay     = new TutorialOverlay (hostWindow);
+  m_overlay       = new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
 
@@ -797,12 +796,12 @@ TutorialEngine::stop (TutorialFinishReason reason) {
     m_overlay->deleteLater ();
   }
 
-  m_overlay     = nullptr;
-  m_hostWindow  = nullptr;
-  m_currentIndex= -1;
+  m_overlay       = nullptr;
+  m_hostWindow    = nullptr;
+  m_currentIndex  = -1;
   m_displayedIndex= -1;
-  m_config      = TutorialFlowConfig ();
-  m_registry    = TutorialTargetRegistry ();
+  m_config        = TutorialFlowConfig ();
+  m_registry      = TutorialTargetRegistry ();
 
   emit finished (reason);
 }
