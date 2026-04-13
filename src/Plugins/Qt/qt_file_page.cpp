@@ -119,10 +119,16 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   if (style.isDefault) {
     badgeLabel_= new QLabel (tr ("Default"), this);
     badgeLabel_->setObjectName ("style-card-badge");
+    badgeLabel_->setAttribute (Qt::WA_StyledBackground, true);
     badgeLabel_->setAlignment (Qt::AlignCenter);
-    QFont badgeFont= badgeLabel_->font ();
-    badgeFont.setPixelSize (DpiUtils::scaled (kStyleBadgeFontPx));
-    badgeLabel_->setFont (badgeFont);
+    DpiUtils::applyScaledFont (badgeLabel_, kStyleBadgeFontPx);
+    badgeLabel_->setStyleSheet (
+        QString ("background-color: #2791ad; border: 1px solid transparent; "
+                 "border-radius: %1px; "
+                 "padding: %2px %3px;")
+            .arg (DpiUtils::scaled (kStyleBadgeRadius))
+            .arg (DpiUtils::scaled (kStyleBadgePadY))
+            .arg (DpiUtils::scaled (kStyleBadgePadX)));
     layout->addWidget (badgeLabel_, 0, Qt::AlignCenter);
   }
 
