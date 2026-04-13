@@ -9,8 +9,10 @@
 
 #include "qt_dpi_utils.hpp"
 
+#include <QFont>
 #include <QGuiApplication>
 #include <QScreen>
+#include <QWidget>
 
 qreal
 DpiUtils::scaleFactor (QScreen* screen) {
@@ -53,6 +55,21 @@ DpiUtils::scaledF (qreal baseSize, QScreen* screen) {
 qreal
 DpiUtils::scaledF (qreal baseSize, qreal scale) {
   return baseSize * scale;
+}
+
+QFont
+DpiUtils::scaledFont (const QFont& baseFont, int basePixelSize,
+                      QScreen* screen) {
+  QFont font= baseFont;
+  font.setPixelSize (scaled (basePixelSize, screen));
+  return font;
+}
+
+void
+DpiUtils::applyScaledFont (QWidget* widget, int basePixelSize,
+                           QScreen* screen) {
+  if (!widget) return;
+  widget->setFont (scaledFont (widget->font (), basePixelSize, screen));
 }
 
 // ========== 坐标转换：逻辑 → 物理 ==========

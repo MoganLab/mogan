@@ -14,7 +14,9 @@
 #include <QRect>
 #include <QSize>
 
+class QFont;
 class QScreen;
+class QWidget;
 
 /**
  * DPI/Scale 工具类，用于跨平台 HiDPI 处理。
@@ -62,6 +64,24 @@ public:
    * @return 缩放后的浮点值
    */
   static qreal scaledF (qreal baseSize, qreal scale);
+
+  /**
+   * 基于给定字号返回 DPI 缩放后的字体副本。
+   * @param baseFont 基础字体（保留字重、字族等属性）
+   * @param basePixelSize 96 DPI 下的基准像素字号
+   * @param screen 目标屏幕，传入 nullptr 则使用主屏幕
+   */
+  static QFont scaledFont (const QFont& baseFont, int basePixelSize,
+                           QScreen* screen= nullptr);
+
+  /**
+   * 直接为控件应用 DPI 缩放后的像素字号。
+   * @param widget 目标控件
+   * @param basePixelSize 96 DPI 下的基准像素字号
+   * @param screen 目标屏幕，传入 nullptr 则使用主屏幕
+   */
+  static void applyScaledFont (QWidget* widget, int basePixelSize,
+                               QScreen* screen= nullptr);
 
   /**
    * 将逻辑坐标（设备无关）转换为物理像素坐标。
