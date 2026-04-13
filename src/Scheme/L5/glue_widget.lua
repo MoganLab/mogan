@@ -388,6 +388,15 @@ function main()
                 }
             },
             {
+                scm_name = "widget-texmacs-output-transparent",
+                cpp_name = "texmacs_output_widget_transparent",
+                ret_type = "widget",
+                arg_list = {
+                    "content",
+                    "content"
+                }
+            },
+            {
                 scm_name = "widget-texmacs-input",
                 cpp_name = "texmacs_input_widget",
                 ret_type = "widget",

@@ -263,10 +263,9 @@ virtual_font_rep::supported (scheme_tree t, bool svg) {
     if (r == "#28") r= "(";
     if (r == "#29") r= ")";
     if (N (r) > 1) r= "<" * r * ">";
-    if (!extend || base_fn->supports (r) || !virt->dict->contains (r))
-      return base_fn->supports (r);
-    if (!virt->dict->contains (r)) return false;
-    return supported (virt->virt_def[virt->dict[r]], svg);
+    if (virt->dict->contains (r) && (!extend || !base_fn->supports (r)))
+      return supported (virt->virt_def[virt->dict[r]], svg);
+    return base_fn->supports (r);
   }
 
   if (is_func (t, TUPLE, 3) && (is_double (t[0])) && (is_double (t[1])))
@@ -450,13 +449,13 @@ virtual_font_rep::compile_bis (scheme_tree t, metric& ex) {
     if (r == "#29") r= ")";
     if (N (r) > 1) r= "<" * r * ">";
     glyph gl;
-    if (!extend || base_fn->supports (r) || !virt->dict->contains (r)) {
-      base_fn->get_extents (r, ex);
-      gl= base_fn->get_glyph (r);
-    }
-    else {
+    if (virt->dict->contains (r) && (!extend || !base_fn->supports (r))) {
       scheme_tree u= virt->virt_def[virt->dict[r]];
       gl           = compile (u, ex);
+    }
+    else {
+      base_fn->get_extents (r, ex);
+      gl= base_fn->get_glyph (r);
     }
     if (gl->width == 0 && gl->height == 0)
       ex->x1= ex->y1= ex->x2= ex->y2= ex->x3= ex->y3= ex->x4= ex->y4= 0;
