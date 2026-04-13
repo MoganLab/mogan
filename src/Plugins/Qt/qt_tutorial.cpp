@@ -375,7 +375,8 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       m_bottomTextLabel (new QLabel (this)),
       m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
-      m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr) {
+      m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr),
+      m_currentMediaPath () {
   setObjectName ("tutorialBubble");
   setAttribute (Qt::WA_StyledBackground, true);
   setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -470,50 +471,62 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 
 void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
+  const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
+  const QSize   mediaSize (300, 180);
+
   m_titleLabel->setText (step.title);
   m_topTextLabel->setText (step.topText);
   m_topTextLabel->setVisible (!step.topText.isEmpty ());
   m_bottomTextLabel->setText (step.bottomText);
   m_bottomTextLabel->setVisible (!step.bottomText.isEmpty ());
 
-  if (m_mediaMovie != nullptr) {
-    m_mediaLabel->setMovie (nullptr);
-    m_mediaMovie->stop ();
-    delete m_mediaMovie;
-    m_mediaMovie= nullptr;
-  }
+  if (mediaPath != m_currentMediaPath) {
+    if (m_mediaMovie != nullptr) {
+      m_mediaLabel->setMovie (nullptr);
+      m_mediaMovie->stop ();
+      delete m_mediaMovie;
+      m_mediaMovie= nullptr;
+    }
 
-  m_mediaLabel->clear ();
-  m_mediaLabel->setVisible (false);
-  if (!step.mediaPath.isEmpty ()) {
-    const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
-    const QSize   mediaSize (300, 180);
+    m_mediaLabel->clear ();
+    m_mediaLabel->setVisible (false);
+    m_mediaLabel->setFixedSize (QSize ());
+    m_currentMediaPath= mediaPath;
 
-    if (mediaPath.endsWith (".gif", Qt::CaseInsensitive)) {
-      m_mediaMovie= new QMovie (mediaPath, QByteArray (), this);
-      if (m_mediaMovie->isValid ()) {
-        m_mediaMovie->setScaledSize (mediaSize);
-        m_mediaLabel->setFixedSize (mediaSize);
-        m_mediaLabel->setMovie (m_mediaMovie);
-        m_mediaLabel->setVisible (true);
-        m_mediaMovie->start ();
+    if (!mediaPath.isEmpty ()) {
+      if (mediaPath.endsWith (".gif", Qt::CaseInsensitive)) {
+        m_mediaMovie= new QMovie (mediaPath, QByteArray (), this);
+        if (m_mediaMovie->isValid ()) {
+          m_mediaMovie->setScaledSize (mediaSize);
+          m_mediaLabel->setFixedSize (mediaSize);
+          m_mediaLabel->setMovie (m_mediaMovie);
+          m_mediaLabel->setVisible (true);
+          m_mediaMovie->start ();
+        }
+        else {
+          delete m_mediaMovie;
+          m_mediaMovie= nullptr;
+          m_currentMediaPath.clear ();
+        }
       }
       else {
-        delete m_mediaMovie;
-        m_mediaMovie= nullptr;
+        QPixmap pixmap (mediaPath);
+        if (!pixmap.isNull ()) {
+          const QPixmap scaledPixmap=
+              pixmap.scaled (mediaSize, Qt::KeepAspectRatio,
+                             Qt::SmoothTransformation);
+          m_mediaLabel->setPixmap (scaledPixmap);
+          m_mediaLabel->setFixedSize (mediaSize);
+          m_mediaLabel->setVisible (true);
+        }
+        else {
+          m_currentMediaPath.clear ();
+        }
       }
     }
-    else {
-      QPixmap pixmap (mediaPath);
-      if (!pixmap.isNull ()) {
-        const QPixmap scaledPixmap=
-            pixmap.scaled (mediaSize, Qt::KeepAspectRatio,
-                           Qt::SmoothTransformation);
-        m_mediaLabel->setPixmap (scaledPixmap);
-        m_mediaLabel->setFixedSize (mediaSize);
-        m_mediaLabel->setVisible (true);
-      }
-    }
+  }
+  else if (!mediaPath.isEmpty ()) {
+    m_mediaLabel->setVisible (true);
   }
 
   m_progressLabel->setText (

@@ -91,6 +91,7 @@ private:
   QPushButton* m_previousButton;
   QPushButton* m_nextButton;
   QMovie*      m_mediaMovie;
+  QString      m_currentMediaPath;
 };
 
 class TutorialOverlay : public QWidget {
