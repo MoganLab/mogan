@@ -127,18 +127,20 @@ firstLaunchTutorialConfigPath ();
 
 QString
 resolveTutorialMediaPath (const QString& rawPath) {
-  if (rawPath.trimmed ().isEmpty ()) return QString ();
+  const QString normalizedPath= rawPath.trimmed ();
+  if (normalizedPath.isEmpty ()) return QString ();
+  if (normalizedPath.startsWith (":/")) return normalizedPath;
 
-  QFileInfo fileInfo (rawPath);
+  QFileInfo fileInfo (normalizedPath);
   if (fileInfo.isAbsolute () && fileInfo.exists ()) return fileInfo.absoluteFilePath ();
   if (fileInfo.exists ()) return fileInfo.absoluteFilePath ();
 
   const QFileInfo configFileInfo (
       to_qstring (as_string (firstLaunchTutorialConfigPath ())));
-  const QFileInfo relativeFileInfo (configFileInfo.dir (), rawPath);
+  const QFileInfo relativeFileInfo (configFileInfo.dir (), normalizedPath);
   if (relativeFileInfo.exists ()) return relativeFileInfo.absoluteFilePath ();
 
-  return rawPath;
+  return normalizedPath;
 }
 
 bool
