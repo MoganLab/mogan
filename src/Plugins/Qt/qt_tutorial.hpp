@@ -18,7 +18,6 @@ class QLabel;
 class QMovie;
 class QPushButton;
 class QEvent;
-class QKeyEvent;
 class QMouseEvent;
 class QPaintEvent;
 class QWheelEvent;
@@ -116,7 +115,6 @@ protected:
   void mouseReleaseEvent (QMouseEvent* event) override;
   void mouseMoveEvent (QMouseEvent* event) override;
   void wheelEvent (QWheelEvent* event) override;
-  void keyPressEvent (QKeyEvent* event) override;
 
 private:
   void updateInputMask ();

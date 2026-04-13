@@ -22,7 +22,6 @@
 #include <QFileInfo>
 #include <QEvent>
 #include <QHBoxLayout>
-#include <QKeyEvent>
 #include <QLabel>
 #include <QMouseEvent>
 #include <QMovie>
@@ -536,7 +535,7 @@ TutorialOverlay::TutorialOverlay (QMainWindow* parentWindow)
       m_bubble (new TutorialBubble (this)), m_hasHighlight (false) {
   setObjectName ("tutorialOverlay");
   setAttribute (Qt::WA_StyledBackground, true);
-  setFocusPolicy (Qt::StrongFocus);
+  setFocusPolicy (Qt::NoFocus);
   setMouseTracking (true);
   setGeometry (parentWindow->rect ());
 
@@ -740,12 +739,6 @@ TutorialOverlay::wheelEvent (QWheelEvent* event) {
   event->accept ();
 }
 
-void
-TutorialOverlay::keyPressEvent (QKeyEvent* event) {
-  QWidget::keyPressEvent (event);
-  event->accept ();
-}
-
 TutorialEngine::TutorialEngine (QObject* parent)
     : QObject (parent), m_currentIndex (-1) {}
 
@@ -764,8 +757,6 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
   m_overlay     = new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
-  m_overlay->activateWindow ();
-  m_overlay->setFocus ();
 
   connect (m_overlay, &TutorialOverlay::previousRequested, this,
            &TutorialEngine::previous);
@@ -876,7 +867,6 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
     m_overlay->clearHighlight ();
     m_overlay->show ();
     m_overlay->raise ();
-    m_overlay->setFocus ();
     emit stepChanged (step.id, index, m_config.steps.size ());
     return;
   }
@@ -885,7 +875,6 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
   m_overlay->setHighlightedRect (rect, step.highlightPadding);
   m_overlay->show ();
   m_overlay->raise ();
-  m_overlay->setFocus ();
   emit stepChanged (step.id, index, m_config.steps.size ());
 }
 
