@@ -19,8 +19,8 @@
 
 #include <QApplication>
 #include <QDir>
-#include <QFileInfo>
 #include <QEvent>
+#include <QFileInfo>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
@@ -122,8 +122,7 @@ readField (tree entries, const QString& key, bool* found= nullptr) {
   return QString ();
 }
 
-url
-firstLaunchTutorialConfigPath ();
+url firstLaunchTutorialConfigPath ();
 
 QString
 resolveTutorialMediaPath (const QString& rawPath) {
@@ -132,7 +131,8 @@ resolveTutorialMediaPath (const QString& rawPath) {
   if (normalizedPath.startsWith (":/")) return normalizedPath;
 
   QFileInfo fileInfo (normalizedPath);
-  if (fileInfo.isAbsolute () && fileInfo.exists ()) return fileInfo.absoluteFilePath ();
+  if (fileInfo.isAbsolute () && fileInfo.exists ())
+    return fileInfo.absoluteFilePath ();
   if (fileInfo.exists ()) return fileInfo.absoluteFilePath ();
 
   const QFileInfo configFileInfo (
@@ -181,10 +181,10 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  step.topText= readField (stepTree, "top-text", &found);
+  step.topText              = readField (stepTree, "top-text", &found);
   const bool hasTopTextField= found && !step.topText.isEmpty ();
 
-  step.mediaPath= readField (stepTree, "media-path", &found);
+  step.mediaPath = readField (stepTree, "media-path", &found);
   step.bottomText= readField (stepTree, "bottom-text", &found);
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
@@ -512,9 +512,8 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
       else {
         QPixmap pixmap (mediaPath);
         if (!pixmap.isNull ()) {
-          const QPixmap scaledPixmap=
-              pixmap.scaled (mediaSize, Qt::KeepAspectRatio,
-                             Qt::SmoothTransformation);
+          const QPixmap scaledPixmap= pixmap.scaled (
+              mediaSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
           m_mediaLabel->setPixmap (scaledPixmap);
           m_mediaLabel->setFixedSize (mediaSize);
           m_mediaLabel->setVisible (true);
@@ -585,8 +584,8 @@ TutorialOverlay::setHighlightedRect (const QRect& rect, int padding) {
 void
 TutorialOverlay::clearHighlight () {
   const QRect previousHighlightRect= m_highlightRect;
-  m_highlightRect= QRect ();
-  m_hasHighlight = false;
+  m_highlightRect                  = QRect ();
+  m_hasHighlight                   = false;
   clearMask ();
   repositionBubble (TutorialPlacement::Auto);
   refreshExposedArea (previousHighlightRect);
@@ -613,9 +612,8 @@ TutorialOverlay::refreshExposedArea (const QRect& rect) {
   const QRect clippedRect= rect.intersected (m_parentWindow->rect ());
   if (!clippedRect.isValid ()) return;
 
-  const QList<QWidget*> widgets=
-      m_parentWindow->findChildren<QWidget*> (QString (),
-                                              Qt::FindChildrenRecursively);
+  const QList<QWidget*> widgets= m_parentWindow->findChildren<QWidget*> (
+      QString (), Qt::FindChildrenRecursively);
   for (QWidget* widget : widgets) {
     if (widget == nullptr || widget == this || widget == m_bubble ||
         widget->isHidden () || !widget->size ().isValid ())
@@ -959,29 +957,29 @@ FirstLaunchTutorialController::buildFallbackFlow () const {
   flow.flowId = "first-launch";
   flow.version= 1;
   flow.steps  = {
-      {"welcome", qt_translate ("认识一下主窗口"),
-         "mainWindowSafeArea", TutorialPlacement::Bottom, 12, true,
+      {"welcome", qt_translate ("认识一下主窗口"), "mainWindowSafeArea",
+         TutorialPlacement::Bottom, 12, true,
          qt_translate ("这是 Liii STEM "
                          "的主工作区。教程会依次指出最常用的几个区域，帮助你快速建"
                          "立基本认知。"),
          QString (), QString ()},
-      {"windowbar", qt_translate ("这里是窗口顶部"),
-         "windowbar", TutorialPlacement::Bottom, 10, true,
+      {"windowbar", qt_translate ("这里是窗口顶部"), "windowbar",
+         TutorialPlacement::Bottom, 10, true,
          qt_translate ("这里包含窗口切换、标签页和常用入口。你以后会频繁从这里切"
                          "换文档和访问全局功能。"),
          QString (), QString ()},
-      {"toolbar", qt_translate ("这里是主工具栏"),
-         "toolbarArea", TutorialPlacement::Bottom, 10, true,
+      {"toolbar", qt_translate ("这里是主工具栏"), "toolbarArea",
+         TutorialPlacement::Bottom, 10, true,
          qt_translate ("常见的格式、插入和排版操作会集中在这一带。不同编辑场景下"
                          "，这里的按钮也会变化。"),
          QString (), QString ()},
-      {"editor", qt_translate ("这里是编辑区"),
-         "editorArea", TutorialPlacement::Top, 12, true,
+      {"editor", qt_translate ("这里是编辑区"), "editorArea",
+         TutorialPlacement::Top, 12, true,
          qt_translate ("文档内容主要在这里输入、排版和修改。无论是公式、文本还是"
                          "结构化内容，核心操作都围绕这个区域展开。"),
          QString (), QString ()},
-      {"assistant", qt_translate ("这里是扩展能力入口"),
-         "assistantEntry", TutorialPlacement::Left, 10, true,
+      {"assistant", qt_translate ("这里是扩展能力入口"), "assistantEntry",
+         TutorialPlacement::Left, 10, true,
          qt_translate ("这一侧用于放置辅助能力或扩展面板；如果当前面板未显示，教"
                          "程会退化到登录与能力入口，帮助你找到后续探索的位置。"),
          QString (), QString ()},
