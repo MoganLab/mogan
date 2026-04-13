@@ -1030,16 +1030,12 @@ QToolButton#text-toolbar-button:pressed {
 /* 启动标签页主窗口 - 左侧导航栏 */
 QWidget#startup-tab-sidebar {
   background-color: #215a6a;
-  min-width: 120px;
-  max-width: 120px;
 }
 
 /* 导航栏分组标题 */
 QLabel#startup-tab-nav-title {
   color: rgba(255, 255, 255, 0.6);
-  font-size: 11px;
   font-weight: bold;
-  padding: 4px;
 }
 
 /* 导航按钮 - 普通状态 */
@@ -1047,9 +1043,7 @@ QPushButton#startup-tab-nav-btn {
   color: #ffffff;
   background-color: transparent;
   border: none;
-  padding: 8px 12px;
   text-align: left;
-  font-size: 13px;
 }
 
 QPushButton#startup-tab-nav-btn:hover {
@@ -1066,10 +1060,7 @@ QPushButton#startup-tab-quit-btn {
   color: #ffffff;
   background-color: transparent;
   border: 1px solid rgba(255, 255, 255, 0.5);
-  border-radius: 4px;
-  padding: 8px 12px;
   text-align: center;
-  font-size: 13px;
 }
 
 QPushButton#startup-tab-quit-btn:hover {
@@ -1084,31 +1075,43 @@ QWidget#startup-tab-content {
 
 /* 页面标题 */
 QLabel#startup-tab-page-title {
-  font-size: 24px;
   font-weight: bold;
   color: #ffffff;
 }
 
 /* 页面描述文字 */
 QLabel#startup-tab-page-desc {
-  font-size: 14px;
   color: #aaaaaa;
-  margin-top: 8px;
-  margin-bottom: 24px;
 }
 
 /* 模板使用按钮 - Template Use Button */
 QPushButton#template-use-btn {
   background-color: #4CAF50;
   color: white;
-  padding: 8px 24px;
-  border-radius: 4px;
   font-weight: bold;
   border: none;
 }
 
 QPushButton#template-use-btn:hover {
   background-color: #45a049;
+}
+
+QLabel#template-preview-desc {
+  color: #aaaaaa;
+}
+
+QLabel#startup-tab-template-info {
+  color: #b5bfca;
+}
+
+QLabel#startup-tab-template-thumbnail {
+  background: #4a4f57;
+  border: 1px solid #616a75;
+}
+
+QLabel#startup-tab-template-thumbnail[thumbnailLoaded="true"] {
+  background: transparent;
+  border: none;
 }
 
 /* Startup tab - file page */
@@ -1123,7 +1126,6 @@ QLabel#startup-tab-section-title {
 
 QListWidget#recent-docs-list {
   border: 1px solid #4a4f57;
-  border-radius: 8px;
   background-color: #3f434a;
   outline: none;
 }
@@ -1151,7 +1153,6 @@ QLabel#startup-tab-recent-path {
 
 QWidget#style-card {
   border: 1px solid #4b5560;
-  border-radius: 8px;
 }
 
 QWidget#style-card[selected="true"] {
@@ -1159,7 +1160,6 @@ QWidget#style-card[selected="true"] {
 }
 
 QLabel#style-card-icon {
-  border-radius: 8px;
   color: #ecf3f6;
   font-weight: 700;
 }
@@ -1170,10 +1170,4 @@ QLabel#style-card-name {
 
 QLabel#style-card-badge {
   color: #ffffff;
-  border-radius: 8px;
-  padding: 1px 6px;
-}
-
-QWidget#style-card:hover QLabel#style-card-badge {
-  background-color: #2791ad;
 }

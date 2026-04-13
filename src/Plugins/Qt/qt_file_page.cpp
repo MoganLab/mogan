@@ -49,16 +49,25 @@ constexpr int kStyleCardTopPadding= 12;  // 样式卡片顶部内边距
 constexpr int kStyleCardMargin    = 8;   // 样式卡片内边距
 constexpr int kStyleCardSpacing   = 4;   // 样式卡片内部控件间距
 constexpr int kStyleCardsSpacing  = 16;  // 样式卡片横向间距
+constexpr int kStyleCardRadius    = 8;   // 样式卡片圆角
+constexpr int kStyleIconRadius    = 8;   // 样式图标圆角
 constexpr int kSectionTitleFontPx = 16;  // 分区标题字号
 constexpr int kStyleIconFontPx    = 18;  // 样式图标字母字号
 constexpr int kStyleNameFontPx    = 12;  // 样式名称字号
 constexpr int kStyleBadgeFontPx   = 10;  // Default 徽标字号
+constexpr int kStyleBadgeRadius   = 8;   // Default 徽标圆角
+constexpr int kStyleBadgePadY     = 1;   // Default 徽标纵向内边距
+constexpr int kStyleBadgePadX     = 6;   // Default 徽标横向内边距
+constexpr int kRecentListRadius   = 8;   // Recent 列表圆角
 constexpr int kRecentItemHeight   = 64;  // Recent 列表项高度
 constexpr int kRecentItemPaddingX = 8;   // Recent 列表项横向内边距
 constexpr int kRecentItemPaddingY = 6;   // Recent 列表项纵向内边距
 constexpr int kRecentItemSpacing  = 3;   // Recent 名称与路径行间距
 constexpr int kRecentNameFontPx   = 15;  // Recent 文件名字号
 constexpr int kRecentPathFontPx   = 11;  // Recent 路径字号
+constexpr int kSelectedBorderPx   = 2;   // 卡片选中边框宽度
+constexpr int kSelectedRadius     = 6;   // 卡片选中边框圆角
+constexpr int kSelectedInset      = 1;   // 卡片选中边框内缩
 } // namespace
 
 /******************************************************************************
@@ -72,6 +81,8 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   int iconSize= DpiUtils::scaled (kStyleIconSize);
 
   setFixedSize (width, height);
+  setStyleSheet (QString ("border-radius: %1px;")
+                     .arg (DpiUtils::scaled (kStyleCardRadius)));
   setCursor (Qt::PointingHandCursor);
   setFocusPolicy (Qt::NoFocus);
 
@@ -88,11 +99,12 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   iconLabel_->setFixedSize (iconSize, iconSize);
   iconLabel_->setAlignment (Qt::AlignCenter);
   iconLabel_->setObjectName ("style-card-icon");
+  iconLabel_->setStyleSheet (QString ("border-radius: %1px;")
+                                 .arg (DpiUtils::scaled (kStyleIconRadius)));
   // 显示样式ID的首字母作为占位
   iconLabel_->setText (style.id.left (1).toUpper ());
-  QFont iconFont= iconLabel_->font ();
+  QFont iconFont= DpiUtils::scaledFont (iconLabel_->font (), kStyleIconFontPx);
   iconFont.setBold (true);
-  iconFont.setPixelSize (DpiUtils::scaled (kStyleIconFontPx));
   iconLabel_->setFont (iconFont);
   layout->addWidget (iconLabel_, 0, Qt::AlignCenter);
 
@@ -100,9 +112,7 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   nameLabel_= new QLabel (style.name, this);
   nameLabel_->setAlignment (Qt::AlignCenter);
   nameLabel_->setObjectName ("style-card-name");
-  QFont nameFont= nameLabel_->font ();
-  nameFont.setPixelSize (DpiUtils::scaled (kStyleNameFontPx));
-  nameLabel_->setFont (nameFont);
+  DpiUtils::applyScaledFont (nameLabel_, kStyleNameFontPx);
   layout->addWidget (nameLabel_, 0, Qt::AlignCenter);
 
   // "默认"标签
@@ -157,9 +167,13 @@ StyleCard::paintEvent (QPaintEvent* event) {
 
   // 绘制选中边框
   if (isSelected_) {
-    painter.setPen (QPen (opt.palette.highlight (), 2));
+    painter.setPen (
+        QPen (opt.palette.highlight (), DpiUtils::scaled (kSelectedBorderPx)));
     painter.setBrush (Qt::NoBrush);
-    painter.drawRoundedRect (rect ().adjusted (1, 1, -1, -1), 6, 6);
+    const int inset = DpiUtils::scaled (kSelectedInset);
+    const int radius= DpiUtils::scaled (kSelectedRadius);
+    painter.drawRoundedRect (rect ().adjusted (inset, inset, -inset, -inset),
+                             radius, radius);
   }
 }
 
@@ -210,9 +224,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (tr ("Document Style"), this);
   title->setObjectName ("startup-tab-section-title");
-  QFont titleFont= title->font ();
-  titleFont.setPixelSize (DpiUtils::scaled (kSectionTitleFontPx));
-  title->setFont (titleFont);
+  DpiUtils::applyScaledFont (title, kSectionTitleFontPx);
   layout->addWidget (title);
 
   // 样式卡片容器（水平流式布局）
@@ -259,14 +271,14 @@ QtFilePage::setupRecentDocs (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (tr ("Recent Documents"), this);
   title->setObjectName ("startup-tab-section-title");
-  QFont titleFont= title->font ();
-  titleFont.setPixelSize (DpiUtils::scaled (kSectionTitleFontPx));
-  title->setFont (titleFont);
+  DpiUtils::applyScaledFont (title, kSectionTitleFontPx);
   layout->addWidget (title);
 
   // 最近文档列表
   recentList_= new QListWidget (this);
   recentList_->setObjectName ("recent-docs-list");
+  recentList_->setStyleSheet (QString ("border-radius: %1px;")
+                                  .arg (DpiUtils::scaled (kRecentListRadius)));
   recentList_->setFocusPolicy (Qt::NoFocus);
   recentList_->setContextMenuPolicy (Qt::CustomContextMenu);
   recentList_->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
@@ -438,16 +450,14 @@ QtFilePage::renderRecentDocs () {
 
     auto* nameLabel= new QLabel (doc.fileName, rowWidget);
     nameLabel->setObjectName ("startup-tab-recent-name");
-    QFont nameFont= nameLabel->font ();
+    QFont nameFont=
+        DpiUtils::scaledFont (nameLabel->font (), kRecentNameFontPx);
     nameFont.setBold (true);
-    nameFont.setPixelSize (DpiUtils::scaled (kRecentNameFontPx));
     nameLabel->setFont (nameFont);
 
     auto* pathLabel= new QLabel (doc.filePath, rowWidget);
     pathLabel->setObjectName ("startup-tab-recent-path");
-    QFont pathFont= pathLabel->font ();
-    pathFont.setPixelSize (DpiUtils::scaled (kRecentPathFontPx));
-    pathLabel->setFont (pathFont);
+    DpiUtils::applyScaledFont (pathLabel, kRecentPathFontPx);
 
     rowLayout->addWidget (nameLabel);
     rowLayout->addWidget (pathLabel);

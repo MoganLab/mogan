@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_startup_tab_widget.hpp"
+#include "qt_dpi_utils.hpp"
 #include "qt_file_page.hpp"
 #include "qt_settings_page.hpp"
 #include "qt_template_page.hpp"
@@ -22,6 +23,26 @@
 #include <QVBoxLayout>
 
 #include "s7_tm.hpp"
+
+namespace {
+constexpr int kMinWidth        = 600; // 启动页最小宽度
+constexpr int kMinHeight       = 400; // 启动页最小高度
+constexpr int kSidebarMinWidth = 120; // 左侧导航栏最小宽度
+constexpr int kSidebarMarginX  = 8;   // 左侧导航栏水平内边距
+constexpr int kSidebarMarginY  = 16;  // 左侧导航栏垂直内边距
+constexpr int kSidebarSpacing  = 4;   // 左侧导航栏控件间距
+constexpr int kQuitTopSpacing  = 24;  // Quit 按钮上方额外间距
+constexpr int kNavTitlePadding = 4;   // Navigation 标题内边距
+constexpr int kNavTitleFontPx  = 11;  // Navigation 标题字号
+constexpr int kNavButtonPadY   = 8;   // 导航按钮纵向内边距
+constexpr int kNavButtonPadX   = 12;  // 导航按钮横向内边距
+constexpr int kNavButtonFontPx = 13;  // 导航按钮字号
+constexpr int kQuitBorderWidth = 1;   // Quit 按钮边框宽度
+constexpr int kQuitBorderRadius= 4;   // Quit 按钮圆角
+constexpr int kQuitPadY        = 8;   // Quit 按钮纵向内边距
+constexpr int kQuitPadX        = 12;  // Quit 按钮横向内边距
+constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
+} // namespace
 
 /**
  * @brief 构造函数 - 初始化启动标签页界面
@@ -39,7 +60,7 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
       navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr),
       templatePage_ (nullptr) {
 
-  setMinimumSize (600, 400);
+  setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::NoFocus);
 
   // 主布局：水平排列，左侧导航栏 + 右侧内容区
@@ -50,13 +71,20 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   // 左侧导航栏
   QWidget* sidebar= new QWidget (this);
   sidebar->setObjectName ("startup-tab-sidebar"); // 样式在主题CSS中定义
-  sidebar->setFixedWidth (120);
+  sidebar->setMinimumWidth (DpiUtils::scaled (kSidebarMinWidth));
+  sidebar->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Preferred);
 
   QVBoxLayout* sidebarLayout= new QVBoxLayout (sidebar);
-  sidebarLayout->setContentsMargins (8, 16, 8, 16);
-  sidebarLayout->setSpacing (4);
+  sidebarLayout->setContentsMargins (
+      DpiUtils::scaled (kSidebarMarginX), DpiUtils::scaled (kSidebarMarginY),
+      DpiUtils::scaled (kSidebarMarginX), DpiUtils::scaled (kSidebarMarginY));
+  sidebarLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   setup_left_sidebar (sidebarLayout);
+  sidebar->adjustSize ();
+  const int contentWidth= sidebar->sizeHint ().width ();
+  sidebar->setFixedWidth (
+      qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth));
   mainLayout->addWidget (sidebar);
 
   // 右侧内容区（使用堆叠控件切换不同页面）
@@ -107,6 +135,10 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   // Navigation 分组标题
   QLabel* navTitle= new QLabel ("Navigation", this);
   navTitle->setObjectName ("startup-tab-nav-title");
+  DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
+  navTitle->setContentsMargins (
+      DpiUtils::scaled (kNavTitlePadding), DpiUtils::scaled (kNavTitlePadding),
+      DpiUtils::scaled (kNavTitlePadding), DpiUtils::scaled (kNavTitlePadding));
   sidebarLayout->addWidget (navTitle);
 
   // 创建互斥按钮组
@@ -146,13 +178,20 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   // 弹性空间，将 Quit 按钮推到底部
   sidebarLayout->addStretch ();
-  sidebarLayout->addSpacing (24);
+  sidebarLayout->addSpacing (DpiUtils::scaled (kQuitTopSpacing));
 
   // Quit 退出按钮
   navQuitBtn_= new QPushButton ("Quit", this);
   navQuitBtn_->setObjectName ("startup-tab-quit-btn");
   navQuitBtn_->setFocusPolicy (Qt::NoFocus);
   navQuitBtn_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (navQuitBtn_, kQuitButtonFontPx);
+  navQuitBtn_->setStyleSheet (
+      QString ("border-width: %1px; border-radius: %2px; padding: %3px %4px;")
+          .arg (DpiUtils::scaled (kQuitBorderWidth))
+          .arg (DpiUtils::scaled (kQuitBorderRadius))
+          .arg (DpiUtils::scaled (kQuitPadY))
+          .arg (DpiUtils::scaled (kQuitPadX)));
   connect (navQuitBtn_, &QPushButton::clicked, this,
            &QTStartupTabWidget::on_app_quit);
   sidebarLayout->addWidget (navQuitBtn_);
@@ -173,6 +212,10 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
   btn->setFocusPolicy (Qt::NoFocus);
   btn->setCheckable (true); // 支持选中状态
   btn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (btn, kNavButtonFontPx);
+  btn->setStyleSheet (QString ("padding: %1px %2px;")
+                          .arg (DpiUtils::scaled (kNavButtonPadY))
+                          .arg (DpiUtils::scaled (kNavButtonPadX)));
   return btn;
 }
 
