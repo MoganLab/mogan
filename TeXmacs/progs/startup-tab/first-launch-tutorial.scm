@@ -3,6 +3,8 @@
 ("step" (("id" "welcome")
          ("title" "认识一下主窗口")
          ("top-text" "这是 Liii STEM 的主工作区。教程会依次指出最常用的几个区域，帮助你快速建立基本认知。")
+         ("media-path" ":/tutorial/test.gif")
+         ("bottom-text" "动图测试步骤，上方动图是否正确显示？")
          ("target-id" "mainWindowSafeArea")
          ("placement" "bottom")
          ("highlight-padding" "12")
