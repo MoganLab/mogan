@@ -88,6 +88,7 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
                      .arg (DpiUtils::scaled (kStyleCardRadius)));
   setCursor (Qt::PointingHandCursor);
   setFocusPolicy (Qt::NoFocus);
+  setToolTip (style.description);
 
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (DpiUtils::scaled (kStyleCardMargin),
@@ -120,7 +121,7 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
 
   // "默认"标签
   if (style.isDefault) {
-    badgeLabel_= new QLabel (tr ("Default"), this);
+    badgeLabel_= new QLabel (qt_translate ("Default"), this);
     badgeLabel_->setObjectName ("style-card-badge");
     badgeLabel_->setAttribute (Qt::WA_StyledBackground, true);
     badgeLabel_->setAlignment (Qt::AlignCenter);
@@ -194,12 +195,18 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   // 初始化样式列表
-  styles_= {{"generic", tr ("Generic"), tr ("General purpose document"), true},
-            {"beamer", tr ("Beamer"), tr ("Presentation slides"), false},
-            {"book", tr ("Book"), tr ("Book format"), false},
-            {"exam", tr ("Exam"), tr ("Examination paper"), false},
-            {"letter", tr ("Letter"), tr ("Letter format"), false},
-            {"article", tr ("Article"), tr ("Article format"), false}};
+  styles_= {
+      {"generic", qt_translate ("Generic"),
+       qt_translate ("General purpose document"), true},
+      {"beamer", qt_translate ("Beamer"), qt_translate ("Presentation slides"),
+       false},
+      {"book", qt_translate ("Book"), qt_translate ("Book format"), false},
+      {"exam", qt_translate ("Exam"), qt_translate ("Examination paper"),
+       false},
+      {"letter", qt_translate ("Letter"), qt_translate ("Letter format"),
+       false},
+      {"article", qt_translate ("Article"), qt_translate ("Article format"),
+       false}};
 
   setupUI ();
   loadRecentDocs ();
@@ -231,7 +238,7 @@ QtFilePage::setupUI () {
 void
 QtFilePage::setupStyleCards (QVBoxLayout* layout) {
   // 标题
-  QLabel* title= new QLabel (tr ("Document Style"), this);
+  QLabel* title= new QLabel (qt_translate ("Document Style"), this);
   title->setObjectName ("startup-tab-section-title");
   DpiUtils::applyScaledFont (title, kSectionTitleFontPx);
   layout->addWidget (title);
@@ -278,7 +285,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
 void
 QtFilePage::setupRecentDocs (QVBoxLayout* layout) {
   // 标题
-  QLabel* title= new QLabel (tr ("Recent Documents"), this);
+  QLabel* title= new QLabel (qt_translate ("Recent Documents"), this);
   title->setObjectName ("startup-tab-section-title");
   DpiUtils::applyScaledFont (title, kSectionTitleFontPx);
   layout->addWidget (title);
@@ -484,7 +491,7 @@ QtFilePage::renderRecentDocs () {
   }
 
   if (recentDocs_.isEmpty ()) {
-    auto* item= new QListWidgetItem (tr ("No recent documents"));
+    auto* item= new QListWidgetItem (qt_translate ("No recent documents"));
     item->setFlags (item->flags () & ~Qt::ItemIsEnabled);
     recentList_->addItem (item);
   }
@@ -586,7 +593,7 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
   if (path.isEmpty ()) return;
 
   QMenu    menu (this);
-  QAction* removeAction= menu.addAction (tr ("Remove from list"));
+  QAction* removeAction= menu.addAction (qt_translate ("Remove from list"));
 
   if (menu.exec (recentList_->mapToGlobal (pos)) == removeAction) {
     removeRecentDoc (path);

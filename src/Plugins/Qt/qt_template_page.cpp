@@ -31,6 +31,7 @@
 
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_preview_widget.hpp"
+#include "qt_utilities.hpp"
 #include "template_manager.hpp"
 
 namespace {
@@ -136,7 +137,7 @@ QTTemplatePage::setupUI () {
   layout->setSpacing (DpiUtils::scaled (kPageSpacing));
 
   // Title
-  titleLabel_= new QLabel (tr ("Template Center"), this);
+  titleLabel_= new QLabel (qt_translate ("Template Center"), this);
   titleLabel_->setObjectName ("startup-tab-page-title");
   DpiUtils::applyScaledFont (titleLabel_, kPageTitleFontPx);
   layout->addWidget (titleLabel_);
@@ -163,7 +164,8 @@ QTTemplatePage::setupUI () {
   layout->addWidget (scrollArea_, 1);
 
   // Loading label
-  QLabel* loadingLabel= new QLabel (tr ("Loading templates..."), gridWidget_);
+  QLabel* loadingLabel=
+      new QLabel (qt_translate ("Loading templates..."), gridWidget_);
   loadingLabel->setObjectName ("startup-tab-loading");
   loadingLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (loadingLabel, kLoadingFontPx);
@@ -193,7 +195,7 @@ QTTemplatePage::setupCategoryBar () {
   if (!categoryLayout) return;
 
   // Add "All" button
-  QPushButton* allBtn= new QPushButton (tr ("All"), categoryBar_);
+  QPushButton* allBtn= new QPushButton (qt_translate ("All"), categoryBar_);
   allBtn->setObjectName ("startup-tab-category-btn");
   allBtn->setCheckable (true);
   allBtn->setChecked (currentCategory_.isEmpty ());
@@ -270,7 +272,7 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
   }
 
   if (!templateManager_ || !templateManager_->isInitialized ()) {
-    QLabel* label= new QLabel (tr ("Initializing..."), gridWidget_);
+    QLabel* label= new QLabel (qt_translate ("Initializing..."), gridWidget_);
     label->setAlignment (Qt::AlignCenter);
     gridLayout_->addWidget (label, 0, 0, 1, 3);
     return;
@@ -286,7 +288,8 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
   }
 
   if (templates.isEmpty ()) {
-    QLabel* label= new QLabel (tr ("No templates available."), gridWidget_);
+    QLabel* label=
+        new QLabel (qt_translate ("No templates available."), gridWidget_);
     label->setAlignment (Qt::AlignCenter);
     gridLayout_->addWidget (label, 0, 0, 1, 3);
     return;
@@ -331,7 +334,7 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   thumbnailLabel->setAlignment (Qt::AlignCenter);
   thumbnailLabel->setProperty ("thumbnailLoaded", false);
   applyThumbnailFrameStyle (thumbnailLabel, false);
-  thumbnailLabel->setText (tr ("Loading..."));
+  thumbnailLabel->setText (qt_translate ("Loading..."));
   layout->addWidget (thumbnailLabel, 0, Qt::AlignHCenter);
 
   // Load thumbnail from URL
@@ -339,7 +342,7 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
     loadThumbnail (thumbnailLabel, tmpl->thumbnailUrl);
   }
   else {
-    thumbnailLabel->setText (tr ("No Preview"));
+    thumbnailLabel->setText (qt_translate ("No Preview"));
   }
 
   // Template name
@@ -412,11 +415,11 @@ QTTemplatePage::processThumbnailQueue () {
             req.label->style ()->polish (req.label);
           }
           else {
-            req.label->setText (tr ("Preview"));
+            req.label->setText (qt_translate ("Preview"));
           }
         }
         else {
-          req.label->setText (tr ("Preview"));
+          req.label->setText (qt_translate ("Preview"));
         }
       }
 
@@ -452,7 +455,8 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Create preview dialog
   QDialog* dialog= new QDialog (this);
-  dialog->setWindowTitle (tr ("Template Preview - %1").arg (tmpl->name));
+  dialog->setWindowTitle (
+      qt_translate ("Template Preview - %1").arg (tmpl->name));
   dialog->setMinimumSize (DpiUtils::scaled (kPreviewDialogMinW),
                           DpiUtils::scaled (kPreviewDialogMinH));
 
@@ -481,8 +485,10 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Info row
   QHBoxLayout* infoLayout= new QHBoxLayout ();
-  infoLayout->addWidget (new QLabel (tr ("Author: %1").arg (tmpl->author)));
-  infoLayout->addWidget (new QLabel (tr ("Version: %1").arg (tmpl->version)));
+  infoLayout->addWidget (
+      new QLabel (qt_translate ("Author: %1").arg (tmpl->author)));
+  infoLayout->addWidget (
+      new QLabel (qt_translate ("Version: %1").arg (tmpl->version)));
   infoLayout->addStretch ();
   layout->addLayout (infoLayout);
 
@@ -508,11 +514,11 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
 
-  QPushButton* cancelBtn= new QPushButton (tr ("Cancel"), dialog);
+  QPushButton* cancelBtn= new QPushButton (qt_translate ("Cancel"), dialog);
   connect (cancelBtn, &QPushButton::clicked, dialog, &QDialog::reject);
   btnLayout->addWidget (cancelBtn);
 
-  QPushButton* useBtn= new QPushButton (tr ("Use Template"), dialog);
+  QPushButton* useBtn= new QPushButton (qt_translate ("Use Template"), dialog);
   useBtn->setObjectName ("template-use-btn");
   DpiUtils::applyScaledFont (useBtn, kUseButtonFontPx);
   useBtn->setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
@@ -547,8 +553,8 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
     QString localPath= templateManager_->localTemplatePath (templateId);
     if (localPath.isEmpty ()) {
-      QMessageBox::warning (this, tr ("Template Error"),
-                            tr ("Local template file is missing"));
+      QMessageBox::warning (this, qt_translate ("Template Error"),
+                            qt_translate ("Local template file is missing"));
       return;
     }
     emit templateOpened (localPath);
@@ -561,8 +567,9 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
       cleanupProgressDialog ();
     }
 
-    progressDialog_= new QProgressDialog (tr ("Downloading template..."),
-                                          tr ("Cancel"), 0, 100, this);
+    progressDialog_=
+        new QProgressDialog (qt_translate ("Downloading template..."),
+                             qt_translate ("Cancel"), 0, 100, this);
     progressDialog_->setWindowModality (Qt::WindowModal);
     progressDialog_->setAutoClose (true);
 
@@ -650,8 +657,9 @@ QTTemplatePage::onDownloadFailed (const QString& templateId,
   // Check if this download was cancelled by the user
   // If so, don't show the error dialog
   if (!downloadCancelledByUser_) {
-    QMessageBox::warning (this, tr ("Download Failed"),
-                          tr ("Failed to download template: %1").arg (error));
+    QMessageBox::warning (
+        this, qt_translate ("Download Failed"),
+        qt_translate ("Failed to download template: %1").arg (error));
   }
   // Reset the flag for next download
   downloadCancelledByUser_= false;

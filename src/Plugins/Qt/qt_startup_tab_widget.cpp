@@ -14,6 +14,7 @@
 #include "qt_file_page.hpp"
 #include "qt_settings_page.hpp"
 #include "qt_template_page.hpp"
+#include "qt_utilities.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -133,7 +134,7 @@ QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
 void
 QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   // Navigation 分组标题
-  QLabel* navTitle= new QLabel ("Navigation", this);
+  QLabel* navTitle= new QLabel (qt_translate ("Navigation"), this);
   navTitle->setObjectName ("startup-tab-nav-title");
   DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
   navTitle->setContentsMargins (
@@ -146,12 +147,12 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_->setExclusive (true);
 
   // 导航按钮（4个入口）
-  navFileBtn_      = create_nav_button ("File");
-  navTemplateBtn_  = create_nav_button ("Template");
-  navOpenFolderBtn_= create_nav_button ("Open Folder");
-  navSettingsBtn_  = create_nav_button ("Settings");
+  navFileBtn_      = create_nav_button (qt_translate ("File"));
+  navTemplateBtn_  = create_nav_button (qt_translate ("Template"));
+  navOpenFolderBtn_= create_nav_button (qt_translate ("Open a Document"));
+  navSettingsBtn_  = create_nav_button (qt_translate ("Settings"));
 
-  // 添加到按钮组和布局（Open Folder 不在互斥组中，因为它没有对应页面）
+  // 添加到按钮组和布局（Open a Document 不在互斥组中，因为它没有对应页面）
   navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
   navButtonGroup_->addButton (navTemplateBtn_,
                               static_cast<int> (Entry::Template));
@@ -173,7 +174,7 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   connect (navSettingsBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Settings); });
 
-  // Open Folder 不是 checkable 按钮（没有对应页面）
+  // Open a Document 不是 checkable 按钮（没有对应页面）
   navOpenFolderBtn_->setCheckable (false);
 
   // 弹性空间，将 Quit 按钮推到底部
@@ -181,7 +182,7 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   sidebarLayout->addSpacing (DpiUtils::scaled (kQuitTopSpacing));
 
   // Quit 退出按钮
-  navQuitBtn_= new QPushButton ("Quit", this);
+  navQuitBtn_= new QPushButton (qt_translate ("Quit"), this);
   navQuitBtn_->setObjectName ("startup-tab-quit-btn");
   navQuitBtn_->setFocusPolicy (Qt::NoFocus);
   navQuitBtn_->setCursor (Qt::PointingHandCursor);
