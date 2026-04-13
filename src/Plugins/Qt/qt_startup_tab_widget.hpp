@@ -64,7 +64,7 @@ private:
   // Navigation buttons
   QPushButton* navFileBtn_;
   QPushButton* navTemplateBtn_;
-  QPushButton* navOpenFolderBtn_;
+  QPushButton* navOpenDocBtn_;
   QPushButton* navSettingsBtn_;
   QPushButton* navQuitBtn_;
 

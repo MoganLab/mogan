@@ -56,7 +56,7 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
  */
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
-      navTemplateBtn_ (nullptr), navOpenFolderBtn_ (nullptr),
+      navTemplateBtn_ (nullptr), navOpenDocBtn_ (nullptr),
       navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
       navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr),
       templatePage_ (nullptr) {
@@ -147,10 +147,10 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_->setExclusive (true);
 
   // 导航按钮（4个入口）
-  navFileBtn_      = create_nav_button (qt_translate ("File"));
-  navTemplateBtn_  = create_nav_button (qt_translate ("Template"));
-  navOpenFolderBtn_= create_nav_button (qt_translate ("Open a Document"));
-  navSettingsBtn_  = create_nav_button (qt_translate ("Settings"));
+  navFileBtn_    = create_nav_button (qt_translate ("File"));
+  navTemplateBtn_= create_nav_button (qt_translate ("Template"));
+  navOpenDocBtn_ = create_nav_button (qt_translate ("Open a Document"));
+  navSettingsBtn_= create_nav_button (qt_translate ("Settings"));
 
   // 添加到按钮组和布局（Open a Document 不在互斥组中，因为它没有对应页面）
   navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
@@ -161,7 +161,7 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   sidebarLayout->addWidget (navFileBtn_);
   sidebarLayout->addWidget (navTemplateBtn_);
-  sidebarLayout->addWidget (navOpenFolderBtn_);
+  sidebarLayout->addWidget (navOpenDocBtn_);
   sidebarLayout->addWidget (navSettingsBtn_);
 
   // 导航按钮点击事件：切换到对应页面
@@ -169,13 +169,13 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
            [this] () { set_current_entry (Entry::File); });
   connect (navTemplateBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Template); });
-  connect (navOpenFolderBtn_, &QPushButton::clicked, this,
+  connect (navOpenDocBtn_, &QPushButton::clicked, this,
            &QTStartupTabWidget::on_file_open);
   connect (navSettingsBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Settings); });
 
   // Open a Document 不是 checkable 按钮（没有对应页面）
-  navOpenFolderBtn_->setCheckable (false);
+  navOpenDocBtn_->setCheckable (false);
 
   // 弹性空间，将 Quit 按钮推到底部
   sidebarLayout->addStretch ();
