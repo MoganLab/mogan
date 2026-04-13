@@ -1027,8 +1027,9 @@ QToolButton#text-toolbar-button:pressed {
 * 文字: 白色 / 黑色
 ****************************************************************************/
 
-/* 启动标签页主窗口 - 左侧导航栏 */
-QWidget#startup-tab-sidebar {
+/* 启动标签页主窗口 - 左侧导航栏
+   使用更具体的选择器覆盖 centralWidget QWidget 的定义 */
+QWidget#centralWidget QWidget#startup-tab-sidebar {
   background-color: #215a6a;
 }
 
@@ -1038,37 +1039,47 @@ QLabel#startup-tab-nav-title {
   font-weight: bold;
 }
 
+QWidget#centralWidget QLabel#startup-tab-nav-title {
+  background-color: transparent;
+}
+
 /* 导航按钮 - 普通状态 */
 QPushButton#startup-tab-nav-btn {
   color: #ffffff;
-  background-color: transparent;
   border: none;
   text-align: left;
 }
 
-QPushButton#startup-tab-nav-btn:hover {
+QWidget#centralWidget QPushButton#startup-tab-nav-btn {
+  background-color: transparent;
+}
+
+QWidget#centralWidget QPushButton#startup-tab-nav-btn:hover {
   background-color: rgba(255, 255, 255, 0.15);
 }
 
 /* 导航按钮 - 选中状态 */
-QPushButton#startup-tab-nav-btn:checked {
+QWidget#centralWidget QPushButton#startup-tab-nav-btn:checked {
   background-color: #2791ad;
 }
 
 /* 退出按钮 */
 QPushButton#startup-tab-quit-btn {
   color: #ffffff;
-  background-color: transparent;
   border: 1px solid rgba(255, 255, 255, 0.5);
   text-align: center;
 }
 
-QPushButton#startup-tab-quit-btn:hover {
+QWidget#centralWidget QPushButton#startup-tab-quit-btn {
+  background-color: transparent;
+}
+
+QWidget#centralWidget QPushButton#startup-tab-quit-btn:hover {
   background-color: rgba(255, 255, 255, 0.2);
   border-color: #ffffff;
 }
 
-/* 右侧内容区 */
+/* 右侧内容区（实际没生效） */
 QWidget#startup-tab-content {
   background-color: #5d5d5d;
 }
