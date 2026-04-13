@@ -233,6 +233,69 @@
            (or (tree-is? (tree-ref t 0) 'item)
                (tree-is? (tree-ref t 0) 'item*)))))
 
+(define (list-item-marker-node? t)
+  (or (tree-is? t 'item)
+      (tree-is? t 'item*)))
+
+(define (list-item-wrapper-node? t)
+  (and (tree-is? t 'concat)
+       (> (tree-arity t) 0)
+       (list-item-marker-node? (tree-ref t 0))))
+
+;; Tab/Shift+Tab should work both on the item marker and inside its content.
+;; When the cursor is in a concat-wrapped item, return the marker at index 0.
+(define (current-list-item-marker)
+  (let* ((focus (focus-tree))
+         (cursor (cursor-tree))
+         (item? (lambda (t)
+                  (or (list-item-marker-node? t)
+                      (list-item-wrapper-node? t))))
+         (item (or (tree-search-upwards cursor item?)
+                   (tree-search-upwards focus item?)))
+         (marker (and item
+                      (if (list-item-wrapper-node? item)
+                          (tree-ref item 0)
+                          item))))
+    marker))
+
+(define (list-tab-context-match? forwards?)
+  (let* ((item (current-list-item-marker))
+         (enum? (in-enumerate-context?))
+         (itemize? (in-itemize-context?))
+         (description? (in-description-context?))
+         (match? (and item
+                      (or (and (or enum? itemize?) (tree-is? item 'item))
+                          (and description? (tree-is? item 'item*))))))
+    match?))
+
+(define (list-item-cursor-target item wrapper)
+  (if (and wrapper (not (cursor-inside? item))) 'content 'marker))
+
+(define (list-item-cursor-state item wrapper)
+  (let* ((base (or wrapper item))
+         (target (list-item-cursor-target item wrapper))
+         (relative-path (and base (tree-cursor-path base))))
+    (list target relative-path)))
+
+(define (go-to-list-item-relative-path moved-item relative-path)
+  (and relative-path
+       (nnull? relative-path)
+       (with p (apply tree->path (cons moved-item relative-path))
+         (and p (begin (go-to p) #t)))))
+
+(define (go-to-moved-list-item moved-item cursor-state parent pos)
+  (let* ((cursor-target (car cursor-state))
+         (relative-path (cadr cursor-state)))
+    (or (go-to-list-item-relative-path moved-item relative-path)
+        (cond ((and (== cursor-target 'content)
+                    (tree-is? moved-item 'concat)
+                    (> (tree-arity moved-item) 1))
+               (tree-go-to moved-item 1 :end))
+              ((tree-is? moved-item 'concat)
+               (tree-go-to moved-item 0 :end))
+              (else
+               (tree-go-to parent pos :end))))))
+
 (define (list-node? t)
   (and t (tree-in? t (list-tag-list))))
 
@@ -266,19 +329,15 @@
 ;; 在有序和无序列表中实现缩进功能
 (tm-define (kbd-variant t forwards?)
   (:require 
-    (and forwards?
-         (or
-           ;; 有序列表或者无序列表
-           (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
-           ;; 描述列表
-           (and in-description-context? (tree-is? (focus-tree) 'item*)))))
+    (and forwards? (list-tab-context-match? forwards?)))
 
-  (let ((item (focus-tree)))
+  (let ((item (current-list-item-marker)))
     ;; 查找包装和列表
     (call-with-values (lambda () (find-item-wrapper-and-list item))
       (lambda (wrapper item-list)
         (if (and item item-list)
             (let* ((item-index (if wrapper (tree-index wrapper) (tree-index item)))
+                   (cursor-state (list-item-cursor-state item wrapper))
                    (list-type (list-family (or (get-current-list-label item) 'enumerate)))
                    (item-stree (tree->stree (if wrapper wrapper item)))
                    (next-index (+ item-index 1))
@@ -327,11 +386,10 @@
                         (when attached-sublist-idx
                           (set! item-list (tree-remove! item-list attached-sublist-idx 1)))
                         (set! item-list (tree-remove! item-list item-index 1))
-                        ;; concat 包装的 item 需要落到第 0 个子元素末尾，普通 item 直接定位。
+                        ;; 优先恢复原光标在 item 内部的相对位置。
                         (let ((moved-item (tree-ref target-doc target-pos)))
-                          (if (tree-is? moved-item 'concat)
-                              (tree-go-to moved-item 0 :end)
-                              (tree-go-to target-doc target-pos :end)))))))))))))
+                          (go-to-moved-list-item moved-item cursor-state
+                                                 target-doc target-pos))))))))))))
 
 ;; 在有序和无序列表中实现反缩进功能
 ;;
@@ -354,21 +412,20 @@
 ;;
 (tm-define (kbd-variant t forwards?)
   (:require
-    (and (not forwards?)
-         (or
-           (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
-           (and in-description-context? (tree-is? (focus-tree) 'item*)))))
+    (and (not forwards?) (list-tab-context-match? forwards?)))
 
-  (let* ((item (focus-tree))
+  (let* ((item (current-list-item-marker))
          (item-stree (tree->stree item))
          (wrapper #f)
-         (doc (tree-outer item)))
+         (doc (tree-outer item))
+         (cursor-state #f))
 
     ;; 处理 concat 包装
     (when (tree-is? doc 'concat)
       (set! wrapper doc)
       (set! doc (tree-outer wrapper))
       (set! item-stree (tree->stree wrapper)))
+    (set! cursor-state (list-item-cursor-state item wrapper))
 
     ;; 仅在 item 直接位于列表 document 中时才执行反缩进。
     (when (tree-is? doc 'document)
@@ -435,12 +492,8 @@
                 ;; 共同逻辑：移动光标到新插入的 item
                 (with moved-item (tree-ref current-parent item-insert-pos)
                   ;; 根据 moved-item 类型决定光标位置
-                  (if (tree-is? moved-item 'concat)
-                      ;; concat 包装：定位到第0个子元素（document）的结束位置
-                      (tree-go-to moved-item 0 :end)
-                      ;; item: 从 parent 定位
-                      (begin
-                        (tree-go-to current-parent item-insert-pos :end))))))))))))
+                  (go-to-moved-list-item moved-item cursor-state
+                                         current-parent item-insert-pos))))))))))
 
 
 (tm-define (kbd-variant t forwards?)

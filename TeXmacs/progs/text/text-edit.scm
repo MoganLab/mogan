@@ -378,6 +378,67 @@
       (make l)
       (if flag? (insert '(item* "")) (make-item)))))
 
+(define (blank-text? t)
+  (and (tree-atomic? t)
+       (== (string-trim-spaces (tree->string t)) "")))
+
+(define (blank-tree? t)
+  (cond ((blank-text? t) #t)
+        ((tree-is? t 'concat)
+         (let loop ((i 0))
+           (or (>= i (tree-arity t))
+               (and (blank-tree? (tree-ref t i))
+                    (loop (+ i 1))))))
+        (else (tree-empty? t))))
+
+(define (left-siblings-blank-until? t stop)
+  (or (not t)
+      (== t stop)
+      (let* ((parent (tree-up t))
+             (index (and parent (tree-index t))))
+        (and parent index
+             (let loop ((i 0))
+               (or (>= i index)
+                   (and (blank-tree? (tree-ref parent i))
+                        (loop (+ i 1)))))
+             (left-siblings-blank-until? parent stop)))))
+
+(tm-define (line-start-empty-text?)
+  (let* ((t (cursor-tree))
+         (i (cAr (cursor-path)))
+         (p (and t (paragraph-tree))))
+    (and t
+         (tree-atomic? t)
+         (== (string-trim-spaces (substring (tree->string t) 0 i)) "")
+         (left-siblings-blank-until? t p))))
+
+(tm-define (make-tmlist-if-line-start l fallback)
+  (if (line-start-empty-text?)
+      (make-tmlist l)
+      (insert fallback)))
+
+(define (list-item-marker? t)
+  (tree-in? t '(item item*)))
+
+(define (list-item-wrapper? t)
+  (and (tree-is? t 'concat)
+       (> (tree-arity t) 0)
+       (list-item-marker? (tree-ref t 0))))
+
+(define (list-item-logical-tree t)
+  (if (and (list-item-marker? t)
+           (list-item-wrapper? (tree-up t)))
+      (tree-up t)
+      t))
+
+(define (current-list-item-tree)
+  (and-with item (tree-search-upwards
+                   (cursor-tree)
+                   (lambda (t)
+                     (or (list-item-marker? t)
+                         (list-item-wrapper? t))))
+    (list-item-logical-tree item)))
+
 (tm-define (make-item)
   (if (not (make-return-after))
       (with lab (inside-which (list-tag-list))
@@ -387,7 +448,9 @@
               (else (make 'item))))))
 
 (tm-define (kbd-enter t shift?)
-  (:require (and (list-context? t) (not (in-prog?))))
+  (:require (and (list-context? t)
+                 (current-list-item-tree)
+                 (not (in-prog?))))
   (if shift? (make-return-after) (make-item)))
 
 (tm-define (kbd-enter t shift?)
