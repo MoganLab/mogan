@@ -78,7 +78,6 @@ public:
 signals:
   void previousRequested ();
   void nextRequested ();
-  void skipRequested ();
   void finishRequested ();
 
 private:
@@ -87,7 +86,6 @@ private:
   QLabel*      m_progressLabel;
   QPushButton* m_previousButton;
   QPushButton* m_nextButton;
-  QPushButton* m_skipButton;
 };
 
 class TutorialOverlay : public QWidget {
@@ -104,7 +102,6 @@ public:
 signals:
   void previousRequested ();
   void nextRequested ();
-  void skipRequested ();
   void finishRequested ();
 
 protected:

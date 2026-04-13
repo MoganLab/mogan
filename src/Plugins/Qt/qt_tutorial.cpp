@@ -343,8 +343,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       m_descriptionLabel (new QLabel (this)),
       m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
-      m_nextButton (new QPushButton (this)),
-      m_skipButton (new QPushButton (this)) {
+      m_nextButton (new QPushButton (this)) {
   setObjectName ("tutorialBubble");
   setAttribute (Qt::WA_StyledBackground, true);
   setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -358,14 +357,12 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 
   m_previousButton->setText (qt_translate ("上一步"));
   m_nextButton->setText (qt_translate ("下一步"));
-  m_skipButton->setText (qt_translate ("跳过"));
 
   auto* footerLayout= new QHBoxLayout ();
   footerLayout->setContentsMargins (0, 0, 0, 0);
   footerLayout->setSpacing (10);
   footerLayout->addWidget (m_progressLabel);
   footerLayout->addStretch ();
-  footerLayout->addWidget (m_skipButton);
   footerLayout->addWidget (m_previousButton);
   footerLayout->addWidget (m_nextButton);
 
@@ -414,9 +411,6 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_previousButton->setStyleSheet (QStringLiteral (
       "QPushButton { background: #f3f4f6; color: #111827; border: 1px solid "
       "#d1d5db; }"));
-  m_skipButton->setStyleSheet (QStringLiteral (
-      "QPushButton { background: transparent; color: #6b7280; border: 1px "
-      "solid #d1d5db; }"));
   m_nextButton->setStyleSheet (QStringLiteral (
       "QPushButton { background: #0f766e; color: white; border: 1px solid "
       "#0f766e; }"));
@@ -427,8 +421,6 @@ TutorialBubble::TutorialBubble (QWidget* parent)
     if (m_nextButton->text () == qt_translate ("完成")) emit finishRequested ();
     else emit nextRequested ();
   });
-  connect (m_skipButton, &QPushButton::clicked, this,
-           &TutorialBubble::skipRequested);
 }
 
 void
@@ -464,8 +456,6 @@ TutorialOverlay::TutorialOverlay (QMainWindow* parentWindow)
            &TutorialOverlay::previousRequested);
   connect (m_bubble, &TutorialBubble::nextRequested, this,
            &TutorialOverlay::nextRequested);
-  connect (m_bubble, &TutorialBubble::skipRequested, this,
-           &TutorialOverlay::skipRequested);
   connect (m_bubble, &TutorialBubble::finishRequested, this,
            &TutorialOverlay::finishRequested);
 }
@@ -620,12 +610,6 @@ TutorialOverlay::wheelEvent (QWheelEvent* event) {
 
 void
 TutorialOverlay::keyPressEvent (QKeyEvent* event) {
-  if (event->key () == Qt::Key_Escape) {
-    event->accept ();
-    emit skipRequested ();
-    return;
-  }
-
   QWidget::keyPressEvent (event);
   event->accept ();
 }
@@ -655,8 +639,6 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
            &TutorialEngine::previous);
   connect (m_overlay, &TutorialOverlay::nextRequested, this,
            &TutorialEngine::next);
-  connect (m_overlay, &TutorialOverlay::skipRequested, this,
-           [this] () { stop (TutorialFinishReason::Skipped); });
   connect (m_overlay, &TutorialOverlay::finishRequested, this,
            [this] () { stop (TutorialFinishReason::Completed); });
 
