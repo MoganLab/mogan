@@ -15,6 +15,7 @@
 #include <functional>
 
 class QLabel;
+class QMovie;
 class QPushButton;
 class QEvent;
 class QKeyEvent;
@@ -31,11 +32,13 @@ enum class TutorialFinishReason { Completed, Skipped, Cancelled, HostClosed };
 struct TutorialStepConfig {
   QString           id;
   QString           title;
-  QString           description;
   QString           targetId;
   TutorialPlacement placement       = TutorialPlacement::Auto;
   int               highlightPadding= 8;
   bool              skipIfMissing   = true;
+  QString           topText;
+  QString           mediaPath;
+  QString           bottomText;
 };
 
 struct TutorialFlowConfig {
@@ -82,10 +85,13 @@ signals:
 
 private:
   QLabel*      m_titleLabel;
-  QLabel*      m_descriptionLabel;
+  QLabel*      m_topTextLabel;
+  QLabel*      m_mediaLabel;
+  QLabel*      m_bottomTextLabel;
   QLabel*      m_progressLabel;
   QPushButton* m_previousButton;
   QPushButton* m_nextButton;
+  QMovie*      m_mediaMovie;
 };
 
 class TutorialOverlay : public QWidget {
@@ -113,6 +119,9 @@ protected:
   void keyPressEvent (QKeyEvent* event) override;
 
 private:
+  void updateInputMask ();
+  void refreshExposedArea (const QRect& rect);
+
   QRect bubbleRectForPlacement (TutorialPlacement placement) const;
 
   QPointer<QMainWindow> m_parentWindow;

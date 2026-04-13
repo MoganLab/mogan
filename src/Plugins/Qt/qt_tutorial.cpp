@@ -18,14 +18,19 @@
 #include "tree_helper.hpp"
 
 #include <QApplication>
+#include <QDir>
+#include <QFileInfo>
 #include <QEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLabel>
 #include <QMouseEvent>
+#include <QMovie>
 #include <QPainter>
 #include <QPainterPath>
+#include <QPixmap>
 #include <QPushButton>
+#include <QRegion>
 #include <QStatusBar>
 #include <QStringList>
 #include <QTimer>
@@ -118,6 +123,25 @@ readField (tree entries, const QString& key, bool* found= nullptr) {
   return QString ();
 }
 
+url
+firstLaunchTutorialConfigPath ();
+
+QString
+resolveTutorialMediaPath (const QString& rawPath) {
+  if (rawPath.trimmed ().isEmpty ()) return QString ();
+
+  QFileInfo fileInfo (rawPath);
+  if (fileInfo.isAbsolute () && fileInfo.exists ()) return fileInfo.absoluteFilePath ();
+  if (fileInfo.exists ()) return fileInfo.absoluteFilePath ();
+
+  const QFileInfo configFileInfo (
+      to_qstring (as_string (firstLaunchTutorialConfigPath ())));
+  const QFileInfo relativeFileInfo (configFileInfo.dir (), rawPath);
+  if (relativeFileInfo.exists ()) return relativeFileInfo.absoluteFilePath ();
+
+  return rawPath;
+}
+
 bool
 parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
                 QString* errorMessage) {
@@ -156,11 +180,17 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
     return false;
   }
 
-  step.description= readField (stepTree, "description", &found);
-  if (!found || step.description.isEmpty ()) {
+  step.topText= readField (stepTree, "top-text", &found);
+  const bool hasTopTextField= found && !step.topText.isEmpty ();
+
+  step.mediaPath= readField (stepTree, "media-path", &found);
+  step.bottomText= readField (stepTree, "bottom-text", &found);
+
+  if (!hasTopTextField && step.mediaPath.isEmpty () &&
+      step.bottomText.isEmpty ()) {
     if (errorMessage != nullptr)
       *errorMessage=
-          QString ("Tutorial step %1 is missing description").arg (step.id);
+          QString ("Tutorial step %1 is missing content").arg (step.id);
     return false;
   }
 
@@ -340,20 +370,26 @@ TutorialConfigLoader::loadFlow (url path, TutorialFlowConfig& config,
 
 TutorialBubble::TutorialBubble (QWidget* parent)
     : QWidget (parent), m_titleLabel (new QLabel (this)),
-      m_descriptionLabel (new QLabel (this)),
+      m_topTextLabel (new QLabel (this)), m_mediaLabel (new QLabel (this)),
+      m_bottomTextLabel (new QLabel (this)),
       m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
-      m_nextButton (new QPushButton (this)) {
+      m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr) {
   setObjectName ("tutorialBubble");
   setAttribute (Qt::WA_StyledBackground, true);
   setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
 
   m_titleLabel->setObjectName ("tutorialTitle");
-  m_descriptionLabel->setObjectName ("tutorialDescription");
+  m_topTextLabel->setObjectName ("tutorialBodyText");
+  m_mediaLabel->setObjectName ("tutorialMedia");
+  m_bottomTextLabel->setObjectName ("tutorialBodyText");
   m_progressLabel->setObjectName ("tutorialProgress");
 
   m_titleLabel->setWordWrap (true);
-  m_descriptionLabel->setWordWrap (true);
+  m_topTextLabel->setWordWrap (true);
+  m_bottomTextLabel->setWordWrap (true);
+  m_mediaLabel->setAlignment (Qt::AlignCenter);
+  m_mediaLabel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
 
   m_previousButton->setText (qt_translate ("上一步"));
   m_nextButton->setText (qt_translate ("下一步"));
@@ -370,7 +406,9 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   mainLayout->setContentsMargins (18, 18, 18, 18);
   mainLayout->setSpacing (12);
   mainLayout->addWidget (m_titleLabel);
-  mainLayout->addWidget (m_descriptionLabel);
+  mainLayout->addWidget (m_topTextLabel);
+  mainLayout->addWidget (m_mediaLabel);
+  mainLayout->addWidget (m_bottomTextLabel);
   mainLayout->addLayout (footerLayout);
 
   setLayout (mainLayout);
@@ -386,10 +424,16 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       font-size: 17px;
       font-weight: 700;
     }
-    QLabel#tutorialDescription {
+    QLabel#tutorialBodyText {
       color: #334155;
       font-size: 13px;
       line-height: 1.5;
+    }
+    QLabel#tutorialMedia {
+      background-color: rgba(15, 23, 42, 0.04);
+      border: 1px solid rgba(24, 42, 67, 0.12);
+      border-radius: 10px;
+      padding: 4px;
     }
     QLabel#tutorialProgress {
       color: #6b7280;
@@ -426,7 +470,51 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   m_titleLabel->setText (step.title);
-  m_descriptionLabel->setText (step.description);
+  m_topTextLabel->setText (step.topText);
+  m_topTextLabel->setVisible (!step.topText.isEmpty ());
+  m_bottomTextLabel->setText (step.bottomText);
+  m_bottomTextLabel->setVisible (!step.bottomText.isEmpty ());
+
+  if (m_mediaMovie != nullptr) {
+    m_mediaLabel->setMovie (nullptr);
+    m_mediaMovie->stop ();
+    delete m_mediaMovie;
+    m_mediaMovie= nullptr;
+  }
+
+  m_mediaLabel->clear ();
+  m_mediaLabel->setVisible (false);
+  if (!step.mediaPath.isEmpty ()) {
+    const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
+    const QSize   mediaSize (300, 180);
+
+    if (mediaPath.endsWith (".gif", Qt::CaseInsensitive)) {
+      m_mediaMovie= new QMovie (mediaPath, QByteArray (), this);
+      if (m_mediaMovie->isValid ()) {
+        m_mediaMovie->setScaledSize (mediaSize);
+        m_mediaLabel->setFixedSize (mediaSize);
+        m_mediaLabel->setMovie (m_mediaMovie);
+        m_mediaLabel->setVisible (true);
+        m_mediaMovie->start ();
+      }
+      else {
+        delete m_mediaMovie;
+        m_mediaMovie= nullptr;
+      }
+    }
+    else {
+      QPixmap pixmap (mediaPath);
+      if (!pixmap.isNull ()) {
+        const QPixmap scaledPixmap=
+            pixmap.scaled (mediaSize, Qt::KeepAspectRatio,
+                           Qt::SmoothTransformation);
+        m_mediaLabel->setPixmap (scaledPixmap);
+        m_mediaLabel->setFixedSize (mediaSize);
+        m_mediaLabel->setVisible (true);
+      }
+    }
+  }
+
   m_progressLabel->setText (
       QString ("%1 / %2").arg (index + 1).arg (qMax (total, 1)));
   adjustSize ();
@@ -471,19 +559,62 @@ TutorialOverlay::setStep (const TutorialStepConfig& step, int index,
 
 void
 TutorialOverlay::setHighlightedRect (const QRect& rect, int padding) {
+  const QRect previousHighlightRect= m_highlightRect;
   m_highlightRect= rect.adjusted (-padding, -padding, padding, padding)
                        .intersected (this->rect ().adjusted (8, 8, -8, -8));
   m_hasHighlight= true;
   repositionBubble (m_currentStep.placement);
+  refreshExposedArea (previousHighlightRect.united (m_highlightRect));
   update ();
 }
 
 void
 TutorialOverlay::clearHighlight () {
+  const QRect previousHighlightRect= m_highlightRect;
   m_highlightRect= QRect ();
   m_hasHighlight = false;
+  clearMask ();
   repositionBubble (TutorialPlacement::Auto);
+  refreshExposedArea (previousHighlightRect);
   update ();
+}
+
+void
+TutorialOverlay::updateInputMask () {
+  if (!m_hasHighlight || !m_highlightRect.isValid ()) {
+    clearMask ();
+    return;
+  }
+
+  QRegion overlayRegion (rect ());
+  overlayRegion= overlayRegion.subtracted (QRegion (m_highlightRect));
+  overlayRegion= overlayRegion.united (QRegion (m_bubble->geometry ()));
+  setMask (overlayRegion);
+}
+
+void
+TutorialOverlay::refreshExposedArea (const QRect& rect) {
+  if (m_parentWindow == nullptr || !rect.isValid ()) return;
+
+  const QRect clippedRect= rect.intersected (m_parentWindow->rect ());
+  if (!clippedRect.isValid ()) return;
+
+  const QList<QWidget*> widgets=
+      m_parentWindow->findChildren<QWidget*> (QString (),
+                                              Qt::FindChildrenRecursively);
+  for (QWidget* widget : widgets) {
+    if (widget == nullptr || widget == this || widget == m_bubble ||
+        widget->isHidden () || !widget->size ().isValid ())
+      continue;
+
+    const QRect widgetRect= mapRectToWindow (widget, m_parentWindow);
+    if (!widgetRect.isValid () || !widgetRect.intersects (clippedRect))
+      continue;
+
+    widget->repaint ();
+  }
+
+  m_parentWindow->repaint (clippedRect);
 }
 
 QRect
@@ -555,6 +686,7 @@ void
 TutorialOverlay::repositionBubble (TutorialPlacement placement) {
   m_bubble->adjustSize ();
   m_bubble->setGeometry (bubbleRectForPlacement (placement));
+  updateInputMask ();
   m_bubble->raise ();
 }
 
@@ -577,9 +709,9 @@ TutorialOverlay::paintEvent (QPaintEvent* event) {
   painter.fillPath (overlayPath, QColor (10, 18, 28, 180));
 
   if (m_hasHighlight) {
+    painter.setBrush (Qt::NoBrush);
     QPen borderPen (QColor (255, 244, 214), 2);
     painter.setPen (borderPen);
-    painter.setBrush (Qt::NoBrush);
     painter.drawRoundedRect (m_highlightRect, 14, 14);
 
     QPen glowPen (QColor (255, 199, 94, 120), 4);
@@ -824,26 +956,31 @@ FirstLaunchTutorialController::buildFallbackFlow () const {
   flow.version= 1;
   flow.steps  = {
       {"welcome", qt_translate ("认识一下主窗口"),
+         "mainWindowSafeArea", TutorialPlacement::Bottom, 12, true,
          qt_translate ("这是 Liii STEM "
                          "的主工作区。教程会依次指出最常用的几个区域，帮助你快速建"
                          "立基本认知。"),
-         "mainWindowSafeArea", TutorialPlacement::Bottom, 12, true},
+         QString (), QString ()},
       {"windowbar", qt_translate ("这里是窗口顶部"),
+         "windowbar", TutorialPlacement::Bottom, 10, true,
          qt_translate ("这里包含窗口切换、标签页和常用入口。你以后会频繁从这里切"
                          "换文档和访问全局功能。"),
-         "windowbar", TutorialPlacement::Bottom, 10, true},
+         QString (), QString ()},
       {"toolbar", qt_translate ("这里是主工具栏"),
+         "toolbarArea", TutorialPlacement::Bottom, 10, true,
          qt_translate ("常见的格式、插入和排版操作会集中在这一带。不同编辑场景下"
                          "，这里的按钮也会变化。"),
-         "toolbarArea", TutorialPlacement::Bottom, 10, true},
+         QString (), QString ()},
       {"editor", qt_translate ("这里是编辑区"),
+         "editorArea", TutorialPlacement::Top, 12, true,
          qt_translate ("文档内容主要在这里输入、排版和修改。无论是公式、文本还是"
                          "结构化内容，核心操作都围绕这个区域展开。"),
-         "editorArea", TutorialPlacement::Top, 12, true},
+         QString (), QString ()},
       {"assistant", qt_translate ("这里是扩展能力入口"),
+         "assistantEntry", TutorialPlacement::Left, 10, true,
          qt_translate ("这一侧用于放置辅助能力或扩展面板；如果当前面板未显示，教"
                          "程会退化到登录与能力入口，帮助你找到后续探索的位置。"),
-         "assistantEntry", TutorialPlacement::Left, 10, true},
+         QString (), QString ()},
   };
   return flow;
 }
