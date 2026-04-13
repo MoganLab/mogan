@@ -156,7 +156,8 @@ protected:
 private:
   void executeOnEnter (const TutorialStepConfig& step);
   void updateOverlayGeometry ();
-  void showStep (int index, int retryCount= 0, int fallbackDirection= 0);
+  void showStep (int index, int retryCount= 0, int fallbackDirection= 0,
+                 int requestId= -1);
   void showNextAvailableStep (int startIndex, int direction);
 
   static constexpr int kMaxResolveRetries= 10;
@@ -167,6 +168,7 @@ private:
   TutorialFlowConfig        m_config;
   int                       m_currentIndex;
   int                       m_displayedIndex;
+  int                       m_stepRequestId;
 };
 
 class FirstLaunchTutorialController : public QObject {

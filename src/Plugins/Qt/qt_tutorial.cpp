@@ -769,7 +769,8 @@ TutorialOverlay::wheelEvent (QWheelEvent* event) {
 }
 
 TutorialEngine::TutorialEngine (QObject* parent)
-    : QObject (parent), m_currentIndex (-1), m_displayedIndex (-1) {}
+    : QObject (parent), m_currentIndex (-1), m_displayedIndex (-1),
+      m_stepRequestId (0) {}
 
 bool
 TutorialEngine::start (QMainWindow*                  hostWindow,
@@ -784,6 +785,7 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
   m_config        = config;
   m_currentIndex  = -1;
   m_displayedIndex= -1;
+  m_stepRequestId = 0;
   m_overlay       = new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
@@ -814,6 +816,7 @@ TutorialEngine::stop (TutorialFinishReason reason) {
   m_hostWindow    = nullptr;
   m_currentIndex  = -1;
   m_displayedIndex= -1;
+  m_stepRequestId = 0;
   m_config        = TutorialFlowConfig ();
   m_registry      = TutorialTargetRegistry ();
 
@@ -851,7 +854,7 @@ TutorialEngine::eventFilter (QObject* watched, QEvent* event) {
     case QEvent::LayoutRequest:
     case QEvent::WindowStateChange:
       updateOverlayGeometry ();
-      if (m_currentIndex >= 0) showStep (m_currentIndex, 0, 0);
+      if (m_currentIndex >= 0) showStep (m_currentIndex, 0, 0, m_stepRequestId);
       break;
     case QEvent::Close:
       stop (TutorialFinishReason::HostClosed);
@@ -878,9 +881,13 @@ TutorialEngine::updateOverlayGeometry () {
 }
 
 void
-TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
+TutorialEngine::showStep (int index, int retryCount, int fallbackDirection,
+                          int requestId) {
   if (!isActive ()) return;
   if (index < 0 || index >= m_config.steps.size ()) return;
+
+  if (requestId < 0) requestId= ++m_stepRequestId;
+  if (requestId != m_stepRequestId) return;
 
   m_currentIndex= index;
 
@@ -888,10 +895,11 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
   const TutorialStepConfig& step= m_config.steps[index];
   if (!m_registry.resolve (step.targetId, m_hostWindow, rect)) {
     if (retryCount < kMaxResolveRetries) {
-      QTimer::singleShot (150, m_overlay,
-                          [this, index, retryCount, fallbackDirection] () {
-                            showStep (index, retryCount + 1, fallbackDirection);
-                          });
+      QTimer::singleShot (
+          150, m_overlay,
+          [this, index, retryCount, fallbackDirection, requestId] () {
+            showStep (index, retryCount + 1, fallbackDirection, requestId);
+          });
       return;
     }
 
