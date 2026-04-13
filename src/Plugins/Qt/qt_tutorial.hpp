@@ -38,6 +38,7 @@ struct TutorialStepConfig {
   QString           topText;
   QString           mediaPath;
   QString           bottomText;
+  QString           onEnterCommand;
 };
 
 struct TutorialFlowConfig {
@@ -153,6 +154,7 @@ protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
+  void executeOnEnter (const TutorialStepConfig& step);
   void updateOverlayGeometry ();
   void showStep (int index, int retryCount= 0, int fallbackDirection= 0);
   void showNextAvailableStep (int startIndex, int direction);
@@ -164,6 +166,7 @@ private:
   TutorialTargetRegistry    m_registry;
   TutorialFlowConfig        m_config;
   int                       m_currentIndex;
+  int                       m_displayedIndex;
 };
 
 class FirstLaunchTutorialController : public QObject {

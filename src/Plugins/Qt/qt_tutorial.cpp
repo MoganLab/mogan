@@ -13,7 +13,9 @@
 #include "boot.hpp"
 #include "file.hpp"
 #include "preferences.hpp"
+#include "qt_gui.hpp"
 #include "qt_utilities.hpp"
+#include "scheme.hpp"
 #include "tm_file.hpp"
 #include "tree_helper.hpp"
 
@@ -186,6 +188,7 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
 
   step.mediaPath = readField (stepTree, "media-path", &found);
   step.bottomText= readField (stepTree, "bottom-text", &found);
+  step.onEnterCommand= readField (stepTree, "on-enter", &found);
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
       step.bottomText.isEmpty ()) {
@@ -240,7 +243,7 @@ parseStepEntry (tree entry, QWK::TutorialStepConfig& step,
 url
 firstLaunchTutorialConfigPath () {
   return url_system (
-      "$TEXMACS_PATH/progs/startup-tab/first-launch-tutorial.scm");
+      "$TEXMACS_PATH/progs/tutorial/first-launch-tutorial.scm");
 }
 
 } // namespace
@@ -753,7 +756,7 @@ TutorialOverlay::wheelEvent (QWheelEvent* event) {
 }
 
 TutorialEngine::TutorialEngine (QObject* parent)
-    : QObject (parent), m_currentIndex (-1) {}
+    : QObject (parent), m_currentIndex (-1), m_displayedIndex (-1) {}
 
 bool
 TutorialEngine::start (QMainWindow*                  hostWindow,
@@ -767,6 +770,7 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
   m_registry    = registry;
   m_config      = config;
   m_currentIndex= -1;
+  m_displayedIndex= -1;
   m_overlay     = new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
@@ -796,6 +800,7 @@ TutorialEngine::stop (TutorialFinishReason reason) {
   m_overlay     = nullptr;
   m_hostWindow  = nullptr;
   m_currentIndex= -1;
+  m_displayedIndex= -1;
   m_config      = TutorialFlowConfig ();
   m_registry    = TutorialTargetRegistry ();
 
@@ -847,6 +852,12 @@ TutorialEngine::eventFilter (QObject* watched, QEvent* event) {
 }
 
 void
+TutorialEngine::executeOnEnter (const TutorialStepConfig& step) {
+  if (step.onEnterCommand.trimmed ().isEmpty ()) return;
+  exec_delayed (scheme_cmd (from_qstring (step.onEnterCommand)));
+}
+
+void
 TutorialEngine::updateOverlayGeometry () {
   if (m_overlay == nullptr || m_hostWindow == nullptr) return;
   m_overlay->setGeometry (m_hostWindow->rect ());
@@ -880,6 +891,10 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
     m_overlay->clearHighlight ();
     m_overlay->show ();
     m_overlay->raise ();
+    if (m_displayedIndex != index) {
+      executeOnEnter (step);
+      m_displayedIndex= index;
+    }
     emit stepChanged (step.id, index, m_config.steps.size ());
     return;
   }
@@ -888,6 +903,10 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection) {
   m_overlay->setHighlightedRect (rect, step.highlightPadding);
   m_overlay->show ();
   m_overlay->raise ();
+  if (m_displayedIndex != index) {
+    executeOnEnter (step);
+    m_displayedIndex= index;
+  }
   emit stepChanged (step.id, index, m_config.steps.size ());
 }
 
