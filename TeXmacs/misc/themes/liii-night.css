@@ -1134,6 +1134,10 @@ QListWidget#recent-docs-list::item {
   border: none;
 }
 
+QListWidget#recent-docs-list::item:hover {
+  background-color: #4a4f57;
+}
+
 QListWidget#recent-docs-list::item:selected {
   background-color: #4e5d68;
 }

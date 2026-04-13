@@ -60,6 +60,9 @@ constexpr int kStyleBadgePadY     = 1;   // Default 徽标纵向内边距
 constexpr int kStyleBadgePadX     = 6;   // Default 徽标横向内边距
 constexpr int kRecentListRadius   = 8;   // Recent 列表圆角
 constexpr int kRecentItemHeight   = 64;  // Recent 列表项高度
+constexpr int kRecentItemRadius   = 4;   // Recent 列表项圆角
+constexpr int kRecentItemMarginX  = 4;   // Recent 列表项横向边距
+constexpr int kRecentItemMarginY  = 2;   // Recent 列表项纵向边距
 constexpr int kRecentItemPaddingX = 8;   // Recent 列表项横向内边距
 constexpr int kRecentItemPaddingY = 6;   // Recent 列表项纵向内边距
 constexpr int kRecentItemSpacing  = 3;   // Recent 名称与路径行间距
@@ -283,8 +286,18 @@ QtFilePage::setupRecentDocs (QVBoxLayout* layout) {
   // 最近文档列表
   recentList_= new QListWidget (this);
   recentList_->setObjectName ("recent-docs-list");
-  recentList_->setStyleSheet (QString ("border-radius: %1px;")
-                                  .arg (DpiUtils::scaled (kRecentListRadius)));
+  recentList_->setStyleSheet (
+      QString ("QListWidget#recent-docs-list { border-radius: %1px; }\n"
+               "QListWidget#recent-docs-list::item {\n"
+               "  min-height: %2px;\n"
+               "  border-radius: %3px;\n"
+               "  margin: %4px %5px;\n"
+               "}")
+          .arg (DpiUtils::scaled (kRecentListRadius))
+          .arg (DpiUtils::scaled (kRecentItemHeight))
+          .arg (DpiUtils::scaled (kRecentItemRadius))
+          .arg (DpiUtils::scaled (kRecentItemMarginY))
+          .arg (DpiUtils::scaled (kRecentItemMarginX)));
   recentList_->setFocusPolicy (Qt::NoFocus);
   recentList_->setContextMenuPolicy (Qt::CustomContextMenu);
   recentList_->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Expanding);
