@@ -526,3 +526,4 @@
                   (display "Timing:") (display (- (texmacs-time) start-time)) (newline)
                   ;(quit-TeXmacs)
                   ))))))))))))
+
