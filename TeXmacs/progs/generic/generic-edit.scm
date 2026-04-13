@@ -168,7 +168,9 @@
 
 ;; 辅助函数：定义 enumerate-tag-list
 (define (enumerate-tag-list)
-  '(enumerate enumerate-1 enumerate-2 enumerate-3 enumerate-4))
+  '(enumerate enumerate-numeric enumerate-roman
+    enumerate-Roman enumerate-alpha enumerate-Alpha
+    enumerate-circle enumerate-hanzi enumerate-numeric-paren))
 
 ;; 辅助函数：定义 itemize-tag-list
 (define (itemize-tag-list)
@@ -190,13 +192,10 @@
 (define (in-description-context?)
   (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (description-tag-list)))))))
 
-;; 辅助函数：获取当前列表的类型
-(define (get-list-type)
-  (cond
-    ((in-description-context?) 'description)
-    ((in-itemize-context?) 'itemize)
-    ((in-enumerate-context?) 'enumerate)
-    (else #f)))
+;; 辅助函数：获取当前实际列表的精确标签，保留 itemize-dot 等变体样式
+(define (get-current-list-label item)
+  (and-with list-node (tree-search-upwards item list-node?)
+    (tree-label list-node)))
 
 ;; 辅助函数：查找包含 item 的 concat 包装和真正的 item list
 (define (find-item-wrapper-and-list item)
@@ -237,6 +236,15 @@
 (define (list-node? t)
   (and t (tree-in? t (list-tag-list))))
 
+(define (list-family label)
+  (cond ((in? label (enumerate-tag-list)) 'enumerate)
+        ((in? label (itemize-tag-list)) 'itemize)
+        ((in? label (description-tag-list)) 'description)
+        (else label)))
+
+(define (same-list-family? lhs rhs)
+  (and lhs rhs (== (list-family lhs) (list-family rhs))))
+
 (define (find-previous-item-index item-list start)
   (let loop ((i (- start 1)))
     (cond ((< i 0) #f)
@@ -247,7 +255,7 @@
   (let loop ((i (+ start 1)))
     (cond ((>= i end) #f)
           ((and (list-node? (tree-ref item-list i))
-                (== (tree-label (tree-ref item-list i)) list-type))
+                (same-list-family? (tree-label (tree-ref item-list i)) list-type))
            i)
           (else (loop (+ i 1))))))
 
@@ -258,11 +266,12 @@
 ;; 在有序和无序列表中实现缩进功能
 (tm-define (kbd-variant t forwards?)
   (:require 
-    (or
-      ;; 有序列表或者无序列表
-      (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
-      ;; 描述列表
-      (and in-description-context? (tree-is? (focus-tree) 'item*))))
+    (and forwards?
+         (or
+           ;; 有序列表或者无序列表
+           (and (or in-enumerate-context? in-itemize-context?) (tree-is? (focus-tree) 'item))
+           ;; 描述列表
+           (and in-description-context? (tree-is? (focus-tree) 'item*)))))
 
   (let ((item (focus-tree)))
     ;; 查找包装和列表
@@ -270,21 +279,21 @@
       (lambda (wrapper item-list)
         (if (and item item-list)
             (let* ((item-index (if wrapper (tree-index wrapper) (tree-index item)))
-                   (list-type (or (get-list-type) 'enumerate))
+                   (list-type (list-family (or (get-current-list-label item) 'enumerate)))
                    (item-stree (tree->stree (if wrapper wrapper item)))
                    (next-index (+ item-index 1))
                    (attached-sublist-idx
                      (and (< next-index (tree-arity item-list))
                           (let ((next-node (tree-ref item-list next-index)))
-                            ;; 当前 item 后面如果紧跟同类型子列表，缩进时一并并入目标子列表。
+                            ;; 当前 item 后面如果紧跟同一大类的子列表，缩进时一并并入目标子列表。
                             (and (list-node? next-node)
-                                 (== (tree-label next-node) list-type)
+                                 (same-list-family? (tree-label next-node) list-type)
                                  next-index)))))
               (if (> item-index 0)
                   (let* ((prev-item-index (find-previous-item-index item-list item-index))
                          (target-sublist-idx
                            (and prev-item-index
-                                ;; 优先复用前一个 item 已有的子列表，避免制造相邻碎片列表。
+                                ;; 优先复用前一个 item 已有的同一大类子列表，避免制造相邻碎片列表。
                                 (find-following-list-index item-list prev-item-index
                                                            item-index list-type))))
                     (when prev-item-index
@@ -311,8 +320,9 @@
                                         (iota (tree-arity (tree-ref (tree-ref item-list attached-sublist-idx) 0))))
                                    '())))
                         ;; 目标子列表依次接收：当前 item，以及它后面原来挂着的同类型子列表内容。
-                        (append-strees-to-document target-doc
-                                                  (append (list item-stree) attached-items))
+                        (set! target-doc
+                              (append-strees-to-document target-doc
+                                                        (append (list item-stree) attached-items)))
                         ;; 从右往左删除，避免索引漂移。
                         (when attached-sublist-idx
                           (set! item-list (tree-remove! item-list attached-sublist-idx 1)))
