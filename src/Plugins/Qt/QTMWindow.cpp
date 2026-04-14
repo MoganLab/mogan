@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "QTMWindow.hpp"
+#include "boot.hpp"
 #include "config.h"
 #if defined(USE_TUTORIAL)
 #include "qt_tutorial.hpp"
@@ -149,6 +150,10 @@ void
 QTMWindow::showEvent (QShowEvent* event) {
   QMainWindow::showEvent (event);
 #if defined(USE_TUTORIAL)
+  if (install_status == 1 && !property ("tutorialFullScreenApplied").toBool ()) {
+    setProperty ("tutorialFullScreenApplied", true);
+    showMaximized ();
+  }
   QWK::FirstLaunchTutorialController::instance ()->maybeStartForMainWindow (
       this);
 #endif
