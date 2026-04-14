@@ -25,6 +25,7 @@ class QWheelEvent;
 namespace QWK {
 
 enum class TutorialPlacement { Auto, Top, Bottom, Left, Right };
+enum class TutorialBubbleSize { Small, Medium, Large };
 
 enum class TutorialFinishReason { Completed, Skipped, Cancelled, HostClosed };
 
@@ -39,6 +40,7 @@ struct TutorialStepConfig {
   QString           mediaPath;
   QString           bottomText;
   QString           onEnterCommand;
+  TutorialBubbleSize bubbleSize= TutorialBubbleSize::Medium;
 };
 
 struct TutorialFlowConfig {

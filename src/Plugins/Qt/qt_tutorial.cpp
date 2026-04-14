@@ -70,6 +70,21 @@ parsePlacement (const QString& value, QWK::TutorialPlacement& placement) {
 }
 
 bool
+parseBubbleSize (const QString& value, QWK::TutorialBubbleSize& bubbleSize) {
+  const QString normalized= value.trimmed ().toLower ();
+  if (normalized == "small")
+    bubbleSize= QWK::TutorialBubbleSize::Small;
+  else if (normalized == "medium")
+    bubbleSize= QWK::TutorialBubbleSize::Medium;
+  else if (normalized == "large")
+    bubbleSize= QWK::TutorialBubbleSize::Large;
+  else
+    return false;
+
+  return true;
+}
+
+bool
 parseBoolLike (const QString& value, bool& out) {
   const QString normalized= value.trimmed ().toLower ();
   if (normalized == "on" || normalized == "true" || normalized == "1" ||
@@ -204,6 +219,22 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
     if (errorMessage != nullptr)
       *errorMessage=
           QString ("Tutorial step %1 has invalid placement").arg (step.id);
+    return false;
+  }
+
+  QString bubbleSize;
+  if (!readStringField ("bubble-size", bubbleSize, &found)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 bubble-size must be a string")
+              .arg (step.id);
+    return false;
+  }
+  if (found && !bubbleSize.isEmpty () &&
+      !parseBubbleSize (bubbleSize, step.bubbleSize)) {
+    if (errorMessage != nullptr)
+      *errorMessage=
+          QString ("Tutorial step %1 has invalid bubble-size").arg (step.id);
     return false;
   }
 
@@ -426,7 +457,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   mainLayout->addLayout (footerLayout);
 
   setLayout (mainLayout);
-  setFixedWidth (440);
+  setFixedWidth (360);
   setStyleSheet (QStringLiteral (R"(
     QWidget#tutorialBubble {
       background-color: #fffef8;
@@ -484,7 +515,22 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
-  const QSize   mediaSize (380, 228);
+  QSize         mediaSize (300, 180);
+
+  switch (step.bubbleSize) {
+  case TutorialBubbleSize::Small:
+    setFixedWidth (300);
+    mediaSize= QSize (240, 144);
+    break;
+  case TutorialBubbleSize::Medium:
+    setFixedWidth (360);
+    mediaSize= QSize (300, 180);
+    break;
+  case TutorialBubbleSize::Large:
+    setFixedWidth (440);
+    mediaSize= QSize (380, 228);
+    break;
+  }
 
   m_titleLabel->setText (step.title);
   m_topTextLabel->setText (step.topText);
