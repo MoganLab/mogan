@@ -614,7 +614,7 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
 
 void
 TutorialBubble::setFirstStep (bool first) {
-  m_previousButton->setEnabled (!first);
+  m_previousButton->setVisible (!first);
 }
 
 void
