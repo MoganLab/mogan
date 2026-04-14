@@ -18,7 +18,7 @@
 
 // Base tab widths
 constexpr int MAX_TAB_PAGE_WIDTH_BASE   = 150;
-constexpr int MIN_TAB_PAGE_WIDTH_BASE   = 100;
+constexpr int MIN_TAB_PAGE_WIDTH_BASE   = 25;
 constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 100;
 
 // The horizontal padding for tab container (in pixels).
