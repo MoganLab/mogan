@@ -149,9 +149,8 @@ QTMWindow::resizeEvent (QResizeEvent* event) {
 void
 QTMWindow::showEvent (QShowEvent* event) {
   QMainWindow::showEvent (event);
-  if (install_status == 1 &&
-      !property ("tutorialFullScreenApplied").toBool ()) {
-    setProperty ("tutorialFullScreenApplied", true);
+  if (install_status == 1 && !property ("startupMaximizedApplied").toBool ()) {
+    setProperty ("startupMaximizedApplied", true);
     showMaximized ();
   }
 #if defined(USE_TUTORIAL)
