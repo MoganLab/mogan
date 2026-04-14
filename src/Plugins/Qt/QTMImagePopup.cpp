@@ -71,9 +71,8 @@ QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
                call ("set-image-alignment", current_tree, "right");
              else if (button == ocrBtn) {
                call ("ocr-to-latex-by-image", current_tree);
-               eval (
-                   "(when (defined? 'tutorial-notify-action) "
-                   "(tutorial-notify-action \"ocr-paste\"))");
+               eval ("(when (defined? 'tutorial-notify-action) "
+                     "(tutorial-notify-action \"ocr-paste\"))");
              }
              current_align=
                  as_string (call ("get-image-alignment", current_tree));

@@ -189,8 +189,9 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
   }
   if (!readStringField ("require-action", step.requiredAction)) {
     if (errorMessage != nullptr)
-      *errorMessage= QString ("Tutorial step %1 require-action must be a string")
-                         .arg (step.id);
+      *errorMessage=
+          QString ("Tutorial step %1 require-action must be a string")
+              .arg (step.id);
     return false;
   }
 
@@ -311,8 +312,7 @@ firstLaunchTutorialConfigPath () {
       "$TEXMACS_PATH/plugins/tutorial/data/first-launch-tutorial.json");
 }
 
-constexpr const char* kTutorialLastActionPreference=
-    "tutorial:last-action";
+constexpr const char* kTutorialLastActionPreference= "tutorial:last-action";
 
 } // namespace
 
@@ -883,7 +883,7 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
   m_stepRequestId = 0;
   m_completedActionSteps.clear ();
   reset_user_preference (kTutorialLastActionPreference);
-  m_overlay       = new TutorialOverlay (hostWindow);
+  m_overlay= new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
 
@@ -917,8 +917,8 @@ TutorialEngine::stop (TutorialFinishReason reason) {
   m_displayedIndex= -1;
   m_stepRequestId = 0;
   m_completedActionSteps.clear ();
-  m_config        = TutorialFlowConfig ();
-  m_registry      = TutorialTargetRegistry ();
+  m_config  = TutorialFlowConfig ();
+  m_registry= TutorialTargetRegistry ();
 
   emit finished (reason);
 }
@@ -997,7 +997,8 @@ TutorialEngine::updateCurrentStepGate () {
 
 void
 TutorialEngine::pollRequiredAction () {
-  if (!isActive () || m_currentIndex < 0 || m_currentIndex >= m_config.steps.size ()) {
+  if (!isActive () || m_currentIndex < 0 ||
+      m_currentIndex >= m_config.steps.size ()) {
     m_actionPollTimer->stop ();
     return;
   }
