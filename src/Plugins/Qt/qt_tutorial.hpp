@@ -41,6 +41,8 @@ struct TutorialStepConfig {
   QString           bottomText;
   QString           onEnterCommand;
   TutorialBubbleSize bubbleSize= TutorialBubbleSize::Medium;
+  int               offsetX    = 0;
+  int               offsetY    = 0;
 };
 
 struct TutorialFlowConfig {

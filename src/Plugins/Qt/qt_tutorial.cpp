@@ -238,6 +238,28 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
     return false;
   }
 
+  const auto offsetXIt= stepJson.find ("offset-x");
+  if (offsetXIt != stepJson.end () && !offsetXIt->is_null ()) {
+    if (!offsetXIt->is_number_integer ()) {
+      if (errorMessage != nullptr)
+        *errorMessage=
+            QString ("Tutorial step %1 has invalid offset-x").arg (step.id);
+      return false;
+    }
+    step.offsetX= offsetXIt->get<int> ();
+  }
+
+  const auto offsetYIt= stepJson.find ("offset-y");
+  if (offsetYIt != stepJson.end () && !offsetYIt->is_null ()) {
+    if (!offsetYIt->is_number_integer ()) {
+      if (errorMessage != nullptr)
+        *errorMessage=
+            QString ("Tutorial step %1 has invalid offset-y").arg (step.id);
+      return false;
+    }
+    step.offsetY= offsetYIt->get<int> ();
+  }
+
   const auto paddingIt= stepJson.find ("highlight-padding");
   if (paddingIt != stepJson.end () && !paddingIt->is_null ()) {
     if (!paddingIt->is_number_integer ()) {
@@ -698,18 +720,20 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   QSize     size   = m_bubble->sizeHint ();
   QRect     safe   = rect ().adjusted (margin, margin, -margin, -margin);
 
-  if (!m_hasHighlight) {
-    QPoint center=
-        safe.center () - QPoint (size.width () / 2, size.height () / 2);
-    return QRect (center, size);
-  }
-
   auto clampRect= [&safe, &size] (QRect candidate) {
     int x= qBound (safe.left (), candidate.x (), safe.right () - size.width ());
     int y=
         qBound (safe.top (), candidate.y (), safe.bottom () - size.height ());
     return QRect (QPoint (x, y), size);
   };
+
+  if (!m_hasHighlight) {
+    QPoint center=
+        safe.center () - QPoint (size.width () / 2, size.height () / 2);
+    return clampRect (QRect (center, size)
+                          .translated (m_currentStep.offsetX,
+                                       m_currentStep.offsetY));
+  }
 
   auto candidateFor= [this, &size, spacing] (TutorialPlacement p) {
     switch (p) {
@@ -749,11 +773,14 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   }
 
   for (TutorialPlacement p : placements) {
-    QRect candidate= candidateFor (p);
+    QRect candidate=
+        candidateFor (p).translated (m_currentStep.offsetX, m_currentStep.offsetY);
     if (safe.contains (candidate)) return candidate;
   }
 
-  return clampRect (candidateFor (placements.front ()));
+  return clampRect (
+      candidateFor (placements.front ())
+          .translated (m_currentStep.offsetX, m_currentStep.offsetY));
 }
 
 void
