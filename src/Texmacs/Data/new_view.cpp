@@ -512,15 +512,14 @@ kill_tabpage (url win_u, url u) {
     delete_view (u);
   }
 
-  // Closing a non-current tab page may not trigger an immediate tab bar
-  // refresh. Resume/suspend/resume the current editor in the same tabpage
-  // window to force a UI update.
+  // 关闭非当前标签页时，可能不会立即触发标签栏刷新。
+  // 对同一 tabpage 窗口中的当前编辑器执行 suspend/resume，
+  // 以强制触发一次 UI 更新。
   if (refresh_tabbar_for_non_current) {
     tm_view current_vw= concrete_view (get_current_view_safe ());
     if (current_vw != NULL && current_vw->win_tabpage == win_tabpage) {
       editor current_ed= current_vw->ed;
       if (current_ed != NULL) {
-        current_ed->resume ();
         current_ed->suspend ();
         current_ed->resume ();
       }
