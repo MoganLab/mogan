@@ -1245,21 +1245,11 @@ FirstLaunchTutorialController::maybeStartForMainWindow (
   QPointer<QMainWindow> target= mainWindow;
   QTimer::singleShot (0, mainWindow, [this, target, flow] () {
     if (target == nullptr) return;
-    if (!shouldStart (flow)) {
-      target->setProperty ("tutorialScheduled", false);
-      return;
-    }
+    target->setProperty ("tutorialScheduled", false);
+    if (!shouldStart (flow)) return;
 
-    exec_delayed (scheme_cmd ("(new-document)"));
-
-    QTimer::singleShot (180, target, [this, target, flow] () {
-      if (target == nullptr) return;
-      target->setProperty ("tutorialScheduled", false);
-      if (!shouldStart (flow)) return;
-
-      m_startedThisSession= true;
-      m_engine->start (target, flow, buildRegistry (target));
-    });
+    m_startedThisSession= true;
+    m_engine->start (target, flow, buildRegistry (target));
   });
 }
 
