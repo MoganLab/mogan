@@ -429,15 +429,15 @@ TutorialConfigLoader::loadFlow (url path, TutorialFlowConfig& config,
 
 TutorialBubble::TutorialBubble (QWidget* parent)
     : QWidget (parent), m_titleLabel (new QLabel (this)),
-      m_topTextLabel (new QLabel (this)), m_mediaLabel (new QLabel (this)),
-      m_bottomTextLabel (new QLabel (this)),
-      m_progressLabel (new QLabel (this)),
+      m_topTextLabel (new QLabel (this)),
+      m_mediaContainer (new QWidget (this)), m_mediaLabel (new QLabel (this)),
+      m_bottomTextLabel (new QLabel (this)), m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
       m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr),
       m_currentMediaPath () {
   setObjectName ("tutorialBubble");
   setAttribute (Qt::WA_StyledBackground, true);
-  setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Preferred);
 
   m_titleLabel->setObjectName ("tutorialTitle");
   m_topTextLabel->setObjectName ("tutorialBodyText");
@@ -448,10 +448,16 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_titleLabel->setWordWrap (true);
   m_topTextLabel->setWordWrap (true);
   m_bottomTextLabel->setWordWrap (true);
+  m_mediaContainer->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
+  m_mediaContainer->setVisible (false);
+  m_mediaContainer->setFixedSize (0, 0);
   m_mediaLabel->setAlignment (Qt::AlignCenter);
-  m_mediaLabel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
-  m_mediaLabel->setVisible (false);
-  m_mediaLabel->setFixedSize (0, 0);
+  m_mediaLabel->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+
+  auto* mediaLayout= new QVBoxLayout (m_mediaContainer);
+  mediaLayout->setContentsMargins (0, 0, 0, 0);
+  mediaLayout->setSpacing (0);
+  mediaLayout->addWidget (m_mediaLabel, 0, Qt::AlignCenter);
 
   m_previousButton->setText (qt_translate ("上一步"));
   m_nextButton->setText (qt_translate ("下一步"));
@@ -467,9 +473,10 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   auto* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (18, 18, 18, 18);
   mainLayout->setSpacing (12);
+  mainLayout->setSizeConstraint (QLayout::SetFixedSize);
   mainLayout->addWidget (m_titleLabel);
   mainLayout->addWidget (m_topTextLabel);
-  mainLayout->addWidget (m_mediaLabel);
+  mainLayout->addWidget (m_mediaContainer, 0, Qt::AlignHCenter);
   mainLayout->addWidget (m_bottomTextLabel);
   mainLayout->addLayout (footerLayout);
 
@@ -490,12 +497,6 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       color: #334155;
       font-size: 13px;
       line-height: 1.5;
-    }
-    QLabel#tutorialMedia {
-      background-color: rgba(15, 23, 42, 0.04);
-      border: 1px solid rgba(24, 42, 67, 0.12);
-      border-radius: 10px;
-      padding: 4px;
     }
     QLabel#tutorialProgress {
       color: #6b7280;
@@ -564,18 +565,27 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
     }
 
     m_mediaLabel->clear ();
-    m_mediaLabel->setVisible (false);
     m_mediaLabel->setFixedSize (0, 0);
+    m_mediaContainer->setVisible (false);
+    m_mediaContainer->setFixedSize (0, 0);
     m_currentMediaPath= mediaPath;
 
     if (!mediaPath.isEmpty ()) {
       if (mediaPath.endsWith (".gif", Qt::CaseInsensitive)) {
         m_mediaMovie= new QMovie (mediaPath, QByteArray (), this);
         if (m_mediaMovie->isValid ()) {
-          m_mediaMovie->setScaledSize (mediaSize);
           m_mediaLabel->setFixedSize (mediaSize);
-          m_mediaLabel->setMovie (m_mediaMovie);
-          m_mediaLabel->setVisible (true);
+          m_mediaContainer->setFixedSize (mediaSize);
+          m_mediaContainer->setVisible (true);
+          connect (m_mediaMovie, &QMovie::frameChanged, this,
+                   [this, mediaSize] (int) {
+                     if (m_mediaMovie == nullptr) return;
+                     const QPixmap frame= m_mediaMovie->currentPixmap ();
+                     if (frame.isNull ()) return;
+                     m_mediaLabel->setPixmap (
+                         frame.scaled (mediaSize, Qt::KeepAspectRatio,
+                                       Qt::SmoothTransformation));
+                   });
           m_mediaMovie->start ();
         }
         else {
@@ -591,7 +601,8 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
               mediaSize, Qt::KeepAspectRatio, Qt::SmoothTransformation);
           m_mediaLabel->setPixmap (scaledPixmap);
           m_mediaLabel->setFixedSize (mediaSize);
-          m_mediaLabel->setVisible (true);
+          m_mediaContainer->setFixedSize (mediaSize);
+          m_mediaContainer->setVisible (true);
         }
         else {
           m_currentMediaPath.clear ();
@@ -600,10 +611,11 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
     }
   }
   else if (!mediaPath.isEmpty ()) {
-    m_mediaLabel->setVisible (true);
+    m_mediaContainer->setVisible (true);
   }
   else {
-    m_mediaLabel->setVisible (false);
+    m_mediaContainer->setVisible (false);
+    m_mediaContainer->setFixedSize (0, 0);
     m_mediaLabel->setFixedSize (0, 0);
   }
 
@@ -911,7 +923,7 @@ TutorialEngine::eventFilter (QObject* watched, QEvent* event) {
     case QEvent::LayoutRequest:
     case QEvent::WindowStateChange:
       updateOverlayGeometry ();
-      if (m_currentIndex >= 0) showStep (m_currentIndex, 0, 0, m_stepRequestId);
+      refreshCurrentStepGeometry ();
       break;
     case QEvent::Close:
       stop (TutorialFinishReason::HostClosed);
@@ -934,6 +946,32 @@ void
 TutorialEngine::updateOverlayGeometry () {
   if (m_overlay == nullptr || m_hostWindow == nullptr) return;
   m_overlay->setGeometry (m_hostWindow->rect ());
+  m_overlay->raise ();
+}
+
+void
+TutorialEngine::refreshCurrentStepGeometry () {
+  if (!isActive ()) return;
+  if (m_currentIndex < 0 || m_currentIndex >= m_config.steps.size ()) return;
+
+  const TutorialStepConfig& step= m_config.steps[m_currentIndex];
+  if (step.targetId.trimmed ().isEmpty ()) {
+    m_overlay->clearHighlight ();
+    m_overlay->show ();
+    m_overlay->raise ();
+    return;
+  }
+
+  QRect rect;
+  if (!m_registry.resolve (step.targetId, m_hostWindow, rect)) {
+    m_overlay->clearHighlight ();
+    m_overlay->show ();
+    m_overlay->raise ();
+    return;
+  }
+
+  m_overlay->setHighlightedRect (rect, step.highlightPadding);
+  m_overlay->show ();
   m_overlay->raise ();
 }
 

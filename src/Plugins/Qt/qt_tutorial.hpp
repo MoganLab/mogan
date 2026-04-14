@@ -90,6 +90,7 @@ signals:
 private:
   QLabel*      m_titleLabel;
   QLabel*      m_topTextLabel;
+  QWidget*     m_mediaContainer;
   QLabel*      m_mediaLabel;
   QLabel*      m_bottomTextLabel;
   QLabel*      m_progressLabel;
@@ -159,6 +160,7 @@ protected:
 
 private:
   void executeOnEnter (const TutorialStepConfig& step);
+  void refreshCurrentStepGeometry ();
   void updateOverlayGeometry ();
   void showStep (int index, int retryCount= 0, int fallbackDirection= 0,
                  int requestId= -1);
