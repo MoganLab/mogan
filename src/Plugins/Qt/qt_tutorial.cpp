@@ -191,12 +191,6 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
           QString ("Tutorial step %1 target-id must be a string").arg (step.id);
     return false;
   }
-  if (!found || step.targetId.isEmpty ()) {
-    if (errorMessage != nullptr)
-      *errorMessage=
-          QString ("Tutorial step %1 is missing target-id").arg (step.id);
-    return false;
-  }
 
   QString placement;
   if (!readStringField ("placement", placement, &found)) {
@@ -408,6 +402,8 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_bottomTextLabel->setWordWrap (true);
   m_mediaLabel->setAlignment (Qt::AlignCenter);
   m_mediaLabel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
+  m_mediaLabel->setVisible (false);
+  m_mediaLabel->setFixedSize (QSize ());
 
   m_previousButton->setText (qt_translate ("上一步"));
   m_nextButton->setText (qt_translate ("下一步"));
@@ -430,7 +426,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   mainLayout->addLayout (footerLayout);
 
   setLayout (mainLayout);
-  setFixedWidth (360);
+  setFixedWidth (440);
   setStyleSheet (QStringLiteral (R"(
     QWidget#tutorialBubble {
       background-color: #fffef8;
@@ -488,7 +484,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
-  const QSize   mediaSize (300, 180);
+  const QSize   mediaSize (380, 228);
 
   m_titleLabel->setText (step.title);
   m_topTextLabel->setText (step.topText);
@@ -542,6 +538,10 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   }
   else if (!mediaPath.isEmpty ()) {
     m_mediaLabel->setVisible (true);
+  }
+  else {
+    m_mediaLabel->setVisible (false);
+    m_mediaLabel->setFixedSize (QSize ());
   }
 
   m_progressLabel->setText (
@@ -893,6 +893,19 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection,
 
   QRect                     rect;
   const TutorialStepConfig& step= m_config.steps[index];
+  if (step.targetId.trimmed ().isEmpty ()) {
+    m_overlay->setStep (step, index, m_config.steps.size ());
+    m_overlay->clearHighlight ();
+    m_overlay->show ();
+    m_overlay->raise ();
+    if (m_displayedIndex != index) {
+      executeOnEnter (step);
+      m_displayedIndex= index;
+    }
+    emit stepChanged (step.id, index, m_config.steps.size ());
+    return;
+  }
+
   if (!m_registry.resolve (step.targetId, m_hostWindow, rect)) {
     if (retryCount < kMaxResolveRetries) {
       QTimer::singleShot (
