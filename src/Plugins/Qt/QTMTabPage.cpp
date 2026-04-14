@@ -16,11 +16,9 @@
 #include "tm_window.hpp"
 #include <QSize>
 
-// The minimum width of a single tab page (in pixels).
-const int MIN_TAB_PAGE_WIDTH= 150;
-// The maximum width of a single tab page (in pixels).
-const int MAX_TAB_PAGE_WIDTH   = 200;
-const int STARTUP_TAB_MAX_WIDTH= 100;
+// Base tab widths
+constexpr int MAX_TAB_PAGE_WIDTH_BASE   = 150;
+constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 100;
 
 // The horizontal padding for tab container (in pixels).
 #ifdef Q_OS_MAC
@@ -43,6 +41,16 @@ constexpr int TAB_RIGHT_EXTRA_GAP           = 66;
 static double
 getDPIScaleFactor () {
   return DpiUtils::scaleFactor ();
+}
+
+static int
+getScaledMaxTabPageWidth () {
+  return DpiUtils::scaled (MAX_TAB_PAGE_WIDTH_BASE);
+}
+
+static int
+getScaledStartupTabMaxWidth () {
+  return DpiUtils::scaled (STARTUP_TAB_MAX_WIDTH_BASE);
 }
 
 static int
@@ -425,7 +433,7 @@ QTMTabPageContainer::arrangeTabPages () {
   int availableWidth= windowWidth - 2 * TAB_CONTAINER_PADDING - reservedRight;
   int tabWidth      = availableWidth / visibleTabCount;
   // Clamp width into a reasonable range: allow longer tabs when count is small
-  tabWidth  = std::max (25, std::min (MAX_TAB_PAGE_WIDTH, tabWidth));
+  tabWidth  = std::max (25, std::min (getScaledMaxTabPageWidth (), tabWidth));
   g_tabWidth= tabWidth; // for external use
 
   int accumWidth= TAB_CONTAINER_PADDING;
@@ -435,7 +443,7 @@ QTMTabPageContainer::arrangeTabPages () {
     QTMTabPage* tab            = m_tabPageList[i];
     int         currentTabWidth= tabWidth;
     if (is_startup_tab_view (tab->m_viewUrl)) {
-      currentTabWidth= std::min (tabWidth, STARTUP_TAB_MAX_WIDTH);
+      currentTabWidth= std::min (tabWidth, getScaledStartupTabMaxWidth ());
     }
 
     if (g_pointingIndex == i) {

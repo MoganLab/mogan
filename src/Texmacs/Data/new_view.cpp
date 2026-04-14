@@ -440,7 +440,8 @@ kill_tabpage (url win_u, url u) {
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
-  bool is_current= (get_current_view () == u);
+  bool is_current                    = (get_current_view () == u);
+  bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage
   // 将 win_tabpage 设为空指针，因为要关闭tabpage了
@@ -509,6 +510,21 @@ kill_tabpage (url win_u, url u) {
   else {
     // 如果缓冲区有多个视图，则只释放当前视图，不释放缓冲区
     delete_view (u);
+  }
+
+  // Closing a non-current tab page may not trigger an immediate tab bar
+  // refresh. Resume/suspend/resume the current editor in the same tabpage
+  // window to force a UI update.
+  if (refresh_tabbar_for_non_current) {
+    tm_view current_vw= concrete_view (get_current_view_safe ());
+    if (current_vw != NULL && current_vw->win_tabpage == win_tabpage) {
+      editor current_ed= current_vw->ed;
+      if (current_ed != NULL) {
+        current_ed->resume ();
+        current_ed->suspend ();
+        current_ed->resume ();
+      }
+    }
   }
 }
 
