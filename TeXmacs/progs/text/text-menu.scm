@@ -402,14 +402,14 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind itemize-menu
-  ("Default" (make-tmlist 'itemize))
+  ((shortcut "Default" "- space") (make-tmlist 'itemize))
   ---
   ("Bullets" (make-tmlist 'itemize-dot))
   ("Dashes" (make-tmlist 'itemize-minus))
   ("Arrows" (make-tmlist 'itemize-arrow)))
 
 (menu-bind enumerate-menu
-  ("Default" (make-tmlist 'enumerate))
+  ((shortcut "Default" "1 . space") (make-tmlist 'enumerate))
   ---
   ("1, 2, 3, ..." (make-tmlist 'enumerate-numeric))
   ("(1), (2), (3), ..." (make-tmlist 'enumerate-numeric-paren))
@@ -430,13 +430,13 @@
   ("Paragraphs" (make-tmlist 'description-paragraphs)))
 
 (menu-bind list-menu
-  ("Itemize" (make-tmlist 'itemize))
+  ((shortcut "Itemize" "- space") (make-tmlist 'itemize))
   ---
   ("Bullets" (make-tmlist 'itemize-dot))
   ("Dashes" (make-tmlist 'itemize-minus))
   ("Arrows" (make-tmlist 'itemize-arrow))
   ---
-  ("Enumerate" (make-tmlist 'enumerate))
+  ((shortcut "Enumerate" "1 . space") (make-tmlist 'enumerate))
   ---
   ("1, 2, 3, ..." (make-tmlist 'enumerate-numeric))
   ("(1), (2), (3), ..." (make-tmlist 'enumerate-numeric-paren))
@@ -587,7 +587,8 @@
       (=> (balloon (icon "tm_program.xpm") "Insert a computer program")
           (link code-menu)))
   (if (style-has? "std-list-dtd")
-      (=> (balloon (icon "tm_list.xpm") "Insert a list")
+      (=> (balloon (icon "tm_list.xpm")
+                   "Insert a list (- Space, 1. Space)")
           (link list-menu)))
   (if (and (style-has? "env-float-dtd") (detailed-menus?))
       ;;((balloon (icon "tm_footnote.xpm") "Insert a footnote") ())
