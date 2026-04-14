@@ -429,9 +429,9 @@ TutorialConfigLoader::loadFlow (url path, TutorialFlowConfig& config,
 
 TutorialBubble::TutorialBubble (QWidget* parent)
     : QWidget (parent), m_titleLabel (new QLabel (this)),
-      m_topTextLabel (new QLabel (this)),
-      m_mediaContainer (new QWidget (this)), m_mediaLabel (new QLabel (this)),
-      m_bottomTextLabel (new QLabel (this)), m_progressLabel (new QLabel (this)),
+      m_topTextLabel (new QLabel (this)), m_mediaContainer (new QWidget (this)),
+      m_mediaLabel (new QLabel (this)), m_bottomTextLabel (new QLabel (this)),
+      m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
       m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr),
       m_currentMediaPath () {
