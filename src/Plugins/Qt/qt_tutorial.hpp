@@ -8,6 +8,7 @@
 #include <QObject>
 #include <QPointer>
 #include <QRect>
+#include <QSet>
 #include <QString>
 #include <QVector>
 #include <QWidget>
@@ -20,6 +21,7 @@ class QPushButton;
 class QEvent;
 class QMouseEvent;
 class QPaintEvent;
+class QTimer;
 class QWheelEvent;
 
 namespace QWK {
@@ -40,6 +42,7 @@ struct TutorialStepConfig {
   QString            mediaPath;
   QString            bottomText;
   QString            onEnterCommand;
+  QString            requiredAction;
   TutorialBubbleSize bubbleSize= TutorialBubbleSize::Medium;
   int                offsetX   = 0;
   int                offsetY   = 0;
@@ -81,6 +84,7 @@ public:
   void setStep (const TutorialStepConfig& step, int index, int total);
   void setFirstStep (bool first);
   void setLastStep (bool last);
+  void setNextEnabled (bool enabled, const QString& toolTip= QString ());
 
 signals:
   void previousRequested ();
@@ -110,6 +114,7 @@ public:
   void setHighlightedRect (const QRect& rect, int padding);
   void clearHighlight ();
   void repositionBubble (TutorialPlacement placement);
+  void setNextEnabled (bool enabled, const QString& toolTip= QString ());
 
 signals:
   void previousRequested ();
@@ -160,6 +165,8 @@ protected:
 
 private:
   void executeOnEnter (const TutorialStepConfig& step);
+  void updateCurrentStepGate ();
+  void pollRequiredAction ();
   void refreshCurrentStepGeometry ();
   void updateOverlayGeometry ();
   void showStep (int index, int retryCount= 0, int fallbackDirection= 0,
@@ -175,6 +182,8 @@ private:
   int                       m_currentIndex;
   int                       m_displayedIndex;
   int                       m_stepRequestId;
+  QSet<QString>             m_completedActionSteps;
+  QTimer*                   m_actionPollTimer;
 };
 
 class FirstLaunchTutorialController : public QObject {

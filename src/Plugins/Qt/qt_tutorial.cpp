@@ -187,6 +187,12 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
           QString ("Tutorial step %1 on-enter must be a string").arg (step.id);
     return false;
   }
+  if (!readStringField ("require-action", step.requiredAction)) {
+    if (errorMessage != nullptr)
+      *errorMessage= QString ("Tutorial step %1 require-action must be a string")
+                         .arg (step.id);
+    return false;
+  }
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
       step.bottomText.isEmpty ()) {
@@ -304,6 +310,9 @@ firstLaunchTutorialConfigPath () {
   return url_system (
       "$TEXMACS_PATH/plugins/tutorial/data/first-launch-tutorial.json");
 }
+
+constexpr const char* kTutorialLastActionPreference=
+    "tutorial:last-action";
 
 } // namespace
 
@@ -490,17 +499,17 @@ TutorialBubble::TutorialBubble (QWidget* parent)
     }
     QLabel#tutorialTitle {
       color: #122033;
-      font-size: 17px;
+      font-size: 20px;
       font-weight: 700;
     }
     QLabel#tutorialBodyText {
       color: #334155;
-      font-size: 13px;
+      font-size: 16px;
       line-height: 1.5;
     }
     QLabel#tutorialProgress {
       color: #6b7280;
-      font-size: 12px;
+      font-size: 13px;
       font-weight: 600;
     }
     QPushButton {
@@ -520,7 +529,9 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       "#d1d5db; }"));
   m_nextButton->setStyleSheet (QStringLiteral (
       "QPushButton { background: #0f766e; color: white; border: 1px solid "
-      "#0f766e; }"));
+      "#0f766e; } "
+      "QPushButton:disabled { background: #cbd5e1; color: #64748b; border: "
+      "1px solid #cbd5e1; }"));
 
   connect (m_previousButton, &QPushButton::clicked, this,
            &TutorialBubble::previousRequested);
@@ -633,6 +644,12 @@ void
 TutorialBubble::setLastStep (bool last) {
   m_nextButton->setText (last ? qt_translate ("完成")
                               : qt_translate ("下一步"));
+}
+
+void
+TutorialBubble::setNextEnabled (bool enabled, const QString& toolTip) {
+  m_nextButton->setEnabled (enabled);
+  m_nextButton->setToolTip (toolTip);
 }
 
 TutorialOverlay::TutorialOverlay (QMainWindow* parentWindow)
@@ -799,6 +816,11 @@ TutorialOverlay::repositionBubble (TutorialPlacement placement) {
 }
 
 void
+TutorialOverlay::setNextEnabled (bool enabled, const QString& toolTip) {
+  m_bubble->setNextEnabled (enabled, toolTip);
+}
+
+void
 TutorialOverlay::paintEvent (QPaintEvent* event) {
   (void) event;
 
@@ -839,7 +861,11 @@ TutorialOverlay::wheelEvent (QWheelEvent* event) {
 
 TutorialEngine::TutorialEngine (QObject* parent)
     : QObject (parent), m_currentIndex (-1), m_displayedIndex (-1),
-      m_stepRequestId (0) {}
+      m_stepRequestId (0), m_actionPollTimer (new QTimer (this)) {
+  m_actionPollTimer->setInterval (150);
+  connect (m_actionPollTimer, &QTimer::timeout, this,
+           &TutorialEngine::pollRequiredAction);
+}
 
 bool
 TutorialEngine::start (QMainWindow*                  hostWindow,
@@ -855,6 +881,8 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
   m_currentIndex  = -1;
   m_displayedIndex= -1;
   m_stepRequestId = 0;
+  m_completedActionSteps.clear ();
+  reset_user_preference (kTutorialLastActionPreference);
   m_overlay       = new TutorialOverlay (hostWindow);
   m_overlay->show ();
   m_overlay->raise ();
@@ -875,6 +903,8 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
 void
 TutorialEngine::stop (TutorialFinishReason reason) {
   if (m_hostWindow != nullptr) m_hostWindow->removeEventFilter (this);
+  m_actionPollTimer->stop ();
+  reset_user_preference (kTutorialLastActionPreference);
 
   if (m_overlay != nullptr) {
     m_overlay->hide ();
@@ -886,6 +916,7 @@ TutorialEngine::stop (TutorialFinishReason reason) {
   m_currentIndex  = -1;
   m_displayedIndex= -1;
   m_stepRequestId = 0;
+  m_completedActionSteps.clear ();
   m_config        = TutorialFlowConfig ();
   m_registry      = TutorialTargetRegistry ();
 
@@ -943,6 +974,50 @@ TutorialEngine::executeOnEnter (const TutorialStepConfig& step) {
 }
 
 void
+TutorialEngine::updateCurrentStepGate () {
+  if (!isActive () || m_overlay == nullptr || m_currentIndex < 0 ||
+      m_currentIndex >= m_config.steps.size ()) {
+    if (m_actionPollTimer->isActive ()) m_actionPollTimer->stop ();
+    return;
+  }
+
+  const TutorialStepConfig& step= m_config.steps[m_currentIndex];
+  if (step.requiredAction.trimmed ().isEmpty () ||
+      m_completedActionSteps.contains (step.id)) {
+    m_overlay->setNextEnabled (true);
+    if (m_actionPollTimer->isActive ()) m_actionPollTimer->stop ();
+    return;
+  }
+
+  reset_user_preference (kTutorialLastActionPreference);
+  m_overlay->setNextEnabled (
+      false, qt_translate ("完成当前步骤要求的粘贴操作后才可继续"));
+  if (!m_actionPollTimer->isActive ()) m_actionPollTimer->start ();
+}
+
+void
+TutorialEngine::pollRequiredAction () {
+  if (!isActive () || m_currentIndex < 0 || m_currentIndex >= m_config.steps.size ()) {
+    m_actionPollTimer->stop ();
+    return;
+  }
+
+  const TutorialStepConfig& step= m_config.steps[m_currentIndex];
+  if (step.requiredAction.trimmed ().isEmpty ()) {
+    m_actionPollTimer->stop ();
+    return;
+  }
+
+  const QString lastAction=
+      to_qstring (get_user_preference (kTutorialLastActionPreference, ""));
+  if (lastAction != step.requiredAction) return;
+
+  m_completedActionSteps.insert (step.id);
+  reset_user_preference (kTutorialLastActionPreference);
+  updateCurrentStepGate ();
+}
+
+void
 TutorialEngine::updateOverlayGeometry () {
   if (m_overlay == nullptr || m_hostWindow == nullptr) return;
   m_overlay->setGeometry (m_hostWindow->rect ());
@@ -990,6 +1065,7 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection,
   const TutorialStepConfig& step= m_config.steps[index];
   if (step.targetId.trimmed ().isEmpty ()) {
     m_overlay->setStep (step, index, m_config.steps.size ());
+    updateCurrentStepGate ();
     m_overlay->clearHighlight ();
     m_overlay->show ();
     m_overlay->raise ();
@@ -1017,6 +1093,7 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection,
     }
 
     m_overlay->setStep (step, index, m_config.steps.size ());
+    updateCurrentStepGate ();
     m_overlay->clearHighlight ();
     m_overlay->show ();
     m_overlay->raise ();
@@ -1029,6 +1106,7 @@ TutorialEngine::showStep (int index, int retryCount, int fallbackDirection,
   }
 
   m_overlay->setStep (step, index, m_config.steps.size ());
+  updateCurrentStepGate ();
   m_overlay->setHighlightedRect (rect, step.highlightPadding);
   m_overlay->show ();
   m_overlay->raise ();
