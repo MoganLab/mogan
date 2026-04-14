@@ -72,14 +72,10 @@ parsePlacement (const QString& value, QWK::TutorialPlacement& placement) {
 bool
 parseBubbleSize (const QString& value, QWK::TutorialBubbleSize& bubbleSize) {
   const QString normalized= value.trimmed ().toLower ();
-  if (normalized == "small")
-    bubbleSize= QWK::TutorialBubbleSize::Small;
-  else if (normalized == "medium")
-    bubbleSize= QWK::TutorialBubbleSize::Medium;
-  else if (normalized == "large")
-    bubbleSize= QWK::TutorialBubbleSize::Large;
-  else
-    return false;
+  if (normalized == "small") bubbleSize= QWK::TutorialBubbleSize::Small;
+  else if (normalized == "medium") bubbleSize= QWK::TutorialBubbleSize::Medium;
+  else if (normalized == "large") bubbleSize= QWK::TutorialBubbleSize::Large;
+  else return false;
 
   return true;
 }
@@ -225,9 +221,8 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
   QString bubbleSize;
   if (!readStringField ("bubble-size", bubbleSize, &found)) {
     if (errorMessage != nullptr)
-      *errorMessage=
-          QString ("Tutorial step %1 bubble-size must be a string")
-              .arg (step.id);
+      *errorMessage= QString ("Tutorial step %1 bubble-size must be a string")
+                         .arg (step.id);
     return false;
   }
   if (found && !bubbleSize.isEmpty () &&
@@ -730,9 +725,9 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   if (!m_hasHighlight) {
     QPoint center=
         safe.center () - QPoint (size.width () / 2, size.height () / 2);
-    return clampRect (QRect (center, size)
-                          .translated (m_currentStep.offsetX,
-                                       m_currentStep.offsetY));
+    return clampRect (
+        QRect (center, size)
+            .translated (m_currentStep.offsetX, m_currentStep.offsetY));
   }
 
   auto candidateFor= [this, &size, spacing] (TutorialPlacement p) {
@@ -773,8 +768,8 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   }
 
   for (TutorialPlacement p : placements) {
-    QRect candidate=
-        candidateFor (p).translated (m_currentStep.offsetX, m_currentStep.offsetY);
+    QRect candidate= candidateFor (p).translated (m_currentStep.offsetX,
+                                                  m_currentStep.offsetY);
     if (safe.contains (candidate)) return candidate;
   }
 

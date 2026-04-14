@@ -30,19 +30,19 @@ enum class TutorialBubbleSize { Small, Medium, Large };
 enum class TutorialFinishReason { Completed, Skipped, Cancelled, HostClosed };
 
 struct TutorialStepConfig {
-  QString           id;
-  QString           title;
-  QString           targetId;
-  TutorialPlacement placement       = TutorialPlacement::Auto;
-  int               highlightPadding= 8;
-  bool              skipIfMissing   = true;
-  QString           topText;
-  QString           mediaPath;
-  QString           bottomText;
-  QString           onEnterCommand;
+  QString            id;
+  QString            title;
+  QString            targetId;
+  TutorialPlacement  placement       = TutorialPlacement::Auto;
+  int                highlightPadding= 8;
+  bool               skipIfMissing   = true;
+  QString            topText;
+  QString            mediaPath;
+  QString            bottomText;
+  QString            onEnterCommand;
   TutorialBubbleSize bubbleSize= TutorialBubbleSize::Medium;
-  int               offsetX    = 0;
-  int               offsetY    = 0;
+  int                offsetX   = 0;
+  int                offsetY   = 0;
 };
 
 struct TutorialFlowConfig {
