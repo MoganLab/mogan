@@ -803,17 +803,6 @@ TutorialOverlay::paintEvent (QPaintEvent* event) {
   }
 
   painter.fillPath (overlayPath, QColor (10, 18, 28, 180));
-
-  if (m_hasHighlight) {
-    painter.setBrush (Qt::NoBrush);
-    QPen borderPen (QColor (255, 244, 214), 2);
-    painter.setPen (borderPen);
-    painter.drawRoundedRect (m_highlightRect, 14, 14);
-
-    QPen glowPen (QColor (255, 199, 94, 120), 4);
-    painter.setPen (glowPen);
-    painter.drawRoundedRect (m_highlightRect.adjusted (1, 1, -1, -1), 14, 14);
-  }
 }
 
 void
