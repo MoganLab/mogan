@@ -451,7 +451,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_mediaLabel->setAlignment (Qt::AlignCenter);
   m_mediaLabel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
   m_mediaLabel->setVisible (false);
-  m_mediaLabel->setFixedSize (QSize ());
+  m_mediaLabel->setFixedSize (0, 0);
 
   m_previousButton->setText (qt_translate ("上一步"));
   m_nextButton->setText (qt_translate ("下一步"));
@@ -565,7 +565,7 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
 
     m_mediaLabel->clear ();
     m_mediaLabel->setVisible (false);
-    m_mediaLabel->setFixedSize (QSize ());
+    m_mediaLabel->setFixedSize (0, 0);
     m_currentMediaPath= mediaPath;
 
     if (!mediaPath.isEmpty ()) {
@@ -604,7 +604,7 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   }
   else {
     m_mediaLabel->setVisible (false);
-    m_mediaLabel->setFixedSize (QSize ());
+    m_mediaLabel->setFixedSize (0, 0);
   }
 
   m_progressLabel->setText (
@@ -1245,11 +1245,21 @@ FirstLaunchTutorialController::maybeStartForMainWindow (
   QPointer<QMainWindow> target= mainWindow;
   QTimer::singleShot (0, mainWindow, [this, target, flow] () {
     if (target == nullptr) return;
-    target->setProperty ("tutorialScheduled", false);
-    if (!shouldStart (flow)) return;
+    if (!shouldStart (flow)) {
+      target->setProperty ("tutorialScheduled", false);
+      return;
+    }
 
-    m_startedThisSession= true;
-    m_engine->start (target, flow, buildRegistry (target));
+    exec_delayed (scheme_cmd ("(new-document)"));
+
+    QTimer::singleShot (180, target, [this, target, flow] () {
+      if (target == nullptr) return;
+      target->setProperty ("tutorialScheduled", false);
+      if (!shouldStart (flow)) return;
+
+      m_startedThisSession= true;
+      m_engine->start (target, flow, buildRegistry (target));
+    });
   });
 }
 
