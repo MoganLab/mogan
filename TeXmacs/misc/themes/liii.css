@@ -1110,3 +1110,24 @@ QLabel#style-card-name {
 QLabel#style-card-badge {
   color: #ffffff;
 }
+
+/****************************************************************************
+* PDF Preview Widget 样式
+****************************************************************************/
+QPushButton#pdf-preview-nav-btn {
+  border: none;
+  color: #000000;
+  font-weight: bold;
+}
+
+QPushButton#pdf-preview-nav-btn:disabled {
+  color: #dddddd;
+}
+
+QLabel#pdf-preview-page-indicator {
+  color: #000000;
+}
+
+QLabel#pdf-preview-label {
+  border: 1px solid #dddddd;
+}

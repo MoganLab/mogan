@@ -35,44 +35,7 @@ constexpr int    kMinPreviewHeight         = 150;
 constexpr double kDefaultAspectRatio       = 1.414; // A4比例
 constexpr int    kButtonOffset             = 10;
 constexpr int    kPageIndicatorBottomMargin= 10;
-} // namespace
-
-// 样式定义
-namespace {
-// 圆形按钮样式 - 使用深色确保可见
-constexpr const char* kCircleButtonStyle= "QPushButton {"
-                                          "  background-color: #2c3e50;"
-                                          "  border: none;"
-                                          "  border-radius: 20px;"
-                                          "  width: 40px;"
-                                          "  height: 40px;"
-                                          "  min-width: 40px;"
-                                          "  min-height: 40px;"
-                                          "  max-width: 40px;"
-                                          "  max-height: 40px;"
-                                          "  font-weight: bold;"
-                                          "  color: white;"
-                                          "}"
-                                          "QPushButton:hover {"
-                                          "  background-color: #34495e;"
-                                          "}"
-                                          "QPushButton:pressed {"
-                                          "  background-color: #1a252f;"
-                                          "}"
-                                          "QPushButton:disabled {"
-                                          "  background-color: #95a5a6;"
-                                          "  color: #ddd;"
-                                          "}";
-
-// 页码指示器样式
-constexpr const char* kPageIndicatorStyle=
-    "QLabel {"
-    "  color: white;"
-    "  font-size: 14px;"
-    "  background-color: rgba(0, 0, 0, 0.6);"
-    "  padding: 6px 16px;"
-    "  border-radius: 12px;"
-    "}";
+constexpr int    kButtonSize               = 40;
 } // namespace
 
 QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
@@ -88,17 +51,18 @@ QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
 
 QTPdfPreviewWidget::~QTPdfPreviewWidget () { cancelLoading (); }
 
-namespace {
-constexpr int kButtonSize= 40;
-}
-
 QPushButton*
 QTPdfPreviewWidget::createNavButton (const QString& text,
                                      void (QTPdfPreviewWidget::*slot) ()) {
   QPushButton* btn= new QPushButton (text, previewContainer_);
-  btn->setStyleSheet (kCircleButtonStyle);
+  btn->setObjectName ("pdf-preview-nav-btn");
   int scaledSize= DpiUtils::scaled (kButtonSize, this->screen ());
   btn->setFixedSize (scaledSize, scaledSize);
+  // 设置圆形边框半径，使用ID选择器确保与CSS中的选择器匹配
+  int radius= scaledSize / 2;
+  btn->setStyleSheet (
+      QString ("QPushButton#pdf-preview-nav-btn { border-radius: %1px; }")
+          .arg (radius));
   btn->setCursor (Qt::PointingHandCursor);
   btn->hide ();
   connect (btn, &QPushButton::clicked, this, slot);
@@ -124,8 +88,8 @@ QTPdfPreviewWidget::setupUI () {
 
   // 预览标签
   previewLabel_= new QLabel (previewContainer_);
+  previewLabel_->setObjectName ("pdf-preview-label");
   previewLabel_->setAlignment (Qt::AlignCenter);
-  previewLabel_->setStyleSheet ("background: white; border: 1px solid #ddd;");
 
   containerLayout->addWidget (previewLabel_, 0, Qt::AlignCenter);
   mainLayout->addWidget (previewContainer_, 1, Qt::AlignCenter);
@@ -136,8 +100,19 @@ QTPdfPreviewWidget::setupUI () {
 
   // 页码指示器（底部居中）
   pageIndicator_= new QLabel ("1 / 1", previewContainer_);
-  pageIndicator_->setStyleSheet (kPageIndicatorStyle);
+  pageIndicator_->setObjectName ("pdf-preview-page-indicator");
   pageIndicator_->setAlignment (Qt::AlignCenter);
+  // 使用DpiUtils处理font-size、padding和border-radius
+  int fontSize= DpiUtils::scaled (14, this->screen ());
+  int vPadding= DpiUtils::scaled (6, this->screen ());
+  int hPadding= DpiUtils::scaled (16, this->screen ());
+  int radius  = DpiUtils::scaled (12, this->screen ());
+  pageIndicator_->setStyleSheet (QString ("QLabel { font-size: %1px; padding: "
+                                          "%2px %3px; border-radius: %4px; }")
+                                     .arg (fontSize)
+                                     .arg (vPadding)
+                                     .arg (hPadding)
+                                     .arg (radius));
   pageIndicator_->hide ();
 
   // 安装事件过滤器以处理鼠标悬停
