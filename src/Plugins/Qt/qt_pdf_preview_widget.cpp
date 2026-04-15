@@ -28,7 +28,7 @@
 // 常量定义
 namespace {
 constexpr int    kMinRenderDpi             = 200;
-constexpr int    kMaxRenderDpi             = 400;
+constexpr int    kMaxRenderDpi             = 600;
 constexpr int    kDefaultDpi               = 72;
 constexpr int    kMargin                   = 32;
 constexpr int    kMinPreviewWidth          = 400;
@@ -36,7 +36,9 @@ constexpr int    kMinPreviewHeight         = 400;
 constexpr double kDefaultAspectRatio       = 1.414; // A4比例
 constexpr int    kButtonOffset             = 10;
 constexpr int    kPageIndicatorBottomMargin= 10;
-constexpr int    kButtonSize               = 40;
+constexpr int    kButtonBaseSize           = 28;
+constexpr int    kButtonMinSize            = 24;
+constexpr int    kButtonMaxSize            = 36;
 } // namespace
 
 QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
@@ -57,13 +59,17 @@ QTPdfPreviewWidget::createNavButton (const QString& text,
                                      void (QTPdfPreviewWidget::*slot) ()) {
   QPushButton* btn= new QPushButton (text, previewContainer_);
   btn->setObjectName ("pdf-preview-nav-btn");
-  int scaledSize= DpiUtils::scaled (kButtonSize, this->screen ());
+  int scaledSize=
+      qBound (kButtonMinSize,
+              DpiUtils::scaled (kButtonBaseSize, this->screen ()),
+              kButtonMaxSize);
   btn->setFixedSize (scaledSize, scaledSize);
   // 设置圆形边框半径，使用ID选择器确保与CSS中的选择器匹配
   int radius= scaledSize / 2;
   btn->setStyleSheet (
       QString ("QPushButton#pdf-preview-nav-btn { border-radius: %1px; }")
           .arg (radius));
+  btn->setText (text);
   btn->setCursor (Qt::PointingHandCursor);
   btn->hide ();
   connect (btn, &QPushButton::clicked, this, slot);
@@ -127,6 +133,7 @@ void
 QTPdfPreviewWidget::updatePageControls () {
   pageIndicator_->setText (
       QString ("%1 / %2").arg (currentPage_ + 1).arg (pageCount_));
+  pageIndicator_->adjustSize ();
 
   prevBtn_->setEnabled (currentPage_ > 0);
   nextBtn_->setEnabled (currentPage_ < pageCount_ - 1);
@@ -474,8 +481,8 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     // 使用DpiUtils获取屏幕缩放比例
     qreal screenScale= DpiUtils::scaleFactor (this->screen ());
 
-    // 计算渲染DPI：基准DPI * 缩放 * 屏幕缩放
-    int renderDpi= static_cast<int> (kDefaultDpi * scale * screenScale);
+    // 先按目标尺寸估算，再做过采样渲染，最后缩放到显示尺寸以提升清晰度
+    int renderDpi= static_cast<int> (kDefaultDpi * scale * screenScale * 2.0);
     renderDpi    = qBound (kMinRenderDpi, renderDpi, kMaxRenderDpi);
 
     fz_matrix ctm= fz_scale (static_cast<float> (renderDpi) / kDefaultDpi,
@@ -499,12 +506,10 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
     }
 
-    // 转换为QPixmap并设置设备像素比以保证清晰度
+    // 缩放到目标显示区域，避免尺寸溢出并保持页面完整可见
     QPixmap pixmap= QPixmap::fromImage (std::move (image));
-    pixmap.setDevicePixelRatio (screenScale);
-
-    // 不再进行二次缩放，保持渲染的原始清晰度
-    // 让QLabel通过setFixedSize来适应显示区域
+    pixmap= pixmap.scaled (targetSize, Qt::KeepAspectRatio,
+                           Qt::SmoothTransformation);
     setPreviewPixmap (pixmap);
     success= true;
 
@@ -637,9 +642,11 @@ QTPdfPreviewWidget::updateButtonPositions () {
 
   // 页码指示器 - 底部居中
   if (pageIndicator_ && pageCount_ > 1) {
-    int indicatorX= (containerWidth - pageIndicator_->width ()) / 2;
+    int indicatorX= labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
     int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
                     kPageIndicatorBottomMargin;
+    indicatorX= qBound (kButtonOffset, indicatorX,
+                        containerWidth - pageIndicator_->width () - kButtonOffset);
     pageIndicator_->move (indicatorX, indicatorY);
   }
 }
