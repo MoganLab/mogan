@@ -43,6 +43,73 @@ using nlohmann::json;
 
 namespace {
 
+constexpr int kBubbleMarginPx           = 18;
+constexpr int kBubbleSpacingPx          = 12;
+constexpr int kBubbleFooterSpacingPx    = 10;
+constexpr int kBubbleBorderRadiusPx     = 14;
+constexpr int kBubbleButtonRadiusPx     = 8;
+constexpr int kBubbleButtonPadYPx       = 8;
+constexpr int kBubbleButtonPadXPx       = 14;
+constexpr int kBubbleButtonMinWidthPx   = 72;
+constexpr int kBubbleTitleFontPx        = 20;
+constexpr int kBubbleBodyFontPx         = 16;
+constexpr int kBubbleProgressFontPx     = 13;
+constexpr int kBubbleButtonFontPx       = 12;
+constexpr int kBubbleWidthSmallPx       = 300;
+constexpr int kBubbleWidthMediumPx      = 360;
+constexpr int kBubbleWidthLargePx       = 440;
+constexpr int kBubbleMediaSmallWidthPx  = 240;
+constexpr int kBubbleMediaSmallHeightPx = 144;
+constexpr int kBubbleMediaMediumWidthPx = 300;
+constexpr int kBubbleMediaMediumHeightPx= 180;
+constexpr int kBubbleMediaLargeWidthPx  = 380;
+constexpr int kBubbleMediaLargeHeightPx = 228;
+constexpr int kOverlayHighlightInsetPx  = 8;
+constexpr int kOverlayBubbleSpacingPx   = 18;
+constexpr int kOverlayBubbleMarginPx    = 20;
+constexpr int kHighlightRadiusPx        = 14;
+constexpr int kRegistryMainSafeMarginPx = 24;
+constexpr int kRegistryGapPx            = 8;
+constexpr int kRegistryToolbarHeightPx  = 72;
+constexpr int kRegistryHorizontalPadPx  = 32;
+
+QString
+tutorialBubbleStyleSheet () {
+  return QString (R"(
+    QWidget#tutorialBubble {
+      background-color: #fffef8;
+      border: 1px solid rgba(24, 42, 67, 0.18);
+      border-radius: %1px;
+    }
+    QLabel#tutorialTitle {
+      color: #122033;
+      font-weight: 700;
+    }
+    QLabel#tutorialBodyText {
+      color: #334155;
+      line-height: 1.5;
+    }
+    QLabel#tutorialProgress {
+      color: #6b7280;
+      font-weight: 600;
+    }
+    QPushButton {
+      border-radius: %2px;
+      padding: %3px %4px;
+      font-weight: 600;
+      min-width: %5px;
+    }
+    QPushButton:hover {
+      background-color: #eef4ff;
+    }
+  )")
+      .arg (DpiUtils::scaled (kBubbleBorderRadiusPx))
+      .arg (DpiUtils::scaled (kBubbleButtonRadiusPx))
+      .arg (DpiUtils::scaled (kBubbleButtonPadYPx))
+      .arg (DpiUtils::scaled (kBubbleButtonPadXPx))
+      .arg (DpiUtils::scaled (kBubbleButtonMinWidthPx));
+}
+
 QRect
 mapRectToWindow (QWidget* widget, QMainWindow* window) {
   if (widget == nullptr || window == nullptr) return QRect ();
@@ -473,15 +540,17 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 
   auto* footerLayout= new QHBoxLayout ();
   footerLayout->setContentsMargins (0, 0, 0, 0);
-  footerLayout->setSpacing (10);
+  footerLayout->setSpacing (DpiUtils::scaled (kBubbleFooterSpacingPx));
   footerLayout->addWidget (m_progressLabel);
   footerLayout->addStretch ();
   footerLayout->addWidget (m_previousButton);
   footerLayout->addWidget (m_nextButton);
 
-  auto* mainLayout= new QVBoxLayout (this);
-  mainLayout->setContentsMargins (18, 18, 18, 18);
-  mainLayout->setSpacing (12);
+  auto*     mainLayout  = new QVBoxLayout (this);
+  const int bubbleMargin= DpiUtils::scaled (kBubbleMarginPx);
+  mainLayout->setContentsMargins (bubbleMargin, bubbleMargin, bubbleMargin,
+                                  bubbleMargin);
+  mainLayout->setSpacing (DpiUtils::scaled (kBubbleSpacingPx));
   mainLayout->setSizeConstraint (QLayout::SetFixedSize);
   mainLayout->addWidget (m_titleLabel);
   mainLayout->addWidget (m_topTextLabel);
@@ -490,39 +559,14 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   mainLayout->addLayout (footerLayout);
 
   setLayout (mainLayout);
-  setFixedWidth (360);
-  setStyleSheet (QStringLiteral (R"(
-    QWidget#tutorialBubble {
-      background-color: #fffef8;
-      border: 1px solid rgba(24, 42, 67, 0.18);
-      border-radius: 14px;
-    }
-    QLabel#tutorialTitle {
-      color: #122033;
-      font-size: 20px;
-      font-weight: 700;
-    }
-    QLabel#tutorialBodyText {
-      color: #334155;
-      font-size: 16px;
-      line-height: 1.5;
-    }
-    QLabel#tutorialProgress {
-      color: #6b7280;
-      font-size: 13px;
-      font-weight: 600;
-    }
-    QPushButton {
-      border-radius: 8px;
-      padding: 8px 14px;
-      font-size: 12px;
-      font-weight: 600;
-      min-width: 72px;
-    }
-    QPushButton:hover {
-      background-color: #eef4ff;
-    }
-  )"));
+  setFixedWidth (DpiUtils::scaled (kBubbleWidthMediumPx));
+  DpiUtils::applyScaledFont (m_titleLabel, kBubbleTitleFontPx);
+  DpiUtils::applyScaledFont (m_topTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_progressLabel, kBubbleProgressFontPx);
+  DpiUtils::applyScaledFont (m_previousButton, kBubbleButtonFontPx);
+  DpiUtils::applyScaledFont (m_nextButton, kBubbleButtonFontPx);
+  setStyleSheet (tutorialBubbleStyleSheet ());
 
   m_previousButton->setStyleSheet (QStringLiteral (
       "QPushButton { background: #f3f4f6; color: #111827; border: 1px solid "
@@ -544,20 +588,46 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
-  QSize         mediaSize (300, 180);
+  QSize         mediaSize (DpiUtils::scaled (kBubbleMediaMediumWidthPx),
+                           DpiUtils::scaled (kBubbleMediaMediumHeightPx));
+  auto*         mainLayout= qobject_cast<QVBoxLayout*> (layout ());
+
+  if (mainLayout != nullptr) {
+    const int bubbleMargin= DpiUtils::scaled (kBubbleMarginPx);
+    mainLayout->setContentsMargins (bubbleMargin, bubbleMargin, bubbleMargin,
+                                    bubbleMargin);
+    mainLayout->setSpacing (DpiUtils::scaled (kBubbleSpacingPx));
+    if (mainLayout->count () > 0) {
+      if (auto* footerItem= mainLayout->itemAt (mainLayout->count () - 1)) {
+        if (auto* footerLayout= footerItem->layout ())
+          footerLayout->setSpacing (DpiUtils::scaled (kBubbleFooterSpacingPx));
+      }
+    }
+  }
+
+  DpiUtils::applyScaledFont (m_titleLabel, kBubbleTitleFontPx);
+  DpiUtils::applyScaledFont (m_topTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_progressLabel, kBubbleProgressFontPx);
+  DpiUtils::applyScaledFont (m_previousButton, kBubbleButtonFontPx);
+  DpiUtils::applyScaledFont (m_nextButton, kBubbleButtonFontPx);
+  setStyleSheet (tutorialBubbleStyleSheet ());
 
   switch (step.bubbleSize) {
   case TutorialBubbleSize::Small:
-    setFixedWidth (300);
-    mediaSize= QSize (240, 144);
+    setFixedWidth (DpiUtils::scaled (kBubbleWidthSmallPx));
+    mediaSize= QSize (DpiUtils::scaled (kBubbleMediaSmallWidthPx),
+                      DpiUtils::scaled (kBubbleMediaSmallHeightPx));
     break;
   case TutorialBubbleSize::Medium:
-    setFixedWidth (360);
-    mediaSize= QSize (300, 180);
+    setFixedWidth (DpiUtils::scaled (kBubbleWidthMediumPx));
+    mediaSize= QSize (DpiUtils::scaled (kBubbleMediaMediumWidthPx),
+                      DpiUtils::scaled (kBubbleMediaMediumHeightPx));
     break;
   case TutorialBubbleSize::Large:
-    setFixedWidth (440);
-    mediaSize= QSize (380, 228);
+    setFixedWidth (DpiUtils::scaled (kBubbleWidthLargePx));
+    mediaSize= QSize (DpiUtils::scaled (kBubbleMediaLargeWidthPx),
+                      DpiUtils::scaled (kBubbleMediaLargeHeightPx));
     break;
   }
 
@@ -681,8 +751,13 @@ TutorialOverlay::setStep (const TutorialStepConfig& step, int index,
 void
 TutorialOverlay::setHighlightedRect (const QRect& rect, int padding) {
   const QRect previousHighlightRect= m_highlightRect;
-  m_highlightRect= rect.adjusted (-padding, -padding, padding, padding)
-                       .intersected (this->rect ().adjusted (8, 8, -8, -8));
+  const int   scaledPadding        = DpiUtils::scaled (padding);
+  const int   highlightInset= DpiUtils::scaled (kOverlayHighlightInsetPx);
+  m_highlightRect= rect.adjusted (-scaledPadding, -scaledPadding, scaledPadding,
+                                  scaledPadding)
+                       .intersected (this->rect ().adjusted (
+                           highlightInset, highlightInset, -highlightInset,
+                           -highlightInset));
   m_hasHighlight= true;
   repositionBubble (m_currentStep.placement);
   refreshExposedArea (previousHighlightRect.united (m_highlightRect));
@@ -739,10 +814,12 @@ TutorialOverlay::refreshExposedArea (const QRect& rect) {
 
 QRect
 TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
-  const int spacing= 18;
-  const int margin = 20;
+  const int spacing= DpiUtils::scaled (kOverlayBubbleSpacingPx);
+  const int margin = DpiUtils::scaled (kOverlayBubbleMarginPx);
   QSize     size   = m_bubble->sizeHint ();
   QRect     safe   = rect ().adjusted (margin, margin, -margin, -margin);
+  const int offsetX= DpiUtils::scaled (m_currentStep.offsetX);
+  const int offsetY= DpiUtils::scaled (m_currentStep.offsetY);
 
   auto clampRect= [&safe, &size] (QRect candidate) {
     int x= qBound (safe.left (), candidate.x (), safe.right () - size.width ());
@@ -754,9 +831,7 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   if (!m_hasHighlight) {
     QPoint center=
         safe.center () - QPoint (size.width () / 2, size.height () / 2);
-    return clampRect (
-        QRect (center, size)
-            .translated (m_currentStep.offsetX, m_currentStep.offsetY));
+    return clampRect (QRect (center, size).translated (offsetX, offsetY));
   }
 
   auto candidateFor= [this, &size, spacing] (TutorialPlacement p) {
@@ -797,14 +872,12 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   }
 
   for (TutorialPlacement p : placements) {
-    QRect candidate= candidateFor (p).translated (m_currentStep.offsetX,
-                                                  m_currentStep.offsetY);
+    QRect candidate= candidateFor (p).translated (offsetX, offsetY);
     if (safe.contains (candidate)) return candidate;
   }
 
   return clampRect (
-      candidateFor (placements.front ())
-          .translated (m_currentStep.offsetX, m_currentStep.offsetY));
+      candidateFor (placements.front ()).translated (offsetX, offsetY));
 }
 
 void
@@ -832,7 +905,8 @@ TutorialOverlay::paintEvent (QPaintEvent* event) {
 
   if (m_hasHighlight) {
     QPainterPath hole;
-    hole.addRoundedRect (m_highlightRect, 14, 14);
+    const int    highlightRadius= DpiUtils::scaled (kHighlightRadiusPx);
+    hole.addRoundedRect (m_highlightRect, highlightRadius, highlightRadius);
     overlayPath= overlayPath.subtracted (hole);
   }
 
@@ -1220,7 +1294,8 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
 
   registry.registerRectProvider (
       "mainWindowSafeArea", [] (QMainWindow* hostWindow) {
-        return hostWindow->rect ().adjusted (24, 24, -24, -24);
+        const int margin= DpiUtils::scaled (kRegistryMainSafeMarginPx);
+        return hostWindow->rect ().adjusted (margin, margin, -margin, -margin);
       });
 
   registry.registerRectProvider ("toolbarArea", [] (QMainWindow* hostWindow) {
@@ -1246,11 +1321,16 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
         editor->size ().isValid ()) {
       QRect     windowbarRect= mapRectToWindow (windowbar, hostWindow);
       QRect     editorRect   = mapRectToWindow (editor, hostWindow);
-      const int top          = windowbarRect.bottom () + 8;
-      const int bottom       = qMin (editorRect.top () - 8, top + 72);
+      const int gap          = DpiUtils::scaled (kRegistryGapPx);
+      const int horizontalPad= DpiUtils::scaled (kRegistryHorizontalPadPx);
+      const int top          = windowbarRect.bottom () + gap;
+      const int bottom=
+          qMin (editorRect.top () - gap,
+                top + DpiUtils::scaled (kRegistryToolbarHeightPx));
       if (bottom > top) {
-        return QRect (QPoint (32, top),
-                      QPoint (hostWindow->rect ().right () - 32, bottom));
+        return QRect (
+            QPoint (horizontalPad, top),
+            QPoint (hostWindow->rect ().right () - horizontalPad, bottom));
       }
     }
 
@@ -1277,10 +1357,12 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
         guestBar->size ().isValid ()) {
       QRect guestRect= mapRectToWindow (guestBar, hostWindow);
       centralRect.setTop (
-          qMin (centralRect.bottom (), guestRect.bottom () + 8));
+          qMin (centralRect.bottom (),
+                guestRect.bottom () + DpiUtils::scaled (kRegistryGapPx)));
     }
 
-    return centralRect.adjusted (8, 8, -8, -8);
+    const int gap= DpiUtils::scaled (kRegistryGapPx);
+    return centralRect.adjusted (gap, gap, -gap, -gap);
   });
 
   registry.registerRectProvider (

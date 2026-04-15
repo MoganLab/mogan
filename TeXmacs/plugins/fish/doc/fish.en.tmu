@@ -1,0 +1,84 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc4>>
+
+<style|<tuple|tmudoc|british|fish>>
+
+<\body>
+  <\hide-preamble>
+    <assign|code-name|fish>
+
+    <assign|code-Name|fish>
+  </hide-preamble>
+
+  <tmdoc-title|<value|code-Name> Code Plugin>
+
+  <paragraph|<value|code-Name> style package>
+
+  Click <menu|Document|Style|Add package|Code|<value|code-name>> or click <menu|<icon|tm_add.svg>|Code|<value|code-name>> on the focus toolbar to add the <value|code-Name> style package.
+
+  In the <code-Name> style package, <markup|<value|code-name>> is provided for inline snippets and <markup|<value|code-name>-code> is provided for <code-Name> code blocks.
+
+  <paragraph|<value|code-Name> syntax>
+
+  The syntax of the <value|code-Name> language is defined in:
+
+  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/code/<value|code-name>-lang.scm>
+
+  Here is an example <value|code-Name> code block with syntax highlight:
+
+  <\fish-code>
+    ; This is a note
+
+    fish define example
+
+    \ \ \ \ global width = 10.0
+
+    \ \ \ \ global height = 5.0
+
+    \ \ \ \ global density = 2000.0
+
+    \ \ \ \
+
+    \ \ \ \ local area = width * height
+
+    \ \ \ \ local volume = area * 1.0
+
+    \ \ \ \ local weight = density * volume * 9.81
+
+    \ \ \ \
+
+    \ \ \ \ io.out('width:' + string(width) + ' m')
+
+    \ \ \ \ io.out('height:' + string(height) + ' m')
+
+    \ \ \ \ io.out('area:' + string(area) + ' m^2')
+
+    \ \ \ \ io.out('density:' + string(density) + ' kg/m^3')
+
+    \ \ \ \ io.out('weight:' + string(weight) + ' N')
+
+    end
+
+    \;
+
+    @example
+  </fish-code>
+
+  <paragraph|<value|code-Name> editing>
+
+  The editing of the <value|code-Name> code is defined in:
+
+  <slink|$TEXMACS_PATH/plugins/<value|code-name>/progs/code/<value|code-name>-edit.scm>
+
+  \;
+
+  <tmdoc-copyright|2025|vesita>
+
+  <tmdoc-license|Permission is granted to copy, distribute and/or modify this document under the terms of the GNU Free Documentation License, Version 1.1 or any later version published by the Free Software Foundation; with no Invariant Sections, with no Front-Cover Texts, and with no Back-Cover Texts. A copy of the license is included in the section entitled "GNU Free Documentation License".>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|papyrus>
+    <associate|page-screen-margin|true>
+  </collection>
+</initial>
