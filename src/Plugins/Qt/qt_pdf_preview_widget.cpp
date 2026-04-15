@@ -22,6 +22,7 @@
 #include "MuPDF/mupdf_renderer.hpp"
 #include "pdf_preview_cache.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_utilities.hpp"
 #include <mupdf/fitz.h>
 
 // 常量定义
@@ -30,8 +31,8 @@ constexpr int    kMinRenderDpi             = 200;
 constexpr int    kMaxRenderDpi             = 400;
 constexpr int    kDefaultDpi               = 72;
 constexpr int    kMargin                   = 32;
-constexpr int    kMinPreviewWidth          = 200;
-constexpr int    kMinPreviewHeight         = 150;
+constexpr int    kMinPreviewWidth          = 400;
+constexpr int    kMinPreviewHeight         = 400;
 constexpr double kDefaultAspectRatio       = 1.414; // A4比例
 constexpr int    kButtonOffset             = 10;
 constexpr int    kPageIndicatorBottomMargin= 10;
@@ -119,7 +120,7 @@ QTPdfPreviewWidget::setupUI () {
   previewContainer_->installEventFilter (this);
 
   // 显示初始占位符
-  clearPreview (tr ("No Preview"));
+  clearPreview (qt_translate ("No Preview"));
 }
 
 void
@@ -241,8 +242,9 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
 
   QFile file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    errorString_= tr ("Cannot open file: %1").arg (file.errorString ());
-    hasError_   = true;
+    errorString_=
+        qt_translate ("Cannot open file: %1").arg (file.errorString ());
+    hasError_= true;
     showError (errorString_);
     emit loadingFinished (false);
     return false;
@@ -289,17 +291,23 @@ void
 QTPdfPreviewWidget::clearPreview (const QString& text) {
   previewLabel_->setPixmap (QPixmap ());
   if (text.isEmpty ()) {
-    previewLabel_->setText (tr ("No Preview"));
+    previewLabel_->setText (qt_translate ("No Preview"));
   }
   else {
     previewLabel_->setText (text);
   }
+  // 设置默认大小为最小预览尺寸，避免无内容时标签过大
+  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
+                               DpiUtils::scaled (kMinPreviewWidth));
 }
 
 void
 QTPdfPreviewWidget::showLoading () {
   isLoading_= true;
-  previewLabel_->setText (tr ("Loading..."));
+  previewLabel_->setText (qt_translate ("Loading..."));
+  // 设置默认大小，避免文本显示过大
+  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
+                               DpiUtils::scaled (kMinPreviewWidth));
   emit loadingStarted ();
 }
 
@@ -308,6 +316,9 @@ QTPdfPreviewWidget::showError (const QString& message) {
   isLoading_= false;
   hasError_ = true;
   previewLabel_->setText (message);
+  // 设置默认大小，避免错误文本显示过大
+  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
+                               DpiUtils::scaled (kMinPreviewWidth));
   emit error (message);
   emit loadingFinished (false);
 }
@@ -352,7 +363,8 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
   if (!reply) return;
 
   if (reply->error () != QNetworkReply::NoError) {
-    errorString_= tr ("Download failed: %1").arg (reply->errorString ());
+    errorString_=
+        qt_translate ("Download failed: %1").arg (reply->errorString ());
     showError (errorString_);
     reply->deleteLater ();
     currentLoadType_= LoadType::None;
@@ -363,7 +375,7 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
   reply->deleteLater ();
 
   if (pdfData_.isEmpty ()) {
-    errorString_= tr ("Empty PDF data received");
+    errorString_= qt_translate ("Empty PDF data received");
     showError (errorString_);
     currentLoadType_= LoadType::None;
     return;
@@ -383,7 +395,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
   fz_context* ctx= mupdf_context ();
   if (!ctx) {
     qWarning () << "MuPDF context not available";
-    errorString_= tr ("PDF engine not available");
+    errorString_= qt_translate ("PDF engine not available");
     showError (errorString_);
     return false;
   }
@@ -506,7 +518,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
   }
   fz_catch (ctx) {
     qWarning () << "MuPDF error:" << fz_caught_message (ctx);
-    errorString_= tr ("PDF render error: %1")
+    errorString_= qt_translate ("PDF render error: %1")
                       .arg (QString::fromUtf8 (fz_caught_message (ctx)));
     showError (errorString_);
     success= false;
@@ -558,7 +570,8 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
   if (!reply) return;
 
   if (reply->error () != QNetworkReply::NoError) {
-    errorString_= tr ("Image download failed: %1").arg (reply->errorString ());
+    errorString_=
+        qt_translate ("Image download failed: %1").arg (reply->errorString ());
     showError (errorString_);
     reply->deleteLater ();
     currentLoadType_= LoadType::None;
@@ -569,7 +582,7 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
   reply->deleteLater ();
 
   if (imageData.isEmpty ()) {
-    errorString_= tr ("Received empty image data");
+    errorString_= qt_translate ("Received empty image data");
     showError (errorString_);
     currentLoadType_= LoadType::None;
     return;
@@ -584,7 +597,7 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
     setPreviewPixmap (pixmap);
   }
   else {
-    errorString_= tr ("Failed to load image data");
+    errorString_= qt_translate ("Failed to load image data");
     showError (errorString_);
   }
 

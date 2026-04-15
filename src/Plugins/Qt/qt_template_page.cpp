@@ -38,7 +38,7 @@
 
 namespace {
 // 预览图片尺寸（增大预览区域）
-constexpr int PREVIEW_IMAGE_HEIGHT= 500;
+constexpr int PREVIEW_IMAGE_WIDTH= 400;
 
 // 缩略图尺寸（使用2x尺寸以便在高分屏上显示清晰）
 constexpr int THUMBNAIL_WIDTH = 240;
@@ -545,9 +545,9 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Preview area using reusable PDF preview widget
   QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
-  // 设置最小尺寸，让控件自适应内容
-  previewWidget->setMinimumHeight (
-      DpiUtils::scaled (PREVIEW_IMAGE_HEIGHT)); // 只设置高度，宽度自适应
+  // 设置固定尺寸，确保无内容时也有足够显示区域 (A4比例)
+  previewWidget->setFixedSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH * 1.414),
+                               DpiUtils::scaled (PREVIEW_IMAGE_WIDTH));
 
   // Load preview (PDF or image)
   if (!tmpl->previewUrl.isEmpty ()) {
