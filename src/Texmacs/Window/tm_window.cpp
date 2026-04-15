@@ -179,7 +179,7 @@ texmacs_window_widget (widget wid, tree geom) {
   int  W, H;
   int  w= geometry_w, h= geometry_h;
   int  x= geometry_x, y= geometry_y;
-  bool custom= is_tuple (geom) && N (geom) >= 2;
+  bool custom                           = is_tuple (geom) && N (geom) >= 2;
   bool default_geometry_without_override= (!custom && w == 800 && h == 600);
 #ifndef QTTEXMACS
   if (use_side_tools) {
