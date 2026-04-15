@@ -1171,12 +1171,20 @@ QPushButton#pdf-preview-nav-btn {
   font-weight: bold;
 }
 
+QWidget#centralWidget QPushButton#pdf-preview-nav-btn {
+  background: #6d6d6d;
+}
+
 QPushButton#pdf-preview-nav-btn:disabled {
-  color: #cccccc;
+  color: #a0a0a0;
 }
 
 QLabel#pdf-preview-page-indicator {
   color: white;
+}
+
+QWidget#centralWidget QLabel#pdf-preview-page-indicator {
+  background: #6d6d6d;
 }
 
 QLabel#pdf-preview-label {

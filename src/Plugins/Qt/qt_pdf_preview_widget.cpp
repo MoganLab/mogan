@@ -12,7 +12,6 @@
 #include <QHBoxLayout>
 #include <QHoverEvent>
 #include <QNetworkReply>
-#include <QPainter>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QVBoxLayout>
@@ -27,18 +26,18 @@
 
 // 常量定义
 namespace {
-constexpr int    kMinRenderDpi             = 200;
-constexpr int    kMaxRenderDpi             = 600;
-constexpr int    kDefaultDpi               = 72;
-constexpr int    kMargin                   = 32;
-constexpr int    kMinPreviewWidth          = 400;
-constexpr int    kMinPreviewHeight         = 400;
+constexpr float  kRenderOversample         = 2.0F;
+constexpr float  kMinRenderScale           = 0.1F;
+constexpr float  kMaxRenderScale           = 8.0F;
+constexpr int    kMargin                   = 0;
+constexpr int    kDefaultPreviewWidth      = 460;
+constexpr int    kDefaultPreviewHeight     = 400;
 constexpr double kDefaultAspectRatio       = 1.414; // A4比例
 constexpr int    kButtonOffset             = 10;
 constexpr int    kPageIndicatorBottomMargin= 10;
-constexpr int    kButtonBaseSize           = 28;
-constexpr int    kButtonMinSize            = 24;
-constexpr int    kButtonMaxSize            = 36;
+constexpr int    kButtonBaseSize           = 18;
+constexpr int    kButtonMinSize            = 14;
+constexpr int    kButtonMaxSize            = 20;
 } // namespace
 
 QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
@@ -59,10 +58,9 @@ QTPdfPreviewWidget::createNavButton (const QString& text,
                                      void (QTPdfPreviewWidget::*slot) ()) {
   QPushButton* btn= new QPushButton (text, previewContainer_);
   btn->setObjectName ("pdf-preview-nav-btn");
-  int scaledSize=
-      qBound (kButtonMinSize,
-              DpiUtils::scaled (kButtonBaseSize, this->screen ()),
-              kButtonMaxSize);
+  int scaledSize= qBound (kButtonMinSize,
+                          DpiUtils::scaled (kButtonBaseSize, this->screen ()),
+                          kButtonMaxSize);
   btn->setFixedSize (scaledSize, scaledSize);
   // 设置圆形边框半径，使用ID选择器确保与CSS中的选择器匹配
   int radius= scaledSize / 2;
@@ -86,8 +84,11 @@ QTPdfPreviewWidget::setupUI () {
 
   // 预览容器（用于放置按钮和预览图）
   previewContainer_= new QWidget (this);
+  previewContainer_->setObjectName ("pdf-preview-container");
   previewContainer_->setAttribute (Qt::WA_Hover, true);
-  previewContainer_->setStyleSheet ("background: #fafafa; border-radius: 8px;");
+  previewContainer_->setStyleSheet (
+      QString ("QWidget#pdf-preview-container { border-radius: %1px; }")
+          .arg (DpiUtils::scaled (8, this->screen ())));
   QVBoxLayout* containerLayout= new QVBoxLayout (previewContainer_);
   containerLayout->setContentsMargins (0, 0, 0, 0);
   containerLayout->setSpacing (0);
@@ -146,28 +147,13 @@ void
 QTPdfPreviewWidget::calculatePreviewDimensions (int availWidth, int availHeight,
                                                 int& outWidth,
                                                 int& outHeight) const {
-  if (availWidth <= 0 || availHeight <= 0 || pageAspectRatio_ <= 0) {
-    outWidth = kMinPreviewWidth;
-    outHeight= kMinPreviewHeight;
+  if (availWidth <= 0 || availHeight <= 0) {
+    outWidth = kDefaultPreviewWidth;
+    outHeight= kDefaultPreviewHeight;
     return;
   }
-
-  double availRatio= static_cast<double> (availWidth) / availHeight;
-
-  if (pageAspectRatio_ > availRatio) {
-    // 页面比视口更宽，以宽度为准
-    outWidth = availWidth;
-    outHeight= static_cast<int> (outWidth / pageAspectRatio_);
-  }
-  else {
-    // 页面比视口更高，以高度为准
-    outHeight= availHeight;
-    outWidth = static_cast<int> (outHeight * pageAspectRatio_);
-  }
-
-  // 保持在可用区域内，避免预览被强制放大
-  outWidth = qMax (1, qMin (outWidth, availWidth));
-  outHeight= qMax (1, qMin (outHeight, availHeight));
+  outWidth = qMax (1, availWidth);
+  outHeight= qMax (1, availHeight);
 }
 
 QSize
@@ -182,12 +168,17 @@ void
 QTPdfPreviewWidget::updatePreviewSize () {
   if (!previewContainer_) return;
 
-  int availWidth = qMax (1, previewContainer_->width () - kMargin);
-  int availHeight= qMax (1, previewContainer_->height () - kMargin);
-
   int previewWidth, previewHeight;
-  calculatePreviewDimensions (availWidth, availHeight, previewWidth,
-                              previewHeight);
+  int availWidth = previewContainer_->width () - kMargin;
+  int availHeight= previewContainer_->height () - kMargin;
+  if (availWidth < 64 || availHeight < 64) {
+    previewWidth = DpiUtils::scaled (kDefaultPreviewWidth, this->screen ());
+    previewHeight= DpiUtils::scaled (kDefaultPreviewHeight, this->screen ());
+  }
+  else {
+    calculatePreviewDimensions (availWidth, availHeight, previewWidth,
+                                previewHeight);
+  }
 
   previewLabel_->setFixedSize (previewWidth, previewHeight);
   updateButtonPositions ();
@@ -203,6 +194,7 @@ QTPdfPreviewWidget::loadFromUrl (const QString& url, int dpi) {
   targetDpi_      = dpi;
   currentPage_    = 0;
   pageCount_      = 0;
+  pageAspectRatio_= kDefaultAspectRatio;
   hasError_       = false;
   errorString_.clear ();
   pdfData_.clear ();
@@ -230,11 +222,12 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
   cancelLoading ();
 
   // Store key for caching
-  currentKey_ = filePath;
-  targetDpi_  = dpi;
-  currentPage_= 0;
-  pageCount_  = 0;
-  hasError_   = false;
+  currentKey_     = filePath;
+  targetDpi_      = dpi;
+  currentPage_    = 0;
+  pageCount_      = 0;
+  pageAspectRatio_= kDefaultAspectRatio;
+  hasError_       = false;
   errorString_.clear ();
   pdfData_.clear ();
 
@@ -269,10 +262,11 @@ QTPdfPreviewWidget::loadFromData (const QByteArray& data, int dpi) {
 
   // Clear key since we can't cache data without a persistent identifier
   currentKey_.clear ();
-  targetDpi_  = dpi;
-  currentPage_= 0;
-  pageCount_  = 0;
-  hasError_   = false;
+  targetDpi_      = dpi;
+  currentPage_    = 0;
+  pageCount_      = 0;
+  pageAspectRatio_= kDefaultAspectRatio;
+  hasError_       = false;
   errorString_.clear ();
   pdfData_= data;
 
@@ -303,18 +297,14 @@ QTPdfPreviewWidget::clearPreview (const QString& text) {
   else {
     previewLabel_->setText (text);
   }
-  // 设置默认大小为最小预览尺寸，避免无内容时标签过大
-  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
-                               DpiUtils::scaled (kMinPreviewWidth));
+  updatePreviewSize ();
 }
 
 void
 QTPdfPreviewWidget::showLoading () {
   isLoading_= true;
   previewLabel_->setText (qt_translate ("Loading..."));
-  // 设置默认大小，避免文本显示过大
-  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
-                               DpiUtils::scaled (kMinPreviewWidth));
+  updatePreviewSize ();
   emit loadingStarted ();
 }
 
@@ -323,9 +313,7 @@ QTPdfPreviewWidget::showError (const QString& message) {
   isLoading_= false;
   hasError_ = true;
   previewLabel_->setText (message);
-  // 设置默认大小，避免错误文本显示过大
-  previewLabel_->setFixedSize (DpiUtils::scaled (kMinPreviewHeight),
-                               DpiUtils::scaled (kMinPreviewWidth));
+  updatePreviewSize ();
   emit error (message);
   emit loadingFinished (false);
 }
@@ -461,7 +449,8 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     // 计算宽高比
     float pageWidth = bbox.x1 - bbox.x0;
     float pageHeight= bbox.y1 - bbox.y0;
-    if (pageHeight > 0) {
+    if (pageHeight > 0 &&
+        (pageAspectRatio_ <= 0 || pageNumber == 0 || pageCount_ <= 1)) {
       pageAspectRatio_= pageWidth / pageHeight;
     }
 
@@ -469,20 +458,17 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     updatePreviewSize ();
     QSize targetSize= previewLabel_->size ();
 
-    // 根据目标尺寸计算需要的 DPI - 使用更高的DPI以保证清晰度
+    // 按目标尺寸计算渲染比例（参考通用MuPDF用法）
     float scaleX= static_cast<float> (targetSize.width ()) / pageWidth;
     float scaleY= static_cast<float> (targetSize.height ()) / pageHeight;
     float scale = qMin (scaleX, scaleY);
+    float qualityScale=
+        qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
+    float renderScale=
+        qBound (kMinRenderScale, scale * kRenderOversample * qualityScale,
+                kMaxRenderScale);
 
-    // 使用DpiUtils获取屏幕缩放比例
-    qreal screenScale= DpiUtils::scaleFactor (this->screen ());
-
-    // 先按目标尺寸估算，再做过采样渲染，最后缩放到显示尺寸以提升清晰度
-    int renderDpi= static_cast<int> (kDefaultDpi * scale * screenScale * 2.0);
-    renderDpi    = qBound (kMinRenderDpi, renderDpi, kMaxRenderDpi);
-
-    fz_matrix ctm= fz_scale (static_cast<float> (renderDpi) / kDefaultDpi,
-                             static_cast<float> (renderDpi) / kDefaultDpi);
+    fz_matrix ctm= fz_scale (renderScale, renderScale);
 
     pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
     if (!pix) {
@@ -492,11 +478,23 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     int            pixW   = fz_pixmap_width (ctx, pix);
     int            pixH   = fz_pixmap_height (ctx, pix);
     int            stride = fz_pixmap_stride (ctx, pix);
+    int            comps  = pix->n;
     unsigned char* samples= fz_pixmap_samples (ctx, pix);
 
-    // 使用QImage直接引用MuPDF的像素数据（零拷贝），然后深拷贝到独立的QImage
-    QImage tempImage (samples, pixW, pixH, stride, QImage::Format_RGB888);
-    QImage image= tempImage.copy (); // 深拷贝，确保数据独立
+    QImage image;
+    if (comps == 3) {
+      QImage tempImage (samples, pixW, pixH, stride, QImage::Format_RGB888);
+      image= tempImage.copy ();
+    }
+    else if (comps == 4) {
+      QImage tempImage (samples, pixW, pixH, stride,
+                        QImage::Format_RGBA8888_Premultiplied);
+      image= tempImage.copy ();
+    }
+    else {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Unsupported pixmap format (n=%d)",
+                comps);
+    }
 
     if (image.isNull ()) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
@@ -504,8 +502,8 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
 
     // 缩放到目标显示区域，避免尺寸溢出并保持页面完整可见
     QPixmap pixmap= QPixmap::fromImage (std::move (image));
-    pixmap= pixmap.scaled (targetSize, Qt::KeepAspectRatio,
-                           Qt::SmoothTransformation);
+    pixmap        = pixmap.scaled (targetSize, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
     setPreviewPixmap (pixmap);
     success= true;
 
@@ -616,29 +614,25 @@ QTPdfPreviewWidget::updateButtonPositions () {
   int    containerWidth = previewContainer_->width ();
   int    containerHeight= previewContainer_->height ();
 
-  // 上一页按钮 - 以按钮中心与页面中心线对齐
+  // 上一页按钮 - 固定覆盖在预览区左侧
   if (prevBtn_) {
-    int btnCenterX= labelPos.x () - kButtonOffset;
-    int btnCenterY= labelPos.y () + labelHeight / 2;
-    int btnX= btnCenterX - prevBtn_->width () / 2;
-    int btnY= btnCenterY - prevBtn_->height () / 2;
-    btnX= qBound (kButtonOffset, btnX,
-                  containerWidth - prevBtn_->width () - kButtonOffset);
-    btnY= qBound (kButtonOffset, btnY,
-                  containerHeight - prevBtn_->height () - kButtonOffset);
+    int btnX= labelPos.x () + kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
+    btnX    = qBound (kButtonOffset, btnX,
+                      containerWidth - prevBtn_->width () - kButtonOffset);
+    btnY    = qBound (kButtonOffset, btnY,
+                      containerHeight - prevBtn_->height () - kButtonOffset);
     prevBtn_->move (btnX, btnY);
   }
 
-  // 下一页按钮 - 以按钮中心与页面中心线对齐
+  // 下一页按钮 - 固定覆盖在预览区右侧
   if (nextBtn_) {
-    int btnCenterX= labelPos.x () + labelWidth + kButtonOffset;
-    int btnCenterY= labelPos.y () + labelHeight / 2;
-    int btnX= btnCenterX - nextBtn_->width () / 2;
-    int btnY= btnCenterY - nextBtn_->height () / 2;
-    btnX= qBound (kButtonOffset, btnX,
-                  containerWidth - nextBtn_->width () - kButtonOffset);
-    btnY= qBound (kButtonOffset, btnY,
-                  containerHeight - nextBtn_->height () - kButtonOffset);
+    int btnX= labelPos.x () + labelWidth - nextBtn_->width () - kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
+    btnX    = qBound (kButtonOffset, btnX,
+                      containerWidth - nextBtn_->width () - kButtonOffset);
+    btnY    = qBound (kButtonOffset, btnY,
+                      containerHeight - nextBtn_->height () - kButtonOffset);
     nextBtn_->move (btnX, btnY);
   }
 
@@ -647,8 +641,9 @@ QTPdfPreviewWidget::updateButtonPositions () {
     int indicatorX= labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
     int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
                     kPageIndicatorBottomMargin;
-    indicatorX= qBound (kButtonOffset, indicatorX,
-                        containerWidth - pageIndicator_->width () - kButtonOffset);
+    indicatorX=
+        qBound (kButtonOffset, indicatorX,
+                containerWidth - pageIndicator_->width () - kButtonOffset);
     pageIndicator_->move (indicatorX, indicatorY);
   }
 }
