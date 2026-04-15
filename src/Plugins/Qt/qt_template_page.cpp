@@ -22,13 +22,13 @@
 #include <QPointer>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QStyle>
 #include <QTemporaryFile>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <QResizeEvent>
 
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_preview_widget.hpp"
@@ -38,14 +38,13 @@
 
 namespace {
 // 预览图片尺寸（增大预览区域）
-constexpr int PREVIEW_IMAGE_WIDTH = 900;
-constexpr int PREVIEW_IMAGE_HEIGHT= 600;
+constexpr int PREVIEW_IMAGE_HEIGHT= 500;
 
 // 缩略图尺寸（使用2x尺寸以便在高分屏上显示清晰）
 constexpr int THUMBNAIL_WIDTH = 240;
 constexpr int THUMBNAIL_HEIGHT= 135;
 
-constexpr int kPageMargin          = 32;  // 页面边距
+constexpr int kPageMargin          = 16;  // 页面边距（减小边白）
 constexpr int kPageSpacing         = 24;  // 页面主布局间距
 constexpr int kCategorySpacing     = 8;   // 分类按钮间距
 constexpr int kGridSpacing         = 20;  // 模板网格间距
@@ -54,8 +53,8 @@ constexpr int kCardHeight          = 220; // 模板卡片高度
 constexpr int kCardMargin          = 12;  // 卡片内边距
 constexpr int kCardSpacing         = 8;   // 卡片内部间距
 constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
-constexpr int kPreviewDialogMinW   = 960; // 预览弹窗最小宽度
-constexpr int kPreviewDialogMinH   = 720; // 预览弹窗最小高度
+constexpr int kPreviewDialogMinW   = 800; // 预览弹窗最小宽度
+constexpr int kPreviewDialogMinH   = 600; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;  // 预览弹窗布局边距
 constexpr int kPageTitleFontPx     = 24;  // 页面标题字号
@@ -448,11 +447,10 @@ QTTemplatePage::processThumbnailQueue () {
             // Scale to target size considering DPR for crisp display
             int targetWidth = DpiUtils::scaled (THUMBNAIL_WIDTH);
             int targetHeight= DpiUtils::scaled (THUMBNAIL_HEIGHT);
-            image= image.scaled (qRound (targetWidth * dpr),
-                                 qRound (targetHeight * dpr),
-                                 Qt::KeepAspectRatio,
-                                 Qt::SmoothTransformation);
-            QPixmap pixmap= QPixmap::fromImage (image);
+            image           = image.scaled (qRound (targetWidth * dpr),
+                                            qRound (targetHeight * dpr),
+                                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
+            QPixmap pixmap  = QPixmap::fromImage (image);
             pixmap.setDevicePixelRatio (dpr);
 
             // Update UI
@@ -547,9 +545,9 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Preview area using reusable PDF preview widget
   QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
-  // 设置更大的预览尺寸
-  previewWidget->setFixedSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH),
-                               DpiUtils::scaled (PREVIEW_IMAGE_HEIGHT));
+  // 设置最小尺寸，让控件自适应内容
+  previewWidget->setMinimumHeight (
+      DpiUtils::scaled (PREVIEW_IMAGE_HEIGHT)); // 只设置高度，宽度自适应
 
   // Load preview (PDF or image)
   if (!tmpl->previewUrl.isEmpty ()) {
@@ -559,9 +557,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
     }
     else {
       // 使用QTPdfPreviewWidget加载图片预览
-      previewWidget->loadImageFromUrl (
-          tmpl->previewUrl, QSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH),
-                                   DpiUtils::scaled (PREVIEW_IMAGE_HEIGHT)));
+      previewWidget->loadImageFromUrl (tmpl->previewUrl); // 宽度自适应
     }
   }
   layout->addWidget (previewWidget, 0, Qt::AlignCenter);

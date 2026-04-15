@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_preview_widget.cpp
- * DESCRIPTION: PDF preview widget implementation using MuPDF
+ * DESCRIPTION: PDF preview widget with hover navigation
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
@@ -9,51 +9,225 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QHBoxLayout>
+#include <QHoverEvent>
 #include <QNetworkReply>
 #include <QPainter>
+#include <QPushButton>
+#include <QResizeEvent>
 #include <QVBoxLayout>
 
-#include <atomic>
 #include <mutex>
 
 #include "MuPDF/mupdf_renderer.hpp"
 #include "pdf_preview_cache.hpp"
+#include "qt_dpi_utils.hpp"
 #include <mupdf/fitz.h>
 
+// 常量定义
+namespace {
+constexpr int    kMinRenderDpi             = 200;
+constexpr int    kMaxRenderDpi             = 400;
+constexpr int    kDefaultDpi               = 72;
+constexpr int    kMargin                   = 32;
+constexpr int    kMinPreviewWidth          = 200;
+constexpr int    kMinPreviewHeight         = 150;
+constexpr double kDefaultAspectRatio       = 1.414; // A4比例
+constexpr int    kButtonOffset             = 10;
+constexpr int    kPageIndicatorBottomMargin= 10;
+} // namespace
+
+// 样式定义
+namespace {
+// 圆形按钮样式 - 使用深色确保可见
+constexpr const char* kCircleButtonStyle= "QPushButton {"
+                                          "  background-color: #2c3e50;"
+                                          "  border: none;"
+                                          "  border-radius: 20px;"
+                                          "  width: 40px;"
+                                          "  height: 40px;"
+                                          "  min-width: 40px;"
+                                          "  min-height: 40px;"
+                                          "  max-width: 40px;"
+                                          "  max-height: 40px;"
+                                          "  font-weight: bold;"
+                                          "  color: white;"
+                                          "}"
+                                          "QPushButton:hover {"
+                                          "  background-color: #34495e;"
+                                          "}"
+                                          "QPushButton:pressed {"
+                                          "  background-color: #1a252f;"
+                                          "}"
+                                          "QPushButton:disabled {"
+                                          "  background-color: #95a5a6;"
+                                          "  color: #ddd;"
+                                          "}";
+
+// 页码指示器样式
+constexpr const char* kPageIndicatorStyle=
+    "QLabel {"
+    "  color: white;"
+    "  font-size: 14px;"
+    "  background-color: rgba(0, 0, 0, 0.6);"
+    "  padding: 6px 16px;"
+    "  border-radius: 12px;"
+    "}";
+} // namespace
+
 QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
-    : QLabel (parent), networkManager_ (nullptr), currentReply_ (nullptr),
-      targetDpi_ (DEFAULT_DPI), targetPage_ (0), isLoading_ (false),
-      hasError_ (false), currentLoadType_ (LoadType::None),
-      targetSize_ (DEFAULT_WIDTH, DEFAULT_HEIGHT) {
+    : QWidget (parent), previewContainer_ (nullptr), previewLabel_ (nullptr),
+      prevBtn_ (nullptr), nextBtn_ (nullptr), pageIndicator_ (nullptr),
+      networkManager_ (new QNetworkAccessManager (this)),
+      currentReply_ (nullptr), targetDpi_ (DEFAULT_DPI), currentPage_ (0),
+      pageCount_ (0), pageAspectRatio_ (kDefaultAspectRatio),
+      isLoading_ (false), hasError_ (false), currentLoadType_ (LoadType::None) {
 
-  networkManager_= new QNetworkAccessManager (this);
-
-  // 设置标签外观
-  setFixedSize (DEFAULT_WIDTH, DEFAULT_HEIGHT);
-  setAlignment (Qt::AlignCenter);
-  setStyleSheet (
-      "background: #f5f5f5; border: 1px solid #ddd; border-radius: 8px;");
-
-  // 显示初始占位符
-  clearPreview (tr ("No Preview Available"));
+  setupUI ();
 }
 
 QTPdfPreviewWidget::~QTPdfPreviewWidget () { cancelLoading (); }
 
+namespace {
+constexpr int kButtonSize= 40;
+}
+
+QPushButton*
+QTPdfPreviewWidget::createNavButton (const QString& text,
+                                     void (QTPdfPreviewWidget::*slot) ()) {
+  QPushButton* btn= new QPushButton (text, previewContainer_);
+  btn->setStyleSheet (kCircleButtonStyle);
+  int scaledSize= DpiUtils::scaled (kButtonSize, this->screen ());
+  btn->setFixedSize (scaledSize, scaledSize);
+  btn->setCursor (Qt::PointingHandCursor);
+  btn->hide ();
+  connect (btn, &QPushButton::clicked, this, slot);
+  return btn;
+}
+
 void
-QTPdfPreviewWidget::loadFromUrl (const QString& url, int pageNumber, int dpi) {
+QTPdfPreviewWidget::setupUI () {
+  setAttribute (Qt::WA_Hover, true);
+
+  QVBoxLayout* mainLayout= new QVBoxLayout (this);
+  mainLayout->setContentsMargins (0, 0, 0, 0);
+  mainLayout->setSpacing (0);
+
+  // 预览容器（用于放置按钮和预览图）
+  previewContainer_= new QWidget (this);
+  previewContainer_->setAttribute (Qt::WA_Hover, true);
+  previewContainer_->setStyleSheet ("background: #fafafa; border-radius: 8px;");
+  QVBoxLayout* containerLayout= new QVBoxLayout (previewContainer_);
+  containerLayout->setContentsMargins (0, 0, 0, 0);
+  containerLayout->setSpacing (0);
+  containerLayout->setAlignment (Qt::AlignCenter);
+
+  // 预览标签
+  previewLabel_= new QLabel (previewContainer_);
+  previewLabel_->setAlignment (Qt::AlignCenter);
+  previewLabel_->setStyleSheet ("background: white; border: 1px solid #ddd;");
+
+  containerLayout->addWidget (previewLabel_, 0, Qt::AlignCenter);
+  mainLayout->addWidget (previewContainer_, 1, Qt::AlignCenter);
+
+  // 创建导航按钮
+  prevBtn_= createNavButton ("◀", &QTPdfPreviewWidget::goToPreviousPage);
+  nextBtn_= createNavButton ("▶", &QTPdfPreviewWidget::goToNextPage);
+
+  // 页码指示器（底部居中）
+  pageIndicator_= new QLabel ("1 / 1", previewContainer_);
+  pageIndicator_->setStyleSheet (kPageIndicatorStyle);
+  pageIndicator_->setAlignment (Qt::AlignCenter);
+  pageIndicator_->hide ();
+
+  // 安装事件过滤器以处理鼠标悬停
+  previewContainer_->installEventFilter (this);
+
+  // 显示初始占位符
+  clearPreview (tr ("No Preview"));
+}
+
+void
+QTPdfPreviewWidget::updatePageControls () {
+  pageIndicator_->setText (
+      QString ("%1 / %2").arg (currentPage_ + 1).arg (pageCount_));
+
+  prevBtn_->setEnabled (currentPage_ > 0);
+  nextBtn_->setEnabled (currentPage_ < pageCount_ - 1);
+
+  // 更新按钮位置
+  updateButtonPositions ();
+}
+
+void
+QTPdfPreviewWidget::calculatePreviewDimensions (int availWidth, int availHeight,
+                                                int& outWidth,
+                                                int& outHeight) const {
+  if (availWidth <= 0 || availHeight <= 0 || pageAspectRatio_ <= 0) {
+    outWidth = kMinPreviewWidth;
+    outHeight= kMinPreviewHeight;
+    return;
+  }
+
+  double availRatio= static_cast<double> (availWidth) / availHeight;
+
+  if (pageAspectRatio_ > availRatio) {
+    // 页面比视口更宽，以宽度为准
+    outWidth = availWidth;
+    outHeight= static_cast<int> (outWidth / pageAspectRatio_);
+  }
+  else {
+    // 页面比视口更高，以高度为准
+    outHeight= availHeight;
+    outWidth = static_cast<int> (outHeight * pageAspectRatio_);
+  }
+
+  // 确保最小尺寸
+  outWidth = qMax (outWidth, kMinPreviewWidth);
+  outHeight= qMax (outHeight, kMinPreviewHeight);
+}
+
+QSize
+QTPdfPreviewWidget::calculateOptimalSize (int availWidth,
+                                          int availHeight) const {
+  int w, h;
+  calculatePreviewDimensions (availWidth, availHeight, w, h);
+  return QSize (w, h);
+}
+
+void
+QTPdfPreviewWidget::updatePreviewSize () {
+  if (!previewContainer_) return;
+
+  int availWidth = previewContainer_->width () - kMargin;
+  int availHeight= previewContainer_->height () - kMargin;
+
+  int previewWidth, previewHeight;
+  calculatePreviewDimensions (availWidth, availHeight, previewWidth,
+                              previewHeight);
+
+  previewLabel_->setFixedSize (previewWidth, previewHeight);
+  updateButtonPositions ();
+}
+
+void
+QTPdfPreviewWidget::loadFromUrl (const QString& url, int dpi) {
   cancelLoading ();
 
   // Store key for caching
   currentKey_     = url;
   currentLoadType_= LoadType::PDF;
-  targetPage_     = pageNumber;
   targetDpi_      = dpi;
+  currentPage_    = 0;
+  pageCount_      = 0;
   hasError_       = false;
   errorString_.clear ();
+  pdfData_.clear ();
+
+  setControlsVisible (false);
 
   // Check cache first
-  QPixmap cached= PdfPreviewCache::instance ()->get (url, pageNumber, dpi);
+  QPixmap cached= PdfPreviewCache::instance ()->get (url, currentPage_, dpi);
   if (!cached.isNull ()) {
     setPreviewPixmap (cached);
     return;
@@ -69,19 +243,22 @@ QTPdfPreviewWidget::loadFromUrl (const QString& url, int pageNumber, int dpi) {
 }
 
 bool
-QTPdfPreviewWidget::loadFromFile (const QString& filePath, int pageNumber,
-                                  int dpi) {
+QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
   cancelLoading ();
 
   // Store key for caching
-  currentKey_= filePath;
-  targetPage_= pageNumber;
-  targetDpi_ = dpi;
-  hasError_  = false;
+  currentKey_ = filePath;
+  targetDpi_  = dpi;
+  currentPage_= 0;
+  pageCount_  = 0;
+  hasError_   = false;
   errorString_.clear ();
+  pdfData_.clear ();
+
+  setControlsVisible (false);
 
   // Check cache first
-  QPixmap cached= PdfPreviewCache::instance ()->get (filePath, pageNumber, dpi);
+  QPixmap cached= PdfPreviewCache::instance ()->get (filePath, currentPage_, dpi);
   if (!cached.isNull ()) {
     setPreviewPixmap (cached);
     return true;
@@ -96,25 +273,28 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int pageNumber,
     return false;
   }
 
-  QByteArray data= file.readAll ();
+  pdfData_= file.readAll ();
   file.close ();
 
-  return renderPdfPage (data, targetPage_, targetDpi_);
+  return renderCurrentPage ();
 }
 
 bool
-QTPdfPreviewWidget::loadFromData (const QByteArray& data, int pageNumber,
-                                  int dpi) {
+QTPdfPreviewWidget::loadFromData (const QByteArray& data, int dpi) {
   cancelLoading ();
 
   // Clear key since we can't cache data without a persistent identifier
   currentKey_.clear ();
-  targetPage_= pageNumber;
-  targetDpi_ = dpi;
-  hasError_  = false;
+  targetDpi_  = dpi;
+  currentPage_= 0;
+  pageCount_  = 0;
+  hasError_   = false;
   errorString_.clear ();
+  pdfData_= data;
 
-  return renderPdfPage (data, targetPage_, targetDpi_);
+  setControlsVisible (false);
+
+  return renderCurrentPage ();
 }
 
 void
@@ -132,19 +312,19 @@ QTPdfPreviewWidget::cancelLoading () {
 
 void
 QTPdfPreviewWidget::clearPreview (const QString& text) {
-  setPixmap (QPixmap ());
+  previewLabel_->setPixmap (QPixmap ());
   if (text.isEmpty ()) {
-    setText (tr ("No Preview Available"));
+    previewLabel_->setText (tr ("No Preview"));
   }
   else {
-    setText (text);
+    previewLabel_->setText (text);
   }
 }
 
 void
 QTPdfPreviewWidget::showLoading () {
   isLoading_= true;
-  setText (tr ("Loading PDF..."));
+  previewLabel_->setText (tr ("Loading..."));
   emit loadingStarted ();
 }
 
@@ -152,7 +332,7 @@ void
 QTPdfPreviewWidget::showError (const QString& message) {
   isLoading_= false;
   hasError_ = true;
-  setText (message);
+  previewLabel_->setText (message);
   emit error (message);
   emit loadingFinished (false);
 }
@@ -160,8 +340,33 @@ QTPdfPreviewWidget::showError (const QString& message) {
 void
 QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
   isLoading_= false;
-  setPixmap (pixmap);
+  // 根据pixmap的实际尺寸和设备像素比设置label大小
+  qreal dpr= pixmap.devicePixelRatio ();
+  QSize displaySize=
+      QSize (qRound (pixmap.width () / dpr), qRound (pixmap.height () / dpr));
+  previewLabel_->setFixedSize (displaySize);
+  previewLabel_->setPixmap (pixmap);
   emit loadingFinished (true);
+}
+
+void
+QTPdfPreviewWidget::goToPreviousPage () {
+  if (currentPage_ > 0) {
+    currentPage_--;
+    renderCurrentPage ();
+    updatePageControls ();
+    emit pageChanged (currentPage_);
+  }
+}
+
+void
+QTPdfPreviewWidget::goToNextPage () {
+  if (currentPage_ < pageCount_ - 1) {
+    currentPage_++;
+    renderCurrentPage ();
+    updatePageControls ();
+    emit pageChanged (currentPage_);
+  }
 }
 
 void
@@ -179,24 +384,27 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
     return;
   }
 
-  QByteArray pdfData= reply->readAll ();
+  pdfData_= reply->readAll ();
   reply->deleteLater ();
 
-  if (pdfData.isEmpty ()) {
+  if (pdfData_.isEmpty ()) {
     errorString_= tr ("Empty PDF data received");
     showError (errorString_);
     currentLoadType_= LoadType::None;
     return;
   }
 
-  renderPdfPage (pdfData, targetPage_, targetDpi_);
+  renderCurrentPage ();
   currentLoadType_= LoadType::None;
 }
 
 bool
-QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
-                                   int dpi) {
-  // 获取MuPDF上下文
+QTPdfPreviewWidget::renderCurrentPage () {
+  return renderPdfPage (pdfData_, currentPage_);
+}
+
+bool
+QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
   fz_context* ctx= mupdf_context ();
   if (!ctx) {
     qWarning () << "MuPDF context not available";
@@ -205,29 +413,15 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     return false;
   }
 
-  // 注册文档处理器（用于打开PDF文件）
-  // 注意：handlersRegistered是函数局部静态变量，线程安全
-  // 在C++11及以上版本中
-  static std::atomic<bool> handlersRegistered{false};
-  static std::mutex        handlerMutex;
-
-  if (!handlersRegistered.load (std::memory_order_acquire)) {
-    std::lock_guard<std::mutex> lock (handlerMutex);
-    if (!handlersRegistered.load (std::memory_order_relaxed)) {
-      bool success= true;
-      fz_try (ctx) { fz_register_document_handlers (ctx); }
-      fz_catch (ctx) {
-        qWarning () << "Failed to register document handlers:"
-                    << fz_caught_message (ctx);
-        success= false;
-      }
-      // 仅在注册成功时设置为true
-      // 如果失败，我们不希望阻止后续重试
-      if (success) {
-        handlersRegistered.store (true, std::memory_order_release);
-      }
+  // 使用std::call_once确保文档处理器只注册一次
+  static std::once_flag registerFlag;
+  std::call_once (registerFlag, [ctx] () {
+    fz_try (ctx) { fz_register_document_handlers (ctx); }
+    fz_catch (ctx) {
+      qWarning () << "Failed to register document handlers:"
+                  << fz_caught_message (ctx);
     }
-  }
+  });
 
   fz_document* doc    = nullptr;
   fz_pixmap*   pix    = nullptr;
@@ -236,7 +430,6 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   fz_stream*   stream = nullptr;
   bool         success= false;
 
-  // 为异常处理保护变量
   fz_var (doc);
   fz_var (pix);
   fz_var (page);
@@ -244,33 +437,29 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
   fz_var (stream);
 
   fz_try (ctx) {
-    // 从QByteArray创建缓冲区
     buf= fz_new_buffer_from_copied_data (
         ctx, reinterpret_cast<const unsigned char*> (data.constData ()),
         data.size ());
 
-    // 从缓冲区创建流
     stream= fz_open_buffer (ctx, buf);
-
-    // 从流打开PDF文档
-    doc= fz_open_document_with_stream (ctx, "pdf", stream);
+    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
 
     if (!doc) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
     }
 
-    // 检查页数
     int pageCount= fz_count_pages (ctx, doc);
     if (pageCount <= 0) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
     }
 
-    // 验证页码
+    pageCount_= pageCount;
+
     if (pageNumber < 0 || pageNumber >= pageCount) {
       pageNumber= 0;
     }
+    currentPage_= pageNumber;
 
-    // 获取页面
     page= fz_load_page (ctx, doc, pageNumber);
     if (!page) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
@@ -279,53 +468,66 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     // 获取页面边界
     fz_rect bbox= fz_bound_page (ctx, page);
 
-    // 为目标DPI计算变换矩阵
-    float     scale= static_cast<float> (dpi) / 72.0f;
-    fz_matrix ctm  = fz_scale (scale, scale);
+    // 计算宽高比
+    float pageWidth = bbox.x1 - bbox.x0;
+    float pageHeight= bbox.y1 - bbox.y0;
+    if (pageHeight > 0) {
+      pageAspectRatio_= pageWidth / pageHeight;
+    }
 
-    // 使用RGB色彩空间渲染页面
+    // 计算目标尺寸
+    updatePreviewSize ();
+    QSize targetSize= previewLabel_->size ();
+
+    // 根据目标尺寸计算需要的 DPI - 使用更高的DPI以保证清晰度
+    float scaleX= static_cast<float> (targetSize.width ()) / pageWidth;
+    float scaleY= static_cast<float> (targetSize.height ()) / pageHeight;
+    float scale = qMin (scaleX, scaleY);
+
+    // 使用DpiUtils获取屏幕缩放比例
+    qreal screenScale= DpiUtils::scaleFactor (this->screen ());
+
+    // 计算渲染DPI：基准DPI * 缩放 * 屏幕缩放
+    int renderDpi= static_cast<int> (kDefaultDpi * scale * screenScale);
+    renderDpi    = qBound (kMinRenderDpi, renderDpi, kMaxRenderDpi);
+
+    fz_matrix ctm= fz_scale (static_cast<float> (renderDpi) / kDefaultDpi,
+                             static_cast<float> (renderDpi) / kDefaultDpi);
+
     pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
     if (!pix) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to render page");
     }
 
-    // 将RGB pixmap转换为QImage
     int            pixW   = fz_pixmap_width (ctx, pix);
     int            pixH   = fz_pixmap_height (ctx, pix);
     int            stride = fz_pixmap_stride (ctx, pix);
     unsigned char* samples= fz_pixmap_samples (ctx, pix);
 
-    // 从RGB数据创建QImage
-    QImage image (pixW, pixH, QImage::Format_RGB888);
-    for (int y= 0; y < pixH; y++) {
-      unsigned char* src= samples + y * stride;
-      unsigned char* dst= image.scanLine (y);
-      memcpy (dst, src, pixW * 3);
-    }
+    // 使用QImage直接引用MuPDF的像素数据（零拷贝），然后深拷贝到独立的QImage
+    QImage tempImage (samples, pixW, pixH, stride, QImage::Format_RGB888);
+    QImage image= tempImage.copy (); // 深拷贝，确保数据独立
 
     if (image.isNull ()) {
-      fz_drop_pixmap (ctx, pix);
-      pix= nullptr;
-      fz_drop_page (ctx, page);
-      page= nullptr;
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
     }
 
-    // 缩放到控件尺寸，同时保持宽高比
-    QPixmap pixmap= QPixmap::fromImage (image);
-    pixmap= pixmap.scaled (DEFAULT_WIDTH, DEFAULT_HEIGHT, Qt::KeepAspectRatio,
-                           Qt::SmoothTransformation);
+    // 转换为QPixmap并设置设备像素比以保证清晰度
+    QPixmap pixmap= QPixmap::fromImage (std::move (image));
+    pixmap.setDevicePixelRatio (screenScale);
 
+    // 不再进行二次缩放，保持渲染的原始清晰度
+    // 让QLabel通过setFixedSize来适应显示区域
     setPreviewPixmap (pixmap);
     success= true;
 
     // Cache the rendered page for future use
     if (!currentKey_.isEmpty ()) {
-      PdfPreviewCache::instance ()->put (currentKey_, pageNumber, dpi, pixmap,
-                                         true);
+      PdfPreviewCache::instance ()->put (currentKey_, currentPage_, targetDpi_,
+                                         pixmap, true);
     }
 
-    // 清理
+    updatePageControls ();
   }
   fz_catch (ctx) {
     qWarning () << "MuPDF error:" << fz_caught_message (ctx);
@@ -335,7 +537,6 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     success= false;
   }
 
-  // 清理资源
   if (pix) fz_drop_pixmap (ctx, pix);
   if (page) fz_drop_page (ctx, page);
   if (stream) fz_drop_stream (ctx, stream);
@@ -350,18 +551,21 @@ QTPdfPreviewWidget::loadImageFromUrl (const QString& url,
                                       const QSize&   targetSize) {
   cancelLoading ();
 
-  // 设置加载类型和目标尺寸
   currentLoadType_= LoadType::Image;
   if (targetSize.isValid ()) {
     targetSize_= targetSize;
   }
   else {
-    targetSize_= QSize (DEFAULT_WIDTH, DEFAULT_HEIGHT);
+    targetSize_= QSize (800, 600);
   }
 
   hasError_= false;
   errorString_.clear ();
+  pdfData_.clear ();
+  pageCount_  = 0;
+  currentPage_= 0;
 
+  setControlsVisible (false);
   showLoading ();
 
   QNetworkRequest request (url);
@@ -396,11 +600,11 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
     return;
   }
 
-  // 加载图片数据
   QPixmap pixmap;
   if (pixmap.loadFromData (imageData)) {
-    // 缩放图片到目标尺寸，保持宽高比
-    pixmap= pixmap.scaled (targetSize_.width (), targetSize_.height (),
+    updatePreviewSize ();
+    QSize displaySize= previewLabel_->size ();
+    pixmap= pixmap.scaled (displaySize.width (), displaySize.height (),
                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
     setPreviewPixmap (pixmap);
   }
@@ -409,6 +613,90 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
     showError (errorString_);
   }
 
-  // 重置加载类型
   currentLoadType_= LoadType::None;
+}
+
+void
+QTPdfPreviewWidget::updateButtonPositions () {
+  if (!previewContainer_ || !previewLabel_) return;
+
+  // 获取预览标签在容器中的位置
+  QPoint labelPos   = previewLabel_->mapTo (previewContainer_, QPoint (0, 0));
+  int    labelWidth = previewLabel_->width ();
+  int    labelHeight= previewLabel_->height ();
+  int    containerWidth = previewContainer_->width ();
+  int    containerHeight= previewContainer_->height ();
+
+  // 上一页按钮 - 左侧居中
+  if (prevBtn_) {
+    int btnX= labelPos.x () - prevBtn_->width () - kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
+    // 确保按钮在容器内
+    btnX= qMax (kButtonOffset, btnX);
+    prevBtn_->move (btnX, btnY);
+  }
+
+  // 下一页按钮 - 右侧居中
+  if (nextBtn_) {
+    int btnX= labelPos.x () + labelWidth + kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
+    // 确保按钮在容器内
+    if (btnX + nextBtn_->width () > containerWidth - kButtonOffset) {
+      btnX= containerWidth - nextBtn_->width () - kButtonOffset;
+    }
+    nextBtn_->move (btnX, btnY);
+  }
+
+  // 页码指示器 - 底部居中
+  if (pageIndicator_ && pageCount_ > 1) {
+    int indicatorX= (containerWidth - pageIndicator_->width ()) / 2;
+    int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
+                    kPageIndicatorBottomMargin;
+    pageIndicator_->move (indicatorX, indicatorY);
+  }
+}
+
+void
+QTPdfPreviewWidget::setControlsVisible (bool visible) {
+  // 只有多页PDF时才显示控制按钮
+  bool showControls= visible && (pageCount_ > 1);
+
+  if (prevBtn_) {
+    prevBtn_->setVisible (showControls);
+  }
+  if (nextBtn_) {
+    nextBtn_->setVisible (showControls);
+  }
+  if (pageIndicator_) {
+    pageIndicator_->setVisible (showControls);
+  }
+}
+
+bool
+QTPdfPreviewWidget::eventFilter (QObject* watched, QEvent* event) {
+  if (watched != previewContainer_) {
+    return QWidget::eventFilter (watched, event);
+  }
+
+  switch (event->type ()) {
+  case QEvent::HoverEnter:
+  case QEvent::Enter:
+    setControlsVisible (true);
+    break;
+  case QEvent::HoverLeave:
+  case QEvent::Leave:
+    setControlsVisible (false);
+    break;
+  default:
+    break;
+  }
+
+  return QWidget::eventFilter (watched, event);
+}
+
+void
+QTPdfPreviewWidget::resizeEvent (QResizeEvent* event) {
+  QWidget::resizeEvent (event);
+  updatePreviewSize ();
+  updateButtonPositions ();
 }

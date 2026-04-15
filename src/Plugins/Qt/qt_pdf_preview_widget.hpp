@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_preview_widget.hpp
- * DESCRIPTION: PDF preview widget using MuPDF
+ * DESCRIPTION: PDF preview widget using MuPDF with bottom controls
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
@@ -13,19 +13,30 @@
 #include <QObject>
 #include <QPixmap>
 #include <QPointer>
-#include <QSharedPointer>
+#include <QScrollArea>
 #include <QSize>
+#include <QWidget>
+
+// Forward declarations
+class QPushButton;
+class QLabel;
+class QHBoxLayout;
+class QVBoxLayout;
+class QScrollArea;
+class QFrame;
 
 /**
- * @brief PDF预览控件 - 可重用的PDF页面渲染组件
+ * @brief PDF预览控件 - 带悬停式翻页控制
  *
  * 功能特性:
  * - 从URL或本地文件加载PDF
- * - 渲染指定页面和DPI
+ * - 悬停显示左右翻页按钮（圆形）
+ * - 底部居中页码指示器
+ * - 自适应页面宽高比
+ * - 高分DPI渲染
  * - 支持异步网络加载
- * - 错误处理与后备显示
  */
-class QTPdfPreviewWidget : public QLabel {
+class QTPdfPreviewWidget : public QWidget {
   Q_OBJECT
 
 public:
@@ -33,24 +44,24 @@ public:
   ~QTPdfPreviewWidget ();
 
   // 从URL加载PDF（异步）
-  void loadFromUrl (const QString& url, int pageNumber= 0, int dpi= 150);
+  void loadFromUrl (const QString& url, int dpi= 200);
 
   // 从本地文件加载PDF（同步）
-  bool loadFromFile (const QString& filePath, int pageNumber= 0, int dpi= 150);
+  bool loadFromFile (const QString& filePath, int dpi= 200);
 
   // 从字节数组加载PDF（同步）
-  bool loadFromData (const QByteArray& data, int pageNumber= 0, int dpi= 150);
+  bool loadFromData (const QByteArray& data, int dpi= 200);
 
-  // 从URL加载图片（异步）
+  // 从URL加载图片（异步）- 单页，无翻页
   void loadImageFromUrl (const QString& url, const QSize& targetSize= QSize ());
 
   // 设置/获取目标DPI
   void setDpi (int dpi) { targetDpi_= dpi; }
   int  dpi () const { return targetDpi_; }
 
-  // 设置/获取目标页码
-  void setPageNumber (int page) { targetPage_= page; }
-  int  pageNumber () const { return targetPage_; }
+  // 当前页码
+  int pageNumber () const { return currentPage_; }
+  int pageCount () const { return pageCount_; }
 
   // 状态
   bool    isLoading () const { return isLoading_; }
@@ -63,10 +74,15 @@ public:
   // 清除预览并显示占位符
   void clearPreview (const QString& text= QString ());
 
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override;
+  void resizeEvent (QResizeEvent* event) override;
+
 signals:
   void loadingStarted ();
   void loadingFinished (bool success);
   void error (const QString& errorMessage);
+  void pageChanged (int pageNumber);
 
 private:
   // 加载类型枚举
@@ -75,24 +91,55 @@ private:
 private slots:
   void onNetworkReplyFinished ();
   void onImageNetworkReplyFinished ();
+  void goToPreviousPage ();
+  void goToNextPage ();
 
 private:
   // MuPDF渲染
-  bool renderPdfPage (const QByteArray& data, int pageNumber, int dpi);
+  bool renderCurrentPage ();
+  bool renderPdfPage (const QByteArray& data, int pageNumber);
 
   // UI辅助函数
-  void showLoading ();
-  void showError (const QString& message);
-  void setPreviewPixmap (const QPixmap& pixmap);
+  void         setupUI ();
+  QPushButton* createNavButton (const QString& text,
+                                void (QTPdfPreviewWidget::*slot) ());
+  void         updatePageControls ();
+  void         updatePreviewSize ();
+  void         showLoading ();
+  void         showError (const QString& message);
+  void         setPreviewPixmap (const QPixmap& pixmap);
+
+  // 计算最佳预览尺寸（保持宽高比）
+  QSize calculateOptimalSize (int availWidth, int availHeight) const;
+  void  calculatePreviewDimensions (int availWidth, int availHeight,
+                                    int& outWidth, int& outHeight) const;
 
 private:
+  void updateButtonPositions ();
+  void setControlsVisible (bool visible);
+
+private:
+  // UI组件
+  QWidget*     previewContainer_; // 预览容器（包含预览图和悬停按钮）
+  QLabel*      previewLabel_;     // 预览图
+  QPushButton* prevBtn_;          // 上一页按钮（左侧）
+  QPushButton* nextBtn_;          // 下一页按钮（右侧）
+  QLabel*      pageIndicator_;    // 页码显示（底部居中）
+
   // 网络
   QNetworkAccessManager*  networkManager_;
   QPointer<QNetworkReply> currentReply_;
 
   // 设置
   int targetDpi_;
-  int targetPage_;
+
+  // PDF数据（用于翻页）
+  QByteArray pdfData_;
+  int        currentPage_;
+  int        pageCount_;
+
+  // PDF页面原始尺寸（用于计算宽高比）
+  double pageAspectRatio_;
 
   // 状态
   bool    isLoading_;
@@ -107,9 +154,7 @@ private:
   QString currentKey_;
 
   // 默认尺寸
-  static constexpr int DEFAULT_WIDTH = 550;
-  static constexpr int DEFAULT_HEIGHT= 300;
-  static constexpr int DEFAULT_DPI   = 150;
+  static constexpr int DEFAULT_DPI= 200;
 };
 
 #endif // QT_PDF_PREVIEW_WIDGET_HPP
