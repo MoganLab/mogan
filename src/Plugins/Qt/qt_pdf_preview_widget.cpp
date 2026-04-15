@@ -391,15 +391,32 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     return false;
   }
 
-  // 使用std::call_once确保文档处理器只注册一次
-  static std::once_flag registerFlag;
-  std::call_once (registerFlag, [ctx] () {
-    fz_try (ctx) { fz_register_document_handlers (ctx); }
-    fz_catch (ctx) {
-      qWarning () << "Failed to register document handlers:"
-                  << fz_caught_message (ctx);
+  // 文档处理器仅在成功后标记完成，失败可在后续渲染时重试
+  static std::mutex registerMutex;
+  static bool       handlersRegistered= false;
+  if (!handlersRegistered) {
+    QString registerError;
+    {
+      std::lock_guard<std::mutex> lock (registerMutex);
+      if (!handlersRegistered) {
+        fz_try (ctx) {
+          fz_register_document_handlers (ctx);
+          handlersRegistered= true;
+        }
+        fz_catch (ctx) {
+          registerError= QString::fromUtf8 (fz_caught_message (ctx));
+          qWarning () << "Failed to register document handlers:"
+                      << registerError;
+        }
+      }
     }
-  });
+    if (!handlersRegistered) {
+      errorString_= qt_translate ("Failed to initialize PDF handlers: %1")
+                        .arg (registerError);
+      showError (errorString_);
+      return false;
+    }
+  }
 
   fz_document* doc    = nullptr;
   fz_pixmap*   pix    = nullptr;
@@ -537,19 +554,11 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
 }
 
 void
-QTPdfPreviewWidget::loadImageFromUrl (const QString& url,
-                                      const QSize&   targetSize) {
+QTPdfPreviewWidget::loadImageFromUrl (const QString& url) {
   cancelLoading ();
 
   currentLoadType_= LoadType::Image;
-  if (targetSize.isValid ()) {
-    targetSize_= targetSize;
-  }
-  else {
-    targetSize_= QSize (800, 600);
-  }
-
-  hasError_= false;
+  hasError_       = false;
   errorString_.clear ();
   pdfData_.clear ();
   pageCount_  = 0;

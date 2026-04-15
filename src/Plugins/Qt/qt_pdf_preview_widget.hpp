@@ -53,7 +53,7 @@ public:
   bool loadFromData (const QByteArray& data, int dpi= 200);
 
   // 从URL加载图片（异步）- 单页，无翻页
-  void loadImageFromUrl (const QString& url, const QSize& targetSize= QSize ());
+  void loadImageFromUrl (const QString& url);
 
   // 设置/获取目标DPI
   void setDpi (int dpi) { targetDpi_= dpi; }
@@ -148,7 +148,6 @@ private:
 
   // 图片加载相关
   LoadType currentLoadType_;
-  QSize    targetSize_;
 
   // 缓存key（URL或文件路径）
   QString currentKey_;
