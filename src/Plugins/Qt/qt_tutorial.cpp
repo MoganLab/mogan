@@ -43,35 +43,35 @@ using nlohmann::json;
 
 namespace {
 
-constexpr int kBubbleMarginPx          = 18;
-constexpr int kBubbleSpacingPx         = 12;
-constexpr int kBubbleFooterSpacingPx   = 10;
-constexpr int kBubbleBorderRadiusPx    = 14;
-constexpr int kBubbleButtonRadiusPx    = 8;
-constexpr int kBubbleButtonPadYPx      = 8;
-constexpr int kBubbleButtonPadXPx      = 14;
-constexpr int kBubbleButtonMinWidthPx  = 72;
-constexpr int kBubbleTitleFontPx       = 20;
-constexpr int kBubbleBodyFontPx        = 16;
-constexpr int kBubbleProgressFontPx    = 13;
-constexpr int kBubbleButtonFontPx      = 12;
-constexpr int kBubbleWidthSmallPx      = 300;
-constexpr int kBubbleWidthMediumPx     = 360;
-constexpr int kBubbleWidthLargePx      = 440;
-constexpr int kBubbleMediaSmallWidthPx = 240;
-constexpr int kBubbleMediaSmallHeightPx= 144;
-constexpr int kBubbleMediaMediumWidthPx= 300;
+constexpr int kBubbleMarginPx           = 18;
+constexpr int kBubbleSpacingPx          = 12;
+constexpr int kBubbleFooterSpacingPx    = 10;
+constexpr int kBubbleBorderRadiusPx     = 14;
+constexpr int kBubbleButtonRadiusPx     = 8;
+constexpr int kBubbleButtonPadYPx       = 8;
+constexpr int kBubbleButtonPadXPx       = 14;
+constexpr int kBubbleButtonMinWidthPx   = 72;
+constexpr int kBubbleTitleFontPx        = 20;
+constexpr int kBubbleBodyFontPx         = 16;
+constexpr int kBubbleProgressFontPx     = 13;
+constexpr int kBubbleButtonFontPx       = 12;
+constexpr int kBubbleWidthSmallPx       = 300;
+constexpr int kBubbleWidthMediumPx      = 360;
+constexpr int kBubbleWidthLargePx       = 440;
+constexpr int kBubbleMediaSmallWidthPx  = 240;
+constexpr int kBubbleMediaSmallHeightPx = 144;
+constexpr int kBubbleMediaMediumWidthPx = 300;
 constexpr int kBubbleMediaMediumHeightPx= 180;
-constexpr int kBubbleMediaLargeWidthPx = 380;
-constexpr int kBubbleMediaLargeHeightPx= 228;
-constexpr int kOverlayHighlightInsetPx = 8;
-constexpr int kOverlayBubbleSpacingPx  = 18;
-constexpr int kOverlayBubbleMarginPx   = 20;
-constexpr int kHighlightRadiusPx       = 14;
-constexpr int kRegistryMainSafeMarginPx= 24;
-constexpr int kRegistryGapPx           = 8;
-constexpr int kRegistryToolbarHeightPx = 72;
-constexpr int kRegistryHorizontalPadPx = 32;
+constexpr int kBubbleMediaLargeWidthPx  = 380;
+constexpr int kBubbleMediaLargeHeightPx = 228;
+constexpr int kOverlayHighlightInsetPx  = 8;
+constexpr int kOverlayBubbleSpacingPx   = 18;
+constexpr int kOverlayBubbleMarginPx    = 20;
+constexpr int kHighlightRadiusPx        = 14;
+constexpr int kRegistryMainSafeMarginPx = 24;
+constexpr int kRegistryGapPx            = 8;
+constexpr int kRegistryToolbarHeightPx  = 72;
+constexpr int kRegistryHorizontalPadPx  = 32;
 
 QString
 tutorialBubbleStyleSheet () {
@@ -546,8 +546,8 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   footerLayout->addWidget (m_previousButton);
   footerLayout->addWidget (m_nextButton);
 
-  auto* mainLayout= new QVBoxLayout (this);
-  const int bubbleMargin = DpiUtils::scaled (kBubbleMarginPx);
+  auto*     mainLayout  = new QVBoxLayout (this);
+  const int bubbleMargin= DpiUtils::scaled (kBubbleMarginPx);
   mainLayout->setContentsMargins (bubbleMargin, bubbleMargin, bubbleMargin,
                                   bubbleMargin);
   mainLayout->setSpacing (DpiUtils::scaled (kBubbleSpacingPx));
@@ -589,8 +589,8 @@ void
 TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
   const QString mediaPath= resolveTutorialMediaPath (step.mediaPath);
   QSize         mediaSize (DpiUtils::scaled (kBubbleMediaMediumWidthPx),
-                   DpiUtils::scaled (kBubbleMediaMediumHeightPx));
-  auto* mainLayout= qobject_cast<QVBoxLayout*> (layout ());
+                           DpiUtils::scaled (kBubbleMediaMediumHeightPx));
+  auto*         mainLayout= qobject_cast<QVBoxLayout*> (layout ());
 
   if (mainLayout != nullptr) {
     const int bubbleMargin= DpiUtils::scaled (kBubbleMarginPx);
@@ -751,14 +751,13 @@ TutorialOverlay::setStep (const TutorialStepConfig& step, int index,
 void
 TutorialOverlay::setHighlightedRect (const QRect& rect, int padding) {
   const QRect previousHighlightRect= m_highlightRect;
-  const int scaledPadding= DpiUtils::scaled (padding);
-  const int highlightInset= DpiUtils::scaled (kOverlayHighlightInsetPx);
-  m_highlightRect=
-      rect.adjusted (-scaledPadding, -scaledPadding, scaledPadding,
-                     scaledPadding)
-          .intersected (
-              this->rect ().adjusted (highlightInset, highlightInset,
-                                      -highlightInset, -highlightInset));
+  const int   scaledPadding        = DpiUtils::scaled (padding);
+  const int   highlightInset= DpiUtils::scaled (kOverlayHighlightInsetPx);
+  m_highlightRect= rect.adjusted (-scaledPadding, -scaledPadding, scaledPadding,
+                                  scaledPadding)
+                       .intersected (this->rect ().adjusted (
+                           highlightInset, highlightInset, -highlightInset,
+                           -highlightInset));
   m_hasHighlight= true;
   repositionBubble (m_currentStep.placement);
   refreshExposedArea (previousHighlightRect.united (m_highlightRect));
@@ -832,8 +831,7 @@ TutorialOverlay::bubbleRectForPlacement (TutorialPlacement placement) const {
   if (!m_hasHighlight) {
     QPoint center=
         safe.center () - QPoint (size.width () / 2, size.height () / 2);
-    return clampRect (
-        QRect (center, size).translated (offsetX, offsetY));
+    return clampRect (QRect (center, size).translated (offsetX, offsetY));
   }
 
   auto candidateFor= [this, &size, spacing] (TutorialPlacement p) {
@@ -907,7 +905,7 @@ TutorialOverlay::paintEvent (QPaintEvent* event) {
 
   if (m_hasHighlight) {
     QPainterPath hole;
-    const int highlightRadius= DpiUtils::scaled (kHighlightRadiusPx);
+    const int    highlightRadius= DpiUtils::scaled (kHighlightRadiusPx);
     hole.addRoundedRect (m_highlightRect, highlightRadius, highlightRadius);
     overlayPath= overlayPath.subtracted (hole);
   }
