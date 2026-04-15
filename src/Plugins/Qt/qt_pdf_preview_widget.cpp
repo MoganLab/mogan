@@ -457,10 +457,13 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     // 计算目标尺寸
     updatePreviewSize ();
     QSize targetSize= previewLabel_->size ();
+    qreal dpr       = previewLabel_->devicePixelRatioF ();
+    int   targetPxW = qMax (1, qRound (targetSize.width () * dpr));
+    int   targetPxH = qMax (1, qRound (targetSize.height () * dpr));
 
     // 按目标尺寸计算渲染比例（参考通用MuPDF用法）
-    float scaleX= static_cast<float> (targetSize.width ()) / pageWidth;
-    float scaleY= static_cast<float> (targetSize.height ()) / pageHeight;
+    float scaleX= static_cast<float> (targetPxW) / pageWidth;
+    float scaleY= static_cast<float> (targetPxH) / pageHeight;
     float scale = qMin (scaleX, scaleY);
     float qualityScale=
         qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
@@ -502,8 +505,9 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
 
     // 缩放到目标显示区域，避免尺寸溢出并保持页面完整可见
     QPixmap pixmap= QPixmap::fromImage (std::move (image));
-    pixmap        = pixmap.scaled (targetSize, Qt::KeepAspectRatio,
+    pixmap        = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
                                    Qt::SmoothTransformation);
+    pixmap.setDevicePixelRatio (dpr);
     setPreviewPixmap (pixmap);
     success= true;
 
@@ -591,8 +595,12 @@ QTPdfPreviewWidget::onImageNetworkReplyFinished () {
   if (pixmap.loadFromData (imageData)) {
     updatePreviewSize ();
     QSize displaySize= previewLabel_->size ();
-    pixmap= pixmap.scaled (displaySize.width (), displaySize.height (),
-                           Qt::KeepAspectRatio, Qt::SmoothTransformation);
+    qreal dpr        = previewLabel_->devicePixelRatioF ();
+    int   targetPxW  = qMax (1, qRound (displaySize.width () * dpr));
+    int   targetPxH  = qMax (1, qRound (displaySize.height () * dpr));
+    pixmap           = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
+                                      Qt::SmoothTransformation);
+    pixmap.setDevicePixelRatio (dpr);
     setPreviewPixmap (pixmap);
   }
   else {
