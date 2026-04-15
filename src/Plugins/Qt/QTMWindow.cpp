@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "QTMWindow.hpp"
-#include "boot.hpp"
 #include "config.h"
 #if defined(USE_TUTORIAL)
 #include "qt_tutorial.hpp"
@@ -149,10 +148,6 @@ QTMWindow::resizeEvent (QResizeEvent* event) {
 void
 QTMWindow::showEvent (QShowEvent* event) {
   QMainWindow::showEvent (event);
-  if (install_status == 1 && !property ("startupMaximizedApplied").toBool ()) {
-    setProperty ("startupMaximizedApplied", true);
-    showMaximized ();
-  }
 #if defined(USE_TUTORIAL)
   QWK::FirstLaunchTutorialController::instance ()->maybeStartForMainWindow (
       this);
