@@ -19,6 +19,7 @@ class QNetworkAccessManager;
 class QNetworkReply;
 class QProgressDialog;
 class QPushButton;
+class QResizeEvent;
 class QScrollArea;
 class TemplateManager;
 struct TemplateMetadata;
@@ -54,6 +55,7 @@ signals:
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
   void showEvent (QShowEvent* event) override;
+  void resizeEvent (QResizeEvent* event) override;
 
 private slots:
   void onTemplatesLoaded ();
@@ -70,6 +72,7 @@ private:
   void     setupCategoryBar ();
   QWidget* createTemplateCard (const TemplateMetadataPtr& tmpl);
   void     refreshTemplateGrid (const QString& category);
+  int      calculateColumnCount () const;
   void     showTemplatePreview (const QString& templateId);
   void     downloadAndUseTemplate (const QString& templateId);
   void     loadThumbnail (QLabel* label, const QString& url);
@@ -98,6 +101,9 @@ private:
 
   // Track user-cancelled downloads to avoid showing error dialogs
   bool downloadCancelledByUser_= false;
+
+  // Responsive grid
+  int currentColumnCount_= 4;
 };
 
 #endif // QT_TEMPLATE_PAGE_HPP
