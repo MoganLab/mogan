@@ -1,0 +1,118 @@
+<TMU|<tuple|1.1.0|2026.1.1>>
+
+<style|<tuple|generic|number-europe|preview-ref|fish>>
+
+<\body>
+  FISH 语言行内代码示例：
+
+  <\fish>
+    [math.abs(-5) + list.sum(list.range(1,4))]
+
+    \;
+  </fish>
+
+  FISH 语言代码块示例：
+
+  <\fish-code>
+    ; function definition, locals, globals, numbers, strings
+
+    define derive(y_mod, p_ratio)
+
+    \ \ global bulk_mod = 0.0
+
+    \ \ local shear_mod = y_mod / (2.0 * (1.0 + p_ratio))
+
+    \ \ bulk_mod = y_mod / (3.0 * (1.0 - 2.0 * p_ratio))
+
+    \ \ io.out(string.build('bulk=', bulk_mod, ", shear=", shear_mod))
+
+    \ \ if p_ratio # 0.5 then
+
+    \ \ \ \ return math.sqrt(math.abs(bulk_mod))
+
+    \ \ else
+
+    \ \ \ \ io.out("Poisson ratio is 0.5\\n")
+
+    \ \ endif
+
+    end
+
+    \;
+
+    ; loops, containers, member access, continuation
+
+    define scan_points(points)
+
+    \ \ local total = 0.0
+
+    \ \ loop foreach local pnt points
+
+    \ \ \ \ total += pnt->x + pnt->y + pnt->z
+
+    \ \ endloop
+
+    \ \ total = total + math.random.uniform() ...
+
+    \ \ \ \ \ \ \ \ \ \ + math.random.gauss()
+
+    \ \ return total
+
+    end
+
+    \;
+
+    ; common namespaces
+
+    local cwd = system.directory.current
+
+    local files = file.all("*.fis")
+
+    local labels = list.append(list.range(1,3), string.upper('fish'))
+
+    local meta = map.add(map, 'cwd', cwd)
+
+    local ok = map.has(meta, 'cwd') and boolean(true)
+
+    local rot = matrix.identity(3)
+
+    local mem = memory.create(128)
+
+    local category = string.type("3.14e2")
+
+    local stamp = version.fish.major
+
+    \;
+
+    ; command / endcommand lightweight approximation
+
+    command
+
+    \ \ model new
+
+    \ \ program call 'startup.dat'
+
+    \ \ fish list
+
+    \ \ model save 'checkpoint'
+
+    endcommand
+
+    \;
+
+    ; splitting operators
+
+    total =:: list.range(1,10)
+
+    weights +=:: list.sequence(labels)
+
+    \;
+  </fish-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
