@@ -1,8 +1,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : fish-lang.scm
-;; DESCRIPTION : FISH Language
-;; COPYRIGHT   : (C) 2026 Mogan Developers
+;; DESCRIPTION : fish language support
+;; COPYRIGHT   : (C) 2025  veista
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE

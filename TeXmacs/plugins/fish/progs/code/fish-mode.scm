@@ -1,6 +1,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
 ;; MODULE      : fish-mode.scm
-;; DESCRIPTION : mode predicate for FISH programs
+;; DESCRIPTION : fish language mode
+;; COPYRIGHT   : (C) 2025  vesita
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE

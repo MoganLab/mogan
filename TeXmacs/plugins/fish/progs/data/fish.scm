@@ -1,7 +1,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : fish.scm
-;; DESCRIPTION : FISH format definition
+;; DESCRIPTION : prog format for fish
+;; COPYRIGHT   : (C) 2022-2025  Darcy Shen, Joris van der Hoeven
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
