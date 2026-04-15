@@ -1021,14 +1021,24 @@ QLabel#startup-tab-page-desc {
 
 /* 模板使用按钮 - Template Use Button */
 QPushButton#template-use-btn {
-  background-color: #4CAF50;
+  background-color: #2791ad;
   color: white;
   font-weight: bold;
   border: none;
 }
 
 QPushButton#template-use-btn:hover {
-  background-color: #45a049;
+  background-color: #215a6a;
+}
+
+QPushButton#template-cancel-btn {
+  background-color: #ffffff;
+  color: #000000;
+  font-weight: bold;
+}
+
+QPushButton#template-cancel-btn:hover {
+  background-color: #f5f5f5;
 }
 
 QLabel#template-preview-desc {
@@ -1114,9 +1124,6 @@ QLabel#style-card-badge {
 /****************************************************************************
 * PDF Preview Widget 样式
 ****************************************************************************/
-QWidget#pdf-preview-container {
-  background: #fafafa;
-}
 
 QPushButton#pdf-preview-nav-btn {
   border: none;

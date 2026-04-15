@@ -567,6 +567,12 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   btnLayout->addStretch ();
 
   QPushButton* cancelBtn= new QPushButton (qt_translate ("Cancel"), dialog);
+  cancelBtn->setObjectName ("template-cancel-btn");
+  DpiUtils::applyScaledFont (cancelBtn, kUseButtonFontPx);
+  cancelBtn->setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
+                                .arg (DpiUtils::scaled (kUseButtonPadYPx))
+                                .arg (DpiUtils::scaled (kUseButtonPadXPx))
+                                .arg (DpiUtils::scaled (kUseButtonRadiusPx)));
   connect (cancelBtn, &QPushButton::clicked, dialog, &QDialog::reject);
   btnLayout->addWidget (cancelBtn);
 
