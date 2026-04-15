@@ -11,7 +11,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (code fish-lang)
-  (:use (prog default-lang)))
+  (:use (prog default-lang))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parser Features
@@ -170,7 +171,8 @@
       "command" "continue" "end_loop" "end_section"
       "endcommand" "endloop" "endsection" "exit"
       "exit_loop" "exit_section" "foreach" "for"
-      "lock" "loop" "return" "section" "while")))
+      "lock" "loop" "return" "section" "while"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "fish") (== key "operator")))
@@ -184,31 +186,36 @@
     (operator_field
       "->" "=" "+=" "-=" "*=" "/=")
     (operator_openclose
-      "(" ")" "[" "]")))
+      "(" ")" "[" "]"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "fish") (== key "number")))
   `(,(string->symbol key)
     (bool_features
-      "sci_notation")))
+      "sci_notation"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "fish") (== key "string")))
   `(,(string->symbol key)
     (escape_sequences
-      "\\" "\"" "'" "b" "t" "r" "n")))
+      "\\" "\"" "'" "b" "t" "r" "n"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "fish") (== key "comment")))
   `(,(string->symbol key)
-    (inline ";")))
+    (inline ";"))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Preferences for syntax highlighting
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (notify-fish-syntax var val)
-  (syntax-read-preferences "fish"))
+  (syntax-read-preferences "fish")
+) ;define
 
 (define-preferences
   ("syntax:fish:none" "red" notify-fish-syntax)
@@ -228,4 +235,5 @@
   ("syntax:fish:operator_special" "orange" notify-fish-syntax)
   ("syntax:fish:keyword" "#309090" notify-fish-syntax)
   ("syntax:fish:keyword_conditional" "#309090" notify-fish-syntax)
-  ("syntax:fish:keyword_control" "#309090" notify-fish-syntax))
+  ("syntax:fish:keyword_control" "#309090" notify-fish-syntax)
+) ;define-preferences

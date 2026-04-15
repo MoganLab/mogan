@@ -18,25 +18,33 @@
 
 (define-format fish
   (:name "FISH source code")
-  (:suffix "fis" "FIS"))
+  (:suffix "fis" "FIS")
+) ;define-format
 
 (define (texmacs->fish x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (fish->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (fish-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
 (converter texmacs-tree fish-document
-  (:function texmacs->fish))
+  (:function texmacs->fish)
+) ;converter
 
 (converter fish-document texmacs-tree
-  (:function fish->texmacs))
+  (:function fish->texmacs)
+) ;converter
 
 (converter texmacs-tree fish-snippet
-  (:function texmacs->fish))
+  (:function texmacs->fish)
+) ;converter
 
 (converter fish-snippet texmacs-tree
-  (:function fish-snippet->texmacs))
+  (:function fish-snippet->texmacs)
+) ;converter

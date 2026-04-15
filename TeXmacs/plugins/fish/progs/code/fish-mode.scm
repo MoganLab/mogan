@@ -11,8 +11,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (code fish-mode)
-  (:use (kernel texmacs tm-modes)))
+  (:use (kernel texmacs tm-modes))
+) ;texmacs-module
 
 (texmacs-modes
   (in-fish% (== (get-env "prog-language") "fish"))
-  (in-prog-fish% #t in-prog% in-fish%))
+  (in-prog-fish% #t in-prog% in-fish%)
+) ;texmacs-modes
