@@ -165,9 +165,9 @@ QTPdfPreviewWidget::calculatePreviewDimensions (int availWidth, int availHeight,
     outWidth = static_cast<int> (outHeight * pageAspectRatio_);
   }
 
-  // 确保最小尺寸
-  outWidth = qMax (outWidth, kMinPreviewWidth);
-  outHeight= qMax (outHeight, kMinPreviewHeight);
+  // 保持在可用区域内，避免预览被强制放大
+  outWidth = qMax (1, qMin (outWidth, availWidth));
+  outHeight= qMax (1, qMin (outHeight, availHeight));
 }
 
 QSize
@@ -182,8 +182,8 @@ void
 QTPdfPreviewWidget::updatePreviewSize () {
   if (!previewContainer_) return;
 
-  int availWidth = previewContainer_->width () - kMargin;
-  int availHeight= previewContainer_->height () - kMargin;
+  int availWidth = qMax (1, previewContainer_->width () - kMargin);
+  int availHeight= qMax (1, previewContainer_->height () - kMargin);
 
   int previewWidth, previewHeight;
   calculatePreviewDimensions (availWidth, availHeight, previewWidth,
@@ -333,11 +333,7 @@ QTPdfPreviewWidget::showError (const QString& message) {
 void
 QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
   isLoading_= false;
-  // 根据pixmap的实际尺寸和设备像素比设置label大小
-  qreal dpr= pixmap.devicePixelRatio ();
-  QSize displaySize=
-      QSize (qRound (pixmap.width () / dpr), qRound (pixmap.height () / dpr));
-  previewLabel_->setFixedSize (displaySize);
+  // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免“跳缩放”
   previewLabel_->setPixmap (pixmap);
   emit loadingFinished (true);
 }
@@ -620,23 +616,29 @@ QTPdfPreviewWidget::updateButtonPositions () {
   int    containerWidth = previewContainer_->width ();
   int    containerHeight= previewContainer_->height ();
 
-  // 上一页按钮 - 左侧居中
+  // 上一页按钮 - 以按钮中心与页面中心线对齐
   if (prevBtn_) {
-    int btnX= labelPos.x () - prevBtn_->width () - kButtonOffset;
-    int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
-    // 确保按钮在容器内
-    btnX= qMax (kButtonOffset, btnX);
+    int btnCenterX= labelPos.x () - kButtonOffset;
+    int btnCenterY= labelPos.y () + labelHeight / 2;
+    int btnX= btnCenterX - prevBtn_->width () / 2;
+    int btnY= btnCenterY - prevBtn_->height () / 2;
+    btnX= qBound (kButtonOffset, btnX,
+                  containerWidth - prevBtn_->width () - kButtonOffset);
+    btnY= qBound (kButtonOffset, btnY,
+                  containerHeight - prevBtn_->height () - kButtonOffset);
     prevBtn_->move (btnX, btnY);
   }
 
-  // 下一页按钮 - 右侧居中
+  // 下一页按钮 - 以按钮中心与页面中心线对齐
   if (nextBtn_) {
-    int btnX= labelPos.x () + labelWidth + kButtonOffset;
-    int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
-    // 确保按钮在容器内
-    if (btnX + nextBtn_->width () > containerWidth - kButtonOffset) {
-      btnX= containerWidth - nextBtn_->width () - kButtonOffset;
-    }
+    int btnCenterX= labelPos.x () + labelWidth + kButtonOffset;
+    int btnCenterY= labelPos.y () + labelHeight / 2;
+    int btnX= btnCenterX - nextBtn_->width () / 2;
+    int btnY= btnCenterY - nextBtn_->height () / 2;
+    btnX= qBound (kButtonOffset, btnX,
+                  containerWidth - nextBtn_->width () - kButtonOffset);
+    btnY= qBound (kButtonOffset, btnY,
+                  containerHeight - nextBtn_->height () - kButtonOffset);
     nextBtn_->move (btnX, btnY);
   }
 
