@@ -16,7 +16,6 @@
 
 #include "string.hpp"
 
-char*  as_charp (string s);
 string get_env (string var);
 
 QString
@@ -122,5 +121,7 @@ ImageCacheUtils::hitRate (qint64 hits, qint64 misses) {
 
 QString
 ImageCacheUtils::getEnvQString (const char* varName) {
-  return QString::fromUtf8 (as_charp (get_env (varName)));
+  // Use c_string RAII wrapper to automatically free memory
+  c_string cs (get_env (varName));
+  return QString::fromUtf8 (static_cast<char*> (cs));
 }
