@@ -143,8 +143,7 @@ QTMInteractiveInputHelper::commit (int result) {
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
-      titleBarVisibleCache (false), guestNotificationBar (nullptr),
-      scmNotificationBar (nullptr), updateNotificationBar (nullptr),
+      titleBarVisibleCache (false), scmNotificationBar (nullptr),
       loginButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
       nameLabel (nullptr), accountIdLabel (nullptr),
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
@@ -351,25 +350,16 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (loginButton, &QWK::LoginButton::clicked,
                     [this] () { checkLocalTokenAndLogin (); });
 
-  // 创建通知条容器（垂直布局，放在标题栏下方）
+  // 创建 SCM 通知条容器（放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
   QVBoxLayout* notificationLayout   = new QVBoxLayout (notificationContainer);
   notificationLayout->setContentsMargins (0, 0, 0, 0);
   notificationLayout->setSpacing (0);
 
-  // 初始化版本更新提示条（在上）
-  updateNotificationBar= new QWK::UpdateNotificationBar ();
-  notificationLayout->addWidget (updateNotificationBar);
-  updateNotificationBar->hide ();
-
-  // 初始化 SCM 提示条（在中）
+  // 初始化 SCM 提示条
   scmNotificationBar= new QWK::NotificationBar ();
   notificationLayout->addWidget (scmNotificationBar);
   scmNotificationBar->hide ();
-
-  // 初始化访客提示条（在下）
-  guestNotificationBar= new QWK::GuestNotificationBar ();
-  notificationLayout->addWidget (guestNotificationBar);
 
   QObject::connect (scmNotificationBar, &QWK::NotificationBar::closeRequested,
                     [this] () {
@@ -390,48 +380,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                       if (!handled && scmNotificationBar)
                         scmNotificationBar->hide ();
                     });
-
-  // 连接提示条信号
-  QObject::connect (guestNotificationBar,
-                    &QWK::GuestNotificationBar::loginRequested,
-                    [this] () { triggerOAuth2 (); });
-  QObject::connect (guestNotificationBar,
-                    &QWK::GuestNotificationBar::closeRequested, [this] () {
-                      guestNotificationBar->hide ();
-                      // 只隐藏当前会话，不保存到设置
-                    });
-
-  // 检查是否应该显示提示条
-  // 1. 社区版不显示
-  // 2. 商业版：用户未登录时显示，用户已登录时不显示
-  if (is_community_stem ()) {
-    // 社区版：不显示提示条
-    guestNotificationBar->hide ();
-  }
-  else {
-    // 商业版：检查用户登录状态（使用和OCR功能相同的判断方法）
-    // 初始隐藏，等网络检查完成后再决定是否显示guestNotificationBar->hide ();
-    guestNotificationBar->hide ();
-    checkNetworkAvailable ();
-  }
-
-  // 连接版本更新提示条信号
-  QObject::connect (updateNotificationBar,
-                    &QWK::UpdateNotificationBar::updateNowRequested, [this] () {
-                      eval ("(use-modules (utils misc version-update))");
-                      string url= as_string (call ("get-update-download-url"));
-                      open_url (url);
-                      // 不隐藏提示条，保持显示直到用户实际更新版本
-                    });
-  QObject::connect (updateNotificationBar,
-                    &QWK::UpdateNotificationBar::snoozeRequested, [this] () {
-                      eval ("(use-modules (utils misc version-update))");
-                      call ("snooze-version-update");
-                      updateNotificationBar->hide ();
-                    });
-  QObject::connect (updateNotificationBar,
-                    &QWK::UpdateNotificationBar::closeRequested,
-                    [this] () { updateNotificationBar->hide (); });
+  if (!is_community_stem ()) checkNetworkAvailable ();
 
   // 延迟检查版本更新（启动后10秒）
   QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
@@ -595,8 +544,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   q->setObjectName ("editorCanvas");
   q->setParent (
       qwid); // q->layout()->removeWidget(q) will reset the parent to this
-  bl->addWidget (
-      notificationContainer); // 添加通知容器（包含版本更新和访客提示条）
+  bl->addWidget (notificationContainer); // 添加 SCM 通知条容器
   bl->addWidget (q);
 
   mw->setCentralWidget (cw);
@@ -654,9 +602,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     bl->insertWidget (2, modeToolBar);
     bl->insertWidget (3, rulerWidget);
     bl->insertWidget (4, focusToolBar);
-    bl->insertWidget (5, guestNotificationBar); // 访客提示条在焦点工具栏下方
-    bl->insertWidget (6, userToolBar);
-    bl->insertWidget (7, r2);
+    bl->insertWidget (5, userToolBar);
+    bl->insertWidget (6, r2);
 
     // mw->setContentsMargins (-2, -2, -2, -2);  // Why this?
     bar->setContentsMargins (0, 1, 0, 1);
@@ -774,7 +721,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                         });
 
       if (account->isLoggedIn ()) {
-        if (guestNotificationBar) guestNotificationBar->hide ();
         refreshMembershipInfoInBackground ();
       }
     }
@@ -2124,28 +2070,6 @@ qt_tm_widget_rep::syncScmUpdateNotification (bool            updateAvailable,
   eval ("(use-modules (texmacs menus notificationbar))");
   call ("notification-bar-set-update-state", object (updateAvailable),
         from_qstring (remoteVersion));
-
-  bool showLegacyBar= false;
-  if (updateAvailable && !remoteVersion.isEmpty ()) {
-    eval ("(use-modules (utils misc version-update))");
-    showLegacyBar=
-        !as_bool (call ("version-update-ignored?", from_qstring (remoteVersion)));
-    m_remoteVersion= remoteVersion;
-  }
-  else {
-    m_remoteVersion.clear ();
-  }
-
-  if (updateNotificationBar) {
-    if (showLegacyBar) {
-      updateNotificationBar->setVersionInfo (XMACS_VERSION, remoteVersion);
-      updateNotificationBar->show ();
-    }
-    else {
-      updateNotificationBar->hide ();
-    }
-  }
-
   refreshScmNotificationBar ();
 }
 
@@ -2153,12 +2077,6 @@ void
 qt_tm_widget_rep::syncScmGuestNotification (bool visible) {
   eval ("(use-modules (texmacs menus notificationbar))");
   call ("notification-bar-set-guest-visible", object (visible));
-
-  if (guestNotificationBar) {
-    if (visible) guestNotificationBar->show ();
-    else guestNotificationBar->hide ();
-  }
-
   refreshScmNotificationBar ();
 }
 

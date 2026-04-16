@@ -1368,8 +1368,7 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
   registry.registerRectProvider (
       "assistantEntry", [] (QMainWindow* hostWindow) {
         const QStringList ids= {"sideTools", "auxiliaryWidget",
-                                "guestNotificationBar", "login-button",
-                                "statusBar"};
+                                "login-button", "statusBar"};
         for (const QString& id : ids) {
           QWidget* widget= (id == "statusBar")
                                ? hostWindow->statusBar ()
@@ -1385,8 +1384,8 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
 
   const QStringList widgetIds= {
       "windowbar",    "mainToolBar",    "modeToolBar", "focusToolBar",
-      "menuToolBar",  "editorCanvas",   "sideTools",   "guestNotificationBar",
-      "login-button", "auxiliaryWidget"};
+      "menuToolBar",  "editorCanvas",   "sideTools",   "login-button",
+      "auxiliaryWidget"};
   for (const QString& id : widgetIds) {
     registry.registerWidget (
         id, mainWindow->findChild<QWidget*> (id, Qt::FindChildrenRecursively));

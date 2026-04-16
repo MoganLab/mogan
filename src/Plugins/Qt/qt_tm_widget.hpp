@@ -30,11 +30,9 @@
 #include <QStackedWidget>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
-#include "../QWindowKit/guestnotificationbar.hpp"
 #include "../QWindowKit/loginbutton.hpp"
 #include "../QWindowKit/logindialog.hpp"
 #include "../QWindowKit/notificationbar.hpp"
-#include "../QWindowKit/updatenotificationbar.hpp"
 #include "../QWindowKit/windowbar.hpp"
 #include "../QWindowKit/windowbutton.hpp"
 #include <QWKWidgets/widgetwindowagent.h>
@@ -82,9 +80,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QTMTabPageContainer*        tabPageContainer;
   QTMAuxiliaryWidget*         auxiliaryWidget;
   QWK::WidgetWindowAgent*     windowAgent;
-  QWK::GuestNotificationBar*  guestNotificationBar;  // 访客提示条
   QWK::NotificationBar*       scmNotificationBar;    // SCM 提示条
-  QWK::UpdateNotificationBar* updateNotificationBar; // 版本更新提示条
   QWK::LoginButton*           loginButton;
   QWK::LoginDialog*           m_loginDialog;
   QLabel*                     avatarLabel;
@@ -94,7 +90,6 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QLabel*                     membershipTitleLabel;
   QPushButton*                loginActionButton;
   QPushButton*                logoutButton;
-  QString                     m_remoteVersion; // 远程版本号
 
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;
