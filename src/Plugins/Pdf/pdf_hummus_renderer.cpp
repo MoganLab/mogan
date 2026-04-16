@@ -1338,7 +1338,7 @@ pdf_is_invisible_internal_char (int ch) {
   else internal= "<#" * lolly::data::to_Hex (ch) * ">";
   string_u8 utf8= strict_cork_to_utf8 (internal);
   if (N (utf8) == 0) return false;
-  int pos= 0;
+  int          pos = 0;
   unsigned int code= lolly::data::decode_from_utf8 (utf8, pos);
   return code == 0x200B || code == 0x2060;
 }
