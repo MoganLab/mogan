@@ -624,6 +624,14 @@ void
 QTPdfPreviewWidget::updateButtonPositions () {
   if (!previewContainer_ || !previewLabel_) return;
 
+  auto clampPosition= [] (int containerSize, int itemSize, int preferredPos) {
+    int maxPos= containerSize - itemSize - kButtonOffset;
+    if (maxPos < kButtonOffset) {
+      return qMax (0, (containerSize - itemSize) / 2);
+    }
+    return qBound (kButtonOffset, preferredPos, maxPos);
+  };
+
   // 获取预览标签在容器中的位置
   QPoint labelPos   = previewLabel_->mapTo (previewContainer_, QPoint (0, 0));
   int    labelWidth = previewLabel_->width ();
@@ -635,10 +643,8 @@ QTPdfPreviewWidget::updateButtonPositions () {
   if (prevBtn_) {
     int btnX= labelPos.x () + kButtonOffset;
     int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
-    btnX    = qBound (kButtonOffset, btnX,
-                      containerWidth - prevBtn_->width () - kButtonOffset);
-    btnY    = qBound (kButtonOffset, btnY,
-                      containerHeight - prevBtn_->height () - kButtonOffset);
+    btnX    = clampPosition (containerWidth, prevBtn_->width (), btnX);
+    btnY    = clampPosition (containerHeight, prevBtn_->height (), btnY);
     prevBtn_->move (btnX, btnY);
   }
 
@@ -646,10 +652,8 @@ QTPdfPreviewWidget::updateButtonPositions () {
   if (nextBtn_) {
     int btnX= labelPos.x () + labelWidth - nextBtn_->width () - kButtonOffset;
     int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
-    btnX    = qBound (kButtonOffset, btnX,
-                      containerWidth - nextBtn_->width () - kButtonOffset);
-    btnY    = qBound (kButtonOffset, btnY,
-                      containerHeight - nextBtn_->height () - kButtonOffset);
+    btnX    = clampPosition (containerWidth, nextBtn_->width (), btnX);
+    btnY    = clampPosition (containerHeight, nextBtn_->height (), btnY);
     nextBtn_->move (btnX, btnY);
   }
 
@@ -658,9 +662,10 @@ QTPdfPreviewWidget::updateButtonPositions () {
     int indicatorX= labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
     int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
                     kPageIndicatorBottomMargin;
-    indicatorX=
-        qBound (kButtonOffset, indicatorX,
-                containerWidth - pageIndicator_->width () - kButtonOffset);
+    indicatorX= clampPosition (containerWidth, pageIndicator_->width (),
+                               indicatorX);
+    indicatorY= clampPosition (containerHeight, pageIndicator_->height (),
+                               indicatorY);
     pageIndicator_->move (indicatorX, indicatorY);
   }
 }
