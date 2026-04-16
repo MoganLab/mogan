@@ -630,6 +630,8 @@ view_set_new_window (url view_u) {
   }
   detach_view (view_u);
   attach_view (win_u, view_u);
+  set_current_view (view_u);
+  win->set_window_url (view->buf->buf->name);
   view->win_tabpage= win;
   hack_refresh_window_editors (view_win_tabpage_u, win_u, false);
 }

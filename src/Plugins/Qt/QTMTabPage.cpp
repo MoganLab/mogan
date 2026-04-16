@@ -228,6 +228,11 @@ QTMTabPage::resizeEvent (QResizeEvent* e) {
 void
 QTMTabPage::mousePressEvent (QMouseEvent* e) {
   if (is_startup_tab_view (m_viewUrl)) {
+    // 如果启动页标签已经是当前视图，不处理点击事件，避免取消选中状态
+    url currentView= get_current_view_safe ();
+    if (!is_none (currentView) && currentView == m_viewUrl) {
+      return;
+    }
     return QToolButton::mousePressEvent (e);
   }
   if (e->button () == Qt::LeftButton) {
