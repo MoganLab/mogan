@@ -1,0 +1,19 @@
+<TMU|<tuple|1.1.0|2026.1.8>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <math|u<rsub|sp>​=0>
+
+  \;
+
+  <math|u<rsub|sp>=0>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|preamble|false>
+  </collection>
+</initial>
