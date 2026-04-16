@@ -14,6 +14,7 @@
 
 #include <QWidget>
 
+class QKeyEvent;
 class QLabel;
 class QVBoxLayout;
 class QPushButton;
@@ -42,6 +43,10 @@ private slots:
   // Application operation
   void on_app_quit ();
   void on_file_open ();
+
+protected:
+  void keyPressEvent (QKeyEvent* event) override;
+  void keyReleaseEvent (QKeyEvent* event) override;
 
 private:
   // 界面构建辅助函数

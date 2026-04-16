@@ -889,6 +889,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
       startupContentWidget= new QTStartupTabWidget (centralwidget ());
     }
     show_widget_in_layout (startupContentWidget, layout);
+    startupContentWidget->setFocus (Qt::OtherFocusReason);
   }
   else {
     // Show normal editor view

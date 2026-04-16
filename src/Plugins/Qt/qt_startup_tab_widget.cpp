@@ -18,6 +18,7 @@
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
+#include <QKeyEvent>
 #include <QLabel>
 #include <QPushButton>
 #include <QStackedWidget>
@@ -43,6 +44,14 @@ constexpr int kQuitBorderRadius= 4;   // Quit 按钮圆角
 constexpr int kQuitPadY        = 8;   // Quit 按钮纵向内边距
 constexpr int kQuitPadX        = 12;  // Quit 按钮横向内边距
 constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
+
+QString
+escape_for_scheme_string (const QString& text) {
+  QString escaped= text;
+  escaped.replace ("\\", "\\\\");
+  escaped.replace ("\"", "\\\"");
+  return escaped;
+}
 } // namespace
 
 /**
@@ -62,7 +71,7 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
       templatePage_ (nullptr) {
 
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
-  setFocusPolicy (Qt::NoFocus);
+  setFocusPolicy (Qt::StrongFocus);
 
   // 主布局：水平排列，左侧导航栏 + 右侧内容区
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -337,4 +346,28 @@ QTStartupTabWidget::on_app_quit () {
 void
 QTStartupTabWidget::on_file_open () {
   eval_scheme ("(open-document)");
+}
+
+void
+QTStartupTabWidget::keyPressEvent (QKeyEvent* event) {
+  string key= from_key_press_event (event);
+  if (is_empty (key)) return QWidget::keyPressEvent (event);
+
+  QString cmd= QString ("(key-press \"%1\")")
+                   .arg (escape_for_scheme_string (to_qstring (key)));
+  QByteArray utf8= cmd.toUtf8 ();
+  eval_scheme (utf8.constData ());
+  event->accept ();
+}
+
+void
+QTStartupTabWidget::keyReleaseEvent (QKeyEvent* event) {
+  string key= from_key_release_event (event);
+  if (is_empty (key)) return QWidget::keyReleaseEvent (event);
+
+  QString cmd= QString ("(key-press \"%1\")")
+                   .arg (escape_for_scheme_string (to_qstring (key)));
+  QByteArray utf8= cmd.toUtf8 ();
+  eval_scheme (utf8.constData ());
+  event->accept ();
 }
