@@ -17,6 +17,7 @@
 #include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_link.hpp"
+#include "tm_sys_utils.hpp"
 #include "web_files.hpp"
 
 using namespace moebius;
@@ -300,7 +301,8 @@ ensure_window (tree geom) {
     url name= "tmfs://startup-tab";
     if (is_nil (concrete_buffer (name))) create_buffer (name, tree (DOCUMENT));
     // 先设置标题，再创建 view，确保标签页显示正确的标题
-    set_title_buffer (name, "Mogan STEM");
+    string title= is_community_stem () ? "Mogan STEM" : "Liii STEM";
+    set_title_buffer (name, title);
     url win= new_window (true, geom, true);
     window_set_view (win, get_passive_view (name), true);
     return win;
