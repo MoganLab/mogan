@@ -40,11 +40,11 @@
       "offset-x": 500,
       "offset-y": 0,
       "media-path": ":/tutorial/test.gif",
-      "bottom-text": "<b>系统已经为您打开了一个新的空白文档，并将一段网页内容复制到了剪贴板。</b>请在编辑区中使用 <b>Ctrl+Shift+V</b>（Windows / Linux）或 <b>Command+Shift+V</b>（macOS）进行粘贴，体验魔法粘贴对网页内容结构的自动识别与导入。完成本步操作后，才可以进入下一步。",
+      "bottom-text": "<b>系统已经为您打开了一个新的空白文档，并将一段网页内容复制到了剪贴板。</b>请在编辑区中使用 <b>Ctrl+V</b>（Windows / Linux）或 <b>Command+V</b>（macOS）进行粘贴。完成本步操作后，才可以进入下一步。",
       "target-id": "editorArea",
       "placement": "top",
       "highlight-padding": 12,
-      "require-action": "magic-paste",
+      "require-action": "paste",
       "on-enter": "(tutorial-prepare-magic-paste-demo)",
       "skip-if-missing": true
     },

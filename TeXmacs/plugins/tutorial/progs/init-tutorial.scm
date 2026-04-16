@@ -27,15 +27,18 @@
 
 (tm-define (tutorial-prepare-magic-paste-demo)
   (let* ((html-path (tutorial-magic-paste-demo-path))
-         (html      (utf8->cork (string-load html-path)))
+         (html      (string-load html-path))
          (old-export (clipboard-get-export)))
     (if (not tutorial-magic-paste-demo-opened?)
         (begin
           (new-document)
           (set! tutorial-magic-paste-demo-opened? #t)))
-    (clipboard-set-export "verbatim")
-    (clipboard-set "primary" html)
-    (clipboard-set-export old-export)))
+    (if (defined? 'qt-clipboard-set-html)
+        (qt-clipboard-set-html html)
+        (begin
+          (clipboard-set-export "verbatim")
+          (clipboard-set "primary" html)
+          (clipboard-set-export old-export)))))
 
 (tm-define (tutorial-prepare-ocr-demo)
   (if (not tutorial-ocr-demo-opened?)

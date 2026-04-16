@@ -1520,3 +1520,17 @@ qt_clipboard_text () {
   buf= mimeData->text ().toUtf8 ();
   return string (buf.constData (), buf.size ());
 }
+
+void
+qt_clipboard_set_html (string html) {
+  QCoreApplication::processEvents ();
+  QClipboard* clipboard= QApplication::clipboard ();
+  if (clipboard == nullptr) return;
+
+  auto* mimeData= new QMimeData;
+  c_string      htmlC (html);
+  const QString htmlText= QString::fromUtf8 ((char*) htmlC, N (html));
+  mimeData->setHtml (htmlText);
+  mimeData->setText (htmlText);
+  clipboard->setMimeData (mimeData, QClipboard::Clipboard);
+}
