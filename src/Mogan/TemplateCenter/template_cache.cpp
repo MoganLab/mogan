@@ -319,18 +319,30 @@ TemplateCache::loadCategoriesCache () {
     return categories;
   }
 
-  QJsonObject root       = doc.object ();
-  QJsonArray  categoriesArray= root.value ("categories").toArray ();
+  QJsonObject root= doc.object ();
+
+  // Check cache expiration (24 hours)
+  QString   lastUpdatedStr= root.value ("lastUpdated").toString ();
+  QDateTime lastUpdated   = QDateTime::fromString (lastUpdatedStr, Qt::ISODate);
+  if (lastUpdated.isValid ()) {
+    qint64 hoursSinceUpdate=
+        lastUpdated.secsTo (QDateTime::currentDateTime ()) / 3600;
+    if (hoursSinceUpdate >= CATEGORY_CACHE_EXPIRY_HOURS) {
+      return categories; // Return empty to trigger refresh
+    }
+  }
+
+  QJsonArray categoriesArray= root.value ("categories").toArray ();
 
   for (const auto& catValue : categoriesArray) {
     QJsonObject catObj= catValue.toObject ();
 
     TemplateCategory category;
-    category.id          = catObj.value ("id").toString ();
-    category.name        = catObj.value ("name").toString ();
-    category.description = catObj.value ("description").toString ();
-    category.icon        = catObj.value ("icon").toString ();
-    category.order       = catObj.value ("order").toInt ();
+    category.id         = catObj.value ("id").toString ();
+    category.name       = catObj.value ("name").toString ();
+    category.description= catObj.value ("description").toString ();
+    category.icon       = catObj.value ("icon").toString ();
+    category.order      = catObj.value ("order").toInt ();
 
     if (!category.id.isEmpty () && !category.name.isEmpty ()) {
       categories.append (category);

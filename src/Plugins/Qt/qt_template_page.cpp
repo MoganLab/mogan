@@ -402,7 +402,8 @@ QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
 
   QPixmap cached= ThumbnailCache::instance ()->get (url, targetSize);
   if (!cached.isNull ()) {
-    // Use cached thumbnail
+    // Use cached thumbnail, ensure correct DPR for current display
+    cached.setDevicePixelRatio (label->devicePixelRatioF ());
     label->setPixmap (cached);
     label->setProperty ("thumbnailLoaded", true);
     applyThumbnailFrameStyle (label, true);

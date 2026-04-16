@@ -108,6 +108,8 @@ private:
 
   // Cache configuration
   static constexpr int CACHE_EXPIRY_DAYS= 7;
+  static constexpr int CATEGORY_CACHE_EXPIRY_HOURS=
+      24; // Categories refresh every 24 hours
 };
 
 #endif // TEMPLATE_CACHE_HPP
