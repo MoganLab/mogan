@@ -10,10 +10,12 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QMutex>
 #include <QThread>
 
 // Singleton instance
 static PdfPreviewCache* g_instance= nullptr;
+static QMutex           s_instanceMutex;
 
 PdfPreviewCache::PdfPreviewCache (QObject* parent)
     : QObject (parent), memoryCache_ (DEFAULT_MEMORY_COST_MB * 1024 * 1024),
@@ -27,6 +29,7 @@ PdfPreviewCache::~PdfPreviewCache () {
 
 PdfPreviewCache*
 PdfPreviewCache::instance () {
+  QMutexLocker locker (&s_instanceMutex);
   if (!g_instance) {
     g_instance= new PdfPreviewCache ();
   }

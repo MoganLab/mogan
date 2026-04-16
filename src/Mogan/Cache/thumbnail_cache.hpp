@@ -88,8 +88,8 @@ private:
 private:
   // Memory cache: key -> ImageCacheEntry
   // Max cost = 50MB (adjustable)
-  mutable QCache<QString, ImageCacheEntry> memoryCache_;
-  mutable QMutex                           mutex_;
+  QCache<QString, ImageCacheEntry> memoryCache_;
+  mutable QMutex                   mutex_;
 
   // Statistics
   mutable qint64 memoryHits_;

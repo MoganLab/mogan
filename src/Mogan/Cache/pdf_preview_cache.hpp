@@ -82,8 +82,8 @@ private:
 
 private:
   // Memory cache
-  mutable QCache<QString, ImageCacheEntry> memoryCache_;
-  mutable QMutex                           mutex_;
+  QCache<QString, ImageCacheEntry> memoryCache_;
+  mutable QMutex                   mutex_;
 
   // Statistics
   mutable qint64 hits_;

@@ -10,11 +10,13 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QMutex>
 #include <QStandardPaths>
 #include <QThread>
 
 // Singleton instance
 static ThumbnailCache* g_instance= nullptr;
+static QMutex          s_instanceMutex;
 
 ThumbnailCache::ThumbnailCache (QObject* parent)
     : QObject (parent), memoryCache_ (MAX_MEMORY_COST_MB * 1024 * 1024),
@@ -28,6 +30,7 @@ ThumbnailCache::~ThumbnailCache () {
 
 ThumbnailCache*
 ThumbnailCache::instance () {
+  QMutexLocker locker (&s_instanceMutex);
   if (!g_instance) {
     g_instance= new ThumbnailCache ();
   }
