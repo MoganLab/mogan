@@ -38,7 +38,8 @@ public:
   /**
    * @brief Get thumbnail from cache
    * @param url Image URL (used as cache key)
-   * @param targetSize Target size for scaling (cached separately for different sizes)
+   * @param targetSize Target size for scaling (cached separately for different
+   * sizes)
    * @return Thumbnail pixmap, or null if not cached
    */
   QPixmap get (const QString& url, const QSize& targetSize);
@@ -85,10 +86,10 @@ private:
   void    saveToDisk (const QString& key, const QPixmap& pixmap);
 
 private:
-  // Memory cache: key -> CacheEntry
+  // Memory cache: key -> ImageCacheEntry
   // Max cost = 50MB (adjustable)
-  mutable QCache<QString, CacheEntry> memoryCache_;
-  mutable QMutex                      mutex_;
+  mutable QCache<QString, ImageCacheEntry> memoryCache_;
+  mutable QMutex                           mutex_;
 
   // Statistics
   mutable qint64 memoryHits_;
@@ -96,9 +97,9 @@ private:
   mutable qint64 misses_;
 
   // Configuration
-  static constexpr int  MAX_MEMORY_COST_MB = 50;
-  static constexpr int  DISK_CACHE_DAYS    = 30;
-  static constexpr char CACHE_SUBDIR[]     = "thumbnails";
+  static constexpr int  MAX_MEMORY_COST_MB= 50;
+  static constexpr int  DISK_CACHE_DAYS   = 30;
+  static constexpr char CACHE_SUBDIR[]    = "thumbnails";
 };
 
 #endif // THUMBNAIL_CACHE_HPP

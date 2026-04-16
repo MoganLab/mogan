@@ -10,18 +10,14 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QThread>
 
 // Singleton instance
 static PdfPreviewCache* g_instance= nullptr;
 
 PdfPreviewCache::PdfPreviewCache (QObject* parent)
     : QObject (parent), memoryCache_ (DEFAULT_MEMORY_COST_MB * 1024 * 1024),
-      hits_ (0), misses_ (0) {
-  // Set cost function for memory cache
-  memoryCache_.setCostFunction ([](const QString&, CacheEntry* entry) {
-    return entry ? entry->cost : 0;
-  });
-}
+      hits_ (0), misses_ (0) {}
 
 PdfPreviewCache::~PdfPreviewCache () {
   if (g_instance == this) {
@@ -44,7 +40,7 @@ PdfPreviewCache::get (const QString& url, int pageNumber, int dpi) {
   QMutexLocker locker (&mutex_);
 
   // Check memory cache first
-  CacheEntry* entry= memoryCache_.object (key);
+  ImageCacheEntry* entry= memoryCache_.object (key);
   if (entry) {
     hits_++;
     return entry->pixmap;
@@ -57,7 +53,7 @@ PdfPreviewCache::get (const QString& url, int pageNumber, int dpi) {
     QPixmap pixmap (path);
     if (!pixmap.isNull ()) {
       qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-      memoryCache_.insert (key, new CacheEntry (pixmap, key, cost), cost);
+      memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
       hits_++;
       return pixmap;
     }
@@ -78,7 +74,7 @@ PdfPreviewCache::put (const QString& url, int pageNumber, int dpi,
 
   // Store in memory cache
   qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-  memoryCache_.insert (key, new CacheEntry (pixmap, key, cost), cost);
+  memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
 
   // Optionally save to disk
   if (persistToDisk) {

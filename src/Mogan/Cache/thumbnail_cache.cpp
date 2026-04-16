@@ -11,18 +11,14 @@
 #include <QDir>
 #include <QFile>
 #include <QStandardPaths>
+#include <QThread>
 
 // Singleton instance
 static ThumbnailCache* g_instance= nullptr;
 
 ThumbnailCache::ThumbnailCache (QObject* parent)
     : QObject (parent), memoryCache_ (MAX_MEMORY_COST_MB * 1024 * 1024),
-      memoryHits_ (0), diskHits_ (0), misses_ (0) {
-  // Set cost function for memory cache
-  memoryCache_.setCostFunction ([](const QString&, CacheEntry* entry) {
-    return entry ? entry->cost : 0;
-  });
-}
+      memoryHits_ (0), diskHits_ (0), misses_ (0) {}
 
 ThumbnailCache::~ThumbnailCache () {
   if (g_instance == this) {
@@ -45,7 +41,7 @@ ThumbnailCache::get (const QString& url, const QSize& targetSize) {
   QMutexLocker locker (&mutex_);
 
   // Check memory cache first
-  CacheEntry* entry= memoryCache_.object (key);
+  ImageCacheEntry* entry= memoryCache_.object (key);
   if (entry) {
     memoryHits_++;
     return entry->pixmap;
@@ -59,7 +55,7 @@ ThumbnailCache::get (const QString& url, const QSize& targetSize) {
     if (!pixmap.isNull ()) {
       // Store in memory cache for future access
       qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-      memoryCache_.insert (key, new CacheEntry (pixmap, key, cost), cost);
+      memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
       diskHits_++;
       return pixmap;
     }
@@ -80,7 +76,7 @@ ThumbnailCache::put (const QString& url, const QSize& targetSize,
 
   // Store in memory cache
   qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-  memoryCache_.insert (key, new CacheEntry (pixmap, key, cost), cost);
+  memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
 
   // Save to disk asynchronously (don't block)
   Qt::ConnectionType connType= QThread::currentThread () == this->thread ()
@@ -122,7 +118,7 @@ ThumbnailCache::preload (const QString& url, const QSize& targetSize) {
     QPixmap pixmap (path);
     if (!pixmap.isNull ()) {
       qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-      memoryCache_.insert (key, new CacheEntry (pixmap, key, cost), cost);
+      memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
     }
   }
 }
@@ -161,7 +157,7 @@ ThumbnailCache::diskCacheSize () const {
 
   qint64 total= 0;
   for (const QFileInfo& info : cacheDir.entryInfoList (QDir::Files)) {
-    total += info.size ();
+    total+= info.size ();
   }
   return total;
 }

@@ -14,13 +14,17 @@
 #include <QFileInfo>
 #include <QStandardPaths>
 
-#include "tm_sys_utils.hpp"
+#include "string.hpp"
+
+char*  as_charp (string s);
+string get_env (string var);
 
 QString
 ImageCacheUtils::urlToFilename (const QString& url) {
   // Use MD5 hash for consistent, safe filename
-  QByteArray hash= QCryptographicHash::hash (url.toUtf8 (), QCryptographicHash::Md5);
-  QString    filename= hash.toHex ();
+  QByteArray hash=
+      QCryptographicHash::hash (url.toUtf8 (), QCryptographicHash::Md5);
+  QString filename= hash.toHex ();
   return filename;
 }
 
@@ -28,7 +32,7 @@ QString
 ImageCacheUtils::makeKey (const QString& url, const QList<QString>& params) {
   QString key= url;
   for (const QString& param : params) {
-    key += "|" + param;
+    key+= "|" + param;
   }
   return key;
 }
@@ -36,7 +40,7 @@ ImageCacheUtils::makeKey (const QString& url, const QList<QString>& params) {
 QString
 ImageCacheUtils::cacheSubdir (const QString& subdirName) {
   // Use TEXMACS_HOME_PATH for consistency
-  QString baseDir= QString::fromStdString (get_env ("TEXMACS_HOME_PATH"));
+  QString baseDir= getEnvQString ("TEXMACS_HOME_PATH");
   if (baseDir.isEmpty ()) {
     // Fallback to standard cache location
     baseDir= QStandardPaths::writableLocation (QStandardPaths::CacheLocation);
@@ -97,13 +101,13 @@ ImageCacheUtils::cleanupCacheDir (const QString& cacheDir, int maxAgeDays,
 
     qint64 totalSize= 0;
     for (const QFileInfo& info : files) {
-      totalSize += info.size ();
+      totalSize+= info.size ();
     }
 
     // Remove oldest files until under limit
     while (totalSize > maxSizeBytes && !files.isEmpty ()) {
       QFileInfo oldest= files.takeFirst ();
-      totalSize -= oldest.size ();
+      totalSize-= oldest.size ();
       QFile::remove (oldest.filePath ());
     }
   }
@@ -114,4 +118,9 @@ ImageCacheUtils::hitRate (qint64 hits, qint64 misses) {
   qint64 total= hits + misses;
   if (total == 0) return 0.0;
   return static_cast<double> (hits) / total;
+}
+
+QString
+ImageCacheUtils::getEnvQString (const char* varName) {
+  return QString::fromUtf8 (as_charp (get_env (varName)));
 }

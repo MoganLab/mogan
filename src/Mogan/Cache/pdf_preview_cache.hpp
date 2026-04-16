@@ -82,17 +82,17 @@ private:
 
 private:
   // Memory cache
-  mutable QCache<QString, CacheEntry> memoryCache_;
-  mutable QMutex                      mutex_;
+  mutable QCache<QString, ImageCacheEntry> memoryCache_;
+  mutable QMutex                           mutex_;
 
   // Statistics
   mutable qint64 hits_;
   mutable qint64 misses_;
 
   // Configuration
-  static constexpr int  DEFAULT_MEMORY_COST_MB = 100; // 100MB default
-  static constexpr int  DISK_CACHE_DAYS        = 7;   // Shorter than thumbnails
-  static constexpr char CACHE_SUBDIR[]         = "pdf_previews";
+  static constexpr int  DEFAULT_MEMORY_COST_MB= 100; // 100MB default
+  static constexpr int  DISK_CACHE_DAYS       = 7;   // Shorter than thumbnails
+  static constexpr char CACHE_SUBDIR[]        = "pdf_previews";
 };
 
 #endif // PDF_PREVIEW_CACHE_HPP

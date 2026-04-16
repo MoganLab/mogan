@@ -74,14 +74,14 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int pageNumber,
   cancelLoading ();
 
   // Store key for caching
-  currentKey_ = filePath;
-  targetPage_ = pageNumber;
-  targetDpi_  = dpi;
-  hasError_   = false;
+  currentKey_= filePath;
+  targetPage_= pageNumber;
+  targetDpi_ = dpi;
+  hasError_  = false;
   errorString_.clear ();
 
   // Check cache first
-  QPixmap cached = PdfPreviewCache::instance ()->get (filePath, pageNumber, dpi);
+  QPixmap cached= PdfPreviewCache::instance ()->get (filePath, pageNumber, dpi);
   if (!cached.isNull ()) {
     setPreviewPixmap (cached);
     return true;
@@ -89,14 +89,14 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int pageNumber,
 
   QFile file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    errorString_ = tr ("Cannot open file: %1").arg (file.errorString ());
-    hasError_    = true;
+    errorString_= tr ("Cannot open file: %1").arg (file.errorString ());
+    hasError_   = true;
     showError (errorString_);
     emit loadingFinished (false);
     return false;
   }
 
-  QByteArray data = file.readAll ();
+  QByteArray data= file.readAll ();
   file.close ();
 
   return renderPdfPage (data, targetPage_, targetDpi_);
@@ -109,9 +109,9 @@ QTPdfPreviewWidget::loadFromData (const QByteArray& data, int pageNumber,
 
   // Clear key since we can't cache data without a persistent identifier
   currentKey_.clear ();
-  targetPage_ = pageNumber;
-  targetDpi_  = dpi;
-  hasError_   = false;
+  targetPage_= pageNumber;
+  targetDpi_ = dpi;
+  hasError_  = false;
   errorString_.clear ();
 
   return renderPdfPage (data, targetPage_, targetDpi_);
@@ -322,7 +322,7 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
     // Cache the rendered page for future use
     if (!currentKey_.isEmpty ()) {
       PdfPreviewCache::instance ()->put (currentKey_, pageNumber, dpi, pixmap,
-                                          true);
+                                         true);
     }
 
     // 清理
