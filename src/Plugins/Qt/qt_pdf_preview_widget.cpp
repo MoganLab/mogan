@@ -234,7 +234,8 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
   setControlsVisible (false);
 
   // Check cache first
-  QPixmap cached= PdfPreviewCache::instance ()->get (filePath, currentPage_, dpi);
+  QPixmap cached=
+      PdfPreviewCache::instance ()->get (filePath, currentPage_, dpi);
   if (!cached.isNull ()) {
     setPreviewPixmap (cached);
     return true;
