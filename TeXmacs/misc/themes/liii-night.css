@@ -1033,6 +1033,13 @@ QWidget#startup-tab-content {
   background-color: #5d5d5d;
 }
 
+QWidget#centralWidget QWidget#startup-tab-content QCheckBox,
+QWidget#centralWidget QWidget#startup-tab-content QRadioButton {
+  background-color: #6a6a6a;
+  border: 1px solid #8a8a8a;
+  border-radius: 2px;
+}
+
 /* 页面标题 */
 QLabel#startup-tab-page-title {
   font-weight: bold;
