@@ -78,7 +78,9 @@ TemplateManager::initialize () {
 
   // Load local templates first (offline fallback)
   loadLocalTemplates ();
-  loadLocalCategories ();
+
+  // Try to load categories from cache first, fallback to Scheme file
+  loadCachedCategories ();
 
   // Load cached metadata if available
   QHash<QString, TemplateMetadataPtr> cachedMetadata=
@@ -106,7 +108,30 @@ TemplateManager::loadLocalTemplates () {
 }
 
 void
-TemplateManager::loadLocalCategories () {
+TemplateManager::loadCachedCategories () {
+  // Try to load categories from cache first
+  QList<TemplateCategory> cachedCategories= cache_->loadCategoriesCache ();
+
+  if (!cachedCategories.isEmpty ()) {
+    // Use cached categories
+    categories_= cachedCategories;
+  }
+  else {
+    // Fallback to Scheme file
+    categories_= loadLocalCategoriesFromScheme ();
+  }
+
+  // Build category map
+  categoryMap_.clear ();
+  for (const auto& cat : categories_) {
+    categoryMap_[cat.id]= cat;
+  }
+
+  emit categoriesLoaded ();
+}
+
+QList<TemplateCategory>
+TemplateManager::loadLocalCategoriesFromScheme () {
   QList<TemplateCategory> categories;
 
   // Load categories from Scheme file
@@ -115,7 +140,12 @@ TemplateManager::loadLocalCategories () {
     categories= loadCategoriesFromScheme (as_string (categoriesFile));
   }
 
-  categories_= categories;
+  return categories;
+}
+
+void
+TemplateManager::loadLocalCategories () {
+  categories_= loadLocalCategoriesFromScheme ();
   categoryMap_.clear ();
   for (const auto& cat : categories_) {
     categoryMap_[cat.id]= cat;
@@ -370,6 +400,8 @@ TemplateManager::onRemoteMetadataLoaded (
     for (const auto& cat : categories_) {
       categoryMap_[cat.id]= cat;
     }
+    // Save categories to cache for offline use
+    cache_->saveCategoriesCache (categories_);
     emit categoriesLoaded ();
   }
 

@@ -109,7 +109,9 @@ private:
   // Load local templates and categories
   void                    loadLocalTemplates ();
   void                    loadLocalCategories ();
+  void                    loadCachedCategories ();
   QList<TemplateCategory> loadCategoriesFromScheme (const string& filePath);
+  QList<TemplateCategory> loadLocalCategoriesFromScheme ();
 
   // Merge remote metadata with local cache
   void

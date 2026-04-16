@@ -293,6 +293,91 @@ TemplateCache::metadataCachePath () const {
 }
 
 QString
+TemplateCache::categoriesCachePath () const {
+  return QDir (cacheDirectory ()).filePath ("categories.json");
+}
+
+QList<TemplateCategory>
+TemplateCache::loadCategoriesCache () {
+  QList<TemplateCategory> categories;
+
+  QString cachePath= categoriesCachePath ();
+  if (!QFile::exists (cachePath)) {
+    return categories;
+  }
+
+  QFile file (cachePath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    qWarning () << "Failed to open categories cache:" << cachePath;
+    return categories;
+  }
+
+  QByteArray    data= file.readAll ();
+  QJsonDocument doc = QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    qWarning () << "Invalid categories cache format";
+    return categories;
+  }
+
+  QJsonObject root       = doc.object ();
+  QJsonArray  categoriesArray= root.value ("categories").toArray ();
+
+  for (const auto& catValue : categoriesArray) {
+    QJsonObject catObj= catValue.toObject ();
+
+    TemplateCategory category;
+    category.id          = catObj.value ("id").toString ();
+    category.name        = catObj.value ("name").toString ();
+    category.description = catObj.value ("description").toString ();
+    category.icon        = catObj.value ("icon").toString ();
+    category.order       = catObj.value ("order").toInt ();
+
+    if (!category.id.isEmpty () && !category.name.isEmpty ()) {
+      categories.append (category);
+    }
+  }
+
+  // Sort by order
+  std::sort (categories.begin (), categories.end (),
+             [] (const TemplateCategory& a, const TemplateCategory& b) {
+               return a.order < b.order;
+             });
+
+  return categories;
+}
+
+void
+TemplateCache::saveCategoriesCache (const QList<TemplateCategory>& categories) {
+  QJsonObject root;
+  root.insert ("version", "1.0");
+  root.insert ("lastUpdated",
+               QDateTime::currentDateTime ().toString (Qt::ISODate));
+
+  QJsonArray categoriesArray;
+  for (const auto& cat : categories) {
+    QJsonObject catObj;
+    catObj.insert ("id", cat.id);
+    catObj.insert ("name", cat.name);
+    catObj.insert ("description", cat.description);
+    catObj.insert ("icon", cat.icon);
+    catObj.insert ("order", cat.order);
+    categoriesArray.append (catObj);
+  }
+  root.insert ("categories", categoriesArray);
+
+  QJsonDocument doc (root);
+
+  QString cachePath= categoriesCachePath ();
+  QFile   file (cachePath);
+  if (!file.open (QIODevice::WriteOnly)) {
+    qWarning () << "Failed to write categories cache:" << cachePath;
+    return;
+  }
+
+  file.write (doc.toJson (QJsonDocument::Compact));
+}
+
+QString
 TemplateCache::templatesCacheDir () const {
   return QDir (cacheDirectory ()).filePath ("templates");
 }

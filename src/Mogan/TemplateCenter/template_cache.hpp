@@ -57,6 +57,10 @@ public:
   QHash<QString, TemplateMetadataPtr> loadMetadataCache ();
   void saveMetadataCache (const QHash<QString, TemplateMetadataPtr>& metadata);
 
+  // Category cache operations
+  QList<TemplateCategory> loadCategoriesCache ();
+  void saveCategoriesCache (const QList<TemplateCategory>& categories);
+
   // Template file operations
   bool              isTemplateCached (const QString& templateId) const;
   QString           cachedTemplatePath (const QString& templateId) const;
@@ -84,6 +88,7 @@ signals:
 private:
   // Cache file paths
   QString metadataCachePath () const;
+  QString categoriesCachePath () const;
   QString templatesCacheDir () const;
   QString cacheIndexPath () const;
 
