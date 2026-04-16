@@ -1332,7 +1332,7 @@ requires_hack_notdef_for_tex_font (string fontname) {
 }
 
 static bool
-pdf_is_invisible_internal_char (int ch) {
+pdf_is_invisible_format_codepoint (int ch) {
   string internal;
   if (ch < 256) internal << (char) ch;
   else internal= "<#" * lolly::data::to_Hex (ch) * ">";
@@ -1340,7 +1340,7 @@ pdf_is_invisible_internal_char (int ch) {
   if (N (utf8) == 0) return false;
   int          pos = 0;
   unsigned int code= lolly::data::decode_from_utf8 (utf8, pos);
-  return code == 0x200B || code == 0x2060;
+  return code == 0x2060;
 }
 
 void
@@ -1348,7 +1348,7 @@ pdf_hummus_renderer_rep::draw (int ch, font_glyphs fn, SI x, SI y) {
   // debug_convert << "draw \"" << (char)ch << "\" " << ch << " "
   //		<< fn->res_name << "\n";
   // emoji cache for this renderer instance
-  if (pdf_is_invisible_internal_char (ch)) return;
+  if (pdf_is_invisible_format_codepoint (ch)) return;
   static hashmap<index_type, picture> emoji_cache;
   if (is_emoji_character (ch)) {
     if (draw_emoji (ch, fn, x, y)) {
