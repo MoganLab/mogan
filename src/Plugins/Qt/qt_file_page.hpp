@@ -24,6 +24,9 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QButtonGroup;
+class QTimer;
+class QShowEvent;
+class QHideEvent;
 
 /**
  * @brief 文档样式信息
@@ -87,6 +90,10 @@ public:
   void refreshRecentDocs ();
   void addRecentDoc (const QString& path);
 
+protected:
+  void showEvent (QShowEvent* event) override;
+  void hideEvent (QHideEvent* event) override;
+
 private:
   void onRecentDocClicked (QListWidgetItem* item);
   void onRecentDocContextMenu (const QPoint& pos);
@@ -109,6 +116,7 @@ private:
   // 最近文档相关
   QList<RecentDoc> recentDocs_;
   QListWidget*     recentList_= nullptr;
+  QTimer*          recentRefreshTimer_= nullptr;
 };
 
 #endif // QT_FILE_PAGE_HPP

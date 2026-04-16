@@ -12,6 +12,7 @@
 (texmacs-module (startup-tab startup-tab-file)
   (:use (texmacs texmacs tm-server))
   (:use (texmacs texmacs tm-files))
+  (:use (texmacs menus file-menu))
   (:use (kernel texmacs tm-dialogue))
   (:use (utils library cursor)))
 
@@ -44,8 +45,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (startup-tab-get-recent-docs)
-  ;; Get list of recent document paths from global recent-file state
-  (learned-interactive 'recent-buffer))
+  ;; Get recent document paths with the same filtering and ordering
+  ;; as File -> Recent used
+  (let* ((raw (string->number (get-preference "startup-tab:max-recent")))
+         (nr (if (number? raw) raw 10))
+         (nr (max 1 nr)))
+    (map url->system (recent-file-list nr))))
 
 (tm-define (startup-tab-add-recent-doc path)
   ;; Add or refresh a document in global recent-file state
