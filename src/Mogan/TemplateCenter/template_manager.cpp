@@ -485,9 +485,13 @@ TemplateManager::mergeMetadata (
 
 QString
 TemplateManager::localTemplatesDir () const {
-  QString dataDir=
-      QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
-  return QDir (dataDir).filePath ("templates");
+  // Use TEXMACS_HOME_PATH for consistency with other caches
+  QString dataDir= QString::fromStdString (get_env ("TEXMACS_HOME_PATH"));
+  if (dataDir.isEmpty ()) {
+    // Fallback to AppDataLocation if TEXMACS_HOME_PATH is not set
+    dataDir= QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
+  }
+  return QDir (dataDir).filePath ("system/templates");
 }
 
 QString

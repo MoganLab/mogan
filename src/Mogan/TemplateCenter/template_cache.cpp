@@ -19,6 +19,8 @@
 #include <QJsonObject>
 #include <QStandardPaths>
 
+#include "tm_sys_utils.hpp"
+
 TemplateCache::TemplateCache (QObject* parent)
     : QObject (parent), initialized_ (false) {}
 
@@ -275,9 +277,13 @@ TemplateCache::setLastMetadataUpdate (const QDateTime& time) {
 
 QString
 TemplateCache::cacheDirectory () const {
-  QString dataDir=
-      QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
-  return QDir (dataDir).filePath ("template_cache");
+  // Use TEXMACS_HOME_PATH for consistency with other caches
+  QString dataDir= QString::fromStdString (get_env ("TEXMACS_HOME_PATH"));
+  if (dataDir.isEmpty ()) {
+    // Fallback to AppDataLocation if TEXMACS_HOME_PATH is not set
+    dataDir= QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
+  }
+  return QDir (dataDir).filePath ("system/template_cache");
 }
 
 QString

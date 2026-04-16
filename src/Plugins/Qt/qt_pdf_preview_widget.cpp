@@ -17,6 +17,7 @@
 #include <mutex>
 
 #include "MuPDF/mupdf_renderer.hpp"
+#include "pdf_preview_cache.hpp"
 #include <mupdf/fitz.h>
 
 QTPdfPreviewWidget::QTPdfPreviewWidget (QWidget* parent)
@@ -43,12 +44,20 @@ void
 QTPdfPreviewWidget::loadFromUrl (const QString& url, int pageNumber, int dpi) {
   cancelLoading ();
 
-  // 设置PDF加载类型
+  // Store key for caching
+  currentKey_     = url;
   currentLoadType_= LoadType::PDF;
   targetPage_     = pageNumber;
   targetDpi_      = dpi;
   hasError_       = false;
   errorString_.clear ();
+
+  // Check cache first
+  QPixmap cached= PdfPreviewCache::instance ()->get (url, pageNumber, dpi);
+  if (!cached.isNull ()) {
+    setPreviewPixmap (cached);
+    return;
+  }
 
   showLoading ();
 
@@ -64,21 +73,30 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int pageNumber,
                                   int dpi) {
   cancelLoading ();
 
-  targetPage_= pageNumber;
-  targetDpi_ = dpi;
-  hasError_  = false;
+  // Store key for caching
+  currentKey_ = filePath;
+  targetPage_ = pageNumber;
+  targetDpi_  = dpi;
+  hasError_   = false;
   errorString_.clear ();
+
+  // Check cache first
+  QPixmap cached = PdfPreviewCache::instance ()->get (filePath, pageNumber, dpi);
+  if (!cached.isNull ()) {
+    setPreviewPixmap (cached);
+    return true;
+  }
 
   QFile file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    errorString_= tr ("Cannot open file: %1").arg (file.errorString ());
-    hasError_   = true;
+    errorString_ = tr ("Cannot open file: %1").arg (file.errorString ());
+    hasError_    = true;
     showError (errorString_);
     emit loadingFinished (false);
     return false;
   }
 
-  QByteArray data= file.readAll ();
+  QByteArray data = file.readAll ();
   file.close ();
 
   return renderPdfPage (data, targetPage_, targetDpi_);
@@ -89,9 +107,11 @@ QTPdfPreviewWidget::loadFromData (const QByteArray& data, int pageNumber,
                                   int dpi) {
   cancelLoading ();
 
-  targetPage_= pageNumber;
-  targetDpi_ = dpi;
-  hasError_  = false;
+  // Clear key since we can't cache data without a persistent identifier
+  currentKey_.clear ();
+  targetPage_ = pageNumber;
+  targetDpi_  = dpi;
+  hasError_   = false;
   errorString_.clear ();
 
   return renderPdfPage (data, targetPage_, targetDpi_);
@@ -107,6 +127,7 @@ QTPdfPreviewWidget::cancelLoading () {
   }
   isLoading_      = false;
   currentLoadType_= LoadType::None;
+  currentKey_.clear ();
 }
 
 void
@@ -297,6 +318,12 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber,
 
     setPreviewPixmap (pixmap);
     success= true;
+
+    // Cache the rendered page for future use
+    if (!currentKey_.isEmpty ()) {
+      PdfPreviewCache::instance ()->put (currentKey_, pageNumber, dpi, pixmap,
+                                          true);
+    }
 
     // 清理
   }

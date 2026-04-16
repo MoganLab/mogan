@@ -33,6 +33,7 @@
 #include "qt_pdf_preview_widget.hpp"
 #include "qt_utilities.hpp"
 #include "template_manager.hpp"
+#include "thumbnail_cache.hpp"
 
 namespace {
 // 预览图片尺寸
@@ -372,7 +373,20 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
 
 void
 QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
-  // Add to queue and process
+  // First check if thumbnail is already cached
+  QSize targetSize (DpiUtils::scaled (THUMBNAIL_WIDTH),
+                    DpiUtils::scaled (THUMBNAIL_HEIGHT));
+
+  QPixmap cached= ThumbnailCache::instance ()->get (url, targetSize);
+  if (!cached.isNull ()) {
+    // Use cached thumbnail
+    label->setPixmap (cached);
+    label->setProperty ("thumbnailLoaded", true);
+    applyThumbnailFrameStyle (label, true);
+    return;
+  }
+
+  // Add to queue for network download
   thumbnailQueue_.enqueue ({label, url});
   processThumbnailQueue ();
 }
@@ -405,14 +419,22 @@ QTTemplatePage::processThumbnailQueue () {
           QByteArray data= reply->readAll ();
           QImage     image;
           if (image.loadFromData (data)) {
-            image= image.scaled (DpiUtils::scaled (THUMBNAIL_WIDTH),
-                                 DpiUtils::scaled (THUMBNAIL_HEIGHT),
+            // Scale to target size
+            QSize targetSize (DpiUtils::scaled (THUMBNAIL_WIDTH),
+                              DpiUtils::scaled (THUMBNAIL_HEIGHT));
+            image= image.scaled (targetSize.width (), targetSize.height (),
                                  Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            req.label->setPixmap (QPixmap::fromImage (image));
+            QPixmap pixmap= QPixmap::fromImage (image);
+
+            // Update UI
+            req.label->setPixmap (pixmap);
             req.label->setProperty ("thumbnailLoaded", true);
             applyThumbnailFrameStyle (req.label, true);
             req.label->style ()->unpolish (req.label);
             req.label->style ()->polish (req.label);
+
+            // Store in cache for future use
+            ThumbnailCache::instance ()->put (req.url, targetSize, pixmap);
           }
           else {
             req.label->setText (qt_translate ("Preview"));

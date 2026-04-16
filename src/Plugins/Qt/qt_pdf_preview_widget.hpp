@@ -103,6 +103,9 @@ private:
   LoadType currentLoadType_;
   QSize    targetSize_;
 
+  // 缓存key（URL或文件路径）
+  QString currentKey_;
+
   // 默认尺寸
   static constexpr int DEFAULT_WIDTH = 550;
   static constexpr int DEFAULT_HEIGHT= 300;
