@@ -1336,11 +1336,11 @@ pdf_is_invisible_format_codepoint (int ch) {
   string internal;
   if (ch < 256) internal << (char) ch;
   else internal= "<#" * lolly::data::to_Hex (ch) * ">";
-  string_u8 utf8= strict_cork_to_utf8 (internal);
+  string_u8 utf8= herk_to_utf8 (internal);
   if (N (utf8) == 0) return false;
   int          pos = 0;
   unsigned int code= lolly::data::decode_from_utf8 (utf8, pos);
-  return code == 0x2060;
+  return code == 0x200B;
 }
 
 void
