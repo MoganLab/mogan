@@ -1527,7 +1527,7 @@ qt_clipboard_set_html (string html) {
   QClipboard* clipboard= QApplication::clipboard ();
   if (clipboard == nullptr) return;
 
-  auto* mimeData= new QMimeData;
+  auto*         mimeData= new QMimeData;
   c_string      htmlC (html);
   const QString htmlText= QString::fromUtf8 ((char*) htmlC, N (html));
   mimeData->setHtml (htmlText);
