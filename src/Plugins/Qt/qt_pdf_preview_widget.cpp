@@ -662,10 +662,10 @@ QTPdfPreviewWidget::updateButtonPositions () {
     int indicatorX= labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
     int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
                     kPageIndicatorBottomMargin;
-    indicatorX= clampPosition (containerWidth, pageIndicator_->width (),
-                               indicatorX);
-    indicatorY= clampPosition (containerHeight, pageIndicator_->height (),
-                               indicatorY);
+    indicatorX=
+        clampPosition (containerWidth, pageIndicator_->width (), indicatorX);
+    indicatorY=
+        clampPosition (containerHeight, pageIndicator_->height (), indicatorY);
     pageIndicator_->move (indicatorX, indicatorY);
   }
 }
