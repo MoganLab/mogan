@@ -1351,14 +1351,15 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
     QRect centralRect= mapRectToWindow (centralWidget, hostWindow);
     if (!centralRect.isValid ()) return QRect ();
 
-    QWidget* guestBar= hostWindow->findChild<QWidget*> (
-        "guestNotificationBar", Qt::FindChildrenRecursively);
-    if (guestBar != nullptr && !guestBar->isHidden () &&
-        guestBar->size ().isValid ()) {
-      QRect guestRect= mapRectToWindow (guestBar, hostWindow);
+    QWidget* notificationBar= hostWindow->findChild<QWidget*> (
+        "notificationBar", Qt::FindChildrenRecursively);
+    if (notificationBar != nullptr && !notificationBar->isHidden () &&
+        notificationBar->size ().isValid ()) {
+      QRect notificationRect= mapRectToWindow (notificationBar, hostWindow);
       centralRect.setTop (
           qMin (centralRect.bottom (),
-                guestRect.bottom () + DpiUtils::scaled (kRegistryGapPx)));
+                notificationRect.bottom () +
+                    DpiUtils::scaled (kRegistryGapPx)));
     }
 
     const int gap= DpiUtils::scaled (kRegistryGapPx);
