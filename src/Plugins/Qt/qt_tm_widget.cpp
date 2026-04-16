@@ -361,25 +361,21 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   notificationLayout->addWidget (scmNotificationBar);
   scmNotificationBar->hide ();
 
-  QObject::connect (scmNotificationBar, &QWK::NotificationBar::closeRequested,
-                    [this] () {
-                      eval ("(use-modules (texmacs menus notificationbar))");
-                      bool handled= false;
+  QObject::connect (
+      scmNotificationBar, &QWK::NotificationBar::closeRequested, [this] () {
+        eval ("(use-modules (texmacs menus notificationbar))");
+        bool handled= false;
 
-                      if (m_currentScmNotificationItem ==
-                          QStringLiteral ("membership")) {
-                        call ("notification-bar-snooze-membership-notice");
-                        call ("update-menus");
-                        handled= true;
-                      }
+        if (m_currentScmNotificationItem == QStringLiteral ("membership")) {
+          call ("notification-bar-snooze-membership-notice");
+          call ("update-menus");
+          handled= true;
+        }
 
-                      if (!handled)
-                        handled=
-                            as_bool (call ("notification-bar-handle-close"));
+        if (!handled) handled= as_bool (call ("notification-bar-handle-close"));
 
-                      if (!handled && scmNotificationBar)
-                        scmNotificationBar->hide ();
-                    });
+        if (!handled && scmNotificationBar) scmNotificationBar->hide ();
+      });
   if (!is_community_stem ()) checkNetworkAvailable ();
 
   // 延迟检查版本更新（启动后10秒）
@@ -2065,7 +2061,7 @@ qt_tm_widget_rep::refreshScmNotificationBar () {
 }
 
 void
-qt_tm_widget_rep::syncScmUpdateNotification (bool            updateAvailable,
+qt_tm_widget_rep::syncScmUpdateNotification (bool           updateAvailable,
                                              const QString& remoteVersion) {
   eval ("(use-modules (texmacs menus notificationbar))");
   call ("notification-bar-set-update-state", object (updateAvailable),
@@ -2085,13 +2081,12 @@ qt_tm_widget_rep::syncScmMembershipNotification (
     bool hasData, const QString& memberType, const QString& periodLabel,
     const QString& periodLabelColor, const QString& productType) {
   eval ("(use-modules (texmacs menus notificationbar))");
-  string command=
-      "(notification-bar-set-membership-state " *
-      string (hasData ? "#t" : "#f") * " " *
-      scm_quote (from_qstring (memberType)) * " " *
-      scm_quote (from_qstring (periodLabel)) * " " *
-      scm_quote (from_qstring (periodLabelColor)) * " " *
-      scm_quote (from_qstring (productType)) * ")";
+  string command= "(notification-bar-set-membership-state " *
+                  string (hasData ? "#t" : "#f") * " " *
+                  scm_quote (from_qstring (memberType)) * " " *
+                  scm_quote (from_qstring (periodLabel)) * " " *
+                  scm_quote (from_qstring (periodLabelColor)) * " " *
+                  scm_quote (from_qstring (productType)) * ")";
   eval (command);
   refreshScmNotificationBar ();
 }

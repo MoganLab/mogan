@@ -1357,9 +1357,8 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
         notificationBar->size ().isValid ()) {
       QRect notificationRect= mapRectToWindow (notificationBar, hostWindow);
       centralRect.setTop (
-          qMin (centralRect.bottom (),
-                notificationRect.bottom () +
-                    DpiUtils::scaled (kRegistryGapPx)));
+          qMin (centralRect.bottom (), notificationRect.bottom () +
+                                           DpiUtils::scaled (kRegistryGapPx)));
     }
 
     const int gap= DpiUtils::scaled (kRegistryGapPx);
@@ -1368,8 +1367,8 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
 
   registry.registerRectProvider (
       "assistantEntry", [] (QMainWindow* hostWindow) {
-        const QStringList ids= {"sideTools", "auxiliaryWidget",
-                                "login-button", "statusBar"};
+        const QStringList ids= {"sideTools", "auxiliaryWidget", "login-button",
+                                "statusBar"};
         for (const QString& id : ids) {
           QWidget* widget= (id == "statusBar")
                                ? hostWindow->statusBar ()
@@ -1384,9 +1383,9 @@ FirstLaunchTutorialController::buildRegistry (QMainWindow* mainWindow) const {
       });
 
   const QStringList widgetIds= {
-      "windowbar",    "mainToolBar",    "modeToolBar", "focusToolBar",
-      "menuToolBar",  "editorCanvas",   "sideTools",   "login-button",
-      "auxiliaryWidget"};
+      "windowbar",    "mainToolBar",  "modeToolBar",
+      "focusToolBar", "menuToolBar",  "editorCanvas",
+      "sideTools",    "login-button", "auxiliaryWidget"};
   for (const QString& id : widgetIds) {
     registry.registerWidget (
         id, mainWindow->findChild<QWidget*> (id, Qt::FindChildrenRecursively));

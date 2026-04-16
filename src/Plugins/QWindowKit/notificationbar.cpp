@@ -34,8 +34,7 @@ NotificationBar::setupUI () {
   m_layout->addStretch (1);
 
   m_contentHost= new QWidget (this);
-  m_contentHost->setSizePolicy (QSizePolicy::Preferred,
-                                QSizePolicy::Preferred);
+  m_contentHost->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Preferred);
   m_contentLayout= new QHBoxLayout (m_contentHost);
   m_contentLayout->setContentsMargins (0, 0, 0, 0);
   m_contentLayout->setSpacing (0);
