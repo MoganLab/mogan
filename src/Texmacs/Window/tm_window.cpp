@@ -461,6 +461,15 @@ tm_window_rep::menu_icons (int which, string menu) {
 }
 
 void
+tm_window_rep::notification_bar (string menu) {
+  eval ("(lazy-initialize-force)");
+  widget w;
+  if (get_menu_widget (5, menu, w)) {
+    set_notification_bar (wid, w);
+  }
+}
+
+void
 tm_window_rep::side_tools (int which, string tools) {
   eval ("(lazy-initialize-force)");
   widget w;

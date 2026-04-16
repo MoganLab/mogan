@@ -136,6 +136,12 @@ tm_frame_rep::menu_icons (int which, string menu) {
 }
 
 void
+tm_frame_rep::notification_bar (string menu) {
+  if (!has_current_view ()) return;
+  concrete_window ()->notification_bar (menu);
+}
+
+void
 tm_frame_rep::side_tools (int which, string tools) {
   if ((which < 0) || (which > 1) || (!has_current_view ())) return;
   concrete_window ()->side_tools (which, tools);

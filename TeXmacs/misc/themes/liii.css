@@ -956,6 +956,68 @@ QWidget#auxiliary_container {
 }
 
 /****************************************************************************
+* SCM 通知条样式
+****************************************************************************/
+#notificationBar {
+  background-color: #e3f2fd;
+  border: 1px solid #bbdefb;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+#notificationBar QLabel {
+  color: #1565c0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#notificationBar QPushButton[notificationRole="primary"] {
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+#notificationBar QPushButton[notificationRole="primary"]:hover {
+  background-color: #1565c0;
+}
+
+#notificationBar QPushButton[notificationRole="secondary"] {
+  background-color: transparent;
+  border: 1px solid #90caf9;
+  color: #1976d2;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+#notificationBar QPushButton[notificationRole="secondary"]:hover {
+  background-color: #e3f2fd;
+}
+
+#notificationCloseButton {
+  background-color: transparent;
+  color: #1565c0;
+  border: none;
+  font-size: 16px;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+#notificationCloseButton:hover {
+  background-color: rgba(21, 101, 192, 0.1);
+}
+
+/****************************************************************************
 * 启动标签页样式 (Startup Tab) - 墨绿主题
 * 主色: #215a6a (深墨绿)
 * 辅色: #2791ad (浅墨绿/青色)
