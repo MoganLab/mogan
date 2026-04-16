@@ -168,8 +168,10 @@
 
 ;; 辅助函数：定义 enumerate-tag-list
 (define (enumerate-tag-list)
-  '(enumerate enumerate-numeric enumerate-roman
-    enumerate-Roman enumerate-alpha enumerate-Alpha
+  '(enumerate enumerate-numeric enumerate-numeric-bracket
+    enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+    enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+    enumerate-alpha-full-paren enumerate-Alpha
     enumerate-circle enumerate-hanzi enumerate-numeric-paren))
 
 ;; 辅助函数：定义 itemize-tag-list

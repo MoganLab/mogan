@@ -521,9 +521,14 @@ translate_list (string s) {
   if (s == "itemizedot") return "itemize-dot";
   if (s == "itemizearrow") return "itemize-arrow";
   if (s == "enumeratenumeric") return "enumerate-numeric";
+  if (s == "enumeratenumericbracket") return "enumerate-numeric-bracket";
   if (s == "enumerateroman") return "enumerate-roman";
+  if (s == "enumerateromanbracket") return "enumerate-roman-bracket";
+  if (s == "enumerateromanparen") return "enumerate-roman-paren";
   if (s == "enumerateromancap") return "enumerate-romancap";
   if (s == "enumeratealpha") return "enumerate-alpha";
+  if (s == "enumeratealphabracket") return "enumerate-alpha-bracket";
+  if (s == "enumeratealphafullparen") return "enumerate-alpha-full-paren";
   if (s == "enumeratealphacap") return "enumerate-alphacap";
   if (s == "asparaitem") return "itemize";
   if (s == "inparaitem") return "itemize";

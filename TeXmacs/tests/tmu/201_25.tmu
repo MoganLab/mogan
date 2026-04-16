@@ -51,6 +51,14 @@
     <item>
   </enumerate-numeric-paren>
 
+  <\enumerate-numeric-bracket>
+    <item>
+
+    <item>
+
+    <item>
+  </enumerate-numeric-bracket>
+
   <\enumerate-circle>
     <item>
 
@@ -67,6 +75,22 @@
     <item>
   </enumerate-alpha>
 
+  <\enumerate-alpha-bracket>
+    <item>
+
+    <item>
+
+    <item>
+  </enumerate-alpha-bracket>
+
+  <\enumerate-alpha-full-paren>
+    <item>
+
+    <item>
+
+    <item>
+  </enumerate-alpha-full-paren>
+
   <\enumerate-Alpha>
     <item>
 
@@ -74,6 +98,22 @@
 
     <item>
   </enumerate-Alpha>
+
+  <\enumerate-roman-bracket>
+    <item>
+
+    <item>
+
+    <item>
+  </enumerate-roman-bracket>
+
+  <\enumerate-roman-paren>
+    <item>
+
+    <item>
+
+    <item>
+  </enumerate-roman-paren>
 
   \;
 

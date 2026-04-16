@@ -2051,8 +2051,11 @@
   ;; Lists
   ((:or itemize itemize-minus itemize-dot itemize-arrow)
    ,tmhtml-itemize)
-  ((:or enumerate enumerate-numeric enumerate-roman enumerate-Roman
-        enumerate-alpha enumerate-Alpha)
+  ((:or enumerate enumerate-numeric enumerate-numeric-bracket
+        enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+        enumerate-Roman
+        enumerate-alpha enumerate-alpha-bracket
+        enumerate-alpha-full-paren enumerate-Alpha)
    ,tmhtml-enumerate)
   ((:or description description-compact description-dash
         description-aligned description-long description-paragraphs)

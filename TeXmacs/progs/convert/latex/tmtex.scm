@@ -3143,8 +3143,11 @@
   ((:or description description-compact description-aligned
         description-dash description-long description-paragraphs
         itemize itemize-minus itemize-dot itemize-arrow
-        enumerate enumerate-numeric enumerate-roman enumerate-Roman
-        enumerate-alpha enumerate-Alpha)
+        enumerate enumerate-numeric enumerate-numeric-bracket
+        enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+        enumerate-Roman
+        enumerate-alpha enumerate-alpha-bracket
+        enumerate-alpha-full-paren enumerate-Alpha)
    (,tmtex-list-env 1))
   ((:or folded unfolded folded-plain unfolded-plain folded-std unfolded-std
         folded-explain unfolded-explain folded-env unfolded-env

@@ -4,7 +4,7 @@
 
 <\body>
   <active*|<\src-title>
-    <src-package|prefix-enumerations|1.0>
+    <src-package|prefix-enumerations|1.2>
 
     <\src-purpose>
       Prefix nested enumerations by the outer counter
@@ -33,13 +33,23 @@
 
   <assign|prefix-enumerate-numeric|true>
 
+  <assign|prefix-enumerate-numeric-bracket|true>
+
   <assign|prefix-enumerate-numeric-paren|true>
 
   <assign|prefix-enumerate-roman|true>
 
+  <assign|prefix-enumerate-roman-bracket|true>
+
+  <assign|prefix-enumerate-roman-paren|true>
+
   <assign|prefix-enumerate-Roman|true>
 
   <assign|prefix-enumerate-alpha|true>
+
+  <assign|prefix-enumerate-alpha-bracket|true>
+
+  <assign|prefix-enumerate-alpha-full-paren|true>
 
   <assign|prefix-enumerate-Alpha|true>
 

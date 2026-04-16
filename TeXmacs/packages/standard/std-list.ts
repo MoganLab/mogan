@@ -4,7 +4,7 @@
 
 <\body>
   <active*|<\src-title>
-    <src-package|std-list|1.0>
+    <src-package|std-list|1.3>
 
     <\src-purpose>
       Standard list environments
@@ -55,6 +55,8 @@
   <assign|aligned-bracket-item|<macro|name|<aligned-item|<arg|name><with|font-shape|right|)><item-spc>>>>
 
   <assign|aligned-paren-item|<macro|name|<aligned-item|(<arg|name>)<item-spc>>>>
+
+  <assign|aligned-full-paren-item|<macro|name|<aligned-item|(<arg|name>)<item-spc>>>>
 
   <assign|aligned-strong-dot-item|<macro|name|<aligned-item|<item-strong|<arg|name>.<item-spc>>>>>
 
@@ -266,13 +268,23 @@
 
   <new-list|enumerate-numeric|<value|aligned-dot-item>|<value|identity>>
 
+  <new-list|enumerate-numeric-bracket|<value|aligned-bracket-item>|<value|identity>>
+
   <new-list|enumerate-numeric-paren|<value|aligned-paren-item>|<value|identity>>
 
   <new-list|enumerate-roman|<value|aligned-dot-item>|<macro|name|<number|<arg|name>|roman>>>
 
+  <new-list|enumerate-roman-bracket|<value|aligned-bracket-item>|<macro|name|<number|<arg|name>|roman>>>
+
+  <new-list|enumerate-roman-paren|<value|aligned-paren-item>|<macro|name|<number|<arg|name>|roman>>>
+
   <new-list|enumerate-Roman|<value|aligned-dot-item>|<macro|name|<number|<arg|name>|Roman>>>
 
   <new-list|enumerate-alpha|<value|aligned-dot-item>|<macro|name|<number|<arg|name>|alpha>>>
+
+  <new-list|enumerate-alpha-bracket|<value|aligned-bracket-item>|<macro|name|<number|<arg|name>|alpha>>>
+
+  <new-list|enumerate-alpha-full-paren|<value|aligned-full-paren-item>|<macro|name|<number|<arg|name>|alpha>>>
 
   <new-list|enumerate-Alpha|<value|aligned-dot-item>|<macro|name|<number|<arg|name>|Alpha>>>
 
