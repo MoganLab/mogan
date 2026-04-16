@@ -204,6 +204,8 @@ QTPdfPreviewWidget::loadFromUrl (const QString& url, int dpi) {
   // Check cache first
   QPixmap cached= PdfPreviewCache::instance ()->get (url, currentPage_, dpi);
   if (!cached.isNull ()) {
+    // Ensure correct DPR for cached pixmap
+    cached.setDevicePixelRatio (previewLabel_->devicePixelRatioF ());
     setPreviewPixmap (cached);
     return;
   }
@@ -237,6 +239,8 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
   QPixmap cached=
       PdfPreviewCache::instance ()->get (filePath, currentPage_, dpi);
   if (!cached.isNull ()) {
+    // Ensure correct DPR for cached pixmap
+    cached.setDevicePixelRatio (previewLabel_->devicePixelRatioF ());
     setPreviewPixmap (cached);
     return true;
   }
