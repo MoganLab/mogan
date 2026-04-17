@@ -999,7 +999,7 @@ show_startup_login_dialog () {
     return true;
   }
 
-  if (install_status != 1 && install_status != 2) {
+  if (!QWK::StartupLoginDialog::shouldShow ()) {
     // Normal startup, no need to show login dialog
     return true;
   }
@@ -1023,7 +1023,7 @@ show_startup_login_dialog () {
   });
 
   QObject::connect (dialog, &QWK::StartupLoginDialog::skipRequested,
-                    [&] () { userDecisionMade= true; });
+                    [&] () { userDecisionMade= false; });
 
   // Show the dialog (non-blocking)
   dialog->show ();
