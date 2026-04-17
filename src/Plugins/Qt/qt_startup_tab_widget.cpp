@@ -107,9 +107,8 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   // 延迟预加载文件操作相关模块，加速后续文件打开
   // 使用 500ms 延迟确保启动页已完全显示，不会阻塞UI
   // Scheme 函数内部已添加错误处理，确保单个模块加载失败不影响其他模块
-  QTimer::singleShot (500, this, [] () {
-    eval_scheme ("(startup-tab-preload-modules)");
-  });
+  QTimer::singleShot (500, this,
+                      [] () { eval_scheme ("(startup-tab-preload-modules)"); });
 }
 
 QTStartupTabWidget::Entry
