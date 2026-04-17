@@ -26,6 +26,7 @@
 #include <QIcon>
 #include <QLabel>
 #include <QLayoutItem>
+#include <QMenu>
 #include <QPainter>
 #include <QPen>
 #include <QSizePolicy>
