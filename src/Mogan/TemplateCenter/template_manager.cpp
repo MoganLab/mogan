@@ -468,6 +468,17 @@ TemplateManager::mergeMetadata (
     else {
       // Update existing template
       TemplateMetadataPtr existing= existingIt.value ();
+
+      // Check if remote template is newer than local cached version
+      bool isUpdated= remoteTmpl->updatedAt > existing->updatedAt;
+      if (isUpdated && existing->isLocal) {
+        // Remote template has been updated, clear local cache to force re-download
+        qDebug () << "Template" << id << "has been updated remotely, clearing local cache";
+        cache_->removeCachedTemplate (id);
+        existing->localPath.clear ();
+        existing->isLocal= false;
+      }
+
       existing->name              = remoteTmpl->name;
       existing->description       = remoteTmpl->description;
       existing->category          = remoteTmpl->category;
@@ -486,7 +497,7 @@ TemplateManager::mergeMetadata (
       existing->moganMinVersion   = remoteTmpl->moganMinVersion;
       existing->downloadCount     = remoteTmpl->downloadCount;
       existing->rating            = remoteTmpl->rating;
-      // Preserve local path if file still exists
+      // Preserve local path only if file still exists and not updated
       if (!existing->localPath.isEmpty () &&
           !QFile::exists (existing->localPath)) {
         existing->localPath.clear ();
