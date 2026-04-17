@@ -18,21 +18,6 @@
       "skip-if-missing": true
     },
     {
-      "id": "login",
-      "title": "登录账户",
-      "top-text": "点击这里登录您的账户，解锁更多高级功能和扩展能力。",
-      "bubble-size": "medium",
-      "offset-x": -20,
-      "offset-y": 0,
-      "media-path": "",
-      "bottom-text": "",
-      "target-id": "assistantEntry",
-      "placement": "bottom",
-      "highlight-padding": 10,
-      "on-enter": "",
-      "skip-if-missing": true
-    },
-    {
       "id": "magic-paste",
       "title": "魔法粘贴",
       "top-text": "魔法粘贴可以自动识别剪贴板中的内容类型，并尽可能保留网页内容的结构、标题层级、列表样式和公式表达，让外部内容进入文档后依然便于继续编辑与排版。",

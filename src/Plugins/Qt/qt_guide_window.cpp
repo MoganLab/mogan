@@ -9,13 +9,17 @@
  ******************************************************************************/
 
 #include "qt_guide_window.hpp"
+#include "boot.hpp"
 #include "qlabel.h"
 #include "qnamespace.h"
 #include "qt_guide_task_executor.hpp"
 #include "qt_utilities.hpp"
+#include "tm_file.hpp"
+#include "tm_sys_utils.hpp"
 #include <QApplication>
 #include <QCloseEvent>
 #include <QColor>
+#include <QDateTime>
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
 #include <QPixmap>
@@ -23,6 +27,34 @@
 #include <QShowEvent>
 
 namespace QWK {
+
+static bool
+hasCachedLoginSession () {
+  url accountDir= get_texmacs_home_path () * url ("system/account");
+  url tokenFile = accountDir * url ("token.txt");
+  if (!exists (tokenFile)) return false;
+
+  url     expiryFile= accountDir * url ("token_expiry.txt");
+  QString expiry    = to_qstring (tm_string_load (expiryFile)).trimmed ();
+  if (expiry.isEmpty ()) return true;
+
+  bool   ok        = false;
+  qint64 expiryTime= expiry.toLongLong (&ok);
+  if (!ok) return true;
+
+  if (expiryTime > QDateTime::currentSecsSinceEpoch ()) return true;
+
+  url refreshTokenFile= accountDir * url ("refresh_token.txt");
+  return exists (refreshTokenFile) &&
+         !to_qstring (tm_string_load (refreshTokenFile)).trimmed ().isEmpty ();
+}
+
+bool
+StartupLoginDialog::shouldShow () {
+  if (headless_mode) return false;
+  if (is_community_stem ()) return false;
+  return !hasCachedLoginSession ();
+}
 
 // StartupLoginDialog implementation
 void
@@ -77,7 +109,7 @@ StartupLoginDialog::setupUi () {
   loginButton->setDefault (true);
 
   skipButton=
-      new QPushButton (qt_translate ("跳过登录"), this); // 跳过登录 Skip Login
+      new QPushButton (qt_translate ("退出软件"), this); // 退出软件 Quit App
   skipButton->setObjectName ("skipButton");
 
   // 创建布局
@@ -409,18 +441,7 @@ StartupLoginDialog::handleSkipButtonClick () {
   result        = StartupLoginDialog::SkipClicked;
   userChoiceMade= true;
   emit skipRequested ();
-
-  // 根据初始化状态处理
-  if (initializationComplete) {
-    // 初始化已完成，淡出并关闭
-    fadeOutAndClose ();
-  }
-  else if (!initializationInProgress) {
-    // 初始化尚未开始，现在开始
-    startInitialization ();
-  }
-  // 如果初始化正在进行中，只需等待完成
-  // 完成处理程序将调用 fadeOutAndClose()
+  reject ();
 }
 
 void

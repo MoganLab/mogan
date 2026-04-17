@@ -39,6 +39,8 @@ public:
   explicit StartupLoginDialog (QWidget* parent= nullptr);
   ~StartupLoginDialog ();
 
+  static bool shouldShow ();
+
   Result execWithResult ();
   void   startInitialization ();
   bool   isInitializationComplete () const { return initializationComplete; }
