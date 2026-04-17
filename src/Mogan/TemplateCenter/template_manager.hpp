@@ -65,7 +65,6 @@ public:
 
   // Operations
   void refreshTemplates (); // Force refresh from remote
-  void checkForUpdates ();  // Check for updates without full refresh
 
   // Template download
   void downloadTemplate (const QString& templateId);

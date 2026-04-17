@@ -19,7 +19,6 @@
 #include <QJsonObject>
 #include <QLockFile>
 #include <QStandardPaths>
-#include <QTimeZone>
 
 #include "image_cache_base.hpp"
 #include "sys_utils.hpp"
@@ -68,12 +67,6 @@ TemplateCache::loadMetadataCache () {
   }
 
   QJsonObject root= doc.object ();
-
-  // Parse last update time
-  QString lastUpdate= root.value ("lastUpdated").toString ();
-  if (!lastUpdate.isEmpty ()) {
-    lastMetadataUpdate_= QDateTime::fromString (lastUpdate, Qt::ISODate);
-  }
 
   // Parse templates
   QJsonArray templates= root.value ("templates").toArray ();
@@ -126,8 +119,6 @@ TemplateCache::saveMetadataCache (
     const QHash<QString, TemplateMetadataPtr>& metadata) {
   QJsonObject root;
   root.insert ("version", "1.0");
-  root.insert ("lastUpdated",
-               QDateTime::currentDateTime ().toString (Qt::ISODate));
 
   QJsonArray templates;
   for (const auto& tmpl : metadata) {
@@ -201,7 +192,6 @@ TemplateCache::registerCachedTemplate (const QString& templateId,
   entry.localPath = localPath;
   entry.fileSize  = fileSize;
   entry.cachedAt  = QDateTime::currentDateTime ();
-  entry.expiresAt = entry.cachedAt.addDays (CACHE_EXPIRY_DAYS);
 
   cacheIndex_[templateId]= entry;
   saveCacheIndex ();
@@ -243,22 +233,6 @@ TemplateCache::clearCache () {
   emit cacheCleared ();
 }
 
-void
-TemplateCache::cleanupExpiredCache () {
-  QDateTime now= QDateTime::currentDateTime ();
-
-  QList<QString> toRemove;
-  for (auto it= cacheIndex_.begin (); it != cacheIndex_.end (); ++it) {
-    if (it->expiresAt < now) {
-      toRemove.append (it.key ());
-    }
-  }
-
-  for (const QString& templateId : toRemove) {
-    removeCachedTemplate (templateId);
-  }
-}
-
 qint64
 TemplateCache::cacheSize () const {
   qint64 total= 0;
@@ -266,16 +240,6 @@ TemplateCache::cacheSize () const {
     total+= entry.fileSize;
   }
   return total;
-}
-
-QDateTime
-TemplateCache::lastMetadataUpdate () const {
-  return lastMetadataUpdate_;
-}
-
-void
-TemplateCache::setLastMetadataUpdate (const QDateTime& time) {
-  lastMetadataUpdate_= time;
 }
 
 QString
@@ -337,24 +301,8 @@ TemplateCache::loadCategoriesCache () {
     return categories;
   }
 
-  QJsonObject root= doc.object ();
-
-  // Check cache expiration (24 hours) - using UTC for timezone safety
-  QString   lastUpdatedStr= root.value ("lastUpdated").toString ();
-  QDateTime lastUpdated   = QDateTime::fromString (lastUpdatedStr, Qt::ISODate);
-  if (lastUpdated.isValid ()) {
-    // Convert to UTC for consistent comparison across timezones
-    lastUpdated.setTimeZone (QTimeZone::UTC);
-    qint64 hoursSinceUpdate=
-        lastUpdated.secsTo (QDateTime::currentDateTimeUtc ()) / 3600;
-    if (hoursSinceUpdate >= CATEGORY_CACHE_EXPIRY_HOURS) {
-      qDebug () << "Categories cache expired (" << hoursSinceUpdate
-                << "hours old), triggering refresh";
-      return categories; // Return empty to trigger refresh
-    }
-  }
-
-  QJsonArray categoriesArray= root.value ("categories").toArray ();
+  QJsonObject root           = doc.object ();
+  QJsonArray  categoriesArray= root.value ("categories").toArray ();
 
   for (const auto& catValue : categoriesArray) {
     QJsonObject catObj= catValue.toObject ();
@@ -389,9 +337,6 @@ void
 TemplateCache::saveCategoriesCache (const QList<TemplateCategory>& categories) {
   QJsonObject root;
   root.insert ("version", "1.0");
-  // Use UTC time for timezone safety
-  root.insert ("lastUpdated",
-               QDateTime::currentDateTimeUtc ().toString (Qt::ISODate));
 
   QJsonArray categoriesArray;
   for (const auto& cat : categories) {
@@ -478,8 +423,6 @@ TemplateCache::loadCacheIndex () {
     entry.fileSize  = entryObj.value ("fileSize").toVariant ().toLongLong ();
     entry.cachedAt  = QDateTime::fromString (
         entryObj.value ("cachedAt").toString (), Qt::ISODate);
-    entry.expiresAt= QDateTime::fromString (
-        entryObj.value ("expiresAt").toString (), Qt::ISODate);
 
     // Only add if file still exists
     if (QFile::exists (entry.localPath)) {
@@ -501,7 +444,6 @@ TemplateCache::saveCacheIndex () {
     entryObj.insert ("etag", entry.etag);
     entryObj.insert ("fileSize", entry.fileSize);
     entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
-    entryObj.insert ("expiresAt", entry.expiresAt.toString (Qt::ISODate));
     entries.append (entryObj);
   }
   root.insert ("entries", entries);

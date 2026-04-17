@@ -27,7 +27,6 @@ struct CacheEntry {
   QString   localPath;
   QString   etag; // For HTTP caching
   QDateTime cachedAt;
-  QDateTime expiresAt; // Cache expiration time
   qint64    fileSize;
 
   CacheEntry () : fileSize (0) {}
@@ -38,7 +37,6 @@ struct CacheEntry {
  *
  * Responsibilities:
  * - Store and retrieve cached template metadata
- * - Manage cache expiration and cleanup
  * - Track downloaded template files
  * - Provide offline access to templates
  */
@@ -71,12 +69,7 @@ public:
 
   // Cache management
   void   clearCache ();
-  void   cleanupExpiredCache ();
   qint64 cacheSize () const;
-
-  // Last update tracking
-  QDateTime lastMetadataUpdate () const;
-  void      setLastMetadataUpdate (const QDateTime& time);
 
   // Cache info
   QString cacheDirectory () const;
@@ -104,12 +97,6 @@ private:
 
   // Cache storage
   QHash<QString, CacheEntry> cacheIndex_;
-  QDateTime                  lastMetadataUpdate_;
-
-  // Cache configuration
-  static constexpr int CACHE_EXPIRY_DAYS= 7;
-  static constexpr int CATEGORY_CACHE_EXPIRY_HOURS=
-      24; // Categories refresh every 24 hours
 };
 
 #endif // TEMPLATE_CACHE_HPP

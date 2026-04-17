@@ -315,17 +315,6 @@ TemplateManager::refreshTemplates () {
 }
 
 void
-TemplateManager::checkForUpdates () {
-  // Check if we need to refresh based on last update time
-  QDateTime lastUpdate= cache_->lastMetadataUpdate ();
-  if (!lastUpdate.isValid () ||
-      lastUpdate.secsTo (QDateTime::currentDateTime ()) > 3600) {
-    // No recent update, fetch fresh metadata
-    refreshTemplates ();
-  }
-}
-
-void
 TemplateManager::downloadTemplate (const QString& templateId) {
   auto tmpl= templates_.value (templateId);
   if (!tmpl) {
@@ -410,7 +399,6 @@ TemplateManager::onRemoteMetadataLoaded (
 
   // Save to cache
   cache_->saveMetadataCache (templates_);
-  cache_->setLastMetadataUpdate (QDateTime::currentDateTime ());
 
   // Notify UI
   emit templatesLoaded ();
