@@ -92,7 +92,8 @@ TemplateManager::initialize () {
   }
 
   // Always try to refresh remote metadata in the background.
-  // Cached data is already available for fast initial rendering and offline use.
+  // Cached data is already available for fast initial rendering and offline
+  // use.
   refreshTemplates ();
 
   initialized_= true;
