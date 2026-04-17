@@ -480,23 +480,13 @@ TemplateManager::mergeMetadata (
                        remoteTmpl->fileMd5 != existing->fileMd5;
       bool isUpdated= timestampUpdated || md5Changed;
 
-      qDebug () << "Checking template" << id
-                << "remote updatedAt:" << remoteTmpl->updatedAt
-                << "local updatedAt:" << existing->updatedAt
-                << "timestampUpdated:" << timestampUpdated
-                << "md5Changed:" << md5Changed
-                << "isLocal:" << existing->isLocal;
-
       if (isUpdated && existing->isLocal) {
         // Remote template has been updated, clear local cache to force
         // re-download
-        qDebug () << "Template" << id
-                  << "has been updated remotely, clearing local cache";
+        qDebug () << "Template" << id << "updated, clearing cache";
         cache_->removeCachedTemplate (id);
         existing->localPath.clear ();
         existing->isLocal= false;
-        qDebug () << "Template" << id
-                  << "local cache cleared, isLocal now:" << existing->isLocal;
       }
 
       existing->name           = remoteTmpl->name;
@@ -534,8 +524,7 @@ TemplateManager::mergeMetadata (
     if (!tmpl->isLocal && cache_->isTemplateCached (tmpl->id)) {
       tmpl->isLocal  = true;
       tmpl->localPath= cache_->cachedTemplatePath (tmpl->id);
-      qDebug () << "Template" << tmpl->id
-                << "found in cache, setting isLocal=true";
+      qDebug () << "Template" << tmpl->id << "found in cache";
     }
   }
 }
