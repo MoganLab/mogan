@@ -102,10 +102,13 @@ TemplateCache::loadMetadataCache () {
     }
     tmpl->tags= tags;
 
-    // Check if locally cached
-    tmpl->isLocal= isTemplateCached (tmpl->id);
-    if (tmpl->isLocal) {
-      tmpl->localPath= cachedTemplatePath (tmpl->id);
+    // Check if locally cached - only if file actually exists
+    if (isTemplateCached (tmpl->id)) {
+      QString cachedPath= cachedTemplatePath (tmpl->id);
+      if (!cachedPath.isEmpty ()) {
+        tmpl->isLocal  = true;
+        tmpl->localPath= cachedPath;
+      }
     }
 
     metadata.insert (tmpl->id, tmpl);

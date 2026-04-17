@@ -287,7 +287,11 @@ bool
 TemplateManager::isTemplateAvailableLocally (const QString& templateId) const {
   auto tmpl= templates_.value (templateId);
   if (tmpl) {
-    return tmpl->isLocal || cache_->isTemplateCached (templateId);
+    // Always check actual file existence, not just cached flags
+    if (!tmpl->localPath.isEmpty () && QFile::exists (tmpl->localPath)) {
+      return true;
+    }
+    return cache_->isTemplateCached (templateId);
   }
   return false;
 }
@@ -469,38 +473,50 @@ TemplateManager::mergeMetadata (
       // Update existing template
       TemplateMetadataPtr existing= existingIt.value ();
 
-      // Check if remote template is newer than local cached version
-      bool isUpdated= remoteTmpl->updatedAt > existing->updatedAt;
-      qDebug () << "Checking template" << id << "remote updatedAt:" << remoteTmpl->updatedAt
-                << "local updatedAt:" << existing->updatedAt << "isUpdated:" << isUpdated
+      // Check if remote template is newer or MD5 differs
+      bool timestampUpdated= remoteTmpl->updatedAt > existing->updatedAt;
+      bool md5Changed      = !remoteTmpl->fileMd5.isEmpty () &&
+                       !existing->fileMd5.isEmpty () &&
+                       remoteTmpl->fileMd5 != existing->fileMd5;
+      bool isUpdated= timestampUpdated || md5Changed;
+
+      qDebug () << "Checking template" << id
+                << "remote updatedAt:" << remoteTmpl->updatedAt
+                << "local updatedAt:" << existing->updatedAt
+                << "timestampUpdated:" << timestampUpdated
+                << "md5Changed:" << md5Changed
                 << "isLocal:" << existing->isLocal;
+
       if (isUpdated && existing->isLocal) {
-        // Remote template has been updated, clear local cache to force re-download
-        qDebug () << "Template" << id << "has been updated remotely, clearing local cache";
+        // Remote template has been updated, clear local cache to force
+        // re-download
+        qDebug () << "Template" << id
+                  << "has been updated remotely, clearing local cache";
         cache_->removeCachedTemplate (id);
         existing->localPath.clear ();
         existing->isLocal= false;
-        qDebug () << "Template" << id << "local cache cleared, isLocal now:" << existing->isLocal;
+        qDebug () << "Template" << id
+                  << "local cache cleared, isLocal now:" << existing->isLocal;
       }
 
-      existing->name              = remoteTmpl->name;
-      existing->description       = remoteTmpl->description;
-      existing->category          = remoteTmpl->category;
-      existing->author            = remoteTmpl->author;
-      existing->version           = remoteTmpl->version;
-      existing->license           = remoteTmpl->license;
-      existing->thumbnailUrl      = remoteTmpl->thumbnailUrl;
-      existing->previewUrl        = remoteTmpl->previewUrl;
-      existing->fileUrl           = remoteTmpl->fileUrl;
-      existing->fileSize          = remoteTmpl->fileSize;
-      existing->fileMd5           = remoteTmpl->fileMd5;
-      existing->createdAt         = remoteTmpl->createdAt;
-      existing->updatedAt         = remoteTmpl->updatedAt;
-      existing->language          = remoteTmpl->language;
-      existing->tags              = remoteTmpl->tags;
-      existing->moganMinVersion   = remoteTmpl->moganMinVersion;
-      existing->downloadCount     = remoteTmpl->downloadCount;
-      existing->rating            = remoteTmpl->rating;
+      existing->name           = remoteTmpl->name;
+      existing->description    = remoteTmpl->description;
+      existing->category       = remoteTmpl->category;
+      existing->author         = remoteTmpl->author;
+      existing->version        = remoteTmpl->version;
+      existing->license        = remoteTmpl->license;
+      existing->thumbnailUrl   = remoteTmpl->thumbnailUrl;
+      existing->previewUrl     = remoteTmpl->previewUrl;
+      existing->fileUrl        = remoteTmpl->fileUrl;
+      existing->fileSize       = remoteTmpl->fileSize;
+      existing->fileMd5        = remoteTmpl->fileMd5;
+      existing->createdAt      = remoteTmpl->createdAt;
+      existing->updatedAt      = remoteTmpl->updatedAt;
+      existing->language       = remoteTmpl->language;
+      existing->tags           = remoteTmpl->tags;
+      existing->moganMinVersion= remoteTmpl->moganMinVersion;
+      existing->downloadCount  = remoteTmpl->downloadCount;
+      existing->rating         = remoteTmpl->rating;
       // Preserve local path only if file still exists and not updated
       if (!existing->localPath.isEmpty () &&
           !QFile::exists (existing->localPath)) {
@@ -518,7 +534,8 @@ TemplateManager::mergeMetadata (
     if (!tmpl->isLocal && cache_->isTemplateCached (tmpl->id)) {
       tmpl->isLocal  = true;
       tmpl->localPath= cache_->cachedTemplatePath (tmpl->id);
-      qDebug () << "Template" << tmpl->id << "found in cache, setting isLocal=true";
+      qDebug () << "Template" << tmpl->id
+                << "found in cache, setting isLocal=true";
     }
   }
 }
