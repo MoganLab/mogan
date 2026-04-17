@@ -15,6 +15,7 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
+#include <QGridLayout>
 #include <QHBoxLayout>
 #include <QHash>
 #include <QJsonArray>
@@ -27,6 +28,7 @@
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
@@ -227,12 +229,23 @@ QtFilePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
   if (recentRefreshTimer_) recentRefreshTimer_->start ();
+  // 初始排列卡片
+  QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
 }
 
 void
 QtFilePage::hideEvent (QHideEvent* event) {
   if (recentRefreshTimer_) recentRefreshTimer_->stop ();
   QWidget::hideEvent (event);
+}
+
+void
+QtFilePage::resizeEvent (QResizeEvent* event) {
+  QWidget::resizeEvent (event);
+  // 只在宽度变化时重排，避免不必要的计算
+  if (event->oldSize ().width () != event->size ().width ()) {
+    rearrangeStyleCards ();
+  }
 }
 
 void
@@ -257,6 +270,31 @@ QtFilePage::setupUI () {
 }
 
 void
+QtFilePage::rearrangeStyleCards () {
+  if (!cardsLayout_ || styleCards_.isEmpty ()) return;
+
+  // 清除当前布局中的卡片
+  for (auto* card : styleCards_) {
+    cardsLayout_->removeWidget (card);
+  }
+
+  // 计算每行可以容纳的卡片数
+  int cardWidth= DpiUtils::scaled (kStyleCardWidth);
+  int spacing  = DpiUtils::scaled (kStyleCardsSpacing);
+  int availableWidth=
+      cardsContainer_->width () - DpiUtils::scaled (kMainMargin * 2);
+  int cardsPerRow= qMax (1, (availableWidth + spacing) / (cardWidth + spacing));
+
+  // 重新排列卡片
+  for (int i= 0; i < styleCards_.size (); ++i) {
+    int row= i / cardsPerRow;
+    int col= i % cardsPerRow;
+    cardsLayout_->addWidget (styleCards_[i], row, col,
+                             Qt::AlignLeft | Qt::AlignTop);
+  }
+}
+
+void
 QtFilePage::setupStyleCards (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (qt_translate ("Document Style"), this);
@@ -264,17 +302,16 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
   DpiUtils::applyScaledFont (title, kSectionTitleFontPx);
   layout->addWidget (title);
 
-  // 样式卡片容器（水平流式布局）
-  QWidget*     cardsContainer= new QWidget (this);
-  QHBoxLayout* cardsLayout   = new QHBoxLayout (cardsContainer);
-  cardsLayout->setContentsMargins (0, 0, 0, 0);
-  cardsLayout->setSpacing (DpiUtils::scaled (kStyleCardsSpacing));
-  cardsLayout->setAlignment (Qt::AlignLeft);
+  // 样式卡片容器（响应式网格布局）
+  cardsContainer_= new QWidget (this);
+  cardsLayout_   = new QGridLayout (cardsContainer_);
+  cardsLayout_->setContentsMargins (0, 0, 0, 0);
+  cardsLayout_->setSpacing (DpiUtils::scaled (kStyleCardsSpacing));
+  cardsLayout_->setAlignment (Qt::AlignLeft | Qt::AlignTop);
 
   for (const auto& style : styles_) {
-    StyleCard* card= new StyleCard (style, cardsContainer);
+    StyleCard* card= new StyleCard (style, cardsContainer_);
     styleCards_.append (card);
-    cardsLayout->addWidget (card);
 
     connect (card, &StyleCard::hovered, this, [this, card] () {
       // 悬停时选中
@@ -299,8 +336,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
     }
   }
 
-  cardsLayout->addStretch ();
-  layout->addWidget (cardsContainer);
+  layout->addWidget (cardsContainer_);
 }
 
 void

@@ -253,7 +253,9 @@ main (int argc, char** argv) {
   init_plugins ();
 
   // Show startup login dialog
-  show_startup_login_dialog ();
+  if (!show_startup_login_dialog ()) {
+    return 0;
+  }
 
   // 如果show_startup_login_dialog没执行，继续初始化TeXmacs
   init_texmacs ();

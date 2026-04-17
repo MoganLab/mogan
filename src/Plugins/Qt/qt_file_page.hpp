@@ -19,6 +19,7 @@
 
 class QVBoxLayout;
 class QHBoxLayout;
+class QGridLayout;
 class QPushButton;
 class QLabel;
 class QListWidget;
@@ -27,6 +28,7 @@ class QButtonGroup;
 class QTimer;
 class QShowEvent;
 class QHideEvent;
+class QResizeEvent;
 
 /**
  * @brief 文档样式信息
@@ -93,6 +95,7 @@ public:
 protected:
   void showEvent (QShowEvent* event) override;
   void hideEvent (QHideEvent* event) override;
+  void resizeEvent (QResizeEvent* event) override;
 
 private:
   void onRecentDocClicked (QListWidgetItem* item);
@@ -111,7 +114,10 @@ private:
   // 样式卡片相关
   QList<DocStyle>   styles_;
   QList<StyleCard*> styleCards_;
-  StyleCard*        selectedCard_= nullptr;
+  StyleCard*        selectedCard_  = nullptr;
+  QWidget*          cardsContainer_= nullptr;
+  QGridLayout*      cardsLayout_   = nullptr;
+  void              rearrangeStyleCards ();
 
   // 最近文档相关
   QList<RecentDoc> recentDocs_;
