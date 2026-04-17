@@ -678,7 +678,7 @@
             (centered
               (dynamic (startup-keyboard-preferences-widget)))
             (glue #f #t 0 1))))
-      (icon-tab "tm_prefs_other.xpm" (text "Mathematics")
+      (icon-tab "tm_prefs_math.xpm" (text "Mathematics")
         (padded
           (vlist
             (centered
