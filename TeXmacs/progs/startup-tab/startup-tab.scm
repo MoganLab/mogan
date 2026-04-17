@@ -19,7 +19,7 @@
 (define startup-tab-preload-done? #f)
 (define startup-tab-preload-running? #f)
 
-;; Debug mode predicate
+;; 调试模式判断
 (define (in-debug?) (with-debugging-tool?))
 
 (tm-define (startup-tab-enabled?)
@@ -30,8 +30,8 @@
   "file")
 
 (tm-define (startup-tab-preload-modules)
-  ;; Preload modules that will be needed when opening files.
-  ;; Keep this orchestration in startup-tab.scm and run it only once.
+  ;; 预加载打开文件会用到的模块。
+  ;; 预加载总控放在 startup-tab.scm，并保证只执行一次。
   (cond
     (startup-tab-preload-done? #t)
     (startup-tab-preload-running? #f)
@@ -50,20 +50,20 @@
       (set! startup-tab-preload-running? #t)
       (catch #t
         (lambda ()
-          ;; 1. Force all lazy plugin initializations (critical)
+          ;; 1. 强制触发懒加载插件初始化（关键）
           (preload-step "plugins" lazy-plugin-force)
 
-          ;; 2. Preload format converters (critical)
+          ;; 2. 预加载格式转换模块（关键）
           (preload-step "formats" lazy-format-force)
 
-          ;; 3. Preload language support for common document languages
+          ;; 3. 预加载常用语言支持
           (preload-step "lang-minimal" (lambda () (lazy-language-force "minimal")))
           (preload-step "lang-std-math" (lambda () (lazy-language-force "std-math")))
 
-          ;; 4. Preload keyboard handlers (nice-to-have)
+          ;; 4. 预加载键盘处理（可选优化）
           (preload-step "keyboard" (lambda () (lazy-keyboard-force #f)))
 
-          ;; 5. Preload font database to reduce first-paint/font fallback latency
+          ;; 5. 预加载字体数据库，降低首次渲染/字体回退延迟
           (preload-step "font-db" (lambda () (font-database-load)))
 
           (set! startup-tab-preload-done? #t)
