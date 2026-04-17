@@ -578,9 +578,7 @@ ocr-paste
   (with data 
     (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
     (when (tree-is? (tree-ref data 0) 'image)
-          (ocr-to-latex-by-cursor data)
-          (when (defined? 'tutorial-notify-action)
-            (tutorial-notify-action "ocr-paste")))))
+          (ocr-to-latex-by-cursor data))))
 
 #|
 image-and-ocr-paste
@@ -598,9 +596,7 @@ image-and-ocr-paste
           (kbd-return)
           (when (not (defined? 'ocr-to-latex-by-cursor))
             (use-modules (liii ocr)))
-          (ocr-to-latex-by-cursor data)
-          (when (defined? 'tutorial-notify-action)
-            (tutorial-notify-action "ocr-paste")))))
+          (ocr-to-latex-by-cursor data))))
 
 (tm-define (paste-as-html)
   (with source-format (qt-clipboard-format)
@@ -689,7 +685,7 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                (clipboard-paste-import "latex" "primary"))
               (else (smart-format-paste)))))
   (when (defined? 'tutorial-notify-action)
-    (tutorial-notify-action "magic-paste")))
+    (tutorial-notify-action "ocr-paste")))
 
 (tm-define (any-image-context?)
   (tree-innermost 
