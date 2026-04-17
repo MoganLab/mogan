@@ -13,6 +13,7 @@
         <file>ocr-button/ocr-white.svg</file>
 
         <!-- tutorial -->
-        <file>tutorial/test.gif</file>
+        <file>tutorial/ocr-tutorial.gif</file>
+        <file>tutorial/magic-paste-tutorial.gif</file>
     </qresource>
 </RCC>
