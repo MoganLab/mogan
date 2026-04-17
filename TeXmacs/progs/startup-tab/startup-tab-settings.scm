@@ -10,44 +10,6 @@
   (:use (texmacs menus preferences-widgets)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Startup tab specific settings
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-preference-names "startup-tab:default-view"
-  ("recent" "Recent files")
-  ("home" "Home")
-  ("help" "Help"))
-
-(tm-widget (startup-tab-preferences-widget)
-  (padded
-    (bold (text "Startup Behavior"))
-    ======
-    (aligned
-      (meti (hlist // (text "Show startup tab on launch"))
-        (toggle (set-boolean-preference "startup-tab:show-on-launch" answer)
-                (get-boolean-preference "startup-tab:show-on-launch")))
-      (item (text "Default view:")
-        (enum (set-pretty-preference "startup-tab:default-view" answer)
-              '("Recent files" "Home" "Help")
-              (get-pretty-preference "startup-tab:default-view")
-              "15em"))
-      (item (text "Maximum recent files:")
-        (enum (set-preference "startup-tab:max-recent" answer)
-              '("10" "20" "30" "50")
-              (get-preference "startup-tab:max-recent")
-              "8em"))
-      (meti (hlist // (text "Show file thumbnails"))
-        (toggle (set-boolean-preference "startup-tab:show-thumbnails" answer)
-                (get-boolean-preference "startup-tab:show-thumbnails"))))
-    ====== ======
-    (bold (text "Recent Files Display"))
-    ======
-    (aligned
-      (meti (hlist // (text "Group by date"))
-        (toggle (set-boolean-preference "startup-tab:group-by-date" answer)
-                (get-boolean-preference "startup-tab:group-by-date"))))))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Appearance preferences (from preferences-widgets.scm)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -660,12 +622,6 @@
 (tm-widget (startup-settings-widget)
   (padded
     (icon-tabs
-      (icon-tab "tm_prefs_general.xpm" (text "Startup")
-        (padded
-          (vlist
-            (centered
-              (dynamic (startup-tab-preferences-widget)))
-            (glue #f #t 0 1))))
       (icon-tab "tm_prefs_general.xpm" (text "General")
         (padded
           (vlist
