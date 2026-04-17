@@ -202,7 +202,13 @@ TemplateCache::removeCachedTemplate (const QString& templateId) {
   auto it= cacheIndex_.find (templateId);
   if (it != cacheIndex_.end ()) {
     // Remove file
-    QFile::remove (it->localPath);
+    bool removed= QFile::remove (it->localPath);
+    if (!removed) {
+      qWarning () << "Failed to remove cached template file:" << it->localPath;
+    }
+    else {
+      qDebug () << "Removed cached template file:" << it->localPath;
+    }
 
     cacheIndex_.erase (it);
     saveCacheIndex ();
