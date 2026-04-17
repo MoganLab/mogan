@@ -121,6 +121,7 @@ QTTemplatePage::initialize () {
       !templateManager_->templates ().isEmpty ()) {
     // Already have data, refresh immediately
     onTemplatesLoaded ();
+    templateManager_->refreshTemplates ();
   }
   else if (!templateManager_->isInitialized ()) {
     // Initialize asynchronously
@@ -732,6 +733,7 @@ QTTemplatePage::showEvent (QShowEvent* event) {
   if (templateManager_ && templateManager_->isInitialized () &&
       !templateManager_->templates ().isEmpty ()) {
     refreshTemplateGrid (currentCategory_);
+    templateManager_->refreshTemplates ();
   }
 }
 

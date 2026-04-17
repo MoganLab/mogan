@@ -91,10 +91,9 @@ TemplateManager::initialize () {
     // checking
   }
 
-  // Try to fetch remote metadata
-  // If remote fetch fails, we'll emit templatesLoaded from
-  // onRemoteMetadataFailed
-  checkForUpdates ();
+  // Always try to refresh remote metadata in the background.
+  // Cached data is already available for fast initial rendering and offline use.
+  refreshTemplates ();
 
   initialized_= true;
   emit initialized (true);
@@ -356,8 +355,8 @@ void
 TemplateManager::onNetworkStateChanged (bool isOnline) {
   isOnline_= isOnline;
   if (isOnline && initialized_) {
-    // Try to fetch metadata when coming back online
-    checkForUpdates ();
+    // Refresh immediately when connectivity is restored.
+    refreshTemplates ();
   }
 }
 
