@@ -10,14 +10,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (startup-tab startup-tab-file)
-  (:use (texmacs texmacs tm-server))
   (:use (texmacs texmacs tm-files))
   (:use (texmacs menus file-menu))
   (:use (kernel texmacs tm-dialogue))
   (:use (utils library cursor)))
-
-;; Debug mode predicate
-(define (in-debug?) (with-debugging-tool?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document creation with specific style
@@ -66,53 +62,3 @@
 (tm-define (startup-tab-clear-all-recent)
   ;; Clear all recent documents
   (noop))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Preload modules for faster file operations
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(tm-define (startup-tab-preload-modules)
-  ;; Preload modules that will be needed when opening files
-  ;; This is called in the background when startup tab is shown
-  ;; to reduce latency when user clicks to open a file
-  ;;
-  ;; Preload order: critical modules first, then nice-to-have
-  ;; Each step is wrapped with error handling to ensure one failure
-  ;; doesn't prevent subsequent modules from loading
-
-  (define (safe-preload name thunk)
-    (catch #t
-      thunk
-      (lambda (err)
-        (debug-message "startup-tab" (string-append "Preload warning [" name "]: "
-                                     (object->string err) "\n"))
-        #f)))
-
-  (define (preload-step step-name thunk)
-    (safe-preload step-name thunk))
-
-  ;; 1. Force all lazy plugin initializations (critical)
-  ;; This loads all plugins that are normally loaded on-demand
-  (preload-step "plugins" lazy-plugin-force)
-
-  ;; 2. Preload format converters (critical)
-  ;; These are needed when loading different document formats
-  ;; lazy-format-force loads all pending format modules
-  (preload-step "formats" lazy-format-force)
-
-  ;; 3. Preload language support for common document languages
-  ;; These are needed for syntax highlighting and language-specific features
-  (preload-step "lang-minimal" (lambda () (lazy-language-force "minimal")))
-  (preload-step "lang-std-math" (lambda () (lazy-language-force "std-math")))
-
-  ;; 4. Preload keyboard handlers (nice-to-have, runs in background)
-  ;; This ensures keyboard shortcuts work immediately after file open
-  (preload-step "keyboard" (lambda () (lazy-keyboard-force #f)))
-
-  ;; 5. Preload font database (reduces UI rendering latency)
-  ;; This loads cached font information to avoid delays during first paint
-  (preload-step "font-db" (lambda () (font-database-load)))
-
-  ;; Debug: log completion (only in debug mode)
-  (when (in-debug?)
-    (debug-message "startup-tab" "Startup tab: modules preloaded\n")))
