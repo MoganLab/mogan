@@ -10,56 +10,54 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (startup-tab startup-tab-file)
-  (:use (texmacs texmacs tm-server))
   (:use (texmacs texmacs tm-files))
   (:use (texmacs menus file-menu))
   (:use (kernel texmacs tm-dialogue))
   (:use (utils library cursor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Document creation with specific style
+;; 按样式创建文档
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (new-document-with-style style-id)
-  ;; Create a new document with the specified style
+  ;; 创建指定样式的新文档
   ;; style-id: "generic", "beamer", "book", "exam", "letter", "article"
-  ;; Use with-buffer to ensure we're working in the correct buffer context
+  ;; 使用 with-buffer 保证后续初始化在目标缓冲区中执行
   (with-default-view
     (let ((buf (if (window-per-buffer?) (open-window) (new-buffer))))
-      ;; Schedule style initialization after buffer is fully set up
+      ;; 缓冲区就绪后再延迟初始化样式
       (delayed
         (:idle 100)
         (with-buffer buf
           (init-style style-id))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; File operations wrappers
+;; 文件操作封装
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (startup-tab-file-open)
-  ;; Open file dialog wrapper
+  ;; 打开文件对话框封装
   (open-document))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Recent documents management
+;; 最近文档管理
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (startup-tab-get-recent-docs)
-  ;; Get recent document paths with the same filtering and ordering
-  ;; as File -> Recent used
+  ;; 获取最近文档路径，过滤和排序与 File -> Recent 保持一致
   (let* ((raw (string->number (get-preference "startup-tab:max-recent")))
          (nr (if (number? raw) raw 10))
          (nr (max 1 nr)))
     (map url->system (recent-file-list nr))))
 
 (tm-define (startup-tab-add-recent-doc path)
-  ;; Add or refresh a document in global recent-file state
+  ;; 在全局 recent-file 状态中新增或刷新文档
   (learn-interactive 'recent-buffer (list (cons "0" path))))
 
 (tm-define (startup-tab-clear-recent-doc path)
-  ;; Remove a specific document from global recent-file state
+  ;; 从全局 recent-file 状态中移除指定文档
   (recent-files-remove-by-path path))
 
 (tm-define (startup-tab-clear-all-recent)
-  ;; Clear all recent documents
+  ;; 清空最近文档
   (noop))

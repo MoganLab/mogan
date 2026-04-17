@@ -24,7 +24,7 @@
   (set! lazy-format-todo (cons module lazy-format-todo))
   `(delayed (:idle 2000) (import-from ,module)))
 
-(define (lazy-format-force)
+(define-public (lazy-format-force)
   (if (nnull? lazy-format-todo)
       (eval (cons 'import-from lazy-format-todo)))
   (set! lazy-format-todo '()))
