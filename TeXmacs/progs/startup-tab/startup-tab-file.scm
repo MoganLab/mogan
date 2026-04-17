@@ -16,6 +16,9 @@
   (:use (kernel texmacs tm-dialogue))
   (:use (utils library cursor)))
 
+;; Debug mode predicate
+(define (in-debug?) (with-debugging-tool?))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document creation with specific style
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -81,7 +84,7 @@
     (catch #t
       thunk
       (lambda (err)
-        (debug-message (string-append "Preload warning [" name "]: "
+        (debug-message "startup-tab" (string-append "Preload warning [" name "]: "
                                      (object->string err) "\n"))
         #f)))
 
@@ -106,6 +109,10 @@
   ;; This ensures keyboard shortcuts work immediately after file open
   (preload-step "keyboard" (lambda () (lazy-keyboard-force #f)))
 
+  ;; 5. Preload font database (reduces UI rendering latency)
+  ;; This loads cached font information to avoid delays during first paint
+  (preload-step "font-db" (lambda () (font-database-load)))
+
   ;; Debug: log completion (only in debug mode)
   (when (in-debug?)
-    (debug-message "Startup tab: modules preloaded\n")))
+    (debug-message "startup-tab" "Startup tab: modules preloaded\n")))
