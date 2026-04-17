@@ -175,12 +175,16 @@ math_font_rep::supports (string c) {
 
 void
 math_font_rep::get_extents (string s, metric& ex) {
+  font fn;
+  search_font (s, fn);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->get_extents (s, ex);
+    return;
+  }
   // Fast path: single TeXmacs character
   int i= 0;
   tm_char_forwards (s, i);
   if (i >= N (s)) {
-    font fn;
-    search_font (s, fn);
     fn->get_extents (s, ex);
     return;
   }
@@ -215,13 +219,10 @@ math_font_rep::get_extents (string s, metric& ex) {
 void
 math_font_rep::get_xpositions (string s, SI* xpos) {
   if (s == "") return;
-  // Fast path: single TeXmacs character
-  int i= 0;
-  tm_char_forwards (s, i);
-  if (i >= N (s)) {
-    font   fn;
-    string r= s;
-    search_font (r, fn);
+  font   fn;
+  string r= s;
+  search_font (r, fn);
+  if (fn.operator->() != error_fn.operator->()) {
     if (r == s) fn->get_xpositions (s, xpos);
     else if (N (r) != 1) font_rep::get_xpositions (s, xpos);
     else {
@@ -232,6 +233,10 @@ math_font_rep::get_xpositions (string s, SI* xpos) {
     }
     return;
   }
+  // Fast path: single TeXmacs character
+  int i= 0;
+  tm_char_forwards (s, i);
+  if (i >= N (s)) return fn->get_xpositions (s, xpos);
   // Multi-character string: compute positions character by character.
   xpos[0]   = 0;
   SI advance= 0;
@@ -249,12 +254,16 @@ math_font_rep::get_xpositions (string s, SI* xpos) {
 
 void
 math_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
+  font fn;
+  search_font (s, fn);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->draw_fixed (ren, s, x, y);
+    return;
+  }
   // Fast path: single TeXmacs character
   int i= 0;
   tm_char_forwards (s, i);
   if (i >= N (s)) {
-    font fn;
-    search_font (s, fn);
     fn->draw_fixed (ren, s, x, y);
     return;
   }
@@ -275,12 +284,16 @@ math_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
 
 void
 math_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI xk) {
+  font fn;
+  search_font (s, fn);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->draw_fixed (ren, s, x, y, xk);
+    return;
+  }
   // Fast path: single TeXmacs character
   int i= 0;
   tm_char_forwards (s, i);
   if (i >= N (s)) {
-    font fn;
-    search_font (s, fn);
     fn->draw_fixed (ren, s, x, y, xk);
     return;
   }
