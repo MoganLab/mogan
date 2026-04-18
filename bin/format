@@ -7,12 +7,12 @@ if (eq $platform:os windows) {
     ~/scoop/apps/llvm/19.1.0/bin
   ]
 } elif (eq $platform:os linux) {
-  fn clang-format {|@a| e:clang-format-19 $@a }
   set paths = [
+    /usr/local/bin      # Fedora: user-compiled/symlinked binaries
     /usr/lib/llvm-19/bin
-    # archlinux clang-format is at /usr/bin
-    /usr/bin
+    /usr/bin            # Arch Linux
     $E:HOME/bin
+    $E:HOME/.local/bin
   ]
 } else {
   set paths = [
