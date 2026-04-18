@@ -240,9 +240,13 @@ if is_plat ("windows") then
 end
 
 add_requires("libjpeg")
-if is_plat("linux") then
+-- apt系统用系统包，其他发行版用源码构建
+if is_plat("linux") and (linuxos.name() == "ubuntu" or linuxos.name() == "debian" or linuxos.name() == "uos") then
     add_requires("apt::libpng-dev", {alias="libpng"})
     add_requires("apt::libcurl4-openssl-dev", {alias="libcurl"})
+else
+    add_requires("libpng", {system=false})
+    add_requires("libcurl", {system=false})
 end
 
 add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
