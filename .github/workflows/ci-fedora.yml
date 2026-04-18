@@ -42,7 +42,7 @@ jobs:
           dnf update -y
           dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build \
               google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
-              freetype-devel fontconfig-devel libgit2-devel \
+              freetype-devel fontconfig-devel libgit2-devel harfbuzz-devel \
               zlib-devel openssl-devel libjpeg-turbo-devel \
               mimalloc-devel dbus-devel glib2-devel \
               libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
