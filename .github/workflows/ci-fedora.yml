@@ -44,7 +44,7 @@ jobs:
               google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
               freetype-devel fontconfig-devel libgit2-devel \
               zlib-devel openssl-devel libjpeg-turbo-devel \
-              mimalloc-devel dbus-devel glib2-devel libegl-devel \
+              mimalloc-devel dbus-devel glib2-devel \
               libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
               xmake pandoc python3
       - uses: actions/checkout@v3
