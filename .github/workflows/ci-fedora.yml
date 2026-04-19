@@ -40,13 +40,13 @@ jobs:
       - name: Install dependencies
         run: |
           dnf update -y
-          dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build \
+          dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build pkgconf-pkg-config \
               google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
               freetype-devel fontconfig-devel libgit2-devel \
-              zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel \
+              zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel libcurl-devel \
               mimalloc-devel dbus-devel glib2-devel \
-              libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
-              xmake pandoc python3 mupdf-devel
+              libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel libX11-devel \
+              harfbuzz-devel xmake pandoc python3
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1

@@ -244,6 +244,9 @@ add_requires("libjpeg")
 if is_plat("linux") and (linuxos.name() == "ubuntu" or linuxos.name() == "debian" or linuxos.name() == "uos") then
     add_requires("apt::libpng-dev", {alias="libpng"})
     add_requires("apt::libcurl4-openssl-dev", {alias="libcurl"})
+elseif is_plat("linux") and (linuxos.name() == "fedora" or linuxos.name() == "rhel" or linuxos.name() == "centos" or linuxos.name() == "rocky" or linuxos.name() == "almalinux" or linuxos.name() == "ol") then
+    add_requires("libpng", {system=true})
+    add_requires("libcurl", {system=true})
 else
     add_requires("libpng", {system=false})
     add_requires("libcurl", {system=false})
@@ -264,9 +267,6 @@ if has_config("mupdf") then
        (linuxos.name() == "ubuntu" and linuxos.version():major() >= CURRENT_UBUNTU_VERSION)
     then
         add_requires("apt::libmupdf-dev", {alias="mupdf"})
-    elseif linuxos.name() == "fedora" or linuxos.name() == "rhel" or linuxos.name() == "centos" or
-           linuxos.name() == "almalinux" or linuxos.name() == "rocky" then
-        add_requires("mupdf", {system=true, alias="mupdf"})
     else
         add_requires("mupdf", {system=false})
     end
