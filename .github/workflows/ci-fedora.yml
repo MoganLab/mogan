@@ -46,7 +46,7 @@ jobs:
               zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel \
               mimalloc-devel dbus-devel glib2-devel \
               libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
-              xmake pandoc python3
+              xmake pandoc python3 mupdf-devel
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
@@ -75,7 +75,7 @@ jobs:
           key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes --ldflags="-lpng16"
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
       - name: build
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test

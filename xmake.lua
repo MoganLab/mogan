@@ -264,6 +264,9 @@ if has_config("mupdf") then
        (linuxos.name() == "ubuntu" and linuxos.version():major() >= CURRENT_UBUNTU_VERSION)
     then
         add_requires("apt::libmupdf-dev", {alias="mupdf"})
+    elseif linuxos.name() == "fedora" or linuxos.name() == "rhel" or linuxos.name() == "centos" or
+           linuxos.name() == "almalinux" or linuxos.name() == "rocky" then
+        add_requires("mupdf", {system=true, alias="mupdf"})
     else
         add_requires("mupdf", {system=false})
     end
