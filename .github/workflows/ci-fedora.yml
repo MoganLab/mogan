@@ -43,7 +43,7 @@ jobs:
           dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build \
               google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
               freetype-devel fontconfig-devel libgit2-devel \
-              zlib-devel openssl-devel libjpeg-turbo-devel \
+              zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel \
               mimalloc-devel dbus-devel glib2-devel \
               libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
               xmake pandoc python3
@@ -75,7 +75,7 @@ jobs:
           key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes --require=freetype --png=false
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes --ldflags="-lpng16"
       - name: build
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test
