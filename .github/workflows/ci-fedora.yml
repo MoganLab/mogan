@@ -75,7 +75,7 @@ jobs:
           key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes --ldflags=-lharfbuzz
       - name: build
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test
