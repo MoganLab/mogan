@@ -10,6 +10,7 @@
 
 class QHBoxLayout;
 class QPushButton;
+class QString;
 class QWidget;
 
 namespace QWK {
@@ -22,11 +23,13 @@ public:
   ~NotificationBar ();
 
   void     setContentWidget (QWidget* widget);
+  void     setSnoozeText (const QString& text);
   QWidget* contentWidget () const;
   void     clearContent ();
 
 signals:
   void closeRequested ();
+  void snoozeRequested ();
 
 private:
   void setupUI ();
@@ -37,6 +40,7 @@ private:
   QWidget*     m_contentHost;
   QHBoxLayout* m_contentLayout;
   QWidget*     m_contentWidget;
+  QPushButton* m_snoozeButton;
   QPushButton* m_closeButton;
 };
 

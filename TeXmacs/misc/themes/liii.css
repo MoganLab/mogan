@@ -881,6 +881,22 @@ QWidget#auxiliary_container {
   background-color: #e3f2fd;
 }
 
+#notificationSnoozeButton {
+  background-color: transparent;
+  color: #6b7280;
+  border: none;
+  padding: 0 6px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
+#notificationSnoozeButton:hover {
+  color: #4b5563;
+  text-decoration: underline;
+}
+
 #notificationCloseButton {
   background-color: transparent;
   color: #1565c0;

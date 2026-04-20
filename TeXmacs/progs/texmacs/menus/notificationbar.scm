@@ -103,6 +103,10 @@
   (notification-bar-snooze-notice! MEMBERSHIP-NOTICE-SNOOZE-UNTIL-KEY
                                    MEMBERSHIP-NOTICE-SNOOZE-DAYS))
 
+(tm-define (notification-bar-dismiss-membership-notice)
+  (:secure #t)
+  (set! notification-bar-membership-session-dismissed? #t))
+
 (tm-define (notification-bar-clear-membership-notice-history)
   (:secure #t)
   (set! notification-bar-membership-session-dismissed? #f)
@@ -124,6 +128,10 @@
   (notification-bar-snooze-notice!
     MEMBERSHIP-RENEW-SOON-NOTICE-SNOOZE-UNTIL-KEY
     MEMBERSHIP-RENEW-SOON-NOTICE-SNOOZE-DAYS))
+
+(tm-define (notification-bar-dismiss-renew-soon-notice)
+  (:secure #t)
+  (set! notification-bar-membership-renew-soon-session-dismissed? #t))
 
 (tm-define (notification-bar-clear-renew-soon-notice-history)
   (:secure #t)
@@ -320,6 +328,15 @@
 (tm-define (notification-bar-membership-renew-soon-button-label)
   (translate "Renew Early"))
 
+(tm-define (notification-bar-snooze-action-label)
+  (with item notification-bar-last-rendered-item
+    (cond
+      ((== item "membership-renew-soon")
+       (translate "Do not show me in 1 day"))
+      ((== item "membership")
+       (translate "Do not show me in 7 days"))
+      (else ""))))
+
 (tm-define (notification-bar-open-membership-renew-soon-plans)
   (notification-bar-snooze-renew-soon-notice)
   (open-pricing-url)
@@ -343,11 +360,11 @@
   (with item notification-bar-last-rendered-item
     (cond
       ((== item "membership-renew-soon")
-       (notification-bar-snooze-renew-soon-notice)
+       (notification-bar-dismiss-renew-soon-notice)
        (when (current-view) (update-menus))
        #t)
       ((== item "membership")
-       (notification-bar-snooze-membership-notice)
+       (notification-bar-dismiss-membership-notice)
        (when (current-view) (update-menus))
        #t)
       (else #f))))
@@ -372,17 +389,13 @@
   (text (notification-bar-membership-renew-soon-message))
   >>>
   ((eval (notification-bar-membership-renew-soon-button-label))
-   (notification-bar-open-membership-renew-soon-plans))
-  //
-  ("Remind later" (notification-bar-snooze-membership-renew-soon)))
+   (notification-bar-open-membership-renew-soon-plans)))
 
 (menu-bind texmacs-notification-bar-four
   (text (notification-bar-membership-message))
   >>>
   ((eval (notification-bar-membership-button-label))
-   (notification-bar-open-membership-plans))
-  //
-  ("Remind later" (notification-bar-snooze-membership-expired)))
+   (notification-bar-open-membership-plans)))
 
 (menu-bind texmacs-notification-bar
   (if (== (notification-bar-current-item) "membership-renew-soon")

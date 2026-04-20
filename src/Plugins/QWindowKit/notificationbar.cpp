@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStyle>
+#include <QString>
 #include <QWidget>
 
 namespace QWK {
@@ -16,7 +17,7 @@ namespace QWK {
 NotificationBar::NotificationBar (QWidget* parent)
     : QFrame (parent), m_layout (nullptr), m_contentHost (nullptr),
       m_contentLayout (nullptr), m_contentWidget (nullptr),
-      m_closeButton (nullptr) {
+      m_snoozeButton (nullptr), m_closeButton (nullptr) {
   setupUI ();
 }
 
@@ -40,6 +41,17 @@ NotificationBar::setupUI () {
   m_contentLayout->setSpacing (0);
   m_layout->addWidget (m_contentHost, 0, Qt::AlignCenter);
   m_layout->addStretch (1);
+
+  m_snoozeButton= new QPushButton (this);
+  m_snoozeButton->setObjectName ("notificationSnoozeButton");
+  m_snoozeButton->setCursor (Qt::PointingHandCursor);
+  m_snoozeButton->setFlat (true);
+  m_snoozeButton->setFocusPolicy (Qt::NoFocus);
+  m_snoozeButton->hide ();
+  connect (m_snoozeButton, &QPushButton::clicked, this,
+           &NotificationBar::snoozeRequested);
+  m_layout->addWidget (m_snoozeButton, 0, Qt::AlignVCenter);
+  m_layout->addSpacing (8);
 
   m_closeButton= new QPushButton ("×", this);
   m_closeButton->setObjectName ("notificationCloseButton");
@@ -74,6 +86,14 @@ NotificationBar::setContentWidget (QWidget* widget) {
   show ();
 }
 
+void
+NotificationBar::setSnoozeText (const QString& text) {
+  if (!m_snoozeButton) return;
+
+  m_snoozeButton->setText (text);
+  m_snoozeButton->setVisible (!text.isEmpty ());
+}
+
 QWidget*
 NotificationBar::contentWidget () const {
   return m_contentWidget;
@@ -81,6 +101,7 @@ NotificationBar::contentWidget () const {
 
 void
 NotificationBar::clearContent () {
+  setSnoozeText (QString ());
   setContentWidget (nullptr);
 }
 

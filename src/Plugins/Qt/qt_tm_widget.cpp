@@ -364,17 +364,20 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (
       scmNotificationBar, &QWK::NotificationBar::closeRequested, [this] () {
         eval ("(use-modules (texmacs menus notificationbar))");
-        bool handled= false;
-
-        if (m_currentScmNotificationItem == QStringLiteral ("membership")) {
-          call ("notification-bar-snooze-membership-notice");
-          call ("update-menus");
-          handled= true;
-        }
-
-        if (!handled) handled= as_bool (call ("notification-bar-handle-close"));
+        bool handled= as_bool (call ("notification-bar-handle-close"));
 
         if (!handled && scmNotificationBar) scmNotificationBar->hide ();
+      });
+  QObject::connect (
+      scmNotificationBar, &QWK::NotificationBar::snoozeRequested, [this] () {
+        eval ("(use-modules (texmacs menus notificationbar))");
+        if (m_currentScmNotificationItem ==
+            QStringLiteral ("membership-renew-soon")) {
+          call ("notification-bar-snooze-membership-renew-soon");
+        }
+        else if (m_currentScmNotificationItem == QStringLiteral ("membership")) {
+          call ("notification-bar-snooze-membership-expired");
+        }
       });
   if (!is_community_stem ()) checkNetworkAvailable ();
 
@@ -1447,6 +1450,10 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
         eval ("(use-modules (texmacs menus notificationbar))");
         m_currentScmNotificationItem=
             to_qstring (as_string (call ("notification-bar-rendered-item")));
+        if (scmNotificationBar) {
+          scmNotificationBar->setSnoozeText (to_qstring (
+              as_string (call ("notification-bar-snooze-action-label"))));
+        }
       }
     }
     break;
