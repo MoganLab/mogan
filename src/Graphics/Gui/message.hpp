@@ -60,7 +60,6 @@ enum slot_id {
   SLOT_MAIN_ICONS,
   SLOT_TAB_PAGES_VISIBILITY,
   SLOT_TAB_PAGES,
-  SLOT_NOTIFICATION_BAR,
   SLOT_AUXILIARY_WIDGET_VISIBILITY,
   SLOT_AUXILIARY_WIDGET_TITLE,
   SLOT_AUXILIARY_WIDGET,
@@ -611,11 +610,6 @@ inline void
 set_auxiliary_widget (widget w, widget aux, string name) {
   write (w, SLOT_AUXILIARY_WIDGET, aux);
   send (w, SLOT_AUXILIARY_WIDGET, name);
-}
-
-inline void
-set_notification_bar (widget w, widget bar) {
-  write (w, SLOT_NOTIFICATION_BAR, bar);
 }
 
 inline void

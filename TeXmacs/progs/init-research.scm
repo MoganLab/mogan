@@ -129,7 +129,6 @@
 (lazy-menu (texmacs menus preferences-menu) preferences-menu page-setup-menu)
 (lazy-menu (texmacs menus preferences-widgets) open-preferences)
 (use-modules (texmacs menus main-menu))
-(use-modules (texmacs menus notificationbar))
 (use-modules (texmacs menus tabpage-menu))
 (use-modules (startup-tab startup-tab))
 (lazy-define (texmacs menus file-menu) recent-file-list recent-directory-list)
@@ -527,3 +526,4 @@
                   (display "Timing:") (display (- (texmacs-time) start-time)) (newline)
                   ;(quit-TeXmacs)
                   ))))))))))))
+

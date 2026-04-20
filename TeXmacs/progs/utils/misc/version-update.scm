@@ -44,7 +44,6 @@
 (define LAST-CHECK-KEY "version_last_check")
 (define SNOOZE-UNTIL-KEY "version_snooze_until")
 (define MOCK-VERSION-KEY "version_mock_remote")
-(define IGNORED-VERSION-KEY "version_ignored_remote")
 
 (define (current-timestamp)
   (current-time))
@@ -57,19 +56,10 @@
          (snooze-time (if (== snooze-until "") 0 (string->number snooze-until))))
     (>= now snooze-time)))
 
-(tm-define (version-update-snooze-until)
-  (:secure #t)
-  (or (persistent-get (get-texmacs-home-path) SNOOZE-UNTIL-KEY) "0"))
-
-(tm-define (clear-version-update-snooze-history)
-  (:secure #t)
-  (persistent-remove (get-texmacs-home-path) SNOOZE-UNTIL-KEY))
-
 ;; 强制清除所有记录（用于测试）
 (tm-define (clear-version-update-history)
   (:secure #t)
-  (clear-version-update-snooze-history)
-  (persistent-remove (get-texmacs-home-path) IGNORED-VERSION-KEY)
+  (persistent-remove (get-texmacs-home-path) SNOOZE-UNTIL-KEY)
   (clear-mock-remote-version))
 
 ;; 稍后提醒（使用默认间隔）
@@ -79,23 +69,6 @@
          (future (+ now (* SNOOZE-DAYS 24 3600))))
     (persistent-set (get-texmacs-home-path) SNOOZE-UNTIL-KEY
                     (number->string future))))
-
-(tm-define (get-ignored-version-update)
-  (:secure #t)
-  (or (persistent-get (get-texmacs-home-path) IGNORED-VERSION-KEY) ""))
-
-(tm-define (version-update-ignored? remote-version)
-  (:secure #t)
-  (and (string? remote-version)
-       (!= remote-version "")
-       (== remote-version (get-ignored-version-update))))
-
-(tm-define (ignore-version-update remote-version)
-  (:secure #t)
-  (if (or (not (string? remote-version)) (== remote-version ""))
-      (persistent-remove (get-texmacs-home-path) IGNORED-VERSION-KEY)
-      (persistent-set (get-texmacs-home-path) IGNORED-VERSION-KEY
-                      remote-version)))
 
 ;; 获取下载页URL
 ;; 社区版跳转到 mogan.app，商业版跳转到 liiistem.cn/com
