@@ -66,8 +66,19 @@ jobs:
       - name: Setup App Store Connect API Key
         run: |
           mkdir -p ~/.appstoreconnect/private_keys/
-          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > \
-            ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+          # 直接写入原始 .p8 内容（非 base64）
+          cat > ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 << 'PRIVATEKEY'
+          ${{ secrets.APPLE_API_KEY_P8 }}
+          PRIVATEKEY
+          chmod 600 ~/.appstoreconnect/private_keys/AuthKey_*.p8
+          
+          # 验证文件
+          echo "API Key 文件大小:"
+          ls -la ~/.appstoreconnect/private_keys/AuthKey_*.p8
+          echo "文件头部:"
+          head -1 ~/.appstoreconnect/private_keys/AuthKey_*.p8
+          echo "文件尾部:"
+          tail -1 ~/.appstoreconnect/private_keys/AuthKey_*.p8
       
       - name: Sign application bundle
         run: |
