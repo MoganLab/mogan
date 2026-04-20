@@ -14,6 +14,7 @@
 #include "qlabel.h"
 #include "qnamespace.h"
 #include "qt_guide_task_executor.hpp"
+#include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "tm_file.hpp"
 #include "tm_sys_utils.hpp"
@@ -32,8 +33,15 @@
 #include <QTimer>
 
 extern bool texmacs_started;
+extern bool qt_startup_quit_requested;
 
 namespace QWK {
+
+static void
+requestAsyncStartupQuit () {
+  qt_startup_quit_requested= true;
+  if (the_gui != NULL) the_gui->need_update ();
+}
 
 static bool
 hasCachedLoginSession () {
@@ -513,7 +521,8 @@ StartupLoginDialog::handleSkipButtonClick () {
   emit skipRequested ();
 
   if (asyncStartupMode) {
-    QTimer::singleShot (0, qApp, [] () { qApp->quit (); });
+    requestAsyncStartupQuit ();
+    close ();
     return;
   }
 
@@ -671,7 +680,7 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
   QDialog::closeEvent (event);
 
   if (asyncStartupMode && !userChoiceMade) {
-    QTimer::singleShot (0, qApp, [] () { qApp->quit (); });
+    requestAsyncStartupQuit ();
   }
 }
 

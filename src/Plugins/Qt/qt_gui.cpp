@@ -23,6 +23,7 @@
 #include "new_window.hpp"
 #include "preferences.hpp"
 #include "scheme.hpp"
+#include "server.hpp"
 #include "tm_file.hpp"
 #include "tm_window.hpp"
 
@@ -97,6 +98,7 @@ using namespace moebius;
 
 qt_gui_rep* the_gui   = NULL;
 int         nr_windows= 0; // FIXME: fake variable, referenced in tm_server
+bool        qt_startup_quit_requested= false;
 
 /******************************************************************************
  * FIXME: temporary hack by Joris
@@ -915,6 +917,11 @@ qt_gui_rep::update () {
 
   if (waiting_events.size () > 0) needing_update= true;
   if (interrupted) needing_update= true;
+  if (qt_startup_quit_requested) {
+    qt_startup_quit_requested= false;
+    get_server ()->quit ();
+    return;
+  }
   if (!headless_mode && nr_windows == 0) qApp->quit ();
 
   time_t delay= std_delay;
