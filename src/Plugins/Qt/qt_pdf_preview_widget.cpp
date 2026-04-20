@@ -32,8 +32,8 @@ constexpr float  kRenderOversample         = 2.0F;
 constexpr float  kMinRenderScale           = 0.1F;
 constexpr float  kMaxRenderScale           = 8.0F;
 constexpr int    kMargin                   = 0;
-constexpr int    kDefaultPreviewWidth      = 460;
-constexpr int    kDefaultPreviewHeight     = 400;
+constexpr int    kDefaultPreviewWidth      = 800;
+constexpr int    kDefaultPreviewHeight     = 600;
 constexpr double kDefaultAspectRatio       = 1.414; // A4比例
 constexpr int    kButtonOffset             = 10;
 constexpr int    kPageIndicatorBottomMargin= 10;
@@ -179,7 +179,22 @@ QTPdfPreviewWidget::calculateOptimalSize (int availWidth,
 
 void
 QTPdfPreviewWidget::updatePreviewSize () {
-  if (!previewContainer_) return;
+  if (!previewContainer_ || !previewLabel_) return;
+
+  // Calculate available size for preview
+  int availWidth = previewContainer_->width () - kMargin * 2;
+  int availHeight= previewContainer_->height () - kMargin * 2;
+
+  if (availWidth < 64 || availHeight < 64) {
+    // Use default size if container is too small
+    previewLabel_->setFixedSize (
+        DpiUtils::scaled (kDefaultPreviewWidth, this->screen ()),
+        DpiUtils::scaled (kDefaultPreviewHeight, this->screen ()));
+  }
+  else {
+    previewLabel_->setFixedSize (availWidth, availHeight);
+  }
+
   updateButtonPositions ();
 }
 
@@ -332,14 +347,9 @@ void
 QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
   isLoading_= false;
   // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免”跳缩放”
-  if (currentLoadType_ == LoadType::PDF) {
-    // Just trigger a repaint
-    update ();
-  }
-  else {
-    // For images, use QLabel
-    previewLabel_->setPixmap (pixmap);
-  }
+
+  previewLabel_->setPixmap (pixmap);
+
   emit loadingFinished (true);
 }
 
