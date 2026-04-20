@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_preview_widget.hpp
- * DESCRIPTION: PDF preview widget using MuPDF with bottom controls
+ * DESCRIPTION: PDF preview widget using MuPDF with vector rendering
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
@@ -17,6 +17,8 @@
 #include <QSize>
 #include <QWidget>
 
+#include <mupdf/fitz.h>
+
 // Forward declarations
 class QPushButton;
 class QLabel;
@@ -26,15 +28,17 @@ class QScrollArea;
 class QFrame;
 
 /**
- * @brief PDF预览控件 - 带悬停式翻页控制
+ * @brief PDF预览控件 - 带悬停式翻页控制和矢量渲染
  *
  * 功能特性:
  * - 从URL或本地文件加载PDF
+ * - MuPDF矢量渲染（任意缩放清晰）
  * - 悬停显示左右翻页按钮（圆形）
  * - 底部居中页码指示器
  * - 自适应页面宽高比
  * - 高分DPI渲染
  * - 支持异步网络加载
+ * - PDF文件本地缓存
  */
 class QTPdfPreviewWidget : public QWidget {
   Q_OBJECT
@@ -91,6 +95,7 @@ private:
 private slots:
   void onNetworkReplyFinished ();
   void onImageNetworkReplyFinished ();
+  void onConditionalReplyFinished (const QString& cachedFilePath, int dpi);
   void goToPreviousPage ();
   void goToNextPage ();
   void goToPage (int page);
@@ -123,7 +128,7 @@ private:
 private:
   // UI组件
   QWidget*     previewContainer_; // 预览容器（包含预览图和悬停按钮）
-  QLabel*      previewLabel_;     // 预览图
+  QLabel*      previewLabel_;     // 预览图（仅用于图片加载，PDF用矢量渲染）
   QPushButton* prevBtn_;          // 上一页按钮（左侧）
   QPushButton* nextBtn_;          // 下一页按钮（右侧）
   QLabel*      pageIndicator_;    // 页码显示（底部居中）

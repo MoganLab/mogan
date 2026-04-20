@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_preview_widget.cpp
- * DESCRIPTION: PDF preview widget with hover navigation
+ * DESCRIPTION: PDF preview widget using MuPDF with vector rendering
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
@@ -13,13 +13,15 @@
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
 
 #include <mutex>
 
 #include "MuPDF/mupdf_renderer.hpp"
-#include "pdf_preview_cache.hpp"
+#include "pdf_file_cache.hpp"
+
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include <mupdf/fitz.h>
@@ -178,20 +180,6 @@ QTPdfPreviewWidget::calculateOptimalSize (int availWidth,
 void
 QTPdfPreviewWidget::updatePreviewSize () {
   if (!previewContainer_) return;
-
-  int previewWidth, previewHeight;
-  int availWidth = previewContainer_->width () - kMargin;
-  int availHeight= previewContainer_->height () - kMargin;
-  if (availWidth < 64 || availHeight < 64) {
-    previewWidth = DpiUtils::scaled (kDefaultPreviewWidth, this->screen ());
-    previewHeight= DpiUtils::scaled (kDefaultPreviewHeight, this->screen ());
-  }
-  else {
-    calculatePreviewDimensions (availWidth, availHeight, previewWidth,
-                                previewHeight);
-  }
-
-  previewLabel_->setFixedSize (previewWidth, previewHeight);
   updateButtonPositions ();
 }
 
@@ -212,25 +200,31 @@ QTPdfPreviewWidget::loadFromUrl (const QString& url, int dpi) {
 
   setControlsVisible (false);
 
-  // Check cache first
-  QPixmap cached  = PdfPreviewCache::instance ()->get (url, currentPage_, dpi);
-  bool    cacheHit= !cached.isNull ();
-  if (cacheHit) {
-    // Ensure correct DPR for cached pixmap
-    cached.setDevicePixelRatio (previewLabel_->devicePixelRatioF ());
-    setPreviewPixmap (cached);
-    // 缓存命中时，临时设置页数为2以显示按钮（翻页时会获取真实页数）
-    // 注意：这里不能提前返回，需要继续获取PDF数据以确定真实页数
-    pageCount_= 2;
-    updatePageControls ();
-    // 如果鼠标在预览区域上，显示按钮
-    if (previewContainer_ && previewContainer_->underMouse ()) {
-      setControlsVisible (true);
+  // First check if PDF file is cached locally
+  PdfCacheEntry cachedEntry= PdfFileCache::instance ()->getEntry (url);
+  if (cachedEntry.isValid ()) {
+    // Check if remote has updated (conditional request)
+    QNetworkRequest request (url);
+    if (!cachedEntry.etag.isEmpty ()) {
+      request.setRawHeader ("If-None-Match", cachedEntry.etag.toUtf8 ());
     }
+    if (cachedEntry.lastModified.isValid ()) {
+      request.setRawHeader ("If-Modified-Since",
+                            cachedEntry.lastModified.toUTC ()
+                                .toString (Qt::RFC2822Date)
+                                .toUtf8 ());
+    }
+    currentReply_= networkManager_->get (request);
+
+    connect (currentReply_, &QNetworkReply::finished, this,
+             [this, cachedEntry, dpi] () {
+               onConditionalReplyFinished (cachedEntry.filePath, dpi);
+             });
+    return;
   }
-  else {
-    showLoading ();
-  }
+
+  // Show loading state
+  showLoading ();
 
   QNetworkRequest request (url);
   currentReply_= networkManager_->get (request);
@@ -255,38 +249,21 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
 
   setControlsVisible (false);
 
-  // Check cache first
-  QPixmap cached=
-      PdfPreviewCache::instance ()->get (filePath, currentPage_, dpi);
-  bool cacheHit= !cached.isNull ();
-  if (cacheHit) {
-    // Ensure correct DPR for cached pixmap
-    cached.setDevicePixelRatio (previewLabel_->devicePixelRatioF ());
-    setPreviewPixmap (cached);
-    // 缓存命中时临时设置页数以显示按钮，后续渲染会更新真实页数
-    pageCount_= 2;
-    updatePageControls ();
-    if (previewContainer_ && previewContainer_->underMouse ()) {
-      setControlsVisible (true);
-    }
-
-    QFile file (filePath);
-    if (!file.open (QIODevice::ReadOnly)) {
-      errorString_=
-          qt_translate ("Cannot open file: %1").arg (file.errorString ());
-      hasError_= true;
-      showError (errorString_);
-      emit loadingFinished (false);
-      return false;
-    }
-
-    pdfData_= file.readAll ();
-    file.close ();
-
-    return renderCurrentPage ();
+  // Read file and render
+  QFile file (filePath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    errorString_=
+        qt_translate ("Cannot open file: %1").arg (file.errorString ());
+    hasError_= true;
+    showError (errorString_);
+    emit loadingFinished (false);
+    return false;
   }
 
-  return false;
+  pdfData_= file.readAll ();
+  file.close ();
+
+  return renderCurrentPage ();
 }
 
 bool
@@ -354,8 +331,15 @@ QTPdfPreviewWidget::showError (const QString& message) {
 void
 QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
   isLoading_= false;
-  // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免“跳缩放”
-  previewLabel_->setPixmap (pixmap);
+  // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免”跳缩放”
+  if (currentLoadType_ == LoadType::PDF) {
+    // Just trigger a repaint
+    update ();
+  }
+  else {
+    // For images, use QLabel
+    previewLabel_->setPixmap (pixmap);
+  }
   emit loadingFinished (true);
 }
 
@@ -406,8 +390,48 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
     return;
   }
 
+  // Save to file cache for future use
+  PdfFileCache::instance ()->saveToCache (currentKey_, pdfData_);
+
+  // Extract and save HTTP cache headers
+  QString   etag;
+  QDateTime lastModified;
+  if (reply) {
+    etag              = QString::fromUtf8 (reply->rawHeader ("ETag"));
+    QString lastModStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
+    if (!lastModStr.isEmpty ()) {
+      lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
+      lastModified.setTimeZone (QTimeZone::utc ());
+    }
+  }
+
+  // Save to cache with HTTP metadata
+  PdfFileCache::instance ()->saveToCache (currentKey_, pdfData_, etag,
+                                          lastModified);
+
   renderCurrentPage ();
   currentLoadType_= LoadType::None;
+}
+
+void
+QTPdfPreviewWidget::onConditionalReplyFinished (const QString& cachedFilePath,
+                                                int            dpi) {
+  QPointer<QNetworkReply> reply= currentReply_;
+  currentReply_                = nullptr;
+
+  if (!reply) return;
+
+  // 304 Not Modified - use cached file
+  if (reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt () ==
+      304) {
+    qDebug () << "[PDF Preview] Remote not modified, using cache";
+    reply->deleteLater ();
+    loadFromFile (cachedFilePath, dpi);
+    return;
+  }
+
+  // Error or 200 OK - fallback to normal handling
+  onNetworkReplyFinished ();
 }
 
 bool
@@ -559,14 +583,9 @@ QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
     pixmap        = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
                                    Qt::SmoothTransformation);
     pixmap.setDevicePixelRatio (dpr);
+    // Show the rendered pixmap
     setPreviewPixmap (pixmap);
     success= true;
-
-    // Cache the rendered page for future use
-    if (!currentKey_.isEmpty ()) {
-      PdfPreviewCache::instance ()->put (currentKey_, currentPage_, targetDpi_,
-                                         pixmap, true);
-    }
 
     updatePageControls ();
 
