@@ -12,8 +12,8 @@
 #define STARTUP_LOGIN_DIALOG_H
 
 #include <QEvent>
-#include <QPropertyAnimation>
 #include <QPoint>
+#include <QPropertyAnimation>
 #include <QtWidgets/QCheckBox>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QHBoxLayout>

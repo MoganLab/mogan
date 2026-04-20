@@ -10,13 +10,13 @@
 
 #include "qt_guide_window.hpp"
 #include "boot.hpp"
+#include "preferences.hpp"
 #include "qlabel.h"
 #include "qnamespace.h"
 #include "qt_guide_task_executor.hpp"
 #include "qt_utilities.hpp"
 #include "tm_file.hpp"
 #include "tm_sys_utils.hpp"
-#include "preferences.hpp"
 #include <QApplication>
 #include <QCloseEvent>
 #include <QColor>
@@ -303,7 +303,8 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
       featureLabel3 (nullptr), featureLabel4 (nullptr),
       autoBackupCheckBox (nullptr), loginButton (nullptr), skipButton (nullptr),
       mainLayout (nullptr), featureLayout (nullptr), buttonLayout (nullptr),
-      progressBar (nullptr), statusLabel (nullptr), timeEstimationLabel (nullptr),
+      progressBar (nullptr), statusLabel (nullptr),
+      timeEstimationLabel (nullptr),
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
       windowAgent (nullptr),
 #endif
@@ -626,49 +627,50 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
 bool
 StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
   switch (event->type ()) {
-    case QEvent::MouseButtonPress: {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (mouseEvent->button () != Qt::LeftButton) break;
-      if (QWindow* handle= windowHandle ()) {
-        if (handle->startSystemMove ()) {
-          if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
-            widget->setCursor (Qt::ClosedHandCursor);
-          }
-          dragInProgress= false;
-          return true;
+  case QEvent::MouseButtonPress: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    if (QWindow* handle= windowHandle ()) {
+      if (handle->startSystemMove ()) {
+        if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+          widget->setCursor (Qt::ClosedHandCursor);
         }
+        dragInProgress= false;
+        return true;
       }
+    }
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-      const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
 #else
-      const QPoint globalPos= mouseEvent->globalPos ();
+    const QPoint globalPos= mouseEvent->globalPos ();
 #endif
-      dragInProgress= true;
-      dragOffset    = globalPos - frameGeometry ().topLeft ();
-      if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
-        widget->setCursor (Qt::ClosedHandCursor);
-      }
-      return true;
+    dragInProgress= true;
+    dragOffset    = globalPos - frameGeometry ().topLeft ();
+    if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+      widget->setCursor (Qt::ClosedHandCursor);
     }
-    case QEvent::MouseMove: {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (!dragInProgress || !(mouseEvent->buttons () & Qt::LeftButton)) break;
+    return true;
+  }
+  case QEvent::MouseMove: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (!dragInProgress || !(mouseEvent->buttons () & Qt::LeftButton)) break;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-      const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
 #else
-      const QPoint globalPos= mouseEvent->globalPos ();
+    const QPoint globalPos= mouseEvent->globalPos ();
 #endif
-      move (globalPos - dragOffset);
-      return true;
-    }
-    case QEvent::MouseButtonRelease: {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (mouseEvent->button () != Qt::LeftButton) break;
-      dragInProgress= false;
-      resetDragCursor ();
-      return true;
-    }
-    default: break;
+    move (globalPos - dragOffset);
+    return true;
+  }
+  case QEvent::MouseButtonRelease: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    dragInProgress= false;
+    resetDragCursor ();
+    return true;
+  }
+  default:
+    break;
   }
 
   return QDialog::eventFilter (watched, event);
@@ -683,9 +685,10 @@ StartupLoginDialog::installDragHandler (QWidget* widget) {
 
 void
 StartupLoginDialog::resetDragCursor () {
-  static QWidget* const dragHandles[]=
-      {this, titleLabel, iconLabel, subtitleLabel, featureLabel1, featureLabel2,
-       featureLabel3, featureLabel4, statusLabel, timeEstimationLabel};
+  static QWidget* const dragHandles[]= {
+      this,          titleLabel,         iconLabel,     subtitleLabel,
+      featureLabel1, featureLabel2,      featureLabel3, featureLabel4,
+      statusLabel,   timeEstimationLabel};
 
   for (QWidget* widget : dragHandles) {
     if (widget) {
@@ -696,13 +699,13 @@ StartupLoginDialog::resetDragCursor () {
 
 bool
 StartupLoginDialog::getAutoBackup () {
-  return get_preference("autobackup") == "on";
+  return get_preference ("autobackup") == "on";
 }
 
 void
 StartupLoginDialog::setAutoBackup (bool autobackup) {
-  if (autobackup) set_preference("autobackup", "on");
-  else set_preference("autobackup", "off");
+  if (autobackup) set_preference ("autobackup", "on");
+  else set_preference ("autobackup", "off");
 }
 
 } // namespace QWK
