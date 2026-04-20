@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDockWidget>
+#include <QFontMetrics>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -346,10 +347,24 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     windowAgent->setHitTestVisible (loginButton, true);
   }
 
-  m_loginDialog= new QWK::LoginDialog (mainwindow ());
-  setupLoginDialog (m_loginDialog);
-  QObject::connect (loginButton, &QWK::LoginButton::clicked,
-                    [this] () { checkLocalTokenAndLogin (); });
+  if (is_community_stem ()) {
+    // 社区版：点击直接跳转官网，无状态变化
+    loginButton->setToolTip (qt_translate ("User Center"));
+    QObject::connect (loginButton, &QWK::LoginButton::clicked, [this] () {
+      string pricingUrl=
+          as_string (call ("account-oauth2-config", "click-return-liii-url"));
+      QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+    });
+  }
+  else {
+    // 商业版：完整登录功能
+    updateLoginButtonState (false);
+
+    m_loginDialog= new QWK::LoginDialog (mainwindow ());
+    setupLoginDialog (m_loginDialog);
+    QObject::connect (loginButton, &QWK::LoginButton::clicked,
+                      [this] () { checkLocalTokenAndLogin (); });
+  }
 
   // 创建 SCM 通知条容器（放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
@@ -704,26 +719,30 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
         dynamic_cast<tm_server_rep*> (get_server ().operator->());
     if (server && server->getAccount ()) {
       QTMOAuth* account= server->getAccount ();
-      QObject::connect (account, &QTMOAuth::loginStateChanged,
-                        [this] (bool loggedIn) {
-                          if (loggedIn) {
-                            syncScmGuestNotification (false);
-                            refreshMembershipInfoInBackground ();
-                          }
-                          else {
-                            syncScmMembershipNotification (false);
-                            if (is_community_stem ()) {
+      // 商业版：连接登录状态变化信号
+      if (!is_community_stem ()) {
+        QObject::connect (account, &QTMOAuth::loginStateChanged,
+                          [this] (bool loggedIn) {
+                            updateLoginButtonState (
+                                loggedIn,
+                                loggedIn ? qt_translate ("User Center")
+                                         : QString ());
+                            if (loggedIn) {
                               syncScmGuestNotification (false);
+                              refreshMembershipInfoInBackground ();
                             }
                             else {
+                              syncScmMembershipNotification (false);
                               checkNetworkAvailable ();
                             }
-                          }
-                        });
-
-      if (account->isLoggedIn ()) {
-        refreshMembershipInfoInBackground ();
-      }
+                          });
+        updateLoginButtonState (account->isLoggedIn (),
+                                account->isLoggedIn ()
+                                    ? qt_translate ("User Center")
+                                    : QString ());
+        if (account->isLoggedIn ()) {
+          refreshMembershipInfoInBackground ();
+        }
     }
   }
   else {
@@ -2255,7 +2274,68 @@ qt_tm_widget_rep::triggerOAuth2 () {
   }
   // 直接调用scheme代码触发OAuth2登录流程
   eval ("(use-modules (liii account))");
-  call ("(login)");
+  call ("login");
+}
+
+void
+qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
+                                          const QString& displayName) {
+  if (!loginButton) return;
+
+  // 设置登录状态属性，用于QSS样式区分
+  loginButton->setProperty ("login-state", isLoggedIn ? "logged-in" : "not-logged-in");
+
+  // 未登录时显示"未登录"，已登录时不显示文字（只显示图标）
+  QString label;
+  if (!isLoggedIn) {
+    label= qt_translate ("Not logged in");
+  }
+#if defined(Q_OS_MAC)
+  loginButton->setIconSize (
+      QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
+#else
+  loginButton->setIconSize (
+      QSize (DpiUtils::scaled (12), DpiUtils::scaled (12)));
+#endif
+  // 已登录时不设置文字，只显示图标
+
+  QFontMetrics metrics (loginButton->font ());
+  const int    maxTextWidth= DpiUtils::scaled (76);
+  const QString visibleText=
+      metrics.elidedText (label, Qt::ElideRight, maxTextWidth);
+
+  loginButton->setText (visibleText);
+  loginButton->setToolTip (isLoggedIn ? qt_translate ("User Center") : label);
+  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center") : label);
+
+  const int horizontalPadding= DpiUtils::scaled (26);
+  const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
+  const int iconWidth        = loginButton->iconSize ().width ();
+  const int textWidth        = metrics.horizontalAdvance (visibleText);
+  const int minWidth=
+      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (96);
+  const int maxWidth=
+      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (120);
+  const int rawDesiredWidth=
+      iconWidth + iconTextSpacing + textWidth + horizontalPadding;
+  const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
+
+  // 强制刷新样式以应用状态相关样式
+  loginButton->style ()->unpolish (loginButton);
+  loginButton->style ()->polish (loginButton);
+  auto applyWidth= [this, desiredWidth] () {
+    if (!loginButton) return;
+    loginButton->setMinimumWidth (desiredWidth);
+    loginButton->setMaximumWidth (desiredWidth);
+    loginButton->setFixedWidth (desiredWidth);
+    loginButton->resize (desiredWidth, loginButton->height ());
+    loginButton->updateGeometry ();
+    if (loginButton->parentWidget () && loginButton->parentWidget ()->layout ())
+      loginButton->parentWidget ()->layout ()->activate ();
+  };
+  applyWidth ();
+
+  QTimer::singleShot (0, loginButton, applyWidth);
 }
 
 void
@@ -2266,6 +2346,8 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
                                        const QString& productType) {
+  updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
+
   // 更新对话框中的UI组件内容
   if (nameLabel) {
     nameLabel->setText (username);
@@ -2299,22 +2381,24 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
   }
 
   // 根据登陆与否更新按钮
-  if (!isLoggedIn) {
-    loginActionButton->setVisible (true);
-    logoutButton->setVisible (false);
-    loginActionButton->setText (qt_translate ("Login"));
-  }
-  else {
-    loginActionButton->setVisible (true);
-    logoutButton->setVisible (true);
-    // 如果productType=Renew Early,后面加上♥️
-    if (productType == QStringLiteral ("Renew Early")) {
-      loginActionButton->setText (
-          qt_translate (productType.toStdString ().c_str ()) + " ♥️");
+  if (loginActionButton && logoutButton) {
+    if (!isLoggedIn) {
+      loginActionButton->setVisible (true);
+      logoutButton->setVisible (false);
+      loginActionButton->setText (qt_translate ("Login"));
     }
     else {
-      loginActionButton->setText (
-          qt_translate (productType.toStdString ().c_str ()));
+      loginActionButton->setVisible (true);
+      logoutButton->setVisible (true);
+      // 如果productType=Renew Early,后面加上♥️
+      if (productType == QStringLiteral ("Renew Early")) {
+        loginActionButton->setText (
+            qt_translate (productType.toStdString ().c_str ()) + " ♥️");
+      }
+      else {
+        loginActionButton->setText (
+            qt_translate (productType.toStdString ().c_str ()));
+      }
     }
   }
 }
