@@ -183,11 +183,6 @@ StartupLoginDialog::setupSignalConnections () {
   // 连接跳过按钮点击信号
   connect (skipButton, &QPushButton::clicked, this,
            &StartupLoginDialog::handleSkipButtonClick);
-
-  connect (autoBackupCheckBox, &QCheckBox::toggled, this,
-           [this] (bool checked) {
-             StartupLoginDialog::setAutoBackup(checked);
-           });
 }
 
 QString
@@ -451,6 +446,10 @@ StartupLoginDialog::startBackgroundInitialization () {
 
 void
 StartupLoginDialog::handleLoginButtonClick () {
+  if (autoBackupCheckBox) {
+    setAutoBackup (autoBackupCheckBox->isChecked ());
+  }
+
   result        = StartupLoginDialog::LoginClicked;
   userChoiceMade= true;
   emit loginRequested ();
@@ -470,26 +469,6 @@ StartupLoginDialog::handleLoginButtonClick () {
 
 void
 StartupLoginDialog::handleSkipButtonClick () {
-  if (autoBackupCheckBox && autoBackupCheckBox->isChecked ()) {
-    QMessageBox messageBox (QMessageBox::Warning, qt_translate ("提示"),
-                            qt_translate ("开启自动备份需要先登录，请关闭自动备份或先登录。"),
-                            QMessageBox::NoButton, this);
-    QPushButton* cancelButton=
-        messageBox.addButton (qt_translate ("取消"), QMessageBox::RejectRole);
-    QPushButton* disableAutoBackupButton= messageBox.addButton (
-        qt_translate ("关闭自动备份"), QMessageBox::AcceptRole);
-    messageBox.exec ();
-
-    if (messageBox.clickedButton () == cancelButton) {
-      return;
-    }
-
-    if (messageBox.clickedButton () == disableAutoBackupButton) {
-      setAutoBackup (false);
-      autoBackupCheckBox->setChecked (false);
-    }
-  }
-
   result        = StartupLoginDialog::SkipClicked;
   userChoiceMade= true;
   emit skipRequested ();
