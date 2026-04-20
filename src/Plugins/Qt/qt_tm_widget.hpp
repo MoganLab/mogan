@@ -30,9 +30,10 @@
 #include <QStackedWidget>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
+#include "../QWindowKit/guestnotificationbar.hpp"
 #include "../QWindowKit/loginbutton.hpp"
 #include "../QWindowKit/logindialog.hpp"
-#include "../QWindowKit/notificationbar.hpp"
+#include "../QWindowKit/updatenotificationbar.hpp"
 #include "../QWindowKit/windowbar.hpp"
 #include "../QWindowKit/windowbutton.hpp"
 #include <QWKWidgets/widgetwindowagent.h>
@@ -65,31 +66,33 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
    tab_tools_visibility     = 1024
    } visibility_t;
    */
-  QLabel*                 rightLabel;
-  QLabel*                 leftLabel;
-  QLabel*                 middleLabel;
-  QToolBar*               menuToolBar;
-  QToolBar*               mainToolBar;
-  QToolBar*               modeToolBar;
-  QToolBar*               focusToolBar;
-  QToolBar*               userToolBar;
-  QDockWidget*            sideTools;
-  QDockWidget*            leftTools;
-  QDockWidget*            bottomTools;
-  QDockWidget*            extraTools;
-  QTMTabPageContainer*    tabPageContainer;
-  QTMAuxiliaryWidget*     auxiliaryWidget;
-  QWK::WidgetWindowAgent* windowAgent;
-  QWK::NotificationBar*   scmNotificationBar; // SCM 提示条
-  QWK::LoginButton*       loginButton;
-  QWK::LoginDialog*       m_loginDialog;
-  QLabel*                 avatarLabel;
-  QLabel*                 nameLabel;
-  QLabel*                 accountIdLabel;
-  QLabel*                 membershipPeriodLabel;
-  QLabel*                 membershipTitleLabel;
-  QPushButton*            loginActionButton;
-  QPushButton*            logoutButton;
+  QLabel*                     rightLabel;
+  QLabel*                     leftLabel;
+  QLabel*                     middleLabel;
+  QToolBar*                   menuToolBar;
+  QToolBar*                   mainToolBar;
+  QToolBar*                   modeToolBar;
+  QToolBar*                   focusToolBar;
+  QToolBar*                   userToolBar;
+  QDockWidget*                sideTools;
+  QDockWidget*                leftTools;
+  QDockWidget*                bottomTools;
+  QDockWidget*                extraTools;
+  QTMTabPageContainer*        tabPageContainer;
+  QTMAuxiliaryWidget*         auxiliaryWidget;
+  QWK::WidgetWindowAgent*     windowAgent;
+  QWK::GuestNotificationBar*  guestNotificationBar;  // 访客提示条
+  QWK::UpdateNotificationBar* updateNotificationBar; // 版本更新提示条
+  QWK::LoginButton*           loginButton;
+  QWK::LoginDialog*           m_loginDialog;
+  QLabel*                     avatarLabel;
+  QLabel*                     nameLabel;
+  QLabel*                     accountIdLabel;
+  QLabel*                     membershipPeriodLabel;
+  QLabel*                     membershipTitleLabel;
+  QPushButton*                loginActionButton;
+  QPushButton*                logoutButton;
+  QString                     m_remoteVersion; // 远程版本号
 
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;
@@ -108,24 +111,12 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;
   QString m_userId;
-  QString m_currentScmNotificationItem;
 
 private:
   void onAddTabRequested ();
   void setupLoginDialog (QWK::LoginDialog* loginDialog);
   void checkLocalTokenAndLogin ();
-  void fetchUserInfo (const QString& token, bool showDialog= true);
-  void refreshMembershipInfoInBackground ();
-  void refreshScmNotificationBar ();
-  void syncScmUpdateNotification (bool           updateAvailable,
-                                  const QString& remoteVersion= QString ());
-  void syncScmGuestNotification (bool visible);
-  void
-       syncScmMembershipNotification (bool           hasData,
-                                      const QString& memberType = QString (),
-                                      const QString& periodLabel= QString (),
-                                      const QString& periodLabelColor= QString (),
-                                      const QString& productType= QString ());
+  void fetchUserInfo (const QString& token);
   void triggerOAuth2 ();
   void updateDialogContent (bool isLoggedIn, const QString& username,
                             const QString& email, const QString& avatarText,
@@ -153,7 +144,6 @@ private:
   qt_widget bottom_tools_widget;
   qt_widget extra_tools_widget;
   qt_widget tab_bar_widget;
-  qt_widget notification_bar_widget;
   qt_widget auxiliary_widget;
   qt_widget dock_window_widget; // trick to return correct widget position
   QWidget*  startupContentWidget;

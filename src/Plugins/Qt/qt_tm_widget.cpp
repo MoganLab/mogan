@@ -143,13 +143,8 @@ QTMInteractiveInputHelper::commit (int result) {
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
-      titleBarVisibleCache (false), scmNotificationBar (nullptr),
-      loginButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
-      nameLabel (nullptr), accountIdLabel (nullptr),
-      membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
-      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
-      m_currentScmNotificationItem (""), startupContentWidget (nullptr),
-      startupTabMode (false) {
+      titleBarVisibleCache (false), membershipTitleLabel (nullptr),
+      m_userId (""), startupContentWidget (nullptr), startupTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -350,33 +345,62 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (loginButton, &QWK::LoginButton::clicked,
                     [this] () { checkLocalTokenAndLogin (); });
 
-  // 创建 SCM 通知条容器（放在标题栏下方）
+  // 创建通知条容器（垂直布局，放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
   QVBoxLayout* notificationLayout   = new QVBoxLayout (notificationContainer);
   notificationLayout->setContentsMargins (0, 0, 0, 0);
   notificationLayout->setSpacing (0);
 
-  // 初始化 SCM 提示条
-  scmNotificationBar= new QWK::NotificationBar ();
-  notificationLayout->addWidget (scmNotificationBar);
-  scmNotificationBar->hide ();
+  // 初始化版本更新提示条（在上）
+  updateNotificationBar= new QWK::UpdateNotificationBar ();
+  notificationLayout->addWidget (updateNotificationBar);
+  updateNotificationBar->hide ();
 
-  QObject::connect (
-      scmNotificationBar, &QWK::NotificationBar::closeRequested, [this] () {
-        eval ("(use-modules (texmacs menus notificationbar))");
-        bool handled= false;
+  // 初始化访客提示条（在下）
+  guestNotificationBar= new QWK::GuestNotificationBar ();
+  notificationLayout->addWidget (guestNotificationBar);
 
-        if (m_currentScmNotificationItem == QStringLiteral ("membership")) {
-          call ("notification-bar-snooze-membership-notice");
-          call ("update-menus");
-          handled= true;
-        }
+  // 连接提示条信号
+  QObject::connect (guestNotificationBar,
+                    &QWK::GuestNotificationBar::loginRequested,
+                    [this] () { triggerOAuth2 (); });
+  QObject::connect (guestNotificationBar,
+                    &QWK::GuestNotificationBar::closeRequested, [this] () {
+                      guestNotificationBar->hide ();
+                      // 只隐藏当前会话，不保存到设置
+                    });
 
-        if (!handled) handled= as_bool (call ("notification-bar-handle-close"));
+  // 检查是否应该显示提示条
+  // 1. 社区版不显示
+  // 2. 商业版：用户未登录时显示，用户已登录时不显示
+  if (is_community_stem ()) {
+    // 社区版：不显示提示条
+    guestNotificationBar->hide ();
+  }
+  else {
+    // 商业版：检查用户登录状态（使用和OCR功能相同的判断方法）
+    // 初始隐藏，等网络检查完成后再决定是否显示guestNotificationBar->hide ();
+    guestNotificationBar->hide ();
+    checkNetworkAvailable ();
+  }
 
-        if (!handled && scmNotificationBar) scmNotificationBar->hide ();
-      });
-  if (!is_community_stem ()) checkNetworkAvailable ();
+  // 连接版本更新提示条信号
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::updateNowRequested, [this] () {
+                      eval ("(use-modules (utils misc version-update))");
+                      string url= as_string (call ("get-update-download-url"));
+                      open_url (url);
+                      // 不隐藏提示条，保持显示直到用户实际更新版本
+                    });
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::snoozeRequested, [this] () {
+                      eval ("(use-modules (utils misc version-update))");
+                      call ("snooze-version-update");
+                      updateNotificationBar->hide ();
+                    });
+  QObject::connect (updateNotificationBar,
+                    &QWK::UpdateNotificationBar::closeRequested,
+                    [this] () { updateNotificationBar->hide (); });
 
   // 延迟检查版本更新（启动后10秒）
   QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
@@ -540,7 +564,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   q->setObjectName ("editorCanvas");
   q->setParent (
       qwid); // q->layout()->removeWidget(q) will reset the parent to this
-  bl->addWidget (notificationContainer); // 添加 SCM 通知条容器
+  bl->addWidget (
+      notificationContainer); // 添加通知容器（包含版本更新和访客提示条）
   bl->addWidget (q);
 
   mw->setCentralWidget (cw);
@@ -598,8 +623,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     bl->insertWidget (2, modeToolBar);
     bl->insertWidget (3, rulerWidget);
     bl->insertWidget (4, focusToolBar);
-    bl->insertWidget (5, userToolBar);
-    bl->insertWidget (6, r2);
+    bl->insertWidget (5, guestNotificationBar); // 访客提示条在焦点工具栏下方
+    bl->insertWidget (6, userToolBar);
+    bl->insertWidget (7, r2);
 
     // mw->setContentsMargins (-2, -2, -2, -2);  // Why this?
     bar->setContentsMargins (0, 1, 0, 1);
@@ -701,24 +727,25 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       QTMOAuth* account= server->getAccount ();
       QObject::connect (account, &QTMOAuth::loginStateChanged,
                         [this] (bool loggedIn) {
-                          if (loggedIn) {
-                            syncScmGuestNotification (false);
-                            refreshMembershipInfoInBackground ();
-                          }
-                          else {
-                            syncScmMembershipNotification (false);
+                          // 登录状态变化时，重新检查登录状态并更新提示条
+                          if (guestNotificationBar) {
+                            // 社区版不显示提示条
                             if (is_community_stem ()) {
-                              syncScmGuestNotification (false);
+                              guestNotificationBar->hide ();
                             }
                             else {
-                              checkNetworkAvailable ();
+                              // 商业版：根据登录状态决定是否显示
+                              if (loggedIn) {
+                                // 用户已登录，隐藏提示条
+                                guestNotificationBar->hide ();
+                              }
+                              else {
+                                // 用户未登录，显示提示条
+                                guestNotificationBar->show ();
+                              }
                             }
                           }
                         });
-
-      if (account->isLoggedIn ()) {
-        refreshMembershipInfoInBackground ();
-      }
     }
   }
   else {
@@ -1430,27 +1457,6 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
     }
     break;
 
-  case SLOT_NOTIFICATION_BAR:
-    check_type_void (index, s);
-    {
-      notification_bar_widget     = concrete (w);
-      QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();
-      if (!action_list || action_list->isEmpty ()) {
-        m_currentScmNotificationItem.clear ();
-        if (scmNotificationBar) scmNotificationBar->clearContent ();
-      }
-      else {
-        QWidget* new_qwidget= notification_bar_widget->as_qwidget ();
-        if (new_qwidget && scmNotificationBar) {
-          scmNotificationBar->setContentWidget (new_qwidget);
-        }
-        eval ("(use-modules (texmacs menus notificationbar))");
-        m_currentScmNotificationItem=
-            to_qstring (as_string (call ("notification-bar-rendered-item")));
-      }
-    }
-    break;
-
   case SLOT_AUXILIARY_WIDGET:
     check_type_void (index, s);
     {
@@ -1763,7 +1769,6 @@ qt_tm_embedded_widget_rep::send (slot s, blackbox val) {
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
-  case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
   case SLOT_LEFT_FOOTER:
   case SLOT_RIGHT_FOOTER:
@@ -1875,7 +1880,6 @@ qt_tm_embedded_widget_rep::write (slot s, blackbox index, widget w) {
   case SLOT_BOTTOM_TOOLS:
   case SLOT_EXTRA_TOOLS:
   case SLOT_TAB_PAGES:
-  case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
   case SLOT_INTERACTIVE_INPUT:
   case SLOT_INTERACTIVE_PROMPT:
@@ -2055,60 +2059,6 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 }
 
 void
-qt_tm_widget_rep::refreshScmNotificationBar () {
-  if (!has_current_window ()) return;
-  call ("update-menus");
-}
-
-void
-qt_tm_widget_rep::syncScmUpdateNotification (bool           updateAvailable,
-                                             const QString& remoteVersion) {
-  eval ("(use-modules (texmacs menus notificationbar))");
-  call ("notification-bar-set-update-state", object (updateAvailable),
-        from_qstring (remoteVersion));
-  refreshScmNotificationBar ();
-}
-
-void
-qt_tm_widget_rep::syncScmGuestNotification (bool visible) {
-  eval ("(use-modules (texmacs menus notificationbar))");
-  call ("notification-bar-set-guest-visible", object (visible));
-  refreshScmNotificationBar ();
-}
-
-void
-qt_tm_widget_rep::syncScmMembershipNotification (
-    bool hasData, const QString& memberType, const QString& periodLabel,
-    const QString& periodLabelColor, const QString& productType) {
-  eval ("(use-modules (texmacs menus notificationbar))");
-  string command= "(notification-bar-set-membership-state " *
-                  string (hasData ? "#t" : "#f") * " " *
-                  scm_quote (from_qstring (memberType)) * " " *
-                  scm_quote (from_qstring (periodLabel)) * " " *
-                  scm_quote (from_qstring (periodLabelColor)) * " " *
-                  scm_quote (from_qstring (productType)) * ")";
-  eval (command);
-  refreshScmNotificationBar ();
-}
-
-void
-qt_tm_widget_rep::refreshMembershipInfoInBackground () {
-  if (is_community_stem ()) {
-    syncScmMembershipNotification (false);
-    return;
-  }
-
-  eval ("(use-modules (liii account))");
-  QString token= to_qstring (as_string (call ("account-load-token")));
-  if (token.isEmpty ()) {
-    syncScmMembershipNotification (false);
-    return;
-  }
-
-  fetchUserInfo (token, false);
-}
-
-void
 qt_tm_widget_rep::checkLocalTokenAndLogin () {
   // 检查是否为社区版本，如果是则打开官方网址
   if (is_community_stem ()) {
@@ -2126,7 +2076,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 
   if (!q_token.isEmpty ()) {
     // 有token，尝试获取用户信息
-    fetchUserInfo (q_token, true);
+    fetchUserInfo (q_token);
   }
   else {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
@@ -2137,7 +2087,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 }
 
 void
-qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
+qt_tm_widget_rep::fetchUserInfo (const QString& token) {
   // 创建网络访问管理器
   QNetworkAccessManager* manager= new QNetworkAccessManager ();
 
@@ -2170,7 +2120,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
 
   // 连接信号处理响应
   QObject::connect (
-      reply, &QNetworkReply::finished, [this, reply, manager, showDialog] () {
+      reply, &QNetworkReply::finished, [this, reply, manager, token] () {
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
@@ -2207,29 +2157,19 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
                                  memberType, periodLabel, periodLabelColor,
                                  productType);
 
-            syncScmGuestNotification (false);
-            syncScmMembershipNotification (true, memberType, periodLabel,
-                                           periodLabelColor, productType);
-
-            if (showDialog) {
-              QPoint buttonBottomCenter= loginButton->mapToGlobal (
-                  QPoint (loginButton->width () / 2, loginButton->height ()));
-              m_loginDialog->showAtPosition (buttonBottomCenter);
-            }
+            // 显示弹窗
+            QPoint buttonBottomCenter= loginButton->mapToGlobal (
+                QPoint (loginButton->width () / 2, loginButton->height ()));
+            m_loginDialog->showAtPosition (buttonBottomCenter);
           }
           else {
             // API返回错误
-            syncScmMembershipNotification (false);
-            if (showDialog) {
-              handleError ("Login error, please log in again.");
-            }
+            handleError ("Login error, please log in again.");
           }
         }
         else {
           // 网络错误或HTTP错误
-          if (showDialog) {
-            handleError ("Network error, please log in later.");
-          }
+          handleError ("Network error, please log in later.");
         }
 
         // 清理资源
@@ -2257,6 +2197,25 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
                                        const QString& productType) {
+  // 根据登录状态更新访客提示条可见性
+  if (guestNotificationBar) {
+    // 社区版不显示提示条
+    if (is_community_stem ()) {
+      guestNotificationBar->hide ();
+    }
+    else {
+      // 商业版：根据登录状态决定是否显示
+      if (isLoggedIn) {
+        // 用户已登录，隐藏提示条
+        guestNotificationBar->hide ();
+      }
+      else {
+        // 用户未登录，显示提示条
+        guestNotificationBar->show ();
+      }
+    }
+  }
+
   // 更新对话框中的UI组件内容
   if (nameLabel) {
     nameLabel->setText (username);
@@ -2325,7 +2284,18 @@ qt_tm_widget_rep::logout () {
   if (m_loginDialog && m_loginDialog->isVisible ()) {
     m_loginDialog->hide ();
   }
-  syncScmMembershipNotification (false);
+
+  // 用户注销后显示访客提示条（除非用户已手动关闭）
+  if (guestNotificationBar) {
+    // 社区版不显示提示条
+    if (is_community_stem ()) {
+      guestNotificationBar->hide ();
+    }
+    else {
+      // 商业版：用户注销后显示提示条
+      guestNotificationBar->show ();
+    }
+  }
 
   // 通过tm_server获取QTMOAuth实例并调用clearInvalidTokens
   if (is_server_started ()) {
@@ -2371,8 +2341,15 @@ qt_tm_widget_rep::checkNetworkAvailable () {
   QObject::connect (reply, &QNetworkReply::finished, [this, reply] () {
     bool success= (reply->error () == QNetworkReply::NoError);
     reply->deleteLater ();
-    bool isLoggedIn= as_bool (call ("logged-in?"));
-    syncScmGuestNotification (!is_community_stem () && !isLoggedIn && success);
+    if (guestNotificationBar) {
+      bool isLoggedIn= as_bool (call ("logged-in?"));
+      if (isLoggedIn || !success) {
+        guestNotificationBar->hide ();
+      }
+      else {
+        guestNotificationBar->show ();
+      }
+    }
   });
 }
 
@@ -2385,10 +2362,7 @@ qt_tm_widget_rep::checkVersionUpdate () {
 
   // 检查是否处于稍后提醒期间
   bool shouldCheck= as_bool (call ("should-check-version-update?"));
-  if (!shouldCheck) {
-    syncScmUpdateNotification (false);
-    return;
-  }
+  if (!shouldCheck) return;
 
   // 检查是否有 mock 版本（用于测试）
   object mockVersion= call ("get-mock-remote-version");
@@ -2400,10 +2374,9 @@ qt_tm_widget_rep::checkVersionUpdate () {
     QString localVersion = XMACS_VERSION;
 
     if (isVersionNewer (remoteVersion, localVersion)) {
-      syncScmUpdateNotification (true, remoteVersion);
-    }
-    else {
-      syncScmUpdateNotification (false);
+      m_remoteVersion= remoteVersion;
+      updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
+      updateNotificationBar->show ();
     }
     return;
   }
@@ -2436,19 +2409,16 @@ qt_tm_widget_rep::checkVersionUpdate () {
 
       if (remoteVersion.isEmpty ()) {
         qDebug () << "[VersionUpdate] Failed to parse version from response";
-        syncScmUpdateNotification (false);
       }
       else if (isVersionNewer (remoteVersion, localVersion)) {
-        syncScmUpdateNotification (true, remoteVersion);
-      }
-      else {
-        syncScmUpdateNotification (false);
+        m_remoteVersion= remoteVersion;
+        updateNotificationBar->setVersionInfo (localVersion, remoteVersion);
+        updateNotificationBar->show ();
       }
     }
     else {
       qDebug () << "[VersionUpdate] Failed to fetch remote version:"
                 << reply->errorString ();
-      syncScmUpdateNotification (false);
     }
     reply->deleteLater ();
     manager->deleteLater ();

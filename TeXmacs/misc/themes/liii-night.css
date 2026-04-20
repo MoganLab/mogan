@@ -869,9 +869,66 @@ QWidget#auxiliary_container {
 }
 
 /****************************************************************************
-* SCM 通知条样式
+* 访客通知栏样式
 ****************************************************************************/
-#notificationBar {
+#guestNotificationBar {
+  background-color: #3A2C00;
+  /* border: 1px solid #2A1C00; */
+  border-left: none;
+  border-right: none;
+  border-top: none;
+}
+
+#guestNotificationMessage {
+  color: #FFD700;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+
+#guestNotificationLoginButton {
+  background-color: #FD7E14;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+#guestNotificationLoginButton:hover {
+  background-color: #E96B00;
+}
+
+#guestNotificationLoginButton:pressed {
+  background-color: #D45A00;
+}
+
+#guestNotificationCloseButton {
+  background-color: transparent;
+  color: #FFFFFF;
+  border: none;
+  font-size: 14px;
+  font-weight: bold;
+  border-radius: 4px;
+  padding: 0;
+  margin: 0;
+  min-width: 24px;
+  min-height: 24px;
+}
+
+#guestNotificationCloseButton:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+#guestNotificationCloseButton:pressed {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/****************************************************************************
+* 版本更新提示条样式
+****************************************************************************/
+#updateNotificationBar {
   background-color: #0d2b4a;
   border: 1px solid #1a4a7a;
   border-left: none;
@@ -879,13 +936,13 @@ QWidget#auxiliary_container {
   border-top: none;
 }
 
-#notificationBar QLabel {
+#updateNotificationMessage {
   color: #64b5f6;
   font-size: 13px;
   font-weight: 500;
 }
 
-#notificationBar QPushButton[notificationRole="primary"] {
+#updateNotificationUpdateButton {
   background-color: #1976d2;
   color: white;
   border: none;
@@ -895,11 +952,11 @@ QWidget#auxiliary_container {
   font-weight: 500;
 }
 
-#notificationBar QPushButton[notificationRole="primary"]:hover {
+#updateNotificationUpdateButton:hover {
   background-color: #1565c0;
 }
 
-#notificationBar QPushButton[notificationRole="secondary"] {
+#updateNotificationSnoozeButton {
   background-color: transparent;
   border: 1px solid #4a7a9a;
   color: #64b5f6;
@@ -909,11 +966,11 @@ QWidget#auxiliary_container {
   font-weight: 500;
 }
 
-#notificationBar QPushButton[notificationRole="secondary"]:hover {
+#updateNotificationSnoozeButton:hover {
   background-color: #1a3a5a;
 }
 
-#notificationCloseButton {
+#updateNotificationCloseButton {
   background-color: transparent;
   color: #64b5f6;
   border: none;
@@ -926,7 +983,7 @@ QWidget#auxiliary_container {
   min-height: 24px;
 }
 
-#notificationCloseButton:hover {
+#updateNotificationCloseButton:hover {
   background-color: rgba(100, 181, 246, 0.1);
 }
 
