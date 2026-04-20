@@ -29,6 +29,8 @@
 
 (define notification-bar-last-rendered-item #f)
 
+(define notification-bar-guest-visible? #f)
+
 (define notification-bar-membership-has-data? #f)
 (define notification-bar-membership-member-type "")
 (define notification-bar-membership-period-label "")
@@ -45,7 +47,11 @@
   #f)
 
 (tm-define (notification-bar-set-guest-visible visible?)
-  #f)
+  (let ((was-visible? notification-bar-guest-visible?))
+    (set! notification-bar-guest-visible? visible?)
+    (when (or (not visible?) (not was-visible?))
+      (set! notification-bar-membership-session-dismissed? #f))
+    visible?))
 
 (tm-define (notification-bar-set-membership-state has-data? member-type
                                                   period-label
@@ -142,6 +148,11 @@
 (tm-define (notification-bar-membership-free-user?)
   (and (== notification-bar-membership-member-type "Regular User")
        (== notification-bar-membership-period-label "Non-member")))
+
+(tm-define (notification-bar-guest-active?)
+  (and notification-bar-guest-visible?
+       (not notification-bar-membership-session-dismissed?)
+       (not (notification-bar-membership-notice-snoozed?))))
 
 (define (notification-bar-digit-char? ch)
   (and (char>=? ch #\0) (char<=? ch #\9)))
@@ -268,14 +279,16 @@
       (== notification-bar-membership-product-type "Renew Early")))
 
 (tm-define (notification-bar-membership-renew-soon-active?)
-  (and notification-bar-membership-has-data?
+  (and (not notification-bar-guest-visible?)
+       notification-bar-membership-has-data?
        (notification-bar-membership-renew-soon?)
        (not notification-bar-membership-renew-soon-session-dismissed?)
        (not (notification-bar-renew-soon-notice-snoozed?))
        (not (notification-bar-membership-free-user?))))
 
 (tm-define (notification-bar-membership-expired-active?)
-  (and notification-bar-membership-has-data?
+  (and (not notification-bar-guest-visible?)
+       notification-bar-membership-has-data?
        (if (notification-bar-membership-days-left)
            (notification-bar-membership-expired-by-date?)
            (not (notification-bar-membership-renew-soon?)))
@@ -287,7 +300,8 @@
   (with items '()
     (if (notification-bar-membership-renew-soon-active?)
         (set! items (append items (list "membership-renew-soon"))))
-    (if (notification-bar-membership-expired-active?)
+    (if (or (notification-bar-membership-expired-active?)
+            (notification-bar-guest-active?))
         (set! items (append items (list "membership"))))
     items))
 
@@ -315,15 +329,14 @@
   (or notification-bar-last-rendered-item ""))
 
 (tm-define (notification-bar-membership-message)
-  (translate
-    "Your membership has expired. Renew to continue using AI, MathOCR, and other member features"))
+  (translate "AI writing, MathOCR, and other member features"))
 
 (tm-define (notification-bar-membership-renew-soon-message)
   (translate
     "Your membership will expire within 7 days. Renew early for more savings"))
 
 (tm-define (notification-bar-membership-button-label)
-  (translate "View plans"))
+  (translate "Try now"))
 
 (tm-define (notification-bar-membership-renew-soon-button-label)
   (translate "Renew Early"))

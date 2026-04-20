@@ -1,4 +1,5 @@
 ("(re)build autocompletion index" "构建/重建自动补全索引")
+("AI writing, MathOCR, and other member features" "AI 写作、MathOCR 等会员功能")
 ("All" "全部")
 ("Advanced footer" "高级页脚")
 ("Advanced header" "高级页眉")
@@ -2425,6 +2426,7 @@
 ("try to import formulas using LaTeX annotations" "尝试使用 LaTeX 注释导入公式")
 ("Try Command+Shift+v, auto-detects format." "试试Command+Shift+v，自动识别格式。")
 ("Try Ctrl+Shift+v, auto-detects format." "试试Ctrl+Shift+v，自动识别格式。")
+("Try now" "立即体验")
 ("Wrong result? Use Selective Paste here." "结果不准确？请用此处的选择性粘贴。")
 ("tuple" "元组")
 ("turkish" "土耳其文")
