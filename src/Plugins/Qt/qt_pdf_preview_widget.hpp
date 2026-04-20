@@ -93,6 +93,7 @@ private slots:
   void onImageNetworkReplyFinished ();
   void goToPreviousPage ();
   void goToNextPage ();
+  void goToPage (int page);
 
 private:
   // MuPDF渲染
@@ -117,6 +118,7 @@ private:
 private:
   void updateButtonPositions ();
   void setControlsVisible (bool visible);
+  bool mouseInWidgetHierarchy () const;
 
 private:
   // UI组件
