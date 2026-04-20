@@ -1,0 +1,140 @@
+name: CD for Mogan STEM on macOS arm64
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+jobs:
+  macosbuild:
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+      - name: Noto fonts
+        run: |
+          mkdir -p $GITHUB_WORKSPACE/TeXmacs/fonts/opentype/noto
+          cd $GITHUB_WORKSPACE/TeXmacs/fonts/opentype/noto
+          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Bold.ttc
+          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Regular.ttc
+          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
+          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v2.9.3
+          actions-cache-folder: '.xmake-cache'
+      - name: Install create-dmg
+        run: |
+          brew install create-dmg
+      - name: xmake repo --update
+        run: xmake repo --update
+      - name: config
+        run: xmake config -m release -a ${{ matrix.arch }} -vD --yes
+      - name: build
+        run: xmake build -vD stem
+      - name: install
+        run: xmake install -vD stem
+      - name: Clean up mounted DMGs
+        run: |
+          # 卸载任何可能挂载的DMG
+          hdiutil detach /Volumes/* -force 2>/dev/null || true
+          diskutil unmount /Volumes/* -force 2>/dev/null || true
+          # 清理临时文件
+          rm -rf /tmp/create-dmg.* 2>/dev/null || true
+          # 清理可能存在的挂载点
+          find /Volumes -maxdepth 1 -type d -name "*" -exec umount {} \; 2>/dev/null || true
+          # 等待资源释放
+          sleep 3
+      # ========== 代码签名和公证 ==========
+      
+      - name: Install Apple certificate
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # 创建临时 keychain
+          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          
+          # 解码证书
+          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
+          
+          # 创建并配置 keychain
+          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          
+          # 导入证书
+          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
+          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
+          security list-keychain -d user -s $KEYCHAIN_PATH
+      
+      - name: Setup App Store Connect API Key
+        run: |
+          mkdir -p ~/.appstoreconnect/private_keys/
+          echo "${{ secrets.APPLE_API_KEY_BASE64 }}" | base64 --decode > \
+            ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8
+      
+      - name: Sign application bundle
+        run: |
+          # 找到 .app 目录并签名
+          APP_PATH=$(find build -name "*.app" -type d | head -n 1)
+          if [ -n "$APP_PATH" ]; then
+            codesign --force --options runtime --deep --sign \
+              "Developer ID Application: ${{ secrets.APPLE_TEAM_ID }}" \
+              "$APP_PATH"
+          fi
+
+      - name: Generate Installer
+        run: |
+          xmake install -vD stem_packager
+      
+      - name: Sign DMG
+        run: |
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          if [ -n "$DMG_PATH" ]; then
+            codesign --force --sign "Developer ID Application: ${{ secrets.APPLE_TEAM_ID }}" "$DMG_PATH"
+          fi
+      
+      - name: Notarize DMG
+        run: |
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          if [ -n "$DMG_PATH" ]; then
+            xcrun notarytool submit "$DMG_PATH" \
+              --key ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 \
+              --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+              --issuer "${{ secrets.APPLE_API_ISSUER_ID }}" \
+              --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+              --wait \
+              --timeout 10m
+          fi
+      
+      - name: Staple notarization ticket
+        run: |
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          if [ -n "$DMG_PATH" ]; then
+            xcrun stapler staple "$DMG_PATH"
+          fi
+
+      - name: Upload 
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          path: build/*.dmg
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          prerelease: true
+          files: build/*.dmg
