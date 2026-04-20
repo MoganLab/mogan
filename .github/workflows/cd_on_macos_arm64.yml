@@ -57,28 +57,11 @@ jobs:
           sleep 3
       # ========== 代码签名和公证 ==========
       
-      - name: Install Apple certificate
-        env:
-          BUILD_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-          P12_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-          KEYCHAIN_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-        run: |
-          # 创建临时 keychain
-          CERTIFICATE_PATH=$RUNNER_TEMP/build_certificate.p12
-          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
-          
-          # 解码证书
-          echo -n "$BUILD_CERTIFICATE_BASE64" | base64 --decode -o $CERTIFICATE_PATH
-          
-          # 创建并配置 keychain
-          security create-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security set-keychain-settings -lut 21600 $KEYCHAIN_PATH
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          
-          # 导入证书
-          security import $CERTIFICATE_PATH -P "$P12_PASSWORD" -A -t cert -f pkcs12 -k $KEYCHAIN_PATH
-          security set-key-partition-list -S apple-tool:,apple: -k "$KEYCHAIN_PASSWORD" $KEYCHAIN_PATH
-          security list-keychain -d user -s $KEYCHAIN_PATH
+      - name: Install Apple certificates
+        uses: apple-actions/import-codesign-certs@v2
+        with:
+          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
       
       - name: Setup App Store Connect API Key
         run: |
@@ -91,9 +74,15 @@ jobs:
           # 找到 .app 目录并签名
           APP_PATH=$(find build -name "*.app" -type d | head -n 1)
           if [ -n "$APP_PATH" ]; then
-            codesign --force --options runtime --deep --sign \
-              "Developer ID Application: ${{ secrets.APPLE_TEAM_ID }}" \
-              "$APP_PATH"
+            # 获取 Developer ID Application 证书身份
+            IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
+            if [ -z "$IDENTITY" ]; then
+              echo "错误：找不到 Developer ID Application 证书"
+              security find-identity -v -p codesigning
+              exit 1
+            fi
+            echo "使用签名身份: $IDENTITY"
+            codesign --force --options runtime --deep --sign "$IDENTITY" --verbose "$APP_PATH"
           fi
 
       - name: Generate Installer
@@ -104,7 +93,8 @@ jobs:
         run: |
           DMG_PATH=$(find build -name "*.dmg" | head -n 1)
           if [ -n "$DMG_PATH" ]; then
-            codesign --force --sign "Developer ID Application: ${{ secrets.APPLE_TEAM_ID }}" "$DMG_PATH"
+            IDENTITY=$(security find-identity -v -p codesigning | grep "Developer ID Application" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
+            codesign --force --sign "$IDENTITY" --verbose "$DMG_PATH"
           fi
       
       - name: Notarize DMG
