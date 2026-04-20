@@ -2059,6 +2059,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   });
 }
 
+void
 qt_tm_widget_rep::checkLocalTokenAndLogin () {
   // 检查是否为社区版本，如果是则打开官方网址
   if (is_community_stem ()) {
