@@ -70,7 +70,7 @@ using moebius::data::scm_quote;
 
 int menu_count= 0; // zero if no menu is currently being displayed
 list<qt_tm_widget_rep*> waiting_widgets;
-extern bool texmacs_started;
+extern bool             texmacs_started;
 
 static bool
 is_startup_tab_file (const string& file) {

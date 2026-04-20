@@ -13,8 +13,8 @@
 #include "preferences.hpp"
 #include "qlabel.h"
 #include "qnamespace.h"
-#include "qt_guide_task_executor.hpp"
 #include "qt_gui.hpp"
+#include "qt_guide_task_executor.hpp"
 #include "qt_utilities.hpp"
 #include "tm_file.hpp"
 #include "tm_sys_utils.hpp"
@@ -29,8 +29,8 @@
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QShowEvent>
-#include <QWindow>
 #include <QTimer>
+#include <QWindow>
 
 extern bool texmacs_started;
 extern bool qt_startup_quit_requested;
@@ -321,8 +321,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
 #endif
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
-      userChoiceMade (false), dragInProgress (false),
-      asyncStartupMode (false) {
+      userChoiceMade (false), dragInProgress (false), asyncStartupMode (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
