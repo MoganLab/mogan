@@ -28,8 +28,8 @@
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QShowEvent>
-#include <QWindow>
 #include <QTimer>
+#include <QWindow>
 
 extern bool texmacs_started;
 
@@ -313,8 +313,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
 #endif
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
-      userChoiceMade (false), dragInProgress (false),
-      asyncStartupMode (false) {
+      userChoiceMade (false), dragInProgress (false), asyncStartupMode (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &

@@ -132,7 +132,7 @@ private:
   // Manual dragging for the frameless startup dialog
   bool   dragInProgress;
   QPoint dragOffset;
-  bool asyncStartupMode;
+  bool   asyncStartupMode;
 };
 
 } // namespace QWK

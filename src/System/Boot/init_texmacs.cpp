@@ -70,8 +70,8 @@ extern bool   texmacs_started;
 extern bool   headless_mode;
 
 #ifdef QTTEXMACS
-bool g_startup_login_requested= false;
-bool g_startup_login_executed = false;
+bool        g_startup_login_requested= false;
+bool        g_startup_login_executed = false;
 static void perform_startup_login_request ();
 #endif
 
@@ -1026,9 +1026,8 @@ show_startup_login_dialog () {
   dialog->setAttribute (Qt::WA_DeleteOnClose);
 
   // Connect dialog signals
-  QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested, [&] () {
-    perform_startup_login_request ();
-  });
+  QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested,
+                    [&] () { perform_startup_login_request (); });
 
   // Show the dialog without blocking startup.
   dialog->show ();

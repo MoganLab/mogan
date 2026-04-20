@@ -70,7 +70,7 @@ using moebius::data::scm_quote;
 
 int menu_count= 0; // zero if no menu is currently being displayed
 list<qt_tm_widget_rep*> waiting_widgets;
-extern bool texmacs_started;
+extern bool             texmacs_started;
 
 static bool
 is_startup_tab_file (const string& file) {
@@ -145,13 +145,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
       titleBarVisibleCache (false), m_scmNotificationRefreshQueued (false),
-      scmNotificationBar (nullptr),
-      loginButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
-      nameLabel (nullptr), accountIdLabel (nullptr),
-      membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
-      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
-      m_currentScmNotificationItem (""), startupContentWidget (nullptr),
-      startupTabMode (false) {
+      scmNotificationBar (nullptr), loginButton (nullptr),
+      m_loginDialog (nullptr), avatarLabel (nullptr), nameLabel (nullptr),
+      accountIdLabel (nullptr), membershipPeriodLabel (nullptr),
+      membershipTitleLabel (nullptr), loginActionButton (nullptr),
+      logoutButton (nullptr), m_userId (""), m_currentScmNotificationItem (""),
+      startupContentWidget (nullptr), startupTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
