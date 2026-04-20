@@ -41,7 +41,7 @@
 (define notification-bar-membership-product-type "")
 (define notification-bar-membership-session-dismissed? #f)
 (define notification-bar-membership-renew-soon-session-dismissed? #f)
-(define MEMBERSHIP-RENEW-SOON-THRESHOLD-DAYS 3)
+(define MEMBERSHIP-RENEW-SOON-THRESHOLD-DAYS 7)
 
 (define (notification-bar-non-empty-string? s)
   (and (string? s) (!= s "") (!= s "undefined")))
@@ -352,7 +352,7 @@
 
 (tm-define (notification-bar-membership-renew-soon-message)
   (translate
-    "Your membership will expire within 3 days. Renew early for more savings"))
+    "Your membership will expire within 7 days. Renew early for more savings"))
 
 (tm-define (notification-bar-membership-button-label)
   (translate "View plans"))
@@ -381,6 +381,14 @@
 (tm-define (notification-bar-open-membership-plans)
   (notification-bar-snooze-membership-notice)
   (open-pricing-url)
+  (when (current-view) (update-menus)))
+
+(tm-define (notification-bar-snooze-membership-renew-soon)
+  (notification-bar-snooze-renew-soon-notice)
+  (when (current-view) (update-menus)))
+
+(tm-define (notification-bar-snooze-membership-expired)
+  (notification-bar-snooze-membership-notice)
   (when (current-view) (update-menus)))
 
 (tm-define (notification-bar-handle-close)
@@ -432,13 +440,17 @@
   (text (notification-bar-membership-renew-soon-message))
   >>>
   ((eval (notification-bar-membership-renew-soon-button-label))
-   (notification-bar-open-membership-renew-soon-plans)))
+   (notification-bar-open-membership-renew-soon-plans))
+  //
+  ("Remind later" (notification-bar-snooze-membership-renew-soon)))
 
 (menu-bind texmacs-notification-bar-four
   (text (notification-bar-membership-message))
   >>>
   ((eval (notification-bar-membership-button-label))
-   (notification-bar-open-membership-plans)))
+   (notification-bar-open-membership-plans))
+  //
+  ("Remind later" (notification-bar-snooze-membership-expired)))
 
 (menu-bind texmacs-notification-bar
   (if (== (notification-bar-current-item) "update")

@@ -2618,7 +2618,7 @@
 ("your first interface" "")
 ("your language" "使用语言")
 ("Your membership has expired. Renew to continue using AI, MathOCR, and other member features" "会员已到期，续费后可继续使用 AI、MathOCR 等会员功能")
-("Your membership will expire within 3 days. Renew early for more savings" "会员将在 3 天内到期，提前续费享更多优惠")
+("Your membership will expire within 7 days. Renew early for more savings" "会员将在 7 天内到期，提前续费享更多优惠")
 ("zigzag" "之字形")
 ("zoom factor" "缩放比例")
 ("zoom in" "放大")
