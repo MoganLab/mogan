@@ -329,7 +329,7 @@
   (or notification-bar-last-rendered-item ""))
 
 (tm-define (notification-bar-membership-message)
-  (translate "AI writing, MathOCR, and other member features"))
+  (translate "Upgrade to unlock AI writing, MathOCR, and more advanced features."))
 
 (tm-define (notification-bar-membership-renew-soon-message)
   (translate
