@@ -29,11 +29,11 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QPushButton>
 #include <QResource>
 #include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
-#include <QPushButton>
 #include <QToolBar>
 #include <QToolButton>
 #include <QWindow>
@@ -380,22 +380,24 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   vipButton->setCursor (Qt::PointingHandCursor);
 
   // 设置醒目的样式 - 金色/橙色渐变，圆角，闪电图标
-  vipButton->setStyleSheet (
-      "QPushButton#vip-button {"
-      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFD700, stop:1 #FFA500);"
-      "  border: none;"
-      "  border-radius: 12px;"
-      "  color: #8B4513;"
-      "  font-weight: bold;"
-      "  font-size: 12px;"
-      "  padding: 0 14px 0 8px;"
-      "}"
-      "QPushButton#vip-button:hover {"
-      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFE135, stop:1 #FFB347);"
-      "}"
-      "QPushButton#vip-button:pressed {"
-      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFC125, stop:1 #FF8C00);"
-      "}");
+  vipButton->setStyleSheet ("QPushButton#vip-button {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFD700, stop:1 #FFA500);"
+                            "  border: none;"
+                            "  border-radius: 12px;"
+                            "  color: #8B4513;"
+                            "  font-weight: bold;"
+                            "  font-size: 12px;"
+                            "  padding: 0 14px 0 8px;"
+                            "}"
+                            "QPushButton#vip-button:hover {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFE135, stop:1 #FFB347);"
+                            "}"
+                            "QPushButton#vip-button:pressed {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFC125, stop:1 #FF8C00);"
+                            "}");
 
   // 设置闪电图标
   vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
@@ -771,25 +773,23 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       QTMOAuth* account= server->getAccount ();
       // 商业版：连接登录状态变化信号
       if (!is_community_stem ()) {
-        QObject::connect (account, &QTMOAuth::loginStateChanged,
-                          [this] (bool loggedIn) {
-                            updateLoginButtonState (
-                                loggedIn,
-                                loggedIn ? qt_translate ("User Center")
-                                         : QString ());
-                            if (loggedIn) {
-                              syncScmGuestNotification (false);
-                              refreshMembershipInfoInBackground ();
-                            }
-                            else {
-                              syncScmMembershipNotification (false);
-                              checkNetworkAvailable ();
-                            }
-                          });
-        updateLoginButtonState (account->isLoggedIn (),
-                                account->isLoggedIn ()
-                                    ? qt_translate ("User Center")
-                                    : QString ());
+        QObject::connect (
+            account, &QTMOAuth::loginStateChanged, [this] (bool loggedIn) {
+              updateLoginButtonState (loggedIn,
+                                      loggedIn ? qt_translate ("User Center")
+                                               : QString ());
+              if (loggedIn) {
+                syncScmGuestNotification (false);
+                refreshMembershipInfoInBackground ();
+              }
+              else {
+                syncScmMembershipNotification (false);
+                checkNetworkAvailable ();
+              }
+            });
+        updateLoginButtonState (
+            account->isLoggedIn (),
+            account->isLoggedIn () ? qt_translate ("User Center") : QString ());
         if (account->isLoggedIn ()) {
           refreshMembershipInfoInBackground ();
         }
@@ -2334,7 +2334,8 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
   if (!loginButton) return;
 
   // 设置登录状态属性，用于QSS样式区分
-  loginButton->setProperty ("login-state", isLoggedIn ? "logged-in" : "not-logged-in");
+  loginButton->setProperty ("login-state",
+                            isLoggedIn ? "logged-in" : "not-logged-in");
 
   // 未登录时显示"未登录"，已登录时不显示文字（只显示图标）
   QString label;
@@ -2350,19 +2351,20 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
 #endif
   // 已登录时不设置文字，只显示图标
 
-  QFontMetrics metrics (loginButton->font ());
-  const int    maxTextWidth= DpiUtils::scaled (76);
+  QFontMetrics  metrics (loginButton->font ());
+  const int     maxTextWidth= DpiUtils::scaled (76);
   const QString visibleText=
       metrics.elidedText (label, Qt::ElideRight, maxTextWidth);
 
   loginButton->setText (visibleText);
   loginButton->setToolTip (isLoggedIn ? qt_translate ("User Center") : label);
-  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center") : label);
+  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center")
+                                             : label);
 
   const int horizontalPadding= DpiUtils::scaled (26);
   const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
-  const int iconWidth        = loginButton->iconSize ().width ();
-  const int textWidth        = metrics.horizontalAdvance (visibleText);
+  const int iconWidth      = loginButton->iconSize ().width ();
+  const int textWidth      = metrics.horizontalAdvance (visibleText);
   const int minWidth=
       isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (96);
   const int maxWidth=
@@ -2467,7 +2469,8 @@ qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
 }
 
 void
-qt_tm_widget_rep::updateVipButtonVisibility (bool isLoggedIn, const QString& memberType) {
+qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
+                                             const QString& memberType) {
   if (!vipButton) {
     return;
   }
