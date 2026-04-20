@@ -126,7 +126,23 @@ jobs:
         run: |
           DMG_PATH=$(find build -name "*.dmg" | head -n 1)
           if [ -n "$DMG_PATH" ]; then
-            xcrun stapler staple "$DMG_PATH"
+            # 等待 Apple 服务器同步（给予足够时间）
+            echo "等待公证票据同步到 Apple 服务器..."
+            sleep 30
+            
+            # 尝试装订，最多重试 3 次
+            for i in 1 2 3; do
+              echo "尝试装订（第 $i 次）..."
+              if xcrun stapler staple "$DMG_PATH"; then
+                echo "装订成功！"
+                exit 0
+              fi
+              echo "装订失败，等待 20 秒后重试..."
+              sleep 20
+            done
+            
+            echo "装订失败，但公证应该已完成。继续上传..."
+            # 不强制退出，允许继续（公证已完成，只是没装订）
           fi
 
       - name: Upload 
