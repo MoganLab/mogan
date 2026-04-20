@@ -72,6 +72,7 @@ extern bool   headless_mode;
 #ifdef QTTEXMACS
 bool g_startup_login_requested= false;
 bool g_startup_login_executed = false;
+static void perform_startup_login_request ();
 #endif
 
 string extra_init_cmd;
@@ -964,16 +965,7 @@ TeXmacs_main (int argc, char** argv) {
     // Trigger login if requested from startup dialog
     // Use timer to execute after event loop starts
     if (g_startup_login_requested) {
-      QTimer::singleShot (0, [] () {
-        if (is_server_started ()) {
-          tm_server_rep* server=
-              dynamic_cast<tm_server_rep*> (get_server ().operator->());
-          if (server && server->getAccount ()) {
-            server->getAccount ()->login ();
-          }
-        }
-        g_startup_login_requested= false;
-      });
+      perform_startup_login_request ();
     }
 #endif
 
@@ -992,6 +984,24 @@ TeXmacs_main (int argc, char** argv) {
 #ifdef QTTEXMACS
 #include <QEventLoop>
 
+static void
+perform_startup_login_request () {
+  if (!is_server_started ()) {
+    g_startup_login_requested= true;
+    return;
+  }
+
+  tm_server_rep* server=
+      dynamic_cast<tm_server_rep*> (get_server ().operator->());
+  if (server && server->getAccount ()) {
+    QTimer::singleShot (0, [server] () { server->getAccount ()->login (); });
+    g_startup_login_requested= false;
+    return;
+  }
+
+  g_startup_login_requested= true;
+}
+
 bool
 show_startup_login_dialog () {
   // Don't show dialog in headless mode
@@ -1009,31 +1019,19 @@ show_startup_login_dialog () {
     return true;
   }
 
-  // Create non-modal dialog
+  // Create non-modal dialog and let the application continue starting.
   QWK::StartupLoginDialog* dialog= new QWK::StartupLoginDialog ();
+  dialog->setAsyncStartupMode (true);
   dialog->setModal (false);
   dialog->setAttribute (Qt::WA_DeleteOnClose);
 
-  bool userDecisionMade= false;
-
   // Connect dialog signals
   QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested, [&] () {
-    g_startup_login_requested= true;
-    userDecisionMade         = true;
+    perform_startup_login_request ();
   });
 
-  QObject::connect (dialog, &QWK::StartupLoginDialog::skipRequested,
-                    [&] () { userDecisionMade= false; });
-
-  // Show the dialog (non-blocking)
+  // Show the dialog without blocking startup.
   dialog->show ();
-
-  // Start background initialization if dialog supports it
-  dialog->startInitialization ();
-
-  // Enter local event loop to wait for user decision
-  dialog->exec ();
-
-  return userDecisionMade;
+  return true;
 }
 #endif

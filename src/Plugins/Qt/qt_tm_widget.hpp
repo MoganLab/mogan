@@ -110,6 +110,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   bool    full_screen;
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;
+  bool    m_scmNotificationRefreshQueued;
   QString m_userId;
 
 private:

@@ -29,6 +29,9 @@
 #include <QPropertyAnimation>
 #include <QShowEvent>
 #include <QWindow>
+#include <QTimer>
+
+extern bool texmacs_started;
 
 namespace QWK {
 
@@ -310,7 +313,8 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
 #endif
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
-      userChoiceMade (false), dragInProgress (false) {
+      userChoiceMade (false), dragInProgress (false),
+      asyncStartupMode (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
@@ -352,6 +356,11 @@ StartupLoginDialog::execWithResult () {
     return result;
   }
   return DialogRejected;
+}
+
+void
+StartupLoginDialog::setAsyncStartupMode (bool enabled) {
+  asyncStartupMode= enabled;
 }
 
 void
@@ -414,6 +423,30 @@ StartupLoginDialog::startInitialization () {
   // 更新状态
   statusLabel->setText (qt_translate ("正在初始化..."));
 
+  if (asyncStartupMode) {
+    enableButtons (false);
+    progressBar->setRange (0, 0);
+    timeEstimationLabel->clear ();
+
+    QTimer::singleShot (100, this, [this] () {
+      if (texmacs_started) {
+        handleInitializationComplete (true);
+        return;
+      }
+
+      QTimer::singleShot (100, this, [this] () {
+        if (texmacs_started) {
+          handleInitializationComplete (true);
+          return;
+        }
+
+        initializationInProgress= false;
+        startInitialization ();
+      });
+    });
+    return;
+  }
+
   // 开始后台初始化
   startBackgroundInitialization ();
 
@@ -455,6 +488,11 @@ StartupLoginDialog::handleLoginButtonClick () {
   userChoiceMade= true;
   emit loginRequested ();
 
+  if (asyncStartupMode) {
+    close ();
+    return;
+  }
+
   // 根据初始化状态处理
   if (initializationComplete) {
     // 初始化已完成，淡出并关闭
@@ -473,6 +511,12 @@ StartupLoginDialog::handleSkipButtonClick () {
   result        = StartupLoginDialog::SkipClicked;
   userChoiceMade= true;
   emit skipRequested ();
+
+  if (asyncStartupMode) {
+    QTimer::singleShot (0, qApp, [] () { qApp->quit (); });
+    return;
+  }
+
   reject ();
 }
 
@@ -516,11 +560,14 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
 
   if (success) {
     // 初始化成功
+    if (asyncStartupMode) {
+      progressBar->setRange (0, 100);
+    }
     updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
                       qt_translate ("准备就绪"));
 
     // 如果用户已经做出选择，触发过渡
-    if (userChoiceMade) {
+    if (!asyncStartupMode && userChoiceMade) {
       fadeOutAndClose ();
     }
     else {
@@ -614,7 +661,7 @@ StartupLoginDialog::fadeOutAndClose () {
 void
 StartupLoginDialog::closeEvent (QCloseEvent* event) {
   // 处理窗口关闭按钮（X）
-  if (initializationInProgress) {
+  if (!asyncStartupMode && initializationInProgress) {
     // 如果初始化正在进行中，阻止关闭
     event->ignore ();
     return;
@@ -622,6 +669,10 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
 
   result= DialogRejected;
   QDialog::closeEvent (event);
+
+  if (asyncStartupMode && !userChoiceMade) {
+    QTimer::singleShot (0, qApp, [] () { qApp->quit (); });
+  }
 }
 
 bool
