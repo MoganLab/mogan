@@ -8,8 +8,8 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPushButton>
-#include <QStyle>
 #include <QString>
+#include <QStyle>
 #include <QWidget>
 
 namespace QWK {

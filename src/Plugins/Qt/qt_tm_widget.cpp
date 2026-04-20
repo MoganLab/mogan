@@ -368,17 +368,18 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
         if (!handled && scmNotificationBar) scmNotificationBar->hide ();
       });
-  QObject::connect (
-      scmNotificationBar, &QWK::NotificationBar::snoozeRequested, [this] () {
-        eval ("(use-modules (texmacs menus notificationbar))");
-        if (m_currentScmNotificationItem ==
-            QStringLiteral ("membership-renew-soon")) {
-          call ("notification-bar-snooze-membership-renew-soon");
-        }
-        else if (m_currentScmNotificationItem == QStringLiteral ("membership")) {
-          call ("notification-bar-snooze-membership-expired");
-        }
-      });
+  QObject::connect (scmNotificationBar, &QWK::NotificationBar::snoozeRequested,
+                    [this] () {
+                      eval ("(use-modules (texmacs menus notificationbar))");
+                      if (m_currentScmNotificationItem ==
+                          QStringLiteral ("membership-renew-soon")) {
+                        call ("notification-bar-snooze-membership-renew-soon");
+                      }
+                      else if (m_currentScmNotificationItem ==
+                               QStringLiteral ("membership")) {
+                        call ("notification-bar-snooze-membership-expired");
+                      }
+                    });
   if (!is_community_stem ()) checkNetworkAvailable ();
 
   // 延迟检查版本更新（启动后10秒）
