@@ -33,6 +33,7 @@
 #include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
+#include <QPushButton>
 #include <QToolBar>
 #include <QToolButton>
 #include <QWindow>
@@ -145,7 +146,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
       titleBarVisibleCache (false), membershipTitleLabel (nullptr),
-      m_userId (""), startupContentWidget (nullptr), startupTabMode (false),
+      m_userId (""), m_remoteVersion (""), m_vipLevel (-1),
+      startupContentWidget (nullptr), startupTabMode (false),
       m_loginDialog (nullptr) {
   type= texmacs_widget;
 
@@ -360,6 +362,54 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
   }
+
+  // VIP升级会员按钮 - 放在登录按钮右侧（只在商业版显示）
+  vipButton= new QPushButton (windowBar);
+  vipButton->setObjectName ("vip-button");
+  vipButton->setText ("  " + qt_translate ("Upgrade VIP"));
+  vipButton->setProperty ("system-button", true);
+  vipButton->setFocusPolicy (Qt::NoFocus);
+  vipButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  vipButton->setFixedHeight (buttonHeight - 8);
+  vipButton->setCursor (Qt::PointingHandCursor);
+
+  // 设置醒目的样式 - 金色/橙色渐变，圆角，闪电图标
+  vipButton->setStyleSheet (
+      "QPushButton#vip-button {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFD700, stop:1 #FFA500);"
+      "  border: none;"
+      "  border-radius: 12px;"
+      "  color: #8B4513;"
+      "  font-weight: bold;"
+      "  font-size: 12px;"
+      "  padding: 0 14px 0 8px;"
+      "}"
+      "QPushButton#vip-button:hover {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFE135, stop:1 #FFB347);"
+      "}"
+      "QPushButton#vip-button:pressed {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFC125, stop:1 #FF8C00);"
+      "}");
+
+  // 设置闪电图标
+  vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
+  vipButton->setIconSize (QSize (16, 16));
+
+  windowBar->setVipButton (vipButton);
+  if (windowAgent) {
+    windowAgent->setHitTestVisible (vipButton, true);
+  }
+
+  // 点击事件：跳转到会员购买页面
+  QObject::connect (vipButton, &QPushButton::clicked, [this] () {
+    string pricingUrl=
+        as_string (call ("account-oauth2-config", "pricing-url"));
+    QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+  });
+
+  // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
+  qDebug () << "[VIP Button] Constructor initializing button visibility";
+  updateVipButtonVisibility (false, QString ());
 
   // 创建通知条容器（垂直布局，放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
@@ -745,6 +795,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       if (!is_community_stem ()) {
         QObject::connect (account, &QTMOAuth::loginStateChanged,
                           [this] (bool loggedIn) {
+                            qDebug () << "[VIP Button] Login state changed - loggedIn:" << loggedIn
+                                      << "current memberType:" << m_memberType;
                             updateLoginButtonState (
                                 loggedIn,
                                 loggedIn ? qt_translate ("User Center")
@@ -761,11 +813,28 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                                 guestNotificationBar->show ();
                               }
                             }
+                            // 登录状态变化时更新VIP按钮可见性
+                            // 未登录时显示，已登录时根据memberType决定（需要重新获取用户信息）
+                            updateVipButtonVisibility (loggedIn, m_memberType);
                           });
         updateLoginButtonState (account->isLoggedIn (),
                                 account->isLoggedIn ()
                                     ? qt_translate ("User Center")
                                     : QString ());
+        // 初始状态：根据登录状态设置VIP按钮
+        // 未登录时显示VIP按钮，已登录时默认显示（等待获取用户信息后再更新）
+        qDebug () << "[VIP Button] Initializing - isLoggedIn:" << account->isLoggedIn ()
+                  << "memberType:" << m_memberType;
+        updateVipButtonVisibility (account->isLoggedIn (), m_memberType);
+
+        // 如果用户已登录，自动获取用户信息以更新VIP按钮状态（静默模式，不弹出对话框）
+        if (account->isLoggedIn ()) {
+          qDebug () << "[VIP Button] User already logged in, fetching user info silently";
+          // 延迟一点执行，确保UI已经初始化
+          QTimer::singleShot (1000, [this]() {
+            checkLocalTokenAndLogin (true);
+          });
+        }
       }
     }
   }
@@ -2080,7 +2149,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 }
 
 void
-qt_tm_widget_rep::checkLocalTokenAndLogin () {
+qt_tm_widget_rep::checkLocalTokenAndLogin (bool silent) {
   // 检查是否为社区版本，如果是则打开官方网址
   if (is_community_stem ()) {
     string pricingUrl=
@@ -2097,9 +2166,9 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 
   if (!q_token.isEmpty ()) {
     // 有token，尝试获取用户信息
-    fetchUserInfo (q_token);
+    fetchUserInfo (q_token, silent);
   }
-  else {
+  else if (!silent) {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
     QPoint buttonBottomCenter= loginButton->mapToGlobal (
         QPoint (loginButton->width () / 2, loginButton->height ()));
@@ -2108,7 +2177,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 }
 
 void
-qt_tm_widget_rep::fetchUserInfo (const QString& token) {
+qt_tm_widget_rep::fetchUserInfo (const QString& token, bool silent) {
   // 创建网络访问管理器
   QNetworkAccessManager* manager= new QNetworkAccessManager ();
 
@@ -2141,7 +2210,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token) {
 
   // 连接信号处理响应
   QObject::connect (
-      reply, &QNetworkReply::finished, [this, reply, manager, token] () {
+      reply, &QNetworkReply::finished, [this, reply, manager, token, silent] () {
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
@@ -2173,15 +2242,22 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token) {
             QString productType=
                 userData["productType"].toString ("Subscribe Now");
 
+            qDebug () << "[VIP Button] User info fetched - userName:" << userName
+                      << "memberType:" << memberType
+                      << "periodLabel:" << periodLabel
+                      << "productType:" << productType;
+
             // 更新弹窗内容
             updateDialogContent (true, userName, accountEmail, avatarText,
                                  memberType, periodLabel, periodLabelColor,
                                  productType);
 
-            // 显示弹窗
-            QPoint buttonBottomCenter= loginButton->mapToGlobal (
-                QPoint (loginButton->width () / 2, loginButton->height ()));
-            m_loginDialog->showAtPosition (buttonBottomCenter);
+            // 如果不是静默模式，显示弹窗
+            if (!silent) {
+              QPoint buttonBottomCenter= loginButton->mapToGlobal (
+                  QPoint (loginButton->width () / 2, loginButton->height ()));
+              m_loginDialog->showAtPosition (buttonBottomCenter);
+            }
           }
           else {
             // API返回错误
@@ -2278,8 +2354,21 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& memberType,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
-                                       const QString& productType) {
+                                       const QString& productType,
+                                       int vipLevel) {
+  (void) vipLevel;
+  qDebug () << "[VIP Button] updateDialogContent called - isLoggedIn:" << isLoggedIn
+            << "memberType:" << memberType
+            << "periodLabel:" << periodLabel
+            << "productType:" << productType;
+
+  // 保存会员类型
+  m_memberType= memberType;
+
   updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
+
+  // 更新VIP按钮可见性（根据memberType判断）
+  updateVipButtonVisibility (isLoggedIn, memberType);
 
   // 根据登录状态更新访客提示条可见性
   if (guestNotificationBar) {
@@ -2357,8 +2446,55 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
 
 void
 qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
+  qDebug () << "[VIP Button] Showing not logged in dialog, resetting memberType";
   updateDialogContent (false, qt_translate ("Not logged in"), errorMessage,
-                       "liii", qt_translate ("Non-member"), "", "", "");
+                       "liii", qt_translate ("Non-member"), "", "", "", -1);
+}
+
+void
+qt_tm_widget_rep::updateVipButtonVisibility (bool isLoggedIn, const QString& memberType) {
+  if (!vipButton) {
+    qDebug () << "[VIP Button] Button not initialized, skipping";
+    return;
+  }
+
+  qDebug () << "[VIP Button] Updating visibility - isLoggedIn:" << isLoggedIn
+            << "memberType:" << memberType;
+
+  // 社区版不显示VIP按钮
+  if (is_community_stem ()) {
+    qDebug () << "[VIP Button] Community edition detected, hiding button";
+    vipButton->hide ();
+    return;
+  }
+
+  // 未登录用户：显示VIP按钮
+  if (!isLoggedIn) {
+    qDebug () << "[VIP Button] User not logged in, showing button";
+    vipButton->show ();
+    return;
+  }
+
+  // 已登录用户：根据memberType决定是否显示
+  // 如果memberType为空，说明还未获取用户信息，保持当前状态（不隐藏）
+  if (memberType.isEmpty ()) {
+    qDebug () << "[VIP Button] Member type not yet fetched, keeping current state";
+    return;
+  }
+
+  // "Regular User"(普通用户)或"Trial Member"(体验会员)时显示
+  // 其他(Fruit User, Sprout User, Seed User, Member)时不显示
+  if (memberType == QStringLiteral ("Regular User") ||
+      memberType == QStringLiteral ("Trial Member")) {
+    qDebug () << "[VIP Button] Member type is" << memberType
+              << "(regular/trial user), showing button";
+    vipButton->show ();
+  }
+  else {
+    qDebug () << "[VIP Button] Member type is" << memberType
+              << "(paid member), hiding button";
+    vipButton->hide ();
+  }
 }
 
 void

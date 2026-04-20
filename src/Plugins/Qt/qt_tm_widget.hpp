@@ -84,6 +84,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QWK::GuestNotificationBar*  guestNotificationBar;  // 访客提示条
   QWK::UpdateNotificationBar* updateNotificationBar; // 版本更新提示条
   QWK::LoginButton*           loginButton;
+  QPushButton*                vipButton;
   QWK::LoginDialog*           m_loginDialog;
   QLabel*                     avatarLabel;
   QLabel*                     nameLabel;
@@ -93,6 +94,8 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QPushButton*                loginActionButton;
   QPushButton*                logoutButton;
   QString                     m_remoteVersion; // 远程版本号
+  int                         m_vipLevel;      // VIP等级，-1表示未获取
+  QString                     m_memberType;    // 会员类型
 
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;
@@ -115,8 +118,8 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
 private:
   void onAddTabRequested ();
   void setupLoginDialog (QWK::LoginDialog* loginDialog);
-  void checkLocalTokenAndLogin ();
-  void fetchUserInfo (const QString& token);
+  void checkLocalTokenAndLogin (bool silent= false);
+  void fetchUserInfo (const QString& token, bool silent= false);
   void triggerOAuth2 ();
   void updateLoginButtonState (bool isLoggedIn,
                                const QString& displayName= QString ());
@@ -125,8 +128,10 @@ private:
                             const QString& memberType,
                             const QString& periodLabel,
                             const QString& periodLabelColor,
-                            const QString& productType);
+                            const QString& productType,
+                            int vipLevel= -1);
   void showNotLoggedInDialog (const QString& errorMessage);
+  void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
   void logout ();
 
   // Version update notification
