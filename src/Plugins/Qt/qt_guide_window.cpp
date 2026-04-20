@@ -10,6 +10,7 @@
 
 #include "qt_guide_window.hpp"
 #include "boot.hpp"
+#include "preferences.hpp"
 #include "qlabel.h"
 #include "qnamespace.h"
 #include "qt_guide_task_executor.hpp"
@@ -22,9 +23,12 @@
 #include <QDateTime>
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
+#include <QMessageBox>
+#include <QMouseEvent>
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QShowEvent>
+#include <QWindow>
 
 namespace QWK {
 
@@ -103,6 +107,11 @@ StartupLoginDialog::setupUi () {
   featureLabel3->setObjectName ("featureLabel");
   featureLabel4->setObjectName ("featureLabel");
 
+  // 自动备份勾选框
+  autoBackupCheckBox= new QCheckBox (qt_translate ("开启自动备份"), this);
+  autoBackupCheckBox->setObjectName ("autoBackupCheckBox");
+  autoBackupCheckBox->setChecked (getAutoBackup ());
+
   // 创建按钮
   loginButton= new QPushButton (qt_translate ("登录"), this); // 登录 Log In
   loginButton->setObjectName ("loginButton");
@@ -134,6 +143,8 @@ StartupLoginDialog::setupUi () {
   mainLayout->addWidget (iconLabel);
   mainLayout->addSpacing (15);
   mainLayout->addLayout (featureLayout);
+  mainLayout->addSpacing (8);
+  mainLayout->addWidget (autoBackupCheckBox, 0, Qt::AlignCenter);
   mainLayout->addStretch ();
   mainLayout->addLayout (buttonLayout);
 
@@ -149,20 +160,18 @@ StartupLoginDialog::setupFramelessWindow () {
   // 设置无边框窗口管理
   windowAgent= new QWK::WidgetWindowAgent (this);
   windowAgent->setup (this);
-
-  // 设置标题、图标和副标题标签为可拖动区域
-  if (windowAgent) {
-    if (titleLabel) {
-      windowAgent->setHitTestVisible (titleLabel, true);
-    }
-    if (iconLabel) {
-      windowAgent->setHitTestVisible (iconLabel, true);
-    }
-    if (subtitleLabel) {
-      windowAgent->setHitTestVisible (subtitleLabel, true);
-    }
-  }
 #endif
+
+  installDragHandler (this);
+  installDragHandler (titleLabel);
+  installDragHandler (iconLabel);
+  installDragHandler (subtitleLabel);
+  installDragHandler (featureLabel1);
+  installDragHandler (featureLabel2);
+  installDragHandler (featureLabel3);
+  installDragHandler (featureLabel4);
+  installDragHandler (statusLabel);
+  installDragHandler (timeEstimationLabel);
 }
 
 void
@@ -209,6 +218,24 @@ StartupLoginDialog::styleSheet () const {
             font-size: 14px;
             padding: 4px 0 4px 20px;
             margin: 0;
+        }
+        QCheckBox#autoBackupCheckBox {
+            color: #ffffff;
+            background-color: transparent;
+            font-size: 14px;
+            spacing: 8px;
+            padding: 4px 0;
+        }
+        QCheckBox#autoBackupCheckBox::indicator {
+            width: 14px;
+            height: 14px;
+            background-color: transparent;
+            border: 1px solid #ffffff;
+            border-radius: 3px;
+        }
+        QCheckBox#autoBackupCheckBox::indicator:checked {
+            background-color: #007AFF;
+            border: 1px solid #ffffff;
         }
         QPushButton {
             border: none;
@@ -273,16 +300,17 @@ StartupLoginDialog::styleSheet () const {
 StartupLoginDialog::StartupLoginDialog (QWidget* parent)
     : QDialog (parent), titleLabel (nullptr), iconLabel (nullptr),
       subtitleLabel (nullptr), featureLabel1 (nullptr), featureLabel2 (nullptr),
-      featureLabel3 (nullptr), featureLabel4 (nullptr), loginButton (nullptr),
-      skipButton (nullptr), mainLayout (nullptr), featureLayout (nullptr),
-      buttonLayout (nullptr), progressBar (nullptr), statusLabel (nullptr),
+      featureLabel3 (nullptr), featureLabel4 (nullptr),
+      autoBackupCheckBox (nullptr), loginButton (nullptr), skipButton (nullptr),
+      mainLayout (nullptr), featureLayout (nullptr), buttonLayout (nullptr),
+      progressBar (nullptr), statusLabel (nullptr),
       timeEstimationLabel (nullptr),
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
       windowAgent (nullptr),
 #endif
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
-      userChoiceMade (false) {
+      userChoiceMade (false), dragInProgress (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
@@ -292,7 +320,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
   setWindowIcon (QIcon (":/app/stem.png"));
 
   // 固定窗口大小
-  setFixedSize (500, 520);
+  setFixedSize (500, 550);
   setWindowTitle (QObject::tr (" "));
 
   // 设置样式表
@@ -419,6 +447,10 @@ StartupLoginDialog::startBackgroundInitialization () {
 
 void
 StartupLoginDialog::handleLoginButtonClick () {
+  if (autoBackupCheckBox) {
+    setAutoBackup (autoBackupCheckBox->isChecked ());
+  }
+
   result        = StartupLoginDialog::LoginClicked;
   userChoiceMade= true;
   emit loginRequested ();
@@ -590,6 +622,90 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
 
   result= DialogRejected;
   QDialog::closeEvent (event);
+}
+
+bool
+StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
+  switch (event->type ()) {
+  case QEvent::MouseButtonPress: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    if (QWindow* handle= windowHandle ()) {
+      if (handle->startSystemMove ()) {
+        if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+          widget->setCursor (Qt::ClosedHandCursor);
+        }
+        dragInProgress= false;
+        return true;
+      }
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+    const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+    dragInProgress= true;
+    dragOffset    = globalPos - frameGeometry ().topLeft ();
+    if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+      widget->setCursor (Qt::ClosedHandCursor);
+    }
+    return true;
+  }
+  case QEvent::MouseMove: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (!dragInProgress || !(mouseEvent->buttons () & Qt::LeftButton)) break;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+    const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+    move (globalPos - dragOffset);
+    return true;
+  }
+  case QEvent::MouseButtonRelease: {
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    dragInProgress= false;
+    resetDragCursor ();
+    return true;
+  }
+  default:
+    break;
+  }
+
+  return QDialog::eventFilter (watched, event);
+}
+
+void
+StartupLoginDialog::installDragHandler (QWidget* widget) {
+  if (!widget) return;
+  widget->installEventFilter (this);
+  widget->setCursor (Qt::OpenHandCursor);
+}
+
+void
+StartupLoginDialog::resetDragCursor () {
+  static QWidget* const dragHandles[]= {
+      this,          titleLabel,         iconLabel,     subtitleLabel,
+      featureLabel1, featureLabel2,      featureLabel3, featureLabel4,
+      statusLabel,   timeEstimationLabel};
+
+  for (QWidget* widget : dragHandles) {
+    if (widget) {
+      widget->setCursor (Qt::OpenHandCursor);
+    }
+  }
+}
+
+bool
+StartupLoginDialog::getAutoBackup () {
+  return get_preference ("autobackup") == "on";
+}
+
+void
+StartupLoginDialog::setAutoBackup (bool autobackup) {
+  if (autobackup) set_preference ("autobackup", "on");
+  else set_preference ("autobackup", "off");
 }
 
 } // namespace QWK

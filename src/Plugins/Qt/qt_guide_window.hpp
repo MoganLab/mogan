@@ -11,7 +11,10 @@
 #ifndef STARTUP_LOGIN_DIALOG_H
 #define STARTUP_LOGIN_DIALOG_H
 
+#include <QEvent>
+#include <QPoint>
 #include <QPropertyAnimation>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
@@ -55,6 +58,7 @@ signals:
 protected:
   void showEvent (QShowEvent* event) override;
   void closeEvent (QCloseEvent* event) override;
+  bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
   void    setupUi ();
@@ -81,6 +85,12 @@ private:
   void updateProgressUI (int percentage, const QString& status,
                          const QString& timeEstimation);
   void enableButtons (bool enabled);
+  void installDragHandler (QWidget* widget);
+  void resetDragCursor ();
+
+  // autobackup
+  bool getAutoBackup ();
+  void setAutoBackup (bool autobackup);
 
   // UI elements
   QLabel*      titleLabel;
@@ -90,6 +100,7 @@ private:
   QLabel*      featureLabel2;
   QLabel*      featureLabel3;
   QLabel*      featureLabel4;
+  QCheckBox*   autoBackupCheckBox;
   QPushButton* loginButton;
   QPushButton* skipButton;
   QVBoxLayout* mainLayout;
@@ -116,6 +127,10 @@ private:
   bool initializationInProgress;
   bool initializationComplete;
   bool userChoiceMade;
+
+  // Manual dragging for the frameless startup dialog
+  bool   dragInProgress;
+  QPoint dragOffset;
 };
 
 } // namespace QWK

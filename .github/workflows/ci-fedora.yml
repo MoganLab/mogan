@@ -1,4 +1,4 @@
-name: Build on Fedora
+name: Build and Test on Fedora
 on:
   push:
     branches: [main]
@@ -31,7 +31,7 @@ env:
   INSTALL_DIR: tmp/build/packages/app.mogan/
 
 jobs:
-  build:
+  fedorabuild:
     container: fedora:latest
     runs-on: ubuntu-latest
     strategy:
@@ -40,11 +40,11 @@ jobs:
       - name: Install dependencies
         run: |
           dnf update -y
-          dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build \
-              google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
+          dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build pkgconf-pkg-config \
+              google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts libX11-devel \
               freetype-devel fontconfig-devel libgit2-devel \
               zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel libcurl-devel \
-              mimalloc-devel dbus-devel glib2-devel \
+              mimalloc-devel dbus-devel glib2-devel harfbuzz-devel \
               libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
               xmake pandoc python3
       - uses: actions/checkout@v3
