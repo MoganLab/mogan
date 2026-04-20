@@ -391,7 +391,6 @@ StartupLoginDialog::execWithResult () {
 void
 StartupLoginDialog::setAsyncStartupMode (bool enabled) {
   asyncStartupMode= enabled;
-  setWindowFlag (Qt::WindowStaysOnTopHint, enabled);
 }
 
 void
@@ -865,6 +864,11 @@ StartupLoginDialog::ensureMainWindowOverlay () {
     if (!hostWindow) return;
 
     mainWindowOverlayHost= hostWindow;
+    if (parentWidget () != hostWindow) {
+      const bool wasVisible= isVisible ();
+      setParent (hostWindow, windowFlags ());
+      if (wasVisible) show ();
+    }
     hostWindow->installEventFilter (this);
   }
 
