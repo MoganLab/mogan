@@ -25,7 +25,9 @@
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
 #include <QMessageBox>
+#include <QMainWindow>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QShowEvent>
@@ -36,6 +38,28 @@ extern bool texmacs_started;
 extern bool qt_startup_quit_requested;
 
 namespace QWK {
+
+namespace {
+
+class StartupWindowOverlay : public QWidget {
+public:
+  explicit StartupWindowOverlay (QWidget* parent)
+      : QWidget (parent) {
+    setObjectName ("startupWindowOverlay");
+    setFocusPolicy (Qt::StrongFocus);
+    setMouseTracking (true);
+    setAutoFillBackground (false);
+  }
+
+protected:
+  void paintEvent (QPaintEvent* event) override {
+    QWidget::paintEvent (event);
+    QPainter painter (this);
+    painter.fillRect (rect (), QColor (8, 12, 18, 150));
+  }
+};
+
+} // namespace
 
 static void
 requestAsyncStartupQuit () {
@@ -368,6 +392,7 @@ StartupLoginDialog::execWithResult () {
 void
 StartupLoginDialog::setAsyncStartupMode (bool enabled) {
   asyncStartupMode= enabled;
+  setWindowFlag (Qt::WindowStaysOnTopHint, enabled);
 }
 
 void
@@ -377,6 +402,13 @@ StartupLoginDialog::showEvent (QShowEvent* event) {
   // 将对话框居中显示在屏幕上
   QRect screenGeometry= QApplication::primaryScreen ()->availableGeometry ();
   move (screenGeometry.center () - rect ().center ());
+
+  if (asyncStartupMode) {
+    ensureMainWindowOverlay ();
+    centerOverMainWindow ();
+    raise ();
+    activateWindow ();
+  }
 
   // 当对话框显示时自动开始初始化
   if (!initializationInProgress && !initializationComplete) {
@@ -436,12 +468,14 @@ StartupLoginDialog::startInitialization () {
     timeEstimationLabel->clear ();
 
     QTimer::singleShot (100, this, [this] () {
+      ensureMainWindowOverlay ();
       if (texmacs_started) {
         handleInitializationComplete (true);
         return;
       }
 
       QTimer::singleShot (100, this, [this] () {
+        ensureMainWindowOverlay ();
         if (texmacs_started) {
           handleInitializationComplete (true);
           return;
@@ -565,6 +599,7 @@ void
 StartupLoginDialog::handleInitializationComplete (bool success) {
   initializationInProgress= false;
   initializationComplete  = true;
+  if (asyncStartupMode) ensureMainWindowOverlay ();
 
   if (success) {
     // 初始化成功
@@ -676,6 +711,7 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
   }
 
   result= DialogRejected;
+  clearMainWindowOverlay ();
   QDialog::closeEvent (event);
 
   if (asyncStartupMode && !userChoiceMade) {
@@ -685,10 +721,60 @@ StartupLoginDialog::closeEvent (QCloseEvent* event) {
 
 bool
 StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == mainWindowOverlayHost) {
+    switch (event->type ()) {
+    case QEvent::Resize:
+    case QEvent::Move:
+    case QEvent::Show:
+      syncMainWindowOverlay ();
+      centerOverMainWindow ();
+      raise ();
+      activateWindow ();
+      return false;
+    case QEvent::Hide:
+      if (mainWindowOverlay) mainWindowOverlay->hide ();
+      return false;
+    case QEvent::Close:
+    case QEvent::Destroy:
+      clearMainWindowOverlay ();
+      return false;
+    default:
+      break;
+    }
+  }
+
+  QWidget* dragWidget= qobject_cast<QWidget*> (watched);
+  const bool isDragHandle=
+      dragWidget && dragWidget->property ("startupDragHandle").toBool ();
+
   switch (event->type ()) {
   case QEvent::MouseButtonPress: {
+    if (!isDragHandle) break;
     QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
     if (mouseEvent->button () != Qt::LeftButton) break;
+    if (asyncStartupMode && mainWindowOverlayHost) {
+      if (QWindow* hostHandle= mainWindowOverlayHost->windowHandle ()) {
+        if (hostHandle->startSystemMove ()) {
+          if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+            widget->setCursor (Qt::ClosedHandCursor);
+          }
+          dragInProgress= false;
+          return true;
+        }
+      }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+      const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+      dragInProgress= true;
+      dragOffset=
+          globalPos - mainWindowOverlayHost->frameGeometry ().topLeft ();
+      if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+        widget->setCursor (Qt::ClosedHandCursor);
+      }
+      return true;
+    }
     if (QWindow* handle= windowHandle ()) {
       if (handle->startSystemMove ()) {
         if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
@@ -711,6 +797,7 @@ StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
     return true;
   }
   case QEvent::MouseMove: {
+    if (!isDragHandle) break;
     QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
     if (!dragInProgress || !(mouseEvent->buttons () & Qt::LeftButton)) break;
 #if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
@@ -718,10 +805,15 @@ StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
 #else
     const QPoint globalPos= mouseEvent->globalPos ();
 #endif
+    if (asyncStartupMode && mainWindowOverlayHost) {
+      mainWindowOverlayHost->move (globalPos - dragOffset);
+      return true;
+    }
     move (globalPos - dragOffset);
     return true;
   }
   case QEvent::MouseButtonRelease: {
+    if (!isDragHandle) break;
     QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
     if (mouseEvent->button () != Qt::LeftButton) break;
     dragInProgress= false;
@@ -738,6 +830,7 @@ StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
 void
 StartupLoginDialog::installDragHandler (QWidget* widget) {
   if (!widget) return;
+  widget->setProperty ("startupDragHandle", true);
   widget->installEventFilter (this);
   widget->setCursor (Qt::OpenHandCursor);
 }
@@ -754,6 +847,67 @@ StartupLoginDialog::resetDragCursor () {
       widget->setCursor (Qt::OpenHandCursor);
     }
   }
+}
+
+void
+StartupLoginDialog::ensureMainWindowOverlay () {
+  QWidget* hostWindow= mainWindowOverlayHost.data ();
+
+  if (!hostWindow) {
+    const QWidgetList widgets= QApplication::topLevelWidgets ();
+    for (QWidget* widget : widgets) {
+      if (!widget || widget == this) continue;
+      if (!widget->isWindow () || !widget->isVisible ()) continue;
+      if (qobject_cast<QMainWindow*> (widget) == nullptr) continue;
+      hostWindow= widget;
+      break;
+    }
+
+    if (!hostWindow) return;
+
+    mainWindowOverlayHost= hostWindow;
+    hostWindow->installEventFilter (this);
+  }
+
+  if (!mainWindowOverlay) {
+    mainWindowOverlay= new StartupWindowOverlay (hostWindow);
+  }
+
+  syncMainWindowOverlay ();
+  centerOverMainWindow ();
+  mainWindowOverlay->show ();
+  mainWindowOverlay->raise ();
+  mainWindowOverlay->setFocus (Qt::OtherFocusReason);
+  raise ();
+  activateWindow ();
+}
+
+void
+StartupLoginDialog::clearMainWindowOverlay () {
+  if (mainWindowOverlayHost) {
+    mainWindowOverlayHost->removeEventFilter (this);
+  }
+  if (mainWindowOverlay) {
+    mainWindowOverlay->hide ();
+    mainWindowOverlay->deleteLater ();
+  }
+  mainWindowOverlayHost= nullptr;
+  mainWindowOverlay    = nullptr;
+}
+
+void
+StartupLoginDialog::syncMainWindowOverlay () {
+  if (!mainWindowOverlayHost || !mainWindowOverlay) return;
+  mainWindowOverlay->setGeometry (mainWindowOverlayHost->rect ());
+  mainWindowOverlay->setVisible (mainWindowOverlayHost->isVisible ());
+}
+
+void
+StartupLoginDialog::centerOverMainWindow () {
+  if (!asyncStartupMode || !mainWindowOverlayHost) return;
+
+  QRect hostGeometry= mainWindowOverlayHost->frameGeometry ();
+  move (hostGeometry.center () - rect ().center ());
 }
 
 bool
