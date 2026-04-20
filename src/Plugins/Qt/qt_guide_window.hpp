@@ -44,6 +44,7 @@ public:
 
   static bool shouldShow ();
 
+  void   setAsyncStartupMode (bool enabled);
   Result execWithResult ();
   void   startInitialization ();
   bool   isInitializationComplete () const { return initializationComplete; }
@@ -131,6 +132,7 @@ private:
   // Manual dragging for the frameless startup dialog
   bool   dragInProgress;
   QPoint dragOffset;
+  bool asyncStartupMode;
 };
 
 } // namespace QWK
