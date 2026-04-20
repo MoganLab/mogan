@@ -12,8 +12,7 @@
 
 (texmacs-module (texmacs menus notificationbar)
   (:use
-    (utils library cursor)
-    (utils misc version-update)))
+    (utils library cursor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; SCM notification bar state
@@ -28,11 +27,7 @@
 (define MEMBERSHIP-RENEW-SOON-NOTICE-SNOOZE-UNTIL-KEY
   "membership_renew_soon_notice_snooze_until")
 
-(define notification-bar-update-available? #f)
-(define notification-bar-update-remote-version "")
 (define notification-bar-last-rendered-item #f)
-
-(define notification-bar-guest-visible? #f)
 
 (define notification-bar-membership-has-data? #f)
 (define notification-bar-membership-member-type "")
@@ -47,14 +42,10 @@
   (and (string? s) (!= s "") (!= s "undefined")))
 
 (tm-define (notification-bar-set-update-state active? remote-version)
-  (set! notification-bar-update-available? active?)
-  (set! notification-bar-update-remote-version
-        (if (notification-bar-non-empty-string? remote-version)
-            remote-version
-            "")))
+  #f)
 
 (tm-define (notification-bar-set-guest-visible visible?)
-  (set! notification-bar-guest-visible? visible?))
+  #f)
 
 (tm-define (notification-bar-set-membership-state has-data? member-type
                                                   period-label
@@ -139,17 +130,6 @@
   (set! notification-bar-membership-renew-soon-session-dismissed? #f)
   (notification-bar-clear-notice-history!
     MEMBERSHIP-RENEW-SOON-NOTICE-SNOOZE-UNTIL-KEY))
-
-(tm-define (notification-bar-update-active?)
-  (and notification-bar-update-available?
-       (should-check-version-update?)
-       (notification-bar-non-empty-string?
-         notification-bar-update-remote-version)
-       (not (version-update-ignored?
-              notification-bar-update-remote-version))))
-
-(tm-define (notification-bar-guest-active?)
-  notification-bar-guest-visible?)
 
 (tm-define (notification-bar-membership-free-user?)
   (and (== notification-bar-membership-member-type "Regular User")
@@ -280,16 +260,14 @@
       (== notification-bar-membership-product-type "Renew Early")))
 
 (tm-define (notification-bar-membership-renew-soon-active?)
-  (and (not (notification-bar-guest-active?))
-       notification-bar-membership-has-data?
+  (and notification-bar-membership-has-data?
        (notification-bar-membership-renew-soon?)
        (not notification-bar-membership-renew-soon-session-dismissed?)
        (not (notification-bar-renew-soon-notice-snoozed?))
        (not (notification-bar-membership-free-user?))))
 
 (tm-define (notification-bar-membership-expired-active?)
-  (and (not (notification-bar-guest-active?))
-       notification-bar-membership-has-data?
+  (and notification-bar-membership-has-data?
        (if (notification-bar-membership-days-left)
            (notification-bar-membership-expired-by-date?)
            (not (notification-bar-membership-renew-soon?)))
@@ -299,10 +277,6 @@
 
 (tm-define (notification-bar-active-items)
   (with items '()
-    (if (notification-bar-update-active?)
-        (set! items (append items (list "update"))))
-    (if (notification-bar-guest-active?)
-        (set! items (append items (list "guest"))))
     (if (notification-bar-membership-renew-soon-active?)
         (set! items (append items (list "membership-renew-soon"))))
     (if (notification-bar-membership-expired-active?)
@@ -332,20 +306,6 @@
 (tm-define (notification-bar-rendered-item)
   (or notification-bar-last-rendered-item ""))
 
-(tm-define (notification-bar-update-message)
-  (string-append (translate "New version available")
-                 " v"
-                 notification-bar-update-remote-version
-                 " ("
-                 (translate "current")
-                 ": v"
-                 (xmacs-version)
-                 ")"))
-
-(tm-define (notification-bar-guest-message)
-  (translate
-    "You are currently in guest mode, login to enable AI, MathOCR,and other features"))
-
 (tm-define (notification-bar-membership-message)
   (translate
     "Your membership has expired. Renew to continue using AI, MathOCR, and other member features"))
@@ -359,19 +319,6 @@
 
 (tm-define (notification-bar-membership-renew-soon-button-label)
   (translate "Renew Early"))
-
-(tm-define (notification-bar-skip-this-version-label)
-  (translate "Skip this version"))
-
-(tm-define (notification-bar-ignore-current-update-version)
-  (when (notification-bar-non-empty-string?
-          notification-bar-update-remote-version)
-    (ignore-version-update notification-bar-update-remote-version))
-  (when (current-view) (update-menus)))
-
-(tm-define (notification-bar-snooze-current-update-version)
-  (snooze-version-update)
-  (when (current-view) (update-menus)))
 
 (tm-define (notification-bar-open-membership-renew-soon-plans)
   (notification-bar-snooze-renew-soon-notice)
@@ -421,21 +368,6 @@
 
 (notification-bar-ensure-running)
 
-(menu-bind texmacs-notification-bar-one
-  (text (notification-bar-update-message))
-  >>>
-  ("Update now" (open-url (get-update-download-url)))
-  //
-  ("Remind later" (notification-bar-snooze-current-update-version))
-  //
-  ((eval (notification-bar-skip-this-version-label))
-   (notification-bar-ignore-current-update-version)))
-
-(menu-bind texmacs-notification-bar-two
-  (text (notification-bar-guest-message))
-  >>>
-  ("Login Now" (login)))
-
 (menu-bind texmacs-notification-bar-three
   (text (notification-bar-membership-renew-soon-message))
   >>>
@@ -453,10 +385,6 @@
   ("Remind later" (notification-bar-snooze-membership-expired)))
 
 (menu-bind texmacs-notification-bar
-  (if (== (notification-bar-current-item) "update")
-      (link texmacs-notification-bar-one))
-  (if (== (notification-bar-current-item) "guest")
-      (link texmacs-notification-bar-two))
   (if (== (notification-bar-current-item) "membership-renew-soon")
       (link texmacs-notification-bar-three))
   (if (== (notification-bar-current-item) "membership")
