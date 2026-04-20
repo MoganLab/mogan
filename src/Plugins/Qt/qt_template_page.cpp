@@ -8,7 +8,6 @@
 #include "qt_template_page.hpp"
 
 #include <QBuffer>
-#include <QDebug>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QEvent>
