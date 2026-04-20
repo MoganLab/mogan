@@ -109,7 +109,22 @@ QWK--WindowBar>QAbstractButton#close-button:pressed {
 }
 
 QWK--WindowBar>QAbstractButton#login-button {
-    qproperty-iconNormal: url(":/window-bar/login-white.svg");
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  margin-right: 8px;
+  padding: 0 10px 0 6px;
+  qproperty-iconNormal: url(":/window-bar/login-white.svg");
+}
+
+/* 未登录状态 - 使用蓝色强调 */
+QWK--WindowBar>QAbstractButton#login-button[login-state="not-logged-in"] {
+  color: #4fc3f7;
+}
+
+/* 已登录状态 - 使用常规颜色 */
+QWK--WindowBar>QAbstractButton#login-button[login-state="logged-in"] {
+  color: #ffffff;
 }
 
 /****************************************************************************

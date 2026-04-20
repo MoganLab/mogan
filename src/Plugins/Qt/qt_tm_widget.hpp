@@ -118,6 +118,8 @@ private:
   void checkLocalTokenAndLogin ();
   void fetchUserInfo (const QString& token);
   void triggerOAuth2 ();
+  void updateLoginButtonState (bool isLoggedIn,
+                               const QString& displayName= QString ());
   void updateDialogContent (bool isLoggedIn, const QString& username,
                             const QString& email, const QString& avatarText,
                             const QString& memberType,
