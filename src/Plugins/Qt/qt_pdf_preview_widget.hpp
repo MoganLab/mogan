@@ -101,6 +101,9 @@ private slots:
   void goToPage (int page);
 
 private:
+  // 网络响应处理
+  void processNetworkReply (QPointer<QNetworkReply> reply);
+
   // MuPDF渲染
   bool renderCurrentPage ();
   bool renderPdfPage (const QByteArray& data, int pageNumber);
@@ -120,12 +123,11 @@ private:
   void  calculatePreviewDimensions (int availWidth, int availHeight,
                                     int& outWidth, int& outHeight) const;
 
-private:
+  // 控件布局与交互
   void updateButtonPositions ();
   void setControlsVisible (bool visible);
   bool mouseInWidgetHierarchy () const;
 
-private:
   // UI组件
   QWidget*     previewContainer_; // 预览容器（包含预览图和悬停按钮）
   QLabel*      previewLabel_;     // 预览图（仅用于图片加载，PDF用矢量渲染）

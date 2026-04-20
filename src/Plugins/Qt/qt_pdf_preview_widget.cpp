@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QHoverEvent>
+#include <QLocale>
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QResizeEvent>
@@ -378,6 +379,11 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
   QPointer<QNetworkReply> reply= currentReply_;
   currentReply_                = nullptr;
 
+  processNetworkReply (reply);
+}
+
+void
+QTPdfPreviewWidget::processNetworkReply (QPointer<QNetworkReply> reply) {
   if (!reply) return;
 
   if (reply->error () != QNetworkReply::NoError) {
@@ -400,18 +406,24 @@ QTPdfPreviewWidget::onNetworkReplyFinished () {
     return;
   }
 
-  // Save to file cache for future use
-  PdfFileCache::instance ()->saveToCache (currentKey_, pdfData_);
-
-  // Extract and save HTTP cache headers
+  // Extract HTTP cache headers and save to file cache
   QString   etag;
   QDateTime lastModified;
   if (reply) {
     etag              = QString::fromUtf8 (reply->rawHeader ("ETag"));
     QString lastModStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
     if (!lastModStr.isEmpty ()) {
-      lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
-      lastModified.setTimeZone (QTimeZone::utc ());
+      // RFC 2822 / HTTP-date format: "Thu, 29 Jan 2026 11:32:54 GMT"
+      // Use RFC2822Date with C locale to ensure consistent parsing
+      lastModified= QLocale::c ().toDateTime (
+          lastModStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
+      if (!lastModified.isValid ()) {
+        // Fallback to Qt's built-in RFC2822 parser
+        lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
+      }
+      if (lastModified.isValid ()) {
+        lastModified.setTimeZone (QTimeZone::utc ());
+      }
     }
   }
 
@@ -440,8 +452,8 @@ QTPdfPreviewWidget::onConditionalReplyFinished (const QString& cachedFilePath,
     return;
   }
 
-  // Error or 200 OK - fallback to normal handling
-  onNetworkReplyFinished ();
+  // Error or 200 OK - process the reply directly
+  processNetworkReply (reply);
 }
 
 bool
