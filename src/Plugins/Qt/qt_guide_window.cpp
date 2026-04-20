@@ -24,8 +24,8 @@
 #include <QDateTime>
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
-#include <QMessageBox>
 #include <QMainWindow>
+#include <QMessageBox>
 #include <QMouseEvent>
 #include <QPainter>
 #include <QPixmap>
@@ -43,8 +43,7 @@ namespace {
 
 class StartupWindowOverlay : public QWidget {
 public:
-  explicit StartupWindowOverlay (QWidget* parent)
-      : QWidget (parent) {
+  explicit StartupWindowOverlay (QWidget* parent) : QWidget (parent) {
     setObjectName ("startupWindowOverlay");
     setFocusPolicy (Qt::StrongFocus);
     setMouseTracking (true);
@@ -743,7 +742,7 @@ StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
     }
   }
 
-  QWidget* dragWidget= qobject_cast<QWidget*> (watched);
+  QWidget*   dragWidget= qobject_cast<QWidget*> (watched);
   const bool isDragHandle=
       dragWidget && dragWidget->property ("startupDragHandle").toBool ();
 

@@ -135,9 +135,9 @@ private:
   bool userChoiceMade;
 
   // Manual dragging for the frameless startup dialog
-  bool   dragInProgress;
-  QPoint dragOffset;
-  bool   asyncStartupMode;
+  bool              dragInProgress;
+  QPoint            dragOffset;
+  bool              asyncStartupMode;
   QPointer<QWidget> mainWindowOverlayHost;
   QPointer<QWidget> mainWindowOverlay;
 };
