@@ -286,465 +286,489 @@ QTPdfPreviewWidget::loadFromFile (const QString& filePath, int dpi) {
     return renderCurrentPage ();
   }
 
-  bool QTPdfPreviewWidget::loadFromData (const QByteArray& data, int dpi) {
-    cancelLoading ();
+  return false;
+}
 
-    // Clear key since we can't cache data without a persistent identifier
-    currentKey_.clear ();
-    targetDpi_      = dpi;
-    currentPage_    = 0;
-    pageCount_      = 0;
-    pageAspectRatio_= kDefaultAspectRatio;
-    hasError_       = false;
-    errorString_.clear ();
-    pdfData_= data;
+bool
+QTPdfPreviewWidget::loadFromData (const QByteArray& data, int dpi) {
+  cancelLoading ();
 
-    setControlsVisible (false);
+  // Clear key since we can't cache data without a persistent identifier
+  currentKey_.clear ();
+  targetDpi_      = dpi;
+  currentPage_    = 0;
+  pageCount_      = 0;
+  pageAspectRatio_= kDefaultAspectRatio;
+  hasError_       = false;
+  errorString_.clear ();
+  pdfData_= data;
 
-    return renderCurrentPage ();
+  setControlsVisible (false);
+
+  return renderCurrentPage ();
+}
+
+void
+QTPdfPreviewWidget::cancelLoading () {
+  if (currentReply_) {
+    disconnect (currentReply_, nullptr, this, nullptr);
+    currentReply_->abort ();
+    currentReply_->deleteLater ();
+    currentReply_= nullptr;
   }
+  isLoading_      = false;
+  currentLoadType_= LoadType::None;
+  currentKey_.clear ();
+}
 
-  void QTPdfPreviewWidget::cancelLoading () {
-    if (currentReply_) {
-      disconnect (currentReply_, nullptr, this, nullptr);
-      currentReply_->abort ();
-      currentReply_->deleteLater ();
-      currentReply_= nullptr;
-    }
-    isLoading_      = false;
-    currentLoadType_= LoadType::None;
-    currentKey_.clear ();
+void
+QTPdfPreviewWidget::clearPreview (const QString& text) {
+  previewLabel_->setPixmap (QPixmap ());
+  if (text.isEmpty ()) {
+    previewLabel_->setText (qt_translate ("No Preview"));
   }
-
-  void QTPdfPreviewWidget::clearPreview (const QString& text) {
-    previewLabel_->setPixmap (QPixmap ());
-    if (text.isEmpty ()) {
-      previewLabel_->setText (qt_translate ("No Preview"));
-    }
-    else {
-      previewLabel_->setText (text);
-    }
-    updatePreviewSize ();
+  else {
+    previewLabel_->setText (text);
   }
+  updatePreviewSize ();
+}
 
-  void QTPdfPreviewWidget::showLoading () {
-    isLoading_= true;
-    previewLabel_->setText (qt_translate ("Loading..."));
-    updatePreviewSize ();
-    emit loadingStarted ();
+void
+QTPdfPreviewWidget::showLoading () {
+  isLoading_= true;
+  previewLabel_->setText (qt_translate ("Loading..."));
+  updatePreviewSize ();
+  emit loadingStarted ();
+}
+
+void
+QTPdfPreviewWidget::showError (const QString& message) {
+  isLoading_= false;
+  hasError_ = true;
+  previewLabel_->setText (message);
+  updatePreviewSize ();
+  emit error (message);
+  emit loadingFinished (false);
+}
+
+void
+QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
+  isLoading_= false;
+  // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免“跳缩放”
+  previewLabel_->setPixmap (pixmap);
+  emit loadingFinished (true);
+}
+
+void
+QTPdfPreviewWidget::goToPage (int page) {
+  if (page < 0 || page >= pageCount_ || page == currentPage_) return;
+  currentPage_= page;
+  if (renderCurrentPage ()) {
+    // renderPdfPage 成功时会调用 updatePageControls
+    emit pageChanged (currentPage_);
   }
+}
 
-  void QTPdfPreviewWidget::showError (const QString& message) {
-    isLoading_= false;
-    hasError_ = true;
-    previewLabel_->setText (message);
-    updatePreviewSize ();
-    emit error (message);
-    emit loadingFinished (false);
-  }
+void
+QTPdfPreviewWidget::goToPreviousPage () {
+  goToPage (currentPage_ - 1);
+}
 
-  void QTPdfPreviewWidget::setPreviewPixmap (const QPixmap& pixmap) {
-    isLoading_= false;
-    // 预览框大小由updatePreviewSize统一控制，翻页时仅替换图像避免“跳缩放”
-    previewLabel_->setPixmap (pixmap);
-    emit loadingFinished (true);
-  }
+void
+QTPdfPreviewWidget::goToNextPage () {
+  goToPage (currentPage_ + 1);
+}
 
-  void QTPdfPreviewWidget::goToPage (int page) {
-    if (page < 0 || page >= pageCount_ || page == currentPage_) return;
-    currentPage_= page;
-    if (renderCurrentPage ()) {
-      // renderPdfPage 成功时会调用 updatePageControls
-      emit pageChanged (currentPage_);
-    }
-  }
+void
+QTPdfPreviewWidget::onNetworkReplyFinished () {
+  QPointer<QNetworkReply> reply= currentReply_;
+  currentReply_                = nullptr;
 
-  void QTPdfPreviewWidget::goToPreviousPage () { goToPage (currentPage_ - 1); }
+  if (!reply) return;
 
-  void QTPdfPreviewWidget::goToNextPage () { goToPage (currentPage_ + 1); }
-
-  void QTPdfPreviewWidget::onNetworkReplyFinished () {
-    QPointer<QNetworkReply> reply= currentReply_;
-    currentReply_                = nullptr;
-
-    if (!reply) return;
-
-    if (reply->error () != QNetworkReply::NoError) {
-      errorString_=
-          qt_translate ("Download failed: %1").arg (reply->errorString ());
-      pdfData_.clear (); // 清理残留数据
-      showError (errorString_);
-      reply->deleteLater ();
-      currentLoadType_= LoadType::None;
-      return;
-    }
-
-    pdfData_= reply->readAll ();
+  if (reply->error () != QNetworkReply::NoError) {
+    errorString_=
+        qt_translate ("Download failed: %1").arg (reply->errorString ());
+    pdfData_.clear (); // 清理残留数据
+    showError (errorString_);
     reply->deleteLater ();
-
-    if (pdfData_.isEmpty ()) {
-      errorString_= qt_translate ("Empty PDF data received");
-      showError (errorString_);
-      currentLoadType_= LoadType::None;
-      return;
-    }
-
-    renderCurrentPage ();
     currentLoadType_= LoadType::None;
+    return;
   }
 
-  bool QTPdfPreviewWidget::renderCurrentPage () {
-    return renderPdfPage (pdfData_, currentPage_);
+  pdfData_= reply->readAll ();
+  reply->deleteLater ();
+
+  if (pdfData_.isEmpty ()) {
+    errorString_= qt_translate ("Empty PDF data received");
+    showError (errorString_);
+    currentLoadType_= LoadType::None;
+    return;
   }
 
-  bool QTPdfPreviewWidget::renderPdfPage (const QByteArray& data,
-                                          int               pageNumber) {
-    fz_context* ctx= mupdf_context ();
-    if (!ctx) {
-      qWarning () << "MuPDF context not available";
-      errorString_= qt_translate ("PDF engine not available");
+  renderCurrentPage ();
+  currentLoadType_= LoadType::None;
+}
+
+bool
+QTPdfPreviewWidget::renderCurrentPage () {
+  return renderPdfPage (pdfData_, currentPage_);
+}
+
+bool
+QTPdfPreviewWidget::renderPdfPage (const QByteArray& data, int pageNumber) {
+  fz_context* ctx= mupdf_context ();
+  if (!ctx) {
+    qWarning () << "MuPDF context not available";
+    errorString_= qt_translate ("PDF engine not available");
+    showError (errorString_);
+    return false;
+  }
+
+  // 文档处理器仅在成功后标记完成，失败可在后续渲染时重试
+  static std::mutex registerMutex;
+  static bool       handlersRegistered= false;
+  if (!handlersRegistered) {
+    QString registerError;
+    {
+      std::lock_guard<std::mutex> lock (registerMutex);
+      if (!handlersRegistered) {
+        fz_try (ctx) {
+          fz_register_document_handlers (ctx);
+          handlersRegistered= true;
+        }
+        fz_catch (ctx) {
+          registerError= QString::fromUtf8 (fz_caught_message (ctx));
+          qWarning () << "Failed to register document handlers:"
+                      << registerError;
+        }
+      }
+    }
+    if (!handlersRegistered) {
+      errorString_= qt_translate ("Failed to initialize PDF handlers: %1")
+                        .arg (registerError);
       showError (errorString_);
       return false;
     }
-
-    // 文档处理器仅在成功后标记完成，失败可在后续渲染时重试
-    static std::mutex registerMutex;
-    static bool       handlersRegistered= false;
-    if (!handlersRegistered) {
-      QString registerError;
-      {
-        std::lock_guard<std::mutex> lock (registerMutex);
-        if (!handlersRegistered) {
-          fz_try (ctx) {
-            fz_register_document_handlers (ctx);
-            handlersRegistered= true;
-          }
-          fz_catch (ctx) {
-            registerError= QString::fromUtf8 (fz_caught_message (ctx));
-            qWarning () << "Failed to register document handlers:"
-                        << registerError;
-          }
-        }
-      }
-      if (!handlersRegistered) {
-        errorString_= qt_translate ("Failed to initialize PDF handlers: %1")
-                          .arg (registerError);
-        showError (errorString_);
-        return false;
-      }
-    }
-
-    fz_document* doc    = nullptr;
-    fz_pixmap*   pix    = nullptr;
-    fz_page*     page   = nullptr;
-    fz_buffer*   buf    = nullptr;
-    fz_stream*   stream = nullptr;
-    bool         success= false;
-
-    fz_var (doc);
-    fz_var (pix);
-    fz_var (page);
-    fz_var (buf);
-    fz_var (stream);
-
-    fz_try (ctx) {
-      buf= fz_new_buffer_from_copied_data (
-          ctx, reinterpret_cast<const unsigned char*> (data.constData ()),
-          data.size ());
-
-      stream= fz_open_buffer (ctx, buf);
-      doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-
-      if (!doc) {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
-      }
-
-      int pageCount= fz_count_pages (ctx, doc);
-      if (pageCount <= 0) {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
-      }
-
-      pageCount_= pageCount;
-
-      if (pageNumber < 0 || pageNumber >= pageCount) {
-        pageNumber= 0;
-      }
-      currentPage_= pageNumber;
-
-      page= fz_load_page (ctx, doc, pageNumber);
-      if (!page) {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
-      }
-
-      // 获取页面边界
-      fz_rect bbox= fz_bound_page (ctx, page);
-
-      // 计算宽高比
-      float pageWidth = bbox.x1 - bbox.x0;
-      float pageHeight= bbox.y1 - bbox.y0;
-      if (pageHeight > 0 &&
-          (pageAspectRatio_ <= 0 || pageNumber == 0 || pageCount_ <= 1)) {
-        pageAspectRatio_= pageWidth / pageHeight;
-      }
-
-      // 计算目标尺寸
-      updatePreviewSize ();
-      QSize targetSize= previewLabel_->size ();
-      qreal dpr       = previewLabel_->devicePixelRatioF ();
-      int   targetPxW = qMax (1, qRound (targetSize.width () * dpr));
-      int   targetPxH = qMax (1, qRound (targetSize.height () * dpr));
-
-      // 按目标尺寸计算渲染比例（参考通用MuPDF用法）
-      float scaleX= static_cast<float> (targetPxW) / pageWidth;
-      float scaleY= static_cast<float> (targetPxH) / pageHeight;
-      float scale = qMin (scaleX, scaleY);
-      float qualityScale=
-          qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
-      float renderScale=
-          qBound (kMinRenderScale, scale * kRenderOversample * qualityScale,
-                  kMaxRenderScale);
-
-      fz_matrix ctm= fz_scale (renderScale, renderScale);
-
-      pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
-      if (!pix) {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to render page");
-      }
-
-      int            pixW   = fz_pixmap_width (ctx, pix);
-      int            pixH   = fz_pixmap_height (ctx, pix);
-      int            stride = fz_pixmap_stride (ctx, pix);
-      int            comps  = pix->n;
-      unsigned char* samples= fz_pixmap_samples (ctx, pix);
-
-      QImage image;
-      if (comps == 3) {
-        QImage tempImage (samples, pixW, pixH, stride, QImage::Format_RGB888);
-        image= tempImage.copy ();
-      }
-      else if (comps == 4) {
-        QImage tempImage (samples, pixW, pixH, stride,
-                          QImage::Format_RGBA8888_Premultiplied);
-        image= tempImage.copy ();
-      }
-      else {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Unsupported pixmap format (n=%d)",
-                  comps);
-      }
-
-      if (image.isNull ()) {
-        fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
-      }
-
-      // 缩放到目标显示区域，避免尺寸溢出并保持页面完整可见
-      QPixmap pixmap= QPixmap::fromImage (std::move (image));
-      pixmap        = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
-                                     Qt::SmoothTransformation);
-      pixmap.setDevicePixelRatio (dpr);
-      setPreviewPixmap (pixmap);
-      success= true;
-
-      // Cache the rendered page for future use
-      if (!currentKey_.isEmpty ()) {
-        PdfPreviewCache::instance ()->put (currentKey_, currentPage_,
-                                           targetDpi_, pixmap, true);
-      }
-
-      updatePageControls ();
-
-      // 渲染完成后，如果鼠标已经在预览区域上，显示控制按钮
-      if (previewContainer_ && previewContainer_->underMouse ()) {
-        setControlsVisible (true);
-      }
-    }
-    fz_catch (ctx) {
-      qWarning () << "MuPDF error:" << fz_caught_message (ctx);
-      errorString_= qt_translate ("PDF render error: %1")
-                        .arg (QString::fromUtf8 (fz_caught_message (ctx)));
-      showError (errorString_);
-      success= false;
-    }
-
-    if (pix) fz_drop_pixmap (ctx, pix);
-    if (page) fz_drop_page (ctx, page);
-    if (stream) fz_drop_stream (ctx, stream);
-    if (buf) fz_drop_buffer (ctx, buf);
-    if (doc) fz_drop_document (ctx, doc);
-
-    return success;
   }
 
-  void QTPdfPreviewWidget::loadImageFromUrl (const QString& url) {
-    cancelLoading ();
+  fz_document* doc    = nullptr;
+  fz_pixmap*   pix    = nullptr;
+  fz_page*     page   = nullptr;
+  fz_buffer*   buf    = nullptr;
+  fz_stream*   stream = nullptr;
+  bool         success= false;
 
-    currentLoadType_= LoadType::Image;
-    hasError_       = false;
-    errorString_.clear ();
-    pdfData_.clear ();
-    pageCount_  = 0;
-    currentPage_= 0;
+  fz_var (doc);
+  fz_var (pix);
+  fz_var (page);
+  fz_var (buf);
+  fz_var (stream);
 
-    setControlsVisible (false);
-    showLoading ();
+  fz_try (ctx) {
+    buf= fz_new_buffer_from_copied_data (
+        ctx, reinterpret_cast<const unsigned char*> (data.constData ()),
+        data.size ());
 
-    QNetworkRequest request (url);
-    currentReply_= networkManager_->get (request);
+    stream= fz_open_buffer (ctx, buf);
+    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
 
-    connect (currentReply_, &QNetworkReply::finished, this,
-             &QTPdfPreviewWidget::onImageNetworkReplyFinished);
-  }
-
-  void QTPdfPreviewWidget::onImageNetworkReplyFinished () {
-    QPointer<QNetworkReply> reply= currentReply_;
-    currentReply_                = nullptr;
-
-    if (!reply) return;
-
-    if (reply->error () != QNetworkReply::NoError) {
-      errorString_= qt_translate ("Image download failed: %1")
-                        .arg (reply->errorString ());
-      showError (errorString_);
-      reply->deleteLater ();
-      currentLoadType_= LoadType::None;
-      return;
+    if (!doc) {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
     }
 
-    QByteArray imageData= reply->readAll ();
-    reply->deleteLater ();
-
-    if (imageData.isEmpty ()) {
-      errorString_= qt_translate ("Received empty image data");
-      showError (errorString_);
-      currentLoadType_= LoadType::None;
-      return;
+    int pageCount= fz_count_pages (ctx, doc);
+    if (pageCount <= 0) {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
     }
 
-    QPixmap pixmap;
-    if (pixmap.loadFromData (imageData)) {
-      updatePreviewSize ();
-      QSize displaySize= previewLabel_->size ();
-      qreal dpr        = previewLabel_->devicePixelRatioF ();
-      int   targetPxW  = qMax (1, qRound (displaySize.width () * dpr));
-      int   targetPxH  = qMax (1, qRound (displaySize.height () * dpr));
-      pixmap= pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
-                             Qt::SmoothTransformation);
-      pixmap.setDevicePixelRatio (dpr);
-      setPreviewPixmap (pixmap);
+    pageCount_= pageCount;
+
+    if (pageNumber < 0 || pageNumber >= pageCount) {
+      pageNumber= 0;
+    }
+    currentPage_= pageNumber;
+
+    page= fz_load_page (ctx, doc, pageNumber);
+    if (!page) {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
+    }
+
+    // 获取页面边界
+    fz_rect bbox= fz_bound_page (ctx, page);
+
+    // 计算宽高比
+    float pageWidth = bbox.x1 - bbox.x0;
+    float pageHeight= bbox.y1 - bbox.y0;
+    if (pageHeight > 0 &&
+        (pageAspectRatio_ <= 0 || pageNumber == 0 || pageCount_ <= 1)) {
+      pageAspectRatio_= pageWidth / pageHeight;
+    }
+
+    // 计算目标尺寸
+    updatePreviewSize ();
+    QSize targetSize= previewLabel_->size ();
+    qreal dpr       = previewLabel_->devicePixelRatioF ();
+    int   targetPxW = qMax (1, qRound (targetSize.width () * dpr));
+    int   targetPxH = qMax (1, qRound (targetSize.height () * dpr));
+
+    // 按目标尺寸计算渲染比例（参考通用MuPDF用法）
+    float scaleX= static_cast<float> (targetPxW) / pageWidth;
+    float scaleY= static_cast<float> (targetPxH) / pageHeight;
+    float scale = qMin (scaleX, scaleY);
+    float qualityScale=
+        qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
+    float renderScale=
+        qBound (kMinRenderScale, scale * kRenderOversample * qualityScale,
+                kMaxRenderScale);
+
+    fz_matrix ctm= fz_scale (renderScale, renderScale);
+
+    pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
+    if (!pix) {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to render page");
+    }
+
+    int            pixW   = fz_pixmap_width (ctx, pix);
+    int            pixH   = fz_pixmap_height (ctx, pix);
+    int            stride = fz_pixmap_stride (ctx, pix);
+    int            comps  = pix->n;
+    unsigned char* samples= fz_pixmap_samples (ctx, pix);
+
+    QImage image;
+    if (comps == 3) {
+      QImage tempImage (samples, pixW, pixH, stride, QImage::Format_RGB888);
+      image= tempImage.copy ();
+    }
+    else if (comps == 4) {
+      QImage tempImage (samples, pixW, pixH, stride,
+                        QImage::Format_RGBA8888_Premultiplied);
+      image= tempImage.copy ();
     }
     else {
-      errorString_= qt_translate ("Failed to load image data");
-      showError (errorString_);
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Unsupported pixmap format (n=%d)",
+                comps);
     }
 
+    if (image.isNull ()) {
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
+    }
+
+    // 缩放到目标显示区域，避免尺寸溢出并保持页面完整可见
+    QPixmap pixmap= QPixmap::fromImage (std::move (image));
+    pixmap        = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
+    pixmap.setDevicePixelRatio (dpr);
+    setPreviewPixmap (pixmap);
+    success= true;
+
+    // Cache the rendered page for future use
+    if (!currentKey_.isEmpty ()) {
+      PdfPreviewCache::instance ()->put (currentKey_, currentPage_, targetDpi_,
+                                         pixmap, true);
+    }
+
+    updatePageControls ();
+
+    // 渲染完成后，如果鼠标已经在预览区域上，显示控制按钮
+    if (previewContainer_ && previewContainer_->underMouse ()) {
+      setControlsVisible (true);
+    }
+  }
+  fz_catch (ctx) {
+    qWarning () << "MuPDF error:" << fz_caught_message (ctx);
+    errorString_= qt_translate ("PDF render error: %1")
+                      .arg (QString::fromUtf8 (fz_caught_message (ctx)));
+    showError (errorString_);
+    success= false;
+  }
+
+  if (pix) fz_drop_pixmap (ctx, pix);
+  if (page) fz_drop_page (ctx, page);
+  if (stream) fz_drop_stream (ctx, stream);
+  if (buf) fz_drop_buffer (ctx, buf);
+  if (doc) fz_drop_document (ctx, doc);
+
+  return success;
+}
+
+void
+QTPdfPreviewWidget::loadImageFromUrl (const QString& url) {
+  cancelLoading ();
+
+  currentLoadType_= LoadType::Image;
+  hasError_       = false;
+  errorString_.clear ();
+  pdfData_.clear ();
+  pageCount_  = 0;
+  currentPage_= 0;
+
+  setControlsVisible (false);
+  showLoading ();
+
+  QNetworkRequest request (url);
+  currentReply_= networkManager_->get (request);
+
+  connect (currentReply_, &QNetworkReply::finished, this,
+           &QTPdfPreviewWidget::onImageNetworkReplyFinished);
+}
+
+void
+QTPdfPreviewWidget::onImageNetworkReplyFinished () {
+  QPointer<QNetworkReply> reply= currentReply_;
+  currentReply_                = nullptr;
+
+  if (!reply) return;
+
+  if (reply->error () != QNetworkReply::NoError) {
+    errorString_=
+        qt_translate ("Image download failed: %1").arg (reply->errorString ());
+    showError (errorString_);
+    reply->deleteLater ();
     currentLoadType_= LoadType::None;
+    return;
   }
 
-  void QTPdfPreviewWidget::updateButtonPositions () {
-    if (!previewContainer_ || !previewLabel_) return;
+  QByteArray imageData= reply->readAll ();
+  reply->deleteLater ();
 
-    auto clampPosition= [] (int containerSize, int itemSize, int preferredPos) {
-      int maxPos= containerSize - itemSize - kButtonOffset;
-      if (maxPos < kButtonOffset) {
-        return qMax (0, (containerSize - itemSize) / 2);
-      }
-      return qBound (kButtonOffset, preferredPos, maxPos);
-    };
-
-    // 获取预览标签在容器中的位置
-    QPoint labelPos   = previewLabel_->mapTo (previewContainer_, QPoint (0, 0));
-    int    labelWidth = previewLabel_->width ();
-    int    labelHeight= previewLabel_->height ();
-    int    containerWidth = previewContainer_->width ();
-    int    containerHeight= previewContainer_->height ();
-
-    // 上一页按钮 - 固定覆盖在预览区左侧
-    if (prevBtn_) {
-      int btnX= labelPos.x () + kButtonOffset;
-      int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
-      btnX    = clampPosition (containerWidth, prevBtn_->width (), btnX);
-      btnY    = clampPosition (containerHeight, prevBtn_->height (), btnY);
-      prevBtn_->move (btnX, btnY);
-    }
-
-    // 下一页按钮 - 固定覆盖在预览区右侧
-    if (nextBtn_) {
-      int btnX= labelPos.x () + labelWidth - nextBtn_->width () - kButtonOffset;
-      int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
-      btnX    = clampPosition (containerWidth, nextBtn_->width (), btnX);
-      btnY    = clampPosition (containerHeight, nextBtn_->height (), btnY);
-      nextBtn_->move (btnX, btnY);
-    }
-
-    // 页码指示器 - 底部居中（位置计算，setControlsVisible 控制显示）
-    if (pageIndicator_) {
-      int indicatorX=
-          labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
-      int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
-                      kPageIndicatorBottomMargin;
-      indicatorX=
-          clampPosition (containerWidth, pageIndicator_->width (), indicatorX);
-      indicatorY= clampPosition (containerHeight, pageIndicator_->height (),
-                                 indicatorY);
-      pageIndicator_->move (indicatorX, indicatorY);
-    }
+  if (imageData.isEmpty ()) {
+    errorString_= qt_translate ("Received empty image data");
+    showError (errorString_);
+    currentLoadType_= LoadType::None;
+    return;
   }
 
-  void QTPdfPreviewWidget::setControlsVisible (bool visible) {
-    // 只有多页PDF时才显示控制按钮
-    bool showControls= visible && (pageCount_ > 1);
-
-    if (prevBtn_) {
-      prevBtn_->setVisible (showControls);
-    }
-    if (nextBtn_) {
-      nextBtn_->setVisible (showControls);
-    }
-    if (pageIndicator_) {
-      pageIndicator_->setVisible (showControls);
-    }
-  }
-
-  bool QTPdfPreviewWidget::mouseInWidgetHierarchy () const {
-    return (previewContainer_ && previewContainer_->underMouse ()) ||
-           (prevBtn_ && prevBtn_->underMouse ()) ||
-           (nextBtn_ && nextBtn_->underMouse ()) ||
-           (pageIndicator_ && pageIndicator_->underMouse ()) ||
-           (previewLabel_ && previewLabel_->underMouse ());
-  }
-
-  bool QTPdfPreviewWidget::eventFilter (QObject * watched, QEvent * event) {
-    // 统一处理所有监控控件的事件
-    bool isMonitoredWidget= (watched == previewContainer_) ||
-                            (watched == prevBtn_) || (watched == nextBtn_) ||
-                            (watched == pageIndicator_) ||
-                            (watched == previewLabel_);
-
-    if (isMonitoredWidget) {
-      switch (event->type ()) {
-      case QEvent::HoverEnter:
-      case QEvent::Enter:
-      case QEvent::HoverMove:
-        setControlsVisible (true);
-        break;
-      case QEvent::HoverLeave:
-      case QEvent::Leave:
-        // 延迟检查，确保不是进入了其他相关控件
-        QTimer::singleShot (50, this, [this] () {
-          if (!mouseInWidgetHierarchy ()) {
-            setControlsVisible (false);
-          }
-        });
-        break;
-      default:
-        break;
-      }
-    }
-
-    return QWidget::eventFilter (watched, event);
-  }
-
-  void QTPdfPreviewWidget::resizeEvent (QResizeEvent * event) {
-    QWidget::resizeEvent (event);
+  QPixmap pixmap;
+  if (pixmap.loadFromData (imageData)) {
     updatePreviewSize ();
-    updateButtonPositions ();
+    QSize displaySize= previewLabel_->size ();
+    qreal dpr        = previewLabel_->devicePixelRatioF ();
+    int   targetPxW  = qMax (1, qRound (displaySize.width () * dpr));
+    int   targetPxH  = qMax (1, qRound (displaySize.height () * dpr));
+    pixmap           = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
+                                      Qt::SmoothTransformation);
+    pixmap.setDevicePixelRatio (dpr);
+    setPreviewPixmap (pixmap);
   }
+  else {
+    errorString_= qt_translate ("Failed to load image data");
+    showError (errorString_);
+  }
+
+  currentLoadType_= LoadType::None;
+}
+
+void
+QTPdfPreviewWidget::updateButtonPositions () {
+  if (!previewContainer_ || !previewLabel_) return;
+
+  auto clampPosition= [] (int containerSize, int itemSize, int preferredPos) {
+    int maxPos= containerSize - itemSize - kButtonOffset;
+    if (maxPos < kButtonOffset) {
+      return qMax (0, (containerSize - itemSize) / 2);
+    }
+    return qBound (kButtonOffset, preferredPos, maxPos);
+  };
+
+  // 获取预览标签在容器中的位置
+  QPoint labelPos   = previewLabel_->mapTo (previewContainer_, QPoint (0, 0));
+  int    labelWidth = previewLabel_->width ();
+  int    labelHeight= previewLabel_->height ();
+  int    containerWidth = previewContainer_->width ();
+  int    containerHeight= previewContainer_->height ();
+
+  // 上一页按钮 - 固定覆盖在预览区左侧
+  if (prevBtn_) {
+    int btnX= labelPos.x () + kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - prevBtn_->height ()) / 2;
+    btnX    = clampPosition (containerWidth, prevBtn_->width (), btnX);
+    btnY    = clampPosition (containerHeight, prevBtn_->height (), btnY);
+    prevBtn_->move (btnX, btnY);
+  }
+
+  // 下一页按钮 - 固定覆盖在预览区右侧
+  if (nextBtn_) {
+    int btnX= labelPos.x () + labelWidth - nextBtn_->width () - kButtonOffset;
+    int btnY= labelPos.y () + (labelHeight - nextBtn_->height ()) / 2;
+    btnX    = clampPosition (containerWidth, nextBtn_->width (), btnX);
+    btnY    = clampPosition (containerHeight, nextBtn_->height (), btnY);
+    nextBtn_->move (btnX, btnY);
+  }
+
+  // 页码指示器 - 底部居中（位置计算，setControlsVisible 控制显示）
+  if (pageIndicator_) {
+    int indicatorX= labelPos.x () + (labelWidth - pageIndicator_->width ()) / 2;
+    int indicatorY= labelPos.y () + labelHeight - pageIndicator_->height () -
+                    kPageIndicatorBottomMargin;
+    indicatorX=
+        clampPosition (containerWidth, pageIndicator_->width (), indicatorX);
+    indicatorY=
+        clampPosition (containerHeight, pageIndicator_->height (), indicatorY);
+    pageIndicator_->move (indicatorX, indicatorY);
+  }
+}
+
+void
+QTPdfPreviewWidget::setControlsVisible (bool visible) {
+  // 只有多页PDF时才显示控制按钮
+  bool showControls= visible && (pageCount_ > 1);
+
+  if (prevBtn_) {
+    prevBtn_->setVisible (showControls);
+  }
+  if (nextBtn_) {
+    nextBtn_->setVisible (showControls);
+  }
+  if (pageIndicator_) {
+    pageIndicator_->setVisible (showControls);
+  }
+}
+
+bool
+QTPdfPreviewWidget::mouseInWidgetHierarchy () const {
+  return (previewContainer_ && previewContainer_->underMouse ()) ||
+         (prevBtn_ && prevBtn_->underMouse ()) ||
+         (nextBtn_ && nextBtn_->underMouse ()) ||
+         (pageIndicator_ && pageIndicator_->underMouse ()) ||
+         (previewLabel_ && previewLabel_->underMouse ());
+}
+
+bool
+QTPdfPreviewWidget::eventFilter (QObject* watched, QEvent* event) {
+  // 统一处理所有监控控件的事件
+  bool isMonitoredWidget= (watched == previewContainer_) ||
+                          (watched == prevBtn_) || (watched == nextBtn_) ||
+                          (watched == pageIndicator_) ||
+                          (watched == previewLabel_);
+
+  if (isMonitoredWidget) {
+    switch (event->type ()) {
+    case QEvent::HoverEnter:
+    case QEvent::Enter:
+    case QEvent::HoverMove:
+      setControlsVisible (true);
+      break;
+    case QEvent::HoverLeave:
+    case QEvent::Leave:
+      // 延迟检查，确保不是进入了其他相关控件
+      QTimer::singleShot (50, this, [this] () {
+        if (!mouseInWidgetHierarchy ()) {
+          setControlsVisible (false);
+        }
+      });
+      break;
+    default:
+      break;
+    }
+  }
+
+  return QWidget::eventFilter (watched, event);
+}
+
+void
+QTPdfPreviewWidget::resizeEvent (QResizeEvent* event) {
+  QWidget::resizeEvent (event);
+  updatePreviewSize ();
+  updateButtonPositions ();
+}
