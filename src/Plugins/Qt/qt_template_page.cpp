@@ -52,8 +52,8 @@ constexpr int kCardHeight          = 220;  // 模板卡片高度
 constexpr int kCardMargin          = 12;   // 卡片内边距
 constexpr int kCardSpacing         = 8;    // 卡片内部间距
 constexpr int kNameLabelMaxHeight  = 40;   // 模板名称最大高度
-constexpr int kPreviewDialogMinW   = 600;  // 预览弹窗最小宽度
-constexpr int kPreviewDialogMinH   = 1200; // 预览弹窗最小高度
+constexpr int kPreviewDialogMinW   = 800;  // 预览弹窗最小宽度
+constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;   // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;   // 预览弹窗布局边距
 constexpr int kPageTitleFontPx     = 24;   // 页面标题字号
@@ -548,18 +548,11 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   // 设置固定尺寸，确保无内容时也有足够显示区域 (A4比例)
   // A4比例: 高:宽 = 1.414:1
   previewWidget->setFixedSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH),
-                               DpiUtils::scaled (PREVIEW_IMAGE_WIDTH * 1.414));
+                               DpiUtils::scaled (PREVIEW_IMAGE_WIDTH));
 
-  // Load preview (PDF or image)
+  // Load PDF preview
   if (!tmpl->previewUrl.isEmpty ()) {
-    if (tmpl->previewUrl.endsWith (".pdf")) {
-      // 使用QTPdfPreviewWidget加载PDF预览
-      previewWidget->loadFromUrl (tmpl->previewUrl);
-    }
-    else {
-      // 使用QTPdfPreviewWidget加载图片预览
-      previewWidget->loadImageFromUrl (tmpl->previewUrl); // 宽度自适应
-    }
+    previewWidget->loadFromUrl (tmpl->previewUrl);
   }
   layout->addWidget (previewWidget, 0, Qt::AlignCenter);
 
