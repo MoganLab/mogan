@@ -1,4 +1,5 @@
 ("(re)build autocompletion index" "构建/重建自动补全索引")
+("Upgrade VIP" "升级会员")
 ("Upgrade to unlock AI writing, MathOCR, and more advanced features." "开通会员，立即解锁 AI 写作、MathOCR 等高阶功能。")
 ("All" "全部")
 ("Advanced footer" "高级页脚")

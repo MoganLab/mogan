@@ -30,6 +30,7 @@ public:
     MenuWidget,
     TitleLabel,
     LoginButton,
+    VipButton,
     PinButton,
     MinimizeButton,
     MaximizeButton,

@@ -33,6 +33,7 @@
 #include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
+#include <QPushButton>
 #include <QToolBar>
 #include <QToolButton>
 #include <QWindow>
@@ -146,12 +147,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
       titleBarVisibleCache (false), scmNotificationBar (nullptr),
-      loginButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
-      nameLabel (nullptr), accountIdLabel (nullptr),
+      loginButton (nullptr), vipButton (nullptr), m_loginDialog (nullptr),
+      avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
       loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
-      m_currentScmNotificationItem (""), startupContentWidget (nullptr),
-      startupTabMode (false) {
+      m_memberType (""), m_currentScmNotificationItem (""),
+      startupContentWidget (nullptr), startupTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -348,8 +349,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   }
 
   if (is_community_stem ()) {
-    // 社区版：点击直接跳转官网，无状态变化
+    // 社区版：点击直接跳转官网，无状态变化，不显示文字
+    loginButton->setText (QString ());
     loginButton->setToolTip (qt_translate ("User Center"));
+    loginButton->setAccessibleName (qt_translate ("User Center"));
     QObject::connect (loginButton, &QWK::LoginButton::clicked, [this] () {
       string pricingUrl=
           as_string (call ("account-oauth2-config", "click-return-liii-url"));
@@ -365,6 +368,53 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
   }
+
+  // VIP升级会员按钮 - 放在登录按钮右侧（只在商业版显示）
+  vipButton= new QPushButton (windowBar);
+  vipButton->setObjectName ("vip-button");
+  vipButton->setText ("  " + qt_translate ("Upgrade VIP"));
+  vipButton->setProperty ("system-button", true);
+  vipButton->setFocusPolicy (Qt::NoFocus);
+  vipButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  vipButton->setFixedHeight (buttonHeight - 8);
+  vipButton->setCursor (Qt::PointingHandCursor);
+
+  // 设置醒目的样式 - 金色/橙色渐变，圆角，闪电图标
+  vipButton->setStyleSheet (
+      "QPushButton#vip-button {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFD700, stop:1 #FFA500);"
+      "  border: none;"
+      "  border-radius: 12px;"
+      "  color: #8B4513;"
+      "  font-weight: bold;"
+      "  font-size: 12px;"
+      "  padding: 0 14px 0 8px;"
+      "}"
+      "QPushButton#vip-button:hover {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFE135, stop:1 #FFB347);"
+      "}"
+      "QPushButton#vip-button:pressed {"
+      "  background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #FFC125, stop:1 #FF8C00);"
+      "}");
+
+  // 设置闪电图标
+  vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
+  vipButton->setIconSize (QSize (16, 16));
+
+  windowBar->setVipButton (vipButton);
+  if (windowAgent) {
+    windowAgent->setHitTestVisible (vipButton, true);
+  }
+
+  // 点击事件：跳转到会员购买页面
+  QObject::connect (vipButton, &QPushButton::clicked, [this] () {
+    string pricingUrl=
+        as_string (call ("account-oauth2-config", "pricing-url"));
+    QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+  });
+
+  // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
+  updateVipButtonVisibility (false, QString ());
 
   // 创建 SCM 通知条容器（放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
@@ -743,6 +793,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
         if (account->isLoggedIn ()) {
           refreshMembershipInfoInBackground ();
         }
+      }
     }
   }
   else {
@@ -2346,7 +2397,13 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
                                        const QString& productType) {
+  // 保存会员类型
+  m_memberType= memberType;
+
   updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
+
+  // 更新VIP按钮可见性（根据memberType判断）
+  updateVipButtonVisibility (isLoggedIn, memberType);
 
   // 更新对话框中的UI组件内容
   if (nameLabel) {
@@ -2407,6 +2464,41 @@ void
 qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
   updateDialogContent (false, qt_translate ("Not logged in"), errorMessage,
                        "liii", qt_translate ("Non-member"), "", "", "");
+}
+
+void
+qt_tm_widget_rep::updateVipButtonVisibility (bool isLoggedIn, const QString& memberType) {
+  if (!vipButton) {
+    return;
+  }
+
+  // 社区版不显示VIP按钮
+  if (is_community_stem ()) {
+    vipButton->hide ();
+    return;
+  }
+
+  // 未登录用户：显示VIP按钮
+  if (!isLoggedIn) {
+    vipButton->show ();
+    return;
+  }
+
+  // 已登录用户：根据memberType决定是否显示
+  // 如果memberType为空，说明还未获取用户信息，保持当前状态（不隐藏）
+  if (memberType.isEmpty ()) {
+    return;
+  }
+
+  // "Regular User"(普通用户)或"Trial Member"(体验会员)时显示
+  // 其他(Fruit User, Sprout User, Seed User, Member)时不显示
+  if (memberType == QStringLiteral ("Regular User") ||
+      memberType == QStringLiteral ("Trial Member")) {
+    vipButton->show ();
+  }
+  else {
+    vipButton->hide ();
+  }
 }
 
 void
