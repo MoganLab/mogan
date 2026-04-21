@@ -4,7 +4,7 @@
 
 **访问官方网站：**
 - **墨干（社区版）**: [https://mogan.app](https://mogan.app)
-- **Liii STEM（商业版，内置 AI）**: [https://liiistem.cn](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
+- **Liii STEM（商业版，免费，OCR & AI增值收费）**: [https://liiistem.cn](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 
 ## 主要功能

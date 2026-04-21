@@ -4,7 +4,7 @@ Mogan STEM is a professional scientific writing platform targeted at mathematics
 
 **Visit the official websites:**
 - **Mogan STEM (Community Version)**: [https://mogan.app](https://mogan.app)
-- **Liii STEM (Commercial Version, with built-in AI)**: [https://liiistem.com](https://liiistem.com/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
+- **Liii STEM (Commercial Version, Free with built-in AI and OCRs)**: [https://liiistem.com](https://liiistem.com/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 ## Key Features
 
