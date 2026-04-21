@@ -25,6 +25,7 @@
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 
+#include <functional>
 #include <signal.h>
 #ifdef OS_WIN
 #include <process.h>
@@ -983,6 +984,7 @@ TeXmacs_main (int argc, char** argv) {
 
 #ifdef QTTEXMACS
 #include <QEventLoop>
+#include <QPointer>
 
 static void
 perform_startup_login_request () {
@@ -1000,6 +1002,38 @@ perform_startup_login_request () {
   }
 
   g_startup_login_requested= true;
+}
+
+static void
+attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
+  QPointer<QWK::StartupLoginDialog> guardedDialog (dialog);
+
+  std::function<void ()> attachObserver= [&attachObserver, guardedDialog] () {
+    if (!guardedDialog) return;
+    if (!is_server_started ()) {
+      QTimer::singleShot (100, guardedDialog, attachObserver);
+      return;
+    }
+
+    tm_server_rep* server=
+        dynamic_cast<tm_server_rep*> (get_server ().operator->());
+    if (!server || !server->getAccount ()) {
+      QTimer::singleShot (100, guardedDialog, attachObserver);
+      return;
+    }
+
+    QTMOAuth* account= server->getAccount ();
+    QObject::connect (account, &QTMOAuth::loginStateChanged, guardedDialog,
+                      [guardedDialog] (bool loggedIn) {
+                        if (loggedIn && guardedDialog) {
+                          guardedDialog->notifyLoginSucceeded ();
+                        }
+                      });
+
+    if (account->isLoggedIn ()) guardedDialog->notifyLoginSucceeded ();
+  };
+
+  QTimer::singleShot (0, dialog, attachObserver);
 }
 
 bool
@@ -1028,6 +1062,8 @@ show_startup_login_dialog () {
   // Connect dialog signals
   QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested,
                     [&] () { perform_startup_login_request (); });
+
+  attach_startup_login_success_observer (dialog);
 
   // Show the dialog without blocking startup.
   dialog->show ();

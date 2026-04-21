@@ -46,6 +46,7 @@ public:
   static bool shouldShow ();
 
   void   setAsyncStartupMode (bool enabled);
+  void   notifyLoginSucceeded ();
   Result execWithResult ();
   void   startInitialization ();
   bool   isInitializationComplete () const { return initializationComplete; }
@@ -133,6 +134,7 @@ private:
   bool initializationInProgress;
   bool initializationComplete;
   bool userChoiceMade;
+  bool waitingForLoginCompletion;
 
   // Manual dragging for the frameless startup dialog
   bool              dragInProgress;
