@@ -46,6 +46,20 @@ jobs:
       - name: set XMAKE_GLOBALDIR
         run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
 
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-fedora-xrepo-qt683-${{ hashFiles('**/packages.lua') }}
+
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            tmp/build/.build_cache
+          key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
+
       - name: Update Xrepo
         run: xrepo update-repo
 
