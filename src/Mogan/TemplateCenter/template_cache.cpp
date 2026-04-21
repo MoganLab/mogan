@@ -239,6 +239,10 @@ TemplateCache::clearCache () {
   QString metadataPath= metadataCachePath ();
   QFile::remove (metadataPath);
 
+  // Clear metadata ETag
+  QFile::remove (metadataEtagPath ());
+  metadataEtag_.clear ();
+
   emit cacheCleared ();
 }
 
@@ -265,6 +269,38 @@ TemplateCache::cacheDirectory () const {
 QString
 TemplateCache::metadataCachePath () const {
   return QDir (cacheDirectory ()).filePath ("metadata.json");
+}
+
+QString
+TemplateCache::metadataEtagPath () const {
+  return QDir (cacheDirectory ()).filePath ("metadata_etag.txt");
+}
+
+QString
+TemplateCache::metadataEtag () const {
+  if (!metadataEtag_.isEmpty ()) {
+    return metadataEtag_;
+  }
+
+  QFile file (metadataEtagPath ());
+  if (file.open (QIODevice::ReadOnly)) {
+    QString etag= QString::fromUtf8 (file.readAll ()).trimmed ();
+    // Cache in memory for subsequent reads
+    const_cast<TemplateCache*> (this)->metadataEtag_= etag;
+    return etag;
+  }
+  return QString ();
+}
+
+void
+TemplateCache::setMetadataEtag (const QString& etag) {
+  metadataEtag_= etag;
+
+  QFile file (metadataEtagPath ());
+  if (file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+    file.write (etag.toUtf8 ());
+    file.close ();
+  }
 }
 
 QString
@@ -428,7 +464,6 @@ TemplateCache::loadCacheIndex () {
     CacheEntry entry;
     entry.templateId= entryObj.value ("templateId").toString ();
     entry.localPath = entryObj.value ("localPath").toString ();
-    entry.etag      = entryObj.value ("etag").toString ();
     entry.fileSize  = entryObj.value ("fileSize").toVariant ().toLongLong ();
     entry.cachedAt  = QDateTime::fromString (
         entryObj.value ("cachedAt").toString (), Qt::ISODate);
@@ -450,7 +485,6 @@ TemplateCache::saveCacheIndex () {
     QJsonObject entryObj;
     entryObj.insert ("templateId", entry.templateId);
     entryObj.insert ("localPath", entry.localPath);
-    entryObj.insert ("etag", entry.etag);
     entryObj.insert ("fileSize", entry.fileSize);
     entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
     entries.append (entryObj);

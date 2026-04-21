@@ -25,7 +25,6 @@
 struct CacheEntry {
   QString   templateId;
   QString   localPath;
-  QString   etag; // For HTTP caching
   QDateTime cachedAt;
   qint64    fileSize;
 
@@ -67,6 +66,10 @@ public:
   void              removeCachedTemplate (const QString& templateId);
   QList<CacheEntry> cachedTemplates () const;
 
+  // Metadata ETag for HTTP conditional requests
+  QString metadataEtag () const;
+  void    setMetadataEtag (const QString& etag);
+
   // Cache management
   void   clearCache ();
   qint64 cacheSize () const;
@@ -84,6 +87,7 @@ private:
   QString categoriesCachePath () const;
   QString templatesCacheDir () const;
   QString cacheIndexPath () const;
+  QString metadataEtagPath () const;
 
   // Cache index management
   void loadCacheIndex ();
@@ -97,6 +101,7 @@ private:
 
   // Cache storage
   QHash<QString, CacheEntry> cacheIndex_;
+  QString                    metadataEtag_;
 };
 
 #endif // TEMPLATE_CACHE_HPP

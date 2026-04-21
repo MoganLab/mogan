@@ -43,6 +43,8 @@ TemplateManager::TemplateManager (QObject* parent)
            &TemplateManager::onRemoteMetadataLoaded);
   connect (api_, &TemplateAPI::metadataLoadFailed, this,
            &TemplateManager::onRemoteMetadataFailed);
+  connect (api_, &TemplateAPI::metadataNotModified, this,
+           &TemplateManager::onMetadataNotModified);
   connect (api_, &TemplateAPI::downloadCompleted, this,
            &TemplateManager::onTemplateDownloaded);
   connect (api_, &TemplateAPI::downloadFailed, this,
@@ -315,6 +317,12 @@ TemplateManager::refreshTemplates () {
   }
 
   isRefreshing_= true;
+
+  // Set ETag for conditional request to avoid re-downloading unchanged metadata
+  if (cache_->isInitialized ()) {
+    api_->setMetadataEtag (cache_->metadataEtag ());
+  }
+
   api_->fetchMetadata ();
 }
 
@@ -359,6 +367,12 @@ TemplateManager::onRemoteMetadataLoaded (
     const QHash<QString, TemplateMetadataPtr>& remoteMetadata,
     const QList<TemplateCategory>&             remoteCategories) {
   isRefreshing_= false;
+
+  // Save ETag from successful response for future conditional requests
+  QString etag= api_->lastMetadataEtag ();
+  if (!etag.isEmpty ()) {
+    cache_->setMetadataEtag (etag);
+  }
 
   if (remoteMetadata.isEmpty () && !templates_.isEmpty ()) {
     QString error= tr ("Remote metadata is empty");
@@ -420,6 +434,13 @@ TemplateManager::onRemoteMetadataFailed (const QString& error) {
   // We still have local/cache data, so emit success for cached data
   emit templatesLoaded ();
   emit templatesLoadFailed (error);
+}
+
+void
+TemplateManager::onMetadataNotModified () {
+  isRefreshing_= false;
+  qDebug () << "Metadata not modified (304), using cached data";
+  emit templatesLoaded ();
 }
 
 void

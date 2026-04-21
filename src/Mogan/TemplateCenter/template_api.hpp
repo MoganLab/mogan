@@ -51,6 +51,10 @@ public:
                          const QString& targetPath);
   void cancelDownload (const QString& templateId);
 
+  // Metadata ETag for conditional requests
+  void    setMetadataEtag (const QString& etag);
+  QString lastMetadataEtag () const { return lastMetadataEtag_; }
+
   // Network state
   bool isOnline () const;
   void setOfflineMode (bool offline);
@@ -60,6 +64,7 @@ signals:
   void metadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata,
                        const QList<TemplateCategory>&             categories);
   void metadataLoadFailed (const QString& error);
+  void metadataNotModified ();
 
   // Download progress
   void downloadProgress (const QString& templateId, qint64 bytesReceived,
@@ -105,6 +110,10 @@ private:
   // Active requests
   QHash<QString, QPointer<QNetworkReply>> downloadReplies_;
   QPointer<QNetworkReply>                 metadataReply_;
+
+  // Metadata ETag for conditional requests
+  QString metadataEtag_;     // ETag sent in If-None-Match
+  QString lastMetadataEtag_; // ETag received in last 200 response
 
   // Default API endpoint
   static constexpr const char* DEFAULT_API_BASE_URL=

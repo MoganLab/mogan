@@ -29,6 +29,11 @@ TemplateAPI::TemplateAPI (QObject* parent)
   apiBaseUrl_= QString (DEFAULT_API_BASE_URL);
 }
 
+void
+TemplateAPI::setMetadataEtag (const QString& etag) {
+  metadataEtag_= etag;
+}
+
 TemplateAPI::~TemplateAPI () {
   // Cancel all active downloads
   for (auto reply : downloadReplies_) {
@@ -69,6 +74,11 @@ TemplateAPI::fetchMetadata () {
 
   QNetworkRequest request{metadataUrl ()};
   setupRequestHeaders (request);
+
+  // Send conditional request if we have a cached ETag
+  if (!metadataEtag_.isEmpty ()) {
+    request.setRawHeader ("If-None-Match", metadataEtag_.toUtf8 ());
+  }
 
   metadataReply_= networkManager_->get (request);
 
@@ -139,6 +149,18 @@ TemplateAPI::onMetadataReplyFinished () {
     reply->deleteLater ();
     return;
   }
+
+  // Check HTTP status code for 304 Not Modified
+  int statusCode=
+      reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+  if (statusCode == 304) {
+    emit metadataNotModified ();
+    reply->deleteLater ();
+    return;
+  }
+
+  // Extract ETag from response for future conditional requests
+  lastMetadataEtag_= QString::fromUtf8 (reply->rawHeader ("ETag"));
 
   QByteArray response= reply->readAll ();
   reply->deleteLater ();

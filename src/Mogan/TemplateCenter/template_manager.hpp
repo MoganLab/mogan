@@ -99,6 +99,7 @@ private slots:
   onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata,
                           const QList<TemplateCategory>& categories);
   void onRemoteMetadataFailed (const QString& error);
+  void onMetadataNotModified ();
   void onTemplateDownloaded (const QString& templateId,
                              const QString& localPath);
   void onTemplateDownloadFailed (const QString& templateId,
