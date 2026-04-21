@@ -349,8 +349,8 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
       userChoiceMade (false), waitingForLoginCompletion (false),
-      offlineMode (!qt_has_network_connection ()),
-      dragInProgress (false), asyncStartupMode (false) {
+      offlineMode (!qt_has_network_connection ()), dragInProgress (false),
+      asyncStartupMode (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
