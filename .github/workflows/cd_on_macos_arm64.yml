@@ -238,9 +238,23 @@ jobs:
             done
             
             if [ -d "$APP_PATH/Contents/PlugIns" ]; then
+              echo "签名 PlugIns..."
               find "$APP_PATH/Contents/PlugIns" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
             fi
             
+            # 签名 Resources/bin 下的可执行文件
+            if [ -d "$APP_PATH/Contents/Resources/bin" ]; then
+              echo "签名 Resources/bin..."
+              find "$APP_PATH/Contents/Resources/bin" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+            fi
+            
+            # 签名插件目录下的可执行文件
+            if [ -d "$APP_PATH/Contents/Resources/share/moganlab/plugins" ]; then
+              echo "签名 plugins..."
+              find "$APP_PATH/Contents/Resources/share/moganlab/plugins" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+            fi
+            
+            echo "签名整个 app bundle..."
             codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
             
             echo "签名完成，验证..."
