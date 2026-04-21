@@ -370,10 +370,9 @@ TemplateManager::onRemoteMetadataLoaded (
   isRetryingWithoutEtag_= false;
 
   // Save ETag from successful response for future conditional requests
+  // Clear ETag if server no longer sends it (server may have disabled caching)
   QString etag= api_->lastMetadataEtag ();
-  if (!etag.isEmpty ()) {
-    cache_->setMetadataEtag (etag);
-  }
+  cache_->setMetadataEtag (etag);
 
   if (remoteMetadata.isEmpty () && !templates_.isEmpty ()) {
     QString error= tr ("Remote metadata is empty");

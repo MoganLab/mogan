@@ -143,18 +143,19 @@ TemplateAPI::onMetadataReplyFinished () {
 
   metadataReply_= nullptr;
 
-  if (reply->error () != QNetworkReply::NoError) {
-    QString error= tr ("Network error: %1").arg (reply->errorString ());
-    emit    metadataLoadFailed (error);
-    reply->deleteLater ();
-    return;
-  }
-
-  // Check HTTP status code for 304 Not Modified
+  // Check HTTP status code first for 304 Not Modified
+  // (some Qt versions report 304 as a network error, so check before error())
   int statusCode=
       reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
   if (statusCode == 304) {
     emit metadataNotModified ();
+    reply->deleteLater ();
+    return;
+  }
+
+  if (reply->error () != QNetworkReply::NoError) {
+    QString error= tr ("Network error: %1").arg (reply->errorString ());
+    emit    metadataLoadFailed (error);
     reply->deleteLater ();
     return;
   }
