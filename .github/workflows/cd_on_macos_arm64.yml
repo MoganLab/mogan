@@ -62,8 +62,11 @@ jobs:
           CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
           CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         run: |
-          # 调试：显示 base64 长度
+          # 调试：显示信息
           echo "Base64 长度: ${#CERTIFICATE_BASE64}"
+          echo "密码长度: ${#CERTIFICATE_PASSWORD}"
+          echo "密码首字符: ${CERTIFICATE_PASSWORD:0:1}"
+          echo "密码末字符: ${CERTIFICATE_PASSWORD: -1}"
           
           # 使用 printf 避免换行符问题
           printf '%s' "$CERTIFICATE_BASE64" | base64 -d > /tmp/certificate.p12
@@ -72,8 +75,10 @@ jobs:
           echo "解码后文件大小:"
           ls -la /tmp/certificate.p12
           
-          echo "验证 p12 文件:"
-          openssl pkcs12 -in /tmp/certificate.p12 -noout -info || echo "p12 验证失败"
+          # 使用文件传递密码验证 p12
+          echo "$CERTIFICATE_PASSWORD" > /tmp/cert_pass.txt
+          echo "使用文件验证 p12:"
+          openssl pkcs12 -in /tmp/certificate.p12 -noout -info -passin file:/tmp/cert_pass.txt || echo "p12 验证失败"
           
           # 创建临时 keychain
           KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
