@@ -58,10 +58,47 @@ jobs:
       # ========== 代码签名和公证 ==========
       
       - name: Install Apple certificates
-        uses: apple-actions/import-codesign-certs@v2
-        with:
-          p12-file-base64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        env:
+          CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+        run: |
+          # 调试：显示 base64 长度
+          echo "Base64 长度: ${#CERTIFICATE_BASE64}"
+          
+          # 使用 printf 避免换行符问题
+          printf '%s' "$CERTIFICATE_BASE64" | base64 -d > /tmp/certificate.p12
+          
+          # 验证解码后的文件
+          echo "解码后文件大小:"
+          ls -la /tmp/certificate.p12
+          
+          echo "验证 p12 文件:"
+          openssl pkcs12 -in /tmp/certificate.p12 -noout -info || echo "p12 验证失败"
+          
+          # 创建临时 keychain
+          KEYCHAIN_PATH=$RUNNER_TEMP/app-signing.keychain-db
+          KEYCHAIN_PASSWORD="$(openssl rand -base64 32)"
+          
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # 导入证书
+          echo "导入证书..."
+          security import /tmp/certificate.p12 -P "$CERTIFICATE_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security || {
+            echo "证书导入失败，尝试不带 -T 参数..."
+            security import /tmp/certificate.p12 -P "$CERTIFICATE_PASSWORD" -k "$KEYCHAIN_PATH"
+          }
+          
+          # 设置权限
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          
+          # 设置为默认 keychain
+          security list-keychains -d user -s "$KEYCHAIN_PATH"
+          security default-keychain -s "$KEYCHAIN_PATH"
+          
+          echo "证书导入成功"
+          security find-identity -v -p codesigning
       
       - name: Setup App Store Connect API Key
         run: |
