@@ -195,6 +195,52 @@ jobs:
         run: |
           xmake install -vD stem_packager
       
+      - name: Re-sign application after packaging
+        run: |
+          # stem_packager 可能重新组织了 app，需要重新签名
+          # 找到 DMG 中的 app（挂载 DMG 后签名）
+          DMG_PATH=$(find build -name "*.dmg" | head -n 1)
+          if [ -n "$DMG_PATH" ]; then
+            echo "挂载 DMG 进行重新签名..."
+            MOUNT_POINT=$(hdiutil attach "$DMG_PATH" -nobrowse | grep -o '/Volumes/.*')
+            echo "挂载点: $MOUNT_POINT"
+            
+            APP_PATH=$(find "$MOUNT_POINT" -name "*.app" -type d | head -n 1)
+            if [ -n "$APP_PATH" ]; then
+              echo "找到 APP: $APP_PATH"
+              
+              IDENTITY=$(security find-identity -v -p codesigning | grep -E "(Developer ID Application|Apple Distribution)" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
+              echo "使用签名身份: $IDENTITY"
+              
+              # 重新签名所有内部文件
+              echo "重新签名 frameworks..."
+              find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "Qt*" \) -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+              
+              for framework in "$APP_PATH/Contents/Frameworks"/*.framework; do
+                if [ -d "$framework" ]; then
+                  framework_name=$(basename "$framework" .framework)
+                  binary_path="$framework/Versions/A/$framework_name"
+                  [ -f "$binary_path" ] && codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path" 2>/dev/null || true
+                  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework" 2>/dev/null || true
+                fi
+              done
+              
+              if [ -d "$APP_PATH/Contents/PlugIns" ]; then
+                find "$APP_PATH/Contents/PlugIns" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+              fi
+              
+              # 重新签名整个 app
+              codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
+              
+              echo "重新签名完成"
+              codesign -dvv "$APP_PATH/Contents/Frameworks/libjpeg.8.dylib" 2>&1 | head -5 || true
+            fi
+            
+            # 卸载 DMG（修改后的内容会自动保存）
+            hdiutil detach "$MOUNT_POINT" -force
+            echo "DMG 已卸载"
+          fi
+      
       - name: Sign DMG
         run: |
           DMG_PATH=$(find build -name "*.dmg" | head -n 1)
