@@ -43,6 +43,21 @@ qt_get_pretty_os_name () {
   return from_qstring (QSysInfo::prettyProductName ());
 }
 
+bool
+qt_has_network_connection () {
+  QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
+  for (int i= 0; i < interfaces.size (); ++i) {
+    const QNetworkInterface& interface= interfaces.at (i);
+    const auto               flags    = interface.flags ();
+    if (!(flags & QNetworkInterface::IsUp)) continue;
+    if (!(flags & QNetworkInterface::IsRunning)) continue;
+    if (flags & QNetworkInterface::IsLoopBack) continue;
+    if (interface.hardwareAddress ().isEmpty ()) continue;
+    if (!interface.addressEntries ().isEmpty ()) return true;
+  }
+  return false;
+}
+
 #ifdef Q_OS_WINDOWS
 
 // Helper function to get Windows version info using dynamic loading

@@ -15,6 +15,7 @@
 #include "qnamespace.h"
 #include "qt_gui.hpp"
 #include "qt_guide_task_executor.hpp"
+#include "qt_sys_utils.hpp"
 #include "qt_utilities.hpp"
 #include "tm_file.hpp"
 #include "tm_sys_utils.hpp"
@@ -150,6 +151,9 @@ StartupLoginDialog::setupUi () {
   loginButton= new QPushButton (qt_translate ("登录"), this); // 登录 Log In
   loginButton->setObjectName ("loginButton");
   loginButton->setDefault (true);
+  if (offlineMode) {
+    loginButton->setText (qt_translate ("进入软件"));
+  }
 
   skipButton=
       new QPushButton (qt_translate ("退出软件"), this); // 退出软件 Quit App
@@ -345,6 +349,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
       userChoiceMade (false), waitingForLoginCompletion (false),
+      offlineMode (!qt_has_network_connection ()),
       dragInProgress (false), asyncStartupMode (false) {
 
   // 设置无边框窗口标志
@@ -530,6 +535,24 @@ StartupLoginDialog::handleLoginButtonClick () {
     setAutoBackup (autoBackupCheckBox->isChecked ());
   }
 
+  if (offlineMode) {
+    result        = StartupLoginDialog::LoginClicked;
+    userChoiceMade= true;
+
+    if (asyncStartupMode) {
+      close ();
+      return;
+    }
+
+    if (initializationComplete) {
+      fadeOutAndClose ();
+    }
+    else if (!initializationInProgress) {
+      startInitialization ();
+    }
+    return;
+  }
+
   result        = StartupLoginDialog::LoginClicked;
   userChoiceMade= true;
   emit loginRequested ();
@@ -614,8 +637,14 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
     if (asyncStartupMode) {
       progressBar->setRange (0, 100);
     }
-    updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
-                      qt_translate ("准备就绪"));
+    if (offlineMode) {
+      updateProgressUI (100, qt_translate ("当前未检测到网络连接"),
+                        qt_translate ("将以离线模式启动，会员功能暂不可用"));
+    }
+    else {
+      updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
+                        qt_translate ("准备就绪"));
+    }
 
     // 如果用户已经做出选择，触发过渡
     if (!asyncStartupMode && userChoiceMade) {

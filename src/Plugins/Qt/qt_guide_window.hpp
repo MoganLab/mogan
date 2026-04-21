@@ -135,6 +135,7 @@ private:
   bool initializationComplete;
   bool userChoiceMade;
   bool waitingForLoginCompletion;
+  bool offlineMode;
 
   // Manual dragging for the frameless startup dialog
   bool              dragInProgress;

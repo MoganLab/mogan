@@ -17,6 +17,7 @@
 
 string qt_get_current_cpu_arch ();
 string qt_get_pretty_os_name ();
+bool   qt_has_network_connection ();
 string qt_stem_user_agent ();
 string qt_stem_device_id ();
 void   qt_open_url (url u);

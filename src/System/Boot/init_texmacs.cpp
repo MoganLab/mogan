@@ -47,7 +47,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QEventLoop>
-#include <QMessageBox>
 #include <QTimer>
 #endif
 #include "Metafont/load_tex.hpp"
