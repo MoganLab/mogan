@@ -30,7 +30,7 @@ jobs:
         run: |
           dnf update -y
           dnf install -y \
-            git curl wget unzip p7zip \
+            git curl wget unzip p7zip p7zip-plugins \
             gcc gcc-c++ cmake ninja-build python3 \
             ca-certificates \
             pkgconfig
@@ -42,6 +42,9 @@ jobs:
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: v2.9.6
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
 
       - name: Update Xrepo
         run: xrepo update-repo
@@ -80,7 +83,7 @@ jobs:
       # 3. 编译流程
       # ==========================================
       - name: Config
-        run: xmake config --yes -vD -m release --policies=build.ccache
+        run: xmake config --yes -vD -m release --policies=build.ccache -o tmp/build
 
       - name: Build
         run: xmake build -vD stem

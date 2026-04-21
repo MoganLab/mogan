@@ -11,7 +11,7 @@ ICON_SOURCE_REL="3rdparty/qwindowkitty/src/styles/app/stem.png"
 
 # 尝试获取 VERSION
 if [ -z "$VERSION" ]; then
-    VERSION="2026.2.2"
+    VERSION="2026.2.3"
 else
     echo "✅ 检测到版本号: $VERSION"
 fi

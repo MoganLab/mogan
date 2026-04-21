@@ -50,6 +50,11 @@ jobs:
           # 更新 Debian 打包脚本中的默认版本号（不带 -rc 后缀）
           sed -i 's/^    VERSION="[^"]*"/    VERSION="${{ env.NEW_VERSION_DEBIAN }}"/' packages/debian/package.sh
 
+      - name: Update packages/fedora/package.sh
+        run: |
+          # 更新 Fedora 打包脚本中的默认版本号（不带 -rc 后缀）
+          sed -i 's/^    VERSION="[^"]*"/    VERSION="${{ env.NEW_VERSION_DEBIAN }}"/' packages/fedora/package.sh
+
       - name: Update xmake/vars.lua and Git
         run: |
           git config user.name "github-actions[bot]"
