@@ -195,50 +195,75 @@ jobs:
         run: |
           xmake install -vD stem_packager
       
-      - name: Re-sign application after packaging
+      - name: Re-sign and repackage
         run: |
-          # stem_packager 可能重新组织了 app，需要重新签名
-          # 找到 DMG 中的 app（挂载 DMG 后签名）
+          # stem_packager 可能重新组织了 app，签名丢失
+          # 策略：解压 DMG -> 签名 -> 重新打包
+          
           DMG_PATH=$(find build -name "*.dmg" | head -n 1)
           if [ -n "$DMG_PATH" ]; then
-            echo "挂载 DMG 进行重新签名..."
+            echo "处理 DMG: $DMG_PATH"
+            
+            # 1. 创建临时目录
+            TEMP_DIR=$(mktemp -d)
+            echo "临时目录: $TEMP_DIR"
+            
+            # 2. 挂载 DMG
             MOUNT_POINT=$(hdiutil attach "$DMG_PATH" -nobrowse | grep -o '/Volumes/.*')
             echo "挂载点: $MOUNT_POINT"
             
-            APP_PATH=$(find "$MOUNT_POINT" -name "*.app" -type d | head -n 1)
-            if [ -n "$APP_PATH" ]; then
-              echo "找到 APP: $APP_PATH"
-              
-              IDENTITY=$(security find-identity -v -p codesigning | grep -E "(Developer ID Application|Apple Distribution)" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
-              echo "使用签名身份: $IDENTITY"
-              
-              # 重新签名所有内部文件
-              echo "重新签名 frameworks..."
-              find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "Qt*" \) -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
-              
-              for framework in "$APP_PATH/Contents/Frameworks"/*.framework; do
-                if [ -d "$framework" ]; then
-                  framework_name=$(basename "$framework" .framework)
-                  binary_path="$framework/Versions/A/$framework_name"
-                  [ -f "$binary_path" ] && codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path" 2>/dev/null || true
-                  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework" 2>/dev/null || true
-                fi
-              done
-              
-              if [ -d "$APP_PATH/Contents/PlugIns" ]; then
-                find "$APP_PATH/Contents/PlugIns" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+            # 3. 复制 app 到临时目录
+            APP_NAME=$(ls "$MOUNT_POINT" | grep "\.app$")
+            cp -R "$MOUNT_POINT/$APP_NAME" "$TEMP_DIR/"
+            echo "已复制 app: $TEMP_DIR/$APP_NAME"
+            
+            # 4. 卸载原始 DMG
+            hdiutil detach "$MOUNT_POINT" -force
+            
+            # 5. 签名临时目录中的 app
+            APP_PATH="$TEMP_DIR/$APP_NAME"
+            IDENTITY=$(security find-identity -v -p codesigning | grep -E "(Developer ID Application|Apple Distribution)" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
+            echo "使用签名身份: $IDENTITY"
+            
+            echo "签名 frameworks..."
+            find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "Qt*" \) -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
+            
+            for framework in "$APP_PATH/Contents/Frameworks"/*.framework; do
+              if [ -d "$framework" ]; then
+                framework_name=$(basename "$framework" .framework)
+                binary_path="$framework/Versions/A/$framework_name"
+                [ -f "$binary_path" ] && codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path" 2>/dev/null || true
+                codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework" 2>/dev/null || true
               fi
-              
-              # 重新签名整个 app
-              codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
-              
-              echo "重新签名完成"
-              codesign -dvv "$APP_PATH/Contents/Frameworks/libjpeg.8.dylib" 2>&1 | head -5 || true
+            done
+            
+            if [ -d "$APP_PATH/Contents/PlugIns" ]; then
+              find "$APP_PATH/Contents/PlugIns" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \; 2>/dev/null || true
             fi
             
-            # 卸载 DMG（修改后的内容会自动保存）
-            hdiutil detach "$MOUNT_POINT" -force
-            echo "DMG 已卸载"
+            codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
+            
+            echo "签名完成，验证..."
+            codesign -dvv "$APP_PATH/Contents/Frameworks/libjpeg.8.dylib" 2>&1 | head -5 || true
+            
+            # 6. 删除原始 DMG
+            rm "$DMG_PATH"
+            
+            # 7. 使用 create-dmg 重新打包
+            echo "重新创建 DMG..."
+            create-dmg \
+              --volname "Mogan STEM" \
+              --window-pos 200 120 \
+              --window-size 800 400 \
+              --icon-size 100 \
+              --app-drop-link 600 185 \
+              "$DMG_PATH" \
+              "$APP_PATH"
+            
+            echo "新 DMG 已创建: $DMG_PATH"
+            
+            # 8. 清理临时目录
+            rm -rf "$TEMP_DIR"
           fi
       
       - name: Sign DMG
