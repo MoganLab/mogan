@@ -300,7 +300,7 @@ jobs:
               --issuer "${{ secrets.APPLE_API_ISSUER_ID }}" \
               --team-id "${{ secrets.APPLE_TEAM_ID }}" \
               --wait \
-              --timeout 10m \
+              --timeout 20m \
               --output-format json > /tmp/notary_result.json
             
             echo "公证结果:"
