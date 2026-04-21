@@ -163,6 +163,11 @@ pretty-val : string
       (enum (set-pretty-preference "completion style" answer)
             '("Popup" "Inline")
             (get-pretty-preference "completion style")
+            "18em"))
+    (item (text "Auto backup:")
+      (enum (set-preference "autobackup" (string-downcase answer))
+            '("On" "Off")
+            (tmstring-upcase-first (get-preference "autobackup"))
             "18em"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -10,6 +10,7 @@
 ("Applying from" "起始于")
 ("Applying to" "结束于")
 ("As" "作为")
+("Auto backup:" "自动备份:")
 ("Backslash \\ /" "反斜线 \\ /")
 ("BibTeX command" "BibTeX命令")
 ("Bitmap export resolution (dpi):" "Bitmap 导出分辨率（dpi）：")
