@@ -131,6 +131,9 @@ jobs:
           # 找到 .app 目录并签名
           APP_PATH=$(find build -name "*.app" -type d | head -n 1)
           if [ -n "$APP_PATH" ]; then
+            echo "找到 APP: $APP_PATH"
+            ls -la "$APP_PATH/Contents/Frameworks/"
+            
             # 查找可用的签名证书（Developer ID Application 或 Apple Distribution）
             IDENTITY=$(security find-identity -v -p codesigning | grep -E "(Developer ID Application|Apple Distribution)" | head -1 | sed -n 's/.*"\([^"]*\)".*/\1/p')
             if [ -z "$IDENTITY" ]; then
@@ -144,7 +147,10 @@ jobs:
             # 1. 先签名所有内部的动态库和可执行文件
             echo "签名内部动态库..."
             if [ -d "$APP_PATH/Contents/Frameworks" ]; then
-              find "$APP_PATH/Contents/Frameworks" -type f -name "*.dylib" -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \;
+              echo "找到的 dylib 文件:"
+              find "$APP_PATH/Contents/Frameworks" -type f -name "*.dylib"
+              echo "开始签名..."
+              find "$APP_PATH/Contents/Frameworks" -type f -name "*.dylib" -print -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \;
             fi
             
             # 2. 签名所有 framework 内的二进制文件
@@ -152,14 +158,16 @@ jobs:
             if [ -d "$APP_PATH/Contents/Frameworks" ]; then
               for framework in "$APP_PATH/Contents/Frameworks"/*.framework; do
                 if [ -d "$framework" ]; then
+                  echo "处理 framework: $framework"
                   framework_name=$(basename "$framework" .framework)
                   binary_path="$framework/Versions/A/$framework_name"
                   if [ -f "$binary_path" ]; then
-                    echo "签名: $binary_path"
-                    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path"
+                    echo "签名二进制: $binary_path"
+                    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path" || echo "签名失败: $binary_path"
                   fi
                   # 对整个 framework 签名
-                  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework"
+                  echo "签名整个 framework: $framework"
+                  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework" || echo "签名失败: $framework"
                 fi
               done
             fi
@@ -175,8 +183,12 @@ jobs:
             codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
             
             # 5. 验证签名
-            echo "验证签名..."
-            codesign -vvv "$APP_PATH" || true
+            echo "验证 app bundle 签名..."
+            codesign -vvv "$APP_PATH" 2>&1 | head -20 || true
+            
+            # 6. 检查特定文件的签名状态
+            echo "检查 libjpeg.8.dylib 签名状态..."
+            codesign -dvv "$APP_PATH/Contents/Frameworks/libjpeg.8.dylib" 2>&1 || echo "未签名"
           fi
 
       - name: Generate Installer
