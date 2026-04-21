@@ -75,8 +75,8 @@ jobs:
           echo "解码后文件大小:"
           ls -la /tmp/certificate.p12
           
-          # 使用文件传递密码验证 p12
-          echo "$CERTIFICATE_PASSWORD" > /tmp/cert_pass.txt
+          # 使用文件传递密码验证 p12（使用 printf 避免换行符）
+          printf '%s' "$CERTIFICATE_PASSWORD" > /tmp/cert_pass.txt
           echo "使用文件验证 p12:"
           openssl pkcs12 -in /tmp/certificate.p12 -noout -info -passin file:/tmp/cert_pass.txt || echo "p12 验证失败"
           
