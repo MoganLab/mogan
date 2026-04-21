@@ -440,7 +440,8 @@ void
 TemplateManager::onMetadataNotModified () {
   isRefreshing_= false;
   if (templates_.isEmpty ()) {
-    qWarning () << "304 received but no local cache available, retrying without ETag";
+    qWarning ()
+        << "304 received but no local cache available, retrying without ETag";
     cache_->setMetadataEtag (QString ());
     refreshTemplates ();
     return;
