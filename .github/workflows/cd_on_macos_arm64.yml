@@ -159,13 +159,35 @@ jobs:
         run: |
           DMG_PATH=$(find build -name "*.dmg" | head -n 1)
           if [ -n "$DMG_PATH" ]; then
+            echo "开始公证 $DMG_PATH ..."
             xcrun notarytool submit "$DMG_PATH" \
               --key ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 \
               --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
               --issuer "${{ secrets.APPLE_API_ISSUER_ID }}" \
               --team-id "${{ secrets.APPLE_TEAM_ID }}" \
               --wait \
-              --timeout 10m
+              --timeout 10m \
+              --output-format json > /tmp/notary_result.json
+            
+            echo "公证结果:"
+            cat /tmp/notary_result.json
+            
+            # 检查状态
+            STATUS=$(cat /tmp/notary_result.json | grep -o '"status":"[^"]*"' | cut -d'"' -f4)
+            if [ "$STATUS" != "Accepted" ]; then
+              echo "❌ 公证失败！状态: $STATUS"
+              SUBMISSION_ID=$(cat /tmp/notary_result.json | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+              if [ -n "$SUBMISSION_ID" ]; then
+                echo "获取详细日志..."
+                xcrun notarytool log "$SUBMISSION_ID" \
+                  --key ~/.appstoreconnect/private_keys/AuthKey_${{ secrets.APPLE_API_KEY_ID }}.p8 \
+                  --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+                  --issuer "${{ secrets.APPLE_API_ISSUER_ID }}" \
+                  --team-id "${{ secrets.APPLE_TEAM_ID }}" 2>&1 || true
+              fi
+              exit 1
+            fi
+            echo "✅ 公证成功！"
           fi
       
       - name: Staple notarization ticket
