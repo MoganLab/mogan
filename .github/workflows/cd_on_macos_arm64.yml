@@ -142,40 +142,41 @@ jobs:
             echo "使用签名身份: $IDENTITY"
             
             # 1. 先签名所有内部的动态库和可执行文件
-            echo "签名内部动态库和框架..."
-            find "$APP_PATH/Contents/Frameworks" -type f \( -name "*.dylib" -o -name "Qt*" \) 2>/dev/null | while read -r file; do
-              echo "签名: $file"
-              codesign --force --options runtime --timestamp --sign "$IDENTITY" "$file" 2>/dev/null || true
-            done
+            echo "签名内部动态库..."
+            if [ -d "$APP_PATH/Contents/Frameworks" ]; then
+              find "$APP_PATH/Contents/Frameworks" -type f -name "*.dylib" -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \;
+            fi
             
-            # 2. 签名 Frameworks 目录下的所有 framework
-            find "$APP_PATH/Contents/Frameworks" -name "*.framework" -type d 2>/dev/null | while read -r framework; do
-              echo "签名 framework: $framework"
-              # 找到 framework 内的主二进制文件
-              framework_name=$(basename "$framework" .framework)
-              binary_path="$framework/Versions/A/$framework_name"
-              if [ -f "$binary_path" ]; then
-                codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path" 2>/dev/null || true
-              fi
-              # 对整个 framework 目录签名
-              codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework" 2>/dev/null || true
-            done
+            # 2. 签名所有 framework 内的二进制文件
+            echo "签名 frameworks..."
+            if [ -d "$APP_PATH/Contents/Frameworks" ]; then
+              for framework in "$APP_PATH/Contents/Frameworks"/*.framework; do
+                if [ -d "$framework" ]; then
+                  framework_name=$(basename "$framework" .framework)
+                  binary_path="$framework/Versions/A/$framework_name"
+                  if [ -f "$binary_path" ]; then
+                    echo "签名: $binary_path"
+                    codesign --force --options runtime --timestamp --sign "$IDENTITY" "$binary_path"
+                  fi
+                  # 对整个 framework 签名
+                  codesign --force --options runtime --timestamp --sign "$IDENTITY" "$framework"
+                fi
+              done
+            fi
             
             # 3. 签名 Plugins 目录（如果有）
             if [ -d "$APP_PATH/Contents/PlugIns" ]; then
               echo "签名 Plugins..."
-              find "$APP_PATH/Contents/PlugIns" -type f 2>/dev/null | while read -r file; do
-                codesign --force --options runtime --timestamp --sign "$IDENTITY" "$file" 2>/dev/null || true
-              done
+              find "$APP_PATH/Contents/PlugIns" -type f -exec codesign --force --options runtime --timestamp --sign "$IDENTITY" {} \;
             fi
             
             # 4. 最后签名整个 app bundle
             echo "签名整个 app bundle..."
-            codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" --verbose "$APP_PATH"
+            codesign --force --options runtime --deep --timestamp --sign "$IDENTITY" "$APP_PATH"
             
             # 5. 验证签名
             echo "验证签名..."
-            codesign -vvv --strict "$APP_PATH" || true
+            codesign -vvv "$APP_PATH" || true
           fi
 
       - name: Generate Installer
