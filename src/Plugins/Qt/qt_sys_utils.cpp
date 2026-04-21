@@ -47,13 +47,13 @@ bool
 qt_has_network_connection () {
   QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
   for (int i= 0; i < interfaces.size (); ++i) {
-    const QNetworkInterface& interface= interfaces.at (i);
-    const auto               flags    = interface.flags ();
+    const QNetworkInterface& iface= interfaces.at (i);
+    const auto               flags= iface.flags ();
     if (!(flags & QNetworkInterface::IsUp)) continue;
     if (!(flags & QNetworkInterface::IsRunning)) continue;
     if (flags & QNetworkInterface::IsLoopBack) continue;
-    if (interface.hardwareAddress ().isEmpty ()) continue;
-    if (!interface.addressEntries ().isEmpty ()) return true;
+    if (iface.hardwareAddress ().isEmpty ()) continue;
+    if (!iface.addressEntries ().isEmpty ()) return true;
   }
   return false;
 }
@@ -187,10 +187,10 @@ get_linux_or_macos_device_id () {
   QByteArray               combinedData;
   QList<QNetworkInterface> interfaces= QNetworkInterface::allInterfaces ();
   for (int i= 0; i < interfaces.size (); ++i) {
-    const QNetworkInterface& interface= interfaces.at (i);
-    if (!(interface.flags () & QNetworkInterface::IsLoopBack) &&
-        (interface.flags () & QNetworkInterface::IsUp)) {
-      combinedData.append (interface.hardwareAddress ().toUtf8 ());
+    const QNetworkInterface& iface= interfaces.at (i);
+    if (!(iface.flags () & QNetworkInterface::IsLoopBack) &&
+        (iface.flags () & QNetworkInterface::IsUp)) {
+      combinedData.append (iface.hardwareAddress ().toUtf8 ());
     }
   }
   QByteArray hashed=
