@@ -15,6 +15,14 @@ QWidget#centralWidget {
 }
 
 /****************************************************************************
+* 文档编辑区域样式
+****************************************************************************/
+QWidget#centralWidget QWidget {
+  background: #202020;
+  color: #ffffff;
+}
+
+/****************************************************************************
 * 菜单栏样式
 ****************************************************************************/
 /* 顶层菜单栏 */
@@ -44,6 +52,14 @@ QMenuBar::item:selected {
 QMenuBar::item:pressed {
   background: #4c4c4c;
   color: #ffffff;
+}
+
+/****************************************************************************
+* 勾选框样式
+****************************************************************************/
+
+QWidget#centralWidget QCheckBox {
+  background-color: #6a6a6a;
 }
 
 /****************************************************************************
@@ -962,14 +978,6 @@ QWidget#auxiliary_container {
 }
 
 /****************************************************************************
-* 文档编辑区域样式
-****************************************************************************/
-QWidget#centralWidget QWidget {
-  background: #202020;
-  color: #ffffff;
-}
-
-/****************************************************************************
 * 启动标签页样式 (Startup Tab) - 墨绿主题 Dark Mode
 * 主色: #215a6a (深墨绿)
 * 辅色: #2791ad (浅墨绿/青色)
@@ -1031,13 +1039,6 @@ QWidget#centralWidget QPushButton#startup-tab-quit-btn:hover {
 /* 右侧内容区（实际没生效） */
 QWidget#startup-tab-content {
   background-color: #5d5d5d;
-}
-
-QWidget#centralWidget QWidget#startup-tab-content QCheckBox,
-QWidget#centralWidget QWidget#startup-tab-content QRadioButton {
-  background-color: #6a6a6a;
-  border: 1px solid #8a8a8a;
-  border-radius: 2px;
 }
 
 /* 页面标题 */
