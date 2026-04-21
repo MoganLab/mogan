@@ -159,8 +159,10 @@ TemplateAPI::onMetadataReplyFinished () {
     return;
   }
 
-  // Extract ETag from response for future conditional requests
-  lastMetadataEtag_= QString::fromUtf8 (reply->rawHeader ("ETag"));
+  // Extract ETag from 2xx responses for future conditional requests
+  if (statusCode >= 200 && statusCode < 300) {
+    lastMetadataEtag_= QString::fromUtf8 (reply->rawHeader ("ETag"));
+  }
 
   QByteArray response= reply->readAll ();
   reply->deleteLater ();

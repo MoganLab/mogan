@@ -136,6 +136,7 @@ private:
   // State
   bool isOnline_;
   bool isRefreshing_;
+  bool isRetryingWithoutEtag_;
 };
 
 #endif // TEMPLATE_MANAGER_HPP
