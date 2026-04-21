@@ -75,12 +75,12 @@ jobs:
           echo "解码后文件大小:"
           ls -la /tmp/certificate.p12
           
-          # 使用硬编码密码 123456 测试（排除 Secret 问题）
-          TEST_PASSWORD="123456"
-          echo "测试密码长度: ${#TEST_PASSWORD}"
+          # 清理密码：去除所有换行符和空格
+          CLEAN_PASSWORD=$(echo "$CERTIFICATE_PASSWORD" | tr -d '\n' | tr -d ' ' | tr -d '\r')
+          echo "清理后密码长度: ${#CLEAN_PASSWORD}"
           
           # 使用文件传递密码验证 p12
-          printf '%s' "$TEST_PASSWORD" > /tmp/cert_pass.txt
+          printf '%s' "$CLEAN_PASSWORD" > /tmp/cert_pass.txt
           echo "使用文件验证 p12:"
           openssl pkcs12 -in /tmp/certificate.p12 -noout -info -passin file:/tmp/cert_pass.txt || echo "p12 验证失败"
           
@@ -92,11 +92,11 @@ jobs:
           security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
           security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           
-          # 导入证书（使用硬编码密码）
+          # 导入证书（使用清理后的密码）
           echo "导入证书..."
-          security import /tmp/certificate.p12 -P "$TEST_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security || {
+          security import /tmp/certificate.p12 -P "$CLEAN_PASSWORD" -k "$KEYCHAIN_PATH" -T /usr/bin/codesign -T /usr/bin/security || {
             echo "证书导入失败，尝试不带 -T 参数..."
-            security import /tmp/certificate.p12 -P "$TEST_PASSWORD" -k "$KEYCHAIN_PATH"
+            security import /tmp/certificate.p12 -P "$CLEAN_PASSWORD" -k "$KEYCHAIN_PATH"
           }
           
           # 设置权限
