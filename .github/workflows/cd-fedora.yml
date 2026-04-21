@@ -1,0 +1,147 @@
+name: CD for Mogan STEM on Fedora
+
+on:
+  workflow_dispatch:
+    inputs:
+      manual_version:
+        description: 'Set version manually (e.g. 1.2.3)'
+        required: false
+        default: ''
+  push:
+    tags:
+      - '*'
+
+jobs:
+  fedora-build:
+    runs-on: ubuntu-latest
+    container: fedora:latest
+    timeout-minutes: 60
+
+    env:
+      APPIMAGE_EXTRACT_AND_RUN: 1
+      XMAKE_ROOT: y
+      QT_QPA_PLATFORM: offscreen
+
+    steps:
+      # ==========================================
+      # 1. 环境准备
+      # ==========================================
+      - name: Install Base Tools
+        run: |
+          dnf update -y
+          dnf install -y \
+            git curl wget unzip p7zip \
+            gcc gcc-c++ cmake ninja-build python3 \
+            ca-certificates \
+            pkgconfig
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v2.9.6
+
+      - name: Update Xrepo
+        run: xrepo update-repo
+
+      # ==========================================
+      # 2. 安装编译依赖
+      # ==========================================
+      - name: Install Dependencies
+        run: |
+          dnf update -y
+          dnf install -y \
+            mimalloc-devel \
+            libgit2-devel \
+            zlib-devel \
+            openssl-devel \
+            libcurl-devel \
+            freetype-devel \
+            fontconfig-devel \
+            libjpeg-turbo-devel \
+            libpng-devel \
+            libX11-devel \
+            dbus-devel glib2-devel mesa-libGL-devel mesa-libEGL-devel \
+            libxkbcommon-devel harfbuzz-devel \
+            google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts \
+            ghostscript \
+            qt6-qtbase-devel \
+            qt6-qtsvg-devel \
+            qt6-qtnetworkauth-devel \
+            rpm-build \
+            file \
+            patchelf \
+            ibus \
+            fcitx5-qt6
+
+      # ==========================================
+      # 3. 编译流程
+      # ==========================================
+      - name: Config
+        run: xmake config --yes -vD -m release --policies=build.ccache
+
+      - name: Build
+        run: xmake build -vD stem
+
+      # ==========================================
+      # 4. 确定版本号
+      # ==========================================
+      - name: Determine Version
+        id: get_version
+        shell: bash
+        run: |
+          REF_NAME="${{ github.ref }}"
+          MANUAL_VER="${{ inputs.manual_version }}"
+
+          if [ -n "$MANUAL_VER" ]; then
+            RAW_VERSION="$MANUAL_VER"
+          elif [[ "$REF_NAME" == refs/tags/* ]]; then
+            RAW_VERSION=${REF_NAME#refs/tags/}
+            RAW_VERSION=${RAW_VERSION//\//}
+          else
+            RAW_VERSION=$(date +%Y.%m.%d)
+          fi
+
+          if [[ "$RAW_VERSION" == v* ]]; then
+             CLEAN_VERSION=${RAW_VERSION#v}
+          else
+             CLEAN_VERSION="$RAW_VERSION"
+          fi
+
+          echo "File Name will use: $RAW_VERSION"
+          echo "Internal Package Version will use: $CLEAN_VERSION"
+
+          echo "VERSION_TAG=$RAW_VERSION" >> $GITHUB_ENV
+          echo "VERSION_NUM=$CLEAN_VERSION" >> $GITHUB_ENV
+
+      # ==========================================
+      # 5. 打包
+      # ==========================================
+      - name: Generate RPM Package
+        run: |
+          chmod +x packages/fedora/package.sh
+
+          export VERSION=${{ env.VERSION_NUM }}
+          packages/fedora/package.sh
+
+          mv ~/rpmbuild/RPMS/x86_64/mogan-stem-*.rpm ./mogan-stem-${{ env.VERSION_TAG }}-fedora-amd64.rpm
+
+      # ==========================================
+      # 6. 上传与发布
+      # ==========================================
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: mogan-stem-fedora-${{ env.VERSION_TAG }}
+          path: mogan-stem-*-fedora-amd64.rpm
+
+      - name: Release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          prerelease: true
+          files: |
+            mogan-stem-*-fedora-amd64.rpm
