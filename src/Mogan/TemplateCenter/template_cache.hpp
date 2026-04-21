@@ -101,7 +101,7 @@ private:
 
   // Cache storage
   QHash<QString, CacheEntry> cacheIndex_;
-  QString                    metadataEtag_;
+  mutable QString            metadataEtag_;
 };
 
 #endif // TEMPLATE_CACHE_HPP

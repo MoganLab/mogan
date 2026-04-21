@@ -286,7 +286,7 @@ TemplateCache::metadataEtag () const {
   if (file.open (QIODevice::ReadOnly)) {
     QString etag= QString::fromUtf8 (file.readAll ()).trimmed ();
     // Cache in memory for subsequent reads
-    const_cast<TemplateCache*> (this)->metadataEtag_= etag;
+    metadataEtag_= etag;
     return etag;
   }
   return QString ();
@@ -300,6 +300,9 @@ TemplateCache::setMetadataEtag (const QString& etag) {
   if (file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
     file.write (etag.toUtf8 ());
     file.close ();
+  }
+  else {
+    qWarning () << "Failed to write metadata ETag:" << metadataEtagPath ();
   }
 }
 

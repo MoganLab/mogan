@@ -439,6 +439,12 @@ TemplateManager::onRemoteMetadataFailed (const QString& error) {
 void
 TemplateManager::onMetadataNotModified () {
   isRefreshing_= false;
+  if (templates_.isEmpty ()) {
+    qWarning () << "304 received but no local cache available, retrying without ETag";
+    cache_->setMetadataEtag (QString ());
+    refreshTemplates ();
+    return;
+  }
   qDebug () << "Metadata not modified (304), using cached data";
   emit templatesLoaded ();
 }
