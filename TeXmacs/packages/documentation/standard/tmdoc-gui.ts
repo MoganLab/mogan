@@ -28,7 +28,15 @@
     </src-comment>
   </active*>
 
-  <assign|render-key|<macro|key|<active*|<move|<small|<with|font-family|tt|<with|ornament-color|#e0e0e0|ornament-sunny-color|#f0f0f0|ornament-shadow-color|#c0c0c0|ornament-hpadding|2ln|ornament-vpadding|2ln|ornament-border|2ln|<ornament|<compound|inflate|<arg|key>>>>>>||0.075ex>>>>
+  <assign|render-key-color|black>
+
+  <assign|render-key-bg-color|#e0e0e0>
+
+  <assign|render-key-sunny-color|#f0f0f0>
+
+  <assign|render-key-shadow-color|#c0c0c0>
+
+  <assign|render-key|<macro|key|<active*|<move|<small|<with|font-family|tt|<with|color|<value|render-key-color>|ornament-color|<value|render-key-bg-color>|ornament-sunny-color|<value|render-key-sunny-color>|ornament-shadow-color|<value|render-key-shadow-color>|ornament-hpadding|2ln|ornament-vpadding|2ln|ornament-border|2ln|<ornament|<compound|inflate|<arg|key>>>>>>||0.075ex>>>>
 
   <assign|render-keys|<macro|keys|<extern|tmdoc-render-keys|<quote-arg|keys>>>>
 

@@ -72,6 +72,14 @@
 
   <assign|toggle-on-hover|<gui-contour*|<toggle-on>>>
 
+  <assign|render-key-color|white>
+
+  <assign|render-key-bg-color|#606060>
+
+  <assign|render-key-sunny-color|#808080>
+
+  <assign|render-key-shadow-color|#404040>
+
   <assign|pre-edit|<macro|body|<with|ornament-color|#707070|ornament-sunny-color|#808080|ornament-shadow-color|#606060|ornament-border|1px|ornament-hpadding|2px|ornament-vpadding|2px|<smash|<ornament|<with|color|white|<arg|body>>>>>>>
 
   <assign|focus-color|#ffffff0e>
