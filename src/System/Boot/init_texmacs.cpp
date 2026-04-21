@@ -1007,18 +1007,19 @@ perform_startup_login_request () {
 static void
 attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
   QPointer<QWK::StartupLoginDialog> guardedDialog (dialog);
+  auto observer= std::make_shared<std::function<void ()>> ();
 
-  std::function<void ()> attachObserver= [&attachObserver, guardedDialog] () {
+  *observer= [observer, guardedDialog] () {
     if (!guardedDialog) return;
     if (!is_server_started ()) {
-      QTimer::singleShot (100, guardedDialog, attachObserver);
+      QTimer::singleShot (100, guardedDialog, *observer);
       return;
     }
 
     tm_server_rep* server=
         dynamic_cast<tm_server_rep*> (get_server ().operator->());
     if (!server || !server->getAccount ()) {
-      QTimer::singleShot (100, guardedDialog, attachObserver);
+      QTimer::singleShot (100, guardedDialog, *observer);
       return;
     }
 
@@ -1033,7 +1034,7 @@ attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
     if (account->isLoggedIn ()) guardedDialog->notifyLoginSucceeded ();
   };
 
-  QTimer::singleShot (0, dialog, attachObserver);
+  QTimer::singleShot (0, dialog, *observer);
 }
 
 bool

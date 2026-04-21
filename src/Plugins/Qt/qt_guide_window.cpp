@@ -397,12 +397,7 @@ StartupLoginDialog::setAsyncStartupMode (bool enabled) {
 void
 StartupLoginDialog::notifyLoginSucceeded () {
   waitingForLoginCompletion= false;
-  if (asyncStartupMode) {
-    close ();
-    return;
-  }
-
-  if (initializationComplete) fadeOutAndClose ();
+  fadeOutAndClose ();
 }
 
 void
@@ -541,8 +536,7 @@ StartupLoginDialog::handleLoginButtonClick () {
 
   if (asyncStartupMode) {
     waitingForLoginCompletion= true;
-    loginButton->setEnabled (true);
-    skipButton->setEnabled (true);
+    enableButtons (true);
     updateProgressUI (100, qt_translate ("正在等待登录完成..."),
                       qt_translate ("登录完成后弹窗自动关闭"));
     return;
@@ -628,8 +622,7 @@ StartupLoginDialog::handleInitializationComplete (bool success) {
       fadeOutAndClose ();
     }
     else if (asyncStartupMode && waitingForLoginCompletion) {
-      loginButton->setEnabled (true);
-      skipButton->setEnabled (true);
+      enableButtons (true);
       updateProgressUI (100, qt_translate ("正在等待登录完成..."),
                         qt_translate ("登录成功后自动关闭"));
     }
@@ -715,6 +708,7 @@ StartupLoginDialog::fadeOutAndClose () {
   fadeAnimation->setEasingCurve (QEasingCurve::OutCubic);
 
   connect (fadeAnimation, &QPropertyAnimation::finished, this, [this] () {
+    clearMainWindowOverlay ();
     accept (); // 以接受状态关闭对话框
   });
 
