@@ -24,11 +24,15 @@ struct ImageCacheEntry {
   QString   key;
   QDateTime cachedAt;
   qint64    cost; // Memory cost (bytes)
+  QString   etag;
+  QDateTime lastModified;
 
   ImageCacheEntry () : cost (0) {}
-  ImageCacheEntry (const QPixmap& px, const QString& k, qint64 c)
+  ImageCacheEntry (const QPixmap& px, const QString& k, qint64 c,
+                   const QString&   e = QString (),
+                   const QDateTime& lm= QDateTime ())
       : pixmap (px), key (k), cachedAt (QDateTime::currentDateTime ()),
-        cost (c) {}
+        cost (c), etag (e), lastModified (lm) {}
 };
 
 /**

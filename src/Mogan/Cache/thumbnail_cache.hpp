@@ -36,19 +36,42 @@ public:
   static ThumbnailCache* instance ();
 
   /**
-   * @brief Get thumbnail from cache
+   * @brief Cache entry with HTTP metadata
+   */
+  struct ThumbnailCacheEntry {
+    QPixmap   pixmap;
+    QString   etag;
+    QDateTime lastModified;
+    bool      isValid () const { return !pixmap.isNull (); }
+  };
+
+  /**
+   * @brief Get thumbnail from cache (with HTTP metadata)
    * @param url Image URL (used as cache key)
    * @param targetSize Target size for scaling (cached separately for different
    * sizes)
-   * @return Thumbnail pixmap, or null if not cached
+   * @return Cache entry with pixmap and ETag/Last-Modified
+   */
+  ThumbnailCacheEntry getEntry (const QString& url, const QSize& targetSize);
+
+  /**
+   * @brief Get thumbnail pixmap from cache (convenience wrapper)
    */
   QPixmap get (const QString& url, const QSize& targetSize);
 
   /**
-   * @brief Store thumbnail in cache
+   * @brief Store thumbnail in cache (with HTTP metadata)
    * @param url Image URL
    * @param targetSize Target size
    * @param pixmap Thumbnail pixmap
+   * @param etag HTTP ETag header value
+   * @param lastModified HTTP Last-Modified header value
+   */
+  void put (const QString& url, const QSize& targetSize, const QPixmap& pixmap,
+            const QString& etag, const QDateTime& lastModified);
+
+  /**
+   * @brief Store thumbnail in cache (without HTTP metadata)
    */
   void put (const QString& url, const QSize& targetSize, const QPixmap& pixmap);
 
@@ -82,7 +105,9 @@ public:
 private:
   QString cacheKey (const QString& url, const QSize& size) const;
   QString diskPath (const QString& key) const;
-  void    loadFromDisk (const QString& key);
+  QString indexPath () const;
+  void    loadIndex ();
+  void    saveIndex ();
   void    saveToDisk (const QString& key, const QPixmap& pixmap);
 
 private:
@@ -95,6 +120,9 @@ private:
   mutable qint64 memoryHits_;
   mutable qint64 diskHits_;
   mutable qint64 misses_;
+
+  // Disk index: key -> metadata JSON object (loaded from thumbnail-index.json)
+  QHash<QString, QJsonObject> diskIndex_;
 
   // Configuration
   static constexpr int  MAX_MEMORY_COST_MB= 50;

@@ -10,6 +10,8 @@
 #include <QDebug>
 #include <QDir>
 #include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QMutex>
 #include <QStandardPaths>
 #include <QThread>
@@ -20,7 +22,9 @@ static QMutex          s_instanceMutex;
 
 ThumbnailCache::ThumbnailCache (QObject* parent)
     : QObject (parent), memoryCache_ (MAX_MEMORY_COST_MB * 1024 * 1024),
-      memoryHits_ (0), diskHits_ (0), misses_ (0) {}
+      memoryHits_ (0), diskHits_ (0), misses_ (0) {
+  loadIndex ();
+}
 
 ThumbnailCache::~ThumbnailCache () {
   if (g_instance == this) {
@@ -37,9 +41,10 @@ ThumbnailCache::instance () {
   return g_instance;
 }
 
-QPixmap
-ThumbnailCache::get (const QString& url, const QSize& targetSize) {
-  QString key= cacheKey (url, targetSize);
+ThumbnailCache::ThumbnailCacheEntry
+ThumbnailCache::getEntry (const QString& url, const QSize& targetSize) {
+  QString             key= cacheKey (url, targetSize);
+  ThumbnailCacheEntry result;
 
   QMutexLocker locker (&mutex_);
 
@@ -47,7 +52,10 @@ ThumbnailCache::get (const QString& url, const QSize& targetSize) {
   ImageCacheEntry* entry= memoryCache_.object (key);
   if (entry) {
     memoryHits_++;
-    return entry->pixmap;
+    result.pixmap      = entry->pixmap;
+    result.etag        = entry->etag;
+    result.lastModified= entry->lastModified;
+    return result;
   }
 
   // Try to load from disk
@@ -56,21 +64,44 @@ ThumbnailCache::get (const QString& url, const QSize& targetSize) {
       !ImageCacheUtils::isFileExpired (path, DISK_CACHE_DAYS)) {
     QPixmap pixmap (path);
     if (!pixmap.isNull ()) {
+      QString   etag;
+      QDateTime lastModified;
+      auto      it= diskIndex_.find (key);
+      if (it != diskIndex_.end ()) {
+        QJsonObject meta= it.value ();
+        etag            = meta["etag"].toString ();
+        QString lmStr   = meta["lastModified"].toString ();
+        if (!lmStr.isEmpty ()) {
+          lastModified= QDateTime::fromString (lmStr, Qt::ISODate);
+        }
+      }
+
       // Store in memory cache for future access
       qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-      memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
+      memoryCache_.insert (
+          key, new ImageCacheEntry (pixmap, key, cost, etag, lastModified),
+          cost);
       diskHits_++;
-      return pixmap;
+      result.pixmap      = pixmap;
+      result.etag        = etag;
+      result.lastModified= lastModified;
+      return result;
     }
   }
 
   misses_++;
-  return QPixmap ();
+  return result;
+}
+
+QPixmap
+ThumbnailCache::get (const QString& url, const QSize& targetSize) {
+  return getEntry (url, targetSize).pixmap;
 }
 
 void
 ThumbnailCache::put (const QString& url, const QSize& targetSize,
-                     const QPixmap& pixmap) {
+                     const QPixmap& pixmap, const QString& etag,
+                     const QDateTime& lastModified) {
   if (pixmap.isNull ()) return;
 
   QString key= cacheKey (url, targetSize);
@@ -79,14 +110,31 @@ ThumbnailCache::put (const QString& url, const QSize& targetSize,
 
   // Store in memory cache
   qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-  memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
+  memoryCache_.insert (
+      key, new ImageCacheEntry (pixmap, key, cost, etag, lastModified), cost);
 
-  // Save to disk asynchronously (don't block)
-  Qt::ConnectionType connType= QThread::currentThread () == this->thread ()
-                                   ? Qt::DirectConnection
-                                   : Qt::QueuedConnection;
+  // Update disk index
+  QJsonObject meta;
+  if (!etag.isEmpty ()) meta["etag"]= etag;
+  if (lastModified.isValid ())
+    meta["lastModified"]= lastModified.toString (Qt::ISODate);
+  meta["cachedAt"]= QDateTime::currentDateTime ().toString (Qt::ISODate);
+  diskIndex_[key] = meta;
+
+  // Save to disk asynchronously (queued to avoid deadlock with mutex)
   QMetaObject::invokeMethod (
-      this, [this, key, pixmap] () { saveToDisk (key, pixmap); }, connType);
+      this,
+      [this, key, pixmap] () {
+        saveToDisk (key, pixmap);
+        saveIndex ();
+      },
+      Qt::QueuedConnection);
+}
+
+void
+ThumbnailCache::put (const QString& url, const QSize& targetSize,
+                     const QPixmap& pixmap) {
+  put (url, targetSize, pixmap, QString (), QDateTime ());
 }
 
 bool
@@ -120,8 +168,21 @@ ThumbnailCache::preload (const QString& url, const QSize& targetSize) {
   if (QFile::exists (path)) {
     QPixmap pixmap (path);
     if (!pixmap.isNull ()) {
+      QString   etag;
+      QDateTime lastModified;
+      auto      it= diskIndex_.find (key);
+      if (it != diskIndex_.end ()) {
+        QJsonObject meta= it.value ();
+        etag            = meta["etag"].toString ();
+        QString lmStr   = meta["lastModified"].toString ();
+        if (!lmStr.isEmpty ()) {
+          lastModified= QDateTime::fromString (lmStr, Qt::ISODate);
+        }
+      }
       qint64 cost= ImageCacheUtils::pixmapCost (pixmap);
-      memoryCache_.insert (key, new ImageCacheEntry (pixmap, key, cost), cost);
+      memoryCache_.insert (
+          key, new ImageCacheEntry (pixmap, key, cost, etag, lastModified),
+          cost);
     }
   }
 }
@@ -131,13 +192,15 @@ ThumbnailCache::clear () {
   QMutexLocker locker (&mutex_);
 
   memoryCache_.clear ();
+  diskIndex_.clear ();
 
-  // Clear disk cache
+  // Clear disk cache (including index file)
   QString dir= ImageCacheUtils::cacheSubdir (CACHE_SUBDIR);
   QDir    cacheDir (dir);
   for (const QString& file : cacheDir.entryList (QDir::Files)) {
     cacheDir.remove (file);
   }
+  qDebug () << "[ThumbnailCache] Cleared all cached thumbnails";
 }
 
 void
@@ -178,8 +241,60 @@ ThumbnailCache::diskPath (const QString& key) const {
   return QDir (dir).filePath (hash + ".jpg");
 }
 
+QString
+ThumbnailCache::indexPath () const {
+  QString dir= ImageCacheUtils::cacheSubdir (CACHE_SUBDIR);
+  return QDir (dir).filePath ("thumbnail-index.json");
+}
+
+void
+ThumbnailCache::loadIndex () {
+  QString path= indexPath ();
+  if (!QFile::exists (path)) return;
+
+  QFile file (path);
+  if (!file.open (QIODevice::ReadOnly)) {
+    qWarning () << "[ThumbnailCache] Failed to read index:" << path;
+    return;
+  }
+
+  QJsonDocument doc= QJsonDocument::fromJson (file.readAll ());
+  file.close ();
+
+  if (!doc.isObject ()) return;
+
+  QJsonObject obj= doc.object ();
+  for (auto it= obj.begin (); it != obj.end (); ++it) {
+    diskIndex_[it.key ()]= it.value ().toObject ();
+  }
+  qDebug () << "[ThumbnailCache] Loaded index with" << diskIndex_.size ()
+            << "entries";
+}
+
+void
+ThumbnailCache::saveIndex () {
+  QMutexLocker locker (&mutex_);
+
+  QJsonObject obj;
+  for (auto it= diskIndex_.begin (); it != diskIndex_.end (); ++it) {
+    obj[it.key ()]= it.value ();
+  }
+
+  QString path= indexPath ();
+  QFile   file (path);
+  if (file.open (QIODevice::WriteOnly)) {
+    file.write (QJsonDocument (obj).toJson ());
+    file.close ();
+  }
+  else {
+    qWarning () << "[ThumbnailCache] Failed to write index:" << path;
+  }
+}
+
 void
 ThumbnailCache::saveToDisk (const QString& key, const QPixmap& pixmap) {
   QString path= diskPath (key);
-  pixmap.save (path, "JPEG", 85); // Good quality, smaller size
+  if (!pixmap.save (path, "JPEG", 85)) {
+    qWarning () << "[ThumbnailCache] Failed to write image:" << path;
+  }
 }
