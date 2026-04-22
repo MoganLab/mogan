@@ -92,6 +92,13 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QPushButton*            loginActionButton;
   QPushButton*            logoutButton;
 
+  // 更新提示区域控件
+  QWidget*    m_updateSection       = nullptr;
+  QLabel*     m_updateTitleLabel    = nullptr;
+  QPushButton* m_updateNowButton    = nullptr;
+  QPushButton* m_snoozeButton       = nullptr;
+  bool        m_hasUpdateAvailable  = false;
+
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;
   QAction*  modeToolBarAction;
@@ -117,6 +124,9 @@ private:
   void setupLoginDialog (QWK::LoginDialog* loginDialog);
   void checkLocalTokenAndLogin ();
   void fetchUserInfo (const QString& token, bool showDialog= true);
+  void refreshLoginDialogPlacement ();
+  bool shouldShowLoginDialogUpdateSection ();
+  void setLoginDialogUpdateSectionVisible (bool visible);
   void refreshMembershipInfoInBackground ();
   void refreshScmNotificationBar ();
   void syncScmUpdateNotification (bool           updateAvailable,

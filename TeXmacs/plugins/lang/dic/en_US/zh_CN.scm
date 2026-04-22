@@ -1537,6 +1537,8 @@
 ("new table" "")
 ("new version" "新版")
 ("New version available" "发现新版本")
+("Update Now" "立即更新")
+("Remind Later" "稍后提醒")
 ("new window" "新窗口")
 ("new" "新建")
 ("newer version" "新版")

@@ -86,6 +86,19 @@ is_startup_tab_current_view () {
   return view_to_buffer (view) == url ("tmfs://startup-tab");
 }
 
+static QRect
+login_dialog_anchor_rect (QWidget* loginButton) {
+  if (!loginButton) return QRect ();
+  return QRect (loginButton->mapToGlobal (QPoint (0, 0)), loginButton->size ());
+}
+
+static void
+show_login_dialog_at_button (QWK::LoginDialog* dialog, QWidget* loginButton) {
+  if (!dialog || !loginButton) return;
+  const QRect anchorRect = login_dialog_anchor_rect (loginButton);
+  dialog->showAtRect (anchorRect, DpiUtils::scaled (6));
+}
+
 static void
 replaceActions (QWidget* dest, QList<QAction*>* src) {
   // NOTE: the parent hierarchy of the actions is not modified while installing
@@ -1998,6 +2011,10 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   // 创建登录对话框内容
   QWidget* contentWidget= new QWidget ();
   contentWidget->setObjectName ("login-dialog-content");
+  // 保持弹窗宽度稳定，避免更新区显隐时整体位置发生横向跳动。
+  const int loginDialogWidth= DpiUtils::scaled (300);
+  contentWidget->setMinimumWidth (loginDialogWidth);
+  contentWidget->setMaximumWidth (loginDialogWidth);
   auto mainLayout= new QVBoxLayout (contentWidget);
   mainLayout->setContentsMargins (16, 16, 16, 16);
   mainLayout->setSpacing (16);
@@ -2090,12 +2107,79 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   bottomLayout->addWidget (membershipPeriodLabel);
   bottomLayout->addWidget (loginActionButton);
 
-  // 添加区域到主布局
+  // 更新提示区域（商业版显示更新提示）- 放在底部
+  m_updateSection= new QWidget ();
+  m_updateSection->setObjectName ("login-update-section");
+  auto updateLayout= new QHBoxLayout (m_updateSection);
+  updateLayout->setContentsMargins (12, 12, 12, 12);
+  updateLayout->setSpacing (8);
+  updateLayout->setAlignment (Qt::AlignVCenter);
+
+  // 版本信息标签
+  m_updateTitleLabel= new QLabel ();
+  m_updateTitleLabel->setObjectName ("login-update-title");
+  m_updateTitleLabel->setWordWrap (false);
+  m_updateTitleLabel->setAlignment (Qt::AlignVCenter | Qt::AlignLeft);
+  m_updateTitleLabel->setSizePolicy (QSizePolicy::Expanding,
+                                     QSizePolicy::Preferred);
+
+  // 按钮
+  const int updateButtonHeight= DpiUtils::scaled (32);
+  m_updateNowButton= new QPushButton (qt_translate ("Update Now"));
+  m_updateNowButton->setObjectName ("login-update-now-btn");
+  m_updateNowButton->setFlat (true);
+  m_updateNowButton->setMinimumHeight (updateButtonHeight);
+
+  m_snoozeButton= new QPushButton (qt_translate ("×"));
+  m_snoozeButton->setObjectName ("login-snooze-btn");
+  m_snoozeButton->setFlat (true);
+  m_snoozeButton->setFixedSize (updateButtonHeight, updateButtonHeight);
+  m_snoozeButton->setToolTip (qt_translate ("Remind Later"));
+
+  updateLayout->addWidget (m_updateTitleLabel, 1, Qt::AlignVCenter);
+  updateLayout->addWidget (m_updateNowButton, 0, Qt::AlignVCenter);
+  updateLayout->addWidget (m_snoozeButton, 0, Qt::AlignVCenter);
+
+  // 默认隐藏更新区域，不保留空白
+  m_updateSection->setVisible (false);
+  QSizePolicy updateSectionPolicy= m_updateSection->sizePolicy ();
+  updateSectionPolicy.setRetainSizeWhenHidden (false);
+  m_updateSection->setSizePolicy (updateSectionPolicy);
+
+  // 添加区域到主布局 - 更新提示放在底部
   mainLayout->addWidget (topSection);
   mainLayout->addWidget (bottomSection);
+  mainLayout->addWidget (m_updateSection);
+
+  // 连接更新按钮信号
+  QObject::connect (m_updateNowButton, &QPushButton::clicked, [this] () {
+    // 打开下载页面（通过 Scheme 获取正确的 URL）
+    eval ("(use-modules (utils misc version-update))");
+    object urlObj= call ("get-update-download-url");
+    QString downloadUrl= to_qstring (as_string (urlObj));
+    QDesktopServices::openUrl (QUrl (downloadUrl));
+    setLoginDialogUpdateSectionVisible (false);
+    // 关闭登录弹窗
+    if (m_loginDialog) {
+      m_loginDialog->hide ();
+    }
+  });
+
+  QObject::connect (m_snoozeButton, &QPushButton::clicked, [this] () {
+    // 执行稍后提醒逻辑（3天后再次提醒）
+    eval ("(use-modules (utils misc version-update))");
+    call ("snooze-version-update");
+    setLoginDialogUpdateSectionVisible (false);
+    // 关闭登录弹窗
+    if (m_loginDialog) {
+      m_loginDialog->hide ();
+    }
+  });
 
   // 设置对话框内容
   loginDialog->setContentWidget (contentWidget);
+  loginDialog->updateGeometry ();
+  loginDialog->adjustSize ();
 
 #if defined(Q_OS_MAC)
   // 在 macOS 下将登录对话框内容整体右移 100px：
@@ -2134,18 +2218,75 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 }
 
 void
+qt_tm_widget_rep::refreshLoginDialogPlacement () {
+  if (m_loginDialog && m_loginDialog->isVisible ()) {
+    show_login_dialog_at_button (m_loginDialog, loginButton);
+  }
+}
+
+bool
+qt_tm_widget_rep::shouldShowLoginDialogUpdateSection () {
+  if (!m_hasUpdateAvailable) return false;
+
+  eval ("(use-modules (utils misc version-update))");
+  return as_bool (call ("should-check-version-update?"));
+}
+
+void
+qt_tm_widget_rep::setLoginDialogUpdateSectionVisible (bool visible) {
+  if (!m_updateSection) return;
+
+  const bool visibilityChanged= (m_updateSection->isVisible () != visible);
+  if (visibilityChanged) m_updateSection->setVisible (visible);
+
+  if (QWidget* parent= m_updateSection->parentWidget ()) {
+    if (QLayout* layout= parent->layout ()) {
+      layout->invalidate ();
+      layout->activate ();
+    }
+  }
+
+  if (m_loginDialog) {
+    m_loginDialog->updateGeometry ();
+    m_loginDialog->adjustSize ();
+  }
+
+  if (visibilityChanged || visible) {
+    refreshLoginDialogPlacement ();
+  }
+}
+
+void
 qt_tm_widget_rep::refreshScmNotificationBar () {
   if (!has_current_window ()) return;
   call ("update-menus");
 }
 
 void
-qt_tm_widget_rep::syncScmUpdateNotification (bool           updateAvailable,
-                                             const QString& remoteVersion) {
-  eval ("(use-modules (texmacs menus notificationbar))");
-  call ("notification-bar-set-update-state", object (updateAvailable),
-        from_qstring (remoteVersion));
-  refreshScmNotificationBar ();
+qt_tm_widget_rep::syncScmUpdateNotification (bool updateAvailable, const QString& remoteVersion) {
+  if (is_community_stem ()) {
+    // 社区版：保持现状，不显示更新提示
+    return;
+  }
+
+  // 商业版：更新登录按钮和弹窗
+  if (loginButton) {
+    loginButton->setBadgeVisible (updateAvailable);
+  }
+
+  if (m_updateTitleLabel && updateAvailable) {
+    QString title=
+        qt_translate ("New version available") + ": " + remoteVersion;
+    m_updateTitleLabel->setText (title);
+  }
+  else if (m_updateTitleLabel) {
+    m_updateTitleLabel->clear ();
+  }
+
+  // 记录更新状态，供登录弹窗打开时使用
+  m_hasUpdateAvailable= updateAvailable;
+
+  setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
 }
 
 void
@@ -2197,6 +2338,19 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
     return;
   }
 
+  if (m_loginDialog && m_loginDialog->isVisible ()) {
+    m_loginDialog->hide ();
+    return;
+  }
+
+  // 点击登录按钮后立即隐藏小红点（用户已看到提示，下次启动如未更新会再次显示）
+  if (loginButton && loginButton->badgeVisible ()) {
+    loginButton->setBadgeVisible (false);
+  }
+
+  // 根据当前更新状态同步更新区显隐和弹窗几何
+  setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
+
   // 使用scheme代码获取本地token缓存
   eval ("(use-modules (liii account))");
   string  token  = as_string (call ("account-load-token"));
@@ -2209,9 +2363,7 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
   }
   else {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
-    QPoint buttonBottomCenter= loginButton->mapToGlobal (
-        QPoint (loginButton->width () / 2, loginButton->height ()));
-    m_loginDialog->showAtPosition (buttonBottomCenter);
+    show_login_dialog_at_button (m_loginDialog, loginButton);
   }
 }
 
@@ -2253,10 +2405,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
-
-          QPoint buttonBottomCenter= loginButton->mapToGlobal (
-              QPoint (loginButton->width () / 2, loginButton->height ()));
-          m_loginDialog->showAtPosition (buttonBottomCenter);
+          show_login_dialog_at_button (m_loginDialog, loginButton);
         };
 
         if (reply->error () == QNetworkReply::NoError) {
@@ -2291,9 +2440,7 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
                                            periodLabelColor, productType);
 
             if (showDialog) {
-              QPoint buttonBottomCenter= loginButton->mapToGlobal (
-                  QPoint (loginButton->width () / 2, loginButton->height ()));
-              m_loginDialog->showAtPosition (buttonBottomCenter);
+              show_login_dialog_at_button (m_loginDialog, loginButton);
             }
           }
           else {

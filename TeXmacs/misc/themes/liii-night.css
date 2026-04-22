@@ -1185,3 +1185,59 @@ QWidget#centralWidget QLabel#pdf-preview-page-indicator {
 QLabel#pdf-preview-label {
   border: 1px solid #4c4c4c;
 }
+
+/****************************************************************************
+* 登录弹窗更新提示区域样式
+****************************************************************************/
+
+QWidget#login-update-section {
+  background: #3a3a3a;
+  border: none;
+  border-radius: 8px;
+}
+
+QLabel#login-update-title {
+  background: transparent;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#login-update-now-btn {
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#login-update-now-btn:hover {
+  background: #0063d1;
+}
+
+#login-update-now-btn:pressed {
+  background: #0056CC;
+}
+
+#login-snooze-btn {
+  background: rgba(255, 255, 255, 0.06);
+  color: #cccccc;
+  border: 1px solid #4c4c4c;
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#login-snooze-btn:hover {
+  color: #ffffff;
+  border-color: #6a6a6a;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+#login-snooze-btn:pressed {
+  color: #ffffff;
+  border-color: #7a7a7a;
+  background: rgba(255, 255, 255, 0.14);
+}

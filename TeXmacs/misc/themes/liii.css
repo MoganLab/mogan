@@ -934,6 +934,64 @@ QWidget#auxiliary_container {
 }
 
 /****************************************************************************
+* 登录弹窗更新提示区域样式
+****************************************************************************/
+
+QWidget#login-update-section {
+  background: #e6eefb;
+  border: none;
+  border-radius: 8px;
+}
+
+QLabel#login-update-title {
+  background: transparent;
+  color: #1D1D1F;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 立即更新按钮 */
+#login-update-now-btn {
+  background: #007AFF;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+#login-update-now-btn:hover {
+  background: #0063d1;
+}
+
+#login-update-now-btn:pressed {
+  background: #0056CC;
+}
+
+/* 稍后提醒按钮 */
+#login-snooze-btn {
+  background: rgba(255, 255, 255, 0.55);
+  color: #6e6e73;
+  border: 1px solid rgba(29, 29, 31, 0.08);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#login-snooze-btn:hover {
+  color: #1D1D1F;
+  border-color: rgba(29, 29, 31, 0.18);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+#login-snooze-btn:pressed {
+  color: #1D1D1F;
+  border-color: rgba(29, 29, 31, 0.24);
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/****************************************************************************
 * 启动标签页样式 (Startup Tab) - 墨绿主题
 * 主色: #215a6a (深墨绿)
 * 辅色: #2791ad (浅墨绿/青色)
