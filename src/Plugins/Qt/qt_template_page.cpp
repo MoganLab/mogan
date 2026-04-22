@@ -7,7 +7,6 @@
 
 #include "qt_template_page.hpp"
 
-#include <QBuffer>
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QEvent>
@@ -32,8 +31,6 @@
 #include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
-
-#include <QGraphicsDropShadowEffect>
 
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_preview_widget.hpp"
@@ -79,9 +76,6 @@ constexpr int kCategoryBtnRadiusPx = 12;  // 分类按钮圆角
 constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
 constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
 constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
-constexpr int kShadowBlurRadiusPx  = 12;  // 阴影模糊半径
-constexpr int kShadowOffsetYPx     = 2;   // 阴影Y偏移
-constexpr int kShadowAlpha         = 30;  // 阴影透明度
 
 void
 applyThumbnailFrameStyle (QLabel* label) {
@@ -287,7 +281,7 @@ QTTemplatePage::calculateColumnCount () const {
 
   // Viewport not yet properly laid out (default QWidget size is small),
   // return a sensible default instead of 1 column
-  if (availableWidth < cardSpace) return 4;
+  if (availableWidth < cardSpace && availableWidth < cardWidth * 2) return 4;
 
   int columns= (availableWidth + spacing) / cardSpace;
   return qBound (1, columns, 6);
@@ -389,13 +383,6 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
                                 "  border-radius: %1px;"
                                 "}")
                            .arg (DpiUtils::scaled (kCardRadiusPx)));
-
-  // Subtle shadow effect
-  QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (card);
-  shadow->setBlurRadius (DpiUtils::scaled (kShadowBlurRadiusPx));
-  shadow->setColor (QColor (0, 0, 0, kShadowAlpha));
-  shadow->setOffset (0, DpiUtils::scaled (kShadowOffsetYPx));
-  card->setGraphicsEffect (shadow);
 
   // Thumbnail image
   QLabel* thumbnailLabel= new QLabel (card);
@@ -565,7 +552,10 @@ QTTemplatePage::processThumbnailQueue () {
         }
       }
       else {
-        req.label->setText (qt_translate ("Preview"));
+        // Only show placeholder if there was no cached pixmap to preserve
+        if (req.label->pixmap ().isNull ()) {
+          req.label->setText (qt_translate ("Preview"));
+        }
       }
 
       validatedUrls_.insert (req.url);
@@ -647,6 +637,9 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   // Load PDF preview
   if (!tmpl->previewUrl.isEmpty ()) {
     previewWidget->loadFromUrl (tmpl->previewUrl);
+  }
+  else {
+    previewWidget->clearPreview (qt_translate ("No Preview"));
   }
   layout->addWidget (previewWidget, 0, Qt::AlignCenter);
 

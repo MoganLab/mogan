@@ -7,6 +7,7 @@
 
 #include "thumbnail_cache.hpp"
 
+#include <QCoreApplication>
 #include <QDebug>
 #include <QDir>
 #include <QFile>
@@ -19,6 +20,13 @@
 // Singleton instance
 static ThumbnailCache* g_instance= nullptr;
 static QMutex          s_instanceMutex;
+
+static void
+cleanupThumbnailCache () {
+  QMutexLocker locker (&s_instanceMutex);
+  delete g_instance;
+  g_instance= nullptr;
+}
 
 ThumbnailCache::ThumbnailCache (QObject* parent)
     : QObject (parent), memoryCache_ (MAX_MEMORY_COST_MB * 1024 * 1024),
@@ -40,6 +48,7 @@ ThumbnailCache::instance () {
   QMutexLocker locker (&s_instanceMutex);
   if (!g_instance) {
     g_instance= new ThumbnailCache ();
+    qAddPostRoutine (cleanupThumbnailCache);
   }
   return g_instance;
 }
@@ -283,11 +292,12 @@ ThumbnailCache::loadIndex () {
 
 void
 ThumbnailCache::saveIndex () {
-  QMutexLocker locker (&mutex_);
-
   QJsonObject obj;
-  for (auto it= diskIndex_.begin (); it != diskIndex_.end (); ++it) {
-    obj[it.key ()]= it.value ();
+  {
+    QMutexLocker locker (&mutex_);
+    for (auto it= diskIndex_.begin (); it != diskIndex_.end (); ++it) {
+      obj[it.key ()]= it.value ();
+    }
   }
 
   QString path= indexPath ();
