@@ -22,11 +22,14 @@ static QMutex          s_instanceMutex;
 
 ThumbnailCache::ThumbnailCache (QObject* parent)
     : QObject (parent), memoryCache_ (MAX_MEMORY_COST_MB * 1024 * 1024),
-      memoryHits_ (0), diskHits_ (0), misses_ (0) {
+      memoryHits_ (0), diskHits_ (0), misses_ (0), indexDirty_ (false),
+      saveIndexTimer_ (nullptr) {
   loadIndex ();
 }
 
 ThumbnailCache::~ThumbnailCache () {
+  // Ensure pending index changes are flushed before destruction
+  flushIndex ();
   if (g_instance == this) {
     g_instance= nullptr;
   }
@@ -120,14 +123,21 @@ ThumbnailCache::put (const QString& url, const QSize& targetSize,
     meta["lastModified"]= lastModified.toString (Qt::ISODate);
   meta["cachedAt"]= QDateTime::currentDateTime ().toString (Qt::ISODate);
   diskIndex_[key] = meta;
+  indexDirty_     = true;
 
-  // Save to disk asynchronously (queued to avoid deadlock with mutex)
+  // Debounce index flush to batch multiple puts into a single disk write
+  if (!saveIndexTimer_) {
+    saveIndexTimer_= new QTimer (this);
+    saveIndexTimer_->setSingleShot (true);
+    saveIndexTimer_->setInterval (500);
+    connect (saveIndexTimer_, &QTimer::timeout, this,
+             &ThumbnailCache::flushIndex);
+  }
+  saveIndexTimer_->start ();
+
+  // Save image to disk asynchronously (queued to avoid deadlock with mutex)
   QMetaObject::invokeMethod (
-      this,
-      [this, key, pixmap] () {
-        saveToDisk (key, pixmap);
-        saveIndex ();
-      },
+      this, [this, key, pixmap] () { saveToDisk (key, pixmap); },
       Qt::QueuedConnection);
 }
 
@@ -289,6 +299,13 @@ ThumbnailCache::saveIndex () {
   else {
     qWarning () << "[ThumbnailCache] Failed to write index:" << path;
   }
+}
+
+void
+ThumbnailCache::flushIndex () {
+  if (!indexDirty_) return;
+  saveIndex ();
+  indexDirty_= false;
 }
 
 void

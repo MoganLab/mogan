@@ -98,8 +98,21 @@ QTTemplatePage::QTTemplatePage (QWidget* parent)
       scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
       progressDialog_ (nullptr), templateManager_ (nullptr),
       currentCategory_ (""), activeCategoryBtn_ (nullptr),
-      networkManager_ (nullptr) {
+      networkManager_ (nullptr), resizeDebounceTimer_ (nullptr) {
   networkManager_= new QNetworkAccessManager (this);
+
+  resizeDebounceTimer_= new QTimer (this);
+  resizeDebounceTimer_->setSingleShot (true);
+  resizeDebounceTimer_->setInterval (200);
+  connect (resizeDebounceTimer_, &QTimer::timeout, this, [this] () {
+    if (templateManager_ && templateManager_->isInitialized ()) {
+      int newColumnCount= calculateColumnCount ();
+      if (newColumnCount != currentColumnCount_) {
+        refreshTemplateGrid (currentCategory_);
+      }
+    }
+  });
+
   setupUI ();
 }
 
@@ -844,12 +857,8 @@ void
 QTTemplatePage::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
 
-  // Recalculate column count on resize
-  if (templateManager_ && templateManager_->isInitialized ()) {
-    int newColumnCount= calculateColumnCount ();
-    if (newColumnCount != currentColumnCount_) {
-      // Column count changed, refresh the grid
-      refreshTemplateGrid (currentCategory_);
-    }
+  // Debounce resize to avoid frequent grid rebuilds during window dragging
+  if (resizeDebounceTimer_) {
+    resizeDebounceTimer_->start ();
   }
 }

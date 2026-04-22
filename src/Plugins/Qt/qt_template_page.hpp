@@ -21,6 +21,7 @@ class QProgressDialog;
 class QPushButton;
 class QResizeEvent;
 class QScrollArea;
+class QTimer;
 class TemplateManager;
 struct TemplateMetadata;
 using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
@@ -113,6 +114,9 @@ private:
   // sent at least once). Once validated, subsequent displays use cache
   // directly.
   QSet<QString> validatedUrls_;
+
+  // Debounce timer for resize events to avoid frequent grid rebuilds
+  QTimer* resizeDebounceTimer_;
 };
 
 #endif // QT_TEMPLATE_PAGE_HPP

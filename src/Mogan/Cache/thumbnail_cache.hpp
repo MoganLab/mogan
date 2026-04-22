@@ -9,10 +9,12 @@
 #define THUMBNAIL_CACHE_HPP
 
 #include <QCache>
+#include <QJsonObject>
 #include <QMutex>
 #include <QObject>
 #include <QPixmap>
 #include <QString>
+#include <QTimer>
 
 #include "image_cache_base.hpp"
 
@@ -95,6 +97,11 @@ public:
    */
   void cleanupExpired ();
 
+  /**
+   * @brief Flush pending index changes to disk immediately
+   */
+  void flushIndex ();
+
   // Cache statistics
   qint64 memoryCacheSize () const;
   qint64 diskCacheSize () const;
@@ -123,6 +130,10 @@ private:
 
   // Disk index: key -> metadata JSON object (loaded from thumbnail-index.json)
   QHash<QString, QJsonObject> diskIndex_;
+
+  // Index flush debounce (batch multiple puts into a single disk write)
+  bool    indexDirty_    = false;
+  QTimer* saveIndexTimer_= nullptr;
 
   // Configuration
   static constexpr int  MAX_MEMORY_COST_MB= 50;
