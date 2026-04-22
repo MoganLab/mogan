@@ -115,7 +115,7 @@ jobs:
           export VERSION=${{ env.VERSION_NUM }}
           packages/fedora/package.sh
 
-          mv ~/rpmbuild/RPMS/x86_64/mogan-stem-*.rpm ./mogan-stem-${{ env.VERSION_TAG }}-fedora-amd64.rpm
+          mv rpmbuild/RPMS/x86_64/mogan-stem-*.rpm ./mogan-stem-${{ env.VERSION_TAG }}-fedora-amd64.rpm
 
       # ==========================================
       # 6. 上传与发布
