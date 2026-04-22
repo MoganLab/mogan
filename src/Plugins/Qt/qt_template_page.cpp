@@ -44,14 +44,14 @@ constexpr int PREVIEW_IMAGE_WIDTH= 600;
 
 // 缩略图尺寸（使用2x尺寸以便在高分屏上显示清晰）
 constexpr int THUMBNAIL_WIDTH = 240;
-constexpr int THUMBNAIL_HEIGHT= 135;
+constexpr int THUMBNAIL_HEIGHT= 340;
 
 constexpr int kPageMargin          = 16;  // 页面边距（减小边白）
 constexpr int kPageSpacing         = 24;  // 页面主布局间距
 constexpr int kCategorySpacing     = 8;   // 分类按钮间距
 constexpr int kGridSpacing         = 20;  // 模板网格间距
 constexpr int kCardWidth           = 264; // 模板卡片宽度
-constexpr int kCardHeight          = 220; // 模板卡片高度
+constexpr int kCardHeight          = 364; // 模板卡片高度（仅缩略图区域）
 constexpr int kCardMargin          = 12;  // 卡片内边距
 constexpr int kCardSpacing         = 8;   // 卡片内部间距
 constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
@@ -366,18 +366,26 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
 
 QWidget*
 QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
-  QFrame*      card  = new QFrame (gridWidget_);
+  // 外层容器：悬停时整体高亮
+  QWidget*     item  = new QWidget (gridWidget_);
+  QVBoxLayout* itemLayout= new QVBoxLayout (item);
+  itemLayout->setContentsMargins (0, 0, 0, 0);
+  itemLayout->setSpacing (DpiUtils::scaled (kCardSpacing));
+  item->setObjectName ("startup-tab-template-item");
+  item->setCursor (Qt::PointingHandCursor);
+  item->setProperty ("templateId", tmpl->id);
+  item->setToolTip (tmpl->description);
+
+  // 缩略图卡片（仅包含缩略图）
+  QFrame*      card  = new QFrame (item);
   QVBoxLayout* layout= new QVBoxLayout (card);
   layout->setContentsMargins (
       DpiUtils::scaled (kCardMargin), DpiUtils::scaled (kCardMargin),
       DpiUtils::scaled (kCardMargin), DpiUtils::scaled (kCardMargin));
-  layout->setSpacing (DpiUtils::scaled (kCardSpacing));
+  layout->setSpacing (0);
   card->setObjectName ("startup-tab-template-card");
   card->setFixedSize (DpiUtils::scaled (kCardWidth),
                       DpiUtils::scaled (kCardHeight));
-  card->setCursor (Qt::PointingHandCursor);
-  card->setProperty ("templateId", tmpl->id);
-  card->setToolTip (tmpl->description);
   card->setFrameShape (QFrame::StyledPanel);
   card->setStyleSheet (QString ("QFrame#startup-tab-template-card {"
                                 "  border-radius: %1px;"
@@ -403,29 +411,31 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
     thumbnailLabel->setText (qt_translate ("No Preview"));
   }
 
+  itemLayout->addWidget (card, 0, Qt::AlignHCenter);
+
   // Template name
-  QLabel* nameLabel= new QLabel (tmpl->name, card);
+  QLabel* nameLabel= new QLabel (tmpl->name, item);
   nameLabel->setObjectName ("startup-tab-template-name");
   nameLabel->setAlignment (Qt::AlignCenter);
   nameLabel->setWordWrap (true);
   nameLabel->setMaximumHeight (DpiUtils::scaled (kNameLabelMaxHeight));
   DpiUtils::applyScaledFont (nameLabel, kTemplateNameFontPx);
-  layout->addWidget (nameLabel);
+  itemLayout->addWidget (nameLabel);
 
   // Author and version
   QLabel* infoLabel=
-      new QLabel (QString ("%1 · v%2").arg (tmpl->author, tmpl->version), card);
+      new QLabel (QString ("%1 · v%2").arg (tmpl->author, tmpl->version), item);
   infoLabel->setObjectName ("startup-tab-template-info");
   infoLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (infoLabel, kInfoFontPx);
-  layout->addWidget (infoLabel);
+  itemLayout->addWidget (infoLabel);
 
-  layout->addStretch ();
+  itemLayout->addStretch ();
 
   // Install event filter to handle clicks
-  card->installEventFilter (this);
+  item->installEventFilter (this);
 
-  return card;
+  return item;
 }
 
 void
@@ -568,9 +578,9 @@ QTTemplatePage::processThumbnailQueue () {
 bool
 QTTemplatePage::eventFilter (QObject* watched, QEvent* event) {
   if (event->type () == QEvent::MouseButtonRelease) {
-    QWidget* card= qobject_cast<QWidget*> (watched);
-    if (card && card->parent () == gridWidget_) {
-      QString templateId= card->property ("templateId").toString ();
+    QWidget* item= qobject_cast<QWidget*> (watched);
+    if (item && item->parent () == gridWidget_) {
+      QString templateId= item->property ("templateId").toString ();
       if (!templateId.isEmpty ()) {
         showTemplatePreview (templateId);
         return true;

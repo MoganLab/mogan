@@ -1014,10 +1014,16 @@ QPushButton#startup-tab-category-btn:checked {
   color: white;
 }
 
-/* 模板卡片 */
-QFrame#startup-tab-template-card {
-  background: white;
-  border: 1px solid #E5E5EA;
+/* 模板卡片项（外层容器） */
+QWidget#startup-tab-template-item {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+/* 模板缩略图卡片 */
+QFrame#startup-tab-template-card  {
+  border: 1px solid #cfcfcf;
 }
 
 QFrame#startup-tab-template-card:hover {
