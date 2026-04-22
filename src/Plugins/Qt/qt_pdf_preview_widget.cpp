@@ -14,9 +14,9 @@
 #include <QNetworkReply>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QSet>
 #include <QTimeZone>
 #include <QTimer>
-#include <QSet>
 #include <QVBoxLayout>
 
 #include <mutex>
@@ -414,6 +414,25 @@ QTPdfPreviewWidget::processNetworkReply (QPointer<QNetworkReply> reply) {
   }
 
   pdfData_= reply->readAll ();
+
+  // Extract HTTP cache headers BEFORE deleteLater to avoid use-after-free
+  QString   etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
+  QDateTime lastModified;
+  QString   lastModStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
+  if (!lastModStr.isEmpty ()) {
+    // RFC 2822 / HTTP-date format: "Thu, 29 Jan 2026 11:32:54 GMT"
+    // Use RFC2822Date with C locale to ensure consistent parsing
+    lastModified= QLocale::c ().toDateTime (lastModStr,
+                                            "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
+    if (!lastModified.isValid ()) {
+      // Fallback to Qt's built-in RFC2822 parser
+      lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
+    }
+    if (lastModified.isValid ()) {
+      lastModified.setTimeZone (QTimeZone::utc ());
+    }
+  }
+
   reply->deleteLater ();
 
   if (pdfData_.isEmpty ()) {
@@ -421,27 +440,6 @@ QTPdfPreviewWidget::processNetworkReply (QPointer<QNetworkReply> reply) {
     showError (errorString_);
     currentLoadType_= LoadType::None;
     return;
-  }
-
-  // Extract HTTP cache headers and save to file cache
-  QString   etag;
-  QDateTime lastModified;
-  if (reply) {
-    etag              = QString::fromUtf8 (reply->rawHeader ("ETag"));
-    QString lastModStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
-    if (!lastModStr.isEmpty ()) {
-      // RFC 2822 / HTTP-date format: "Thu, 29 Jan 2026 11:32:54 GMT"
-      // Use RFC2822Date with C locale to ensure consistent parsing
-      lastModified= QLocale::c ().toDateTime (
-          lastModStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
-      if (!lastModified.isValid ()) {
-        // Fallback to Qt's built-in RFC2822 parser
-        lastModified= QDateTime::fromString (lastModStr, Qt::RFC2822Date);
-      }
-      if (lastModified.isValid ()) {
-        lastModified.setTimeZone (QTimeZone::utc ());
-      }
-    }
   }
 
   // Save to cache with HTTP metadata
