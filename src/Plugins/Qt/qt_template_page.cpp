@@ -372,8 +372,6 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   itemLayout->setContentsMargins (0, 0, 0, 0);
   itemLayout->setSpacing (DpiUtils::scaled (kCardSpacing));
   item->setObjectName ("startup-tab-template-item");
-  item->setCursor (Qt::PointingHandCursor);
-  item->setProperty ("templateId", tmpl->id);
   item->setToolTip (tmpl->description);
 
   // 缩略图卡片（仅包含缩略图）
@@ -386,6 +384,8 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   card->setObjectName ("startup-tab-template-card");
   card->setFixedSize (DpiUtils::scaled (kCardWidth),
                       DpiUtils::scaled (kCardHeight));
+  card->setProperty ("templateId", tmpl->id);
+  card->setCursor (Qt::PointingHandCursor);
   card->setFrameShape (QFrame::StyledPanel);
   card->setStyleSheet (QString ("QFrame#startup-tab-template-card {"
                                 "  border-radius: %1px;"
@@ -432,8 +432,8 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
 
   itemLayout->addStretch ();
 
-  // Install event filter to handle clicks
-  item->installEventFilter (this);
+  // Install event filter on card only
+  card->installEventFilter (this);
 
   return item;
 }
@@ -578,9 +578,9 @@ QTTemplatePage::processThumbnailQueue () {
 bool
 QTTemplatePage::eventFilter (QObject* watched, QEvent* event) {
   if (event->type () == QEvent::MouseButtonRelease) {
-    QWidget* item= qobject_cast<QWidget*> (watched);
-    if (item && item->parent () == gridWidget_) {
-      QString templateId= item->property ("templateId").toString ();
+    QWidget* card= qobject_cast<QWidget*> (watched);
+    if (card && card->objectName () == "startup-tab-template-card") {
+      QString templateId= card->property ("templateId").toString ();
       if (!templateId.isEmpty ()) {
         showTemplatePreview (templateId);
         return true;
