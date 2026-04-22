@@ -1014,6 +1014,11 @@ QPushButton#startup-tab-category-btn:checked {
   color: white;
 }
 
+/* 模板网格容器 */
+QWidget#startup-tab-grid {
+  background-color: #ffffff;
+}
+
 /* 模板缩略图卡片 */
 QFrame#startup-tab-template-card  {
   border: 1px solid #cfcfcf;

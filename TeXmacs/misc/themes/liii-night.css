@@ -1036,9 +1036,9 @@ QWidget#centralWidget QPushButton#startup-tab-quit-btn:hover {
   border-color: #ffffff;
 }
 
-/* 右侧内容区（实际没生效） */
-QWidget#startup-tab-content {
-  background-color: #5d5d5d;
+/* 右侧内容区 */
+QWidget#centralWidget QWidget#startup-tab-content {
+  background-color: #202020;
 }
 
 /* 页面标题 */
@@ -1069,21 +1069,17 @@ QPushButton#startup-tab-category-btn:checked {
   color: white;
 }
 
-/* 模板卡片项（外层容器） */
-QWidget#startup-tab-template-item {
-  background: transparent;
-  border: 1px solid transparent;
-  border-radius: 8px;
-}
-
 /* 模板缩略图卡片 */
 QFrame#startup-tab-template-card  {
   border: 1px solid #3c3c3c;
-  background-color: #000000;
+}
+
+QWidget#centralWidget QFrame#startup-tab-template-card  {
+  background-color: #ffffff;
 }
 
 QFrame#startup-tab-template-card:hover {
-  border: 1px solid #2791ad;
+  border: 2px solid #2791ad;
 }
 
 /* 模板使用按钮 - Template Use Button */

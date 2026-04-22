@@ -54,7 +54,8 @@ constexpr int kCardWidth           = 264; // 模板卡片宽度
 constexpr int kCardHeight          = 364; // 模板卡片高度（仅缩略图区域）
 constexpr int kCardMargin          = 12;  // 卡片内边距
 constexpr int kCardSpacing         = 8;   // 卡片内部间距
-constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
+constexpr int kNameLabelMaxWidth   = 264; // 模板名称最大宽度
+constexpr int kNameLabelMaxHeight  = 60;  // 模板名称最大高度
 constexpr int kPreviewDialogMinW   = 700; // 预览弹窗最小宽度
 constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
@@ -71,7 +72,7 @@ constexpr int kThumbBorderWidthPx  = 1;   // 缩略图边框宽度
 constexpr int kUseButtonRadiusPx   = 4;   // Use Template 按钮圆角
 constexpr int kUseButtonPadYPx     = 8;   // Use Template 按钮纵向内边距
 constexpr int kUseButtonPadXPx     = 24;  // Use Template 按钮横向内边距
-constexpr int kGridMarginPx        = 30;  // 网格布局上下边距
+constexpr int kGridMarginPx        = 0;   // 网格布局上下边距
 constexpr int kCategoryBtnRadiusPx = 12;  // 分类按钮圆角
 constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
 constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
@@ -169,6 +170,7 @@ QTTemplatePage::setupUI () {
   scrollArea_->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
 
   gridWidget_= new QWidget (scrollArea_);
+  gridWidget_->setObjectName ("startup-tab-grid");
   gridLayout_= new QGridLayout (gridWidget_);
   gridLayout_->setSpacing (DpiUtils::scaled (kGridSpacing));
   gridLayout_->setContentsMargins (0, DpiUtils::scaled (kGridMarginPx), 0,
@@ -366,15 +368,15 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
 
 QWidget*
 QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
-  // 外层容器：悬停时整体高亮
-  QWidget*     item  = new QWidget (gridWidget_);
+  // 外层容器
+  QWidget*     item      = new QWidget (gridWidget_);
   QVBoxLayout* itemLayout= new QVBoxLayout (item);
   itemLayout->setContentsMargins (0, 0, 0, 0);
   itemLayout->setSpacing (DpiUtils::scaled (kCardSpacing));
   item->setObjectName ("startup-tab-template-item");
   item->setToolTip (tmpl->description);
 
-  // 缩略图卡片（仅包含缩略图）
+  // 缩略图卡片
   QFrame*      card  = new QFrame (item);
   QVBoxLayout* layout= new QVBoxLayout (card);
   layout->setContentsMargins (
@@ -418,9 +420,20 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   nameLabel->setObjectName ("startup-tab-template-name");
   nameLabel->setAlignment (Qt::AlignCenter);
   nameLabel->setWordWrap (true);
-  nameLabel->setMaximumHeight (DpiUtils::scaled (kNameLabelMaxHeight));
+  nameLabel->setFixedWidth (DpiUtils::scaled (kNameLabelMaxWidth));
   DpiUtils::applyScaledFont (nameLabel, kTemplateNameFontPx);
-  itemLayout->addWidget (nameLabel);
+  // 手动计算换行后的实际高度，避免 QLabel sizeHint 不准确导致截断
+  {
+    QFontMetrics fm (nameLabel->font ());
+    QRect        textRect= fm.boundingRect (
+        QRect (0, 0, DpiUtils::scaled (kNameLabelMaxWidth), INT_MAX),
+        Qt::AlignCenter | Qt::TextWordWrap, tmpl->name);
+    int neededHeight= textRect.height () + 4;
+    nameLabel->setFixedHeight (
+        qMin (neededHeight, DpiUtils::scaled (kNameLabelMaxHeight)));
+  }
+  nameLabel->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  itemLayout->addWidget (nameLabel, 0, Qt::AlignHCenter);
 
   // Author and version
   QLabel* infoLabel=
