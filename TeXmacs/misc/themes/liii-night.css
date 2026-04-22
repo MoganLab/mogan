@@ -227,7 +227,7 @@ QPushButton:disabled {
 QLineEdit {
   background: #2c2c2c;
   color: #ffffff;
-  border: 1px solid #e0e0e0;
+  border: 1px solid none;
   border-radius: 2px;
   padding: 0px;
 }
@@ -242,7 +242,7 @@ QLineEdit:focus {
 QListView,
 QTableView {
   background: #2c2c2c;
-  border: 1px solid #e0e0e0;
+  border: 1px solid none;
   border-radius: 2px;
 }
 

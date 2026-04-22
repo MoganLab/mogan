@@ -34,6 +34,11 @@
                (tm-func? (tm-ref t 0) 'preview-shortcut 1))
       (tree-set (tm-ref t 0 0) sh))))
 
+(define (shortcut-editor-style)
+  (if (== (get-preference "gui theme") "liii-night")
+      `(style (tuple "generic" "dark" "shortcut-editor"))
+      `(style (tuple "generic" "shortcut-editor"))))
+
 (tm-widget ((shortcuts-editor u) quit)
   (padded
     (horizontal
@@ -54,7 +59,7 @@
           (item (text "Shortcut")
             (resize "350px" "30px"
               (texmacs-input `(document (preview-shortcut ,(global-ref u :sh)))
-                             `(style (tuple "generic" "shortcut-editor")) u)))
+                             (shortcut-editor-style) u)))
           (item (text "Command")
             (refreshable "current-shortcut"
               (input (global-set u :cmd answer) "string"
@@ -91,7 +96,7 @@
         (item (text "Shortcut")
           (resize "250px" "30px"
             (texmacs-input `(document (preview-shortcut ,(global-ref u :sh)))
-                           `(style (tuple "generic" "shortcut-editor")) u)))
+                           (shortcut-editor-style) u)))
         (item (text "Command")
           (refreshable "current-shortcut"
             (input (global-set u :cmd answer) "string"
