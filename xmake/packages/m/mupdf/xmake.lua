@@ -31,9 +31,10 @@ package("mupdf")
 
     on_load(function (package)
         if not is_plat("windows") then
-            package:add("links", "mupdf", "mupdf-third")
             if is_plat("linux") then
-                package:add("syslinks", "harfbuzz")
+                package:add("links", "mupdf", "mupdf-third", "harfbuzz")
+            else
+                package:add("links", "mupdf", "mupdf-third")
             end
         end
     end)
