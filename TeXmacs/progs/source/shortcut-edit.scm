@@ -113,7 +113,7 @@
    "migrated\n"
    (string->url marker-file)))
 
-(define (load-legacy-user-shortcuts)
+(define (load-legacy-scm-user-shortcuts)
   (and (url-exists? legacy-user-shortcuts-file)
        (catch #t
          (lambda ()
@@ -121,7 +121,7 @@
              (and (list? loaded) loaded)))
          (lambda args #f))))
 
-(define (legacy-user-shortcut-entry->json entry)
+(define (legacy-scm-user-shortcut-entry->json entry)
   (and (pair? entry)
        (pair? (cdr entry))
        (string? (car entry))
@@ -134,7 +134,7 @@
                     (lambda (existing)
                       (== (shortcut-entry-shortcut existing) sh))))))
 
-(define (merge-legacy-user-shortcuts current entries)
+(define (merge-legacy-scm-user-shortcuts current entries)
   (let loop ((rest entries) (merged current))
     (if (null? rest)
         merged
@@ -143,15 +143,15 @@
               (loop (cdr rest) (append merged (list entry)))
               (loop (cdr rest) merged))))))
 
-(define (maybe-migrate-legacy-user-shortcuts)
+(define (maybe-import-legacy-scm-user-shortcuts)
   (when (and (url-exists? legacy-user-shortcuts-file)
              (not (url-exists? user-shortcuts-migration-marker-v1)))
-    (and-with legacy-shortcuts (load-legacy-user-shortcuts)
+    (and-with legacy-shortcuts (load-legacy-scm-user-shortcuts)
       (let* ((entries (list-filter
-                       (map legacy-user-shortcut-entry->json legacy-shortcuts)
+                       (map legacy-scm-user-shortcut-entry->json legacy-shortcuts)
                        (lambda (x) x)))
              (current (current-user-shortcuts-list))
-             (merged (merge-legacy-user-shortcuts current entries)))
+             (merged (merge-legacy-scm-user-shortcuts current entries)))
         (when (not (equal? merged current))
           (set-current-user-shortcuts-list merged))
         (save-user-shortcuts)
@@ -172,7 +172,7 @@
               (lambda () (njson-free loaded))
               (lambda args #f))
             (reset-user-shortcuts)))))
-  (maybe-migrate-legacy-user-shortcuts)
+  (maybe-import-legacy-scm-user-shortcuts)
   (for (entry (current-user-shortcuts-list))
     (apply-user-shortcut (shortcut-entry-shortcut entry)
                          (shortcut-entry-command entry))))
