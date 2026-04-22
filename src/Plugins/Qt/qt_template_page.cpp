@@ -640,8 +640,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Preview area using reusable PDF preview widget
   QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
-  // 设置固定尺寸，确保无内容时也有足够显示区域 (A4比例)
-  // A4比例: 高:宽 = 1.414:1
+  // 设置固定尺寸，确保无内容时也有足够显示区域
   previewWidget->setFixedSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH),
                                DpiUtils::scaled (PREVIEW_IMAGE_WIDTH));
 

@@ -1037,13 +1037,13 @@ QPushButton#template-use-btn:hover {
 }
 
 QPushButton#template-cancel-btn {
-  background-color: #F2F2F7;
-  color: #333333;
+  background-color: #ffffff;
+  color: #000000;
   font-weight: bold;
 }
 
 QPushButton#template-cancel-btn:hover {
-  background-color: #E5E5EA;
+  background-color: #f5f5f5;
 }
 
 QLabel#template-preview-desc {
