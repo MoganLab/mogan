@@ -10,6 +10,7 @@
 #include <QBuffer>
 #include <QDialog>
 #include <QDialogButtonBox>
+#include <QFrame>
 #include <QEvent>
 #include <QGridLayout>
 #include <QHBoxLayout>
@@ -28,6 +29,8 @@
 #include <QTemporaryFile>
 #include <QTimer>
 #include <QVBoxLayout>
+
+#include <QGraphicsDropShadowEffect>
 
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_preview_widget.hpp"
@@ -158,7 +161,7 @@ QTTemplatePage::setupUI () {
   gridWidget_= new QWidget (scrollArea_);
   gridLayout_= new QGridLayout (gridWidget_);
   gridLayout_->setSpacing (DpiUtils::scaled (kGridSpacing));
-  gridLayout_->setContentsMargins (0, 0, 0, 0);
+  gridLayout_->setContentsMargins (0, DpiUtils::scaled (30), 0, DpiUtils::scaled (30));
 
   scrollArea_->setWidget (gridWidget_);
   layout->addWidget (scrollArea_, 1);
@@ -194,12 +197,37 @@ QTTemplatePage::setupCategoryBar () {
   QHBoxLayout* categoryLayout= qobject_cast<QHBoxLayout*> (layout);
   if (!categoryLayout) return;
 
+  // Helper: apply category button style
+  auto styleCategoryBtn= [](QPushButton* btn) {
+    btn->setStyleSheet (
+        QString ("QPushButton {"
+                 "  border-radius: %1px;"
+                 "  padding: %2px %3px;"
+                 "  background: transparent;"
+                 "  border: none;"
+                 "  color: #666666;"
+                 "}"
+                 "QPushButton:hover {"
+                 "  background: #F0F0F0;"
+                 "  color: #333333;"
+                 "}"
+                 "QPushButton:checked {"
+                 "  background: #215a6a;"
+                 "  color: white;"
+                 "}")
+            .arg (DpiUtils::scaled (12))
+            .arg (DpiUtils::scaled (6))
+            .arg (DpiUtils::scaled (14)));
+    btn->setCursor (Qt::PointingHandCursor);
+  };
+
   // Add "All" button
   QPushButton* allBtn= new QPushButton (qt_translate ("All"), categoryBar_);
   allBtn->setObjectName ("startup-tab-category-btn");
   allBtn->setCheckable (true);
   allBtn->setChecked (currentCategory_.isEmpty ());
   allBtn->setProperty ("categoryId", QString ());
+  styleCategoryBtn (allBtn);
   connect (allBtn, &QPushButton::clicked, this,
            &QTTemplatePage::onCategoryClicked);
   categoryLayout->addWidget (allBtn);
@@ -218,6 +246,7 @@ QTTemplatePage::setupCategoryBar () {
     btn->setCheckable (true);
     btn->setChecked (cat.id == currentCategory_);
     btn->setProperty ("categoryId", cat.id);
+    styleCategoryBtn (btn);
     connect (btn, &QPushButton::clicked, this,
              &QTTemplatePage::onCategoryClicked);
     categoryLayout->addWidget (btn);
@@ -336,7 +365,7 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
 
 QWidget*
 QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
-  QWidget*     card  = new QWidget (gridWidget_);
+  QFrame*      card  = new QFrame (gridWidget_);
   QVBoxLayout* layout= new QVBoxLayout (card);
   layout->setContentsMargins (
       DpiUtils::scaled (kCardMargin), DpiUtils::scaled (kCardMargin),
@@ -348,6 +377,24 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   card->setCursor (Qt::PointingHandCursor);
   card->setProperty ("templateId", tmpl->id);
   card->setToolTip (tmpl->description);
+  card->setFrameShape (QFrame::StyledPanel);
+  card->setStyleSheet (
+      QString ("QFrame#startup-tab-template-card {"
+               "  background: white;"
+               "  border: 1px solid #E5E5EA;"
+               "  border-radius: %1px;"
+               "}"
+               "QFrame#startup-tab-template-card:hover {"
+               "  border: 1px solid #2791ad;"
+               "}")
+          .arg (DpiUtils::scaled (8)));
+
+  // Subtle shadow effect
+  QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (card);
+  shadow->setBlurRadius (DpiUtils::scaled (12));
+  shadow->setColor (QColor (0, 0, 0, 30));
+  shadow->setOffset (0, DpiUtils::scaled (2));
+  card->setGraphicsEffect (shadow);
 
   // Thumbnail image
   QLabel* thumbnailLabel= new QLabel (card);
@@ -447,10 +494,18 @@ QTTemplatePage::processThumbnailQueue () {
             // Scale to target size considering DPR for crisp display
             int targetWidth = DpiUtils::scaled (THUMBNAIL_WIDTH);
             int targetHeight= DpiUtils::scaled (THUMBNAIL_HEIGHT);
-            image           = image.scaled (qRound (targetWidth * dpr),
-                                            qRound (targetHeight * dpr),
-                                            Qt::KeepAspectRatio, Qt::SmoothTransformation);
-            QPixmap pixmap  = QPixmap::fromImage (image);
+            int scaledW     = qRound (targetWidth * dpr);
+            int scaledH     = qRound (targetHeight * dpr);
+            QImage scaled   = image.scaled (scaledW, scaledH,
+                                            Qt::KeepAspectRatioByExpanding,
+                                            Qt::SmoothTransformation);
+            // Crop from top to fit exactly, showing upper portion only
+            if (scaled.width () > scaledW || scaled.height () > scaledH) {
+              int x= (scaled.width () - scaledW) / 2;
+              int y= 0;
+              scaled= scaled.copy (x, y, scaledW, scaledH);
+            }
+            QPixmap pixmap= QPixmap::fromImage (scaled);
             pixmap.setDevicePixelRatio (dpr);
 
             // Update UI
@@ -565,20 +620,42 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   QPushButton* cancelBtn= new QPushButton (qt_translate ("Cancel"), dialog);
   cancelBtn->setObjectName ("template-cancel-btn");
   DpiUtils::applyScaledFont (cancelBtn, kUseButtonFontPx);
-  cancelBtn->setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
-                                .arg (DpiUtils::scaled (kUseButtonPadYPx))
-                                .arg (DpiUtils::scaled (kUseButtonPadXPx))
-                                .arg (DpiUtils::scaled (kUseButtonRadiusPx)));
+  cancelBtn->setCursor (Qt::PointingHandCursor);
+  cancelBtn->setStyleSheet (
+      QString ("QPushButton {"
+               "  padding: %1px %2px;"
+               "  border-radius: %3px;"
+               "  background: #F2F2F7;"
+               "  border: none;"
+               "  color: #333333;"
+               "}"
+               "QPushButton:hover {"
+               "  background: #E5E5EA;"
+               "}")
+          .arg (DpiUtils::scaled (kUseButtonPadYPx))
+          .arg (DpiUtils::scaled (kUseButtonPadXPx))
+          .arg (DpiUtils::scaled (kUseButtonRadiusPx)));
   connect (cancelBtn, &QPushButton::clicked, dialog, &QDialog::reject);
   btnLayout->addWidget (cancelBtn);
 
   QPushButton* useBtn= new QPushButton (qt_translate ("Use Template"), dialog);
   useBtn->setObjectName ("template-use-btn");
   DpiUtils::applyScaledFont (useBtn, kUseButtonFontPx);
-  useBtn->setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
-                             .arg (DpiUtils::scaled (kUseButtonPadYPx))
-                             .arg (DpiUtils::scaled (kUseButtonPadXPx))
-                             .arg (DpiUtils::scaled (kUseButtonRadiusPx)));
+  useBtn->setCursor (Qt::PointingHandCursor);
+  useBtn->setStyleSheet (
+      QString ("QPushButton {"
+               "  padding: %1px %2px;"
+               "  border-radius: %3px;"
+               "  background: #215a6a;"
+               "  border: none;"
+               "  color: white;"
+               "}"
+               "QPushButton:hover {"
+               "  background: #2791ad;"
+               "}")
+          .arg (DpiUtils::scaled (kUseButtonPadYPx))
+          .arg (DpiUtils::scaled (kUseButtonPadXPx))
+          .arg (DpiUtils::scaled (kUseButtonRadiusPx)));
   useBtn->setDefault (true);
   connect (useBtn, &QPushButton::clicked, [this, dialog, templateId] () {
     dialog->accept ();
