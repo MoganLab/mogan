@@ -93,11 +93,11 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QPushButton*            logoutButton;
 
   // 更新提示区域控件
-  QWidget*    m_updateSection       = nullptr;
-  QLabel*     m_updateTitleLabel    = nullptr;
-  QPushButton* m_updateNowButton    = nullptr;
-  QPushButton* m_snoozeButton       = nullptr;
-  bool        m_hasUpdateAvailable  = false;
+  QWidget*     m_updateSection     = nullptr;
+  QLabel*      m_updateTitleLabel  = nullptr;
+  QPushButton* m_updateNowButton   = nullptr;
+  QPushButton* m_snoozeButton      = nullptr;
+  bool         m_hasUpdateAvailable= false;
 
 #ifdef Q_OS_MAC
   QToolBar* dumbToolBar;

@@ -111,10 +111,10 @@ LoginDialog::showAtRect (const QRect& globalRect, int gap) {
     screen= QGuiApplication::primaryScreen ();
   }
 
-  QRect  screenGeometry= screen->availableGeometry ();
-  const int belowGap    = 0;
-  QPoint pos (globalRect.center ().x () - width () / 2,
-              globalRect.bottom () + 1 + belowGap);
+  QRect     screenGeometry= screen->availableGeometry ();
+  const int belowGap      = 0;
+  QPoint    pos (globalRect.center ().x () - width () / 2,
+                 globalRect.bottom () + 1 + belowGap);
 
   if (pos.x () + width () > screenGeometry.right ()) {
     pos.setX (screenGeometry.right () - width ());

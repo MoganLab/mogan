@@ -95,7 +95,7 @@ login_dialog_anchor_rect (QWidget* loginButton) {
 static void
 show_login_dialog_at_button (QWK::LoginDialog* dialog, QWidget* loginButton) {
   if (!dialog || !loginButton) return;
-  const QRect anchorRect = login_dialog_anchor_rect (loginButton);
+  const QRect anchorRect= login_dialog_anchor_rect (loginButton);
   dialog->showAtRect (anchorRect, DpiUtils::scaled (6));
 }
 
@@ -2125,7 +2125,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 
   // 按钮
   const int updateButtonHeight= DpiUtils::scaled (32);
-  m_updateNowButton= new QPushButton (qt_translate ("Update Now"));
+  m_updateNowButton           = new QPushButton (qt_translate ("Update Now"));
   m_updateNowButton->setObjectName ("login-update-now-btn");
   m_updateNowButton->setFlat (true);
   m_updateNowButton->setMinimumHeight (updateButtonHeight);
@@ -2155,7 +2155,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   QObject::connect (m_updateNowButton, &QPushButton::clicked, [this] () {
     // 打开下载页面（通过 Scheme 获取正确的 URL）
     eval ("(use-modules (utils misc version-update))");
-    object urlObj= call ("get-update-download-url");
+    object  urlObj     = call ("get-update-download-url");
     QString downloadUrl= to_qstring (as_string (urlObj));
     QDesktopServices::openUrl (QUrl (downloadUrl));
     setLoginDialogUpdateSectionVisible (false);
@@ -2263,7 +2263,8 @@ qt_tm_widget_rep::refreshScmNotificationBar () {
 }
 
 void
-qt_tm_widget_rep::syncScmUpdateNotification (bool updateAvailable, const QString& remoteVersion) {
+qt_tm_widget_rep::syncScmUpdateNotification (bool           updateAvailable,
+                                             const QString& remoteVersion) {
   if (is_community_stem ()) {
     // 社区版：保持现状，不显示更新提示
     return;

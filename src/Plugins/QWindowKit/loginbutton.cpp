@@ -10,8 +10,8 @@
 #include "loginbutton.hpp"
 #include "loginbutton_p.hpp"
 
-#include <QtGui/QtEvents>
 #include <QtGui/QPainter>
+#include <QtGui/QtEvents>
 
 #include "qt_dpi_utils.hpp"
 
@@ -36,8 +36,8 @@ QPushButton:pressed {
 )";
 
 LoginButtonPrivate::LoginButtonPrivate () {
-  hovered= false;
-  pressed= false;
+  hovered     = false;
+  pressed     = false;
   badgeVisible= false;
 }
 
@@ -182,13 +182,13 @@ LoginButton::setBadgeVisible (bool visible) {
   Q_D (LoginButton);
   if (d->badgeVisible != visible) {
     d->badgeVisible= visible;
-    update ();  // 触发重绘
+    update (); // 触发重绘
   }
 }
 
 void
 LoginButton::paintEvent (QPaintEvent* event) {
-  QPushButton::paintEvent (event);  // 先绘制按钮本身
+  QPushButton::paintEvent (event); // 先绘制按钮本身
 
   Q_D (LoginButton);
   if (!d->badgeVisible) return;
@@ -197,10 +197,10 @@ LoginButton::paintEvent (QPaintEvent* event) {
   painter.setRenderHint (QPainter::Antialiasing);
 
   // 使用 DpiUtils 进行 DPI 缩放
-  int badgeSize   = DpiUtils::scaled (6);
-  int borderWidth = DpiUtils::scaled (1);
-  int marginRight = DpiUtils::scaled (10);
-  int marginTop   = DpiUtils::scaled (8);
+  int badgeSize  = DpiUtils::scaled (6);
+  int borderWidth= DpiUtils::scaled (1);
+  int marginRight= DpiUtils::scaled (10);
+  int marginTop  = DpiUtils::scaled (8);
 
   // 红点位置：右上角，更靠近图标中心
   int x= width () - badgeSize - marginRight;
@@ -210,7 +210,8 @@ LoginButton::paintEvent (QPaintEvent* event) {
   painter.setBrush (Qt::white);
   painter.setPen (Qt::NoPen);
   painter.drawEllipse (x - borderWidth, y - borderWidth,
-                       badgeSize + 2 * borderWidth, badgeSize + 2 * borderWidth);
+                       badgeSize + 2 * borderWidth,
+                       badgeSize + 2 * borderWidth);
 
   // 绘制红色圆点
   painter.setBrush (QColor ("#FF4D4F"));
