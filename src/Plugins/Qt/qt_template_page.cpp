@@ -52,7 +52,7 @@ constexpr int kCardHeight          = 220; // 模板卡片高度
 constexpr int kCardMargin          = 12;  // 卡片内边距
 constexpr int kCardSpacing         = 8;   // 卡片内部间距
 constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
-constexpr int kPreviewDialogMinW   = 800; // 预览弹窗最小宽度
+constexpr int kPreviewDialogMinW   = 700; // 预览弹窗最小宽度
 constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;  // 预览弹窗布局边距
@@ -510,6 +510,8 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
       qt_translate ("Template Preview - %1").arg (tmpl->name));
   dialog->setMinimumSize (DpiUtils::scaled (kPreviewDialogMinW),
                           DpiUtils::scaled (kPreviewDialogMinH));
+  dialog->resize (DpiUtils::scaled (kPreviewDialogMinW),
+                  DpiUtils::scaled (kPreviewDialogMinH));
 
   QVBoxLayout* layout= new QVBoxLayout (dialog);
   layout->setSpacing (DpiUtils::scaled (kPreviewLayoutSpacing));
