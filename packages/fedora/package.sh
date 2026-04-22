@@ -124,7 +124,12 @@ fi
 
 # ================= 5. 打包依赖 (Bundle) =================
 echo "🔍 [5/6] 注入 Qt 依赖..."
-XMAKE_QMAKE=$(find ~/.xmake/packages -type f -name qmake 2>/dev/null | grep "qt" | head -n 1)
+if [ -n "$XMAKE_GLOBALDIR" ]; then
+    XMAKE_QMAKE=$(find "$XMAKE_GLOBALDIR/.xmake/packages" -type f -name qmake 2>/dev/null | grep "qt" | head -n 1)
+fi
+if [ -z "$XMAKE_QMAKE" ]; then
+    XMAKE_QMAKE=$(find ~/.xmake/packages -type f -name qmake 2>/dev/null | grep "qt" | head -n 1)
+fi
 if [ -n "$XMAKE_QMAKE" ]; then
     export QMAKE="$XMAKE_QMAKE"
     export PATH="$(dirname "$XMAKE_QMAKE"):$PATH"
