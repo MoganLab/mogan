@@ -74,21 +74,21 @@ constexpr int kThumbBorderWidthPx  = 1;   // 缩略图边框宽度
 constexpr int kUseButtonRadiusPx   = 4;   // Use Template 按钮圆角
 constexpr int kUseButtonPadYPx     = 8;   // Use Template 按钮纵向内边距
 constexpr int kUseButtonPadXPx     = 24;  // Use Template 按钮横向内边距
+constexpr int kGridMarginPx        = 30;  // 网格布局上下边距
+constexpr int kCategoryBtnRadiusPx = 12;  // 分类按钮圆角
+constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
+constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
+constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
+constexpr int kShadowBlurRadiusPx  = 12;  // 阴影模糊半径
+constexpr int kShadowOffsetYPx     = 2;   // 阴影Y偏移
+constexpr int kShadowAlpha         = 30;  // 阴影透明度
 
 void
-applyThumbnailFrameStyle (QLabel* label, bool loaded) {
+applyThumbnailFrameStyle (QLabel* label) {
   if (!label) return;
-  if (loaded) {
-    label->setStyleSheet (QString ("border-radius: %1px; border-width: 0px;")
-                              .arg (DpiUtils::scaled (kThumbRadiusPx)));
-  }
-  else {
-    label->setStyleSheet (
-        QString (
-            "border-radius: %1px; border-width: %2px; border-style: solid;")
-            .arg (DpiUtils::scaled (kThumbRadiusPx))
-            .arg (DpiUtils::scaled (kThumbBorderWidthPx)));
-  }
+  label->setStyleSheet (
+      QString ("QLabel#startup-tab-template-thumbnail { border-radius: %1px; }")
+          .arg (DpiUtils::scaled (kThumbRadiusPx)));
 }
 
 } // namespace
@@ -177,8 +177,8 @@ QTTemplatePage::setupUI () {
   gridWidget_= new QWidget (scrollArea_);
   gridLayout_= new QGridLayout (gridWidget_);
   gridLayout_->setSpacing (DpiUtils::scaled (kGridSpacing));
-  gridLayout_->setContentsMargins (0, DpiUtils::scaled (30), 0,
-                                   DpiUtils::scaled (30));
+  gridLayout_->setContentsMargins (0, DpiUtils::scaled (kGridMarginPx), 0,
+                                   DpiUtils::scaled (kGridMarginPx));
 
   scrollArea_->setWidget (gridWidget_);
   layout->addWidget (scrollArea_, 1);
@@ -216,24 +216,13 @@ QTTemplatePage::setupCategoryBar () {
 
   // Helper: apply category button style
   auto styleCategoryBtn= [] (QPushButton* btn) {
-    btn->setStyleSheet (QString ("QPushButton {"
+    btn->setStyleSheet (QString ("QPushButton#startup-tab-category-btn {"
                                  "  border-radius: %1px;"
                                  "  padding: %2px %3px;"
-                                 "  background: transparent;"
-                                 "  border: none;"
-                                 "  color: #666666;"
-                                 "}"
-                                 "QPushButton:hover {"
-                                 "  background: #F0F0F0;"
-                                 "  color: #333333;"
-                                 "}"
-                                 "QPushButton:checked {"
-                                 "  background: #215a6a;"
-                                 "  color: white;"
                                  "}")
-                            .arg (DpiUtils::scaled (12))
-                            .arg (DpiUtils::scaled (6))
-                            .arg (DpiUtils::scaled (14)));
+                            .arg (DpiUtils::scaled (kCategoryBtnRadiusPx))
+                            .arg (DpiUtils::scaled (kCategoryBtnPadYPx))
+                            .arg (DpiUtils::scaled (kCategoryBtnPadXPx)));
     btn->setCursor (Qt::PointingHandCursor);
   };
 
@@ -397,20 +386,15 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   card->setToolTip (tmpl->description);
   card->setFrameShape (QFrame::StyledPanel);
   card->setStyleSheet (QString ("QFrame#startup-tab-template-card {"
-                                "  background: white;"
-                                "  border: 1px solid #E5E5EA;"
                                 "  border-radius: %1px;"
-                                "}"
-                                "QFrame#startup-tab-template-card:hover {"
-                                "  border: 1px solid #2791ad;"
                                 "}")
-                           .arg (DpiUtils::scaled (8)));
+                           .arg (DpiUtils::scaled (kCardRadiusPx)));
 
   // Subtle shadow effect
   QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (card);
-  shadow->setBlurRadius (DpiUtils::scaled (12));
-  shadow->setColor (QColor (0, 0, 0, 30));
-  shadow->setOffset (0, DpiUtils::scaled (2));
+  shadow->setBlurRadius (DpiUtils::scaled (kShadowBlurRadiusPx));
+  shadow->setColor (QColor (0, 0, 0, kShadowAlpha));
+  shadow->setOffset (0, DpiUtils::scaled (kShadowOffsetYPx));
   card->setGraphicsEffect (shadow);
 
   // Thumbnail image
@@ -420,7 +404,7 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
                                 DpiUtils::scaled (THUMBNAIL_HEIGHT));
   thumbnailLabel->setAlignment (Qt::AlignCenter);
   thumbnailLabel->setProperty ("thumbnailLoaded", false);
-  applyThumbnailFrameStyle (thumbnailLabel, false);
+  applyThumbnailFrameStyle (thumbnailLabel);
   thumbnailLabel->setText (qt_translate ("Loading..."));
   layout->addWidget (thumbnailLabel, 0, Qt::AlignHCenter);
 
@@ -471,7 +455,7 @@ QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
     px.setDevicePixelRatio (label->devicePixelRatioF ());
     label->setPixmap (px);
     label->setProperty ("thumbnailLoaded", true);
-    applyThumbnailFrameStyle (label, true);
+    applyThumbnailFrameStyle (label);
 
     // Already validated this session: nothing more to do
     if (validatedUrls_.contains (url)) {
@@ -552,7 +536,7 @@ QTTemplatePage::processThumbnailQueue () {
 
           req.label->setPixmap (pixmap);
           req.label->setProperty ("thumbnailLoaded", true);
-          applyThumbnailFrameStyle (req.label, true);
+          applyThumbnailFrameStyle (req.label);
           req.label->style ()->unpolish (req.label);
           req.label->style ()->polish (req.label);
 
@@ -675,15 +659,9 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   cancelBtn->setObjectName ("template-cancel-btn");
   DpiUtils::applyScaledFont (cancelBtn, kUseButtonFontPx);
   cancelBtn->setCursor (Qt::PointingHandCursor);
-  cancelBtn->setStyleSheet (QString ("QPushButton {"
+  cancelBtn->setStyleSheet (QString ("QPushButton#template-cancel-btn {"
                                      "  padding: %1px %2px;"
                                      "  border-radius: %3px;"
-                                     "  background: #F2F2F7;"
-                                     "  border: none;"
-                                     "  color: #333333;"
-                                     "}"
-                                     "QPushButton:hover {"
-                                     "  background: #E5E5EA;"
                                      "}")
                                 .arg (DpiUtils::scaled (kUseButtonPadYPx))
                                 .arg (DpiUtils::scaled (kUseButtonPadXPx))
@@ -695,15 +673,9 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   useBtn->setObjectName ("template-use-btn");
   DpiUtils::applyScaledFont (useBtn, kUseButtonFontPx);
   useBtn->setCursor (Qt::PointingHandCursor);
-  useBtn->setStyleSheet (QString ("QPushButton {"
+  useBtn->setStyleSheet (QString ("QPushButton#template-use-btn {"
                                   "  padding: %1px %2px;"
                                   "  border-radius: %3px;"
-                                  "  background: #215a6a;"
-                                  "  border: none;"
-                                  "  color: white;"
-                                  "}"
-                                  "QPushButton:hover {"
-                                  "  background: #2791ad;"
                                   "}")
                              .arg (DpiUtils::scaled (kUseButtonPadYPx))
                              .arg (DpiUtils::scaled (kUseButtonPadXPx))

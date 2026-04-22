@@ -997,6 +997,33 @@ QLabel#startup-tab-page-desc {
   color: #666666;
 }
 
+/* 分类按钮 */
+QPushButton#startup-tab-category-btn {
+  background: transparent;
+  border: none;
+  color: #666666;
+}
+
+QPushButton#startup-tab-category-btn:hover {
+  background: #F0F0F0;
+  color: #333333;
+}
+
+QPushButton#startup-tab-category-btn:checked {
+  background: #215a6a;
+  color: white;
+}
+
+/* 模板卡片 */
+QFrame#startup-tab-template-card {
+  background: white;
+  border: 1px solid #E5E5EA;
+}
+
+QFrame#startup-tab-template-card:hover {
+  border: 1px solid #2791ad;
+}
+
 /* 模板使用按钮 - Template Use Button */
 QPushButton#template-use-btn {
   background-color: #2791ad;
@@ -1010,13 +1037,13 @@ QPushButton#template-use-btn:hover {
 }
 
 QPushButton#template-cancel-btn {
-  background-color: #ffffff;
-  color: #000000;
+  background-color: #F2F2F7;
+  color: #333333;
   font-weight: bold;
 }
 
 QPushButton#template-cancel-btn:hover {
-  background-color: #f5f5f5;
+  background-color: #E5E5EA;
 }
 
 QLabel#template-preview-desc {
