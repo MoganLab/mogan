@@ -114,11 +114,11 @@ fi
 # ================= 4. 准备工具 =================
 echo "🛠️  [4/6] 准备 LinuxDeploy..."
 if [ ! -f "$DEPLOY_TOOL" ]; then
-    wget -q "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$DEPLOY_TOOL"
+    curl -fsSL -o "$DEPLOY_TOOL" "https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/$DEPLOY_TOOL"
     chmod +x "$DEPLOY_TOOL"
 fi
 if [ ! -f "$QT_PLUGIN" ]; then
-    wget -q "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/$QT_PLUGIN"
+    curl -fsSL -o "$QT_PLUGIN" "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/continuous/$QT_PLUGIN"
     chmod +x "$QT_PLUGIN"
 fi
 
