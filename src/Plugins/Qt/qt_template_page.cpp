@@ -72,8 +72,8 @@ constexpr int kThumbBorderWidthPx  = 1;   // 缩略图边框宽度
 constexpr int kUseButtonRadiusPx   = 4;   // Use Template 按钮圆角
 constexpr int kUseButtonPadYPx     = 8;   // Use Template 按钮纵向内边距
 constexpr int kUseButtonPadXPx     = 24;  // Use Template 按钮横向内边距
-constexpr int kGridMarginYPx        = 5;   // 网格布局上下边距
-constexpr int kGridMarginXPx        = 10;   // 网格布局左右边距
+constexpr int kGridMarginYPx       = 5;   // 网格布局上下边距
+constexpr int kGridMarginXPx       = 10;  // 网格布局左右边距
 constexpr int kCategoryBtnRadiusPx = 12;  // 分类按钮圆角
 constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
 constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
@@ -174,7 +174,9 @@ QTTemplatePage::setupUI () {
   gridWidget_->setObjectName ("startup-tab-grid");
   gridLayout_= new QGridLayout (gridWidget_);
   gridLayout_->setSpacing (DpiUtils::scaled (kGridSpacing));
-  gridLayout_->setContentsMargins (DpiUtils::scaled (kGridMarginXPx), DpiUtils::scaled (kGridMarginYPx), DpiUtils::scaled (kGridMarginXPx), DpiUtils::scaled (kGridMarginYPx));
+  gridLayout_->setContentsMargins (
+      DpiUtils::scaled (kGridMarginXPx), DpiUtils::scaled (kGridMarginYPx),
+      DpiUtils::scaled (kGridMarginXPx), DpiUtils::scaled (kGridMarginYPx));
 
   scrollArea_->setWidget (gridWidget_);
   layout->addWidget (scrollArea_, 1);
