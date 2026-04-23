@@ -43,30 +43,30 @@ namespace {
 constexpr int PREVIEW_IMAGE_WIDTH= 600;
 
 // 缩略图尺寸（使用2x尺寸以便在高分屏上显示清晰）
-constexpr int THUMBNAIL_WIDTH = 240;
-constexpr int THUMBNAIL_HEIGHT= 340;
+constexpr int THUMBNAIL_WIDTH = 160;
+constexpr int THUMBNAIL_HEIGHT= 227;
 
 constexpr int kPageMargin          = 16;  // 页面边距（减小边白）
 constexpr int kPageSpacing         = 24;  // 页面主布局间距
 constexpr int kCategorySpacing     = 8;   // 分类按钮间距
-constexpr int kGridSpacing         = 20;  // 模板网格间距
-constexpr int kCardWidth           = 264; // 模板卡片宽度
-constexpr int kCardHeight          = 364; // 模板卡片高度（仅缩略图区域）
-constexpr int kCardMargin          = 12;  // 卡片内边距
-constexpr int kCardSpacing         = 8;   // 卡片内部间距
-constexpr int kNameLabelMaxWidth   = 264; // 模板名称最大宽度
-constexpr int kNameLabelMaxHeight  = 60;  // 模板名称最大高度
+constexpr int kGridSpacing         = 13;  // 模板网格间距
+constexpr int kCardWidth           = 176; // 模板卡片宽度
+constexpr int kCardHeight          = 243; // 模板卡片高度（仅缩略图区域）
+constexpr int kCardMargin          = 8;   // 卡片内边距
+constexpr int kCardSpacing         = 5;   // 卡片内部间距
+constexpr int kNameLabelMaxWidth   = 176; // 模板名称最大宽度
+constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
 constexpr int kPreviewDialogMinW   = 700; // 预览弹窗最小宽度
 constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;  // 预览弹窗布局边距
 constexpr int kPageTitleFontPx     = 24;  // 页面标题字号
 constexpr int kLoadingFontPx       = 14;  // Loading 文案字号
-constexpr int kTemplateNameFontPx  = 14;  // 模板名称字号
+constexpr int kTemplateNameFontPx  = 11;  // 模板名称字号
 constexpr int kPreviewTitleFontPx  = 18;  // 预览标题字号
 constexpr int kPreviewDescFontPx   = 14;  // 预览描述字号
 constexpr int kUseButtonFontPx     = 13;  // Use Template 按钮字号
-constexpr int kInfoFontPx          = 11;  // 模板信息字号
+constexpr int kInfoFontPx          = 10;  // 模板信息字号
 constexpr int kThumbRadiusPx       = 4;   // 缩略图圆角
 constexpr int kThumbBorderWidthPx  = 1;   // 缩略图边框宽度
 constexpr int kUseButtonRadiusPx   = 4;   // Use Template 按钮圆角
