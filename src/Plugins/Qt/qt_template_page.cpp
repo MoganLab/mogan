@@ -286,7 +286,7 @@ QTTemplatePage::calculateColumnCount () const {
   if (availableWidth < cardSpace && availableWidth < cardWidth * 2) return 4;
 
   int columns= (availableWidth + spacing) / cardSpace;
-  return qBound (1, columns, 6);
+  return qBound (1, columns, 9);
 }
 
 void
