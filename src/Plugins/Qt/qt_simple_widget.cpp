@@ -23,6 +23,10 @@
 #include "QTMStyle.hpp"
 #include "QTMTextPopup.hpp"
 #include "QTMWidget.hpp"
+#ifdef Q_OS_LINUX
+#include <QGuiApplication>
+#include <QInputMethod>
+#endif
 #include <QLayout>
 #include <QPixmap>
 #if QT_VERSION >= 0x060000
@@ -269,6 +273,10 @@ qt_simple_widget_rep::send (slot s, blackbox val) {
     check_type<coord2> (val, s);
     coord2 p= open_box<coord2> (val);
     canvas ()->setCursorPos (to_qpoint (p));
+#ifdef Q_OS_LINUX
+    QInputMethod* im= QGuiApplication::inputMethod ();
+    if (im) im->update (Qt::ImCursorRectangle);
+#endif
   } break;
 
   default:
