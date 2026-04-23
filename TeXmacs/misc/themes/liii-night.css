@@ -904,7 +904,7 @@ QWidget#auxiliary_container {
 ****************************************************************************/
 #notificationBar {
   background-color: #0d2b4a;
-  border: 1px solid #1a4a7a;
+  border: none;
   border-left: none;
   border-right: none;
   border-top: none;
