@@ -92,6 +92,7 @@ QString qt_translate (const string& s);
  ******************************************************************************/
 
 string qt_scheme_quote (const QString& text);
+string qt_scheme_quote_utf8 (const QString& text);
 
 #ifdef OS_MACOS
 QString fromNSUrl (const QUrl& url);

@@ -284,7 +284,8 @@ QTStartupTabWidget::create_template_page () {
              if (filePage_) {
                filePage_->addRecentDoc (filePath);
              }
-             eval_scheme ("(load-document " * qt_scheme_quote (filePath) * ")");
+             eval_scheme ("(load-document " * qt_scheme_quote_utf8 (filePath) *
+                          ")");
            });
 
   return templatePage_;

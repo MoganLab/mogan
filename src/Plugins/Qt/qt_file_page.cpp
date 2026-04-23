@@ -534,8 +534,8 @@ QtFilePage::addRecentDoc (const QString& path) {
       recentDocs_.erase (it);
       recentDocs_.prepend (doc);
       saveRecentDocs ();
-      eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote (path) *
-                   ")");
+      eval_scheme ("(startup-tab-add-recent-doc " *
+                   qt_scheme_quote_utf8 (path) * ")");
       refreshRecentDocs ();
       return;
     }
@@ -554,7 +554,8 @@ QtFilePage::addRecentDoc (const QString& path) {
   }
 
   saveRecentDocs ();
-  eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote (path) * ")");
+  eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote_utf8 (path) *
+               ")");
   refreshRecentDocs ();
 }
 
@@ -568,7 +569,8 @@ QtFilePage::removeRecentDoc (const QString& path) {
   }
   saveRecentDocs ();
 
-  eval_scheme ("(startup-tab-clear-recent-doc " * qt_scheme_quote (path) * ")");
+  eval_scheme ("(startup-tab-clear-recent-doc " * qt_scheme_quote_utf8 (path) *
+               ")");
   refreshRecentDocs ();
 }
 
@@ -585,7 +587,7 @@ QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
 
   addRecentDoc (path);
 
-  eval_scheme ("(load-document " * qt_scheme_quote (path) * ")");
+  eval_scheme ("(load-document " * qt_scheme_quote_utf8 (path) * ")");
 }
 
 void

@@ -852,6 +852,11 @@ qt_scheme_quote (const QString& text) {
 }
 
 string
+qt_scheme_quote_utf8 (const QString& text) {
+  return moebius::data::scm_quote (from_qstring_utf8 (text));
+}
+
+string
 qt_application_directory () {
   return string (
       QCoreApplication::applicationDirPath ().toLatin1 ().constData ());
