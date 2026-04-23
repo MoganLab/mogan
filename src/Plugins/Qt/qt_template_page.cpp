@@ -768,7 +768,8 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
 void
 QTTemplatePage::onTemplatesLoaded () {
   // Initialize category bar if not already done
-  if (categoryBar_ && categoryBar_->layout ()->count () == 0) {
+  if (categoryBar_ && categoryBar_->layout () &&
+      categoryBar_->layout ()->count () == 0) {
     setupCategoryBar ();
   }
   gridNeedsRefresh_= true;

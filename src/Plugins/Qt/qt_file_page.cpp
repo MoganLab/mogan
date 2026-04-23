@@ -58,10 +58,6 @@ constexpr int kStyleIconRadius    = 8;    // 样式图标圆角
 constexpr int kSectionTitleFontPx = 16;   // 分区标题字号
 constexpr int kStyleIconFontPx    = 48;   // 样式图标字母字号
 constexpr int kStyleNameFontPx    = 14;   // 样式名称字号
-constexpr int kStyleBadgeFontPx   = 10;   // Default 徽标字号
-constexpr int kStyleBadgeRadius   = 8;    // Default 徽标圆角
-constexpr int kStyleBadgePadY     = 1;    // Default 徽标纵向内边距
-constexpr int kStyleBadgePadX     = 6;    // Default 徽标横向内边距
 constexpr int kRecentListRadius   = 8;    // Recent 列表圆角
 constexpr int kRecentItemHeight   = 64;   // Recent 列表项高度
 constexpr int kRecentItemRadius   = 4;    // Recent 列表项圆角
@@ -124,12 +120,6 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   layout->addStretch ();
 
   setObjectName ("style-card");
-}
-
-void
-StyleCard::enterEvent (QEnterEvent* event) {
-  emit hovered ();
-  QWidget::enterEvent (event);
 }
 
 void
@@ -482,7 +472,15 @@ QtFilePage::refreshRecentDocs () {
 
 void
 QtFilePage::renderRecentDocs () {
-  recentList_->clear ();
+  while (recentList_->count () > 0) {
+    QListWidgetItem* item  = recentList_->takeItem (0);
+    QWidget*         widget= recentList_->itemWidget (item);
+    if (widget) {
+      recentList_->removeItemWidget (item);
+      delete widget;
+    }
+    delete item;
+  }
 
   for (const auto& doc : recentDocs_) {
     auto* item= new QListWidgetItem ();
@@ -615,6 +613,5 @@ QtFilePage::createDocumentWithStyle (const QString& styleId) {
     return;
   }
 
-  QString schemeCmd= QString ("(new-document-with-style \"%1\")").arg (styleId);
-  eval_scheme (schemeCmd.toUtf8 ().constData ());
+  eval_scheme ("(new-document-with-style " * qt_scheme_quote (styleId) * ")");
 }

@@ -227,13 +227,13 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
  */
 void
 QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
-  // 添加3个页面到堆叠控件（OpenFolder没有页面，直接触发操作）
+  // 添加3个页面到堆叠控件（OpenDocument没有页面，直接触发操作）
   stackedWidget->addWidget (create_file_page ());     // index 0 - File
   stackedWidget->addWidget (create_template_page ()); // index 1 - Template
   stackedWidget->addWidget (create_settings_page ()); // index 2 - Settings
 
   // 入口切换时，同步切换堆叠控件的当前页面
-  // 注意：OpenFolder 没有对应页面，需要调整索引映射
+  // 注意：OpenDocument 没有对应页面，需要调整索引映射
   connect (this, &QTStartupTabWidget::entry_changed, stackedWidget,
            [stackedWidget] (QTStartupTabWidget::Entry entry) {
              int index;

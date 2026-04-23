@@ -61,11 +61,9 @@ public:
   QString styleId () const { return styleId_; }
 
 signals:
-  void hovered ();
   void clicked ();
 
 protected:
-  void enterEvent (QEnterEvent* event) override;
   void mousePressEvent (QMouseEvent* event) override;
   void paintEvent (QPaintEvent* event) override;
 

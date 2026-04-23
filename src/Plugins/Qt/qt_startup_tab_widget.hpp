@@ -28,7 +28,7 @@ class QTStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  enum class Entry { File, Template, OpenFolder, Settings };
+  enum class Entry { File, Template, OpenDocument, Settings };
 
 public:
   explicit QTStartupTabWidget (QWidget* parent= nullptr);
