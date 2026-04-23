@@ -1167,11 +1167,12 @@ QLabel#startup-tab-recent-path {
 }
 
 QWidget#style-card {
-  border: 1px solid #4b5560;
+  border: 1px solid #3c3c3c;
+  border-radius: 8px;
 }
 
-QWidget#style-card[selected="true"] {
-  border: 2px solid #2791ad;
+QWidget#style-card:hover {
+  border: 1px solid #2791ad;
 }
 
 QLabel#style-card-icon {
@@ -1181,10 +1182,6 @@ QLabel#style-card-icon {
 
 QLabel#style-card-name {
   color: #e2e8ee;
-}
-
-QLabel#style-card-badge {
-  color: #ffffff;
 }
 
 /****************************************************************************

@@ -46,9 +46,9 @@ static const int MAX_GLOBAL_RECENT_DOCS= 25;
 namespace {
 constexpr int kMainMargin         = 32;   // 主内容区外边距
 constexpr int kMainSpacing        = 24;   // 主纵向布局间距
-constexpr int kStyleCardWidth     = 100;  // 样式卡片宽度
-constexpr int kStyleCardHeight    = 120;  // 样式卡片高度
-constexpr int kStyleIconSize      = 64;   // 样式卡片图标尺寸
+constexpr int kStyleCardWidth     = 160;  // 样式卡片宽度
+constexpr int kStyleCardHeight    = 256;  // 样式卡片高度
+constexpr int kStyleIconSize      = 96;   // 样式卡片图标尺寸
 constexpr int kStyleCardTopPadding= 12;   // 样式卡片顶部内边距
 constexpr int kStyleCardMargin    = 8;    // 样式卡片内边距
 constexpr int kStyleCardSpacing   = 4;    // 样式卡片内部控件间距
@@ -56,8 +56,8 @@ constexpr int kStyleCardsSpacing  = 16;   // 样式卡片横向间距
 constexpr int kStyleCardRadius    = 8;    // 样式卡片圆角
 constexpr int kStyleIconRadius    = 8;    // 样式图标圆角
 constexpr int kSectionTitleFontPx = 16;   // 分区标题字号
-constexpr int kStyleIconFontPx    = 18;   // 样式图标字母字号
-constexpr int kStyleNameFontPx    = 12;   // 样式名称字号
+constexpr int kStyleIconFontPx    = 48;   // 样式图标字母字号
+constexpr int kStyleNameFontPx    = 14;   // 样式名称字号
 constexpr int kStyleBadgeFontPx   = 10;   // Default 徽标字号
 constexpr int kStyleBadgeRadius   = 8;    // Default 徽标圆角
 constexpr int kStyleBadgePadY     = 1;    // Default 徽标纵向内边距
@@ -89,8 +89,6 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   int iconSize= DpiUtils::scaled (kStyleIconSize);
 
   setFixedSize (width, height);
-  setStyleSheet (QString ("border-radius: %1px;")
-                     .arg (DpiUtils::scaled (kStyleCardRadius)));
   setCursor (Qt::PointingHandCursor);
   setFocusPolicy (Qt::NoFocus);
   setToolTip (style.description);
@@ -101,17 +99,20 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
                               DpiUtils::scaled (kStyleCardMargin),
                               DpiUtils::scaled (kStyleCardMargin));
   layout->setSpacing (DpiUtils::scaled (kStyleCardSpacing));
-  layout->setAlignment (Qt::AlignTop);
+  layout->setAlignment (Qt::AlignCenter);
 
   // 预览图占位（使用 QLabel 作为图标容器）
   iconLabel_= new QLabel (this);
   iconLabel_->setFixedSize (iconSize, iconSize);
   iconLabel_->setAlignment (Qt::AlignCenter);
   iconLabel_->setObjectName ("style-card-icon");
-  iconLabel_->setStyleSheet (QString ("border-radius: %1px;")
-                                 .arg (DpiUtils::scaled (kStyleIconRadius)));
-  // 显示样式ID的首字母作为占位
-  iconLabel_->setText (style.id.left (1).toUpper ());
+
+  if (style.id == "generic") {
+    iconLabel_->setText ("+");
+  }
+  else {
+    iconLabel_->setText (style.id.left (1).toUpper ());
+  }
   QFont iconFont= DpiUtils::scaledFont (iconLabel_->font (), kStyleIconFontPx);
   iconFont.setBold (true);
   iconLabel_->setFont (iconFont);
@@ -123,23 +124,6 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   nameLabel_->setObjectName ("style-card-name");
   DpiUtils::applyScaledFont (nameLabel_, kStyleNameFontPx);
   layout->addWidget (nameLabel_, 0, Qt::AlignCenter);
-
-  // "默认"标签
-  if (style.isDefault) {
-    badgeLabel_= new QLabel (qt_translate ("Default"), this);
-    badgeLabel_->setObjectName ("style-card-badge");
-    badgeLabel_->setAttribute (Qt::WA_StyledBackground, true);
-    badgeLabel_->setAlignment (Qt::AlignCenter);
-    DpiUtils::applyScaledFont (badgeLabel_, kStyleBadgeFontPx);
-    badgeLabel_->setStyleSheet (
-        QString ("background-color: #2791ad; border: 1px solid transparent; "
-                 "border-radius: %1px; "
-                 "padding: %2px %3px;")
-            .arg (DpiUtils::scaled (kStyleBadgeRadius))
-            .arg (DpiUtils::scaled (kStyleBadgePadY))
-            .arg (DpiUtils::scaled (kStyleBadgePadX)));
-    layout->addWidget (badgeLabel_, 0, Qt::AlignCenter);
-  }
 
   setObjectName ("style-card");
 }
@@ -157,7 +141,6 @@ StyleCard::setSelected (bool selected) {
 
 void
 StyleCard::enterEvent (QEnterEvent* event) {
-  // 悬停时选中
   emit hovered ();
   QWidget::enterEvent (event);
 }
@@ -175,21 +158,10 @@ StyleCard::paintEvent (QPaintEvent* event) {
   QPainter painter (this);
   painter.setRenderHint (QPainter::Antialiasing);
 
-  // 绘制背景
   QStyleOption opt;
   opt.initFrom (this);
-  style ()->drawPrimitive (QStyle::PE_Widget, &opt, &painter, this);
 
-  // 绘制选中边框
-  if (isSelected_) {
-    painter.setPen (
-        QPen (opt.palette.highlight (), DpiUtils::scaled (kSelectedBorderPx)));
-    painter.setBrush (Qt::NoBrush);
-    const int inset = DpiUtils::scaled (kSelectedInset);
-    const int radius= DpiUtils::scaled (kSelectedRadius);
-    painter.drawRoundedRect (rect ().adjusted (inset, inset, -inset, -inset),
-                             radius, radius);
-  }
+  style ()->drawPrimitive (QStyle::PE_Widget, &opt, &painter, this);
 }
 
 /******************************************************************************
@@ -199,19 +171,8 @@ StyleCard::paintEvent (QPaintEvent* event) {
 QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
-  // 初始化样式列表
-  styles_= {
-      {"generic", qt_translate ("Generic"),
-       qt_translate ("General purpose document"), true},
-      {"beamer", qt_translate ("Beamer"), qt_translate ("Presentation slides"),
-       false},
-      {"book", qt_translate ("Book"), qt_translate ("Book format"), false},
-      {"exam", qt_translate ("Exam"), qt_translate ("Examination paper"),
-       false},
-      {"letter", qt_translate ("Letter"), qt_translate ("Letter format"),
-       false},
-      {"article", qt_translate ("Article"), qt_translate ("Article format"),
-       false}};
+  styles_= {{"generic", qt_translate ("New Blank Document"),
+             qt_translate ("Create a new blank document"), true}};
 
   setupUI ();
   loadRecentDocs ();
