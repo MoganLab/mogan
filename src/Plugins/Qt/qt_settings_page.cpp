@@ -22,12 +22,12 @@
 widget make_menu_widget (object menu);
 
 namespace {
-constexpr int kTabPaneTop      = 0;
-constexpr int kTabBorderRadius = 12;
-constexpr int kTabPaddingY     = 6;
-constexpr int kTabPaddingX     = 14;
-constexpr int kTabMarginY      = 4;
-constexpr int kTabMarginX      = 2;
+constexpr int kTabPaneTop     = 0;
+constexpr int kTabBorderRadius= 12;
+constexpr int kTabPaddingY    = 6;
+constexpr int kTabPaddingX    = 14;
+constexpr int kTabMarginY     = 4;
+constexpr int kTabMarginX     = 2;
 } // namespace
 
 QTSettingsPage::QTSettingsPage (QWidget* parent) : QWidget (parent) {
@@ -61,15 +61,14 @@ QTSettingsPage::QTSettingsPage (QWidget* parent) : QWidget (parent) {
         // Colors are controlled by the theme CSS (liii.css, etc.)
         // so that light/dark themes work correctly.
         tabWidget->setStyleSheet (
-            QString (
-                "QTabWidget#settings-tab-widget::pane {"
-                "  top: %1px;"
-                "}"
-                "QTabWidget#settings-tab-widget QTabBar::tab {"
-                "  border-radius: %2px;"
-                "  padding: %3px %4px;"
-                "  margin: %5px %6px;"
-                "}")
+            QString ("QTabWidget#settings-tab-widget::pane {"
+                     "  top: %1px;"
+                     "}"
+                     "QTabWidget#settings-tab-widget QTabBar::tab {"
+                     "  border-radius: %2px;"
+                     "  padding: %3px %4px;"
+                     "  margin: %5px %6px;"
+                     "}")
                 .arg (DpiUtils::scaled (kTabPaneTop))
                 .arg (DpiUtils::scaled (kTabBorderRadius))
                 .arg (DpiUtils::scaled (kTabPaddingY))
