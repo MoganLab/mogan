@@ -847,6 +847,11 @@ qt_translate (const string& s) {
 }
 
 string
+qt_scheme_quote (const QString& text) {
+  return moebius::data::scm_quote (from_qstring (text));
+}
+
+string
 qt_application_directory () {
   return string (
       QCoreApplication::applicationDirPath ().toLatin1 ().constData ());
@@ -1535,9 +1540,4 @@ qt_clipboard_set_html (string html) {
   mimeData->setHtml (htmlText);
   mimeData->setText (htmlText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
-}
-
-string
-qt_scheme_quote (const QString& text) {
-  return moebius::data::scm_quote (from_qstring (text));
 }
