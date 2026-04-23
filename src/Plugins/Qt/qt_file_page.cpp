@@ -72,9 +72,6 @@ constexpr int kRecentItemPaddingY = 6;    // Recent 列表项纵向内边距
 constexpr int kRecentItemSpacing  = 3;    // Recent 名称与路径行间距
 constexpr int kRecentNameFontPx   = 15;   // Recent 文件名字号
 constexpr int kRecentPathFontPx   = 11;   // Recent 路径字号
-constexpr int kSelectedBorderPx   = 2;    // 卡片选中边框宽度
-constexpr int kSelectedRadius     = 6;    // 卡片选中边框圆角
-constexpr int kSelectedInset      = 1;    // 卡片选中边框内缩
 constexpr int kRecentRefreshMs    = 1000; // Recent 自动刷新周期
 } // namespace
 
@@ -83,7 +80,7 @@ constexpr int kRecentRefreshMs    = 1000; // Recent 自动刷新周期
  ******************************************************************************/
 
 StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
-    : QWidget (parent), styleId_ (style.id), isSelected_ (false) {
+    : QWidget (parent), styleId_ (style.id) {
   int width   = DpiUtils::scaled (kStyleCardWidth);
   int height  = DpiUtils::scaled (kStyleCardHeight);
   int iconSize= DpiUtils::scaled (kStyleIconSize);
@@ -99,9 +96,9 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
                               DpiUtils::scaled (kStyleCardMargin),
                               DpiUtils::scaled (kStyleCardMargin));
   layout->setSpacing (DpiUtils::scaled (kStyleCardSpacing));
-  layout->setAlignment (Qt::AlignCenter);
 
-  // 预览图占位（使用 QLabel 作为图标容器）
+  layout->addStretch ();
+
   iconLabel_= new QLabel (this);
   iconLabel_->setFixedSize (iconSize, iconSize);
   iconLabel_->setAlignment (Qt::AlignCenter);
@@ -118,25 +115,15 @@ StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
   iconLabel_->setFont (iconFont);
   layout->addWidget (iconLabel_, 0, Qt::AlignCenter);
 
-  // 样式名称
   nameLabel_= new QLabel (style.name, this);
   nameLabel_->setAlignment (Qt::AlignCenter);
   nameLabel_->setObjectName ("style-card-name");
   DpiUtils::applyScaledFont (nameLabel_, kStyleNameFontPx);
   layout->addWidget (nameLabel_, 0, Qt::AlignCenter);
 
-  setObjectName ("style-card");
-}
+  layout->addStretch ();
 
-void
-StyleCard::setSelected (bool selected) {
-  if (isSelected_ != selected) {
-    isSelected_= selected;
-    setProperty ("selected", selected);
-    style ()->unpolish (this);
-    style ()->polish (this);
-    update ();
-  }
+  setObjectName ("style-card");
 }
 
 void
@@ -156,7 +143,6 @@ StyleCard::mousePressEvent (QMouseEvent* event) {
 void
 StyleCard::paintEvent (QPaintEvent* event) {
   QPainter painter (this);
-  painter.setRenderHint (QPainter::Antialiasing);
 
   QStyleOption opt;
   opt.initFrom (this);
@@ -274,27 +260,8 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
     StyleCard* card= new StyleCard (style, cardsContainer_);
     styleCards_.append (card);
 
-    connect (card, &StyleCard::hovered, this, [this, card] () {
-      // 悬停时选中
-      if (selectedCard_ != card) {
-        if (selectedCard_) {
-          selectedCard_->setSelected (false);
-        }
-        selectedCard_= card;
-        card->setSelected (true);
-      }
-    });
-
-    connect (card, &StyleCard::clicked, this, [this, card] () {
-      // 单击：创建文档
-      createDocumentWithStyle (card->styleId ());
-    });
-
-    // 默认选中 Generic
-    if (style.isDefault) {
-      card->setSelected (true);
-      selectedCard_= card;
-    }
+    connect (card, &StyleCard::clicked, this,
+             [this, card] () { createDocumentWithStyle (card->styleId ()); });
   }
 
   layout->addWidget (cardsContainer_);
@@ -376,6 +343,20 @@ readRecentOpenedAt (const QJsonObject& docObj, bool hasFilesField) {
   return openedAt.isValid () ? openedAt : QDateTime::currentDateTime ();
 }
 
+static void
+populateRecentDocsFromPaths (QList<RecentDoc>&  recentDocs,
+                             const QStringList& recentPaths) {
+  for (const QString& path : recentPaths) {
+    if (path.isEmpty ()) continue;
+    RecentDoc recentDoc;
+    recentDoc.filePath= path;
+    recentDoc.fileName= QFileInfo (path).fileName ();
+    recentDoc.openedAt= QDateTime::currentDateTime ();
+    recentDocs.append (recentDoc);
+    if (recentDocs.size () >= MAX_RECENT_DOCS) break;
+  }
+}
+
 void
 QtFilePage::loadRecentDocs () {
   recentDocs_.clear ();
@@ -386,15 +367,7 @@ QtFilePage::loadRecentDocs () {
   QString filePath= getRecentDocsFilePath ();
   QFile   file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    for (const QString& path : recentPaths) {
-      if (path.isEmpty ()) continue;
-      RecentDoc recentDoc;
-      recentDoc.filePath= path;
-      recentDoc.fileName= QFileInfo (path).fileName ();
-      recentDoc.openedAt= QDateTime::currentDateTime ();
-      recentDocs_.append (recentDoc);
-      if (recentDocs_.size () >= MAX_RECENT_DOCS) break;
-    }
+    populateRecentDocsFromPaths (recentDocs_, recentPaths);
     renderRecentDocs ();
     return;
   }
@@ -402,15 +375,7 @@ QtFilePage::loadRecentDocs () {
   QByteArray    data= file.readAll ();
   QJsonDocument doc = QJsonDocument::fromJson (data);
   if (!doc.isObject ()) {
-    for (const QString& path : recentPaths) {
-      if (path.isEmpty ()) continue;
-      RecentDoc recentDoc;
-      recentDoc.filePath= path;
-      recentDoc.fileName= QFileInfo (path).fileName ();
-      recentDoc.openedAt= QDateTime::currentDateTime ();
-      recentDocs_.append (recentDoc);
-      if (recentDocs_.size () >= MAX_RECENT_DOCS) break;
-    }
+    populateRecentDocsFromPaths (recentDocs_, recentPaths);
     renderRecentDocs ();
     return;
   }
@@ -571,12 +536,8 @@ QtFilePage::addRecentDoc (const QString& path) {
       recentDocs_.erase (it);
       recentDocs_.prepend (doc);
       saveRecentDocs ();
-      QString escapedPath= path;
-      escapedPath.replace ("\\", "\\\\");
-      escapedPath.replace ("\"", "\\\"");
-      QString schemeCmd=
-          QString ("(startup-tab-add-recent-doc \"%1\")").arg (escapedPath);
-      eval_scheme (schemeCmd.toUtf8 ().constData ());
+      eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote (path) *
+                   ")");
       refreshRecentDocs ();
       return;
     }
@@ -595,12 +556,7 @@ QtFilePage::addRecentDoc (const QString& path) {
   }
 
   saveRecentDocs ();
-  QString escapedPath= path;
-  escapedPath.replace ("\\", "\\\\");
-  escapedPath.replace ("\"", "\\\"");
-  QString schemeCmd=
-      QString ("(startup-tab-add-recent-doc \"%1\")").arg (escapedPath);
-  eval_scheme (schemeCmd.toUtf8 ().constData ());
+  eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote (path) * ")");
   refreshRecentDocs ();
 }
 
@@ -614,12 +570,7 @@ QtFilePage::removeRecentDoc (const QString& path) {
   }
   saveRecentDocs ();
 
-  QString escapedPath= path;
-  escapedPath.replace ("\\", "\\\\");
-  escapedPath.replace ("\"", "\\\"");
-  QString schemeCmd=
-      QString ("(startup-tab-clear-recent-doc \"%1\")").arg (escapedPath);
-  eval_scheme (schemeCmd.toUtf8 ().constData ());
+  eval_scheme ("(startup-tab-clear-recent-doc " * qt_scheme_quote (path) * ")");
   refreshRecentDocs ();
 }
 
@@ -636,13 +587,7 @@ QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
 
   addRecentDoc (path);
 
-  // 转义路径中的双引号和反斜杠，防止 Scheme 注入
-  QString escapedPath= path;
-  escapedPath.replace ("\\", "\\\\"); // 先替换反斜杠
-  escapedPath.replace ("\"", "\\\""); // 再替换双引符
-
-  QString schemeCmd= QString ("(load-document \"%1\")").arg (escapedPath);
-  eval_scheme (schemeCmd.toUtf8 ().constData ());
+  eval_scheme ("(load-document " * qt_scheme_quote (path) * ")");
 }
 
 void
@@ -664,14 +609,12 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
 void
 QtFilePage::createDocumentWithStyle (const QString& styleId) {
   // 验证 styleId 是预定义的合法值，防止注入攻击
-  static const QStringList validStyles= {"generic", "beamer", "book",
-                                         "exam",    "letter", "article"};
+  static const QStringList validStyles= {"generic"};
   if (!validStyles.contains (styleId)) {
     qWarning () << "Invalid style ID:" << styleId;
     return;
   }
 
-  // 调用 Scheme 函数创建指定样式的文档
   QString schemeCmd= QString ("(new-document-with-style \"%1\")").arg (styleId);
   eval_scheme (schemeCmd.toUtf8 ().constData ());
 }

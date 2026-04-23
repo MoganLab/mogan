@@ -87,6 +87,12 @@ string  from_qstring_utf8 (const QString& s);
  */
 QString qt_translate (const string& s);
 
+/******************************************************************************
+ * Scheme string escaping
+ ******************************************************************************/
+
+string qt_scheme_quote (const QString& text);
+
 #ifdef OS_MACOS
 QString fromNSUrl (const QUrl& url);
 #endif

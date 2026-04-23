@@ -34,7 +34,7 @@ class QResizeEvent;
  * @brief 文档样式信息
  */
 struct DocStyle {
-  QString id;          // 样式ID: generic, beamer, book, exam, letter, article
+  QString id;          // 样式ID
   QString name;        // 显示名称
   QString description; // 描述
   bool    isDefault;   // 是否为默认样式
@@ -59,12 +59,10 @@ public:
   explicit StyleCard (const DocStyle& style, QWidget* parent= nullptr);
 
   QString styleId () const { return styleId_; }
-  void    setSelected (bool selected);
-  bool    isSelected () const { return isSelected_; }
 
 signals:
-  void hovered (); // 悬停时触发（用于选中）
-  void clicked (); // 单击时触发（用于打开）
+  void hovered ();
+  void clicked ();
 
 protected:
   void enterEvent (QEnterEvent* event) override;
@@ -73,10 +71,8 @@ protected:
 
 private:
   QString styleId_;
-  bool    isSelected_= false;
-  QLabel* iconLabel_ = nullptr;
-  QLabel* nameLabel_ = nullptr;
-  QLabel* badgeLabel_= nullptr; // "默认"标签
+  QLabel* iconLabel_= nullptr;
+  QLabel* nameLabel_= nullptr;
 };
 
 /**
@@ -114,7 +110,6 @@ private:
   // 样式卡片相关
   QList<DocStyle>   styles_;
   QList<StyleCard*> styleCards_;
-  StyleCard*        selectedCard_  = nullptr;
   QWidget*          cardsContainer_= nullptr;
   QGridLayout*      cardsLayout_   = nullptr;
   void              rearrangeStyleCards ();

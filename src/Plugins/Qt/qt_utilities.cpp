@@ -55,6 +55,8 @@ using lolly::data::as_hexadecimal;
 #include "Ghostscript/gs_utilities.hpp"
 #endif
 
+#include <moebius/data/scheme.hpp>
+
 #define SCREEN_PIXEL (PIXEL)
 
 hashmap<int, string> qtkeymap (0);
@@ -1533,4 +1535,9 @@ qt_clipboard_set_html (string html) {
   mimeData->setHtml (htmlText);
   mimeData->setText (htmlText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
+}
+
+string
+qt_scheme_quote (const QString& text) {
+  return moebius::data::scm_quote (from_qstring (text));
 }
