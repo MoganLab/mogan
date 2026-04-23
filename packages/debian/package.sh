@@ -107,12 +107,13 @@ Type=Application
 Name=Mogan STEM
 GenericName=Mogan STEM
 Comment=Scientific Editor
-MimeType=text/x-texmacs.doc;text/x-texmacs.sty;text/plain;text/x-tex;
+MimeType=text/x-texmacs.doc;text/x-texmacs.sty;text/x-tmu-doc;text/plain;text/x-tex;
 Exec=$BINARY_NAME
 Icon=$APP_NAME
 Terminal=false
 Categories=Education;Science;Math;
 X-KDE-Priority=TopLevel
+StartupWMClass=$BINARY_NAME
 EOF
 else
     # 强制修正 Icon 字段，确保它使用我们刚才复制进去的图标名
@@ -120,6 +121,12 @@ else
     sed -i "s|^Icon=.*|Icon=$APP_NAME|" "$DESKTOP_PATH"
     # 确保Exec路径正确
     sed -i "s|^Exec=.*|Exec=$BINARY_NAME|" "$DESKTOP_PATH"
+    sed -i "s|^MimeType=.*|MimeType=text/x-texmacs.doc;text/x-texmacs.sty;text/x-tmu-doc;text/plain;text/x-tex;|" "$DESKTOP_PATH"
+    if ! grep -q "^StartupWMClass=" "$DESKTOP_PATH"; then
+        echo "StartupWMClass=$BINARY_NAME" >> "$DESKTOP_PATH"
+    else
+        sed -i "s|^StartupWMClass=.*|StartupWMClass=$BINARY_NAME|" "$DESKTOP_PATH"
+    fi
 fi
 
 
