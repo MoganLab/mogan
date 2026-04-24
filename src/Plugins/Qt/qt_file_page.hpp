@@ -30,13 +30,15 @@ class QHideEvent;
 class QResizeEvent;
 
 /**
- * @brief 文档样式信息
+ * @brief 文档样式信息（支持空白文档和快捷模板）
  */
 struct DocStyle {
   QString id;          // 样式ID
   QString name;        // 显示名称
   QString description; // 描述
-  bool    isDefault;   // 是否为默认样式
+  QString thumbnailUrl;// 缩略图URL（模板卡片用）
+  QString fileUrl;     // 模板文件下载URL
+  QString templateId;  // 对应TemplateManager中的模板ID
 };
 
 /**
@@ -51,13 +53,21 @@ struct RecentDoc {
 /**
  * @brief 样式卡片部件
  */
+class QNetworkAccessManager;
+class QNetworkReply;
+
+/**
+ * @brief 样式卡片部件（支持图标模式和缩略图模板模式）
+ */
 class StyleCard : public QWidget {
   Q_OBJECT
 
 public:
   explicit StyleCard (const DocStyle& style, QWidget* parent= nullptr);
+  ~StyleCard ();
 
   QString styleId () const { return styleId_; }
+  bool    isTemplate () const { return isTemplate_; }
 
 signals:
   void clicked ();
@@ -67,9 +77,22 @@ protected:
   void paintEvent (QPaintEvent* event) override;
 
 private:
+  void setupIconMode (const DocStyle& style);
+  void setupThumbnailMode (const DocStyle& style);
+  void loadThumbnail (const QString& url);
+  void onThumbnailReplyFinished (QNetworkReply* reply, const QString& url);
+
   QString styleId_;
+  bool    isTemplate_= false;
+
+  // Icon mode
   QLabel* iconLabel_= nullptr;
   QLabel* nameLabel_= nullptr;
+
+  // Thumbnail mode
+  QLabel*               thumbnailLabel_= nullptr;
+  QLabel*               titleLabel_    = nullptr;
+  QNetworkAccessManager* networkManager_= nullptr;
 };
 
 /**
@@ -104,6 +127,7 @@ private:
   void removeRecentDoc (const QString& path);
   void clearAllRecentDocs ();
   void createDocumentWithStyle (const QString& styleId);
+  void createDocumentFromTemplate (const QString& templateId);
 
   // 样式卡片相关
   QList<DocStyle>   styles_;

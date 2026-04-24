@@ -1180,6 +1180,24 @@ QLabel#style-card-name {
   color: #e2e8ee;
 }
 
+QFrame#style-card-frame {
+  border: 1px solid #3c3c3c;
+  background-color: #ffffff;
+}
+
+QFrame#style-card-frame:hover {
+  border: 2px solid #2791ad;
+}
+
+QLabel#style-card-thumbnail {
+  background: #4a4f57;
+}
+
+QLabel#style-card-title {
+  background-color: #3a3a3a;
+  color: #e2e8ee;
+}
+
 /****************************************************************************
 * PDF Preview Widget 样式
 ****************************************************************************/
