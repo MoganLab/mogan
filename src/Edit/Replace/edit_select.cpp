@@ -617,8 +617,18 @@ edit_select_rep::selection_set (string key, tree t, bool persistant) {
     if (selection_export == "verbatim") t= exec_verbatim (t, tp);
     if (selection_export == "html") t= exec_html (t, tp);
     if (selection_export == "latex") t= exec_latex (t, tp);
-    if ((selection_export == "latex") && (mode == "math"))
-      t= compound ("math", t);
+    if (selection_export == "latex") {
+      string start_mode= selection_active_any ()
+                             ? as_string (get_env_value (MODE, start (cur_sel)))
+                             : mode;
+      bool   wrapped_math=
+          is_compound (t, "math", 1) || is_compound (t, "equation", 1) ||
+          is_compound (t, "equation*", 1) || is_compound (t, "eqnarray", 1) ||
+          is_compound (t, "eqnarray*", 1) || is_compound (t, "align", 1) ||
+          is_compound (t, "align*", 1);
+      if ((mode == "math" || start_mode == "math") && !wrapped_math)
+        t= compound ("math", t);
+    }
     if (selection_export != "default")
       s= tree_to_generic (t, selection_export * "-snippet");
     else {

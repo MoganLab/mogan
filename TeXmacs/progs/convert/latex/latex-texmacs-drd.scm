@@ -228,9 +228,14 @@
   ("itemizedot" 0)
   ("itemizearrow" 0)
   ("enumeratenumeric" 0)
+  ("enumeratenumericbracket" 0)
   ("enumerateroman" 0)
+  ("enumerateromanbracket" 0)
+  ("enumerateromanparen" 0)
   ("enumerateromancap" 0)
   ("enumeratealpha" 0)
+  ("enumeratealphabracket" 0)
+  ("enumeratealphafullparen" 0)
   ("enumeratealphacap" 0)
   ("descriptioncompact" 0)
   ("descriptionaligned" 0)
@@ -240,8 +245,11 @@
 
 (logic-group latex-texmacs-list%
   begin-itemizeminus begin-itemizedot begin-itemizearrow
-  begin-enumeratenumeric begin-enumerateroman begin-enumerateromancap
-  begin-enumeratealpha begin-enumeratealphacap
+  begin-enumeratenumeric begin-enumeratenumericbracket
+  begin-enumerateroman begin-enumerateromanbracket
+  begin-enumerateromanparen begin-enumerateromancap
+  begin-enumeratealpha begin-enumeratealphabracket
+  begin-enumeratealphafullparen begin-enumeratealphacap
   begin-descriptioncompact begin-descriptionaligned
   begin-descriptiondash begin-descriptionlong begin-descriptionparagraphs)
 

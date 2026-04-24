@@ -1,0 +1,6 @@
+; (tm-define (test_212_6)
+;   (let* ((tmu-path "$TEXMACS_PATH/tests/tmu/212_6.tmu")
+;          (tmu-url (string->url tmu-path)))
+;     (load-buffer tmu-path)
+;     (switch-to-buffer tmu-url)
+;     (print-to-file "/tmp/212_6.pdf")))

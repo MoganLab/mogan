@@ -22,9 +22,10 @@ using namespace moebius;
 
 class bridge_ornamented_rep : public bridge_rep {
 protected:
-  bridge body;
-  tree   with;
-  int    idx;
+  bridge      body;
+  tree        with;
+  int         idx;
+  array<lazy> ornament_fl;
 
 public:
   bridge_ornamented_rep (typesetter ttt, tree st, path ip, int idx);
@@ -158,6 +159,18 @@ make_ornament_body (path ip, array<page_item> l) {
   return move_box (decorate (ip), stack_box (ip, lines_bx, lines_ht), 0, dy);
 }
 
+/**
+ * @brief 对 ornament 正文做局部排版，并生成用于插入主段落的外框 box。
+ *
+ * 该函数会在局部排版上下文中排版 ornament 内部正文，得到一组局部
+ * `page_item`。随后一方面将这些 `page_item` 叠成 ornament 对应的 box，
+ * 另一方面收集其上附着的 `fl`，保存到成员 `ornament_fl` 中，供后续
+ * `insert_ornament` 在重新插入主页面流时重新附着，从而避免脚注等页面插入
+ * 对象在 bridge 层包装过程中丢失。
+ *
+ * @param desired_status 本次排版期望达到的状态。
+ * @return 由 ornament 内部局部排版结果构造出的外框 box。
+ */
 box
 bridge_ornamented_rep::typeset_ornament (int desired_status) {
   int  i;
@@ -178,6 +191,7 @@ bridge_ornamented_rep::typeset_ornament (int desired_status) {
   ttt->a= a2;
   ttt->b= b2;
   ttt->local_end (l2, sb2);
+  ornament_fl= collect_attached_floats (l2);
   for (i-= 2; i >= 0; i-= 2)
     env->write_update (with[i]->label, old[i + 1]);
   return make_ornament_body (ip, l2);
@@ -196,6 +210,15 @@ bridge_ornamented_rep::insert_ornament (box b) {
   par->a << line_item (STD_ITEM, env->mode_op, b, HYPH_INVALID);
   par->a << ttt->b;
   par->format_paragraph ();
+  if (N (ornament_fl) > 0) {
+    int i= N (par->sss->l) - 1;
+    while (i >= 0 && par->sss->l[i]->type == PAGE_CONTROL_ITEM)
+      i--;
+    if (i >= 0) {
+      par->sss->l[i]= copy (par->sss->l[i]);
+      par->sss->l[i]->fl << ornament_fl;
+    }
+  }
   ttt->insert_stack (par->sss->l, par->sss->sb);
 }
 

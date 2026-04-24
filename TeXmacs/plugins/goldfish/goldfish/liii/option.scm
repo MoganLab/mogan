@@ -15,81 +15,114 @@
 ;
 
 (define-library (liii option)
-  (import (liii oop) (liii base))
-  (export option none)
+  (import (liii base))
+  (export none option option?
+          option-map option-filter option-flat-map option-for-each
+          option-get option-get-or-else option=? option-or-else
+          option-defined? option-empty?
+          option-every option-any
+  ) ;export
   (begin
 
-    (define-final-class option ((value any?))
+    ; 内部表示：
+    ; (cons #f 'N) 表示 none
+    ; (cons value 'S) 表示 (option value)
 
-      (define (%get)
-        (if (null? value)
-            (value-error "option is empty, cannot get value")
-            value))
+    (define (none)
+      (cons #f 'N)
+    ) ;define
 
-      (define (%get-or-else default)
-        (cond ((not (null? value)) value)
-              ((and (procedure? default) (not (case-class? default)))
-               (default))
-              (else default)))
+    (define (option value)
+      (cons value 'S)
+    ) ;define
 
-      (define (%or-else default . args)
-        (when (not (option :is-type-of default))
-          (type-error "The first parameter of option%or-else must be a option case class"))
-  
-        (chain-apply args
-          (if (null? value)
+    (define (option? x)
+      (and (pair? x)
+           (or (eq? (cdr x) 'N)
+               (eq? (cdr x) 'S)
+           ) ;or
+      ) ;and
+    ) ;define
+
+    (define (option-empty? opt)
+      (eq? (cdr opt) 'N)
+    ) ;define
+
+    (define (option-defined? opt)
+      (eq? (cdr opt) 'S)
+    ) ;define
+
+    (define (option-map f opt)
+      (if (option-empty? opt)
+          (none)
+          (option (f (car opt)))
+      ) ;if
+    ) ;define
+
+    (define (option-filter pred opt)
+      (if (or (option-empty? opt) (not (pred (car opt))))
+          (none)
+          opt
+      ) ;if
+    ) ;define
+
+    (define (option-flat-map f opt)
+      (if (option-empty? opt)
+          (none)
+          (f (car opt))
+      ) ;if
+    ) ;define
+
+    (define (option-for-each f opt)
+      (when (option-defined? opt)
+        (f (car opt))
+      ) ;when
+    ) ;define
+
+    (define (option-get opt)
+      (if (option-empty? opt)
+          (error "option is empty, cannot get value")
+          (car opt)
+      ) ;if
+    ) ;define
+
+    (define (option-get-or-else default opt)
+      (if (option-empty? opt)
+          (if (procedure? default)
+              (default)
               default
-              (option value))))
+          ) ;if
+          (car opt)
+      ) ;if
+    ) ;define
 
-      (define (%equals that)
-        (and (option :is-type-of that)
-             (class=? value (that 'value))))
+    (define (option-or-else alt opt)
+      (if (option-empty? opt)
+          alt
+          opt
+      ) ;if
+    ) ;define
 
-      (define (%defined?) (not (null? value)))
-  
-      (define (%empty?)
-        (null? value))
+    (define (option=? opt1 opt2)
+      (cond ((and (option-empty? opt1) (option-empty? opt2)) #t)
+            ((or (option-empty? opt1) (option-empty? opt2)) #f)
+            (else (equal? (car opt1) (car opt2)))
+      ) ;cond
+    ) ;define
 
-      (define (%forall f)
-        (if (null? value)
-            #f
-            (f value)))
+    (define (option-every pred opt)
+      (if (option-empty? opt)
+          #f
+          (pred (car opt))
+      ) ;if
+    ) ;define
 
-      (define (%exists f)
-        (if (null? value)
-            #f
-            (f value)))
+    (define (option-any pred opt)
+      (if (option-empty? opt)
+          #f
+          (pred (car opt))
+      ) ;if
+    ) ;define
 
-      (define (%contains elem)
-        (if (null? value)
-            #f
-            (equal? value elem)))
-
-      (define (%for-each f)
-        (when (not (null? value))
-              (f value)))
-
-      (define (%map f . args)
-        (chain-apply args
-          (if (null? value)
-              (option '())
-              (option (f value)))))
-
-      (define (%flat-map f . args)
-        (chain-apply args
-          (if (null? value)
-              (option '())
-              (f value))))
-
-      (define (%filter pred . args)
-        (chain-apply args
-          (if (or (null? value) (not (pred value)))
-              (option '())
-              (option value))))
-
-      )
-
-    (define (none) (option '()))
-
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library

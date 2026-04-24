@@ -584,3 +584,31 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args)
   #define Q_inexact_to_exact s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)
   return inexact_to_exact_p_p(sc, s7_car(args));
 }
+
+/* -------------------------------- read-line -------------------------------- */
+
+s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)
+{
+  s7_pointer port;
+  bool with_eol = false;
+
+  if (s7_is_pair(args))
+    {
+      port = s7_car(args);
+      if (!s7_is_input_port(sc, port))
+        return s7i_method_or_bust(sc, port, "read-line", args, s7i_an_input_port_string(), 1);
+      if (s7_is_pair(s7_cdr(args)))
+        {
+          s7_pointer with_eol_arg = s7_cadr(args);
+          with_eol = (with_eol_arg == s7_t(sc));
+          if ((!with_eol) && (with_eol_arg != s7_f(sc)))
+            return s7_wrong_type_arg_error(sc, "read-line", 2, with_eol_arg, s7i_a_boolean_string());
+        }
+    }
+  else
+    {
+      port = s7i_input_port_if_not_loading(sc);
+      if (!port) return s7_eof_object(sc);
+    }
+  return s7i_port_read_line(sc, port, with_eol);
+}

@@ -414,6 +414,7 @@
 #include "s7_scheme_char.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
+#include "s7_liii_hash_table.h"
 
 /* there is also apparently __STDC_NO_COMPLEX__ */
 #if WITH_CLANG_PP
@@ -26936,7 +26937,7 @@ static s7_pointer stdin_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
     }
   if (fgets(sc->read_line_buf, sc->read_line_buf_size, stdin))
     return(s7_make_string(sc, sc->read_line_buf)); /* fgets adds the trailing '\0' */
-  return(nil_string);
+  return(eof_object);
 }
 
 static s7_pointer file_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
@@ -28255,6 +28256,20 @@ static s7_pointer input_port_if_not_loading(s7_scheme *sc)
   return(sc->standard_input);
 }
 
+/* Export helper functions for s7_scheme_base.c */
+const char *s7i_an_input_port_string(void) {return("an input port");}
+const char *s7i_a_boolean_string(void) {return("a boolean");}
+
+s7_pointer s7i_input_port_if_not_loading(s7_scheme *sc)
+{
+  return(input_port_if_not_loading(sc));
+}
+
+s7_pointer s7i_port_read_line(s7_scheme *sc, s7_pointer port, bool with_eol)
+{
+  return(port_read_line(port)(sc, port, with_eol));
+}
+
 
 /* -------------------------------- read-char -------------------------------- */
 s7_pointer s7_read_char(s7_scheme *sc, s7_pointer port)
@@ -28446,33 +28461,12 @@ static s7_pointer g_write_byte(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- read-line -------------------------------- */
-static s7_pointer g_read_line(s7_scheme *sc, s7_pointer args)
-{
-  #define H_read_line "(read-line port (with-eol #f)) returns the next line from port, or #<eof>. \
+/* g_read_line is now implemented in s7_scheme_base.c */
+#define H_read_line "(read-line port (with-eol #f)) returns the next line from port, or #<eof>. \
 If 'with-eol' is not #f, read-line includes the trailing end-of-line character."
-  #define Q_read_line s7_make_signature(sc, 3, \
+#define Q_read_line s7_make_signature(sc, 3, \
                         s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_eof_object_symbol), \
                         sc->is_input_port_symbol, sc->is_boolean_symbol)
-  s7_pointer port;
-  bool with_eol = false;
-  if (is_pair(args))
-    {
-      port = car(args);
-      if (!is_input_port(port))
-	return(method_or_bust(sc, port, sc->read_line_symbol, args, an_input_port_string, 1));
-      if (is_pair(cdr(args)))
-	{
-	  with_eol = (cadr(args) == sc->T); /* sig says boolean? so insist on #t, else we get stuff like (read-line port (c-pointer 0)) */
-	  if ((!with_eol) && (cadr(args) != sc->F))
-	    wrong_type_error_nr(sc, sc->read_line_symbol, 2, cadr(args), a_boolean_string);
-	}}
-  else
-    {
-      port = input_port_if_not_loading(sc);
-      if (!port) return(eof_object);
-    }
-  return(port_read_line(port)(sc, port, with_eol));
-}
 
 static s7_pointer read_line_p_pp(s7_scheme *sc, s7_pointer port, s7_pointer with_eol)
 {
@@ -28934,6 +28928,42 @@ static s7_pointer load_file_1(s7_scheme *sc, const char *filename)
       port_file_number(port) = remember_file_name(sc, (local_file_name) ? local_file_name : filename);
       if (local_file_name) free(local_file_name);
       set_loader_port(port);
+      if ((is_string_port(port)) &&
+          (port_data_size(port) >= 2) &&
+          (port_data(port)[0] == '#') &&
+          (port_data(port)[1] == '!'))
+        {
+          uint8_t *data = port_data(port);
+          s7_int pos = 0;
+          while (pos < port_data_size(port) && data[pos] != '\n')
+            pos++;
+          if (pos < port_data_size(port))
+            port_position(port) = pos + 1;
+          else port_position(port) = port_data_size(port);
+        }
+      else
+        if (is_file_port(port))
+          {
+            int32_t c0 = fgetc(port_file(port));
+            if (c0 != EOF)
+              {
+                int32_t c1 = fgetc(port_file(port));
+                if ((c0 == '#') &&
+                    (c1 == '!'))
+                  {
+                    int32_t c;
+                    while (((c = fgetc(port_file(port))) != EOF) &&
+                           (c != '\n'))
+                      {}
+                  }
+                else
+                  {
+                    if (c1 != EOF)
+                      ungetc(c1, port_file(port));
+                    ungetc(c0, port_file(port));
+                  }
+              }
+          }
       push_input_port(sc, port);
       return(port);
     }
@@ -42488,13 +42518,7 @@ static hash_entry_t *make_hash_entry(s7_scheme *sc, s7_pointer key, s7_pointer v
 /* -------------------------------- hash-table? -------------------------------- */
 bool s7_is_hash_table(s7_pointer p) {return(is_hash_table(p));}
 
-static s7_pointer g_is_hash_table(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
-  #define Q_is_hash_table sc->pl_bt
-  check_boolean_method(sc, is_hash_table, sc->is_hash_table_symbol, args);
-}
-
+/* g_is_hash_table is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- hash-table-entries -------------------------------- */
 static s7_pointer g_hash_table_entries(s7_scheme *sc, s7_pointer args)
@@ -97355,6 +97379,9 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_complex_vector_symbol =  bool_defun("complex-vector?",  is_complex_vector,  0, T_COMPLEX_VECTOR, mark_simple_vector, true);
   sc->is_int_vector_symbol =      bool_defun("int-vector?",      is_int_vector,	     0, T_INT_VECTOR,   mark_simple_vector, true);
   sc->is_byte_vector_symbol =     bool_defun("byte-vector?",     is_byte_vector,     0, T_BYTE_VECTOR,  mark_simple_vector, true);
+
+  #define H_is_hash_table "(hash-table? obj) returns #t if obj is a hash-table"
+  #define Q_is_hash_table sc->pl_bt
   sc->is_hash_table_symbol =      bool_defun("hash-table?",      is_hash_table,      0, T_HASH_TABLE,   mark_vector_1,      false);
   sc->is_continuation_symbol =    bool_defun("continuation?",    is_continuation,    0, T_CONTINUATION, mark_vector_1,      false);
   sc->is_procedure_symbol =       bool_defun("procedure?",       is_procedure,	     0, T_FREE,         mark_vector_1,      false);

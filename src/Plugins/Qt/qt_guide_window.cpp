@@ -9,20 +9,91 @@
  ******************************************************************************/
 
 #include "qt_guide_window.hpp"
+#include "boot.hpp"
+#include "preferences.hpp"
 #include "qlabel.h"
 #include "qnamespace.h"
+#include "qt_gui.hpp"
 #include "qt_guide_task_executor.hpp"
+#include "qt_sys_utils.hpp"
 #include "qt_utilities.hpp"
+#include "tm_file.hpp"
+#include "tm_sys_utils.hpp"
 #include <QApplication>
 #include <QCloseEvent>
 #include <QColor>
+#include <QDateTime>
 #include <QGraphicsDropShadowEffect>
 #include <QIcon>
+#include <QMainWindow>
+#include <QMessageBox>
+#include <QMouseEvent>
+#include <QPainter>
 #include <QPixmap>
 #include <QPropertyAnimation>
 #include <QShowEvent>
+#include <QTimer>
+#include <QWindow>
+
+extern bool texmacs_started;
+extern bool qt_startup_quit_requested;
 
 namespace QWK {
+
+namespace {
+
+class StartupWindowOverlay : public QWidget {
+public:
+  explicit StartupWindowOverlay (QWidget* parent) : QWidget (parent) {
+    setObjectName ("startupWindowOverlay");
+    setFocusPolicy (Qt::StrongFocus);
+    setMouseTracking (true);
+    setAutoFillBackground (false);
+  }
+
+protected:
+  void paintEvent (QPaintEvent* event) override {
+    QWidget::paintEvent (event);
+    QPainter painter (this);
+    painter.fillRect (rect (), QColor (8, 12, 18, 150));
+  }
+};
+
+} // namespace
+
+static void
+requestAsyncStartupQuit () {
+  qt_startup_quit_requested= true;
+  if (the_gui != NULL) the_gui->need_update ();
+}
+
+static bool
+hasCachedLoginSession () {
+  url accountDir= get_texmacs_home_path () * url ("system/account");
+  url tokenFile = accountDir * url ("token.txt");
+  if (!exists (tokenFile)) return false;
+
+  url     expiryFile= accountDir * url ("token_expiry.txt");
+  QString expiry    = to_qstring (tm_string_load (expiryFile)).trimmed ();
+  if (expiry.isEmpty ()) return true;
+
+  bool   ok        = false;
+  qint64 expiryTime= expiry.toLongLong (&ok);
+  if (!ok) return true;
+
+  if (expiryTime > QDateTime::currentSecsSinceEpoch ()) return true;
+
+  url refreshTokenFile= accountDir * url ("refresh_token.txt");
+  return exists (refreshTokenFile) &&
+         !to_qstring (tm_string_load (refreshTokenFile)).trimmed ().isEmpty ();
+}
+
+bool
+StartupLoginDialog::shouldShow () {
+  if (headless_mode) return false;
+  if (is_community_stem ()) return false;
+  return !hasCachedLoginSession ();
+}
 
 // StartupLoginDialog implementation
 void
@@ -71,13 +142,21 @@ StartupLoginDialog::setupUi () {
   featureLabel3->setObjectName ("featureLabel");
   featureLabel4->setObjectName ("featureLabel");
 
+  // 自动备份勾选框
+  autoBackupCheckBox= new QCheckBox (qt_translate ("开启自动备份"), this);
+  autoBackupCheckBox->setObjectName ("autoBackupCheckBox");
+  autoBackupCheckBox->setChecked (getAutoBackup ());
+
   // 创建按钮
   loginButton= new QPushButton (qt_translate ("登录"), this); // 登录 Log In
   loginButton->setObjectName ("loginButton");
   loginButton->setDefault (true);
+  if (offlineMode) {
+    loginButton->setText (qt_translate ("进入软件"));
+  }
 
   skipButton=
-      new QPushButton (qt_translate ("跳过登录"), this); // 跳过登录 Skip Login
+      new QPushButton (qt_translate ("退出软件"), this); // 退出软件 Quit App
   skipButton->setObjectName ("skipButton");
 
   // 创建布局
@@ -102,6 +181,8 @@ StartupLoginDialog::setupUi () {
   mainLayout->addWidget (iconLabel);
   mainLayout->addSpacing (15);
   mainLayout->addLayout (featureLayout);
+  mainLayout->addSpacing (8);
+  mainLayout->addWidget (autoBackupCheckBox, 0, Qt::AlignCenter);
   mainLayout->addStretch ();
   mainLayout->addLayout (buttonLayout);
 
@@ -117,20 +198,18 @@ StartupLoginDialog::setupFramelessWindow () {
   // 设置无边框窗口管理
   windowAgent= new QWK::WidgetWindowAgent (this);
   windowAgent->setup (this);
-
-  // 设置标题、图标和副标题标签为可拖动区域
-  if (windowAgent) {
-    if (titleLabel) {
-      windowAgent->setHitTestVisible (titleLabel, true);
-    }
-    if (iconLabel) {
-      windowAgent->setHitTestVisible (iconLabel, true);
-    }
-    if (subtitleLabel) {
-      windowAgent->setHitTestVisible (subtitleLabel, true);
-    }
-  }
 #endif
+
+  installDragHandler (this);
+  installDragHandler (titleLabel);
+  installDragHandler (iconLabel);
+  installDragHandler (subtitleLabel);
+  installDragHandler (featureLabel1);
+  installDragHandler (featureLabel2);
+  installDragHandler (featureLabel3);
+  installDragHandler (featureLabel4);
+  installDragHandler (statusLabel);
+  installDragHandler (timeEstimationLabel);
 }
 
 void
@@ -177,6 +256,24 @@ StartupLoginDialog::styleSheet () const {
             font-size: 14px;
             padding: 4px 0 4px 20px;
             margin: 0;
+        }
+        QCheckBox#autoBackupCheckBox {
+            color: #ffffff;
+            background-color: transparent;
+            font-size: 14px;
+            spacing: 8px;
+            padding: 4px 0;
+        }
+        QCheckBox#autoBackupCheckBox::indicator {
+            width: 14px;
+            height: 14px;
+            background-color: transparent;
+            border: 1px solid #ffffff;
+            border-radius: 3px;
+        }
+        QCheckBox#autoBackupCheckBox::indicator:checked {
+            background-color: #007AFF;
+            border: 1px solid #ffffff;
         }
         QPushButton {
             border: none;
@@ -241,16 +338,19 @@ StartupLoginDialog::styleSheet () const {
 StartupLoginDialog::StartupLoginDialog (QWidget* parent)
     : QDialog (parent), titleLabel (nullptr), iconLabel (nullptr),
       subtitleLabel (nullptr), featureLabel1 (nullptr), featureLabel2 (nullptr),
-      featureLabel3 (nullptr), featureLabel4 (nullptr), loginButton (nullptr),
-      skipButton (nullptr), mainLayout (nullptr), featureLayout (nullptr),
-      buttonLayout (nullptr), progressBar (nullptr), statusLabel (nullptr),
+      featureLabel3 (nullptr), featureLabel4 (nullptr),
+      autoBackupCheckBox (nullptr), loginButton (nullptr), skipButton (nullptr),
+      mainLayout (nullptr), featureLayout (nullptr), buttonLayout (nullptr),
+      progressBar (nullptr), statusLabel (nullptr),
       timeEstimationLabel (nullptr),
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
       windowAgent (nullptr),
 #endif
       fadeAnimation (nullptr), result (DialogRejected),
       initializationInProgress (false), initializationComplete (false),
-      userChoiceMade (false) {
+      userChoiceMade (false), waitingForLoginCompletion (false),
+      offlineMode (!qt_has_network_connection ()), dragInProgress (false),
+      asyncStartupMode (false) {
 
   // 设置无边框窗口标志
   setWindowFlags ((windowFlags () | Qt::FramelessWindowHint) &
@@ -260,7 +360,7 @@ StartupLoginDialog::StartupLoginDialog (QWidget* parent)
   setWindowIcon (QIcon (":/app/stem.png"));
 
   // 固定窗口大小
-  setFixedSize (500, 520);
+  setFixedSize (500, 550);
   setWindowTitle (QObject::tr (" "));
 
   // 设置样式表
@@ -295,12 +395,30 @@ StartupLoginDialog::execWithResult () {
 }
 
 void
+StartupLoginDialog::setAsyncStartupMode (bool enabled) {
+  asyncStartupMode= enabled;
+}
+
+void
+StartupLoginDialog::notifyLoginSucceeded () {
+  waitingForLoginCompletion= false;
+  fadeOutAndClose ();
+}
+
+void
 StartupLoginDialog::showEvent (QShowEvent* event) {
   QDialog::showEvent (event);
 
   // 将对话框居中显示在屏幕上
   QRect screenGeometry= QApplication::primaryScreen ()->availableGeometry ();
   move (screenGeometry.center () - rect ().center ());
+
+  if (asyncStartupMode) {
+    ensureMainWindowOverlay ();
+    centerOverMainWindow ();
+    raise ();
+    activateWindow ();
+  }
 
   // 当对话框显示时自动开始初始化
   if (!initializationInProgress && !initializationComplete) {
@@ -354,6 +472,32 @@ StartupLoginDialog::startInitialization () {
   // 更新状态
   statusLabel->setText (qt_translate ("正在初始化..."));
 
+  if (asyncStartupMode) {
+    enableButtons (false);
+    progressBar->setRange (0, 0);
+    timeEstimationLabel->clear ();
+
+    QTimer::singleShot (100, this, [this] () {
+      ensureMainWindowOverlay ();
+      if (texmacs_started) {
+        handleInitializationComplete (true);
+        return;
+      }
+
+      QTimer::singleShot (100, this, [this] () {
+        ensureMainWindowOverlay ();
+        if (texmacs_started) {
+          handleInitializationComplete (true);
+          return;
+        }
+
+        initializationInProgress= false;
+        startInitialization ();
+      });
+    });
+    return;
+  }
+
   // 开始后台初始化
   startBackgroundInitialization ();
 
@@ -387,9 +531,39 @@ StartupLoginDialog::startBackgroundInitialization () {
 
 void
 StartupLoginDialog::handleLoginButtonClick () {
+  if (autoBackupCheckBox) {
+    setAutoBackup (autoBackupCheckBox->isChecked ());
+  }
+
+  if (offlineMode) {
+    result        = StartupLoginDialog::LoginClicked;
+    userChoiceMade= true;
+
+    if (asyncStartupMode) {
+      close ();
+      return;
+    }
+
+    if (initializationComplete) {
+      fadeOutAndClose ();
+    }
+    else if (!initializationInProgress) {
+      startInitialization ();
+    }
+    return;
+  }
+
   result        = StartupLoginDialog::LoginClicked;
   userChoiceMade= true;
   emit loginRequested ();
+
+  if (asyncStartupMode) {
+    waitingForLoginCompletion= true;
+    enableButtons (true);
+    updateProgressUI (100, qt_translate ("正在等待登录完成..."),
+                      qt_translate ("登录完成后弹窗自动关闭"));
+    return;
+  }
 
   // 根据初始化状态处理
   if (initializationComplete) {
@@ -410,17 +584,13 @@ StartupLoginDialog::handleSkipButtonClick () {
   userChoiceMade= true;
   emit skipRequested ();
 
-  // 根据初始化状态处理
-  if (initializationComplete) {
-    // 初始化已完成，淡出并关闭
-    fadeOutAndClose ();
+  if (asyncStartupMode) {
+    requestAsyncStartupQuit ();
+    close ();
+    return;
   }
-  else if (!initializationInProgress) {
-    // 初始化尚未开始，现在开始
-    startInitialization ();
-  }
-  // 如果初始化正在进行中，只需等待完成
-  // 完成处理程序将调用 fadeOutAndClose()
+
+  reject ();
 }
 
 void
@@ -460,15 +630,30 @@ void
 StartupLoginDialog::handleInitializationComplete (bool success) {
   initializationInProgress= false;
   initializationComplete  = true;
+  if (asyncStartupMode) ensureMainWindowOverlay ();
 
   if (success) {
     // 初始化成功
-    updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
-                      qt_translate ("准备就绪"));
+    if (asyncStartupMode) {
+      progressBar->setRange (0, 100);
+    }
+    if (offlineMode) {
+      updateProgressUI (100, qt_translate ("当前未检测到网络连接"),
+                        qt_translate ("将以离线模式启动，会员功能暂不可用"));
+    }
+    else {
+      updateProgressUI (100, qt_translate ("初始化完成，注册即送7天会员！"),
+                        qt_translate ("准备就绪"));
+    }
 
     // 如果用户已经做出选择，触发过渡
-    if (userChoiceMade) {
+    if (!asyncStartupMode && userChoiceMade) {
       fadeOutAndClose ();
+    }
+    else if (asyncStartupMode && waitingForLoginCompletion) {
+      enableButtons (true);
+      updateProgressUI (100, qt_translate ("正在等待登录完成..."),
+                        qt_translate ("登录成功后自动关闭"));
     }
     else {
       // 启用按钮并更新UI以供用户选择
@@ -552,6 +737,7 @@ StartupLoginDialog::fadeOutAndClose () {
   fadeAnimation->setEasingCurve (QEasingCurve::OutCubic);
 
   connect (fadeAnimation, &QPropertyAnimation::finished, this, [this] () {
+    clearMainWindowOverlay ();
     accept (); // 以接受状态关闭对话框
   });
 
@@ -561,14 +747,226 @@ StartupLoginDialog::fadeOutAndClose () {
 void
 StartupLoginDialog::closeEvent (QCloseEvent* event) {
   // 处理窗口关闭按钮（X）
-  if (initializationInProgress) {
+  if (!asyncStartupMode && initializationInProgress) {
     // 如果初始化正在进行中，阻止关闭
     event->ignore ();
     return;
   }
 
   result= DialogRejected;
+  clearMainWindowOverlay ();
   QDialog::closeEvent (event);
+
+  if (asyncStartupMode && !userChoiceMade) {
+    requestAsyncStartupQuit ();
+  }
+}
+
+bool
+StartupLoginDialog::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == mainWindowOverlayHost) {
+    switch (event->type ()) {
+    case QEvent::Resize:
+    case QEvent::Move:
+    case QEvent::Show:
+      syncMainWindowOverlay ();
+      centerOverMainWindow ();
+      raise ();
+      activateWindow ();
+      return false;
+    case QEvent::Hide:
+      if (mainWindowOverlay) mainWindowOverlay->hide ();
+      return false;
+    case QEvent::Close:
+    case QEvent::Destroy:
+      clearMainWindowOverlay ();
+      return false;
+    default:
+      break;
+    }
+  }
+
+  QWidget*   dragWidget= qobject_cast<QWidget*> (watched);
+  const bool isDragHandle=
+      dragWidget && dragWidget->property ("startupDragHandle").toBool ();
+
+  switch (event->type ()) {
+  case QEvent::MouseButtonPress: {
+    if (!isDragHandle) break;
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    if (asyncStartupMode && mainWindowOverlayHost) {
+      if (QWindow* hostHandle= mainWindowOverlayHost->windowHandle ()) {
+        if (hostHandle->startSystemMove ()) {
+          if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+            widget->setCursor (Qt::ClosedHandCursor);
+          }
+          dragInProgress= false;
+          return true;
+        }
+      }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+      const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+      dragInProgress= true;
+      dragOffset=
+          globalPos - mainWindowOverlayHost->frameGeometry ().topLeft ();
+      if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+        widget->setCursor (Qt::ClosedHandCursor);
+      }
+      return true;
+    }
+    if (QWindow* handle= windowHandle ()) {
+      if (handle->startSystemMove ()) {
+        if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+          widget->setCursor (Qt::ClosedHandCursor);
+        }
+        dragInProgress= false;
+        return true;
+      }
+    }
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+    const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+    dragInProgress= true;
+    dragOffset    = globalPos - frameGeometry ().topLeft ();
+    if (QWidget* widget= qobject_cast<QWidget*> (watched)) {
+      widget->setCursor (Qt::ClosedHandCursor);
+    }
+    return true;
+  }
+  case QEvent::MouseMove: {
+    if (!isDragHandle) break;
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (!dragInProgress || !(mouseEvent->buttons () & Qt::LeftButton)) break;
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+    const QPoint globalPos= mouseEvent->globalPosition ().toPoint ();
+#else
+    const QPoint globalPos= mouseEvent->globalPos ();
+#endif
+    if (asyncStartupMode && mainWindowOverlayHost) {
+      mainWindowOverlayHost->move (globalPos - dragOffset);
+      return true;
+    }
+    move (globalPos - dragOffset);
+    return true;
+  }
+  case QEvent::MouseButtonRelease: {
+    if (!isDragHandle) break;
+    QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+    if (mouseEvent->button () != Qt::LeftButton) break;
+    dragInProgress= false;
+    resetDragCursor ();
+    return true;
+  }
+  default:
+    break;
+  }
+
+  return QDialog::eventFilter (watched, event);
+}
+
+void
+StartupLoginDialog::installDragHandler (QWidget* widget) {
+  if (!widget) return;
+  widget->setProperty ("startupDragHandle", true);
+  widget->installEventFilter (this);
+  widget->setCursor (Qt::OpenHandCursor);
+}
+
+void
+StartupLoginDialog::resetDragCursor () {
+  static QWidget* const dragHandles[]= {
+      this,          titleLabel,         iconLabel,     subtitleLabel,
+      featureLabel1, featureLabel2,      featureLabel3, featureLabel4,
+      statusLabel,   timeEstimationLabel};
+
+  for (QWidget* widget : dragHandles) {
+    if (widget) {
+      widget->setCursor (Qt::OpenHandCursor);
+    }
+  }
+}
+
+void
+StartupLoginDialog::ensureMainWindowOverlay () {
+  QWidget* hostWindow= mainWindowOverlayHost.data ();
+
+  if (!hostWindow) {
+    const QWidgetList widgets= QApplication::topLevelWidgets ();
+    for (QWidget* widget : widgets) {
+      if (!widget || widget == this) continue;
+      if (!widget->isWindow () || !widget->isVisible ()) continue;
+      if (qobject_cast<QMainWindow*> (widget) == nullptr) continue;
+      hostWindow= widget;
+      break;
+    }
+
+    if (!hostWindow) return;
+
+    mainWindowOverlayHost= hostWindow;
+    if (parentWidget () != hostWindow) {
+      const bool wasVisible= isVisible ();
+      setParent (hostWindow, windowFlags ());
+      if (wasVisible) show ();
+    }
+    hostWindow->installEventFilter (this);
+  }
+
+  if (!mainWindowOverlay) {
+    mainWindowOverlay= new StartupWindowOverlay (hostWindow);
+  }
+
+  syncMainWindowOverlay ();
+  centerOverMainWindow ();
+  mainWindowOverlay->show ();
+  mainWindowOverlay->raise ();
+  mainWindowOverlay->setFocus (Qt::OtherFocusReason);
+  raise ();
+  activateWindow ();
+}
+
+void
+StartupLoginDialog::clearMainWindowOverlay () {
+  if (mainWindowOverlayHost) {
+    mainWindowOverlayHost->removeEventFilter (this);
+  }
+  if (mainWindowOverlay) {
+    mainWindowOverlay->hide ();
+    mainWindowOverlay->deleteLater ();
+  }
+  mainWindowOverlayHost= nullptr;
+  mainWindowOverlay    = nullptr;
+}
+
+void
+StartupLoginDialog::syncMainWindowOverlay () {
+  if (!mainWindowOverlayHost || !mainWindowOverlay) return;
+  mainWindowOverlay->setGeometry (mainWindowOverlayHost->rect ());
+  mainWindowOverlay->setVisible (mainWindowOverlayHost->isVisible ());
+}
+
+void
+StartupLoginDialog::centerOverMainWindow () {
+  if (!asyncStartupMode || !mainWindowOverlayHost) return;
+
+  QRect hostGeometry= mainWindowOverlayHost->frameGeometry ();
+  move (hostGeometry.center () - rect ().center ());
+}
+
+bool
+StartupLoginDialog::getAutoBackup () {
+  return get_preference ("autobackup") == "on";
+}
+
+void
+StartupLoginDialog::setAutoBackup (bool autobackup) {
+  if (autobackup) set_preference ("autobackup", "on");
+  else set_preference ("autobackup", "off");
 }
 
 } // namespace QWK

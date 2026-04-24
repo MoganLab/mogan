@@ -54,5 +54,27 @@
           ascii-string-ci<?
           ascii-string-ci>?
           ascii-string-ci<=?
-          ascii-string-ci>=?)
-  (import (srfi srfi-175)))
+          ascii-string-ci>=?
+
+          ascii-left-paren?
+          ascii-right-paren?
+  ) ;export
+  (import (srfi srfi-175))
+  (begin
+
+    (define (ascii-left-paren? x)
+      (if (char? x)
+          (char=? x #\()
+          (and (integer? x) (= x #x28))
+      ) ;if
+    ) ;define
+
+    (define (ascii-right-paren? x)
+      (if (char? x)
+          (char=? x #\))
+          (and (integer? x) (= x #x29))
+      ) ;if
+    ) ;define
+
+  ) ;begin
+) ;define-library

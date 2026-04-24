@@ -24,7 +24,7 @@
 class QTMCompletionPopup;
 class QTMMathCompletionPopup;
 class QTMImagePopup;
-class QTMTextToolbar;
+class QTMTextPopup;
 
 /*! A widget containing a TeXmacs canvas.
 
@@ -122,13 +122,13 @@ public:
   void hide_image_popup ();
   void scroll_image_popup_by (SI x, SI y);
 
-  ////////////////////// Text toolbar support
-  void ensure_text_toolbar ();
-  void show_text_toolbar (rectangle selr, double magf, int scroll_x,
-                          int scroll_y, int canvas_x, int canvas_y);
-  void hide_text_toolbar ();
-  void scroll_text_toolbar_by (SI x, SI y);
-  bool is_point_in_text_toolbar (SI x, SI y);
+  ////////////////////// Text popup support
+  void ensure_text_popup ();
+  void show_text_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
+                        int canvas_x, int canvas_y);
+  void hide_text_popup ();
+  void scroll_text_popup_by (SI x, SI y);
+  bool is_point_in_text_popup (SI x, SI y);
 
   ////////////////////// backing store management
 
@@ -140,7 +140,7 @@ protected:
   QPointer<QTMCompletionPopup>     completionPopUp;
   QPointer<QTMMathCompletionPopup> mathCompletionPopUp;
   QPointer<QTMImagePopup>          imagePopUp;
-  QPointer<QTMTextToolbar>         textToolbar;
+  QPointer<QTMTextPopup>           textPopup;
 #ifdef USE_MUPDF_RENDERER
   double  bs_zoomf;
   picture backing_store;

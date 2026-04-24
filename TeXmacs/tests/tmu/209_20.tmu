@@ -1,0 +1,1786 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc4>>
+
+<style|<tuple|generic|number-europe|preview-ref|fish>>
+
+<\body>
+  [Updated on 3.19]
+
+  Line Code Example :
+
+  \;
+
+  <fish|zone face apply velocity-z [vel * math.sin(freq * model.mech.time)]>
+
+  Bar Code Example :
+
+  \;
+
+  <\fish-code>
+    fish define calc_stress(depth, gamma)
+
+    \ \ \ \ local pore = 9810.0 * depth
+
+    \ \ \ \ local total = gamma * depth
+
+    \ \ \ \ local eff = total - pore
+
+    \ \ \ \ io.out('Force:' + string(eff) + ' Pa')
+
+    \ \ \ \ calc_stress = eff
+
+    end
+  </fish-code>
+
+  [Updated on 3.20]
+
+  Code 1
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define fname
+
+    \ \ \ \ local a=2, b=3
+
+    \ \ \ \ global ab=a+b
+
+    end
+
+    \;
+
+    [fname] \ \ \ ; return 0
+
+    [ab] \ \ \ \ \ \ ; return 5
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 2
+
+  <\fish-code>
+    model new fish define fname(a,b)
+
+    \ \ \ \ global ab=a+b
+
+    end
+
+    \;
+
+    [fname(2,3)] ; \ return 0
+
+    [ab] \ \ \ \ \ \ \ \ ; \ return 5
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 3
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define derive(y_mod,p_ratio)
+
+    \ \ \ \ global s_mod=y_mod/(2.0*(1.0+p_ratio))
+
+    \ \ \ \ global b_mod=y_mod/(3.0*(1.0-2.0*p_ratio))
+
+    end
+
+    \;
+
+    [derive(5e8,0.25)]
+
+    \;
+
+    zone create brick size (2,2,2)
+
+    zone cmodel assign elastic
+
+    zone property bulk [b_mod] shear [s_mod]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 4
+
+  <\fish-code>
+    model new
+
+    \;
+
+    ;利用return语句
+
+    fish define fname(a,b)
+
+    \ \ \ \ return a+b
+
+    end
+
+    [fname(2,3)] ; 5
+
+    \;
+
+    ;对函数名直接赋值
+
+    fish define fname(a,b)
+
+    \ \ \ \ global fname=a+b
+
+    end
+
+    [fname(2,3)] ; 5
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 5
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define long_sum
+
+    \ \ \ \ local a1=1,a2=2,a3=3,a4=4,a5=5,a6=6,a7=7,a8=8,a9=9,a10=10
+
+    \;
+
+    \ \ \ \ ;设置中间变量temp
+
+    \ \ \ \ local temp = a1+a2+a3+a4+a5
+
+    \ \ \ \ global long_sum = temp+a6+a7+a8+a9+a10
+
+    \ \ \ \ \ \ \ \ ;利用续航符 “...”
+
+    \ \ \ \ global long_sum = a1+a2+a3+a4+a5+...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ a6+a7+a8+a9+a10
+
+    end
+
+    \;
+
+    [long_sum]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 6
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define fname
+
+    \ \ \ \ command
+
+    \ \ \ \ \ \ \ \ zone create brick size 2 2 2
+
+    \ \ \ \ endcommand
+
+    end
+
+    \;
+
+    [fname]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 7
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define fname
+
+    \ \ \ \ local a=2, b=3
+
+    \ \ \ \ global ab=a+b
+
+    \ \ \ \ io.out(ab) ; 5
+
+    \;
+
+    end
+
+    [fname] ; 0（没有返回值，自动返回0）
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 8
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define fname
+
+    \ \ \ \ local a=io.in("input a ")
+
+    \ \ \ \ local b=io.in("input b ")
+
+    \ \ \ \ global ab=a+b
+
+    \ \ \ \ io.out(ab)
+
+    end
+
+    \;
+
+    [fname] ; 0（没有返回值，自动返回0）
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 9 <\fish-code>
+    ;主文件 main.f3dat
+
+    model new
+
+    \;
+
+    program call "fish"
+
+    program call "initial"
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 10
+
+  <\fish-code>
+    ;fish文件 fish.f3dat
+
+    fish define derive(y_mod,p_ratio)
+
+    \ \ \ \ global s_mod=y_mod/(2.0*(1.0+p_ratio))
+
+    \ \ \ \ global b_mod=y_mod/(3.0*(1.0-2.0*p_ratio))
+
+    end
+
+    [derive(5e8,0.25)]
+  </fish-code>
+
+  Code 11
+
+  <\fish-code>
+    ;initial.f3dat
+
+    zone create brick size (2,2,2) ;建立模型，创建一个2X2X2的网格
+
+    zone cmodel assign elastic ;指定材料
+
+    zone property bulk [b_mod] shear [s_mod] ;赋予材料参数
+
+    ;未完待续
+  </fish-code>
+
+  Code 12
+
+  <\fish-code>
+    model new
+
+    fish define test
+
+    \ \ \ \ local a=vector(1,2,3) ; 定义一个向量类型的变量a
+
+    \ \ \ \ local aa=tensor(1,2,3,4,5,6) ; 定义一个张量类型的变量aa
+
+    \ \ \ \ local b=a-\<gtr\>x
+  <|fish-code>
+    x ; x代表vector变量的第一个元素 local c=a-
+  <|fish-code>
+    z ; z代表vector变量的第三个元素 local bb=aa-
+  <|fish-code>
+    xy ; xy代表tensor变量的第四个元素 local cc=aa-
+  <|fish-code>
+    xz ; xz代表tensor变量的第五个元素 a-
+  <|fish-code>
+    z=4 ; 利用成员访问运算符修改第三个元素 aa-
+  <|fish-code>
+    xz=7 ; 利用成员访问运算符修改第五个元素 io.out("b="+string(b)) ; b=1 io.out("c="+string(c)) ; c=3 io.out("bb="+string(bb)) ; bb=4 io.out("cc="+string(cc)) ; cc=5 io.out("a="+string(a)) ; a=(1,2,4) io.out(aa-
+  <|fish-code>
+    xz) ; 7 end
+
+    [test]
+
+    program return
+  </fish-code>
+
+  Code 13
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define string_test
+
+    \;
+
+    \ \ \ \ a = "Itasca"
+
+    \ \ \ \ \ \ \ \ ; 索引
+
+    \ \ \ \ b = a(2) ; b = "t"
+
+    \ \ \ \ c = a(-3) ; c = "s"
+
+    \ \ \ \ d = a(2,4) ; d = "tas"，满足双索引第一条
+
+    \ \ \ \ e = a(-3,-1) ; e = "sca"，满足双索引第一条
+
+    \ \ \ \ f = a(3,-4) ; f = "a", a(1,3)返回"Ita",a(-4,-1)返回"asca",重叠字符为“a”，数量为1
+
+    \ \ \ \ g = a(3,-5) ; g = "", a(1,3)返回"Ita",a(-5,-1)返回"tasca",重叠字符为“ta”，数量为2
+
+    \ \ \ \ io.out(b+"n"+c+"n"+d+"n"+e+"n"+f+"n"+g)
+
+    \;
+
+    \ \ \ \ ; 修改字符串内容
+
+    \ \ \ \ a(2) = "XA" io.out(a+"n") ; a= "IXAasca"
+
+    \ \ \ \ a(-2,-1) = "XA" io.out(a+"n") ; a= "IXAascXA"
+
+    \ \ \ \ a(-3,-1) = "XA" ; 修改字符长度大于替换字符长度，
+
+    \ \ \ \ io.out(a+"n") ; a= "IXAasXA"
+
+    \ \ \ \ a(-1,-1) = "XA" ; 修改字符长度小于替换字符长度
+
+    \ \ \ \ io.out(a+"n") ; a= "IXAasXXA"
+
+    end
+
+    \;
+
+    [string_test] ;执行函数
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 14
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define in_def(msg,default)
+
+    \ \ \ \ local xx = io.in(msg+'('+'default:'+string(default)+'):')
+
+    \ \ \ \ if type(xx) = 3
+
+    \ \ \ \ \ \ \ \ in_def = default
+
+    \ \ \ \ else
+
+    \ \ \ \ \ \ \ \ in_def = xx
+
+    \ \ \ \ endif
+
+    end
+
+    def moduli_data
+
+    \ \ \ \ global y_mod = in_def('Input Young`s modulus ', 1.0e9)
+
+    \ \ \ \ global p_ratio = in_def('Input Poisson`s ratio ', 0.25)
+
+    \ \ \ \ if p_ratio = 0.5 then
+
+    \ \ \ \ \ \ \ \ io.out(' Bulk mod is undefined at Poisson`s ratio = 0.5')
+
+    \ \ \ \ \ \ \ \ io.out(' Select a different value --')
+
+    \ \ \ \ \ \ \ \ p_ratio = in_def
+
+    \ \ \ \ endif
+
+    \ \ \ \ global s_mod = y_mod / (2.0 * (1.0 + p_ratio))
+
+    \ \ \ \ global b_mod = y_mod / (3.0 * (1.0 - 2.0 * p_ratio))
+
+    end
+
+    \;
+
+    [moduli_data]
+
+    [y_mod]
+
+    [p_ratio]
+
+    [s_mod]
+
+    [b_mod]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 15
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ local a=math.random.uniform()
+
+    \ \ \ \ io.out(string(a, 6,' ',3,'f')) ; 小数点后3位，小数点1位，小数点前占1位，
+
+    \ \ \ \ io.out(string(a, 9,' ',3,'e')) ; 小数点后3位，小数点1位，小数点前占1位，
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 16
+
+  <\fish-code>
+    ;建立一个3X3X3的网格，利用循环语句和指针打印单元号，及每一个单元形心的位置
+
+    model new
+
+    \;
+
+    ;模型
+
+    zone create brick size 3 3 3
+
+    fish define test
+
+    \ \ \ \ loop foreach _pnt zone.list
+
+    \ \ \ \ \ \ \ \ io.out(_pnt)
+
+    \ \ \ \ \ \ \ \ io.out("zone id="+string(zone.id(_pnt))+" "+"its centroid position"+" "... +string(zone.pos(_pnt))) \ \ \ \ \ endloop
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 17
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local a=(1,2,3)
+
+    \ \ \ \ local b=(3,2,1)
+
+    \ \ \ \ local aa=a+b
+
+    \ \ \ \ local bb=a*b
+
+    \ \ \ \ local cc=a*5
+
+    \ \ \ \ local dd=b/5
+
+    \ \ \ \ io.out(aa) ; (4,4,4)
+
+    \ \ \ \ io.out(bb) ; (3,4,3)
+
+    \ \ \ \ io.out(cc) ; (5,10,15)
+
+    \ \ \ \ io.out(dd) ; (0.6,0.4,0.2)
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 18
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local a=(1,2,3)
+
+    \ \ \ \ loop foreach local com a
+
+    \ \ \ \ \ \ \ \ io.out(com)
+
+    \ \ \ \ endloop
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 19
+
+  <\fish-code>
+    model new
+
+    \;
+
+    zone create brick size 2 2 2
+
+    zone cmodel assign elastic
+
+    zone property bulk 2e9 shear 6e8
+
+    \;
+
+    ;通过分割进行操作
+
+    ;[zone.prop(::zone.list,'shear') *= 0.5
+
+    ;不再需要for loopeach...endloop结构进行循环
+
+    \;
+
+    ;通过循环操作 fish define loop_2_modify
+
+    \ \ \ \ loop foreach _pnt zone.list
+
+    \ \ \ \ \ \ \ \ zone.prop(_pnt,'shear') *= 0.5
+
+    \ \ \ \ endloop end
+
+    \;
+
+    [loop_2_modify]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 20
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local a=list ;创建空列表
+
+    \;
+
+    \ \ \ \ ; 创建元素相同的列表
+
+    \ \ \ \ local b=list.create(10);创建一个长度为10的列表，元素默认为0
+
+    \ \ \ \ local c=list.create(10,1);创建一个长度为10的列表，元素都为1
+
+    \ \ \ \ local d=list.create(10,'a');创建一个长度为10的列表，元素都为'a'
+
+    \;
+
+    \ \ \ \ local e=list.sequence(1,2,'a',(1,2),math.pi) ;按顺序创建列表，元素类型可以不同
+
+    \;
+
+    \ \ \ \ local f=list.range(1,10) ;按元素为等差数列创建列表，间隔为默认为1
+
+    \ \ \ \ local g=list.range(1,10,2) ;按元素为等差数列创建列表，间隔为2
+
+    \ \ \ \ local h=list.range(10,1,-1) ;按元素为等差数列创建列表，间隔可为负值，该例中为-1
+
+    \;
+
+    \ \ \ \ io.out(list.size(h)) ; 输出列表的大小，此处为10
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 21
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local a=list.range(1,10) ; {1,2,3,4,5,6,7,8,9,10}
+
+    \;
+
+    \ \ \ \ local b=list.append(a,11) ; {1,2,3,4,5,6,7,8,9,10,11}
+
+    \ \ \ \ \ \ \ \ local c=list.append(a,(11, 12)) ; {1,2,3,4,5,6,7,8,9,10,(11,12)} 不展开内容
+
+    \ \ \ \ \ \ \ \ local d=list.extend(a,(11, 12)) ; {1,2,3,4,5,6,7,8,9,10,11,12} 展开内容
+
+    \;
+
+    \ \ \ \ local e=list.prepend(11,a) ; {11, 1,2,3,4,5,6,7,8,9,10}
+
+    \ \ \ \ \ \ \ \ local f=list.prepend((11,12),a) ; {(11,12), 1,2,3,4,5,6,7,8,9,10} 不展开内容
+
+    \ \ \ \ \ \ \ \ ; 插入单值
+
+    \ \ \ \ \ \ \ \ local g=list.insert(a,3,'a') ; {1,2,'a',3,4,5,6,7,8,9,10}
+
+    \ \ \ \ \ \ \ \ ; 插入一个变量
+
+    \ \ \ \ \ \ \ \ local h=list.insert(a,3, a) ; {1,2,Size 10,3,4,5,6,7,8,9,10}
+
+    \;
+
+    \ \ \ \ ; 插入多值
+
+    \ \ \ \ \ \ \ \ local i=list.insert.list(a,3,list.sequence('a',1));{1,2,'a',1,3,4,5,6,7,8,9,10}
+
+    \ \ \ \ end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 22
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ ;利用列表的range方法创建列表，其中元素按等差数列分布
+
+    \ \ \ \ \ \ \ \ local a = list.range(1,10)
+
+    \ \ \ \ \ \ \ \ local b = list.range(20,11,-1)
+
+    \;
+
+    \ \ \ \ local d = a * 2 ;; 2是整数（非列表），d中元素是a中对应元素乘以2，相当于d=list.range(2,20,2)
+
+    \ \ \ \ \ \ \ \ local e = a + b ;; e中所有元素的值都是21
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 23
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ ; 建立一个元素是向量的列表
+
+    \ \ \ \ \ \ \ \ local a = list.sequence( (1,2,3) , ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (4,5,6) , ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (7,8,9) , ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ (10,11,12) )
+
+    \ \ \ \ ; 将列表中每一个元素，即每一个向量的第二元素取出，形成一新的列表local b = a-y
+
+    ; 将列表中每一个元素，即每一个向量的第三个元素除以2，形成一新的列表 a-z /= 2
+
+    end
+
+    [test]
+
+    program return
+  </fish-code>
+
+  Code 24
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ local a = tensor(2,3,4,1,6,5)
+
+    \ \ \ \ local c = a(5) ; c = 6.0
+
+    \ \ \ \ local d = a(1,3) ; d = 6.0
+
+    \ \ \ \ local e = a-xz ; e = 6.0
+
+    a(5) = 6.0 ; 下列三行代码效果一样，都是修改张量xz分量的值
+
+    a(1,3) = 6.0 a-xz = 6.0
+
+    end
+
+    [test]
+
+    program return
+  </fish-code>
+
+  Code 25
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ ;前两个参数是整数，代表矩阵的大小
+
+    \ \ \ \ global m3 = matrix(3,3, ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 1,2,3, ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 4,5,6, ...
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ 7,8,9)
+
+    \ \ \ \ global m1 = matrix(1,3,1,2,3)
+
+    \ \ \ \ global a = m3(2,3) ; a = 6.0
+
+    \ \ \ \ m3(2,3) = 6.5 ; m3 = ((1,2,3) (4,5,6.5) (7,8,9))
+
+    \ \ \ \ global b = m1(3) ; b = 3.0
+
+    \ \ \ \ m1(3) = 3.5
+
+    \;
+
+    \ \ \ \ ;利用四个指标，选取块矩阵
+
+    \ \ \ \ global c = m3(2,1,2,3) ; A 1x3 row vector removed from m3 (4,5,6.5)
+
+    \ \ \ \ ;更新选取的块矩阵的内容
+
+    \ \ \ \ m3(3,1,3,3) = matrix(1,3,10,11,12) ; m3 = ((1,2,3) (4,5,6.5) (10,11,12))
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 26
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define setup
+
+    \ \ \ \ alan = matrix(4,4) ; 大小为4X4的矩阵，元素为0
+
+    \ \ \ \ alan(1,3) = 6
+
+    \ \ \ \ alan(2,1) = 2.2
+
+    \ \ \ \ alan(3,4) = 6.6
+
+    \ \ \ \ alan(4,2) = math.pi end [setup] [alan(4,2)] ;math.pi [alan = matrix.transpose(alan)] ;原矩阵的转置 [alan(2,4)] ;math.pi
+
+    \;
+
+    fish define sum_tests
+
+    \ \ \ \ herp = matrix(2,2, 6,-1,-3,2)
+
+    \ \ \ \ derp = matrix(2,2, 4, 3,-7,0)
+
+    \ \ \ \ \ \ \ \ klerp = herp + derp
+
+    \ \ \ \ werp = herp - derp
+
+    \ \ \ \ serp = herp * derp
+
+    end
+
+    [sum_tests]
+
+    [klerp(1,1)] ; 10
+
+    [werp(1,1)] ; 2
+
+    [serp(1,1)] ; 31
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local first = vector(2,4,3)
+
+    \ \ \ \ local second = vector(8,1,5)
+
+    \ \ \ \ local prod = math.outer.product(first, second) ; 并积
+
+    \ \ \ \ local output = list(prod)
+
+    end
+
+    [test]
+
+    fish list contents [output] ; 输出列表output的内容
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 27
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ local a=map() ;空映射
+
+    \ \ \ \ local b=map(10, 1.0,'fred',4.0,3.4,6.0) ;通过键值对形成映射
+
+    \;
+
+    \ \ \ \ ;通过元素相同的两个列表创建映射
+
+    \ \ \ \ local c=map(list.sequence(1,'a',(1,2)),list.sequence('b',1,'b')
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 28
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ map1 = map(10,1.0,'fred',4.0,3.4,6.0)
+
+    \;
+
+    \ \ \ \ ; 所有映射中的所有值
+
+    \ \ \ \ loop foreach local com map1
+
+    \ \ \ \ \ \ \ \ io.out(com)
+
+    \ \ \ \ endloop
+
+    \;
+
+    \ \ \ \ ; 对列表中所有键进行循环，并通过键获取值
+
+    \ \ \ \ loop foreach local com1 map.keys(map1)
+
+    \ \ \ \ \ \ \ \ \ io.out('key= '+string(com1)+'t'+'value= '+string(map1(com1)))
+
+    \ \ \ \ endloop
+
+    \;
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 30
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ local a = map(1,'fred',5,'george')
+
+    \ \ \ \ local b = a ; 创建a的副本，相当于在内存地址中重新开辟一个空间存储同一个对象
+
+    \;
+
+    \ \ \ \ ; 修改副本对象的内容不会影响原对象，同样修改原对象也不会影响副本对象
+
+    \ \ \ \ b(5) = 'mary'
+
+    \ \ \ \ io.out(a(5)) ; george
+
+    \ \ \ \ io.out(b(5)) ; mary
+
+    \ \ \ \ end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 31
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define testBreak
+
+    \;
+
+    \ \ \ \ local testmap = map('first',1, 'second',2, 'third',3)
+
+    \ \ \ \ global sum = 0
+
+    \ \ \ \ loop foreach local v testmap ;对值进行循环
+
+    \ \ \ \ \ \ \ \ sum = sum + v
+
+    \ \ \ \ endloop
+
+    \;
+
+    end [testBreak] [sum] ; 6
+
+    \;
+
+    fish define test1
+
+    \ \ \ \ local temp = map('hello',1,'world',2)
+
+    \ \ \ \ global test1 = temp('hello') + temp('world') ;映射的值求和 end [test1] ; 3
+
+    \;
+
+    fish define test2
+
+    \ \ \ \ local testmap = map('first',1,'second',2,'third',3)
+
+    \ \ \ \ map.remove(testmap,'first')
+
+    \ \ \ \ map.add(testmap,'fourth',4) ; 键值对增加映射元素
+
+    \ \ \ \ testmap('second')=8 ; 根据键修改值
+
+    \ \ \ \ local output = 0
+
+    \ \ \ \ loop foreach local n testmap ; 映射值求和
+
+    \ \ \ \ \ \ \ \ output = output + n
+
+    \ \ \ \ endloop
+
+    \ \ \ \ test2 = output end [test2] ; 15
+
+    \;
+
+    fish define test3
+
+    \ \ \ \ ; test keys
+
+    \ \ \ \ testmap = map('yet',1,'another',4,'test',9,'m',16)
+
+    \ \ \ \ testkeys = map.keys(testmap) ; list.sequence('yet', 'another', 'test', 'm')
+
+    \ \ \ \ test3 = testkeys(3) ; 'test'
+
+    \;
+
+    \ \ \ \ if (map.has(testmap,'wrongkey')) ; map.has() 判断映射中是否有相应的key
+
+    \ \ \ \ \ \ \ \ hascheck = 909
+
+    \ \ \ \ else if (map.has(testmap,'another'))
+
+    \ \ \ \ \ \ \ \ hascheck = testmap('another') ; 根据键赋值
+
+    \ \ \ \ endif end [test3] [hascheck]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 32
+
+  <\fish-code>
+    model new
+
+    \;
+
+    model random 10000 ; 这个命令放在moded new后面，保证每次生成树的随机数是一样的
+
+    \;
+
+    fish define afill ; 用随机数填充矩阵
+
+    \ \ \ \ global var = array.create(4,3)
+
+    \ \ \ \ loop local m (1,array.size(var,1))
+
+    \ \ \ \ \ \ \ \ loop local n (1,array.size(var,2))
+
+    \ \ \ \ \ \ \ \ \ \ \ \ var(m,n) = math.random.uniform
+
+    \ \ \ \ \ \ \ \ endloop
+
+    \ \ \ \ endloop
+
+    \;
+
+    \ \ \ \ global var2 = array(math.random.uniform(4*3),4,3) end
+
+    \;
+
+    fish define ashow(v) ; 显示矩阵元素
+
+    \ \ \ \ loop local m (1,array.size(v,1))
+
+    \ \ \ \ \ \ \ \ local hed = ' '
+
+    \ \ \ \ \ \ \ \ local msg = ' '+string(m)
+
+    \ \ \ \ \ \ \ \ loop local n (1,array.size(v,2))
+
+    \ \ \ \ \ \ \ \ \ \ \ \ hed = hed + ' '+string(n)
+
+    \ \ \ \ \ \ \ \ \ \ \ \ msg = msg + ' '+string(v(m,n),8,' ',8,'e')
+
+    \ \ \ \ \ \ \ \ endloop
+
+    \ \ \ \ \ \ \ \ if m = 1
+
+    \ \ \ \ \ \ \ \ \ \ \ \ io.out(hed)
+
+    \ \ \ \ \ \ \ \ endif
+
+    \ \ \ \ \ \ \ \ \ \ \ \ io.out(msg)
+
+    \ \ \ \ endloop end
+
+    \;
+
+    [afill] [ashow(var)] [ashow(var2)]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 33
+
+  <\fish-code>
+    model new
+
+    \;
+
+    ;利用fish structure 命令在函数外定义结构体，结构体有三个变量 fish structure fred(one,two,three)
+
+    \;
+
+    fish define test
+
+    \ \ \ \ ;利用 structure 语句作为在FISH函数中定义结构体，结构体有三个变量
+
+    \ \ \ \ structure george(val1,val2,val3)
+
+    \;
+
+    \ \ \ \ ;george结构体的实例化，并赋予初值
+
+    \ \ \ \ global fred = struct georg e(1,2,3)
+
+    \ \ \ \ \ \ \ \ ;fred结构体的实例化，未赋初值，初值为0
+
+    \ \ \ \ global mary = struct fred
+
+    \;
+
+    \ \ \ \ ;val1对应的值给test
+
+    \ \ \ \ test = fred-val1
+
+    mary-two = 'monkey'
+
+    end
+
+    [test] ; 1
+
+    [mary-one] ; 0
+
+    [mary-two] ; monkey
+
+    [mary-three] ; 0
+
+    program return
+  </fish-code>
+
+  Code 34
+
+  <\fish-code>
+    caseof expr
+
+    \ \ \ \ ... ; 默认的代码，即以下条件都不满足时执行
+
+    \ \ \ \ \ \ \ \ case i1
+
+    \ \ \ \ \ \ \ \ ... ; 代码块1
+
+    \ \ \ \ case i2
+
+    \ \ \ \ \ \ \ \ ... ; 代码块2
+
+    \ \ \ \ case i3
+
+    \ \ \ \ \ \ \ \ ... ; 代码块3
+
+    endcase
+  </fish-code>
+
+  Code 35
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \;
+
+    \ \ \ \ a=io.in("input value of a ")
+
+    \ \ \ \ b=io.in("input value of b ")
+
+    \ \ \ \ operator=io.in("input operator (+ - * /)")
+
+    \;
+
+    \ \ \ \ caseof operator
+
+    \ \ \ \ \ \ \ \ \ \ \ \ io.out("no valide operation is detected!") ; 默认输出，即没有相应的匹配
+
+    \ \ \ \ \ \ \ \ \ \ \ \ case '+'
+
+    \ \ \ \ \ \ \ \ io.out("the operator indicates addition")
+
+    \ \ \ \ \ \ \ \ io.out("a+b="+string(a+b))
+
+    \ \ \ \ case '-'
+
+    \ \ \ \ \ \ \ \ io.out("the operator indicates subtraction")
+
+    \ \ \ \ \ \ \ \ io.out("a-b="+string(a-b))
+
+    \ \ \ \ case '*'
+
+    \ \ \ \ \ \ \ \ io.out("the operator indicates multiplication")
+
+    \ \ \ \ \ \ \ \ io.out("a*b="+string(a*b))
+
+    \ \ \ \ case '/'
+
+    \ \ \ \ \ \ \ \ io.out("the operator indicates division")
+
+    \ \ \ \ \ \ \ \ io.out("a/b="+string(a/b))
+
+    \ \ \ \ endcase
+
+    end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 36
+
+  <\fish-code>
+    command <suppress>
+    \ \ \ \ ...
+    endcommand
+  </fish-code>
+
+  <\fish-code>
+    if expression then
+
+    \ \ \ \ ...
+
+    else if expression then
+
+    \ \ \ \ ...
+
+    else
+
+    \ \ \ \ ...
+
+    endif
+  </fish-code>
+
+  <\fish-code>
+    if expression then expression
+  </fish-code>
+
+  Code 37
+
+  <\fish-code>
+    loop <local> var (expr1, expr2, <expr3>)
+
+    \ \ \ \ ...
+
+    endloop
+  </fish-code>
+
+  Code 38
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define sum(n)
+
+    \ \ \ \ local s = 0
+
+    \ \ \ \ loop local i (1,n)
+
+    \ \ \ \ \ \ \ \ s += i
+
+    \ \ \ \ endloop
+
+    \ \ \ \ global sum = s end
+
+    \;
+
+    [s = sum(10)]
+
+    fish list [s] ; 55
+
+    \;
+
+    fish define sum_even(n)
+
+    \ \ \ \ local s = 0
+
+    \ \ \ \ loop local i (n,0,-2)
+
+    \ \ \ \ \ \ \ \ s += i
+
+    \ \ \ \ endloop
+
+    \ \ \ \ global sum_even = s end
+
+    \;
+
+    [s2 = sum_even(10)] fish list [s2] ; 30
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 39
+
+  <\fish-code>
+    loop while exprtest
+
+    \ \ \ \ ...
+
+    endloop
+  </fish-code>
+
+  Code 40
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define sum_even(n)
+
+    \ \ \ \ local s = 0
+
+    \ \ \ \ local i = 0
+
+    \ \ \ \ loop while i \<less\>= n
+
+    \ \ \ \ \ \ \ \ s += i
+
+    \ \ \ \ \ \ \ \ i +=2
+
+    \ \ \ \ endloop
+
+    \ \ \ \ \ \ \ \ global sum_even = s end
+
+    \;
+
+    [s2 = sum_even(10)] fish list [s2]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 41
+
+  <\fish-code>
+    loop for (exprinit, exprtest, exprmodify)
+
+    \ \ \ \ ...
+
+    endloop
+  </fish-code>
+
+  Code 42
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define sum_odd(n)
+
+    \ \ \ \ local s= 0
+
+    \ \ \ \ loop for (local i=1, i \<less\>= n, i+=2)
+
+    \ \ \ \ \ \ \ \ s += i
+
+    \ \ \ \ endloop
+
+    \ \ \ \ global sum_odd = s end
+
+    \;
+
+    [s_odd = sum_odd(10)] fish list [s_odd]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 43
+
+  <\fish-code>
+    loop foreach <local> var expr1
+
+    \ \ \ \ ...
+
+    endloop
+  </fish-code>
+
+  Code 44
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define test
+
+    \ \ \ \ local a=math.random.uniform(10) ;形成含10个随机数的列表
+
+    \ \ \ \ loop foreach local com a
+
+    \ \ \ \ \ \ \ \ io.out(com)
+
+    \ \ \ \ endloop end
+
+    \;
+
+    [test]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 46
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define write2file
+
+    \;
+
+    \ \ \ \ local f=file.open('test.txt', 'w') ; 打开写入的文件
+
+    \ \ \ \ local val=math.random.uniform(20) ; 由均匀分布的随机数形成的列表
+
+    \ \ \ \ local l=list ; 空列表
+
+    \;
+
+    \ \ \ \ loop foreach local com val
+
+    \ \ \ \ \ \ \ \ l=list.append(l,com) ; 随机数插入列表
+
+    \ \ \ \ endloop
+
+    \;
+
+    \ \ \ \ file.write(f)=l
+
+    \ \ \ \ \ \ \ \ local b=file.close(f)
+
+    end
+
+    \;
+
+    [write2file]
+
+    \;
+
+    fish define read_from_file
+
+    \;
+
+    \ \ \ \ local f=file.open('test.txt', 'r') ; 打开读取的文件
+
+    \ \ \ \ local l=file.read(f)
+
+    \;
+
+    \ \ \ \ loop foreach local com l
+
+    \ \ \ \ \ \ \ \ io.out(com) ; 输出列表中的元素
+
+    \ \ \ \ endloop
+
+    \ \ \ \ \ \ \ \ local b=file.close(f)
+
+    \;
+
+    end
+
+    \;
+
+    [read_from_file]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 47
+
+  <\fish-code>
+    model new
+
+    \;
+
+    model large-strain off fish automatic-create off
+
+    \;
+
+    model title "Braced support with a beam of a vertical excavation" ; ; ; zone create brick size 10 10 10
+
+    \;
+
+    zone cmodel assign mohr-coulomb zone property bulk 1e8 shear 0.3e8 friction 35 zone property cohesion 1e10 tension 1e10 density 1000
+
+    \;
+
+    zone face apply velocity-normal 0 range union position-x 0 position-x 10 zone face apply velocity-normal 0 range union position-y 0 position-y 10 zone face apply velocity-normal 0 range position-z 0
+
+    \;
+
+    model gravity (0,0,-9.81) model solve ratio-local 1e-5 model save 'initial' ; ; ; model restore 'initial' zone gridpoint initialize displacement (0,0,0) ;位移清零，关注开挖的影响
+
+    \;
+
+    ; 赋予材料真实值 zone property cohesion 1.25e3 tension 1e3 zone cmodel assign null range position (3,3,6) (7,7,10) model large-strain on
+
+    \;
+
+    ; 历史记录值 history interval 10 zone history name 'disp-x' displacement-x gridpointid 1269 zone history name 'unbalf-x' unbalanced-force-x gridpointid 1269
+
+    \;
+
+    model step 2000 ; ;采样间隔为10，因此第一个点为1350，第二个点为1360，以此类推 history export 'unbalf-x' vs step file 'test1.txt' truncate
+
+    \;
+
+    ;输出间隔为10，第一个点为1350, skip 10，表示第二个点与第一个点的间隔为100（10X10），即1450，以此类推 history export 'unbalf-x' vs 'disp-x' skip 10 file 'test2.txt' truncate
+
+    \;
+
+    ;输出为table history export 'unbalf-x' vs 'disp-x' table '1' ;更改图例 table '1' label 'f-x'
+
+    \;
+
+    model save 'excavation'
+  </fish-code>
+
+  [Supplemented on 2026/04/15]
+
+  Code 48
+
+  <\fish-code>
+    model new
+
+    \;
+
+    fish define inspect_runtime
+
+    \ \ \ \ local cwd = system.directory.current
+
+    \ \ \ \ local lower_files = file.all('*.fis')
+
+    \ \ \ \ local upper_files = file.all("*.FIS")
+
+    \ \ \ \ local major = version.fish.major
+
+    \ \ \ \ local total = math.abs(-5) + list.sum(list.range(1,4))
+
+    \ \ \ \ io.out(string.build('cwd=', cwd))
+
+    \ \ \ \ io.out(string.build('fis=', list.size(lower_files)))
+
+    \ \ \ \ io.out(string.build('FIS=', list.size(upper_files)))
+
+    \ \ \ \ io.out(string.build('major=', major))
+
+    \ \ \ \ io.out(string.build('total=', total))
+
+    end
+
+    \;
+
+    [inspect_runtime]
+
+    \;
+
+    program return
+  </fish-code>
+
+  Code 49
+
+  <\fish-code>
+    fish define scan_points(points)
+
+    \ \ \ \ local total = 0.0
+
+    \ \ \ \ local weights = list
+
+    \ \ \ \ loop foreach local pnt points
+
+    \ \ \ \ \ \ \ \ total += pnt-\<gtr\>x + pnt-\<gtr\>y + pnt-\<gtr\>z
+
+    \ \ \ \ endloop
+
+    \ \ \ \ weights =:: list.range(1,10)
+
+    \ \ \ \ weights +=:: list.sequence(11,12,13)
+
+    \ \ \ \ return total
+
+    end
+  </fish-code>
+
+  Code 50
+
+  <\fish-code>
+    fish define run_startup
+
+    \ \ \ \ command
+
+    \ \ \ \ \ \ \ \ model new
+
+    \ \ \ \ \ \ \ \ program call 'startup.fis'
+
+    \ \ \ \ \ \ \ \ fish list
+
+    \ \ \ \ \ \ \ \ history list
+
+    \ \ \ \ \ \ \ \ model save 'checkpoint'
+
+    \ \ \ \ endcommand
+
+    end
+  </fish-code>
+
+  Code 51
+
+  <\fish-code>
+    fish define control_aliases(flag)
+
+    \ \ \ \ section
+
+    \ \ \ \ \ \ \ \ if flag then
+
+    \ \ \ \ \ \ \ \ \ \ \ \ loop while flag > 0
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ flag -= 1
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ if flag = 2 then
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ exit_loop
+
+    \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ end_if
+
+    \ \ \ \ \ \ \ \ \ \ \ \ end_loop
+
+    \ \ \ \ \ \ \ \ else
+
+    \ \ \ \ \ \ \ \ \ \ \ \ exit_section
+
+    \ \ \ \ \ \ \ \ end_section
+
+    end
+  </fish-code>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

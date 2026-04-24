@@ -28,8 +28,10 @@
                 bag-union! bag-intersection! bag-difference! bag-xor!
                 bag-adjoin bag-adjoin! bag-replace bag-replace!
                 bag-delete bag-delete! bag-delete-all bag-delete-all!
-                bag-search!)
-          (srfi srfi-128))
+                bag-search!
+          ) ;only
+          (srfi srfi-128)
+  ) ;import
   (export bag bag-unfold bag-member bag-comparator
           bag->list list->bag list->bag! bag-copy
           bag? bag-contains? bag-empty? bag-disjoint?
@@ -39,14 +41,17 @@
           bag-union! bag-intersection! bag-difference! bag-xor!
           bag-adjoin bag-adjoin! bag-replace bag-replace!
           bag-delete bag-delete! bag-delete-all bag-delete-all!
-          bag-search!)
+          bag-search!
+  ) ;export
 
   (define comp (make-default-comparator))
 
   (define (bag . elements)
-    (apply make-bag-with-comparator comp elements))
+    (apply make-bag-with-comparator comp elements)
+  ) ;define
 
   (define (list->bag elements)
-    (list->bag-with-comparator comp elements))
+    (list->bag-with-comparator comp elements)
+  ) ;define
 
-) ; end of define-library
+) ;define-library

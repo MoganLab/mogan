@@ -16,5 +16,6 @@
 
 (define-library (srfi srfi-16)
   (import (scheme case-lambda))
-  (export case-lambda))
+  (export case-lambda)
+) ;define-library
 

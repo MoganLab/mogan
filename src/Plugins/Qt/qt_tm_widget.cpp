@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDockWidget>
+#include <QFontMetrics>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -28,8 +29,8 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QObject>
+#include <QPushButton>
 #include <QResource>
-#include <QScreen>
 #include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
@@ -44,6 +45,7 @@
 #include "qt_gui.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
+#include "qt_startup_tab_widget.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 
@@ -70,6 +72,32 @@ using moebius::data::scm_quote;
 
 int menu_count= 0; // zero if no menu is currently being displayed
 list<qt_tm_widget_rep*> waiting_widgets;
+extern bool             texmacs_started;
+
+static bool
+is_startup_tab_file (const string& file) {
+  return file == "tmfs://startup-tab";
+}
+
+static bool
+is_startup_tab_current_view () {
+  url view= get_current_view_safe ();
+  if (is_none (view)) return false;
+  return view_to_buffer (view) == url ("tmfs://startup-tab");
+}
+
+static QRect
+login_dialog_anchor_rect (QWidget* loginButton) {
+  if (!loginButton) return QRect ();
+  return QRect (loginButton->mapToGlobal (QPoint (0, 0)), loginButton->size ());
+}
+
+static void
+show_login_dialog_at_button (QWK::LoginDialog* dialog, QWidget* loginButton) {
+  if (!dialog || !loginButton) return;
+  const QRect anchorRect= login_dialog_anchor_rect (loginButton);
+  dialog->showAtRect (anchorRect, DpiUtils::scaled (6));
+}
 
 static void
 replaceActions (QWidget* dest, QList<QAction*>* src) {
@@ -131,8 +159,13 @@ QTMInteractiveInputHelper::commit (int result) {
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
-      titleBarVisibleCache (false), membershipTitleLabel (nullptr),
-      m_userId ("") {
+      titleBarVisibleCache (false), scmNotificationBar (nullptr),
+      loginButton (nullptr), vipButton (nullptr), m_loginDialog (nullptr),
+      avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
+      membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
+      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
+      m_memberType (""), m_currentScmNotificationItem (""),
+      startupContentWidget (nullptr), startupTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -192,14 +225,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     mw->setMenuWidget (outBar);
   };
 
-  QScreen* screen        = QGuiApplication::primaryScreen ();
-  double   dpi           = screen ? screen->logicalDotsPerInch () : 96.0;
-  double   scale         = dpi / 96.0;
-  int      titleBarHeight= int (32 * scale);
-  int      buttonWidth   = int (46 * scale);
-  int      buttonHeight  = int (32 * scale);
-  int      iconBaseSize  = int (12 * scale);
-  int      macosiconSize = int (20 * scale);
+  double scale         = DpiUtils::scaleFactor ();
+  int    titleBarHeight= int (32 * scale);
+  int    buttonWidth   = int (46 * scale);
+  int    buttonHeight  = int (32 * scale);
+  int    iconBaseSize  = int (12 * scale);
+  int    macosiconSize = int (20 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
@@ -330,37 +361,110 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     windowAgent->setHitTestVisible (loginButton, true);
   }
 
-  m_loginDialog= new QWK::LoginDialog (mainwindow ());
-  setupLoginDialog (m_loginDialog);
-  QObject::connect (loginButton, &QWK::LoginButton::clicked,
-                    [this] () { checkLocalTokenAndLogin (); });
-
-  // 初始化访客提示条
-  guestNotificationBar= new QWK::GuestNotificationBar (mw);
-
-  // 连接提示条信号
-  QObject::connect (guestNotificationBar,
-                    &QWK::GuestNotificationBar::loginRequested,
-                    [this] () { triggerOAuth2 (); });
-  QObject::connect (guestNotificationBar,
-                    &QWK::GuestNotificationBar::closeRequested, [this] () {
-                      guestNotificationBar->hide ();
-                      // 只隐藏当前会话，不保存到设置
-                    });
-
-  // 检查是否应该显示提示条
-  // 1. 社区版不显示
-  // 2. 商业版：用户未登录时显示，用户已登录时不显示
   if (is_community_stem ()) {
-    // 社区版：不显示提示条
-    guestNotificationBar->hide ();
+    // 社区版：点击直接跳转官网，无状态变化，不显示文字
+    loginButton->setText (QString ());
+    loginButton->setToolTip (qt_translate ("User Center"));
+    loginButton->setAccessibleName (qt_translate ("User Center"));
+    QObject::connect (loginButton, &QWK::LoginButton::clicked, [this] () {
+      string pricingUrl=
+          as_string (call ("account-oauth2-config", "click-return-liii-url"));
+      QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+    });
   }
   else {
-    // 商业版：检查用户登录状态（使用和OCR功能相同的判断方法）
-    // 初始隐藏，等网络检查完成后再决定是否显示guestNotificationBar->hide ();
-    guestNotificationBar->hide ();
-    checkNetworkAvailable ();
+    // 商业版：完整登录功能
+    updateLoginButtonState (false);
+
+    m_loginDialog= new QWK::LoginDialog (mainwindow ());
+    setupLoginDialog (m_loginDialog);
+    QObject::connect (loginButton, &QWK::LoginButton::clicked,
+                      [this] () { checkLocalTokenAndLogin (); });
   }
+
+  // VIP升级会员按钮 - 放在登录按钮右侧（只在商业版显示）
+  vipButton= new QPushButton (windowBar);
+  vipButton->setObjectName ("vip-button");
+  vipButton->setText ("  " + qt_translate ("Upgrade VIP"));
+  vipButton->setProperty ("system-button", true);
+  vipButton->setFocusPolicy (Qt::NoFocus);
+  vipButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  vipButton->setFixedHeight (buttonHeight - 8);
+  vipButton->setCursor (Qt::PointingHandCursor);
+
+  // 设置醒目的样式 - 金色/橙色渐变，圆角，闪电图标
+  vipButton->setStyleSheet ("QPushButton#vip-button {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFD700, stop:1 #FFA500);"
+                            "  border: none;"
+                            "  border-radius: 12px;"
+                            "  color: #8B4513;"
+                            "  font-weight: bold;"
+                            "  font-size: 12px;"
+                            "  padding: 0 14px 0 8px;"
+                            "}"
+                            "QPushButton#vip-button:hover {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFE135, stop:1 #FFB347);"
+                            "}"
+                            "QPushButton#vip-button:pressed {"
+                            "  background: qlineargradient(x1:0, y1:0, x2:1, "
+                            "y2:0, stop:0 #FFC125, stop:1 #FF8C00);"
+                            "}");
+
+  // 设置闪电图标
+  vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
+  vipButton->setIconSize (QSize (16, 16));
+
+  windowBar->setVipButton (vipButton);
+  if (windowAgent) {
+    windowAgent->setHitTestVisible (vipButton, true);
+  }
+
+  // 点击事件：跳转到会员购买页面
+  QObject::connect (vipButton, &QPushButton::clicked, [this] () {
+    string pricingUrl=
+        as_string (call ("account-oauth2-config", "pricing-url"));
+    QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+  });
+
+  // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
+  updateVipButtonVisibility (false, QString ());
+
+  // 创建 SCM 通知条容器（放在标题栏下方）
+  QWidget*     notificationContainer= new QWidget (mw);
+  QVBoxLayout* notificationLayout   = new QVBoxLayout (notificationContainer);
+  notificationLayout->setContentsMargins (0, 0, 0, 0);
+  notificationLayout->setSpacing (0);
+
+  // 初始化 SCM 提示条
+  scmNotificationBar= new QWK::NotificationBar ();
+  notificationLayout->addWidget (scmNotificationBar);
+  scmNotificationBar->hide ();
+
+  QObject::connect (
+      scmNotificationBar, &QWK::NotificationBar::closeRequested, [this] () {
+        eval ("(use-modules (texmacs menus notificationbar))");
+        bool handled= as_bool (call ("notification-bar-handle-close"));
+
+        if (!handled && scmNotificationBar) scmNotificationBar->hide ();
+      });
+  QObject::connect (scmNotificationBar, &QWK::NotificationBar::snoozeRequested,
+                    [this] () {
+                      eval ("(use-modules (texmacs menus notificationbar))");
+                      if (m_currentScmNotificationItem ==
+                          QStringLiteral ("membership-renew-soon")) {
+                        call ("notification-bar-snooze-membership-renew-soon");
+                      }
+                      else if (m_currentScmNotificationItem ==
+                               QStringLiteral ("membership")) {
+                        call ("notification-bar-snooze-membership-expired");
+                      }
+                    });
+  if (!is_community_stem ()) checkNetworkAvailable ();
+
+  // 延迟检查版本更新（启动后10秒）
+  QTimer::singleShot (10000, [this] () { checkVersionUpdate (); });
 
   // there is a bug in the early implementation of toolbars in Qt 4.6
   // which has been fixed in 4.6.2 (at least)
@@ -377,9 +481,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // status bar
 
   QStatusBar* bar= new QStatusBar (mw);
-  leftLabel      = new QLabel (qt_translate ("Welcome to TeXmacs"), bar);
-  middleLabel    = new QLabel ("", bar);
-  rightLabel     = new QLabel (qt_translate ("Booting"), bar);
+  bar->setObjectName ("statusBar");
+  leftLabel  = new QLabel (qt_translate ("Welcome to TeXmacs"), bar);
+  middleLabel= new QLabel ("", bar);
+  rightLabel = new QLabel (qt_translate ("Booting"), bar);
   leftLabel->setFrameStyle (QFrame::NoFrame);
   middleLabel->setFrameStyle (QFrame::NoFrame);
   rightLabel->setFrameStyle (QFrame::NoFrame);
@@ -517,9 +622,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   bl->setSpacing (0);
   cw->setLayout (bl);
   QWidget* q= main_widget->as_qwidget (); // force creation of QWidget
+  q->setObjectName ("editorCanvas");
   q->setParent (
       qwid); // q->layout()->removeWidget(q) will reset the parent to this
-  bl->addWidget (guestNotificationBar); // 添加访客提示条
+  bl->addWidget (notificationContainer); // 添加 SCM 通知条容器
   bl->addWidget (q);
 
   mw->setCentralWidget (cw);
@@ -577,9 +683,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     bl->insertWidget (2, modeToolBar);
     bl->insertWidget (3, rulerWidget);
     bl->insertWidget (4, focusToolBar);
-    bl->insertWidget (5, guestNotificationBar); // 访客提示条在焦点工具栏下方
-    bl->insertWidget (6, userToolBar);
-    bl->insertWidget (7, r2);
+    bl->insertWidget (5, userToolBar);
+    bl->insertWidget (6, r2);
 
     // mw->setContentsMargins (-2, -2, -2, -2);  // Why this?
     bar->setContentsMargins (0, 1, 0, 1);
@@ -679,27 +784,29 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
         dynamic_cast<tm_server_rep*> (get_server ().operator->());
     if (server && server->getAccount ()) {
       QTMOAuth* account= server->getAccount ();
-      QObject::connect (account, &QTMOAuth::loginStateChanged,
-                        [this] (bool loggedIn) {
-                          // 登录状态变化时，重新检查登录状态并更新提示条
-                          if (guestNotificationBar) {
-                            // 社区版不显示提示条
-                            if (is_community_stem ()) {
-                              guestNotificationBar->hide ();
-                            }
-                            else {
-                              // 商业版：根据登录状态决定是否显示
-                              if (loggedIn) {
-                                // 用户已登录，隐藏提示条
-                                guestNotificationBar->hide ();
-                              }
-                              else {
-                                // 用户未登录，显示提示条
-                                guestNotificationBar->show ();
-                              }
-                            }
-                          }
-                        });
+      // 商业版：连接登录状态变化信号
+      if (!is_community_stem ()) {
+        QObject::connect (
+            account, &QTMOAuth::loginStateChanged, [this] (bool loggedIn) {
+              updateLoginButtonState (loggedIn,
+                                      loggedIn ? qt_translate ("User Center")
+                                               : QString ());
+              if (loggedIn) {
+                syncScmGuestNotification (false);
+                refreshMembershipInfoInBackground ();
+              }
+              else {
+                syncScmMembershipNotification (false);
+                checkNetworkAvailable ();
+              }
+            });
+        updateLoginButtonState (
+            account->isLoggedIn (),
+            account->isLoggedIn () ? qt_translate ("User Center") : QString ());
+        if (account->isLoggedIn ()) {
+          refreshMembershipInfoInBackground ();
+        }
+      }
     }
   }
   else {
@@ -754,6 +861,11 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
 
   // clear any residual waiting menu installation
   waiting_widgets= remove (waiting_widgets, this);
+
+  // delete startup content widget
+  if (startupContentWidget) {
+    delete startupContentWidget;
+  }
 }
 
 void
@@ -796,6 +908,65 @@ qt_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
   return this;
 }
 
+// Helper functions to show/hide widgets in layout
+static void
+show_widget_in_layout (QWidget* widget, QLayout* layout) {
+  if (!widget || !layout) return;
+  if (layout->indexOf (widget) < 0) {
+    layout->addWidget (widget);
+  }
+  widget->show ();
+}
+
+static void
+hide_widget_from_layout (QWidget* widget, QLayout* layout) {
+  if (!widget || !layout) return;
+  widget->hide ();
+  if (layout->indexOf (widget) >= 0) {
+    layout->removeWidget (widget);
+  }
+}
+
+void
+qt_tm_widget_rep::sync_startup_tab_mode () {
+  QWidget* editorWidget= main_widget->qwid;
+  QLayout* layout      = centralwidget ()->layout ();
+  if (!layout) return;
+
+  bool hasActiveView= !is_none (get_current_view_safe ());
+
+  // Auto-enable startup mode when no active view or no editor widget
+  if (!hasActiveView || editorWidget == nullptr) {
+    startupTabMode= true;
+  }
+
+  if (startupTabMode) {
+    // Show Backstage/Startup view
+    hide_widget_from_layout (editorWidget, layout);
+
+    update_visibility ();
+
+    if (!startupContentWidget) {
+      startupContentWidget= new QTStartupTabWidget (centralwidget ());
+    }
+    show_widget_in_layout (startupContentWidget, layout);
+    startupContentWidget->setFocus (Qt::OtherFocusReason);
+  }
+  else {
+    // Show normal editor view
+    hide_widget_from_layout (startupContentWidget, layout);
+    show_widget_in_layout (editorWidget, layout);
+
+    update_visibility ();
+
+    if (scrollarea ())
+      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                                QSizePolicy::Fixed);
+    url currentView= get_current_view_safe ();
+    if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+  }
+}
+
 void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
@@ -810,6 +981,8 @@ qt_tm_widget_rep::update_visibility () {
   bool old_bottomVisibility= bottomTools->isVisible ();
   bool old_extraVisibility = extraTools->isVisible ();
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
+  bool old_tabVisibility=
+      tabPageContainer ? tabPageContainer->isVisible () : false;
   bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
   bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
 
@@ -826,6 +999,22 @@ qt_tm_widget_rep::update_visibility () {
   bool new_tabVisibility   = visibility[10] && visibility[0];
   bool new_auxVisibility   = visibility[11];
   bool new_titleVisibility = visibility[0];
+
+  if (startupTabMode) {
+    new_mainVisibility  = false;
+    new_menuVisibility  = false;
+    new_modeVisibility  = false;
+    new_focusVisibility = false;
+    new_userVisibility  = false;
+    new_statusVisibility= false;
+    new_sideVisibility  = false;
+    new_leftVisibility  = false;
+    new_bottomVisibility= false;
+    new_extraVisibility = false;
+    new_auxVisibility   = false;
+    new_tabVisibility   = true;
+    new_titleVisibility = true;
+  }
 
   if (XOR (old_mainVisibility, new_mainVisibility))
     mainToolBar->setVisible (new_mainVisibility);
@@ -847,6 +1036,8 @@ qt_tm_widget_rep::update_visibility () {
     extraTools->setVisible (new_extraVisibility);
   if (XOR (old_auxVisibility, new_auxVisibility))
     auxiliaryWidget->setVisible (new_auxVisibility);
+  if (tabPageContainer && XOR (old_tabVisibility, new_tabVisibility))
+    tabPageContainer->setVisible (new_tabVisibility);
   if (XOR (old_titleVisibility, new_titleVisibility))
     windowAgent->titleBar ()->setVisible (new_titleVisibility);
   if (XOR (old_statusVisibility, new_statusVisibility))
@@ -1074,6 +1265,8 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     string file= open_box<string> (val);
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
+    startupTabMode= is_startup_tab_file (file);
+    sync_startup_tab_mode ();
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);
@@ -1205,19 +1398,13 @@ qt_tm_widget_rep::install_main_menu () {
   main_menu_widget    = waiting_main_menu_widget;
   QList<QAction*>* src= main_menu_widget->get_qactionlist ();
   if (!src) return;
-  QMenuBar* dest  = new QMenuBar ();
-  QScreen*  screen= QGuiApplication::primaryScreen ();
-#ifdef Q_OS_WIN
+  QMenuBar* dest= new QMenuBar ();
   // 设置与 menuToolBar 匹配的固定高度
-  // 使用 devicePixelRatio() 获取正确的屏幕缩放比
-  // 获取屏幕DPI缩放比例
-  double dpi  = screen ? screen->logicalDotsPerInch () : 96.0;
-  double scale= dpi / 96.0;
-
-  int h= (int) floor (72 * scale + 0.5);
+  double scale= DpiUtils::scaleFactor ();
+#ifdef Q_OS_WIN
+  int h= DpiUtils::scaled (72);
 #else
-  double scale= screen ? screen->devicePixelRatio () : 1.0; // 正确的屏幕缩放比
-  int    h    = (int) floor (108 * scale + 0.5);
+  int h= DpiUtils::scaled (108);
 #endif
   dest->setFixedHeight (h);
 
@@ -1280,23 +1467,16 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
     check_type_void (index, s);
 
     QWidget* q= main_widget->qwid;
-    q->hide ();
     QLayout* l= centralwidget ()->layout ();
-    l->removeWidget (q);
+    if (q && l->indexOf (q) >= 0) {
+      l->removeWidget (q);
+      q->hide (); // 隐藏旧的 widget
+    }
 
     q= concrete (w)->as_qwidget (); // force creation of the new QWidget
-    l->addWidget (q);
-    /* " When you use a layout, you do not need to pass a parent when
-     constructing the child widgets. The layout will automatically reparent
-     the widgets (using QWidget::setParent()) so that they are children of
-     the widget on which the layout is installed " */
+    // SLOT_SCROLLABLE 只更新 main_widget，不设置 startupTabMode
+    // startupTabMode 的判定和界面更新由 SLOT_FILE 处理
     main_widget= concrete (w);
-    // canvas() now returns the new QTMWidget (or 0)
-
-    if (scrollarea ()) // Fix size to draw margins around.
-      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
-                                                QSizePolicy::Fixed);
-    send_keyboard_focus (abstract (main_widget));
   } break;
 
   case SLOT_MAIN_MENU:
@@ -1333,6 +1513,31 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
         // 为标签页设置hit test可见性
         if (windowAgent) {
           tabPageContainer->setHitTestVisibleForTabPages (windowAgent);
+        }
+      }
+    }
+    break;
+
+  case SLOT_NOTIFICATION_BAR:
+    check_type_void (index, s);
+    {
+      notification_bar_widget     = concrete (w);
+      QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();
+      if (!action_list || action_list->isEmpty ()) {
+        m_currentScmNotificationItem.clear ();
+        if (scmNotificationBar) scmNotificationBar->clearContent ();
+      }
+      else {
+        QWidget* new_qwidget= notification_bar_widget->as_qwidget ();
+        if (new_qwidget && scmNotificationBar) {
+          scmNotificationBar->setContentWidget (new_qwidget);
+        }
+        eval ("(use-modules (texmacs menus notificationbar))");
+        m_currentScmNotificationItem=
+            to_qstring (as_string (call ("notification-bar-rendered-item")));
+        if (scmNotificationBar) {
+          scmNotificationBar->setSnoozeText (to_qstring (
+              as_string (call ("notification-bar-snooze-action-label"))));
         }
       }
     }
@@ -1650,6 +1855,7 @@ qt_tm_embedded_widget_rep::send (slot s, blackbox val) {
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
+  case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
   case SLOT_LEFT_FOOTER:
   case SLOT_RIGHT_FOOTER:
@@ -1761,6 +1967,7 @@ qt_tm_embedded_widget_rep::write (slot s, blackbox index, widget w) {
   case SLOT_BOTTOM_TOOLS:
   case SLOT_EXTRA_TOOLS:
   case SLOT_TAB_PAGES:
+  case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
   case SLOT_INTERACTIVE_INPUT:
   case SLOT_INTERACTIVE_PROMPT:
@@ -1804,6 +2011,10 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   // 创建登录对话框内容
   QWidget* contentWidget= new QWidget ();
   contentWidget->setObjectName ("login-dialog-content");
+  // 保持弹窗宽度稳定，避免更新区显隐时整体位置发生横向跳动。
+  const int loginDialogWidth= DpiUtils::scaled (300);
+  contentWidget->setMinimumWidth (loginDialogWidth);
+  contentWidget->setMaximumWidth (loginDialogWidth);
   auto mainLayout= new QVBoxLayout (contentWidget);
   mainLayout->setContentsMargins (16, 16, 16, 16);
   mainLayout->setSpacing (16);
@@ -1834,10 +2045,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   infoLayout->setSpacing (4);
 
   // 登出按钮 - 登录成功后显示（使用图标）
-  QScreen*     logoutScreen= QGuiApplication::primaryScreen ();
-  const double logoutDpi=
-      logoutScreen ? logoutScreen->logicalDotsPerInch () : 96.0;
-  const double logoutScale= logoutDpi / 96.0;
+  const double logoutScale= DpiUtils::scaleFactor ();
 #if defined(Q_OS_MAC)
   const int logoutIconSize= int (30 * logoutScale);
 #else
@@ -1899,12 +2107,79 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
   bottomLayout->addWidget (membershipPeriodLabel);
   bottomLayout->addWidget (loginActionButton);
 
-  // 添加区域到主布局
+  // 更新提示区域（商业版显示更新提示）- 放在底部
+  m_updateSection= new QWidget ();
+  m_updateSection->setObjectName ("login-update-section");
+  auto updateLayout= new QHBoxLayout (m_updateSection);
+  updateLayout->setContentsMargins (12, 12, 12, 12);
+  updateLayout->setSpacing (8);
+  updateLayout->setAlignment (Qt::AlignVCenter);
+
+  // 版本信息标签
+  m_updateTitleLabel= new QLabel ();
+  m_updateTitleLabel->setObjectName ("login-update-title");
+  m_updateTitleLabel->setWordWrap (false);
+  m_updateTitleLabel->setAlignment (Qt::AlignVCenter | Qt::AlignLeft);
+  m_updateTitleLabel->setSizePolicy (QSizePolicy::Expanding,
+                                     QSizePolicy::Preferred);
+
+  // 按钮
+  const int updateButtonHeight= DpiUtils::scaled (32);
+  m_updateNowButton           = new QPushButton (qt_translate ("Update Now"));
+  m_updateNowButton->setObjectName ("login-update-now-btn");
+  m_updateNowButton->setFlat (true);
+  m_updateNowButton->setMinimumHeight (updateButtonHeight);
+
+  m_snoozeButton= new QPushButton (qt_translate ("×"));
+  m_snoozeButton->setObjectName ("login-snooze-btn");
+  m_snoozeButton->setFlat (true);
+  m_snoozeButton->setFixedSize (updateButtonHeight, updateButtonHeight);
+  m_snoozeButton->setToolTip (qt_translate ("Remind Later"));
+
+  updateLayout->addWidget (m_updateTitleLabel, 1, Qt::AlignVCenter);
+  updateLayout->addWidget (m_updateNowButton, 0, Qt::AlignVCenter);
+  updateLayout->addWidget (m_snoozeButton, 0, Qt::AlignVCenter);
+
+  // 默认隐藏更新区域，不保留空白
+  m_updateSection->setVisible (false);
+  QSizePolicy updateSectionPolicy= m_updateSection->sizePolicy ();
+  updateSectionPolicy.setRetainSizeWhenHidden (false);
+  m_updateSection->setSizePolicy (updateSectionPolicy);
+
+  // 添加区域到主布局 - 更新提示放在底部
   mainLayout->addWidget (topSection);
   mainLayout->addWidget (bottomSection);
+  mainLayout->addWidget (m_updateSection);
+
+  // 连接更新按钮信号
+  QObject::connect (m_updateNowButton, &QPushButton::clicked, [this] () {
+    // 打开下载页面（通过 Scheme 获取正确的 URL）
+    eval ("(use-modules (utils misc version-update))");
+    object  urlObj     = call ("get-update-download-url");
+    QString downloadUrl= to_qstring (as_string (urlObj));
+    QDesktopServices::openUrl (QUrl (downloadUrl));
+    setLoginDialogUpdateSectionVisible (false);
+    // 关闭登录弹窗
+    if (m_loginDialog) {
+      m_loginDialog->hide ();
+    }
+  });
+
+  QObject::connect (m_snoozeButton, &QPushButton::clicked, [this] () {
+    // 执行稍后提醒逻辑（3天后再次提醒）
+    eval ("(use-modules (utils misc version-update))");
+    call ("snooze-version-update");
+    setLoginDialogUpdateSectionVisible (false);
+    // 关闭登录弹窗
+    if (m_loginDialog) {
+      m_loginDialog->hide ();
+    }
+  });
 
   // 设置对话框内容
   loginDialog->setContentWidget (contentWidget);
+  loginDialog->updateGeometry ();
+  loginDialog->adjustSize ();
 
 #if defined(Q_OS_MAC)
   // 在 macOS 下将登录对话框内容整体右移 100px：
@@ -1943,6 +2218,118 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 }
 
 void
+qt_tm_widget_rep::refreshLoginDialogPlacement () {
+  if (m_loginDialog && m_loginDialog->isVisible ()) {
+    show_login_dialog_at_button (m_loginDialog, loginButton);
+  }
+}
+
+bool
+qt_tm_widget_rep::shouldShowLoginDialogUpdateSection () {
+  if (!m_hasUpdateAvailable) return false;
+
+  eval ("(use-modules (utils misc version-update))");
+  return as_bool (call ("should-check-version-update?"));
+}
+
+void
+qt_tm_widget_rep::setLoginDialogUpdateSectionVisible (bool visible) {
+  if (!m_updateSection) return;
+
+  const bool visibilityChanged= (m_updateSection->isVisible () != visible);
+  if (visibilityChanged) m_updateSection->setVisible (visible);
+
+  if (QWidget* parent= m_updateSection->parentWidget ()) {
+    if (QLayout* layout= parent->layout ()) {
+      layout->invalidate ();
+      layout->activate ();
+    }
+  }
+
+  if (m_loginDialog) {
+    m_loginDialog->updateGeometry ();
+    m_loginDialog->adjustSize ();
+  }
+
+  if (visibilityChanged || visible) {
+    refreshLoginDialogPlacement ();
+  }
+}
+
+void
+qt_tm_widget_rep::refreshScmNotificationBar () {
+  if (!has_current_window ()) return;
+  call ("update-menus");
+}
+
+void
+qt_tm_widget_rep::syncScmUpdateNotification (bool           updateAvailable,
+                                             const QString& remoteVersion) {
+  if (is_community_stem ()) {
+    // 社区版：保持现状，不显示更新提示
+    return;
+  }
+
+  // 商业版：更新登录按钮和弹窗
+  if (loginButton) {
+    loginButton->setBadgeVisible (updateAvailable);
+  }
+
+  if (m_updateTitleLabel && updateAvailable) {
+    QString title=
+        qt_translate ("New version available") + ": " + remoteVersion;
+    m_updateTitleLabel->setText (title);
+  }
+  else if (m_updateTitleLabel) {
+    m_updateTitleLabel->clear ();
+  }
+
+  // 记录更新状态，供登录弹窗打开时使用
+  m_hasUpdateAvailable= updateAvailable;
+
+  setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
+}
+
+void
+qt_tm_widget_rep::syncScmGuestNotification (bool visible) {
+  eval ("(use-modules (texmacs menus notificationbar))");
+  call ("notification-bar-set-guest-visible", object (visible));
+  refreshScmNotificationBar ();
+}
+
+void
+qt_tm_widget_rep::syncScmMembershipNotification (
+    bool hasData, const QString& memberType, const QString& periodLabel,
+    const QString& periodLabelColor, const QString& productType) {
+  eval ("(use-modules (texmacs menus notificationbar))");
+  string command= "(notification-bar-set-membership-state " *
+                  string (hasData ? "#t" : "#f") * " " *
+                  scm_quote (from_qstring (memberType)) * " " *
+                  scm_quote (from_qstring (periodLabel)) * " " *
+                  scm_quote (from_qstring (periodLabelColor)) * " " *
+                  scm_quote (from_qstring (productType)) * ")";
+  eval (command);
+  refreshScmNotificationBar ();
+}
+
+void
+qt_tm_widget_rep::refreshMembershipInfoInBackground () {
+  if (is_community_stem ()) {
+    syncScmMembershipNotification (false);
+    return;
+  }
+
+  eval ("(use-modules (liii account))");
+  QString token= to_qstring (as_string (call ("account-load-token")));
+  if (token.isEmpty ()) {
+    syncScmMembershipNotification (false);
+    return;
+  }
+
+  fetchUserInfo (token, false);
+}
+
+void
 qt_tm_widget_rep::checkLocalTokenAndLogin () {
   // 检查是否为社区版本，如果是则打开官方网址
   if (is_community_stem ()) {
@@ -1952,6 +2339,19 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
     return;
   }
 
+  if (m_loginDialog && m_loginDialog->isVisible ()) {
+    m_loginDialog->hide ();
+    return;
+  }
+
+  // 点击登录按钮后立即隐藏小红点（用户已看到提示，下次启动如未更新会再次显示）
+  if (loginButton && loginButton->badgeVisible ()) {
+    loginButton->setBadgeVisible (false);
+  }
+
+  // 根据当前更新状态同步更新区显隐和弹窗几何
+  setLoginDialogUpdateSectionVisible (shouldShowLoginDialogUpdateSection ());
+
   // 使用scheme代码获取本地token缓存
   eval ("(use-modules (liii account))");
   string  token  = as_string (call ("account-load-token"));
@@ -1960,18 +2360,16 @@ qt_tm_widget_rep::checkLocalTokenAndLogin () {
 
   if (!q_token.isEmpty ()) {
     // 有token，尝试获取用户信息
-    fetchUserInfo (q_token);
+    fetchUserInfo (q_token, true);
   }
   else {
     // 没有token，显示登录对话框（用户需要手动点击登录按钮）
-    QPoint buttonBottomCenter= loginButton->mapToGlobal (
-        QPoint (loginButton->width () / 2, loginButton->height ()));
-    m_loginDialog->showAtPosition (buttonBottomCenter);
+    show_login_dialog_at_button (m_loginDialog, loginButton);
   }
 }
 
 void
-qt_tm_widget_rep::fetchUserInfo (const QString& token) {
+qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
   // 创建网络访问管理器
   QNetworkAccessManager* manager= new QNetworkAccessManager ();
 
@@ -2004,14 +2402,11 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token) {
 
   // 连接信号处理响应
   QObject::connect (
-      reply, &QNetworkReply::finished, [this, reply, manager, token] () {
+      reply, &QNetworkReply::finished, [this, reply, manager, showDialog] () {
         // 定义统一的错误处理逻辑
         auto handleError= [this] (const QString& errorMessage) {
           showNotLoggedInDialog (qt_translate (from_qstring (errorMessage)));
-
-          QPoint buttonBottomCenter= loginButton->mapToGlobal (
-              QPoint (loginButton->width () / 2, loginButton->height ()));
-          m_loginDialog->showAtPosition (buttonBottomCenter);
+          show_login_dialog_at_button (m_loginDialog, loginButton);
         };
 
         if (reply->error () == QNetworkReply::NoError) {
@@ -2041,19 +2436,27 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token) {
                                  memberType, periodLabel, periodLabelColor,
                                  productType);
 
-            // 显示弹窗
-            QPoint buttonBottomCenter= loginButton->mapToGlobal (
-                QPoint (loginButton->width () / 2, loginButton->height ()));
-            m_loginDialog->showAtPosition (buttonBottomCenter);
+            syncScmGuestNotification (false);
+            syncScmMembershipNotification (true, memberType, periodLabel,
+                                           periodLabelColor, productType);
+
+            if (showDialog) {
+              show_login_dialog_at_button (m_loginDialog, loginButton);
+            }
           }
           else {
             // API返回错误
-            handleError ("Login error, please log in again.");
+            syncScmMembershipNotification (false);
+            if (showDialog) {
+              handleError ("Login error, please log in again.");
+            }
           }
         }
         else {
           // 网络错误或HTTP错误
-          handleError ("Network error, please log in later.");
+          if (showDialog) {
+            handleError ("Network error, please log in later.");
+          }
         }
 
         // 清理资源
@@ -2070,7 +2473,70 @@ qt_tm_widget_rep::triggerOAuth2 () {
   }
   // 直接调用scheme代码触发OAuth2登录流程
   eval ("(use-modules (liii account))");
-  call ("(login)");
+  call ("login");
+}
+
+void
+qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
+                                          const QString& displayName) {
+  if (!loginButton) return;
+
+  // 设置登录状态属性，用于QSS样式区分
+  loginButton->setProperty ("login-state",
+                            isLoggedIn ? "logged-in" : "not-logged-in");
+
+  // 未登录时显示"未登录"，已登录时不显示文字（只显示图标）
+  QString label;
+  if (!isLoggedIn) {
+    label= qt_translate ("Not logged in");
+  }
+#if defined(Q_OS_MAC)
+  loginButton->setIconSize (
+      QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
+#else
+  loginButton->setIconSize (
+      QSize (DpiUtils::scaled (12), DpiUtils::scaled (12)));
+#endif
+  // 已登录时不设置文字，只显示图标
+
+  QFontMetrics  metrics (loginButton->font ());
+  const int     maxTextWidth= DpiUtils::scaled (76);
+  const QString visibleText=
+      metrics.elidedText (label, Qt::ElideRight, maxTextWidth);
+
+  loginButton->setText (visibleText);
+  loginButton->setToolTip (isLoggedIn ? qt_translate ("User Center") : label);
+  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center")
+                                             : label);
+
+  const int horizontalPadding= DpiUtils::scaled (26);
+  const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
+  const int iconWidth      = loginButton->iconSize ().width ();
+  const int textWidth      = metrics.horizontalAdvance (visibleText);
+  const int minWidth=
+      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (96);
+  const int maxWidth=
+      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (120);
+  const int rawDesiredWidth=
+      iconWidth + iconTextSpacing + textWidth + horizontalPadding;
+  const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
+
+  // 强制刷新样式以应用状态相关样式
+  loginButton->style ()->unpolish (loginButton);
+  loginButton->style ()->polish (loginButton);
+  auto applyWidth= [this, desiredWidth] () {
+    if (!loginButton) return;
+    loginButton->setMinimumWidth (desiredWidth);
+    loginButton->setMaximumWidth (desiredWidth);
+    loginButton->setFixedWidth (desiredWidth);
+    loginButton->resize (desiredWidth, loginButton->height ());
+    loginButton->updateGeometry ();
+    if (loginButton->parentWidget () && loginButton->parentWidget ()->layout ())
+      loginButton->parentWidget ()->layout ()->activate ();
+  };
+  applyWidth ();
+
+  QTimer::singleShot (0, loginButton, applyWidth);
 }
 
 void
@@ -2081,24 +2547,13 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
                                        const QString& productType) {
-  // 根据登录状态更新访客提示条可见性
-  if (guestNotificationBar) {
-    // 社区版不显示提示条
-    if (is_community_stem ()) {
-      guestNotificationBar->hide ();
-    }
-    else {
-      // 商业版：根据登录状态决定是否显示
-      if (isLoggedIn) {
-        // 用户已登录，隐藏提示条
-        guestNotificationBar->hide ();
-      }
-      else {
-        // 用户未登录，显示提示条
-        guestNotificationBar->show ();
-      }
-    }
-  }
+  // 保存会员类型
+  m_memberType= memberType;
+
+  updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
+
+  // 更新VIP按钮可见性（根据memberType判断）
+  updateVipButtonVisibility (isLoggedIn, memberType);
 
   // 更新对话框中的UI组件内容
   if (nameLabel) {
@@ -2133,22 +2588,24 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
   }
 
   // 根据登陆与否更新按钮
-  if (!isLoggedIn) {
-    loginActionButton->setVisible (true);
-    logoutButton->setVisible (false);
-    loginActionButton->setText (qt_translate ("Login"));
-  }
-  else {
-    loginActionButton->setVisible (true);
-    logoutButton->setVisible (true);
-    // 如果productType=Renew Early,后面加上♥️
-    if (productType == QStringLiteral ("Renew Early")) {
-      loginActionButton->setText (
-          qt_translate (productType.toStdString ().c_str ()) + " ♥️");
+  if (loginActionButton && logoutButton) {
+    if (!isLoggedIn) {
+      loginActionButton->setVisible (true);
+      logoutButton->setVisible (false);
+      loginActionButton->setText (qt_translate ("Login"));
     }
     else {
-      loginActionButton->setText (
-          qt_translate (productType.toStdString ().c_str ()));
+      loginActionButton->setVisible (true);
+      logoutButton->setVisible (true);
+      // 如果productType=Renew Early,后面加上♥️
+      if (productType == QStringLiteral ("Renew Early")) {
+        loginActionButton->setText (
+            qt_translate (productType.toStdString ().c_str ()) + " ♥️");
+      }
+      else {
+        loginActionButton->setText (
+            qt_translate (productType.toStdString ().c_str ()));
+      }
     }
   }
 }
@@ -2160,6 +2617,42 @@ qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
 }
 
 void
+qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
+                                             const QString& memberType) {
+  if (!vipButton) {
+    return;
+  }
+
+  // 社区版不显示VIP按钮
+  if (is_community_stem ()) {
+    vipButton->hide ();
+    return;
+  }
+
+  // 未登录用户：显示VIP按钮
+  if (!isLoggedIn) {
+    vipButton->show ();
+    return;
+  }
+
+  // 已登录用户：根据memberType决定是否显示
+  // 如果memberType为空，说明还未获取用户信息，保持当前状态（不隐藏）
+  if (memberType.isEmpty ()) {
+    return;
+  }
+
+  // "Regular User"(普通用户)或"Trial Member"(体验会员)时显示
+  // 其他(Fruit User, Sprout User, Seed User, Member)时不显示
+  if (memberType == QStringLiteral ("Regular User") ||
+      memberType == QStringLiteral ("Trial Member")) {
+    vipButton->show ();
+  }
+  else {
+    vipButton->hide ();
+  }
+}
+
+void
 qt_tm_widget_rep::logout () {
   // 没有token，直接清除UI状态
   showNotLoggedInDialog (
@@ -2168,18 +2661,7 @@ qt_tm_widget_rep::logout () {
   if (m_loginDialog && m_loginDialog->isVisible ()) {
     m_loginDialog->hide ();
   }
-
-  // 用户注销后显示访客提示条（除非用户已手动关闭）
-  if (guestNotificationBar) {
-    // 社区版不显示提示条
-    if (is_community_stem ()) {
-      guestNotificationBar->hide ();
-    }
-    else {
-      // 商业版：用户注销后显示提示条
-      guestNotificationBar->show ();
-    }
-  }
+  syncScmMembershipNotification (false);
 
   // 通过tm_server获取QTMOAuth实例并调用clearInvalidTokens
   if (is_server_started ()) {
@@ -2225,14 +2707,117 @@ qt_tm_widget_rep::checkNetworkAvailable () {
   QObject::connect (reply, &QNetworkReply::finished, [this, reply] () {
     bool success= (reply->error () == QNetworkReply::NoError);
     reply->deleteLater ();
-    if (guestNotificationBar) {
-      bool isLoggedIn= as_bool (call ("logged-in?"));
-      if (isLoggedIn || !success) {
-        guestNotificationBar->hide ();
+    bool isLoggedIn= as_bool (call ("logged-in?"));
+    syncScmGuestNotification (!is_community_stem () && !isLoggedIn && success);
+  });
+}
+
+// 检查版本更新，根据条件显示提示条
+// 流程：1.检查稍后提醒时间 -> 2.获取远程版本 -> 3.比较并显示
+// 社区版和商业版都显示版本更新提示，但跳转到不同的官网
+void
+qt_tm_widget_rep::checkVersionUpdate () {
+  eval ("(use-modules (utils misc version-update))");
+
+  // 检查是否处于稍后提醒期间
+  bool shouldCheck= as_bool (call ("should-check-version-update?"));
+  if (!shouldCheck) {
+    syncScmUpdateNotification (false);
+    return;
+  }
+
+  // 检查是否有 mock 版本（用于测试）
+  object mockVersion= call ("get-mock-remote-version");
+  bool   hasMock    = !is_bool (mockVersion) || as_bool (mockVersion);
+
+  if (hasMock) {
+    // 使用 mock 版本进行测试
+    QString remoteVersion= to_qstring (as_string (mockVersion));
+    QString localVersion = XMACS_VERSION;
+
+    if (isVersionNewer (remoteVersion, localVersion)) {
+      syncScmUpdateNotification (true, remoteVersion);
+    }
+    else {
+      syncScmUpdateNotification (false);
+    }
+    return;
+  }
+
+  // 发送HTTP请求获取远程版本
+  // 商业版和社区版使用不同的版本号接口
+  QString versionUrl;
+  if (is_community_stem ()) {
+    versionUrl= "https://liiistem.cn/mogan_latest_version.tm";
+  }
+  else {
+    versionUrl= "https://liiistem.cn/latest_version.tm";
+  }
+
+  QNetworkAccessManager* manager= new QNetworkAccessManager (mainwindow ());
+  QNetworkRequest        request (versionUrl);
+  request.setRawHeader ("User-Agent",
+                        to_qstring (stem_user_agent ()).toUtf8 ());
+
+  QNetworkReply* reply= manager->get (request);
+  QObject::connect (reply, &QNetworkReply::finished, [this, reply, manager] () {
+    if (reply->error () == QNetworkReply::NoError) {
+      QByteArray data         = reply->readAll ();
+      QString    remoteVersion= parseVersionFromTM (data);
+      QString    localVersion = XMACS_VERSION;
+
+      if (!remoteVersion.isEmpty ()) {
+        qDebug () << "[VersionUpdate] Parsed remote version:" << remoteVersion;
+      }
+
+      if (remoteVersion.isEmpty ()) {
+        qDebug () << "[VersionUpdate] Failed to parse version from response";
+        syncScmUpdateNotification (false);
+      }
+      else if (isVersionNewer (remoteVersion, localVersion)) {
+        syncScmUpdateNotification (true, remoteVersion);
       }
       else {
-        guestNotificationBar->show ();
+        syncScmUpdateNotification (false);
       }
     }
+    else {
+      qDebug () << "[VersionUpdate] Failed to fetch remote version:"
+                << reply->errorString ();
+      syncScmUpdateNotification (false);
+    }
+    reply->deleteLater ();
+    manager->deleteLater ();
   });
+}
+
+QString
+qt_tm_widget_rep::parseVersionFromTM (const QByteArray& data) {
+  QString content= QString::fromUtf8 (data);
+  // 解析 TeXmacs 格式的 <\body> 标签内容
+  QRegularExpression      re ("<\\\\?body>\\s*([\\d\\.\\-rc]+)");
+  QRegularExpressionMatch match= re.match (content);
+  return match.captured (1).trimmed ();
+}
+
+bool
+qt_tm_widget_rep::isVersionNewer (const QString& remote, const QString& local) {
+  // 提取纯数字版本号（去掉 -rcX 后缀）
+  QString remoteClean= remote.split ("-")[0];
+  QString localClean = local.split ("-")[0];
+
+  // 语义化版本号比较（只比较前三位）
+  QStringList remoteParts= remoteClean.split (".");
+  QStringList localParts = localClean.split (".");
+
+  // 只比较前三位版本号
+  for (int i= 0; i < 3; i++) {
+    int remoteNum= (i < remoteParts.size ()) ? remoteParts[i].toInt () : 0;
+    int localNum = (i < localParts.size ()) ? localParts[i].toInt () : 0;
+
+    if (remoteNum != localNum) {
+      return remoteNum > localNum;
+    }
+  }
+  return false; // 版本相同
 }

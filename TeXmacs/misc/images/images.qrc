@@ -11,5 +11,8 @@
         <file>ocr-button/middle-align-white.svg</file>
         <file>ocr-button/right-align-white.svg</file>
         <file>ocr-button/ocr-white.svg</file>
+
+        <!-- tutorial -->
+        <file>tutorial/test.gif</file>
     </qresource>
 </RCC>

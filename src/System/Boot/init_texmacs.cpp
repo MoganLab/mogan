@@ -25,6 +25,7 @@
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 
+#include <functional>
 #include <signal.h>
 #ifdef OS_WIN
 #include <process.h>
@@ -46,7 +47,6 @@
 #include <QCoreApplication>
 #include <QDir>
 #include <QEventLoop>
-#include <QMessageBox>
 #include <QTimer>
 #endif
 #include "Metafont/load_tex.hpp"
@@ -70,8 +70,9 @@ extern bool   texmacs_started;
 extern bool   headless_mode;
 
 #ifdef QTTEXMACS
-bool g_startup_login_requested= false;
-bool g_startup_login_executed = false;
+bool        g_startup_login_requested= false;
+bool        g_startup_login_executed = false;
+static void perform_startup_login_request ();
 #endif
 
 string extra_init_cmd;
@@ -158,13 +159,13 @@ init_texmacs_path (int& argc, char** argv) {
   }
 #endif
 
-  string current_texmacs_path= get_env ("TEXMACS_PATH");
+  string builtin_texmacs_path;
 
 #ifdef OS_GNU_LINUX
-  if (is_empty (current_texmacs_path) &&
-      exists (exedir * "../share/" * PREFIX_DIR)) {
-    set_env ("TEXMACS_PATH", as_string (exedir * "../share/" * PREFIX_DIR));
-  }
+  if (exists (exedir * "../share/" * PREFIX_DIR))
+    builtin_texmacs_path= as_string (exedir * "../share/" * PREFIX_DIR);
+  if (!is_empty (builtin_texmacs_path))
+    set_env ("TEXMACS_PATH", builtin_texmacs_path);
 #endif
 
 #ifdef OS_MACOS
@@ -200,22 +201,23 @@ init_texmacs_path (int& argc, char** argv) {
 #if defined(AQUATEXMACS) || defined(OS_MACOS) || defined(MACOSX_EXTENSIONS)
   // Mac bundle environment initialization
   // We set some environment variables when the executable
-  // is in a .app bundle on MacOSX
-  if (is_empty (current_texmacs_path)) {
-    set_env ("TEXMACS_PATH",
-             as_string (exedir * "../Resources/share/" * PREFIX_DIR));
-  }
+  // is in a .app bundle on MacOSX.
+  builtin_texmacs_path= as_string (exedir * "../Resources/share/" * PREFIX_DIR);
+  if (exists (url_system (builtin_texmacs_path)))
+    set_env ("TEXMACS_PATH", builtin_texmacs_path);
 #endif
 
 #if defined(OS_MINGW) || defined(OS_WIN)
   // Win bundle environment initialization
   // TEXMACS_PATH is set by assuming that the executable is in TeXmacs/bin/
+  // Always trust the bundled resource path instead of any inherited
+  // TEXMACS_PATH from the user's environment.
   // HOME is set to USERPROFILE
   // PWD is set to HOME
   // if PWD is lacking, then the path resolution machinery may not work
 
-  if (is_empty (current_texmacs_path))
-    set_env ("TEXMACS_PATH", as_string (exedir * ".."));
+  builtin_texmacs_path= as_string (exedir * "..");
+  set_env ("TEXMACS_PATH", builtin_texmacs_path);
   // if (get_env ("HOME") == "") //now set in immediate_options otherwise
   // --setup option fails
   //   set_env ("HOME", get_env("USERPROFILE"));
@@ -232,14 +234,14 @@ init_texmacs_path (int& argc, char** argv) {
 #ifdef OS_WASM
   set_env ("PWD", "/");
   set_env ("HOME", "/");
-  if (is_empty (current_texmacs_path)) set_env ("TEXMACS_PATH", "/TeXmacs");
+  set_env ("TEXMACS_PATH", "/TeXmacs");
 #endif
 
   // check on the latest $TEXMACS_PATH
-  current_texmacs_path= get_env ("TEXMACS_PATH");
-  if (is_empty (current_texmacs_path) ||
-      !exists (url_system (current_texmacs_path))) {
-    cout << "The required TEXMACS_PATH(" << current_texmacs_path
+  string resolved_texmacs_path= get_env ("TEXMACS_PATH");
+  if (is_empty (resolved_texmacs_path) ||
+      !exists (url_system (resolved_texmacs_path))) {
+    cout << "The required TEXMACS_PATH(" << resolved_texmacs_path
          << ") does not exists" << LF;
     exit (1);
   }
@@ -616,11 +618,6 @@ load_settings_and_check_version () {
     install_status= 1;
   }
 
-  if (get_setting ("VERSION") != XMACS_VERSION) {
-    init_upgrade ();
-    install_status= 2;
-  }
-
   return install_status;
 }
 
@@ -936,13 +933,9 @@ TeXmacs_main (int argc, char** argv) {
       }
     }
 
-    bool has_initial_welcome= false;
-    if (install_status == 1 || install_status == 2) {
-      has_initial_welcome= true;
-      load_welcome_doc ();
-    }
+    if (install_status == 1) load_welcome_doc ();
 
-    if (!has_initial_file || !has_initial_welcome) ensure_window ();
+    if (!has_initial_file) ensure_window ();
 
     if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
     bench_reset ("initialize texmacs");
@@ -972,16 +965,7 @@ TeXmacs_main (int argc, char** argv) {
     // Trigger login if requested from startup dialog
     // Use timer to execute after event loop starts
     if (g_startup_login_requested) {
-      QTimer::singleShot (0, [] () {
-        if (is_server_started ()) {
-          tm_server_rep* server=
-              dynamic_cast<tm_server_rep*> (get_server ().operator->());
-          if (server && server->getAccount ()) {
-            server->getAccount ()->login ();
-          }
-        }
-        g_startup_login_requested= false;
-      });
+      perform_startup_login_request ();
     }
 #endif
 
@@ -999,6 +983,58 @@ TeXmacs_main (int argc, char** argv) {
 
 #ifdef QTTEXMACS
 #include <QEventLoop>
+#include <QPointer>
+
+static void
+perform_startup_login_request () {
+  if (!is_server_started ()) {
+    g_startup_login_requested= true;
+    return;
+  }
+
+  tm_server_rep* server=
+      dynamic_cast<tm_server_rep*> (get_server ().operator->());
+  if (server && server->getAccount ()) {
+    QTimer::singleShot (0, [server] () { server->getAccount ()->login (); });
+    g_startup_login_requested= false;
+    return;
+  }
+
+  g_startup_login_requested= true;
+}
+
+static void
+attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
+  QPointer<QWK::StartupLoginDialog> guardedDialog (dialog);
+  auto observer= std::make_shared<std::function<void ()>> ();
+
+  *observer= [observer, guardedDialog] () {
+    if (!guardedDialog) return;
+    if (!is_server_started ()) {
+      QTimer::singleShot (100, guardedDialog, *observer);
+      return;
+    }
+
+    tm_server_rep* server=
+        dynamic_cast<tm_server_rep*> (get_server ().operator->());
+    if (!server || !server->getAccount ()) {
+      QTimer::singleShot (100, guardedDialog, *observer);
+      return;
+    }
+
+    QTMOAuth* account= server->getAccount ();
+    QObject::connect (account, &QTMOAuth::loginStateChanged, guardedDialog,
+                      [guardedDialog] (bool loggedIn) {
+                        if (loggedIn && guardedDialog) {
+                          guardedDialog->notifyLoginSucceeded ();
+                        }
+                      });
+
+    if (account->isLoggedIn ()) guardedDialog->notifyLoginSucceeded ();
+  };
+
+  QTimer::singleShot (0, dialog, *observer);
+}
 
 bool
 show_startup_login_dialog () {
@@ -1007,7 +1043,7 @@ show_startup_login_dialog () {
     return true;
   }
 
-  if (install_status != 1 && install_status != 2) {
+  if (!QWK::StartupLoginDialog::shouldShow ()) {
     // Normal startup, no need to show login dialog
     return true;
   }
@@ -1017,31 +1053,20 @@ show_startup_login_dialog () {
     return true;
   }
 
-  // Create non-modal dialog
+  // Create non-modal dialog and let the application continue starting.
   QWK::StartupLoginDialog* dialog= new QWK::StartupLoginDialog ();
+  dialog->setAsyncStartupMode (true);
   dialog->setModal (false);
   dialog->setAttribute (Qt::WA_DeleteOnClose);
 
-  bool userDecisionMade= false;
-
   // Connect dialog signals
-  QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested, [&] () {
-    g_startup_login_requested= true;
-    userDecisionMade         = true;
-  });
+  QObject::connect (dialog, &QWK::StartupLoginDialog::loginRequested,
+                    [&] () { perform_startup_login_request (); });
 
-  QObject::connect (dialog, &QWK::StartupLoginDialog::skipRequested,
-                    [&] () { userDecisionMade= true; });
+  attach_startup_login_success_observer (dialog);
 
-  // Show the dialog (non-blocking)
+  // Show the dialog without blocking startup.
   dialog->show ();
-
-  // Start background initialization if dialog supports it
-  dialog->startInitialization ();
-
-  // Enter local event loop to wait for user decision
-  dialog->exec ();
-
-  return userDecisionMade;
+  return true;
 }
 #endif

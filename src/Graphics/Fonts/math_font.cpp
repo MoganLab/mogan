@@ -177,7 +177,43 @@ void
 math_font_rep::get_extents (string s, metric& ex) {
   font fn;
   search_font (s, fn);
-  fn->get_extents (s, ex);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->get_extents (s, ex);
+    return;
+  }
+  // Fast path: single TeXmacs character
+  int i= 0;
+  tm_char_forwards (s, i);
+  if (i >= N (s)) {
+    fn->get_extents (s, ex);
+    return;
+  }
+  // Multi-character string (e.g. "<langle><rangle>"): accumulate extents
+  // character by character so each symbol is looked up individually.
+  metric ey;
+  SI     advance= 0;
+  bool   first  = true;
+  i             = 0;
+  while (i < N (s)) {
+    int j= i;
+    tm_char_forwards (s, j);
+    get_extents (s (i, j), ey);
+    if (first) {
+      ex[0]= ey[0];
+      first= false;
+    }
+    else {
+      ex->x2= advance + ey->x2;
+      ex->y1= min (ex->y1, ey->y1);
+      ex->y2= max (ex->y2, ey->y2);
+      ex->x3= min (ex->x3, advance + ey->x3);
+      ex->y3= min (ex->y3, ey->y3);
+      ex->x4= max (ex->x4, advance + ey->x4);
+      ex->y4= max (ex->y4, ey->y4);
+    }
+    advance+= ey->x2;
+    i= j;
+  }
 }
 
 void
@@ -186,13 +222,33 @@ math_font_rep::get_xpositions (string s, SI* xpos) {
   font   fn;
   string r= s;
   search_font (r, fn);
-  if (r == s) fn->get_xpositions (s, xpos);
-  else if (N (r) != 1) font_rep::get_xpositions (s, xpos);
-  else {
-    int i, n= N (s);
-    for (i= 1; i < n; i++)
-      xpos[i]= 0;
-    fn->get_xpositions (r, xpos + n - 1);
+  if (fn.operator->() != error_fn.operator->()) {
+    if (r == s) fn->get_xpositions (s, xpos);
+    else if (N (r) != 1) font_rep::get_xpositions (s, xpos);
+    else {
+      int k, n= N (s);
+      for (k= 1; k < n; k++)
+        xpos[k]= 0;
+      fn->get_xpositions (r, xpos + n - 1);
+    }
+    return;
+  }
+  // Fast path: single TeXmacs character
+  int i= 0;
+  tm_char_forwards (s, i);
+  if (i >= N (s)) return fn->get_xpositions (s, xpos);
+  // Multi-character string: compute positions character by character.
+  xpos[0]   = 0;
+  SI advance= 0;
+  i         = 0;
+  while (i < N (s)) {
+    int j= i;
+    tm_char_forwards (s, j);
+    metric ex;
+    get_extents (s (i, j), ex);
+    advance+= ex->x2;
+    xpos[j]= advance;
+    i      = j;
   }
 }
 
@@ -200,14 +256,50 @@ void
 math_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
   font fn;
   search_font (s, fn);
-  fn->draw_fixed (ren, s, x, y);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->draw_fixed (ren, s, x, y);
+    return;
+  }
+  // Fast path: single TeXmacs character
+  int i= 0;
+  tm_char_forwards (s, i);
+  if (i >= N (s)) {
+    fn->draw_fixed (ren, s, x, y);
+    return;
+  }
+  // Multi-character string: draw each symbol at its own x-advance offset.
+  SI advance= 0;
+  i         = 0;
+  while (i < N (s)) {
+    int j= i;
+    tm_char_forwards (s, j);
+    string c= s (i, j);
+    draw_fixed (ren, c, x + advance, y);
+    metric ex;
+    get_extents (c, ex);
+    advance+= ex->x2;
+    i= j;
+  }
 }
 
 void
 math_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI xk) {
   font fn;
   search_font (s, fn);
-  fn->draw_fixed (ren, s, x, y, xk);
+  if (fn.operator->() != error_fn.operator->()) {
+    fn->draw_fixed (ren, s, x, y, xk);
+    return;
+  }
+  // Fast path: single TeXmacs character
+  int i= 0;
+  tm_char_forwards (s, i);
+  if (i >= N (s)) {
+    fn->draw_fixed (ren, s, x, y, xk);
+    return;
+  }
+  // Multi-character string: delegate to base class which iterates char-by-char
+  // using get_xpositions (now consistent) and calls single-char draw_fixed.
+  font_rep::draw_fixed (ren, s, x, y, xk);
 }
 
 font

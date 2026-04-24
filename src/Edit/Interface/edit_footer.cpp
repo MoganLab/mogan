@@ -15,6 +15,8 @@
 #include "cork.hpp"
 #include "dictionary.hpp"
 #include "edit_interface.hpp"
+#include "moebius/tree_label.hpp"
+#include "tree_helper.hpp"
 
 using namespace moebius;
 
@@ -139,22 +141,85 @@ edit_interface_rep::set_middle_footer () {
  * Set right footer with information about cursor position
  ******************************************************************************/
 
-// Cache for keyboard shortcuts
-static hashmap<string, tree> shortcut_cache ("");
-
 tree
 edit_interface_rep::get_shortcut_suffix (string cmd_s) {
-  if (shortcut_cache->contains (cmd_s)) return shortcut_cache[cmd_s];
-
-  object result_obj= call ("kbd-find-inv-binding", object (cmd_s));
+  object query= starts (cmd_s, "(") ? string_to_object (cmd_s) : object (cmd_s);
+  object result_obj= call ("kbd-find-inv-binding", query);
   string binding   = as_string (result_obj);
   tree   result    = "";
   if (binding != "" && binding != "#f") {
     tree shortcut_tree= sv->kbd_system_rewrite (binding);
-    result            = concat (" [", shortcut_tree, "]");
+    result            = concat (" [ ", shortcut_tree, " ]");
   }
-  shortcut_cache (cmd_s)= result;
   return result;
+}
+
+tree
+edit_interface_rep::get_display_shortcut_suffix (string cmd_s) {
+  object query= starts (cmd_s, "(") ? string_to_object (cmd_s) : object (cmd_s);
+  string sh   = as_string (call ("kbd-find-shortcut-export", query));
+  if (sh == "" || sh == "#f") return "";
+  return concat (" [ ", sh, " ]");
+}
+
+tree
+edit_interface_rep::get_operation_shortcut_suffix (tree st) {
+  switch (L (st)) {
+  case FRAC:
+    return get_shortcut_suffix ("(make-fraction)");
+  case SQRT:
+    if (N (st) == 1) return get_shortcut_suffix ("(make-sqrt)");
+    return get_shortcut_suffix ("(make-var-sqrt)");
+  case LSUB:
+    return get_shortcut_suffix ("(make-script #f #f)");
+  case LSUP:
+    return get_shortcut_suffix ("(make-script #t #f)");
+  case RSUB:
+    return get_shortcut_suffix ("(make-script #f #t)");
+  case RSUP:
+    return get_shortcut_suffix ("(make-script #t #t)");
+  case BELOW:
+    return get_shortcut_suffix ("(make-below)");
+  case ABOVE:
+    return get_shortcut_suffix ("(make-above)");
+  case BIG:
+    if (N (st) >= 1 && is_atomic (st[0])) {
+      string op= as_string (st[0]);
+      if (starts (op, "<") && ends (op, ">")) op= op (1, N (op) - 1);
+      return get_shortcut_suffix ("(math-big-operator " *
+                                  object_to_string (object (op)) * ")");
+    }
+    return "";
+  case AROUND:
+  case VAR_AROUND:
+    if (N (st) >= 3 && is_atomic (st[0]) && is_atomic (st[2])) {
+      string lb   = object_to_string (object (as_string (st[0])));
+      string rb   = object_to_string (object (as_string (st[2])));
+      string large= (L (st) == VAR_AROUND) ? "#t" : "'default";
+      tree ret= get_display_shortcut_suffix ("(math-bracket-open " * lb * " " *
+                                             rb * " " * large * ")");
+      if (ret != "") return ret;
+      return get_display_shortcut_suffix ("(math-bracket-close " * rb * " " *
+                                          lb * " " * large * ")");
+    }
+    return "";
+  case WIDE:
+    if (N (st) >= 2)
+      return get_shortcut_suffix (
+          "(make-wide " * object_to_string (object (as_string (st[1]))) * ")");
+    return "";
+  case VAR_WIDE:
+    if (N (st) >= 2)
+      return get_shortcut_suffix (
+          "(make-wide-under " * object_to_string (object (as_string (st[1]))) *
+          ")");
+    return "";
+  default: {
+    string op= drd->get_name (L (st));
+    if (op != "") return get_shortcut_suffix ("(make '" * op * ")");
+    return "";
+  }
+  }
 }
 
 void
@@ -226,7 +291,8 @@ get_with_text (tree t) {
 
 tree
 edit_interface_rep::compute_operation_footer (tree st) {
-  tree r= "";
+  tree r     = "";
+  tree suffix= "";
   if (N (st) >= 2) {
     switch (L (st)) {
     case VAR_WIDE:
@@ -356,6 +422,8 @@ edit_interface_rep::compute_operation_footer (tree st) {
       r= drd->get_name (L (st));
     }
   }
+  suffix= get_operation_shortcut_suffix (st);
+  if (suffix != "") r= concat (r, suffix);
   if (last_item (tp) == 0) r= concat ("before ", r);
   return r;
 }
@@ -482,7 +550,29 @@ edit_interface_rep::set_right_footer () {
   tree cf= compute_compound_footer (et, path_up (tp));
   tree st= subtree (et, path_up (tp));
   tree lf;
-  if (is_atomic (st)) lf= compute_text_footer (st);
+  if (is_atomic (st) && N (tp) >= 2) {
+    tree parent= subtree (et, path_up (tp, 2));
+    switch (L (parent)) {
+    case LSUB:
+    case LSUP:
+    case RSUB:
+    case RSUP:
+    case FRAC:
+    case SQRT:
+    case ABOVE:
+    case BELOW:
+    case WIDE:
+    case VAR_WIDE:
+    case AROUND:
+    case VAR_AROUND:
+      lf= compute_operation_footer (parent);
+      break;
+    default:
+      lf= compute_text_footer (st);
+      break;
+    }
+  }
+  else if (is_atomic (st)) lf= compute_text_footer (st);
   else lf= compute_operation_footer (st);
   if (N (focus_get (false)) + 1 >= N (tp)) cf= concat (cf, lf);
   set_right_footer (cf);

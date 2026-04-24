@@ -68,6 +68,7 @@ public:
   virtual void menu_widget (string menu, widget& w)    = 0;
   virtual void menu_main (string menu)                 = 0;
   virtual void menu_icons (int which, string menu)     = 0;
+  virtual void notification_bar (string menu)          = 0;
   virtual void side_tools (int which, string menu)     = 0;
   virtual void auxiliary_widget (widget w, string name)= 0;
   virtual void bottom_tools (int which, string menu)   = 0;

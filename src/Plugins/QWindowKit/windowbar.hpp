@@ -27,6 +27,7 @@ public:
   QWidget*         titleWidget () const; // 新接口：获取任意类型的标题Widget
   QAbstractButton* iconButton () const;
   QAbstractButton* loginButton () const;
+  QAbstractButton* vipButton () const;
   QAbstractButton* pinButton () const;
   QAbstractButton* minButton () const;
   QAbstractButton* maxButton () const;
@@ -37,6 +38,7 @@ public:
   void setTitleWidget (QWidget* widget); // 新接口：支持任意QWidget
   void setIconButton (QAbstractButton* btn);
   void setLoginButton (QAbstractButton* btn);
+  void setVipButton (QAbstractButton* btn);
   void setPinButton (QAbstractButton* btn);
   void setMinButton (QAbstractButton* btn);
   void setMaxButton (QAbstractButton* btn);
@@ -47,6 +49,7 @@ public:
   QWidget*         takeTitleWidget (); // 新接口：获取标题Widget
   QAbstractButton* takeIconButton ();
   QAbstractButton* takeLoginButton ();
+  QAbstractButton* takeVipButton ();
   QAbstractButton* takePinButton ();
   QAbstractButton* takeMinButton ();
   QAbstractButton* takeMaxButton ();

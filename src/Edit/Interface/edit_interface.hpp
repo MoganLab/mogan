@@ -93,8 +93,8 @@ protected:
   double table_line_mark       = 0.0;
 
   // 文本工具栏缓存，用于性能优化
-  time_t text_toolbar_last_check = 0;
-  bool   text_toolbar_last_result= false;
+  time_t text_popup_last_check = 0;
+  bool   text_popup_last_result= false;
   bool   table_line_hit (SI x, SI y, table_hit& hit);
   void   table_line_start (const table_hit& hit, SI x, SI y);
   void   table_line_apply (SI x, SI y);
@@ -113,10 +113,12 @@ protected:
   void   table_scale_stop ();
   array<rectangles> alt_selection_rects;
   rectangle         last_visible;
-  rectangle         last_image_brec; // 图片 bbox 缓存
-  SI                last_image_hr;   // 图片 handle 半径缓存
-  rectangle         last_table_brec; // 表格 bbox 缓存
-  SI                last_table_hr;   // 表格 handles 半径缓存
+  rectangle         last_image_brec;  // 图片 bbox 缓存
+  SI                last_image_hr;    // 图片 handle 半径缓存
+  rectangle         hover_image_rect; // 鼠标悬停图片的区域缓存（用于扩大检测）
+  path              hover_image_path; // 鼠标悬停图片的路径缓存
+  rectangle         last_table_brec;  // 表格 bbox 缓存
+  SI                last_table_hr;    // 表格 handles 半径缓存
   rectangles        env_rects;
   rectangles        foc_rects;
   rectangles        sem_rects;
@@ -261,17 +263,19 @@ public:
   void      update_mouse_loci ();
   void      update_focus_loci ();
   bool      should_show_image_popup (tree t);
-  bool      should_show_text_toolbar ();
+  bool      should_show_text_popup ();
   rectangle get_text_selection_rect ();
-  void      show_text_toolbar (rectangle selr, double magf, int scroll_x,
-                               int scroll_y, int canvas_x, int canvas_y);
-  void      hide_text_toolbar ();
-  bool      is_point_in_text_toolbar (SI x, SI y);
-  void      update_text_toolbar ();
-  void      invalidate_text_toolbar_cache (); // 重置工具栏缓存
+  void show_text_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
+                        int canvas_x, int canvas_y);
+  void hide_text_popup ();
+  bool is_point_in_text_popup (SI x, SI y);
+  void update_text_popup ();
+  void invalidate_text_popup_cache (); // 重置工具栏缓存
 
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
+  tree get_display_shortcut_suffix (string cmd_s);
+  tree get_operation_shortcut_suffix (tree st);
   tree compute_text_footer (tree st);
   tree compute_operation_footer (tree st);
   tree compute_compound_footer (tree t, path p);

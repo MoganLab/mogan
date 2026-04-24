@@ -87,7 +87,7 @@
 
 (tm-define (liii-keywords-define)
   (map symbol->string
-    '(let1 and-let* typed-lambda defined? define-macro define-constant
+    '(and-let* typed-lambda defined? define-macro define-constant
       autoload require provide define* lambda* eval-string case*
       typed-define define-case-class)))
 

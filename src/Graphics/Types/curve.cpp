@@ -1067,14 +1067,13 @@ ellipse (array<point> a, array<path> cip, bool close) {
 int
 ellipse_rep::get_control_points (array<double>& abs, array<point>& pts,
                                  array<path>& rcip) {
-  // According to the design, the points in the "abs" array represent the
-  // control points of the curve, with their corresponding parameter values on
-  // the curve. However, in practice, only the first and last points in the
-  // array will be used. Therefore, the "abs" array is used to represent the
-  // range of parameter values. Since we have a closed curve here, we just need
-  // to ensure that the starting point has a parameter value of 0 and the ending
-  // point has a parameter value of 1.
-  abs = array<double> (0.0, 1.0);
+  // The "abs" array must have one entry per control point (matching the return
+  // value) so that graphical_select can safely index abs[0..np-1].
+  // We split the parameter range [0, 1] evenly across the control points.
+  int n= N (points);
+  abs  = array<double> (n);
+  for (int k= 0; k < n; k++)
+    abs[k]= ((double) k) / ((double) (n > 1 ? n - 1 : 1));
   pts = points;
   rcip= cip;
   return N (points);

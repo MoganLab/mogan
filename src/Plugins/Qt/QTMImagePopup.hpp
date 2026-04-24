@@ -22,47 +22,28 @@
 #include <QToolButton>
 #include <QWidget>
 
-class QTMImagePopup : public QWidget {
+#include "QTMBasePopup.hpp"
+
+class QTMImagePopup : public QTMBasePopup {
 protected:
-  qt_simple_widget_rep*      owner;
-  QHBoxLayout*               layout;
-  QGraphicsDropShadowEffect* effect;
-  int                        cached_image_mid_x;
-  int                        cached_image_mid_y;
-  rectangle                  cached_rect;
-  int                        cached_scroll_x; // 页面滚动位置x
-  int                        cached_scroll_y; // 页面滚动位置y
-  int                        cached_canvas_x;
-  int                        cached_canvas_y;
-  int                        cached_width;
-  int                        cached_height;
-  double                     cached_magf; // 缩放因子
-  tree                       current_tree;
-  string                     current_align;
-  QToolButton*               leftBtn;
-  QToolButton*               middleBtn;
-  QToolButton*               rightBtn;
-  QToolButton*               ocrBtn;
-  QString                    btn_style;
-  bool                       painted;
-  int                        painted_count;
+  tree         current_tree;
+  string       current_align;
+  QToolButton* leftBtn;
+  QToolButton* middleBtn;
+  QToolButton* rightBtn;
+  QToolButton* ocrBtn;
 
 public:
   QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner);
   ~QTMImagePopup ();
 
-  void showImagePopup (qt_renderer_rep* ren, rectangle selr, double magf,
-                       int scroll_x, int scroll_y, int canvas_x, int canvas_y);
-  void updatePosition (qt_renderer_rep* ren);
-  void scrollBy (int x, int y);
+  void showPopup (qt_renderer_rep* ren, rectangle selr, double magf,
+                  int scroll_x, int scroll_y, int canvas_x,
+                  int canvas_y) override;
   void setImageTree (tree t);
   void updateButtonStates ();
-  void autoSize ();
 
 protected:
-  void cachePosition (rectangle selr, double magf, int scroll_x, int scroll_y,
-                      int canvas_x, int canvas_y);
-  void getCachedPosition (qt_renderer_rep* ren, int& x, int& y);
   bool eventFilter (QObject* obj, QEvent* event) override;
 };
 

@@ -1,5 +1,5 @@
 ;
-; Copyright (C) 2024 The Goldfish Scheme Authors
+; Copyright (C) 2026 The Goldfish Scheme Authors
 ;
 ; Licensed under the Apache License, Version 2.0 (the "License");
 ; you may not use this file except in compliance with the License.
@@ -16,326 +16,665 @@
 
 (define-library (liii path)
   (export
+    path path? path-copy
     path-dir? path-file? path-exists?
-    path-getsize path-read-text path-read-bytes path-write-text path-append-text path-touch
-    path
-    )
-  (import (liii base) (liii lang) (liii error) (liii vector) (liii string) (liii list)
-          (liii os))
+    path-getsize path-read-text path-read-bytes
+    path-write-text path-append-text path-touch
+    path-root path-of-drive path-from-parts path-from-env
+    path-cwd path-home path-temp-dir
+    path-parts path-type path-drive
+    path->string path-from-string
+    path-name path-stem path-suffix
+    path-equals? path=?
+    path-absolute? path-relative?
+    path-join path-parent
+    path-list path-list-path
+    path-rmdir path-unlink path-rename
+  ) ;export
+  (import (liii base)
+          (liii error)
+          (liii os)
+          (liii string)
+          (liii vector)
+          (scheme base)
+  ) ;import
   (begin
 
-    (define (path-dir? path)
-      (g_isdir path))
+    ;;; Path record type
+    (define-record-type <path>
+      (make-path-record parts type drive)
+      path?
+      (parts path-record-parts path-record-set-parts!)
+      (type path-record-type path-record-set-type!)
+      (drive path-record-drive path-record-set-drive!)
+    ) ;define-record-type
 
-    (define (path-file? path)
-      (g_isfile path))
-
-    (define (path-exists? path)
-      (file-exists? path))
-
-    (define path-getsize
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'"))
-          (g_path-getsize path))))
-
-    (define path-read-text
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'"))
-          (g_path-read-text path))))
-
-    (define path-read-bytes
-      (typed-lambda ((path string?))
-        (if (not (file-exists? path))
-          (file-not-found-error
-            (string-append "No such file or directory: '" path "'"))
-          (g_path-read-bytes path))))
-
-    (define path-write-text
-      (typed-lambda ((path string?) (content string?))
-        (g_path-write-text path content)))
-
-    (define path-append-text
-      (typed-lambda ((path string?) (content string?))
-        (g_path-append-text path content)))
-
-    (define (path-touch path)
-      (g_path-touch path))
-
-    (define-case-class path ()
-      (define parts #("."))
-      (define type 'posix)
-      (define drive "")
-  
-      (define (%set-parts! v)
-        (if (rich-vector :is-type-of v)
-            (set! parts (v :collect))
-            (set! parts v)))
-  
-      (define (%set-type! s)
-        (set! type s))
-  
-      (define (%set-drive! s)
-        (set! drive s))
-  
-      (define (%get-parts) parts)
-      (define (%get-type) type)
-      (define (%get-drive) drive)
-  
-      (define (%copy)
-        (let1 p (path)
-          (p :set-parts! parts)
-          (p :set-type! type)
-          (p :set-drive! drive)
-          p))
-
-
-      (chained-define (@of-drive ch)
-        (when (not (char? ch))
-          (type-error "path@of-drive must take char? as input"))
-        (let1 r (path)
-          (r :set-type! 'windows)
-          (r :set-drive! ($ ch :to-upper :make-string))
-          (r :set-parts! #())
-          r))
-
-      (chained-define (@root)
-        (let1 r (path)
-              (r :set-parts! #("/"))
-              r))
-
-      (chained-define (@from-parts x) 
-        (let1 r (path)
-          (r :set-parts! x)
-          r))
-
-      (chained-define (@/ x) 
-        (if (path :is-type-of x)
-            (path :root :/ x)
-            (cond ((and (string-ends? x ":") (= (string-length x) 2))
-                   (path :of-drive (x 0)))
-            
-                  ((string=? x "/") (path :root))
-            
-                  (else
-                    (path :from-parts (vector-append (vector (string (os-sep))) (vector x)))))))
-
-      (chained-define (@apply s)
-        (cond ((and (or (os-linux?) (os-macos?))
-                    (string-starts? s "/"))
-               (path :/ (@apply ($ s :drop 1 :get))))
-              ((and (os-windows?)
-                    (= (string-length s) 2)
-                    (char=? (s 1) #\:))
-               (path :of-drive (s 0)))
-              ((and (os-windows?) (>= (string-length s) 3)
-                    (char=? (s 1) #\:)
-                    (char=? (s 2) #\\))
-               (path :of-drive (s 0)
-                     :/ (@apply ($ s :drop 3 :get))))
-              (else
-               (let loop ((iter s))
-                 (cond ((or (string-null? iter) (string=? iter "."))
-                        (path))
-                 
-                       ((not (char=? (iter 0) (os-sep)))
-                        (path :from-parts ($ iter :split (string (os-sep)))))
-                 
-                       (else
-                        (loop ($ iter :drop 1 :get))))))))
-
-      (chained-define (@from-env name)
-        (path (getenv name)))
-
-      (define (%name)
-        (if (string=? "." ($ parts :last))
-            ""
-            ($ parts :last)))
-
-      (define (%stem)
-        (define last-part-str 
-          (if (> (vector-length parts) 0)
-              (vector-ref parts (- (vector-length parts) 1))
-              ""))
-  
-        (define (drop-suffix str)
-          (let* ((rich-str ($ str))
-                 (rich-splits (rich-str :split "."))  ; 按点分割
-                 (count (rich-splits :count)))  ; 获取分割数量
-            (cond ((<= count 1) str)  ; 无后缀或单一部分
-                  ((string=? str ".") "")  ; 当前目录特殊处理
-                  ((string=? str "..") "..") ; 上级目录特殊处理
-                  ((and (string=? (rich-splits 0) "")  ; 以点开头
-                        (= count 2))  ; 且只有一个点（纯隐藏文件）
-                   str)  ; 保留完整文件名
-                  (else  ; 正常多后缀情况
-                   (rich-splits :take (- count 1) :make-string ".")))))
-  
-        (drop-suffix (%name)))
-
-      (define (%suffix)
-        (let* ((name (%name))
-               (rich-str ($ name))
-               (rich-splits (rich-str :split "."))
-               (count (rich-splits :count)))
-          (cond ((<= count 1) "")  ; 无后缀
-                ((string=? name ".") "")  ; 当前目录
-                ((string=? name "..") "") ; 上级目录
-                ((and (string=? (rich-splits 0) "")  ; 以点开头
-                      (= count 2))  ; 且只有一个点（纯隐藏文件）
-                 "")
-                (else 
-                 (string-append "." (rich-splits :last))))))  ; 返回最后一部分
-
-      (define (%equals that)
-        (if (path :is-type-of that)
-            (string=? (%to-string) (that :to-string))
-            #f))
-
-      (define (%file?)
-        (path-file? (%to-string)))
-
-      (define (%dir?)
-        (path-dir? (%to-string))) 
-
-      (define (%absolute?)
-        (case type
-          ((posix) (string-starts? (parts 0) "/"))
-    
-          ((windows) (not ($ drive :empty?)))
-    
-          (else
-            (value-error
-              (string-append "path%absolute?: unknown type" (symbol->string type))))))
-
-      (define (%relative)
-        (not (%absolute?)))
-
-      (define (%exists?)
-        (path-exists? (%to-string)))
-
-      (define (%to-string)
-        (case type
-          ((posix)
-           (let1 s ($ parts :make-string (string (os-sep)))
-             (if (and (> ($ s :length) 1) (string-starts? s (string (os-sep))))
-                 (string-drop s 1)
-                 s)))
-          ((windows)
-           (let1 s ($ parts :make-string "\\")
-             (if (string-null? drive)
-                 s
-                 (string-append drive ":\\" s))))
-          (else (value-error "path%to-string: unknown type" type))))
-
-      (define (%read-text)
-        (path-read-text (%to-string)))
-
-      (typed-define (%write-text (content string?))
-        (path-write-text (%to-string) content))
-
-      (typed-define (%append-text (content string?))
-        (path-append-text (%to-string) content))
-
-      (define (%list)
-        (box (listdir (%to-string))))
-
-      (define (%list-path)
-        ((box (listdir (%to-string)))
-         :map (lambda (x) ((%this) :/ x))))
-
-      (define (%touch)
-        (path-touch (%to-string)))
-
-      (chained-define (%/ x)
-        (cond ((string? x)
-               (let1 new-path (%copy)
-                 (new-path :set-parts! (vector-append parts (vector x)))
-                 new-path))
-        
-              ((path :is-type-of x)
-               (cond ((x :absolute?)
-                      (value-error "path to append must not be absolute path: " (x :to-string)))
-                     ((string=? (x :to-string) ".")
-                      (%this))
-                     (else (let ((new-path (%copy))
-                                 (x-parts (x :get-parts)))
-                             (if (os-windows?)
-                                 (new-path :set-parts! x-parts)
-                                 (new-path :set-parts! (vector-append (vector (string (os-sep))) x-parts)))
-                             new-path))))
-        
-              (else (type-error "only string?, path is allowed"))))
-
-      (chained-define (%parent)   
-        (define (parts-drop-right parts x)
-          (let1 path-vec ($ parts :drop-right x)
-            (let1 new-path (%copy)
-              (if (path-vec :empty?)
-                  (if (os-windows?)
-                      (new-path :set-parts! #(""))
-                      (new-path :set-parts! #(".")))
-                  (new-path :set-parts! (path-vec :append #(""))))
-              new-path)))
-                
+    (define (string-split-vec str sep)
+      (let loop ((chars (string->list str))
+                 (current '())
+                 (result '()))
         (cond
-          ((or (equal? #("/") parts) (equal? #(".") parts))
-           (%this))
-          ((or (os-macos?) (os-linux?))
-           (let1 last-part (($ parts) :take-right 1 :collect)
-                 (if (equal? last-part #(""))
-                     (parts-drop-right parts 2)
-                     (parts-drop-right parts 1))))
-          ((os-windows?)
-           (if ($ parts :empty?)
-               (%this)
-               (let1 last-part (($ parts) :take-right 1 :collect)
-                 (if (equal? last-part #(""))
-                     (parts-drop-right parts 2)
-                     (parts-drop-right parts 1)))))
-    
-          (else (??? "Unsupported platform"))))
+          ((null? chars)
+           (list->vector (reverse (cons (list->string (reverse current)) result)))
+          ) ;
+          ((char=? (car chars) sep)
+           (loop (cdr chars) '() (cons (list->string (reverse current)) result))
+          ) ;
+          (else
+           (loop (cdr chars) (cons (car chars) current) result)
+          ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define
 
-      (define (%rmdir)
-        (rmdir (%to-string)))
+    ;;; Parse string path into parts
+    ;; For absolute paths like "/home/da", the first part is "" to indicate leading /
+    ;; On Windows, also handles backslash as separator
+    (define (parse-path-string s)
+      (cond
+        ((string-null? s) #("."))
+        ((string=? s ".") #("."))
+        ((string=? s "/") #("/"))
+        ((string=? s "\\") #("\\"))
+        (else
+         (let ((sep (os-sep)))
+           ;; Normalize path: replace / with \ on Windows, then split
+           (let ((normalized (if (os-windows?)
+                               (string-replace s "/" "\\")
+                               s)))
+             (if (and (> (string-length normalized) 0)
+                      (char=? (string-ref normalized 0) sep))
+               ;; Absolute path: start with empty string part
+               (let ((parts (string-split-vec normalized sep)))
+                 (if (or (vector-empty? parts)
+                         (not (string-null? (vector-ref parts 0))))
+                   (vector-append #("" ) parts)
+                   parts
+                 ) ;if
+               ) ;let
+               ;; Relative path
+               (string-split-vec normalized sep)
+             ) ;if
+           ) ;let
+         ) ;let
+        ) ;else
+      ) ;cond
+    ) ;define
 
-      (define* (%unlink (missing-ok #f))  ; 使用define*定义可选参数
-        (let ((path-str (%to-string)))
+    ;;; Check if string is a Windows absolute path with drive letter
+    (define (windows-path-with-drive? s)
+      (and (>= (string-length s) 2)
+           (char-alphabetic? (string-ref s 0))
+           (char=? (string-ref s 1) #\:)
+      ) ;and
+    ) ;define
+
+    ;;; Extract drive letter from Windows path string
+    (define (extract-drive s)
+      (string (char-upcase (string-ref s 0)))
+    ) ;define
+
+    ;;; Parse Windows path string into parts
+    (define (parse-windows-path s)
+      (let ((sep (os-sep)))
+        (if (and (> (string-length s) 2)
+                 (or (char=? (string-ref s 2) #\\)
+                     (char=? (string-ref s 2) #\/))
+                 ) ;or
+          ;; Absolute Windows path like "C:\Users\..."
+          (let*
+            ((rest (substring s 3 (string-length s)))
+             (parts (if (string-null? rest)
+                      #()
+                      (string-split-vec rest sep))
+             ) ;parts
+            ) ;
+            parts
+          ) ;let*
+          ;; Relative to drive like "C:file.txt"
+          (string-split-vec s sep)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;;; Create a path object
+    (define (path . args)
+      (if (null? args)
+        (make-path-record #(".") 'posix "")
+        (let ((arg (car args)))
           (cond
-            ((file-exists? path-str)  ; 文件存在时总是删除
-             (remove path-str))
-            (missing-ok  ; 文件不存在时根据missing-ok决定
-             #t)         ; missing-ok为#t时静默返回#t
-            (else        ; missing-ok为#f时抛出错误
-             (error 'file-not-found-error 
-                    (string-append "File not found: " path-str))))))
+            ((string? arg)
+             (if (windows-path-with-drive? arg)
+               ;; Windows path with drive letter like "C:\Users"
+               (let ((parts (parse-windows-path arg))
+                     (drive (extract-drive arg)))
+                 (make-path-record parts 'windows drive)
+               ) ;let
+               ;; Regular path - use platform-specific type
+               (let ((parts (parse-path-string arg))
+                     (type (if (os-windows?) 'windows 'posix)))
+                 (make-path-record parts type "")
+               ) ;let
+             ) ;if
+            ) ;
+            ((path? arg)
+             (path-copy arg)
+            ) ;
+            (else
+             (type-error "path: argument must be string or path")
+            ) ;else
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
 
+    ;;; Copy a path object
+    (define (path-copy p)
+      (if (path? p)
+        (make-path-record
+          (vector-copy (path-record-parts p))
+          (path-record-type p)
+          (path-record-drive p)
+        ) ;make-path-record
+        (type-error "path-copy: argument must be path")
+      ) ;if
+    ) ;define
 
-      (chained-define (@./ x)
-        (let1 p (path x)
-              (if (p :absolute?)
-                  (value-error "path@./: only accecpt relative path")
-                  (path x))))
+    ;;; Get parts as vector
+    (define (path-parts p)
+      (if (path? p)
+        (vector-copy (path-record-parts p))
+        (type-error "path-parts: argument must be path")
+      ) ;if
+    ) ;define
 
-      (chained-define (@cwd)
-        (path (getcwd)))
+    ;;; Get type ('posix or 'windows)
+    (define (path-type p)
+      (if (path? p)
+        (path-record-type p)
+        (type-error "path-type: argument must be path")
+      ) ;if
+    ) ;define
 
-      (chained-define (@home)
-        (cond ((or (os-linux?) (os-macos?))
-               (path (getenv "HOME")))
-              ((os-windows?)
-               (path :of-drive ((getenv "HOMEDRIVE") 0)
-                     :/ (path (getenv "HOMEPATH"))))
-              (else (value-error "path@home: unknown type"))))
+    ;;; Get drive letter (for Windows paths)
+    (define (path-drive p)
+      (if (path? p)
+        (path-record-drive p)
+        (type-error "path-drive: argument must be path")
+      ) ;if
+    ) ;define
 
-      (chained-define (@temp-dir)
-        (path (os-temp-dir)))
+    ;;; Convert path to string
+    (define (path->string p)
+      (cond
+        ((path? p)
+         (let ((parts (path-record-parts p))
+               (type (path-record-type p))
+               (drive (path-record-drive p)))
+           (case type
+             ((posix)
+              (if (vector-empty? parts)
+                ""
+                (let ((first (vector-ref parts 0)))
+                  ;; POSIX type paths always use forward slash
+                  (parts->string parts "/")
+                ) ;let
+              ) ;if
+             ) ;
+             ((windows)
+              (let ((s (parts->string parts "\\")))
+                (if (string-null? drive)
+                  s
+                  (string-append drive ":\\" s)
+                ) ;if
+              ) ;let
+             ) ;
+             (else
+              (value-error "path->string: unknown type")
+             ) ;else
+           ) ;case
+         ) ;let
+        ) ;
+        ((string? p)
+         p
+        ) ;
+        (else
+         (type-error "path->string: argument must be path or string")
+        ) ;else
+      ) ;cond
+    ) ;define
 
-      )
+    (define (path-from-string s)
+      (path s)
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+    ;;; Helper: convert parts vector to string
+    ;;; For absolute paths, first part is "" or "/" which should result in leading /
+    (define (parts->string parts sep)
+      (let ((len (vector-length parts)))
+        (if (= len 0)
+          ""
+          (let ((first (vector-ref parts 0)))
+            (cond
+              ;; Absolute path indicated by empty first part
+              ((string-null? first)
+               (if (= len 1)
+                 sep
+                 (let loop ((i 1) (result ""))
+                   (if (>= i len)
+                     result
+                     (let ((part (vector-ref parts i)))
+                       (if (string-null? result)
+                         (loop (+ i 1) (string-append sep part))
+                         (loop (+ i 1) (string-append result sep part))
+                       ) ;if
+                     ) ;let
+                   ) ;if
+                 ) ;let
+               ) ;if
+              ) ;
+              ;; Absolute path indicated by "/" as first part (from path-from-parts)
+              ((string=? first "/")
+               (if (= len 1)
+                 sep
+                 ;; Join remaining parts with sep, then prepend /
+                 (let loop ((i 1) (result ""))
+                   (if (>= i len)
+                     (string-append sep result)
+                     (let ((part (vector-ref parts i)))
+                       (if (string-null? result)
+                         (loop (+ i 1) part)
+                         (loop (+ i 1) (string-append result sep part))
+                       ) ;if
+                     ) ;let
+                   ) ;if
+                 ) ;let
+               ) ;if
+              ) ;
+              ;; Relative path
+              (else
+               (let loop ((i 0) (result ""))
+                 (if (>= i len)
+                   result
+                   (let ((part (vector-ref parts i)))
+                     (if (string-null? result)
+                       (loop (+ i 1) part)
+                       (loop (+ i 1) (string-append result sep part))
+                     ) ;if
+                   ) ;let
+                 ) ;if
+               ) ;let
+              ) ;else
+            ) ;cond
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
 
+    ;;; Check if two paths are equal
+    (define (path-equals? p1 p2)
+      (let ((s1 (path->string (path p1)))
+            (s2 (path->string (path p2))))
+        (string=? s1 s2)
+      ) ;let
+    ) ;define
+
+    (define path=? path-equals?)
+
+    ;;; Check if path is absolute
+    (define (path-absolute? p)
+      (if (path? p)
+        (let ((type (path-record-type p))
+              (drive (path-record-drive p))
+              (parts (path-record-parts p)))
+          (case type
+            ((windows)
+             ;; Windows absolute path has a drive letter
+             (not (string-null? drive))
+            ) ;
+            ((posix)
+             ;; POSIX absolute path starts with empty part (leading /) or is just "/"
+             (and (> (vector-length parts) 0)
+                  (let ((first (vector-ref parts 0)))
+                    (or (string-null? first)
+                        (string=? first "/")
+                    ) ;or
+                  ) ;let
+             ) ;and
+            ) ;
+            (else #f)
+          ) ;case
+        ) ;let
+        (let ((s (path->string p)))
+          (cond
+            ((os-windows?)
+             (and (>= (string-length s) 2)
+                  (char=? (string-ref s 1) #\:)
+             ) ;and
+            ) ;
+            (else
+             (and (> (string-length s) 0)
+                  (char=? (string-ref s 0) (os-sep))
+             ) ;and
+            ) ;else
+          ) ;cond
+        ) ;let
+      ) ;if
+    ) ;define
+
+    ;;; Check if path is relative
+    (define (path-relative? p)
+      (not (path-absolute? p))
+    ) ;define
+
+    ;;; Get the last component of path (filename)
+    (define (path-name p)
+      (let ((s (path->string p)))
+        ;; Handle special cases: empty string and "." both represent current dir
+        (if (or (string-null? s) (string=? s "."))
+          ""
+          (let ((sep (os-sep)))
+            (let loop ((i (- (string-length s) 1)))
+              (cond
+                ((< i 0) s)
+                ((char=? (string-ref s i) sep)
+                 (substring s (+ i 1) (string-length s))
+                ) ;
+                (else (loop (- i 1)))
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;define
+
+    ;;; Get the stem (filename without extension)
+    (define (path-stem p)
+      (let ((name (path-name p)))
+        (let ((splits (string-split name #\.)))
+          (let ((count (length splits)))
+            (cond
+              ((<= count 1) name)
+              ((string=? name ".") "")
+              ((string=? name "..") "..")
+              ((and (string=? (car splits) "")
+                    (= count 2)
+               ) ;and
+               name
+              ) ;
+              (else
+               ;; Take all parts except the last one and join with "."
+               (let loop ((i 0) (result ""))
+                 (if (>= i (- count 1))
+                   result
+                   (let ((part (list-ref splits i)))
+                     (if (string-null? result)
+                       (loop (+ i 1) part)
+                       (loop (+ i 1) (string-append result "." part))
+                     ) ;if
+                   ) ;let
+                 ) ;if
+               ) ;let
+              ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;;; Get the suffix (file extension)
+    (define (path-suffix p)
+      (let ((name (path-name p)))
+        (let ((splits (string-split name #\.)))
+          (let ((count (length splits)))
+            (cond
+              ((<= count 1) "")
+              ((string=? name ".") "")
+              ((string=? name "..") "")
+              ((and (string=? (car splits) "")
+                    (= count 2)
+               ) ;and
+               ""
+              ) ;
+              (else
+               (string-append "." (list-ref splits (- count 1)))
+              ) ;else
+            ) ;cond
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;;; Join paths
+    (define (path-join base . segments)
+      (let ((sep (string (os-sep))))
+        (let loop ((result (path->string base))
+                   (rest segments))
+          (if (null? rest)
+            result
+            (let ((part (path->string (car rest))))
+              (if (or (string-null? result)
+                      (string-ends? result sep))
+                (loop (string-append result part) (cdr rest))
+                (loop (string-append result sep part) (cdr rest))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;;; Get parent directory
+    (define (path-parent p)
+      (let ((s (path->string p)))
+        (let ((sep (os-sep)))
+          ;; First, remove trailing separator if present (except for root)
+          (let
+            ((s-trimmed
+               (if (and (> (string-length s) 1)
+                        (char=? (string-ref s (- (string-length s) 1)) sep))
+                 (substring s 0 (- (string-length s) 1))
+                 s)
+               ) ;if
+             ) ;s-trimmed
+            (let loop ((i (- (string-length s-trimmed) 1)))
+              (cond
+                ((< i 0)
+                 (if (os-windows?) (path "") (path "."))
+                ) ;
+                ((char=? (string-ref s-trimmed i) sep)
+                 (if (= i 0)
+                   (path-root)
+                   ;; Keep the trailing separator for the parent path
+                   (path (substring s-trimmed 0 (+ i 1)))
+                 ) ;if
+                ) ;
+                (else (loop (- i 1)))
+              ) ;cond
+            ) ;let
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;;; Path predicates and operations (work with strings or paths)
+    (define (path-dir? p)
+      (g_isdir (path->string p))
+    ) ;define
+
+    (define (path-file? p)
+      (g_isfile (path->string p))
+    ) ;define
+
+    (define (path-exists? p)
+      (file-exists? (path->string p))
+    ) ;define
+
+    (define (path-getsize p)
+      (let ((s (path->string p)))
+        (if (not (file-exists? s))
+          (file-not-found-error
+            (string-append "No such file or directory: '" s "'")
+          ) ;file-not-found-error
+          (g_path-getsize s)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-read-text p)
+      (let ((s (path->string p)))
+        (if (not (file-exists? s))
+          (file-not-found-error
+            (string-append "No such file or directory: '" s "'")
+          ) ;file-not-found-error
+          (g_path-read-text s)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-read-bytes p)
+      (let ((s (path->string p)))
+        (if (not (file-exists? s))
+          (file-not-found-error
+            (string-append "No such file or directory: '" s "'")
+          ) ;file-not-found-error
+          (g_path-read-bytes s)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-write-text p content)
+      (if (not (string? content))
+        (type-error "path-write-text: content must be string")
+        (g_path-write-text (path->string p) content)
+      ) ;if
+    ) ;define
+
+    (define (path-append-text p content)
+      (g_path-append-text (path->string p) content)
+    ) ;define
+
+    (define (path-touch p)
+      (g_path-touch (path->string p))
+    ) ;define
+
+    ;;; Static path constructors
+    (define (path-root)
+      (make-path-record #("/") 'posix "")
+    ) ;define
+
+    (define (path-of-drive ch)
+      (if (char? ch)
+        (make-path-record #() 'windows (string (char-upcase ch)))
+        (type-error "path-of-drive: argument must be char")
+      ) ;if
+    ) ;define
+
+    (define (path-from-parts parts)
+      (if (vector? parts)
+        (if (and (> (vector-length parts) 0)
+                 (string? (vector-ref parts 0))
+                 (windows-path-with-drive? (vector-ref parts 0)))
+          ;; Windows path with drive letter like "C:"
+          (let*
+            ((drive-str (vector-ref parts 0))
+             (drive (extract-drive drive-str))
+             ;; Build result parts without drive part
+             (clean-parts (let loop ((i 1)
+                                    (result '()))
+                           (if (>= i (vector-length parts))
+                             (list->vector (reverse result))
+                             (let ((part (vector-ref parts i)))
+                               ;; Skip empty parts and separator parts
+                               (if (or (string-null? part)
+                                       (string=? part "/")
+                                       (string=? part "\\"))
+                                 (loop (+ i 1) result)
+                                 (loop (+ i 1) (cons part result))))
+                               ) ;if
+                             ) ;let
+                           ) ;if
+             ) ;clean-parts
+            (make-path-record clean-parts 'windows drive)
+          ) ;let*
+          ;; Regular POSIX-style path
+          (make-path-record (vector-copy parts) 'posix "")
+        ) ;if
+        (type-error "path-from-parts: argument must be vector")
+      ) ;if
+    ) ;define
+
+    (define (path-from-env name)
+      (path (getenv name))
+    ) ;define
+
+    (define (path-cwd)
+      (path (getcwd))
+    ) ;define
+
+    (define (path-home)
+      (cond
+        ((or (os-linux?) (os-macos?))
+         (path (getenv "HOME"))
+        ) ;
+        ((os-windows?)
+         (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH")))
+        ) ;
+        (else
+         (value-error "path-home: unknown platform")
+        ) ;else
+      ) ;cond
+    ) ;define
+
+    (define (path-temp-dir)
+      (path (os-temp-dir))
+    ) ;define
+
+    ;;; List directory contents
+    (define (path-list p)
+      (listdir (path->string p))
+    ) ;define
+
+    ;;; List directory contents as path objects
+    (define (path-list-path p)
+      (let ((base (path->string p)))
+        (let ((entries (listdir base)))
+          (vector-map
+            (lambda (entry) (path-join base entry))
+            entries
+          ) ;vector-map
+        ) ;let
+      ) ;let
+    ) ;define
+
+    ;;; Remove directory
+    (define (path-rmdir p)
+      (rmdir (path->string p))
+    ) ;define
+
+    ;;; Remove file
+    (define* (path-unlink p (missing-ok #f))
+      (let ((s (path->string p)))
+        (cond
+          ((file-exists? s)
+           (remove s)
+          ) ;
+          (missing-ok
+           #t
+          ) ;missing-ok
+          (else
+           (error 'file-not-found-error
+                  (string-append "File not found: " s)
+           ) ;error
+          ) ;else
+        ) ;cond
+      ) ;let
+    ) ;define*
+
+    ;;; Rename file or directory
+    (define (path-rename src dst)
+      (rename (path->string src) (path->string dst))
+    ) ;define
+
+  ) ;begin
+) ;define-library

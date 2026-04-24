@@ -96,9 +96,11 @@
 
   <assign|the-chapter-hanzi|<macro|<number|<value|chapter-nr>|hanzi>>>
 
-  <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<ordinal-text> <the-chapter> <chapter-text> <vspace|1fn><new-line><arg|title>>>>>
-  
-  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<ordinal-text> <the-chapter> <chapter-text><chapter-sep><arg|name>|<arg|name>>>>>>>
+  <assign|chapter-numbered-title|<macro|title|<style-with|src-compact|none|<chapter-title|<ordinal-text>
+  <the-chapter> <chapter-text>><new-line><chapter-title-render|<huge|<arg|title>>>>>>
+
+  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<ordinal-text>
+  <the-chapter> <chapter-text><chapter-sep><arg|name>|<arg|name>>>>>>>
 
   \;
 

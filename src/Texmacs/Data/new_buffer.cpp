@@ -17,6 +17,7 @@
 #include "merge_sort.hpp"
 #include "message.hpp"
 #include "new_document.hpp"
+#include "preferences.hpp"
 #include "tm_data.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
@@ -29,6 +30,27 @@ using namespace moebius;
 array<tm_buffer> bufs;
 
 string propose_title (string old_title, url u, tree doc);
+
+static bool
+use_dark_style_package_for_gui_theme () {
+  string theme= get_preference ("gui theme", "default");
+  return theme == "liii-night" || theme == "dark";
+}
+
+static tree
+sync_dark_style_with_gui_theme (tree doc) {
+  tree style= copy (extract (doc, "style"));
+  if (is_atomic (style)) style= tuple (style);
+  else if (!is_tuple (style)) style= tree (TUPLE);
+
+  tree normalized (TUPLE);
+  for (int i= 0; i < N (style); ++i)
+    if (style[i] != "dark") normalized << style[i];
+
+  if (use_dark_style_package_for_gui_theme ()) normalized << "dark";
+  if (normalized != style) doc= change_doc_attr (doc, "style", normalized);
+  return doc;
+}
 
 /******************************************************************************
  * Check for changes in the buffer
@@ -485,6 +507,7 @@ bool
 buffer_import (url name, url src, string fm) {
   tree t= import_tree (src, fm);
   if (t == "error") return true;
+  t= sync_dark_style_with_gui_theme (t);
   set_buffer_tree (name, t);
 
   // Check if the file is read-only and update the buffer's read_only flag
@@ -567,6 +590,24 @@ bool
 buffer_export (url name, url dest, string fm) {
   tm_view vw= concrete_view (get_recent_view (name));
   ASSERT (vw != NULL, "view expected");
+  new_data export_data;
+
+  vw->ed->get_data (vw->buf->data);
+  export_data->project= copy (vw->buf->data->project);
+  export_data->style  = copy (vw->buf->data->style);
+  export_data->init   = copy (vw->buf->data->init);
+  export_data->fin    = copy (vw->buf->data->fin);
+  export_data->ref    = copy (vw->buf->data->ref);
+  export_data->aux    = copy (vw->buf->data->aux);
+  export_data->att    = copy (vw->buf->data->att);
+
+  if (export_data->style == "dark") export_data->style= tree (TUPLE);
+  else if (is_func (export_data->style, TUPLE)) {
+    tree style (TUPLE);
+    for (int i= 0; i < N (export_data->style); ++i)
+      if (export_data->style[i] != "dark") style << export_data->style[i];
+    export_data->style= style;
+  }
 
   if (fm == "postscript" || fm == "pdf") {
     int old_stamp= last_modified (dest);
@@ -581,8 +622,7 @@ buffer_export (url name, url dest, string fm) {
   // if (fm == "latex")
   // body= vw->ed->exec_latex (body);
 
-  vw->ed->get_data (vw->buf->data);
-  tree doc= attach_data (body, vw->buf->data, !vw->ed->get_save_aux ());
+  tree doc= attach_data (body, export_data, !vw->ed->get_save_aux ());
 
   if (fm == "latex")
     doc= change_doc_attr (doc, "view", as_string (abstract_view (vw)));

@@ -364,9 +364,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (htmltm-math env a c)
-(with cm `(m:math (@ ,@a) ,(replace-nsprefix-in-stree c "h:" "m:"))
-  `(,(mathtm-as-serial env cm))
-))
+  (with cm `(m:math (@ ,@a) ,@(replace-nsprefix-in-stree c "h:" "m:"))
+    `(,(mathtm-as-serial env cm))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; MathJax extension

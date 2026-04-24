@@ -26,8 +26,9 @@
     (define nil '())
 
     (define (runtime)
-      (round (* 1000 (current-second))))
+      (round (* 1000 (current-second)))
+    ) ;define
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

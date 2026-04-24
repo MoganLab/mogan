@@ -200,6 +200,9 @@ save_to_server (url u, string s) {
 url
 get_from_ramdisc (url u) {
   if (!is_ramdisc (u)) return url_none ();
+  // 在访问树节点子元素前进行边界检查
+  // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+  if (N (u->t) < 2 || N (u[1]->t) < 3) return url_none ();
   url res= get_cache (u);
   if (!is_none (res)) return (res);
   url tmp= url_temp (suffix (u));

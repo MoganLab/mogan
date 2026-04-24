@@ -70,7 +70,8 @@ edit_interface_rep::edit_interface_rep ()
       cursor_blink_active (false), cursor_blink_next (0),
       cursor_blink_period (500), table_selection (false),
       mouse_adjusting (false), oc (0, 0), temp_invalid_cursor (false),
-      shadow (NULL), stored (NULL), cur_sb (2), cur_wb (2) {
+      hover_image_rect (0, 0, 0, 0), hover_image_path (), shadow (NULL),
+      stored (NULL), cur_sb (2), cur_wb (2) {
   user_active= false;
   input_mode = INPUT_NORMAL;
   gui_root_extents (cur_wx, cur_wy);
@@ -116,6 +117,7 @@ edit_interface_rep::resume () {
   SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
   SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+  SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   array<url> a= buffer_to_windows (buf->buf->name);
   if (N (a) > 0) {
     string win = "(string->url \"" * as_string (a[0]) * "\")";
@@ -650,6 +652,9 @@ edit_interface_rep::notify_change (int change) {
   needs_update ();
   if ((change & (THE_TREE | THE_SELECTION | THE_CURSOR)) != 0)
     manual_focus_set (path (), (change & THE_TREE) != 0);
+  // 选区变化时，使文本工具栏缓存失效
+  // 输入字符时选区变化会触发 THE_SELECTION，进而使工具栏缓存失效并隐藏
+  if ((change & THE_SELECTION) != 0) invalidate_text_popup_cache ();
 }
 
 bool
@@ -678,6 +683,7 @@ edit_interface_rep::update_menus () {
   SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
   SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+  SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   array<url> a= buffer_to_windows (buf->buf->name);
   if (N (a) > 0) {
     string win = "(string->url \"" * as_string (a[0]) * "\")";
@@ -993,7 +999,7 @@ edit_interface_rep::apply_changes () {
       invalidate (selection_rects);
     }
     // 选区改变后更新文本工具栏
-    update_text_toolbar ();
+    update_text_popup ();
   }
 
   // cout << "Handling alternative selection\n";

@@ -33,8 +33,10 @@
              chapter-title section-title subsection-title subsubsection-title
              paragraph-title subparagraph-title
              itemize itemize-minus itemize-dot itemize-arrow
-             enumerate enumerate-numeric enumerate-roman
-             enumerate-Roman enumerate-alpha enumerate-Alpha
+             enumerate enumerate-numeric enumerate-numeric-bracket
+             enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+             enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+             enumerate-alpha-full-paren enumerate-Alpha
              description description-compact description-dash
              description-aligned description-long description-paragraphs item*
          strong em dfn code* samp kbd var abbr acronym

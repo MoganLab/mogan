@@ -19,13 +19,12 @@
         (liii list)
         (liii string)
         (liii sys)
-        (liii base)
-        (liii lang))
+        (liii base))
 (export goldfish-welcome goldfish-repl is-sicp-mode?)
 (begin
 
 (define (goldfish-welcome)
-  (let1 mode (last (argv))
+  (let ((mode (last (argv))))
     (if (string=? mode "default")
         (flush-prompt "> ")
         (flush-prompt (string-append (string-upcase mode) "] "))))

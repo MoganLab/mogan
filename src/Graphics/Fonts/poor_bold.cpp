@@ -183,7 +183,7 @@ poor_bold_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI* xpos,
     int start= i;
     base->advance_glyph (s, i, ligf);
     string ss= s (start, i);
-    if (ren->is_screen) {
+    if (ren->is_screen || ren->is_printer ()) {
       font_metric fnm;
       font_glyphs fng;
       int         c= index_glyph (ss, fnm, fng);
@@ -193,8 +193,8 @@ poor_bold_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI* xpos,
       SI dpen, dtot;
       fatten (ss, dpen, dtot);
       if (dpen == dtot) {
-        for (int k= 0; k <= 8; k++) {
-          SI dx= (k * dpen) / 8;
+        for (int k= 0; k <= 32; k++) {
+          SI dx= (k * dpen) / 32;
           base->draw (ren, ss, x + dx + (start == 0 ? 0 : xpos[start]), y);
         }
       }
@@ -209,9 +209,9 @@ poor_bold_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI* xpos,
         lambda       = floor (100.0 * lambda + 0.5) / 100.0;
         // font mbase= base->magnify (lambda, 1.0);
         font mbase= poor_stretched_font (base, lambda, 1.0);
-        for (int k= 0; k <= 8; k++) {
+        for (int k= 0; k <= 32; k++) {
           double slope= -((double) vertical (dpen)) / ((double) dpen);
-          SI     dx   = (k * dpen2) / 8;
+          SI     dx   = (k * dpen2) / 32;
           SI     dy   = (SI) floor (slope * (dx - (dpen2 >> 1)));
           mbase->draw (ren, ss, x + dx + (start == 0 ? 0 : xpos[start]),
                        y + dy);
@@ -350,9 +350,13 @@ static double
 get_bold_factor (string font_name) {
   string lname= locase_all (font_name);
   if (occurs ("simsun", lname)) return 0.5;
-  if (occurs ("kaiti_gb2312", lname)) return 0.3;
   if (occurs ("simhei", lname)) return 0.5;
-  if (occurs ("fangsong_gb2312", lname)) return 0.3;
+  // Check all possible variations for KaiTi/SimKai
+  if (occurs ("kaiti_gb2312", lname)) return 0.5;
+  if (occurs ("simkai", lname)) return 0.5;
+  // Check all possible variations for FangSong/SimFang
+  if (occurs ("fangsong_gb2312", lname)) return 0.5;
+  if (occurs ("simfang", lname)) return 0.5;
   return 1.0;
 }
 

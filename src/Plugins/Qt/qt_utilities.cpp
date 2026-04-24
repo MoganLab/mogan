@@ -11,6 +11,7 @@
 
 #include "qt_utilities.hpp"
 #include "QTMStyle.hpp"
+#include "url.hpp"
 #include <time.h>
 
 #include <QCoreApplication>
@@ -53,6 +54,8 @@ using lolly::data::as_hexadecimal;
 #ifdef USE_PLUGIN_GS
 #include "Ghostscript/gs_utilities.hpp"
 #endif
+
+#include <moebius/data/scheme.hpp>
 
 #define SCREEN_PIXEL (PIXEL)
 
@@ -549,9 +552,35 @@ qt_supports (url u) {
 }
 
 bool
+qt_load_image_from_ramdisc (url u, QImage& im) {
+  // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+  // 在访问树节点子元素前进行边界检查
+  if (N (u->t) < 2) {
+    im= QImage ();
+    return false;
+  }
+  url root_part= u[1];
+  if (N (root_part->t) < 3) {
+    im= QImage ();
+    return false;
+  }
+  url    data_url= root_part[2];
+  string img_data= data_url->t->label;
+  im             = QImage ();
+  return im.loadFromData ((const uchar*) img_data.begin (), N (img_data));
+}
+
+bool
 qt_image_size (url image, int& w, int& h) { // w, h in points
   if (DEBUG_CONVERT) debug_convert << "qt_image_size :" << LF;
-  QImage im= QImage (utf8_to_qstring (concretize (image)));
+  QImage im;
+  if (is_ramdisc (image)) {
+    qt_load_image_from_ramdisc (image, im);
+  }
+  else {
+    string concrete= concretize (image);
+    im             = QImage (utf8_to_qstring (concrete));
+  }
   if (im.isNull ()) {
     convert_error << "Cannot read image file '" << image << "'"
                   << " in qt_image_size" << LF;
@@ -573,7 +602,13 @@ qt_image_size (url image, int& w, int& h) { // w, h in points
 bool
 qt_native_image_size (url image, int& w, int& h) {
   if (DEBUG_CONVERT) debug_convert << "qt_image_size :" << LF;
-  QImage im= QImage (utf8_to_qstring (concretize (image)));
+  QImage im;
+  if (is_ramdisc (image)) {
+    qt_load_image_from_ramdisc (image, im);
+  }
+  else {
+    im= QImage (utf8_to_qstring (concretize (image)));
+  }
   if (im.isNull ()) return false;
   else {
     w= im.width ();
@@ -618,7 +653,13 @@ void
 qt_convert_image (url image, url dest, int w, int h) { // w, h in pixels
   if (DEBUG_CONVERT)
     debug_convert << "qt_convert_image " << image << " -> " << dest << LF;
-  QImage im (utf8_to_qstring (concretize (image)));
+  QImage im;
+  if (is_ramdisc (image)) {
+    qt_load_image_from_ramdisc (image, im);
+  }
+  else {
+    im= QImage (utf8_to_qstring (concretize (image)));
+  }
   if (im.isNull ())
     convert_error << "Cannot read image file '" << image << "'"
                   << " in qt_convert_image" << LF;
@@ -803,6 +844,16 @@ qt_translate (const string& s) {
   string in_lan = get_input_language ();
   string out_lan= get_output_language ();
   return to_qstring (tm_var_encode (translate (s, in_lan, out_lan)));
+}
+
+string
+qt_scheme_quote (const QString& text) {
+  return moebius::data::scm_quote (from_qstring (text));
+}
+
+string
+qt_scheme_quote_utf8 (const QString& text) {
+  return moebius::data::scm_quote (from_qstring_utf8 (text));
 }
 
 string
@@ -1480,4 +1531,18 @@ qt_clipboard_text () {
   QByteArray buf;
   buf= mimeData->text ().toUtf8 ();
   return string (buf.constData (), buf.size ());
+}
+
+void
+qt_clipboard_set_html (string html) {
+  QCoreApplication::processEvents ();
+  QClipboard* clipboard= QApplication::clipboard ();
+  if (clipboard == nullptr) return;
+
+  auto*         mimeData= new QMimeData;
+  c_string      htmlC (html);
+  const QString htmlText= QString::fromUtf8 ((char*) htmlC, N (html));
+  mimeData->setHtml (htmlText);
+  mimeData->setText (htmlText);
+  clipboard->setMimeData (mimeData, QClipboard::Clipboard);
 }

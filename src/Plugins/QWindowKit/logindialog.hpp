@@ -27,6 +27,7 @@ public:
   void     setContentWidget (QWidget* widget);
   QWidget* contentWidget () const;
   void     showAtPosition (const QPoint& globalPos);
+  void     showAtRect (const QRect& globalRect, int gap= 6);
 
 protected:
   void showEvent (QShowEvent* event) override;

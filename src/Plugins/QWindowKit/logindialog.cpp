@@ -10,7 +10,6 @@
 #include "logindialog.hpp"
 #include "logindialog_p.hpp"
 
-#include <QtCore/QDebug>
 #include <QtGui/QtEvents>
 
 namespace QWK {
@@ -84,9 +83,8 @@ LoginDialog::showAtPosition (const QPoint& globalPos) {
     pos.setX (screenGeometry.right () - width ());
   }
 
-  // 检查底部边界
+  // 底部空间不足时，尝试显示在锚点上方
   if (pos.y () + height () > screenGeometry.bottom ()) {
-    // 如果底部空间不足，尝试显示在位置上方
     pos.setY (globalPos.y () - height ());
   }
 
@@ -107,15 +105,47 @@ LoginDialog::showAtPosition (const QPoint& globalPos) {
 }
 
 void
+LoginDialog::showAtRect (const QRect& globalRect, int gap) {
+  QScreen* screen= QGuiApplication::screenAt (globalRect.center ());
+  if (!screen) {
+    screen= QGuiApplication::primaryScreen ();
+  }
+
+  QRect     screenGeometry= screen->availableGeometry ();
+  const int belowGap      = 0;
+  QPoint    pos (globalRect.center ().x () - width () / 2,
+                 globalRect.bottom () + 1 + belowGap);
+
+  if (pos.x () + width () > screenGeometry.right ()) {
+    pos.setX (screenGeometry.right () - width ());
+  }
+
+  if (pos.y () + height () > screenGeometry.bottom ()) {
+    pos.setY (globalRect.top () - height () - gap);
+  }
+
+  if (pos.x () < screenGeometry.left ()) {
+    pos.setX (screenGeometry.left ());
+  }
+
+  if (pos.y () < screenGeometry.top ()) {
+    pos.setY (screenGeometry.top ());
+  }
+
+  move (pos);
+  show ();
+  raise ();
+  activateWindow ();
+}
+
+void
 LoginDialog::showEvent (QShowEvent* event) {
-  Q_D (LoginDialog);
   // 不再自动居中，使用自定义位置
   QDialog::showEvent (event);
 }
 
 void
 LoginDialog::closeEvent (QCloseEvent* event) {
-  Q_D (LoginDialog);
   // 可以在这里添加关闭前的逻辑
   QDialog::closeEvent (event);
 }

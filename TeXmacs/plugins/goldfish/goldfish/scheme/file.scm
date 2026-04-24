@@ -15,13 +15,18 @@
 ;
 
 (define-library (scheme file)
-  (export open-binary-input-file open-binary-output-file)
+  (export call-with-input-file call-with-output-file
+          delete-file file-exists?
+          open-binary-input-file open-binary-output-file
+          open-input-file open-output-file
+          with-input-from-file with-output-to-file
+  ) ;export
   (begin
-  
+
     (define open-binary-input-file open-input-file)
 
     (define open-binary-output-file open-output-file)
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

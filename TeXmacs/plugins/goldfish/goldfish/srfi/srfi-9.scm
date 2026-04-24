@@ -2,6 +2,6 @@
   (import (scheme base))
   (export define-record-type)
   (begin
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

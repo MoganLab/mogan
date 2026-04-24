@@ -74,9 +74,9 @@
 
   <assign|pre-edit|<macro|body|<with|ornament-color|#707070|ornament-sunny-color|#808080|ornament-shadow-color|#606060|ornament-border|1px|ornament-hpadding|2px|ornament-vpadding|2px|<smash|<ornament|<with|color|white|<arg|body>>>>>>>
 
-  <assign|focus-color|#3A86FF33>
+  <assign|focus-color|#ffffff0e>
 
-  <assign|selection-color|#3A86FF33>
+  <assign|selection-color|#ffffff20>
 
   <assign|scheme-prompt-color|dark green>
 
@@ -91,6 +91,12 @@
   <assign|defined-color|#4a71a1>
 
   <assign|preview-bg-color|#5a7cc2>
+
+  <assign|table-selection-color|#5500ff10>
+  
+  <assign|todo-color|#ffb3b3>
+
+  <assign|todo-bg-color|#5a1f1f>
 
   <assign|gr-grid-aspect|<tuple|<tuple|axes|#999999>|<tuple|1|#666666>|<tuple|10|#003153>>>
 
@@ -113,6 +119,10 @@
   <assign|src-numeric|<macro|body|<with|mode|src|color|#dda0dd|<arg|body>>>>
 
   <assign|src-length|<macro|body|<with|mode|src|color|#2aadad|<arg|body>>>>
+
+  <assign|version-notice-bg-color|#6b5600>
+
+  <assign|version-notice-fg-color|#fff4cc>
 
   \;
 </body>

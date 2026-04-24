@@ -32,6 +32,10 @@
            (view-win (view->window-of-tabpage view))
            (title  (buffer-get-title buf))
            (title* (if (== title "") (url->system (url-tail buf)) title))
+           ;; 特殊处理启动标签页标题
+           (title* (if (== (url->system buf) "tmfs://startup-tab")
+                       (if (community-stem?) "Mogan STEM" "Liii STEM")
+                       title*))
            (mod?   (buffer-modified? buf))
            (tab-title (string-append title* (if mod? " *" "")))
            (doc-path  (url->system buf))
@@ -40,7 +44,7 @@
         (eval view)
         ((balloon (eval `(verbatim ,tab-title))
                   (eval `(verbatim ,doc-path)))
-         (window-set-view view-win view #t)) ;; #t stansd for focus 
+         (window-set-view view-win view #t)) ;; #t stansd for focus
         ((balloon "✕" "Close") (safely-kill-tabpage-by-url view-win view buf))
         (eval active?)
       ))))

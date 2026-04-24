@@ -1365,6 +1365,17 @@
   ("Inline formula" (variant-formula t))
   ("Displayed formula" (variant-equation t)))
 
+(tm-menu (focus-preferences-menu t)
+  (:require (tree-in? t '(equation equation* align)))
+  (with l (tree-label t)
+      (group "Prefix separator")
+      ((check "." "v" (== (get-init-env "equation-prefix-sep") "."))
+       (init-env "equation-prefix-sep" "."))
+      ((check "-" "v" (== (get-init-env "equation-prefix-sep") "-"))
+       (init-env "equation-prefix-sep" "-"))
+      ---)
+  (former t))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Script focus menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

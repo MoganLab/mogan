@@ -23,9 +23,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Style package rules for beamer
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
+;blackboard幻灯片主题不完善，暂时先屏蔽
 (tm-define (beamer-themes)
-  (list "bluish" "dark" "blackboard" "boring-white" "dark-vador"
+  (list "bluish" "dark" 
+        ;"blackboard"
+        "boring-white" "dark-vador"
         "granite" "ice" "manila-paper" "metal" "pale-blue"
         "pine" "reddish" "ridged-paper" "rough-paper" "xperiment"))
 

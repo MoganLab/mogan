@@ -26,7 +26,7 @@ void       switch_to_window (url win);
 void       switch_to_parent_window ();
 
 url  create_buffer ();
-url  new_window (bool map_flag= true, tree geom= "");
+url  new_window (bool map_flag= true, tree geom= "", bool force_tab_bar= false);
 url  open_window (tree geom= "");
 url  ensure_window (tree geom= "");
 void clone_window ();

@@ -4,7 +4,7 @@
 
 **访问官方网站：**
 - **墨干（社区版）**: [https://mogan.app](https://mogan.app)
-- **Liii STEM（商业版，内置 AI）**: [https://liiistem.com](https://liiistem.com)
+- **Liii STEM（商业版，免费，OCR & AI增值收费）**: [https://liiistem.cn](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 
 ## 主要功能
@@ -78,7 +78,7 @@ cd mogan
 - [macOS 开发指南](devel/Develop_on_macOS_ZH.md)
 
 #### Liii STEM（商业版）
-如需带 AI 能力的商业版，请访问 [Liii STEM 官方网站](https://liiistem.cn) 获取安装选项。
+如需带 AI 能力的商业版，请访问 [Liii STEM 官方网站](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite) 获取安装选项。
 
 
 
@@ -87,29 +87,21 @@ cd mogan
 ### 社区版资源
 - **墨干官网**: [https://mogan.app](https://mogan.app)
 - **GitHub 仓库**: [github.com/MoganLab/mogan](https://github.com/MoganLab/mogan)
-- **用户手册**: [Liii/Mogan STEM官方文档](https://liiistem.cn/docs/welcome.html)
-- **视频教程**: 分步学习资料
+- **用户手册**: [Liii/Mogan STEM官方文档](https://liiistem.cn/docs/welcome.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 ### 商业版资源
-- **Liii STEM 网站**: [https://liiistem.cn](https://liiistem.cn)
-- **私人服务**: [商业级指南与私人定制服务](https://liiistem.cn/pricing-fruit.html)
-- **AI 功能**: [内置AI自动排版证明](https://liiistem.cn/docs/guide-tuto-llm-plug.html)
+- **Liii STEM 网站**: [https://liiistem.cn](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
+- **私人服务**: [商业级指南与私人定制服务](https://liiistem.cn/pricing-custom.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
+- **OCR 和魔法粘贴**: [OCR功能](https://liiistem.cn/docs/tutorial/tuto-magic-paste.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
-### 🌍 语言支持
-- **中文**：墨干理工套件 — 完整中文界面与文档
-- **English**：为国际用户提供完整英文文档
-- **多语言**：社区翻译支持
 
 ## 社区与开发
-
-### 墨干社区
-- **贡献文档**：欢迎来贡献 [Liii/Mogan STEM的文档](https://h02wf0jq8yp.feishu.cn/wiki/GPjbwIcW1i3iN0kpIzWcu0Nundf)
 
 
 ### 🔗 联系我们
 - **墨干社区QQ群**: 934456971
 - **社区负责人邮箱**: yansong@liii.pro
-- **Liii STEM**: 通过 [官方网站](https://liiistem.cn) 联系
+- **Liii STEM**: 通过 [官方网站](https://liiistem.cn/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite) 联系
 
 ### 📚 开发文档
 - [Windows 开发指南](./devel/Develop_on_Windows_ZH.md)

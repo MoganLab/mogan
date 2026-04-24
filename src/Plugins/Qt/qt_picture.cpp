@@ -297,6 +297,13 @@ get_image_for_real (url u, int w, int h, tree eff, SI pixel) {
     QPainter painter (pm);
     renderer.render (&painter);
   }
+  else if (is_ramdisc (u)) {
+    pm= new QImage ();
+    if (!qt_load_image_from_ramdisc (u, *pm)) {
+      delete pm;
+      pm= NULL;
+    }
+  }
   else if (qt_supports (u)) {
     pm= new QImage (utf8_to_qstring (concretize (u)));
   }

@@ -23,7 +23,11 @@
 
   <assign|section-clean|<macro|<reset-subsection><reset-std-env>>>
 
-  <assign|display-std-env|<macro|nr|<section-prefix><arg|nr>>>
+  <assign|equation-prefix-sep|<macro|.>>
+
+  <drd-props|equation-prefix-sep|macro-parameter|regular>
+
+  <assign|display-std-env|<macro|nr|<number|<value|section-nr>|arabic><equation-prefix-sep><arg|nr>>>
 
   \;
 </body>

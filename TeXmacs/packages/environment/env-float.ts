@@ -44,11 +44,15 @@
 
   <assign|figure-sep|<macro|. >>
 
+  <assign|table-sep|<macro|. >>
+
   <assign|footnote-sep|<macro|. >>
 
   \;
 
   <drd-props|figure-sep|macro-parameter|string>
+
+  <drd-props|table-sep|macro-parameter|string>
 
   <drd-props|footnote-sep|macro-parameter|string>
 
@@ -76,7 +80,7 @@
 
   <assign|render-caption|<\macro|type|name|cap>
     <\html-div-class|caption>
-      <small|<\surround|<figure-name|<arg|name><figure-sep>><list-caption|<arg|type>|<arg|cap>>|>
+      <small|<\surround|<figure-name|<arg|name><if|<equal|<arg|type>|table>|<table-sep>|<figure-sep>>><list-caption|<arg|type>|<arg|cap>>|>
         <arg|cap>
       </surround>>
     </html-div-class>

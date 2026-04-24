@@ -22,6 +22,9 @@
 (define user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.json")
 (define user-shortcuts-file-system
   (url->system (string->url user-shortcuts-file)))
+(define legacy-user-shortcuts-file "$TEXMACS_HOME_PATH/system/shortcuts.scm")
+(define user-shortcuts-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/shortcuts.scm->v1")
 (define user-shortcuts-version 1)
 
 (define (make-shortcut-entry sh cmd)
@@ -105,6 +108,55 @@
   (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (save-user-shortcuts))
 
+(define (write-migration-marker marker-file)
+  (string-save
+   "migrated\n"
+   (string->url marker-file)))
+
+(define (load-legacy-scm-user-shortcuts)
+  (and (url-exists? legacy-user-shortcuts-file)
+       (catch #t
+         (lambda ()
+           (let ((loaded (load-object legacy-user-shortcuts-file)))
+             (and (list? loaded) loaded)))
+         (lambda args #f))))
+
+(define (legacy-scm-user-shortcut-entry->json entry)
+  (and (pair? entry)
+       (pair? (cdr entry))
+       (string? (car entry))
+       (string? (cadr entry))
+       (make-shortcut-entry (car entry) (cadr entry))))
+
+(define (shortcut-entry-mergeable? entry existing-entries)
+  (let ((sh (shortcut-entry-shortcut entry)))
+    (not (list-find existing-entries
+                    (lambda (existing)
+                      (== (shortcut-entry-shortcut existing) sh))))))
+
+(define (merge-legacy-scm-user-shortcuts current entries)
+  (let loop ((rest entries) (merged current))
+    (if (null? rest)
+        merged
+        (with entry (car rest)
+          (if (shortcut-entry-mergeable? entry merged)
+              (loop (cdr rest) (append merged (list entry)))
+              (loop (cdr rest) merged))))))
+
+(define (maybe-import-legacy-scm-user-shortcuts)
+  (when (and (url-exists? legacy-user-shortcuts-file)
+             (not (url-exists? user-shortcuts-migration-marker-v1)))
+    (and-with legacy-shortcuts (load-legacy-scm-user-shortcuts)
+      (let* ((entries (list-filter
+                       (map legacy-scm-user-shortcut-entry->json legacy-shortcuts)
+                       (lambda (x) x)))
+             (current (current-user-shortcuts-list))
+             (merged (merge-legacy-scm-user-shortcuts current entries)))
+        (when (not (equal? merged current))
+          (set-current-user-shortcuts-list merged))
+        (save-user-shortcuts)
+        (write-migration-marker user-shortcuts-migration-marker-v1)))))
+
 (define (load-user-shortcuts)
   (replace-current-user-shortcuts! (make-empty-user-shortcuts-json))
   (when (url-exists? user-shortcuts-file)
@@ -120,6 +172,7 @@
               (lambda () (njson-free loaded))
               (lambda args #f))
             (reset-user-shortcuts)))))
+  (maybe-import-legacy-scm-user-shortcuts)
   (for (entry (current-user-shortcuts-list))
     (apply-user-shortcut (shortcut-entry-shortcut entry)
                          (shortcut-entry-command entry))))

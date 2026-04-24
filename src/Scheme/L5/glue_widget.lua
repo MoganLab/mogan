@@ -477,6 +477,14 @@ function main()
                 ret_type = "string"
             },
             {
+                scm_name = "qt-clipboard-set-html",
+                cpp_name = "qt_clipboard_set_html",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "open-pricing-url",
                 cpp_name = "open_pricing_url",
                 ret_type = "void"

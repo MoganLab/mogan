@@ -53,6 +53,12 @@
 bool
 tm_load_string (url u, string& s, bool fatal) {
   if (is_ramdisc (u)) {
+    // 在访问树节点子元素前进行边界检查
+    // ramdisc URL 结构：concat(root("ramdisc", data), filename)
+    if (N (u->t) < 2 || N (u[1]->t) < 3) {
+      s= string ();
+      return true; // indicate error
+    }
     s= as_string (u[1][2]);
     return false;
   }

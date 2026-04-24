@@ -4,7 +4,7 @@ Mogan STEM is a professional scientific writing platform targeted at mathematics
 
 **Visit the official websites:**
 - **Mogan STEM (Community Version)**: [https://mogan.app](https://mogan.app)
-- **Liii STEM (Commercial Version, with built-in AI)**: [https://liiistem.com](https://liiistem.com)
+- **Liii STEM (Commercial Version, Free with built-in AI and OCRs)**: [https://liiistem.com](https://liiistem.com/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 ## Key Features
 
@@ -76,20 +76,20 @@ For detailed setup, dependency installation, build, and run instructions, please
 - [macOS Development Guide](devel/Develop_on_macOS.md)
 
 #### Option 3: Liii STEM (Commercial Version)
-For the commercial version with built-in AI features, please visit the [Liii STEM official website](https://liiistem.cn) for installation options.
+For the commercial version with built-in AI features, please visit the [Liii STEM official website](https://liiistem.com?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite) for installation options.
 
 ## Documentation & Learning
 
 ### Community Version Resources
 - Mogan website: [https://mogan.app](https://mogan.app)
 - GitHub repository: [github.com/MoganLab/mogan](https://github.com/MoganLab/mogan)
-- User manual: comprehensive guide covering all features ([Liii/Mogan STEM docs](https://liiistem.cn/docs/welcome.html))
+- User manual: comprehensive guide covering all features ([Liii/Mogan STEM docs](https://liiistem.com/docs/welcome.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite))
 - Video tutorials: step-by-step learning materials
 
 ### Commercial Version Resources
-- Liii STEM website: [https://liiistem.cn](https://liiistem.cn)
-- Private services: commercial guides and custom services ([pricing & services](https://liiistem.cn/pricing-fruit.html))
-- AI features: documentation for built-in AI-assisted formatting and proofs ([AI guide](https://liiistem.cn/docs/guide-tuto-llm-plug.html))
+- Liii STEM website: [https://liiistem.cn](https://liiistem.com/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
+- Private services: commercial guides and custom services ([pricing & services](https://liiistem.cn/pricing-fruit.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite))
+- OCR features: documentation for built-in OCRs ([OCR guide](https://liiistem.cn/docs/tutorial/tuto-magic-paste.html?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite))
 
 ### 🌍 Language Support
 - Chinese: full Chinese interface and documentation
@@ -105,7 +105,7 @@ For the commercial version with built-in AI features, please visit the [Liii STE
 ### 🔗 Contact
 - Mogan Discord Channel: https://discord.gg/Q7xARnAf8t
 - Community lead email: yansong@liii.pro
-- Liii STEM: contact via the [official website](https://liiistem.cn)
+- Liii STEM: contact via the [official website](https://liiistem.com/?utm_source=moganwebsite&utm_medium=referral&utm_campaign=moganwebsite)
 
 ### 📚 Development Guides
 - [Windows Development guide](./devel/Develop_on_Windows.md)

@@ -52,6 +52,20 @@
 
   <assign|html-head-javascript-src|https://www.texmacs.org/javascript/texmacs_functions.js>
 
+  <assign|version-notice-bg-color|pastel yellow>
+
+  <assign|version-notice-fg-color|black>
+
+  <assign|version-notice-border|0ln>
+
+  <assign|version-notice|<\macro|body>
+    <\with|ornament-border|<value|version-notice-border>|ornament-color|<value|version-notice-bg-color>|color|<value|version-notice-fg-color>>
+      <\ornamented>
+        <arg|body>
+      </ornamented>
+    </with>
+  </macro>>
+
   <\active*>
     <\src-comment>
       Sections, subsections and subsubsections.

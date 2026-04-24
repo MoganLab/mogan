@@ -20,6 +20,6 @@
 
     (define (uuid4) (g_uuid4))
 
-    ) ; end of begin
-  ) ; end of define-library
+  ) ;begin
+) ;define-library
 

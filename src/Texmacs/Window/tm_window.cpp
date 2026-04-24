@@ -179,7 +179,8 @@ texmacs_window_widget (widget wid, tree geom) {
   int  W, H;
   int  w= geometry_w, h= geometry_h;
   int  x= geometry_x, y= geometry_y;
-  bool custom= is_tuple (geom) && N (geom) >= 2;
+  bool custom                           = is_tuple (geom) && N (geom) >= 2;
+  bool default_geometry_without_override= (!custom && w == 800 && h == 600);
 #ifndef QTTEXMACS
   if (use_side_tools) {
     w+= 200;
@@ -211,6 +212,13 @@ texmacs_window_widget (widget wid, tree geom) {
   if (!custom) {
     get_preferred_position (name, xx, yy);
     get_preferred_size (name, ww, hh);
+    // If no user size exists yet, avoid falling back to legacy 800x600.
+    if (default_geometry_without_override &&
+        !has_user_preference ("width " * name) &&
+        !has_user_preference ("height " * name)) {
+      ww= W * PIXEL;
+      hh= H * PIXEL;
+    }
   }
   set_size (win, ww, hh);
   set_position (win, xx, yy);
@@ -449,6 +457,15 @@ tm_window_rep::menu_icons (int which, string menu) {
     else if (which == 2) set_focus_icons (wid, w);
     else if (which == 3) set_user_icons (wid, w);
     else if (which == 4) set_tab_pages (wid, w);
+  }
+}
+
+void
+tm_window_rep::notification_bar (string menu) {
+  eval ("(lazy-initialize-force)");
+  widget w;
+  if (get_menu_widget (5, menu, w)) {
+    set_notification_bar (wid, w);
   }
 }
 

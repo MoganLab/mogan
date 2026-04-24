@@ -783,6 +783,17 @@ QTMTabWidget::resizeOthers (int current) {
     else widget (i)->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Minimum);
   }
 
+  // Check if any parent has disabled auto-resize
+  QWidget* check= this;
+  while (check) {
+    if (check->property ("tm_no_tab_auto_resize").toBool ()) {
+      // Just adjust the widget itself, not the window
+      adjustSize ();
+      return;
+    }
+    check= check->parentWidget ();
+  }
+
   // FIXME? this could loop indefinitely if parents are cyclic.
   QWidget* p= this;
   while (p != window ()) {

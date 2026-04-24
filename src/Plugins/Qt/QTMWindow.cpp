@@ -10,6 +10,10 @@
  ******************************************************************************/
 
 #include "QTMWindow.hpp"
+#include "config.h"
+#if defined(USE_TUTORIAL)
+#include "qt_tutorial.hpp"
+#endif
 #include "qt_utilities.hpp"
 #include "tm_sys_utils.hpp"
 #include "tm_url.hpp"
@@ -139,6 +143,15 @@ QTMWindow::resizeEvent (QResizeEvent* event) {
   coord2 sz= from_qsize (frameSize ());
   notify_window_resize (name, sz.x1, sz.x2);
   QMainWindow::resizeEvent (event);
+}
+
+void
+QTMWindow::showEvent (QShowEvent* event) {
+  QMainWindow::showEvent (event);
+#if defined(USE_TUTORIAL)
+  QWK::FirstLaunchTutorialController::instance ()->maybeStartForMainWindow (
+      this);
+#endif
 }
 
 void

@@ -30,7 +30,7 @@
 
   <assign|part-title|<macro|name|<style-with|src-compact|none|<sectional-centered-bold|<vspace*|5fn><really-huge|<arg|name>><vspace|2fn>>>>>
 
-  <assign|chapter-title|<macro|name|<style-with|src-compact|none|<sectional-centered-bold|<vspace*|4fn><huge|<arg|name>><vspace|1.5fn>>>>>
+  <assign|chapter-title|<macro|name|<style-with|src-compact|none|<chapter-title-render|<vspace*|4fn><huge|<arg|name>><vspace|1.5fn>>>>>
 
   <\active*>
     <\src-comment>
@@ -38,7 +38,7 @@
     </src-comment>
   </active*>
 
-  <assign|section-title|<macro|name|<style-with|src-compact|none|<sectional-normal-bold|<vspace*|3fn><very-large|<arg|name>><vspace|1fn>>>>>
+  <assign|section-title|<macro|name|<style-with|src-compact|none|<section-title-render|<vspace*|3fn><very-large|<arg|name>><vspace|1fn>>>>>
 
   <assign|appendix-title|<macro|title|<style-with|src-compact|none|<section-title|<appendix-text><sectional-sep><arg|title>>>>>
 
@@ -51,9 +51,9 @@
     </src-comment>
   </active*>
 
-  <assign|subsection-title|<macro|name|<style-with|src-compact|none|<sectional-normal-bold|<vspace*|2fn><large|<arg|name>><vspace|0.5fn>>>>>
+  <assign|subsection-title|<macro|name|<style-with|src-compact|none|<subsection-title-render|<vspace*|2fn><large|<arg|name>><vspace|0.5fn>>>>>
 
-  <assign|subsubsection-title|<macro|name|<style-with|src-compact|none|<sectional-normal-bold|<vspace*|1fn><arg|name><vspace|0.5fn>>>>>
+  <assign|subsubsection-title|<macro|name|<style-with|src-compact|none|<subsubsection-title-render|<vspace*|1fn><arg|name><vspace|0.5fn>>>>>
 
   <\active*>
     <\src-comment>
@@ -61,9 +61,9 @@
     </src-comment>
   </active*>
 
-  <assign|paragraph-title|<macro|name|<style-with|src-compact|none|<sectional-short-bold|<vspace*|0.5fn><arg|name>>>>>
+  <assign|paragraph-title|<macro|name|<style-with|src-compact|none|<paragraph-title-render|<vspace*|0.5fn><arg|name>>>>>
 
-  <assign|subparagraph-title|<macro|name|<style-with|src-compact|none|<sectional-short-bold|<vspace*|0.25fn><arg|name>>>>>
+  <assign|subparagraph-title|<macro|name|<style-with|src-compact|none|<subparagraph-title-render|<vspace*|0.25fn><arg|name>>>>>
 
   \;
 </body>

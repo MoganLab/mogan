@@ -51,6 +51,7 @@ public:
   void menu_widget (string menu, widget& w);
   void menu_main (string menu);
   void menu_icons (int which, string menu);
+  void notification_bar (string menu);
   void side_tools (int which, string menu);
   void set_auxiliary_widget_title (string title);
   void auxiliary_widget (widget w, string name);

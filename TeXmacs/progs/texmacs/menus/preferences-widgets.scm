@@ -163,6 +163,11 @@ pretty-val : string
       (enum (set-pretty-preference "completion style" answer)
             '("Popup" "Inline")
             (get-pretty-preference "completion style")
+            "18em"))
+    (item (text "Auto backup:")
+      (enum (set-preference "autobackup" (string-downcase answer))
+            '("On" "Off")
+            (tmstring-upcase-first (get-preference "autobackup"))
             "18em"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -923,7 +928,7 @@ pretty-val : string
       ;; TODO: please implement nice icon tabs first before
       ;; adding new tabs in the preferences widget
       ;; The tabs currently take too much horizontal space
-      (icon-tab "tm_prefs_other.xpm" (text "Mathematics")
+      (icon-tab "tm_prefs_math.xpm" (text "Mathematics")
         (centered
           (dynamic (math-preferences-widget))))
       (icon-tab "tm_prefs_convert.xpm" (text "Convert")

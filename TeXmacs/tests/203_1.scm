@@ -34,5 +34,20 @@
 ;; Test !option as command name (should be ignored)
 (check (serialize-latex '((!option "ignored") "arg")) => "{arg}")
 
+;; Proof environment tests (Issue #3007)
+(let ((out (serialize-latex '((!begin "proof") "Test content"))))
+  (check (string-contains? out "\\begin{proof}") => #t)
+  (check (string-contains? out "\\end{proof}") => #t)
+  (check (string-contains? out "Test content") => #t)
+  ;; Regression protection: Ensure no old formatting
+  (check (string-contains? out "\\noindent\\textbf{Proof") => #f))
+
+(let ((out (serialize-latex '((!begin "proof" (!option "Sketch")) "Test content"))))
+  (check (string-contains? out "\\begin{proof}[Sketch]") => #t)
+  (check (string-contains? out "\\end{proof}") => #t)
+  (check (string-contains? out "Test content") => #t)
+  ;; Regression protection: Ensure no old formatting
+  (check (string-contains? out "\\noindent\\textbf{Proof") => #f))
+
 (define (test_203_1)
   (check-report))

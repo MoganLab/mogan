@@ -166,6 +166,338 @@
         (set-message `(concat "Use " ,sh " in order to insert a tab")
                      "tab"))))
 
+;; 辅助函数：定义 enumerate-tag-list
+(define (enumerate-tag-list)
+  '(enumerate enumerate-numeric enumerate-numeric-bracket
+    enumerate-roman enumerate-roman-bracket enumerate-roman-paren
+    enumerate-Roman enumerate-alpha enumerate-alpha-bracket
+    enumerate-alpha-full-paren enumerate-Alpha
+    enumerate-circle enumerate-hanzi enumerate-numeric-paren))
+
+;; 辅助函数：定义 itemize-tag-list
+(define (itemize-tag-list)
+  '(itemize itemize-dot itemize-minus itemize-arrow))
+
+;; 辅助函数：定义 description-tag-list
+(define (description-tag-list)
+  '(description description-compact description-aligned description-dash description-long description-paragraphs))
+
+;; 辅助函数：检查是否在有序列表环境中
+(define (in-enumerate-context?)
+  (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (enumerate-tag-list)))))))
+
+;; 辅助函数：检查是否在无序列表环境中
+(define (in-itemize-context?)
+  (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (itemize-tag-list)))))))
+
+;; 辅助函数：检查是否在描述列表环境中
+(define (in-description-context?)
+  (not (not (tree-search-upwards (focus-tree) (lambda (node) (tree-in? node (description-tag-list)))))))
+
+;; 辅助函数：获取当前实际列表的精确标签，保留 itemize-dot 等变体样式
+(define (get-current-list-label item)
+  (and-with list-node (tree-search-upwards item list-node?)
+    (tree-label list-node)))
+
+;; 辅助函数：查找包含 item 的 concat 包装和真正的 item list
+(define (find-item-wrapper-and-list item)
+  (let ((wrapper #f)
+        (item-list #f))
+    (let loop ((current (tree-outer item)))
+      (if (tree-is? current 'concat)
+          (begin
+            (set! wrapper current)
+            (loop (tree-outer current)))
+          (set! item-list current)))
+    (values wrapper item-list)))
+
+;; 辅助函数：提取 item 内容（处理 concat 包装）
+(define (extract-item-content wrapper)
+  (if (and wrapper (> (tree-arity wrapper) 1))
+      (tree-copy (tree-ref wrapper 1))
+      #f))
+
+;; 辅助函数：在列表中移除 item（处理 concat 包装）
+(define (remove-item-from-list item wrapper item-list)
+  (if wrapper
+      ;; 如果有 wrapper，移除整个 wrapper
+      (let ((wrapper-index (tree-index wrapper)))
+        (tree-remove! item-list wrapper-index 1))
+      ;; 否则移除单个 item
+      (let ((item-index (tree-index item)))
+        (tree-remove! item-list item-index 1))))
+
+(define (list-item-node? t)
+  (or (tree-is? t 'item)
+      (tree-is? t 'item*)
+      (and (tree-is? t 'concat)
+           (> (tree-arity t) 0)
+           (or (tree-is? (tree-ref t 0) 'item)
+               (tree-is? (tree-ref t 0) 'item*)))))
+
+(define (list-item-marker-node? t)
+  (or (tree-is? t 'item)
+      (tree-is? t 'item*)))
+
+(define (list-item-wrapper-node? t)
+  (and (tree-is? t 'concat)
+       (> (tree-arity t) 0)
+       (list-item-marker-node? (tree-ref t 0))))
+
+;; Tab/Shift+Tab should work both on the item marker and inside its content.
+;; When the cursor is in a concat-wrapped item, return the marker at index 0.
+(define (current-list-item-marker)
+  (let* ((focus (focus-tree))
+         (cursor (cursor-tree))
+         (item? (lambda (t)
+                  (or (list-item-marker-node? t)
+                      (list-item-wrapper-node? t))))
+         (item (or (tree-search-upwards cursor item?)
+                   (tree-search-upwards focus item?)))
+         (marker (and item
+                      (if (list-item-wrapper-node? item)
+                          (tree-ref item 0)
+                          item))))
+    marker))
+
+(define (list-tab-context-match? forwards?)
+  (let* ((item (current-list-item-marker))
+         (enum? (in-enumerate-context?))
+         (itemize? (in-itemize-context?))
+         (description? (in-description-context?))
+         (match? (and item
+                      (or (and (or enum? itemize?) (tree-is? item 'item))
+                          (and description? (tree-is? item 'item*))))))
+    match?))
+
+(define (list-item-cursor-target item wrapper)
+  (if (and wrapper (not (cursor-inside? item))) 'content 'marker))
+
+(define (list-item-cursor-state item wrapper)
+  (let* ((base (or wrapper item))
+         (target (list-item-cursor-target item wrapper))
+         (relative-path (and base (tree-cursor-path base))))
+    (list target relative-path)))
+
+(define (go-to-list-item-relative-path moved-item relative-path)
+  (and relative-path
+       (nnull? relative-path)
+       (with p (apply tree->path (cons moved-item relative-path))
+         (and p (begin (go-to p) #t)))))
+
+(define (go-to-moved-list-item moved-item cursor-state parent pos)
+  (let* ((cursor-target (car cursor-state))
+         (relative-path (cadr cursor-state)))
+    (or (go-to-list-item-relative-path moved-item relative-path)
+        (cond ((and (== cursor-target 'content)
+                    (tree-is? moved-item 'concat)
+                    (> (tree-arity moved-item) 1))
+               (tree-go-to moved-item 1 :end))
+              ((tree-is? moved-item 'concat)
+               (tree-go-to moved-item 0 :end))
+              (else
+               (tree-go-to parent pos :end))))))
+
+(define (list-node? t)
+  (and t (tree-in? t (list-tag-list))))
+
+(define (list-family label)
+  (cond ((in? label (enumerate-tag-list)) 'enumerate)
+        ((in? label (itemize-tag-list)) 'itemize)
+        ((in? label (description-tag-list)) 'description)
+        (else label)))
+
+(define (same-list-family? lhs rhs)
+  (and lhs rhs (== (list-family lhs) (list-family rhs))))
+
+(define (find-previous-item-index item-list start)
+  (let loop ((i (- start 1)))
+    (cond ((< i 0) #f)
+          ((list-item-node? (tree-ref item-list i)) i)
+          (else (loop (- i 1))))))
+
+(define (find-following-list-index item-list start end list-type)
+  (let loop ((i (+ start 1)))
+    (cond ((>= i end) #f)
+          ((and (list-node? (tree-ref item-list i))
+                (same-list-family? (tree-label (tree-ref item-list i)) list-type))
+           i)
+          (else (loop (+ i 1))))))
+
+(define (append-strees-to-document doc strees)
+  (if (null? strees) doc
+      (tree-insert doc (tree-arity doc) strees)))
+
+;; 在有序和无序列表中实现缩进功能
+(tm-define (kbd-variant t forwards?)
+  (:require 
+    (and forwards? (list-tab-context-match? forwards?)))
+
+  (let ((item (current-list-item-marker)))
+    ;; 查找包装和列表
+    (call-with-values (lambda () (find-item-wrapper-and-list item))
+      (lambda (wrapper item-list)
+        (if (and item item-list)
+            (let* ((item-index (if wrapper (tree-index wrapper) (tree-index item)))
+                   (cursor-state (list-item-cursor-state item wrapper))
+                   (list-type (list-family (or (get-current-list-label item) 'enumerate)))
+                   (item-stree (tree->stree (if wrapper wrapper item)))
+                   (next-index (+ item-index 1))
+                   (attached-sublist-idx
+                     (and (< next-index (tree-arity item-list))
+                          (let ((next-node (tree-ref item-list next-index)))
+                            ;; 当前 item 后面如果紧跟同一大类的子列表，缩进时一并并入目标子列表。
+                            (and (list-node? next-node)
+                                 (same-list-family? (tree-label next-node) list-type)
+                                 next-index)))))
+              (if (> item-index 0)
+                  (let* ((prev-item-index (find-previous-item-index item-list item-index))
+                         (target-sublist-idx
+                           (and prev-item-index
+                                ;; 优先复用前一个 item 已有的同一大类子列表，避免制造相邻碎片列表。
+                                (find-following-list-index item-list prev-item-index
+                                                           item-index list-type))))
+                    (when prev-item-index
+                      ;; 当前一个 item 还没有子列表时，才在当前 item 前插入一个空子列表。
+                      (when (not target-sublist-idx)
+                        (set! item-list
+                              (tree-insert item-list item-index
+                                           (list `(,list-type (document)))))
+                        (set! target-sublist-idx item-index)
+                        (set! item-index (+ item-index 1))
+                        ;; 新插入的空子列表会让原 item 和其后置子列表整体右移一位。
+                        (if attached-sublist-idx
+                            (set! attached-sublist-idx (+ attached-sublist-idx 1))))
+
+                      (let* ((target-sublist (tree-ref item-list target-sublist-idx))
+                             (target-doc (tree-ref target-sublist 0))
+                             (target-pos (tree-arity target-doc))
+                             (attached-items
+                               (if attached-sublist-idx
+                                   (map (lambda (i)
+                                          (tree->stree
+                                            (tree-copy
+                                              (tree-ref (tree-ref (tree-ref item-list attached-sublist-idx) 0) i))))
+                                        (iota (tree-arity (tree-ref (tree-ref item-list attached-sublist-idx) 0))))
+                                   '())))
+                        ;; 目标子列表依次接收：当前 item，以及它后面原来挂着的同类型子列表内容。
+                        (set! target-doc
+                              (append-strees-to-document target-doc
+                                                        (append (list item-stree) attached-items)))
+                        ;; 从右往左删除，避免索引漂移。
+                        (when attached-sublist-idx
+                          (set! item-list (tree-remove! item-list attached-sublist-idx 1)))
+                        (set! item-list (tree-remove! item-list item-index 1))
+                        ;; 优先恢复原光标在 item 内部的相对位置。
+                        (let ((moved-item (tree-ref target-doc target-pos)))
+                          (go-to-moved-list-item moved-item cursor-state
+                                                 target-doc target-pos))))))))))))
+
+;; 在有序和无序列表中实现反缩进功能
+;;
+;; 处理逻辑：
+;; 当用户按 Shift+Tab 时，将当前 item 从当前子列表中移出到外层列表。
+;; 如果当前列表已经是最外层列表，则不再继续反缩进。
+;;
+;; 两种 Case：
+;; 1. NOT first item: 当前 item 前面还有其他 items
+;;    - 保留原 sublist（因为前面还有 items）
+;;    - 从当前 sublist 的 document 中移除当前 item 和后续 items
+;;    - 在 parent-list 中 sublist 之后插入当前 item
+;;    - 如有后续 items，在当前 item 后面重建一个同类型 sublist
+;;
+;; 2. FIRST item: 当前 item 是第一个，后面可能有 items
+;;    - 从当前 sublist 的 document 中移除当前 item（保留后续 items）
+;;    - 从 parent-list 中移除整个 sublist
+;;    - 在 parent-list 中原 sublist 位置插入当前 item
+;;    - 如有后续 items，在当前 item 后面重建一个同类型 sublist
+;;
+(tm-define (kbd-variant t forwards?)
+  (:require
+    (and (not forwards?) (list-tab-context-match? forwards?)))
+
+  (let* ((item (current-list-item-marker))
+         (item-stree (tree->stree item))
+         (wrapper #f)
+         (doc (tree-outer item))
+         (cursor-state #f))
+
+    ;; 处理 concat 包装
+    (when (tree-is? doc 'concat)
+      (set! wrapper doc)
+      (set! doc (tree-outer wrapper))
+      (set! item-stree (tree->stree wrapper)))
+    (set! cursor-state (list-item-cursor-state item wrapper))
+
+    ;; 仅在 item 直接位于列表 document 中时才执行反缩进。
+    (when (tree-is? doc 'document)
+      (let* ((sublist (tree-outer doc))
+             (parent-list (if sublist (tree-outer sublist) #f))
+             ;; 只有在当前子列表外面还能找到另一层列表时，才允许继续反缩进；
+             ;; 这样最外层列表会直接止住。
+             (outer-list (and parent-list
+                              (tree-search-upwards parent-list list-node?))))
+
+        (when (and parent-list outer-list)
+          (let* ((sublist-idx (tree-index sublist))
+                 (doc-arity (tree-arity doc))
+                 (item-idx (if wrapper (tree-index wrapper) (tree-index item)))
+                 (items-before-count item-idx)
+                 (items-after-count (- doc-arity item-idx 1)))
+
+            ;; 先保存当前 item 后面的所有兄弟节点，后面需要重建 trailing sublist。
+            (with items-after-stree
+                  (if (> items-after-count 0)
+                      (map (lambda (i)
+                             (tree->stree (tree-copy (tree-ref doc (+ item-idx 1 i)))))
+                           (iota items-after-count))
+                      '())
+
+              ;; 两个 case 都会得到同样的结果：更新后的 parent-list 和插入位置。
+              (let* ((current-doc (tree-ref sublist 0))
+                     (current-parent (tree-outer sublist))
+                     (item-insert-pos #f))
+
+                ;; 先处理“原 sublist 要保留还是删除”这部分差异。
+                (if (> items-before-count 0)
+                    ;; Case 1: 不是第一个 item，保留 sublist
+                    (begin
+                      ;; 从 doc 中移除当前 item 和后续 items
+                      (let loop ((i (- doc-arity 1))
+                                 (cd current-doc))
+                        (when (>= i item-idx)
+                          (set! cd (tree-remove! cd i 1))
+                          (loop (- i 1) cd)))
+                      ;; 重新获取 current-doc（修改后）
+                      (set! current-doc (tree-ref sublist 0))
+                      ;; item 插入位置：sublist 之后
+                      (set! item-insert-pos (+ sublist-idx 1)))
+
+                    ;; Case 2: 是第一个 item，删除 sublist
+                    (begin
+                      ;; 从 doc 中移除当前 item
+                      (set! current-doc (tree-remove! current-doc item-idx 1))
+                      ;; 从 parent-list 中移除 sublist
+                      (set! current-parent (tree-remove! current-parent sublist-idx 1))
+                      ;; item 插入位置：原 sublist 位置
+                      (set! item-insert-pos sublist-idx)))
+
+                ;; 共同逻辑：在 parent-list 中插入当前 item
+                (set! current-parent (tree-insert current-parent item-insert-pos (list item-stree)))
+
+                ;; 如有后续 items，则在当前 item 后面重建一个同类型 sublist。
+                (when (> (length items-after-stree) 0)
+                  (let ((new-sublist-stree `(,(tree-label sublist) (document ,@items-after-stree)))
+                        (sublist-pos (+ item-insert-pos 1)))
+                    (set! current-parent (tree-insert current-parent sublist-pos (list new-sublist-stree)))))
+
+                ;; 共同逻辑：移动光标到新插入的 item
+                (with moved-item (tree-ref current-parent item-insert-pos)
+                  ;; 根据 moved-item 类型决定光标位置
+                  (go-to-moved-list-item moved-item cursor-state
+                                         current-parent item-insert-pos))))))))))
+
+
 (tm-define (kbd-variant t forwards?)
   (:require (and (tree-in? t '(label reference pageref eqref smart-ref))
                  (cursor-inside? t)))
@@ -224,7 +556,9 @@
 (tm-define (kbd-cut)
   (clipboard-cut "primary"))
 (tm-define (kbd-paste)
-  (clipboard-paste "primary"))
+  (clipboard-paste "primary")
+  (when (defined? 'tutorial-notify-action)
+    (tutorial-notify-action "paste")))
 (tm-define (kbd-paste-verbatim)
   (clipboard-paste-import "verbatim" "primary"))
 (tm-define (kbd-cancel)
@@ -349,7 +683,9 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                (clipboard-paste-import "code" "primary"))
               ((== mode "math")
                (clipboard-paste-import "latex" "primary"))
-              (else (smart-format-paste))))))
+              (else (smart-format-paste)))))
+  (when (defined? 'tutorial-notify-action)
+    (tutorial-notify-action "ocr-paste")))
 
 (tm-define (any-image-context?)
   (tree-innermost 

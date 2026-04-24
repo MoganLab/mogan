@@ -1,0 +1,84 @@
+name: Build and Test on Fedora
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "xmake.lua"
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-fedora.yml"
+      - "TeXmacs/tests/*.scm"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "xmake.lua"
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-fedora.yml"
+      - "TeXmacs/tests/*.scm"
+
+env:
+  XMAKE_ROOT: y
+  QT_QPA_PLATFORM: offscreen
+  INSTALL_DIR: tmp/build/packages/app.mogan/
+
+jobs:
+  fedorabuild:
+    container: fedora:latest
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+    steps:
+      - name: Install dependencies
+        run: |
+          dnf update -y
+          dnf install -y gcc gcc-c++ git unzip curl cmake ninja-build pkgconf-pkg-config \
+              google-noto-sans-cjk-fonts google-noto-serif-cjk-fonts libX11-devel \
+              freetype-devel fontconfig-devel libgit2-devel \
+              zlib-devel openssl-devel libjpeg-turbo-devel libpng-devel libcurl-devel \
+              mimalloc-devel dbus-devel glib2-devel harfbuzz-devel \
+              libxkbcommon-devel mesa-libGL-devel mesa-libEGL-devel \
+              xmake pandoc python3
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: git add safe directory
+        run: git config --global --add safe.directory '*'
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v3
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-fedora-xrepo-qt683-${{ hashFiles('**/packages.lua') }}
+
+      - name: cache xmake
+        uses: actions/cache@v3
+        with:
+          path: |
+            tmp/build/.build_cache
+          key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
+
+      - name: config
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build
+        run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
+      - name: test
+        run: xmake run --yes -vD --group=tests
+      - name: Scheme tests
+        run: xmake run --yes -vD --group=scheme_tests

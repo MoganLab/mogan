@@ -25,7 +25,8 @@
 (tm-define (tree-insert t pos x)
   (cond ((string? x) (tree-var-insert t pos x))
 	((list? x) (tree-var-insert t pos (cons 'tuple x)))
-	(else (texmacs-error "tree-insert" "~S is not a string or a list" x))))
+	((tree? x) (tree-var-insert t pos x))
+	(else (texmacs-error "tree-insert" "~S is not a string, list, or tree" x))))
 
 (tm-define tree-insert! tree-insert)
 (tm-define tree-remove! tree-remove)

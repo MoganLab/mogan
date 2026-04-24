@@ -648,7 +648,10 @@ edit_typeset_rep::get_env_language () {
 
 int
 edit_typeset_rep::get_page_count () {
-  return N (eb[0]);
+  if (is_nil (eb) || N (eb) == 0) return 0;
+  box pages= eb[0];
+  if (is_nil (pages)) return 0;
+  return N (pages);
 }
 
 int

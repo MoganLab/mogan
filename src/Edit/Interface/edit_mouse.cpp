@@ -895,10 +895,40 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
         path      p= reverse (obtain_ip (current_tree));
         selection sel=
             search_selection (p * start (current_tree), p * end (current_tree));
-        selr= least_upper_bound (sel->rs);
-        if (last_x >= selr->x1 && last_y >= selr->y1 && last_x <= selr->x2 &&
-            last_y <= selr->y2 * 0.8) {
+        selr       = least_upper_bound (sel->rs);
+        SI w       = selr->x2 - selr->x1;
+        SI h       = selr->y2 - selr->y1;
+        SI margin_x= (SI) (w * 0.1);
+        SI margin_y= (SI) (h * 0.1);
+        if (last_x >= selr->x1 - margin_x && last_y >= selr->y1 - margin_y &&
+            last_x <= selr->x2 + margin_x &&
+            last_y <= selr->y2 * 0.8 + margin_y) {
           hovering_image= true;
+          // 缓存图片区域和路径用于扩大区域检测
+          hover_image_rect= selr;
+          hover_image_path= current_path;
+        }
+      }
+      else if (!is_zero (hover_image_rect)) {
+        // 检测鼠标是否在图片扩大区域内（图片外10%范围）
+        SI        w       = hover_image_rect->x2 - hover_image_rect->x1;
+        SI        h       = hover_image_rect->y2 - hover_image_rect->y1;
+        SI        margin_x= (SI) (w * 0.1);
+        SI        margin_y= (SI) (h * 0.1);
+        rectangle expanded (hover_image_rect->x1 - margin_x,
+                            hover_image_rect->y1 - margin_y,
+                            hover_image_rect->x2 + margin_x,
+                            hover_image_rect->y2 * 0.8 + margin_y);
+        if (last_x >= expanded->x1 && last_y >= expanded->y1 &&
+            last_x <= expanded->x2 && last_y <= expanded->y2) {
+          hovering_image= true;
+          current_path  = hover_image_path;
+          selr          = hover_image_rect;
+        }
+        else {
+          // 移出扩大区域，清空缓存
+          hover_image_rect= rectangle (0, 0, 0, 0);
+          hover_image_path= path ();
         }
       }
     }
@@ -918,14 +948,14 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
       show_image_popup (tree_of_image_parent, selr, magf, get_scroll_x (),
                         get_scroll_y (), get_canvas_x (), get_canvas_y ());
     }
-    hide_text_toolbar ();
+    hide_text_popup ();
   }
   else {
     set_cursor_style ("normal");
     hide_image_popup ();
 
     // 检查是否应该显示文本工具栏
-    update_text_toolbar ();
+    update_text_popup ();
   }
 
   if (type == "move") mouse_message ("move", x, y);
@@ -1038,8 +1068,8 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   if ((type == "press-left") || (type == "press-middle") ||
       (type == "press-right")) {
     // 当用户点击其他地方（不在文本工具栏内）时，隐藏文本工具栏
-    if (!is_point_in_text_toolbar (x, y)) {
-      hide_text_toolbar ();
+    if (!is_point_in_text_popup (x, y)) {
+      hide_text_popup ();
     }
     notify_change (THE_DECORATIONS);
   }
@@ -1180,34 +1210,39 @@ edit_interface_rep::handle_mouse (string kind, SI x, SI y, int m, time_t t,
  ******************************************************************************/
 
 bool
-edit_interface_rep::should_show_text_toolbar () {
+edit_interface_rep::should_show_text_popup () {
+#ifdef USE_TEXT_TOOLBAR
   // 缓存结果100ms，避免过多的Scheme调用
   time_t now= texmacs_time ();
-  if (now - text_toolbar_last_check < 100) {
-    return text_toolbar_last_result;
+  if (now - text_popup_last_check < 100) {
+    return text_popup_last_result;
   }
-  text_toolbar_last_check= now;
+  text_popup_last_check= now;
 
   if (as_bool (call ("in-math?")) || as_bool (call ("in-prog?")) ||
       as_bool (call ("in-code?")) || as_bool (call ("in-verbatim?"))) {
-    text_toolbar_last_result= false;
+    text_popup_last_result= false;
     return false;
   }
   // 检查是否有活动的文本选区
   if (!selection_active_any ()) {
-    text_toolbar_last_result= false;
+    text_popup_last_result= false;
     return false;
   }
 
   // 检查选区是否非空
   tree sel_tree= selection_get ();
   if (is_atomic (sel_tree) && as_string (sel_tree) == "") {
-    text_toolbar_last_result= false;
+    text_popup_last_result= false;
     return false;
   }
 
-  text_toolbar_last_result= true;
+  text_popup_last_result= true;
   return true;
+#else
+  // 文本选中悬浮框已全局关闭。
+  return false;
+#endif
 }
 
 rectangle
@@ -1243,52 +1278,51 @@ edit_interface_rep::get_text_selection_rect () {
 }
 
 void
-edit_interface_rep::show_text_toolbar (rectangle selr, double magf,
-                                       int scroll_x, int scroll_y, int canvas_x,
-                                       int canvas_y) {
+edit_interface_rep::show_text_popup (rectangle selr, double magf, int scroll_x,
+                                     int scroll_y, int canvas_x, int canvas_y) {
   // 通过qt_simple_widget显示文本工具栏
   // 使用dynamic_cast进行安全的类型转换
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->show_text_toolbar (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
+    qsw->show_text_popup (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   }
   // 如果转换失败，静默返回（非Qt环境）
 }
 
 void
-edit_interface_rep::hide_text_toolbar () {
+edit_interface_rep::hide_text_popup () {
   // 通过qt_simple_widget隐藏文本工具栏
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    qsw->hide_text_toolbar ();
+    qsw->hide_text_popup ();
   }
 }
 
 bool
-edit_interface_rep::is_point_in_text_toolbar (SI x, SI y) {
+edit_interface_rep::is_point_in_text_popup (SI x, SI y) {
   // 通过qt_simple_widget检查点是否在文本工具栏内
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    return qsw->is_point_in_text_toolbar (x, y);
+    return qsw->is_point_in_text_popup (x, y);
   }
   return false;
 }
 
 void
-edit_interface_rep::invalidate_text_toolbar_cache () {
+edit_interface_rep::invalidate_text_popup_cache () {
   // 重置工具栏缓存，强制下次重新检查
-  text_toolbar_last_check= 0;
+  text_popup_last_check= 0;
 }
 
 void
-edit_interface_rep::update_text_toolbar () {
+edit_interface_rep::update_text_popup () {
   if (left_dragging) {
-    hide_text_toolbar ();
+    hide_text_popup ();
     return;
   }
   // 检查是否应该显示文本工具栏
-  if (should_show_text_toolbar ()) {
+  if (should_show_text_popup ()) {
     rectangle text_selr= get_text_selection_rect ();
     // 检查矩形是否有效（非零面积）
     if (text_selr->x1 >= text_selr->x2 || text_selr->y1 >= text_selr->y2) {
-      hide_text_toolbar ();
+      hide_text_popup ();
       return;
     }
 
@@ -1298,13 +1332,13 @@ edit_interface_rep::update_text_toolbar () {
     bool sel_in_view= !(text_selr->x2 < vx1 || text_selr->x1 > vx2 ||
                         text_selr->y2 < vy1 || text_selr->y1 > vy2);
     if (!sel_in_view) {
-      hide_text_toolbar ();
+      hide_text_popup ();
       return;
     }
-    show_text_toolbar (text_selr, magf, get_scroll_x (), get_scroll_y (),
-                       get_canvas_x (), get_canvas_y ());
+    show_text_popup (text_selr, magf, get_scroll_x (), get_scroll_y (),
+                     get_canvas_x (), get_canvas_y ());
   }
   else {
-    hide_text_toolbar ();
+    hide_text_popup ();
   }
 }

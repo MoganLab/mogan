@@ -167,6 +167,11 @@
 (define interactive-arg-version 1)
 (define interactive-arg-file "$TEXMACS_HOME_PATH/system/interactive.json")
 (define interactive-arg-recent-file-path "$TEXMACS_HOME_PATH/system/recent-files.json")
+(define legacy-interactive-arg-file "$TEXMACS_HOME_PATH/system/interactive.scm")
+(define interactive-arg-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/interactive.scm->v1")
+(define recent-files-migration-marker-v1
+  "$TEXMACS_HOME_PATH/system/recent-files.scm->v1")
 (define interactive-arg-file-system
   (url->system (string->url interactive-arg-file)))
 (define interactive-arg-recent-file-system
@@ -228,7 +233,6 @@
 
 (define (recent-files-json-valid? recent-files)
   (njson-schema-valid? recent-files-schema-v1 recent-files))
-
 
 #|
 recent-files-remove-by-path
@@ -610,6 +614,169 @@ unspecified
   (njson-free current-state)
   (load-njson-with-fallback file valid? fallback-maker))
 
+(define (write-migration-marker marker-file)
+  (string-save
+   "migrated\n"
+   (string->url marker-file)))
+
+(define (legacy-scm-interactive-assoc-valid? assoc-t)
+  (and (list? assoc-t)
+       (list-and (map pair? assoc-t))))
+
+(define (normalize-legacy-scm-interactive-items items)
+  (list-filter
+   (map (lambda (assoc-t)
+          (and (legacy-scm-interactive-assoc-valid? assoc-t)
+               (normalize-interactive-assoc assoc-t)))
+        items)
+   (lambda (x) x)))
+
+(define (interactive-item-exists? item items)
+  (list-and
+   (map (lambda (existing) (not (equal? existing item))) items)))
+
+(define (merge-legacy-scm-interactive-items existing-items legacy-items)
+  (let loop ((legacy legacy-items) (merged existing-items))
+    (if (null? legacy)
+        merged
+        (with item (car legacy)
+          (if (interactive-item-exists? item merged)
+              (loop (cdr legacy) (append merged (list item)))
+              (loop (cdr legacy) merged))))))
+
+(define (legacy-scm-interactive-command-name key)
+  (and-with sym (procedure-symbol-name key)
+    (symbol->string sym)))
+
+(define (legacy-scm-recent-buffer-key? key)
+  (== (procedure-symbol-name key) 'recent-buffer))
+
+(define (legacy-scm-ahash-set-2! t x)
+  (with (key . l) x
+    (with (form arg) key
+      (with a (or (ahash-ref t form) '())
+        (set! a (assoc-set! a arg l))
+        (ahash-set! t form a)))))
+
+(define (legacy-scm-rearrange-old-interactive x)
+  (with (form . l) x
+    (let ((lengths (map length l)))
+      (if (or (null? lengths) (<= (apply min lengths) 0))
+          (cons form '())
+          (let* ((len (apply min lengths))
+                 (truncl (map (cut sublist <> 0 len) l))
+                 (sl (sort truncl (lambda (l1 l2) (< (car l1) (car l2)))))
+                 (nl (map (lambda (y) (cons (number->string (car y)) (cdr y))) sl))
+                 (build (lambda args (map cons (map car nl) args)))
+                 (r (apply map (cons build (map cdr nl)))))
+            (cons form r))))))
+
+(define (decode-legacy-scm-interactive-old l)
+  (let* ((t (make-ahash-table))
+         (setter (cut legacy-scm-ahash-set-2! t <>)))
+    (for-each setter l)
+    (let* ((r (ahash-table->list t))
+           (m (map legacy-scm-rearrange-old-interactive r)))
+      (list->ahash-table m))))
+
+(define (load-legacy-scm-interactive-table)
+  (and (url-exists? legacy-interactive-arg-file)
+       (catch #t
+         (lambda ()
+           (let* ((loaded (load-object legacy-interactive-arg-file))
+                  (old? (and (pair? loaded) (pair? (car loaded))
+                             (list-2? (caar loaded))))
+                  (decode (if old?
+                              decode-legacy-scm-interactive-old
+                              list->ahash-table)))
+             (and (list? loaded)
+                  (decode loaded))))
+         (lambda args #f))))
+
+(define (import-legacy-scm-interactive-commands! legacy-table)
+  (for-each
+   (lambda (entry)
+     (with (key . items) entry
+       (when (and (not (legacy-scm-recent-buffer-key? key))
+                  (list? items))
+         (and-with name (legacy-scm-interactive-command-name key)
+           (let* ((existing (interactive-command-learned name))
+                  (normalized (normalize-legacy-scm-interactive-items items))
+                  (merged (merge-legacy-scm-interactive-items existing normalized)))
+             (when (not (equal? merged existing))
+               (set-interactive-command-learned name merged)))))))
+   (ahash-table->list legacy-table)))
+
+(define (legacy-scm-recent-path assoc-t)
+  (or (assoc-ref assoc-t "0")
+      (assoc-ref assoc-t 0)))
+
+(define (recent-files-min-last-open recent-files)
+  (let-njson ((files (njson-ref recent-files "files")))
+    (if (<= (njson-size files) 0)
+        #f
+        (let loop ((i 1)
+                   (min-t (let ((t (njson-ref files 0 "last_open")))
+                            (if (number? t) t 0))))
+          (if (>= i (njson-size files))
+              min-t
+              (let* ((t (njson-ref files i "last_open"))
+                     (t (if (number? t) t 0)))
+                (loop (+ i 1) (min min-t t))))))))
+
+(define (append-recent-file-entry! recent-files path last-open)
+  (let* ((name (url->system (url-tail (system->url path))))
+         (item (json->njson
+                `(("path" . ,path)
+                  ("name" . ,name)
+                  ("last_open" . ,last-open)
+                  ("open_count" . 1)
+                  ("show" . #t)))))
+    (njson-append! recent-files "files" item))
+  (let* ((total (njson-ref recent-files "meta" "total"))
+         (total (if (number? total) total 0)))
+    (njson-set! recent-files "meta" "total" (+ total 1))))
+
+(define (import-legacy-scm-recent-files! legacy-items)
+  (let* ((min-open (recent-files-min-last-open interactive-arg-recent-file-json))
+         (base (if (number? min-open) (- min-open 1) (current-second))))
+    (let loop ((items legacy-items) (rank 0) (seen '()))
+      (if (null? items)
+          (set! interactive-arg-recent-file-json
+                (recent-files-apply-lru interactive-arg-recent-file-json 25))
+          (let* ((assoc-t (car items))
+                 (path (and (legacy-scm-interactive-assoc-valid? assoc-t)
+                            (legacy-scm-recent-path assoc-t))))
+            (if (or (not (string? path))
+                    (== path "")
+                    (in? path seen)
+                    (recent-files-index-by-path interactive-arg-recent-file-json path))
+                (loop (cdr items) (+ rank 1) seen)
+                (begin
+                  (append-recent-file-entry!
+                   interactive-arg-recent-file-json path (- base rank))
+                  (loop (cdr items) (+ rank 1) (cons path seen)))))))))
+
+(define (maybe-import-legacy-scm-interactive-state)
+  (let ((need-interactive? (not (url-exists? interactive-arg-migration-marker-v1)))
+        (need-recent? (not (url-exists? recent-files-migration-marker-v1))))
+    (when (and (or need-interactive? need-recent?)
+               (url-exists? legacy-interactive-arg-file))
+      (and-with legacy-table (load-legacy-scm-interactive-table)
+        (when need-interactive?
+          (import-legacy-scm-interactive-commands! legacy-table))
+        (when need-recent?
+          (with recent-items (or (ahash-ref legacy-table 'recent-buffer)
+                                 (ahash-ref legacy-table "recent-buffer")
+                                 '())
+            (when (list? recent-items)
+              (import-legacy-scm-recent-files! recent-items))))
+        (save-learned)
+        (when need-interactive?
+          (write-migration-marker interactive-arg-migration-marker-v1))
+        (when need-recent?
+          (write-migration-marker recent-files-migration-marker-v1))))))
+
 (define (retrieve-learned)
   (set! interactive-arg-json
         (reload-state interactive-arg-json
@@ -620,7 +787,8 @@ unspecified
         (reload-state interactive-arg-recent-file-json
                       interactive-arg-recent-file-system
                       recent-files-json-valid?
-                      (lambda () (make-empty-state 'recent-file)))))
+                      (lambda () (make-empty-state 'recent-file))))
+  (maybe-import-legacy-scm-interactive-state))
 
 
 (on-entry (retrieve-learned))

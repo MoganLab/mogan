@@ -16,6 +16,7 @@
 #include "new_document.hpp"
 #include "new_window.hpp"
 #include "tm_data.hpp"
+#include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tm_url.hpp"
 #include "view_history.hpp"
@@ -370,15 +371,17 @@ get_passive_view_of_tabpage (url name) {
   // Create a new view if no such view exists
   tm_buffer buf= concrete_buffer_insist (name);
   if (is_nil (buf)) return url_none ();
-  array<url> vs  = buffer_to_views (name);
-  int        vs_N= N (vs);
+  array<url> vs     = buffer_to_views (name);
+  int        vs_N   = N (vs);
+  url        cur_win= has_current_view () && has_current_window ()
+                          ? get_current_window ()
+                          : url_none ();
   for (int i= 0; i < vs_N; i++) {
     url win        = view_to_window (vs[i]);
     url win_tabpage= view_to_window_of_tabpage (vs[i]);
     if (is_none (win_tabpage)) return vs[i];
-    else if (is_none (win) && win_tabpage == get_current_window ()) {
-      return vs[i];
-    }
+    if (!is_none (cur_win) && win_tabpage == cur_win) return vs[i];
+    if (is_none (win) && win_tabpage == cur_win) return vs[i];
   }
   return get_new_view (buf->buf->name);
 }
@@ -430,11 +433,15 @@ kill_tabpage (url win_u, url u) {
   // 在关闭文档，或标签页时都将调用此方法。
   tm_view vw= concrete_view (u);
   if (vw == NULL) return;
+  if (vw->buf != NULL && vw->buf->buf->name == url ("tmfs://startup-tab")) {
+    return;
+  }
   tm_window win        = vw->win;
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
-  bool is_current= (get_current_view () == u);
+  bool is_current                    = (get_current_view () == u);
+  bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage
   // 将 win_tabpage 设为空指针，因为要关闭tabpage了
@@ -504,6 +511,20 @@ kill_tabpage (url win_u, url u) {
     // 如果缓冲区有多个视图，则只释放当前视图，不释放缓冲区
     delete_view (u);
   }
+
+  // 关闭非当前标签页时，可能不会立即触发标签栏刷新。
+  // 对同一 tabpage 窗口中的当前编辑器执行 suspend/resume，
+  // 以强制触发一次 UI 更新。
+  if (refresh_tabbar_for_non_current) {
+    tm_view current_vw= concrete_view (get_current_view_safe ());
+    if (current_vw != NULL && current_vw->win_tabpage == win_tabpage) {
+      editor current_ed= current_vw->ed;
+      if (current_ed != NULL) {
+        current_ed->suspend ();
+        current_ed->resume ();
+      }
+    }
+  }
 }
 
 void
@@ -538,10 +559,13 @@ attach_view (url win_u, url u) {
   set_scrollable (wid, vw->ed);
   vw->ed->cvw= wid.rep;
   ASSERT (is_attached (wid), "widget should be attached");
+  // 先通知 view 被设置，确保 view_history 更新后再调用 resume
+  // 这样 resume() 中的菜单刷新能获取到正确的 view 列表
+  notify_set_view (u);
   vw->ed->resume ();
   win->set_window_name (vw->buf->buf->title);
-  win->set_window_url (vw->buf->buf->name);
-  notify_set_view (u);
+  // set_window_url 移到 window_set_view 中，在 set_current_view 之后调用
+  // win->set_window_url (vw->buf->buf->name);
   // cout << "View attached\n";
 }
 
@@ -580,6 +604,9 @@ window_set_view (url win_u, url new_u, bool focus) {
   if (!is_none (old_u)) detach_view (old_u);
   attach_view (win_u, new_u);
   if (focus || get_current_view () == old_u) set_current_view (new_u);
+  // 在 set_current_view 之后调用 set_window_url，确保 SLOT_FILE 处理时 current
+  // view 已更新
+  win->set_window_url (new_vw->buf->buf->name);
   exec_delayed (scheme_cmd ("(make-cursor-visible '" *
                             scm_quote (as_string (new_u)) * ")"));
   exec_delayed (scheme_cmd ("(when (defined? 'refresh-auxiliary-widget) "
@@ -603,6 +630,8 @@ view_set_new_window (url view_u) {
   }
   detach_view (view_u);
   attach_view (win_u, view_u);
+  set_current_view (view_u);
+  win->set_window_url (view->buf->buf->name);
   view->win_tabpage= win;
   hack_refresh_window_editors (view_win_tabpage_u, win_u, false);
 }

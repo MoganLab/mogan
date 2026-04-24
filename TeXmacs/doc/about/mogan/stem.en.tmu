@@ -51,9 +51,9 @@
     <item>Mogan STEM is the community edition of <hlink|Liii STEM|https://liiistem.cn/docs/about-what-is-liiistem.html?from=app>, permanently free and open source. If you wish to support us, please consider purchasing Liii STEM.
   </enumerate-numeric>
 
-  <with|framed-color|pastel magenta|ornament-border|0ln|ornament-color|pastel yellow|<\ornamented>
+  <\version-notice>
     You are using <strong|v<Xmacs-version>>. The current latest stable version is <strong|v<include|https://liiistem.cn/mogan_latest_version.tm>>. Visit the official website <hlink|https://mogan.app|https://mogan.app/en/?from=app> to download the latest stable version.
-  </ornamented>>
+  </version-notice>
 
   <section*|Example Documents: What can I do with Mogan STEM?>
 

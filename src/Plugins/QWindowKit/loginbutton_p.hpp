@@ -34,6 +34,7 @@ public:
 
   bool hovered;
   bool pressed;
+  bool badgeVisible; // 小红点显示状态
 
 private:
   Q_DISABLE_COPY (LoginButtonPrivate)

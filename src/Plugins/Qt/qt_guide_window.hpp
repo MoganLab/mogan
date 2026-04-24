@@ -11,7 +11,11 @@
 #ifndef STARTUP_LOGIN_DIALOG_H
 #define STARTUP_LOGIN_DIALOG_H
 
+#include <QEvent>
+#include <QPoint>
+#include <QPointer>
 #include <QPropertyAnimation>
+#include <QtWidgets/QCheckBox>
 #include <QtWidgets/QDialog>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QLabel>
@@ -39,6 +43,10 @@ public:
   explicit StartupLoginDialog (QWidget* parent= nullptr);
   ~StartupLoginDialog ();
 
+  static bool shouldShow ();
+
+  void   setAsyncStartupMode (bool enabled);
+  void   notifyLoginSucceeded ();
   Result execWithResult ();
   void   startInitialization ();
   bool   isInitializationComplete () const { return initializationComplete; }
@@ -53,6 +61,7 @@ signals:
 protected:
   void showEvent (QShowEvent* event) override;
   void closeEvent (QCloseEvent* event) override;
+  bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
   void    setupUi ();
@@ -79,6 +88,16 @@ private:
   void updateProgressUI (int percentage, const QString& status,
                          const QString& timeEstimation);
   void enableButtons (bool enabled);
+  void installDragHandler (QWidget* widget);
+  void resetDragCursor ();
+  void ensureMainWindowOverlay ();
+  void clearMainWindowOverlay ();
+  void syncMainWindowOverlay ();
+  void centerOverMainWindow ();
+
+  // autobackup
+  bool getAutoBackup ();
+  void setAutoBackup (bool autobackup);
 
   // UI elements
   QLabel*      titleLabel;
@@ -88,6 +107,7 @@ private:
   QLabel*      featureLabel2;
   QLabel*      featureLabel3;
   QLabel*      featureLabel4;
+  QCheckBox*   autoBackupCheckBox;
   QPushButton* loginButton;
   QPushButton* skipButton;
   QVBoxLayout* mainLayout;
@@ -114,6 +134,15 @@ private:
   bool initializationInProgress;
   bool initializationComplete;
   bool userChoiceMade;
+  bool waitingForLoginCompletion;
+  bool offlineMode;
+
+  // Manual dragging for the frameless startup dialog
+  bool              dragInProgress;
+  QPoint            dragOffset;
+  bool              asyncStartupMode;
+  QPointer<QWidget> mainWindowOverlayHost;
+  QPointer<QWidget> mainWindowOverlay;
 };
 
 } // namespace QWK

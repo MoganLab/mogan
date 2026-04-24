@@ -180,17 +180,46 @@ lazy_ornament_rep::query (lazy_type request, format fm) {
   return lazy_rep::query (request, fm);
 }
 
+/**
+ * @brief 生成 ornament 的延迟排版结果。
+ *
+ * 该函数根据请求类型返回加框内容对应的 box 或 vstream。对于
+ * `LAZY_VSTREAM` 路径，除了生成外框 box 之外，还会重新请求正文的
+ * vstream，并收集其内部 `page_item` 上附着的 `fl`。这样在 ornament
+ * 将正文重新包装成新的外层 `page_item` 时，脚注等页面插入对象不会丢失。
+ *
+ * @param request 当前请求的延迟对象类型，支持 `LAZY_BOX` 和 `LAZY_VSTREAM`。
+ * @param fm 当前排版格式；在 vstream/cell 场景下会用于推导正文可用宽度。
+ * @return 生成后的延迟对象；若请求为 `LAZY_BOX` 则返回 box，否则返回携带
+ *         附着 floats 的 vstream。
+ */
 lazy
 lazy_ornament_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
-    format bfm= fm;
+    format bfm            = fm;
+    SI     body_width     = 0;
+    bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
       SI             dw = ps->lpad + ps->rpad;
       bfm               = make_format_width (fvs->width - dw);
+      body_width        = fvs->width - dw;
+      have_body_width   = true;
     }
-    box b = (box) par->produce (LAZY_BOX, bfm);
+    else if (fm->type == FORMAT_CELL) {
+      format_cell fc = (format_cell) fm;
+      SI          dw = ps->lpad + ps->rpad;
+      body_width     = fc->width - dw;
+      have_body_width= true;
+    }
+    box         b= (box) par->produce (LAZY_BOX, bfm);
+    array<lazy> fl;
+    if (have_body_width) {
+      lazy body=
+          par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl= collect_attached_floats (((lazy_vstream) body)->l);
+    }
     box hb= highlight_box (ip, b, xb, ps);
     // FIXME: this dirty hack ensures that shoving is correct
     hb= move_box (decorate (ip), hb, 1, 0);
@@ -203,7 +232,7 @@ lazy_ornament_rep::produce (lazy_type request, format fm) {
     if (request == LAZY_BOX) return make_lazy_box (hb);
     else {
       array<page_item> l;
-      l << page_item (hb);
+      l << page_item (hb, fl);
       return lazy_vstream (ip, "", l, stack_border ());
     }
   }
@@ -254,17 +283,46 @@ lazy_art_box_rep::query (lazy_type request, format fm) {
   return lazy_rep::query (request, fm);
 }
 
+/**
+ * @brief 生成 art box 的延迟排版结果。
+ *
+ * 该函数与 `lazy_ornament_rep::produce` 类似，但外层包装使用 `art_box`。
+ * 在 `LAZY_VSTREAM` 路径下，函数会先根据正文宽度重新生成内部 vstream，
+ * 收集其中附着的 `fl`，再在构造外层 `page_item` 时一并挂回去，确保脚注、
+ * 浮动对象等页面插入语义在 art box 包装后仍然保留。
+ *
+ * @param request 当前请求的延迟对象类型，支持 `LAZY_BOX` 和 `LAZY_VSTREAM`。
+ * @param fm 当前排版格式；在 vstream/cell 场景下会用于推导正文可用宽度。
+ * @return 生成后的延迟对象；若请求为 `LAZY_BOX` 则返回 box，否则返回携带
+ *         附着 floats 的 vstream。
+ */
 lazy
 lazy_art_box_rep::produce (lazy_type request, format fm) {
   if (request == type) return this;
   if (request == LAZY_VSTREAM || request == LAZY_BOX) {
-    format bfm= fm;
+    format bfm            = fm;
+    SI     body_width     = 0;
+    bool   have_body_width= false;
     if (request == LAZY_VSTREAM) {
       format_vstream fvs= (format_vstream) fm;
       SI             dw = ps->lpad + ps->rpad;
       bfm               = make_format_width (fvs->width - dw);
+      body_width        = fvs->width - dw;
+      have_body_width   = true;
     }
-    box b = (box) par->produce (LAZY_BOX, bfm);
+    else if (fm->type == FORMAT_CELL) {
+      format_cell fc = (format_cell) fm;
+      SI          dw = ps->lpad + ps->rpad;
+      body_width     = fc->width - dw;
+      have_body_width= true;
+    }
+    box         b= (box) par->produce (LAZY_BOX, bfm);
+    array<lazy> fl;
+    if (have_body_width) {
+      lazy body=
+          par->produce (LAZY_VSTREAM, make_format_vstream (body_width, 0, 0));
+      fl= collect_attached_floats (((lazy_vstream) body)->l);
+    }
     box hb= art_box (ip, b, ps);
     hb    = move_box (decorate (ip), hb, 0, b->y1 - ps->bpad);
     // FIXME: this dirty hack ensures that shoving is correct
@@ -278,7 +336,7 @@ lazy_art_box_rep::produce (lazy_type request, format fm) {
     if (request == LAZY_BOX) return make_lazy_box (hb);
     else {
       array<page_item> l;
-      l << page_item (hb);
+      l << page_item (hb, fl);
       return lazy_vstream (ip, "", l, stack_border ());
     }
   }

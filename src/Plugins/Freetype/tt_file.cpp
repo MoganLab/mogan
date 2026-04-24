@@ -137,6 +137,16 @@ tt_font_search_path () {
     if (exists (url_system ("/usr/share/fonts/fonts-cesi"))) {
       ret= ret | url_system ("/usr/share/fonts/fonts-cesi");
     }
+    // special rules for fedora
+    if (exists (url_system ("/usr/share/fonts/google-noto-serif-cjk-fonts"))) {
+      ret= ret | url_system ("/usr/share/fonts/google-noto-serif-cjk-fonts");
+    }
+    if (exists (url_system ("/usr/share/fonts/google-noto-sans-cjk-fonts"))) {
+      ret= ret | url_system ("/usr/share/fonts/google-noto-sans-cjk-fonts");
+    }
+    if (exists (url_system ("/usr/share/fonts/google-noto"))) {
+      ret= ret | url_system ("/usr/share/fonts/google-noto");
+    }
   }
   ret= ret | url ("$TEXMACS_HOME_PATH/fonts/truetype") |
        url ("$TEXMACS_PATH/fonts/truetype") |

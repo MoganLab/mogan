@@ -34,9 +34,49 @@
 
   <assign|in-appendix|false>
 
+  <assign|chapter-title-style|left>
+
+  <assign|section-title-style|left>
+
+  <assign|subsection-title-style|left>
+
+  <assign|subsubsection-title-style|left>
+
+  <assign|paragraph-title-style|left>
+
+  <assign|subparagraph-title-style|left>
+
+  <assign|chapter-number-style|arabic>
+
+  <assign|section-number-style|arabic>
+
+  <assign|subsection-number-style|arabic>
+
+  <assign|subsubsection-number-style|arabic>
+
   <drd-props|sectional-short-style|macro-parameter|boolean>
 
+  <drd-props|chapter-number-style|macro-parameter|string>
+
+  <drd-props|section-number-style|macro-parameter|string>
+
+  <drd-props|subsection-number-style|macro-parameter|string>
+
+  <drd-props|subsubsection-number-style|macro-parameter|string>
+
   <drd-props|sectional-sep|macro-parameter|regular>
+
+  <drd-props|chapter-title-style|macro-parameter|string>
+
+  <drd-props|section-title-style|macro-parameter|string>
+
+  <drd-props|subsection-title-style|macro-parameter|string>
+
+  <drd-props|subsubsection-title-style|macro-parameter|string>
+
+  <drd-props|paragraph-title-style|macro-parameter|string>
+
+  <drd-props|subparagraph-title-style|macro-parameter|string>
 
   <\active*>
     <\src-comment>
@@ -92,6 +132,20 @@
   <assign|sectional-normal-bold|<macro|name|<style-with|src-compact|none|<sectional-normal|<strong|<arg|name>>>>>>
 
   <assign|sectional-centered-bold|<macro|name|<style-with|src-compact|none|<sectional-centered|<strong|<arg|name>>>>>>
+
+  <assign|sectional-select-bold|<macro|style|name|<if|<equal|<arg|style>|center>|<sectional-centered-bold|<arg|name>>|<sectional-normal-bold|<arg|name>>>>>
+
+  <assign|chapter-title-render|<macro|name|<sectional-select-bold|<value|chapter-title-style>|<arg|name>>>>
+
+  <assign|section-title-render|<macro|name|<sectional-select-bold|<value|section-title-style>|<arg|name>>>>
+
+  <assign|subsection-title-render|<macro|name|<sectional-select-bold|<value|subsection-title-style>|<arg|name>>>>
+
+  <assign|subsubsection-title-render|<macro|name|<sectional-select-bold|<value|subsubsection-title-style>|<arg|name>>>>
+
+  <assign|paragraph-title-render|<macro|name|<sectional-select-bold|<value|paragraph-title-style>|<arg|name>>>>
+
+  <assign|subparagraph-title-render|<macro|name|<sectional-select-bold|<value|subparagraph-title-style>|<arg|name>>>>
 
   <assign|sectional-prefixed|<macro|prefix|name|<prefixed-line|<arg|prefix>|<arg|name>>>>
 
@@ -152,7 +206,7 @@
     </src-comment>
   </active*>
 
-  <assign|new-section|<macro|x|<quasi|<style-with|src-compact|none|<new-counter|<unquote|<arg|x>>><assign|<unquote|<merge|<arg|x>|-text>>|<style-with|src-compact|none|<macro|<change-case|<localize|<unquote|<arg|x>>>|Upcase>>>><assign|<unquote|<arg|x>>|<macro|title|<style-with|src-compact|none|<assign|<unquote|<merge|<arg|x>|-numbered>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-display-numbers>>>>><assign|<unquote|<merge|<arg|x>|-prefix>>|<style-with|src-compact|none|<macro|<compound|<unquote|<merge|the-|<arg|x>>>>.>>><compound|<unquote|<merge|next-|<arg|x>>>><compound|<unquote|<merge|<arg|x>|-clean>>><compound|<unquote|<merge|<arg|x>|-header>>|<arg|title>><compound|<unquote|<merge|<arg|x>|-toc>>|<arg|title>><style-with|src-compact|none|<if|<value|<unquote|<merge|<arg|x>|-numbered>>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-numbered-title>>|<arg|title>>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-unnumbered-title>>|<arg|title>>>>>>>><assign|<unquote|<merge|<arg|x>|*>>|<macro|title|<style-with|src-compact|none|<assign|<unquote|<merge|<arg|x>|-numbered>>|false><assign|<unquote|<merge|<arg|x>|-prefix>>|<macro|>><compound|<unquote|<merge|<arg|x>|-clean>>><compound|<unquote|<merge|<arg|x>|-header>>|<arg|title>><compound|<unquote|<merge|<arg|x>|-toc>>|<arg|title>><style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-unnumbered-title>>|<arg|title>>>>>><assign|<unquote|<merge|<arg|x>|-numbered>>|false><assign|<unquote|<merge|<arg|x>|-prefix>>|<macro|>><assign|<unquote|<merge|<arg|x>|-display-numbers>>|true><drd-props|<unquote|<merge|<arg|x>|-display-numbers>>|macro-parameter|boolean><assign|<unquote|<merge|<arg|x>|-sep>>|<macro|<sectional-sep>>><drd-props|<unquote|<merge|<arg|x>|-sep>>|macro-parameter|regular><assign|<unquote|<merge|<arg|x>|-post-sep>>|<macro|<sectional-post-sep>>><drd-props|<unquote|<merge|<arg|x>|-post-sep>>|macro-parameter|regular><assign|<unquote|<merge|<arg|x>|-title>>|<macro|title|<strong|<arg|title>>>><assign|<unquote|<merge|<arg|x>|-unnumbered-title>>|<macro|title|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-title>>|<arg|title><compound|<unquote|<merge|<arg|x>|-post-sep>>>>>>><assign|<unquote|<merge|<arg|x>|-numbered-title>>|<macro|title|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-title>>|<sectional-prefixed|<compound|<unquote|<merge|the-|<arg|x>>>><compound|<unquote|<merge|<arg|x>|-sep>>>|<arg|title><compound|<unquote|<merge|<arg|x>|-post-sep>>>>>>>><assign|<unquote|<merge|<arg|x>|-clean>>|<macro|>><assign|<unquote|<merge|<arg|x>|-header>>|<macro|title|>><assign|<unquote|<merge|<arg|x>|-toc>>|<macro|title|>>>>>>
+  <assign|new-section|<macro|x|<quasi|<style-with|src-compact|none|<new-counter|<unquote|<arg|x>>><assign|<unquote|<merge|<arg|x>|-text>>|<style-with|src-compact|none|<macro|<change-case|<localize|<unquote|<arg|x>>>|Upcase>>>><assign|<unquote|<arg|x>>|<macro|title|<style-with|src-compact|none|<assign|<unquote|<merge|<arg|x>|-numbered>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-display-numbers>>>>><assign|<unquote|<merge|<arg|x>|-prefix>>|<style-with|src-compact|none|<macro|<compound|<unquote|<merge|the-|<arg|x>>>><compound|<unquote|<merge|<arg|x>|-prefix-sep>>>>>><compound|<unquote|<merge|next-|<arg|x>>>><compound|<unquote|<merge|<arg|x>|-clean>>><compound|<unquote|<merge|<arg|x>|-header>>|<arg|title>><compound|<unquote|<merge|<arg|x>|-toc>>|<arg|title>><style-with|src-compact|none|<if|<value|<unquote|<merge|<arg|x>|-numbered>>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-numbered-title>>|<arg|title>>>|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-unnumbered-title>>|<arg|title>>>>>>>><assign|<unquote|<merge|<arg|x>|*>>|<macro|title|<style-with|src-compact|none|<assign|<unquote|<merge|<arg|x>|-numbered>>|false><assign|<unquote|<merge|<arg|x>|-prefix>>|<macro|>><compound|<unquote|<merge|<arg|x>|-clean>>><compound|<unquote|<merge|<arg|x>|-header>>|<arg|title>><compound|<unquote|<merge|<arg|x>|-toc>>|<arg|title>><style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-unnumbered-title>>|<arg|title>>>>>><assign|<unquote|<merge|<arg|x>|-numbered>>|false><assign|<unquote|<merge|<arg|x>|-prefix>>|<macro|>><assign|<unquote|<merge|<arg|x>|-display-numbers>>|true><drd-props|<unquote|<merge|<arg|x>|-display-numbers>>|macro-parameter|boolean><assign|<unquote|<merge|<arg|x>|-sep>>|<macro|<sectional-sep>>><drd-props|<unquote|<merge|<arg|x>|-sep>>|macro-parameter|regular><assign|<unquote|<merge|<arg|x>|-prefix-sep>>|<macro|.>><drd-props|<unquote|<merge|<arg|x>|-prefix-sep>>|macro-parameter|regular><assign|<unquote|<merge|<arg|x>|-post-sep>>|<macro|<sectional-post-sep>>><drd-props|<unquote|<merge|<arg|x>|-post-sep>>|macro-parameter|regular><assign|<unquote|<merge|<arg|x>|-title>>|<macro|title|<strong|<arg|title>>>><assign|<unquote|<merge|<arg|x>|-unnumbered-title>>|<macro|title|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-title>>|<arg|title><compound|<unquote|<merge|<arg|x>|-post-sep>>>>>>><assign|<unquote|<merge|<arg|x>|-numbered-title>>|<macro|title|<style-with|src-compact|none|<compound|<unquote|<merge|<arg|x>|-title>>|<sectional-prefixed|<compound|<unquote|<merge|the-|<arg|x>>>><compound|<unquote|<merge|<arg|x>|-sep>>>|<arg|title><compound|<unquote|<merge|<arg|x>|-post-sep>>>>>>>><assign|<unquote|<merge|<arg|x>|-clean>>|<macro|>><assign|<unquote|<merge|<arg|x>|-header>>|<macro|title|>><assign|<unquote|<merge|<arg|x>|-toc>>|<macro|title|>>>>>>
 
   <\active*>
     <\src-comment>
@@ -179,11 +233,13 @@
 
   <assign|display-part|<macro|nr|<number|<arg|nr>|Roman>>>
 
-  <assign|display-section|<macro|nr|<if|<sectional-short-style>|<arg|nr>|<chapter-prefix><arg|nr>>>>
+  <assign|display-chapter|<macro|nr|<number|<arg|nr>|<value|chapter-number-style>>>>
 
-  <assign|display-subsection|<macro|nr|<section-prefix><arg|nr>>>
+  <assign|display-section|<macro|nr|<if|<sectional-short-style>|<number|<arg|nr>|<value|section-number-style>>|<chapter-prefix><number|<arg|nr>|<value|section-number-style>>>>>
 
-  <assign|display-subsubsection|<macro|nr|<subsection-prefix><arg|nr>>>
+  <assign|display-subsection|<macro|nr|<section-prefix><number|<arg|nr>|<value|subsection-number-style>>>>
+
+  <assign|display-subsubsection|<macro|nr|<subsection-prefix><number|<arg|nr>|<value|subsubsection-number-style>>>>
 
   <assign|display-paragraph|<macro|nr|<subsubsection-prefix><arg|nr>>>
 
@@ -213,7 +269,7 @@
 
   <new-section|appendix>
 
-  <assign|display-appendix|<macro|nr|<style-with|src-compact|none|<if|<sectional-short-style>|<display-section|<number|<arg|nr>|Alpha>>|<display-chapter|<number|<arg|nr>|Alpha>>>>>>
+  <assign|display-appendix|<macro|nr|<number|<arg|nr>|Alpha>>>
 
   <assign|appendix-clean|<macro|<style-with|src-compact|none|<if|<sectional-short-style>|<style-with|src-compact|none|<reset-subsection><section-clean><assign|section-prefix|<value|appendix-prefix>>>|<style-with|src-compact|none|<reset-section><chapter-clean><assign|in-appendix|true><assign|chapter-prefix|<value|appendix-prefix>>>>>>>
 

@@ -16,8 +16,7 @@
 
 (import (liii hash-table)
         (liii base)
-        (liii list)
-        (liii lang))
+        (liii list))
 
 (define code-table (make-hash-table))
 

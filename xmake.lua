@@ -30,6 +30,21 @@ option_end()
 -- Temporary statement to move into MuPDF
 set_config("mupdf", true)
 
+option("startup_tab")
+    set_default(true)
+    set_description("Enable startup tab with left navigation")
+option_end()
+
+option("text_toolbar")
+    set_default(false)
+    set_description("Enable text selection floating toolbar")
+option_end()
+
+option("tutorial")
+    set_default(false)
+    set_description("Enable tutorial infrastructure and first-launch tutorial")
+option_end()
+
 -- Adjust community or commercial version
 option("is_community")
     set_default(true)
@@ -76,6 +91,9 @@ add_configfiles("src/System/config.h.xmake", {
         USE_FONTCONFIG = true,
         PDFHUMMUS_NO_TIFF = true,
         USE_MUPDF_RENDERER = has_config("mupdf"),
+        USE_STARTUP_TAB = has_config("startup_tab"),
+        USE_TEXT_TOOLBAR = has_config("text_toolbar"),
+        USE_TUTORIAL = has_config("tutorial"),
         IS_COMMUNITY = has_config("is_community"),
         DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
     }
@@ -222,9 +240,16 @@ if is_plat ("windows") then
 end
 
 add_requires("libjpeg")
-if is_plat("linux") then
+-- apt系统用系统包，其他发行版用源码构建
+if is_plat("linux") and (linuxos.name() == "ubuntu" or linuxos.name() == "debian" or linuxos.name() == "uos") then
     add_requires("apt::libpng-dev", {alias="libpng"})
     add_requires("apt::libcurl4-openssl-dev", {alias="libcurl"})
+elseif is_plat("linux") and (linuxos.name() == "fedora" or linuxos.name() == "rhel" or linuxos.name() == "centos" or linuxos.name() == "rocky" or linuxos.name() == "almalinux" or linuxos.name() == "ol") then
+    add_requires("libpng", {system=true})
+    add_requires("libcurl", {system=true})
+else
+    add_requires("libpng", {system=false})
+    add_requires("libcurl", {system=false})
 end
 
 add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
@@ -682,6 +707,9 @@ target("libmogan") do
                 USE_PLUGIN_SPARKLE = false,
                 USE_PLUGIN_HTML = true,
                 USE_MUPDF_RENDERER = has_config("mupdf"),
+                USE_STARTUP_TAB = has_config("startup_tab"),
+                USE_TEXT_TOOLBAR = has_config("text_toolbar"),
+                USE_TUTORIAL = has_config("tutorial"),
                 IS_COMMUNITY = has_config("is_community"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})
@@ -775,6 +803,8 @@ target("libmogan") do
             "src/Typeset/Bridge",
             "src/Typeset/Concat",
             "src/Typeset/Page",
+            "src/Mogan/Cache",
+            "src/Mogan/TemplateCenter",
             "TeXmacs/include",
             "$(buildir)/glue",
             "$(projectdir)/TeXmacs/plugins/goldfish/src/",
@@ -815,6 +845,8 @@ target("libmogan") do
             "$(projectdir)/3rdparty/json-schema-validator/src/**.cpp"})
 
     add_files("src/Plugins/Qt/**.cpp", "src/Plugins/Qt/**.hpp")
+    add_files("src/Mogan/Cache/**.cpp", "src/Mogan/Cache/**.hpp")
+    add_files("src/Mogan/TemplateCenter/**.cpp", "src/Mogan/TemplateCenter/**.hpp")
 
     -- Add Qt resource file
     add_rules("qt.qrc")
@@ -861,6 +893,7 @@ local stem_files = {
     "$(projectdir)/TeXmacs(/progs/**)",
     "$(projectdir)/TeXmacs(/styles/**)",
     "$(projectdir)/TeXmacs(/texts/**)",
+    "$(projectdir)/TeXmacs(/templates/**)",
     "$(projectdir)/TeXmacs/COPYING", -- copying files are different
     "$(projectdir)/TeXmacs/INSTALL",
     "$(projectdir)/LICENSE", -- license files are same
