@@ -59,7 +59,7 @@ constexpr int kSectionTitleFontPx = 16;   // 分区标题字号
 constexpr int kStyleIconFontPx    = 48;   // 样式图标字母字号
 constexpr int kStyleNameFontPx    = 14;   // 样式名称字号
 constexpr int kRecentListRadius   = 8;    // Recent 列表圆角
-constexpr int kRecentItemHeight   = 64;   // Recent 列表项高度
+constexpr int kRecentItemHeight   = 40;   // Recent 列表项高度
 constexpr int kRecentItemRadius   = 4;    // Recent 列表项圆角
 constexpr int kRecentItemMarginX  = 4;    // Recent 列表项横向边距
 constexpr int kRecentItemMarginY  = 2;    // Recent 列表项纵向边距
@@ -491,6 +491,7 @@ QtFilePage::renderRecentDocs () {
 
     auto* rowWidget= new QWidget (recentList_);
     rowWidget->setObjectName ("startup-tab-recent-item");
+    rowWidget->setAttribute (Qt::WA_TransparentForMouseEvents);
     auto* rowLayout= new QHBoxLayout (rowWidget);
     rowLayout->setContentsMargins (DpiUtils::scaled (kRecentItemPaddingX),
                                    DpiUtils::scaled (kRecentItemPaddingY),
