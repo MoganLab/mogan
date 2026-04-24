@@ -27,8 +27,10 @@ jobs:
           actions-cache-folder: '.xmake-cache'
       - name: xmake repo --update
         run: xmake repo --update
-      - name: Build goldfish interpreter
-        run: xmake b goldfish
+      - name: Config and build goldfish
+        run: |
+          xmake config -m release -a ${{ matrix.arch }} -vD --yes
+          xmake build -vD goldfish
       - name: Package with Goldfish
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
