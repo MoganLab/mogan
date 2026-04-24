@@ -103,6 +103,7 @@ private:
   void loadRecentDocs ();
   void saveRecentDocs ();
   void removeRecentDoc (const QString& path);
+  void clearAllRecentDocs ();
   void createDocumentWithStyle (const QString& styleId);
 
   // 样式卡片相关

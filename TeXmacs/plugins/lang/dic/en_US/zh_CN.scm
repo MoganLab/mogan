@@ -411,6 +411,7 @@
 ("clear all fields" "清除全部区域")
 ("clear font cache under TEXMACS_HOME_PATH and local cache path" "清除TEXMACS_HOME_PATH和系统本地缓存路径下的字体缓存")
 ("clear font cache" "清除字体缓存")
+("Clear list" "清空列表")
 ("clear menu" "清除列表")
 ("clear selection" "清除选择")
 ("clear undo history" "清除撤销记录")

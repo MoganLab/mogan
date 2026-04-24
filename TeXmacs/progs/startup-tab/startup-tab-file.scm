@@ -62,4 +62,4 @@
 
 (tm-define (startup-tab-clear-all-recent)
   ;; Clear all recent documents
-  (noop))
+  (forget-interactive "recent-buffer"))

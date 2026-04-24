@@ -577,6 +577,14 @@ QtFilePage::removeRecentDoc (const QString& path) {
   refreshRecentDocs ();
 }
 
+void
+QtFilePage::clearAllRecentDocs () {
+  eval_scheme ("(startup-tab-clear-all-recent)");
+  recentDocs_.clear ();
+  saveRecentDocs ();
+  refreshRecentDocs ();
+}
+
 /******************************************************************************
  * 事件处理
  ******************************************************************************/
@@ -603,9 +611,14 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
 
   QMenu    menu (this);
   QAction* removeAction= menu.addAction (qt_translate ("Remove from list"));
+  QAction* clearAction = menu.addAction (qt_translate ("Clear list"));
 
-  if (menu.exec (recentList_->mapToGlobal (pos)) == removeAction) {
+  QAction* selected= menu.exec (recentList_->mapToGlobal (pos));
+  if (selected == removeAction) {
     removeRecentDoc (path);
+  }
+  else if (selected == clearAction) {
+    clearAllRecentDocs ();
   }
 }
 
