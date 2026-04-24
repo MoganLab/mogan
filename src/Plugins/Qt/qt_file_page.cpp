@@ -25,6 +25,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QListWidgetItem>
+#include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
@@ -37,6 +38,7 @@
 #include <QResizeEvent>
 #include <QStringList>
 #include <QStyleOption>
+#include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -184,68 +186,12 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
                                        "}")
                                   .arg (radiusPx));
   DpiUtils::applyScaledFont (titleLabel_, kTemplateTitleFontPx);
-
-  loadThumbnail (style.thumbnailUrl);
 }
 
 void
 StyleCard::loadThumbnail (const QString& url) {
   if (url.isEmpty () || !thumbnailLabel_) return;
-
-  QSize targetSize= thumbnailLabel_->size ();
-
-  QPixmap cached= ThumbnailCache::instance ()->get (url, targetSize);
-  if (!cached.isNull ()) {
-    cached.setDevicePixelRatio (thumbnailLabel_->devicePixelRatioF ());
-    thumbnailLabel_->setPixmap (cached);
-    return;
-  }
-
-  networkManager_= new QNetworkAccessManager (this);
-  QNetworkRequest request (url);
-  QNetworkReply*  reply= networkManager_->get (request);
-
-  connect (reply, &QNetworkReply::finished, this,
-           [this, reply, url] () { onThumbnailReplyFinished (reply, url); });
-}
-
-void
-StyleCard::onThumbnailReplyFinished (QNetworkReply* reply, const QString& url) {
-  if (!reply) return;
-
-  if (reply->error () == QNetworkReply::NoError && thumbnailLabel_) {
-    QByteArray data= reply->readAll ();
-    QImage     image;
-    if (image.loadFromData (data)) {
-      QSize targetSize= thumbnailLabel_->size ();
-      qreal dpr       = thumbnailLabel_->devicePixelRatioF ();
-      int   scaledW   = qRound (targetSize.width () * dpr);
-      int   scaledH   = qRound (targetSize.height () * dpr);
-
-      QImage scaled=
-          image.scaled (scaledW, scaledH, Qt::KeepAspectRatioByExpanding,
-                        Qt::SmoothTransformation);
-      if (scaled.width () > scaledW || scaled.height () > scaledH) {
-        int x = (scaled.width () - scaledW) / 2;
-        int y = (scaled.height () - scaledH) / 2;
-        scaled= scaled.copy (x, y, scaledW, scaledH);
-      }
-
-      QPixmap pixmap= QPixmap::fromImage (scaled);
-      pixmap.setDevicePixelRatio (dpr);
-
-      ThumbnailCache::instance ()->put (url, targetSize, pixmap);
-      thumbnailLabel_->setPixmap (pixmap);
-    }
-    else {
-      thumbnailLabel_->setText (qt_translate ("Preview"));
-    }
-  }
-  else if (thumbnailLabel_) {
-    thumbnailLabel_->setText (qt_translate ("Preview"));
-  }
-
-  reply->deleteLater ();
+  emit requestThumbnailLoad (thumbnailLabel_, url);
 }
 
 void
@@ -271,6 +217,8 @@ StyleCard::paintEvent (QPaintEvent* event) {
  ******************************************************************************/
 
 QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
+  networkManager_= new QNetworkAccessManager (this);
+
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   styles_= {
@@ -384,6 +332,17 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
 
     connect (card, &StyleCard::clicked, this,
              [this, card] () { createDocumentWithStyle (card->styleId ()); });
+    connect (card, &StyleCard::requestThumbnailLoad, this,
+             &QtFilePage::loadThumbnail);
+
+    if (card->isTemplate ()) {
+      for (const auto& s : styles_) {
+        if (s.id == card->styleId ()) {
+          card->loadThumbnail (s.thumbnailUrl);
+          break;
+        }
+      }
+    }
   }
 
   layout->addWidget (cardsContainer_);
@@ -830,4 +789,125 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
 
   mgr->downloadTemplate (templateId);
   dialog->show ();
+}
+
+void
+QtFilePage::loadThumbnail (QLabel* label, const QString& url) {
+  if (!label) return;
+
+  QSize targetSize= label->size ();
+
+  ThumbnailCache::ThumbnailCacheEntry cached=
+      ThumbnailCache::instance ()->getEntry (url, targetSize);
+
+  if (cached.isValid ()) {
+    QPixmap px= cached.pixmap;
+    px.setDevicePixelRatio (label->devicePixelRatioF ());
+    label->setPixmap (px);
+
+    if (validatedUrls_.contains (url)) {
+      return;
+    }
+
+    thumbnailQueue_.enqueue ({label, url, cached.etag});
+    processThumbnailQueue ();
+    return;
+  }
+
+  thumbnailQueue_.enqueue ({label, url, QString ()});
+  processThumbnailQueue ();
+}
+
+void
+QtFilePage::processThumbnailQueue () {
+  while (!thumbnailQueue_.isEmpty () &&
+         activeThumbnailRequests_ < MAX_CONCURRENT_THUMBNAIL_REQUESTS) {
+    StyleThumbnailRequest req= thumbnailQueue_.dequeue ();
+
+    if (req.label.isNull ()) {
+      continue;
+    }
+
+    activeThumbnailRequests_++;
+
+    QNetworkRequest request (req.url);
+    if (!req.cachedEtag.isEmpty ()) {
+      request.setRawHeader ("If-None-Match", req.cachedEtag.toUtf8 ());
+    }
+    QNetworkReply* reply= networkManager_->get (request);
+
+    connect (reply, &QNetworkReply::finished, this, [this, req, reply] () {
+      activeThumbnailRequests_--;
+
+      if (req.label.isNull ()) {
+        reply->deleteLater ();
+        validatedUrls_.insert (req.url);
+        processThumbnailQueue ();
+        return;
+      }
+
+      int httpStatus=
+          reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+      if (httpStatus == 304) {
+        validatedUrls_.insert (req.url);
+        reply->deleteLater ();
+        processThumbnailQueue ();
+        return;
+      }
+
+      if (reply->error () == QNetworkReply::NoError) {
+        QByteArray data= reply->readAll ();
+        QImage     image;
+        if (image.loadFromData (data)) {
+          QSize targetSize= req.label->size ();
+          qreal dpr       = req.label->devicePixelRatioF ();
+          int   scaledW   = qRound (targetSize.width () * dpr);
+          int   scaledH   = qRound (targetSize.height () * dpr);
+
+          QImage scaled=
+              image.scaled (scaledW, scaledH, Qt::KeepAspectRatioByExpanding,
+                            Qt::SmoothTransformation);
+          if (scaled.width () > scaledW || scaled.height () > scaledH) {
+            int x = (scaled.width () - scaledW) / 2;
+            int y = (scaled.height () - scaledH) / 2;
+            scaled= scaled.copy (x, y, scaledW, scaledH);
+          }
+
+          QPixmap pixmap= QPixmap::fromImage (scaled);
+          pixmap.setDevicePixelRatio (dpr);
+
+          req.label->setPixmap (pixmap);
+
+          QString   etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
+          QDateTime lastModified;
+          QString lmStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
+          if (!lmStr.isEmpty ()) {
+            lastModified= QDateTime::fromString (lmStr, Qt::RFC2822Date);
+            if (!lastModified.isValid ()) {
+              lastModified= QLocale::c ().toDateTime (
+                  lmStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
+            }
+            if (lastModified.isValid ()) {
+              lastModified.setTimeZone (QTimeZone::utc ());
+            }
+          }
+
+          ThumbnailCache::instance ()->put (req.url, targetSize, pixmap, etag,
+                                            lastModified);
+        }
+        else {
+          req.label->setText (qt_translate ("Preview"));
+        }
+      }
+      else {
+        if (req.label->pixmap ().isNull ()) {
+          req.label->setText (qt_translate ("Preview"));
+        }
+      }
+
+      validatedUrls_.insert (req.url);
+      reply->deleteLater ();
+      processThumbnailQueue ();
+    });
+  }
 }
