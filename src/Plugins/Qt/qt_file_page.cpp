@@ -40,8 +40,8 @@
 #include "sys_utils.hpp"
 
 // 最多显示的最近文档数量
-static const int MAX_RECENT_DOCS       = 10;
-static const int MAX_GLOBAL_RECENT_DOCS= 25;
+static const int MAX_RECENT_DOCS       = 50;
+static const int MAX_GLOBAL_RECENT_DOCS= 100;
 
 namespace {
 constexpr int kMainMargin         = 32;   // 主内容区外边距
