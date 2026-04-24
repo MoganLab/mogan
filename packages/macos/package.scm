@@ -125,7 +125,7 @@
 
 ;; ===== Keychain =====
 
-(define KEYCHAIN_PATH "/tmp/mogan-signing.keychain-db")
+(define KEYCHAIN_PATH (path-join (getenv "HOME") "Library/Keychains/mogan-signing.keychain-db"))
 (define CERT_PATH "/tmp/mogan_cert.p12")
 
 (define (generate-keychain-pass)
@@ -146,13 +146,19 @@
 
 (define (import-apple-ca-certificates)
   (display "Importing Apple CA certificates...\n")
-  (let ((devid-ca "/tmp/apple_devid_ca.cer"))
+  (let ((devid-ca "/tmp/apple_devid_ca.cer")
+        (devid-ca-g2 "/tmp/apple_devid_ca_g2.cer"))
     ;; Download Developer ID Certification Authority if not present
     (when (not (path-exists? devid-ca))
           (call-or-quit "curl" "-L" "-o" devid-ca
             "https://www.apple.com/certificateauthority/DeveloperIDCA.cer"))
-    ;; Import to temporary keychain
-    (call-quiet "security" "add-certificates" "-k" KEYCHAIN_PATH devid-ca)))
+    ;; Download Developer ID Certification Authority G2 if not present
+    (when (not (path-exists? devid-ca-g2))
+          (call-or-quit "curl" "-L" "-o" devid-ca-g2
+            "https://www.apple.com/certificateauthority/DeveloperIDG2CA.cer"))
+    ;; Import to keychain
+    (call-quiet "security" "add-certificates" "-k" KEYCHAIN_PATH devid-ca)
+    (call-quiet "security" "add-certificates" "-k" KEYCHAIN_PATH devid-ca-g2)))
 
 (define (import-certificate password keychain-pass)
   (let ((ec1 (os-call (string-append "bash -c 'security import " CERT_PATH " -P " password " -k " KEYCHAIN_PATH " -T /usr/bin/codesign 2>/dev/null'"))))
