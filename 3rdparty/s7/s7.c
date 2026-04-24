@@ -13882,12 +13882,10 @@ static s7_pointer string_to_big_real(s7_scheme *sc, const char *str, int32_t rad
   return(new_bgf);
 }
 
-static s7_int string_to_integer(const char *str, int32_t radix, bool *overflow);
-
 static s7_pointer string_to_either_integer(s7_scheme *sc, const char *str, int32_t radix)
 {
   bool overflow = false;
-  s7_int val = string_to_integer(str, radix, &overflow);
+  s7_int val = s7_string_to_integer(str, radix, &overflow);
   if (!overflow)
     return(make_integer(sc, val));
   return(string_to_big_integer(sc, str, radix));
@@ -13899,12 +13897,12 @@ static s7_pointer string_to_either_ratio(s7_scheme *sc, const char *nstr, const 
   /* gmp segfaults if passed a bignum/0 so this needs to check first that the denominator is not 0 before letting gmp screw up.
    *   Also, if the first character is '+', gmp returns 0!
    */
-  const s7_int d = string_to_integer(dstr, radix, &overflow);
+  const s7_int d = s7_string_to_integer(dstr, radix, &overflow);
   if (!overflow)
     {
       s7_int n;
       if (d == 0) return(make_nan_with_payload(sc, __LINE__)); /* this NaN can end up as a hash-table key -- maybe the payload is confusing? */
-      n = string_to_integer(nstr, radix, &overflow);
+      n = s7_string_to_integer(nstr, radix, &overflow);
       if (!overflow)
 	return(make_ratio(sc, n, d));
     }
@@ -13942,15 +13940,15 @@ static s7_pointer string_to_either_complex_1(s7_scheme *sc, char *q, char *slash
     {
       if (slash1)
 	{
-	  s7_int d, n = string_to_integer(q, radix, &overflow);  /* q can include the slash and denominator */
+	  s7_int d, n = s7_string_to_integer(q, radix, &overflow);  /* q can include the slash and denominator */
 	  if (overflow) return(string_to_big_ratio(sc, q, radix));
-	  d = string_to_integer(slash1, radix, &overflow);
+	  d = s7_string_to_integer(slash1, radix, &overflow);
 	  if (overflow) return(string_to_big_ratio(sc, q, radix));
 	  (*d_rl) = (s7_double)n / (s7_double)d;
 	}
       else
 	{
-	  s7_int val = string_to_integer(q, radix, &overflow);
+	  s7_int val = s7_string_to_integer(q, radix, &overflow);
 	  if (overflow) return(string_to_big_integer(sc, q, radix));
 	  (*d_rl) = (s7_double)val;
 	}}
@@ -15966,101 +15964,6 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
   return(unknown_sharp_constant(sc, name, NULL));
 }
 
-static s7_int string_to_integer(const char *str, int32_t radix, bool *overflow)
-{
-  bool negative = false;
-  s7_int new_int = 0;
-  int32_t dig;
-  const char *tmp = (const char *)str;
-#if WITH_GMP
-  const char *tmp1;
-#endif
-  if (str[0] == '+')
-    tmp++;
-  else
-    if (str[0] == '-')
-      {
-	negative = true;
-	tmp++;
-      }
-  while (*tmp == '0') {tmp++;};
-#if WITH_GMP
-  tmp1 = tmp;
-#endif
- if (radix == 10)
-    {
-      while (true)
-	{
-	  dig = digits[(uint8_t)(*tmp++)];
-	  if (dig > 9) break;
-#if HAVE_OVERFLOW_CHECKS
-	  if ((multiply_overflow(new_int, (s7_int)10, &new_int)) ||
-	      (add_overflow(new_int, (s7_int)dig, &new_int)))
-	    {
-	      if ((radix == 10) &&
-		  (strncmp(str, "-9223372036854775808", 20) == 0) &&
-		  (digits[(uint8_t)(*tmp++)] > 9)) /* i.e. next thing is not a digit -- "/" for example */
-		return(S7_INT64_MIN);
-	      *overflow = true;
-	      return((negative) ? S7_INT64_MIN : S7_INT64_MAX);
-	    }
-#else
-	  new_int = dig + (new_int * 10);
-	  dig = digits[(uint8_t)(*tmp++)];
-	  if (dig > 9) break;
-	  new_int = dig + (new_int * 10);
-#endif
-	}}
-  else
-    while (true)
-      {
-	dig = digits[(uint8_t)(*tmp++)];
-	if (dig >= radix) break;
-#if HAVE_OVERFLOW_CHECKS && (!WITH_GMP)
-	{
-	  s7_int oval = 0;
-	  if (multiply_overflow(new_int, (s7_int)radix, &oval))
-	    {
-	      /* maybe a bad idea!  #xffffffffffffffff -> -1??? this is needed for 64-bit number hacks (see s7test.scm bit-reverse) */
-	      if ((radix == 16) &&
-		  (digits[(uint8_t)(*tmp)] >= radix))
-		{
-		  new_int -= 576460752303423488LL; /* turn off sign bit */
-		  new_int *= radix;
-		  new_int += dig;
-		  new_int -= 9223372036854775807LL;
-		  return(new_int - 1);
-		}
-	      new_int = oval; /* old case */
-	      if ((new_int == S7_INT64_MIN)  && (digits[(uint8_t)(*tmp++)] > 9))
-		return(new_int);
-	      *overflow = true;
-	      break;
-	    }
-	  else new_int = oval;
-	  if (add_overflow(new_int, (s7_int)dig, &new_int))
-	    {
-	      if (new_int == S7_INT64_MIN) return(new_int);
-	      *overflow = true;
-	      break;
-	    }}
-#else
-	new_int = dig + (new_int * radix);
-	dig = digits[(uint8_t)(*tmp++)];
-	if (dig >= radix) break;
-	new_int = dig + (new_int * radix);
-#endif
-      }
-
-#if WITH_GMP
- if (!*overflow)
-   (*overflow) = ((new_int > S7_INT32_MAX) ||
-		  ((tmp - tmp1) > s7_int_digits_by_radix[radix]));
-  /* this tells the string->number readers to create a bignum.  We need to be very conservative here to catch contexts such as (/ 1/524288 19073486328125) */
-#endif
-  return((negative) ? -new_int : new_int);
-}
-
 static const char *radstr[17] = {NULL, NULL, "01", "012", "0123", "01234", "012345", "0123456", "01234567", "012345678", "0123456789",
   "0123456789aA", "0123456789aAbB", "0123456789aAbBcC", "0123456789aAbBcCdD", "0123456789aAbBcCdDeE", "0123456789aAbBcCdDeEfF"};
 
@@ -16070,6 +15973,10 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix, 
 static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 #endif
 {
+  /* Use simple implementation for base 10 to avoid precision issues on Windows */
+  if (radix == 10)
+    return s7_string_to_double_simple(ur_str, radix);
+
   /* strtod follows LANG which is not what we want (only "." is decimal point in Scheme).
    *   To overcome LANG in strtod would require screwing around with setlocale which never works.
    *   So we use our own code -- according to valgrind, this function is much faster than strtod.
@@ -16497,12 +16404,12 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		  for (i = 3; is_digit(p[i], 10); i++);
 		  if ((p[i] == '+') || (p[i] == '-')) /* complex case */
 		    {
-		      s7_int payload = string_to_integer((char *)(p + 3), 10, &overflow);
+		      s7_int payload = s7_string_to_integer((char *)(p + 3), 10, &overflow);
 		      return(nan1_or_bust(sc, nan_with_payload(payload), p, q, radix, want_symbol, i));
 		    }
 		  if ((p[i] != '\0') && (!white_space[(uint8_t)(p[i])])) /* check for +nan.0i etc, '\0' is not white_space apparently */
 		    return((want_symbol) ? make_symbol_with_strlen(sc, q) : sc->F);
-		  return(make_nan_with_payload(sc, string_to_integer((char *)(p + 3), 10, &overflow)));
+		  return(make_nan_with_payload(sc, s7_string_to_integer((char *)(p + 3), 10, &overflow)));
 		}}
 	  if (c == 'i')
 	    {
@@ -16641,7 +16548,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		    (local_strncmp(plus, "nan.", 4)))
 		  {
 		    bool overflow1 = false;
-		    s7_int payload = string_to_integer((char *)(p + 5), 10, &overflow1);
+		    s7_int payload = s7_string_to_integer((char *)(p + 5), 10, &overflow1);
 		    return(nan2_or_bust(sc, nan_with_payload(payload), q, radix, want_symbol, (intptr_t)(p - q)));
 		  }
 		if ((plus[0] == 'i') &&
@@ -16732,9 +16639,9 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	    if (slash1)
 	      {
 		/* here the overflow could be innocuous if it's in the denominator and the numerator is 0: 0/100000000000000000000000000000000000000 */
-		s7_int den, num = string_to_integer(q, radix, &overflow);
+		s7_int den, num = s7_string_to_integer(q, radix, &overflow);
 		if (overflow) return(make_undefined_bignum(sc, q));
-		den = string_to_integer(slash1, radix, &overflow);
+		den = s7_string_to_integer(slash1, radix, &overflow);
 		if (den == 0)
 		  rl = NAN;        /* real_part if complex */
 		else
@@ -16751,7 +16658,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }}}
 	    else
 	      {
-		rl = (s7_double)string_to_integer(q, radix, &overflow);
+		rl = (s7_double)s7_string_to_integer(q, radix, &overflow);
 		if (overflow) return(make_undefined_bignum(sc, q));
 	      }}
 	if (rl == -0.0) rl = 0.0;
@@ -16765,9 +16672,9 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	      {
 		/* same as above: 0-0/100000000000000000000000000000000000000i */
 		s7_int den;
-		const s7_int num = string_to_integer(plus, radix, &overflow);
+		const s7_int num = s7_string_to_integer(plus, radix, &overflow);
 		if (overflow) return(make_undefined_bignum(sc, q));
-		den = string_to_integer(slash2, radix, &overflow);
+		den = s7_string_to_integer(slash2, radix, &overflow);
 		if (den == 0)
 		  im = NAN;
 		else
@@ -16784,7 +16691,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }}}
 	    else
 	      {
-		im = (s7_double)string_to_integer(plus, radix, &overflow);
+		im = (s7_double)s7_string_to_integer(plus, radix, &overflow);
 		if (overflow) return(make_undefined_bignum(sc, q));
 	      }}
 	if ((has_plus_or_minus == -1) &&
@@ -16835,9 +16742,9 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 #if !WITH_GMP
       {
 	s7_int d;
-	const s7_int n = string_to_integer(q, radix, &overflow);
+	const s7_int n = s7_string_to_integer(q, radix, &overflow);
 	if (overflow) return(make_undefined_bignum(sc, q));
-	d = string_to_integer(slash1, radix, &overflow);
+	d = s7_string_to_integer(slash1, radix, &overflow);
 
 	if ((n == 0) && (d != 0))                        /* 0/100000000000000000000000000000000000000 */
 	  return(int_zero);
@@ -16855,7 +16762,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
     /* integer */
 #if !WITH_GMP
     {
-      s7_int x = string_to_integer(q, radix, &overflow);
+      s7_int x = s7_string_to_integer(q, radix, &overflow);
       if (overflow) return(make_undefined_bignum(sc, q));
       return(make_integer(sc, x));
     }
@@ -31544,7 +31451,7 @@ static s7_int print_vector_length(s7_scheme *sc, s7_pointer vect, s7_pointer por
 	port_write_string(port)(sc, "#r(...)", 7, port);
       else
 	if (is_byte_vector(vect))
-	  port_write_string(port)(sc, "#u(...)", 7, port);
+	  port_write_string(port)(sc, "#u8(...)", 8, port);
 	else port_write_string(port)(sc, "#c(...)", 7, port);
   return(-1);
 }
@@ -31832,7 +31739,7 @@ static void byte_vector_to_port(s7_scheme *sc, s7_pointer vect, s7_pointer port,
     {
       s7_int plen;
       const char *str;
-      port_write_string(port)(sc, "#u(", 3, port);
+      port_write_string(port)(sc, "#u8(", 4, port);
       str = integer_to_string(sc, byte_vector(vect, 0), &plen);
       port_write_string(port)(sc, str, plen, port);
       for (s7_int i = 1; i < len; i++)
@@ -31848,7 +31755,7 @@ static void byte_vector_to_port(s7_scheme *sc, s7_pointer vect, s7_pointer port,
   else
     {
       char buf[128];
-      s7_int plen = catstrs_direct(buf, "#u", pos_int_to_str_direct(sc, vector_ndims(vect)), "d", (const char *)NULL);
+      s7_int plen = catstrs_direct(buf, "#u8", pos_int_to_str_direct(sc, vector_ndims(vect)), "d", (const char *)NULL);
       port_write_string(port)(sc, buf, plen, port);
       multivector_to_port(sc, vect, port, len, 0, 0, vector_ndims(vect), p_display, NULL);
     }
@@ -40701,7 +40608,7 @@ static s7_pointer g_byte_multivector(s7_scheme *sc, s7_int dims, s7_pointer data
   len = vector_length(sc->value);
   for (s7_int i = 0; i < len; i++)
     if (!is_byte(src[i]))
-      wrong_type_error_nr(sc, wrap_string(sc, "#u(...)", 7), i + 1, src[i], wrap_string(sc, "a byte", 6));
+      wrong_type_error_nr(sc, wrap_string(sc, "#u8(...)", 8), i + 1, src[i], wrap_string(sc, "a byte", 6));
   sc->args = g_make_vector_1(sc, set_plist_2(sc, g_vector_dimensions(sc, set_plist_1(sc, sc->value)), int_zero), sc->make_byte_vector_symbol);
   return(s7_copy_1(sc, sc->byte_vector_symbol, set_plist_2(sc, sc->value, sc->args)));
 }

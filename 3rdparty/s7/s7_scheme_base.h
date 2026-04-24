@@ -97,6 +97,10 @@ s7_pointer g_exact_to_inexact(s7_scheme *sc, s7_pointer args);
 s7_pointer inexact_to_exact_p_p(s7_scheme *sc, s7_pointer x);
 s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args);
 
+/* string->number helper functions */
+s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow);
+double s7_string_to_double_simple(const char *str, int32_t radix);
+
 /* read-line function */
 s7_pointer g_read_line(s7_scheme *sc, s7_pointer args);
 

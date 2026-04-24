@@ -1,35 +1,20 @@
-;
-; Copyright (C) 2026 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
-;;; (liii uri) - URI 处理库
-;;; 基于 RFC 3986 实现的 URI 解析与构造库
-;;; 本模块是统一接口，实际实现分散在 uri-record、uri-parse、uri-predicate、
-;;; uri-compare、uri-make、uri-transform、uri-convert 等子模块中
+;; ; (liii uri) - URI 处理库
+;; ; 基于 RFC 3986 实现的 URI 解析与构造库
+;; ; 本模块是统一接口，实际实现分散在 uri-record、uri-parse、uri-predicate、
+;; ; uri-compare、uri-make、uri-transform、uri-convert 等子模块中
 
 (define-library (liii uri)
   (import (scheme base)
-          (liii uri-parse)
-          (liii uri-record)
-          (liii uri-predicate)
-          (liii uri-compare)
-          (liii uri-make)
-          (liii uri-transform)
-          (liii uri-convert)
+    (liii uri-parse)
+    (liii uri-record)
+    (liii uri-predicate)
+    (liii uri-compare)
+    (liii uri-make)
+    (liii uri-transform)
+    (liii uri-convert)
   ) ;import
 
-  ;;; ---------- 导出接口 ----------
+  ;; ; ---------- 导出接口 ----------
   ;; 从 uri-record 重新导出
   (export make-uri-raw uri?)
   (export uri-error)
@@ -45,20 +30,34 @@
   (export uri-authority uri-raw-authority)
 
   ;; path 访问器
-  (export uri-path uri-raw-path uri-path->list)
+  (export uri-path
+    uri-raw-path
+    uri-path->list
+  ) ;export
 
   ;; query 访问器
-  (export uri-query uri-query-string uri-query-ref uri-query-ref*)
+  (export uri-query
+    uri-query-string
+    uri-query-ref
+    uri-query-ref*
+  ) ;export
 
   ;; fragment 访问器
   (export uri-fragment uri-raw-fragment)
 
   ;; 路径相关访问器
-  (export uri-parent uri-name uri-suffix uri-suffixes)
+  (export uri-parent
+    uri-name
+    uri-suffix
+    uri-suffixes
+  ) ;export
 
   ;; 从 uri-predicate 重新导出
   (export uri-absolute? uri-relative?)
-  (export uri-default-port uri-default-port? uri-network-scheme?)
+  (export uri-default-port
+    uri-default-port?
+    uri-network-scheme?
+  ) ;export
 
   ;; 从 uri-make 重新导出
   (export make-uri uri-build string->uri)

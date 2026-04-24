@@ -7,6 +7,7 @@
  */
 
 #include "s7_scheme_base.h"
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include <stdint.h>
@@ -30,6 +31,13 @@ static bool is_inf(s7_double x)
 #define DOUBLE_TO_INT64_LIMIT 9.223372036854775807e18  /* 2^63 - 1 */
 #define INT64_TO_DOUBLE_LIMIT (1LL << 53)               /* 2^53 */
 #define RATIONALIZE_LIMIT 1.0e12
+
+static s7_int wrap_uint64_to_s7_int(uint64_t bits)
+{
+  s7_int result;
+  memcpy(&result, &bits, sizeof(result));
+  return result;
+}
 
 /* -------------------------------- floor -------------------------------- */
 
@@ -583,6 +591,227 @@ s7_pointer g_inexact_to_exact(s7_scheme *sc, s7_pointer args)
   #define H_inexact_to_exact "(inexact->exact num) converts num to an exact number; (inexact->exact 1.5) = 3/2"
   #define Q_inexact_to_exact s7_make_signature(sc, 2, sc->is_real_symbol, sc->is_real_symbol)
   return inexact_to_exact_p_p(sc, s7_car(args));
+}
+
+/* -------------------------------- string->number helpers -------------------------------- */
+
+/* Digit conversion table for number parsing */
+static const uint8_t s7_digit_table[256] = {
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  0,   1,   2,   3,   4,   5,   6,   7,   8,   9,   255, 255, 255, 255, 255, 255,
+  255, 10,  11,  12,  13,  14,  15,  255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 10,  11,  12,  13,  14,  15,  255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+  255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255
+};
+
+/* Convert string to integer with radix support.
+ * In the current non-GMP build, integers wrap to s7_int the same way as the
+ * stable gf reader.
+ */
+s7_int s7_string_to_integer(const char *str, int32_t radix, bool *overflow)
+{
+  bool negative = false;
+  uint64_t new_int = 0;
+  int32_t dig;
+  const char *tmp = str;
+
+  *overflow = false;
+
+  if (str[0] == '+')
+    tmp++;
+  else if (str[0] == '-')
+    {
+      negative = true;
+      tmp++;
+    }
+
+  while (*tmp == '0') tmp++;
+
+  while (true)
+    {
+      dig = s7_digit_table[(uint8_t)(*tmp++)];
+      if (dig >= radix) break;
+      new_int = (new_int * (uint64_t)radix) + (uint64_t)dig;
+    }
+
+  if (negative)
+    new_int = (uint64_t)(0 - new_int);
+
+  return wrap_uint64_to_s7_int(new_int);
+}
+
+/* String to double conversion with radix support.
+ * Base-10 literals use strtod after normalizing Scheme exponent markers.
+ * Other radices keep the existing integer-based fallback.
+ */
+double s7_string_to_double_simple(const char *str, int32_t radix)
+{
+  if (radix == 10)
+    {
+      const char *marker = str;
+
+      while (*marker)
+        {
+          if ((marker != str) &&
+              (((marker[1] >= '0') && (marker[1] <= '9')) ||
+               (marker[1] == '+') ||
+               (marker[1] == '-')) &&
+              ((*marker == '@') ||
+               (*marker == 's') || (*marker == 'S') ||
+               (*marker == 'f') || (*marker == 'F') ||
+               (*marker == 'd') || (*marker == 'D') ||
+               (*marker == 'l') || (*marker == 'L')))
+            {
+              size_t len = strlen(str);
+              char *copy = (char *)malloc(len + 1);
+              double result;
+
+              if (!copy)
+                return strtod(str, NULL);
+
+              memcpy(copy, str, len + 1);
+              copy[marker - str] = 'e';
+              result = strtod(copy, NULL);
+              free(copy);
+              return result;
+            }
+          marker++;
+        }
+
+      return strtod(str, NULL);
+    }
+
+  const char *p = str;
+  double sign = 1.0;
+  int64_t mantissa = 0;      /* Use integer for precise digit accumulation */
+  int32_t mantissa_digits = 0;
+  int32_t fraction_digits = 0;
+  int32_t exponent = 0;
+  bool has_exponent = false;
+  bool exp_negative = false;
+  bool in_fraction = false;
+
+  /* Handle sign */
+  if (*p == '-') {
+    sign = -1.0;
+    p++;
+  } else if (*p == '+') {
+    p++;
+  }
+
+  /* Skip leading zeros in integer part */
+  while (*p == '0') p++;
+
+  /* Process digits */
+  while (*p) {
+    char c = *p;
+
+    /* Decimal point */
+    if (c == '.') {
+      in_fraction = true;
+      p++;
+      continue;
+    }
+
+    /* Exponent marker (only in base 10) */
+    if (radix == 10 && (c == 'e' || c == 'E' || c == '@')) {
+      has_exponent = true;
+      p++;
+      /* Handle exponent sign */
+      if (*p == '-') {
+        exp_negative = true;
+        p++;
+      } else if (*p == '+') {
+        p++;
+      }
+      break;
+    }
+
+    /* Convert digit */
+    int32_t digit;
+    if (c >= '0' && c <= '9')
+      digit = c - '0';
+    else if (c >= 'a' && c <= 'f')
+      digit = c - 'a' + 10;
+    else if (c >= 'A' && c <= 'F')
+      digit = c - 'A' + 10;
+    else
+      break;
+
+    if (digit >= radix)
+      break;
+
+    /* Accumulate mantissa as integer (limited precision) */
+    if (mantissa_digits < 17) {  /* double has ~15-17 decimal digits */
+      mantissa = mantissa * radix + digit;
+      mantissa_digits++;
+      if (in_fraction)
+        fraction_digits++;
+    } else if (!in_fraction) {
+      /* Skip extra integer digits (will be handled by exponent) */
+      exponent++;
+    }
+    p++;
+  }
+
+  /* Parse exponent */
+  if (has_exponent) {
+    int32_t exp_val = 0;
+    while (*p >= '0' && *p <= '9') {
+      exp_val = exp_val * 10 + (*p - '0');
+      p++;
+    }
+    if (exp_negative)
+      exp_val = -exp_val;
+    exponent += exp_val;
+  }
+
+  /* Calculate final value: mantissa * 10^(exponent - fraction_digits) */
+  double result = (double)mantissa;
+  int32_t final_exp = exponent - fraction_digits;
+
+  if (final_exp != 0) {
+    /* Use exponentiation by squaring for power calculation */
+    double base = (double)radix;
+    int32_t exp = final_exp;
+    double factor = 1.0;
+
+    if (exp > 0) {
+      /* Positive exponent: multiply */
+      double pow_val = base;
+      while (exp > 0) {
+        if (exp & 1)
+          factor *= pow_val;
+        pow_val *= pow_val;
+        exp >>= 1;
+      }
+      result *= factor;
+    } else {
+      /* Negative exponent: divide */
+      double pow_val = base;
+      exp = -exp;
+      while (exp > 0) {
+        if (exp & 1)
+          factor *= pow_val;
+        pow_val *= pow_val;
+        exp >>= 1;
+      }
+      result /= factor;
+    }
+  }
+
+  return sign * result;
 }
 
 /* -------------------------------- read-line -------------------------------- */

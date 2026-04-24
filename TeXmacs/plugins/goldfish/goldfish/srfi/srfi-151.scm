@@ -1,25 +1,47 @@
-;
-; Copyright (C) 2024 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
+;;
+;; Copyright (C) 2026 The Goldfish Scheme Authors
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;; http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+;; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
+;; License for the specific language governing permissions and limitations
+;; under the License.
+;;
 
 (define-library (srfi srfi-151)
   (import (liii base) (liii error))
-  (export bitwise-not bitwise-and bitwise-ior bitwise-xor bitwise-eqv bitwise-nor bitwise-nand
-          bit-count bitwise-orc1 bitwise-orc2 bitwise-andc1 bitwise-andc2 arithmetic-shift
-          integer-length bitwise-if bit-set? copy-bit bit-swap any-bit-set? every-bit-set?
-          first-set-bit bit-field bit-field-any? bit-field-every? bit-field-clear bit-field-set
+  (export bitwise-not
+    bitwise-and
+    bitwise-ior
+    bitwise-xor
+    bitwise-eqv
+    bitwise-nor
+    bitwise-nand
+    bit-count
+    bitwise-orc1
+    bitwise-orc2
+    bitwise-andc1
+    bitwise-andc2
+    arithmetic-shift
+    integer-length
+    bitwise-if
+    bit-set?
+    copy-bit
+    bit-swap
+    any-bit-set?
+    every-bit-set?
+    first-set-bit
+    bit-field
+    bit-field-any?
+    bit-field-every?
+    bit-field-clear
+    bit-field-set
   ) ;export
   (begin
 
@@ -46,11 +68,11 @@
     (define bit-count
       (typed-lambda ((i integer?))
         (define (bit-count-positive i)
-          (let loop ((n i)
-                     (cnt 0))
+          (let loop
+            ((n i) (cnt 0))
             (if (= n 0)
-                cnt
-                (loop (logand n (- n 1)) (+ cnt 1))
+              cnt
+              (loop (logand n (- n 1)) (+ cnt 1))
             ) ;if
           ) ;let
         ) ;define
@@ -82,74 +104,99 @@
 
     (define (integer-length n)
       (if (zero? n)
-          0
-          (let loop ((value (abs n))
-                     (count 1))
-            (if (<= value 1)
-                count
-                (loop (ash value -1) (+ count 1))
-            ) ;if
-          ) ;let
+        0
+        (let loop
+          ((value (abs n)) (count 1))
+          (if (<= value 1)
+            count
+            (loop (ash value -1) (+ count 1))
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (bitwise-if mask a b)
-      (bitwise-ior (bitwise-and mask a) (bitwise-and (bitwise-not mask) b))
+      (bitwise-ior (bitwise-and mask a)
+        (bitwise-and (bitwise-not mask) b)
+      ) ;bitwise-ior
     ) ;define
 
     (define (bit-set? index n)
-      (cond
-        ((negative? index)
-         (error 'out-of-range "bit-set?: Index cannot be negative" index)
-        ) ;
-        ((> index 63)
-         (error 'out-of-range "bit-set?: Index cannot exceed 63" index)
-        ) ;
-        ((= index 63) (negative? n))
-        (else
-         (not
-          (zero? (bitwise-and n (arithmetic-shift 1 index)))
-         ) ;not
-        ) ;else
+      (cond ((negative? index)
+             (error 'out-of-range
+               "bit-set?: Index cannot be negative"
+               index
+             ) ;error
+            ) ;
+            ((> index 63)
+             (error 'out-of-range
+               "bit-set?: Index cannot exceed 63"
+               index
+             ) ;error
+            ) ;
+            ((= index 63) (negative? n))
+            (else (not (zero? (bitwise-and n
+                                (arithmetic-shift 1 index)
+                              ) ;bitwise-and
+                       ) ;zero?
+                  ) ;not
+            ) ;else
       ) ;cond
     ) ;define
 
     (define (copy-bit index n boolean)
-      (cond
-        ((negative? index)
-         (error 'out-of-range "copy-bit: Index cannot be negative" index)
-        ) ;
-        ((> index 63)
-         (error 'out-of-range "copy-bit: Index cannot exceed 63" index)
-        ) ;
-        ((= index 63)
-         (if boolean
-             (bitwise-ior n -9223372036854775808)
-             (bitwise-and n 9223372036854775807)
-         ) ;if
-        ) ;
-        (else
-         (if boolean
-             (bitwise-ior n (arithmetic-shift 1 index))
-             (bitwise-and n (bitwise-not (arithmetic-shift 1 index)))
-         ) ;if
-        ) ;else
+      (cond ((negative? index)
+             (error 'out-of-range
+               "copy-bit: Index cannot be negative"
+               index
+             ) ;error
+            ) ;
+            ((> index 63)
+             (error 'out-of-range
+               "copy-bit: Index cannot exceed 63"
+               index
+             ) ;error
+            ) ;
+            ((= index 63)
+             (if boolean
+               (bitwise-ior n -9223372036854775808)
+               (bitwise-and n 9223372036854775807)
+             ) ;if
+            ) ;
+            (else (if boolean
+                    (bitwise-ior n
+                      (arithmetic-shift 1 index)
+                    ) ;bitwise-ior
+                    (bitwise-and n
+                      (bitwise-not (arithmetic-shift 1 index))
+                    ) ;bitwise-and
+                  ) ;if
+            ) ;else
       ) ;cond
     ) ;define
 
     (define (bit-swap index1 index2 n)
-      (cond
-        ((or (negative? index1)
-             (negative? index2)
-         ) ;or
-         (error 'out-of-range "bit-swap: Index cannot be negative" index1 index2)
-        ) ;
-        ((or (> index1 63) (> index2 63))
-         (error 'out-of-range "bit-swap: Index cannot exceed 63" index1 index2)
-        ) ;
-        (else
-         (copy-bit index2 (copy-bit index1 n (bit-set? index2 n)) (bit-set? index1 n))
-        ) ;else
+      (cond ((or (negative? index1)
+               (negative? index2)
+             ) ;or
+             (error 'out-of-range
+               "bit-swap: Index cannot be negative"
+               index1
+               index2
+             ) ;error
+            ) ;
+            ((or (> index1 63) (> index2 63))
+             (error 'out-of-range
+               "bit-swap: Index cannot exceed 63"
+               index1
+               index2
+             ) ;error
+            ) ;
+            (else (copy-bit index2
+                    (copy-bit index1 n (bit-set? index2 n))
+                    (bit-set? index1 n)
+                  ) ;copy-bit
+            ) ;else
       ) ;cond
     ) ;define
 
@@ -163,55 +210,71 @@
 
     (define (first-set-bit n)
       (if (zero? n)
-          -1
-          (let ((lsb (bitwise-and n (- n))))
-            (- (integer-length lsb) 1)
-          ) ;let
+        -1
+        (let ((lsb (bitwise-and n (- n))))
+          (- (integer-length lsb) 1)
+        ) ;let
       ) ;if
     ) ;define
 
     (define (bit-field i start end)
       (let* ((bits (integer-length i)))
         (if (>= start bits)
-            (error 'out-of-range
-                   "bit-field: Start cannot be greater than or equal to the integer length" start
-            ) ;error
-            (let* ((end (min end bits))
-                   (width (- end start)))
-              (if (<= width 0)
-                  0
-                  (let ((mask (arithmetic-shift (- (expt 2 width) 1) start)))
-                    (arithmetic-shift (bitwise-and i mask) (- start))
-                  ) ;let
-              ) ;if
-            ) ;let*
+          (error 'out-of-range
+            "bit-field: Start cannot be greater than or equal to the integer length"
+            start
+          ) ;error
+          (let* ((end (min end bits))
+                 (width (- end start))
+                ) ;
+            (if (<= width 0)
+              0
+              (let ((mask (arithmetic-shift (- (expt 2 width) 1)
+                            start
+                          ) ;arithmetic-shift
+                    ) ;mask
+                   ) ;
+                (arithmetic-shift (bitwise-and i mask)
+                  (- start)
+                ) ;arithmetic-shift
+              ) ;let
+            ) ;if
+          ) ;let*
         ) ;if
       ) ;let*
     ) ;define
 
     (define (bit-field-any? i start end)
-      (not
-       (zero? (bitwise-and (arithmetic-shift i (- start)) (- (arithmetic-shift 1 (- end start)) 1)))
+      (not (zero? (bitwise-and (arithmetic-shift i (- start))
+                    (- (arithmetic-shift 1 (- end start)) 1)
+                  ) ;bitwise-and
+           ) ;zero?
       ) ;not
     ) ;define
 
     (define (bit-field-every? i start end)
-      (= (bitwise-and (arithmetic-shift i (- start)) (- (arithmetic-shift 1 (- end start)) 1))
-         (- (arithmetic-shift 1 (- end start)) 1)
+      (= (bitwise-and (arithmetic-shift i (- start))
+           (- (arithmetic-shift 1 (- end start)) 1)
+         ) ;bitwise-and
+        (- (arithmetic-shift 1 (- end start)) 1)
       ) ;=
     ) ;define
 
     (define (bit-field-clear i start end)
       (bitwise-and i
-                   (bitwise-not
-                    (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start)
-                   ) ;bitwise-not
+        (bitwise-not (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1)
+                       start
+                     ) ;arithmetic-shift
+        ) ;bitwise-not
       ) ;bitwise-and
     ) ;define
 
     (define (bit-field-set i start end)
-      (bitwise-ior i (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1) start))
+      (bitwise-ior i
+        (arithmetic-shift (- (arithmetic-shift 1 (- end start)) 1)
+          start
+        ) ;arithmetic-shift
+      ) ;bitwise-ior
     ) ;define
   ) ;begin
 ) ;define-library
-

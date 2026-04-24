@@ -1,32 +1,17 @@
-;
-; Copyright (C) 2026 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
-;;; (liii uri-record) - URI 记录类型定义
-;;; 本模块包含 URI 记录类型的定义和所有访问器函数
+;; ; (liii uri-record) - URI 记录类型定义
+;; ; 本模块包含 URI 记录类型的定义和所有访问器函数
 
 (define-library (liii uri-record)
   (import (scheme base)
-          (scheme char)
-          (liii string)
-          (liii list)
-          (liii error)
-          (liii unicode)
-          (liii uri-parse)
+    (scheme char)
+    (liii string)
+    (liii list)
+    (liii error)
+    (liii unicode)
+    (liii uri-parse)
   ) ;import
 
-  ;;; ---------- 导出接口 ----------
+  ;; ; ---------- 导出接口 ----------
   ;; 错误条件类型 - 使用 liii/error 风格的 symbol-based 错误
   (export uri-error)
 
@@ -39,7 +24,9 @@
   (export uri-netloc-raw uri-netloc-set!)
   (export uri-path-raw uri-path-set!)
   (export uri-query-raw uri-query-set!)
-  (export uri-fragment-raw uri-fragment-set!)
+  (export uri-fragment-raw
+    uri-fragment-set!
+  ) ;export
 
   ;; scheme/host/port 访问器
   (export uri-scheme)
@@ -93,13 +80,13 @@
   (export build-netloc)
 
   (begin
-    ;;; ---------- 错误条件类型 ----------
+    ;; ; ---------- 错误条件类型 ----------
     ;; URI 错误类型，继承自 liii/error 的风格
     (define (uri-error . args)
       (apply error 'uri-error args)
     ) ;define
 
-    ;;; ---------- URI 记录类型 ----------
+    ;; ; ---------- URI 记录类型 ----------
     ;; URI 记录类型，包含五个核心组件
     ;; scheme: 协议方案（如 http, https, ftp）
     ;; netloc: 网络位置（包含 user, password, host, port）
@@ -107,16 +94,23 @@
     ;; query: 查询字符串（alist 格式）
     ;; fragment: 片段标识符
     (define-record-type uri
-      (make-uri-raw scheme netloc path query fragment)
+      (make-uri-raw scheme
+        netloc
+        path
+        query
+        fragment
+      ) ;make-uri-raw
       uri?
       (scheme uri-scheme-raw uri-scheme-set!)
       (netloc uri-netloc-raw uri-netloc-set!)
       (path uri-path-raw uri-path-set!)
       (query uri-query-raw uri-query-set!)
-      (fragment uri-fragment-raw uri-fragment-set!)
+      (fragment uri-fragment-raw
+        uri-fragment-set!
+      ) ;fragment
     ) ;define-record-type
 
-    ;;; ---------- 编码/解码工具函数 ----------
+    ;; ; ---------- 编码/解码工具函数 ----------
     ;; URI 允许的字符集
     (define UNRESERVED_CHARS
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_.~"
@@ -124,38 +118,50 @@
 
     ;; 检查字符是否在不编码字符集中
     (define (unreserved-char? c)
-      (string-contains UNRESERVED_CHARS (string c))
+      (string-contains UNRESERVED_CHARS
+        (string c)
+      ) ;string-contains
     ) ;define
 
     ;; 检查字节是否在不编码字符集中（用于UTF-8编码）
     (define (unreserved-byte? b)
-      (and (>= b 0) (<= b 127)
-           (string-contains UNRESERVED_CHARS (string (integer->char b)))
+      (and (>= b 0)
+        (<= b 127)
+        (string-contains UNRESERVED_CHARS
+          (string (integer->char b))
+        ) ;string-contains
       ) ;and
     ) ;define
 
     ;; 十六进制数字转字符
     (define (hex-digit n)
       (if (< n 10)
-        (integer->char (+ n (char->integer #\0)))
-        (integer->char (+ (- n 10) (char->integer #\A)))
+        (integer->char (+ n (char->integer #\0))
+        ) ;integer->char
+        (integer->char (+ (- n 10) (char->integer #\A))
+        ) ;integer->char
       ) ;if
     ) ;define
 
     ;; 字符转十六进制数字
     (define (char->hex c)
       (let ((code (char->integer c)))
-        (cond
-          ((and (>= code (char->integer #\0)) (<= code (char->integer #\9)))
-           (- code (char->integer #\0))
-          ) ;
-          ((and (>= code (char->integer #\A)) (<= code (char->integer #\F)))
-           (+ 10 (- code (char->integer #\A)))
-          ) ;
-          ((and (>= code (char->integer #\a)) (<= code (char->integer #\f)))
-           (+ 10 (- code (char->integer #\a)))
-          ) ;
-          (else #f)
+        (cond ((and (>= code (char->integer #\0))
+                 (<= code (char->integer #\9))
+               ) ;and
+               (- code (char->integer #\0))
+              ) ;
+              ((and (>= code (char->integer #\A))
+                 (<= code (char->integer #\F))
+               ) ;and
+               (+ 10 (- code (char->integer #\A)))
+              ) ;
+              ((and (>= code (char->integer #\a))
+                 (<= code (char->integer #\f))
+               ) ;and
+               (+ 10 (- code (char->integer #\a)))
+              ) ;
+              (else #f)
         ) ;cond
       ) ;let
     ) ;define
@@ -163,10 +169,15 @@
     ;; 辅助函数：遍历字节向量并构建结果列表
     (define (bytevector-fold-encode bv encode-fn)
       (let ((len (bytevector-length bv)))
-        (let loop ((i 0) (result '()))
+        (let loop
+          ((i 0) (result '()))
           (if (>= i len)
             (list->string (reverse result))
-            (loop (+ i 1) (encode-fn (bytevector-u8-ref bv i) result))
+            (loop (+ i 1)
+              (encode-fn (bytevector-u8-ref bv i)
+                result
+              ) ;encode-fn
+            ) ;loop
           ) ;if
         ) ;let
       ) ;let
@@ -175,15 +186,16 @@
     ;; 对字符串进行百分比编码（UTF-8 编码）
     (define (uri-encode str)
       (if (not (string? str))
-        (type-error "uri-encode: expected string")
+        (type-error "uri-encode: expected string"
+        ) ;type-error
         (let ((bv (string->utf8 str)))
-          (bytevector-fold-encode
-            bv
+          (bytevector-fold-encode bv
             (lambda (b result)
               (if (unreserved-byte? b)
                 (cons (integer->char b) result)
                 (let ((hi (hex-digit (quotient b 16)))
-                      (lo (hex-digit (remainder b 16))))
+                      (lo (hex-digit (remainder b 16)))
+                     ) ;
                   (cons lo (cons hi (cons #\% result)))
                 ) ;let
               ) ;if
@@ -196,32 +208,39 @@
     ;; 对百分比编码的字符串进行解码
     (define (uri-decode str)
       (if (not (string? str))
-        (type-error "uri-decode: expected string")
-        (let loop ((chars (string->list str)) (result '()))
+        (type-error "uri-decode: expected string"
+        ) ;type-error
+        (let loop
+          ((chars (string->list str))
+           (result '())
+          ) ;
           (if (null? chars)
             (list->string (reverse result))
             (let ((c (car chars)))
-              (cond
-                ((char=? c #\%)
-                 (if (and (not (null? (cdr chars)))
-                          (not (null? (cddr chars)))
-                          (char->hex (cadr chars))
-                          (char->hex (caddr chars)))
-                   (let ((high (char->hex (cadr chars)))
-                         (low (char->hex (caddr chars))))
-                     (loop (cdddr chars)
-                           (cons (integer->char (+ (* high 16) low)) result)
-                     ) ;loop
-                   ) ;let
-                   (error "uri-decode: invalid percent encoding")
-                 ) ;if
-                ) ;
-                ((char=? c #\+)
-                 (loop (cdr chars) (cons #\space result))
-                ) ;
-                (else
-                  (loop (cdr chars) (cons c result))
-                ) ;else
+              (cond ((char=? c #\%)
+                     (if (and (not (null? (cdr chars)))
+                           (not (null? (cddr chars)))
+                           (char->hex (cadr chars))
+                           (char->hex (caddr chars))
+                         ) ;and
+                       (let ((high (char->hex (cadr chars)))
+                             (low (char->hex (caddr chars)))
+                            ) ;
+                         (loop (cdddr chars)
+                           (cons (integer->char (+ (* high 16) low))
+                             result
+                           ) ;cons
+                         ) ;loop
+                       ) ;let
+                       (error "uri-decode: invalid percent encoding"
+                       ) ;error
+                     ) ;if
+                    ) ;
+                    ((char=? c #\+)
+                     (loop (cdr chars) (cons #\space result))
+                    ) ;
+                    (else (loop (cdr chars) (cons c result))
+                    ) ;else
               ) ;cond
             ) ;let
           ) ;if
@@ -232,24 +251,24 @@
     ;; 路径编码（保留斜杠，UTF-8 编码）
     (define (uri-encode-path path)
       (if (not (string? path))
-        (error "uri-encode-path: expected string")
+        (error "uri-encode-path: expected string"
+        ) ;error
         (let ((bv (string->utf8 path)))
-          (bytevector-fold-encode
-            bv
+          (bytevector-fold-encode bv
             (lambda (b result)
-              (cond
-                ((= b 47)  ;; #\/ = 47
-                 (cons #\/ result)
-                ) ;
-                ((unreserved-byte? b)
-                 (cons (integer->char b) result)
-                ) ;
-                (else
-                  (let ((hi (hex-digit (quotient b 16)))
-                        (lo (hex-digit (remainder b 16))))
-                    (cons lo (cons hi (cons #\% result)))
-                  ) ;let
-                ) ;else
+              (cond ((= b 47)
+                     ;; #\/ = 47
+                     (cons #\/ result)
+                    ) ;
+                    ((unreserved-byte? b)
+                     (cons (integer->char b) result)
+                    ) ;
+                    (else (let ((hi (hex-digit (quotient b 16)))
+                                (lo (hex-digit (remainder b 16)))
+                               ) ;
+                            (cons lo (cons hi (cons #\% result)))
+                          ) ;let
+                    ) ;else
               ) ;cond
             ) ;lambda
           ) ;bytevector-fold-encode
@@ -269,43 +288,47 @@
       (if (or (not (string? qs)) (string=? qs ""))
         '()
         (let ((pairs (string-split qs "&")))
-          (map
-            (lambda (pair)
-              (let ((eq-pos (string-index pair #\=)))
-                (if eq-pos
-                  (cons (substring pair 0 eq-pos)
-                        (uri-decode (substring pair (+ eq-pos 1) (string-length pair)))
-                  ) ;cons
-                  (cons pair "")
-                ) ;if
-              ) ;let
-            ) ;lambda
-         pairs
-     ) ;let
+          (map (lambda (pair)
+                 (let ((eq-pos (string-index pair #\=)))
+                   (if eq-pos
+                     (cons (substring pair 0 eq-pos)
+                       (uri-decode (substring pair
+                                     (+ eq-pos 1)
+                                     (string-length pair)
+                                   ) ;substring
+                       ) ;uri-decode
+                     ) ;cons
+                     (cons pair "")
+                   ) ;if
+                 ) ;let
+               ) ;lambda
+            pairs
+          ) ;map
+        ) ;let
       ) ;if
     ) ;define
-  ) ;begin
 
     ;; alist 转为查询字符串
     (define (alist->query-string alist)
       (if (null? alist)
         ""
-        (string-join
-          (map
-            (lambda (pair)
-              (if (cdr pair)
-                (string-append (car pair) "=" (uri-encode (cdr pair)))
-                (car pair)
-              ) ;if
-            ) ;lambda
-            alist
-          ) ;map
+        (string-join (map (lambda (pair)
+                            (if (cdr pair)
+                              (string-append (car pair)
+                                "="
+                                (uri-encode (cdr pair))
+                              ) ;string-append
+                              (car pair)
+                            ) ;if
+                          ) ;lambda
+                       alist
+                     ) ;map
           "&"
+        ) ;string-join
       ) ;if
     ) ;define
-) ;define-library
 
-    ;;; ---------- 访问器函数 ----------
+    ;; ; ---------- 访问器函数 ----------
     ;; scheme 访问器
     (define (uri-scheme uri-obj)
       (uri-scheme-raw uri-obj)
@@ -317,7 +340,9 @@
 
     ;; host 访问器
     (define (uri-host uri-obj)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
+            ) ;netloc-parts
+           ) ;
         (list-ref netloc-parts 2)
       ) ;let
     ) ;define
@@ -328,34 +353,30 @@
 
     ;; port 访问器
     (define (uri-port uri-obj)
-      (let* ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj)))
-             (explicit-port (list-ref netloc-parts 3))
-             (scheme (uri-scheme-raw uri-obj)))
+      (let* ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
+             ) ;netloc-parts
+             (explicit-port (list-ref netloc-parts 3)
+             ) ;explicit-port
+             (scheme (uri-scheme-raw uri-obj))
+            ) ;
         (or explicit-port
-            (and scheme (uri-default-port scheme))
-            #f
+          (and scheme (uri-default-port scheme))
+          #f
         ) ;or
       ) ;let*
     ) ;define
 
     (define (uri-explicit-port uri-obj)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
+            ) ;netloc-parts
+           ) ;
         (list-ref netloc-parts 3)
       ) ;let
     ) ;define
 
     ;; 默认端口映射表（供 uri-port 使用）
     (define DEFAULT-PORTS
-      '(("http" . 80)
-        ("https" . 443)
-        ("ftp" . 21)
-        ("ssh" . 22)
-        ("smtp" . 25)
-        ("dns" . 53)
-        ("pop3" . 110)
-        ("imap" . 143)
-        ("ldap" . 389)
-    ) ;define
+      '(("http" . 80) ("https" . 443) ("ftp" . 21) ("ssh" . 22) ("smtp" . 25) ("dns" . 53) ("pop3" . 110) ("imap" . 143) ("ldap" . 389))
     ) ;define
 
     ;; 获取 scheme 的默认端口
@@ -367,7 +388,9 @@
 
     ;; user 访问器
     (define (uri-user uri-obj)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
+            ) ;netloc-parts
+           ) ;
         (list-ref netloc-parts 0)
       ) ;let
     ) ;define
@@ -378,7 +401,9 @@
 
     ;; password 访问器
     (define (uri-password uri-obj)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
+            ) ;netloc-parts
+           ) ;
         (list-ref netloc-parts 1)
       ) ;let
     ) ;define
@@ -407,7 +432,10 @@
 
     (define (uri-path->list uri-obj)
       (let ((path (uri-path-raw uri-obj)))
-        (if (or (not path) (string=? path "") (string=? path "/"))
+        (if (or (not path)
+              (string=? path "")
+              (string=? path "/")
+            ) ;or
           '()
           (let ((segments (string-split path "/")))
             (if (string=? (car segments) "")
@@ -425,7 +453,8 @@
     ) ;define
 
     (define (uri-query-string uri-obj)
-      (alist->query-string (uri-query-raw uri-obj))
+      (alist->query-string (uri-query-raw uri-obj)
+      ) ;alist->query-string
     ) ;define
 
     (define (uri-query-ref uri-obj key)
@@ -437,8 +466,10 @@
     ) ;define
 
     (define (uri-query-ref* uri-obj key . rest)
-      (let ((default (if (null? rest) #f (car rest)))
-            (query (uri-query-raw uri-obj)))
+      (let ((default (if (null? rest) #f (car rest))
+            ) ;default
+            (query (uri-query-raw uri-obj))
+           ) ;
         (let ((pair (assoc key query)))
           (if pair (cdr pair) default)
         ) ;let
@@ -457,9 +488,14 @@
     ;; 路径相关访问器
     (define (uri-parent uri-obj)
       (let ((path (uri-path-raw uri-obj)))
-        (if (or (not path) (string=? path "") (string=? path "/"))
+        (if (or (not path)
+              (string=? path "")
+              (string=? path "/")
+            ) ;or
           #f
-          (let ((last-slash (string-index-right path #\/)))
+          (let ((last-slash (string-index-right path #\/)
+                ) ;last-slash
+               ) ;
             (if last-slash
               (substring path 0 last-slash)
               ""
@@ -473,9 +509,14 @@
       (let ((path (uri-path-raw uri-obj)))
         (if (or (not path) (string=? path ""))
           #f
-          (let ((last-slash (string-index-right path #\/)))
+          (let ((last-slash (string-index-right path #\/)
+                ) ;last-slash
+               ) ;
             (if last-slash
-              (substring path (+ last-slash 1) (string-length path))
+              (substring path
+                (+ last-slash 1)
+                (string-length path)
+              ) ;substring
               path
             ) ;if
           ) ;let
@@ -486,9 +527,13 @@
     (define (uri-suffix uri-obj)
       (let ((name (uri-name uri-obj)))
         (if name
-          (let ((last-dot (string-index-right name #\.)))
+          (let ((last-dot (string-index-right name #\.))
+               ) ;
             (if last-dot
-              (substring name (+ last-dot 1) (string-length name))
+              (substring name
+                (+ last-dot 1)
+                (string-length name)
+              ) ;substring
               #f
             ) ;if
           ) ;let

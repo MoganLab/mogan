@@ -1,116 +1,212 @@
-;;;; SPDX-FileCopyrightText: 2013 John Cowan <cowan@ccil.org>
-;;;;
-;;;; SPDX-License-Identifier: MIT
-;
-; Permission is hereby granted, free of charge, to any person obtaining a copy of
-; this software and associated documentation files (the "Software"), to deal in
-; the Software without restriction, including without limitation the rights to
-; use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
-; of the Software, and to permit persons to whom the Software is furnished to do
-; so, subject to the following conditions:
-;
-; The above copyright notice and this permission notice shall be included in all
-; copies or substantial portions of the Software.
-;
-; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-; SOFTWARE.
-;
+;; ;; SPDX-FileCopyrightText: 2013 John Cowan <cowan@ccil.org>
+;; ;;
+;; ;; SPDX-License-Identifier: MIT
+;;
+;; Permission is hereby granted, free of charge, to any person obtaining a copy of
+;; this software and associated documentation files (the "Software"), to deal in
+;; the Software without restriction, including without limitation the rights to
+;; use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+;; of the Software, and to permit persons to whom the Software is furnished to do
+;; so, subject to the following conditions:
+;;
+;; The above copyright notice and this permission notice shall be included in all
+;; copies or substantial portions of the Software.
+;;
+;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+;; AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+;; OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+;; SOFTWARE.
+;;
 
 (define-library (srfi srfi-113)
   (import (scheme base)
-          (scheme case-lambda)
-          (liii hash-table)
-          (liii error)
-          (srfi srfi-1)
-          (srfi srfi-128)
+    (scheme case-lambda)
+    (liii hash-table)
+    (liii error)
+    (srfi srfi-1)
+    (srfi srfi-128)
   ) ;import
-  (export set set-unfold list->set list->set! set-copy set->list
-          set? set-contains? set-empty? set-disjoint?
-          set-element-comparator set-size
-          set=? set<? set>? set<=? set>=?
-          set-any? set-every? set-find set-count set-member set-search! set-map
-          set-for-each set-fold set-filter set-filter! set-remove set-remove!
-          set-partition set-partition! set-union set-intersection set-difference set-xor
-          set-union! set-intersection! set-difference! set-xor!
-          set-adjoin set-adjoin! set-replace set-replace!
-          set-delete set-delete! set-delete-all set-delete-all!
-          bag bag-unfold bag-member bag-comparator bag->list
-          bag-copy list->bag list->bag!
-          bag? bag-contains? bag-empty? bag-disjoint?
-          bag-size bag-find bag-count bag-any? bag-every?
-          bag=? bag<? bag>? bag<=? bag>=?
-          bag-union bag-intersection bag-difference bag-xor
-          bag-union! bag-intersection! bag-difference! bag-xor!
-          bag-adjoin bag-adjoin! bag-replace bag-replace!
-          bag-delete bag-delete! bag-delete-all bag-delete-all!
-          bag-search!
+  (export set
+    set-unfold
+    list->set
+    list->set!
+    set-copy
+    set->list
+    set?
+    set-contains?
+    set-empty?
+    set-disjoint?
+    set-element-comparator
+    set-size
+    set=?
+    set<?
+    set>?
+    set<=?
+    set>=?
+    set-any?
+    set-every?
+    set-find
+    set-count
+    set-member
+    set-search!
+    set-map
+    set-for-each
+    set-fold
+    set-filter
+    set-filter!
+    set-remove
+    set-remove!
+    set-partition
+    set-partition!
+    set-union
+    set-intersection
+    set-difference
+    set-xor
+    set-union!
+    set-intersection!
+    set-difference!
+    set-xor!
+    set-adjoin
+    set-adjoin!
+    set-replace
+    set-replace!
+    set-delete
+    set-delete!
+    set-delete-all
+    set-delete-all!
+    bag
+    bag-unfold
+    bag-member
+    bag-comparator
+    bag->list
+    bag-copy
+    list->bag
+    list->bag!
+    bag?
+    bag-contains?
+    bag-empty?
+    bag-disjoint?
+    bag-size
+    bag-find
+    bag-count
+    bag-any?
+    bag-every?
+    bag=?
+    bag<?
+    bag>?
+    bag<=?
+    bag>=?
+    bag-union
+    bag-intersection
+    bag-difference
+    bag-xor
+    bag-union!
+    bag-intersection!
+    bag-difference!
+    bag-xor!
+    bag-adjoin
+    bag-adjoin!
+    bag-replace
+    bag-replace!
+    bag-delete
+    bag-delete!
+    bag-delete-all
+    bag-delete-all!
+    bag-search!
   ) ;export
   (begin
 
     (define-record-type set-impl
-      (%make-set hash-table comparator) 
-      set?                             
-      (hash-table set-hash-table)      
-      (comparator set-element-comparator) 
+      (%make-set hash-table comparator)
+      set?
+      (hash-table set-hash-table)
+      (comparator set-element-comparator)
     ) ;define-record-type
 
     (define (check-set obj)
-      (if (not (set? obj)) (type-error "not a set" obj))
+      (if (not (set? obj))
+        (type-error "not a set" obj)
+      ) ;if
     ) ;define
 
     (define (check-same-comparator a b)
-      (if (not (eq? (set-element-comparator a) (set-element-comparator b)))
-          (value-error "different comparators" a b)
+      (if (not (eq? (set-element-comparator a)
+                 (set-element-comparator b)
+               ) ;eq?
+          ) ;not
+        (value-error "different comparators"
+          a
+          b
+        ) ;value-error
       ) ;if
     ) ;define
 
     (define (make-set/comparator comparator)
-      (%make-set (make-hash-table comparator) comparator)
+      (%make-set (make-hash-table comparator)
+        comparator
+      ) ;%make-set
     ) ;define
 
     (define (set-add! s element)
-      (hash-table-set! (set-hash-table s) element element)
+      (hash-table-set! (set-hash-table s)
+        element
+        element
+      ) ;hash-table-set!
     ) ;define
 
     (define (set comparator . elements)
-      (let ((result (make-set/comparator comparator)))
-        (for-each (lambda (x) (set-add! result x)) elements)
+      (let ((result (make-set/comparator comparator)
+            ) ;result
+           ) ;
+        (for-each (lambda (x) (set-add! result x))
+          elements
+        ) ;for-each
         result
       ) ;let
     ) ;define
-    
+
     (define (list->set comparator elements)
       (apply set comparator elements)
     ) ;define
 
     (define (list->set! s elements)
       (check-set s)
-      (for-each (lambda (x) (set-add! s x)) elements)
+      (for-each (lambda (x) (set-add! s x))
+        elements
+      ) ;for-each
       s
     ) ;define
 
-    (define (set-unfold stop? mapper successor seed comparator)
-      (let ((result (make-set/comparator comparator)))
-        (let loop ((seed seed))
+    (define (set-unfold stop?
+              mapper
+              successor
+              seed
+              comparator
+            ) ;set-unfold
+      (let ((result (make-set/comparator comparator)
+            ) ;result
+           ) ;
+        (let loop
+          ((seed seed))
           (if (stop? seed)
-              result
-              (begin
-                (set-add! result (mapper seed))
-                (loop (successor seed))
-              ) ;begin
+            result
+            (begin
+              (set-add! result (mapper seed))
+              (loop (successor seed))
+            ) ;begin
           ) ;if
         ) ;let
       ) ;let
     ) ;define
-    
+
     (define (set-copy s)
       (check-set s)
-      (list->set (set-element-comparator s) (hash-table-keys (set-hash-table s)))
+      (list->set (set-element-comparator s)
+        (hash-table-keys (set-hash-table s))
+      ) ;list->set
     ) ;define
 
     (define (set->list s)
@@ -118,16 +214,16 @@
       (hash-table-keys (set-hash-table s))
     ) ;define
 
-    
     (define (set-size s)
       (check-set s)
       (hash-table-size (set-hash-table s))
     ) ;define
 
-
     (define (set-contains? s member)
       (check-set s)
-      (hash-table-contains? (set-hash-table s) member)
+      (hash-table-contains? (set-hash-table s)
+        member
+      ) ;hash-table-contains?
     ) ;define
 
     (define (set-empty? s)
@@ -139,118 +235,115 @@
       (check-set a)
       (check-set b)
       (check-same-comparator a b)
-      (let ((na (set-size a))
-            (nb (set-size b)))
+      (let ((na (set-size a)) (nb (set-size b)))
         (if (< na nb)
-            (not (any-in-other? a b))
-            (not (any-in-other? b a))
+          (not (any-in-other? a b))
+          (not (any-in-other? b a))
         ) ;if
       ) ;let
     ) ;define
-            
+
     (define (any-in-other? small big)
       (let ((ht-small (set-hash-table small))
-            (ht-big (set-hash-table big)))
-         (call/cc (lambda (return)
-            (hash-table-for-each
-               (lambda (k v)
-                  (if (hash-table-contains? ht-big k) (return #t))
-               ) ;lambda
-               ht-small
-            ) ;hash-table-for-each
-            #f)
-         ) ;call/cc
+            (ht-big (set-hash-table big))
+           ) ;
+        (call/cc (lambda (return)
+                   (hash-table-for-each (lambda (k v)
+                                          (if (hash-table-contains? ht-big k)
+                                            (return #t)
+                                          ) ;if
+                                        ) ;lambda
+                     ht-small
+                   ) ;hash-table-for-each
+                   #f
+                 ) ;lambda
+        ) ;call/cc
       ) ;let
     ) ;define
-
 
     (define (binary-set<=? s1 s2)
       (check-set s1)
       (check-set s2)
       (check-same-comparator s1 s2)
-      (let ((n1 (set-size s1))
-            (n2 (set-size s2)))
-        (cond
-          ((> n1 n2) #f)
-          (else
-           (let ((ht1 (set-hash-table s1))
-                 (ht2 (set-hash-table s2)))
-             (call/cc
-              (lambda (return)
-                (hash-table-for-each
-                 (lambda (k v)
-                   (unless (hash-table-contains? ht2 k)
-                     (return #f)
-                   ) ;unless
-                 ) ;lambda
-                 ht1
-                ) ;hash-table-for-each
-                #t
-              ) ;lambda
-             ) ;call/cc
-           ) ;let
-          ) ;else
+      (let ((n1 (set-size s1)) (n2 (set-size s2)))
+        (cond ((> n1 n2) #f)
+              (else (let ((ht1 (set-hash-table s1))
+                          (ht2 (set-hash-table s2))
+                         ) ;
+                      (call/cc (lambda (return)
+                                 (hash-table-for-each (lambda (k v)
+                                                        (unless (hash-table-contains? ht2 k)
+                                                          (return #f)
+                                                        ) ;unless
+                                                      ) ;lambda
+                                   ht1
+                                 ) ;hash-table-for-each
+                                 #t
+                               ) ;lambda
+                      ) ;call/cc
+                    ) ;let
+              ) ;else
         ) ;cond
       ) ;let
     ) ;define
-                
+
     (define (set<=? . sets)
       (if (null? sets)
-          #t
-          (let loop ((head (car sets)) (tail (cdr sets)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-set<=? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car sets)) (tail (cdr sets)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-set<=? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
-                       
+
     (define (set=? . sets)
       (if (null? sets)
-          #t
-          (let loop ((head (car sets)) (tail (cdr sets)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-set=? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car sets)) (tail (cdr sets)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-set=? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
-                       
+
     (define (binary-set=? s1 s2)
-       (check-set s1)
-       (check-set s2)
-       (check-same-comparator s1 s2)
-       (let ((n1 (set-size s1))
-             (n2 (set-size s2)))
-         (and (= n1 n2)
-              (binary-set<=? s1 s2)
-         ) ;and
-       ) ;let
+      (check-set s1)
+      (check-set s2)
+      (check-same-comparator s1 s2)
+      (let ((n1 (set-size s1)) (n2 (set-size s2)))
+        (and (= n1 n2) (binary-set<=? s1 s2))
+      ) ;let
     ) ;define
-              
+
     (define (set<? . sets)
       (if (null? sets)
-          #t
-          (let loop ((head (car sets)) (tail (cdr sets)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-set<? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car sets)) (tail (cdr sets)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-set<? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -259,55 +352,55 @@
       (check-set s2)
       (check-same-comparator s1 s2)
       (and (< (set-size s1) (set-size s2))
-           (binary-set<=? s1 s2)
+        (binary-set<=? s1 s2)
       ) ;and
     ) ;define
 
     (define (set>=? . sets)
       (if (null? sets)
-          #t
-          (let loop ((head (car sets)) (tail (cdr sets)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-set<=? next head)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car sets)) (tail (cdr sets)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-set<=? next head)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (set>? . sets)
       (if (null? sets)
-          #t
-          (let loop ((head (car sets)) (tail (cdr sets)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-set<? next head)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car sets)) (tail (cdr sets)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-set<? next head)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (set-any? predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc
-         (lambda (return)
-           (hash-table-for-each
-            (lambda (k v)
-              (if (predicate k) (return #t))
-            ) ;lambda
-            ht
-           ) ;hash-table-for-each
-           #f
-         ) ;lambda
+        (call/cc (lambda (return)
+                   (hash-table-for-each (lambda (k v)
+                                          (if (predicate k) (return #t))
+                                        ) ;lambda
+                     ht
+                   ) ;hash-table-for-each
+                   #f
+                 ) ;lambda
         ) ;call/cc
       ) ;let
     ) ;define
@@ -315,16 +408,14 @@
     (define (set-every? predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc
-         (lambda (return)
-           (hash-table-for-each
-            (lambda (k v)
-              (if (not (predicate k)) (return #f))
-            ) ;lambda
-            ht
-           ) ;hash-table-for-each
-           #t
-         ) ;lambda
+        (call/cc (lambda (return)
+                   (hash-table-for-each (lambda (k v)
+                                          (if (not (predicate k)) (return #f))
+                                        ) ;lambda
+                     ht
+                   ) ;hash-table-for-each
+                   #t
+                 ) ;lambda
         ) ;call/cc
       ) ;let
     ) ;define
@@ -332,29 +423,27 @@
     (define (set-find predicate set failure)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (call/cc
-         (lambda (return)
-           (hash-table-for-each
-            (lambda (k v)
-              (if (predicate k) (return k))
-            ) ;lambda
-            ht
-           ) ;hash-table-for-each
-           (failure)
-         ) ;lambda
+        (call/cc (lambda (return)
+                   (hash-table-for-each (lambda (k v)
+                                          (if (predicate k) (return k))
+                                        ) ;lambda
+                     ht
+                   ) ;hash-table-for-each
+                   (failure)
+                 ) ;lambda
         ) ;call/cc
       ) ;let
     ) ;define
 
     (define (set-count predicate set)
       (check-set set)
-      (let ((ht (set-hash-table set))
-            (count 0))
-        (hash-table-for-each
-         (lambda (k v)
-           (if (predicate k) (set! count (+ count 1)))
-         ) ;lambda
-         ht
+      (let ((ht (set-hash-table set)) (count 0))
+        (hash-table-for-each (lambda (k v)
+                               (if (predicate k)
+                                 (set! count (+ count 1))
+                               ) ;if
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         count
       ) ;let
@@ -362,46 +451,58 @@
 
     (define (set-member set element default)
       (check-set set)
-      (hash-table-ref/default (set-hash-table set) element default)
+      (hash-table-ref/default (set-hash-table set)
+        element
+        default
+      ) ;hash-table-ref/default
     ) ;define
 
-    (define (set-search! set element failure success)
+    (define (set-search! set
+              element
+              failure
+              success
+            ) ;set-search!
       (check-set set)
       (let* ((ht (set-hash-table set))
              (not-found (list 'not-found))
-             (found (hash-table-ref/default ht element not-found)))
+             (found (hash-table-ref/default ht
+                      element
+                      not-found
+                    ) ;hash-table-ref/default
+             ) ;found
+            ) ;
         (if (eq? found not-found)
-            (failure (lambda (obj)
-                       (set-add! set element)
-                       (values set obj))
-                     (lambda (obj)
-                       (values set obj)
-                     ) ;lambda
-            ) ;failure
-            (success found
-                     (lambda (new-element obj)
-                       (hash-table-delete! ht found)
-                       (set-add! set new-element)
-                       (values set obj)
-                     ) ;lambda
-                     (lambda (obj)
-                       (hash-table-delete! ht found)
-                       (values set obj)
-                     ) ;lambda
-            ) ;success
+          (failure (lambda (obj)
+                     (set-add! set element)
+                     (values set obj)
+                   ) ;lambda
+            (lambda (obj) (values set obj))
+          ) ;failure
+          (success found
+            (lambda (new-element obj)
+              (hash-table-delete! ht found)
+              (set-add! set new-element)
+              (values set obj)
+            ) ;lambda
+            (lambda (obj)
+              (hash-table-delete! ht found)
+              (values set obj)
+            ) ;lambda
+          ) ;success
         ) ;if
       ) ;let*
     ) ;define
 
     (define (set-map comparator proc set)
       (check-set set)
-      (let ((result (make-set/comparator comparator))
-            (ht (set-hash-table set)))
-        (hash-table-for-each
-         (lambda (k v)
-           (set-add! result (proc k))
-         ) ;lambda
-         ht
+      (let ((result (make-set/comparator comparator)
+            ) ;result
+            (ht (set-hash-table set))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (set-add! result (proc k))
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         result
       ) ;let
@@ -409,11 +510,8 @@
 
     (define (set-for-each proc set)
       (check-set set)
-      (hash-table-for-each
-       (lambda (k v)
-         (proc k)
-       ) ;lambda
-       (set-hash-table set)
+      (hash-table-for-each (lambda (k v) (proc k))
+        (set-hash-table set)
       ) ;hash-table-for-each
       (if #f #f)
     ) ;define
@@ -421,11 +519,10 @@
     (define (set-fold proc nil set)
       (check-set set)
       (let ((result nil))
-        (hash-table-for-each
-         (lambda (k v)
-           (set! result (proc k result))
-         ) ;lambda
-         (set-hash-table set)
+        (hash-table-for-each (lambda (k v)
+                               (set! result (proc k result))
+                             ) ;lambda
+          (set-hash-table set)
         ) ;hash-table-for-each
         result
       ) ;let
@@ -433,15 +530,17 @@
 
     (define (set-filter predicate set)
       (check-set set)
-      (let ((result (make-set/comparator (set-element-comparator set)))
-            (ht (set-hash-table set)))
-        (hash-table-for-each
-         (lambda (k v)
-           (when (predicate k)
-             (set-add! result k)
-           ) ;when
-         ) ;lambda
-         ht
+      (let ((result (make-set/comparator (set-element-comparator set)
+                    ) ;make-set/comparator
+            ) ;result
+            (ht (set-hash-table set))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (when (predicate k)
+                                 (set-add! result k)
+                               ) ;when
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         result
       ) ;let
@@ -450,12 +549,11 @@
     (define (set-filter! predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (hash-table-for-each
-          (lambda (k v)
-           (unless (predicate k)
-             (hash-table-delete! ht k)
-           ) ;unless
-          ) ;lambda
+        (hash-table-for-each (lambda (k v)
+                               (unless (predicate k)
+                                 (hash-table-delete! ht k)
+                               ) ;unless
+                             ) ;lambda
           ht
         ) ;hash-table-for-each
         set
@@ -464,15 +562,17 @@
 
     (define (set-remove predicate set)
       (check-set set)
-      (let ((result (make-set/comparator (set-element-comparator set)))
-            (ht (set-hash-table set)))
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (predicate k)
-             (set-add! result k)
-           ) ;unless
-         ) ;lambda
-         ht
+      (let ((result (make-set/comparator (set-element-comparator set)
+                    ) ;make-set/comparator
+            ) ;result
+            (ht (set-hash-table set))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (unless (predicate k)
+                                 (set-add! result k)
+                               ) ;unless
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         result
       ) ;let
@@ -481,13 +581,12 @@
     (define (set-remove! predicate set)
       (check-set set)
       (let ((ht (set-hash-table set)))
-        (hash-table-for-each
-         (lambda (k v)
-           (when (predicate k)
-             (hash-table-delete! ht k)
-           ) ;when
-         ) ;lambda
-         ht
+        (hash-table-for-each (lambda (k v)
+                               (when (predicate k)
+                                 (hash-table-delete! ht k)
+                               ) ;when
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         set
       ) ;let
@@ -495,17 +594,21 @@
 
     (define (set-partition predicate set)
       (check-set set)
-      (let ((yes (make-set/comparator (set-element-comparator set)))
-            (no (make-set/comparator (set-element-comparator set)))
-            (ht (set-hash-table set)))
-        (hash-table-for-each
-         (lambda (k v)
-           (if (predicate k)
-               (set-add! yes k)
-               (set-add! no k)
-           ) ;if
-         ) ;lambda
-         ht
+      (let ((yes (make-set/comparator (set-element-comparator set)
+                 ) ;make-set/comparator
+            ) ;yes
+            (no (make-set/comparator (set-element-comparator set)
+                ) ;make-set/comparator
+            ) ;no
+            (ht (set-hash-table set))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (if (predicate k)
+                                 (set-add! yes k)
+                                 (set-add! no k)
+                               ) ;if
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         (values yes no)
       ) ;let
@@ -514,15 +617,17 @@
     (define (set-partition! predicate set)
       (check-set set)
       (let ((ht (set-hash-table set))
-            (removed (make-set/comparator (set-element-comparator set))))
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (predicate k)
-             (set-add! removed k)
-             (hash-table-delete! ht k)
-           ) ;unless
-         ) ;lambda
-         ht
+            (removed (make-set/comparator (set-element-comparator set)
+                     ) ;make-set/comparator
+            ) ;removed
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (unless (predicate k)
+                                 (set-add! removed k)
+                                 (hash-table-delete! ht k)
+                               ) ;unless
+                             ) ;lambda
+          ht
         ) ;hash-table-for-each
         (values set removed)
       ) ;let
@@ -531,21 +636,20 @@
     (define (set-union set1 . sets)
       (check-set set1)
       (let* ((result (set-copy set1))
-             (ht-result (set-hash-table result)))
-        (for-each
-         (lambda (s)
-           (check-set s)
-           (check-same-comparator set1 s)
-           (hash-table-for-each
-            (lambda (k v)
-              (unless (hash-table-contains? ht-result k)
-                (set-add! result k)
-              ) ;unless
-            ) ;lambda
-            (set-hash-table s)
-           ) ;hash-table-for-each
-         ) ;lambda
-         sets
+             (ht-result (set-hash-table result))
+            ) ;
+        (for-each (lambda (s)
+                    (check-set s)
+                    (check-same-comparator set1 s)
+                    (hash-table-for-each (lambda (k v)
+                                           (unless (hash-table-contains? ht-result k)
+                                             (set-add! result k)
+                                           ) ;unless
+                                         ) ;lambda
+                      (set-hash-table s)
+                    ) ;hash-table-for-each
+                  ) ;lambda
+          sets
         ) ;for-each
         result
       ) ;let*
@@ -553,26 +657,31 @@
 
     (define (set-intersection set1 . sets)
       (check-set set1)
-      (for-each
-       (lambda (s)
-         (check-set s)
-         (check-same-comparator set1 s)
-       ) ;lambda
-       sets
+      (for-each (lambda (s)
+                  (check-set s)
+                  (check-same-comparator set1 s)
+                ) ;lambda
+        sets
       ) ;for-each
-      (let ((result (make-set/comparator (set-element-comparator set1)))
+      (let ((result (make-set/comparator (set-element-comparator set1)
+                    ) ;make-set/comparator
+            ) ;result
             (ht1 (set-hash-table set1))
-            (other-hts (map set-hash-table sets)))
+            (other-hts (map set-hash-table sets))
+           ) ;
         (define (all-contains? key)
-          (every (lambda (ht) (hash-table-contains? ht key)) other-hts)
+          (every (lambda (ht)
+                   (hash-table-contains? ht key)
+                 ) ;lambda
+            other-hts
+          ) ;every
         ) ;define
-        (hash-table-for-each
-         (lambda (k v)
-           (when (all-contains? k)
-             (set-add! result k)
-           ) ;when
-         ) ;lambda
-         ht1
+        (hash-table-for-each (lambda (k v)
+                               (when (all-contains? k)
+                                 (set-add! result k)
+                               ) ;when
+                             ) ;lambda
+          ht1
         ) ;hash-table-for-each
         result
       ) ;let
@@ -580,26 +689,31 @@
 
     (define (set-difference set1 . sets)
       (check-set set1)
-      (for-each
-       (lambda (s)
-         (check-set s)
-         (check-same-comparator set1 s)
-       ) ;lambda
-       sets
+      (for-each (lambda (s)
+                  (check-set s)
+                  (check-same-comparator set1 s)
+                ) ;lambda
+        sets
       ) ;for-each
-      (let ((result (make-set/comparator (set-element-comparator set1)))
+      (let ((result (make-set/comparator (set-element-comparator set1)
+                    ) ;make-set/comparator
+            ) ;result
             (ht1 (set-hash-table set1))
-            (other-hts (map set-hash-table sets)))
+            (other-hts (map set-hash-table sets))
+           ) ;
         (define (any-contains? key)
-          (any (lambda (ht) (hash-table-contains? ht key)) other-hts)
+          (any (lambda (ht)
+                 (hash-table-contains? ht key)
+               ) ;lambda
+            other-hts
+          ) ;any
         ) ;define
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (any-contains? k)
-             (set-add! result k)
-           ) ;unless
-         ) ;lambda
-         ht1
+        (hash-table-for-each (lambda (k v)
+                               (unless (any-contains? k)
+                                 (set-add! result k)
+                               ) ;unless
+                             ) ;lambda
+          ht1
         ) ;hash-table-for-each
         result
       ) ;let
@@ -609,24 +723,25 @@
       (check-set set1)
       (check-set set2)
       (check-same-comparator set1 set2)
-      (let ((result (make-set/comparator (set-element-comparator set1)))
+      (let ((result (make-set/comparator (set-element-comparator set1)
+                    ) ;make-set/comparator
+            ) ;result
             (ht1 (set-hash-table set1))
-            (ht2 (set-hash-table set2)))
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (hash-table-contains? ht2 k)
-             (set-add! result k)
-           ) ;unless
-         ) ;lambda
-         ht1
+            (ht2 (set-hash-table set2))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (unless (hash-table-contains? ht2 k)
+                                 (set-add! result k)
+                               ) ;unless
+                             ) ;lambda
+          ht1
         ) ;hash-table-for-each
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (hash-table-contains? ht1 k)
-             (set-add! result k)
-           ) ;unless
-         ) ;lambda
-         ht2
+        (hash-table-for-each (lambda (k v)
+                               (unless (hash-table-contains? ht1 k)
+                                 (set-add! result k)
+                               ) ;unless
+                             ) ;lambda
+          ht2
         ) ;hash-table-for-each
         result
       ) ;let
@@ -635,20 +750,18 @@
     (define (set-union! set1 . sets)
       (check-set set1)
       (let ((ht1 (set-hash-table set1)))
-        (for-each
-         (lambda (s)
-           (check-set s)
-           (check-same-comparator set1 s)
-           (hash-table-for-each
-            (lambda (k v)
-              (unless (hash-table-contains? ht1 k)
-                (set-add! set1 k)
-              ) ;unless
-            ) ;lambda
-            (set-hash-table s)
-           ) ;hash-table-for-each
-         ) ;lambda
-         sets
+        (for-each (lambda (s)
+                    (check-set s)
+                    (check-same-comparator set1 s)
+                    (hash-table-for-each (lambda (k v)
+                                           (unless (hash-table-contains? ht1 k)
+                                             (set-add! set1 k)
+                                           ) ;unless
+                                         ) ;lambda
+                      (set-hash-table s)
+                    ) ;hash-table-for-each
+                  ) ;lambda
+          sets
         ) ;for-each
         set1
       ) ;let
@@ -656,25 +769,28 @@
 
     (define (set-intersection! set1 . sets)
       (check-set set1)
-      (for-each
-       (lambda (s)
-         (check-set s)
-         (check-same-comparator set1 s)
-       ) ;lambda
-       sets
+      (for-each (lambda (s)
+                  (check-set s)
+                  (check-same-comparator set1 s)
+                ) ;lambda
+        sets
       ) ;for-each
       (let ((ht1 (set-hash-table set1))
-            (other-hts (map set-hash-table sets)))
+            (other-hts (map set-hash-table sets))
+           ) ;
         (define (all-contains? key)
-          (every (lambda (ht) (hash-table-contains? ht key)) other-hts)
+          (every (lambda (ht)
+                   (hash-table-contains? ht key)
+                 ) ;lambda
+            other-hts
+          ) ;every
         ) ;define
-        (hash-table-for-each
-         (lambda (k v)
-           (unless (all-contains? k)
-             (hash-table-delete! ht1 k)
-           ) ;unless
-         ) ;lambda
-         ht1
+        (hash-table-for-each (lambda (k v)
+                               (unless (all-contains? k)
+                                 (hash-table-delete! ht1 k)
+                               ) ;unless
+                             ) ;lambda
+          ht1
         ) ;hash-table-for-each
         set1
       ) ;let
@@ -682,25 +798,28 @@
 
     (define (set-difference! set1 . sets)
       (check-set set1)
-      (for-each
-       (lambda (s)
-         (check-set s)
-         (check-same-comparator set1 s)
-       ) ;lambda
-       sets
+      (for-each (lambda (s)
+                  (check-set s)
+                  (check-same-comparator set1 s)
+                ) ;lambda
+        sets
       ) ;for-each
       (let ((ht1 (set-hash-table set1))
-            (other-hts (map set-hash-table sets)))
+            (other-hts (map set-hash-table sets))
+           ) ;
         (define (any-contains? key)
-          (any (lambda (ht) (hash-table-contains? ht key)) other-hts)
+          (any (lambda (ht)
+                 (hash-table-contains? ht key)
+               ) ;lambda
+            other-hts
+          ) ;any
         ) ;define
-        (hash-table-for-each
-         (lambda (k v)
-           (when (any-contains? k)
-             (hash-table-delete! ht1 k)
-           ) ;when
-         ) ;lambda
-         ht1
+        (hash-table-for-each (lambda (k v)
+                               (when (any-contains? k)
+                                 (hash-table-delete! ht1 k)
+                               ) ;when
+                             ) ;lambda
+          ht1
         ) ;hash-table-for-each
         set1
       ) ;let
@@ -711,15 +830,15 @@
       (check-set set2)
       (check-same-comparator set1 set2)
       (let ((ht1 (set-hash-table set1))
-            (ht2 (set-hash-table set2)))
-        (hash-table-for-each
-         (lambda (k v)
-           (if (hash-table-contains? ht1 k)
-               (hash-table-delete! ht1 k)
-               (set-add! set1 k)
-           ) ;if
-         ) ;lambda
-         ht2
+            (ht2 (set-hash-table set2))
+           ) ;
+        (hash-table-for-each (lambda (k v)
+                               (if (hash-table-contains? ht1 k)
+                                 (hash-table-delete! ht1 k)
+                                 (set-add! set1 k)
+                               ) ;if
+                             ) ;lambda
+          ht2
         ) ;hash-table-for-each
         set1
       ) ;let
@@ -728,33 +847,41 @@
     (define (set-adjoin set . elements)
       (check-set set)
       (let ((new-set (set-copy set)))
-        (for-each (lambda (x) (set-add! new-set x)) elements)
+        (for-each (lambda (x) (set-add! new-set x))
+          elements
+        ) ;for-each
         new-set
       ) ;let
     ) ;define
 
     (define (set-adjoin! set . elements)
       (check-set set)
-      (for-each (lambda (x) (set-add! set x)) elements)
+      (for-each (lambda (x) (set-add! set x))
+        elements
+      ) ;for-each
       set
     ) ;define
 
     (define (set-replace set element)
       (check-set set)
       (if (set-contains? set element)
-          (let ((new-set (set-copy set)))
-            (hash-table-delete! (set-hash-table new-set) element)
-            (set-add! new-set element)
-            new-set
-          ) ;let
-          set
+        (let ((new-set (set-copy set)))
+          (hash-table-delete! (set-hash-table new-set)
+            element
+          ) ;hash-table-delete!
+          (set-add! new-set element)
+          new-set
+        ) ;let
+        set
       ) ;if
     ) ;define
 
     (define (set-replace! set element)
       (check-set set)
       (when (set-contains? set element)
-        (hash-table-delete! (set-hash-table set) element)
+        (hash-table-delete! (set-hash-table set)
+          element
+        ) ;hash-table-delete!
         (set-add! set element)
       ) ;when
       set
@@ -762,12 +889,21 @@
 
     (define (set-delete! set . elements)
       (check-set set)
-      (for-each (lambda (x) (hash-table-delete! (set-hash-table set) x)) elements)
+      (for-each (lambda (x)
+                  (hash-table-delete! (set-hash-table set)
+                    x
+                  ) ;hash-table-delete!
+                ) ;lambda
+        elements
+      ) ;for-each
       set
     ) ;define
 
     (define (set-delete set . elements)
-      (apply set-delete! (set-copy set) elements)
+      (apply set-delete!
+        (set-copy set)
+        elements
+      ) ;apply
     ) ;define
 
     (define (set-delete-all! set element-list)
@@ -786,58 +922,91 @@
     ) ;define-record-type
 
     (define (check-bag obj)
-      (when (not (bag? obj)) (type-error "not a bag" obj))
+      (when (not (bag? obj))
+        (type-error "not a bag" obj)
+      ) ;when
     ) ;define
 
     (define (check-same-bag-comparator a b)
-      (if (not (eq? (bag-comparator a) (bag-comparator b)))
-          (value-error "different comparators" a b)
+      (if (not (eq? (bag-comparator a)
+                 (bag-comparator b)
+               ) ;eq?
+          ) ;not
+        (value-error "different comparators"
+          a
+          b
+        ) ;value-error
       ) ;if
     ) ;define
 
     (define (make-bag/comparator comparator)
       (if (comparator? comparator)
-          (%make-bag (make-hash-table comparator) comparator)
-          (type-error "make-bag/comparator")
+        (%make-bag (make-hash-table comparator)
+          comparator
+        ) ;%make-bag
+        (type-error "make-bag/comparator")
       ) ;if
     ) ;define
 
     (define (bag-increment! bag element count)
       (check-bag bag)
-      (unless (and (exact-integer? count) (>= count 0))
-          (type-error "bag-increment!" count)
+      (unless (and (exact-integer? count)
+                (>= count 0)
+              ) ;and
+        (type-error "bag-increment!" count)
       ) ;unless
       (if (= count 0)
+        bag
+        (let* ((entries (bag-entries bag))
+               (entry (hash-table-ref/default entries
+                        element
+                        0
+                      ) ;hash-table-ref/default
+               ) ;entry
+              ) ;
+          (hash-table-set! entries
+            element
+            (+ count entry)
+          ) ;hash-table-set!
           bag
-          (let* ((entries (bag-entries bag))
-                 (entry (hash-table-ref/default entries element 0)))
-            (hash-table-set! entries element (+ count entry))
-            bag
-          ) ;let*
+        ) ;let*
       ) ;if
     ) ;define
 
     (define (bag-decrement! bag element count)
       (check-bag bag)
-      (if (not (and (exact-integer? count) (>= count 0)))
-          (type-error "bag-decrement!" count)
+      (if (not (and (exact-integer? count)
+                 (>= count 0)
+               ) ;and
+          ) ;not
+        (type-error "bag-decrement!" count)
       ) ;if
       (if (= count 0)
+        bag
+        (let* ((entries (bag-entries bag))
+               (entry (hash-table-ref/default entries
+                        element
+                        0
+                      ) ;hash-table-ref/default
+               ) ;entry
+              ) ;
+          (if (> entry count)
+            (hash-table-set! entries
+              element
+              (- entry count)
+            ) ;hash-table-set!
+            (hash-table-delete! entries element)
+          ) ;if
           bag
-          (let* ((entries (bag-entries bag))
-                 (entry (hash-table-ref/default entries element 0)))
-              (if (> entry count)
-                  (hash-table-set! entries element (- entry count))
-                  (hash-table-delete! entries element)
-              ) ;if
-            bag
-          ) ;let*
+        ) ;let*
       ) ;if
     ) ;define
 
     (define (bag-contains? bag element)
       (check-bag bag)
-      (hash-table-contains? (bag-entries bag) element)
+      (hash-table-contains? (bag-entries bag)
+        element
+      ) ;hash-table-contains?
     ) ;define
 
     (define (bag-empty? bag)
@@ -849,39 +1018,50 @@
       (check-bag a)
       (check-bag b)
       (let ((entries-a (bag-entries a))
-            (entries-b (bag-entries b)))
-        (call/cc
-          (lambda (return)
-            (hash-table-for-each
-             (lambda (k entry)
-               (when (hash-table-contains? entries-b k)
-                 (return #f)
-               ) ;when
-             ) ;lambda
-             entries-a
-            ) ;hash-table-for-each
-            #t
-          ) ;lambda
+            (entries-b (bag-entries b))
+           ) ;
+        (call/cc (lambda (return)
+                   (hash-table-for-each (lambda (k entry)
+                                          (when (hash-table-contains? entries-b k)
+                                            (return #f)
+                                          ) ;when
+                                        ) ;lambda
+                     entries-a
+                   ) ;hash-table-for-each
+                   #t
+                 ) ;lambda
         ) ;call/cc
       ) ;let
     ) ;define
 
     (define (bag comparator . elements)
-      (let ((result (make-bag/comparator comparator)))
-        (for-each (lambda (x) (bag-increment! result x 1)) elements)
+      (let ((result (make-bag/comparator comparator)
+            ) ;result
+           ) ;
+        (for-each (lambda (x) (bag-increment! result x 1))
+          elements
+        ) ;for-each
         result
       ) ;let
     ) ;define
 
-    (define (bag-unfold stop? mapper successor seed comparator)
-      (let ((result (make-bag/comparator comparator)))
-        (let loop ((seed seed))
+    (define (bag-unfold stop?
+              mapper
+              successor
+              seed
+              comparator
+            ) ;bag-unfold
+      (let ((result (make-bag/comparator comparator)
+            ) ;result
+           ) ;
+        (let loop
+          ((seed seed))
           (if (stop? seed)
-              result
-              (begin
-                (bag-increment! result (mapper seed) 1)
-                (loop (successor seed))
-              ) ;begin
+            result
+            (begin
+              (bag-increment! result (mapper seed) 1)
+              (loop (successor seed))
+            ) ;begin
           ) ;if
         ) ;let
       ) ;let
@@ -893,45 +1073,49 @@
 
     (define (list->bag! bag elements)
       (check-bag bag)
-      (for-each (lambda (x) (bag-increment! bag x 1)) elements)
+      (for-each (lambda (x) (bag-increment! bag x 1))
+        elements
+      ) ;for-each
       bag
     ) ;define
 
     (define (bag-copy bag)
       (check-bag bag)
-      (let ((entries (make-hash-table (bag-comparator bag))))
-        (hash-table-for-each
-          (lambda (k entry)
-            (hash-table-set! entries k entry)
-          ) ;lambda
+      (let ((entries (make-hash-table (bag-comparator bag))
+            ) ;entries
+           ) ;
+        (hash-table-for-each (lambda (k entry)
+                               (hash-table-set! entries k entry)
+                             ) ;lambda
           (bag-entries bag)
         ) ;hash-table-for-each
         (%make-bag entries (bag-comparator bag))
       ) ;let
     ) ;define
 
-
     (define (bag-member bag element default)
       (check-bag bag)
-      (if (hash-table-contains? (bag-entries bag) element)
-          element
-          default
+      (if (hash-table-contains? (bag-entries bag)
+            element
+          ) ;hash-table-contains?
+        element
+        default
       ) ;if
     ) ;define
 
     (define (bag->list bag)
       (check-bag bag)
       (let ((result '()))
-        (hash-table-for-each
-         (lambda (k entry)
-           (let loop ((i 0))
-             (when (< i entry)
-               (set! result (cons k result))
-               (loop (+ i 1))
-             ) ;when
-           ) ;let
-         ) ;lambda
-         (bag-entries bag)
+        (hash-table-for-each (lambda (k entry)
+                               (let loop
+                                 ((i 0))
+                                 (when (< i entry)
+                                   (set! result (cons k result))
+                                   (loop (+ i 1))
+                                 ) ;when
+                               ) ;let
+                             ) ;lambda
+          (bag-entries bag)
         ) ;hash-table-for-each
         result
       ) ;let
@@ -943,7 +1127,11 @@
 
     (define (bag-find predicate bag failure)
       (check-bag bag)
-      (let ((found (find predicate (hash-table-keys (bag-entries bag)))))
+      (let ((found (find predicate
+                     (hash-table-keys (bag-entries bag))
+                   ) ;find
+            ) ;found
+           ) ;
         (or found (failure))
       ) ;let
     ) ;define
@@ -951,76 +1139,70 @@
     (define (bag-count predicate bag)
       (check-bag bag)
       (let ((entries (bag-entries bag)))
-        (hash-table-fold
-         (lambda (k entry acc)
-           (if (predicate k)
-               (+ acc entry)
-               acc
-           ) ;if
-         ) ;lambda
-         0
-         entries
+        (hash-table-fold (lambda (k entry acc)
+                           (if (predicate k) (+ acc entry) acc)
+                         ) ;lambda
+          0
+          entries
         ) ;hash-table-fold
       ) ;let
     ) ;define
 
     (define (bag-any? predicate bag)
       (check-bag bag)
-      (let
-        ((found
-          (hash-table-find
-           (lambda (k entry) (predicate k))
-           (bag-entries bag)
-           #f)
-          ) ;hash-table-find
-         ) ;found
+      (let ((found (hash-table-find (lambda (k entry) (predicate k))
+                     (bag-entries bag)
+                     #f
+                   ) ;hash-table-find
+            ) ;found
+           ) ;
         (if found #t #f)
       ) ;let
     ) ;define
 
     (define (bag-every? predicate bag)
       (check-bag bag)
-      (let
-        ((found
-          (hash-table-find
-           (lambda (k entry) (not (predicate k)))
-           (bag-entries bag)
-           #f)
-          ) ;hash-table-find
-         ) ;found
+      (let ((found (hash-table-find (lambda (k entry) (not (predicate k)))
+                     (bag-entries bag)
+                     #f
+                   ) ;hash-table-find
+            ) ;found
+           ) ;
         (if found #f #t)
       ) ;let
     ) ;define
 
     (define (bag<=? . bags)
       (if (null? bags)
-          #t
-          (let loop ((head (car bags)) (tail (cdr bags)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-bag<=? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car bags)) (tail (cdr bags)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-bag<=? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (bag=? . bags)
       (if (null? bags)
-          #t
-          (let loop ((head (car bags)) (tail (cdr bags)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-bag=? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car bags)) (tail (cdr bags)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-bag=? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -1029,21 +1211,25 @@
       (check-bag b2)
       (check-same-bag-comparator b1 b2)
       (let ((e1 (bag-entries b1))
-            (e2 (bag-entries b2)))
-        (and (= (hash-table-size e1) (hash-table-size e2))
-             (call/cc
-              (lambda (return)
-                (hash-table-for-each
-                 (lambda (k count1)
-                   (if (not (= count1 (hash-table-ref/default e2 k 0)))
-                       (return #f)
-                   ) ;if
-                 ) ;lambda
-                 e1
-                ) ;hash-table-for-each
-                #t
-              ) ;lambda
-             ) ;call/cc
+            (e2 (bag-entries b2))
+           ) ;
+        (and (= (hash-table-size e1)
+               (hash-table-size e2)
+             ) ;=
+          (call/cc (lambda (return)
+                     (hash-table-for-each (lambda (k count1)
+                                            (if (not (= count1
+                                                       (hash-table-ref/default e2 k 0)
+                                                     ) ;=
+                                                ) ;not
+                                              (return #f)
+                                            ) ;if
+                                          ) ;lambda
+                       e1
+                     ) ;hash-table-for-each
+                     #t
+                   ) ;lambda
+          ) ;call/cc
         ) ;and
       ) ;let
     ) ;define
@@ -1053,39 +1239,44 @@
       (check-bag b2)
       (check-same-bag-comparator b1 b2)
       (let ((e1 (bag-entries b1))
-            (e2 (bag-entries b2)))
-        (if (> (hash-table-size e1) (hash-table-size e2))
-            #f
-            (call/cc
-             (lambda (return)
-               (hash-table-for-each
-                (lambda (k count1)
-                  (if (not (<= count1 (hash-table-ref/default e2 k 0)))
-                      (return #f)
-                  ) ;if
-                ) ;lambda
-                e1
-               ) ;hash-table-for-each
-               #t
-             ) ;lambda
-            ) ;call/cc
+            (e2 (bag-entries b2))
+           ) ;
+        (if (> (hash-table-size e1)
+              (hash-table-size e2)
+            ) ;>
+          #f
+          (call/cc (lambda (return)
+                     (hash-table-for-each (lambda (k count1)
+                                            (if (not (<= count1
+                                                       (hash-table-ref/default e2 k 0)
+                                                     ) ;<=
+                                                ) ;not
+                                              (return #f)
+                                            ) ;if
+                                          ) ;lambda
+                       e1
+                     ) ;hash-table-for-each
+                     #t
+                   ) ;lambda
+          ) ;call/cc
         ) ;if
       ) ;let
     ) ;define
 
     (define (bag<? . bags)
       (if (null? bags)
-          #t
-          (let loop ((head (car bags)) (tail (cdr bags)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-bag<? head next)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car bags)) (tail (cdr bags)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-bag<? head next)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
@@ -1093,97 +1284,114 @@
       (check-bag b1)
       (check-bag b2)
       (check-same-bag-comparator b1 b2)
-      (call/cc
-       (lambda (return)
-         (let ((e1 (bag-entries b1))
-               (e2 (bag-entries b2)))
-           (let
-             ((smaller-count
-               (cond
-                ((< (hash-table-size e1) (hash-table-size e2)) 1)
-                ((= (hash-table-size e1) (hash-table-size e2)) 0)
-                (else (return #f)))
-               ) ;cond
-              ) ;smaller-count
-             (hash-table-for-each
-              (lambda (k count1)
-                (let ((count2 (hash-table-ref/default e2 k 0)))
-                  (if (not (<= count1 count2))
-                      (return #f)
-                      (when (< count1 count2)
-                        (set! smaller-count (+ smaller-count 1))
-                      ) ;when
-                  ) ;if
-                ) ;let
-              ) ;lambda
-              e1
-             ) ;hash-table-for-each
-             (positive? smaller-count)
-           ) ;let
-         ) ;let
-       ) ;lambda
+      (call/cc (lambda (return)
+                 (let ((e1 (bag-entries b1))
+                       (e2 (bag-entries b2))
+                      ) ;
+                   (let ((smaller-count (cond ((< (hash-table-size e1)
+                                                 (hash-table-size e2)
+                                               ) ;<
+                                               1
+                                              ) ;
+                                              ((= (hash-table-size e1)
+                                                 (hash-table-size e2)
+                                               ) ;=
+                                               0
+                                              ) ;
+                                              (else (return #f))
+                                        ) ;cond
+                         ) ;smaller-count
+                        ) ;
+                     (hash-table-for-each (lambda (k count1)
+                                            (let ((count2 (hash-table-ref/default e2 k 0))
+                                                 ) ;
+                                              (if (not (<= count1 count2))
+                                                (return #f)
+                                                (when (< count1 count2)
+                                                  (set! smaller-count (+ smaller-count 1))
+                                                ) ;when
+                                              ) ;if
+                                            ) ;let
+                                          ) ;lambda
+                       e1
+                     ) ;hash-table-for-each
+                     (positive? smaller-count)
+                   ) ;let
+                 ) ;let
+               ) ;lambda
       ) ;call/cc
     ) ;define
 
     (define (bag>=? . bags)
       (if (null? bags)
-          #t
-          (let loop ((head (car bags)) (tail (cdr bags)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-bag<=? next head)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car bags)) (tail (cdr bags)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-bag<=? next head)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (bag>? . bags)
       (if (null? bags)
-          #t
-          (let loop ((head (car bags)) (tail (cdr bags)))
-            (if (null? tail)
-                #t
-                (let ((next (car tail)))
-                  (and (binary-bag<? next head)
-                       (loop next (cdr tail))
-                  ) ;and
-                ) ;let
-            ) ;if
-          ) ;let
+        #t
+        (let loop
+          ((head (car bags)) (tail (cdr bags)))
+          (if (null? tail)
+            #t
+            (let ((next (car tail)))
+              (and (binary-bag<? next head)
+                (loop next (cdr tail))
+              ) ;and
+            ) ;let
+          ) ;if
+        ) ;let
       ) ;if
     ) ;define
 
     (define (bag-union bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
       (let ((result (bag-copy bag1)))
-        (for-each (lambda (b) (bag-union-into! result b)) bags)
+        (for-each (lambda (b) (bag-union-into! result b))
+          bags
+        ) ;for-each
         result
       ) ;let
     ) ;define
 
     (define (bag-union-into! result other)
       (let ((result-entries (bag-entries result))
-            (other-entries (bag-entries other)))
-        (hash-table-for-each
-         (lambda (k count2)
-           (let ((count1 (hash-table-ref/default result-entries k 0)))
-             (when (> count2 count1)
-               (hash-table-set! result-entries k count2)
-             ) ;when
-           ) ;let
-         ) ;lambda
-         other-entries
+            (other-entries (bag-entries other))
+           ) ;
+        (hash-table-for-each (lambda (k count2)
+                               (let ((count1 (hash-table-ref/default result-entries
+                                               k
+                                               0
+                                             ) ;hash-table-ref/default
+                                     ) ;count1
+                                    ) ;
+                                 (when (> count2 count1)
+                                   (hash-table-set! result-entries
+                                     k
+                                     count2
+                                   ) ;hash-table-set!
+                                 ) ;when
+                               ) ;let
+                             ) ;lambda
+          other-entries
         ) ;hash-table-for-each
         result
       ) ;let
@@ -1191,35 +1399,45 @@
 
     (define (bag-intersection bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
-      (let ((result (make-bag/comparator (bag-comparator bag1)))
+      (let ((result (make-bag/comparator (bag-comparator bag1)
+                    ) ;make-bag/comparator
+            ) ;result
             (entries1 (bag-entries bag1))
-            (other-entries (map bag-entries bags)))
+            (other-entries (map bag-entries bags))
+           ) ;
         (define (min-count key count1)
-          (let loop ((rest other-entries) (minc count1))
+          (let loop
+            ((rest other-entries) (minc count1))
             (if (null? rest)
-                minc
-                (loop (cdr rest)
-                      (min minc (hash-table-ref/default (car rest) key 0))
-                ) ;loop
+              minc
+              (loop (cdr rest)
+                (min minc
+                  (hash-table-ref/default (car rest)
+                    key
+                    0
+                  ) ;hash-table-ref/default
+                ) ;min
+              ) ;loop
             ) ;if
           ) ;let
         ) ;define
-        (hash-table-for-each
-         (lambda (k count1)
-           (let ((m (min-count k count1)))
-             (when (> m 0)
-               (hash-table-set! (bag-entries result) k m)
-             ) ;when
-           ) ;let
-         ) ;lambda
-         entries1
+        (hash-table-for-each (lambda (k count1)
+                               (let ((m (min-count k count1)))
+                                 (when (> m 0)
+                                   (hash-table-set! (bag-entries result)
+                                     k
+                                     m
+                                   ) ;hash-table-set!
+                                 ) ;when
+                               ) ;let
+                             ) ;lambda
+          entries1
         ) ;hash-table-for-each
         result
       ) ;let
@@ -1227,35 +1445,45 @@
 
     (define (bag-difference bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
-      (let ((result (make-bag/comparator (bag-comparator bag1)))
+      (let ((result (make-bag/comparator (bag-comparator bag1)
+                    ) ;make-bag/comparator
+            ) ;result
             (entries1 (bag-entries bag1))
-            (other-entries (map bag-entries bags)))
+            (other-entries (map bag-entries bags))
+           ) ;
         (define (sub-count key count1)
-          (let loop ((rest other-entries) (acc count1))
+          (let loop
+            ((rest other-entries) (acc count1))
             (if (null? rest)
-                acc
-                (loop (cdr rest)
-                      (- acc (hash-table-ref/default (car rest) key 0))
-                ) ;loop
+              acc
+              (loop (cdr rest)
+                (- acc
+                  (hash-table-ref/default (car rest)
+                    key
+                    0
+                  ) ;hash-table-ref/default
+                ) ;-
+              ) ;loop
             ) ;if
           ) ;let
         ) ;define
-        (hash-table-for-each
-         (lambda (k count1)
-           (let ((r (sub-count k count1)))
-             (when (> r 0)
-               (hash-table-set! (bag-entries result) k r)
-             ) ;when
-           ) ;let
-         ) ;lambda
-         entries1
+        (hash-table-for-each (lambda (k count1)
+                               (let ((r (sub-count k count1)))
+                                 (when (> r 0)
+                                   (hash-table-set! (bag-entries result)
+                                     k
+                                     r
+                                   ) ;hash-table-set!
+                                 ) ;when
+                               ) ;let
+                             ) ;lambda
+          entries1
         ) ;hash-table-for-each
         result
       ) ;let
@@ -1265,29 +1493,38 @@
       (check-bag bag1)
       (check-bag bag2)
       (check-same-bag-comparator bag1 bag2)
-      (let ((result (make-bag/comparator (bag-comparator bag1)))
+      (let ((result (make-bag/comparator (bag-comparator bag1)
+                    ) ;make-bag/comparator
+            ) ;result
             (e1 (bag-entries bag1))
-            (e2 (bag-entries bag2)))
-        (hash-table-for-each
-         (lambda (k count2)
-           (let ((count1 (hash-table-ref/default e1 k 0)))
-             (when (= count1 0)
-               (hash-table-set! (bag-entries result) k count2)
-             ) ;when
-           ) ;let
-         ) ;lambda
-         e2
+            (e2 (bag-entries bag2))
+           ) ;
+        (hash-table-for-each (lambda (k count2)
+                               (let ((count1 (hash-table-ref/default e1 k 0))
+                                    ) ;
+                                 (when (= count1 0)
+                                   (hash-table-set! (bag-entries result)
+                                     k
+                                     count2
+                                   ) ;hash-table-set!
+                                 ) ;when
+                               ) ;let
+                             ) ;lambda
+          e2
         ) ;hash-table-for-each
-        (hash-table-for-each
-         (lambda (k count1)
-           (let* ((count2 (hash-table-ref/default e2 k 0))
-                  (diff (abs (- count1 count2))))
-             (when (> diff 0)
-               (hash-table-set! (bag-entries result) k diff)
-             ) ;when
-           ) ;let*
-         ) ;lambda
-         e1
+        (hash-table-for-each (lambda (k count1)
+                               (let* ((count2 (hash-table-ref/default e2 k 0))
+                                      (diff (abs (- count1 count2)))
+                                     ) ;
+                                 (when (> diff 0)
+                                   (hash-table-set! (bag-entries result)
+                                     k
+                                     diff
+                                   ) ;hash-table-set!
+                                 ) ;when
+                               ) ;let*
+                             ) ;lambda
+          e1
         ) ;hash-table-for-each
         result
       ) ;let
@@ -1295,48 +1532,52 @@
 
     (define (bag-union! bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-         (bag-union-into! bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                  (bag-union-into! bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
       bag1
     ) ;define
 
     (define (bag-intersection! bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
       (let ((entries1 (bag-entries bag1))
-            (other-entries (map bag-entries bags)))
+            (other-entries (map bag-entries bags))
+           ) ;
         (define (min-count key count1)
-          (let loop ((rest other-entries) (minc count1))
+          (let loop
+            ((rest other-entries) (minc count1))
             (if (null? rest)
-                minc
-                (loop (cdr rest)
-                      (min minc (hash-table-ref/default (car rest) key 0))
-                ) ;loop
+              minc
+              (loop (cdr rest)
+                (min minc
+                  (hash-table-ref/default (car rest)
+                    key
+                    0
+                  ) ;hash-table-ref/default
+                ) ;min
+              ) ;loop
             ) ;if
           ) ;let
         ) ;define
-        (hash-table-for-each
-         (lambda (k count1)
-           (let ((m (min-count k count1)))
-             (if (> m 0)
-                 (hash-table-set! entries1 k m)
-                 (hash-table-delete! entries1 k)
-             ) ;if
-           ) ;let
-         ) ;lambda
-         entries1
+        (hash-table-for-each (lambda (k count1)
+                               (let ((m (min-count k count1)))
+                                 (if (> m 0)
+                                   (hash-table-set! entries1 k m)
+                                   (hash-table-delete! entries1 k)
+                                 ) ;if
+                               ) ;let
+                             ) ;lambda
+          entries1
         ) ;hash-table-for-each
         bag1
       ) ;let
@@ -1344,35 +1585,40 @@
 
     (define (bag-difference! bag1 . bags)
       (check-bag bag1)
-      (for-each
-       (lambda (b)
-         (check-bag b)
-         (check-same-bag-comparator bag1 b)
-       ) ;lambda
-       bags
+      (for-each (lambda (b)
+                  (check-bag b)
+                  (check-same-bag-comparator bag1 b)
+                ) ;lambda
+        bags
       ) ;for-each
       (let ((entries1 (bag-entries bag1))
-            (other-entries (map bag-entries bags)))
+            (other-entries (map bag-entries bags))
+           ) ;
         (define (sub-count key count1)
-          (let loop ((rest other-entries) (acc count1))
+          (let loop
+            ((rest other-entries) (acc count1))
             (if (null? rest)
-                acc
-                (loop (cdr rest)
-                      (- acc (hash-table-ref/default (car rest) key 0))
-                ) ;loop
+              acc
+              (loop (cdr rest)
+                (- acc
+                  (hash-table-ref/default (car rest)
+                    key
+                    0
+                  ) ;hash-table-ref/default
+                ) ;-
+              ) ;loop
             ) ;if
           ) ;let
         ) ;define
-        (hash-table-for-each
-         (lambda (k count1)
-           (let ((r (sub-count k count1)))
-             (if (> r 0)
-                 (hash-table-set! entries1 k r)
-                 (hash-table-delete! entries1 k)
-             ) ;if
-           ) ;let
-         ) ;lambda
-         entries1
+        (hash-table-for-each (lambda (k count1)
+                               (let ((r (sub-count k count1)))
+                                 (if (> r 0)
+                                   (hash-table-set! entries1 k r)
+                                   (hash-table-delete! entries1 k)
+                                 ) ;if
+                               ) ;let
+                             ) ;lambda
+          entries1
         ) ;hash-table-for-each
         bag1
       ) ;let
@@ -1383,21 +1629,27 @@
       (check-bag bag2)
       (check-same-bag-comparator bag1 bag2)
       (let ((result (bag-xor bag1 bag2)))
-        (set-bag-entries! bag1 (bag-entries result))
+        (set-bag-entries! bag1
+          (bag-entries result)
+        ) ;set-bag-entries!
         bag1
       ) ;let
     ) ;define
 
     (define (bag-adjoin! bag . elements)
       (check-bag bag)
-      (for-each (lambda (x) (bag-increment! bag x 1)) elements)
+      (for-each (lambda (x) (bag-increment! bag x 1))
+        elements
+      ) ;for-each
       bag
     ) ;define
 
     (define (bag-adjoin bag . elements)
       (check-bag bag)
       (let ((result (bag-copy bag)))
-        (for-each (lambda (x) (bag-increment! result x 1)) elements)
+        (for-each (lambda (x) (bag-increment! result x 1))
+          elements
+        ) ;for-each
         result
       ) ;let
     ) ;define
@@ -1406,7 +1658,12 @@
       (check-bag bag)
       (let ((entries (bag-entries bag)))
         (when (hash-table-contains? entries element)
-          (let ((count (hash-table-ref/default entries element 0)))
+          (let ((count (hash-table-ref/default entries
+                         element
+                         0
+                       ) ;hash-table-ref/default
+                ) ;count
+               ) ;
             (hash-table-delete! entries element)
             (hash-table-set! entries element count)
           ) ;let
@@ -1418,74 +1675,85 @@
     (define (bag-replace bag element)
       (check-bag bag)
       (if (bag-contains? bag element)
-          (let ((result (bag-copy bag)))
-            (bag-replace! result element)
-            result
-          ) ;let
-          bag
+        (let ((result (bag-copy bag)))
+          (bag-replace! result element)
+          result
+        ) ;let
+        bag
       ) ;if
     ) ;define
 
     (define (bag-delete! bag . elements)
       (check-bag bag)
-      (for-each (lambda (x) (bag-decrement! bag x 1)) elements)
+      (for-each (lambda (x) (bag-decrement! bag x 1))
+        elements
+      ) ;for-each
       bag
     ) ;define
 
     (define (bag-delete bag . elements)
-      (apply bag-delete! (bag-copy bag) elements)
+      (apply bag-delete!
+        (bag-copy bag)
+        elements
+      ) ;apply
     ) ;define
 
     (define (bag-delete-all! bag element-list)
       (check-bag bag)
-      (for-each (lambda (x) (bag-decrement! bag x 1)) element-list)
+      (for-each (lambda (x) (bag-decrement! bag x 1))
+        element-list
+      ) ;for-each
       bag
     ) ;define
 
     (define (bag-delete-all bag element-list)
-      (bag-delete-all! (bag-copy bag) element-list)
+      (bag-delete-all! (bag-copy bag)
+        element-list
+      ) ;bag-delete-all!
     ) ;define
 
-    (define (bag-search! bag element failure success)
+    (define (bag-search! bag
+              element
+              failure
+              success
+            ) ;bag-search!
       (check-bag bag)
-      (let*
-        ((comp (bag-comparator bag))
-         (same? (comparator-equality-predicate comp))
-         (entries (bag-entries bag))
-         (not-found (list 'not-found))
-         (found
-           (call/cc
-            (lambda (return)
-              (hash-table-for-each
-               (lambda (k entry)
-                 (when (same? k element) (return k))
-               ) ;lambda
-               entries
-              ) ;hash-table-for-each
-              not-found
-            ) ;lambda
-           ) ;call/cc
-         ) ;found
-        ) ;
+      (let* ((comp (bag-comparator bag))
+             (same? (comparator-equality-predicate comp)
+             ) ;same?
+             (entries (bag-entries bag))
+             (not-found (list 'not-found))
+             (found (call/cc (lambda (return)
+                               (hash-table-for-each (lambda (k entry)
+                                                      (when (same? k element)
+                                                        (return k)
+                                                      ) ;when
+                                                    ) ;lambda
+                                 entries
+                               ) ;hash-table-for-each
+                               not-found
+                             ) ;lambda
+                    ) ;call/cc
+             ) ;found
+            ) ;
         (if (eq? found not-found)
-            (failure (lambda (obj)
-                       (bag-increment! bag element 1)
-                       (values bag obj))
-                     (lambda (obj)
-                       (values bag obj)
-                     ) ;lambda
-            ) ;failure
-            (success found
-                     (lambda (new-element obj)
-                       (bag-decrement! bag found 1)
-                       (bag-increment! bag new-element 1)
-                       (values bag obj)
-                     ) ;lambda
-                     (lambda (obj)
-                       (bag-decrement! bag found 1)
-                       (values bag obj)
-                     ) ;lambda
-            ) ;success
+          (failure (lambda (obj)
+                     (bag-increment! bag element 1)
+                     (values bag obj)
+                   ) ;lambda
+            (lambda (obj) (values bag obj))
+          ) ;failure
+          (success found
+            (lambda (new-element obj)
+              (bag-decrement! bag found 1)
+              (bag-increment! bag new-element 1)
+              (values bag obj)
+            ) ;lambda
+            (lambda (obj)
+              (bag-decrement! bag found 1)
+              (values bag obj)
+            ) ;lambda
+          ) ;success
         ) ;if
       ) ;let*
     ) ;define

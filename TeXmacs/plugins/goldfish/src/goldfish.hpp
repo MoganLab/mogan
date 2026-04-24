@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.46"
+#define GOLDFISH_VERSION "17.11.55"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -98,8 +98,14 @@ glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s
 static s7_pointer
 f_function_libraries (s7_scheme* sc, s7_pointer args);
 
+static s7_pointer
+f_gfproject_load_config (s7_scheme* sc, s7_pointer args);
+
 static bool
 split_library_query (const string& query, string& group, string& library);
+
+static string
+find_goldfish_library ();
 
 static vector<string>
 find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
@@ -2122,6 +2128,8 @@ glue_goldfish (s7_scheme* sc) {
   const char* d_function_libraries=
     "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
     "export function-name in the current *load-path*";
+  const char* s_gfproject_load_config = "g_gfproject-load-config";
+  const char* d_gfproject_load_config = "(g_gfproject-load-config) => string, returns merged gfproject.json";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -2131,6 +2139,10 @@ glue_goldfish (s7_scheme* sc) {
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_function_libraries),
              s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_gfproject_load_config),
+             s7_make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
+                                     d_gfproject_load_config, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -3768,123 +3780,10 @@ goldfish_eval_code (s7_scheme* sc, string code) {
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
-struct GoldfixCliOptions {
-  bool   enabled= false;
-  bool   dry_run= false;
-  string path;
-  string error;
-};
-
-static bool
-string_starts_with (const string& value, const string& prefix) {
-  return value.rfind (prefix, 0) == 0;
-}
-
-static GoldfixCliOptions
-parse_goldfix_cli_options (int argc, char** argv) {
-  GoldfixCliOptions opts;
-
-  // Look for 'fix' subcommand
-  int fix_index= -1;
-  for (int i= 1; i < argc; ++i) {
-    string arg= argv[i];
-    if (arg == "fix") {
-      fix_index= i;
-      break;
-    }
-  }
-
-  if (fix_index == -1) {
-    return opts; // No fix subcommand found
-  }
-
-  opts.enabled= true;
-
-  // Parse options after 'fix' subcommand
-  bool path_set= false;
-  for (int i= fix_index + 1; i < argc; ++i) {
-    string arg= argv[i];
-
-    if (arg == "--dry-run") {
-      if (opts.dry_run) {
-        opts.error= "Error: '--dry-run' can only be specified once.";
-        return opts;
-      }
-      opts.dry_run= true;
-      continue;
-    }
-
-    // Check for options that start with '-' but are not recognized
-    if (arg.length () > 0 && arg[0] == '-') {
-      // This is an unrecognized option, will be caught by invalid flag check
-      continue;
-    }
-
-    // This should be the PATH argument
-    if (!path_set) {
-      opts.path  = arg;
-      path_set   = true;
-    }
-  }
-
-  if (!path_set || opts.path.empty ()) {
-    opts.error= "Error: 'fix' requires a PATH argument.";
-    return opts;
-  }
-
-  return opts;
-}
-
-static bool
-is_goldfix_option_flag (const string& flag) {
-  return flag == "fix" || flag == "--dry-run" || flag == "dry-run";
-}
-
-static vector<string>
-filter_invalid_options_for_goldfix (const vector<string>& flags) {
-  vector<string> filtered;
-  for (const auto& flag : flags) {
-    if (!is_goldfix_option_flag (flag)) {
-      filtered.push_back (flag);
-    }
-  }
-  return filtered;
-}
-
-static string
-find_goldfix_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldfix", fs::path (gf_lib).parent_path () / "tools" / "goldfix"};
-
-  for (const auto& candidate : candidates) {
-    if (fs::is_directory (candidate, ec)) {
-      return candidate.string ();
-    }
-    ec.clear ();
-  }
-
-  return "";
-}
-
-static string
-find_goldtest_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldtest", fs::path (gf_lib).parent_path () / "tools" / "goldtest"};
-
-  for (const auto& candidate : candidates) {
-    if (fs::is_directory (candidate, ec)) {
-      return candidate.string ();
-    }
-    ec.clear ();
-  }
-
-  return "";
-}
-
 static string
 find_golddoc_tool_root (const char* gf_lib) {
   std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "golddoc", fs::path (gf_lib).parent_path () / "tools" / "golddoc"};
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "doc", fs::path (gf_lib).parent_path () / "tools" / "doc"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -3899,7 +3798,7 @@ find_golddoc_tool_root (const char* gf_lib) {
 static string
 find_goldsource_tool_root (const char* gf_lib) {
   std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "goldsource", fs::path (gf_lib).parent_path () / "tools" / "goldsource"};
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "source", fs::path (gf_lib).parent_path () / "tools" / "source"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -3911,12 +3810,341 @@ find_goldsource_tool_root (const char* gf_lib) {
   return "";
 }
 
-static void
-add_goldfix_load_path_if_present (s7_scheme* sc, const char* gf_lib) {
-  string tool_root= find_goldfix_tool_root (gf_lib);
-  if (!tool_root.empty ()) {
-    s7_add_to_load_path (sc, tool_root.c_str ());
+static string
+find_goldhelp_tool_root (const char* gf_lib) {
+  std::error_code ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "help", fs::path (gf_lib).parent_path () / "tools" / "help"};
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
   }
+
+  return "";
+}
+
+// Tool registration system - dynamically load tools from gfproject.json
+
+static fs::path
+find_local_gfproject_json () {
+  std::error_code ec;
+  fs::path cwd= fs::current_path (ec);
+  if (!ec) {
+    fs::path local_path= cwd / "gfproject.json";
+    if (fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec)) {
+      return local_path;
+    }
+  }
+  return "";
+}
+
+static fs::path
+find_lib_gfproject_json (const char* gf_lib) {
+  std::error_code ec;
+  fs::path lib_path= fs::path (gf_lib) / "gfproject.json";
+  if (fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec)) {
+    return lib_path;
+  }
+  ec.clear ();
+  fs::path parent_path= fs::path (gf_lib).parent_path () / "gfproject.json";
+  if (fs::exists (parent_path, ec) && fs::is_regular_file (parent_path, ec)) {
+    return parent_path;
+  }
+  return "";
+}
+
+static json
+load_json_file_or_empty (const fs::path& path) {
+  if (path.empty ()) {
+    return json::object ();
+  }
+  try {
+    std::ifstream file (path);
+    if (!file.is_open ()) {
+      return json::object ();
+    }
+    json config;
+    file >> config;
+    if (config.is_object ()) {
+      return config;
+    }
+    return json::object ();
+  } catch (...) {
+    return json::object ();
+  }
+}
+
+static json
+gfproject_extract_tools (const json& config) {
+  if (config.is_object () && config.contains ("tools") && config["tools"].is_object ()) {
+    return config["tools"];
+  }
+  return json::object ();
+}
+
+static json
+gfproject_deep_merge_value (const json& base, const json& overlay) {
+  if (base.is_object () && overlay.is_object ()) {
+    json merged = base;
+    for (const auto& [key, overlay_value] : overlay.items ()) {
+      if (merged.contains (key)) {
+        merged[key] = gfproject_deep_merge_value (merged[key], overlay_value);
+      } else {
+        merged[key] = overlay_value;
+      }
+    }
+    return merged;
+  }
+  return overlay;
+}
+
+struct gfproject_config_bundle {
+  json lib_config;
+  json local_config;
+  json merged_config;
+};
+
+static gfproject_config_bundle
+load_gfproject_config_bundle (const char* gf_lib) {
+  gfproject_config_bundle bundle;
+  bundle.lib_config   = load_json_file_or_empty (find_lib_gfproject_json (gf_lib));
+  bundle.local_config = load_json_file_or_empty (find_local_gfproject_json ());
+
+  json merged = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
+  json merged_tools = gfproject_extract_tools (bundle.lib_config);
+  json local_tools  = gfproject_extract_tools (bundle.local_config);
+
+  for (const auto& [command, local_tool] : local_tools.items ()) {
+    if (merged_tools.contains (command)) {
+      merged_tools[command] = gfproject_deep_merge_value (merged_tools[command], local_tool);
+    } else {
+      merged_tools[command] = local_tool;
+    }
+  }
+
+  merged["tools"] = merged_tools;
+  bundle.merged_config = merged;
+  return bundle;
+}
+
+static json
+load_gfproject_config (const char* gf_lib) {
+  return load_gfproject_config_bundle (gf_lib).merged_config;
+}
+
+struct gfproject_tool_resolution {
+  bool has_local_override = false;
+  bool has_merged_tool    = false;
+  bool has_lib_tool       = false;
+  json merged_tool        = json::object ();
+  json lib_tool           = json::object ();
+};
+
+static gfproject_tool_resolution
+resolve_gfproject_tool (const char* gf_lib, const string& command) {
+  gfproject_config_bundle bundle = load_gfproject_config_bundle (gf_lib);
+  json local_tools = gfproject_extract_tools (bundle.local_config);
+  json lib_tools   = gfproject_extract_tools (bundle.lib_config);
+  json merged_tools= gfproject_extract_tools (bundle.merged_config);
+
+  gfproject_tool_resolution resolved;
+  resolved.has_local_override = local_tools.contains (command);
+  resolved.has_merged_tool    = merged_tools.contains (command);
+  resolved.has_lib_tool       = lib_tools.contains (command);
+
+  if (resolved.has_merged_tool) {
+    resolved.merged_tool = merged_tools[command];
+  }
+  if (resolved.has_lib_tool) {
+    resolved.lib_tool = lib_tools[command];
+  }
+  return resolved;
+}
+
+static void
+goldfish_reset_captured_error_port (s7_scheme* sc) {
+  s7_close_output_port (sc, s7_current_error_port (sc));
+  s7_set_current_error_port (sc, s7_open_output_string (sc));
+}
+
+enum class gfproject_tool_prepare_error {
+  none,
+  incomplete_config,
+  invalid_config_value,
+  missing_tool_root,
+  import_failed,
+  missing_main,
+};
+
+struct gfproject_tool_prepare_result {
+  gfproject_tool_prepare_error error = gfproject_tool_prepare_error::none;
+  string message;
+  s7_pointer main_func = nullptr;
+};
+
+static string
+find_tool_root_by_command (const char* gf_lib, const string& command);
+
+static gfproject_tool_prepare_result
+goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& command, const json& tool_config) {
+  gfproject_tool_prepare_result result;
+
+  if (!tool_config.is_object ()) {
+    result.error = gfproject_tool_prepare_error::invalid_config_value;
+    result.message = "Error: Tool '" + command + "' config must be a JSON object.";
+    return result;
+  }
+
+  if (!tool_config.contains ("organization") || !tool_config.contains ("module")) {
+    result.error = gfproject_tool_prepare_error::incomplete_config;
+    result.message = "Error: Tool '" + command + "' is not fully implemented (missing organization or module).";
+    return result;
+  }
+
+  if (!tool_config["organization"].is_string () || !tool_config["module"].is_string ()) {
+    result.error = gfproject_tool_prepare_error::invalid_config_value;
+    result.message = "Error: Tool '" + command + "' organization/module must be strings.";
+    return result;
+  }
+
+  string org      = tool_config["organization"];
+  string module   = tool_config["module"];
+  string tool_root= find_tool_root_by_command (gf_lib, command);
+
+  if (tool_root.empty ()) {
+    result.error = gfproject_tool_prepare_error::missing_tool_root;
+    result.message = "Error: tools/" + command + "/" + org + " directory not found.";
+    return result;
+  }
+
+  s7_add_to_load_path (sc, tool_root.c_str ());
+
+  string import_expr= "(import (" + org + " " + module + "))";
+  s7_pointer import_result= s7_eval_c_string (sc, import_expr.c_str ());
+  const char* errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+  if (!import_result || ((errmsg) && (*errmsg))) {
+    result.error = gfproject_tool_prepare_error::import_failed;
+    result.message = "Error importing (" + org + " " + module + "):";
+    return result;
+  }
+
+  s7_pointer main_func= s7_name_to_value (sc, "main");
+  if ((!main_func) || (!s7_is_procedure (main_func))) {
+    result.error = gfproject_tool_prepare_error::missing_main;
+    result.message = "Error: Failed to find main function in (" + org + " " + module + ").";
+    return result;
+  }
+
+  result.main_func = main_func;
+  return result;
+}
+
+static int
+goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& errmsg,
+                            s7_pointer old_port, int gc_loc, bool include_scheme_error) {
+  errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+  if (!message.empty ()) {
+    if (include_scheme_error && (errmsg) && (*errmsg)) {
+      goldfish_print_prefixed_scheme_error_message (sc, message, errmsg);
+    } else {
+      cerr << message << endl;
+    }
+  } else if ((errmsg) && (*errmsg)) {
+    goldfish_print_scheme_error_message (sc, errmsg);
+  }
+  s7_close_output_port (sc, s7_current_error_port (sc));
+  s7_set_current_error_port (sc, old_port);
+  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+  return 1;
+}
+
+static int
+goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& errmsg,
+                              s7_pointer old_port, int gc_loc) {
+  errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+  goldfish_print_scheme_error_message (sc, errmsg);
+  s7_close_output_port (sc, s7_current_error_port (sc));
+  s7_set_current_error_port (sc, old_port);
+  if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+  if (s7_is_integer (result)) {
+    return static_cast<int> (s7_integer (result));
+  }
+  return 0;
+}
+
+static int
+goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& command,
+                               const json& tool_config, const char*& errmsg,
+                               s7_pointer old_port, int gc_loc, bool allow_fallback) {
+  gfproject_tool_prepare_result prepared = goldfish_prepare_tool_main (sc, gf_lib, command, tool_config);
+  if (prepared.error != gfproject_tool_prepare_error::none) {
+    if (allow_fallback) {
+      goldfish_reset_captured_error_port (sc);
+      return -1;
+    }
+
+    bool include_scheme_error = prepared.error == gfproject_tool_prepare_error::import_failed;
+    return goldfish_finish_tool_error (sc, prepared.message, errmsg, old_port, gc_loc, include_scheme_error);
+  }
+
+  s7_pointer result= s7_call (sc, prepared.main_func, s7_nil (sc));
+  return goldfish_finish_tool_success (sc, result, errmsg, old_port, gc_loc);
+}
+
+static s7_pointer
+f_gfproject_load_config (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+  string gf_lib_dir = find_goldfish_library ();
+  json config = load_gfproject_config (gf_lib_dir.c_str ());
+  return s7_make_string (sc, config.dump ().c_str ());
+}
+
+static int
+goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command,
+                   const char*& errmsg, s7_pointer old_port, int gc_loc) {
+  gfproject_tool_resolution resolved = resolve_gfproject_tool (gf_lib, command);
+  if (!resolved.has_merged_tool) {
+    return -1;
+  }
+
+  bool allow_builtin_fallback=
+    command == "help" || command == "version" || command == "eval" || command == "load" || command == "repl" ||
+    command == "run";
+
+  if (resolved.has_local_override && resolved.has_lib_tool) {
+    int merged_ret= goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg,
+                                                   old_port, gc_loc, true);
+    if (merged_ret != -1) {
+      return merged_ret;
+    }
+    return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.lib_tool, errmsg,
+                                          old_port, gc_loc, allow_builtin_fallback);
+  }
+
+  return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg,
+                                        old_port, gc_loc, allow_builtin_fallback);
+}
+
+static string
+find_tool_root_by_command (const char* gf_lib, const string& command) {
+  std::error_code ec;
+  fs::path        cwd= fs::current_path (ec);
+  vector<fs::path> candidates;
+  if (!ec) {
+    candidates.push_back (cwd / "tools" / command);
+  }
+  candidates.push_back (fs::path (gf_lib) / "tools" / command);
+  candidates.push_back (fs::path (gf_lib).parent_path () / "tools" / command);
+
+  for (const auto& candidate : candidates) {
+    if (fs::is_directory (candidate, ec)) {
+      return candidate.string ();
+    }
+    ec.clear ();
+  }
+  return "";
 }
 
 static string
@@ -3944,160 +4172,10 @@ read_text_file_exact (const fs::path& path) {
   return buffer.str ();
 }
 
-static void
-write_text_file_exact (const fs::path& path, const string& content) {
-  std::ofstream output (path, std::ios::binary | std::ios::trunc);
-  if (!output.is_open ()) {
-    throw std::runtime_error ("Failed to open file for writing: " + path.string ());
-  }
-
-  output.write (content.data (), static_cast<std::streamsize> (content.size ()));
-  if (!output) {
-    throw std::runtime_error ("Failed to write file: " + path.string ());
-  }
-}
-
-static bool
-is_scheme_source_file (const fs::path& path) {
-  return path.has_extension () && path.extension () == ".scm";
-}
-
-static vector<fs::path>
-collect_goldfix_targets (const fs::path& input_path, bool dry_run) {
-  std::error_code ec;
-  if (!fs::exists (input_path, ec)) {
-    throw std::runtime_error ("Path does not exist: " + input_path.string ());
-  }
-
-  if (fs::is_regular_file (input_path, ec)) {
-    return {input_path};
-  }
-
-  if (dry_run) {
-    throw std::runtime_error ("'fix --dry-run' only supports files.");
-  }
-
-  if (!fs::is_directory (input_path, ec)) {
-    throw std::runtime_error ("Unsupported path: " + input_path.string ());
-  }
-
-  vector<fs::path> files;
-  for (fs::recursive_directory_iterator it (input_path, fs::directory_options::skip_permission_denied, ec), end; it != end;
-       it.increment (ec)) {
-    if (ec) {
-      throw std::runtime_error ("Failed to walk directory: " + input_path.string ());
-    }
-    if (it->is_regular_file (ec) && is_scheme_source_file (it->path ())) {
-      files.push_back (it->path ());
-    }
-    ec.clear ();
-  }
-
-  std::sort (files.begin (), files.end (), [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
-  return files;
-}
-
-static s7_pointer
-require_goldfix_fix_content (s7_scheme* sc, const char* gf_lib) {
-  string tool_root= find_goldfix_tool_root (gf_lib);
-  if (tool_root.empty ()) {
-    throw std::runtime_error ("Goldfix module directory does not exist.");
-  }
-
-  s7_add_to_load_path (sc, tool_root.c_str ());
-  s7_eval_c_string (sc, "(import (liii goldfix))");
-  string scheme_error= current_scheme_error_output (sc);
-  if (!scheme_error.empty ()) {
-    throw std::runtime_error ("Failed to import (liii goldfix).");
-  }
-
-  s7_pointer fix_content= s7_name_to_value (sc, "fix-content");
-  if ((!fix_content) || (!s7_is_procedure (fix_content))) {
-    throw std::runtime_error ("Failed to resolve fix-content from (liii goldfix).");
-  }
-
-  return fix_content;
-}
-
-static string
-goldfix_fix_content (s7_scheme* sc, s7_pointer fix_content, const string& content) {
-  s7_pointer result= s7_call (sc, fix_content, s7_list (sc, 1, s7_make_string (sc, content.c_str ())));
-  if (!result || !s7_is_string (result)) {
-    throw std::runtime_error ("(liii goldfix) fix-content did not return a string.");
-  }
-  return string (s7_string (result));
-}
-
-static string
-goldfix_progress_prefix (std::size_t index, std::size_t total) {
-  std::ostringstream out;
-  out << "[" << index << "/" << total << "]";
-  return out.str ();
-}
-
-static int
-goldfish_run_fix_mode (s7_scheme* sc, const char* gf_lib, const GoldfixCliOptions& opts) {
-  try {
-    s7_pointer      fix_content= require_goldfix_fix_content (sc, gf_lib);
-    vector<fs::path> files     = collect_goldfix_targets (fs::path (opts.path), opts.dry_run);
-    std::ostream&    status_out= std::cerr;
-
-    if (opts.dry_run) {
-      if (files.empty ()) {
-        throw std::runtime_error ("No input file provided for 'fix --dry-run'.");
-      }
-      const fs::path& file  = files.front ();
-      string          prefix= goldfix_progress_prefix (1, 1);
-      status_out << prefix << " Processing " << file.string () << std::endl;
-      cout << goldfix_fix_content (sc, fix_content, read_text_file_exact (file));
-      status_out << prefix << " Dry-run complete " << file.string () << std::endl;
-      return current_scheme_error_output (sc).empty () ? 0 : -1;
-    }
-
-    std::size_t changed_count= 0;
-    for (std::size_t i= 0; i < files.size (); ++i) {
-      const fs::path& file  = files[i];
-      string          prefix= goldfix_progress_prefix (i + 1, files.size ());
-      status_out << prefix << " Processing " << file.string () << std::endl;
-
-      try {
-        string original= read_text_file_exact (file);
-        string fixed   = goldfix_fix_content (sc, fix_content, original);
-        if (!current_scheme_error_output (sc).empty ()) {
-          status_out << prefix << " Failed " << file.string () << std::endl;
-          return -1;
-        }
-        if (fixed != original) {
-          write_text_file_exact (file, fixed);
-          ++changed_count;
-          status_out << prefix << " Updated " << file.string () << std::endl;
-        }
-        else {
-          status_out << prefix << " Unchanged " << file.string () << std::endl;
-        }
-      }
-      catch (const std::exception& err) {
-        status_out << prefix << " Failed " << file.string () << ": " << err.what () << std::endl;
-        return 1;
-      }
-    }
-
-    if (fs::is_directory (fs::path (opts.path))) {
-      status_out << "Processed " << files.size () << " .scm file(s), updated " << changed_count << std::endl;
-    }
-    return 0;
-  }
-  catch (const std::exception& err) {
-    cerr << err.what () << endl;
-    return 1;
-  }
-}
-
 s7_scheme*
 init_goldfish_scheme (const char* gf_lib) {
   s7_scheme* sc= s7_init ();
   s7_add_to_load_path (sc, gf_lib);
-  add_goldfix_load_path_if_present (sc, gf_lib);
 
   if (!tb_init (tb_null, tb_null)) exit (-1);
 
@@ -5125,10 +5203,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   string command      = startup_opts.command;
   int    command_index= startup_opts.command_index;
 
-  // 如果没有找到命令或没有参数，显示帮助
+  // 如果没有找到命令或没有参数，使用 help 命令
   if (argc <= 1 || command.empty ()) {
-    display_help ();
-    return 0;
+    command = "help";
   }
 
   // 根据命令类型确定默认模式：
@@ -5150,13 +5227,6 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     return 0;
   }
 
-  // 解析 fix 子命令（它有自己的参数解析）
-  GoldfixCliOptions goldfix_opts= parse_goldfix_cli_options (argc, argv);
-  if (!goldfix_opts.error.empty ()) {
-    cerr << goldfix_opts.error << endl;
-    exit (1);
-  }
-
   apply_startup_load_path_options (sc, startup_opts);
   customize_goldfish_by_mode (sc, mode, gf_boot);
 
@@ -5166,34 +5236,30 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   int         gc_loc  = -1;
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
-  // 处理 fix 子命令
-  if (goldfix_opts.enabled) {
-    int fix_ret= goldfish_run_fix_mode (sc, gf_lib, goldfix_opts);
-    errmsg     = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-
-    if ((errmsg) && (*errmsg) && (fix_ret == 0)) return -1;
-    return fix_ret;
+  // 处理动态注册的工具（从 gfproject.json 加载）
+  json gfproject_config = load_gfproject_config (gf_lib);
+  if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
+    int tool_ret = goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+    if (tool_ret != -1) {
+      // Tool was found and executed (or failed with an error)
+      return tool_ret;
+    }
+    // If tool_ret == -1, tool config exists but execution failed, fall through to check other commands
   }
 
-  // 处理 help 子命令
   if (command == "help") {
-    display_help ();
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    display_help ();
     return 0;
   }
 
-  // 处理 version 子命令
   if (command == "version") {
-    display_version ();
     s7_close_output_port (sc, s7_current_error_port (sc));
     s7_set_current_error_port (sc, old_port);
     if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
+    display_version ();
     return 0;
   }
 
@@ -5322,156 +5388,6 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
     std::cerr << "Interactive REPL is not available in this build.\n" << std::endl;
     exit (-1);
 #endif
-  }
-
-  // 处理 test 子命令
-  if (command == "test") {
-    // 添加 tools/goldtest 目录到 load path (用于加载 (liii goldtest) 模块)
-    string goldtest_root = find_goldtest_tool_root (gf_lib);
-    if (goldtest_root.empty ()) {
-      cerr << "Error: tools/goldtest directory not found." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_add_to_load_path (sc, goldtest_root.c_str ());
-
-    // Import (liii goldtest) module
-    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldtest))");
-    if (!import_result) {
-      cerr << "Error: Failed to import (liii goldtest) module." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) {
-      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii goldtest):", errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-
-    // Get and call the main function from (liii goldtest)
-    s7_pointer main_func = s7_name_to_value (sc, "main");
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
-      cerr << "Error: Failed to find main function in (liii goldtest)." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    if (s7_is_integer (result)) {
-      return static_cast<int> (s7_integer (result));
-    }
-    return 0;
-  }
-
-  // 处理 doc 子命令
-  if (command == "doc") {
-    string golddoc_root = find_golddoc_tool_root (gf_lib);
-    if (golddoc_root.empty ()) {
-      cerr << "Error: tools/golddoc directory not found." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_add_to_load_path (sc, golddoc_root.c_str ());
-
-    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii golddoc))");
-    if (!import_result) {
-      cerr << "Error: Failed to import (liii golddoc) module." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) {
-      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii golddoc):", errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-
-    s7_pointer main_func = s7_name_to_value (sc, "main");
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
-      cerr << "Error: Failed to find main function in (liii golddoc)." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    if (s7_is_integer (result)) {
-      return static_cast<int> (s7_integer (result));
-    }
-    return 0;
-  }
-
-  // 处理 source 子命令
-  if (command == "source") {
-    string goldsource_root = find_goldsource_tool_root (gf_lib);
-    if (goldsource_root.empty ()) {
-      cerr << "Error: tools/goldsource directory not found." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_add_to_load_path (sc, goldsource_root.c_str ());
-
-    s7_pointer import_result = s7_eval_c_string (sc, "(import (liii goldsource))");
-    if (!import_result) {
-      cerr << "Error: Failed to import (liii goldsource) module." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    if ((errmsg) && (*errmsg)) {
-      goldfish_print_prefixed_scheme_error_message (sc, "Error importing (liii goldsource):", errmsg);
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-
-    s7_pointer main_func = s7_name_to_value (sc, "main");
-    if ((!main_func) || (!s7_is_procedure (main_func))) {
-      cerr << "Error: Failed to find main function in (liii goldsource)." << endl;
-      s7_close_output_port (sc, s7_current_error_port (sc));
-      s7_set_current_error_port (sc, old_port);
-      if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-      exit (1);
-    }
-    s7_pointer result = s7_call (sc, main_func, s7_nil (sc));
-    errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
-    goldfish_print_scheme_error_message (sc, errmsg);
-    s7_close_output_port (sc, s7_current_error_port (sc));
-    s7_set_current_error_port (sc, old_port);
-    if (gc_loc != -1) s7_gc_unprotect_at (sc, gc_loc);
-    if (s7_is_integer (result)) {
-      return static_cast<int> (s7_integer (result));
-    }
-    return 0;
   }
 
   // 处理 run 子命令

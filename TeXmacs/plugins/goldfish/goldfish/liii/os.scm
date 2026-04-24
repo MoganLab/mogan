@@ -1,30 +1,31 @@
-;
-; Copyright (C) 2024 The Goldfish Scheme Authors
-;
-; Licensed under the Apache License, Version 2.0 (the "License");
-; you may not use this file except in compliance with the License.
-; You may obtain a copy of the License at
-;
-; http://www.apache.org/licenses/LICENSE-2.0
-;
-; Unless required by applicable law or agreed to in writing, software
-; distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
-; WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the
-; License for the specific language governing permissions and limitations
-; under the License.
-;
-
 (define-library (liii os)
-  (export
-    os-arch os-type os-windows? os-linux? os-macos? os-temp-dir
-    os-sep pathsep
-    os-call ; system
-    mkdir chdir rmdir remove rename getenv putenv unsetenv getcwd listdir access getlogin getpid
+  (export os-arch
+    os-type
+    os-windows?
+    os-linux?
+    os-macos?
+    os-temp-dir
+    os-sep
+    pathsep
+    os-call
+    mkdir
+    chdir
+    rmdir
+    remove
+    rename
+    getenv
+    putenv
+    unsetenv
+    getcwd
+    listdir
+    access
+    getlogin
+    getpid
   ) ;export
   (import (scheme process-context)
-          (liii base)
-          (liii error)
-          (liii string)
+    (liii base)
+    (liii error)
+    (liii string)
   ) ;import
   (begin
 
@@ -55,32 +56,29 @@
     ) ;define
 
     (define (os-sep)
-      (if (os-windows?)
-        #\\
-        #\/
-      ) ;if
+      (if (os-windows?) #\\ #\/)
     ) ;define
 
     (define (pathsep)
-      (if (os-windows?)
-        #\;
-        #\:
-      ) ;if
+      (if (os-windows?) #\; #\:)
     ) ;define
 
     (define (%check-dir-andthen path f)
-      (cond
-        ((not (file-exists? path))
-         (file-not-found-error
-           (string-append "No such file or directory: '" path "'")
-         ) ;file-not-found-error
-        ) ;
-        ((not (g_isdir path))
-         (not-a-directory-error
-           (string-append "Not a directory: '" path "'")
-         ) ;not-a-directory-error
-        ) ;
-        (else (f path))
+      (cond ((not (file-exists? path))
+             (file-not-found-error (string-append "No such file or directory: '"
+                                     path
+                                     "'"
+                                   ) ;string-append
+             ) ;file-not-found-error
+            ) ;
+            ((not (g_isdir path))
+             (not-a-directory-error (string-append "Not a directory: '"
+                                      path
+                                      "'"
+                                    ) ;string-append
+             ) ;not-a-directory-error
+            ) ;
+            (else (f path))
       ) ;cond
     ) ;define
 
@@ -97,23 +95,23 @@
             ((eq? mode 'X_OK) (g_access path 128))
             ((eq? mode 'W_OK) (g_access path 2))
             ((eq? mode 'R_OK) (g_access path 1))
-            (else (value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"))
+            (else (value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"
+                  ) ;value-error
+            ) ;else
       ) ;cond
     ) ;define
 
     (define* (getenv key (default #f))
       (let ((val (get-environment-variable key)))
-        (if val
-            val
-            default
-        ) ;if
+        (if val val default)
       ) ;let
     ) ;define*
 
     (define (putenv key value)
       (if (and (string? key) (string? value))
-          (g_setenv key value)
-          (type-error "(putenv key value): key and value must be strings")
+        (g_setenv key value)
+        (type-error "(putenv key value): key and value must be strings"
+        ) ;type-error
       ) ;if
     ) ;define
 
@@ -123,13 +121,19 @@
 
     (define (os-temp-dir)
       (let ((temp-dir (g_os-temp-dir)))
-        (string-remove-suffix temp-dir (string (os-sep)))
+        (string-remove-suffix temp-dir
+          (string (os-sep))
+        ) ;string-remove-suffix
       ) ;let
     ) ;define
 
     (define (mkdir path)
       (if (file-exists? path)
-        (file-exists-error (string-append "File exists: '" path "'"))
+        (file-exists-error (string-append "File exists: '"
+                             path
+                             "'"
+                           ) ;string-append
+        ) ;file-exists-error
         (g_mkdir path)
       ) ;if
     ) ;define
@@ -139,46 +143,51 @@
     ) ;define
 
     (define (remove path)
-      (cond
-        ((not (string? path))
-         (type-error "(remove path): path must be string")
-        ) ;
-        ((not (file-exists? path))
-         (file-not-found-error (string-append "File not found: " path))
-        ) ;
-        ((g_isdir path)  ; 检查是否为目录
-         (value-error "Cannot remove a directory (use 'rmdir' instead)")
-        ) ;
-        (else
-         (g_remove-file path)
-        ) ;else
+      (cond ((not (string? path))
+             (type-error "(remove path): path must be string"
+             ) ;type-error
+            ) ;
+            ((not (file-exists? path))
+             (file-not-found-error (string-append "File not found: " path)
+             ) ;file-not-found-error
+            ) ;
+            ((g_isdir path)
+             (value-error "Cannot remove a directory (use 'rmdir' instead)"
+             ) ;value-error
+            ) ;
+            (else (g_remove-file path))
       ) ;cond
     ) ;define
 
     (define (rename src dst)
-      (cond
-        ((not (string? src))
-         (type-error "(rename src dst): src must be string")
-        ) ;
-        ((not (string? dst))
-         (type-error "(rename src dst): dst must be string")
-        ) ;
-        ((not (file-exists? src))
-         (file-not-found-error (string-append "File not found: " src))
-        ) ;
-        ((file-exists? dst)
-         (file-exists-error (string-append "File exists: " dst))
-        ) ;
-        (else
-         (g_rename src dst)
-        ) ;else
+      (cond ((not (string? src))
+             (type-error "(rename src dst): src must be string"
+             ) ;type-error
+            ) ;
+            ((not (string? dst))
+             (type-error "(rename src dst): dst must be string"
+             ) ;type-error
+            ) ;
+            ((not (file-exists? src))
+             (file-not-found-error (string-append "File not found: " src)
+             ) ;file-not-found-error
+            ) ;
+            ((file-exists? dst)
+             (file-exists-error (string-append "File exists: " dst)
+             ) ;file-exists-error
+            ) ;
+            (else (g_rename src dst))
       ) ;cond
     ) ;define
 
     (define (chdir path)
       (if (file-exists? path)
         (g_chdir path)
-        (file-not-found-error (string-append "No such file or directory: '" path "'"))
+        (file-not-found-error (string-append "No such file or directory: '"
+                                path
+                                "'"
+                              ) ;string-append
+        ) ;file-not-found-error
       ) ;if
     ) ;define
 
@@ -192,8 +201,8 @@
 
     (define (getlogin)
       (if (os-windows?)
-          (getenv "USERNAME")
-          (g_getlogin)
+        (getenv "USERNAME")
+        (g_getlogin)
       ) ;if
     ) ;define
 
@@ -203,4 +212,3 @@
 
   ) ;begin
 ) ;define-library
-
