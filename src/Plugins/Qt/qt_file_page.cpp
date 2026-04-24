@@ -29,6 +29,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QSet>
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
@@ -44,31 +45,30 @@ static const int MAX_RECENT_DOCS       = 50;
 static const int MAX_GLOBAL_RECENT_DOCS= 100;
 
 namespace {
-constexpr int kMainMargin         = 32;   // 主内容区外边距
-constexpr int kMainSpacing        = 24;   // 主纵向布局间距
-constexpr int kStyleCardWidth     = 160;  // 样式卡片宽度
-constexpr int kStyleCardHeight    = 256;  // 样式卡片高度
-constexpr int kStyleIconSize      = 96;   // 样式卡片图标尺寸
-constexpr int kStyleCardTopPadding= 12;   // 样式卡片顶部内边距
-constexpr int kStyleCardMargin    = 8;    // 样式卡片内边距
-constexpr int kStyleCardSpacing   = 4;    // 样式卡片内部控件间距
-constexpr int kStyleCardsSpacing  = 16;   // 样式卡片横向间距
-constexpr int kStyleCardRadius    = 8;    // 样式卡片圆角
-constexpr int kStyleIconRadius    = 8;    // 样式图标圆角
-constexpr int kSectionTitleFontPx = 16;   // 分区标题字号
-constexpr int kStyleIconFontPx    = 48;   // 样式图标字母字号
-constexpr int kStyleNameFontPx    = 14;   // 样式名称字号
-constexpr int kRecentListRadius   = 8;    // Recent 列表圆角
-constexpr int kRecentItemHeight   = 40;   // Recent 列表项高度
-constexpr int kRecentItemRadius   = 4;    // Recent 列表项圆角
-constexpr int kRecentItemMarginX  = 4;    // Recent 列表项横向边距
-constexpr int kRecentItemMarginY  = 2;    // Recent 列表项纵向边距
-constexpr int kRecentItemPaddingX = 8;    // Recent 列表项横向内边距
-constexpr int kRecentItemPaddingY = 6;    // Recent 列表项纵向内边距
-constexpr int kRecentItemSpacing  = 3;    // Recent 名称与时间标签间距
-constexpr int kRecentNameFontPx   = 15;   // Recent 文件名字号
-constexpr int kRecentTimeFontPx   = 11;   // Recent 时间字号
-constexpr int kRecentRefreshMs    = 1000; // Recent 自动刷新周期
+constexpr int kMainMargin         = 32;  // 主内容区外边距
+constexpr int kMainSpacing        = 24;  // 主纵向布局间距
+constexpr int kStyleCardWidth     = 160; // 样式卡片宽度
+constexpr int kStyleCardHeight    = 256; // 样式卡片高度
+constexpr int kStyleIconSize      = 96;  // 样式卡片图标尺寸
+constexpr int kStyleCardTopPadding= 12;  // 样式卡片顶部内边距
+constexpr int kStyleCardMargin    = 8;   // 样式卡片内边距
+constexpr int kStyleCardSpacing   = 4;   // 样式卡片内部控件间距
+constexpr int kStyleCardsSpacing  = 16;  // 样式卡片横向间距
+constexpr int kStyleCardRadius    = 8;   // 样式卡片圆角
+constexpr int kStyleIconRadius    = 8;   // 样式图标圆角
+constexpr int kSectionTitleFontPx = 16;  // 分区标题字号
+constexpr int kStyleIconFontPx    = 48;  // 样式图标字母字号
+constexpr int kStyleNameFontPx    = 14;  // 样式名称字号
+constexpr int kRecentListRadius   = 8;   // Recent 列表圆角
+constexpr int kRecentItemHeight   = 40;  // Recent 列表项高度
+constexpr int kRecentItemRadius   = 4;   // Recent 列表项圆角
+constexpr int kRecentItemMarginX  = 4;   // Recent 列表项横向边距
+constexpr int kRecentItemMarginY  = 2;   // Recent 列表项纵向边距
+constexpr int kRecentItemPaddingX = 8;   // Recent 列表项横向内边距
+constexpr int kRecentItemPaddingY = 6;   // Recent 列表项纵向内边距
+constexpr int kRecentItemSpacing  = 3;   // Recent 名称与时间标签间距
+constexpr int kRecentNameFontPx   = 15;  // Recent 文件名字号
+constexpr int kRecentTimeFontPx   = 11;  // Recent 时间字号
 } // namespace
 
 /******************************************************************************
@@ -152,11 +152,6 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
 
   setupUI ();
   loadRecentDocs ();
-
-  recentRefreshTimer_= new QTimer (this);
-  recentRefreshTimer_->setInterval (kRecentRefreshMs);
-  connect (recentRefreshTimer_, &QTimer::timeout, this,
-           &QtFilePage::refreshRecentDocs);
 }
 
 QtFilePage::~QtFilePage ()= default;
@@ -165,14 +160,12 @@ void
 QtFilePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
-  if (recentRefreshTimer_) recentRefreshTimer_->start ();
   // 初始排列卡片
   QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
 }
 
 void
 QtFilePage::hideEvent (QHideEvent* event) {
-  if (recentRefreshTimer_) recentRefreshTimer_->stop ();
   QWidget::hideEvent (event);
 }
 
@@ -352,7 +345,18 @@ QtFilePage::loadRecentDocs () {
   recentDocs_.clear ();
   recentList_->clear ();
 
-  const QStringList recentPaths= getRecentDocPathsFromScheme ();
+  QStringList   recentPaths= getRecentDocPathsFromScheme ();
+  QSet<QString> seen;
+  for (auto it= recentPaths.begin (); it != recentPaths.end ();) {
+    *it= QDir::fromNativeSeparators (*it);
+    if (seen.contains (*it)) {
+      it= recentPaths.erase (it);
+    }
+    else {
+      seen.insert (*it);
+      ++it;
+    }
+  }
 
   QString filePath= getRecentDocsFilePath ();
   QFile   file (filePath);
@@ -378,7 +382,7 @@ QtFilePage::loadRecentDocs () {
   QHash<QString, QJsonObject> recentByPath;
   for (const auto& val : recentArray) {
     const QJsonObject docObj= val.toObject ();
-    const QString     path  = docObj["path"].toString ();
+    const QString path= QDir::fromNativeSeparators (docObj["path"].toString ());
     if (!path.isEmpty ()) recentByPath.insert (path, docObj);
   }
 
@@ -428,7 +432,7 @@ QtFilePage::saveRecentDocs () {
   QHash<QString, QJsonObject> existingByPath;
   for (const auto& val : files) {
     QJsonObject obj = val.toObject ();
-    QString     path= obj["path"].toString ();
+    QString     path= QDir::fromNativeSeparators (obj["path"].toString ());
     if (!path.isEmpty ()) existingByPath.insert (path, obj);
   }
 
@@ -527,11 +531,12 @@ QtFilePage::renderRecentDocs () {
 
 void
 QtFilePage::addRecentDoc (const QString& path) {
-  QString fileName= QFileInfo (path).fileName ();
+  QString normPath= QDir::fromNativeSeparators (path);
+  QString fileName= QFileInfo (normPath).fileName ();
 
   // 检查是否已存在
   for (auto it= recentDocs_.begin (); it != recentDocs_.end (); ++it) {
-    if (it->filePath == path) {
+    if (it->filePath == normPath) {
       it->openedAt= QDateTime::currentDateTime ();
       // 移到最前面
       RecentDoc doc= *it;
@@ -539,7 +544,7 @@ QtFilePage::addRecentDoc (const QString& path) {
       recentDocs_.prepend (doc);
       saveRecentDocs ();
       eval_scheme ("(startup-tab-add-recent-doc " *
-                   qt_scheme_quote_utf8 (path) * ")");
+                   qt_scheme_quote_utf8 (normPath) * ")");
       refreshRecentDocs ();
       return;
     }
@@ -547,7 +552,7 @@ QtFilePage::addRecentDoc (const QString& path) {
 
   // 添加新条目
   RecentDoc doc;
-  doc.filePath= path;
+  doc.filePath= normPath;
   doc.fileName= fileName;
   doc.openedAt= QDateTime::currentDateTime ();
   recentDocs_.prepend (doc);
@@ -558,23 +563,24 @@ QtFilePage::addRecentDoc (const QString& path) {
   }
 
   saveRecentDocs ();
-  eval_scheme ("(startup-tab-add-recent-doc " * qt_scheme_quote_utf8 (path) *
-               ")");
+  eval_scheme ("(startup-tab-add-recent-doc " *
+               qt_scheme_quote_utf8 (normPath) * ")");
   refreshRecentDocs ();
 }
 
 void
 QtFilePage::removeRecentDoc (const QString& path) {
+  QString normPath= QDir::fromNativeSeparators (path);
   for (auto it= recentDocs_.begin (); it != recentDocs_.end (); ++it) {
-    if (it->filePath == path) {
+    if (it->filePath == normPath) {
       recentDocs_.erase (it);
       break;
     }
   }
   saveRecentDocs ();
 
-  eval_scheme ("(startup-tab-clear-recent-doc " * qt_scheme_quote_utf8 (path) *
-               ")");
+  eval_scheme ("(startup-tab-clear-recent-doc " *
+               qt_scheme_quote_utf8 (normPath) * ")");
   refreshRecentDocs ();
 }
 

@@ -279,11 +279,10 @@ QTStartupTabWidget::create_template_page () {
   templatePage_->initialize ();
 
   // Connect template opened signal to load document
+  // load-document internally calls buffer-notify-recent, which updates
+  // the Scheme-side recent list. QtFilePage will sync from Scheme on showEvent.
   connect (templatePage_, &QTTemplatePage::templateOpened, this,
            [this] (const QString& filePath) {
-             if (filePage_) {
-               filePage_->addRecentDoc (filePath);
-             }
              eval_scheme ("(load-document " * qt_scheme_quote_utf8 (filePath) *
                           ")");
            });

@@ -25,7 +25,6 @@ class QLabel;
 class QListWidget;
 class QListWidgetItem;
 class QButtonGroup;
-class QTimer;
 class QShowEvent;
 class QHideEvent;
 class QResizeEvent;
@@ -115,8 +114,7 @@ private:
 
   // 最近文档相关
   QList<RecentDoc> recentDocs_;
-  QListWidget*     recentList_        = nullptr;
-  QTimer*          recentRefreshTimer_= nullptr;
+  QListWidget*     recentList_= nullptr;
 };
 
 #endif // QT_FILE_PAGE_HPP

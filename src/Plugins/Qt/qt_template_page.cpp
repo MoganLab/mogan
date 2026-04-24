@@ -834,12 +834,15 @@ void
 QTTemplatePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
 
-  // Refresh grid when page becomes visible (avoid duplicate if already
-  // refreshed by onTemplatesLoaded)
-  if (gridNeedsRefresh_ && templateManager_ &&
-      templateManager_->isInitialized () &&
+  // Refresh grid when page becomes visible. If onTemplatesLoaded already
+  // refreshed while the widget had no proper size, recalculate now that
+  // the viewport has its final width to avoid showing the wrong column count.
+  if (templateManager_ && templateManager_->isInitialized () &&
       !templateManager_->templates ().isEmpty ()) {
-    refreshTemplateGrid (currentCategory_);
+    int newColumnCount= calculateColumnCount ();
+    if (gridNeedsRefresh_ || newColumnCount != currentColumnCount_) {
+      refreshTemplateGrid (currentCategory_);
+    }
   }
 }
 
