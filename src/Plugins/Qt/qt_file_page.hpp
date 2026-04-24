@@ -33,12 +33,12 @@ class QResizeEvent;
  * @brief 文档样式信息（支持空白文档和快捷模板）
  */
 struct DocStyle {
-  QString id;          // 样式ID
-  QString name;        // 显示名称
-  QString description; // 描述
-  QString thumbnailUrl;// 缩略图URL（模板卡片用）
-  QString fileUrl;     // 模板文件下载URL
-  QString templateId;  // 对应TemplateManager中的模板ID
+  QString id;           // 样式ID
+  QString name;         // 显示名称
+  QString description;  // 描述
+  QString thumbnailUrl; // 缩略图URL（模板卡片用）
+  QString fileUrl;      // 模板文件下载URL
+  QString templateId;   // 对应TemplateManager中的模板ID
 };
 
 /**
@@ -90,8 +90,8 @@ private:
   QLabel* nameLabel_= nullptr;
 
   // Thumbnail mode
-  QLabel*               thumbnailLabel_= nullptr;
-  QLabel*               titleLabel_    = nullptr;
+  QLabel*                thumbnailLabel_= nullptr;
+  QLabel*                titleLabel_    = nullptr;
   QNetworkAccessManager* networkManager_= nullptr;
 };
 

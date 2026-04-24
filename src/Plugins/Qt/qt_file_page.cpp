@@ -164,11 +164,10 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
   cardFrame->setFixedSize (cardW, cardH);
   cardFrame->setCursor (Qt::PointingHandCursor);
   cardFrame->setFrameShape (QFrame::NoFrame);
-  cardFrame->setStyleSheet (
-      QString ("QFrame#style-card-frame {"
-               "  border-radius: %1px;"
-               "}")
-          .arg (radiusPx));
+  cardFrame->setStyleSheet (QString ("QFrame#style-card-frame {"
+                                     "  border-radius: %1px;"
+                                     "}")
+                                .arg (radiusPx));
 
   int thumbW= cardW - pad * 2;
   int thumbH= cardH - pad * 2 - titleHAdj + DpiUtils::scaled (2);
@@ -180,16 +179,15 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
   thumbnailLabel_->setText (qt_translate ("Loading..."));
 
   titleLabel_= new QLabel (style.name, cardFrame);
-  int titleY= pad + thumbH - DpiUtils::scaled (2);
+  int titleY = pad + thumbH - DpiUtils::scaled (2);
   titleLabel_->setGeometry (pad, titleY, thumbW, titleHAdj);
   titleLabel_->setAlignment (Qt::AlignCenter);
   titleLabel_->setObjectName ("style-card-title");
-  titleLabel_->setStyleSheet (
-      QString ("QLabel#style-card-title {"
-               "  border-bottom-left-radius: %1px;"
-               "  border-bottom-right-radius: %1px;"
-               "}")
-          .arg (radiusPx));
+  titleLabel_->setStyleSheet (QString ("QLabel#style-card-title {"
+                                       "  border-bottom-left-radius: %1px;"
+                                       "  border-bottom-right-radius: %1px;"
+                                       "}")
+                                  .arg (radiusPx));
   DpiUtils::applyScaledFont (titleLabel_, kTemplateTitleFontPx);
 
   loadThumbnail (style.thumbnailUrl);
@@ -216,8 +214,7 @@ StyleCard::loadThumbnail (const QString& url) {
 }
 
 void
-StyleCard::onThumbnailReplyFinished (QNetworkReply* reply,
-                                     const QString&  url) {
+StyleCard::onThumbnailReplyFinished (QNetworkReply* reply, const QString& url) {
   if (!reply) return;
 
   if (reply->error () == QNetworkReply::NoError && thumbnailLabel_) {
@@ -225,16 +222,16 @@ StyleCard::onThumbnailReplyFinished (QNetworkReply* reply,
     QImage     image;
     if (image.loadFromData (data)) {
       QSize targetSize= thumbnailLabel_->size ();
-      qreal dpr    = thumbnailLabel_->devicePixelRatioF ();
-      int   scaledW= qRound (targetSize.width () * dpr);
-      int   scaledH= qRound (targetSize.height () * dpr);
+      qreal dpr       = thumbnailLabel_->devicePixelRatioF ();
+      int   scaledW   = qRound (targetSize.width () * dpr);
+      int   scaledH   = qRound (targetSize.height () * dpr);
 
       QImage scaled=
           image.scaled (scaledW, scaledH, Qt::KeepAspectRatioByExpanding,
                         Qt::SmoothTransformation);
       if (scaled.width () > scaledW || scaled.height () > scaledH) {
-        int x= (scaled.width () - scaledW) / 2;
-        int y= (scaled.height () - scaledH) / 2;
+        int x = (scaled.width () - scaledW) / 2;
+        int y = (scaled.height () - scaledH) / 2;
         scaled= scaled.copy (x, y, scaledW, scaledH);
       }
 
@@ -290,8 +287,10 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
        "elegantbook"},
       {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
        qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
-       "https://cdn.liiistem.cn/images/library/resume-report-application/NSFC-YSF(C)-v20260424.png",
-       "https://cdn.liiistem.cn/library/resume-report-application/NSFC-YSF(C)-v20260424.tmu",
+       "https://cdn.liiistem.cn/images/library/resume-report-application/"
+       "NSFC-YSF(C)-v20260424.png",
+       "https://cdn.liiistem.cn/library/resume-report-application/"
+       "NSFC-YSF(C)-v20260424.tmu",
        "nsfc-ysf-c"}};
 
   setupUI ();
@@ -769,8 +768,7 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
 void
 QtFilePage::createDocumentWithStyle (const QString& styleId) {
   if (styleId == "generic") {
-    eval_scheme ("(new-document-with-style " * qt_scheme_quote (styleId) *
-                  ")");
+    eval_scheme ("(new-document-with-style " * qt_scheme_quote (styleId) * ")");
     return;
   }
 
