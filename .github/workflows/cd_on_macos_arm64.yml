@@ -28,7 +28,7 @@ jobs:
       - name: xmake repo --update
         run: xmake repo --update
       - name: Build goldfish interpreter
-        run: xmake b goldfish -vD
+        run: xmake b goldfish
       - name: Package with Goldfish
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
