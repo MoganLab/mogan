@@ -144,10 +144,21 @@
   (call-quiet "security" "set-keychain-settings" "-lut" "21600" KEYCHAIN_PATH)
   (call-quiet "security" "unlock-keychain" "-p" password KEYCHAIN_PATH))
 
+(define (import-apple-ca-certificates)
+  (display "Importing Apple CA certificates...\n")
+  (let ((devid-ca "/tmp/apple_devid_ca.cer"))
+    ;; Download Developer ID Certification Authority if not present
+    (when (not (path-exists? devid-ca))
+          (call-or-quit "curl" "-L" "-o" devid-ca
+            "https://www.apple.com/certificateauthority/DeveloperIDCA.cer"))
+    ;; Import to temporary keychain
+    (call-quiet "security" "add-certificates" "-k" KEYCHAIN_PATH devid-ca)))
+
 (define (import-certificate password keychain-pass)
   (let ((ec1 (os-call (string-append "bash -c 'security import " CERT_PATH " -P " password " -k " KEYCHAIN_PATH " -T /usr/bin/codesign 2>/dev/null'"))))
     (when (not (= ec1 0))
           (call-quiet "security" "import" CERT_PATH "-P" password "-k" KEYCHAIN_PATH)))
+  (import-apple-ca-certificates)
   (call-quiet "security" "set-key-partition-list" "-S" "apple-tool:,apple:,codesign:" "-s" "-k" keychain-pass KEYCHAIN_PATH)
   ;; Build keychain search list dynamically
   (let ((login-keychain (path-join (getenv "HOME") "Library/Keychains/login.keychain-db"))
