@@ -201,7 +201,7 @@
           (lambda (entry)
             (when (not result)
               (let ((full-path (path-join d entry)))
-                (cond ((and (path-file? full-path) (predicate full-path))
+                (cond ((predicate full-path)
                        (set! result full-path))
                       ((path-dir? full-path)
                        (walk full-path))))))
