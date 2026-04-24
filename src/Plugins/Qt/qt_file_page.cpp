@@ -491,7 +491,7 @@ QtFilePage::renderRecentDocs () {
 
     auto* rowWidget= new QWidget (recentList_);
     rowWidget->setObjectName ("startup-tab-recent-item");
-    auto* rowLayout= new QVBoxLayout (rowWidget);
+    auto* rowLayout= new QHBoxLayout (rowWidget);
     rowLayout->setContentsMargins (DpiUtils::scaled (kRecentItemPaddingX),
                                    DpiUtils::scaled (kRecentItemPaddingY),
                                    DpiUtils::scaled (kRecentItemPaddingX),
@@ -505,12 +505,15 @@ QtFilePage::renderRecentDocs () {
     nameFont.setBold (true);
     nameLabel->setFont (nameFont);
 
-    auto* pathLabel= new QLabel (doc.filePath, rowWidget);
-    pathLabel->setObjectName ("startup-tab-recent-path");
-    DpiUtils::applyScaledFont (pathLabel, kRecentPathFontPx);
+    auto* timeLabel= new QLabel (qt_translate ("Last opened") + ": " +
+                                     doc.openedAt.toString ("yyyy-MM-dd hh:mm"),
+                                 rowWidget);
+    timeLabel->setObjectName ("startup-tab-recent-time");
+    DpiUtils::applyScaledFont (timeLabel, kRecentPathFontPx);
+    timeLabel->setAlignment (Qt::AlignRight | Qt::AlignVCenter);
 
-    rowLayout->addWidget (nameLabel);
-    rowLayout->addWidget (pathLabel);
+    rowLayout->addWidget (nameLabel, 1, Qt::AlignLeft | Qt::AlignVCenter);
+    rowLayout->addWidget (timeLabel, 0, Qt::AlignRight | Qt::AlignVCenter);
     recentList_->setItemWidget (item, rowWidget);
   }
 

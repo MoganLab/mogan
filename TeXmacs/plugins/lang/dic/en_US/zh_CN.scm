@@ -1278,6 +1278,7 @@
 ("last field" "最后面的区域")
 ("last page" "最后一页")
 ("last occurrence (End)" "最后一项 (End)")
+("last opened" "最后打开时间")
 ("last similar" "相似的(最后面)")
 ("last" "最后面")
 ("latex command" "LaTeX命令")

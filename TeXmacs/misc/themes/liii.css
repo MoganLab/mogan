@@ -1164,10 +1164,6 @@ QLabel#startup-tab-recent-name {
   color: #1f2933;
 }
 
-QLabel#startup-tab-recent-path {
-  color: #6b7785;
-}
-
 QWidget#style-card {
   border: 1px solid #cfcfcf;
   border-radius: 8px;
