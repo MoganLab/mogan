@@ -52,41 +52,36 @@ static const int MAX_RECENT_DOCS       = 50;
 static const int MAX_GLOBAL_RECENT_DOCS= 100;
 
 namespace {
-constexpr int kMainMargin         = 32;   // 主内容区外边距
-constexpr int kMainSpacing        = 24;   // 主纵向布局间距
-constexpr int kStyleCardWidth     = 160;  // 样式卡片宽度
-constexpr int kStyleCardHeight    = 256;  // 样式卡片高度
-constexpr int kStyleIconSize      = 96;   // 样式卡片图标尺寸
-constexpr int kStyleCardTopPadding= 12;   // 样式卡片顶部内边距
-constexpr int kStyleCardMargin    = 8;    // 样式卡片内边距
-constexpr int kStyleCardSpacing   = 4;    // 样式卡片内部控件间距
-constexpr int kStyleCardsSpacing  = 16;   // 样式卡片横向间距
-constexpr int kStyleCardRadius    = 8;    // 样式卡片圆角
-constexpr int kStyleIconRadius    = 8;    // 样式图标圆角
-constexpr int kSectionTitleFontPx = 16;   // 分区标题字号
-constexpr int kStyleIconFontPx    = 48;   // 样式图标字母字号
-constexpr int kStyleNameFontPx    = 14;   // 样式名称字号
-constexpr int kRecentListRadius   = 8;    // Recent 列表圆角
-constexpr int kRecentItemHeight   = 40;   // Recent 列表项高度
-constexpr int kRecentItemRadius   = 4;    // Recent 列表项圆角
-constexpr int kRecentItemMarginX  = 4;    // Recent 列表项横向边距
-constexpr int kRecentItemMarginY  = 2;    // Recent 列表项纵向边距
-constexpr int kRecentItemPaddingX = 8;    // Recent 列表项横向内边距
-constexpr int kRecentItemPaddingY = 6;    // Recent 列表项纵向内边距
-constexpr int kRecentItemSpacing  = 3;    // Recent 名称与时间标签间距
-constexpr int kRecentNameFontPx   = 15;   // Recent 文件名字号
-constexpr int kRecentTimeFontPx   = 11;   // Recent 时间字号
-constexpr int kRecentRefreshMs    = 1000; // Recent 自动刷新周期
-
-// 模板卡片标题高度
-constexpr int kStyleTitleHeight= 29;
-
-// 缩略图尺寸（与模板中心一致）
-constexpr int kStyleThumbnailTargetW= 160;
-constexpr int kStyleThumbnailTargetH= 227;
-
-// 模板卡片标题字号
-constexpr int kTemplateTitleFontPx= 10;
+constexpr int kMainMargin           = 32;   // 主内容区外边距
+constexpr int kMainSpacing          = 24;   // 主纵向布局间距
+constexpr int kStyleCardWidth       = 160;  // 样式卡片宽度
+constexpr int kStyleCardHeight      = 256;  // 样式卡片高度
+constexpr int kStyleIconSize        = 96;   // 样式卡片图标尺寸
+constexpr int kStyleCardTopPadding  = 12;   // 样式卡片顶部内边距
+constexpr int kStyleCardMargin      = 8;    // 样式卡片内边距
+constexpr int kStyleCardSpacing     = 4;    // 样式卡片内部控件间距
+constexpr int kStyleCardsSpacing    = 16;   // 样式卡片横向间距
+constexpr int kStyleCardRadius      = 8;    // 样式卡片圆角
+constexpr int kStyleIconRadius      = 8;    // 样式图标圆角
+constexpr int kSectionTitleFontPx   = 16;   // 分区标题字号
+constexpr int kStyleIconFontPx      = 48;   // 样式图标字母字号
+constexpr int kStyleNameFontPx      = 14;   // 样式名称字号
+constexpr int kRecentListRadius     = 8;    // Recent 列表圆角
+constexpr int kRecentItemHeight     = 40;   // Recent 列表项高度
+constexpr int kRecentItemRadius     = 4;    // Recent 列表项圆角
+constexpr int kRecentItemMarginX    = 4;    // Recent 列表项横向边距
+constexpr int kRecentItemMarginY    = 2;    // Recent 列表项纵向边距
+constexpr int kRecentItemPaddingX   = 8;    // Recent 列表项横向内边距
+constexpr int kRecentItemPaddingY   = 6;    // Recent 列表项纵向内边距
+constexpr int kRecentItemSpacing    = 3;    // Recent 名称与时间标签间距
+constexpr int kRecentNameFontPx     = 15;   // Recent 文件名字号
+constexpr int kRecentTimeFontPx     = 11;   // Recent 时间字号
+constexpr int kRecentRefreshMs      = 1000; // Recent 自动刷新周期
+constexpr int kStyleTitleHeight     = 29;   // 模板卡片标题高度
+constexpr int kStyleCardInnerPadding= 4;    // 缩略图卡片内边距
+constexpr int kStyleThumbnailTargetW= 160;  // 缩略图宽度
+constexpr int kStyleThumbnailTargetH= 227;  // 缩略图高度
+constexpr int kTemplateTitleFontPx  = 10;   // 模板卡片标题字号
 } // namespace
 
 /******************************************************************************
@@ -156,7 +151,7 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
   int cardH    = DpiUtils::scaled (kStyleCardHeight);
   int titleH   = DpiUtils::scaled (kStyleTitleHeight);
   int radiusPx = DpiUtils::scaled (kStyleCardRadius);
-  int pad      = DpiUtils::scaled (4);
+  int pad      = DpiUtils::scaled (kStyleCardInnerPadding);
   int titleHAdj= titleH - DpiUtils::scaled (1);
 
   QFrame* cardFrame= new QFrame (this);
@@ -201,6 +196,7 @@ StyleCard::loadThumbnail (const QString& url) {
 
   QPixmap cached= ThumbnailCache::instance ()->get (url, targetSize);
   if (!cached.isNull ()) {
+    cached.setDevicePixelRatio (thumbnailLabel_->devicePixelRatioF ());
     thumbnailLabel_->setPixmap (cached);
     return;
   }
@@ -280,8 +276,8 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
   styles_= {
       {"generic", qt_translate ("New Blank Document"),
        qt_translate ("Create a new blank document"), "", "", ""},
-      {"elegantbook", qt_translate ("ElegantBook"),
-       qt_translate ("ElegantBook style course notes and lecture slides"),
+      {"elegantbook", qt_translate ("ElegantBook Notes Template"),
+       qt_translate ("ElegantBook-style notes template"),
        "https://cdn.liiistem.cn/images/library/elegantbook.png",
        "https://cdn.liiistem.cn/library/elegantbook-v20260417.tmu",
        "elegantbook"},
