@@ -33,11 +33,11 @@
         (exit ec)))
 
 (define (shell-output cmd)
-  (os-call (string-append cmd " > /tmp/gf_cmd_out.txt 2>&1"))
+  (call-or-quit "bash" "-c" (string-append "'" cmd " > /tmp/gf_cmd_out.txt 2>&1'"))
   (path-read-text "/tmp/gf_cmd_out.txt"))
 
 (define (shell-output-unchecked cmd)
-  (os-call (string-append cmd " > /tmp/gf_cmd_out.txt 2>&1"))
+  (os-call (string-append "bash -c '" cmd " > /tmp/gf_cmd_out.txt 2>&1'"))
   (path-read-text "/tmp/gf_cmd_out.txt"))
 
 (define (extract-version-from-file file-path)
@@ -117,7 +117,7 @@
 (define CERT_PATH "/tmp/mogan_cert.p12")
 
 (define (generate-keychain-pass)
-  (os-call "openssl rand -base64 32 > /tmp/gf_keychain_pass.txt")
+  (call-or-quit "bash" "-c" "'openssl rand -base64 32 > /tmp/gf_keychain_pass.txt'")
   (string-trim-both (path-read-text "/tmp/gf_keychain_pass.txt")))
 
 (define (decode-base64-to-file b64-str out-path)
@@ -125,7 +125,7 @@
   (call-or-quit "base64" "-D" "-i" "/tmp/gf_cert_b64.txt" "-o" out-path))
 
 (define (delete-keychain)
-  (os-call (string-append "security delete-keychain " KEYCHAIN_PATH " 2>/dev/null")))
+  (os-call (string-append "bash -c 'security delete-keychain " KEYCHAIN_PATH " 2>/dev/null'")))
 
 (define (create-keychain password)
   (call-quiet "security" "create-keychain" "-p" password KEYCHAIN_PATH)
@@ -133,7 +133,7 @@
   (call-quiet "security" "unlock-keychain" "-p" password KEYCHAIN_PATH))
 
 (define (import-certificate password keychain-pass)
-  (let ((ec1 (os-call (string-append "security import " CERT_PATH " -P " password " -k " KEYCHAIN_PATH " -T /usr/bin/codesign 2>/dev/null"))))
+  (let ((ec1 (os-call (string-append "bash -c 'security import " CERT_PATH " -P " password " -k " KEYCHAIN_PATH " -T /usr/bin/codesign 2>/dev/null'"))))
     (when (not (= ec1 0))
           (call-quiet "security" "import" CERT_PATH "-P" password "-k" KEYCHAIN_PATH)))
   (call-quiet "security" "set-key-partition-list" "-S" "apple-tool:,apple:,codesign:" "-s" "-k" keychain-pass KEYCHAIN_PATH)
@@ -292,7 +292,7 @@
                     (loop (cdr lines))))))))))
 
 (define (hdiutil-detach mount-point)
-  (os-call (string-append "hdiutil detach \"" mount-point "\" -force")))
+  (os-call (string-append "bash -c 'hdiutil detach \"" mount-point "\" -force'")))
 
 (define (find-app-in-mount mount-point)
   (let ((entries (listdir mount-point)))
@@ -388,12 +388,12 @@
                                     (call-quiet "codesign" "--force" "--options" "runtime" "--deep" "--timestamp" "--sign" identity app)
 
                                     ;; Recreate DMG
-                                    (os-call (string-append "rm \"" dmg "\""))
+                                    (os-call (string-append "bash -c 'rm \"" dmg "\"'"))
                                     (display "Re-creating DMG...\n")
                                     (create-dmg-from-app app dmg)
 
                                     ;; Cleanup temp
-                                    (os-call (string-append "rm -rf \"" temp-dir "\""))
+                                    (os-call (string-append "bash -c 'rm -rf \"" temp-dir "\"'"))
 
                                     ;; Sign DMG
                                     (display "Signing DMG...\n")
@@ -439,7 +439,7 @@
                                             (display "Staple failed after 3 attempts\n")
                                             (begin
                                               (display (string-append "Staple attempt " (number->string attempt) "\n"))
-                                              (let ((ec (os-call (string-append "xcrun stapler staple \"" dmg "\""))))
+                                               (let ((ec (os-call (string-append "bash -c 'xcrun stapler staple \"" dmg "\"'"))))
                                                 (if (= ec 0)
                                                     (display "Staple successful\n")
                                                     (begin
