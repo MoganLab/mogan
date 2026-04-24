@@ -67,7 +67,7 @@ constexpr int kRecentItemPaddingX = 8;    // Recent 列表项横向内边距
 constexpr int kRecentItemPaddingY = 6;    // Recent 列表项纵向内边距
 constexpr int kRecentItemSpacing  = 3;    // Recent 名称与路径行间距
 constexpr int kRecentNameFontPx   = 15;   // Recent 文件名字号
-constexpr int kRecentPathFontPx   = 11;   // Recent 路径字号
+constexpr int kRecentTimeFontPx   = 11;   // Recent 时间字号
 constexpr int kRecentRefreshMs    = 1000; // Recent 自动刷新周期
 } // namespace
 
@@ -510,7 +510,7 @@ QtFilePage::renderRecentDocs () {
                                      doc.openedAt.toString ("yyyy-MM-dd hh:mm"),
                                  rowWidget);
     timeLabel->setObjectName ("startup-tab-recent-time");
-    DpiUtils::applyScaledFont (timeLabel, kRecentPathFontPx);
+    DpiUtils::applyScaledFont (timeLabel, kRecentTimeFontPx);
     timeLabel->setAlignment (Qt::AlignRight | Qt::AlignVCenter);
 
     rowLayout->addWidget (nameLabel, 1, Qt::AlignLeft | Qt::AlignVCenter);
