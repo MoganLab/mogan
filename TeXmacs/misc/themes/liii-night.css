@@ -358,10 +358,7 @@ QTMTabPage {
   color: #FFFFFF;
   background-color: transparent;
   border: 1px solid transparent;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-radius: 10px;
 }
 
 QTMTabPage:hover {
@@ -373,8 +370,7 @@ QTMTabPage:checked {
   background-color: #333333;
   border: 1px solid #4c4c4c;
   border-bottom: none;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  border-radius: 10px;
   color: #FFFFFF;
 }
 

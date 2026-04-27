@@ -348,10 +348,7 @@ QTMTabPage {
   color: #000000;
   background-color: transparent;
   border: 1px solid transparent;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
+  border-radius: 10px;
 }
 
 QTMTabPage:hover {
@@ -363,8 +360,7 @@ QTMTabPage:checked {
   background-color: #FFFFFF;
   border: 1px solid #CFCFCF;
   border-bottom: none;
-  border-top-left-radius: 10px;
-  border-top-right-radius: 10px;
+  border-radius: 10px;
 }
 
 QTMTabPage QToolButton#tabpage-close-button {
