@@ -1119,12 +1119,6 @@ QLabel#startup-tab-template-info {
 
 QLabel#startup-tab-template-thumbnail {
   background: #f5f5f5;
-  border: 1px solid #dddddd;
-}
-
-QLabel#startup-tab-template-thumbnail[thumbnailLoaded="true"] {
-  background: transparent;
-  border: none;
 }
 
 /* Startup tab - file page */

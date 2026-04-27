@@ -18,7 +18,6 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QHash>
-#include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
@@ -226,15 +225,11 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
 
   setupUI ();
   loadRecentDocs ();
-}
 
-QtFilePage::~QtFilePage ()= default;
-
-void
-QtFilePage::showEvent (QShowEvent* event) {
-  QWidget::showEvent (event);
-  refreshRecentDocs ();
-  if (recentRefreshTimer_) recentRefreshTimer_->start ();
+  recentRefreshTimer_= new QTimer (this);
+  recentRefreshTimer_->setInterval (kRecentRefreshMs);
+  connect (recentRefreshTimer_, &QTimer::timeout, this,
+           &QtFilePage::refreshRecentDocs);
 
   TemplateManager* mgr= TemplateManager::instance ();
   if (mgr) {
@@ -247,7 +242,15 @@ QtFilePage::showEvent (QShowEvent* event) {
       QTimer::singleShot (0, [mgr] () { mgr->initialize (); });
     }
   }
+}
 
+QtFilePage::~QtFilePage ()= default;
+
+void
+QtFilePage::showEvent (QShowEvent* event) {
+  QWidget::showEvent (event);
+  refreshRecentDocs ();
+  if (recentRefreshTimer_) recentRefreshTimer_->start ();
   QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
 }
 

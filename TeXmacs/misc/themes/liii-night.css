@@ -1117,12 +1117,6 @@ QLabel#startup-tab-template-info {
 
 QLabel#startup-tab-template-thumbnail {
   background: #4a4f57;
-  border: 1px solid #616a75;
-}
-
-QLabel#startup-tab-template-thumbnail[thumbnailLoaded="true"] {
-  background: transparent;
-  border: none;
 }
 
 /* Startup tab - file page */
@@ -1186,7 +1180,7 @@ QFrame#style-card-frame {
 }
 
 QFrame#style-card-frame:hover {
-  border: 2px solid #2791ad;
+  border: 1px solid #2791ad;
 }
 
 QLabel#style-card-thumbnail {

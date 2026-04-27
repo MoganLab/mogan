@@ -49,12 +49,6 @@ struct RecentDoc {
 };
 
 /**
- * @brief 样式卡片部件
- */
-class QNetworkAccessManager;
-class QNetworkReply;
-
-/**
  * @brief 样式卡片部件（支持图标模式和缩略图模板模式）
  */
 class StyleCard : public QWidget {

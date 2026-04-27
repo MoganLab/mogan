@@ -73,14 +73,6 @@ constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
 constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
 constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
 
-void
-applyThumbnailFrameStyle (QLabel* label) {
-  if (!label) return;
-  label->setStyleSheet (
-      QString ("QLabel#startup-tab-template-thumbnail { border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kThumbRadiusPx)));
-}
-
 } // namespace
 
 QTTemplatePage::QTTemplatePage (QWidget* parent)
@@ -395,8 +387,6 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   thumbnailLabel->setFixedSize (DpiUtils::scaled (THUMBNAIL_WIDTH),
                                 DpiUtils::scaled (THUMBNAIL_HEIGHT));
   thumbnailLabel->setAlignment (Qt::AlignCenter);
-  thumbnailLabel->setProperty ("thumbnailLoaded", false);
-  applyThumbnailFrameStyle (thumbnailLabel);
   thumbnailLabel->setText (qt_translate ("Loading..."));
   layout->addWidget (thumbnailLabel, 0, Qt::AlignHCenter);
 
