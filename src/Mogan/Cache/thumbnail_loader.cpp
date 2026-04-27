@@ -131,7 +131,7 @@ ThumbnailLoader::processQueue () {
                                             etag, lastModified);
         }
       }
-      if (req.label->pixmap ().isNull ()) {
+      if (!req.label.isNull () && req.label->pixmap ().isNull ()) {
         req.label->setText (qt_translate ("Preview"));
       }
 

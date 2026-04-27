@@ -74,8 +74,6 @@ constexpr int kRecentNameFontPx     = 15;  // Recent 文件名字号
 constexpr int kRecentTimeFontPx     = 11;  // Recent 时间字号
 constexpr int kStyleTitleHeight     = 29;  // 模板卡片标题高度
 constexpr int kStyleCardInnerPadding= 4;   // 缩略图卡片内边距
-constexpr int kStyleThumbnailTargetW= 160; // 缩略图宽度
-constexpr int kStyleThumbnailTargetH= 227; // 缩略图高度
 constexpr int kTemplateTitleFontPx  = 10;  // 模板卡片标题字号
 } // namespace
 
@@ -325,7 +323,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
     if (card->isTemplate ()) {
       TemplateManager* mgr= TemplateManager::instance ();
       if (mgr && mgr->isInitialized ()) {
-        if (auto meta= mgr->templateById (card->styleId ())) {
+        if (auto meta= mgr->templateById (card->templateId ())) {
           if (!meta->thumbnailUrl.isEmpty ()) {
             card->loadThumbnail (meta->thumbnailUrl);
           }
@@ -545,7 +543,10 @@ QtFilePage::saveRecentDocs () {
   root["files"]  = updatedFiles;
 
   if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) return;
-  file.write (QJsonDocument (root).toJson ());
+  QByteArray jsonData= QJsonDocument (root).toJson ();
+  if (file.write (jsonData) != jsonData.size ()) {
+    qWarning () << "Failed to write recent docs file";
+  }
   file.close ();
 }
 
@@ -745,14 +746,12 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
   dialog->setWindowModality (Qt::WindowModal);
   dialog->setAutoClose (true);
 
-  connect (dialog, &QProgressDialog::canceled, this,
-           [mgr, templateId] () { mgr->cancelDownload (templateId); });
-
   struct DownloadCtx {
     QPointer<QProgressDialog> dialog;
     QMetaObject::Connection   progressConn;
     QMetaObject::Connection   completedConn;
     QMetaObject::Connection   failedConn;
+    bool                      cancelledByUser= false;
 
     void cleanup () {
       QObject::disconnect (progressConn);
@@ -767,6 +766,11 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
 
   auto ctx   = std::make_shared<DownloadCtx> ();
   ctx->dialog= dialog;
+
+  connect (dialog, &QProgressDialog::canceled, this, [ctx, mgr, templateId] () {
+    ctx->cancelledByUser= true;
+    mgr->cancelDownload (templateId);
+  });
 
   ctx->progressConn=
       connect (mgr, &TemplateManager::downloadProgress, this,
@@ -790,7 +794,9 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
       [this, ctx, templateId] (const QString& id, const QString& error) {
         if (id != templateId) return;
         ctx->cleanup ();
-        QMessageBox::warning (this, qt_translate ("Download Failed"), error);
+        if (!ctx->cancelledByUser) {
+          QMessageBox::warning (this, qt_translate ("Download Failed"), error);
+        }
       });
 
   mgr->downloadTemplate (templateId);
