@@ -167,6 +167,21 @@
   ((balloon (icon "tm_ai.xpm") "Sign in to use AI features")
    (login)))
 
+(tm-define (zhihu-share-current-buffer)
+  (use-modules (data zhihu))
+  (if (logged-in?)
+      (and-with html (current-buffer->zhihu-html)
+        (if (zhihu-share-set-clipboard-html html)
+            (open-url "https://zhuanlan.zhihu.com/write")
+            (set-message "HTML clipboard unavailable"
+                         "Zhihu share requires Qt HTML clipboard support")))
+      (login)))
+
+(menu-bind insert-zhihu-share-menu
+  (if (not (community-stem?))
+      ((balloon (icon "tm_share.svg") "Share to Zhihu")
+       (zhihu-share-current-buffer))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Insert icons
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -200,4 +215,6 @@
   (if (or (community-stem?) (logged-in?))
       (link insert-llm-menu))
   (if (and (not (logged-in?)) (not (community-stem?)))
-      (link llm-login-menu)))
+      (link llm-login-menu))
+  (if (not (community-stem?))
+      (link insert-zhihu-share-menu)))
