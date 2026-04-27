@@ -130,14 +130,9 @@ ThumbnailLoader::processQueue () {
           ThumbnailCache::instance ()->put (req.url, req.targetSize, pixmap,
                                             etag, lastModified);
         }
-        else {
-          req.label->setText (qt_translate ("Preview"));
-        }
       }
-      else {
-        if (req.label->pixmap ().isNull ()) {
-          req.label->setText (qt_translate ("Preview"));
-        }
+      if (req.label->pixmap ().isNull ()) {
+        req.label->setText (qt_translate ("Preview"));
       }
 
       validatedUrls_.insert (req.url);

@@ -22,7 +22,6 @@
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QStyle>
-#include <QTemporaryFile>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -61,8 +60,6 @@ constexpr int kPreviewTitleFontPx  = 18;  // 预览标题字号
 constexpr int kPreviewDescFontPx   = 14;  // 预览描述字号
 constexpr int kUseButtonFontPx     = 13;  // Use Template 按钮字号
 constexpr int kInfoFontPx          = 10;  // 模板信息字号
-constexpr int kThumbRadiusPx       = 4;   // 缩略图圆角
-constexpr int kThumbBorderWidthPx  = 1;   // 缩略图边框宽度
 constexpr int kUseButtonRadiusPx   = 4;   // Use Template 按钮圆角
 constexpr int kUseButtonPadYPx     = 8;   // Use Template 按钮纵向内边距
 constexpr int kUseButtonPadXPx     = 24;  // Use Template 按钮横向内边距

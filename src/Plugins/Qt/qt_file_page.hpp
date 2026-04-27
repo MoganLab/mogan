@@ -26,7 +26,6 @@ class QListWidget;
 class QListWidgetItem;
 class QButtonGroup;
 class QShowEvent;
-class QHideEvent;
 class QResizeEvent;
 
 /**
@@ -59,6 +58,7 @@ public:
   ~StyleCard ();
 
   QString styleId () const { return styleId_; }
+  QString templateId () const { return templateId_; }
   bool    isTemplate () const { return isTemplate_; }
 
 signals:
@@ -76,6 +76,7 @@ private:
   void setupThumbnailMode (const DocStyle& style);
 
   QString styleId_;
+  QString templateId_;
   bool    isTemplate_= false;
 
   // Icon mode
@@ -102,7 +103,6 @@ public:
 
 protected:
   void showEvent (QShowEvent* event) override;
-  void hideEvent (QHideEvent* event) override;
   void resizeEvent (QResizeEvent* event) override;
 
 private:

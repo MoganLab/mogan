@@ -11,7 +11,6 @@
 
 #include "qt_file_page.hpp"
 #include <QButtonGroup>
-#include <QDebug>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -36,6 +35,7 @@
 #include <QStyleOption>
 #include <QTimer>
 #include <QVBoxLayout>
+#include <memory>
 
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
@@ -59,7 +59,6 @@ constexpr int kStyleCardMargin      = 8;   // 样式卡片内边距
 constexpr int kStyleCardSpacing     = 4;   // 样式卡片内部控件间距
 constexpr int kStyleCardsSpacing    = 16;  // 样式卡片横向间距
 constexpr int kStyleCardRadius      = 8;   // 样式卡片圆角
-constexpr int kStyleIconRadius      = 8;   // 样式图标圆角
 constexpr int kSectionTitleFontPx   = 16;  // 分区标题字号
 constexpr int kStyleIconFontPx      = 48;  // 样式图标字母字号
 constexpr int kStyleNameFontPx      = 14;  // 样式名称字号
@@ -85,7 +84,7 @@ constexpr int kTemplateTitleFontPx  = 10;  // 模板卡片标题字号
  ******************************************************************************/
 
 StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
-    : QWidget (parent), styleId_ (style.id),
+    : QWidget (parent), styleId_ (style.id), templateId_ (style.templateId),
       isTemplate_ (!style.templateId.isEmpty ()) {
   setFixedSize (DpiUtils::scaled (kStyleCardWidth),
                 DpiUtils::scaled (kStyleCardHeight));
@@ -143,12 +142,11 @@ StyleCard::setupIconMode (const DocStyle& style) {
 
 void
 StyleCard::setupThumbnailMode (const DocStyle& style) {
-  int cardW    = DpiUtils::scaled (kStyleCardWidth);
-  int cardH    = DpiUtils::scaled (kStyleCardHeight);
-  int titleH   = DpiUtils::scaled (kStyleTitleHeight);
-  int radiusPx = DpiUtils::scaled (kStyleCardRadius);
-  int pad      = DpiUtils::scaled (kStyleCardInnerPadding);
-  int titleHAdj= titleH - DpiUtils::scaled (1);
+  int cardW   = DpiUtils::scaled (kStyleCardWidth);
+  int cardH   = DpiUtils::scaled (kStyleCardHeight);
+  int titleH  = DpiUtils::scaled (kStyleTitleHeight);
+  int radiusPx= DpiUtils::scaled (kStyleCardRadius);
+  int pad     = DpiUtils::scaled (kStyleCardInnerPadding);
 
   QFrame* cardFrame= new QFrame (this);
   cardFrame->setObjectName ("style-card-frame");
@@ -161,7 +159,7 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
                                 .arg (radiusPx));
 
   int thumbW= cardW - pad * 2;
-  int thumbH= cardH - pad * 2 - titleHAdj + DpiUtils::scaled (2);
+  int thumbH= cardH - pad * 2 - titleH;
 
   thumbnailLabel_= new QLabel (cardFrame);
   thumbnailLabel_->setGeometry (pad, pad, thumbW, thumbH);
@@ -170,8 +168,7 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
   thumbnailLabel_->setText (qt_translate ("Loading..."));
 
   titleLabel_= new QLabel (style.name, cardFrame);
-  int titleY = pad + thumbH - DpiUtils::scaled (2);
-  titleLabel_->setGeometry (pad, titleY, thumbW, titleHAdj);
+  titleLabel_->setGeometry (pad, pad + thumbH, thumbW, titleH);
   titleLabel_->setAlignment (Qt::AlignCenter);
   titleLabel_->setObjectName ("style-card-title");
   titleLabel_->setStyleSheet (QString ("QLabel#style-card-title {"
@@ -246,11 +243,6 @@ QtFilePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
   QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
-}
-
-void
-QtFilePage::hideEvent (QHideEvent* event) {
-  QWidget::hideEvent (event);
 }
 
 void
@@ -756,35 +748,50 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
   connect (dialog, &QProgressDialog::canceled, this,
            [mgr, templateId] () { mgr->cancelDownload (templateId); });
 
-  QMetaObject::Connection progressConn=
-      connect (mgr, &TemplateManager::downloadProgress, this,
-               [dialog] (const QString&, qint64 received, qint64 total) {
-                 if (!dialog || total <= 0) return;
-                 dialog->setMaximum (static_cast<int> (total));
-                 dialog->setValue (static_cast<int> (received));
-               });
+  struct DownloadCtx {
+    QPointer<QProgressDialog> dialog;
+    QMetaObject::Connection   progressConn;
+    QMetaObject::Connection   completedConn;
+    QMetaObject::Connection   failedConn;
 
-  auto cleanup= [dialog, progressConn] () {
-    QObject::disconnect (progressConn);
-    if (dialog) {
-      dialog->hide ();
-      dialog->deleteLater ();
+    void cleanup () {
+      QObject::disconnect (progressConn);
+      QObject::disconnect (completedConn);
+      QObject::disconnect (failedConn);
+      if (dialog) {
+        dialog->hide ();
+        dialog->deleteLater ();
+      }
     }
   };
 
-  connect (mgr, &TemplateManager::downloadCompleted, this,
-           [this, cleanup] (const QString&, const QString& localPath) {
-             cleanup ();
-             eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) *
-                          ")");
-           });
+  auto ctx   = std::make_shared<DownloadCtx> ();
+  ctx->dialog= dialog;
 
-  connect (mgr, &TemplateManager::downloadFailed, this,
-           [this, cleanup] (const QString&, const QString& error) {
-             cleanup ();
-             QMessageBox::warning (this, qt_translate ("Download Failed"),
-                                   error);
-           });
+  ctx->progressConn=
+      connect (mgr, &TemplateManager::downloadProgress, this,
+               [ctx] (const QString&, qint64 received, qint64 total) {
+                 if (!ctx->dialog || total <= 0) return;
+                 ctx->dialog->setMaximum (static_cast<int> (total));
+                 ctx->dialog->setValue (static_cast<int> (received));
+               });
+
+  ctx->completedConn= connect (
+      mgr, &TemplateManager::downloadCompleted, this,
+      [this, ctx, templateId] (const QString& id, const QString& localPath) {
+        if (id != templateId) return;
+        ctx->cleanup ();
+        eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) *
+                     ")");
+      });
+
+  ctx->failedConn= connect (
+      mgr, &TemplateManager::downloadFailed, this,
+      [this, ctx, templateId] (const QString& id, const QString& error) {
+        if (id != templateId) return;
+        ctx->cleanup ();
+        QMessageBox::warning (this, qt_translate ("Download Failed"), error);
+      });
 
   mgr->downloadTemplate (templateId);
   dialog->show ();
@@ -797,7 +804,7 @@ QtFilePage::refreshTemplateThumbnails () {
 
   for (StyleCard* card : styleCards_) {
     if (!card->isTemplate ()) continue;
-    auto meta= mgr->templateById (card->styleId ());
+    auto meta= mgr->templateById (card->templateId ());
     if (meta && !meta->thumbnailUrl.isEmpty ()) {
       card->loadThumbnail (meta->thumbnailUrl);
     }

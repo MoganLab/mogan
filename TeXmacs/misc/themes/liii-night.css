@@ -1176,7 +1176,7 @@ QLabel#style-card-name {
 
 QFrame#style-card-frame {
   border: 1px solid #3c3c3c;
-  background-color: #ffffff;
+  background-color: #3a3a3a;
 }
 
 QFrame#style-card-frame:hover {
