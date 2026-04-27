@@ -735,6 +735,7 @@ target("libmogan") do
                 XMACS_VERSION = XMACS_VERSION,
                 CACHE_NAME = stem_lab_big_name,
                 STEM_NAME = stem_binary_name,
+                STEM_INIT_FILE = stem_init_file or "init-research.scm",
                 CONFIG_USER = os.getenv("USER") or "unknown",
                 CONFIG_DATE = os.time(),
                 CONFIG_STD_SETENV = "#define STD_SETENV",

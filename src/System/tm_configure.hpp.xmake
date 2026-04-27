@@ -42,6 +42,7 @@
 #define BUILD_DATE "@CONFIG_DATE@"
 #define CACHE_NAME "@CACHE_NAME@"
 #define STEM_NAME "@STEM_NAME@"
+#define STEM_INIT_FILE "@STEM_INIT_FILE@"
 
 #define TM_DEVEL "@tm_devel@"
 #define TM_DEVEL_RELEASE "@tm_devel_release@"
