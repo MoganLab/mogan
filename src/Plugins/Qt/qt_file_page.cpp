@@ -27,6 +27,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
+#include <QPointer>
 #include <QPainter>
 #include <QProgressDialog>
 #include <QPushButton>
