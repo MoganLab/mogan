@@ -93,6 +93,8 @@ ThumbnailLoader::processQueue () {
       int httpStatus=
           reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
       if (httpStatus == 304) {
+        // 服务器返回 304 Not Modified，缓存仍然新鲜，标记该 URL 已验证
+        qDebug () << "[ThumbnailLoader] Cache fresh:" << req.url;
         validatedUrls_.insert (req.url);
         reply->deleteLater ();
         processQueue ();
