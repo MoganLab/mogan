@@ -25,11 +25,12 @@
 
 (define (call-quiet . params)
   (define cmd (string-join params " "))
+  (display (string-append "  [run] " cmd "\n"))
   (define ec (os-call cmd))
   (when (not (= ec 0))
-        (display (string-append "Error: command failed with exit code "
+        (display (string-append "  [err] command failed with exit code "
                                 (number->string ec)
-                                "\n"))
+                                ": " cmd "\n"))
         (exit ec)))
 
 (define (shell-output cmd)
@@ -119,29 +120,53 @@
           (if pair (cdr pair) default)))))
 
 (define (has-signing-config?)
-  (display (string-append "DEBUG: MACOS_KEY_PATH=" MACOS_KEY_PATH "\n"))
-  (display (string-append "DEBUG: path-exists?=" (if (path-exists? MACOS_KEY_PATH) "#t" "#f") "\n"))
   (or (path-exists? MACOS_KEY_PATH)
       (getenv "APPLE_CERTIFICATE_P12_BASE64" #f)))
 
-;; ===== Keychain (login keychain) =====
+;; ===== Keychain =====
 
-(define LOGIN_KEYCHAIN (path-join (getenv "HOME") "Library/Keychains/login.keychain-db"))
+(define KEYCHAIN_PATH "/tmp/mogan-signing.keychain-db")
 (define CERT_PATH "/tmp/mogan_cert.p12")
+
+(define (generate-keychain-pass)
+  (call-or-quit "bash" "-c" "'openssl rand -base64 32 > /tmp/gf_keychain_pass.txt'")
+  (string-trim-both (path-read-text "/tmp/gf_keychain_pass.txt")))
 
 (define (decode-base64-to-file b64-str out-path)
   (path-write-text "/tmp/gf_cert_b64.txt" b64-str)
   (call-or-quit "base64" "-D" "-i" "/tmp/gf_cert_b64.txt" "-o" out-path))
 
-(define (import-certificate password)
-  ;; Unlock login keychain first
-  (os-call "security unlock-keychain -u login.keychain-db 2>/dev/null || true")
-  ;; Import certificate
-  (let ((ec1 (os-call (string-append "security import " CERT_PATH " -P " password " -k " LOGIN_KEYCHAIN " -T /usr/bin/codesign 2>/dev/null"))))
+(define (delete-keychain)
+  (os-call (string-append "bash -c 'security delete-keychain " KEYCHAIN_PATH " 2>/dev/null'")))
+
+(define (create-keychain password)
+  (call-quiet "security" "create-keychain" "-p" password KEYCHAIN_PATH)
+  (call-quiet "security" "set-keychain-settings" "-lut" "21600" KEYCHAIN_PATH)
+  (call-quiet "security" "unlock-keychain" "-p" password KEYCHAIN_PATH))
+
+(define (import-apple-ca-certificates)
+  (display "Importing Apple CA certificates...\n")
+  (let ((devid-ca "/tmp/apple_devid_ca.cer"))
+    ;; Download Developer ID Certification Authority if not present
+    (when (not (path-exists? devid-ca))
+          (call-or-quit "curl" "-L" "-o" devid-ca
+            "https://www.apple.com/certificateauthority/DeveloperIDCA.cer"))
+    ;; Import to temporary keychain
+    (call-quiet "security" "add-certificates" "-k" KEYCHAIN_PATH devid-ca)))
+
+(define (import-certificate password keychain-pass)
+  (let ((ec1 (os-call (string-append "bash -c 'security import " CERT_PATH " -P " password " -k " KEYCHAIN_PATH " -T /usr/bin/codesign 2>/dev/null'"))))
     (when (not (= ec1 0))
-          (call-quiet "security" "import" CERT_PATH "-P" password "-k" LOGIN_KEYCHAIN)))
-  ;; Allow codesign to access the keychain without prompting
-  (os-call (string-append "security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k '' " LOGIN_KEYCHAIN " 2>/dev/null || true")))
+          (call-quiet "security" "import" CERT_PATH "-P" password "-k" KEYCHAIN_PATH)))
+  (import-apple-ca-certificates)
+  (call-quiet "security" "set-key-partition-list" "-S" "apple-tool:,apple:,codesign:" "-s" "-k" keychain-pass KEYCHAIN_PATH)
+  ;; Build keychain search list dynamically
+  (let ((login-keychain (path-join (getenv "HOME") "Library/Keychains/login.keychain-db"))
+        (system-keychain "/Library/Keychains/System.keychain"))
+    (if (path-exists? login-keychain)
+        (call-quiet "security" "list-keychains" "-d" "user" "-s" KEYCHAIN_PATH login-keychain system-keychain)
+        (call-quiet "security" "list-keychains" "-d" "user" "-s" KEYCHAIN_PATH system-keychain)))
+  (call-quiet "security" "default-keychain" "-s" KEYCHAIN_PATH))
 
 (define (setup-keychain)
   (let ((cert-b64 (get-config "APPLE_CERTIFICATE_P12_BASE64" ""))
@@ -149,9 +174,12 @@
     (when (string-null? cert-b64)
           (display "No certificate configured\n")
           (exit 0))
-    (display "Installing certificate to login keychain...\n")
+    (display "Installing certificate...\n")
     (decode-base64-to-file cert-b64 CERT_PATH)
-    (import-certificate pass)))
+    (delete-keychain)
+    (let ((keychain-pass (generate-keychain-pass)))
+      (create-keychain keychain-pass)
+      (import-certificate pass keychain-pass))))
 
 (define (extract-quoted-string line)
   (let ((start (string-index line (lambda (c) (char=? c #\")))))
@@ -223,7 +251,7 @@
 ;; ===== Codesign =====
 
 (define (codesign-file identity file-path)
-  (call-quiet "codesign" "--force" "--options" "runtime" "--timestamp" "--sign" identity file-path))
+  (call-quiet "codesign" "--force" "--options" "runtime" "--timestamp" "--sign" (string-append "\"" identity "\"") (string-append "\"" file-path "\"")))
 
 (define (sign-dylibs identity app-path)
   (let ((fw-dir (path-join app-path "Contents/Frameworks")))
@@ -241,11 +269,11 @@
               (lambda (entry)
                 (let ((fw-path (path-join fw-dir entry)))
                   (when (and (path-dir? fw-path) (string-ends? entry ".framework"))
-                        (let ((name (substring entry 0 (- (string-length entry) 10)))
-                              (binary-path (path-join fw-path (string-append "Versions/A/" name))))
-                          (when (path-file? binary-path)
-                                (codesign-file identity binary-path))
-                          (codesign-file identity fw-path)))))
+                    (let ((name (substring entry 0 (- (string-length entry) 10))))
+                      (let ((binary-path (path-join fw-path (string-append "Versions/A/" name))))
+                        (when (path-file? binary-path)
+                          (codesign-file identity binary-path))
+                        (codesign-file identity fw-path))))))
               entries)))))
 
 (define (sign-plugins identity app-path)
@@ -253,6 +281,70 @@
     (when (path-dir? plugins-dir)
           (display "Signing plugins...\n")
           (let ((files (find-files-recursive plugins-dir (lambda (p) #t))))
+            (for-each (lambda (f) (codesign-file identity f)) files)))))
+
+(define (executable-file? p)
+  (or (string-ends? p ".dylib")
+      (string-ends? p ".so")
+      (string-ends? p ".bundle")
+      (not (or (string-ends? p ".svg")
+               (string-ends? p ".png")
+               (string-ends? p ".jpg")
+               (string-ends? p ".jpeg")
+               (string-ends? p ".gif")
+               (string-ends? p ".txt")
+               (string-ends? p ".md")
+               (string-ends? p ".html")
+               (string-ends? p ".css")
+               (string-ends? p ".js")
+               (string-ends? p ".json")
+               (string-ends? p ".xml")
+               (string-ends? p ".plist")
+               (string-ends? p ".ttf")
+               (string-ends? p ".otf")
+               (string-ends? p ".woff")
+               (string-ends? p ".woff2")
+               (string-ends? p ".eot")
+               (string-ends? p ".ico")
+               (string-ends? p ".icns")
+               (string-ends? p ".pdf")
+               (string-ends? p ".doc")
+               (string-ends? p ".docx")
+               (string-ends? p ".xls")
+               (string-ends? p ".xlsx")
+               (string-ends? p ".ppt")
+               (string-ends? p ".pptx")
+               (string-ends? p ".zip")
+               (string-ends? p ".tar")
+               (string-ends? p ".gz")
+               (string-ends? p ".bz2")
+               (string-ends? p ".7z")
+               (string-ends? p ".dmg")
+               (string-ends? p ".pkg")
+               (string-ends? p ".mp3")
+               (string-ends? p ".mp4")
+               (string-ends? p ".avi")
+               (string-ends? p ".mov")
+               (string-ends? p ".wav")
+               (string-ends? p ".flac")
+               (string-ends? p ".ogg")
+               (string-ends? p ".webm")
+               (string-ends? p ".wasm")
+               (string-ends? p ".scm")
+               (string-ends? p ".tmu")
+               (string-ends? p ".ts")
+               (string-ends? p ".tfm")
+               (string-ends? p ".xpm")
+               (string-ends? p ".tm")
+               (string-ends? p ".cache")))))
+
+(define (sign-resources identity app-path)
+  (let ((resources-dir (path-join app-path "Contents/Resources")))
+    (when (path-dir? resources-dir)
+          (display "Signing resources...\n")
+          (let ((files (find-files-recursive resources-dir 
+                         (lambda (p) (and (executable-file? p)
+                                          (not (substring-index p "/fonts/")))))))
             (for-each (lambda (f) (codesign-file identity f)) files)))))
 
 (define (sign-app-bundle)
@@ -278,14 +370,23 @@
                         (exit 1))
                       (begin
                         (display (string-append "App: " app "\n"))
-                        (sign-dylibs identity app)
-                        (sign-frameworks identity app)
-                        (sign-plugins identity app)
-                        (display "Signing app bundle...\n")
-                        (call-quiet "codesign" "--force" "--options" "runtime" "--deep" "--timestamp" "--sign" identity app)
+                         (sign-dylibs identity app)
+                         (sign-frameworks identity app)
+                         (sign-plugins identity app)
+                         (sign-resources identity app)
+                         (display "Signing app bundle...\n")
+                        (call-quiet "codesign" "--force" "--options" "runtime" "--deep" "--timestamp" "--sign" (string-append "\"" identity "\"") (string-append "\"" app "\""))
                         (display "App signing done\n"))))))))))
 
 ;; ===== DMG =====
+
+(define (substring-index str substr)
+  (let ((str-len (string-length str))
+        (sub-len (string-length substr)))
+    (let loop ((i 0))
+      (cond ((> i (- str-len sub-len)) #f)
+            ((string=? (substring str i (+ i sub-len)) substr) i)
+            (else (loop (+ i 1)))))))
 
 (define (hdiutil-attach dmg-path)
   (let ((output (shell-output (string-append "hdiutil attach \"" dmg-path "\" -nobrowse"))))
@@ -294,7 +395,7 @@
         (if (null? lines)
             #f
             (let ((line (string-trim-both (car lines))))
-              (let ((idx (string-contains line "/Volumes/")))
+              (let ((idx (substring-index line "/Volumes/")))
                 (if idx
                     (string-trim-both (substring line idx (string-length line)))
                     (loop (cdr lines))))))))))
@@ -314,21 +415,27 @@
 
 (define (create-dmg-from-app app-path dmg-path)
   (call-or-quit "create-dmg"
-    "--volname" "Mogan STEM"
+    "--volname" "\"Mogan STEM\""
     "--window-pos" "200" "120"
     "--window-size" "800" "400"
     "--icon-size" "100"
     "--app-drop-link" "600" "185"
-    dmg-path
-    app-path))
+    (string-append "\"" dmg-path "\"")
+    (string-append "\"" app-path "\"")))
 
 (define (sign-and-notarize-dmg)
-  (when (has-signing-config?)
-    (display "Signing DMG and notarizing...\n")
-    (let ((cert-b64 (get-config "APPLE_CERTIFICATE_P12_BASE64" "")))
-      (when (string-null? cert-b64)
-            (display "No certificate configured, skipping DMG signing\n")
-            (exit 0)))
+  (if (not (has-signing-config?))
+      (begin
+        (display "Error: No signing config found for DMG signing and notarization.\n")
+        (display "Please create packages/macos/.macos_key or set APPLE_CERTIFICATE_P12_BASE64 env var.\n")
+        (exit 1))
+      (begin
+        (display "Signing DMG and notarizing...\n")
+        (let ((cert-b64 (get-config "APPLE_CERTIFICATE_P12_BASE64" "")))
+          (when (string-null? cert-b64)
+            (display "Error: APPLE_CERTIFICATE_P12_BASE64 is empty\n")
+            (delete-keychain)
+            (exit 1))
 
           (let ((identity (find-signing-identity)))
             (if (not identity)
@@ -358,41 +465,38 @@
                                         (display "Error: No app found in DMG\n")
                                         (exit 1))
                                       (begin
-                                        (call-quiet "cp" "-R" (path-join mount-point app-name) temp-dir)
+                                        (call-quiet "cp" "-R" (string-append "\"" (path-join mount-point app-name) "\"") temp-dir)
                                         (hdiutil-detach mount-point)
 
                                         (let ((app (path-join temp-dir app-name)))
                                           ;; Sign frameworks and binaries
                                           (let ((fw-dir (path-join app "Contents/Frameworks")))
                                             (when (path-dir? fw-dir)
-                                                  (let ((files (find-files-recursive fw-dir (lambda (p) (or (string-ends? p ".dylib") (string-starts? (path-name p) "Qt"))))))
-                                                    (for-each (lambda (f) (codesign-file identity f)) files))
-                                                  (let ((entries (listdir fw-dir)))
-                                                    (vector-for-each
-                                                      (lambda (entry)
-                                                        (let ((fw-path (path-join fw-dir entry)))
-                                                          (when (and (path-dir? fw-path) (string-ends? entry ".framework"))
-                                                                (let ((name (substring entry 0 (- (string-length entry) 10)))
-                                                                      (binary-path (path-join fw-path (string-append "Versions/A/" name))))
-                                                                  (when (path-file? binary-path)
-                                                                        (codesign-file identity binary-path))
-                                                                  (codesign-file identity fw-path)))))
-                                                      entries))))
+                                              (let ((files (find-files-recursive fw-dir (lambda (p) (or (string-ends? p ".dylib") (string-starts? (path-name p) "Qt"))))))
+                                                (for-each (lambda (f) (codesign-file identity f)) files))
+                                              (let ((entries (listdir fw-dir)))
+                                                (vector-for-each
+                                                  (lambda (entry)
+                                                    (let ((fw-path (path-join fw-dir entry)))
+                                                      (when (and (path-dir? fw-path) (string-ends? entry ".framework"))
+                                                        (let ((name (substring entry 0 (- (string-length entry) 10))))
+                                                          (let ((binary-path (path-join fw-path (string-append "Versions/A/" name))))
+                                                            (when (path-file? binary-path)
+                                                              (codesign-file identity binary-path))
+                                                            (codesign-file identity fw-path))))))
+                                                  entries))))
 
-                                          ;; Sign plugins
-                                          (let ((plugins-dir (path-join app "Contents/PlugIns")))
-                                            (when (path-dir? plugins-dir)
-                                                  (let ((files (find-files-recursive plugins-dir (lambda (p) #t))))
-                                                    (for-each (lambda (f) (codesign-file identity f)) files))))
+                                           ;; Sign plugins
+                                           (let ((plugins-dir (path-join app "Contents/PlugIns")))
+                                             (when (path-dir? plugins-dir)
+                                               (let ((files (find-files-recursive plugins-dir (lambda (p) #t))))
+                                                 (for-each (lambda (f) (codesign-file identity f)) files))))
 
-                                          ;; Sign Resources/bin
-                                          (let ((bin-dir (path-join app "Contents/Resources/bin")))
-                                            (when (path-dir? bin-dir)
-                                                  (let ((files (find-files-recursive bin-dir (lambda (p) #t))))
-                                                    (for-each (lambda (f) (codesign-file identity f)) files))))
+                                           ;; Sign resources (including plugin binaries like goldfish)
+                                           (sign-resources identity app)
 
-                                          ;; Sign app bundle
-                                          (call-quiet "codesign" "--force" "--options" "runtime" "--deep" "--timestamp" "--sign" identity app)
+                                           ;; Sign app bundle
+                                          (call-quiet "codesign" "--force" "--options" "runtime" "--deep" "--timestamp" "--sign" (string-append "\"" identity "\"") (string-append "\"" app "\""))
 
                                           ;; Recreate DMG
                                           (os-call (string-append "bash -c 'rm \"" dmg "\"'"))
@@ -404,7 +508,7 @@
 
                                           ;; Sign DMG
                                           (display "Signing DMG...\n")
-                                          (call-quiet "codesign" "--force" "--timestamp" "--sign" identity "--verbose" dmg))))))))
+                                          (call-quiet "codesign" "--force" "--timestamp" "--sign" (string-append "\"" identity "\"") "--verbose" (string-append "\"" dmg "\"")))))))))
 
                         ;; Notarization
                         (let ((api-key-id (get-config "APPLE_API_KEY_ID" ""))
@@ -415,21 +519,23 @@
                                    (not (string-null? api-key-p8))
                                    (not (string-null? api-issuer)))
                               (begin
-                                (display "Setting up API key...\n")
-                                (os-call "mkdir -p ~/.appstoreconnect/private_keys/")
-                                (let ((api-key-file (string-append "~/.appstoreconnect/private_keys/AuthKey_" api-key-id ".p8")))
-                                  (path-write-text api-key-file api-key-p8)
-                                  (os-call "chmod 600 ~/.appstoreconnect/private_keys/AuthKey_*.p8")
+                                 (display "Setting up API key...\n")
+                                 (let ((api-key-dir (path-join (getenv "HOME") ".appstoreconnect/private_keys")))
+                                   (os-call (string-append "mkdir -p " api-key-dir))
+                                    (let ((api-key-file (path-join api-key-dir (string-append "AuthKey_" api-key-id ".p8"))))
+                                      (path-write-text "/tmp/gf_apikey_b64.txt" api-key-p8)
+                                      (call-or-quit "bash" "-c" (string-append "'base64 -D -i /tmp/gf_apikey_b64.txt -o \"" api-key-file "\"'"))
+                                      (os-call (string-append "chmod 600 \"" api-key-file "\""))
 
-                                  (display "Submitting for notarization...\n")
-                                  (call-or-quit "bash" "-c"
-                                    (string-append
-                                      "xcrun notarytool submit \"" dmg "\""
-                                      " --key " api-key-file
-                                      " --key-id " api-key-id
-                                      " --issuer " api-issuer
-                                      " --team-id " team-id
-                                      " --wait --timeout 60m --output-format json > /tmp/notary_result.json"))
+                                     (display "Submitting for notarization...\n")
+                                     (call-or-quit "bash" "-c"
+                                       (string-append
+                                         "'xcrun notarytool submit \"" dmg "\""
+                                         " --key " api-key-file
+                                         " --key-id " api-key-id
+                                         " --issuer " api-issuer
+                                         " --team-id " team-id
+                                         " --wait --timeout 60m --output-format json > /tmp/notary_result.json'")))
 
                                   (display "Notarization result:\n")
                                   (let ((result (string->json (path-read-text "/tmp/notary_result.json"))))
@@ -455,12 +561,15 @@
                                           (begin
                                             (display (string-append "Notarization failed: " status "\n"))
                                             (exit 1)))))))
-                              (display "No API key, skipping notarization\n"))))))))
+                              (begin
+                                (display "Error: Notarization requires APPLE_API_KEY_ID, APPLE_API_KEY_P8, and APPLE_API_ISSUER_ID\n")
+                                (display "Please add them to packages/macos/.macos_key or set as environment variables\n")
+                                (exit 1))))))))))
 
-    ;; Cleanup temp cert
-    (display "Cleaning up temp cert...\n")
-    (os-call "rm -f /tmp/mogan_cert.p12 /tmp/gf_cert_b64.txt")
-    (display "Done\n")))
+        ;; Cleanup keychain
+        (display "Cleaning up keychain...\n")
+        (delete-keychain)
+        (display "Done\n"))))
 
 ;; ===== Main Workflow =====
 

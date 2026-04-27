@@ -30,7 +30,6 @@ jobs:
       - name: Config and build goldfish
         run: |
           xmake config -m release -a ${{ matrix.arch }} -vD --yes
-          xmake build -vD goldfish
       - name: Package with Goldfish
         env:
           APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}

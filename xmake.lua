@@ -12,6 +12,10 @@
 includes("xmake/vars.lua")
 includes("xmake/stem.lua")
 
+-- Disable implicit-function-declaration error for Qt6 ARM64 compatibility
+add_cxxflags("-Wno-error=implicit-function-declaration")
+add_mxflags("-Wno-error=implicit-function-declaration")
+
 set_project(stem_project_name)
 set_policy("run.autobuild", false)
 set_languages("c++17")

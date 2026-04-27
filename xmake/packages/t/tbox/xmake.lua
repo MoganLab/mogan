@@ -61,6 +61,9 @@ package("tbox")
                 configs[name] = true
             end
         end
+        if is_plat("macosx") then
+            configs.cxflags = "-Wno-error=uninitialized-const-pointer"
+        end
         import("package.tools.xmake").install(package, configs)
     end)
 
