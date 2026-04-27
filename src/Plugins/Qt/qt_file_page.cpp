@@ -29,7 +29,6 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QResizeEvent>
-
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
