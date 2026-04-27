@@ -27,9 +27,9 @@
 #include "s7_blackbox.hpp"
 #include "socket_notifier.hpp"
 #include "sys_utils.hpp"
+#include "tm_configure.hpp"
 #include "tm_link.hpp"
 #include "tm_sys_utils.hpp"
-#include "tm_configure.hpp"
 #include <moebius/drd/drd_std.hpp>
 #include <s7_tm.hpp>
 
