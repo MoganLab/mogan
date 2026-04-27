@@ -7,6 +7,7 @@
 
 #include "thumbnail_loader.hpp"
 
+#include <QDebug>
 #include <QImage>
 #include <QLabel>
 #include <QLocale>
@@ -38,19 +39,26 @@ ThumbnailLoader::load (QLabel* label, const QString& url,
   auto cached= ThumbnailCache::instance ()->getEntry (url, targetSize);
 
   if (cached.isValid ()) {
+    // 缓存中有缩略图，先立即显示，避免 UI 等待
     QPixmap px= cached.pixmap;
     px.setDevicePixelRatio (label->devicePixelRatioF ());
     label->setPixmap (px);
 
+    // 如果该 URL 已在本次会话中验证过 freshness，直接复用缓存
     if (validatedUrls_.contains (url)) {
+      qDebug () << "[ThumbnailLoader] Cache hit:" << url;
       return;
     }
 
+    // 缓存存在但尚未验证 freshness，发送条件请求（If-None-Match）校验 ETag
+    qDebug () << "[ThumbnailLoader] Cache validate:" << url;
     queue_.enqueue ({label, url, cached.etag, targetSize});
     processQueue ();
     return;
   }
 
+  // 缓存未命中，走网络下载
+  qDebug () << "[ThumbnailLoader] Download:" << url;
   queue_.enqueue ({label, url, QString (), targetSize});
   processQueue ();
 }
