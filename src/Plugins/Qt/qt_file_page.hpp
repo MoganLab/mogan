@@ -14,9 +14,6 @@
 
 #include <QDateTime>
 #include <QList>
-#include <QPointer>
-#include <QQueue>
-#include <QSet>
 #include <QString>
 #include <QWidget>
 
@@ -36,12 +33,10 @@ class QResizeEvent;
  * @brief 文档样式信息（支持空白文档和快捷模板）
  */
 struct DocStyle {
-  QString id;           // 样式ID
-  QString name;         // 显示名称
-  QString description;  // 描述
-  QString thumbnailUrl; // 缩略图URL（模板卡片用）
-  QString fileUrl;      // 模板文件下载URL
-  QString templateId;   // 对应TemplateManager中的模板ID
+  QString id;          // 样式ID
+  QString name;        // 显示名称
+  QString description; // 描述
+  QString templateId;  // 对应TemplateManager中的模板ID（空表示空白文档）
 };
 
 /**
@@ -60,15 +55,6 @@ class QNetworkAccessManager;
 class QNetworkReply;
 
 /**
- * @brief Structure to hold pending thumbnail load request
- */
-struct StyleThumbnailRequest {
-  QPointer<QLabel> label;
-  QString          url;
-  QString          cachedEtag;
-};
-
-/**
  * @brief 样式卡片部件（支持图标模式和缩略图模板模式）
  */
 class StyleCard : public QWidget {
@@ -83,14 +69,13 @@ public:
 
 signals:
   void clicked ();
-  void requestThumbnailLoad (QLabel* label, const QString& url);
+
+public:
+  void loadThumbnail (const QString& url);
 
 protected:
   void mousePressEvent (QMouseEvent* event) override;
   void paintEvent (QPaintEvent* event) override;
-
-public:
-  void loadThumbnail (const QString& url);
 
 private:
   void setupIconMode (const DocStyle& style);
@@ -141,9 +126,7 @@ private:
   void clearAllRecentDocs ();
   void createDocumentWithStyle (const QString& styleId);
   void createDocumentFromTemplate (const QString& templateId);
-
-  void loadThumbnail (QLabel* label, const QString& url);
-  void processThumbnailQueue ();
+  void refreshTemplateThumbnails ();
 
   // 样式卡片相关
   QList<DocStyle>   styles_;
@@ -156,12 +139,6 @@ private:
   QList<RecentDoc> recentDocs_;
   QListWidget*     recentList_        = nullptr;
   QTimer*          recentRefreshTimer_= nullptr;
-
-  QNetworkAccessManager*        networkManager_= nullptr;
-  QQueue<StyleThumbnailRequest> thumbnailQueue_;
-  int                           activeThumbnailRequests_         = 0;
-  static constexpr int          MAX_CONCURRENT_THUMBNAIL_REQUESTS= 6;
-  QSet<QString>                 validatedUrls_;
 };
 
 #endif // QT_FILE_PAGE_HPP

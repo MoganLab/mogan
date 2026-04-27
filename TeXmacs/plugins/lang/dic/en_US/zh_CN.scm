@@ -679,7 +679,7 @@
 ("edition" "版本")
 ("education" "教育")
 ("ElegantBook Notes Template" "优美的笔记模板")
-(""ElegantBook-style notes template "ElegantBook 风格的笔记模板")
+("ElegantBook-style notes template" "ElegantBook 风格的笔记模板")
 ("ellipse" "椭圆")
 ("elsevier" "爱思唯尔")
 ("email" "电子邮件")

@@ -27,16 +27,6 @@ struct TemplateMetadata;
 using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
 
 /**
- * @brief Structure to hold pending thumbnail load request
- * Uses QPointer to automatically handle QLabel deletion
- */
-struct ThumbnailRequest {
-  QPointer<QLabel> label;
-  QString          url;
-  QString          cachedEtag;
-};
-
-/**
  * @brief Template page widget for startup tab
  *
  * Displays template categories and grid of template cards.
@@ -77,8 +67,6 @@ private:
   int      calculateColumnCount () const;
   void     showTemplatePreview (const QString& templateId);
   void     downloadAndUseTemplate (const QString& templateId);
-  void     loadThumbnail (QLabel* label, const QString& url);
-  void     processThumbnailQueue ();
 
   // UI components
   QLabel*                   titleLabel_;
@@ -93,14 +81,6 @@ private:
   QString          currentCategory_;
   QPushButton*     activeCategoryBtn_;
 
-  // Network
-  QNetworkAccessManager* networkManager_;
-
-  // Thumbnail loading queue for concurrency control
-  QQueue<ThumbnailRequest> thumbnailQueue_;
-  int                      activeThumbnailRequests_         = 0;
-  static constexpr int     MAX_CONCURRENT_THUMBNAIL_REQUESTS= 6;
-
   // Track user-cancelled downloads to avoid showing error dialogs
   bool downloadCancelledByUser_= false;
 
@@ -109,11 +89,6 @@ private:
 
   // Avoid duplicate refresh when onTemplatesLoaded and showEvent both fire
   bool gridNeedsRefresh_= true;
-
-  // Track URLs that have been validated in this session (conditional request
-  // sent at least once). Once validated, subsequent displays use cache
-  // directly.
-  QSet<QString> validatedUrls_;
 
   // Debounce timer for resize events to avoid frequent grid rebuilds
   QTimer* resizeDebounceTimer_;

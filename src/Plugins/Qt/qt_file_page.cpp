@@ -25,20 +25,15 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QListWidgetItem>
-#include <QLocale>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMouseEvent>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QNetworkRequest>
 #include <QPainter>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QStringList>
 #include <QStyleOption>
-#include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -47,7 +42,7 @@
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
 #include "template_manager.hpp"
-#include "thumbnail_cache.hpp"
+#include "thumbnail_loader.hpp"
 
 // 最多显示的最近文档数量
 static const int MAX_RECENT_DOCS       = 50;
@@ -92,7 +87,7 @@ constexpr int kTemplateTitleFontPx  = 10;   // 模板卡片标题字号
 
 StyleCard::StyleCard (const DocStyle& style, QWidget* parent)
     : QWidget (parent), styleId_ (style.id),
-      isTemplate_ (!style.thumbnailUrl.isEmpty ()) {
+      isTemplate_ (!style.templateId.isEmpty ()) {
   setFixedSize (DpiUtils::scaled (kStyleCardWidth),
                 DpiUtils::scaled (kStyleCardHeight));
   setCursor (Qt::PointingHandCursor);
@@ -191,7 +186,8 @@ StyleCard::setupThumbnailMode (const DocStyle& style) {
 void
 StyleCard::loadThumbnail (const QString& url) {
   if (url.isEmpty () || !thumbnailLabel_) return;
-  emit requestThumbnailLoad (thumbnailLabel_, url);
+  ThumbnailLoader::instance ()->load (thumbnailLabel_, url,
+                                      thumbnailLabel_->size ());
 }
 
 void
@@ -217,24 +213,15 @@ StyleCard::paintEvent (QPaintEvent* event) {
  ******************************************************************************/
 
 QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
-  networkManager_= new QNetworkAccessManager (this);
-
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   styles_= {
       {"generic", qt_translate ("New Blank Document"),
-       qt_translate ("Create a new blank document"), "", "", ""},
+       qt_translate ("Create a new blank document"), ""},
       {"elegantbook", qt_translate ("ElegantBook Notes Template"),
-       qt_translate ("ElegantBook-style notes template"),
-       "https://cdn.liiistem.cn/images/library/elegantbook.png",
-       "https://cdn.liiistem.cn/library/elegantbook-v20260417.tmu",
-       "elegantbook"},
+       qt_translate ("ElegantBook-style notes template"), "elegantbook"},
       {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
        qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
-       "https://cdn.liiistem.cn/images/library/resume-report-application/"
-       "NSFC-YSF(C)-v20260424.png",
-       "https://cdn.liiistem.cn/library/resume-report-application/"
-       "NSFC-YSF(C)-v20260424.tmu",
        "nsfc-ysf-c"}};
 
   setupUI ();
@@ -247,7 +234,20 @@ void
 QtFilePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
-  // 初始排列卡片
+  if (recentRefreshTimer_) recentRefreshTimer_->start ();
+
+  TemplateManager* mgr= TemplateManager::instance ();
+  if (mgr) {
+    connect (mgr, &TemplateManager::templatesLoaded, this,
+             &QtFilePage::refreshTemplateThumbnails, Qt::UniqueConnection);
+    if (mgr->isInitialized () && !mgr->templates ().isEmpty ()) {
+      refreshTemplateThumbnails ();
+    }
+    else if (!mgr->isInitialized ()) {
+      QTimer::singleShot (0, [mgr] () { mgr->initialize (); });
+    }
+  }
+
   QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
 }
 
@@ -332,14 +332,14 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
 
     connect (card, &StyleCard::clicked, this,
              [this, card] () { createDocumentWithStyle (card->styleId ()); });
-    connect (card, &StyleCard::requestThumbnailLoad, this,
-             &QtFilePage::loadThumbnail);
 
     if (card->isTemplate ()) {
-      for (const auto& s : styles_) {
-        if (s.id == card->styleId ()) {
-          card->loadThumbnail (s.thumbnailUrl);
-          break;
+      TemplateManager* mgr= TemplateManager::instance ();
+      if (mgr && mgr->isInitialized ()) {
+        if (auto meta= mgr->templateById (card->styleId ())) {
+          if (!meta->thumbnailUrl.isEmpty ()) {
+            card->loadThumbnail (meta->thumbnailUrl);
+          }
         }
       }
     }
@@ -750,7 +750,7 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
     }
   }
 
-  QProgressDialog* dialog=
+  QPointer<QProgressDialog> dialog=
       new QProgressDialog (qt_translate ("Downloading template..."),
                            qt_translate ("Cancel"), 0, 100, this);
   dialog->setWindowModality (Qt::WindowModal);
@@ -759,19 +759,21 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
   connect (dialog, &QProgressDialog::canceled, this,
            [mgr, templateId] () { mgr->cancelDownload (templateId); });
 
-  auto cleanup= [dialog] () {
-    dialog->disconnect ();
-    dialog->hide ();
-    dialog->deleteLater ();
-  };
+  QMetaObject::Connection progressConn=
+      connect (mgr, &TemplateManager::downloadProgress, this,
+               [dialog] (const QString&, qint64 received, qint64 total) {
+                 if (!dialog || total <= 0) return;
+                 dialog->setMaximum (static_cast<int> (total));
+                 dialog->setValue (static_cast<int> (received));
+               });
 
-  connect (mgr, &TemplateManager::downloadProgress, this,
-           [dialog] (const QString&, qint64 received, qint64 total) {
-             if (total > 0) {
-               dialog->setMaximum (static_cast<int> (total));
-               dialog->setValue (static_cast<int> (received));
-             }
-           });
+  auto cleanup= [dialog, progressConn] () {
+    QObject::disconnect (progressConn);
+    if (dialog) {
+      dialog->hide ();
+      dialog->deleteLater ();
+    }
+  };
 
   connect (mgr, &TemplateManager::downloadCompleted, this,
            [this, cleanup] (const QString&, const QString& localPath) {
@@ -792,122 +794,15 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
 }
 
 void
-QtFilePage::loadThumbnail (QLabel* label, const QString& url) {
-  if (!label) return;
+QtFilePage::refreshTemplateThumbnails () {
+  TemplateManager* mgr= TemplateManager::instance ();
+  if (!mgr || !mgr->isInitialized ()) return;
 
-  QSize targetSize= label->size ();
-
-  ThumbnailCache::ThumbnailCacheEntry cached=
-      ThumbnailCache::instance ()->getEntry (url, targetSize);
-
-  if (cached.isValid ()) {
-    QPixmap px= cached.pixmap;
-    px.setDevicePixelRatio (label->devicePixelRatioF ());
-    label->setPixmap (px);
-
-    if (validatedUrls_.contains (url)) {
-      return;
+  for (StyleCard* card : styleCards_) {
+    if (!card->isTemplate ()) continue;
+    auto meta= mgr->templateById (card->styleId ());
+    if (meta && !meta->thumbnailUrl.isEmpty ()) {
+      card->loadThumbnail (meta->thumbnailUrl);
     }
-
-    thumbnailQueue_.enqueue ({label, url, cached.etag});
-    processThumbnailQueue ();
-    return;
-  }
-
-  thumbnailQueue_.enqueue ({label, url, QString ()});
-  processThumbnailQueue ();
-}
-
-void
-QtFilePage::processThumbnailQueue () {
-  while (!thumbnailQueue_.isEmpty () &&
-         activeThumbnailRequests_ < MAX_CONCURRENT_THUMBNAIL_REQUESTS) {
-    StyleThumbnailRequest req= thumbnailQueue_.dequeue ();
-
-    if (req.label.isNull ()) {
-      continue;
-    }
-
-    activeThumbnailRequests_++;
-
-    QNetworkRequest request (req.url);
-    if (!req.cachedEtag.isEmpty ()) {
-      request.setRawHeader ("If-None-Match", req.cachedEtag.toUtf8 ());
-    }
-    QNetworkReply* reply= networkManager_->get (request);
-
-    connect (reply, &QNetworkReply::finished, this, [this, req, reply] () {
-      activeThumbnailRequests_--;
-
-      if (req.label.isNull ()) {
-        reply->deleteLater ();
-        validatedUrls_.insert (req.url);
-        processThumbnailQueue ();
-        return;
-      }
-
-      int httpStatus=
-          reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
-      if (httpStatus == 304) {
-        validatedUrls_.insert (req.url);
-        reply->deleteLater ();
-        processThumbnailQueue ();
-        return;
-      }
-
-      if (reply->error () == QNetworkReply::NoError) {
-        QByteArray data= reply->readAll ();
-        QImage     image;
-        if (image.loadFromData (data)) {
-          QSize targetSize= req.label->size ();
-          qreal dpr       = req.label->devicePixelRatioF ();
-          int   scaledW   = qRound (targetSize.width () * dpr);
-          int   scaledH   = qRound (targetSize.height () * dpr);
-
-          QImage scaled=
-              image.scaled (scaledW, scaledH, Qt::KeepAspectRatioByExpanding,
-                            Qt::SmoothTransformation);
-          if (scaled.width () > scaledW || scaled.height () > scaledH) {
-            int x = (scaled.width () - scaledW) / 2;
-            int y = (scaled.height () - scaledH) / 2;
-            scaled= scaled.copy (x, y, scaledW, scaledH);
-          }
-
-          QPixmap pixmap= QPixmap::fromImage (scaled);
-          pixmap.setDevicePixelRatio (dpr);
-
-          req.label->setPixmap (pixmap);
-
-          QString   etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
-          QDateTime lastModified;
-          QString lmStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
-          if (!lmStr.isEmpty ()) {
-            lastModified= QDateTime::fromString (lmStr, Qt::RFC2822Date);
-            if (!lastModified.isValid ()) {
-              lastModified= QLocale::c ().toDateTime (
-                  lmStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
-            }
-            if (lastModified.isValid ()) {
-              lastModified.setTimeZone (QTimeZone::utc ());
-            }
-          }
-
-          ThumbnailCache::instance ()->put (req.url, targetSize, pixmap, etag,
-                                            lastModified);
-        }
-        else {
-          req.label->setText (qt_translate ("Preview"));
-        }
-      }
-      else {
-        if (req.label->pixmap ().isNull ()) {
-          req.label->setText (qt_translate ("Preview"));
-        }
-      }
-
-      validatedUrls_.insert (req.url);
-      reply->deleteLater ();
-      processThumbnailQueue ();
-    });
   }
 }

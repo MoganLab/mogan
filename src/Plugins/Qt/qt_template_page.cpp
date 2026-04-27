@@ -14,21 +14,15 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QLocale>
 #include <QMessageBox>
 #include <QMouseEvent>
-#include <QNetworkAccessManager>
-#include <QNetworkReply>
-#include <QPointer>
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
-#include <QSet>
 #include <QShowEvent>
 #include <QStyle>
 #include <QTemporaryFile>
-#include <QTimeZone>
 #include <QTimer>
 #include <QVBoxLayout>
 
@@ -36,7 +30,7 @@
 #include "qt_pdf_preview_widget.hpp"
 #include "qt_utilities.hpp"
 #include "template_manager.hpp"
-#include "thumbnail_cache.hpp"
+#include "thumbnail_loader.hpp"
 
 namespace {
 // 预览图片尺寸（增大预览区域）
@@ -94,8 +88,7 @@ QTTemplatePage::QTTemplatePage (QWidget* parent)
       scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
       progressDialog_ (nullptr), templateManager_ (nullptr),
       currentCategory_ (""), activeCategoryBtn_ (nullptr),
-      networkManager_ (nullptr), resizeDebounceTimer_ (nullptr) {
-  networkManager_= new QNetworkAccessManager (this);
+      resizeDebounceTimer_ (nullptr) {
 
   resizeDebounceTimer_= new QTimer (this);
   resizeDebounceTimer_->setSingleShot (true);
@@ -409,7 +402,10 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
 
   // Load thumbnail from URL
   if (!tmpl->thumbnailUrl.isEmpty ()) {
-    loadThumbnail (thumbnailLabel, tmpl->thumbnailUrl);
+    QSize targetSize (DpiUtils::scaled (THUMBNAIL_WIDTH),
+                      DpiUtils::scaled (THUMBNAIL_HEIGHT));
+    ThumbnailLoader::instance ()->load (thumbnailLabel, tmpl->thumbnailUrl,
+                                        targetSize);
   }
   else {
     thumbnailLabel->setText (qt_translate ("No Preview"));
@@ -451,143 +447,6 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   card->installEventFilter (this);
 
   return item;
-}
-
-void
-QTTemplatePage::loadThumbnail (QLabel* label, const QString& url) {
-  QSize targetSize (DpiUtils::scaled (THUMBNAIL_WIDTH),
-                    DpiUtils::scaled (THUMBNAIL_HEIGHT));
-
-  ThumbnailCache::ThumbnailCacheEntry cached=
-      ThumbnailCache::instance ()->getEntry (url, targetSize);
-
-  if (cached.isValid ()) {
-    // Always display cached pixmap immediately (avoid showing "Loading...")
-    QPixmap px= cached.pixmap;
-    px.setDevicePixelRatio (label->devicePixelRatioF ());
-    label->setPixmap (px);
-    label->setProperty ("thumbnailLoaded", true);
-    applyThumbnailFrameStyle (label);
-
-    // Already validated this session: nothing more to do
-    if (validatedUrls_.contains (url)) {
-      qDebug () << "[TemplatePage] Use cache:" << url;
-      return;
-    }
-
-    // First time this session: validate in background
-    qDebug () << "[TemplatePage] Validate:" << url;
-    thumbnailQueue_.enqueue ({label, url, cached.etag});
-    processThumbnailQueue ();
-    return;
-  }
-
-  qDebug () << "[TemplatePage] Download:" << url;
-  thumbnailQueue_.enqueue ({label, url, QString ()});
-  processThumbnailQueue ();
-}
-
-void
-QTTemplatePage::processThumbnailQueue () {
-  while (!thumbnailQueue_.isEmpty () &&
-         activeThumbnailRequests_ < MAX_CONCURRENT_THUMBNAIL_REQUESTS) {
-    ThumbnailRequest req= thumbnailQueue_.dequeue ();
-
-    if (req.label.isNull ()) {
-      continue;
-    }
-
-    activeThumbnailRequests_++;
-
-    QNetworkRequest request (req.url);
-    if (!req.cachedEtag.isEmpty ()) {
-      request.setRawHeader ("If-None-Match", req.cachedEtag.toUtf8 ());
-    }
-    QNetworkReply* reply= networkManager_->get (request);
-
-    connect (reply, &QNetworkReply::finished, this, [this, req, reply] () {
-      activeThumbnailRequests_--;
-
-      if (req.label.isNull ()) {
-        reply->deleteLater ();
-        validatedUrls_.insert (req.url);
-        processThumbnailQueue ();
-        return;
-      }
-
-      // 304 Not Modified - cached image is still valid
-      int httpStatus=
-          reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
-      if (httpStatus == 304) {
-        qDebug () << "[TemplatePage] Cache fresh:" << req.url;
-        validatedUrls_.insert (req.url);
-        reply->deleteLater ();
-        processThumbnailQueue ();
-        return;
-      }
-
-      if (reply->error () == QNetworkReply::NoError) {
-        QByteArray data= reply->readAll ();
-        QImage     image;
-        if (image.loadFromData (data)) {
-          qreal  dpr         = req.label->devicePixelRatioF ();
-          int    targetWidth = DpiUtils::scaled (THUMBNAIL_WIDTH);
-          int    targetHeight= DpiUtils::scaled (THUMBNAIL_HEIGHT);
-          int    scaledW     = qRound (targetWidth * dpr);
-          int    scaledH     = qRound (targetHeight * dpr);
-          QImage scaled=
-              image.scaled (scaledW, scaledH, Qt::KeepAspectRatioByExpanding,
-                            Qt::SmoothTransformation);
-          if (scaled.width () > scaledW || scaled.height () > scaledH) {
-            int x = (scaled.width () - scaledW) / 2;
-            int y = 0;
-            scaled= scaled.copy (x, y, scaledW, scaledH);
-          }
-          QPixmap pixmap= QPixmap::fromImage (scaled);
-          pixmap.setDevicePixelRatio (dpr);
-
-          req.label->setPixmap (pixmap);
-          req.label->setProperty ("thumbnailLoaded", true);
-          applyThumbnailFrameStyle (req.label);
-          req.label->style ()->unpolish (req.label);
-          req.label->style ()->polish (req.label);
-
-          // Extract HTTP cache headers and save to cache
-          QString   etag= QString::fromUtf8 (reply->rawHeader ("ETag"));
-          QDateTime lastModified;
-          QString lmStr= QString::fromUtf8 (reply->rawHeader ("Last-Modified"));
-          if (!lmStr.isEmpty ()) {
-            lastModified= QDateTime::fromString (lmStr, Qt::RFC2822Date);
-            if (!lastModified.isValid ()) {
-              lastModified= QLocale::c ().toDateTime (
-                  lmStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
-            }
-            if (lastModified.isValid ()) {
-              lastModified.setTimeZone (QTimeZone::utc ());
-            }
-          }
-
-          QSize targetSize (targetWidth, targetHeight);
-          ThumbnailCache::instance ()->put (req.url, targetSize, pixmap, etag,
-                                            lastModified);
-          qDebug () << "[TemplatePage] Update cache:" << req.url;
-        }
-        else {
-          req.label->setText (qt_translate ("Preview"));
-        }
-      }
-      else {
-        // Only show placeholder if there was no cached pixmap to preserve
-        if (req.label->pixmap ().isNull ()) {
-          req.label->setText (qt_translate ("Preview"));
-        }
-      }
-
-      validatedUrls_.insert (req.url);
-      reply->deleteLater ();
-      processThumbnailQueue ();
-    });
-  }
 }
 
 bool
