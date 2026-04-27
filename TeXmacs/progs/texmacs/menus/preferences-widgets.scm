@@ -115,7 +115,6 @@ pretty-val : string
   ("shared" "Multiple documents share window"))
 
 (define-preference-names "gui theme"
-  ("default" "Default")
   ("liii" "Liii")
   ("liii-night" "Liii Dark"))
 
@@ -156,7 +155,7 @@ pretty-val : string
             "18em"))
     (item (text "User interface theme:")
       (enum (set-pretty-preference* "gui theme" answer)
-            '("Default" "Liii" "Liii Dark")
+            '("Liii" "Liii Dark")
             (get-pretty-preference "gui theme")
             "18em"))
     (item (text "Completion style:")

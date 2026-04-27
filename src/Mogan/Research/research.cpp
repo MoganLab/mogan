@@ -193,13 +193,9 @@ main (int argc, char** argv) {
   windows_delayed_refresh (1000000000);
   immediate_options (argc, argv);
   load_user_preferences ();
-  string theme= get_user_preference ("gui theme", "default");
+  string theme= get_user_preference ("gui theme", "liii");
 
-#if defined(OS_MACOS) && !defined(__arm64__)
-  if (theme == "default") theme= "";
-#else
   if (theme == "default") theme= "liii";
-#endif
   if (theme == "light")
     tm_style_sheet= "$TEXMACS_PATH/misc/themes/standard-light.css";
   else if (theme == "dark")

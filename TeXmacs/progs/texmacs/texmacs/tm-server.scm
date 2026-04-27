@@ -92,7 +92,7 @@
   ("complex actions" "popups" noop)
   ("interactive questions" (get-default-interactive-questions) noop)
   ("language" (get-locale-language) notify-language)
-  ("gui theme" "default" notify-gui-theme)
+  ("gui theme" "liii" notify-gui-theme)
   ("completion style" "popup" noop)
   ("page medium" "paper" (lambda args (noop)))
   ("page screen margin" "false" (lambda args (noop)))
