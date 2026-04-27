@@ -29,7 +29,7 @@
 #include <QPainter>
 #include <QPushButton>
 #include <QResizeEvent>
-#include <QSet>
+
 #include <QStringList>
 #include <QStyleOption>
 #include <QTimer>
@@ -345,18 +345,11 @@ QtFilePage::loadRecentDocs () {
   recentDocs_.clear ();
   recentList_->clear ();
 
-  QStringList   recentPaths= getRecentDocPathsFromScheme ();
-  QSet<QString> seen;
-  for (auto it= recentPaths.begin (); it != recentPaths.end ();) {
-    *it= QDir::fromNativeSeparators (*it);
-    if (seen.contains (*it)) {
-      it= recentPaths.erase (it);
-    }
-    else {
-      seen.insert (*it);
-      ++it;
-    }
+  QStringList recentPaths= getRecentDocPathsFromScheme ();
+  for (QString& path : recentPaths) {
+    path= QDir::fromNativeSeparators (path);
   }
+  recentPaths.removeDuplicates ();
 
   QString filePath= getRecentDocsFilePath ();
   QFile   file (filePath);
