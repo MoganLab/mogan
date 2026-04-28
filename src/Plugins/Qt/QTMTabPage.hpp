@@ -31,7 +31,7 @@
  */
 class QTMTabPage : public QToolButton {
   Q_OBJECT
-  QWK::WindowButton* m_closeBtn;
+  QWK::WindowButton* m_closeBtn= nullptr;
   QPoint             m_dragStartPos;
 
 public:
@@ -50,8 +50,7 @@ protected:
   virtual void resizeEvent (QResizeEvent* e) override;
   virtual void mousePressEvent (QMouseEvent* e) override;
   virtual void mouseMoveEvent (QMouseEvent* e) override;
-  virtual void
-  enterEvent (QEnterEvent* e); // 为了防止和QEvent冲突，不要override
+  virtual void enterEvent (QEnterEvent* e) override;
   virtual void leaveEvent (QEvent* e) override;
 
 private:
@@ -145,7 +144,6 @@ protected:
 // Global variables for tab page management
 extern int                  g_tabWidth;
 extern int                  g_pointingIndex;
-extern int                  g_hiddentTabIndex;
 extern url                  g_mostRecentlyClosedTab;
 extern url                  g_mostRecentlyDraggedTab;
 extern QTMTabPageContainer* g_mostRecentlyDraggedBar;

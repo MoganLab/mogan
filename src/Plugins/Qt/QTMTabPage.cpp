@@ -86,7 +86,6 @@ getScaledCloseButtonHeight () {
  */
 int                  g_tabWidth              = -1;
 int                  g_pointingIndex         = -1;
-int                  g_hiddentTabIndex       = -1;
 url                  g_mostRecentlyClosedTab = url_none ();
 url                  g_mostRecentlyDraggedTab= url_none ();
 QTMTabPageContainer* g_mostRecentlyDraggedBar= nullptr;
@@ -132,7 +131,6 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
 
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setFocusPolicy (Qt::NoFocus);
-  initializeCloseButton ();
   int pad   = DpiUtils::scaled (8);
   int radius= DpiUtils::scaled (10);
   setStyleSheet (
@@ -153,9 +151,11 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
   m_closeBtn->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (closeBtnRadius));
   if (closeAction) {
+    QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
+      if (!safeAction) return;
       g_mostRecentlyClosedTab= m_viewUrl;
-      closeAction->trigger ();
+      safeAction->trigger ();
     });
   }
   updateCloseButtonVisibility ();
@@ -176,7 +176,7 @@ QTMTabPage::paintEvent (QPaintEvent*) {
 
   // 计算可用的文字绘制区域，需要排除关闭按钮的空间
   int leftPadding   = 10;
-  int rightPadding  = m_closeBtn->isVisible ()
+  int rightPadding  = (m_closeBtn && m_closeBtn->isVisible ())
                           ? m_closeBtn->width () + 12
                           : 12; // 如果关闭按钮可见，留出更多空间
   int availableWidth= width () - leftPadding - rightPadding;
@@ -204,6 +204,7 @@ QTMTabPage::paintEvent (QPaintEvent*) {
 
 void
 QTMTabPage::resizeEvent (QResizeEvent* e) {
+  if (!m_closeBtn) return;
   int w= m_closeBtn->width ();
   int h= m_closeBtn->height ();
   int x= e->size ().width () - w - 12;
@@ -285,6 +286,7 @@ QTMTabPage::leaveEvent (QEvent* e) {
 
 void
 QTMTabPage::updateCloseButtonVisibility () {
+  if (!m_closeBtn) return;
   bool shouldShow=
       !is_startup_tab_view (m_viewUrl) && (underMouse () || isChecked ());
   bool wasVisible= m_closeBtn->isVisible ();
@@ -338,13 +340,7 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 }
 
-QTMTabPageContainer::~QTMTabPageContainer () {
-  removeAllTabPages ();
-  if (m_addTabButton) {
-    delete m_addTabButton;
-    m_addTabButton= nullptr;
-  }
-}
+QTMTabPageContainer::~QTMTabPageContainer () { removeAllTabPages (); }
 
 void
 QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
@@ -473,7 +469,7 @@ QTMTabPageContainer::arrangeTabPages () {
   // 设置新增标签页按钮的位置
   if (m_addTabButton) {
     // 将按钮放在最后一个标签页的后面
-    int addButtonWidth = m_addTabButton->height ();
+    int addButtonWidth = m_addTabButton->width ();
     int addButtonHeight= m_addTabButton->height ();
     int buttonX        = accumWidth;
     // 调整按钮垂直位置，与系统按钮对齐
