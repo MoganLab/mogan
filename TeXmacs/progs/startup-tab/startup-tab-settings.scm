@@ -71,7 +71,7 @@
               "18em"))
       (item (text "User interface theme:")
         (enum (startup-set-pretty-preference* "gui theme" answer)
-              '("Default" "Liii" "Liii Dark")
+              '("Liii" "Liii Dark")
               (get-pretty-preference "gui theme")
               "18em"))
       (item (text "Completion style:")
