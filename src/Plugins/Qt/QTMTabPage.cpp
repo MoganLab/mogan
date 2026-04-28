@@ -395,7 +395,7 @@ QTMTabPageContainer::arrangeTabPages () {
       parentWidget () ? parentWidget ()->width () : this->width ();
   // 动态计算右侧预留空间，防止标签页覆盖系统按钮
   double scale      = getDPIScaleFactor ();
-  int    buttonWidth= int (60 * scale); // 按钮宽度
+  int    buttonWidth= int (72 * scale); // 按钮宽度
   int    buttonCount= 5;                // pin, min, max, close,login
 #ifdef Q_OS_MAC
   buttonCount= 1; // macOS 仅保留 login
