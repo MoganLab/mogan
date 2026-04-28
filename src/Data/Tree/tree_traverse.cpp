@@ -791,16 +791,16 @@ init_sections () {
     section_traverse_tags->insert (make_tree_label ("surround"));
   }
   if (N (section_tags) == 0) {
-    const char* regular_tags[]= {
-      "part", "chapter", "appendix", "section", "subsection",
-      "subsubsection", "paragraph", "subparagraph"
-    };
-    const char* starred_tags[]= {
-      "part*", "chapter*", "appendix*", "section*", "subsection*",
-      "subsubsection*", "paragraph*", "subparagraph*"
-    };
-    insert_section_tags (regular_tags, sizeof (regular_tags) / sizeof (regular_tags[0]));
-    insert_section_tags (starred_tags, sizeof (starred_tags) / sizeof (starred_tags[0]));
+    const char* regular_tags[]= {"part",      "chapter",     "appendix",
+                                 "section",   "subsection",  "subsubsection",
+                                 "paragraph", "subparagraph"};
+    const char* starred_tags[]= {"part*",      "chapter*",     "appendix*",
+                                 "section*",   "subsection*",  "subsubsection*",
+                                 "paragraph*", "subparagraph*"};
+    insert_section_tags (regular_tags,
+                         sizeof (regular_tags) / sizeof (regular_tags[0]));
+    insert_section_tags (starred_tags,
+                         sizeof (starred_tags) / sizeof (starred_tags[0]));
   }
 }
 
