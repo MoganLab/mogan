@@ -1132,6 +1132,15 @@ target("stem") do
                 -- SVG file should already have correct name
                 print("SVG MIME icon installed at: " .. svg_src)
             end
+        elseif is_plat("macosx") then
+            local duplicate_binary = path.join(target:installdir(), "bin", target:filename())
+            if os.isfile(duplicate_binary) then
+                -- qt.widgetapp already places the real app executable in Contents/MacOS.
+                -- Remove the extra installed copy from Contents/Resources/bin to avoid
+                -- shipping two app binaries inside the bundle.
+                os.rm(duplicate_binary)
+                print("Removed duplicate app binary: " .. duplicate_binary)
+            end
         end
     end)
 end
