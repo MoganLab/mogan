@@ -168,12 +168,30 @@ lazy_paragraph_rep::lazy_paragraph_rep (edit_env env2, path ip)
   puncts << string ("‘") << string ("’");
 
   for (string punct : puncts) {
-    cjk_puncts->insert (utf8_to_cork (punct));
+    string cork_punct= utf8_to_cork (punct);
+    cjk_puncts->insert (cork_punct);
+    cjk_no_auto_spacing_puncts->insert (cork_punct);
   }
   cjk_puncts->insert ("<#201C>");
   cjk_puncts->insert ("<#201D>");
   cjk_puncts->insert ("<#2018>");
   cjk_puncts->insert ("<#2019>");
+  cjk_no_auto_spacing_puncts->insert ("<#201C>");
+  cjk_no_auto_spacing_puncts->insert ("<#201D>");
+  cjk_no_auto_spacing_puncts->insert ("<#2018>");
+  cjk_no_auto_spacing_puncts->insert ("<#2019>");
+
+  array<string> half_width_puncts= array<string> ();
+  half_width_puncts << string (".") << string (",") << string (":")
+                    << string (";") << string ("!") << string ("?")
+                    << string ("/") << string ("-") << string ("(")
+                    << string (")") << string ("[") << string ("]")
+                    << string ("{") << string ("}") << string ("\"")
+                    << string ("'") << string ("`") << string ("<less>")
+                    << string ("<gtr>");
+  for (string punct : half_width_puncts) {
+    cjk_no_auto_spacing_puncts->insert (punct);
+  }
 }
 
 lazy_paragraph_rep::~lazy_paragraph_rep () { tm_delete (sss); }
@@ -481,7 +499,8 @@ lazy_paragraph_rep::cjk_auto_spacing () {
         && is_text (a[items_right[i]]) // test if the right item is a text box
         && !items_cjk_text[items_right[i]] // test if the right item is not a
                                            // cjk text box
-        && !cjk_puncts->contains (a[items_right[i]]->b->get_leaf_string ())) {
+        && !cjk_no_auto_spacing_puncts->contains (
+               a[items_right[i]]->b->get_leaf_string ())) {
       box b              = items[i];
       SI  auto_space_size= b->get_leaf_font ()->spc->def * 0.2;
       box nb             = b->right_auto_spacing (auto_space_size);
@@ -497,7 +516,8 @@ lazy_paragraph_rep::cjk_auto_spacing () {
         && is_text (a[items_left[i]])     // test if the left item is a text box
         && !items_cjk_text[items_left[i]] // test if the left item is not a cjk
                                           // text box
-        && !cjk_puncts->contains (a[items_left[i]]->b->get_leaf_string ())) {
+        && !cjk_no_auto_spacing_puncts->contains (
+               a[items_left[i]]->b->get_leaf_string ())) {
       box b              = items[i];
       SI  auto_space_size= b->get_leaf_font ()->spc->def * 0.2;
       box nb             = b->left_auto_spacing (auto_space_size);

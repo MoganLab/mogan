@@ -43,7 +43,9 @@ protected:
   array<bool> items_cjk_right_adjustable_puncts; // CJK right adjustable
                                                  // punctuation marks array
 
-  hashset<string> cjk_puncts; // CJK punctuation set
+  hashset<string> cjk_puncts;                 // CJK punctuation set
+  hashset<string> cjk_no_auto_spacing_puncts; // punctuation excluded from CJK
+                                              // auto spacing
   hashset<string>
       cjk_left_annotation_puncts; // CJK left annotation punctuation set
   hashset<string>
