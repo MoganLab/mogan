@@ -315,11 +315,44 @@
 ;; System dependent conventions for buffer management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; new-document
+;; 按默认窗口策略创建一个新文档，并为新建 buffer 绑定 stem-doc-id。
+;;
+;; 逻辑
+;; ----
+;; 先确保命令运行在 default view 中，再根据 window-per-buffer? 决定创建
+;; 新窗口或新 buffer。new-buffer/open-window 会同步切换 current buffer，
+;; 因此可以直接对当前 buffer 绑定 doc id，不需要再额外等待 idle。
+;;
+;; 与 new-document* 的区别
+;; ----
+;; new-document 遵循 window-per-buffer? 偏好；new-document* 使用互补策略。
+;; 两个入口都会产生一个新的当前文档，因此都需要绑定 doc id。虽然保存和
+;; 备份前还有兜底检查，这里显式绑定可以保证两种新建路径从创建起就有
+;; 一致的自动备份标识。
+;;
+;; 注意
+;; ----
+;; auto-backup-ensure-buffer-doc-id! 只写 init-env，避免触发文档树替换和
+;; 菜单/工具栏重新解析；doc id 会在用户保存时随文档持久化。
 (tm-define (new-document)
   (with-default-view
     (if (window-per-buffer?) (open-window) (new-buffer))
     (auto-backup-ensure-buffer-doc-id! (current-buffer))))
 
+;; new-document*
+;; 使用与 new-document 互补的窗口策略创建一个新文档。
+;;
+;; 逻辑
+;; ----
+;; 在 window-per-buffer? 模式下复用当前窗口创建新 buffer；否则打开新窗口。
+;; 这是 new-document 的备用新建路径，但同样会产生新的当前文档，所以也要
+;; 立即为当前 buffer 绑定自动备份 doc id，避免这条路径和默认路径表现不一。
+;;
+;; 注意
+;; ----
+;; 这里同样不需要 idle 延迟：创建新 buffer 或新窗口后 current buffer 已经
+;; 指向新文档，doc id 绑定只作用于当前会话的 init-env。
 (tm-define (new-document*)
   (with-default-view
     (if (window-per-buffer?) (new-buffer) (open-window))

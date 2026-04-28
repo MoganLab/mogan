@@ -15,7 +15,7 @@
   (:use (texmacs texmacs tm-files)))
 
 (import (liii njson))
-(import (only (liii path) path-from-env path-join))
+(import (only (liii path) path-join))
 (import (only (srfi srfi-19) TIME-UTC current-time time-second))
 
 (define auto-backup-test-doc
@@ -101,7 +101,7 @@
      (and (== case "inside")
           (auto-backup-texmacs-path-buffer?
            (system->url
-            (path-join (path-from-env "TEXMACS_PATH")
+            (path-join (url->system (get-texmacs-path))
                        "progs" "test.tmu")))))
    :none
    (test "skip texmacs path" "inside" #t)))

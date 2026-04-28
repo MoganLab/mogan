@@ -24,7 +24,7 @@
 (import (only (liii uuid) uuid4))
 (import (only (liii path)
               path->string path-dir? path-exists? path-from-env
-              path-from-string path-getsize path-join path-name path-parts
+              path-from-string path-getsize path-join path-name path-parent
               path-rename path-root path-stem path-unlink))
 (import (only (liii os) mkdir))
 (import (liii njson))
@@ -264,36 +264,36 @@
         ((in? :commit opts)
          (commit-buffer name))))
 
+;; save-buffer-save
+;; 保存指定 buffer，并在保存前确保自动备份使用的稳定 doc id 已绑定。
+;;
+;; 语法
+;; ----
+;; (save-buffer-save name opts)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 要保存的 buffer 名称。
+;;
+;; opts : list
+;; 保存后的附加动作，例如 :update 或 :commit。
+;;
+;; 返回值
+;; ----
+;; #<unspecified>
+;; 通过消息栏和 buffer 状态体现保存结果。
+;;
+;; 逻辑
+;; ----
+;; 先用 init-env 补齐缺失的 stem-doc-id，再执行原有 buffer-save 流程；
+;; 保存成功后清理旧 autosave 文件、记录最近文件并执行后续动作。
+;;
+;; 注意
+;; ----
+;; doc id 只在用户明确保存时随文档持久化；打开已有文件时不会静默
+;; 写回源文件。
 (define (save-buffer-save name opts)
-  ;; save-buffer-save
-  ;; 保存指定 buffer，并在保存前确保自动备份使用的稳定 doc id 已绑定。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (save-buffer-save name opts)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; name : url
-  ;; 要保存的 buffer 名称。
-  ;;
-  ;; opts : list
-  ;; 保存后的附加动作，例如 :update 或 :commit。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; #<unspecified>
-  ;; 通过消息栏和 buffer 状态体现保存结果。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 先用 init-env 补齐缺失的 stem-doc-id，再执行原有 buffer-save 流程；
-  ;; 保存成功后清理旧 autosave 文件、记录最近文件并执行后续动作。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; doc id 只在用户明确保存时随文档持久化；打开已有文件时不会静默
-  ;; 写回源文件。
   ;;(display* "save-buffer-save " name "\n")
   (with vname `(verbatim ,(utf8->cork (url->system name)))
     (auto-backup-ensure-buffer-doc-id! name)
@@ -348,37 +348,37 @@
              "Failed to save"))
           (else #f))))
 
+;; save-buffer-check-permissions
+;; 保存前检查目标 buffer 是否存在、是否可写以及是否需要用户确认。
+;;
+;; 语法
+;; ----
+;; (save-buffer-check-permissions name opts)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 要保存的 buffer 名称。
+;;
+;; opts : list
+;; 保存后的附加动作，例如 :update 或 :commit。
+;;
+;; 返回值
+;; ----
+;; #<unspecified>
+;; 根据检查结果继续保存、弹出提示或结束流程。
+;;
+;; 逻辑
+;; ----
+;; 保留原有权限和磁盘更新时间检查；若 buffer 本身没有修改，但缺少
+;; stem-doc-id，则在通过写权限检查后走正常保存链路，把 doc id 随本次
+;; 用户保存写入文档。
+;;
+;; 注意
+;; ----
+;; 这个分支只响应用户主动保存，不会因为自动备份发现缺少 doc id 而
+;; 立刻静默写回已有文件。
 (define (save-buffer-check-permissions name opts)
-  ;; save-buffer-check-permissions
-  ;; 保存前检查目标 buffer 是否存在、是否可写以及是否需要用户确认。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (save-buffer-check-permissions name opts)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; name : url
-  ;; 要保存的 buffer 名称。
-  ;;
-  ;; opts : list
-  ;; 保存后的附加动作，例如 :update 或 :commit。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; #<unspecified>
-  ;; 根据检查结果继续保存、弹出提示或结束流程。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 保留原有权限和磁盘更新时间检查；若 buffer 本身没有修改，但缺少
-  ;; stem-doc-id，则在通过写权限检查后走正常保存链路，把 doc id 随本次
-  ;; 用户保存写入文档。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; 这个分支只响应用户主动保存，不会因为自动备份发现缺少 doc id 而
-  ;; 立刻静默写回已有文件。
   ;;(display* "save-buffer-check-permissions " name "\n")
   (set! current-save-source name)
   (set! current-save-target name)
@@ -546,9 +546,6 @@
 (define (auto-backup-home-path)
   (path-from-env "TEXMACS_HOME_PATH"))
 
-(define (auto-backup-texmacs-path)
-  (path-from-env "TEXMACS_PATH"))
-
 (define (auto-backup-url-stree-tag x)
   (cond ((symbol? x) (symbol->string x))
         ((string? x) x)
@@ -591,51 +588,62 @@
         (auto-backup-url-stree->path (url->stree name)))))
     (lambda args "untitled")))
 
+(define (auto-backup-trim-trailing-separators s)
+  (let loop ((n (string-length s)))
+    (if (and (> n 1)
+             (let ((c (string-ref s (- n 1))))
+               (or (char=? c #\/) (char=? c #\\))))
+        (loop (- n 1))
+        (substring s 0 n))))
+
+(define (auto-backup-path-normal-string path)
+  (auto-backup-trim-trailing-separators (path->string path)))
+
 (define (auto-backup-path-descends? child parent)
   (catch #t
     (lambda ()
-      (let* ((child-parts (path-parts (path-from-string child)))
-             (parent-parts (path-parts (path-from-string parent)))
-             (child-len (vector-length child-parts))
-             (parent-len (vector-length parent-parts)))
-        (and (<= parent-len child-len)
-             (let loop ((i 0))
-               (or (>= i parent-len)
-                   (and (== (vector-ref child-parts i)
-                            (vector-ref parent-parts i))
-                        (loop (+ i 1))))))))
+      (let ((parent-path (auto-backup-path-normal-string
+                          (path-from-string parent))))
+        (let loop ((path (path-from-string child)))
+          (let ((current-path (auto-backup-path-normal-string path)))
+            (or (== current-path parent-path)
+                (let* ((next (path-parent path))
+                       (next-path (auto-backup-path-normal-string next)))
+                  (and (!= next-path current-path)
+                       (loop next))))))))
     (lambda args #f)))
 
+;; auto-backup-texmacs-path-buffer?
+;; 判断 buffer 是否位于 get-texmacs-path 返回的目录或其子目录中。
+;;
+;; 语法
+;; ----
+;; (auto-backup-texmacs-path-buffer? name)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 待检查的 buffer 名称。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; #t 表示 buffer 对应路径位于 get-texmacs-path 下。
+;;
+;; 逻辑
+;; ----
+;; 将 buffer url 转成系统路径，再使用 (liii path) 的 path-parent 逐级
+;; 向上检查是否能到达 get-texmacs-path。
+;;
+;; 注意
+;; ----
+;; TeXmacs 安装路径下的文件被视为只读内置资源，不进入自动备份。
 (tm-define (auto-backup-texmacs-path-buffer? name)
-  ;; auto-backup-texmacs-path-buffer?
-  ;; 判断 buffer 是否位于 TEXMACS_PATH 目录或其子目录中。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-texmacs-path-buffer? name)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; name : url
-  ;; 待检查的 buffer 名称。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; boolean
-  ;; #t 表示 buffer 对应路径位于 TEXMACS_PATH 下。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 将 buffer url 转成系统路径，再与 TEXMACS_PATH 做 path parts 前缀比较。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; TEXMACS_PATH 下的文件被视为只读内置资源，不进入自动备份。
   (catch #t
     (lambda ()
       (auto-backup-path-descends?
        (auto-backup-buffer-path name)
-       (path->string (auto-backup-texmacs-path))))
+       (url->system (get-texmacs-path))))
     (lambda args #f)))
 
 (define (auto-backup-path->url p)
@@ -661,31 +669,31 @@
       (auto-backup-log "failed-to-create-backup-dir")
       #f)))
 
+;; auto-backup-empty-manifest
+;; 创建新的自动备份 manifest。
+;;
+;; 语法
+;; ----
+;; (auto-backup-empty-manifest)
+;;
+;; 参数
+;; ----
+;; 无。
+;;
+;; 返回值
+;; ----
+;; njson
+;; 包含 meta 和 documents 的 manifest 对象，调用者负责释放。
+;;
+;; 逻辑
+;; ----
+;; 初始化版本号、固定调度间隔、单文档 rolling 数量和 manifest 记录最长
+;; 保留天数。
+;;
+;; 注意
+;; ----
+;; manifest 的 njson 句柄需要用 let-njson 包裹，避免泄漏。
 (tm-define (auto-backup-empty-manifest)
-  ;; auto-backup-empty-manifest
-  ;; 创建新的自动备份 manifest。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-empty-manifest)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; 无。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; njson
-  ;; 包含 meta 和 documents 的 manifest 对象，调用者负责释放。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 初始化版本号、固定调度间隔、单文档 rolling 数量和 manifest 记录最长
-  ;; 保留天数。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; manifest 的 njson 句柄需要用 let-njson 包裹，避免泄漏。
   (let ((manifest (string->njson
                    "{\"meta\":{\"version\":1,\"interval_seconds\":120,\"retention\":7,\"max_record_age_days\":30,\"updated_at\":0},\"documents\":{}}")))
     (njson-set! manifest "meta" "updated_at" (auto-backup-now-seconds))
@@ -735,32 +743,32 @@
             (auto-backup-mark-broken! path)
             (auto-backup-empty-manifest))))))
 
+;; auto-backup-save-manifest!
+;; 将自动备份 manifest 原子化写回磁盘。
+;;
+;; 语法
+;; ----
+;; (auto-backup-save-manifest! manifest)
+;;
+;; 参数
+;; ----
+;; manifest : njson
+;; 待写回的 manifest 对象。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; #t 表示写入成功，#f 表示失败。
+;;
+;; 逻辑
+;; ----
+;; 写入前先清理 30 天以上的 manifest 记录，再更新 meta 并通过临时文件
+;; 替换正式文件。
+;;
+;; 注意
+;; ----
+;; 清理旧记录时会同步删除对应的过期备份文件。
 (tm-define (auto-backup-save-manifest! manifest)
-  ;; auto-backup-save-manifest!
-  ;; 将自动备份 manifest 原子化写回磁盘。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-save-manifest! manifest)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; manifest : njson
-  ;; 待写回的 manifest 对象。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; boolean
-  ;; #t 表示写入成功，#f 表示失败。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 写入前先清理 30 天以上的 manifest 记录，再更新 meta 并通过临时文件
-  ;; 替换正式文件。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; 清理旧记录时会同步删除对应的过期备份文件。
   (let* ((path (auto-backup-manifest-path))
          (tmp (string-append
                path
@@ -789,32 +797,32 @@
 (define (auto-backup-format name)
   (if (url-scratch? name) "texmacs" (url-format name)))
 
+;; auto-backup-buffer-eligible?
+;; 判断指定 buffer 是否允许进入自动备份。
+;;
+;; 语法
+;; ----
+;; (auto-backup-buffer-eligible? name)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 待检查的 buffer 名称。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; #t 表示允许自动备份，#f 表示跳过。
+;;
+;; 逻辑
+;; ----
+;; 只允许本地、非 tmfs、非 web 且格式为 texmacs/stm/mgs/tmu 的文档备份；
+;; 位于 get-texmacs-path 目录或子目录下的内置只读文件直接跳过。
+;;
+;; 注意
+;; ----
+;; 这个判断也会影响 doc id 绑定，跳过的只读资源不会被写入 stem-doc-id。
 (tm-define (auto-backup-buffer-eligible? name)
-  ;; auto-backup-buffer-eligible?
-  ;; 判断指定 buffer 是否允许进入自动备份。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-buffer-eligible? name)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; name : url
-  ;; 待检查的 buffer 名称。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; boolean
-  ;; #t 表示允许自动备份，#f 表示跳过。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 只允许本地、非 tmfs、非 web 且格式为 texmacs/stm/mgs/tmu 的文档备份；
-  ;; 位于 TEXMACS_PATH 目录或子目录下的内置只读文件直接跳过。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; 这个判断也会影响 doc id 绑定，跳过的只读资源不会被写入 stem-doc-id。
   (and (url? name)
        (buffer-exists? name)
        (not (url-rooted-web? name))
@@ -928,8 +936,9 @@
        (not (auto-backup-valid-doc-id?
              (auto-backup-buffer-doc-id name)))))
 
+;; auto-backup-find-doc-id-by-source-url
+;; 在 manifest 中按 source_url 查找已有 doc id。
 (define (auto-backup-find-doc-id-by-source-url manifest source-url)
-  "Find existing doc-id for a source-url in manifest"
   (catch #t
     (lambda ()
       (let-njson ((docs (njson-ref manifest "documents")))
@@ -945,34 +954,34 @@
                           (loop (cdr keys)))))))))))
     (lambda args #f)))
 
+;; auto-backup-ensure-buffer-doc-id!
+;; 确保可备份 buffer 已经绑定 stem-doc-id。
+;;
+;; 语法
+;; ----
+;; (auto-backup-ensure-buffer-doc-id! name)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 待检查和绑定的 buffer 名称。
+;;
+;; 返回值
+;; ----
+;; string or #f
+;; 返回已有或新生成的 doc id；不可备份或失败时返回 #f。
+;;
+;; 逻辑
+;; ----
+;; 先读取 buffer 当前 init-env 或 initial collection 中的 stem-doc-id；
+;; 若没有，则已有文件按 source_url 从 manifest 复用旧 id，新建 scratch
+;; 文档直接生成新的 uuid4。
+;;
+;; 注意
+;; ----
+;; 这里只写入 init-env，避免触发文档重新解析；已有文件是否持久化由用户
+;; 后续保存动作决定。
 (tm-define (auto-backup-ensure-buffer-doc-id! name)
-  ;; auto-backup-ensure-buffer-doc-id!
-  ;; 确保可备份 buffer 已经绑定 stem-doc-id。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-ensure-buffer-doc-id! name)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; name : url
-  ;; 待检查和绑定的 buffer 名称。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; string or #f
-  ;; 返回已有或新生成的 doc id；不可备份或失败时返回 #f。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 先读取 buffer 当前 init-env 或 initial collection 中的 stem-doc-id；
-  ;; 若没有，则已有文件按 source_url 从 manifest 复用旧 id，新建 scratch
-  ;; 文档直接生成新的 uuid4。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; 这里只写入 init-env，避免触发文档重新解析；已有文件是否持久化由用户
-  ;; 后续保存动作决定。
   (catch #t
     (lambda ()
       (and (auto-backup-buffer-eligible? name)
@@ -1222,33 +1231,33 @@
                             doc-id)))
           #t))))
 
+;; auto-backup-clean-stale-documents!
+;; 清理 manifest 中超过保留时间的文档记录和版本记录。
+;;
+;; 语法
+;; ----
+;; (auto-backup-clean-stale-documents! manifest)
+;;
+;; 参数
+;; ----
+;; manifest : njson
+;; 自动备份 manifest 对象。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; #t 表示 manifest 有清理改动，#f 表示无改动或清理失败。
+;;
+;; 逻辑
+;; ----
+;; 以当前时间向前 30 天作为 cutoff。文档最后检查、最后备份和最新版本
+;; 都早于 cutoff 时，删除整个文档记录；仍活跃的文档只删除过期版本。
+;;
+;; 注意
+;; ----
+;; 被清理的版本会同步删除本地备份文件，manifest 的 njson 释放仍由外层
+;; let-njson 负责。
 (tm-define (auto-backup-clean-stale-documents! manifest)
-  ;; auto-backup-clean-stale-documents!
-  ;; 清理 manifest 中超过保留时间的文档记录和版本记录。
-  ;;
-  ;; 语法
-  ;; ----
-  ;; (auto-backup-clean-stale-documents! manifest)
-  ;;
-  ;; 参数
-  ;; ----
-  ;; manifest : njson
-  ;; 自动备份 manifest 对象。
-  ;;
-  ;; 返回值
-  ;; ----
-  ;; boolean
-  ;; #t 表示 manifest 有清理改动，#f 表示无改动或清理失败。
-  ;;
-  ;; 逻辑
-  ;; ----
-  ;; 以当前时间向前 30 天作为 cutoff。文档最后检查、最后备份和最新版本
-  ;; 都早于 cutoff 时，删除整个文档记录；仍活跃的文档只删除过期版本。
-  ;;
-  ;; 注意
-  ;; ----
-  ;; 被清理的版本会同步删除本地备份文件，manifest 的 njson 释放仍由外层
-  ;; let-njson 负责。
   (let* ((now (auto-backup-now-seconds))
          (cutoff (- now (* auto-backup-record-retention-days
                            auto-backup-day-seconds))))
@@ -1321,8 +1330,9 @@
       (auto-backup-log
        (string-append "partial-remove-failed " target)))))
 
+;; auto-backup-buffer-do
+;; 执行实际的自动备份写文件和 manifest 更新逻辑。
 (define (auto-backup-buffer-do name kind)
-  "Perform actual backup logic"
   (let-njson ((manifest (auto-backup-load-manifest)))
     (let* ((device-id (stem-device-id))
            (app-version (liiistem-version))
@@ -1379,6 +1389,27 @@
               (string-append "on-open "
                              (auto-backup-buffer-path name))))
            (auto-backup-buffer-do name kind)))))
+
+;; auto-backup-opened-buffer!
+;; 文件打开后的自动备份准备流程。
+;;
+;; 语法
+;; ----
+;; (auto-backup-opened-buffer! name)
+;;
+;; 参数
+;; ----
+;; name : url
+;; 已经打开并切换完成的 buffer 名称。
+;;
+;; 逻辑
+;; ----
+;; 打开文件时只在当前会话中绑定缺失的 stem-doc-id，避免静默改写源文件；
+;; 随后延迟触发一次 on-open 备份，由 md5 去重避免重复版本。
+(define (auto-backup-opened-buffer! name)
+  (auto-backup-ensure-buffer-doc-id! name)
+  (delayed (:pause 100)
+    (auto-backup-buffer name "on-open")))
 
 (tm-define (auto-backup-all)
   (let ((buffers (buffer-list)))
@@ -1572,11 +1603,7 @@
              (inside? 'slideshow)
              (> (nr-pages) 1))
     (delayed (:idle 25) (fit-to-screen-width)))
-  ;; Bind a missing doc-id for this session only; persist it when users save.
-  (auto-backup-ensure-buffer-doc-id! name)
-  ;; Trigger initial backup on open (unless already backed up with same MD5)
-  (delayed (:pause 100)
-    (auto-backup-buffer name "on-open"))
+  (auto-backup-opened-buffer! name)
   (noop))
 
 (define (load-buffer-load name opts)
