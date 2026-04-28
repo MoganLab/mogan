@@ -5,12 +5,18 @@
         <file>ocr-button/right-align.svg</file>
         <file>ocr-button/ocr.svg</file>
 
+        <file>tabpage/add.svg</file>
+        <file>tabpage/close.svg</file>
+
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>
         <file>ocr-button/middle-align-white.svg</file>
         <file>ocr-button/right-align-white.svg</file>
         <file>ocr-button/ocr-white.svg</file>
+
+        <file>tabpage/add-white.svg</file>
+        <file>tabpage/close-white.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/test.gif</file>

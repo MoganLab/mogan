@@ -360,33 +360,32 @@ QTMTabPage:checked {
   border-bottom: none;
 }
 
-QTMTabPage QToolButton#tabpage-close-button {
+QTMTabPage QPushButton#tabpage-close-button {
   background-color: transparent;
   border: none;
-  padding: 0;
+  qproperty-iconNormal: url(":/tabpage/close.svg");
+  qproperty-iconHovered: url(":/tabpage/close-white.svg");
 }
 
-QTMTabPage QToolButton#tabpage-close-button:hover {
+QTMTabPage QPushButton#tabpage-close-button:hover {
   background-color: #E81123;
-  color: #FFFFFF;
 }
 
-QTMTabPage QToolButton#tabpage-close-button:pressed {
+QTMTabPage QPushButton#tabpage-close-button:pressed {
   background-color: #C50F1F;
 }
 
-QTMTabPageContainer QToolButton#add-tab-button {
+QTMTabPageContainer QPushButton#add-tab-button {
   background-color: transparent;
   border: none;
-  color: #2c2c2c;
-  font-weight: bold;
+  qproperty-iconNormal: url(":/tabpage/add.svg");
 }
 
-QTMTabPageContainer QToolButton#add-tab-button:hover {
+QTMTabPageContainer QPushButton#add-tab-button:hover {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
-QTMTabPageContainer QToolButton#add-tab-button:pressed {
+QTMTabPageContainer QPushButton#add-tab-button:pressed {
   background-color: rgba(0, 0, 0, 0.12);
 }
 

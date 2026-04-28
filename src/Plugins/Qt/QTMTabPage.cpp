@@ -65,13 +65,6 @@ getScaledSystemButtonHeight () {
   return int (baseHeight * getDPIScaleFactor ());
 }
 
-static QSize
-getScaledTabCloseButtonSize () {
-  constexpr int baseSize= 20;
-  int side= qMax (baseSize, int (baseSize * getDPIScaleFactor ()));
-  return QSize (side, side);
-}
-
 /**
  * What is g_mostRecentlyClosedTab used for? When we close an ACTIVE(!) tab
  * (let's denote it as T), the tab bar is refreshed twice, meaning that
@@ -124,25 +117,22 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   p_title->setChecked (p_isActive);
   setDefaultAction (p_title);
   setFocusPolicy (Qt::NoFocus);
-  initializeCloseButton ();
-  int padY= DpiUtils::scaled (8);
-  int padX= DpiUtils::scaled (12);
+  initializeCloseButton (p_closeBtn);
+  int padY  = DpiUtils::scaled (8);
+  int padX  = DpiUtils::scaled (12);
   int radius= DpiUtils::scaled (10);
   setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
                      .arg (padY)
                      .arg (padX)
                      .arg (radius));
   DpiUtils::applyScaledFont (this, 14);
-  m_closeBtn->setDefaultAction (p_closeBtn);
-  connect (m_closeBtn, &QToolButton::clicked, this,
-           [=] () { g_mostRecentlyClosedTab= m_viewUrl; });
 }
 
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton ();
-  int padY= DpiUtils::scaled (8);
-  int padX= DpiUtils::scaled (12);
+  int padY  = DpiUtils::scaled (8);
+  int padX  = DpiUtils::scaled (12);
   int radius= DpiUtils::scaled (10);
   setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
                      .arg (padY)
@@ -152,20 +142,23 @@ QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
 }
 
 void
-QTMTabPage::initializeCloseButton () {
-  m_closeBtn= new QToolButton (this);
+QTMTabPage::initializeCloseButton (QAction* closeAction) {
+  m_closeBtn= new QWK::WindowButton (this);
   m_closeBtn->setObjectName ("tabpage-close-button");
   m_closeBtn->setFocusPolicy (Qt::NoFocus);
-  const QSize closeBtnSize= getScaledTabCloseButtonSize ();
-  m_closeBtn->setFixedSize (closeBtnSize);
-  const int closeIconSide= qMax (closeBtnSize.width () - 4, 8);
-  m_closeBtn->setIconSize (QSize (closeIconSide, closeIconSide));
-  int marginLeft= DpiUtils::scaled (6);
-  int btnRadius= DpiUtils::scaled (4);
+  int closeBtnSize= getScaledSystemButtonHeight ();
+  m_closeBtn->setMinimumSize (closeBtnSize, closeBtnSize);
+  m_closeBtn->setFixedSize (closeBtnSize, closeBtnSize);
+  m_closeBtn->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  int closeBtnRadius= DpiUtils::scaled (6);
   m_closeBtn->setStyleSheet (
-      QString ("margin-left: %1px; border-radius: %2px;")
-          .arg (marginLeft)
-          .arg (btnRadius));
+      QString ("border-radius: %1px; padding: 0px;").arg (closeBtnRadius));
+  if (closeAction) {
+    connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
+      g_mostRecentlyClosedTab= m_viewUrl;
+      closeAction->trigger ();
+    });
+  }
   updateCloseButtonVisibility ();
 }
 
@@ -329,9 +322,8 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   dummyTabPage->hide ();
 
   // 创建新增标签页按钮
-  m_addTabButton= new QToolButton (this);
+  m_addTabButton= new QWK::WindowButton (this);
   m_addTabButton->setObjectName ("add-tab-button");
-  m_addTabButton->setText ("+");
   int addButtonSide= getScaledSystemButtonHeight ();
   m_addTabButton->setMinimumSize (addButtonSide, addButtonSide);
   m_addTabButton->setFixedSize (addButtonSide, addButtonSide);
@@ -339,8 +331,7 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   int addBtnRadius= DpiUtils::scaled (6);
   m_addTabButton->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (addBtnRadius));
-  DpiUtils::applyScaledFont (m_addTabButton, 16);
-  connect (m_addTabButton, &QToolButton::clicked, this,
+  connect (m_addTabButton, &QPushButton::clicked, this,
            &QTMTabPageContainer::onAddTabClicked);
   m_addTabButton->hide ();
 

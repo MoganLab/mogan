@@ -11,6 +11,7 @@
 #ifndef QTMTABPAGE_HPP
 #define QTMTABPAGE_HPP
 
+#include "windowbutton.hpp"
 #include <QDrag>
 #include <QDropEvent>
 #include <QFrame>
@@ -29,8 +30,8 @@
  */
 class QTMTabPage : public QToolButton {
   Q_OBJECT
-  QToolButton* m_closeBtn;
-  QPoint       m_dragStartPos;
+  QWK::WindowButton* m_closeBtn;
+  QPoint             m_dragStartPos;
 
 public:
   const url m_viewUrl;
@@ -54,7 +55,7 @@ protected:
 
 private:
   void updateCloseButtonVisibility ();
-  void initializeCloseButton ();
+  void initializeCloseButton (QAction* closeAction= nullptr);
 };
 
 /*! QTMTabPageAction is used as a carrier of QTMTabPage widget.
@@ -86,7 +87,7 @@ class QTMTabPageContainer : public QWidget {
   int                m_width= 0;
   bool               dragging;
   QPoint             dragPosition;
-  QToolButton*       m_addTabButton;
+  QWK::WindowButton* m_addTabButton;
 
 public:
   QTMTabPage* dummyTabPage;
