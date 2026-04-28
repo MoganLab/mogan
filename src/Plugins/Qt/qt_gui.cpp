@@ -399,7 +399,7 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
     mode= QClipboard::Selection;
   else return true;
 
-  c_string selection (s);
+  c_string   selection (s);
   QMimeData* md= new QMimeData;
 
   if (format == "verbatim" || format == "default") {
