@@ -47,7 +47,6 @@ option("is_community")
 option_end()
 
 local enable_tutorial = not has_config("is_community")
-print(enable_tutorial)
 
 option("tutorial")
     set_default(enable_tutorial)
