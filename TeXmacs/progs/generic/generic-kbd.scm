@@ -15,6 +15,7 @@
   (:use (texmacs keyboard prefix-kbd)
         (utils edit variants)
         (utils edit auto-close)
+        (utils edit selections)
         (utils library cursor)
         (generic document-edit)
         (generic generic-edit)
@@ -58,6 +59,7 @@
   ("S-return" (kbd-shift-return))
   ("C-return" (kbd-control-return))
   ("C-S-return" (kbd-shift-control-return))
+  ("C-L" (clipboard-copy-export "latex" "primary"))
   ("A-return" (kbd-alternate-return))
   ("A-S-return" (kbd-shift-alternate-return))
 
@@ -779,7 +781,6 @@
   ("std n" (new-document))
   ("std N" (new-document*))
   ("std o" (open-document))
-  ("std L" (open-document*))
   ("std p" (preview-buffer))
   ("std q" (safely-quit-TeXmacs))
   ("std R" (update-document "all"))
