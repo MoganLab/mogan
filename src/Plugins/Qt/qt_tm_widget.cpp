@@ -226,10 +226,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   };
 
   double scale         = DpiUtils::scaleFactor ();
-  int    titleBarHeight= int (32 * scale);
-  int    buttonWidth   = int (46 * scale);
-  int    buttonHeight  = int (32 * scale);
-  int    iconBaseSize  = int (12 * scale);
+  int    titleBarHeight= int (42 * scale);
+  int    buttonWidth   = int (60 * scale);
+  int    buttonHeight  = int (42 * scale);
+  int    iconBaseSize  = int (16 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
@@ -585,7 +585,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // NOTICE: setFixedHeight must be after setIconSize
   // TODO: the size of the toolbar should be calculated dynamically
   {
-    int h           = DpiUtils::scaled (32);
+    int h           = DpiUtils::scaled (42);
     int tabRowHeight= h;
 
     // 工具栏高度相等

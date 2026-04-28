@@ -32,6 +32,8 @@ const int TAB_CONTAINER_PADDING= 0;
 constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
 constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 0;
 constexpr int TAB_RIGHT_EXTRA_GAP           = 66;
+constexpr int ADD_BUTTON_SIZE               = 20;
+constexpr int CLOSE_BUTTON_SIZE             = 18;
 
 // DPI scaling utility functions (使用 DpiUtils)
 static double
@@ -55,9 +57,13 @@ getScaledStartupTabMaxWidth () {
 }
 
 static int
-getScaledSystemButtonHeight () {
-  constexpr int baseHeight= 24;
-  return int (baseHeight * getDPIScaleFactor ());
+getScaledAddButtonHeight () {
+  return DpiUtils::scaled (ADD_BUTTON_SIZE);
+}
+
+static int
+getScaledCloseButtonHeight () {
+  return DpiUtils::scaled (CLOSE_BUTTON_SIZE);
 }
 
 /**
@@ -135,7 +141,7 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
   m_closeBtn= new QWK::WindowButton (this);
   m_closeBtn->setObjectName ("tabpage-close-button");
   m_closeBtn->setFocusPolicy (Qt::NoFocus);
-  int closeBtnSize= getScaledSystemButtonHeight ();
+  int closeBtnSize= getScaledCloseButtonHeight ();
   m_closeBtn->setMinimumSize (closeBtnSize, closeBtnSize);
   m_closeBtn->setFixedSize (closeBtnSize, closeBtnSize);
   m_closeBtn->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -280,7 +286,8 @@ QTMTabPage::leaveEvent (QEvent* e) {
 
 void
 QTMTabPage::updateCloseButtonVisibility () {
-  bool shouldShow= !is_startup_tab_view (m_viewUrl);
+  bool shouldShow=
+      !is_startup_tab_view (m_viewUrl) && (underMouse () || isChecked ());
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 
@@ -313,7 +320,7 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   // 创建新增标签页按钮
   m_addTabButton= new QWK::WindowButton (this);
   m_addTabButton->setObjectName ("add-tab-button");
-  int addButtonSide= getScaledSystemButtonHeight ();
+  int addButtonSide= getScaledAddButtonHeight ();
   m_addTabButton->setMinimumSize (addButtonSide, addButtonSide);
   m_addTabButton->setFixedSize (addButtonSide, addButtonSide);
   m_addTabButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
@@ -394,7 +401,7 @@ QTMTabPageContainer::arrangeTabPages () {
       parentWidget () ? parentWidget ()->width () : this->width ();
   // 动态计算右侧预留空间，防止标签页覆盖系统按钮
   double scale      = getDPIScaleFactor ();
-  int    buttonWidth= int (46 * scale); // 按钮宽度
+  int    buttonWidth= int (60 * scale); // 按钮宽度
   int    buttonCount= 5;                // pin, min, max, close,login
 #ifdef Q_OS_MAC
   buttonCount= 1; // macOS 仅保留 login
