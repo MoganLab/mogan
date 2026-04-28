@@ -19,7 +19,7 @@
 // Base tab widths
 constexpr int MAX_TAB_PAGE_WIDTH_BASE   = 150;
 constexpr int MIN_TAB_PAGE_WIDTH_BASE   = 25;
-constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 100;
+constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 90;
 
 // The horizontal padding for tab container (in pixels).
 #ifdef Q_OS_MAC
@@ -28,15 +28,9 @@ const int TAB_CONTAINER_PADDING= 75;
 const int TAB_CONTAINER_PADDING= 0;
 #endif
 
-#ifdef Q_OS_MAC
-constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 4.5;
-constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 4;
-constexpr int TAB_RIGHT_EXTRA_GAP           = 0;
-#else
 constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
 constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 0;
 constexpr int TAB_RIGHT_EXTRA_GAP           = 66;
-#endif
 
 // DPI scaling utility functions (使用 DpiUtils)
 static double
@@ -61,31 +55,19 @@ getScaledStartupTabMaxWidth () {
 
 static int
 getScaledSystemBarHeight () {
-#ifdef Q_OS_MAC
-  constexpr int baseHeight= 22;
-#else
   constexpr int baseHeight= 36;
-#endif
   return int (baseHeight * getDPIScaleFactor ());
 }
 
 static int
 getScaledSystemButtonHeight () {
-#ifdef Q_OS_MAC
-  constexpr int baseHeight= 15;
-#else
   constexpr int baseHeight= 24;
-#endif
   return int (baseHeight * getDPIScaleFactor ());
 }
 
 static QSize
 getScaledTabCloseButtonSize () {
-#ifdef Q_OS_MAC
-  constexpr int baseSize= 12;
-#else
   constexpr int baseSize= 20;
-#endif
   int side= qMax (baseSize, int (baseSize * getDPIScaleFactor ()));
   return QSize (side, side);
 }
@@ -143,6 +125,14 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   setDefaultAction (p_title);
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton ();
+  int padY= DpiUtils::scaled (8);
+  int padX= DpiUtils::scaled (12);
+  int radius= DpiUtils::scaled (10);
+  setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
+                     .arg (padY)
+                     .arg (padX)
+                     .arg (radius));
+  DpiUtils::applyScaledFont (this, 14);
   m_closeBtn->setDefaultAction (p_closeBtn);
   connect (m_closeBtn, &QToolButton::clicked, this,
            [=] () { g_mostRecentlyClosedTab= m_viewUrl; });
@@ -151,6 +141,14 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton ();
+  int padY= DpiUtils::scaled (8);
+  int padX= DpiUtils::scaled (12);
+  int radius= DpiUtils::scaled (10);
+  setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
+                     .arg (padY)
+                     .arg (padX)
+                     .arg (radius));
+  DpiUtils::applyScaledFont (this, 14);
 }
 
 void
@@ -158,13 +156,16 @@ QTMTabPage::initializeCloseButton () {
   m_closeBtn= new QToolButton (this);
   m_closeBtn->setObjectName ("tabpage-close-button");
   m_closeBtn->setFocusPolicy (Qt::NoFocus);
-#ifdef Q_OS_MAC
-  m_closeBtn->setProperty ("platform", "mac");
-#endif
   const QSize closeBtnSize= getScaledTabCloseButtonSize ();
   m_closeBtn->setFixedSize (closeBtnSize);
   const int closeIconSide= qMax (closeBtnSize.width () - 4, 8);
   m_closeBtn->setIconSize (QSize (closeIconSide, closeIconSide));
+  int marginLeft= DpiUtils::scaled (6);
+  int btnRadius= DpiUtils::scaled (4);
+  m_closeBtn->setStyleSheet (
+      QString ("margin-left: %1px; border-radius: %2px;")
+          .arg (marginLeft)
+          .arg (btnRadius));
   updateCloseButtonVisibility ();
 }
 
@@ -335,9 +336,10 @@ QTMTabPageContainer::QTMTabPageContainer (QWidget* p_parent)
   m_addTabButton->setMinimumSize (addButtonSide, addButtonSide);
   m_addTabButton->setFixedSize (addButtonSide, addButtonSide);
   m_addTabButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
-#ifdef Q_OS_MAC
-  m_addTabButton->setProperty ("platform", "mac");
-#endif
+  int addBtnRadius= DpiUtils::scaled (6);
+  m_addTabButton->setStyleSheet (
+      QString ("border-radius: %1px; padding: 0px;").arg (addBtnRadius));
+  DpiUtils::applyScaledFont (m_addTabButton, 16);
   connect (m_addTabButton, &QToolButton::clicked, this,
            &QTMTabPageContainer::onAddTabClicked);
   m_addTabButton->hide ();
