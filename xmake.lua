@@ -40,18 +40,19 @@ option("text_toolbar")
     set_description("Enable text selection floating toolbar")
 option_end()
 
-option("tutorial")
-    set_default(false)
-    set_description("Enable tutorial infrastructure and first-launch tutorial")
-option_end()
-
 -- Adjust community or commercial version
 option("is_community")
-    set_default(true)
+    set_default(is_community)
     set_description("Adjust community or commercial version")
 option_end()
 
-set_config("is_community", is_community)
+local enable_tutorial = not has_config("is_community")
+print(enable_tutorial)
+
+option("tutorial")
+    set_default(enable_tutorial)
+    set_description("Enable tutorial infrastructure and first-launch tutorial; derived from is_community")
+option_end()
 
 option("debug_with_timestamp")
     set_default(true)
@@ -93,7 +94,7 @@ add_configfiles("src/System/config.h.xmake", {
         USE_MUPDF_RENDERER = has_config("mupdf"),
         USE_STARTUP_TAB = has_config("startup_tab"),
         USE_TEXT_TOOLBAR = has_config("text_toolbar"),
-        USE_TUTORIAL = has_config("tutorial"),
+        USE_TUTORIAL = enable_tutorial,
         IS_COMMUNITY = has_config("is_community"),
         DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
     }
@@ -709,7 +710,7 @@ target("libmogan") do
                 USE_MUPDF_RENDERER = has_config("mupdf"),
                 USE_STARTUP_TAB = has_config("startup_tab"),
                 USE_TEXT_TOOLBAR = has_config("text_toolbar"),
-                USE_TUTORIAL = has_config("tutorial"),
+                USE_TUTORIAL = enable_tutorial,
                 IS_COMMUNITY = has_config("is_community"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})
