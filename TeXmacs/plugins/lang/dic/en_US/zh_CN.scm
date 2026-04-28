@@ -678,6 +678,7 @@
 ("ellipse" "椭圆")
 ("elsevier" "爱思唯尔")
 ("email" "电子邮件")
+("Email not set" "未绑定邮箱")
 ("emphasize text" "强调文本")
 ("emphasize" "强调")
 ("empty box" "空白的区域")
