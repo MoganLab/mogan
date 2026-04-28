@@ -30,7 +30,7 @@ jobs:
       - name: Config and build goldfish
         run: |
           xmake config -m release -a ${{ matrix.arch }} -vD --yes
-          xmake build goldfish -vD
+          xmake build goldfish
           ls -la TeXmacs/plugins/goldfish/bin/ || echo "goldfish bin dir not found"
       - name: Package with Goldfish
         env:
