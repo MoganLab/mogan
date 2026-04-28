@@ -59,7 +59,6 @@
   ("S-return" (kbd-shift-return))
   ("C-return" (kbd-control-return))
   ("C-S-return" (kbd-shift-control-return))
-  ("C-L" (clipboard-copy-export "latex" "primary"))
   ("A-return" (kbd-alternate-return))
   ("A-S-return" (kbd-shift-alternate-return))
 
@@ -781,6 +780,7 @@
   ("std n" (new-document))
   ("std N" (new-document*))
   ("std o" (open-document))
+  ("std L" (clipboard-copy-export "latex" "primary"))
   ("std p" (preview-buffer))
   ("std q" (safely-quit-TeXmacs))
   ("std R" (update-document "all"))
