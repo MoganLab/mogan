@@ -18,9 +18,13 @@
 #include <QSize>
 
 // Base tab widths
-constexpr int MAX_TAB_PAGE_WIDTH_BASE   = 150;
-constexpr int MIN_TAB_PAGE_WIDTH_BASE   = 25;
+constexpr int MAX_TAB_PAGE_WIDTH_BASE= 150;
+constexpr int MIN_TAB_PAGE_WIDTH_BASE= 25;
+#ifdef IS_COMMUNITY
+constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 120;
+#else
 constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 90;
+#endif
 
 // The horizontal padding for tab container (in pixels).
 #ifdef Q_OS_MAC
@@ -183,23 +187,18 @@ QTMTabPage::paintEvent (QPaintEvent*) {
     rightPadding  = width () - leftPadding - availableWidth;
   }
 
-  int fontBoxH   = fm.height ();
-  int centeredTop= (height () - fontBoxH) / 2;
-  centeredTop+= TAB_CONTENT_VERTICAL_OFFSET;
-#ifdef Q_OS_WIN
-  // Windows 上字体度量与控件背景的边距叠加，通常需要轻微上移 1px 以达到光学居中
-  const int opticalAdjust= -1;
-#else
-  const int opticalAdjust= 0;
-#endif
-  centeredTop+= opticalAdjust;
-
-  QRect textRect (leftPadding, qMax (0, centeredTop), availableWidth, fontBoxH);
-
   // 使用省略号来处理过长的文字
   QString elidedText= fm.elidedText (text (), Qt::ElideRight, availableWidth);
 
-  p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
+  bool isStartup= is_startup_tab_view (m_viewUrl);
+  int  textAlign= isStartup ? Qt::AlignCenter : Qt::AlignLeft;
+
+  QRect textRect (leftPadding, 0, availableWidth, height ());
+  if (isStartup) {
+    textRect= QRect (0, 0, width (), height ());
+  }
+
+  p.drawItemText (textRect, textAlign | Qt::AlignVCenter, palette (),
                   isEnabled (), elidedText, QPalette::ButtonText);
 }
 
