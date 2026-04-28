@@ -236,8 +236,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   Q_INIT_RESOURCE (styles);
   QWK::WindowBar* windowBar= nullptr;
   windowAgent              = nullptr;
-  setupWindowBar (windowBar, windowAgent, /*minHeight*/ titleBarHeight,
-                  /*setSafeArea*/ true);
+  setupWindowBar (windowBar, windowAgent, titleBarHeight, true);
 #elif defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   // 无边框布局（Windows / Linux），并使用 /styles 资源中的图标
   Q_INIT_RESOURCE (styles);
