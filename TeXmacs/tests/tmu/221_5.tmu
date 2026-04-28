@@ -1,0 +1,128 @@
+<TMU|<tuple|1.1.0|2026.2.4-rc2>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <section|测试说明>
+
+  <subsection*|问题现象>
+
+  <\itemize>
+    <item>进入一个环境
+
+    <item>选中一块文本，触发复制动作
+
+    <item>如果是进入环境后的第一次复制，通常不会失效
+
+    <item>因此要再次选中另一块不同的文本，触发复制动作，此时高概率会失效
+
+    <item>从一个环境跳出，进入另一个环境，触发复制动作，这属于另一个环境的首次复制，通常不会失效
+
+    <item>选中一块文本，连续触发两次复制，通常第二次会生效
+  </itemize>
+
+  <\subsection*>
+    通用测试步骤
+  </subsection*>
+
+  <\itemize>
+    <item>进入一个环境，选中一块文本，触发一次复制动作
+
+    <item>选中另一块文本，再触发一次复制动作，查看复制是否失效
+  </itemize>
+
+  以下所有测试项均使用通用测试步骤进行测试
+
+  <section|测试项一：正文>
+
+  <subsubsection*|选中环境中部分文字，进行复制>
+
+  本讲义围绕钢结构轴心受力构件展开，涵盖轴心受拉与受压构件的核心知识点，包含<strong|知识框架脑图>、<strong|核心知识点讲解>、<strong|典型例题解析>三部分，贴合钢结构设计原理课程教学要求，兼顾理论推导与工程应用，可用于课堂授课、课后复习及设计参考。
+
+  <\enumerate>
+    <item><strong|定义>：仅承受通过截面形心轴线的轴向力，分<strong|轴心拉杆>（受拉）和<strong|轴心压杆>（受压）。
+
+    <item><strong|截面分类>
+
+    <\itemize>
+      <item>实腹式：整体连通，含热轧型钢（圆管 / 角钢 / H 型钢等）、组合截面（型钢 / 钢板拼接）、冷弯型钢（轻钢结构专用）；型钢截面分<strong|强轴（<math|x> 轴，惯性矩大）<strong|和>弱轴（<math|y> 轴，惯性矩小）>。
+
+      <item>格构式：由肢件 + 缀件组成，常用双肢；实轴（<math|y> 轴）过肢件腹板，虚轴（<math|x> 轴）过缀件，易实现两主轴等稳定性，适用于大轴压荷载。
+    </itemize>
+
+    <item><strong|选型原则>：满足强度 / 刚度 / 稳定的前提下，用料经济、制作简便、便于连接，优先<strong|宽肢薄壁>截面（提高抗弯刚度和稳定）。
+  </enumerate>
+
+  <section|测试项二：数学公式>
+
+  <subsubsection*|选中环境中部分数学公式，触发复制>
+
+  <\padded-center>
+    <math|<tabular|<tformat|<table|<row|<cell|I<rsub|x>>|<cell|=<frac|1|12>\<times\>19\<times\><around|(|17.2+2\<times\>1.6|)><rsup|3>-<frac|1|12>\<times\><around|(|19-1|)>\<times\>17.2<rsup|3>>>|<row|<cell|>|<cell|=<frac|1|12>\<times\>19\<times\><around|(|17.2+3.2|)><rsup|3>-<frac|1|12>\<times\>18\<times\>17.2<rsup|3>>>|<row|<cell|>|<cell|=<frac|1|12>\<times\>19\<times\>20.4<rsup|3>-<frac|1|12>\<times\>18\<times\>17.2<rsup|3>>>|<row|<cell|>|<cell|=<frac|1|12>\<times\>19\<times\>8489.664-<frac|1|12>\<times\>18\<times\>5088.448>>|<row|<cell|>|<cell|=<frac|161303.616|12>-<frac|91592.064|12>>>|<row|<cell|>|<cell|=<frac|13441.97-7632.67|12>>>|<row|<cell|>|<cell|=5809.3*c*m<rsup|4>*<space|1em><around|(|<text|保留1位小数，约>5809*c*m<rsup|4>|)>>>>>>>
+  </padded-center>
+
+  \;
+
+  <math|<tabular|<tformat|<cwith|1|4|4|4|cell-halign|c>|<cwith|1|4|4|4|cell-rborder|1ln>|<cwith|1|4|5|5|cell-halign|c>|<cwith|1|4|5|5|cell-rborder|1ln>|<cwith|1|4|6|6|cell-halign|c>|<cwith|1|4|6|6|cell-rborder|1ln>|<cwith|1|1|1|6|cell-tborder|1ln>|<cwith|1|1|1|6|cell-bborder|1ln>|<cwith|2|2|1|6|cell-bborder|1ln>|<cwith|3|3|1|6|cell-bborder|1ln>|<cwith|4|4|1|6|cell-bborder|1ln>|<cwith|1|4|1|3|cell-tborder|1ln>|<cwith|1|4|1|3|cell-bborder|1ln>|<cwith|1|4|1|3|cell-lborder|1ln>|<cwith|1|4|1|3|cell-rborder|1ln>|<cwith|1|4|4|4|cell-lborder|1ln>|<cwith|1|4|1|6|font|Noto CJK SC>|<cwith|4|4|6|6|font-base-size|8>|<table|<row|<cell|序号>|<cell|截面形式>|<cell|图例>|<cell|<text|当 >\<lambda\><rsub|y>\<geqslant\>\<lambda\><rsub|z><text|时>>|<cell|<text|当 >\<lambda\><rsub|y>\<less\>\<lambda\><rsub|z><text|时>>|<cell|<text|式中的 >\<lambda\><rsub|z>>>|<row|<cell|1>|<cell|等边双角钢>|<cell|图4-7a>|<cell|\<lambda\><rsub|y z> =\<lambda\><rsub|y>*<around*|[|1+0.16<around*|(|<frac|\<lambda\><rsub|z>|\<lambda\><rsub|y>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|y z>=\<lambda\><rsub|z>*<around*|[|1+0.16<around*|(|<frac|\<lambda\><rsub|y>|\<lambda\><rsub|z>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|z>=3.9*<frac|b|t>>>|<row|<cell|2>|<cell|长肢相拼的不等边双角钢>|<cell|图4-7b>|<cell|\<lambda\><rsub|y z>=\<lambda\><rsub|y>*<around*|[|1+0.25<around*|(|<frac|\<lambda\><rsub|z>|\<lambda\><rsub|y>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|y z>=\<lambda\><rsub|z>*<around*|[|1+0.25<around*|(|<frac|\<lambda\><rsub|y>|\<lambda\><rsub|z>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|z>=5.1*<frac|b<rsub|2>|t>>>|<row|<cell|3>|<cell|短肢相拼的不等边双角钢>|<cell|图4-7c>|<cell|\<lambda\><rsub|y z>=\<lambda\><rsub|y>*<around*|[|1+0.06<around*|(|<frac|\<lambda\><rsub|z>|\<lambda\><rsub|y>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|y z>=\<lambda\><rsub|z>*<around*|[|1+0.06<around*|(|<frac|\<lambda\><rsub|y>|\<lambda\><rsub|z>>|)><rsup|2>|]>>|<cell|\<lambda\><rsub|z>=3.7*<frac|b<rsub|1>|t>>>>>>>
+
+  \;
+
+  <math|A=2\<times\>250\<times\>12+250\<times\>8=8000*<space|0.17em>m*m<rsup|2>>,\ 
+
+  <math|A<rsub|n>=8000-100\<times\>8=7200*<with|math-font-family|rm|m m><rsup|2>>,\ 
+
+  <math|I<rsub|x><space|0.17em>=<space|0.17em><tfrac|1|12><around*|[|b*<around*|(|h+2*t|)><rsup|3>-<around*|(|b-t<rsub|w>|)>*<space|0.17em>h<rsub|w><rsup|3>|]>=<frac|1|12>*<around*|[|250\<times\>274<rsup|3>-242\<times\>250<rsup|3>|]>=11345\<times\>10<rsup|4>*m*m<rsup|4>>,
+
+  <\equation*>
+    I<rsub|y>=2\<times\><frac|1|12>*t*b<rsup|3>+<frac|1|12>*h<rsub|w>*t<rsub|w><rsup|3>=2\<times\><frac|1|12>\<times\>12\<times\>250<rsup|3>+<frac|1|12>\<times\>250\<times\>8<rsup|3>=3126\<times\>10<rsup|4>*m*m<rsup|4>,
+  </equation*>
+
+  <equation*|（教材忽略了腹板对惯性矩的影响，得到结果非常接近I<rsub|y>=2\<times\><frac|1|12>t<with|mode|text| >b<rsup|3>=3125\<times\>10<rsup|4>mm）>
+
+  <\equation*>
+    i<rsub|x>=<sqrt|<frac|I<rsub|x>|A>>=11.91<text|cm>,<space|1em>i<rsub|y>=<sqrt|<frac|I<rsub|y>|A>>=6.25<text|cm>.
+  </equation*>
+
+  <section|测试项三：整块复制>
+
+  <subsubsection*|选中整块文本，触发复制>
+
+  工字钢，翼缘为焰切边，则查表E-1，为b类截面，
+
+  <surround|| |<math|<\aligned>
+    <tformat|<cwith|1|-1|1|1|cell-hmode|exact>|<cwith|1|-1|2|2|cell-hmode|exact>|<cwith|1|-1|1|1|cell-width|160515tmpt>|<cwith|1|-1|2|2|cell-width|292740tmpt>|<table|<row|<cell|\<varepsilon\><rsub|k>>|<cell|=<sqrt|<frac|235|f<rsub|y>>>=<sqrt|<frac|235|355>>=0.8136,>>|<row|<cell|\<lambda\><rsub|0>>|<cell|=<frac|\<lambda\><rsub|m a x>|\<varepsilon\><rsub|k>>=<frac|50.4|0.8136>\<approx\>62,查表E-4，\<varphi\>=0.796,>>|<row|<cell|<frac|N|\<varphi\>*A>>|<cell|=<frac|2000\<times\>10<rsup|3>|0.796\<times\>8000>\<approx\>314*N/m*m<rsup|2>,>>|<row|<cell|<frac|314-305|305>\<times\>100%>|<cell|=2.95%\<less\>5%,<space|1em>满*足.（实际规范不允许有任何偏差）>>>>
+  </aligned>>>
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-2|<tuple|1|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-3|<tuple|<with|mode|<quote|math>|\<bullet\>>|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-4|<tuple|2|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-5|<tuple|2|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-6|<tuple|3|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-7|<tuple|3|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-8|<tuple|4|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+    <associate|auto-9|<tuple|4|?|../../../../../.local/share/liiilabs/texts/scratch/no_name_1.tm>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>测试项一><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>

@@ -398,10 +398,8 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
   else if (key == "mouse" && cb->supportsSelection ())
     mode= QClipboard::Selection;
   else return true;
-  cb->clear (mode);
 
   c_string selection (s);
-  cb->setText (utf8_to_qstring (s), mode);
   QMimeData* md= new QMimeData;
 
   if (format == "verbatim" || format == "default") {
