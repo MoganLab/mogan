@@ -126,7 +126,7 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   int pad   = DpiUtils::scaled (8);
   int radius= DpiUtils::scaled (10);
   setStyleSheet (
-      QString ("padding: %1px; border-radius: %3px;").arg (pad).arg (radius));
+      QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
 }
 
@@ -136,7 +136,7 @@ QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   int pad   = DpiUtils::scaled (8);
   int radius= DpiUtils::scaled (10);
   setStyleSheet (
-      QString ("padding: %1px; border-radius: %3px;").arg (pad).arg (radius));
+      QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
 }
 
