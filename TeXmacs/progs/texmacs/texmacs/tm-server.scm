@@ -94,7 +94,7 @@
   ("language" (get-locale-language) notify-language)
   ("gui theme" "liii" notify-gui-theme)
   ("completion style" "popup" noop)
-  ("page medium" "paper" (lambda args (noop)))
+  ("page medium" "papyrus" (lambda args (noop)))
   ("page screen margin" "false" (lambda args (noop)))
   ("fast environments" "on" notify-fast-environments)
   ("show full context" "on" (lambda args (noop)))
