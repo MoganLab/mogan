@@ -2421,7 +2421,8 @@ qt_tm_widget_rep::fetchUserInfo (const QString& token, bool showDialog) {
             m_userId          = userData["id"].toVariant ().toString ();
             QString userName  = userData["username"].toString ("liii");
             QString avatarText= userData["username"].toString ("liii").left (4);
-            QString accountEmail= userData["email"].toString (qt_translate ("Email not set"));
+            QString accountEmail=
+                userData["email"].toString (qt_translate ("Email not set"));
             QString memberType=
                 userData["memberType"].toString ("Regular User");
             QString periodLabel=
