@@ -25,7 +25,7 @@
 (import (only (liii path)
               path->string path-dir? path-exists? path-from-env
               path-from-string path-getsize path-join path-name path-rename
-              path-stem path-unlink))
+              path-root path-stem path-unlink))
 (import (only (liii os) mkdir))
 (import (liii njson))
 (import (only (srfi srfi-1) find))
@@ -489,10 +489,47 @@
 (define (auto-backup-home-path)
   (path-from-env "TEXMACS_HOME_PATH"))
 
+(define (auto-backup-url-stree-tag x)
+  (cond ((symbol? x) (symbol->string x))
+        ((string? x) x)
+        (else "")))
+
+(define (auto-backup-url-stree-ref t n)
+  (list-ref t n))
+
+(define (auto-backup-url-stree->path t)
+  (cond ((string? t) t)
+        ((symbol? t) (symbol->string t))
+        ((pair? t)
+         (let ((tag (auto-backup-url-stree-tag (car t))))
+           (cond ((== tag "concat")
+                  (let ((left (auto-backup-url-stree->path
+                               (auto-backup-url-stree-ref t 1)))
+                        (right (auto-backup-url-stree->path
+                                (auto-backup-url-stree-ref t 2))))
+                    (cond ((== left "") right)
+                          ((== right "") left)
+                          (else (path-join left right)))))
+                 ((== tag "root")
+                  (let ((root (auto-backup-url-stree-tag
+                               (auto-backup-url-stree-ref t 1))))
+                    (if (in? root '("default" "file" "blank"))
+                        (path->string (path-root))
+                        "")))
+                 ((== tag "none") "untitled")
+                 ((== tag "or")
+                  (auto-backup-url-stree->path
+                   (auto-backup-url-stree-ref t 1)))
+                 (else tag))))
+        (else "untitled")))
+
 (define (auto-backup-buffer-path name)
   (catch #t
-    (lambda () (path->string (path-from-string (url->string name))))
-    (lambda args (url->string name))))
+    (lambda ()
+      (path->string
+       (path-from-string
+        (auto-backup-url-stree->path (url->stree name)))))
+    (lambda args "untitled")))
 
 (define (auto-backup-path->url p)
   (system->url (path->string p)))
@@ -795,9 +832,7 @@
     (if (== tail "") "Untitled" tail)))
 
 (define (auto-backup-source-url name)
-  (catch #t
-    (lambda () (url->string name))
-    (lambda args (auto-backup-buffer-path name))))
+  (auto-backup-buffer-path name))
 
 (tm-define (auto-backup-buffer-info name device-id app-version)
   (catch #t
