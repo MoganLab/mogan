@@ -229,14 +229,14 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   int    titleBarHeight= int (32 * scale);
   int    buttonWidth   = int (46 * scale);
   int    buttonHeight  = int (32 * scale);
-  int    iconBaseSize  = DpiUtils::scaled (12);
+  int    iconBaseSize  = int (12 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
   Q_INIT_RESOURCE (styles);
   QWK::WindowBar* windowBar= nullptr;
   windowAgent              = nullptr;
-  setupWindowBar (windowBar, windowAgent, /*minHeight*/ 20,
+  setupWindowBar (windowBar, windowAgent, /*minHeight*/ titleBarHeight,
                   /*setSafeArea*/ true);
 #elif defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   // 无边框布局（Windows / Linux），并使用 /styles 资源中的图标
