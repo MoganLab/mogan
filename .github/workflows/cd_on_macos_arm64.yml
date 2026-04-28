@@ -21,43 +21,28 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 1
-      - name: Noto fonts
-        run: |
-          mkdir -p $GITHUB_WORKSPACE/TeXmacs/fonts/opentype/noto
-          cd $GITHUB_WORKSPACE/TeXmacs/fonts/opentype/noto
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Bold.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSansCJK-Regular.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Bold.ttc
-          wget https://github.com/XmacsLabs/mogan/releases/download/v1.2.9.7/NotoSerifCJK-Regular.ttc
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
           xmake-version: v2.9.3
           actions-cache-folder: '.xmake-cache'
-      - name: Install create-dmg
-        run: |
-          brew install create-dmg
       - name: xmake repo --update
         run: xmake repo --update
-      - name: config
-        run: xmake config -m release -a ${{ matrix.arch }} -vD --yes
-      - name: build
-        run: xmake build -vD stem
-      - name: install
-        run: xmake install -vD stem
-      - name: Clean up mounted DMGs
+      - name: Config and build goldfish
         run: |
-          # 卸载任何可能挂载的DMG
-          hdiutil detach /Volumes/* -force 2>/dev/null || true
-          diskutil unmount /Volumes/* -force 2>/dev/null || true
-          # 清理临时文件
-          rm -rf /tmp/create-dmg.* 2>/dev/null || true
-          # 清理可能存在的挂载点
-          find /Volumes -maxdepth 1 -type d -name "*" -exec umount {} \; 2>/dev/null || true
-          # 等待资源释放
-          sleep 3
-      - name: Generate Installer
+          xmake config -m release -a ${{ matrix.arch }} -vD --yes
+          xmake build goldfish
+          ls -la TeXmacs/plugins/goldfish/bin/ || echo "goldfish bin dir not found"
+      - name: Package with Goldfish
+        env:
+          APPLE_CERTIFICATE_P12_BASE64: ${{ secrets.APPLE_CERTIFICATE_P12 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_KEY_P8: ${{ secrets.APPLE_API_KEY_P8 }}
+          APPLE_API_ISSUER_ID: ${{ secrets.APPLE_API_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
-          xmake install -vD stem_packager
+          chmod +x TeXmacs/plugins/goldfish/bin/goldfish
+          TeXmacs/plugins/goldfish/bin/goldfish packages/macos/package.scm
       - name: Upload 
         uses: actions/upload-artifact@v4
         if: ${{ !startsWith(github.ref, 'refs/tags/') }}
