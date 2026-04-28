@@ -45,6 +45,6 @@
         ((balloon (eval `(verbatim ,tab-title))
                   (eval `(verbatim ,doc-path)))
          (window-set-view view-win view #t)) ;; #t stansd for focus
-        ((balloon "✕" "Close") (safely-kill-tabpage-by-url view-win view buf))
+        ((balloon "" "Close") (safely-kill-tabpage-by-url view-win view buf))
         (eval active?)
       ))))

@@ -585,8 +585,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // NOTICE: setFixedHeight must be after setIconSize
   // TODO: the size of the toolbar should be calculated dynamically
   {
-    int    h           = DpiUtils::scaled (36);
-    int    tabRowHeight= h;
+    int h           = DpiUtils::scaled (36);
+    int tabRowHeight= h;
 
     // 工具栏高度相等
     mainToolBar->setFixedHeight (h);
@@ -2037,7 +2037,7 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
 
   // 登出按钮 - 登录成功后显示（使用图标）
   const int logoutIconSize= DpiUtils::scaled (20);
-  logoutButton= new QPushButton ();
+  logoutButton            = new QPushButton ();
   logoutButton->setObjectName ("logout-button");
   logoutButton->setIcon (QIcon (":/window-bar/logout.svg"));
   logoutButton->setToolTip (qt_translate ("Logout"));
