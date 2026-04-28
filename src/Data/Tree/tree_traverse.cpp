@@ -776,7 +776,10 @@ init_sections () {
     eval ("(use-modules (text text-drd))");
     object l= eval ("(append (section-tag-list) (section*-tag-list))");
     while (!is_null (l)) {
-      section_tags->insert (as_tree_label (as_symbol (car (l))));
+      tree_label tl= as_tree_label (as_symbol (car (l)));
+      if (tl != UNKNOWN) {
+        section_tags->insert (tl);
+      }
       l= cdr (l);
     }
   }
