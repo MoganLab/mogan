@@ -239,19 +239,19 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   setupWindowBar (windowBar, windowAgent, titleBarHeight, true);
 
   if (windowBar && windowAgent) {
-      int nativeTitleBarHeight=
-          windowAgent->windowAttribute ("title-bar-height").toInt ();
-      if (nativeTitleBarHeight <= 0) nativeTitleBarHeight= titleBarHeight;
+    int nativeTitleBarHeight=
+        windowAgent->windowAttribute ("title-bar-height").toInt ();
+    if (nativeTitleBarHeight <= 0) nativeTitleBarHeight= titleBarHeight;
 
-      auto* sysBtnArea = new QWidget(windowBar);
-      int   sysBtnWidth= int (80 * scale);
-      sysBtnArea->setFixedSize (sysBtnWidth, nativeTitleBarHeight);
-      sysBtnArea->setObjectName ("system-button-area");
+    auto* sysBtnArea = new QWidget (windowBar);
+    int   sysBtnWidth= int (80 * scale);
+    sysBtnArea->setFixedSize (sysBtnWidth, nativeTitleBarHeight);
+    sysBtnArea->setObjectName ("system-button-area");
 
-      int yOffset= (titleBarHeight - nativeTitleBarHeight) / 2;
-      sysBtnArea->move (0, yOffset);
+    int yOffset= (titleBarHeight - nativeTitleBarHeight) / 2;
+    sysBtnArea->move (0, yOffset);
 
-      windowAgent->setSystemButtonArea (sysBtnArea);
+    windowAgent->setSystemButtonArea (sysBtnArea);
   }
 #elif defined(Q_OS_WIN) || defined(Q_OS_LINUX)
   // 无边框布局（Windows / Linux），并使用 /styles 资源中的图标
