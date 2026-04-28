@@ -357,7 +357,6 @@ QTMTabPage:hover {
 QTMTabPage:checked {
   background-color: #FFFFFF;
   border: 1px solid #CFCFCF;
-  border-bottom: none;
 }
 
 QTMTabPage QPushButton#tabpage-close-button {

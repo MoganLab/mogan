@@ -3,6 +3,7 @@
  * MODULE     : QTMTabPage.cpp
  * DESCRIPTION: QT Texmacs tab page classes
  * COPYRIGHT  : (C) 2024 Zhenjun Guo
+ *                  2026 Yifan Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -51,12 +52,6 @@ getScaledMinTabPageWidth () {
 static int
 getScaledStartupTabMaxWidth () {
   return DpiUtils::scaled (STARTUP_TAB_MAX_WIDTH_BASE);
-}
-
-static int
-getScaledSystemBarHeight () {
-  constexpr int baseHeight= 36;
-  return int (baseHeight * getDPIScaleFactor ());
 }
 
 static int
@@ -118,26 +113,20 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   setDefaultAction (p_title);
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton (p_closeBtn);
-  int padY  = DpiUtils::scaled (8);
-  int padX  = DpiUtils::scaled (12);
+  int pad   = DpiUtils::scaled (8);
   int radius= DpiUtils::scaled (10);
-  setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
-                     .arg (padY)
-                     .arg (padX)
-                     .arg (radius));
+  setStyleSheet (
+      QString ("padding: %1px; border-radius: %3px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
 }
 
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton ();
-  int padY  = DpiUtils::scaled (8);
-  int padX  = DpiUtils::scaled (12);
+  int pad   = DpiUtils::scaled (8);
   int radius= DpiUtils::scaled (10);
-  setStyleSheet (QString ("padding: %1px %2px; border-radius: %3px;")
-                     .arg (padY)
-                     .arg (padX)
-                     .arg (radius));
+  setStyleSheet (
+      QString ("padding: %1px; border-radius: %3px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
 }
 
@@ -189,7 +178,7 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   }
 
   int fontBoxH   = fm.height ();
-  int centeredTop= (getScaledSystemBarHeight () - fontBoxH) / 2;
+  int centeredTop= (height () - fontBoxH) / 2;
   centeredTop+= TAB_CONTENT_VERTICAL_OFFSET;
 #ifdef Q_OS_WIN
   // Windows 上字体度量与控件背景的边距叠加，通常需要轻微上移 1px 以达到光学居中
@@ -213,7 +202,7 @@ QTMTabPage::resizeEvent (QResizeEvent* e) {
   int w= m_closeBtn->width ();
   int h= m_closeBtn->height ();
   int x= e->size ().width () - w - 12;
-  int y= (getScaledSystemBarHeight () - h) / 2;
+  int y= (height () - h) / 2;
   y+= TAB_CONTENT_VERTICAL_OFFSET;
 
   m_closeBtn->setGeometry (x, y, w, h);
@@ -482,7 +471,7 @@ QTMTabPageContainer::arrangeTabPages () {
     int addButtonHeight= m_addTabButton->height ();
     int buttonX        = accumWidth;
     // 调整按钮垂直位置，与系统按钮对齐
-    int buttonY= (getScaledSystemBarHeight () - addButtonHeight) / 2;
+    int buttonY= (m_rowHeight - addButtonHeight) / 2;
     buttonY+= ADD_TAB_BUTTON_VERTICAL_OFFSET;
     m_addTabButton->setGeometry (buttonX, buttonY, addButtonWidth,
                                  addButtonHeight);
@@ -496,7 +485,7 @@ QTMTabPageContainer::arrangeTabPages () {
 void
 QTMTabPageContainer::adjustHeight (int p_rowCount) {
   int h= m_rowHeight * (p_rowCount + 1);
-  setFixedHeight (h - 2);
+  setFixedHeight (h);
 }
 
 void
@@ -697,7 +686,7 @@ QTMTabPageBar::resizeEvent (QResizeEvent* e) {
   // 确保容器使用全部可用宽度减去左边的留出的拖拽句柄空间
   int availableWidth= size.width () - 7;
   if (availableWidth > 0 && m_container) {
-    m_container->setGeometry (7, 0, availableWidth, size.height () - 2);
+    m_container->setGeometry (7, 0, availableWidth, size.height ());
   }
 }
 

@@ -367,7 +367,6 @@ QTMTabPage:hover {
 QTMTabPage:checked {
   background-color: #333333;
   border: 1px solid #4c4c4c;
-  border-bottom: none;
   color: #FFFFFF;
 }
 

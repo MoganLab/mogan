@@ -585,7 +585,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // NOTICE: setFixedHeight must be after setIconSize
   // TODO: the size of the toolbar should be calculated dynamically
   {
-    int h           = DpiUtils::scaled (36);
+    int h           = DpiUtils::scaled (32);
     int tabRowHeight= h;
 
     // 工具栏高度相等

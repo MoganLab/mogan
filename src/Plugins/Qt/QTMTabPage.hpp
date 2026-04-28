@@ -3,6 +3,7 @@
  * MODULE     : QTMTabPage.hpp
  * DESCRIPTION: QT Texmacs tab page classes
  * COPYRIGHT  : (C) 2024 Zhenjun Guo
+ *                  2026 Yifan Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
