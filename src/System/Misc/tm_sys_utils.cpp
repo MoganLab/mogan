@@ -17,6 +17,8 @@
 #include "tm_file.hpp"
 #include "url.hpp"
 
+#include <ctime>
+
 #if defined(OS_MINGW) || defined(OS_WIN)
 #include "Windows/win_sys_utils.hpp"
 #endif
@@ -275,4 +277,14 @@ stem_device_id () {
 #else
   return "unknown";
 #endif
+}
+
+string
+stem_timestamp () {
+  time_t raw= time (nullptr);
+  tm*    t  = localtime (&raw);
+  char   buf[16];
+  if (t == nullptr) return "";
+  strftime (buf, sizeof (buf), "%Y%m%d%H%M%S", t);
+  return string (buf);
 }

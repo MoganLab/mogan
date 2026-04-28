@@ -7,7 +7,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (startup-tab startup-tab-settings)
-  (:use (texmacs menus preferences-widgets)))
+  (:use (texmacs menus preferences-widgets)
+        (texmacs texmacs tm-files)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Appearance preferences (from preferences-widgets.scm)
@@ -540,10 +541,18 @@
 (tm-widget (startup-misc-preferences-widget)
   (aligned
     (item (text "Automatically save:")
-      (enum (set-pretty-preference "autosave" answer)
-            '("5 sec" "30 sec" "120 sec" "300 sec" "Disable")
-            (get-pretty-preference "autosave")
-            "12em"))
+      (hlist
+        (enum (set-preference "autosave"
+                              (if (== answer "Off") "0" "120"))
+              '("On (120s)" "Off")
+              (if (== (get-preference "autosave") "0")
+                  "Off"
+                  "On (120s)")
+              "12em")
+        //
+        (explicit-buttons
+          ((eval (auto-backup-button-label))
+           (open-auto-backup-location)))))
     (item (text "Security:")
       (enum (set-pretty-preference "security" answer)
             '("Accept no scripts" "Prompt on scripts" "Accept all scripts")

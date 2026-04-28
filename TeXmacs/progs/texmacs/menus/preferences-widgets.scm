@@ -13,6 +13,7 @@
 
 (texmacs-module (texmacs menus preferences-widgets)
   (:use (texmacs menus preferences-menu)
+        (texmacs texmacs tm-files)
         (language locale)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -711,12 +712,24 @@ pretty-val : string
 ;; Other
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define autosave-enabled-label "On (120s)")
+(define autosave-disabled-label "Off")
+
+(tm-define (autosave-preferences-list)
+  (list autosave-enabled-label autosave-disabled-label))
+
+(tm-define (get-autosave-preference-label)
+  (if (== (get-preference "autosave") "0")
+      autosave-disabled-label
+      autosave-enabled-label))
+
+(tm-define (set-autosave-preference-label label)
+  (set-preference "autosave"
+                  (if (== label autosave-disabled-label) "0" "120")))
+
 (define-preference-names "autosave"
-  ("5" "5 sec")
-  ("30" "30 sec")
-  ("120" "120 sec")
-  ("300" "300 sec")
-  ("0" "Disable"))
+  ("120" "On (120s)")
+  ("0" "Off"))
 
 (define-preference-names "security"
   ("accept no scripts" "Accept no scripts")
@@ -792,10 +805,15 @@ pretty-val : string
 (tm-widget (misc-preferences-widget)
   (aligned
     (item (text "Automatically save:")
-      (enum (set-pretty-preference "autosave" answer)
-            '("5 sec" "30 sec" "120 sec" "300 sec" "Disable")
-            (get-pretty-preference "autosave")
-            "12em"))
+      (hlist
+        (enum (set-autosave-preference-label answer)
+              (autosave-preferences-list)
+              (get-autosave-preference-label)
+              "12em")
+        //
+        (explicit-buttons
+          ((eval (auto-backup-button-label))
+           (open-auto-backup-location)))))
     (item (text "Security:")
       (enum (set-pretty-preference "security" answer)
             '("Accept no scripts" "Prompt on scripts" "Accept all scripts")

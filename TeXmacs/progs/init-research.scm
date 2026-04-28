@@ -465,7 +465,10 @@
 (display* "memory: " (texmacs-memory) " bytes\n")
 
 (display "------------------------------------------------------\n")
-(delayed (:idle 10000) (autosave-delayed))
+(delayed (:idle 10000)
+  (autosave-delayed))
+(delayed (:pause 10000)
+  (auto-backup-delayed))
 (texmacs-banner)
 (display "Initialization done\n")
 
