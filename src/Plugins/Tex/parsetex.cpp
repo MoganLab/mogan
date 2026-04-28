@@ -865,6 +865,7 @@ tree
 latex_parser::parse_command (string s, int& i, string cmd, int change) {
   bool delimdef   = false;
   int  begin_parse= i;
+  int  n          = N (s);
   // cout << cmd << " [" << latex_type (cmd) << ", "
   // << command_type ["!mode"] << ", " << latex_arity (cmd) << "]" << LF;
   if (cmd == "\\gdef" || cmd == "\\xdef" || cmd == "\\edef") cmd= "\\def";
@@ -892,7 +893,6 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
 
   if (textm_class_flag && level <= 1 && latex_type (cmd) == "length") {
     // cout << "Parse length " << cmd << "\n";
-    int n= N (s);
     while (i < n && (is_space (s[i]) || s[i] == '='))
       i++;
     tree len= parse_length (s, i);
@@ -903,6 +903,8 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
   if (cmd == "\\setlength") {
     tree name= parse_length_name (s, i);
     tree arg = parse_argument (s, i);
+    skip_spaces (s, i);
+    if ((i < n) && (s[i] == '}')) i++;
     return tuple (cmd, name, arg);
   }
 
@@ -962,7 +964,6 @@ latex_parser::parse_command (string s, int& i, string cmd, int change) {
                   (command_type["!mode"] == "math");
   if (mbox_flag) command_type ("!mode")= "text";
 
-  int    n     = N (s);
   string type  = latex_type (cmd);
   int    arity = latex_arity (cmd);
   bool   option= (arity < 0);
