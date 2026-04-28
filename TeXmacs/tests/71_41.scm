@@ -22,7 +22,14 @@
 (define (is-current-tree2 t)
   (string-ends? t "current"))
 
+(define (section-count t)
+  (length (tree-search-sections (stree->tree t))))
+
 (define (test)
+  (check (section-count '(document (section "A") (section "B"))) => 2)
+  (check (section-count '(document (with "color" "red" (section "A")))) => 1)
+  (check (section-count '(document (section "A" (document (subsection "B")))))
+    => 2)
   (check (filter-sections
            '() is-current-tree2 is-top-level2)
     => '())

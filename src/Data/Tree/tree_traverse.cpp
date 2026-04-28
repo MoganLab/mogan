@@ -761,31 +761,53 @@ inside_contiguous_document (tree t, path op, path oq) {
 hashset<tree_label> section_traverse_tags;
 hashset<tree_label> section_tags;
 
+static void
+insert_section_tags (const char* tags[], int n) {
+  for (int i= 0; i < n; i++) {
+    section_tags->insert (as_tree_label (tags[i]));
+    section_tags->insert (make_tree_label (tags[i]));
+  }
+}
+
 void
 init_sections () {
   if (N (section_traverse_tags) == 0) {
     section_traverse_tags= hashset<tree_label> ();
     section_traverse_tags->insert (DOCUMENT);
     section_traverse_tags->insert (CONCAT);
+    section_traverse_tags->insert (make_tree_label ("document"));
+    section_traverse_tags->insert (make_tree_label ("concat"));
     section_traverse_tags->insert (make_tree_label ("ignore"));
     section_traverse_tags->insert (make_tree_label ("show-part"));
     section_traverse_tags->insert (make_tree_label ("hide-part"));
     section_traverse_tags->insert (make_tree_label ("live-io*"));
+    section_traverse_tags->insert (WITH);
+    section_traverse_tags->insert (STYLE_WITH);
+    section_traverse_tags->insert (VAR_STYLE_WITH);
+    section_traverse_tags->insert (SURROUND);
+    section_traverse_tags->insert (make_tree_label ("with"));
+    section_traverse_tags->insert (make_tree_label ("style-with"));
+    section_traverse_tags->insert (make_tree_label ("var-style-with"));
+    section_traverse_tags->insert (make_tree_label ("surround"));
   }
   if (N (section_tags) == 0) {
-    eval ("(use-modules (text text-drd))");
-    object l= eval ("(append (section-tag-list) (section*-tag-list))");
-    while (!is_null (l)) {
-      section_tags->insert (as_tree_label (as_symbol (car (l))));
-      l= cdr (l);
-    }
+    const char* regular_tags[]= {
+      "part", "chapter", "appendix", "section", "subsection",
+      "subsubsection", "paragraph", "subparagraph"
+    };
+    const char* starred_tags[]= {
+      "part*", "chapter*", "appendix*", "section*", "subsection*",
+      "subsubsection*", "paragraph*", "subparagraph*"
+    };
+    insert_section_tags (regular_tags, sizeof (regular_tags) / sizeof (regular_tags[0]));
+    insert_section_tags (starred_tags, sizeof (starred_tags) / sizeof (starred_tags[0]));
   }
 }
 
 path
 previous_section_impl (tree t, path p) {
   if (is_atomic (t)) return path ();
-  else if (N (t) == 1 && section_tags->contains (L (t))) return p * 0;
+  else if (N (t) >= 1 && section_tags->contains (L (t))) return p * 0;
   else if (is_compound (t, "live-io*") && !is_nil (p) && p->item == 2)
     return path (2, previous_section_impl (t[2], p->next));
   else if (section_traverse_tags->contains (L (t))) {
@@ -815,7 +837,11 @@ previous_section (tree t, path p) {
 void
 search_sections (array<tree>& a, tree t) {
   if (is_atomic (t)) return;
-  else if (N (t) == 1 && section_tags->contains (L (t))) a << t;
+  else if (N (t) >= 1 && section_tags->contains (L (t))) {
+    a << t;
+    for (int i= 1; i < N (t); i++)
+      search_sections (a, t[i]);
+  }
   else if (section_traverse_tags->contains (L (t))) {
     for (tree subtree : t)
       search_sections (a, subtree);
