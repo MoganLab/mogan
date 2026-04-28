@@ -9,6 +9,7 @@
 
 #include <Cocoa/Cocoa.h>
 
+#include <QtCore/QTimer>
 #include <QtGui/QGuiApplication>
 
 #include "qwkglobal_p.h"
@@ -731,9 +732,15 @@ namespace QWK {
         // Allocate new resources
         const auto proxy = ensureWindowProxy(winId);
         if (proxy) {
-            proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
-            proxy->setScreenRectCallback(m_systemButtonAreaCallback);
             proxy->setSystemTitleBarVisible(false);
+            proxy->setSystemButtonVisible(!windowAttribute(QStringLiteral("no-system-buttons")).toBool());
+            // Defer setScreenRectCallback to the next event-loop tick.
+            // At the moment winIdChanged fires Qt hasn't finished its show/layout
+            // pass yet, so getWidgetSceneRect() (mapTo) returns stale coordinates.
+            // By queuing we let the layout settle first.
+            QTimer::singleShot(0, [proxy, this]() {
+                proxy->setScreenRectCallback(m_systemButtonAreaCallback);
+            });
         }
     }
 
@@ -815,7 +822,13 @@ namespace QWK {
         // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
         if (newWindow) {
             _proxy->setSystemTitleBarVisible(false);
-            _proxy->updateSystemButtonRect();
+            // Defer update to next runloop: AppKit needs to finish its titlebar
+            // layout before we reposition the buttons, otherwise our frame is
+            // overwritten by AppKit’s internal layout pass.
+            QWK::NSWindowProxy* proxy = _proxy;
+            dispatch_async(dispatch_get_main_queue(), ^{
+                proxy->updateSystemButtonRect();
+            });
         }
     }
 }

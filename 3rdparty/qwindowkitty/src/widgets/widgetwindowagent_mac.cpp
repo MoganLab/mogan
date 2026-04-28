@@ -73,6 +73,7 @@ namespace QWK {
         }
         d->systemButtonAreaWidgetEventFilter =
             std::make_unique<SystemButtonAreaWidgetEventFilter>(widget, ctx);
+        ctx->virtual_hook(AbstractWindowContext::SystemButtonAreaChangedHook, nullptr);
     }
 
     /*!

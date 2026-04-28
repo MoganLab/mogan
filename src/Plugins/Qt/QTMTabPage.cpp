@@ -35,7 +35,6 @@ const int TAB_CONTAINER_PADDING= 0;
 
 constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
 constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 0;
-constexpr int TAB_RIGHT_EXTRA_GAP           = 66;
 constexpr int ADD_BUTTON_SIZE               = 20;
 constexpr int CLOSE_BUTTON_SIZE             = 18;
 
@@ -401,8 +400,7 @@ QTMTabPageContainer::arrangeTabPages () {
 #ifdef Q_OS_MAC
   buttonCount= 1; // macOS 仅保留 login
 #endif
-  int extraGap= int (TAB_RIGHT_EXTRA_GAP * scale); // 标签页和按钮之间的额外间隔
-  int reservedRight= buttonCount * buttonWidth + extraGap;
+  int reservedRight= buttonCount * buttonWidth;
 
   int visibleTabCount= 0;
   // cout << "most recently closed tab:" << g_mostRecentlyClosedTab << LF;
