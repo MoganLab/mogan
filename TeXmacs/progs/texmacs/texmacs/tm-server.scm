@@ -318,16 +318,12 @@
 (tm-define (new-document)
   (with-default-view
     (if (window-per-buffer?) (open-window) (new-buffer))
-    ;; Ensure document has a doc-id when created (delayed to avoid menu flicker)
-    (delayed (:idle 100)
-      (auto-backup-ensure-buffer-doc-id! (current-buffer)))))
+    (auto-backup-ensure-buffer-doc-id! (current-buffer))))
 
 (tm-define (new-document*)
   (with-default-view
     (if (window-per-buffer?) (new-buffer) (open-window))
-    ;; Ensure document has a doc-id when created (delayed to avoid menu flicker)
-    (delayed (:idle 100)
-      (auto-backup-ensure-buffer-doc-id! (current-buffer)))))
+    (auto-backup-ensure-buffer-doc-id! (current-buffer))))
 
 (tm-define (close-document)
   (with-default-view

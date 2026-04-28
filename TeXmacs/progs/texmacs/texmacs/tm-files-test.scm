@@ -15,6 +15,8 @@
   (:use (texmacs texmacs tm-files)))
 
 (import (liii njson))
+(import (only (liii path) path-from-env path-join))
+(import (only (srfi srfi-19) TIME-UTC current-time time-second))
 
 (define auto-backup-test-doc
   '(document
@@ -38,6 +40,13 @@
       (njson-ref doc field)
       #t)
     (lambda args #f)))
+
+(define (auto-backup-test-version path created-at md5)
+  `(("path" . ,path)
+    ("created_at" . ,created-at)
+    ("kind" . "periodic")
+    ("md5" . ,md5)
+    ("size" . 1)))
 
 (define (regtest-auto-backup-safe-base)
   (regression-test-group
@@ -85,6 +94,18 @@
    :none
    (test "utm source" "utm" #t)))
 
+(define (regtest-auto-backup-texmacs-path)
+  (regression-test-group
+   "auto-backup" "texmacs path is read-only"
+   (lambda (case)
+     (and (== case "inside")
+          (auto-backup-texmacs-path-buffer?
+           (system->url
+            (path-join (path-from-env "TEXMACS_PATH")
+                       "progs" "test.tmu")))))
+   :none
+   (test "skip texmacs path" "inside" #t)))
+
 (define (regtest-auto-backup-manifest)
   (let-njson ((manifest (auto-backup-empty-manifest)))
     (let-njson ((legacy (string->njson "{\"doc_id\":\"doc-x\",\"upload\":{},\"versions\":[]}")))
@@ -121,11 +142,57 @@
        (test "document keeps device id" "device-id" #t)
        (test "version keeps md5" "version-md5" #t)))))
 
+(define (regtest-auto-backup-manifest-age-retention)
+  (let-njson ((manifest (auto-backup-empty-manifest)))
+    (let* ((now (time-second (current-time TIME-UTC)))
+           (old (- now (* 31 24 60 60)))
+           (fresh (- now 60))
+           (old-version
+            (auto-backup-test-version "/tmp/auto-backup-old.tmu"
+                                      old "old-md5"))
+           (fresh-version
+            (auto-backup-test-version "/tmp/auto-backup-fresh.tmu"
+                                      fresh "fresh-md5")))
+      (let-njson ((old-doc
+                   (json->njson
+                    `(("doc_id" . "old-doc")
+                      ("last_checked_at" . ,old)
+                      ("last_backup_at" . ,old)
+                      ("versions" . ,(vector old-version)))))
+                  (fresh-doc
+                   (json->njson
+                    `(("doc_id" . "fresh-doc")
+                      ("last_checked_at" . ,fresh)
+                      ("last_backup_at" . ,fresh)
+                      ("versions" . ,(vector old-version fresh-version))))))
+        (njson-set! manifest "documents" "old-doc" old-doc)
+        (njson-set! manifest "documents" "fresh-doc" fresh-doc))
+      (auto-backup-clean-stale-documents! manifest)
+      (let-njson ((docs (njson-ref manifest "documents")))
+        (let-njson ((fresh-doc (njson-ref docs "fresh-doc")))
+          (let-njson ((versions (njson-ref fresh-doc "versions")))
+            (regression-test-group
+             "auto-backup" "manifest age retention"
+             (lambda (case)
+               (cond ((== case "old-doc")
+                      (not (njson-contains-key? docs "old-doc")))
+                     ((== case "fresh-doc")
+                      (njson-contains-key? docs "fresh-doc"))
+                     ((== case "old-version")
+                      (njson-size versions))
+                     (else #f)))
+             :none
+             (test "old document removed" "old-doc" #t)
+             (test "fresh document kept" "fresh-doc" #t)
+             (test "old version removed" "old-version" 1))))))))
+
 (tm-define (regtest-tm-files)
   (let ((n (+ (regtest-auto-backup-safe-base)
               (regtest-auto-backup-doc-id)
               (regtest-auto-backup-timestamp)
               (regtest-auto-backup-official-url)
-              (regtest-auto-backup-manifest))))
+              (regtest-auto-backup-texmacs-path)
+              (regtest-auto-backup-manifest)
+              (regtest-auto-backup-manifest-age-retention))))
     (display* "Total: " (object->string n) " tests.\n")
     (display "Test suite of tm-files: ok\n")))
