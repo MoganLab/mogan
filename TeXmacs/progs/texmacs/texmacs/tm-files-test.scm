@@ -86,20 +86,20 @@
    (test "utm source" "utm" #t)))
 
 (define (regtest-auto-backup-manifest)
-  (let ((manifest (auto-backup-empty-manifest)))
-    (let ((legacy (string->njson "{\"doc_id\":\"doc-x\",\"upload\":{},\"versions\":[]}")))
+  (let-njson ((manifest (auto-backup-empty-manifest)))
+    (let-njson ((legacy (string->njson "{\"doc_id\":\"doc-x\",\"upload\":{},\"versions\":[]}")))
       (njson-set! legacy "user_id" "legacy-user")
       (njson-set! manifest "documents" "doc-x" legacy))
     (for (i 0 8)
       (auto-backup-upsert-version!
        manifest
        (auto-backup-test-info "doc-x" (string-append "md5-" (number->string i)))
-       (system->url (string-append "/tmp/auto-backup-test-"
-                                   (number->string i) ".tmu"))
+       (string-append "/tmp/auto-backup-test-"
+                      (number->string i) ".tmu")
        "periodic"
        i))
-    (let* ((doc (njson-ref manifest "documents" "doc-x"))
-           (versions (njson-ref doc "versions")))
+    (let-njson ((doc (njson-ref manifest "documents" "doc-x"))
+                (versions (njson-ref doc "versions")))
       (regression-test-group
        "auto-backup" "manifest retention and md5 shape"
        (lambda (case)

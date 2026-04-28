@@ -260,7 +260,7 @@
         (toggle ("Versioning tool" "versioning tool")))
     ---
     (enum ("Autosave" "autosave")
-          ("On (120s)" "120")
+          ("On" "120")
           ("Off" "0"))
     (enum ("Bibtex command" "bibtex command")
           "bibtex" "biber" "biblatex" "rubibtex" *)))

@@ -46,6 +46,5 @@ bool is_community_stem ();
 
 string stem_user_agent ();
 string stem_device_id ();
-string stem_timestamp ();
 
 #endif

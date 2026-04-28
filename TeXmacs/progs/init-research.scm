@@ -467,7 +467,7 @@
 (display "------------------------------------------------------\n")
 (delayed (:idle 10000)
   (autosave-delayed))
-(delayed (:pause 10000)
+(delayed (:pause 30000)
   (auto-backup-delayed))
 (texmacs-banner)
 (display "Initialization done\n")

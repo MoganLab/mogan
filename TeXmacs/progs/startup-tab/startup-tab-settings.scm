@@ -544,10 +544,10 @@
       (hlist
         (enum (set-preference "autosave"
                               (if (== answer "Off") "0" "120"))
-              '("On (120s)" "Off")
+              '("On" "Off")
               (if (== (get-preference "autosave") "0")
                   "Off"
-                  "On (120s)")
+                  "On")
               "12em")
         //
         (explicit-buttons

@@ -712,7 +712,7 @@ pretty-val : string
 ;; Other
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define autosave-enabled-label "On (120s)")
+(define autosave-enabled-label "On")
 (define autosave-disabled-label "Off")
 
 (tm-define (autosave-preferences-list)
@@ -728,7 +728,7 @@ pretty-val : string
                   (if (== label autosave-disabled-label) "0" "120")))
 
 (define-preference-names "autosave"
-  ("120" "On (120s)")
+  ("120" "On")
   ("0" "Off"))
 
 (define-preference-names "security"

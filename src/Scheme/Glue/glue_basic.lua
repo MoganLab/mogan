@@ -1982,11 +1982,6 @@ function main()
                 cpp_name = "stem_device_id",
                 ret_type = "string"
             },
-            {
-                scm_name = "stem-timestamp",
-                cpp_name = "stem_timestamp",
-                ret_type = "string"
-            },
         }
     }
 end
