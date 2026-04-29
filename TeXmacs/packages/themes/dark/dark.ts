@@ -124,6 +124,12 @@
 
   <assign|version-notice-fg-color|#fff4cc>
 
+  <assign|script-status-color|#1b1d47>
+
+  <assign|script-status-background-color|#1b1d47>
+
+  <assign|script-status-font-color|#cfe0ff>
+
   \;
 </body>
 

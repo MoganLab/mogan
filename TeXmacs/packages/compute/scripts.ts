@@ -34,9 +34,11 @@
 
   <assign|script-language-background-color|#36b4e5>
 
-  <assign|script-status-color|red>
+  <assign|script-status-color|#cfe0ff>
 
-  <assign|script-status-background-color|pastel yellow>
+  <assign|script-status-background-color|#cfe0ff>
+
+  <assign|script-status-font-color|dark blue>
 
   <assign|script-input-field-background-color|white>
 
@@ -64,7 +66,7 @@
     </src-comment>
   </active*>
 
-  <assign|script-status|<macro|body|<with|color|<value|script-status-color>|<block|<tformat|<cwith|1|1|1|1|cell-background|<value|script-status-background-color>>|<table|<row|<cell|<arg|body>>>>>>>>>
+  <assign|script-status|<macro|body|<with|color|<value|script-status-color>|<block|<tformat|<cwith|1|1|1|1|cell-background|<value|script-status-background-color>>|<table|<row|<cell|<with|color|<value|script-status-font-color>|<arg|body>>>>>>>>>>
 
   <assign|script-busy|<macro|msg|<script-status|<if|<equal|<arg|msg>|<uninit>>|<localize|Busy>...|<arg|msg>>>>>
 
