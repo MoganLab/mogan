@@ -1,8 +1,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : 222_76.scm
+;; MODULE      : 221_8.scm
 ;; DESCRIPTION : Unit tests for toggle-bold selection target resolution
-;; COPYRIGHT   : (C) 2026 Mogan
+;; COPYRIGHT   : (C) 2026 Mogan Contributors
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -16,7 +16,7 @@
 
 (check-set-mode! 'report-failed)
 
-(tm-define (test_222_76)
+(tm-define (test_221_8)
   (let* ((bold-tree (tm->tree '(with "font-series" "bold" "你好")))
          (bold-body (tree-ref bold-tree :last))
          (italic-tree (tm->tree '(with "font-shape" "italic" "你好")))
