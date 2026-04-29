@@ -165,10 +165,15 @@ pretty-val : string
             (get-pretty-preference "completion style")
             "18em"))
     (item (text "Auto backup:")
-      (enum (set-preference "autobackup" (string-downcase answer))
-            '("On" "Off")
-            (tmstring-upcase-first (get-preference "autobackup"))
-            "18em"))))
+      (hlist
+        (enum (set-preference "autobackup" (string-downcase answer))
+              '("On" "Off")
+              (tmstring-upcase-first (get-preference "autobackup"))
+              "12em")
+        //
+        (explicit-buttons
+          ((eval (auto-backup-button-label))
+           (open-auto-backup-location)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard preferences
@@ -805,15 +810,10 @@ pretty-val : string
 (tm-widget (misc-preferences-widget)
   (aligned
     (item (text "Automatically save:")
-      (hlist
-        (enum (set-autosave-preference-label answer)
-              (autosave-preferences-list)
-              (get-autosave-preference-label)
-              "12em")
-        //
-        (explicit-buttons
-          ((eval (auto-backup-button-label))
-           (open-auto-backup-location)))))
+      (enum (set-autosave-preference-label answer)
+            (autosave-preferences-list)
+            (get-autosave-preference-label)
+            "12em"))
     (item (text "Security:")
       (enum (set-pretty-preference "security" answer)
             '("Accept no scripts" "Prompt on scripts" "Accept all scripts")

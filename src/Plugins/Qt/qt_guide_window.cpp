@@ -960,7 +960,8 @@ StartupLoginDialog::centerOverMainWindow () {
 
 bool
 StartupLoginDialog::getAutoBackup () {
-  return get_preference ("autobackup") == "on";
+  // Default to enabled (on) for commercial version
+  return get_preference ("autobackup") != "off";
 }
 
 void
