@@ -402,7 +402,7 @@ QTMTabPageContainer::arrangeTabPages () {
 #endif
   int reservedRight= buttonCount * buttonWidth;
 #ifndef IS_COMMUNITY
-  reservedRight += DpiUtils::scaled (80); // VIP 按钮及间距预留
+  reservedRight+= DpiUtils::scaled (80); // VIP 按钮及间距预留
 #endif
 
   int visibleTabCount= 0;

@@ -225,14 +225,14 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     mw->setMenuWidget (outBar);
   };
 
-  double scale         = DpiUtils::scaleFactor ();
-  int    titleBarHeight= int (42 * scale);
-  int    buttonWidth   = int (60 * scale);
-  int    buttonHeight  = int (42 * scale);
-  int    vipbuttonWidth= int (100 * scale);
+  double scale          = DpiUtils::scaleFactor ();
+  int    titleBarHeight = int (42 * scale);
+  int    buttonWidth    = int (60 * scale);
+  int    buttonHeight   = int (42 * scale);
+  int    vipbuttonWidth = int (100 * scale);
   int    vipbuttonHeight= int (32 * scale);
-  int    iconBaseSize  = int (16 * scale);
-  int    iconLoginSize = int (20 * scale);
+  int    iconBaseSize   = int (16 * scale);
+  int    iconLoginSize  = int (20 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
@@ -405,15 +405,15 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   vipButton->setFixedSize (vipbuttonWidth, vipbuttonHeight);
   vipButton->setCursor (Qt::PointingHandCursor);
   vipButton->setStyleSheet (
-      QString ("QPushButton#vip-button { border-radius: %1px; font-size: %2px; margin-right: %3px; }")
+      QString ("QPushButton#vip-button { border-radius: %1px; font-size: %2px; "
+               "margin-right: %3px; }")
           .arg (DpiUtils::scaled (12))
           .arg (DpiUtils::scaled (12))
           .arg (DpiUtils::scaled (4)));
 
   // 设置闪电图标
   vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
-  vipButton->setIconSize (
-      QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
+  vipButton->setIconSize (QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
 
   windowBar->setVipButton (vipButton);
   if (windowAgent) {
