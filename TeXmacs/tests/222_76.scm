@@ -39,10 +39,8 @@
                        (with "font-series" "bold" "中")
                        "后")))
          (inline-bold
-          (tm->tree '(concat
-                       (with "font-series" "bold" "前")
-                       (with "font-series" "bold" "中")
-                       (with "font-series" "bold" "后")))))
+          (tm->tree '(with "font-series" "bold"
+                       (concat "前" "中" "后")))))
     (check (== (with-like-selection-target bold-tree '(with "font-series" "bold" ""))
                bold-tree)
            => #t)
@@ -84,13 +82,11 @@
     (check (tm-equal?
             (with-like-uniform-toggle-result
              inline-mixed '(with "font-series" "bold" ""))
-            '(concat
-               (with "font-series" "bold" "前")
-               (with "font-series" "bold" "中")
-               (with "font-series" "bold" "后")))
+            '(with "font-series" "bold"
+               (concat "前" "中" "后")))
            => #t)
     (check (tm-equal?
-            (with-like-uniform-toggle-result
+            (with-like-node-without
              inline-bold
              '(with "font-series" "bold" ""))
             '(concat "前" "中" "后"))

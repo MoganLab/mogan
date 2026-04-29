@@ -328,7 +328,7 @@
       `(with ,(cadr w) ,(caddr w) ,t)
       `(,(car w) ,t)))
 
-(define (with-like-node-without t w)
+(tm-define (with-like-node-without t w)
   (if (func? w 'with 3)
       (with-like-build-body-without t (cadr w) (tree-ref t :last))
       (tree-ref t :last)))
@@ -338,6 +338,11 @@
 
 (define (with-like-all-have-target? l w)
   (list-and (map (cut with-like-node-has-target? <> w) l)))
+
+(define (with-like-strip-target-from-node t w)
+  (if (with-like-node-has-target? t w)
+      (with-like-node-without t w)
+      t))
 
 (define (with-like-uniform-selection-tree? t)
   (and t
@@ -353,25 +358,40 @@
 (tm-define (with-like-uniform-toggle-result t w)
   (let* ((l (tree-children t))
          (all? (with-like-all-have-target? l w))
-         (r (map (lambda (u)
-                   (if all?
-                       (if (with-like-node-has-target? u w)
-                           (with-like-node-without u w)
-                           u)
-                       (if (with-like-node-has-target? u w)
-                           u
-                           (with-like-wrap-node w u))))
-                 l)))
-    (cond ((null? r) "")
-          ((null? (cdr r)) (car r))
-          (else `(,(tree-label t) ,@r)))))
+         (label (tree-label t)))
+    (cond (all?
+           (let ((r (map (lambda (u) (with-like-strip-target-from-node u w)) l)))
+             (cond ((null? r) "")
+                   ((null? (cdr r)) (car r))
+                   (else `(,label ,@r)))))
+          ((== label 'concat)
+           (with-like-wrap-node
+            w
+            `(concat ,@(map (lambda (u) (with-like-strip-target-from-node u w)) l))))
+          (else
+           (let ((r (map (lambda (u)
+                           (if (with-like-node-has-target? u w)
+                               u
+                               (with-like-wrap-node w u)))
+                         l)))
+             (cond ((null? r) "")
+                   ((null? (cdr r)) (car r))
+                   (else `(,label ,@r))))))))
+
+(define (with-like-uniform-toggle-path t)
+  (if (and (tree-compound? t) (> (tree-arity t) 1))
+      (let ((i (- (tree-arity t) 1)))
+        (cons i (path-end (tree-ref t i) '())))
+      (path-end t '())))
 
 (tm-define (toggle-with-like-uniform-selection w)
   (with t (selection-tree)
     (when t
-      (clipboard-cut "nowhere")
-      (insert-go-to (with-like-uniform-toggle-result t w)
-                    (path-end t '())))))
+      (let* ((replacement (with-like-uniform-toggle-result t w))
+             (replacement* (tm->tree replacement)))
+        (clipboard-cut "nowhere")
+        (insert-go-to replacement
+                      (with-like-uniform-toggle-path replacement*))))))
 
 (tm-define (with-like-partial-toggle? t)
   (and (selection-active-small?)
