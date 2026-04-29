@@ -168,7 +168,6 @@ namespace QWK {
         ~NSWindowProxy() override {
             [nsview removeObserver:observer forKeyPath:@"window"];
             [observer release];
-            cachedSystemButtons = {nullptr, nullptr, nullptr};
         }
 
         // Delegate
@@ -191,7 +190,6 @@ namespace QWK {
                     if (!screenRectCallback || !systemButtonVisible)
                         return;
 
-                    refreshSystemButtonsCache();
                     for (const auto &button : systemButtons()) {
                         button.hidden = false;
                     }
@@ -286,24 +284,15 @@ namespace QWK {
             [rightButton setFrameOrigin:rightOrigin];
         }
 
-        void refreshSystemButtonsCache() {
+        inline std::array<NSButton *, 3> systemButtons() {
             auto nswindow = [nsview window];
             if (!nswindow) {
-                cachedSystemButtons = {nullptr, nullptr, nullptr};
-                return;
+                return {nullptr, nullptr, nullptr};
             }
-            cachedSystemButtons[0] = [nswindow standardWindowButton:NSWindowCloseButton];
-            cachedSystemButtons[1] = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
-            cachedSystemButtons[2] = [nswindow standardWindowButton:NSWindowZoomButton];
-        }
-
-        inline std::array<NSButton *, 3> systemButtons() {
-            if ([nsview window]) {
-                if (!cachedSystemButtons[0] || !cachedSystemButtons[1] || !cachedSystemButtons[2]) {
-                    refreshSystemButtonsCache();
-                }
-            }
-            return cachedSystemButtons;
+            NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
+            NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+            NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
+            return {closeBtn, minimizeBtn, zoomBtn};
         }
 
         inline int titleBarHeight() const {
@@ -376,9 +365,6 @@ namespace QWK {
             nswindow.hasShadow = YES;
             // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
-            if (visible) {
-                cachedSystemButtons = {nullptr, nullptr, nullptr};
-            }
             [nswindow standardWindowButton:NSWindowCloseButton].hidden = NO;
             [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = NO;
             [nswindow standardWindowButton:NSWindowZoomButton].hidden = NO;
@@ -441,12 +427,16 @@ namespace QWK {
 
             if (oldSetFrame) {
                 Method btnMethod = class_getInstanceMethod([NSButton class], @selector(setFrame:));
-                method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrame));
+                if (btnMethod) {
+                    method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrame));
+                }
                 oldSetFrame = nil;
             }
             if (oldSetFrameOrigin) {
                 Method btnMethod = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
-                method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrameOrigin));
+                if (btnMethod) {
+                    method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrameOrigin));
+                }
                 oldSetFrameOrigin = nil;
             }
 
@@ -458,7 +448,6 @@ namespace QWK {
         bool systemButtonVisible = true;
         bool isUpdatingSystemButtonRect = false;
         ScreenRectCallback screenRectCallback;
-        std::array<NSButton *, 3> cachedSystemButtons{};
 
         static inline const Class windowClass = [NSWindow class];
 
@@ -579,8 +568,14 @@ namespace QWK {
         if (!proxy || !proxy->screenRectCallback || !proxy->systemButtonVisible || proxy->isUpdatingSystemButtonRect) {
             return false;
         }
-        const auto &cached = proxy->cachedSystemButtons;
-        return button == cached[0] || button == cached[1] || button == cached[2];
+        auto nswindow = [button window];
+        if (!nswindow) {
+            return false;
+        }
+        NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
+        NSButton *miniBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+        NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
+        return button == closeBtn || button == miniBtn || button == zoomBtn;
     }
 
     static void setFrame(id obj, SEL sel, NSRect frame) {
@@ -1000,7 +995,6 @@ namespace QWK {
         // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
         if (newWindow) {
             _proxy->setSystemTitleBarVisible(false);
-            _proxy->refreshSystemButtonsCache();
             // Defer update to next runloop: AppKit needs to finish its titlebar
             // layout before we reposition the buttons, otherwise our frame is
             // overwritten by AppKit’s internal layout pass.

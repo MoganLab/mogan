@@ -250,6 +250,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     sysBtnArea->setFixedSize (sysBtnWidth, nativeTitleBarHeight);
     sysBtnArea->setObjectName ("system-button-area");
 
+    // Use a small fixed offset instead of vertical centering to match
+    // native macOS title-bar button placement more closely.
     int yOffset= DpiUtils::scaled (1);
     sysBtnArea->move (0, yOffset);
 
