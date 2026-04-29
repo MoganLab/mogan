@@ -22,6 +22,5 @@
         <file>window-bar/logout.svg</file>
         <file>window-bar/logout-white.svg</file>
         <file>window-bar/vip-lightning.svg</file>
-        <file>window-bar/vip-lightning-white.svg</file>
     </qresource>
 </RCC>
