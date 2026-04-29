@@ -22,7 +22,27 @@
          (italic-tree (tm->tree '(with "font-shape" "italic" "你好")))
          (italic-body (tree-ref italic-tree :last))
          (partial-bold (tm->tree '(with "font-series" "bold" "你好，世界")))
-         (partial-italic (tm->tree '(with "font-shape" "italic" "你好，世界"))))
+         (partial-italic (tm->tree '(with "font-shape" "italic" "你好，世界")))
+         (paragraphs-mixed
+          (tm->tree '(document
+                       (with "font-series" "bold" "第一段")
+                       "第二段"
+                       (with "font-series" "bold" "第三段"))))
+         (paragraphs-bold
+          (tm->tree '(document
+                       (with "font-series" "bold" "第一段")
+                       (with "font-series" "bold" "第二段")
+                       (with "font-series" "bold" "第三段"))))
+         (inline-mixed
+          (tm->tree '(concat
+                       "前"
+                       (with "font-series" "bold" "中")
+                       "后")))
+         (inline-bold
+          (tm->tree '(concat
+                       (with "font-series" "bold" "前")
+                       (with "font-series" "bold" "中")
+                       (with "font-series" "bold" "后")))))
     (check (== (with-like-selection-target bold-tree '(with "font-series" "bold" ""))
                bold-tree)
            => #t)
@@ -47,5 +67,32 @@
     (check (tm-equal?
             (with-like-partial-toggle-result partial-italic "font-shape" 6 15)
             '(concat (with "font-shape" "italic" "你好") "，世界"))
+           => #t)
+    (check (tm-equal?
+            (with-like-uniform-toggle-result
+             paragraphs-mixed '(with "font-series" "bold" ""))
+            '(document
+               (with "font-series" "bold" "第一段")
+               (with "font-series" "bold" "第二段")
+               (with "font-series" "bold" "第三段")))
+           => #t)
+    (check (tm-equal?
+            (with-like-uniform-toggle-result
+             paragraphs-bold '(with "font-series" "bold" ""))
+            '(document "第一段" "第二段" "第三段"))
+           => #t)
+    (check (tm-equal?
+            (with-like-uniform-toggle-result
+             inline-mixed '(with "font-series" "bold" ""))
+            '(concat
+               (with "font-series" "bold" "前")
+               (with "font-series" "bold" "中")
+               (with "font-series" "bold" "后")))
+           => #t)
+    (check (tm-equal?
+            (with-like-uniform-toggle-result
+             inline-bold
+             '(with "font-series" "bold" ""))
+            '(concat "前" "中" "后"))
            => #t))
   (check-report))
