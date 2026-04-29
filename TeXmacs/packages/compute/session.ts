@@ -26,7 +26,7 @@
     </src-comment>
   </active*>
 
-  <assign|generic-prompt-color|dark brown>
+  <assign|generic-prompt-color|#4d6cff>
 
   <assign|generic-input-color|dark blue>
 
