@@ -139,6 +139,15 @@ public:
 
 namespace QWK {
 
+    static void swizzleNSButtonSetFrame();
+    static void swizzleNSButtonSetFrameOrigin();
+
+    using setFramePtr = void (*)(id, SEL, NSRect);
+    static inline setFramePtr oldSetFrame = nil;
+
+    using setFrameOriginPtr = void (*)(id, SEL, NSPoint);
+    static inline setFrameOriginPtr oldSetFrameOrigin = nil;
+
     struct NSWindowProxy : public QWK_NSWindowDelegate {
         enum class BlurMode {
             Dark,
@@ -228,6 +237,7 @@ namespace QWK {
             if (!screenRectCallback || !systemButtonVisible) {
                 return;
             }
+            isUpdatingSystemButtonRect = true;
             const auto &buttons = systemButtons();
             const auto &leftButton = buttons[0];
             const auto &midButton = buttons[1];
@@ -267,6 +277,7 @@ namespace QWK {
                 centerOrigin.y,
             };
             [rightButton setFrameOrigin:rightOrigin];
+            isUpdatingSystemButtonRect = false;
         }
 
         inline std::array<NSButton *, 3> systemButtons() {
@@ -380,6 +391,9 @@ namespace QWK {
 
             // Alloc
             windowObserver = [[QWK_NSWindowObserver alloc] init];
+
+            swizzleNSButtonSetFrame();
+            swizzleNSButtonSetFrameOrigin();
         }
 
         static void restoreImplementations() {
@@ -407,10 +421,25 @@ namespace QWK {
             method_setImplementation(method, reinterpret_cast<IMP>(oldSendEvent));
             oldSendEvent = nil;
 
+            if (oldSetFrame) {
+                Method btnMethod = class_getInstanceMethod([NSButton class], @selector(setFrame:));
+                method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrame));
+                oldSetFrame = nil;
+            }
+            if (oldSetFrameOrigin) {
+                Method btnMethod = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
+                method_setImplementation(btnMethod, reinterpret_cast<IMP>(oldSetFrameOrigin));
+                oldSetFrameOrigin = nil;
+            }
+
             // Delete
             [windowObserver release];
             windowObserver = nil;
         }
+
+        bool systemButtonVisible = true;
+        bool isUpdatingSystemButtonRect = false;
+        ScreenRectCallback screenRectCallback;
 
         static inline const Class windowClass = [NSWindow class];
 
@@ -494,9 +523,6 @@ namespace QWK {
         NSView *nsview = nil;
         QWK_NSViewObserver* observer = nil;
 
-        bool systemButtonVisible = true;
-        ScreenRectCallback screenRectCallback;
-
         static inline QWK_NSWindowObserver *windowObserver = nil;
 
         // NSEvent *lastMouseDownEvent = nil;
@@ -516,6 +542,100 @@ namespace QWK {
         using sendEventPtr = void (*)(id, SEL, NSEvent *);
         static inline sendEventPtr oldSendEvent = nil;
     };
+
+    static void setFrame(id obj, SEL sel, NSRect frame) {
+        auto button = reinterpret_cast<NSButton *>(obj);
+        printf("QWK: setFrame called on button %p\n", button);
+        auto nswindow = [button window];
+        if (!nswindow) {
+            if (oldSetFrame) oldSetFrame(obj, sel, frame);
+            return;
+        }
+        auto nsview = [nswindow contentView];
+        if (!nsview) {
+            if (oldSetFrame) oldSetFrame(obj, sel, frame);
+            return;
+        }
+
+        if (auto proxy = g_proxyList->value(reinterpret_cast<WId>(nsview))) {
+            if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
+                auto buttons = proxy->systemButtons();
+                if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
+                    printf("QWK: Blocked setFrame on system button %p\n", button);
+                    return; // Block AppKit's internal reset
+                }
+            }
+        }
+
+        if (oldSetFrame) {
+            oldSetFrame(obj, sel, frame);
+        }
+    }
+
+    static void setFrameOrigin(id obj, SEL sel, NSPoint origin) {
+        auto button = reinterpret_cast<NSButton *>(obj);
+        printf("QWK: setFrameOrigin called on button %p\n", button);
+        auto nswindow = [button window];
+        if (!nswindow) {
+            if (oldSetFrameOrigin) oldSetFrameOrigin(obj, sel, origin);
+            return;
+        }
+        auto nsview = [nswindow contentView];
+        if (!nsview) {
+            if (oldSetFrameOrigin) oldSetFrameOrigin(obj, sel, origin);
+            return;
+        }
+
+        if (auto proxy = g_proxyList->value(reinterpret_cast<WId>(nsview))) {
+            if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
+                auto buttons = proxy->systemButtons();
+                if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
+                    printf("QWK: Blocked setFrameOrigin on system button %p\n", button);
+                    return; // Block AppKit's internal reset
+                }
+            }
+        }
+
+        if (oldSetFrameOrigin) {
+            oldSetFrameOrigin(obj, sel, origin);
+        }
+    }
+
+    static void swizzleNSButtonSetFrame() {
+        Method frameMethod = class_getInstanceMethod([NSView class], @selector(setFrame:));
+        const char *frameTypeEncoding = method_getTypeEncoding(frameMethod);
+
+        IMP nsviewImp = class_getMethodImplementation([NSView class], @selector(setFrame:));
+        IMP nsbuttonImp = class_getMethodImplementation([NSButton class], @selector(setFrame:));
+
+        if (nsviewImp == nsbuttonImp) {
+            class_addMethod([NSButton class], @selector(setFrame:),
+                reinterpret_cast<IMP>(setFrame), frameTypeEncoding);
+            oldSetFrame = reinterpret_cast<setFramePtr>(nsviewImp);
+        } else {
+            Method method = class_getInstanceMethod([NSButton class], @selector(setFrame:));
+            oldSetFrame = reinterpret_cast<setFramePtr>(
+                method_setImplementation(method, reinterpret_cast<IMP>(setFrame)));
+        }
+    }
+
+    static void swizzleNSButtonSetFrameOrigin() {
+        Method originMethod = class_getInstanceMethod([NSView class], @selector(setFrameOrigin:));
+        const char *originTypeEncoding = method_getTypeEncoding(originMethod);
+
+        IMP nsviewImp = class_getMethodImplementation([NSView class], @selector(setFrameOrigin:));
+        IMP nsbuttonImp = class_getMethodImplementation([NSButton class], @selector(setFrameOrigin:));
+
+        if (nsviewImp == nsbuttonImp) {
+            class_addMethod([NSButton class], @selector(setFrameOrigin:),
+                reinterpret_cast<IMP>(setFrameOrigin), originTypeEncoding);
+            oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(nsviewImp);
+        } else {
+            Method method = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
+            oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(
+                method_setImplementation(method, reinterpret_cast<IMP>(setFrameOrigin)));
+        }
+    }
 
     static inline NSWindow *mac_getNSWindow(const WId windowId) {
         const auto nsview = reinterpret_cast<NSView *>(windowId);
