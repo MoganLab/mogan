@@ -168,6 +168,7 @@ namespace QWK {
         ~NSWindowProxy() override {
             [nsview removeObserver:observer forKeyPath:@"window"];
             [observer release];
+            cachedSystemButtons = {nullptr, nullptr, nullptr};
         }
 
         // Delegate
@@ -603,7 +604,14 @@ namespace QWK {
     }
 
     static void swizzleNSButtonSetFrame() {
+        if (oldSetFrame) {
+            return; // Already swizzled
+        }
+
         Method frameMethod = class_getInstanceMethod([NSView class], @selector(setFrame:));
+        if (!frameMethod) {
+            return;
+        }
         const char *frameTypeEncoding = method_getTypeEncoding(frameMethod);
 
         IMP nsviewImp = class_getMethodImplementation([NSView class], @selector(setFrame:));
@@ -617,18 +625,39 @@ namespace QWK {
             } else {
                 // Fallback: method was added concurrently
                 Method method = class_getInstanceMethod([NSButton class], @selector(setFrame:));
+                if (!method) {
+                    return;
+                }
+                IMP currentImp = method_getImplementation(method);
+                if (currentImp == reinterpret_cast<IMP>(setFrame)) {
+                    return; // Already our implementation
+                }
                 oldSetFrame = reinterpret_cast<setFramePtr>(
                     method_setImplementation(method, reinterpret_cast<IMP>(setFrame)));
             }
         } else {
             Method method = class_getInstanceMethod([NSButton class], @selector(setFrame:));
+            if (!method) {
+                return;
+            }
+            IMP currentImp = method_getImplementation(method);
+            if (currentImp == reinterpret_cast<IMP>(setFrame)) {
+                return; // Already our implementation
+            }
             oldSetFrame = reinterpret_cast<setFramePtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(setFrame)));
         }
     }
 
     static void swizzleNSButtonSetFrameOrigin() {
+        if (oldSetFrameOrigin) {
+            return; // Already swizzled
+        }
+
         Method originMethod = class_getInstanceMethod([NSView class], @selector(setFrameOrigin:));
+        if (!originMethod) {
+            return;
+        }
         const char *originTypeEncoding = method_getTypeEncoding(originMethod);
 
         IMP nsviewImp = class_getMethodImplementation([NSView class], @selector(setFrameOrigin:));
@@ -642,11 +671,25 @@ namespace QWK {
             } else {
                 // Fallback: method was added concurrently
                 Method method = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
+                if (!method) {
+                    return;
+                }
+                IMP currentImp = method_getImplementation(method);
+                if (currentImp == reinterpret_cast<IMP>(setFrameOrigin)) {
+                    return; // Already our implementation
+                }
                 oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(
                     method_setImplementation(method, reinterpret_cast<IMP>(setFrameOrigin)));
             }
         } else {
             Method method = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
+            if (!method) {
+                return;
+            }
+            IMP currentImp = method_getImplementation(method);
+            if (currentImp == reinterpret_cast<IMP>(setFrameOrigin)) {
+                return; // Already our implementation
+            }
             oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(
                 method_setImplementation(method, reinterpret_cast<IMP>(setFrameOrigin)));
         }
