@@ -2496,8 +2496,9 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
   const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
   const int iconWidth      = loginButton->iconSize ().width ();
   const int textWidth      = metrics.horizontalAdvance (visibleText);
-  const int minWidth= DpiUtils::scaled (60);
-  const int maxWidth= isLoggedIn ? DpiUtils::scaled (60) : DpiUtils::scaled (120);
+  const int minWidth       = DpiUtils::scaled (60);
+  const int maxWidth=
+      isLoggedIn ? DpiUtils::scaled (60) : DpiUtils::scaled (120);
   const int rawDesiredWidth=
       iconWidth + iconTextSpacing + textWidth + horizontalPadding;
   const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
