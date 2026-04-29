@@ -225,17 +225,44 @@
 	(else
 	  (insert-go-to w (list (- (tm-arity w) 1) 0)))))
 
+(tm-define (with-like-selection-parent-target t u w)
+  (and u
+       (with-like? u)
+       (with-same-type? u w)
+       (tm-equal? (tree-ref u :last) t)
+       u))
+
+(tm-define (with-like-selection-target t w)
+  (cond ((and t (with-like? t) (with-same-type? t w))
+         t)
+        ((with-like-selection-parent-target t (and t (tree-ref t :up)) w))
+        (else t)))
+
+(tm-define (with-like-focus-target w)
+  (with t (focus-tree)
+    (cond ((and t (with-like? t) (with-same-type? t w))
+           t)
+          ((with-like-selection-parent-target t (and t (tree-ref t :up)) w))
+          (else #f))))
+
+(tm-define (with-like-toggle-target w)
+  (cond ((and (selection-active-any?)
+              (== (selection-tree) (path->tree (selection-path))))
+         (with-like-selection-target (path->tree (selection-path)) w))
+        ((with-like-focus-target w))
+        (else (with-like-search (tree-ref (cursor-tree) :up)))))
+
+(tm-define (remove-with-like-target t)
+  (tree-remove-node! t (- (tree-arity t) 1))
+  (tree-correct-node (tree-ref t :up)))
+
 (tm-define (toggle-with-like w back)
-  (with t (if (and (selection-active-any?)
-		   (== (selection-tree) (path->tree (selection-path))))
-	      (path->tree (selection-path))
-	      (with-like-search (tree-ref (cursor-tree) :up)))
+  (with t (with-like-toggle-target w)
     ;;(display* "t= " t "\n")
     (cond ((not (and t (with-like? t) (with-same-type? t w)))
            (make-with-like w))
           ((or (not back) (tree-empty? (tm-ref t :last)))
-           (tree-remove-node! t (- (tree-arity t) 1))
-           (tree-correct-node (tree-ref t :up)))
+           (remove-with-like-target t))
           ((tree-at-start? (tm-ref t :last))
            (tree-go-to t 0))
           ((tree-at-end? (tm-ref t :last))
@@ -243,8 +270,7 @@
           (else (make-with-like back)))))
 
 (tm-define (toggle-bold)
-  (toggle-with-like '(with "font-series" "bold" "")
-                    '(with "font-series" "medium" "")))
+  (toggle-with-like '(with "font-series" "bold" "") #f))
 
 (tm-define (toggle-italic)
   (toggle-with-like '(with "font-shape" "italic" "")
