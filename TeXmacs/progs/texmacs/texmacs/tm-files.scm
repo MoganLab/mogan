@@ -305,9 +305,10 @@
           (if (== (url-suffix name) "ts") (style-clear-cache))
           (autosave-remove name)
           (buffer-notify-recent name)
-          ;; Remember directory for file dialog 
+          ;; Remember directory for file dialog
           (remember-file-dialog-directory name)
           (set-message `(concat "Saved " ,vname) "Save file")
+          (auto-backup-buffer name "on-save")
           (save-buffer-post name opts)))))
 
 (define (save-buffer-check-faithful name opts)
