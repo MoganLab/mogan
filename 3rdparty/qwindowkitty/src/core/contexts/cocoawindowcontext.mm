@@ -280,15 +280,22 @@ namespace QWK {
             isUpdatingSystemButtonRect = false;
         }
 
-        inline std::array<NSButton *, 3> systemButtons() {
+        void refreshSystemButtonsCache() {
             auto nswindow = [nsview window];
             if (!nswindow) {
-                return {nullptr, nullptr, nullptr};
+                cachedSystemButtons = {nullptr, nullptr, nullptr};
+                return;
             }
-            NSButton *closeBtn = [nswindow standardWindowButton:NSWindowCloseButton];
-            NSButton *minimizeBtn = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
-            NSButton *zoomBtn = [nswindow standardWindowButton:NSWindowZoomButton];
-            return {closeBtn, minimizeBtn, zoomBtn};
+            cachedSystemButtons[0] = [nswindow standardWindowButton:NSWindowCloseButton];
+            cachedSystemButtons[1] = [nswindow standardWindowButton:NSWindowMiniaturizeButton];
+            cachedSystemButtons[2] = [nswindow standardWindowButton:NSWindowZoomButton];
+        }
+
+        inline std::array<NSButton *, 3> systemButtons() {
+            if (!cachedSystemButtons[0] && [nsview window]) {
+                refreshSystemButtonsCache();
+            }
+            return cachedSystemButtons;
         }
 
         inline int titleBarHeight() const {
@@ -440,6 +447,7 @@ namespace QWK {
         bool systemButtonVisible = true;
         bool isUpdatingSystemButtonRect = false;
         ScreenRectCallback screenRectCallback;
+        std::array<NSButton *, 3> cachedSystemButtons{};
 
         static inline const Class windowClass = [NSWindow class];
 
