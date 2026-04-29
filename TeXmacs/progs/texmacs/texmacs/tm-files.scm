@@ -866,7 +866,11 @@
     (or (and (>= i (char->integer #\a)) (<= i (char->integer #\z)))
         (and (>= i (char->integer #\A)) (<= i (char->integer #\Z)))
         (and (>= i (char->integer #\0)) (<= i (char->integer #\9)))
-        (in? c '(#\- #\_ #\.)))))
+        (in? c '(#\- #\_ #\.))
+        ;; Support UTF-8 multibyte characters (including Chinese)
+        ;; UTF-8 continuation bytes: 0x80-0xBF
+        ;; UTF-8 leading bytes: 0xC0-0xFD
+        (>= i 128))))
 
 (define (auto-backup-sanitize-name name)
   (let* ((chars (string->list name))
