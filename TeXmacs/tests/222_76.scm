@@ -20,7 +20,9 @@
   (let* ((bold-tree (tm->tree '(with "font-series" "bold" "你好")))
          (bold-body (tree-ref bold-tree :last))
          (italic-tree (tm->tree '(with "font-shape" "italic" "你好")))
-         (italic-body (tree-ref italic-tree :last)))
+         (italic-body (tree-ref italic-tree :last))
+         (partial-bold (tm->tree '(with "font-series" "bold" "你好，世界")))
+         (partial-italic (tm->tree '(with "font-shape" "italic" "你好，世界"))))
     (check (== (with-like-selection-target bold-tree '(with "font-series" "bold" ""))
                bold-tree)
            => #t)
@@ -37,5 +39,13 @@
     (check (== (with-like-selection-parent-target
                 italic-body italic-tree '(with "font-shape" "italic" ""))
                italic-tree)
+           => #t)
+    (check (tm-equal?
+            (with-like-partial-toggle-result partial-bold "font-series" 6 15)
+            '(concat (with "font-series" "bold" "你好") "，世界"))
+           => #t)
+    (check (tm-equal?
+            (with-like-partial-toggle-result partial-italic "font-shape" 6 15)
+            '(concat (with "font-shape" "italic" "你好") "，世界"))
            => #t))
   (check-report))
