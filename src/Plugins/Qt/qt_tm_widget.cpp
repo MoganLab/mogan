@@ -229,7 +229,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   int    titleBarHeight = int (42 * scale);
   int    buttonWidth    = int (60 * scale);
   int    buttonHeight   = int (42 * scale);
-  int    vipbuttonWidth = int (100 * scale);
+  int    vipbuttonWidth = int (90 * scale);
   int    vipbuttonHeight= int (32 * scale);
   int    iconBaseSize   = int (16 * scale);
 
@@ -397,7 +397,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // VIP升级会员按钮 - 放在登录按钮左侧（只在商业版显示）
   vipButton= new QPushButton (windowBar);
   vipButton->setObjectName ("vip-button");
-  vipButton->setText ("  " + qt_translate ("Upgrade VIP"));
+  vipButton->setText (qt_translate ("Upgrade VIP"));
   vipButton->setProperty ("system-button", true);
   vipButton->setFocusPolicy (Qt::NoFocus);
   vipButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
