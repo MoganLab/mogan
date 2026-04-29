@@ -866,7 +866,11 @@
     (or (and (>= i (char->integer #\a)) (<= i (char->integer #\z)))
         (and (>= i (char->integer #\A)) (<= i (char->integer #\Z)))
         (and (>= i (char->integer #\0)) (<= i (char->integer #\9)))
-        (in? c '(#\- #\_ #\.)))))
+        (in? c '(#\- #\_ #\.))
+        ;; Support UTF-8 multibyte characters (including Chinese)
+        ;; UTF-8 continuation bytes: 0x80-0xBF
+        ;; UTF-8 leading bytes: 0xC0-0xFD
+        (>= i 128))))
 
 (define (auto-backup-sanitize-name name)
   (let* ((chars (string->list name))
@@ -1421,7 +1425,7 @@
 
 (tm-define (auto-backup-now)
   (set! auto-backup-scheduled? #f)
-  (if (autosave-enabled?)
+  (if (!= (get-preference "autobackup") "off")
       (begin
         (auto-backup-log "timer-fired")
         (auto-backup-all)
@@ -1429,7 +1433,7 @@
       (auto-backup-log "timer-skip-disabled")))
 
 (tm-define (auto-backup-delayed)
-  (if (autosave-enabled?)
+  (if (!= (get-preference "autobackup") "off")
       (if auto-backup-scheduled?
           (auto-backup-log "schedule-skip-already-pending")
           (begin
