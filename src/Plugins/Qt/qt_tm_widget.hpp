@@ -188,7 +188,6 @@ public:
   void        set_full_screen (bool flag);
   void        update_visibility ();
   void        install_main_menu ();
-  void        restoreSettings ();
   static void tweak_iconbar_size (QSize& sz);
   void        openRenewalPage ();
   void        checkNetworkAvailable ();

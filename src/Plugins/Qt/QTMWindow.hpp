@@ -83,7 +83,6 @@ protected:
   virtual void moveEvent (QMoveEvent* event);
   virtual void resizeEvent (QResizeEvent* event);
   virtual void showEvent (QShowEvent* event);
-  void         saveSettings ();
 };
 
 /*! The underlying QWidget for a qt_popup_widget.

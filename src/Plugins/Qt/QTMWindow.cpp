@@ -15,14 +15,11 @@
 #include "qt_tutorial.hpp"
 #endif
 #include "qt_utilities.hpp"
-#include "tm_sys_utils.hpp"
-#include "tm_url.hpp"
 #include "tm_window.hpp"
 
 #include <QCloseEvent>
 #include <QKeyEvent>
 #include <QPushButton>
-#include <QSettings>
 
 void
 QTMPlainWindow::closeEvent (QCloseEvent* event) {
@@ -112,8 +109,6 @@ QTMWindow::closeEvent (QCloseEvent* event) {
       (!is_nil (tmwid) ? concrete (tmwid)->get_nickname () : "QTMWindow");
   if (DEBUG_QT_WIDGETS) debug_widgets << "Close QTMWindow " << name << LF;
 
-  // 保存窗口状态和几何信息
-  saveSettings ();
   set_auxiliary_widget_visibility (tmwid, false);
   event->ignore ();
 #if defined(OS_MACOS)
@@ -152,37 +147,6 @@ QTMWindow::showEvent (QShowEvent* event) {
   QWK::FirstLaunchTutorialController::instance ()->maybeStartForMainWindow (
       this);
 #endif
-}
-
-void
-QTMWindow::saveSettings () {
-  /* 保存工具栏和窗口状态
-   * mainWindowState: 保存主窗口的工具栏、菜单栏、状态栏等UI元素的状态
-   *                  包括工具栏的位置、是否可见、停靠状态等，以及菜单栏的展开状态
-   * mainWindowGeometry: 保存主窗口的几何信息
-   *                     包括窗口的位置(x,y坐标)、大小(宽度、高度)、是否最大化/最小化等状态
-   * saveState() - 保存工具栏和停靠窗口的状态
-   * saveGeometry() - 保存窗口的几何信息 */
-
-  string config_path= concretize (head (get_tm_preference_path ()));
-  if (config_path != "") {
-    /* 使用用户自定义的配置路径创建QSettings对象
-     * 配置文件格式为INI格式，便于用户手动编辑 */
-    QSettings settings (to_qstring (config_path * "/qtwindows.ini"),
-                        QSettings::IniFormat);
-    /* 保存主窗口的UI元素状态 */
-    settings.setValue ("mainWindowState", saveState ());
-    /* 保存主窗口的几何信息 */
-    settings.setValue ("mainWindowGeometry", saveGeometry ());
-    /* 立即将设置写入磁盘，确保数据不丢失 */
-    settings.sync ();
-  }
-  else {
-    QSettings settings ("LiiiNetwork", STEM_NAME);
-    settings.setValue ("mainWindowState", saveState ());
-    settings.setValue ("mainWindowGeometry", saveGeometry ());
-    settings.sync ();
-  }
 }
 
 ////////////////////

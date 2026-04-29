@@ -31,7 +31,6 @@
 #include <QObject>
 #include <QPushButton>
 #include <QResource>
-#include <QSettings>
 #include <QStatusBar>
 #include <QTimer>
 #include <QToolBar>
@@ -805,46 +804,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   }
   else {
     std_error << "qt_tm_widget_rep: server not started, cannot connect ";
-  }
-
-  // 恢复窗口状态和几何信息
-  restoreSettings ();
-}
-
-void
-qt_tm_widget_rep::restoreSettings () {
-  /* 恢复工具栏和窗口状态
-   * mainWindowState: 恢复主窗口的工具栏、菜单栏、状态栏等UI元素的状态
-   *                  包括工具栏的位置、是否可见、停靠状态等，以及菜单栏的展开状态
-   * mainWindowGeometry: 恢复主窗口的几何信息
-   *                     包括窗口的位置(x,y坐标)、大小(宽度、高度)、是否最大化/最小化等状态
-   * restoreState() - 恢复工具栏和停靠窗口的状态
-   * restoreGeometry() - 恢复窗口的几何信息（位置、大小等） */
-
-  /* 获取用户配置路径，用于存储窗口状态设置文件 */
-  string config_path= concretize (head (get_tm_preference_path ()));
-  if (config_path != "") {
-    /* 使用用户自定义的配置路径创建QSettings对象
-     * 配置文件格式为INI格式，便于用户手动编辑 */
-    QSettings settings (to_qstring (config_path * "/qtwindows.ini"),
-                        QSettings::IniFormat);
-
-    /* 从配置文件中读取窗口几何信息并恢复
-     * geometry包含窗口的位置、大小、最大化/最小化状态等 */
-    QByteArray geometry= settings.value ("mainWindowGeometry").toByteArray ();
-    if (!geometry.isEmpty ()) mainwindow ()->restoreGeometry (geometry);
-
-    /* 从配置文件中读取窗口状态信息并恢复
-     * state包含工具栏、停靠窗口的位置、可见性、停靠状态等 */
-    QByteArray state= settings.value ("mainWindowState").toByteArray ();
-    if (!state.isEmpty ()) mainwindow ()->restoreState (state);
-  }
-  else {
-    QSettings  settings ("LiiiNetwork", STEM_NAME);
-    QByteArray geometry= settings.value ("mainWindowGeometry").toByteArray ();
-    if (!geometry.isEmpty ()) mainwindow ()->restoreGeometry (geometry);
-    QByteArray state= settings.value ("mainWindowState").toByteArray ();
-    if (!state.isEmpty ()) mainwindow ()->restoreState (state);
   }
 }
 
