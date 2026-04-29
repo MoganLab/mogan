@@ -545,7 +545,6 @@ namespace QWK {
 
     static void setFrame(id obj, SEL sel, NSRect frame) {
         auto button = reinterpret_cast<NSButton *>(obj);
-        printf("QWK: setFrame called on button %p\n", button);
         auto nswindow = [button window];
         if (!nswindow) {
             if (oldSetFrame) oldSetFrame(obj, sel, frame);
@@ -561,7 +560,6 @@ namespace QWK {
             if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
                 auto buttons = proxy->systemButtons();
                 if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
-                    printf("QWK: Blocked setFrame on system button %p\n", button);
                     return; // Block AppKit's internal reset
                 }
             }
@@ -574,7 +572,6 @@ namespace QWK {
 
     static void setFrameOrigin(id obj, SEL sel, NSPoint origin) {
         auto button = reinterpret_cast<NSButton *>(obj);
-        printf("QWK: setFrameOrigin called on button %p\n", button);
         auto nswindow = [button window];
         if (!nswindow) {
             if (oldSetFrameOrigin) oldSetFrameOrigin(obj, sel, origin);
@@ -590,7 +587,6 @@ namespace QWK {
             if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
                 auto buttons = proxy->systemButtons();
                 if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
-                    printf("QWK: Blocked setFrameOrigin on system button %p\n", button);
                     return; // Block AppKit's internal reset
                 }
             }
