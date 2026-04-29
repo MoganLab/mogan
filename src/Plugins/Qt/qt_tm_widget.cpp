@@ -232,7 +232,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   int    vipbuttonWidth = int (100 * scale);
   int    vipbuttonHeight= int (32 * scale);
   int    iconBaseSize   = int (16 * scale);
-  int    iconLoginSize  = int (20 * scale);
 
 #if defined(Q_OS_MAC)
   // 无边框布局（macOS）- 只显示登录按钮
@@ -365,7 +364,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   loginButton->setFocusPolicy (Qt::NoFocus);
   loginButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
   loginButton->setFixedSize (buttonWidth, buttonHeight);
-  loginButton->setIconSize (QSize (iconLoginSize, iconLoginSize));
+  loginButton->setIconSize (QSize (iconBaseSize, iconBaseSize));
   loginButton->setIconNormal (QIcon (":/window-bar/login.svg"));
   loginButton->setObjectName ("login-button");
   loginButton->setProperty ("system-button", true);
@@ -2481,8 +2480,6 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
   if (!isLoggedIn) {
     label= qt_translate ("Not logged in");
   }
-  loginButton->setIconSize (
-      QSize (DpiUtils::scaled (12), DpiUtils::scaled (12)));
   // 已登录时不设置文字，只显示图标
 
   QFontMetrics  metrics (loginButton->font ());
@@ -2499,10 +2496,8 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
   const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
   const int iconWidth      = loginButton->iconSize ().width ();
   const int textWidth      = metrics.horizontalAdvance (visibleText);
-  const int minWidth=
-      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (96);
-  const int maxWidth=
-      isLoggedIn ? DpiUtils::scaled (46) : DpiUtils::scaled (120);
+  const int minWidth= DpiUtils::scaled (60);
+  const int maxWidth= isLoggedIn ? DpiUtils::scaled (60) : DpiUtils::scaled (120);
   const int rawDesiredWidth=
       iconWidth + iconTextSpacing + textWidth + horizontalPadding;
   const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
