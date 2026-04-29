@@ -190,6 +190,7 @@ namespace QWK {
                     if (!screenRectCallback || !systemButtonVisible)
                         return;
 
+                    refreshSystemButtonsCache();
                     for (const auto &button : systemButtons()) {
                         button.hidden = false;
                     }
@@ -237,7 +238,12 @@ namespace QWK {
             if (!screenRectCallback || !systemButtonVisible) {
                 return;
             }
-            isUpdatingSystemButtonRect = true;
+            struct UpdatingGuard {
+                bool *flag;
+                explicit UpdatingGuard(bool *f) : flag(f) { *flag = true; }
+                ~UpdatingGuard() { *flag = false; }
+            };
+            UpdatingGuard guard(&isUpdatingSystemButtonRect);
             const auto &buttons = systemButtons();
             const auto &leftButton = buttons[0];
             const auto &midButton = buttons[1];
@@ -277,7 +283,6 @@ namespace QWK {
                 centerOrigin.y,
             };
             [rightButton setFrameOrigin:rightOrigin];
-            isUpdatingSystemButtonRect = false;
         }
 
         void refreshSystemButtonsCache() {
@@ -292,8 +297,10 @@ namespace QWK {
         }
 
         inline std::array<NSButton *, 3> systemButtons() {
-            if (!cachedSystemButtons[0] && [nsview window]) {
-                refreshSystemButtonsCache();
+            if ([nsview window]) {
+                if (!cachedSystemButtons[0] || !cachedSystemButtons[1] || !cachedSystemButtons[2]) {
+                    refreshSystemButtonsCache();
+                }
             }
             return cachedSystemButtons;
         }
@@ -368,6 +375,9 @@ namespace QWK {
             nswindow.hasShadow = YES;
             // nswindow.showsToolbarButton = NO;
             nswindow.movableByWindowBackground = NO;
+            if (visible) {
+                cachedSystemButtons = {nullptr, nullptr, nullptr};
+            }
             [nswindow standardWindowButton:NSWindowCloseButton].hidden = NO;
             [nswindow standardWindowButton:NSWindowMiniaturizeButton].hidden = NO;
             [nswindow standardWindowButton:NSWindowZoomButton].hidden = NO;
@@ -551,28 +561,32 @@ namespace QWK {
         static inline sendEventPtr oldSendEvent = nil;
     };
 
-    static void setFrame(id obj, SEL sel, NSRect frame) {
-        auto button = reinterpret_cast<NSButton *>(obj);
+    static NSWindowProxy *proxyForButton(NSButton *button) {
         auto nswindow = [button window];
         if (!nswindow) {
-            if (oldSetFrame) oldSetFrame(obj, sel, frame);
-            return;
+            return nullptr;
         }
         auto nsview = [nswindow contentView];
         if (!nsview) {
-            if (oldSetFrame) oldSetFrame(obj, sel, frame);
-            return;
+            return nullptr;
         }
+        return g_proxyList->value(reinterpret_cast<WId>(nsview));
+    }
 
-        if (auto proxy = g_proxyList->value(reinterpret_cast<WId>(nsview))) {
-            if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
-                auto buttons = proxy->systemButtons();
-                if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
-                    return; // Block AppKit's internal reset
-                }
-            }
+    static bool shouldBlockFrameChange(NSButton *button) {
+        auto proxy = proxyForButton(button);
+        if (!proxy || !proxy->screenRectCallback || !proxy->systemButtonVisible || proxy->isUpdatingSystemButtonRect) {
+            return false;
         }
+        const auto &cached = proxy->cachedSystemButtons;
+        return button == cached[0] || button == cached[1] || button == cached[2];
+    }
 
+    static void setFrame(id obj, SEL sel, NSRect frame) {
+        auto button = reinterpret_cast<NSButton *>(obj);
+        if (shouldBlockFrameChange(button)) {
+            return; // Block AppKit's internal reset
+        }
         if (oldSetFrame) {
             oldSetFrame(obj, sel, frame);
         }
@@ -580,26 +594,9 @@ namespace QWK {
 
     static void setFrameOrigin(id obj, SEL sel, NSPoint origin) {
         auto button = reinterpret_cast<NSButton *>(obj);
-        auto nswindow = [button window];
-        if (!nswindow) {
-            if (oldSetFrameOrigin) oldSetFrameOrigin(obj, sel, origin);
-            return;
+        if (shouldBlockFrameChange(button)) {
+            return; // Block AppKit's internal reset
         }
-        auto nsview = [nswindow contentView];
-        if (!nsview) {
-            if (oldSetFrameOrigin) oldSetFrameOrigin(obj, sel, origin);
-            return;
-        }
-
-        if (auto proxy = g_proxyList->value(reinterpret_cast<WId>(nsview))) {
-            if (proxy->screenRectCallback && proxy->systemButtonVisible && !proxy->isUpdatingSystemButtonRect) {
-                auto buttons = proxy->systemButtons();
-                if (button == buttons[0] || button == buttons[1] || button == buttons[2]) {
-                    return; // Block AppKit's internal reset
-                }
-            }
-        }
-
         if (oldSetFrameOrigin) {
             oldSetFrameOrigin(obj, sel, origin);
         }
@@ -613,9 +610,16 @@ namespace QWK {
         IMP nsbuttonImp = class_getMethodImplementation([NSButton class], @selector(setFrame:));
 
         if (nsviewImp == nsbuttonImp) {
-            class_addMethod([NSButton class], @selector(setFrame:),
+            BOOL added = class_addMethod([NSButton class], @selector(setFrame:),
                 reinterpret_cast<IMP>(setFrame), frameTypeEncoding);
-            oldSetFrame = reinterpret_cast<setFramePtr>(nsviewImp);
+            if (added) {
+                oldSetFrame = reinterpret_cast<setFramePtr>(nsviewImp);
+            } else {
+                // Fallback: method was added concurrently
+                Method method = class_getInstanceMethod([NSButton class], @selector(setFrame:));
+                oldSetFrame = reinterpret_cast<setFramePtr>(
+                    method_setImplementation(method, reinterpret_cast<IMP>(setFrame)));
+            }
         } else {
             Method method = class_getInstanceMethod([NSButton class], @selector(setFrame:));
             oldSetFrame = reinterpret_cast<setFramePtr>(
@@ -631,9 +635,16 @@ namespace QWK {
         IMP nsbuttonImp = class_getMethodImplementation([NSButton class], @selector(setFrameOrigin:));
 
         if (nsviewImp == nsbuttonImp) {
-            class_addMethod([NSButton class], @selector(setFrameOrigin:),
+            BOOL added = class_addMethod([NSButton class], @selector(setFrameOrigin:),
                 reinterpret_cast<IMP>(setFrameOrigin), originTypeEncoding);
-            oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(nsviewImp);
+            if (added) {
+                oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(nsviewImp);
+            } else {
+                // Fallback: method was added concurrently
+                Method method = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
+                oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(
+                    method_setImplementation(method, reinterpret_cast<IMP>(setFrameOrigin)));
+            }
         } else {
             Method method = class_getInstanceMethod([NSButton class], @selector(setFrameOrigin:));
             oldSetFrameOrigin = reinterpret_cast<setFrameOriginPtr>(
@@ -946,6 +957,7 @@ namespace QWK {
         // NSWindow* oldWindow = change[NSKeyValueChangeOldKey];
         if (newWindow) {
             _proxy->setSystemTitleBarVisible(false);
+            _proxy->refreshSystemButtonsCache();
             // Defer update to next runloop: AppKit needs to finish its titlebar
             // layout before we reposition the buttons, otherwise our frame is
             // overwritten by AppKit’s internal layout pass.

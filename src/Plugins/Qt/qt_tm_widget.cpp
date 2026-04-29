@@ -250,7 +250,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     sysBtnArea->setFixedSize (sysBtnWidth, nativeTitleBarHeight);
     sysBtnArea->setObjectName ("system-button-area");
 
-    int yOffset= (titleBarHeight - nativeTitleBarHeight) / 2;
+    int yOffset= DpiUtils::scaled (1);
     sysBtnArea->move (0, yOffset);
 
     windowAgent->setSystemButtonArea (sysBtnArea);
