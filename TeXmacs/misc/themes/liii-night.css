@@ -1014,13 +1014,22 @@ QWidget#centralWidget QPushButton#startup-tab-quit-btn:hover {
 
 /* 右侧内容区 */
 QWidget#centralWidget QWidget#startup-tab-content {
-  background-color: #202020;
+  background-color: #2c2c2c;
+}
+
+QWidget#centralWidget QWidget#startup-tab-file-cards,
+QWidget#centralWidget QWidget#startup-tab-category-bar,
+QWidget#centralWidget QWidget#startup-tab-template-item,
+QWidget#centralWidget QLabel#startup-tab-template-name,
+QWidget#centralWidget QLabel#startup-tab-template-info {
+  background-color: #2c2c2c;
 }
 
 /* 页面标题 */
-QLabel#startup-tab-page-title {
+QWidget#centralWidget QLabel#startup-tab-page-title {
   font-weight: bold;
   color: #ffffff;
+  background: #2c2c2c;
 }
 
 /* 页面描述文字 */
@@ -1043,6 +1052,11 @@ QPushButton#startup-tab-category-btn:hover {
 QPushButton#startup-tab-category-btn:checked {
   background: #215a6a;
   color: white;
+}
+
+/* 模板网格容器 */
+QWidget#centralWidget QWidget#startup-tab-grid {
+  background-color: #2c2c2c;
 }
 
 /* 模板缩略图卡片 */
@@ -1100,9 +1114,10 @@ QFrame#startup-tab-separator {
   color: #4a4f57;
 }
 
-QLabel#startup-tab-section-title {
+QWidget#centralWidget QLabel#startup-tab-section-title {
   font-weight: 600;
   color: #f0f4f7;
+  background-color: #2c2c2c;
 }
 
 QListWidget#recent-docs-list {
@@ -1164,7 +1179,6 @@ QLabel#style-card-thumbnail {
 }
 
 QLabel#style-card-title {
-  background-color: #3a3a3a;
   color: #e2e8ee;
 }
 

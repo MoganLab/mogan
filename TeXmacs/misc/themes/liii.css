@@ -1018,7 +1018,7 @@ QPushButton#startup-tab-quit-btn:hover {
 
 /* 右侧内容区 */
 QWidget#startup-tab-content {
-  background-color: #ffffff;
+  background-color: #f3f3f3;
 }
 
 /* 页面标题 */
@@ -1040,7 +1040,7 @@ QPushButton#startup-tab-category-btn {
 }
 
 QPushButton#startup-tab-category-btn:hover {
-  background: #F0F0F0;
+  background: #dfdfdf;
   color: #333333;
 }
 
@@ -1051,7 +1051,7 @@ QPushButton#startup-tab-category-btn:checked {
 
 /* 模板网格容器 */
 QWidget#startup-tab-grid {
-  background-color: #ffffff;
+  background-color: #f3f3f3;
 }
 
 /* 模板缩略图卡片 */
@@ -1136,6 +1136,7 @@ QLabel#startup-tab-recent-name {
 }
 
 QWidget#style-card {
+  background-color: #ffffff;
   border: 1px solid #cfcfcf;
   border-radius: 8px;
 }
@@ -1167,7 +1168,7 @@ QLabel#style-card-thumbnail {
 }
 
 QLabel#style-card-title {
-  background-color: #f0f0f0;
+  background-color: #ffffff;
   color: #2b3b45;
 }
 

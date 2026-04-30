@@ -308,6 +308,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
 
   // 样式卡片容器（响应式网格布局）
   cardsContainer_= new QWidget (this);
+  cardsContainer_->setObjectName ("startup-tab-file-cards");
   cardsLayout_   = new QGridLayout (cardsContainer_);
   cardsLayout_->setContentsMargins (0, 0, 0, 0);
   cardsLayout_->setSpacing (DpiUtils::scaled (kStyleCardsSpacing));
