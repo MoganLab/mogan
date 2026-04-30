@@ -1,4 +1,4 @@
-<TeXmacs|2.1.4>
+<TeXmacs|1.99.6>
 
 <style|<tuple|source|std-pattern>>
 
@@ -52,6 +52,5 @@
 <\initial>
   <\collection>
     <associate|preamble|true>
-    <associate|stem-doc-id|2E7193B5-224F-4C00-8677-DCC0F554E640>
   </collection>
 </initial>
