@@ -12,7 +12,6 @@
 #include "qt_startup_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_file_page.hpp"
-#include "qt_settings_page.hpp"
 #include "qt_template_page.hpp"
 #include "qt_utilities.hpp"
 
@@ -58,8 +57,7 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
       navTemplateBtn_ (nullptr), navOpenDocBtn_ (nullptr),
-      navSettingsBtn_ (nullptr), navQuitBtn_ (nullptr),
-      navButtonGroup_ (nullptr), filePage_ (nullptr), settingsPage_ (nullptr),
+      navQuitBtn_ (nullptr), navButtonGroup_ (nullptr), filePage_ (nullptr),
       templatePage_ (nullptr) {
 
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
@@ -147,23 +145,19 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_= new QButtonGroup (this);
   navButtonGroup_->setExclusive (true);
 
-  // 导航按钮（4个入口）
+  // 导航按钮（3个入口）
   navFileBtn_    = create_nav_button (qt_translate ("File"));
   navTemplateBtn_= create_nav_button (qt_translate ("Template"));
   navOpenDocBtn_ = create_nav_button (qt_translate ("Open a Document"));
-  navSettingsBtn_= create_nav_button (qt_translate ("Settings"));
 
   // 添加到按钮组和布局（Open a Document 不在互斥组中，因为它没有对应页面）
   navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
   navButtonGroup_->addButton (navTemplateBtn_,
                               static_cast<int> (Entry::Template));
-  navButtonGroup_->addButton (navSettingsBtn_,
-                              static_cast<int> (Entry::Settings));
 
   sidebarLayout->addWidget (navFileBtn_);
   sidebarLayout->addWidget (navTemplateBtn_);
   sidebarLayout->addWidget (navOpenDocBtn_);
-  sidebarLayout->addWidget (navSettingsBtn_);
 
   // 导航按钮点击事件：切换到对应页面
   connect (navFileBtn_, &QPushButton::clicked, this,
@@ -172,8 +166,6 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
            [this] () { set_current_entry (Entry::Template); });
   connect (navOpenDocBtn_, &QPushButton::clicked, this,
            &QTStartupTabWidget::on_file_open);
-  connect (navSettingsBtn_, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Settings); });
 
   // Open a Document 不是 checkable 按钮（没有对应页面）
   navOpenDocBtn_->setCheckable (false);
@@ -227,10 +219,9 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
  */
 void
 QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
-  // 添加3个页面到堆叠控件（OpenDocument没有页面，直接触发操作）
+  // 添加2个页面到堆叠控件（OpenDocument没有页面，直接触发操作）
   stackedWidget->addWidget (create_file_page ());     // index 0 - File
   stackedWidget->addWidget (create_template_page ()); // index 1 - Template
-  stackedWidget->addWidget (create_settings_page ()); // index 2 - Settings
 
   // 入口切换时，同步切换堆叠控件的当前页面
   // 注意：OpenDocument 没有对应页面，需要调整索引映射
@@ -243,9 +234,6 @@ QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
                break;
              case QTStartupTabWidget::Entry::Template:
                index= 1;
-               break;
-             case QTStartupTabWidget::Entry::Settings:
-               index= 2;
                break;
              default:
                index= 0;
@@ -288,15 +276,6 @@ QTStartupTabWidget::create_template_page () {
            });
 
   return templatePage_;
-}
-
-/**
- * @brief 创建 Settings 页面
- */
-QWidget*
-QTStartupTabWidget::create_settings_page () {
-  settingsPage_= new QTSettingsPage (this);
-  return settingsPage_;
 }
 
 /**

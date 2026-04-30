@@ -21,14 +21,13 @@ class QPushButton;
 class QStackedWidget;
 class QButtonGroup;
 class QtFilePage;
-class QTSettingsPage;
 class QTTemplatePage;
 
 class QTStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  enum class Entry { File, Template, OpenDocument, Settings };
+  enum class Entry { File, Template, OpenDocument };
 
 public:
   explicit QTStartupTabWidget (QWidget* parent= nullptr);
@@ -57,7 +56,6 @@ private:
   // 页面创建函数
   QWidget* create_file_page ();
   QWidget* create_template_page ();
-  QWidget* create_settings_page ();
 
   // 导航按钮状态管理
   void set_active_nav_button (Entry entry);
@@ -70,7 +68,6 @@ private:
   QPushButton* navFileBtn_;
   QPushButton* navTemplateBtn_;
   QPushButton* navOpenDocBtn_;
-  QPushButton* navSettingsBtn_;
   QPushButton* navQuitBtn_;
 
   // 互斥按钮组
@@ -78,9 +75,6 @@ private:
 
   // 各页面实例
   QtFilePage* filePage_;
-
-  // 各页面实例
-  QTSettingsPage* settingsPage_;
 
   // Template page (separate widget)
   QTTemplatePage* templatePage_;

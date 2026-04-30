@@ -1252,28 +1252,3 @@ QLabel#login-update-title {
   border-color: #7a7a7a;
   background: rgba(255, 255, 255, 0.14);
 }
-
-/****************************************************************************
-* Settings Page Tab Widget 样式
-* 统一跨平台样式，类似模板中心分类按钮
-****************************************************************************/
-QTabWidget#settings-tab-widget::pane {
-  border: none;
-  background: transparent;
-}
-
-QTabWidget#settings-tab-widget QTabBar::tab {
-  background: transparent;
-  color: #aaaaaa;
-  border: none;
-}
-
-QTabWidget#settings-tab-widget QTabBar::tab:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-QTabWidget#settings-tab-widget QTabBar::tab:selected {
-  background: #2791ad;
-  color: white;
-}
