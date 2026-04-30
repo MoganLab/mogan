@@ -965,8 +965,6 @@
           ((in? l '(section section*)) "section-title-style")
           ((in? l '(subsection subsection*)) "subsection-title-style")
           ((in? l '(subsubsection subsubsection*)) "subsubsection-title-style")
-          ((in? l '(paragraph paragraph*)) "paragraph-title-style")
-          ((in? l '(subparagraph subparagraph*)) "subparagraph-title-style")
           (else #f))))
 
 (tm-define (focus-has-preferences? t)

@@ -61,9 +61,9 @@
     </src-comment>
   </active*>
 
-  <assign|paragraph-title|<macro|name|<style-with|src-compact|none|<paragraph-title-render|<vspace*|0.5fn><arg|name>>>>>
+  <assign|paragraph-title|<macro|name|<style-with|src-compact|none|<sectional-short-bold|<vspace*|0.5fn><arg|name>>>>>
 
-  <assign|subparagraph-title|<macro|name|<style-with|src-compact|none|<subparagraph-title-render|<vspace*|0.25fn><arg|name>>>>>
+  <assign|subparagraph-title|<macro|name|<style-with|src-compact|none|<sectional-short-bold|<vspace*|0.25fn><arg|name>>>>>
 
   \;
 </body>

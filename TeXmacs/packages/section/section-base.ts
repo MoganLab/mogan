@@ -1,4 +1,4 @@
-<TeXmacs|1.99.19>
+<TeXmacs|2.1.4>
 
 <style|source>
 
@@ -42,10 +42,6 @@
 
   <assign|subsubsection-title-style|left>
 
-  <assign|paragraph-title-style|left>
-
-  <assign|subparagraph-title-style|left>
-
   <assign|chapter-number-style|arabic>
 
   <assign|section-number-style|arabic>
@@ -74,10 +70,6 @@
 
   <drd-props|subsubsection-title-style|macro-parameter|string>
 
-  <drd-props|paragraph-title-style|macro-parameter|string>
-
-  <drd-props|subparagraph-title-style|macro-parameter|string>
-
   <\active*>
     <\src-comment>
       Names of special sections.
@@ -104,7 +96,8 @@
 
   <assign|list-of-tables-text|<macro|<localize|List of tables>>>
 
-  <assign|list-of-abbreviations-text|<macro|<localize|List of abbreviations>>>
+  <assign|list-of-abbreviations-text|<macro|<localize|List of
+  abbreviations>>>
 
   <\active*>
     <\src-comment>
@@ -142,10 +135,6 @@
   <assign|subsection-title-render|<macro|name|<sectional-select-bold|<value|subsection-title-style>|<arg|name>>>>
 
   <assign|subsubsection-title-render|<macro|name|<sectional-select-bold|<value|subsubsection-title-style>|<arg|name>>>>
-
-  <assign|paragraph-title-render|<macro|name|<sectional-select-bold|<value|paragraph-title-style>|<arg|name>>>>
-
-  <assign|subparagraph-title-render|<macro|name|<sectional-select-bold|<value|subparagraph-title-style>|<arg|name>>>>
 
   <assign|sectional-prefixed|<macro|prefix|name|<prefixed-line|<arg|prefix>|<arg|name>>>>
 
@@ -295,7 +284,8 @@
 
   <assign|part-toc|<macro|name|<toc-main-1|<toc-title|part|<arg|name>>>>>
 
-  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<chapter-text> <the-chapter><chapter-sep><arg|name>|<arg|name>>>>>>>
+  <assign|chapter-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-1|<toc-title|chapter|<arg|name>>>|<toc-main-2|<if|<chapter-numbered>|<chapter-text>
+  <the-chapter><chapter-sep><arg|name>|<arg|name>>>>>>>
 
   <assign|section-toc|<macro|name|<style-with|src-compact|none|<if|<sectional-short-style>|<toc-main-2|<toc-title|section|<arg|name>>>|<if|<value|in-appendix>||<toc-normal-2|<toc-title|section|<arg|name>>>>>>>>
 
