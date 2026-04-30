@@ -4,13 +4,13 @@
 
 <\body>
   <active*|<\src-title>
-    <src-package-dtd|two-columns|1.0|two-columns|1.0>
+    <src-package-dtd|three-columns|1.0|three-columns|1.0>
 
     <\src-purpose>
-      Standard customization for two column styles
+      Standard customization for three column styles
     </src-purpose>
 
-    <src-copyright|1998--2004|Joris van der Hoeven>
+    <src-copyright|2026|(Jack) Yansong Li>
 
     <\src-license>
       This software falls under the <hlink|GNU general public license,
@@ -20,7 +20,9 @@
     </src-license>
   </src-title>>
 
-  <assign|par-columns|2>
+  <assign|par-columns|3>\ 
+
+  <assign|par-columns-sep|0.6667fn>
 
   <\active*>
     <\src-comment>
@@ -40,7 +42,7 @@
 
   <assign|doc-make-rich-title|<\macro|notes|body>
     <\with|par-columns|1>
-      <\surround||<with|par-columns|2|<arg|notes>>>
+      <\surround||<with|par-columns|3|<arg|notes>>>
         <\doc-make-title>
           <arg|body>
         </doc-make-title>
@@ -52,6 +54,6 @@
 <\initial>
   <\collection>
     <associate|preamble|true>
-    <associate|stem-doc-id|2E7193B5-224F-4C00-8677-DCC0F554E640>
+    <associate|stem-doc-id|1BBE8D65-51A6-4730-888B-09E3E033E540>
   </collection>
 </initial>

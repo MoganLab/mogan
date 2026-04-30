@@ -325,6 +325,7 @@
   ("cite-author-year"   "Mimick 'natbib' package from LaTeX")
   ("cite-sort"          "Package for sorting lists of citations")
   ("two-columns"        "Markup and adjustments for two column documents")
+  ("three-columns"      "Markup and adjustments for three column documents")
   ("compact-list"       "Less indentation and vertical spacing for lists")
   ("triangle-list"      "Use triangular lists items")
   ("prefix-enumerations" "Prefix numbers of nested enumerations")
