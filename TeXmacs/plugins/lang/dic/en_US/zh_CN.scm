@@ -2110,7 +2110,6 @@
 ("semantic selections" "语义选择")
 ("semantics" "语义")
 ("seminar" "研讨会")
-("send file" "发送文件")
 ("sending commands to TeXmacs" "给 TeXmacs 发送命令")
 ("separation between lines" "")
 ("separation between paragraphs" "")
