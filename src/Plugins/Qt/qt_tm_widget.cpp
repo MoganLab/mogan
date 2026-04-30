@@ -613,7 +613,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // The main layout
 
   QVBoxLayout* bl= new QVBoxLayout (cw);
-  bl->setContentsMargins (0, 1, 0, 0);
+  bl->setContentsMargins (0, 0, 0, 0);
   bl->setSpacing (0);
   cw->setLayout (bl);
   QWidget* q= main_widget->as_qwidget (); // force creation of QWidget

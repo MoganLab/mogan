@@ -140,7 +140,7 @@ QTTemplatePage::setupUI () {
   layout->addWidget (titleLabel_);
 
   // Category bar
-  categoryBar_               = new QWidget (this);
+  categoryBar_= new QWidget (this);
   categoryBar_->setObjectName ("startup-tab-category-bar");
   QHBoxLayout* categoryLayout= new QHBoxLayout (categoryBar_);
   categoryLayout->setContentsMargins (0, 0, 0, 0);
