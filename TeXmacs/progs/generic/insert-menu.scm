@@ -177,10 +177,79 @@
                          "Zhihu share requires Qt HTML clipboard support")))
       (login)))
 
-(menu-bind insert-zhihu-share-menu
+(define (share-temp-url suffix)
+  (url-glue (url-temp) (string-append "." suffix)))
+
+(tm-define (share-copy-file-path file)
+  (:synopsis "Copy the exported share file path to the clipboard")
+  (:argument file smart-file "File name")
+  (let ((path (url->system file)))
+    (if (and (x-gui?) (qt-gui?))
+        (let ((old-export (clipboard-get-export)))
+          (clipboard-set-export "verbatim")
+          (clipboard-set "primary" path)
+          (clipboard-set-export old-export)
+          (set-message `(concat "Copied " (verbatim ,path)) "Share"))
+        (set-message `(concat "Exported to " (verbatim ,path)) "Share"))
+    file))
+
+(define (share-report-export-failure kind file)
+  (set-message
+    `(concat "Could not export " ,kind " to " (verbatim ,(url->system file)))
+    "Share"))
+
+(define (share-current-buffer-to-pdf file)
+  (system-wait "Exporting, " (translate "please wait"))
+  (let* ((cur (current-buffer))
+         (buf (buffer-new)))
+    (buffer-copy cur buf)
+    (when (screens-buffer?)
+      (buffer-set-master buf cur)
+      (switch-to-buffer buf)
+      (set-drd cur)
+      (dynamic-make-slides))
+    (switch-to-buffer buf)
+    (when (has-style-package? "dark")
+      (remove-style-package "dark"))
+    (print-to-file file)
+    (switch-to-buffer cur)
+    (buffer-close buf))
+  (system-wait "" ""))
+
+(tm-define (share-current-buffer-as-pdf)
+  (:interactive #t)
+  (let ((file (share-temp-url "pdf")))
+    (share-current-buffer-to-pdf file)
+    (if (url-exists? file)
+        (share-copy-file-path file)
+        (share-report-export-failure "PDF" file))))
+
+(tm-define (share-current-buffer-as-tmu)
+  (:interactive #t)
+  (let ((file (share-temp-url "tmu")))
+    (if (or (buffer-export (current-buffer) file "tmu")
+            (not (url-exists? file)))
+        (share-report-export-failure "TMU" file)
+        (share-copy-file-path file))))
+
+(tm-define (share-coming-soon)
+  (:interactive #t)
+  (set-message "Coming soon" "Collaboration"))
+
+(menu-bind share-menu
+  (group "Collaboration")
+  ("Coming soon" (share-coming-soon))
+  ---
+  (group "Social media")
+  ("Zhihu" (zhihu-share-current-buffer))
+  ---
+  (group "Send file")
+  ("PDF" (share-current-buffer-as-pdf))
+  ("TMU" (share-current-buffer-as-tmu)))
+
+(menu-bind insert-share-menu
   (if (not (community-stem?))
-      ((balloon (icon "tm_share.svg") "Share to Zhihu")
-       (zhihu-share-current-buffer))))
+      (link share-menu)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Insert icons
@@ -217,4 +286,5 @@
   (if (and (not (logged-in?)) (not (community-stem?)))
       (link llm-login-menu))
   (if (not (community-stem?))
-      (link insert-zhihu-share-menu)))
+      (=> (balloon (icon "tm_share.svg") "Share")
+          (link insert-share-menu))))
