@@ -20,7 +20,7 @@
     </src-license>
   </src-title>>
 
-  <assign|par-columns|3>\ 
+  <assign|par-columns|3>
 
   <assign|par-columns-sep|0.6667fn>
 

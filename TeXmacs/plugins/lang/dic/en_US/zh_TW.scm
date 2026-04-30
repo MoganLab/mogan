@@ -1753,6 +1753,7 @@
 ("turkish" "土耳其文")
 ("tutorial" "示範說明")
 ("two columns" "兩行")
+("three columns" "三行")
 ("type 1 only" "使用 Type1 字體")
 ("type 1 with metafont fallback" "優先使用 Type1 字體")
 ("type a latex command followed by" "")

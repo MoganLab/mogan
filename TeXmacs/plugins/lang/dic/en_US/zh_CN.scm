@@ -2465,6 +2465,7 @@
 ("tutorial" "入门教程")
 ("twice" "两次")
 ("two columns" "两栏")
+("three columns" "三栏")
 ("type 1 only" "仅只使用 Type1 字体")
 ("type 1 with metafont fallback" "优先使用 Type1 字体")
 ("type a latex command followed by" "")
