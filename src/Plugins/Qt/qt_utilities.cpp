@@ -30,11 +30,8 @@
 
 #include <QApplication>
 #include <QClipboard>
-#include <QFileInfo>
 #include <QImageReader>
-#include <QList>
 #include <QMimeData>
-#include <QUrl>
 
 #include "colors.hpp"
 
@@ -1548,28 +1545,4 @@ qt_clipboard_set_html (string html) {
   mimeData->setHtml (htmlText);
   mimeData->setText (htmlText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
-}
-
-bool
-qt_clipboard_set_file_url (string path) {
-  QCoreApplication::processEvents ();
-  QClipboard* clipboard= QApplication::clipboard ();
-  if (clipboard == nullptr) return false;
-
-  c_string        pathC (path);
-  const QString   filePath= QString::fromUtf8 ((char*) pathC, N (path));
-  const QFileInfo fileInfo (filePath);
-  if (!fileInfo.exists () || !fileInfo.isFile ()) return false;
-
-  QList<QUrl> urls;
-  const QUrl fileUrl= QUrl::fromLocalFile (fileInfo.absoluteFilePath ());
-  urls << fileUrl;
-
-  auto* mimeData= new QMimeData;
-  mimeData->setUrls (urls);
-  mimeData->setData ("x-special/gnome-copied-files",
-                     ("copy\n" + fileUrl.toString () + "\n").toUtf8 ());
-  mimeData->setData ("application/x-kde-cutselection", "0");
-  clipboard->setMimeData (mimeData, QClipboard::Clipboard);
-  return true;
 }

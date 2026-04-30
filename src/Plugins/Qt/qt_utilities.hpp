@@ -189,7 +189,6 @@ string from_key_release_event (const QKeyEvent* event);
 string qt_clipboard_format ();
 string qt_clipboard_text ();
 void   qt_clipboard_set_html (string html);
-bool   qt_clipboard_set_file_url (string path);
 
 /******************************************************************************
  * DPI and scale factor utilities
