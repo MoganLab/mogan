@@ -485,6 +485,14 @@ function main()
                 }
             },
             {
+                scm_name = "qt-clipboard-set-file-url",
+                cpp_name = "qt_clipboard_set_file_url",
+                ret_type = "bool",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
                 scm_name = "open-pricing-url",
                 cpp_name = "open_pricing_url",
                 ret_type = "void"
