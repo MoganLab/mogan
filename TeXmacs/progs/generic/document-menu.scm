@@ -1150,12 +1150,12 @@
   (cond ((test-init? "page-orientation" "landscape")
          (cond ((test-init? "par-columns" "1") "tm_landscape_1col.xpm")
                ((test-init? "par-columns" "2") "tm_landscape_2col.xpm")
-               ((test-init? "par-columns" "3") "tm_landscape_3col.xpm")
+               ((test-init? "par-columns" "3") "tm_landscape_2col.xpm")
                (else "tm_landscape.xpm")))
         (else
          (cond ((test-init? "par-columns" "1") "tm_portrait_1col.xpm")
                ((test-init? "par-columns" "2") "tm_portrait_2col.xpm")
-               ((test-init? "par-columns" "3") "tm_portrait_3col.xpm")
+               ((test-init? "par-columns" "3") "tm_portrait_2col.xpm")
                (else "tm_portrait.xpm")))))
 
 (tm-menu (focus-document-icons t)
