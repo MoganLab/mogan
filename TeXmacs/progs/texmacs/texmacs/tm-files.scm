@@ -1096,10 +1096,12 @@
 (tm-define (auto-backup-export-buffer name target info)
   (catch #t
     (lambda ()
-      (let* ((doc (assoc-ref info "doc"))
-             (doc-id (assoc-ref info "doc_id"))
-             (doc* (auto-backup-doc-with-doc-id doc doc-id)))
-        (if (tree-export (tm->tree doc*) (auto-backup-path->url target) "tmu")
+      (let ((doc-id (assoc-ref info "doc_id")))
+        ;; Reuse the same export path as manual save/autosave so embedded
+        ;; RAW_DATA images stay binary-safe; only the backup file is written.
+        (with-buffer name
+          (init-env "stem-doc-id" doc-id))
+        (if (buffer-export name (auto-backup-path->url target) "tmu")
             #f
             (auto-backup-file-size target))))
     (lambda args
