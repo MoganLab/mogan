@@ -73,6 +73,9 @@
 #ifdef qt_static_plugin_xcb
 Q_IMPORT_PLUGIN (QXcbIntegrationPlugin)
 #endif
+#ifdef qt_static_plugin_qwayland
+Q_IMPORT_PLUGIN (QWaylandIntegrationPlugin)
+#endif
 #ifdef qt_static_plugin_qjpeg
 Q_IMPORT_PLUGIN (qjpeg)
 #endif
@@ -194,8 +197,13 @@ qt_gui_rep::qt_gui_rep (int& argc, char** argv)
       debug_boot << "Screen extents: " << w / PIXEL << " x " << h / PIXEL
                  << "\n";
     if (min (w, h) >= 1440 * PIXEL) {
-      retina_zoom = 2;
-      retina_scale= (tm_style_sheet == "" ? 1.0 : 1.6666);
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+      if (QGuiApplication::platformName () != "wayland")
+#endif
+      {
+        retina_zoom = 2;
+        retina_scale= (tm_style_sheet == "" ? 1.0 : 1.6666);
+      }
       if (!retina_iman) {
         retina_iman = true;
         retina_icons= 2;
