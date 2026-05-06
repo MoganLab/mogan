@@ -38,5 +38,6 @@
   (if (telemetry-enabled?)
     (begin
       (display "Telemetry enabled\n")
+      (on-exit (telemetry-flush-if-needed))
       (telemetry-delayed))
     (display "Telemetry disabled\n")))

@@ -111,6 +111,10 @@
                 (string-append (string-load path) "\n" text)
                 path)
               (string-save text path))
+            (display (string-append "[telemetry] flushed "
+                                    (number->string (length events))
+                                    " event(s) to "
+                                    path "\n"))
             #t))
         (lambda args #f)))))
 
