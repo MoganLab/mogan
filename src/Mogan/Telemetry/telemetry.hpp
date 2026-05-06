@@ -15,8 +15,7 @@
 
 inline void
 telemetry_track (string event_type) {
-  call ("track-event", object (event_type),
-        tmscm_to_object (eval_scheme ("'()")));
+  call ("track-event", object (event_type), null_object ());
 }
 
 inline void

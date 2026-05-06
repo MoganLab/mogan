@@ -24,6 +24,7 @@
 )
 
 (define-public telemetry-buffer-size 10)
+(define-public telemetry-max-queue-size 1000)
 (define-public *telemetry-event-queue* '())
 
 (define-public (track-event event-type properties)
@@ -33,8 +34,12 @@
       (set! *telemetry-event-queue*
         (cons (telemetry-make-event event-type properties)
               *telemetry-event-queue*))
-      (if (>= (length *telemetry-event-queue*) telemetry-buffer-size)
-        (telemetry-flush))
+      (let ((len (length *telemetry-event-queue*)))
+        (if (> len telemetry-max-queue-size)
+          (set! *telemetry-event-queue*
+            (list-head *telemetry-event-queue* telemetry-max-queue-size)))
+        (if (>= len telemetry-buffer-size)
+          (telemetry-flush)))
       #t)
     #f))
 
@@ -114,10 +119,13 @@
           (lines (map json->string events)))
       (catch #t
         (lambda ()
-          (let ((text (string-join lines "\n")))
-            (if (path-exists? path)
+          (let* ((text (string-join lines "\n"))
+                 (existing (if (path-exists? path)
+                             (string-trim-right (string-load path))
+                             "")))
+            (if (and (string? existing) (> (string-length existing) 0))
               (string-save
-                (string-append (string-load path) "\n" text)
+                (string-append existing "\n" text)
                 path)
               (string-save text path))
             (display (string-append "[telemetry] flushed "
