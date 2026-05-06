@@ -22,6 +22,7 @@
 (define-public (track-event event-type properties)
   (if (and (string? event-type) (not (string-null? event-type)))
     (begin
+      (display (string-append "[telemetry] scheme track: " event-type "\n"))
       (set! *telemetry-event-queue*
         (cons (telemetry-make-event event-type properties)
               *telemetry-event-queue*))

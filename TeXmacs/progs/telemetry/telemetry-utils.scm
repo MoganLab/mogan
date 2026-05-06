@@ -21,10 +21,7 @@
 )
 
 (define (telemetry-home-path)
-      (let ((home (system-getenv "TEXMACS_HOME_PATH")))
-        (if (and home (> (string-length home) 0))
-          home
-          (string-append (system-getenv "HOME") "/.local/share/Mogan"))))
+  (url->system (get-texmacs-home-path)))
 
     (define-public (telemetry-dir)
       (let ((dir (string-append (telemetry-home-path) "/system/telemetry")))
