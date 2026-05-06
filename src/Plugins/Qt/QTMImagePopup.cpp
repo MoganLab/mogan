@@ -17,6 +17,10 @@
 #include "server.hpp"
 #include "tm_ostream.hpp"
 
+#if !IS_COMMUNITY
+#include "telemetry.hpp"
+#endif
+
 #include <QButtonGroup>
 #include <QHelpEvent>
 #include <QIcon>
@@ -73,6 +77,9 @@ QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
                call ("ocr-to-latex-by-image", current_tree);
                eval ("(when (defined? 'tutorial-notify-action) "
                      "(tutorial-notify-action \"ocr-paste\"))");
+#if !IS_COMMUNITY
+               telemetry_track ("OCR_RECOGNIZE");
+#endif
              }
              current_align=
                  as_string (call ("get-image-alignment", current_tree));

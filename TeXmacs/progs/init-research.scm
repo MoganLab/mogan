@@ -469,6 +469,12 @@
   (autosave-delayed))
 (delayed (:pause 30000)
   (auto-backup-delayed))
+(catch #t
+  (lambda ()
+    (use-modules (telemetry telemetry-track))
+    (use-modules (telemetry init-telemetry))
+    (init-telemetry))
+  (lambda args #f))
 (texmacs-banner)
 (display "Initialization done\n")
 

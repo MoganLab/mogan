@@ -806,6 +806,7 @@ target("libmogan") do
             "src/Typeset/Page",
             "src/Mogan/Cache",
             "src/Mogan/TemplateCenter",
+            "src/Mogan/Telemetry",
             "TeXmacs/include",
             "$(buildir)/glue",
             "$(projectdir)/TeXmacs/plugins/goldfish/src/",
