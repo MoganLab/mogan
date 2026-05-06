@@ -33,7 +33,7 @@
 
 namespace {
 // 预览图片尺寸（增大预览区域）
-constexpr int PREVIEW_IMAGE_WIDTH= 600;
+constexpr int PREVIEW_IMAGE_WIDTH= 480;
 
 // 缩略图尺寸（使用2x尺寸以便在高分屏上显示清晰）
 constexpr int THUMBNAIL_WIDTH = 160;
@@ -49,8 +49,8 @@ constexpr int kCardMargin          = 8;   // 卡片内边距
 constexpr int kCardSpacing         = 5;   // 卡片内部间距
 constexpr int kNameLabelMaxWidth   = 176; // 模板名称最大宽度
 constexpr int kNameLabelMaxHeight  = 40;  // 模板名称最大高度
-constexpr int kPreviewDialogMinW   = 700; // 预览弹窗最小宽度
-constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
+constexpr int kPreviewDialogMinW   = 560; // 预览弹窗最小宽度
+constexpr int kPreviewDialogMinH   = 700; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;  // 预览弹窗布局边距
 constexpr int kPageTitleFontPx     = 24;  // 页面标题字号
