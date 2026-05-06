@@ -163,17 +163,7 @@ pretty-val : string
       (enum (set-pretty-preference "completion style" answer)
             '("Popup" "Inline")
             (get-pretty-preference "completion style")
-            "18em"))
-    (item (text "Auto backup:")
-      (hlist
-        (enum (set-preference "autobackup" (string-downcase answer))
-              '("On" "Off")
-              (tmstring-upcase-first (get-preference "autobackup"))
-              "12em")
-        //
-        (explicit-buttons
-          ((eval (auto-backup-button-label))
-           (open-auto-backup-location)))))))
+            "18em"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard preferences
@@ -814,6 +804,16 @@ pretty-val : string
             (autosave-preferences-list)
             (get-autosave-preference-label)
             "12em"))
+    (item (text "Auto backup:")
+      (hlist
+        (enum (set-preference "autobackup" (string-downcase answer))
+              '("On" "Off")
+              (tmstring-upcase-first (get-preference "autobackup"))
+              "12em")
+        //                                     
+        (explicit-buttons
+          ((eval (auto-backup-button-label))
+           (open-auto-backup-location)))))
     (item (text "Security:")
       (enum (set-pretty-preference "security" answer)
             '("Accept no scripts" "Prompt on scripts" "Accept all scripts")
