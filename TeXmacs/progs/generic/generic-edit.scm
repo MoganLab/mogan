@@ -802,9 +802,14 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
   (or (tree-is-dynamic? t)
       (table-markup-context? t)))
 
+(define (enumerate-or-itemize-context? t)
+  (and t (or (in? (tree-label t) (enumerate-tag-list))
+             (in? (tree-label t) (itemize-tag-list)))))
+
 (tm-define (structured-vertical? t)
   (or (tree-in? t '(tree))
-      (table-markup-context? t)))
+      (table-markup-context? t)
+      (enumerate-or-itemize-context? t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Focus predicates
