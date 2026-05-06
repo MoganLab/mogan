@@ -21,6 +21,10 @@
   (liii uuid)
 )
 
+(define-public (telemetry-enabled?)
+  (let ((pref (get-preference "telemetry")))
+    (not (or (== pref "off") (== pref "0")))))
+
 (define (telemetry-home-path)
   (url->system (get-texmacs-home-path)))
 

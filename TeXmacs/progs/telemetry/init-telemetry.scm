@@ -12,16 +12,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (telemetry init-telemetry)
-  (:use (telemetry telemetry-track)))
+  (:use (telemetry telemetry-track)
+        (telemetry telemetry-utils)))
 
 (import (scheme base))
 
 (define telemetry-flush-interval-ms 60000)
 (define telemetry-scheduled? #f)
-
-(define-public (telemetry-enabled?)
-  (let ((pref (get-preference "telemetry")))
-    (not (string=? pref "0"))))
 
 (define (telemetry-scheduler-step)
   (when (telemetry-enabled?)

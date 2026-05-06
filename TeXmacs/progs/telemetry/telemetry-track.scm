@@ -28,25 +28,29 @@
 (define-public *telemetry-event-queue* '())
 
 (define-public (track-event event-type properties)
-  (if (and (string? event-type) (not (string-null? event-type)))
-    (begin
-      (display (string-append "[telemetry] scheme track: " event-type "\n"))
-      (set! *telemetry-event-queue*
-        (cons (telemetry-make-event event-type properties)
-              *telemetry-event-queue*))
-      (let ((len (length *telemetry-event-queue*)))
-        (if (> len telemetry-max-queue-size)
-          (set! *telemetry-event-queue*
-            (list-head *telemetry-event-queue* telemetry-max-queue-size)))
-        (if (>= len telemetry-buffer-size)
-          (telemetry-flush)))
-      #t)
-    #f))
+  (if (not (telemetry-enabled?))
+    #f
+    (if (and (string? event-type) (not (string-null? event-type)))
+      (begin
+        (display (string-append "[telemetry] scheme track: " event-type "\n"))
+        (set! *telemetry-event-queue*
+          (cons (telemetry-make-event event-type properties)
+                *telemetry-event-queue*))
+        (let ((len (length *telemetry-event-queue*)))
+          (if (> len telemetry-max-queue-size)
+            (set! *telemetry-event-queue*
+              (list-head *telemetry-event-queue* telemetry-max-queue-size)))
+          (if (>= len telemetry-buffer-size)
+            (telemetry-flush)))
+        #t)
+      #f)))
 
 (define-public (telemetry-flush-if-needed)
-  (if (not (null? *telemetry-event-queue*))
-    (telemetry-flush)
-    #t))
+  (if (not (telemetry-enabled?))
+    #t
+    (if (not (null? *telemetry-event-queue*))
+      (telemetry-flush)
+      #t)))
 
 ;; ---------------------------------------------------------------------------
 ;; Flush implementation (merged from telemetry-flush to share mutable state)
