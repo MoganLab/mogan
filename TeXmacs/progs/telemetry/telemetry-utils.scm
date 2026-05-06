@@ -1,9 +1,15 @@
 
-/******************************************************************************
- * MODULE     : telemetry-utils.scm
- * DESCRIPTION: Telemetry utilities for paths, config, and device info
- * COPYRIGHT  : (C) 2026 Yuki Lu
- ******************************************************************************/
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : telemetry-utils.scm
+;; DESCRIPTION : Telemetry utilities for paths, config, and device info
+;; COPYRIGHT   : (C) 2026 Yuki Lu
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (telemetry telemetry-utils))
 
@@ -15,10 +21,10 @@
 )
 
 (define (telemetry-home-path)
-      (let ((home (getenv "TEXMACS_HOME_PATH")))
+      (let ((home (system-getenv "TEXMACS_HOME_PATH")))
         (if (and home (> (string-length home) 0))
           home
-          (string-append (getenv "HOME") "/.local/share/Mogan"))))
+          (string-append (system-getenv "HOME") "/.local/share/Mogan"))))
 
     (define-public (telemetry-dir)
       (let ((dir (string-append (telemetry-home-path) "/system/telemetry")))
@@ -62,7 +68,7 @@
             (else "linux")))
 
     (define-public (telemetry-language)
-      (or (getenv "LANG") "en_US"))
+      (or (system-getenv "LANG") "en_US"))
 
     (define-public (telemetry-timezone)
       (catch #t
