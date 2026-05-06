@@ -16,6 +16,7 @@
 (import (scheme base)
   (liii base)
   (liii json)
+  (liii os)
   (liii path)
   (liii uuid)
 )
@@ -80,7 +81,6 @@
       (inexact->exact (truncate (* 1000 (current-time)))))
 
     (define-public *telemetry-session-id* (telemetry-session-id))
-    (define-public *telemetry-event-queue* '())
 
     (define-public (telemetry-make-event event-type properties)
       `(("event_type" . ,event-type)

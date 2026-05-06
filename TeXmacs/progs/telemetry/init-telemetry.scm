@@ -12,8 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (telemetry init-telemetry)
-  (:use (telemetry telemetry-track)
-        (telemetry telemetry-flush)))
+  (:use (telemetry telemetry-track)))
 
 (import (scheme base))
 
