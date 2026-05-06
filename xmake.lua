@@ -119,6 +119,13 @@ if is_plat("macosx") then
 else
     set_configvar("OS_MACOS", false)
 end
+
+-- Work around Qt 6.8.3 bug on Apple Silicon (QTBUG-133471):
+-- qyieldcpu.h uses __yield() without including <arm_acle.h>.
+if is_plat("macosx") and is_arch("arm64") then
+    add_cxxflags("-Wno-error=implicit-function-declaration")
+    add_mxflags("-Wno-error=implicit-function-declaration")
+end
 if is_plat("windows") then
     set_configvar("OS_WIN", true)
 else
