@@ -8,8 +8,8 @@
 #ifndef TELEMETRY_HPP
 #define TELEMETRY_HPP
 
-#include "string.hpp"
 #include "scheme.hpp"
+#include "string.hpp"
 #include <QDebug>
 
 #if !IS_COMMUNITY
@@ -17,13 +17,16 @@
 inline void
 telemetry_track (string event_type) {
   qDebug () << "[telemetry] track:" << event_type.begin ();
-  call ("track-event", object (event_type), eval_scheme ("'()"));
+  call ("track-event", object (event_type),
+        tmscm_to_object (eval_scheme ("'()")));
 }
 
 inline void
 telemetry_track (string event_type, string props) {
-  qDebug () << "[telemetry] track:" << event_type.begin () << "props=" << props.begin ();
-  call ("track-event", object (event_type), eval_scheme (props));
+  qDebug () << "[telemetry] track:" << event_type.begin ()
+            << "props=" << props.begin ();
+  call ("track-event", object (event_type),
+        tmscm_to_object (eval_scheme (props)));
 }
 
 #else

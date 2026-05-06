@@ -5,33 +5,26 @@
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
-(define-library (telemetry telemetry-track)
-  (export track-event
-    telemetry-buffer-size
-    telemetry-flush-if-needed
-  )
-  (import (scheme base)
-    (telemetry telemetry-utils)
-    (telemetry telemetry-flush)
-  )
-  (begin
+(texmacs-module (telemetry telemetry-track)
+  (:use (telemetry telemetry-utils)
+        (telemetry telemetry-flush)))
 
-    (define telemetry-buffer-size 10)
+(import (scheme base))
 
-    (define (track-event event-type properties)
-      (if (and (string? event-type) (not (string-null? event-type)))
-        (begin
-          (set! *telemetry-event-queue*
-            (cons (telemetry-make-event event-type properties)
-                  *telemetry-event-queue*))
-          (if (>= (length *telemetry-event-queue*) telemetry-buffer-size)
-            (telemetry-flush))
-          #t)
-        #f))
+(define-public telemetry-buffer-size 10)
 
-    (define (telemetry-flush-if-needed)
-      (if (not (null? *telemetry-event-queue*))
-        (telemetry-flush)
-        #t))
+(define-public (track-event event-type properties)
+  (if (and (string? event-type) (not (string-null? event-type)))
+    (begin
+      (set! *telemetry-event-queue*
+        (cons (telemetry-make-event event-type properties)
+              *telemetry-event-queue*))
+      (if (>= (length *telemetry-event-queue*) telemetry-buffer-size)
+        (telemetry-flush))
+      #t)
+    #f))
 
-  ))
+(define-public (telemetry-flush-if-needed)
+  (if (not (null? *telemetry-event-queue*))
+    (telemetry-flush)
+    #t))
