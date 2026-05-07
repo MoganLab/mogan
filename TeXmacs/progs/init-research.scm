@@ -474,7 +474,9 @@
     (use-modules (telemetry telemetry-track))
     (use-modules (telemetry init-telemetry))
     (init-telemetry))
-  (lambda args #f))
+  (lambda args
+    (display (string-append "[telemetry] error: init failed: "
+                            (object->string args) "\n"))))
 (texmacs-banner)
 (display "Initialization done\n")
 
