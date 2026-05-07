@@ -2,7 +2,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : 200_62.scm
-;; DESCRIPTION : Tests for telemetry core functions
+;; DESCRIPTION : Telemetry 核心功能测试
 ;; COPYRIGHT   : (C) 2026 Yuki Lu
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -22,7 +22,7 @@
 (use-modules (telemetry telemetry-track))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-make-event
+;; telemetry-make-event：验证事件结构
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((ev (telemetry-make-event "TEST_EVENT" '(("foo" . "bar")))))
@@ -39,11 +39,11 @@
   (check (assoc-ref ev "properties") => '(("foo" . "bar"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-enabled?
+;; telemetry-enabled?：开关控制
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((old-pref (get-preference "telemetry")))
-  ;; default (no preference or not "0"/"off") => enabled
+  ;; 默认开启（无偏好或不是 "0"/"off"）
   (when old-pref (set-preference "telemetry" "1"))
   (check (telemetry-enabled?) => #t)
   (set-preference "telemetry" "0")
@@ -52,50 +52,50 @@
   (check (telemetry-enabled?) => #f)
   (set-preference "telemetry" "1")
   (check (telemetry-enabled?) => #t)
-  ;; restore
+  ;; 恢复
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-parse-config
+;; telemetry-parse-config：配置解析
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (telemetry-parse-config "5000" "")
 (check (telemetry-get-buffer-size) => telemetry-max-queue-size)
 (telemetry-parse-config "5" "")
 (check (telemetry-get-buffer-size) => 5)
-;; invalid value => no change
+;; 非法值 => 不修改
 (telemetry-parse-config "abc" "")
 (check (telemetry-get-buffer-size) => 5)
 (telemetry-parse-config "" "30000")
 (check (telemetry-get-flush-interval) => 30000)
-;; empty strings => no change
+;; 空字符串 => 不修改
 (let ((r5 (telemetry-parse-config "" "")))
   (check (null? r5) => #t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; track-event respects enabled? flag
+;; track-event：开关控制
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((old-pref (get-preference "telemetry")))
   (set-preference "telemetry" "1")
-  ;; enable first
+  ;; 开启时入队
   (let ((before (telemetry-queue-length)))
     (track-event "TEST_ENABLED" '())
     (check (> (telemetry-queue-length) before) => #t))
-  ;; disable and try again
+  ;; 禁用时忽略
   (set-preference "telemetry" "0")
   (let ((before (telemetry-queue-length)))
     (track-event "TEST_DISABLED" '())
     (check (<= (telemetry-queue-length) before) => #t))
-  ;; restore
+  ;; 恢复
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-flush empty queue returns #t
+;; telemetry-flush：空队列返回 #t
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((old-pref (get-preference "telemetry")))
@@ -107,30 +107,30 @@
       (reset-preference "telemetry")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-flush writes events to file with trailing newline
+;; telemetry-flush：文件写入与追加
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((old-pref (get-preference "telemetry")))
   (set-preference "telemetry" "1")
   (let ((path (telemetry-pending-path)))
-    ;; clean up: empty the file
+    ;; 清理：清空文件
     (string-save "" (system->url path))
     (set! *telemetry-event-queue* '())
     (track-event "FLUSH_TEST_A" '())
     (track-event "FLUSH_TEST_B" '())
     (telemetry-flush)
-    ;; verify file exists and contains 2 lines
+    ;; 验证文件存在且包含 2 行
     (check (path-exists? path) => #t)
     (let ((raw (string-load (system->url path))))
       (let ((lines (filter (lambda (s) (> (string-length s) 0))
                            (string-split raw #\newline))))
         (check (length lines) => 2)
-        ;; verify each line is valid JSON with correct event_type
+        ;; 验证每行是合法 JSON 且 event_type 正确
         (let ((ev1 (string->json (car lines)))
               (ev2 (string->json (cadr lines))))
           (check (assoc-ref ev1 "event_type") => "FLUSH_TEST_A")
           (check (assoc-ref ev2 "event_type") => "FLUSH_TEST_B"))))
-    ;; verify append: flush again, file should have 4 lines
+    ;; 验证追加：再次 flush，文件应有 3 行
     (track-event "FLUSH_TEST_C" '())
     (telemetry-flush)
     (let ((raw2 (string-load (system->url path))))
@@ -138,14 +138,14 @@
                             (string-split raw2 #\newline))))
         (check (length lines2) => 3)
         (check (assoc-ref (string->json (caddr lines2)) "event_type") => "FLUSH_TEST_C")))
-    ;; clean up: empty the file
+    ;; 清理：清空文件
     (string-save "" (system->url path)))
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; track-event auto-flush when reaching buffer-size
+;; track-event：达到 buffer-size 自动 flush
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((old-pref (get-preference "telemetry")))
@@ -157,13 +157,51 @@
     (track-event "AUTO_1" '())
     (check (telemetry-queue-length) => 1)
     (track-event "AUTO_2" '())
-    ;; buffer-size is 2, so auto-flush should clear the queue
+    ;; buffer-size 为 2，自动 flush 后队列清空
     (check (telemetry-queue-length) => 0)
     (check (path-exists? path) => #t)
-    ;; clean up: empty the file
+    ;; 清理：清空文件
     (string-save "" (system->url path)))
-  ;; restore
+  ;; 恢复
   (telemetry-parse-config "30" "60000")
+  (if old-pref
+      (set-preference "telemetry" old-pref)
+      (reset-preference "telemetry")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-flush-if-needed
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(let ((old-pref (get-preference "telemetry")))
+  (set-preference "telemetry" "1")
+  ;; 空队列 => 直接返回 #t
+  (set! *telemetry-event-queue* '())
+  (check (telemetry-flush-if-needed) => #t)
+  ;; 非空队列 => flush 并返回 #t
+  (track-event "NEEDED_1" '())
+  (check (telemetry-flush-if-needed) => #t)
+  (check (telemetry-queue-length) => 0)
+  ;; 禁用时 => #t
+  (set-preference "telemetry" "0")
+  (track-event "IGNORED" '())
+  (check (telemetry-flush-if-needed) => #t)
+  ;; 恢复
+  (if old-pref
+      (set-preference "telemetry" old-pref)
+      (reset-preference "telemetry")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-flush-if-needed：禁用时返回 #t
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(let ((old-pref (get-preference "telemetry")))
+  (set-preference "telemetry" "0")
+  (set! *telemetry-event-queue* '())
+  ;; 禁用时 track-event 不入队
+  (track-event "DISABLED_EVENT" '())
+  (check (telemetry-queue-length) => 0)
+  (check (telemetry-flush-if-needed) => #t)
+  ;; 恢复
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
