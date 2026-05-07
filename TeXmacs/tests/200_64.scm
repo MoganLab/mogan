@@ -27,12 +27,11 @@
 
 (let ((ev (telemetry-make-event "TEST_EVENT" '(("foo" . "bar")))))
   (check (assoc-ref ev "event_type") => "TEST_EVENT")
-  (check (number? (assoc-ref ev "timestamp_ms")) => #t)
+  (check (number? (assoc-ref ev "timestamp_s")) => #t)
   (check (string? (assoc-ref ev "distinct_id")) => #t)
   (check (string? (assoc-ref ev "session_id")) => #t)
   (check (string? (assoc-ref ev "event_id")) => #t)
   (check (string? (assoc-ref ev "app_version")) => #t)
-  (check (string? (assoc-ref ev "device_id")) => #t)
   (check (string? (assoc-ref ev "platform")) => #t)
   (check (string? (assoc-ref ev "language")) => #t)
   (check (string? (assoc-ref ev "timezone")) => #t)
@@ -56,23 +55,6 @@
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-parse-config：配置解析
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(telemetry-parse-config "5000" "")
-(check (telemetry-get-buffer-size) => telemetry-max-queue-size)
-(telemetry-parse-config "5" "")
-(check (telemetry-get-buffer-size) => 5)
-;; 非法值 => 不修改
-(telemetry-parse-config "abc" "")
-(check (telemetry-get-buffer-size) => 5)
-(telemetry-parse-config "" "30000")
-(check (telemetry-get-flush-interval) => 30000)
-;; 空字符串 => 不修改
-(let ((r5 (telemetry-parse-config "" "")))
-  (check (null? r5) => #t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; track-event：开关控制
@@ -148,11 +130,12 @@
 ;; track-event：达到 buffer-size 自动 flush
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(let ((old-pref (get-preference "telemetry")))
+(let ((old-pref (get-preference "telemetry"))
+      (old-buffer-size (telemetry-get-buffer-size)))
   (set-preference "telemetry" "1")
   (let ((path (telemetry-pending-path)))
     (string-save "" (system->url path))
-    (telemetry-parse-config "2" "60000")
+    (telemetry-set-buffer-size! 2)
     (set! *telemetry-event-queue* '())
     (track-event "AUTO_1" '())
     (check (telemetry-queue-length) => 1)
@@ -163,7 +146,7 @@
     ;; 清理：清空文件
     (string-save "" (system->url path)))
   ;; 恢复
-  (telemetry-parse-config "30" "60000")
+  (telemetry-set-buffer-size! old-buffer-size)
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))

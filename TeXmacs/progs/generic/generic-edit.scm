@@ -680,7 +680,7 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
   (if (string-starts? (qt-clipboard-format) "image")
       (begin
         (ocr-paste)
-        (track-event "MAGIC_PASTE" '(("mode" . "image"))))
+        (track-event "OCR_RECOGNIZE" '()))
       (with mode (get-env "mode")
         (cond ((== mode "prog")
                (clipboard-paste-import "code" "primary")

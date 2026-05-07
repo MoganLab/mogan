@@ -31,12 +31,19 @@
 (define-public (telemetry-get-buffer-size)
   telemetry-buffer-size)
 
+(define-public (telemetry-set-buffer-size! size)
+  (set! telemetry-buffer-size size))
+
 (define-public (telemetry-get-flush-interval)
   telemetry-flush-interval-ms)
 
+(define-public (telemetry-set-flush-interval! interval)
+  (set! telemetry-flush-interval-ms interval))
+
 (define-public (telemetry-enabled?)
-  (let ((pref (get-preference "telemetry")))
-    (not (or (== pref "off") (== pref "0")))))
+  (if (community-stem?) #f
+    (let ((pref (get-preference "telemetry")))
+      (not (or (== pref "off") (== pref "0"))))))
 
 (define (telemetry-home-path)
   (url->system (get-texmacs-home-path)))
@@ -104,49 +111,17 @@
     (lambda args "UTC")))
 
 (define-public (telemetry-now)
-  (inexact->exact (truncate (* 1000 (current-time)))))
+  (inexact->exact (truncate (current-time))))
 
 (define-public *telemetry-session-id* (telemetry-session-id))
 
-(define-public (telemetry-parse-config buffer-str interval-str)
-  (let ((result '()))
-    (if (and (string? buffer-str) (> (string-length buffer-str) 0))
-      (let ((val (string->number buffer-str)))
-        (if (and (number? val) (> val 0))
-          (let ((clamped (min (inexact->exact (truncate val)) telemetry-max-queue-size)))
-            (if (< clamped (inexact->exact (truncate val)))
-              (display (string-append "[telemetry] warn: MOGAN_TELEMETRY_BUFFER_SIZE exceeds max queue size ("
-                                      (number->string telemetry-max-queue-size) "), clamped to "
-                                      (number->string clamped) "\n")))
-            (set! telemetry-buffer-size clamped)
-            (set! result (acons 'buffer-size telemetry-buffer-size result)))
-          (display (string-append "[telemetry] warn: invalid MOGAN_TELEMETRY_BUFFER_SIZE="
-                                  buffer-str ", using default "
-                                  (number->string telemetry-buffer-size) "\n")))))
-    (if (and (string? interval-str) (> (string-length interval-str) 0))
-      (let ((val (string->number interval-str)))
-        (if (and (number? val) (> val 0))
-          (begin
-            (set! telemetry-flush-interval-ms (inexact->exact (truncate val)))
-            (set! result (acons 'flush-interval telemetry-flush-interval-ms result)))
-          (display (string-append "[telemetry] warn: invalid MOGAN_TELEMETRY_FLUSH_INTERVAL="
-                                  interval-str ", using default "
-                                  (number->string telemetry-flush-interval-ms) "ms\n")))))
-    result))
-
-(define-public (telemetry-load-config)
-  (telemetry-parse-config
-    (system-getenv "MOGAN_TELEMETRY_BUFFER_SIZE")
-    (system-getenv "MOGAN_TELEMETRY_FLUSH_INTERVAL")))
-
 (define-public (telemetry-make-event event-type properties)
   `(("event_type" . ,event-type)
-    ("timestamp_ms" . ,(telemetry-now))
+    ("timestamp_s" . ,(telemetry-now))
     ("distinct_id" . ,(telemetry-device-id))
     ("session_id" . ,*telemetry-session-id*)
     ("event_id" . ,(uuid4))
     ("app_version" . ,(telemetry-app-version))
-    ("device_id" . ,(telemetry-device-id))
     ("platform" . ,(telemetry-platform))
     ("language" . ,(telemetry-language))
     ("timezone" . ,(telemetry-timezone))

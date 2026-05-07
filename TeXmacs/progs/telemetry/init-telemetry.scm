@@ -32,24 +32,19 @@
 (define-public (init-telemetry)
   (if telemetry-scheduled?
     (display "[telemetry] init: already initialized\n")
-    (begin
-      (let ((loaded (telemetry-load-config)))
-        (if (not (null? loaded))
-          (display (string-append "[telemetry] init: loaded config "
-                                  (object->string loaded) "\n"))))
-      (if (telemetry-enabled?)
-        (begin
-          (set! telemetry-scheduled? #t)
-          (display (string-append "[telemetry] init: enabled, buffer="
-                                  (number->string (telemetry-get-buffer-size))
-                                  ", interval="
-                                  (number->string (telemetry-get-flush-interval))
-                                  "ms\n"))
-          (on-exit
-            (catch #t
-              (lambda () (telemetry-flush-if-needed))
-              (lambda args
-                (display (string-append "[telemetry] error: exit flush failed: "
-                                        (object->string args) "\n")))))
-          (telemetry-delayed))
-        (display "[telemetry] init: disabled\n")))))
+    (if (telemetry-enabled?)
+      (begin
+        (set! telemetry-scheduled? #t)
+        (display (string-append "[telemetry] init: enabled, buffer="
+                                (number->string (telemetry-get-buffer-size))
+                                ", interval="
+                                (number->string (telemetry-get-flush-interval))
+                                "ms\n"))
+        (on-exit
+          (catch #t
+            (lambda () (telemetry-flush-if-needed))
+            (lambda args
+              (display (string-append "[telemetry] error: exit flush failed: "
+                                      (object->string args) "\n")))))
+        (telemetry-delayed))
+      (display "[telemetry] init: disabled\n"))))

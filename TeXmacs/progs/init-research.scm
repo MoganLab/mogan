@@ -471,6 +471,7 @@
   (auto-backup-delayed))
 (catch #t
   (lambda ()
+    (use-modules (telemetry telemetry-utils))
     (use-modules (telemetry telemetry-track))
     (use-modules (telemetry init-telemetry))
     (init-telemetry))
