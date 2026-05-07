@@ -258,7 +258,17 @@ concater_rep::typeset_paragraph (tree t, path ip) {
 
 void
 concater_rep::typeset_document (tree t, path ip) {
-  print (::typeset_as_stack (env, t, ip));
+  if (N(a) > 0) {
+    int i, n= N(t);
+    for (i= 0; i < n; i++) {
+      typeset(t[i], descend(ip, i));
+      if (i < n - 1) {
+        control (tree (VSPACE, tree (TMLEN, "0fn", "0.01fn", "0.01fn")), ip);
+      }
+    }
+  } else {
+    print (::typeset_as_stack (env, t, ip));
+  }
 }
 
 void
