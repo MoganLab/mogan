@@ -269,8 +269,18 @@
 
 (define (wrap-algo-if-else-if line lang)
   (let ((l (tm-children line)))
+    ;; Handle environment form where children is a single document node
+    (if (and (== (length l) 1) (tm-func? (car l) 'document))
+        (set! l (tm-children (car l))))
+    ;; Filter out empty paragraphs and next-line markers
+    (set! l (filter (lambda (x) 
+                       (not (or (tree-is? x 'next-line)
+                                (tree-is? x 'new-line)
+                                (and (tree-atomic? x) (== (tree->string x) "")))))
+                     l))
     (if (< (length l) 2)
-        (list)
+        ;; Not enough arguments, wrap entire content as a single line
+        (list `(numbered-line ,line))
         (let ((cond-arg (car l))
               (body-arg (cadr l))
               (rest (cddr l)))
