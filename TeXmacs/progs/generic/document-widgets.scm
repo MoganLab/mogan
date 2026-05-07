@@ -228,12 +228,19 @@
   (dialogue-window (page-number-style-editor u) noop
                    "Page number style layer"))
 
+(tm-define (set-page-number-style-window-state opened?)
+  (set-auxiliary-widget-state opened? 'page-number-style))
+
 (tm-define (open-document-page-number)
   (:interactive #t)
+  (change-auxiliary-widget-focus)
   (let ((u (current-buffer)))
     (auxiliary-widget (page-number-style-editor u)
                       noop
-                      "Page number style" u)))
+                      "Page number style" u)
+    (set-page-number-style-window-state #t)))
+
+(register-auxiliary-widget-type 'page-number-style (list open-document-page-number))
 
 (tm-widget (page-formatter-format u quit)
   (centered
