@@ -293,8 +293,9 @@
 ;; ----
 ;; doc id 只在用户明确保存时随文档持久化；打开已有文件时不会静默
 ;; 写回源文件。
-(define (save-buffer-save name opts)
+(define (save-buffer-save name opts . kind*)
   ;;(display* "save-buffer-save " name "\n")
+  (let ((kind (if (null? kind*) "save" (car kind*))))
   (with vname `(verbatim ,(utf8->cork (url->system name)))
     (auto-backup-ensure-buffer-doc-id! name)
     (if (buffer-save name)
@@ -308,8 +309,8 @@
           ;; Remember directory for file dialog
           (remember-file-dialog-directory name)
           (set-message `(concat "Saved " ,vname) "Save file")
-          (auto-backup-buffer name "on-save")
-          (save-buffer-post name opts)))))
+          (auto-backup-buffer name kind)
+          (save-buffer-post name opts))))))
 
 (define (save-buffer-check-faithful name opts)
   ;;(display* "save-buffer-check-faithful " name "\n")
@@ -432,7 +433,7 @@
   (if (and (url-scratch? name) (url-exists? name)) (system-remove name))
   (buffer-rename name new-name)
   (buffer-pretend-modified new-name)
-  (save-buffer-save new-name opts))
+  (save-buffer-save new-name opts "save-as"))
 
 (define (save-buffer-as-check-faithful new-name name opts)
   ;;(display* "save-check-as-check-faithful " new-name ", " name "\n")
@@ -489,7 +490,10 @@
   (with vto `(verbatim ,(url->system to))
     (if (buffer-export name to fm)
         (set-message `(concat "Could not save " ,vto) "Export file")
-        (set-message `(concat "Exported to " ,vto) "Export file"))))
+        (begin
+          (set-message `(concat "Exported to " ,vto) "Export file")
+          (when (== fm "pdf")
+            (auto-backup-buffer name "export-pdf"))))))
 
 (define (export-buffer-check-permissions name to fm opts)
   ;;(display* "export-buffer-check-permissions " name ", " to ", " fm "\n")
