@@ -61,12 +61,7 @@
     </algorithm>
   </algorithm>
 
-  <\initial>
-    <\collection>
-      <associate|page-medium|papyrus>
-      <associate|page-screen-margin|false>
-    </collection>
-  </initial>
+  \;
 </body>
 
 <initial|<\collection>
