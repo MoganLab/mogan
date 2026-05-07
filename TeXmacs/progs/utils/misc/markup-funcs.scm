@@ -165,7 +165,7 @@
 
 (define (ext-numbered-line t)
   (if (tree-multi-line? t)
-      `(numbered-line ,(ext-numbered-sub t))
+      (ext-numbered-sub t)
       `(numbered-line ,t)))
 
 (tm-define (ext-numbered body)
@@ -182,7 +182,7 @@
   (if (tm-func? body 'document)
       `(numbered-block (document ,@(map (lambda (line)
                                           (if (tree-multi-line? line)
-                                              `(numbered-line ,(ext-numbered-sub line))
+                                              (ext-numbered-sub line)
                                               `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line))))
                                         (tm-children body))))
       body))
