@@ -1333,7 +1333,7 @@ requires_hack_notdef_for_tex_font (string fontname) {
 
 void
 pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
-                                 int codepoint) {
+                               int codepoint) {
   // debug_convert << "draw \"" << (char)glyph_index << "\" " << glyph_index
   //                << " " << fn->res_name << "\n";
   if (glyph_index == 0x17 && starts (fn->res_name, "ecss10")) return;
@@ -1406,15 +1406,17 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
   int gl_index;
   if (cfid != NULL) gl_index= gl->index;
   else
-    gl_index= t3font_get_local_glyph (glyph_index, t3font_list (cfn)->font_chunk,
-                                      t3font_list (cfn)->fn->res_name);
+    gl_index=
+        t3font_get_local_glyph (glyph_index, t3font_list (cfn)->font_chunk,
+                                t3font_list (cfn)->fn->res_name);
   int unicode_val= codepoint >= 0 ? codepoint : glyph_index;
   static const std::string ligature_ff = "/Span << /ActualText (ff) >> BDC ";
   static const std::string ligature_fi = "/Span << /ActualText (fi) >> BDC ";
   static const std::string ligature_fl = "/Span << /ActualText (fl) >> BDC ";
   static const std::string ligature_ffi= "/Span << /ActualText (ffi) >> BDC ";
   static const std::string ligature_ffl= "/Span << /ActualText (ffl) >> BDC ";
-  if (glyph_index >= 0xfb00 && glyph_index <= 0xfb04 && ePDFVersion >= ePDFVersion15) {
+  if (glyph_index >= 0xfb00 && glyph_index <= 0xfb04 &&
+      ePDFVersion >= ePDFVersion15) {
     if (glyph_index == 0xfb00) contentContext->WriteFreeCode (ligature_ff);
     if (glyph_index == 0xfb01) contentContext->WriteFreeCode (ligature_fi);
     if (glyph_index == 0xfb02) contentContext->WriteFreeCode (ligature_fl);

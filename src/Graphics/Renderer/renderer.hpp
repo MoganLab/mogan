@@ -101,10 +101,10 @@ public:
 
   /* drawing */
   virtual void draw (int glyph_index, font_glyphs fn, SI x, SI y,
-                     int codepoint= -1)= 0;
-  virtual void line (SI x1, SI y1, SI x2, SI y2)               = 0;
-  virtual void lines (array<SI> x, array<SI> y)                = 0;
-  virtual void clear (SI x1, SI y1, SI x2, SI y2)              = 0;
+                     int codepoint= -1)          = 0;
+  virtual void line (SI x1, SI y1, SI x2, SI y2) = 0;
+  virtual void lines (array<SI> x, array<SI> y)  = 0;
+  virtual void clear (SI x1, SI y1, SI x2, SI y2)= 0;
   virtual void clear_pattern (SI mx1, SI my1, SI mx2, SI my2, SI x1, SI y1,
                               SI x2, SI y2);
   virtual void clear_pattern (SI x1, SI y1, SI x2, SI y2);

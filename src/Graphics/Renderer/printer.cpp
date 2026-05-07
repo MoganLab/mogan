@@ -681,9 +681,9 @@ printer_rep::set_background (brush b) {
 }
 
 void
-printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
-                     int codepoint) {
-  // cout << "Draw " << glyph_index << " at " << (x/PIXEL) << ", " << (y/PIXEL) << "\n";
+printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint) {
+  // cout << "Draw " << glyph_index << " at " << (x/PIXEL) << ", " << (y/PIXEL)
+  // << "\n";
   if (opacity == 0) return;
   glyph gl= fn->get (glyph_index);
   if (is_nil (gl)) return;

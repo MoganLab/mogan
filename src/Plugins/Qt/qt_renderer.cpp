@@ -604,7 +604,7 @@ qt_renderer_rep::draw_bis (int c, font_glyphs fng, SI x, SI y) {
 
 void
 qt_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
-                         int codepoint) {
+                       int codepoint) {
   (void) codepoint;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;

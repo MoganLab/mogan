@@ -1054,7 +1054,7 @@ decode_index (FT_Face face, int i) {
 
 void
 mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
-                            int codepoint) {
+                          int codepoint) {
   (void) codepoint;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;
