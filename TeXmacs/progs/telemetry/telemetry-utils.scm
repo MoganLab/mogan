@@ -138,4 +138,4 @@
     ("platform" . ,(telemetry-platform))
     ("language" . ,(telemetry-language))
     ("timezone" . ,(telemetry-timezone))
-    ("properties" . ,(if (list? properties) properties '()))))
+    ("properties" . ,(if (null? properties) '(()) properties))))

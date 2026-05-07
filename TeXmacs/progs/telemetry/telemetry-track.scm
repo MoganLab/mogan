@@ -95,7 +95,7 @@
 (define (telemetry-read-lock-info)
   (catch #t
     (lambda ()
-      (let ((text (string-load (telemetry-lock-info-path))))
+      (let ((text (string-load (system->url (telemetry-lock-info-path)))))
         (if (and (string? text) (> (string-length text) 0))
           (string->json text)
           #f)))
@@ -124,7 +124,7 @@
         (mkdir (telemetry-lock-path))
         (string-save
           (json->string (telemetry-lock-info owner now))
-          (telemetry-lock-info-path))
+          (system->url (telemetry-lock-info-path)))
         owner)
       (lambda args
         (if (telemetry-lock-expired? now)
@@ -135,7 +135,7 @@
                 (mkdir (telemetry-lock-path))
                 (string-save
                   (json->string (telemetry-lock-info owner now))
-                  (telemetry-lock-info-path))
+                  (system->url (telemetry-lock-info-path)))
                 owner)
               (lambda args2 #f)))
           #f)))))
@@ -151,7 +151,7 @@
                                 (if info (json-ref-string info "owner" "") "none") ")\n"))
         #f))))
 
-(define (telemetry-write-pending events)
+(define-public (telemetry-write-pending events)
   (if (null? events)
     #t
     (let ((path (telemetry-pending-path))
@@ -168,7 +168,9 @@
                      (catch #t
                        (lambda ()
                          (telemetry-filter-stale-events
-                           (map string->json (string-split existing-raw #\newline))))
+                           (map string->json
+                                (filter (lambda (s) (> (string-length s) 0))
+                                        (string-split existing-raw #\newline)))))
                        (lambda args '()))
                      '()))
                  (existing-text (if (null? existing-events)
@@ -182,12 +184,12 @@
                                         "dropping old events, keeping "
                                         (number->string (length events))
                                         " new event(s)\n"))
-                (string-save text path))
+                (string-save text (system->url path)))
               (if (> (string-length existing-text) 0)
                 (string-save
                   (string-append existing-text "\n" text)
-                  path)
-                (string-save text path)))
+                  (system->url path))
+                (string-save text (system->url path))))
             (display (string-append "[telemetry] flush: "
                                     (number->string (length events))
                                     " events -> "

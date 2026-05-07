@@ -21,8 +21,8 @@
 
 (define (telemetry-scheduler-step)
   (when (telemetry-enabled?)
-    (telemetry-flush-if-needed)
-    (telemetry-delayed)))
+    (telemetry-flush-if-needed))
+  (telemetry-delayed))
 
 (define (telemetry-delayed)
   (delayed

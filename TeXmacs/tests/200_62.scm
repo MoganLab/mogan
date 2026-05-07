@@ -1,7 +1,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : 200_61.scm
+;; MODULE      : 200_62.scm
 ;; DESCRIPTION : Tests for telemetry core functions
 ;; COPYRIGHT   : (C) 2026 Yuki Lu
 ;;
@@ -105,5 +105,29 @@
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
 
-(define (test_200_61)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-flush empty queue returns #t
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(let ((old-pref (get-preference "telemetry")))
+  (set-preference "telemetry" "1")
+  (set! *telemetry-event-queue* '())
+  (check (telemetry-flush) => #t)
+  (if old-pref
+      (set-preference "telemetry" old-pref)
+      (reset-preference "telemetry")))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-write-pending empty list returns #t
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(check (telemetry-write-pending '()) => #t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; restore defaults to avoid polluting other tests
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(telemetry-parse-config "10" "60000")
+
+(define (test_200_62)
   (check-report))
