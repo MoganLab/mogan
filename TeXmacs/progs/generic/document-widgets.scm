@@ -262,10 +262,7 @@
           (enum (initial-set u "page-crop-marks" (encode-crop-marks answer))
                 '("none" "a3" "a4" "letter")
                 (decode-crop-marks (initial-get u "page-crop-marks"))
-                "10em"))
-        (item (text "Advanced page numbering:")
-          (explicit-buttons ("New page number style layer"
-                            (open-page-number-style-window u)))))))
+                "10em")))))
   ===
   (centered
     (refreshable "page-user-format-settings"
