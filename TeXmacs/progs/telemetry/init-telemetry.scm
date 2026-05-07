@@ -26,7 +26,7 @@
 
 (define (telemetry-delayed)
   (delayed
-    (:pause telemetry-flush-interval-ms)
+    (:pause (telemetry-get-flush-interval))
     (telemetry-scheduler-step)))
 
 (define-public (init-telemetry)
@@ -41,10 +41,15 @@
         (begin
           (set! telemetry-scheduled? #t)
           (display (string-append "[telemetry] init: enabled, buffer="
-                                  (number->string telemetry-buffer-size)
+                                  (number->string (telemetry-get-buffer-size))
                                   ", interval="
-                                  (number->string telemetry-flush-interval-ms)
+                                  (number->string (telemetry-get-flush-interval))
                                   "ms\n"))
-          (on-exit (telemetry-flush-if-needed))
+          (on-exit
+            (catch #t
+              (lambda () (telemetry-flush-if-needed))
+              (lambda args
+                (display (string-append "[telemetry] error: exit flush failed: "
+                                        (object->string args) "\n")))))
           (telemetry-delayed))
         (display "[telemetry] init: disabled\n")))))

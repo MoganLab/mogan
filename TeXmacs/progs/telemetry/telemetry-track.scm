@@ -23,7 +23,6 @@
   (liii list)
 )
 
-(define-public telemetry-max-queue-size 1000)
 (define-public *telemetry-event-queue* '())
 
 ;; Safeguards: file size limit and event aging
@@ -41,14 +40,17 @@
         (let ((len (length *telemetry-event-queue*)))
           (display (string-append "[telemetry] track: " event-type
                                   " (queue: " (number->string len)
-                                  "/" (number->string telemetry-buffer-size) ")\n"))
+                                  "/" (number->string (telemetry-get-buffer-size)) ")\n"))
           (if (> len telemetry-max-queue-size)
             (set! *telemetry-event-queue*
               (list-head *telemetry-event-queue* telemetry-max-queue-size)))
-          (if (>= len telemetry-buffer-size)
+          (if (>= len (telemetry-get-buffer-size))
             (telemetry-flush)))
         #t)
       #f)))
+
+(define-public (telemetry-queue-length)
+  (length *telemetry-event-queue*))
 
 (define-public (telemetry-flush-if-needed)
   (if (not (telemetry-enabled?))
@@ -61,7 +63,7 @@
 ;; Event aging: drop events older than 7 days before flush
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (telemetry-filter-stale-events events)
+(define-public (telemetry-filter-stale-events events)
   (let ((now (telemetry-now))
         (stale-count 0))
     (define (loop evts acc)
@@ -143,7 +145,11 @@
     (if (and info
           (string=? (json-ref-string info "owner" "") owner))
       (telemetry-remove-lock)
-      #f)))
+      (begin
+        (display (string-append "[telemetry] warn: lock owner mismatch, skipping release "
+                                "(expected " owner ", got "
+                                (if info (json-ref-string info "owner" "") "none") ")\n"))
+        #f))))
 
 (define (telemetry-write-pending events)
   (if (null? events)
@@ -154,12 +160,21 @@
         (lambda ()
           (let* ((text (string-join lines "\n"))
                  (new-size (string-length text))
-                 (existing (if (path-exists? path)
-                             (string-trim-right (string-load path))
-                             ""))
-                 (existing-size (if (string? existing)
-                                  (string-length existing)
-                                  0)))
+                 (existing-raw (if (path-exists? path)
+                                 (string-trim-right (string-load path))
+                                 ""))
+                 (existing-events
+                   (if (and (string? existing-raw) (> (string-length existing-raw) 0))
+                     (catch #t
+                       (lambda ()
+                         (telemetry-filter-stale-events
+                           (map string->json (string-split existing-raw #\newline))))
+                       (lambda args '()))
+                     '()))
+                 (existing-text (if (null? existing-events)
+                                  ""
+                                  (string-join (map json->string existing-events) "\n")))
+                 (existing-size (string-length existing-text)))
             ;; File size safeguard: if total would exceed 10MB, drop old content
             (if (> (+ existing-size new-size 1) telemetry-max-file-size-bytes)
               (begin
@@ -168,9 +183,9 @@
                                         (number->string (length events))
                                         " new event(s)\n"))
                 (string-save text path))
-              (if (and (string? existing) (> (string-length existing) 0))
+              (if (> (string-length existing-text) 0)
                 (string-save
-                  (string-append existing "\n" text)
+                  (string-append existing-text "\n" text)
                   path)
                 (string-save text path)))
             (display (string-append "[telemetry] flush: "
