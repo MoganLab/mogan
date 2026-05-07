@@ -159,6 +159,8 @@
 (define (ext-numbered-sub t)
   (cond ((tree-is? t 'document)
          `(document ,@(map ext-numbered-line (tm-children t))))
+        ((tree-is? t 'concat)
+         `(document ,@(map ext-numbered-line (tm-children t))))
         ((tree-multi-line? t)
          (cons (tm-label t) (map ext-numbered-sub (tm-children t))))
         (else t)))
