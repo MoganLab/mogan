@@ -10,7 +10,7 @@
       Some environments for typesetting pseudo-code.
     </src-purpose>
 
-    <src-copyright|2012--2014|Franï¿½ois Poulain, Joris van der Hoeven>
+    <src-copyright|2012--2014|François Poulain, Joris van der Hoeven>
 
     <\src-license>
       This software falls under the <hlink|GNU general public license,
@@ -120,18 +120,12 @@
     </src-comment>
   </active*>
 
-  <assign|algo-indent|<\macro|body>
-    <\with|par-left|<plus|<value|par-left>|<value|indent-indentation>>>
-      <arg|body>
-    </with>
-  </macro>>
-
   <assign|algo-procedure|<\macro|name|args|body>
     <render-procedure> <with|font-shape|small-caps|<arg|name>>(<arg|args>)<no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|body>
-    </algo-indent>
+    </indent>
 
     <render-end-procedure><right-flush>
   </macro>>
@@ -139,9 +133,9 @@
   <assign|algo-function|<\macro|name|args|body>
     <render-function> <with|font-shape|small-caps|<arg|name>>(<arg|args>)<no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|body>
-    </algo-indent>
+    </indent>
 
     <render-end-function><right-flush>
   </macro>>
@@ -149,57 +143,49 @@
   <assign|algo-for|<\macro|cond|block>
     <render-for> <arg|cond> <render-do><no-page-break>
 
-    <next-line>
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
-    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-for-all|<\macro|cond|block>
     <render-for-all> <arg|cond> <render-do><no-page-break>
 
-    <next-line>
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
-    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-for-each|<\macro|cond|block>
     <render-for-each> <arg|cond> <render-do><no-page-break>
 
-    <next-line>
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
-    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-while|<\macro|cond|block>
     <render-while> <arg|cond> <render-do><no-page-break>
 
-    <next-line>
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
-    <next-line>
     <render-end-while><right-flush>
   </macro>>
 
   <assign|algo-repeat|<\macro|cond|block>
     <render-repeat><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
     <surround|<render-until> |<right-flush>|<arg|cond>>
   </macro>>
@@ -207,9 +193,9 @@
   <assign|algo-loop|<\macro|block>
     <render-loop><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
 
     <render-end-loop><right-flush>
   </macro>>
@@ -219,33 +205,33 @@
   <assign|algo-body|<\macro|block>
     <render-do><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
   </macro>>
 
   <assign|algo-begin|<\macro|block>
     <render-begin><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
   </macro>>
 
   <assign|algo-inputs|<\macro|block>
     <render-inputs><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
   </macro>>
 
   <assign|algo-outputs|<\macro|block>
     <render-outputs><no-page-break>
 
-    <\algo-indent>
+    <\indent>
       <arg|block>
-    </algo-indent>
+    </indent>
   </macro>>
 
   <\active*>
@@ -257,22 +243,19 @@
   <assign|algo-if|<\macro|cond|body>
     <render-if> <arg|cond> <render-then><no-page-break>
 
-    <next-line>
-    <algo-indent|<arg|body>>
+    <indent|<arg|body>>
   </macro>>
 
   <assign|algo-else-if|<\macro|cond|body>
     <render-else> <render-if> <arg|cond> <render-then><no-page-break>
 
-    <next-line>
-    <algo-indent|<arg|body>>
+    <indent|<arg|body>>
   </macro>>
 
   <assign|algo-else|<\macro|body>
     <render-else><no-page-break>
 
-    <next-line>
-    <algo-indent|<arg|body>>
+    <indent|<arg|body>>
   </macro>>
 
   <assign|algo-make-if-else-if|<\macro|args>
