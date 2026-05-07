@@ -224,6 +224,13 @@
   (dialogue-window (page-number-style-editor u) noop
                    "Page number style layer"))
 
+(tm-define (open-document-page-number)
+  (:interactive #t)
+  (let ((u (current-buffer)))
+    (auxiliary-widget (page-number-style-editor u)
+                      noop
+                      "Page number style" u)))
+
 (tm-widget (page-formatter-format u quit)
   (centered
     (refreshable "page-format-settings"

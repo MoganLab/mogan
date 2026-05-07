@@ -740,6 +740,13 @@
           ("Other" (init-interactive-env "page-flexibility")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; The Document -> Page number menu
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(menu-bind document-page-number-menu
+  ("New page number style layer" (open-document-page-number)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Headers and footers menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -892,6 +899,7 @@
   (-> "Font" (link document-full-font-menu))
   (-> "Paragraph" (link document-paragraph-menu))
   (-> "Page" (link document-page-menu))
+  (-> "Page number" (link document-page-number-menu))
   (-> "Headers and footers" (link document-headers-footers-menu))
   (-> "Metadata" (link document-metadata-menu))
   (-> "Bibliography"
@@ -924,6 +932,7 @@
   ("Font" (interactive open-document-font-selector))
   ("Paragraph" (open-document-paragraph-format))
   ("Page" (open-document-page-format))
+  ("Page number" (open-document-page-number))
   ("Headers and footers" (open-page-headers-footers))
   ("Metadata" (open-document-metadata))
   (when (buffer-has-biblio? (current-buffer))
