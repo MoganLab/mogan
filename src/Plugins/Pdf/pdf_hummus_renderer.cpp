@@ -1409,7 +1409,6 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
     gl_index=
         t3font_get_local_glyph (glyph_index, t3font_list (cfn)->font_chunk,
                                 t3font_list (cfn)->fn->res_name);
-  int unicode_val= codepoint >= 0 ? codepoint : glyph_index;
   static const std::string ligature_ff = "/Span << /ActualText (ff) >> BDC ";
   static const std::string ligature_fi = "/Span << /ActualText (fi) >> BDC ";
   static const std::string ligature_fl = "/Span << /ActualText (fl) >> BDC ";
@@ -1423,7 +1422,7 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
     if (glyph_index == 0xfb03) contentContext->WriteFreeCode (ligature_ffi);
     if (glyph_index == 0xfb04) contentContext->WriteFreeCode (ligature_ffl);
     if (cfid != NULL) {
-      glyphs.push_back (GlyphUnicodeMapping (gl_index, unicode_val));
+      glyphs.push_back (GlyphUnicodeMapping (gl_index, glyph_index));
       contentContext->Tj (glyphs);
     }
     else {
@@ -1435,7 +1434,7 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
   }
   else {
     if (cfid != NULL) {
-      glyphs.push_back (GlyphUnicodeMapping (gl_index, unicode_val));
+      glyphs.push_back (GlyphUnicodeMapping (gl_index, glyph_index));
       contentContext->Tj (glyphs);
     }
     else {
