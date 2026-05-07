@@ -148,7 +148,7 @@
     #t
     (let ((owner (telemetry-acquire-lock)))
       (if owner
-        (let ((ok? (telemetry-write-pending *telemetry-event-queue*)))
+        (let ((ok? (telemetry-write-pending (reverse *telemetry-event-queue*))))
           (if ok?
             (begin
               (set! *telemetry-event-queue* '())

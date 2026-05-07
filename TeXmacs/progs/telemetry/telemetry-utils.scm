@@ -15,11 +15,14 @@
 
 (import (scheme base)
   (liii base)
-  (liii json)
   (liii os)
   (liii path)
+  (liii string)
   (liii uuid)
 )
+
+(import (only (srfi srfi-19)
+  current-date date-zone-offset))
 
 (define telemetry-buffer-size 30)
 (define telemetry-flush-interval-ms 60000)
@@ -85,10 +88,19 @@
 (define-public (telemetry-timezone)
   (catch #t
     (lambda ()
-      (let ((date (current-date)))
-        (if (and date (date? date))
-          (date-zone date)
-          "UTC")))
+      (let ((offset (date-zone-offset (current-date))))
+        (if (zero? offset)
+            "UTC"
+            (let* ((sign (if (>= offset 0) "+" "-"))
+                   (abs-offset (abs offset))
+                   (hours (quotient abs-offset 3600))
+                   (minutes (quotient (remainder abs-offset 3600) 60)))
+              (string-append sign
+                             (if (< hours 10) "0" "")
+                             (number->string hours)
+                             ":"
+                             (if (< minutes 10) "0" "")
+                             (number->string minutes))))))
     (lambda args "UTC")))
 
 (define-public (telemetry-now)
