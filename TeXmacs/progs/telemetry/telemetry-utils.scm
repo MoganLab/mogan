@@ -21,7 +21,7 @@
   (liii uuid)
 )
 
-(define telemetry-buffer-size 10)
+(define telemetry-buffer-size 30)
 (define telemetry-flush-interval-ms 60000)
 (define-public telemetry-max-queue-size 1000)
 

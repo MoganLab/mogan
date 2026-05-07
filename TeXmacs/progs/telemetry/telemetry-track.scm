@@ -25,10 +25,6 @@
 
 (define-public *telemetry-event-queue* '())
 
-;; Safeguards: file size limit and event aging
-(define telemetry-max-file-size-bytes 10485760)  ; 10 MB
-(define telemetry-max-event-age-ms 604800000)    ; 7 days in ms
-
 (define-public (track-event event-type properties)
   (if (not (telemetry-enabled?))
     #f
@@ -60,31 +56,8 @@
       #t)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Event aging: drop events older than 7 days before flush
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define-public (telemetry-filter-stale-events events)
-  (let ((now (telemetry-now))
-        (stale-count 0))
-    (define (loop evts acc)
-      (if (null? evts)
-        (begin
-          (if (> stale-count 0)
-            (display (string-append "[telemetry] warn: dropped "
-                                    (number->string stale-count)
-                                    " stale event(s)\n")))
-          (reverse acc))
-        (let ((ev (car evts)))
-          (let ((ts (assoc-ref ev "timestamp_ms")))
-            (if (and (number? ts) (> (- now ts) telemetry-max-event-age-ms))
-              (begin
-                (set! stale-count (+ stale-count 1))
-                (loop (cdr evts) acc))
-              (loop (cdr evts) (cons ev acc)))))))
-    (loop events '())))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Flush implementation (merged from telemetry-flush to share mutable state)
+;; Flush implementation: lightweight append-only file writes
+;; Complex logic (size limits, stale filtering) handled by liii subprocess
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define telemetry-lock-timeout-seconds 30)
@@ -158,38 +131,8 @@
           (lines (map json->string events)))
       (catch #t
         (lambda ()
-          (let* ((text (string-join lines "\n"))
-                 (new-size (string-length text))
-                 (existing-raw (if (path-exists? path)
-                                 (string-trim-right (string-load path))
-                                 ""))
-                 (existing-events
-                   (if (and (string? existing-raw) (> (string-length existing-raw) 0))
-                     (catch #t
-                       (lambda ()
-                         (telemetry-filter-stale-events
-                           (map string->json
-                                (filter (lambda (s) (> (string-length s) 0))
-                                        (string-split existing-raw #\newline)))))
-                       (lambda args '()))
-                     '()))
-                 (existing-text (if (null? existing-events)
-                                  ""
-                                  (string-join (map json->string existing-events) "\n")))
-                 (existing-size (string-length existing-text)))
-            ;; File size safeguard: if total would exceed 10MB, drop old content
-            (if (> (+ existing-size new-size 1) telemetry-max-file-size-bytes)
-              (begin
-                (display (string-append "[telemetry] warn: file size limit (10MB) reached, "
-                                        "dropping old events, keeping "
-                                        (number->string (length events))
-                                        " new event(s)\n"))
-                (string-save text (system->url path)))
-              (if (> (string-length existing-text) 0)
-                (string-save
-                  (string-append existing-text "\n" text)
-                  (system->url path))
-                (string-save text (system->url path))))
+           (let ((text (string-append (string-join lines "\n") "\n")))
+             (string-append-to-file text (system->url path))
             (display (string-append "[telemetry] flush: "
                                     (number->string (length events))
                                     " events -> "
@@ -205,8 +148,7 @@
     #t
     (let ((owner (telemetry-acquire-lock)))
       (if owner
-        (let* ((fresh-events (telemetry-filter-stale-events *telemetry-event-queue*))
-               (ok? (telemetry-write-pending fresh-events)))
+        (let ((ok? (telemetry-write-pending *telemetry-event-queue*)))
           (if ok?
             (begin
               (set! *telemetry-event-queue* '())

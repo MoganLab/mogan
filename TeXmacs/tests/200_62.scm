@@ -36,20 +36,6 @@
   (check (assoc-ref ev "properties") => '(("foo" . "bar"))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; telemetry-filter-stale-events
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(let* ((now (telemetry-now))
-       (fresh (telemetry-make-event "FRESH" '()))
-       (old (telemetry-make-event "OLD" '()))
-       (stale-ts (- now 691200000)))  ; 8 days ago
-  ;; Patch the old event's timestamp (cadr old) is ("timestamp_ms" . <value>)
-  (set-cdr! (cadr old) stale-ts)
-  (let ((filtered (telemetry-filter-stale-events (list old fresh))))
-    (check (length filtered) => 1)
-    (check (assoc-ref (car filtered) "event_type") => "FRESH")))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; telemetry-enabled?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
