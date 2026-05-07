@@ -122,6 +122,7 @@
     ("session_id" . ,*telemetry-session-id*)
     ("event_id" . ,(uuid4))
     ("app_version" . ,(telemetry-app-version))
+    ("device_id" . ,(telemetry-device-id))
     ("platform" . ,(telemetry-platform))
     ("language" . ,(telemetry-language))
     ("timezone" . ,(telemetry-timezone))

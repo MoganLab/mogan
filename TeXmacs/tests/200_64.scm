@@ -34,6 +34,7 @@
   (check (string? (assoc-ref ev "session_id")) => #t)
   (check (string? (assoc-ref ev "event_id")) => #t)
   (check (string? (assoc-ref ev "app_version")) => #t)
+  (check (string? (assoc-ref ev "device_id")) => #t)
   (check (string? (assoc-ref ev "platform")) => #t)
   (check (string? (assoc-ref ev "language")) => #t)
   (check (string? (assoc-ref ev "timezone")) => #t)
