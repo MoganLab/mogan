@@ -1334,8 +1334,8 @@ requires_hack_notdef_for_tex_font (string fontname) {
 static bool
 pdf_is_invisible_format_codepoint (int ch) {
   if (ch < 256) return false;
-  string internal= "<#" * lolly::data::to_Hex (ch) * ">";
-  string_u8 utf8= herk_to_utf8 (internal);
+  string    internal= "<#" * lolly::data::to_Hex (ch) * ">";
+  string_u8 utf8    = herk_to_utf8 (internal);
   if (N (utf8) == 0) return false;
   int          pos = 0;
   unsigned int code= lolly::data::decode_from_utf8 (utf8, pos);
