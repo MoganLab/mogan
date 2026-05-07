@@ -1,7 +1,7 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : 200_62.scm
+;; MODULE      : 200_64.scm
 ;; DESCRIPTION : Telemetry 核心功能测试
 ;; COPYRIGHT   : (C) 2026 Yuki Lu
 ;;
@@ -206,5 +206,5 @@
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
 
-(define (test_200_62)
+(define (test_200_64)
   (check-report))
