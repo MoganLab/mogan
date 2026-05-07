@@ -1383,7 +1383,7 @@
                         'backup)))))))))
 
 (tm-define (auto-backup-buffer name . kind*)
-  (let ((kind (if (null? kind*) "periodic" (car kind*))))
+  (let ((kind (if (null? kind*) "auto" (car kind*))))
     (cond ((and (== kind "periodic") (not (buffer-modified? name)))
            (auto-backup-log
             (string-append "skip-clean "
