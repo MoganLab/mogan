@@ -47,9 +47,6 @@
 (define-public (telemetry-pending-path)
   (string-append (telemetry-dir) "/telemetry-pending.jsonl"))
 
-(define-public (telemetry-flags-cache-path)
-  (string-append (telemetry-dir) "/telemetry-flags-cache.json"))
-
 (define-public (telemetry-lock-path)
   (string-append (telemetry-dir) "/.lock"))
 
