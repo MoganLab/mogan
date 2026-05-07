@@ -156,25 +156,23 @@
 
 (define ext-numbered-root #f)
 
-(define (ext-numbered-sub t)
-  (cond ((tree-is? t 'document)
-         `(document ,@(map ext-numbered-line (tm-children t))))
-        ((tree-is? t 'concat)
-         `(document ,@(map ext-numbered-line (tm-children t))))
-        ((tree-multi-line? t)
-         (cons (tm-label t) (map ext-numbered-sub (tm-children t))))
-        (else t)))
-
-(define (ext-numbered-line t)
-  (if (tree-multi-line? t)
-      `(numbered-line ,(ext-numbered-sub t))
-      `(numbered-line ,t)))
+(define (wrap-line-numbered line lang)
+  (cond ((or (tree-is? line 'next-line) (tree-is? line 'new-line))
+         (list line))
+        ((tree-is? line 'document)
+         (apply append (map (lambda (child) (wrap-line-numbered child lang)) (tm-children line))))
+        ((tree-multi-line? line)
+         (apply append (map (lambda (child) (wrap-line-numbered child lang)) (tm-children line))))
+        (else
+         (if lang
+             (list `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line)))
+             (list `(numbered-line ,line))))))
 
 (tm-define (ext-numbered body)
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(map ext-numbered-line (tm-children body))))
+      `(numbered-block (document ,@(apply append (map (lambda (line) (wrap-line-numbered line #f)) (tm-children body)))))
       body))
 
 ;; Numbered function with programming language support
@@ -182,11 +180,7 @@
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(map (lambda (line)
-                                          (if (tree-multi-line? line)
-                                              `(numbered-line ,(ext-numbered-sub line))
-                                              `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line))))
-                                        (tm-children body))))
+      `(numbered-block (document ,@(apply append (map (lambda (line) (wrap-line-numbered line lang)) (tm-children body)))))
       body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
