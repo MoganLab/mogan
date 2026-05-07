@@ -88,6 +88,11 @@
                        (item)
                        (concat (item) "ddd")
                        "ddd"
+                       (item))))
+         (bare-item-doc
+          (tm->tree '(document
+                       (item)
+                       (concat (item) "ddd")
                        (item)))))
     (check (insert-blank-list-item
             up-doc
@@ -114,6 +119,14 @@
                  (concat (item) "ddd")
                  "ddd"
                  (item)
+                 (item)))
+    (check (insert-blank-list-item
+            bare-item-doc
+            (list-item-insert-index bare-item-doc 0 'enumerate #t))
+           => '(document
+                 (item)
+                 (item)
+                 (concat (item) "ddd")
                  (item)))))
 
 (define (test-list-structured-insert-blank-item)
@@ -138,7 +151,12 @@
                        (enumerate
                          (document (concat (item) "a.1")))
                        (concat (item) "b")
-                       (concat (item) "c")))))
+                       (concat (item) "c"))))
+         (bare-item-doc
+          (tm->tree '(document
+                       (item)
+                       (concat (item) "ddd")
+                       (item)))))
     (check (list-item-remove-range remove-up-doc 1 'enumerate #f)
            => '(0 1))
     (check (list-item-remove-range remove-down-doc 1 'enumerate #t)
@@ -152,7 +170,11 @@
     (check (remove-list-item-at nested-doc 0 #t)
            => '(document
                  (concat (item) "b")
-                 (concat (item) "c")))))
+                 (concat (item) "c")))
+    (check (remove-list-item-at bare-item-doc 0 #t)
+           => '(document
+                 (concat (item) "ddd")
+                 (item)))))
 
 (tm-define (test_221_10)
   (test-list-structured-insert-end-index)

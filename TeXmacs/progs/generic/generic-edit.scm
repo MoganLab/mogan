@@ -341,8 +341,9 @@
   (and lhs rhs (== (list-family lhs) (list-family rhs))))
 
 (tm-define (list-structured-insert-context?)
-  (and (current-list-item-marker)
-       (or (in-enumerate-context?) (in-itemize-context?))))
+  (and-with item (current-list-item-marker)
+    (in? (list-family (get-current-list-label item))
+         '(enumerate itemize))))
 
 (define (find-previous-item-index item-list start)
   (let loop ((i (- start 1)))
