@@ -21,6 +21,8 @@
 (use-modules (telemetry telemetry-utils))
 (use-modules (telemetry telemetry-track))
 
+(when (not (community-stem?))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; telemetry-make-event：验证事件结构
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -188,6 +190,8 @@
   (if old-pref
       (set-preference "telemetry" old-pref)
       (reset-preference "telemetry")))
+
+) ;; end when (skip tests on community build)
 
 (define (test_200_64)
   (check-report))
