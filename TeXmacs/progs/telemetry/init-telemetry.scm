@@ -33,10 +33,12 @@
 (define-public (init-telemetry)
   (if telemetry-scheduled?
     (display "Telemetry already initialized\n")
-    (if (telemetry-enabled?)
-      (begin
-        (set! telemetry-scheduled? #t)
-        (display "Telemetry enabled\n")
-        (on-exit (telemetry-flush-if-needed))
-        (telemetry-delayed))
-      (display "Telemetry disabled\n"))))
+    (begin
+      (telemetry-load-config)  ; Load configuration from env/preferences
+      (if (telemetry-enabled?)
+        (begin
+          (set! telemetry-scheduled? #t)
+          (display "Telemetry enabled\n")
+          (on-exit (telemetry-flush-if-needed))
+          (telemetry-delayed))
+        (display "Telemetry disabled\n")))))

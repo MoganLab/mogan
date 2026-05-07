@@ -89,6 +89,19 @@
 
 (define-public *telemetry-session-id* (telemetry-session-id))
 
+(define-public (telemetry-load-config)
+  "Load telemetry configuration from environment variables or preferences.
+   Returns #t if config loaded, #f otherwise."
+  (let ((env-buffer-size (system-getenv "MOGAN_TELEMETRY_BUFFER_SIZE"))
+        (env-flush-interval (system-getenv "MOGAN_TELEMETRY_FLUSH_INTERVAL")))
+    (if env-buffer-size
+      (set! telemetry-buffer-size (string->number env-buffer-size))
+      #f)
+    (if env-flush-interval
+      (set! telemetry-flush-interval-ms (string->number env-flush-interval))
+      #f)
+    #t))
+
 (define-public (telemetry-make-event event-type properties)
   `(("event_type" . ,event-type)
     ("timestamp_ms" . ,(telemetry-now))
