@@ -342,8 +342,9 @@
 
 (tm-define (list-structured-insert-context?)
   (and-with item (current-list-item-marker)
-    (in? (list-family (get-current-list-label item))
-         '(enumerate itemize))))
+    (or (in? (tree-label item) '(item item*))
+        (in? (list-family (get-current-list-label item))
+             '(enumerate itemize description)))))
 
 (define (find-previous-item-index item-list start)
   (let loop ((i (- start 1)))
@@ -363,8 +364,10 @@
   (if (null? strees) doc
       (tree-insert doc (tree-arity doc) strees)))
 
-(tm-define (blank-list-item-stree)
-  `(item))
+(tm-define (blank-list-item-stree list-type)
+  (if (== list-type 'description)
+      `(item*)
+      `(item)))
 
 (tm-define (list-item-end-index item-list item-index list-type)
   (let loop ((i (+ item-index 1)))
@@ -886,7 +889,8 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
 
 (tm-define (focus-can-insert-remove? t)
   (and (or (structured-horizontal? t) (structured-vertical? t))
-       (cursor-inside? t)))
+       (or (cursor-inside? t)
+           (in? (tree-label t) '(item item*)))))
 
 (tm-define (focus-can-insert? t)
   (< (tree-arity t) (tree-maximal-arity t)))
@@ -1017,14 +1021,13 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                                              'enumerate)))
                  (insert-pos (list-item-insert-index item-list item-index
                                                      list-type downwards?)))
-            (set! item-list
-                  (tree-insert item-list insert-pos
-                               (list (blank-list-item-stree))))
-            (let ((new-item (tree-ref item-list insert-pos)))
+            (let* ((new-list (tree-insert item-list insert-pos
+                                          (list (blank-list-item-stree list-type))))
+                   (new-item (tree-ref new-list insert-pos)))
               (if (and (tree-is? new-item 'concat)
                        (> (tree-arity new-item) 1))
                   (tree-go-to new-item 1 :end)
-                  (tree-go-to item-list insert-pos :end)))))))))
+                  (tree-go-to new-list insert-pos :end)))))))))
 
 (tm-define (structured-remove-vertical t downwards?)
   (:require (list-structured-insert-context?))
@@ -1038,11 +1041,11 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                  (range (list-item-remove-range item-list item-index
                                                 list-type downwards?)))
             (when range
-              (set! item-list (remove-list-item-range item-list range))
-              (let ((pos (min (car range) (- (tree-arity item-list) 1))))
+              (let* ((new-list (remove-list-item-range item-list range))
+                     (pos (min (car range) (- (tree-arity new-list) 1))))
                 (if (>= pos 0)
-                    (tree-go-to item-list pos :end)
-                    (tree-go-to item-list :end))))))))))
+                    (tree-go-to new-list pos :end)
+                    (tree-go-to new-list :end))))))))))
 
 (tm-define (structured-insert-extremal t forwards?)
   (structured-extremal t forwards?)

@@ -59,7 +59,7 @@
 
 (define (insert-blank-list-item doc pos)
   (tree->stree
-   (tree-insert doc pos (list (blank-list-item-stree)))))
+   (tree-insert doc pos (list (blank-list-item-stree 'enumerate)))))
 
 (define (remove-list-item-at doc item-index downwards?)
   (tree->stree
@@ -130,7 +130,7 @@
                  (item)))))
 
 (define (test-list-structured-insert-blank-item)
-  (check (blank-list-item-stree) => '(item)))
+  (check (blank-list-item-stree 'enumerate) => '(item)))
 
 (define (test-list-structured-remove-tree-shape)
   (let* ((remove-up-doc
