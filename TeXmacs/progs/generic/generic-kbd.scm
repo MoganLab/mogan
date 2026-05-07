@@ -224,6 +224,11 @@
   ("cmd t var var var var var" (make 'wide-block)))
 
 (kbd-map
+  (:require (list-structured-insert-context?))
+  ("structured:insert delete" (structured-remove-down))
+  ("structured:insert backspace" (structured-remove-up)))
+
+(kbd-map
   (:mode in-hybrid?)
   ("space" (hybrid-kbd-space))
   ("{" (hybrid-kbd-curly-left))

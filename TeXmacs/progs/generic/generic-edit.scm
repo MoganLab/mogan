@@ -382,10 +382,7 @@
 
 (tm-define (list-item-remove-range item-list item-index list-type downwards?)
   (if downwards?
-      (let ((start (list-item-end-index item-list item-index list-type)))
-        (and (< start (tree-arity item-list))
-             (list-item-node? (tree-ref item-list start))
-             (list start (list-item-end-index item-list start list-type))))
+      (list item-index (list-item-end-index item-list item-index list-type))
       (and-with start (find-previous-item-index item-list item-index)
         (list start item-index))))
 
