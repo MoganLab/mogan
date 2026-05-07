@@ -1723,6 +1723,7 @@
 ("page layout" "页面布局")
 ("Page number style layer" "页码样式层")
 ("page number text" "设定页码文字")
+("Page number" "页码")
 ("page number" "页码")
 ("page numbering" "页码")
 ("page reference" "页面参考")

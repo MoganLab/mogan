@@ -204,9 +204,13 @@
       (item (text "First page:")
         (input (set! pf answer) "string" (list pf) "6em"))
       (item (text "Number style:")
-        (enum (begin (set! nt answer))
-              '("arabic" "roman" "Roman" "hanzi")
-              "arabic"
+        (enum (set! nt (cond ((== answer "1, 2, 3") "arabic")
+                             ((== answer "i, ii, iii") "roman")
+                             ((== answer "I, II, III") "Roman")
+                             ((== answer "一, 二, 三") "hanzi")
+                             (else answer)))
+              '("1, 2, 3" "i, ii, iii" "I, II, III" "一, 二, 三")
+              "1, 2, 3"
               "10em"))))
   ======
   (explicit-buttons

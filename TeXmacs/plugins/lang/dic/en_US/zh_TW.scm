@@ -1213,6 +1213,7 @@
 ("page height" "")
 ("page insertion" "新增頁")
 ("page layout" "頁面布局")
+("Page number" "頁碼")
 ("page number text" "頁面編碼文字")
 ("page numbering" "頁數")
 ("page reference" "頁面参考")
