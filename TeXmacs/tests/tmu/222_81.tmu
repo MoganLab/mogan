@@ -83,25 +83,7 @@
     </listing>
   </algorithm>
 
-  <\specified-algorithm>
-    ddddd
-
-    dd
-  <|specified-algorithm>
-    \;
-
-    <\listing>
-      <\algo-if-else-if>
-        ddd
-
-        ddd
-
-        ddd
-
-        \;
-      </algo-if-else-if|>
-    </listing>
-  </specified-algorithm>
+  \;
 
   <\specified-algorithm|Test algo-if-else-if direct form>
     <\listing>
@@ -114,6 +96,30 @@
       </algo-if-else-if|>
 
       <algo-return|<math|y>>
+    </listing>
+  </specified-algorithm>
+
+  <\algorithm>
+    <\listing>
+      <\algo-if-else-if|d>
+        d
+
+        d
+
+        d
+      </algo-if-else-if>
+    </listing>
+  </algorithm>
+
+  <\specified-algorithm|dddd>
+    <\listing>
+      <\algo-if-else-if|d>
+        d
+
+        d
+
+        d
+      </algo-if-else-if>
     </listing>
   </specified-algorithm>
 </body>
