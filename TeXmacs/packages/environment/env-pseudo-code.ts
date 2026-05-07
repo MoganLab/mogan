@@ -149,40 +149,48 @@
   <assign|algo-for|<\macro|cond|block>
     <render-for> <arg|cond> <render-do><no-page-break>
 
+    <next-line>
     <\algo-indent>
       <arg|block>
     </algo-indent>
 
+    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-for-all|<\macro|cond|block>
     <render-for-all> <arg|cond> <render-do><no-page-break>
 
+    <next-line>
     <\algo-indent>
       <arg|block>
     </algo-indent>
 
+    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-for-each|<\macro|cond|block>
     <render-for-each> <arg|cond> <render-do><no-page-break>
 
+    <next-line>
     <\algo-indent>
       <arg|block>
     </algo-indent>
 
+    <next-line>
     <render-end-for><right-flush>
   </macro>>
 
   <assign|algo-while|<\macro|cond|block>
     <render-while> <arg|cond> <render-do><no-page-break>
 
+    <next-line>
     <\algo-indent>
       <arg|block>
     </algo-indent>
 
+    <next-line>
     <render-end-while><right-flush>
   </macro>>
 
@@ -249,18 +257,21 @@
   <assign|algo-if|<\macro|cond|body>
     <render-if> <arg|cond> <render-then><no-page-break>
 
+    <next-line>
     <algo-indent|<arg|body>>
   </macro>>
 
   <assign|algo-else-if|<\macro|cond|body>
     <render-else> <render-if> <arg|cond> <render-then><no-page-break>
 
+    <next-line>
     <algo-indent|<arg|body>>
   </macro>>
 
   <assign|algo-else|<\macro|body>
     <render-else><no-page-break>
 
+    <next-line>
     <algo-indent|<arg|body>>
   </macro>>
 
