@@ -759,7 +759,7 @@ unicode_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, bool ligf) {
     if (ligs > 0 && ligf && (((char) uc) == 'f' || ((char) uc) == 's'))
       uc= ligature_replace (uc, s, i);
     if (pc != 0xffffffff) x+= ROUND (fnm->kerning (pc, uc));
-    ren->draw (uc, fng, x, y);
+    ren->draw (uc, fng, x, y, uc);
     metric_struct* ex= fnm->get (uc);
     x+= ROUND (ex->x2);
     // if (fnm->kerning (pc, uc) != 0)

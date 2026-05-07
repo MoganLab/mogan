@@ -681,16 +681,17 @@ printer_rep::set_background (brush b) {
 }
 
 void
-printer_rep::draw (int ch, font_glyphs fn, SI x, SI y) {
-  // cout << "Draw " << ch << " at " << (x/PIXEL) << ", " << (y/PIXEL) << "\n";
+printer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
+                     int codepoint) {
+  // cout << "Draw " << glyph_index << " at " << (x/PIXEL) << ", " << (y/PIXEL) << "\n";
   if (opacity == 0) return;
-  glyph gl= fn->get (ch);
+  glyph gl= fn->get (glyph_index);
   if (is_nil (gl)) return;
   string        name= fn->res_name;
-  unsigned char c   = ch;
-  if (ch >= 256) {
-    name= name * "-" * as_string (ch / 256);
-    c   = (unsigned char) (ch & 255);
+  unsigned char c   = glyph_index;
+  if (glyph_index >= 256) {
+    name= name * "-" * as_string (glyph_index / 256);
+    c   = (unsigned char) (glyph_index & 255);
   }
   make_tex_char (name, c, gl);
   select_tex_font (name);

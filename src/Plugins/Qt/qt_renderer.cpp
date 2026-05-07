@@ -603,29 +603,31 @@ qt_renderer_rep::draw_bis (int c, font_glyphs fng, SI x, SI y) {
 }
 
 void
-qt_renderer_rep::draw (int c, font_glyphs fng, SI x, SI y) {
+qt_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
+                         int codepoint) {
+  (void) codepoint;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;
-  if (is_emoji_character (c)) {
-    if (draw_emoji (c, fng, x, y)) {
+  if (is_emoji_character (glyph_index)) {
+    if (draw_emoji (glyph_index, fng, x, y)) {
       return;
     }
   }
   if (pen->get_type () == pencil_brush) {
-    draw_bis (c, fng, x, y);
+    draw_bis (glyph_index, fng, x, y);
     return;
   }
 
   // get the pixmap
   color           fgc= pen->get_color ();
-  basic_character xc (c, fng, std_shrinkf, fgc, 0);
+  basic_character xc (glyph_index, fng, std_shrinkf, fgc, 0);
   qt_image        mi= character_image[xc];
   if (is_nil (mi)) {
     int r, g, b, a;
     get_rgb (fgc, r, g, b, a);
     if (get_reverse_colors ()) reverse (r, g, b);
     SI    xo, yo;
-    glyph pre_gl= fng->get (c);
+    glyph pre_gl= fng->get (glyph_index);
     if (is_nil (pre_gl)) return;
     glyph gl= shrink (pre_gl, std_shrinkf, std_shrinkf, xo, yo);
     int   i, j, w= gl->width, h= gl->height;

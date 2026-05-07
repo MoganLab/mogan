@@ -1053,11 +1053,13 @@ decode_index (FT_Face face, int i) {
 }
 
 void
-mupdf_renderer_rep::draw (int c, font_glyphs fng, SI x, SI y) {
+mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
+                            int codepoint) {
+  (void) codepoint;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;
-  if (is_emoji_character (c)) {
-    if (draw_emoji (c, fng, x, y)) return;
+  if (is_emoji_character (glyph_index)) {
+    if (draw_emoji (glyph_index, fng, x, y)) return;
   }
 
   string         fontname= fng->res_name;
@@ -1099,7 +1101,7 @@ mupdf_renderer_rep::draw (int c, font_glyphs fng, SI x, SI y) {
                  to_y (y) - prev_text_y);
     prev_text_x= to_x (x);
     prev_text_y= to_y (y);
-    glyph gl   = fng->get (c);
+    glyph gl   = fng->get (glyph_index);
     if (is_nil (gl)) return;
     unsigned int gl_index; // = gl->index;
     {
@@ -1111,7 +1113,7 @@ mupdf_renderer_rep::draw (int c, font_glyphs fng, SI x, SI y) {
       // MuPDF seems to like the glyph value returned by
       // ft_get_char_index on the FT_Face it will use.
       FT_Face face= (FT_Face) fontdesc->font->ft_face;
-      gl_index    = decode_index (face, c);
+      gl_index    = decode_index (face, glyph_index);
     }
     char glyphs[2]= {(char) (gl_index >> 8), (char) (gl_index)};
     proc->op_Tj (mupdf_context (), proc, glyphs, 2);
@@ -1124,20 +1126,20 @@ mupdf_renderer_rep::draw (int c, font_glyphs fng, SI x, SI y) {
 #if 0
   // FIXME: implement brushes!
   if (pen->get_type () == pencil_brush) {
-    draw_bis (c, fng, x, y);
+    draw_bis (glyph_index, fng, x, y);
     return;
   }
 #endif
   // get the pixmap
   color           fgc= pen->get_color ();
-  basic_character xc (c, fng, std_shrinkf, fgc, 0);
+  basic_character xc (glyph_index, fng, std_shrinkf, fgc, 0);
   mupdf_image     mi= character_image[xc];
   if (is_nil (mi)) {
     int r, g, b, a;
     get_rgb (fgc, r, g, b, a);
     if (get_reverse_colors ()) reverse (r, g, b);
     SI    xo, yo;
-    glyph pre_gl= fng->get (c);
+    glyph pre_gl= fng->get (glyph_index);
     if (is_nil (pre_gl)) return;
     glyph gl= shrink (pre_gl, std_shrinkf, std_shrinkf, xo, yo);
     int   w= gl->width, h= gl->height;

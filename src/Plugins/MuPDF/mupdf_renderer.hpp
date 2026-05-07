@@ -107,7 +107,7 @@ public:
   void set_background (brush b2);
 
   void draw_bis (int char_code, font_glyphs fn, SI x, SI y);
-  void draw (int char_code, font_glyphs fn, SI x, SI y);
+  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1);
   void draw_scalable (scalable im, SI x, SI y, int alpha);
 
   void line (SI x1, SI y1, SI x2, SI y2);
