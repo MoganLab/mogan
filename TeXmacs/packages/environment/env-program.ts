@@ -244,6 +244,8 @@
 
   <assign|numbered-line|<macro|body|<assign|line-nr|<plus|<value|line-nr>|1>><render-line-number|<value|line-nr>|<value|numbered-offset>><arg|body>>>
 
+  <assign|listing-active|false>
+
   <assign|listing-sep|0.2fn>
 
   <assign|numbered|<\macro|body>
@@ -255,7 +257,7 @@
   <drd-props|numbered|arity|1|accessible|all>
 
   <assign|listing|<\macro|body>
-    <\with|dummy1|<value|numbered-offset>|dummy2|<value|numbered-color>|dummy3|<value|numbered-font-size>|par-sep|<value|listing-sep>|par-par-sep|0fn>
+    <\with|dummy1|<value|numbered-offset>|dummy2|<value|numbered-color>|dummy3|<value|numbered-font-size>|par-sep|<value|listing-sep>|par-par-sep|0fn|listing-active|true>
       <extern|ext-numbered-prog|<quote-arg|body>|verbatim>
     </with>
   </macro>>

@@ -7,8 +7,8 @@
     <\listing>
       <algo-require|<math|n\<geq\>0>>
 
-      <algo-ensure|<math|y=x<rsup|n>>>>
-
+      <algo-ensure|<math|y=x<rsup|n>>>
+    <|listing>
       <algo-state|<math|y\<leftarrow\>1>>
 
       <\algo-while|<math|N\<neq\>0>>
@@ -35,8 +35,8 @@
     <\listing>
       <algo-require|<math|n\<geq\>0>>
 
-      <algo-ensure|<math|y=x<rsup|n>>>>
-
+      <algo-ensure|<math|y=x<rsup|n>>>
+    <|listing>
       <algo-state|<math|y\<leftarrow\>1>>
 
       <algo-state|<math|X\<leftarrow\>x>>
@@ -60,28 +60,48 @@
       </algo-while>
     </listing>
 
-    <\algorithm>
-      Algorithm with listing and if-else-if
-
-      <\listing>
-        <algo-state|<math|y\<leftarrow\>1>>
-
-        <\algo-if-else-if|<math|N> is even>
-          <algo-state|<math|X\<leftarrow\>X\<times\>X>>
-
-          <algo-state|<math|N\<leftarrow\><frac|N|2>> <algo-comment|even case>>
-        <|algo-if-else-if|<math|N> is odd>
-          <algo-state|<math|y\<leftarrow\>y\<times\>X>>
-
-          <algo-state|<math|N\<leftarrow\>N-1>> <algo-comment|odd case>
-        </algo-if-else-if|>
-
-        <algo-return|<math|y>>
-      </listing>
-    </algorithm>
+    \;
   </algorithm>
 
-  \;
+  <\algorithm>
+    Algorithm with listing and if-else-if
+
+    <\listing>
+      <algo-state|<math|y\<leftarrow\>1>>
+
+      <\algo-if-else-if|<math|N> is even>
+        <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+
+        <algo-state|<math|N\<leftarrow\><frac|N|2>> <algo-comment|even case>>
+      <|algo-if-else-if|<math|N> is odd>
+        <algo-state|<math|y\<leftarrow\>y\<times\>X>>
+
+        <algo-state|<math|N\<leftarrow\>N-1>> <algo-comment|odd case>
+      </algo-if-else-if|>
+
+      <algo-return|<math|y>>
+    </listing>
+  </algorithm>
+
+  <\specified-algorithm>
+    ddddd
+
+    dd
+  <|specified-algorithm>
+    \;
+
+    <\listing>
+      <\algo-if-else-if>
+        ddd
+
+        ddd
+
+        ddd
+
+        \;
+      </algo-if-else-if|>
+    </listing>
+  </specified-algorithm>
 </body>
 
 <initial|<\collection>
