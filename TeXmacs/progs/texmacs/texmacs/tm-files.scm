@@ -309,7 +309,8 @@
           ;; Remember directory for file dialog
           (remember-file-dialog-directory name)
           (set-message `(concat "Saved " ,vname) "Save file")
-          (auto-backup-buffer name kind)
+          (let ((backup-result (auto-backup-buffer name kind)))
+            (auto-backup-upload-buffer name backup-result))
           (save-buffer-post name opts))))))
 
 (define (save-buffer-check-faithful name opts)
@@ -493,7 +494,8 @@
         (begin
           (set-message `(concat "Exported to " ,vto) "Export file")
           (when (== fm "pdf")
-            (auto-backup-buffer name "export-pdf"))))))
+            (let ((backup-result (auto-backup-buffer name "export-pdf")))
+              (auto-backup-upload-buffer name backup-result)))))))
 
 (define (export-buffer-check-permissions name to fm opts)
   ;;(display* "export-buffer-check-permissions " name ", " to ", " fm "\n")
@@ -1460,7 +1462,9 @@
       "https://liiistem.com/?utm_source=auto_backup_button"))
 
 (tm-define (auto-backup-upload-buffer name backup-result)
-  (noop))
+  (when (== backup-result 'backup)
+    (import (session auto-cloud-backup))
+    (auto-cloud-backup-start-action-worker)))
 
 (tm-define (auto-backup-button-label)
   (if (community-stem?) "Open backup folder" "Cloud backup"))

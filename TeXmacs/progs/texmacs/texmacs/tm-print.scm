@@ -84,7 +84,8 @@
 (define (auto-backup-after-pdf-export fname)
   (when (and (== (url-suffix fname) "pdf")
              (url-exists? fname))
-    (auto-backup-buffer (current-buffer) "export-pdf")))
+    (let ((backup-result (auto-backup-buffer (current-buffer) "export-pdf")))
+      (auto-backup-upload-buffer (current-buffer) backup-result))))
 
 (tm-define (wrapped-print-to-file fname)
   (system-wait "Exporting, " (translate "please wait"))
