@@ -173,7 +173,11 @@
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(map ext-numbered-line (tm-children body))))
+      `(numbered-block (document ,@(map (lambda (line)
+                                          (if (tree-multi-line? line)
+                                              `(numbered-line ,(ext-numbered-sub line))
+                                              `(numbered-line ,line)))
+                                        (tm-children body))))
       body))
 
 ;; Numbered function with programming language support
@@ -183,7 +187,7 @@
   (if (tm-func? body 'document)
       `(numbered-block (document ,@(map (lambda (line)
                                           (if (tree-multi-line? line)
-                                              (ext-numbered-sub line)
+                                              `(numbered-line ,(ext-numbered-sub line))
                                               `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line))))
                                         (tm-children body))))
       body))
