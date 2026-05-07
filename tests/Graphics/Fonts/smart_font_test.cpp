@@ -51,6 +51,9 @@ TestSmartFont::test_resolve () {
 
   // int nr2= fn_rep->resolve (utf8_to_cork ("è"));
   // qcompare (fn_rep->fn[nr2]->res_name, "ec:ecrm10@600");
+
+  int nr_0x17= fn_rep->resolve (string ((char) 0x17));
+  qcompare (fn_rep->fn[nr_0x17]->res_name, "ec:ecrm10@600");
 }
 
 void
