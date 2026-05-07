@@ -160,24 +160,19 @@
   (cond ((tree-is? t 'document)
          `(document ,@(map ext-numbered-line (tm-children t))))
         ((tree-multi-line? t)
-         (with rew (cons (tm-label t) (map ext-numbered-sub (tm-children t)))
-           (ext-mark ext-numbered-root t "body" rew)))
+         (cons (tm-label t) (map ext-numbered-sub (tm-children t))))
         (else t)))
 
 (define (ext-numbered-line t)
   (if (tree-multi-line? t)
-      (ext-numbered-sub t)
+      `(numbered-line ,(ext-numbered-sub t))
       `(numbered-line ,t)))
 
 (tm-define (ext-numbered body)
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(map (lambda (line)
-                                          (if (tree-multi-line? line)
-                                              `(numbered-line ,(ext-numbered-sub line))
-                                              `(numbered-line ,line)))
-                                        (tm-children body))))
+      `(numbered-block (document ,@(map ext-numbered-line (tm-children body))))
       body))
 
 ;; Numbered function with programming language support

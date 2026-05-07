@@ -1,8 +1,14 @@
-<TMU|<tuple|1.1.0|2025.2.0-beta1>>
+<TMU|<tuple|1.1.0|2026.2.3>>
 
 <style|<tuple|generic|chinese|number-europe|modern-program>>
 
 <\body>
+  <\algorithm>
+    <\listing>
+      <algo-while||>
+    </listing>
+  </algorithm>
+
   <\algorithm>
     Algorithm with listing and control structures
 
@@ -21,44 +27,47 @@
         <\algo-if|<math|N> is even>
           <algo-state|<math|X\<leftarrow\>X\<times\>X>>
 
-          <algo-state|<math|N\<leftarrow\><frac|N|2>>
+          <algo-state|<math|N\<leftarrow\><frac|N|2>> >
+
+          <\algo-if|<math|N> is odd>
+            <algo-state|<math|y\<leftarrow\>y\<times\>X>>
+
+            <algo-state|<math|N\<leftarrow\>N-1>>
+          </algo-if>
         </algo-if>
 
-        <\algo-if|<math|N> is odd>
+        <algo-return|<math|y>>
+      </algo-while>
+    </listing>
+
+    <\algorithm>
+      Algorithm with listing and if-else-if
+
+      <\listing>
+        <algo-state|<math|y\<leftarrow\>1>>
+
+        <\algo-if-else-if|<math|N> is even>
+          <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+
+          <algo-state|<math|N\<leftarrow\><frac|N|2>> <algo-comment|even case>>
+        <|algo-if-else-if|<math|N> is odd>
           <algo-state|<math|y\<leftarrow\>y\<times\>X>>
 
-          <algo-state|<math|N\<leftarrow\>N-1>>
-        </algo-if>
-      </algo-while>
+          <algo-state|<math|N\<leftarrow\>N-1>> <algo-comment|odd case>
+        </algo-if-else-if|>
 
-      <algo-return|<math|y>>
-    </listing>
+        <algo-return|<math|y>>
+      </listing>
+    </algorithm>
   </algorithm>
 
-  <\algorithm>
-    Algorithm with listing and if-else-if
-
-    <\listing>
-      <algo-state|<math|y\<leftarrow\>1>>
-
-      <\algo-if-else-if|<math|N> is even>
-        <algo-state|<math|X\<leftarrow\>X\<times\>X>>
-
-        <algo-state|<math|N\<leftarrow\><frac|N|2>> <algo-comment|even case>>
-      <|algo-if-else-if|<math|N> is odd>
-        <algo-state|<math|y\<leftarrow\>y\<times\>X>>
-
-        <algo-state|<math|N\<leftarrow\>N-1>> <algo-comment|odd case>>
-      </algo-if-else-if>
-
-      <algo-return|<math|y>>
-    </listing>
-  </algorithm>
+  <\initial>
+    <\collection>
+      <associate|page-medium|papyrus>
+      <associate|page-screen-margin|false>
+    </collection>
+  </initial>
 </body>
 
-<\initial>
-  <\collection>
-    <associate|page-medium|papyrus>
-    <associate|page-screen-margin|false>
-  </collection>
-</initial>
+<initial|<\collection>
+</collection>>
