@@ -1428,9 +1428,9 @@
 (tm-define (auto-backup-all)
   (let ((buffers (buffer-list)))
     (auto-backup-log
-     (string-append "periodic-scan buffers="
+     (string-append "auto-scan buffers="
                     (number->string (length buffers))))
-    (for-each (lambda (name) (auto-backup-buffer name "periodic"))
+    (for-each (lambda (name) (auto-backup-buffer name "auto"))
               buffers)))
 
 (tm-define (auto-backup-now)
