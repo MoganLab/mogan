@@ -23,20 +23,25 @@
   (liii list)
 )
 
-(define-public telemetry-buffer-size 10)
 (define-public telemetry-max-queue-size 1000)
 (define-public *telemetry-event-queue* '())
+
+;; Safeguards: file size limit and event aging
+(define telemetry-max-file-size-bytes 10485760)  ; 10 MB
+(define telemetry-max-event-age-ms 604800000)    ; 7 days in ms
 
 (define-public (track-event event-type properties)
   (if (not (telemetry-enabled?))
     #f
     (if (and (string? event-type) (not (string-null? event-type)))
       (begin
-        (display (string-append "[telemetry] scheme track: " event-type "\n"))
         (set! *telemetry-event-queue*
           (cons (telemetry-make-event event-type properties)
                 *telemetry-event-queue*))
         (let ((len (length *telemetry-event-queue*)))
+          (display (string-append "[telemetry] track: " event-type
+                                  " (queue: " (number->string len)
+                                  "/" (number->string telemetry-buffer-size) ")\n"))
           (if (> len telemetry-max-queue-size)
             (set! *telemetry-event-queue*
               (list-head *telemetry-event-queue* telemetry-max-queue-size)))
@@ -52,9 +57,33 @@
       (telemetry-flush)
       #t)))
 
-;; ---------------------------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Event aging: drop events older than 7 days before flush
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (telemetry-filter-stale-events events)
+  (let ((now (telemetry-now))
+        (stale-count 0))
+    (define (loop evts acc)
+      (if (null? evts)
+        (begin
+          (if (> stale-count 0)
+            (display (string-append "[telemetry] warn: dropped "
+                                    (number->string stale-count)
+                                    " stale event(s)\n")))
+          (reverse acc))
+        (let ((ev (car evts)))
+          (let ((ts (assoc-ref ev "timestamp_ms")))
+            (if (and (number? ts) (> (- now ts) telemetry-max-event-age-ms))
+              (begin
+                (set! stale-count (+ stale-count 1))
+                (loop (cdr evts) acc))
+              (loop (cdr evts) (cons ev acc)))))))
+    (loop events '())))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Flush implementation (merged from telemetry-flush to share mutable state)
-;; ---------------------------------------------------------------------------
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define telemetry-lock-timeout-seconds 30)
 
@@ -124,21 +153,33 @@
       (catch #t
         (lambda ()
           (let* ((text (string-join lines "\n"))
+                 (new-size (string-length text))
                  (existing (if (path-exists? path)
                              (string-trim-right (string-load path))
-                             "")))
-            (if (and (string? existing) (> (string-length existing) 0))
-              (string-save
-                (string-append existing "\n" text)
-                path)
-              (string-save text path))
-            (display (string-append "[telemetry] flushed "
+                             ""))
+                 (existing-size (if (string? existing)
+                                  (string-length existing)
+                                  0)))
+            ;; File size safeguard: if total would exceed 10MB, drop old content
+            (if (> (+ existing-size new-size 1) telemetry-max-file-size-bytes)
+              (begin
+                (display (string-append "[telemetry] warn: file size limit (10MB) reached, "
+                                        "dropping old events, keeping "
+                                        (number->string (length events))
+                                        " new event(s)\n"))
+                (string-save text path))
+              (if (and (string? existing) (> (string-length existing) 0))
+                (string-save
+                  (string-append existing "\n" text)
+                  path)
+                (string-save text path)))
+            (display (string-append "[telemetry] flush: "
                                     (number->string (length events))
-                                    " event(s) to "
+                                    " events -> "
                                     path "\n"))
             #t))
         (lambda args
-          (display (string-append "[telemetry] write error: "
+          (display (string-append "[telemetry] error: write failed: "
                                   (object->string args) "\n"))
           #f)))))
 
@@ -147,9 +188,17 @@
     #t
     (let ((owner (telemetry-acquire-lock)))
       (if owner
-        (begin
-          (telemetry-write-pending *telemetry-event-queue*)
-          (set! *telemetry-event-queue* '())
-          (telemetry-release-lock owner)
-          #t)
+        (let* ((fresh-events (telemetry-filter-stale-events *telemetry-event-queue*))
+               (ok? (telemetry-write-pending fresh-events)))
+          (if ok?
+            (begin
+              (set! *telemetry-event-queue* '())
+              (telemetry-release-lock owner)
+              #t)
+            (begin
+              (display (string-append "[telemetry] error: flush failed, keeping "
+                                      (number->string (length *telemetry-event-queue*))
+                                      " events in memory queue\n"))
+              (telemetry-release-lock owner)
+              #f)))
         #f))))

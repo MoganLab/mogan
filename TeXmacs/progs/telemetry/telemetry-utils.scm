@@ -21,6 +21,9 @@
   (liii uuid)
 )
 
+(define-public telemetry-buffer-size 10)
+(define-public telemetry-flush-interval-ms 60000)
+
 (define-public (telemetry-enabled?)
   (let ((pref (get-preference "telemetry")))
     (not (or (== pref "off") (== pref "0")))))
@@ -90,17 +93,28 @@
 (define-public *telemetry-session-id* (telemetry-session-id))
 
 (define-public (telemetry-load-config)
-  "Load telemetry configuration from environment variables or preferences.
-   Returns #t if config loaded, #f otherwise."
-  (let ((env-buffer-size (system-getenv "MOGAN_TELEMETRY_BUFFER_SIZE"))
-        (env-flush-interval (system-getenv "MOGAN_TELEMETRY_FLUSH_INTERVAL")))
-    (if env-buffer-size
-      (set! telemetry-buffer-size (string->number env-buffer-size))
-      #f)
-    (if env-flush-interval
-      (set! telemetry-flush-interval-ms (string->number env-flush-interval))
-      #f)
-    #t))
+  (let ((result '()))
+    (let ((env-buffer-size (system-getenv "MOGAN_TELEMETRY_BUFFER_SIZE")))
+      (if (and env-buffer-size (> (string-length env-buffer-size) 0))
+        (let ((val (string->number env-buffer-size)))
+          (if (and (number? val) (> val 0))
+            (begin
+              (set! telemetry-buffer-size (inexact->exact (truncate val)))
+              (set! result (acons 'buffer-size telemetry-buffer-size result)))
+            (display (string-append "[telemetry] warn: invalid MOGAN_TELEMETRY_BUFFER_SIZE="
+                                    env-buffer-size ", using default "
+                                    (number->string telemetry-buffer-size) "\n"))))))
+    (let ((env-flush-interval (system-getenv "MOGAN_TELEMETRY_FLUSH_INTERVAL")))
+      (if (and env-flush-interval (> (string-length env-flush-interval) 0))
+        (let ((val (string->number env-flush-interval)))
+          (if (and (number? val) (> val 0))
+            (begin
+              (set! telemetry-flush-interval-ms (inexact->exact (truncate val)))
+              (set! result (acons 'flush-interval telemetry-flush-interval-ms result)))
+            (display (string-append "[telemetry] warn: invalid MOGAN_TELEMETRY_FLUSH_INTERVAL="
+                                    env-flush-interval ", using default "
+                                    (number->string telemetry-flush-interval-ms) "ms\n"))))))
+    result))
 
 (define-public (telemetry-make-event event-type properties)
   `(("event_type" . ,event-type)

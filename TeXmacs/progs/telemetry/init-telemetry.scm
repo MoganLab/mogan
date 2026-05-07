@@ -17,7 +17,6 @@
 
 (import (scheme base))
 
-(define telemetry-flush-interval-ms 60000)
 (define telemetry-scheduled? #f)
 
 (define (telemetry-scheduler-step)
@@ -32,13 +31,20 @@
 
 (define-public (init-telemetry)
   (if telemetry-scheduled?
-    (display "Telemetry already initialized\n")
+    (display "[telemetry] init: already initialized\n")
     (begin
-      (telemetry-load-config)  ; Load configuration from env/preferences
+      (let ((loaded (telemetry-load-config)))
+        (if (not (null? loaded))
+          (display (string-append "[telemetry] init: loaded config "
+                                  (object->string loaded) "\n"))))
       (if (telemetry-enabled?)
         (begin
           (set! telemetry-scheduled? #t)
-          (display "Telemetry enabled\n")
+          (display (string-append "[telemetry] init: enabled, buffer="
+                                  (number->string telemetry-buffer-size)
+                                  ", interval="
+                                  (number->string telemetry-flush-interval-ms)
+                                  "ms\n"))
           (on-exit (telemetry-flush-if-needed))
           (telemetry-delayed))
-        (display "Telemetry disabled\n")))))
+        (display "[telemetry] init: disabled\n")))))
