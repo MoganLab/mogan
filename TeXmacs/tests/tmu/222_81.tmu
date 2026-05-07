@@ -3,6 +3,26 @@
 <style|<tuple|generic|chinese|number-europe|modern-program>>
 
 <\body>
+  <\specified-algorithm|Test specified-algorithm with listing>
+    <\listing>
+      <algo-require|<math|n\<geq\>0>>
+
+      <algo-ensure|<math|y=x<rsup|n>>>>
+
+      <algo-state|<math|y\<leftarrow\>1>>
+
+      <\algo-while|<math|N\<neq\>0>>
+        <\algo-if|<math|N> is even>
+          <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+
+          <algo-state|<math|N\<leftarrow\><frac|N|2>>>
+        </algo-if>
+
+        <algo-return|<math|y>>
+      </algo-while>
+    </listing>
+  </specified-algorithm>
+
   <\algorithm>
     <\listing>
       <algo-while||>
@@ -15,7 +35,7 @@
     <\listing>
       <algo-require|<math|n\<geq\>0>>
 
-      <algo-ensure|<math|y=x<rsup|n>>>
+      <algo-ensure|<math|y=x<rsup|n>>>>
 
       <algo-state|<math|y\<leftarrow\>1>>
 
