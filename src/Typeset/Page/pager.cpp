@@ -302,15 +302,15 @@ pager_rep::make_pages () {
   int nr_pages= N (pages);
   int nx      = max (1, min (env->page_packet, nr_pages));
   if (env->page_packet == 2) nx= max (1, env->page_packet);
-  int d       = env->page_offset % nx;
-  int ny      = ((nr_pages + nx - 1 + d) / nx);
+  int d = env->page_offset % nx;
+  int ny= ((nr_pages + nx - 1 + d) / nx);
 
-  SI         pixel= env->pixel;
-  SI         vgap = 0;
+  SI pixel= env->pixel;
+  SI vgap = 0;
   if (env->get_string (PAGE_BORDER) == "none") {
     vgap= 2 * pixel;
   }
-  array<box> pg   = pages;
+  array<box> pg= pages;
   if (env->get_string (PAGE_MEDIUM) == "paper")
     for (int i= 0; i < nx; i++)
       for (int j= 0; j < ny; j++) {
@@ -357,7 +357,8 @@ pager_rep::make_pages () {
       yy[j]= yy[j - 1];
       for (int i= 0; i < nx; i++) {
         int p= j * nx + i - d;
-        if (p >= 0 && p < nr_pages) yy[j]= min (yy[j - 1] - pg[p]->h () - vgap, yy[j]);
+        if (p >= 0 && p < nr_pages)
+          yy[j]= min (yy[j - 1] - pg[p]->h () - vgap, yy[j]);
       }
     }
 
