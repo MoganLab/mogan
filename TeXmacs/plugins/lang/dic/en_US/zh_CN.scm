@@ -1822,6 +1822,7 @@
 ("preamble" "")
 ("preferences for tag" "全局设置")
 ("preferences" "首选项")
+("prefix by section number" "以章节号为前缀")
 ("Prepend chapter number prefix for section numbers" "节编号显示章编号的前缀")
 ("presentation mode" "演讲模式")
 ("Presentation slides" "演示文稿")
