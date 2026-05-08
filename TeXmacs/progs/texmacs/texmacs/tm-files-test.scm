@@ -88,9 +88,9 @@
    "auto-backup" "official url"
    (lambda (case)
      (and (== case "utm")
-          (in? (auto-backup-official-url)
-               '("https://liiistem.cn/?utm_source=auto_backup_button"
-                 "https://liiistem.com/?utm_source=auto_backup_button"))))
+           (in? (auto-backup-official-url)
+                '("https://liiistem.cn/personal-center/backup.html?utm_source=auto_backup_button"
+                  "https://liiistem.com/?utm_source=auto_backup_button"))))
    :none
    (test "utm source" "utm" #t)))
 

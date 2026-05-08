@@ -1456,7 +1456,7 @@
 
 (tm-define (auto-backup-official-url)
   (if (== (get-output-language) "chinese")
-      "https://liiistem.cn/?utm_source=auto_backup_button"
+      "https://liiistem.cn/personal-center/backup.html?utm_source=auto_backup_button"
       "https://liiistem.com/?utm_source=auto_backup_button"))
 
 (tm-define (auto-backup-upload-buffer name backup-result)
