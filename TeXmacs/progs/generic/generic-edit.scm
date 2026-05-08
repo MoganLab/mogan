@@ -145,7 +145,8 @@
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
   (with macro (find-algo-macro-ancestor t)
-    (tree-go-to macro 1 :start)))
+    (tree-go-to macro 0 :end)
+    (go-right)))
 
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t)
