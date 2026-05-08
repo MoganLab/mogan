@@ -648,13 +648,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind page-rendering-menu
-  ("Paper" (init-page-rendering "paper"))
-  ("Papyrus" (init-page-rendering "papyrus"))
+  ("Single Page" (init-page-rendering "paper"))
+  ("Continuous Scroll" (init-page-rendering "papyrus"))
   ("Screen" (init-page-rendering "automatic"))
-  ("Beamer" (init-page-rendering "beamer"))
-  ("Book" (init-page-rendering "book"))
+  (assuming (in-beamer?)
+    ("Beamer" (init-page-rendering "beamer")))
+  ("Two Page" (init-page-rendering "book"))
   ("Panorama" (init-page-rendering "panorama"))
-  ("Slideshow" (init-page-rendering "slideshow")))
+  (assuming (in-beamer?)
+    ("Slideshow" (init-page-rendering "slideshow"))))
 
 (menu-bind page-layout-menu
   ("Margins as on paper" (toggle-page-screen-margin))
@@ -1068,7 +1070,7 @@
       ("Landscape" (init-page-orientation "landscape")))
   (-> (eval (number-columns-text (get-init "par-columns")))
       (link document-columns-menu))
-  (-> (eval (upcase-first (get-init-page-rendering)))
+  (-> (eval (page-rendering-label (get-init-page-rendering)))
       (link page-rendering-menu))
   (-> "Layout"
       (link page-layout-menu))

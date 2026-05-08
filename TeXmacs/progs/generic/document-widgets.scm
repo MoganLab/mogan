@@ -140,12 +140,29 @@
   (== (initial-get u "page-type") "user"))
 
 (define (encode-rendering s)
-  (cond ((== s "screen") "automatic")
+  (cond ((== s "Single Page") "paper")
+        ((== s "Continuous Scroll") "papyrus")
+        ((== s "Screen") "automatic")
+        ((== s "Beamer") "beamer")
+        ((== s "Two Page") "book")
+        ((== s "Panorama") "panorama")
         (else s)))
 
 (define (decode-rendering s)
-  (cond ((== s "automatic") "screen")
+  (cond ((== s "paper") "Single Page")
+        ((== s "papyrus") "Continuous Scroll")
+        ((== s "automatic") "Screen")
+        ((== s "beamer") "Beamer")
+        ((== s "book") "Two Page")
+        ((== s "panorama") "Panorama")
         (else s)))
+
+(define (page-rendering-options)
+  (if (in-beamer?)
+      '("Single Page" "Continuous Scroll" "Screen"
+        "Beamer" "Two Page" "Panorama")
+      '("Single Page" "Continuous Scroll" "Screen"
+        "Two Page" "Panorama")))
 
 (define (encode-crop-marks s)
   (cond ((== s "none") "")
@@ -248,7 +265,7 @@
       (aligned
         (item (text "Page rendering:")
           (enum (initial-set-page-rendering u (encode-rendering answer))
-                '("paper" "papyrus" "screen" "beamer" "book" "panorama")
+                (page-rendering-options)
                 (decode-rendering (initial-get-page-rendering u)) "10em"))
         (item (text "Page type:")
           (enum (begin

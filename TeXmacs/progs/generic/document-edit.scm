@@ -325,6 +325,16 @@
               (nnot (tree-innermost 'slideshow))) "slideshow")
         (else (get-init "page-medium"))))
 
+(tm-define (page-rendering-label s)
+  (cond ((== s "paper") "Single Page")
+        ((== s "papyrus") "Continuous Scroll")
+        ((== s "automatic") "Screen")
+        ((== s "beamer") "Beamer")
+        ((== s "book") "Two Page")
+        ((== s "panorama") "Panorama")
+        ((== s "slideshow") "Slideshow")
+        (else s)))
+
 (define (test-page-rendering? s) (== (get-init-page-rendering) s))
 (tm-define (init-page-rendering s)
   (:check-mark "*" test-page-rendering?)
