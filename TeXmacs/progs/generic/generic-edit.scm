@@ -1034,7 +1034,7 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                        (> (tree-arity new-item) 1))
                   (tree-go-to new-item 1 :end)
                   (if (tree-is? new-item 'item*)
-                      (tree-go-to new-list insert-pos :start)
+                      (tree-go-to new-item 0 :start)
                       (tree-go-to new-list insert-pos :end))))))))))
 
 (tm-define (structured-remove-vertical t downwards?)
