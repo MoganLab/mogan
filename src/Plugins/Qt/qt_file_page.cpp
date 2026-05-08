@@ -38,6 +38,7 @@
 #include <memory>
 
 #include "qt_dpi_utils.hpp"
+#include "qt_floating_toast.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
@@ -437,6 +438,14 @@ QtFilePage::loadRecentDocs () {
   }
   recentPaths.removeDuplicates ();
 
+  QStringList existingPaths;
+  for (const QString& path : recentPaths) {
+    if (QFile::exists (path)) {
+      existingPaths.append (path);
+    }
+  }
+  recentPaths= existingPaths;
+
   QString filePath= getRecentDocsFilePath ();
   QFile   file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
@@ -684,6 +693,14 @@ QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
 
   QString path= item->data (Qt::UserRole).toString ();
   if (path.isEmpty ()) return;
+
+  if (!QFile::exists (path)) {
+    QtFloatingToast::showToast (
+        recentList_, qt_translate ("File not found, removed from recent list"),
+        3000, QtFloatingToast::Error);
+    removeRecentDoc (path);
+    return;
+  }
 
   addRecentDoc (path);
 

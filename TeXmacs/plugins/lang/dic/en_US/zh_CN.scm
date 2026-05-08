@@ -820,6 +820,7 @@
 ("field" "区域")
 ("figure" "图")
 ("file name" "文件名")
+("File not found, removed from recent list" "文件未找到，已从最近列表中移除")
 ("file not found" "无此文件")
 ("file type" "文件类型")
 ("file" "文件")
