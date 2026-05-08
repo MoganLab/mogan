@@ -81,8 +81,9 @@ void
 QtFloatingToast::updatePosition (QWidget* anchorWidget) {
   if (!anchorWidget) return;
   QWidget* window= anchorWidget->window ();
-  int      x     = (window->width () - width ()) / 2;
-  int      y     = (window->height () - height ()) / 8;
+  QRect    geo   = window->geometry ();
+  int      x     = geo.x () + (geo.width () - width ()) / 2;
+  int      y     = geo.y () + (geo.height () - height ()) / 8;
   move (x, y);
 }
 
@@ -99,9 +100,9 @@ QtFloatingToast::startFadeOut () {
   fadeAnimation_->stop ();
   fadeAnimation_->setStartValue (1.0);
   fadeAnimation_->setEndValue (0.0);
-  disconnect (fadeAnimation_, &QPropertyAnimation::finished, nullptr, nullptr);
-  connect (fadeAnimation_, &QPropertyAnimation::finished, this,
-           &QObject::deleteLater);
+  if (fadeConnection_) disconnect (fadeConnection_);
+  fadeConnection_= connect (fadeAnimation_, &QPropertyAnimation::finished, this,
+                            &QObject::deleteLater);
   fadeAnimation_->start ();
 }
 

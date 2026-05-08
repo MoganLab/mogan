@@ -42,11 +42,12 @@ private:
   void startFadeIn ();
   void startFadeOut ();
 
-  QLabel*             label_        = nullptr;
-  QHBoxLayout*        layout_       = nullptr;
-  QPropertyAnimation* fadeAnimation_= nullptr;
-  QTimer*             hideTimer_    = nullptr;
-  Type                type_         = Success;
+  QLabel*                 label_        = nullptr;
+  QHBoxLayout*            layout_       = nullptr;
+  QPropertyAnimation*     fadeAnimation_= nullptr;
+  QTimer*                 hideTimer_    = nullptr;
+  QMetaObject::Connection fadeConnection_;
+  Type                    type_= Success;
 };
 
 #endif
