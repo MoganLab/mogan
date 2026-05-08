@@ -340,7 +340,7 @@
          (init-env "page-packet" "2")
          (init-env "page-offset" "0")
 	 (notify-page-change)
-	 (delayed (:idle 25) (restore-zoom s)))
+	 (delayed (:idle 25) (fit-to-screen-width)))
         ((== s "panorama")
          (init-env "page-medium" "paper")
          (init-env "page-packet" (number->string (panorama-packets)))
