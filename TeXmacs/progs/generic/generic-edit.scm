@@ -110,43 +110,36 @@
     algo-for-each algo-repeat algo-loop algo-procedure algo-function
     algo-if-else-if))
 
-(define (in-listing-context? t)
-  (and t
-       (tree-search-upwards t (lambda (n) (tree-in? n '(listing))))))
-
-;; Fast path: only check direct parent and grandparent.
-;; Algorithm macro arguments are rarely nested more than 3 levels deep.
-(define (find-algo-macro-ancestor t)
-  "Find the nearest algo-macro ancestor of t, or t itself"
-  (cond ((not t) #f)
-        ((tree-in? t algo-macro-tags) t)
-        (else
-          (let ((p (tree-outer t)))
-            (cond ((not p) #f)
-                  ((tree-in? p algo-macro-tags) p)
-                  (else
-                    (let ((gp (tree-outer p)))
-                      (cond ((not gp) #f)
-                            ((tree-in? gp algo-macro-tags) gp)
-                            (else #f)))))))))
-
+;; Check if cursor is in algo macro's first param, only when inside listing.
+;; Single upward pass: track whether we've passed through listing.
 (define (cursor-in-algo-macro-first-param? t)
-  (and (in-listing-context? t)
-       (with macro (find-algo-macro-ancestor t)
-         (let* ((path (cursor-path))
-                (macro-path (tree->path macro)))
-           (and macro-path
-                (> (length path) (length macro-path))
-                (let ((param-index (list-ref path (length macro-path))))
-                  (and (integer? param-index)
-                       (== param-index 0)
-                       (> (tree-arity macro) 1))))))))
+  (define (check node in-listing?)
+    (if (or (not node) (tree-is-buffer? node))
+        #f
+        (let ((p (tree-outer node)))
+          (cond ((not p) #f)
+                ((tree-in? p '(listing))
+                 (check p #t))
+                ((tree-in? p algo-macro-tags)
+                 (and in-listing?
+                      (let* ((path (cursor-path))
+                             (p-path (tree->path p)))
+                        (and p-path
+                             (> (length path) (length p-path))
+                             (let ((param-index (list-ref path (length p-path))))
+                               (and (integer? param-index)
+                                    (== param-index 0)
+                                    (> (tree-arity p) 1)))))))
+                (else (check p in-listing?))))))
+  (check t #f))
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
-  (with macro (find-algo-macro-ancestor t)
-    (tree-go-to macro 0 :end)
-    (go-right)))
+  (let* ((path (cursor-path))
+         (p (tree-outer t))
+         (p-path (tree->path p))
+         (param-index (list-ref path (length p-path))))
+    (tree-go-to p (1+ param-index) :start)))
 
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t)
