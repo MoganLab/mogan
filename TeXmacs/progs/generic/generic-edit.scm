@@ -1058,7 +1058,7 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
                         (tree-go-to parent-doc list-index :end)))
                     (if (>= pos 0)
                         (tree-go-to new-list pos :end)
-                        (tree-go-to new-list :end))))))))))
+                        (tree-go-to new-list :end)))))))))))
 
 (tm-define (structured-insert-extremal t forwards?)
   (structured-extremal t forwards?)
