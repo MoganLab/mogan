@@ -110,36 +110,25 @@
     algo-for-each algo-repeat algo-loop algo-procedure algo-function
     algo-if-else-if))
 
-;; Check if cursor is in algo macro's first param, only when inside listing.
-;; Single upward pass: track whether we've passed through listing.
+;; Fast check: only evaluate when parent is an algo-macro.
+;; This avoids tree-search on every Enter press outside algo macros.
 (define (cursor-in-algo-macro-first-param? t)
-  (define (check node in-listing?)
-    (if (or (not node) (tree-is-buffer? node))
-        #f
-        (let ((p (tree-outer node)))
-          (cond ((not p) #f)
-                ((tree-in? p '(listing))
-                 (check p #t))
-                ((tree-in? p algo-macro-tags)
-                 (and in-listing?
-                      (let* ((path (cursor-path))
-                             (p-path (tree->path p)))
-                        (and p-path
-                             (> (length path) (length p-path))
-                             (let ((param-index (list-ref path (length p-path))))
-                               (and (integer? param-index)
-                                    (== param-index 0)
-                                    (> (tree-arity p) 1)))))))
-                (else (check p in-listing?))))))
-  (check t #f))
+  (and-with p (tree-outer t)
+    (and (tree-in? p algo-macro-tags)
+         (let* ((path (cursor-path))
+                (p-path (tree->path p)))
+           (and p-path
+                (> (length path) (length p-path))
+                (let ((param-index (list-ref path (length p-path))))
+                  (and (integer? param-index)
+                       (== param-index 0)
+                       (> (tree-arity p) 1)
+                       (tree-search-upwards p (lambda (n) (tree-in? n '(listing))))))))))
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
-  (let* ((path (cursor-path))
-         (p (tree-outer t))
-         (p-path (tree->path p))
-         (param-index (list-ref path (length p-path))))
-    (tree-go-to p (1+ param-index) :start)))
+  (with macro (tree-outer t)
+    (tree-go-to macro 1 :start)))
 
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t)
