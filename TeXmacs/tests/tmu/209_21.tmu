@@ -100,26 +100,24 @@
   </specified-algorithm>
 
   <\algorithm>
+    Corrected algo-if-else-if test
+
     <\listing>
-      <\algo-if-else-if|d>
-        d
-
-        d
-
-        d
-      </algo-if-else-if>
+      <\algo-if-else-if|<math|N> is even>
+        <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+      <|algo-if-else-if|<math|N> is odd>
+        <algo-state|<math|y\<leftarrow\>y\<times\>X>>
+      </algo-if-else-if|>
     </listing>
   </algorithm>
 
-  <\specified-algorithm|dddd>
+  <\specified-algorithm|Corrected algo-if-else-if>
     <\listing>
-      <\algo-if-else-if|d>
-        d
-
-        d
-
-        d
-      </algo-if-else-if>
+      <\algo-if-else-if|<math|N> is even>
+        <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+      <|algo-if-else-if|<math|N> is odd>
+        <algo-state|<math|y\<leftarrow\>y\<times\>X>>
+      </algo-if-else-if|>
     </listing>
   </specified-algorithm>
 
@@ -128,6 +126,10 @@
       import numpy as np
     </python-code>
   </listing>
+
+  <\algo-if|<math|N> is even>
+    <algo-state|<math|X\<leftarrow\>X\<times\>X>>
+  </algo-if>
 
   \;
 </body>
