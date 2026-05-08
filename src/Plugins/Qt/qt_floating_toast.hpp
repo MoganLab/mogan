@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : qt_floating_toast.cpp
+ * MODULE     : qt_floating_toast.hpp
  * DESCRIPTION: Floating toast implementation
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
@@ -46,7 +46,7 @@ private:
   QHBoxLayout*            layout_       = nullptr;
   QPropertyAnimation*     fadeAnimation_= nullptr;
   QTimer*                 hideTimer_    = nullptr;
-  QMetaObject::Connection fadeConnection_;
+  QMetaObject::Connection fadeConnection_{};
   Type                    type_= Success;
 };
 
