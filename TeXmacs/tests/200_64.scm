@@ -28,13 +28,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (let ((ev (telemetry-make-event "TEST_EVENT" '(("foo" . "bar")))))
-  (check (assoc-ref ev "event_type") => "TEST_EVENT")
-  (check (number? (assoc-ref ev "timestamp_s")) => #t)
-  (check (string? (assoc-ref ev "distinct_id")) => #t)
-  (check (string? (assoc-ref ev "session_id")) => #t)
-  (check (string? (assoc-ref ev "event_id")) => #t)
-  (check (string? (assoc-ref ev "app_version")) => #t)
-  (check (string? (assoc-ref ev "device_id")) => #t)
+  (check (assoc-ref ev "eventType") => "TEST_EVENT")
+  (check (number? (assoc-ref ev "timestamp")) => #t)
+  (check (string? (assoc-ref ev "distinctId")) => #t)
+  (check (string? (assoc-ref ev "sessionId")) => #t)
+  (check (string? (assoc-ref ev "eventId")) => #t)
+  (check (string? (assoc-ref ev "appVersion")) => #t)
+  (check (string? (assoc-ref ev "deviceId")) => #t)
   (check (string? (assoc-ref ev "platform")) => #t)
   (check (string? (assoc-ref ev "language")) => #t)
   (check (string? (assoc-ref ev "timezone")) => #t)
@@ -110,11 +110,11 @@
       (let ((lines (filter (lambda (s) (> (string-length s) 0))
                            (string-split raw #\newline))))
         (check (length lines) => 2)
-        ;; 验证每行是合法 JSON 且 event_type 正确
+        ;; 验证每行是合法 JSON 且 eventType 正确
         (let ((ev1 (string->json (car lines)))
               (ev2 (string->json (cadr lines))))
-          (check (assoc-ref ev1 "event_type") => "FLUSH_TEST_A")
-          (check (assoc-ref ev2 "event_type") => "FLUSH_TEST_B"))))
+          (check (assoc-ref ev1 "eventType") => "FLUSH_TEST_A")
+          (check (assoc-ref ev2 "eventType") => "FLUSH_TEST_B"))))
     ;; 验证追加：再次 flush，文件应有 3 行
     (track-event "FLUSH_TEST_C" '())
     (telemetry-flush)
@@ -122,7 +122,7 @@
       (let ((lines2 (filter (lambda (s) (> (string-length s) 0))
                             (string-split raw2 #\newline))))
         (check (length lines2) => 3)
-        (check (assoc-ref (string->json (caddr lines2)) "event_type") => "FLUSH_TEST_C")))
+        (check (assoc-ref (string->json (caddr lines2)) "eventType") => "FLUSH_TEST_C")))
     ;; 清理：清空文件
     (string-save "" (system->url path)))
   (if old-pref
