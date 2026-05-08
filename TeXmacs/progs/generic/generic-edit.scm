@@ -110,12 +110,21 @@
     algo-for-each algo-repeat algo-loop algo-procedure algo-function
     algo-if-else-if))
 
+;; Fast path: only check direct parent and grandparent.
+;; Algorithm macro arguments are rarely nested more than 3 levels deep.
 (define (find-algo-macro-ancestor t)
   "Find the nearest algo-macro ancestor of t, or t itself"
   (cond ((not t) #f)
         ((tree-in? t algo-macro-tags) t)
-        ((tree-is-buffer? t) #f)
-        (else (find-algo-macro-ancestor (tree-outer t)))))
+        (else
+          (let ((p (tree-outer t)))
+            (cond ((not p) #f)
+                  ((tree-in? p algo-macro-tags) p)
+                  (else
+                    (let ((gp (tree-outer p)))
+                      (cond ((not gp) #f)
+                            ((tree-in? gp algo-macro-tags) gp)
+                            (else #f)))))))))
 
 (define (cursor-in-algo-macro-first-param? t)
   (and-with macro (find-algo-macro-ancestor t)
