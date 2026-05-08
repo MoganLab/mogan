@@ -12,6 +12,7 @@
 #include <QEvent>
 #include <QFrame>
 #include <QGridLayout>
+#include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMessageBox>
@@ -19,6 +20,7 @@
 #include <QProgressDialog>
 #include <QPushButton>
 #include <QResizeEvent>
+#include <QScreen>
 #include <QScrollArea>
 #include <QShowEvent>
 #include <QStyle>
@@ -463,10 +465,32 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   QDialog* dialog= new QDialog (this);
   dialog->setWindowTitle (
       qt_translate ("Template Preview - %1").arg (tmpl->name));
-  dialog->setMinimumSize (DpiUtils::scaled (kPreviewDialogMinW),
-                          DpiUtils::scaled (kPreviewDialogMinH));
-  dialog->resize (DpiUtils::scaled (kPreviewDialogMinW),
-                  DpiUtils::scaled (kPreviewDialogMinH));
+
+  // 根据屏幕可用区域限制对话框尺寸，防止高分屏下溢出
+  QScreen* screen= this->screen ();
+  if (!screen) screen= QGuiApplication::primaryScreen ();
+  QRect availGeo= screen ? screen->availableGeometry () : QRect ();
+  int   maxDlgH = availGeo.height () > 0 ? qRound (availGeo.height () * 0.8)
+                                         : DpiUtils::scaled (kPreviewDialogMinH);
+
+  // 预览区尺寸由对话框高度上限决定（1:1 正方形）
+  int basePreviewSize= DpiUtils::scaled (PREVIEW_IMAGE_WIDTH);
+  int maxPreviewSize = qRound (maxDlgH * 0.7);
+  int previewSize    = qMin (basePreviewSize, maxPreviewSize);
+
+  // 对话框最大宽度收紧：仅比预览框宽一点（边距 + 少量余量）
+  int marginW = DpiUtils::scaled (kPreviewLayoutMargin) * 2;
+  int spacingW= DpiUtils::scaled (kPreviewLayoutSpacing);
+  int maxDlgW = previewSize + marginW + spacingW;
+  if (availGeo.width () > 0) {
+    maxDlgW= qMin (maxDlgW, qRound (availGeo.width () * 0.8));
+  }
+
+  int minW= qMin (DpiUtils::scaled (kPreviewDialogMinW), maxDlgW);
+  int minH= qMin (DpiUtils::scaled (kPreviewDialogMinH), maxDlgH);
+  dialog->setMinimumSize (minW, minH);
+  dialog->setMaximumSize (maxDlgW, maxDlgH);
+  dialog->resize (minW, minH);
 
   QVBoxLayout* layout= new QVBoxLayout (dialog);
   layout->setSpacing (DpiUtils::scaled (kPreviewLayoutSpacing));
@@ -502,9 +526,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 
   // Preview area using reusable PDF preview widget
   QTPdfPreviewWidget* previewWidget= new QTPdfPreviewWidget (dialog);
-  // 设置固定尺寸，确保无内容时也有足够显示区域
-  previewWidget->setFixedSize (DpiUtils::scaled (PREVIEW_IMAGE_WIDTH),
-                               DpiUtils::scaled (PREVIEW_IMAGE_WIDTH));
+  previewWidget->setFixedSize (previewSize, previewSize);
 
   // Load PDF preview
   if (!tmpl->previewUrl.isEmpty ()) {
