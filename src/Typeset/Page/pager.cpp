@@ -301,26 +301,32 @@ pager_rep::make_pages () {
 
   int nr_pages= N (pages);
   int nx      = max (1, min (env->page_packet, nr_pages));
+  if (env->page_packet == 2) nx= max (1, env->page_packet);
   int d       = env->page_offset % nx;
   int ny      = ((nr_pages + nx - 1 + d) / nx);
 
   SI         pixel= env->pixel;
+  SI         vgap = 0;
+  if (env->get_string (PAGE_BORDER) == "none") {
+    vgap= 2 * pixel;
+  }
   array<box> pg   = pages;
-  if (env->get_string (PAGE_MEDIUM) == "paper" &&
-      env->get_string (PAGE_BORDER) != "none")
+  if (env->get_string (PAGE_MEDIUM) == "paper")
     for (int i= 0; i < nx; i++)
       for (int j= 0; j < ny; j++) {
         int p= j * nx + i - d;
         if (p >= 0 && p < nr_pages) {
-          SI l= 10 * pixel, r= 10 * pixel;
-          SI b= 10 * pixel, t= 10 * pixel;
-          if (env->get_string (PAGE_BORDER) == "attached") {
-#ifdef QTTEXMACS
+          SI l= 0, r= 0, b= 0, t= 0;
+          if (env->get_string (PAGE_BORDER) != "none") {
+            l= 10 * pixel, r= 10 * pixel;
+            b= 10 * pixel, t= 10 * pixel;
+            if (env->get_string (PAGE_BORDER) == "attached") {
+              if (i > 0) l= pixel / 2;
+              if (i < nx - 1) r= 0;
+            }
+          }
+          else {
             if (i > 0) l= pixel / 2;
-#else
-            if (i > 0) l= pixel;
-#endif
-            if (i < nx - 1) r= 0;
           }
           color bg= tm_background;
           if (env->get_string ("full-screen-mode") == "true") bg= black;
@@ -351,7 +357,7 @@ pager_rep::make_pages () {
       yy[j]= yy[j - 1];
       for (int i= 0; i < nx; i++) {
         int p= j * nx + i - d;
-        if (p >= 0 && p < nr_pages) yy[j]= min (yy[j - 1] - pg[p]->h (), yy[j]);
+        if (p >= 0 && p < nr_pages) yy[j]= min (yy[j - 1] - pg[p]->h () - vgap, yy[j]);
       }
     }
 

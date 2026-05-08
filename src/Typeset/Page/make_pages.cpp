@@ -209,6 +209,8 @@ pager_rep::pages_make () {
   env->write (PAGE_THE_TOTAL, as_string (n));
   for (i= 0; i < n; i++)
     pages << pages_make_page (sk[i]);
+  if (env->page_packet == 2 && N (pages) < 2)
+    pages << pages_make_page (pagelet (space (0)));
 }
 
 void
