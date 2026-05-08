@@ -170,7 +170,7 @@ edit_main_rep::get_metadata (string kind) {
   if (val != "") return val;
   val= cork_to_utf8 (search_metadata (subtree (et, rp), kind));
   if (val != "") return val;
-  if (kind == "title") return as_string (tail (get_name ()));
+  if (kind == "title") return cork_to_utf8 (as_string (tail (get_name ())));
   return "";
 }
 
