@@ -110,25 +110,43 @@
     algo-for-each algo-repeat algo-loop algo-procedure algo-function
     algo-if-else-if))
 
-;; Fast check: only evaluate when parent is an algo-macro.
-;; This avoids tree-search on every Enter press outside algo macros.
+(define (in-listing-context? t)
+  (and t
+       (tree-search-upwards t (lambda (n) (tree-in? n '(listing))))))
+
+;; Fast path: only check direct parent and grandparent.
+;; Algorithm macro arguments are rarely nested more than 3 levels deep.
+(define (find-algo-macro-ancestor t)
+  "Find the nearest algo-macro ancestor of t, or t itself"
+  (cond ((not t) #f)
+        ((tree-in? t algo-macro-tags) t)
+        (else
+          (let ((p (tree-outer t)))
+            (cond ((not p) #f)
+                  ((tree-in? p algo-macro-tags) p)
+                  (else
+                    (let ((gp (tree-outer p)))
+                      (cond ((not gp) #f)
+                            ((tree-in? gp algo-macro-tags) gp)
+                            (else #f)))))))))
+
 (define (cursor-in-algo-macro-first-param? t)
-  (and-with p (tree-outer t)
-    (and (tree-in? p algo-macro-tags)
+  (and (in-listing-context? t)
+       (with macro (find-algo-macro-ancestor t)
          (let* ((path (cursor-path))
-                (p-path (tree->path p)))
-           (and p-path
-                (> (length path) (length p-path))
-                (let ((param-index (list-ref path (length p-path))))
+                (macro-path (tree->path macro)))
+           (and macro-path
+                (> (length path) (length macro-path))
+                (let ((param-index (list-ref path (length macro-path))))
                   (and (integer? param-index)
                        (== param-index 0)
-                       (> (tree-arity p) 1)
-                       (tree-search-upwards p (lambda (n) (tree-in? n '(listing))))))))))
+                       (> (tree-arity macro) 1))))))))
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
-  (with macro (tree-outer t)
-    (tree-go-to macro 1 :start)))
+  (with macro (find-algo-macro-ancestor t)
+    (tree-go-to macro 0 :end)
+    (go-right)))
 
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t)
