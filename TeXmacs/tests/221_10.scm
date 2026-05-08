@@ -156,7 +156,11 @@
           (tm->tree '(document
                        (item)
                        (concat (item) "ddd")
-                       (item)))))
+                       (item))))
+         (only-list-doc
+          (tm->tree '(document
+                       (enumerate
+                         (document (concat (item) "a"))))))))
     (check (list-item-remove-range remove-up-doc 1 'enumerate #f)
            => '(0 1))
     (check (list-item-remove-range remove-down-doc 1 'enumerate #t)
@@ -174,7 +178,9 @@
     (check (remove-list-item-at bare-item-doc 0 #t)
            => '(document
                  (concat (item) "ddd")
-                 (item)))))
+                 (item)))
+    (check (remove-list-item-at only-list-doc 0 #t)
+           => '(document ""))))
 
 (tm-define (test_221_10)
   (test-list-structured-insert-end-index)
