@@ -308,7 +308,7 @@ pager_rep::make_pages () {
   SI pixel= env->pixel;
   SI vgap = 0;
   if (env->get_string (PAGE_BORDER) == "none") {
-    vgap= 2 * pixel;
+    vgap= 4 * pixel;
   }
   array<box> pg= pages;
   if (env->get_string (PAGE_MEDIUM) == "paper")
@@ -326,7 +326,7 @@ pager_rep::make_pages () {
             }
           }
           else {
-            if (i > 0) l= pixel / 2;
+            if (i > 0) l= pixel;
           }
           color bg= tm_background;
           if (env->get_string ("full-screen-mode") == "true") bg= black;
