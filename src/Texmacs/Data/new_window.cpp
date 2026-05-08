@@ -85,7 +85,7 @@ public:
 };
 
 url
-new_window (bool map_flag, tree geom, bool force_tab_bar) {
+new_window (bool map_flag, tree geom) {
   int mask= 0;
   if (get_preference ("header") == "on") mask+= 1;
   if (get_preference ("main icon bar") == "on") mask+= 2;
@@ -97,7 +97,7 @@ new_window (bool map_flag, tree geom, bool force_tab_bar) {
   // if (get_preference ("left tools") == "on") mask += 128;
   if (get_preference ("bottom tools") == "on") mask+= 256;
   if (get_preference ("extra tools") == "on") mask+= 512;
-  if (force_tab_bar || get_preference ("tab bar") == "on") mask+= 1024;
+  mask+= 1024;
   url*      id  = tm_new<url> (url_none ());
   command   quit= tm_new<kill_window_command_rep> (id);
   tm_window win = tm_new<tm_window_rep> (texmacs_widget (mask, quit), geom);
@@ -303,7 +303,7 @@ ensure_window (tree geom) {
     // 先设置标题，再创建 view，确保标签页显示正确的标题
     string title= is_community_stem () ? "Mogan STEM" : "Liii STEM";
     set_title_buffer (name, title);
-    url win= new_window (true, geom, true);
+    url win= new_window (true, geom);
     window_set_view (win, get_passive_view (name), true);
     return win;
 #else

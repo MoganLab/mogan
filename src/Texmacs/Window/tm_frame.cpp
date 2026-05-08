@@ -17,7 +17,7 @@
 #include "tm_window.hpp"
 #include "url.hpp"
 
-#define NUM_TOOLBARS 4
+#define NUM_TOOLBARS 3
 
 /******************************************************************************
  * Constructor and destructor

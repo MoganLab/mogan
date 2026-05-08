@@ -575,18 +575,6 @@ set_main_icons (widget w, widget bar) {
 }
 
 inline void
-set_tab_pages_visibility (widget w, bool visible) {
-  // set visibility of tab bar
-  send<bool> (w, SLOT_TAB_PAGES_VISIBILITY, visible);
-}
-
-inline bool
-get_tab_pages_visibility (widget w) {
-  // get visibility of tab bar
-  return query<bool> (w, SLOT_TAB_PAGES_VISIBILITY);
-}
-
-inline void
 set_tab_pages (widget w, widget bar) {
   // set tab bar
   write (w, SLOT_TAB_PAGES, bar);

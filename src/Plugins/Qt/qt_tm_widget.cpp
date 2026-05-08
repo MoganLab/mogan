@@ -180,7 +180,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   visibility[7] = (mask & 128) == 128;   // left side tools
   visibility[8] = (mask & 256) == 256;   // bottom tools
   visibility[9] = (mask & 512) == 512;   // extra bottom tools
-  visibility[10]= (mask & 1024) == 1024; // tab page bar
   visibility[11]= (mask & 2048) == 2048; // auxiliary widget
 
 #ifdef OS_WASM
@@ -936,8 +935,6 @@ qt_tm_widget_rep::update_visibility () {
   bool old_bottomVisibility= bottomTools->isVisible ();
   bool old_extraVisibility = extraTools->isVisible ();
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
-  bool old_tabVisibility=
-      tabPageContainer ? tabPageContainer->isVisible () : false;
   bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
   bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
 
@@ -951,7 +948,6 @@ qt_tm_widget_rep::update_visibility () {
   bool new_leftVisibility  = visibility[7];
   bool new_bottomVisibility= visibility[8];
   bool new_extraVisibility = visibility[9];
-  bool new_tabVisibility   = visibility[10] && visibility[0];
   bool new_auxVisibility   = visibility[11];
   bool new_titleVisibility = visibility[0];
 
@@ -967,7 +963,6 @@ qt_tm_widget_rep::update_visibility () {
     new_bottomVisibility= false;
     new_extraVisibility = false;
     new_auxVisibility   = false;
-    new_tabVisibility   = true;
     new_titleVisibility = true;
   }
 
@@ -991,8 +986,6 @@ qt_tm_widget_rep::update_visibility () {
     extraTools->setVisible (new_extraVisibility);
   if (XOR (old_auxVisibility, new_auxVisibility))
     auxiliaryWidget->setVisible (new_auxVisibility);
-  if (tabPageContainer && XOR (old_tabVisibility, new_tabVisibility))
-    tabPageContainer->setVisible (new_tabVisibility);
   if (XOR (old_titleVisibility, new_titleVisibility))
     windowAgent->titleBar ()->setVisible (new_titleVisibility);
   if (XOR (old_statusVisibility, new_statusVisibility))
@@ -1148,11 +1141,6 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   case SLOT_EXTRA_TOOLS_VISIBILITY: {
     check_type<bool> (val, s);
     visibility[9]= open_box<bool> (val);
-    update_visibility ();
-  } break;
-  case SLOT_TAB_PAGES_VISIBILITY: {
-    check_type<bool> (val, s);
-    visibility[10]= open_box<bool> (val);
     update_visibility ();
   } break;
   case SLOT_AUXILIARY_WIDGET_VISIBILITY: {
@@ -1311,10 +1299,6 @@ qt_tm_widget_rep::query (slot s, int type_id) {
   case SLOT_EXTRA_TOOLS_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (visibility[9]);
-
-  case SLOT_TAB_PAGES_VISIBILITY:
-    check_type_id<bool> (type_id, s);
-    return close_box<bool> (visibility[10]);
 
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
     check_type_id<bool> (type_id, s);
@@ -1808,7 +1792,6 @@ qt_tm_embedded_widget_rep::send (slot s, blackbox val) {
   case SLOT_LEFT_TOOLS_VISIBILITY:
   case SLOT_BOTTOM_TOOLS_VISIBILITY:
   case SLOT_EXTRA_TOOLS_VISIBILITY:
-  case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
   case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
@@ -1868,7 +1851,6 @@ qt_tm_embedded_widget_rep::query (slot s, int type_id) {
   case SLOT_LEFT_TOOLS_VISIBILITY:
   case SLOT_BOTTOM_TOOLS_VISIBILITY:
   case SLOT_EXTRA_TOOLS_VISIBILITY:
-  case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (false);
