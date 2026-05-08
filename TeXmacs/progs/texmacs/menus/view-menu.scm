@@ -149,6 +149,6 @@
   (if (with-developer-tool?)
       ("Left side tools" (toggle-visible-side-tools 1))
       ("Right side tools" (toggle-visible-side-tools 0))
-      ("GUI through markup" (toggle-markup-gui)))
-  ---
-  ("Animation toolbar" (toggle-bottom-bar "animate")))
+      ("GUI through markup" (toggle-markup-gui))
+      ---
+      ("Animation toolbar" (toggle-bottom-bar "animate"))))
