@@ -394,6 +394,12 @@
   (and range
        (tree-remove item-list (car range) (- (cadr range) (car range)))))
 
+(tm-define (document-empty-for-list? doc)
+  (let loop ((i 0))
+    (cond ((>= i (tree-arity doc)) #t)
+          ((list-item-node? (tree-ref doc i)) #f)
+          (else (loop (+ i 1))))))
+
 ;; 在有序和无序列表中实现缩进功能
 (tm-define (kbd-variant t forwards?)
   (:require 
@@ -1043,9 +1049,16 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
             (when range
               (let* ((new-list (remove-list-item-range item-list range))
                      (pos (min (car range) (- (tree-arity new-list) 1))))
-                (if (>= pos 0)
-                    (tree-go-to new-list pos :end)
-                    (tree-go-to new-list :end))))))))))
+                (if (document-empty-for-list? new-list)
+                    (let* ((list-parent (tree-up new-list))
+                           (parent-doc (and list-parent (tree-up list-parent)))
+                           (list-index (and list-parent (tree-index list-parent))))
+                      (when (and parent-doc list-index)
+                        (tree-remove parent-doc list-index 1)
+                        (tree-go-to parent-doc list-index :end)))
+                    (if (>= pos 0)
+                        (tree-go-to new-list pos :end)
+                        (tree-go-to new-list :end))))))))))
 
 (tm-define (structured-insert-extremal t forwards?)
   (structured-extremal t forwards?)
