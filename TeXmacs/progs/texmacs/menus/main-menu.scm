@@ -106,8 +106,17 @@
   ("Focus mode" (toggle-focus-mode)))
 
 (tm-menu (texmacs-popup-menu)
-  (:require (focus-mode?))
+  (:require (and (focus-mode?) (not (simplest-mode?))))
   (link focus-popup-menu)
+  ---
+  (former))
+
+(menu-bind simplest-popup-menu
+  ("极简模式" (toggle-simplest-mode)))
+
+(tm-menu (texmacs-popup-menu)
+  (:require (simplest-mode?))
+  (link simplest-popup-menu)
   ---
   (former))
 

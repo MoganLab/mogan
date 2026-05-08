@@ -279,6 +279,7 @@
   (complete-mode% (== (get-input-mode) 4))
   (remote-control-mode% (== remote-control-flag? #t))
   (focus-mode% (not (visible-header?)))
+  (simplest-mode% (and (not (visible-header?)) (not (visible-icon-bar? 1)) (not (visible-icon-bar? 2))))
   (in-cyrillic-jcuken% (cyrillic-input-method? "jcuken") in-cyrillic%)
   (in-cyrillic-translit% (cyrillic-input-method? "translit") in-cyrillic%)
   (in-cyrillic-yawerty% (cyrillic-input-method? "yawerty") in-cyrillic%)
