@@ -101,6 +101,43 @@
   (and-with p (tree-outer t)
     (kbd-enter p shift?)))
 
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Algorithm macro enter key navigation in algorithm environments
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define algo-macro-tags
+  '(algo-if algo-else-if algo-while algo-for algo-for-all
+    algo-for-each algo-repeat algo-loop algo-procedure algo-function
+    algo-if-else-if))
+
+(define (find-algo-macro-ancestor t)
+  "Find the nearest algo-macro ancestor of t, or t itself"
+  (cond ((not t) #f)
+        ((tree-in? t algo-macro-tags) t)
+        ((tree-is-buffer? t) #f)
+        (else (find-algo-macro-ancestor (tree-outer t)))))
+
+(define (in-algorithm-context? t)
+  (and t
+       (tree-search-upwards t (lambda (n) (tree-in? n '(algorithm specified-algorithm))))))
+
+(define (cursor-in-algo-macro-first-param? t)
+  (and-with macro (find-algo-macro-ancestor t)
+    (and (in-algorithm-context? macro)
+         (let* ((path (cursor-path))
+                (macro-path (tree->path macro)))
+           (and macro-path
+                (> (length path) (length macro-path))
+                (let ((param-index (list-ref path (length macro-path))))
+                  (and (integer? param-index)
+                       (== param-index 0)
+                       (> (tree-arity macro) 1))))))))
+
+(tm-define (kbd-enter t shift?)
+  (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
+  (with macro (find-algo-macro-ancestor t)
+    (tree-go-to macro 1 :start)))
+
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t)
     (kbd-control-enter p shift?)))
