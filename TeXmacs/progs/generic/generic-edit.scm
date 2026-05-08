@@ -366,7 +366,7 @@
 
 (tm-define (blank-list-item-stree list-type)
   (if (== list-type 'description)
-      `(item*)
+      `(item* "")
       `(item)))
 
 (tm-define (list-item-end-index item-list item-index list-type)
@@ -1033,7 +1033,9 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
               (if (and (tree-is? new-item 'concat)
                        (> (tree-arity new-item) 1))
                   (tree-go-to new-item 1 :end)
-                  (tree-go-to new-list insert-pos :end)))))))))
+                  (if (tree-is? new-item 'item*)
+                      (tree-go-to new-list insert-pos :start)
+                      (tree-go-to new-list insert-pos :end))))))))))
 
 (tm-define (structured-remove-vertical t downwards?)
   (:require (list-structured-insert-context?))

@@ -130,7 +130,8 @@
                  (item)))))
 
 (define (test-list-structured-insert-blank-item)
-  (check (blank-list-item-stree 'enumerate) => '(item)))
+  (check (blank-list-item-stree 'enumerate) => '(item))
+  (check (blank-list-item-stree 'description) => '(item* "")))
 
 (define (test-list-structured-remove-tree-shape)
   (let* ((remove-up-doc
