@@ -131,6 +131,12 @@
     <algo-state|<math|X\<leftarrow\>X\<times\>X>>
   </algo-if>
 
+  <\algo-if>
+    dddd
+
+    ddd
+  </algo-if|>
+
   \;
 </body>
 
