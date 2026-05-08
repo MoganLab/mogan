@@ -11,7 +11,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils misc markup-funcs))
+(texmacs-module (utils misc markup-funcs)
+  (:use (utils library tree)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; TeXmacs version and release
@@ -240,19 +241,13 @@
   (cond ((tree-is? line 'algo-if)
          (let ((cond-arg (arg0 line))
                (body-arg (arg1 line)))
-           (if (== body-arg "")
-               (cons (algo-header '(render-if) cond-arg '(render-then) "")
-                     (wrap-algo-body cond-arg lang))
-               (cons (algo-header '(render-if) cond-arg '(render-then) "")
-                     (wrap-algo-body body-arg lang)))))
+           (cons (algo-header '(render-if) cond-arg '(render-then) "")
+                 (wrap-algo-body body-arg lang))))
         ((tree-is? line 'algo-else-if)
          (let ((cond-arg (arg0 line))
                (body-arg (arg1 line)))
-           (if (== body-arg "")
-               (cons (algo-header '(render-else) '(render-if) cond-arg '(render-then))
-                     (wrap-algo-body cond-arg lang))
-               (cons (algo-header '(render-else) '(render-if) cond-arg '(render-then))
-                     (wrap-algo-body body-arg lang)))))
+           (cons (algo-header '(render-else) '(render-if) cond-arg '(render-then))
+                 (wrap-algo-body body-arg lang))))
         ((tree-is? line 'algo-else)
          (cons `(numbered-line (concat (render-else) (no-page-break)))
                (wrap-algo-body (arg0 line) lang)))
@@ -378,3 +373,37 @@
 ;;        (table ,@(map (lambda (row) (ext-listing-row body row))
 ;;                       (.. 0 (tm-arity body)))))
 ;;      body))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Algorithm macro enter key navigation
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define algo-macro-tags
+  '(algo-if algo-else-if algo-while algo-for algo-for-all
+    algo-for-each algo-repeat algo-procedure algo-function
+    algo-if-else-if))
+
+(define (find-algo-macro-parent t)
+  (if (or (not t) (tree-is-buffer? t))
+      #f
+      (let ((p (tree-outer t)))
+        (cond ((not p) #f)
+              ((tree-in? p algo-macro-tags) p)
+              (else (find-algo-macro-parent p))))))
+
+(define (in-algo-macro-param? t)
+  (and-with parent (find-algo-macro-parent t)
+    (let* ((path (cursor-path))
+           (parent-path (tree->path parent)))
+      (and (> (length path) (length parent-path))
+           (let ((param-index (list-ref path (length parent-path))))
+             (and (integer? param-index)
+                  (< param-index (1- (tree-arity parent)))))))))
+
+(tm-define (kbd-enter t shift?)
+  (:require (and (not shift?) (in-algo-macro-param? t)))
+  (with parent (find-algo-macro-parent t)
+    (let* ((path (cursor-path))
+           (parent-path (tree->path parent))
+           (param-index (list-ref path (length parent-path))))
+      (tree-go-to parent (1+ param-index) :start))))
