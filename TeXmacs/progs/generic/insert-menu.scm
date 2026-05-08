@@ -144,7 +144,8 @@
   (if (detailed-menus?)
       (if (style-has? "std-fold-dtd")
           (-> "Fold" (link insert-fold-menu)))
-      (-> "Animation" (link insert-animation-menu)))
+      (if (with-developer-tool?)
+          (-> "Animation" (link insert-animation-menu))))
   (if (and (style-has? "session-dtd") (detailed-menus?) (not (in-math?)))
       (-> "Session" (link insert-session-menu))))
 
