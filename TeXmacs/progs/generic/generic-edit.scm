@@ -102,13 +102,17 @@
     (kbd-enter p shift?)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Algorithm macro enter key navigation
+;; Algorithm macro enter key navigation (only inside listing)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define algo-macro-tags
   '(algo-if algo-else-if algo-while algo-for algo-for-all
     algo-for-each algo-repeat algo-loop algo-procedure algo-function
     algo-if-else-if))
+
+(define (in-listing-context? t)
+  (and t
+       (tree-search-upwards t (lambda (n) (tree-in? n '(listing))))))
 
 ;; Fast path: only check direct parent and grandparent.
 ;; Algorithm macro arguments are rarely nested more than 3 levels deep.
@@ -127,15 +131,16 @@
                             (else #f)))))))))
 
 (define (cursor-in-algo-macro-first-param? t)
-  (and-with macro (find-algo-macro-ancestor t)
-    (let* ((path (cursor-path))
-           (macro-path (tree->path macro)))
-      (and macro-path
-           (> (length path) (length macro-path))
-           (let ((param-index (list-ref path (length macro-path))))
-             (and (integer? param-index)
-                  (== param-index 0)
-                  (> (tree-arity macro) 1)))))))
+  (and (in-listing-context? t)
+       (with macro (find-algo-macro-ancestor t)
+         (let* ((path (cursor-path))
+                (macro-path (tree->path macro)))
+           (and macro-path
+                (> (length path) (length macro-path))
+                (let ((param-index (list-ref path (length macro-path))))
+                  (and (integer? param-index)
+                       (== param-index 0)
+                       (> (tree-arity macro) 1))))))))
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
