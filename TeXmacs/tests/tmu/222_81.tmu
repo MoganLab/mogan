@@ -1,6 +1,6 @@
 <TMU|<tuple|1.1.0|2026.2.3>>
 
-<style|<tuple|generic|chinese|number-europe|modern-program>>
+<style|<tuple|generic|chinese|number-europe|modern-program|python>>
 
 <\body>
   <\specified-algorithm|Test specified-algorithm with listing>
@@ -122,6 +122,12 @@
       </algo-if-else-if>
     </listing>
   </specified-algorithm>
+
+  <\listing>
+    <\python-code>
+      import numpy as np
+    </python-code>
+  </listing>
 </body>
 
 <initial|<\collection>

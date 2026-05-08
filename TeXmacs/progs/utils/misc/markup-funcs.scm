@@ -174,13 +174,30 @@
       (tree-is? line 'algo-outputs)
       (tree-is? line 'algo-if-else-if)))
 
+(define (ext-numbered-sub t)
+  (cond ((tree-is? t 'document)
+         `(document ,@(map ext-numbered-line (tm-children t))))
+        ((tree-multi-line? t)
+         (with rew (cons (tm-label t) (map ext-numbered-sub (tm-children t)))
+           (ext-mark ext-numbered-root t "body" rew)))
+        (else t)))
+
+(define (ext-numbered-line t)
+  (if (tree-multi-line? t)
+      (ext-numbered-sub t)
+      `(numbered-line ,t)))
+
 (define (wrap-algo-body body lang)
   (cond ((tm-func? body 'document)
-         (apply append (map (lambda (line) (wrap-listing-line line lang)) (tm-children body))))
+         (apply append (map (lambda (line) (wrap-algo-body line lang)) (tm-children body))))
+        ((is-algo-macro? body)
+         (wrap-algo-macro body lang))
         ((tree-multi-line? body)
-         (apply append (map (lambda (line) (wrap-listing-line line lang)) (tm-children body))))
+         (list (ext-numbered-sub body)))
         (else
-         (wrap-listing-line body lang))))
+         (if lang
+             (list `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,body)))
+             (list `(numbered-line ,body))))))
 
 (define (build-else-if args lang)
   (cond ((null? args)
@@ -305,27 +322,18 @@
            (build-if-else-if args lang)))
         (else (list line))))
 
-(define (wrap-listing-line line lang)
-  (cond ((or (tree-is? line 'next-line) (tree-is? line 'new-line))
-         (list line))
-        ((tree-is? line 'document)
-         (apply append (map (lambda (child) (wrap-listing-line child lang)) (tm-children line))))
-        ((is-algo-macro? line)
-         (wrap-algo-macro line lang))
-        ((tree-is? line 'numbered-line)
-         (list line))
-        ((tree-multi-line? line)
-         (apply append (map (lambda (child) (wrap-listing-line child lang)) (tm-children line))))
-        (else
-         (if lang
-             (list `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line)))
-             (list `(numbered-line ,line))))))
-
 (tm-define (ext-numbered body)
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(apply append (map (lambda (line) (wrap-listing-line line #f)) (tm-children body)))))
+      `(numbered-block (document ,@(apply append (map (lambda (line)
+                                                          (cond ((is-algo-macro? line)
+                                                                 (wrap-algo-macro line #f))
+                                                                ((tree-multi-line? line)
+                                                                 (list (ext-numbered-sub line)))
+                                                                (else
+                                                                 (list `(numbered-line ,line)))))
+                                                        (tm-children body)))))
       body))
 
 ;; Numbered function with programming language support
@@ -333,7 +341,14 @@
   (:secure #t)
   (set! ext-numbered-root body)
   (if (tm-func? body 'document)
-      `(numbered-block (document ,@(apply append (map (lambda (line) (wrap-listing-line line lang)) (tm-children body)))))
+      `(numbered-block (document ,@(apply append (map (lambda (line)
+                                                          (cond ((is-algo-macro? line)
+                                                                 (wrap-algo-macro line lang))
+                                                                ((tree-multi-line? line)
+                                                                 (list (ext-numbered-sub line)))
+                                                                (else
+                                                                 (list `(numbered-line (with "mode" "prog" "prog-language" ,lang "font-family" "rm" ,line))))))
+                                                        (tm-children body)))))
       body))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
