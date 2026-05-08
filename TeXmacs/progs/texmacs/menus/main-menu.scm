@@ -112,7 +112,7 @@
   (former))
 
 (menu-bind simplest-popup-menu
-  ("极简模式" (toggle-simplest-mode)))
+  ("Simplest mode" (toggle-simplest-mode)))
 
 (tm-menu (texmacs-popup-menu)
   (:require (simplest-mode?))
