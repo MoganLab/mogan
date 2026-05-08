@@ -470,7 +470,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   QScreen* screen= this->screen ();
   if (!screen) screen= QGuiApplication::primaryScreen ();
   QRect availGeo= screen ? screen->availableGeometry () : QRect ();
-  int   maxDlgH = availGeo.height () > 0 ? qRound (availGeo.height () * 0.8)
+  int   maxDlgH = availGeo.height () > 0 ? qRound (availGeo.height () * 0.9)
                                          : DpiUtils::scaled (kPreviewDialogMinH);
 
   // 预览区尺寸由对话框高度上限决定（1:1 正方形）
@@ -483,7 +483,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
   int spacingW= DpiUtils::scaled (kPreviewLayoutSpacing);
   int maxDlgW = previewSize + marginW + spacingW;
   if (availGeo.width () > 0) {
-    maxDlgW= qMin (maxDlgW, qRound (availGeo.width () * 0.8));
+    maxDlgW= qMin (maxDlgW, qRound (availGeo.width () * 0.9));
   }
 
   int minW= qMin (DpiUtils::scaled (kPreviewDialogMinW), maxDlgW);
