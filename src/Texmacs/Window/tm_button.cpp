@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "Boxes/construct.hpp"
+#include "array.hpp"
 #include "boxes.hpp"
 #include "font.hpp"
 #include "message.hpp"
@@ -308,7 +309,7 @@ texmacs_output_widget (tree doc, tree style) {
   return widget (tm_new<box_widget_rep> (b, col, false, zoom, 0, 0));
 }
 
-widget
+array<SI>
 get_texmacs_widget_size (widget wid) {
   array<SI> ret;
   SI        w, h;
