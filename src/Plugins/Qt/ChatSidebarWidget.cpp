@@ -1,0 +1,137 @@
+/******************************************************************************
+ * MODULE     : ChatSidebarWidget.cpp
+ * DESCRIPTION: Static chat sidebar widget skeleton
+ * COPYRIGHT  : (C) 2025  Mogan Contributors
+ ******************************************************************************/
+
+#include "ChatSidebarWidget.hpp"
+#include "qt_dpi_utils.hpp"
+#include "command.hpp"
+#include "qt_gui.hpp"
+#include "scheme.hpp"
+
+#include <QCloseEvent>
+#include <QKeyEvent>
+#include <QFont>
+
+ChatSidebarWidget::ChatSidebarWidget(QWidget* parent)
+    : QDockWidget("Chat", parent) {
+  setObjectName("chat_sidebar");
+  setAllowedAreas(Qt::RightDockWidgetArea);
+  setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
+  setFloating(false);
+
+  // Disable default title bar, use custom one
+  setTitleBarWidget(new QWidget());
+
+  setupUI();
+  setupConnections();
+}
+
+ChatSidebarWidget::~ChatSidebarWidget() {}
+
+void ChatSidebarWidget::setupUI() {
+  m_container = new QWidget(this);
+  m_mainLayout = new QVBoxLayout(m_container);
+  m_mainLayout->setSpacing(0);
+  m_mainLayout->setContentsMargins(0, 0, 0, 0);
+
+  // Custom title bar
+  m_titleBar = new QWidget(m_container);
+  m_titleLayout = new QHBoxLayout(m_titleBar);
+  m_titleLayout->setSpacing(DpiUtils::scaled(4));
+  m_titleLayout->setContentsMargins(
+      DpiUtils::scaled(8), DpiUtils::scaled(4),
+      DpiUtils::scaled(8), DpiUtils::scaled(4));
+
+  m_titleLabel = new QLabel("Chat", m_titleBar);
+  QFont titleFont = m_titleLabel->font();
+  titleFont.setBold(true);
+  titleFont.setPixelSize(DpiUtils::scaled(14));
+  m_titleLabel->setFont(titleFont);
+
+  m_refreshButton = new QPushButton("Refresh", m_titleBar);
+  m_refreshButton->setFixedHeight(DpiUtils::scaled(24));
+
+  m_titleLayout->addWidget(m_titleLabel);
+  m_titleLayout->addStretch();
+  m_titleLayout->addWidget(m_refreshButton);
+  m_mainLayout->addWidget(m_titleBar);
+
+  // Splitter for message/input areas
+  m_splitter = new QSplitter(Qt::Vertical, m_container);
+  m_splitter->setHandleWidth(DpiUtils::scaled(2));
+
+  // Message area placeholder
+  m_messageContainer = new QWidget(m_splitter);
+  m_messageLayout = new QVBoxLayout(m_messageContainer);
+  m_messageLayout->setSpacing(0);
+  m_messageLayout->setContentsMargins(
+      DpiUtils::scaled(12), DpiUtils::scaled(12),
+      DpiUtils::scaled(12), DpiUtils::scaled(12));
+  m_messagePlaceholder = new QLabel("Message area placeholder", m_messageContainer);
+  m_messagePlaceholder->setWordWrap(true);
+  m_messageLayout->addWidget(m_messagePlaceholder);
+  m_messageLayout->addStretch();
+
+  // Input area placeholder
+  m_inputContainer = new QWidget(m_splitter);
+  m_inputLayout = new QVBoxLayout(m_inputContainer);
+  m_inputLayout->setSpacing(0);
+  m_inputLayout->setContentsMargins(
+      DpiUtils::scaled(12), DpiUtils::scaled(12),
+      DpiUtils::scaled(12), DpiUtils::scaled(12));
+  m_inputPlaceholder = new QLabel("Input area placeholder", m_inputContainer);
+  m_inputPlaceholder->setWordWrap(true);
+  m_inputLayout->addWidget(m_inputPlaceholder);
+  m_inputLayout->addStretch();
+
+  m_splitter->addWidget(m_messageContainer);
+  m_splitter->addWidget(m_inputContainer);
+
+  // Set stretch factors: message area = 4, input area = 1
+  m_splitter->setStretchFactor(0, 4);
+  m_splitter->setStretchFactor(1, 1);
+
+  m_mainLayout->addWidget(m_splitter, 1);
+
+  // Send button panel
+  m_sendPanel = new QWidget(m_container);
+  m_sendLayout = new QHBoxLayout(m_sendPanel);
+  m_sendLayout->setSpacing(DpiUtils::scaled(4));
+  m_sendLayout->setContentsMargins(
+      DpiUtils::scaled(4), DpiUtils::scaled(4),
+      DpiUtils::scaled(4), DpiUtils::scaled(4));
+
+  m_sendButton = new QPushButton("Send", m_sendPanel);
+  m_sendButton->setFixedHeight(DpiUtils::scaled(28));
+  m_sendButton->setEnabled(false);
+
+  m_sendLayout->addStretch();
+  m_sendLayout->addWidget(m_sendButton);
+  m_mainLayout->addWidget(m_sendPanel);
+
+  setWidget(m_container);
+
+  // Default width
+  setMinimumWidth(DpiUtils::scaled(280));
+}
+
+void ChatSidebarWidget::setupConnections() {
+  connect(m_refreshButton, &QPushButton::clicked, this, [this] {
+    this->raise();
+  });
+}
+
+void ChatSidebarWidget::closeEvent(QCloseEvent* event) {
+  exec_delayed(scheme_cmd("(when (defined? 'close-chat-sidebar) (close-chat-sidebar))"));
+  event->accept();
+}
+
+void ChatSidebarWidget::keyPressEvent(QKeyEvent* event) {
+  if (event->key() == Qt::Key_Escape) {
+    close();
+  } else {
+    QDockWidget::keyPressEvent(event);
+  }
+}

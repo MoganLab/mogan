@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs menus tools-menu)
-  (:use (texmacs texmacs tm-tools)))
+  (:use (texmacs texmacs tm-tools)
+        (generic chat-widgets)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic menus for formats
@@ -86,4 +87,6 @@
   ("Presentation tool" (toggle-preference "presentation tool"))
   ("Remote tool" (toggle-preference "remote tool"))
   ("Source macros tool" (toggle-preference "source tool"))
-  ("Versioning tool" (toggle-preference "versioning tool")))
+  ("Versioning tool" (toggle-preference "versioning tool"))
+  ---
+  ("Chat sidebar" (toggle-chat-sidebar)))
