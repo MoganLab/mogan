@@ -72,7 +72,7 @@
 
   <assign|corollary-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>
 
-  <assign|corrolary-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>>
+  <assign|corrolary-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>
 
   <assign|def-ref|<xmacro|args|<extern|ext-typed-ref|Definition|<quote-arg|args>>>>
 
