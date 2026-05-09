@@ -15,12 +15,17 @@
 #include <QLabel>
 #include <QPushButton>
 
+#include "qt_widget.hpp"
+
 class ChatSidebarWidget : public QDockWidget {
   Q_OBJECT
 
 public:
   explicit ChatSidebarWidget(QWidget* parent = nullptr);
   ~ChatSidebarWidget();
+  bool hasEmbeddedBuffers() const;
+  void setMessageWidget(qt_widget w);
+  void setInputWidget(qt_widget w);
 
 protected:
   void closeEvent(QCloseEvent* event) override;
@@ -42,11 +47,11 @@ private:
 
   QWidget*     m_messageContainer;
   QVBoxLayout* m_messageLayout;
-  QLabel*      m_messagePlaceholder;
+  qt_widget    m_messageWidget;
 
   QWidget*     m_inputContainer;
   QVBoxLayout* m_inputLayout;
-  QLabel*      m_inputPlaceholder;
+  qt_widget    m_inputWidget;
 
   // Send button area
   QWidget*     m_sendPanel;

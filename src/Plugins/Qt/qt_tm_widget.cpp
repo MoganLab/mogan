@@ -39,6 +39,7 @@
 
 #include "analyze.hpp"
 #include "config.h"
+#include "moebius/tree_label.hpp"
 #include "scheme.hpp"
 
 #include "qt_gui.hpp"
@@ -63,10 +64,12 @@
 #include "qt_window_widget.hpp"
 #include "tm_server.hpp"
 #include "tm_sys_utils.hpp"
+#include "tm_window.hpp"
 #include "tm_url.hpp"
 
 #include <moebius/data/scheme.hpp>
 
+using moebius::DOCUMENT;
 using moebius::data::scm_quote;
 
 int menu_count= 0; // zero if no menu is currently being displayed
@@ -1174,7 +1177,18 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   } break;
   case SLOT_CHAT_SIDEBAR_VISIBILITY: {
     check_type<bool> (val, s);
-    visibility[12]= open_box<bool> (val);
+    bool visible = open_box<bool> (val);
+    if (visible && has_current_view ()) {
+      if (!chatSidebar->hasEmbeddedBuffers ()) {
+        tree chat_style= as_tree (call ("get-style-tree"));
+        widget chat_body = texmacs_output_widget (tree (DOCUMENT, ""), chat_style);
+        widget chat_input = texmacs_input_widget (tree (DOCUMENT, ""), chat_style,
+                                                  url_none ());
+        chatSidebar->setMessageWidget (concrete (chat_body));
+        chatSidebar->setInputWidget (concrete (chat_input));
+      }
+    }
+    visibility[12]= visible;
     update_visibility ();
   } break;
   case SLOT_AUXILIARY_WIDGET: {

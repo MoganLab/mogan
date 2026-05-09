@@ -6,6 +6,7 @@
 
 #include "ChatSidebarWidget.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_widget.hpp"
 #include "command.hpp"
 #include "qt_gui.hpp"
 #include "scheme.hpp"
@@ -15,7 +16,9 @@
 #include <QFont>
 
 ChatSidebarWidget::ChatSidebarWidget(QWidget* parent)
-    : QDockWidget("Chat", parent) {
+    : QDockWidget("Chat", parent)
+    , m_messageWidget(qt_widget())
+    , m_inputWidget(qt_widget()) {
   setObjectName("chat_sidebar");
   setAllowedAreas(Qt::RightDockWidgetArea);
   setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
@@ -29,6 +32,10 @@ ChatSidebarWidget::ChatSidebarWidget(QWidget* parent)
 }
 
 ChatSidebarWidget::~ChatSidebarWidget() {}
+
+bool ChatSidebarWidget::hasEmbeddedBuffers() const {
+  return m_messageWidget.rep != nullptr && m_inputWidget.rep != nullptr;
+}
 
 void ChatSidebarWidget::setupUI() {
   m_container = new QWidget(this);
@@ -69,9 +76,6 @@ void ChatSidebarWidget::setupUI() {
   m_messageLayout->setContentsMargins(
       DpiUtils::scaled(12), DpiUtils::scaled(12),
       DpiUtils::scaled(12), DpiUtils::scaled(12));
-  m_messagePlaceholder = new QLabel("Message area placeholder", m_messageContainer);
-  m_messagePlaceholder->setWordWrap(true);
-  m_messageLayout->addWidget(m_messagePlaceholder);
   m_messageLayout->addStretch();
 
   // Input area placeholder
@@ -81,9 +85,6 @@ void ChatSidebarWidget::setupUI() {
   m_inputLayout->setContentsMargins(
       DpiUtils::scaled(12), DpiUtils::scaled(12),
       DpiUtils::scaled(12), DpiUtils::scaled(12));
-  m_inputPlaceholder = new QLabel("Input area placeholder", m_inputContainer);
-  m_inputPlaceholder->setWordWrap(true);
-  m_inputLayout->addWidget(m_inputPlaceholder);
   m_inputLayout->addStretch();
 
   m_splitter->addWidget(m_messageContainer);
@@ -121,6 +122,46 @@ void ChatSidebarWidget::setupConnections() {
   connect(m_refreshButton, &QPushButton::clicked, this, [this] {
     this->raise();
   });
+}
+
+void ChatSidebarWidget::setMessageWidget(qt_widget w) {
+  while (QLayoutItem* child = m_messageLayout->takeAt(0)) {
+    if (child->widget()) child->widget()->deleteLater();
+    delete child;
+  }
+
+  m_messageWidget = w;
+  if (m_messageWidget.rep != nullptr) {
+    QWidget* qwidget = m_messageWidget->as_qwidget();
+    if (qwidget) {
+      qwidget->setParent(m_messageContainer);
+      m_messageLayout->addWidget(qwidget);
+      qwidget->show();
+      return;
+    }
+  }
+
+  m_messageLayout->addStretch();
+}
+
+void ChatSidebarWidget::setInputWidget(qt_widget w) {
+  while (QLayoutItem* child = m_inputLayout->takeAt(0)) {
+    if (child->widget()) child->widget()->deleteLater();
+    delete child;
+  }
+
+  m_inputWidget = w;
+  if (m_inputWidget.rep != nullptr) {
+    QWidget* qwidget = m_inputWidget->as_qwidget();
+    if (qwidget) {
+      qwidget->setParent(m_inputContainer);
+      m_inputLayout->addWidget(qwidget);
+      qwidget->show();
+      return;
+    }
+  }
+
+  m_inputLayout->addStretch();
 }
 
 void ChatSidebarWidget::closeEvent(QCloseEvent* event) {
