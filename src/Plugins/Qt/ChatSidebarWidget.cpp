@@ -136,6 +136,11 @@ void ChatSidebarWidget::setupUI() {
 void ChatSidebarWidget::setupConnections() {
   connect(m_refreshButton, &QPushButton::clicked, this, [this] {
     this->raise();
+    exec_delayed(scheme_cmd("(when (defined? 'chat-sidebar-refresh!) (chat-sidebar-refresh!))"));
+  });
+  m_sendButton->setEnabled(true);
+  connect(m_sendButton, &QPushButton::clicked, this, [] {
+    exec_delayed(scheme_cmd("(when (defined? 'chat-sidebar-send) (chat-sidebar-send))"));
   });
 }
 
