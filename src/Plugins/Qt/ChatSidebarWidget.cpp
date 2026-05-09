@@ -130,7 +130,7 @@ void ChatSidebarWidget::setupUI() {
       "QWidget#chat-sidebar-send-panel { background-color: #e8e8e8; }");
 
   // Default width
-  setMinimumWidth(DpiUtils::scaled(280));
+  setMinimumWidth(DpiUtils::scaled(560));
 }
 
 void ChatSidebarWidget::setupConnections() {
