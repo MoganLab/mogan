@@ -309,7 +309,7 @@ texmacs_output_widget (tree doc, tree style) {
 }
 
 widget
-texmacs_custom_output_widget (tree doc, tree style) {
+texmacs_custom_output_widget (tree doc, tree style, double zoom) {
   doc= enrich_embedded_document (doc, style);
   drd_info              drd ("none", std_drd);
   hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
@@ -341,7 +341,6 @@ texmacs_custom_output_widget (tree doc, tree style) {
 #else
     col= light_grey;
 #endif
-  double zoom= (retina_zoom == 2 ? 1.0 : 1.2);
   return widget (tm_new<box_widget_rep> (b, col, false, zoom, 0, 0));
 }
 

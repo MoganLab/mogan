@@ -393,7 +393,8 @@ function main()
                 ret_type = "widget",
                 arg_list = {
                     "content",
-                    "content"
+                    "content",
+                    "double"
                 }
             },
             {
