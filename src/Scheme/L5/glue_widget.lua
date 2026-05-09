@@ -414,7 +414,8 @@ function main()
                 arg_list = {
                     "content",
                     "content",
-                    "url"
+                    "url",
+                    "double"
                 }
             },
             {

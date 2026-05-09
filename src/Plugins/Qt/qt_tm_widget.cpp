@@ -1185,7 +1185,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
             tree (DOCUMENT, "This is a static chat message."), chat_style, 2.0);
         widget chat_input =
             texmacs_custom_input_widget (tree (DOCUMENT, ""), chat_style,
-                                         url_none ());
+                                         url_none (), 2.2);
         chatSidebar->setMessageWidget (concrete (chat_body));
         chatSidebar->setInputWidget (concrete (chat_input));
       }

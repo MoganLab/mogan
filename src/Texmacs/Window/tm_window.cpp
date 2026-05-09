@@ -338,6 +338,34 @@ enrich_embedded_document (tree body, tree style) {
   return doc;
 }
 
+tree
+enrich_custom_embedded_document (tree body, tree style, double zoom) {
+  tree orig= body;
+  if (is_func (body, WITH)) body= body[N (body) - 1];
+  if (!is_func (body, DOCUMENT)) body= tree (DOCUMENT, body);
+  hashmap<string, tree> initial (UNINIT);
+  initial (PAGE_MEDIUM)      = "automatic";
+  initial (PAGE_SCREEN_LEFT) = "4px";
+  initial (PAGE_SCREEN_RIGHT)= "4px";
+  initial (PAGE_SCREEN_TOP)  = "2px";
+  initial (PAGE_SCREEN_BOT)  = "2px";
+
+  if (is_func (orig, WITH))
+    for (int i= 0; i + 2 < N (orig); i+= 2)
+      if (is_atomic (orig[i])) initial (orig[i]->label)= orig[i + 1];
+  initial (DPI)        = "600";
+  initial (ZOOM_FACTOR)= as_string (zoom);
+  initial ("no-zoom")  = "true";
+  tree doc (DOCUMENT);
+  doc << compound ("TeXmacs", TEXMACS_VERSION);
+  doc << style;
+  doc << compound ("body", body);
+  doc << compound ("initial", make_collection (initial));
+  if (initial->contains ("project"))
+    doc << compound ("project", initial["project"]);
+  return doc;
+}
+
 widget
 texmacs_input_widget (tree doc, tree style, url wname) {
   doc          = enrich_embedded_document (doc, style);
@@ -358,8 +386,8 @@ texmacs_input_widget (tree doc, tree style, url wname) {
 }
 
 widget
-texmacs_custom_input_widget (tree doc, tree style, url wname) {
-  doc          = enrich_embedded_document (doc, style);
+texmacs_custom_input_widget (tree doc, tree style, url wname, double zoom) {
+  doc          = enrich_custom_embedded_document (doc, style, zoom);
   url     base = get_master_buffer (get_current_buffer ());
   tm_view curvw= concrete_view (get_current_view ());
   url     name = embedded_name (wname);
