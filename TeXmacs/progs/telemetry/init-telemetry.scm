@@ -30,11 +30,34 @@
   (delayed (:pause (telemetry-get-flush-interval)) (telemetry-scheduler-step))
 ) ;define
 
+(define (telemetry-clean-orphans)
+  ;; 启动时清理：删除不在 meta 列表中的孤儿 jsonl
+  (let* ((meta (telemetry-read-meta))
+         (valid-files (map (lambda (e) (assoc-ref e "filename")) meta))
+         (dir-url (system->url (telemetry-main-dir)))
+         (pattern (url-append dir-url (url-wildcard "*.jsonl")))
+         (files (url->list (url-expand (url-complete pattern "fr"))))
+        ) ;
+    (for-each (lambda (f)
+                (let ((fname (url->string (url-tail f))))
+                  (when (and (string-starts? fname "detail-telemetry-")
+                          (not (member fname valid-files))
+                        ) ;and
+                    (catch #t (lambda () (path-unlink (url->system f))) (lambda args #f))
+                  ) ;when
+                ) ;let
+              ) ;lambda
+      files
+    ) ;for-each
+  ) ;let*
+) ;define
+
 (define-public (init-telemetry)
   (if telemetry-scheduled?
     (display "[telemetry] init: already initialized\n")
     (if (telemetry-enabled?)
       (begin
+        (telemetry-clean-orphans)
         (set! telemetry-scheduled? #t)
         (display (string-append "[telemetry] init: enabled, buffer="
                    (number->string (telemetry-get-buffer-size))

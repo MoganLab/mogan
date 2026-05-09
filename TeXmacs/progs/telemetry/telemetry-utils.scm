@@ -266,7 +266,23 @@
          (updated (cons new-entry entries))
         ) ;
     (if (> (length updated) telemetry-meta-max-entries)
-      (set! updated (list-head updated telemetry-meta-max-entries))
+      (let ((dropped (list-tail updated telemetry-meta-max-entries)))
+        ;; 删除被滚出的旧 jsonl（失败静默跳过，如被 goldfish 占用）
+        (for-each (lambda (entry)
+                    (let ((f (assoc-ref entry "filename")))
+                      (when f
+                        (let ((p (telemetry-full-path f)))
+                          (when (path-exists? p)
+                            (catch #t (lambda () (path-unlink p)) (lambda args #f))
+                          ) ;when
+                        ) ;let
+                      ) ;when
+                    ) ;let
+                  ) ;lambda
+          dropped
+        ) ;for-each
+        (set! updated (list-head updated telemetry-meta-max-entries))
+      ) ;let
     ) ;if
     (if (telemetry-write-meta updated) updated #f)
   ) ;let*

@@ -19,14 +19,14 @@ telemetry_track (string event_type) {
 }
 
 inline void
-  telemetry_track (string event_type, string props) {
-    try {
-      call ("track-event", object (event_type),
-            tmscm_to_object (eval_scheme (props)));
-    } catch (...) {
-      // telemetry failure should never crash the application
-    }
+telemetry_track (string event_type, string props) {
+  try {
+    call ("track-event", object (event_type),
+          tmscm_to_object (eval_scheme (props)));
+  } catch (...) {
+    // telemetry failure should never crash the application
   }
+}
 
 #else
 
