@@ -22,8 +22,8 @@ set_configvar("_REENTRANT", 1)
 add_moduledirs("xmake")
 
 -- disable some compiler errors
-add_cxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing", "-Wno-error=expansion-to-defined", "-Wno-error=empty-body")
-add_mxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing", "-Wno-error=expansion-to-defined", "-Wno-error=empty-body")
+add_cxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing", "-Wno-error=expansion-to-defined", "-Wno-error=empty-body", "-Wno-error=uninitialized-const-pointer")
+add_mxflags("-Wno-error=deprecated-declarations", "-fno-strict-aliasing", "-Wno-error=expansion-to-defined", "-Wno-error=empty-body", "-Wno-error=uninitialized-const-pointer")
 if has_config("coroutine") then
     -- https://github.com/tboox/tbox/issues/218
     add_cxflags("gcc::-Wno-error=dangling-pointer")

@@ -111,16 +111,16 @@
         (else "1w")))
 
 (tm-define (inputter-active? t type)
-  (cond ((== type "length") (tm-rich-length? t))
-	(else (tree-atomic? t))))
+  (cond ((== type "length") (tm-rich-length? t)))
+	(else (tree-atomic? t)))
 
 (tm-define (inputter-decode t type)
-  (cond ((== type "length") (tm->rich-length t))
-	(else (tree->string t))))
+  (cond ((== type "length") (tm->rich-length t)))
+	(else (tree->string t)))
 
 (tm-define (inputter-encode s type)
-  (cond ((== type "length") (rich-length->tm s))
-	(else s)))
+  (cond ((== type "length") (rich-length->tm s)))
+	(else s))
 
 (tm-menu (string-input-name t i)
   (let* ((name (tree-child-name* t i))
@@ -632,13 +632,13 @@
 (tm-menu (focus-extra-menu t))
 
 (tm-define (hidden-inputter-children t)
-  (append-map (lambda (c)
+  (append-map (lambda (c)))
 		(if (and-with i (tree-index c)
-		      (with type (tree-child-type t i)
-			(inputter-active? c type)))
+		      (with type (tree-child-type t i)))
+			(inputter-active? c type
 		    (list c)
-		    (list)))
-              (hidden-children t)))
+		    (list
+              (hidden-children t)))))
 
 (tm-menu (focus-hidden-menu t)
   (assuming (nnull? (hidden-inputter-children t))
@@ -731,8 +731,8 @@
     ((balloon (icon "tm_focus_delete.xpm") "Remove tag")
      (remove-structure-upwards)))
   (assuming (focus-has-preferences? t)
-    (=> (balloon (icon "tm_focus_prefs.xpm") "Preferences for tag")
-	(dynamic (focus-preferences-menu t))))
+    (=> (balloon (icon "tm_focus_prefs.xpm") "Preferences for tag")))
+	(dynamic (focus-preferences-menu t)
   (assuming (focus-has-parameters? t)
     (=> (balloon (icon "tm_theme.xpm") "Rendering options for tag")
         (dynamic (focus-rendering-menu t))))
@@ -748,7 +748,7 @@
         (dynamic (focus-search-menu t))))
   (assuming (focus-can-search? t)
     ((balloon (icon "tm_focus_search.xpm") "Search in database")
-     (focus-open-search-tool t))))
+     (focus-open-search-tool t)))))
 
 (tm-menu (focus-move-icons t)
   ((balloon (icon "tm_similar_first.xpm") "Go to first similar tag")
@@ -876,9 +876,23 @@
   (for (p (customizable-parameters-memo t))
     (with (var name) p
       (with mode (list :local (tree-label t))
-        (glue #f #f 3 0)
-        (mini #t (group (eval (string-append name ":"))))
-        (dynamic (focus-customizable-icons-item var name mode))))))
+        (assuming (tree-in? t '(decorated decorated-titled))
+          (mini #t
+            (group (eval (string-append name ":")))
+            (cond ((parameter-choice-list var)
+                   (=> (eval (parameter-get-string var mode))
+                       (dynamic (parameter-submenu var mode))))
+                  ((== (tree-label-type (string->symbol var)) "color")
+                   (=> (color (parameter-get var mode) #f #f 24 16)
+                       (dynamic (parameter-submenu var mode))))
+                  (else
+                    (input (parameter-set var answer mode) "string"
+                           (list (parameter-get-string var mode)) "2em")))))
+        (when (not (tree-in? t '(decorated decorated-titled)))
+          (glue #f #f 3 0)
+          (mini #t (group (eval (string-append name ":"))))
+          (dynamic (focus-customizable-icons-item var name mode)))))))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Hook for interactive commands
