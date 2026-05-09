@@ -56,16 +56,25 @@
   (url->system (get-texmacs-home-path))
 ) ;define
 
+(define (telemetry-ensure-dir dir)
+  (if (not (path-exists? dir))
+    (begin
+      (telemetry-ensure-dir (path-parent dir))
+      (mkdir dir)
+    ) ;begin
+  ) ;if
+) ;define
+
 (define-public (telemetry-dir)
   (let ((dir (string-append (telemetry-home-path) "/system/telemetry")))
-    (if (not (path-exists? dir)) (mkdir dir))
+    (telemetry-ensure-dir dir)
     dir
   ) ;let
 ) ;define-public
 
 (define-public (telemetry-main-dir)
   (let ((dir (string-append (telemetry-dir) "/main")))
-    (if (not (path-exists? dir)) (mkdir dir))
+    (telemetry-ensure-dir dir)
     dir
   ) ;let
 ) ;define-public
@@ -143,6 +152,13 @@
 ;; JSON serialization helpers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (telemetry-alist? v)
+  (if (null? v)
+    #t
+    (and (pair? v) (pair? (car v)) (string? (caar v)) (telemetry-alist? (cdr v)))
+  ) ;if
+) ;define
+
 (define (telemetry->json-escape s)
   (let loop
     ((chars (string->list s)) (result '()))
@@ -167,7 +183,7 @@
         ((eq? v 'null) "null")
         ((equal? v '(())) "{}")
         ((null? v) "[]")
-        ((and (pair? v) (pair? (car v)) (string? (caar v)))
+        ((telemetry-alist? v)
          ;; alist -> JSON object
          (string-append "{"
            (string-join (map (lambda (p) (string-append "\"" (car p) "\":" (telemetry->json (cdr p))))
@@ -208,25 +224,35 @@
 
 (define-public (telemetry-write-meta entries)
   (let* ((path (telemetry-meta-path)) (tmp-path (string-append path ".tmp")))
+    (define (try-write)
+      (njson->file tmp-path (json->njson (list->vector entries)))
+      (when (path-exists? path)
+        (path-unlink path)
+      ) ;when
+      (path-rename tmp-path path)
+      #t
+    ) ;define
     (catch #t
-      (lambda ()
-        (njson->file tmp-path (json->njson (list->vector entries)))
-        (when (path-exists? path)
-          (path-unlink path)
-        ) ;when
-        (path-rename tmp-path path)
-        #t
-      ) ;lambda
+      (lambda () (try-write))
       (lambda args
-        (display (string-append "[telemetry] error: meta write failed: "
-                   (object->string args)
-                   "\n"
-                 ) ;string-append
-        ) ;display
+        ;; Retry once (e.g. file locked on Windows by goldfish reader)
         (when (path-exists? tmp-path)
           (path-unlink tmp-path)
         ) ;when
-        #f
+        (catch #t
+          (lambda () (try-write))
+          (lambda args2
+            (display (string-append "[telemetry] error: meta write failed after retry: "
+                       (object->string args2)
+                       "\n"
+                     ) ;string-append
+            ) ;display
+            (when (path-exists? tmp-path)
+              (path-unlink tmp-path)
+            ) ;when
+            #f
+          ) ;lambda
+        ) ;catch
       ) ;lambda
     ) ;catch
   ) ;let*

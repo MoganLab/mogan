@@ -252,6 +252,92 @@
   ) ;let
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-meta-add-entry：滚动保留 200 条，溢出移除最旧
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (let ((old-pref (get-preference "telemetry"))
+        (old-buffer-size (telemetry-get-buffer-size))
+       ) ;
+    (set-preference "telemetry" "1")
+    ;; 清理旧数据
+    (let ((old-meta (telemetry-read-meta)))
+      (for-each (lambda (entry)
+                  (let ((f (assoc-ref entry "filename")))
+                    (when f
+                      (let ((p (telemetry-full-path f)))
+                        (when (path-exists? p)
+                          (path-unlink p)
+                        ) ;when
+                      ) ;let
+                    ) ;when
+                  ) ;let
+                ) ;lambda
+        old-meta
+      ) ;for-each
+    ) ;let
+    (telemetry-write-meta '())
+    (telemetry-set-buffer-size! 1)
+    (set! *telemetry-event-queue* '())
+    ;; 连续 flush 205 次
+    (let loop
+      ((i 0))
+      (when (< i 205)
+        (track-event (string-append "OVERFLOW_" (number->string i)) '())
+        (loop (+ i 1))
+      ) ;when
+    ) ;let
+    ;; 验证 meta 只有 200 条
+    (let ((meta (telemetry-read-meta)))
+      (check (length meta) => 200)
+      ;; meta 新在前旧在后：读第一个 jsonl 验证 eventType 是 OVERFLOW_204
+      (let* ((first-file (assoc-ref (car meta) "filename"))
+             (first-path (telemetry-full-path first-file))
+             (first-line (car (filter (lambda (s) (> (string-length s) 0))
+                                (string-split (string-load (system->url first-path)) #\newline)
+                              ) ;filter
+                         ) ;car
+             ) ;first-line
+            ) ;
+        (check (string-contains? first-line "\"eventType\":\"OVERFLOW_204\"") => #t)
+      ) ;let*
+      ;; 读最后一个 jsonl 验证 eventType 是 OVERFLOW_5
+      (let* ((last-file (assoc-ref (car (reverse meta)) "filename"))
+             (last-path (telemetry-full-path last-file))
+             (last-line (car (filter (lambda (s) (> (string-length s) 0))
+                               (string-split (string-load (system->url last-path)) #\newline)
+                             ) ;filter
+                        ) ;car
+             ) ;last-line
+            ) ;
+        (check (string-contains? last-line "\"eventType\":\"OVERFLOW_5\"") => #t)
+      ) ;let*
+    ) ;let
+    ;; 清理
+    (let ((meta (telemetry-read-meta)))
+      (for-each (lambda (entry)
+                  (let ((f (assoc-ref entry "filename")))
+                    (when f
+                      (let ((p (telemetry-full-path f)))
+                        (when (path-exists? p)
+                          (path-unlink p)
+                        ) ;when
+                      ) ;let
+                    ) ;when
+                  ) ;let
+                ) ;lambda
+        meta
+      ) ;for-each
+    ) ;let
+    (telemetry-write-meta '())
+    ;; 恢复
+    (telemetry-set-buffer-size! old-buffer-size)
+    (if old-pref
+      (set-preference "telemetry" old-pref)
+      (reset-preference "telemetry")
+    ) ;if
+  ) ;let
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; telemetry-flush-if-needed：禁用时返回 #t
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
