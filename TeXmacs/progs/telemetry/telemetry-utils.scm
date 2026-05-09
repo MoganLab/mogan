@@ -69,7 +69,7 @@
       (mkdir dir))))
 
 (define-public (telemetry-lock-owner)
-  (string-append "telemetry-" (number->string (getpid))))
+  "telemetry-main")
 
 (define-public (telemetry-device-id)
   (let ((id (stem-device-id)))

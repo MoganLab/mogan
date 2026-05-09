@@ -477,8 +477,10 @@
     (use-modules (telemetry init-telemetry))
     (init-telemetry))
   (lambda args
-    (display (string-append "[telemetry] error: init failed: "
-                            (object->string args) "\n"))))
+    (let ((msg (string-append "[telemetry] error: init failed: "
+                              (object->string args) "\n")))
+      (display msg (current-error-port))
+      (force-output (current-error-port)))))
 (texmacs-banner)
 (display "Initialization done\n")
 

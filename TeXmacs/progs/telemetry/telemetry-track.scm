@@ -38,8 +38,11 @@
                                   " (queue: " (number->string len)
                                   "/" (number->string (telemetry-get-buffer-size)) ")\n"))
           (if (> len telemetry-max-queue-size)
-            (set! *telemetry-event-queue*
-              (list-head *telemetry-event-queue* telemetry-max-queue-size)))
+            (begin
+              (set! *telemetry-event-queue*
+                (list-head *telemetry-event-queue* telemetry-max-queue-size))
+              (display (string-append "[telemetry] warn: queue truncated to "
+                                      (number->string telemetry-max-queue-size) "\n")))))
           (if (>= len (telemetry-get-buffer-size))
             (telemetry-flush)))
         #t)
