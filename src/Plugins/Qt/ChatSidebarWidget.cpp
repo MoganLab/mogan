@@ -43,12 +43,14 @@ bool ChatSidebarWidget::hasEmbeddedBuffers() const {
 
 void ChatSidebarWidget::setupUI() {
   m_container = new QWidget(this);
+  m_container->setObjectName("chat-sidebar-container");
   m_mainLayout = new QVBoxLayout(m_container);
   m_mainLayout->setSpacing(0);
   m_mainLayout->setContentsMargins(0, 0, 0, 0);
 
   // Custom title bar
   m_titleBar = new QWidget(m_container);
+  m_titleBar->setObjectName("chat-sidebar-titlebar");
   m_titleLayout = new QHBoxLayout(m_titleBar);
   m_titleLayout->setSpacing(DpiUtils::scaled(4));
   m_titleLayout->setContentsMargins(
@@ -75,6 +77,7 @@ void ChatSidebarWidget::setupUI() {
 
   // Message area placeholder
   m_messageContainer = new QWidget(m_splitter);
+  m_messageContainer->setObjectName("chat-sidebar-message-container");
   m_messageLayout = new QVBoxLayout(m_messageContainer);
   m_messageLayout->setSpacing(0);
   m_messageLayout->setContentsMargins(
@@ -84,6 +87,7 @@ void ChatSidebarWidget::setupUI() {
 
   // Input area placeholder
   m_inputContainer = new QWidget(m_splitter);
+  m_inputContainer->setObjectName("chat-sidebar-input-container");
   m_inputLayout = new QVBoxLayout(m_inputContainer);
   m_inputLayout->setSpacing(0);
   m_inputLayout->setContentsMargins(
@@ -102,6 +106,7 @@ void ChatSidebarWidget::setupUI() {
 
   // Send button panel
   m_sendPanel = new QWidget(m_container);
+  m_sendPanel->setObjectName("chat-sidebar-send-panel");
   m_sendLayout = new QHBoxLayout(m_sendPanel);
   m_sendLayout->setSpacing(DpiUtils::scaled(4));
   m_sendLayout->setContentsMargins(
@@ -117,6 +122,12 @@ void ChatSidebarWidget::setupUI() {
   m_mainLayout->addWidget(m_sendPanel);
 
   setWidget(m_container);
+  m_container->setStyleSheet(
+      "QWidget#chat-sidebar-container { background-color: #f1f1f1; }"
+      "QWidget#chat-sidebar-titlebar { background-color: #e8e8e8; }"
+      "QWidget#chat-sidebar-message-container { background-color: #f1f1f1; }"
+      "QWidget#chat-sidebar-input-container { background-color: #f1f1f1; }"
+      "QWidget#chat-sidebar-send-panel { background-color: #e8e8e8; }");
 
   // Default width
   setMinimumWidth(DpiUtils::scaled(280));
