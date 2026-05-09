@@ -182,6 +182,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   visibility[9] = (mask & 512) == 512;   // extra bottom tools
   visibility[10]= (mask & 1024) == 1024; // tab page bar
   visibility[11]= (mask & 2048) == 2048; // auxiliary widget
+  visibility[12]= false;                 // chat sidebar
 
 #ifdef OS_WASM
   visibility[1]= false; // main
@@ -546,6 +547,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   sideTools      = new QDockWidget ("side tools", 0);
   leftTools      = new QDockWidget ("left tools", 0);
   auxiliaryWidget= new QTMAuxiliaryWidget ("auxiliary widget", 0);
+  chatSidebar    = new ChatSidebarWidget (0);
   // HACK: Wrap the dock in a "fake" window widget (last parameter = true) to
   // have clicks report the right position.
   static int cnt      = 0;
@@ -564,6 +566,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     bottomTools->setStyle (qtmstyle ());
     extraTools->setStyle (qtmstyle ());
     auxiliaryWidget->setStyle (qtmstyle ());
+    chatSidebar->setStyle (qtmstyle ());
   }
 
   {
@@ -746,6 +749,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   auxiliaryWidget->setFloating (false);
   // auxiliaryWidget->setTitleBarWidget (new QWidget ()); // Disables title bar
   mw->addDockWidget (Qt::RightDockWidgetArea, auxiliaryWidget);
+
+  chatSidebar->setAllowedAreas (Qt::RightDockWidgetArea);
+  chatSidebar->setFloating (false);
+  mw->addDockWidget (Qt::RightDockWidgetArea, chatSidebar);
 
   // FIXME? add DockWidgetClosable and connect the close signal
   // to the scheme code
@@ -936,6 +943,7 @@ qt_tm_widget_rep::update_visibility () {
   bool old_bottomVisibility= bottomTools->isVisible ();
   bool old_extraVisibility = extraTools->isVisible ();
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
+  bool old_chatVisibility  = chatSidebar->isVisible ();
   bool old_tabVisibility=
       tabPageContainer ? tabPageContainer->isVisible () : false;
   bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
@@ -953,6 +961,7 @@ qt_tm_widget_rep::update_visibility () {
   bool new_extraVisibility = visibility[9];
   bool new_tabVisibility   = visibility[10] && visibility[0];
   bool new_auxVisibility   = visibility[11];
+  bool new_chatVisibility  = visibility[12];
   bool new_titleVisibility = visibility[0];
 
   if (startupTabMode) {
@@ -967,6 +976,7 @@ qt_tm_widget_rep::update_visibility () {
     new_bottomVisibility= false;
     new_extraVisibility = false;
     new_auxVisibility   = false;
+    new_chatVisibility  = false;
     new_tabVisibility   = true;
     new_titleVisibility = true;
   }
@@ -991,6 +1001,8 @@ qt_tm_widget_rep::update_visibility () {
     extraTools->setVisible (new_extraVisibility);
   if (XOR (old_auxVisibility, new_auxVisibility))
     auxiliaryWidget->setVisible (new_auxVisibility);
+  if (XOR (old_chatVisibility, new_chatVisibility))
+    chatSidebar->setVisible (new_chatVisibility);
   if (tabPageContainer && XOR (old_tabVisibility, new_tabVisibility))
     tabPageContainer->setVisible (new_tabVisibility);
   if (XOR (old_titleVisibility, new_titleVisibility))
@@ -1160,6 +1172,11 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     visibility[11]= open_box<bool> (val);
     update_visibility ();
   } break;
+  case SLOT_CHAT_SIDEBAR_VISIBILITY: {
+    check_type<bool> (val, s);
+    visibility[12]= open_box<bool> (val);
+    update_visibility ();
+  } break;
   case SLOT_AUXILIARY_WIDGET: {
     check_type<string> (val, s);
     auxiliaryWidget->setWindowTitle (to_qstring (open_box<string> (val)));
@@ -1319,6 +1336,10 @@ qt_tm_widget_rep::query (slot s, int type_id) {
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (visibility[11]);
+
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
+    check_type_id<bool> (type_id, s);
+    return close_box<bool> (visibility[12]);
 
   case SLOT_INTERACTIVE_INPUT: {
     check_type_id<string> (type_id, s);
@@ -1809,6 +1830,7 @@ qt_tm_embedded_widget_rep::send (slot s, blackbox val) {
   case SLOT_BOTTOM_TOOLS_VISIBILITY:
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
   case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
@@ -1869,6 +1891,7 @@ qt_tm_embedded_widget_rep::query (slot s, int type_id) {
   case SLOT_BOTTOM_TOOLS_VISIBILITY:
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (false);

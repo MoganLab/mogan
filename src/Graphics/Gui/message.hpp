@@ -78,6 +78,7 @@ enum slot_id {
   SLOT_BOTTOM_TOOLS,
   SLOT_EXTRA_TOOLS_VISIBILITY,
   SLOT_EXTRA_TOOLS,
+  SLOT_CHAT_SIDEBAR_VISIBILITY,
   SLOT_FOOTER_VISIBILITY,
   SLOT_LEFT_FOOTER,
   SLOT_RIGHT_FOOTER,
@@ -742,6 +743,18 @@ inline void
 set_extra_tools (widget w, widget bar) {
   // set extra tools
   write (w, SLOT_EXTRA_TOOLS, bar);
+}
+
+inline void
+set_chat_sidebar_visibility (widget w, bool visible) {
+  // set visibility of chat sidebar
+  send<bool> (w, SLOT_CHAT_SIDEBAR_VISIBILITY, visible);
+}
+
+inline bool
+get_chat_sidebar_visibility (widget w) {
+  // get visibility of chat sidebar
+  return query<bool> (w, SLOT_CHAT_SIDEBAR_VISIBILITY);
 }
 
 inline void

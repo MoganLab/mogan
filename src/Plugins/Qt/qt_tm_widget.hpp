@@ -23,6 +23,7 @@
 #include "QTMScrollView.hpp"
 #include "QTMTabPage.hpp"
 #include "QTMWidget.hpp"
+#include "ChatSidebarWidget.hpp"
 
 #include <QLayout>
 #include <QMainWindow>
@@ -79,6 +80,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QDockWidget*            extraTools;
   QTMTabPageContainer*    tabPageContainer;
   QTMAuxiliaryWidget*     auxiliaryWidget;
+  ChatSidebarWidget*      chatSidebar;
   QWK::WidgetWindowAgent* windowAgent;
   QWK::NotificationBar*   scmNotificationBar; // SCM 提示条
   QWK::LoginButton*       loginButton;
@@ -111,7 +113,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   qt_widget                 int_prompt;
   qt_widget                 int_input;
 
-  bool    visibility[12];
+  bool    visibility[13];
   bool    full_screen;
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;

@@ -232,6 +232,18 @@ tm_frame_rep::auxiliary_widget_visible () {
 }
 
 void
+tm_frame_rep::show_chat_sidebar (bool flag) {
+  if (!has_current_view ()) return;
+  concrete_window ()->set_chat_sidebar_flag (flag);
+}
+
+bool
+tm_frame_rep::chat_sidebar_visible () {
+  if (!has_current_view ()) return false;
+  return concrete_window ()->get_chat_sidebar_flag ();
+}
+
+void
 tm_frame_rep::show_bottom_tools (int which, bool flag) {
   if ((which < 0) || (which > 1) || (!has_current_view ())) return;
   concrete_window ()->set_bottom_tools_flag (which, flag);

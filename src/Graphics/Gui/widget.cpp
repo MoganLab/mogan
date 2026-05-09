@@ -75,6 +75,7 @@ slot_name (const slot s) {
                              "SLOT_BOTTOM_TOOLS",
                              "SLOT_EXTRA_TOOLS_VISIBILITY",
                              "SLOT_EXTRA_TOOLS",
+                             "SLOT_CHAT_SIDEBAR_VISIBILITY",
                              "SLOT_FOOTER_VISIBILITY",
                              "SLOT_LEFT_FOOTER",
                              "SLOT_RIGHT_FOOTER",

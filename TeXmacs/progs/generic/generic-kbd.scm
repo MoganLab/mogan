@@ -21,6 +21,7 @@
         (generic generic-edit)
         (generic format-edit)
         (generic format-geometry-edit)
+        (generic chat-widgets)
         (source source-edit)
         (texmacs texmacs tm-files)
         (texmacs texmacs tm-print)
@@ -180,6 +181,7 @@
   ("extra e" (edit-focus-macro))
   ("extra r" (edit-previous-macro))
   ("extra m" (edit-focus-macro-source))
+  ("extra c" (toggle-chat-sidebar))
   ;; ("extra p" (toggle-preamble-mode))
   ;; ("extra s" (toggle-source-mode))
 
