@@ -308,6 +308,43 @@ texmacs_output_widget (tree doc, tree style) {
   return widget (tm_new<box_widget_rep> (b, col, false, zoom, 0, 0));
 }
 
+widget
+texmacs_custom_output_widget (tree doc, tree style) {
+  doc= enrich_embedded_document (doc, style);
+  drd_info              drd ("none", std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  tree                  prj= extract (doc, "project");
+  if (is_atomic (prj) && exists (url_system (prj->label))) {
+    tm_buffer buf= concrete_buffer_insist (url_system (prj->label));
+    if (!is_nil (buf)) {
+      h1= copy (buf->data->ref);
+      h3= copy (buf->data->aux);
+      h5= copy (buf->data->att);
+    }
+  }
+  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
+  initialize_environment (env, doc, drd);
+  tree   t = extract (doc, "body");
+  lazy   lz= make_lazy (env, t, path ());
+  format vf=
+      make_query_vstream_width (array<line_item> (), array<line_item> ());
+  format rf= lz->query (LAZY_BOX, vf);
+  SI     w = ((format_vstream) rf)->width;
+  box    b = (box) lz->produce (LAZY_BOX, make_format_width (w));
+  color col= env->get_color (BG_COLOR);
+  if (env->get_string (BG_COLOR) == "white" &&
+      is_transparent (extract (doc, "body")))
+#ifdef QTTEXMACS
+    col= rgb_color (236, 236, 236);
+#else
+    col= light_grey;
+#endif
+  double zoom= (retina_zoom == 2 ? 1.0 : 1.2);
+  return widget (tm_new<box_widget_rep> (b, col, false, zoom, 0, 0));
+}
+
 array<SI>
 get_texmacs_widget_size (widget wid) {
   array<SI> ret;

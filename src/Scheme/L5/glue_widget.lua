@@ -388,8 +388,27 @@ function main()
                 }
             },
             {
+                scm_name = "widget-texmacs-custom-output",
+                cpp_name = "texmacs_custom_output_widget",
+                ret_type = "widget",
+                arg_list = {
+                    "content",
+                    "content"
+                }
+            },
+            {
                 scm_name = "widget-texmacs-input",
                 cpp_name = "texmacs_input_widget",
+                ret_type = "widget",
+                arg_list = {
+                    "content",
+                    "content",
+                    "url"
+                }
+            },
+            {
+                scm_name = "widget-texmacs-custom-input",
+                cpp_name = "texmacs_custom_input_widget",
                 ret_type = "widget",
                 arg_list = {
                     "content",

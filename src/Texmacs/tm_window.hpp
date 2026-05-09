@@ -106,7 +106,9 @@ typedef tm_view_rep*   tm_view;
 typedef tm_window_rep* tm_window;
 
 widget    texmacs_output_widget (tree doc, tree style);
+widget    texmacs_custom_output_widget (tree doc, tree style);
 widget    texmacs_input_widget (tree doc, tree style, url wname);
+widget    texmacs_custom_input_widget (tree doc, tree style, url wname);
 bool      is_embedded_buffer (url name);
 array<SI> get_texmacs_widget_size (widget wid);
 

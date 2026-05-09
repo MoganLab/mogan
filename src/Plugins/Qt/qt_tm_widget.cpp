@@ -1181,9 +1181,11 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (visible && has_current_view ()) {
       if (!chatSidebar->hasEmbeddedBuffers ()) {
         tree chat_style= as_tree (call ("get-style-tree"));
-        widget chat_body = texmacs_output_widget (tree (DOCUMENT, ""), chat_style);
-        widget chat_input = texmacs_input_widget (tree (DOCUMENT, ""), chat_style,
-                                                  url_none ());
+        widget chat_body =
+            texmacs_custom_output_widget (tree (DOCUMENT, ""), chat_style);
+        widget chat_input =
+            texmacs_custom_input_widget (tree (DOCUMENT, ""), chat_style,
+                                         url_none ());
         chatSidebar->setMessageWidget (concrete (chat_body));
         chatSidebar->setInputWidget (concrete (chat_input));
       }
