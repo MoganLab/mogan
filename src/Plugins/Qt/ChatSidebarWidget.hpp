@@ -8,6 +8,7 @@
 #define CHAT_SIDEBAR_WIDGET_H
 
 #include <QDockWidget>
+#include <QObject>
 #include <QWidget>
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -28,10 +29,13 @@ public:
   void setInputWidget(qt_widget w);
 
 protected:
+  bool eventFilter(QObject* watched, QEvent* event) override;
   void closeEvent(QCloseEvent* event) override;
   void keyPressEvent(QKeyEvent* event) override;
 
 private:
+  void installInputEventFilter(QWidget* widget);
+  void removeInputEventFilter(QWidget* widget);
   void setupUI();
   void setupConnections();
 
@@ -52,6 +56,7 @@ private:
   QWidget*     m_inputContainer;
   QVBoxLayout* m_inputLayout;
   qt_widget    m_inputWidget;
+  QWidget*     m_inputQWidget;
 
   // Send button area
   QWidget*     m_sendPanel;

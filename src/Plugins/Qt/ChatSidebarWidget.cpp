@@ -12,13 +12,16 @@
 #include "scheme.hpp"
 
 #include <QCloseEvent>
+#include <QEvent>
 #include <QKeyEvent>
 #include <QFont>
+#include <QWheelEvent>
 
 ChatSidebarWidget::ChatSidebarWidget(QWidget* parent)
     : QDockWidget("Chat", parent)
     , m_messageWidget(qt_widget())
-    , m_inputWidget(qt_widget()) {
+    , m_inputWidget(qt_widget())
+    , m_inputQWidget(nullptr) {
   setObjectName("chat_sidebar");
   setAllowedAreas(Qt::RightDockWidgetArea);
   setFeatures(QDockWidget::DockWidgetMovable | QDockWidget::DockWidgetFloatable);
@@ -145,23 +148,56 @@ void ChatSidebarWidget::setMessageWidget(qt_widget w) {
 }
 
 void ChatSidebarWidget::setInputWidget(qt_widget w) {
+  if (m_inputQWidget != nullptr) removeInputEventFilter(m_inputQWidget);
+
   while (QLayoutItem* child = m_inputLayout->takeAt(0)) {
     if (child->widget()) child->widget()->deleteLater();
     delete child;
   }
 
   m_inputWidget = w;
+  m_inputQWidget = nullptr;
   if (m_inputWidget.rep != nullptr) {
     QWidget* qwidget = m_inputWidget->as_qwidget();
     if (qwidget) {
       qwidget->setParent(m_inputContainer);
       m_inputLayout->addWidget(qwidget);
+      m_inputQWidget = qwidget;
+      installInputEventFilter(qwidget);
       qwidget->show();
       return;
     }
   }
 
   m_inputLayout->addStretch();
+}
+
+bool ChatSidebarWidget::eventFilter(QObject* watched, QEvent* event) {
+  if (m_inputQWidget != nullptr && event->type() == QEvent::Wheel) {
+    QWidget* watchedWidget = qobject_cast<QWidget*>(watched);
+    if (watchedWidget != nullptr &&
+        (watchedWidget == m_inputQWidget ||
+         m_inputQWidget->isAncestorOf(watchedWidget))) {
+      QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+      if ((wheelEvent->modifiers() & Qt::ControlModifier) != 0) {
+        wheelEvent->accept();
+        return true;
+      }
+    }
+  }
+  return QDockWidget::eventFilter(watched, event);
+}
+
+void ChatSidebarWidget::installInputEventFilter(QWidget* widget) {
+  widget->installEventFilter(this);
+  const auto children = widget->findChildren<QWidget*>();
+  for (QWidget* child : children) child->installEventFilter(this);
+}
+
+void ChatSidebarWidget::removeInputEventFilter(QWidget* widget) {
+  widget->removeEventFilter(this);
+  const auto children = widget->findChildren<QWidget*>();
+  for (QWidget* child : children) child->removeEventFilter(this);
 }
 
 void ChatSidebarWidget::closeEvent(QCloseEvent* event) {
