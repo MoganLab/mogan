@@ -419,6 +419,17 @@ function main()
                 }
             },
             {
+                scm_name = "widget-texmacs-custom-message",
+                cpp_name = "texmacs_custom_message_widget",
+                ret_type = "widget",
+                arg_list = {
+                    "content",
+                    "content",
+                    "url",
+                    "double"
+                }
+            },
+            {
                 scm_name = "widget-ink",
                 cpp_name = "ink_widget",
                 ret_type = "widget",

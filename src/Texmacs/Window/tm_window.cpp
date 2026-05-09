@@ -404,6 +404,27 @@ texmacs_custom_input_widget (tree doc, tree style, url wname, double zoom) {
   return wrapped_widget (win->wid, close_cmd);
 }
 
+widget
+texmacs_custom_message_widget (tree doc, tree style, url wname, double zoom) {
+  doc          = enrich_custom_embedded_document (doc, style, zoom);
+  url     base = get_master_buffer (get_current_buffer ());
+  tm_view curvw= concrete_view (get_current_view ());
+  url     name = embedded_name (wname);
+  if (contains (name, get_all_buffers ())) set_buffer_tree (name, doc);
+  else create_buffer (name, doc);
+  tm_buffer buf= concrete_buffer_insist (name);
+  if (!is_nil (buf)) buf->message_widget= true;
+  tm_view   vw = concrete_view (get_passive_view (name));
+  tm_window win= tm_new<tm_window_rep> (doc, command (), get_current_window ());
+  set_master_buffer (name, base);
+  vw->win= win;
+  set_scrollable (win->wid, vw->ed);
+  vw->ed->cvw      = win->wid.rep;
+  vw->ed->mvw      = curvw;
+  command close_cmd= close_embedded_command (vw, name, last_window_handle);
+  return wrapped_widget (win->wid, close_cmd);
+}
+
 /******************************************************************************
  * Meta mathods
  ******************************************************************************/

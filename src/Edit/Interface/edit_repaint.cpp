@@ -14,6 +14,7 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "sys_utils.hpp"
+#include "tm_buffer.hpp"
 
 #include <lolly/data/unicode.hpp>
 
@@ -89,6 +90,7 @@ edit_interface_rep::draw_env (renderer ren) {
 
 void
 edit_interface_rep::draw_cursor (renderer ren) {
+  if (buf != NULL && buf->message_widget) return;
   if (get_preference ("draw cursor") == "on" && !temp_invalid_cursor &&
       (got_focus || full_screen)) {
     if (cursor_blink_active && !cursor_blink_visible) return;

@@ -36,10 +36,11 @@ public:
   path            rp;     // path to the document's root in the_et
   link_repository lns;    // global links
   bool            notify; // notify modifications to scheme
+  bool            message_widget; // embedded message widget without cursor
 
   inline tm_buffer_rep (url name)
       : buf (name), data (), vws (0), prj (NULL), rp (new_document ()),
-        notify (false) {}
+        notify (false), message_widget (false) {}
 
   inline ~tm_buffer_rep () { delete_document (rp); }
 
