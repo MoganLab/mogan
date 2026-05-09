@@ -20,6 +20,7 @@
 ChatSidebarWidget::ChatSidebarWidget(QWidget* parent)
     : QDockWidget("Chat", parent)
     , m_messageWidget(qt_widget())
+    , m_messageQWidget(nullptr)
     , m_inputWidget(qt_widget())
     , m_inputQWidget(nullptr) {
   setObjectName("chat_sidebar");
@@ -128,17 +129,22 @@ void ChatSidebarWidget::setupConnections() {
 }
 
 void ChatSidebarWidget::setMessageWidget(qt_widget w) {
+  if (m_messageQWidget != nullptr) removeInputEventFilter(m_messageQWidget);
+
   while (QLayoutItem* child = m_messageLayout->takeAt(0)) {
     if (child->widget()) child->widget()->deleteLater();
     delete child;
   }
 
   m_messageWidget = w;
+  m_messageQWidget = nullptr;
   if (m_messageWidget.rep != nullptr) {
     QWidget* qwidget = m_messageWidget->as_qwidget();
     if (qwidget) {
       qwidget->setParent(m_messageContainer);
       m_messageLayout->addWidget(qwidget);
+      m_messageQWidget = qwidget;
+      installInputEventFilter(qwidget);
       qwidget->show();
       return;
     }
@@ -173,19 +179,25 @@ void ChatSidebarWidget::setInputWidget(qt_widget w) {
 }
 
 bool ChatSidebarWidget::eventFilter(QObject* watched, QEvent* event) {
-  if (m_inputQWidget != nullptr && event->type() == QEvent::Wheel) {
-    QWidget* watchedWidget = qobject_cast<QWidget*>(watched);
-    if (watchedWidget != nullptr &&
-        (watchedWidget == m_inputQWidget ||
-         m_inputQWidget->isAncestorOf(watchedWidget))) {
-      QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
-      if ((wheelEvent->modifiers() & Qt::ControlModifier) != 0) {
-        wheelEvent->accept();
-        return true;
-      }
+  if (event->type() == QEvent::Wheel && shouldBlockCtrlWheel(watched)) {
+    QWheelEvent* wheelEvent = static_cast<QWheelEvent*>(event);
+    if ((wheelEvent->modifiers() & Qt::ControlModifier) != 0) {
+      wheelEvent->accept();
+      return true;
     }
   }
   return QDockWidget::eventFilter(watched, event);
+}
+
+bool ChatSidebarWidget::shouldBlockCtrlWheel(QObject* watched) const {
+  return matchesEmbeddedWidget(watched, m_messageQWidget) ||
+         matchesEmbeddedWidget(watched, m_inputQWidget);
+}
+
+bool ChatSidebarWidget::matchesEmbeddedWidget(QObject* watched, QWidget* root) const {
+  QWidget* watchedWidget = qobject_cast<QWidget*>(watched);
+  return watchedWidget != nullptr && root != nullptr &&
+         (watchedWidget == root || root->isAncestorOf(watchedWidget));
 }
 
 void ChatSidebarWidget::installInputEventFilter(QWidget* widget) {

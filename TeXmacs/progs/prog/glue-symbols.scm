@@ -659,7 +659,6 @@
 "widget-hsplit"
 "widget-vsplit"
 "widget-texmacs-output"
-"widget-texmacs-custom-output"
 "widget-texmacs-input"
 "widget-texmacs-custom-input"
 "widget-texmacs-custom-message"

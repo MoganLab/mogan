@@ -38,6 +38,8 @@ private:
   void removeInputEventFilter(QWidget* widget);
   void setupUI();
   void setupConnections();
+  bool shouldBlockCtrlWheel(QObject* watched) const;
+  bool matchesEmbeddedWidget(QObject* watched, QWidget* root) const;
 
   QWidget*     m_container;
   QVBoxLayout* m_mainLayout;
@@ -52,6 +54,7 @@ private:
   QWidget*     m_messageContainer;
   QVBoxLayout* m_messageLayout;
   qt_widget    m_messageWidget;
+  QWidget*     m_messageQWidget;
 
   QWidget*     m_inputContainer;
   QVBoxLayout* m_inputLayout;
