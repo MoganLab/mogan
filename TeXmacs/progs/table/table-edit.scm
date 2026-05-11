@@ -750,6 +750,10 @@
   (:argument b "Top border width")
   (cell-set-borders b #f #f #f b #f #f #f))
 
+(tm-define (cell-set-dborder b)
+  (:argument b "Diagonal border width")
+  (cell-set-format* "cell-dborder" b))
+
 (define cell-current-pen-width "1ln")
 
 (define (cell-test-pen-width? pen)

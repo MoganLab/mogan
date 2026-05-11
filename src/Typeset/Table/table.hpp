@@ -53,6 +53,7 @@ public:
   SI     rborder;    // right border width
   SI     bborder;    // bottom border width
   SI     tborder;    // top border width
+  SI     dborder;    // diagonal border width
   string hmode;      // how to interpret the width
   string vmode;      // how to interpret the height
   string halign;     // horizontal alignment
@@ -128,6 +129,7 @@ public:
   SI     rborder;      // right border width
   SI     bborder;      // bottom border width
   SI     tborder;      // top border width
+  SI     dborder;      // diagonal border width
   string hmode;        // how to interpret the width
   string vmode;        // how to interpret the height
   string halign;       // horizontal alignment

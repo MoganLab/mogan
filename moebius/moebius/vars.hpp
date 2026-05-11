@@ -238,6 +238,7 @@ extern string CELL_LBORDER;
 extern string CELL_RBORDER;
 extern string CELL_BBORDER;
 extern string CELL_TBORDER;
+extern string CELL_DBORDER;
 extern string CELL_ROW_SPAN;
 extern string CELL_COL_SPAN;
 extern string CELL_VCORRECT;

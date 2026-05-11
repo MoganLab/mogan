@@ -143,7 +143,7 @@ box case_box (path ip, array<tree> conds, array<box> bs);
 box scatter_box (path ip, array<box> bs, array<SI> x, array<SI> y,
                  bool bg_flag= false);
 box cell_box (path ip, box b, SI x0, SI y0, SI x1, SI y1, SI x2, SI y2, SI bl,
-              SI br, SI bb, SI bt, brush fg, brush bg);
+              SI br, SI bb, SI bt, SI db, brush fg, brush bg);
 box remember_box (path ip, box b);
 box highlight_box (path ip, box b, box xb, ornament_parameters ps);
 box highlight_box (path ip, box b, SI w, brush col, brush sunc, brush shad);

@@ -196,7 +196,10 @@
 	       (list (cell-get-format "cell-tborder") "0ln" "1ln") "6em"))
       (item (text "Bottom:")
 	(input (cell-set-format* "cell-bborder" answer) "string"
-	       (list (cell-get-format "cell-bborder") "0ln" "1ln") "6em")))))
+	       (list (cell-get-format "cell-bborder") "0ln" "1ln") "6em"))
+      (item (text "Diagonal:")
+	(input (cell-set-format* "cell-dborder" answer) "string"
+	       (list (cell-get-format "cell-dborder") "0ln" "1ln") "6em")))))
 
 (tm-widget (cell-padding-widget)
   (horizontal

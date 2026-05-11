@@ -259,6 +259,7 @@ string CELL_LBORDER ("cell-lborder");
 string CELL_RBORDER ("cell-rborder");
 string CELL_BBORDER ("cell-bborder");
 string CELL_TBORDER ("cell-tborder");
+string CELL_DBORDER ("cell-dborder");
 string CELL_VCORRECT ("cell-vcorrect");
 string CELL_HYPHEN ("cell-hyphen");
 string CELL_BLOCK ("cell-block");
