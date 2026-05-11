@@ -233,14 +233,44 @@ tm_frame_rep::auxiliary_widget_visible () {
 
 void
 tm_frame_rep::show_chat_sidebar (bool flag) {
-  if (!has_current_view ()) return;
-  concrete_window ()->set_chat_sidebar_flag (flag);
+  if (has_current_view ()) {
+    tm_window win= concrete_window ();
+    if (win->parent != url_none ())
+      concrete_window (win->parent)->set_chat_sidebar_flag (flag);
+    else
+      win->set_chat_sidebar_flag (flag);
+    return;
+  }
+  url vw= get_most_recent_view ();
+  if (!is_none (vw)) {
+    tm_window win= concrete_view (vw)->win;
+    if (win != nullptr) {
+      if (win->parent != url_none ())
+        concrete_window (win->parent)->set_chat_sidebar_flag (flag);
+      else
+        win->set_chat_sidebar_flag (flag);
+    }
+  }
 }
 
 bool
 tm_frame_rep::chat_sidebar_visible () {
-  if (!has_current_view ()) return false;
-  return concrete_window ()->get_chat_sidebar_flag ();
+  if (has_current_view ()) {
+    tm_window win= concrete_window ();
+    if (win->parent != url_none ())
+      return concrete_window (win->parent)->get_chat_sidebar_flag ();
+    return win->get_chat_sidebar_flag ();
+  }
+  url vw= get_most_recent_view ();
+  if (!is_none (vw)) {
+    tm_window win= concrete_view (vw)->win;
+    if (win != nullptr) {
+      if (win->parent != url_none ())
+        return concrete_window (win->parent)->get_chat_sidebar_flag ();
+      return win->get_chat_sidebar_flag ();
+    }
+  }
+  return false;
 }
 
 void
