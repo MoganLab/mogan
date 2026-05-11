@@ -488,6 +488,7 @@
       ("Default" (init-default "par-first"))
       ---
       ("First indentation" (init-interactive-env "par-first")))
+  ("Indent paragraphs" (toggle-indent-paragraphs))
   (-> "Spacing"
       ("Default" (init-default "par-sep" "par-line-sep"
                                "interpargraph space"))
@@ -661,7 +662,6 @@
 (menu-bind page-layout-menu
   ("Margins as on paper" (toggle-page-screen-margin))
   ("Reduced margins" (toggle-reduced-margins))
-  ("Indent paragraphs" (toggle-indent-paragraphs))
   ("No page numbers" (toggle-no-page-numbers)))
 
 (menu-bind document-page-menu
