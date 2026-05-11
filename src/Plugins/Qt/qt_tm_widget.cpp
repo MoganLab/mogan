@@ -1183,10 +1183,12 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
         tree   chat_style= as_tree (call ("get-style-tree"));
         url    chat_body_name ("tmfs://aux/chat-sidebar-body");
         url    chat_input_name ("tmfs://aux/chat-sidebar-input");
+        tree   chat_doc=
+            tree (moebius::WITH, "par-first", "0fn", tree (DOCUMENT, ""));
         widget chat_body= texmacs_custom_message_widget (
-            tree (DOCUMENT, ""), chat_style, chat_body_name, 2.0);
+            chat_doc, chat_style, chat_body_name, 2.0);
         widget chat_input= texmacs_custom_input_widget (
-            tree (DOCUMENT, ""), chat_style, chat_input_name, 2.2);
+            chat_doc, chat_style, chat_input_name, 2.2);
         chatSidebar->setMessageWidget (concrete (chat_body));
         chatSidebar->setInputWidget (concrete (chat_input));
         call ("chat-sidebar-refresh!");
