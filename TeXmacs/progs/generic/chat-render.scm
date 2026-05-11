@@ -30,7 +30,7 @@
   (let* ((label (assoc-ref entry "label"))
          (children (or (assoc-ref entry "children") #()))
          (prefix (make-string indent #\space))
-         (line `(concat ,prefix (verbatim ,(or label "")))))
+         (line `(concat ,prefix ,(or label ""))))
     (cons line
           (chat-render-entry-list-children children (+ indent 2)))))
 
@@ -60,7 +60,7 @@
 (define (chat-render-file-diff-lines payload)
   (let* ((title (or (assoc-ref payload "title") "File diff"))
          (files (or (assoc-ref payload "files") #()))
-         (preview (assoc-ref payload "preview")))
+         (lines (or (assoc-ref payload "lines") #())))
     (append
      (list `(concat (with "font-series" "bold" ,title)))
      (let loop ((i 0) (n (vector-length files)) (result '()))
@@ -71,10 +71,24 @@
                   (summary (assoc-ref file "summary")))
              (loop (+ i 1) n
                    (cons (if summary
-                             `(concat (verbatim ,path) ": " ,summary)
-                             `(concat (verbatim ,path)))
+                             `(concat ,path ": " ,summary)
+                             `(concat ,path))
                          result)))))
-     (if preview (list `(verbatim ,preview)) '()))))
+     (let loop ((i 0) (n (vector-length lines)) (result '()))
+       (if (>= i n)
+           (reverse result)
+           (let* ((line (vector-ref lines i))
+                  (kind (assoc-ref line "kind"))
+                  (text (or (assoc-ref line "text") "")))
+             (loop (+ i 1) n
+                   (cons
+                    (cond ((== kind 'add)
+                           `(with "color" "green" (concat "+ " ,text)))
+                          ((== kind 'delete)
+                           `(with "color" "red" (concat "- " ,text)))
+                          (else
+                           `(concat "  " ,text)))
+                    result))))))))
 
 (define (chat-render-item-lines item)
   (let ((type (chat-item-type item))

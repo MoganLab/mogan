@@ -27,7 +27,19 @@
                "hello"
                ""
                (concat (with "font-series" "bold" "Agent"))
-               "echo: hello"))
+               (concat (with "font-shape" "italic" "Thinking: ")
+                       "preparing demo response")
+               "echo: hello"
+               (concat (with "font-series" "bold" "Explored"))
+               (concat "  " "Search demo request")
+               (concat "    " "Input: hello")
+               (concat (with "font-series" "bold" "Permission"))
+               "Allow demo tool call?"
+               (concat "[" "yes" "] [" "no" "]")
+               (concat (with "font-series" "bold" "File diff"))
+               (concat "demo.txt" ": " "show all chat item types")
+               (with "color" "red" (concat "- " "old demo payload"))
+               (with "color" "green" (concat "+ " "echo demo payload"))))
   (check (tree->stree (buffer-get-body "tmfs://aux/chat-sidebar-input"))
          => '(document "")))
 

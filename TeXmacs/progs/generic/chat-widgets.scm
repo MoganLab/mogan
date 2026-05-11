@@ -86,13 +86,55 @@
     (chat-session-append-item! session item-id 'text text #f end-at 'done)
     (chat-session-seal-current-block! session close-reason end-at)))
 
+(define (chat-sidebar-append-demo-agent-block! text start-at end-at)
+  (let ((session (chat-sidebar-ensure-session!))
+        (block-id (chat-sidebar-next-id-string "block")))
+    (chat-session-open-block! session block-id 'agent start-at)
+    (chat-session-append-item! session (chat-sidebar-next-id-string "item")
+                               'thinking "preparing demo response"
+                               #f end-at 'done)
+    (chat-session-append-item! session (chat-sidebar-next-id-string "item")
+                               'text (string-append "echo: " text)
+                               #f end-at 'done)
+    (chat-session-append-item!
+     session (chat-sidebar-next-id-string "item") 'tool-call #f
+     (list (cons "title" "Explored")
+           (cons "entries"
+                 (vector
+                  (list
+                   (cons "label" "Search demo request")
+                   (cons "children"
+                         (vector
+                          (list
+                           (cons "label" (string-append "Input: " text))
+                           (cons "children" #()))))))))
+     end-at 'done)
+    (chat-session-append-item!
+     session (chat-sidebar-next-id-string "item") 'tool-permission #f
+     `(("question" . "Allow demo tool call?")
+       ("approve-label" . "yes")
+       ("reject-label" . "no"))
+     end-at 'pending)
+    (chat-session-append-item!
+     session (chat-sidebar-next-id-string "item") 'file-diff #f
+     `(("title" . "File diff")
+       ("files" .
+        #((("path" . "demo.txt")
+           ("summary" . "show all chat item types"))))
+       ("lines" .
+        #((("kind" . delete)
+           ("text" . "old demo payload"))
+          (("kind" . add)
+           ("text" . "echo demo payload")))))
+     end-at 'done)
+    (chat-session-seal-current-block! session 'agent-finished end-at)))
+
 (tm-define (chat-sidebar-send)
   (:interactive #t)
   (let ((text (chat-sidebar-read-input-text)))
     (when (!= text "")
       (chat-sidebar-append-text-block! 'user text 0 0 'user-submitted)
-      (chat-sidebar-append-text-block! 'agent (string-append "echo: " text)
-                                       0 0 'agent-finished)
+      (chat-sidebar-append-demo-agent-block! text 0 0)
       (chat-sidebar-clear-input!)
       (chat-sidebar-refresh!))))
 

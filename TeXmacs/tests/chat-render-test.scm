@@ -60,8 +60,8 @@
            => '(document
                  (concat (with "font-series" "bold" "Agent"))
                  (concat (with "font-series" "bold" "Explored"))
-                 (concat "  " (verbatim "Search goldfish"))
-                 (concat "    " (verbatim "Search goldfish in ."))))))
+                 (concat "  " "Search goldfish")
+                 (concat "    " "Search goldfish in .")))))
 
 (define (test-chat-render-tool-permission)
   (let* ((session (make-chat-session "session-1" "/tmp/chat.json" 100))
@@ -89,6 +89,28 @@
                  (concat (with "font-series" "bold" "Permission"))
                  "Permission required"
                  (concat "[" "yes" "] [" "no" "]")))))
+
+(define (test-chat-render-file-diff)
+  (let* ((session (make-chat-session "session-1" "/tmp/chat.json" 100))
+         (payload `(("title" . "File diff")
+                    ("files" .
+                     #((("path" . "demo.txt")
+                        ("summary" . "updated"))))
+                    ("lines" .
+                     #((("kind" . delete)
+                        ("text" . "old line"))
+                       (("kind" . add)
+                        ("text" . "new line")))))))
+    (chat-session-open-block! session "block-1" 'agent 101)
+    (chat-session-append-item! session "item-1" 'file-diff #f payload 102 'done)
+    (chat-session-seal-current-block! session 'agent-finished 103)
+    (check (chat-session->message-document session)
+           => '(document
+                 (concat (with "font-series" "bold" "Agent"))
+                 (concat (with "font-series" "bold" "File diff"))
+                 (concat "demo.txt" ": " "updated")
+                 (with "color" "red" (concat "- " "old line"))
+                 (with "color" "green" (concat "+ " "new line"))))))
 
 (define (test-chat-render-multiple-blocks)
   (let ((session (make-chat-session "session-1" "/tmp/chat.json" 100)))
@@ -146,6 +168,7 @@
   (test-chat-render-tool-call)
   (test-chat-render-tool-permission)
   (test-chat-render-tool-permission-defaults)
+  (test-chat-render-file-diff)
   (test-chat-render-multiple-blocks)
   (test-chat-render-three-blocks-spacing)
   (test-chat-render-unknown-item-type)
