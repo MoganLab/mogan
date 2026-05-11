@@ -89,14 +89,15 @@ ChatSidebarWidget::setupUI () {
   // Independent tool-permission panel
   m_permissionPanel= new QWidget (m_splitter);
   m_permissionPanel->setObjectName ("chat-sidebar-permission-panel");
-  m_permissionPanel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Minimum);
+  m_permissionPanel->setSizePolicy (QSizePolicy::Expanding,
+                                    QSizePolicy::Minimum);
   m_permissionLayout= new QVBoxLayout (m_permissionPanel);
   m_permissionLayout->setSpacing (DpiUtils::scaled (4));
   m_permissionLayout->setContentsMargins (
       DpiUtils::scaled (12), DpiUtils::scaled (10), DpiUtils::scaled (12),
       DpiUtils::scaled (10));
 
-  m_permissionTitleLabel= new QLabel ("Tool permission", m_permissionPanel);
+  m_permissionTitleLabel   = new QLabel ("Tool permission", m_permissionPanel);
   QFont permissionTitleFont= m_permissionTitleLabel->font ();
   permissionTitleFont.setBold (true);
   m_permissionTitleLabel->setFont (permissionTitleFont);
@@ -105,8 +106,7 @@ ChatSidebarWidget::setupUI () {
       new QLabel ("Allow demo tool call?", m_permissionPanel);
   m_permissionQuestionLabel->setWordWrap (true);
 
-  m_permissionStatusLabel=
-      new QLabel ("Awaiting response", m_permissionPanel);
+  m_permissionStatusLabel= new QLabel ("Awaiting response", m_permissionPanel);
   m_permissionStatusLabel->setWordWrap (true);
 
   m_permissionButtonLayout= new QHBoxLayout ();
