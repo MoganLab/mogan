@@ -1,6 +1,6 @@
-<TMU|<tuple|1.1.0|2026.2.0>>
+<TMU|<tuple|1.1.0|2026.2.4>>
 
-<style|<tuple|generic|number-europe|smart-ref>>
+<style|<tuple|generic|number-europe|smart-ref|preview-ref>>
 
 <\body>
   <\frame>
@@ -29,9 +29,45 @@
     sin<around*|(|x|)>=cos<around*|(|<frac|\<pi\>|2>-x|)><label|l4>
   </equation>
 
+  <\eqnarray>
+    <tformat|<table|<row|<cell|1>|<cell|+>|<cell|2=3<eq-number>>>|<row|<cell|4>|<cell|->|<cell|5=-1<eq-number><label|eqn>>>|<row|<cell|9>|<cell|\<times\>>|<cell|9=81<eq-number>>>>>
+  </eqnarray>
+
+  <\framed>
+    <\theorem>
+      <label|thm:1a>theorem 1 start.
+
+      <\equation>
+        A x=\<lambda\>x<label|eq:1.1>
+      </equation>
+
+      <\align>
+        <tformat|<table|<row|<cell|f<around*|(|x|)>\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>>>>|<row|<cell|\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-z<around*|(|x|)>|\<\|\|\>>+<around*|\<\|\|\>|z<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><label|eq:1.2><eq-number>>>>>
+      </align>
+
+      theorem 1 end.<label|thm:1b>
+    </theorem>
+  </framed>
+
   \;
 
-  <with|font-series|bold|reference>:
+  <\theorem>
+    <label|thm:2a>theorem 2 start.
+
+    <\equation>
+      A x=\<lambda\>x<label|eq:2.1>
+    </equation>
+
+    <\align>
+      <tformat|<table|<row|<cell|f<around*|(|x|)>\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><eq-number><label|eq:2.2>>>|<row|<cell|\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-z<around*|(|x|)>|\<\|\|\>>+<around*|\<\|\|\>|z<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>>>>>>
+    </align>
+
+    theorem 2 end.<label|thm:2b>
+  </theorem>
+
+  \;
+
+  <new-page*><with|font-series|bold|reference>:
 
   <\itemize>
     <item>in frame, line1 label: <reference|eq1>, line2 label: <reference|eq2>
@@ -45,6 +81,20 @@
     <item>in equation, line5 label: <reference|l3>
 
     <item>in equation, line6 label: <reference|l4>
+
+    <item>in eqnarry, line 8 label (after eq-number): <reference|eqn>
+
+    <item>in (framed) theorem 1, line10 label: <reference|eq:1.1>
+
+    <item>in (framed) theorem 1, line11 label: <reference|eq:1.2>
+
+    <item>in (framed) theorem 1, its own label before start: <reference|thm:1a>, label after end: <reference|thm:1b>
+
+    <item>in (unframed) theorem 2, line12 label: <reference|eq:2.1>
+
+    <item>in (unframed) theorem 2, line13 label (after eq-number): <reference|eq:2.2>
+
+    <item>in (unframed) theorem 2, its own label before start: <reference|thm:2a>, label after end: <reference|thm:2b>
   </itemize>
 
   \;
@@ -54,13 +104,27 @@
   <\itemize>
     <item>in frame, line1 label: <smart-ref|eq1>, line2 label: <smart-ref|eq2>
 
-    <item>in align line3 label before eq-number:<smart-ref|l1a>, label after eq-number: <smart-ref|l1b>
+    <item>in align line3 label before eq-number: <smart-ref|l1a>, label after eq-number: <smart-ref|l1b>
 
-    <item>in align line4 label before eq-number:<smart-ref|l2a>, label after eq-number: <smart-ref|l2b>
+    <item>in align line4 label before eq-number: <smart-ref|l2a>, label after eq-number: <smart-ref|l2b>
 
     <item>in equation, line5 label: <smart-ref|l3>
 
     <item>in equation, line6 label: <smart-ref|l4>
+
+    <item>in eqnarry, line 8 label (after eq-number): <smart-ref|eqn>
+
+    <item>in (framed) theorem 1, line10 label: <smart-ref|eq:1.1>
+
+    <item>in (framed) theorem 1, line11 label: <smart-ref|eq:1.2>
+
+    <item>in (framed) theorem 1, its own label before start: <smart-ref|thm:1a>, label after end: <smart-ref|thm:1b>
+
+    <item>in (unframed) theorem 2, line12 label: <smart-ref|eq:2.1>
+
+    <item>in (unframed) theorem 2, line13 label (after eq-number): <smart-ref|eq:2.2>
+
+    <item>in (unframed) theorem 2, its own label before start: <smart-ref|thm:2a>, label after end: <smart-ref|thm:2b>
   </itemize>
 
   \;
@@ -70,6 +134,7 @@
   <\collection>
     <associate|page-medium|paper>
     <associate|page-screen-margin|false>
+    <associate|stem-doc-id|F520EF24-3E5F-4E60-8C91-09C7042CF9B0>
   </collection>
 </initial>
 
@@ -77,11 +142,22 @@
   <\collection>
     <associate|eq1|<tuple|1|1>>
     <associate|eq2|<tuple|2|1>>
+    <associate|eq:1.1|<tuple|10|1>>
+    <associate|eq:1.2|<tuple|11|1>>
+    <associate|eq:2.1|<tuple|12|1>>
+    <associate|eq:2.2|<tuple|13|1>>
+    <associate|eqn|<tuple|8|1>>
     <associate|l1a|<tuple|3|1>>
     <associate|l1b|<tuple|3|1>>
     <associate|l2a|<tuple|4|1>>
     <associate|l2b|<tuple|4|1>>
     <associate|l3|<tuple|5|1>>
     <associate|l4|<tuple|6|1>>
+    <associate|thm:1|<tuple|1|1>>
+    <associate|thm:1a|<tuple|1|?>>
+    <associate|thm:1b|<tuple|1|?>>
+    <associate|thm:2|<tuple|2|1>>
+    <associate|thm:2a|<tuple|2|?>>
+    <associate|thm:2b|<tuple|2|?>>
   </collection>
 </references>

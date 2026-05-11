@@ -160,6 +160,7 @@ bridge_surround_rep::my_typeset_will_be_complete () {
 
 void
 bridge_surround_rep::my_typeset (int desired_status) {
+  tree old_label= env->local_begin ("the-label", env->read ("the-label"));
   if (corrupted || (N (ttt->old_patch) != 0)) {
     hashmap<string, tree> prev_back (UNINIT);
     env->local_start (prev_back);
@@ -179,4 +180,5 @@ bridge_surround_rep::my_typeset (int desired_status) {
   ttt->insert_marker (st, ip);
   ttt->insert_surround (a, b);
   body->typeset (desired_status);
+  env->local_end ("the-label", old_label);
 }
