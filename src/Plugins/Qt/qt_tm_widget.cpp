@@ -420,11 +420,26 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     windowAgent->setHitTestVisible (vipButton, true);
   }
 
-  // 点击事件：跳转到会员购买页面
+  // 点击事件：跳转到会员购买页面（未登录时先触发登录）
   QObject::connect (vipButton, &QPushButton::clicked, [this] () {
-    string pricingUrl=
-        as_string (call ("account-oauth2-config", "pricing-url"));
-    QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+    if (is_community_stem ()) {
+      string pricingUrl=
+          as_string (call ("account-oauth2-config", "click-return-liii-url"));
+      QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
+      return;
+    }
+
+    if (is_server_started ()) {
+      tm_server_rep* server=
+          dynamic_cast<tm_server_rep*> (get_server ().operator->());
+      if (server && server->getAccount () &&
+          server->getAccount ()->isLoggedIn ()) {
+        openRenewalPage ();
+      }
+      else {
+        checkLocalTokenAndLogin ();
+      }
+    }
   });
 
   // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
