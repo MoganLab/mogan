@@ -488,7 +488,6 @@
       ("Default" (init-default "par-first"))
       ---
       ("First indentation" (init-interactive-env "par-first")))
-  ("Indent paragraphs" (toggle-indent-paragraphs))
   (-> "Spacing"
       ("Default" (init-default "par-sep" "par-line-sep"
                                "interpargraph space"))
