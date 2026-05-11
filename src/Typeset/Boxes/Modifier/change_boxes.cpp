@@ -606,7 +606,8 @@ struct cell_box_rep : public change_box_rep {
   SI    bl, br, bb, bt, db, ab;
   brush fg, bg, old_bg;
   cell_box_rep (path ip, box b, SI x0, SI y0, SI x1, SI y1, SI x2, SI y2, SI bl,
-                SI br, SI bb, SI bt, cell_diag_borders diag, brush fg, brush bg);
+                SI br, SI bb, SI bt, cell_diag_borders diag, brush fg,
+                brush bg);
   operator tree () { return tree (TUPLE, "cell", (tree) bs[0]); }
   box  adjust_kerning (int mode, double factor);
   box  expand_glyphs (int mode, double factor);
@@ -711,10 +712,10 @@ cell_box_rep::pre_display (renderer& ren) {
     ren->set_pencil (fg);
     SI dx= d >> 1;
     if (dx < PIXEL) dx= PIXEL;
-    SI x1d= x1 + dx;
-    SI y1d= y2 - dx;
-    SI x2d= x2 - dx;
-    SI y2d= y1 + dx;
+    SI        x1d= x1 + dx;
+    SI        y1d= y2 - dx;
+    SI        x2d= x2 - dx;
+    SI        y2d= y1 + dx;
     array<SI> px (4);
     array<SI> py (4);
     px[0]= x1d - dx;
@@ -732,10 +733,10 @@ cell_box_rep::pre_display (renderer& ren) {
     ren->set_pencil (fg);
     SI dx= a >> 1;
     if (dx < PIXEL) dx= PIXEL;
-    SI x1a= x2 - dx;
-    SI y1a= y2 - dx;
-    SI x2a= x1 + dx;
-    SI y2a= y1 + dx;
+    SI        x1a= x2 - dx;
+    SI        y1a= y2 - dx;
+    SI        x2a= x1 + dx;
+    SI        y2a= y1 + dx;
     array<SI> px (4);
     array<SI> py (4);
     px[0]= x1a - dx;
