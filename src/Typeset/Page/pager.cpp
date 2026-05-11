@@ -242,7 +242,7 @@ pager_rep::make_header (bool empty_flag) {
   else env->write (PAGE_NR, as_string (current_page));
   tree   old_col  = env->local_begin (PAR_COLUMNS, "1");
   tree   old_first= env->local_begin (PAR_FIRST, "0cm");
-  string which= (N (pages) & 1) == 0 ? PAGE_ODD_HEADER : PAGE_EVEN_HEADER;
+  string which    = (N (pages) & 1) == 0 ? PAGE_ODD_HEADER : PAGE_EVEN_HEADER;
   if (style[PAGE_THIS_HEADER] != "") which= PAGE_THIS_HEADER;
   tree header_tree= decode_images_in_tree (style[which]);
   box  b          = typeset_as_concat (
@@ -262,7 +262,7 @@ pager_rep::make_footer (bool empty_flag) {
   env->write (PAGE_THE_PAGE, style[PAGE_THE_PAGE]);
   tree   old_col  = env->local_begin (PAR_COLUMNS, "1");
   tree   old_first= env->local_begin (PAR_FIRST, "0cm");
-  string which= (N (pages) & 1) == 0 ? PAGE_ODD_FOOTER : PAGE_EVEN_FOOTER;
+  string which    = (N (pages) & 1) == 0 ? PAGE_ODD_FOOTER : PAGE_EVEN_FOOTER;
   if (style[PAGE_THIS_FOOTER] != "") which= PAGE_THIS_FOOTER;
   tree footer_tree= decode_images_in_tree (style[which]);
   box  b          = typeset_as_concat (
