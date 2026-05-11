@@ -197,12 +197,14 @@ ChatSidebarWidget::setupConnections () {
     exec_delayed (scheme_cmd (
         "(when (defined? 'chat-sidebar-demo-tool-permission-respond!) "
         "(chat-sidebar-demo-tool-permission-respond! 'yes))"));
+    m_permissionPanel->hide ();
   });
   connect (m_permissionNoButton, &QPushButton::clicked, this, [this] {
     m_permissionStatusLabel->setText ("Selected: no");
     exec_delayed (scheme_cmd (
         "(when (defined? 'chat-sidebar-demo-tool-permission-respond!) "
         "(chat-sidebar-demo-tool-permission-respond! 'no))"));
+    m_permissionPanel->hide ();
   });
 }
 
