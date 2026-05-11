@@ -14,34 +14,46 @@
 (texmacs-module (kernel boot compat))
 
 (define cout-port
-  (make-soft-port
-   (vector (lambda (c) (win32-display (char->string c)))
-	   (lambda (s) (win32-display s))
-	   (lambda () (noop))
-	   (lambda () #\?)
-	   (lambda () (noop)))
-   "w"))
+  (make-soft-port (vector (lambda (c) (win32-display (char->string c)))
+                    (lambda (s) (win32-display s))
+                    (lambda () (noop))
+                    (lambda () #\?)
+                    (lambda () (noop))
+                  ) ;vector
+    "w"
+  ) ;make-soft-port
+) ;define
 
 (if (os-win32?)
-    (begin
-      (set-current-output-port cout-port)
-      (set-current-error-port cout-port)))
+  (begin
+    (set-current-output-port cout-port)
+    (set-current-error-port cout-port)
+  ) ;begin
+) ;if
 
 ;;; make eval from guile>=1.6.0 backwards compatible
 (catch 'wrong-number-of-args
-       (lambda () (eval 1))
-       (lambda arg
-	 (let ((default-eval eval))
-	   (set! eval (lambda (form . env)
-			(cond ((null? form) (list))
-			      ((null? env) (primitive-eval form))
-			      (else (default-eval form (car env)))))))))
+  (lambda () (eval 1))
+  (lambda arg
+    (let ((default-eval eval))
+      (set! eval
+        (lambda (form . env)
+          (cond ((null? form) (list))
+                ((null? env) (primitive-eval form))
+                (else (default-eval form (car env)))
+          ) ;cond
+        ) ;lambda
+      ) ;set!
+    ) ;let
+  ) ;lambda
+) ;catch
 
 ;;; for old-style initialization files
-(define-public (exec-file . args)
-  (noop))
+(define-public (exec-file . args) (noop))
 
 ;;; certain Guile versions do not define 'filter'
 (if (not (defined? 'filter))
-    (define-public (filter pred? l)
-      (apply append (map (lambda (x) (if (pred? x) (list x) (list))) l))))
+  (define-public (filter pred? l)
+    (apply append (map (lambda (x) (if (pred? x) (list x) (list))) l))
+  ) ;define-public
+) ;if
