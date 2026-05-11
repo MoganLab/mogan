@@ -199,7 +199,10 @@
 	       (list (cell-get-format "cell-bborder") "0ln" "1ln") "6em"))
       (item (text "Diagonal:")
 	(input (cell-set-format* "cell-dborder" answer) "string"
-	       (list (cell-get-format "cell-dborder") "0ln" "1ln") "6em")))))
+	       (list (cell-get-format "cell-dborder") "0ln" "1ln") "6em"))
+      (item (text "Anti-diagonal:")
+	(input (cell-set-format* "cell-aborder" answer) "string"
+	       (list (cell-get-format "cell-aborder") "0ln" "1ln") "6em")))))
 
 (tm-widget (cell-padding-widget)
   (horizontal

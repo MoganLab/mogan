@@ -212,7 +212,9 @@
     ((icon "tm_border_lrtb.xpm")
      (cell-set-borders width width width width #f #f #f #f))
     ((icon "tm_border_d.xpm")
-     (cell-set-format* "cell-dborder" width))))
+     (cell-set-format* "cell-dborder" width))
+    ((icon "tm_border_a.xpm")
+     (cell-set-format* "cell-aborder" width))))
 
 (menu-bind cell-borders-icons-menu
   (with width (cell-get-pen-width)
@@ -246,7 +248,8 @@
   ("Right" (interactive cell-set-rborder))
   ("Bottom" (interactive cell-set-bborder))
   ("Top" (interactive cell-set-tborder))
-  ("Diagonal" (interactive cell-set-dborder)))
+  ("Diagonal" (interactive cell-set-dborder))
+  ("Anti-diagonal" (interactive cell-set-aborder)))
 
 (menu-bind cell-alt-border-menu
   (tile 4 (link cell-border-icons-menu))

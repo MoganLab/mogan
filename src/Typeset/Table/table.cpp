@@ -920,12 +920,12 @@ table_rep::finish () {
   brush fg= env->pen->get_brush ();
   brush bg= brush (false);
   b= cell_box (tb->ip, tb, 0, 0, x1, y1, x2, y2, lborder, rborder, bborder,
-               tborder, 0, fg, bg);
+               tborder, 0, 0, fg, bg);
   SI Lsep= lsep + lborder, Rsep= rsep + rborder;
   SI Bsep= bsep + bborder, Tsep= tsep + tborder;
   if ((Lsep != 0) || (Rsep != 0) || (Bsep != 0) || (Tsep != 0))
     b= cell_box (b->ip, b, Lsep, 0, x1, y1 - Bsep, x2 + Lsep + Rsep, y2 + Tsep,
-                 0, 0, 0, 0, 0, fg, bg);
+                 0, 0, 0, 0, 0, 0, fg, bg);
 }
 
 array<box>
@@ -965,12 +965,12 @@ table_rep::var_finish () {
     brush fg= env->pen->get_brush ();
     brush bg= brush (false);
     b= cell_box (tb->ip, tb, 0, 0, x1, y1, x2, y2, lborder, rborder, BB, TB, 0,
-                 fg, bg);
+                 0, fg, bg);
     SI Lsep= lsep + lborder, Rsep= rsep + rborder;
     SI Bsep= BS + BB, Tsep= TS + TB;
     if ((Lsep != 0) || (Rsep != 0) || (Bsep != 0) || (Tsep != 0))
       b= cell_box (b->ip, b, Lsep, 0, x1, y1 - Bsep, x2 + Lsep + Rsep,
-                   y2 + Tsep, 0, 0, 0, 0, 0, fg, bg);
+                   y2 + Tsep, 0, 0, 0, 0, 0, 0, fg, bg);
     stack << b;
   }
   return stack;

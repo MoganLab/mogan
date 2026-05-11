@@ -231,6 +231,9 @@ cell_rep::format_cell (tree fm) {
   if (var->contains (CELL_DBORDER))
     dborder= env->as_length (env->exec (var[CELL_DBORDER])) >> 1;
   else dborder= 0;
+  if (var->contains (CELL_ABORDER))
+    aborder= env->as_length (env->exec (var[CELL_ABORDER])) >> 1;
+  else aborder= 0;
   if (var->contains (CELL_HALIGN))
     halign= as_string (env->exec (var[CELL_HALIGN]));
   else halign= "l";
@@ -450,6 +453,6 @@ cell_rep::finish () {
   }
 
   b= cell_box (ip, b, xoff, yoff, 0, 0, x2 - x1, y2 - y1, lborder, rborder,
-               bborder, tborder, dborder, env->pen->get_brush (),
+               bborder, tborder, dborder, aborder, env->pen->get_brush (),
                brush (bg, env->alpha));
 }

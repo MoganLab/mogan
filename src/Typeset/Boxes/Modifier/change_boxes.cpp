@@ -596,12 +596,17 @@ repeat_box_rep::expand_glyphs (int mode, double factor) {
  * cell boxes for tables
  ******************************************************************************/
 
+struct cell_diag_borders {
+  SI db, ab;
+  cell_diag_borders (SI db2, SI ab2) : db (db2), ab (ab2) {}
+};
+
 struct cell_box_rep : public change_box_rep {
   SI    X0, Y0;
-  SI    bl, br, bb, bt, db;
+  SI    bl, br, bb, bt, db, ab;
   brush fg, bg, old_bg;
   cell_box_rep (path ip, box b, SI x0, SI y0, SI x1, SI y1, SI x2, SI y2, SI bl,
-                SI br, SI bb, SI bt, SI db, brush fg, brush bg);
+                SI br, SI bb, SI bt, cell_diag_borders diag, brush fg, brush bg);
   operator tree () { return tree (TUPLE, "cell", (tree) bs[0]); }
   box  adjust_kerning (int mode, double factor);
   box  expand_glyphs (int mode, double factor);
@@ -612,10 +617,11 @@ struct cell_box_rep : public change_box_rep {
 };
 
 cell_box_rep::cell_box_rep (path ip, box b, SI X0b, SI Y0b, SI X1, SI Y1, SI X2,
-                            SI Y2, SI Bl, SI Br, SI Bb, SI Bt, SI Db, brush Fg,
-                            brush Bg)
+                            SI Y2, SI Bl, SI Br, SI Bb, SI Bt,
+                            cell_diag_borders diag, brush Fg, brush Bg)
     : change_box_rep (ip, false), X0 (X0b), Y0 (Y0b), bl (Bl << 1),
-      br (Br << 1), bb (Bb << 1), bt (Bt << 1), db (Db << 1), fg (Fg), bg (Bg) {
+      br (Br << 1), bb (Bb << 1), bt (Bt << 1), db (diag.db << 1),
+      ab (diag.ab << 1), fg (Fg), bg (Bg) {
   insert (b, X0, Y0);
   position ();
   x1= X1;
@@ -623,7 +629,7 @@ cell_box_rep::cell_box_rep (path ip, box b, SI X0b, SI Y0b, SI X1, SI Y1, SI X2,
   x2= X2;
   y2= Y2;
   if (bg->get_type () != brush_none || (bl > 0) || (br > 0) || (bb > 0) ||
-      (bt > 0) || (db > 0)) {
+      (bt > 0) || (db > 0) || (ab > 0)) {
     // the 4*PIXEL extra space is sufficient for (shrinking factor) <= 8
     x3= min (x3, x1 - (bl >> 1) - (bl > 0 ? PIXEL << 2 : 0));
     y3= min (y3, y1 - (bb >> 1) - (bb > 0 ? PIXEL << 2 : 0));
@@ -639,7 +645,7 @@ cell_box_rep::adjust_kerning (int mode, double factor) {
   SI  d = nb->w () - bs[0]->w ();
   if ((mode & TABLE_CELL) != 0) d= 0;
   return cell_box (ip, nb, X0, Y0, x1, y1, x2 + d, y2, bl >> 1, br >> 1,
-                   bb >> 1, bt >> 1, db >> 1, fg, bg);
+                   bb >> 1, bt >> 1, db >> 1, ab >> 1, fg, bg);
 }
 
 box
@@ -648,7 +654,7 @@ cell_box_rep::expand_glyphs (int mode, double factor) {
   SI  d = nb->w () - bs[0]->w ();
   if ((mode & TABLE_CELL) != 0) d= 0;
   return cell_box (ip, nb, X0, Y0, x1, y1, x2 + d, y2, bl >> 1, br >> 1,
-                   bb >> 1, bt >> 1, db >> 1, fg, bg);
+                   bb >> 1, bt >> 1, db >> 1, ab >> 1, fg, bg);
 }
 
 void
@@ -660,12 +666,12 @@ cell_box_rep::get_cell_extents (SI& l, SI& r) {
 box
 cell_box_rep::adjust_cell_geometry (SI dx, SI dl, SI dr) {
   return cell_box (ip, bs[0], X0 + dx, Y0, x1 + dl, y1, x2 + dr, y2, bl >> 1,
-                   br >> 1, bb >> 1, bt >> 1, db >> 1, fg, bg);
+                   br >> 1, bb >> 1, bt >> 1, db >> 1, ab >> 1, fg, bg);
 }
 
 void
 cell_box_rep::pre_display (renderer& ren) {
-  SI l= bl, r= br, b= bb, t= bt, d= db;
+  SI l= bl, r= br, b= bb, t= bt, d= db, a= ab;
   SI lx1, rx1, by1, ty1;
   SI lx2, rx2, by2, ty2;
   if (ren->is_screen) { // correction for screen display only
@@ -675,6 +681,7 @@ cell_box_rep::pre_display (renderer& ren) {
     b       = ((b + (pixel - 1)) / pixel) * pixel;
     t       = ((t + (pixel - 1)) / pixel) * pixel;
     d       = ((d + (pixel - 1)) / pixel) * pixel;
+    a       = ((a + (pixel - 1)) / pixel) * pixel;
   }
 
   lx1= x1 - (l >> 1);
@@ -704,10 +711,10 @@ cell_box_rep::pre_display (renderer& ren) {
     ren->set_pencil (fg);
     SI dx= d >> 1;
     if (dx < PIXEL) dx= PIXEL;
-    SI x1d= lx2 + dx;
-    SI y1d= ty1 - dx;
-    SI x2d= rx1 - dx;
-    SI y2d= by2 + dx;
+    SI x1d= x1 + dx;
+    SI y1d= y2 - dx;
+    SI x2d= x2 - dx;
+    SI y2d= y1 + dx;
     array<SI> px (4);
     array<SI> py (4);
     px[0]= x1d - dx;
@@ -718,6 +725,27 @@ cell_box_rep::pre_display (renderer& ren) {
     py[2]= y2d + dx;
     px[3]= x2d - dx;
     py[3]= y2d - dx;
+    ren->polygon (px, py);
+  }
+
+  if (a > 0) {
+    ren->set_pencil (fg);
+    SI dx= a >> 1;
+    if (dx < PIXEL) dx= PIXEL;
+    SI x1a= x2 - dx;
+    SI y1a= y2 - dx;
+    SI x2a= x1 + dx;
+    SI y2a= y1 + dx;
+    array<SI> px (4);
+    array<SI> py (4);
+    px[0]= x1a - dx;
+    py[0]= y1a + dx;
+    px[1]= x1a + dx;
+    py[1]= y1a - dx;
+    px[2]= x2a + dx;
+    py[2]= y2a - dx;
+    px[3]= x2a - dx;
+    py[3]= y2a + dx;
     ren->polygon (px, py);
   }
 }
@@ -1108,9 +1136,9 @@ repeat_box (path ip, box ref, box repeat, SI xoff, bool under) {
 
 box
 cell_box (path ip, box b, SI x0, SI y0, SI x1, SI y1, SI x2, SI y2, SI bl,
-          SI br, SI bb, SI bt, SI db, brush fg, brush bg) {
+          SI br, SI bb, SI bt, SI db, SI ab, brush fg, brush bg) {
   box cb= tm_new<cell_box_rep> (ip, b, x0, y0, x1, y1, x2, y2, bl, br, bb, bt,
-                                db, fg, bg);
+                                cell_diag_borders (db, ab), fg, bg);
   return cb;
 }
 

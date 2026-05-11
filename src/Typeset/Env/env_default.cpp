@@ -257,6 +257,7 @@ initialize_default_env () {
   env (CELL_BBORDER)    = "0ln";  // bottom cell border width
   env (CELL_TBORDER)    = "0ln";  // top cell border width
   env (CELL_DBORDER)    = "0ln";  // diagonal cell border width
+  env (CELL_ABORDER)    = "0ln";  // anti-diagonal cell border width
   env (CELL_VCORRECT)   = "a";    // vertical limits correction
   env (CELL_HYPHEN)     = "n";    // horizontal hyphenation
   env (CELL_BLOCK)      = "auto"; // cell contains block content?

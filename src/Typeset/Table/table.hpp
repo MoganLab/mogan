@@ -130,6 +130,7 @@ public:
   SI     bborder;      // bottom border width
   SI     tborder;      // top border width
   SI     dborder;      // diagonal border width
+  SI     aborder;      // anti-diagonal border width
   string hmode;        // how to interpret the width
   string vmode;        // how to interpret the height
   string halign;       // horizontal alignment
