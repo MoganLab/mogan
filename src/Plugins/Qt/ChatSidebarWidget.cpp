@@ -86,6 +86,47 @@ ChatSidebarWidget::setupUI () {
       DpiUtils::scaled (12));
   m_messageLayout->addStretch ();
 
+  // Independent tool-permission panel
+  m_permissionPanel= new QWidget (m_splitter);
+  m_permissionPanel->setObjectName ("chat-sidebar-permission-panel");
+  m_permissionPanel->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Minimum);
+  m_permissionLayout= new QVBoxLayout (m_permissionPanel);
+  m_permissionLayout->setSpacing (DpiUtils::scaled (4));
+  m_permissionLayout->setContentsMargins (
+      DpiUtils::scaled (12), DpiUtils::scaled (10), DpiUtils::scaled (12),
+      DpiUtils::scaled (10));
+
+  m_permissionTitleLabel= new QLabel ("Tool permission", m_permissionPanel);
+  QFont permissionTitleFont= m_permissionTitleLabel->font ();
+  permissionTitleFont.setBold (true);
+  m_permissionTitleLabel->setFont (permissionTitleFont);
+
+  m_permissionQuestionLabel=
+      new QLabel ("Allow demo tool call?", m_permissionPanel);
+  m_permissionQuestionLabel->setWordWrap (true);
+
+  m_permissionStatusLabel=
+      new QLabel ("Awaiting response", m_permissionPanel);
+  m_permissionStatusLabel->setWordWrap (true);
+
+  m_permissionButtonLayout= new QHBoxLayout ();
+  m_permissionButtonLayout->setSpacing (DpiUtils::scaled (6));
+  m_permissionButtonLayout->setContentsMargins (0, 0, 0, 0);
+  m_permissionYesButton= new QPushButton ("yes", m_permissionPanel);
+  m_permissionNoButton = new QPushButton ("no", m_permissionPanel);
+  m_permissionYesButton->setFixedHeight (DpiUtils::scaled (26));
+  m_permissionNoButton->setFixedHeight (DpiUtils::scaled (26));
+  m_permissionButtonLayout->addStretch ();
+  m_permissionButtonLayout->addWidget (m_permissionYesButton);
+  m_permissionButtonLayout->addWidget (m_permissionNoButton);
+
+  m_permissionLayout->addWidget (m_permissionTitleLabel);
+  m_permissionLayout->addWidget (m_permissionQuestionLabel);
+  m_permissionLayout->addWidget (m_permissionStatusLabel);
+  m_permissionLayout->addLayout (m_permissionButtonLayout);
+  m_permissionPanel->setMinimumHeight (DpiUtils::scaled (92));
+  m_permissionPanel->hide ();
+
   // Input area placeholder
   m_inputContainer= new QWidget (m_splitter);
   m_inputContainer->setObjectName ("chat-sidebar-input-container");
@@ -97,11 +138,13 @@ ChatSidebarWidget::setupUI () {
   m_inputLayout->addStretch ();
 
   m_splitter->addWidget (m_messageContainer);
+  m_splitter->addWidget (m_permissionPanel);
   m_splitter->addWidget (m_inputContainer);
 
   // Set stretch factors: message area = 4, input area = 1
   m_splitter->setStretchFactor (0, 4);
-  m_splitter->setStretchFactor (1, 1);
+  m_splitter->setStretchFactor (1, 0);
+  m_splitter->setStretchFactor (2, 1);
 
   m_mainLayout->addWidget (m_splitter, 1);
 
@@ -126,6 +169,8 @@ ChatSidebarWidget::setupUI () {
       "QWidget#chat-sidebar-container { background-color: #f1f1f1; }"
       "QWidget#chat-sidebar-titlebar { background-color: #e8e8e8; }"
       "QWidget#chat-sidebar-message-container { background-color: #f1f1f1; }"
+      "QWidget#chat-sidebar-permission-panel { background-color: #fafafa; "
+      "border: 1px solid #d8d8d8; border-radius: 4px; }"
       "QWidget#chat-sidebar-input-container { background-color: #f1f1f1; }"
       "QWidget#chat-sidebar-send-panel { background-color: #e8e8e8; }");
 
@@ -141,9 +186,23 @@ ChatSidebarWidget::setupConnections () {
         "(when (defined? 'chat-sidebar-refresh!) (chat-sidebar-refresh!))"));
   });
   m_sendButton->setEnabled (true);
-  connect (m_sendButton, &QPushButton::clicked, this, [] {
+  connect (m_sendButton, &QPushButton::clicked, this, [this] {
+    m_permissionStatusLabel->setText ("Awaiting response");
+    m_permissionPanel->show ();
     exec_delayed (scheme_cmd (
         "(when (defined? 'chat-sidebar-send) (chat-sidebar-send))"));
+  });
+  connect (m_permissionYesButton, &QPushButton::clicked, this, [this] {
+    m_permissionStatusLabel->setText ("Selected: yes");
+    exec_delayed (scheme_cmd (
+        "(when (defined? 'chat-sidebar-demo-tool-permission-respond!) "
+        "(chat-sidebar-demo-tool-permission-respond! 'yes))"));
+  });
+  connect (m_permissionNoButton, &QPushButton::clicked, this, [this] {
+    m_permissionStatusLabel->setText ("Selected: no");
+    exec_delayed (scheme_cmd (
+        "(when (defined? 'chat-sidebar-demo-tool-permission-respond!) "
+        "(chat-sidebar-demo-tool-permission-respond! 'no))"));
   });
 }
 

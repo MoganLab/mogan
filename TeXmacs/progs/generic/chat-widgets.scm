@@ -18,6 +18,7 @@
 (define chat-sidebar-message-buffer "tmfs://aux/chat-sidebar-body")
 (define chat-sidebar-input-buffer "tmfs://aux/chat-sidebar-input")
 (define chat-sidebar-session #f)
+(define chat-sidebar-demo-tool-permission-choice* #f)
 (define chat-sidebar-next-id 0)
 
 (define (chat-sidebar-next-id-string prefix)
@@ -26,6 +27,7 @@
 
 (tm-define (chat-sidebar-reset!)
   (set! chat-sidebar-session #f)
+  (set! chat-sidebar-demo-tool-permission-choice* #f)
   (set! chat-sidebar-next-id 0)
   (chat-sidebar-ensure-buffer! chat-sidebar-message-buffer)
   (chat-sidebar-ensure-buffer! chat-sidebar-input-buffer)
@@ -33,6 +35,14 @@
   (buffer-set-body chat-sidebar-input-buffer '(document ""))
   (buffer-pretend-saved chat-sidebar-message-buffer)
   (buffer-pretend-saved chat-sidebar-input-buffer))
+
+(tm-define (chat-sidebar-demo-tool-permission-choice)
+  chat-sidebar-demo-tool-permission-choice*)
+
+(tm-define (chat-sidebar-demo-tool-permission-respond! choice)
+  (:interactive #t)
+  (set! chat-sidebar-demo-tool-permission-choice* choice)
+  choice)
 
 (define (chat-sidebar-ensure-session!)
   (if chat-sidebar-session
@@ -111,10 +121,10 @@
      end-at 'done)
     (chat-session-append-item!
      session (chat-sidebar-next-id-string "item") 'tool-permission #f
-     `(("question" . "Allow demo tool call?")
-       ("approve-label" . "yes")
-       ("reject-label" . "no"))
-     end-at 'pending)
+      `(("question" . "Allow demo tool call?")
+        ("approve-label" . "yes")
+        ("reject-label" . "no"))
+      end-at 'pending)
     (chat-session-append-item!
      session (chat-sidebar-next-id-string "item") 'file-diff #f
      `(("title" . "File diff")
@@ -133,6 +143,7 @@
   (:interactive #t)
   (let ((text (chat-sidebar-read-input-text)))
     (when (!= text "")
+      (set! chat-sidebar-demo-tool-permission-choice* #f)
       (chat-sidebar-append-text-block! 'user text 0 0 'user-submitted)
       (chat-sidebar-append-demo-agent-block! text 0 0)
       (chat-sidebar-clear-input!)

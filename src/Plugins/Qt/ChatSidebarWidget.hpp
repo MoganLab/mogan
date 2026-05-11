@@ -56,6 +56,15 @@ private:
   qt_widget    m_messageWidget;
   QWidget*     m_messageQWidget;
 
+  QWidget*     m_permissionPanel;
+  QVBoxLayout* m_permissionLayout;
+  QLabel*      m_permissionTitleLabel;
+  QLabel*      m_permissionQuestionLabel;
+  QLabel*      m_permissionStatusLabel;
+  QHBoxLayout* m_permissionButtonLayout;
+  QPushButton* m_permissionYesButton;
+  QPushButton* m_permissionNoButton;
+
   QWidget*     m_inputContainer;
   QVBoxLayout* m_inputLayout;
   qt_widget    m_inputWidget;

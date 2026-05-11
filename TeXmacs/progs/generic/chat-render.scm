@@ -50,12 +50,9 @@
           (chat-render-entry-list-children entries 2))))
 
 (define (chat-render-tool-permission-lines payload)
-  (let ((question (or (assoc-ref payload "question") "Permission required"))
-        (approve (or (assoc-ref payload "approve-label") "yes"))
-        (reject (or (assoc-ref payload "reject-label") "no")))
+  (let ((question (or (assoc-ref payload "question") "Permission required")))
     (list `(concat (with "font-series" "bold" "Permission"))
-          question
-          `(concat "[" ,approve "] [" ,reject "]"))))
+          `(concat "Permission request: " ,question))))
 
 (define (chat-render-file-diff-lines payload)
   (let* ((title (or (assoc-ref payload "title") "File diff"))

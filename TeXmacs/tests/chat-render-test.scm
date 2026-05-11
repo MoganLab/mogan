@@ -66,17 +66,16 @@
 (define (test-chat-render-tool-permission)
   (let* ((session (make-chat-session "session-1" "/tmp/chat.json" 100))
          (payload `(("question" . "xxx accept?")
-                    ("approve-label" . "yes")
-                    ("reject-label" . "no and tell agent what to do differently"))))
+                     ("approve-label" . "yes")
+                     ("reject-label" . "no and tell agent what to do differently"))))
     (chat-session-open-block! session "block-1" 'agent 101)
     (chat-session-append-item! session "item-1" 'tool-permission #f payload 102 'pending)
     (chat-session-seal-current-block! session 'agent-stopped 103)
     (check (chat-session->message-document session)
            => '(document
-                 (concat (with "font-series" "bold" "Agent"))
-                 (concat (with "font-series" "bold" "Permission"))
-                 "xxx accept?"
-                 (concat "[" "yes" "] [" "no and tell agent what to do differently" "]")))))
+                  (concat (with "font-series" "bold" "Agent"))
+                  (concat (with "font-series" "bold" "Permission"))
+                  (concat "Permission request: " "xxx accept?")))))
 
 (define (test-chat-render-tool-permission-defaults)
   (let ((session (make-chat-session "session-1" "/tmp/chat.json" 100)))
@@ -85,10 +84,9 @@
     (chat-session-seal-current-block! session 'agent-stopped 103)
     (check (chat-session->message-document session)
            => '(document
-                 (concat (with "font-series" "bold" "Agent"))
-                 (concat (with "font-series" "bold" "Permission"))
-                 "Permission required"
-                 (concat "[" "yes" "] [" "no" "]")))))
+                  (concat (with "font-series" "bold" "Agent"))
+                  (concat (with "font-series" "bold" "Permission"))
+                  (concat "Permission request: " "Permission required")))))
 
 (define (test-chat-render-file-diff)
   (let* ((session (make-chat-session "session-1" "/tmp/chat.json" 100))
