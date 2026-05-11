@@ -12,9 +12,9 @@
 #include "scheme.hpp"
 
 #include <QCloseEvent>
-#include <QHideEvent>
 #include <QEvent>
 #include <QFont>
+#include <QHideEvent>
 #include <QKeyEvent>
 #include <QWheelEvent>
 
@@ -182,8 +182,8 @@ ChatSidebarWidget::setupUI () {
 void
 ChatSidebarWidget::setupConnections () {
   connect (m_closeButton, &QPushButton::clicked, this, [this] {
-    exec_delayed (
-        scheme_cmd ("(when (defined? 'close-chat-sidebar) (close-chat-sidebar))"));
+    exec_delayed (scheme_cmd (
+        "(when (defined? 'close-chat-sidebar) (close-chat-sidebar))"));
   });
   m_sendButton->setEnabled (true);
   connect (m_sendButton, &QPushButton::clicked, this, [this] {
