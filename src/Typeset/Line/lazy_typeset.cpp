@@ -112,7 +112,7 @@ lazy_surround_rep::lazy_surround_rep (edit_env env, tree t, path ip)
     par= make_lazy (env, t[N (t) - 1], descend (ip, N (t) - 1));
     return;
   }
-  tree old_label= env->local_begin ("the-label", env->read ("the-label"));
+  tree old_label= env->read ("the-label");
   a             = typeset_concat (env, t[0], descend (ip, 0));
   b             = typeset_concat (env, t[1], descend (ip, 1));
   par           = make_lazy (env, t[2], descend (ip, 2));

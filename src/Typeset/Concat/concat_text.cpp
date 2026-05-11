@@ -267,7 +267,7 @@ concater_rep::typeset_surround (tree t, path ip) {
     typeset_error (t, ip);
     return;
   }
-  tree old_label= env->local_begin ("the-label", env->read ("the-label"));
+  tree old_label= env->read ("the-label");
   marker (descend (ip, 0));
   typeset (t[0], descend (ip, 0));
   array<line_item> b= ::typeset_concat (env, t[1], descend (ip, 1));

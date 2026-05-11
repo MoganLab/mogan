@@ -82,7 +82,7 @@
 
     <item>in equation, line6 label: <reference|l4>
 
-    <item>in eqnarry, line 8 label (after eq-number): <reference|eqn>
+    <item>in eqnarray, line 8 label (after eq-number): <reference|eqn>
 
     <item>in (framed) theorem 1, line10 label: <reference|eq:1.1>
 
@@ -112,7 +112,7 @@
 
     <item>in equation, line6 label: <smart-ref|l4>
 
-    <item>in eqnarry, line 8 label (after eq-number): <smart-ref|eqn>
+    <item>in eqnarray, line 8 label (after eq-number): <smart-ref|eqn>
 
     <item>in (framed) theorem 1, line10 label: <smart-ref|eq:1.1>
 
