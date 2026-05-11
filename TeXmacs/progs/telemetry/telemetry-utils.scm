@@ -24,7 +24,7 @@
 
 (import (only (srfi srfi-19) current-date date->string date-zone-offset))
 
-(define telemetry-buffer-size 30)
+(define telemetry-buffer-size 300)
 (define telemetry-flush-interval-ms 300000)
 (define-public telemetry-max-queue-size 1000)
 (define telemetry-meta-max-entries 200)
