@@ -7,8 +7,8 @@
 #ifndef CHAT_SIDEBAR_WIDGET_H
 #define CHAT_SIDEBAR_WIDGET_H
 
-#include <QDockWidget>
 #include <QComboBox>
+#include <QDockWidget>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QObject>
@@ -74,12 +74,12 @@ private:
   QWidget*     m_inputQWidget;
 
   // Send button area
-  QWidget*     m_sendPanel;
-  QHBoxLayout* m_sendLayout;
-  QComboBox*   m_modelComboBox;
-  QComboBox*   m_permissionComboBox;
+  QWidget*      m_sendPanel;
+  QHBoxLayout*  m_sendLayout;
+  QComboBox*    m_modelComboBox;
+  QComboBox*    m_permissionComboBox;
   QRadioButton* m_thinkingRadioButton;
-  QPushButton* m_sendButton;
+  QPushButton*  m_sendButton;
 };
 
 #endif // CHAT_SIDEBAR_WIDGET_H

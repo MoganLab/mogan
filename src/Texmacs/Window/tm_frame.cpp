@@ -237,8 +237,7 @@ tm_frame_rep::show_chat_sidebar (bool flag) {
     tm_window win= concrete_window ();
     if (win->parent != url_none ())
       concrete_window (win->parent)->set_chat_sidebar_flag (flag);
-    else
-      win->set_chat_sidebar_flag (flag);
+    else win->set_chat_sidebar_flag (flag);
     return;
   }
   url vw= get_most_recent_view ();
@@ -247,8 +246,7 @@ tm_frame_rep::show_chat_sidebar (bool flag) {
     if (win != nullptr) {
       if (win->parent != url_none ())
         concrete_window (win->parent)->set_chat_sidebar_flag (flag);
-      else
-        win->set_chat_sidebar_flag (flag);
+      else win->set_chat_sidebar_flag (flag);
     }
   }
 }
