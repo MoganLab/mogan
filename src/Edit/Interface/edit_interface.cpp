@@ -861,6 +861,7 @@ edit_interface_rep::apply_changes () {
     typeset (x1, y1, x2, y2);
     bench_end ("typeset " * (as_string (buf->buf->name)), 1000);
     invalidate (x1 - 2 * pixel, y1 - 2 * pixel, x2 + 2 * pixel, y2 + 2 * pixel);
+    if (!is_nil (buf) && buf->message_widget) invalidate (vx1, vy1, vx2, vy2);
     // check_data_integrety ();
     the_ghost_cursor ()= eb->find_check_cursor (tp);
   }
@@ -929,7 +930,8 @@ edit_interface_rep::apply_changes () {
       oc= copy (cu);
 
       // set hot spot in the gui
-      send_cursor (this, (SI) floor (cu->ox * magf), (SI) floor (cu->oy * magf));
+      send_cursor (this, (SI) floor (cu->ox * magf),
+                   (SI) floor (cu->oy * magf));
     }
 
     path sp           = selection_get_cursor_path ();
@@ -1002,6 +1004,7 @@ edit_interface_rep::apply_changes () {
       selection_rects= rs;
       invalidate (selection_rects);
     }
+    if (!is_nil (buf) && buf->message_widget) invalidate (vx1, vy1, vx2, vy2);
     // 选区改变后更新文本工具栏
     update_text_popup ();
   }

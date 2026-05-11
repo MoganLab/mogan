@@ -64,8 +64,8 @@
 #include "qt_window_widget.hpp"
 #include "tm_server.hpp"
 #include "tm_sys_utils.hpp"
-#include "tm_window.hpp"
 #include "tm_url.hpp"
+#include "tm_window.hpp"
 
 #include <moebius/data/scheme.hpp>
 
@@ -1177,17 +1177,16 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   } break;
   case SLOT_CHAT_SIDEBAR_VISIBILITY: {
     check_type<bool> (val, s);
-    bool visible = open_box<bool> (val);
+    bool visible= open_box<bool> (val);
     if (visible && has_current_view ()) {
       if (!chatSidebar->hasEmbeddedBuffers ()) {
-        tree chat_style= as_tree (call ("get-style-tree"));
-        url chat_body_name ("tmfs://aux/chat-sidebar-body");
-        url chat_input_name ("tmfs://aux/chat-sidebar-input");
+        tree   chat_style= as_tree (call ("get-style-tree"));
+        url    chat_body_name ("tmfs://aux/chat-sidebar-body");
+        url    chat_input_name ("tmfs://aux/chat-sidebar-input");
         widget chat_body= texmacs_custom_message_widget (
             tree (DOCUMENT, ""), chat_style, chat_body_name, 2.0);
-        widget chat_input =
-            texmacs_custom_input_widget (tree (DOCUMENT, ""), chat_style,
-                                         chat_input_name, 2.2);
+        widget chat_input= texmacs_custom_input_widget (
+            tree (DOCUMENT, ""), chat_style, chat_input_name, 2.2);
         chatSidebar->setMessageWidget (concrete (chat_body));
         chatSidebar->setInputWidget (concrete (chat_input));
         call ("chat-sidebar-refresh!");

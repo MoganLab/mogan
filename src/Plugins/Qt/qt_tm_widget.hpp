@@ -18,12 +18,12 @@
 #include "qt_widget.hpp"
 #include "qt_window_widget.hpp"
 
+#include "ChatSidebarWidget.hpp"
 #include "QTMAuxiliaryWidget.hpp"
 #include "QTMInteractiveInputHelper.hpp"
 #include "QTMScrollView.hpp"
 #include "QTMTabPage.hpp"
 #include "QTMWidget.hpp"
-#include "ChatSidebarWidget.hpp"
 
 #include <QLayout>
 #include <QMainWindow>
