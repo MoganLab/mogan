@@ -30,6 +30,7 @@ public:
 
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
+  void hideEvent (QHideEvent* event) override;
   void closeEvent (QCloseEvent* event) override;
   void keyPressEvent (QKeyEvent* event) override;
 
@@ -49,7 +50,7 @@ private:
   QWidget*     m_titleBar;
   QHBoxLayout* m_titleLayout;
   QLabel*      m_titleLabel;
-  QPushButton* m_refreshButton;
+  QPushButton* m_closeButton;
 
   QWidget*     m_messageContainer;
   QVBoxLayout* m_messageLayout;

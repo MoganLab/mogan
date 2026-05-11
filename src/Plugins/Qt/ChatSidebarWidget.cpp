@@ -12,6 +12,7 @@
 #include "scheme.hpp"
 
 #include <QCloseEvent>
+#include <QHideEvent>
 #include <QEvent>
 #include <QFont>
 #include <QKeyEvent>
@@ -64,12 +65,12 @@ ChatSidebarWidget::setupUI () {
   titleFont.setPixelSize (DpiUtils::scaled (14));
   m_titleLabel->setFont (titleFont);
 
-  m_refreshButton= new QPushButton ("Refresh", m_titleBar);
-  m_refreshButton->setFixedHeight (DpiUtils::scaled (24));
+  m_closeButton= new QPushButton ("Close", m_titleBar);
+  m_closeButton->setFixedHeight (DpiUtils::scaled (24));
 
   m_titleLayout->addWidget (m_titleLabel);
   m_titleLayout->addStretch ();
-  m_titleLayout->addWidget (m_refreshButton);
+  m_titleLayout->addWidget (m_closeButton);
   m_mainLayout->addWidget (m_titleBar);
 
   // Splitter for message/input areas
@@ -180,10 +181,9 @@ ChatSidebarWidget::setupUI () {
 
 void
 ChatSidebarWidget::setupConnections () {
-  connect (m_refreshButton, &QPushButton::clicked, this, [this] {
-    this->raise ();
-    exec_delayed (scheme_cmd (
-        "(when (defined? 'chat-sidebar-refresh!) (chat-sidebar-refresh!))"));
+  connect (m_closeButton, &QPushButton::clicked, this, [this] {
+    exec_delayed (
+        scheme_cmd ("(when (defined? 'close-chat-sidebar) (close-chat-sidebar))"));
   });
   m_sendButton->setEnabled (true);
   connect (m_sendButton, &QPushButton::clicked, this, [this] {
@@ -206,6 +206,13 @@ ChatSidebarWidget::setupConnections () {
         "(chat-sidebar-demo-tool-permission-respond! 'no))"));
     m_permissionPanel->hide ();
   });
+}
+
+void
+ChatSidebarWidget::hideEvent (QHideEvent* event) {
+  m_permissionPanel->hide ();
+  m_permissionStatusLabel->setText ("Awaiting response");
+  QDockWidget::hideEvent (event);
 }
 
 void
