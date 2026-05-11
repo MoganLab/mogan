@@ -157,6 +157,20 @@ ChatSidebarWidget::setupUI () {
   m_sendLayout->setContentsMargins (DpiUtils::scaled (4), DpiUtils::scaled (4),
                                     DpiUtils::scaled (4), DpiUtils::scaled (4));
 
+  m_sendLayout->addWidget (new QLabel ("model", m_sendPanel));
+  m_modelComboBox= new QComboBox (m_sendPanel);
+  m_modelComboBox->addItem ("auto");
+  m_sendLayout->addWidget (m_modelComboBox);
+
+  m_sendLayout->addWidget (new QLabel ("permission", m_sendPanel));
+  m_permissionComboBox= new QComboBox (m_sendPanel);
+  m_permissionComboBox->addItem ("default");
+  m_permissionComboBox->addItem ("full access");
+  m_sendLayout->addWidget (m_permissionComboBox);
+
+  m_thinkingRadioButton= new QRadioButton ("thinking", m_sendPanel);
+  m_sendLayout->addWidget (m_thinkingRadioButton);
+
   m_sendButton= new QPushButton ("Send", m_sendPanel);
   m_sendButton->setFixedHeight (DpiUtils::scaled (28));
   m_sendButton->setEnabled (false);

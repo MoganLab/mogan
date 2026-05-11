@@ -8,10 +8,12 @@
 #define CHAT_SIDEBAR_WIDGET_H
 
 #include <QDockWidget>
+#include <QComboBox>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QObject>
 #include <QPushButton>
+#include <QRadioButton>
 #include <QSplitter>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -74,6 +76,9 @@ private:
   // Send button area
   QWidget*     m_sendPanel;
   QHBoxLayout* m_sendLayout;
+  QComboBox*   m_modelComboBox;
+  QComboBox*   m_permissionComboBox;
+  QRadioButton* m_thinkingRadioButton;
   QPushButton* m_sendButton;
 };
 
