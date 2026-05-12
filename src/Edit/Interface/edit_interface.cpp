@@ -518,6 +518,23 @@ is_graphical (tree t) {
          is_func (t, PENSCRIPT) || is_func (t, CALLIGRAPHY);
 }
 
+static selection
+find_adjacent_selection (array<array<selection>> cell_cache, int i, int j,
+                         SI x1, SI x2, bool look_down) {
+  int di= look_down ? 1 : -1;
+  int ii= i + di;
+  if (ii < 0 || ii >= N (cell_cache)) return selection ();
+  if (j < N (cell_cache[ii]) && cell_cache[ii][j]->valid)
+    return cell_cache[ii][j];
+  for (int jj= 0; jj < N (cell_cache[ii]); jj++) {
+    selection bis= cell_cache[ii][jj];
+    if (!bis->valid || is_nil (bis->rs) || N (bis->rs) == 0) continue;
+    rectangle r= bis->rs->item;
+    if (r->x2 > x1 && r->x1 < x2) return bis;
+  }
+  return selection ();
+}
+
 static void
 correct_adjacent (rectangles& rs1, rectangles& rs2) {
   if (N (rs1) != 1 || N (rs2) != 1) return;
@@ -579,16 +596,28 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
           rectangles rsel= copy (thicken (sel->rs, 0, 2 * pixel));
 
           if (i > 0 && j < row_sizes[i - 1] && N (cell_cache[i - 1]) > j) {
-            selection  bis = cell_cache[i - 1][j];
-            rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
-            correct_adjacent (rbis, rsel);
+            selection bis= cell_cache[i - 1][j];
+            if (!bis->valid) {
+              bis= find_adjacent_selection (cell_cache, i, j, sel->rs->item->x1,
+                                            sel->rs->item->x2, false);
+            }
+            if (bis->valid) {
+              rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              correct_adjacent (rbis, rsel);
+            }
           }
 
           if (i + 1 < table_rows && j < row_sizes[i + 1] &&
               N (cell_cache[i + 1]) > j) {
-            selection  bis = cell_cache[i + 1][j];
-            rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
-            correct_adjacent (rsel, rbis);
+            selection bis= cell_cache[i + 1][j];
+            if (!bis->valid) {
+              bis= find_adjacent_selection (cell_cache, i, j, sel->rs->item->x1,
+                                            sel->rs->item->x2, true);
+            }
+            if (bis->valid) {
+              rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              correct_adjacent (rsel, rbis);
+            }
           }
 
           rectangles selp= thicken (rsel, pixel / 2, pixel / 2);
