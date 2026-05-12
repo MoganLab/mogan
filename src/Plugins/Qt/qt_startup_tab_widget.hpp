@@ -20,14 +20,14 @@ class QVBoxLayout;
 class QPushButton;
 class QStackedWidget;
 class QButtonGroup;
-class QtFilePage;
+class QtHomePage;
 class QTTemplatePage;
 
 class QTStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  enum class Entry { File, Template, OpenDocument };
+  enum class Entry { Home, Template };
 
 public:
   explicit QTStartupTabWidget (QWidget* parent= nullptr);
@@ -41,7 +41,6 @@ signals:
 private slots:
   // Application operation
   void on_app_quit ();
-  void on_file_open ();
 
 protected:
   void keyPressEvent (QKeyEvent* event) override;
@@ -54,7 +53,7 @@ private:
   QPushButton* create_nav_button (const QString& text);
 
   // 页面创建函数
-  QWidget* create_file_page ();
+  QWidget* create_home_page ();
   QWidget* create_template_page ();
 
   // 导航按钮状态管理
@@ -65,16 +64,15 @@ private:
   Entry currentEntry_;
 
   // Navigation buttons
-  QPushButton* navFileBtn_;
+  QPushButton* navHomeBtn_;
   QPushButton* navTemplateBtn_;
-  QPushButton* navOpenDocBtn_;
   QPushButton* navQuitBtn_;
 
   // 互斥按钮组
   QButtonGroup* navButtonGroup_;
 
   // 各页面实例
-  QtFilePage* filePage_;
+  QtHomePage* homePage_;
 
   // Template page (separate widget)
   QTTemplatePage* templatePage_;

@@ -1,7 +1,7 @@
 
 /******************************************************************************
- * MODULE     : qt_file_page.cpp
- * DESCRIPTION: File page implementation for startup tab
+ * MODULE     : qt_home_page.cpp
+ * DESCRIPTION: Home page implementation for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -9,7 +9,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "qt_file_page.hpp"
+#include "qt_home_page.hpp"
 #include <QButtonGroup>
 #include <QDir>
 #include <QFile>
@@ -119,8 +119,11 @@ StyleCard::setupIconMode (const DocStyle& style) {
   iconLabel_->setAlignment (Qt::AlignCenter);
   iconLabel_->setObjectName ("style-card-icon");
 
-  if (style.id == "generic") {
+  if (style.id == "new") {
     iconLabel_->setText ("+");
+  }
+  else if (style.id == "open") {
+    iconLabel_->setText ("O");
   }
   else {
     iconLabel_->setText (style.id.left (1).toUpper ());
@@ -204,15 +207,17 @@ StyleCard::paintEvent (QPaintEvent* event) {
 }
 
 /******************************************************************************
- * QtFilePage 实现
+ * QtHomePage 实现
  ******************************************************************************/
 
-QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
+QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   styles_= {
-      {"generic", qt_translate ("New Blank Document"),
+      {"new", qt_translate ("New"),
        qt_translate ("Create a new blank document"), ""},
+      {"open", qt_translate ("Open"),
+       qt_translate ("Open an existing document"), ""},
       {"elegantbook", qt_translate ("ElegantBook Notes Template"),
        qt_translate ("ElegantBook-style notes template"), "elegantbook"},
       {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
@@ -225,7 +230,7 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
   TemplateManager* mgr= TemplateManager::instance ();
   if (mgr) {
     connect (mgr, &TemplateManager::templatesLoaded, this,
-             &QtFilePage::refreshTemplateThumbnails, Qt::UniqueConnection);
+             &QtHomePage::refreshTemplateThumbnails, Qt::UniqueConnection);
     if (mgr->isInitialized () && !mgr->templates ().isEmpty ()) {
       refreshTemplateThumbnails ();
     }
@@ -235,17 +240,17 @@ QtFilePage::QtFilePage (QWidget* parent) : QWidget (parent) {
   }
 }
 
-QtFilePage::~QtFilePage ()= default;
+QtHomePage::~QtHomePage ()= default;
 
 void
-QtFilePage::showEvent (QShowEvent* event) {
+QtHomePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
-  QTimer::singleShot (0, this, &QtFilePage::rearrangeStyleCards);
+  QTimer::singleShot (0, this, &QtHomePage::rearrangeStyleCards);
 }
 
 void
-QtFilePage::resizeEvent (QResizeEvent* event) {
+QtHomePage::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
   // 只在宽度变化时重排，避免不必要的计算
   if (event->oldSize ().width () != event->size ().width ()) {
@@ -254,7 +259,7 @@ QtFilePage::resizeEvent (QResizeEvent* event) {
 }
 
 void
-QtFilePage::setupUI () {
+QtHomePage::setupUI () {
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (
       DpiUtils::scaled (kMainMargin), DpiUtils::scaled (kMainMargin),
@@ -275,7 +280,7 @@ QtFilePage::setupUI () {
 }
 
 void
-QtFilePage::rearrangeStyleCards () {
+QtHomePage::rearrangeStyleCards () {
   if (!cardsLayout_ || styleCards_.isEmpty ()) return;
 
   // 清除当前布局中的卡片
@@ -300,7 +305,7 @@ QtFilePage::rearrangeStyleCards () {
 }
 
 void
-QtFilePage::setupStyleCards (QVBoxLayout* layout) {
+QtHomePage::setupStyleCards (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (qt_translate ("Document Style"), this);
   title->setObjectName ("startup-tab-section-title");
@@ -338,7 +343,7 @@ QtFilePage::setupStyleCards (QVBoxLayout* layout) {
 }
 
 void
-QtFilePage::setupRecentDocs (QVBoxLayout* layout) {
+QtHomePage::setupRecentDocs (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (qt_translate ("Recent Documents"), this);
   title->setObjectName ("startup-tab-section-title");
@@ -369,7 +374,7 @@ QtFilePage::setupRecentDocs (QVBoxLayout* layout) {
              if (item) onRecentDocClicked (item);
            });
   connect (recentList_, &QListWidget::customContextMenuRequested, this,
-           &QtFilePage::onRecentDocContextMenu);
+           &QtHomePage::onRecentDocContextMenu);
 
   layout->addWidget (recentList_);
 }
@@ -428,7 +433,7 @@ populateRecentDocsFromPaths (QList<RecentDoc>&  recentDocs,
 }
 
 void
-QtFilePage::loadRecentDocs () {
+QtHomePage::loadRecentDocs () {
   recentDocs_.clear ();
   recentList_->clear ();
 
@@ -499,7 +504,7 @@ QtFilePage::loadRecentDocs () {
 }
 
 void
-QtFilePage::saveRecentDocs () {
+QtHomePage::saveRecentDocs () {
   QFile       file (getRecentDocsFilePath ());
   QJsonObject root;
   if (file.open (QIODevice::ReadOnly)) {
@@ -561,12 +566,12 @@ QtFilePage::saveRecentDocs () {
 }
 
 void
-QtFilePage::refreshRecentDocs () {
+QtHomePage::refreshRecentDocs () {
   loadRecentDocs ();
 }
 
 void
-QtFilePage::renderRecentDocs () {
+QtHomePage::renderRecentDocs () {
   while (recentList_->count () > 0) {
     QListWidgetItem* item  = recentList_->takeItem (0);
     QWidget*         widget= recentList_->itemWidget (item);
@@ -621,7 +626,7 @@ QtFilePage::renderRecentDocs () {
 }
 
 void
-QtFilePage::addRecentDoc (const QString& path) {
+QtHomePage::addRecentDoc (const QString& path) {
   QString normPath= QDir::fromNativeSeparators (path);
   QString fileName= QFileInfo (normPath).fileName ();
 
@@ -660,7 +665,7 @@ QtFilePage::addRecentDoc (const QString& path) {
 }
 
 void
-QtFilePage::removeRecentDoc (const QString& path) {
+QtHomePage::removeRecentDoc (const QString& path) {
   QString normPath= QDir::fromNativeSeparators (path);
   for (auto it= recentDocs_.begin (); it != recentDocs_.end (); ++it) {
     if (it->filePath == normPath) {
@@ -676,7 +681,7 @@ QtFilePage::removeRecentDoc (const QString& path) {
 }
 
 void
-QtFilePage::clearAllRecentDocs () {
+QtHomePage::clearAllRecentDocs () {
   eval_scheme ("(startup-tab-clear-all-recent)");
   recentDocs_.clear ();
   saveRecentDocs ();
@@ -688,7 +693,7 @@ QtFilePage::clearAllRecentDocs () {
  ******************************************************************************/
 
 void
-QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
+QtHomePage::onRecentDocClicked (QListWidgetItem* item) {
   if (!item) return;
 
   QString path= item->data (Qt::UserRole).toString ();
@@ -708,7 +713,7 @@ QtFilePage::onRecentDocClicked (QListWidgetItem* item) {
 }
 
 void
-QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
+QtHomePage::onRecentDocContextMenu (const QPoint& pos) {
   QListWidgetItem* item= recentList_->itemAt (pos);
   if (!item) return;
 
@@ -729,9 +734,14 @@ QtFilePage::onRecentDocContextMenu (const QPoint& pos) {
 }
 
 void
-QtFilePage::createDocumentWithStyle (const QString& styleId) {
-  if (styleId == "generic") {
+QtHomePage::createDocumentWithStyle (const QString& styleId) {
+  if (styleId == "new") {
     eval_scheme ("(new-document-with-style " * qt_scheme_quote (styleId) * ")");
+    return;
+  }
+
+  if (styleId == "open") {
+    eval_scheme ("(open-document)");
     return;
   }
 
@@ -746,7 +756,7 @@ QtFilePage::createDocumentWithStyle (const QString& styleId) {
 }
 
 void
-QtFilePage::createDocumentFromTemplate (const QString& templateId) {
+QtHomePage::createDocumentFromTemplate (const QString& templateId) {
   TemplateManager* mgr= TemplateManager::instance ();
   if (!mgr) return;
 
@@ -822,7 +832,7 @@ QtFilePage::createDocumentFromTemplate (const QString& templateId) {
 }
 
 void
-QtFilePage::refreshTemplateThumbnails () {
+QtHomePage::refreshTemplateThumbnails () {
   TemplateManager* mgr= TemplateManager::instance ();
   if (!mgr || !mgr->isInitialized ()) return;
 

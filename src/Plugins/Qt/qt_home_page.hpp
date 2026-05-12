@@ -1,7 +1,7 @@
 
 /******************************************************************************
- * MODULE     : qt_file_page.hpp
- * DESCRIPTION: File page for startup tab with style cards and recent documents
+ * MODULE     : qt_home_page.hpp
+ * DESCRIPTION: Home page for startup tab with style cards and recent documents
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#ifndef QT_FILE_PAGE_HPP
-#define QT_FILE_PAGE_HPP
+#ifndef QT_HOME_PAGE_HPP
+#define QT_HOME_PAGE_HPP
 
 #include <QDateTime>
 #include <QList>
@@ -89,14 +89,14 @@ private:
 };
 
 /**
- * @brief 文件页面 - 包含样式选择和最近文档
+ * @brief 主页 - 包含样式选择和最近文档
  */
-class QtFilePage : public QWidget {
+class QtHomePage : public QWidget {
   Q_OBJECT
 
 public:
-  explicit QtFilePage (QWidget* parent= nullptr);
-  ~QtFilePage ();
+  explicit QtHomePage (QWidget* parent= nullptr);
+  ~QtHomePage ();
 
   void refreshRecentDocs ();
   void addRecentDoc (const QString& path);
@@ -134,4 +134,4 @@ private:
   QListWidget*     recentList_= nullptr;
 };
 
-#endif // QT_FILE_PAGE_HPP
+#endif // QT_HOME_PAGE_HPP

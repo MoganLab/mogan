@@ -11,7 +11,7 @@
 
 #include "qt_startup_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
-#include "qt_file_page.hpp"
+#include "qt_home_page.hpp"
 #include "qt_template_page.hpp"
 #include "qt_utilities.hpp"
 
@@ -55,10 +55,9 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
  * +------------------+----------------------------------------+
  */
 QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
-    : QWidget (parent), currentEntry_ (Entry::File), navFileBtn_ (nullptr),
-      navTemplateBtn_ (nullptr), navOpenDocBtn_ (nullptr),
-      navQuitBtn_ (nullptr), navButtonGroup_ (nullptr), filePage_ (nullptr),
-      templatePage_ (nullptr) {
+    : QWidget (parent), currentEntry_ (Entry::Home), navHomeBtn_ (nullptr),
+      navTemplateBtn_ (nullptr), navQuitBtn_ (nullptr),
+      navButtonGroup_ (nullptr), homePage_ (nullptr), templatePage_ (nullptr) {
 
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::StrongFocus);
@@ -101,7 +100,7 @@ QTStartupTabWidget::current_entry () const {
 
 /**
  * @brief 切换当前入口（页面）
- * @param entry 目标入口（File/Template/Recent/Settings）
+ * @param entry 目标入口（Home/Template）
  */
 void
 QTStartupTabWidget::set_current_entry (Entry entry) {
@@ -115,8 +114,8 @@ QTStartupTabWidget::set_current_entry (Entry entry) {
 
 void
 QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
-  if (entry == Entry::File && filePage_) {
-    filePage_->refreshRecentDocs ();
+  if (entry == Entry::Home && homePage_) {
+    homePage_->refreshRecentDocs ();
   }
 }
 
@@ -126,7 +125,7 @@ QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
  *
  * 导航栏结构:
  * - Navigation 标题
- * - File/Template/Recent/Settings 导航按钮（互斥选中）
+ * - Home/Template/ 导航按钮（互斥选中）
  * - 弹性空间（弹簧）
  * - Quit 退出按钮
  */
@@ -145,30 +144,23 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_= new QButtonGroup (this);
   navButtonGroup_->setExclusive (true);
 
-  // 导航按钮（3个入口）
-  navFileBtn_    = create_nav_button (qt_translate ("File"));
+  // 导航按钮（2个入口）
+  navHomeBtn_    = create_nav_button (qt_translate ("Home"));
   navTemplateBtn_= create_nav_button (qt_translate ("Template"));
-  navOpenDocBtn_ = create_nav_button (qt_translate ("Open a Document"));
 
-  // 添加到按钮组和布局（Open a Document 不在互斥组中，因为它没有对应页面）
-  navButtonGroup_->addButton (navFileBtn_, static_cast<int> (Entry::File));
+  // 添加到按钮组
+  navButtonGroup_->addButton (navHomeBtn_, static_cast<int> (Entry::Home));
   navButtonGroup_->addButton (navTemplateBtn_,
                               static_cast<int> (Entry::Template));
 
-  sidebarLayout->addWidget (navFileBtn_);
+  sidebarLayout->addWidget (navHomeBtn_);
   sidebarLayout->addWidget (navTemplateBtn_);
-  sidebarLayout->addWidget (navOpenDocBtn_);
 
   // 导航按钮点击事件：切换到对应页面
-  connect (navFileBtn_, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::File); });
+  connect (navHomeBtn_, &QPushButton::clicked, this,
+           [this] () { set_current_entry (Entry::Home); });
   connect (navTemplateBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Template); });
-  connect (navOpenDocBtn_, &QPushButton::clicked, this,
-           &QTStartupTabWidget::on_file_open);
-
-  // Open a Document 不是 checkable 按钮（没有对应页面）
-  navOpenDocBtn_->setCheckable (false);
 
   // 弹性空间，将 Quit 按钮推到底部
   sidebarLayout->addStretch ();
@@ -190,8 +182,8 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
            &QTStartupTabWidget::on_app_quit);
   sidebarLayout->addWidget (navQuitBtn_);
 
-  // 默认选中 File
-  navFileBtn_->setChecked (true);
+  // 默认选中 Home
+  navHomeBtn_->setChecked (true);
 }
 
 /**
@@ -219,17 +211,16 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
  */
 void
 QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
-  // 添加2个页面到堆叠控件（OpenDocument没有页面，直接触发操作）
-  stackedWidget->addWidget (create_file_page ());     // index 0 - File
+  // 添加2个页面到堆叠控件
+  stackedWidget->addWidget (create_home_page ());     // index 0 - Home
   stackedWidget->addWidget (create_template_page ()); // index 1 - Template
 
   // 入口切换时，同步切换堆叠控件的当前页面
-  // 注意：OpenDocument 没有对应页面，需要调整索引映射
   connect (this, &QTStartupTabWidget::entry_changed, stackedWidget,
            [stackedWidget] (QTStartupTabWidget::Entry entry) {
              int index;
              switch (entry) {
-             case QTStartupTabWidget::Entry::File:
+             case QTStartupTabWidget::Entry::Home:
                index= 0;
                break;
              case QTStartupTabWidget::Entry::Template:
@@ -244,18 +235,17 @@ QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
 }
 
 /**
- * @brief 创建 File 页面
- * @return File 页面控件
+ * @brief 创建 Home 页面
+ * @return Home 页面控件
  *
- * 使用 QtFilePage 实现，包含:
- * - 文档样式选择卡片
+ * 使用 QtHomePage 实现，包含:
+ * - 文档样式选择卡片（新建、打开、模板）
  * - 最近文档列表
- * - 打开文件按钮
  */
 QWidget*
-QTStartupTabWidget::create_file_page () {
-  filePage_= new QtFilePage (this);
-  return filePage_;
+QTStartupTabWidget::create_home_page () {
+  homePage_= new QtHomePage (this);
+  return homePage_;
 }
 
 /**
@@ -268,7 +258,7 @@ QTStartupTabWidget::create_template_page () {
 
   // Connect template opened signal to load document
   // load-document internally calls buffer-notify-recent, which updates
-  // the Scheme-side recent list. QtFilePage will sync from Scheme on showEvent.
+  // the Scheme-side recent list. QtHomePage will sync from Scheme on showEvent.
   connect (templatePage_, &QTTemplatePage::templateOpened, this,
            [this] (const QString& filePath) {
              eval_scheme ("(load-document " * qt_scheme_quote_utf8 (filePath) *
@@ -299,15 +289,6 @@ QTStartupTabWidget::set_active_nav_button (Entry entry) {
 void
 QTStartupTabWidget::on_app_quit () {
   eval_scheme ("(quit-TeXmacs)");
-}
-
-/**
- * @brief 打开文档
- * 调用 Scheme 函数 (open-document)
- */
-void
-QTStartupTabWidget::on_file_open () {
-  eval_scheme ("(open-document)");
 }
 
 void
