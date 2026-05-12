@@ -1,0 +1,16 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  存在不可见的字符​就在第一个就的前面
+
+  存在不可见的字符在本行是没有的
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
