@@ -917,6 +917,7 @@ TeXmacs_main (int argc, char** argv) {
         if (first_file) {
           buffer_load (u);
           new_buffer_in_this_window (u, tree (moebius::DOCUMENT));
+          eval_scheme ("(buffer-notify-recent " * b * ")");
           first_file= false;
         }
         else {
