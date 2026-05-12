@@ -13,7 +13,7 @@
 
 (texmacs-module (texmacs menus tools-menu)
   (:use (texmacs texmacs tm-tools)
-        (generic chat-widgets)))
+        (generic chat-adapter)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic menus for formats

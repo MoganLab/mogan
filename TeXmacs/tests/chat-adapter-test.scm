@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : chat-widgets-test.scm
-;; DESCRIPTION : Test suite for chat sidebar message controller
+;; MODULE      : chat-adapter-test.scm
+;; DESCRIPTION : Test suite for chat sidebar adapter
 ;; COPYRIGHT   : (C) 2026  Mogan Contributors
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -10,8 +10,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic chat-widgets-test)
-  (:use (generic chat-widgets)))
+(texmacs-module (generic chat-adapter-test)
+  (:use (generic chat-adapter)))
 
 (import (liii check))
 
@@ -28,9 +28,9 @@
   (check (tree->stree (buffer-get-body "tmfs://aux/chat-sidebar-input"))
          => '(document "")))
 
-(tm-define (regtest-chat-widgets)
+(tm-define (regtest-chat-adapter)
   (test-chat-sidebar-send-text)
   (check-report))
 
-(tm-define (test_chat-widgets-test)
-  (regtest-chat-widgets))
+(tm-define (test_chat-adapter-test)
+  (regtest-chat-adapter))
