@@ -1042,6 +1042,8 @@ target("stem") do
     end
 
     on_run(function (target)
+        import("core.base.option")
+
         local name = target:name()
         -- path to the binary: for Windows we use the install dir's bin/, otherwise the build artifact
         local binary
@@ -1053,6 +1055,14 @@ target("stem") do
 
         -- Default program parameters (kept to preserve old behaviour)
         local params = {"-d", "-debug-bench"}
+
+        -- Append user-provided arguments from `xmake run`
+        local args = option.get("arguments")
+        if args then
+            for _, arg in ipairs(args) do
+                table.insert(params, arg)
+            end
+        end
 
         -- Allow overriding debug-run behavior by setting DEBUG or XMAKE_DEBUGGER env var.
         -- If set, we will launch an interactive debugger (gdb on linux, lldb on macos) instead

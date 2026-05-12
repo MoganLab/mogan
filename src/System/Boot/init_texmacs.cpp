@@ -896,15 +896,18 @@ TeXmacs_main (int argc, char** argv) {
   if (DEBUG_STD) debug_boot << "Starting server...\n";
   { // opening scope for server sv
     server sv (app_type::RESEARCH);
-    string where           = "";
-    bool   has_initial_file= false;
-    bool   first_file      = true;
+    string where     = "";
+    bool   first_file= true;
+
+    if (install_status == 1) load_welcome_doc ();
+
+    ensure_window ();
+
     for (i= 1; i < argc; i++) {
       if (argv[i] == NULL) break;
       string s= argv[i];
       if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
       if ((s[0] != '-') && (s[0] != '+')) {
-        has_initial_file= true;
         if (DEBUG_STD) debug_boot << "Loading " << s << "...\n";
         url u= url_system (s);
         if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
@@ -913,7 +916,7 @@ TeXmacs_main (int argc, char** argv) {
         // only open window once
         if (first_file) {
           buffer_load (u);
-          new_buffer_in_new_window (u, tree (moebius::DOCUMENT));
+          new_buffer_in_this_window (u, tree (moebius::DOCUMENT));
           first_file= false;
         }
         else {
@@ -931,10 +934,6 @@ TeXmacs_main (int argc, char** argv) {
         i++;
       }
     }
-
-    if (install_status == 1) load_welcome_doc ();
-
-    if (!has_initial_file) ensure_window ();
 
     if (DEBUG_BENCH) lolly::system::bench_print (std_bench);
     bench_reset ("initialize texmacs");
