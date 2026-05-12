@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : chat-widgets-test.scm
-;; DESCRIPTION : Test suite for chat sidebar echo controller
+;; DESCRIPTION : Test suite for chat sidebar message controller
 ;; COPYRIGHT   : (C) 2026  Mogan Contributors
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -17,42 +17,19 @@
 
 (check-set-mode! 'report-failed)
 
-(define (test-chat-sidebar-send-echo)
+(define (test-chat-sidebar-send-text)
   (chat-sidebar-reset!)
   (buffer-set-body "tmfs://aux/chat-sidebar-input" '(document "hello"))
   (chat-sidebar-send)
   (check (tree->stree (buffer-get-body "tmfs://aux/chat-sidebar-body"))
          => '(document
-               (concat (with "font-series" "bold" "User"))
-               "hello"
-               ""
-               (concat (with "font-series" "bold" "Agent"))
-               (concat (with "font-shape" "italic" "Thinking: ")
-                       "preparing demo response")
-               "echo: hello"
-               (concat (with "font-series" "bold" "Explored"))
-               (concat "  " "Search demo request")
-               (concat "    " "Input: hello")
-                (concat (with "font-series" "bold" "Permission"))
-                (concat "Permission request: " "Allow demo tool call?")
-                (concat (with "font-series" "bold" "File diff"))
-                (concat "demo.txt" ": " "show all chat item types")
-                (with "color" "red" (concat "- " "old demo payload"))
-                (with "color" "green" (concat "+ " "echo demo payload"))))
+                (concat (with "font-series" "bold" "User"))
+                "hello"))
   (check (tree->stree (buffer-get-body "tmfs://aux/chat-sidebar-input"))
          => '(document "")))
 
-(define (test-chat-sidebar-tool-permission-callback)
-  (chat-sidebar-reset!)
-  (check (chat-sidebar-demo-tool-permission-choice) => #f)
-  (chat-sidebar-demo-tool-permission-respond! 'yes)
-  (check (chat-sidebar-demo-tool-permission-choice) => 'yes)
-  (chat-sidebar-demo-tool-permission-respond! 'no)
-  (check (chat-sidebar-demo-tool-permission-choice) => 'no))
-
 (tm-define (regtest-chat-widgets)
-  (test-chat-sidebar-send-echo)
-  (test-chat-sidebar-tool-permission-callback)
+  (test-chat-sidebar-send-text)
   (check-report))
 
 (tm-define (test_chat-widgets-test)

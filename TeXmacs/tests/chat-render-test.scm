@@ -116,7 +116,7 @@
     (chat-session-append-item! session "item-1" 'text "Hello" #f 102 'done)
     (chat-session-seal-current-block! session 'user-submitted 103)
     (chat-session-open-block! session "block-2" 'agent 104)
-    (chat-session-append-item! session "item-2" 'text "echo: Hello" #f 105 'done)
+    (chat-session-append-item! session "item-2" 'text "Hello again" #f 105 'done)
     (chat-session-seal-current-block! session 'agent-finished 106)
     (check (chat-session->message-document session)
            => '(document
@@ -124,7 +124,7 @@
                  "Hello"
                  ""
                  (concat (with "font-series" "bold" "Agent"))
-                 "echo: Hello"))))
+                  "Hello again"))))
 
 (define (test-chat-render-three-blocks-spacing)
   (let ((session (make-chat-session "session-1" "/tmp/chat.json" 100)))
@@ -132,7 +132,7 @@
     (chat-session-append-item! session "item-1" 'text "Hello" #f 102 'done)
     (chat-session-seal-current-block! session 'user-submitted 103)
     (chat-session-open-block! session "block-2" 'agent 104)
-    (chat-session-append-item! session "item-2" 'text "echo: Hello" #f 105 'done)
+    (chat-session-append-item! session "item-2" 'text "Hello again" #f 105 'done)
     (chat-session-seal-current-block! session 'agent-finished 106)
     (chat-session-open-block! session "block-3" 'system 107)
     (chat-session-append-item! session "item-3" 'text "saved" #f 108 'done)
@@ -143,7 +143,7 @@
                  "Hello"
                  ""
                  (concat (with "font-series" "bold" "Agent"))
-                 "echo: Hello"
+                  "Hello again"
                  ""
                  (concat (with "font-series" "bold" "System"))
                  "saved"))))
