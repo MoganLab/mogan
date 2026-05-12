@@ -558,6 +558,77 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       }
     }
 
+    array<array<int>> row_spans, col_spans;
+    for (int i= 0; i < table_rows; i++) {
+      array<int> rs_row, cs_row;
+      if (is_func (st[i], ROW)) {
+        for (int j= 0; j < N (st[i]); j++) {
+          rs_row << 1;
+          cs_row << 1;
+        }
+      }
+      row_spans << rs_row;
+      col_spans << cs_row;
+    }
+    tree fmt= pt;
+    while (is_func (fmt, TFORMAT)) {
+      for (int k= 0; k < N (fmt) - 1; k++) {
+        tree with= fmt[k];
+        if (is_func (with, CWITH) && N (with) >= 6 &&
+            is_atomic (with[4]) && is_atomic (with[5])) {
+          string var= with[4]->label;
+          int    val= as_int (with[5]->label);
+          if (var != "cell-row-span" && var != "cell-col-span") continue;
+          if (!is_atomic (with[0]) || !is_atomic (with[1]) ||
+              !is_atomic (with[2]) || !is_atomic (with[3]))
+            continue;
+          int r1= as_int (with[0]->label) - 1;
+          int r2= as_int (with[1]->label) - 1;
+          int c1= as_int (with[2]->label) - 1;
+          int c2= as_int (with[3]->label) - 1;
+          if (r1 < 0) r1= table_rows - 1;
+          if (r2 < 0) r2= table_rows - 1;
+          if (c1 < 0) c1= row_sizes[0] - 1;
+          if (c2 < 0) c2= row_sizes[0] - 1;
+          r1= max (0, r1);
+          r2= min (table_rows - 1, r2);
+          for (int i= r1; i <= r2; i++) {
+            if (!is_func (st[i], ROW)) continue;
+            int cols= N (st[i]);
+            int cc1 = max (0, min (c1, cols - 1));
+            int cc2 = max (0, min (c2, cols - 1));
+            for (int j= cc1; j <= cc2; j++) {
+              if (var == "cell-row-span") row_spans[i][j]= val;
+              else if (var == "cell-col-span") col_spans[i][j]= val;
+            }
+          }
+        }
+      }
+      fmt= fmt[N (fmt) - 1];
+    }
+
+    array<array<bool>> covered;
+    for (int i= 0; i < table_rows; i++) {
+      array<bool> row_covered;
+      if (is_func (st[i], ROW)) {
+        for (int j= 0; j < N (st[i]); j++)
+          row_covered << false;
+      }
+      covered << row_covered;
+    }
+    for (int i= 0; i < table_rows; i++) {
+      if (!is_func (st[i], ROW)) continue;
+      for (int j= 0; j < N (st[i]); j++) {
+        int rs= row_spans[i][j];
+        int cs= col_spans[i][j];
+        for (int ii= 0; ii < rs; ii++)
+          for (int jj= 0; jj < cs; jj++)
+            if ((ii != 0 || jj != 0) && i + ii < table_rows &&
+                is_func (st[i + ii], ROW) && j + jj < N (st[i + ii]))
+              covered[i + ii][j + jj]= true;
+      }
+    }
+
     array<array<selection>> cell_cache;
     for (int i= 0; i < table_rows; i++) {
       array<selection> row_cache;
@@ -571,11 +642,38 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       cell_cache << row_cache;
     }
 
+    array<rectangle> drawn_rects;
     for (int i= 0; i < table_rows; i++) {
       if (is_func (st[i], ROW)) {
         for (int j= 0; j < N (st[i]); j++) {
-          selection sel= cell_cache[i][j];
-          if (!sel->valid) continue;
+          if (covered[i][j]) continue;
+          selection  sel = cell_cache[i][j];
+          if (!sel->valid || is_nil (sel->rs)) continue;
+          rectangle  r   = least_upper_bound (sel->rs);
+
+          // Geometric deduplication: skip cells whose bounding rectangle
+          // overlaps >50% with an already-drawn cell. This handles covered
+          // cells that map to a previously-drawn merged cell, without
+          // depending on tree-level span parsing.
+          bool overlap= false;
+          for (int k= 0; k < N (drawn_rects); k++) {
+            rectangle d = drawn_rects[k];
+            SI        ox= max (r->x1, d->x1);
+            SI        oy= max (r->y1, d->y1);
+            SI        ox2= min (r->x2, d->x2);
+            SI        oy2= min (r->y2, d->y2);
+            if (ox < ox2 && oy < oy2) {
+              SI overlap_area= (ox2 - ox) * (oy2 - oy);
+              SI r_area      = (r->x2 - r->x1) * (r->y2 - r->y1);
+              if (r_area > 0 && overlap_area * 2 > r_area) {
+                overlap= true;
+                break;
+              }
+            }
+          }
+          if (overlap) continue;
+          drawn_rects << r;
+
           rectangles rsel= copy (thicken (sel->rs, 0, 2 * pixel));
 
           if (i > 0 && j < row_sizes[i - 1] && N (cell_cache[i - 1]) > j) {
