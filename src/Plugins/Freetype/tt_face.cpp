@@ -145,15 +145,15 @@ tt_font_metric_rep::get (int i) {
   if (i == 0x200B) {
     if (!fnm->contains (i)) {
       metric_struct* M= tm_new<metric_struct> ();
-      fnm (i)= (pointer) M;
-      M->x1= 0;
-      M->y1= 0;
-      M->x2= 0;
-      M->y2= 0;
-      M->x3= 0;
-      M->y3= 0;
-      M->x4= 0;
-      M->y4= 0;
+      fnm (i)         = (pointer) M;
+      M->x1           = 0;
+      M->y1           = 0;
+      M->x2           = 0;
+      M->y2           = 0;
+      M->x3           = 0;
+      M->y3           = 0;
+      M->x4           = 0;
+      M->y4           = 0;
     }
     return *((metric*) ((void*) fnm[i]));
   }

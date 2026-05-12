@@ -1345,8 +1345,7 @@ pdf_hummus_renderer_rep::draw (int glyph_index, font_glyphs fn, SI x, SI y,
   if (glyph_index == 0x17 &&
       (starts (fn->res_name, "ecss10") || starts (fn->res_name, "ecrm10")))
     return;
-  if (codepoint == 0x200B && is_noto_cjk_font (fn->res_name))
-    return;
+  if (codepoint == 0x200B && is_noto_cjk_font (fn->res_name)) return;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;
   if (is_emoji_character (glyph_index)) {
