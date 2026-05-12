@@ -1,0 +1,32 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\big-table|<tabular|<tformat|<table|<row|<cell|>|<cell|>|<cell|>>|<row|<cell|>|<cell|<subtable|<tformat|<table|<row|<cell|>|<cell|>>|<row|<cell|>|<cell|>>>>>>|<cell|>>|<row|<cell|>|<cell|这是一个单元格>|<cell|>>>>>>
+    \;
+  </big-table>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1|../../../../../.local/share/moganlab/texts/scratch/no_name_1.tm>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|table>
+      <tuple|normal|<\surround|<hidden-binding|<tuple>|1>|>
+        \;
+      </surround>|<pageref|auto-1>>
+    </associate>
+  </collection>
+</auxiliary>
