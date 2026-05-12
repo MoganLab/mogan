@@ -141,6 +141,22 @@ tt_font_metric_rep::exists (int i) {
 
 metric&
 tt_font_metric_rep::get (int i) {
+  // 零宽空格 (U+200B) 的 metric 全部为 0
+  if (i == 0x200B) {
+    if (!fnm->contains (i)) {
+      metric_struct* M= tm_new<metric_struct> ();
+      fnm (i)= (pointer) M;
+      M->x1= 0;
+      M->y1= 0;
+      M->x2= 0;
+      M->y2= 0;
+      M->x3= 0;
+      M->y3= 0;
+      M->x4= 0;
+      M->y4= 0;
+    }
+    return *((metric*) ((void*) fnm[i]));
+  }
   if (!face->bad_face && !fnm->contains (i)) {
 
     // For fonts with CBDT table, skip ft_set_char_size

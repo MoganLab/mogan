@@ -1056,6 +1056,8 @@ void
 mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
                           int codepoint) {
   (void) codepoint;
+  // 零宽空格 (U+200B) 不渲染任何内容
+  if (codepoint == 0x200B) return;
   // emoji cache for this renderer instance
   static hashmap<index_type, picture> emoji_cache;
   if (is_emoji_character (glyph_index)) {

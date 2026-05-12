@@ -238,6 +238,7 @@ edit_interface_rep::compute_text_footer (tree st) {
   r= st->label (start, end);
   if (r == "") r= "start";
   if (r == " ") r= "space";
+  if (r == "<#200B>") r= "U+200B (Zero Width Space)";
   if (r == "space" && get_env_string (MODE) == "math") r= "apply";
   if (starts (r, "<") && !starts (r, "<#")) {
     tree suffix= get_shortcut_suffix (r);
