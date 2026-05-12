@@ -1,0 +1,25 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  这是一个段落。这是一个段落。这是一个段落。这是一个段落。这是一个段落。这是一个段落。这是一个段落。这是一个有缩进的段落。
+
+  <\with|par-first|0fn>
+    1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890 1234567890
+  </with>
+
+  本文档是全局缩进两个字符，第二个段落是通过格式\<rightarrow\>段落取消了缩进的，可以通过第二个段落来观察页眉是否缩进。
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-even-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-even-header|>
+    <associate|page-medium|paper>
+    <associate|page-odd-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-odd-header|<tabular|<tformat|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<cwith|1|1|2|2|cell-halign|c>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-screen-margin|false>
+    <associate|par-first|2fn>
+  </collection>
+</initial>
