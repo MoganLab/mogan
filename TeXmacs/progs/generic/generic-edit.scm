@@ -1643,7 +1643,7 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
 (tm-define (make-marginal-note)
   (:synopsis "Insert a marginal note")
   (wrap-selection-small
-    (insert-go-to `(inactive (marginal-note "normal" "c" "")) '(0 2 0))))
+    (insert-go-to `(marginal-note "normal" "c" "") '(2 0))))
 
 (tm-define (test-marginal-note-hpos? hp)
   (and-with t (tree-innermost 'marginal-note #t)

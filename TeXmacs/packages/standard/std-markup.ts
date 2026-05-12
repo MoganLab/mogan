@@ -531,7 +531,7 @@
 
   <assign|marginal-note|<macro|hpos|vpos|body|<with|dummy1|<value|marginal-note-width>|dummy2|<value|marginal-note-sep>|<compound|<merge|marginal-|<arg|hpos>|-note>|<arg|vpos>|<arg|body>|<arg|hpos>>>>>
 
-  <drd-props|marginal-note|arity|3|accessible|none>
+  <drd-props|marginal-note|arity|3|accessible|2>
 
   <\active*>
     <\src-comment>
