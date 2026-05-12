@@ -34,6 +34,7 @@ private slots:
   void test_resolve ();
   void test_resolve_first_attempt ();
   void test_resolve_chinese_puncts ();
+  void test_resolve_200B ();
   void test_get_right_slope ();
 };
 
@@ -78,18 +79,24 @@ TestSmartFont::test_resolve_chinese_puncts () {
   auto   puncts= array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
                                 "<#201C>", "<#201D>"  // Chinese: 双引号
     );
-  string cjk_font_name;
-#if defined(OS_WIN32) || defined(OS_WIN)
-  cjk_font_name= "SimSun";
-#else
-  // Linux and other platforms
-  cjk_font_name= "Noto CJK SC";
-#endif
+  string cjk_font_name= "Noto CJK SC";
 
   for (int i= 0; i < N (puncts); i++) {
     int fn_index= fn_rep->resolve (puncts[i], "cjk=" * cjk_font_name, 1);
     QCOMPARE (fn_index, 2);
   }
+}
+
+void
+TestSmartFont::test_resolve_200B () {
+  // sys-chinese-rm-medium-right-10-600-smart
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  string cjk_font_name= "Noto CJK SC";
+
+  // U+200B 零宽空格应该被解析到 CJK 字体
+  int fn_index= fn_rep->resolve ("<#200B>", "cjk=" * cjk_font_name, 1);
+  QCOMPARE (fn_index, 2);
 }
 
 void
