@@ -240,7 +240,7 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     nameFilters << to_qstring (translate ("Java files") * " (*.java)");
     nameFilters << to_qstring (translate ("Scheme files") *
                                " (*.ss *.sld *.scm)");
-    nameFilters << to_qstring (translate ("Latex files") *
+    nameFilters << to_qstring (translate ("LaTeX files") *
                                " (*.ltx *.sty *.tex *.bib *.rawbib *.cls)");
     nameFilters << to_qstring (translate ("Web files") *
                                " (*.html *.xhtml *.htm)");
