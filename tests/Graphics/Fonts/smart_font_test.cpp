@@ -36,6 +36,7 @@ private slots:
   void test_resolve_chinese_puncts ();
   void test_resolve_200B ();
   void test_get_right_slope ();
+  void test_latin_modern_math_italic_greek ();
 };
 
 void
@@ -108,6 +109,35 @@ TestSmartFont::test_get_right_slope () {
   fn    = smart_font ("sys-chinese", "rm", "bold", "right", 10, 600);
   fn_rep= (smart_font_rep*) fn.rep;
   QCOMPARE (fn_rep->get_right_slope (utf8_to_cork ("典")), 0.0);
+}
+
+void
+TestSmartFont::test_latin_modern_math_italic_greek () {
+  font fn= smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10,
+                       600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+
+  int    pos;
+  string r;
+  int    nr;
+
+  // Test alpha in mathitalic mode should map to math italic alpha (U+1D6FC)
+  pos= 0;
+  fn_rep->advance ("<alpha>", pos, r, nr);
+  QCOMPARE (pos, N (string ("<alpha>")));
+  qcompare (r, "<#1D6FC>");
+
+  // Test beta in mathitalic mode should map to math italic beta (U+1D6FD)
+  pos= 0;
+  fn_rep->advance ("<beta>", pos, r, nr);
+  QCOMPARE (pos, N (string ("<beta>")));
+  qcompare (r, "<#1D6FD>");
+
+  // Test gamma in mathitalic mode should map to math italic gamma (U+1D6FE)
+  pos= 0;
+  fn_rep->advance ("<gamma>", pos, r, nr);
+  QCOMPARE (pos, N (string ("<gamma>")));
+  qcompare (r, "<#1D6FE>");
 }
 
 QTEST_MAIN (TestSmartFont)

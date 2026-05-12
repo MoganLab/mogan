@@ -1144,7 +1144,17 @@ smart_font_rep::resolve (string c) {
   string range= get_unicode_range (c);
   // 如果设置了字体，就优先使用当前设置的字体
   if (fn[SUBFONT_MAIN]->supports (c)) {
-    return sm->add_char (tuple ("main"), c);
+    bool prefer_italic_greek= false;
+    if (math_kind != 0 && is_greek (c) && use_italic_greek (a) &&
+        shape != "mathupright") {
+      string gc= substitute_italic_greek (c);
+      if (gc != "" && fn[SUBFONT_MAIN]->supports (gc)) {
+        prefer_italic_greek= true;
+      }
+    }
+    if (!prefer_italic_greek) {
+      return sm->add_char (tuple ("main"), c);
+    }
   }
 
   if (range == "emoji") {
