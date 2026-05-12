@@ -497,7 +497,19 @@
   <assign|todo*|<macro|body|<render-todo|dark orange|pastel
   orange|<arg|body>>>>
 
+  <assign|button-box-off|<math|\<box\>>>
+
+  <assign|button-box-on|<math|\<blacksquare\>>>
+
+  <assign|attached-script|(noop)>
+
+  <assign|render-button|<macro|state|off|on|<with|locus-color|preserve|<quasi|<action|<if|<arg|state>|<arg|on>|<arg|off>>|mouse-toggle-button|<arg|state>|<unquote|<value|attached-script>>>>>>>
+
+  <assign|todoto|<macro|state|body|<if|<or|<equal|<arg|state>|true>|<equal|<arg|state>|false>>|<render-button|<arg|state>|<value|button-box-off>|<value|button-box-on>><space|0.5spc><render-todo|<if|<equal|<arg|state>|true>|dark green|dark red>|<if|<equal|<arg|state>|true>|pastel green|pastel red>|<arg|body>>|<render-button|""|<value|button-box-off>|<value|button-box-on>><space|0.5spc><render-todo|<value|todo-color>|<value|todo-bg-color>|<arg|body>>>>>
+
   <drd-props|render-todo|arity|3|color|0|color|1|accessible|2>
+
+  <drd-props|todoto|arity|2|accessible|1>
 
   <\active*>
     <\src-comment>

@@ -474,6 +474,7 @@
         ((tree-is? t 'show-simple) (perform-toggle (tree-ref t 1)) t)
         ((tm-equal? t "true" ) (tree-set! t "false") t)
 	((tm-equal? t "false") (tree-set! t "true" ) t)
+        ((tm-equal? t "") (tree-set! t "true") t)
         (else t)))
 
 (tm-define (mouse-toggle-button t cmd)
