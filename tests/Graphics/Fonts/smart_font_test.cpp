@@ -113,8 +113,8 @@ TestSmartFont::test_get_right_slope () {
 
 void
 TestSmartFont::test_latin_modern_math_italic_greek () {
-  font fn= smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10,
-                       600);
+  font fn=
+      smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
 
   int    pos;
