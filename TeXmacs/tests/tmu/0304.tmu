@@ -1,0 +1,50 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  标宽无框表格
+
+  <\tabular>
+    <tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|2|2|3|3|cell-row-span|1>|<cwith|2|2|3|3|cell-col-span|2>|<cwith|4|4|2|2|cell-row-span|1>|<cwith|4|4|2|2|cell-col-span|3>|<table|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>>>
+  </tabular>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
