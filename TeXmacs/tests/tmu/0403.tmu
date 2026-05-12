@@ -6,15 +6,9 @@
   标宽无框表格
 
   <\wide-tabular>
-    <tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|2|2|3|3|cell-row-span|1>|<cwith|2|2|3|3|cell-col-span|2>|<cwith|4|4|2|2|cell-row-span|1>|<cwith|4|4|2|2|cell-col-span|3>|<table|<row|<\cell>
+    <tformat|<cwith|1|1|1|1|cell-row-span|1>|<cwith|1|1|1|1|cell-col-span|2>|<cwith|2|2|4|4|cell-row-span|1>|<cwith|2|2|4|4|cell-col-span|2>|<cwith|4|4|2|2|cell-row-span|1>|<cwith|4|4|2|2|cell-col-span|3>|<cwith|6|6|1|1|cell-row-span|4>|<cwith|6|6|1|1|cell-col-span|1>|<cwith|6|6|3|3|cell-row-span|4>|<cwith|6|6|3|3|cell-col-span|1>|<cwith|3|3|5|5|cell-row-span|7>|<cwith|3|3|5|5|cell-col-span|1>|<table|<row|<\cell>
       \;
     </cell>|<\cell>
-      \;
-    </cell>|<\cell>
-      \;
-    </cell>|<\cell>
-      \;
-    </cell>>|<row|<\cell>
       \;
     </cell>|<\cell>
       \;
@@ -30,7 +24,81 @@
       \;
     </cell>|<\cell>
       \;
+    </cell>|<\cell>
+      \;
     </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
       \;
     </cell>|<\cell>
       \;
