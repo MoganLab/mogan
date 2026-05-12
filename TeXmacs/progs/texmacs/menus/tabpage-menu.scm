@@ -32,13 +32,14 @@
            (view-win (view->window-of-tabpage view))
            (title  (buffer-get-title buf))
            (title* (if (== title "") (url->system (url-tail buf)) title))
+           (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
            ;; 特殊处理启动标签页标题
-           (title* (if (== (url->system buf) "tmfs://startup-tab")
+           (title* (if is-startup?
                        (if (community-stem?) "Mogan STEM" "Liii STEM")
                        title*))
            (mod?   (buffer-modified? buf))
            (tab-title (string-append title* (if mod? " *" "")))
-           (doc-path  (url->system buf))
+           (doc-path  (if is-startup? "" (utf8->cork (url->system buf))))
            (active?   (== (current-view) view)))
       (tab-page
         (eval view)
