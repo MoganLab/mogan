@@ -1,0 +1,43 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  TeXmacs Computer Roman
+
+  <\equation*>
+    \<alpha\>+\<beta\>+\<gamma\>
+  </equation*>
+
+  Asana Math
+
+  <\equation*>
+    <with|font|Asana Math|\<alpha\>+\<beta\>+\<gamma\>>
+  </equation*>
+
+  Stix Math
+
+  <\equation*>
+    <with|font|Stix Math|\<alpha\>+\<beta\>+\<gamma\>>
+  </equation*>
+
+  Latin Modern Math
+
+  <\equation*>
+    <with|font|Latin Modern Math|\<alpha\>+\<beta\>+\<gamma\>>
+  </equation*>
+
+  Libetinus Math
+
+  <\equation*>
+    <with|font|Libertinus Math|\<alpha\>+\<beta\>+\<gamma\>>
+  </equation*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|34321DE8-B31D-4600-8D44-9D4203D4F250>
+  </collection>
+</initial>
