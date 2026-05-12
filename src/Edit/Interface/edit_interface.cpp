@@ -575,6 +575,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (is_func (st[i], ROW)) {
         for (int j= 0; j < N (st[i]); j++) {
           selection  sel = cell_cache[i][j];
+          if (!sel->valid) continue;
           rectangles rsel= copy (thicken (sel->rs, 0, 2 * pixel));
 
           if (i > 0 && j < row_sizes[i - 1] && N (cell_cache[i - 1]) > j) {
