@@ -523,14 +523,16 @@ find_adjacent_selection (array<array<selection>> cell_cache, int i, int j,
                          SI x1, SI x2, bool look_down) {
   int di= look_down ? 1 : -1;
   int ii= i + di;
-  if (ii < 0 || ii >= N (cell_cache)) return selection ();
-  if (j < N (cell_cache[ii]) && cell_cache[ii][j]->valid)
-    return cell_cache[ii][j];
-  for (int jj= 0; jj < N (cell_cache[ii]); jj++) {
-    selection bis= cell_cache[ii][jj];
-    if (!bis->valid || is_nil (bis->rs) || N (bis->rs) == 0) continue;
-    rectangle r= bis->rs->item;
-    if (r->x2 > x1 && r->x1 < x2) return bis;
+  while (ii >= 0 && ii < N (cell_cache)) {
+    if (j < N (cell_cache[ii]) && cell_cache[ii][j]->valid)
+      return cell_cache[ii][j];
+    for (int jj= 0; jj < N (cell_cache[ii]); jj++) {
+      selection bis= cell_cache[ii][jj];
+      if (!bis->valid || is_nil (bis->rs) || N (bis->rs) == 0) continue;
+      rectangle r= bis->rs->item;
+      if (r->x2 > x1 && r->x1 < x2) return bis;
+    }
+    ii+= di;
   }
   return selection ();
 }
@@ -551,6 +553,22 @@ correct_adjacent (rectangles& rs1, rectangles& rs2) {
   SI mid       = (bot1 + top2) >> 1;
   rs1->item->y1= mid;
   rs2->item->y2= mid;
+}
+
+static void
+correct_adjacent_horizontal (rectangles& rs1, rectangles& rs2) {
+  if (N (rs1) != 1 || N (rs2) != 1) return;
+  SI right1= rs1->item->x2;
+  SI left2 = rs2->item->x1;
+  if (rs1->item->x2 >= rs2->item->x2) {
+    return;
+  }
+  if (rs1->item->x1 >= rs2->item->x1) {
+    return;
+  }
+  SI mid       = (right1 + left2) >> 1;
+  rs1->item->x2= mid;
+  rs2->item->x1= mid;
 }
 
 void
@@ -617,6 +635,22 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
             if (bis->valid) {
               rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
               correct_adjacent (rsel, rbis);
+            }
+          }
+
+          if (j > 0) {
+            selection bis= cell_cache[i][j - 1];
+            if (bis->valid) {
+              rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              correct_adjacent_horizontal (rbis, rsel);
+            }
+          }
+
+          if (j + 1 < N (cell_cache[i])) {
+            selection bis= cell_cache[i][j + 1];
+            if (bis->valid) {
+              rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              correct_adjacent_horizontal (rsel, rbis);
             }
           }
 
