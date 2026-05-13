@@ -105,8 +105,8 @@ StyleCard::~StyleCard ()= default;
 
 void
 StyleCard::setupIconMode (const DocStyle& style) {
-  int iconSize  = DpiUtils::scaled (kStyleIconSize);
-  int imageSize = DpiUtils::scaled (kStyleIconImageSize);
+  int iconSize = DpiUtils::scaled (kStyleIconSize);
+  int imageSize= DpiUtils::scaled (kStyleIconImageSize);
 
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (DpiUtils::scaled (kStyleCardMargin),
