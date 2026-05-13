@@ -398,16 +398,28 @@
          `(,(tm-label t) ,@(map clean-preview (tm-children t))))
         (else t)))
 
+(define (get-binding-value id)
+; get-reference 返回 buf->data->ref[id]，格式为 (tuple display_value page_ref)
+; 未保存文件时 tooltip 排版环境无法加载 ref map，因此不能用 get-binding 获取
+  (and-let* ((val (get-reference id)))
+    (let ((v (if (and (tree? val) (== (tree-label val) 'tuple)
+                      (>= (tree-arity val) 1))
+                 (tree-ref val 0)
+                 val)))
+      (and (not (== (tree-label v) 'uninit)) v))))
+
 (define (fix-fig_or_tb-number doc id)
 ; preview 不是在原文档上下文里排版，而是把目标片段单独拿出来排版
 ; 在排版 figure / table 时，这个临时区域的 figure-nr / table-nr 从 0 开始计数，因此预览框里的编号永远是 1
 ; 这里用一个宏包装，the-figure / the-table 时当前 figure / table 计数器，用于生成显示用编号
-; 这里先通过 get-binding 从文档中获取真实编号，这样在 *-figure / *-table 展开渲染时就能获取正确的编号
-  (cond ((tm-in? doc '(small-figure big-figure))
-         `(with "the-figure" (macro (get-binding ,id)) ,doc))
-        ((tm-in? doc '(small-table big-table))
-         `(with "the-table" (macro (get-binding ,id)) ,doc))
-        (else doc)))
+; 这里先通过 get-binding-value 从文档中获取真实编号，这样在 *-figure / *-table 展开渲染时就能获取正确的编号
+  (let ((v (get-binding-value id))
+        (tag (cond ((tm-in? doc '(small-figure big-figure)) "the-figure")
+                   ((tm-in? doc '(small-table big-table)) "the-table")
+                   (else #f))))
+    (when (and v tag)
+      (set! doc `(with ,tag (macro ,v) ,doc)))
+    doc))
 
 (define (preview-expand-context? t)
   (tree-in? t '(theorem proposition lemma corollary conjecture
