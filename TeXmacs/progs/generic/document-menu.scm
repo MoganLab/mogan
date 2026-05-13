@@ -640,8 +640,7 @@
 (tm-menu (document-columns-menu)
   ("One column" (init-env "par-columns" "1"))
   ("Two columns" (init-env "par-columns" "2"))
-  ("Three columns" (init-env "par-columns" "3")
-                   ))
+  ("Three columns" (init-env "par-columns" "3")))
   
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Page menu
