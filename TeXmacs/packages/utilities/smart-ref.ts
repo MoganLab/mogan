@@ -70,6 +70,8 @@
 
   <assign|corr-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>
 
+  <assign|corollary-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>
+
   <assign|corrolary-ref|<xmacro|args|<extern|ext-typed-ref|Corollary|<quote-arg|args>>>>
 
   <assign|def-ref|<xmacro|args|<extern|ext-typed-ref|Definition|<quote-arg|args>>>>
@@ -89,6 +91,10 @@
   <assign|ax-ref|<xmacro|args|<extern|ext-typed-ref|Axiom|<quote-arg|args>>>>
 
   <assign|axiom-ref|<xmacro|args|<extern|ext-typed-ref|Axiom|<quote-arg|args>>>>
+
+  <assign|ass-ref|<xmacro|args|<extern|ext-typed-ref|Assumption|<quote-arg|args>>>>
+
+  <assign|assumption-ref|<xmacro|args|<extern|ext-typed-ref|Assumption|<quote-arg|args>>>>
 
   <assign|conv-ref|<xmacro|args|<extern|ext-typed-ref|Convention|<quote-arg|args>>>>
 

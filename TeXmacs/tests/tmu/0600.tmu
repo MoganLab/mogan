@@ -1,0 +1,66 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|number-europe|smart-ref>>
+
+<\body>
+  <section|Smart-ref for corollary and assumption>
+
+  <\corollary>
+    <label|corollary:test1>
+
+    This is a test corollary.
+  </corollary>
+
+  <\assumption>
+    <label|assumption:test1>
+
+    This is a test assumption.
+  </assumption>
+
+  <\corollary>
+    <label|cor:test2>
+
+    This is another corollary with cor prefix.
+  </corollary>
+
+  <\assumption>
+    <label|ass:test2>
+
+    This is another assumption with ass prefix.
+  </assumption>
+
+  <with|font-series|bold|smart-ref for corollary:>
+
+  <\itemize>
+    <item><smart-ref|corollary:test1>
+
+    <item><smart-ref|cor:test2>
+
+    <item><smart-ref|corr:test3> (non-existent label)
+  </itemize>
+
+  <with|font-series|bold|smart-ref for assumption:>
+
+  <\itemize>
+    <item><smart-ref|assumption:test1>
+
+    <item><smart-ref|ass:test2>
+
+    <item><smart-ref|assumption:test3> (non-existent label)
+  </itemize>
+
+  <with|font-series|bold|typed ref:>
+
+  <\itemize>
+    <item><corollary-ref|corollary:test1>
+
+    <item><assumption-ref|assumption:test1>
+  </itemize>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
