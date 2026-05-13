@@ -639,6 +639,7 @@
 "widget-empty"
 "widget-text"
 "widget-input"
+"widget-numeric-input"
 "widget-enum"
 "widget-choice"
 "widget-choices"

@@ -322,6 +322,19 @@
 ;; Global page margins
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (page-margin-get-mm win var)
+  (let ((val (window-get-init win var)))
+    (cond ((or (not val) (== val "") (== val "auto")) 30)
+          ((tm-length? val)
+           (with decoded (length-decode val)
+             (if decoded
+                 (inexact->exact (round (/ decoded 6047.0)))
+                 30)))
+          (else 30))))
+
+(define (page-margin-set-mm win var val)
+  (window-set-init win var (string-append (number->string val) "mm")))
+
 (tm-widget (page-margins-tool win)
   (padded
     (aligned
@@ -346,19 +359,19 @@
           (aligned
             (item (text "Left:")
               (hlist
-                (input (window-set-init win "page-odd" answer) "string"
-                       (list (window-get-init win "page-odd")) "6em")
-                // // (text "(odd pages)") // >>>))
+                (numeric-input (page-margin-set-mm win "page-odd" answer) "4em"
+                               0 500 1 (page-margin-get-mm win "page-odd"))
+                // // (text "mm") // // (text "(odd pages)") // >>>))
             (item (text "")
               (hlist
-                (input (window-set-init win "page-even" answer) "string"
-                       (list (window-get-init win "page-odd")) "6em")
-                // // (text "(even pages)") >>>))
+                (numeric-input (page-margin-set-mm win "page-even" answer) "4em"
+                               0 500 1 (page-margin-get-mm win "page-even"))
+                // // (text "mm") // // (text "(even pages)") >>>))
             (item (text "Right:")
               (hlist
-                (input (window-set-init win "page-right" answer) "string"
-                       (list (window-get-init win "page-right")) "6em")
-                // // (text "(odd pages)") // >>>))
+                (numeric-input (page-margin-set-mm win "page-right" answer) "4em"
+                               0 500 1 (page-margin-get-mm win "page-right"))
+                // // (text "mm") // // (text "(odd pages)") // >>>))
             (item (text "Top:")
               (input (window-set-init win "page-top" answer) "string"
                      (list (window-get-init win "page-top")) "6em"))

@@ -293,9 +293,15 @@
 
 (define (make-menu-input p style)
   "Make @(input :%1 :string? :%1 :string?) menu item."
-  (with (tag cmd type props width) p    
+  (with (tag cmd type props width) p
     (widget-input (object->command (menu-protect cmd)) type (props)
                   style width)))
+
+(define (make-numeric-input p style)
+  "Make @(numeric-input :%6) menu item."
+  (with (tag cmd width min max step def) p
+    (widget-numeric-input (object->command (menu-protect cmd)) width min max step
+                          def)))
 
 (define (make-enum p style)
   "Make @(enum :%3 :string?) item."
@@ -862,6 +868,8 @@
     ,(lambda (p style bar?) (list (make-texmacs-input p style))))
   (input (:%1 :string? :%1 :string?)
          ,(lambda (p style bar?) (list (make-menu-input p style))))
+  (numeric-input (:%1 :string? :integer? :integer? :integer? :integer?)
+         ,(lambda (p style bar?) (list (make-numeric-input p style))))
   (enum (:%3 :string?)
         ,(lambda (p style bar?) (list (make-enum p style))))
   (choice (:%3)

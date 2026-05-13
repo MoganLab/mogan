@@ -50,6 +50,25 @@ public:
 
 class qt_field_widget_rep;
 
+/*! A numeric input field with a spin box.
+ */
+class qt_numeric_input_widget_rep : public qt_widget_rep {
+protected:
+  command cmd;
+  string  width;
+  int     min_val;
+  int     max_val;
+  int     step;
+  int     value;
+
+public:
+  qt_numeric_input_widget_rep (command _cmd, string _width, int _min_val,
+                               int _max_val, int _step, int _def);
+
+  virtual QWidget* as_qwidget ();
+  void             commit ();
+};
+
 /*! A dialog with a list of inputs and ok and cancel buttons.
 
  In the general case each input is a qt_field_widget_rep which we lay out in a

@@ -117,6 +117,10 @@
   (require-format x '(input :%4))
   `($input ,@(cdr x)))
 
+(define (gui-make-numeric-input x)
+  (require-format x '(numeric-input :%6))
+  `($numeric-input ,@(cdr x)))
+
 (define (gui-make-enum x)
   (require-format x '(enum :%4))
   `($enum ,@(cdr x)))
@@ -412,6 +416,7 @@
   (texmacs-output ,gui-make-texmacs-output)
   (texmacs-input ,gui-make-texmacs-input)
   (input ,gui-make-input)
+  (numeric-input ,gui-make-numeric-input)
   (enum ,gui-make-enum)
   (choice ,gui-make-choice)
   (choices ,gui-make-choices)

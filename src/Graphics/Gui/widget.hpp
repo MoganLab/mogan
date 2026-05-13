@@ -182,6 +182,10 @@ widget input_text_widget (command call_back, string type, array<string> def,
 // default inputs (the first one should be displayed, if there is one)
 // an optional width may be specified for the input field
 // the width is specified in TeXmacs length format with units em, px or w
+widget numeric_input_widget (command call_back, string width, int min_val,
+                             int max_val, int step, int def);
+// a numeric input widget with a spin box for integer values
+// an optional width may be specified for the input field
 widget enum_widget (command cb, array<string> vals, string val, int st= 0,
                     string w= "1w");
 // select a value from a list of possible values

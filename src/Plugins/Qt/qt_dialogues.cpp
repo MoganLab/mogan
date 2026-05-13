@@ -32,6 +32,7 @@
 #include <QLineEdit>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QSpinBox>
 #include <QVBoxLayout>
 #include <QVector>
 
@@ -432,4 +433,45 @@ qt_input_text_widget_rep::commit (bool flag) {
     the_gui->process_command (cmd, ok ? list_object (object (input))
                                       : list_object (object (false)));
   }
+}
+
+/******************************************************************************
+ * qt_numeric_input_widget_rep
+ ******************************************************************************/
+
+qt_numeric_input_widget_rep::qt_numeric_input_widget_rep (command _cmd,
+                                                          string  _width,
+                                                          int     _min_val,
+                                                          int     _max_val,
+                                                          int _step, int _def)
+    : qt_widget_rep (input_widget), cmd (_cmd), width (_width),
+      min_val (_min_val), max_val (_max_val), step (_step), value (_def) {}
+
+QWidget*
+qt_numeric_input_widget_rep::as_qwidget () {
+  QSpinBox* spin= new QSpinBox ();
+  qwid          = spin;
+  spin->setRange (min_val, max_val);
+  spin->setSingleStep (step);
+  spin->blockSignals (true);
+  spin->setValue (value);
+  spin->blockSignals (false);
+  spin->setObjectName ("numeric-input");
+
+  if (width != "") {
+    spin->setMinimumWidth (50);
+  }
+
+  QObject::connect (spin, QOverload<int>::of (&QSpinBox::valueChanged),
+                    [this] (int new_val) {
+                      value= new_val;
+                      commit ();
+                    });
+
+  return qwid;
+}
+
+void
+qt_numeric_input_widget_rep::commit () {
+  the_gui->process_command (cmd, list_object (object (value)));
 }

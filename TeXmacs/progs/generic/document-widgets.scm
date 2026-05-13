@@ -324,6 +324,19 @@
 ;; Document -> Page / Margins
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (page-margin-get-mm-initial u var)
+  (let ((val (initial-get u var)))
+    (cond ((or (not val) (== val "") (== val "auto")) 30)
+          ((tm-length? val)
+           (with decoded (length-decode val)
+             (if decoded
+                 (inexact->exact (round (/ decoded 6047.0)))
+                 30)))
+          (else 30))))
+
+(define (page-margin-set-mm-initial u var val)
+  (initial-set u var (string-append (number->string val) "mm")))
+
 (tm-widget (page-formatter-margins u quit)
   (padded
     (refreshable "page-margin-toggles"
@@ -349,14 +362,20 @@
         (if (!= (initial-get u "page-width-margin") "true")
             (aligned
               (item (text "(Odd page) Left:")
-                (input (initial-set u "page-odd" answer) "string"
-                       (list (initial-get u "page-odd")) "6em"))
+                (hlist
+                  (numeric-input (page-margin-set-mm-initial u "page-odd" answer) "4em"
+                                 0 500 1 (page-margin-get-mm-initial u "page-odd"))
+                  // // (text "mm")))
               (item (text "(Even page) Left:")
-                (input (initial-set u "page-even" answer) "string"
-                       (list (initial-get u "page-odd")) "6em"))
+                (hlist
+                  (numeric-input (page-margin-set-mm-initial u "page-even" answer) "4em"
+                                 0 500 1 (page-margin-get-mm-initial u "page-even"))
+                  // // (text "mm")))
               (item (text "(Odd page) Right:")
-                (input (initial-set u "page-right" answer) "string"
-                       (list (initial-get u "page-right")) "6em"))
+                (hlist
+                  (numeric-input (page-margin-set-mm-initial u "page-right" answer) "4em"
+                                 0 500 1 (page-margin-get-mm-initial u "page-right"))
+                  // // (text "mm")))
               (item (text "Top:")
                 (input (initial-set u "page-top" answer) "string"
                        (list (initial-get u "page-top")) "6em"))

@@ -591,6 +591,13 @@ input_text_widget (command call_back, string type, array<string> def, int style,
   return tm_new<qt_input_text_widget_rep> (call_back, type, def, style, width);
 }
 widget
+numeric_input_widget (command call_back, string width, int min_val, int max_val,
+                      int step, int def) {
+  if (headless_mode) return headless_widget ();
+  return tm_new<qt_numeric_input_widget_rep> (call_back, width, min_val,
+                                              max_val, step, def);
+}
+widget
 color_picker_widget (command call_back, bool bg, array<tree> proposals) {
   if (headless_mode) return headless_widget ();
   return tm_new<qt_color_picker_widget_rep> (call_back, bg, proposals);
