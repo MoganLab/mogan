@@ -106,15 +106,18 @@
 (define-public (telemetry-app-version) (xmacs-version))
 
 (define-public (telemetry-platform)
-  (cond ((os-macos?) "macos")
-        ((or (os-win32?) (os-mingw?)) "windows")
-        (else "linux")
-  ) ;cond
+  (let* ((pretty (get-pretty-os-name))
+         (parts (string-split pretty #\ ))
+         (name (car parts))
+         (normalized (string-downcase (string-replace-substring name "_" "")))
+        )
+    normalized
+  ) ;let*
 ) ;define-public
 
 (define-public (telemetry-language)
-  (let ((lang (or (system-getenv "LANG") "en_US")))
-    (if (string-contains? lang ".") (car (string-split lang #\.)) lang)
+  (let ((lang (get-locale-language)))
+    (language-to-locale lang)
   ) ;let
 ) ;define-public
 

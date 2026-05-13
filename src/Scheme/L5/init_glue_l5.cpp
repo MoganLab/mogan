@@ -27,6 +27,7 @@
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "promise.hpp"
+#include "locale.hpp"
 #include "tm_debug.hpp"
 #include "tm_locale.hpp"
 #include "tree_observer.hpp"
