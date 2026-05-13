@@ -579,6 +579,12 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
   tree st= subtree (et, p);
   if ((is_func (st, TABLE) || is_func (st, SUBTABLE)) && recurse &&
       get_preference ("show table cells") == "on") {
+    bool is_subtable_inner= false;
+    if (is_func (st, TABLE)) {
+      tree ppt= subtree (et, path_up (path_up (p)));
+      if (is_func (ppt, SUBTABLE)) is_subtable_inner= true;
+    }
+
     rectangles rl;
 
     int table_rows= N (st);
@@ -656,7 +662,30 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
 
           rectangles selp= thicken (rsel, pixel / 2, pixel / 2);
           rectangles selm= thicken (rsel, -pixel / 2, -pixel / 2);
-          rl << simplify (::correct (selp - selm));
+
+          if (is_subtable_inner) {
+            rectangles rdiff;
+            if (i > 0) {
+              rdiff << rectangles (rectangle (selp->item->x1, selm->item->y2,
+                                              selp->item->x2, selp->item->y2));
+            }
+            if (i + 1 < table_rows) {
+              rdiff << rectangles (rectangle (selp->item->x1, selp->item->y1,
+                                              selp->item->x2, selm->item->y1));
+            }
+            if (j > 0) {
+              rdiff << rectangles (rectangle (selp->item->x1, selm->item->y1,
+                                              selm->item->x1, selm->item->y2));
+            }
+            if (j + 1 < N (cell_cache[i])) {
+              rdiff << rectangles (rectangle (selm->item->x2, selm->item->y1,
+                                              selp->item->x2, selm->item->y2));
+            }
+            rl << simplify (::correct (rdiff));
+          }
+          else {
+            rl << simplify (::correct (selp - selm));
+          }
         }
       }
     }
