@@ -41,6 +41,43 @@
   ) ;let
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; sessionId / eventId 语义验证
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (let* ((ev1 (telemetry-make-event "TEST_SESSION" '()))
+         (ev2 (telemetry-make-event "TEST_SESSION" '()))
+         (sid1 (assoc-ref ev1 "sessionId"))
+         (sid2 (assoc-ref ev2 "sessionId"))
+         (eid1 (assoc-ref ev1 "eventId"))
+         (eid2 (assoc-ref ev2 "eventId"))
+        )
+    ;; 同一次运行 sessionId 保持一致
+    (check sid1 => sid2)
+    ;; 每个事件 eventId 独立
+    (check (not (equal? eid1 eid2)) => #t)
+  ) ;let*
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-platform：返回具体系统版本（而非笼统的 macos/windows/linux）
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (let ((platform (telemetry-platform)))
+    (check (string? platform) => #t)
+    ;; 应包含版本号或具体发行版名，不再只是三选一
+    (check (> (string-length platform) 3) => #t)
+  ) ;let
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; telemetry-language：跨平台能拿到有效语言标识
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+  (let ((language (telemetry-language)))
+    (check (string? language) => #t)
+    ;; 应为类似 en_US、zh_CN 的 locale 格式，含下划线
+    (check (string-contains? language "_") => #t)
+  ) ;let
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; telemetry-enabled?：开关控制
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

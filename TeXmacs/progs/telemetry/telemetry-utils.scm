@@ -101,15 +101,18 @@
   ) ;let
 ) ;define-public
 
-(define-public (telemetry-session-id) (uuid4))
+(define *telemetry-session-id* (uuid4))
+
+(define-public (telemetry-session-id)
+  *telemetry-session-id*)
 
 (define-public (telemetry-app-version) (xmacs-version))
 
 (define-public (telemetry-platform)
   (let* ((pretty (get-pretty-os-name))
-         (parts (string-split pretty #\ ))
-         (name (car parts))
-         (normalized (string-downcase (string-replace-substring name "_" "")))
+         (no-underscore (string-replace pretty "_" ""))
+         (no-spaces (string-replace no-underscore " " ""))
+         (normalized (string-downcase no-spaces))
         )
     normalized
   ) ;let*
@@ -148,8 +151,6 @@
 ) ;define-public
 
 (define-public (telemetry-now) (inexact->exact (truncate (current-time))))
-
-(define-public *telemetry-session-id* (telemetry-session-id))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; JSON serialization helpers
@@ -299,7 +300,7 @@
   `((,"eventType" unquote event-type)
     (,"timestamp" unquote (telemetry-now))
     (,"distinctId" unquote (telemetry-device-id))
-    (,"sessionId" unquote *telemetry-session-id*)
+    (,"sessionId" unquote (telemetry-session-id))
     (,"eventId" unquote (uuid4))
     (,"appVersion" unquote (telemetry-app-version))
     (,"deviceId" unquote (telemetry-device-id))
