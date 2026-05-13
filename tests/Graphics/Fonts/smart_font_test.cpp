@@ -37,6 +37,7 @@ private slots:
   void test_resolve_200B ();
   void test_get_right_slope ();
   void test_latin_modern_math_italic_greek ();
+  void test_cursor_position_iii ();
 };
 
 void
@@ -138,6 +139,26 @@ TestSmartFont::test_latin_modern_math_italic_greek () {
   fn_rep->advance ("<gamma>", pos, r, nr);
   QCOMPARE (pos, N (string ("<gamma>")));
   qcompare (r, "<#1D6FE>");
+}
+
+void
+TestSmartFont::test_cursor_position_iii () {
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+
+  string s= "IIIIIIIIII";
+  metric ex;
+  fn->get_extents (s, ex);
+
+  STACK_NEW_ARRAY (xpos, SI, N (s) + 1);
+  fn->get_xpositions (s, xpos);
+
+  // Check consistency: get_extents of prefix should match xpos
+  for (int l= 1; l <= N (s); l++) {
+    metric ex2;
+    fn->get_extents (s (0, l), ex2);
+    QCOMPARE (ex2->x2, xpos[l]);
+  }
+  STACK_DELETE_ARRAY (xpos);
 }
 
 QTEST_MAIN (TestSmartFont)

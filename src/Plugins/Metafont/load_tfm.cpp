@@ -316,11 +316,11 @@ tex_font_metric_rep::get_xpositions (int* s, int n, double unit, SI* xpos,
 
       while (true) {
         int instr= lig_kern[pc];
-        if (byte0 (instr) >= 128) {
-          ADVANCE (0);
-          break;
-        }
         if (byte1 (instr) != next_char) {
+          if (byte0 (instr) >= 128) {
+            ADVANCE (0);
+            break;
+          }
           pc+= byte0 (instr) + 1;
           continue;
         }
@@ -344,7 +344,14 @@ tex_font_metric_rep::get_xpositions (int* s, int n, double unit, SI* xpos,
           break;
         }
         else {
-          ADVANCE (kern[word1x (instr)]);
+          int k    = kern[word1x (instr)];
+          SI  old_x= x;
+          x+= conv (w (stack[sp]) + k);
+          x_bis= x;
+          sp--;
+          if (pos < n - sp) {
+            xpos[pos++]= old_x + conv (w (stack[sp + 1]));
+          }
           break;
         }
       }
