@@ -736,7 +736,7 @@ QtHomePage::onRecentDocContextMenu (const QPoint& pos) {
 void
 QtHomePage::createDocumentWithStyle (const QString& styleId) {
   if (styleId == "new") {
-    eval_scheme ("(new-document-with-style " * qt_scheme_quote (styleId) * ")");
+    eval_scheme ("(new-document-with-style \"generic\")");
     return;
   }
 
