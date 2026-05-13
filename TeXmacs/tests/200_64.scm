@@ -20,6 +20,12 @@
 (use-modules (telemetry telemetry-utils))
 (use-modules (telemetry telemetry-track))
 
+(define (string-contains-digit? s)
+  (let loop ((chars (string->list s)))
+    (and (not (null? chars))
+         (or (and (char>=? (car chars) #\0) (char<=? (car chars) #\9))
+             (loop (cdr chars))))))
+
 (when (not (community-stem?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -64,7 +70,7 @@
   (let ((platform (telemetry-platform)))
     (check (string? platform) => #t)
     ;; 应包含版本号或具体发行版名，不再只是三选一
-    (check (> (string-length platform) 3) => #t)
+    (check (string-contains-digit? platform) => #t)
   ) ;let
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
