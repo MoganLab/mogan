@@ -195,9 +195,9 @@
            `(input-popup ,type ,cmd ,width ,(car props)
                          (choice-list ,cmd ,(car props) ,@props))))))
 
-(tm-define (markup-numeric-input cmd* width min max step def)
+(tm-define (markup-numeric-input cmd* width unit min max step def)
   (with cmd (unary-mangled cmd*)
-    `(numeric-input ,cmd ,width ,min ,max ,step ,def)))
+    `(numeric-input ,cmd ,width ,unit ,min ,max ,step ,def)))
 
 (tm-define (markup-enum cmd* props val style width)
   ;; TODO: handle inert style
@@ -457,10 +457,10 @@
                   style width)))
 
 (define (build-numeric-input p style)
-  "Make @(numeric-input :%6) menu item."
-  (with (tag cmd width min max step def) p
-    (markup-numeric-input (object->command (menu-protect cmd)) width min max step
-                          def)))
+  "Make @(numeric-input :%7) menu item."
+  (with (tag cmd width unit min max step def) p
+    (markup-numeric-input (object->command (menu-protect cmd)) width unit min max
+                          step def)))
 
 (define (build-enum p style)
   "Make @(enum :%3 :string?) item."
@@ -953,7 +953,7 @@
     ,(lambda (p style bar?) (list (build-texmacs-input p style))))
   (input (:%1 :string? :%1 :string?)
          ,(lambda (p style bar?) (list (build-menu-input p style))))
-  (numeric-input (:%1 :string? :integer? :integer? :integer? :integer?)
+  (numeric-input (:%1 :string? :string? :integer? :integer? :integer? :integer?)
          ,(lambda (p style bar?) (list (build-numeric-input p style))))
   (enum (:%3 :string?)
         ,(lambda (p style bar?) (list (build-enum p style))))

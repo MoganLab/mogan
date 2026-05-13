@@ -363,19 +363,16 @@
             (aligned
               (item (text "(Odd page) Left:")
                 (hlist
-                  (numeric-input (page-margin-set-mm-initial u "page-odd" answer) "4em"
-                                 0 500 1 (page-margin-get-mm-initial u "page-odd"))
-                  // // (text "mm")))
+                  (numeric-input (page-margin-set-mm-initial u "page-odd" answer) "4em" "mm"
+                                 0 500 1 (page-margin-get-mm-initial u "page-odd"))))
               (item (text "(Even page) Left:")
                 (hlist
-                  (numeric-input (page-margin-set-mm-initial u "page-even" answer) "4em"
-                                 0 500 1 (page-margin-get-mm-initial u "page-even"))
-                  // // (text "mm")))
+                  (numeric-input (page-margin-set-mm-initial u "page-even" answer) "4em" "mm"
+                                 0 500 1 (page-margin-get-mm-initial u "page-even"))))
               (item (text "(Odd page) Right:")
                 (hlist
-                  (numeric-input (page-margin-set-mm-initial u "page-right" answer) "4em"
-                                 0 500 1 (page-margin-get-mm-initial u "page-right"))
-                  // // (text "mm")))
+                  (numeric-input (page-margin-set-mm-initial u "page-right" answer) "4em" "mm"
+                                 0 500 1 (page-margin-get-mm-initial u "page-right"))))
               (item (text "Top:")
                 (input (initial-set u "page-top" answer) "string"
                        (list (initial-get u "page-top")) "6em"))

@@ -359,19 +359,19 @@
           (aligned
             (item (text "Left:")
               (hlist
-                (numeric-input (page-margin-set-mm win "page-odd" answer) "4em"
+                (numeric-input (page-margin-set-mm win "page-odd" answer) "4em" "mm"
                                0 500 1 (page-margin-get-mm win "page-odd"))
-                // // (text "mm") // // (text "(odd pages)") // >>>))
+                // // (text "(odd pages)") // >>>))
             (item (text "")
               (hlist
-                (numeric-input (page-margin-set-mm win "page-even" answer) "4em"
+                (numeric-input (page-margin-set-mm win "page-even" answer) "4em" "mm"
                                0 500 1 (page-margin-get-mm win "page-even"))
-                // // (text "mm") // // (text "(even pages)") >>>))
+                // // (text "(even pages)") >>>))
             (item (text "Right:")
               (hlist
-                (numeric-input (page-margin-set-mm win "page-right" answer) "4em"
+                (numeric-input (page-margin-set-mm win "page-right" answer) "4em" "mm"
                                0 500 1 (page-margin-get-mm win "page-right"))
-                // // (text "mm") // // (text "(odd pages)") // >>>))
+                // // (text "(odd pages)") // >>>))
             (item (text "Top:")
               (input (window-set-init win "page-top" answer) "string"
                      (list (window-get-init win "page-top")) "6em"))

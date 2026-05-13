@@ -56,14 +56,15 @@ class qt_numeric_input_widget_rep : public qt_widget_rep {
 protected:
   command cmd;
   string  width;
+  string  unit;
   int     min_val;
   int     max_val;
   int     step;
   int     value;
 
 public:
-  qt_numeric_input_widget_rep (command _cmd, string _width, int _min_val,
-                               int _max_val, int _step, int _def);
+  qt_numeric_input_widget_rep (command _cmd, string _width, string _unit,
+                               int _min_val, int _max_val, int _step, int _def);
 
   virtual QWidget* as_qwidget ();
   void             commit ();

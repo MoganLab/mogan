@@ -118,7 +118,7 @@
   `($input ,@(cdr x)))
 
 (define (gui-make-numeric-input x)
-  (require-format x '(numeric-input :%6))
+  (require-format x '(numeric-input :%7))
   `($numeric-input ,@(cdr x)))
 
 (define (gui-make-enum x)

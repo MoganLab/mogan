@@ -192,6 +192,7 @@ function main()
                 arg_list = {
                     "command",
                     "string",
+                    "string",
                     "int",
                     "int",
                     "int",
