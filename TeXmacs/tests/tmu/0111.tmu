@@ -1,0 +1,15 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|preview-ref|chinese|table-captions-above>>
+
+<\body>
+  IIIIIIIIII
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|prog-scripts|maxima>
+    <associate|stem-doc-id|1FCFA23A-48EC-4F70-8374-8E39238807A0>
+  </collection>
+</initial>
