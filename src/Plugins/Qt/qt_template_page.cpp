@@ -30,6 +30,7 @@
 #include "qt_dpi_utils.hpp"
 #include "qt_pdf_preview_widget.hpp"
 #include "qt_utilities.hpp"
+#include "s7_tm.hpp"
 #include "template_manager.hpp"
 #include "thumbnail_loader.hpp"
 
@@ -598,7 +599,7 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
                             qt_translate ("Local template file is missing"));
       return;
     }
-    emit templateOpened (localPath);
+    eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) * ")");
   }
   else {
     // Track this download to distinguish user cancellation from real errors
@@ -674,7 +675,7 @@ QTTemplatePage::onDownloadCompleted (const QString& templateId,
     dialog->deleteLater ();
   }
 
-  emit templateOpened (localPath);
+  eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) * ")");
 }
 
 void

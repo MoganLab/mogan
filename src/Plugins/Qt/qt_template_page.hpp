@@ -41,9 +41,6 @@ public:
 
   void initialize ();
 
-signals:
-  void templateOpened (const QString& filePath);
-
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
   void showEvent (QShowEvent* event) override;
