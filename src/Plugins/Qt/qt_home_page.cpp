@@ -225,12 +225,6 @@ QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
        qt_translate ("Create a new blank document"), ""},
       {"open", qt_translate ("Open document"),
        qt_translate ("Open an existing document"), ""},
-      // TODO: fix async window crash before re-enabling
-      // {"elegantbook", qt_translate ("ElegantBook Notes Template"),
-      //  qt_translate ("ElegantBook-style notes template"), "elegantbook"},
-      // {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
-      //  qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
-      //  "nsfc-ysf-c"}
   };
 
   setupUI ();
