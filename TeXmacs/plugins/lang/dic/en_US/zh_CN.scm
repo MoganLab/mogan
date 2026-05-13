@@ -2678,3 +2678,4 @@
 ("Login Now" "立即登录")
 ("User Center" "用户中心")
 ("Use extensible brackets" "使用可伸缩括号")
+("Use \\space (eg. 1cm) in order to insert a blank with specified width" "使用 \\space（例如 1cm）来插入指定宽度的空白")

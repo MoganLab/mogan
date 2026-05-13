@@ -210,9 +210,8 @@
 (tm-define (kbd-variant t forwards?)
   (:require (tree-is-buffer? t))
   (if (and (not (complete-try?)) forwards?)
-      (with sh (kbd-system-rewrite (kbd-find-inv-binding '(kbd-alternate-tab)))
-        (set-message `(concat "Use " ,sh " in order to insert a tab")
-                     "tab"))))
+      (set-message (translate "Use \\space (eg. 1cm) in order to insert a blank with specified width")
+                   "tab")))
 
 ;; 辅助函数：定义 enumerate-tag-list
 (define (enumerate-tag-list)
