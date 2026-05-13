@@ -1,0 +1,20 @@
+<TMU|<tuple|1.1.0|2026.2.6-rc2>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <\equation*>
+    min<rsub|<stack|<tformat|<table|<row|<cell|x\<in\>X>>|<row|<cell|y\<in\>Y>>>>>>
+  </equation*>
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|31ED99A3-1867-4900-82D3-0C3CEA54FD10>
+  </collection>
+</initial>

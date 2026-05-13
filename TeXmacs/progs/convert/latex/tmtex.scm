@@ -1524,6 +1524,20 @@
 (define (tmtex-table l)
   (tmtex-table-apply 'tabular '() (cons 'table l)))
 
+(define (tmtex-stack l)
+  (when (nnull? l)
+    (let* ((x (car l))
+           (p (tmtable-parser x))
+           (rows (p 'rows 'content)))
+      (latex-add-extra "mathtools")
+      (tex-apply 'substack
+        (tex-concat
+          (list-intersperse
+            (map (lambda (row)
+                   (tex-concat (map tmtex row)))
+                 rows)
+            "\\\\"))))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Local and global environment changes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -3090,6 +3104,7 @@
   (!arg tmtex-tex-arg))
 
 (logic-dispatcher tmtex-extra-methods%
+  (stack tmtex-stack)
   (wide-float tmtex-wide-float)
   (phantom-float tmtex-noop)
   ((:or marginal-note marginal-normal-note) tmtex-marginal-note)
