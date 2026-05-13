@@ -200,7 +200,7 @@
                   (len-y (string-length (car y))))
               (< len-x len-y))))))
 
-(define kbd-find-prefix-tab-cache (make-hash-table))
+(define kbd-find-prefix-tab-cache (make-ahash-table))
 
 (tm-define (kbd-find-prefix-tab prefix)
   (let ((cached (hash-table-ref/default kbd-find-prefix-tab-cache prefix #f)))
