@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-# Copyright (C) 2022-present, TBOOX Open Source Group.
+# Copyright (C) 2022-present, Xmake Open Source Community.
 #
 # @author      ruki
 # @homepage    https://github.com/xmake-io/xmake.sh
@@ -23,12 +23,13 @@
 # some constants
 #
 xmake_sh_projectdir=$(X= cd -- "$(dirname -- "$0")" && pwd -P)
-xmake_sh_buildir="build"
+xmake_sh_builddir="build"
 xmake_sh_version="1.0.5"
 xmake_sh_verbose=false
 xmake_sh_diagnosis=false
-xmake_sh_copyright="Copyright (C) 2022-present Ruki Wang, tboox.org, xmake.io."
-xmake_sh_makefile="${xmake_sh_projectdir}/makefile"
+xmake_sh_copyright="Copyright (C) 2022-present Ruki Wang, https://xmake.io."
+xmake_sh_makefile="${xmake_sh_projectdir}/Makefile"
+xmake_sh_ninjafile="${xmake_sh_projectdir}/build.ninja"
 
 #-----------------------------------------------------------------------------
 # some helper functions
@@ -101,7 +102,81 @@ string_tolower() {
 }
 
 string_replace() {
-    _ret=$(echo "$1" | sed "s/${2}/${3}/g")
+    local src="${1}"
+    local search="${2}"
+    local replace="${3}"
+    if test_z "${search}"; then
+        _ret="${src}"
+        return
+    fi
+    local rest="${src}"
+    local result=""
+    local prefix=""
+    while :; do
+        case "${rest}" in
+            *"${search}"*)
+                prefix="${rest%%"${search}"*}"
+                result="${result}${prefix}${replace}"
+                rest="${rest#*"${search}"}"
+                ;;
+            *)
+                result="${result}${rest}"
+                break
+                ;;
+        esac
+    done
+    _ret="${result}"
+}
+
+# escape value for writing into ninja files
+_ninja_escape() {
+    local rest="${1}"
+    case "${rest}" in
+        *\$*)
+            local result=""
+            while :; do
+                case "${rest}" in
+                    *\$*)
+                        result="${result}${rest%%\$*}\$\$"
+                        rest="${rest#*\$}"
+                        ;;
+                    *)
+                        result="${result}${rest}"
+                        break
+                        ;;
+                esac
+            done
+            _ret="${result}"
+            ;;
+        *)
+            _ret="${rest}"
+            ;;
+    esac
+}
+
+_shell_escape_single_quotes() {
+    local value="${1}"
+    case "${value}" in
+        *"'"*)
+            local escaped=""
+            while :; do
+                case "${value}" in
+                    *"'"*)
+                        escaped="${escaped}${value%%\'*}'\"'\"'"
+                        value="${value#*\'}"
+                        ;;
+                    *)
+                        escaped="${escaped}${value}"
+                        break
+                        ;;
+                esac
+            done
+            _ret="'${escaped}'"
+            ;;
+        *)
+            _ret="'${value}'"
+            ;;
+    esac
 }
 
 # we avoid use `cut` command, because it's slow
@@ -181,7 +256,12 @@ string_startswith() {
 string_dupch() {
     local count=${1}
     local ch=${2}
-    printf %${count}s | tr " " "${ch}"
+    local result=""
+    while [ "${count:-0}" -gt 0 ]; do
+        result="${result}${ch}"
+        count=$((count - 1))
+    done
+    printf '%s' "${result}"
 }
 
 # replace file content
@@ -202,8 +282,9 @@ _os_tryrm() {
 }
 
 # get temporary file
+# https://github.com/xmake-io/xmake/issues/5464
 _os_tmpfile() {
-    _ret=$(mktemp)
+    _ret=$(mktemp "${TMPDIR-/tmp}/tmp.XXXXXXXX")
 }
 
 # try run program
@@ -236,19 +317,33 @@ _os_iorunv() {
 }
 
 # find file in the given directory
-# e.g. _os_find . xmake.sh
+# e.g. _os_find . xmake.sh [depth]
 _os_find() {
     local dir="${1}"
     local name="${2}"
     local depth="${3}"
     if test_nz "${depth}"; then
-        if is_host "macosx"; then
-            _ret=$(find "${dir}" -depth "${depth}" -type f -name "${name}")
+        # Solaris doesn't support -maxdepth, use shell to filter depth
+        if is_host "solaris"; then
+            _ret=""
+            local file=""
+            for file in $(find "${dir}" -type f -name "${name}" | LC_ALL=C sort); do
+                local relpath="${file#${dir}/}"
+                local slash_count=$(echo "${relpath}" | tr -cd '/' | wc -c | tr -d ' ')
+                if test "${slash_count}" = "$((${depth} - 1))"; then
+                    if test -z "${_ret}"; then
+                        _ret="${file}"
+                    else
+                        _ret="${_ret}
+${file}"
+                    fi
+                fi
+            done
         else
-            _ret=$(find "${dir}" -maxdepth "${depth}" -mindepth "${depth}" -type f -name "${name}")
+            _ret=$(find "${dir}" -maxdepth "${depth}" -mindepth "${depth}" -type f -name "${name}" | LC_ALL=C sort)
         fi
     else
-        _ret=$(find "${dir}" -type f -name "${name}")
+        _ret=$(find "${dir}" -type f -name "${name}" | LC_ALL=C sort)
     fi
 }
 
@@ -258,10 +353,9 @@ _os_find() {
 _os_date() {
     if test_z "${SOURCE_DATE_EPOCH}"; then
         _ret=$(date +"${1}")
-    elif is_host "macosx" "freebsd" "bsd"; then
-        _ret=$(date -u -r "$SOURCE_DATE_EPOCH" +"${1}")
     else
-        _ret=$(date -u -d "@$SOURCE_DATE_EPOCH" +"${1}")
+        # Use GNU date options first, then fallback to BSD's, and finally fallback to current time.
+        _ret=$(date -u -d "@$SOURCE_DATE_EPOCH" +"${1}" 2>/dev/null || date -u -r "$SOURCE_DATE_EPOCH" +"${1}" 2>/dev/null || date +"${1}")
     fi
 }
 
@@ -421,15 +515,23 @@ path_toolname() {
         emcc) toolname="emcc";;
         */em++) toolname="emxx";;
         em++) toolname="emxx";;
+        */cosmocc) toolname="cosmocc";;
+        cosmocc) toolname="cosmocc";;
+        */cosmoc++) toolname="cosmocxx";;
+        cosmoc++) toolname="cosmocxx";;
         *-ar) toolname="ar";;
         */ar) toolname="ar";;
         ar) toolname="ar";;
         */emar) toolname="emar";;
         emar) toolname="emar";;
+        */cosmoar) toolname="cosmoar";;
+        cosmoar) toolname="cosmoar";;
         cc) toolname="gcc";;
         */cc) toolname="gcc";;
         c++) toolname="gxx";;
         */c++) toolname="gxx";;
+        tcc) toolname="tcc";;
+        */tcc) toolname="tcc";;
         *) raise "unknown tool ${1}";;
     esac
     _ret="${toolname}"
@@ -597,30 +699,19 @@ _map_set() {
 # detect hosts
 os_host=`uname`
 string_tolower ${os_host}; os_host="${_ret}"
-if echo "${os_host}" | grep cygwin >/dev/null 2>&1; then
-    os_host="cygwin"
-fi
-if echo "${os_host}" | grep msys >/dev/null 2>&1; then
-    os_host="msys"
-fi
-if echo "${os_host}" | grep mingw >/dev/null 2>&1; then
-    os_host="msys"
-fi
-if echo "${os_host}" | grep darwin >/dev/null 2>&1; then
-    os_host="macosx"
-fi
-if echo "${os_host}" | grep linux >/dev/null 2>&1; then
-    os_host="linux"
-fi
-if echo "${os_host}" | grep freebsd >/dev/null 2>&1; then
-    os_host="freebsd"
-fi
-if echo "${os_host}" | grep bsd >/dev/null 2>&1; then
-    os_host="bsd"
-fi
-if echo "${os_host}" | grep Haiku >/dev/null 2>&1; then
-    os_host="haiku"
-fi
+case "${os_host}" in
+    *cygwin*) os_host="cygwin" ;;
+    *mingw*|*msys*) os_host="msys" ;;
+    *darwin*) os_host="macosx" ;;
+    *linux*) os_host="linux" ;;
+    *freebsd*) os_host="freebsd" ;;
+    *netbsd*) os_host="netbsd" ;;
+    *openbsd*) os_host="openbsd" ;;
+    *dragonfly*) os_host="dragonflybsd" ;;
+    *bsd*) os_host="bsd" ;;
+    *sunos*) os_host="solaris" ;;
+    *haiku*) os_host="haiku" ;;
+esac
 
 # determining host
 # e.g.
@@ -639,21 +730,25 @@ is_host() {
 
 # detect host architecture
 os_arch=`uname -m | tr '[A-Z]' '[a-z]'`
-if test_eq "${os_arch}" "i686"; then
+if test_eq "${os_arch}" "i686" || test_eq "${os_arch}" "i86pc"; then
     os_arch="i386"
+elif test_eq "${os_arch}" "amd64"; then
+    os_arch="x86_64"
 elif test_eq "${os_arch}" "aarch64" || test_eq "${os_arch}" "arm64"; then
     os_arch="arm64"
 elif string_contains "${os_arch}" "armv7"; then
     os_arch="armv7"
 elif string_contains "${os_arch}" "arm"; then
     os_arch="arm"
+elif string_contains "${os_arch}" "power macintosh"; then
+    os_arch="ppc"
 fi
 
 # set the default target platform
 _target_plat_default=${os_host}
 if is_host "msys"; then
     _target_plat_default="mingw"
-elif is_host "freebsd"; then
+elif is_host "freebsd" "openbsd" "dragonflybsd" "netbsd"; then
     _target_plat_default="bsd"
 elif test_nz "${EMSDK}"; then
     _target_plat_default="wasm"
@@ -685,16 +780,16 @@ _target_mode_default="release"
 _target_kind_default="static"
 
 # set the default project generator and build program
-if is_host "freebsd" "bsd"; then
-    _project_generator="gmake"
+if is_host "freebsd" "netbsd" "openbsd" "dragonflybsd" "bsd" "solaris"; then
+    project_generator="gmake"
     _make_program_default="gmake"
     _ninja_program_default="ninja"
 elif is_host "msys" "cygwin"; then
-    _project_generator="gmake"
+    project_generator="gmake"
     _make_program_default="make.exe"
     _ninja_program_default="ninja.exe"
 else
-    _project_generator="gmake"
+    project_generator="gmake"
     _make_program_default="make"
     _ninja_program_default="ninja"
 fi
@@ -832,7 +927,7 @@ _get_abstract_flag_for_gcc_clang() {
     local flag=""
     case "${itemname}" in
         defines)
-            string_replace "${value}" '"' '\\\"'; value="${_ret}"
+            string_replace "${value}" '"' '\"'; value="${_ret}"
             flag="-D${value}"
             ;;
         undefines) flag="-U${value}";;
@@ -982,6 +1077,9 @@ _get_abstract_flags() {
             clangxx) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
             emcc) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
             emxx) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
+            cosmocc) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
+            cosmocxx) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
+            tcc) _get_abstract_flag_for_gcc_clang "${toolkind}" "${toolname}" "${itemname}" "${value}"; flag="${_ret}";;
             *) raise "unknown toolname(${toolname})!" ;;
         esac
         if test_nz "${flag}"; then
@@ -1490,7 +1588,7 @@ _get_targetdir() {
     local name="${1}"
     _get_target_item "${name}" "targetdir"; local targetdir="${_ret}"
     if test_z "${targetdir}"; then
-        targetdir="${xmake_sh_buildir}/${_target_plat}/${_target_arch}/${_target_mode}"
+        targetdir="${xmake_sh_builddir}/${_target_plat}/${_target_arch}/${_target_mode}"
     fi
     _ret="${targetdir}"
 }
@@ -1500,7 +1598,7 @@ _get_target_objectdir() {
     local name="${1}"
     _get_target_item "${name}" "objectdir"; local objectdir="${_ret}"
     if test_z "${objectdir}"; then
-        objectdir="${xmake_sh_buildir}/.objs/${name}/${_target_plat}/${_target_arch}/${_target_mode}"
+        objectdir="${xmake_sh_builddir}/.objs/${name}/${_target_plat}/${_target_arch}/${_target_mode}"
     fi
     _ret="${objectdir}"
 }
@@ -1677,10 +1775,66 @@ _get_target_toolchain_flags_for_clang() {
             fi
         fi
     fi
+    # set target and sysroot
     if is_plat "macosx"; then
         _os_iorunv "xcrun" "-sdk" "macosx" "--show-sdk-path"; local sdkdir="${_ret}"
         if test_nz "${sdkdir}"; then
             flags="${flags} -isysroot \"${sdkdir}\""
+
+            # get target minver and set target flags
+            path_basename "${sdkdir}"; local basename="${_ret}"
+            if test_nz "${basename}" && string_startswith "${basename}" "MacOSX"; then
+                string_replace "${basename}" "MacOSX" ""; local target_minver="${_ret}"
+                if test_nz "${target_minver}"; then
+                    flags="${flags} -target ${arch}-apple-macos${target_minver}"
+                fi
+            fi
+        fi
+    fi
+    _ret="${flags}"
+}
+
+# get toolchain flags for tcc in target
+_get_target_toolchain_flags_for_tcc() {
+    local name="${1}"
+    local toolkind="${2}"
+    local flags=""
+    if is_arch "i386"; then
+        flags="${flags} -m32"
+    fi
+    _get_target_item "${name}" "kind"; local targetkind="${_ret}"
+    if test_eq "${targetkind}" "shared"; then
+        if test_eq "${toolkind}" "sh"; then
+            flags="${flags} -shared -fPIC"
+        elif test_eq "${toolkind}" "cc" || test_eq "${toolkind}" "cxx"; then
+            flags="${flags} -fPIC"
+        fi
+        # @see https://github.com/tboox/tbox/issues/214
+        if test_eq "${toolkind}" "sh"; then
+            _get_target_soname "${name}"; local soname="${_ret}"
+            if test_nz "${soname}"; then
+                if is_plat "macosx"; then
+                    flags="${flags} -Wl,-install_name,${soname}"
+                else
+                    flags="${flags} -Wl,-soname,${soname}"
+                fi
+            fi
+        fi
+    fi
+    # set target and sysroot
+    if is_plat "macosx"; then
+        _os_iorunv "xcrun" "-sdk" "macosx" "--show-sdk-path"; local sdkdir="${_ret}"
+        if test_nz "${sdkdir}"; then
+            flags="${flags} -isysroot \"${sdkdir}\""
+
+            # get target minver and set target flags
+            path_basename "${sdkdir}"; local basename="${_ret}"
+            if test_nz "${basename}" && string_startswith "${basename}" "MacOSX"; then
+                string_replace "${basename}" "MacOSX" ""; local target_minver="${_ret}"
+                if test_nz "${target_minver}"; then
+                    flags="${flags} -target ${arch}-apple-macos${target_minver}"
+                fi
+            fi
         fi
     fi
     _ret="${flags}"
@@ -1699,8 +1853,12 @@ _get_target_toolchain_flags() {
         clangxx) _get_target_toolchain_flags_for_clang "${name}" "${toolkind}"; flags="${_ret}";;
         emcc) _get_target_toolchain_flags_for_clang "${name}" "${toolkind}"; flags="${_ret}";;
         emxx) _get_target_toolchain_flags_for_clang "${name}" "${toolkind}"; flags="${_ret}";;
+        cosmocc) _get_target_toolchain_flags_for_gcc "${name}" "${toolkind}"; flags="${_ret}";;
+        cosmocxx) _get_target_toolchain_flags_for_gcc "${name}" "${toolkind}"; flags="${_ret}";;
+        tcc) _get_target_toolchain_flags_for_tcc "${name}" "${toolkind}"; flags="${_ret}";;
         ar) _get_target_toolchain_flags_for_ar "${name}" "${toolkind}"; flags="${_ret}";;
         emar) _get_target_toolchain_flags_for_ar "${name}" "${toolkind}"; flags="${_ret}";;
+        cosmoar) _get_target_toolchain_flags_for_ar "${name}" "${toolkind}"; flags="${_ret}";;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
     _ret="${flags}"
@@ -2531,6 +2689,24 @@ add_options() {
     done
 }
 
+# before_install in target
+before_install() {
+    if ! ${_loading_targets}; then
+        return
+    fi
+    local funcname="${1}"
+    _add_target_item "${_xmake_sh_target_current}" "before_install" "${funcname}"
+}
+
+# after_install in target
+after_install() {
+    if ! ${_loading_targets}; then
+        return
+    fi
+    local funcname="${1}"
+    _add_target_item "${_xmake_sh_target_current}" "after_install" "${funcname}"
+}
+
 #-----------------------------------------------------------------------------
 # toolchain configuration apis
 #
@@ -2571,7 +2747,7 @@ _get_toolchain_item() {
 _set_toolchain_item() {
     local name=${1}
     local key=${2}
-    local value=${3}
+    local value="${3}"
     if test_nz "${name}"; then
         _map_set "toolchains" "${name}_${key}" "${value}"
     else
@@ -2642,7 +2818,8 @@ _load_options_and_toolchains() {
         includes "${file}"
     else
         # include all xmake.sh files in next sub-directories
-        local files=`find ${xmake_sh_projectdir} -maxdepth 2 -mindepth 2 -name "xmake.sh"`
+        _os_find "${xmake_sh_projectdir}" "xmake.sh" "2"
+        local files="${_ret}"
         for file in ${files}; do
             includes "${file}"
         done
@@ -2686,7 +2863,7 @@ Common options:
   --verbose               Display more information.
   --diagnosis             Display lots of diagnosis information.
 
-  --generator=GENERATOR   Set the project generator. (default: '"${_project_generator}"')
+  --generator=GENERATOR   Set the project generator. (default: '"${project_generator}"')
                             - gmake
                             - ninja
   --make=MAKE             Set the make program. (default: '"${_make_program_default}"')
@@ -2698,9 +2875,10 @@ Common options:
                             - mingw
                             - macosx
                             - linux
+                            - wasm
   --arch=ARCH             Compile for the given architecture. (default: '"${_target_arch_default}"')
                             - msys: i386 x86_64
-                            - cross: i386 x86_64 arm arm64 mips mips64 riscv riscv64 s390x ppc ppc64 sh4
+                            - cross: i386 x86_64 arm arm64 mips mips64 riscv riscv64 loong64 s390x ppc ppc64 sh4
                             - bsd: i386 x86_64
                             - mingw: i386 x86_64 arm arm64
                             - macosx: x86_64 arm64
@@ -2715,7 +2893,10 @@ Common options:
   --toolchain=TOOLCHAIN   Set toolchain name.
                             - clang
                             - gcc
-  --buildir=DIR           Set build directory. (default: '"${xmake_sh_buildir}"')
+                            - emcc
+                            - tinycc
+                            - cosmocc
+  --builddir=DIR           Set build directory. (default: '"${xmake_sh_builddir}"')
 
 Autoconf options:
   --build=BUILD           Configure for building on BUILD [guessed]
@@ -2742,21 +2923,27 @@ _show_version() {
     echo "    /_/\_\_|_|  |_|\__ \|_|\_\____(_)___/_| |_|       "
     echo '                                     by ruki, xmake.io'
     echo '                                                      '
-    echo '   👉  Manual: https://xmake.io/#/getting_started     '
-    echo '   🙏  Donate: https://xmake.io/#/sponsor             '
+    echo '   👉  Manual: https://xmake.io/guide/quick-start     '
+    echo '   🙏  Donate: https://xmake.io/about/sponsor         '
     echo '                                                      '
     exit 2
 }
 
 # --foo=yes => foo
 _parse_argument_name() {
-    _ret=$(echo "${1#*--}" | sed "s/${2-=[^=]*}$//")
-    string_replace "${_ret}" "-" "_"
+    local arg="${1#--}"
+    case "${arg}" in
+        *=*) arg="${arg%%=*}" ;;
+    esac
+    string_replace "${arg}" "-" "_"
 }
 
 # --foo=yes => yes
 _parse_argument_value() {
-    _ret=$(echo "$1" | sed "s/^${2-[^=]*=}//")
+    case "${1}" in
+        *=*) _ret="${1#*=}" ;;
+        *) _ret="" ;;
+    esac
 }
 
 # parse input arguments
@@ -2791,7 +2978,7 @@ _handle_option() {
         _target_toolchain=${value}
         return 0
     elif test_eq "${name}" "generator"; then
-        _project_generator=${value}
+        project_generator=${value}
         return 0
     elif test_eq "${name}" "make"; then
         _make_program=${value}
@@ -2811,8 +2998,8 @@ _handle_option() {
     elif test_eq "${name}" "includedir"; then
         _install_includedir_default="${value}"
         return 0
-    elif test_eq "${name}" "buildir"; then
-        xmake_sh_buildir="${value}"
+    elif test_eq "${name}" "builddir" || test_eq "${name}" "buildir"; then
+        xmake_sh_builddir="${value}"
         return 0
     elif test_eq "${name}" "build"; then
         _autoconf_build_type="${value}"
@@ -3006,6 +3193,30 @@ toolchain "emcc"
     set_toolset "ar" "emar" "ar"
 toolchain_end
 
+# cosmocc toolchain, e.g. ./configure --plat=linux --toolchain=cosmocc
+toolchain "cosmocc"
+    set_toolset "as" "cosmocc"
+    set_toolset "cc" "cosmocc"
+    set_toolset "cxx" "cosmocc" "cosmoc++"
+    set_toolset "mm" "cosmocc"
+    set_toolset "mxx" "cosmocc" "cosmoc++"
+    set_toolset "ld" "cosmoc++" "cosmocc"
+    set_toolset "sh" "cosmoc++" "cosmocc"
+    set_toolset "ar" "cosmoar"
+toolchain_end
+
+# tinycc toolchain
+toolchain "tinycc"
+    set_toolset "as" "tcc" "gcc" "clang"
+    set_toolset "cc" "tcc"
+    set_toolset "cxx" "gcc" "g++" "clang" "clang++"
+    set_toolset "mm" "gcc" "clang"
+    set_toolset "mxx" "gcc" "g++" "clang" "clang++"
+    set_toolset "ld" "tcc"
+    set_toolset "sh" "tcc"
+    set_toolset "ar" "tcc -ar" "ar"
+toolchain_end
+
 # check platform
 _check_platform() {
     if test "x${_target_plat}" = "x"; then
@@ -3072,6 +3283,9 @@ _toolchain_compcmd() {
         clangxx) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
         emcc) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
         emxx) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
+        cosmocc) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
+        cosmocxx) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
+        tcc) _toolchain_compcmd_for_gcc_clang "${program}" "${objectfile}" "${sourcefile}" "${flags}"; compcmd="${_ret}";;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
     _ret="${compcmd}"
@@ -3092,8 +3306,12 @@ _toolchain_linkcmd() {
         clangxx) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
         emcc) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
         emxx) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
+        cosmocc) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
+        cosmocxx) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
+        tcc) _toolchain_linkcmd_for_gcc_clang "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
         ar) _toolchain_linkcmd_for_ar "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
         emar) _toolchain_linkcmd_for_ar "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
+        cosmoar) _toolchain_linkcmd_for_ar "${toolkind}" "${program}" "${binaryfile}" "${objectfiles}" "${flags}"; linkcmd="${_ret}";;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
     _ret="${linkcmd}"
@@ -3189,6 +3407,24 @@ _toolchain_try_clangxx() {
     return 1
 }
 
+# try tcc
+_toolchain_try_tcc() {
+    if test "x${_toolchain_try_tcc_result}" = "xok"; then
+        return 0
+    elif test "x${_toolchain_try_tcc_result}" = "xno"; then
+        return 1
+    fi
+
+    local kind="${1}"
+    local program="${2}"
+    if _os_runv "${program}" "-v"; then
+        _toolchain_try_tcc_result="ok"
+        return 0
+    fi
+    _toolchain_try_tcc_result="no"
+    return 1
+}
+
 # try ar
 _toolchain_try_ar() {
     local kind="${1}"
@@ -3216,6 +3452,24 @@ _toolchain_try_ar() {
     return 1
 }
 
+# try cosmoar
+_toolchain_try_cosmoar() {
+    if test "x${_toolchain_try_cosmoar_result}" = "xok"; then
+        return 0
+    elif test "x${_toolchain_try_cosmoar_result}" = "xno"; then
+        return 1
+    fi
+
+    local kind="${1}"
+    local program="${2}"
+    if _os_runv "${program}" "--version"; then
+        _toolchain_try_cosmoar_result="ok"
+        return 0
+    fi
+    _toolchain_try_cosmoar_result="no"
+    return 1
+}
+
 # try program
 _toolchain_try_program() {
     local toolchain="${1}"
@@ -3230,8 +3484,12 @@ _toolchain_try_program() {
         clangxx) _toolchain_try_clangxx "${kind}" "${program}" && ok=true;;
         emcc) _toolchain_try_clang "${kind}" "${program}" && ok=true;;
         emxx) _toolchain_try_clangxx "${kind}" "${program}" && ok=true;;
+        cosmocc) _toolchain_try_gcc "${kind}" "${program}" && ok=true;;
+        cosmocxx) _toolchain_try_gxx "${kind}" "${program}" && ok=true;;
+        tcc) _toolchain_try_tcc "${kind}" "${program}" && ok=true;;
         ar) _toolchain_try_ar "${kind}" "${program}" && ok=true;;
         emar) _toolchain_try_ar "${kind}" "${program}" && ok=true;;
+        cosmoar) _toolchain_try_cosmoar "${kind}" "${program}" && ok=true;;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
     if ${ok}; then
@@ -3310,9 +3568,9 @@ _toolchain_detect_ninja() {
 
 # detect build backend
 _toolchain_detect_backend() {
-    if test "x${_project_generator}" = "xgmake"; then
+    if test "x${project_generator}" = "xgmake"; then
         _toolchain_detect_make
-    elif test "x${_project_generator}" = "xninja"; then
+    elif test "x${project_generator}" = "xninja"; then
         _toolchain_detect_ninja
     fi
 }
@@ -3638,14 +3896,15 @@ _check_all() {
 _check_all
 
 #-----------------------------------------------------------------------------
-# init builtin variables, e.g. add_headerfiles "${buildir}/config.h"
+# init builtin variables, e.g. add_headerfiles "${builddir}/config.h"
 #
 projectdir="${xmake_sh_projectdir}"
-if path_is_absolute "${xmake_sh_buildir}"; then
-    buildir="${xmake_sh_buildir}"
+if path_is_absolute "${xmake_sh_builddir}"; then
+    builddir="${xmake_sh_builddir}"
 else
-    buildir="${xmake_sh_projectdir}/${xmake_sh_buildir}"
+    builddir="${xmake_sh_projectdir}/${xmake_sh_builddir}"
 fi
+buildir=${builddir} # deprecated
 plat="${_target_plat}"
 arch="${_target_arch}"
 mode="${_target_mode}"
@@ -3961,6 +4220,9 @@ _gmake_add_build_object() {
         clangxx) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
         emcc) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
         emxx) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
+        cosmocc) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
+        cosmocxx) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
+        tcc) _gmake_add_build_object_for_gcc_clang "${sourcekind}" "${sourcefile}" "${objectfile}" "${flagname}";;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
     echo "" >> "${xmake_sh_makefile}"
@@ -4033,7 +4295,11 @@ _gmake_add_build_target() {
     # link target
     echo "${target}: ${targetfile}" >> "${xmake_sh_makefile}"
     echo "${targetfile}: ${depfiles}${objectfiles}" >> "${xmake_sh_makefile}"
-    print "\t@echo linking.${_target_mode} ${targetfile}" >> "${xmake_sh_makefile}"
+    if test_eq "${targetkind}" "static"; then
+        print "\t@echo archiving.${_target_mode} ${targetfile}" >> "${xmake_sh_makefile}"
+    else
+        print "\t@echo linking.${_target_mode} ${targetfile}" >> "${xmake_sh_makefile}"
+    fi
     case "${toolname}" in
         gcc) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         gxx) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
@@ -4041,8 +4307,12 @@ _gmake_add_build_target() {
         clangxx) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         emcc) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         emxx) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
+        cosmocc) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
+        cosmocxx) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
+        tcc) _gmake_add_build_target_for_gcc_clang "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         ar) _gmake_add_build_target_for_ar "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         emar) _gmake_add_build_target_for_ar "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
+        cosmoar) _gmake_add_build_target_for_ar "${toolkind}" "${targetfile}" "${objectfiles}" "${flagname}";;
         *) raise "unknown toolname(${toolname})!" ;;
     esac
 
@@ -4190,6 +4460,12 @@ _gmake_add_install_target() {
         installdir="\$(INSTALLDIR)"
     fi
 
+    # before install
+    _get_target_item "${target}" "before_install"; local before_install="${_ret}"
+    if test_nz "${before_install}"; then
+        eval ${before_install} "\${target}" "\${installdir}"
+    fi
+
     # @see https://github.com/tboox/tbox/issues/214
     install_for_soname=false
     if test_eq "${targetkind}" "shared"; then
@@ -4287,6 +4563,12 @@ _gmake_add_install_target() {
             print "\t@cp -p ${srcinstallfile} ${dstinstallfile}" >> "${xmake_sh_makefile}"
         done
     fi
+
+    # after install
+    _get_target_item "${target}" "after_install"; local after_install="${_ret}"
+    if test_nz "${after_install}"; then
+        eval ${after_install} "\${target}" "\${installdir}"
+    fi
 }
 
 _gmake_add_install_targets() {
@@ -4333,9 +4615,655 @@ _generate_for_gmake() {
 # generate ninja file
 #
 
+_ninja_begin() {
+    echo "generating ninja build file .."
+}
+
+_ninja_add_header() {
+    echo "# this is the build file for this project
+# it is autogenerated by the xmake.sh build system.
+# do not edit by hand.
+" > "${xmake_sh_ninjafile}"
+    echo "ninja_required_version = 1.3" >> "${xmake_sh_ninjafile}"
+    echo "builddir = ${xmake_sh_builddir}" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_switches() {
+    local value=""
+    value="${_install_prefix_default}"; _ninja_escape "${value}"; value="${_ret}"
+    echo "prefix_default = ${value}" >> "${xmake_sh_ninjafile}"
+    value="${_install_bindir_default}"; _ninja_escape "${value}"; value="${_ret}"
+    echo "bindir_default = ${value}" >> "${xmake_sh_ninjafile}"
+    value="${_install_libdir_default}"; _ninja_escape "${value}"; value="${_ret}"
+    echo "libdir_default = ${value}" >> "${xmake_sh_ninjafile}"
+    value="${_install_includedir_default}"; _ninja_escape "${value}"; value="${_ret}"
+    echo "includedir_default = ${value}" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_rules() {
+    echo "rule command" >> "${xmake_sh_ninjafile}"
+    echo "  command = \$command" >> "${xmake_sh_ninjafile}"
+    echo "  description = \$description" >> "${xmake_sh_ninjafile}"
+    echo "  restat = \$restat" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_toolchains() {
+    _get_targets_toolkinds; local kinds="${_ret}"
+    if test_nz "${kinds}"; then
+        echo "# toolchain programs" >> "${xmake_sh_ninjafile}"
+        for kind in ${kinds}; do
+            _get_toolchain_toolset "${_target_toolchain}" "${kind}"; local program="${_ret}"
+            echo "${kind} = ${program}" >> "${xmake_sh_ninjafile}"
+        done
+        echo "" >> "${xmake_sh_ninjafile}"
+    fi
+}
+
+_ninja_add_flags() {
+    _get_targets_toolkinds; local kinds="${_ret}"
+    for target in ${_xmake_sh_targets}; do
+        for kind in ${kinds}; do
+            _get_target_flags "${target}" "${kind}"; local flags="${_ret}"
+            if test_nz "${flags}"; then
+                _get_flagname "${kind}"; local flagname="${_ret}"
+                local key="${target}_${flagname}"
+                _ninja_escape "${flags}"; flags="${_ret}"
+                echo "${key} = ${flags}" >> "${xmake_sh_ninjafile}"
+            fi
+        done
+        echo "" >> "${xmake_sh_ninjafile}"
+    done
+}
+
+_ninja_add_build_object() {
+    local target=${1}
+    local sourcefile="${2}"
+    local objectfile="${3}"
+    path_sourcekind "${sourcefile}"; local sourcekind="${_ret}"
+    _get_target_flags "${target}" "${sourcekind}"; local flags="${_ret}"
+    _toolchain_compcmd "${sourcekind}" "${objectfile}" "${sourcefile}" "${flags}"; local compcmd="${_ret}"
+    path_directory "${objectfile}"; local objectdir="${_ret}"
+    local use_shell_wrapper=false
+    local command="mkdir -p \"${objectdir}\" && ${compcmd}"
+    if is_host "msys" "cygwin" "mingw"; then
+        use_shell_wrapper=true
+    fi
+    if ${use_shell_wrapper}; then
+        _shell_escape_single_quotes "${command}"; local command_script="${_ret}"
+        command="sh -lc ${command_script}"
+    fi
+    local description="compiling.${_target_mode} ${sourcefile}"
+    _ninja_escape "${command}"; command="${_ret}"
+    _ninja_escape "${description}"; description="${_ret}"
+    echo "build ${objectfile}: command ${sourcefile}" >> "${xmake_sh_ninjafile}"
+    echo "  command = ${command}" >> "${xmake_sh_ninjafile}"
+    echo "  description = ${description}" >> "${xmake_sh_ninjafile}"
+    echo "  restat = 0" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_build_objects() {
+    local target=${1}
+    _get_target_sourcefiles "${target}"; local sourcefiles="${_ret}"
+    for sourcefile in ${sourcefiles}; do
+        _get_target_objectfile "${target}" "${sourcefile}"; local objectfile="${_ret}"
+        _ninja_add_build_object "${target}" "${sourcefile}" "${objectfile}"
+    done
+}
+
+_ninja_add_build_target() {
+    local target=${1}
+    _get_targetdir "${target}"; local targetdir="${_ret}"
+    _get_target_file "${target}"; local targetfile="${_ret}"
+    _get_target_item "${target}" "deps"; local deps="${_ret}"
+    _get_target_objectfiles "${target}"; local objectfiles="${_ret}"
+
+    _get_target_item "${target}" "kind"; local targetkind="${_ret}"
+    local toolkind=""
+    case "${targetkind}" in
+        binary) toolkind="ld";;
+        static) toolkind="ar";;
+        shared) toolkind="sh";;
+        *) raise "unknown targetkind(${targetkind})!" ;;
+    esac
+    _get_target_flags "${target}" "${toolkind}"; local linkflags="${_ret}"
+    _toolchain_linkcmd "${toolkind}" "${targetfile}" "${objectfiles}" "${linkflags}"; local linkcmd="${_ret}"
+
+    local use_shell_wrapper=false
+    local command="mkdir -p \"${targetdir}\" && ${linkcmd}"
+    if is_host "msys" "cygwin" "mingw"; then
+        use_shell_wrapper=true
+    fi
+    local description="linking.${_target_mode} ${targetfile}"
+
+    if test_eq "${targetkind}" "shared"; then
+        _get_target_item "${target}" "version"; local version="${_ret}"
+        _get_target_soname "${target}"; local soname="${_ret}"
+        if test_nz "${soname}" && test_nz "${version}"; then
+            _get_target_filename "${target}"; local targetfilename="${_ret}"
+            _get_target_extension "${target}"; local extension="${_ret}"
+            local targetfile_with_version="${targetdir}/${targetfilename}.${version}"
+            if test_eq "${extension}" ".dylib"; then
+                path_basename "${targetfilename}"; local basename="${_ret}"
+                targetfile_with_version="${targetdir}/${basename}.${version}${extension}"
+            fi
+            local targetfile_with_soname="${targetdir}/${soname}"
+            path_filename "${targetfile_with_version}"; local targetfilename_with_version="${_ret}"
+            if test_nq "${soname}" "${targetfilename}" && test_nq "${soname}" "${targetfilename_with_version}"; then
+                command="${command} && cp -p ${targetfile} ${targetfile_with_version} && cd \"${targetdir}\" && ln -sf ${targetfilename_with_version} ${soname} && ln -sf ${soname} ${targetfilename}"
+            fi
+        fi
+    fi
+
+    if ${use_shell_wrapper}; then
+        _shell_escape_single_quotes "${command}"; local command_script="${_ret}"
+        command="sh -lc ${command_script}"
+    fi
+    _ninja_escape "${command}"; command="${_ret}"
+    _ninja_escape "${description}"; description="${_ret}"
+
+    local orderdeps=""
+    local dep=""
+    for dep in ${deps}; do
+        _get_target_file "${dep}"; local depfile="${_ret}"
+        if test_nz "${orderdeps}"; then
+            orderdeps="${orderdeps} ${depfile}"
+        else
+            orderdeps="${depfile}"
+        fi
+    done
+
+    if test_nz "${orderdeps}"; then
+        echo "build ${targetfile}: command ${objectfiles} | ${orderdeps}" >> "${xmake_sh_ninjafile}"
+    else
+        echo "build ${targetfile}: command ${objectfiles}" >> "${xmake_sh_ninjafile}"
+    fi
+    echo "  command = ${command}" >> "${xmake_sh_ninjafile}"
+    echo "  description = ${description}" >> "${xmake_sh_ninjafile}"
+    echo "  restat = 0" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+
+    echo "build ${target}: phony ${targetfile}" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+
+    _ninja_add_build_objects "${target}"
+}
+
+_ninja_add_build_targets() {
+    local target=""
+    local defaults=""
+    for target in ${_xmake_sh_targets}; do
+        if _is_target_default "${target}"; then
+            if test_nz "${defaults}"; then
+                defaults="${defaults} ${target}"
+            else
+                defaults="${target}"
+            fi
+        fi
+    done
+    if test_nz "${defaults}"; then
+        echo "build default: phony ${defaults}" >> "${xmake_sh_ninjafile}"
+        echo "" >> "${xmake_sh_ninjafile}"
+        echo "default default" >> "${xmake_sh_ninjafile}"
+    else
+        echo "default all" >> "${xmake_sh_ninjafile}"
+    fi
+    echo "build all: phony ${_xmake_sh_targets}" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+    for target in ${_xmake_sh_targets}; do
+        _ninja_add_build_target "${target}"
+    done
+}
+
+_ninja_add_build() {
+    _ninja_add_build_targets
+}
+
+_ninja_add_run_target() {
+    local target=${1}
+    _get_targetdir "${target}"; local targetdir="${_ret}"
+    _get_target_file "${target}"; local targetfile="${_ret}"
+    local command=""
+    if is_host "msys" "cygwin" "mingw"; then
+        local projectdir="${xmake_sh_projectdir}"
+        local targetfile_rel="./${targetfile}"
+        local targetfile_alt="./build/${targetfile#*/}"
+        local targetbuilddir="${targetfile%/*}"
+        local targetbuilddir_rel="./${targetbuilddir}"
+        local targetbuilddir_alt="./build/${targetbuilddir#*/}"
+        local run_script="cd \"${projectdir}\" && target=\"${targetfile_rel}\"; alt=\"${targetfile_alt}\"; if [ ! -f \"\$target\" ] && [ -f \"\$alt\" ]; then target=\"\$alt\"; fi; if [ ! -f \"\$target\" ]; then echo \"[ninja run] missing ${targetfile_rel} (and fallback ${targetfile_alt})\"; ls -l \"${targetbuilddir_rel}\" || true; ls -l \"${targetbuilddir_alt}\" || true; exit 1; fi; \"\$target\""
+        _shell_escape_single_quotes "${run_script}"; local run_script_escaped="${_ret}"
+        command="sh -lc ${run_script_escaped}"
+    elif is_plat "macosx"; then
+        command="DYLD_LIBRARY_PATH=${targetdir} ${targetfile}"
+    elif is_plat "linux" "bsd"; then
+        command="LD_LIBRARY_PATH=${targetdir} ${targetfile}"
+    else
+        command="${targetfile}"
+    fi
+    local description="running.${_target_mode} ${targetfile}"
+    _ninja_escape "${command}"; command="${_ret}"
+    _ninja_escape "${description}"; description="${_ret}"
+    echo "build run.${target}: command | ${targetfile}" >> "${xmake_sh_ninjafile}"
+    echo "  command = ${command}" >> "${xmake_sh_ninjafile}"
+    echo "  description = ${description}" >> "${xmake_sh_ninjafile}"
+    echo "  restat = 0" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_run_targets() {
+    local target=""
+    local runtargets=""
+    for target in ${_xmake_sh_targets}; do
+        _get_target_item "${target}" "kind"; local kind="${_ret}"
+        if test_eq "${kind}" "binary"; then
+            if _is_target_default "${target}"; then
+                if test_nz "${runtargets}"; then
+                    runtargets="${runtargets} run.${target}"
+                else
+                    runtargets="run.${target}"
+                fi
+                _ninja_add_run_target "${target}"
+            fi
+        fi
+    done
+    if test_nz "${runtargets}"; then
+        echo "build run: phony ${runtargets}" >> "${xmake_sh_ninjafile}"
+        echo "" >> "${xmake_sh_ninjafile}"
+    fi
+}
+
+_ninja_add_run() {
+    _ninja_add_run_targets
+}
+
+_ninja_add_clean_target() {
+    local target=${1}
+    _get_target_file "${target}"; local targetfile="${_ret}"
+    _get_target_objectfiles "${target}"; local objectfiles="${_ret}"
+    local removefiles="${targetfile}"
+    local objectfile=""
+    for objectfile in ${objectfiles}; do
+        removefiles="${removefiles} ${objectfile}"
+    done
+
+    _get_targetdir "${target}"; local targetdir="${_ret}"
+    _get_target_item "${target}" "kind"; local targetkind="${_ret}"
+    if test_eq "${targetkind}" "shared"; then
+        _get_target_item "${target}" "version"; local version="${_ret}"
+        _get_target_soname "${target}"; local soname="${_ret}"
+        if test_nz "${soname}" && test_nz "${version}"; then
+            _get_target_filename "${target}"; local filename="${_ret}"
+            _get_target_extension "${target}"; local extension="${_ret}"
+            local targetfile_with_version="${targetdir}/${filename}.${version}"
+            if test_eq "${extension}" ".dylib"; then
+                path_basename "${filename}"; local basename="${_ret}"
+                targetfile_with_version="${targetdir}/${basename}.${version}${extension}"
+            fi
+            local targetfile_with_soname="${targetdir}/${soname}"
+            removefiles="${removefiles} ${targetfile_with_soname} ${targetfile_with_version}"
+        fi
+    fi
+
+    local command="rm -f ${removefiles}"
+    local description="cleaning.${_target_mode} ${target}"
+    _ninja_escape "${command}"; command="${_ret}"
+    _ninja_escape "${description}"; description="${_ret}"
+    echo "build clean.${target}: command" >> "${xmake_sh_ninjafile}"
+    echo "  command = ${command}" >> "${xmake_sh_ninjafile}"
+    echo "  description = ${description}" >> "${xmake_sh_ninjafile}"
+    echo "  restat = 0" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_clean_targets() {
+    local target=""
+    local cleantargets=""
+    for target in ${_xmake_sh_targets}; do
+        if _is_target_default "${target}"; then
+            if test_nz "${cleantargets}"; then
+                cleantargets="${cleantargets} clean.${target}"
+            else
+                cleantargets="clean.${target}"
+            fi
+            _ninja_add_clean_target "${target}"
+        fi
+    done
+    if test_nz "${cleantargets}"; then
+        echo "build clean: phony ${cleantargets}" >> "${xmake_sh_ninjafile}"
+        echo "" >> "${xmake_sh_ninjafile}"
+    fi
+}
+
+_ninja_add_clean() {
+    _ninja_add_clean_targets
+}
+
+_ninja_install_prepare_script() {
+    local target="${1}"
+    local ninjadir="${xmake_sh_builddir}/.ninja"
+    local scriptdir="${xmake_sh_projectdir}/${ninjadir}"
+    mkdir -p "${scriptdir}"
+    _ret="${scriptdir}/install_${target}.sh"
+    _ret2="${ninjadir}/install_${target}.sh"
+}
+
+_ninja_install_write_header() {
+    local scriptfile="${1}"
+    local escaped_prefix_default="${2}"
+    local escaped_installdir_template="${3}"
+    local escaped_projectdir="${4}"
+    local escaped_bindir_template="${5}"
+    local escaped_libdir_template="${6}"
+    local escaped_includedir_template="${7}"
+
+    cat > "${scriptfile}" <<EOF
+#!/bin/sh
+set -e
+
+prefix=${escaped_prefix_default}
+if [ -n "\${PREFIX}" ]; then
+    prefix="\${PREFIX}"
+fi
+destdir="\${DESTDIR}"
+installdir_template=${escaped_installdir_template}
+placeholder='\${prefix}'
+_rp_value=""
+_rp_replacement=""
+_rp_before=""
+_rp_after=""
+_rp_result=""
+
+replace_placeholder() {
+    _rp_value="\$1"
+    _rp_replacement="\$2"
+    while :; do
+        case "\${_rp_value}" in
+            *\${placeholder}*)
+                _rp_before="\${_rp_value%%\${placeholder}*}"
+                _rp_after="\${_rp_value#*\${placeholder}}"
+                _rp_value="\${_rp_before}\${_rp_replacement}\${_rp_after}"
+                ;;
+            *)
+                break
+                ;;
+        esac
+    done
+    _rp_result="\${_rp_value}"
+}
+
+projectdir=${escaped_projectdir}
+cd "\${projectdir}"
+
+installdir=""
+if [ -z "\${installdir_template}" ]; then
+    installdir="\${destdir}"
+    if [ -n "\${installdir}" ]; then
+        prefix_trim="\${prefix#/}"
+        installdir="\${installdir}/\${prefix_trim}"
+    else
+        installdir="\${prefix}"
+    fi
+else
+    installdir="\${installdir_template}"
+    replace_placeholder "\${installdir}" "\${prefix}"
+    installdir="\${_rp_result}"
+    if [ -n "\${destdir}" ]; then
+        case "\${installdir}" in
+            /*) ;;
+            *) installdir="\${destdir}/\${installdir}" ;;
+        esac
+    fi
+fi
+
+resolve_prefix_path() {
+    replace_placeholder "\$1" "\${installdir}"
+    printf '%s' "\${_rp_result}"
+}
+
+copy_file() {
+    local src="\$1"
+    local dst_template="\$2"
+    local dst
+    dst=\$(resolve_prefix_path "\${dst_template}")
+    echo "installing \${src} to \${dst}"
+    mkdir -p "\$(dirname "\${dst}")"
+    cp -p "\${src}" "\${dst}"
+}
+
+bindir_template=${escaped_bindir_template}
+libdir_template=${escaped_libdir_template}
+includedir_template=${escaped_includedir_template}
+EOF
+}
+
+_ninja_install_append_target_artifacts() {
+    local scriptfile="${1}"
+    local targetkind="${2}"
+    local install_for_soname="${3}"
+    local targetfile="${4}"
+    local filename="${5}"
+    local version="${6}"
+    local soname="${7}"
+    local extension="${8}"
+    local filename_basename="${9}"
+
+    if test_eq "${targetkind}" "binary"; then
+        _shell_escape_single_quotes "${targetfile}"; local escaped_targetfile="${_ret}"
+        local dest_template="${_install_bindir_default}/${filename}"
+        _shell_escape_single_quotes "${dest_template}"; local escaped_dest_template="${_ret}"
+        echo "copy_file ${escaped_targetfile} ${escaped_dest_template}" >> "${scriptfile}"
+    elif ${install_for_soname}; then
+        local version_template="${_install_libdir_default}/${filename}.${version}"
+        if test_eq "${extension}" ".dylib"; then
+            version_template="${_install_libdir_default}/${filename_basename}.${version}${extension}"
+        fi
+        _shell_escape_single_quotes "${targetfile}"; local escaped_targetfile="${_ret}"
+        _shell_escape_single_quotes "${version_template}"; local escaped_version_template="${_ret}"
+        _shell_escape_single_quotes "${soname}"; local escaped_soname="${_ret}"
+        _shell_escape_single_quotes "${filename}"; local escaped_filename="${_ret}"
+        cat >> "${scriptfile}" <<EOF
+copy_file ${escaped_targetfile} ${escaped_version_template}
+dst_version=\$(resolve_prefix_path ${escaped_version_template})
+dst_dir=\$(dirname "\${dst_version}")
+filename_version=\$(basename "\${dst_version}")
+(
+    cd "\${dst_dir}"
+    ln -sf "\${filename_version}" ${escaped_soname}
+    ln -sf ${escaped_soname} ${escaped_filename}
+)
+EOF
+    elif test_eq "${targetkind}" "static" || test_eq "${targetkind}" "shared"; then
+        _shell_escape_single_quotes "${targetfile}"; local escaped_targetfile="${_ret}"
+        local dest_template="${_install_libdir_default}/${filename}"
+        _shell_escape_single_quotes "${dest_template}"; local escaped_dest_template="${_ret}"
+        echo "copy_file ${escaped_targetfile} ${escaped_dest_template}" >> "${scriptfile}"
+    fi
+}
+
+_ninja_install_append_headerfiles() {
+    local scriptfile="${1}"
+    local headerfiles="${2}"
+    if test_nz "${headerfiles}"; then
+        local srcheaderfile=""
+        for srcheaderfile in ${headerfiles}; do
+            string_split "${srcheaderfile}" ":"
+            local srcheaderpath="${_ret}"
+            local rootdir="${_ret2}"
+            local prefixdir="${_ret3}"
+            local headername="${_ret4}"
+            if test_z "${headername}"; then
+                path_filename "${srcheaderpath}"; headername="${_ret}"
+            fi
+            local dstheaderdir_template="${_install_includedir_default}"
+            if test_nz "${prefixdir}"; then
+                dstheaderdir_template="${dstheaderdir_template}/${prefixdir}"
+            fi
+            local dstheaderfile_template=""
+            if test_nz "${rootdir}"; then
+                path_relative "${rootdir}" "${srcheaderpath}"; local subfile="${_ret}"
+                dstheaderfile_template="${dstheaderdir_template}/${subfile}"
+            else
+                dstheaderfile_template="${dstheaderdir_template}/${headername}"
+            fi
+            _shell_escape_single_quotes "${srcheaderpath}"; local escaped_src="${_ret}"
+            _shell_escape_single_quotes "${dstheaderfile_template}"; local escaped_dst="${_ret}"
+            echo "copy_file ${escaped_src} ${escaped_dst}" >> "${scriptfile}"
+        done
+    fi
+}
+
+_ninja_install_append_installfiles() {
+    local scriptfile="${1}"
+    local installdir="${2}"
+    local installfiles="${3}"
+    if test_nz "${installfiles}"; then
+        local srcinstallfile=""
+        for srcinstallfile in ${installfiles}; do
+            string_split "${srcinstallfile}" ":"
+            local srcfilepath="${_ret}"
+            local rootdir="${_ret2}"
+            local prefixdir="${_ret3}"
+            local installname="${_ret4}"
+            if test_z "${installname}"; then
+                path_filename "${srcfilepath}"; installname="${_ret}"
+            fi
+            local dst_template="${installdir}"
+            if test_z "${dst_template}"; then
+                dst_template="\${prefix}"
+            fi
+            if test_nz "${prefixdir}"; then
+                dst_template="${dst_template}/${prefixdir}"
+            fi
+            if test_nz "${rootdir}"; then
+                path_relative "${rootdir}" "${srcfilepath}"; local subfile="${_ret}"
+                dst_template="${dst_template}/${subfile}"
+            else
+                dst_template="${dst_template}/${installname}"
+            fi
+            _shell_escape_single_quotes "${srcfilepath}"; local escaped_src="${_ret}"
+            _shell_escape_single_quotes "${dst_template}"; local escaped_dst="${_ret}"
+            echo "copy_file ${escaped_src} ${escaped_dst}" >> "${scriptfile}"
+        done
+    fi
+}
+
+_ninja_add_install_target() {
+    local target=${1}
+    _get_target_file "${target}"; local targetfile="${_ret}"
+    path_filename "${targetfile}"; local filename="${_ret}"
+    _get_target_item "${target}" "installdir"; local installdir="${_ret}"
+    _get_target_item "${target}" "kind"; local targetkind="${_ret}"
+
+    local install_for_soname=false
+    local version=""
+    local soname=""
+    local extension=""
+    local filename_basename=""
+    if test_eq "${targetkind}" "shared"; then
+        _get_target_item "${target}" "version"; version="${_ret}"
+        _get_target_soname "${target}"; soname="${_ret}"
+        _get_target_extension "${target}"; extension="${_ret}"
+        path_basename "${filename}"; filename_basename="${_ret}"
+        if test_nz "${soname}" && test_nz "${version}"; then
+            local targetfilename_with_version_guess="${filename}.${version}"
+            if test_eq "${extension}" ".dylib"; then
+                targetfilename_with_version_guess="${filename_basename}.${version}${extension}"
+            fi
+            if test_nq "${soname}" "${filename}" && test_nq "${soname}" "${targetfilename_with_version_guess}"; then
+                install_for_soname=true
+            fi
+        fi
+    fi
+
+    _ninja_install_prepare_script "${target}"
+    local scriptfile="${_ret}"
+    local scriptfile_rel="${_ret2}"
+
+    _shell_escape_single_quotes "${_install_prefix_default}"; local escaped_prefix_default="${_ret}"
+    _shell_escape_single_quotes "${installdir}"; local escaped_installdir_template="${_ret}"
+    _shell_escape_single_quotes "${xmake_sh_projectdir}"; local escaped_projectdir="${_ret}"
+    _shell_escape_single_quotes "${_install_bindir_default}"; local escaped_bindir_template="${_ret}"
+    _shell_escape_single_quotes "${_install_libdir_default}"; local escaped_libdir_template="${_ret}"
+    _shell_escape_single_quotes "${_install_includedir_default}"; local escaped_includedir_template="${_ret}"
+
+    _ninja_install_write_header "${scriptfile}" \
+        "${escaped_prefix_default}" \
+        "${escaped_installdir_template}" \
+        "${escaped_projectdir}" \
+        "${escaped_bindir_template}" \
+        "${escaped_libdir_template}" \
+        "${escaped_includedir_template}"
+
+    _ninja_install_append_target_artifacts "${scriptfile}" "${targetkind}" "${install_for_soname}" \
+        "${targetfile}" "${filename}" "${version}" "${soname}" "${extension}" "${filename_basename}"
+
+    _get_target_item "${target}" "headerfiles"; local headerfiles="${_ret}"
+    _ninja_install_append_headerfiles "${scriptfile}" "${headerfiles}"
+
+    _get_target_item "${target}" "installfiles"; local installfiles="${_ret}"
+    _ninja_install_append_installfiles "${scriptfile}" "${installdir}" "${installfiles}"
+
+    echo "" >> "${scriptfile}"
+    chmod +x "${scriptfile}"
+
+    local command="sh ${scriptfile_rel}"
+    local description="installing.${_target_mode} ${target}"
+    _ninja_escape "${command}"; command="${_ret}"
+    _ninja_escape "${description}"; description="${_ret}"
+    echo "build install.${target}: command | ${targetfile}" >> "${xmake_sh_ninjafile}"
+    echo "  command = ${command}" >> "${xmake_sh_ninjafile}"
+    echo "  description = ${description}" >> "${xmake_sh_ninjafile}"
+    echo "  restat = 0" >> "${xmake_sh_ninjafile}"
+    echo "" >> "${xmake_sh_ninjafile}"
+}
+
+_ninja_add_install_targets() {
+    local target=""
+    local installtargets=""
+    for target in ${_xmake_sh_targets}; do
+        if _is_target_default "${target}"; then
+            if test_nz "${installtargets}"; then
+                installtargets="${installtargets} install.${target}"
+            else
+                installtargets="install.${target}"
+            fi
+            _ninja_add_install_target "${target}"
+        fi
+    done
+    if test_nz "${installtargets}"; then
+        echo "build install: phony ${installtargets}" >> "${xmake_sh_ninjafile}"
+        echo "" >> "${xmake_sh_ninjafile}"
+    fi
+}
+
+_ninja_add_install() {
+    _ninja_add_install_targets
+}
+
+_ninja_done() {
+    echo "ninja build file is generated!"
+    if "${xmake_sh_diagnosis}"; then
+        cat "${xmake_sh_ninjafile}"
+    fi
+}
+
 # generate build file for ninja
 _generate_for_ninja() {
-    raise "Ninja generator has been not supported!"
+    _ninja_begin
+    _ninja_add_header
+    _ninja_add_switches
+    _ninja_add_toolchains
+    _ninja_add_flags
+    _ninja_add_rules
+    _ninja_add_build
+    _ninja_add_clean
+    _ninja_add_install
+    _ninja_add_run
+    _ninja_done
 }
 
 #-----------------------------------------------------------------------------
@@ -4343,12 +5271,12 @@ _generate_for_ninja() {
 #
 
 _generate_build_file() {
-    if test_eq "${_project_generator}" "gmake"; then
+    if test_eq "${project_generator}" "gmake"; then
         _generate_for_gmake
-    elif test_eq "${_project_generator}" "ninja"; then
+    elif test_eq "${project_generator}" "ninja"; then
         _generate_for_ninja
     else
-        raise "unknown generator: ${_project_generator}"
+        raise "unknown generator: ${project_generator}"
     fi
 }
 _generate_build_file

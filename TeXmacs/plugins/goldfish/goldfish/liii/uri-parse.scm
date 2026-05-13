@@ -2,11 +2,7 @@
 ;; ; 本模块包含 URI 解析和构造的辅助函数
 
 (define-library (liii uri-parse)
-  (import (scheme base)
-    (scheme char)
-    (liii string)
-    (liii error)
-  ) ;import
+  (import (scheme base) (scheme char) (liii string) (liii error))
 
   ;; ; ---------- 导出接口 ----------
   (export parse-netloc)
@@ -21,10 +17,7 @@
         (let* ((user+host (if (string-index netloc-str #\@)
                             (let ((at-pos (string-index netloc-str #\@)))
                               (cons (substring netloc-str 0 at-pos)
-                                (substring netloc-str
-                                  (+ at-pos 1)
-                                  (string-length netloc-str)
-                                ) ;substring
+                                (substring netloc-str (+ at-pos 1) (string-length netloc-str))
                               ) ;cons
                             ) ;let
                             (cons #f netloc-str)
@@ -33,51 +26,30 @@
                (user-part (car user+host))
                (host-part (cdr user+host))
                (user (if user-part
-                       (let ((colon-pos (string-index user-part #\:))
-                            ) ;
-                         (if colon-pos
-                           (substring user-part 0 colon-pos)
-                           user-part
-                         ) ;if
+                       (let ((colon-pos (string-index user-part #\:)))
+                         (if colon-pos (substring user-part 0 colon-pos) user-part)
                        ) ;let
                        #f
                      ) ;if
                ) ;user
-               (password (if (and user-part
-                               (string-index user-part #\:)
-                             ) ;and
-                           (let ((colon-pos (string-index user-part #\:))
-                                ) ;
-                             (substring user-part
-                               (+ colon-pos 1)
-                               (string-length user-part)
-                             ) ;substring
+               (password (if (and user-part (string-index user-part #\:))
+                           (let ((colon-pos (string-index user-part #\:)))
+                             (substring user-part (+ colon-pos 1) (string-length user-part))
                            ) ;let
                            #f
                          ) ;if
                ) ;password
-               (host+port (if (and host-part
-                                (string-index host-part #\:)
-                              ) ;and
-                            (let ((colon-pos (string-index host-part #\:))
-                                 ) ;
+               (host+port (if (and host-part (string-index host-part #\:))
+                            (let ((colon-pos (string-index host-part #\:)))
                               (cons (substring host-part 0 colon-pos)
-                                (string->number (substring host-part
-                                                  (+ colon-pos 1)
-                                                  (string-length host-part)
-                                                ) ;substring
-                                ) ;string->number
+                                (string->number (substring host-part (+ colon-pos 1) (string-length host-part)))
                               ) ;cons
                             ) ;let
                             (cons host-part #f)
                           ) ;if
                ) ;host+port
               ) ;
-          (list user
-            password
-            (car host+port)
-            (cdr host+port)
-          ) ;list
+          (list user password (car host+port) (cdr host+port))
         ) ;let*
       ) ;if
     ) ;define
@@ -87,22 +59,11 @@
       (if (not host)
         ""
         (string-append (if user
-                         (string-append user
-                           (if password
-                             (string-append ":" password)
-                             ""
-                           ) ;if
-                           "@"
-                         ) ;string-append
+                         (string-append user (if password (string-append ":" password) "") "@")
                          ""
                        ) ;if
           host
-          (if port
-            (string-append ":"
-              (number->string port)
-            ) ;string-append
-            ""
-          ) ;if
+          (if port (string-append ":" (number->string port)) "")
         ) ;string-append
       ) ;if
     ) ;define

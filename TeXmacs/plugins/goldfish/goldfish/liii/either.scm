@@ -39,16 +39,12 @@
 
     ;; 检查是否是左值
     (define (either-left? either)
-      (and (pair? either)
-        (eq? (cdr either) 'left)
-      ) ;and
+      (and (pair? either) (eq? (cdr either) 'left))
     ) ;define
 
     ;; 检查是否是右值
     (define (either-right? either)
-      (and (pair? either)
-        (eq? (cdr either) 'right)
-      ) ;and
+      (and (pair? either) (eq? (cdr either) 'right))
     ) ;define
 
     ;; 检查是否是 either 类型 (即左值或右值)
@@ -76,10 +72,7 @@
     (define (to-left either)
       (check-either either "to-left")
       (cond ((eq? (cdr either) 'left) (car either))
-            (else (value-error "Cannot extract left from Right"
-                    either
-                  ) ;value-error
-            ) ;else
+            (else (value-error "Cannot extract left from Right" either))
       ) ;cond
     ) ;define
 
@@ -87,10 +80,7 @@
     (define (to-right either)
       (check-either either "to-right")
       (cond ((eq? (cdr either) 'right) (car either))
-            (else (value-error "Cannot extract right from Left"
-                    either
-                  ) ;value-error
-            ) ;else
+            (else (value-error "Cannot extract right from Left" either))
       ) ;cond
     ) ;define
 
@@ -108,10 +98,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (if (either-right? either)
-        (from-right (f (car either)))
-        either
-      ) ;if
+      (if (either-right? either) (from-right (f (car either))) either)
     ) ;define
 
     ;; 扁平映射函数：如果 either 是右值，则应用返回 Either 的函数 f
@@ -126,9 +113,7 @@
       ) ;unless
       (if (either-right? either)
         (let ((result (f (to-right either))))
-          (check-either result
-            "either-flat-map: return value of f must be an Either"
-          ) ;check-either
+          (check-either result "either-flat-map: return value of f must be an Either")
           result
         ) ;let
         either
@@ -156,9 +141,7 @@
 
     ;; 过滤：如果是右值且不满足 pred，则转换为 (from-left zero)
     (define (either-filter-or-else pred zero either)
-      (check-either either
-        "either-filter-or-else"
-      ) ;check-either
+      (check-either either "either-filter-or-else")
       (unless (procedure? pred)
         (type-error (format #f
                       "In function either-filter-or-else: argument *pred* must be *procedure*! **Got ~a**"
@@ -170,10 +153,7 @@
       ;; 注意：通常不需要检查 zero，因为它作为 left 值可以是任何类型
 
       (if (either-right? either)
-        (if (pred (car either))
-          either
-          (from-left zero)
-        ) ;if
+        (if (pred (car either)) either (from-left zero))
         either
       ) ;if
     ) ;define
@@ -181,9 +161,7 @@
     ;; 包含：如果是右值且内部值等于 x
     (define (either-contains? either x)
       (check-either either "either-contains?")
-      (and (either-right? either)
-        (equal? x (car either))
-      ) ;and
+      (and (either-right? either) (equal? x (car either)))
     ) ;define
 
     ;; 全称量词：如果是右值则判断 pred，如果是左值默认为 #t
@@ -197,10 +175,7 @@
         ) ;type-error
       ) ;unless
 
-      (if (either-right? either)
-        (pred (car either))
-        #t
-      ) ;if
+      (if (either-right? either) (pred (car either)) #t)
     ) ;define
 
     ;; 存在量词：如果是右值则判断 pred，如果是左值默认为 #f
@@ -214,10 +189,7 @@
         ) ;type-error
       ) ;unless
 
-      (if (either-right? either)
-        (pred (car either))
-        #f
-      ) ;if
+      (if (either-right? either) (pred (car either)) #f)
     ) ;define
 
     ;; ======================
@@ -226,22 +198,14 @@
 
     ;; 获取值或默认值
     (define (either-get-or-else either default)
-      (check-either either
-        "either-get-or-else"
-      ) ;check-either
-      (if (either-right? either)
-        (car either)
-        default
-      ) ;if
+      (check-either either "either-get-or-else")
+      (if (either-right? either) (car either) default)
     ) ;define
 
     ;; 组合器：如果是 Left 则返回 alternative，否则返回自身
     (define (either-or-else either alternative)
       (check-either either "either-or-else")
-      (if (either-right? either)
-        either
-        alternative
-      ) ;if
+      (if (either-right? either) either alternative)
     ) ;define
 
   ) ;begin

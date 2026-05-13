@@ -26,6 +26,7 @@
 #include "../file.h"
 #include "../path.h"
 #include "../print.h"
+#include "../directory.h"
 #include "interface/interface.h"
 
 /* //////////////////////////////////////////////////////////////////////////////////////
@@ -37,6 +38,11 @@
 
 #ifndef SYMBOLIC_LINK_FLAG_DIRECTORY
 #   define SYMBOLIC_LINK_FLAG_DIRECTORY                 (0x1)
+#endif
+
+// https://github.com/xmake-io/xmake/discussions/5821
+#ifndef COPY_FILE_COPY_SYMLINK
+#   define COPY_FILE_COPY_SYMLINK 0x800
 #endif
 
 /* //////////////////////////////////////////////////////////////////////////////////////
@@ -131,7 +137,6 @@ tb_file_ref_t tb_file_init(tb_char_t const* path, tb_size_t mode)
         }
     }
 
-    // ok?
     return file != INVALID_HANDLE_VALUE? (tb_file_ref_t)file : tb_null;
 }
 tb_bool_t tb_file_exit(tb_file_ref_t file)
@@ -148,9 +153,11 @@ tb_long_t tb_file_read(tb_file_ref_t file, tb_byte_t* data, tb_size_t size)
     tb_assert_and_check_return_val(file && data, -1);
     tb_check_return_val(size, 0);
 
-    // read
+    // @see https://github.com/tboox/tbox/issues/272
     DWORD real_size = 0;
-    return ReadFile((HANDLE)file, data, (DWORD)size, &real_size, tb_null)? (tb_long_t)real_size : -1;
+    if (ReadFile((HANDLE)file, data, (DWORD)size, &real_size, tb_null))
+        return (tb_long_t)real_size;
+    return -1;
 }
 tb_long_t tb_file_writ(tb_file_ref_t file, tb_byte_t const* data, tb_size_t size)
 {
@@ -158,9 +165,11 @@ tb_long_t tb_file_writ(tb_file_ref_t file, tb_byte_t const* data, tb_size_t size
     tb_assert_and_check_return_val(file && data, -1);
     tb_check_return_val(size, 0);
 
-    // write
+    // @see https://github.com/tboox/tbox/issues/272
     DWORD real_size = 0;
-    return WriteFile((HANDLE)file, data, (DWORD)size, &real_size, tb_null)? (tb_long_t)real_size : -1;
+    if (WriteFile((HANDLE)file, data, (DWORD)size, &real_size, tb_null))
+        return (tb_long_t)real_size;
+    return -1;
 }
 tb_long_t tb_file_pread(tb_file_ref_t file, tb_byte_t* data, tb_size_t size, tb_hize_t offset)
 {
@@ -179,8 +188,6 @@ tb_long_t tb_file_pread(tb_file_ref_t file, tb_byte_t* data, tb_size_t size, tb_
 
     // restore offset
     if (current != offset && tb_file_seek(file, current, TB_FILE_SEEK_BEG) != current) return -1;
-
-    // ok
     return real;
 }
 tb_long_t tb_file_pwrit(tb_file_ref_t file, tb_byte_t const* data, tb_size_t size, tb_hize_t offset)
@@ -200,8 +207,6 @@ tb_long_t tb_file_pwrit(tb_file_ref_t file, tb_byte_t const* data, tb_size_t siz
 
     // restore offset
     if (current != offset && tb_file_seek(file, current, TB_FILE_SEEK_BEG) != current) return -1;
-
-    // ok
     return real;
 }
 tb_long_t tb_file_readv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t size)
@@ -238,8 +243,6 @@ tb_long_t tb_file_readv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t si
         // end
         break;
     }
-
-    // ok?
     return read;
 }
 tb_long_t tb_file_writv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t size)
@@ -276,8 +279,6 @@ tb_long_t tb_file_writv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t si
         // end
         break;
     }
-
-    // ok?
     return writ;
 }
 tb_hong_t tb_file_writf(tb_file_ref_t file, tb_file_ref_t ifile, tb_hize_t offset, tb_hize_t size)
@@ -298,8 +299,6 @@ tb_hong_t tb_file_writf(tb_file_ref_t file, tb_file_ref_t ifile, tb_hize_t offse
         if (real > 0) writ += real;
         else break;
     }
-
-    // ok?
     return writ == read? writ : -1;
 }
 tb_long_t tb_file_preadv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t size, tb_hize_t offset)
@@ -319,8 +318,6 @@ tb_long_t tb_file_preadv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t s
 
     // restore offset
     if (current != offset && tb_file_seek(file, current, TB_FILE_SEEK_BEG) != current) return -1;
-
-    // ok
     return real;
 }
 tb_long_t tb_file_pwritv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t size, tb_hize_t offset)
@@ -340,24 +337,17 @@ tb_long_t tb_file_pwritv(tb_file_ref_t file, tb_iovec_t const* list, tb_size_t s
 
     // restore offset
     if (current != offset && tb_file_seek(file, current, TB_FILE_SEEK_BEG) != current) return -1;
-
-    // ok
     return real;
 }
 tb_bool_t tb_file_sync(tb_file_ref_t file)
 {
-    // check
     tb_assert_and_check_return_val(file, tb_false);
-
-    // sync it
     return FlushFileBuffers((HANDLE)file)? tb_true : tb_false;
 }
 tb_hong_t tb_file_seek(tb_file_ref_t file, tb_hong_t offset, tb_size_t mode)
 {
-    // check
     tb_assert_and_check_return_val(file, -1);
 
-    // seek
     LARGE_INTEGER o = {{0}};
     LARGE_INTEGER p = {{0}};
     o.QuadPart = (LONGLONG)offset;
@@ -365,10 +355,7 @@ tb_hong_t tb_file_seek(tb_file_ref_t file, tb_hong_t offset, tb_size_t mode)
 }
 tb_hong_t tb_file_offset(tb_file_ref_t file)
 {
-    // check
     tb_assert_and_check_return_val(file, -1);
-
-    // the file size
     return tb_file_seek(file, (tb_hong_t)0, TB_FILE_SEEK_CUR);
 }
 tb_hize_t tb_file_size(tb_file_ref_t file)
@@ -407,8 +394,10 @@ tb_bool_t tb_file_info(tb_char_t const* path, tb_file_info_t* info)
         if (st.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) info->type = TB_FILE_TYPE_DIRECTORY;
         else if (st.dwFileAttributes != 0xffffffff) info->type = TB_FILE_TYPE_FILE;
 
-        // TODO does not support symlink now
+        // is symlink?
         info->flags = TB_FILE_FLAG_NONE;
+        if (st.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
+            info->flags |= TB_FILE_FLAG_LINK;
 
         // file size
         info->size = ((tb_hize_t)st.nFileSizeHigh << 32) | (tb_hize_t)st.nFileSizeLow;
@@ -419,8 +408,6 @@ tb_bool_t tb_file_info(tb_char_t const* path, tb_file_info_t* info)
         // the last modify time
         info->mtime = tb_filetime_to_time(&st.ftLastWriteTime);
     }
-
-    // ok
     return tb_true;
 }
 tb_bool_t tb_file_copy(tb_char_t const* path, tb_char_t const* dest, tb_size_t flags)
@@ -436,17 +423,47 @@ tb_bool_t tb_file_copy(tb_char_t const* path, tb_char_t const* dest, tb_size_t f
     tb_wchar_t full1[TB_PATH_MAXN];
     if (!tb_path_absolute_w(dest, full1, TB_PATH_MAXN)) return tb_false;
 
+    // copy link
+    tb_file_info_t info = {0};
+    if (flags & TB_FILE_COPY_LINK && tb_file_info(path, &info) && info.flags & TB_FILE_FLAG_LINK)
+    {
+        tb_file_mkdir(full1);
+        if (tb_kernel32()->CopyFileExW && tb_kernel32()->CopyFileExW(full0, full1, tb_null, tb_null, FALSE, COPY_FILE_COPY_SYMLINK))
+            return tb_true;
+
+        // we should read file content to copy it
+        tb_bool_t ok = tb_false;
+        tb_file_ref_t ifile = tb_file_init(path, TB_FILE_MODE_RW);
+        tb_file_ref_t ofile = tb_file_init(dest, TB_FILE_MODE_RW | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
+        if (ifile && ofile)
+        {
+            tb_hize_t writ = 0;
+            tb_hize_t size = tb_file_size(ifile);
+            while (writ < size)
+            {
+                tb_hong_t real = tb_file_writf(ofile, ifile, writ, size - writ);
+                if (real > 0) writ += real;
+                else break;
+            }
+            if (writ == size) ok = tb_true;
+        }
+
+        // exit file
+        if (ifile) tb_file_exit(ifile);
+        if (ofile) tb_file_exit(ofile);
+        return ok;
+    }
+
+    // do not copy if file contents are same
+    if (flags & TB_FILE_COPY_IF_DIFFERENT && tb_file_is_same(path, dest))
+        return tb_true;
+
     // copy it
     if (!CopyFileW(full0, full1, FALSE))
     {
-        // make directory
         tb_file_mkdir(full1);
-
-        // copy it again
         return (tb_bool_t)CopyFileW(full0, full1, FALSE);
     }
-
-    // ok
     return tb_true;
 }
 tb_bool_t tb_file_create(tb_char_t const* path)
@@ -458,7 +475,6 @@ tb_bool_t tb_file_create(tb_char_t const* path)
     tb_file_ref_t file = tb_file_init(path, TB_FILE_MODE_CREAT | TB_FILE_MODE_WO | TB_FILE_MODE_TRUNC);
     if (file) tb_file_exit(file);
 
-    // ok?
     return file? tb_true : tb_false;
 }
 tb_bool_t tb_file_remove(tb_char_t const* path)
@@ -493,15 +509,41 @@ tb_bool_t tb_file_rename(tb_char_t const* path, tb_char_t const* dest)
 
     // rename it
     DWORD flags = MOVEFILE_COPY_ALLOWED | MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH;
-    if (!MoveFileExW(full0, full1, flags))
-    {
-        // make directory
-        tb_file_mkdir(full1);
+    if (MoveFileExW(full0, full1, flags)) return tb_true;
 
-        // rename it again
-        return MoveFileExW(full0, full1, flags);
+    // try to create directories and rename it again
+    tb_file_mkdir(full1);
+    if (MoveFileExW(full0, full1, flags)) return tb_true;
+
+    /* MoveFileExW may still fail for directories even with short root path,
+     * e.g. any child entry exceeds MAX_PATH without \\?\ prefix; do copy/remove fallback.
+     */
+    tb_file_info_t info = {0};
+    if (tb_file_info(path, &info) && info.type == TB_FILE_TYPE_DIRECTORY)
+    {
+        tb_file_info_t dinfo = {0};
+        if (tb_file_info(dest, &dinfo))
+        {
+            if (dinfo.type == TB_FILE_TYPE_FILE)
+                tb_file_remove(dest);
+            else if (dinfo.type == TB_FILE_TYPE_DIRECTORY)
+                tb_directory_remove(dest);
+        }
+
+        if (tb_directory_copy(path, dest, TB_FILE_COPY_LINK))
+            return tb_directory_remove(path);
+        return tb_false;
     }
-    return tb_true;
+
+    // fallback to copy/remove only for file
+    if (info.type == TB_FILE_TYPE_FILE && CopyFileW(full0, full1, FALSE))
+    {
+        DWORD attrs = GetFileAttributesW(full0);
+        if (attrs & FILE_ATTRIBUTE_READONLY)
+            SetFileAttributesW(full0, attrs & ~FILE_ATTRIBUTE_READONLY);
+        return DeleteFileW(full0);
+    }
+    return tb_false;
 }
 tb_bool_t tb_file_link(tb_char_t const* path, tb_char_t const* dest)
 {

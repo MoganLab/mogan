@@ -30,34 +30,20 @@
   (export uri-authority uri-raw-authority)
 
   ;; path 访问器
-  (export uri-path
-    uri-raw-path
-    uri-path->list
-  ) ;export
+  (export uri-path uri-raw-path uri-path->list)
 
   ;; query 访问器
-  (export uri-query
-    uri-query-string
-    uri-query-ref
-    uri-query-ref*
-  ) ;export
+  (export uri-query uri-query-string uri-query-ref uri-query-ref*)
 
   ;; fragment 访问器
   (export uri-fragment uri-raw-fragment)
 
   ;; 路径相关访问器
-  (export uri-parent
-    uri-name
-    uri-suffix
-    uri-suffixes
-  ) ;export
+  (export uri-parent uri-name uri-suffix uri-suffixes)
 
   ;; 从 uri-predicate 重新导出
   (export uri-absolute? uri-relative?)
-  (export uri-default-port
-    uri-default-port?
-    uri-network-scheme?
-  ) ;export
+  (export uri-default-port uri-default-port? uri-network-scheme?)
 
   ;; 从 uri-make 重新导出
   (export make-uri uri-build string->uri)

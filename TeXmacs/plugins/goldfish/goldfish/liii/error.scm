@@ -18,21 +18,15 @@
     ) ;define
 
     (define (file-not-found-error . args)
-      (apply error
-        (cons 'file-not-found-error args)
-      ) ;apply
+      (apply error (cons 'file-not-found-error args))
     ) ;define
 
     (define (not-a-directory-error . args)
-      (apply error
-        (cons 'not-a-directory-error args)
-      ) ;apply
+      (apply error (cons 'not-a-directory-error args))
     ) ;define
 
     (define (file-exists-error . args)
-      (apply error
-        (cons 'file-exists-error args)
-      ) ;apply
+      (apply error (cons 'file-exists-error args))
     ) ;define
 
     (define (timeout-error . args)
@@ -44,11 +38,7 @@
     ) ;define
 
     (define (type-error? err)
-      (not (null? (member err
-                    '(type-error wrong-type-arg)
-                  ) ;member
-           ) ;null?
-      ) ;not
+      (not (null? (member err '(type-error wrong-type-arg))))
     ) ;define
 
     (define (key-error . args)

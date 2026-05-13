@@ -182,12 +182,15 @@
 #elif defined(__loongarch__)
 #   define TB_ARCH_LOONGARCH
 #   if defined(__loongarch64)
-#       define TB_ARCH_STRING               "loongarch64"
+#       define TB_ARCH_STRING               "loong64"
 #   elif defined(__loongarch32)
-#       define TB_ARCH_STRING               "loongarch32"
+#       define TB_ARCH_STRING               "loong32"
 #   else
 #       error unknown version of LoongArch, please feedback to us.
 #   endif
+#elif defined(__sw_64)
+#   define TB_ARCH_SW_64
+#   define TB_ARCH_STRING                   "sw_64"
 #elif defined(__riscv)
 #   define TB_ARCH_RISCV
 #   if defined(__riscv_xlen) && __riscv_xlen == 64

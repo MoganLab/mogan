@@ -115,28 +115,17 @@
     ;; ; Utility
 
     (define (exact-natural? obj)
-      (and (exact-integer? obj)
-        (not (negative? obj))
-      ) ;and
+      (and (exact-integer? obj) (not (negative? obj)))
     ) ;define
 
     ;; ; Types
 
     (define-record-type <enum-type>
-      (make-raw-enum-type enum-vector
-        name-table
-        comparator
-      ) ;make-raw-enum-type
+      (make-raw-enum-type enum-vector name-table comparator)
       enum-type?
-      (enum-vector enum-type-enum-vector
-        set-enum-type-enum-vector!
-      ) ;enum-vector
-      (name-table enum-type-name-table
-        set-enum-type-name-table!
-      ) ;name-table
-      (comparator enum-type-comparator
-        set-enum-type-comparator!
-      ) ;comparator
+      (enum-vector enum-type-enum-vector set-enum-type-enum-vector!)
+      (name-table enum-type-name-table set-enum-type-name-table!)
+      (comparator enum-type-comparator set-enum-type-comparator!)
     ) ;define-record-type
 
     (define-record-type <enum>
@@ -149,18 +138,10 @@
     ) ;define-record-type
 
     (define (make-enum-type names+vals)
-      (let* ((type (make-raw-enum-type #f #f #f))
-             (enums (generate-enums type names+vals))
-            ) ;
-        (set-enum-type-enum-vector! type
-          (list->vector enums)
-        ) ;set-enum-type-enum-vector!
-        (set-enum-type-name-table! type
-          (make-name-table enums)
-        ) ;set-enum-type-name-table!
-        (set-enum-type-comparator! type
-          (make-enum-comparator type)
-        ) ;set-enum-type-comparator!
+      (let* ((type (make-raw-enum-type #f #f #f)) (enums (generate-enums type names+vals)))
+        (set-enum-type-enum-vector! type (list->vector enums))
+        (set-enum-type-name-table! type (make-name-table enums))
+        (set-enum-type-comparator! type (make-enum-comparator type))
         type
       ) ;let*
     ) ;define
@@ -171,33 +152,16 @@
         (if (null? elts)
           (reverse result)
           (let ((elt (car elts)))
-            (cond ((and (pair? elt)
-                     (= 2 (length elt))
-                     (symbol? (car elt))
-                   ) ;and
+            (cond ((and (pair? elt) (= 2 (length elt)) (symbol? (car elt)))
                    (loop (cdr elts)
                      (+ ord 1)
-                     (cons (make-enum type
-                             (car elt)
-                             ord
-                             (cadr elt)
-                           ) ;make-enum
-                       result
-                     ) ;cons
+                     (cons (make-enum type (car elt) ord (cadr elt)) result)
                    ) ;loop
                   ) ;
                   ((symbol? elt)
-                   (loop (cdr elts)
-                     (+ ord 1)
-                     (cons (make-enum type elt ord ord)
-                       result
-                     ) ;cons
-                   ) ;loop
+                   (loop (cdr elts) (+ ord 1) (cons (make-enum type elt ord ord) result))
                   ) ;
-                  (else (error "make-enum-type: invalid argument"
-                          elt
-                        ) ;error
-                  ) ;else
+                  (else (error "make-enum-type: invalid argument" elt))
             ) ;cond
           ) ;let
         ) ;if
@@ -206,14 +170,7 @@
 
     (define (make-name-table enums)
       (let ((ht (make-hash-table)))
-        (for-each (lambda (enum)
-                    (hash-table-set! ht
-                      (enum-name enum)
-                      enum
-                    ) ;hash-table-set!
-                  ) ;lambda
-          enums
-        ) ;for-each
+        (for-each (lambda (enum) (hash-table-set! ht (enum-name enum) enum)) enums)
         ht
       ) ;let
     ) ;define
@@ -223,20 +180,10 @@
     ) ;define
 
     (define (make-enum-comparator type)
-      (make-comparator (lambda (obj)
-                         (and (enum? obj)
-                           (eq? (enum-type obj) type)
-                         ) ;and
-                       ) ;lambda
+      (make-comparator (lambda (obj) (and (enum? obj) (eq? (enum-type obj) type)))
         eq?
-        (lambda (enum1 enum2)
-          (< (enum-ordinal enum1)
-            (enum-ordinal enum2)
-          ) ;<
-        ) ;lambda
-        (lambda (enum)
-          (symbol-hash (enum-name enum))
-        ) ;lambda
+        (lambda (enum1 enum2) (< (enum-ordinal enum1) (enum-ordinal enum2)))
+        (lambda (enum) (symbol-hash (enum-name enum)))
       ) ;make-comparator
     ) ;define
 
@@ -245,48 +192,28 @@
     (define (enum-type-contains? type enum)
       (and (enum-type? type)
         (enum? enum)
-        ((comparator-type-test-predicate (enum-type-comparator type)
-         ) ;comparator-type-test-predicate
-         enum
-        ) ;
+        ((comparator-type-test-predicate (enum-type-comparator type)) enum)
       ) ;and
     ) ;define
 
-    (define (%enum-type-contains?/no-assert type
-              enum
-            ) ;%enum-type-contains?/no-assert
-     ((comparator-type-test-predicate (enum-type-comparator type)
-      ) ;comparator-type-test-predicate
-      enum
-     ) ;
+    (define (%enum-type-contains?/no-assert type enum)
+     ((comparator-type-test-predicate (enum-type-comparator type)) enum)
     ) ;define
 
     (define (%well-typed-enum? type obj)
-      (and (enum? obj)
-        (%enum-type-contains?/no-assert type
-          obj
-        ) ;%enum-type-contains?/no-assert
-      ) ;and
+      (and (enum? obj) (%enum-type-contains?/no-assert type obj))
     ) ;define
 
     (define (%compare-enums compare enums)
       (let ((type (enum-type (car enums))))
-        (apply compare
-          (enum-type-comparator type)
-          enums
-        ) ;apply
+        (apply compare (enum-type-comparator type) enums)
       ) ;let
     ) ;define
 
     (define (enum=? enum1 enum2 . enums)
-      (let* ((type (enum-type enum1))
-             (comp (enum-type-comparator type))
-            ) ;
+      (let* ((type (enum-type enum1)) (comp (enum-type-comparator type)))
         (if (null? enums)
-         ((comparator-equality-predicate comp)
-          enum1
-          enum2
-         ) ;
+         ((comparator-equality-predicate comp) enum1 enum2)
          (apply =? comp enum1 enum2 enums)
         ) ;if
       ) ;let*
@@ -308,26 +235,17 @@
     ;; ; Enum finders
 
     (define (enum-name->enum type name)
-      (hash-table-ref/default (enum-type-name-table type)
-        name
-        #f
-      ) ;hash-table-ref/default
+      (hash-table-ref/default (enum-type-name-table type) name #f)
     ) ;define
 
     (define (enum-ordinal->enum enum-type ordinal)
       (and (< ordinal (enum-type-size enum-type))
-        (vector-ref (enum-type-enum-vector enum-type)
-          ordinal
-        ) ;vector-ref
+        (vector-ref (enum-type-enum-vector enum-type) ordinal)
       ) ;and
     ) ;define
 
-    (define (%enum-ordinal->enum-no-assert enum-type
-              ordinal
-            ) ;%enum-ordinal->enum-no-assert
-      (vector-ref (enum-type-enum-vector enum-type)
-        ordinal
-      ) ;vector-ref
+    (define (%enum-ordinal->enum-no-assert enum-type ordinal)
+      (vector-ref (enum-type-enum-vector enum-type) ordinal)
     ) ;define
 
     (define (%enum-project type finder key proc)
@@ -337,61 +255,39 @@
     ) ;define
 
     (define (enum-name->ordinal type name)
-      (%enum-project type
-        enum-name->enum
-        name
-        enum-ordinal
-      ) ;%enum-project
+      (%enum-project type enum-name->enum name enum-ordinal)
     ) ;define
 
     (define (enum-name->value type name)
-      (%enum-project type
-        enum-name->enum
-        name
-        enum-value
-      ) ;%enum-project
+      (%enum-project type enum-name->enum name enum-value)
     ) ;define
 
     (define (enum-ordinal->name type ordinal)
-      (%enum-project type
-        %enum-ordinal->enum-no-assert
-        ordinal
-        enum-name
-      ) ;%enum-project
+      (%enum-project type %enum-ordinal->enum-no-assert ordinal enum-name)
     ) ;define
 
     (define (enum-ordinal->value type ordinal)
-      (%enum-project type
-        %enum-ordinal->enum-no-assert
-        ordinal
-        enum-value
-      ) ;%enum-project
+      (%enum-project type %enum-ordinal->enum-no-assert ordinal enum-value)
     ) ;define
 
     ;; ; Enum type accessors
 
     (define (enum-type-size type)
-      (vector-length (enum-type-enum-vector type)
-      ) ;vector-length
+      (vector-length (enum-type-enum-vector type))
     ) ;define
 
     (define (enum-min type)
-      (vector-ref (enum-type-enum-vector type)
-        0
-      ) ;vector-ref
+      (vector-ref (enum-type-enum-vector type) 0)
     ) ;define
 
     (define (enum-max type)
       (let ((vec (enum-type-enum-vector type)))
-        (vector-ref vec
-          (- (vector-length vec) 1)
-        ) ;vector-ref
+        (vector-ref vec (- (vector-length vec) 1))
       ) ;let
     ) ;define
 
     (define (enum-type-enums type)
-      (vector->list (enum-type-enum-vector type)
-      ) ;vector->list
+      (vector->list (enum-type-enum-vector type))
     ) ;define
 
     (define (enum-type-names type)
@@ -400,11 +296,7 @@
           ((i 0) (result '()))
           (if (= i (vector-length vec))
             (reverse result)
-            (loop (+ i 1)
-              (cons (enum-name (vector-ref vec i))
-                result
-              ) ;cons
-            ) ;loop
+            (loop (+ i 1) (cons (enum-name (vector-ref vec i)) result))
           ) ;if
         ) ;let
       ) ;let
@@ -416,11 +308,7 @@
           ((i 0) (result '()))
           (if (= i (vector-length vec))
             (reverse result)
-            (loop (+ i 1)
-              (cons (enum-value (vector-ref vec i))
-                result
-              ) ;cons
-            ) ;loop
+            (loop (+ i 1) (cons (enum-value (vector-ref vec i)) result))
           ) ;if
         ) ;let
       ) ;let
@@ -429,18 +317,12 @@
     ;; ; Enum object procedures
 
     (define (enum-next enum)
-      (enum-ordinal->enum (enum-type enum)
-        (+ (enum-ordinal enum) 1)
-      ) ;enum-ordinal->enum
+      (enum-ordinal->enum (enum-type enum) (+ (enum-ordinal enum) 1))
     ) ;define
 
     (define (enum-prev enum)
       (let ((ord (enum-ordinal enum)))
-        (and (> ord 0)
-          (enum-ordinal->enum (enum-type enum)
-            (- ord 1)
-          ) ;enum-ordinal->enum
-        ) ;and
+        (and (> ord 0) (enum-ordinal->enum (enum-type enum) (- ord 1)))
       ) ;let
     ) ;define
 
@@ -479,12 +361,7 @@
           ((i 0) (count 0))
           (if (= i len)
             count
-            (loop (+ i 1)
-              (if (eqv? (vector-ref bits i) val)
-                (+ count 1)
-                count
-              ) ;if
-            ) ;loop
+            (loop (+ i 1) (if (eqv? (vector-ref bits i) val) (+ count 1) count))
           ) ;if
         ) ;let
       ) ;let
@@ -495,12 +372,7 @@
         (let loop
           ((i 0))
           (cond ((= i len) #t)
-                ((not (eqv? (vector-ref bits1 i)
-                        (vector-ref bits2 i)
-                      ) ;eqv?
-                 ) ;not
-                 #f
-                ) ;
+                ((not (eqv? (vector-ref bits1 i) (vector-ref bits2 i))) #f)
                 (else (loop (+ i 1)))
           ) ;cond
         ) ;let
@@ -512,11 +384,7 @@
         (let loop
           ((i 0))
           (cond ((= i len) #t)
-                ((and (vector-ref bits1 i)
-                   (not (vector-ref bits2 i))
-                 ) ;and
-                 #f
-                ) ;
+                ((and (vector-ref bits1 i) (not (vector-ref bits2 i))) #f)
                 (else (loop (+ i 1)))
           ) ;cond
         ) ;let
@@ -528,11 +396,7 @@
         (let loop
           ((i 0))
           (cond ((= i len) #t)
-                ((and (vector-ref bits1 i)
-                   (vector-ref bits2 i)
-                 ) ;and
-                 #f
-                ) ;
+                ((and (vector-ref bits1 i) (vector-ref bits2 i)) #f)
                 (else (loop (+ i 1)))
           ) ;cond
         ) ;let
@@ -544,12 +408,7 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (vector-set! bits1
-              i
-              (or (vector-ref bits1 i)
-                (vector-ref bits2 i)
-              ) ;or
-            ) ;vector-set!
+            (vector-set! bits1 i (or (vector-ref bits1 i) (vector-ref bits2 i)))
             (loop (+ i 1))
           ) ;when
         ) ;let
@@ -562,12 +421,7 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (vector-set! bits1
-              i
-              (and (vector-ref bits1 i)
-                (vector-ref bits2 i)
-              ) ;and
-            ) ;vector-set!
+            (vector-set! bits1 i (and (vector-ref bits1 i) (vector-ref bits2 i)))
             (loop (+ i 1))
           ) ;when
         ) ;let
@@ -580,12 +434,7 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (vector-set! bits1
-              i
-              (and (vector-ref bits1 i)
-                (not (vector-ref bits2 i))
-              ) ;and
-            ) ;vector-set!
+            (vector-set! bits1 i (and (vector-ref bits1 i) (not (vector-ref bits2 i))))
             (loop (+ i 1))
           ) ;when
         ) ;let
@@ -598,13 +447,7 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (vector-set! bits1
-              i
-              (not (eqv? (vector-ref bits1 i)
-                     (vector-ref bits2 i)
-                   ) ;eqv?
-              ) ;not
-            ) ;vector-set!
+            (vector-set! bits1 i (not (eqv? (vector-ref bits1 i) (vector-ref bits2 i))))
             (loop (+ i 1))
           ) ;when
         ) ;let
@@ -617,10 +460,7 @@
         (let loop
           ((i 0))
           (when (< i len)
-            (vector-set! bits
-              i
-              (not (vector-ref bits i))
-            ) ;vector-set!
+            (vector-set! bits i (not (vector-ref bits i)))
             (loop (+ i 1))
           ) ;when
         ) ;let
@@ -629,15 +469,11 @@
     ) ;define
 
     (define (enum-empty-set type)
-      (make-enum-set type
-        (make-bits (enum-type-size type) #f)
-      ) ;make-enum-set
+      (make-enum-set type (make-bits (enum-type-size type) #f))
     ) ;define
 
     (define (enum-type->enum-set type)
-      (make-enum-set type
-        (make-bits (enum-type-size type) #t)
-      ) ;make-enum-set
+      (make-enum-set type (make-bits (enum-type-size type) #t))
     ) ;define
 
     (define (enum-set type . enums)
@@ -645,34 +481,18 @@
     ) ;define
 
     (define (list->enum-set type enums)
-      (let ((vec (make-bits (enum-type-size type) #f)
-            ) ;vec
-           ) ;
-        (for-each (lambda (e)
-                    (bits-set! vec (enum-ordinal e) #t)
-                  ) ;lambda
-          enums
-        ) ;for-each
+      (let ((vec (make-bits (enum-type-size type) #f)))
+        (for-each (lambda (e) (bits-set! vec (enum-ordinal e) #t)) enums)
         (make-enum-set type vec)
       ) ;let
     ) ;define
 
     (define (enum-set-projection src eset)
-      (let ((type (if (enum-type? src)
-                    src
-                    (enum-set-type src)
-                  ) ;if
-            ) ;type
-           ) ;
+      (let ((type (if (enum-type? src) src (enum-set-type src))))
         (list->enum-set type
           (enum-set-map->list (lambda (enum)
                                 (let ((name (enum-name enum)))
-                                  (or (enum-name->enum type name)
-                                    (error "enum name not found in type"
-                                      name
-                                      type
-                                    ) ;error
-                                  ) ;or
+                                  (or (enum-name->enum type name) (error "enum name not found in type" name type))
                                 ) ;let
                               ) ;lambda
             eset
@@ -682,31 +502,22 @@
     ) ;define
 
     (define (enum-set-copy eset)
-      (make-enum-set (enum-set-type eset)
-        (bits-copy (enum-set-bits eset))
-      ) ;make-enum-set
+      (make-enum-set (enum-set-type eset) (bits-copy (enum-set-bits eset)))
     ) ;define
 
     (define (make-enumeration names)
-      (enum-type->enum-set (make-enum-type (map (lambda (n) (list n n)) names)
-                           ) ;make-enum-type
-      ) ;enum-type->enum-set
+      (enum-type->enum-set (make-enum-type (map (lambda (n) (list n n)) names)))
     ) ;define
 
     (define (enum-set-universe eset)
-      (enum-type->enum-set (enum-set-type eset)
-      ) ;enum-type->enum-set
+      (enum-type->enum-set (enum-set-type eset))
     ) ;define
 
     (define (enum-set-constructor eset)
       (let ((type (enum-set-type eset)))
         (lambda (names)
           (list->enum-set type
-            (map (lambda (sym)
-                   (or (enum-name->enum type sym)
-                     (error "invalid enum name" sym)
-                   ) ;or
-                 ) ;lambda
+            (map (lambda (sym) (or (enum-name->enum type sym) (error "invalid enum name" sym)))
               names
             ) ;map
           ) ;list->enum-set
@@ -716,95 +527,59 @@
 
     (define (enum-set-indexer eset)
       (let ((type (enum-set-type eset)))
-        (lambda (name)
-          (cond ((enum-name->enum type name)
-                 =>
-                 enum-ordinal
-                ) ;
-                (else #f)
-          ) ;cond
-        ) ;lambda
+        (lambda (name) (cond ((enum-name->enum type name) => enum-ordinal) (else #f)))
       ) ;let
     ) ;define
 
     ;; ; Enum set predicates
 
     (define (enum-set-contains? eset enum)
-      (bits-ref (enum-set-bits eset)
-        (enum-ordinal enum)
-      ) ;bits-ref
+      (bits-ref (enum-set-bits eset) (enum-ordinal enum))
     ) ;define
 
     (define (enum-set-member? name eset)
-      (bits-ref (enum-set-bits eset)
-        (enum-name->ordinal (enum-set-type eset)
-          name
-        ) ;enum-name->ordinal
-      ) ;bits-ref
+      (bits-ref (enum-set-bits eset) (enum-name->ordinal (enum-set-type eset) name))
     ) ;define
 
     (define (%enum-set-type=? eset1 eset2)
-      (%enum-type=? (enum-set-type eset1)
-        (enum-set-type eset2)
-      ) ;%enum-type=?
+      (%enum-type=? (enum-set-type eset1) (enum-set-type eset2))
     ) ;define
 
     (define (enum-set-empty? eset)
-      (zero? (bits-count #t (enum-set-bits eset))
-      ) ;zero?
+      (zero? (bits-count #t (enum-set-bits eset)))
     ) ;define
 
     (define (enum-set-disjoint? eset1 eset2)
-      (bits-disjoint? (enum-set-bits eset1)
-        (enum-set-bits eset2)
-      ) ;bits-disjoint?
+      (bits-disjoint? (enum-set-bits eset1) (enum-set-bits eset2))
     ) ;define
 
     (define (enum-set=? eset1 eset2)
-      (bits=? (enum-set-bits eset1)
-        (enum-set-bits eset2)
-      ) ;bits=?
+      (bits=? (enum-set-bits eset1) (enum-set-bits eset2))
     ) ;define
 
     (define (enum-set<? eset1 eset2)
-      (and (bits-subset? (enum-set-bits eset1)
-             (enum-set-bits eset2)
-           ) ;bits-subset?
-        (not (bits=? (enum-set-bits eset1)
-               (enum-set-bits eset2)
-             ) ;bits=?
-        ) ;not
+      (and (bits-subset? (enum-set-bits eset1) (enum-set-bits eset2))
+        (not (bits=? (enum-set-bits eset1) (enum-set-bits eset2)))
       ) ;and
     ) ;define
 
     (define (enum-set>? eset1 eset2)
-      (and (bits-subset? (enum-set-bits eset2)
-             (enum-set-bits eset1)
-           ) ;bits-subset?
-        (not (bits=? (enum-set-bits eset1)
-               (enum-set-bits eset2)
-             ) ;bits=?
-        ) ;not
+      (and (bits-subset? (enum-set-bits eset2) (enum-set-bits eset1))
+        (not (bits=? (enum-set-bits eset1) (enum-set-bits eset2)))
       ) ;and
     ) ;define
 
     (define (enum-set<=? eset1 eset2)
-      (bits-subset? (enum-set-bits eset1)
-        (enum-set-bits eset2)
-      ) ;bits-subset?
+      (bits-subset? (enum-set-bits eset1) (enum-set-bits eset2))
     ) ;define
 
     (define (enum-set>=? eset1 eset2)
-      (bits-subset? (enum-set-bits eset2)
-        (enum-set-bits eset1)
-      ) ;bits-subset?
+      (bits-subset? (enum-set-bits eset2) (enum-set-bits eset1))
     ) ;define
 
     (define (enum-set-subset? eset1 eset2)
-      (let ((names1 (enum-set-map->list enum-name eset1)
-            ) ;names1
-            (names2 (enum-set-map->list enum-name eset2)
-            ) ;names2
+      (let ((names1 (enum-set-map->list enum-name eset1))
+            (names2 (enum-set-map->list enum-name eset2))
            ) ;
         (let loop
           ((rest names1))
@@ -818,22 +593,14 @@
 
     (define (enum-set-any? pred eset)
       (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _)
-                                                         (and (pred e) (return #t))
-                                                       ) ;lambda
-                                          #f
-                                          eset
-                                        ) ;enum-set-fold
+                                        (enum-set-fold (lambda (e _) (and (pred e) (return #t))) #f eset)
                                       ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
 
     (define (enum-set-every? pred eset)
       (call-with-current-continuation (lambda (return)
-                                        (enum-set-fold (lambda (e _) (or (pred e) (return #f)))
-                                          #t
-                                          eset
-                                        ) ;enum-set-fold
+                                        (enum-set-fold (lambda (e _) (or (pred e) (return #f))) #t eset)
                                       ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
@@ -841,28 +608,15 @@
     ;; ; Enum set mutators
 
     (define (enum-set-adjoin eset . enums)
-      (apply enum-set-adjoin!
-        (enum-set-copy eset)
-        enums
-      ) ;apply
+      (apply enum-set-adjoin! (enum-set-copy eset) enums)
     ) ;define
 
     (define enum-set-adjoin!
       (case-lambda
-       ((eset enum)
-        (bits-set! (enum-set-bits eset)
-          (enum-ordinal enum)
-          #t
-        ) ;bits-set!
-        eset
-       ) ;
+       ((eset enum) (bits-set! (enum-set-bits eset) (enum-ordinal enum) #t) eset)
        ((eset . enums)
         (let ((vec (enum-set-bits eset)))
-          (for-each (lambda (e)
-                      (bits-set! vec (enum-ordinal e) #t)
-                    ) ;lambda
-            enums
-          ) ;for-each
+          (for-each (lambda (e) (bits-set! vec (enum-ordinal e) #t)) enums)
           eset
         ) ;let
        ) ;
@@ -870,40 +624,23 @@
     ) ;define
 
     (define (enum-set-delete eset . enums)
-      (apply enum-set-delete!
-        (enum-set-copy eset)
-        enums
-      ) ;apply
+      (apply enum-set-delete! (enum-set-copy eset) enums)
     ) ;define
 
     (define enum-set-delete!
       (case-lambda
-       ((eset enum)
-        (bits-set! (enum-set-bits eset)
-          (enum-ordinal enum)
-          #f
-        ) ;bits-set!
-        eset
-       ) ;
-       ((eset . enums)
-        (enum-set-delete-all! eset enums)
-       ) ;
+       ((eset enum) (bits-set! (enum-set-bits eset) (enum-ordinal enum) #f) eset)
+       ((eset . enums) (enum-set-delete-all! eset enums))
       ) ;case-lambda
     ) ;define
 
     (define (enum-set-delete-all eset enums)
-      (enum-set-delete-all! (enum-set-copy eset)
-        enums
-      ) ;enum-set-delete-all!
+      (enum-set-delete-all! (enum-set-copy eset) enums)
     ) ;define
 
     (define (enum-set-delete-all! eset enums)
       (let ((vec (enum-set-bits eset)))
-        (for-each (lambda (e)
-                    (bits-set! vec (enum-ordinal e) #f)
-                  ) ;lambda
-          enums
-        ) ;for-each
+        (for-each (lambda (e) (bits-set! vec (enum-ordinal e) #f)) enums)
         eset
       ) ;let
     ) ;define
@@ -923,20 +660,12 @@
     ) ;define
 
     (define (enum-set-map->list proc eset)
-      (let* ((vec (enum-set-bits eset))
-             (len (bits-length vec))
-             (type (enum-set-type eset))
-            ) ;
+      (let* ((vec (enum-set-bits eset)) (len (bits-length vec)) (type (enum-set-type eset)))
         (let loop
           ((i 0) (result '()))
           (cond ((= i len) (reverse result))
                 ((bits-ref vec i)
-                 (loop (+ i 1)
-                   (cons (proc (%enum-ordinal->enum-no-assert type i)
-                         ) ;proc
-                     result
-                   ) ;cons
-                 ) ;loop
+                 (loop (+ i 1) (cons (proc (%enum-ordinal->enum-no-assert type i)) result))
                 ) ;
                 (else (loop (+ i 1) result))
           ) ;cond
@@ -945,30 +674,19 @@
     ) ;define
 
     (define (enum-set-count pred eset)
-      (enum-set-fold (lambda (e n) (if (pred e) (+ n 1) n))
-        0
-        eset
-      ) ;enum-set-fold
+      (enum-set-fold (lambda (e n) (if (pred e) (+ n 1) n)) 0 eset)
     ) ;define
 
     (define (enum-set-filter pred eset)
-      (enum-set-filter! pred
-        (enum-set-copy eset)
-      ) ;enum-set-filter!
+      (enum-set-filter! pred (enum-set-copy eset))
     ) ;define
 
     (define (enum-set-filter! pred eset)
-      (let* ((type (enum-set-type eset))
-             (vec (enum-set-bits eset))
-            ) ;
+      (let* ((type (enum-set-type eset)) (vec (enum-set-bits eset)))
         (let loop
           ((i (- (bits-length vec) 1)))
           (cond ((< i 0) eset)
-                ((and (bits-ref vec i)
-                   (not (pred (%enum-ordinal->enum-no-assert type i)
-                        ) ;pred
-                   ) ;not
-                 ) ;and
+                ((and (bits-ref vec i) (not (pred (%enum-ordinal->enum-no-assert type i))))
                  (bits-set! vec i #f)
                  (loop (- i 1))
                 ) ;
@@ -979,22 +697,15 @@
     ) ;define
 
     (define (enum-set-remove pred eset)
-      (enum-set-remove! pred
-        (enum-set-copy eset)
-      ) ;enum-set-remove!
+      (enum-set-remove! pred (enum-set-copy eset))
     ) ;define
 
     (define (enum-set-remove! pred eset)
-      (let* ((type (enum-set-type eset))
-             (vec (enum-set-bits eset))
-            ) ;
+      (let* ((type (enum-set-type eset)) (vec (enum-set-bits eset)))
         (let loop
           ((i (- (bits-length vec) 1)))
           (cond ((< i 0) eset)
-                ((and (bits-ref vec i)
-                   (pred (%enum-ordinal->enum-no-assert type i)
-                   ) ;pred
-                 ) ;and
+                ((and (bits-ref vec i) (pred (%enum-ordinal->enum-no-assert type i)))
                  (bits-set! vec i #f)
                  (loop (- i 1))
                 ) ;
@@ -1005,26 +716,17 @@
     ) ;define
 
     (define (enum-set-for-each proc eset)
-      (enum-set-fold (lambda (e _) (proc e))
-        '()
-        eset
-      ) ;enum-set-fold
+      (enum-set-fold (lambda (e _) (proc e)) '() eset)
     ) ;define
 
     (define (enum-set-fold proc nil eset)
       (let ((type (enum-set-type eset)))
-        (let* ((vec (enum-set-bits eset))
-               (len (bits-length vec))
-              ) ;
+        (let* ((vec (enum-set-bits eset)) (len (bits-length vec)))
           (let loop
             ((i 0) (state nil))
             (cond ((= i len) state)
                   ((bits-ref vec i)
-                   (loop (+ i 1)
-                     (proc (%enum-ordinal->enum-no-assert type i)
-                       state
-                     ) ;proc
-                   ) ;loop
+                   (loop (+ i 1) (proc (%enum-ordinal->enum-no-assert type i) state))
                   ) ;
                   (else (loop (+ i 1) state))
             ) ;cond
@@ -1035,75 +737,45 @@
 
     ;; ; Enum set logical operations
 
-    (define (%enum-set-logical-op! bv-proc
-              eset1
-              eset2
-            ) ;%enum-set-logical-op!
-      (bv-proc (enum-set-bits eset1)
-        (enum-set-bits eset2)
-      ) ;bv-proc
+    (define (%enum-set-logical-op! bv-proc eset1 eset2)
+      (bv-proc (enum-set-bits eset1) (enum-set-bits eset2))
       eset1
     ) ;define
 
     (define (enum-set-union eset1 eset2)
-      (%enum-set-logical-op! bits-ior!
-        (enum-set-copy eset1)
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-ior! (enum-set-copy eset1) eset2)
     ) ;define
 
     (define (enum-set-intersection eset1 eset2)
-      (%enum-set-logical-op! bits-and!
-        (enum-set-copy eset1)
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-and! (enum-set-copy eset1) eset2)
     ) ;define
 
     (define (enum-set-difference eset1 eset2)
-      (%enum-set-logical-op! bits-andc2!
-        (enum-set-copy eset1)
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-andc2! (enum-set-copy eset1) eset2)
     ) ;define
 
     (define (enum-set-xor eset1 eset2)
-      (%enum-set-logical-op! bits-xor!
-        (enum-set-copy eset1)
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-xor! (enum-set-copy eset1) eset2)
     ) ;define
 
     (define (enum-set-union! eset1 eset2)
-      (%enum-set-logical-op! bits-ior!
-        eset1
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-ior! eset1 eset2)
     ) ;define
 
     (define (enum-set-intersection! eset1 eset2)
-      (%enum-set-logical-op! bits-and!
-        eset1
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-and! eset1 eset2)
     ) ;define
 
     (define (enum-set-difference! eset1 eset2)
-      (%enum-set-logical-op! bits-andc2!
-        eset1
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-andc2! eset1 eset2)
     ) ;define
 
     (define (enum-set-xor! eset1 eset2)
-      (%enum-set-logical-op! bits-xor!
-        eset1
-        eset2
-      ) ;%enum-set-logical-op!
+      (%enum-set-logical-op! bits-xor! eset1 eset2)
     ) ;define
 
     (define (enum-set-complement eset)
-      (enum-set-complement! (enum-set-copy eset)
-      ) ;enum-set-complement!
+      (enum-set-complement! (enum-set-copy eset))
     ) ;define
 
     (define (enum-set-complement! eset)

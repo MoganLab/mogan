@@ -2,6 +2,73 @@
 
 ## master (unreleased)
 
+## v1.8.0
+
+### New features
+
+* Add wctype.h support for wide character functions
+* Add wcsupr and wcslwr functions
+
+### Changes
+
+* [#305](https://github.com/tboox/tbox/pull/305): Improve rename file to support longpath
+* [#305](https://github.com/tboox/tbox/pull/305): Improve walk directory to support longpath  
+* Improve to copy file to support /proc/xxx files
+* [#300](https://github.com/tboox/tbox/pull/300): Improve tolower/toupper with utf8 support
+* [#300](https://github.com/tboox/tbox/pull/300): Use system api for toupper and tolower
+* Improve comments and demos
+* Improve path handling
+* Improve windows directory operations
+* Improve xmake configs for solaris
+* [#297](https://github.com/tboox/tbox/pull/297): Improve environment handling for solaris
+
+### Bugs fixed
+
+* [#301](https://github.com/tboox/tbox/pull/301): Fix parsing error for decimals starting with 0
+* Fix tb_stou64
+* Fix xmake.sh script
+* Fix change directory on windows
+* Fix stdfile on solaris
+
+## v1.7.9
+
+### New features
+
+* Add support for other BSD systems (NetBSD, OpenBSD, DragonFly BSD) and Solaris
+
+## v1.7.8
+
+### New features
+
+* Add copy file if be different
+
+### Changes
+
+* [#291](https://github.com/tboox/tbox/pull/291): Improve semaphore
+* [#292](https://github.com/tboox/tbox/pull/292): Improve process on Windows
+
+### Bugs fixed
+
+* [#208](https://github.com/tboox/tbox/issues/208): [#290](https://github.com/tboox/tbox/pull/290): Fix stream buffer
+* [#272](https://github.com/tboox/tbox/issues/272): Fix read file stuck on windows arm64
+* [#292](https://github.com/tboox/tbox/pull/292): Fix process and path errors on Windows
+
+## v1.7.7
+
+### New features
+
+* [#269](https://github.com/tboox/tbox/pull/269): Add buffer stream
+
+## v1.7.6
+
+### New features
+
+* Support cosmocc toolchain
+
+### Changes
+
+* Implement copy symlinks on windows
+
 ## v1.7.5
 
 ### Changes
@@ -306,6 +373,73 @@
 # 更新日志
 
 ## master (开发中)
+
+## v1.8.0
+
+### 新特性
+
+* 添加 wctype.h 支持，用于宽字符函数
+* 添加 wcsupr 和 wcslwr 函数
+
+### 改进
+
+* [#305](https://github.com/tboox/tbox/pull/305): 改进文件重命名，支持长路径
+* [#305](https://github.com/tboox/tbox/pull/305): 改进目录遍历，支持长路径
+* 改进文件复制，支持 /proc/xxx 文件
+* [#300](https://github.com/tboox/tbox/pull/300): 改进 tolower/toupper，支持 utf8
+* [#300](https://github.com/tboox/tbox/pull/300): 使用系统 api 进行 toupper 和 tolower
+* 改进注释和示例
+* 改进路径处理
+* 改进 Windows 目录操作
+* 改进 Solaris 的 xmake 配置
+* [#297](https://github.com/tboox/tbox/pull/297): 改进 Solaris 的环境处理
+
+### Bugs 修复
+
+* [#301](https://github.com/tboox/tbox/pull/301): 修复以 0 开头的十进制数解析错误
+* 修复 tb_stou64
+* 修复 xmake.sh 脚本
+* 修复 Windows 上的目录切换问题
+* 修复 Solaris 上的 stdfile 问题
+
+## v1.7.9
+
+### 新特性
+
+* 添加对其他 BSD 系统（NetBSD, OpenBSD, DragonFly BSD）和 Solaris 的支持
+
+## v1.7.8
+
+### 新特性
+
+* 添加 copy if be different 支持
+
+### 改进
+
+* [#291](https://github.com/tboox/tbox/pull/291): 改进信号量
+* [#292](https://github.com/tboox/tbox/pull/292): 改进 Windows 进程处理
+
+### Bugs 修复
+
+* [#208](https://github.com/tboox/tbox/issues/208): [#290](https://github.com/tboox/tbox/pull/290): 修复流缓冲区问题
+* [#272](https://github.com/tboox/tbox/issues/272): 修复读取文件卡住问题
+* [#292](https://github.com/tboox/tbox/pull/292): 修复 Windows 进程和路径错误
+
+## v1.7.7
+
+### 新特性
+
+* [#269](https://github.com/tboox/tbox/pull/269): 添加 buffer 流
+
+## v1.7.6
+
+### 新特性
+
+* 增加对 cosmocc 工具链支持
+
+### 改进
+
+* 改进 copyfile 支持，在 windows 实现对 symlinks 的复制
 
 ## v1.7.5
 

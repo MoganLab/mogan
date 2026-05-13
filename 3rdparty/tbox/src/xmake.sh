@@ -1,7 +1,7 @@
 #!/bin/sh
 
 set_project "tbox"
-set_version "1.7.5" "%Y%m%d" "1"
+set_version "1.8.0" "%Y%m%d" "1"
 
 # set warning all as error
 set_warnings "all" "error"
@@ -12,6 +12,12 @@ set_languages "c99"
 # add defines to config.h
 set_configvar "_GNU_SOURCE" 1
 set_configvar "_REENTRANT" 1
+
+# ensure POSIX/XOPEN features are available on Solaris (for setenv, unsetenv, clock_gettime, etc.)
+# _XOPEN_SOURCE=600 implicitly sets _POSIX_C_SOURCE to 200112L
+if is_plat "solaris"; then
+    add_defines "_XOPEN_SOURCE=600"
+fi
 
 # add build modes
 if is_mode "debug"; then
@@ -37,6 +43,8 @@ if is_plat "mingw" "msys" "cygwin"; then
     add_syslinks "ws2_32" "pthread" "m"
 elif is_plat "haiku"; then
     add_syslinks "pthread" "network" "m" "c"
+elif is_plat "bsd" "solaris"; then
+    add_syslinks "pthread" "m"
 else
     add_syslinks "pthread" "dl" "m" "c"
 fi
@@ -177,7 +185,9 @@ check_interfaces() {
         "strcmp" \
         "strcasecmp" \
         "strncmp" \
-        "strncasecmp"
+        "strncasecmp" \
+        "strupr" \
+        "strlwr"
 
     check_module_cfuncs "libc" "wchar.h stdlib.h" \
         "wcscat" \
@@ -195,6 +205,12 @@ check_interfaces() {
         "wcsncasecmp" \
         "wcstombs" \
         "mbstowcs"
+
+    check_module_cfuncs "libc" "wchar.h wctype.h stdlib.h" \
+        "towlower" \
+        "towupper" \
+        "wcsupr" \
+        "wcslwr"
     check_module_cfuncs "libc" "time.h"                           "gmtime" "mktime" "localtime"
     check_module_cfuncs "libc" "sys/time.h"                       "gettimeofday"
     check_module_cfuncs "libc" "signal.h setjmp.h"                "signal" "setjmp" "kill"
@@ -248,7 +264,7 @@ check_interfaces() {
     check_module_cfuncs "posix" "dlfcn.h"                          "dlopen"
     check_module_cfuncs "posix" "sys/stat.h fcntl.h"               "open" "stat64" "lstat64"
     check_module_cfuncs "posix" "unistd.h"                         "gethostname"
-    check_module_cfuncs "posix" "ifaddrs.h"                        "getifaddrs"
+    check_module_cfuncs "posix" "ifaddrs.h net/if_dl.h"            "getifaddrs"
     check_module_cfuncs "posix" "semaphore.h"                      "sem_init"
     check_module_cfuncs "posix" "unistd.h"                         "getpagesize" "sysconf"
     check_module_cfuncs "posix" "sched.h"                          "sched_yield" "sched_setaffinity" # need _GNU_SOURCE
@@ -279,6 +295,9 @@ check_interfaces() {
 
     # add the interfaces for linux
     check_module_cfuncs "linux" "sys/inotify.h" "inotify_init"
+    check_module_csnippets "linux_ifaddrs" "TB_CONFIG_LINUX_HAVE_IFADDRS" \
+        "#include <linux/if.h>\n
+         #include <linux/netlink.h>"
 
     # add the interfaces for sigsetjmp
     check_module_csnippets "libc_sigsetjmp" "TB_CONFIG_LIBC_HAVE_SIGSETJMP" \

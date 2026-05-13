@@ -104,9 +104,6 @@
  * if SIZEOF_VOID_P is not defined, we look for __SIZEOF_POINTER__ instead,
  *   the default is to assume that we're running on a 64-bit machine.
  *
- * To get multiprecision arithmetic, set WITH_GMP to 1.
- *   You'll also need libgmp, libmpfr, and libmpc (version 0.8.0 or later)
- *
  * and we use these predefined macros: __cplusplus, _MSC_VER, __GNUC__, __clang__, __ANDROID__
  *
  * if WITH_SYSTEM_EXTRAS is 1 (default is 1 unless _MSC_VER), various OS and file related functions are included.
@@ -177,16 +174,8 @@
 
 /* ---------------- scheme choices ---------------- */
 
-#ifndef WITH_GMP
-  #define WITH_GMP 0
-  /* this includes multiprecision arithmetic for all numeric types and functions, using gmp, mpfr, and mpc
-   * WITH_GMP adds the following functions: bignum and bignum?, and (*s7* 'bignum-precision)
-   */
-#endif
 
-#ifndef DEFAULT_BIGNUM_PRECISION
-  #define DEFAULT_BIGNUM_PRECISION 128 /* (*s7* 'bignum-precision) initial value, must be >= 2 */
-#endif
+
 
 #ifndef WITH_PURE_S7
   #define WITH_PURE_S7 0
@@ -408,10 +397,12 @@
 #endif
 
 #include "s7.h"
+#include "s7_internal_helpers.h"
 #include "s7_scheme_base.h"
 #include "s7_scheme_inexact.h"
 #include "s7_scheme_complex.h"
 #include "s7_scheme_char.h"
+#include "s7_scheme_write.h"
 #include "s7_liii_bitwise.h"
 #include "s7_liii_string.h"
 #include "s7_liii_hash_table.h"
@@ -798,20 +789,7 @@ struct opt_info {
 
 #define q_temp(o) o->v[num_vunions - 1]
 
-#if WITH_GMP
-typedef struct bigint {mpz_t n; struct bigint *nxt;} bigint;
-typedef struct bigrat {mpq_t q; struct bigrat *nxt;} bigrat;
-typedef struct bigflt {mpfr_t x; struct bigflt *nxt;} bigflt;
-typedef struct bigcmp {mpc_t z; struct bigcmp *nxt;} bigcmp;
 
-typedef struct {
-  mpfr_t error, ux, x0, x1;
-  mpz_t i, i0, i1, n;
-  mpz_t p0, q0, r, r1, p1, q1, old_p1, old_q1;
-  mpfr_t val, e0, e1, e0p, e1p, old_e0, old_e1, old_e0p;
-  mpq_t q;
-} rat_locals_t;
-#endif
 
 typedef intptr_t opcode_t;
 
@@ -856,12 +834,7 @@ typedef struct s7_cell {
 	} complex_value;
       } cz;
 
-#if WITH_GMP
-      bigint *bgi;                /* bignums (integer) */
-      bigrat *bgr;                /*         (ratio) */
-      bigflt *bgf;                /*         (float) */
-      bigcmp *bgc;                /*         (complex) */
-#endif
+
     } number;
 
     struct {                      /* ports */
@@ -872,7 +845,7 @@ typedef struct s7_cell {
     } prt;
 
     struct{                       /* characters */
-      uint8_t c, up_c;
+      uint32_t c, up_c;
       int32_t length;
       bool alpha_c, digit_c, space_c, upper_c, lower_c;
       char c_name[12];
@@ -1028,12 +1001,8 @@ typedef struct s7_cell {
     } ctr;
 
     struct {                        /* random-state */
-#if WITH_GMP
-      gmp_randstate_t state;
-#else
       s7_uint seed, carry;
       /* for 64-bit floats we probably need 4 state fields */
-#endif
     } rng;
 
     struct {                        /* additional object types (C) */
@@ -1194,6 +1163,7 @@ struct s7_scheme {
   s7_pointer unbound_variable_hook;   /* *unbound-variable-hook* hook object */
   s7_pointer missing_close_paren_hook, rootlet_redefinition_hook;
   s7_pointer error_hook, read_error_hook; /* *error-hook* hook object, and *read-error-hook* */
+  s7_pointer exit_hook;                 /* *exit-hook* hook object */
   token_t tok;
   bool gc_off, gc_in_progress;        /* gc_off: if true, the GC won't run */
   uint32_t gc_stats, gensym_counter, f_class, add_class, multiply_class, subtract_class, num_eq_class;
@@ -1272,18 +1242,7 @@ struct s7_scheme {
   int32_t num_fdats, safety;
   gc_list_t *strings, *vectors, *input_ports, *output_ports, *input_string_ports, *continuations, *c_objects, *hash_tables;
   gc_list_t *gensyms, *undefineds, *multivectors, *weak_refs, *weak_hash_iterators, *opt1_funcs;
-#if WITH_GMP
-  gc_list_t *big_integers, *big_ratios, *big_reals, *big_complexes, *big_random_states;
-  mpz_t mpz_1, mpz_2, mpz_3, mpz_4;
-  mpq_t mpq_1, mpq_2, mpq_3;
-  mpfr_t mpfr_1, mpfr_2, mpfr_3;
-  mpc_t mpc_1, mpc_2;
-  rat_locals_t *ratloc;
-  bigint *bigints;
-  bigrat *bigrats;
-  bigflt *bigflts;
-  bigcmp *bigcmps;
-#endif
+
   s7_pointer *setters;
   s7_int setters_size, setters_loc;
   s7_pointer *tree_pointers;
@@ -1311,7 +1270,6 @@ struct s7_scheme {
   int32_t big_symbol_set_line, small_symbol_set_line, big_symbol_set_state, small_symbol_set_state, y_line, v_line, x_line, t_line;
   const char *big_symbol_set_func, *small_symbol_set_func;
 #endif
-  int32_t bignum_precision;
   s7_int baffle_ctr, map_call_ctr;
   s7_pointer default_random_state;
 
@@ -1327,7 +1285,7 @@ struct s7_scheme {
 
   s7_pointer abs_symbol, acos_symbol, acosh_symbol, add_symbol, angle_symbol, append_symbol, apply_symbol, apply_values_symbol, arity_symbol,
              ash_symbol, asin_symbol, asinh_symbol, assoc_symbol, assq_symbol, assv_symbol, atan_symbol, atanh_symbol, autoload_symbol, autoloader_symbol,
-             bacro_symbol, bacro_star_symbol, bignum_symbol, byte_vector_symbol, byte_vector_ref_symbol, byte_vector_set_symbol, byte_vector_to_string_symbol,
+             bacro_symbol, bacro_star_symbol, byte_vector_symbol, byte_vector_ref_symbol, byte_vector_set_symbol, byte_vector_to_string_symbol,
              c_pointer_symbol, c_pointer_info_symbol, c_pointer_to_list_symbol, c_pointer_type_symbol, c_pointer_weak1_symbol, c_pointer_weak2_symbol,
              caaaar_symbol, caaadr_symbol, caaar_symbol, caadar_symbol, caaddr_symbol, caadr_symbol,
              caar_symbol, cadaar_symbol, cadadr_symbol, cadar_symbol, caddar_symbol, cadddr_symbol, caddr_symbol, cadr_symbol,
@@ -1335,8 +1293,8 @@ struct s7_scheme {
              call_with_input_string_symbol, call_with_output_file_symbol, call_with_output_string_symbol, car_symbol,
              catch_symbol, cdaaar_symbol, cdaadr_symbol, cdaar_symbol, cdadar_symbol, cdaddr_symbol, cdadr_symbol, cdar_symbol,
              cddaar_symbol, cddadr_symbol, cddar_symbol, cdddar_symbol, cddddr_symbol, cdddr_symbol, cddr_symbol, cdr_symbol,
-             ceiling_symbol, char_downcase_symbol, char_eq_symbol, char_geq_symbol, char_gt_symbol, char_leq_symbol, char_lt_symbol,
-             char_position_symbol, char_to_integer_symbol, char_upcase_symbol, cload_directory_symbol, close_input_port_symbol,
+             ceiling_symbol, char_eq_symbol, char_geq_symbol, char_gt_symbol, char_leq_symbol, char_lt_symbol,
+             char_position_symbol, char_to_integer_symbol, cload_directory_symbol, close_input_port_symbol,
              close_output_port_symbol, complex_symbol, complex_vector_ref_symbol, complex_vector_set_symbol, complex_vector_symbol,
              cond_expand_symbol, cons_symbol, copy_symbol, cos_symbol, cosh_symbol, coverlet_symbol,
              curlet_symbol, current_error_port_symbol, current_input_port_symbol, current_output_port_symbol, cutlet_symbol, cyclic_sequences_symbol,
@@ -1345,13 +1303,13 @@ struct s7_scheme {
              features_symbol, file__symbol, fill_symbol, float_vector_ref_symbol, float_vector_set_symbol, float_vector_symbol, floor_symbol,
              flush_output_port_symbol, for_each_symbol, format_symbol, funclet_symbol, _function__symbol, procedure_arglist_symbol,
              gc_symbol, gcd_symbol, gensym_symbol, geq_symbol, get_output_string_symbol, gt_symbol,
-             hash_table_entries_symbol, hash_table_key_typer_symbol, hash_table_ref_symbol, hash_table_set_symbol, hash_table_symbol,
+             hash_table_size_symbol, hash_table_key_typer_symbol, hash_table_ref_symbol, hash_table_set_symbol, hash_table_symbol,
              hash_table_value_typer_symbol, help_symbol, hook_functions_symbol,
              imag_part_symbol, immutable_symbol, inexact_to_exact_symbol, inlet_symbol, int_vector_ref_symbol, int_vector_set_symbol, int_vector_symbol,
              integer_decode_float_symbol, integer_to_char_symbol,
-             is_aritable_symbol, is_bignum_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
+             is_aritable_symbol, is_boolean_symbol, is_byte_symbol, is_byte_vector_symbol,
              is_c_object_symbol, c_object_let_symbol, c_object_type_symbol, is_c_pointer_symbol,
-             is_char_alphabetic_symbol, is_char_lower_case_symbol, is_char_numeric_symbol, is_char_symbol, is_char_upper_case_symbol, is_char_whitespace_symbol,
+             is_char_alphabetic_symbol, is_char_symbol, is_char_whitespace_symbol,
              is_complex_symbol, is_complex_vector_symbol, is_constant_symbol,
              is_continuation_symbol, is_defined_symbol, is_dilambda_symbol, is_eof_object_symbol, is_eq_symbol, is_equal_symbol,
              is_eqv_symbol, is_even_symbol, is_exact_symbol, is_float_vector_symbol, is_funclet_symbol,
@@ -1386,9 +1344,9 @@ struct s7_scheme {
              setter_symbol, set_car_symbol, set_cdr_symbol,
              set_current_error_port_symbol, set_current_input_port_symbol, set_current_output_port_symbol,
              signature_symbol, sin_symbol, sinh_symbol, sort_symbol, sqrt_symbol,
-             stacktrace_symbol, string_append_symbol, string_copy_symbol, string_downcase_symbol, string_eq_symbol, string_fill_symbol,
+             stacktrace_symbol, string_append_symbol, string_copy_symbol, string_eq_symbol, string_fill_symbol,
              string_geq_symbol, string_gt_symbol, string_leq_symbol, string_lt_symbol, string_position_symbol, string_ref_symbol,
-             string_set_symbol, string_symbol, string_to_keyword_symbol, string_to_number_symbol, string_to_symbol_symbol, string_upcase_symbol,
+             string_set_symbol, string_symbol, string_to_keyword_symbol, string_to_number_symbol, string_to_symbol_symbol,
              sublet_symbol, substring_symbol, substring_uncopied_symbol, subtract_symbol, subvector_symbol, subvector_position_symbol, subvector_vector_symbol,
              symbol_symbol, symbol_to_dynamic_value_symbol, symbol_initial_value_symbol,
              symbol_to_keyword_symbol, symbol_to_string_symbol, symbol_to_value_symbol,
@@ -1401,9 +1359,8 @@ struct s7_scheme {
              write_byte_symbol, write_char_symbol, write_string_symbol, write_symbol;
   s7_pointer hash_code_symbol, dummy_equal_hash_table, features_setter;
 #if !WITH_PURE_S7
-  s7_pointer char_ci_eq_symbol, char_ci_geq_symbol, char_ci_gt_symbol, char_ci_leq_symbol, char_ci_lt_symbol, integer_length_symbol,
-             is_char_ready_symbol, let_to_list_symbol, list_to_string_symbol, list_to_vector_symbol, make_polar_symbol, string_ci_eq_symbol,
-             string_ci_geq_symbol, string_ci_gt_symbol, string_ci_leq_symbol, string_ci_lt_symbol, string_length_symbol,
+  s7_pointer integer_length_symbol,
+             is_char_ready_symbol, let_to_list_symbol, list_to_string_symbol, list_to_vector_symbol, make_polar_symbol, string_length_symbol,
              string_to_list_symbol, vector_length_symbol, vector_to_list_symbol;
 #endif
 #if WITH_R7RS
@@ -1463,6 +1420,7 @@ struct s7_scheme {
   s7_pointer closed_input_function, closed_output_function;
   s7_pointer vector_set_function, string_set_function, list_set_function, hash_table_set_function, let_set_function, c_object_set_function, last_function;
   s7_pointer wrong_type_arg_info, out_of_range_info, sole_arg_wrong_type_info, sole_arg_out_of_range_info;
+  s7_pointer unicode_chars_table;
 
   #define NUM_SAFE_PRELISTS 8
   #define NUM_SAFE_LISTS 32               /* 36 is the biggest normally (lint.scm), 49 in s7test, 57 in snd-test, > 16 doesn't happen much */
@@ -1853,7 +1811,7 @@ static s7_pointer too_many_arguments_string, not_enough_arguments_string, cant_b
   something_applicable_string, too_many_indices_string, intermediate_too_large_string,
   format_string_1, format_string_2, format_string_3, format_string_4, keyword_value_missing_string;
 
-static bool t_number_p[NUM_TYPES], t_small_real_p[NUM_TYPES], t_rational_p[NUM_TYPES], t_real_p[NUM_TYPES], t_big_number_p[NUM_TYPES];
+static bool t_number_p[NUM_TYPES], t_small_real_p[NUM_TYPES], t_rational_p[NUM_TYPES], t_real_p[NUM_TYPES];
 static bool t_simple_p[NUM_TYPES], t_structure_p[NUM_TYPES], t_immutable_p[NUM_TYPES];
 static bool t_any_macro_p[NUM_TYPES], t_any_closure_p[NUM_TYPES], t_has_closure_let[NUM_TYPES];
 static bool t_mappable_p[NUM_TYPES], t_sequence_p[NUM_TYPES], t_vector_p[NUM_TYPES];
@@ -1888,14 +1846,12 @@ static void init_types(void)
 #endif
     }
   {
-    const int32_t nums[8] = {T_INTEGER, T_RATIO, T_REAL, T_COMPLEX, T_BIG_INTEGER, T_BIG_RATIO, T_BIG_REAL, T_BIG_COMPLEX};
-    for (int32_t i = 0; i < 8; i++) t_number_p[nums[i]] = true;
+    const int32_t nums[4] = {T_INTEGER, T_RATIO, T_REAL, T_COMPLEX};
+    for (int32_t i = 0; i < 4; i++) t_number_p[nums[i]] = true;
   }
 
   t_rational_p[T_INTEGER] = true;
   t_rational_p[T_RATIO] = true;
-  t_rational_p[T_BIG_INTEGER] = true;
-  t_rational_p[T_BIG_RATIO] = true;
 
   t_small_real_p[T_INTEGER] = true;
   t_small_real_p[T_RATIO] = true;
@@ -1904,14 +1860,6 @@ static void init_types(void)
   t_real_p[T_INTEGER] = true;
   t_real_p[T_RATIO] = true;
   t_real_p[T_REAL] = true;
-  t_real_p[T_BIG_INTEGER] = true;
-  t_real_p[T_BIG_RATIO] = true;
-  t_real_p[T_BIG_REAL] = true;
-
-  t_big_number_p[T_BIG_INTEGER] = true;
-  t_big_number_p[T_BIG_RATIO] = true;
-  t_big_number_p[T_BIG_REAL] = true;
-  t_big_number_p[T_BIG_COMPLEX] = true;
 
   {
     const int32_t recs[8] = {T_PAIR, T_VECTOR, T_HASH_TABLE, T_SLOT, T_LET, T_ITERATOR, T_C_OBJECT, T_C_POINTER};
@@ -1985,23 +1933,11 @@ static void init_types(void)
   t_ext_p[T_DYNAMIC_WIND] = true;
   t_ext_p[T_CATCH] = true;
   t_ext_p[T_COUNTER] = true;
-#if !WITH_GMP
-  t_ext_p[T_BIG_INTEGER] = true;
-  t_ext_p[T_BIG_RATIO] = true;
-  t_ext_p[T_BIG_REAL] = true;
-  t_ext_p[T_BIG_COMPLEX] = true;
-#endif
   /* these cases are errors (null pointer, T_FREE checked by check_nref called by check_ref_exs) */
   t_exs_p[T_STACK] = true;
   t_exs_p[T_DYNAMIC_WIND] = true;
   t_exs_p[T_CATCH] = true;
   t_exs_p[T_COUNTER] = true;
-#if !WITH_GMP
-  t_exs_p[T_BIG_INTEGER] = true;
-  t_exs_p[T_BIG_RATIO] = true;
-  t_exs_p[T_BIG_REAL] = true;
-  t_exs_p[T_BIG_COMPLEX] = true;
-#endif
 #endif
 }
 
@@ -2046,11 +1982,7 @@ static void init_types(void)
   #define T_App(P) check_ref_app(P,                      __func__, __LINE__)                /* applicable or #f */
   #define T_Arg(P) check_ref_arg(P,                      __func__, __LINE__)                /* closure arg (list, symbol) */
   #define T_BVc(P) check_ref_one(P, T_BYTE_VECTOR,       __func__, __LINE__, "sweep", NULL)
-  #define T_Bgf(P) check_ref_one(P, T_BIG_RATIO,         __func__, __LINE__, "sweep", "free_big_ratio")
-  #define T_Bgi(P) check_ref_one(P, T_BIG_INTEGER,       __func__, __LINE__, "sweep", "free_big_integer")
-  #define T_Bgr(P) check_ref_one(P, T_BIG_REAL,          __func__, __LINE__, "sweep", "free_big_real")
-  #define T_Bgz(P) check_ref_one(P, T_BIG_COMPLEX,       __func__, __LINE__, "sweep", "free_big_complex")
-  #define T_CMac(P) check_ref_one(P, T_C_MACRO,          __func__, __LINE__, NULL, NULL)
+          #define T_CMac(P) check_ref_one(P, T_C_MACRO,          __func__, __LINE__, NULL, NULL)
   #define T_Cat(P) check_ref_one(P, T_CATCH,             __func__, __LINE__, NULL, NULL)
   #define T_CFn(P) check_ref_cfn(P,                      __func__, __LINE__)                /* c-functions (not c-macro) */
   #define T_Chr(P) check_ref_one(P, T_CHARACTER,         __func__, __LINE__, NULL, NULL)
@@ -2183,15 +2115,10 @@ static void init_types(void)
 #define is_small_real(P)               t_small_real_p[type(P)]
 #define is_real(P)                     t_real_p[type(P)]
 #define is_rational(P)                 t_rational_p[type(P)]
-#define is_big_number(p)               t_big_number_p[type(p)]
 #define is_t_integer(p)                (type(p) == T_INTEGER)
 #define is_t_ratio(p)                  (type(p) == T_RATIO)
 #define is_t_real(p)                   (type(p) == T_REAL)
 #define is_t_complex(p)                (type(p) == T_COMPLEX)
-#define is_t_big_integer(p)            (type(p) == T_BIG_INTEGER)
-#define is_t_big_ratio(p)              (type(p) == T_BIG_RATIO)
-#define is_t_big_real(p)               (type(p) == T_BIG_REAL)
-#define is_t_big_complex(p)            (type(p) == T_BIG_COMPLEX)
 
 #define is_boolean(p)                  (type(p) == T_BOOLEAN)
 
@@ -3843,20 +3770,7 @@ static void begin_temp_1(s7_scheme *sc, s7_pointer p, s7_pointer val, const char
   #define to_c_complex(p)              CMPLX(real_part(p), imag_part(p))
 #endif
 
-#if WITH_GMP
-#define big_integer(p)                 ((T_Bgi(p))->object.number.bgi->n)
-#define big_integer_nxt(p)             (T_Bgi(p))->object.number.bgi->nxt
-#define big_integer_bgi(p)             (T_Bgi(p))->object.number.bgi
-#define big_ratio(p)                   ((T_Bgf(p))->object.number.bgr->q)
-#define big_ratio_nxt(p)               (T_Bgf(p))->object.number.bgr->nxt
-#define big_ratio_bgr(p)               (T_Bgf(p))->object.number.bgr
-#define big_real(p)                    ((T_Bgr(p))->object.number.bgf->x)
-#define big_real_nxt(p)                (T_Bgr(p))->object.number.bgf->nxt
-#define big_real_bgf(p)                (T_Bgr(p))->object.number.bgf
-#define big_complex(p)                 ((T_Bgz(p))->object.number.bgc->z)
-#define big_complex_nxt(p)             (T_Bgz(p))->object.number.bgc->nxt
-#define big_complex_bgc(p)             (T_Bgz(p))->object.number.bgc
-#endif
+
 
 #if S7_DEBUGGING
 const char *display(s7_pointer obj);
@@ -3921,12 +3835,8 @@ static int32_t s7_int_digits_by_radix[17];
 
 static void init_int_limits(void)
 {
-#if WITH_GMP
-  #define S7_LOG_INT64_MAX 36.736800
-#else
   /* actually not safe = (log (- (expt 2 63) 1)) and (log (- (expt 2 31) 1)) (using 63 and 31 bits) */
   #define S7_LOG_INT64_MAX 43.668274
-#endif
   s7_int_digits_by_radix[0] = 0;
   s7_int_digits_by_radix[1] = 0;
   for (int32_t i = 2; i < 17; i++)
@@ -4752,7 +4662,7 @@ static bool is_h_optimized(s7_pointer p)
 }
 
 /* if this changes, remember to change lint.scm */
-typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl_bignum_precision, sl_catches, sl_cpu_time, sl_c_types,
+typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl_catches, sl_cpu_time, sl_c_types,
 	      sl_debug, sl_default_hash_table_length, sl_default_random_state, sl_default_rationalize_error, sl_equivalent_float_epsilon,
 	      sl_expansions, sl_filenames, sl_file_names, sl_float_format_precision, sl_free_heap_size, sl_gc_freed, sl_gc_info,
 	      sl_gc_protected_objects, sl_gc_resize_heap_by_4_fraction, sl_gc_resize_heap_fraction, sl_gc_stats, sl_gc_temps_size,
@@ -4766,7 +4676,7 @@ typedef enum {sl_no_field=0, sl_accept_all_keyword_arguments, sl_autoloading, sl
 	      sl_num_fields} starlet_t;
 
 static const char *starlet_names[sl_num_fields] =
-  {"no-field", "accept-all-keyword-arguments", "autoloading?", "bignum-precision", "catches", "cpu-time", "c-types",
+  {"no-field", "accept-all-keyword-arguments", "autoloading?", "catches", "cpu-time", "c-types",
    "debug", "default-hash-table-length", "default-random-state", "default-rationalize-error", "equivalent-float-epsilon",
    "expansions?", "filenames", "file-names", "float-format-precision", "free-heap-size", "gc-freed", "gc-info",
    "gc-protected-objects", "gc-resize-heap-by-4-fraction", "gc-resize-heap-fraction", "gc-stats", "gc-temps-size",
@@ -6049,7 +5959,6 @@ static s7_pointer wrap_real(s7_scheme *sc, s7_double x)
   return(wrapped_real);
 }
 
-#if !WITH_GMP
 static s7_pointer wrap_complex(s7_scheme *sc, s7_double rl, s7_double im)
 {
   s7_pointer wrapped_complex = car(sc->complex_wrappers);
@@ -6069,10 +5978,6 @@ static s7_pointer wrap_real_or_complex(s7_scheme *sc, s7_double rl, s7_double im
   if (im == 0.0) return(wrap_real(sc, rl));
   return(wrap_complex(sc, rl, im));
 }
-#else
-#define wrap_complex(Sc, A, B) make_complex(Sc, A, B)
-#define wrap_real_or_complex(Sc, A, B) make_complex(Sc, A, B)
-#endif
 
 static s7_pointer wrap_let(s7_scheme *sc, s7_pointer old_let)
 {
@@ -6284,10 +6189,6 @@ static const char *type_name_from_type(int32_t typ, article_t article)
     {
     case T_BACRO:           return((not_articled) ? "bacro"             : "a bacro");
     case T_BACRO_STAR:      return((not_articled) ? "bacro*"            : "a bacro*");
-    case T_BIG_COMPLEX:     return((not_articled) ? "big-complex-number": "a big complex number");
-    case T_BIG_INTEGER:     return((not_articled) ? "big-integer"       : "a big integer");
-    case T_BIG_RATIO:       return((not_articled) ? "big-ratio"         : "a big ratio");
-    case T_BIG_REAL:        return((not_articled) ? "big-real"          : "a big real");
     case T_BOOLEAN:         return("boolean");
     case T_BYTE_VECTOR:     return((not_articled) ? "byte-vector"       : "a byte-vector");
     case T_CATCH:           return((not_articled) ? "catch"             : "a catch");
@@ -7130,61 +7031,7 @@ static void process_continuation(s7_scheme *sc, s7_pointer cc)
 }
 
 
-#if WITH_GMP
-#if ((__GNU_MP_VERSION < 6) || ((__GNU_MP_VERSION == 6) && (__GNU_MP_VERSION_MINOR == 0)))
-static int32_t mpq_cmp_z(const mpq_t op1, const mpz_t op2)
-{
-  mpq_t z;
-  int32_t result;
-  mpq_init(z);
-  mpq_set_z(z, op2);
-  result = mpq_cmp(op1, z);
-  mpq_clear(z);
-  return(result);
-}
-#endif
-
-static s7_int big_integer_to_s7_int(s7_scheme *sc, mpz_t n);
-
-static s7_int s7_integer_clamped_if_gmp(s7_scheme *sc, s7_pointer num)
-{
-  if (is_t_integer(num))
-    return(integer(num));
-  if (is_t_big_integer(num))
-    return(big_integer_to_s7_int(sc, big_integer(num)));
-  return(0);
-}
-
-static void free_big_integer(s7_scheme *sc, s7_pointer num)
-{
-  big_integer_nxt(num) = sc->bigints;
-  sc->bigints = big_integer_bgi(num);
-  big_integer_bgi(num) = NULL;
-}
-
-static void free_big_ratio(s7_scheme *sc, s7_pointer num)
-{
-  big_ratio_nxt(num) = sc->bigrats;
-  sc->bigrats = big_ratio_bgr(num);
-  big_ratio_bgr(num) = NULL;
-}
-
-static void free_big_real(s7_scheme *sc, s7_pointer num)
-{
-  big_real_nxt(num) = sc->bigflts;
-  sc->bigflts = big_real_bgf(num);
-  big_real_bgf(num) = NULL;
-}
-
-static void free_big_complex(s7_scheme *sc, s7_pointer num)
-{
-  big_complex_nxt(num) = sc->bigcmps;
-  sc->bigcmps = big_complex_bgc(num);
-  big_complex_bgc(num) = NULL;
-}
-#else
 #define s7_integer_clamped_if_gmp(Sc, P) integer(P)
-#endif
 
 
 static void free_hash_table(s7_scheme *sc, s7_pointer table);
@@ -7295,22 +7142,7 @@ static void sweep(s7_scheme *sc)
       gp->loc = j;
     }
 
-#if WITH_GMP
-  gp = sc->big_integers;
-  process_gc_list(free_big_integer(sc, gc_obj)) /* gc_obj == gp->list[i] */
 
-  gp = sc->big_ratios;
-  process_gc_list(free_big_ratio(sc, gc_obj))
-
-  gp = sc->big_reals;
-  process_gc_list(free_big_real(sc, gc_obj))
-
-  gp = sc->big_complexes;
-  process_gc_list(free_big_complex(sc, gc_obj))
-
-  gp = sc->big_random_states;
-  process_gc_list(gmp_randclear(random_gmp_state(gc_obj)))
-#endif
 }
 
 static void add_to_gc_list(s7_scheme *sc, gc_list_t *gp, s7_pointer p)
@@ -7364,13 +7196,7 @@ static void add_gensym(s7_scheme *sc, s7_pointer p)
 #define add_weak_hash_iterator(sc, p) add_to_gc_list(sc, sc->weak_hash_iterators, p)
 #define add_opt1_func(sc, p) do {if (!opt1_func_listed(p)) add_to_gc_list(sc, sc->opt1_funcs, p); set_opt1_func_listed(p);} while (0) /* called by set_opt1_lambda_add */
 
-#if WITH_GMP
-#define add_big_integer(sc, p)       add_to_gc_list(sc, sc->big_integers, p)
-#define add_big_ratio(sc, p)         add_to_gc_list(sc, sc->big_ratios, p)
-#define add_big_real(sc, p)          add_to_gc_list(sc, sc->big_reals, p)
-#define add_big_complex(sc, p)       add_to_gc_list(sc, sc->big_complexes, p)
-#define add_big_random_state(sc, p)  add_to_gc_list(sc, sc->big_random_states, p)
-#endif
+
 
 static void init_gc_caches(s7_scheme *sc)
 {
@@ -7388,14 +7214,7 @@ static void init_gc_caches(s7_scheme *sc)
   sc->weak_refs = make_gc_list();
   sc->weak_hash_iterators = make_gc_list();
   sc->opt1_funcs = make_gc_list();
-#if WITH_GMP
-  sc->big_integers = make_gc_list();
-  sc->big_ratios = make_gc_list();
-  sc->big_reals = make_gc_list();
-  sc->big_complexes = make_gc_list();
-  sc->big_random_states = make_gc_list();
-  sc->ratloc = NULL;
-#endif
+
   /* slightly unrelated... */
   sc->setters_size = 4;
   sc->setters_loc = 0;
@@ -7785,10 +7604,6 @@ static void init_mark_functions(void)
 {
   mark_function[T_BACRO]               = mark_closure;
   mark_function[T_BACRO_STAR]          = mark_closure;
-  mark_function[T_BIG_COMPLEX]         = just_mark;
-  mark_function[T_BIG_INTEGER]         = just_mark;
-  mark_function[T_BIG_RATIO]           = just_mark;
-  mark_function[T_BIG_REAL]            = just_mark;
   mark_function[T_BOOLEAN]             = mark_noop;
   mark_function[T_BYTE_VECTOR]         = just_mark;
   mark_function[T_CATCH]               = mark_catch;
@@ -8417,6 +8232,15 @@ static void remove_gensym_from_heap(s7_scheme *sc, s7_pointer x) /* x known to b
 static inline void remove_from_heap(s7_scheme *sc, s7_pointer x)
 {
   /* global functions are very rarely redefined, so we can remove the function body from the heap when it is defined */
+  if ((!x) || (is_free(x))) return;
+  if (type_unchecked(x) == T_CHARACTER)
+    {
+      /* Unicode characters >255 are interned in sc->unicode_chars_table and can be shared
+       * across multiple syntax trees. Removing them from the heap here can double-remove the
+       * same cached character when another closure refers to it later.
+       */
+      return;
+    }
   if (!in_heap(x)) return;
   if (is_pair(x))   /* all the compute time is here, might be faster to go down a level explicitly */
     {
@@ -13334,711 +13158,6 @@ static s7_pointer g_nan_payload(s7_scheme *sc, s7_pointer args)
 
 
 /* -------- gmp stuff -------- */
-#if WITH_GMP
-static mp_prec_t mpc_precision = DEFAULT_BIGNUM_PRECISION;
-static mp_prec_t mpc_set_default_precision(mp_prec_t prec) {mpc_precision = prec; return(prec);}
-#define mpc_init(Z) mpc_init2(Z, mpc_precision)
-
-static bigint *alloc_bigint(s7_scheme *sc)
-{
-  bigint *p;
-  if (sc->bigints)
-    {
-      p = sc->bigints;
-      sc->bigints = p->nxt;
-    }
-  else
-    {
-      p = (bigint *)Malloc(sizeof(bigint));
-      /* not permalloc here: gmp must be playing tricky games with realloc or something.  permalloc can lead
-       *   to mpz_set_si overwriting adjacent memory (valgrind does not catch this), clobbering at least the
-       *   bigint nxt field.  Someday I need to look at the source.
-       */
-      mpz_init(p->n);
-    }
-  return(p);
-}
-
-static bigrat *alloc_bigrat(s7_scheme *sc)
-{
-  bigrat *p;
-  if (sc->bigrats)
-    {
-      p = sc->bigrats;
-      sc->bigrats = p->nxt;
-    }
-  else
-    {
-      p = (bigrat *)Malloc(sizeof(bigrat));
-      mpq_init(p->q);
-    }
-  return(p);
-}
-
-static bigflt *alloc_bigflt(s7_scheme *sc)
-{
-  bigflt *p;
-  if (sc->bigflts)
-    {
-      p = sc->bigflts;
-      sc->bigflts = p->nxt;
-      mpfr_set_prec(p->x, sc->bignum_precision);
-    }
-  else
-    {
-      p = (bigflt *)Malloc(sizeof(bigflt));
-      mpfr_init2(p->x, sc->bignum_precision);
-    }
-  return(p);
-}
-
-static bigcmp *alloc_bigcmp(s7_scheme *sc)
-{
-  bigcmp *p;
-  if (sc->bigcmps)
-    {
-      p = sc->bigcmps;
-      sc->bigcmps = p->nxt;
-      mpc_set_prec(p->z, sc->bignum_precision);
-    }
-  else
-    {
-      p = (bigcmp *)Malloc(sizeof(bigcmp));
-      mpc_init(p->z);
-    }
-  return(p);
-}
-
-static s7_pointer mpz_to_big_integer(s7_scheme *sc, mpz_t val)
-{
-  s7_pointer new_bgi;
-  new_cell(sc, new_bgi, T_BIG_INTEGER);
-  big_integer_bgi(new_bgi) = alloc_bigint(sc);
-  mpz_set(big_integer(new_bgi), val);
-  add_big_integer(sc, new_bgi);
-  return(new_bgi);
-}
-
-static s7_pointer mpz_to_integer(s7_scheme *sc, mpz_t val)
-{
-  if (mpz_fits_slong_p(val))
-    return(make_integer(sc, mpz_get_si(val)));
-  return(mpz_to_big_integer(sc, val));
-}
-
-#if !WITH_PURE_S7
-static s7_pointer mpz_to_big_real(s7_scheme *sc, mpz_t val)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-  mpfr_set_z(big_real(new_bgf), val, MPFR_RNDN);
-  return(new_bgf);
-}
-#endif
-
-static s7_pointer mpq_to_big_ratio(s7_scheme *sc, mpq_t val)
-{
-  s7_pointer new_bgr;
-  new_cell(sc, new_bgr, T_BIG_RATIO);
-  big_ratio_bgr(new_bgr) = alloc_bigrat(sc);
-  add_big_ratio(sc, new_bgr);
-  mpq_set(big_ratio(new_bgr), val);
-  return(new_bgr);
-}
-
-static s7_pointer mpq_to_rational(s7_scheme *sc, mpq_t val)
-{
-  if (mpz_cmp_ui(mpq_denref(val), 1) == 0)
-    return(mpz_to_integer(sc, mpq_numref(val)));
-#if S7_DEBUGGING
-  mpq_canonicalize(val);
-  if (mpz_cmp_ui(mpq_denref(val), 1) == 0)
-    {
-      fprintf(stderr, "mpq_to_rational: missing canonicalize\n");
-      return(mpz_to_integer(sc, mpq_numref(val)));
-    }
-#endif
- if ((mpz_fits_slong_p(mpq_numref(val))) && (mpz_fits_slong_p(mpq_denref(val))))
-    return(make_simple_ratio(sc, mpz_get_si(mpq_numref(val)), mpz_get_si(mpq_denref(val))));
-  return(mpq_to_big_ratio(sc, val));
-}
-
-static s7_pointer mpq_to_canonicalized_rational(s7_scheme *sc, mpq_t mpq)
-{
-  mpq_canonicalize(mpq);
-  return(mpq_to_rational(sc, mpq));
-}
-
-static s7_pointer mpz_to_rational(s7_scheme *sc, mpz_t n, mpz_t d) /* mpz_3 and mpz_4 */
-{
-  if (mpz_cmp_ui(d, 1) == 0)
-    return(mpz_to_integer(sc, n));
-  mpq_set_num(sc->mpq_1, n);
-  mpq_set_den(sc->mpq_1, d);
-  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-}
-
-#if !WITH_PURE_S7
-static s7_pointer mpq_to_big_real(s7_scheme *sc, mpq_t val)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-  mpfr_set_q(big_real(new_bgf), val, MPFR_RNDN);
-  return(new_bgf);
-}
-#endif
-
-static s7_pointer any_rational_to_mpq(s7_scheme *sc, s7_pointer z, mpq_t bigq)
-{
-  switch (type(z))
-    {
-    case T_INTEGER:     mpq_set_si(bigq, integer(z), 1);                break;
-    case T_BIG_INTEGER: mpq_set_z(bigq, big_integer(z));                break;
-    case T_RATIO:       mpq_set_si(bigq, numerator(z), denominator(z)); break;
-    case T_BIG_RATIO:   mpq_set(bigq, big_ratio(z));                    break;
-    }
-  return(z);
-}
-
-static s7_pointer mpfr_to_integer(s7_scheme *sc, mpfr_t val)
-{
-  mpfr_get_z(sc->mpz_4, val, MPFR_RNDN);
-  return(mpz_to_integer(sc, sc->mpz_4));
-}
-
-static s7_pointer mpfr_to_big_real(s7_scheme *sc, mpfr_t val)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  add_big_real(sc, new_bgf);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  mpfr_set(big_real(new_bgf), val, MPFR_RNDN);
-  return(new_bgf);
-}
-
-static s7_pointer mpc_to_number(s7_scheme *sc, mpc_t val)
-{
-  s7_pointer new_bgc;
-  if (mpfr_zero_p(mpc_imagref(val)))
-    return(mpfr_to_big_real(sc, mpc_realref(val)));
-  new_cell(sc, new_bgc, T_BIG_COMPLEX);
-  big_complex_bgc(new_bgc) = alloc_bigcmp(sc);
-  add_big_complex(sc, new_bgc);
-  mpc_set(big_complex(new_bgc), val, MPC_RNDNN);
-  return(new_bgc);
-}
-
-/* s7.h */
-mpz_t  *s7_big_integer(s7_pointer x) {return(&big_integer(x));}
-mpq_t  *s7_big_ratio(s7_pointer x)   {return(&big_ratio(x));}
-mpfr_t *s7_big_real(s7_pointer x)    {return(&big_real(x));}
-mpc_t  *s7_big_complex(s7_pointer x) {return(&big_complex(x));}
-
-bool s7_is_big_integer(s7_pointer x) {return(is_t_big_integer(x));}
-bool s7_is_big_ratio(s7_pointer x)   {return(is_t_big_ratio(x));}
-bool s7_is_big_real(s7_pointer x)    {return(is_t_big_real(x));}
-bool s7_is_big_complex(s7_pointer x) {return(is_t_big_complex(x));}
-
-s7_pointer s7_make_big_integer(s7_scheme *sc, mpz_t *val) {return(mpz_to_integer(sc, *val));}
-s7_pointer s7_make_big_ratio(s7_scheme *sc, mpq_t *val)   {return(mpq_to_rational(sc, *val));}
-s7_pointer s7_make_big_real(s7_scheme *sc, mpfr_t *val)   {return(mpfr_to_big_real(sc, *val));}
-s7_pointer s7_make_big_complex(s7_scheme *sc, mpc_t *val) {return(mpc_to_number(sc, *val));}
-
-#if !WITH_PURE_S7
-static s7_pointer big_integer_to_big_real(s7_scheme *sc, s7_pointer x) {return(mpz_to_big_real(sc, big_integer(x)));}
-static s7_pointer big_ratio_to_big_real(s7_scheme *sc, s7_pointer x)   {return(mpq_to_big_real(sc, big_ratio(x)));}
-#endif
-
-static s7_pointer s7_int_to_big_integer(s7_scheme *sc, s7_int val)
-{
-  s7_pointer new_bgi;
-  new_cell(sc, new_bgi, T_BIG_INTEGER);
-  big_integer_bgi(new_bgi) = alloc_bigint(sc);
-  mpz_set_si(big_integer(new_bgi), val);
-  add_big_integer(sc, new_bgi);
-  return(new_bgi);
-}
-
-static s7_pointer s7_int_to_big_ratio(s7_scheme *sc, s7_int num, s7_int den)
-{
-  /* (called only in g_bignum), den here always comes from denominator(x) or some positive constant so it is not negative */
-  s7_pointer new_bgr;
-  new_cell(sc, new_bgr, T_BIG_RATIO);
-  big_ratio_bgr(new_bgr) = alloc_bigrat(sc);
-  add_big_ratio(sc, new_bgr);
-  mpq_set_si(big_ratio(new_bgr), num, den);
-  return(new_bgr);
-}
-
-static s7_pointer s7_double_to_big_real(s7_scheme *sc, s7_double rl)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-  mpfr_set_d(big_real(new_bgf), rl, MPFR_RNDN);
-  return(new_bgf);
-}
-
-static s7_pointer s7_double_to_big_complex(s7_scheme *sc, s7_double rl, s7_double im)
-{
-  s7_pointer new_bgc;
-  new_cell(sc, new_bgc, T_BIG_COMPLEX);
-  add_big_complex(sc, new_bgc);
-  big_complex_bgc(new_bgc) = alloc_bigcmp(sc);
-  mpc_set_d_d(big_complex(new_bgc), rl, im, MPC_RNDNN);
-  return(new_bgc);
-}
-
-static s7_pointer big_pi(s7_scheme *sc)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL | T_IMMUTABLE);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-  mpfr_const_pi(big_real(new_bgf), MPFR_RNDN);
-  return(new_bgf);
-}
-
-static bool is_integer_via_method(s7_scheme *sc, s7_pointer p)
-{
-  if (s7_is_integer(p))
-    return(true);
-  if (has_active_methods(sc, p))
-    {
-      s7_pointer func = find_method_with_let(sc, p, sc->is_integer_symbol);
-      if (func != sc->undefined)
-	return(is_true(sc, s7_apply_function(sc, func, set_plist_1(sc, p))));
-    }
-  return(false);
-}
-
-#if !WITH_PURE_S7
-static s7_pointer s7_number_to_big_real(s7_scheme *sc, s7_pointer num)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-
-  switch (type(num))
-    {
-    case T_INTEGER:
-      mpfr_set_si(big_real(new_bgf), integer(num), MPFR_RNDN);
-      break;
-    case T_RATIO:
-      /* here we can't use fraction(number(num)) even though that uses long_double division because
-       *   there are lots of s7_int ratios that will still look the same. We have to do the bignum divide by hand.
-       */
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_set_q(big_real(new_bgf), sc->mpq_1, MPFR_RNDN);
-      break;
-    default:
-      mpfr_set_d(big_real(new_bgf), s7_real(num), MPFR_RNDN);
-      break;
-    }
-  return(new_bgf);
-}
-#endif
-
-static s7_pointer s7_number_to_big_complex(s7_scheme *sc, s7_pointer num)
-{
-  s7_pointer new_bgc;
-  new_cell(sc, new_bgc, T_BIG_COMPLEX);
-  big_complex_bgc(new_bgc) = alloc_bigcmp(sc);
-  add_big_complex(sc, new_bgc);
-
-  switch (type(num))
-    {
-    case T_INTEGER:
-      mpc_set_si(big_complex(new_bgc), integer(num), MPC_RNDNN);
-      break;
-    case T_RATIO:
-      /* can't use fraction here */
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_set_q(sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-      mpc_set_fr(big_complex(new_bgc), sc->mpfr_1, MPC_RNDNN);
-      break;
-    case T_REAL:
-      mpc_set_d(big_complex(new_bgc), s7_real(num), MPC_RNDNN);
-      break;
-    default:
-      mpc_set_d_d(big_complex(new_bgc), real_part(num), imag_part(num), MPC_RNDNN);
-      break;
-    }
-  return(new_bgc);
-}
-
-static s7_pointer any_real_to_mpfr(s7_scheme *sc, s7_pointer num, mpfr_t bigx)
-{
-  switch (type(num))
-    {
-    case T_INTEGER:
-      mpfr_set_si(bigx, integer(num), MPFR_RNDN);
-      break;
-    case T_RATIO:
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_set_q(bigx, sc->mpq_1, MPFR_RNDN);
-      break;
-    case T_REAL:
-      mpfr_set_d(bigx, real(num), MPFR_RNDN);
-      if (is_NaN(real(num))) return(make_nan_with_payload(sc, __LINE__));
-      if (is_inf(real(num))) return(real_infinity);
-      break;
-    case T_BIG_INTEGER:
-      mpfr_set_z(bigx, big_integer(num), MPFR_RNDN);
-      break;
-    case T_BIG_RATIO:
-      mpfr_set_q(bigx, big_ratio(num), MPFR_RNDN);
-      break;
-    case T_BIG_REAL:
-      mpfr_set(bigx, big_real(num), MPFR_RNDN);
-      if (mpfr_nan_p(big_real(num))) return(make_nan_with_payload(sc, __LINE__));
-      if (mpfr_inf_p(big_real(num))) return(real_infinity);
-      break;
-    }
-  return(NULL);
-}
-
-#define mpc_zero_p(z) ((mpfr_zero_p(mpc_realref(z))) && (mpfr_zero_p(mpc_imagref(z))))
-
-static s7_pointer any_number_to_mpc(s7_scheme *sc, s7_pointer num, mpc_t bigz)
-{
-  switch (type(num))
-    {
-    case T_INTEGER:
-      mpc_set_si(bigz, integer(num), MPC_RNDNN);
-      break;
-    case T_RATIO:
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpc_set_q(bigz, sc->mpq_1, MPC_RNDNN);
-      break;
-    case T_REAL:
-      if (is_NaN(real(num))) return(make_nan_with_payload(sc, __LINE__));
-      if (is_inf(real(num))) return(real_infinity);
-      mpc_set_d(bigz, real(num), MPC_RNDNN);
-      break;
-    case T_COMPLEX:
-      if (is_NaN(imag_part(num))) return(complex_NaN);
-      if (is_NaN(real_part(num))) return(make_nan_with_payload(sc, __LINE__));
-     mpc_set_d_d(bigz, real_part(num), imag_part(num), MPC_RNDNN);
-      break;
-    case T_BIG_INTEGER:
-      mpc_set_z(bigz, big_integer(num), MPC_RNDNN);
-      break;
-    case T_BIG_RATIO:
-      mpc_set_q(bigz, big_ratio(num), MPC_RNDNN);
-      break;
-    case T_BIG_REAL:
-      mpc_set_fr(bigz, big_real(num), MPC_RNDNN);
-      if (mpfr_nan_p(big_real(num))) return(make_nan_with_payload(sc, __LINE__));
-      if (mpfr_inf_p(big_real(num))) return(real_infinity);
-      break;
-    case T_BIG_COMPLEX:
-      if (mpfr_nan_p(mpc_imagref(big_complex(num)))) return(complex_NaN);
-      if (mpfr_nan_p(mpc_realref(big_complex(num)))) return(make_nan_with_payload(sc, __LINE__));
-      mpc_set(bigz, big_complex(num), MPC_RNDNN);
-      break;
-    }
-  return(NULL);
-}
-
-static s7_pointer make_big_complex(s7_scheme *sc, mpfr_t rl, mpfr_t im)
-{
-  /* there is no mpc_get_str equivalent, so we need to split up str, use make_big_real to get the 2 halves, then mpc_init, then mpc_set_fr_fr */
-  s7_pointer new_bgc;
-  new_cell(sc, new_bgc, T_BIG_COMPLEX);
-  big_complex_bgc(new_bgc) = alloc_bigcmp(sc);
-  add_big_complex(sc, new_bgc);
-  mpc_set_fr_fr(big_complex(new_bgc), rl ,im, MPC_RNDNN);
-  return(new_bgc);
-}
-
-static block_t *mpfr_to_string(s7_scheme *sc, mpfr_t val, int32_t radix)
-{
-  if (mpfr_zero_p(val))
-    return(string_to_block(sc, "0.0", 3));
-  if (mpfr_nan_p(val))
-    return(string_to_block(sc, "+nan.0", 6));
-  if (mpfr_inf_p(val))
-    return((mpfr_signbit(val) == 0) ? string_to_block(sc, "+inf.0", 6) : string_to_block(sc, "-inf.0", 6));
-  {
-    mp_exp_t expptr;
-    block_t *b = callocate(sc, sc->bignum_precision + 32);
-    char *str = mpfr_get_str((char *)block_data(b), &expptr, radix, 0, val, MPFR_RNDN);
-    int32_t ep = (int32_t)expptr;
-    s7_int i, len = safe_strlen(str);
-
-    /* remove trailing 0's */
-    for (i = len - 1; i > 3; i--)
-      if (str[i] != '0')
-	break;
-    if (i < len - 1)
-      str[i + 1] = '\0';
-    {
-      block_t *btmp = mallocate(sc, len + 64);
-      if (str[0] == '-')
-	snprintf((char *)block_data(btmp), len + 64, "-%c.%s%c%d", str[1], (char *)(str + 2), (radix <= 10) ? 'E' : '@', ep - 1);
-      else snprintf((char *)block_data(btmp), len + 64, "%c.%s%c%d", str[0], (char *)(str + 1), (radix <= 10) ? 'E' : '@', ep - 1);
-      liberate(sc, b);
-      return(btmp);
-    }}
-}
-
-static block_t *mpc_to_string(s7_scheme *sc, mpc_t val, int32_t radix, use_write_t use_write)
-{
-  block_t *rl, *im, *tmp;
-  s7_int len;
-
-  mpc_real(sc->mpfr_1, val, MPFR_RNDN);
-  rl = mpfr_to_string(sc, sc->mpfr_1, radix);
-  mpc_imag(sc->mpfr_2, val, MPFR_RNDN);
-  im = mpfr_to_string(sc, sc->mpfr_2, radix);
-
-  len = safe_strlen((char *)block_data(rl)) + safe_strlen((char *)block_data(im)) + 128;
-  tmp = mallocate(sc, len);
-  snprintf((char *)block_data(tmp), len, "%s%s%si",
-	   (char *)block_data(rl),
-	   ((((char *)block_data(im))[0] == '-') || (((char *)block_data(im))[0] == '+')) ? "" : "+", (char *)block_data(im));
-
-  liberate(sc, rl);
-  liberate(sc, im);
-  return(tmp);
-}
-
-static block_t *big_number_to_string_with_radix(s7_scheme *sc, s7_pointer num, int32_t radix, s7_int width, s7_int *nlen, use_write_t use_write)
-{
-  block_t *str;
-  switch (type(num))
-    {
-    case T_BIG_INTEGER:
-      str = callocate(sc, mpz_sizeinbase(big_integer(num), radix) + 64);
-      mpz_get_str((char *)block_data(str), radix, big_integer(num));
-      break;
-    case T_BIG_RATIO:
-      mpz_set(sc->mpz_1, mpq_numref(big_ratio(num)));
-      mpz_set(sc->mpz_2, mpq_denref(big_ratio(num)));
-      str = callocate(sc, mpz_sizeinbase(sc->mpz_1, radix) + mpz_sizeinbase(sc->mpz_2, radix) + 64);
-      mpq_get_str((char *)block_data(str), radix, big_ratio(num));
-      break;
-    case T_BIG_REAL:
-      str = mpfr_to_string(sc, big_real(num), radix);
-      break;
-    default:
-      str = mpc_to_string(sc, big_complex(num), radix, use_write);
-      break;
-    }
-  if (width > 0)
-    {
-      const s7_int len = safe_strlen((char *)block_data(str));
-      if (width > len)
-	{
-	  const int32_t spaces = width - len;
-	  block_t *tmp = (block_t *)mallocate(sc, width + 1);
-	  ((char *)block_data(tmp))[width] = '\0';
-	  memmove((void *)((char *)block_data(tmp) + spaces), (void *)block_data(str), len);
-	  local_memset((void *)block_data(tmp), (int)' ', spaces);
-	  (*nlen) = width;
-	  liberate(sc, str);
-	  return(tmp);
-	}
-      (*nlen) = len;
-    }
-  else (*nlen) = safe_strlen((char *)block_data(str));
-  return(str);
-}
-
-static s7_pointer string_to_big_integer(s7_scheme *sc, const char *str, int32_t radix)
-{
-  mpz_set_str(sc->mpz_4, (str[0] == '+') ? (const char *)(str + 1) : str, radix);
-  return(mpz_to_integer(sc, sc->mpz_4));
-}
-
-static s7_pointer string_to_big_ratio(s7_scheme *sc, const char *str, int32_t radix)
-{
-  s7_pointer new_bgr;
-  mpq_set_str(sc->mpq_1, str, radix);
-  mpq_canonicalize(sc->mpq_1);
-  if (mpz_cmp_ui(mpq_denref(sc->mpq_1), 1) == 0)
-    return(mpz_to_integer(sc, mpq_numref(sc->mpq_1)));
-  new_cell(sc, new_bgr, T_BIG_RATIO);
-  big_ratio_bgr(new_bgr) = alloc_bigrat(sc);
-  add_big_ratio(sc, new_bgr);
-  mpq_set(big_ratio(new_bgr), sc->mpq_1);
-  return(new_bgr);
-}
-
-static s7_pointer string_to_big_real(s7_scheme *sc, const char *str, int32_t radix)
-{
-  s7_pointer new_bgf;
-  new_cell(sc, new_bgf, T_BIG_REAL);
-  big_real_bgf(new_bgf) = alloc_bigflt(sc);
-  add_big_real(sc, new_bgf);
-  mpfr_set_str(big_real(new_bgf), str, radix, MPFR_RNDN);
-  return(new_bgf);
-}
-
-static s7_pointer string_to_either_integer(s7_scheme *sc, const char *str, int32_t radix)
-{
-  bool overflow = false;
-  s7_int val = s7_string_to_integer(str, radix, &overflow);
-  if (!overflow)
-    return(make_integer(sc, val));
-  return(string_to_big_integer(sc, str, radix));
-}
-
-static s7_pointer string_to_either_ratio(s7_scheme *sc, const char *nstr, const char *dstr, int32_t radix)
-{
-  bool overflow = false;
-  /* gmp segfaults if passed a bignum/0 so this needs to check first that the denominator is not 0 before letting gmp screw up.
-   *   Also, if the first character is '+', gmp returns 0!
-   */
-  const s7_int d = s7_string_to_integer(dstr, radix, &overflow);
-  if (!overflow)
-    {
-      s7_int n;
-      if (d == 0) return(make_nan_with_payload(sc, __LINE__)); /* this NaN can end up as a hash-table key -- maybe the payload is confusing? */
-      n = s7_string_to_integer(nstr, radix, &overflow);
-      if (!overflow)
-	return(make_ratio(sc, n, d));
-    }
-  if (nstr[0] == '+')
-    return(string_to_big_ratio(sc, (const char *)(nstr + 1), radix));
-  return(string_to_big_ratio(sc, nstr, radix));
-}
-
-static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix, bool *overflow); /* gmp version */
-
-static s7_pointer string_to_either_real(s7_scheme *sc, const char *str, int32_t radix)
-{
-  bool overflow = false;
-  s7_double val = string_to_double_with_radix((char *)str, radix, &overflow);
-  if (!overflow) return(make_real(sc, val));
-  return(string_to_big_real(sc, str, radix));
-}
-
-static s7_pointer string_to_either_complex_1(s7_scheme *sc, char *q, char *slash1, char *ex1, bool has_dec_point1, int32_t radix, s7_double *d_rl)
-{
-  bool overflow = false;
-  /* there's a real problem here -- we don't want to promote s7_double .1 to a bignum because
-   *    its low order digits are garbage, causing (rationalize .1 0) to return 3602879701896397/36028797018963968
-   *    no matter what the bignum-precision.  But we can't just fallback on gmp's reader because (for example)
-   *    it reads 1/2+i or 1+0/0i as 1.0.  Also format gets screwed up.  And string->number signals an error
-   *    where it should return #f.  I wonder what to do.
-   */
-  if ((has_dec_point1) ||
-      (ex1))
-    {
-      (*d_rl) = string_to_double_with_radix(q, radix, &overflow);
-      if (overflow) return(string_to_big_real(sc, q, radix));
-    }
-  else
-    {
-      if (slash1)
-	{
-	  s7_int d, n = s7_string_to_integer(q, radix, &overflow);  /* q can include the slash and denominator */
-	  if (overflow) return(string_to_big_ratio(sc, q, radix));
-	  d = s7_string_to_integer(slash1, radix, &overflow);
-	  if (overflow) return(string_to_big_ratio(sc, q, radix));
-	  (*d_rl) = (s7_double)n / (s7_double)d;
-	}
-      else
-	{
-	  s7_int val = s7_string_to_integer(q, radix, &overflow);
-	  if (overflow) return(string_to_big_integer(sc, q, radix));
-	  (*d_rl) = (s7_double)val;
-	}}
-  if ((*d_rl) == -0.0) (*d_rl) = 0.0;
-  return(NULL);
-}
-
-static s7_pointer string_to_either_complex(s7_scheme *sc, char *q, char *slash1, char *ex1, bool has_dec_point1,
-					   char *plus, char *slash2, char *ex2, bool has_dec_point2,
-					   int32_t radix, int32_t has_plus_or_minus)
-{
-  /* this can be just about anything involving 2 real/ratio/int portions, +/- in between and 'i' at the end */
-  double d_rl = 0.0, d_im = 0.0;
-  s7_pointer p_rl = string_to_either_complex_1(sc, q, slash1, ex1, has_dec_point1, radix, &d_rl);
-  s7_pointer p_im = string_to_either_complex_1(sc, plus, slash2, ex2, has_dec_point2, radix, &d_im);
-
-  if ((d_im == 0.0) &&                     /* 1.0+0.0000000000000000000000000000i */
-      ((!p_im) || (is_zero(p_im))))
-    return((p_rl) ? p_rl : make_real(sc, d_rl));
-  if ((!p_rl) && (!p_im))
-    return(make_complex_not_0i(sc, d_rl, (has_plus_or_minus == -1) ? (-d_im) : d_im));
-  if (p_rl)
-    any_real_to_mpfr(sc, p_rl, sc->mpfr_1);
-  else mpfr_set_d(sc->mpfr_1, d_rl, MPFR_RNDN);
-  if (p_im)
-    any_real_to_mpfr(sc, p_im, sc->mpfr_2);
-  else mpfr_set_d(sc->mpfr_2, d_im, MPFR_RNDN);
-  if (has_plus_or_minus == -1)
-    mpfr_neg(sc->mpfr_2, sc->mpfr_2, MPFR_RNDN);
-  return(make_big_complex(sc, sc->mpfr_1, sc->mpfr_2));
-}
-
-static bool big_numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
-{
-  /* either or both can be big here, but not neither, and types might not match at all */
-  switch (type(x))
-    {
-    case T_INTEGER:
-      return((is_t_big_integer(y)) && (mpz_cmp_si(big_integer(y), integer(x)) == 0));
-    case T_BIG_INTEGER:
-      if (is_t_big_integer(y)) return(mpz_cmp(big_integer(x), big_integer(y)) == 0);
-      return((is_t_integer(y)) && (mpz_cmp_si(big_integer(x), integer(y)) == 0));
-    case T_RATIO:
-      if (!is_t_big_ratio(y)) return(false);
-      mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-      return(mpq_equal(sc->mpq_1, big_ratio(y)));
-    case T_BIG_RATIO:
-      if (is_t_big_ratio(y)) return(mpq_equal(big_ratio(x), big_ratio(y)));
-      if (!is_t_ratio(y)) return(false);
-      mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-      return(mpq_equal(sc->mpq_1, big_ratio(x)));
-    case T_REAL:
-      if (is_NaN(real(x))) return(false);
-      return((is_t_big_real(y)) && (!mpfr_nan_p(big_real(y))) && (mpfr_cmp_d(big_real(y), real(x)) == 0));
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x))) return(false);
-      if (is_t_big_real(y)) return((!mpfr_nan_p(big_real(y))) && (mpfr_equal_p(big_real(x), big_real(y))));
-      return((is_t_real(y)) && (!is_NaN(real(y))) && (mpfr_cmp_d(big_real(x), real(y)) == 0));
-    case T_COMPLEX:
-      if ((is_NaN(real_part(x))) || (is_NaN(imag_part(x)))) return(false);
-      if (!is_t_big_complex(y)) return(false);
-      if ((mpfr_nan_p(mpc_realref(big_complex(y)))) || (mpfr_nan_p(mpc_imagref(big_complex(y)))))
-	return(false);
-      mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-      return(mpc_cmp(sc->mpc_1, big_complex(y)) == 0);
-    case T_BIG_COMPLEX:
-      if ((mpfr_nan_p(mpc_realref(big_complex(x)))) || (mpfr_nan_p(mpc_imagref(big_complex(x)))))
-	return(false);
-      if (is_t_big_complex(y))
-	{
-	  if ((mpfr_nan_p(mpc_realref(big_complex(y)))) || (mpfr_nan_p(mpc_imagref(big_complex(y)))))
-	    return(false);
-	  return(mpc_cmp(big_complex(x), big_complex(y)) == 0);
-	}
-      if (is_t_complex(y))
-	{
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))) return(false);
-	  mpc_set_d_d(sc->mpc_2, real_part(y), imag_part(y), MPC_RNDNN);
-	  return(mpc_cmp(big_complex(x), sc->mpc_1) == 0);
-	}}
-  return(false);
-}
-
-static s7_int big_integer_to_s7_int(s7_scheme *sc, mpz_t n)
-{
-  if (!mpz_fits_slong_p(n))
-    error_nr(sc, sc->out_of_range_symbol, set_elist_2(sc, wrap_string(sc, "bigint does not fit in s7_int: ~S", 33), mpz_to_big_integer(sc, n)));
-  return(mpz_get_si(n));
-}
-#endif
 
 #ifndef HAVE_OVERFLOW_CHECKS
   #if ((defined(__clang__) && (!POINTER_32) && ((__clang_major__ > 3) || (__clang_major__ == 3 && __clang_minor__ >= 4))) || (defined(__GNUC__) && (__GNUC__ >= 5)))
@@ -14199,20 +13318,12 @@ bool s7_is_rational(s7_pointer p) {return(is_rational(p));}
 
 bool s7_is_integer(s7_pointer p)
 {
-#if WITH_GMP
-  return((is_t_integer(p)) || (is_t_big_integer(p)));
-#else
   return(is_t_integer(p));
-#endif
 }
 
 bool s7_is_ratio(s7_pointer p)
 {
-#if WITH_GMP
-  return((is_t_ratio(p)) || (is_t_big_ratio(p)));
-#else
   return(is_t_ratio(p));
-#endif
 }
 
 static s7_int c_gcd_1(s7_int u, s7_int v)
@@ -14574,12 +13685,6 @@ s7_double s7_number_to_real_with_caller(s7_scheme *sc, s7_pointer x, const char 
     {
     case T_INTEGER:     return((s7_double)integer(x));
     case T_RATIO:       return(fraction(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)big_integer_to_s7_int(sc, big_integer(x)));
-    case T_BIG_RATIO:   return((s7_double)((long_double)big_integer_to_s7_int(sc, mpq_numref(big_ratio(x))) /
-					   (long_double)big_integer_to_s7_int(sc, mpq_denref(big_ratio(x)))));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-#endif
     default:
       sole_arg_wrong_type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), x, sc->type_names[T_REAL]);
     }
@@ -14593,12 +13698,6 @@ s7_double s7_number_to_real_with_location(s7_scheme *sc, s7_pointer x, s7_pointe
     {
     case T_INTEGER:     return((s7_double)integer(x));
     case T_RATIO:       return(fraction(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)big_integer_to_s7_int(sc, big_integer(x)));
-    case T_BIG_RATIO:   return((s7_double)((long_double)big_integer_to_s7_int(sc, mpq_numref(big_ratio(x))) /
-					   (long_double)big_integer_to_s7_int(sc, mpq_denref(big_ratio(x)))));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-#endif
     default:
       sole_arg_wrong_type_error_nr(sc, caller, x, sc->type_names[T_REAL]);
     }
@@ -14610,9 +13709,6 @@ s7_double s7_number_to_real(s7_scheme *sc, s7_pointer x) {return(s7_number_to_re
 s7_int s7_number_to_integer_with_caller(s7_scheme *sc, s7_pointer x, const char *caller)
 {
   if (is_t_integer(x)) return(integer(x));
-#if WITH_GMP
-  if (is_t_big_integer(x)) return(big_integer_to_s7_int(sc, big_integer(x)));
-#endif
   sole_arg_wrong_type_error_nr(sc, wrap_string(sc, caller, safe_strlen(caller)), x, sc->type_names[T_INTEGER]);
   return(0);
 }
@@ -14625,10 +13721,6 @@ s7_int s7_numerator(s7_pointer x)
     {
     case T_INTEGER:     return(integer(x));
     case T_RATIO:       return(numerator(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return(mpz_get_si(big_integer(x))); /* big_integer_to_s7_int but no sc -- no error if out of range */
-    case T_BIG_RATIO:   return(mpz_get_si(mpq_numref(big_ratio(x))));
-#endif
     }
   return(0);
 }
@@ -14636,18 +13728,12 @@ s7_int s7_numerator(s7_pointer x)
 s7_int s7_denominator(s7_pointer x)
 {
   if (is_t_ratio(x)) return(denominator(x));
-#if WITH_GMP
-  if (is_t_big_ratio(x)) return(mpz_get_si(mpq_denref(big_ratio(x))));
-#endif
   return(1);
 }
 
 s7_int s7_integer(s7_pointer p)
 {
   if (is_t_integer(p)) return(integer(p));
-#if WITH_GMP
-  if (is_t_big_integer(p)) return(mpz_get_si(big_integer(p)));
-#endif
   return(0);
 }
 
@@ -14658,20 +13744,6 @@ s7_double s7_real(s7_pointer x)
     {
     case T_RATIO:       return(fraction(x));
     case T_INTEGER:     return((s7_double)integer(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)mpz_get_si(big_integer(x)));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-    case T_BIG_RATIO:
-      {
-	s7_double result;
-	mpfr_t bx;
-	mpfr_init2(bx, DEFAULT_BIGNUM_PRECISION);
-	mpfr_set_q(bx, big_ratio(x), MPFR_RNDN);
-	result = mpfr_get_d(bx, MPFR_RNDN);
-	mpfr_clear(bx);
-	return(result);
-      }
-#endif
     }
   return(0.0);
 }
@@ -15337,16 +14409,6 @@ static block_t *number_to_string_with_radix(s7_scheme *sc, s7_pointer obj, int32
   char *p;
   s7_int len, str_len;
 
-#if WITH_GMP
-  if (s7_is_bignum(obj))
-    return(big_number_to_string_with_radix(sc, obj, radix, width, nlen, p_write));
-  /* this ignores precision because it's way too hard to get the mpfr string to look like
-   *   C's output -- we either have to call mpfr_get_str twice (the first time just to
-   *   find out what the exponent is and how long the string actually is), or we have
-   *   to do messy string manipulations.  So (format #f "",3F" pi) ignores the "3" and
-   *   prints the full string.  And don't even think about mpfr_snprintf!
-   */
-#endif
   if (radix == 10)
     {
       p = number_to_string_base_10(sc, obj, width, precision, float_choice, nlen, p_write);
@@ -15528,41 +14590,27 @@ static s7_pointer g_number_to_string(s7_scheme *sc, s7_pointer args)
       else return(method_or_bust(sc, base, sc->number_to_string_symbol, args, sc->type_names[T_INTEGER], 2));
       if ((radix < 2) || (radix > 16))
 	out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
-#if WITH_GMP
-      if (!s7_is_bignum(x))
-#endif
-	{
-	  block_t *b = number_to_string_with_radix(sc, x, radix, 0, sc->float_format_precision, 'g', &nlen);
-	  return(block_to_string(sc, b, nlen));
-	}}
-#if WITH_GMP
-  else radix = 10;
-  if (s7_is_bignum(x))
+      {
+	block_t *b = number_to_string_with_radix(sc, x, radix, 0, sc->float_format_precision, 'g', &nlen);
+	return(block_to_string(sc, b, nlen));
+      }}
+  else
     {
-      block_t *b = big_number_to_string_with_radix(sc, x, radix, 0, &nlen, p_write);
-      return(block_to_string(sc, b, nlen));
+      if (is_t_integer(x))
+	result = integer_to_string(sc, integer(x), &nlen);
+      else result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
     }
-  result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
-#else
-  if (is_t_integer(x))
-    result = integer_to_string(sc, integer(x), &nlen);
-  else result = number_to_string_base_10(sc, x, 0, sc->float_format_precision, 'g', &nlen, p_write);
-#endif
   return(inline_make_string_with_length(sc, result, nlen));
 }
 
 static s7_pointer number_to_string_p_p(s7_scheme *sc, s7_pointer p)
 {
-#if WITH_GMP
-  return(g_number_to_string(sc, set_plist_1(sc, p)));
-#else
   s7_int nlen = 0;
   char *result;
   if (!is_number(p))
     return(method_or_bust_p(sc, p, sc->number_to_string_symbol, a_number_string));
   result = number_to_string_base_10(sc, p, 0, sc->float_format_precision, 'g', &nlen, p_write);
   return(inline_make_string_with_length(sc, result, nlen));
-#endif
 }
 
 static s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
@@ -15575,9 +14623,6 @@ static s7_pointer number_to_string_p_i(s7_scheme *sc, s7_int p)
 
 static s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointer base)
 {
-#if WITH_GMP
-  return(g_number_to_string(sc, set_plist_2(sc, num, base)));
-#else
   s7_int nlen = 0, radix;
   block_t *b;
 
@@ -15590,7 +14635,6 @@ static s7_pointer number_to_string_p_pp(s7_scheme *sc, s7_pointer num, s7_pointe
     out_of_range_error_nr(sc, sc->number_to_string_symbol, int_two, base, a_valid_radix_string);
   b = number_to_string_with_radix(sc, num, radix, 0, sc->float_format_precision, 'g', &nlen);
   return(block_to_string(sc, b, nlen));
-#endif
 }
 
 
@@ -15947,7 +14991,7 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 	    const char *tmp = (const char *)(name + 2);
 	    int32_t new_int = 0;
 
-	    while ((*tmp) && (happy) && (new_int >= 0) && (new_int < 256))
+	    while ((*tmp) && (happy) && (new_int >= 0) && (new_int < 0x110000))
 	      {
 		int32_t dig = digits[(int32_t)(*tmp++)];
 		if (dig < 16)
@@ -15955,23 +14999,47 @@ static s7_pointer make_sharp_constant(s7_scheme *sc, const char *name, bool with
 		else happy = false;
 	      }
 	    if ((happy) &&
-		(new_int < 256) &&
-		(new_int >= 0))
-	      return(chars[new_int]);
+		(new_int >= 0) &&
+		(new_int < 0x110000))
+	      return(s7_make_character(sc, (uint32_t)new_int));
 	  }
 	  break;
-	}}
+	}
+      /* 尝试解析为多字节 UTF-8 字符 */
+      {
+        int32_t nlen = safe_strlen(name);
+        if (nlen >= 3 && nlen <= 5)
+          {
+            uint32_t cp = 0;
+            const uint8_t *u = (const uint8_t *)(name + 1);
+            if (nlen == 3 && (u[0] & 0xE0) == 0xC0 && (u[1] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x1F) << 6) | (u[1] & 0x3F);
+                if (cp >= 0x80)
+                  return(s7_make_character(sc, cp));
+              }
+            else if (nlen == 4 && (u[0] & 0xF0) == 0xE0 && (u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x0F) << 12) | ((u[1] & 0x3F) << 6) | (u[2] & 0x3F);
+                if (cp >= 0x800 && (cp < 0xD800 || cp > 0xDFFF))
+                  return(s7_make_character(sc, cp));
+              }
+            else if (nlen == 5 && (u[0] & 0xF8) == 0xF0 && (u[1] & 0xC0) == 0x80 && (u[2] & 0xC0) == 0x80 && (u[3] & 0xC0) == 0x80)
+              {
+                cp = ((u[0] & 0x07) << 18) | ((u[1] & 0x3F) << 12) | ((u[2] & 0x3F) << 6) | (u[3] & 0x3F);
+                if (cp >= 0x10000 && cp <= 0x10FFFF)
+                  return(s7_make_character(sc, cp));
+              }
+          }
+      }
+      }
   return(unknown_sharp_constant(sc, name, NULL));
 }
 
 static const char *radstr[17] = {NULL, NULL, "01", "012", "0123", "01234", "012345", "0123456", "01234567", "012345678", "0123456789",
   "0123456789aA", "0123456789aAbB", "0123456789aAbBcC", "0123456789aAbBcCdD", "0123456789aAbBcCdDeE", "0123456789aAbBcCdDeEfF"};
 
-#if WITH_GMP
-static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix, bool *overflow)
-#else
 static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
-#endif
 {
   /* Use simple implementation for base 10 to avoid precision issues on Windows */
   if (radix == 10)
@@ -16059,14 +15127,6 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
        */
     }
 
-#if WITH_GMP
-  /* 9007199254740995.0 */
-  if (int_len + frac_len >= max_len)
-    {
-      (*overflow) = true;
-      return(0.0);
-    }
-#endif
   str = ipart;
   if ((int_len + exponent) > max_len)
     {
@@ -16107,13 +15167,7 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 	  while ((dig = digits[(int32_t)(*str++)]) < radix)
 	    frac_part = dig + (frac_part * radix);
 	  if (frac_part == 0) return(0.0);
-#if WITH_GMP
-	  (*overflow) = true;
-#endif
 	}
-#if WITH_GMP
-      (*overflow) = ((int_part > 0) || (exponent > 20));    /* .1e310 is a tricky case */
-#endif
       if (int_part != 0) /* 0.<310 zeros here>1e310 for example -- pow (via dpow) thinks it has to be too big, returns Nan,
 			  *   then Nan * 0 -> Nan and the NaN propagates
 			  */
@@ -16257,30 +15311,22 @@ static s7_double string_to_double_with_radix(const char *ur_str, int32_t radix)
 		frac_len = max_len;
 	      for (int32_t i = 0; i < frac_len; i++)
 		frac_part = digits[(int32_t)(*str++)] + (frac_part * radix);
-	      dval += int_part + frac_part * dpow(radix, -frac_len);
-	    }}}
-#if WITH_GMP
-  if ((int_part == 0) &&
-      (frac_part == 0))
-    return(0.0);
-  (*overflow) = ((frac_len - exponent) > max_len);
-#endif
+      dval += int_part + frac_part * dpow(radix, -frac_len);
+    }}}
   return(sign * dval);
 }
 
-#if !WITH_GMP
-static s7_pointer make_undefined_bignum(s7_scheme *sc, const char *name)
+static s7_pointer make_undefined_overflow(s7_scheme *sc, const char *name)
 {
   s7_int len = safe_strlen(name) + 16;
   block_t *b = mallocate(sc, len);
   char *buf = (char *)block_data(b);
   s7_pointer result;
-  snprintf(buf, len, "<bignum: %s>", name);
-  result = make_undefined(sc, (const char *)buf); /* 123123123123123123123123123123 -> +inf.0 originally, but now #<bignum: 123123...> */
+  snprintf(buf, len, "<overflow: %s>", name);
+  result = make_undefined(sc, (const char *)buf);
   liberate(sc, b);
   return(result);
 }
-#endif
 
 static s7_pointer nan1_or_bust(s7_scheme *sc, s7_double x, const char *p, const char *q, int32_t radix, bool want_symbol, int32_t offset)
 {
@@ -16451,9 +15497,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
     char *slash1 = NULL, *slash2 = NULL, *plus = NULL, *ex1 = NULL, *ex2 = NULL;
     bool has_i = false, has_dec_point2 = false;
     int32_t has_plus_or_minus = 0, current_radix;
-#if !WITH_GMP
     bool overflow = false; /* for string_to_integer */
-#endif
     current_radix = radix;  /* current_radix is 10 for the exponent portions, but radix for all the rest */
 
     for ( ; (c = *p) != 0; ++p)
@@ -16606,11 +15650,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 
     if (has_i)
       {
-#if !WITH_GMP
 	s7_double rl = 0.0, im = 0.0;
-#else
-	char e1 = 0, e2 = 0;
-#endif
 	s7_pointer result;
 	s7_int len = safe_strlen(q);
 	char ql1, pl1;
@@ -16621,16 +15661,11 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	/* save original string */
 	ql1 = q[len - 1];
 	pl1 = (*(plus - 1));
-#if WITH_GMP
-	if (ex1) {e1 = *ex1; (*ex1) = '@';} /* for mpfr */
-	if (ex2) {e2 = *ex2; (*ex2) = '@';}
-#endif
 	/* look for cases like 1+i */
 	q[len - 1] = ((q[len - 2] == '+') || (q[len - 2] == '-')) ? '1' : '\0'; /* remove 'i' */
 
 	(*((char *)(plus - 1))) = '\0';
 
-#if !WITH_GMP
 	if ((has_dec_point1) ||
 	    (ex1))  /* (string->number "1100.1+0.11i" 2) -- need to split into 2 honest reals before passing to non-base-10 str->dbl */
 	  rl = string_to_double_with_radix(q, radix);
@@ -16640,7 +15675,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	      {
 		/* here the overflow could be innocuous if it's in the denominator and the numerator is 0: 0/100000000000000000000000000000000000000 */
 		s7_int den, num = s7_string_to_integer(q, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 		den = s7_string_to_integer(slash1, radix, &overflow);
 		if (den == 0)
 		  rl = NAN;        /* real_part if complex */
@@ -16653,13 +15688,13 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }
 		    else
 		      {
-			if (overflow) return(make_undefined_bignum(sc, q)); /* denominator overflow */
+			if (overflow) return(make_undefined_overflow(sc, q)); /* denominator overflow */
 			rl = (long_double)num / (long_double)den; /* no gmp, so we do what we can */
 		      }}}
 	    else
 	      {
 		rl = (s7_double)s7_string_to_integer(q, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 	      }}
 	if (rl == -0.0) rl = 0.0;
 
@@ -16673,7 +15708,7 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		/* same as above: 0-0/100000000000000000000000000000000000000i */
 		s7_int den;
 		const s7_int num = s7_string_to_integer(plus, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 		den = s7_string_to_integer(slash2, radix, &overflow);
 		if (den == 0)
 		  im = NAN;
@@ -16686,28 +15721,21 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 		      }
 		    else
 		      {
-			if (overflow) return(make_undefined_bignum(sc, q)); /* denominator overflow */
+			if (overflow) return(make_undefined_overflow(sc, q)); /* denominator overflow */
 			im = (long_double)num / (long_double)den;
 		      }}}
 	    else
 	      {
 		im = (s7_double)s7_string_to_integer(plus, radix, &overflow);
-		if (overflow) return(make_undefined_bignum(sc, q));
+		if (overflow) return(make_undefined_overflow(sc, q));
 	      }}
 	if ((has_plus_or_minus == -1) &&
 	    (im != 0.0))
 	  im = -im;
 	result = make_complex(sc, rl, im);
-#else
-	result = string_to_either_complex(sc, q, slash1, ex1, has_dec_point1, plus, slash2, ex2, has_dec_point2, radix, has_plus_or_minus);
-#endif
 	/* restore original string */
 	q[len - 1] = ql1;
 	(*((char *)(plus - 1))) = pl1;
-#if WITH_GMP
-	if (ex1) (*ex1) = e1;
-	if (ex2) (*ex2) = e2;
-#endif
 	return(result);
       }
 
@@ -16719,56 +15747,34 @@ static s7_pointer make_atom(s7_scheme *sc, char *q, int32_t radix, bool want_sym
 	if (slash1)  /* not complex, so slash and "." is not a number */
 	  return((want_symbol) ? make_symbol_with_strlen(sc, q) : sc->F);
 
-#if !WITH_GMP
 	result = make_real(sc, string_to_double_with_radix(q, radix));
-#else
-	{
-	  char old_e = 0;
-	  if (ex1)
-	    {
-	      old_e = (*ex1);
-	      (*ex1) = '@';
-	    }
-	  result = string_to_either_real(sc, q, radix);
-	  if (ex1)
-	    (*ex1) = old_e;
-	}
-#endif
 	return(result);
       }
 
     /* rational */
     if (slash1)
-#if !WITH_GMP
       {
 	s7_int d;
 	const s7_int n = s7_string_to_integer(q, radix, &overflow);
-	if (overflow) return(make_undefined_bignum(sc, q));
+	if (overflow) return(make_undefined_overflow(sc, q));
 	d = s7_string_to_integer(slash1, radix, &overflow);
 
 	if ((n == 0) && (d != 0))                        /* 0/100000000000000000000000000000000000000 */
 	  return(int_zero);
 	if (d == 0) return(real_NaN);                    /* nan.__LINE__ here seems less than optimal */
-	if (overflow) return(make_undefined_bignum(sc, q));
+	if (overflow) return(make_undefined_overflow(sc, q));
 	/* it would be neat to return 1 from 10000000000000000000000000000/10000000000000000000000000000
 	 *   but q is the entire number ('/' included) and slash1 is the stuff after the '/', and every
 	 *   big number comes through here, so there's no clean and safe way to check that q == slash1.
 	 */
 	return(make_ratio(sc, n, d));
       }
-#else
-    return(string_to_either_ratio(sc, q, slash1, radix));
-#endif
     /* integer */
-#if !WITH_GMP
     {
       s7_int x = s7_string_to_integer(q, radix, &overflow);
-      if (overflow) return(make_undefined_bignum(sc, q));
+      if (overflow) return(make_undefined_overflow(sc, q));
       return(make_integer(sc, x));
     }
-#else
-    return(string_to_either_integer(sc, q, radix));
-#endif
   }
 }
 
@@ -16849,203 +15855,6 @@ the optional 'radix' argument is ignored: (string->number \"#x11\" 2) -> 17 not 
 
 
 /* -------------------------------- rationalize -------------------------------- */
-#if WITH_GMP
-
-static rat_locals_t *init_rat_locals_t(s7_scheme *sc)
-{
-  rat_locals_t *r = (rat_locals_t *)Malloc(sizeof(rat_locals_t));
-  sc->ratloc = r;
-  mpz_inits(r->i, r->i0, r->i1, r->n, r->p0, r->q0, r->r, r->r1, r->p1, r->q1, r->old_p1, r->old_q1, NULL);
-  mpq_init(r->q);
-  mpfr_inits2(sc->bignum_precision, r->error, r->ux, r->x0, r->x1, r->val, r->e0, r->e1, r->e0p, r->e1p, r->old_e0, r->old_e1, r->old_e0p, NULL);
-  return(r);
-}
-
-static void free_rat_locals(s7_scheme *sc)
-{
-  rat_locals_t *r = sc->ratloc;
-  mpz_clears(r->i, r->i0, r->i1, r->n, r->p0, r->q0, r->r, r->r1, r->p1, r->q1, r->old_p1, r->old_q1, NULL);
-  mpq_clear(r->q);
-  mpfr_clears(r->error, r->ux, r->x0, r->x1, r->val, r->e0, r->e1, r->e0p, r->e1p, r->old_e0, r->old_e1, r->old_e0p, NULL);
-  free(r);
-}
-
-static s7_pointer big_rationalize(s7_scheme *sc, s7_pointer args)
-{
-  /* can return be non-rational? */
-  /* currently (rationalize 1/0 1e18) -> 0
-   * remember to pad with many trailing zeros:
-   *    (rationalize 0.1 0)                -> 3602879701896397/36028797018963968
-   *    (rationalize 0.1000000000000000 0) -> 1/10
-   * perhaps gmp number reader used if gmp -- could this be the trailing zeros problem?  (why is the non-gmp case ok?)
-   *         also the bignum function is faking it.
-   *         (rationalize (real-part (bignum "0.1+i")) 0) -> 3602879701896397/36028797018963968
-   * a confusing case:
-   *   (rationalize 5925563891587147521650777143.74135805596e05) should be 148139097289678688041269428593533951399/250000
-   * but that requires more than 128 bits of bignum-precision.
-   */
-
-  const s7_pointer num = car(args);
-  rat_locals_t *r = (sc->ratloc) ? sc->ratloc : init_rat_locals_t(sc);
-
-  switch (type(num))
-    {
-    case T_INTEGER:
-      mpfr_set_si(r->ux, integer(num), MPFR_RNDN);
-      break;
-    case T_RATIO:
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_set_q(r->ux, sc->mpq_1, MPFR_RNDN);
-      break;
-    case T_REAL:
-      if (is_NaN(real(num)))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, num, it_is_nan_string);
-      if (is_inf(real(num)))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, num, it_is_infinite_string);
-      mpfr_set_d(r->ux, real(num), MPFR_RNDN);
-      break;
-    case T_BIG_INTEGER:
-      mpfr_set_z(r->ux, big_integer(num), MPFR_RNDN);
-      break;
-    case T_BIG_RATIO:
-      mpfr_set_q(r->ux, big_ratio(num), MPFR_RNDN);
-      break;
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(num)))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, num, it_is_nan_string);
-      if (mpfr_inf_p(big_real(num)))
-	out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, num, it_is_infinite_string);
-      mpfr_set(r->ux, big_real(num), MPFR_RNDN);
-      break;
-    case T_COMPLEX: case T_BIG_COMPLEX:
-      wrong_type_error_nr(sc, sc->rationalize_symbol, 1, num, sc->type_names[T_REAL]);
-    default:
-      return(method_or_bust(sc, num, sc->rationalize_symbol, args, sc->type_names[T_REAL], 1));
-    }
-
-  if (is_null(cdr(args)))
-    mpfr_set_d(r->error, sc->default_rationalize_error, MPFR_RNDN);
-  else
-    {
-      const s7_pointer err = cadr(args);
-      switch (type(err))
-	{
-	case T_INTEGER:
-	  mpfr_set_si(r->error, integer(err), MPFR_RNDN);
-	  break;
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(err), denominator(err));
-	  mpfr_set_q(r->error, sc->mpq_1, MPFR_RNDN);
-	  break;
-	case T_REAL:
-	  if (is_NaN(real(err)))
-	    out_of_range_error_nr(sc, sc->rationalize_symbol, int_two, err, it_is_nan_string);
-	  if (is_inf(real(err)))
-	    return(int_zero);
-	  mpfr_set_d(r->error, real(err), MPFR_RNDN);
-	  break;
-	case T_BIG_INTEGER:
-	  mpfr_set_z(r->error, big_integer(err), MPFR_RNDN);
-	  break;
-	case T_BIG_RATIO:
-	  mpfr_set_q(r->error, big_ratio(err), MPFR_RNDN);
-	  break;
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(err)))
-	    out_of_range_error_nr(sc, sc->rationalize_symbol, int_two, err, it_is_nan_string);
-	  if (mpfr_inf_p(big_real(err)))
-	    return(int_zero);
-	  mpfr_set(r->error, big_real(err), MPFR_RNDN);
-	  break;
-	case T_COMPLEX:	case T_BIG_COMPLEX:
-	  wrong_type_error_nr(sc, sc->rationalize_symbol, 2, err, sc->type_names[T_REAL]);
-	default:
-	  return(method_or_bust(sc, err, sc->rationalize_symbol, args, sc->type_names[T_REAL], 2));
-	}
-      mpfr_abs(r->error, r->error, MPFR_RNDN);
-    }
-
-  mpfr_set(r->x0, r->ux, MPFR_RNDN);            /* x0 = ux - error */
-  mpfr_sub(r->x0, r->x0, r->error, MPFR_RNDN);
-  mpfr_set(r->x1, r->ux, MPFR_RNDN);            /* x1 = ux + error */
-  mpfr_add(r->x1, r->x1, r->error, MPFR_RNDN);
-  mpfr_get_z(r->i, r->x0, MPFR_RNDU);           /* i = ceil(x0) */
-
-  if (mpfr_cmp_ui(r->error, 1) >= 0)            /* if (error >= 1.0) */
-    {
-      if (mpfr_cmp_ui(r->x0, 0) < 0)            /* if (x0 < 0) */
-	{
-	  if (mpfr_cmp_ui(r->x1, 0) < 0)        /*   if (x1 < 0) */
-	    mpfr_get_z(r->n, r->x1, MPFR_RNDD); /*     num = floor(x1) */
-	  else mpz_set_ui(r->n, 0);             /*   else num = 0 */
-	}
-      else mpz_set(r->n, r->i);                 /* else num = i */
-      return(mpz_to_integer(sc, r->n));
-    }
-
-  if (mpfr_cmp_z(r->x1, r->i) >= 0)             /* if (x1 >= i) */
-    {
-      if (mpz_cmp_ui(r->i, 0) >= 0)             /* if (i >= 0) */
-	mpz_set(r->n, r->i);                    /*   num = i */
-      else mpfr_get_z(r->n, r->x1, MPFR_RNDD);  /* else num = floor(x1) */
-      return(mpz_to_integer(sc, r->n));
-    }
-
-  mpfr_get_z(r->i0, r->x0, MPFR_RNDD);          /* i0 = floor(x0) */
-  mpfr_get_z(r->i1, r->x1, MPFR_RNDU);          /* i1 = ceil(x1) */
-
-  mpz_set(r->p0, r->i0);                        /* p0 = i0 */
-  mpz_set_ui(r->q0, 1);                         /* q0 = 1 */
-  mpz_set(r->p1, r->i1);                        /* p1 = i1 */
-  mpz_set_ui(r->q1, 1);                         /* q1 = 1 */
-  mpfr_sub_z(r->e0, r->x0, r->i1, MPFR_RNDN);   /* e0 = i1 - x0 */
-  mpfr_neg(r->e0, r->e0, MPFR_RNDN);
-  mpfr_sub_z(r->e1, r->x0, r->i0, MPFR_RNDN);   /* e1 = x0 - i0 */
-  mpfr_sub_z(r->e0p, r->x1, r->i1, MPFR_RNDN);  /* e0p = i1 - x1 */
-  mpfr_neg(r->e0p, r->e0p, MPFR_RNDN);
-  mpfr_sub_z(r->e1p, r->x1, r->i0, MPFR_RNDN);  /* e1p = x1 - i0 */
-
-  while (true)
-    {
-      mpfr_set_z(r->val, r->p0, MPFR_RNDN);
-      mpfr_div_z(r->val, r->val, r->q0, MPFR_RNDN);  /* val = p0/q0 */
-
-      if (((mpfr_lessequal_p(r->x0, r->val)) &&      /* if ((x0 <= val) && (val <= x1)) */
-	   (mpfr_lessequal_p(r->val, r->x1))) ||
-	  (mpfr_cmp_ui(r->e1, 0) == 0) ||
-	  (mpfr_cmp_ui(r->e1p, 0) == 0))
-	/* these last 2 are probably not needed -- they protect against running out of bits in the non-gmp case above */
-	{
-	  mpq_set_num(r->q, r->p0);                /* return(p0/q0) */
-	  mpq_set_den(r->q, r->q0);
-	  return(mpq_to_rational(sc, r->q));
-	}
-      mpfr_div(r->val, r->e0, r->e1, MPFR_RNDN);
-      mpfr_get_z(r->r, r->val, MPFR_RNDD);         /* r = floor(e0/e1) */
-      mpfr_div(r->val, r->e0p, r->e1p, MPFR_RNDN);
-      mpfr_get_z(r->r1, r->val, MPFR_RNDU);        /* r1 = ceil(e0p/e1p) */
-      if (mpz_cmp(r->r1, r->r) < 0)                /* if (r1 < r) */
-	mpz_set(r->r, r->r1);                      /*   r = r1 */
-      mpz_set(r->old_p1, r->p1);                   /* old_p1 = p1 */
-      mpz_set(r->p1, r->p0);                       /* p1 = p0 */
-      mpz_set(r->old_q1, r->q1);                   /* old_q1 = q1 */
-      mpz_set(r->q1, r->q0);                       /* q1 = q0 */
-      mpfr_set(r->old_e0, r->e0, MPFR_RNDN);       /* old_e0 = e0 */
-      mpfr_set(r->e0, r->e1p, MPFR_RNDN);          /* e0 = e1p */
-      mpfr_set(r->old_e0p, r->e0p, MPFR_RNDN);     /* old_e0p = e0p */
-      mpfr_set(r->e0p, r->e1, MPFR_RNDN);          /* e0p = e1 */
-      mpfr_set(r->old_e1, r->e1, MPFR_RNDN);       /* old_e1 = e1 */
-      mpz_mul(r->p0, r->p0, r->r);                 /* p0 = old_p1 + r * p0 */
-      mpz_add(r->p0, r->p0, r->old_p1);
-      mpz_mul(r->q0, r->q0, r->r);                 /* q0 = old_q1 + r * q0 */
-      mpz_add(r->q0, r->q0, r->old_q1);
-      mpfr_mul_z(r->e1, r->e1p, r->r, MPFR_RNDN);  /* e1 = old_e0p - r * e1p */
-      mpfr_sub(r->e1, r->old_e0p, r->e1, MPFR_RNDN);
-      mpfr_mul_z(r->e1p, r->old_e1, r->r, MPFR_RNDN);/* e1p = old_e0 - r * old_e1 */
-      mpfr_sub(r->e1p, r->old_e0, r->e1p, MPFR_RNDN);
-    }
-}
-#endif
 
 static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
 {
@@ -17056,10 +15865,6 @@ static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
   s7_double err;
   const s7_pointer x = car(args);
 
-#if WITH_GMP
-  if (is_big_number(x))
-    return(big_rationalize(sc, args));
-#endif
   if (!is_real(x))
     return(method_or_bust(sc, x, sc->rationalize_symbol, args, sc->type_names[T_REAL], 1));
   if (is_null(cdr(args)))
@@ -17067,10 +15872,6 @@ static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
   else
     {
       const s7_pointer ex = cadr(args);
-#if WITH_GMP
-      if (is_big_number(ex))
-	return(big_rationalize(sc, args));
-#endif
       if (!is_real(ex))
 	return(method_or_bust(sc, ex, sc->rationalize_symbol, args, sc->type_names[T_REAL], 2));
       err = real_to_double(sc, ex, "rationalize");
@@ -17103,13 +15904,8 @@ static s7_pointer g_rationalize(s7_scheme *sc, s7_pointer args)
 	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, a_normal_real_string);
 	if (err >= fabs(rat))
 	  return(int_zero);
-#if WITH_GMP
-	if (fabs(rat) > RATIONALIZE_LIMIT)
-	  return(big_rationalize(sc, set_plist_2(sc, x, wrap_real(sc, err))));
-#else
 	if (fabs(rat) > RATIONALIZE_LIMIT)
 	  out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, x, it_is_too_large_string);
-#endif
 	if ((fabs(rat) + fabs(err)) < 1.0e-18)
 	  err = 1.0e-18;
 	/* (/ 1.0 most-positive-fixnum) is 1.0842021e-19, so if we let err be less than that,
@@ -17130,68 +15926,8 @@ static s7_pointer rationalize_p_d(s7_scheme *sc, s7_double x)
   if ((is_NaN(x)) || (is_inf(x)))
     out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), a_normal_real_string); /* was make_real, also below */
   if (fabs(x) > RATIONALIZE_LIMIT)
-#if WITH_GMP
-    return(big_rationalize(sc, set_plist_1(sc, wrap_real(sc, x))));
-#else
     out_of_range_error_nr(sc, sc->rationalize_symbol, int_one, wrap_real(sc, x), it_is_too_large_string);
-#endif
   return(s7_rationalize(sc, x, sc->default_rationalize_error));
-}
-
-
-/* -------------------------------- bignum -------------------------------- */
-static s7_pointer g_bignum(s7_scheme *sc, s7_pointer args)
-{
-  #define H_bignum "(bignum val (radix 10)) returns a multiprecision version of the string 'val'. If the argument is a number \
-bignum returns that number as a bignum"
-#if WITH_GMP
-  #define Q_bignum s7_make_signature(sc, 3, sc->is_bignum_symbol, s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_string_symbol), sc->is_integer_symbol)
-#else
-  #define Q_bignum s7_make_signature(sc, 3, \
-                     s7_make_signature(sc, 2, sc->is_number_symbol, sc->not_symbol), \
-                     s7_make_signature(sc, 2, sc->is_number_symbol, sc->is_string_symbol), \
-                     sc->is_integer_symbol)
-#endif
-
-  s7_pointer num = car(args);
-  if (is_number(num))
-    {
-      if (!is_null(cdr(args)))
-	error_nr(sc, make_symbol(sc, "bignum-error", 12),
-		 set_elist_2(sc, wrap_string(sc, "bignum of a number takes only one argument: ~S", 46), args));
-#if WITH_GMP
-      switch (type(num))
-	{
-	case T_INTEGER: return(s7_int_to_big_integer(sc, integer(num)));
-	case T_RATIO:   return(s7_int_to_big_ratio(sc, numerator(num), denominator(num)));
-	case T_REAL:    return(s7_double_to_big_real(sc, real(num)));
-	case T_COMPLEX: return(s7_double_to_big_complex(sc, real_part(num), imag_part(num)));
-	default:        return(num);
-	}
-#else
-      return(num);
-#endif
-    }
-  num = g_string_to_number_1(sc, args, sc->bignum_symbol);
-  if (is_false(sc, num))                                    /* (bignum "1/3.0") */
-    error_nr(sc, make_symbol(sc, "bignum-error", 12),
-	     set_elist_2(sc, wrap_string(sc, "bignum string argument does not represent a number: ~S", 54), car(args))); /* car(args) to get original */
-#if WITH_GMP
-  switch (type(num))
-    {
-    case T_INTEGER:   return(s7_int_to_big_integer(sc, integer(num)));
-    case T_RATIO:     return(s7_int_to_big_ratio(sc, numerator(num), denominator(num)));
-    case T_COMPLEX:   return(s7_number_to_big_complex(sc, num));
-    case T_REAL:
-      if (is_NaN(real(num))) return(num);
-      return(s7_double_to_big_real(sc, real(num)));
-      /* 9Sep21: this was return(string_to_big_real(sc, string_value(car(args)), (is_pair(cdr(args))) ? s7_integer_clamped_if_gmp(sc, cadr(args)) : 10)); */
-    default:
-      return(num);
-    }
-#else
-  return(num);
-#endif
 }
 
 
@@ -17210,14 +15946,12 @@ static s7_pointer g_int_log2(s7_scheme *sc, s7_pointer args)
 
 static s7_pointer log_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
-#if !WITH_GMP
   if (args == 2)
     {
       s7_pointer x = cadr(expr), y = caddr(expr);
       if ((is_t_integer(y)) && (integer(y) == 2) && (is_t_integer(x)) && (integer(x) > 0))
 	return(sc->int_log2);
     }
-#endif
   return(func);
 }
 
@@ -17232,49 +15966,15 @@ static s7_pointer sinh_p_p(s7_scheme *sc, s7_pointer x)
     case T_REAL:
       {
 	s7_double y = s7_real(x);
-#if WITH_GMP
-	if (fabs(y) > SINH_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-	    mpfr_sinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-	    return(mpfr_to_big_real(sc, sc->mpfr_1));
-	  }
-#endif
 	return(make_real(sc, sinh(y)));
       }
     case T_COMPLEX:
-#if WITH_GMP
-      if ((fabs(real_part(x)) > SINH_LIMIT) || (fabs(imag_part(x)) > SINH_LIMIT))
-	{
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_sinh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	}
-#endif
 #if HAVE_COMPLEX_NUMBERS
       return(c_complex_to_s7(sc, csinh(to_c_complex(x))));
 #else
       out_of_range_error_nr(sc, sc->sinh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      mpfr_sinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      mpfr_sinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_sinh(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_sinh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      if (mpfr_zero_p(mpc_imagref(sc->mpc_1)))
-	return(mpfr_to_big_real(sc, mpc_realref(sc->mpc_1)));
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->sinh_symbol, a_number_string));
     }
@@ -17303,49 +16003,15 @@ static s7_pointer cosh_p_p(s7_scheme *sc, s7_pointer x)
     case T_REAL:
       {
 	s7_double y = s7_real(x);
-#if WITH_GMP
-	if (fabs(y) > SINH_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-	    mpfr_cosh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-	    return(mpfr_to_big_real(sc, sc->mpfr_1));
-	  }
-#endif
 	return(make_real(sc, cosh(y)));
       }
     case T_COMPLEX:
-#if WITH_GMP
-      if ((fabs(real_part(x)) > SINH_LIMIT) || (fabs(imag_part(x)) > SINH_LIMIT))
-	{
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_cosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	}
-#endif
 #if HAVE_COMPLEX_NUMBERS
       return(c_complex_to_s7(sc, ccosh(to_c_complex(x))));
 #else
       out_of_range_error_nr(sc, sc->cosh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      mpfr_cosh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      mpfr_cosh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_cosh(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_cosh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      if (mpfr_zero_p(mpc_imagref(sc->mpc_1)))
-	return(mpfr_to_big_real(sc, mpc_realref(sc->mpc_1)));
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->cosh_symbol, a_number_string));
     }
@@ -17382,38 +16048,6 @@ static s7_pointer tanh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->tanh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      goto BIG_REAL_TANH;
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      goto BIG_REAL_TANH;
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x))) return(x);
-      mpfr_set(sc->mpfr_1, big_real(x), MPFR_RNDN);
-    BIG_REAL_TANH:
-      if (mpfr_cmp_d(sc->mpfr_1, TANH_LIMIT) > 0) return(real_one);
-      if (mpfr_cmp_d(sc->mpfr_1, -TANH_LIMIT) < 0) return(make_real(sc, -1.0));
-      mpfr_tanh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      if ((MPC_INEX_RE(mpc_cmp_si_si(big_complex(x), TANH_LIMIT, 1))) > 0)
-	return(real_one);
-      if ((MPC_INEX_RE(mpc_cmp_si_si(big_complex(x), -TANH_LIMIT, 1))) < 0)
-	return(make_real(sc, -1.0));
-      if ((mpfr_nan_p(mpc_imagref(big_complex(x)))) ||
-	  (mpfr_inf_p(mpc_imagref(big_complex(x)))))
-	{
-	  if (mpfr_cmp_ui(mpc_realref(big_complex(x)), 0) == 0)
-	    return(make_complex_not_0i(sc, 0.0, NAN)); /* match non-bignum choice */
-	  return(complex_NaN);
-	}
-      mpc_tanh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      if (mpfr_zero_p(mpc_imagref(sc->mpc_1)))
-	return(mpfr_to_big_real(sc, mpc_realref(sc->mpc_1)));
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->tanh_symbol, a_number_string));
     }
@@ -17448,22 +16082,6 @@ static s7_pointer asinh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->asinh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      mpfr_asinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      mpfr_asinh(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_asinh(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_asinh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->asinh_symbol, a_number_string));
     }
@@ -17503,23 +16121,6 @@ static s7_pointer acosh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->acosh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_RATIO:
-      mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_REAL:
-      mpc_set_fr(sc->mpc_1, big_real(x), MPC_RNDNN);
-      mpc_acosh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_COMPLEX:
-      mpc_acosh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->acosh_symbol, a_number_string));
     }
@@ -17564,29 +16165,6 @@ static s7_pointer atanh_p_p(s7_scheme *sc, s7_pointer x)
       out_of_range_error_nr(sc, sc->atanh_symbol, int_one, x, no_complex_numbers_string);
 #endif
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_2, big_integer(x), MPFR_RNDN);
-      goto ATANH_BIG_REAL;
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_2, big_ratio(x), MPFR_RNDN);
-      goto ATANH_BIG_REAL;
-    case T_BIG_REAL:
-      mpfr_set(sc->mpfr_2, big_real(x), MPFR_RNDN);
-    ATANH_BIG_REAL:
-      mpfr_set_ui(sc->mpfr_1, 1, MPFR_RNDN);
-      if (mpfr_cmpabs(sc->mpfr_2, sc->mpfr_1) < 0)
-	{
-	  mpfr_atanh(sc->mpfr_2, sc->mpfr_2, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_2));
-	}
-      mpc_set_fr(sc->mpc_1, sc->mpfr_2, MPC_RNDNN);
-      mpc_atanh(sc->mpc_1, sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-    case T_BIG_COMPLEX:
-      mpc_atanh(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->atanh_symbol, a_number_string));
     }
@@ -17625,206 +16203,7 @@ static const s7_int nth_roots[63] = {
 
 static bool int_pow_ok(s7_int x, s7_int y) {return((y < S7_INT_BITS) && (nth_roots[y] >= s7_int_abs(x)));}
 
-#if WITH_GMP
-static s7_pointer real_part_p_p(s7_scheme *sc, s7_pointer x);
-static bool lt_b_pi(s7_scheme *sc, s7_pointer p1, s7_int p2);
 
-static s7_pointer big_expt(s7_scheme *sc, s7_pointer args)
-{
-  const s7_pointer x = car(args), y = cadr(args);
-  s7_pointer result;
-  if (!is_number(x))
-    return(method_or_bust(sc, x, sc->expt_symbol, args, a_number_string, 1));
-  if (!is_number(y))
-    return(method_or_bust(sc, y, sc->expt_symbol, args, a_number_string, 2));
-
-  if (is_zero(x))
-    {
-      if ((s7_is_integer(x)) && (s7_is_integer(y)) && (is_zero(y)))
-	return(int_one);
-
-      if (is_real(y))
-	{
-	  if (is_negative(sc, y))
-	    division_by_zero_error_2_nr(sc, sc->expt_symbol, x, y);
-	}
-      else
-	if (s7_real_part(y) < 0.0)
-	  division_by_zero_error_2_nr(sc, sc->expt_symbol, x, y);
-
-      if ((is_rational(x)) && (is_rational(y)))
-	return(int_zero);
-      return(real_zero);
-    }
-
-  if (s7_is_integer(y))
-    {
-      s7_int yval = s7_integer_clamped_if_gmp(sc, y);
-      if (yval == 0)
-	return((is_rational(x)) ? int_one : real_one);
-
-      if (yval == 1)
-	return(x);
-
-      if ((!is_big_number(x)) &&
-	  ((is_one(x)) || (is_zero(x))))
-	return(x);
-
-      if ((yval < S7_INT32_MAX) &&
-	  (yval > S7_INT32_MIN))
-	{
-	  /* (protect against gmp exception if for example (expt 1/9223372036854775807 -9223372036854775807) */
-	  if (s7_is_integer(x))
-	    {
-	      if (is_t_big_integer(x))
-		mpz_set(sc->mpz_2, big_integer(x));
-	      else mpz_set_si(sc->mpz_2, integer(x));
-	      if (yval >= 0)
-		{
-		  mpz_pow_ui(sc->mpz_2, sc->mpz_2, (uint32_t)yval);
-		  return(mpz_to_integer(sc, sc->mpz_2));
-		}
-	      mpz_pow_ui(sc->mpz_2, sc->mpz_2, (uint32_t)(-yval));
-	      mpq_set_z(sc->mpq_1, sc->mpz_2);
-	      mpq_inv(sc->mpq_1, sc->mpq_1);
-	      if (mpz_cmp_ui(mpq_denref(sc->mpq_1), 1) == 0)
-		return(mpz_to_integer(sc, mpq_numref(sc->mpq_1)));
-	      return(mpq_to_big_ratio(sc, sc->mpq_1));
-	    }
-
-	  if (s7_is_ratio(x)) /* here y is an integer */
-	    {
-	      if (is_t_big_ratio(x))
-		{
-		  mpz_set(sc->mpz_1, mpq_numref(big_ratio(x)));
-		  mpz_set(sc->mpz_2, mpq_denref(big_ratio(x)));
-		}
-	      else
-		{
-		  mpz_set_si(sc->mpz_1, numerator(x));
-		  mpz_set_si(sc->mpz_2, denominator(x));
-		}
-	      if (yval >= 0)
-		{
-		  mpz_pow_ui(sc->mpz_1, sc->mpz_1, (uint32_t)yval);
-		  mpz_pow_ui(sc->mpz_2, sc->mpz_2, (uint32_t)yval);
-		  mpq_set_num(sc->mpq_1, sc->mpz_1);
-		  mpq_set_den(sc->mpq_1, sc->mpz_2);
-		}
-	      else
-		{
-		  yval = -yval;
-		  mpz_pow_ui(sc->mpz_1, sc->mpz_1, (uint32_t)yval);
-		  mpz_pow_ui(sc->mpz_2, sc->mpz_2, (uint32_t)yval);
-		  mpq_set_num(sc->mpq_1, sc->mpz_2);
-		  mpq_set_den(sc->mpq_1, sc->mpz_1);
-		  mpq_canonicalize(sc->mpq_1);
-		}
-	      if (mpz_cmp_ui(mpq_denref(sc->mpq_1), 1) == 0)
-		return(mpz_to_integer(sc, mpq_numref(sc->mpq_1)));
-	      return(mpq_to_big_ratio(sc, sc->mpq_1));
-	    }
-
-	  if (is_real(x))
-	    {
-	      if (is_t_big_real(x))
-		mpfr_set(sc->mpfr_1, big_real(x), MPFR_RNDN);
-	      else mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	      mpfr_pow_si(sc->mpfr_1, sc->mpfr_1, yval, MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }}}
-
-  if ((is_t_ratio(y)) &&              /* not s7_is_ratio which accepts bignums */
-      (numerator(y) == 1))
-    {
-      if (denominator(y) == 2)
-	return(sqrt_p_p(sc, x));
-
-      if ((is_real(x)) &&
-	  (denominator(y) == 3))
-	{
-	  any_real_to_mpfr(sc, x, sc->mpfr_1);
-	  mpfr_cbrt(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	}}
-
-  result = any_number_to_mpc(sc, y, sc->mpc_2);
-  if (result == real_infinity)
-    {
-      if (is_one(x)) return(int_one);
-      if (!is_real(x)) return((is_negative(sc, y)) ? real_zero : complex_NaN);
-      if (is_zero(x))
-	{
-	  if (is_negative(sc, y)) division_by_zero_error_2_nr(sc, sc->expt_symbol, x, y);
-	  return(real_zero);
-	}
-      if (lt_b_pi(sc, x, 0))
-	{
-	  if (lt_b_pi(sc, x, -1))
-	    return((is_positive(sc, y)) ? real_infinity : real_zero);
-	  return((is_positive(sc, y)) ? real_zero : real_infinity);
-	}
-      if (lt_b_pi(sc, x, 1))
-	return((is_positive(sc, y)) ? real_zero : real_infinity);
-      return((is_positive(sc, y)) ? real_infinity : real_zero);
-    }
-  if (result) return(complex_NaN);
-
-  if ((is_real(x)) &&
-      (is_real(y)) &&
-      (is_positive(sc, x)))
-    {
-      result = any_real_to_mpfr(sc, x, sc->mpfr_1);
-      if (result)
-	{
-	  if (result == real_infinity)
-	    {
-	      if (is_negative(sc, y)) return(real_zero);
-	      return((is_zero(y)) ? real_one : real_infinity);
-	    }
-	  return(complex_NaN);
-	}
-      mpfr_pow(sc->mpfr_1, sc->mpfr_1, mpc_realref(sc->mpc_2), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    }
-
-  result = any_number_to_mpc(sc, x, sc->mpc_1);
-  if (result)
-    {
-      if ((result == real_infinity) && (is_real(y)))
-	{
-	  if (is_negative(sc, y)) return(real_zero);
-	  return((is_zero(y)) ? real_one : real_infinity);
-	}
-      return(complex_NaN);
-    }
-  if (mpc_cmp_si_si(sc->mpc_1, 0, 0) == 0)
-    return(int_zero);
-  if (mpc_cmp_si_si(sc->mpc_1, 1, 0) == 0)
-    return(int_one);
-
-  mpc_pow(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-
-  if ((!mpfr_nan_p(mpc_imagref(sc->mpc_1))) && (mpfr_cmp_ui(mpc_imagref(sc->mpc_1), 0) == 0)) /* (expt -inf.0 1/3) -> +inf.0+nan.0i in mpc */
-    {
-      if ((is_rational(car(args))) &&
-	  (is_rational(cadr(args))) &&
-	  (mpfr_integer_p(mpc_realref(sc->mpc_1)) != 0))
-	{
-	  /* mpfr_integer_p can be confused: (expt 2718/1000 (bignum 617/5)) returns an int32_t if precision=128, float if 512 */
-	  /*   so first make sure we're within (say) 31 bits */
-	  mpfr_set_ui(sc->mpfr_1, S7_INT32_MAX, MPFR_RNDN);
-	  if (mpfr_cmpabs(mpc_realref(sc->mpc_1), sc->mpfr_1) < 0)
-	    {
-	      mpfr_get_z(sc->mpz_1, mpc_realref(sc->mpc_1), MPFR_RNDN);
-	      return(mpz_to_integer(sc, sc->mpz_1));
-	    }}
-      mpfr_set(sc->mpfr_1, mpc_realref(sc->mpc_1), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    }
-  return(mpc_to_number(sc, sc->mpc_1));
-}
-#endif
 
 static s7_pointer expt_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer pw)
 {
@@ -18000,56 +16379,11 @@ static s7_pointer g_expt(s7_scheme *sc, s7_pointer args)
 {
   #define H_expt "(expt z1 z2) returns z1^z2"
   #define Q_expt sc->pcl_n
-#if WITH_GMP
-  return(big_expt(sc, args));
-  /* big_expt sometimes chooses a different value: g_expt (expt -1 1/3) is -1, but big_expt (expt -1 (bignum 1/3)) is (complex 1/2 (/ (sqrt 3) 2)) */
-#endif
   return(expt_p_pp(sc, car(args), cadr(args)));
 }
 
 
 /* -------------------------------- lcm -------------------------------- */
-#if WITH_GMP
-static s7_pointer big_lcm(s7_scheme *sc, s7_int num, s7_int den, s7_pointer args)
-{
-  mpz_set_si(sc->mpz_3, num);
-  mpz_set_si(sc->mpz_4, den);
-
-  for (s7_pointer x = args; is_pair(x); x = cdr(x))
-    {
-      const s7_pointer rat = car(x);
-      switch (type(rat))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(rat));
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_set_si(sc->mpz_4, 1);
-	  break;
-	case T_RATIO:
-	  mpz_set_si(sc->mpz_1, numerator(rat));
-	  mpz_set_si(sc->mpz_2, denominator(rat));
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_gcd(sc->mpz_4, sc->mpz_4, sc->mpz_2);
-	  break;
-	case T_BIG_INTEGER:
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, big_integer(rat));
-	  mpz_set_si(sc->mpz_4, 1);
-	  break;
-	case T_BIG_RATIO:
-	  mpz_lcm(sc->mpz_3, sc->mpz_3, mpq_numref(big_ratio(rat)));
-	  mpz_gcd(sc->mpz_4, sc->mpz_4, mpq_denref(big_ratio(rat)));
-	  break;
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
-	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(x, args), rat, a_rational_string);
-	default:
-	  return(method_or_bust(sc, rat, sc->lcm_symbol,
-				set_ulist_1(sc, mpz_to_rational(sc, sc->mpz_3, sc->mpz_4), x),
-				a_rational_string, position_of(x, args)));
-	}}
-  return(mpz_to_rational(sc, sc->mpz_3, sc->mpz_4));
-}
-#endif
-
 static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 {
   /* (/ (* m n) (gcd m n)), (lcm a b c) -> (lcm a (lcm b c)) */
@@ -18104,20 +16438,12 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  if (b < 0)
 	    {
 	      if (b == S7_INT64_MIN)
-#if WITH_GMP
-		return(big_lcm(sc, n, d, nums));
-#else
 		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-#endif
 	      b = -b;
 	    }
 #if HAVE_OVERFLOW_CHECKS
 	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))
-#if WITH_GMP
-	    return(big_lcm(sc, n, d, nums));
-#else
 	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, result_is_too_large_string);
-#endif
 	  n = n1;
 #else
 	  n = (n / c_gcd(n, b)) * b;
@@ -18129,20 +16455,12 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  if (b < 0)
 	    {
 	      if (b == S7_INT64_MIN)
-#if WITH_GMP
-		return(big_lcm(sc, n, d, nums));
-#else
 		sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, it_is_too_large_string);
-#endif
 	      b = -b;
 	    }
 #if HAVE_OVERFLOW_CHECKS
 	  if (multiply_overflow(n / c_gcd(n, b), b, &n1))  /* (lcm 92233720368547758/3 3005/2) */
-#if WITH_GMP
-	    return(big_lcm(sc, n, d, nums));
-#else
 	    sole_arg_out_of_range_error_nr(sc, sc->lcm_symbol, args, intermediate_too_large_string);
-#endif
           n = n1;
 #else
 	  n = (n / c_gcd(n, b)) * b;
@@ -18152,13 +16470,7 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 	  else d = c_gcd(d, denominator(x));
 	  break;
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  d = 1;
-	case T_BIG_RATIO:
-	  return(big_lcm(sc, n, d, nums));
-#endif
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
+	case T_REAL: case T_COMPLEX:
 	  wrong_type_error_nr(sc, sc->lcm_symbol, position_of(nums, args), x, a_rational_string);
 
 	default:
@@ -18172,45 +16484,6 @@ static s7_pointer g_lcm(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- gcd -------------------------------- */
-#if WITH_GMP
-static s7_pointer big_gcd(s7_scheme *sc, s7_int num, s7_int den, s7_pointer args)
-{
-  mpz_set_si(sc->mpz_3, num);
-  mpz_set_si(sc->mpz_4, den);
-
-  for (s7_pointer x = args; is_pair(x); x = cdr(x))
-    {
-      const s7_pointer rat = car(x);
-      switch (type(rat))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(rat));
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  break;
-	case T_RATIO:
-	  mpz_set_si(sc->mpz_1, numerator(rat));
-	  mpz_set_si(sc->mpz_2, denominator(rat));
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, sc->mpz_1);
-	  mpz_lcm(sc->mpz_4, sc->mpz_4, sc->mpz_2);
-	  break;
-	case T_BIG_INTEGER:
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, big_integer(rat));
-	  break;
-	case T_BIG_RATIO:
-	  mpz_gcd(sc->mpz_3, sc->mpz_3, mpq_numref(big_ratio(rat)));
-	  mpz_lcm(sc->mpz_4, sc->mpz_4, mpq_denref(big_ratio(rat)));
-	  break;
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
-	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(x, args), rat, a_rational_string);
-	default:
-	  return(method_or_bust(sc, rat, sc->gcd_symbol,
-				set_ulist_1(sc, mpz_to_rational(sc, sc->mpz_3, sc->mpz_4), x),
-				a_rational_string, position_of(x, args)));
-	}}
-  return(mpz_to_rational(sc, sc->mpz_3, sc->mpz_4));
-}
-#endif
-
 static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 {
   #define H_gcd "(gcd ...) returns the greatest common divisor of its rational arguments"
@@ -18242,14 +16515,10 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 	{
 	case T_INTEGER:
 	  if (integer(x) == S7_INT64_MIN)
-#if WITH_GMP
-	    return(big_gcd(sc, n, d, nums));
-#else
 	  {
 	    if ((n == S7_INT64_MIN) && (is_null(cdr(nums)))) /* gcd is supposed to return a positive integer, but we can't take abs(S7_INT64_MIN) */
 	      sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, it_is_too_large_string);
 	  }
-#endif
 	  n = c_gcd(n, integer(x));
 	  break;
 
@@ -18266,11 +16535,7 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 		const s7_int b = denominator(x);
 #if HAVE_OVERFLOW_CHECKS
 		if (multiply_overflow(d / c_gcd(d, b), b, &dn)) /* (gcd 1/92233720368547758 1/3005) */
-#if WITH_GMP
-		  return(big_gcd(sc, n, d, x));
-#else
 		  sole_arg_out_of_range_error_nr(sc, sc->gcd_symbol, args, intermediate_too_large_string);
-#endif
 		d = dn;
 #else
 		d = (d / c_gcd(d, b)) * b;
@@ -18278,12 +16543,7 @@ static s7_pointer g_gcd(s7_scheme *sc, s7_pointer args)
 	      }}
 	  break;
 
-#if WITH_GMP
-	case T_BIG_INTEGER: case T_BIG_RATIO:
-	  return(big_gcd(sc, n, d, nums));
-#endif
-
-	case T_REAL: case T_BIG_REAL: case T_COMPLEX: case T_BIG_COMPLEX:
+	case T_REAL: case T_COMPLEX:
 	  wrong_type_error_nr(sc, sc->gcd_symbol, position_of(nums, args), x, a_rational_string);
 
 	default:
@@ -18316,34 +16576,10 @@ static s7_pointer truncate_p_p(s7_scheme *sc, s7_pointer x)
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_nan_string);
 	if (is_inf(z))
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_infinite_string);
-#if WITH_GMP
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	    mpfr_get_z(sc->mpz_1, sc->mpfr_1, MPFR_RNDZ);
-	    return(mpz_to_integer(sc, sc->mpz_1));
-	  }
-#else
 	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
 	  sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_too_large_string);
-#endif
 	return(make_integer(sc, (z > 0.0) ? (s7_int)floor(z) : (s7_int)ceil(z)));
       }
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      return(x);
-    case T_BIG_RATIO:
-      mpz_tdiv_q(sc->mpz_1, mpq_numref(big_ratio(x)), mpq_denref(big_ratio(x)));
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_nan_string);
-      if (mpfr_inf_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->truncate_symbol, x, it_is_infinite_string);
-      mpfr_get_z(sc->mpz_1, big_real(x), MPFR_RNDZ);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_COMPLEX:
-#endif
     case T_COMPLEX:
       sole_arg_wrong_type_error_nr(sc, sc->truncate_symbol, x, sc->type_names[T_REAL]);
     default:
@@ -18361,7 +16597,6 @@ static s7_pointer g_truncate(s7_scheme *sc, s7_pointer args)
 static s7_int truncate_i_i(s7_int i) {return(i);}
 static s7_pointer truncate_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
 
-#if !WITH_GMP
 static s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
 {
   if (is_NaN(x))
@@ -18374,7 +16609,6 @@ static s7_int truncate_i_7d(s7_scheme *sc, s7_double x)
 }
 
 static s7_pointer truncate_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc, truncate_i_7d(sc, x)));}
-#endif
 
 
 /* -------------------------------- round -------------------------------- */
@@ -18411,49 +16645,10 @@ static s7_pointer round_p_p(s7_scheme *sc, s7_pointer x)
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_nan_string);
 	if (is_inf(z))
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_infinite_string);
-#if WITH_GMP
-	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
-	  {
-	    mpfr_set_d(sc->mpfr_1, z, MPFR_RNDN);
-	    mpfr_rint(sc->mpfr_2, sc->mpfr_1, MPFR_RNDN); /* mpfr_roundeven in mpfr 4.0.0 */
-	    mpfr_get_z(sc->mpz_3, sc->mpfr_2, MPFR_RNDN);
-	    return(mpz_to_integer(sc, sc->mpz_3));
-	  }
-#else
 	if (fabs(z) > DOUBLE_TO_INT64_LIMIT)
 	  sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_too_large_string);
-#endif
 	return(make_integer(sc, (s7_int)r5rs_round(z)));
       }
-#if WITH_GMP
-      case T_BIG_INTEGER:
-	return(x);
-    case T_BIG_RATIO:
-      {
-	int32_t rnd;
-	mpz_fdiv_qr(sc->mpz_1, sc->mpz_2, mpq_numref(big_ratio(x)), mpq_denref(big_ratio(x)));
-	mpz_mul_ui(sc->mpz_2, sc->mpz_2, 2);
-	rnd = mpz_cmpabs(sc->mpz_2, mpq_denref(big_ratio(x)));
-	mpz_fdiv_q(sc->mpz_2, sc->mpz_2, mpq_denref(big_ratio(x)));
-	if (rnd > 0)
-	  mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-	else
-	  if ((rnd == 0) &&
-	      (mpz_odd_p(sc->mpz_1)))
-	    mpz_add_ui(sc->mpz_1, sc->mpz_1, 1);
-	return(mpz_to_integer(sc, sc->mpz_1));
-      }
-    case T_BIG_REAL:
-      if (mpfr_nan_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_nan_string);
-      if (mpfr_inf_p(big_real(x)))
-	sole_arg_out_of_range_error_nr(sc, sc->round_symbol, x, it_is_infinite_string);
-      mpfr_set(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      mpfr_rint(sc->mpfr_2, sc->mpfr_1, MPFR_RNDN);
-      mpfr_get_z(sc->mpz_3, sc->mpfr_2, MPFR_RNDN);
-      return(mpz_to_integer(sc, sc->mpz_3));
-    case T_BIG_COMPLEX:
-#endif
     case T_COMPLEX:
       sole_arg_wrong_type_error_nr(sc, sc->round_symbol, x, sc->type_names[T_REAL]);
     default:
@@ -18472,7 +16667,6 @@ static s7_pointer g_round(s7_scheme *sc, s7_pointer args)
 static s7_int round_i_i(s7_int i) {return(i);}
 static s7_pointer round_p_i(s7_scheme *sc, s7_int x) {return(make_integer(sc, x));}
 
-#if !WITH_GMP
 static s7_int round_i_7d(s7_scheme *sc, s7_double z)
 {
   if (is_NaN(z))
@@ -18484,7 +16678,6 @@ static s7_int round_i_7d(s7_scheme *sc, s7_double z)
 }
 
 static s7_pointer round_p_d(s7_scheme *sc, s7_double x) {return(make_integer(sc,round_i_7d(sc, x)));}
-#endif
 
 
 /* ---------------------------------------- add ---------------------------------------- */
@@ -18493,19 +16686,10 @@ static inline s7_pointer add_if_overflow_to_real_or_big_integer(s7_scheme *sc, s
 #if HAVE_OVERFLOW_CHECKS
   s7_int val;
   if (add_overflow(x, y, &val))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, x);
-      mpz_set_si(sc->mpz_2, y);
-      mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-      return(mpz_to_big_integer(sc, sc->mpz_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer add overflow: (+ %" ld64 " %" ld64 ")\n", x, y);
       return(make_real(sc, (long_double)x + (long_double)y));
     }
-#endif
   return(make_integer(sc, val));
 #else
   return(make_integer(sc, x + y));
@@ -18518,21 +16702,10 @@ static s7_pointer integer_ratio_add_if_overflow_to_real_or_rational(s7_scheme *s
   s7_int z;
   if ((multiply_overflow(integer(x), denominator(y), &z)) ||
       (add_overflow(z, numerator(y), &z)))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, integer(x));
-      mpz_mul_si(sc->mpz_1, sc->mpz_1, denominator(y));
-      mpz_set_si(sc->mpz_2, numerator(y));
-      mpz_add(mpq_numref(sc->mpq_1), sc->mpz_2, sc->mpz_1);
-      mpz_set_si(mpq_denref(sc->mpq_1), denominator(y));
-      return(mpq_to_rational(sc, sc->mpq_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer + ratio overflow: (+ %" ld64 " %" ld64 "/%" ld64 ")\n", integer(x), numerator(y), denominator(y));
       return(make_real(sc, (long_double)integer(x) + fraction(y)));
     }
-#endif
     return(make_ratio(sc, z, denominator(y)));
 #else
   return(make_ratio(sc, integer(x) * denominator(y) + numerator(y), denominator(y)));
@@ -18550,10 +16723,8 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     {
       if (is_t_integer(y))
 	return(add_if_overflow_to_real_or_big_integer(sc, integer(x), integer(y)));
-#if !WITH_GMP
       if (is_t_real(y))
 	return(make_real(sc, (long_double)integer(x) + real(y)));
-#endif
     }
   else
     if (is_t_real(x))
@@ -18575,34 +16746,9 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_RATIO:
 	  return(integer_ratio_add_if_overflow_to_real_or_rational(sc, x, y));
 	case T_REAL:
-#if WITH_GMP
-	  if (s7_int_abs(integer(x)) >= INT64_TO_DOUBLE_LIMIT) /* (+ 9223372036854775807 .1), >= needed for (+ 9007199254740992 1.0) */
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-	      mpfr_add_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (long_double)integer(x) + real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, (long_double)integer(x) + (long_double)real_part(y), imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(x));
-	  mpz_add(sc->mpz_1, sc->mpz_1, big_integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, integer(x), 1);
-	  mpq_add(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_add_si(sc->mpfr_1, big_real(y), integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_si(sc->mpc_1, integer(x), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
 	}
@@ -18621,19 +16767,10 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 #if HAVE_OVERFLOW_CHECKS
 		s7_int q;
 		if (add_overflow(n1, n2, &q))
-#if WITH_GMP
-		  {
-		    mpq_set_si(sc->mpq_1, n1, d1);
-		    mpq_set_si(sc->mpq_2, n2, d2);
-		    mpq_add(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		    return(mpq_to_rational(sc, sc->mpq_1));
-		  }
-#else
 		  {
  		    if (WITH_WARNINGS) s7_warn(sc, 128, "ratio + ratio overflow: (/ (+ %" ld64 " %" ld64 ") %" ld64 ")\n", n1, n2, d1);
 		    return(make_real(sc, ((long_double)n1 + (long_double)n2) / (long_double)d1));
 		  }
-#endif
 	        return(make_ratio_with_div_check(sc, sc->add_symbol, q, d1));
 #else
 		return(make_ratio_with_div_check(sc, sc->add_symbol, n1 + n2, d1));
@@ -18647,19 +16784,10 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 		  (multiply_overflow(n1, d2, &n1d2)) ||
 		  (multiply_overflow(n2, d1, &n2d1)) ||
 		  (add_overflow(n1d2, n2d1, &q)))
-#if WITH_GMP
-		{
-		  mpq_set_si(sc->mpq_1, n1, d1);
-		  mpq_set_si(sc->mpq_2, n2, d2);
-		  mpq_add(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		  return(mpq_to_rational(sc, sc->mpq_1));
-		}
-#else
 	        {
  		  if (WITH_WARNINGS) s7_warn(sc, 128, "ratio + ratio overflow: (+ %" ld64 "/%" ld64 " %" ld64 "/%" ld64 ")\n", n1, d1, n2, d2);
 	          return(make_real(sc, ((long_double)n1 / (long_double)d1) + ((long_double)n2 / (long_double)d2)));
 		}
-#endif
 	      return(make_ratio_with_div_check(sc, sc->add_symbol, q, d1d2));
 	    }
 #else
@@ -18670,26 +16798,6 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_real(sc, fraction(x) + real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, (s7_double)fraction(x) + real_part(y), imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_set_z(sc->mpq_2, big_integer(y));
-	  mpq_add(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_add(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpfr_add_q(sc->mpfr_1, big_real(y), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
 	}
@@ -18698,14 +16806,6 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER:
-#if WITH_GMP
-	  if (s7_int_abs(integer(y)) >= INT64_TO_DOUBLE_LIMIT) /* (+ .1 9223372036854775807) */
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(y), MPFR_RNDN);
-	      mpfr_add_d(sc->mpfr_1, sc->mpfr_1, real(x), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, real(x) + (long_double)integer(y)));
 	case T_RATIO:
 	  return(make_real(sc, real(x) + (s7_double)fraction(y)));
@@ -18713,23 +16813,6 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_real(sc, real(x) + real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, real(x) + real_part(y), imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_add_z(sc->mpfr_1, sc->mpfr_1, big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_add_q(sc->mpfr_1, sc->mpfr_1, big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_add_d(sc->mpfr_1, big_real(y), real(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real(x), 0.0, MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
 	}
@@ -18745,188 +16828,15 @@ static s7_pointer add_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_complex_not_0i(sc, real_part(x) + real(y), imag_part(x)));
 	case T_COMPLEX:
 	  return(make_complex(sc, real_part(x) + real_part(y), imag_part(x) + imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_q(sc->mpc_2, big_ratio(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_add_fr(sc->mpc_1, sc->mpc_1, big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
 	}
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(y));
-	  mpz_add(sc->mpz_1, big_integer(x), sc->mpz_1);
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_2, big_integer(x));
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_add(sc->mpq_1, sc->mpq_2, sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  mpfr_add_z(sc->mpfr_1, sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(x), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_2, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpz_add(sc->mpz_1, big_integer(x), big_integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  mpq_add(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_add_z(sc->mpfr_1, big_real(y), big_integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpq_set_si(sc->mpq_1, integer(y), 1);
-	  mpq_add(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_add(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  mpfr_add_q(sc->mpfr_1, sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_set_d_d(sc->mpc_2, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpq_set_z(sc->mpq_1, big_integer(y));
-	  mpq_add(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_add(sc->mpq_1, big_ratio(x), big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_add_q(sc->mpfr_1, big_real(y), big_ratio(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpfr_add_si(sc->mpfr_1, big_real(x), integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpfr_add_q(sc->mpfr_1, big_real(x), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_add_d(sc->mpfr_1, big_real(x), real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_add_fr(sc->mpc_1, sc->mpc_1, big_real(x), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpfr_add_z(sc->mpfr_1, big_real(x), big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_add_q(sc->mpfr_1, big_real(x), big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_add(sc->mpfr_1, big_real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_add_fr(sc->mpc_1, big_complex(y), big_real(x), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_COMPLEX:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpc_set_si(sc->mpc_1, integer(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_REAL:
-	  /* if (is_NaN(real(y))) return(y); */
-	  mpc_set_d_d(sc->mpc_1, real(y), 0.0, MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpc_set_z(sc->mpc_1, big_integer(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_q(sc->mpc_1, big_ratio(y), MPC_RNDNN);
-	  mpc_add(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_add_fr(sc->mpc_1, big_complex(x), big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_add(sc->mpc_1, big_complex(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->add_symbol, x, y, a_number_string, 2));
-	}
-#endif
       default:
 	return(method_or_bust_pp(sc, x, sc->add_symbol, x, y, a_number_string, 1));
     }
 }
 
-#if !WITH_GMP
 static inline s7_pointer add_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -18950,10 +16860,8 @@ static s7_pointer add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
     {
       if (is_t_integer(y))
 	return(add_if_overflow_to_real_wrapped(sc, integer(x), integer(y)));
-#if !WITH_GMP
       if (is_t_real(y))
 	return(wrap_real(sc, (long_double)integer(x) + real(y)));
-#endif
     }
   else
     if (is_t_real(x))
@@ -19001,9 +16909,6 @@ static s7_pointer add_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	}}
   return(add_p_pp(sc, x, y));
 }
-#else
-#define add_p_pp_wrapped add_p_pp
-#endif
 
 static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
@@ -19014,17 +16919,8 @@ static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointe
       if ((!add_overflow(integer(x), integer(y), &val)) &&
 	  (!add_overflow(val, integer(z), &val)))
 	return(make_integer(sc, val));
-#if WITH_GMP
-      mpz_set_si(sc->mpz_1, integer(x));
-      mpz_set_si(sc->mpz_2, integer(y));
-      mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-      mpz_set_si(sc->mpz_2, integer(z));
-      mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-      return(mpz_to_integer(sc, sc->mpz_1));
-#else
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer add overflow: (+ %" ld64 " %" ld64 " %" ld64 ")\n", integer(x), integer(y), integer(z));
       return(make_real(sc, (long_double)integer(x) + (long_double)integer(y) + (long_double)integer(z)));
-#endif
 #else
       return(make_integer(sc, integer(x) + integer(y) + integer(z)));
 #endif
@@ -19040,7 +16936,6 @@ static s7_pointer add_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointe
   }
 }
 
-#if !WITH_GMP
 static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
   if ((is_t_integer(x)) && (is_t_integer(y)) && (is_t_integer(z)))
@@ -19066,9 +16961,6 @@ static s7_pointer add_p_ppp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer y, s
     return(num);
   }
 }
-#else
-#define add_p_ppp_wrapped add_p_ppp
-#endif
 
 
 static s7_pointer g_add(s7_scheme *sc, s7_pointer args)
@@ -19121,14 +17013,6 @@ static s7_pointer g_add_x1_1(s7_scheme *sc, s7_pointer x, int32_t pos)
     case T_RATIO:   return(integer_ratio_add_if_overflow_to_real_or_rational(sc, int_one, x)); /* return(add_p_pp(sc, x, int_one)) */
     case T_REAL:    return(make_real(sc, real(x) + 1.0));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) + 1.0, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpz_set_si(sc->mpz_1, 1);
-      mpz_add(sc->mpz_1, big_integer(x), sc->mpz_1);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(add_p_pp(sc, x, int_one));
-#endif
     default:
       return(method_or_bust(sc, x, sc->add_symbol,
 			    (pos == 1) ? set_plist_2(sc, x, int_one) : set_plist_2(sc, int_one, x),
@@ -19137,9 +17021,6 @@ static s7_pointer g_add_x1_1(s7_scheme *sc, s7_pointer x, int32_t pos)
   return(x);
 }
 
-#if WITH_GMP
-static s7_pointer g_add_x1(s7_scheme *sc, s7_pointer args) {return(g_add_x1_1(sc, car(args), 1));}
-#else
 static s7_pointer g_add_x1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer x = car(args);
@@ -19148,7 +17029,6 @@ static s7_pointer g_add_x1(s7_scheme *sc, s7_pointer args)
   if (is_t_complex(x)) return(make_complex_not_0i(sc, real_part(x) + 1.0, imag_part(x)));
   return(add_p_pp(sc, x, int_one));
 }
-#endif
 static s7_pointer g_add_1x(s7_scheme *sc, s7_pointer args) {return(g_add_x1_1(sc, cadr(args), 2));}
 
 static s7_pointer g_add_xi(s7_scheme *sc, s7_pointer x, s7_int y, int32_t loc)
@@ -19161,14 +17041,6 @@ static s7_pointer g_add_xi(s7_scheme *sc, s7_pointer x, s7_int y, int32_t loc)
     case T_RATIO:   return(add_p_pp(sc, x, wrap_integer(sc, y)));
     case T_REAL:    return(make_real(sc, real(x) + y));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) + y, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpz_set_si(sc->mpz_1, y);
-      mpz_add(sc->mpz_1, big_integer(x), sc->mpz_1);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(add_p_pp(sc, x, wrap_integer(sc, y)));
-#endif
     default: return(method_or_bust_pp(sc, x, sc->add_symbol, x, make_integer(sc, y), a_number_string, loc));
     }
   return(x);
@@ -19182,10 +17054,6 @@ static s7_pointer g_add_xf(s7_scheme *sc, s7_pointer x, s7_double y, int32_t loc
     case T_INTEGER: return(make_real(sc, integer(x) + y));
     case T_RATIO:   return(make_real(sc, (s7_double)fraction(x) + y));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) + y, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(add_p_pp(sc, x, wrap_real(sc, y)));
-#endif
     default: return(method_or_bust_pp(sc, x, sc->add_symbol, x, make_real(sc, y), a_number_string, loc));
     }
   return(x);
@@ -19266,35 +17134,13 @@ static s7_pointer negate_p_p(s7_scheme *sc, s7_pointer x)     /* can't use "nega
     {
     case T_INTEGER:
       if (integer(x) == S7_INT64_MIN)
-#if WITH_GMP
-	{
-	  mpz_set_si(sc->mpz_1, S7_INT64_MIN);
-	  mpz_neg(sc->mpz_1, sc->mpz_1);
-	  return(mpz_to_big_integer(sc, sc->mpz_1));
-	}
-#else
 	sole_arg_out_of_range_error_nr(sc, sc->subtract_symbol, x, wrap_string(sc, "most-negative-fixnum can't be negated", 37));
-#endif
       return(make_integer(sc, -integer(x)));
 
     case T_RATIO:   return(make_simpler_ratio(sc, -numerator(x), denominator(x)));
     case T_REAL:    return(make_real(sc, -real(x)));
     case T_COMPLEX: return(make_complex_not_0i(sc, -real_part(x), -imag_part(x)));
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpz_neg(sc->mpz_1, big_integer(x));
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_RATIO:
-      mpq_neg(sc->mpq_1, big_ratio(x));
-      return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-    case T_BIG_REAL:
-      mpfr_neg(sc->mpfr_1, big_real(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_neg(sc->mpc_1, big_complex(x), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_p(sc, x, sc->subtract_symbol, a_number_string));
     }
@@ -19305,19 +17151,10 @@ static inline s7_pointer subtract_if_overflow_to_real_or_big_integer(s7_scheme *
 #if HAVE_OVERFLOW_CHECKS
   s7_int val;
   if (subtract_overflow(x, y, &val))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, x);
-      mpz_set_si(sc->mpz_2, y);
-      mpz_sub(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-      return(mpz_to_big_integer(sc, sc->mpz_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer subtract overflow: (- %" ld64 " %" ld64 ")\n", x, y);
       return(make_real(sc, (long_double)x - (long_double)y));
     }
-#endif
   return(make_integer(sc, val));
 #else
   return(make_integer(sc, x - y));
@@ -19342,55 +17179,19 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    s7_int z;
 	    if ((multiply_overflow(integer(x), denominator(y), &z)) ||
 		(subtract_overflow(z, numerator(y), &z)))
-#if WITH_GMP
-	      {
-		mpz_set_si(sc->mpz_1, integer(x));
-		mpz_mul_si(sc->mpz_1, sc->mpz_1, denominator(y));
-		mpz_set_si(sc->mpz_2, numerator(y));
-		mpz_sub(mpq_numref(sc->mpq_1), sc->mpz_1, sc->mpz_2);
-		mpz_set_si(mpq_denref(sc->mpq_1), denominator(y));
-		return(mpq_to_rational(sc, sc->mpq_1));
-	      }
-#else
 	      {
 		if (WITH_WARNINGS) s7_warn(sc, 128, "integer - ratio overflow: (- %" ld64 " %" ld64 "/%" ld64 ")\n", integer(x), numerator(y), denominator(y));
 		return(make_real(sc, (long_double)integer(x) - fraction(y)));
 	      }
-#endif
 	      return(make_ratio(sc, z, denominator(y)));
 #else
 	    return(make_ratio(sc, integer(x) * denominator(y) - numerator(y), denominator(y)));
 #endif
 	  }
 	case T_REAL:
-#if WITH_GMP
-	  if (s7_int_abs(integer(x)) >= INT64_TO_DOUBLE_LIMIT) /* (- 9223372036854775807 .1) */
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-	      mpfr_sub_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (long_double)integer(x) - real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, (long_double)integer(x) - real_part(y), -imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(x));
-	  mpz_sub(sc->mpz_1, sc->mpz_1, big_integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, integer(x), 1);
-	  mpq_sub(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_si_sub(sc->mpfr_1, integer(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_si(sc->mpc_1, integer(x), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
 	}
@@ -19404,21 +17205,10 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    s7_int z;
 	    if ((multiply_overflow(integer(y), denominator(x), &z)) ||
 		(subtract_overflow(numerator(x), z, &z)))
-#if WITH_GMP
-	      {
-		mpz_set_si(sc->mpz_1, integer(y));
-		mpz_mul_si(sc->mpz_1, sc->mpz_1, denominator(x));
-		mpz_set_si(sc->mpz_2, numerator(x));
-		mpz_sub(mpq_numref(sc->mpq_1), sc->mpz_2, sc->mpz_1);
-		mpz_set_si(mpq_denref(sc->mpq_1), denominator(x));
-		return(mpq_to_rational(sc, sc->mpq_1));
-	      }
-#else
 	      {
 		if (WITH_WARNINGS) s7_warn(sc, 128, "ratio - integer overflow: (- %" ld64 "/%" ld64 " %" ld64 ")\n", numerator(x), denominator(x), integer(y));
 		return(make_real(sc, fraction(x) - (long_double)integer(y)));
 	      }
-#endif
 	    return(make_ratio(sc, z, denominator(x)));
 #else
 	    return(make_ratio(sc, numerator(x) - (integer(y) * denominator(x)), denominator(x)));
@@ -19433,19 +17223,10 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 #if HAVE_OVERFLOW_CHECKS
 		s7_int q;
 		if (subtract_overflow(n1, n2, &q))
-#if WITH_GMP
-		  {
-		    mpq_set_si(sc->mpq_1, n1, d1);
-		    mpq_set_si(sc->mpq_2, n2, d2);
-		    mpq_sub(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		    return(mpq_to_rational(sc, sc->mpq_1));
-		  }
-#else
 		  {
 		    if (WITH_WARNINGS) s7_warn(sc, 128, "ratio - ratio overflow: (- %" ld64 "/%" ld64 " %" ld64 "/%" ld64 ")\n", n1, d1, n2, d2);
 		    return(make_real(sc, ((long_double)n1 - (long_double)n2) / (long_double)d1));
 		  }
-#endif
 	        return(make_ratio_with_div_check(sc, sc->subtract_symbol, q, d1));
 #else
 		return(make_ratio(sc, numerator(x) - numerator(y), denominator(x)));
@@ -19459,19 +17240,10 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 		  (multiply_overflow(n1, d2, &n1d2)) ||
 		  (multiply_overflow(n2, d1, &n2d1)) ||
 		  (subtract_overflow(n1d2, n2d1, &q)))
-#if WITH_GMP
-		{
-		  mpq_set_si(sc->mpq_1, n1, d1);
-		  mpq_set_si(sc->mpq_2, n2, d2);
-		  mpq_sub(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		  return(mpq_to_rational(sc, sc->mpq_1));
-		}
-#else
 	        {
 		  if (WITH_WARNINGS) s7_warn(sc, 128, "ratio - ratio overflow: (- %" ld64 "/%" ld64 " %" ld64 "/%" ld64 ")\n", n1, d1, n2, d2);
 		  return(make_real(sc, ((long_double)n1 / (long_double)d1) - ((long_double)n2 / (long_double)d2)));
 		}
-#endif
 	      return(make_ratio_with_div_check(sc, sc->subtract_symbol, q, d1d2));
 	    }
 #else
@@ -19482,27 +17254,6 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_real(sc, (s7_double)fraction(x) - real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, (s7_double)fraction(x) - real_part(y), -imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_set_z(sc->mpq_2, big_integer(y));
-	  mpq_sub(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_sub(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpfr_set_q(sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-	  mpfr_sub(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
 	}
@@ -19511,14 +17262,6 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER:
-#if WITH_GMP
-	  if (s7_int_abs(integer(y)) >= INT64_TO_DOUBLE_LIMIT) /* (- .1 92233720368547758071) */
-	    {
-	      mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	      mpfr_sub_si(sc->mpfr_1, sc->mpfr_1, integer(y), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, real(x) - (long_double)integer(y))); /* long_double saves (- 9007199254740996.0 9007199254740995): 1.0 */
 	case T_RATIO:
 	  return(make_real(sc, real(x) - (s7_double)fraction(y)));
@@ -19526,23 +17269,6 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_real(sc, real(x) - real(y)));
 	case T_COMPLEX:
 	  return(make_complex_not_0i(sc, real(x) - real_part(y), -imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_sub_z(sc->mpfr_1, sc->mpfr_1, big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_sub_q(sc->mpfr_1, sc->mpfr_1, big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_d_sub(sc->mpfr_1, real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real(x), 0.0, MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
 	}
@@ -19558,184 +17284,10 @@ static s7_pointer subtract_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(make_complex_not_0i(sc, real_part(x) - real(y), imag_part(x)));
 	case T_COMPLEX:
 	  return(make_complex(sc, real_part(x) - real_part(y), imag_part(x) - imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_q(sc->mpc_2, big_ratio(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_sub_fr(sc->mpc_1, sc->mpc_1, big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
 	}
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpz_set_si(sc->mpz_1, integer(y));
-	  mpz_sub(sc->mpz_1, big_integer(x), sc->mpz_1);
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_2, big_integer(x));
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_sub(sc->mpq_1, sc->mpq_2, sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  mpfr_sub_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(x), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_2, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpz_sub(sc->mpz_1, big_integer(x), big_integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  mpq_sub(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  mpfr_sub(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpq_set_si(sc->mpq_1, integer(y), 1);
-	  mpq_sub(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_sub(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  mpfr_sub_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_set_d_d(sc->mpc_2, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpq_set_z(sc->mpq_1, big_integer(y));
-	  mpq_sub(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_sub(sc->mpq_1, big_ratio(x), big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  mpfr_sub(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpfr_sub_si(sc->mpfr_1, big_real(x), integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpfr_sub_q(sc->mpfr_1, big_real(x), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_sub_d(sc->mpfr_1, big_real(x), real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_fr_sub(sc->mpc_1, big_real(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpfr_sub_z(sc->mpfr_1, big_real(x), big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_sub_q(sc->mpfr_1, big_real(x), big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_sub(sc->mpfr_1, big_real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_fr_sub(sc->mpc_1, big_real(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_COMPLEX:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpc_set_si(sc->mpc_2, integer(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_REAL:
-	  /* if (is_NaN(real(y))) return(y); */
-	  mpc_set_d_d(sc->mpc_1, real(y), 0.0, MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpc_set_z(sc->mpc_1, big_integer(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_q(sc->mpc_1, big_ratio(y), MPC_RNDNN);
-	  mpc_sub(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_sub_fr(sc->mpc_1, big_complex(x), big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_sub(sc->mpc_1, big_complex(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->subtract_symbol, x, y, a_number_string, 2));
-	}
-#endif
       default:
 	return(method_or_bust_pp(sc, x, sc->subtract_symbol, x, y, a_number_string, 1));
     }
@@ -19757,7 +17309,6 @@ static s7_pointer negate_p_p_wrapped(s7_scheme *sc, s7_pointer x)     /* can't u
   return(negate_p_p(sc, x));
 }
 
-#if !WITH_GMP
 static s7_pointer subtract_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -19801,9 +17352,6 @@ static s7_pointer subtract_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
 	}}
   return(subtract_p_pp(sc, x, y));
 }
-#else
-#define subtract_p_pp_wrapped subtract_p_pp
-#endif
 
 static s7_pointer g_subtract(s7_scheme *sc, s7_pointer args)
 {
@@ -19843,10 +17391,6 @@ static s7_pointer minus_c1(s7_scheme *sc, s7_pointer x)
     case T_RATIO:   return(subtract_p_pp(sc, x, int_one));
     case T_REAL:    return(make_real(sc, real(x) - 1.0));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) - 1.0, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(subtract_p_pp(sc, x, int_one));
-#endif
     default:
       return(method_or_bust_pp(sc, x, sc->subtract_symbol, x, int_one, a_number_string, 1));
     }
@@ -19856,9 +17400,6 @@ static s7_pointer minus_c1(s7_scheme *sc, s7_pointer x)
 static s7_pointer g_subtract_x1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer num = car(args);
-#if WITH_GMP
-  return(subtract_p_pp(sc, num, int_one));
-#endif
   /* return((is_t_integer(num)) ? make_integer(sc, integer(num) - 1) : minus_c1(sc, num)); */
   return((is_t_integer(num)) ? subtract_if_overflow_to_real_or_big_integer(sc, integer(num), 1) : minus_c1(sc, num));
 }
@@ -19873,10 +17414,6 @@ static s7_pointer g_subtract_2f(s7_scheme *sc, s7_pointer args) /* (- x f) */
     case T_INTEGER: return(make_real(sc, integer(x) - n));
     case T_RATIO:   return(make_real(sc, (s7_double)fraction(x) - n));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) - n, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(subtract_p_pp(sc, x, cadr(args)));
-#endif
     default:
       return(method_or_bust(sc, x, sc->subtract_symbol, args, a_number_string, 1));
     }
@@ -19894,10 +17431,6 @@ static s7_pointer g_subtract_f2(s7_scheme *sc, s7_pointer args) /* (- f x) */
     case T_INTEGER: return(make_real(sc, n - integer(x)));
     case T_RATIO:   return(make_real(sc, n - (s7_double)fraction(x)));
     case T_COMPLEX: return(make_complex_not_0i(sc, n - real_part(x), -imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(subtract_p_pp(sc, car(args), x));
-#endif
     default:
       return(method_or_bust(sc, x, sc->subtract_symbol, args, a_number_string, 1));
     }
@@ -19925,14 +17458,6 @@ static s7_pointer g_sub_xi(s7_scheme *sc, s7_pointer x, s7_int y)
     case T_RATIO:   return(make_ratio(sc, numerator(x) - (y * denominator(x)), denominator(x)));
     case T_REAL:    return(make_real(sc, real(x) - y));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(x) - y, imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpz_set_si(sc->mpz_1, y);
-      mpz_sub(sc->mpz_1, big_integer(x), sc->mpz_1);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(subtract_p_pp(sc, x, wrap_integer(sc, y)));
-#endif
     default: return(method_or_bust_pp(sc, x, sc->subtract_symbol, x, make_integer(sc, y), a_number_string, 1));
     }
   return(x);
@@ -19969,18 +17494,10 @@ static inline s7_pointer multiply_if_overflow_to_real_or_big_integer(s7_scheme *
 #if HAVE_OVERFLOW_CHECKS
   s7_int val;
   if (multiply_overflow(x, y, &val))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, x);
-      mpz_mul_si(sc->mpz_1, sc->mpz_1, y);
-      return(mpz_to_big_integer(sc, sc->mpz_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer multiply overflow: (* %" ld64 " %" ld64 ")\n", x, y);
       return(make_real(sc, (s7_double)x * (s7_double)y));
     }
-#endif
     return(make_integer(sc, val));
 #else
   return(make_integer(sc, x * y));
@@ -19992,20 +17509,10 @@ static s7_pointer integer_ratio_multiply_if_overflow_to_real_or_ratio(s7_scheme 
 #if HAVE_OVERFLOW_CHECKS
   s7_int z;
   if (multiply_overflow(x, numerator(y), &z))
-#if WITH_GMP
-    {
-      mpz_set_si(sc->mpz_1, x);
-      mpz_mul_si(sc->mpz_1, sc->mpz_1, numerator(y));
-      mpq_set_si(sc->mpq_1, 1, denominator(y));
-      mpq_set_num(sc->mpq_1, sc->mpz_1);
-      return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-    }
-#else
     {
       if (WITH_WARNINGS) s7_warn(sc, 128, "integer * ratio overflow: (* %" ld64 " %" ld64 "/%" ld64 ")\n", x, numerator(y), denominator(y));
       return(make_real(sc, (s7_double)x * (s7_double)fraction(y)));
     }
-#endif
     return(make_ratio(sc, z, denominator(y)));
 #else
   return(make_ratio(sc, x * numerator(y), denominator(y)));
@@ -20024,33 +17531,9 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_RATIO:
 	  return(integer_ratio_multiply_if_overflow_to_real_or_ratio(sc, integer(x), y));
 	case T_REAL:
-#if WITH_GMP
-	  if (s7_int_abs(integer(x)) > QUOTIENT_INT_LIMIT)
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-	      mpfr_set_d(sc->mpfr_2, real(y), MPFR_RNDN);
-	      mpfr_mul(sc->mpfr_1, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (long_double)integer(x) * real(y)));
 	case T_COMPLEX:
 	  return(make_complex(sc, (long_double)integer(x) * real_part(y), (long_double)integer(x) * imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpz_mul_si(sc->mpz_1, big_integer(y), integer(x));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, integer(x), 1);
-	  mpq_mul(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_mul_si(sc->mpfr_1, big_real(y), integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_mul_si(sc->mpc_1, big_complex(y), integer(x), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1)); /* x might be 0 */
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
 	}
@@ -20068,19 +17551,10 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	      s7_int n1n2, d1d2;
 	      if ((multiply_overflow(d1, d2, &d1d2)) ||
 		  (multiply_overflow(n1, n2, &n1n2)))
-#if WITH_GMP
-		{
-		  mpq_set_si(sc->mpq_1, n1, d1);
-		  mpq_set_si(sc->mpq_2, n2, d2);
-		  mpq_mul(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-		}
-#else
 	        {
 		  if (WITH_WARNINGS) s7_warn(sc, 128, "ratio * ratio overflow: (* %" ld64 "/%" ld64 " %" ld64 "/%" ld64 ")\n", n1, d1, n2, d2);
 		  return(make_real(sc, (s7_double)fraction(x) * (s7_double)fraction(y)));
 		}
-#endif
 	      return(make_ratio_with_div_check(sc, sc->multiply_symbol, n1n2, d1d2));
 	    }
 #else
@@ -20088,38 +17562,9 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 #endif
 	  }
 	case T_REAL:
-#if WITH_GMP
-	  if (numerator(x) > QUOTIENT_INT_LIMIT)
-	    {
-	      mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	      mpfr_set_q(sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-	      mpfr_mul_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (s7_double)fraction(x) * real(y)));
 	case T_COMPLEX:
 	  return(make_complex(sc, (s7_double)fraction(x) * real_part(y), (s7_double)fraction(x) * imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_set_z(sc->mpq_2, big_integer(y));
-	  mpq_mul(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_mul(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpfr_mul_q(sc->mpfr_1, big_real(y), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
 	}
@@ -20127,48 +17572,13 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
       switch (type(y))
 	{
 	case T_INTEGER:
-#if WITH_GMP
-	  if (s7_int_abs(integer(y)) > QUOTIENT_INT_LIMIT)
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(y), MPFR_RNDN);
-	      mpfr_set_d(sc->mpfr_2, real(x), MPFR_RNDN);
-	      mpfr_mul(sc->mpfr_1, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, real(x) * (long_double)integer(y)));
 	case T_RATIO:
-#if WITH_GMP
-	  if (numerator(y) > QUOTIENT_INT_LIMIT)
-	    {
-	      mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	      mpfr_set_q(sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-	      mpfr_mul_d(sc->mpfr_1, sc->mpfr_1, real(x), MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (s7_double)fraction(y) * real(x)));
 	case T_REAL:
 	  return(make_real(sc, real(x) * real(y)));
 	case T_COMPLEX:
 	  return(make_complex(sc, real(x) * real_part(y), real(x) * imag_part(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_mul_z(sc->mpfr_1, sc->mpfr_1, big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_mul_d(sc->mpfr_1, big_real(y), real(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real(x), 0.0, MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1)); /* x might = 0.0 */
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
 	}
@@ -20186,186 +17596,15 @@ static s7_pointer multiply_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    s7_double r1 = real_part(x), r2 = real_part(y), i1 = imag_part(x), i2 = imag_part(y);
 	    return(make_complex(sc, r1 * r2 - i1 * i2, r1 * i2 + r2 * i1));
 	  }
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_q(sc->mpc_2, big_ratio(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_mul_fr(sc->mpc_1, sc->mpc_1, big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
 	}
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpz_mul_si(sc->mpz_1, big_integer(x), integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_2, big_integer(x));
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_mul(sc->mpq_1, sc->mpq_2, sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  mpfr_mul_z(sc->mpfr_1, sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(x), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_2, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpz_mul(sc->mpz_1, big_integer(x), big_integer(y));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	case T_BIG_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  mpq_mul(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_mul_z(sc->mpfr_1, big_real(y), big_integer(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpq_set_si(sc->mpq_1, integer(y), 1);
-	  mpq_mul(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_mul(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_set_d_d(sc->mpc_2, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpq_set_z(sc->mpq_1, big_integer(y));
-	  mpq_mul(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_mul(sc->mpq_1, big_ratio(x), big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  mpfr_mul_q(sc->mpfr_1, big_real(y), big_ratio(x), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
-	}
-
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpfr_mul_si(sc->mpfr_1, big_real(x), integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpfr_mul_q(sc->mpfr_1, big_real(x), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_mul_d(sc->mpfr_1, big_real(x), real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_mul_fr(sc->mpc_1, sc->mpc_1, big_real(x), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpfr_mul_z(sc->mpfr_1, big_real(x), big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_mul_q(sc->mpfr_1, big_real(x), big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  mpfr_mul(sc->mpfr_1, big_real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  mpc_mul_fr(sc->mpc_1, big_complex(y), big_real(x), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1)); /* 0.0? */
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_COMPLEX:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  mpc_mul_si(sc->mpc_1, big_complex(x), integer(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_REAL:
-	  /* if (is_NaN(real(y))) return(y); */
-	  mpc_set_d_d(sc->mpc_1, real(y), 0.0, MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_COMPLEX:
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  mpc_set_z(sc->mpc_1, big_integer(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_q(sc->mpc_1, big_ratio(y), MPC_RNDNN);
-	  mpc_mul(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  mpc_mul_fr(sc->mpc_1, big_complex(x), big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  mpc_mul(sc->mpc_1, big_complex(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->multiply_symbol, x, y, a_number_string, 2));
-	}
-#endif
       default:
 	return(method_or_bust_pp(sc, x, sc->multiply_symbol, x, y, a_number_string, 1));
     }
 }
 
-#if !WITH_GMP
 static inline s7_pointer multiply_if_overflow_to_real_wrapped(s7_scheme *sc, s7_int x, s7_int y)
 {
 #if HAVE_OVERFLOW_CHECKS
@@ -20402,8 +17641,8 @@ static s7_pointer multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
     case T_COMPLEX:
       switch (type(y))
 	{
-	case T_INTEGER:	  return(wrap_real_or_complex(sc, real_part(x) * integer(y), imag_part(x) * integer(y)));
-	case T_REAL:	  return(wrap_real_or_complex(sc, real_part(x) * real(y), imag_part(x) * real(y)));
+	case T_INTEGER:	  return(wrap_real_or_complex(sc, real_part(x) * integer(y), real_part(x) * imag_part(y)));
+	case T_REAL:	  return(wrap_real_or_complex(sc, real_part(x) * real(y), imag_part(x) * imag_part(y)));
 	case T_COMPLEX:
 	  {
 	    s7_double r1 = real_part(x), r2 = real_part(y), i1 = imag_part(x), i2 = imag_part(y);
@@ -20411,9 +17650,6 @@ static s7_pointer multiply_p_pp_wrapped(s7_scheme *sc, s7_pointer x, s7_pointer 
 	  }}}
   return(multiply_p_pp(sc, x, y));
 }
-#else
-#define multiply_p_pp_wrapped multiply_p_pp
-#endif
 
 static s7_pointer multiply_p_ppp(s7_scheme *sc, s7_pointer x, s7_pointer y, s7_pointer z)
 {
@@ -20483,13 +17719,6 @@ static s7_pointer g_mul_xi(s7_scheme *sc, s7_pointer x, s7_int n, int32_t loc)
     case T_RATIO:   return(integer_ratio_multiply_if_overflow_to_real_or_ratio(sc, n, x));
     case T_REAL:    return(make_real(sc, real(x) * n));
     case T_COMPLEX: return(make_complex(sc, real_part(x) * n, imag_part(x) * n));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpz_mul_si(sc->mpz_1, big_integer(x), n);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(multiply_p_pp(sc, x, wrap_integer(sc, n)));
-#endif
     default:
       /* we can get here from mul_2_xi for example so the non-integer argument might not be a symbol */
       return(method_or_bust_pp(sc, x, sc->multiply_symbol, x, make_integer(sc, n), a_number_string, loc));
@@ -20512,23 +17741,6 @@ static s7_pointer g_mul_xf(s7_scheme *sc, s7_pointer x, s7_double y, int32_t num
     case T_RATIO:   return(make_real(sc, numerator(x) * y / denominator(x)));
     case T_REAL:    return(make_real(sc, real(x) * y));
     case T_COMPLEX: return(make_complex(sc, real_part(x) * y, imag_part(x) * y));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      mpfr_mul_z(sc->mpfr_1, sc->mpfr_1, big_integer(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_RATIO:
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_REAL:
-      mpfr_mul_d(sc->mpfr_1, big_real(x), y, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      mpc_mul_fr(sc->mpc_1, big_complex(x), sc->mpfr_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default: return(method_or_bust_pp(sc, x, sc->multiply_symbol, x, make_real(sc, y), a_number_string, num));
     }
   return(x);
@@ -20614,26 +17826,9 @@ static s7_pointer complex_invert(s7_scheme *sc, s7_pointer x)
 
 static s7_pointer invert_p_p(s7_scheme *sc, s7_pointer num)
 {
-#if WITH_GMP
-  s7_pointer x;
-#endif
   switch (type(num))
     {
     case T_INTEGER:
-#if WITH_GMP && (!POINTER_32)
-      if (integer(num) == S7_INT64_MIN) /* (/ 1 (*s7* 'most-negative-fixnum)) -> -1/9223372036854775808 */
-	{
-	  new_cell(sc, x, T_BIG_RATIO);
-	  big_ratio_bgr(x) = alloc_bigrat(sc);
-	  add_big_ratio(sc, x);
-	  mpz_set_si(sc->mpz_1, S7_INT64_MAX);
-	  mpz_set_si(sc->mpz_2, 1);
-	  mpz_add(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-	  mpq_set_si(big_ratio(x), -1, 1);
-	  mpq_set_den(big_ratio(x), sc->mpz_1); /* geez... */
-	  return(x);
-	}
-#endif
       if (integer(num) == 0)
 	division_by_zero_error_1_nr(sc, sc->divide_symbol, num);
       return(make_simple_ratio(sc, 1, integer(num)));  /* this checks for int */
@@ -20646,45 +17841,6 @@ static s7_pointer invert_p_p(s7_scheme *sc, s7_pointer num)
     case T_COMPLEX:
       return(complex_invert(sc, num));
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      if (mpz_cmp_ui(big_integer(num), 0) == 0)
-	division_by_zero_error_1_nr(sc, sc->divide_symbol, num);
-      if ((mpz_cmp_ui(big_integer(num), 1) == 0) || (mpz_cmp_si(big_integer(num), -1) == 0))
-	return(num);
-      new_cell(sc, x, T_BIG_RATIO);
-      big_ratio_bgr(x) = alloc_bigrat(sc);
-      add_big_ratio(sc, x);
-      mpq_set_si(big_ratio(x), 1, 1);
-      mpq_set_den(big_ratio(x), big_integer(num));
-      mpq_canonicalize(big_ratio(x));
-      return(x);
-    case T_BIG_RATIO:
-      if (mpz_cmp_ui(mpq_numref(big_ratio(num)), 1) == 0)
-	return(mpz_to_integer(sc, mpq_denref(big_ratio(num))));
-      if (mpz_cmp_si(mpq_numref(big_ratio(num)), -1) == 0)
-	{
-	  mpz_neg(sc->mpz_1, mpq_denref(big_ratio(num)));
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	}
-      new_cell(sc, x, T_BIG_RATIO);
-      big_ratio_bgr(x) = alloc_bigrat(sc);
-      add_big_ratio(sc, x);
-      mpq_inv(big_ratio(x), big_ratio(num));
-      mpq_canonicalize(big_ratio(x));
-      return(x);
-    case T_BIG_REAL:
-      if (mpfr_zero_p(big_real(num)))
-	division_by_zero_error_1_nr(sc, sc->divide_symbol, num);
-      x = mpfr_to_big_real(sc, big_real(num));
-      mpfr_ui_div(big_real(x), 1, big_real(x), MPFR_RNDN);
-      return(x);
-    case T_BIG_COMPLEX:
-      if ((!mpfr_number_p(mpc_realref(big_complex(num)))) || (!mpfr_number_p(mpc_imagref(big_complex(num)))))
-	return(complex_NaN);
-      mpc_ui_div(sc->mpc_1, 1, big_complex(num), MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1)); /* x might be 0+0i if real-part is inf? */
-#endif
     default:
       if_method_exists_return_value(sc, num, sc->divide_symbol, set_plist_1(sc, num));
       wrong_type_error_nr(sc, sc->divide_symbol, 1, num, a_number_string);
@@ -20712,19 +17868,10 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  {
 	    s7_int dn;
 	    if (multiply_overflow(integer(x), denominator(y), &dn))
-#if WITH_GMP
-	      {
-		mpq_set_si(sc->mpq_1, integer(x), 1);
-		mpq_set_si(sc->mpq_2, numerator(y), denominator(y));
-		mpq_div(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	      }
-#else
               {
 		if (WITH_WARNINGS) s7_warn(sc, 128, "integer / ratio overflow: (/ %" ld64 " %" ld64 "/%" ld64 ")\n", integer(x), numerator(y), denominator(y));
   	        return(make_real(sc, integer(x) * inverted_fraction(y)));
 	      }
-#endif
 	    return(make_ratio_with_div_check(sc, sc->divide_symbol, dn, numerator(y)));
 	  }
 #else
@@ -20735,15 +17882,6 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  if (is_inf(real(y))) return(real_zero);
 	  if (real(y) == 0.0)
 	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-#if WITH_GMP
-	  if ((s7_int_abs(integer(x))) > QUOTIENT_INT_LIMIT)
-	    {
-	      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-	      mpfr_set_d(sc->mpfr_2, real(y), MPFR_RNDN);
-	      mpfr_div(sc->mpfr_1, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	      return(mpfr_to_big_real(sc, sc->mpfr_1));
-	    }
-#endif
 	  return(make_real(sc, (s7_double)(integer(x)) / real(y)));
 	case T_COMPLEX:
 	  {
@@ -20753,29 +17891,6 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    return(make_complex(sc, r1 * r2 * den, -(r1 * i2 * den)));
 	  }
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_si(sc->mpq_1, integer(x), 1);
-	  mpq_set_den(sc->mpq_1, big_integer(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, integer(x), 1);
-	  mpq_div(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_si_div(sc->mpfr_1, integer(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_set_si(sc->mpc_1, integer(x), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1)); /* x might be 0? */
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
 	}
@@ -20792,20 +17907,11 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  {
 	    s7_int dn;
 	    if (multiply_overflow(denominator(x), integer(y), &dn))
-#if WITH_GMP
-	      {
-		mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-		mpq_set_si(sc->mpq_2, integer(y), 1);
-		mpq_div(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		return(mpq_to_rational(sc, sc->mpq_1));
-	      }
-#else
               {
 		if (WITH_WARNINGS)
 		  s7_warn(sc, 128, "ratio / integer overflow: (/ %" ld64 "/%" ld64 " %" ld64 ")\n", numerator(x), denominator(x), integer(y));
 	        return(make_real(sc, (long_double)numerator(x) / ((long_double)denominator(x) * (long_double)integer(y))));
 	      }
-#endif
 	    return(make_ratio_with_div_check(sc, sc->divide_symbol, numerator(x), dn));
 	  }
 #else
@@ -20821,19 +17927,12 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    if ((multiply_overflow(n1, d2, &n1)) ||
 		(multiply_overflow(n2, d1, &d1)))
 	      {
-#if WITH_GMP
-		mpq_set_si(sc->mpq_1, numerator(x), denominator(x)); /* not n1 and d1! they are garbage here */
-		mpq_set_si(sc->mpq_2, n2, d2);
-		mpq_div(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		return(mpq_to_rational(sc, sc->mpq_1));
-#else
 		s7_double r1, r2;
 		if (WITH_WARNINGS)
 		  s7_warn(sc, 128, "ratio / ratio overflow: (/ %" ld64 "/%" ld64 " %" ld64 "/%" ld64 ")\n", numerator(x), denominator(x), numerator(y), denominator(y));
 		r1 = fraction(x);
 		r2 = inverted_fraction(y);
 		return(make_real(sc, r1 * r2));
-#endif
 	      }
 	    return(make_ratio_with_div_check(sc, sc->divide_symbol, n1, d1));
 #else
@@ -20851,33 +17950,6 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    return(make_complex(sc, rx * r2 * den, -rx * i2 * den)); /* not unchecked: (/ 3/4 -inf.0+i) */
 	  }
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_z(sc->mpq_1, big_integer(y));
-	  mpq_set_si(sc->mpq_2, numerator(x), denominator(x));
-	  mpq_div(sc->mpq_1, sc->mpq_2, sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpq_div(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpfr_set_q(sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-	  mpfr_div(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
 	}
@@ -20918,29 +17990,6 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    return(make_complex(sc, real(x) * r2 * den, -real(x) * i2 * den));
 	  }
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(y), MPFR_RNDN);
-	  mpfr_d_div(sc->mpfr_1, real(x), sc->mpfr_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  mpfr_div_q(sc->mpfr_1, sc->mpfr_1, big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_d_div(sc->mpfr_1, real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((is_NaN(real(x))) || (!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_set_d_d(sc->mpc_1, real(x), 0.0, MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
 	}
@@ -20985,239 +18034,10 @@ static s7_pointer divide_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	    return(make_complex(sc, (r1 * r2 + i1 * i2) * den, (r2 * i1 - r1 * i2) * den));
 	  }
 
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_set_q(sc->mpc_2, big_ratio(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_div_fr(sc->mpc_1, sc->mpc_1, big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-#endif
 	default:
 	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
 	}
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (integer(y) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpz_set_si(sc->mpz_1, integer(y));
-	  mpq_set_num(sc->mpq_1, big_integer(x));
-	  mpq_set_den(sc->mpq_1, sc->mpz_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_2, big_integer(x));
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y)); /* can't invert here, mpq den=unsigned */
-	  mpq_div(sc->mpq_1, sc->mpq_2, sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  if (real(y) == 0.0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  mpfr_div_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))) return(y);
-	  if ((is_inf(real_part(y))) || (is_inf(imag_part(y)))) return(complex_NaN);
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_set_z(sc->mpc_2, big_integer(x), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_2, sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_num(sc->mpq_1, big_integer(x));
-	  mpq_set_den(sc->mpq_1, big_integer(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, 0, 1);
-	  mpq_set_num(sc->mpq_1, big_integer(x));
-	  mpq_div(sc->mpq_1, sc->mpq_1, big_ratio(y));
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  mpfr_div(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_set_z(sc->mpc_1, big_integer(x), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (integer(y) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_si(sc->mpq_1, integer(y), 1);
-	  mpq_div(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpq_div(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_rational(sc, sc->mpq_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  if (real(y) == 0.0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  mpfr_div_d(sc->mpfr_1, sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))) return(y);
-	  if ((is_inf(real_part(y))) || (is_inf(imag_part(y)))) return(complex_NaN);
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_set_d_d(sc->mpc_2, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, sc->mpc_2, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpq_set_z(sc->mpq_1, big_integer(y));
-	  mpq_div(sc->mpq_1, big_ratio(x), sc->mpq_1);
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_RATIO:
-	  mpq_div(sc->mpq_1, big_ratio(x), big_ratio(y));
-	  return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  mpfr_div(sc->mpfr_1, sc->mpfr_1, big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_set_q(sc->mpc_1, big_ratio(x), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, sc->mpc_1, big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (integer(y) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_div_si(sc->mpfr_1, big_real(x), integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpfr_div_q(sc->mpfr_1, big_real(x), sc->mpq_1, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  if (real(y) == 0.0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_div_d(sc->mpfr_1, big_real(x), real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_COMPLEX:
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))) return(y);
-	  if ((is_inf(real_part(y))) || (is_inf(imag_part(y)))) return(complex_NaN);
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_fr_div(sc->mpc_1, big_real(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_div_z(sc->mpfr_1, big_real(x), big_integer(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_RATIO:
-	  mpfr_div_q(sc->mpfr_1, big_real(x), big_ratio(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpfr_div(sc->mpfr_1, big_real(x), big_real(y), MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_fr_div(sc->mpc_1, big_real(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
-	}
-    case T_BIG_COMPLEX:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (integer(y) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_set_si(sc->mpc_1, integer(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  mpc_set_q(sc->mpc_1, sc->mpq_1, MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_REAL:
-	  /* if (is_NaN(real(y))) return(y); */
-	  if (real(y) == 0.0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_set_d_d(sc->mpc_1, real(y), 0.0, MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_COMPLEX:
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y)))) return(y);
-	  if ((is_inf(real_part(y))) || (is_inf(imag_part(y)))) return(complex_NaN);
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_INTEGER:
-	  if (mpz_cmp_ui(big_integer(y), 0) == 0)
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_set_z(sc->mpc_1, big_integer(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_RATIO:
-	  mpc_set_q(sc->mpc_1, big_ratio(y), MPC_RNDNN);
-	  mpc_div(sc->mpc_1, big_complex(x), sc->mpc_1, MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_REAL:
-	  if (mpfr_zero_p(big_real(y)))
-	    division_by_zero_error_2_nr(sc, sc->divide_symbol, x, y);
-	  mpc_div_fr(sc->mpc_1, big_complex(x), big_real(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	case T_BIG_COMPLEX:
-	  if ((!mpfr_number_p(mpc_realref(big_complex(y)))) || (!mpfr_number_p(mpc_imagref(big_complex(y)))))
-	    return(complex_NaN);
-	  mpc_div(sc->mpc_1, big_complex(x), big_complex(y), MPC_RNDNN);
-	  return(mpc_to_number(sc, sc->mpc_1));
-	default:
-	  return(method_or_bust_with_type_and_loc_pp(sc, y, sc->divide_symbol, x, y, a_number_string, 2));
-	}
-#endif
 
     default: /* x is not a built-in number */
       return(method_or_bust_pp(sc, x, sc->divide_symbol, x, y, a_number_string, 1)); /* not args here! y = apply * to cdr(args) */
@@ -21272,19 +18092,10 @@ static s7_pointer g_divide_by_2(s7_scheme *sc, s7_pointer args)
 	if (multiply_overflow(denominator(num), 2, &dn))
 	  {
 	    if ((numerator(num) & 1) == 1)
-#if WITH_GMP
-	      {
-		mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-		mpq_set_si(sc->mpq_2, 1, 2);
-		mpq_mul(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-		return(mpq_to_rational(sc, sc->mpq_1));
-	      }
-#else
 	      {
 		if (WITH_WARNINGS) s7_warn(sc, 128, "ratio / 2 overflow: (/ %" ld64 "/%" ld64 " 2)\n", numerator(num), denominator(num));
 	        return(make_real(sc, ((long_double)numerator(num) * 0.5) / (long_double)denominator(num)));
 	      }
-#endif
 	    return(make_ratio(sc, numerator(num) / 2, denominator(num)));
 	  }
 	return(make_ratio_with_div_check(sc, sc->divide_symbol, numerator(num), dn));
@@ -21295,23 +18106,6 @@ static s7_pointer g_divide_by_2(s7_scheme *sc, s7_pointer args)
     case T_REAL:    return(make_real(sc, real(num) * 0.5));
     case T_COMPLEX: return(make_complex_not_0i(sc, real_part(num) * 0.5, imag_part(num) * 0.5));
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpq_set_z(sc->mpq_1, big_integer(num));
-      mpz_mul_ui(mpq_denref(sc->mpq_1), mpq_denref(sc->mpq_1), 2);
-      return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-    case T_BIG_RATIO:
-      mpq_set_si(sc->mpq_1, 2, 1);
-      mpq_div(sc->mpq_1, big_ratio(num), sc->mpq_1);
-      return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-    case T_BIG_REAL:
-      mpfr_div_si(sc->mpfr_1, big_real(num), 2, MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_BIG_COMPLEX:
-      mpc_set_si(sc->mpc_1, 2, MPC_RNDNN);
-      mpc_div(sc->mpc_1, big_complex(num), sc->mpc_1, MPC_RNDNN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust_pp(sc, num, sc->divide_symbol, num, int_two, a_number_string, 1));
     }
@@ -21376,7 +18170,6 @@ static inline s7_int quotient_i_7ii(s7_scheme *sc, s7_int x, s7_int y)
   return(-x); /* (quotient x -1) */
 }
 
-#if !WITH_GMP
 static s7_pointer s7_truncate(s7_scheme *sc, s7_pointer caller, s7_double xf)   /* can't use "truncate" -- it's in unistd.h */
 {
   if (fabs(xf) > QUOTIENT_FLOAT_LIMIT)
@@ -21396,42 +18189,11 @@ static s7_int c_quo_dbl(s7_scheme *sc, s7_double x, s7_double y)
     sole_arg_out_of_range_error_nr(sc, sc->quotient_symbol, wrap_real(sc, xf), it_is_too_large_string);
   return((xf > 0.0) ? (s7_int)floor(xf) : (s7_int)ceil(xf));
 }
-#endif
 
 static s7_int quotient_i_ii_unchecked(s7_int i1, s7_int i2) {return(i1 / i2);} /* i2 > 0 */
 
 static s7_pointer quotient_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  if ((is_real(x)) && (is_real(y)))
-    {
-      if (is_zero(y))
-	division_by_zero_error_2_nr(sc, sc->quotient_symbol, x, y);
-      if ((s7_is_integer(x)) && (s7_is_integer(y)))
-	{
-	  if (is_t_integer(x)) mpz_set_si(sc->mpz_1, integer(x)); else mpz_set(sc->mpz_1, big_integer(x));
-	  if (is_t_integer(y)) mpz_set_si(sc->mpz_2, integer(y)); else mpz_set(sc->mpz_2, big_integer(y));
-	  mpz_tdiv_q(sc->mpz_1, sc->mpz_1, sc->mpz_2);
-	}
-      else
-	if ((!is_rational(x)) || (!is_rational(y)))
-	  {
-	    if (any_real_to_mpfr(sc, x, sc->mpfr_1)) return(make_nan_with_payload(sc, __LINE__));
-	    if (any_real_to_mpfr(sc, y, sc->mpfr_2)) return(make_nan_with_payload(sc, __LINE__));
-	    mpfr_div(sc->mpfr_3, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	    mpfr_get_z(sc->mpz_1, sc->mpfr_3, MPFR_RNDZ);
-	  }
-	else
-	  {
-	    any_rational_to_mpq(sc, x, sc->mpq_1);
-	    any_rational_to_mpq(sc, y, sc->mpq_2);
-	    mpq_div(sc->mpq_3, sc->mpq_1, sc->mpq_2);
-	    mpz_tdiv_q(sc->mpz_1, mpq_numref(sc->mpq_3), mpq_denref(sc->mpq_3));
-	  }
-      return(mpz_to_integer(sc, sc->mpz_1));
-    }
-  return(method_or_bust_pp(sc, (is_real(x)) ? y : x, sc->quotient_symbol, x, y, sc->type_names[T_REAL], (is_real(x)) ? 2 : 1));
-#else
 
   s7_int d1, d2, n1, n2;
   if ((is_t_integer(x)) && (is_t_integer(y)))
@@ -21524,7 +18286,6 @@ static s7_pointer quotient_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     default:
       return(method_or_bust_pp(sc, x, sc->quotient_symbol, x, y, sc->type_names[T_REAL], 2));
     }
-#endif
 }
 
 static s7_pointer quotient_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
@@ -21544,47 +18305,6 @@ static s7_pointer g_quotient(s7_scheme *sc, s7_pointer args)
 
 
 /* -------------------------------- remainder -------------------------------- */
-#if WITH_GMP
-static s7_pointer big_mod_or_rem(s7_scheme *sc, s7_pointer x, s7_pointer y, bool use_floor)
-{
-  if ((is_real(x)) && (is_real(y)))
-    {
-      if ((s7_is_integer(x)) && (s7_is_integer(y)))
-	{
-	  if (is_t_integer(x)) mpz_set_si(sc->mpz_1, integer(x)); else mpz_set(sc->mpz_1, big_integer(x));
-	  if (is_t_integer(y)) mpz_set_si(sc->mpz_2, integer(y)); else mpz_set(sc->mpz_2, big_integer(y));
-	  if (use_floor)
-	    mpz_fdiv_q(sc->mpz_3, sc->mpz_1, sc->mpz_2);
-	  else mpz_tdiv_q(sc->mpz_3, sc->mpz_1, sc->mpz_2);
-	  mpz_mul(sc->mpz_3, sc->mpz_3, sc->mpz_2);
-	  mpz_sub(sc->mpz_1, sc->mpz_1, sc->mpz_3);
-	  return(mpz_to_integer(sc, sc->mpz_1));
-	}
-      if ((!is_rational(x)) || (!is_rational(y)))
-	{
-	  any_real_to_mpfr(sc, x, sc->mpfr_1);
-	  any_real_to_mpfr(sc, y, sc->mpfr_2);
-	  mpfr_div(sc->mpfr_3, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	  if (use_floor)
-	    mpfr_get_z(sc->mpz_1, sc->mpfr_3, MPFR_RNDD);
-	  else mpfr_get_z(sc->mpz_1, sc->mpfr_3, MPFR_RNDZ);
-	  mpfr_mul_z(sc->mpfr_2, sc->mpfr_2, sc->mpz_1, MPFR_RNDN);
-	  mpfr_sub(sc->mpfr_1, sc->mpfr_1, sc->mpfr_2, MPFR_RNDN);
-	  return(mpfr_to_big_real(sc, sc->mpfr_1));
-	}
-      any_rational_to_mpq(sc, x, sc->mpq_1);
-      any_rational_to_mpq(sc, y, sc->mpq_2);
-      mpq_div(sc->mpq_3, sc->mpq_1, sc->mpq_2);
-      if (use_floor)
-	mpz_fdiv_q(sc->mpz_1, mpq_numref(sc->mpq_3), mpq_denref(sc->mpq_3));
-      else mpz_tdiv_q(sc->mpz_1, mpq_numref(sc->mpq_3), mpq_denref(sc->mpq_3));
-      mpz_mul(mpq_numref(sc->mpq_2), sc->mpz_1, mpq_numref(sc->mpq_2));
-      mpq_sub(sc->mpq_1, sc->mpq_1, sc->mpq_2);
-      return(mpq_to_canonicalized_rational(sc, sc->mpq_1));
-    }
-  return(method_or_bust_pp(sc, (is_real(x)) ? y : x, (use_floor) ? sc->modulo_symbol : sc->remainder_symbol, x, y, sc->type_names[T_REAL], (is_real(x)) ? 2 : 1));
-}
-#endif
 
 #define REMAINDER_FLOAT_LIMIT 1e13
 
@@ -21621,11 +18341,6 @@ static s7_double remainder_d_7dd(s7_scheme *sc, s7_double x, s7_double y)
 
 static s7_pointer remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  if (is_zero(y))
-    division_by_zero_error_2_nr(sc, sc->remainder_symbol, x, y);
-  return(big_mod_or_rem(sc, x, y, false));
-#else
   s7_int quo, d1, d2, n1, n2;
   s7_double pre_quo;
 
@@ -21783,7 +18498,6 @@ static s7_pointer remainder_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     default:
       return(method_or_bust_pp(sc, x, sc->remainder_symbol, x, y, sc->type_names[T_REAL], 1));
     }
-#endif
 }
 
 static s7_pointer remainder_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
@@ -21848,16 +18562,6 @@ static s7_double modulo_d_7dd(s7_scheme *sc, s7_double x, s7_double y)
 
 static s7_pointer modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  /* as tricky as expt, so just use bignums; mpz_mod|_ui = mpz_fdiv_r_ui, but sign ignored -- probably not worth the code
-   *   originally   subtract_p_pp(sc, x, multiply_p_pp(sc, y, floor_p_p(sc, divide_p_pp(sc, x, y))))
-   *   quotient is                                            truncate_p_p(sc, divide_p_pp(sc, x, y))
-   *   remainder is subtract_p_pp(sc, x, multiply_p_pp(sc, y, quotient_p_pp(sc, x, y)))
-   */
-  if (!is_zero(y)) return(big_mod_or_rem(sc, x, y, true));
-  if (is_real(x)) return(x);
-  return(method_or_bust_pp(sc, x, sc->modulo_symbol, x, y, sc->type_names[T_REAL], 1));
-#else
   s7_double a, b;
   s7_int n1, n2, d1, d2;
   if ((is_t_integer(x)) && (is_t_integer(y))) /* this is nearly always the case */
@@ -22003,7 +18707,6 @@ static s7_pointer modulo_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
     default:
       return(method_or_bust_pp(sc, x, sc->modulo_symbol, x, y, sc->type_names[T_REAL], 1));
     }
-#endif
 }
 
 static s7_pointer modulo_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
@@ -22051,14 +18754,6 @@ static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(((real(x) >= real(y)) || (is_NaN(real(x)))) ? x : y);
       if (is_t_ratio(x))
 	return((fraction(x) < fraction(y)) ? y : x);
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return((mpz_cmp(big_integer(x), big_integer(y)) < 0) ? y : x);
-      if (is_t_big_ratio(x))
-	return((mpq_cmp(big_ratio(x), big_ratio(y)) < 0) ? y : x);
-      if (is_t_big_real(x))
-	return(((mpfr_nan_p(big_real(x)) != 0) || (mpfr_greaterequal_p(big_real(x), big_real(y)))) ? x : y); /* ?? */
-#endif
     }
   switch (type(x))
     {
@@ -22069,15 +18764,6 @@ static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return((integer(x) < fraction(y)) ? y : x);
 	case T_REAL:
 	  return(((integer(x) < real(y)) || (is_NaN(real(y)))) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  return((mpz_cmp_si(big_integer(y), integer(x)) < 0) ? x : y);
-	case T_BIG_RATIO:
-	  return((mpq_cmp_si(big_ratio(y), integer(x), 1) < 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_si(big_real(y), integer(x)) < 0) ? x : y);
-#endif
 	default:
 	  return(max_out_y(sc, x, y));
 	}
@@ -22089,17 +18775,6 @@ static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return((fraction(x) < integer(y)) ? y : x);
 	case T_REAL:
 	  return(((fraction(x) < real(y)) || (is_NaN(real(y)))) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return((mpq_cmp_z(sc->mpq_1, big_integer(y)) < 0) ? y : x);
-	case T_BIG_RATIO:
-	  return((mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) < 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return((mpfr_cmp_q(big_real(y), sc->mpq_1) < 0) ? x : y);
-#endif
 	default:
 	  return(max_out_y(sc, x, y));
 	}
@@ -22110,89 +18785,11 @@ static s7_pointer max_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(((real(x) >= integer(y)) || (is_NaN(real(x)))) ? x : y);
 	case T_RATIO:
 	  return((real(x) < fraction(y)) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(x);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return((mpfr_cmp_z(sc->mpfr_1, big_integer(y)) < 0) ? y : x);
-	case T_BIG_RATIO:
-	  if (is_NaN(real(x))) return(x);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return((mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) < 0) ? y : x);
-	case T_BIG_REAL:
-	  if (is_NaN(real(x))) return(x);
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_d(big_real(y), real(x)) < 0) ? x : y);
-#endif
 	default:
 	  return(max_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return((mpz_cmp_si(big_integer(x), integer(y)) < 0) ? y : x);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return((mpq_cmp_z(sc->mpq_1, big_integer(x)) < 0) ? x : y);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return((mpfr_cmp_d(sc->mpfr_1, real(y)) < 0) ? y : x);
-	case T_BIG_RATIO:
-	  return((mpq_cmp_z(big_ratio(y), big_integer(x)) < 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_z(big_real(y), big_integer(x)) < 0) ? x : y);
-	default:
-	  return(max_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return((mpq_cmp_si(big_ratio(x), integer(y), 1) < 0) ? y : x);
-	case T_RATIO:
-	  return((mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) < 0) ? y : x);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return((mpfr_cmp_d(sc->mpfr_1, real(y)) < 0) ? y : x);
-	case T_BIG_INTEGER:
-	  return((mpq_cmp_z(big_ratio(x), big_integer(y)) < 0) ? y : x);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_q(big_real(y), big_ratio(x)) < 0) ? x : y);
-	default:
-	  return(max_out_y(sc, x, y));
-	}
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_si(big_real(x), integer(y)) < 0) ? y : x);
-	case T_RATIO:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return((mpfr_cmp_q(big_real(x), sc->mpq_1) < 0) ? y : x);
-	case T_REAL:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  if (is_NaN(real(y))) return(y);
-	  return((mpfr_cmp_d(big_real(x), real(y)) < 0) ? y : x);
-	case T_BIG_INTEGER:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_z(big_real(x), big_integer(y)) < 0) ? y : x);
-	case T_BIG_RATIO:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_q(big_real(x), big_ratio(y)) < 0) ? y : x);
-	default:
-	  return(max_out_y(sc, x, y));
-	}
-#endif
     default:
       return(max_out_x(sc, x, y));
     }
@@ -22244,14 +18841,6 @@ static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(((real(x) <= real(y)) || (is_NaN(real(x)))) ? x : y);
       if (is_t_ratio(x))
 	return((fraction(x) > fraction(y)) ? y : x);
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return((mpz_cmp(big_integer(x), big_integer(y)) > 0) ? y : x);
-      if (is_t_big_ratio(x))
-	return((mpq_cmp(big_ratio(x), big_ratio(y)) > 0) ? y : x);
-      if (is_t_big_real(x))
-	return(((mpfr_nan_p(big_real(x)) != 0) || (mpfr_lessequal_p(big_real(x), big_real(y)))) ? x : y); /* ?? */
-#endif
     }
   switch (type(x))
     {
@@ -22261,13 +18850,6 @@ static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_RATIO:       return((integer(x) > fraction(y)) ? y : x);
 	case T_REAL:
 	  return(((integer(x) > real(y)) || (is_NaN(real(y)))) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER: return((mpz_cmp_si(big_integer(y), integer(x)) > 0) ? x : y);
-	case T_BIG_RATIO:   return((mpq_cmp_si(big_ratio(y), integer(x), 1) > 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_si(big_real(y), integer(x)) > 0) ? x : y);
-#endif
 	default:
 	  return(min_out_y(sc, x, y));
 	}
@@ -22279,17 +18861,6 @@ static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return((fraction(x) > integer(y)) ? y : x);
 	case T_REAL:
 	  return(((fraction(x) > real(y)) || (is_NaN(real(y)))) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return((mpq_cmp_z(sc->mpq_1, big_integer(y)) > 0) ? y : x);
-	case T_BIG_RATIO:
-	  return((mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) > 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return((mpfr_cmp_q(big_real(y), sc->mpq_1) > 0) ? x : y);
-#endif
 	default:
 	  return(min_out_y(sc, x, y));
 	}
@@ -22300,90 +18871,11 @@ static s7_pointer min_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(((real(x) <= integer(y)) || (is_NaN(real(x)))) ? x : y);
 	case T_RATIO:
 	  return((real(x) > fraction(y)) ? y : x);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(x);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return((mpfr_cmp_z(sc->mpfr_1, big_integer(y)) > 0) ? y : x);
-	case T_BIG_RATIO:
-	  if (is_NaN(real(x))) return(x);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return((mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) > 0) ? y : x);
-	case T_BIG_REAL:
-	  if (is_NaN(real(x))) return(x);
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_d(big_real(y), real(x)) > 0) ? x : y);
-#endif
 	default:
 	  return(min_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return((mpz_cmp_si(big_integer(x), integer(y)) > 0) ? y : x);
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  return((mpq_cmp_si(sc->mpq_1, numerator(y), denominator(y)) > 0) ? y : x);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return((mpfr_cmp_d(sc->mpfr_1, real(y)) > 0) ? y : x);
-	case T_BIG_RATIO:
-	  return((mpq_cmp_z(big_ratio(y), big_integer(x)) > 0) ? x : y);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_z(big_real(y), big_integer(x)) > 0) ? x : y);
-	default:
-	  return(min_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return((mpq_cmp_si(big_ratio(x), integer(y), 1) > 0) ? y : x);
-	case T_RATIO:
-	  return((mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) > 0) ? y : x);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(y);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return((mpfr_cmp_d(sc->mpfr_1, real(y)) > 0) ? y : x);
-	case T_BIG_INTEGER:
-	  return((mpq_cmp_z(big_ratio(x), big_integer(y)) > 0) ? y : x);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(y);
-	  return((mpfr_cmp_q(big_real(y), big_ratio(x)) > 0) ? x : y);
-	default:
-	  return(min_out_y(sc, x, y));
-	}
-
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_si(big_real(x), integer(y)) > 0) ? y : x);
-	case T_RATIO:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return((mpfr_cmp_q(big_real(x), sc->mpq_1) > 0) ? y : x);
-	case T_REAL:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  if (is_NaN(real(y))) return(y);
-	  return((mpfr_cmp_d(big_real(x), real(y)) > 0) ? y : x);
-	case T_BIG_INTEGER:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_z(big_real(x), big_integer(y)) > 0) ? y : x);
-	case T_BIG_RATIO:
-	  if (mpfr_nan_p(big_real(x))) return(x);
-	  return((mpfr_cmp_q(big_real(x), big_ratio(y)) > 0) ? y : x);
-	default:
-	  return(min_out_y(sc, x, y));
-	}
-#endif
     default:
       return(min_out_x(sc, x, y));
     }
@@ -22453,21 +18945,6 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return((real_part(x) == real_part(y)) && (imag_part(x) == imag_part(y)));
       if (is_t_ratio(x))
 	return((numerator(x) == numerator(y)) && (denominator(x) == denominator(y)));
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return(mpz_cmp(big_integer(x), big_integer(y)) == 0);
-      if (is_t_big_ratio(x))
-	return(mpq_equal(big_ratio(x), big_ratio(y)));
-      if (is_t_big_real(x))
-	return(mpfr_equal_p(big_real(x), big_real(y)));
-      if (is_t_big_complex(x)) /* mpc_cmp can't handle NaN */
-	{
-	  if ((mpfr_nan_p(mpc_realref(big_complex(x)))) || (mpfr_nan_p(mpc_imagref(big_complex(x)))) ||
-	      (mpfr_nan_p(mpc_realref(big_complex(y)))) || (mpfr_nan_p(mpc_imagref(big_complex(y)))))
-	    return(false);
-	  return(mpc_cmp(big_complex(x), big_complex(y)) == 0);
-	}
-#endif
     }
 
   switch (type(x))
@@ -22478,27 +18955,9 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_RATIO:
 	  return(false);
 	case T_REAL:
-#if WITH_GMP
-	  if (s7_int_abs(integer(x)) >= INT64_TO_DOUBLE_LIMIT)
-	    {
-	      if (is_NaN(real(y))) return(false);
-	      mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	      return(mpfr_cmp_si(sc->mpfr_1, integer(x)) == 0);
-	    }
-#endif
 	  return(integer(x) == real(y));
 	case T_COMPLEX:
 	  return(false);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  return((mpz_fits_slong_p(big_integer(y))) && (integer(x) == mpz_get_si(big_integer(y))));
-	case T_BIG_RATIO:
-	  return(false);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_si(big_real(y), integer(x)) == 0));
-	case T_BIG_COMPLEX:
-	  return(false);
-#endif
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
@@ -22508,19 +18967,6 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	case T_INTEGER: return(false);
 	case T_REAL:    return(fraction(x) == real(y));
 	case T_COMPLEX: return(false);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  return(false);
-	case T_BIG_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpq_equal(sc->mpq_1, big_ratio(y)));
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(false);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpfr_cmp_q(big_real(y), sc->mpq_1) == 0);
-	case T_BIG_COMPLEX:
-	  return(false);
-#endif
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
@@ -22533,105 +18979,13 @@ static bool num_eq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	  return(real(x) == fraction(y));
 	case T_COMPLEX:
 	  return(false);
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(y)) == 0);
-	case T_BIG_RATIO:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) == 0);
-	case T_BIG_REAL:
-	  if (is_NaN(real(x))) return(false);
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_d(big_real(y), real(x)) == 0));
-	case T_BIG_COMPLEX:
-	  return(false);
-#endif
 	default: return(eq_out_y(sc, x, y));
 	}
       break;
     case T_COMPLEX:
       if (is_real(y)) return(false);
-#if WITH_GMP
-      if (is_t_big_complex(y))
-	{
-	  if ((is_NaN(real_part(x))) || (is_NaN(imag_part(x))) ||
-	      (mpfr_nan_p(mpc_realref(big_complex(y)))) || (mpfr_nan_p(mpc_imagref(big_complex(y)))))
-	    return(false);
-	  mpc_set_d_d(sc->mpc_1, real_part(x), imag_part(x), MPC_RNDNN);
-	  return(mpc_cmp(big_complex(y), sc->mpc_1) == 0);
-	}
-#endif
       return(eq_out_y(sc, x, y));
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return((mpz_fits_slong_p(big_integer(x))) && (integer(y) == mpz_get_si(big_integer(x))));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(x)) == 0);
-	case T_RATIO: case T_COMPLEX: case T_BIG_RATIO: case T_BIG_COMPLEX:
-	  return(false);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_z(big_real(y), big_integer(x)) == 0));
-	default: return(eq_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpq_equal(sc->mpq_1, big_ratio(x)));
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(y), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(x)) == 0);
-	case T_INTEGER: case T_BIG_INTEGER: case T_COMPLEX: case T_BIG_COMPLEX:
-	  return(false);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_q(big_real(y), big_ratio(x)) == 0));
-	default: return(eq_out_y(sc, x, y));
-	}
-
-    case T_BIG_REAL:
-      if ((is_number(y)) && (mpfr_nan_p(big_real(x)))) return(false);
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpfr_cmp_si(big_real(x), integer(y)) == 0);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpfr_cmp_q(big_real(x), sc->mpq_1) == 0);
-	case T_REAL:
-	  return((!is_NaN(real(y))) && (mpfr_cmp_d(big_real(x), real(y)) == 0));
-	case T_BIG_INTEGER:
-	  return(mpfr_cmp_z(big_real(x), big_integer(y)) == 0);
-	case T_BIG_RATIO:
-	  return(mpfr_cmp_q(big_real(x), big_ratio(y)) == 0);
-	case T_COMPLEX: case T_BIG_COMPLEX:
-	  return(false);
-	default: return(eq_out_y(sc, x, y));
-	}
-
-    case T_BIG_COMPLEX:
-      switch (type(y))
-	{
-	case T_RATIO: case T_REAL: case T_INTEGER: case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-	  return(false);
-	case T_COMPLEX:
-	  if ((is_NaN(real_part(y))) || (is_NaN(imag_part(y))) ||
-	      (mpfr_nan_p(mpc_realref(big_complex(x)))) || (mpfr_nan_p(mpc_imagref(big_complex(x)))))
-	    return(false);
-	  mpc_set_d_d(sc->mpc_1, real_part(y), imag_part(y), MPC_RNDNN);
-	  return(mpc_cmp(big_complex(x), sc->mpc_1) == 0); /* NaN's not allowed! */
-	default: return(eq_out_y(sc, x, y));
-	}
-#endif
     default: return(eq_out_x(sc, x, y));
     }
   return(false);
@@ -22683,12 +19037,6 @@ static s7_pointer num_eq_p_pi(s7_scheme *sc, s7_pointer x, s7_int y)
     return(make_boolean(sc, integer(x) == y));
   if (is_t_real(x))
     return(make_boolean(sc, real(x) == y));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, (mpz_fits_slong_p(big_integer(x))) && (y == mpz_get_si(big_integer(x)))));
-  if (is_t_big_real(x))
-    return(make_boolean(sc, mpfr_cmp_si(big_real(x), y) == 0));
-#endif
   if (is_number(x))
     return(sc->F); /* complex/ratio can't == int */
   if (has_active_methods(sc, x))
@@ -22705,12 +19053,6 @@ static bool num_eq_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
     return(integer(x) == y);
   if (is_t_real(x))
     return(real(x) == y);
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return((mpz_fits_slong_p(big_integer(x))) && (y == mpz_get_si(big_integer(x))));
-  if (is_t_big_real(x))
-    return(mpfr_cmp_si(big_real(x), y) == 0);
-#endif
   if (!is_number(x)) /* complex/ratio can't == int */
     wrong_type_error_nr(sc, sc->num_eq_symbol, 1, x, a_number_string);
   return(false);
@@ -22732,17 +19074,6 @@ static inline s7_pointer num_eq_xx(s7_scheme *sc, s7_pointer x, s7_pointer y)
     return(make_boolean(sc, real(x) == integer(y)));
   if (!is_number(x))
     return(make_boolean(sc, eq_out_x(sc, x, y)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), integer(y)) == 0));
-  if (is_t_big_real(x))
-    {
-      if (mpfr_nan_p(big_real(x))) return(sc->F);
-      return(make_boolean(sc, mpfr_cmp_si(big_real(x), integer(y)) == 0));
-    }
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), integer(y), 1) == 0));
-#endif
   return(sc->F);
 }
 
@@ -22788,14 +19119,6 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(real(x) < real(y));
       if (is_t_ratio(x))
 	return(fraction(x) < fraction(y));
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return(mpz_cmp(big_integer(x), big_integer(y)) < 0);
-      if (is_t_big_ratio(x))
-	return(mpq_cmp(big_ratio(x), big_ratio(y)) < 0);
-      if (is_t_big_real(x))
-	return(mpfr_less_p(big_real(x), big_real(y)));
-#endif
     }
   switch (type(x))
     {
@@ -22804,11 +19127,6 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_RATIO:	return(integer(x) < fraction(y)); /* ?? */
 	case T_REAL:	return(integer(x) < real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER: return(mpz_cmp_si(big_integer(y), integer(x)) > 0);
-	case T_BIG_RATIO:   return(mpq_cmp_si(big_ratio(y), integer(x), 1) > 0);
-	case T_BIG_REAL:    return(mpfr_cmp_si(big_real(y), integer(x)) > 0);
-#endif
 	default: return(lt_out_y(sc, x, y));
 	}
       break;
@@ -22817,16 +19135,6 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(fraction(x) < integer(y));
 	case T_REAL:    return(fraction(x) < real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpq_cmp_z(sc->mpq_1, big_integer(y)) < 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) > 0);
-	case T_BIG_REAL:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpfr_cmp_q(big_real(y), sc->mpq_1) > 0);
-#endif
 	default: return(lt_out_y(sc, x, y));
 	}
     case T_REAL:
@@ -22834,74 +19142,10 @@ static bool lt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(real(x) < integer(y));
 	case T_RATIO:	return(real(x) < fraction(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(y)) < 0);
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) < 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_d(big_real(y), real(x)) > 0);
-#endif
 	default: return(lt_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpz_cmp_si(big_integer(x), integer(y)) < 0);
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  return(mpq_cmp_si(sc->mpq_1, numerator(y), denominator(y)) < 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) < 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_z(big_ratio(y), big_integer(x)) > 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_z(big_real(y), big_integer(x)) > 0);
-	default: return(lt_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpq_cmp_si(big_ratio(x), integer(y), 1) < 0);
-	case T_RATIO:
-	  return(mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) < 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) < 0);
-	case T_BIG_INTEGER:
-	  return(mpq_cmp_z(big_ratio(x), big_integer(y)) < 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_q(big_real(y), big_ratio(x)) > 0);
-	default: return(lt_out_y(sc, x, y));
-	}
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpfr_cmp_si(big_real(x), integer(y)) < 0);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpfr_cmp_q(big_real(x), sc->mpq_1) < 0);
-	case T_REAL:
-	  return(mpfr_cmp_d(big_real(x), real(y)) < 0);
-	case T_BIG_INTEGER:
-	  return(mpfr_cmp_z(big_real(x), big_integer(y)) < 0);
-	case T_BIG_RATIO:
-	  return(mpfr_cmp_q(big_real(x), big_ratio(y)) < 0);
-	default: return(lt_out_y(sc, x, y));
-	}
-#endif
     default: return(lt_out_x(sc, x, y));
     }
   return(true);
@@ -22948,14 +19192,6 @@ static s7_pointer g_less_x0(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, integer(x) < 0));
   if (is_small_real(x))
     return(make_boolean(sc, is_negative(sc, x)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), 0) < 0));
-  if (is_t_big_real(x))
-    return(make_boolean(sc, mpfr_cmp_si(big_real(x), 0) < 0));
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), 0, 1) < 0));
-#endif
   return(method_or_bust(sc, x, sc->lt_symbol, args, sc->type_names[T_REAL], 1));
 }
 
@@ -22970,14 +19206,6 @@ static s7_pointer g_less_xi(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, real(x) < y));
   if (is_t_ratio(x))
     return(make_boolean(sc, ratio_lt_pi(x, y)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), y) < 0));
-  if (is_t_big_real(x))
-    return(make_boolean(sc, mpfr_cmp_si(big_real(x), y) < 0));
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), y, 1) < 0));
-#endif
   return(method_or_bust(sc, x, sc->lt_symbol, args, sc->type_names[T_REAL], 1));
 }
 
@@ -22992,20 +19220,6 @@ static s7_pointer g_less_xf(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, integer(x) < y));
   if (is_t_ratio(x))
     return(make_boolean(sc, fraction(x) < y));
-#if WITH_GMP
-  if (is_t_big_real(x))
-    return(make_boolean(sc, mpfr_cmp_d(big_real(x), y) < 0));
-  if (is_t_big_integer(x))
-    {
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      return(make_boolean(sc, mpfr_cmp_z(sc->mpfr_1, big_integer(x)) > 0));
-    }
-  if (is_t_big_ratio(x))
-    {
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      return(make_boolean(sc, mpfr_cmp_q(sc->mpfr_1, big_ratio(x)) > 0));
-    }
-#endif
   return(method_or_bust(sc, x, sc->lt_symbol, args, sc->type_names[T_REAL], 1));
 }
 
@@ -23020,14 +19234,6 @@ static bool lt_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   if (is_t_integer(x)) return(integer(x) < y);
   if (is_t_real(x))  return(real(x) < y);
   if (is_t_ratio(x)) return(ratio_lt_pi(x, y));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(mpz_cmp_si(big_integer(x), y) < 0);
-  if (is_t_big_real(x))
-    return(mpfr_cmp_si(big_real(x), y) < 0);
-  if (is_t_big_ratio(x))
-    return(mpq_cmp_si(big_ratio(x), y, 1) < 0);
-#endif
   return(lt_out_x(sc, x, make_integer(sc, y)));
 }
 
@@ -23079,14 +19285,6 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(real(x) <= real(y));
       if (is_t_ratio(x))
 	return(fraction(x) <= fraction(y));
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return(mpz_cmp(big_integer(x), big_integer(y)) <= 0);
-      if (is_t_big_ratio(x))
-	return(mpq_cmp(big_ratio(x), big_ratio(y)) <= 0);
-      if (is_t_big_real(x))
-	return(mpfr_lessequal_p(big_real(x), big_real(y)));
-#endif
     }
   switch (type(x))
     {
@@ -23095,12 +19293,6 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_RATIO:	return(integer(x) <= fraction(y)); /* ?? */
 	case T_REAL:	return(integer(x) <= real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER: return(mpz_cmp_si(big_integer(y), integer(x)) >= 0);
-	case T_BIG_RATIO:   return(mpq_cmp_si(big_ratio(y), integer(x), 1) >= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_si(big_real(y), integer(x)) >= 0));
-#endif
 	default: return(leq_out_y(sc, x, y));
 	}
       break;
@@ -23109,17 +19301,6 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(fraction(x) <= integer(y));
 	case T_REAL:    return(fraction(x) <= real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpq_cmp_z(sc->mpq_1, big_integer(y)) <= 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) >= 0);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(false);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpfr_cmp_q(big_real(y), sc->mpq_1) >= 0);
-#endif
 	default: return(leq_out_y(sc, x, y));
 	}
     case T_REAL:
@@ -23127,78 +19308,10 @@ static bool leq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(real(x) <= integer(y));
 	case T_RATIO:	return(real(x) <= fraction(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(y)) <= 0);
-	case T_BIG_RATIO:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) <= 0);
-	case T_BIG_REAL:
-	  if (is_NaN(real(x))) return(false);
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_d(big_real(y), real(x)) >= 0));
-#endif
 	default: return(leq_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpz_cmp_si(big_integer(x), integer(y)) <= 0);
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  return(mpq_cmp_si(sc->mpq_1, numerator(y), denominator(y)) <= 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) <= 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_z(big_ratio(y), big_integer(x)) >= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_z(big_real(y), big_integer(x)) >= 0));
-	default: return(leq_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpq_cmp_si(big_ratio(x), integer(y), 1) <= 0);
-	case T_RATIO:
-	  return(mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) <= 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) <= 0);
-	case T_BIG_INTEGER:
-	  return(mpq_cmp_z(big_ratio(x), big_integer(y)) <= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_q(big_real(y), big_ratio(x)) >= 0));
-	default: return(leq_out_y(sc, x, y));
-	}
-
-    case T_BIG_REAL:
-      if ((is_real(y)) && (mpfr_nan_p(big_real(x)))) return(false);
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpfr_cmp_si(big_real(x), integer(y)) <= 0);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpfr_cmp_q(big_real(x), sc->mpq_1) <= 0);
-	case T_REAL:
-	  return((!is_NaN(real(y))) && (mpfr_cmp_d(big_real(x), real(y)) <= 0));
-	case T_BIG_INTEGER:
-	  return(mpfr_cmp_z(big_real(x), big_integer(y)) <= 0);
-	case T_BIG_RATIO:
-	  return(mpfr_cmp_q(big_real(x), big_ratio(y)) <= 0);
-	default: return(leq_out_y(sc, x, y));
-	}
-#endif
     default: return(leq_out_x(sc, x, y));
     }
   return(true);
@@ -23252,17 +19365,6 @@ static s7_pointer g_leq_xi(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, real(x) <= y));
   if (is_t_ratio(x))
     return(make_boolean(sc, ratio_leq_pi(x, y)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), y) <= 0));
-  if (is_t_big_real(x))
-    {
-      if (mpfr_nan_p(big_real(x))) return(sc->F);
-      return(make_boolean(sc, mpfr_cmp_si(big_real(x), y) <= 0));
-    }
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), y, 1) <= 0));
-#endif
   return(method_or_bust(sc, x, sc->leq_symbol, args, sc->type_names[T_REAL], 1));
 }
 
@@ -23271,14 +19373,6 @@ static bool leq_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   if (is_t_integer(x)) return(integer(x) <= y);
   if (is_t_real(x))  return(real(x) <= y);
   if (is_t_ratio(x)) return(ratio_leq_pi(x, y));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(mpz_cmp_si(big_integer(x), y) <= 0);
-  if (is_t_big_real(x))
-    return(mpfr_cmp_si(big_real(x), y) <= 0);
-  if (is_t_big_ratio(x))
-    return(mpq_cmp_si(big_ratio(x), y, 1) <= 0);
-#endif
   if (has_active_methods(sc, x))
     return(find_and_apply_method(sc, x, sc->leq_symbol, list_2(sc, x, make_integer(sc, y)))); /* not plist */
   wrong_type_error_nr(sc, sc->leq_symbol, 1, x, sc->type_names[T_REAL]);
@@ -23348,14 +19442,6 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(real(x) > real(y));
       if (is_t_ratio(x))
 	return(fraction(x) > fraction(y));
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return(mpz_cmp(big_integer(x), big_integer(y)) > 0);
-      if (is_t_big_ratio(x))
-	return(mpq_cmp(big_ratio(x), big_ratio(y)) > 0);
-      if (is_t_big_real(x))
-	return(mpfr_greater_p(big_real(x), big_real(y)));
-#endif
     }
   switch (type(x))
     {
@@ -23364,11 +19450,6 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_RATIO:	return(integer(x) > fraction(y)); /* ?? */
 	case T_REAL:	return(integer(x) > real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER: return(mpz_cmp_si(big_integer(y), integer(x)) < 0);
-	case T_BIG_RATIO:   return(mpq_cmp_si(big_ratio(y), integer(x), 1) < 0);
-	case T_BIG_REAL:    return(mpfr_cmp_si(big_real(y), integer(x)) < 0);
-#endif
 	default: return(gt_out_y(sc, x, y));
 	}
       break;
@@ -23377,16 +19458,6 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(fraction(x) > integer(y));
 	case T_REAL:    return(fraction(x) > real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpq_cmp_z(sc->mpq_1, big_integer(y)) > 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) < 0);
-	case T_BIG_REAL:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpfr_cmp_q(big_real(y), sc->mpq_1) < 0);
-#endif
 	default: return(gt_out_y(sc, x, y));
 	}
     case T_REAL:
@@ -23394,74 +19465,10 @@ static bool gt_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(real(x) > integer(y));
 	case T_RATIO:	return(real(x) > fraction(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(y)) > 0);
-	case T_BIG_RATIO:
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) > 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_d(big_real(y), real(x)) < 0);
-#endif
 	default: return(gt_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpz_cmp_si(big_integer(x), integer(y)) > 0);
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  return(mpq_cmp_si(sc->mpq_1, numerator(y), denominator(y)) > 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) > 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_z(big_ratio(y), big_integer(x)) < 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_z(big_real(y), big_integer(x)) < 0);
-	default: return(gt_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpq_cmp_si(big_ratio(x), integer(y), 1) > 0);
-	case T_RATIO:
-	  return(mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) > 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) > 0);
-	case T_BIG_INTEGER:
-	  return(mpq_cmp_z(big_ratio(x), big_integer(y)) > 0);
-	case T_BIG_REAL:
-	  return(mpfr_cmp_q(big_real(y), big_ratio(x)) < 0);
-	default: return(gt_out_y(sc, x, y));
-	}
-    case T_BIG_REAL:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpfr_cmp_si(big_real(x), integer(y)) > 0);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpfr_cmp_q(big_real(x), sc->mpq_1) > 0);
-	case T_REAL:
-	  return(mpfr_cmp_d(big_real(x), real(y)) > 0);
-	case T_BIG_INTEGER:
-	  return(mpfr_cmp_z(big_real(x), big_integer(y)) > 0);
-	case T_BIG_RATIO:
-	  return(mpfr_cmp_q(big_real(x), big_ratio(y)) > 0);
-	default: return(gt_out_y(sc, x, y));
-	}
-#endif
     default: return(gt_out_x(sc, x, y));
     }
   return(true);
@@ -23499,14 +19506,6 @@ static s7_pointer g_greater_xi(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, real(x) > y));
   if (is_t_ratio(x))
     return(make_boolean(sc, !ratio_leq_pi(x, y)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), y) > 0));
-  if (is_t_big_real(x))
-    return(make_boolean(sc, mpfr_cmp_si(big_real(x), y) > 0));
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), y, 1) > 0));
-#endif
   return(method_or_bust(sc, x, sc->gt_symbol, args, a_number_string, 1));
 }
 
@@ -23528,16 +19527,6 @@ static s7_pointer g_greater_xf(s7_scheme *sc, s7_pointer args)
 	return(make_boolean(sc, (numerator(x) > (y * denominator(x)))));
       return(make_boolean(sc, fraction(x) > y));
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      return(make_boolean(sc, mpfr_cmp_z(sc->mpfr_1, big_integer(x)) < 0));
-    case T_BIG_RATIO:
-      mpfr_set_d(sc->mpfr_1, y, MPFR_RNDN);
-      return(make_boolean(sc, mpfr_cmp_q(sc->mpfr_1, big_ratio(x)) < 0));
-    case T_BIG_REAL:
-      return(make_boolean(sc, mpfr_cmp_d(big_real(x), y) > 0));
-#endif
     default:
       return(method_or_bust(sc, x, sc->gt_symbol, args, a_number_string, 1));
     }
@@ -23555,14 +19544,6 @@ static bool gt_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   if (is_t_integer(x)) return(integer(x) > y);
   if (is_t_real(x))  return(real(x) > y);
   if (is_t_ratio(x)) return(!ratio_leq_pi(x, y));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(mpz_cmp_si(big_integer(x), y) > 0);
-  if (is_t_big_real(x))
-    return(mpfr_cmp_si(big_real(x), y) > 0);
-  if (is_t_big_ratio(x))
-    return(mpq_cmp_si(big_ratio(x), y, 1) > 0);
-#endif
   return(gt_out_x(sc, x, make_integer(sc, y)));
 }
 
@@ -23587,10 +19568,6 @@ static s7_pointer g_greater_2(s7_scheme *sc, s7_pointer args)
 	  return(gt_p_pp(sc, x, y));
 	case T_REAL:
 	  return(make_boolean(sc, integer(x) > real(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-	  return(gt_p_pp(sc, x, y));
-#endif
 	default:        return(make_boolean(sc, gt_out_y(sc, x, y)));
 	}
       break;
@@ -23601,17 +19578,9 @@ static s7_pointer g_greater_2(s7_scheme *sc, s7_pointer args)
 	{
 	case T_INTEGER: return(make_boolean(sc, real(x) > integer(y)));
 	case T_RATIO:   return(make_boolean(sc, real(x) > fraction(y)));
-#if WITH_GMP
-	case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-	  return(gt_p_pp(sc, x, y));
-#endif
 	default:        return(make_boolean(sc, gt_out_y(sc, x, y)));
 	}
       break;
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL:
-      return(gt_p_pp(sc, x, y));
-#endif
 
     default:            return(make_boolean(sc, gt_out_x(sc, x, y)));
     }
@@ -23656,14 +19625,6 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	return(real(x) >= real(y));
       if (is_t_ratio(x))
 	return(fraction(x) >= fraction(y));
-#if WITH_GMP
-      if (is_t_big_integer(x))
-	return(mpz_cmp(big_integer(x), big_integer(y)) >= 0);
-      if (is_t_big_ratio(x))
-	return(mpq_cmp(big_ratio(x), big_ratio(y)) >= 0);
-      if (is_t_big_real(x))
-	return(mpfr_greaterequal_p(big_real(x), big_real(y)));
-#endif
     }
   switch (type(x))
     {
@@ -23672,12 +19633,6 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_RATIO:	return(integer(x) >= fraction(y)); /* ?? */
 	case T_REAL:	return(integer(x) >= real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER: return(mpz_cmp_si(big_integer(y), integer(x)) <= 0);
-	case T_BIG_RATIO:   return(mpq_cmp_si(big_ratio(y), integer(x), 1) <= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_si(big_real(y), integer(x)) <= 0));
-#endif
 	default: return(geq_out_y(sc, x, y));
 	}
       break;
@@ -23686,17 +19641,6 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(fraction(x) >= integer(y));
 	case T_REAL:    return(fraction(x) >= real(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpq_cmp_z(sc->mpq_1, big_integer(y)) >= 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_si(big_ratio(y), numerator(x), denominator(x)) <= 0);
-	case T_BIG_REAL:
-	  if (mpfr_nan_p(big_real(y))) return(false);
-	  mpq_set_si(sc->mpq_1, numerator(x), denominator(x));
-	  return(mpfr_cmp_q(big_real(y), sc->mpq_1) <= 0);
-#endif
 	default: return(geq_out_y(sc, x, y));
 	}
     case T_REAL:
@@ -23704,78 +19648,10 @@ static bool geq_b_7pp(s7_scheme *sc, s7_pointer x, s7_pointer y)
 	{
 	case T_INTEGER: return(real(x) >= integer(y));
 	case T_RATIO:	return(real(x) >= fraction(y));
-#if WITH_GMP
-	case T_BIG_INTEGER:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_z(sc->mpfr_1, big_integer(y)) >= 0);
-	case T_BIG_RATIO:
-	  if (is_NaN(real(x))) return(false);
-	  mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-	  return(mpfr_cmp_q(sc->mpfr_1, big_ratio(y)) >= 0);
-	case T_BIG_REAL:
-	  if (is_NaN(real(x))) return(false);
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_d(big_real(y), real(x)) <= 0));
-#endif
 	default: return(geq_out_y(sc, x, y));
 	}
       break;
 
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpz_cmp_si(big_integer(x), integer(y)) >= 0);
-	case T_RATIO:
-	  mpq_set_z(sc->mpq_1, big_integer(x));
-	  return(mpq_cmp_si(sc->mpq_1, numerator(y), denominator(y)) >= 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) >= 0);
-	case T_BIG_RATIO:
-	  return(mpq_cmp_z(big_ratio(y), big_integer(x)) <= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_z(big_real(y), big_integer(x)) <= 0));
-	default: return(geq_out_y(sc, x, y));
-	}
-    case T_BIG_RATIO:
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpq_cmp_si(big_ratio(x), integer(y), 1) >= 0);
-	case T_RATIO:
-	  return(mpq_cmp_si(big_ratio(x), numerator(y), denominator(y)) >= 0);
-	case T_REAL:
-	  if (is_NaN(real(y))) return(false);
-	  mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-	  return(mpfr_cmp_d(sc->mpfr_1, real(y)) >= 0);
-	case T_BIG_INTEGER:
-	  return(mpq_cmp_z(big_ratio(x), big_integer(y)) >= 0);
-	case T_BIG_REAL:
-	  return((!mpfr_nan_p(big_real(y))) && (mpfr_cmp_q(big_real(y), big_ratio(x)) <= 0));
-	default: return(geq_out_y(sc, x, y));
-	}
-
-    case T_BIG_REAL:
-      if ((is_real(y)) && (mpfr_nan_p(big_real(x)))) return(false);
-      switch (type(y))
-	{
-	case T_INTEGER:
-	  return(mpfr_cmp_si(big_real(x), integer(y)) >= 0);
-	case T_RATIO:
-	  mpq_set_si(sc->mpq_1, numerator(y), denominator(y));
-	  return(mpfr_cmp_q(big_real(x), sc->mpq_1) >= 0);
-	case T_REAL:
-	  return((!is_NaN(real(y))) && (mpfr_cmp_d(big_real(x), real(y)) >= 0));
-	case T_BIG_INTEGER:
-	  return(mpfr_cmp_z(big_real(x), big_integer(y)) >= 0);
-	case T_BIG_RATIO:
-	  return(mpfr_cmp_q(big_real(x), big_ratio(y)) >= 0);
-	default: return(geq_out_y(sc, x, y));
-	}
-#endif
     default: return(geq_out_x(sc, x, y));
     }
   return(true);
@@ -23827,17 +19703,6 @@ static s7_pointer g_geq_xi(s7_scheme *sc, s7_pointer args)
     return(make_boolean(sc, real(x) >= y));
   if (is_t_ratio(x))
     return(make_boolean(sc, !ratio_lt_pi(x, y)));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(make_boolean(sc, mpz_cmp_si(big_integer(x), y) >= 0));
-  if (is_t_big_real(x))
-    {
-      if (mpfr_nan_p(big_real(x))) return(sc->F);
-      return(make_boolean(sc, mpfr_cmp_si(big_real(x), y) >= 0));
-    }
-  if (is_t_big_ratio(x))
-    return(make_boolean(sc, mpq_cmp_si(big_ratio(x), y, 1) >= 0));
-#endif
   return(method_or_bust(sc, x, sc->geq_symbol, args, sc->type_names[T_REAL], 1));
 }
 
@@ -23846,14 +19711,6 @@ static bool geq_b_pi(s7_scheme *sc, s7_pointer x, s7_int y)
   if (is_t_integer(x)) return(integer(x) >= y);
   if (is_t_real(x))  return(real(x) >= y);
   if (is_t_ratio(x)) return(!ratio_lt_pi(x, y));
-#if WITH_GMP
-  if (is_t_big_integer(x))
-    return(mpz_cmp_si(big_integer(x), y) >= 0);
-  if (is_t_big_real(x))
-    return((!mpfr_nan_p(big_real(x))) && (mpfr_cmp_si(big_real(x), y) >= 0));
-  if (is_t_big_ratio(x))
-    return(mpq_cmp_si(big_ratio(x), y, 1) >= 0);
-#endif
   if (!has_active_methods(sc, x))
     wrong_type_error_nr(sc, sc->geq_symbol, 1, x, sc->type_names[T_REAL]);
   return(find_and_apply_method(sc, x, sc->geq_symbol, list_2(sc, x, make_integer(sc, y))));   /* not plist */
@@ -23883,13 +19740,6 @@ s7_double s7_real_part(s7_pointer x)
     case T_RATIO:       return((s7_double)fraction(x));
     case T_REAL:        return(real(x));
     case T_COMPLEX:     return(real_part(x));
-#if WITH_GMP
-    case T_BIG_INTEGER: return((s7_double)mpz_get_si(big_integer(x)));
-    case T_BIG_RATIO:   return((s7_double)((long_double)mpz_get_si(mpq_numref(big_ratio(x))) /
-					   (long_double)mpz_get_si(mpq_denref(big_ratio(x)))));
-    case T_BIG_REAL:    return((s7_double)mpfr_get_d(big_real(x), MPFR_RNDN));
-    case T_BIG_COMPLEX: return((s7_double)mpfr_get_d(mpc_realref(big_complex(x)), MPFR_RNDN));
-#endif
     }
   return(0.0);
 }
@@ -23899,10 +19749,6 @@ s7_double s7_imag_part(s7_pointer x)
 {
   if (is_t_complex(x))
     return(imag_part(x));
-#if WITH_GMP
-  if (is_t_big_complex(x))
-    return((s7_double)mpfr_get_d(mpc_imagref(big_complex(x)), MPFR_RNDN));
-#endif
   return(0.0);
 }
 
@@ -23911,10 +19757,6 @@ static s7_int numerator_i_7p(s7_scheme *sc, s7_pointer x)
 {
   if (is_t_ratio(x)) return(numerator(x));
   if (is_t_integer(x)) return(integer(x));
-#if WITH_GMP
-  if (is_t_big_ratio(x)) return(mpz_get_si(mpq_numref(big_ratio(x))));
-  if (is_t_big_integer(x)) return(mpz_get_si(big_integer(x)));
-#endif
   return(integer(method_or_bust_p(sc, x, sc->numerator_symbol, a_rational_string)));
 }
 
@@ -23928,10 +19770,6 @@ static s7_pointer g_numerator(s7_scheme *sc, s7_pointer args)
     {
     case T_RATIO:       return(make_integer(sc, numerator(x)));
     case T_INTEGER:     return(x);
-#if WITH_GMP
-    case T_BIG_INTEGER: return(x);
-    case T_BIG_RATIO:   return(mpz_to_integer(sc, mpq_numref(big_ratio(x))));
-#endif
     default:            return(method_or_bust_p(sc, x, sc->numerator_symbol, a_rational_string));
     }
 }
@@ -23947,10 +19785,6 @@ static s7_pointer g_denominator(s7_scheme *sc, s7_pointer args)
     {
     case T_RATIO:       return(make_integer(sc, denominator(x)));
     case T_INTEGER:     return(int_one);
-#if WITH_GMP
-    case T_BIG_INTEGER: return(int_one);
-    case T_BIG_RATIO:   return(mpz_to_integer(sc, mpq_denref(big_ratio(x))));
-#endif
     default:            return(method_or_bust_p(sc, x, sc->denominator_symbol, a_rational_string));
     }
 }
@@ -23959,10 +19793,6 @@ static s7_int denominator_i_7p(s7_scheme *sc, s7_pointer x)
 {
   if (is_t_ratio(x)) return(denominator(x));
   if (is_t_integer(x)) return(1);
-#if WITH_GMP
-  if (is_t_big_ratio(x)) return(mpz_get_si(mpq_denref(big_ratio(x))));
-  if (is_t_big_integer(x)) return(1);
-#endif
   return(integer(method_or_bust_p(sc, x, sc->denominator_symbol, a_rational_string)));
 }
 
@@ -23973,15 +19803,6 @@ static s7_pointer g_is_number(s7_scheme *sc, s7_pointer args)
   #define H_is_number "(number? obj) returns #t if obj is a number"
   #define Q_is_number sc->pl_bt
   check_boolean_method(sc, is_number, sc->is_number_symbol, args);
-}
-
-bool s7_is_bignum(s7_pointer obj) {return(is_big_number(obj));}
-
-static s7_pointer g_is_bignum(s7_scheme *sc, s7_pointer args)
-{
-  #define H_is_bignum "(bignum? obj) returns #t if obj is a multiprecision number."
-  #define Q_is_bignum sc->pl_bt
-  return(make_boolean(sc, is_big_number(car(args))));
 }
 
 static s7_pointer g_is_integer(s7_scheme *sc, s7_pointer args)
@@ -24025,22 +19846,12 @@ static s7_pointer g_is_float(s7_scheme *sc, s7_pointer args)
 {
   #define H_is_float "(float? x) returns #t is x is real and not rational."
   #define Q_is_float sc->pl_bt
-#if WITH_GMP
-  /* return(make_boolean(sc, (is_t_real(p)) || (is_t_big_real(p)))); *//* (float? pi) */
-  #define is_t_float(P) (is_t_real(P) || (is_t_big_real(P)))
-  check_boolean_method(sc, is_t_float, sc->is_float_symbol, args);
-#else
   /* (float? (openlet (inlet 'x 0.0 'float? (lambda (obj) (and (real? (obj 'x)) (not (exact? (obj 'x)))))))) */
   check_boolean_method(sc, is_t_real, sc->is_float_symbol, args);
   /* return(make_boolean(sc, is_t_real(p))); */
-#endif
 }
 
-#if WITH_GMP
-static bool is_float_b(s7_pointer x) {return((is_t_real(x)) || (is_t_big_real(x)));}
-#else
 static bool is_float_b(s7_pointer x) {return(is_t_real(x));}
-#endif
 
 
 /* ---------------------------------------- nan? ---------------------------------------- */
@@ -24127,10 +19938,6 @@ static s7_pointer g_integer_length(s7_scheme *sc, s7_pointer args)
       s7_int x = integer(num);
       return((x < 0) ? small_int(integer_length(-(x + 1))) : small_int(integer_length(x)));
     }
-#if WITH_GMP
-  if (is_t_big_integer(num))
-    return(make_integer(sc, mpz_sizeinbase(big_integer(num), 2)));
-#endif
   return(sole_arg_method_or_bust(sc, num, sc->integer_length_symbol, args, sc->type_names[T_INTEGER]));
 }
 
@@ -24157,16 +19964,6 @@ sign of 'x' (1 = positive, -1 = negative).  (integer-decode-float 0.0): (0 0 1)"
 		    make_integer(sc, (s7_int)(((num.ix & 0x7fffffffffffffffLL) >> 52) - 1023 - 52)),
 		    ((num.ix & 0x8000000000000000LL) != 0) ? minus_one : int_one));
     }
-#if WITH_GMP
-  if (is_t_big_real(x))
-    {
-      mp_exp_t exp_n = mpfr_get_z_exp(sc->mpz_1, big_real(x));
-      bool neg = (mpz_cmp_ui(sc->mpz_1, 0) < 0);
-      if (neg) mpz_abs(sc->mpz_1, sc->mpz_1);
-      return(list_3(sc, mpz_to_integer(sc, sc->mpz_1), make_integer(sc, exp_n), (neg) ? minus_one : int_one));
-      /* not gmp: (integer-decode-float +nan.0): (6755399441055744 972 1), gmp: (integer-decode-float (bignum +nan.0)): (0 -1073741823 1) */
-    }
-#endif
   return(method_or_bust_p(sc, x, sc->integer_decode_float_symbol, wrap_string(sc, "a non-rational real", 19)));
 }
 
@@ -24182,16 +19979,12 @@ sign of 'x' (1 = positive, -1 = negative).  (integer-decode-float 0.0): (0 0 1)"
 
 static s7_pointer random_state_copy(s7_scheme *sc, s7_pointer args)
 {
-#if WITH_GMP
-  return(sc->F); /* I can't find a way to copy a gmp random generator */
-#else
   s7_pointer new_r, obj = car(args);
   if (!is_random_state(obj)) return(sc->F);
   new_cell(sc, new_r, T_RANDOM_STATE);
   random_seed(new_r) = random_seed(obj);
   random_carry(new_r) = random_carry(obj);
   return(new_r);
-#endif
 }
 
 #ifndef MWC_32
@@ -24205,24 +19998,6 @@ Pass this as the second argument to 'random' to get a repeatable random number s
     (let ((seed (random-state 1234))) (random 1.0 seed))"
   #define Q_random_state s7_make_circular_signature(sc, 1, 2, sc->is_random_state_symbol, sc->is_integer_symbol)
 
-#if WITH_GMP
-  s7_pointer rs, seed;
-  if (is_null(args))
-    seed = s7_int_to_big_integer(sc, 1234); /* ?? */
-  else
-    {
-      seed = car(args);
-      if (!s7_is_integer(seed))
-	return(sole_arg_method_or_bust(sc, seed, sc->random_state_symbol, args, sc->type_names[T_INTEGER]));
-      if (is_t_integer(seed))
-	seed = s7_int_to_big_integer(sc, integer(seed));
-    }
-  new_cell(sc, rs, T_RANDOM_STATE);
-  gmp_randinit_default(random_gmp_state(rs));            /* Mersenne twister */
-  gmp_randseed(random_gmp_state(rs), big_integer(seed)); /* this is ridiculously slow! */
-  add_big_random_state(sc, rs);
-  return(rs);
-#else
   s7_pointer r1, r2, rs;
   s7_int i1, i2;  /* actually want s7_uint here -- we lose the sign bit? */
   if (is_null(args))
@@ -24256,30 +20031,25 @@ Pass this as the second argument to 'random' to get a repeatable random number s
   random_seed(rs) = (s7_uint)i1;
   random_carry(rs) = (s7_uint)i2;
   return(rs);
-#endif
 }
 
 #define g_random_state s7_random_state
 
 static s7_pointer random_state_getter(s7_scheme *sc, s7_pointer r, s7_int loc)
 {
-#if !WITH_GMP
   if (loc == 0) return(make_integer(sc, random_seed(r)));
   if (loc == 1) return(make_integer(sc, random_carry(r)));
-#endif
   return(sc->F);
 }
 
 static s7_pointer random_state_setter(s7_scheme *sc, s7_pointer r, s7_int loc, s7_pointer val)
 {
-#if !WITH_GMP
   if (is_t_integer(val))
     {
       s7_int i = s7_integer_clamped_if_gmp(sc, val);
       if (loc == 0) random_seed(r) = i;
       if (loc == 1) random_carry(r) = i;
     }
-#endif
   return(sc->F);
 }
 
@@ -24300,43 +20070,29 @@ s7_pointer s7_random_state_to_list(s7_scheme *sc, s7_pointer args)
 {
   #define H_random_state_to_list "(random-state->list r) returns the random state object as a list.\
 You can later apply random-state to this list to continue a random number sequence from any point."
-  #define Q_random_state_to_list s7_make_signature(sc, 2, (WITH_GMP) ? sc->is_list_symbol : sc->is_pair_symbol, sc->is_random_state_symbol)
+  #define Q_random_state_to_list s7_make_signature(sc, 2, sc->is_pair_symbol, sc->is_random_state_symbol)
 
-#if WITH_GMP
-  if ((is_pair(args)) &&
-      (!is_random_state(car(args))))
-    return(method_or_bust(sc, car(args), sc->random_state_to_list_symbol, args, a_random_state_object_string, 1));
-  return(sc->nil);
-#else
   s7_pointer r = (is_null(args)) ? sc->default_random_state : car(args);
   if (!is_random_state(r))
     return(method_or_bust(sc, r, sc->random_state_to_list_symbol, args, a_random_state_object_string, 1));
   return(list_2(sc, make_integer(sc, random_seed(r)), make_integer_unchecked(sc, random_carry(r))));
-#endif
 }
 
 #define g_random_state_to_list s7_random_state_to_list
 
 void s7_set_default_random_state(s7_scheme *sc, s7_int seed, s7_int carry)
 {
-#if !WITH_GMP
   s7_pointer rs;
   new_cell(sc, rs, T_RANDOM_STATE);
   random_seed(rs) = (s7_uint)seed;
   random_carry(rs) = (s7_uint)carry;
   sc->default_random_state = rs;
-#endif
 }
 
 
 /* -------------------------------- random -------------------------------- */
-#if WITH_GMP
-static double next_random(s7_scheme *sc)
-#else
 static double next_random(s7_pointer r)
-#endif
 {
-#if !WITH_GMP
 #if MWC_32
   /* The multiply-with-carry generator for 32-bit integers:
    *        x(n)=a*x(n-1) + carry mod 2^32
@@ -24391,10 +20147,6 @@ static double next_random(s7_pointer r)
 #endif
 
   return(result);
-#else
-  mpfr_urandomb(sc->mpfr_1, random_gmp_state(sc->default_random_state));
-  return(mpfr_get_d(sc->mpfr_1, MPFR_RNDN));
-#endif
 }
 
 static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
@@ -24419,7 +20171,6 @@ static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
   num = car(args);
   switch (type(num))
     {
-#if !WITH_GMP
     case T_INTEGER:
       return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
     case T_RATIO:
@@ -24468,50 +20219,6 @@ static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
       /* (x >> 11) * 0x1.0p-53, (1LL << 50) * 0x1.0p-53) -> .125, here "x" is 64 bits, but isn't this int64 related? */
     case T_COMPLEX:
       return(make_complex(sc, real_part(num) * next_random(r), imag_part(num) * next_random(r)));
-#else
-    case T_INTEGER:
-      if (integer(num) == 0) return(int_zero);
-      mpz_set_si(sc->mpz_1, integer(num));
-      mpz_urandomm(sc->mpz_1, random_gmp_state(r), sc->mpz_1);
-      if (integer(num) < 0) mpz_neg(sc->mpz_1, sc->mpz_1);
-      return(make_integer(sc, mpz_get_si(sc->mpz_1)));
-    case T_BIG_INTEGER:
-      if (mpz_cmp_si(big_integer(num), 0) == 0) return(int_zero);
-      mpz_urandomm(sc->mpz_1, random_gmp_state(r), big_integer(num));
-      /* this does not work if num is a negative number -- you get positive results. so check num for sign, and negate result if necessary */
-      if (mpz_cmp_ui(big_integer(num), 0) < 0)
-	mpz_neg(sc->mpz_1, sc->mpz_1);
-      return(mpz_to_integer(sc, sc->mpz_1));
-    case T_RATIO:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpq_set_si(sc->mpq_1, numerator(num), denominator(num));
-      mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, sc->mpq_1, MPFR_RNDN);
-      mpfr_mul_d(sc->mpfr_2, sc->mpfr_1, sc->default_rationalize_error, MPFR_RNDN);
-      return(big_rationalize(sc, set_plist_2(sc, mpfr_to_big_real(sc, sc->mpfr_1), mpfr_to_big_real(sc, sc->mpfr_2))));
-    case T_BIG_RATIO:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul_q(sc->mpfr_1, sc->mpfr_1, big_ratio(num), MPFR_RNDN);
-      mpfr_mul_d(sc->mpfr_2, sc->mpfr_1, sc->default_rationalize_error, MPFR_RNDN);
-      return(big_rationalize(sc, set_plist_2(sc, mpfr_to_big_real(sc, sc->mpfr_1), mpfr_to_big_real(sc, sc->mpfr_2))));
-    case T_REAL:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul_d(sc->mpfr_1, sc->mpfr_1, real(num), MPFR_RNDN);
-      return(make_real(sc, mpfr_get_d(sc->mpfr_1, MPFR_RNDN)));
-    case T_BIG_REAL:
-      mpfr_urandomb(sc->mpfr_1, random_gmp_state(r));
-      mpfr_mul(sc->mpfr_1, sc->mpfr_1, big_real(num), MPFR_RNDN);
-      return(mpfr_to_big_real(sc, sc->mpfr_1));
-    case T_COMPLEX:
-      mpc_urandom(sc->mpc_1, random_gmp_state(r));
-      mpfr_mul_d(mpc_realref(sc->mpc_1), mpc_realref(sc->mpc_1), real_part(num), MPFR_RNDN);
-      mpfr_mul_d(mpc_imagref(sc->mpc_1), mpc_imagref(sc->mpc_1), imag_part(num), MPFR_RNDN);
-      return(make_complex(sc, mpfr_get_d(mpc_realref(sc->mpc_1), MPFR_RNDN), mpfr_get_d(mpc_imagref(sc->mpc_1), MPFR_RNDN)));
-    case T_BIG_COMPLEX:
-      mpc_urandom(sc->mpc_1, random_gmp_state(r));
-      mpfr_mul(mpc_realref(sc->mpc_1), mpc_realref(sc->mpc_1), mpc_realref(big_complex(num)), MPFR_RNDN);
-      mpfr_mul(mpc_imagref(sc->mpc_1), mpc_imagref(sc->mpc_1), mpc_imagref(big_complex(num)), MPFR_RNDN);
-      return(mpc_to_number(sc, sc->mpc_1));
-#endif
     default:
       return(method_or_bust(sc, num, sc->random_symbol, args, a_number_string, 1));
     }
@@ -24520,82 +20227,54 @@ static s7_pointer g_random(s7_scheme *sc, s7_pointer args)
 
 s7_double s7_random(s7_scheme *sc, s7_pointer state)
 {
-#if WITH_GMP
-  mpfr_set_ui(sc->mpfr_1, 1, MPFR_RNDN);
-  mpfr_urandomb(sc->mpfr_1, random_gmp_state((state) ? state : sc->default_random_state));
-  return((s7_double)mpfr_get_d(sc->mpfr_1, MPFR_RNDN));
-#else
   return(next_random((state) ? state : sc->default_random_state));
-#endif
 }
 
 static s7_double random_d_7d(s7_scheme *sc, s7_double x)
 {
-#if WITH_GMP
-  return(real(g_random(sc, set_plist_1(sc, wrap_real(sc, x)))));
-#else
   return(x * next_random(sc->default_random_state));
-#endif
 }
 
 static s7_int random_i_7i(s7_scheme *sc, s7_int i)
 {
-#if WITH_GMP
-  return(integer(g_random(sc, set_plist_1(sc, wrap_integer(sc, i)))));
-#else
   return((s7_int)(i * next_random(sc->default_random_state)));
-#endif
 }
 
 static s7_pointer g_random_i(s7_scheme *sc, s7_pointer args)
 {
-#if WITH_GMP
-  return(g_random(sc, args));
-#else
   return(make_integer(sc, (s7_int)(integer(car(args)) * next_random(sc->default_random_state))));
-#endif
 }
 
 static s7_pointer g_random_f(s7_scheme *sc, s7_pointer args)
 {
-#if WITH_GMP
-  return(g_random(sc, args));
-#else
   return(make_real(sc, real(car(args)) * next_random(sc->default_random_state)));
-#endif
 }
 
 static s7_pointer g_random_1(s7_scheme *sc, s7_pointer args)
 {
-#if !WITH_GMP
   s7_pointer num = car(args), r = sc->default_random_state;
   if (is_t_integer(num))
     return(make_integer(sc, (s7_int)(integer(num) * next_random(r))));
   if (is_t_real(num))
     return(make_real(sc, real(num) * next_random(r)));
-#endif
   return(g_random(sc, args));
 }
 
 static s7_pointer random_p_p(s7_scheme *sc, s7_pointer num)
 {
-#if !WITH_GMP
   if (is_t_integer(num))
     return(make_integer(sc, (s7_int)(integer(num) * next_random(sc->default_random_state))));
   if (is_t_real(num))
     return(make_real(sc, real(num) * next_random(sc->default_random_state)));
-#endif
   return(g_random(sc, set_plist_1(sc, num)));
 }
 
 static s7_pointer random_p_p_wrapped(s7_scheme *sc, s7_pointer num)
 {
-#if !WITH_GMP
   if (is_t_integer(num))
     return(wrap_integer(sc, (s7_int)(integer(num) * next_random(sc->default_random_state))));
   if (is_t_real(num))
     return(wrap_real(sc, real(num) * next_random(sc->default_random_state)));
-#endif
   return(g_random(sc, set_plist_1(sc, num)));
 }
 
@@ -24613,12 +20292,8 @@ static s7_pointer random_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 
 static s7_pointer g_add_i_random(s7_scheme *sc, s7_pointer args)
 {
-#if WITH_GMP
-  return(add_p_pp(sc, car(args), random_p_p_wrapped(sc, cadadr(args))));
-#else
   s7_int x = integer(car(args)), y = opt3_int(args); /* cadadr */
   return(make_integer(sc, x + (s7_int)(y * next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
-#endif
 }
 
 
@@ -24682,11 +20357,71 @@ static void init_chars(void)
 }
 
 
-s7_pointer s7_make_character(s7_scheme *sc, uint8_t c) {return(chars[c]);}
+s7_pointer s7_make_character(s7_scheme *sc, uint32_t c) {
+  if (c < 256) return(chars[c]);
+  if (!sc->unicode_chars_table)
+    {
+      sc->unicode_chars_table = s7_make_hash_table(sc, 128);
+      s7_gc_protect(sc, sc->unicode_chars_table);
+      if (mark_function[T_CHARACTER] == mark_noop)
+        mark_function[T_CHARACTER] = just_mark;
+    }
+  {
+    s7_pointer key = s7_make_integer(sc, (s7_int)c);
+    s7_pointer val = s7_hash_table_ref(sc, sc->unicode_chars_table, key);
+    if (val != sc->F)
+      return(val);
+    {
+      s7_pointer cp;
+      new_cell(sc, cp, T_CHARACTER | T_IMMUTABLE);
+      character(cp) = c;
+      upper_character(cp) = c;
+      is_char_alphabetic(cp) = false;
+      is_char_numeric(cp) = false;
+      is_char_whitespace(cp) = false;
+      is_char_uppercase(cp) = false;
+      is_char_lowercase(cp) = false;
+      if (c < 32 || (c >= 127 && c < 160))
+        character_name_length(cp) = snprintf((char *)(&(character_name(cp))), 12, "#\\x%x", c);
+      else
+        {
+          char buf[12];
+          int len = 2;
+          buf[0] = '#';
+          buf[1] = '\\';
+          if (c < 0x80)
+            buf[len++] = c;
+          else if (c < 0x800)
+            {
+              buf[len++] = 0xC0 | (c >> 6);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else if (c < 0x10000)
+            {
+              buf[len++] = 0xE0 | (c >> 12);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          else
+            {
+              buf[len++] = 0xF0 | (c >> 18);
+              buf[len++] = 0x80 | ((c >> 12) & 0x3F);
+              buf[len++] = 0x80 | ((c >> 6) & 0x3F);
+              buf[len++] = 0x80 | (c & 0x3F);
+            }
+          character_name_length(cp) = len;
+          memcpy((void *)(&(character_name(cp))), buf, len);
+        }
+      add_semipermanent_object(sc, cp);
+      s7_hash_table_set(sc, sc->unicode_chars_table, key, cp);
+      return(cp);
+    }
+  }
+}
 
 bool s7_is_character(s7_pointer c) {return(is_character(c));}
 
-uint8_t s7_character(s7_pointer c) {return(character(c));}
+uint32_t s7_character(s7_pointer c) {return(character(c));}
 
 
 static bool returns_char(s7_scheme *sc, s7_pointer arg) {return(argument_type(sc, arg) == sc->is_char_symbol);}
@@ -24969,7 +20704,14 @@ static s7_pointer g_make_string(s7_scheme *sc, s7_pointer args)
   if (is_null(cdr(args)))
     return(make_empty_string(sc, len, '\0')); /* #\null here means "don't fill/clear" */
   {
-    char fill = s7_character(cadr(args));
+    const s7_pointer c = cadr(args);
+    if (s7_character(c) > 0xFF)
+      {
+        const char *hint = "make-string only accepts characters in range #x00..#xFF; use utf8-make-string for Unicode characters";
+        out_of_range_error_nr(sc, sc->make_string_symbol, int_two, c,
+                              wrap_string(sc, hint, safe_strlen(hint)));
+      }
+    char fill = s7_character(c);
     s7_pointer result = make_empty_string(sc, len, fill);
     if (fill == '\0')
       memclr((void *)string_value(result), (size_t)len);
@@ -25068,6 +20810,12 @@ static s7_pointer string_set_p_pip(s7_scheme *sc, s7_pointer str, s7_int index, 
     wrong_type_error_nr(sc, sc->string_set_symbol, 1, str, sc->type_names[T_STRING]);
   if (!is_character(chr))
     wrong_type_error_nr(sc, sc->string_set_symbol, 2, chr, sc->type_names[T_CHARACTER]);
+  if (s7_character(chr) > 0xFF)
+    {
+      const char *hint = "string-set! only accepts characters in range #x00..#xFF; use utf8-string-set! for Unicode characters";
+      out_of_range_error_nr(sc, sc->string_set_symbol, int_two, chr,
+                            wrap_string(sc, hint, safe_strlen(hint)));
+    }
   if ((index >= 0) && (index < string_length(str)))
     string_value(str)[index] = s7_character(chr);
   else out_of_range_error_nr(sc, sc->string_set_symbol, int_two, wrap_integer(sc, index), (index < 0) ? it_is_negative_string : it_is_too_large_string);
@@ -25804,113 +21552,6 @@ static s7_pointer check_rest_are_strings(s7_scheme *sc, s7_pointer sym, s7_point
   return(sc->F);
 }
 
-static s7_pointer g_string_ci_cmp(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (val == 0)
-	{
-	  if (!scheme_strequal_ci(str, car(strs)))
-	    return(check_rest_are_strings(sc, sym, cdr(strs), args));
-	}
-      else
-	if (scheme_strcasecmp(str, car(strs)) != val)
-	  return(check_rest_are_strings(sc, sym, cdr(strs), args));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_string_ci_cmp_not(s7_scheme *sc, s7_pointer args, int32_t val, s7_pointer sym)
-{
-  s7_pointer str = car(args);
-
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sym, args, sc->type_names[T_STRING], 1));
-  for (s7_pointer strs = cdr(args); is_pair(strs); str = car(strs), strs = cdr(strs))
-    {
-      if (!is_string(car(strs)))
-	return(method_or_bust(sc, car(strs), sym, set_ulist_1(sc, str, strs), sc->type_names[T_STRING], position_of(strs, args)));
-      if (scheme_strcasecmp(str, car(strs)) == val)
-	return(check_rest_are_strings(sc, sym, cdr(strs), args));
-    }
-  return(sc->T);
-}
-
-static s7_pointer g_strings_are_ci_equal(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_equal "(string-ci=? str ...) returns #t if all the string arguments are equal, ignoring case"
-  #define Q_strings_are_ci_equal sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, 0, sc->string_ci_eq_symbol));
-}
-
-static s7_pointer g_strings_are_ci_less(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_less "(string-ci<? str ...) returns #t if all the string arguments are increasing, ignoring case"
-  #define Q_strings_are_ci_less sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, -1, sc->string_ci_lt_symbol));
-}
-
-static s7_pointer g_strings_are_ci_greater(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_greater "(string-ci>? str ...) returns #t if all the string arguments are decreasing, ignoring case"
-  #define Q_strings_are_ci_greater sc->pcl_bs
-  return(g_string_ci_cmp(sc, args, 1, sc->string_ci_gt_symbol));
-}
-
-static s7_pointer g_strings_are_ci_geq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_geq "(string-ci>=? str ...) returns #t if all the string arguments are equal or decreasing, ignoring case"
-  #define Q_strings_are_ci_geq sc->pcl_bs
-  return(g_string_ci_cmp_not(sc, args, -1, sc->string_ci_geq_symbol));
-}
-
-static s7_pointer g_strings_are_ci_leq(s7_scheme *sc, s7_pointer args)
-{
-  #define H_strings_are_ci_leq "(string-ci<=? str ...) returns #t if all the string arguments are equal or increasing, ignoring case"
-  #define Q_strings_are_ci_leq sc->pcl_bs
-  return(g_string_ci_cmp_not(sc, args, 1, sc->string_ci_leq_symbol));
-}
-
-static bool string_ci_lt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == -1);}
-static bool string_ci_lt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_lt_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == -1);
-}
-
-static bool string_ci_leq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) != 1);}
-static bool string_ci_leq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_leq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) != 1);
-}
-
-static bool string_ci_gt_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == 1);}
-static bool string_ci_gt_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_gt_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == 1);
-}
-
-static bool string_ci_geq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) != -1);}
-static bool string_ci_geq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_geq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) != -1);
-}
-
-static bool string_ci_eq_b_unchecked(s7_pointer str1, s7_pointer str2) {return(scheme_strcasecmp(str1, str2) == 0);}
-static bool string_ci_eq_b_7pp(s7_scheme *sc, s7_pointer str1, s7_pointer str2)
-{
-  check_string2_args(sc, sc->string_ci_eq_symbol, str1, str2);
-  return(scheme_strcasecmp(str1, str2) == 0);
-}
 #endif /* pure s7 */
 
 
@@ -25963,6 +21604,7 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
   int32_t len;
   s7_pointer chrs, newstr;
   char *str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
 
   /* get length for new string and check arg types */
   for (len = 0, chrs = args; is_pair(chrs); len++, chrs = cdr(chrs))
@@ -25986,7 +21628,11 @@ static s7_pointer g_string_1(s7_scheme *sc, s7_pointer args, s7_pointer sym)
 		  return(g_string_append_1(sc, set_plist_2(sc, newstr, s7_apply_function(sc, func, chrs)), sym));
 		}}
 	  wrong_type_error_nr(sc, sym, len + 1, chr, sc->type_names[T_CHARACTER]);
-	}}
+	}
+      if (s7_character(chr) > 0xFF)
+        out_of_range_error_nr(sc, sym, wrap_integer(sc, len + 1), chr,
+                              wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
+    }
   if (len > sc->max_string_length)
     error_nr(sc, sc->out_of_range_symbol,
 	     set_elist_4(sc, wrap_string(sc, "~S result string is too large (> ~D ~D) (*s7* 'max-string-length)", 65),
@@ -26009,9 +21655,13 @@ static s7_pointer g_string(s7_scheme *sc, s7_pointer args)
 static s7_pointer g_string_c1(s7_scheme *sc, s7_pointer args)
 {
   s7_pointer c = car(args), str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   /* no multiple values here because no pairs below */
   if (!is_character(c))
     return(method_or_bust(sc, c, sc->string_symbol, args, sc->type_names[T_CHARACTER], 1));
+  if (s7_character(c) > 0xFF)
+    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
+                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
   str = inline_make_empty_string(sc, 1, '\0'); /* can't put character(c) here because null is handled specially */
   string_value(str)[0] = character(c);
   return(str);
@@ -26025,7 +21675,11 @@ static s7_pointer string_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s
 static s7_pointer string_p_p(s7_scheme *sc, s7_pointer c)
 {
   s7_pointer str;
+  const char *unicode_string_hint = "string only accepts characters in range #x00..#xFF; use utf8-string for Unicode characters";
   if (!is_character(c)) return(g_string_1(sc, set_plist_1(sc, c), sc->string_symbol));
+  if (s7_character(c) > 0xFF)
+    out_of_range_error_nr(sc, sc->string_symbol, int_one, c,
+                          wrap_string(sc, unicode_string_hint, safe_strlen(unicode_string_hint)));
   str = inline_make_empty_string(sc, 1, '\0');
   string_value(str)[0] = character(c);
   return(str);
@@ -27122,62 +22776,6 @@ static void stdout_display(s7_scheme *sc, const char *str, s7_pointer port) {if 
 static void stderr_display(s7_scheme *sc, const char *str, s7_pointer port) {if (str) fputs(str, stderr);}
 
 
-/* -------------------------------- write-string -------------------------------- */
-static s7_pointer g_write_string(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_string "(write-string str port start end) writes str to port."
-  #define Q_write_string s7_make_circular_signature(sc, 3, 4, \
-                           sc->is_string_symbol, sc->is_string_symbol, \
-                           s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol),\
-                           sc->is_integer_symbol)
-  const s7_pointer str = car(args);
-  s7_pointer port;
-  s7_int start = 0, end;
-  if (!is_string(str))
-    return(method_or_bust(sc, str, sc->write_string_symbol, args, sc->type_names[T_STRING], 1));
-  end = string_length(str);
-  if (!is_null(cdr(args)))
-    {
-      s7_pointer inds = cddr(args);
-      port = cadr(args);
-      if (!is_null(inds))
-	{
-	  s7_pointer p = start_and_end(sc, sc->write_string_symbol, args, 3, inds, &start, &end);
-	  if (p != sc->unused) return(p);
-	}}
-  else port = current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F)
-	{
-	  s7_int len;
-	  if ((start == 0) && (end == string_length(str)))
-	    return(str);
-	  len = (s7_int)(end - start);
-	  return(make_string_with_length(sc, (char *)(string_value(str) + start), len));
-	}
-      if_method_exists_return_value(sc, port, sc->write_string_symbol, args);
-      wrong_type_error_nr(sc, sc->write_string_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port)) wrong_type_error_nr(sc, sc->write_string_symbol, 2, port, an_open_output_port_string);
-  if (start == end) return(str);
-  port_write_string(port)(sc, (char *)(string_value(str) + start), (end - start), port);
-  return(str);
-}
-
-static s7_pointer write_string_p_pp(s7_scheme *sc, s7_pointer str, s7_pointer port)
-{
-  if (!is_string(str))
-    return(method_or_bust_pp(sc, str, sc->write_string_symbol, str, port, sc->type_names[T_STRING], 1));
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(str);
-      return(method_or_bust_pp(sc, port, sc->write_string_symbol, str, port, an_output_port_string, 2));
-    }
-  if (string_length(str) > 0)
-    port_write_string(port)(sc, string_value(str), string_length(str), port);
-  return(str);
-}
 
 
 /* -------- skip to newline readers -------- */
@@ -28225,43 +23823,34 @@ static s7_pointer read_char_chooser(s7_scheme *sc, s7_pointer func, int32_t args
 
 
 /* -------------------------------- write-char -------------------------------- */
-s7_pointer s7_write_char(s7_scheme *sc, s7_pointer c, s7_pointer port)
+static void port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port)
 {
-  if (port != sc->F)
-    port_write_character(port)(sc, s7_character(c), port);
-  return(c);
-}
-
-static s7_pointer write_char_p_pp(s7_scheme *sc, s7_pointer c, s7_pointer port)
-{
-  if (!is_character(c))
-    return(method_or_bust_pp(sc, c, sc->write_char_symbol, c, port, sc->type_names[T_CHARACTER], 1));
-  if (!is_output_port(port))
+  if (c < 0x80)
+    port_write_character(port)(sc, (uint8_t)c, port);
+  else if (c < 0x800)
     {
-      if (port == sc->F) return(c);
-      if_method_exists_return_value(sc, port, sc->write_char_symbol, set_mlist_2(sc, c, port));
-      wrong_type_error_nr(sc, sc->write_char_symbol, 2, port, an_output_port_or_f_string);
+      char buf[2];
+      buf[0] = 0xC0 | (c >> 6);
+      buf[1] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 2, port);
     }
-  port_write_character(port)(sc, s7_character(c), port);
-  return(c);
-}
-
-static s7_pointer write_char_p_p(s7_scheme *sc, s7_pointer c)
-{
-  if (!is_character(c))
-    return(method_or_bust_p(sc, c, sc->write_char_symbol, sc->type_names[T_CHARACTER]));
-  if (current_output_port(sc) == sc->F) return(c);
-  port_write_character(current_output_port(sc))(sc, s7_character(c), current_output_port(sc));
-  return(c);
-}
-
-static s7_pointer g_write_char(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_char "(write-char char (port (current-output-port))) writes char to the output port"
-  #define Q_write_char s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  if (is_null(cdr(args)))
-    return(write_char_p_p(sc, car(args)));
-  return(write_char_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
+  else if (c < 0x10000)
+    {
+      char buf[3];
+      buf[0] = 0xE0 | (c >> 12);
+      buf[1] = 0x80 | ((c >> 6) & 0x3F);
+      buf[2] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 3, port);
+    }
+  else
+    {
+      char buf[4];
+      buf[0] = 0xF0 | (c >> 18);
+      buf[1] = 0x80 | ((c >> 12) & 0x3F);
+      buf[2] = 0x80 | ((c >> 6) & 0x3F);
+      buf[3] = 0x80 | (c & 0x3F);
+      port_write_string(port)(sc, buf, 4, port);
+    }
 }
 
 /* (with-output-to-string (lambda () (write-char #\space))) -> " "
@@ -28333,37 +23922,6 @@ static s7_pointer g_read_byte(s7_scheme *sc, s7_pointer args)
     sole_arg_wrong_type_error_nr(sc, sc->read_byte_symbol, port, an_open_input_port_string);
   c = port_read_character(port)(sc, port);
   return((c == EOF) ? eof_object : small_int(c));
-}
-
-
-/* -------------------------------- write-byte -------------------------------- */
-static s7_pointer g_write_byte(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write_byte "(write-byte byte (port (current-output-port))): writes byte to the output port"
-  #define Q_write_byte s7_make_signature(sc, 3, sc->is_byte_symbol, sc->is_byte_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-
-  s7_pointer port;
-  const s7_pointer b = car(args);
-  s7_int val;
-  if (!s7_is_integer(b))
-    return(method_or_bust(sc, b, sc->write_byte_symbol, args, sc->type_names[T_INTEGER], 1));
-
-  val = s7_integer_clamped_if_gmp(sc, b);
-  if ((val < 0) || (val > 255)) /* need to check this before port==#f, else (write-byte most-positive-fixnum #f) is not an error */
-    wrong_type_error_nr(sc, sc->write_byte_symbol, 1, b, an_unsigned_byte_string);
-
-  port = (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(b);
-      if_method_exists_return_value(sc, port, sc->write_byte_symbol, args);
-      wrong_type_error_nr(sc, sc->write_byte_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))          /* avoid reporting caller here as write-char */
-    wrong_type_error_nr(sc, sc->write_byte_symbol, 2, port, an_open_output_port_string);
-
-  port_write_character(port)(sc, (uint8_t)val, port);
-  return(b);
 }
 
 
@@ -33271,15 +28829,9 @@ static void random_state_to_port(s7_scheme *sc, s7_pointer rs, s7_pointer port, 
   #define B_BUFSIZE 128
   char buf[B_BUFSIZE];
   int32_t nlen;
-#if WITH_GMP
-  if (use_write == p_readable)
-    nlen = snprintf(buf, B_BUFSIZE, "#<bignum random-state>");
-  else nlen = snprintf(buf, B_BUFSIZE, "#<random-state %p>", rs);
-#else
   if (use_write == p_readable)
     nlen = snprintf(buf, B_BUFSIZE, "(random-state %" PRIu64 " %" PRIu64 ")", random_seed(rs), random_carry(rs));
   else nlen = snprintf(buf, B_BUFSIZE, "#<random-state %" PRIu64 " %" PRIu64 ">", random_seed(rs), random_carry(rs));
-#endif
   port_write_string(port)(sc, buf, clamp_length(nlen, B_BUFSIZE), port);
 }
 
@@ -33355,15 +28907,7 @@ static void number_to_port(s7_scheme *sc, s7_pointer num, s7_pointer port, use_w
   port_write_string(port)(sc, str, nlen, port);
 }
 
-#if WITH_GMP
-static void big_number_to_port(s7_scheme *sc, s7_pointer num, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
-{
-  s7_int nlen = 0;
-  block_t *str = big_number_to_string_with_radix(sc, num, BASE_10, 0, &nlen, use_write);
-  port_write_string(port)(sc, (char *)block_data(str), nlen, port);
-  liberate(sc, str);
-}
-#endif
+
 
 static void syntax_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_write_t unused_use_write, shared_info_t *unused_ci)
 {
@@ -33375,7 +28919,7 @@ static void syntax_to_port(s7_scheme *sc, s7_pointer obj, s7_pointer port, use_w
 static void character_to_port(s7_scheme *sc, s7_pointer c, s7_pointer port, use_write_t use_write, shared_info_t *unused_ci)
 {
   if (use_write == p_display)
-    port_write_character(port)(sc, character(c), port);
+    port_write_unicode_char(sc, character(c), port);
   else port_write_string(port)(sc, character_name(c), character_name_length(c), port);
 }
 
@@ -33611,12 +29155,6 @@ static void init_display_functions(void)
   for (int32_t i = 0; i < 256; i++) display_functions[i] = display_fallback;
   display_functions[T_BACRO] =           macro_to_port;
   display_functions[T_BACRO_STAR] =      macro_to_port;
-#if WITH_GMP
-  display_functions[T_BIG_COMPLEX] =     big_number_to_port;
-  display_functions[T_BIG_INTEGER] =     big_number_to_port;
-  display_functions[T_BIG_RATIO] =       big_number_to_port;
-  display_functions[T_BIG_REAL] =        big_number_to_port;
-#endif
   display_functions[T_BOOLEAN] =         unique_to_port;
   display_functions[T_BYTE_VECTOR] =     byte_vector_to_port;
   display_functions[T_CATCH] =           catch_to_port;
@@ -33788,6 +29326,50 @@ static inline s7_pointer object_out(s7_scheme *sc, s7_pointer obj, s7_pointer st
     object_out_1(sc, obj, strport, choice);
   else object_to_port(sc, obj, strport, choice, NULL);
   return(obj);
+}
+
+/* -------------------------------- s7i helpers for s7_scheme_write.c -------------------------------- */
+
+bool s7i_port_is_closed(s7_pointer p) { return port_is_closed(p); }
+
+s7_pointer s7i_object_out(s7_scheme *sc, s7_pointer obj, s7_pointer port, s7i_use_write_t choice)
+{
+  return object_out(sc, obj, port, (use_write_t)choice);
+}
+
+void s7i_port_write_character(s7_scheme *sc, uint8_t c, s7_pointer port)
+{
+  port_write_character(port)(sc, c, port);
+}
+
+void s7i_port_write_string(s7_scheme *sc, const char *str, s7_int len, s7_pointer port)
+{
+  port_write_string(port)(sc, str, len, port);
+}
+
+void s7i_port_write_unicode_char(s7_scheme *sc, uint32_t c, s7_pointer port)
+{
+  port_write_unicode_char(sc, c, port);
+}
+
+s7_pointer s7i_start_and_end(s7_scheme *sc, s7_pointer caller, s7_pointer args, int32_t position, s7_pointer index_args, s7_int *start, s7_int *end)
+{
+  return start_and_end(sc, caller, args, position, index_args, start, end);
+}
+
+bool s7i_is_unused(s7_scheme *sc, s7_pointer p)
+{
+  return p == sc->unused;
+}
+
+s7_pointer s7i_method_or_bust_p(s7_scheme *sc, s7_pointer obj, const char *method_name, const char *type_name)
+{
+  return method_or_bust_p(sc, obj, s7_make_symbol(sc, method_name), wrap_string(sc, type_name, safe_strlen(type_name)));
+}
+
+s7_pointer s7i_method_or_bust_pp(s7_scheme *sc, s7_pointer obj, const char *method_name, s7_pointer x1, s7_pointer x2, const char *type_name, s7_int arg_pos)
+{
+  return method_or_bust_pp(sc, obj, s7_make_symbol(sc, method_name), x1, x2, wrap_string(sc, type_name, safe_strlen(type_name)), (int32_t)arg_pos);
 }
 
 static s7_pointer new_format_port(s7_scheme *sc)
@@ -33964,90 +29546,7 @@ static s7_pointer g_object_to_string(s7_scheme *sc, s7_pointer args)
 }
 
 
-/* -------------------------------- newline -------------------------------- */
-void s7_newline(s7_scheme *sc, s7_pointer port)
-{
-  if (port != sc->F)
-    port_write_character(port)(sc, (uint8_t)'\n', port);
-}
-
-#define newline_char chars[(uint8_t)'\n']
-
-static s7_pointer g_newline(s7_scheme *sc, s7_pointer args)
-{
-  #define H_newline "(newline (port (current-output-port))) writes a carriage return to the port"
-  #define Q_newline s7_make_signature(sc, 2, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-
-  const s7_pointer port = (is_pair(args)) ? car(args) : current_output_port(sc);
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(newline_char);
-      if_method_exists_return_value(sc, port, sc->newline_symbol, args);
-      sole_arg_wrong_type_error_nr(sc, sc->newline_symbol, port, an_output_port_or_f_string); /* 0 -> "zeroth" */
-    }
-  if (port_is_closed(port))
-    sole_arg_wrong_type_error_nr(sc, sc->newline_symbol, port, an_open_output_port_string);
-  s7_newline(sc, port);
-  return(newline_char);  /* return(sc->unspecified) until 28-Sep-17, but for example (display c) returns c */
-}
-
-static s7_pointer newline_p(s7_scheme *sc)
-{
-  s7_newline(sc, current_output_port(sc));
-  return(newline_char);
-}
-
-static s7_pointer newline_p_p(s7_scheme *sc, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(newline_char);
-      return(method_or_bust_p(sc, port, sc->newline_symbol, an_output_port_string));
-    }
-  s7_newline(sc, port);
-  return(newline_char);
-}
-
-
 /* -------------------------------- write -------------------------------- */
-s7_pointer s7_write(s7_scheme *sc, s7_pointer obj, s7_pointer port)
-{
-  if (port != sc->F)
-    {
-      if (port_is_closed(port))
-	wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_open_output_port_string);
-      object_out(sc, obj, port, p_write);
-    }
-  return(obj);
-}
-
-static s7_pointer write_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(x);
-      if_method_exists_return_value(sc, port, sc->write_symbol, set_mlist_2(sc, x, port));
-      wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))
-    wrong_type_error_nr(sc, sc->write_symbol, 2, port, an_open_output_port_string);
-  return(object_out(sc, x, port, p_write));
-}
-
-static s7_pointer g_write(s7_scheme *sc, s7_pointer args)
-{
-  #define H_write "(write obj (port (current-output-port))) writes (object->string obj) to the output port"
-  #define Q_write s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  if_method_exists_return_value(sc, car(args), sc->write_symbol, args);
-  return(write_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
-}
-
-static s7_pointer write_p_p(s7_scheme *sc, s7_pointer x)
-{
-  return((current_output_port(sc) == sc->F) ? x : object_out(sc, x, current_output_port(sc), p_write));
-}
-
-static s7_pointer g_write_2(s7_scheme *sc, s7_pointer args) {return(write_p_pp(sc, car(args), cadr(args)));}
 
 static s7_pointer write_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
@@ -34058,54 +29557,12 @@ static s7_pointer write_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7
 
 
 /* -------------------------------- display -------------------------------- */
-s7_pointer s7_display(s7_scheme *sc, s7_pointer obj, s7_pointer port)
-{
-  if (port != sc->F)
-    {
-      if (port_is_closed(port))
-	wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_open_output_port_string);
-      object_out(sc, obj, port, p_display);
-    }
-  return(obj);
-}
-
-static s7_pointer display_p_pp(s7_scheme *sc, s7_pointer x, s7_pointer port)
-{
-  if (!is_output_port(port))
-    {
-      if (port == sc->F) return(x);
-      if_method_exists_return_value(sc, port, sc->display_symbol, set_mlist_2(sc, x, port));
-      wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_output_port_or_f_string);
-    }
-  if (port_is_closed(port))
-    wrong_type_error_nr(sc, sc->display_symbol, 2, port, an_open_output_port_string);
-  if_method_exists_return_value(sc, x, sc->display_symbol, set_plist_2(sc, x, port));
-  return(object_out(sc, x, port, p_display));
-}
-
-static s7_pointer g_display(s7_scheme *sc, s7_pointer args)
-{ /* infinite loop: (display (openlet (inlet 'display display))) -- not specific to display of course */
-  #define H_display "(display obj (port (current-output-port))) prints obj"
-  #define Q_display s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))
-  return(display_p_pp(sc, car(args), (is_pair(cdr(args))) ? cadr(args) : current_output_port(sc)));
-}
-
-static s7_pointer g_display_2(s7_scheme *sc, s7_pointer args) {return(display_p_pp(sc, car(args), cadr(args)));}
-
-static s7_pointer g_display_f(s7_scheme *unused_sc, s7_pointer args) {return(car(args));}
 
 static s7_pointer display_chooser(s7_scheme *sc, s7_pointer func, int32_t args, s7_pointer expr)
 {
   if (args == 2) /* not check_for_substring_temp(sc, expr) here -- display returns arg so can be immutable if substring_uncopied */
     return((caddr(expr) == sc->F) ? sc->display_f : sc->display_2);
   return(func);
-}
-
-static s7_pointer display_p_p(s7_scheme *sc, s7_pointer x)
-{
-  if (current_output_port(sc) == sc->F) return(x);
-  if_method_exists_return_value(sc, x, sc->display_symbol, set_plist_1(sc, x));
-  return(object_out(sc, x, current_output_port(sc), p_display));
 }
 
 /* display may not be following the spec: (display '("a" #\b)): ("a" #\b), whereas Guile says (a b), in s7 write here == display, Guile write == s7 write */
@@ -34337,11 +29794,9 @@ static void format_number(s7_scheme *sc, format_data_t *fdat, int32_t radix, s7_
       char *tmp, *padtmp;
       block_t *b = NULL;
       s7_int nlen = 0;
-#if !WITH_GMP
       if (radix == 10)
 	tmp = number_to_string_base_10(sc, car(fdat->args), width, precision, float_choice, &nlen, p_write);
       else
-#endif
 	{
 	  b = number_to_string_with_radix(sc, car(fdat->args), radix, width, precision, float_choice, &nlen);
 	  tmp = (char *)block_data(b);
@@ -34356,11 +29811,9 @@ static void format_number(s7_scheme *sc, format_data_t *fdat, int32_t radix, s7_
       char *tmp;
       block_t *b = NULL;
       s7_int nlen = 0;
-#if !WITH_GMP
       if (radix == 10)
 	tmp = number_to_string_base_10(sc, car(fdat->args), width, precision, float_choice, &nlen, p_write);
       else
-#endif
 	{
 	  b = number_to_string_with_radix(sc, car(fdat->args), radix, width, precision, float_choice, &nlen);
 	  tmp = (char *)block_data(b);
@@ -34523,17 +29976,7 @@ static format_data_t *open_format_data(s7_scheme *sc)
   return(fdat);
 }
 
-#if WITH_GMP
-static bool is_one_or_big_one(s7_scheme *sc, s7_pointer num)
-{
-  if (!is_big_number(num)) return(is_one(num));
-  if (is_t_big_integer(num)) return(mpz_cmp_ui(big_integer(num), 1) == 0);
-  if (is_t_big_real(num)) return(mpfr_cmp_d(big_real(num), 1.0) == 0);
-  return(false);
-}
-#else
 #define is_one_or_big_one(Sc, Num) is_one(Num)
-#endif
 
 static s7_pointer object_to_list(s7_scheme *sc, s7_pointer obj);
 
@@ -36104,10 +31547,6 @@ static s7_pointer make_list_p_pp(s7_scheme *sc, s7_pointer n, s7_pointer init)
     return(method_or_bust(sc, n, sc->make_list_symbol, set_plist_2(sc, n, init), sc->type_names[T_INTEGER], 1));
 
   len = s7_integer_clamped_if_gmp(sc, n);
-#if WITH_GMP
-  if ((len == 0) && (!is_zero(n)))
-    out_of_range_error_nr(sc, sc->make_list_symbol, int_one, n, wrap_string(sc, "big integer is too big for s7_int", 33));
-#endif
   if (len == 0) return(sc->nil);          /* what about (make-list 0 123)? */
   if (len < 0)
     out_of_range_error_nr(sc, sc->make_list_symbol, int_one, n, it_is_negative_string);
@@ -37482,11 +32921,6 @@ static s7_pointer memq_chooser(s7_scheme *sc, s7_pointer func, int32_t unused_ar
 
 static bool numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  if ((is_big_number(x)) || (is_big_number(y)))
-    return(big_numbers_are_eqv(sc, x, y));
-  if (type(x) != type(y)) return(false);
-#endif
   /* if (type(x) != type(y)) return(false); */   /* (eqv? 1 1.0) -> #f! but assume that we've checked types already */
   /* switch is apparently as expensive as 3-4 if's! so this only loses if every call involves complex numbers? */
   if (is_t_integer(x)) return(integer(x) == integer(y));
@@ -37499,16 +32933,10 @@ static bool numbers_are_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 static s7_pointer memv_number(s7_scheme *sc, s7_pointer obj, s7_pointer lst)
 {
   s7_pointer slow = lst;
-#if !WITH_GMP
   uint8_t obj_type = type(obj);
-#endif
   while (true)
     {
-#if WITH_GMP
-      LOOP_4(if ((is_number(car(lst))) && (numbers_are_eqv(sc, obj, car(lst)))) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-#else
       LOOP_4(if ((type(car(lst)) == obj_type) && (numbers_are_eqv(sc, obj, car(lst)))) return(lst); lst = cdr(lst); if (!is_pair(lst)) return(sc->F));
-#endif
       slow = cdr(slow);
       if (lst == slow) return(sc->F);
     }
@@ -39191,11 +34619,6 @@ static s7_pointer g_byte_vector(s7_scheme *sc, s7_pointer args)
 	if (is_t_integer(byte))
 	  b = integer(byte);
 	else
-#if WITH_GMP
-	  if (is_t_big_integer(byte))
-	    b = big_integer_to_s7_int(sc, big_integer(byte));
-	  else
-#endif
 	    return(method_or_bust(sc, byte, sc->byte_vector_symbol, args, sc->type_names[T_INTEGER], i + 1));
 	if ((b < 0) || (b > 255))
 	  wrong_type_error_nr(sc, sc->byte_vector_symbol, i + 1, byte, an_unsigned_byte_string);
@@ -40003,7 +35426,7 @@ static s7_pointer g_make_vector_1(s7_scheme *sc, s7_pointer args, s7_pointer cal
 		  if (typf == global_value(sc->is_integer_symbol))
 		    {
 		      if (!s7_is_integer(fill)) wrong_type_error_nr(sc, caller, 2, fill, sc->type_names[T_INTEGER]);
-		      result_type = (WITH_GMP) ? T_VECTOR : T_INT_VECTOR;
+		      result_type = T_INT_VECTOR;
 		    }
 		  else
 		    if (typf == global_value(sc->is_byte_symbol))
@@ -40081,10 +35504,6 @@ static s7_pointer g_make_float_vector(s7_scheme *sc, s7_pointer args)
 	  init = cadr(args);
 	  if (!is_real(init))
 	    return(method_or_bust(sc, init, sc->make_float_vector_symbol, args, sc->type_names[T_REAL], 2));
-#if WITH_GMP
-	  if (s7_is_bignum(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, s7_real(init))), sc->make_float_vector_symbol));
-#endif
 	  if (is_rational(init))
 	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_float_vector_symbol));
 	}
@@ -40163,10 +35582,6 @@ static s7_pointer g_make_complex_vector(s7_scheme *sc, s7_pointer args)
 	  init = cadr(args);
 	  if (!is_number(init))
 	    return(method_or_bust(sc, init, sc->make_complex_vector_symbol, args, sc->type_names[T_COMPLEX], 2));
-#if WITH_GMP
-	  if (s7_is_bignum(init))
-	    return(g_make_vector_1(sc, set_plist_2(sc, size, init), sc->make_complex_vector_symbol));
-#endif
 	  if (is_rational(init))
 	    return(g_make_vector_1(sc, set_plist_2(sc, size, wrap_real(sc, rational_to_double(sc, init))), sc->make_complex_vector_symbol));
 	}
@@ -41351,16 +36766,7 @@ static s7_pointer int_vector_set_p_ppp(s7_scheme *sc, s7_pointer vec, s7_pointer
 	return(method_or_bust_ppp(sc, index, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 2));
       if (!s7_is_integer(value))
 	return(method_or_bust_ppp(sc, value, sc->int_vector_set_symbol, vec, index, value, sc->type_names[T_INTEGER], 3));
-#if WITH_GMP
-      {
-	s7_int i = s7_integer_clamped_if_gmp(sc, index);
-	if ((i < 0) || (i >= vector_length(vec)))
-	  out_of_range_error_nr(sc, sc->int_vector_set_symbol, int_two, index, (i < 0) ? it_is_negative_string : it_is_too_large_string);
-	int_vector(vec, i) = s7_integer_clamped_if_gmp(sc, value);
-      }
-#else
       if (S7_DEBUGGING) fprintf(stderr, "fell through %s[%d]\n", __func__, __LINE__);
-#endif
     }
   return(value);
 }
@@ -42428,20 +37834,20 @@ bool s7_is_hash_table(s7_pointer p) {return(is_hash_table(p));}
 /* g_is_hash_table is now defined in s7_liii_hash_table.c */
 
 /* -------------------------------- hash-table-entries -------------------------------- */
-static s7_pointer g_hash_table_entries(s7_scheme *sc, s7_pointer args)
+static s7_pointer g_hash_table_size(s7_scheme *sc, s7_pointer args)
 {
-  #define H_hash_table_entries "(hash-table-entries obj) returns the number of entries in the hash-table obj"
-  #define Q_hash_table_entries s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
+  #define H_hash_table_size "(hash-table-size obj) returns the number of entries in the hash-table obj"
+  #define Q_hash_table_size s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_hash_table_symbol)
 
   if (!is_hash_table(car(args)))
-    return(sole_arg_method_or_bust(sc, car(args), sc->hash_table_entries_symbol, args, sc->type_names[T_HASH_TABLE]));
+    return(sole_arg_method_or_bust(sc, car(args), sc->hash_table_size_symbol, args, sc->type_names[T_HASH_TABLE]));
   return(make_integer(sc, hash_table_entries(car(args))));
 }
 
-static s7_int hash_table_entries_i_7p(s7_scheme *sc, s7_pointer table)
+static s7_int hash_table_size_i_7p(s7_scheme *sc, s7_pointer table)
 {
   if (!is_hash_table(table))
-    return(integer(method_or_bust_p(sc, table, sc->hash_table_entries_symbol, sc->type_names[T_HASH_TABLE])));
+    return(integer(method_or_bust_p(sc, table, sc->hash_table_size_symbol, sc->type_names[T_HASH_TABLE])));
   return(hash_table_entries(table));
 }
 
@@ -42582,7 +37988,7 @@ static s7_pointer g_set_hash_table_value_typer(s7_scheme *sc, s7_pointer args)
 
 
 /* ---------------- hash map and equality tables ---------------- */
-/* built in hash loc tables for eq? eqv? equal? equivalent? = string=? string-ci=? char=? char-ci=? (default=equal?) */
+/* built in hash loc tables for eq? eqv? equal? equivalent? = string=? char=? (default=equal?) */
 #define hash_loc(Sc, Table, Key) (*(hash_table_mapper(Table)[type(Key)]))(Sc, Table, Key)
 
 static hash_map_t eq_hash_map[NUM_TYPES];
@@ -42591,10 +37997,6 @@ static hash_map_t char_eq_hash_map[NUM_TYPES];
 static hash_map_t closure_hash_map[NUM_TYPES];
 static hash_map_t equivalent_hash_map[NUM_TYPES];
 static hash_map_t c_function_hash_map[NUM_TYPES];
-#if !WITH_PURE_S7
-static hash_map_t string_ci_eq_hash_map[NUM_TYPES];
-static hash_map_t char_ci_eq_hash_map[NUM_TYPES];
-#endif
 /* also default_hash_map */
 
 
@@ -42726,40 +38128,6 @@ static s7_uint hash_map_complex(s7_scheme *sc, s7_pointer table, s7_pointer key)
   return(hash_complex_location(real_part(key)));
 }
 
-#if WITH_GMP
-static s7_uint hash_map_big_int(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  /* may need to use quotient here */
-  mpz_abs(sc->mpz_1, big_integer(key));
-  return(mpz_get_si(sc->mpz_1)); /* returns the bits that fit */
-}
-
-static s7_uint hash_map_big_ratio(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  mpq_abs(sc->mpq_1, big_ratio(key));
-  mpz_fdiv_q(sc->mpz_1, mpq_numref(sc->mpq_1), mpq_denref(sc->mpq_1));
-  return(mpz_get_si(sc->mpz_1));
-}
-
-static s7_uint hash_map_big_real_1(s7_scheme *sc, s7_pointer table, mpfr_t key)
-{
-  if ((mpfr_nan_p(key)) || (mpfr_inf_p(key))) return(0);
-  mpfr_abs(sc->mpfr_1, key, MPFR_RNDN);
-  /* mpfr_get_si returns most-positive-int if > 2^63! luckily there aren't any more of these */
-  mpfr_get_z(sc->mpz_1, sc->mpfr_1, MPFR_RNDD); /* floor not round */
-  return(mpz_get_si(sc->mpz_1));
-}
-
-static s7_uint hash_map_big_real(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  return(hash_map_big_real_1(sc, table, big_real(key)));
-}
-
-static s7_uint hash_map_big_complex(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  return(hash_map_big_real_1(sc, table, mpc_realref(big_complex(key))));
-}
-#endif
 
 static hash_entry_t *find_number_in_bin(s7_scheme *sc, hash_entry_t *bin, s7_pointer key)
 {
@@ -42780,51 +38148,6 @@ static hash_entry_t *find_number_in_bin(s7_scheme *sc, hash_entry_t *bin, s7_poi
 static hash_entry_t *hash_number_equivalent(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
   /* for equivalent? and =, kind of complicated because two bins can be involved if the key is close to an integer */
-#if WITH_GMP
-  /* first try loc from hash_loc, then get key-floor(key) [with abs], and check against
-   *   epsilon: diff < eps call find big in bin-1, diff > 1.0-eps call same in bin+1
-   */
-  const s7_uint hash_mask = hash_table_mask(table);
-  const s7_uint loc = hash_loc(sc, table, key);
-  s7_uint hash_loc = loc % hash_mask;
-  hash_entry_t *i1 = find_number_in_bin(sc, hash_table_element(table, hash_loc), key);
-  if (i1) return(i1);
-
-  if (is_real(key))
-    {
-      s7_pointer result = any_real_to_mpfr(sc, key, sc->mpfr_1);
-      if (result) return(sc->unentry);
-    }
-  else
-    if (is_t_complex(key))
-      mpfr_set_d(sc->mpfr_1, real_part(key), MPFR_RNDN);
-    else mpfr_set(sc->mpfr_1, mpc_realref(big_complex(key)), MPFR_RNDN);
-
-  /* mpfr_1 is big_real, so we can use hash_loc of big_real (and can ignore NaN's): */
-  mpfr_abs(sc->mpfr_1, sc->mpfr_1, MPFR_RNDN);
-  mpfr_add_d(sc->mpfr_2, sc->mpfr_1, sc->hash_table_float_epsilon, MPFR_RNDN);
-  mpfr_get_z(sc->mpz_1, sc->mpfr_2, MPFR_RNDD);
-  {
-    s7_uint loc1 = mpz_get_si(sc->mpz_1);
-    if (loc1 != loc)
-      {
-	if (loc1 == hash_table_mask(table)) loc1 = 0;
-	hash_loc = loc1 % hash_mask;
-	i1 = find_number_in_bin(sc, hash_table_element(table, hash_loc), key);
-	return((i1) ? i1 : sc->unentry);
-      }
-    mpfr_sub_d(sc->mpfr_2, sc->mpfr_1, sc->hash_table_float_epsilon, MPFR_RNDN);
-    mpfr_get_z(sc->mpz_1, sc->mpfr_2, MPFR_RNDD);
-    loc1 = mpz_get_si(sc->mpz_1);
-    if (loc1 != loc)
-      {
-	if (loc1 < 0) loc1 = hash_table_mask(table);
-	hash_loc = loc1 % hash_mask;
-	i1 = find_number_in_bin(sc, hash_table_element(table, hash_loc), key);
-	if (i1) return(i1);
-      }}
-  return(sc->unentry);
-#else
   const s7_double keyval = (is_real(key)) ? s7_real(key) : real_part(key);
   const s7_double fprobe = fabs(keyval);
   const s7_uint iprobe = (s7_uint)floor(fprobe);
@@ -42843,40 +38166,19 @@ static hash_entry_t *hash_number_equivalent(s7_scheme *sc, s7_pointer table, s7_
     if (bin_dist >= (1.0 - sc->hash_table_float_epsilon))
       i1 = find_number_in_bin(sc, hash_table_element(table, (loc < hash_table_mask(table)) ? loc + 1 : 0), key);
   return((i1) ? i1 : sc->unentry);
-#endif
 }
 
 static hash_entry_t *hash_int(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
-#if WITH_GMP
-  if ((is_t_integer(key)) || (is_t_big_integer(key)))
-#else
   if (is_t_integer(key))
-#endif
     {
       const s7_uint hash_mask = hash_table_mask(table);
       hash_entry_t *entry;
-#if WITH_GMP
-      const s7_int kv = (is_t_integer(key)) ? integer(key) : mpz_get_si(big_integer(key));
-#else
       const s7_int kv = integer(key);
-#endif
       const s7_uint loc = s7_int_abs(kv) % hash_mask;
       for (entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
-#if WITH_GMP
-	if (is_t_integer(hash_entry_key(entry)))
-	  {
-	    if (integer(hash_entry_key(entry)) == kv)
-	      return(entry);
-	  }
-	else
-	  if ((is_t_big_integer(hash_entry_key(entry))) &&
-	      (mpz_get_si(big_integer(hash_entry_key(entry))) == kv))
-	    return(entry);
-#else
       if (integer(hash_entry_key(entry)) == kv)
 	return(entry);
-#endif
     }
   return(sc->unentry);
 }
@@ -42884,41 +38186,18 @@ static hash_entry_t *hash_int(s7_scheme *sc, s7_pointer table, s7_pointer key)
 static hash_entry_t *hash_float(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
   /* if a hash-table has only t_real keys, its checker is hash_float, but we might use a t_big_real key */
-#if WITH_GMP
-  if ((is_t_real(key)) || (is_t_big_real(key)))
-#else
   if (is_t_real(key))
-#endif
     {
       s7_double keyval;
       s7_uint loc;
-#if WITH_GMP
-      if (is_t_real(key))
-	{
-	  keyval = real(key);
-	  if (is_NaN(keyval)) return(sc->unentry);
-	}
-      else
-	{
-	  if (mpfr_nan_p(big_real(key))) return(sc->unentry);
-	  keyval = mpfr_get_d(big_real(key), MPFR_RNDN);
-	}
-#else
       keyval = real(key);
       if (is_NaN(keyval)) return(sc->unentry);
-#endif
       loc = hash_float_location(keyval) % hash_table_mask(table);
       for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
 	{
 	  if ((is_t_real(hash_entry_key(entry))) &&
 	      (keyval == real(hash_entry_key(entry))))
 	    return(entry);
-#if WITH_GMP
-	  if ((is_t_big_real(hash_entry_key(entry))) &&
-	      (mpfr_cmp_d(big_real(hash_entry_key(entry)), keyval) == 0) &&
-	      (!mpfr_nan_p(big_real(hash_entry_key(entry)))))
-	    return(entry);
-#endif
 	}}
   return(sc->unentry);
 }
@@ -42934,31 +38213,18 @@ static hash_entry_t *hash_num_eq(s7_scheme *sc, s7_pointer table, s7_pointer key
 
 static hash_entry_t *hash_real_num_eq(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
-#if WITH_GMP
-  if ((is_t_real(key)) && (is_NaN(real(key)))) return(sc->unentry);
-  if ((is_t_big_real(key)) && (mpfr_nan_p(big_real(key)))) return(sc->unentry);
-  return(hash_num_eq(sc, table, key));
-#else
   return((is_NaN(s7_real(key))) ? sc->unentry : hash_num_eq(sc, table, key));
-#endif
 }
 
 static hash_entry_t *hash_complex_num_eq(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
-#if WITH_GMP
-  if ((is_t_complex(key)) && ((is_NaN(real_part(key))) || (is_NaN(imag_part(key))))) return(sc->unentry);
-  if ((is_t_big_complex(key)) && ((mpfr_nan_p(mpc_realref(big_complex(key)))) || (mpfr_nan_p(mpc_imagref(big_complex(key)))))) return(sc->unentry);
-  return(hash_num_eq(sc, table, key));
-#else
   return(((is_NaN(real_part(key))) || (is_NaN(imag_part(key)))) ? sc->unentry : hash_num_eq(sc, table, key));
-#endif
 }
 
 static hash_entry_t *hash_number_num_eq(s7_scheme *sc, s7_pointer table, s7_pointer key)
 {
   if (is_number(key))
     {
-#if !WITH_GMP
       const hash_map_t map = hash_table_mapper(table)[type(key)];
       if (hash_table_checker(table) == hash_int)    /* surely by far the most common case? only ints */
 	{
@@ -42969,7 +38235,6 @@ static hash_entry_t *hash_number_num_eq(s7_scheme *sc, s7_pointer table, s7_poin
 	      return(entry);
 	}
       else
-#endif
 	return((is_real(key)) ? hash_real_num_eq(sc, table, key) : hash_complex_num_eq(sc, table, key));
     }
   return(sc->unentry);
@@ -42994,21 +38259,6 @@ static hash_entry_t *hash_char(s7_scheme *sc, s7_pointer table, s7_pointer key)
   return(sc->unentry);
 }
 
-#if !WITH_PURE_S7
-static s7_uint hash_map_ci_char(s7_scheme *sc, s7_pointer table, s7_pointer key) {return(upper_character(key));}
-
-static hash_entry_t *hash_ci_char(s7_scheme *sc, s7_pointer table, s7_pointer key)
-{
-  if (is_character(key))
-    {
-      s7_uint loc = hash_loc(sc, table, key) % hash_table_mask(table);
-      for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
-	if (upper_character(key) == upper_character(hash_entry_key(entry)))
-	  return(entry);
-    }
-  return(sc->unentry);
-}
-#endif
 
 
 /* ---------------- hash strings ---------------- */
@@ -43092,17 +38342,11 @@ static hash_entry_t *hash_eqv(s7_scheme *sc, s7_pointer table, s7_pointer key)
   const s7_uint loc = hash_loc(sc, table, key) % hash_table_mask(table);
   if (is_number(key))
     {
-#if WITH_GMP
-      for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
-	if (numbers_are_eqv(sc, key, hash_entry_key(entry)))
-	  return(entry);
-#else
       uint8_t key_type = type(key);
       for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
 	if ((key_type == type(hash_entry_key(entry))) &&
 	    (numbers_are_eqv(sc, key, hash_entry_key(entry))))
 	  return(entry);
-#endif
     }
   else
     for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
@@ -43265,11 +38509,6 @@ static hash_entry_t *hash_equal_integer(s7_scheme *sc, s7_pointer table, s7_poin
       if ((is_t_integer(hash_entry_key(entry))) &&
 	  (keyint == integer(hash_entry_key(entry))))
 	return(entry);
-#if WITH_GMP
-      if ((is_t_big_integer(hash_entry_key(entry))) &&
-	  (mpz_cmp_si(big_integer(hash_entry_key(entry)), keyint) == 0))
-	return(entry);
-#endif
     }
   return(sc->unentry);
 }
@@ -43284,12 +38523,6 @@ static hash_entry_t *hash_equal_ratio(s7_scheme *sc, s7_pointer table, s7_pointe
 	  (keynum == numerator(hash_entry_key(entry))) &&
 	  (keyden == denominator(hash_entry_key(entry))))
 	return(entry);
-#if WITH_GMP
-      if ((is_t_big_ratio(hash_entry_key(entry))) &&
-	  (keynum == mpz_get_si(mpq_numref(big_ratio(hash_entry_key(entry))))) &&
-	  (keyden == mpz_get_si(mpq_denref(big_ratio(hash_entry_key(entry))))))
-	return(entry);
-#endif
     }
   return(sc->unentry);
 }
@@ -43305,12 +38538,6 @@ static hash_entry_t *hash_equal_real(s7_scheme *sc, s7_pointer table, s7_pointer
       if ((is_t_real(hash_entry_key(entry))) &&
 	  (keydbl == real(hash_entry_key(entry))))
 	return(entry);
-#if WITH_GMP
-      if ((is_t_big_real(hash_entry_key(entry))) &&
-	  (mpfr_cmp_d(big_real(hash_entry_key(entry)), keydbl) == 0) &&
-	  (!mpfr_nan_p(big_real(hash_entry_key(entry)))))
-	return(entry);
-#endif
     }
   return(sc->unentry);
 }
@@ -43321,9 +38548,6 @@ static hash_entry_t *hash_equal_complex(s7_scheme *sc, s7_pointer table, s7_poin
   const s7_double keyrl = real_part(key);
   const s7_double keyim = imag_part(key);
 
-#if WITH_GMP
-  if ((is_NaN(keyrl)) || (is_NaN(keyim))) return(sc->unentry);
-#endif
   loc = hash_map_complex(sc, table, key) % hash_table_mask(table);
   for (hash_entry_t *entry = hash_table_element(table, loc); entry; entry = hash_entry_next(entry))
     {
@@ -43331,14 +38555,6 @@ static hash_entry_t *hash_equal_complex(s7_scheme *sc, s7_pointer table, s7_poin
 	  (keyrl == real_part(hash_entry_key(entry))) &&
 	  (keyim == imag_part(hash_entry_key(entry))))
 	return(entry);
-#if WITH_GMP
-      if ((is_t_big_complex(hash_entry_key(entry))) &&
-	  (mpfr_cmp_d(mpc_realref(big_complex(hash_entry_key(entry))), keyrl) == 0) &&
-	  (mpfr_cmp_d(mpc_imagref(big_complex(hash_entry_key(entry))), keyim) == 0) &&
-	  (!mpfr_nan_p(mpc_realref(big_complex(hash_entry_key(entry))))) &&
-	  (!mpfr_nan_p(mpc_imagref(big_complex(hash_entry_key(entry))))))
-	return(entry);
-#endif
     }
   return(sc->unentry);
 }
@@ -43472,14 +38688,9 @@ static hash_entry_t *hash_equivalent(s7_scheme *sc, s7_pointer table, s7_pointer
 
   if (is_number(key))
     {
-#if WITH_GMP
-      if (!is_nan_b_7p(sc, key))
-	return(hash_number_equivalent(sc, table, key));
-#else
       entry = hash_number_equivalent(sc, table, key);
       if ((entry != sc->unentry) || (!is_nan_b_7p(sc, key)))
 	return(entry);
-#endif
       for (entry = hash_table_element(table, 0); entry; entry = hash_entry_next(entry)) /* NaN is mapped to 0 */
 	if (is_nan_b_7p(sc, hash_entry_key(entry)))  /* all NaN's are the same to equivalent? */
 	  return(entry);
@@ -43564,7 +38775,7 @@ static s7_pointer g_is_equivalent(s7_scheme *sc, s7_pointer args);
 
 static s7_pointer g_make_hash_table_1(s7_scheme *sc, s7_pointer args, s7_pointer caller)
 {
-  #define H_make_hash_table "(make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
+  #define H_make_hash_table "(s7-make-hash-table (size 8) eq-func typer) returns a new hash table. eq-func is the function \
 used to check equality of keys; it usually defaults to equal?. typer sets the types of the keys and values that are allowed \
 in the table; it is a cons, defaulting to (cons #t #t) which means any types are allowed.\n"
   #define Q_make_hash_table s7_make_signature(sc, 4, sc->is_hash_table_symbol, sc->is_integer_symbol, \
@@ -43702,20 +38913,6 @@ in the table; it is a cons, defaulting to (cons #t #t) which means any types are
 		  hash_table_mapper(table) = string_eq_hash_map;
 		  return(table);
 		}
-#if !WITH_PURE_S7
-	      if (c_function_call(proc) == g_strings_are_ci_equal)
-		{
-		  hash_table_checker(table) = hash_ci_string;
-		  hash_table_mapper(table) = string_ci_eq_hash_map;
-		  return(table);
-		}
-	      if (c_function_call(proc) == g_chars_are_ci_equal)
-		{
-		  hash_table_checker(table) = hash_ci_char;
-		  hash_table_mapper(table) = char_ci_eq_hash_map;
-		  return(table);
-		}
-#endif
 	      if (c_function_call(proc) == g_chars_are_equal)
 		{
 		  hash_table_checker(table) = hash_char;
@@ -43832,7 +39029,6 @@ static const char *hash_table_checker_name(s7_scheme *sc, s7_pointer table)
   if (hash_table_checker(table) == hash_string) return("string=?");
 #if !WITH_PURE_S7
   if (hash_table_checker(table) == hash_ci_string) return("string-ci=?");
-  if (hash_table_checker(table) == hash_ci_char) return("char-ci=?");
 #endif
   if (hash_table_checker(table) == hash_char) return("char=?");
   if (hash_table_checker(table) == hash_number_num_eq) return("=");
@@ -43856,10 +39052,6 @@ static void init_hash_maps(void)
       default_hash_map[i] = hash_map_nil;
       string_eq_hash_map[i] = hash_map_nil;
       char_eq_hash_map[i] = hash_map_nil;
-#if !WITH_PURE_S7
-      string_ci_eq_hash_map[i] = hash_map_nil;
-      char_ci_eq_hash_map[i] = hash_map_nil;
-#endif
       closure_hash_map[i] = hash_map_closure;
       c_function_hash_map[i] = hash_map_c_function;
       eq_hash_map[i] = hash_map_eq;
@@ -43889,19 +39081,9 @@ static void init_hash_maps(void)
   default_hash_map[T_RATIO] =         hash_map_ratio;
   default_hash_map[T_REAL] =          hash_map_real;
   default_hash_map[T_COMPLEX] =       hash_map_complex;
-#if WITH_GMP
-  default_hash_map[T_BIG_INTEGER] =   hash_map_big_int;
-  default_hash_map[T_BIG_RATIO] =     hash_map_big_ratio;
-  default_hash_map[T_BIG_REAL] =      hash_map_big_real;
-  default_hash_map[T_BIG_COMPLEX] =   hash_map_big_complex;
-#endif
   string_eq_hash_map[T_STRING] =      hash_map_string;
   string_eq_hash_map[T_BYTE_VECTOR] = hash_map_byte_vector;
   char_eq_hash_map[T_CHARACTER] =     hash_map_char;
-#if !WITH_PURE_S7
-  string_ci_eq_hash_map[T_STRING] =   hash_map_ci_string;
-  char_ci_eq_hash_map[T_CHARACTER] =  hash_map_ci_char;
-#endif
 
   for (int32_t i = 0; i < NUM_TYPES; i++)
     equivalent_hash_map[i] = default_hash_map[i];
@@ -44198,14 +39380,13 @@ static void check_hash_table_checker(s7_scheme *sc, s7_pointer table, s7_pointer
 #else
       if ((((hash_table_checker(table) == hash_string) || (hash_table_checker(table) == hash_ci_string)) &&
 	   (!is_string(key))) ||
-	  (((hash_table_checker(table) == hash_char) || (hash_table_checker(table) == hash_ci_char)) &&
+	  ((hash_table_checker(table) == hash_char) &&
 	   (!is_character(key))))
 	error_nr(sc, sc->wrong_type_arg_symbol,
 		 set_elist_4(sc, wrap_string(sc, "hash-table-set! key ~S, is ~A, but the hash-table's key function is ~A", 70),
 			     key, type_name_string(sc, key),
-			     (hash_table_checker(table) == hash_string) ? sc->string_eq_symbol :
-			     ((hash_table_checker(table) == hash_ci_string) ? sc->string_ci_eq_symbol :
-			      ((hash_table_checker(table) == hash_char) ? sc->char_eq_symbol : sc->char_ci_eq_symbol))));
+			     ((hash_table_checker(table) == hash_ci_string) ? sc->string_eq_symbol :
+			      ((hash_table_checker(table) == hash_char) ? sc->char_eq_symbol : sc->string_eq_symbol))));
 #endif
 }
 
@@ -44254,7 +39435,7 @@ s7_pointer s7_hash_table_set(s7_scheme *sc, s7_pointer table, s7_pointer key, s7
 
 static s7_pointer g_hash_table_set(s7_scheme *sc, s7_pointer args)
 {
-  #define H_hash_table_set "(hash-table-set! table key value) sets the value associated with key in the hash table to value"
+  #define H_hash_table_set "(s7-hash-table-set! table key value) sets the value associated with key in the hash table to value"
   #define Q_hash_table_set s7_make_signature(sc, 4, sc->T, sc->is_hash_table_symbol, sc->T, sc->T)
 
   s7_pointer table = car(args);
@@ -46592,9 +41773,6 @@ static s7_pointer g_is_eq(s7_scheme *sc, s7_pointer args)
 
 bool s7_is_eqv(s7_scheme *sc, s7_pointer x, s7_pointer y)
 {
-#if WITH_GMP
-  if ((is_big_number(x)) || (is_big_number(y))) return(big_numbers_are_eqv(sc, x, y));
-#endif
   if (type(x) != type(y)) return(false);
   if ((x == y) && (!is_number(x)))         /* if x is NaN, x == y doesn't mean (eqv? x y) */
     return(true);                          /* x == y means (let ((x "a")) (let ((y x)) (eqv? x y))) is #t */
@@ -46621,17 +41799,6 @@ static bool floats_are_equivalent(s7_scheme *sc, s7_double x, s7_double y)
   return((is_NaN(x)) && (is_NaN(y)));
 }
 
-#if WITH_GMP
-static bool big_floats_are_equivalent(s7_scheme *sc, mpfr_t x, mpfr_t y)
-{
-  /* protect mpfr_1 */
-  if ((mpfr_nan_p(x)) || (mpfr_nan_p(y)))
-    return((mpfr_nan_p(x)) && (mpfr_nan_p(y)));
-  mpfr_sub(sc->mpfr_3, x, y, MPFR_RNDN);
-  mpfr_abs(sc->mpfr_3, sc->mpfr_3, MPFR_RNDN);
-  return(mpfr_cmp_d(sc->mpfr_3, sc->equivalent_float_epsilon) <= 0);
-}
-#endif
 
 static bool eq_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *unused_ci) {return(x == y);}
 
@@ -47435,63 +42602,11 @@ static bool iterator_equal_1(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_i
 static bool iterator_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)      {return(iterator_equal_1(sc, x, y, ci, false));}
 static bool iterator_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci) {return(iterator_equal_1(sc, x, y, ci, true));}
 
-#if WITH_GMP
-static bool big_integer_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  /* (equal? 1 1.0) -> #f */
-  if (is_t_big_integer(y))
-    return(mpz_cmp(big_integer(x), big_integer(y)) == 0);
-  return((is_t_integer(y)) && (mpz_cmp_si(big_integer(x), integer(y)) == 0));
-}
-
-static bool big_ratio_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  if (is_t_big_ratio(y))
-    return(mpq_equal(big_ratio(x), big_ratio(y)));
-  if (is_t_ratio(y))
-    return((numerator(y) == mpz_get_si(mpq_numref(big_ratio(x)))) &&
-	   (denominator(y) == mpz_get_si(mpq_denref(big_ratio(x)))));
-  return(false);
-}
-
-static bool big_real_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  if (is_t_big_real(y))
-    return(mpfr_equal_p(big_real(x), big_real(y)));
-  if (is_t_real(y))
-    {
-      if (mpfr_nan_p(big_real(x))) return(false);
-      return((!is_NaN(real(y))) &&
-	     (mpfr_cmp_d(big_real(x), real(y)) == 0));
-    }
-  return(false);
-}
-
-static bool big_complex_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  if ((mpfr_nan_p(mpc_realref(big_complex(x)))) || (mpfr_nan_p(mpc_imagref(big_complex(x)))))
-    return(false);
-  if (is_t_big_complex(y))
-    return((!mpfr_nan_p(mpc_realref(big_complex(y)))) &&
-	   (!mpfr_nan_p(mpc_imagref(big_complex(y)))) &&
-	   (mpc_cmp(big_complex(x), big_complex(y)) == 0));
-  if (is_t_complex(y))
-    return((!is_NaN(real_part(y))) &&
-	   (!is_NaN(imag_part(y))) &&
-	   (mpfr_cmp_d(mpc_realref(big_complex(x)), real_part(y)) == 0) &&
-	   (mpfr_cmp_d(mpc_imagref(big_complex(x)), imag_part(y)) == 0));
-  return(false);
-}
-#endif
 
 static bool integer_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
 {
   if (is_t_integer(y))
     return(integer(x) == integer(y));
-#if WITH_GMP
-  if (is_t_big_integer(y))
-    return(mpz_cmp_si(big_integer(y), integer(x)) == 0);
-#endif
   return(false);
 }
 
@@ -47501,11 +42616,6 @@ static bool fraction_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_inf
   if (is_t_ratio(y))
     return((numerator(x) == numerator(y)) &&
 	   (denominator(x) == denominator(y)));
-#if WITH_GMP
-  if (is_t_big_ratio(y))
-    return((numerator(x) == mpz_get_si(mpq_numref(big_ratio(y)))) &&
-	   (denominator(x) == mpz_get_si(mpq_denref(big_ratio(y)))));
-#endif
   return(false);
 }
 
@@ -47513,12 +42623,6 @@ static bool real_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t 
 {
   if (is_t_real(y))
     return(real(x) == real(y));
-#if WITH_GMP
-  if (is_t_big_real(y))
-    return((!is_NaN(real(x))) &&
-	   (!mpfr_nan_p(big_real(y))) &&
-	   (mpfr_cmp_d(big_real(y), real(x)) == 0));
-#endif
   return(false);
 }
 
@@ -47526,166 +42630,9 @@ static bool complex_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info
 {
   if (is_t_complex(y))
     return((real_part(x) == real_part(y)) && (imag_part(x) == imag_part(y)));
-#if WITH_GMP
-  if (is_t_big_complex(y))
-    {
-      if ((is_NaN(real_part(x))) || (is_NaN(imag_part(x))) ||
-	  (mpfr_nan_p(mpc_realref(big_complex(y)))) || (mpfr_nan_p(mpc_imagref(big_complex(y)))))
-	return(false);
-      return((mpfr_cmp_d(mpc_realref(big_complex(y)), real_part(x)) == 0) &&
-	     (mpfr_cmp_d(mpc_imagref(big_complex(y)), imag_part(x)) == 0));
-    }
-#endif
   return(false);
 }
 
-#if WITH_GMP
-static bool big_integer_or_ratio_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci, bool int_case)
-{
-  if (int_case)
-    mpfr_set_z(sc->mpfr_1, big_integer(x), MPFR_RNDN);
-  else mpfr_set_q(sc->mpfr_1, big_ratio(x), MPFR_RNDN);
-
-  switch (type(y))
-    {
-    case T_INTEGER:
-      if (int_case)
-	return(mpz_cmp_si(big_integer(x), integer(y)) == 0);
-      mpfr_set_si(sc->mpfr_2, integer(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_RATIO:
-      mpfr_set_d(sc->mpfr_2, fraction(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_REAL:
-      mpfr_set_d(sc->mpfr_2, real(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_COMPLEX:
-      mpfr_set_d(sc->mpfr_2, real_part(y), MPFR_RNDN);
-      if (!big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2))
-	return(false);
-      if (is_NaN(imag_part(y))) return(false);
-      mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, imag_part(y), MPFR_RNDN);
-      return(mpfr_cmpabs(sc->mpfr_2, sc->mpfr_1) <= 0);
-    case T_BIG_INTEGER:
-      if (int_case)
-	return(mpz_cmp(big_integer(x), big_integer(y)) == 0);
-      mpfr_set_z(sc->mpfr_2, big_integer(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_REAL:
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, big_real(y)));
-    case T_BIG_COMPLEX:
-      if (big_floats_are_equivalent(sc, sc->mpfr_1, mpc_realref(big_complex(y))))
-	{
-	  if (mpfr_nan_p(mpc_imagref(big_complex(y)))) return(false);
-	  mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-	  return(mpfr_cmpabs(mpc_imagref(big_complex(y)), sc->mpfr_1) <= 0);
-	}}
-  return(false);
-}
-
-static bool big_integer_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  return(big_integer_or_ratio_equivalent(sc, x, y, ci, true));
-}
-
-static bool big_ratio_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  return(big_integer_or_ratio_equivalent(sc, x, y, ci, false));
-}
-
-
-static bool big_real_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  switch (type(y))
-    {
-    case T_INTEGER:
-      mpfr_set_si(sc->mpfr_2, integer(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2));
-    case T_RATIO:
-      mpfr_set_d(sc->mpfr_2, fraction(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2));
-    case T_REAL:
-      mpfr_set_d(sc->mpfr_2, real(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2));
-    case T_COMPLEX:
-      mpfr_set_d(sc->mpfr_2, real_part(y), MPFR_RNDN);
-      if (!big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2))
-	return(false);
-      if (is_NaN(imag_part(y))) return(false);
-      mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, imag_part(y), MPFR_RNDN);
-      return(mpfr_cmpabs(sc->mpfr_2, sc->mpfr_1) <= 0);
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_2, big_integer(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, big_real(x), sc->mpfr_2));
-    case T_BIG_REAL:
-      return(big_floats_are_equivalent(sc, big_real(x), big_real(y)));
-    case T_BIG_COMPLEX:
-      if (big_floats_are_equivalent(sc, big_real(x), mpc_realref(big_complex(y))))
-	{
-	  if (mpfr_nan_p(mpc_imagref(big_complex(y)))) return(false);
-	  mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-	  return(mpfr_cmpabs(mpc_imagref(big_complex(y)), sc->mpfr_1) <= 0);
-	}}
-  return(false);
-}
-
-static bool big_complex_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
-{
-  mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-  switch (type(y))
-    {
-    case T_INTEGER:
-      mpfr_set_si(sc->mpfr_2, integer(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_RATIO:
-      mpfr_set_d(sc->mpfr_2, fraction(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_REAL:
-      mpfr_set_d(sc->mpfr_2, real(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_COMPLEX:
-      mpfr_set_d(sc->mpfr_1, imag_part(y), MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, real_part(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_2, big_integer(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_BIG_RATIO:
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), sc->mpfr_2)) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_BIG_REAL:
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), big_real(y))) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), sc->mpfr_1)));
-    case T_BIG_COMPLEX:
-      return((big_floats_are_equivalent(sc, mpc_realref(big_complex(x)), mpc_realref(big_complex(y)))) &&
-	     (big_floats_are_equivalent(sc, mpc_imagref(big_complex(x)), mpc_imagref(big_complex(y)))));
-    }
-  return(false);
-}
-
-static bool both_floats_are_equivalent(s7_scheme *sc, s7_pointer y)
-{
-  if (!big_floats_are_equivalent(sc, sc->mpfr_1, mpc_realref(big_complex(y))))
-    return(false);
-  if (mpfr_nan_p(mpc_imagref(big_complex(y)))) return(false);
-  mpfr_set_d(sc->mpfr_1, sc->equivalent_float_epsilon, MPFR_RNDN);
-  return(mpfr_cmpabs(mpc_imagref(big_complex(y)), sc->mpfr_1) <= 0);
-}
-#endif
 
 static bool integer_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
 {
@@ -47700,20 +42647,6 @@ static bool integer_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared
     case T_COMPLEX:
       return((fabs(imag_part(y)) <= sc->equivalent_float_epsilon) &&
 	     (floats_are_equivalent(sc, (double)integer(x), real_part(y))));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      return(mpz_cmp_si(big_integer(y), integer(x)) == 0);
-    case T_BIG_RATIO:
-      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_REAL:
-      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, big_real(y)));
-    case T_BIG_COMPLEX:
-      mpfr_set_si(sc->mpfr_1, integer(x), MPFR_RNDN);
-      return(both_floats_are_equivalent(sc, y));
-#endif
     }
   return(false);
 }
@@ -47731,22 +42664,6 @@ static bool fraction_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, share
     case T_COMPLEX:
       return((fabs(imag_part(y)) <= sc->equivalent_float_epsilon) &&
 	     (floats_are_equivalent(sc, fraction(x), real_part(y))));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(y), MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, fraction(x), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_RATIO:
-      mpfr_set_d(sc->mpfr_1, fraction(x), MPFR_RNDN);
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_REAL:
-      mpfr_set_d(sc->mpfr_1, fraction(x), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, big_real(y)));
-    case T_BIG_COMPLEX:
-      mpfr_set_d(sc->mpfr_1, fraction(x), MPFR_RNDN);
-      return(both_floats_are_equivalent(sc, y));
-#endif
     }
   return(false);
 }
@@ -47764,22 +42681,6 @@ static bool real_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_in
     case T_COMPLEX:
       return((fabs(imag_part(y)) <= sc->equivalent_float_epsilon) &&
 	     (floats_are_equivalent(sc, real(x), real_part(y))));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(y), MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, real(x), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_RATIO:
-      mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2));
-    case T_BIG_REAL:
-      mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-      return(big_floats_are_equivalent(sc, sc->mpfr_1, big_real(y)));
-    case T_BIG_COMPLEX:
-      mpfr_set_d(sc->mpfr_1, real(x), MPFR_RNDN);
-      return(both_floats_are_equivalent(sc, y));
-#endif
     }
   return(false);
 }
@@ -47800,41 +42701,16 @@ static bool complex_equivalent(s7_scheme *sc, s7_pointer x, s7_pointer y, shared
     case T_COMPLEX:
       return((floats_are_equivalent(sc, real_part(x), real_part(y))) &&
 	     (floats_are_equivalent(sc, imag_part(x), imag_part(y))));
-#if WITH_GMP
-    case T_BIG_INTEGER:
-      mpfr_set_z(sc->mpfr_1, big_integer(y), MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, real_part(x), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2)) &&
-	     (floats_are_equivalent(sc, imag_part(x), 0.0)));
-    case T_BIG_RATIO:
-      mpfr_set_d(sc->mpfr_1, real_part(x), MPFR_RNDN);
-      mpfr_set_q(sc->mpfr_2, big_ratio(y), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, sc->mpfr_1, sc->mpfr_2)) &&
-	     (floats_are_equivalent(sc, imag_part(x), 0.0)));
-    case T_BIG_REAL:
-      mpfr_set_d(sc->mpfr_1, real_part(x), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, sc->mpfr_1, big_real(y))) &&
-	     (floats_are_equivalent(sc, imag_part(x), 0.0)));
-    case T_BIG_COMPLEX:
-      mpfr_set_d(sc->mpfr_1, real_part(x), MPFR_RNDN);
-      mpfr_set_d(sc->mpfr_2, imag_part(x), MPFR_RNDN);
-      return((big_floats_are_equivalent(sc, sc->mpfr_1, mpc_realref(big_complex(y)))) &&
-	     (big_floats_are_equivalent(sc, sc->mpfr_2, mpc_imagref(big_complex(y)))));
-#endif
     }
   return(false);
 }
 
 static bool random_state_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci)
 {
-#if WITH_GMP
-  return(x == y);
-#else
   return((x == y) ||
 	 ((is_random_state(y)) &&
 	  (random_seed(x) == random_seed(y)) &&
 	  (random_carry(x) == random_carry(y))));
-#endif
 }
 
 static bool c_function_equal(s7_scheme *sc, s7_pointer x, s7_pointer y, shared_info_t *ci) {return((is_c_function(y)) && (c_function_data(x) == c_function_data(y)));}
@@ -47845,12 +42721,6 @@ static void init_equals(void)
   for (int32_t i = 0; i < NUM_TYPES; i++) {equals[i] = eq_equal; equivalents[i] = eq_equal;}
   equals[T_BACRO] =             closure_equal;
   equals[T_BACRO_STAR] =        closure_equal;
-#if WITH_GMP
-  equals[T_BIG_COMPLEX] =       big_complex_equal;
-  equals[T_BIG_INTEGER] =       big_integer_equal;
-  equals[T_BIG_RATIO] =         big_ratio_equal;
-  equals[T_BIG_REAL] =          big_real_equal;
-#endif
   equals[T_BYTE_VECTOR] =       byte_vector_equal;
   equals[T_CLOSURE] =           closure_equal;
   equals[T_CLOSURE_STAR] =      closure_equal;
@@ -47884,12 +42754,6 @@ static void init_equals(void)
 
   equivalents[T_BACRO] =        closure_equivalent;
   equivalents[T_BACRO_STAR] =   closure_equivalent;
-#if WITH_GMP
-  equivalents[T_BIG_COMPLEX] =  big_complex_equivalent;
-  equivalents[T_BIG_INTEGER] =  big_integer_equivalent;
-  equivalents[T_BIG_RATIO] =    big_ratio_equivalent;
-  equivalents[T_BIG_REAL] =     big_real_equivalent;
-#endif
   equivalents[T_BYTE_VECTOR] =  vector_equivalent;
   equivalents[T_CLOSURE] =      closure_equivalent;
   equivalents[T_CLOSURE_STAR] = closure_equivalent;
@@ -47968,7 +42832,7 @@ static s7_pointer str_length(s7_scheme *sc, s7_pointer str)   {return(make_integ
 static s7_pointer bv_length(s7_scheme *sc, s7_pointer bv)     {return(make_integer(sc, byte_vector_length(bv)));}
 static s7_pointer h_length(s7_scheme *sc, s7_pointer table)   {return(make_integer(sc, hash_table_size(table)));}
 static s7_pointer iter_length(s7_scheme *sc, s7_pointer iter) {return(s7_length(sc, iterator_sequence(iter)));}
-static s7_pointer rs_length(s7_scheme *sc, s7_pointer rs)     {return((WITH_GMP) ? sc->F : int_two);}
+static s7_pointer rs_length(s7_scheme *sc, s7_pointer rs)     {return(int_two);}
 
 static s7_pointer c_obj_length(s7_scheme *sc, s7_pointer cobj)
 {
@@ -48211,12 +43075,6 @@ static s7_pointer copy_source_no_dest(s7_scheme *sc, s7_pointer source, s7_point
       set_real_part(dest, real_part(source));
       set_imag_part(dest, imag_part(source));
       return(dest);
-#if WITH_GMP
-    case T_BIG_INTEGER: return(mpz_to_big_integer(sc, big_integer(source)));
-    case T_BIG_RATIO:   return(mpq_to_big_ratio(sc, big_ratio(source)));
-    case T_BIG_REAL:    return(mpfr_to_big_real(sc, big_real(source)));
-    case T_BIG_COMPLEX: return(mpc_to_number(sc, big_complex(source)));
-#endif
 
     case T_C_POINTER:
       dest = s7_make_c_pointer_with_type(sc, c_pointer(source), c_pointer_type(source), c_pointer_info(source));
@@ -48320,10 +43178,8 @@ static s7_pointer copy_to_same_type(s7_scheme *sc, s7_pointer dest, s7_pointer s
       return(dest);
 
     case T_RANDOM_STATE:
-#if !WITH_GMP
       random_seed(dest) = random_seed(source);
       random_carry(dest) = random_carry(source);
-#endif
       return(dest);
 
     case T_C_OBJECT:
@@ -49904,9 +44760,6 @@ static s7_pointer symbol_to_let(s7_scheme *sc, s7_pointer sym)
 
 static s7_pointer random_state_to_let(s7_scheme *sc, s7_pointer rs)
 {
-#if WITH_GMP
-  return(internal_inlet(sc, 4, sc->value_symbol, rs, sc->type_symbol, sc->is_random_state_symbol));
-#else
   if (!sc->seed_symbol)
     {
       sc->seed_symbol = make_symbol(sc, "seed", 4);
@@ -49916,7 +44769,6 @@ static s7_pointer random_state_to_let(s7_scheme *sc, s7_pointer rs)
 			sc->type_symbol, sc->is_random_state_symbol,
 			sc->seed_symbol, make_integer(sc, random_seed(rs)),
 			sc->carry_symbol, make_integer(sc, random_carry(rs))));
-#endif
 }
 
 static s7_pointer vector_to_let(s7_scheme *sc, s7_pointer vec)
@@ -50005,14 +44857,6 @@ static void hash_table_checker_to_let(s7_scheme *sc, s7_pointer let, s7_pointer 
 	    else
 	      if (hash_table_checker(table) == hash_char)
 		s7_varlet(sc, let, sc->function_symbol, sc->char_eq_symbol);
-#if !WITH_PURE_S7
-	      else
-		if (hash_table_checker(table) == hash_ci_char)
-		  s7_varlet(sc, let, sc->function_symbol, sc->char_ci_eq_symbol);
-		else
-		  if (hash_table_checker(table) == hash_ci_string)
-		    s7_varlet(sc, let, sc->function_symbol, sc->string_ci_eq_symbol);
-#endif
 }
 
 static s7_pointer hash_table_to_let(s7_scheme *sc, s7_pointer table)
@@ -50364,10 +45208,10 @@ static s7_pointer object_to_let_p_p(s7_scheme *sc, s7_pointer obj)
     case T_INPUT_PORT:
     case T_OUTPUT_PORT:  return(port_to_let(sc, obj));
 
-    case T_INTEGER: case T_BIG_INTEGER: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_integer_symbol));
-    case T_RATIO:   case T_BIG_RATIO:   return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_rational_symbol));
-    case T_REAL:    case T_BIG_REAL:    return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_real_symbol));
-    case T_COMPLEX: case T_BIG_COMPLEX: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_complex_symbol));
+    case T_INTEGER: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_integer_symbol));
+    case T_RATIO:   return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_rational_symbol));
+    case T_REAL:    return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_real_symbol));
+    case T_COMPLEX: return(internal_inlet(sc, 4, sc->value_symbol, obj, sc->type_symbol, sc->is_complex_symbol));
 
     case T_STRING:
       return(internal_inlet(sc, 8, sc->value_symbol, obj,
@@ -52989,10 +47833,6 @@ static void init_typers(s7_scheme *sc)
 {
   sc->type_to_typers[T_BACRO] =               sc->is_macro_symbol;
   sc->type_to_typers[T_BACRO_STAR] =          sc->is_macro_symbol;
-  sc->type_to_typers[T_BIG_COMPLEX] =         sc->is_complex_symbol;
-  sc->type_to_typers[T_BIG_INTEGER] =         sc->is_integer_symbol;
-  sc->type_to_typers[T_BIG_RATIO] =           sc->is_rational_symbol;
-  sc->type_to_typers[T_BIG_REAL] =            sc->is_float_symbol;
   sc->type_to_typers[T_BOOLEAN] =             sc->is_boolean_symbol;
   sc->type_to_typers[T_BYTE_VECTOR] =         sc->is_byte_vector_symbol;
   sc->type_to_typers[T_CATCH] =               sc->F;
@@ -53123,6 +47963,24 @@ static s7_pointer g_exit(s7_scheme *sc, s7_pointer args)
       if (cobj == sc->T)
 	call_c_object_frees(sc);
     }
+  if (hook_has_functions(sc->exit_hook))
+    {
+      s7_pointer exit_code;
+      if (is_null(args))
+	exit_code = s7_make_integer(sc, EXIT_SUCCESS);
+      else
+	{
+	  s7_pointer obj = car(args);
+	  if (obj == sc->F)
+	    exit_code = s7_make_integer(sc, EXIT_FAILURE);
+	  else if ((obj == sc->T) || (!s7_is_integer(obj)))
+	    exit_code = s7_make_integer(sc, EXIT_SUCCESS);
+	  else
+	    exit_code = obj;
+	}
+      s7_apply_function(sc, sc->exit_hook, set_plist_1(sc, exit_code));
+    }
+
   s7_quit(sc);
   if (show_gc_stats(sc))
     s7_warn(sc, 256, "gc calls %" ld64 " total time: %f\n", sc->gc_calls, (double)(sc->gc_total_time) / ticks_per_second());
@@ -53363,12 +48221,6 @@ static s7_pointer fx_num_eq_xi_1(s7_scheme *sc, s7_pointer args, s7_pointer val,
     case T_REAL:    return(make_boolean(sc, real(val) == y));
     case T_RATIO:
     case T_COMPLEX: return(sc->F);
-#if WITH_GMP
-    case T_BIG_INTEGER: return(make_boolean(sc, mpz_cmp_si(big_integer(val), y) == 0));
-    case T_BIG_REAL:    return(make_boolean(sc, mpfr_cmp_si(big_real(val), y) == 0));
-    case T_BIG_RATIO:
-    case T_BIG_COMPLEX: return(sc->F);
-#endif
     default: return(method_or_bust_pp(sc, val, sc->num_eq_symbol, val, cadr(args), a_number_string, 1));
     }
   return(sc->T);
@@ -53419,30 +48271,20 @@ static s7_pointer fx_num_eq_0s(s7_scheme *sc, s7_pointer arg)
 
 static s7_pointer fx_random_i(s7_scheme *sc, s7_pointer arg)
 {
-#if WITH_GMP
-  return(g_random_i(sc, cdr(arg)));
-#else
   return(make_integer(sc, (s7_int)(integer(cadr(arg)) * next_random(sc->default_random_state))));
-#endif
 }
 
 static s7_pointer fx_random_i_wrapped(s7_scheme *sc, s7_pointer arg)
 {
-#if WITH_GMP
-  return(g_random_i(sc, cdr(arg)));
-#else
   return(wrap_integer(sc, (s7_int)(integer(cadr(arg)) * next_random(sc->default_random_state))));
-#endif
 }
 
-#if !WITH_GMP
 static s7_pointer fx_add_i_random(s7_scheme *sc, s7_pointer arg)
 {
   s7_int x = integer(cadr(arg));
   s7_int y = opt3_int(cdr(arg)); /* cadadr */
   return(make_integer(sc, x + (s7_int)(y * next_random(sc->default_random_state)))); /* (+ -1 (random 1)) -- placement of the (s7_int) cast matters! */
 }
-#endif
 
 static s7_pointer fx_add_sf(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, lookup(sc, cadr(arg)), real(opt1_con(cdr(arg))), 1));}
 static s7_pointer fx_add_fs(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, lookup(sc, caddr(arg)), real(cadr(arg)), 2));}
@@ -53454,7 +48296,7 @@ static s7_pointer fx_add_ft(s7_scheme *sc, s7_pointer arg) {return(g_add_xf(sc, 
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) return(make_integer(sc, integer(x) + 1)); \
+    if ((is_t_integer(x))) return(make_integer(sc, integer(x) + 1)); \
     return(g_add_x1_1(sc, x, 1)); /* arg=(+ x 1) */ \
   }
 
@@ -53471,7 +48313,7 @@ fx_add_s1_any(fx_add_V1, V_lookup)
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     const s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) \
+    if ((is_t_integer(x))) \
       { \
         if (HAVE_OVERFLOW_CHECKS) \
   	  { \
@@ -53499,7 +48341,7 @@ static s7_pointer fx_add_vu(s7_scheme *sc, s7_pointer arg) {return(add_p_pp(sc, 
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     s7_pointer x = Lookup(sc, cadr(arg), arg); \
-    if ((!WITH_GMP) && (is_t_integer(x))) return(make_integer(sc, integer(x) - 1)); \
+    if ((is_t_integer(x))) return(make_integer(sc, integer(x) - 1)); \
     return(minus_c1(sc, x)); \
   }
 /* overflow check here slows tleft by about 35 out of ca 750, parallel add case does not check
@@ -53520,7 +48362,7 @@ fx_subtract_s1_any(fx_subtract_U1, U_lookup)
   static s7_pointer Name(s7_scheme *sc, s7_pointer arg) \
   { \
     const s7_pointer x = Lookup(sc, cadr(arg), arg);	\
-    if ((!WITH_GMP) && (is_t_integer(x))) \
+    if ((is_t_integer(x))) \
       { \
         if (HAVE_OVERFLOW_CHECKS) \
   	  { \
@@ -53571,10 +48413,6 @@ static s7_pointer fx_subtract_fs(s7_scheme *sc, s7_pointer arg)
     case T_RATIO:   return(make_real(sc, n - (s7_double)fraction(x)));
     case T_REAL:    return(make_real(sc, n - real(x)));
     case T_COMPLEX: return(make_complex_not_0i(sc, n - real_part(x), -imag_part(x)));
-#if WITH_GMP
-    case T_BIG_INTEGER: case T_BIG_RATIO: case T_BIG_REAL: case T_BIG_COMPLEX:
-      return(subtract_p_pp(sc, cadr(arg), x));
-#endif
     default:
       return(method_or_bust_pp(sc, x, sc->subtract_symbol, cadr(arg), x, a_number_string, 2));
     }
@@ -53718,17 +48556,8 @@ static s7_pointer fx_is_symbol_car_t(s7_scheme *sc, s7_pointer arg)
 static s7_pointer fx_floor_sqrt_s(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt3_sym(arg));
-#if WITH_GMP
-  if ((is_t_big_integer(p)) &&
-      (mpz_cmp_ui(big_integer(p), 0) >= 0)) /* p >= 0 */
-    {
-      mpz_sqrt(sc->mpz_1, big_integer(p));
-      return(mpz_to_integer(sc, sc->mpz_1));
-    }
-#else
   if (!negative_b_7p(sc, p))
     return(make_integer(sc, (s7_int)floor(sqrt(s7_number_to_real_with_location(sc, p, sc->sqrt_symbol)))));
-#endif
   return(floor_p_p(sc, sqrt_p_p(sc, p)));
 }
 
@@ -53864,13 +48693,8 @@ static s7_pointer fx_is_eof_u(s7_scheme *sc, s7_pointer arg)    {return((u_looku
 static s7_pointer fx_is_type_s(s7_scheme *sc, s7_pointer arg)   {return(make_boolean(sc, (uint8_t)(opt3_byte(cdr(arg))) == type(lookup(sc, cadr(arg)))));}
 static s7_pointer fx_is_type_t(s7_scheme *sc, s7_pointer arg)   {return(make_boolean(sc, (uint8_t)(opt3_byte(cdr(arg))) == type(t_lookup(sc, cadr(arg), arg))));}
 static s7_pointer fx_is_type_u(s7_scheme *sc, s7_pointer arg)   {return(make_boolean(sc, (uint8_t)(opt3_byte(cdr(arg))) == type(u_lookup(sc, cadr(arg), arg))));}
-#if WITH_GMP
-static s7_pointer fx_is_integer_s(s7_scheme *sc, s7_pointer arg) {return((s7_is_integer(lookup(sc, cadr(arg)))) ? sc->T : sc->F);}
-static s7_pointer fx_is_integer_t(s7_scheme *sc, s7_pointer arg) {return((s7_is_integer(t_lookup(sc, cadr(arg), arg))) ? sc->T : sc->F);}
-#else
 static s7_pointer fx_is_integer_s(s7_scheme *sc, s7_pointer arg) {return((is_t_integer(lookup(sc, cadr(arg)))) ? sc->T : sc->F);}
 static s7_pointer fx_is_integer_t(s7_scheme *sc, s7_pointer arg) {return((is_t_integer(t_lookup(sc, cadr(arg), arg))) ? sc->T : sc->F);}
-#endif
 static s7_pointer fx_is_string_s(s7_scheme *sc, s7_pointer arg)    {return((is_string(lookup(sc, cadr(arg)))) ? sc->T : sc->F);}
 static s7_pointer fx_is_string_t(s7_scheme *sc, s7_pointer arg)    {return((is_string(t_lookup(sc, cadr(arg), arg))) ? sc->T : sc->F);}
 static s7_pointer fx_is_procedure_s(s7_scheme *sc, s7_pointer arg) {return((is_procedure(lookup(sc, cadr(arg)))) ? sc->T : sc->F);}
@@ -54026,9 +48850,6 @@ static inline s7_pointer fx_sqr_1(s7_scheme *sc, s7_pointer x)
 {
   if (is_t_real(x)) return(make_real(sc, real(x) * real(x)));
 
-#if WITH_GMP
-  return(multiply_p_pp(sc, x, x));
-#else
   switch (type(x))
     {
 #if HAVE_OVERFLOW_CHECKS
@@ -54059,21 +48880,16 @@ static inline s7_pointer fx_sqr_1(s7_scheme *sc, s7_pointer x)
     default:        return(method_or_bust_pp(sc, x, sc->multiply_symbol, x, x, a_number_string, 1));
     }
   return(x);
-#endif
 }
 
 static s7_pointer fx_sqr_wrapped(s7_scheme *sc, s7_pointer x)
 {
   if (is_t_real(x)) return(wrap_real(sc, real(x) * real(x)));
-#if WITH_GMP
-  return(multiply_p_pp(sc, x, x));
-#else
   if (is_t_integer(x))
     return(multiply_if_overflow_to_real_wrapped(sc, integer(x), integer(x)));
   if (is_t_complex(x))
     return(wrap_complex(sc, real_part(x) * real_part(x) - imag_part(x) * imag_part(x), 2.0 * real_part(x) * imag_part(x)));
   return(fx_sqr_1(sc, x));
-#endif
 }
 
 static s7_pointer fx_sqr_s(s7_scheme *sc, s7_pointer arg) {return(fx_sqr_1(sc, lookup(sc, cadr(arg))));}
@@ -56209,14 +51025,14 @@ static s7_pointer fx_safe_closure_s_to_vref(s7_scheme *sc, s7_pointer arg) {retu
 static s7_pointer fx_safe_closure_s_to_sub1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
-  if ((!WITH_GMP) && (is_t_integer(p))) return(make_integer(sc, integer(p) - 1));
+  if ((is_t_integer(p))) return(make_integer(sc, integer(p) - 1));
   return(minus_c1(sc, p));
 }
 
 static s7_pointer fx_safe_closure_s_to_add1(s7_scheme *sc, s7_pointer arg)
 {
   s7_pointer p = lookup(sc, opt2_sym(arg));
-  if ((!WITH_GMP) && (is_t_integer(p))) return(make_integer(sc, integer(p) + 1));
+  if ((is_t_integer(p))) return(make_integer(sc, integer(p) + 1));
       /* better but slower: return(add_if_overflow_to_real_or_big_integer(sc, integer(p), 1)) */
   return(g_add_x1_1(sc, p, 1));
 }
@@ -56435,9 +51251,7 @@ static s7_function fx_choose(s7_scheme *sc, const s7_pointer holder, const s7_po
 	{
 	case HOP_SAFE_C_NC: /* includes 0-arg cases, newline/current-input|output-port, [make-]hash-table?, read-line, [float-]vector/list, gensym */
 	  if (cdr(arg) == sc->nil) return((fn_proc(arg) == g_read_char) ? fx_read_char_0 : fx_c_0c);
-#if !WITH_GMP
 	  if (fn_proc(arg) == g_add_i_random) return(fx_add_i_random);
-#endif
 	  if (fn_proc(arg) == g_cons)
 	    {
 	      set_opt1_con(cdr(arg), caddr(arg));
@@ -57095,11 +51909,11 @@ static s7_function fx_choose(s7_scheme *sc, const s7_pointer holder, const s7_po
 
 	case HOP_SAFE_C_CA:
 
-	  if ((!WITH_GMP) && (fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
+	  if ((fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
 	  return((fn_proc(arg) == g_cons) ? fx_cons_ca : fx_c_ca);
 
 	case HOP_SAFE_C_SA:
-	  if ((!WITH_GMP) && (fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
+	  if ((fx_proc(cddr(arg)) == fx_random_i)) set_fx_direct(cddr(arg), fx_random_i_wrapped);
 	  if (fn_proc(arg) == g_multiply_2) return(fx_multiply_sa);
 	  if (fn_proc(arg) == g_add_2) return(fx_add_sa);
 	  if (is_global_and_has_func(head, s7_p_pp_function))
@@ -58706,13 +53520,8 @@ static s7_int opt_i_7ii_ff(opt_info *o)
   return(q_func(o).i_7ii_f(o->sc, i1, i2));
 }
 
-#if WITH_GMP
-static s7_int opt_add_i_random_i(opt_info *o)      {return(q_arg1(o).i + (s7_int)(q_arg2(o).i * next_random(o->sc)));}
-static s7_int opt_subtract_random_i_i(opt_info *o) {return((s7_int)(q_arg1(o).i * next_random(o->sc)) - q_arg2(o).i);}
-#else
 static s7_int opt_add_i_random_i(opt_info *o)      {return(q_arg1(o).i + (s7_int)(q_arg2(o).i * next_random(o->sc->default_random_state)));}
 static s7_int opt_subtract_random_i_i(opt_info *o) {return((s7_int)(q_arg1(o).i * next_random(o->sc->default_random_state)) - q_arg2(o).i);}
-#endif
 
 static bool i_ii_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const s7_pointer expr)
 {
@@ -60172,11 +54981,7 @@ static s7_double opt_d_dd_fc(opt_info *o) {return(q_func(o).d_dd_f(q_d_func1_cal
 
 static s7_double opt_subtract_random_f_f(opt_info *o)
 {
-#if WITH_GMP
-  return(q_arg1(o).x * next_random(o->sc) - q_arg2(o).x);
-#else
   return(q_arg1(o).x * next_random(o->sc->default_random_state) - q_arg2(o).x);
-#endif
 }
 
 static s7_double opt_d_dd_fc_add(opt_info *o) {return(q_d_func1_call(o) + q_arg2(o).x);}
@@ -62060,16 +56865,6 @@ static s7_pointer opt_arg_type(s7_scheme *sc, s7_pointer argp)
     {
       s7_pointer arg_slot = opt_simple_symbol(sc, arg);
       if (!arg_slot) return(sc->T);
-#if WITH_GMP
-      if (is_big_number(slot_value(arg_slot)))
-	return(sc->T);
-      if ((is_t_integer(slot_value(arg_slot))) &&
-	  (integer(slot_value(arg_slot)) > QUOTIENT_INT_LIMIT))
-	return(sc->T);
-      if ((is_t_real(slot_value(arg_slot))) &&
-	  (real(slot_value(arg_slot)) > QUOTIENT_FLOAT_LIMIT))
-	return(sc->T);
-#endif
       return(s7_type_of(sc, slot_value(arg_slot)));
     }
   return(s7_type_of(sc, arg));
@@ -62814,14 +57609,6 @@ static bool p_p_ok(s7_scheme *sc, opt_info *opc, const s7_pointer s_func, const 
 	      else
 		q_call(opc).fp = (ppf == exp_p_p) ? opt_p_p_f_exp : ((ppf == iterate_p_p) ? opt_p_p_f_iterate :
 			        ((ppf == string_to_number_p_p) ? opt_p_p_f_string_to_number : opt_p_p_f));
-	      if (caadr(expr) == sc->string_ref_symbol)
-		{
-		  if (q_func1(opc).p_p_f == char_upcase_p_p)
-		    q_func1(opc).p_p_f = char_upcase_p_p_unchecked;
-		  else
-		    if (q_func1(opc).p_p_f == is_char_whitespace_p_p)
-		      q_func1(opc).p_p_f = is_char_whitespace_p_p_unchecked;
-		}
 	      q_func2_arg(opc).o1 = o1;
 	      fp = q_call(o1).fp;
 	      q_func2(opc).fp = fp;
@@ -67226,7 +62013,6 @@ static bool float_optimize_1(s7_scheme *sc, s7_pointer form)
   s7_pointer head, s_func, s_slot = NULL;
   s7_int len;
   if (OPT_PRINT) fprintf(stderr, "     float_optimize[%d] %s\n", __LINE__, display(form));
-  if (WITH_GMP) return(false);
 
   if (!is_pair(expr)) /* wrap constants/symbols */
     return_bool(sc, opt_float_not_pair(sc, expr), expr);
@@ -67311,7 +62097,6 @@ static bool int_optimize_1(s7_scheme *sc, s7_pointer form)
   s7_int len;
 
   if (OPT_PRINT) fprintf(stderr, "     int_optimize %s\n", display(form));
-  if (WITH_GMP) return(false);
 
   if (!is_pair(expr)) /* wrap constants/symbols */
     return_bool(sc, opt_int_not_pair(sc, expr), expr);
@@ -67541,7 +62326,6 @@ static bool cell_optimize_1(s7_scheme *sc, s7_pointer form)
 #if OPT_PRINT /* needed due to line arg */
   fprintf(stderr, "     cell_optimize[%d] %s\n", line, display(form));
 #endif
-  if (WITH_GMP) return(false);
   if (!is_pair(expr)) /* wrap constants/symbols */
     return(opt_cell_not_pair(sc, expr));
 
@@ -67728,7 +62512,6 @@ static bool bool_optimize(s7_scheme *sc, s7_pointer expr)
   const int32_t start = sc->pc;
   opt_info *wrapper;
   if (OPT_PRINT) fprintf(stderr, "     bool_optimize %s\n", display(expr));
-  if (WITH_GMP) return(false);
   if (bool_optimize_nw(sc, expr))
     return_true(sc, expr);
   sc->pc = start;
@@ -67762,7 +62545,6 @@ s7_float_function s7_float_optimize(s7_scheme *sc, s7_pointer expr)
 
 static s7_pfunc s7_optimize_1(s7_scheme *sc, s7_pointer expr, bool nv)
 {
-  if (WITH_GMP) return_null(sc, expr);
   if ((!is_pair(expr)) || (no_cell_opt(expr)) || (sc->debug != 0))
     return_null(sc, expr);
   sc->pc = 0;
@@ -70089,13 +64871,13 @@ static void init_choosers(s7_scheme *sc)
 
   /* min */
   func = set_function_chooser(sc->min_symbol, min_chooser);
-  sc->min_2 = make_function_with_class(sc, func, "min", g_min_2, 2, 0, false);
-  sc->min_3 = make_function_with_class(sc, func, "min", g_min_3, 3, 0, false);
+  sc->min_2 = make_function_with_class(sc, func, "s7-min", g_min_2, 2, 0, false);
+  sc->min_3 = make_function_with_class(sc, func, "s7-min", g_min_3, 3, 0, false);
 
   /* max */
   func = set_function_chooser(sc->max_symbol, max_chooser);
-  sc->max_2 = make_function_with_class(sc, func, "max", g_max_2, 2, 0, false);
-  sc->max_3 = make_function_with_class(sc, func, "max", g_max_3, 3, 0, false);
+  sc->max_2 = make_function_with_class(sc, func, "s7-max", g_max_2, 2, 0, false);
+  sc->max_3 = make_function_with_class(sc, func, "s7-max", g_max_3, 3, 0, false);
 
   /* < */
   func = set_function_chooser(sc->lt_symbol, less_chooser);
@@ -70140,12 +64922,10 @@ static void init_choosers(s7_scheme *sc)
   func = set_function_chooser(sc->logxor_symbol, logxor_chooser);
   sc->logxor_2 = make_function_with_class(sc, func, "logxor", g_logxor_2, 2, 0, false);
 
-#if !WITH_GMP
   /* ash */
   func = set_function_chooser(sc->ash_symbol, ash_chooser);
   sc->ash_ii = make_function_with_class(sc, func, "ash", g_ash_ii, 2, 0, false);
   sc->ash_ic = make_function_with_class(sc, func, "ash", g_ash_ic, 2, 0, false);
-#endif
 
   /* random */
   func = set_function_chooser(sc->random_symbol, random_chooser);
@@ -70211,8 +64991,6 @@ static void init_choosers(s7_scheme *sc)
   set_function_chooser(sc->string_ref_symbol, string_substring_chooser);
   set_function_chooser(sc->string_to_symbol_symbol, string_substring_chooser); /* not string_to_number here (not const char*??) */
   set_function_chooser(sc->string_to_keyword_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_downcase_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_upcase_symbol, string_substring_chooser);
   set_function_chooser(sc->string_position_symbol, string_substring_chooser);
   set_function_chooser(sc->string_geq_symbol, string_substring_chooser);
   set_function_chooser(sc->string_leq_symbol, string_substring_chooser);
@@ -70224,11 +65002,6 @@ static void init_choosers(s7_scheme *sc)
 #if !WITH_PURE_S7
   set_function_chooser(sc->string_length_symbol, string_substring_chooser);
   set_function_chooser(sc->string_to_list_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_eq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_geq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_leq_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_gt_symbol, string_substring_chooser);
-  set_function_chooser(sc->string_ci_lt_symbol, string_substring_chooser);
 #endif
 
   /* also: directory->list substring with-input-from-file with-input-from-string with-output-to-file open-output-file open-input-file
@@ -70518,66 +65291,75 @@ static no_return void unbound_variable_error_nr(s7_scheme *sc, s7_pointer sym)
 	    (sym == car(err_code)) && (sym_len < 24))     /* don't treat these as common variables */
 	  {         /* perhaps also check that the suggested new name actually fits the rest of err_code!: "char -> caar (char #\a)" */
 	    /* check main symbols, from t865.scm */
-	    #define MAIN_NAMES_SIZE 445
+	    #define MAIN_NAMES_SIZE 443
 	    static const char *main_names[MAIN_NAMES_SIZE] = {
-	      "<=", ">=", "gc", "if", "pi", "do", "or",
-	      "cos", "not", "ash", "exp", "sym", "nan", "tan", "map", "gcd", "car", "max", "abs", "lcm", "cdr", "let", "min", "sin", "eq?", "and", "log",
-	      "acos", "assv", "eval", "cons", "help", "let*", "list", "*s7*", "sqrt", "memq", "exit", "expt", "assq", "nan?", "when", "read", "odd?", "let?",
-	        "load", "atan", "asin", "cond", "set!", "caar", "eqv?", "cadr", "cdar", "cddr", "tanh", "sinh", "case", "cosh", "copy", "memv", "else",
-	      "error", "round", "inlet", "unlet", "throw", "owlet", "list?", "index", "atanh", "asinh", "assoc", "apply", "fill!", "even?", "angle", "pair?",
-	        "char?", "caadr", "caddr", "cdadr", "cdddr", "bacro", "macro", "acosh", "zero?", "caaar", "cadar", "cdaar", "cddar", "goto?", "real?", "arity",
-	        "byte?", "abort", "catch", "null?", "sort!", "write", "begin", "quote", "floor",
-	      "define", "float?", "format", "vector", "bignum", "unless", "symbol", "values", "member", "lambda", "logxor", "system", "logand", "modulo",
-	        "length", "char<?", "char=?", "append", "setter", "char>?", "caadar", "caddar", "cdadar", "cdddar", "exact?", "bacro*", "macro*", "string",
-	        "equal?", "letrec", "getenv", "macro?", "caaaar", "cadaar", "gensym", "caaddr", "cdaaar", "cadddr", "cddaar", "varlet", "cdaddr", "cddddr",
-	        "random", "logior", "caaadr", "cadadr", "cdaadr", "cddadr", "lognot", "sublet", "curlet", "cutlet", "outlet",
-	      "letrec*", "complex", "unquote", "reverse", "string?", "let-ref", "gensym?", "require", "define*", "call/cc",
-	        "newline", "char<=?", "vector?", "char>=?", "funclet", "display", "rootlet", "logbit?", "lambda*", "bignum?", "provide", "symbol?",
-	        "iterate", "openlet", "ceiling", "syntax?", "type-of", "number?",
-	      "quotient", "dilambda", "complex?", "reverse!", "string<?", "set-cdr!", "set-car!", "keyword?", "defined?",
-	        "string>?", "integer?", "funclet?", "let-set!", "inexact?", "boolean?", "with-let", "openlet?", "truncate", "string=?",
-	        "list-ref", "coverlet", "for-each",
-	      "substring", "imag-part", "signature", "constant?", "remainder", "dilambda?", "read-byte", "read-char", "infinite?",
-	        "sequence?", "magnitude", "peek-char", "char-ci>?", "iterator?", "numerator", "rational?", "char-ci=?", "subvector", "list-set!",
-	        "negative?", "provided?", "string<=?", "char-ci<?", "real-part", "aritable?", "make-list", "read-line", "list-tail", "tree-memq",
-	        "c-pointer", "let->list", "make-hook", "string>=?", "positive?", "c-object?", "port-file", "hash-code",
-	      "int-vector", "write-char", "undefined?", "quasiquote", "make-polar", "stacktrace", "write-byte", "c-pointer?", "hash-table", "profile-in",
-	        "immutable!", "*function*", "immutable?", "string-ref", "char-ci>=?", "file-mtime",
-		"subvector?", "char-ci<=?", "directory?", "tree-count", "procedure?", "vector-ref",
-	      "object->let", "with-baffle", "make-string", "denominator", "tree-leaves", "vector-set!", "int-vector?", "vector-rank",
-	        "eval-string", "hash-table?", "rationalize", "string-ci<?", "string-ci=?", "string-ci>?", "input-port?",
-		"macroexpand", "eof-object?", "port-string", "char-ready?", "cond-expand", "string-set!", "make-vector", "read-string",
-		"char-upcase", "string-copy", "equivalent?", "nan-payload", "list-values", "reader-cond", "byte-vector", "delete-file",
-	      "float-vector", "define-bacro", "symbol-table", "string-ci<=?", "list->string", "string-ci>=?", "apply-values", "file-exists?", "c-object-let",
-	        "unspecified?", "define-macro", "string-fill!", "list->vector", "port-closed?", "tree-cyclic?", "dynamic-wind", "string->list", "byte-vector?",
-		"write-string", "vector-fill!", "proper-list?", "random-state", "output-port?", "vector->list", "vector-typer",
-	      "string-append", "string-upcase", "port-position", "define-macro*", "tree-set-memq", "string-length", "vector-append", "documentation",
-	        "char-downcase", "char->integer", "integer->char", "char-position", "c-object-type", "random-state?", "vector-length", "port-filename",
-		"symbol->value", "char-numeric?", "float-vector?", "define-bacro*", "make-iterator", "pair-filename", "continuation?",
-	      "hook-functions", "c-pointer-type", "exact->inexact", "c-pointer-info", "integer-length", "string->symbol", "symbol->string", "complex-vector",
-	        "inexact->exact", "emergency-exit", "string->number", "number->string", "int-vector-ref", "dynamic-unwind", "object->string", "call-with-exit",
-		"hash-table-ref",
-	      "c-pointer-weak2", "directory->list", "symbol->keyword", "open-input-file", "c-pointer->list", "let-temporarily", "keyword->symbol",
-	        "byte-vector-ref", "c-pointer-weak1", "string-position", "int-vector-set!", "make-int-vector", "hash-table-set!",
-		"string->keyword", "weak-hash-table", "string-downcase", "define-constant", "complex-vector?", "make-hash-table",
-	      "iterator-at-end?", "char-lower-case?", "subvector-vector", "procedure-source", "call-with-values", "close-input-port",
-	        "make-byte-vector", "float-vector-ref", "char-alphabetic?", "make-rectangular", "cyclic-sequences", "port-line-number",
-		"byte-vector-set!", "weak-hash-table?", "char-whitespace?", "open-output-file", "define-expansion", "char-upper-case?", "pair-line-number",
-		"vector-dimension",
-	      "open-input-string", "get-output-string", "iterator-sequence", "make-float-vector", "close-output-port", "flush-output-port",
-	        "define-expansion*", "float-vector-set!", "procedure-arglist", "vector-dimensions",
-	      "open-output-string", "substring-uncopied", "complex-vector-ref", "subvector-position", "hash-table-entries", "random-state->list",
-	        "current-input-port", "current-error-port",
-	      "string->byte-vector", "byte-vector->string", "multiple-value-bind", "complex-vector-set!", "open-input-function", "current-output-port",
-	        "with-output-to-file", "make-complex-vector",
-	      "with-input-from-file", "hash-table-key-typer", "symbol-initial-value", "make-weak-hash-table", "integer-decode-float", "open-output-function",
-	        "call-with-input-file",
-	      "with-output-to-string", "call-with-output-file", "symbol->dynamic-value",
-	      "set-current-error-port", "call-with-input-string", "set-current-input-port", "hash-table-value-typer", "with-input-from-string",
-	      "set-current-output-port", "call-with-output-string", NULL};
+      "<=", ">=", "do", "gc", "if", "or", "pi", "abs", "and", "ash", "car", "cdr", "cos", "eq?", "exp", "gcd",
+        "lcm", "let", "log", "map", "s7-max", "s7-min", "nan", "not", "sin", "sym", "tan", "*s7*", "acos", "asin",
+        "assq", "assv", "atan", "caar", "cadr", "case", "cdar", "cddr", "cond", "cons", "copy", "cosh", "else",
+        "eqv?", "eval", "exit", "expt", "help", "let*", "let?", "list", "load", "memq", "memv", "nan?", "odd?",
+        "read", "set!", "sinh", "sqrt", "tanh", "when", "abort", "acosh", "angle", "apply", "arity", "asinh",
+        "assoc", "atanh", "bacro", "begin", "byte?", "caaar", "caadr", "cadar", "caddr", "catch", "cdaar",
+        "cdadr", "cddar", "cdddr", "char?", "error", "even?", "fill!", "floor", "goto?", "index", "inlet",
+        "list?", "macro", "null?", "owlet", "pair?", "quote", "real?", "s7-round", "sort!", "throw", "unlet",
+        "write", "zero?", "append", "bacro*", "bignum", "caaaar", "caaadr", "caadar", "caaddr", "cadaar",
+        "cadadr", "caddar", "cadddr", "cdaaar", "cdaadr", "cdadar", "cdaddr", "cddaar", "cddadr", "cdddar",
+        "cddddr", "char<?", "char=?", "char>?", "curlet", "cutlet", "define", "equal?", "exact?", "float?",
+        "format", "gensym", "getenv", "lambda", "length", "letrec", "logand", "logior", "lognot", "logxor",
+        "macro*", "macro?", "member", "s7-modulo", "outlet", "random", "setter", "string", "sublet", "symbol",
+        "system", "unless", "values", "varlet", "vector", "bignum?", "call/cc", "s7-ceiling", "char<=?",
+        "char>=?", "complex", "define*", "display", "funclet", "gensym?", "iterate", "lambda*", "let-ref",
+        "letrec*", "logbit?", "newline", "number?", "openlet", "provide", "require", "reverse", "rootlet",
+        "string?", "symbol?", "syntax?", "type-of", "unquote", "vector?", "boolean?", "complex?", "coverlet",
+        "defined?", "dilambda", "for-each", "funclet?", "inexact?", "integer?", "keyword?", "let-set!",
+        "list-ref", "openlet?", "quotient", "reverse!", "set-car!", "set-cdr!", "string<?", "string=?",
+        "string>?", "s7-truncate", "with-let", "aritable?", "c-object?", "c-pointer", "constant?", "dilambda?",
+        "hash-code", "imag-part", "infinite?", "iterator?", "let->list",
+        "list-set!", "list-tail", "magnitude", "make-hook", "make-list", "negative?", "numerator", "peek-char",
+        "port-file", "positive?", "provided?", "rational?", "read-byte", "read-char", "read-line", "real-part",
+        "remainder", "sequence?", "signature", "string<=?", "string>=?", "substring", "subvector", "tree-memq",
+        "*function*", "c-pointer?", "directory?", "file-mtime", "hash-table",
+        "immutable!", "immutable?", "int-vector", "make-polar", "procedure?", "profile-in", "quasiquote",
+        "stacktrace", "string-ref", "subvector?", "tree-count", "undefined?", "vector-ref", "write-byte",
+        "write-char", "byte-vector", "char-ready?", "char-upcase", "cond-expand", "delete-file", "denominator",
+        "eof-object?", "equivalent?", "eval-string", "hash-table?", "input-port?", "int-vector?",
+        "list-values", "macroexpand", "make-string", "make-vector", "nan-payload", "object->let",
+        "port-string", "rationalize", "read-string", "reader-cond", "string-copy", "string-set!",
+        "tree-leaves", "vector-rank", "vector-set!",
+        "with-baffle", "apply-values", "byte-vector?", "c-object-let", "define-bacro", "define-macro",
+        "dynamic-wind", "file-exists?", "float-vector", "list->string", "list->vector", "output-port?",
+        "port-closed?", "proper-list?", "random-state", "string->list",
+        "string-fill!", "symbol-table", "tree-cyclic?", "unspecified?", "vector->list", "vector-fill!",
+        "vector-typer", "write-string", "c-object-type", "char->integer", "char-downcase", "char-numeric?",
+        "char-position", "continuation?", "define-bacro*", "define-macro*", "documentation", "float-vector?",
+        "integer->char", "make-iterator", "pair-filename", "port-filename", "port-position", "random-state?",
+        "string-append", "string-length", "symbol->value", "tree-set-memq", "vector-append",
+        "vector-length", "c-pointer-info", "c-pointer-type", "call-with-exit", "complex-vector",
+        "dynamic-unwind", "emergency-exit", "exact->inexact", "hash-table-ref", "hook-functions",
+        "inexact->exact", "int-vector-ref", "integer-length", "number->string", "object->string",
+        "string->number", "string->symbol", "symbol->string", "byte-vector-ref", "c-pointer->list",
+        "c-pointer-weak1", "c-pointer-weak2", "complex-vector?", "define-constant", "directory->list",
+        "int-vector-set!", "keyword->symbol", "let-temporarily", "make-int-vector", "open-input-file",
+        "string->keyword", "string-position", "symbol->keyword", "weak-hash-table",
+        "byte-vector-set!", "call-with-values", "char-alphabetic?", "char-upper-case?", "char-whitespace?",
+        "close-input-port", "cyclic-sequences", "define-expansion", "float-vector-ref", "iterator-at-end?",
+        "make-byte-vector", "make-rectangular", "open-output-file", "pair-line-number", "port-line-number",
+        "procedure-source", "subvector-vector", "vector-dimension", "weak-hash-table?", "close-output-port",
+        "define-expansion*", "float-vector-set!", "flush-output-port", "get-output-string",
+        "iterator-sequence", "make-float-vector", "open-input-string", "procedure-arglist",
+        "vector-dimensions", "complex-vector-ref", "current-error-port", "current-input-port",
+        "hash-table-entries", "open-output-string", "random-state->list", "s7-hash-table-set!",
+        "s7-make-hash-table", "substring-uncopied", "subvector-position", "byte-vector->string",
+        "complex-vector-set!", "current-output-port", "make-complex-vector", "multiple-value-bind",
+        "open-input-function", "string->byte-vector", "with-output-to-file", "call-with-input-file",
+        "hash-table-key-typer", "integer-decode-float", "make-weak-hash-table", "open-output-function",
+        "symbol-initial-value", "with-input-from-file", "call-with-output-file", "symbol->dynamic-value",
+        "with-output-to-string", "call-with-input-string", "hash-table-value-typer", "set-current-error-port",
+        "set-current-input-port", "with-input-from-string", "call-with-output-string",
+        "set-current-output-port"
+      };
 
 	    static const int32_t main_names_index[LEVEN_MAX_LEN] = {0, 7, 27, 62, 103, 156, 184, 206, 243, 265, 296, 321, 344, 361,
-							 380, 400, 410, 418, 426, 433, 436, 441, 443}; /* 443==NULL, 7858 - 3576 bytes */
+							 378, 397, 407, 417, 425, 432, 435, 440, 442}; /* 443==NULL, 7858 - 3576 bytes */
 	    const int32_t start = main_names_index[sym_len - 2], end = main_names_index[sym_len - 1];
 #if 0
 	    { /* if above list changed, this might help: */
@@ -76019,11 +70801,11 @@ static s7_pointer check_case(s7_scheme *sc)
       {
 	if (is_fxable(sc, car(code)))
 	  {
-	    pair_set_syntax_op(form, ((!WITH_GMP) && (key_type == T_INTEGER)) ? OP_CASE_A_I_S : OP_CASE_A_G_S);
+	    pair_set_syntax_op(form, ((key_type == T_INTEGER)) ? OP_CASE_A_I_S : OP_CASE_A_G_S);
 	    set_fx_direct(code, fx_choose(sc, code, sc->curlet, let_symbol_is_safe));
 	    if ((is_fx_treeable(cdr(code))) && (curlet_has_slots(sc))) fx_curlet_tree_in(sc, code);
 	  }
-	else pair_set_syntax_op(form, ((!WITH_GMP) && (key_type == T_INTEGER)) ? OP_CASE_P_I_S : OP_CASE_P_G_S);
+	else pair_set_syntax_op(form, ((key_type == T_INTEGER)) ? OP_CASE_P_I_S : OP_CASE_P_G_S);
       }
     else              /* x_e_s */
       if (is_fxable(sc, car(code)))
@@ -76037,7 +70819,7 @@ static s7_pointer check_case(s7_scheme *sc)
   if ((use_fx) && (has_else) && (!has_feed_to))
     {
       const opcode_t op = optimize_op(form);
-      if ((op == OP_CASE_A_E_S) || (op == OP_CASE_A_G_S) || (op == OP_CASE_A_S_G) || ((!WITH_GMP) && (op == OP_CASE_A_I_S)))
+      if ((op == OP_CASE_A_E_S) || (op == OP_CASE_A_G_S) || (op == OP_CASE_A_S_G) || ((op == OP_CASE_A_I_S)))
 	{
 	  pair_set_syntax_op(form,
 			     (op == OP_CASE_A_I_S) ? OP_CASE_A_I_S_A :
@@ -76063,7 +70845,6 @@ static s7_pointer check_case(s7_scheme *sc)
   }
 }
 
-#if !WITH_GMP
 static bool op_case_i_s(s7_scheme *sc)
 {
   const s7_pointer selector  = sc->value;
@@ -76107,7 +70888,6 @@ static inline s7_pointer fx_case_a_i_s_a(s7_scheme *sc, s7_pointer code) /* inli
     }
   return(fx_call(sc, opt3_any(cdr(code))));
 }
-#endif
 
 static bool op_case_e_g_1(s7_scheme *sc, const s7_pointer selector, bool ok)
 {
@@ -76205,11 +70985,6 @@ static bool op_case_g_g(s7_scheme *sc)
 	selector = integer(sc->value);
       else
 	{
-#if WITH_GMP
-	  if ((is_t_big_integer(sc->value)) && (mpz_fits_slong_p(big_integer(sc->value))))
-	    selector = mpz_get_si(big_integer(sc->value));
-	  else
-#endif
 	    {
 	      for (clauses = sc->code; is_pair(clauses); clauses = cdr(clauses))
 		if (!is_pair(caar(clauses)))
@@ -80226,9 +75001,6 @@ static bool set_pair3(s7_scheme *sc, s7_pointer obj, s7_pointer arg, s7_pointer 
       sc->value = g_bv_set_3(sc, with_list_t3(sc, obj, arg, value));
       break;
     case T_VECTOR:
-#if WITH_GMP
-      sc->value = vector_set_p_ppp(sc, obj, arg, value);
-#else
       if (vector_rank(obj) > 1)
 	sc->value = g_vector_set(sc, with_list_t3(sc, obj, arg, value));
       else
@@ -80248,13 +75020,9 @@ static bool set_pair3(s7_scheme *sc, s7_pointer obj, s7_pointer arg, s7_pointer 
 	  else vector_element(obj, index) = value;
 	  sc->value = T_Ext(value);
 	}
-#endif
       break;
 
     case T_STRING:
-#if WITH_GMP
-      sc->value = g_string_set(sc, with_list_t3(sc, obj, arg, value));
-#else
       {
 	s7_int index;
 	if (!is_t_integer(arg))
@@ -80271,7 +75039,6 @@ static bool set_pair3(s7_scheme *sc, s7_pointer obj, s7_pointer arg, s7_pointer 
 	string_value(obj)[index] = (char)s7_character(value);
 	sc->value = value;
       }
-#endif
       break;
 
     case T_PAIR:
@@ -82679,9 +77446,6 @@ static goto_t op_dox(s7_scheme *sc)
   s7_pointer code, end, endp, stepper = NULL, slots;
   const s7_pointer form = sc->code;
   s7_function endf;
-#if WITH_GMP
-  bool got_bignum = false;
-#endif
   const s7_pointer let = inline_make_let(sc, sc->curlet);   /* new let is not tied into the symbol lookup process yet */
   if (SHOW_EVAL_OPS) fprintf(stderr, "%s[%d]: %s\n", __func__, __LINE__, display(form));
   sc->temp1 = let;
@@ -82692,9 +77456,6 @@ static goto_t op_dox(s7_scheme *sc)
       s7_pointer slot;
       const s7_pointer val = fx_call(sc, expr);
       const s7_pointer stp = cdr(expr); /* cddar(vars) */
-#if WITH_GMP
-      if (!got_bignum) got_bignum = is_big_number(val);
-#endif
       new_cell_unchecked(sc, slot, T_SLOT);
       slot_set_symbol_and_value(slot, caar(vars), val);
       if (is_pair(stp))
@@ -82752,9 +77513,6 @@ static goto_t op_dox(s7_scheme *sc)
 
       sc->do_body_p = body;
       if ((!no_cell_opt(code)) &&
-#if WITH_GMP
-	  (!got_bignum) &&
-#endif
 	  (has_safe_steppers(sc, sc->curlet)))
 	bodyf = s7_optimize_nv(sc, code);
 
@@ -82948,9 +77706,6 @@ static goto_t op_dox(s7_scheme *sc)
       #define MAX_OPT_BODY_SIZE 32
 
       if ((!no_cell_opt(code)) &&
-#if WITH_GMP
-	  (!got_bignum) &&
-#endif
 	  (has_safe_steppers(sc, sc->curlet)))
 	{
 	  sc->pc = 0;
@@ -83896,7 +78651,7 @@ static bool opt_dotimes(s7_scheme *sc, s7_pointer code, s7_pointer scc, bool loo
 		    for (; integer(stepper) < end; integer(stepper)++)
 		      fi(o);
 	      }
-	    else /* (do ((i 0 (+ i 1))) ((= i 1)) (char-alphabetic? (string-ref #u(0 1) 1))) or (logbit? i -1): kinda nutty */
+	    else /* (do ((i 0 (+ i 1))) ((= i 1)) (char-numeric? (string-ref #u(0 1) 1))) or (logbit? i -1): kinda nutty */
 	      for (; integer(stepper) < end; integer(stepper)++)
 		func(sc);
 	  clear_mutable_integer(stepper);
@@ -86897,7 +81652,6 @@ static bool op_tc_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
   const s7_pointer l2a = cdr(la);
   const s7_pointer l2a_slot = next_slot(la_slot);
   tick_tc(sc, OP_TC_IF_A_Z_L2A);
-#if !WITH_GMP
   if (!no_bool_opt(code))
     {
       sc->pc = 0;
@@ -86985,7 +81739,6 @@ static bool op_tc_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
 		    }}}}
       set_no_bool_opt(code);
     }
-#endif
   tf = fx_proc(if_test);
   if_test = car(if_test);
   if (true_quits)
@@ -87343,7 +82096,6 @@ static bool op_tc_if_a_z_if_a_z_la(s7_scheme *sc, s7_pointer code, bool z_first)
       if2_z = (z_first) ? cdr(if2_test) : cdr(cadddr(code));
       la = (z_first) ? cdadr(cadddr(code)) : cdadr(caddr(code));
     }
-#if !WITH_GMP
   if (is_t_integer(slot_value(la_slot)))
     {
       opt_info *o = sc->opts[0];
@@ -87351,30 +82103,29 @@ static bool op_tc_if_a_z_if_a_z_la(s7_scheme *sc, s7_pointer code, bool z_first)
       if (bool_optimize_nw(sc, if1_test))
  	{
 	  opt_info *o1 = sc->opts[sc->pc];
- 	  if (bool_optimize_nw(sc, if2_test))
- 	    {
-	      opt_info *o2 = sc->opts[sc->pc];
- 	      if (int_optimize(sc, la))
- 		{
- 		  s7_pointer val = make_mutable_integer(sc, integer(slot_value(la_slot)));
- 		  slot_set_value(la_slot, val);
- 		  if (tc_and)
-		    while (true)
-		      {
-			if (!q_call(o).fb(o)) {sc->value = sc->F; return(true);}
-			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
-			set_integer(val, q_call(o2).fi(o2));
-		      }
- 		  else
-		    while (true)
-		      {
-			if (q_call(o).fb(o)) {endp = if1_true; break;}
-			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
-			set_integer(val, q_call(o2).fi(o2));
-		      }
- 		  return(op_tc_z(sc, endp));
- 		}}}}
-#endif
+  	  if (bool_optimize_nw(sc, if2_test))
+  	    {
+  	      opt_info *o2 = sc->opts[sc->pc];
+  	      if (int_optimize(sc, la))
+  		{
+  		  s7_pointer val = make_mutable_integer(sc, integer(slot_value(la_slot)));
+  		  slot_set_value(la_slot, val);
+  		  if (tc_and)
+  		    while (true)
+  		      {
+ 			if (!q_call(o).fb(o)) {sc->value = sc->F; return(true);}
+ 			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
+ 			set_integer(val, q_call(o2).fi(o2));
+ 		      }
+  		  else
+  		    while (true)
+  		      {
+ 			if (q_call(o).fb(o)) {endp = if1_true; break;}
+ 			if (q_call(o1).fb(o1) == z_first) {endp = if2_z; break;}
+ 			set_integer(val, q_call(o2).fi(o2));
+ 		      }
+  		  return(op_tc_z(sc, endp));
+  		}}}}
   while (true)
     {
       if ((fx_call(sc, if1_test) == sc->F) == tc_and) {if (tc_and) {sc->value = sc->F; return(true);} else {endp = if1_true; break;}}
@@ -87652,7 +82403,6 @@ static bool op_tc_let_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
   set_curlet(sc, inner_let);
   if (!wrappable) gc_protect_via_stack(sc, inner_let);
   let_var = cdr(let_var);
-#if !WITH_GMP
   if (!no_bool_opt(code))
     {
       sc->pc = 0;
@@ -87693,7 +82443,6 @@ static bool op_tc_let_if_a_z_l2a(s7_scheme *sc, s7_pointer code)
 			}}}}}
       set_no_bool_opt(code);
     }
-#endif
   while (fx_call(sc, if_test) == sc->F)
     {
       sc->rec_p1 = fx_call(sc, la);
@@ -88095,7 +82844,6 @@ static opt_pid_t opinit_if_a_a_opla_laq(s7_scheme *sc, s7_pointer code)
   const s7_pointer call1 = cadr(caller);
   const s7_pointer call2 = caddr(caller);
 
-#if !WITH_GMP
   const s7_pointer c_op = car(caller);
   tick_tc(sc, OP_RECUR_IF_A_A_opLA_LAq);
   if ((is_symbol(c_op)) &&
@@ -88155,7 +82903,6 @@ static opt_pid_t opinit_if_a_a_opla_laq(s7_scheme *sc, s7_pointer code)
 				  slot_set_value(slot, sc->rec_val1);
 				  return(opt_dbl);
 				}}}}}}}}
-#endif
   tick_tc(sc, OP_RECUR_IF_A_A_opLA_LAq);
   sc->rec_bool = a_is_cadr(code);
   sc->rec_fn = fn_proc(caller);
@@ -88543,7 +83290,6 @@ static opt_pid_t opinit_if_a_a_opa_laq(s7_scheme *sc, s7_pointer code)
 {
   const s7_pointer caller = rec_call_clause(code);
   const bool la_op = a_is_cadr(caller);
-#if !WITH_GMP
   const s7_pointer c_op = car(caller);
   if ((is_symbol(c_op)) &&
       ((is_slot(global_slot(c_op))) &&
@@ -88575,7 +83321,6 @@ static opt_pid_t opinit_if_a_a_opa_laq(s7_scheme *sc, s7_pointer code)
 			      slot_set_value(slot, sc->rec_val1);
 			      return(opt_int);
 			    }}}}}}}
-#endif
   /* not int: a_op: (lis (cons (car lis) (copy-list-1 (cdr lis)))),
    *         la_op: ((car lis) (copy-list-1 (cdr lis))),
    *         opt3: ((cdr lis))
@@ -89027,7 +83772,6 @@ static opt_pid_t opinit_cond_a_a_a_l2a_lopa_l2aq(s7_scheme *sc, s7_pointer code)
   sc->rec_slot1 = let_slots(sc->curlet);
   sc->rec_slot2 = next_slot(sc->rec_slot1);
 
-#if !WITH_GMP
   if ((is_t_integer(slot_value(sc->rec_slot1))) &&
       (is_t_integer(slot_value(sc->rec_slot2))))
     {
@@ -89074,7 +83818,6 @@ static opt_pid_t opinit_cond_a_a_a_l2a_lopa_l2aq(s7_scheme *sc, s7_pointer code)
 				      sc->rec_fi6 = q_call(sc->rec_a6_o).fi;
 				      return(opt_int_0);
 				    }}}}}}}}}
-#endif
   rec_set_test(sc, cadr(code));
   rec_set_res(sc, cdadr(code));
   {
@@ -93717,11 +88460,9 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	G_G: case OP_CASE_G_G: if (op_case_g_g(sc)) goto TOP_NO_POP; goto FEED_TO;
 	case OP_CASE_A_E_S: sc->value = fx_call(sc, cdr(sc->code));
 	case OP_CASE_E_S:   op_case_e_s(sc); goto EVAL;
-#if !WITH_GMP
 	case OP_CASE_P_I_S: push_stack_no_args_direct(sc, OP_CASE_I_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_A_I_S: sc->value = fx_call(sc, cdr(sc->code));
 	case OP_CASE_I_S:   if (op_case_i_s(sc)) continue; goto EVAL;
-#endif
 	case OP_CASE_A_G_S: sc->value = fx_call(sc, cdr(sc->code)); /* this almost never happens? */
 	case OP_CASE_G_S:   op_case_g_s(sc); goto EVAL;
 
@@ -93735,9 +88476,7 @@ static s7_pointer eval(s7_scheme *sc, opcode_t first_op)
 	case OP_CASE_P_E_S: push_stack_no_args_direct(sc, OP_CASE_E_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_P_G_S: push_stack_no_args_direct(sc, OP_CASE_G_S); sc->code = cadr(sc->code); goto EVAL;
 	case OP_CASE_P_E_G: push_stack_no_args_direct(sc, OP_CASE_E_G); sc->code = cadr(sc->code); goto EVAL;
-#if !WITH_GMP
 	case OP_CASE_A_I_S_A: sc->value = fx_case_a_i_s_a(sc, sc->code); continue;
-#endif
 	case OP_CASE_A_E_S_A: sc->value = fx_case_a_e_s_a(sc, sc->code); continue;
 	case OP_CASE_A_G_S_A: sc->value = fx_case_a_g_s_a(sc, sc->code); continue;
 	case OP_CASE_A_S_G_A: sc->value = fx_case_a_s_g_a(sc, sc->code); continue;
@@ -94848,13 +89587,6 @@ static s7_pointer memory_usage(s7_scheme *sc)
 			       cons(sc, make_integer(sc, sc->num_c_object_types),
 				    make_integer(sc, (sc->c_object_types_size * sizeof(c_object_t *)) + (sc->num_c_object_types * sizeof(c_object_t)))));
 				    /* we're ignoring c_type->scheme_name: make_permanent_string(sc, name) */
-#if WITH_GMP
-  add_slot_unchecked_with_id(sc, mu_let,
-			     make_symbol(sc, "bignums", 7),
-			     s7_list(sc, 5, make_integer(sc, sc->big_integers->loc), make_integer(sc, sc->big_ratios->loc),
-				     make_integer(sc, sc->big_reals->loc), make_integer(sc, sc->big_complexes->loc),
-				     make_integer(sc, sc->big_random_states->loc)));
-#endif
   /* free-lists (mallocate) */
   {
     s7_int k;
@@ -94947,11 +89679,7 @@ static s7_pointer sl_file_names_to_list(s7_scheme *sc)
 
 static s7_pointer sl_int_fixup(s7_scheme *sc, s7_pointer val)
 {
-#if WITH_GMP
-  return(s7_int_to_big_integer(sc, s7_integer_clamped_if_gmp(sc, val)));
-#else
   return(val);
-#endif
 }
 
 static s7_pointer sl_history_to_list(s7_scheme *sc)
@@ -95016,7 +89744,6 @@ static s7_pointer starlet(s7_scheme *sc, s7_int choice)
     {
     case sl_accept_all_keyword_arguments:  return(make_boolean(sc, sc->accept_all_keyword_arguments));
     case sl_autoloading:                   return(make_boolean(sc, sc->is_autoloading));
-    case sl_bignum_precision:              return(make_integer(sc, sc->bignum_precision));
     case sl_catches:                       return(sl_active_catches_to_list(sc));
     case sl_cpu_time:                      return(make_real(sc, (double)clock() / (double)CLOCKS_PER_SEC)); /* cpu, not wall-clock time */
     case sl_c_types:                       return(sl_c_types_to_list(sc));
@@ -95231,20 +89958,6 @@ static s7_pointer sl_set_history_size(s7_scheme *sc, s7_pointer sym, s7_pointer 
   return(val);
 }
 
-#if WITH_GMP
-static s7_pointer set_bignum_precision(s7_scheme *sc, int32_t precision)
-{
-  mp_prec_t bits = (mp_prec_t)precision;
-  s7_pointer bpi;
-  if (precision <= 1)                   /* (set! (*s7* 'bignum-precision) 1) causes mpfr to segfault! (also 0 and -1) */
-    sole_arg_out_of_range_error_nr(sc, wrap_string(sc, "set! (*s7* 'bignum-precision)", 29), wrap_integer(sc, precision), wrap_string(sc, "has to be greater than 1", 24));
-  mpfr_set_default_prec(bits);
-  mpc_set_default_precision(bits);
-  bpi = big_pi(sc);
-  global_slot(sc->pi_symbol)->object.slt.val = bpi; /* don't check immutable flag here (if debugging) -- i.e. don't use slot_set_value! */
-  return(sc->F);
-}
-#endif
 
 static no_return void sl_stacktrace_wrong_type_error_nr(s7_scheme *sc, s7_int num, s7_pointer arg, s7_pointer typ, s7_pointer val)
 {
@@ -95380,23 +90093,6 @@ static s7_pointer sl_set_number_separator(s7_scheme *sc, s7_pointer sym, s7_poin
   return(val);
 }
 
-static s7_pointer sl_set_bignum_precision(s7_scheme *sc, s7_pointer sym, s7_pointer val)
-{
-  s7_int prec = s7_integer_clamped_if_gmp(sc, sl_integer_gt_0(sc, sym, val));
-  if (prec > (1LL << 32)) /* sc->bignum_precision is uint32_t */
-    error_nr(sc, sc->out_of_range_symbol,
-	     set_elist_2(sc, wrap_string(sc, "(set! (*s7* 'bignum-precision) ~S): new value must be less than (ash 1 32) == 4294967296", 88), val));
-  sc->bignum_precision = prec;
-#if WITH_GMP
-  set_bignum_precision(sc, sc->bignum_precision);
-  mpfr_set_prec(sc->mpfr_1, sc->bignum_precision);
-  mpfr_set_prec(sc->mpfr_2, sc->bignum_precision);
-  mpc_set_prec(sc->mpc_1, sc->bignum_precision);
-  mpc_set_prec(sc->mpc_2, sc->bignum_precision);
-#endif
-  return(val);
-}
-
 static s7_pointer sl_set_default_hash_table_length(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
   const s7_int iv = s7_integer_clamped_if_gmp(sc, sl_integer_gt_0(sc, sym, val)); /* protect against this being 9223372036854775807, then being used as a hash-table's size */
@@ -95503,10 +90199,8 @@ static s7_pointer sl_set_safety(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 static s7_pointer sl_set_default_random_state(s7_scheme *sc, s7_pointer sym, s7_pointer val)
 {
   if (!is_random_state(val)) starlet_wrong_type_error_nr(sc, sym, val, sc->type_names[T_RANDOM_STATE]);
-#if !WITH_GMP
   random_seed(sc->default_random_state) = random_seed(val);
   random_carry(sc->default_random_state) = random_carry(val);
-#endif
   return(val);
 }
 
@@ -95700,7 +90394,6 @@ static s7_pointer starlet_set_1(s7_scheme *sc, s7_pointer sym, s7_pointer val)
     {
     case sl_accept_all_keyword_arguments:  return(sl_set_accept_all_keyword_arguments(sc, sym, val));
     case sl_autoloading:                   return(sl_set_autoloading(sc, sym, val));
-    case sl_bignum_precision:              return(sl_set_bignum_precision(sc, sym, val));
     case sl_catches:                       sl_unsettable_error_nr(sc, sym);
     case sl_cpu_time:                      sl_unsettable_error_nr(sc, sym);
     case sl_c_types:                       sl_unsettable_error_nr(sc, sym);
@@ -96049,9 +90742,7 @@ static void init_fx_function(void)
   fx_function[HOP_SAFE_CLOSURE_A_TO_SC] = fx_safe_closure_a_to_sc;
 
   fx_function[OP_COND_NA_NA] = fx_cond_na_na;
-#if !WITH_GMP
   fx_function[OP_CASE_A_I_S_A] = fx_case_a_i_s_a;
-#endif
   fx_function[OP_CASE_A_E_S_A] = fx_case_a_e_s_a;
   fx_function[OP_CASE_A_G_S_A] = fx_case_a_g_s_a;
   fx_function[OP_CASE_A_S_G_A] = fx_case_a_s_g_a;
@@ -96143,28 +90834,6 @@ static void init_fx_function(void)
 static void init_opt_functions(s7_scheme *sc)
 {
 #if !WITH_PURE_S7
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_lt_symbol), char_ci_lt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_leq_symbol), char_ci_leq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_gt_symbol), char_ci_gt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_geq_symbol), char_ci_geq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->char_ci_eq_symbol), char_ci_eq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_lt_symbol), string_ci_lt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_leq_symbol), string_ci_leq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_gt_symbol), string_ci_gt_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_geq_symbol), string_ci_geq_b_7pp);
-  s7_set_b_7pp_function(sc, global_value(sc->string_ci_eq_symbol), string_ci_eq_b_7pp);
-
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_lt_symbol), char_ci_lt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_leq_symbol), char_ci_leq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_gt_symbol), char_ci_gt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_geq_symbol), char_ci_geq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->char_ci_eq_symbol), char_ci_eq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_lt_symbol), string_ci_lt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_leq_symbol), string_ci_leq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_gt_symbol), string_ci_gt_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_geq_symbol), string_ci_geq_b_unchecked);
-  s7_set_b_pp_unchecked_function(sc, global_value(sc->string_ci_eq_symbol), string_ci_eq_b_unchecked);
-
   s7_set_p_pp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_pp);
   s7_set_p_ppp_function(sc, global_value(sc->vector_append_symbol), vector_append_p_ppp);
   s7_set_i_i_function(sc, global_value(sc->integer_length_symbol), integer_length_i_i);
@@ -96343,14 +91012,12 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_pp_function(sc, global_value(sc->max_symbol), max_p_pp);
   s7_set_p_pp_function(sc, global_value(sc->min_symbol), min_p_pp);
   s7_set_p_p_function(sc, global_value(sc->sqrt_symbol), sqrt_p_p);
-#if !WITH_GMP
   s7_set_p_pp_function(sc, global_value(sc->expt_symbol), expt_p_pp);
   /* same problem affects logior|logand|logxor|lcm|gcd|rationalize|remainder|modulo -- *_p_* will fail in gmp s7 */
   s7_set_p_d_function(sc, global_value(sc->ceiling_symbol), ceiling_p_d);
   s7_set_p_d_function(sc, global_value(sc->floor_symbol), floor_p_d);
   s7_set_p_d_function(sc, global_value(sc->truncate_symbol), truncate_p_d);
   s7_set_p_d_function(sc, global_value(sc->round_symbol), round_p_d);
-#endif
   s7_set_d_7dd_function(sc, global_value(sc->remainder_symbol), remainder_d_7dd);
   s7_set_i_7ii_function(sc, global_value(sc->remainder_symbol), remainder_i_7ii);
   s7_set_i_7ii_function(sc, global_value(sc->quotient_symbol), quotient_i_7ii);
@@ -96400,7 +91067,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_d_dd_function(sc, global_value(sc->atan_symbol), atan_d_dd);
   s7_set_d_d_function(sc, global_value(sc->tanh_symbol), tanh_d_d);
   s7_set_p_p_function(sc, global_value(sc->exp_symbol), exp_p_p);
-#if !WITH_GMP
   s7_set_i_7ii_function(sc, global_value(sc->ash_symbol), ash_i_7ii);
   s7_set_i_7d_function(sc, global_value(sc->round_symbol), round_i_7d);
   s7_set_i_7d_function(sc, global_value(sc->floor_symbol), floor_i_7d);
@@ -96408,7 +91074,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7p_function(sc, global_value(sc->floor_symbol), floor_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->ceiling_symbol), ceiling_i_7p);
   s7_set_i_7d_function(sc, global_value(sc->truncate_symbol), truncate_i_7d);
-#endif
 
   s7_set_d_d_function(sc, global_value(sc->add_symbol), add_d_d);
   s7_set_d_d_function(sc, global_value(sc->subtract_symbol), subtract_d_d);
@@ -96460,7 +91125,7 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_i_7p_function(sc, global_value(sc->numerator_symbol), numerator_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->denominator_symbol), denominator_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->char_to_integer_symbol), char_to_integer_i_7p);
-  s7_set_i_7p_function(sc, global_value(sc->hash_table_entries_symbol), hash_table_entries_i_7p);
+  s7_set_i_7p_function(sc, global_value(sc->hash_table_size_symbol), hash_table_size_i_7p);
   s7_set_i_7p_function(sc, global_value(sc->tree_leaves_symbol), tree_leaves_i_7p);
   s7_set_p_p_function(sc, global_value(sc->char_to_integer_symbol), char_to_integer_p_p);
 
@@ -96506,12 +91171,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_b_p_function(sc, global_value(sc->is_vector_symbol), s7_is_vector);
   s7_set_b_7p_function(sc, global_value(sc->is_iterator_symbol), is_iterator_b_7p);
 
-  s7_set_b_7p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_lower_case_symbol), is_char_lower_case_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_numeric_symbol), is_char_numeric_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_upper_case_symbol), is_char_upper_case_b_7p);
-  s7_set_b_7p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_b_7p);
-
   s7_set_b_p_function(sc, global_value(sc->is_openlet_symbol), s7_is_openlet);
   s7_set_b_7p_function(sc, global_value(sc->iterator_is_at_end_symbol), iterator_is_at_end_b_7p);
   s7_set_b_7p_function(sc, global_value(sc->is_zero_symbol), zero_b_7p);
@@ -96554,10 +91213,6 @@ static void init_opt_functions(s7_scheme *sc)
   s7_set_p_p_function(sc, global_value(sc->c_pointer_type_symbol), c_pointer_type_p_p);
   s7_set_p_p_function(sc, global_value(sc->c_pointer_weak1_symbol), c_pointer_weak1_p_p);
   s7_set_p_p_function(sc, global_value(sc->c_pointer_weak2_symbol), c_pointer_weak2_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_alphabetic_symbol), is_char_alphabetic_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_whitespace_symbol), is_char_whitespace_p_p);
-  s7_set_p_p_function(sc, global_value(sc->is_char_numeric_symbol), is_char_numeric_p_p);
-  s7_set_p_p_function(sc, global_value(sc->char_upcase_symbol), char_upcase_p_p);
   s7_set_p_p_function(sc, global_value(sc->read_char_symbol), read_char_p_p);
   s7_set_p_i_function(sc, global_value(sc->make_string_symbol), make_string_p_i);
   s7_set_p_ii_function(sc, global_value(sc->make_int_vector_symbol), make_int_vector_p_ii);
@@ -96689,11 +91344,7 @@ static void init_features(s7_scheme *sc)
 #if HAVE_COMPLEX_NUMBERS
   s7_provide(sc, "complex-numbers");
 #endif
-#if WITH_GMP
-  s7_provide(sc, "gmp");
-#else
   s7_provide(sc, "ieee-float"); /* why would anyone care? -- this is for r7rs -- why singular this time? */
-#endif
 #if WITH_PURE_S7
   s7_provide(sc, "pure-s7");
 #endif
@@ -97267,7 +91918,7 @@ static void init_rootlet(s7_scheme *sc)
   sc->is_input_port_symbol =      bool_defun("input-port?",      is_input_port,	     0, T_INPUT_PORT,   mark_vector_1,      true);
   sc->is_output_port_symbol =     bool_defun("output-port?",     is_output_port,     0, T_OUTPUT_PORT,  mark_simple_vector, true);
   sc->is_eof_object_symbol =      bool_defun("eof-object?",      is_eof_object,	     0, T_EOF,          just_mark_vector,   true);
-  sc->is_integer_symbol =         bool_defun("integer?",         is_integer,	     0, (WITH_GMP) ? T_FREE : T_INTEGER, mark_simple_vector, true);
+  sc->is_integer_symbol =         bool_defun("integer?",         is_integer,	     0, T_INTEGER, mark_simple_vector, true);
   sc->is_byte_symbol =            bool_defun("byte?",	         is_byte,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_number_symbol =          bool_defun("number?",	         is_number,	     0, T_FREE,         mark_simple_vector, true);
   sc->is_real_symbol =            bool_defun("real?",	         is_real,	     0, T_FREE,         mark_simple_vector, true);
@@ -97329,9 +91980,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->pcl_c =  s7_make_circular_signature(sc, 0, 1, sc->is_char_symbol);
 
   sc->values_symbol = make_symbol(sc, "values", 6);
-
-  sc->is_bignum_symbol =             defun("bignum?",           is_bignum,              1, 0, false);
-  sc->bignum_symbol =                defun("bignum",            bignum,                 1, 1, false);
 
   sc->gensym_symbol =                defun("gensym",		gensym,			0, 1, false);
   sc->symbol_table_symbol =          defun("symbol-table",	symbol_table,		0, 0, false);
@@ -97436,15 +92084,15 @@ static void init_rootlet(s7_scheme *sc)
   sc->closed_input_function = s7_make_safe_function(sc, "#<closed-input-function>", g_closed_input_function_port, 2, 0, false, "input-function error"),
   sc->closed_output_function = s7_make_safe_function(sc, "#<closed-output-function>", g_closed_output_function_port, 1, 0, false, "output-function error"),
 
-  sc->newline_symbol =               defun("newline",		newline,		0, 1, false);
-  sc->write_symbol =                 defun("write",		write,			1, 1, false); set_is_translucent(sc->write_symbol);
-  sc->display_symbol =               defun("display",		display,		1, 1, false); set_is_translucent(sc->display_symbol);
+  sc->newline_symbol =               s7_define_typed_function(sc, "newline", g_newline, 0, 1, false, "(newline (port (current-output-port))) writes a carriage return to the port", s7_make_signature(sc, 2, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
+  sc->write_symbol =                 s7_define_typed_function(sc, "write", g_write, 1, 1, false, "(write obj (port (current-output-port))) writes (object->string obj) to the output port", s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))); set_is_translucent(sc->write_symbol);
+  sc->display_symbol =               s7_define_typed_function(sc, "display", g_display, 1, 1, false, "(display obj (port (current-output-port))) prints obj", s7_make_signature(sc, 3, sc->T, sc->T, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol))); set_is_translucent(sc->display_symbol);
   sc->read_char_symbol =             defun("read-char",	        read_char,		0, 1, false);
   sc->peek_char_symbol =             defun("peek-char",	        peek_char,		0, 1, false);
-  sc->write_char_symbol =            defun("write-char",	write_char,		1, 1, false);
-  sc->write_string_symbol =          defun("write-string",	write_string,		1, 3, false);
+  sc->write_char_symbol =            s7_define_typed_function(sc, "write-char", g_write_char, 1, 1, false, "(write-char char (port (current-output-port))) writes char to the output port", s7_make_signature(sc, 3, sc->is_char_symbol, sc->is_char_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
+  sc->write_string_symbol =          s7_define_typed_function(sc, "write-string", g_write_string, 1, 3, false, "(write-string str port start end) writes str to port.", s7_make_circular_signature(sc, 3, 4, sc->is_string_symbol, sc->is_string_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol), sc->is_integer_symbol));
   sc->read_byte_symbol =             defun("read-byte",	        read_byte,		0, 1, false);
-  sc->write_byte_symbol =            defun("write-byte",	write_byte,		1, 1, false);
+  sc->write_byte_symbol =            s7_define_typed_function(sc, "write-byte", g_write_byte, 1, 1, false, "(write-byte byte (port (current-output-port))): writes byte to the output port", s7_make_signature(sc, 3, sc->is_byte_symbol, sc->is_byte_symbol, s7_make_signature(sc, 2, sc->is_output_port_symbol, sc->not_symbol)));
   sc->read_line_symbol =             defun("read-line",	        read_line,		0, 2, false);
   sc->read_string_symbol =           defun("read-string",	read_string,		1, 1, false);
   sc->read_symbol =                  semisafe_defun("read",	read,			0, 1, false);
@@ -97495,22 +92143,22 @@ static void init_rootlet(s7_scheme *sc)
   sc->subtract_symbol =              defun("-",		        subtract,		1, 0, true); set_all_integer_and_float(sc->subtract_symbol);
   sc->multiply_symbol =              defun("*",		        multiply,		0, 0, true); set_all_integer_and_float(sc->multiply_symbol);
   sc->divide_symbol =                defun("/",		        divide,			1, 0, true); set_all_float(sc->divide_symbol);
-  sc->min_symbol =                   defun("min",		min,			1, 0, true); set_all_integer_and_float(sc->min_symbol);
-  sc->max_symbol =                   defun("max",		max,			1, 0, true); set_all_integer_and_float(sc->max_symbol);
+  sc->min_symbol =                   defun("s7-min",		min,			1, 0, true); set_all_integer_and_float(sc->min_symbol);
+  sc->max_symbol =                   defun("s7-max",		max,			1, 0, true); set_all_integer_and_float(sc->max_symbol);
 
   sc->quotient_symbol =              defun("quotient",		quotient,		2, 0, false); set_all_integer(sc->quotient_symbol);
   sc->remainder_symbol =             defun("remainder",	        remainder,		2, 0, false); set_all_integer(sc->remainder_symbol);
-  sc->modulo_symbol =                defun("modulo",		modulo,			2, 0, false); set_all_integer(sc->modulo_symbol);
+  sc->modulo_symbol =                defun("s7-modulo",		modulo,			2, 0, false); set_all_integer(sc->modulo_symbol);
   sc->num_eq_symbol =                defun("=",		        num_eq,			2, 0, true);
   sc->lt_symbol =                    defun("<",		        less,			2, 0, true);
   sc->gt_symbol =                    defun(">",		        greater,		2, 0, true);
   sc->leq_symbol =                   defun("<=",		less_or_equal,		2, 0, true);
   sc->geq_symbol =                   defun(">=",		greater_or_equal,	2, 0, true);
   sc->gcd_symbol =                   defun("gcd",		gcd,			0, 0, true);
-  sc->lcm_symbol =                   defun("lcm",		lcm,			0, 0, true);
+  sc->lcm_symbol =                   defun("s7-lcm",		lcm,			0, 0, true);
   sc->rationalize_symbol =           defun("rationalize",	rationalize,		1, 1, false);
   sc->random_symbol =                defun("random",		random,			1, 1, false); set_all_integer_and_float(sc->random_symbol);
-  sc->random_state_symbol =          defun("random-state",      random_state,	        0, (WITH_GMP) ? 1 : 2, false);
+  sc->random_state_symbol =          defun("random-state",      random_state,	        0, 2, false);
   sc->expt_symbol =                  defun("expt",		expt,			2, 0, false);
   sc->log_symbol =                   s7_define_typed_function(sc, "log", g_log, 1, 1, false, "(log z1 (z2 e)) returns log(z1) / log(z2) where z2 (the base) defaults to e: (log 8 2) = 3", sc->pcl_n);
   sc->ash_symbol =                   s7_define_typed_function(sc, "ash", g_ash, 2, 0, false, "(ash i1 i2) returns i1 shifted right or left i2 times, i1 << i2, (ash 1 3) -> 8, (ash 8 -3) -> 1", sc->pcl_i);
@@ -97531,10 +92179,10 @@ static void init_rootlet(s7_scheme *sc)
   sc->acosh_symbol =                 defun("acosh",		acosh,			1, 0, false);
   sc->atanh_symbol =                 defun("atanh",		atanh,			1, 0, false);
   sc->sqrt_symbol =                  s7_define_typed_function(sc, "sqrt", g_sqrt, 1, 0, false, "(sqrt z) returns the square root of z", sc->pl_nn);
-  sc->floor_symbol =                 s7_define_typed_function(sc, "floor", g_floor, 1, 0, false, "(floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
-  sc->ceiling_symbol =               s7_define_typed_function(sc, "ceiling", g_ceiling, 1, 0, false, "(ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
-  sc->truncate_symbol =              defun("truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
-  sc->round_symbol =                 defun("round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
+  sc->floor_symbol =                 s7_define_typed_function(sc, "s7-floor", g_floor, 1, 0, false, "(s7-floor x) returns the integer closest to x toward -inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->floor_symbol);
+  sc->ceiling_symbol =               s7_define_typed_function(sc, "s7-ceiling", g_ceiling, 1, 0, false, "(s7-ceiling x) returns the integer closest to x toward inf", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_real_symbol)); set_is_translucent(sc->ceiling_symbol);
+  sc->truncate_symbol =              defun("s7-truncate",		truncate,		1, 0, false); set_is_translucent(sc->truncate_symbol);
+  sc->round_symbol =                 defun("s7-round",		round,			1, 0, false); set_is_translucent(sc->round_symbol);
   sc->logand_symbol =                s7_define_typed_function(sc, "logand", g_logand, 0, 0, true, "(logand int32_t ...) returns the AND of its integer arguments (the bits that are on in every argument)", sc->pcl_i);
   sc->logior_symbol =                s7_define_typed_function(sc, "logior", g_logior, 0, 0, true, "(logior int32_t ...) returns the OR of its integer arguments (the bits that are on in any of the arguments)", sc->pcl_i);
   sc->logxor_symbol =                s7_define_typed_function(sc, "logxor", g_logxor, 0, 0, true, "(logxor int32_t ...) returns the XOR of its integer arguments (the bits that are on in an odd number of the arguments)", sc->pcl_i);
@@ -97556,10 +92204,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->number_to_string_symbol =      defun("number->string",	number_to_string,	1, 1, false);
   sc->string_to_number_symbol =      defun("string->number",	string_to_number,	1, 1, false);
 
-  sc->char_upcase_symbol =           s7_define_typed_function(sc, "char-upcase", g_char_upcase, 1, 0, false,
-                                                              "(char-upcase c) converts the character c to upper case", sc->pcl_c);
-  sc->char_downcase_symbol =         s7_define_typed_function(sc, "char-downcase", g_char_downcase, 1, 0, false,
-                                                              "(char-downcase c) converts the character c to lower case", sc->pcl_c);
   sc->char_to_integer_symbol =       s7_define_typed_function(sc, "char->integer", g_char_to_integer, 1, 0, false,
                                                               "(char->integer c) converts the character c to an integer",
                                                               s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_char_symbol));
@@ -97567,16 +92211,6 @@ static void init_rootlet(s7_scheme *sc)
                                                               "(integer->char i) converts the non-negative integer i to a character",
                                                               s7_make_signature(sc, 2, sc->is_char_symbol, sc->is_integer_symbol));
 
-  sc->is_char_upper_case_symbol =    s7_define_typed_function(sc, "char-upper-case?", g_is_char_upper_case, 1, 0, false,
-                                                              "(char-upper-case? c) returns #t if the character c is in upper case", sc->pl_bc);
-  sc->is_char_lower_case_symbol =    s7_define_typed_function(sc, "char-lower-case?", g_is_char_lower_case, 1, 0, false,
-                                                              "(char-lower-case? c) returns #t if the character c is in lower case", sc->pl_bc);
-  sc->is_char_alphabetic_symbol =    s7_define_typed_function(sc, "char-alphabetic?", g_is_char_alphabetic, 1, 0, false,
-                                                              "(char-alphabetic? c) returns #t if the character c is alphabetic", sc->pl_bc);
-  sc->is_char_numeric_symbol =       s7_define_typed_function(sc, "char-numeric?", g_is_char_numeric, 1, 0, false,
-                                                              "(char-numeric? c) returns #t if the character c is a digit", sc->pl_bc);
-  sc->is_char_whitespace_symbol =    s7_define_typed_function(sc, "char-whitespace?", g_is_char_whitespace, 1, 0, false,
-                                                              "(char-whitespace? c) returns #t if the character c is non-printing character", sc->pl_bc);
 
   sc->char_eq_symbol =               s7_define_typed_function(sc, "char=?", g_chars_are_equal, 2, 0, true,
                                                               "(char=? char ...) returns #t if all the character arguments are equal", sc->pcl_bc);
@@ -97611,21 +92245,6 @@ static void init_rootlet(s7_scheme *sc)
   sc->string_geq_symbol =            defun("string>=?",	        strings_are_geq,	2, 0, true);
 
 #if !WITH_PURE_S7
-  sc->char_ci_eq_symbol =            s7_define_typed_function(sc, "char-ci=?", g_chars_are_ci_equal, 2, 0, true,
-                                                              "(char-ci=? char ...) returns #t if all the character arguments are equal, ignoring case", sc->pcl_bc);
-  sc->char_ci_lt_symbol =            s7_define_typed_function(sc, "char-ci<?", g_chars_are_ci_less, 2, 0, true,
-                                                              "(char-ci<? char ...) returns #t if all the character arguments are increasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_gt_symbol =            s7_define_typed_function(sc, "char-ci>?", g_chars_are_ci_greater, 2, 0, true,
-                                                              "(char-ci>? char ...) returns #t if all the character arguments are decreasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_leq_symbol =           s7_define_typed_function(sc, "char-ci<=?", g_chars_are_ci_leq, 2, 0, true,
-                                                              "(char-ci<=? char ...) returns #t if all the character arguments are equal or increasing, ignoring case", sc->pcl_bc);
-  sc->char_ci_geq_symbol =           s7_define_typed_function(sc, "char-ci>=?", g_chars_are_ci_geq, 2, 0, true,
-                                                              "(char-ci>=? char ...) returns #t if all the character arguments are equal or decreasing, ignoring case", sc->pcl_bc);
-  sc->string_ci_eq_symbol =          defun("string-ci=?",	strings_are_ci_equal,	2, 0, true);
-  sc->string_ci_lt_symbol =          defun("string-ci<?",	strings_are_ci_less,	2, 0, true);
-  sc->string_ci_gt_symbol =          defun("string-ci>?",	strings_are_ci_greater, 2, 0, true);
-  sc->string_ci_leq_symbol =         defun("string-ci<=?",	strings_are_ci_leq,	2, 0, true);
-  sc->string_ci_geq_symbol =         defun("string-ci>=?",	strings_are_ci_geq,	2, 0, true);
   sc->string_fill_symbol =           defun("string-fill!",	string_fill,		2, 2, false);
   sc->list_to_string_symbol =        defun("list->string",	list_to_string,		1, 0, false);
   sc->string_length_symbol =         s7_define_typed_function(sc, "string-length", g_string_length, 1, 0, false, "(string-length str) returns the length of str.", s7_make_signature(sc, 2, sc->is_integer_symbol, sc->is_string_symbol));
@@ -97633,12 +92252,6 @@ static void init_rootlet(s7_scheme *sc)
 #endif
   sc->string_copy_symbol =           defun("string-copy",	string_copy,		1, 3, false);
 
-  sc->string_downcase_symbol =       s7_define_typed_function(sc, "string-downcase", g_string_downcase, 1, 0, false,
-                                                                   "(string-downcase str) returns the lower case version of str.",
-                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
-  sc->string_upcase_symbol =         s7_define_typed_function(sc, "string-upcase", g_string_upcase, 1, 0, false,
-                                                                   "(string-upcase str) returns the upper case version of str.",
-                                                                   s7_make_signature(sc, 2, sc->is_string_symbol, sc->is_string_symbol));
   sc->string_append_symbol =         defun("string-append",	string_append,		0, 0, true);
   sc->substring_symbol =             defun("substring",	        substring,		1, 2, false);
   sc->substring_uncopied_symbol =    defun("substring-uncopied",substring_uncopied,	1, 2, false);
@@ -97752,14 +92365,14 @@ static void init_rootlet(s7_scheme *sc)
   sc->hash_table_symbol =            defun("hash-table",	hash_table,		0, 0, true);
   set_has_even_args(global_value(sc->hash_table_symbol));
   set_is_saver(sc->hash_table_symbol);
-  sc->make_hash_table_symbol =       defun("make-hash-table",	make_hash_table,	0, 3, false);
+  sc->make_hash_table_symbol =       defun("s7-make-hash-table",	make_hash_table,	0, 3, false);
   sc->make_weak_hash_table_symbol =  defun("make-weak-hash-table", make_weak_hash_table,0, 3, false);
   sc->weak_hash_table_symbol =       defun("weak-hash-table",   weak_hash_table,        0, 0, true);
   set_has_even_args(global_value(sc->weak_hash_table_symbol));
   set_is_saver(sc->weak_hash_table_symbol);
   sc->hash_table_ref_symbol =        defun("hash-table-ref",	hash_table_ref,		2, 0, true);
-  sc->hash_table_set_symbol =        defun("hash-table-set!",	hash_table_set,		3, 0, false);
-  sc->hash_table_entries_symbol =    defun("hash-table-entries", hash_table_entries,	1, 0, false);
+  sc->hash_table_set_symbol =        defun("s7-hash-table-set!",	hash_table_set,		3, 0, false);
+  sc->hash_table_size_symbol =    defun("hash-table-size", hash_table_size,	1, 0, false);
   sc->hash_code_symbol =             defun("hash-code",         hash_code,              1, 1, false);
   sc->dummy_equal_hash_table = make_dummy_hash_table(sc);
   sc->hash_table_key_typer_symbol =  defun("hash-table-key-typer", hash_table_key_typer, 1, 0, false);
@@ -98396,38 +93009,11 @@ s7_scheme *s7_init(void)
     s7_pointer rs;
     new_cell(sc, rs, T_RANDOM_STATE);       /* s7_set_default_random_state might set sc->default_random_state, so this shouldn't be permanent */
     sc->default_random_state = rs;
-#if WITH_GMP
-    mpz_set_ui(sc->mpz_1, (uint64_t)my_clock());
-    gmp_randinit_default(random_gmp_state(rs));
-    gmp_randseed(random_gmp_state(rs), sc->mpz_1);
-#else
     random_seed(rs) = (uint64_t)my_clock(); /* used to be time(NULL), but that means separate threads can get the same random number sequence */
     random_carry(rs) = 1675393560;
-#endif
   }
 
-  sc->bignum_precision = DEFAULT_BIGNUM_PRECISION;
-#if WITH_GMP
-  sc->bigints = NULL;
-  sc->bigrats = NULL;
-  sc->bigflts = NULL;
-  sc->bigcmps = NULL;
-
-  mpfr_set_default_prec((mp_prec_t)DEFAULT_BIGNUM_PRECISION);
-  mpc_set_default_precision((mp_prec_t)DEFAULT_BIGNUM_PRECISION);
-  mpz_inits(sc->mpz_1, sc->mpz_2, sc->mpz_3, sc->mpz_4, NULL);
-  mpq_inits(sc->mpq_1, sc->mpq_2, sc->mpq_3, NULL);
-  mpfr_inits2(DEFAULT_BIGNUM_PRECISION, sc->mpfr_1, sc->mpfr_2, sc->mpfr_3, NULL);
-  mpc_init(sc->mpc_1);
-  mpc_init(sc->mpc_2);
-
-  sc->pi_symbol = s7_define_constant(sc, "pi", big_pi(sc)); /* not actually a constant because it changes with bignum-precision */
-  s7_provide(sc, "gmp");
-  set_initial_value(sc->pi_symbol, global_value(sc->pi_symbol));
-  copy_initial_value(sc, sc->pi_symbol); /* real_pi (below) is not in the heap so pi's initial_value is real_pi if not gmp (s7_make_slot 9571) */
-#else
   sc->pi_symbol = s7_define_constant(sc, "pi", real_pi);
-#endif
 
   for (int32_t i = 0; i < 10; i++) sc->singletons[(uint8_t)'0' + i] = small_int(i);
   sc->singletons[(uint8_t)'+'] = sc->add_symbol;
@@ -98497,6 +93083,11 @@ s7_scheme *s7_init(void)
   sc->rootlet_redefinition_hook = s7_eval_c_string(sc, "(make-hook 'name 'value)");
   s7_define_constant_with_documentation(sc, "*rootlet-redefinition-hook*", sc->rootlet_redefinition_hook,
 					"*rootlet-redefinition-hook* functions are called when a top-level variable's value is changed, (hook 'name 'value).");
+
+  /* -------- *exit-hook* -------- */
+  sc->exit_hook = s7_eval_c_string(sc, "(make-hook 'code)");
+  s7_define_constant_with_documentation(sc, "*exit-hook*", sc->exit_hook,
+					"*exit-hook* functions are called when exit is invoked, passed the exit code as (hook 'code).");
 
   sc->temp_error_hook = s7_eval_c_string(sc, "(make-hook 'type 'data)");
   /* internal; this is holding error-hook functions during an evaluation where error-hook is temporarily nil -- do we actually need a hook for this? */
@@ -98608,44 +93199,6 @@ void s7_free(s7_scheme *sc)
       free(block_data(hash_table_block_unchecked(gp->list[i])));
   gc_list_free(gp);
 
-#if WITH_GMP
-  /* free lists */
-  {bigint *p, *np; for (p = sc->bigints; p; p = np) {mpz_clear(p->n); np = p->nxt; free(p);}}
-  {bigrat *p, *np; for (p = sc->bigrats; p; p = np) {mpq_clear(p->q); np = p->nxt; free(p);}}
-  {bigflt *p, *np; for (p = sc->bigflts; p; p = np) {mpfr_clear(p->x); np = p->nxt; free(p);}}
-  {bigcmp *p, *np; for (p = sc->bigcmps; p; p = np) {mpc_clear(p->z); np = p->nxt; free(p);}}
-
-  gp = sc->big_integers;
-  for (s7_int i = 0; i < gp->loc; i++) {bigint *p; p = big_integer_bgi(gp->list[i]); mpz_clear(p->n); free(p);}
-  gc_list_free(gp);
-
-  gp = sc->big_ratios;
-  for (s7_int i = 0; i < gp->loc; i++) {bigrat *p; p = big_ratio_bgr(gp->list[i]); mpq_clear(p->q); free(p);}
-  gc_list_free(gp);
-
-  gp = sc->big_reals;
-  for (s7_int i = 0; i < gp->loc; i++) {bigflt *p; p = big_real_bgf(gp->list[i]); mpfr_clear(p->x); free(p);}
-  gc_list_free(gp);
-
-  gp = sc->big_complexes;
-  for (s7_int i = 0; i < gp->loc; i++) {bigcmp *p; p = big_complex_bgc(gp->list[i]); mpc_clear(p->z); free(p);}
-  gc_list_free(gp);
-
-  gp = sc->big_random_states;
-  for (s7_int i = 0; i < gp->loc; i++) gmp_randclear(random_gmp_state(gp->list[i]));
-  gc_list_free(gp);
-
-  gmp_randclear(random_gmp_state(sc->default_random_state));
-
-  /* temps */
-  if (sc->ratloc) free_rat_locals(sc);
-  mpz_clears(sc->mpz_1, sc->mpz_2, sc->mpz_3, sc->mpz_4, NULL);
-  mpq_clears(sc->mpq_1, sc->mpq_2, sc->mpq_3, NULL);
-  mpfr_clears(sc->mpfr_1, sc->mpfr_2, sc->mpfr_3, NULL);
-  mpc_clear(sc->mpc_1);
-  mpc_clear(sc->mpc_2);
-  /* I claim the leftovers (864 bytes, all from mpfr_cosh) are gmp's fault */
-#endif
 
   free(undefined_name(sc->undefined));
   gp = sc->undefineds;

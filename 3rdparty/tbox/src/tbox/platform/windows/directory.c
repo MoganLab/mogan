@@ -39,11 +39,10 @@ static tb_long_t tb_directory_walk_remove(tb_char_t const* path, tb_file_info_t 
 
     // remove file
     if (info->type == TB_FILE_TYPE_FILE) tb_file_remove(path);
-    // remove directory
     else if (info->type == TB_FILE_TYPE_DIRECTORY)
     {
         tb_wchar_t temp[TB_PATH_MAXN];
-        if (tb_atow(temp, path, TB_PATH_MAXN) != -1)
+        if (tb_path_absolute_w(path, temp, TB_PATH_MAXN))
             RemoveDirectoryW(temp);
     }
     return TB_DIRECTORY_WALK_CODE_CONTINUE;
@@ -62,6 +61,9 @@ static tb_long_t tb_directory_walk_copy(tb_char_t const* path, tb_file_info_t co
     tb_size_t size = tuple[1].ul;
     tb_char_t const* name = path + size;
 
+    // the copy flags
+    tb_size_t flags = tuple[2].ul;
+
     // the dest file path
     tb_char_t dpath[8192] = {0};
     tb_snprintf(dpath, 8192, "%s\\%s", dest, name[0] == '\\'? name + 1 : name);
@@ -77,18 +79,33 @@ static tb_long_t tb_directory_walk_copy(tb_char_t const* path, tb_file_info_t co
     }
 
     // copy
+    tb_bool_t ok = tb_true;
+    tb_bool_t skip_recursion = tb_false;
     switch (info->type)
     {
     case TB_FILE_TYPE_FILE:
-        if (!tb_file_copy(path, dpath, TB_FILE_COPY_NONE)) tuple[2].b = tb_false;
+        ok = tb_file_copy(path, dpath, flags);
         break;
     case TB_FILE_TYPE_DIRECTORY:
-        if (!tb_directory_create(dpath)) tuple[2].b = tb_false;
+        {
+            // reserve symlink?
+            if ((flags & TB_FILE_COPY_LINK) && (info->flags & TB_FILE_FLAG_LINK))
+            {
+                // just copy link and skip recursion
+                ok = tb_file_copy(path, dpath, TB_FILE_COPY_LINK);
+                skip_recursion = tb_true;
+            }
+            else ok = tb_directory_create(dpath);
+        }
         break;
     default:
         break;
     }
-    return TB_DIRECTORY_WALK_CODE_CONTINUE;
+    tuple[3].b = ok;
+    tb_size_t retcode = TB_DIRECTORY_WALK_CODE_CONTINUE;
+    if (skip_recursion)
+        retcode |= TB_DIRECTORY_WALK_CODE_SKIP_RECURSION;
+    return retcode;
 }
 static tb_long_t tb_directory_walk_impl(tb_wchar_t const* path, tb_long_t recursion, tb_bool_t prefix, tb_directory_walk_func_t func, tb_cpointer_t priv)
 {
@@ -99,29 +116,43 @@ static tb_long_t tb_directory_walk_impl(tb_wchar_t const* path, tb_long_t recurs
     tb_long_t           last = tb_wcslen(path) - 1;
     tb_assert_and_check_return_val(last >= 0, TB_DIRECTORY_WALK_CODE_END);
 
-    // add \*.*
     tb_wchar_t          temp_w[4096] = {0};
     tb_char_t           temp_a[4096] = {0};
-    tb_swprintf(temp_w, 4095, L"%s%s*.*", path, path[last] == L'\\'? L"" : L"\\");
+    tb_long_t           temp_len = tb_swprintf(temp_w, 4095, L"%s%s*.*", path, path[last] == L'\\'? L"" : L"\\");
 
-    // done
+    // check length
+    /* we need deal with files with a name longer than 259 characters
+     * @see https://stackoverflow.com/questions/5188527/how-to-deal-with-files-with-a-name-longer-than-259-characters
+     */
+    if (temp_len >= MAX_PATH && tb_wcsnicmp(temp_w, L"\\\\?\\", 4) != 0)
+    {
+        // get absolute path
+        tb_wchar_t full[TB_PATH_MAXN];
+        DWORD len = GetFullPathNameW(path, TB_PATH_MAXN, full, tb_null);
+        if (len > 0 && len < TB_PATH_MAXN)
+        {
+             tb_size_t size = tb_wcslen(full);
+             if (size + 8 < TB_PATH_MAXN)
+             {
+                 tb_swprintf(temp_w, 4095, L"\\\\?\\%s%s*.*", full, full[size - 1] == L'\\'? L"" : L"\\");
+             }
+        }
+    }
+
     tb_long_t           ok = TB_DIRECTORY_WALK_CODE_CONTINUE;
     WIN32_FIND_DATAW    find = {0};
     HANDLE              directory = INVALID_HANDLE_VALUE;
     if (INVALID_HANDLE_VALUE != (directory = FindFirstFileW(temp_w, &find)))
     {
-        // walk
         do
         {
             // check
             if (tb_wcscmp(find.cFileName, L".") && tb_wcscmp(find.cFileName, L".."))
             {
-                // the temp path
                 tb_long_t n = tb_swprintf(temp_w, 4095, L"%s%s%s", path, path[last] == L'\\'? L"" : L"\\", find.cFileName);
                 if (n >= 0 && n < 4096) temp_w[n] = L'\0';
 
-                // wtoa temp
-                n = tb_wtoa(temp_a, temp_w, 4095);
+                n = tb_wtoa_n(temp_w, (tb_size_t)n, temp_a, 4095);
                 tb_assert_and_check_break(n != -1);
 
                 // the file info
@@ -159,11 +190,9 @@ tb_bool_t tb_directory_create(tb_char_t const* path)
     // check
     tb_assert_and_check_return_val(path, tb_false);
 
-    // the absolute path
     tb_wchar_t full[TB_PATH_MAXN];
     if (!tb_path_absolute_w(path, full, TB_PATH_MAXN)) return tb_false;
 
-    // make it
     tb_bool_t ok = CreateDirectoryW(full, tb_null)? tb_true : tb_false;
     if (!ok)
     {
@@ -186,11 +215,9 @@ tb_bool_t tb_directory_create(tb_char_t const* path)
             else p++;
         }
 
-        // make it again
         ok = CreateDirectoryW(full, tb_null)? tb_true : tb_false;
     }
 
-    // ok?
     return ok;
 }
 tb_bool_t tb_directory_remove(tb_char_t const* path)
@@ -223,42 +250,41 @@ tb_size_t tb_directory_home(tb_char_t* path, tb_size_t maxn)
          *
          * CSIDL_APPDATA 0x1a
          * CSIDL_LOCAL_APPDATA 0x1c
+         * CSIDL_PROFILE 0x28
          */
-        if (S_OK != tb_shell32()->SHGetSpecialFolderLocation(tb_null, 0x1c /* CSIDL_LOCAL_APPDATA */, &pidl)) break;
+        tb_bool_t profile = tb_false;
+        if (S_OK != tb_shell32()->SHGetSpecialFolderLocation(tb_null, 0x1c /* CSIDL_LOCAL_APPDATA */, &pidl))
+        {
+            // https://github.com/xmake-io/xmake/issues/6208#issuecomment-2726307844
+            if (S_OK != tb_shell32()->SHGetSpecialFolderLocation(tb_null, 0x28 /* CSIDL_PROFILE */, &pidl))
+                break;
+            profile = tb_true;
+        }
         tb_check_break(pidl);
 
-        // get the home directory
         if (!tb_shell32()->SHGetPathFromIDListW(pidl, home)) break;
+        if (profile)
+            tb_wcsncat(home, L"\\AppData\\Local", TB_PATH_MAXN);
 
-        // ok
         ok = tb_true;
 
     } while (0);
 
-    // exit pidl
     if (pidl) GlobalFree(pidl);
     pidl = tb_null;
 
-    // wtoa
     tb_size_t size = ok? tb_wtoa(path, home, maxn) : 0;
-
-    // ok?
     return size != -1? size : 0;
 }
 tb_size_t tb_directory_current(tb_char_t* path, tb_size_t maxn)
 {
-    // check
     tb_assert_and_check_return_val(path && maxn > 4, 0);
 
-    // the current directory
     tb_wchar_t current[TB_PATH_MAXN] = {0};
-    GetCurrentDirectoryW(TB_PATH_MAXN, current);
+    DWORD len = GetCurrentDirectoryW(TB_PATH_MAXN, current);
+    if (!len || len >= TB_PATH_MAXN) return 0;
 
-    // wtoa
-    tb_size_t size = tb_wtoa(path, current, maxn);
-
-    // ok?
-    return size != -1? size : 0;
+    return tb_wtoa_n(current, len, path, maxn);
 }
 tb_bool_t tb_directory_current_set(tb_char_t const* path)
 {
@@ -266,30 +292,36 @@ tb_bool_t tb_directory_current_set(tb_char_t const* path)
     tb_wchar_t full[TB_PATH_MAXN];
     if (!tb_path_absolute_w(path, full, TB_PATH_MAXN)) return tb_false;
 
+    // ensure root directory ends with backslash for SetCurrentDirectoryW
+    // e.g., C: -> C:\ (SetCurrentDirectoryW requires trailing backslash for root)
+    // Note: Path normalization may remove trailing backslash, but SetCurrentDirectoryW
+    //       requires it for root directories to work correctly
+    // Check if path is root directory format (X:) without calling tb_wcslen
+    if (((full[0] >= L'A' && full[0] <= L'Z') || (full[0] >= L'a' && full[0] <= L'z')) 
+        && full[1] == L':' && full[2] == L'\0')
+    {
+        full[2] = L'\\';
+        full[3] = L'\0';
+    }
+
     // change to the directory
     return SetCurrentDirectoryW(full);
 }
 tb_size_t tb_directory_temporary(tb_char_t* path, tb_size_t maxn)
 {
-    // check
     tb_assert_and_check_return_val(path && maxn > 4, 0);
 
-    // the temporary directory
     tb_wchar_t temporary[TB_PATH_MAXN] = {0};
-    GetTempPathW(TB_PATH_MAXN, temporary);
+    DWORD len = GetTempPathW(TB_PATH_MAXN, temporary);
+    if (!len || len >= TB_PATH_MAXN) return 0;
 
-    // wtoa
-    tb_size_t size = tb_wtoa(path, temporary, maxn);
-
-    // ok?
-    return size != -1? size : 0;
+    return tb_wtoa_n(temporary, len, path, maxn);
 }
 tb_void_t tb_directory_walk(tb_char_t const* path, tb_long_t recursion, tb_bool_t prefix, tb_directory_walk_func_t func, tb_cpointer_t priv)
 {
     // check
     tb_assert_and_check_return(path && func);
 
-    // walk it directly if rootdir is relative path
     tb_file_info_t info = {0};
     if (!tb_path_is_absolute(path) && tb_file_info(path, &info) && info.type == TB_FILE_TYPE_DIRECTORY)
     {
@@ -318,19 +350,16 @@ tb_bool_t tb_directory_copy(tb_char_t const* path, tb_char_t const* dest, tb_siz
     tb_assert_and_check_return_val(dest, tb_false);
 
     // walk copy
-    tb_value_t tuple[3];
+    tb_value_t tuple[4];
     tuple[0].cstr = dest;
     tuple[1].ul = tb_strlen(path);
-    tuple[2].b = tb_true;
+    tuple[2].ul = flags;
+    tuple[3].b = tb_true;
     tb_directory_walk(path, -1, tb_true, tb_directory_walk_copy, tuple);
 
-    // ok?
-    tb_bool_t ok = tuple[2].b;
-
     // copy empty directory?
+    tb_bool_t ok = tuple[3].b;
     if (ok && !tb_file_info(dest, tb_null))
         return tb_directory_create(dest);
-
-    // ok?
     return ok;
 }

@@ -3,25 +3,16 @@
   (import (liii base) (scheme time))
   (begin
 
-    (define* (timeit stmt
-               (setup '())
-               (number 1000000)
-             ) ;timeit
+    (define* (timeit stmt (setup '()) (number 1000000))
       (if (not (procedure? stmt))
-        (error 'type-error
-          "(timeit stmt setup number): stmt must be a procedure"
-        ) ;error
+        (error 'type-error "(timeit stmt setup number): stmt must be a procedure")
       ) ;if
-      (if (not (or (procedure? setup) (null? setup))
-          ) ;not
+      (if (not (or (procedure? setup) (null? setup)))
         (error 'type-error
           "(timeit stmt setup number): setup must be a procedure or '()"
         ) ;error
       ) ;if
-      (if (not (and (integer? number)
-                 (positive? number)
-               ) ;and
-          ) ;not
+      (if (not (and (integer? number) (positive? number)))
         (error 'type-error
           "(timeit stmt setup number): number must be a positive integer"
         ) ;error

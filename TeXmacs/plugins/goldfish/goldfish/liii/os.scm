@@ -22,11 +22,7 @@
     getlogin
     getpid
   ) ;export
-  (import (scheme process-context)
-    (liii base)
-    (liii error)
-    (liii string)
-  ) ;import
+  (import (scheme process-context) (liii base) (liii error) (liii string))
   (begin
 
     (define (os-arch)
@@ -65,18 +61,10 @@
 
     (define (%check-dir-andthen path f)
       (cond ((not (file-exists? path))
-             (file-not-found-error (string-append "No such file or directory: '"
-                                     path
-                                     "'"
-                                   ) ;string-append
-             ) ;file-not-found-error
+             (file-not-found-error (string-append "No such file or directory: '" path "'"))
             ) ;
             ((not (g_isdir path))
-             (not-a-directory-error (string-append "Not a directory: '"
-                                      path
-                                      "'"
-                                    ) ;string-append
-             ) ;not-a-directory-error
+             (not-a-directory-error (string-append "Not a directory: '" path "'"))
             ) ;
             (else (f path))
       ) ;cond
@@ -95,9 +83,7 @@
             ((eq? mode 'X_OK) (g_access path 128))
             ((eq? mode 'W_OK) (g_access path 2))
             ((eq? mode 'R_OK) (g_access path 1))
-            (else (value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"
-                  ) ;value-error
-            ) ;else
+            (else (value-error "Allowed mode 'F_OK, 'X_OK,'W_OK, 'R_OK"))
       ) ;cond
     ) ;define
 
@@ -110,8 +96,7 @@
     (define (putenv key value)
       (if (and (string? key) (string? value))
         (g_setenv key value)
-        (type-error "(putenv key value): key and value must be strings"
-        ) ;type-error
+        (type-error "(putenv key value): key and value must be strings")
       ) ;if
     ) ;define
 
@@ -121,19 +106,13 @@
 
     (define (os-temp-dir)
       (let ((temp-dir (g_os-temp-dir)))
-        (string-remove-suffix temp-dir
-          (string (os-sep))
-        ) ;string-remove-suffix
+        (string-remove-suffix temp-dir (string (os-sep)))
       ) ;let
     ) ;define
 
     (define (mkdir path)
       (if (file-exists? path)
-        (file-exists-error (string-append "File exists: '"
-                             path
-                             "'"
-                           ) ;string-append
-        ) ;file-exists-error
+        (file-exists-error (string-append "File exists: '" path "'"))
         (g_mkdir path)
       ) ;if
     ) ;define
@@ -143,39 +122,22 @@
     ) ;define
 
     (define (remove path)
-      (cond ((not (string? path))
-             (type-error "(remove path): path must be string"
-             ) ;type-error
-            ) ;
+      (cond ((not (string? path)) (type-error "(remove path): path must be string"))
             ((not (file-exists? path))
-             (file-not-found-error (string-append "File not found: " path)
-             ) ;file-not-found-error
+             (file-not-found-error (string-append "File not found: " path))
             ) ;
-            ((g_isdir path)
-             (value-error "Cannot remove a directory (use 'rmdir' instead)"
-             ) ;value-error
-            ) ;
+            ((g_isdir path) (value-error "Cannot remove a directory (use 'rmdir' instead)"))
             (else (g_remove-file path))
       ) ;cond
     ) ;define
 
     (define (rename src dst)
-      (cond ((not (string? src))
-             (type-error "(rename src dst): src must be string"
-             ) ;type-error
-            ) ;
-            ((not (string? dst))
-             (type-error "(rename src dst): dst must be string"
-             ) ;type-error
-            ) ;
+      (cond ((not (string? src)) (type-error "(rename src dst): src must be string"))
+            ((not (string? dst)) (type-error "(rename src dst): dst must be string"))
             ((not (file-exists? src))
-             (file-not-found-error (string-append "File not found: " src)
-             ) ;file-not-found-error
+             (file-not-found-error (string-append "File not found: " src))
             ) ;
-            ((file-exists? dst)
-             (file-exists-error (string-append "File exists: " dst)
-             ) ;file-exists-error
-            ) ;
+            ((file-exists? dst) (file-exists-error (string-append "File exists: " dst)))
             (else (g_rename src dst))
       ) ;cond
     ) ;define
@@ -183,11 +145,7 @@
     (define (chdir path)
       (if (file-exists? path)
         (g_chdir path)
-        (file-not-found-error (string-append "No such file or directory: '"
-                                path
-                                "'"
-                              ) ;string-append
-        ) ;file-not-found-error
+        (file-not-found-error (string-append "No such file or directory: '" path "'"))
       ) ;if
     ) ;define
 
@@ -200,10 +158,7 @@
     ) ;define
 
     (define (getlogin)
-      (if (os-windows?)
-        (getenv "USERNAME")
-        (g_getlogin)
-      ) ;if
+      (if (os-windows?) (getenv "USERNAME") (g_getlogin))
     ) ;define
 
     (define (getpid)

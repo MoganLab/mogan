@@ -82,7 +82,7 @@ tb_uint32_t tb_isqrti64(tb_uint64_t x)
         // analyze isqrti64
         tb_hong_t                   t1 = tb_uclock();
         __tb_volatile__ tb_size_t   n1 = 100;
-        __tb_volatile__ tb_uint32_t v1; tb_used(&v1);
+        __tb_volatile__ tb_uint32_t v1;
         while (n1--)
         {
             v1 = tb_isqrti64_impl((1 << 4) + 3);
@@ -96,11 +96,12 @@ tb_uint32_t tb_isqrti64(tb_uint64_t x)
             v1 = tb_isqrti64_impl((1ULL << 60) + 3);
         }
         t1 = tb_uclock() - t1;
+        tb_used(&v1);
 
         // analyze sqrt
         tb_hong_t                   t2 = tb_uclock();
         __tb_volatile__ tb_size_t   n2 = 100;
-        __tb_volatile__ tb_uint32_t v2; tb_used(&v2);
+        __tb_volatile__ tb_uint32_t v2;
         while (n2--)
         {
             v2 = tb_isqrti64_impl_using_sqrt((1 << 4) + 3);
@@ -114,6 +115,7 @@ tb_uint32_t tb_isqrti64(tb_uint64_t x)
             v2 = tb_isqrti64_impl_using_sqrt((1ULL << 60) + 3);
         }
         t2 = tb_uclock() - t2;
+        tb_used(&v2);
 
         // using sqrt?
         s_using_sqrt = t2 < t1? 1 : 0;

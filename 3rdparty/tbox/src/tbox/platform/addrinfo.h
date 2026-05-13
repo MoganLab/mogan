@@ -43,13 +43,13 @@ __tb_extern_c_enter__
 
     // get the default address (ipv4)
     tb_ipaddr_t addr = {0};
-    if (tb_addrinfo_addr("www.tboox.org", &addr))
+    if (tb_addrinfo_addr("www.tboox.top", &addr))
         tb_trace_i("%{ipaddr}", &addr);
 
     // get the ipv6 address by the hint info
     tb_ipaddr_t addr = {0};
     tb_ipaddr_family_set(&addr, TB_IPADDR_FAMILY_IPV6);
-    if (tb_addrinfo_addr("www.tboox.org", &addr))
+    if (tb_addrinfo_addr("www.tboox.top", &addr))
         tb_trace_i("%{ipaddr}", &addr);
 
  * @endcode

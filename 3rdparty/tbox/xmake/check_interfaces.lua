@@ -112,8 +112,10 @@ function _check_interfaces(target)
         "strcmp",
         "strcasecmp",
         "strncmp",
-        "strncasecmp")
-    _check_module_cfuncs(target, "libc", {"wchar.h", "stdlib.h"},
+        "strncasecmp",
+        "strupr",
+        "strlwr")
+    _check_module_cfuncs(target, "libc", {"wchar.h", "wctype.h", "stdlib.h"},
         "wcscat",
         "wcsncat",
         "wcscpy",
@@ -128,7 +130,11 @@ function _check_interfaces(target)
         "wcsncmp",
         "wcsncasecmp",
         "wcstombs",
-        "mbstowcs")
+        "mbstowcs",
+        "towlower",
+        "towupper",
+        "wcsupr",
+        "wcslwr")
     _check_module_cfuncs(target, "libc", "time.h",                           "gmtime", "mktime", "localtime")
     _check_module_cfuncs(target, "libc", "sys/time.h",                       "gettimeofday")
     _check_module_cfuncs(target, "libc", {"signal.h", "setjmp.h"},           "signal", "setjmp", "sigsetjmp{sigjmp_buf buf; sigsetjmp(buf, 0);}", "kill")
@@ -183,7 +189,7 @@ function _check_interfaces(target)
         _check_module_cfuncs(target, "posix", "dlfcn.h",                          "dlopen")
         _check_module_cfuncs(target, "posix", {"sys/stat.h", "fcntl.h"},          "open", "stat64", "lstat64")
         _check_module_cfuncs(target, "posix", "unistd.h",                         "gethostname")
-        _check_module_cfuncs(target, "posix", "ifaddrs.h",                        "getifaddrs")
+        _check_module_cfuncs(target, "posix", {"ifaddrs.h", "net/if_dl.h"},       "getifaddrs")
         _check_module_cfuncs(target, "posix", "unistd.h",                         "getpagesize", "sysconf")
         _check_module_cfuncs(target, "posix", "sched.h",                          "sched_yield", "sched_setaffinity") -- need _GNU_SOURCE
         _check_module_cfuncs(target, "posix", "regex.h",                          "regcomp", "regexec")
@@ -203,7 +209,8 @@ function _check_interfaces(target)
         _check_module_cfuncs(target, "posix", "sys/stat.h",                       "mkfifo")
         _check_module_cfuncs(target, "posix", "sys/mman.h",                       "mmap")
         _check_module_cfuncs(target, "posix", "sys/stat.h",                       "futimens", "utimensat")
-    elseif not target:is_plat("windows", "wasm") then
+    end
+    if not target:is_plat("windows", "wasm") then
         _check_module_cfuncs(target, "posix", "spawn.h",                          "posix_spawnp", "posix_spawn_file_actions_addchdir_np")
         _check_module_cfuncs(target, "posix", "semaphore.h",                      "sem_init")
     end
@@ -269,6 +276,7 @@ function _check_interfaces(target)
     -- add the interfaces for linux
     if target:is_plat("linux", "android") then
         _check_module_cfuncs(target, "linux", {"sys/inotify.h"}, "inotify_init")
+        _check_keyword_csnippet(target, "linux_ifaddrs", "TB_CONFIG_LINUX_HAVE_IFADDRS", "#include <linux/if.h>\n#include <linux/netlink.h>")
     end
 
     -- add the interfaces for valgrind

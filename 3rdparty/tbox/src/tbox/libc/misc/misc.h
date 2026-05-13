@@ -27,6 +27,7 @@
  */
 #include "prefix.h"
 #include "ctype.h"
+#include "wctype.h"
 #include "stdarg.h"
 #include "limits.h"
 #include "./time/time.h"

@@ -18,6 +18,7 @@ target ("goldfish") do
         "$(projectdir)/3rdparty/s7/s7_scheme_inexact.c",
         "$(projectdir)/3rdparty/s7/s7_scheme_complex.c",
         "$(projectdir)/3rdparty/s7/s7_scheme_char.c",
+        "$(projectdir)/3rdparty/s7/s7_scheme_write.c",
         "$(projectdir)/3rdparty/s7/s7_liii_bitwise.c",
         "$(projectdir)/3rdparty/s7/s7_liii_string.c",
         "$(projectdir)/3rdparty/s7/s7_liii_hash_table.c",

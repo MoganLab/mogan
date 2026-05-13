@@ -2,6 +2,7 @@
   (export path
     path?
     path-copy
+    path-copy-into
     path-dir?
     path-file?
     path-exists?
@@ -44,6 +45,8 @@
     (liii string)
     (liii vector)
     (scheme base)
+    (scheme char)
+    (liii ascii)
   ) ;import
   (begin
 
@@ -51,43 +54,21 @@
     (define-record-type <path>
       (make-path-record parts type drive)
       path?
-      (parts path-record-parts
-        path-record-set-parts!
-      ) ;parts
-      (type path-record-type
-        path-record-set-type!
-      ) ;type
-      (drive path-record-drive
-        path-record-set-drive!
-      ) ;drive
+      (parts path-record-parts path-record-set-parts!)
+      (type path-record-type path-record-set-type!)
+      (drive path-record-drive path-record-set-drive!)
     ) ;define-record-type
 
     (define (string-split-vec str sep)
       (let loop
-        ((chars (string->list str))
-         (current '())
-         (result '())
-        ) ;
+        ((chars (string->list str)) (current '()) (result '()))
         (cond ((null? chars)
-               (list->vector (reverse (cons (list->string (reverse current))
-                                        result
-                                      ) ;cons
-                             ) ;reverse
-               ) ;list->vector
+               (list->vector (reverse (cons (list->string (reverse current)) result)))
               ) ;
               ((char=? (car chars) sep)
-               (loop (cdr chars)
-                 '()
-                 (cons (list->string (reverse current))
-                   result
-                 ) ;cons
-               ) ;loop
+               (loop (cdr chars) '() (cons (list->string (reverse current)) result))
               ) ;
-              (else (loop (cdr chars)
-                      (cons (car chars) current)
-                      result
-                    ) ;loop
-              ) ;else
+              (else (loop (cdr chars) (cons (car chars) current) result))
         ) ;cond
       ) ;let
     ) ;define
@@ -102,23 +83,11 @@
             ((string=? s "\\") #("\\"))
             (else (let ((sep (os-sep)))
                     ;; Normalize path: replace / with \ on Windows, then split
-                    (let ((normalized (if (os-windows?)
-                                        (string-replace s "/" "\\")
-                                        s
-                                      ) ;if
-                          ) ;normalized
-                         ) ;
-                      (if (and (> (string-length normalized) 0)
-                            (char=? (string-ref normalized 0) sep)
-                          ) ;and
+                    (let ((normalized (if (os-windows?) (string-replace s "/" "\\") s)))
+                      (if (and (> (string-length normalized) 0) (char=? (string-ref normalized 0) sep))
                         ;; Absolute path: start with empty string part
-                        (let ((parts (string-split-vec normalized sep)
-                              ) ;parts
-                             ) ;
-                          (if (or (vector-empty? parts)
-                                (not (string-null? (vector-ref parts 0))
-                                ) ;not
-                              ) ;or
+                        (let ((parts (string-split-vec normalized sep)))
+                          (if (or (vector-empty? parts) (not (string-null? (vector-ref parts 0))))
                             (vector-append #("") parts)
                             parts
                           ) ;if
@@ -142,24 +111,18 @@
 
     ;; ; Extract drive letter from Windows path string
     (define (extract-drive s)
-      (string (char-upcase (string-ref s 0)))
+      (string (ascii-upcase (string-ref s 0)))
     ) ;define
 
     ;; ; Parse Windows path string into parts
     (define (parse-windows-path s)
       (let ((sep (os-sep)))
         (if (and (> (string-length s) 2)
-              (or (char=? (string-ref s 2) #\\)
-                (char=? (string-ref s 2) #\/)
-              ) ;or
+              (or (char=? (string-ref s 2) #\\) (char=? (string-ref s 2) #\/))
             ) ;and
           ;; Absolute Windows path like "C:\Users\..."
           (let* ((rest (substring s 3 (string-length s)))
-                 (parts (if (string-null? rest)
-                          #()
-                          (string-split-vec rest sep)
-                        ) ;if
-                 ) ;parts
+                 (parts (if (string-null? rest) #() (string-split-vec rest sep)))
                 ) ;
             parts
           ) ;let*
@@ -177,47 +140,44 @@
           (cond ((string? arg)
                  (if (windows-path-with-drive? arg)
                    ;; Windows path with drive letter like "C:\Users"
-                   (let ((parts (parse-windows-path arg))
-                         (drive (extract-drive arg))
-                        ) ;
+                   (let ((parts (parse-windows-path arg)) (drive (extract-drive arg)))
                      (make-path-record parts 'windows drive)
                    ) ;let
                    ;; Regular path - use platform-specific type
-                   (let ((parts (parse-path-string arg))
-                         (type (if (os-windows?) 'windows 'posix)
-                         ) ;type
-                        ) ;
+                   (let ((parts (parse-path-string arg)) (type (if (os-windows?) 'windows 'posix)))
                      (make-path-record parts type "")
                    ) ;let
                  ) ;if
                 ) ;
-                ((path? arg) (path-copy arg))
-                (else (type-error "path: argument must be string or path"
-                      ) ;type-error
-                ) ;else
+                ((path? arg) (copy arg))
+                (else (type-error "path: argument must be string or path"))
           ) ;cond
         ) ;let
       ) ;if
     ) ;define
 
-    ;; ; Copy a path object
-    (define (path-copy p)
-      (if (path? p)
-        (make-path-record (vector-copy (path-record-parts p))
-          (path-record-type p)
-          (path-record-drive p)
-        ) ;make-path-record
-        (type-error "path-copy: argument must be path"
-        ) ;type-error
-      ) ;if
+    (define (path-copy source target)
+      (let ((src (path->string source)) (dst (path->string target)))
+        (if (not (file-exists? src))
+          (file-not-found-error (string-append "No such file or directory: '" src "'"))
+          (g_path-copy src dst)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-copy-into source target-dir)
+      (let ((filename (path-name (path-from-string source))))
+        (path-copy source
+          (path->string (path-join (path-from-string target-dir) (path filename)))
+        ) ;path-copy
+      ) ;let
     ) ;define
 
     ;; ; Get parts as vector
     (define (path-parts p)
       (if (path? p)
         (vector-copy (path-record-parts p))
-        (type-error "path-parts: argument must be path"
-        ) ;type-error
+        (type-error "path-parts: argument must be path")
       ) ;if
     ) ;define
 
@@ -225,8 +185,7 @@
     (define (path-type p)
       (if (path? p)
         (path-record-type p)
-        (type-error "path-type: argument must be path"
-        ) ;type-error
+        (type-error "path-type: argument must be path")
       ) ;if
     ) ;define
 
@@ -234,8 +193,7 @@
     (define (path-drive p)
       (if (path? p)
         (path-record-drive p)
-        (type-error "path-drive: argument must be path"
-        ) ;type-error
+        (type-error "path-drive: argument must be path")
       ) ;if
     ) ;define
 
@@ -258,22 +216,15 @@
                 ) ;
                 ((windows)
                  (let ((s (parts->string parts "\\")))
-                   (if (string-null? drive)
-                     s
-                     (string-append drive ":\\" s)
-                   ) ;if
+                   (if (string-null? drive) s (string-append drive ":\\" s))
                  ) ;let
                 ) ;
-                (else (value-error "path->string: unknown type"
-                      ) ;value-error
-                ) ;else
+                (else (value-error "path->string: unknown type"))
                ) ;case
              ) ;let
             ) ;
             ((string? p) p)
-            (else (type-error "path->string: argument must be path or string"
-                  ) ;type-error
-            ) ;else
+            (else (type-error "path->string: argument must be path or string"))
       ) ;cond
     ) ;define
 
@@ -300,9 +251,7 @@
                      (let ((part (vector-ref parts i)))
                        (if (string-null? result)
                          (loop (+ i 1) (string-append sep part))
-                         (loop (+ i 1)
-                           (string-append result sep part)
-                         ) ;loop
+                         (loop (+ i 1) (string-append result sep part))
                        ) ;if
                      ) ;let
                    ) ;if
@@ -321,9 +270,7 @@
                      (let ((part (vector-ref parts i)))
                        (if (string-null? result)
                          (loop (+ i 1) part)
-                         (loop (+ i 1)
-                           (string-append result sep part)
-                         ) ;loop
+                         (loop (+ i 1) (string-append result sep part))
                        ) ;if
                      ) ;let
                    ) ;if
@@ -338,9 +285,7 @@
                         (let ((part (vector-ref parts i)))
                           (if (string-null? result)
                             (loop (+ i 1) part)
-                            (loop (+ i 1)
-                              (string-append result sep part)
-                            ) ;loop
+                            (loop (+ i 1) (string-append result sep part))
                           ) ;if
                         ) ;let
                       ) ;if
@@ -354,9 +299,7 @@
 
     ;; ; Check if two paths are equal
     (define (path-equals? p1 p2)
-      (let ((s1 (path->string (path p1)))
-            (s2 (path->string (path p2)))
-           ) ;
+      (let ((s1 (path->string (path p1))) (s2 (path->string (path p2))))
         (string=? s1 s2)
       ) ;let
     ) ;define
@@ -379,9 +322,7 @@
             ;; POSIX absolute path starts with empty part (leading /) or is just "/"
             (and (> (vector-length parts) 0)
               (let ((first (vector-ref parts 0)))
-                (or (string-null? first)
-                  (string=? first "/")
-                ) ;or
+                (or (string-null? first) (string=? first "/"))
               ) ;let
             ) ;and
            ) ;
@@ -389,15 +330,8 @@
           ) ;case
         ) ;let
         (let ((s (path->string p)))
-          (cond ((os-windows?)
-                 (and (>= (string-length s) 2)
-                   (char=? (string-ref s 1) #\:)
-                 ) ;and
-                ) ;
-                (else (and (> (string-length s) 0)
-                        (char=? (string-ref s 0) (os-sep))
-                      ) ;and
-                ) ;else
+          (cond ((os-windows?) (and (>= (string-length s) 2) (char=? (string-ref s 1) #\:)))
+                (else (and (> (string-length s) 0) (char=? (string-ref s 0) (os-sep))))
           ) ;cond
         ) ;let
       ) ;if
@@ -418,9 +352,7 @@
             (let loop
               ((i (- (string-length s) 1)))
               (cond ((< i 0) s)
-                    ((char=? (string-ref s i) sep)
-                     (substring s (+ i 1) (string-length s))
-                    ) ;
+                    ((char=? (string-ref s i) sep) (substring s (+ i 1) (string-length s)))
                     (else (loop (- i 1)))
               ) ;cond
             ) ;let
@@ -437,11 +369,7 @@
             (cond ((<= count 1) name)
                   ((string=? name ".") "")
                   ((string=? name "..") "..")
-                  ((and (string=? (car splits) "")
-                     (= count 2)
-                   ) ;and
-                   name
-                  ) ;
+                  ((and (string=? (car splits) "") (= count 2)) name)
                   (else
                     ;; Take all parts except the last one and join with "."
                     (let loop
@@ -451,9 +379,7 @@
                         (let ((part (list-ref splits i)))
                           (if (string-null? result)
                             (loop (+ i 1) part)
-                            (loop (+ i 1)
-                              (string-append result "." part)
-                            ) ;loop
+                            (loop (+ i 1) (string-append result "." part))
                           ) ;if
                         ) ;let
                       ) ;if
@@ -473,15 +399,8 @@
             (cond ((<= count 1) "")
                   ((string=? name ".") "")
                   ((string=? name "..") "")
-                  ((and (string=? (car splits) "")
-                     (= count 2)
-                   ) ;and
-                   ""
-                  ) ;
-                  (else (string-append "."
-                          (list-ref splits (- count 1))
-                        ) ;string-append
-                  ) ;else
+                  ((and (string=? (car splits) "") (= count 2)) "")
+                  (else (string-append "." (list-ref splits (- count 1))))
             ) ;cond
           ) ;let
         ) ;let
@@ -492,21 +411,13 @@
     (define (path-join base . segments)
       (let ((sep (string (os-sep))))
         (let loop
-          ((result (path->string base))
-           (rest segments)
-          ) ;
+          ((result (path->string base)) (rest segments))
           (if (null? rest)
             result
             (let ((part (path->string (car rest))))
-              (if (or (string-null? result)
-                    (string-ends? result sep)
-                  ) ;or
-                (loop (string-append result part)
-                  (cdr rest)
-                ) ;loop
-                (loop (string-append result sep part)
-                  (cdr rest)
-                ) ;loop
+              (if (or (string-null? result) (string-ends? result sep))
+                (loop (string-append result part) (cdr rest))
+                (loop (string-append result sep part) (cdr rest))
               ) ;if
             ) ;let
           ) ;if
@@ -520,9 +431,7 @@
         (let ((sep (os-sep)))
           ;; First, remove trailing separator if present (except for root)
           (let ((s-trimmed (if (and (> (string-length s) 1)
-                                 (char=? (string-ref s (- (string-length s) 1))
-                                   sep
-                                 ) ;char=?
+                                 (char=? (string-ref s (- (string-length s) 1)) sep)
                                ) ;and
                              (substring s 0 (- (string-length s) 1))
                              s
@@ -531,9 +440,7 @@
                ) ;
             (let loop
               ((i (- (string-length s-trimmed) 1)))
-              (cond ((< i 0)
-                     (if (os-windows?) (path "") (path "."))
-                    ) ;
+              (cond ((< i 0) (if (os-windows?) (path "") (path ".")))
                     ((char=? (string-ref s-trimmed i) sep)
                      (if (= i 0)
                        (path-root)
@@ -565,11 +472,7 @@
     (define (path-getsize p)
       (let ((s (path->string p)))
         (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '"
-                                  s
-                                  "'"
-                                ) ;string-append
-          ) ;file-not-found-error
+          (file-not-found-error (string-append "No such file or directory: '" s "'"))
           (g_path-getsize s)
         ) ;if
       ) ;let
@@ -578,11 +481,7 @@
     (define (path-read-text p)
       (let ((s (path->string p)))
         (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '"
-                                  s
-                                  "'"
-                                ) ;string-append
-          ) ;file-not-found-error
+          (file-not-found-error (string-append "No such file or directory: '" s "'"))
           (g_path-read-text s)
         ) ;if
       ) ;let
@@ -591,11 +490,7 @@
     (define (path-read-bytes p)
       (let ((s (path->string p)))
         (if (not (file-exists? s))
-          (file-not-found-error (string-append "No such file or directory: '"
-                                  s
-                                  "'"
-                                ) ;string-append
-          ) ;file-not-found-error
+          (file-not-found-error (string-append "No such file or directory: '" s "'"))
           (g_path-read-bytes s)
         ) ;if
       ) ;let
@@ -603,18 +498,13 @@
 
     (define (path-write-text p content)
       (if (not (string? content))
-        (type-error "path-write-text: content must be string"
-        ) ;type-error
-        (g_path-write-text (path->string p)
-          content
-        ) ;g_path-write-text
+        (type-error "path-write-text: content must be string")
+        (g_path-write-text (path->string p) content)
       ) ;if
     ) ;define
 
     (define (path-append-text p content)
-      (g_path-append-text (path->string p)
-        content
-      ) ;g_path-append-text
+      (g_path-append-text (path->string p) content)
     ) ;define
 
     (define (path-touch p)
@@ -628,12 +518,8 @@
 
     (define (path-of-drive ch)
       (if (char? ch)
-        (make-path-record #()
-          'windows
-          (string (char-upcase ch))
-        ) ;make-path-record
-        (type-error "path-of-drive: argument must be char"
-        ) ;type-error
+        (make-path-record #() 'windows (string (ascii-upcase ch)))
+        (type-error "path-of-drive: argument must be char")
       ) ;if
     ) ;define
 
@@ -641,8 +527,7 @@
       (if (vector? parts)
         (if (and (> (vector-length parts) 0)
               (string? (vector-ref parts 0))
-              (windows-path-with-drive? (vector-ref parts 0)
-              ) ;windows-path-with-drive?
+              (windows-path-with-drive? (vector-ref parts 0))
             ) ;and
           ;; Windows path with drive letter like "C:"
           (let* ((drive-str (vector-ref parts 0))
@@ -654,10 +539,7 @@
                                   (list->vector (reverse result))
                                   (let ((part (vector-ref parts i)))
                                     ;; Skip empty parts and separator parts
-                                    (if (or (string-null? part)
-                                          (string=? part "/")
-                                          (string=? part "\\")
-                                        ) ;or
+                                    (if (or (string-null? part) (string=? part "/") (string=? part "\\"))
                                       (loop (+ i 1) result)
                                       (loop (+ i 1) (cons part result))
                                     ) ;if
@@ -666,19 +548,12 @@
                               ) ;let
                  ) ;clean-parts
                 ) ;
-            (make-path-record clean-parts
-              'windows
-              drive
-            ) ;make-path-record
+            (make-path-record clean-parts 'windows drive)
           ) ;let*
           ;; Regular POSIX-style path
-          (make-path-record (vector-copy parts)
-            'posix
-            ""
-          ) ;make-path-record
+          (make-path-record (vector-copy parts) 'posix "")
         ) ;if
-        (type-error "path-from-parts: argument must be vector"
-        ) ;type-error
+        (type-error "path-from-parts: argument must be vector")
       ) ;if
     ) ;define
 
@@ -691,18 +566,9 @@
     ) ;define
 
     (define (path-home)
-      (cond ((or (os-linux?) (os-macos?))
-             (path (getenv "HOME"))
-            ) ;
-            ((os-windows?)
-             (path (string-append (getenv "HOMEDRIVE")
-                     (getenv "HOMEPATH")
-                   ) ;string-append
-             ) ;path
-            ) ;
-            (else (value-error "path-home: unknown platform"
-                  ) ;value-error
-            ) ;else
+      (cond ((or (os-linux?) (os-macos?)) (path (getenv "HOME")))
+            ((os-windows?) (path (string-append (getenv "HOMEDRIVE") (getenv "HOMEPATH"))))
+            (else (value-error "path-home: unknown platform"))
       ) ;cond
     ) ;define
 
@@ -719,9 +585,7 @@
     (define (path-list-path p)
       (let ((base (path->string p)))
         (let ((entries (listdir base)))
-          (vector-map (lambda (entry) (path-join base entry))
-            entries
-          ) ;vector-map
+          (vector-map (lambda (entry) (path-join base entry)) entries)
         ) ;let
       ) ;let
     ) ;define
@@ -736,19 +600,14 @@
       (let ((s (path->string p)))
         (cond ((file-exists? s) (remove s))
               (missing-ok #t)
-              (else (error 'file-not-found-error
-                      (string-append "File not found: " s)
-                    ) ;error
-              ) ;else
+              (else (error 'file-not-found-error (string-append "File not found: " s)))
         ) ;cond
       ) ;let
     ) ;define*
 
     ;; ; Rename file or directory
     (define (path-rename src dst)
-      (rename (path->string src)
-        (path->string dst)
-      ) ;rename
+      (rename (path->string src) (path->string dst))
     ) ;define
 
   ) ;begin
