@@ -13,7 +13,8 @@
 
 (texmacs-module (texmacs menus tools-menu)
   (:use (texmacs texmacs tm-tools)
-        (generic chat-adapter)))
+        (generic chat-sidebar-ui)
+        (dynamic sidebar-session)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic menus for formats
