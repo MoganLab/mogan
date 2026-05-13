@@ -439,13 +439,9 @@ qt_input_text_widget_rep::commit (bool flag) {
  * qt_numeric_input_widget_rep
  ******************************************************************************/
 
-qt_numeric_input_widget_rep::qt_numeric_input_widget_rep (command _cmd,
-                                                          string  _width,
-                                                          string  _unit,
-                                                          int     _min_val,
-                                                          int     _max_val,
-                                                          int     _step,
-                                                          int     _def)
+qt_numeric_input_widget_rep::qt_numeric_input_widget_rep (
+    command _cmd, string _width, string _unit, int _min_val, int _max_val,
+    int _step, int _def)
     : qt_widget_rep (input_widget), cmd (_cmd), width (_width), unit (_unit),
       min_val (_min_val), max_val (_max_val), step (_step), value (_def) {}
 
