@@ -41,6 +41,7 @@ target("libs7") do
         "s7_scheme_inexact.c",
         "s7_scheme_complex.c",
         "s7_scheme_char.c",
+        "s7_scheme_write.c",
         "s7_liii_bitwise.c",
         "s7_liii_string.c",
         "s7_liii_hash_table.c"
