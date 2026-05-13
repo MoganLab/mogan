@@ -3,9 +3,9 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
-  <\big-table|<tabular|<tformat|<table|<row|<cell|(1,1)>|<cell|>|<cell|>>|<row|<cell|>|<cell|<subtable|<tformat|<cwith|1|-1|1|-1|cell-tborder|0ln>|<cwith|1|-1|1|-1|cell-bborder|0ln>|<cwith|1|-1|1|-1|cell-lborder|0ln>|<cwith|1|-1|1|-1|cell-rborder|0ln>|<table|<row|<cell|>|<cell|>>|<row|<cell|>|<cell|>>>>>>|<cell|>>|<row|<cell|>|<cell|(3,2)>|<cell|(3,3)>>>>>>
-    \;
-  </big-table>
+  \;
+
+  <tabular|<tformat|<table|<row|<cell|(1,1)>|<cell|>|<cell|>>|<row|<cell|>|<cell|<subtable|<tformat|<cwith|1|-1|1|-1|cell-tborder|0ln>|<cwith|1|-1|1|-1|cell-bborder|0ln>|<cwith|1|-1|1|-1|cell-lborder|0ln>|<cwith|1|-1|1|-1|cell-rborder|0ln>|<table|<row|<cell|>|<cell|>>|<row|<cell|>|<cell|>>>>>>|<cell|>>|<row|<cell|>|<cell|(3,2)>|<cell|(3,3)>>>>>
 </body>
 
 <\initial>
