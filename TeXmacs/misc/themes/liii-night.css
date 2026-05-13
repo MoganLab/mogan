@@ -1161,6 +1161,14 @@ QLabel#style-card-icon {
   font-weight: 700;
 }
 
+QLabel#style-card-icon-new {
+  border-image: url(":/startup-tab/new-file-white.svg") 0 0 0 0 stretch stretch;
+}
+
+QLabel#style-card-icon-open {
+  border-image: url(":/startup-tab/open-file-white.svg") 0 0 0 0 stretch stretch;
+}
+
 QLabel#style-card-name {
   color: #e2e8ee;
 }

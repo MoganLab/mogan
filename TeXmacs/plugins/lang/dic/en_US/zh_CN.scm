@@ -1665,6 +1665,7 @@
 ("Graphics mode cannot search and replace" "绘图模式无法查找替换")
 ("Only image" "仅图片")
 ("opacity" "不透明度")
+("Open document" "打开文档")
 ("open a document" "打开文档")
 ("Open a Document" "打开")
 ("Open backup folder" "打开备份文件夹")

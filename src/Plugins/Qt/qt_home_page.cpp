@@ -55,6 +55,7 @@ constexpr int kMainSpacing          = 24;  // 主纵向布局间距
 constexpr int kStyleCardWidth       = 160; // 样式卡片宽度
 constexpr int kStyleCardHeight      = 256; // 样式卡片高度
 constexpr int kStyleIconSize        = 96;  // 样式卡片图标尺寸
+constexpr int kStyleIconImageSize   = 50;  // 样式卡片图标图片尺寸
 constexpr int kStyleCardTopPadding  = 12;  // 样式卡片顶部内边距
 constexpr int kStyleCardMargin      = 8;   // 样式卡片内边距
 constexpr int kStyleCardSpacing     = 4;   // 样式卡片内部控件间距
@@ -104,7 +105,8 @@ StyleCard::~StyleCard ()= default;
 
 void
 StyleCard::setupIconMode (const DocStyle& style) {
-  int iconSize= DpiUtils::scaled (kStyleIconSize);
+  int iconSize  = DpiUtils::scaled (kStyleIconSize);
+  int imageSize = DpiUtils::scaled (kStyleIconImageSize);
 
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (DpiUtils::scaled (kStyleCardMargin),
@@ -115,23 +117,27 @@ StyleCard::setupIconMode (const DocStyle& style) {
   layout->addStretch ();
 
   iconLabel_= new QLabel (this);
-  iconLabel_->setFixedSize (iconSize, iconSize);
   iconLabel_->setAlignment (Qt::AlignCenter);
-  iconLabel_->setObjectName ("style-card-icon");
 
   if (style.id == "new") {
-    iconLabel_->setText ("+");
+    iconLabel_->setObjectName ("style-card-icon-new");
+    iconLabel_->setFixedSize (imageSize, imageSize);
   }
   else if (style.id == "open") {
-    iconLabel_->setText ("O");
+    iconLabel_->setObjectName ("style-card-icon-open");
+    iconLabel_->setFixedSize (imageSize, imageSize);
   }
   else {
+    iconLabel_->setObjectName ("style-card-icon");
+    iconLabel_->setFixedSize (iconSize, iconSize);
     iconLabel_->setText (style.id.left (1).toUpper ());
+    QFont iconFont=
+        DpiUtils::scaledFont (iconLabel_->font (), kStyleIconFontPx);
+    iconFont.setBold (true);
+    iconLabel_->setFont (iconFont);
   }
-  QFont iconFont= DpiUtils::scaledFont (iconLabel_->font (), kStyleIconFontPx);
-  iconFont.setBold (true);
-  iconLabel_->setFont (iconFont);
   layout->addWidget (iconLabel_, 0, Qt::AlignCenter);
+  layout->addSpacing (DpiUtils::scaled (8));
 
   nameLabel_= new QLabel (style.name, this);
   nameLabel_->setAlignment (Qt::AlignCenter);
@@ -214,9 +220,9 @@ QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   styles_= {
-      {"new", qt_translate ("New"),
+      {"new", qt_translate ("New document"),
        qt_translate ("Create a new blank document"), ""},
-      {"open", qt_translate ("Open"),
+      {"open", qt_translate ("Open document"),
        qt_translate ("Open an existing document"), ""},
       {"elegantbook", qt_translate ("ElegantBook Notes Template"),
        qt_translate ("ElegantBook-style notes template"), "elegantbook"},

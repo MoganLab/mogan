@@ -8,6 +8,8 @@
         <file>tabpage/add.svg</file>
         <file>tabpage/close.svg</file>
 
+        <file>startup-tab/new-file.svg</file>
+        <file>startup-tab/open-file.svg</file>
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>
@@ -17,6 +19,9 @@
 
         <file>tabpage/add-white.svg</file>
         <file>tabpage/close-white.svg</file>
+
+        <file>startup-tab/new-file-white.svg</file>
+        <file>startup-tab/open-file-white.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>
