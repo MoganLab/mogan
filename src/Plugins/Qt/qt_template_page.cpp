@@ -28,7 +28,9 @@
 #include <QVBoxLayout>
 
 #include "qt_dpi_utils.hpp"
+#include "qt_floating_toast.hpp"
 #include "qt_pdf_preview_widget.hpp"
+#include "qt_template_utils.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "template_manager.hpp"
@@ -593,13 +595,21 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
   };
 
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
-    QString localPath= templateManager_->localTemplatePath (templateId);
-    if (localPath.isEmpty ()) {
-      QMessageBox::warning (this, qt_translate ("Template Error"),
-                            qt_translate ("Local template file is missing"));
+    auto meta= templateManager_->templateById (templateId);
+    if (!meta) {
+      QtFloatingToast::showToast (this,
+                                  qt_translate ("Template metadata not found"),
+                                  3000, QtFloatingToast::Error);
       return;
     }
-    eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) * ")");
+    QString localPath= templateManager_->localTemplatePath (templateId);
+    if (localPath.isEmpty ()) {
+      QtFloatingToast::showToast (
+          this, qt_translate ("Local template file is missing"), 3000,
+          QtFloatingToast::Error);
+      return;
+    }
+    qt_copy_template_and_load (this, localPath, meta->name);
   }
   else {
     // Track this download to distinguish user cancellation from real errors
@@ -675,7 +685,12 @@ QTTemplatePage::onDownloadCompleted (const QString& templateId,
     dialog->deleteLater ();
   }
 
-  eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) * ")");
+  TemplateMetadataPtr tmpl= templateManager_->templateById (templateId);
+  if (!tmpl) {
+    qt_load_document_path (localPath);
+    return;
+  }
+  qt_copy_template_and_load (this, localPath, tmpl->name);
 }
 
 void

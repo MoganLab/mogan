@@ -39,6 +39,7 @@
 
 #include "qt_dpi_utils.hpp"
 #include "qt_floating_toast.hpp"
+#include "qt_template_utils.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
@@ -224,11 +225,13 @@ QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
        qt_translate ("Create a new blank document"), ""},
       {"open", qt_translate ("Open document"),
        qt_translate ("Open an existing document"), ""},
-      {"elegantbook", qt_translate ("ElegantBook Notes Template"),
-       qt_translate ("ElegantBook-style notes template"), "elegantbook"},
-      {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
-       qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
-       "nsfc-ysf-c"}};
+      // TODO: fix async window crash before re-enabling
+      // {"elegantbook", qt_translate ("ElegantBook Notes Template"),
+      //  qt_translate ("ElegantBook-style notes template"), "elegantbook"},
+      // {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
+      //  qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
+      //  "nsfc-ysf-c"}
+  };
 
   setupUI ();
   loadRecentDocs ();
@@ -776,11 +779,22 @@ QtHomePage::createDocumentFromTemplate (const QString& templateId) {
   if (!mgr) return;
 
   if (mgr->isTemplateAvailableLocally (templateId)) {
-    QString localPath= mgr->localTemplatePath (templateId);
-    if (!localPath.isEmpty ()) {
-      eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) * ")");
+    auto meta= mgr->templateById (templateId);
+    if (!meta) {
+      QtFloatingToast::showToast (this,
+                                  qt_translate ("Template metadata not found"),
+                                  3000, QtFloatingToast::Error);
       return;
     }
+    QString localPath= mgr->localTemplatePath (templateId);
+    if (localPath.isEmpty ()) {
+      QtFloatingToast::showToast (
+          this, qt_translate ("Local template file is missing"), 3000,
+          QtFloatingToast::Error);
+      return;
+    }
+    qt_copy_template_and_load (this, localPath, meta->name);
+    return;
   }
 
   QPointer<QProgressDialog> dialog=
@@ -823,14 +837,19 @@ QtHomePage::createDocumentFromTemplate (const QString& templateId) {
                  ctx->dialog->setValue (static_cast<int> (received));
                });
 
-  ctx->completedConn= connect (
-      mgr, &TemplateManager::downloadCompleted, this,
-      [this, ctx, templateId] (const QString& id, const QString& localPath) {
-        if (id != templateId) return;
-        ctx->cleanup ();
-        eval_scheme ("(load-document " * qt_scheme_quote_utf8 (localPath) *
-                     ")");
-      });
+  ctx->completedConn=
+      connect (mgr, &TemplateManager::downloadCompleted, this,
+               [this, ctx, mgr, templateId] (const QString& id,
+                                             const QString& localPath) {
+                 if (id != templateId) return;
+                 ctx->cleanup ();
+                 auto meta= mgr->templateById (templateId);
+                 if (!meta) {
+                   qt_load_document_path (localPath);
+                   return;
+                 }
+                 qt_copy_template_and_load (this, localPath, meta->name);
+               });
 
   ctx->failedConn= connect (
       mgr, &TemplateManager::downloadFailed, this,
