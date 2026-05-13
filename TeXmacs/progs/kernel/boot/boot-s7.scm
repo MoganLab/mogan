@@ -188,7 +188,7 @@
     `(begin
        (define *module-name* (quote ,name))
        (define *exports* ())
-       (hash-table-set! *modules* (quote ,name) (current-module))
+       (s7-hash-table-set! *modules* (quote ,name) (current-module))
        ,@l)
   ) ;let
 ) ;define-macro

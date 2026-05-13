@@ -17,14 +17,14 @@
 ;; Adaptive hash tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public make-ahash-table make-hash-table)
+(define-public make-ahash-table s7-make-hash-table)
 (define-public ahash-ref hash-table-ref)
 (define-public (ahash-get-handle h s)
   (let ((v (hash-table-ref h s)))
     (if v (cons s v) #f)
   ) ;let
 ) ;define-public
-(define-public ahash-set! hash-table-set!)
+(define-public ahash-set! s7-hash-table-set!)
 (define-public (ahash-remove! h s) (hash-table-set! h s #f))
 (define-public (ahash-table->list h) (map values h))
 (define-public (ahash-size h) (length h))
