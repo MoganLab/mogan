@@ -525,6 +525,11 @@ tm_window_rep::set_auxiliary_widget_new_title (string title) {
 }
 
 void
+tm_window_rep::set_chat_sidebar_flag (bool flag) {
+  set_chat_sidebar_visibility (wid, flag);
+}
+
+void
 tm_window_rep::set_bottom_tools_flag (int which, bool flag) {
   if (which == 0) set_bottom_tools_visibility (wid, flag);
   else if (which == 1) set_extra_tools_visibility (wid, flag);
@@ -538,6 +543,11 @@ tm_window_rep::get_header_flag () {
 bool
 tm_window_rep::get_auxiliary_widget_flag () {
   return get_auxiliary_widget_visibility (wid);
+}
+
+bool
+tm_window_rep::get_chat_sidebar_flag () {
+  return get_chat_sidebar_visibility (wid);
 }
 
 bool

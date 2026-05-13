@@ -167,6 +167,20 @@ function main()
                 }
             },
             {
+                scm_name = "show-chat-sidebar",
+                cpp_name = "show_chat_sidebar",
+                ret_type = "void",
+                arg_list = {
+                    "bool"
+                }
+            },
+            {
+                scm_name = "chat-sidebar-visible?",
+                cpp_name = "chat_sidebar_visible",
+                ret_type = "bool",
+                arg_list = {}
+            },
+            {
                 scm_name = "show-bottom-tools",
                 cpp_name = "show_bottom_tools",
                 ret_type = "void",
