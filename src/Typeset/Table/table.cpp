@@ -466,10 +466,18 @@ table_rep::merge_borders () {
           kk= ii * hh + jj;
           bb= max (verb[kk], bb);
         }
-        C->lborder= lb;
-        C->rborder= rb;
-        C->bborder= bb;
-        C->tborder= tb;
+        if (!is_nil (C->T)) {
+          C->lborder= 0;
+          C->rborder= 0;
+          C->bborder= 0;
+          C->tborder= 0;
+        }
+        else {
+          C->lborder= lb;
+          C->rborder= rb;
+          C->bborder= bb;
+          C->tborder= tb;
+        }
       }
     }
 }

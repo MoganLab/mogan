@@ -33,12 +33,20 @@ cell_rep::typeset (tree fm, tree t, path iq) {
   cell_local_begin (fm);
   if (is_func (t, SUBTABLE, 1)) {
     lsep= rsep= bsep= tsep= 0;
-    T                     = table (env, 2);
+    var->reset (CELL_LSEP);
+    var->reset (CELL_RSEP);
+    var->reset (CELL_BSEP);
+    var->reset (CELL_TSEP);
+    T= table (env, 2);
     T->typeset_subtable (t[0], descend (iq, 0), var);
   }
   else if (is_func (t, DOCUMENT, 1) && is_func (t[0], SUBTABLE, 1)) {
     lsep= rsep= bsep= tsep= 0;
-    T                     = table (env, 2);
+    var->reset (CELL_LSEP);
+    var->reset (CELL_RSEP);
+    var->reset (CELL_BSEP);
+    var->reset (CELL_TSEP);
+    T= table (env, 2);
     T->typeset_subtable (t[0][0], descend (descend (iq, 0), 0), var);
   }
   else {
@@ -386,7 +394,7 @@ cell_rep::position_horizontally (SI offset, SI mw, SI lw, SI rw) {
     else xoff= lw;
     if (N (halign) > 1) xoff-= b->get_leaf_offset (halign (1, N (halign)));
   }
-  else xoff= -T->x1 + lborder;
+  else xoff= -T->x1;
 }
 
 void
@@ -404,7 +412,7 @@ cell_rep::position_vertically (SI offset, SI mh, SI bh, SI th) {
     else if (align_c == 'T') yoff= mh - th;
     else yoff= bh;
   }
-  else yoff= -T->y1 + bborder;
+  else yoff= -T->y1;
 }
 
 /******************************************************************************
@@ -452,7 +460,13 @@ cell_rep::finish () {
     b= T->b;
   }
 
-  b= cell_box (ip, b, xoff, yoff, 0, 0, x2 - x1, y2 - y1, lborder, rborder,
-               bborder, tborder, dborder, aborder, env->pen->get_brush (),
-               brush (bg, env->alpha));
+  if (!is_nil (T)) {
+    b= cell_box (ip, b, xoff, yoff, 0, 0, x2 - x1, y2 - y1, 0, 0, 0, 0, 0, 0,
+                 env->pen->get_brush (), brush (bg, env->alpha));
+  }
+  else {
+    b= cell_box (ip, b, xoff, yoff, 0, 0, x2 - x1, y2 - y1, lborder, rborder,
+                 bborder, tborder, dborder, aborder, env->pen->get_brush (),
+                 brush (bg, env->alpha));
+  }
 }
