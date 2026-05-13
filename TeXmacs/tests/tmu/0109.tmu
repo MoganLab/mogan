@@ -3,7 +3,7 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
-  <\big-table|<tabular|<tformat|<table|<row|<cell|>|<cell|>|<cell|>>|<row|<cell|>|<cell|<subtable|<tformat|<table|<row|<cell|>|<cell|>>|<row|<cell|>|<cell|>>>>>>|<cell|>>|<row|<cell|>|<cell|这是一个单元格>|<cell|>>>>>>
+  <\big-table|<block|<tformat|<table|<row|<cell|>|<cell|>|<cell|>>|<row|<cell|>|<cell|<subtable|<tformat|<cwith|1|-1|1|-1|cell-tborder|1ln>|<cwith|1|-1|1|-1|cell-bborder|1ln>|<cwith|1|-1|1|-1|cell-lborder|1ln>|<cwith|1|-1|1|-1|cell-rborder|1ln>|<table|<row|<cell|>|<cell|>>|<row|<cell|>|<cell|>>>>>>|<cell|>>|<row|<cell|>|<cell|这是一个单元格>|<cell|>>>>>>
     \;
   </big-table>
 </body>
@@ -17,7 +17,7 @@
 
 <\references>
   <\collection>
-    <associate|auto-1|<tuple|1|1|../../../../../.local/share/moganlab/texts/scratch/no_name_1.tm>>
+    <associate|auto-1|<tuple|1|1>>
   </collection>
 </references>
 
