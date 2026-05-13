@@ -23,10 +23,7 @@
       (let ((colon-pos (string-index str #\:)))
         (if colon-pos
           (cons (substring str 0 colon-pos)
-            (substring str
-              (+ colon-pos 1)
-              (string-length str)
-            ) ;substring
+            (substring str (+ colon-pos 1) (string-length str))
           ) ;cons
           (cons #f str)
         ) ;if
@@ -37,78 +34,33 @@
     (define (split-authority str)
       ;; 查找路径开始（/）、查询（?）或片段（#）
       (let loop
-        ((i 0)
-         (slash-pos #f)
-         (question-pos #f)
-         (hash-pos #f)
-        ) ;
+        ((i 0) (slash-pos #f) (question-pos #f) (hash-pos #f))
         (if (>= i (string-length str))
-          (let ((netloc (if slash-pos
-                          (substring str 0 slash-pos)
-                          str
-                        ) ;if
-                ) ;netloc
+          (let ((netloc (if slash-pos (substring str 0 slash-pos) str))
                 (path (if slash-pos
-                        (substring str
-                          slash-pos
-                          (or question-pos
-                            hash-pos
-                            (string-length str)
-                          ) ;or
-                        ) ;substring
+                        (substring str slash-pos (or question-pos hash-pos (string-length str)))
                         ""
                       ) ;if
                 ) ;path
                 (query (if question-pos
-                         (substring str
-                           (+ question-pos 1)
-                           (or hash-pos (string-length str))
-                         ) ;substring
+                         (substring str (+ question-pos 1) (or hash-pos (string-length str)))
                          ""
                        ) ;if
                 ) ;query
-                (fragment (if hash-pos
-                            (substring str
-                              (+ hash-pos 1)
-                              (string-length str)
-                            ) ;substring
-                            #f
-                          ) ;if
-                ) ;fragment
+                (fragment (if hash-pos (substring str (+ hash-pos 1) (string-length str)) #f))
                ) ;
             (list netloc path query fragment)
           ) ;let
           (let ((c (string-ref str i)))
             (cond ((char=? c #\/)
                    (if slash-pos
-                     (loop (+ i 1)
-                       slash-pos
-                       question-pos
-                       hash-pos
-                     ) ;loop
+                     (loop (+ i 1) slash-pos question-pos hash-pos)
                      (loop (+ i 1) i question-pos hash-pos)
                    ) ;if
                   ) ;
-                  ((char=? c #\?)
-                   (loop (+ i 1)
-                     (or slash-pos i)
-                     i
-                     hash-pos
-                   ) ;loop
-                  ) ;
-                  ((char=? c #\#)
-                   (loop (+ i 1)
-                     (or slash-pos i)
-                     question-pos
-                     i
-                   ) ;loop
-                  ) ;
-                  (else (loop (+ i 1)
-                          slash-pos
-                          question-pos
-                          hash-pos
-                        ) ;loop
-                  ) ;else
+                  ((char=? c #\?) (loop (+ i 1) (or slash-pos i) i hash-pos))
+                  ((char=? c #\#) (loop (+ i 1) (or slash-pos i) question-pos i))
+                  (else (loop (+ i 1) slash-pos question-pos hash-pos))
             ) ;cond
           ) ;let
         ) ;if
@@ -120,10 +72,7 @@
       (let ((q-pos (string-index path+query #\?)))
         (if q-pos
           (cons (substring path+query 0 q-pos)
-            (substring path+query
-              (+ q-pos 1)
-              (string-length path+query)
-            ) ;substring
+            (substring path+query (+ q-pos 1) (string-length path+query))
           ) ;cons
           (cons path+query "")
         ) ;if
@@ -141,55 +90,33 @@
               (not (string-starts? str "https://"))
               (not (string-starts? str "ssh://"))
               (let ((colon-pos (string-index str #\:)))
-                (and colon-pos
-                  (> colon-pos (string-index str #\@))
-                ) ;and
+                (and colon-pos (> colon-pos (string-index str #\@)))
               ) ;let
             ) ;and
           ;; Git SSH 格式: git@host:path
           (let* ((at-pos (string-index str #\@))
                  (colon-pos (string-index str #\:))
                  (user (substring str 0 at-pos))
-                 (host (substring str (+ at-pos 1) colon-pos)
-                 ) ;host
-                 (path (substring str
-                         colon-pos
-                         (string-length str)
-                       ) ;substring
-                 ) ;path
+                 (host (substring str (+ at-pos 1) colon-pos))
+                 (path (substring str colon-pos (string-length str)))
                 ) ;
-            (make-uri-raw "ssh"
-              (build-netloc user #f host #f)
-              path
-              '()
-              #f
-            ) ;make-uri-raw
+            (make-uri-raw "ssh" (build-netloc user #f host #f) path '() #f)
           ) ;let*
           ;; 标准 URI 格式
           (let* ((scheme+rest (split-scheme str))
                  (scheme (car scheme+rest))
                  (rest (cdr scheme+rest))
                  (authority+path+query+frag (if (string-starts? rest "//")
-                                              (split-authority (substring rest 2 (string-length rest))
-                                              ) ;split-authority
+                                              (split-authority (substring rest 2 (string-length rest)))
                                               (list "" rest "" "")
                                             ) ;if
                  ) ;authority+path+query+frag
-                 (netloc (list-ref authority+path+query+frag 0)
-                 ) ;netloc
-                 (path (list-ref authority+path+query+frag 1)
-                 ) ;path
-                 (query-str (list-ref authority+path+query+frag 2)
-                 ) ;query-str
-                 (fragment (list-ref authority+path+query+frag 3)
-                 ) ;fragment
+                 (netloc (list-ref authority+path+query+frag 0))
+                 (path (list-ref authority+path+query+frag 1))
+                 (query-str (list-ref authority+path+query+frag 2))
+                 (fragment (list-ref authority+path+query+frag 3))
                 ) ;
-            (make-uri-raw scheme
-              netloc
-              path
-              (query-string->alist query-str)
-              fragment
-            ) ;make-uri-raw
+            (make-uri-raw scheme netloc path (query-string->alist query-str) fragment)
           ) ;let*
         ) ;if
       ) ;if

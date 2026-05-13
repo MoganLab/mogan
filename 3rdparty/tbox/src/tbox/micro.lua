@@ -8,19 +8,19 @@ target("tbox")
     add_defines("__tb_prefix__=\"tbox\"")
 
     -- set the auto-generated config.h
-    set_configdir("$(buildir)/$(plat)/$(arch)/$(mode)")
+    set_configdir("$(builddir)/$(plat)/$(arch)/$(mode)")
     add_configfiles("tbox.config.h.in")
 
     -- add include directories
     add_includedirs("..", {public = true})
-    add_includedirs("$(buildir)/$(plat)/$(arch)/$(mode)", {public = true})
+    add_includedirs("$(builddir)/$(plat)/$(arch)/$(mode)", {public = true})
 
     -- add the header files for installing
     add_headerfiles("../(tbox/**.h)|**/impl/**.h")
     add_headerfiles("../(tbox/prefix/**/prefix.S)")
     add_headerfiles("../(tbox/math/impl/*.h)")
     add_headerfiles("../(tbox/utils/impl/*.h)")
-    add_headerfiles("$(buildir)/$(plat)/$(arch)/$(mode)/tbox.config.h", {prefixdir = "tbox"})
+    add_headerfiles("$(builddir)/$(plat)/$(arch)/$(mode)/tbox.config.h", {prefixdir = "tbox"})
 
     -- add options
     add_options("info", "float", "wchar", "micro", "coroutine")

@@ -4,11 +4,7 @@
 ;;
 
 (define-library (liii http)
-  (import (liii hash-table)
-    (liii alist)
-    (liii error)
-    (scheme file)
-  ) ;import
+  (import (liii hash-table) (liii alist) (liii error) (scheme file))
   (export http-head
     http-get
     http-post
@@ -22,13 +18,8 @@
   (begin
 
     (define (http-ok? r)
-      (let ((status-code (r 'status-code))
-            (reason (r 'reason))
-            (url (r 'url))
-           ) ;
-        (cond ((and (>= status-code 400)
-                 (< status-code 500)
-               ) ;and
+      (let ((status-code (r 'status-code)) (reason (r 'reason)) (url (r 'url)))
+        (cond ((and (>= status-code 400) (< status-code 500))
                (error 'http-error
                  (string-append (number->string status-code)
                    " Client Error: "
@@ -38,9 +29,7 @@
                  ) ;string-append
                ) ;error
               ) ;
-              ((and (>= status-code 500)
-                 (< status-code 600)
-               ) ;and
+              ((and (>= status-code 500) (< status-code 600))
                (error 'http-error
                  (string-append (number->string status-code)
                    " Server Error: "
@@ -57,129 +46,67 @@
 
     (define (http-require-string who field value)
       (when (not (string? value))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " must be string"
-                    ) ;string-append
-          value
-        ) ;type-error
+        (type-error (string-append who ": " field " must be string") value)
       ) ;when
       value
     ) ;define
 
     (define (http-require-procedure who field value)
       (when (not (procedure? value))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " must be a procedure"
-                    ) ;string-append
-          value
-        ) ;type-error
+        (type-error (string-append who ": " field " must be a procedure") value)
       ) ;when
       value
     ) ;define
 
     (define (http-require-boolean who field value)
       (when (not (boolean? value))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " must be boolean"
-                    ) ;string-append
-          value
-        ) ;type-error
+        (type-error (string-append who ": " field " must be boolean") value)
       ) ;when
       value
     ) ;define
 
     (define (http-optional-string who field value)
-      (if value
-        (http-require-string who field value)
-        #f
-      ) ;if
+      (if value (http-require-string who field value) #f)
     ) ;define
 
-    (define (http-optional-procedure who
-              field
-              value
-            ) ;http-optional-procedure
-      (if value
-        (http-require-procedure who field value)
-        #f
-      ) ;if
+    (define (http-optional-procedure who field value)
+      (if value (http-require-procedure who field value) #f)
     ) ;define
 
     (define (http-scalar->string who field value)
       (cond ((string? value) value)
             ((symbol? value) (symbol->string value))
-            ((or (integer? value) (real? value))
-             (number->string value)
-            ) ;
-            (else (type-error (string-append who
-                                ": "
-                                field
-                                " must be a string, symbol, or number"
-                              ) ;string-append
+            ((or (integer? value) (real? value)) (number->string value))
+            (else (type-error (string-append who ": " field " must be a string, symbol, or number")
                     value
                   ) ;type-error
             ) ;else
       ) ;cond
     ) ;define
 
-    (define (http-normalize-string-alist-entry who
-              field
-              entry
-            ) ;http-normalize-string-alist-entry
+    (define (http-normalize-string-alist-entry who field entry)
       (when (not (pair? entry))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " entries must be key/value pairs"
-                    ) ;string-append
+        (type-error (string-append who ": " field " entries must be key/value pairs")
           entry
         ) ;type-error
       ) ;when
       (when (pair? (cdr entry))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " entries must be key/value pairs"
-                    ) ;string-append
+        (type-error (string-append who ": " field " entries must be key/value pairs")
           entry
         ) ;type-error
       ) ;when
-      (cons (http-scalar->string who
-              (string-append field " key")
-              (car entry)
-            ) ;http-scalar->string
-        (http-scalar->string who
-          (string-append field " value")
-          (cdr entry)
-        ) ;http-scalar->string
+      (cons (http-scalar->string who (string-append field " key") (car entry))
+        (http-scalar->string who (string-append field " value") (cdr entry))
       ) ;cons
     ) ;define
 
-    (define (http-normalize-string-alist who
-              field
-              entries
-            ) ;http-normalize-string-alist
+    (define (http-normalize-string-alist who field entries)
       (when (not (alist? entries))
-        (type-error (string-append who
-                      ": "
-                      field
-                      " must be an association list"
-                    ) ;string-append
+        (type-error (string-append who ": " field " must be an association list")
           entries
         ) ;type-error
       ) ;when
-      (map (lambda (entry)
-             (http-normalize-string-alist-entry who
-               field
-               entry
-             ) ;http-normalize-string-alist-entry
-           ) ;lambda
+      (map (lambda (entry) (http-normalize-string-alist-entry who field entry))
         entries
       ) ;map
     ) ;define
@@ -187,18 +114,14 @@
     (define (http-normalize-part-key who key)
       (cond ((string? key) key)
             ((symbol? key) (symbol->string key))
-            (else (type-error (string-append who
-                                ": multipart part key must be string or symbol"
-                              ) ;string-append
+            (else (type-error (string-append who ": multipart part key must be string or symbol")
                     key
                   ) ;type-error
             ) ;else
       ) ;cond
     ) ;define
 
-    (define http-file-spec-keys
-      '("file" "filename" "content-type")
-    ) ;define
+    (define http-file-spec-keys '("file" "filename" "content-type"))
 
     (define (http-part-ref part key)
       (let ((entry (assoc key part string=?)))
@@ -206,48 +129,19 @@
       ) ;let
     ) ;define
 
-    (define (http-normalize-file-spec-entry who
-              entry
-            ) ;http-normalize-file-spec-entry
+    (define (http-normalize-file-spec-entry who entry)
       (when (not (pair? entry))
-        (type-error (string-append who
-                      ": files entries must be key/value pairs"
-                    ) ;string-append
-          entry
-        ) ;type-error
+        (type-error (string-append who ": files entries must be key/value pairs") entry)
       ) ;when
       (when (pair? (cdr entry))
-        (type-error (string-append who
-                      ": files entries must be key/value pairs"
-                    ) ;string-append
-          entry
-        ) ;type-error
+        (type-error (string-append who ": files entries must be key/value pairs") entry)
       ) ;when
-      (let* ((key (http-normalize-part-key who
-                    (car entry)
-                  ) ;http-normalize-part-key
-             ) ;key
-             (value (cdr entry))
-            ) ;
-        (when (not (member key
-                     http-file-spec-keys
-                     string=?
-                   ) ;member
-              ) ;not
-          (value-error (string-append who
-                         ": file spec contains unsupported key"
-                       ) ;string-append
-            key
-          ) ;value-error
+      (let* ((key (http-normalize-part-key who (car entry))) (value (cdr entry)))
+        (when (not (member key http-file-spec-keys string=?))
+          (value-error (string-append who ": file spec contains unsupported key") key)
         ) ;when
         (when (not (string? value))
-          (type-error (string-append who
-                        ": file spec "
-                        key
-                        " must be string"
-                      ) ;string-append
-            value
-          ) ;type-error
+          (type-error (string-append who ": file spec " key " must be string") value)
         ) ;when
         (cons key value)
       ) ;let*
@@ -255,78 +149,35 @@
 
     (define (http-normalize-file-entry who entry)
       (when (not (pair? entry))
-        (type-error (string-append who
-                      ": files must be an association list"
-                    ) ;string-append
-          entry
-        ) ;type-error
+        (type-error (string-append who ": files must be an association list") entry)
       ) ;when
-      (let* ((name (http-scalar->string who
-                     "files key"
-                     (car entry)
-                   ) ;http-scalar->string
-             ) ;name
-             (spec (cdr entry))
-            ) ;
+      (let* ((name (http-scalar->string who "files key" (car entry))) (spec (cdr entry)))
         (cond ((string? spec)
                (when (not (file-exists? spec))
-                 (value-error (string-append who
-                                ": file does not exist"
-                              ) ;string-append
-                   spec
-                 ) ;value-error
+                 (value-error (string-append who ": file does not exist") spec)
                ) ;when
                `((name unquote name) (file unquote spec))
               ) ;
               ((alist? spec)
-               (let* ((normalized-spec (map (lambda (item)
-                                              (http-normalize-file-spec-entry who
-                                                item
-                                              ) ;http-normalize-file-spec-entry
-                                            ) ;lambda
-                                         spec
-                                       ) ;map
+               (let* ((normalized-spec (map (lambda (item) (http-normalize-file-spec-entry who item)) spec)
                       ) ;normalized-spec
-                      (file (http-part-ref normalized-spec "file")
-                      ) ;file
-                      (filename (http-part-ref normalized-spec
-                                  "filename"
-                                ) ;http-part-ref
-                      ) ;filename
-                      (content-type (http-part-ref normalized-spec
-                                      "content-type"
-                                    ) ;http-part-ref
-                      ) ;content-type
+                      (file (http-part-ref normalized-spec "file"))
+                      (filename (http-part-ref normalized-spec "filename"))
+                      (content-type (http-part-ref normalized-spec "content-type"))
                      ) ;
                  (when (not file)
-                   (value-error (string-append who
-                                  ": file spec requires a file path"
-                                ) ;string-append
-                     spec
-                   ) ;value-error
+                   (value-error (string-append who ": file spec requires a file path") spec)
                  ) ;when
                  (when (not (file-exists? file))
-                   (value-error (string-append who
-                                  ": file does not exist"
-                                ) ;string-append
-                     file
-                   ) ;value-error
+                   (value-error (string-append who ": file does not exist") file)
                  ) ;when
                  (append `((name unquote name) (file unquote file))
-                   (if filename
-                     `((filename unquote filename))
-                     '()
-                   ) ;if
-                   (if content-type
-                     `((content-type unquote content-type))
-                     '()
-                   ) ;if
+                   (if filename `((filename unquote filename)) '())
+                   (if content-type `((content-type unquote content-type)) '())
                  ) ;append
                ) ;let*
               ) ;
-              (else (type-error (string-append who
-                                  ": files value must be a path string or file spec alist"
-                                ) ;string-append
+              (else (type-error (string-append who ": files value must be a path string or file spec alist")
                       spec
                     ) ;type-error
               ) ;else
@@ -336,35 +187,16 @@
 
     (define (http-normalize-files who files)
       (when (not (alist? files))
-        (type-error (string-append who
-                      ": files must be an association list"
-                    ) ;string-append
-          files
-        ) ;type-error
+        (type-error (string-append who ": files must be an association list") files)
       ) ;when
-      (map (lambda (entry)
-             (http-normalize-file-entry who entry)
-           ) ;lambda
-        files
-      ) ;map
+      (map (lambda (entry) (http-normalize-file-entry who entry)) files)
     ) ;define
 
     (define (http-normalize-post-form-data who data)
       (cond ((null? data) '())
-            ((and (string? data)
-               (= (string-length data) 0)
-             ) ;and
-             '()
-            ) ;
-            ((alist? data)
-             (http-normalize-string-alist who
-               "data"
-               data
-             ) ;http-normalize-string-alist
-            ) ;
-            (else (type-error (string-append who
-                                ": data must be an association list when files is provided"
-                              ) ;string-append
+            ((and (string? data) (= (string-length data) 0)) '())
+            ((alist? data) (http-normalize-string-alist who "data" data))
+            (else (type-error (string-append who ": data must be an association list when files is provided")
                     data
                   ) ;type-error
             ) ;else
@@ -372,13 +204,7 @@
     ) ;define
 
     (define* (http-head url)
-      (let ((r (g_http-head (http-require-string "http-head"
-                              "url"
-                              url
-                            ) ;http-require-string
-               ) ;g_http-head
-            ) ;r
-           ) ;
+      (let ((r (g_http-head (http-require-string "http-head" "url" url))))
         r
       ) ;let
     ) ;define*
@@ -391,84 +217,38 @@
                (stream #f)
                (callback #f)
              ) ;http-get
-      (let* ((url (http-require-string "http-get"
-                    "url"
-                    url
-                  ) ;http-require-string
-             ) ;url
-             (params (http-normalize-string-alist "http-get"
-                       "params"
-                       params
-                     ) ;http-normalize-string-alist
-             ) ;params
-             (headers (http-normalize-string-alist "http-get"
-                        "headers"
-                        headers
-                      ) ;http-normalize-string-alist
-             ) ;headers
-             (proxy (http-normalize-string-alist "http-get"
-                      "proxy"
-                      proxy
-                    ) ;http-normalize-string-alist
-             ) ;proxy
-             (output-file (http-optional-string "http-get"
-                            "output-file"
-                            output-file
-                          ) ;http-optional-string
-             ) ;output-file
-             (stream (http-require-boolean "http-get"
-                       "stream"
-                       stream
-                     ) ;http-require-boolean
-             ) ;stream
-             (callback (http-optional-procedure "http-get"
-                         "callback"
-                         callback
-                       ) ;http-optional-procedure
-             ) ;callback
+      (let* ((url (http-require-string "http-get" "url" url))
+             (params (http-normalize-string-alist "http-get" "params" params))
+             (headers (http-normalize-string-alist "http-get" "headers" headers))
+             (proxy (http-normalize-string-alist "http-get" "proxy" proxy))
+             (output-file (http-optional-string "http-get" "output-file" output-file))
+             (stream (http-require-boolean "http-get" "stream" stream))
+             (callback (http-optional-procedure "http-get" "callback" callback))
             ) ;
-        (cond ((not stream)
-               (g_http-get url params headers proxy #f)
-              ) ;
+        (cond ((not stream) (g_http-get url params headers proxy #f))
               ((and (not output-file) (not callback))
-               (value-error "http-get: stream mode requires output-file or callback"
-               ) ;value-error
+               (value-error "http-get: stream mode requires output-file or callback")
               ) ;
               (else (let ((stream-callback (lambda (chunk)
-                                             (if callback
-                                               (let ((ret (callback chunk)))
-                                                 (if (boolean? ret) ret #t)
-                                               ) ;let
-                                               #t
-                                             ) ;if
+                                             (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
                                            ) ;lambda
                           ) ;stream-callback
                          ) ;
                       (if output-file
-                        (let ((port (open-binary-output-file output-file)
-                              ) ;port
-                             ) ;
+                        (let ((port (open-binary-output-file output-file)))
                           (dynamic-wind (lambda () #f)
                             (lambda ()
                               (g_http-get url
                                 params
                                 headers
                                 proxy
-                                (lambda (chunk)
-                                  (write-string chunk port)
-                                  (stream-callback chunk)
-                                ) ;lambda
+                                (lambda (chunk) (write-string chunk port) (stream-callback chunk))
                               ) ;g_http-get
                             ) ;lambda
                             (lambda () (close-port port))
                           ) ;dynamic-wind
                         ) ;let
-                        (g_http-get url
-                          params
-                          headers
-                          proxy
-                          stream-callback
-                        ) ;g_http-get
+                        (g_http-get url params headers proxy stream-callback)
                       ) ;if
                     ) ;let
               ) ;else
@@ -486,91 +266,37 @@
                (stream #f)
                (callback #f)
              ) ;http-post
-      (let* ((url (http-require-string "http-post"
-                    "url"
-                    url
-                  ) ;http-require-string
-             ) ;url
-             (params (http-normalize-string-alist "http-post"
-                       "params"
-                       params
-                     ) ;http-normalize-string-alist
-             ) ;params
-             (headers (http-normalize-string-alist "http-post"
-                        "headers"
-                        headers
-                      ) ;http-normalize-string-alist
-             ) ;headers
-             (proxy (http-normalize-string-alist "http-post"
-                      "proxy"
-                      proxy
-                    ) ;http-normalize-string-alist
-             ) ;proxy
-             (files (http-normalize-files "http-post" files)
-             ) ;files
-             (output-file (http-optional-string "http-post"
-                            "output-file"
-                            output-file
-                          ) ;http-optional-string
-             ) ;output-file
-             (stream (http-require-boolean "http-post"
-                       "stream"
-                       stream
-                     ) ;http-require-boolean
-             ) ;stream
-             (callback (http-optional-procedure "http-post"
-                         "callback"
-                         callback
-                       ) ;http-optional-procedure
-             ) ;callback
+      (let* ((url (http-require-string "http-post" "url" url))
+             (params (http-normalize-string-alist "http-post" "params" params))
+             (headers (http-normalize-string-alist "http-post" "headers" headers))
+             (proxy (http-normalize-string-alist "http-post" "proxy" proxy))
+             (files (http-normalize-files "http-post" files))
+             (output-file (http-optional-string "http-post" "output-file" output-file))
+             (stream (http-require-boolean "http-post" "stream" stream))
+             (callback (http-optional-procedure "http-post" "callback" callback))
             ) ;
         (let* ((body-or-data (if (null? files)
-                               (http-require-string "http-post"
-                                 "data"
-                                 data
-                               ) ;http-require-string
-                               (http-normalize-post-form-data "http-post"
-                                 data
-                               ) ;http-normalize-post-form-data
+                               (http-require-string "http-post" "data" data)
+                               (http-normalize-post-form-data "http-post" data)
                              ) ;if
                ) ;body-or-data
-               (headers (if (and (null? files)
-                              (> (string-length body-or-data) 0)
-                              (null? headers)
-                            ) ;and
+               (headers (if (and (null? files) (> (string-length body-or-data) 0) (null? headers))
                           '(("Content-Type" . "text/plain"))
                           headers
                         ) ;if
                ) ;headers
               ) ;
-          (cond ((not stream)
-                 (g_http-post url
-                   params
-                   body-or-data
-                   headers
-                   proxy
-                   files
-                   #f
-                 ) ;g_http-post
-                ) ;
+          (cond ((not stream) (g_http-post url params body-or-data headers proxy files #f))
                 ((and (not output-file) (not callback))
-                 (value-error "http-post: stream mode requires output-file or callback"
-                 ) ;value-error
+                 (value-error "http-post: stream mode requires output-file or callback")
                 ) ;
                 (else (let ((stream-callback (lambda (chunk)
-                                               (if callback
-                                                 (let ((ret (callback chunk)))
-                                                   (if (boolean? ret) ret #t)
-                                                 ) ;let
-                                                 #t
-                                               ) ;if
+                                               (if callback (let ((ret (callback chunk))) (if (boolean? ret) ret #t)) #t)
                                              ) ;lambda
                             ) ;stream-callback
                            ) ;
                         (if output-file
-                          (let ((port (open-binary-output-file output-file)
-                                ) ;port
-                               ) ;
+                          (let ((port (open-binary-output-file output-file)))
                             (dynamic-wind (lambda () #f)
                               (lambda ()
                                 (g_http-post url
@@ -579,23 +305,13 @@
                                   headers
                                   proxy
                                   files
-                                  (lambda (chunk)
-                                    (write-string chunk port)
-                                    (stream-callback chunk)
-                                  ) ;lambda
+                                  (lambda (chunk) (write-string chunk port) (stream-callback chunk))
                                 ) ;g_http-post
                               ) ;lambda
                               (lambda () (close-port port))
                             ) ;dynamic-wind
                           ) ;let
-                          (g_http-post url
-                            params
-                            body-or-data
-                            headers
-                            proxy
-                            files
-                            stream-callback
-                          ) ;g_http-post
+                          (g_http-post url params body-or-data headers proxy files stream-callback)
                         ) ;if
                       ) ;let
                 ) ;else
@@ -606,88 +322,26 @@
 
     ;; Async HTTP API wrapper functions
 
-    (define* (http-async-get url
-               callback
-               (params '())
-               (headers '())
-               (proxy '())
-             ) ;http-async-get
-      (let ((url (http-require-string "http-async-get"
-                   "url"
-                   url
-                 ) ;http-require-string
-            ) ;url
-            (callback (http-require-procedure "http-async-get"
-                        "callback"
-                        callback
-                      ) ;http-require-procedure
-            ) ;callback
-            (params (http-normalize-string-alist "http-async-get"
-                      "params"
-                      params
-                    ) ;http-normalize-string-alist
-            ) ;params
-            (headers (http-normalize-string-alist "http-async-get"
-                       "headers"
-                       headers
-                     ) ;http-normalize-string-alist
-            ) ;headers
-            (proxy (http-normalize-string-alist "http-async-get"
-                     "proxy"
-                     proxy
-                   ) ;http-normalize-string-alist
-            ) ;proxy
+    (define* (http-async-get url callback (params '()) (headers '()) (proxy '()))
+      (let ((url (http-require-string "http-async-get" "url" url))
+            (callback (http-require-procedure "http-async-get" "callback" callback))
+            (params (http-normalize-string-alist "http-async-get" "params" params))
+            (headers (http-normalize-string-alist "http-async-get" "headers" headers))
+            (proxy (http-normalize-string-alist "http-async-get" "proxy" proxy))
            ) ;
-        (g_http-async-get url
-          params
-          headers
-          proxy
-          callback
-        ) ;g_http-async-get
+        (g_http-async-get url params headers proxy callback)
       ) ;let
     ) ;define*
 
-    (define* (http-async-post url
-               callback
-               (params '())
-               (data "")
-               (headers '())
-               (proxy '())
-             ) ;http-async-post
-      (let* ((url (http-require-string "http-async-post"
-                    "url"
-                    url
-                  ) ;http-require-string
-             ) ;url
-             (callback (http-require-procedure "http-async-post"
-                         "callback"
-                         callback
-                       ) ;http-require-procedure
-             ) ;callback
-             (params (http-normalize-string-alist "http-async-post"
-                       "params"
-                       params
-                     ) ;http-normalize-string-alist
-             ) ;params
-             (data (http-require-string "http-async-post"
-                     "data"
-                     data
-                   ) ;http-require-string
-             ) ;data
-             (headers (http-normalize-string-alist "http-async-post"
-                        "headers"
-                        headers
-                      ) ;http-normalize-string-alist
-             ) ;headers
-             (proxy (http-normalize-string-alist "http-async-post"
-                      "proxy"
-                      proxy
-                    ) ;http-normalize-string-alist
-             ) ;proxy
+    (define* (http-async-post url callback (params '()) (data "") (headers '()) (proxy '()))
+      (let* ((url (http-require-string "http-async-post" "url" url))
+             (callback (http-require-procedure "http-async-post" "callback" callback))
+             (params (http-normalize-string-alist "http-async-post" "params" params))
+             (data (http-require-string "http-async-post" "data" data))
+             (headers (http-normalize-string-alist "http-async-post" "headers" headers))
+             (proxy (http-normalize-string-alist "http-async-post" "proxy" proxy))
             ) ;
-        (cond ((and (> (string-length data) 0)
-                 (null? headers)
-               ) ;and
+        (cond ((and (> (string-length data) 0) (null? headers))
                (g_http-async-post url
                  params
                  data
@@ -696,56 +350,19 @@
                  callback
                ) ;g_http-async-post
               ) ;
-              (else (g_http-async-post url
-                      params
-                      data
-                      headers
-                      proxy
-                      callback
-                    ) ;g_http-async-post
-              ) ;else
+              (else (g_http-async-post url params data headers proxy callback))
         ) ;cond
       ) ;let*
     ) ;define*
 
-    (define* (http-async-head url
-               callback
-               (params '())
-               (headers '())
-               (proxy '())
-             ) ;http-async-head
-      (let ((url (http-require-string "http-async-head"
-                   "url"
-                   url
-                 ) ;http-require-string
-            ) ;url
-            (callback (http-require-procedure "http-async-head"
-                        "callback"
-                        callback
-                      ) ;http-require-procedure
-            ) ;callback
-            (params (http-normalize-string-alist "http-async-head"
-                      "params"
-                      params
-                    ) ;http-normalize-string-alist
-            ) ;params
-            (headers (http-normalize-string-alist "http-async-head"
-                       "headers"
-                       headers
-                     ) ;http-normalize-string-alist
-            ) ;headers
-            (proxy (http-normalize-string-alist "http-async-head"
-                     "proxy"
-                     proxy
-                   ) ;http-normalize-string-alist
-            ) ;proxy
+    (define* (http-async-head url callback (params '()) (headers '()) (proxy '()))
+      (let ((url (http-require-string "http-async-head" "url" url))
+            (callback (http-require-procedure "http-async-head" "callback" callback))
+            (params (http-normalize-string-alist "http-async-head" "params" params))
+            (headers (http-normalize-string-alist "http-async-head" "headers" headers))
+            (proxy (http-normalize-string-alist "http-async-head" "proxy" proxy))
            ) ;
-        (g_http-async-head url
-          params
-          headers
-          proxy
-          callback
-        ) ;g_http-async-head
+        (g_http-async-head url params headers proxy callback)
       ) ;let
     ) ;define*
 
@@ -753,9 +370,7 @@
       (g_http-poll)
     ) ;define
 
-    (define* (http-wait-all (timeout -1))
-      (g_http-wait-all timeout)
-    ) ;define*
+    (define* (http-wait-all (timeout -1)) (g_http-wait-all timeout))
 
   ) ;begin
 ) ;define-library

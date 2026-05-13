@@ -44,13 +44,8 @@ static tb_uint64_t tb_uuid4_xorshift128plus(tb_uint64_t* s)
     s[1] = s1 ^ s0 ^ (s1 >> 18) ^ (s0 >> 5);
     return s[1] + s0;
 }
-static tb_bool_t tb_uuid4_generate(tb_byte_t uuid[16], tb_uint64_t seed[2])
+static tb_bool_t tb_uuid4_generate(tb_byte_t uuid[16], tb_byte_t buffer[16])
 {
-    // init seed data
-    union { tb_byte_t b[16]; tb_uint64_t word[2]; } s;
-    s.word[0] = tb_uuid4_xorshift128plus(seed);
-    s.word[1] = tb_uuid4_xorshift128plus(seed);
-
     /* generate uuid
      *
      * t: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
@@ -63,7 +58,7 @@ static tb_bool_t tb_uuid4_generate(tb_byte_t uuid[16], tb_uint64_t seed[2])
     tb_int_t c2 = 0;
     for (t = 0; t < 32; t++)
     {
-        n = s.b[i >> 1];
+        n = buffer[i >> 1];
         n = (i & 1) ? (n >> 4) : (n & 0xf);
         if (t == 16) // y
         {
@@ -99,22 +94,33 @@ tb_bool_t tb_uuid4_make(tb_byte_t uuid[16], tb_char_t const* name)
     tb_assert_and_check_return_val(uuid, tb_false);
 
     // init seed
-    tb_uint64_t seed[2];
+    union { tb_byte_t b[16]; tb_uint64_t word[2]; } s;
     if (name)
     {
+        tb_uint64_t seed[2];
         tb_assert_static(sizeof(seed) == 16);
         tb_md5_make((tb_byte_t const*)name, tb_strlen(name), (tb_byte_t*)seed, 16);
+
+        s.word[0] = tb_uuid4_xorshift128plus(seed);
+        s.word[1] = tb_uuid4_xorshift128plus(seed);
     }
     else
     {
-        // disable pseudo random
-        tb_random_reset(tb_false);
-        seed[0] = (tb_uint64_t)tb_random();
-        seed[1] = (tb_uint64_t)tb_random();
+        static union { tb_byte_t b[16]; tb_uint64_t word[2]; } s_seed = {0};
+        if (!s_seed.word[0] && !s_seed.word[1])
+        {
+            s_seed.word[0] = (tb_uint64_t)tb_uclock();
+            s_seed.word[1] = (tb_uint64_t)tb_uclock();
+        }
+
+        s_seed.word[0] = tb_uuid4_xorshift128plus(s_seed.word);
+        s_seed.word[1] = tb_uuid4_xorshift128plus(s_seed.word);
+        s.word[0] = s_seed.word[0];
+        s.word[1] = s_seed.word[1];
     }
 
     // generate uuid v4
-    return tb_uuid4_generate(uuid, seed);
+    return tb_uuid4_generate(uuid, s.b);
 }
 tb_char_t const* tb_uuid4_make_cstr(tb_char_t uuid_cstr[37], tb_char_t const* name)
 {
@@ -126,19 +132,65 @@ tb_char_t const* tb_uuid4_make_cstr(tb_char_t uuid_cstr[37], tb_char_t const* na
     if (!tb_uuid4_make(uuid, name)) return tb_null;
 
     // make uuid string
-    tb_long_t size = tb_snprintf(   uuid_cstr
-                                ,   37
-                                ,   "%02X%02X%02X%02X-%02X%02X-%02X%02X-%02X%02X-%02X%02X%02X%02X%02X%02X"
-                                ,   uuid[0], uuid[1], uuid[2], uuid[3]
-                                ,   uuid[4], uuid[5]
-                                ,   uuid[6], uuid[7]
-                                ,   uuid[8], uuid[9]
-                                ,   uuid[10], uuid[11], uuid[12], uuid[13], uuid[14], uuid[15]);
-    tb_assert_and_check_return_val(size == 36, tb_null);
+    static tb_char_t const* digits_table = "0123456789ABCDEF";
+    tb_char_t* s = uuid_cstr;
 
-    // end
-    uuid_cstr[36] = '\0';
+    s[0] = digits_table[(uuid[0] >> 4) & 15];
+    s[1] = digits_table[uuid[0] & 15];
 
-    // ok
+    s[2] = digits_table[(uuid[1] >> 4) & 15];
+    s[3] = digits_table[uuid[1] & 15];
+
+    s[4] = digits_table[(uuid[2] >> 4) & 15];
+    s[5] = digits_table[uuid[2] & 15];
+
+    s[6] = digits_table[(uuid[3] >> 4) & 15];
+    s[7] = digits_table[uuid[3] & 15];
+
+    s[8] = '-';
+
+    s[9] = digits_table[(uuid[4] >> 4) & 15];
+    s[10] = digits_table[uuid[4] & 15];
+
+    s[11] = digits_table[(uuid[5] >> 4) & 15];
+    s[12] = digits_table[uuid[5] & 15];
+
+    s[13] = '-';
+
+    s[14] = digits_table[(uuid[6] >> 4) & 15];
+    s[15] = digits_table[uuid[6] & 15];
+
+    s[16] = digits_table[(uuid[7] >> 4) & 15];
+    s[17] = digits_table[uuid[7] & 15];
+
+    s[18] = '-';
+
+    s[19] = digits_table[(uuid[8] >> 4) & 15];
+    s[20] = digits_table[uuid[8] & 15];
+
+    s[21] = digits_table[(uuid[9] >> 4) & 15];
+    s[22] = digits_table[uuid[9] & 15];
+
+    s[23] = '-';
+
+    s[24] = digits_table[(uuid[10] >> 4) & 15];
+    s[25] = digits_table[uuid[10] & 15];
+
+    s[26] = digits_table[(uuid[11] >> 4) & 15];
+    s[27] = digits_table[uuid[11] & 15];
+
+    s[28] = digits_table[(uuid[12] >> 4) & 15];
+    s[29] = digits_table[uuid[12] & 15];
+
+    s[30] = digits_table[(uuid[13] >> 4) & 15];
+    s[31] = digits_table[uuid[13] & 15];
+
+    s[32] = digits_table[(uuid[14] >> 4) & 15];
+    s[33] = digits_table[uuid[14] & 15];
+
+    s[34] = digits_table[(uuid[15] >> 4) & 15];
+    s[35] = digits_table[uuid[15] & 15];
+
+    s[36] = '\0';
     return uuid_cstr;
 }

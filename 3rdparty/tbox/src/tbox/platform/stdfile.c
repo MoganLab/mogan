@@ -36,6 +36,7 @@
 #   include <unistd.h>
 #   include <sys/select.h>
 #   include <errno.h>
+#   include <string.h>
 #endif
 
 /* //////////////////////////////////////////////////////////////////////////////////////
@@ -136,7 +137,29 @@ tb_bool_t tb_stdfile_readable(tb_stdfile_ref_t self)
     tb_assert_and_check_return_val(stdfile && stdfile->type == TB_STDFILE_TYPE_STDIN, tb_false);
 #endif
 
-    return WaitForSingleObject(GetStdHandle(STD_INPUT_HANDLE), 0) == WAIT_OBJECT_0;
+    HANDLE hStdin = GetStdHandle(STD_INPUT_HANDLE);
+    DWORD fileType = GetFileType(hStdin);
+    if (fileType == FILE_TYPE_PIPE)
+    {
+        if (tb_kernel32()->PeekNamedPipe)
+        {
+            DWORD bytesAvailable = 0;
+            BOOL ok = tb_kernel32()->PeekNamedPipe(hStdin, tb_null, 0, tb_null, &bytesAvailable, tb_null);
+            return ok && bytesAvailable;
+        }
+    }
+    else
+    {
+        if (tb_kernel32()->PeekConsoleInputW)
+        {
+            // we need to ignore left 0x0d charactor, so bytesAvailable must contain at least two characters
+            DWORD bytesAvailable = 0;
+            INPUT_RECORD record[64] = {0};
+            BOOL ok = tb_kernel32()->PeekConsoleInputW(hStdin, record, 64, &bytesAvailable);
+            return ok && bytesAvailable > 1 && record[0].EventType == KEY_EVENT;
+        }
+    }
+    return WaitForSingleObject(hStdin, 0) == WAIT_OBJECT_0;
 }
 #elif defined(TB_CONFIG_POSIX_HAVE_SELECT)
 tb_bool_t tb_stdfile_readable(tb_stdfile_ref_t self)

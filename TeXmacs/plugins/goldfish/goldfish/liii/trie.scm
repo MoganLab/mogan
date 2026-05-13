@@ -1,26 +1,13 @@
 (define-library (liii trie)
 
-  (export make-trie
-    trie?
-    trie-insert!
-    trie-ref
-    trie-ref*
-    trie-value
-    trie->list
-  ) ;export
-  (import (srfi srfi-1)
-    (srfi srfi-2)
-    (srfi srfi-9)
-    (liii alist)
-  ) ;import
+  (export make-trie trie? trie-insert! trie-ref trie-ref* trie-value trie->list)
+  (import (srfi srfi-1) (srfi srfi-2) (srfi srfi-9) (liii alist))
 
   (begin
     (define-record-type :trie
       (make-trie* children value)
       trie?
-      (children trie-children
-        trie-children-set!
-      ) ;children
+      (children trie-children trie-children-set!)
       (value trie-value trie-value-set!)
     ) ;define-record-type
 
@@ -29,37 +16,23 @@
     ) ;define
 
     (define (trie-ref* trie key)
-      (alist-ref/default (trie-children trie)
-        key
-        #f
-      ) ;alist-ref/default
+      (alist-ref/default (trie-children trie) key #f)
     ) ;define
 
     (define* (trie-ref trie key (default #f))
       (let loop
         ((node trie) (key key))
         (if (null? key)
-          (if (null? (trie-value node))
-            default
-            (car (trie-value node))
-          ) ;if
+          (if (null? (trie-value node)) default (car (trie-value node)))
           (let ((child (trie-ref* node (car key))))
-            (if child
-              (loop child (cdr key))
-              default
-            ) ;if
+            (if child (loop child (cdr key)) default)
           ) ;let
         ) ;if
       ) ;let
     ) ;define*
 
     (define (add-child! trie key child)
-      (trie-children-set! trie
-        (alist-cons key
-          child
-          (trie-children trie)
-        ) ;alist-cons
-      ) ;trie-children-set!
+      (trie-children-set! trie (alist-cons key child (trie-children trie)))
     ) ;define
 
     (define (trie-insert! trie key val)
@@ -85,11 +58,7 @@
     (define (trie->list trie)
       (cons (let loop
               ((trie trie))
-              (map (lambda (child)
-                     (cons (car child)
-                       (trie->list (cdr child))
-                     ) ;cons
-                   ) ;lambda
+              (map (lambda (child) (cons (car child) (trie->list (cdr child))))
                 (trie-children trie)
               ) ;map
             ) ;let

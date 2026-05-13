@@ -76,7 +76,7 @@ tb_int_t tb_demo_network_dns_main(tb_int_t argc, tb_char_t** argv)
 
 #if TB_DNS_TEST_HOST_SOME
     tb_hong_t time = tb_mclock();
-    tb_dns_test_done("www.tboox.org");
+    tb_dns_test_done("www.tboox.top");
     tb_dns_test_done("www.tboox.net");
     tb_dns_test_done("www.baidu.com");
     tb_dns_test_done("www.google.com");
@@ -148,7 +148,7 @@ tb_int_t tb_demo_network_dns_main(tb_int_t argc, tb_char_t** argv)
     tb_dns_test_done("www.arm.com");
     tb_dns_test_done("www.nginx.com");
     tb_dns_test_done("www.ted.com");
-    tb_dns_test_done("www.tboox.org");
+    tb_dns_test_done("www.tboox.top");
     tb_dns_test_done("www.tboox.net");
     tb_dns_test_done("www.baidu.com");
     tb_dns_test_done("www.google.com");

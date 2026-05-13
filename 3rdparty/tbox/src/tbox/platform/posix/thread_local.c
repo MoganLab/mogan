@@ -141,7 +141,7 @@ tb_bool_t tb_thread_local_set(tb_thread_local_ref_t local, tb_cpointer_t priv)
         /* mark exists and we use dummy variable to silence glibc 2.34 warnings
          * https://github.com/SELinuxProject/selinux/issues/311
          */
-        tb_int_t dummy;
+        tb_int_t dummy = 0;
         ok = pthread_setspecific(((pthread_key_t*)local->priv)[1], &dummy) == 0;
     }
     return ok;

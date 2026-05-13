@@ -1,37 +1,22 @@
 (define-library (liii case)
-  (import (liii base))
+  (import (liii base) (liii hash-table))
   (export case*)
   (begin
 
     (define case*
       (let ((case*-labels (lambda (label)
-                            (let ((labels ((funclet ((funclet 'case*) 'case*-helper)
-                                           ) ;funclet
-                                           'labels
-                                          ) ;
-                                  ) ;labels
-                                 ) ;
+                            (let ((labels ((funclet ((funclet 'case*) 'case*-helper)) 'labels)))
                               (labels (symbol->string label))
                             ) ;let
                           ) ;lambda
             ) ;case*-labels
 
             (case*-match? (lambda* (matchee pattern (e (curlet)))
-                            (let ((matcher ((funclet ((funclet 'case*) 'case*-helper)
-                                            ) ;funclet
-                                            'handle-sequence
-                                           ) ;
-                                  ) ;matcher
-                                 ) ;
+                            (let ((matcher ((funclet ((funclet 'case*) 'case*-helper)) 'handle-sequence)))
                               (or (equivalent? matchee pattern)
                                 (and (or (pair? matchee) (vector? matchee))
                                   (begin
-                                    (fill! ((funclet ((funclet 'case*) 'case*-helper)
-                                            ) ;funclet
-                                            'labels
-                                           ) ;
-                                      #f
-                                    ) ;fill!
+                                    (fill! ((funclet ((funclet 'case*) 'case*-helper)) 'labels) #f)
                                     ((matcher pattern e) matchee)
                                   ) ;begin
                                 ) ;and
@@ -47,9 +32,7 @@
                                 (or (equal? pat #<...>)
                                   (let ((str (object->string pat)))
                                     (and (char-position #\: str)
-                                      (string=? "...>"
-                                        (substring str (- (length str) 4))
-                                      ) ;string=?
+                                      (string=? "...>" (substring str (- (length str) 4)))
                                     ) ;and
                                   ) ;let
                                 ) ;or
@@ -58,24 +41,14 @@
 
                             (define (ellipsis-pair-position pos pat)
                               (and (pair? pat)
-                                (if (ellipsis? (car pat))
-                                  pos
-                                  (ellipsis-pair-position (+ pos 1)
-                                    (cdr pat)
-                                  ) ;ellipsis-pair-position
-                                ) ;if
+                                (if (ellipsis? (car pat)) pos (ellipsis-pair-position (+ pos 1) (cdr pat)))
                               ) ;and
                             ) ;define
 
                             (define (ellipsis-vector-position pat vlen)
                               (let loop
                                 ((pos 0))
-                                (and (< pos vlen)
-                                  (if (ellipsis? (pat pos))
-                                    pos
-                                    (loop (+ pos 1))
-                                  ) ;if
-                                ) ;and
+                                (and (< pos vlen) (if (ellipsis? (pat pos)) pos (loop (+ pos 1))))
                               ) ;let
                             ) ;define
 
@@ -83,39 +56,23 @@
                               (let ((sel-len (length sel))
                                     (new-pat-len (- (length pat) 1))
                                     (ellipsis-label (and (not (eq? (pat pos) #<...>))
-                                                      (let* ((str (object->string (pat pos)))
-                                                             (colon (char-position #\: str))
-                                                            ) ;
+                                                      (let* ((str (object->string (pat pos))) (colon (char-position #\: str)))
                                                         (and colon (substring str 2 colon))
                                                       ) ;let*
                                                     ) ;and
                                     ) ;ellipsis-label
                                    ) ;
                                 (let ((func (and (string? ellipsis-label)
-                                              (let ((comma (char-position #\, ellipsis-label)
-                                                    ) ;comma
-                                                   ) ;
+                                              (let ((comma (char-position #\, ellipsis-label)))
                                                 (and comma
-                                                  (let ((str (substring ellipsis-label (+ comma 1))
-                                                        ) ;str
-                                                       ) ;
-                                                    (set! ellipsis-label
-                                                      (substring ellipsis-label 0 comma)
-                                                    ) ;set!
-                                                    (let ((func-val (symbol->value (string->symbol str) e)
-                                                          ) ;func-val
-                                                         ) ;
+                                                  (let ((str (substring ellipsis-label (+ comma 1))))
+                                                    (set! ellipsis-label (substring ellipsis-label 0 comma))
+                                                    (let ((func-val (symbol->value (string->symbol str) e)))
                                                       (if (undefined? func-val)
-                                                        (error 'unbound-variable
-                                                          "function ~S is undefined\n"
-                                                          func
-                                                        ) ;error
+                                                        (error 'unbound-variable "function ~S is undefined\n" func)
                                                       ) ;if
                                                       (if (not (procedure? func-val))
-                                                        (error 'wrong-type-arg
-                                                          "~S is not a function\n"
-                                                          func
-                                                        ) ;error
+                                                        (error 'wrong-type-arg "~S is not a function\n" func)
                                                       ) ;if
                                                       func-val
                                                     ) ;let
@@ -129,69 +86,38 @@
                                     (cond ((= pos 0)
                                            (if ellipsis-label
                                              (set! (labels ellipsis-label)
-                                               (list 'quote
-                                                 (copy sel
-                                                   (make-list (- sel-len new-pat-len))
-                                                 ) ;copy
-                                               ) ;list
+                                               (list 'quote (copy sel (make-list (- sel-len new-pat-len))))
                                              ) ;set!
                                            ) ;if
                                            (values (list-tail sel (- sel-len new-pat-len))
                                              (cdr pat)
-                                             (or (not func)
-                                               (func (cadr (labels ellipsis-label)))
-                                             ) ;or
+                                             (or (not func) (func (cadr (labels ellipsis-label))))
                                            ) ;values
                                           ) ;
 
                                           ((= pos new-pat-len)
                                            (if ellipsis-label
                                              (set! (labels ellipsis-label)
-                                               (list 'quote
-                                                 (copy sel
-                                                   (make-list (- sel-len pos))
-                                                   pos
-                                                 ) ;copy
-                                               ) ;list
+                                               (list 'quote (copy sel (make-list (- sel-len pos)) pos))
                                              ) ;set!
                                            ) ;if
                                            (values (copy sel (make-list pos))
                                              (copy pat (make-list pos))
-                                             (or (not func)
-                                               (func (cadr (labels ellipsis-label)))
-                                             ) ;or
+                                             (or (not func) (func (cadr (labels ellipsis-label))))
                                            ) ;values
                                           ) ;
 
-                                          (else (let ((new-pat (make-list new-pat-len))
-                                                      (new-sel (make-list new-pat-len))
-                                                     ) ;
+                                          (else (let ((new-pat (make-list new-pat-len)) (new-sel (make-list new-pat-len)))
                                                   (if ellipsis-label
                                                     (set! (labels ellipsis-label)
-                                                      (list 'quote
-                                                        (copy sel
-                                                          (make-list (- sel-len new-pat-len))
-                                                          pos
-                                                        ) ;copy
-                                                      ) ;list
+                                                      (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
                                                     ) ;set!
                                                   ) ;if
                                                   (copy pat new-pat 0 pos)
-                                                  (copy pat
-                                                    (list-tail new-pat pos)
-                                                    (+ pos 1)
-                                                  ) ;copy
+                                                  (copy pat (list-tail new-pat pos) (+ pos 1))
                                                   (copy sel new-sel 0 pos)
-                                                  (copy sel
-                                                    (list-tail new-sel pos)
-                                                    (- sel-len pos)
-                                                  ) ;copy
-                                                  (values new-sel
-                                                    new-pat
-                                                    (or (not func)
-                                                      (func (cadr (labels ellipsis-label)))
-                                                    ) ;or
-                                                  ) ;values
+                                                  (copy sel (list-tail new-sel pos) (- sel-len pos))
+                                                  (values new-sel new-pat (or (not func) (func (cadr (labels ellipsis-label)))))
                                                 ) ;let
                                           ) ;else
                                     ) ;cond
@@ -199,72 +125,38 @@
                                     (cond ((= pos 0)
                                            (if ellipsis-label
                                              (set! (labels ellipsis-label)
-                                               (list 'quote
-                                                 (copy sel
-                                                   (make-list (- sel-len new-pat-len))
-                                                 ) ;copy
-                                               ) ;list
+                                               (list 'quote (copy sel (make-list (- sel-len new-pat-len))))
                                              ) ;set!
                                            ) ;if
-                                           (values (subvector sel
-                                                     (max 0 (- sel-len new-pat-len))
-                                                     sel-len
-                                                   ) ;subvector
+                                           (values (subvector sel (max 0 (- sel-len new-pat-len)) sel-len)
                                              (subvector pat 1 (+ new-pat-len 1))
-                                             (or (not func)
-                                               (func (cadr (labels ellipsis-label)))
-                                             ) ;or
+                                             (or (not func) (func (cadr (labels ellipsis-label))))
                                            ) ;values
                                           ) ;
 
                                           ((= pos new-pat-len)
                                            (if ellipsis-label
                                              (set! (labels ellipsis-label)
-                                               (list 'quote
-                                                 (copy sel
-                                                   (make-list (- sel-len new-pat-len))
-                                                   pos
-                                                 ) ;copy
-                                               ) ;list
+                                               (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
                                              ) ;set!
                                            ) ;if
                                            (values (subvector sel 0 new-pat-len)
                                              (subvector pat 0 new-pat-len)
-                                             (or (not func)
-                                               (func (cadr (labels ellipsis-label)))
-                                             ) ;or
+                                             (or (not func) (func (cadr (labels ellipsis-label))))
                                            ) ;values
                                           ) ;
 
-                                          (else (let ((new-pat (make-vector new-pat-len))
-                                                      (new-sel (make-vector new-pat-len))
-                                                     ) ;
+                                          (else (let ((new-pat (make-vector new-pat-len)) (new-sel (make-vector new-pat-len)))
                                                   (if ellipsis-label
                                                     (set! (labels ellipsis-label)
-                                                      (list 'quote
-                                                        (copy sel
-                                                          (make-list (- sel-len new-pat-len))
-                                                          pos
-                                                        ) ;copy
-                                                      ) ;list
+                                                      (list 'quote (copy sel (make-list (- sel-len new-pat-len)) pos))
                                                     ) ;set!
                                                   ) ;if
                                                   (copy pat new-pat 0 pos)
-                                                  (copy pat
-                                                    (subvector new-pat pos new-pat-len)
-                                                    (+ pos 1)
-                                                  ) ;copy
+                                                  (copy pat (subvector new-pat pos new-pat-len) (+ pos 1))
                                                   (copy sel new-sel 0 pos)
-                                                  (copy sel
-                                                    (subvector new-sel pos new-pat-len)
-                                                    (- sel-len pos)
-                                                  ) ;copy
-                                                  (values new-sel
-                                                    new-pat
-                                                    (or (not func)
-                                                      (cadr (func (labels ellipsis-label)))
-                                                    ) ;or
-                                                  ) ;values
+                                                  (copy sel (subvector new-sel pos new-pat-len) (- sel-len pos))
+                                                  (values new-sel new-pat (or (not func) (cadr (func (labels ellipsis-label)))))
                                                 ) ;let
                                           ) ;else
                                     ) ;cond
@@ -278,22 +170,15 @@
                             ) ;define
 
                             (define (undefined->function undef e)
-                              (let* ((str1 (object->string undef))
-                                     (str1-end (- (length str1) 1))
-                                    ) ;
+                              (let* ((str1 (object->string undef)) (str1-end (- (length str1) 1)))
                                 (if (not (char=? (str1 str1-end) #\>))
-                                  (error 'wrong-type-arg
-                                    "pattern descriptor does not end in '>': ~S\n"
-                                    str1
-                                  ) ;error
+                                  (error 'wrong-type-arg "pattern descriptor does not end in '>': ~S\n" str1)
                                 ) ;if
                                 (let ((str (substring str1 2 str1-end)))
                                   (if (= (length str) 0)
                                     (lambda (x) #t)
                                     (let ((colon (char-position #\: str)))
-                                      (cond (colon (let ((label (substring str 0 colon))
-                                                         (func (substring str (+ colon 1)))
-                                                        ) ;
+                                      (cond (colon (let ((label (substring str 0 colon)) (func (substring str (+ colon 1))))
                                                      (cond ((labels label)
                                                             (lambda (sel)
                                                               (error 'syntax-error
@@ -306,33 +191,15 @@
                                                            ) ;
 
                                                            ;; otherwise the returned function needs to store the current sel-item under label in labels
-                                                           ((zero? (length func))
-                                                            (lambda (x) (set! (labels label) x) #t)
-                                                           ) ;
+                                                           ((zero? (length func)) (lambda (x) (set! (labels label) x) #t))
 
-                                                           ((char=? (func 0) #\")
-                                                            (lambda (x)
-                                                              (set! (labels label) x)
-                                                              (handle-regex func)
-                                                            ) ;lambda
-                                                           ) ;
-                                                           (else (let ((func-val (symbol->value (string->symbol func) e)
-                                                                       ) ;func-val
-                                                                      ) ;
+                                                           ((char=? (func 0) #\") (lambda (x) (set! (labels label) x) (handle-regex func)))
+                                                           (else (let ((func-val (symbol->value (string->symbol func) e)))
                                                                    (if (undefined? func-val)
-                                                                     (error 'unbound-variable
-                                                                       "function ~S is undefined\n"
-                                                                       func
-                                                                     ) ;error
+                                                                     (error 'unbound-variable "function ~S is undefined\n" func)
                                                                      (if (not (procedure? func-val))
-                                                                       (error 'wrong-type-arg
-                                                                         "~S is not a function\n"
-                                                                         func
-                                                                       ) ;error
-                                                                       (lambda (x)
-                                                                         (set! (labels label) x)
-                                                                         (func-val x)
-                                                                       ) ;lambda
+                                                                       (error 'wrong-type-arg "~S is not a function\n" func)
+                                                                       (lambda (x) (set! (labels label) x) (func-val x))
                                                                      ) ;if
                                                                    ) ;if
                                                                  ) ;let
@@ -340,9 +207,7 @@
                                                      ) ;cond
                                                    ) ;let
                                             ) ;colon
-                                            ((char=? (str 0) #\")
-                                             (handle-regex str)
-                                            ) ;
+                                            ((char=? (str 0) #\") (handle-regex str))
                                             (else (let ((saved (labels str)))
                                                     (if saved
                                                       (lambda (x) (equivalent? x saved))
@@ -359,19 +224,12 @@
                             (define (handle-pattern sel-item pat-item e)
                               (and (undefined? pat-item)
                                 (not (eq? pat-item #<undefined>))
-                                (let ((func (undefined->function pat-item e))
-                                     ) ;
+                                (let ((func (undefined->function pat-item e)))
                                   (if (undefined? func)
-                                    (error 'unbound-variable
-                                      "function ~S is undefined\n"
-                                      pat-item
-                                    ) ;error
+                                    (error 'unbound-variable "function ~S is undefined\n" pat-item)
                                   ) ;if
                                   (if (not (procedure? func))
-                                    (error 'wrong-type-arg
-                                      "~S is not a function\n"
-                                      func
-                                    ) ;error
+                                    (error 'wrong-type-arg "~S is not a function\n" func)
                                   ) ;if
                                   (func sel-item)
                                 ) ;let
@@ -383,26 +241,16 @@
                                   (let ((func-ok #t))
                                     (when (or (pair? pat) (vector? pat))
                                       (if (pair? (cyclic-sequences pat))
-                                        (error 'wrong-type-arg
-                                          "case* pattern is cyclic: ~S~%"
-                                          pat
-                                        ) ;error
+                                        (error 'wrong-type-arg "case* pattern is cyclic: ~S~%" pat)
                                       ) ;if
                                       (let ((pos (if (pair? pat)
                                                    (ellipsis-pair-position 0 pat)
-                                                   (ellipsis-vector-position pat
-                                                     (length pat)
-                                                   ) ;ellipsis-vector-position
+                                                   (ellipsis-vector-position pat (length pat))
                                                  ) ;if
                                             ) ;pos
                                            ) ;
-                                        (when (and pos
-                                                (>= (length sel) (- (length pat) 1))
-                                              ) ;and
-                                          (let ((new-vars (list (splice-out-ellipsis sel pat pos e)
-                                                          ) ;list
-                                                ) ;new-vars
-                                               ) ;
+                                        (when (and pos (>= (length sel) (- (length pat) 1)))
+                                          (let ((new-vars (list (splice-out-ellipsis sel pat pos e))))
                                             (set! sel (car new-vars))
                                             (set! pat (cadr new-vars))
                                             (set! func-ok (caddr new-vars))
@@ -425,17 +273,11 @@
                                                           sel
                                                           pat
                                                         ) ;for-each
-                                                        (unless (or (not (pair? sel))
-                                                                  (proper-list? sel)
-                                                                ) ;or
-                                                          (let ((sel-item (list-tail sel (abs (length sel)))
-                                                                ) ;sel-item
-                                                                (pat-item (list-tail pat (abs (length pat)))
-                                                                ) ;pat-item
+                                                        (unless (or (not (pair? sel)) (proper-list? sel))
+                                                          (let ((sel-item (list-tail sel (abs (length sel))))
+                                                                (pat-item (list-tail pat (abs (length pat))))
                                                                ) ;
-                                                            (return (or (equivalent? sel-item pat-item)
-                                                                      (handle-pattern sel-item pat-item e)
-                                                                    ) ;or
+                                                            (return (or (equivalent? sel-item pat-item) (handle-pattern sel-item pat-item e))
                                                             ) ;return
                                                           ) ;let
                                                         ) ;unless
@@ -450,21 +292,15 @@
                             (define (find-labelled-pattern tree)
                               (or (undefined? tree)
                                 (and (pair? tree)
-                                  (or (find-labelled-pattern (car tree))
-                                    (find-labelled-pattern (cdr tree))
-                                  ) ;or
+                                  (or (find-labelled-pattern (car tree)) (find-labelled-pattern (cdr tree)))
                                 ) ;and
                                 (and (vector? tree)
                                   (let vector-walker
                                     ((pos 0))
                                     (and (< pos (length tree))
                                       (or (undefined? (tree pos))
-                                        (and (pair? (tree pos))
-                                          (find-labelled-pattern (tree pos))
-                                        ) ;and
-                                        (and (vector? (tree pos))
-                                          (vector-walker (tree pos))
-                                        ) ;and
+                                        (and (pair? (tree pos)) (find-labelled-pattern (tree pos)))
+                                        (and (vector? (tree pos)) (vector-walker (tree pos)))
                                         (vector-walker (+ pos 1))
                                       ) ;or
                                     ) ;and
@@ -479,22 +315,13 @@
                                   (let pair-builder
                                     ((tree body))
                                     (cond ((undefined? tree)
-                                           (let ((label (let ((str (object->string tree)))
-                                                          (substring str 2 (- (length str) 1))
-                                                        ) ;let
-                                                 ) ;label
+                                           (let ((label (let ((str (object->string tree))) (substring str 2 (- (length str) 1))))
                                                 ) ;
                                              (or (labels label) tree)
                                            ) ;let
                                           ) ;
-                                          ((pair? tree)
-                                           (cons (pair-builder (car tree))
-                                             (pair-builder (cdr tree))
-                                           ) ;cons
-                                          ) ;
-                                          ((vector? tree)
-                                           (vector (map pair-builder tree))
-                                          ) ;
+                                          ((pair? tree) (cons (pair-builder (car tree)) (pair-builder (cdr tree))))
+                                          ((vector? tree) (vector (map pair-builder tree)))
                                           (else tree)
                                     ) ;cond
                                   ) ;let
@@ -502,10 +329,7 @@
                               ) ;when
                               (return (eval (if (null? (cdr body))
                                               (car body)
-                                              (if (eq? (car body) '=>)
-                                                (list (cadr body) select)
-                                                (cons 'begin body)
-                                              ) ;if
+                                              (if (eq? (car body) '=>) (list (cadr body) select) (cons 'begin body))
                                             ) ;if
                                         e
                                       ) ;eval
@@ -514,9 +338,7 @@
                             (lambda (select clauses e)
                               (call-with-exit (lambda (return)
                                                 (for-each (lambda (clause)
-                                                            (let ((targets (car clause))
-                                                                  (body (cdr clause))
-                                                                 ) ;
+                                                            (let ((targets (car clause)) (body (cdr clause)))
                                                               (fill! labels #f)
                                                               (if (memq targets '(else #t))
                                                                 (return (eval (cons 'begin body) e))
@@ -528,9 +350,7 @@
                                                                                       (and (procedure? func) (func select))
                                                                                     ) ;let
                                                                                   ) ;and
-                                                                                  (and (sequence? target)
-                                                                                   ((handle-sequence target e) select)
-                                                                                  ) ;and
+                                                                                  (and (sequence? target) ((handle-sequence target e) select))
                                                                                 ) ;or
                                                                               (handle-body select body return e)
                                                                             ) ;if
@@ -549,7 +369,10 @@
             ) ;case*-helper
            ) ;
         (#_macro (selector . clauses)
-          `(((#_funclet (#_quote case*)) (#_quote case*-helper)) ,selector (quote ,clauses) (#_curlet))
+          `(((#_funclet (#_quote case*)) (#_quote case*-helper))
+            ,selector
+            (quote ,clauses)
+            (#_curlet))
         ) ;#_macro
       ) ;let
     ) ;define

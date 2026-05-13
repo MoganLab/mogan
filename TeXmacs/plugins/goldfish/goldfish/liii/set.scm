@@ -60,16 +60,11 @@
   (define comp (make-default-comparator))
 
   (define (set . elements)
-    (apply make-set-with-comparator
-      comp
-      elements
-    ) ;apply
+    (apply make-set-with-comparator comp elements)
   ) ;define
 
   (define (list->set elements)
-    (list->set-with-comparator comp
-      elements
-    ) ;list->set-with-comparator
+    (list->set-with-comparator comp elements)
   ) ;define
 
 ) ;define-library

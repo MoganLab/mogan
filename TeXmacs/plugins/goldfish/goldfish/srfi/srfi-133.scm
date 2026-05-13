@@ -46,23 +46,15 @@
 
     (define (vector= elt=? . rest)
       (define compare2vecs
-        (typed-lambda ((cmp procedure?)
-                       (vec1 vector?)
-                       (vec2 vector?)
-                      ) ;
-          (let* ((len1 (vector-length vec1))
-                 (len2 (vector-length vec2))
-                ) ;
+        (typed-lambda ((cmp procedure?) (vec1 vector?) (vec2 vector?))
+          (let* ((len1 (vector-length vec1)) (len2 (vector-length vec2)))
             (if (not (= len1 len2))
               #f
               (let loop
                 ((ilhs 0) (irhs 0) (len len1))
                 (if (= ilhs len)
                   #t
-                  (if (not (cmp (vec1 ilhs) (vec2 irhs)))
-                    #f
-                    (loop (+ 1 ilhs) (+ 1 irhs) len)
-                  ) ;if
+                  (if (not (cmp (vec1 ilhs) (vec2 irhs))) #f (loop (+ 1 ilhs) (+ 1 irhs) len))
                 ) ;if
               ) ;let
             ) ;if
@@ -70,28 +62,18 @@
         ) ;typed-lambda
       ) ;define
       (when (not (procedure? elt=?))
-        (error 'type-error
-          "elt=? should be a procedure"
-        ) ;error
+        (error 'type-error "elt=? should be a procedure")
       ) ;when
       (if (or (null? rest) (= 1 (length rest)))
         #t
         (let loop
-          ((vec1 (car rest))
-           (vec2 (car (cdr rest)))
-           (vrest (cdr (cdr rest)))
-          ) ;
+          ((vec1 (car rest)) (vec2 (car (cdr rest))) (vrest (cdr (cdr rest))))
           (let ((rst (compare2vecs elt=? vec1 vec2)))
             (when (not (boolean? rst))
-              (error 'type-error
-                "elt=> should return bool"
-              ) ;error
+              (error 'type-error "elt=> should return bool")
             ) ;when
             (if (compare2vecs elt=? vec1 vec2)
-              (if (null? vrest)
-                #t
-                (loop vec2 (car vrest) (cdr vrest))
-              ) ;if
+              (if (null? vrest) #t (loop vec2 (car vrest) (cdr vrest)))
               #f
             ) ;if
           ) ;let
@@ -101,26 +83,14 @@
     (define (vector-fold f initial vec)
       (let loop
         ((i 0) (acc initial))
-        (if (< i (vector-length vec))
-          (loop (+ i 1)
-            (f (vector-ref vec i) acc)
-          ) ;loop
-          acc
-        ) ;if
+        (if (< i (vector-length vec)) (loop (+ i 1) (f (vector-ref vec i) acc)) acc)
       ) ;let
     ) ;define
 
     (define (vector-fold-right f initial vec)
       (let loop
-        ((i (- (vector-length vec) 1))
-         (acc initial)
-        ) ;
-        (if (>= i 0)
-          (loop (- i 1)
-            (f (vector-ref vec i) acc)
-          ) ;loop
-          acc
-        ) ;if
+        ((i (- (vector-length vec) 1)) (acc initial))
+        (if (>= i 0) (loop (- i 1) (f (vector-ref vec i) acc)) acc)
       ) ;let
     ) ;define
 
@@ -128,9 +98,7 @@
       (let loop
         ((i 0) (count 0))
         (cond ((= i (vector-length v)) count)
-              ((pred (vector-ref v i))
-               (loop (+ i 1) (+ count 1))
-              ) ;
+              ((pred (vector-ref v i)) (loop (+ i 1) (+ count 1)))
               (else (loop (+ i 1) count))
         ) ;cond
       ) ;let
@@ -138,9 +106,7 @@
 
     (define vector-cumulate
       (typed-lambda ((fn procedure?) knil (vec vector?))
-        (let* ((len (vector-length vec))
-               (v-rst (make-vector len))
-              ) ;
+        (let* ((len (vector-length vec)) (v-rst (make-vector len)))
           (let loop
             ((i 0) (lhs knil))
             (if (= i len)
@@ -203,22 +169,15 @@
     ) ;define
 
     (define (vector-skip pred v)
-      (vector-index (lambda (x) (not (pred x)))
-        v
-      ) ;vector-index
+      (vector-index (lambda (x) (not (pred x))) v)
     ) ;define
 
     (define (vector-skip-right pred v)
-      (vector-index-right (lambda (x) (not (pred x)))
-        v
-      ) ;vector-index-right
+      (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
 
     (define (vector-partition pred v)
-      (let* ((len (vector-length v))
-             (cnt (vector-count pred v))
-             (ret (make-vector len))
-            ) ;
+      (let* ((len (vector-length v)) (cnt (vector-count pred v)) (ret (make-vector len)))
         (let loop
           ((i 0) (yes 0) (no cnt))
           (if (= i len)
@@ -241,9 +200,7 @@
     ) ;define
 
     (define (vector-swap! vec i j)
-      (let ((elem-i (vector-ref vec i))
-            (elem-j (vector-ref vec j))
-           ) ;
+      (let ((elem-i (vector-ref vec i)) (elem-j (vector-ref vec j)))
         (vector-set! vec i elem-j)
         (vector-set! vec j elem-i)
       ) ;let
@@ -252,20 +209,11 @@
     (define (vector-reverse! vec . args)
       (let* ((args-length (length args))
              (start (if (null? args) 0 (car args)))
-             (end (if (<= args-length 1)
-                    (vector-length vec)
-                    (cadr args)
-                  ) ;if
-             ) ;end
+             (end (if (<= args-length 1) (vector-length vec) (cadr args)))
             ) ;
 
-        (unless (and (< args-length 3)
-                  (>= args-length 0)
-                ) ;and
-          (error 'wrong-number-of-args
-            "#<vector-reverse!>: too many args"
-            args-length
-          ) ;error
+        (unless (and (< args-length 3) (>= args-length 0))
+          (error 'wrong-number-of-args "#<vector-reverse!>: too many args" args-length)
         ) ;unless
         (unless (and (integer? start) (integer? end))
           (error 'type-error
@@ -275,16 +223,10 @@
           ) ;error
         ) ;unless
         (when (< start 0)
-          (error 'out-of-range
-            "#<vector-reverse!>: *start* cannot be negative"
-            start
-          ) ;error
+          (error 'out-of-range "#<vector-reverse!>: *start* cannot be negative" start)
         ) ;when
         (when (> end (vector-length vec))
-          (error 'out-of-range
-            "#<vector-reverse!>: *end* exceeds vector length"
-            end
-          ) ;error
+          (error 'out-of-range "#<vector-reverse!>: *end* exceeds vector length" end)
         ) ;when
         (when (> start end)
           (error 'out-of-range
@@ -305,9 +247,7 @@
 
     (define reverse-list->vector
       (typed-lambda ((lst proper-list?))
-        (let* ((len (length lst))
-               (v-rst (make-vector len))
-              ) ;
+        (let* ((len (length lst)) (v-rst (make-vector len)))
           (let loop
             ((l lst) (i (- len 1)))
             (if (null? l)

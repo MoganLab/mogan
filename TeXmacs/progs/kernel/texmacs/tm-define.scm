@@ -55,7 +55,7 @@
 (define-public tm-defined-table (make-ahash-table))
 (define-public tm-defined-name (make-ahash-table))
 (define-public tm-defined-module (make-ahash-table))
-(define-public define-option-table (make-hash-table 100))
+(define-public define-option-table (make-ahash-table 100))
 
 (define-public cur-conds '())
 

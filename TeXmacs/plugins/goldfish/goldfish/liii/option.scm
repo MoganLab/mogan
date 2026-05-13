@@ -27,9 +27,7 @@
     ) ;define
 
     (define (option? x)
-      (and (pair? x)
-        (or (eq? (cdr x) 'N) (eq? (cdr x) 'S))
-      ) ;and
+      (and (pair? x) (or (eq? (cdr x) 'N) (eq? (cdr x) 'S)))
     ) ;define
 
     (define (option-empty? opt)
@@ -41,26 +39,15 @@
     ) ;define
 
     (define (option-map f opt)
-      (if (option-empty? opt)
-        (none)
-        (option (f (car opt)))
-      ) ;if
+      (if (option-empty? opt) (none) (option (f (car opt))))
     ) ;define
 
     (define (option-filter pred opt)
-      (if (or (option-empty? opt)
-            (not (pred (car opt)))
-          ) ;or
-        (none)
-        opt
-      ) ;if
+      (if (or (option-empty? opt) (not (pred (car opt)))) (none) opt)
     ) ;define
 
     (define (option-flat-map f opt)
-      (if (option-empty? opt)
-        (none)
-        (f (car opt))
-      ) ;if
+      (if (option-empty? opt) (none) (f (car opt)))
     ) ;define
 
     (define (option-for-each f opt)
@@ -70,21 +57,11 @@
     ) ;define
 
     (define (option-get opt)
-      (if (option-empty? opt)
-        (error "option is empty, cannot get value"
-        ) ;error
-        (car opt)
-      ) ;if
+      (if (option-empty? opt) (error "option is empty, cannot get value") (car opt))
     ) ;define
 
     (define (option-get-or-else default opt)
-      (if (option-empty? opt)
-        (if (procedure? default)
-          (default)
-          default
-        ) ;if
-        (car opt)
-      ) ;if
+      (if (option-empty? opt) (if (procedure? default) (default) default) (car opt))
     ) ;define
 
     (define (option-or-else alt opt)
@@ -92,32 +69,18 @@
     ) ;define
 
     (define (option=? opt1 opt2)
-      (cond ((and (option-empty? opt1)
-               (option-empty? opt2)
-             ) ;and
-             #t
-            ) ;
-            ((or (option-empty? opt1)
-               (option-empty? opt2)
-             ) ;or
-             #f
-            ) ;
+      (cond ((and (option-empty? opt1) (option-empty? opt2)) #t)
+            ((or (option-empty? opt1) (option-empty? opt2)) #f)
             (else (equal? (car opt1) (car opt2)))
       ) ;cond
     ) ;define
 
     (define (option-every pred opt)
-      (if (option-empty? opt)
-        #f
-        (pred (car opt))
-      ) ;if
+      (if (option-empty? opt) #f (pred (car opt)))
     ) ;define
 
     (define (option-any pred opt)
-      (if (option-empty? opt)
-        #f
-        (pred (car opt))
-      ) ;if
+      (if (option-empty? opt) #f (pred (car opt)))
     ) ;define
 
   ) ;begin

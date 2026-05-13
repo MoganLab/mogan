@@ -1,7 +1,7 @@
 The Treasure Box Library
 Copyright 2009-present The TBOOX Open Source Group
 
-This product includes software developed by The TBOOX Open Source Group (https://tboox.org/).
+This product includes software developed by The TBOOX Open Source Group (https://tboox.top/).
 
 -------------------------------------------------------------------------------
 This product contains a modified portion of 'boost.context', a coroutine context

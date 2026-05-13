@@ -1,13 +1,7 @@
--- project
 set_project("tbox")
-
--- set xmake minimum version
-set_xmakever("2.8.2")
-
--- set project version
-set_version("1.7.5", {build = "%Y%m%d", soname = true})
-
--- set warning all as error
+set_xmakever("3.0.5")
+set_policy("build.progress_style", "multirow")
+set_version("1.8.0", {build = "%Y%m%d", soname = true})
 set_warnings("all", "error")
 
 -- set language: c99
@@ -17,6 +11,12 @@ set_languages(stdc)
 -- add defines to config.h
 set_configvar("_GNU_SOURCE", 1)
 set_configvar("_REENTRANT", 1)
+
+-- ensure POSIX/XOPEN features are available on Solaris (for setenv, unsetenv, clock_gettime, etc.)
+-- _XOPEN_SOURCE=600 implicitly sets _POSIX_C_SOURCE to 200112L
+if is_plat("solaris") then
+    add_defines("_XOPEN_SOURCE=600")
+end
 
 -- add module directories
 add_moduledirs("xmake")
@@ -33,6 +33,13 @@ end
 if is_plat("wasm") then
     add_requires("emscripten")
     set_toolchains("emcc@emscripten")
+end
+
+-- set cosmocc toolchain, e.g. xmake f -p linux --cosmocc=y
+if has_config("cosmocc") then
+    add_requires("cosmocc")
+    set_toolchains("@cosmocc")
+    set_policy("build.ccache", false)
 end
 
 -- add build modes
@@ -59,7 +66,13 @@ if has_config("small", "micro") then
         -- TODO we should fix it in context code later
         -- https://github.com/tboox/tbox/issues/175
         not has_config("coroutine") then
-        set_optimize("smallest")
+        if is_plat("windows") then
+            -- we cannot use smallest(/O1), it maybe generates incorrect code for msvc2022
+            -- @see https://github.com/tboox/tbox/issues/272
+            set_optimize("fastest")
+        else
+            set_optimize("smallest")
+        end
     end
     add_cxflags("-fno-stack-protector")
 end

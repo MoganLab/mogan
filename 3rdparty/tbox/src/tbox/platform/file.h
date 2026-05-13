@@ -76,8 +76,10 @@ typedef enum __tb_file_seek_flag_e
 /// the file copy flag
 typedef enum __tb_file_copy_flag_e
 {
-    TB_FILE_COPY_NONE       = 0 //!< default: copy symlink as file
-,   TB_FILE_COPY_LINK       = 1 //!< reserve symlink
+    TB_FILE_COPY_NONE         = 0 //!< default
+,   TB_FILE_COPY_LINK         = 1 //!< reserve symlink, otherwise copy symlink as file
+,   TB_FILE_COPY_WRITEABLE    = 2 //!< writeable, we can copy readonly file and mark it as writeable
+,   TB_FILE_COPY_IF_DIFFERENT = 4 //!< only copy file when src and dst file are different
 
 }tb_file_copy_flag_e;
 

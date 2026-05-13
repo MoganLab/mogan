@@ -37,6 +37,7 @@
 #   include "../../coroutine/impl/impl.h"
 #endif
 #include <CoreServices/CoreServices.h>
+#include <AvailabilityMacros.h>
 
 /* //////////////////////////////////////////////////////////////////////////////////////
  * types
@@ -139,6 +140,7 @@ static tb_void_t tb_fwatcher_item_callback(ConstFSEventStreamRef stream, tb_poin
         tb_check_continue(matched);
 
         // filter need events
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
         if (flags & kFSEventStreamEventFlagItemCreated)
             event.event = TB_FWATCHER_EVENT_CREATE;
         else if (flags & kFSEventStreamEventFlagItemRemoved)
@@ -151,6 +153,9 @@ static tb_void_t tb_fwatcher_item_callback(ConstFSEventStreamRef stream, tb_poin
             event.event = TB_FWATCHER_EVENT_MODIFY;
             tb_path_directory(filepath, event.filepath, TB_PATH_MAXN);
         }
+#else
+        event.event = TB_FWATCHER_EVENT_MODIFY;
+#endif
 
         // add event to queue
         if (event.event)
@@ -189,10 +194,14 @@ static tb_bool_t tb_fwatcher_item_init(tb_fwatcher_t* fwatcher, tb_char_t const*
     watchitem->watchdir = watchdir;
 
     // create fsevent stream
+#if MAC_OS_X_VERSION_MIN_REQUIRED >= 1070
     FSEventStreamCreateFlags flags = kFSEventStreamCreateFlagFileEvents | kFSEventStreamCreateFlagNoDefer;
 #if defined (HAVE_MACOS_GE_10_13)
     flags |= kFSEventStreamCreateFlagUseExtendedData;
     flags |= kFSEventStreamCreateFlagUseCFTypes;
+#endif
+#else
+    FSEventStreamCreateFlags flags = kFSEventStreamCreateFlagNoDefer;
 #endif
     watchitem->stream = FSEventStreamCreate(tb_null, tb_fwatcher_item_callback, context,
         path_array, kFSEventStreamEventIdSinceNow, 0, flags);

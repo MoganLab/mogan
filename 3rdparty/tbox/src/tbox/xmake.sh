@@ -8,14 +8,14 @@ target "tbox"
 
     # set the auto-generated config.h
     if $check_interfaces_enabled; then
-        set_configdir "${buildir}/${plat}/${arch}/${mode}"
+        set_configdir "${builddir}/${plat}/${arch}/${mode}"
         add_configfiles "tbox.config.h.in"
-        add_headerfiles "${buildir}/${plat}/${arch}/${mode}/tbox.config.h" "tbox"
+        add_headerfiles "${builddir}/${plat}/${arch}/${mode}/tbox.config.h" "tbox"
     fi
 
     # add include directories
     add_includedirs ".." "{public}"
-    add_includedirs "${buildir}/${plat}/${arch}/${mode}" "{public}"
+    add_includedirs "${builddir}/${plat}/${arch}/${mode}" "{public}"
 
     # add the header files for installing
     add_headerfiles "../(tbox/**.h)"
@@ -34,6 +34,7 @@ target "tbox"
     add_files "math/**.c"
     add_files "libc/misc/*.c"
     add_files "libc/misc/time/*.c"
+    add_files "libc/wctype/*.c"
     add_files "libc/stdio/*.c"
     add_files "libc/stdlib/*.c"
     add_files "libc/string/*.c"
@@ -187,7 +188,9 @@ target "tbox"
         add_files "hash/rs.c"
         add_files "hash/sha.c"
         add_files "hash/uuid.c"
-        add_files "hash/arch/crc32.S"
+        if ! is_toolchain "cosmocc"; then
+            add_files "hash/arch/crc32.S"
+        fi
     fi
 
     # add the source files for the coroutine module
