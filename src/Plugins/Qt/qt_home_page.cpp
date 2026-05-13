@@ -743,8 +743,10 @@ QtHomePage::createDocumentWithStyle (const QString& styleId) {
   if (styleId == "open") {
     if (!recentDocs_.isEmpty ()) {
       QString dir= QFileInfo (recentDocs_.first ().filePath).absolutePath ();
-      eval_scheme ("(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
-                   "(system->url " * qt_scheme_quote_utf8 (dir) * "))");
+      eval_scheme (
+          "(choose-file load-buffer \"Load file\" \"action_open\" \"\" "
+          "(system->url " *
+          qt_scheme_quote_utf8 (dir) * "))");
     }
     else {
       eval_scheme ("(open-document)");
