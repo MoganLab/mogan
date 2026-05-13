@@ -17,7 +17,6 @@ set_policy("run.autobuild", false)
 set_languages("c++17")
 set_encodings("utf-8")
 
-add_requires("s7", {system=false})
 add_requires("tbox", {system=false})
 add_requires("cpr", {system=false})
 includes("xmake/goldfish.lua")
