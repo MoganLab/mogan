@@ -626,6 +626,26 @@ table_rep::position_columns (bool large) {
   // for (int i=0; i<nr_cols; i++)
   //   cout << "Column " << i << ": " << (mw[i]>>8) << "; "
   //        << (lw[i]>>8) << ", " << (rw[i]>>8) << LF;
+
+  // Scale column widths if total exceeds page width
+  if (hmode == "auto" && large) {
+    SI total= sum (mw, nr_cols);
+    SI page_w, d1, d2, d3, d4, d5, d6, d7;
+    env->get_page_pars (page_w, d1, d2, d3, d4, d5, d6, d7);
+    if (total > page_w) {
+      bool has_hyphen= false;
+      for (int i= 0; i < nr_rows && !has_hyphen; i++)
+        for (int j= 0; j < nr_cols && !has_hyphen; j++)
+          if (!is_nil (T[i][j]) && !is_nil (T[i][j]->lz)) has_hyphen= true;
+      if (has_hyphen) {
+        for (int j= 0; j < nr_cols; j++) {
+          mw[j]= (SI) ((((long long) mw[j]) * page_w) / total);
+          if (mw[j] < lw[j] + rw[j]) mw[j]= lw[j] + rw[j];
+        }
+      }
+    }
+  }
+
   if (hmode != "auto" && large) {
     SI min_width= sum (mw, nr_cols);
     SI hextra   = width - min_width;

@@ -167,6 +167,7 @@ private slots:
   void test_handle_decorations_correctness ();
   void test_handle_decorations_performance ();
   void test_cell_hyphen_wrapping ();
+  void test_cell_hyphen_multi_column ();
   void cleanupTestCase ();
 };
 
@@ -673,15 +674,77 @@ TestTablePerformance::test_cell_hyphen_wrapping () {
   tab_wrap->position_rows ();
   tab_wrap->finish ();
 
-  SI width_no_wrap= tab_no_wrap->T[0][0]->b->w ();
-  SI width_wrap   = tab_wrap->T[0][0]->b->w ();
+  SI width_no_wrap       = tab_no_wrap->T[0][0]->b->w ();
+  SI width_wrap          = tab_wrap->T[0][0]->b->w ();
+  SI height_no_wrap      = tab_no_wrap->T[0][0]->b->h ();
+  SI height_wrap         = tab_wrap->T[0][0]->b->h ();
+  SI inner_width_no_wrap = tab_no_wrap->T[0][0]->b[0]->w ();
+  SI inner_width_wrap    = tab_wrap->T[0][0]->b[0]->w ();
+  SI inner_height_no_wrap= tab_no_wrap->T[0][0]->b[0]->h ();
+  SI inner_height_wrap   = tab_wrap->T[0][0]->b[0]->h ();
 
-  qDebug () << "No wrap width:" << width_no_wrap;
-  qDebug () << "Wrap width:" << width_wrap;
+  qDebug () << "No wrap width:" << width_no_wrap << "height:" << height_no_wrap;
+  qDebug () << "Wrap width:" << width_wrap << "height:" << height_wrap;
+  qDebug () << "No wrap inner width:" << inner_width_no_wrap
+            << "inner height:" << inner_height_no_wrap;
+  qDebug () << "Wrap inner width:" << inner_width_wrap
+            << "inner height:" << inner_height_wrap;
 
   // When cell-hyphen is enabled, the cell should wrap and be narrower
   // than the non-wrapping case
   QVERIFY (width_wrap < width_no_wrap);
+}
+
+void
+TestTablePerformance::test_cell_hyphen_multi_column () {
+  cache_refresh ();
+  edit_env env= create_test_env ();
+
+  // Create a very long string that exceeds page width
+  string long_text;
+  for (int i= 0; i < 200; i++)
+    long_text << "d";
+
+  // Create 1x3 table with cell-hyphen enabled for all cells
+  tree table_wrap (TFORMAT);
+  table_wrap << tree (CWITH, "1", "1", "1", "3", "cell-hyphen", "t");
+  table_wrap << tree (TABLE, 1);
+  tree row_wrap (ROW, 3);
+  row_wrap[0]     = tree (CELL, tree (DOCUMENT, long_text));
+  row_wrap[1]     = tree (CELL, tree (DOCUMENT, long_text));
+  row_wrap[2]     = tree (CELL, tree (DOCUMENT, long_text));
+  table_wrap[1][0]= row_wrap;
+
+  // Typeset table
+  table tab_wrap (env);
+  tab_wrap->typeset (table_wrap, path ());
+  tab_wrap->position_columns (true);
+
+  SI pw, d1, d2, d3, d4, d5, d6, d7;
+  tab_wrap->env->get_page_pars (pw, d1, d2, d3, d4, d5, d6, d7);
+  qDebug () << "Page width (get_page_width):"
+            << tab_wrap->env->get_page_width (false);
+  qDebug () << "Page width (get_page_pars):" << pw;
+  qDebug () << "Column 0 width:" << tab_wrap->mw[0];
+  qDebug () << "Column 1 width:" << tab_wrap->mw[1];
+  qDebug () << "Column 2 width:" << tab_wrap->mw[2];
+  qDebug () << "Total width:"
+            << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2];
+
+  tab_wrap->finish_horizontal ();
+  tab_wrap->position_rows ();
+  tab_wrap->finish ();
+
+  SI width_col0 = tab_wrap->T[0][0]->b->w ();
+  SI width_col1 = tab_wrap->T[0][1]->b->w ();
+  SI width_col2 = tab_wrap->T[0][2]->b->w ();
+  SI height_col0= tab_wrap->T[0][0]->b->h ();
+  SI height_col1= tab_wrap->T[0][1]->b->h ();
+  SI height_col2= tab_wrap->T[0][2]->b->h ();
+
+  qDebug () << "Cell 0 box width:" << width_col0 << "height:" << height_col0;
+  qDebug () << "Cell 1 box width:" << width_col1 << "height:" << height_col1;
+  qDebug () << "Cell 2 box width:" << width_col2 << "height:" << height_col2;
 }
 
 void
