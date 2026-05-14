@@ -77,6 +77,11 @@ decode_url (string s) {
   return url_root (s (0, i)) * url_general (s (i + 1, N (s)), URL_CLEAN_UNIX);
 }
 
+static bool
+is_chat_tab_buffer (url name) {
+  return starts (as_string (name), "tmfs://chat-tab");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();
@@ -440,7 +445,16 @@ kill_tabpage (url win_u, url u) {
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
-  bool is_current                    = (get_current_view () == u);
+  url  current_u = get_current_view_safe ();
+  bool is_current= (!is_none (current_u) && current_u == u);
+  if (!is_current && vw->buf != NULL &&
+      is_chat_tab_buffer (vw->buf->buf->name)) {
+    tm_view current_vw= concrete_view (current_u);
+    if (current_vw != NULL && current_vw->ed != NULL &&
+        current_vw->ed->mvw == vw) {
+      is_current= true;
+    }
+  }
   bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage

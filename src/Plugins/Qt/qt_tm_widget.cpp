@@ -80,6 +80,11 @@ is_startup_tab_file (const string& file) {
 }
 
 static bool
+is_chat_tab_file (const string& file) {
+  return file == "tmfs://chat-tab";
+}
+
+static bool
 is_startup_tab_current_view () {
   url view= get_current_view_safe ();
   if (is_none (view)) return false;
@@ -167,7 +172,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       m_memberType (""), m_currentScmNotificationItem (""),
       startupContentWidget (nullptr), startupTabMode (false),
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      lastLoadedPdfPath ("") {
+      lastLoadedPdfPath (""),
+      chatContentWidget (nullptr),
+      chatTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -844,6 +851,10 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
   if (pdfViewerWidget) {
     delete pdfViewerWidget;
   }
+  // delete chat content widget
+  if (chatContentWidget) {
+    delete chatContentWidget;
+  }
 }
 
 void
@@ -922,6 +933,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     // Show Backstage/Startup view
     hide_widget_from_layout (editorWidget, layout);
     hide_widget_from_layout (pdfViewerWidget, layout);
+    hide_widget_from_layout (chatContentWidget, layout);
 
     update_visibility ();
 
@@ -951,18 +963,57 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     }
   }
   else {
-    // Show normal editor view
+    // Show normal editor view (unless chat tab mode is active)
+    hide_widget_from_layout (startupContentWidget, layout);
+    if (!chatTabMode) {
+      show_widget_in_layout (editorWidget, layout);
+
+      update_visibility ();
+
+      if (scrollarea ())
+        scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                                  QSizePolicy::Fixed);
+      url currentView= get_current_view_safe ();
+      if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+    }
+  }
+}
+
+void
+qt_tm_widget_rep::sync_chat_tab_mode () {
+  QWidget* editorWidget= main_widget->qwid;
+  QLayout* layout      = centralwidget ()->layout ();
+  if (!layout) return;
+
+  if (chatTabMode) {
+    // Show Chat tab view
+    hide_widget_from_layout (editorWidget, layout);
     hide_widget_from_layout (startupContentWidget, layout);
     hide_widget_from_layout (pdfViewerWidget, layout);
     show_widget_in_layout (editorWidget, layout);
 
     update_visibility ();
 
-    if (scrollarea ())
-      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
-                                                QSizePolicy::Fixed);
-    url currentView= get_current_view_safe ();
-    if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+    if (!chatContentWidget) {
+      chatContentWidget= new QTChatTabWidget (centralwidget ());
+    }
+    show_widget_in_layout (chatContentWidget, layout);
+    chatContentWidget->setFocus (Qt::OtherFocusReason);
+  }
+  else {
+    // Show normal editor view (unless startup tab mode is active)
+    hide_widget_from_layout (chatContentWidget, layout);
+    if (!startupTabMode) {
+      show_widget_in_layout (editorWidget, layout);
+
+      update_visibility ();
+
+      if (scrollarea ())
+        scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                                  QSizePolicy::Fixed);
+      url currentView= get_current_view_safe ();
+      if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+    }
   }
 }
 
@@ -999,7 +1050,7 @@ qt_tm_widget_rep::update_visibility () {
   bool new_auxVisibility   = visibility[11];
   bool new_titleVisibility = visibility[0];
 
-  if (startupTabMode) {
+  if (startupTabMode || chatTabMode) {
     new_mainVisibility  = false;
     new_menuVisibility  = false;
     new_modeVisibility  = false;
@@ -1285,7 +1336,9 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (pdfTabMode) {
       currentPdfPath= utf8_to_qstring (file);
     }
+    chatTabMode   = is_chat_tab_file (file);
     sync_startup_tab_mode ();
+    sync_chat_tab_mode ();
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);

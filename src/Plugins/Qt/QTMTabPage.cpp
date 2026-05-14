@@ -109,6 +109,24 @@ startup_tab_index (const QList<QTMTabPage*>& tabs) {
   return -1;
 }
 
+static url
+chat_tab_buffer_name () {
+  return url ("tmfs://chat-tab");
+}
+
+static bool
+is_chat_tab_view (url viewUrl) {
+  if (is_none (viewUrl)) return false;
+  return view_to_buffer (viewUrl) == chat_tab_buffer_name ();
+}
+
+static int
+chat_tab_index (const QList<QTMTabPage*>& tabs) {
+  for (int i= 0; i < tabs.size (); ++i)
+    if (tabs[i] != nullptr && is_chat_tab_view (tabs[i]->m_viewUrl)) return i;
+  return -1;
+}
+
 /******************************************************************************
  * QTMTabPage
  ******************************************************************************/
@@ -190,10 +208,11 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   QString elidedText= fm.elidedText (text (), Qt::ElideRight, availableWidth);
 
   bool isStartup= is_startup_tab_view (m_viewUrl);
-  int  textAlign= isStartup ? Qt::AlignCenter : Qt::AlignLeft;
+  bool isChatTab= is_chat_tab_view (m_viewUrl);
+  int  textAlign= (isStartup || isChatTab) ? Qt::AlignCenter : Qt::AlignLeft;
 
   QRect textRect (leftPadding, 0, availableWidth, height ());
-  if (isStartup) {
+  if (isStartup || isChatTab) {
     textRect= QRect (0, 0, width (), height ());
   }
 
@@ -215,8 +234,8 @@ QTMTabPage::resizeEvent (QResizeEvent* e) {
 
 void
 QTMTabPage::mousePressEvent (QMouseEvent* e) {
-  if (is_startup_tab_view (m_viewUrl)) {
-    // 如果启动页标签已经是当前视图，不处理点击事件，避免取消选中状态
+  if (is_startup_tab_view (m_viewUrl) || is_chat_tab_view (m_viewUrl)) {
+    // 如果启动页标签或聊天标签已经是当前视图，不处理点击事件，避免取消选中状态
     url currentView= get_current_view_safe ();
     if (!is_none (currentView) && currentView == m_viewUrl) {
       return;
@@ -235,7 +254,7 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
-  if (is_startup_tab_view (m_viewUrl)) {
+  if (is_startup_tab_view (m_viewUrl) || is_chat_tab_view (m_viewUrl)) {
     return QToolButton::mouseMoveEvent (e);
   }
   if (!(e->buttons () & Qt::LeftButton)) return QToolButton::mouseMoveEvent (e);
@@ -386,6 +405,17 @@ QTMTabPageContainer::extractTabPages (QList<QAction*>* p_src) {
     QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
     m_tabPageList.prepend (startupTab);
   }
+
+  int chatIndex= chat_tab_index (m_tabPageList);
+  if (chatIndex > 1) {
+    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
+    m_tabPageList.insert (1, chatTab);
+  }
+  else if (chatIndex == 0 && m_tabPageList.size () > 1) {
+    // Chat tab should be after startup tab, not before
+    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
+    m_tabPageList.insert (1, chatTab);
+  }
 }
 
 void
@@ -439,7 +469,8 @@ QTMTabPageContainer::arrangeTabPages () {
   for (int i= 0; i < m_tabPageList.size (); ++i) {
     QTMTabPage* tab            = m_tabPageList[i];
     int         currentTabWidth= tabWidth;
-    if (is_startup_tab_view (tab->m_viewUrl)) {
+    if (is_startup_tab_view (tab->m_viewUrl) ||
+        is_chat_tab_view (tab->m_viewUrl)) {
       currentTabWidth= std::min (tabWidth, getScaledStartupTabMaxWidth ());
     }
 
@@ -604,7 +635,8 @@ QTMTabPageContainer::dropEvent (QDropEvent* e) {
     QObject* src= e->source ();
     if (src && src != this) {
       url dragged_view= g_mostRecentlyDraggedTab;
-      if (is_startup_tab_view (dragged_view)) {
+      if (is_startup_tab_view (dragged_view) ||
+          is_chat_tab_view (dragged_view)) {
         g_mostRecentlyDraggedTab= url_none ();
         g_mostRecentlyDraggedBar= nullptr;
         g_pointingIndex         = -1;

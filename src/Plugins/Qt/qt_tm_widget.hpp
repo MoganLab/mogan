@@ -23,6 +23,7 @@
 #include "QTMScrollView.hpp"
 #include "QTMTabPage.hpp"
 #include "QTMWidget.hpp"
+#include "qt_chat_tab_widget.hpp"
 
 #include <QLayout>
 #include <QMainWindow>
@@ -173,11 +174,13 @@ private:
   qt_widget auxiliary_widget;
   qt_widget dock_window_widget; // trick to return correct widget position
   QWidget*  startupContentWidget;
+  QWidget*  chatContentWidget;
   bool      startupTabMode;
   PDFReaderWidget* pdfViewerWidget;
   bool             pdfTabMode;
   QString          currentPdfPath;
   QString          lastLoadedPdfPath;
+  bool      chatTabMode;
 
 public:
   qt_tm_widget_rep (int mask, command _quit);
@@ -197,6 +200,7 @@ public:
   void        openRenewalPage ();
   void        checkNetworkAvailable ();
   void        sync_startup_tab_mode ();
+  void        sync_chat_tab_mode ();
 
   friend class QTMInteractiveInputHelper;
 

@@ -132,6 +132,7 @@
 (use-modules (texmacs menus notificationbar))
 (use-modules (texmacs menus tabpage-menu))
 (use-modules (startup-tab startup-tab))
+(use-modules (dynamic chat-adapter))
 (lazy-define (texmacs menus file-menu) recent-file-list recent-directory-list)
 (lazy-define (texmacs menus view-menu) set-bottom-bar test-bottom-bar?)
 (tm-define (notify-set-attachment name key val) (noop))
