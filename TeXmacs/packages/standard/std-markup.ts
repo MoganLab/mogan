@@ -665,6 +665,8 @@
 
   <assign|indent-par-first|1.5fn>
 
+  <assign|indent-after-block|false>
+
   <assign|padded-par-par-sep|0.6666fn>
 
   <assign|math-color|<value|color>>
