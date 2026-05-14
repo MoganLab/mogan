@@ -18,9 +18,9 @@
  ******************************************************************************/
 
 struct concat_box_rep : public composite_box_rep {
-  array<SI> spc;
-  bool      indent;
-  array<int> bg_indices;
+  array<SI>    spc;
+  bool         indent;
+  array<int>   bg_indices;
   array<color> bg_colors;
   concat_box_rep (path ip, array<box> bs, array<SI> spc, bool indent);
   operator tree ();
@@ -155,15 +155,15 @@ concat_box_rep::pre_display (renderer& ren) {
   int i= 0;
   while (i < n) {
     color c= bs[i]->get_bg_color ();
-    int r, g, b, a;
+    int   r, g, b, a;
     get_rgb_color (c, r, g, b, a);
     if (a <= 0 || bs[i]->get_type () != TEXT_BOX) {
       i++;
       continue;
     }
 
-    int    start      = i;
-    color  group_color= c;
+    int   start      = i;
+    color group_color= c;
     i++;
 
     while (i < n) {

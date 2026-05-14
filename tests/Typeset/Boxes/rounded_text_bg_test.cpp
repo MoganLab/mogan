@@ -19,18 +19,19 @@
 // Minimal mock renderer for testing pre_display/post_display
 class mock_renderer_rep : public renderer_rep {
 public:
-  int    last_pixel;
-  color  last_bg;
-  pencil last_pen;
-  brush  last_brush;
-  int    clear_count;
-  int    polygon_count;
-  SI     last_cx1, last_cy1, last_cx2, last_cy2;
+  int       last_pixel;
+  color     last_bg;
+  pencil    last_pen;
+  brush     last_brush;
+  int       clear_count;
+  int       polygon_count;
+  SI        last_cx1, last_cy1, last_cx2, last_cy2;
   array<SI> last_px, last_py;
 
   mock_renderer_rep ()
-      : renderer_rep (false), last_pixel (256), last_bg (black), clear_count (0),
-        polygon_count (0), last_cx1 (0), last_cy1 (0), last_cx2 (0), last_cy2 (0) {
+      : renderer_rep (false), last_pixel (256), last_bg (black),
+        clear_count (0), polygon_count (0), last_cx1 (0), last_cy1 (0),
+        last_cx2 (0), last_cy2 (0) {
     pixel= 256;
   }
 
@@ -40,8 +41,7 @@ public:
   void   set_background (brush b) { last_bg= b->get_color (); }
   void   set_brush (brush b) { last_brush= b; }
 
-  void draw (int glyph_index, font_glyphs fn, SI x, SI y,
-             int codepoint= -1) {
+  void draw (int glyph_index, font_glyphs fn, SI x, SI y, int codepoint= -1) {
     (void) glyph_index;
     (void) fn;
     (void) x;
@@ -250,8 +250,8 @@ TestRoundedTextBg::test_concat_box_pre_display_groups () {
   QVERIFY (!is_nil (fn));
 
   pencil pen (black);
-  color  bg1    = rgb_color (255, 200, 100, 255);
-  color  bg2    = rgb_color (100, 200, 255, 255);
+  color  bg1        = rgb_color (255, 200, 100, 255);
+  color  bg2        = rgb_color (100, 200, 255, 255);
   color  transparent= rgb_color (0, 0, 0, 0);
 
   // Create text boxes: [bg1, bg1, no-bg, bg2, bg2]
@@ -313,7 +313,7 @@ TestRoundedTextBg::test_concat_box_post_display_restores () {
   QVERIFY (!is_nil (fn));
 
   pencil pen (black);
-  color  bg= rgb_color (255, 0, 0, 255);
+  color  bg         = rgb_color (255, 0, 0, 255);
   color  transparent= rgb_color (0, 0, 0, 0);
 
   // Single text box with bg
