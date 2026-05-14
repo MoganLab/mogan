@@ -30,7 +30,7 @@ private slots:
 
   void test_loadFromFile_validPdf () {
     QTPdfPreviewWidget* widget= new QTPdfPreviewWidget ();
-    url                  pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
     QVERIFY (is_regular (pdfUrl));
 
     bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
@@ -43,8 +43,7 @@ private slots:
 
   void test_loadFromFile_invalidFile () {
     QTPdfPreviewWidget* widget= new QTPdfPreviewWidget ();
-    bool                 result=
-        widget->loadFromFile ("/nonexistent/path/file.pdf");
+    bool result= widget->loadFromFile ("/nonexistent/path/file.pdf");
     QVERIFY (!result);
     QVERIFY (widget->hasError ());
     delete widget;

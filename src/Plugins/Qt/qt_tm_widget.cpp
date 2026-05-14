@@ -42,7 +42,7 @@
 #include "scheme.hpp"
 
 #include "qt_gui.hpp"
-#include "qt_pdf_preview_widget.hpp"
+#include "qt_pdf_reader_widget.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
 #include "qt_startup_tab_widget.hpp"
@@ -939,14 +939,13 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     update_visibility ();
 
     if (!pdfViewerWidget) {
-      pdfViewerWidget= new QTPdfPreviewWidget (centralwidget ());
+      pdfViewerWidget= new PDFReaderWidget (centralwidget ());
     }
     show_widget_in_layout (pdfViewerWidget, layout);
     pdfViewerWidget->setFocus (Qt::OtherFocusReason);
 
     // Load PDF if path changed
-    if (!currentPdfPath.isEmpty () &&
-        currentPdfPath != lastLoadedPdfPath) {
+    if (!currentPdfPath.isEmpty () && currentPdfPath != lastLoadedPdfPath) {
       pdfViewerWidget->loadFromFile (currentPdfPath);
       lastLoadedPdfPath= currentPdfPath;
     }
