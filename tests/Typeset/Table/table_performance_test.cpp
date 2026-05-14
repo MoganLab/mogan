@@ -168,6 +168,8 @@ private slots:
   void test_handle_decorations_performance ();
   void test_cell_hyphen_wrapping ();
   void test_cell_hyphen_multi_column ();
+  void test_lazy_cells_flag_simple ();
+  void test_lazy_cells_flag_with_hyphen ();
   void cleanupTestCase ();
 };
 
@@ -725,6 +727,46 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
       Q_UNUSED (box_w);
       Q_UNUSED (col_w);
     }
+}
+
+void
+TestTablePerformance::test_lazy_cells_flag_simple () {
+  cache_refresh ();
+  edit_env env= create_test_env ();
+
+  // Simple text table without cell-hyphen: has_lazy_cells should be false
+  tree simple_table (TFORMAT, tree (TABLE, 1));
+  tree simple_row (ROW, 1);
+  simple_row[0]     = tree (CELL, "hello");
+  simple_table[0][0]= simple_row;
+
+  table tab (env);
+  tab->typeset (simple_table, path ());
+  tab->handle_decorations ();
+  tab->handle_span ();
+
+  QVERIFY (!tab->has_lazy_cells);
+}
+
+void
+TestTablePerformance::test_lazy_cells_flag_with_hyphen () {
+  cache_refresh ();
+  edit_env env= create_test_env ();
+
+  // Table with cell-hyphen enabled: has_lazy_cells should be true
+  tree table_wrap (TFORMAT);
+  table_wrap << tree (CWITH, "1", "1", "1", "1", "cell-hyphen", "t");
+  table_wrap << tree (TABLE, 1);
+  tree row_wrap (ROW, 1);
+  row_wrap[0]     = tree (CELL, tree (DOCUMENT, "some text content"));
+  table_wrap[1][0]= row_wrap;
+
+  table tab (env);
+  tab->typeset (table_wrap, path ());
+  tab->handle_decorations ();
+  tab->handle_span ();
+
+  QVERIFY (tab->has_lazy_cells);
 }
 
 void
