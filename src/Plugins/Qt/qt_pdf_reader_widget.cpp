@@ -12,6 +12,7 @@
 #include <QKeyEvent>
 #include <QResizeEvent>
 #include <QScrollBar>
+#include <QWheelEvent>
 
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_dpi_utils.hpp"
@@ -28,7 +29,8 @@ constexpr float kMaxRenderScale  = 8.0F;
 
 PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QScrollArea (parent), contentWidget_ (nullptr), layout_ (nullptr),
-      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI) {
+      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+      zoomFactor_ (1.0) {
 
   setWidgetResizable (true);
   setFrameShape (QFrame::NoFrame);
@@ -51,8 +53,8 @@ PDFReaderWidget::~PDFReaderWidget () {}
 
 int
 PDFReaderWidget::pageWidth () const {
-  int avail= viewport ()->width () - PAGE_MARGIN * 2;
-  return qMax (200, avail);
+  int baseWidth= viewport ()->width () - PAGE_MARGIN * 2;
+  return qMax (1, qRound (baseWidth * zoomFactor_));
 }
 
 bool
@@ -354,4 +356,25 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
   QScrollArea::keyPressEvent (event);
+}
+
+void
+PDFReaderWidget::wheelEvent (QWheelEvent* event) {
+  if (event->modifiers () & Qt::ControlModifier) {
+    int delta= event->angleDelta ().y ();
+    if (delta != 0) {
+      if (delta > 0) {
+        zoomFactor_= qMin (zoomFactor_ + ZOOM_STEP, MAX_ZOOM);
+      }
+      else {
+        zoomFactor_= qMax (zoomFactor_ - ZOOM_STEP, MIN_ZOOM);
+      }
+      if (!pdfData_.isEmpty () && pageCount_ > 0) {
+        rebuildPages ();
+      }
+    }
+    event->accept ();
+    return;
+  }
+  QScrollArea::wheelEvent (event);
 }

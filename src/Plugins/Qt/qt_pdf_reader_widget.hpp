@@ -33,10 +33,12 @@ public:
 
   int  pageCount () const { return pageCount_; }
   bool hasError () const { return hasError_; }
+  double zoomFactor () const { return zoomFactor_; }
 
 protected:
   void keyPressEvent (QKeyEvent* event) override;
   void resizeEvent (QResizeEvent* event) override;
+  void wheelEvent (QWheelEvent* event) override;
 
 private:
   bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
@@ -50,10 +52,14 @@ private:
   int        pageCount_;
   bool       hasError_;
   QString    errorString_;
-  int        targetDpi_;
+  int    targetDpi_;
+  double zoomFactor_;
 
-  static constexpr int DEFAULT_DPI= 150;
-  static constexpr int PAGE_MARGIN= 16;
+  static constexpr int    DEFAULT_DPI= 150;
+  static constexpr int    PAGE_MARGIN= 16;
+  static constexpr double MIN_ZOOM   = 0.1;
+  static constexpr double MAX_ZOOM   = 5.0;
+  static constexpr double ZOOM_STEP  = 0.1;
 };
 
 #endif // QT_PDF_READER_WIDGET_HPP

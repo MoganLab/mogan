@@ -12,6 +12,7 @@
 #include "url.hpp"
 #include <QApplication>
 #include <QScrollBar>
+#include <QWheelEvent>
 #include <QtTest/QtTest>
 
 class TestPdfReaderWidget : public QObject {
@@ -68,6 +69,56 @@ private slots:
 
     int newPos= vbar->value ();
     QVERIFY (newPos > initialPos);
+    delete widget;
+  }
+
+  void test_wheelZoomIn () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    double initialZoom= widget->zoomFactor ();
+
+    QWheelEvent wheelEvent (
+        QPointF (50, 50), QPointF (50, 50), QPoint (0, 0), QPoint (0, 120),
+        Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent (widget->viewport (), &wheelEvent);
+    QApplication::processEvents ();
+
+    double newZoom= widget->zoomFactor ();
+    QVERIFY (newZoom > initialZoom);
+    delete widget;
+  }
+
+  void test_wheelZoomOut () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    double initialZoom= widget->zoomFactor ();
+
+    QWheelEvent wheelEvent (
+        QPointF (50, 50), QPointF (50, 50), QPoint (0, 0), QPoint (0, -120),
+        Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent (widget->viewport (), &wheelEvent);
+    QApplication::processEvents ();
+
+    double newZoom= widget->zoomFactor ();
+    QVERIFY (newZoom < initialZoom);
     delete widget;
   }
 };
