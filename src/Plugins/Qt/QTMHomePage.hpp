@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : qt_home_page.hpp
+ * MODULE     : QTMHomePage.hpp
  * DESCRIPTION: Home page for startup tab with style cards and recent documents
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#ifndef QT_HOME_PAGE_HPP
-#define QT_HOME_PAGE_HPP
+#ifndef QTMHOMEPAGE_HPP
+#define QTMHOMEPAGE_HPP
 
 #include <QDateTime>
 #include <QList>
@@ -91,12 +91,12 @@ private:
 /**
  * @brief 主页 - 包含样式选择和最近文档
  */
-class QtHomePage : public QWidget {
+class QTMHomePage : public QWidget {
   Q_OBJECT
 
 public:
-  explicit QtHomePage (QWidget* parent= nullptr);
-  ~QtHomePage ();
+  explicit QTMHomePage (QWidget* parent= nullptr);
+  ~QTMHomePage ();
 
   void refreshRecentDocs ();
   void addRecentDoc (const QString& path);
@@ -134,4 +134,4 @@ private:
   QListWidget*     recentList_= nullptr;
 };
 
-#endif // QT_HOME_PAGE_HPP
+#endif // QTMHOMEPAGE_HPP

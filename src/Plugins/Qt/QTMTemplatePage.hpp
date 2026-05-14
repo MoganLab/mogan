@@ -1,12 +1,12 @@
 
 /******************************************************************************
- * MODULE     : qt_template_page.hpp
+ * MODULE     : QTMTemplatePage.hpp
  * DESCRIPTION: Template page widget for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
-#ifndef QT_TEMPLATE_PAGE_HPP
-#define QT_TEMPLATE_PAGE_HPP
+#ifndef QTMTEMPLATEPAGE_HPP
+#define QTMTEMPLATEPAGE_HPP
 
 #include <QPointer>
 #include <QQueue>
@@ -29,12 +29,12 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
  * Displays template categories and grid of template cards.
  * Handles template download and opening.
  */
-class QTTemplatePage : public QWidget {
+class QTMTemplatePage : public QWidget {
   Q_OBJECT
 
 public:
-  explicit QTTemplatePage (QWidget* parent= nullptr);
-  ~QTTemplatePage ();
+  explicit QTMTemplatePage (QWidget* parent= nullptr);
+  ~QTMTemplatePage ();
 
   void initialize ();
 
@@ -79,4 +79,4 @@ private:
   QTimer* resizeDebounceTimer_;
 };
 
-#endif // QT_TEMPLATE_PAGE_HPP
+#endif // QTMTEMPLATEPAGE_HPP

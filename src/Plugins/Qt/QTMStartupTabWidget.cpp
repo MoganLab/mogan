@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : qt_startup_tab_widget.cpp
+ * MODULE     : QTMStartupTabWidget.cpp
  * DESCRIPTION: Startup tab widget with left sidebar for Mogan STEM
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
@@ -9,10 +9,10 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "qt_startup_tab_widget.hpp"
+#include "QTMStartupTabWidget.hpp"
+#include "QTMHomePage.hpp"
+#include "QTMTemplatePage.hpp"
 #include "qt_dpi_utils.hpp"
-#include "qt_home_page.hpp"
-#include "qt_template_page.hpp"
 #include "qt_utilities.hpp"
 
 #include <QButtonGroup>
@@ -54,7 +54,7 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
  * |  (120px固定宽度)  |              (自适应剩余宽度)            |
  * +------------------+----------------------------------------+
  */
-QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
+QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::Home), navHomeBtn_ (nullptr),
       navTemplateBtn_ (nullptr), navQuitBtn_ (nullptr),
       navButtonGroup_ (nullptr), homePage_ (nullptr), templatePage_ (nullptr) {
@@ -93,8 +93,8 @@ QTStartupTabWidget::QTStartupTabWidget (QWidget* parent)
   mainLayout->addWidget (stackedWidget, 1);
 }
 
-QTStartupTabWidget::Entry
-QTStartupTabWidget::current_entry () const {
+QTMStartupTabWidget::Entry
+QTMStartupTabWidget::current_entry () const {
   return currentEntry_;
 }
 
@@ -103,7 +103,7 @@ QTStartupTabWidget::current_entry () const {
  * @param entry 目标入口（Home/Template）
  */
 void
-QTStartupTabWidget::set_current_entry (Entry entry) {
+QTMStartupTabWidget::set_current_entry (Entry entry) {
   if (currentEntry_ != entry) {
     currentEntry_= entry;
     emit entry_changed (entry); // 通知右侧内容区切换页面
@@ -113,7 +113,7 @@ QTStartupTabWidget::set_current_entry (Entry entry) {
 }
 
 void
-QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
+QTMStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
   if (entry == Entry::Home && homePage_) {
     homePage_->refreshRecentDocs ();
   }
@@ -130,7 +130,7 @@ QTStartupTabWidget::refresh_recent_docs_on_file_entry (Entry entry) {
  * - Quit 退出按钮
  */
 void
-QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
+QTMStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   // Navigation 分组标题
   QLabel* navTitle= new QLabel (qt_translate ("Navigation"), this);
   navTitle->setObjectName ("startup-tab-nav-title");
@@ -179,7 +179,7 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
           .arg (DpiUtils::scaled (kQuitPadY))
           .arg (DpiUtils::scaled (kQuitPadX)));
   connect (navQuitBtn_, &QPushButton::clicked, this,
-           &QTStartupTabWidget::on_app_quit);
+           &QTMStartupTabWidget::on_app_quit);
   sidebarLayout->addWidget (navQuitBtn_);
 
   // 默认选中 Home
@@ -192,7 +192,7 @@ QTStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
  * @return 配置好的 QPushButton
  */
 QPushButton*
-QTStartupTabWidget::create_nav_button (const QString& text) {
+QTMStartupTabWidget::create_nav_button (const QString& text) {
   QPushButton* btn= new QPushButton (text, this);
   btn->setObjectName ("startup-tab-nav-btn"); // 样式在主题CSS中定义
   btn->setFocusPolicy (Qt::NoFocus);
@@ -210,20 +210,20 @@ QTStartupTabWidget::create_nav_button (const QString& text) {
  * @param stackedWidget 堆叠控件，用于页面切换
  */
 void
-QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
+QTMStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
   // 添加2个页面到堆叠控件
   stackedWidget->addWidget (create_home_page ());     // index 0 - Home
   stackedWidget->addWidget (create_template_page ()); // index 1 - Template
 
   // 入口切换时，同步切换堆叠控件的当前页面
-  connect (this, &QTStartupTabWidget::entry_changed, stackedWidget,
-           [stackedWidget] (QTStartupTabWidget::Entry entry) {
+  connect (this, &QTMStartupTabWidget::entry_changed, stackedWidget,
+           [stackedWidget] (QTMStartupTabWidget::Entry entry) {
              int index;
              switch (entry) {
-             case QTStartupTabWidget::Entry::Home:
+             case QTMStartupTabWidget::Entry::Home:
                index= 0;
                break;
-             case QTStartupTabWidget::Entry::Template:
+             case QTMStartupTabWidget::Entry::Template:
                index= 1;
                break;
              default:
@@ -238,13 +238,13 @@ QTStartupTabWidget::setup_right_content (QStackedWidget* stackedWidget) {
  * @brief 创建 Home 页面
  * @return Home 页面控件
  *
- * 使用 QtHomePage 实现，包含:
+ * 使用 QTMHomePage 实现，包含:
  * - 文档样式选择卡片（新建、打开、模板）
  * - 最近文档列表
  */
 QWidget*
-QTStartupTabWidget::create_home_page () {
-  homePage_= new QtHomePage (this);
+QTMStartupTabWidget::create_home_page () {
+  homePage_= new QTMHomePage (this);
   return homePage_;
 }
 
@@ -252,8 +252,8 @@ QTStartupTabWidget::create_home_page () {
  * @brief 创建 Template 页面
  */
 QWidget*
-QTStartupTabWidget::create_template_page () {
-  templatePage_= new QTTemplatePage (this);
+QTMStartupTabWidget::create_template_page () {
+  templatePage_= new QTMTemplatePage (this);
   templatePage_->initialize ();
   return templatePage_;
 }
@@ -265,7 +265,7 @@ QTStartupTabWidget::create_template_page () {
  * 使用 QButtonGroup 的互斥特性，自动取消其他按钮的选中状态
  */
 void
-QTStartupTabWidget::set_active_nav_button (Entry entry) {
+QTMStartupTabWidget::set_active_nav_button (Entry entry) {
   QAbstractButton* btn= navButtonGroup_->button (static_cast<int> (entry));
   if (btn) {
     btn->setChecked (true);
@@ -277,12 +277,12 @@ QTStartupTabWidget::set_active_nav_button (Entry entry) {
  * 调用 Scheme 函数 (quit-TeXmacs)
  */
 void
-QTStartupTabWidget::on_app_quit () {
+QTMStartupTabWidget::on_app_quit () {
   eval_scheme ("(quit-TeXmacs)");
 }
 
 void
-QTStartupTabWidget::keyPressEvent (QKeyEvent* event) {
+QTMStartupTabWidget::keyPressEvent (QKeyEvent* event) {
   string key= from_key_press_event (event);
   if (is_empty (key)) return QWidget::keyPressEvent (event);
 
@@ -291,7 +291,7 @@ QTStartupTabWidget::keyPressEvent (QKeyEvent* event) {
 }
 
 void
-QTStartupTabWidget::keyReleaseEvent (QKeyEvent* event) {
+QTMStartupTabWidget::keyReleaseEvent (QKeyEvent* event) {
   string key= from_key_release_event (event);
   if (is_empty (key)) return QWidget::keyReleaseEvent (event);
 

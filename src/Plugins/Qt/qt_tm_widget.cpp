@@ -44,7 +44,6 @@
 #include "qt_gui.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
-#include "qt_startup_tab_widget.hpp"
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 
@@ -52,6 +51,7 @@
 #include "QTMInteractiveInputHelper.hpp"
 #include "QTMInteractivePrompt.hpp"
 #include "QTMOAuth.hpp"
+#include "QTMStartupTabWidget.hpp"
 #include "QTMStyle.hpp" // qtstyle()
 #include "QTMTabPage.hpp"
 #include "QTMWindow.hpp"
@@ -917,7 +917,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     update_visibility ();
 
     if (!startupContentWidget) {
-      startupContentWidget= new QTStartupTabWidget (centralwidget ());
+      startupContentWidget= new QTMStartupTabWidget (centralwidget ());
     }
     show_widget_in_layout (startupContentWidget, layout);
     startupContentWidget->setFocus (Qt::OtherFocusReason);

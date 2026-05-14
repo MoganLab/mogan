@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : qt_startup_tab_widget.hpp
+ * MODULE     : QTMStartupTabWidget.hpp
  * DESCRIPTION: Startup tab widget with left sidebar navigation for Mogan STEM
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
@@ -9,8 +9,8 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#ifndef QT_STARTUP_TAB_WIDGET_HPP
-#define QT_STARTUP_TAB_WIDGET_HPP
+#ifndef QTMSTARTUPTABWIDGET_HPP
+#define QTMSTARTUPTABWIDGET_HPP
 
 #include <QWidget>
 
@@ -20,17 +20,17 @@ class QVBoxLayout;
 class QPushButton;
 class QStackedWidget;
 class QButtonGroup;
-class QtHomePage;
-class QTTemplatePage;
+class QTMHomePage;
+class QTMTemplatePage;
 
-class QTStartupTabWidget : public QWidget {
+class QTMStartupTabWidget : public QWidget {
   Q_OBJECT
 
 public:
   enum class Entry { Home, Template };
 
 public:
-  explicit QTStartupTabWidget (QWidget* parent= nullptr);
+  explicit QTMStartupTabWidget (QWidget* parent= nullptr);
 
   Entry current_entry () const;
   void  set_current_entry (Entry entry);
@@ -72,10 +72,10 @@ private:
   QButtonGroup* navButtonGroup_;
 
   // 各页面实例
-  QtHomePage* homePage_;
+  QTMHomePage* homePage_;
 
   // Template page (separate widget)
-  QTTemplatePage* templatePage_;
+  QTMTemplatePage* templatePage_;
 };
 
 #endif

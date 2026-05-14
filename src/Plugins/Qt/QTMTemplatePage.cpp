@@ -1,11 +1,11 @@
 
 /******************************************************************************
- * MODULE     : qt_template_page.cpp
+ * MODULE     : QTMTemplatePage.cpp
  * DESCRIPTION: Template page implementation for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
-#include "qt_template_page.hpp"
+#include "QTMTemplatePage.hpp"
 
 #include <QDialog>
 #include <QDialogButtonBox>
@@ -75,7 +75,7 @@ constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
 
 } // namespace
 
-QTTemplatePage::QTTemplatePage (QWidget* parent)
+QTMTemplatePage::QTMTemplatePage (QWidget* parent)
     : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
       scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
       templateManager_ (nullptr), currentCategory_ (""),
@@ -96,16 +96,16 @@ QTTemplatePage::QTTemplatePage (QWidget* parent)
   setupUI ();
 }
 
-QTTemplatePage::~QTTemplatePage () {}
+QTMTemplatePage::~QTMTemplatePage () {}
 
 void
-QTTemplatePage::initialize () {
+QTMTemplatePage::initialize () {
   templateManager_= TemplateManager::instance ();
 
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
-           &QTTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
+           &QTMTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::categoriesLoaded, this,
-           &QTTemplatePage::onCategoriesLoaded, Qt::UniqueConnection);
+           &QTMTemplatePage::onCategoriesLoaded, Qt::UniqueConnection);
 
   // Check if already initialized with data
   if (templateManager_->isInitialized () &&
@@ -121,7 +121,7 @@ QTTemplatePage::initialize () {
 }
 
 void
-QTTemplatePage::setupUI () {
+QTMTemplatePage::setupUI () {
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (
       DpiUtils::scaled (kPageMargin), DpiUtils::scaled (kPageMargin),
@@ -169,7 +169,7 @@ QTTemplatePage::setupUI () {
 }
 
 void
-QTTemplatePage::setupCategoryBar () {
+QTMTemplatePage::setupCategoryBar () {
   if (!categoryBar_) return;
   activeCategoryBtn_= nullptr;
 
@@ -210,7 +210,7 @@ QTTemplatePage::setupCategoryBar () {
   allBtn->setProperty ("categoryId", QString ());
   styleCategoryBtn (allBtn);
   connect (allBtn, &QPushButton::clicked, this,
-           &QTTemplatePage::onCategoryClicked);
+           &QTMTemplatePage::onCategoryClicked);
   categoryLayout->addWidget (allBtn);
 
   if (currentCategory_.isEmpty ()) {
@@ -229,7 +229,7 @@ QTTemplatePage::setupCategoryBar () {
     btn->setProperty ("categoryId", cat.id);
     styleCategoryBtn (btn);
     connect (btn, &QPushButton::clicked, this,
-             &QTTemplatePage::onCategoryClicked);
+             &QTMTemplatePage::onCategoryClicked);
     categoryLayout->addWidget (btn);
 
     if (cat.id == currentCategory_) {
@@ -248,12 +248,12 @@ QTTemplatePage::setupCategoryBar () {
 }
 
 void
-QTTemplatePage::onCategoriesLoaded () {
+QTMTemplatePage::onCategoriesLoaded () {
   setupCategoryBar ();
 }
 
 int
-QTTemplatePage::calculateColumnCount () const {
+QTMTemplatePage::calculateColumnCount () const {
   if (!scrollArea_) return 4;
 
   int availableWidth= scrollArea_->viewport ()->width ();
@@ -270,7 +270,7 @@ QTTemplatePage::calculateColumnCount () const {
 }
 
 void
-QTTemplatePage::onCategoryClicked () {
+QTMTemplatePage::onCategoryClicked () {
   QPushButton* btn= qobject_cast<QPushButton*> (sender ());
   if (!btn) return;
 
@@ -289,7 +289,7 @@ QTTemplatePage::onCategoryClicked () {
 }
 
 void
-QTTemplatePage::refreshTemplateGrid (const QString& category) {
+QTMTemplatePage::refreshTemplateGrid (const QString& category) {
   // Clear existing content
   QLayoutItem* item;
   while ((item= gridLayout_->takeAt (0)) != nullptr) {
@@ -347,7 +347,7 @@ QTTemplatePage::refreshTemplateGrid (const QString& category) {
 }
 
 QWidget*
-QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
+QTMTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
   // 外层容器
   QWidget*     item      = new QWidget (gridWidget_);
   QVBoxLayout* itemLayout= new QVBoxLayout (item);
@@ -433,7 +433,7 @@ QTTemplatePage::createTemplateCard (const TemplateMetadataPtr& tmpl) {
 }
 
 bool
-QTTemplatePage::eventFilter (QObject* watched, QEvent* event) {
+QTMTemplatePage::eventFilter (QObject* watched, QEvent* event) {
   if (event->type () == QEvent::MouseButtonRelease) {
     QWidget* card= qobject_cast<QWidget*> (watched);
     if (card && card->objectName () == "startup-tab-template-card") {
@@ -448,7 +448,7 @@ QTTemplatePage::eventFilter (QObject* watched, QEvent* event) {
 }
 
 void
-QTTemplatePage::showTemplatePreview (const QString& templateId) {
+QTMTemplatePage::showTemplatePreview (const QString& templateId) {
   if (!templateManager_) return;
 
   TemplateMetadataPtr tmpl= templateManager_->templateById (templateId);
@@ -572,7 +572,7 @@ QTTemplatePage::showTemplatePreview (const QString& templateId) {
 }
 
 void
-QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
+QTMTemplatePage::downloadAndUseTemplate (const QString& templateId) {
   if (!templateManager_) return;
 
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
@@ -645,7 +645,7 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
 }
 
 void
-QTTemplatePage::onTemplatesLoaded () {
+QTMTemplatePage::onTemplatesLoaded () {
   // Initialize category bar if not already done
   if (categoryBar_ && categoryBar_->layout () &&
       categoryBar_->layout ()->count () == 0) {
@@ -656,7 +656,7 @@ QTTemplatePage::onTemplatesLoaded () {
 }
 
 void
-QTTemplatePage::showEvent (QShowEvent* event) {
+QTMTemplatePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
 
   // Refresh grid when page becomes visible. If onTemplatesLoaded already
@@ -672,7 +672,7 @@ QTTemplatePage::showEvent (QShowEvent* event) {
 }
 
 void
-QTTemplatePage::resizeEvent (QResizeEvent* event) {
+QTMTemplatePage::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
 
   // Debounce resize to avoid frequent grid rebuilds during window dragging

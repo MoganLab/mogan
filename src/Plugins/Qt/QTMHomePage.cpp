@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : qt_home_page.cpp
+ * MODULE     : QTMHomePage.cpp
  * DESCRIPTION: Home page implementation for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
@@ -9,7 +9,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "qt_home_page.hpp"
+#include "QTMHomePage.hpp"
 #include <QButtonGroup>
 #include <QDir>
 #include <QFile>
@@ -212,10 +212,10 @@ StyleCard::paintEvent (QPaintEvent* event) {
 }
 
 /******************************************************************************
- * QtHomePage 实现
+ * QTMHomePage 实现
  ******************************************************************************/
 
-QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
+QTMHomePage::QTMHomePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
   styles_= {
@@ -235,7 +235,7 @@ QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
   TemplateManager* mgr= TemplateManager::instance ();
   if (mgr) {
     connect (mgr, &TemplateManager::templatesLoaded, this,
-             &QtHomePage::refreshTemplateThumbnails, Qt::UniqueConnection);
+             &QTMHomePage::refreshTemplateThumbnails, Qt::UniqueConnection);
     if (mgr->isInitialized () && !mgr->templates ().isEmpty ()) {
       refreshTemplateThumbnails ();
     }
@@ -245,17 +245,17 @@ QtHomePage::QtHomePage (QWidget* parent) : QWidget (parent) {
   }
 }
 
-QtHomePage::~QtHomePage ()= default;
+QTMHomePage::~QTMHomePage ()= default;
 
 void
-QtHomePage::showEvent (QShowEvent* event) {
+QTMHomePage::showEvent (QShowEvent* event) {
   QWidget::showEvent (event);
   refreshRecentDocs ();
-  QTimer::singleShot (0, this, &QtHomePage::rearrangeStyleCards);
+  QTimer::singleShot (0, this, &QTMHomePage::rearrangeStyleCards);
 }
 
 void
-QtHomePage::resizeEvent (QResizeEvent* event) {
+QTMHomePage::resizeEvent (QResizeEvent* event) {
   QWidget::resizeEvent (event);
   // 只在宽度变化时重排，避免不必要的计算
   if (event->oldSize ().width () != event->size ().width ()) {
@@ -264,7 +264,7 @@ QtHomePage::resizeEvent (QResizeEvent* event) {
 }
 
 void
-QtHomePage::setupUI () {
+QTMHomePage::setupUI () {
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (
       DpiUtils::scaled (kMainMargin), DpiUtils::scaled (kMainMargin),
@@ -285,7 +285,7 @@ QtHomePage::setupUI () {
 }
 
 void
-QtHomePage::rearrangeStyleCards () {
+QTMHomePage::rearrangeStyleCards () {
   if (!cardsLayout_ || styleCards_.isEmpty ()) return;
 
   // 清除当前布局中的卡片
@@ -310,7 +310,7 @@ QtHomePage::rearrangeStyleCards () {
 }
 
 void
-QtHomePage::setupStyleCards (QVBoxLayout* layout) {
+QTMHomePage::setupStyleCards (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (qt_translate ("Document Style"), this);
   title->setObjectName ("startup-tab-section-title");
@@ -348,7 +348,7 @@ QtHomePage::setupStyleCards (QVBoxLayout* layout) {
 }
 
 void
-QtHomePage::setupRecentDocs (QVBoxLayout* layout) {
+QTMHomePage::setupRecentDocs (QVBoxLayout* layout) {
   // 标题
   QLabel* title= new QLabel (qt_translate ("Recent Documents"), this);
   title->setObjectName ("startup-tab-section-title");
@@ -379,7 +379,7 @@ QtHomePage::setupRecentDocs (QVBoxLayout* layout) {
              if (item) onRecentDocClicked (item);
            });
   connect (recentList_, &QListWidget::customContextMenuRequested, this,
-           &QtHomePage::onRecentDocContextMenu);
+           &QTMHomePage::onRecentDocContextMenu);
 
   layout->addWidget (recentList_);
 }
@@ -438,7 +438,7 @@ populateRecentDocsFromPaths (QList<RecentDoc>&  recentDocs,
 }
 
 void
-QtHomePage::loadRecentDocs () {
+QTMHomePage::loadRecentDocs () {
   recentDocs_.clear ();
   recentList_->clear ();
 
@@ -509,7 +509,7 @@ QtHomePage::loadRecentDocs () {
 }
 
 void
-QtHomePage::saveRecentDocs () {
+QTMHomePage::saveRecentDocs () {
   QFile       file (getRecentDocsFilePath ());
   QJsonObject root;
   if (file.open (QIODevice::ReadOnly)) {
@@ -571,12 +571,12 @@ QtHomePage::saveRecentDocs () {
 }
 
 void
-QtHomePage::refreshRecentDocs () {
+QTMHomePage::refreshRecentDocs () {
   loadRecentDocs ();
 }
 
 void
-QtHomePage::renderRecentDocs () {
+QTMHomePage::renderRecentDocs () {
   while (recentList_->count () > 0) {
     QListWidgetItem* item  = recentList_->takeItem (0);
     QWidget*         widget= recentList_->itemWidget (item);
@@ -631,7 +631,7 @@ QtHomePage::renderRecentDocs () {
 }
 
 void
-QtHomePage::addRecentDoc (const QString& path) {
+QTMHomePage::addRecentDoc (const QString& path) {
   QString normPath= QDir::fromNativeSeparators (path);
   QString fileName= QFileInfo (normPath).fileName ();
 
@@ -670,7 +670,7 @@ QtHomePage::addRecentDoc (const QString& path) {
 }
 
 void
-QtHomePage::removeRecentDoc (const QString& path) {
+QTMHomePage::removeRecentDoc (const QString& path) {
   QString normPath= QDir::fromNativeSeparators (path);
   for (auto it= recentDocs_.begin (); it != recentDocs_.end (); ++it) {
     if (it->filePath == normPath) {
@@ -686,7 +686,7 @@ QtHomePage::removeRecentDoc (const QString& path) {
 }
 
 void
-QtHomePage::clearAllRecentDocs () {
+QTMHomePage::clearAllRecentDocs () {
   eval_scheme ("(startup-tab-clear-all-recent)");
   recentDocs_.clear ();
   saveRecentDocs ();
@@ -698,7 +698,7 @@ QtHomePage::clearAllRecentDocs () {
  ******************************************************************************/
 
 void
-QtHomePage::onRecentDocClicked (QListWidgetItem* item) {
+QTMHomePage::onRecentDocClicked (QListWidgetItem* item) {
   if (!item) return;
 
   QString path= item->data (Qt::UserRole).toString ();
@@ -718,7 +718,7 @@ QtHomePage::onRecentDocClicked (QListWidgetItem* item) {
 }
 
 void
-QtHomePage::onRecentDocContextMenu (const QPoint& pos) {
+QTMHomePage::onRecentDocContextMenu (const QPoint& pos) {
   QListWidgetItem* item= recentList_->itemAt (pos);
   if (!item) return;
 
@@ -739,7 +739,7 @@ QtHomePage::onRecentDocContextMenu (const QPoint& pos) {
 }
 
 void
-QtHomePage::createDocumentWithStyle (const QString& styleId) {
+QTMHomePage::createDocumentWithStyle (const QString& styleId) {
   if (styleId == "new") {
     eval_scheme ("(new-document-with-style \"generic\")");
     return;
@@ -770,7 +770,7 @@ QtHomePage::createDocumentWithStyle (const QString& styleId) {
 }
 
 void
-QtHomePage::createDocumentFromTemplate (const QString& templateId) {
+QTMHomePage::createDocumentFromTemplate (const QString& templateId) {
   TemplateManager* mgr= TemplateManager::instance ();
   if (!mgr) return;
 
@@ -839,7 +839,7 @@ QtHomePage::createDocumentFromTemplate (const QString& templateId) {
 }
 
 void
-QtHomePage::refreshTemplateThumbnails () {
+QTMHomePage::refreshTemplateThumbnails () {
   TemplateManager* mgr= TemplateManager::instance ();
   if (!mgr || !mgr->isInitialized ()) return;
 
