@@ -31,8 +31,10 @@ constexpr float kMaxRenderScale  = 8.0F;
 PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
       pageLayout_ (nullptr), mainLayout_ (nullptr), toolBar_ (nullptr),
-      zoomCombo_ (nullptr), pageCount_ (0), hasError_ (false),
-      targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0), pageAspectRatio_ (0.0) {
+      zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
+      pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), pageCount_ (0),
+      hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
+      pageAspectRatio_ (0.0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -59,6 +61,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
   mainLayout_->addWidget (scrollArea_);
 
   setupToolBar ();
+
+  connect (scrollArea_->verticalScrollBar (), &QScrollBar::valueChanged, this,
+           &PDFReaderWidget::updatePageNavigation);
 }
 
 PDFReaderWidget::~PDFReaderWidget () {}
@@ -89,6 +94,31 @@ PDFReaderWidget::setupToolBar () {
            this, &PDFReaderWidget::onZoomChanged);
 
   toolBar_->addWidget (zoomCombo_);
+  toolBar_->addSeparator ();
+
+  prevPageBtn_= new QPushButton ("<", toolBar_);
+  prevPageBtn_->setFixedWidth (30);
+  connect (prevPageBtn_, &QPushButton::clicked, this,
+           &PDFReaderWidget::onPrevPage);
+
+  pageEdit_= new QLineEdit (toolBar_);
+  pageEdit_->setFixedWidth (40);
+  pageEdit_->setAlignment (Qt::AlignCenter);
+  connect (pageEdit_, &QLineEdit::editingFinished, this,
+           &PDFReaderWidget::onPageEditingFinished);
+
+  pageTotalLabel_= new QLabel ("of 0", toolBar_);
+
+  nextPageBtn_= new QPushButton (">", toolBar_);
+  nextPageBtn_->setFixedWidth (30);
+  connect (nextPageBtn_, &QPushButton::clicked, this,
+           &PDFReaderWidget::onNextPage);
+
+  toolBar_->addWidget (prevPageBtn_);
+  toolBar_->addWidget (pageEdit_);
+  toolBar_->addWidget (pageTotalLabel_);
+  toolBar_->addWidget (nextPageBtn_);
+
   mainLayout_->insertWidget (0, toolBar_);
 }
 
@@ -161,6 +191,82 @@ PDFReaderWidget::fitHeight () {
   double targetZoom=
       static_cast<double> (viewportHeight) / (baseWidth * pageAspectRatio_);
   setZoomFactor (targetZoom);
+}
+
+int
+PDFReaderWidget::currentPage () const {
+  if (!scrollArea_ || pageCount_ <= 0) return 0;
+
+  int scrollY= scrollArea_->verticalScrollBar ()->value ();
+
+  int childCount= pageLayout_->count ();
+  for (int i= 0; i < childCount && i < pageCount_; ++i) {
+    QLayoutItem* item= pageLayout_->itemAt (i);
+    if (!item) continue;
+    QWidget* w= item->widget ();
+    if (!w) continue;
+    if (w->y () + w->height () > scrollY) {
+      return i + 1;
+    }
+  }
+  return pageCount_;
+}
+
+void
+PDFReaderWidget::goToPage (int page) {
+  page= qBound (1, page, pageCount_);
+  int index= page - 1;
+
+  int childCount= pageLayout_->count ();
+  if (index < 0 || index >= childCount) return;
+
+  QLayoutItem* item= pageLayout_->itemAt (index);
+  if (!item) return;
+  QWidget* w= item->widget ();
+  if (!w) return;
+
+  scrollArea_->verticalScrollBar ()->setValue (w->y ());
+}
+
+void
+PDFReaderWidget::updatePageNavigation () {
+  if (!pageEdit_ || !pageTotalLabel_ || !prevPageBtn_ || !nextPageBtn_) return;
+
+  int current= currentPage ();
+  pageEdit_->setText (QString::number (current));
+  pageTotalLabel_->setText (QString ("of %1").arg (pageCount_));
+
+  prevPageBtn_->setEnabled (current > 1);
+  nextPageBtn_->setEnabled (current < pageCount_);
+}
+
+void
+PDFReaderWidget::onPrevPage () {
+  int page= currentPage () - 1;
+  if (page >= 1) goToPage (page);
+}
+
+void
+PDFReaderWidget::onNextPage () {
+  int page= currentPage () + 1;
+  if (page <= pageCount_) goToPage (page);
+}
+
+void
+PDFReaderWidget::onPageEditingFinished () {
+  bool ok;
+  int  page= pageEdit_->text ().toInt (&ok);
+  if (ok) goToPage (page);
+}
+
+bool
+PDFReaderWidget::canGoToPrevPage () const {
+  return currentPage () > 1;
+}
+
+bool
+PDFReaderWidget::canGoToNextPage () const {
+  return currentPage () < pageCount_;
 }
 
 QWidget*
@@ -450,6 +556,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   pageLayout_->addStretch (1);
   contentWidget_->adjustSize ();
   updateZoomDisplay ();
+  updatePageNavigation ();
   return true;
 }
 
@@ -468,6 +575,8 @@ PDFReaderWidget::clear () {
     }
     delete item;
   }
+
+  updatePageNavigation ();
 }
 
 bool

@@ -124,6 +124,43 @@ private slots:
     QVERIFY (newZoom < initialZoom);
     delete widget;
   }
+
+  void test_currentPage () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QCOMPARE (widget->currentPage (), 1);
+    QVERIFY (!widget->canGoToPrevPage ());
+    QVERIFY (!widget->canGoToNextPage ());
+    delete widget;
+  }
+
+  void test_goToPage () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    widget->goToPage (1);
+    QApplication::processEvents ();
+
+    QCOMPARE (widget->currentPage (), 1);
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)

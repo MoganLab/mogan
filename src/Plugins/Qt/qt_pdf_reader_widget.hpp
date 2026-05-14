@@ -10,6 +10,7 @@
 
 #include <QComboBox>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
 #include <QToolBar>
@@ -41,11 +42,21 @@ public:
   void fitWidth ();
   void fitHeight ();
 
+  int  currentPage () const;
+  void goToPage (int page);
+
+  bool canGoToPrevPage () const;
+  bool canGoToNextPage () const;
+
   QWidget* viewport () const;
   QScrollBar* verticalScrollBar () const;
 
 private slots:
   void onZoomChanged (int index);
+  void onPrevPage ();
+  void onNextPage ();
+  void onPageEditingFinished ();
+  void updatePageNavigation ();
 
 private:
   bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
@@ -63,6 +74,10 @@ private:
 
   QToolBar*  toolBar_;
   QComboBox* zoomCombo_;
+  QPushButton* prevPageBtn_;
+  QLineEdit*   pageEdit_;
+  QLabel*      pageTotalLabel_;
+  QPushButton* nextPageBtn_;
 
   QByteArray pdfData_;
   int        pageCount_;
