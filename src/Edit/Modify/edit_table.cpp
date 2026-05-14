@@ -1086,6 +1086,7 @@ edit_table_rep::make_table (int nr_rows, int nr_cols) {
     }
   }
 
+  table_set_format (fp, 1, 1, -1, -1, "cell-hyphen", tree ("t"));
   table_correct_block_content ();
   set_message (concat (kbd_shortcut ("(structured-insert-down)"), ": new row",
                        kbd_shortcut ("(structured-insert-right)"),
@@ -1105,6 +1106,9 @@ edit_table_rep::make_subtable (int nr_rows, int nr_cols) {
   p= path (0, p);
   assign (cp * 0, T);
   go_to (cp * path (0, p));
+  path fp= search_format ();
+  if (!is_nil (fp))
+    table_set_format (fp, 1, 1, -1, -1, "cell-hyphen", tree ("t"));
   table_correct_block_content ();
   set_message (concat (kbd_shortcut ("(structured-insert-down)"), ": new row",
                        kbd_shortcut ("(structured-insert-right)"),
