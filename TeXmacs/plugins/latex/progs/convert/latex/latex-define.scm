@@ -214,6 +214,7 @@
   (dotoplus "\\mathaccent95{\\oplus}")
   (dototimes "\\mathaccent95{\\otimes}")
   (dotast "\\mathaccent95{*}")
+  (to "\\to")
   (into "\\rightarrow")
   (longminus "{-\\!\\!-}")
   (longequal "{=\\!\\!=}")

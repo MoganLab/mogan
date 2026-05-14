@@ -1,0 +1,20 @@
+<TMU|<tuple|1.1.0|2026.2.6-rc2>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <\equation*>
+    f:X<to>Y
+  </equation*>
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|0606-TEST-TO-COMMAND>
+  </collection>
+</initial>

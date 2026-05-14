@@ -3417,7 +3417,7 @@
 (logic-group tmtex-protected%
   a b c d i j k l o r t u v H L O P S
   aa ae bf cr dh dj dp em fi ge gg ht if in it le lg ll lu lq mp mu
-  ne ng ni nu oe or pi pm rm rq sb sc sf sl sp ss th to tt wd wp wr xi
+  ne ng ni nu oe or pi pm rm rq sb sc sf sl sp ss th tt wd wp wr xi
   AA AE DH DJ Im NG OE Pi Pr Re SS TH Xi)
 
 (logic-group tmtex-protected-symbol%
