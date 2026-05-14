@@ -220,7 +220,7 @@
   (:proposals last  (list (number->string (get-page-count)) "")))
 
 (tm-define (preview-file u)
-  (open-url u))
+  (load-pdf-buffer u))
 
 (tm-define (preview-buffer)
   (with-default-view
