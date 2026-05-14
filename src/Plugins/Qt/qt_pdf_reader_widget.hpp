@@ -1,27 +1,30 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_reader_widget.hpp
- * DESCRIPTION: Continuous-scroll PDF reader widget
+ * DESCRIPTION: Continuous-scroll PDF reader widget with toolbar
  * COPYRIGHT  : (C) 2026 Da Shen
  ******************************************************************************/
 
 #ifndef QT_PDF_READER_WIDGET_HPP
 #define QT_PDF_READER_WIDGET_HPP
 
+#include <QComboBox>
 #include <QLabel>
+#include <QPushButton>
 #include <QScrollArea>
+#include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
 
 #include <mupdf/fitz.h>
 
 /**
- * @brief Continuous-scroll PDF reader widget
+ * @brief Continuous-scroll PDF reader widget with toolbar
  *
  * Renders all pages vertically in a scroll area.
- * Supports mouse wheel and arrow keys for scrolling.
+ * Supports mouse wheel zoom, Fit Width/Height, and page navigation.
  */
-class PDFReaderWidget : public QScrollArea {
+class PDFReaderWidget : public QWidget {
   Q_OBJECT
 
 public:
@@ -34,26 +37,40 @@ public:
   int  pageCount () const { return pageCount_; }
   bool hasError () const { return hasError_; }
   double zoomFactor () const { return zoomFactor_; }
+  void setZoomFactor (double factor);
+  void fitWidth ();
+  void fitHeight ();
 
-protected:
-  void keyPressEvent (QKeyEvent* event) override;
-  void resizeEvent (QResizeEvent* event) override;
-  void wheelEvent (QWheelEvent* event) override;
+  QWidget* viewport () const;
+  QScrollBar* verticalScrollBar () const;
+
+private slots:
+  void onZoomChanged (int index);
 
 private:
   bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
   void rebuildPages ();
   int  pageWidth () const;
+  void setupToolBar ();
+  void updateZoomDisplay ();
 
+  bool eventFilter (QObject* watched, QEvent* event) override;
+
+  QScrollArea* scrollArea_;
   QWidget*     contentWidget_;
-  QVBoxLayout* layout_;
+  QVBoxLayout* pageLayout_;
+  QVBoxLayout* mainLayout_;
+
+  QToolBar*  toolBar_;
+  QComboBox* zoomCombo_;
 
   QByteArray pdfData_;
   int        pageCount_;
   bool       hasError_;
   QString    errorString_;
-  int    targetDpi_;
-  double zoomFactor_;
+  int        targetDpi_;
+  double     zoomFactor_;
+  double     pageAspectRatio_;
 
   static constexpr int    DEFAULT_DPI= 150;
   static constexpr int    PAGE_MARGIN= 16;

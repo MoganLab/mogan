@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_pdf_reader_widget.cpp
- * DESCRIPTION: Continuous-scroll PDF reader widget
+ * DESCRIPTION: Continuous-scroll PDF reader widget with toolbar
  * COPYRIGHT  : (C) 2026 Da Shen
  ******************************************************************************/
 
@@ -10,6 +10,7 @@
 #include <QDebug>
 #include <QFile>
 #include <QKeyEvent>
+#include <QLineEdit>
 #include <QResizeEvent>
 #include <QScrollBar>
 #include <QWheelEvent>
@@ -28,32 +29,153 @@ constexpr float kMaxRenderScale  = 8.0F;
 } // namespace
 
 PDFReaderWidget::PDFReaderWidget (QWidget* parent)
-    : QScrollArea (parent), contentWidget_ (nullptr), layout_ (nullptr),
-      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
-      zoomFactor_ (1.0) {
+    : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
+      pageLayout_ (nullptr), mainLayout_ (nullptr), toolBar_ (nullptr),
+      zoomCombo_ (nullptr), pageCount_ (0), hasError_ (false),
+      targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0), pageAspectRatio_ (0.0) {
 
-  setWidgetResizable (true);
-  setFrameShape (QFrame::NoFrame);
-  setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  mainLayout_= new QVBoxLayout (this);
+  mainLayout_->setContentsMargins (0, 0, 0, 0);
+  mainLayout_->setSpacing (0);
 
-  contentWidget_= new QWidget (this);
+  scrollArea_= new QScrollArea (this);
+  scrollArea_->setWidgetResizable (true);
+  scrollArea_->setFrameShape (QFrame::NoFrame);
+  scrollArea_->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+
+  contentWidget_= new QWidget (scrollArea_);
   contentWidget_->setAutoFillBackground (true);
   contentWidget_->setBackgroundRole (QPalette::Mid);
 
-  layout_= new QVBoxLayout (contentWidget_);
-  layout_->setContentsMargins (PAGE_MARGIN, PAGE_MARGIN, PAGE_MARGIN,
-                               PAGE_MARGIN);
-  layout_->setSpacing (PAGE_MARGIN);
-  layout_->setAlignment (Qt::AlignHCenter);
+  pageLayout_= new QVBoxLayout (contentWidget_);
+  pageLayout_->setContentsMargins (PAGE_MARGIN, PAGE_MARGIN, PAGE_MARGIN,
+                                   PAGE_MARGIN);
+  pageLayout_->setSpacing (PAGE_MARGIN);
+  pageLayout_->setAlignment (Qt::AlignHCenter);
 
-  setWidget (contentWidget_);
+  scrollArea_->setWidget (contentWidget_);
+  scrollArea_->viewport ()->installEventFilter (this);
+
+  mainLayout_->addWidget (scrollArea_);
+
+  setupToolBar ();
 }
 
 PDFReaderWidget::~PDFReaderWidget () {}
 
+void
+PDFReaderWidget::setupToolBar () {
+  toolBar_= new QToolBar (this);
+  toolBar_->setMovable (false);
+
+  zoomCombo_= new QComboBox (toolBar_);
+  zoomCombo_->setEditable (true);
+  zoomCombo_->lineEdit ()->setReadOnly (true);
+  zoomCombo_->lineEdit ()->setAlignment (Qt::AlignCenter);
+  zoomCombo_->setMinimumWidth (80);
+
+  zoomCombo_->addItem ("Fit Width");
+  zoomCombo_->addItem ("Fit Height");
+  zoomCombo_->addItem ("50%");
+  zoomCombo_->addItem ("75%");
+  zoomCombo_->addItem ("100%");
+  zoomCombo_->addItem ("125%");
+  zoomCombo_->addItem ("150%");
+  zoomCombo_->addItem ("200%");
+  zoomCombo_->addItem ("300%");
+  zoomCombo_->addItem ("400%");
+
+  connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
+           this, &PDFReaderWidget::onZoomChanged);
+
+  toolBar_->addWidget (zoomCombo_);
+  mainLayout_->insertWidget (0, toolBar_);
+}
+
+void
+PDFReaderWidget::updateZoomDisplay () {
+  if (!zoomCombo_) return;
+
+  int    percent= qRound (zoomFactor_ * 100);
+  QString text  = QString::number (percent) + "%";
+
+  disconnect (zoomCombo_,
+              QOverload<int>::of (&QComboBox::currentIndexChanged), this,
+              &PDFReaderWidget::onZoomChanged);
+
+  if (qFuzzyCompare (zoomFactor_, 1.0)) {
+    int idx= zoomCombo_->findText ("Fit Width");
+    if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
+  }
+  else {
+    int idx= zoomCombo_->findText (text);
+    if (idx >= 0)
+      zoomCombo_->setCurrentIndex (idx);
+    else
+      zoomCombo_->setCurrentText (text);
+  }
+
+  connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
+           this, &PDFReaderWidget::onZoomChanged);
+}
+
+void
+PDFReaderWidget::onZoomChanged (int index) {
+  if (index < 0) return;
+  QString text= zoomCombo_->itemText (index);
+  if (text == "Fit Width") {
+    fitWidth ();
+  }
+  else if (text == "Fit Height") {
+    fitHeight ();
+  }
+  else {
+    QString numStr= text;
+    numStr.chop (1);
+    bool   ok;
+    double percent= numStr.toDouble (&ok);
+    if (ok) setZoomFactor (percent / 100.0);
+  }
+}
+
+void
+PDFReaderWidget::setZoomFactor (double factor) {
+  zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
+  if (!pdfData_.isEmpty () && pageCount_ > 0) {
+    rebuildPages ();
+  }
+  updateZoomDisplay ();
+}
+
+void
+PDFReaderWidget::fitWidth () {
+  setZoomFactor (1.0);
+}
+
+void
+PDFReaderWidget::fitHeight () {
+  if (pageAspectRatio_ <= 0) return;
+  int baseWidth     = scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  int viewportHeight= scrollArea_->viewport ()->height ();
+  if (baseWidth <= 0) return;
+  double targetZoom=
+      static_cast<double> (viewportHeight) / (baseWidth * pageAspectRatio_);
+  setZoomFactor (targetZoom);
+}
+
+QWidget*
+PDFReaderWidget::viewport () const {
+  return scrollArea_ ? scrollArea_->viewport () : nullptr;
+}
+
+QScrollBar*
+PDFReaderWidget::verticalScrollBar () const {
+  return scrollArea_ ? scrollArea_->verticalScrollBar () : nullptr;
+}
+
 int
 PDFReaderWidget::pageWidth () const {
-  int baseWidth= viewport ()->width () - PAGE_MARGIN * 2;
+  int baseWidth= scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
   return qMax (1, qRound (baseWidth * zoomFactor_));
 }
 
@@ -212,9 +334,9 @@ PDFReaderWidget::rebuildPages () {
   int width= pageWidth ();
   if (width <= 0) return;
 
-  int childCount= layout_->count ();
+  int childCount= pageLayout_->count ();
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
-    QLayoutItem* item= layout_->itemAt (i);
+    QLayoutItem* item= pageLayout_->itemAt (i);
     if (!item) continue;
     QLabel* label= qobject_cast<QLabel*> (item->widget ());
     if (label) {
@@ -227,9 +349,10 @@ bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   clear ();
 
-  targetDpi_= dpi;
-  hasError_ = false;
+  targetDpi_       = dpi;
+  hasError_        = false;
   errorString_.clear ();
+  pageAspectRatio_= 0.0;
 
   QFile file (filePath);
   if (!file.open (QIODevice::ReadOnly)) {
@@ -286,6 +409,14 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     if (doc) {
       pageCount_= fz_count_pages (ctx, doc);
       opened    = (pageCount_ > 0);
+      if (opened && pageCount_ > 0) {
+        fz_page* page= fz_load_page (ctx, doc, 0);
+        if (page) {
+          fz_rect bbox    = fz_bound_page (ctx, page);
+          pageAspectRatio_= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
+          fz_drop_page (ctx, page);
+        }
+      }
     }
   }
   fz_catch (ctx) {
@@ -313,11 +444,12 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     label->setBackgroundRole (QPalette::Base);
     label->setStyleSheet ("QLabel { border: 1px solid #cccccc; }");
     renderPageToLabel (i, label, width);
-    layout_->addWidget (label);
+    pageLayout_->addWidget (label);
   }
 
-  layout_->addStretch (1);
+  pageLayout_->addStretch (1);
   contentWidget_->adjustSize ();
+  updateZoomDisplay ();
   return true;
 }
 
@@ -327,9 +459,10 @@ PDFReaderWidget::clear () {
   pageCount_= 0;
   hasError_ = false;
   errorString_.clear ();
+  pageAspectRatio_= 0.0;
 
   QLayoutItem* item;
-  while ((item= layout_->takeAt (0)) != nullptr) {
+  while ((item= pageLayout_->takeAt (0)) != nullptr) {
     if (item->widget ()) {
       delete item->widget ();
     }
@@ -337,44 +470,46 @@ PDFReaderWidget::clear () {
   }
 }
 
-void
-PDFReaderWidget::resizeEvent (QResizeEvent* event) {
-  QScrollArea::resizeEvent (event);
-  if (!pdfData_.isEmpty () && pageCount_ > 0) {
-    rebuildPages ();
-  }
-}
-
-void
-PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
-  if (event->key () == Qt::Key_Space) {
-    QScrollBar* vbar= verticalScrollBar ();
-    if (vbar) {
-      int scrollAmount= qRound (viewport ()->height () * 0.9);
-      vbar->setValue (vbar->value () + scrollAmount);
+bool
+PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == scrollArea_->viewport ()) {
+    if (event->type () == QEvent::Wheel) {
+      QWheelEvent* wheelEvent= static_cast<QWheelEvent*> (event);
+      if (wheelEvent->modifiers () & Qt::ControlModifier) {
+        int delta= wheelEvent->angleDelta ().y ();
+        if (delta != 0) {
+          if (delta > 0) {
+            zoomFactor_= qMin (zoomFactor_ + ZOOM_STEP, MAX_ZOOM);
+          }
+          else {
+            zoomFactor_= qMax (zoomFactor_ - ZOOM_STEP, MIN_ZOOM);
+          }
+          if (!pdfData_.isEmpty () && pageCount_ > 0) {
+            rebuildPages ();
+          }
+          updateZoomDisplay ();
+        }
+        wheelEvent->accept ();
+        return true;
+      }
     }
-    return;
-  }
-  QScrollArea::keyPressEvent (event);
-}
-
-void
-PDFReaderWidget::wheelEvent (QWheelEvent* event) {
-  if (event->modifiers () & Qt::ControlModifier) {
-    int delta= event->angleDelta ().y ();
-    if (delta != 0) {
-      if (delta > 0) {
-        zoomFactor_= qMin (zoomFactor_ + ZOOM_STEP, MAX_ZOOM);
+    else if (event->type () == QEvent::KeyPress) {
+      QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+      if (keyEvent->key () == Qt::Key_Space) {
+        QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+        if (vbar) {
+          int scrollAmount=
+              qRound (scrollArea_->viewport ()->height () * 0.9);
+          vbar->setValue (vbar->value () + scrollAmount);
+        }
+        return true;
       }
-      else {
-        zoomFactor_= qMax (zoomFactor_ - ZOOM_STEP, MIN_ZOOM);
-      }
+    }
+    else if (event->type () == QEvent::Resize) {
       if (!pdfData_.isEmpty () && pageCount_ > 0) {
         rebuildPages ();
       }
     }
-    event->accept ();
-    return;
   }
-  QScrollArea::wheelEvent (event);
+  return QWidget::eventFilter (watched, event);
 }

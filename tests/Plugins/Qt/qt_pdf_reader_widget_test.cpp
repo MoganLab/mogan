@@ -65,7 +65,10 @@ private slots:
     int         initialPos= vbar->value ();
     QVERIFY (vbar->maximum () > 0);
 
-    QTest::keyClick (widget, Qt::Key_Space);
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    vp->setFocus ();
+    QTest::keyClick (vp, Qt::Key_Space);
 
     int newPos= vbar->value ();
     QVERIFY (newPos > initialPos);
