@@ -69,6 +69,21 @@ public:
   // Template download
   void downloadTemplate (const QString& templateId);
   void cancelDownload (const QString& templateId);
+  /**
+   * @brief Synchronously download a template with optional timeout.
+   *
+   * Blocks until the download completes, fails, or the timeout expires.
+   * The caller should run this from the UI thread so that progress
+   * dialogs and event processing remain responsive.
+   *
+   * @param templateId   The template to download.
+   * @param timeoutMs    Maximum time to wait in milliseconds (default 30s).
+   * @param errorMessage If non-null, receives a human-readable error on
+   * failure.
+   * @return The local file path on success, or an empty string on failure.
+   */
+  QString downloadTemplateSync (const QString& templateId, int timeoutMs= 30000,
+                                QString* errorMessage= nullptr);
 
   // Signals for UI updates
   void onNetworkStateChanged (bool isOnline);

@@ -15,12 +15,14 @@
 
 #include <QDebug>
 #include <QDir>
+#include <QEventLoop>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QStandardPaths>
+#include <QTimer>
 
 // Scheme integration for loading local config
 #include "s7_tm.hpp"
@@ -351,6 +353,64 @@ TemplateManager::downloadTemplate (const QString& templateId) {
 void
 TemplateManager::cancelDownload (const QString& templateId) {
   api_->cancelDownload (templateId);
+}
+
+QString
+TemplateManager::downloadTemplateSync (const QString& templateId, int timeoutMs,
+                                       QString* errorMessage) {
+  if (isTemplateAvailableLocally (templateId)) {
+    return localTemplatePath (templateId);
+  }
+
+  downloadTemplate (templateId);
+
+  QEventLoop loop;
+  QString    resultPath;
+  QString    errorStr;
+  bool       finished= false;
+
+  QMetaObject::Connection completedConn=
+      connect (this, &TemplateManager::downloadCompleted,
+               [&] (const QString& id, const QString& localPath) {
+                 if (id != templateId || finished) return;
+                 resultPath= localPath;
+                 finished  = true;
+                 loop.quit ();
+               });
+
+  QMetaObject::Connection failedConn=
+      connect (this, &TemplateManager::downloadFailed,
+               [&] (const QString& id, const QString& error) {
+                 if (id != templateId || finished) return;
+                 errorStr= error;
+                 finished= true;
+                 loop.quit ();
+               });
+
+  QTimer timer;
+  timer.setSingleShot (true);
+  connect (&timer, &QTimer::timeout, [&] () {
+    if (finished) return;
+    errorStr= tr ("Download timed out");
+    cancelDownload (templateId);
+    finished= true;
+    loop.quit ();
+  });
+  timer.start (timeoutMs);
+
+  loop.exec ();
+
+  disconnect (completedConn);
+  disconnect (failedConn);
+
+  if (!finished || resultPath.isEmpty ()) {
+    if (errorMessage) {
+      *errorMessage= errorStr.isEmpty () ? tr ("Download failed") : errorStr;
+    }
+    return QString ();
+  }
+
+  return resultPath;
 }
 
 void

@@ -15,9 +15,6 @@
 
 class QGridLayout;
 class QLabel;
-class QNetworkAccessManager;
-class QNetworkReply;
-class QProgressDialog;
 class QPushButton;
 class QResizeEvent;
 class QScrollArea;
@@ -49,11 +46,6 @@ protected:
 private slots:
   void onTemplatesLoaded ();
   void onCategoriesLoaded ();
-  void onDownloadProgress (const QString& templateId, qint64 bytesReceived,
-                           qint64 bytesTotal);
-  void onDownloadCompleted (const QString& templateId,
-                            const QString& localPath);
-  void onDownloadFailed (const QString& templateId, const QString& error);
   void onCategoryClicked ();
 
 private:
@@ -66,20 +58,16 @@ private:
   void     downloadAndUseTemplate (const QString& templateId);
 
   // UI components
-  QLabel*                   titleLabel_;
-  QWidget*                  categoryBar_;
-  QScrollArea*              scrollArea_;
-  QWidget*                  gridWidget_;
-  QGridLayout*              gridLayout_;
-  QPointer<QProgressDialog> progressDialog_;
+  QLabel*      titleLabel_;
+  QWidget*     categoryBar_;
+  QScrollArea* scrollArea_;
+  QWidget*     gridWidget_;
+  QGridLayout* gridLayout_;
 
   // Data
   TemplateManager* templateManager_;
   QString          currentCategory_;
   QPushButton*     activeCategoryBtn_;
-
-  // Track user-cancelled downloads to avoid showing error dialogs
-  bool downloadCancelledByUser_= false;
 
   // Responsive grid
   int currentColumnCount_= 4;

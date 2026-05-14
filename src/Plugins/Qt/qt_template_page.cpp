@@ -15,7 +15,6 @@
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QMessageBox>
 #include <QMouseEvent>
 #include <QProgressDialog>
 #include <QPushButton>
@@ -80,9 +79,8 @@ constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
 QTTemplatePage::QTTemplatePage (QWidget* parent)
     : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
       scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
-      progressDialog_ (nullptr), templateManager_ (nullptr),
-      currentCategory_ (""), activeCategoryBtn_ (nullptr),
-      resizeDebounceTimer_ (nullptr) {
+      templateManager_ (nullptr), currentCategory_ (""),
+      activeCategoryBtn_ (nullptr), resizeDebounceTimer_ (nullptr) {
 
   resizeDebounceTimer_= new QTimer (this);
   resizeDebounceTimer_->setSingleShot (true);
@@ -105,17 +103,10 @@ void
 QTTemplatePage::initialize () {
   templateManager_= TemplateManager::instance ();
 
-  // Connect signals (safe to call multiple times due to Qt's auto-connection)
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
            &QTTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
   connect (templateManager_, &TemplateManager::categoriesLoaded, this,
            &QTTemplatePage::onCategoriesLoaded, Qt::UniqueConnection);
-  connect (templateManager_, &TemplateManager::downloadProgress, this,
-           &QTTemplatePage::onDownloadProgress, Qt::UniqueConnection);
-  connect (templateManager_, &TemplateManager::downloadCompleted, this,
-           &QTTemplatePage::onDownloadCompleted, Qt::UniqueConnection);
-  connect (templateManager_, &TemplateManager::downloadFailed, this,
-           &QTTemplatePage::onDownloadFailed, Qt::UniqueConnection);
 
   // Check if already initialized with data
   if (templateManager_->isInitialized () &&
@@ -585,15 +576,6 @@ void
 QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
   if (!templateManager_) return;
 
-  auto cleanupProgressDialog= [this] () {
-    QPointer<QProgressDialog> dialog= progressDialog_;
-    progressDialog_                 = nullptr;
-    if (!dialog) return;
-    dialog->disconnect (this);
-    dialog->hide ();
-    dialog->deleteLater ();
-  };
-
   if (templateManager_->isTemplateAvailableLocally (templateId)) {
     auto meta= templateManager_->templateById (templateId);
     if (!meta) {
@@ -610,41 +592,57 @@ QTTemplatePage::downloadAndUseTemplate (const QString& templateId) {
       return;
     }
     qt_copy_template_and_load (this, localPath, meta->name);
+    return;
   }
-  else {
-    // Track this download to distinguish user cancellation from real errors
-    downloadCancelledByUser_= false;
-    // Close existing progress dialog if any
-    if (progressDialog_) {
-      cleanupProgressDialog ();
+
+  QProgressDialog dialog (qt_translate ("Downloading template..."),
+                          qt_translate ("Cancel"), 0, 100, this);
+  dialog.setWindowModality (Qt::WindowModal);
+  dialog.setAutoClose (true);
+
+  bool cancelledByUser= false;
+  connect (&dialog, &QProgressDialog::canceled, [&] () {
+    cancelledByUser= true;
+    templateManager_->cancelDownload (templateId);
+  });
+
+  connect (templateManager_, &TemplateManager::downloadProgress, &dialog,
+           [&dialog] (const QString&, qint64 received, qint64 total) {
+             if (total < 0) {
+               dialog.setRange (0, 0);
+             }
+             else {
+               dialog.setMaximum (static_cast<int> (total));
+               dialog.setValue (static_cast<int> (received));
+             }
+           });
+
+  dialog.show ();
+
+  QString errorMsg;
+  QString localPath=
+      templateManager_->downloadTemplateSync (templateId, 30000, &errorMsg);
+
+  dialog.hide ();
+
+  if (localPath.isEmpty ()) {
+    if (!cancelledByUser) {
+      QtFloatingToast::showToast (
+          this,
+          errorMsg.isEmpty () ? qt_translate ("Download failed") : errorMsg,
+          3000, QtFloatingToast::Error);
     }
-
-    progressDialog_=
-        new QProgressDialog (qt_translate ("Downloading template..."),
-                             qt_translate ("Cancel"), 0, 100, this);
-    progressDialog_->setWindowModality (Qt::WindowModal);
-    progressDialog_->setAutoClose (true);
-
-    // Connect cancel button to actually cancel the download
-    connect (progressDialog_, &QProgressDialog::canceled,
-             [this, templateId] () {
-               // Mark as user-cancelled so onDownloadFailed won't show error
-               // dialog
-               downloadCancelledByUser_        = true;
-               QPointer<QProgressDialog> dialog= progressDialog_;
-               progressDialog_                 = nullptr;
-               templateManager_->cancelDownload (templateId);
-               if (dialog) {
-                 dialog->disconnect (this);
-                 dialog->hide ();
-                 dialog->deleteLater ();
-               }
-             });
-
-    progressDialog_->show ();
-
-    templateManager_->downloadTemplate (templateId);
+    return;
   }
+
+  auto meta= templateManager_->templateById (templateId);
+  if (!meta) {
+    QtFloatingToast::showToast (this,
+                                qt_translate ("Template metadata not found"),
+                                3000, QtFloatingToast::Error);
+    return;
+  }
+  qt_copy_template_and_load (this, localPath, meta->name);
 }
 
 void
@@ -656,63 +654,6 @@ QTTemplatePage::onTemplatesLoaded () {
   }
   gridNeedsRefresh_= true;
   refreshTemplateGrid (currentCategory_);
-}
-
-void
-QTTemplatePage::onDownloadProgress (const QString& templateId,
-                                    qint64 bytesReceived, qint64 bytesTotal) {
-  if (progressDialog_) {
-    // Handle case where Content-Length is not available (bytesTotal == -1)
-    if (bytesTotal < 0) {
-      // Switch to indeterminate mode when total size is unknown
-      progressDialog_->setRange (0, 0);
-    }
-    else {
-      progressDialog_->setMaximum (static_cast<int> (bytesTotal));
-      progressDialog_->setValue (static_cast<int> (bytesReceived));
-    }
-  }
-}
-
-void
-QTTemplatePage::onDownloadCompleted (const QString& templateId,
-                                     const QString& localPath) {
-  if (progressDialog_) {
-    QPointer<QProgressDialog> dialog= progressDialog_;
-    progressDialog_                 = nullptr;
-    dialog->disconnect (this);
-    dialog->hide ();
-    dialog->deleteLater ();
-  }
-
-  TemplateMetadataPtr tmpl= templateManager_->templateById (templateId);
-  if (!tmpl) {
-    qt_load_document_path (localPath);
-    return;
-  }
-  qt_copy_template_and_load (this, localPath, tmpl->name);
-}
-
-void
-QTTemplatePage::onDownloadFailed (const QString& templateId,
-                                  const QString& error) {
-  if (progressDialog_) {
-    QPointer<QProgressDialog> dialog= progressDialog_;
-    progressDialog_                 = nullptr;
-    dialog->disconnect (this);
-    dialog->hide ();
-    dialog->deleteLater ();
-  }
-
-  // Check if this download was cancelled by the user
-  // If so, don't show the error dialog
-  if (!downloadCancelledByUser_) {
-    QMessageBox::warning (
-        this, qt_translate ("Download Failed"),
-        qt_translate ("Failed to download template: %1").arg (error));
-  }
-  // Reset the flag for next download
-  downloadCancelledByUser_= false;
 }
 
 void
