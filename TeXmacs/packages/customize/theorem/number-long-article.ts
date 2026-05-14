@@ -27,7 +27,7 @@
 
   <drd-props|equation-prefix-sep|macro-parameter|regular>
 
-  <assign|display-std-env|<macro|nr|<section-prefix><arg|nr>>>
+  <assign|display-std-env|<macro|nr|<number|<value|section-nr>|arabic><equation-prefix-sep><arg|nr>>>
 
   \;
 </body>
