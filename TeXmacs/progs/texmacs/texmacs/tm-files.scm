@@ -1571,7 +1571,6 @@
   (or (url-rooted-web? u)
       (not (in? (url-root u) (list "tmfs" "file" "default" "blank" "ramdisc")))
       (file-of-format? u "image")
-      (file-of-format? u "pdf")
       (file-of-format? u "postscript")
       (file-of-format? u "generic")))
 
