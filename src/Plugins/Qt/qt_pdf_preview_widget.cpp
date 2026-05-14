@@ -84,6 +84,8 @@ QTPdfPreviewWidget::createNavButton (const QString& text,
 void
 QTPdfPreviewWidget::setupUI () {
   setAttribute (Qt::WA_Hover, true);
+  setAutoFillBackground (true);
+  setBackgroundRole (QPalette::Mid);
 
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (0, 0, 0, 0);
@@ -105,6 +107,8 @@ QTPdfPreviewWidget::setupUI () {
   previewLabel_= new QLabel (previewContainer_);
   previewLabel_->setObjectName ("pdf-preview-label");
   previewLabel_->setAlignment (Qt::AlignCenter);
+  previewLabel_->setAutoFillBackground (true);
+  previewLabel_->setBackgroundRole (QPalette::Base);
 
   containerLayout->addWidget (previewLabel_, 0, Qt::AlignCenter);
   mainLayout->addWidget (previewContainer_, 1, Qt::AlignCenter);

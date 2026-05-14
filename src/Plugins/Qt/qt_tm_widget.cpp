@@ -42,6 +42,7 @@
 #include "scheme.hpp"
 
 #include "qt_gui.hpp"
+#include "qt_pdf_preview_widget.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
 #include "qt_startup_tab_widget.hpp"
@@ -164,7 +165,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
       loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
       m_memberType (""), m_currentScmNotificationItem (""),
-      startupContentWidget (nullptr), startupTabMode (false) {
+      startupContentWidget (nullptr), startupTabMode (false),
+      pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
+      lastLoadedPdfPath ("") {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -836,6 +839,11 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
   if (startupContentWidget) {
     delete startupContentWidget;
   }
+
+  // delete pdf viewer widget
+  if (pdfViewerWidget) {
+    delete pdfViewerWidget;
+  }
 }
 
 void
@@ -913,6 +921,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
   if (startupTabMode) {
     // Show Backstage/Startup view
     hide_widget_from_layout (editorWidget, layout);
+    hide_widget_from_layout (pdfViewerWidget, layout);
 
     update_visibility ();
 
@@ -922,9 +931,30 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     show_widget_in_layout (startupContentWidget, layout);
     startupContentWidget->setFocus (Qt::OtherFocusReason);
   }
+  else if (pdfTabMode) {
+    // Show PDF viewer
+    hide_widget_from_layout (editorWidget, layout);
+    hide_widget_from_layout (startupContentWidget, layout);
+
+    update_visibility ();
+
+    if (!pdfViewerWidget) {
+      pdfViewerWidget= new QTPdfPreviewWidget (centralwidget ());
+    }
+    show_widget_in_layout (pdfViewerWidget, layout);
+    pdfViewerWidget->setFocus (Qt::OtherFocusReason);
+
+    // Load PDF if path changed
+    if (!currentPdfPath.isEmpty () &&
+        currentPdfPath != lastLoadedPdfPath) {
+      pdfViewerWidget->loadFromFile (currentPdfPath);
+      lastLoadedPdfPath= currentPdfPath;
+    }
+  }
   else {
     // Show normal editor view
     hide_widget_from_layout (startupContentWidget, layout);
+    hide_widget_from_layout (pdfViewerWidget, layout);
     show_widget_in_layout (editorWidget, layout);
 
     update_visibility ();
@@ -977,6 +1007,22 @@ qt_tm_widget_rep::update_visibility () {
     new_focusVisibility = false;
     new_userVisibility  = false;
     new_statusVisibility= false;
+    new_sideVisibility  = false;
+    new_leftVisibility  = false;
+    new_bottomVisibility= false;
+    new_extraVisibility = false;
+    new_auxVisibility   = false;
+    new_tabVisibility   = true;
+    new_titleVisibility = true;
+  }
+
+  if (pdfTabMode) {
+    new_mainVisibility  = false;
+    new_menuVisibility  = true;
+    new_modeVisibility  = false;
+    new_focusVisibility = false;
+    new_userVisibility  = false;
+    new_statusVisibility= true;
     new_sideVisibility  = false;
     new_leftVisibility  = false;
     new_bottomVisibility= false;
@@ -1236,6 +1282,10 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
     startupTabMode= is_startup_tab_file (file);
+    pdfTabMode    = is_pdf_tab_file (file);
+    if (pdfTabMode) {
+      currentPdfPath= utf8_to_qstring (file);
+    }
     sync_startup_tab_mode ();
   } break;
   case SLOT_POSITION: {

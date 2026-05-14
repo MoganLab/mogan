@@ -24,7 +24,7 @@ function add_target_cpp_test(filepath, dep1, dep2)
             add_syslinks("secur32")
         end
         add_rules("qt.console")
-        add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtTest")
+        add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtTest", "QtNetwork")
         if not is_plat("windows") then
             add_syslinks("pthread")
         end
@@ -73,7 +73,7 @@ function add_target_cpp_bench(filepath, dep)
             add_syslinks("secur32")
         end
         add_rules("qt.console")
-        add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtTest")
+        add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtTest", "QtNetwork")
         if not is_plat("windows") then
             add_syslinks("pthread")
         end

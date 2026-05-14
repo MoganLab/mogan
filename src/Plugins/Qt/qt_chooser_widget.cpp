@@ -222,7 +222,7 @@ qt_chooser_widget_rep::set_type (const string& _type) {
     nameFilters << to_qstring (translate ("All Format") * " (*)");
   }
   else if (_type == "action_open") {
-    mainNameFilter+= " (*.tmu *.tm *.ts *.tp)";
+    mainNameFilter+= " (*.tmu *.tm *.ts *.tp *.pdf)";
     //" (*.scala *.sc *.sbt *.pants *.ltx *.sty *.cls *.tex *.bib *.rawbib *.jl
     //*.js *.java *.sld *.ss *.tmu *.txt *.py *.json *.html *.hh *.cpp *cc *hpp
     //*.scm *.elv *.md *.sh *.csv)"

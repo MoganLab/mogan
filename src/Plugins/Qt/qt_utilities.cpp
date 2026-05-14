@@ -1546,3 +1546,12 @@ qt_clipboard_set_html (string html) {
   mimeData->setText (htmlText);
   clipboard->setMimeData (mimeData, QClipboard::Clipboard);
 }
+
+/******************************************************************************
+ * PDF tab utilities
+ ******************************************************************************/
+
+bool
+is_pdf_tab_file (string file) {
+  return suffix (file) == "pdf";
+}
