@@ -120,8 +120,8 @@ measure_time (Func&& func, const string& operation_name) {
   auto end= std::chrono::high_resolution_clock::now ();
   auto duration=
       std::chrono::duration_cast<std::chrono::microseconds> (end - start);
+  Q_UNUSED (operation_name);
 
-  qDebug () << as_charp (operation_name) << ": " << duration.count () << " μs";
   return duration.count ();
 }
 
@@ -178,7 +178,6 @@ TestTablePerformance::initTestCase () {
   cache_initialize ();
   init_tex ();
   moebius::drd::init_std_drd ();
-  qDebug () << "=== Table Performance Test ===";
 }
 
 void
@@ -198,7 +197,6 @@ TestTablePerformance::test_1x1_text_table () {
   simple_row[0]     = tree (CELL, "hello");
   simple_table[0][0]= simple_row;
 
-  qDebug () << "Testing 1x1 table with text content...";
   auto simple_time= measure_table_creation_time (env, simple_table,
                                                  "1x1 text table creation");
 
@@ -220,7 +218,6 @@ TestTablePerformance::test_1x1_matrix_table () {
   simple_row[0]     = tree (CELL, matrix_cell);
   simple_table[0][0]= simple_row;
 
-  qDebug () << "Testing 1x1 table with matrix content...";
   auto matrix_time= measure_table_creation_time (env, simple_table,
                                                  "1x1 matrix table creation");
 
@@ -493,9 +490,6 @@ TestTablePerformance::test_handle_decorations_correctness () {
   int rows_after= tab->nr_rows;
   int cols_after= tab->nr_cols;
 
-  qDebug () << "Table dimensions:" << rows_before << "x" << cols_before << "->"
-            << rows_after << "x" << cols_after;
-
   // Verify that decorations expanded the table
   QVERIFY (rows_after > rows_before);
   QVERIFY (cols_after > cols_before);
@@ -511,7 +505,6 @@ TestTablePerformance::test_handle_decorations_correctness () {
       }
     }
   }
-  qDebug () << "Non-nil cells after handle_decorations:" << total_cells;
   // At least original size * size cells should be present
   QVERIFY (total_cells >= size * size);
 }
@@ -618,16 +611,6 @@ TestTablePerformance::test_handle_decorations_performance () {
     double per_n2d2=
         median_us / ((double) size * (double) size * (double) d * (double) d);
 
-    qDebug () << as_charp (as_string (size) * "x" * as_string (size) *
-                           " handle_decorations median")
-              << ":" << median_us << "μs"
-              << "(d:" << d << "decorations:" << decorations << ")"
-              << "(us/n^2:" << per_n2 << "us/n^4:" << per_n4
-              << "us/(n^2*d^2):" << per_n2d2 << ")"
-              << "(min:" << min_us << "max:" << max_us << ")"
-              << "(" << rows_before << "x" << cols_before << "->" << rows_after
-              << "x" << cols_after << ")";
-
     QVERIFY (median_us >= 0.0);
     QVERIFY (rows_after > rows_before);
     QVERIFY (cols_after > cols_before);
@@ -683,13 +666,6 @@ TestTablePerformance::test_cell_hyphen_wrapping () {
   SI inner_height_no_wrap= tab_no_wrap->T[0][0]->b[0]->h ();
   SI inner_height_wrap   = tab_wrap->T[0][0]->b[0]->h ();
 
-  qDebug () << "No wrap width:" << width_no_wrap << "height:" << height_no_wrap;
-  qDebug () << "Wrap width:" << width_wrap << "height:" << height_wrap;
-  qDebug () << "No wrap inner width:" << inner_width_no_wrap
-            << "inner height:" << inner_height_no_wrap;
-  qDebug () << "Wrap inner width:" << inner_width_wrap
-            << "inner height:" << inner_height_wrap;
-
   // When cell-hyphen is enabled, the cell should wrap and be narrower
   // than the non-wrapping case
   QVERIFY (width_wrap < width_no_wrap);
@@ -737,14 +713,6 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
 
   SI pw, d1, d2, d3, d4, d5, d6, d7;
   tab_wrap->env->get_page_pars (pw, d1, d2, d3, d4, d5, d6, d7);
-  qDebug () << "=== 2x5 table ===";
-  qDebug () << "Page width:" << pw;
-  for (int j= 0; j < 5; j++)
-    qDebug () << "Column" << j << "width:" << tab_wrap->mw[j];
-  qDebug () << "Total width:"
-            << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2] +
-                   tab_wrap->mw[3] + tab_wrap->mw[4];
-
   tab_wrap->finish_horizontal ();
   tab_wrap->position_rows ();
   tab_wrap->finish ();
@@ -754,15 +722,13 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
     for (int j= 0; j < 5; j++) {
       SI box_w= tab_wrap->T[i][j]->b->w ();
       SI col_w= tab_wrap->mw[j];
-      qDebug () << "Cell(" << i << "," << j << ") box_w:" << box_w
-                << "col_mw:" << col_w << "overflow:" << (box_w > col_w);
+      Q_UNUSED (box_w);
+      Q_UNUSED (col_w);
     }
 }
 
 void
-TestTablePerformance::cleanupTestCase () {
-  qDebug () << "\n=== Performance Test Complete ===";
-}
+TestTablePerformance::cleanupTestCase () {}
 
 QTEST_MAIN (TestTablePerformance)
 #include "table_performance_test.moc"
