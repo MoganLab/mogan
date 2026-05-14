@@ -248,6 +248,8 @@ public:
   virtual string   get_leaf_string ();
   virtual font     get_leaf_font ();
   virtual pencil   get_leaf_pencil ();
+  virtual color    get_bg_color ();
+  virtual void     set_bg_color (color c);
   virtual language get_leaf_language ();
   virtual tree     get_leaf_tree ();
   virtual box      get_leaf_box ();

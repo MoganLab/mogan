@@ -564,6 +564,16 @@ box_rep::get_leaf_pencil () {
   return pencil (false);
 }
 
+color
+box_rep::get_bg_color () {
+  return rgb_color (0, 0, 0, 0);
+}
+
+void
+box_rep::set_bg_color (color c) {
+  (void) c;
+}
+
 language
 box_rep::get_leaf_language () {
   failed_error << "The box is " << box (this) << "\n";

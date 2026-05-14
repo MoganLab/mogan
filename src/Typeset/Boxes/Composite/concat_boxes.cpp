@@ -11,6 +11,7 @@
 
 #include "Boxes/composite.hpp"
 #include "Boxes/construct.hpp"
+#include "colors.hpp"
 
 /******************************************************************************
  * The concat_box representation
@@ -19,11 +20,15 @@
 struct concat_box_rep : public composite_box_rep {
   array<SI> spc;
   bool      indent;
+  array<int> bg_indices;
+  array<color> bg_colors;
   concat_box_rep (path ip, array<box> bs, array<SI> spc, bool indent);
   operator tree ();
   box adjust_kerning (int mode, double factor);
   box expand_glyphs (int mode, double factor);
 
+  void pre_display (renderer& ren);
+  void post_display (renderer& ren);
   void finalize ();
   void clear_incomplete (rectangles& rs, SI pixel, int i, int i1, int i2);
   bool access_allowed ();
@@ -108,6 +113,124 @@ concat_box_rep::position (array<SI> spc) {
       y4= max (y4, sy4 (i));
     }
   if (!ok) composite_box_rep::position ();
+}
+
+static void
+rounded_bg (array<SI>& xs, array<SI>& ys, SI x1, SI y1, SI x2, SI y2, SI r) {
+  int n= 16;
+  // Bottom-left arc
+  for (int i= 0; i <= n; i++) {
+    double a= 3.14159265359 + (1.57079632679 * i) / n;
+    xs << (SI) (x1 + r + r * cos (a));
+    ys << (SI) (y1 + r + r * sin (a));
+  }
+  // Bottom-right arc
+  for (int i= 0; i <= n; i++) {
+    double a= 4.71238898038 + (1.57079632679 * i) / n;
+    xs << (SI) (x2 - r + r * cos (a));
+    ys << (SI) (y1 + r + r * sin (a));
+  }
+  // Top-right arc
+  for (int i= 0; i <= n; i++) {
+    double a= (1.57079632679 * i) / n;
+    xs << (SI) (x2 - r + r * cos (a));
+    ys << (SI) (y2 - r + r * sin (a));
+  }
+  // Top-left arc
+  for (int i= 0; i <= n; i++) {
+    double a= 1.57079632679 + (1.57079632679 * i) / n;
+    xs << (SI) (x1 + r + r * cos (a));
+    ys << (SI) (y2 - r + r * sin (a));
+  }
+}
+
+void
+concat_box_rep::pre_display (renderer& ren) {
+  int n= N (bs);
+  if (n == 0) return;
+
+  bg_indices= array<int> ();
+  bg_colors = array<color> ();
+
+  int i= 0;
+  while (i < n) {
+    color c= bs[i]->get_bg_color ();
+    int r, g, b, a;
+    get_rgb_color (c, r, g, b, a);
+    if (a <= 0 || bs[i]->get_type () != TEXT_BOX) {
+      i++;
+      continue;
+    }
+
+    int    start      = i;
+    color  group_color= c;
+    i++;
+
+    while (i < n) {
+      color c2= bs[i]->get_bg_color ();
+      if (c2 != group_color || bs[i]->get_type () != TEXT_BOX) break;
+      i++;
+    }
+    int end= i - 1;
+
+    SI bg_x1= sx1 (start);
+    SI bg_x2= sx2 (end);
+    SI pixel= ren->pixel;
+    SI bg_y1= MAX_SI;
+    SI bg_y2= -MAX_SI;
+
+    for (int k= start; k <= end; k++) {
+      font f= bs[k]->get_leaf_font ();
+      if (is_nil (f)) continue;
+      metric ex_m;
+      f->get_extents ("M", ex_m);
+      bg_y1= min (bg_y1, sy (k) + ex_m->y1 - 10 * pixel);
+      bg_y2= max (bg_y2, sy (k) + ex_m->y2 + 10 * pixel);
+    }
+
+    if (bg_y1 >= bg_y2) continue;
+
+    font first_font= bs[start]->get_leaf_font ();
+    SI   radius    = 0;
+    if (!is_nil (first_font)) {
+      radius= first_font->yx / 5;
+    }
+    if (radius < 2 * pixel) radius= 2 * pixel;
+
+    SI bg_w= bg_x2 - bg_x1;
+    SI bg_h= bg_y2 - bg_y1;
+    if (2 * radius > bg_w || 2 * radius > bg_h) {
+      radius= min (bg_w, bg_h) / 2;
+    }
+
+    if (radius <= 0) {
+      ren->set_background (brush (group_color));
+      ren->clear (bg_x1, bg_y1, bg_x2, bg_y2);
+    }
+    else {
+      array<SI> xs, ys;
+      rounded_bg (xs, ys, bg_x1, bg_y1, bg_x2, bg_y2, radius);
+      ren->set_brush (brush (group_color));
+      ren->polygon (xs, ys);
+    }
+
+    for (int k= start; k <= end; k++) {
+      bg_indices << k;
+      bg_colors << bs[k]->get_bg_color ();
+      bs[k]->set_bg_color (rgb_color (0, 0, 0, 0));
+    }
+  }
+}
+
+void
+concat_box_rep::post_display (renderer& ren) {
+  (void) ren;
+  int n= N (bg_indices);
+  for (int i= 0; i < n; i++) {
+    bs[bg_indices[i]]->set_bg_color (bg_colors[i]);
+  }
+  bg_indices= array<int> ();
+  bg_colors = array<color> ();
 }
 
 concat_box_rep::concat_box_rep (path ip, array<box> bs2, array<SI> spc2,

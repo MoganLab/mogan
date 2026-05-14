@@ -36,6 +36,8 @@ struct text_box_rep : public box_rep {
   box expand_glyphs (int mode, double factor);
 
   void   display (renderer ren);
+  color  get_bg_color ();
+  void   set_bg_color (color c);
   double left_slope ();
   double right_slope ();
   SI     left_correction ();
@@ -447,6 +449,16 @@ text_box_rep::find_selection (path lbp, path rbp) {
 int
 text_box_rep::get_type () {
   return TEXT_BOX;
+}
+
+color
+text_box_rep::get_bg_color () {
+  return bg_color;
+}
+
+void
+text_box_rep::set_bg_color (color c) {
+  bg_color= c;
 }
 
 int
