@@ -299,7 +299,7 @@ cell_rep::compute_width (SI& mw, SI& lw, SI& rw, bool large) {
     // cout << "Query" << LF << INDENT;
     format fm= lz->query (LAZY_BOX, make_query_vstream_width (0, 0));
     // cout << UNINDENT << "Queried" << LF;
-    format_width fw= (format_width) fm;
+    format_width fw    = (format_width) fm;
     SI           cell_w= fw->width;
     if (hyphen != "n") {
       SI page_w, d1, d2, d3, d4, d5, d6, d7;
