@@ -25,15 +25,15 @@ private:
 private slots:
   void initTestCase () {
     QStandardPaths::setTestModeEnabled (true);
-    tempDocsDir_= QStandardPaths::writableLocation (
-        QStandardPaths::DocumentsLocation);
+    tempDocsDir_=
+        QStandardPaths::writableLocation (QStandardPaths::DocumentsLocation);
     QVERIFY (!tempDocsDir_.isEmpty ());
   }
 
   void init () {
     QDir dir (tempDocsDir_);
-    for (const auto& entry : dir.entryInfoList (QStringList ("*.tmu"),
-                                                 QDir::Files)) {
+    for (const auto& entry :
+         dir.entryInfoList (QStringList ("*.tmu"), QDir::Files)) {
       QFile::remove (entry.absoluteFilePath ());
     }
   }
@@ -109,7 +109,7 @@ private slots:
   // 测试正常拷贝：源文件存在时应成功拷贝到 Documents
   void test_copy_success () {
     QString sourcePath= QDir (tempDocsDir_).filePath ("source_test.tmu");
-    QFile  sourceFile (sourcePath);
+    QFile   sourceFile (sourcePath);
     QVERIFY (sourceFile.open (QIODevice::WriteOnly));
     sourceFile.write ("test content");
     sourceFile.close ();
@@ -131,12 +131,10 @@ private slots:
     QVERIFY (!QFile::exists (missingPath));
 
     // 抑制预期内的 qWarning 输出，避免 Qt Test 将其标记为 QWARN
-    QtMessageHandler oldHandler=
-        qInstallMessageHandler ([] (QtMsgType, const QMessageLogContext&,
-                                  const QString&) {});
+    QtMessageHandler oldHandler= qInstallMessageHandler (
+        [] (QtMsgType, const QMessageLogContext&, const QString&) {});
 
-    QString result=
-        qt_copy_template_to_documents (missingPath, "MissingTest");
+    QString result= qt_copy_template_to_documents (missingPath, "MissingTest");
 
     qInstallMessageHandler (oldHandler);
 

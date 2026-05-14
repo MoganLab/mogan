@@ -362,8 +362,6 @@ TemplateManager::downloadTemplateSync (const QString& templateId, int timeoutMs,
     return localTemplatePath (templateId);
   }
 
-  downloadTemplate (templateId);
-
   QEventLoop loop;
   QString    resultPath;
   QString    errorStr;
@@ -397,6 +395,8 @@ TemplateManager::downloadTemplateSync (const QString& templateId, int timeoutMs,
     loop.quit ();
   });
   timer.start (timeoutMs);
+
+  downloadTemplate (templateId);
 
   loop.exec ();
 
