@@ -11,16 +11,12 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (liii hashlib))
-
 (texmacs-module (dynamic session-edit)
   (:use (utils library tree)
 	(utils library cursor)
 	(utils plugins plugin-cmd)
 	(dynamic session-drd)
-	(dynamic fold-edit)
-	(kernel gui menu-widget)
-	(texmacs texmacs tm-files)))
+	(dynamic fold-edit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Where to find plug-in binaries
@@ -535,46 +531,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (make-session lan ses)
-  (:synopsis "Create session in auxiliary sidebar")
+  (:synopsis "Insert session")
   (:argument lan "Language")
   (:argument ses "Session identifier")
-  (make-session-in-sidebar lan ses))
-
-;; ============================================
-;; Session Sidebar - 在辅助窗口中创建 Session
-;; ============================================
-
-;; Debug 日志函数 - 简化版本
-(define session-debug-log-file "/tmp/session-debug.log")
-
-(define session-debug-counter 0)
-
-(tm-define (session-debug msg . args)
-  (set! session-debug-counter (+ session-debug-counter 1))
-  (let* ((log-msg (if (null? args)
-                      (string-append "[" (number->string session-debug-counter) "] " msg "\n")
-                      (string-append "[" (number->string session-debug-counter) "] " msg " => "
-                                     (object->string args) "\n"))))
-    ;; 输出到控制台
-    (display log-msg)
-    ;; 追加到日志文件
-    (catch #t
-      (lambda ()
-        (with-output-to-file session-debug-log-file
-          (lambda () (display log-msg))
-          'append))
-      (lambda e
-        (display "[WARN] Failed to write log file\n")))))
-
-(define session-sidebar-counter 0)
-
-(tm-define (session-sidebar-url lan ses)
-  (set! session-sidebar-counter (+ session-sidebar-counter 1))
-  (string->url (string-append "tmfs://aux/session-"
-                              (number->string session-sidebar-counter))))
-
-;; 构建 session 的初始 tree 结构
-(tm-define (session-sidebar-tree lan ses)
   (let* ((ban `(output (document "")))
          (l (cond ((session-math-input? lan ses) 'input-math)
                   ((session-text-input? lan ses) 'input-text)
@@ -582,76 +541,12 @@
          (p (plugin-prompt lan ses))
          (in `(,l (document ,p) (document "")))
          (s `(session ,lan ,ses (document ,ban ,in))))
-    `(document ,s)))
-
-;; Session sidebar widget 定义
-(tm-widget ((session-sidebar-widget buf) quit)
-  (padded
-    (resize "400px" "600px"
-      (texmacs-input
-        (buffer-get-body buf)
-        `(style "generic")
-        buf))))
-
-;; 在侧边栏中创建 session
-(tm-define (make-session-in-sidebar lan ses)
-  (:synopsis "Create session in auxiliary sidebar")
-  (:argument lan "Language")
-  (:argument ses "Session identifier")
-
-  (session-debug "=== make-session-in-sidebar START ===" (list lan ses))
-
-  ;; 步骤 0: 记录当前环境
-  (session-debug "Current buffer" (url->string (current-buffer)))
-  (session-debug "Current view" (url->string (current-view-url)))
-
-  ;; 1. 创建辅助 buffer
-  (session-debug "Step 1: Creating auxiliary sidebar buffer")
-  (let* ((main-buf (current-buffer))
-         (aux-buf (session-sidebar-url lan ses))
-         (buf-name (string-append lan " Session"))
-         (doc-tree (session-sidebar-tree lan ses)))
-
-    (session-debug "Aux buffer created" (url->string aux-buf))
-    (session-debug "Buffer name" buf-name)
-
-    ;; 2. 绑定主 buffer 并设置内容
-    (session-debug "Step 2: Setting auxiliary buffer content")
-    (buffer-set-master aux-buf main-buf)
-    (buffer-set-body aux-buf doc-tree)
-
-    ;; 3. 加载样式包并启动 session feed
-    (session-debug "Step 3: Loading style and starting session")
-    (with-buffer aux-buf
-      (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".ts")))
-          (begin
-            (session-debug "Style file found, adding package")
+    (insert-go-to s '(2 1 1 0 0))
+    (with-innermost t field-input-context?
+      (with u (tree-ref t :previous 0)
+        (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".ts")))
             (add-style-package lan))
-          (session-debug "Style file not found"))
-
-      (with-innermost t field-input-context?
-        (session-debug "Found field context, starting feed")
-        (with u (tree-ref t :previous 0)
-          (session-feed lan ses :start u t '())
-          (session-debug "Session feed started"))))
-
-    ;; 4. 使用 auxiliary-widget 显示到侧边栏
-    (session-debug "Step 4: Creating auxiliary widget")
-    (auxiliary-widget
-      (session-sidebar-widget aux-buf)
-      (lambda args
-        (session-debug "Widget command callback" args)
-        (noop))
-      buf-name)
-
-    (session-debug "Step 5: Setting auxiliary widget state")
-    (set-auxiliary-widget-state #t 'session)
-
-    (session-debug "Step 6: Focusing auxiliary buffer")
-    (buffer-focus aux-buf #f)
-
-    (session-debug "=== make-session-in-sidebar END ===")
-    (set-message "Session created in sidebar" "")))
+  (session-feed lan ses :start u t '())))))
 
 (define (input-options t)
   (with opts '()
@@ -679,10 +574,6 @@
         (tree-go-to u 1 :end)
         (set-user-active #f)))))
 
-(tm-define (session-evaluate)
-  (with-innermost t field-input-context?
-    (field-process-input t)))
-
 (define (kbd-enter-sub t done?)
   (if (in? done? (list #f "#f"))
       (insert-return)
@@ -706,6 +597,10 @@
                 (ret (lambda (done?) (kbd-enter-sub t done?))))
            (plugin-command lan ses cmd ret '())))
         (else (session-evaluate))))
+
+(tm-define (session-evaluate)
+  (with-innermost t field-input-context?
+    (field-process-input t)))
 
 (tm-define (session-evaluate-all)
   (session-forall
