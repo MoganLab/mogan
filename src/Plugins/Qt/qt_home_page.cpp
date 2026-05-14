@@ -34,7 +34,6 @@
 #include <QStyleOption>
 #include <QTimer>
 #include <QVBoxLayout>
-#include <memory>
 
 #include "qt_dpi_utils.hpp"
 #include "qt_floating_toast.hpp"
