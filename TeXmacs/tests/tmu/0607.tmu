@@ -1,0 +1,58 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|number-europe|preview-ref|number-long-article>>
+
+<\body>
+  <appendix|>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+
+  <appendix|>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+
+  <appendix|>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+
+  <\equation>
+    \<alpha\>\<neq\>\<beta\>
+  </equation>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|786A3DE7-5809-4330-8D5E-10FCE8819B60>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|A|?>>
+    <associate|auto-2|<tuple|B|?>>
+    <associate|auto-3|<tuple|C|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|Appendix A<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
