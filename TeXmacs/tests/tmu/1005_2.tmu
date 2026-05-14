@@ -1,0 +1,75 @@
+<TMU|<tuple|1.1.0|2026.2.1-rc10>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|number-long-article>>
+
+<\body>
+  <\hide-preamble>
+    <assign|display-std-env|<macro|nr|<if|<equal|<value|section-prefix>|<value|appendix-prefix>>|<number|<value|appendix-nr>|Alpha>|<number|<value|section-nr>|arabic>><equation-prefix-sep><arg|nr>>>
+  </hide-preamble>
+
+  <chapter|>
+
+  <section|>
+
+  <\equation>
+    \;
+  </equation>
+
+  <section|>
+
+  <\equation>
+    \;
+  </equation>
+
+  <appendix|>
+
+  <section|>
+
+  <\equation>
+    \;
+  </equation>
+
+  <appendix|>
+
+  <section|>
+
+  <\equation>
+    \;
+  </equation>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|section-number-style|hanzi>
+    <associate|sectional-short-style|false>
+    <associate|stem-doc-id|E7285C7A-8C44-4710-8998-7172F4DAB550>
+    <associate|subsection-number-style|arabic>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+    <associate|auto-2|<tuple|1.一|?>>
+    <associate|auto-3|<tuple|1.二|?>>
+    <associate|auto-4|<tuple|A|?>>
+    <associate|auto-5|<tuple|B|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|第 1 章<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <with|par-left|<quote|1tab>|1.一<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2>>
+
+      <with|par-left|<quote|1tab>|1.二<space|2spc><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3>>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|附录 A<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|附录 B<space|2spc>><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-5><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
