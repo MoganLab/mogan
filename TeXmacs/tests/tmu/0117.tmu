@@ -3,8 +3,34 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
 <\body>
+  1x1的情况
+
   <tabular|<tformat|<cwith|1|1|1|1|cell-hyphen|t>|<table|<row|<\cell>
     ddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
+  </cell>>>>>
+
+  2x5的情况
+
+  <block*|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
+    sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd
+  </cell>|<\cell>
+    sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd
+  </cell>|<\cell>
+    sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd
+  </cell>|<\cell>
+    sdasd dasd sd
+  </cell>|<\cell>
+    \;
+  </cell>>|<row|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    \;
+  </cell>|<\cell>
+    sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd<with|font-series|bold|>
   </cell>>>>>
 </body>
 
