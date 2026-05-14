@@ -5,14 +5,14 @@
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
-#include "base.hpp"
 #include "QTMTemplatePage.hpp"
+#include "base.hpp"
 #include "template_manager.hpp"
-#include <QtTest/QtTest>
-#include <QLabel>
 #include <QGridLayout>
+#include <QLabel>
 #include <QSignalSpy>
 #include <QStandardPaths>
+#include <QtTest/QtTest>
 
 class TestStartupTabWidget : public QObject {
   Q_OBJECT
@@ -60,8 +60,8 @@ private slots:
     QWidget* grid= page.findChild<QWidget*> ("startup-tab-grid");
     QVERIFY (grid != nullptr);
 
-    QList<QLabel*> labels= grid->findChildren<QLabel*> ();
-    bool foundNoTemplates= false;
+    QList<QLabel*> labels          = grid->findChildren<QLabel*> ();
+    bool           foundNoTemplates= false;
     for (QLabel* label : labels) {
       if (label->text ().contains ("No templates available")) {
         foundNoTemplates= true;
@@ -79,7 +79,7 @@ private slots:
     page.initialize ();
 
     TemplateManager* mgr= TemplateManager::instance ();
-    emit mgr->categoriesLoaded ();
+    emit             mgr->categoriesLoaded ();
     QCoreApplication::processEvents ();
 
     // 分类栏存在但可能为空（无本地分类数据）
