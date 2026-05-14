@@ -18,7 +18,7 @@
 ;; Debug logging
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define sidebar-debug-log-file "/tmp/sidebar-session-debug.log")
+(define sidebar-debug-log-file "/tmp/double-buffer-session-debug.log")
 (define sidebar-debug-counter 0)
 
 (define (sidebar-debug msg . args)
@@ -99,7 +99,7 @@
   (:synopsis "Refresh chat sidebar (called by C++ after widget creation)")
   (sidebar-debug "refresh!")
   ;; No-op in session-based architecture: buffer content is managed by
-  ;; sidebar-session.scm via make-sidebar-session. This function exists
+  ;; double-buffer-session.scm via make-double-buffer-session. This function exists
   ;; because C++ qt_tm_widget.cpp calls it after creating buffer widgets.
   (noop))
 

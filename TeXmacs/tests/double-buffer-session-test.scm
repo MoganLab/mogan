@@ -1,13 +1,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : sidebar-session-test.scm
-;; DESCRIPTION : tests for sidebar session
+;; MODULE      : double-buffer-session-test.scm
+;; DESCRIPTION : tests for double buffer session
 ;; COPYRIGHT   : (C) 2025--2026  Mogan Contributors
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (sidebar-session-test)
-  (:use (dynamic sidebar-session)
+(texmacs-module (double-buffer-session-test)
+  (:use (dynamic double-buffer-session)
         (generic chat-sidebar-ui)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -46,14 +46,14 @@
 ;; Tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (run-sidebar-session-tests)
+(tm-define (run-double-buffer-session-tests)
   (:synopsis "Run sidebar session tests")
   (:interactive #t)
 
   (set! test-passed 0)
   (set! test-failed 0)
 
-  (display* "\n=== Sidebar Session Tests ===\n\n")
+  (display* "\n=== Double Buffer Session Tests ===\n\n")
 
   ;; Test 1: Buffer names exist
   (assert-true (string? (chat-sidebar-message-buffer-name))
@@ -84,13 +84,13 @@
                "input buffer exists after reset")
 
   ;; Test 6: Active session state
-  (assert-false (sidebar-session-active?)
+  (assert-false (double-buffer-session-active?)
                 "no active session initially")
-  (assert-false (sidebar-session-id)
+  (assert-false (double-buffer-session-id)
                 "session id is #f initially")
 
   ;; Test 7: Debug log file path
-  (assert-true (string? sidebar-session-debug-log-file)
+  (assert-true (string? double-buffer-session-debug-log-file)
                "debug log file path is a string")
 
   (test-summary))

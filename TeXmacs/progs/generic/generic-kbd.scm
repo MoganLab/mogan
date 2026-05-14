@@ -22,7 +22,7 @@
         (generic format-edit)
         (generic format-geometry-edit)
         (generic chat-sidebar-ui)
-        (dynamic sidebar-session)
+        (dynamic double-buffer-session)
         (source source-edit)
         (texmacs texmacs tm-files)
         (texmacs texmacs tm-print)

@@ -14,7 +14,7 @@
 (texmacs-module (texmacs menus tools-menu)
   (:use (texmacs texmacs tm-tools)
         (generic chat-sidebar-ui)
-        (dynamic sidebar-session)))
+        (dynamic double-buffer-session)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic menus for formats
