@@ -161,9 +161,8 @@ private slots:
   void test_generate_with_chinese_name () {
     QString path= qt_generate_document_save_path (u8"中文模板测试");
     QVERIFY (!path.isEmpty ());
-    QVERIFY2 (
-        path.endsWith (u8"中文模板测试.tmu"),
-        qPrintable ("Unexpected path with auto-numbering: " + path));
+    QVERIFY2 (path.endsWith (u8"中文模板测试.tmu"),
+              qPrintable ("Unexpected path with auto-numbering: " + path));
 
     QFile f (path);
     QVERIFY (f.open (QIODevice::WriteOnly));
