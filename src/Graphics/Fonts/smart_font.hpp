@@ -99,8 +99,12 @@ struct smart_font_rep : font_rep {
   int    math_kind;
   int    italic_nr;
 
-  array<font> fn;
-  smart_map   sm;
+  array<font>    fn;
+  smart_map      sm;
+  array<string>  family_tokens;
+  array<string>  given_font;
+  bool           italic_prime_cached;
+  bool           italic_prime_result;
 
   smart_font_rep (string name, font base_fn, font err_fn, string family,
                   string variant, string series, string shape, double sz,
@@ -117,6 +121,7 @@ struct smart_font_rep : font_rep {
   int  resolve_rubber (string c, string fam, int attempt);
   int  resolve (string c);
   void initialize_font (int nr);
+  void maybe_initialize_font (int nr);
   int  adjusted_dpi (string fam, string var, string ser, string sh, int att);
 
   font make_rubber_font (font base) override;

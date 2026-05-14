@@ -38,6 +38,8 @@ private slots:
   void test_get_right_slope ();
   void test_latin_modern_math_italic_greek ();
   void test_cursor_position_iii ();
+  void test_performance ();
+  void test_math_performance ();
 };
 
 void
@@ -159,6 +161,30 @@ TestSmartFont::test_cursor_position_iii () {
     QCOMPARE (ex2->x2, xpos[l]);
   }
   STACK_DELETE_ARRAY (xpos);
+}
+
+void
+TestSmartFont::test_performance () {
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+
+  // Trigger a lot of character resolutions with repeated characters
+  string long_text= "The quick brown fox jumps over the lazy dog. "
+                    "The quick brown fox jumps over the lazy dog. "
+                    "The quick brown fox jumps over the lazy dog.";
+  metric ex;
+  fn->get_extents (long_text, ex);
+}
+
+void
+TestSmartFont::test_math_performance () {
+  font fn= smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10, 600);
+
+  // Trigger math character resolutions
+  string math_text= "<alpha><beta><gamma><delta><epsilon><zeta><eta><theta>"
+                    "<iota><kappa><lambda><mu><nu><xi><omicron><pi><rho><sigma>"
+                    "<tau><upsilon><phi><chi><psi><omega>";
+  metric ex;
+  fn->get_extents (math_text, ex);
 }
 
 QTEST_MAIN (TestSmartFont)
