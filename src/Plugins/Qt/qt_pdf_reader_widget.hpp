@@ -35,6 +35,7 @@ public:
   bool hasError () const { return hasError_; }
 
 protected:
+  void keyPressEvent (QKeyEvent* event) override;
   void resizeEvent (QResizeEvent* event) override;
 
 private:

@@ -9,7 +9,9 @@
 
 #include <QDebug>
 #include <QFile>
+#include <QKeyEvent>
 #include <QResizeEvent>
+#include <QScrollBar>
 
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_dpi_utils.hpp"
@@ -313,6 +315,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   }
 
   layout_->addStretch (1);
+  contentWidget_->adjustSize ();
   return true;
 }
 
@@ -338,4 +341,17 @@ PDFReaderWidget::resizeEvent (QResizeEvent* event) {
   if (!pdfData_.isEmpty () && pageCount_ > 0) {
     rebuildPages ();
   }
+}
+
+void
+PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
+  if (event->key () == Qt::Key_Space) {
+    QScrollBar* vbar= verticalScrollBar ();
+    if (vbar) {
+      int scrollAmount= qRound (viewport ()->height () * 0.9);
+      vbar->setValue (vbar->value () + scrollAmount);
+    }
+    return;
+  }
+  QScrollArea::keyPressEvent (event);
 }
