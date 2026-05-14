@@ -323,39 +323,6 @@ target("libmoebius") do
     end)
 end
 
-target("libqhotkey") do
-  set_kind("static")
-  add_rules("qt.static")
-  add_rules("qt.moc")
-  add_packages("qt6widgets")
-
-  -- 添加平台特定依赖
-  if is_plat("linux") then
-    add_packages("x11")
-  end
-
-  -- 添加头文件搜索路径，供依赖此target的模块使用
-  add_includedirs("3rdparty", {public = true})
-
-  -- 通用源文件 - 需要MOC处理的头文件必须作为源文件添加
-  add_files("3rdparty/qhotkey/qhotkey.cpp")
-  add_files("3rdparty/qhotkey/qhotkey.h")
-  add_files("3rdparty/qhotkey/qhotkey_p.h")
-  add_headerfiles("3rdparty/qhotkey/(qhotkey.h)")
-
-  -- 平台特定源文件
-  if is_plat("macosx") then
-    add_files("3rdparty/qhotkey/qhotkey_mac.cpp")
-  elseif is_plat("linux") then
-    add_files("3rdparty/qhotkey/qhotkey_x11.cpp")
-  elseif is_plat("windows") then
-    add_files("3rdparty/qhotkey/qhotkey_win.cpp")
-  end
-
-  on_install(function (target)
-  end)
-end
-
 -- Add options for different features
 option("style_agent")
     set_default(false)
@@ -644,10 +611,8 @@ target("libmogan") do
     set_encodings("utf-8")
 
     add_deps("libmoebius")
-    add_deps("libqhotkey")
     add_deps("QWKCore", "QWKWidgets")
 
-    -- 添加 3rdparty 头文件搜索路径（用于 qhotkey）
     add_includedirs("3rdparty", {public = true})
     
     set_policy("check.auto_ignore_flags", false)
