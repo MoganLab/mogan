@@ -241,12 +241,12 @@
 (tm-define (kbd-horizontal t forwards?)
   (:require (graphical-text-context? t))
   (with-define (move) ((if forwards? go-right go-left))
-    (go-to-next-inside move (lambda (t2) (equal? t (tree-ref t2 :up))))))
+    (go-to-next-inside move (lambda (t2) (tree-search-upwards t2 (lambda (u) (equal? u t)))))))
 
 (tm-define (kbd-vertical t downwards?)
   (:require (graphical-text-context? t))
   (with-define (move) ((if downwards? go-down go-up))
-    (go-to-next-inside move (lambda (t2) (equal? t (tree-ref t2 :up))))))
+    (go-to-next-inside move (lambda (t2) (tree-search-upwards t2 (lambda (u) (equal? u t)))))))
 
 (tm-define (kbd-extremal t forwards?)
   (:require (graphical-text-context? t))
