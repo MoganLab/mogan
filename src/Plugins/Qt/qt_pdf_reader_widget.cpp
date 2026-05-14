@@ -618,6 +618,35 @@ PDFReaderWidget::clear () {
   updatePageNavigation ();
 }
 
+void
+PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
+  if (event->key () == Qt::Key_Space) {
+    QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+    if (vbar) {
+      int scrollAmount= qRound (scrollArea_->viewport ()->height () * 0.9);
+      vbar->setValue (vbar->value () + scrollAmount);
+    }
+    event->accept ();
+    return;
+  }
+
+  if (rubberBand_ && rubberBand_->isVisible ()) {
+    if (event->key () == Qt::Key_Return || event->key () == Qt::Key_Enter) {
+      copySelectionToClipboard ();
+      event->accept ();
+      return;
+    }
+    if (event->key () == Qt::Key_Escape) {
+      rubberBand_->hide ();
+      selectingArea_= false;
+      event->accept ();
+      return;
+    }
+  }
+
+  QWidget::keyPressEvent (event);
+}
+
 bool
 PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
   if (watched == scrollArea_->viewport ()) {

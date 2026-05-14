@@ -11,6 +11,9 @@
 #include "file.hpp"
 #include "url.hpp"
 #include <QApplication>
+#include <QClipboard>
+#include <QMouseEvent>
+#include <QRubberBand>
 #include <QScrollBar>
 #include <QWheelEvent>
 #include <QtTest/QtTest>
@@ -159,6 +162,82 @@ private slots:
     QApplication::processEvents ();
 
     QCOMPARE (widget->currentPage (), 1);
+    delete widget;
+  }
+
+  void test_enterKeyCopiesSelection () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QMetaObject::invokeMethod (widget, "onSelectAreaClicked",
+                               Qt::DirectConnection);
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (10, 10));
+    QTest::mouseMove (vp, QPoint (100, 100));
+
+    QApplication::processEvents ();
+
+    QList<QRubberBand*> bands= vp->findChildren<QRubberBand*> ();
+    QCOMPARE (bands.size (), 1);
+    QVERIFY (bands[0]->isVisible ());
+
+    QClipboard* clipboard= QApplication::clipboard ();
+    clipboard->clear ();
+
+    widget->setFocus ();
+    QTest::keyClick (widget, Qt::Key_Return);
+    QApplication::processEvents ();
+
+    QVERIFY (!bands[0]->isVisible ());
+    QVERIFY (!clipboard->pixmap ().isNull ());
+
+    delete widget;
+  }
+
+  void test_escapeKeyCancelsSelection () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QMetaObject::invokeMethod (widget, "onSelectAreaClicked",
+                               Qt::DirectConnection);
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (10, 10));
+    QTest::mouseMove (vp, QPoint (100, 100));
+
+    QApplication::processEvents ();
+
+    QList<QRubberBand*> bands= vp->findChildren<QRubberBand*> ();
+    QCOMPARE (bands.size (), 1);
+    QVERIFY (bands[0]->isVisible ());
+
+    widget->setFocus ();
+    QTest::keyClick (widget, Qt::Key_Escape);
+    QApplication::processEvents ();
+
+    QVERIFY (!bands[0]->isVisible ());
+
     delete widget;
   }
 };

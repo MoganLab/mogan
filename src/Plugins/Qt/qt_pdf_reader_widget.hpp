@@ -60,6 +60,8 @@ private slots:
   void updatePageNavigation ();
   void onSelectAreaClicked ();
 
+  void keyPressEvent (QKeyEvent* event) override;
+
 private:
   void copySelectionToClipboard ();
   bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
