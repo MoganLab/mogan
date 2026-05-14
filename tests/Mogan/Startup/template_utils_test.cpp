@@ -140,6 +140,56 @@ private slots:
 
     QVERIFY (result.isEmpty ());
   }
+
+  // 测试 Documents 目录不存在时的自动创建：验证 mkpath 回退逻辑
+  void test_generate_without_documents_dir () {
+    QString docsDir= tempDocsDir_;
+    if (QDir (docsDir).exists ()) {
+      QVERIFY (QDir (docsDir).removeRecursively ());
+    }
+
+    QString path= qt_generate_document_save_path ("NoDocsTest");
+    QVERIFY (!path.isEmpty ());
+    QVERIFY (path.endsWith ("NoDocsTest.tmu"));
+    QVERIFY (path.startsWith (docsDir));
+    QVERIFY (QDir (docsDir).exists ());
+
+    QDir ().mkpath (docsDir);
+  }
+
+  // 测试中文路径：验证非 ASCII 字符在路径中的处理
+  void test_generate_with_chinese_name () {
+    QString path= qt_generate_document_save_path (u8"中文模板测试");
+    QVERIFY (!path.isEmpty ());
+    QVERIFY2 (
+        path.endsWith (u8"中文模板测试.tmu"),
+        qPrintable ("Unexpected path with auto-numbering: " + path));
+
+    QFile f (path);
+    QVERIFY (f.open (QIODevice::WriteOnly));
+    f.close ();
+    QFile::remove (path);
+  }
+
+  // 测试中文路径自动编号：同名中文文件已存在时应生成 中文模板测试(1).tmu
+  void test_generate_chinese_auto_numbering () {
+    QString baseName= u8"编号测试";
+    QString path1   = qt_generate_document_save_path (baseName);
+    QVERIFY (!path1.isEmpty ());
+    QVERIFY (path1.endsWith (u8"编号测试.tmu"));
+
+    QFile f1 (path1);
+    f1.open (QIODevice::WriteOnly);
+    f1.close ();
+
+    QString path2= qt_generate_document_save_path (baseName);
+    QVERIFY (!path2.isEmpty ());
+    QVERIFY (path2.endsWith (u8"编号测试(1).tmu"));
+    QVERIFY (path1 != path2);
+
+    QFile::remove (path1);
+    QFile::remove (path2);
+  }
 };
 
 QTEST_MAIN (TestTemplateUtils)
