@@ -21,6 +21,12 @@ private slots:
   void initTestCase () {
     QStandardPaths::setTestModeEnabled (true);
     init_lolly ();
+
+    // 预初始化 TemplateManager singleton，抑制 Scheme 解释器未就绪的预期警告
+    QtMessageHandler oldHandler= qInstallMessageHandler (
+        [] (QtMsgType, const QMessageLogContext&, const QString&) {});
+    TemplateManager::instance ()->initialize ();
+    qInstallMessageHandler (oldHandler);
   }
 
   // QTMTemplatePage 应能正常构造和初始化
@@ -42,11 +48,6 @@ private slots:
 
     TemplateManager* mgr= TemplateManager::instance ();
     QVERIFY (mgr != nullptr);
-
-    // 确保 TemplateManager 已初始化（无网络依赖，仅加载本地缓存）
-    if (!mgr->isInitialized ()) {
-      mgr->initialize ();
-    }
     QVERIFY (mgr->isInitialized ());
 
     // 手动发射信号，触发 onTemplatesLoaded
@@ -78,10 +79,6 @@ private slots:
     page.initialize ();
 
     TemplateManager* mgr= TemplateManager::instance ();
-    if (!mgr->isInitialized ()) {
-      mgr->initialize ();
-    }
-
     emit mgr->categoriesLoaded ();
     QCoreApplication::processEvents ();
 
