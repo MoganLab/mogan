@@ -30,13 +30,14 @@ qt_generate_document_save_path (const QString& templateName) {
   if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
 
   QString ext= ".tmu";
-  for (int i= 0; true; ++i) {
+  for (int i= 0; i < 10000; ++i) {
     QString fileName=
         i == 0 ? baseName + ext
                : QString ("%1(%2)%3").arg (baseName).arg (i).arg (ext);
     QString filePath= QDir (docsDir).filePath (fileName);
     if (!QFile::exists (filePath)) return filePath;
   }
+  return QString ();
 }
 
 QString
