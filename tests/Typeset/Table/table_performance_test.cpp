@@ -700,20 +700,35 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
   cache_refresh ();
   edit_env env= create_test_env ();
 
-  // Create a very long string that exceeds page width
-  string long_text;
-  for (int i= 0; i < 200; i++)
-    long_text << "d";
+  // Use actual text pattern from 0117.tmu
+  string long_text= "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
+                    "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
+                    "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd";
+  string short_text= "sdasd dasd sd";
 
-  // Create 1x3 table with cell-hyphen enabled for all cells
+  // Create 2x5 table with cell-hyphen enabled for all cells
+  // Matching the 0117.tmu test case layout
   tree table_wrap (TFORMAT);
-  table_wrap << tree (CWITH, "1", "1", "1", "3", "cell-hyphen", "t");
-  table_wrap << tree (TABLE, 1);
-  tree row_wrap (ROW, 3);
-  row_wrap[0]     = tree (CELL, tree (DOCUMENT, long_text));
-  row_wrap[1]     = tree (CELL, tree (DOCUMENT, long_text));
-  row_wrap[2]     = tree (CELL, tree (DOCUMENT, long_text));
-  table_wrap[1][0]= row_wrap;
+  table_wrap << tree (CWITH, "1", "-1", "1", "-1", "cell-hyphen", "t");
+  table_wrap << tree (TABLE, 2);
+
+  // Row 0: 3 long text cols + 1 short + 1 empty
+  tree row0 (ROW, 5);
+  row0[0]= tree (CELL, tree (DOCUMENT, long_text));
+  row0[1]= tree (CELL, tree (DOCUMENT, long_text));
+  row0[2]= tree (CELL, tree (DOCUMENT, long_text));
+  row0[3]= tree (CELL, tree (DOCUMENT, short_text));
+  row0[4]= tree (CELL, tree (DOCUMENT, ""));
+  table_wrap[1][0]= row0;
+
+  // Row 1: 4 empty + 1 long text
+  tree row1 (ROW, 5);
+  row1[0]= tree (CELL, tree (DOCUMENT, ""));
+  row1[1]= tree (CELL, tree (DOCUMENT, ""));
+  row1[2]= tree (CELL, tree (DOCUMENT, ""));
+  row1[3]= tree (CELL, tree (DOCUMENT, ""));
+  row1[4]= tree (CELL, tree (DOCUMENT, long_text));
+  table_wrap[1][1]= row1;
 
   // Typeset table
   table tab_wrap (env);
@@ -722,29 +737,26 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
 
   SI pw, d1, d2, d3, d4, d5, d6, d7;
   tab_wrap->env->get_page_pars (pw, d1, d2, d3, d4, d5, d6, d7);
-  qDebug () << "Page width (get_page_width):"
-            << tab_wrap->env->get_page_width (false);
-  qDebug () << "Page width (get_page_pars):" << pw;
-  qDebug () << "Column 0 width:" << tab_wrap->mw[0];
-  qDebug () << "Column 1 width:" << tab_wrap->mw[1];
-  qDebug () << "Column 2 width:" << tab_wrap->mw[2];
-  qDebug () << "Total width:"
-            << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2];
+  qDebug () << "=== 2x5 table ===";
+  qDebug () << "Page width:" << pw;
+  for (int j= 0; j < 5; j++)
+    qDebug () << "Column" << j << "width:" << tab_wrap->mw[j];
+  qDebug () << "Total width:" << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2]
+            + tab_wrap->mw[3] + tab_wrap->mw[4];
 
   tab_wrap->finish_horizontal ();
   tab_wrap->position_rows ();
   tab_wrap->finish ();
 
-  SI width_col0 = tab_wrap->T[0][0]->b->w ();
-  SI width_col1 = tab_wrap->T[0][1]->b->w ();
-  SI width_col2 = tab_wrap->T[0][2]->b->w ();
-  SI height_col0= tab_wrap->T[0][0]->b->h ();
-  SI height_col1= tab_wrap->T[0][1]->b->h ();
-  SI height_col2= tab_wrap->T[0][2]->b->h ();
-
-  qDebug () << "Cell 0 box width:" << width_col0 << "height:" << height_col0;
-  qDebug () << "Cell 1 box width:" << width_col1 << "height:" << height_col1;
-  qDebug () << "Cell 2 box width:" << width_col2 << "height:" << height_col2;
+  // Check each cell's box width vs column width
+  for (int i= 0; i < 2; i++)
+    for (int j= 0; j < 5; j++) {
+      SI box_w= tab_wrap->T[i][j]->b->w ();
+      SI col_w= tab_wrap->mw[j];
+      qDebug () << "Cell(" << i << "," << j << ") box_w:" << box_w
+                << "col_mw:" << col_w
+                << "overflow:" << (box_w > col_w);
+    }
 }
 
 void
