@@ -300,10 +300,17 @@ cell_rep::compute_width (SI& mw, SI& lw, SI& rw, bool large) {
     format fm= lz->query (LAZY_BOX, make_query_vstream_width (0, 0));
     // cout << UNINDENT << "Queried" << LF;
     format_width fw= (format_width) fm;
-    mw             = fw->width + lsep + rsep + lborder + rborder;
+    SI           cell_w= fw->width;
+    if (hyphen != "n") {
+      SI page_w, d1, d2, d3, d4, d5, d6, d7;
+      env->get_page_pars (page_w, d1, d2, d3, d4, d5, d6, d7);
+      SI max_w= page_w - lsep - rsep - lborder - rborder;
+      if (cell_w > max_w) cell_w= max_w;
+    }
+    mw= cell_w + lsep + rsep + lborder + rborder;
     if (lr_flag) {
       lw= lsep + lborder;
-      rw= fw->width + rsep + rborder;
+      rw= cell_w + rsep + rborder;
     }
   }
   else {

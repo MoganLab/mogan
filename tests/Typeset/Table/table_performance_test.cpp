@@ -166,6 +166,7 @@ private slots:
   // New tests for optimization validations
   void test_handle_decorations_correctness ();
   void test_handle_decorations_performance ();
+  void test_cell_hyphen_wrapping ();
   void cleanupTestCase ();
 };
 
@@ -630,6 +631,57 @@ TestTablePerformance::test_handle_decorations_performance () {
     QVERIFY (rows_after > rows_before);
     QVERIFY (cols_after > cols_before);
   }
+}
+
+void
+TestTablePerformance::test_cell_hyphen_wrapping () {
+  cache_refresh ();
+  edit_env env= create_test_env ();
+
+  // Create a very long string that exceeds page width
+  string long_text;
+  for (int i= 0; i < 200; i++)
+    long_text << "d";
+
+  // Create table without wrapping (cell-hyphen = "n")
+  tree table_no_wrap (TFORMAT, tree (TABLE, 1));
+  tree row_no_wrap (ROW, 1);
+  row_no_wrap[0]     = tree (CELL, tree (DOCUMENT, long_text));
+  table_no_wrap[0][0]= row_no_wrap;
+
+  // Create table with wrapping (cell-hyphen = "t")
+  tree table_wrap (TFORMAT);
+  table_wrap << tree (CWITH, "1", "1", "1", "1", "cell-hyphen", "t");
+  table_wrap << tree (TABLE, 1);
+  tree row_wrap (ROW, 1);
+  row_wrap[0]     = tree (CELL, tree (DOCUMENT, long_text));
+  table_wrap[1][0]= row_wrap;
+
+  // Typeset table without wrapping
+  table tab_no_wrap (env);
+  tab_no_wrap->typeset (table_no_wrap, path ());
+  tab_no_wrap->position_columns (true);
+  tab_no_wrap->finish_horizontal ();
+  tab_no_wrap->position_rows ();
+  tab_no_wrap->finish ();
+
+  // Typeset table with wrapping
+  table tab_wrap (env);
+  tab_wrap->typeset (table_wrap, path ());
+  tab_wrap->position_columns (true);
+  tab_wrap->finish_horizontal ();
+  tab_wrap->position_rows ();
+  tab_wrap->finish ();
+
+  SI width_no_wrap= tab_no_wrap->T[0][0]->b->w ();
+  SI width_wrap   = tab_wrap->T[0][0]->b->w ();
+
+  qDebug () << "No wrap width:" << width_no_wrap;
+  qDebug () << "Wrap width:" << width_wrap;
+
+  // When cell-hyphen is enabled, the cell should wrap and be narrower
+  // than the non-wrapping case
+  QVERIFY (width_wrap < width_no_wrap);
 }
 
 void
