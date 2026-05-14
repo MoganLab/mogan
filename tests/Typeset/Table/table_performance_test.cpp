@@ -701,9 +701,9 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
   edit_env env= create_test_env ();
 
   // Use actual text pattern from 0117.tmu
-  string long_text= "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
-                    "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
-                    "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd";
+  string long_text = "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
+                     "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd"
+                     "sdasd dasd sdsdasd dasd sdsdasd dasd sdsdasd dasd sd";
   string short_text= "sdasd dasd sd";
 
   // Create 2x5 table with cell-hyphen enabled for all cells
@@ -714,20 +714,20 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
 
   // Row 0: 3 long text cols + 1 short + 1 empty
   tree row0 (ROW, 5);
-  row0[0]= tree (CELL, tree (DOCUMENT, long_text));
-  row0[1]= tree (CELL, tree (DOCUMENT, long_text));
-  row0[2]= tree (CELL, tree (DOCUMENT, long_text));
-  row0[3]= tree (CELL, tree (DOCUMENT, short_text));
-  row0[4]= tree (CELL, tree (DOCUMENT, ""));
+  row0[0]         = tree (CELL, tree (DOCUMENT, long_text));
+  row0[1]         = tree (CELL, tree (DOCUMENT, long_text));
+  row0[2]         = tree (CELL, tree (DOCUMENT, long_text));
+  row0[3]         = tree (CELL, tree (DOCUMENT, short_text));
+  row0[4]         = tree (CELL, tree (DOCUMENT, ""));
   table_wrap[1][0]= row0;
 
   // Row 1: 4 empty + 1 long text
   tree row1 (ROW, 5);
-  row1[0]= tree (CELL, tree (DOCUMENT, ""));
-  row1[1]= tree (CELL, tree (DOCUMENT, ""));
-  row1[2]= tree (CELL, tree (DOCUMENT, ""));
-  row1[3]= tree (CELL, tree (DOCUMENT, ""));
-  row1[4]= tree (CELL, tree (DOCUMENT, long_text));
+  row1[0]         = tree (CELL, tree (DOCUMENT, ""));
+  row1[1]         = tree (CELL, tree (DOCUMENT, ""));
+  row1[2]         = tree (CELL, tree (DOCUMENT, ""));
+  row1[3]         = tree (CELL, tree (DOCUMENT, ""));
+  row1[4]         = tree (CELL, tree (DOCUMENT, long_text));
   table_wrap[1][1]= row1;
 
   // Typeset table
@@ -741,8 +741,9 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
   qDebug () << "Page width:" << pw;
   for (int j= 0; j < 5; j++)
     qDebug () << "Column" << j << "width:" << tab_wrap->mw[j];
-  qDebug () << "Total width:" << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2]
-            + tab_wrap->mw[3] + tab_wrap->mw[4];
+  qDebug () << "Total width:"
+            << tab_wrap->mw[0] + tab_wrap->mw[1] + tab_wrap->mw[2] +
+                   tab_wrap->mw[3] + tab_wrap->mw[4];
 
   tab_wrap->finish_horizontal ();
   tab_wrap->position_rows ();
@@ -754,8 +755,7 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
       SI box_w= tab_wrap->T[i][j]->b->w ();
       SI col_w= tab_wrap->mw[j];
       qDebug () << "Cell(" << i << "," << j << ") box_w:" << box_w
-                << "col_mw:" << col_w
-                << "overflow:" << (box_w > col_w);
+                << "col_mw:" << col_w << "overflow:" << (box_w > col_w);
     }
 }
 
