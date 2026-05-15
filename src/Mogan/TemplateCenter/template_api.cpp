@@ -35,14 +35,10 @@ TemplateAPI::setMetadataEtag (const QString& etag) {
 }
 
 TemplateAPI::~TemplateAPI () {
-  // Cancel all active downloads
-  for (auto reply : downloadReplies_) {
-    if (!reply) continue;
-    disconnect (reply, nullptr, this, nullptr);
-    reply->abort ();
-    reply->deleteLater ();
+  // Abort all active downloads (reuses abortDownload for consistency)
+  while (!downloadReplies_.isEmpty ()) {
+    abortDownload (downloadReplies_.begin ().key ());
   }
-  downloadReplies_.clear ();
 
   if (metadataReply_) {
     disconnect (metadataReply_, nullptr, this, nullptr);
@@ -115,7 +111,7 @@ TemplateAPI::downloadTemplate (const QString& templateId,
 }
 
 bool
-TemplateAPI::removeDownloadReply (const QString& templateId) {
+TemplateAPI::abortAndRemoveReply (const QString& templateId) {
   auto it= downloadReplies_.find (templateId);
   if (it != downloadReplies_.end () && it.value ()) {
     disconnect (it.value (), nullptr, this, nullptr);
@@ -129,12 +125,12 @@ TemplateAPI::removeDownloadReply (const QString& templateId) {
 
 void
 TemplateAPI::abortDownload (const QString& templateId) {
-  removeDownloadReply (templateId);
+  abortAndRemoveReply (templateId);
 }
 
 void
 TemplateAPI::cancelDownload (const QString& templateId) {
-  if (removeDownloadReply (templateId)) {
+  if (abortAndRemoveReply (templateId)) {
     emit downloadFailed (templateId, tr ("Download cancelled"));
   }
 }

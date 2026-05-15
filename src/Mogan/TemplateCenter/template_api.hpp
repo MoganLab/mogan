@@ -101,7 +101,7 @@ private:
 
   // Abort an active download without emitting signals (internal use)
   void abortDownload (const QString& templateId);
-  bool removeDownloadReply (const QString& templateId);
+  bool abortAndRemoveReply (const QString& templateId);
 
 private:
   // API configuration
