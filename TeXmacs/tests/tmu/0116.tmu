@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.2.4>>
+<TMU|<tuple|1.1.0|2026.2.5>>
 
 <style|<tuple|generic|chinese|number-europe>>
 
@@ -68,6 +68,28 @@
   \;
 
   <marked|行内数学 <with|mode|math|<frac|a|b>> 带背景>
+
+  <\equation*>
+    <with|marked-color|green|<with|marked-color|pastel green|<with|marked-color|#afa|<with|marked-color|green|<marked|<matrix|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
+      1
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      1
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      1
+    </cell>>>>>>>>>>
+  </equation*>
 
   \;
 </body>
