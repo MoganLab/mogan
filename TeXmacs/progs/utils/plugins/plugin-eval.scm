@@ -165,12 +165,8 @@
 (tm-define (plugin-interrupt)
   (let* ((lan (get-env "prog-language"))
          (ses (get-env "prog-session")))
-    ;; Don't send SIGINT — just cancel the pending entry so further
-    ;; output is dropped.  The plugin process continues running and
-    ;; will eventually return to its REPL loop on its own.
-    ;; Sending SIGINT via connection-interrupt causes listen() to run
-    ;; synchronously, which can trigger Scheme callbacks that conflict
-    ;; with plugin-cancel on the same pending queue and tree pointers.
+    (if (== (connection-status lan ses) 3)
+        (connection-interrupt lan ses))
     (plugin-cancel lan ses #f)))
 
 (tm-define (plugin-stop)
