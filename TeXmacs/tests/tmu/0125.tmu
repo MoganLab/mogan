@@ -1,0 +1,47 @@
+<TMU|<tuple|1.1.0|2026.2.0>>
+
+<style|<tuple|generic|number-europe>>
+
+<\body>
+  <section|Math Input Performance Test>
+
+  This document is used to demonstrate and verify the performance of math
+  formula input editing operations.
+
+  <subsection|Typing Single Characters>
+
+  Type the following letters in math mode and observe the popup response:
+
+  <with|mode|math|a>
+
+  <with|mode|math|b>
+
+  <with|mode|math|e>
+
+  <with|mode|math|g>
+
+  <subsection|Tab Cycling>
+
+  Press Tab to cycle through symbol variants:
+
+  <with|mode|math|<leq>>
+
+  <with|mode|math|<Rightarrow>>
+
+  <with|mode|math|<Downarrow>>
+
+  <subsection|Complex Prefixes>
+
+  Type complex prefixes and use Tab:
+
+  <with|mode|math|= <Rightarrow>>
+
+  <with|mode|math|<big-int-2>>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
