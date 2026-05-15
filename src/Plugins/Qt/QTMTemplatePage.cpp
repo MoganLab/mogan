@@ -29,7 +29,6 @@
 #include "qt_dpi_utils.hpp"
 #include "qt_floating_toast.hpp"
 #include "qt_pdf_preview_widget.hpp"
-#include "qt_template_utils.hpp"
 #include "qt_utilities.hpp"
 #include "template_manager.hpp"
 #include "thumbnail_loader.hpp"

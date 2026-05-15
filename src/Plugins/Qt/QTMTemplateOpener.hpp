@@ -16,28 +16,28 @@ class QWidget;
 class TemplateManager;
 
 /**
- * @brief Unified template opener
+ * @brief 统一的模板打开器
  *
- * Encapsulates the core logic for opening templates:
- * - Local template: copy to Documents and open immediately
- * - Remote template: download (with progress dialog) → copy → open
+ * 封装打开模板的核心逻辑：
+ * - 本地模板：复制到 Documents 并立即打开
+ * - 远程模板：下载（带进度对话框）→ 复制 → 打开
  *
- * Usage example (HomePage one-click open):
+ * 使用示例（HomePage 一键打开）：
  * @code
  * QTMTemplateOpener opener(this);
  * opener.openTemplate("elegantbook");
  * @endcode
  *
- * Usage example (TemplatePage preview then open):
+ * 使用示例（TemplatePage 预览后打开）：
  * @code
  * QTMTemplateOpener opener(this);
  * opener.openTemplate("nsfc-ysf-c");
  * @endcode
  *
- * @note openTemplate() is synchronous-style: for local templates it completes
- * immediately; for remote templates it blocks (while keeping the event loop
- * responsive via QProgressDialog) until the download finishes. The completed()
- * / failed() signals are emitted before openTemplate() returns.
+ * @note openTemplate() 为同步风格：本地模板立即完成；
+ * 远程模板会阻塞（通过 QProgressDialog 保持事件循环响应），
+ * 直到下载完成。completed() / failed() 信号会在 openTemplate()
+ * 返回前发出。
  */
 class QTMTemplateOpener : public QObject {
   Q_OBJECT
@@ -50,38 +50,38 @@ public:
   QTMTemplateOpener& operator= (const QTMTemplateOpener&)= delete;
 
   /**
-   * @brief Open a template (local or remote)
+   * @brief 打开模板（本地或远程）
    *
-   * If the template is available locally, open it directly.
-   * Otherwise display a progress dialog and download it first.
+   * 若模板在本地可用，则直接打开；
+   * 否则显示进度对话框并先下载。
    *
-   * @param templateId Template ID
+   * @param templateId 模板 ID
    */
   void openTemplate (const QString& templateId);
 
   /**
-   * @brief Check whether a template is available locally
+   * @brief 检查模板是否在本地可用
    */
   bool isAvailableLocally (const QString& templateId) const;
 
 signals:
   /**
-   * @brief Download progress update
+   * @brief 下载进度更新
    */
   void downloadProgress (const QString& templateId, qint64 bytesReceived,
                          qint64 bytesTotal);
 
   /**
-   * @brief Template opened successfully
-   * @param templateId   Template ID
-   * @param documentPath Path of the document in Documents
+   * @brief 模板打开成功
+   * @param templateId   模板 ID
+   * @param documentPath Documents 中的文档路径
    */
   void completed (const QString& templateId, const QString& documentPath);
 
   /**
-   * @brief Failed to open template
-   * @param templateId Template ID
-   * @param error      Human-readable error message (empty if user cancelled)
+   * @brief 打开模板失败
+   * @param templateId 模板 ID
+   * @param error      可读错误信息（用户取消时为空）
    */
   void failed (const QString& templateId, const QString& error);
 

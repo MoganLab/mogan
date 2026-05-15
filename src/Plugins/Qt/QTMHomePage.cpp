@@ -37,7 +37,6 @@
 #include "QTMTemplateOpener.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_floating_toast.hpp"
-#include "qt_template_utils.hpp"
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp"
 #include "sys_utils.hpp"
