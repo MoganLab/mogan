@@ -49,6 +49,14 @@ public:
   void fetchMetadata ();
   void downloadTemplate (const QString& templateId, const QString& downloadUrl,
                          const QString& targetPath);
+
+  /**
+   * @brief 终止下载并发射 downloadFailed（用户点击取消）。
+   *
+   * 用户在进度对话框中点击 Cancel 时调用。
+   * 发射 downloadFailed(templateId, "Download cancelled")，
+   * 使 TemplateManager::downloadTemplateSync() 中的 QEventLoop 立即退出。
+   */
   void cancelDownload (const QString& templateId);
 
   // Metadata ETag for conditional requests
@@ -99,8 +107,16 @@ private:
   // Request management
   void setupRequestHeaders (QNetworkRequest& request);
 
-  // Abort an active download without emitting signals (internal use)
+  /**
+   * @brief 静默终止下载，不发射任何信号（内部使用）。
+   *
+   * 在 downloadTemplate() 为同一 templateId 启动新请求前调用。
+   * 安静地终止旧的 QNetworkReply 并清理 downloadReplies_，
+   * 但不发射 downloadFailed，避免打断新下载流程。
+   */
   void abortDownload (const QString& templateId);
+
+private:
   bool abortAndRemoveReply (const QString& templateId);
 
 private:
