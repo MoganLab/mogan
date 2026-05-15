@@ -9,7 +9,6 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "LaTeX_Preview/latex_preview.hpp"
 #include "Tex/convert_tex.hpp"
 #include "Tex/tex.hpp"
 #include "converter.hpp"
@@ -42,7 +41,6 @@ extern bool textm_natbib;
 tree   kill_space_invaders (tree t);
 tree   set_special_fonts (tree t, string lan);
 tree   filter_preamble (tree t);
-tree   latex_fallback_on_pictures (string s, tree t);
 tree   parsed_latex_to_tree (tree t);
 tree   latex_command_to_tree (tree t);
 bool   is_var_compound (tree t, string s);
@@ -2477,7 +2475,6 @@ latex_document_to_tree (string s, bool as_pic) {
   command_arity->extend ();
   command_def->extend ();
   tree t= parse_latex_document (s, true, as_pic);
-  if (as_pic) t= latex_fallback_on_pictures (s, t);
   r= latex_to_tree (t);
   command_type->shorten ();
   command_arity->shorten ();

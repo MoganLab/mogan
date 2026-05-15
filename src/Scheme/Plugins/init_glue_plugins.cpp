@@ -15,8 +15,6 @@
 #include "object_l2.hpp"
 #include "s7_tm.hpp"
 
-#include "LaTeX_Preview/latex_preview.hpp"
-
 #include "Xml/xml.hpp"
 #include "glue_xml.cpp"
 

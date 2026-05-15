@@ -9,7 +9,6 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "LaTeX_Preview/latex_preview.hpp"
 #include "Tex/convert_tex.hpp"
 #include "Tex/tex.hpp"
 #include "cork.hpp"
@@ -648,111 +647,13 @@ filter_preamble (tree t) {
 }
 
 /******************************************************************************
- * Import macro as pictures
+ * Import macro as pictures (no-op: LaTeX_Preview plugin removed)
  ******************************************************************************/
-
-bool
-find_latex_previews (tree t) {
-  if (is_atomic (t)) return false;
-  else if (is_tuple (t, "\\latex_preview", 2)) return true;
-  else {
-    int i, n= N (t);
-    for (i= 0; i < n; i++)
-      if (find_latex_previews (t[i])) return true;
-  }
-  return false;
-}
-
-tree
-substitute_latex_previews (tree t, array<tree> a, int& i) {
-  if (N (a) <= i)
-    ;
-  else if (is_atomic (t))
-    ;
-  else if (is_tuple (t, "\\latex_preview", 2)) {
-    t[0]= "\\picture-mixed";
-    t[1]= a[i++];
-  }
-  else if (is_tuple (t, "\\def") || is_tuple (t, "\\def*") ||
-           is_tuple (t, "\\def**") || is_tuple (t, "\\newenvironment**") ||
-           is_tuple (t, "\\newenvironment") ||
-           is_tuple (t, "\\newenvironment*"))
-    ;
-  else {
-    int j, n= N (t);
-    for (j= 0; j < n; j++)
-      t[j]= substitute_latex_previews (t[j], a, i);
-  }
-  return t;
-}
-
-static int
-count_unbalanced_preview (tree t) {
-  if (!is_concat (t)) return 0;
-  int i, n= N (t), count= 0;
-  for (i= 0; i < n; i++) {
-    tree v= t[i];
-    if (is_tuple (v, "\\latex_preview", 2) &&
-        starts (as_string (v[1]), "begin-"))
-      count++;
-    if (is_tuple (v, "\\latex_preview", 2) && starts (as_string (v[1]), "end-"))
-      count--;
-    if (is_concat (v)) count+= count_unbalanced_preview (v);
-  }
-  return count;
-}
-
-static tree
-merge_environment_previews (tree t) {
-  if (is_atomic (t)) return t;
-  else if (is_tuple (t, "\\def") || is_tuple (t, "\\def*") ||
-           is_tuple (t, "\\def**") || is_tuple (t, "\\newenvironment**") ||
-           is_tuple (t, "\\newenvironment") ||
-           is_tuple (t, "\\newenvironment*"))
-    return t;
-  int    i, n= N (t);
-  tree   r (L (t));
-  string name= "";
-  tree   code;
-  bool   in_env= false;
-  for (i= 0; i < n; i++) {
-    tree v= t[i];
-    if (!in_env && is_concat (t) && is_tuple (v, "\\latex_preview", 2) &&
-        starts (as_string (v[1]), "begin-")) {
-      in_env= true;
-      name  = as_string (v[1]);
-      code  = v[2];
-    }
-    if (in_env && is_concat (t) && is_tuple (v, "\\latex_preview", 2) &&
-        starts (as_string (v[1]), "end-")) {
-      in_env= false;
-      code  = concat (code, v[2]);
-      r << tuple ("\\latex_preview", name, code);
-      name= "";
-    }
-    else if (is_concat (t) && count_unbalanced_preview (v) != 0) {
-      tree tmp (CONCAT);
-      int  j, m= N (v);
-      for (j= 0; j < m; j++)
-        tmp << v[j];
-      for (j= i + 1; j < n; j++)
-        tmp << t[j];
-      t= tmp;
-      n= N (t);
-      i= -1;
-    }
-    else if (!in_env) r << merge_environment_previews (v);
-  }
-  return r;
-}
 
 tree
 latex_fallback_on_pictures (string s, tree t) {
-  if (!find_latex_previews (t)) return t;
-  int i        = 0;
-  t            = merge_environment_previews (t);
-  array<tree> a= latex_preview (s, t);
-  return substitute_latex_previews (t, a, i);
+  (void) s;
+  return t;
 }
 
 /******************************************************************************

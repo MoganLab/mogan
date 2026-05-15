@@ -101,48 +101,11 @@ function main()
                 }
             },
             {
-                scm_name = "number-latex-errors",
-                cpp_name = "number_latex_errors",
-                ret_type = "int",
-                arg_list = {
-                    "url"
-                }
-            },
-            {
                 scm_name = "number-latex-pages",
                 cpp_name = "number_latex_pages",
                 ret_type = "int",
                 arg_list = {
                     "url"
-                }
-            },
-            {
-                scm_name = "try-latex-export",
-                cpp_name = "try_latex_export",
-                ret_type = "tree",
-                arg_list = {
-                    "content",
-                    "object",
-                    "url",
-                    "url"
-                }
-            },
-            {
-                scm_name = "get-line-number",
-                cpp_name = "get_line_number",
-                ret_type = "int",
-                arg_list = {
-                    "string",
-                    "int"
-                }
-            },
-            {
-                scm_name = "get-column-number",
-                cpp_name = "get_column_number",
-                ret_type = "int",
-                arg_list = {
-                    "string",
-                    "int"
                 }
             },
         }
