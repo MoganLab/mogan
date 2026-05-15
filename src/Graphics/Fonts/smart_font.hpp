@@ -99,12 +99,12 @@ struct smart_font_rep : font_rep {
   int    math_kind;
   int    italic_nr;
 
-  array<font>    fn;
-  smart_map      sm;
-  array<string>  family_tokens;
-  array<string>  given_font;
-  bool           italic_prime_cached;
-  bool           italic_prime_result;
+  array<font>   fn;
+  smart_map     sm;
+  array<string> family_tokens;
+  array<string> given_font;
+  bool          italic_prime_cached;
+  bool          italic_prime_result;
 
   smart_font_rep (string name, font base_fn, font err_fn, string family,
                   string variant, string series, string shape, double sz,

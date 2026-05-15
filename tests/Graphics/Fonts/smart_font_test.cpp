@@ -177,7 +177,8 @@ TestSmartFont::test_performance () {
 
 void
 TestSmartFont::test_math_performance () {
-  font fn= smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10, 600);
+  font fn=
+      smart_font ("Latin Modern Math", "rm", "medium", "mathitalic", 10, 600);
 
   // Trigger math character resolutions
   string math_text= "<alpha><beta><gamma><delta><epsilon><zeta><eta><theta>"

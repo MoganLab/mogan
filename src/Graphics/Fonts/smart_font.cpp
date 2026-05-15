@@ -34,7 +34,6 @@ bool virtually_defined (string c, string name);
 font smart_font_bis (string f, string v, string s, string sh, double sz,
                      int hdpi, int vdpi);
 
-
 smart_map
 get_smart_map (tree fn) {
   string name= recompose (tuple_as_array (fn), "-");
@@ -626,9 +625,9 @@ smart_font_rep::smart_font_rep (string name, font base_fn, font err_fn,
   fn[SUBFONT_MAIN] = adjust_subfont (base_fn);
   fn[SUBFONT_ERROR]= adjust_subfont (err_fn);
   this->copy_math_pars (base_fn);
-  family_tokens       = trimmed_tokenize (family, ",");
-  given_font          = logical_font (family, variant, series, rshape);
-  italic_prime_cached = false;
+  family_tokens      = trimmed_tokenize (family, ",");
+  given_font         = logical_font (family, variant, series, rshape);
+  italic_prime_cached= false;
   if (shape == "mathitalic" || shape == "mathupright" || shape == "mathshape") {
     if (is_math_family (mfam)) {
       rshape= "right";
@@ -915,9 +914,9 @@ smart_font_rep::resolve (string c, string fam, int attempt) {
   }
   array<string> a= trimmed_tokenize (fam, "=");
   if (N (a) >= 2) {
-    fam                = a[1];
-    array<string> b    = tokenize (a[0], " ");
-    bool          ok   = is_wanted (c, fam, b, given_font);
+    fam             = a[1];
+    array<string> b = tokenize (a[0], " ");
+    bool          ok= is_wanted (c, fam, b, given_font);
     if (!ok) {
       return -1;
     }
@@ -1060,7 +1059,7 @@ bool
 smart_font_rep::is_italic_prime (string c) {
   if (c != "'" && c != "`") return false;
   if (italic_prime_cached) return italic_prime_result;
-  string        s= "<#2B9>";
+  string s= "<#2B9>";
   if (c == "`") s= "<backprime>";
   bool result= true;
   for (int i= 0; i < N (family_tokens); i++)
@@ -1068,8 +1067,8 @@ smart_font_rep::is_italic_prime (string c) {
       result= false;
       break;
     }
-  italic_prime_cached = true;
-  italic_prime_result = result;
+  italic_prime_cached= true;
+  italic_prime_result= result;
   return result;
 }
 
