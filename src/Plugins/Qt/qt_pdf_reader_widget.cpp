@@ -101,6 +101,8 @@ PDFReaderWidget::setupToolBar () {
 
   zoomCombo_->addItem ("Fit Width");
   zoomCombo_->addItem ("Fit Height");
+  zoomCombo_->addItem ("25%");
+  zoomCombo_->addItem ("33%");
   zoomCombo_->addItem ("50%");
   zoomCombo_->addItem ("75%");
   zoomCombo_->addItem ("100%");
@@ -109,11 +111,23 @@ PDFReaderWidget::setupToolBar () {
   zoomCombo_->addItem ("200%");
   zoomCombo_->addItem ("300%");
   zoomCombo_->addItem ("400%");
+  zoomCombo_->addItem ("600%");
+  zoomCombo_->addItem ("800%");
 
   connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
            this, &PDFReaderWidget::onZoomChanged);
 
+  zoomOutBtn_= new QPushButton ("-", toolBar_);
+  zoomOutBtn_->setFixedWidth (30);
+  connect (zoomOutBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomOut);
+
+  zoomInBtn_= new QPushButton ("+", toolBar_);
+  zoomInBtn_->setFixedWidth (30);
+  connect (zoomInBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomIn);
+
+  toolBar_->addWidget (zoomOutBtn_);
   toolBar_->addWidget (zoomCombo_);
+  toolBar_->addWidget (zoomInBtn_);
   toolBar_->addSeparator ();
 
   prevPageBtn_= new QPushButton ("<", toolBar_);
@@ -214,6 +228,28 @@ PDFReaderWidget::fitHeight () {
   int   baseHeight= qRound (baseWidth * pageAspectRatio_);
   if (baseHeight <= 0) return;
   setZoomFactor (static_cast<double> (viewportHeight) / baseHeight);
+}
+
+void
+PDFReaderWidget::zoomIn () {
+  for (int i= 0; i < ZOOM_LEVEL_COUNT; ++i) {
+    if (ZOOM_LEVELS[i] > zoomFactor_ * 1.001) {
+      setZoomFactor (ZOOM_LEVELS[i]);
+      return;
+    }
+  }
+  setZoomFactor (MAX_ZOOM);
+}
+
+void
+PDFReaderWidget::zoomOut () {
+  for (int i= ZOOM_LEVEL_COUNT - 1; i >= 0; --i) {
+    if (ZOOM_LEVELS[i] < zoomFactor_ * 0.999) {
+      setZoomFactor (ZOOM_LEVELS[i]);
+      return;
+    }
+  }
+  setZoomFactor (MIN_ZOOM);
 }
 
 int
@@ -715,6 +751,24 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
 
+  if (event->modifiers () & Qt::ControlModifier) {
+    switch (event->key ()) {
+    case Qt::Key_Plus:
+    case Qt::Key_Equal:
+      zoomIn ();
+      event->accept ();
+      return;
+    case Qt::Key_Minus:
+      zoomOut ();
+      event->accept ();
+      return;
+    case Qt::Key_0:
+      setZoomFactor (1.0);
+      event->accept ();
+      return;
+    }
+  }
+
   QWidget::keyPressEvent (event);
 }
 
@@ -726,12 +780,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (wheelEvent->modifiers () & Qt::ControlModifier) {
         int delta= wheelEvent->angleDelta ().y ();
         if (delta != 0) {
-          if (delta > 0) {
-            zoomFactor_= qMin (zoomFactor_ + ZOOM_STEP, MAX_ZOOM);
-          }
-          else {
-            zoomFactor_= qMax (zoomFactor_ - ZOOM_STEP, MIN_ZOOM);
-          }
+          double factor= 1.0 + static_cast<double> (delta) / 500.0;
+          zoomFactor_  = qBound (MIN_ZOOM, zoomFactor_ * factor, MAX_ZOOM);
           updateZoomDisplay ();
           if (!pdfData_.isEmpty () && pageCount_ > 0) {
             zoomDebounceTimer_->start ();

@@ -57,6 +57,8 @@ public:
   void   setZoomFactor (double factor);
   void   fitWidth ();
   void   fitHeight ();
+  void   zoomIn ();
+  void   zoomOut ();
 
   int  currentPage () const;
   void goToPage (int page);
@@ -92,10 +94,12 @@ private:
 
   QToolBar*    toolBar_;
   QComboBox*   zoomCombo_;
+  QPushButton* zoomOutBtn_;
   QPushButton* prevPageBtn_;
   QLineEdit*   pageEdit_;
   QLabel*      pageTotalLabel_;
   QPushButton* nextPageBtn_;
+  QPushButton* zoomInBtn_;
 
   QByteArray pdfData_;
   int        pageCount_;
@@ -119,11 +123,14 @@ private:
   static constexpr int    DEFAULT_DPI       = 150;
   static constexpr int    PAGE_MARGIN       = 16;
   static constexpr int    PRELOAD_MARGIN    = 200;
-  static constexpr double MIN_ZOOM          = 0.1;
-  static constexpr double MAX_ZOOM          = 5.0;
-  static constexpr double ZOOM_STEP         = 0.1;
+  static constexpr double MIN_ZOOM          = 0.12;
+  static constexpr double MAX_ZOOM          = 8.0;
   static constexpr int    ZOOM_DEBOUNCE_MS  = 200;
   static constexpr int    RESIZE_DEBOUNCE_MS= 300;
+
+  static constexpr int    ZOOM_LEVEL_COUNT= 12;
+  static constexpr double ZOOM_LEVELS[ZOOM_LEVEL_COUNT]{
+      0.25, 0.33, 0.50, 0.75, 1.00, 1.25, 1.50, 2.00, 3.00, 4.00, 6.00, 8.00};
 };
 
 /* PdfPageCacheKey qHash defined above */
