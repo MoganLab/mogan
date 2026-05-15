@@ -95,8 +95,8 @@ TemplateAPI::downloadTemplate (const QString& templateId,
     return;
   }
 
-  // Cancel any existing download for this template
-  cancelDownload (templateId);
+  // Abort any existing download for this template (internal cleanup, no signal)
+  abortDownload (templateId);
 
   QNetworkRequest request{QUrl (downloadUrl)};
   setupRequestHeaders (request);
@@ -115,6 +115,17 @@ TemplateAPI::downloadTemplate (const QString& templateId,
 }
 
 void
+TemplateAPI::abortDownload (const QString& templateId) {
+  auto it= downloadReplies_.find (templateId);
+  if (it != downloadReplies_.end () && it.value ()) {
+    disconnect (it.value (), nullptr, this, nullptr);
+    it.value ()->abort ();
+    it.value ()->deleteLater ();
+    downloadReplies_.erase (it);
+  }
+}
+
+void
 TemplateAPI::cancelDownload (const QString& templateId) {
   auto it= downloadReplies_.find (templateId);
   if (it != downloadReplies_.end () && it.value ()) {
@@ -122,6 +133,7 @@ TemplateAPI::cancelDownload (const QString& templateId) {
     it.value ()->abort ();
     it.value ()->deleteLater ();
     downloadReplies_.erase (it);
+    emit downloadFailed (templateId, tr ("Download cancelled"));
   }
 }
 

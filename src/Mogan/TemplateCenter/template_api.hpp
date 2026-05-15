@@ -99,6 +99,9 @@ private:
   // Request management
   void setupRequestHeaders (QNetworkRequest& request);
 
+  // Abort an active download without emitting signals (internal use)
+  void abortDownload (const QString& templateId);
+
 private:
   // API configuration
   QString apiBaseUrl_;
