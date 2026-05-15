@@ -26,6 +26,7 @@
 #if defined(OS_MINGW) || defined(OS_WIN)
 #else
 #include <sys/wait.h>
+#include <unistd.h>
 #endif
 #include <errno.h>
 
@@ -142,32 +143,7 @@ qt_pipe_link_rep::is_readable (int channel) {
 
 void
 qt_pipe_link_rep::interrupt () {
-  if (!alive) return;
-#if defined(OS_MINGW) || defined(OS_WIN)
-  // Not implemented
-  qt_error << "SIGINT not implemented on Windows\n";
-#else
-#if QT_VERSION < 0x060000
-  Q_PID pid= PipeLink.pid ();
-
-  // REMARK: previously there were here below a call to ::killpg which does not
-  // seems to work on MacOS I (mgubi) replaced it with ::kill which does the
-  // job. But I do not undestand the difference.
-
-  int ret= ::kill (pid, SIGINT);
-  if (ret == -1) {
-    qt_error << "Interrupt not successful, pid: " << pid
-             << " return code: " << errno << "\n";
-  }
-#else
-  uint64_t pid= PipeLink.processId ();
-  int      ret= ::kill (pid, SIGINT);
-  if (ret == -1) {
-    qt_error << "Interrupt not successful, pid: " << pid
-             << " return code: " << errno << "\n";
-  }
-#endif
-#endif
+  stop ();
 }
 
 void

@@ -313,10 +313,7 @@ pipe_link_rep::listen (int msecs) {
 
 void
 pipe_link_rep::interrupt () {
-#if !defined(OS_MINGW) && !defined(OS_WIN)
-  if (!alive) return;
-  killpg (pid, SIGINT);
-#endif
+  stop ();
 }
 
 void
