@@ -359,7 +359,6 @@
 (lazy-define (convert latex latex-tools) latex-set-virtual-packages
              latex-has-style? latex-has-package?
              latex-has-texmacs-style? latex-has-texmacs-package?)
-(lazy-menu (convert latex tmtex-widgets) tmtex-menu)
 ;;(display* "time: " (- (texmacs-time) boot-start) "\n")
 ;;(display* "memory: " (texmacs-memory) " bytes\n")
 

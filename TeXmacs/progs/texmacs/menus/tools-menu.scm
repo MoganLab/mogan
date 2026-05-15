@@ -49,9 +49,6 @@
       ("Pictures" (picture-gc))
       ("Plugins" (reinit-plugin-cache))
       ("Styles" (style-clear-cache)))
-  (if (url-exists-in-path? "pdflatex")
-      (-> "LaTeX"
-          (link tmtex-menu)))
   (-> "References"
       (link ref-menu))
   (if supports-email?
