@@ -16,7 +16,6 @@
 #include "sys_utils.hpp"
 #include "tm_file.hpp"
 
-using namespace moebius;
 
 /******************************************************************************
  * Getting information out of log files
