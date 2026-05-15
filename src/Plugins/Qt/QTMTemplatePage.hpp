@@ -55,7 +55,6 @@ private:
   void     refreshTemplateGrid (const QString& category);
   int      calculateColumnCount () const;
   void     showTemplatePreview (const QString& templateId);
-  void     downloadAndUseTemplate (const QString& templateId);
 
   // UI components
   QLabel*      titleLabel_;

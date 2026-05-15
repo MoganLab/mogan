@@ -16,7 +16,6 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QMouseEvent>
-#include <QProgressDialog>
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScreen>
@@ -26,6 +25,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+#include "QTMTemplateOpener.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_floating_toast.hpp"
 #include "qt_pdf_preview_widget.hpp"
@@ -562,86 +562,14 @@ QTMTemplatePage::showTemplatePreview (const QString& templateId) {
   useBtn->setDefault (true);
   connect (useBtn, &QPushButton::clicked, [this, dialog, templateId] () {
     dialog->accept ();
-    downloadAndUseTemplate (templateId);
+    QTMTemplateOpener opener (this);
+    opener.openTemplate (templateId);
   });
   btnLayout->addWidget (useBtn);
 
   layout->addLayout (btnLayout);
 
   dialog->exec ();
-}
-
-void
-QTMTemplatePage::downloadAndUseTemplate (const QString& templateId) {
-  if (!templateManager_) return;
-
-  if (templateManager_->isTemplateAvailableLocally (templateId)) {
-    auto meta= templateManager_->templateById (templateId);
-    if (!meta) {
-      QtFloatingToast::showToast (this,
-                                  qt_translate ("Template metadata not found"),
-                                  3000, QtFloatingToast::Error);
-      return;
-    }
-    QString localPath= templateManager_->localTemplatePath (templateId);
-    if (localPath.isEmpty ()) {
-      QtFloatingToast::showToast (
-          this, qt_translate ("Local template file is missing"), 3000,
-          QtFloatingToast::Error);
-      return;
-    }
-    qt_copy_template_and_load (this, localPath, meta->name);
-    return;
-  }
-
-  QProgressDialog dialog (qt_translate ("Downloading template..."),
-                          qt_translate ("Cancel"), 0, 100, this);
-  dialog.setWindowModality (Qt::WindowModal);
-  dialog.setAutoClose (true);
-
-  bool cancelledByUser= false;
-  connect (&dialog, &QProgressDialog::canceled, [&] () {
-    cancelledByUser= true;
-    templateManager_->cancelDownload (templateId);
-  });
-
-  connect (templateManager_, &TemplateManager::downloadProgress, &dialog,
-           [&dialog] (const QString&, qint64 received, qint64 total) {
-             if (total < 0) {
-               dialog.setRange (0, 0);
-             }
-             else {
-               dialog.setMaximum (static_cast<int> (total));
-               dialog.setValue (static_cast<int> (received));
-             }
-           });
-
-  dialog.show ();
-
-  QString errorMsg;
-  QString localPath=
-      templateManager_->downloadTemplateSync (templateId, 30000, &errorMsg);
-
-  dialog.hide ();
-
-  if (localPath.isEmpty ()) {
-    if (!cancelledByUser) {
-      QtFloatingToast::showToast (
-          this,
-          errorMsg.isEmpty () ? qt_translate ("Download failed") : errorMsg,
-          3000, QtFloatingToast::Error);
-    }
-    return;
-  }
-
-  auto meta= templateManager_->templateById (templateId);
-  if (!meta) {
-    QtFloatingToast::showToast (this,
-                                qt_translate ("Template metadata not found"),
-                                3000, QtFloatingToast::Error);
-    return;
-  }
-  qt_copy_template_and_load (this, localPath, meta->name);
 }
 
 void

@@ -119,7 +119,6 @@ private:
   void removeRecentDoc (const QString& path);
   void clearAllRecentDocs ();
   void createDocumentWithStyle (const QString& styleId);
-  void createDocumentFromTemplate (const QString& templateId);
   void refreshTemplateThumbnails ();
 
   // 样式卡片相关
