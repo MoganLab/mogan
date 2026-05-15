@@ -56,8 +56,9 @@ public:
    * 否则显示进度对话框并先下载。
    *
    * @param templateId 模板 ID
+   * @return 成功返回 true，失败返回 false
    */
-  void openTemplate (const QString& templateId);
+  bool openTemplate (const QString& templateId);
 
   /**
    * @brief 检查模板是否在本地可用
@@ -93,8 +94,10 @@ private slots:
   void onDownloadFailed (const QString& templateId, const QString& error);
 
 private:
-  void openLocalTemplate_ (const QString& templateId);
-  void startDownload_ (const QString& templateId);
+  bool openLocalTemplate_ (const QString& templateId);
+  bool startDownload_ (const QString& templateId);
+  bool loadFromLocalPath_ (const QString& templateId, const QString& localPath,
+                           const QString& templateName);
   void cleanupProgressDialog_ ();
   void showError_ (const QString& message);
   void resetState_ ();

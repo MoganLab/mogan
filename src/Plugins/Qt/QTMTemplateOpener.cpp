@@ -25,57 +25,47 @@ QTMTemplateOpener::isAvailableLocally (const QString& templateId) const {
          templateManager_->isTemplateAvailableLocally (templateId);
 }
 
-void
+bool
 QTMTemplateOpener::openTemplate (const QString& templateId) {
   resetState_ ();
   currentTemplateId_= templateId;
 
   if (isAvailableLocally (templateId)) {
-    openLocalTemplate_ (templateId);
-    return;
+    return openLocalTemplate_ (templateId);
   }
 
-  startDownload_ (templateId);
+  return startDownload_ (templateId);
 }
 
-void
+bool
 QTMTemplateOpener::openLocalTemplate_ (const QString& templateId) {
   if (!templateManager_) {
     emit failed (templateId, qt_translate ("Template manager not available"));
-    return;
+    return false;
   }
 
   auto meta= templateManager_->templateById (templateId);
   if (!meta) {
     showError_ (qt_translate ("Template metadata not found"));
     emit failed (templateId, qt_translate ("Template metadata not found"));
-    return;
+    return false;
   }
 
   QString localPath= templateManager_->localTemplatePath (templateId);
   if (localPath.isEmpty ()) {
     showError_ (qt_translate ("Local template file is missing"));
     emit failed (templateId, qt_translate ("Local template file is missing"));
-    return;
+    return false;
   }
 
-  QString docPath= qt_copy_template_to_documents (localPath, meta->name);
-  if (docPath.isEmpty ()) {
-    showError_ (qt_translate ("Failed to copy template to Documents"));
-    emit failed (templateId,
-                 qt_translate ("Failed to copy template to Documents"));
-    return;
-  }
-
-  qt_load_document_path (docPath);
-  emit completed (templateId, docPath);
+  return loadFromLocalPath_ (templateId, localPath, meta->name);
 }
 
-void
+bool
 QTMTemplateOpener::startDownload_ (const QString& templateId) {
   if (!templateManager_) {
     emit failed (templateId, qt_translate ("Template manager not available"));
-    return;
+    return false;
   }
 
   cleanupProgressDialog_ ();
@@ -84,7 +74,6 @@ QTMTemplateOpener::startDownload_ (const QString& templateId) {
       new QProgressDialog (qt_translate ("Downloading template..."),
                            qt_translate ("Cancel"), 0, 100, parent_);
   progressDialog_->setWindowModality (Qt::WindowModal);
-  progressDialog_->setAutoClose (true);
 
   connect (progressDialog_, &QProgressDialog::canceled, [this, templateId] () {
     downloadCancelledByUser_= true;
@@ -118,26 +107,34 @@ QTMTemplateOpener::startDownload_ (const QString& templateId) {
     else {
       emit failed (templateId, QString ());
     }
-    return;
+    return false;
   }
 
   auto meta= templateManager_->templateById (templateId);
   if (!meta) {
     showError_ (qt_translate ("Template metadata not found"));
     emit failed (templateId, qt_translate ("Template metadata not found"));
-    return;
+    return false;
   }
 
-  QString docPath= qt_copy_template_to_documents (localPath, meta->name);
+  return loadFromLocalPath_ (templateId, localPath, meta->name);
+}
+
+bool
+QTMTemplateOpener::loadFromLocalPath_ (const QString& templateId,
+                                       const QString& localPath,
+                                       const QString& templateName) {
+  QString docPath= qt_copy_template_to_documents (localPath, templateName);
   if (docPath.isEmpty ()) {
     showError_ (qt_translate ("Failed to copy template to Documents"));
     emit failed (templateId,
                  qt_translate ("Failed to copy template to Documents"));
-    return;
+    return false;
   }
 
   qt_load_document_path (docPath);
   emit completed (templateId, docPath);
+  return true;
 }
 
 void
