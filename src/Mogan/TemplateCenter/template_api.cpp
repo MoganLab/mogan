@@ -215,6 +215,16 @@ TemplateAPI::onDownloadFinished () {
     return;
   }
 
+  // Check HTTP status code (e.g., 404 may not trigger QNetworkReply error)
+  int httpStatus=
+      reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+  if (httpStatus >= 400) {
+    emit downloadFailed (templateId,
+                         tr ("Download failed: HTTP %1").arg (httpStatus));
+    reply->deleteLater ();
+    return;
+  }
+
   // Ensure target directory exists
   QDir dir (QFileInfo (targetPath).path ());
   if (!dir.exists ()) {
