@@ -45,14 +45,6 @@
     <with|text-color|<value|color>|<with|color|<arg|border>|<colored-frame|<arg|background>|<with|color|<value|text-color>|<arg|body>>>>>
   </macro>>
 
-  <active*|<\src-comment>
-    <LaTeX> preview
-  </src-comment>>
-
-  <assign|latex_preview|<macro|pic|src|<block|<tformat|<cwith|1|1|1|1|cell-background|dark
-  grey>|<table|<row|<cell|<with|color|white|font-family|ss|<small|<LaTeX>
-  preview>>>>|<row|<cell|<verbatim|<arg|src>>>>>>>>>
-
   <\active*>
     <\src-comment>
       Footnotes.
