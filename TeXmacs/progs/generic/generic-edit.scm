@@ -676,7 +676,7 @@
   (clipboard-cut "primary"))
 (tm-define (kbd-paste)
   (with ok (clipboard-paste "primary")
-    (when (defined? 'tutorial-notify-action)
+    (when (and ok (defined? 'tutorial-notify-action))
       (tutorial-notify-action "paste"))
     ok))
 (tm-define (kbd-paste-verbatim)
@@ -730,14 +730,14 @@ image-and-ocr-paste
 
 (tm-define (paste-as-markdown)
   (if (community-stem?)
-      (begin
-        (clipboard-paste-import "verbatim" "primary")
-        (kbd-return)
-        (let* ((latex-code (string-load (unix->url "$TEXMACS_PATH/plugins/account/data/md.tex")))
-               (parsed-latex (parse-latex latex-code))
-               (texmacs-latex (latex->texmacs parsed-latex)))
-          (insert texmacs-latex)
-          #t))
+      (with ok (clipboard-paste-import "verbatim" "primary")
+        (when ok
+          (kbd-return)
+          (let* ((latex-code (string-load (unix->url "$TEXMACS_PATH/plugins/account/data/md.tex")))
+                 (parsed-latex (parse-latex latex-code))
+                 (texmacs-latex (latex->texmacs parsed-latex)))
+            (insert texmacs-latex)))
+        ok)
       (clipboard-paste-import "markdown" "primary")))
 
 #|
@@ -759,7 +759,7 @@ paste-as-texmacs
            (let* ((sub-img-tree (tree-ref img-tree 2)))
              (if (tree-is? sub-img-tree 'image)
                  (begin
-                   (ocr-to-latex-by-cursor img-tree)
+                   (ocr-to-latex-by-cursor sub-img-tree)
                    #t)
                  #f)))
           (else #f))))
