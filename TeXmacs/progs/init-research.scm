@@ -249,6 +249,7 @@
 (lazy-define (table table-widgets) open-cell-properties open-table-properties)
 (tm-property (open-cell-properties) (:interactive #t))
 (tm-property (open-table-properties) (:interactive #t))
+(use-modules (generic text-toolbar))
 ;;(display* "time: " (- (texmacs-time) boot-start) "\n")
 ;;(display* "memory: " (texmacs-memory) " bytes\n")
 

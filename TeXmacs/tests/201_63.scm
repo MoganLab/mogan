@@ -109,38 +109,47 @@
 ;; Mode checking simulation tests
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (should-show-toolbar? in-math? in-prog? in-code? in-verbatim? 
-                               has-selection? selection-empty?)
+(define (should-show-toolbar? in-math? in-prog? in-code? in-verbatim?
+                               has-selection? selection-empty?
+                               has-image? in-toc?)
   (and (not in-math?)
        (not in-prog?)
        (not in-code?)
        (not in-verbatim?)
        has-selection?
-       (not selection-empty?)))
+       (not selection-empty?)
+       (not has-image?)
+       (not in-toc?)))
 
 ;; 普通文本选区：应该显示
-(check (should-show-toolbar? #f #f #f #f #t #f) => #t)
+(check (should-show-toolbar? #f #f #f #f #t #f #f #f) => #t)
 
 ;; 数学模式中：不应该显示
-(check (should-show-toolbar? #t #f #f #f #t #f) => #f)
+(check (should-show-toolbar? #t #f #f #f #t #f #f #f) => #f)
 
 ;; 编程模式中：不应该显示
-(check (should-show-toolbar? #f #t #f #f #t #f) => #f)
+(check (should-show-toolbar? #f #t #f #f #t #f #f #f) => #f)
 
 ;; 代码模式中：不应该显示
-(check (should-show-toolbar? #f #f #t #f #t #f) => #f)
+(check (should-show-toolbar? #f #f #t #f #t #f #f #f) => #f)
 
 ;; 原文模式中：不应该显示
-(check (should-show-toolbar? #f #f #f #t #t #f) => #f)
+(check (should-show-toolbar? #f #f #f #t #t #f #f #f) => #f)
 
 ;; 无选区时：不应该显示
-(check (should-show-toolbar? #f #f #f #f #f #f) => #f)
+(check (should-show-toolbar? #f #f #f #f #f #f #f #f) => #f)
 
 ;; 空选区时：不应该显示
-(check (should-show-toolbar? #f #f #f #f #t #t) => #f)
+(check (should-show-toolbar? #f #f #f #f #t #t #f #f) => #f)
+
+;; 图片选区：不应该显示
+(check (should-show-toolbar? #f #f #f #f #t #f #t #f) => #f)
+
+;; 目录内部选区：不应该显示
+(check (should-show-toolbar? #f #f #f #f #t #f #f #t) => #f)
 
 ;; 数学模式 + 无选区：不应该显示
-(check (should-show-toolbar? #t #f #f #f #f #f) => #f)
+(check (should-show-toolbar? #t #f #f #f #f #f #f #f) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Viewport intersection tests

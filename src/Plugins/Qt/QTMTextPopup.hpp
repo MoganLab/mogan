@@ -17,10 +17,12 @@
 #include "qt_simple_widget.hpp"
 #include "rectangles.hpp"
 
+#include <QAction>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QMouseEvent>
 #include <QPaintEvent>
+#include <QToolButton>
 #include <QWidget>
 
 class QTMTextPopup : public QTMBasePopup {
@@ -38,7 +40,9 @@ public:
   void scrollBy (int x, int y) override;
 
 protected:
+  void prepareTextPopupButton (QToolButton* button, QAction* action);
   void rebuildButtonsFromScheme ();
+  void updateButtonsFromScheme ();
   void clearButtons ();
 };
 
