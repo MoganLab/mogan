@@ -1971,23 +1971,10 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
         default-color
         color)))
 
-(tm-define (pure-text? t)
-  (and (in-text?)
-       (cond ((tree-is? t 'string) #t)
-             ((tree-is? t 'document)
-              (let loop ((i 0))
-                (cond ((>= i (tree-arity t)) #t)
-                      ((not (tree-is? (tree-ref t i) 'string)) #f)
-                      (else (loop (+ i 1))))))
-             (else #f))))
-
 (tm-define (mark-text)
   (if (selection-active-any?)
-      (let ((stree (tree->stree (selection-tree))))
-        (if (pure-text? (selection-tree))
-            (make-with "text-bg-color" (get-marked-color))
-            (begin
-              (make 'marked)
-              (when (not (== (get-marked-color) "#ffe47f"))
-                (with-set (focus-tree) "marked-color" (get-marked-color))))))
+      (begin
+        (make 'marked)
+        (when (not (== (get-marked-color) "#ffe47f"))
+          (with-set (focus-tree) "marked-color" (get-marked-color))))
       (make-with "text-bg-color" (get-marked-color))))
