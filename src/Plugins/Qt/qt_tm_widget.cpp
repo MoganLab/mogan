@@ -1021,7 +1021,7 @@ qt_tm_widget_rep::update_visibility () {
     new_modeVisibility  = false;
     new_focusVisibility = false;
     new_userVisibility  = false;
-    new_statusVisibility= true;
+    new_statusVisibility= false;
     new_sideVisibility  = false;
     new_leftVisibility  = false;
     new_bottomVisibility= false;
