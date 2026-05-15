@@ -384,6 +384,5 @@ is_verbatim (tree t) {
          is_compound (t, "scm-code") || is_compound (t, "shell-code") ||
          is_compound (t, "code") || is_compound (t, "verbatim") ||
          is_compound (t, "scilab-code") || is_compound (t, "scala-code") ||
-         is_compound (t, "java-code") ||
-         is_compound (t, "picture-mixed");
+         is_compound (t, "java-code") || is_compound (t, "picture-mixed");
 }

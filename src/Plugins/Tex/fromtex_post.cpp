@@ -2475,7 +2475,7 @@ latex_document_to_tree (string s, bool as_pic) {
   command_arity->extend ();
   command_def->extend ();
   tree t= parse_latex_document (s, true, as_pic);
-  r= latex_to_tree (t);
+  r     = latex_to_tree (t);
   command_type->shorten ();
   command_arity->shorten ();
   command_def->shorten ();
