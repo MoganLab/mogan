@@ -137,12 +137,11 @@ void
 PDFReaderWidget::updateZoomDisplay () {
   if (!zoomCombo_) return;
 
-  int    percent= qRound (zoomFactor_ * 100);
-  QString text  = QString::number (percent) + "%";
+  int     percent= qRound (zoomFactor_ * 100);
+  QString text   = QString::number (percent) + "%";
 
-  disconnect (zoomCombo_,
-              QOverload<int>::of (&QComboBox::currentIndexChanged), this,
-              &PDFReaderWidget::onZoomChanged);
+  disconnect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
+              this, &PDFReaderWidget::onZoomChanged);
 
   if (qFuzzyCompare (zoomFactor_, 1.0)) {
     int idx= zoomCombo_->findText ("Fit Width");
@@ -150,10 +149,8 @@ PDFReaderWidget::updateZoomDisplay () {
   }
   else {
     int idx= zoomCombo_->findText (text);
-    if (idx >= 0)
-      zoomCombo_->setCurrentIndex (idx);
-    else
-      zoomCombo_->setCurrentText (text);
+    if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
+    else zoomCombo_->setCurrentText (text);
   }
 
   connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
@@ -225,7 +222,7 @@ PDFReaderWidget::currentPage () const {
 
 void
 PDFReaderWidget::goToPage (int page) {
-  page= qBound (1, page, pageCount_);
+  page     = qBound (1, page, pageCount_);
   int index= page - 1;
 
   int childCount= pageLayout_->count ();
@@ -288,8 +285,8 @@ PDFReaderWidget::copySelectionToClipboard () {
   QWidget* vp  = scrollArea_->viewport ();
   if (!vp) return;
 
-  QPixmap pixmap    = vp->grab ();
-  QPixmap selection = pixmap.copy (rect);
+  QPixmap pixmap   = vp->grab ();
+  QPixmap selection= pixmap.copy (rect);
 
   QClipboard* clipboard= QApplication::clipboard ();
   clipboard->setPixmap (selection);
@@ -494,8 +491,8 @@ bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   clear ();
 
-  targetDpi_       = dpi;
-  hasError_        = false;
+  targetDpi_= dpi;
+  hasError_ = false;
   errorString_.clear ();
   pageAspectRatio_= 0.0;
 
@@ -675,8 +672,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (selectingArea_ && mouseEvent->button () == Qt::LeftButton) {
         selectionOrigin_= mouseEvent->pos ();
         if (!rubberBand_) {
-          rubberBand_=
-              new QRubberBand (QRubberBand::Rectangle, scrollArea_->viewport ());
+          rubberBand_= new QRubberBand (QRubberBand::Rectangle,
+                                        scrollArea_->viewport ());
         }
         rubberBand_->setGeometry (QRect (selectionOrigin_, QSize ()));
         rubberBand_->show ();
@@ -696,8 +693,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (keyEvent->key () == Qt::Key_Space) {
         QScrollBar* vbar= scrollArea_->verticalScrollBar ();
         if (vbar) {
-          int scrollAmount=
-              qRound (scrollArea_->viewport ()->height () * 0.9);
+          int scrollAmount= qRound (scrollArea_->viewport ()->height () * 0.9);
           vbar->setValue (vbar->value () + scrollAmount);
         }
         return true;

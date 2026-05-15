@@ -92,9 +92,9 @@ private slots:
 
     double initialZoom= widget->zoomFactor ();
 
-    QWheelEvent wheelEvent (
-        QPointF (50, 50), QPointF (50, 50), QPoint (0, 0), QPoint (0, 120),
-        Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QWheelEvent wheelEvent (QPointF (50, 50), QPointF (50, 50), QPoint (0, 0),
+                            QPoint (0, 120), Qt::NoButton, Qt::ControlModifier,
+                            Qt::NoScrollPhase, false);
     QApplication::sendEvent (widget->viewport (), &wheelEvent);
     QApplication::processEvents ();
 
@@ -117,9 +117,9 @@ private slots:
 
     double initialZoom= widget->zoomFactor ();
 
-    QWheelEvent wheelEvent (
-        QPointF (50, 50), QPointF (50, 50), QPoint (0, 0), QPoint (0, -120),
-        Qt::NoButton, Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QWheelEvent wheelEvent (QPointF (50, 50), QPointF (50, 50), QPoint (0, 0),
+                            QPoint (0, -120), Qt::NoButton, Qt::ControlModifier,
+                            Qt::NoScrollPhase, false);
     QApplication::sendEvent (widget->viewport (), &wheelEvent);
     QApplication::processEvents ();
 

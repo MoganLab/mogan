@@ -1579,7 +1579,7 @@
     (set! u (url-relative (current-buffer) u)))
   (open-url u))
 
-(define (load-pdf-buffer u)
+(tm-define (load-pdf-buffer u)
   (when (not (url-rooted? u))
     (set! u (url-relative (current-buffer) u)))
   (if (buffer-exists? u)

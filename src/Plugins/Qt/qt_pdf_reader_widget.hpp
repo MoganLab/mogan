@@ -36,12 +36,12 @@ public:
   bool loadFromFile (const QString& filePath, int dpi= 150);
   void clear ();
 
-  int  pageCount () const { return pageCount_; }
-  bool hasError () const { return hasError_; }
+  int    pageCount () const { return pageCount_; }
+  bool   hasError () const { return hasError_; }
   double zoomFactor () const { return zoomFactor_; }
-  void setZoomFactor (double factor);
-  void fitWidth ();
-  void fitHeight ();
+  void   setZoomFactor (double factor);
+  void   fitWidth ();
+  void   fitHeight ();
 
   int  currentPage () const;
   void goToPage (int page);
@@ -49,7 +49,7 @@ public:
   bool canGoToPrevPage () const;
   bool canGoToNextPage () const;
 
-  QWidget* viewport () const;
+  QWidget*    viewport () const;
   QScrollBar* verticalScrollBar () const;
 
 private slots:
@@ -77,8 +77,8 @@ private:
   QVBoxLayout* pageLayout_;
   QVBoxLayout* mainLayout_;
 
-  QToolBar*  toolBar_;
-  QComboBox* zoomCombo_;
+  QToolBar*    toolBar_;
+  QComboBox*   zoomCombo_;
   QPushButton* prevPageBtn_;
   QLineEdit*   pageEdit_;
   QLabel*      pageTotalLabel_;
