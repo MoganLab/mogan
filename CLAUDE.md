@@ -32,6 +32,10 @@
 2. 构建方式：`xmake b xxx_test`
 3. 运行方式：`xmake r xxx_test`
 
+## 构建命令
+
+主项目构建：`xmake b stem`
+
 ## 工作流程
 
 1. 基于主分支创建新分支
