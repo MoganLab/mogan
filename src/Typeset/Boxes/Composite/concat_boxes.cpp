@@ -20,7 +20,7 @@
 struct concat_box_rep : public composite_box_rep {
   array<SI>    spc;
   bool         indent;
-  array<int>   bg_indices;
+  array<box>   bg_boxes;
   array<color> bg_colors;
   concat_box_rep (path ip, array<box> bs, array<SI> spc, bool indent);
   operator tree ();
@@ -144,20 +144,51 @@ rounded_bg (array<SI>& xs, array<SI>& ys, SI x1, SI y1, SI x2, SI y2, SI r) {
   }
 }
 
+static color
+get_deep_bg_color (box b) {
+  color c= b->get_bg_color ();
+  int   r, g, bl, a;
+  get_rgb_color (c, r, g, bl, a);
+  if (a > 0) return c;
+  int n= b->subnr ();
+  for (int i= 0; i < n; i++) {
+    color c2= get_deep_bg_color (b->subbox (i));
+    get_rgb_color (c2, r, g, bl, a);
+    if (a > 0) return c2;
+  }
+  return rgb_color (0, 0, 0, 0);
+}
+
+static void
+clear_deep_bg (box b, array<box>& boxes, array<color>& colors) {
+  color c= b->get_bg_color ();
+  int   r, g, bl, a;
+  get_rgb_color (c, r, g, bl, a);
+  if (a > 0) {
+    boxes << b;
+    colors << c;
+    b->set_bg_color (rgb_color (0, 0, 0, 0));
+  }
+  int n= b->subnr ();
+  for (int i= 0; i < n; i++) {
+    clear_deep_bg (b->subbox (i), boxes, colors);
+  }
+}
+
 void
 concat_box_rep::pre_display (renderer& ren) {
   int n= N (bs);
   if (n == 0) return;
 
-  bg_indices= array<int> ();
-  bg_colors = array<color> ();
+  bg_boxes = array<box> ();
+  bg_colors= array<color> ();
 
   int i= 0;
   while (i < n) {
-    color c= bs[i]->get_bg_color ();
+    color c= get_deep_bg_color (bs[i]);
     int   r, g, b, a;
     get_rgb_color (c, r, g, b, a);
-    if (a <= 0 || bs[i]->get_type () != TEXT_BOX) {
+    if (a <= 0) {
       i++;
       continue;
     }
@@ -167,8 +198,8 @@ concat_box_rep::pre_display (renderer& ren) {
     i++;
 
     while (i < n) {
-      color c2= bs[i]->get_bg_color ();
-      if (c2 != group_color || bs[i]->get_type () != TEXT_BOX) break;
+      color c2= get_deep_bg_color (bs[i]);
+      if (c2 != group_color) break;
       i++;
     }
     int end= i - 1;
@@ -180,18 +211,31 @@ concat_box_rep::pre_display (renderer& ren) {
     SI bg_y2= -MAX_SI;
 
     for (int k= start; k <= end; k++) {
-      font f= bs[k]->get_leaf_font ();
-      if (is_nil (f)) continue;
-      metric ex_m;
-      f->get_extents ("M", ex_m);
-      bg_y1= min (bg_y1, sy (k) + ex_m->y1 - 10 * pixel);
-      bg_y2= max (bg_y2, sy (k) + ex_m->y2 + 10 * pixel);
+      if (bs[k]->get_type () == TEXT_BOX) {
+        font f= bs[k]->get_leaf_font ();
+        if (!is_nil (f)) {
+          metric ex_m;
+          f->get_extents ("M", ex_m);
+          bg_y1= min (bg_y1, sy (k) + ex_m->y1 - 10 * pixel);
+          bg_y2= max (bg_y2, sy (k) + ex_m->y2 + 10 * pixel);
+        }
+      }
+      else {
+        bg_y1= min (bg_y1, sy1 (k));
+        bg_y2= max (bg_y2, sy2 (k));
+      }
     }
 
     if (bg_y1 >= bg_y2) continue;
 
-    font first_font= bs[start]->get_leaf_font ();
-    SI   radius    = 0;
+    font first_font;
+    for (int k= start; k <= end; k++) {
+      if (bs[k]->get_type () == TEXT_BOX) {
+        first_font= bs[k]->get_leaf_font ();
+        if (!is_nil (first_font)) break;
+      }
+    }
+    SI radius= 0;
     if (!is_nil (first_font)) {
       radius= first_font->yx / 5;
     }
@@ -215,9 +259,7 @@ concat_box_rep::pre_display (renderer& ren) {
     }
 
     for (int k= start; k <= end; k++) {
-      bg_indices << k;
-      bg_colors << bs[k]->get_bg_color ();
-      bs[k]->set_bg_color (rgb_color (0, 0, 0, 0));
+      clear_deep_bg (bs[k], bg_boxes, bg_colors);
     }
   }
 }
@@ -225,12 +267,12 @@ concat_box_rep::pre_display (renderer& ren) {
 void
 concat_box_rep::post_display (renderer& ren) {
   (void) ren;
-  int n= N (bg_indices);
+  int n= N (bg_boxes);
   for (int i= 0; i < n; i++) {
-    bs[bg_indices[i]]->set_bg_color (bg_colors[i]);
+    bg_boxes[i]->set_bg_color (bg_colors[i]);
   }
-  bg_indices= array<int> ();
-  bg_colors = array<color> ();
+  bg_boxes = array<box> ();
+  bg_colors= array<color> ();
 }
 
 concat_box_rep::concat_box_rep (path ip, array<box> bs2, array<SI> spc2,

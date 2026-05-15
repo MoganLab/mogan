@@ -636,10 +636,10 @@ get_wide_stix (string s, font fn, SI width) {
  ******************************************************************************/
 
 box
-delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top) {
+delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top, color bg) {
   SI     h= top - bot;
   string r= get_delimiter (s, fn, h);
-  box    b= text_box (ip, 0, r, fn, pen);
+  box    b= text_box_with_bg (ip, 0, r, fn, pen, bg, xkerning ());
   SI     x= -b->x1;
   SI     y= (top + bot - b->y1 - b->y2) >> 1;
   if (s == "<large-sqrt>") {
@@ -666,10 +666,10 @@ delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top) {
 
 box
 delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top, SI mid,
-               SI real_bot, SI real_top) {
+               SI real_bot, SI real_top, color bg) {
   SI     h= top - bot;
   string r= get_delimiter (s, fn, h);
-  box    b= text_box (ip, 0, r, fn, pen);
+  box    b= text_box_with_bg (ip, 0, r, fn, pen, bg, xkerning ());
   SI     x= -b->x1;
   SI     y= (top + bot - b->y1 - b->y2) >> 1;
   if (b->y2 - b->y1 < h) {

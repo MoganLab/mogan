@@ -365,8 +365,9 @@ concater_rep::handle_matching (int start, int end) {
         }
 
       // replace item by large or small delimiter
+      color bg= get_env_bg_color (env);
       if (Y1 < fn->y1 || Y2 > fn->y2 || custom || use_poor_rubber (fn))
-        a[i]->b= delimiter_box (a[i]->b->ip, ls, fn, lp, Y1, Y2, mid, y1, y2);
+        a[i]->b= delimiter_box (a[i]->b->ip, ls, fn, lp, Y1, Y2, mid, y1, y2, bg);
       else {
         string s= "<nobracket>";
         int    j;
@@ -375,7 +376,7 @@ concater_rep::handle_matching (int start, int end) {
         if (j < N (ls) && ls[N (ls) - 1] == '>') s= ls (j + 1, N (ls) - 1);
         if (N (s) > 1 && s[0] != '<') s= "<" * s * ">";
         else if (N (s) == 0 || s == ".") s= "<nobracket>";
-        a[i]->b= text_box (a[i]->b->ip, 0, s, fn, lp);
+        a[i]->b= text_box_with_bg (a[i]->b->ip, 0, s, fn, lp, bg, xkerning ());
         tp     = STD_ITEM;
       }
       a[i]->type= STD_ITEM;

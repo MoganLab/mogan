@@ -14,6 +14,7 @@
 #include "Boxes/xkerning.hpp"
 #include "array.hpp"
 #include "boxes.hpp"
+#include "colors.hpp"
 #include "command.hpp"
 #include "font.hpp"
 #include "player.hpp"
@@ -109,9 +110,11 @@ box image_box (path ip, url u, SI w, SI h, int alpha, int px);
 box text_box (path ip, int pos, string s, font fn, pencil pen);
 box text_box_with_bg (path ip, int pos, string s, font fn, pencil pen, color bg,
                       xkerning xk);
-box delimiter_box (path ip, string s, font fn, pencil pen, SI y1, SI y2);
+box delimiter_box (path ip, string s, font fn, pencil pen, SI y1, SI y2,
+                   color bg= rgb_color (0, 0, 0, 0));
 box delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top,
-                   SI mid, SI real_bot, SI real_top);
+                   SI mid, SI real_bot, SI real_top,
+                   color bg= rgb_color (0, 0, 0, 0));
 box big_operator_box (path ip, string s, font fn, pencil pen, int n);
 box wide_box (path ip, string s, font fn, pencil pen, SI width);
 box wide_stix_box (path ip, string s, font fn, pencil pen, SI width);

@@ -22,24 +22,30 @@ lazy make_lazy_vstream (edit_env env, tree t, path ip, tree channel);
 /******************************************************************************
  * Text Background color helper functions
  ******************************************************************************/
-static inline bool
+bool
 has_background_color (edit_env env) {
   tree   bg_color_tree= env->read (TEXT_BG_COLOR);
   string bg_color_str = as_string (bg_color_tree);
   return (bg_color_tree != "" && bg_color_str != "white");
 }
 
-static inline string
+string
 get_background_color_str (edit_env env) {
   tree bg_color_tree= env->read (TEXT_BG_COLOR);
   return as_string (bg_color_tree);
 }
 
-static inline color
+color
 get_background_color (edit_env env) {
   // 注意：调用此函数前应确保 has_background_color(env) 为 true
   string bg_color_str= get_background_color_str (env);
   return named_color (bg_color_str, env->alpha);
+}
+
+color
+get_env_bg_color (edit_env env) {
+  if (!has_background_color (env)) return rgb_color (0, 0, 0, 0);
+  return get_background_color (env);
 }
 
 static inline color
@@ -77,7 +83,7 @@ concater_rep::typeset_substring (string s, path ip, int pos) {
 
 void
 concater_rep::typeset_math_substring (string s, path ip, int pos, int otype) {
-  box b= text_box (ip, pos, s, env->fn, env->pen);
+  box b= build_text_box (ip, pos, s, env);
   a << line_item (STRING_ITEM, otype, b, HYPH_INVALID, env->lan);
 }
 
