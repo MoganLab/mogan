@@ -86,7 +86,7 @@ public:
   void      selection_set_paths (path start, path end);
   void      selection_set_range_set (range_set sel);
   void      selection_copy (string key= "primary");
-  void      selection_paste (string key= "primary");
+  bool      selection_paste (string key= "primary");
   void      selection_clear (string key= "primary");
   void      selection_cancel ();
   void      selection_set_import (string fm);

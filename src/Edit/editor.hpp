@@ -533,7 +533,7 @@ public:
   virtual void   selection_set_paths (path start, path end)                = 0;
   virtual void   selection_set_range_set (range_set sel)                   = 0;
   virtual void   selection_copy (string key= "primary")                    = 0;
-  virtual void   selection_paste (string key= "primary")                   = 0;
+  virtual bool   selection_paste (string key= "primary")                   = 0;
   virtual void   selection_clear (string key= "primary")                   = 0;
   virtual void   selection_cancel ()                                       = 0;
   virtual void   selection_set_import (string fm)                          = 0;

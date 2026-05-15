@@ -675,9 +675,10 @@
 (tm-define (kbd-cut)
   (clipboard-cut "primary"))
 (tm-define (kbd-paste)
-  (clipboard-paste "primary")
-  (when (defined? 'tutorial-notify-action)
-    (tutorial-notify-action "paste")))
+  (with ok (clipboard-paste "primary")
+    (when (defined? 'tutorial-notify-action)
+      (tutorial-notify-action "paste"))
+    ok))
 (tm-define (kbd-paste-verbatim)
   (clipboard-paste-import "verbatim" "primary"))
 (tm-define (kbd-cancel)
@@ -735,7 +736,8 @@ image-and-ocr-paste
         (let* ((latex-code (string-load (unix->url "$TEXMACS_PATH/plugins/account/data/md.tex")))
                (parsed-latex (parse-latex latex-code))
                (texmacs-latex (latex->texmacs parsed-latex)))
-          (insert texmacs-latex)))
+          (insert texmacs-latex)
+          #t))
       (clipboard-paste-import "markdown" "primary")))
 
 #|
@@ -750,12 +752,17 @@ paste-as-texmacs
   (when (not (defined? 'ocr-to-latex-by-cursor))
     (use-modules (liii ocr)))
   (with img-tree (tree-ref (clipboard-get "primary") 1)
-    (cond ((tree-is? img-tree 'image) 
-           (ocr-to-latex-by-cursor img-tree))
+    (cond ((tree-is? img-tree 'image)
+           (ocr-to-latex-by-cursor img-tree)
+           #t)
           ((and (tree-is? img-tree 'with) (not (null? (tree-ref img-tree 2))))
            (let* ((sub-img-tree (tree-ref img-tree 2)))
-             (when (tree-is? sub-img-tree 'image)
-               (ocr-to-latex-by-cursor img-tree)))))))
+             (if (tree-is? sub-img-tree 'image)
+                 (begin
+                   (ocr-to-latex-by-cursor img-tree)
+                   #t)
+                 #f)))
+          (else #f))))
 
 #|
 smart-format-paste
@@ -800,15 +807,19 @@ TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能�
         (ocr-paste)
         (track-event "OCR_RECOGNIZE" '()))
       (with mode (get-env "mode")
-        (cond ((== mode "prog")
-               (clipboard-paste-import "code" "primary")
-               (track-event "MAGIC_PASTE" '(("mode" . "prog"))))
-              ((== mode "math")
-               (clipboard-paste-import "latex" "primary")
-               (track-event "MAGIC_PASTE" '(("mode" . "math"))))
-              (else
-               (smart-format-paste)
-               (track-event "MAGIC_PASTE" '(("mode" . "text")))))))
+        (with ok (cond ((== mode "prog")
+                        (clipboard-paste-import "code" "primary"))
+                       ((== mode "math")
+                        (clipboard-paste-import "latex" "primary"))
+                       (else
+                        (smart-format-paste)))
+          (when ok
+            (cond ((== mode "prog")
+                   (track-event "MAGIC_PASTE" '(("mode" . "prog"))))
+                  ((== mode "math")
+                   (track-event "MAGIC_PASTE" '(("mode" . "math"))))
+                  (else
+                   (track-event "MAGIC_PASTE" '(("mode" . "text")))))))))
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "ocr-paste")))
 
