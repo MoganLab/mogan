@@ -9,13 +9,31 @@
 #define QT_PDF_READER_WIDGET_HPP
 
 #include <QComboBox>
+#include <QHash>
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QScrollArea>
+#include <QTimer>
 #include <QToolBar>
 #include <QVBoxLayout>
 #include <QWidget>
+
+/**
+ * @brief Key for per-page render cache
+ */
+struct PdfPageCacheKey {
+  int  pageNumber;
+  int  targetWidth;
+  bool operator== (const PdfPageCacheKey& other) const {
+    return pageNumber == other.pageNumber && targetWidth == other.targetWidth;
+  }
+};
+
+inline uint
+qHash (const PdfPageCacheKey& key, uint seed= 0) {
+  return qHash (key.pageNumber, seed) ^ qHash (key.targetWidth, seed);
+}
 
 /**
  * @brief Continuous-scroll PDF reader widget with toolbar
@@ -88,11 +106,26 @@ private:
   double     pageAspectRatio_;
   double     pageBaseWidthPts_;
 
-  static constexpr int    DEFAULT_DPI= 150;
-  static constexpr int    PAGE_MARGIN= 16;
-  static constexpr double MIN_ZOOM   = 0.1;
-  static constexpr double MAX_ZOOM   = 5.0;
-  static constexpr double ZOOM_STEP  = 0.1;
+  // 每页宽高比缓存（用于可见性裁剪和快速高度计算）
+  QVector<double> pageAspectRatios_;
+
+  // 页面渲染缓存：key = (pageNumber, targetWidth)
+  QHash<PdfPageCacheKey, QPixmap> pageCache_;
+
+  // 防抖定时器
+  QTimer* zoomDebounceTimer_;
+  QTimer* resizeDebounceTimer_;
+
+  static constexpr int    DEFAULT_DPI       = 150;
+  static constexpr int    PAGE_MARGIN       = 16;
+  static constexpr int    PRELOAD_MARGIN    = 200;
+  static constexpr double MIN_ZOOM          = 0.1;
+  static constexpr double MAX_ZOOM          = 5.0;
+  static constexpr double ZOOM_STEP         = 0.1;
+  static constexpr int    ZOOM_DEBOUNCE_MS  = 200;
+  static constexpr int    RESIZE_DEBOUNCE_MS= 300;
 };
+
+/* PdfPageCacheKey qHash defined above */
 
 #endif // QT_PDF_READER_WIDGET_HPP

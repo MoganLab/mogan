@@ -37,7 +37,8 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), pageCount_ (0),
       hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
-      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0) {
+      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -67,6 +68,22 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
 
   connect (scrollArea_->verticalScrollBar (), &QScrollBar::valueChanged, this,
            &PDFReaderWidget::updatePageNavigation);
+  connect (scrollArea_->verticalScrollBar (), &QScrollBar::valueChanged, this,
+           &PDFReaderWidget::rebuildPages);
+
+  // 缩放防抖定时器
+  zoomDebounceTimer_= new QTimer (this);
+  zoomDebounceTimer_->setSingleShot (true);
+  zoomDebounceTimer_->setInterval (ZOOM_DEBOUNCE_MS);
+  connect (zoomDebounceTimer_, &QTimer::timeout, this,
+           &PDFReaderWidget::rebuildPages);
+
+  // Resize 防抖定时器
+  resizeDebounceTimer_= new QTimer (this);
+  resizeDebounceTimer_->setSingleShot (true);
+  resizeDebounceTimer_->setInterval (RESIZE_DEBOUNCE_MS);
+  connect (resizeDebounceTimer_, &QTimer::timeout, this,
+           &PDFReaderWidget::rebuildPages);
 }
 
 PDFReaderWidget::~PDFReaderWidget () {}
@@ -165,10 +182,10 @@ PDFReaderWidget::onZoomChanged (int index) {
 void
 PDFReaderWidget::setZoomFactor (double factor) {
   zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
-  if (!pdfData_.isEmpty () && pageCount_ > 0) {
-    rebuildPages ();
-  }
   updateZoomDisplay ();
+  if (!pdfData_.isEmpty () && pageCount_ > 0) {
+    zoomDebounceTimer_->start ();
+  }
 }
 
 void
@@ -302,6 +319,31 @@ PDFReaderWidget::pageWidth () const {
 bool
 PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
                                     int targetWidth) {
+  // 计算目标高度（优先使用预缓存的宽高比）
+  double aspectRatio= pageAspectRatio_;
+  if (pageNumber >= 0 && pageNumber < pageAspectRatios_.size ()) {
+    aspectRatio= pageAspectRatios_[pageNumber];
+  }
+  if (aspectRatio <= 0.0) aspectRatio= 1.414;
+  int targetHeight= qMax (1, qRound (targetWidth * aspectRatio));
+
+  // 尝试从缓存读取
+  PdfPageCacheKey key{pageNumber, targetWidth};
+  auto            it= pageCache_.find (key);
+  if (it != pageCache_.end ()) {
+    QPixmap cached= it.value ();
+    qreal   dpr   = devicePixelRatioF ();
+    int     pxW   = qMax (1, qRound (targetWidth * dpr));
+    int     pxH   = qMax (1, qRound (targetHeight * dpr));
+    if (cached.width () == pxW && cached.height () == pxH) {
+      label->setPixmap (cached);
+      label->setFixedSize (targetWidth, targetHeight);
+      return true;
+    }
+    // 尺寸不匹配（如 DPR 变化），移除旧缓存
+    pageCache_.erase (it);
+  }
+
   fz_context* ctx= mupdf_context ();
   if (!ctx) {
     errorString_= qt_translate ("PDF engine not available");
@@ -371,12 +413,11 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
     }
 
-    fz_rect bbox       = fz_bound_page (ctx, page);
-    float   pageWidth  = bbox.x1 - bbox.x0;
-    float   pageHeight = bbox.y1 - bbox.y0;
-    float   aspectRatio= pageHeight / pageWidth;
-
-    int targetHeight= qMax (1, qRound (targetWidth * aspectRatio));
+    fz_rect bbox      = fz_bound_page (ctx, page);
+    float   pageWidth = bbox.x1 - bbox.x0;
+    float   pageHeight= bbox.y1 - bbox.y0;
+    aspectRatio       = pageHeight / pageWidth;
+    targetHeight      = qMax (1, qRound (targetWidth * aspectRatio));
 
     qreal dpr      = devicePixelRatioF ();
     int   targetPxW= qMax (1, qRound (targetWidth * dpr));
@@ -429,6 +470,9 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
 
     label->setPixmap (pixmap);
     label->setFixedSize (targetWidth, targetHeight);
+
+    // 写入缓存
+    pageCache_.insert (key, pixmap);
     success= true;
   }
   fz_catch (ctx) {
@@ -455,12 +499,64 @@ PDFReaderWidget::rebuildPages () {
   if (width <= 0) return;
 
   int childCount= pageLayout_->count ();
+
+  // 第一轮：统一设置所有 label 的目标尺寸，保证布局正确
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
     if (!item) continue;
     QLabel* label= qobject_cast<QLabel*> (item->widget ());
-    if (label) {
+    if (!label) continue;
+    double aspect= (i < pageAspectRatios_.size ()) ? pageAspectRatios_[i]
+                                                   : pageAspectRatio_;
+    if (aspect <= 0.0) aspect= 1.414;
+    int height= qMax (1, qRound (width * aspect));
+    label->setFixedSize (width, height);
+  }
+
+  // 计算当前视口范围（考虑预加载边距）
+  int scrollY       = scrollArea_->verticalScrollBar ()->value ();
+  int viewportHeight= scrollArea_->viewport ()->height ();
+  int minY          = scrollY - PRELOAD_MARGIN;
+  int maxY          = scrollY + viewportHeight + PRELOAD_MARGIN;
+
+  // 第二轮：只渲染可见及预加载范围内的页面
+  for (int i= 0; i < childCount && i < pageCount_; ++i) {
+    QLayoutItem* item= pageLayout_->itemAt (i);
+    if (!item) continue;
+    QLabel* label= qobject_cast<QLabel*> (item->widget ());
+    if (!label) continue;
+
+    double aspect= (i < pageAspectRatios_.size ()) ? pageAspectRatios_[i]
+                                                   : pageAspectRatio_;
+    if (aspect <= 0.0) aspect= 1.414;
+    int height= qMax (1, qRound (width * aspect));
+
+    // 使用理论 Y 坐标判断可见性（布局 spacing = PAGE_MARGIN）
+    int labelTop   = PAGE_MARGIN + i * (height + PAGE_MARGIN);
+    int labelBottom= labelTop + height;
+
+    if (labelBottom >= minY && labelTop <= maxY) {
       renderPageToLabel (i, label, width);
+    }
+    else {
+      // 视口外：尝试用缓存的降级版本显示，避免空白跳动
+      PdfPageCacheKey key{i, width};
+      auto            it= pageCache_.find (key);
+      if (it != pageCache_.end ()) {
+        QPixmap cached= it.value ();
+        qreal   dpr   = devicePixelRatioF ();
+        int     pxW   = qMax (1, qRound (width * dpr));
+        int     pxH   = qMax (1, qRound (height * dpr));
+        if (cached.width () != pxW || cached.height () != pxH) {
+          cached= cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
+                                 Qt::FastTransformation);
+          cached.setDevicePixelRatio (dpr);
+        }
+        label->setPixmap (cached);
+      }
+      else {
+        label->clear ();
+      }
     }
   }
 }
@@ -530,12 +626,22 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
       pageCount_= fz_count_pages (ctx, doc);
       opened    = (pageCount_ > 0);
       if (opened && pageCount_ > 0) {
-        fz_page* page= fz_load_page (ctx, doc, 0);
-        if (page) {
-          fz_rect bbox     = fz_bound_page (ctx, page);
-          pageBaseWidthPts_= bbox.x1 - bbox.x0;
-          pageAspectRatio_ = (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
-          fz_drop_page (ctx, page);
+        pageAspectRatios_.reserve (pageCount_);
+        for (int i= 0; i < pageCount_; ++i) {
+          fz_page* page= fz_load_page (ctx, doc, i);
+          if (page) {
+            fz_rect bbox  = fz_bound_page (ctx, page);
+            double  aspect= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
+            pageAspectRatios_.append (aspect);
+            if (i == 0) {
+              pageBaseWidthPts_= bbox.x1 - bbox.x0;
+              pageAspectRatio_ = aspect;
+            }
+            fz_drop_page (ctx, page);
+          }
+          else {
+            pageAspectRatios_.append (1.414);
+          }
         }
       }
     }
@@ -557,18 +663,18 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     return false;
   }
 
-  int width= pageWidth ();
+  // 创建所有页面 label（先不渲染，由 rebuildPages 统一处理可见性）
   for (int i= 0; i < pageCount_; ++i) {
     QLabel* label= new QLabel (contentWidget_);
     label->setAlignment (Qt::AlignCenter);
     label->setAutoFillBackground (true);
     label->setBackgroundRole (QPalette::Base);
     label->setStyleSheet ("QLabel { border: 1px solid #cccccc; }");
-    renderPageToLabel (i, label, width);
     pageLayout_->addWidget (label);
   }
 
   pageLayout_->addStretch (1);
+  rebuildPages ();
   contentWidget_->adjustSize ();
   updateZoomDisplay ();
   updatePageNavigation ();
@@ -583,6 +689,8 @@ PDFReaderWidget::clear () {
   errorString_.clear ();
   pageAspectRatio_ = 0.0;
   pageBaseWidthPts_= 0.0;
+  pageAspectRatios_.clear ();
+  pageCache_.clear ();
 
   QLayoutItem* item;
   while ((item= pageLayout_->takeAt (0)) != nullptr) {
@@ -624,10 +732,10 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
           else {
             zoomFactor_= qMax (zoomFactor_ - ZOOM_STEP, MIN_ZOOM);
           }
-          if (!pdfData_.isEmpty () && pageCount_ > 0) {
-            rebuildPages ();
-          }
           updateZoomDisplay ();
+          if (!pdfData_.isEmpty () && pageCount_ > 0) {
+            zoomDebounceTimer_->start ();
+          }
         }
         wheelEvent->accept ();
         return true;
@@ -646,7 +754,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     }
     else if (event->type () == QEvent::Resize) {
       if (!pdfData_.isEmpty () && pageCount_ > 0) {
-        rebuildPages ();
+        resizeDebounceTimer_->start ();
       }
     }
   }
