@@ -390,8 +390,8 @@ TemplateManager::downloadTemplateSync (const QString& templateId, int timeoutMs,
   connect (&timer, &QTimer::timeout, [&] () {
     if (finished) return;
     errorStr= tr ("Download timed out");
-    cancelDownload (templateId);
     finished= true;
+    cancelDownload (templateId);
     loop.quit ();
   });
   timer.start (timeoutMs);

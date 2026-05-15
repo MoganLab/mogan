@@ -114,25 +114,27 @@ TemplateAPI::downloadTemplate (const QString& templateId,
            &TemplateAPI::onDownloadProgress);
 }
 
-void
-TemplateAPI::abortDownload (const QString& templateId) {
+bool
+TemplateAPI::removeDownloadReply (const QString& templateId) {
   auto it= downloadReplies_.find (templateId);
   if (it != downloadReplies_.end () && it.value ()) {
     disconnect (it.value (), nullptr, this, nullptr);
     it.value ()->abort ();
     it.value ()->deleteLater ();
     downloadReplies_.erase (it);
+    return true;
   }
+  return false;
+}
+
+void
+TemplateAPI::abortDownload (const QString& templateId) {
+  removeDownloadReply (templateId);
 }
 
 void
 TemplateAPI::cancelDownload (const QString& templateId) {
-  auto it= downloadReplies_.find (templateId);
-  if (it != downloadReplies_.end () && it.value ()) {
-    disconnect (it.value (), nullptr, this, nullptr);
-    it.value ()->abort ();
-    it.value ()->deleteLater ();
-    downloadReplies_.erase (it);
+  if (removeDownloadReply (templateId)) {
     emit downloadFailed (templateId, tr ("Download cancelled"));
   }
 }
