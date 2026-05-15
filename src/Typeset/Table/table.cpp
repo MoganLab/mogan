@@ -24,7 +24,8 @@ lazy make_lazy_paragraph (edit_env env, array<box> bs, path ip);
 
 table_rep::table_rep (edit_env env2, int status2, int i0b, int j0b)
     : var (""), env (env2), status (status2), i0 (i0b), j0 (j0b), T (NULL),
-      nr_rows (0), mw (NULL), lw (NULL), rw (NULL), width (0), height (0) {}
+      nr_rows (0), mw (NULL), lw (NULL), rw (NULL), width (0), height (0),
+      has_lazy_cells (false) {}
 
 table_rep::~table_rep () {
   if (T != NULL) {
@@ -127,6 +128,7 @@ table_rep::typeset_row (int i, tree fm, tree t, path ip) {
     if (i == nr_rows - 1) C->border_flags+= 2;
     tree old= env->local_begin (CELL_COL_NR, as_string (j));
     C->typeset (subformat[j], t[j], descend (ip, j));
+    if (!is_nil (C->lz)) has_lazy_cells= true;
     env->local_end (CELL_COL_NR, old);
     C->row_span= min (C->row_span, nr_rows - i);
     C->col_span= min (C->col_span, nr_cols - j);
@@ -335,9 +337,13 @@ table_rep::handle_decorations () {
   for (i= 0; i < nr_rows; i++)
     for (j= 0; j < nr_cols; j++) {
       cell C= T[i][j];
-      if ((!is_nil (C)) && (!is_nil (C->T))) C->T->handle_decorations ();
+      if ((!is_nil (C)) && (!is_nil (C->T))) {
+        C->T->handle_decorations ();
+        if (C->T->has_lazy_cells) has_lazy_cells= true;
+      }
       if ((!is_nil (C)) && (!is_nil (C->D))) {
         C->D->handle_decorations ();
+        if (C->D->has_lazy_cells) has_lazy_cells= true;
         if (C->D->status == 1) {
           ii       = i + C->row_span - 1;
           jj       = j + C->col_span - 1;
@@ -633,11 +639,7 @@ table_rep::position_columns (bool large) {
     SI page_w, d1, d2, d3, d4, d5, d6, d7;
     env->get_page_pars (page_w, d1, d2, d3, d4, d5, d6, d7);
     if (total > page_w) {
-      bool has_hyphen= false;
-      for (int i= 0; i < nr_rows && !has_hyphen; i++)
-        for (int j= 0; j < nr_cols && !has_hyphen; j++)
-          if (!is_nil (T[i][j]) && !is_nil (T[i][j]->lz)) has_hyphen= true;
-      if (has_hyphen) {
+      if (has_lazy_cells) {
         // Proportional scaling
         for (int j= 0; j < nr_cols; j++) {
           mw[j]= (SI) ((((long long) mw[j]) * page_w) / total);

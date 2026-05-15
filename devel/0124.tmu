@@ -1,0 +1,40 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|chinese>>
+
+<\body>
+  <doc-data|<doc-title|表格性能优化测试文档>>
+
+  0124 任务：优化表格 position_columns 中 has_lazy_cells 的重复扫描问题。
+
+  <section|简单文本表格>
+
+  以下是一个 5x5 的简单文本表格，用于验证基本排版正确性：
+
+  <\table>
+    <tformat|<table|<row|<cell|A1>|<cell|B1>|<cell|C1>|<cell|D1>|<cell|E1>>|<row|<cell|A2>|<cell|B2>|<cell|C2>|<cell|D2>|<cell|E2>>|<row|<cell|A3>|<cell|B3>|<cell|C3>|<cell|D3>|<cell|E3>>|<row|<cell|A4>|<cell|B4>|<cell|C4>|<cell|D4>|<cell|E4>>|<row|<cell|A5>|<cell|B5>|<cell|C5>|<cell|D5>|<cell|E5>>>>
+  </table>
+
+  <section|开启 cell-hyphen 的表格>
+
+  以下表格开启了 cell-hyphen，用于验证 has_lazy_cells 缓存机制下列宽自适应仍然正确：
+
+  <\table>
+    <tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<cell|这是一段比较长的文本内容，用于测试自动换行功能是否正常>|<cell|短文本>>|<row|<cell|另一段长文本，需要验证在多列情况下列宽是否会超出页面宽度>|<cell|测试>>|<row|<cell|第三行长文本内容，确保缓存优化后排版结果一致>|<cell|OK>>>>
+  </table>
+
+  <section|包含子表格的复杂表格>
+
+  <\table>
+    <tformat|<table|<row|<cell|普通单元格>|<cell|<math|<matrix|<tformat|<table|<row|<cell|a>|<cell|b>>|<row|<cell|c>|<cell|d>>>>>>>>|<row|<cell|另一行>|<cell|子表格上方>>>>
+  </table>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|font|roman>
+    <associate|font-family|rm>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

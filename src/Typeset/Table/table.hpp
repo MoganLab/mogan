@@ -58,9 +58,10 @@ public:
   string vmode;      // how to interpret the height
   string halign;     // horizontal alignment
   string valign;     // vertical alignment
-  string hyphen;     // vertical hypenation
-  int    row_origin; // row span (not yet implemented)
-  int    col_origin; // column span (not yet implemented)
+  string hyphen;        // vertical hypenation
+  int    row_origin;    // row span (not yet implemented)
+  int    col_origin;    // column span (not yet implemented)
+  bool   has_lazy_cells; // true if any cell has a lazy stream
 
   table_rep (edit_env env, int status, int i0, int j0);
   ~table_rep ();
