@@ -69,20 +69,6 @@
 
   <marked|行内数学 <with|mode|math|<frac|a|b>> 带背景>
 
-  <marked|<with|mode|math|<frac|1|<sqrt|2<rsup|n>>>>>>
-
-  <marked|<with|mode|math|<big|sum><rsub|i=1><rsup|n>i<rsup|2>=<frac|n(n+1)(2n+1)|6>>>
-
-  <marked|<with|mode|math|<big|int><rsub|0><rsup|<frac|<pi>|2>>sin(x)<mathd\tx>=1>>
-
-  <marked|这是文本和<with|mode|math|x<rsup|2>+y<rsup|2>=r<rsup|2>>数学公式的混合>
-
-  <marked|求解方程<with|mode|math|ax<rsup|2>+bx+c=0>，得到根为<with|mode|math|x=<frac|-b<pm><sqrt|b<rsup|2>-4ac>>|2a>>>
-
-  <marked|对于<with|mode|math|n<in><above|=|>><with|mode|math|N>，有<with|mode|math|<big|sum><rsub|i=1><rsup|n>i=<frac|n(n+1)|2>>>
-
-  <marked|矩阵<with|mode|math|<left|(><matrix|<tformat|<table|<row|<cell|1>|<cell|2>>|<row|<cell|3>|<cell|4>>>>>>>>
-
   \;
 </body>
 
