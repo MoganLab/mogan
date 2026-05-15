@@ -17,8 +17,6 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
-#include <mupdf/fitz.h>
-
 /**
  * @brief Continuous-scroll PDF reader widget with toolbar
  *

@@ -17,8 +17,6 @@
 #include <QSize>
 #include <QWidget>
 
-#include <mupdf/fitz.h>
-
 // Forward declarations
 class QPushButton;
 class QLabel;
