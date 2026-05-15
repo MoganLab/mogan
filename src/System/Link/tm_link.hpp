@@ -38,7 +38,7 @@
  ******************************************************************************/
 
 struct tm_link_rep : abstract_struct {
-  bool   alive;  // link is alive
+  bool alive; // link is alive
 
   command feed_cmd; // called when async data available
 

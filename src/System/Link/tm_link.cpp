@@ -63,7 +63,6 @@ tm_link_rep::read_packet (int channel, int timeout, bool& success) {
     if (N (r) == n && (texmacs_time () - start >= timeout)) return "";
   }
   string back= message_receive (r);
-  success= true;
+  success    = true;
   return back;
 }
-
