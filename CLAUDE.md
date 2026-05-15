@@ -19,6 +19,13 @@
 - `da/200_27/xmake_debug`
 - `da/200_27/fix_pdf_rendering`
 
+## 提交规范
+
+1. 一个 PR 至少分为两个 commit：
+   - 第一个 commit 更新 `devel/xxxx.md` 任务文档
+   - 后续 commit 为代码改动
+2. 保持提交信息清晰、简洁，格式：`[编号] 简述`
+
 ## 代码推送规则
 
 1. 如果 remote 是 GitHub，使用 `gh` 命令推送代码并创建 PR
