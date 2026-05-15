@@ -245,7 +245,7 @@
   (cpp-clipboard-cut selection_cut (void string))
   (clipboard-cut-at cut (void path))
   (clipboard-cut-between cut (void path path))
-  (cpp-clipboard-paste selection_paste (void string))
+  (cpp-clipboard-paste selection_paste (bool string))
   (selection-move selection_move (void))
   (clipboard-clear selection_clear (void string))
   (selection-cancel selection_cancel (void))

@@ -681,14 +681,17 @@ edit_select_rep::selection_get (string key) {
   return t;
 }
 
-void
+bool
 edit_select_rep::selection_paste (string key) {
   tree   t;
   string s;
-  (void) ::get_selection (key, t, s, selection_import);
+  if (!::get_selection (key, t, s, selection_import)) return false;
   if (inside_active_graphics ()) {
-    if (is_tuple (t, "texmacs", 3)) call ("graphics-paste", t[1]);
-    return;
+    if (is_tuple (t, "texmacs", 3)) {
+      call ("graphics-paste", t[1]);
+      return true;
+    }
+    return false;
   }
   if (is_tuple (t, "extern", 1)) {
     string mode= get_env_string (MODE);
@@ -721,6 +724,7 @@ edit_select_rep::selection_paste (string key) {
     }
     if (mode == "math" && is_compound (doc, "math", 1)) doc= doc[0];
     insert_tree (doc);
+    return true;
   }
   if (is_tuple (t, "texmacs", 3)) {
     string mode= get_env_string (MODE);
@@ -729,12 +733,15 @@ edit_select_rep::selection_paste (string key) {
       t= tuple ("texmacs", t[1][0], "text", lan);
     if (is_compound (t[1], "math", 1) && mode == "math")
       t= tuple ("texmacs", t[1][0], "math", lan);
-    if (mode == "math" && t[2] == "text")
+    if (mode == "math" && t[2] == "text") {
       set_message ("Error: invalid paste of text into a formula", "paste");
+      return false;
+    }
     else if (mode == "prog" && t[2] == "math") {
       tree in= tuple (lan, t[1]);
       tree r = stree_to_tree (call ("plugin-math-input", tree_to_stree (in)));
       insert_tree (r);
+      return true;
     }
     else {
       if ((t[2] != mode) && (t[2] != "src") && (mode != "src") &&
@@ -752,8 +759,10 @@ edit_select_rep::selection_paste (string key) {
         else table_write_subtable (fp, row, col, t[1]);
       }
       else insert_tree (t[1]);
+      return true;
     }
   }
+  return false;
 }
 
 void

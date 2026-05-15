@@ -68,8 +68,9 @@
 (tm-define (clipboard-paste-import format which)
   (let ((temp (clipboard-get-import)))
     (clipboard-set-import format)
-    (clipboard-paste which)
-    (clipboard-set-import temp)))
+    (with ok (clipboard-paste which)
+      (clipboard-set-import temp)
+      ok)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Structured selections

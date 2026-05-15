@@ -1487,7 +1487,7 @@ function main()
             {
                 scm_name = "cpp-clipboard-paste",
                 cpp_name = "selection_paste",
-                ret_type = "void",
+                ret_type = "bool",
                 arg_list = {
                     "string"
                 }
