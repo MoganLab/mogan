@@ -89,9 +89,6 @@ signals:
 private slots:
   void onDownloadProgress (const QString& templateId, qint64 bytesReceived,
                            qint64 bytesTotal);
-  void onDownloadCompleted (const QString& templateId,
-                            const QString& localPath);
-  void onDownloadFailed (const QString& templateId, const QString& error);
 
 private:
   bool openLocalTemplate_ (const QString& templateId);

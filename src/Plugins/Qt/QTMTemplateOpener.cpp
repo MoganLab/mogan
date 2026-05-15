@@ -40,6 +40,7 @@ QTMTemplateOpener::openTemplate (const QString& templateId) {
 bool
 QTMTemplateOpener::openLocalTemplate_ (const QString& templateId) {
   if (!templateManager_) {
+    showError_ (qt_translate ("Template manager not available"));
     emit failed (templateId, qt_translate ("Template manager not available"));
     return false;
   }
@@ -64,6 +65,7 @@ QTMTemplateOpener::openLocalTemplate_ (const QString& templateId) {
 bool
 QTMTemplateOpener::startDownload_ (const QString& templateId) {
   if (!templateManager_) {
+    showError_ (qt_translate ("Template manager not available"));
     emit failed (templateId, qt_translate ("Template manager not available"));
     return false;
   }
@@ -84,10 +86,6 @@ QTMTemplateOpener::startDownload_ (const QString& templateId) {
 
   connect (templateManager_, &TemplateManager::downloadProgress, this,
            &QTMTemplateOpener::onDownloadProgress);
-  connect (templateManager_, &TemplateManager::downloadCompleted, this,
-           &QTMTemplateOpener::onDownloadCompleted);
-  connect (templateManager_, &TemplateManager::downloadFailed, this,
-           &QTMTemplateOpener::onDownloadFailed);
 
   progressDialog_->show ();
 
@@ -156,22 +154,6 @@ QTMTemplateOpener::onDownloadProgress (const QString& templateId,
 }
 
 void
-QTMTemplateOpener::onDownloadCompleted (const QString& templateId,
-                                        const QString& /*localPath*/) {
-  if (templateId != currentTemplateId_) return;
-  // Synchronous path: completion logic is handled in startDownload_
-  // after downloadTemplateSync returns.
-}
-
-void
-QTMTemplateOpener::onDownloadFailed (const QString& templateId,
-                                     const QString& /*error*/) {
-  if (templateId != currentTemplateId_) return;
-  // Synchronous path: error logic is handled in startDownload_
-  // after downloadTemplateSync returns.
-}
-
-void
 QTMTemplateOpener::cleanupProgressDialog_ () {
   if (progressDialog_) {
     progressDialog_->hide ();
@@ -182,10 +164,6 @@ QTMTemplateOpener::cleanupProgressDialog_ () {
   if (templateManager_) {
     disconnect (templateManager_, &TemplateManager::downloadProgress, this,
                 &QTMTemplateOpener::onDownloadProgress);
-    disconnect (templateManager_, &TemplateManager::downloadCompleted, this,
-                &QTMTemplateOpener::onDownloadCompleted);
-    disconnect (templateManager_, &TemplateManager::downloadFailed, this,
-                &QTMTemplateOpener::onDownloadFailed);
   }
 }
 
