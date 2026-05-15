@@ -10,7 +10,6 @@
  ******************************************************************************/
 
 #include "tm_link.hpp"
-#include "../Plugins/Openssl/openssl.hpp"
 #include "tm_timer.hpp"
 
 /******************************************************************************
@@ -44,7 +43,6 @@ message_receive (string& s) {
 
 void
 tm_link_rep::write_packet (string s, int channel) {
-  if (secret != "") s= secret_encode (s, secret);
   write ((as_string (N (s)) * "\n") * s, channel);
 }
 
@@ -64,41 +62,8 @@ tm_link_rep::read_packet (int channel, int timeout, bool& success) {
     if (timeout > 0) listen (timeout);
     if (N (r) == n && (texmacs_time () - start >= timeout)) return "";
   }
-  if (channel == LINK_OUT && N (r) > 0 && r[0] == '!') {
-    secure_server (message_receive (r));
-    return "";
-  }
-  else {
-    string back= message_receive (r);
-    if (secret != "") back= secret_decode (back, secret);
-    success= true;
-    return back;
-  }
+  string back= message_receive (r);
+  success= true;
+  return back;
 }
 
-/******************************************************************************
- * Data encryption
- ******************************************************************************/
-
-void
-tm_link_rep::secure_server (string client_public) {
-  if (secret != "") return;
-  string k= secret_generate ();
-  string s= rsa_encode (k, client_public);
-  write_packet (s, LINK_IN);
-  secret= k;
-}
-
-void
-tm_link_rep::secure_client () {
-  if (secret != "") return;
-  write ("!", LINK_IN);
-  write_packet (rsa_my_public_key (), LINK_IN);
-  bool   success;
-  string r= read_packet (LINK_OUT, 10000, success);
-  if (!success) {
-    stop ();
-    return;
-  }
-  secret= rsa_decode (r, rsa_my_private_key ());
-}

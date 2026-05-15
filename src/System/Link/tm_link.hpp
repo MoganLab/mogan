@@ -39,7 +39,6 @@
 
 struct tm_link_rep : abstract_struct {
   bool   alive;  // link is alive
-  string secret; // empty string or secret key for encrypted connections
 
   command feed_cmd; // called when async data available
 
@@ -58,8 +57,6 @@ public:
   void   write_packet (string s, int channel);
   bool   complete_packet (int channel);
   string read_packet (int channel, int timeout, bool& success);
-  void   secure_server (string cmd);
-  void   secure_client ();
 
   void set_command (command _cmd) { feed_cmd= _cmd; }
   void apply_command () {

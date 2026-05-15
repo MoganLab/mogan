@@ -807,7 +807,6 @@ target("libmogan") do
             "src/Plugins/Ghostscript/**.cpp",
             "src/Plugins/Ispell/**.cpp",
             "src/Plugins/Metafont/**.cpp",
-            "src/Plugins/Openssl/**.cpp",
             "src/Plugins/Tex/**.cpp",
             "src/Plugins/Xml/**.cpp",
             "src/Plugins/Html/**.cpp",

@@ -24,6 +24,4 @@ void   client_stop (int fd);
 string client_read (int fd);
 void   client_write (int fd, string s);
 
-void enter_secure_mode (int fd);
-
 #endif // defined CLIENT_SERVER_H

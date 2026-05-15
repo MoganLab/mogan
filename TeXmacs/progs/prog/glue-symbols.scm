@@ -613,7 +613,6 @@
 "client-stop"
 "client-read"
 "client-write"
-"enter-secure-mode"
 "connection-start"
 "connection-status"
 "connection-write-string"

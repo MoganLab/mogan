@@ -179,7 +179,6 @@
 	(set-user-info "email" email))))
   (with server (client-start server-name)
     (when (!= server -1)
-      (enter-secure-mode server)
       (client-remote-eval*
        server `(new-account ,pseudo ,name ,passwd ,email ,agreed)
        (lambda (msg)
@@ -198,7 +197,6 @@
 	(ahash-set! client-active-connections server (list server-name pseudo))
 	(ahash-set! client-active-connections server-name server)
 	(set! remote-client-list (client-active-servers))
-	(enter-secure-mode server)
 	(client-remote-eval* server `(remote-login ,pseudo ,passwd) wcb)))))
 
 (tm-define (client-login server-name pseudo passwd)

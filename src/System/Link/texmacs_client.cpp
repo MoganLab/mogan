@@ -76,13 +76,6 @@ client_write (int fd, string s) {
   client->write_packet (s, LINK_IN);
 }
 
-void
-enter_secure_mode (int fd) {
-  socket_link* client= the_clients[fd];
-  if (client == NULL || !client->alive ()) return;
-  client->secure_client ();
-}
-
 #else // Non QT part
 
 typedef socket_link_rep*       weak_socket_link;
@@ -151,10 +144,4 @@ client_write (int fd, string s) {
   client->write_packet (s, LINK_IN);
 }
 
-void
-enter_secure_mode (int fd) {
-  weak_socket_link client= find_client (fd);
-  if (client == NULL || !client->alive) return;
-  client->secure_client ();
-}
 #endif

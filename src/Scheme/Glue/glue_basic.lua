@@ -1099,15 +1099,6 @@ function main()
                     "string"
                 }
             },
-            {
-                scm_name = "enter-secure-mode",
-                cpp_name = "enter_secure_mode",
-                ret_type = "void",
-                arg_list = {
-                    "int"
-                }
-            },
-            
               -- connections to extern systems
             {
                 scm_name = "connection-start",
