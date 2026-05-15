@@ -8,14 +8,12 @@
 #include "qt_pdf_reader_widget.hpp"
 
 #include <QApplication>
-#include <QClipboard>
 #include <QDebug>
 #include <QFile>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QResizeEvent>
-#include <QRubberBand>
 #include <QScreen>
 #include <QScrollBar>
 #include <QWheelEvent>
@@ -37,10 +35,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
       pageLayout_ (nullptr), mainLayout_ (nullptr), toolBar_ (nullptr),
       zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
-      pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr),
-      selectAreaBtn_ (nullptr), rubberBand_ (nullptr), pageCount_ (0),
+      pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), pageCount_ (0),
       hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
-      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0), selectingArea_ (false) {
+      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -124,12 +121,6 @@ PDFReaderWidget::setupToolBar () {
   toolBar_->addWidget (pageEdit_);
   toolBar_->addWidget (pageTotalLabel_);
   toolBar_->addWidget (nextPageBtn_);
-  toolBar_->addSeparator ();
-
-  selectAreaBtn_= new QPushButton ("Select", toolBar_);
-  connect (selectAreaBtn_, &QPushButton::clicked, this,
-           &PDFReaderWidget::onSelectAreaClicked);
-  toolBar_->addWidget (selectAreaBtn_);
 
   mainLayout_->insertWidget (0, toolBar_);
 }
@@ -272,34 +263,6 @@ PDFReaderWidget::onPageEditingFinished () {
   bool ok;
   int  page= pageEdit_->text ().toInt (&ok);
   if (ok) goToPage (page);
-}
-
-void
-PDFReaderWidget::onSelectAreaClicked () {
-  selectingArea_= true;
-  if (rubberBand_) {
-    rubberBand_->hide ();
-    delete rubberBand_;
-    rubberBand_= nullptr;
-  }
-}
-
-void
-PDFReaderWidget::copySelectionToClipboard () {
-  if (!rubberBand_ || !rubberBand_->isVisible ()) return;
-
-  QRect    rect= rubberBand_->geometry ();
-  QWidget* vp  = scrollArea_->viewport ();
-  if (!vp) return;
-
-  QPixmap pixmap   = vp->grab ();
-  QPixmap selection= pixmap.copy (rect);
-
-  QClipboard* clipboard= QApplication::clipboard ();
-  clipboard->setPixmap (selection);
-
-  rubberBand_->hide ();
-  selectingArea_= false;
 }
 
 bool
@@ -644,20 +607,6 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
 
-  if (rubberBand_ && rubberBand_->isVisible ()) {
-    if (event->key () == Qt::Key_Return || event->key () == Qt::Key_Enter) {
-      copySelectionToClipboard ();
-      event->accept ();
-      return;
-    }
-    if (event->key () == Qt::Key_Escape) {
-      rubberBand_->hide ();
-      selectingArea_= false;
-      event->accept ();
-      return;
-    }
-  }
-
   QWidget::keyPressEvent (event);
 }
 
@@ -684,27 +633,6 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         return true;
       }
     }
-    else if (event->type () == QEvent::MouseButtonPress) {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (selectingArea_ && mouseEvent->button () == Qt::LeftButton) {
-        selectionOrigin_= mouseEvent->pos ();
-        if (!rubberBand_) {
-          rubberBand_= new QRubberBand (QRubberBand::Rectangle,
-                                        scrollArea_->viewport ());
-        }
-        rubberBand_->setGeometry (QRect (selectionOrigin_, QSize ()));
-        rubberBand_->show ();
-        return true;
-      }
-    }
-    else if (event->type () == QEvent::MouseMove) {
-      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      if (rubberBand_ && rubberBand_->isVisible ()) {
-        rubberBand_->setGeometry (
-            QRect (selectionOrigin_, mouseEvent->pos ()).normalized ());
-        return true;
-      }
-    }
     else if (event->type () == QEvent::KeyPress) {
       QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
       if (keyEvent->key () == Qt::Key_Space) {
@@ -714,18 +642,6 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
           vbar->setValue (vbar->value () + scrollAmount);
         }
         return true;
-      }
-      if (rubberBand_ && rubberBand_->isVisible ()) {
-        if (keyEvent->key () == Qt::Key_Return ||
-            keyEvent->key () == Qt::Key_Enter) {
-          copySelectionToClipboard ();
-          return true;
-        }
-        if (keyEvent->key () == Qt::Key_Escape) {
-          rubberBand_->hide ();
-          selectingArea_= false;
-          return true;
-        }
       }
     }
     else if (event->type () == QEvent::Resize) {

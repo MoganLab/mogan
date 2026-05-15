@@ -12,7 +12,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
-#include <QRubberBand>
 #include <QScrollArea>
 #include <QToolBar>
 #include <QVBoxLayout>
@@ -58,12 +57,10 @@ private slots:
   void onNextPage ();
   void onPageEditingFinished ();
   void updatePageNavigation ();
-  void onSelectAreaClicked ();
 
   void keyPressEvent (QKeyEvent* event) override;
 
 private:
-  void copySelectionToClipboard ();
   bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
   void rebuildPages ();
   int  pageWidth () const;
@@ -83,12 +80,8 @@ private:
   QLineEdit*   pageEdit_;
   QLabel*      pageTotalLabel_;
   QPushButton* nextPageBtn_;
-  QPushButton* selectAreaBtn_;
-  QRubberBand* rubberBand_;
 
   QByteArray pdfData_;
-  QPoint     selectionOrigin_;
-  bool       selectingArea_;
   int        pageCount_;
   bool       hasError_;
   QString    errorString_;
