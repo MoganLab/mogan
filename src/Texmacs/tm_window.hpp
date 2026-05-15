@@ -62,8 +62,10 @@ public:
   void set_auxiliary_widget_flag (bool flag);
   void set_auxiliary_widget_new_title (string title);
   void set_bottom_tools_flag (int which, bool flag);
+  void set_chat_sidebar_flag (bool flag);
   bool get_header_flag ();
   bool get_auxiliary_widget_flag ();
+  bool get_chat_sidebar_flag ();
   bool get_icon_bar_flag (int which);
   bool get_side_tools_flag (int which);
   bool get_bottom_tools_flag (int which);
@@ -105,6 +107,10 @@ typedef tm_window_rep* tm_window;
 
 widget    texmacs_output_widget (tree doc, tree style);
 widget    texmacs_input_widget (tree doc, tree style, url wname);
+widget    texmacs_custom_input_widget (tree doc, tree style, url wname,
+                                       double zoom);
+widget    texmacs_custom_message_widget (tree doc, tree style, url wname,
+                                         double zoom);
 bool      is_embedded_buffer (url name);
 array<SI> get_texmacs_widget_size (widget wid);
 

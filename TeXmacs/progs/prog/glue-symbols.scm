@@ -661,6 +661,8 @@
 "widget-vsplit"
 "widget-texmacs-output"
 "widget-texmacs-input"
+"widget-texmacs-custom-input"
+"widget-texmacs-custom-message"
 "widget-ink"
 "widget-refresh"
 "widget-refreshable"

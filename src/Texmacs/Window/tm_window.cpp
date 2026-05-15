@@ -338,6 +338,34 @@ enrich_embedded_document (tree body, tree style) {
   return doc;
 }
 
+tree
+enrich_custom_embedded_document (tree body, tree style, double zoom) {
+  tree orig= body;
+  if (is_func (body, WITH)) body= body[N (body) - 1];
+  if (!is_func (body, DOCUMENT)) body= tree (DOCUMENT, body);
+  hashmap<string, tree> initial (UNINIT);
+  initial (PAGE_MEDIUM)      = "automatic";
+  initial (PAGE_SCREEN_LEFT) = "4px";
+  initial (PAGE_SCREEN_RIGHT)= "4px";
+  initial (PAGE_SCREEN_TOP)  = "2px";
+  initial (PAGE_SCREEN_BOT)  = "2px";
+
+  if (is_func (orig, WITH))
+    for (int i= 0; i + 2 < N (orig); i+= 2)
+      if (is_atomic (orig[i])) initial (orig[i]->label)= orig[i + 1];
+  initial (DPI)        = "600";
+  initial (ZOOM_FACTOR)= as_string (zoom);
+  initial ("no-zoom")  = "true";
+  tree doc (DOCUMENT);
+  doc << compound ("TeXmacs", TEXMACS_VERSION);
+  doc << style;
+  doc << compound ("body", body);
+  doc << compound ("initial", make_collection (initial));
+  if (initial->contains ("project"))
+    doc << compound ("project", initial["project"]);
+  return doc;
+}
+
 widget
 texmacs_input_widget (tree doc, tree style, url wname) {
   doc          = enrich_embedded_document (doc, style);
@@ -346,6 +374,46 @@ texmacs_input_widget (tree doc, tree style, url wname) {
   url     name = embedded_name (wname);
   if (contains (name, get_all_buffers ())) set_buffer_tree (name, doc);
   else create_buffer (name, doc);
+  tm_view   vw = concrete_view (get_passive_view (name));
+  tm_window win= tm_new<tm_window_rep> (doc, command (), get_current_window ());
+  set_master_buffer (name, base);
+  vw->win= win;
+  set_scrollable (win->wid, vw->ed);
+  vw->ed->cvw      = win->wid.rep;
+  vw->ed->mvw      = curvw;
+  command close_cmd= close_embedded_command (vw, name, last_window_handle);
+  return wrapped_widget (win->wid, close_cmd);
+}
+
+widget
+texmacs_custom_input_widget (tree doc, tree style, url wname, double zoom) {
+  doc          = enrich_custom_embedded_document (doc, style, zoom);
+  url     base = get_master_buffer (get_current_buffer ());
+  tm_view curvw= concrete_view (get_current_view ());
+  url     name = embedded_name (wname);
+  if (contains (name, get_all_buffers ())) set_buffer_tree (name, doc);
+  else create_buffer (name, doc);
+  tm_view   vw = concrete_view (get_passive_view (name));
+  tm_window win= tm_new<tm_window_rep> (doc, command (), get_current_window ());
+  set_master_buffer (name, base);
+  vw->win= win;
+  set_scrollable (win->wid, vw->ed);
+  vw->ed->cvw      = win->wid.rep;
+  vw->ed->mvw      = curvw;
+  command close_cmd= close_embedded_command (vw, name, last_window_handle);
+  return wrapped_widget (win->wid, close_cmd);
+}
+
+widget
+texmacs_custom_message_widget (tree doc, tree style, url wname, double zoom) {
+  doc          = enrich_custom_embedded_document (doc, style, zoom);
+  url     base = get_master_buffer (get_current_buffer ());
+  tm_view curvw= concrete_view (get_current_view ());
+  url     name = embedded_name (wname);
+  if (contains (name, get_all_buffers ())) set_buffer_tree (name, doc);
+  else create_buffer (name, doc);
+  tm_buffer buf= concrete_buffer_insist (name);
+  if (!is_nil (buf)) buf->message_widget= true;
   tm_view   vw = concrete_view (get_passive_view (name));
   tm_window win= tm_new<tm_window_rep> (doc, command (), get_current_window ());
   set_master_buffer (name, base);
@@ -525,6 +593,11 @@ tm_window_rep::set_auxiliary_widget_new_title (string title) {
 }
 
 void
+tm_window_rep::set_chat_sidebar_flag (bool flag) {
+  set_chat_sidebar_visibility (wid, flag);
+}
+
+void
 tm_window_rep::set_bottom_tools_flag (int which, bool flag) {
   if (which == 0) set_bottom_tools_visibility (wid, flag);
   else if (which == 1) set_extra_tools_visibility (wid, flag);
@@ -538,6 +611,11 @@ tm_window_rep::get_header_flag () {
 bool
 tm_window_rep::get_auxiliary_widget_flag () {
   return get_auxiliary_widget_visibility (wid);
+}
+
+bool
+tm_window_rep::get_chat_sidebar_flag () {
+  return get_chat_sidebar_visibility (wid);
 }
 
 bool

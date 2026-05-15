@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "Boxes/construct.hpp"
+#include "array.hpp"
 #include "boxes.hpp"
 #include "font.hpp"
 #include "message.hpp"

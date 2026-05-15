@@ -90,35 +90,47 @@
       (ahash-set! plugin-author (list lan ses) (fifth (caar l))))))
 
 (define (plugin-start lan ses)
+  (display* "[PLUGIN] start " lan ", " ses "\n")
   (when (!= lan "scheme")
     (plugin-set-author lan ses)
-    (connection-start lan ses)))
+    (display* "[PLUGIN] start: calling connection-start\n")
+    (let ((result (connection-start lan ses)))
+      (display* "[PLUGIN] start: connection-start returned " result "\n"))))
 
 (tm-define (plugin-write lan ses t mode)
+  (display* "[PLUGIN] write " lan ", " ses ", mode=" mode "\n")
   (ahash-set! plugin-started (list lan ses) (texmacs-time))
   (if (!= lan "scheme")
       (if (tm-func? t 'command 1)
-          (connection-write-string lan ses (cadr t))
           (begin
+            (display* "[PLUGIN] write: command mode\n")
+            (connection-write-string lan ses (cadr t)))
+          (begin
+            (display* "[PLUGIN] write: normal mode, calling connection-write\n")
             (plugin-set-author lan ses)
             (connection-write lan ses (stree->tree t))))
-      (delayed
-        (connection-notify-status lan ses 3)
-        (with r (scheme-eval t mode)
-          (if (not (func? r 'document))
-              (set! r (tree 'document r)))
-          (connection-notify lan ses "output" r))
-        (connection-notify-status lan ses 2))))
+      (begin
+        (display* "[PLUGIN] write: SCHEME mode, using scheme-eval\n")
+        (delayed
+          (connection-notify-status lan ses 3)
+          (with r (scheme-eval t mode)
+            (if (not (func? r 'document))
+                (set! r (tree 'document r)))
+            (connection-notify lan ses "output" r))
+          (connection-notify-status lan ses 2)))))
 
 (define (plugin-do lan ses)
   (with l (pending-ref lan ses)
+    (display* "[PLUGIN] do " lan ", " ses ", pending=" (length l) ", status=" (plugin-status lan ses) "\n")
     (when (nnull? l)
       (with status (plugin-status lan ses)
         (cond ((and (> (length (car l)) 2) (== (second (car l)) :start))
+               (display* "[PLUGIN] do: :start entry, status=" status "\n")
                (if (== status 0)
                    (plugin-start lan ses)
                    (plugin-next lan ses)))
               ((== status 0)
+               (display* "[PLUGIN] do: status=0, inserting :start\n")
                (with author 0
                  (when (!= lan "scheme")
                    (set! author (new-author))
@@ -128,16 +140,20 @@
                    (pending-set lan ses (cons p l))
                    (plugin-do lan ses))))
               (#t
+               (display* "[PLUGIN] do: calling (first (caar l)) = do callback\n")
                ((first (caar l)) lan ses)))))))
 
 (tm-define (plugin-next lan ses)
+  (display* "[PLUGIN] next " lan ", " ses "\n")
   (with l (pending-ref lan ses)
     (when (nnull? l)
+      (display* "[PLUGIN] next: calling next callback, then popping queue\n")
       ((third (caar l)) lan ses)
       (pending-set lan ses (cdr l))
       (plugin-do lan ses))))
 
 (define (plugin-cancel lan ses dead?)
+  (display* "[PLUGIN] cancel " lan ", " ses ", dead?=" dead? "\n")
   (with l (pending-ref lan ses)
     (when (nnull? l)
       ((fourth (caar l)) lan ses dead?)
@@ -153,6 +169,7 @@
     (if t (- (texmacs-time) t) 0)))
 
 (tm-define (plugin-feed lan ses do notify next cancel args)
+  (display* "[PLUGIN] feed " lan ", " ses ", pending-before=" (length (pending-ref lan ses)) "\n")
   (with l (pending-ref lan ses)
     (with author 0
       (when (!= lan "scheme")
@@ -160,6 +177,7 @@
         (start-slave author))
       (with cb (list do notify next cancel author)
         (pending-set lan ses (rcons l (cons cb args)))
+        (display* "[PLUGIN] feed: queue was " (if (null? l) "empty" "non-empty") ", triggering plugin-do=" (null? l) "\n")
         (if (null? l) (plugin-do lan ses))))))
 
 (tm-define (plugin-interrupt)
@@ -187,16 +205,18 @@
              r)))))
 
 (tm-define (connection-notify lan ses ch t)
-  ;;(display* "Notify " lan ", " ses ", " ch ", " t "\n")
+  (display* "[PLUGIN] Notify " lan ", " ses ", " ch ", " (tree->stree t) "\n")
   (with-author (ahash-ref plugin-author (list lan ses))
     (with l (pending-ref lan ses)
-      (when (nnull? l)
-        (if (== ch "prompt")
-            (ahash-set! plugin-prompts (list lan ses) (tree-copy t)))
-        ((second (caar l)) lan ses ch t)))))
+      (if (null? l)
+          (display* "[PLUGIN] Notify: pending queue EMPTY, dropping " ch "\n")
+          (begin
+            (if (== ch "prompt")
+                (ahash-set! plugin-prompts (list lan ses) (tree-copy t)))
+            ((second (caar l)) lan ses ch t))))))
 
 (tm-define (connection-notify-status lan ses st)
-  ;;(display* "Notify status " lan ", " ses ", " st "\n")
+  (display* "[PLUGIN] Notify-status " lan ", " ses ", status=" st "\n")
   (with-author (ahash-ref plugin-author (list lan ses))
     (when (== st 0)
       (ahash-remove! plugin-started (list lan ses))

@@ -340,6 +340,7 @@ absval (SI x) {
 
 void
 edit_interface_rep::make_cursor_visible () {
+  if (!is_nil (buf) && buf->message_widget) return;
   cursor cu           = get_cursor ();
   cursor_blink_visible= true;
   if (cursor_blink_active && cursor_blink_period > 0)
@@ -355,6 +356,7 @@ edit_interface_rep::make_cursor_visible () {
 
 void
 edit_interface_rep::cursor_visible () {
+  if (!is_nil (buf) && buf->message_widget) return;
   path   sp           = find_innermost_scroll (eb, tp);
   cursor cu           = get_cursor ();
   cursor_blink_visible= true;
@@ -996,30 +998,33 @@ edit_interface_rep::apply_changes () {
           set_user_active (false);
         }
 
-    SI dw= 0;
-    if (tremble_count > 3) dw= (1 + min (tremble_count - 3, 25)) * 2 * pixel;
-    SI /*P1= zpixel,*/ P2= 2 * zpixel, P3= 3 * zpixel;
-    cursor             cu= get_cursor ();
-    rectangle ocr (oc->ox + ((SI) ((oc->y1 - dw) * oc->slope)) - P3 - dw,
-                   oc->oy + (oc->y1 - dw) - P3,
-                   oc->ox + ((SI) ((oc->y2 + dw) * oc->slope)) + P2 + dw,
-                   oc->oy + (oc->y2 + dw) + P3);
-    if (is_nil (copy_always) || copy_always->item != ocr) {
-      copy_always= rectangles (ocr, copy_always);
-    }
-    invalidate (ocr->x1, ocr->y1, ocr->x2, ocr->y2);
-    rectangle ncr (cu->ox + ((SI) ((cu->y1 - dw) * cu->slope)) - P3 - dw,
-                   cu->oy + (cu->y1 - dw) - P3,
-                   cu->ox + ((SI) ((cu->y2 + dw) * cu->slope)) + P2 + dw,
-                   cu->oy + (cu->y2 + dw) + P3);
-    invalidate (ncr->x1, ncr->y1, ncr->x2, ncr->y2);
-    if (is_nil (copy_always) || copy_always->item != ncr) {
-      copy_always= rectangles (ncr, copy_always);
-    }
-    oc= copy (cu);
+    if (is_nil (buf) || !buf->message_widget) {
+      SI dw= 0;
+      if (tremble_count > 3) dw= (1 + min (tremble_count - 3, 25)) * 2 * pixel;
+      SI /*P1= zpixel,*/ P2= 2 * zpixel, P3= 3 * zpixel;
+      cursor             cu= get_cursor ();
+      rectangle ocr (oc->ox + ((SI) ((oc->y1 - dw) * oc->slope)) - P3 - dw,
+                     oc->oy + (oc->y1 - dw) - P3,
+                     oc->ox + ((SI) ((oc->y2 + dw) * oc->slope)) + P2 + dw,
+                     oc->oy + (oc->y2 + dw) + P3);
+      if (is_nil (copy_always) || copy_always->item != ocr) {
+        copy_always= rectangles (ocr, copy_always);
+      }
+      invalidate (ocr->x1, ocr->y1, ocr->x2, ocr->y2);
+      rectangle ncr (cu->ox + ((SI) ((cu->y1 - dw) * cu->slope)) - P3 - dw,
+                     cu->oy + (cu->y1 - dw) - P3,
+                     cu->ox + ((SI) ((cu->y2 + dw) * cu->slope)) + P2 + dw,
+                     cu->oy + (cu->y2 + dw) + P3);
+      invalidate (ncr->x1, ncr->y1, ncr->x2, ncr->y2);
+      if (is_nil (copy_always) || copy_always->item != ncr) {
+        copy_always= rectangles (ncr, copy_always);
+      }
+      oc= copy (cu);
 
-    // set hot spot in the gui
-    send_cursor (this, (SI) floor (cu->ox * magf), (SI) floor (cu->oy * magf));
+      // set hot spot in the gui
+      send_cursor (this, (SI) floor (cu->ox * magf),
+                   (SI) floor (cu->oy * magf));
+    }
 
     path sp           = selection_get_cursor_path ();
     bool semantic_flag= semantic_active (path_up (sp));
@@ -1091,6 +1096,7 @@ edit_interface_rep::apply_changes () {
       selection_rects= rs;
       invalidate (selection_rects);
     }
+    if (!is_nil (buf) && buf->message_widget) invalidate (vx1, vy1, vx2, vy2);
     // 选区改变后更新文本工具栏
     update_text_popup ();
   }
@@ -1198,6 +1204,7 @@ edit_interface_rep::animate () {
     invalidate (rs);
     stored_rects= rectangles ();
   }
+  if (!is_nil (buf) && buf->message_widget) return;
   if (cursor_blink_active && cursor_blink_period > 0 &&
       get_preference ("draw cursor") == "on" && now_ms >= cursor_blink_next) {
     cursor_blink_visible= !cursor_blink_visible;

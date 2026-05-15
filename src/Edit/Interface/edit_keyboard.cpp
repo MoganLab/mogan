@@ -427,6 +427,7 @@ edit_interface_rep::kbd_shortcut (string cmd) {
 void
 edit_interface_rep::handle_keypress (string key_u8, time_t t) {
   if (is_nil (buf)) return;
+  if (buf->message_widget) return;
 
   string key        = utf8_to_cork (key_u8);
   bool   need_unwrap= true;
@@ -533,8 +534,8 @@ edit_interface_rep::handle_keyboard_focus (bool has_focus, time_t t) {
   }
   got_focus= has_focus;
   if (got_focus) {
-    cursor_blink_visible= true;
-    cursor_blink_active = (cursor_blink_period > 0);
+    cursor_blink_visible= !buf->message_widget;
+    cursor_blink_active = !buf->message_widget && (cursor_blink_period > 0);
     if (cursor_blink_active)
       cursor_blink_next= texmacs_time () + cursor_blink_period;
   }
