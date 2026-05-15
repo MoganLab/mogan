@@ -16,6 +16,7 @@
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QRubberBand>
+#include <QScreen>
 #include <QScrollBar>
 #include <QWheelEvent>
 
@@ -39,7 +40,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr),
       selectAreaBtn_ (nullptr), rubberBand_ (nullptr), pageCount_ (0),
       hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
-      pageAspectRatio_ (0.0), selectingArea_ (false) {
+      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0), selectingArea_ (false) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -143,15 +144,9 @@ PDFReaderWidget::updateZoomDisplay () {
   disconnect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
               this, &PDFReaderWidget::onZoomChanged);
 
-  if (qFuzzyCompare (zoomFactor_, 1.0)) {
-    int idx= zoomCombo_->findText ("Fit Width");
-    if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
-  }
-  else {
-    int idx= zoomCombo_->findText (text);
-    if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
-    else zoomCombo_->setCurrentText (text);
-  }
+  int idx= zoomCombo_->findText (text);
+  if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
+  else zoomCombo_->setCurrentText (text);
 
   connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
            this, &PDFReaderWidget::onZoomChanged);
@@ -187,18 +182,30 @@ PDFReaderWidget::setZoomFactor (double factor) {
 
 void
 PDFReaderWidget::fitWidth () {
-  setZoomFactor (1.0);
+  if (pageBaseWidthPts_ <= 0) {
+    setZoomFactor (1.0);
+    return;
+  }
+  int      viewportWidth= scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  QScreen* screen       = this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  qreal screenDpi= screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseWidth= qRound (pageBaseWidthPts_ * screenDpi / 72.0);
+  if (baseWidth <= 0) return;
+  setZoomFactor (static_cast<double> (viewportWidth) / baseWidth);
 }
 
 void
 PDFReaderWidget::fitHeight () {
-  if (pageAspectRatio_ <= 0) return;
-  int baseWidth     = scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
-  int viewportHeight= scrollArea_->viewport ()->height ();
-  if (baseWidth <= 0) return;
-  double targetZoom=
-      static_cast<double> (viewportHeight) / (baseWidth * pageAspectRatio_);
-  setZoomFactor (targetZoom);
+  if (pageBaseWidthPts_ <= 0 || pageAspectRatio_ <= 0) return;
+  int      viewportHeight= scrollArea_->viewport ()->height ();
+  QScreen* screen        = this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  qreal screenDpi = screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseWidth = qRound (pageBaseWidthPts_ * screenDpi / 72.0);
+  int   baseHeight= qRound (baseWidth * pageAspectRatio_);
+  if (baseHeight <= 0) return;
+  setZoomFactor (static_cast<double> (viewportHeight) / baseHeight);
 }
 
 int
@@ -317,7 +324,15 @@ PDFReaderWidget::verticalScrollBar () const {
 
 int
 PDFReaderWidget::pageWidth () const {
-  int baseWidth= scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  if (pageBaseWidthPts_ <= 0) {
+    int baseWidth= scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+    return qMax (1, qRound (baseWidth * zoomFactor_));
+  }
+
+  QScreen* screen= this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  qreal screenDpi= screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseWidth= qRound (pageBaseWidthPts_ * screenDpi / 72.0);
   return qMax (1, qRound (baseWidth * zoomFactor_));
 }
 
@@ -554,8 +569,9 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
       if (opened && pageCount_ > 0) {
         fz_page* page= fz_load_page (ctx, doc, 0);
         if (page) {
-          fz_rect bbox    = fz_bound_page (ctx, page);
-          pageAspectRatio_= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
+          fz_rect bbox     = fz_bound_page (ctx, page);
+          pageBaseWidthPts_= bbox.x1 - bbox.x0;
+          pageAspectRatio_ = (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
           fz_drop_page (ctx, page);
         }
       }
@@ -602,7 +618,8 @@ PDFReaderWidget::clear () {
   pageCount_= 0;
   hasError_ = false;
   errorString_.clear ();
-  pageAspectRatio_= 0.0;
+  pageAspectRatio_ = 0.0;
+  pageBaseWidthPts_= 0.0;
 
   QLayoutItem* item;
   while ((item= pageLayout_->takeAt (0)) != nullptr) {

@@ -95,6 +95,7 @@ private:
   int        targetDpi_;
   double     zoomFactor_;
   double     pageAspectRatio_;
+  double     pageBaseWidthPts_;
 
   static constexpr int    DEFAULT_DPI= 150;
   static constexpr int    PAGE_MARGIN= 16;
