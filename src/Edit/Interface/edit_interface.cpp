@@ -165,11 +165,32 @@ edit_interface_rep::get_pixel_size () {
 }
 
 void
+compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
+                     double old_magf, double new_magf,
+                     SI& new_sx, SI& new_sy) {
+  new_sx= cursor_x - (SI) tm_round ((cursor_x - old_sx) * old_magf / new_magf);
+  new_sy= cursor_y - (SI) tm_round ((cursor_y - old_sy) * old_magf / new_magf);
+}
+
+void
 edit_interface_rep::set_zoom_factor (double zoom) {
-  zoomf = zoom;
-  magf  = zoomf / std_shrinkf;
-  pixel = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
-  zpixel= max ((SI) tm_round (std_shrinkf * PIXEL), pixel);
+  double old_magf= magf;
+  zoomf          = zoom;
+  magf           = zoomf / std_shrinkf;
+  pixel          = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
+  zpixel         = max ((SI) tm_round (std_shrinkf * PIXEL), pixel);
+
+  if (is_attached (this) && old_magf > 0.0 && magf > 0.0) {
+    cursor cu= get_cursor ();
+    if (cu->valid) {
+      SI old_sx= get_scroll_x ();
+      SI old_sy= get_scroll_y ();
+      SI new_sx, new_sy;
+      compute_zoom_scroll (cu->ox, cu->oy, old_sx, old_sy, old_magf, magf,
+                           new_sx, new_sy);
+      scroll_to (new_sx, new_sy);
+    }
+  }
 }
 
 void
