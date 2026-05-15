@@ -93,14 +93,6 @@ function main()
                 }
             },
             {
-                scm_name = "set-latex-command",
-                cpp_name = "set_latex_command",
-                ret_type = "void",
-                arg_list = {
-                    "string"
-                }
-            },
-            {
                 scm_name = "number-latex-pages",
                 cpp_name = "number_latex_pages",
                 ret_type = "int",

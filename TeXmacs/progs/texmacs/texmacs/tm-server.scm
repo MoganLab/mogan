@@ -55,10 +55,6 @@
         ((== val "prompt on scripts") (set-script-status 1))
         ((== val "accept all scripts") (set-script-status 2))))
 
-(define (notify-latex-command var val)
-  (if (use-plugin-tex?)
-      (set-latex-command val)))
-
 (define (notify-bibtex-command var val)
   (if (use-plugin-bibtex?)
       (set-bibtex-command val)))
@@ -113,7 +109,6 @@
   ("manual zealous invisible correct" "off" (lambda args (noop)))
   ("manual homoglyph correct" "on" (lambda args (noop)))
   ("security" "prompt on scripts" notify-security)
-  ("latex command" "pdflatex" notify-latex-command)
   ("bibtex command" "bibtex" notify-bibtex-command)
   ("scripting language" "none" notify-scripting-language)
   ("speech" "off" noop)
