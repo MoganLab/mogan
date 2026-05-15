@@ -167,6 +167,10 @@ picture_cache_release (url file_name, int w, int h, tree eff, int pixel) {
   if (picture_count[key] <= 0) picture_blacklist (key)++;
 }
 
+#ifdef QTTEXMACS
+void qt_clean_picture_cache ();
+#endif
+
 void
 picture_cache_clean () {
   static time_t last_gc= 0;
@@ -184,11 +188,10 @@ picture_cache_clean () {
     }
   }
   picture_blacklist= hashmap<tree, int> ();
-}
-
 #ifdef QTTEXMACS
-void qt_clean_picture_cache ();
+  qt_clean_picture_cache ();
 #endif
+}
 
 void
 picture_cache_reset () {
