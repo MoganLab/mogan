@@ -751,6 +751,16 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
 
+  if (event->key () == Qt::Key_J || event->key () == Qt::Key_K) {
+    QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+    if (vbar) {
+      int direction= (event->key () == Qt::Key_J) ? 1 : -1;
+      vbar->setValue (vbar->value () + direction * vbar->singleStep ());
+    }
+    event->accept ();
+    return;
+  }
+
   if (event->modifiers () & Qt::ControlModifier) {
     switch (event->key ()) {
     case Qt::Key_Plus:
@@ -798,6 +808,14 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         if (vbar) {
           int scrollAmount= qRound (scrollArea_->viewport ()->height () * 0.9);
           vbar->setValue (vbar->value () + scrollAmount);
+        }
+        return true;
+      }
+      if (keyEvent->key () == Qt::Key_J || keyEvent->key () == Qt::Key_K) {
+        QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+        if (vbar) {
+          int direction= (keyEvent->key () == Qt::Key_J) ? 1 : -1;
+          vbar->setValue (vbar->value () + direction * vbar->singleStep ());
         }
         return true;
       }
