@@ -175,20 +175,32 @@ compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
 void
 edit_interface_rep::set_zoom_factor (double zoom) {
   double old_magf= magf;
-  zoomf          = zoom;
-  magf           = zoomf / std_shrinkf;
-  pixel          = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
-  zpixel         = max ((SI) tm_round (std_shrinkf * PIXEL), pixel);
+
+  // 获取旧状态（在更新 magf 之前，确保逻辑坐标一致）
+  SI old_sx= 0, old_sy= 0, old_vw= 0, old_vh= 0;
+  if (is_attached (this) && old_magf > 0.0) {
+    old_sx= get_scroll_x ();
+    old_sy= get_scroll_y ();
+    update_visible ();
+    old_vw= vx2 - vx1;
+    old_vh= vy2 - vy1;
+  }
+
+  zoomf = zoom;
+  magf  = zoomf / std_shrinkf;
+  pixel = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
+  zpixel= max ((SI) tm_round (std_shrinkf * PIXEL), pixel);
 
   if (is_attached (this) && old_magf > 0.0 && magf > 0.0) {
     cursor cu= get_cursor ();
     if (cu->valid) {
-      SI old_sx= get_scroll_x ();
-      SI old_sy= get_scroll_y ();
-      SI new_sx, new_sy;
-      compute_zoom_scroll (cu->ox, cu->oy, old_sx, old_sy, old_magf, magf,
-                           new_sx, new_sy);
-      scroll_to (new_sx, new_sy);
+      // get_scroll_x/y 返回视口左上角，scroll_to 期望视口中央
+      SI old_cx= old_sx + old_vw / 2;
+      SI old_cy= old_sy + old_vh / 2;
+      SI new_cx, new_cy;
+      compute_zoom_scroll (cu->ox, cu->oy, old_cx, old_cy, old_magf, magf,
+                           new_cx, new_cy);
+      scroll_to (new_cx, new_cy);
     }
   }
 }
