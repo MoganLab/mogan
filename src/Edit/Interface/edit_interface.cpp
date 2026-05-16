@@ -176,14 +176,12 @@ void
 edit_interface_rep::set_zoom_factor (double zoom) {
   double old_magf= magf;
 
-  // 获取旧状态（在更新 magf 之前，确保逻辑坐标一致）
-  SI old_sx= 0, old_sy= 0, old_vw= 0, old_vh= 0;
+  // 获取旧视口中央（在更新 magf 之前，确保逻辑坐标一致）
+  SI old_cx= 0, old_cy= 0;
   if (is_attached (this) && old_magf > 0.0) {
-    old_sx= get_scroll_x ();
-    old_sy= get_scroll_y ();
     update_visible ();
-    old_vw= vx2 - vx1;
-    old_vh= vy2 - vy1;
+    old_cx= (vx1 + vx2) / 2;
+    old_cy= (vy1 + vy2) / 2;
   }
 
   zoomf = zoom;
@@ -194,9 +192,6 @@ edit_interface_rep::set_zoom_factor (double zoom) {
   if (is_attached (this) && old_magf > 0.0 && magf > 0.0) {
     cursor cu= get_cursor ();
     if (cu->valid) {
-      // get_scroll_x/y 返回视口左上角，scroll_to 期望视口中央
-      SI old_cx= old_sx + old_vw / 2;
-      SI old_cy= old_sy + old_vh / 2;
       SI new_cx, new_cy;
       compute_zoom_scroll (cu->ox, cu->oy, old_cx, old_cy, old_magf, magf,
                            new_cx, new_cy);
