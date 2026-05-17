@@ -12,9 +12,13 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel texmacs tm-modes)
-  (:use
-    (kernel logic logic-rules) (kernel logic logic-query) (kernel logic logic-data)
-    (kernel texmacs tm-plugins) (kernel texmacs tm-preferences)))
+  (:use (kernel logic logic-rules)
+    (kernel logic logic-query)
+    (kernel logic logic-data)
+    (kernel texmacs tm-plugins)
+    (kernel texmacs tm-preferences)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Defining new modes
@@ -23,107 +27,121 @@
 (define (texmacs-mode-pred mode)
   (let* ((mode-str (symbol->string mode))
          (mode-root (substring mode-str 0 (- (string-length mode-str) 1)))
-         (pred-str (string-append mode-root "?")))
-    (string->symbol pred-str)))
+         (pred-str (string-append mode-root "?"))
+        ) ;
+    (string->symbol pred-str)
+  ) ;let*
+) ;define
 
 (define-public (texmacs-mode item)
-  (with (mode action . deps) item
+  (with (mode action . deps)
+    item
     (let* ((pred (texmacs-mode-pred mode))
            (deps* (map list (map texmacs-mode-pred deps)))
            (l (if (== action #t) deps* (cons action deps*)))
            (test (if (null? l) #t (if (null? (cdr l)) (car l) (cons 'and l))))
-           (defn `(varlet *texmacs-module* ',pred (lambda () ,test)))
+           (defn `(varlet *texmacs-module* (quote ,pred) (lambda ,() ,test)))
            (rules (map (lambda (dep) (list dep mode)) deps))
            (logic-cmd `(logic-rules ,@rules))
-           (arch1 `(set-symbol-procedure! ',mode ,pred))
-           (arch2 `(set-symbol-procedure! ',pred ,pred)))
+           (arch1 `(set-symbol-procedure! (quote ,mode) ,pred))
+           (arch2 `(set-symbol-procedure! (quote ,pred) ,pred))
+          ) ;
       (if (== mode 'always%) (set! defn '(noop)))
       (if (null? deps)
-          (list 'begin defn arch1 arch2)
-          (list 'begin defn arch1 arch2 logic-cmd)))))
+        (list 'begin defn arch1 arch2)
+        (list 'begin defn arch1 arch2 logic-cmd)
+      ) ;if
+    ) ;let*
+  ) ;with
+) ;define-public
 
-(define-public-macro (texmacs-modes . l)
-  `(begin
-     ,@(map texmacs-mode l)))
+(define-public-macro (texmacs-modes . l) `(begin ,@(map texmacs-mode l)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checking modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;FIXME: in-active-graphics% and developer-mode%
-; seems to be the only two modes which do not have the associated procedure
-; is the code below meaningful? why we need to do the eval?
-; I want maybe to have the catch inside the eval
 
 (define-public (texmacs-in-mode? mode)
-  (with proc (symbol-procedure mode)
-    (if proc (proc)
-        (catch #t (lambda () (eval (list mode))) (lambda err #f)))))
+  (with proc
+    (symbol-procedure mode)
+    (if proc (proc) (catch #t (lambda () (eval (list mode))) (lambda err #f)))
+  ) ;with
+) ;define-public
 
 (define-public (texmacs-mode-mode pred)
   "Get drd predicate name associated to scheme predicate or symbol"
   (if (procedure? pred)
-      (with name (procedure-name pred)
-        (if name (texmacs-mode-mode name) 'unknown%))
-      (let* ((pred-str (symbol->string pred))
-             (pred-root (substring pred-str 0 (- (string-length pred-str) 1)))
-             (mode-str (string-append pred-root "%")))
-        (string->symbol mode-str))))
+    (with name (procedure-name pred) (if name (texmacs-mode-mode name) 'unknown%))
+    (let* ((pred-str (symbol->string pred))
+           (pred-root (substring pred-str 0 (- (string-length pred-str) 1)))
+           (mode-str (string-append pred-root "%"))
+          ) ;
+      (string->symbol mode-str)
+    ) ;let*
+  ) ;if
+) ;define-public
 
 (define texmacs-submode-table (make-ahash-table))
 
 (define-public (texmacs-submode? what* of*)
   "Test whether @what* is a sub-mode of @of*"
-  (let* ((key (cons what* of*))
-         (handle (ahash-get-handle texmacs-submode-table key)))
-    (if handle (cdr handle)
-        (let* ((what (texmacs-mode-mode what*))
-               (of (texmacs-mode-mode of*))
-               (result (or (== of 'always%)
-                           (== what 'prevail%)
-                           (nnull? (query of what)))))
-          (ahash-set! texmacs-submode-table key result)
-          result))))
+  (let* ((key (cons what* of*)) (handle (ahash-get-handle texmacs-submode-table key)))
+    (if handle
+      (cdr handle)
+      (let* ((what (texmacs-mode-mode what*))
+             (of (texmacs-mode-mode of*))
+             (result (or (== of 'always%) (== what 'prevail%) (nnull? (query of what))))
+            ) ;
+        (ahash-set! texmacs-submode-table key result)
+        result
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checking whether certain features are supported
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (supports-chinese?)
-  (!= (default-chinese-font) "roman"))
+(define-public (supports-chinese?) (!= (default-chinese-font) "roman"))
 
-(define-public (supports-japanese?)
-  (!= (default-japanese-font) "roman"))
+(define-public (supports-japanese?) (!= (default-japanese-font) "roman"))
 
-(define-public (supports-korean?)
-  (!= (default-korean-font) "roman"))
+(define-public (supports-korean?) (!= (default-korean-font) "roman"))
 
-(define-public (supports-db?)
-  (== (get-preference "database tool") "on"))
+(define-public (supports-db?) (== (get-preference "database tool") "on"))
 
 (define-public (side-tools?)
   (and (== (get-preference "side tools") "on")
-       (== (get-preference "developer tool") "on")))
+    (== (get-preference "developer tool") "on")
+  ) ;and
+) ;define-public
 
 (define-public (left-tools?)
   (and (== (get-preference "left tools") "on")
-       (== (get-preference "developer tool") "on")))
+    (== (get-preference "developer tool") "on")
+  ) ;and
+) ;define-public
 
 (define-public (has-side-tools? n)
   (cond ((== n 0) (side-tools?))
         ((== n 1) (left-tools?))
-        (else #f)))
+        (else #f)
+  ) ;cond
+) ;define-public
 
 (define-public (has-markup-gui?)
   (and (== (get-preference "markup gui") "on")
-       (== (get-preference "developer tool") "on")))
+    (== (get-preference "developer tool") "on")
+  ) ;and
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mode related
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-modes
-  (always% #t)
+(texmacs-modes (always% #t)
   (prevail% #t)
   (in-source% (== (get-env "mode") "src"))
   (in-text% (and (== (get-env "mode") "text") (not (in-graphics?))))
@@ -135,8 +153,8 @@
   (in-math-or-hybrid% (or (in-math?) (inside? 'hybrid)))
   (in-sem-math% (== (get-preference "semantic correctness") "on") in-math%)
   (in-table% (and (inside? 'table) (not (in-graphics?))))
-  (in-session% (and (or (inside? 'session) (inside? 'program))
-                    (not (in-graphics?))))
+  (in-session% (and (or (inside? 'session) (inside? 'program)) (not (in-graphics?)))
+  ) ;in-session%
   (not-in-session% (not (inside? 'session)))
   (in-math-in-session% #t in-math% in-session%)
   (in-math-not-in-session% #t in-math% not-in-session%)
@@ -151,8 +169,8 @@
   (in-bib% (style-has? "database-bib-style") in-database%)
   (in-preview-ref% (style-has? "preview-ref-package"))
   (in-smart-ref% (style-has? "smart-ref-package"))
-  (in-plugin-with-converters%
-   (plugin-supports-math-input-ref (get-env "prog-language")))
+  (in-plugin-with-converters% (plugin-supports-math-input-ref (get-env "prog-language"))
+  ) ;in-plugin-with-converters%
   (in-screens% (inside? 'screens))
   (in-article% (style-has? "header-article-package"))
   (in-book% (style-has? "header-book-package"))
@@ -170,37 +188,72 @@
   (in-comment% (style-has? "comment-dtd"))
   (with-any-selection% (selection-active-any?))
   (with-active-selection% (selection-active-normal?))
-  (in-verbatim% (or (inside? 'verbatim) (inside? 'verbatim-code) 
-                    (inside? 'code)) in-text%)
-  (in-variants-disabled% 
-   (tree-in? (tree-up (cursor-tree)) '(hlink reference pageref label))))
+  (in-verbatim% (or (inside? 'verbatim) (inside? 'verbatim-code) (inside? 'code))
+    in-text%
+  ) ;in-verbatim%
+  (in-variants-disabled% (tree-in? (tree-up (cursor-tree)) '(hlink reference
+                                                              pageref
+                                                              label))
+  ) ;in-variants-disabled%
+) ;texmacs-modes
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Language related
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public supported-languages
-  '("british" "bulgarian" "chinese" "croatian" "czech"
-    "danish" "dutch" "english" "esperanto" "finnish" "french" "german" "greek"
-    "hungarian" "italian" "japanese" "korean" "polish"
-    "portuguese" "romanian" "russian" "slovak" "slovene" "spanish"
-    "swedish" "taiwanese" "ukrainian"))
+  '("british"
+    "bulgarian"
+    "chinese"
+    "croatian"
+    "czech"
+    "danish"
+    "dutch"
+    "english"
+    "esperanto"
+    "finnish"
+    "french"
+    "german"
+    "greek"
+    "hungarian"
+    "italian"
+    "japanese"
+    "korean"
+    "polish"
+    "portuguese"
+    "romanian"
+    "russian"
+    "slovak"
+    "slovene"
+    "spanish"
+    "swedish"
+    "taiwanese"
+    "ukrainian")
+) ;define-public
 
 (define-public (supported-language? lan)
   (and (in? lan supported-languages)
-       (cond ((== lan "chinese") (supports-chinese?))
-             ((== lan "japanese") (supports-japanese?))
-             ((== lan "korean") (supports-korean?))
-             ((== lan "taiwanese") (supports-chinese?))
-             (else #t))))
+    (cond ((== lan "chinese") (supports-chinese?))
+          ((== lan "japanese") (supports-japanese?))
+          ((== lan "korean") (supports-korean?))
+          ((== lan "taiwanese") (supports-chinese?))
+          (else #t)
+    ) ;cond
+  ) ;and
+) ;define-public
 
-(texmacs-modes
-  (in-cyrillic% (in? (get-env "language")
-                     '("bulgarian" "russian" "ukrainian")) in-text%)
-  (in-oriental% (in? (get-env "language")
-                     '("chinese" "japanese" "korean" "taiwanese")) in-text%)
-  (in-english% (in? (get-env "language")
-                    '("british" "english")) in-text%)
+(texmacs-modes (in-cyrillic% (in? (get-env "language") '("bulgarian"
+                                                         "russian"
+                                                         "ukrainian"))
+                 in-text%
+               ) ;in-cyrillic%
+  (in-oriental% (in? (get-env "language") '("chinese"
+                                            "japanese"
+                                            "korean"
+                                            "taiwanese"))
+    in-text%
+  ) ;in-oriental%
+  (in-english% (in? (get-env "language") '("british" "english")) in-text%)
   (in-american% (== (get-env "language") "english") in-text%)
   (in-british% (== (get-env "language") "british") in-text%)
   (in-bulgarian% (== (get-env "language") "bulgarian") in-cyrillic%)
@@ -229,8 +282,7 @@
   (in-taiwanese% (== (get-env "language") "taiwanese") in-oriental%)
   (in-ukrainian% (== (get-env "language") "ukrainian") in-cyrillic%)
 
-  (in-math-english% (in? (get-env "language")
-                         '("british" "english")) in-math%)
+  (in-math-english% (in? (get-env "language") '("british" "english")) in-math%)
   (in-math-american% (== (get-env "language") "english") in-math%)
   (in-math-british% (== (get-env "language") "british") in-math%)
   (in-math-dutch% (== (get-env "language") "dutch") in-math%)
@@ -238,7 +290,8 @@
   (in-math-german% (== (get-env "language") "german") in-math%)
   (in-math-italian% (== (get-env "language") "italian") in-math%)
   (in-math-portuguese% (== (get-env "language") "portuguese") in-math%)
-  (in-math-spanish% (== (get-env "language") "spanish") in-math%))
+  (in-math-spanish% (== (get-env "language") "spanish") in-math%)
+) ;texmacs-modes
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard related
@@ -248,10 +301,10 @@
 (define-public remote-control-remap (make-ahash-table))
 
 (define-public (cyrillic-input-method? what)
-  (== (get-preference "cyrillic input method") what))
+  (== (get-preference "cyrillic input method") what)
+) ;define-public
 
-(texmacs-modes
-  (like-emacs% (has-look-and-feel? "emacs"))
+(texmacs-modes (like-emacs% (has-look-and-feel? "emacs"))
   (like-gnome% (has-look-and-feel? "gnome"))
   (like-kde% (has-look-and-feel? "kde"))
   (like-macos% (has-look-and-feel? "macos"))
@@ -271,8 +324,11 @@
   (with-versioning-tool% (== (get-preference "versioning tool") "on"))
   (with-keyboard-tool% (== (get-preference "keyboard tool") "on"))
   (in-presentation% (or (style-has? "beamer-style")
-                        (== (get-preference "presentation tool") "on")
-                        (inside? 'screens)) in-beamer%)
+                      (== (get-preference "presentation tool") "on")
+                      (inside? 'screens)
+                    ) ;or
+    in-beamer%
+  ) ;in-presentation%
   (search-mode% (== (get-input-mode) 1))
   (replace-mode% (== (get-input-mode) 2))
   (spell-mode% (== (get-input-mode) 3))
@@ -283,7 +339,8 @@
   (in-cyrillic-jcuken% (cyrillic-input-method? "jcuken") in-cyrillic%)
   (in-cyrillic-translit% (cyrillic-input-method? "translit") in-cyrillic%)
   (in-cyrillic-yawerty% (cyrillic-input-method? "yawerty") in-cyrillic%)
-  (in-math-like-macos% #t in-math% like-macos%))
+  (in-math-like-macos% #t in-math% like-macos%)
+) ;texmacs-modes
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy initializations
@@ -294,29 +351,33 @@
 
 (define-public (lazy-initialize-impl id pred? module)
   (set! lazy-initialize-pending
-        (cons (list id pred? module) lazy-initialize-pending)))
+    (cons (list id pred? module) lazy-initialize-pending)
+  ) ;set!
+) ;define-public
 
 (define-public (lazy-initialize-do l id)
   (cond ((null? l) l)
         ((or (== (caar l) id) (and (== id #t) ((cadar l))))
          ((caddar l))
-         (lazy-initialize-do (cdr l) id))
-        (else (cons (car l) (lazy-initialize-do (cdr l) id)))))
+         (lazy-initialize-do (cdr l) id)
+        ) ;
+        (else (cons (car l) (lazy-initialize-do (cdr l) id)))
+  ) ;cond
+) ;define-public
 
 (define-public-macro (lazy-initialize module pred?)
-  `(with id lazy-initialize-id
+  `(with id
+     lazy-initialize-id
      (set! lazy-initialize-id (+ id 1))
      (lazy-initialize-impl id
-       (lambda ()
-         ,pred?)
-       (lambda ()
-         (import-from ,module)))
-     (delayed
-       (:idle 5000)
+       (lambda ,() ,pred?)
+       (lambda ,() (import-from ,module)))
+     (delayed (:idle 5000)
        (set! lazy-initialize-pending
-             (lazy-initialize-do lazy-initialize-pending id))
-       (import-from ,module))))
+         (lazy-initialize-do lazy-initialize-pending id))
+       (import-from ,module)))
+) ;define-public-macro
 
 (define-public (lazy-initialize-force)
-  (set! lazy-initialize-pending
-        (lazy-initialize-do lazy-initialize-pending #t)))
+  (set! lazy-initialize-pending (lazy-initialize-do lazy-initialize-pending #t))
+) ;define-public

@@ -23,22 +23,25 @@
 
 (define-public (bindings-add bl var val)
   "Bind variable @var to @val in @bl if possible."
-  (cond ((assoc-ref bl var)
-	 (if (== (assoc-ref bl var) val) bl #f))
-	(else (cons (cons var val) bl))))
+  (cond ((assoc-ref bl var) (if (== (assoc-ref bl var) val) bl #f))
+        (else (cons (cons var val) bl))
+  ) ;cond
+) ;define-public
 
 (define (match-any l pat bls)
   "Matches for @l == @pat under any of the bindings in @bls."
-  (if (null? bls) '()
-      (append (match l pat (car bls))
-	      (match-any l pat (cdr bls)))))
+  (if (null? bls)
+    '()
+    (append (match l pat (car bls)) (match-any l pat (cdr bls)))
+  ) ;if
+) ;define
 
 (define-macro (match-cup expr1 expr2)
   `(let ((l1 ,expr1))
-     (if (== l1 '(())) '(())
-	 (let ((l2 ,expr2))
-	   (if (== l2 '(())) '(())
-	       (append l1 l2))))))
+     (if (== l1 '(()))
+       '(())
+       (let ((l2 ,expr2)) (if (== l2 '(())) '(()) (append l1 l2)))))
+) ;define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Special patterns
@@ -46,46 +49,59 @@
 
 (define (match-or l args pat bl)
   "Matches for @l == @((:or . args) . pat) under bindings @bl."
-  (if (null? args) '()
-      (match-cup (match l (cons (car args) pat) bl)
-		 (match-or l (cdr args) pat bl))))
+  (if (null? args)
+    '()
+    (match-cup (match l (cons (car args) pat) bl) (match-or l (cdr args) pat bl))
+  ) ;if
+) ;define
 
 (define (match-and l args pat bl)
   "Matches for @l == @((:and . args) . pat) under bindings @bl."
-  (if (null? args) (list bl)
-      (match-any l (cons (car args) pat)
-		 (match-and l (cdr args) pat bl))))
+  (if (null? args)
+    (list bl)
+    (match-any l (cons (car args) pat) (match-and l (cdr args) pat bl))
+  ) ;if
+) ;define
 
 (define (match-not l args pat bl)
   "Matches for @l == @((:not . args) . pat) under bindings @bl."
   ;; WARNING: the behaviour of this routine w.r.t. bindings
   ;; has not been investigated in detail
-  (if (or (null? l) (!= (length args) 1)
-	  (nnull? (match l (append args pat) bl)))
-      '()
-      (match (cdr l) pat bl)))
+  (if (or (null? l) (!= (length args) 1) (nnull? (match l (append args pat) bl)))
+    '()
+    (match (cdr l) pat bl)
+  ) ;if
+) ;define
 
 (define (match-repeat l args pat bl)
   "Matches for @l == @((:repeat . args) . pat) under bindings @bl."
-  (if (null? args) '()
-      (match-cup (match l pat bl)
-		 (match l (append args (cons (cons :repeat args) pat)) bl))))
+  (if (null? args)
+    '()
+    (match-cup (match l pat bl)
+      (match l (append args (cons (cons :repeat args) pat)) bl)
+    ) ;match-cup
+  ) ;if
+) ;define
 
 (define (match-group l args pat bl)
   "Matches for @l == @((:group . args) . pat) under bindings @bl."
-  (match l (append args pat) bl))
+  (match l (append args pat) bl)
+) ;define
 
 (define (match-quote l args pat bl)
   "Matches for @l == @((:quote . args) . pat) under bindings @bl."
   (if (or (null? l) (!= (length args) 1) (!= (car l) (car args)))
-      '()
-      (match (cdr l) pat bl)))
+    '()
+    (match (cdr l) pat bl)
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Pattern matching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public match-term (make-ahash-table))
+
 (define match-table (make-ahash-table))
 (ahash-set! match-table :or match-or)
 (ahash-set! match-table :and match-and)
@@ -96,45 +112,53 @@
 
 (define-public (match l pat bl)
   "Matches for @l == @pat under bindings @bl."
-  (if (null? pat) (if (== l '()) (list bl) '())
-      (let ((fpat (car pat)))
-	(cond ((keyword? fpat)
-	       (let* ((symb (keyword->symbol fpat))
-		      (n (string->number
-			  (string-tail
-			   (symbol->string symb) 1))))
-		 (cond ((== fpat :*) (list bl))
-		       (n (if (>= (length l) n)
-			      (match (list-tail l n) (cdr pat) bl)
-			      '()))
-		       ((null? l) '())
-		       ((ahash-ref match-term fpat)
-			(with upat (ahash-ref match-term fpat)
-			  (match l (append upat (cdr pat)) bl)))
-		       ((not (apply (eval symb) (list (car l)))) '())
-		       (else (match (cdr l) (cdr pat) bl)))))
-	      ((and (list? fpat) (nnull? fpat))
-	       (let ((ffpat (car fpat)))
-		 (cond ((and (keyword? ffpat) (ahash-ref match-table ffpat))
-			(apply (ahash-ref match-table ffpat)
-			       (list l (cdr fpat) (cdr pat) bl)))
-		       ((or (nlist? l) (null? l)) '())
-		       ((== ffpat 'quote)
-			(let ((new-bl (bindings-add bl (cadr fpat) (car l))))
-			  (if new-bl (match (cdr l) (cdr pat) new-bl) '())))
-		       ((list? (car l))
-			(match-any (cdr l) (cdr pat)
-				   (match (car l) fpat bl)))
-		       ((compound-tree? (car l))
-			(match-any (cdr l) (cdr pat)
-				   (match (tree->list (car l)) fpat bl)))
-		       ((string? (car l))
-			(match-any (cdr l) (cdr pat)
-				   (match (string->list (car l)) fpat bl)))
-		       (else '()))))
-	      ((null? l) '())
-	      ((not (tm-equal? (car l) fpat)) '())
-	      (else (match (cdr l) (cdr pat) bl))))))
+  (if (null? pat)
+    (if (== l '()) (list bl) '())
+    (let ((fpat (car pat)))
+      (cond ((keyword? fpat)
+             (let* ((symb (keyword->symbol fpat))
+                    (n (string->number (string-tail (symbol->string symb) 1)))
+                   ) ;
+               (cond ((== fpat :*) (list bl))
+                     (n (if (>= (length l) n) (match (list-tail l n) (cdr pat) bl) '()))
+                     ((null? l) '())
+                     ((ahash-ref match-term fpat)
+                      (with upat (ahash-ref match-term fpat) (match l (append upat (cdr pat)) bl))
+                     ) ;
+                     ((not (apply (eval symb) (list (car l)))) '())
+                     (else (match (cdr l) (cdr pat) bl))
+               ) ;cond
+             ) ;let*
+            ) ;
+            ((and (list? fpat) (nnull? fpat))
+             (let ((ffpat (car fpat)))
+               (cond ((and (keyword? ffpat) (ahash-ref match-table ffpat))
+                      (apply (ahash-ref match-table ffpat) (list l (cdr fpat) (cdr pat) bl))
+                     ) ;
+                     ((or (nlist? l) (null? l)) '())
+                     ((== ffpat 'quote)
+                      (let ((new-bl (bindings-add bl (cadr fpat) (car l))))
+                        (if new-bl (match (cdr l) (cdr pat) new-bl) '())
+                      ) ;let
+                     ) ;
+                     ((list? (car l)) (match-any (cdr l) (cdr pat) (match (car l) fpat bl)))
+                     ((compound-tree? (car l))
+                      (match-any (cdr l) (cdr pat) (match (tree->list (car l)) fpat bl))
+                     ) ;
+                     ((string? (car l))
+                      (match-any (cdr l) (cdr pat) (match (string->list (car l)) fpat bl))
+                     ) ;
+                     (else '())
+               ) ;cond
+             ) ;let
+            ) ;
+            ((null? l) '())
+            ((not (tm-equal? (car l) fpat)) '())
+            (else (match (cdr l) (cdr pat) bl))
+      ) ;cond
+    ) ;let
+  ) ;if
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; User interface
@@ -143,15 +167,20 @@
 (define-public (define-regexp-grammar-decls l)
   (define (insert rule)
     (if (== (length (cdr rule)) 1)
-        (ahash-set! match-term (car rule) (cdr rule))
-        (ahash-set! match-term (car rule) (list (cons :or (cdr rule))))))
-  (for-each insert l))
+      (ahash-set! match-term (car rule) (cdr rule))
+      (ahash-set! match-term (car rule) (list (cons :or (cdr rule))))
+    ) ;if
+  ) ;define
+  (for-each insert l)
+) ;define-public
 
 (define-public-macro (define-regexp-grammar . l)
-  `(begin
-     (define-regexp-grammar-decls ,(list 'quasiquote l))))
+  `(begin (define-regexp-grammar-decls ,(list 'quasiquote l)))
+) ;define-public-macro
 
 (define-public (match? x pattern)
   "Does @x match the pattern @pat?"
   (let ((sols (match (list x) (list pattern) '())))
-    (if (null? sols) #f sols)))
+    (if (null? sols) #f sols)
+  ) ;let
+) ;define-public

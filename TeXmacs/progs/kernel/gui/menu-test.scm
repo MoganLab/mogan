@@ -13,187 +13,215 @@
 ;; See menu-define.scm for the grammar of menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (kernel gui menu-test)
-  (:use (kernel gui menu-widget)))
+(texmacs-module (kernel gui menu-test) (:use (kernel gui menu-widget)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Some test widgets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-widget (widget1)
-  (centered
-    (aligned
-      (item (text "First:")
-        (toggle (display* "First " answer "\n") #f))
-      (item (text "Second:")
-        (toggle (display* "Second " answer "\n") #f)))))
+  (centered (aligned (item (text "First:") (toggle (display* "First " answer "\n") #f))
+              (item (text "Second:") (toggle (display* "Second " answer "\n") #f))
+            ) ;aligned
+  ) ;centered
+) ;tm-widget
 
 (tm-widget (widget2)
-  (tabs
-    (tab (text "General")
-      (centered
-        (aligned
-          (item (text "First:")
-            (toggle (display* "First " answer "\n") #f))
-          (item (text "Second:")
-            (toggle (display* "Second " answer "\n") #f)))))
+  (tabs (tab (text "General")
+          (centered (aligned (item (text "First:") (toggle (display* "First " answer "\n") #f))
+                      (item (text "Second:") (toggle (display* "Second " answer "\n") #f))
+                    ) ;aligned
+          ) ;centered
+        ) ;tab
     (tab (text "Extra")
-      (centered
-        (aligned
-          (item (text "First:")
-            (toggle (display* "First " answer "\n") #f))
-          (item (text "Second:")
-            (toggle (display* "Second " answer "\n") #f))))
-      (bottom-buttons
-        ("Cancel" (display "Cancel\n")) >> ("Ok" (display "Ok\n"))))
+      (centered (aligned (item (text "First:") (toggle (display* "First " answer "\n") #f))
+                  (item (text "Second:") (toggle (display* "Second " answer "\n") #f))
+                ) ;aligned
+      ) ;centered
+      (bottom-buttons ("Cancel" (display "Cancel\n")) >> ("Ok" (display "Ok\n")))
+    ) ;tab
     (tab (text "Settings")
-      (centered
-        (aligned
-          (item (text "First:")
-            (enum (display* "First " answer "\n")
-                  '("gnu" "gnat" "zebra")
-                  "zebra" "10em"))
-          (item (text "Second:")
-            (enum (display* "Second " answer "\n")
-                  '("fun" "foo" "bar")
-                  "fun" "10em"))))
-      (bottom-buttons
-        >> ("Ok" (display "Ok\n"))))))
+      (centered (aligned (item (text "First:")
+                           (enum (display* "First " answer "\n") '("gnu"
+                                                                   "gnat"
+                                                                   "zebra") "zebra" "10em")
+                         ) ;item
+                  (item (text "Second:")
+                    (enum (display* "Second " answer "\n") '("fun" "foo" "bar") "fun" "10em")
+                  ) ;item
+                ) ;aligned
+      ) ;centered
+      (bottom-buttons >> ("Ok" (display "Ok\n")))
+    ) ;tab
+  ) ;tabs
+) ;tm-widget
 
 (tm-widget (widget3)
-  (centered
-    (resize "200px" "100px"
-      (scrollable
-        (aligned
-          (item (text "First:")
-            (toggle (display* "First " answer "\n") #f))
-          (item (text "Second:")
-            (toggle (display* "Second " answer "\n") #f))
-          (item (text "Third:")
-            (toggle (display* "Third " answer "\n") #f))
-          (item (text "Fourth:")
-            (toggle (display* "Fourth " answer "\n") #f))
-          (item (text "Fifth:")
-            (toggle (display* "Fifth " answer "\n") #f))
-          (item (text "Sixth:")
-            (toggle (display* "Sixth " answer "\n") #f))
-          (item (text "Seventh:")
-            (toggle (display* "Seventh " answer "\n") #f))
-          (item (text "Eighth:")
-            (toggle (display* "Eighth " answer "\n") #f)))))))
+  (centered (resize "200px"
+              "100px"
+              (scrollable (aligned (item (text "First:") (toggle (display* "First " answer "\n") #f))
+                            (item (text "Second:") (toggle (display* "Second " answer "\n") #f))
+                            (item (text "Third:") (toggle (display* "Third " answer "\n") #f))
+                            (item (text "Fourth:") (toggle (display* "Fourth " answer "\n") #f))
+                            (item (text "Fifth:") (toggle (display* "Fifth " answer "\n") #f))
+                            (item (text "Sixth:") (toggle (display* "Sixth " answer "\n") #f))
+                            (item (text "Seventh:") (toggle (display* "Seventh " answer "\n") #f))
+                            (item (text "Eighth:") (toggle (display* "Eighth " answer "\n") #f))
+                          ) ;aligned
+              ) ;scrollable
+            ) ;resize
+  ) ;centered
+) ;tm-widget
 
 (tm-widget (widget4)
-  (centered
-    (resize "200px" "50px"
-      (scrollable
-        (choice (display* answer "\n")
-                '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
-                "Third")))
+  (centered (resize "200px"
+              "50px"
+              (scrollable (choice (display* answer "\n")
+                            '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
+                            "Third"
+                          ) ;choice
+              ) ;scrollable
+            ) ;resize
     ======
-    (resize "200px" "150px"
+    (resize "200px"
+      "150px"
       (choices (display* answer "\n")
-               '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
-               '("Third" "Fifth")))))
+        '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
+        '("Third" "Fifth")
+      ) ;choices
+    ) ;resize
+  ) ;centered
+) ;tm-widget
 
 (tm-widget (widget5)
   ===
-  (hlist
+  (hlist //
+    (hsplit (resize '("100px" "200px" "400px")
+              '("50px" "100px" "150px")
+              (scrollable (choice (display* answer "\n")
+                            '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
+                            "Third"
+                          ) ;choice
+              ) ;scrollable
+            ) ;resize
+      (resize '("100px" "200px" "400px")
+        '("50px" "100px" "150px")
+        (scrollable (choices (display* answer "\n")
+                      '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
+                      '("Third" "Fifth")
+                    ) ;choices
+        ) ;scrollable
+      ) ;resize
+    ) ;hsplit
     //
-    (hsplit
-      (resize '("100px" "200px" "400px") '("50px" "100px" "150px")
-        (scrollable
-          (choice (display* answer "\n")
-                  '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
-                  "Third")))
-      (resize '("100px" "200px" "400px") '("50px" "100px" "150px")
-        (scrollable
-          (choices (display* answer "\n")
-                   '("First" "Second" "Third" "Fourth" "Fifth" "Sixth")
-                   '("Third" "Fifth")))))
-    //)
-  ===)
+  ) ;hlist
+  ===
+) ;tm-widget
 
 (tm-widget (widget6)
-  (centered
-    (resize "500px" "50px"
-      (texmacs-output
-        '(document (theorem (document "This is true.")))
-        '(style "generic")))
+  (centered (resize "500px"
+              "50px"
+              (texmacs-output '(document (theorem (document "This is true.")))
+                '(style "generic")
+              ) ;texmacs-output
+            ) ;resize
     ======
-    (resize "500px" "300px"
-      (texmacs-input
-        '(with "bg-color" "#fcfcf8"
-           (document (proof (document "Trivial."
-                                      "But you may add more details."))))
-        '(style "generic") #f))))
+    (resize "500px"
+      "300px"
+      (texmacs-input '(with "bg-color"
+                        "#fcfcf8"
+                        (document (proof (document "Trivial."
+                                           "But you may add more details."))))
+        '(style "generic")
+        #f
+      ) ;texmacs-input
+    ) ;resize
+  ) ;centered
+) ;tm-widget
 
 (tm-widget (widget7)
   (padded
-    ;;(ink (display* answer "\n"))))
-    (ink (noop))))
+    ;; (ink (display* answer "\n"))))
+    (ink (noop))
+  ) ;padded
+) ;tm-widget
 
 (tm-define widget8-list '("First" "Second"))
 
-(menu-bind widget8-sub
-  (for (x widget8-list)
-    ((eval x) (display* x "\n"))))
+(menu-bind widget8-sub (for (x widget8-list) ((eval x) (display* x "\n"))))
 
 (tm-widget (widget8)
-  (padded
-    (with l '("First" "Second")
-      (input (if answer (set! widget8-list (cons answer widget8-list)))
-             "string" '() "1w")
-      ===
-      (refresh widget8-sub auto))))
+  (padded (with l
+            '("First" "Second")
+            (input (if answer (set! widget8-list (cons answer widget8-list)))
+              "string"
+              '()
+              "1w"
+            ) ;input
+            ===
+            (refresh widget8-sub auto)
+          ) ;with
+  ) ;padded
+) ;tm-widget
 
 (tm-widget (widget9)
-  (padded
-    (with flag? #f
-      (refreshable "test"
-        (if (not flag?) (text "Flag is off"))
-        (if flag? (text "Flag is on")))
-      ===
-      (hlist
-        (toggle (begin (set! flag? answer) (refresh-now "test")) flag?)
-        ///
-        (text "Toggle here")))))
+  (padded (with flag?
+            #f
+            (refreshable "test"
+              (if (not flag?) (text "Flag is off"))
+              (if flag? (text "Flag is on"))
+            ) ;refreshable
+            ===
+            (hlist (toggle (begin (set! flag? answer) (refresh-now "test")) flag?)
+              ///
+              (text "Toggle here")
+            ) ;hlist
+          ) ;with
+  ) ;padded
+) ;tm-widget
 
 (tm-widget (widget10)
-  (resize '("150px" "400px" "9000px") '("300px" "600px" "9000px")
-    (vertical
-      (bold (text "Testing tree-view"))
+  (resize '("150px" "400px" "9000px")
+    '("300px" "600px" "9000px")
+    (vertical (bold (text "Testing tree-view"))
       ===
-      (tree-view noop (buffer-tree) (stree->tree '(dummy))))))
+      (tree-view noop (buffer-tree) (stree->tree '(dummy)))
+    ) ;vertical
+  ) ;resize
+) ;tm-widget
 
 (tm-widget ((widget11 . l))
-  (padded
-    (aligned
-      (for (x l)
-	(item (toggle (display* x ": " answer "\n") #f)
-	  (text x))))))
+  (padded (aligned (for (x l) (item (toggle (display* x ": " answer "\n") #f) (text x))))
+  ) ;padded
+) ;tm-widget
 
-(tm-define (show-widget11)
-  (show (widget11 "hop" "hola" "plok")))
+(tm-define (show-widget11) (show (widget11 "hop" "hola" "plok")))
 
 (define widget11-switch? #f)
 
 (tm-widget (widget11)
-  (padded
-    (refreshable "toggle"
-      (if (not widget11-switch?)
-          (hlist
-            (text "Toggle off") // // //
-            (explicit-buttons
-              ("Turn on" (begin
-                           (set! widget11-switch? #t)
-                           (refresh-now "toggle"))))))
-      (if widget11-switch?
-          (hlist
-            (text "Toggle on") // // //
-            (explicit-buttons
-              ("Turn off" (begin
-                            (set! widget11-switch? #f)
-                            (refresh-now "toggle")))))))))
+  (padded (refreshable "toggle"
+            (if (not widget11-switch?)
+              (hlist (text "Toggle off")
+                //
+                //
+                //
+                (explicit-buttons ("Turn on" (begin (set! widget11-switch? #t) (refresh-now "toggle")))
+                ) ;explicit-buttons
+              ) ;hlist
+            ) ;if
+            (if widget11-switch?
+              (hlist (text "Toggle on")
+                //
+                //
+                //
+                (explicit-buttons ("Turn off" (begin (set! widget11-switch? #f) (refresh-now "toggle")))
+                ) ;explicit-buttons
+              ) ;hlist
+            ) ;if
+          ) ;refreshable
+  ) ;padded
+) ;tm-widget
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Some test forms
@@ -201,56 +229,56 @@
 
 (tm-widget (form1 cmd)
   (form "Test"
-    (centered
-      (aligned
-        (item (text "First:")
-          (form-input "First" "string" '("gnu") "1w"))
-        (item (text "Second:")
-          (form-input "Second" "string" '("gnat") "1w"))))
-    (bottom-buttons
-      ("Cancel" (cmd "Cancel")) >>
-      ("Ok"
-       (display* (form-fields) " -> " (form-values) "\n")
-       (cmd "Ok")))))
+    (centered (aligned (item (text "First:") (form-input "First" "string" '("gnu") "1w"))
+                (item (text "Second:") (form-input "Second" "string" '("gnat") "1w"))
+              ) ;aligned
+    ) ;centered
+    (bottom-buttons ("Cancel" (cmd "Cancel"))
+      >>
+      ("Ok" (display* (form-fields) " -> " (form-values) "\n") (cmd "Ok"))
+    ) ;bottom-buttons
+  ) ;form
+) ;tm-widget
 
 (tm-widget (form2 cmd)
-  (centered
-    (aligned
-      (item (text "First:")
-        (toggle (display* "First " answer "\n") #f))
-      (item (text "Second:")
-        (toggle (display* "Second " answer "\n") #f))))
-  (bottom-buttons >> ("Ok" (cmd "Ok"))))
+  (centered (aligned (item (text "First:") (toggle (display* "First " answer "\n") #f))
+              (item (text "Second:") (toggle (display* "Second " answer "\n") #f))
+            ) ;aligned
+  ) ;centered
+  (bottom-buttons >> ("Ok" (cmd "Ok")))
+) ;tm-widget
 
 (tm-widget (form3 cmd)
-  (resize "500px" "500px"
-    (padded
-      (form "Test"
-        (aligned
-          (item (text "Input:")
-            (form-input "fieldname1" "string" '("one") "1w"))
-          (item === ===)
-          (item (text "Enum:")
-            (form-enum "fieldname2" '("one" "two" "three") "two" "1w"))
-          (item === ===)
-          (item (text "Choice:")
-            (form-choice "fieldname3" '("one" "two" "three") "one"))
-          (item === ===)
-          (item (text "Choices:")
-            (form-choices "fieldname4" 
-                          '("one" "two" "three") 
-                          '("one" "two")))
-          (item === ===)
-          (item (text "Password:")
-            (form-input "fieldname5" "password" '() "1w"))
-          (item === ===)
-          (item (text "Toggle:")
-            (form-toggle "fieldname6" #f)))
-        (bottom-buttons
-          ("Cancel" (cmd "cancel")) >>
-          ("Ok"
-           (display* (form-fields) " -> " (form-values) "\n")
-           (cmd "ok")))))))
+  (resize "500px"
+    "500px"
+    (padded (form "Test"
+              (aligned (item (text "Input:") (form-input "fieldname1" "string" '("one") "1w"))
+                (item === ===)
+                (item (text "Enum:") (form-enum "fieldname2" '("one"
+                                                               "two"
+                                                               "three") "two" "1w"))
+                (item === ===)
+                (item (text "Choice:") (form-choice "fieldname3" '("one"
+                                                                   "two"
+                                                                   "three") "one"))
+                (item === ===)
+                (item (text "Choices:")
+                  (form-choices "fieldname4" '("one" "two" "three") '("one"
+                                                                      "two"))
+                ) ;item
+                (item === ===)
+                (item (text "Password:") (form-input "fieldname5" "password" '() "1w"))
+                (item === ===)
+                (item (text "Toggle:") (form-toggle "fieldname6" #f))
+              ) ;aligned
+              (bottom-buttons ("Cancel" (cmd "cancel"))
+                >>
+                ("Ok" (display* (form-fields) " -> " (form-values) "\n") (cmd "ok"))
+              ) ;bottom-buttons
+            ) ;form
+    ) ;padded
+  ) ;resize
+) ;tm-widget
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routines for showing widgets and forms
@@ -258,11 +286,13 @@
 
 (tm-define (show w)
   ;; Example: execute (show widget1) in a Scheme session
-  (top-window w "Simple widget"))
+  (top-window w "Simple widget")
+) ;tm-define
 
 (tm-define (show-form w)
   ;; Example: execute (show-form form1) in a Scheme session
-  (dialogue-window w (lambda (x) (display* x "\n")) "Simple form"))
+  (dialogue-window w (lambda (x) (display* x "\n")) "Simple form")
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Regtest routines for menu widgets
@@ -270,56 +300,31 @@
 
 (define (regtest-menu-widgets)
   ;; Basic test to ensure menu module loads without errors
-  (regression-test-group
-   "menu" "widgets"
-   values values
-   (test "module loaded successfully" 
-     #t 
-     #t)
-   (test "tm-widget macro available" 
-     (defined? 'tm-widget) 
-     #t)
-   (test "show function available" 
-     (defined? 'show) 
-     #t)
-   (test "show-form function available" 
-     (defined? 'show-form) 
-     #t)
-   (test "tm-define macro available" 
-     (defined? 'tm-define) 
-     #t)
-   (test "menu-bind macro available" 
-     (defined? 'menu-bind) 
-     #t)
-   (test "display* function available" 
-     (defined? 'display*) 
-     #t)
-   (test "noop function available" 
-     (defined? 'noop) 
-     #t)
-   (test "refresh-now function available" 
-     (defined? 'refresh-now) 
-     #t)
-   (test "stree->tree function available" 
-     (defined? 'stree->tree) 
-     #t)
-   (test "buffer-tree function available" 
-     (defined? 'buffer-tree) 
-     #t)
-   (test "widget-hmenu function available" 
-     (defined? 'widget-hmenu) 
-     #t)
-   (test "widget-text function available" 
-     (defined? 'widget-text) 
-     #t)
-   (test "widget-vlist function available" 
-     (defined? 'widget-vlist) 
-     #t)
-   (test "widget-hlist function available" 
-     (defined? 'widget-hlist) 
-     #t)))
+  (regression-test-group "menu"
+    "widgets"
+    values
+    values
+    (test "module loaded successfully" #t #t)
+    (test "tm-widget macro available" (defined? 'tm-widget) #t)
+    (test "show function available" (defined? 'show) #t)
+    (test "show-form function available" (defined? 'show-form) #t)
+    (test "tm-define macro available" (defined? 'tm-define) #t)
+    (test "menu-bind macro available" (defined? 'menu-bind) #t)
+    (test "display* function available" (defined? 'display*) #t)
+    (test "noop function available" (defined? 'noop) #t)
+    (test "refresh-now function available" (defined? 'refresh-now) #t)
+    (test "stree->tree function available" (defined? 'stree->tree) #t)
+    (test "buffer-tree function available" (defined? 'buffer-tree) #t)
+    (test "widget-hmenu function available" (defined? 'widget-hmenu) #t)
+    (test "widget-text function available" (defined? 'widget-text) #t)
+    (test "widget-vlist function available" (defined? 'widget-vlist) #t)
+    (test "widget-hlist function available" (defined? 'widget-hlist) #t)
+  ) ;regression-test-group
+) ;define
 
 (tm-define (regtest-menu)
   (let ((n (regtest-menu-widgets)))
     (display* "Total: " (number->string n) " tests.\n")
-    (display "Test suite of regtest-menu: ok\n")))
+    (display "Test suite of regtest-menu: ok\n")
+  ) ;let
+) ;tm-define

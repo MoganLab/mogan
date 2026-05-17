@@ -77,8 +77,8 @@
 (if (guile-a?)
   (define-macro (define-public-macro head . body)
     `(define-public ,(car head)
-       (*comment* " FIXME: why can't we use procedure->macro")
-       (*comment* " for a non-memoizing variant?")
+       ;; FIXME: why can't we use procedure->macro
+       ;; for a non-memoizing variant?
        (procedure->memoizing-macro (lambda (cmd env)
                                      (apply (lambda ,(cdr head) ,@body)
                                        (cdr cmd)))))

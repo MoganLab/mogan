@@ -32,6 +32,4 @@ clang-format -i moebius/**/*.hpp
 clang-format -i 3rdparty/lolly/**/*.cpp
 clang-format -i 3rdparty/lolly/**/*.hpp
 
-gf fix TeXmacs/progs/kernel/boot
-gf fix TeXmacs/progs/kernel/library
-gf fix TeXmacs/progs/kernel/logic
+gf fix TeXmacs/progs/kernel

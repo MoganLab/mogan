@@ -11,45 +11,51 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (kernel gui kbd-handlers)
-  (:use (kernel texmacs tm-define)))
+(texmacs-module (kernel gui kbd-handlers) (:use (kernel texmacs tm-define)))
 
-(tm-define ShiftMask     256)
-(tm-define LockMask      512)
-(tm-define ControlMask  1024)
-(tm-define Mod1Mask     2048)
-(tm-define Mod2Mask     4096)
-(tm-define Mod3Mask     8192)
-(tm-define Mod4Mask    16384)
-(tm-define Mod5Mask    32768)
+(tm-define ShiftMask 256)
+(tm-define LockMask 512)
+(tm-define ControlMask 1024)
+(tm-define Mod1Mask 2048)
+(tm-define Mod2Mask 4096)
+(tm-define Mod3Mask 8192)
+(tm-define Mod4Mask 16384)
+(tm-define Mod5Mask 32768)
 
-(tm-define (keyboard-press key time)
-  (key-press key))
+(tm-define (keyboard-press key time) (key-press key))
 
-(tm-define (keyboard-focus has-focus? time)
-  (noop))
+(tm-define (keyboard-focus has-focus? time) (noop))
 
 (tm-define (mouse-event key x y mods time data)
-  ;;(display* "mouse-event " key ", " x ", " y ", " mods ", " time ", " data "\n")
-  (mouse-any key x y mods (+ time 0.0) data))
+  ;; (display* "mouse-event " key ", " x ", " y ", " mods ", " time ", " data "\n")
+  (mouse-any key x y mods (+ time 0.0) data)
+) ;tm-define
 
 (tm-define (mouse-drop-event x y obj)
-  ;;(display* "mouse-drop-event " x ", " y ", " (tm->stree obj) "\n")
-  (insert obj))
+  ;; (display* "mouse-drop-event " x ", " y ", " (tm->stree obj) "\n")
+  (insert obj)
+) ;tm-define
 
-(tm-define (kbd-insert s)
-  (insert s))
+(tm-define (kbd-insert s) (insert s))
 
 (define delayed-keyboard-time #f)
 
 (tm-define (delayed-keyboard-press x t)
   (set! delayed-keyboard-time t)
-  (exec-delayed-pause
-   (lambda ()
-     (or (!= delayed-keyboard-time t)
-         (with left (- 100 (idle-time))
-           (if (> left 0) left
-               (begin
-                 (set! delayed-keyboard-time #f)
-                 (keyboard-press x t)
-                 #t)))))))
+  (exec-delayed-pause (lambda ()
+                        (or (!= delayed-keyboard-time t)
+                          (with left
+                            (- 100 (idle-time))
+                            (if (> left 0)
+                              left
+                              (begin
+                                (set! delayed-keyboard-time #f)
+                                (keyboard-press x t)
+                                #t
+                              ) ;begin
+                            ) ;if
+                          ) ;with
+                        ) ;or
+                      ) ;lambda
+  ) ;exec-delayed-pause
+) ;tm-define

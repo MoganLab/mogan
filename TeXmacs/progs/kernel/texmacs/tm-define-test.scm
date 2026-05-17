@@ -11,19 +11,21 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (prog prog-format-test)
-  (:use (kernel texmacs tm-define)))
+(texmacs-module (prog prog-format-test) (:use (kernel texmacs tm-define)))
 
 (import (liii check))
 
 (check-set-mode! 'report-failed)
 
 (define (test-define-procedure)
-  (display "This is a test procedure defined with define\n"))
+  (display "This is a test procedure defined with define\n")
+) ;define
 
 (tm-define (test-tm-define-procedure)
-  #:synopsis "Test procedure defined via tm-define"
-  (display "This is a test procedure defined with tm-define\n"))
+  :synopsis
+  "Test procedure defined via tm-define"
+  (display "This is a test procedure defined with tm-define\n")
+) ;tm-define
 
 (tm-define alias-car car)
 
@@ -38,13 +40,13 @@
   (check (procedure-name 1) => #f)
   ;; Test lambda serialization - anonymous lambdas should return #f
   (let ((lambda-func (lambda (x) (+ x 1))))
-    (check (procedure-name lambda-func) => #f))
+    (check (procedure-name lambda-func) => #f)
+  ) ;let
   ;; Test that different anonymous lambdas all return #f
-  (let ((lambda1 (lambda () 1))
-        (lambda2 (lambda () 2)))
+  (let ((lambda1 (lambda () 1)) (lambda2 (lambda () 2)))
     (check (procedure-name lambda1) => #f)
-    (check (procedure-name lambda2) => #f)))
+    (check (procedure-name lambda2) => #f)
+  ) ;let
+) ;define
 
-(tm-define (regtest-tm-define)
-  (test-procedure-name)
-  (check-report))
+(tm-define (regtest-tm-define) (test-procedure-name) (check-report))

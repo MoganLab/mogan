@@ -18,24 +18,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define widget-call-back-nr 0)
+
 (define widget-call-back-table (make-ahash-table))
 
 (tm-define (widget-call-back handle)
   (:secure #t)
-  (and-with fun (ahash-ref widget-call-back-table handle)
-    (fun)))
+  (and-with fun (ahash-ref widget-call-back-table handle) (fun))
+) ;tm-define
 
 (tm-define (widget-new-call-back fun)
   (set! widget-call-back-nr (+ widget-call-back-nr 1))
   (ahash-set! widget-call-back-table widget-call-back-nr fun)
-  (string-append "(widget-call-back "
-		 (number->string widget-call-back-nr)
-		 ")"))
+  (string-append "(widget-call-back " (number->string widget-call-back-nr) ")")
+) ;tm-define
 
 (tm-define (widget-delete-call-backs start end)
   (when (< start end)
     (ahash-set! widget-call-back-table start #f)
-    (widget-delete-call-backs (+ start 1) end)))
+    (widget-delete-call-backs (+ start 1) end)
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Internal widget fields
@@ -44,30 +46,44 @@
 (define widget-internal-table (make-ahash-table))
 
 (tm-define (widget-internal-new handle)
-  (ahash-set! widget-internal-table handle (make-ahash-table)))
+  (ahash-set! widget-internal-table handle (make-ahash-table))
+) ;tm-define
 
 (tm-define (widget-internal-delete handle)
-  (ahash-remove! widget-internal-table handle))
+  (ahash-remove! widget-internal-table handle)
+) ;tm-define
 
 (tm-define (widget-internal-set! handle var val)
-  (and-with t (ahash-ref widget-internal-table handle)
-    (ahash-set! t var val)))
+  (and-with t (ahash-ref widget-internal-table handle) (ahash-set! t var val))
+) ;tm-define
 
 (tm-define (widget-internal-ref handle var)
-  (and-with t (ahash-ref widget-internal-table handle)
-    (ahash-ref t var)))
+  (and-with t (ahash-ref widget-internal-table handle) (ahash-ref t var))
+) ;tm-define
 
 (tm-define (internal-set! var val)
   (when (context-has? "widget-prefix")
-    (and-with handle* (get-env "widget-prefix")
-      (with handle (if (== handle* "") "" (string-drop-right handle* 1))
-	(widget-internal-set! handle var val)))))
+    (and-with handle*
+      (get-env "widget-prefix")
+      (with handle
+        (if (== handle* "") "" (string-drop-right handle* 1))
+        (widget-internal-set! handle var val)
+      ) ;with
+    ) ;and-with
+  ) ;when
+) ;tm-define
 
 (tm-define (internal-ref var)
   (when (context-has? "widget-prefix")
-    (and-with handle* (get-env "widget-prefix")
-      (with handle (if (== handle* "") "" (string-drop-right handle* 1))
-	(widget-internal-ref handle var)))))
+    (and-with handle*
+      (get-env "widget-prefix")
+      (with handle
+        (if (== handle* "") "" (string-drop-right handle* 1))
+        (widget-internal-ref handle var)
+      ) ;with
+    ) ;and-with
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The widget prefix and delayed evaluation
@@ -77,32 +93,31 @@
 
 (tm-define-macro (widget-with prefix . body)
   (:secure #t)
-  `(let ((new-prefix ,prefix)
-	 (old-prefix widget-prefix))
+  `(let ((new-prefix ,prefix) (old-prefix widget-prefix))
      (set! widget-prefix new-prefix)
-     (let ((result (begin ,@body)))
-       (set! widget-prefix old-prefix)
-       result)))
+     (let ((result (begin ,@body))) (set! widget-prefix old-prefix) result))
+) ;tm-define-macro
 
 (define (widget-get-prefix opt-prefix)
   (cond ((null? opt-prefix) widget-prefix)
-	((tree? (car opt-prefix)) (tree->string (car opt-prefix)))
-	(else (car opt-prefix))))
+        ((tree? (car opt-prefix)) (tree->string (car opt-prefix)))
+        (else (car opt-prefix))
+  ) ;cond
+) ;define
 
-(tm-define-macro (widget-delay . body)
-  (:secure #t)
-  `(delayed
-     (:idle 1)
-     ,@body))
+(tm-define-macro (widget-delay . body) (:secure #t) `(delayed (:idle 1) ,@body))
 
 (tm-define-macro (widget-delayed . body)
-  (with normal? (lambda (x) (or (npair? x) (not (keyword? (car x)))))
-    (receive (mods cmds) (list-break body normal?)
-      `(with widget-delayed-prefix widget-prefix
-	 (delayed
-	   ,@mods
-	   (widget-with widget-delayed-prefix
-	     ,@cmds))))))
+  (with normal?
+    (lambda (x) (or (npair? x) (not (keyword? (car x)))))
+    (receive (mods cmds)
+      (list-break body normal?)
+      `(with widget-delayed-prefix
+         widget-prefix
+         (delayed ,@mods (widget-with widget-delayed-prefix ,@cmds)))
+    ) ;receive
+  ) ;with
+) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Input and output
@@ -112,14 +127,20 @@
   (:secure #t)
   (if (tree? handle) (set! handle (tree->string handle)))
   (let* ((prefix (widget-get-prefix opt-prefix))
-	 (l (id->trees (string-append prefix handle))))
-    (and l (nnull? l) (car l))))
+         (l (id->trees (string-append prefix handle)))
+        ) ;
+    (and l (nnull? l) (car l))
+  ) ;let*
+) ;tm-define
 
 (tm-define (widget-set! handle new-tree . opt-prefix)
   (:secure #t)
   (if (tree? handle) (set! handle (tree->string handle)))
-  (and-with old-tree (apply widget-ref (cons handle opt-prefix))
-    (tree-set! old-tree (tree-copy (tm->tree new-tree)))))
+  (and-with old-tree
+    (apply widget-ref (cons handle opt-prefix))
+    (tree-set! old-tree (tree-copy (tm->tree new-tree)))
+  ) ;and-with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Armouring widgets
@@ -129,27 +150,27 @@
 
 (tm-define (widget-armour body)
   `(let* ((aux-handle widget-serial-number)
-	  (aux-num (number->string aux-handle))
-	  (aux-serial (string-append "widget-" aux-num))
-	  (aux-begin (+ widget-call-back-nr 1))
-	  (aux-end (+ widget-call-back-nr 1))
-	  (aux-result #f)
-	  (internal-ref
-	   (lambda (var)
-	     (widget-internal-ref aux-handle var)))
-	  (internal-set!
-	   (lambda (var val)
-	     (widget-internal-set! aux-handle var val)))
-	  (dismiss
-	   (lambda ()
-	     (widget-delete-call-backs aux-begin aux-end)
-	     (widget-internal-delete aux-handle)
-	     (kill-current-window-and-buffer))))
+          (aux-num (number->string aux-handle))
+          (aux-serial (string-append "widget-" aux-num))
+          (aux-begin (+ widget-call-back-nr 1))
+          (aux-end (+ widget-call-back-nr 1))
+          (aux-result #f)
+          (internal-ref (lambda (var) (widget-internal-ref aux-handle var)))
+          (internal-set! (lambda (var val)
+                           (widget-internal-set! aux-handle var val)))
+          (dismiss (lambda ()
+                     (widget-delete-call-backs aux-begin aux-end)
+                     (widget-internal-delete aux-handle)
+                     (kill-current-window-and-buffer))))
      (set! widget-serial-number (+ widget-serial-number 1))
      (widget-internal-new aux-handle)
      (set! aux-result ,body)
      (set! aux-end (+ widget-call-back-nr 1))
-     `(widget ,aux-serial (document ,@aux-result))))
+     (#_list-values
+      'widget
+      aux-serial
+      (#_list-values 'document (#_apply-values aux-result))))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Stand-alone widgets
@@ -157,20 +178,26 @@
 
 (define (stand-alone body)
   (let* ((style '(tuple "generic" "gui"))
-	 (init '(collection (associate "window-bars" "false")
-			    (associate "prog-scripts" "maxima"))))
-    `(document (style ,style) (body ,body) (initial ,init))))
+         (init '(collection (associate "window-bars" "false")
+                  (associate "prog-scripts" "maxima"))
+         ) ;init
+        ) ;
+    `(document (style ,style) (body ,body) (initial ,init))
+  ) ;let*
+) ;define
 
-(tm-define (widget-build w)
-  (tm->tree (eval (widget-armour (build-content w)))))
+(tm-define (widget-build w) (tm->tree (eval (widget-armour (build-content w)))))
 
 (tm-define (widget-popup aux w)
   (let* ((name (aux-name aux))
          (master (buffer-master))
          (body* (tm->tree (eval (widget-armour (build-content w)))))
-	 (body `(document (disable-writability ,body*)))
-	 (doc (stand-alone body))
-	 (geom (tree-extents doc)))
+         (body `(document (disable-writability ,body*)))
+         (doc (stand-alone body))
+         (geom (tree-extents doc))
+        ) ;
     (aux-set-document aux doc)
     (aux-set-master aux (buffer-master))
-    (open-buffer-in-window name doc geom)))
+    (open-buffer-in-window name doc geom)
+  ) ;let*
+) ;tm-define
