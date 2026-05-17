@@ -22,20 +22,20 @@ lazy make_lazy_vstream (edit_env env, tree t, path ip, tree channel);
 /******************************************************************************
  * Text Background color helper functions
  ******************************************************************************/
-bool
+static inline bool
 has_background_color (edit_env env) {
   tree   bg_color_tree= env->read (TEXT_BG_COLOR);
   string bg_color_str = as_string (bg_color_tree);
   return (bg_color_tree != "" && bg_color_str != "white");
 }
 
-string
+static inline string
 get_background_color_str (edit_env env) {
   tree bg_color_tree= env->read (TEXT_BG_COLOR);
   return as_string (bg_color_tree);
 }
 
-color
+static inline color
 get_background_color (edit_env env) {
   // 注意：调用此函数前应确保 has_background_color(env) 为 true
   string bg_color_str= get_background_color_str (env);
