@@ -9,10 +9,9 @@
 #include <QtTest/QtTest>
 
 // Forward declare the function under test (defined in edit_interface.cpp)
-extern void
-compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
-                     double old_magf, double new_magf,
-                     SI& new_sx, SI& new_sy);
+extern void compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
+                                 double old_magf, double new_magf, SI& new_sx,
+                                 SI& new_sy);
 
 class TestZoomScroll : public QObject {
   Q_OBJECT
@@ -29,8 +28,8 @@ private slots:
 // 光标在视口中央，放大2倍：scroll 应向光标靠拢
 void
 TestZoomScroll::test_zoom_in_centered () {
-  SI cursor_x= 1000, cursor_y= 1000;
-  SI old_sx= 500, old_sy= 500;   // scroll 在光标左上方
+  SI     cursor_x= 1000, cursor_y= 1000;
+  SI     old_sx= 500, old_sy= 500; // scroll 在光标左上方
   double old_magf= 1.0, new_magf= 2.0;
   SI     new_sx, new_sy;
 
@@ -46,8 +45,8 @@ TestZoomScroll::test_zoom_in_centered () {
 // 光标在视口中央，缩小1/2：scroll 应远离光标
 void
 TestZoomScroll::test_zoom_out_centered () {
-  SI cursor_x= 1000, cursor_y= 1000;
-  SI old_sx= 500, old_sy= 500;
+  SI     cursor_x= 1000, cursor_y= 1000;
+  SI     old_sx= 500, old_sy= 500;
   double old_magf= 2.0, new_magf= 1.0;
   SI     new_sx, new_sy;
 
@@ -63,8 +62,8 @@ TestZoomScroll::test_zoom_out_centered () {
 // 光标在视口左边缘，放大2倍：光标应仍在边缘
 void
 TestZoomScroll::test_zoom_in_at_edge () {
-  SI cursor_x= 500, cursor_y= 500;
-  SI old_sx= 500, old_sy= 500;   // scroll 正好在光标处（光标在视口左边缘）
+  SI     cursor_x= 500, cursor_y= 500;
+  SI     old_sx= 500, old_sy= 500; // scroll 正好在光标处（光标在视口左边缘）
   double old_magf= 1.0, new_magf= 2.0;
   SI     new_sx, new_sy;
 
@@ -80,8 +79,8 @@ TestZoomScroll::test_zoom_in_at_edge () {
 // 光标在视口右边缘，缩小1/2
 void
 TestZoomScroll::test_zoom_out_at_edge () {
-  SI cursor_x= 1000, cursor_y= 1000;
-  SI old_sx= 1000, old_sy= 1000; // scroll 正好在光标处（光标在视口左边缘）
+  SI     cursor_x= 1000, cursor_y= 1000;
+  SI     old_sx= 1000, old_sy= 1000; // scroll 正好在光标处（光标在视口左边缘）
   double old_magf= 2.0, new_magf= 1.0;
   SI     new_sx, new_sy;
 
@@ -96,8 +95,8 @@ TestZoomScroll::test_zoom_out_at_edge () {
 // zoom 不变时，scroll 应保持不变
 void
 TestZoomScroll::test_no_zoom_change () {
-  SI cursor_x= 1000, cursor_y= 1000;
-  SI old_sx= 300, old_sy= 400;
+  SI     cursor_x= 1000, cursor_y= 1000;
+  SI     old_sx= 300, old_sy= 400;
   double old_magf= 1.5, new_magf= 1.5;
   SI     new_sx, new_sy;
 
@@ -111,8 +110,8 @@ TestZoomScroll::test_no_zoom_change () {
 // 验证整数舍入精度
 void
 TestZoomScroll::test_rounding_precision () {
-  SI cursor_x= 1000, cursor_y= 1000;
-  SI old_sx= 333, old_sy= 333;
+  SI     cursor_x= 1000, cursor_y= 1000;
+  SI     old_sx= 333, old_sy= 333;
   double old_magf= 1.0, new_magf= 3.0;
   SI     new_sx, new_sy;
 

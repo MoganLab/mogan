@@ -166,8 +166,7 @@ edit_interface_rep::get_pixel_size () {
 
 void
 compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
-                     double old_magf, double new_magf,
-                     SI& new_sx, SI& new_sy) {
+                     double old_magf, double new_magf, SI& new_sx, SI& new_sy) {
   new_sx= cursor_x - (SI) tm_round ((cursor_x - old_sx) * old_magf / new_magf);
   new_sy= cursor_y - (SI) tm_round ((cursor_y - old_sy) * old_magf / new_magf);
 }
