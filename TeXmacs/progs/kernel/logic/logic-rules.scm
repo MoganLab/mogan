@@ -31,7 +31,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel logic logic-rules)
-  (:use (kernel logic logic-bind) (kernel logic logic-unify)))
+  (:use (kernel logic logic-bind) (kernel logic logic-unify))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting new rules
@@ -39,11 +40,14 @@
 
 (define (ahash-list-ref table key)
   (let ((val (ahash-ref table key)))
-    (if val val '())))
+    (if val val '())
+  ) ;let
+) ;define
 
 (define (ahash-list-add! table key val)
   "Add @value to list of values for @key in @table."
-  (ahash-set! table key (cons val (ahash-list-ref table key))))
+  (ahash-set! table key (cons val (ahash-list-ref table key)))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting new rules
@@ -52,27 +56,32 @@
 (define logic-rules-table (make-ahash-table))
 
 (define (logic-add-rule-advance table symb todo rule)
-  (if (not (ahash-ref table symb))
-      (ahash-set! table symb (make-ahash-table)))
-  (logic-add-rule-sub (ahash-ref table symb) todo rule))
+  (if (not (ahash-ref table symb)) (ahash-set! table symb (make-ahash-table)))
+  (logic-add-rule-sub (ahash-ref table symb) todo rule)
+) ;define
 
 (define (logic-add-rule-sub table todo rule)
   "Add @rule to @table with @todo yet to be 'read'."
   (ahash-list-add! table :all rule)
   (if (nnull? todo)
-      (let ((next (car todo)))
-	(cond ((npair? next)
-	       (logic-add-rule-advance table next (cdr todo) rule))
-	      ((free-variable? next)
-	       (ahash-list-add! table :free rule))
-	      (else (logic-add-rule-advance
-		     table :down
-		     (cons (car next) (cons (cdr next) (cdr todo)))
-		     rule))))))
+    (let ((next (car todo)))
+      (cond ((npair? next) (logic-add-rule-advance table next (cdr todo) rule))
+            ((free-variable? next) (ahash-list-add! table :free rule))
+            (else (logic-add-rule-advance table
+                    :down
+                    (cons (car next) (cons (cdr next) (cdr todo)))
+                    rule
+                  ) ;logic-add-rule-advance
+            ) ;else
+      ) ;cond
+    ) ;let
+  ) ;if
+) ;define
 
 (define (logic-add-rule rule)
   "Add the rule @rule to the global database."
-  (logic-add-rule-sub logic-rules-table (list (car rule)) rule))
+  (logic-add-rule-sub logic-rules-table (list (car rule)) rule)
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Getting filtered rules which may possibly be applied for proving a goal
@@ -80,27 +89,36 @@
 
 (define (logic-get-rules-advance table symb todo)
   (let ((next-table (ahash-ref table symb)))
-    (if next-table (logic-get-rules-sub next-table todo) '())))
+    (if next-table (logic-get-rules-sub next-table todo) '())
+  ) ;let
+) ;define
 
 (define (logic-get-rules-sub table todo)
   "Get rules for @todo from @table."
   (if (null? todo)
-      (ahash-list-ref table :all)
-      (let ((next (car todo)))
-	(cond ((npair? next)
-	       (append (ahash-list-ref table :free)
-		       (logic-get-rules-advance table next (cdr todo)))
-	       ;; FIXME: (difficult with present algorithm) messes up order
-	       )
-	      ((free-variable? next)
-	       (ahash-list-ref table :all))
-	      (else (logic-get-rules-advance
-		     table :down
-		     (cons (car next) (cons (cdr next) (cdr todo)))))))))
+    (ahash-list-ref table :all)
+    (let ((next (car todo)))
+      (cond ((npair? next)
+             (append (ahash-list-ref table :free)
+               (logic-get-rules-advance table next (cdr todo))
+             ) ;append
+             ;; FIXME: (difficult with present algorithm) messes up order
+            ) ;
+            ((free-variable? next) (ahash-list-ref table :all))
+            (else (logic-get-rules-advance table
+                    :down
+                    (cons (car next) (cons (cdr next) (cdr todo)))
+                  ) ;logic-get-rules-advance
+            ) ;else
+      ) ;cond
+    ) ;let
+  ) ;if
+) ;define
 
 (define-public (logic-get-rules goal)
   "Get all rules which may be applied to prove @goal."
-  (reverse (logic-get-rules-sub logic-rules-table (list goal))))
+  (reverse (logic-get-rules-sub logic-rules-table (list goal)))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
@@ -108,16 +126,17 @@
 
 (define-public (logic-rules-decls l extra)
   (cond ((npair? l) (noop))
-	((and (pair? (car l)) (== (caar l) 'assume))
-	 (logic-rules-decls (cdr l) (append (cdar l) extra)))
-	(else
-	 (logic-add-rule (cons (caar l) (append extra (cdar l))))
-	 (logic-rules-decls (cdr l) extra))))
+        ((and (pair? (car l)) (== (caar l) 'assume))
+         (logic-rules-decls (cdr l) (append (cdar l) extra))
+        ) ;
+        (else (logic-add-rule (cons (caar l) (append extra (cdar l))))
+          (logic-rules-decls (cdr l) extra)
+        ) ;else
+  ) ;cond
+) ;define-public
 
 (define-public-macro (logic-rules . l)
-  `(begin
-     (logic-rules-decls ,(list 'quasiquote l) '())
-     (display "")))
+  `(begin (logic-rules-decls ,(list 'quasiquote l) '()) (display ""))
+) ;define-public-macro
 
-(define-public-macro (logic-rule . l)
-  `(logic-rules ,l))
+(define-public-macro (logic-rule . l) `(logic-rules ,l))

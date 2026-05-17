@@ -12,88 +12,127 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel logic logic-data)
-  (:use (kernel logic logic-rules) (kernel logic logic-query)))
+  (:use (kernel logic logic-rules) (kernel logic logic-query))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful subroutines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (is-assume? expr)
-  (and (pair? expr) (== (car expr) 'assume)))
+  (and (pair? expr) (== (car expr) 'assume))
+) ;define
 
 (define (quote-all l)
-  (map (lambda (x) (list 'quote x)) l))
+  (map (lambda (x) (list 'quote x)) l)
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Extraction of logical information
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define logic-facts-table (make-ahash-table))
+
 (define logic-apply-table (make-ahash-table))
+
 (define logic-apply-list-table (make-ahash-table))
 
 (define-public (logic-holds? test . conds)
   "Does the relation @test hold under conditions @conds?"
-  (let* ((what (cons test conds))
-	 (handle (ahash-get-handle logic-facts-table what)))
-    (if handle (cdr handle)
-	(let ((ok (== (apply query what) '(()))))
-	  (ahash-set! logic-facts-table what ok)
-	  ok))))
+  (let* ((what (cons test conds)) (handle (ahash-get-handle logic-facts-table what)))
+    (if handle
+      (cdr handle)
+      (let ((ok (== (apply query what) '(()))))
+        (ahash-set! logic-facts-table what ok)
+        ok
+      ) ;let
+    ) ;if
+  ) ;let*
+) ;define-public
 
 (define (logic-unique-result l)
   "Retrieve the non-ambiguous functional result from a list of solutions @l."
-  (if (null? l) #f
-      (let ((bl (car l)))
-	(if (!= (length bl) 1)
-	    (error "Bad return values for logical apply")
-	    (let ((r (cdar bl)))
-	      (if (null? (cdr l)) r
-		  (if (!= r (logic-unique-result (cdr l)))
-		      (error "Ambiguous return values for logical apply")
-		      r)))))))
+  (if (null? l)
+    #f
+    (let ((bl (car l)))
+      (if (!= (length bl) 1)
+        (error "Bad return values for logical apply")
+        (let ((r (cdar bl)))
+          (if (null? (cdr l))
+            r
+            (if (!= r (logic-unique-result (cdr l)))
+              (error "Ambiguous return values for logical apply")
+              r
+            ) ;if
+          ) ;if
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;if
+) ;define
 
 (define-public (logic-apply fun . conds)
   "Retrieve unique @r such that @(rcons fun r) holds under conditions @conds."
-  (let* ((what (cons fun conds))
-	 (handle (ahash-get-handle logic-apply-table what)))
-    (if handle (cdr handle)
-	(let* ((goal (cons (append fun '('r)) conds))
-	       (val (logic-unique-result (apply query goal))))
-	  (ahash-set! logic-apply-table what val)
-	  val))))
+  (let* ((what (cons fun conds)) (handle (ahash-get-handle logic-apply-table what)))
+    (if handle
+      (cdr handle)
+      (let* ((goal (cons (append fun '('r)) conds))
+             (val (logic-unique-result (apply query goal)))
+            ) ;
+        (ahash-set! logic-apply-table what val)
+        val
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define-public
 
 (define (logic-list-result l)
   "Retrieve the list of results from a list of solutions @l."
-  (if (null? l) l
-      (let ((bl (car l)))
-	(if (not (= (length bl) 1))
-	    (error "Bad return values for logical apply")
-	    (let ((r (cdar bl)))
-	      (cons r (logic-list-result (cdr l))))))))
+  (if (null? l)
+    l
+    (let ((bl (car l)))
+      (if (not (= (length bl) 1))
+        (error "Bad return values for logical apply")
+        (let ((r (cdar bl)))
+          (cons r (logic-list-result (cdr l)))
+        ) ;let
+      ) ;if
+    ) ;let
+  ) ;if
+) ;define
 
 (define-public (logic-apply-list fun . conds)
   "Retrieve list of @r such that @(rcons fun r) holds under conditions @conds."
   (let* ((what (cons fun conds))
-	 (handle (ahash-get-handle logic-apply-list-table what)))
-    (if handle (cdr handle)
-	(let* ((goal (cons (append fun '('r)) conds))
-	       (val (logic-list-result (apply query goal))))
-	  (ahash-set! logic-apply-list-table what val)
-	  val))))
+         (handle (ahash-get-handle logic-apply-list-table what))
+        ) ;
+    (if handle
+      (cdr handle)
+      (let* ((goal (cons (append fun '('r)) conds))
+             (val (logic-list-result (apply query goal)))
+            ) ;
+        (ahash-set! logic-apply-list-table what val)
+        val
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public interface for logic-holds? and logic-apply
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public-macro (logic-test? name . args)
-  `(logic-holds? (list ,(list 'quasiquote name) ,@args)))
+  `(logic-holds? (list ,(list 'quasiquote name) ,@args))
+) ;define-public-macro
 
 (define-public-macro (logic-lookup name . keys)
-  `(logic-apply (list ,(list 'quasiquote name) ,@keys)))
+  `(logic-apply (list ,(list 'quasiquote name) ,@keys))
+) ;define-public-macro
 
 (define-public-macro (logic-lookup-list name . keys)
-  `(logic-apply-list (list ,(list 'quasiquote name) ,@keys)))
+  `(logic-apply-list (list ,(list 'quasiquote name) ,@keys))
+) ;define-public-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definition of groups (should use logical programming soon)
@@ -101,63 +140,75 @@
 
 (define-public (logic-group-rules name l)
   (cond ((null? l) '())
-	((is-assume? (car l))
-	 (cons (car l) (logic-group-rules name (cdr l))))
-	(else
-	 (cons (list (list name (car l))) (logic-group-rules name (cdr l))))))
+        ((is-assume? (car l)) (cons (car l) (logic-group-rules name (cdr l))))
+        (else (cons (list (list name (car l))) (logic-group-rules name (cdr l))))
+  ) ;cond
+) ;define-public
 
 (define-public-macro (logic-group name . l)
-  `(logic-rules ,@(logic-group-rules name l)))
+  `(logic-rules ,@(logic-group-rules name l))
+) ;define-public-macro
 
 (define-public-macro (logic-in? x name . conds)
-  `(logic-holds? (list ,(list 'quasiquote name) ,x) ,@(quote-all conds)))
+  `(logic-holds? (list ,(list 'quasiquote name) ,x) ,@(quote-all conds))
+) ;define-public-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definition of tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (logic-table-rule name binding)
-  (let ((key (car binding))
-	(im (cadr binding))
-	(conds (cddr binding)))
+  (let ((key (car binding)) (im (cadr binding)) (conds (cddr binding)))
     (if (and (pair? key) (== (car key) :or))
-	(let ((fun (lambda (skey)
-		     (logic-table-rule name (cons skey (cons im conds))))))
-	  (apply append (map fun (cdr key))))
-	(list (cons (list name key im) conds)))))
+      (let ((fun (lambda (skey) (logic-table-rule name (cons skey (cons im conds))))))
+        (apply append (map fun (cdr key)))
+      ) ;let
+      (list (cons (list name key im) conds))
+    ) ;if
+  ) ;let
+) ;define
 
 (define-public (logic-table-rules name l)
   (cond ((null? l) '())
-	((is-assume? (car l))
-	 (cons (car l) (logic-table-rules name (cdr l))))
-	(else (append (logic-table-rule name (car l))
-		      (logic-table-rules name (cdr l))))))
+        ((is-assume? (car l)) (cons (car l) (logic-table-rules name (cdr l))))
+        (else (append (logic-table-rule name (car l)) (logic-table-rules name (cdr l))))
+  ) ;cond
+) ;define-public
 
 (define-public-macro (logic-table name . l)
-  `(logic-rules ,@(logic-table-rules name l)))
+  `(logic-rules ,@(logic-table-rules name l))
+) ;define-public-macro
 
 (define-public-macro (logic-ref name key . conds)
-  ;;`(logic-apply (list ,(list 'quasiquote name) ,key) ,@(quote-all conds)))
-  `(logic-apply (list ,(list 'quasiquote name) ,key) ,@conds))
+  ;; `(logic-apply (list ,(list 'quasiquote name) ,key) ,@(quote-all conds)))
+  `(logic-apply (list ,(list 'quasiquote name) ,key) ,@conds)
+) ;define-public-macro
 
 (define-public-macro (logic-ref-list name key . conds)
-  ;;`(logic-apply-list (list ,(list 'quasiquote name) ,key) ,@(quote-all conds)))
-  `(logic-apply-list (list ,(list 'quasiquote name) ,key) ,@conds))
+  ;; `(logic-apply-list (list ,(list 'quasiquote name) ,key) ,@(quote-all conds)))
+  `(logic-apply-list (list ,(list 'quasiquote name) ,key) ,@conds)
+) ;define-public-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definition of dispatchers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (logic-dispatcher-rule rule)
-  (if (is-assume? rule) rule
-      (cons* (car rule) (list 'unquote (cadr rule)) (cddr rule))))
+  (if (is-assume? rule)
+    rule
+    (cons* (car rule) (list 'unquote (cadr rule)) (cddr rule))
+  ) ;if
+) ;define-public
 
 (define-public-macro (logic-dispatcher name . l)
-  `(logic-table ,name ,@(map logic-dispatcher-rule l)))
+  `(logic-table ,name ,@(map logic-dispatcher-rule l))
+) ;define-public-macro
 
 (define-public-macro (logic-dispatch name key . args)
   (let ((k (gensym)))
     (if (= (length args) 1)
-	`(let ((,k ,key))
-	   ((logic-ref ,name (car ,k)) ,k))
-	`((logic-ref ,name ,key) ,@args))))
+      `(let ((,k ,key)) ((logic-ref ,name (car ,k)) ,k))
+      `((logic-ref ,name ,key) ,@args)
+    ) ;if
+  ) ;let
+) ;define-public-macro
