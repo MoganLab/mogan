@@ -166,23 +166,16 @@ edit_interface_rep::get_pixel_size () {
 
 void
 compute_zoom_scroll (SI cursor_x, SI cursor_y, SI old_sx, SI old_sy,
-                     double old_magf, double new_magf,
-                     SI& new_sx, SI& new_sy) {
+                     double old_magf, double new_magf, SI& new_sx, SI& new_sy) {
   new_sx= cursor_x - (SI) tm_round ((cursor_x - old_sx) * old_magf / new_magf);
   new_sy= cursor_y - (SI) tm_round ((cursor_y - old_sy) * old_magf / new_magf);
 }
 
 void
 edit_interface_rep::set_zoom_factor (double zoom) {
-  double old_magf= magf;
+  if (zoom == zoomf) return;
 
-  // 获取旧视口中央（在更新 magf 之前，确保逻辑坐标一致）
-  SI old_cx= 0, old_cy= 0;
-  if (is_attached (this) && old_magf > 0.0) {
-    update_visible ();
-    old_cx= (vx1 + vx2) / 2;
-    old_cy= (vy1 + vy2) / 2;
-  }
+  double old_magf= magf;
 
   zoomf = zoom;
   magf  = zoomf / std_shrinkf;
@@ -192,6 +185,9 @@ edit_interface_rep::set_zoom_factor (double zoom) {
   if (is_attached (this) && old_magf > 0.0 && magf > 0.0) {
     cursor cu= get_cursor ();
     if (cu->valid) {
+      update_visible ();
+      SI old_cx= (vx1 + vx2) / 2;
+      SI old_cy= (vy1 + vy2) / 2;
       SI new_cx, new_cy;
       compute_zoom_scroll (cu->ox, cu->oy, old_cx, old_cy, old_magf, magf,
                            new_cx, new_cy);
