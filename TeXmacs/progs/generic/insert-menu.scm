@@ -178,10 +178,20 @@
                          "Zhihu share requires Qt HTML clipboard support")))
       (login)))
 
-(menu-bind insert-zhihu-share-menu
+(tm-define (share-coming-soon)
+  (:interactive #t)
+  (set-message "Coming soon" "Collaboration"))
+
+(menu-bind share-menu
+  (group "Collaboration")
+  ("Coming soon" (share-coming-soon))
+  ---
+  (group "Social media")
+  ("Zhihu" (zhihu-share-current-buffer)))
+
+(menu-bind insert-share-menu
   (if (not (community-stem?))
-      ((balloon (icon "tm_share.svg") "Share to Zhihu")
-       (zhihu-share-current-buffer))))
+      (link share-menu)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Insert icons
@@ -218,4 +228,5 @@
   (if (and (not (logged-in?)) (not (community-stem?)))
       (link llm-login-menu))
   (if (not (community-stem?))
-      (link insert-zhihu-share-menu)))
+      (=> (balloon (icon "tm_share.svg") "Share")
+          (link insert-share-menu))))
