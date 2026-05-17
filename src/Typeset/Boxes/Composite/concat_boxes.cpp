@@ -192,7 +192,6 @@ concat_box_rep::pre_display (renderer& ren) {
       i++;
       continue;
     }
-
     int   start      = i;
     color group_color= c;
     i++;

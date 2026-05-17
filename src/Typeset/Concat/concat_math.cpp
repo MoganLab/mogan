@@ -34,7 +34,7 @@ concater_rep::typeset_large (tree t, path ip, int tp, int otp, string prefix) {
       br= br (1, N (br) - 1);
     if (N (t) == 1) {
       string s= prefix * br * ">";
-      box    b= text_box (ip, 0, s, env->fn, env->pen);
+      box    b= build_text_box (ip, 0, s, env);
       print (tp, otp, b);
       // temporarary: use parameters from group-open class in std-math.syx
       // bug: allow hyphenation after ) and before *
@@ -42,7 +42,7 @@ concater_rep::typeset_large (tree t, path ip, int tp, int otp, string prefix) {
     else if (N (t) == 2 && is_int (t[1])) {
       int    nr = max (as_int (t[1]->label), 0);
       string s  = prefix * br * "-" * as_string (nr) * ">";
-      box    b  = text_box (ip, 0, s, env->fn, env->pen);
+      box    b  = build_text_box (ip, 0, s, env);
       SI     dy = env->fn->yfrac - ((b->y1 + b->y2) >> 1);
       box    mvb= move_box (ip, b, 0, dy, false, true);
       print (STD_ITEM, otp, macro_box (ip, mvb, env->fn));

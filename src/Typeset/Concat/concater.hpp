@@ -217,6 +217,7 @@ public:
 typedef concater_rep* concater;
 
 color            get_env_bg_color (edit_env env);
+box              build_text_box (path ip, int pos, string s, edit_env env);
 box              typeset_as_concat (edit_env env, tree t, path ip);
 array<line_item> typeset_concat (edit_env env, tree t, path ip);
 array<line_item> typeset_concat_range (edit_env env, tree t, path ip, int i1,

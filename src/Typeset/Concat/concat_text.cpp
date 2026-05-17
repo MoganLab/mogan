@@ -59,7 +59,7 @@ apply_alpha (color c, int alpha) {
 /******************************************************************************
  * Unified text box builder
  ******************************************************************************/
-static inline box
+box
 build_text_box (path ip, int pos, string s, edit_env env) {
   if (has_background_color (env)) {
     color bg_color= get_background_color (env);

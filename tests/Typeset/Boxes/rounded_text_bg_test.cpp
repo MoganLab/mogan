@@ -7,7 +7,9 @@
 #include "Boxes/construct.hpp"
 #include "Metafont/load_tex.hpp"
 #include "base.hpp"
+#include "concater.hpp"
 #include "data_cache.hpp"
+#include "moebius/drd/drd_std.hpp"
 #include "env.hpp"
 #include "font.hpp"
 #include "smart_font.hpp"
@@ -167,6 +169,8 @@ private slots:
   void test_rounded_bg_polygon ();
   void test_concat_box_pre_display_groups ();
   void test_concat_box_post_display_restores ();
+  void test_handle_matching_bracket_bg ();
+  void test_matrix_with_brackets_bg ();
 };
 
 void
@@ -338,6 +342,104 @@ TestRoundedTextBg::test_concat_box_post_display_restores () {
     cb->post_display (ren);
     QCOMPARE (bs[0]->get_bg_color (), bg);
   }
+}
+
+void
+TestRoundedTextBg::test_handle_matching_bracket_bg () {
+  // Create environment with text-bg-color set
+  drd_info              drd ("none", moebius::drd::std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
+  env->write ("text-bg-color", "#ffe47f");
+
+  // Typeset a simple expression with brackets
+  tree t (moebius::CONCAT);
+  t << tree (moebius::LEFT, "(");
+  t << "a";
+  t << tree (moebius::RIGHT, ")");
+
+  box b= typeset_as_concat (env, t, path ());
+
+  // Actually typeset_as_concat returns a concat_box
+  int n= b->subnr ();
+  cout << "concat_box subnr=" << n << " type=" << b->get_type () << "\n";
+
+  bool found_bracket_bg= false;
+  for (int i= 0; i < n; i++) {
+    box   sb= b->subbox (i);
+    color c = sb->get_bg_color ();
+    int   r, g, bl, a;
+    get_rgb_color (c, r, g, bl, a);
+    cout << "subbox i=" << i << " type=" << sb->get_type () << " a=" << a
+         << "\n";
+    if (a > 0) found_bracket_bg= true;
+  }
+
+  mock_renderer_rep mock;
+  renderer          ren= &mock;
+  b->pre_display (ren);
+  cout << "pre_display polygon_count=" << mock.polygon_count << "\n";
+  QVERIFY (found_bracket_bg);
+  QVERIFY (mock.polygon_count > 0);
+}
+
+void
+TestRoundedTextBg::test_matrix_with_brackets_bg () {
+  // Simulate <marked|<matrix|...>>+1 where only the matrix has bg
+  drd_info              drd ("none", moebius::drd::std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+
+  edit_env env_bg (drd, "none", h1, h2, h3, h4, h5, h6);
+  env_bg->write ("text-bg-color", "#ffe47f");
+  env_bg->table_max= MAX_SI;
+
+  edit_env env_plain (drd, "none", h1, h2, h3, h4, h5, h6);
+  env_plain->table_max= MAX_SI;
+
+  // Typeset matrix with brackets (marked part)
+  tree t_matrix (moebius::CONCAT);
+  t_matrix << tree (moebius::LEFT, "(");
+
+  tree tab (moebius::TABLE);
+  tree row1 (moebius::ROW);
+  row1 << tree (moebius::CELL, "1");
+  row1 << tree (moebius::CELL, "2");
+  tab << row1;
+  tree row2 (moebius::ROW);
+  row2 << tree (moebius::CELL, "3");
+  row2 << tree (moebius::CELL, "4");
+  tab << row2;
+  t_matrix << tab;
+
+  t_matrix << tree (moebius::RIGHT, ")");
+
+  box matrix_box= typeset_as_concat (env_bg, t_matrix, path ());
+
+  // Typeset trailing +1 (non-marked part)
+  tree t_tail (moebius::CONCAT);
+  t_tail << "+";
+  t_tail << "1";
+  box tail_box= typeset_as_concat (env_plain, t_tail, path ());
+
+  // Combine into outer concat
+  array<box> bs;
+  bs << matrix_box;
+  bs << tail_box;
+  box outer= concat_box (path (), bs);
+
+  mock_renderer_rep mock;
+  renderer          ren= &mock;
+  outer->pre_display (ren);
+
+  // Should draw exactly 1 polygon for the matrix+brackets group
+  QCOMPARE (mock.polygon_count, 1);
+
+  // Post-display should restore bg colors
+  outer->post_display (ren);
 }
 
 QTEST_MAIN (TestRoundedTextBg)

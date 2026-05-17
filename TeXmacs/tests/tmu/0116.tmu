@@ -118,7 +118,7 @@
   积分的高亮：
 
   <\equation*>
-    <with|marked-color|green|<marked|<big|int>x<rsup|2>\<mathd\>x>>
+    <marked|<big|int>x<rsup|2>\<mathd\>x>
   </equation*>
 
   \;

@@ -365,7 +365,7 @@ concater_rep::handle_matching (int start, int end) {
         }
 
       // replace item by large or small delimiter
-      color bg= get_env_bg_color (env);
+      color bg= a[i]->b->get_bg_color ();
       if (Y1 < fn->y1 || Y2 > fn->y2 || custom || use_poor_rubber (fn))
         a[i]->b=
             delimiter_box (a[i]->b->ip, ls, fn, lp, Y1, Y2, mid, y1, y2, bg);
