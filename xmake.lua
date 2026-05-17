@@ -60,44 +60,6 @@ option_end()
 
 set_config("debug_with_timestamp", true)
 
--- Generate build/config.h from template
-add_configfiles("src/System/config.h.xmake", {
-    filename = "config.h",
-    variables = {
-        SIZEOF_VOID_P = 8,
-        VERSION = XMACS_VERSION,
-        USE_FREETYPE = 1,
-        USE_ICONV = true,
-        USE_PLUGIN_GS = true,
-        USE_PLUGIN_BIBTEX = true,
-        USE_PLUGIN_TEX = true,
-        USE_PLUGIN_ISPELL = true,
-        USE_PLUGIN_PDF = true,
-        USE_PLUGIN_SPARKLE = false,
-        USE_PLUGIN_HTML = true,
-        OS_MACOS = is_plat("macosx"),
-        MACOSX_EXTENSIONS = is_plat("macosx"),
-        QTTEXMACS = true,
-        SANITY_CHECKS = true,
-        OS_MINGW = is_plat("mingw"),
-        OS_GNU_LINUX = is_plat("linux"),
-        OS_WIN = is_plat("windows"),
-        OS_WASM = is_plat("wasm"),
-        NOMINMAX = true,
-        QTPIPES = true,
-        USE_QT_PRINTER = true,
-        TM_DYNAMIC_LINKING = true,
-        USE_FONTCONFIG = true,
-        PDFHUMMUS_NO_TIFF = true,
-        USE_MUPDF_RENDERER = has_config("mupdf"),
-        USE_STARTUP_TAB = has_config("startup_tab"),
-        USE_TEXT_TOOLBAR = has_config("text_toolbar"),
-        USE_TUTORIAL = enable_tutorial,
-        IS_COMMUNITY = has_config("is_community"),
-        DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
-    }
-})
-
 -- because this cpp project use variant length arrays which is not supported by
 -- msvc, this project will not support windows env.
 -- because some package is not ported to cygwin env, this project will not
@@ -355,51 +317,7 @@ target("QWKCore")
         add_frameworks("QtCore", "QtGui", "QtWidgets")
     end
 
-    -- Generate config header before build
-    before_build(function (target)
-        -- Create build directories
-        os.mkdir("$(buildir)/include/QWKCore")
-        os.mkdir("$(buildir)/include/QWKCore/private")
-        
-        -- Generate qwkconfig.h
-        local config_content = [[
-#ifndef QWKCONFIG_H
-#define QWKCONFIG_H
-
-#define QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT ]] .. 
-        "-1" .. [[
-
-#define QWINDOWKIT_ENABLE_STYLE_AGENT ]] ..
-        (has_config("style_agent") and "1" or "-1") .. [[
-
-#define QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS ]] ..
-        (has_config("windows_system_borders") and "1" or "-1") .. [[
-
-
-#endif // QWKCONFIG_H
-]]
-        local config_path = "$(buildir)/include/QWKCore/qwkconfig.h"
-        local existing_content = nil
-        if os.isfile(config_path) then
-            existing_content = io.readfile(config_path)
-        end
-        if existing_content ~= config_content then
-            io.writefile(config_path, config_content)
-        end
-        
-        -- Copy header files without bumping timestamps when unchanged
-        os.vcp("3rdparty/qwindowkitty/src/core/*.h", "$(buildir)/include/QWKCore/")
-        os.vcp("3rdparty/qwindowkitty/src/core/*_p.h", "$(buildir)/include/QWKCore/private/")
-        os.vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", "$(buildir)/include/QWKCore/private/")
-        os.vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", "$(buildir)/include/QWKCore/private/")
-        os.vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", "$(buildir)/include/QWKCore/private/")
-        os.vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", "$(buildir)/include/QWKCore/private/")
-        
-        if has_config("style_agent") then
-            os.vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", "$(buildir)/include/QWKCore/private/")
-            os.vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", "$(buildir)/include/QWKCore/styleagent.h")
-        end
-
+    on_load(function (target)
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -423,6 +341,68 @@ target("QWKCore")
             table.insert(private_paths, path.join(qt_package, "mkspecs", "win32-msvc"))
         end
         target:add("includedirs", private_paths, {public = true})
+    end)
+
+    -- Generate config header before build
+    before_build(function (target)
+        -- Create build directories
+        os.mkdir("$(buildir)/include/QWKCore")
+        os.mkdir("$(buildir)/include/QWKCore/private")
+
+        -- Generate qwkconfig.h
+        local config_content = [[
+#ifndef QWKCONFIG_H
+#define QWKCONFIG_H
+
+#define QWINDOWKIT_ENABLE_QT_WINDOW_CONTEXT ]] ..
+        "-1" .. [[
+
+#define QWINDOWKIT_ENABLE_STYLE_AGENT ]] ..
+        (has_config("style_agent") and "1" or "-1") .. [[
+
+#define QWINDOWKIT_ENABLE_WINDOWS_SYSTEM_BORDERS ]] ..
+        (has_config("windows_system_borders") and "1" or "-1") .. [[
+
+
+#endif // QWKCONFIG_H
+]]
+        local config_path = "$(buildir)/include/QWKCore/qwkconfig.h"
+        local existing_content = nil
+        if os.isfile(config_path) then
+            existing_content = io.readfile(config_path)
+        end
+        if existing_content ~= config_content then
+            io.writefile(config_path, config_content)
+        end
+
+        -- Copy header files without bumping timestamps when unchanged
+        local function safe_cp(src, dst)
+            local src_content = io.readfile(src)
+            local dst_content = nil
+            if os.isfile(dst) then
+                dst_content = io.readfile(dst)
+            end
+            if src_content ~= dst_content then
+                os.cp(src, dst)
+            end
+        end
+        local function safe_vcp(src_pattern, dst_dir)
+            for _, filepath in ipairs(os.files(src_pattern)) do
+                local dst = path.join(dst_dir, path.filename(filepath))
+                safe_cp(filepath, dst)
+            end
+        end
+        safe_vcp("3rdparty/qwindowkitty/src/core/*.h", "$(buildir)/include/QWKCore/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/*_p.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", "$(buildir)/include/QWKCore/private/")
+
+        if has_config("style_agent") then
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", "$(buildir)/include/QWKCore/private/")
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", "$(buildir)/include/QWKCore/styleagent.h")
+        end
     end)
 
     -- Include directories
@@ -531,13 +511,7 @@ target("QWKWidgets")
     -- Enable RCC generation for Qt resources used by this target
     add_rules("qt.qrc")
 
-    -- Generate config header and copy headers before build
-    before_build(function (target)
-        os.mkdir("$(buildir)/include/QWKWidgets")
-        os.mkdir("$(buildir)/include/QWKWidgets/ui/widgetframe")
-        os.vcp("3rdparty/qwindowkitty/src/widgets/*.h", "$(buildir)/include/QWKWidgets/")
-        os.vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", "$(buildir)/include/QWKWidgets/ui/widgetframe/")
-
+    on_load(function (target)
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -561,6 +535,30 @@ target("QWKWidgets")
             table.insert(private_paths, path.join(qt_package, "mkspecs", "win32-msvc"))
         end
         target:add("includedirs", private_paths, {public = true})
+    end)
+
+    -- Generate config header and copy headers before build
+    before_build(function (target)
+        os.mkdir("$(buildir)/include/QWKWidgets")
+        os.mkdir("$(buildir)/include/QWKWidgets/ui/widgetframe")
+        local function safe_cp(src, dst)
+            local src_content = io.readfile(src)
+            local dst_content = nil
+            if os.isfile(dst) then
+                dst_content = io.readfile(dst)
+            end
+            if src_content ~= dst_content then
+                os.cp(src, dst)
+            end
+        end
+        local function safe_vcp(src_pattern, dst_dir)
+            for _, filepath in ipairs(os.files(src_pattern)) do
+                local dst = path.join(dst_dir, path.filename(filepath))
+                safe_cp(filepath, dst)
+            end
+        end
+        safe_vcp("3rdparty/qwindowkitty/src/widgets/*.h", "$(buildir)/include/QWKWidgets/")
+        safe_vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", "$(buildir)/include/QWKWidgets/ui/widgetframe/")
     end)
 
     -- Include directories
@@ -849,7 +847,7 @@ target("libmogan") do
     end
 
     add_mxflags("-fno-objc-arc")
-    before_build(function (target)
+    on_load(function (target)
         target:add("forceincludes", path.absolute("src/System/config.h"))
         target:add("forceincludes", path.absolute("src/System/tm_configure.hpp"))
     end)
@@ -1082,7 +1080,7 @@ target("stem") do
         end
     end)
 
-    before_build(function (target)
+    on_load(function (target)
         target:add("forceincludes", path.absolute("src/System/config.h"))
         target:add("forceincludes", path.absolute("src/System/tm_configure.hpp"))
     end)
