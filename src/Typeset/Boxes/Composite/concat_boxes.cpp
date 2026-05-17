@@ -180,8 +180,8 @@ concat_box_rep::pre_display (renderer& ren) {
   int n= N (bs);
   if (n == 0) return;
 
-  bg_boxes.resize (0);
-  bg_colors.resize (0);
+  bg_boxes = array<box> ();
+  bg_colors= array<color> ();
 
   int i= 0;
   while (i < n) {
@@ -199,7 +199,9 @@ concat_box_rep::pre_display (renderer& ren) {
 
     while (i < n) {
       color c2= get_deep_bg_color (bs[i]);
-      if (c2 != group_color) break;
+      int   r2, g2, b2, a2;
+      get_rgb_color (c2, r2, g2, b2, a2);
+      if (a2 > 0 && c2 != group_color) break;
       i++;
     }
     int end= i - 1;
@@ -271,8 +273,8 @@ concat_box_rep::post_display (renderer& ren) {
   for (int i= 0; i < n; i++) {
     bg_boxes[i]->set_bg_color (bg_colors[i]);
   }
-  bg_boxes.resize (0);
-  bg_colors.resize (0);
+  bg_boxes = array<box> ();
+  bg_colors= array<color> ();
 }
 
 concat_box_rep::concat_box_rep (path ip, array<box> bs2, array<SI> spc2,
