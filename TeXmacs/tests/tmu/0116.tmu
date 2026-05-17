@@ -69,8 +69,10 @@
 
   <marked|行内数学 <with|mode|math|<frac|a|b>> 带背景>
 
+  矩阵的高亮
+
   <\equation*>
-    <with|marked-color|green|<with|marked-color|pastel green|<with|marked-color|#afa|<with|marked-color|green|<marked|<matrix|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
+    <marked|<matrix|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
       1
     </cell>|<\cell>
       \;
@@ -88,7 +90,13 @@
       \;
     </cell>|<\cell>
       1
-    </cell>>>>>>>>>>
+    </cell>>>>>>+1
+  </equation*>
+
+  积分的高亮：
+
+  <\equation*>
+    <with|marked-color|green|<marked|<big|int>x<rsup|2>\<mathd\>x>>
   </equation*>
 
   \;

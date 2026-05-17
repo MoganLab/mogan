@@ -201,7 +201,7 @@ concat_box_rep::pre_display (renderer& ren) {
       color c2= get_deep_bg_color (bs[i]);
       int   r2, g2, b2, a2;
       get_rgb_color (c2, r2, g2, b2, a2);
-      if (a2 > 0 && c2 != group_color) break;
+      if (a2 <= 0 || c2 != group_color) break;
       i++;
     }
     int end= i - 1;
