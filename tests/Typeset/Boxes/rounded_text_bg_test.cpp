@@ -9,9 +9,9 @@
 #include "base.hpp"
 #include "concater.hpp"
 #include "data_cache.hpp"
-#include "moebius/drd/drd_std.hpp"
 #include "env.hpp"
 #include "font.hpp"
+#include "moebius/drd/drd_std.hpp"
 #include "smart_font.hpp"
 #include "sys_utils.hpp"
 #include "tm_debug.hpp"
@@ -352,7 +352,7 @@ TestRoundedTextBg::test_handle_matching_bracket_bg () {
   hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
   hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
   hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
-  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
+  edit_env              env (drd, "none", h1, h2, h3, h4, h5, h6);
   env->write ("text-bg-color", "#ffe47f");
 
   // Typeset a simple expression with brackets
