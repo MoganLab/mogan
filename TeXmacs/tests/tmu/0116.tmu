@@ -90,6 +90,28 @@
       \;
     </cell>|<\cell>
       1
+    </cell>>>>>>
+  </equation*>
+
+  <\equation*>
+    <marked|<matrix|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<\cell>
+      1
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      1
+    </cell>|<\cell>
+      \;
+    </cell>>|<row|<\cell>
+      \;
+    </cell>|<\cell>
+      \;
+    </cell>|<\cell>
+      1
     </cell>>>>>>+1
   </equation*>
 
