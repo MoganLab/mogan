@@ -84,20 +84,12 @@ QTMScrollView::QTMScrollView (QWidget* _parent)
 void
 QTMScrollView::setOrigin (QPoint newOrigin) {
   if (!isVisible ()) return;
-  if (newOrigin.x () != p_origin.x ()) {
-    p_origin.setX (newOrigin.x ());
-    QAbstractScrollArea::horizontalScrollBar ()->blockSignals (true);
+  if (newOrigin.x () != p_origin.x ())
     QAbstractScrollArea::horizontalScrollBar ()->setSliderPosition (
         newOrigin.x ());
-    QAbstractScrollArea::horizontalScrollBar ()->blockSignals (false);
-  }
-  if (newOrigin.y () != p_origin.y ()) {
-    p_origin.setY (newOrigin.y ());
-    QAbstractScrollArea::verticalScrollBar ()->blockSignals (true);
+  if (newOrigin.y () != p_origin.y ())
     QAbstractScrollArea::verticalScrollBar ()->setSliderPosition (
         newOrigin.y ());
-    QAbstractScrollArea::verticalScrollBar ()->blockSignals (false);
-  }
 }
 
 void
