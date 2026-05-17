@@ -205,6 +205,19 @@ concat_box_rep::pre_display (renderer& ren) {
     }
     int end= i - 1;
 
+    // Extend highlight over adjacent BIG_OP_BOXes (e.g. integrals, sums)
+    // that have no background color of their own but sit inside a marked
+    // sequence.  big_operator_box wraps its text_box in a macro_box with
+    // BIG_OP_BOX type and never sets bg_color on the inner text_box, so
+    // get_deep_bg_color returns transparent; without this extension the
+    // highlight rectangle would break around the operator.
+    while (start > 0 && bs[start - 1]->get_type () == BIG_OP_BOX) {
+      start--;
+    }
+    while (end + 1 < n && bs[end + 1]->get_type () == BIG_OP_BOX) {
+      end++;
+    }
+
     SI bg_x1= sx1 (start);
     SI bg_x2= sx2 (end);
     SI pixel= ren->pixel;

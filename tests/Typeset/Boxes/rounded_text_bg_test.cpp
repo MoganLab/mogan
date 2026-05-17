@@ -171,6 +171,7 @@ private slots:
   void test_concat_box_post_display_restores ();
   void test_handle_matching_bracket_bg ();
   void test_matrix_with_brackets_bg ();
+  void test_big_op_box_bg_bridge ();
 };
 
 void
@@ -440,6 +441,51 @@ TestRoundedTextBg::test_matrix_with_brackets_bg () {
 
   // Post-display should restore bg colors
   outer->post_display (ren);
+}
+
+void
+TestRoundedTextBg::test_big_op_box_bg_bridge () {
+  tree which= tree (TUPLE, "roman", "rm", "medium", "right", "$s", "$d");
+  tree by   = tree (TUPLE, "ec", "ecrm", "$s", "$d");
+  font_rule (which, by);
+
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  QVERIFY (!is_nil (fn));
+
+  pencil pen (black);
+  color  bg         = rgb_color (255, 200, 100, 255);
+  color  transparent= rgb_color (0, 0, 0, 0);
+
+  // Simulate <marked|<big|int>x> where the BIG_OP_BOX has no bg_color
+  box inner = text_box (path (), 0, "I", fn, pen);
+  box big_op= macro_box (path (), inner, font (), BIG_OP_BOX);
+  box txt   = text_box_with_bg (path (), 1, "x", fn, pen, bg, xkerning ());
+
+  array<box> bs;
+  bs << big_op;
+  bs << txt;
+
+  box cb= concat_box (path (), bs);
+
+  mock_renderer_rep mock;
+  renderer          ren= &mock;
+
+  cb->pre_display (ren);
+
+  // Should draw exactly 1 polygon covering both boxes
+  QCOMPARE (mock.polygon_count, 1);
+
+  // Verify the polygon starts left of txt, i.e. it covers big_op too
+  SI min_x= MAX_SI;
+  for (int i= 0; i < N (mock.last_px); i++) {
+    min_x= min (min_x, mock.last_px[i]);
+  }
+  SI txt_x1_in_cb= cb->sx1 (1);
+  cout << "big_op x1=" << big_op->x1 << " txt_x1=" << txt_x1_in_cb
+       << " polygon min_x=" << min_x << "\n";
+  QVERIFY (min_x < txt_x1_in_cb);
+
+  cb->post_display (ren);
 }
 
 QTEST_MAIN (TestRoundedTextBg)

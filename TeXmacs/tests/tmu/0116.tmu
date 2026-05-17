@@ -121,6 +121,12 @@
     <marked|<big|int>x<rsup|2>\<mathd\>x>
   </equation*>
 
+  分式的高亮：
+
+  <\equation*>
+    <frac|1|2>+<with|marked-color|green|<marked|<frac|1+<frac|1|2>|3>>>
+  </equation*>
+
   \;
 </body>
 
