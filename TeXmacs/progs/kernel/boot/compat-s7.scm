@@ -132,11 +132,10 @@
 (define-public (make-record-type type fields) (inlet 'type type 'fields fields))
 
 (define-public (record-constructor rec-type)
-  (eval `(lambda ,(rec-type (#_quote fields))
-           (inlet (#_quote type)
-             ,(rec-type (#_quote type))
-             ,@(map (lambda (f) (values (list (#_quote quote) f) f))
-                 (rec-type (#_quote fields)))))
+  (eval `(lambda ,(rec-type 'fields)
+           (inlet 'type
+             ,(rec-type 'type)
+             ,@(map (lambda (f) (values (list 'quote f) f)) (rec-type 'fields))))
   ) ;eval
 ) ;define-public
 

@@ -134,14 +134,14 @@
 (define-public-macro (define-table name . l)
   `(begin
      (when (not (defined? (quote ,name)))
-       (if (defined? (#_quote tm-define))
+       (if (defined? 'tm-define)
          (tm-define ,name (make-ahash-table))
          (define-public ,name (make-ahash-table))))
-     (define-table-decls ,name ,(list (#_quote quasiquote) l)))
+     (define-table-decls ,name ,(list 'quasiquote l)))
 ) ;define-public-macro
 
 (define-public-macro (extend-table name . l)
-  `(define-table-decls ,name ,(list (#_quote quasiquote) l))
+  `(define-table-decls ,name ,(list 'quasiquote l))
 ) ;define-public-macro
 
 (define-public (define-collection-decls h l)
@@ -154,12 +154,12 @@
 (define-public-macro (define-collection name . l)
   `(begin
      (when (not (defined? (quote ,name)))
-       (if (defined? (#_quote tm-define))
+       (if (defined? 'tm-define)
          (tm-define ,name (make-ahash-table))
          (define-public ,name (make-ahash-table))))
-     (define-collection-decls ,name ,(list (#_quote quasiquote) l)))
+     (define-collection-decls ,name ,(list 'quasiquote l)))
 ) ;define-public-macro
 
 (define-public-macro (extend-collection name . l)
-  `(define-collection-decls ,name ,(list (#_quote quasiquote) l))
+  `(define-collection-decls ,name ,(list 'quasiquote l))
 ) ;define-public-macro

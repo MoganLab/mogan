@@ -146,7 +146,7 @@
   ;; code of the corresponding body.
   (define (gen-clauses l length-name args-name)
     (cond ((null? l) (list '(else (error "too few arguments"))))
-          (else (cons `((,(if (dotted? (caar l)) (#_quote >=) (#_quote =))
+          (else (cons `((,(if (dotted? (caar l)) '>= '=)
                          ,length-name
                          ,(alength (caar l)))
                         (let ,(gen-temps (caar l) args-name) ,@(cdar l)))

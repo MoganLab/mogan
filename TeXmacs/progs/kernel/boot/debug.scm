@@ -203,9 +203,7 @@
                           ) ;
                       ;; Display messages and run test.
                       `((display ,(string-append "  -- " test-desc "\n"))
-                        (,(if e?
-                            (#_quote regression-test-equal)
-                            (#_quote regression-test-nequal))
+                        (,(if e? 'regression-test-equal 'regression-test-nequal)
                          ,group-id
                          ,test-desc
                          ,result-in
@@ -342,10 +340,10 @@
   ;; Parameters are function names
   `(begin
      ,@(map (lambda (name)
-              `(if (not (procedure-property ,name (#_quote trace-wrapped)))
+              `(if (not (procedure-property ,name 'trace-wrapped))
                  (begin
                    (set! ,name (wrap-trace ,(symbol->string name) ,name))
-                   (set-procedure-property! ,name (#_quote trace-wrapped) ,#t))))
+                   (set-procedure-property! ,name 'trace-wrapped ,#t))))
          names))
 ) ;define-public-macro
 

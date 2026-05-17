@@ -73,8 +73,7 @@
 (define-macro (with-module module . body)
   `(let ((m ,module))
      (with-let m
-       (let-temporarily (((*texmacs-module* (#_quote *current-module*))
-                          (curlet)))
+       (let-temporarily (((*texmacs-module* '*current-module*) (curlet)))
          ,@body)))
 ) ;define-macro
 
@@ -147,12 +146,12 @@
 (define-macro (use-modules . modules)
   `(map (lambda (module)
           (let* ((m (resolve-module module))
-                 (ex (m (#_quote *exports*)))
+                 (ex (m '*exports*))
                  (exx (map (lambda (entry)
                              (if (member (car entry) ex) entry (values)))
                         m))
                  (en (apply inlet exx)))
-            (varlet (*texmacs-module* (#_quote *current-module*)) en)))
+            (varlet (*texmacs-module* '*current-module*) en)))
      (quote ,modules))
 ) ;define-macro
 
