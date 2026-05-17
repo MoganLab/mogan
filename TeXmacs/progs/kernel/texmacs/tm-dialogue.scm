@@ -234,33 +234,31 @@
 (define (recent-files-json-valid? recent-files)
   (njson-schema-valid? recent-files-schema-v1 recent-files))
 
-#|
-recent-files-remove-by-path
-按路径从最近文件缓存中删除对应条目。
-
-语法
-----
-(recent-files-remove-by-path path)
-
-参数
-----
-path : string
-    目标文件路径。用于在 `interactive-arg-recent-file-json` 的 `files`
-    列表中定位要移除的记录。
-
-返回值
-----
-unspecified
-- 函数通过副作用更新全局变量 `interactive-arg-recent-file-json`。
-- 若路径不存在，则不做任何修改。
-
-逻辑
-----
-1. 调用 `recent-files-index-by-path` 查找 `path` 在 `files` 中的索引。
-2. 若找到索引，调用 `njson-drop!` 删除该项。
-3. 将 `meta.total` 减一（不低于 0）。
-4. 将更新后的 JSON 结构回写到 `interactive-arg-recent-file-json`。
-|#
+;;recent-files-remove-by-path
+;;按路径从最近文件缓存中删除对应条目。
+;;
+;;语法
+;;----
+;;(recent-files-remove-by-path path)
+;;
+;;参数
+;;----
+;;path : string
+;;    目标文件路径。用于在 `interactive-arg-recent-file-json` 的 `files`
+;;    列表中定位要移除的记录。
+;;
+;;返回值
+;;----
+;;unspecified
+;;- 函数通过副作用更新全局变量 `interactive-arg-recent-file-json`。
+;;- 若路径不存在，则不做任何修改。
+;;
+;;逻辑
+;;----
+;;1. 调用 `recent-files-index-by-path` 查找 `path` 在 `files` 中的索引。
+;;2. 若找到索引，调用 `njson-drop!` 删除该项。
+;;3. 将 `meta.total` 减一（不低于 0）。
+;;4. 将更新后的 JSON 结构回写到 `interactive-arg-recent-file-json`。
 (define-public (recent-files-remove-by-path path)
   (let ((idx (recent-files-index-by-path interactive-arg-recent-file-json path)))
     (when idx
@@ -401,33 +399,31 @@ unspecified
       )))
 
 
-#|
-learned-interactive
-读取交互命令已学习的参数候选值。
-
-语法
-----
-(learned-interactive fun)
-
-参数
-----
-fun : procedure | symbol | string
-    目标命令。函数内部会先调用 `procedure-symbol-name` 归一化为符号。
-
-返回值
-----
-list
-- 当命令是 `recent-buffer` 时：返回最近文件路径列表，元素形如
-  `(("0" . 文件路径))`。
-- 其他命令：返回 `interactive-arg-json` 中为该命令记录的历史参数列表。
-- 若无记录，返回空列表 `()`。
-
-逻辑
-----
-1. 归一化：将 `fun` 转为符号名。
-2. 分支：`recent-buffer` 走最近文件 JSON 缓存分支。
-3. 默认：从 `interactive-arg-json` 读取命令历史，缺省为 `()`。
-|#
+;;learned-interactive
+;;读取交互命令已学习的参数候选值。
+;;
+;;语法
+;;----
+;;(learned-interactive fun)
+;;
+;;参数
+;;----
+;;fun : procedure | symbol | string
+;;    目标命令。函数内部会先调用 `procedure-symbol-name` 归一化为符号。
+;;
+;;返回值
+;;----
+;;list
+;;- 当命令是 `recent-buffer` 时：返回最近文件路径列表，元素形如
+;;  `(("0" . 文件路径))`。
+;;- 其他命令：返回 `interactive-arg-json` 中为该命令记录的历史参数列表。
+;;- 若无记录，返回空列表 `()`。
+;;
+;;逻辑
+;;----
+;;1. 归一化：将 `fun` 转为符号名。
+;;2. 分支：`recent-buffer` 走最近文件 JSON 缓存分支。
+;;3. 默认：从 `interactive-arg-json` 读取命令历史，缺省为 `()`。
 (define-public (learned-interactive fun)
   "Return learned list of interactive values for @fun"
   (set! fun (procedure-symbol-name fun))
@@ -443,33 +439,31 @@ list
 
 
 
-#|
-forget-interactive
-清除指定交互命令的已学习参数。
-
-语法
-----
-(forget-interactive fun)
-
-参数
-----
-fun : procedure | symbol | string
-    目标命令。函数内部会先调用 `procedure-symbol-name` 归一化为符号。
-
-返回值
-----
-unspecified
-- 通过副作用修改全局状态。
-- 若 `fun` 不能归一化为符号，则不执行清除操作。
-
-逻辑
-----
-1. 归一化：将 `fun` 转为符号名。
-2. 校验：仅当 `fun` 是符号时继续。
-3. 分支清理：
-   - `recent-buffer`：将最近文件列表重置为空向量 `#()`，并把计数清零。
-   - 其他命令：从 `interactive-arg-json` 中删除对应键。
-|#
+;;forget-interactive
+;;清除指定交互命令的已学习参数。
+;;
+;;语法
+;;----
+;;(forget-interactive fun)
+;;
+;;参数
+;;----
+;;fun : procedure | symbol | string
+;;    目标命令。函数内部会先调用 `procedure-symbol-name` 归一化为符号。
+;;
+;;返回值
+;;----
+;;unspecified
+;;- 通过副作用修改全局状态。
+;;- 若 `fun` 不能归一化为符号，则不执行清除操作。
+;;
+;;逻辑
+;;----
+;;1. 归一化：将 `fun` 转为符号名。
+;;2. 校验：仅当 `fun` 是符号时继续。
+;;3. 分支清理：
+;;   - `recent-buffer`：将最近文件列表重置为空向量 `#()`，并把计数清零。
+;;   - 其他命令：从 `interactive-arg-json` 中删除对应键。
 (define-public (forget-interactive fun)
   "Forget interactive values for @fun"
   (set! fun (procedure-symbol-name fun))
