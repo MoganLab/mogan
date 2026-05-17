@@ -19,25 +19,22 @@
 
 (define (xor-sub l)
   (cond ((null? l) #f)
-	((car l) (not (xor-sub (cdr l))))
-	(else (xor-sub (cdr l)))))
+        ((car l) (not (xor-sub (cdr l))))
+        (else (xor-sub (cdr l)))
+  ) ;cond
+) ;define
 
-(define-public (xor . l)
-  "Exclusive or of all elements in @l."
-  (xor-sub l))
+(define-public (xor . l) "Exclusive or of all elements in @l." (xor-sub l))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Numbers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (float->string s)
-  (number->string s))
+(define-public (float->string s) (number->string s))
 
-(define-public (string->float s)
-  (exact->inexact (string->number s)))
+(define-public (string->float s) (exact->inexact (string->number s)))
 
-(define-public (string-number? s)
-  (and (string? s) (cpp-string-number? s)))
+(define-public (string-number? s) (and (string? s) (cpp-string-number? s)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Strings
@@ -47,7 +44,8 @@
 
 (define-public (char->string c)
   "Convert @c to a string"
-  (list->string (list c)))
+  (list->string (list c))
+) ;define-public
 
 (define-public (tm-char-whitespace? c)
   "Is @c a whitespace character?"
@@ -55,186 +53,236 @@
   ;; versions of Guile.  These erroneous versions incorrectly recognize
   ;; characters such as A0 (hexadecimal), which breaks certain routines
   ;; involving unicode or cork.
-  (in? c '(#\space #\ht #\newline #\return)))
+  (in? c '(#\space #\ht #\newline #\return))
+) ;define-public
 
 (define-public (string-tail s n)
   "Return all but the first @n chars of @s."
-  (substring s n (string-length s)))
+  (substring s n (string-length s))
+) ;define-public
 
 (define-public (char-in-string? c s)
   "Test whether @c occurs in @s"
-  (!= (string-index s c) #f))
+  (!= (string-index s c) #f)
+) ;define-public
 
 (define-public (string-starts? s what)
   "Test whether @s starts with @what."
-  (let ((n (string-length s))
-	(k (string-length what)))
-    (and (>= n k) (== (substring s 0 k) what))))
+  (let ((n (string-length s)) (k (string-length what)))
+    (and (>= n k) (== (substring s 0 k) what))
+  ) ;let
+) ;define-public
 
 (define-public (string-ends? s what)
   "Test whether @s ends with @what."
-  (let ((n (string-length s))
-	(k (string-length what)))
-    (and (>= n k) (== (substring s (- n k) n) what))))
+  (let ((n (string-length s)) (k (string-length what)))
+    (and (>= n k) (== (substring s (- n k) n) what))
+  ) ;let
+) ;define-public
 
 (define-public (string-contains? s what)
   "Test whether @s contains @what as a substring."
-  (>= (string-search-forwards what 0 s) 0))
+  (>= (string-search-forwards what 0 s) 0)
+) ;define-public
 
 (define-public (force-string s)
   "Return @s if @s is a string and the empty string otherwise"
-  (if (string? s) s ""))
+  (if (string? s) s "")
+) ;define-public
 
-(provide-public (reverse-list->string cs)	; srfi-13
+(provide-public (reverse-list->string cs)
   "Efficient implementation of (compose list->string reverse)."
   ;; Not yet any more efficient, but this may be fixed in the future.
-  (list->string (reverse cs)))
+  (list->string (reverse cs))
+) ;provide-public
 
-(provide-public (string-join	ss . opt)	; srfi-13 (subset)
+(provide-public (string-join ss . opt)
   "Concatenate elements of @ss inserting separators."
-  (if (null? opt) (string-join ss " ")
-      (string-concatenate (list-intersperse ss (car opt)))))
+  (if (null? opt)
+    (string-join ss " ")
+    (string-concatenate (list-intersperse ss (car opt)))
+  ) ;if
+) ;provide-public
 
-(provide-public (string-drop-right s n)	; srfi-13
+(provide-public (string-drop-right s n)
   "Return all but the last @n chars of @s."
-  (substring s 0 (- (string-length s) n)))
+  (substring s 0 (- (string-length s) n))
+) ;provide-public
 
-(provide-public string-drop string-tail)	; srfi-13
+(provide-public string-drop string-tail)
 
-(provide-public (string-take s n)		; srfi-13
+(provide-public (string-take s n)
   "Return the first @n chars of @s."
-  (substring s 0 n))
+  (substring s 0 n)
+) ;provide-public
 
 (provide-public (string-take-right s n)
   "Return the last @n chars of @s."
   (let ((l (string-length s)))
-    (substring s (- l n) l)))
+    (substring s (- l n) l)
+  ) ;let
+) ;provide-public
 
-(define-public (tm-string-trim s)		; srfi-13 (subset)
+(define-public (tm-string-trim s)
   "Remove whitespace at start of @s."
-  (list->string (list-drop-while (string->list s) tm-char-whitespace?)))
+  (list->string (list-drop-while (string->list s) tm-char-whitespace?))
+) ;define-public
 
 (define-public (list-drop-right-while l pred)
-  (reverse! (list-drop-while (reverse l) pred)))
+  (reverse! (list-drop-while (reverse l) pred))
+) ;define-public
 
-(define-public (tm-string-trim-right s)	; srfi-13 (subset)
+(define-public (tm-string-trim-right s)
   "Remove whitespace at end of @s."
-  (list->string (list-drop-right-while (string->list s) tm-char-whitespace?)))
+  (list->string (list-drop-right-while (string->list s) tm-char-whitespace?))
+) ;define-public
 
-(define-public (tm-string-trim-both s)		; srfi-13 (subset)
+(define-public (tm-string-trim-both s)
   "Remove whitespace at start and end of @s."
-  (list->string
-   (list-drop-right-while
-    (list-drop-while (string->list s) tm-char-whitespace?)
-    tm-char-whitespace?)))
+  (list->string (list-drop-right-while (list-drop-while (string->list s) tm-char-whitespace?)
+                  tm-char-whitespace?
+                ) ;list-drop-right-while
+  ) ;list->string
+) ;define-public
 
-(provide-public (string-concatenate ss)	; srfi-13
+(provide-public (string-concatenate ss)
   "Append the elements of @ss toghether."
   ;; WARNING: not portable for long lists
-  (apply string-append ss))
+  (apply string-append ss)
+) ;provide-public
 
-(provide-public (string-map proc s) 		; srfi-13 (subset)
+(provide-public (string-map proc s)
   "Map @proc on every char of @s."
-  (list->string (map proc (string->list s))))
+  (list->string (map proc (string->list s)))
+) ;provide-public
 
-(provide-public (string-fold kons knil s) 	; srfi-13 (subset))
+(provide-public (string-fold kons knil s)
   "Fundamental string iterator."
-  (list-fold kons knil (string->list s)))
+  (list-fold kons knil (string->list s))
+) ;provide-public
 
-(provide-public (string-fold-right kons knil s) ; srfi-13 (subset)
+(provide-public (string-fold-right kons knil s)
   "Right to left fundamental string iterator."
-  (list-fold-right kons knil (string->list s)))
+  (list-fold-right kons knil (string->list s))
+) ;provide-public
 
 (define (string-split-lines/kons c cs+lines)
   (if (== c #\newline)
-      (cons '() cs+lines)
-      (cons (cons c (car cs+lines)) (cdr cs+lines))))
+    (cons '() cs+lines)
+    (cons (cons c (car cs+lines)) (cdr cs+lines))
+  ) ;if
+) ;define
 
 (define-public (string-split-lines s)
   "List of substrings of @s separated by newlines."
   (map list->string
-       (list-fold-right string-split-lines/kons '(()) (string->list s))))
+    (list-fold-right string-split-lines/kons '(()) (string->list s))
+  ) ;map
+) ;define-public
 
 (provide-public (string-tokenize-by-char s sep)
   "Cut string @s into pieces using @sep as a separator."
-  (with d (string-index s sep)
+  (with d
+    (string-index s sep)
     (if d
-	(cons (substring s 0 d)
-	      (string-tokenize-by-char (substring s (+ 1 d) (string-length s)) sep))
-	(list s))))
+      (cons (substring s 0 d)
+        (string-tokenize-by-char (substring s (+ 1 d) (string-length s)) sep)
+      ) ;cons
+      (list s)
+    ) ;if
+  ) ;with
+) ;provide-public
 
 (define-public (string-tokenize-by-char-n s sep n)
   "As @string-tokenize-by-char, but only cut first @n pieces"
-  (with d (string-index s sep)
+  (with d
+    (string-index s sep)
     (if (or (= n 0) (not d))
-	(list s)
-	(cons (substring s 0 d)
-	      (string-tokenize-by-char-n
-               (substring s (+ 1 d) (string-length s))
-               sep
-               (- n 1))))))
+      (list s)
+      (cons (substring s 0 d)
+        (string-tokenize-by-char-n (substring s (+ 1 d) (string-length s)) sep (- n 1))
+      ) ;cons
+    ) ;if
+  ) ;with
+) ;define-public
 
 (define-public (string-decompose s sep)
-  (with d (string-search-forwards sep 0 s)
+  (with d
+    (string-search-forwards sep 0 s)
     (if (< d 0)
-        (list s)
-        (cons (substring s 0 d)
-              (string-decompose (substring s (+ d (string-length sep))
-                                           (string-length s)) sep)))))
+      (list s)
+      (cons (substring s 0 d)
+        (string-decompose (substring s (+ d (string-length sep)) (string-length s)) sep)
+      ) ;cons
+    ) ;if
+  ) ;with
+) ;define-public
 
 (define-public (string-recompose l sep)
   "Turn list @l of strings into one string using @sep as separator."
   (if (char? sep) (set! sep (list->string (list sep))))
   (cond ((null? l) "")
-	((null? (cdr l)) (car l))
-	(else (string-append (car l) sep (string-recompose (cdr l) sep)))))
+        ((null? (cdr l)) (car l))
+        (else (string-append (car l) sep (string-recompose (cdr l) sep)))
+  ) ;cond
+) ;define-public
 
 (define-public (string-tokenize-comma s)
   "Cut string @s into pieces using comma as a separator and remove whitespace."
-  (map tm-string-trim-both (string-tokenize-by-char s #\,)))
+  (map tm-string-trim-both (string-tokenize-by-char s #\,))
+) ;define-public
 
 (define-public (string-recompose-comma l)
   "Turn list @l of strings into comma separated string."
-  (string-recompose l ", "))
+  (string-recompose l ", ")
+) ;define-public
 
 (define (property-pair->string p)
-  (string-append (car p) "=" (cdr p)))
+  (string-append (car p) "=" (cdr p))
+) ;define
 
 (define (string->property-pair s)
-  (with pos (string-index s #\=)
-    (if pos
-	(cons (string-take s pos) (string-drop s (+ pos 1)))
-	(cons s "true"))))
+  (with pos
+    (string-index s #\=)
+    (if pos (cons (string-take s pos) (string-drop s (+ pos 1))) (cons s "true"))
+  ) ;with
+) ;define
 
 (define-public (string->alist s)
   "Parse @s of the form \"var1=val1/.../varn=valn\" as an association list."
-  (map string->property-pair (string-tokenize-by-char s #\/)))
+  (map string->property-pair (string-tokenize-by-char s #\/))
+) ;define-public
 
 (define-public (alist->string l)
   "Pretty print the association list @l as a string."
-  (string-recompose (map property-pair->string l) "/"))
+  (string-recompose (map property-pair->string l) "/")
+) ;define-public
 
-(define-public (raw-quote s)
-  (string-append (string-append "\"" s "\"")))
+(define-public (raw-quote s) (string-append (string-append "\"" s "\"")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Some string-like functions on symbols
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (symbol<=? x y)
-  (string<=? (symbol->string x) (symbol->string y)))
+  (string<=? (symbol->string x) (symbol->string y))
+) ;define-public
 
 (define-public (symbol-starts? s1 s2)
-  (string-starts? (symbol->string s1) (symbol->string s2)))
+  (string-starts? (symbol->string s1) (symbol->string s2))
+) ;define-public
 
 (define-public (symbol-ends? s1 s2)
-  (string-ends? (symbol->string s1) (symbol->string s2)))
+  (string-ends? (symbol->string s1) (symbol->string s2))
+) ;define-public
 
 (define-public (symbol-drop s n)
-  (string->symbol (string-drop (symbol->string s) n)))
+  (string->symbol (string-drop (symbol->string s) n))
+) ;define-public
 
 (define-public (symbol-drop-right s n)
-  (string->symbol (string-drop-right (symbol->string s) n)))
+  (string->symbol (string-drop-right (symbol->string s) n))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Functions
@@ -242,11 +290,13 @@
 
 (define-public (compose g f)
   "Compose the functions @f and @g"
-  (lambda x (g (apply f x))))
+  (lambda x (g (apply f x)))
+) ;define-public
 
 (define-public (non pred?)
   "Return the negation of @pred?."
-  (lambda args (not (apply pred? args))))
+  (lambda args (not (apply pred? args)))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Objects
@@ -254,39 +304,46 @@
 
 (define-public (string->object s)
   "Parse @s and build scheme object"
-  (call-with-input-string s read))
+  (call-with-input-string s read)
+) ;define-public
 
 (define-public (object->string* obj)
   (cond ((null? obj) (object->string obj))
-	((pair? obj) (object->string obj))
-	((number? obj) (object->string obj))
-	((string? obj) (object->string obj))
-	((symbol? obj) (object->string obj))
-	((tree? obj) (object->string (tree->stree obj)))
-	(else (object->string #f))))
+        ((pair? obj) (object->string obj))
+        ((number? obj) (object->string obj))
+        ((string? obj) (object->string obj))
+        ((symbol? obj) (object->string obj))
+        ((tree? obj) (object->string (tree->stree obj)))
+        (else (object->string #f))
+  ) ;cond
+) ;define-public
 
 (define-public (func? x f . opts)
   "Is @x a list with first stree @f? Optionally test the length of @x."
   (let ((n (length opts)))
     (cond ((= n 0) (and (list? x) (nnull? x) (== (car x) f)))
-	  ((= n 1)
-	   (let ((nn (car opts)))
-             (and (list? x) (nnull? x)
-                  (== (car x) f) (= (length x) (+ nn 1)))))
-	  (else (error "Too many arguments.")))))
+          ((= n 1)
+           (let ((nn (car opts)))
+             (and (list? x) (nnull? x) (== (car x) f) (= (length x) (+ nn 1)))
+           ) ;let
+          ) ;
+          (else (error "Too many arguments."))
+    ) ;cond
+  ) ;let
+) ;define-public
 
 (define-public (tuple? x . opts)
   "Equivalent to @list? without options or to @func? otherwise"
-  (if (null? opts)
-      (list? x)
-      (apply func? (cons x opts))))
+  (if (null? opts) (list? x) (apply func? (cons x opts)))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Positions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (position-new . opts)
-  (position-new-path (if (null? opts) (cursor-path) (car opts))))
+  (position-new-path (if (null? opts) (cursor-path) (car opts)))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Urls
@@ -294,110 +351,115 @@
 
 (define-public (url->list u)
   (cond ((url-none? u) '())
-	((url-or? u) (append (url->list (url-ref u 1))
-			     (url->list (url-ref u 2))))
-	(else (list u))))
+        ((url-or? u) (append (url->list (url-ref u 1)) (url->list (url-ref u 2))))
+        (else (list u))
+  ) ;cond
+) ;define-public
 
 (define-public (list->url l)
   (cond ((null? l) (url-none))
-	((null? (cdr l)) (car l))
-	(else (url-or (car l) (list->url (cdr l))))))
+        ((null? (cdr l)) (car l))
+        (else (url-or (car l) (list->url (cdr l))))
+  ) ;cond
+) ;define-public
 
 (define-public (url-read-directory u wc)
-  (with d (url-expand (url-complete (url-append u (url-wildcard wc)) "r"))
-    (url->list d)))
+  (with d
+    (url-expand (url-complete (url-append u (url-wildcard wc)) "r"))
+    (url->list d)
+  ) ;with
+) ;define-public
 
-(define-public (url-remove u)
-  (system-remove u))
+(define-public (url-remove u) (system-remove u))
 
 (define-public (url-autosave u suf)
-  (and (not (url-rooted-web? u))
-       (not (url-rooted-tmfs? u))
-       (url-glue u suf)))
+  (and (not (url-rooted-web? u)) (not (url-rooted-tmfs? u)) (url-glue u suf))
+) ;define-public
 
-(define-public (url-wrap u)
-  #f)
+(define-public (url-wrap u) #f)
 
 (define-public (url->delta-unix u)
-  (with base (buffer-get-master (current-buffer))
+  (with base
+    (buffer-get-master (current-buffer))
     ;; Handle Windows drive letter issues - if different drives, return #f
     (cond ((and (or (os-mingw?) (os-win32?))
-                (!= (url-drive-letter u) (url-drive-letter base)))
-           #f)
-          ((and (url-rooted? u) (not (url-none? base)))
-           (url->unix (url-delta base u)))
-          (else (url->unix u)))))
+             (!= (url-drive-letter u) (url-drive-letter base))
+           ) ;and
+           #f
+          ) ;
+          ((and (url-rooted? u) (not (url-none? base))) (url->unix (url-delta base u)))
+          (else (url->unix u))
+    ) ;cond
+  ) ;with
+) ;define-public
 
 (define-public (first-in-path . l)
   (cond ((null? l) #f)
         ((url-exists-in-path? (car l)) (car l))
-        (else (apply first-in-path (cdr l)))))
+        (else (apply first-in-path (cdr l)))
+  ) ;cond
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-public (current-buffer)
-  (with u (current-buffer-url)
-    (and (not (url-none? u)) u)))
+  (with u (current-buffer-url) (and (not (url-none? u)) u))
+) ;define-public
 
 (define-public (path->buffer p)
-  (with u (path-to-buffer p)
-    (and (not (url-none? u)) u)))
+  (with u (path-to-buffer p) (and (not (url-none? u)) u))
+) ;define-public
 
 (define-public (buffer->tree u)
-  (with t (buffer-get-body u)
-    (and (tree-active? t) t)))
+  (with t (buffer-get-body u) (and (tree-active? t) t))
+) ;define-public
 
-(define-public (tree->buffer t)
-  (and-with p (tree->path t)
-    (path->buffer p)))
+(define-public (tree->buffer t) (and-with p (tree->path t) (path->buffer p)))
 
 (define-public (buffer->path u)
-  (with t (buffer->tree u)
-    (and t (tree->path t))))
+  (with t (buffer->tree u) (and t (tree->path t)))
+) ;define-public
 
-(define-public (buffer-exists? name)
-  (in? (url->url name) (buffer-list)))
+(define-public (buffer-exists? name) (in? (url->url name) (buffer-list)))
 
-(define-public (buffer-master)
-  (buffer-get-master (current-buffer)))
+(define-public (buffer-master) (buffer-get-master (current-buffer)))
 
 (define-public (buffer-in-recent-menu? u)
-  (or (not (url-rooted-tmfs? u))
-      (string-starts? (url->unix u) "tmfs://part/")))
+  (or (not (url-rooted-tmfs? u)) (string-starts? (url->unix u) "tmfs://part/"))
+) ;define-public
 
 (define-public (buffer-in-menu? u)
   (or (buffer-in-recent-menu? u)
-      (string-starts? (url->unix u) "tmfs://help/")
-      (string-starts? (url->unix u) "tmfs://remote-file/")
-      (string-starts? (url->unix u) "tmfs://apidoc/")))
+    (string-starts? (url->unix u) "tmfs://help/")
+    (string-starts? (url->unix u) "tmfs://remote-file/")
+    (string-starts? (url->unix u) "tmfs://apidoc/")
+  ) ;or
+) ;define-public
 
 (define-public (window->buffer win)
-  (with u (window-to-buffer win)
-    (and (not (url-none? u)) u)))
+  (with u (window-to-buffer win) (and (not (url-none? u)) u))
+) ;define-public
 
 (define-public (buffer->window buf)
-  (with l (buffer->windows buf)
-    (and (nnull? l) (car l))))
+  (with l (buffer->windows buf) (and (nnull? l) (car l)))
+) ;define-public
 
 (define-public (current-view)
-  (with u (current-view-url)
-    (and (not (url-none? u)) u)))
+  (with u (current-view-url) (and (not (url-none? u)) u))
+) ;define-public
 
 (define-public (view->window vw)
-  (with win (view->window-url vw)
-    (and (not (url-none? win)) win)))
+  (with win (view->window-url vw) (and (not (url-none? win)) win))
+) ;define-public
 
 (define-public (view->window-of-tabpage vw)
-  (with win (view->window-of-tabpage-url vw)
-    (and (not (url-none? win)) win)))
+  (with win (view->window-of-tabpage-url vw) (and (not (url-none? win)) win))
+) ;define-public
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Redirections
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-public (tm-with-output-to-string p)
-  (cout-buffer)
-  (p)
-  (cout-unbuffer))
+(define-public (tm-with-output-to-string p) (cout-buffer) (p) (cout-unbuffer))

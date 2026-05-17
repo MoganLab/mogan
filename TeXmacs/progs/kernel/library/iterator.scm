@@ -19,36 +19,45 @@
 
 (define-macro (iterator val next)
   "Primitive iterator constructor from value @val and next iterator @next."
-  `(lambda () (cons ,val ,next)))
+  `(lambda ,() (cons ,val ,next))
+) ;define-macro
 
 (define-public (range start end)
   "Range iterator from @start to @end (not included)."
-  (and (< start end)
-       (iterator start (range (+ start 1) end))))
+  (and (< start end) (iterator start (range (+ start 1) end)))
+) ;define-public
 
 (define-public (list->iterator l)
   "Convert the list @l to an iterator."
-  (and (nnull? l)
-       (iterator (car l) (list->iterator (cdr l)))))
+  (and (nnull? l) (iterator (car l) (list->iterator (cdr l))))
+) ;define-public
 
 (define-public (iterator-append . its)
   "Append the iterators @its."
   (cond ((null? its) #f)
-	((not (car its)) (apply iterator-append (cdr its)))
-	(else (let* ((next ((car its)))
-		     (cont (cons (cdr next) (cdr its))))
-		(iterator (car next) (apply iterator-append cont))))))
+        ((not (car its)) (apply iterator-append (cdr its)))
+        (else (let* ((next ((car its))) (cont (cons (cdr next) (cdr its))))
+                (iterator (car next) (apply iterator-append cont))
+              ) ;let*
+        ) ;else
+  ) ;cond
+) ;define-public
 
 (define-public (iterator-filter it pred?)
   "Get elements in iterator @it which match the predicate @pred?."
-  (with next #f
+  (with next
+    #f
     (while (and it (begin (set! next (it)) (not (pred? (car next)))))
-      (set! it (cdr next)))
-    (and it (lambda () next))))
+      (set! it (cdr next))
+    ) ;while
+    (and it (lambda () next))
+  ) ;with
+) ;define-public
 
 (define-public-macro (extract var it prop?)
   "Extract all values @var from iterator @it which match the property @prop?."
-  `(iterator-filter ,it (lambda (,var) ,prop?)))
+  `(iterator-filter ,it (lambda (,var) ,prop?))
+) ;define-public-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Traversal of iterators
@@ -56,34 +65,31 @@
 
 (define-public (iterator-value it)
   "Get current value of iterator @it."
-  (and it (car (it))))
+  (and it (car (it)))
+) ;define-public
 
 (define-public (iterator-next it)
   "Get next iterator after @it."
-  (and it (cdr (it))))
+  (and it (cdr (it)))
+) ;define-public
 
 (define-public-macro (iterator-read! it)
   "Read one value from iterator @it."
-  `(and ,it
-	(with next (,it)
-	  (set! ,it (cdr next))
-	  (car next))))
+  `(and ,it (with next (,it) (set! ,it (cdr next)) (car next)))
+) ;define-public-macro
 
 (define-public (iterator-apply it fun)
-  (while it
-    (with next (it)
-      (fun (car next))
-      (set! it (cdr next)))))
+  (while it (with next (it) (fun (car next)) (set! it (cdr next))))
+) ;define-public
 
 (define-public-macro (for-in var-it . body)
   "Execute @body for values in an iterator."
-  (let* ((var (car var-it))
-	 (it (cadr var-it))
-	 (fun `(lambda (,var) ,@body)))
-    `(iterator-apply ,it ,fun)))
+  (let* ((var (car var-it)) (it (cadr var-it)) (fun `(lambda (,var) ,@body)))
+    `(iterator-apply ,it ,fun)
+  ) ;let*
+) ;define-public-macro
 
 (define-public (iterator->list it)
   "Convert iterator @it into a list."
-  (if (not it) '()
-      (with next (it)
-	(cons (car next) (iterator->list (cdr next))))))
+  (if (not it) '() (with next (it) (cons (car next) (iterator->list (cdr next)))))
+) ;define-public
