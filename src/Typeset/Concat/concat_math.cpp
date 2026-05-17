@@ -60,7 +60,7 @@ concater_rep::typeset_large (tree t, path ip, int tp, int otp, string prefix) {
       }
       string s= prefix * br * ">";
       box    b= delimiter_box (ip, s, env->fn, env->pen, y1, y2,
-                            get_env_bg_color (env));
+                               get_env_bg_color (env));
       print (STD_ITEM, otp, b);
     }
   }

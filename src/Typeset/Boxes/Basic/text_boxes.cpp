@@ -636,7 +636,8 @@ get_wide_stix (string s, font fn, SI width) {
  ******************************************************************************/
 
 box
-delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top, color bg) {
+delimiter_box (path ip, string s, font fn, pencil pen, SI bot, SI top,
+               color bg) {
   SI     h= top - bot;
   string r= get_delimiter (s, fn, h);
   box    b= text_box_with_bg (ip, 0, r, fn, pen, bg, xkerning ());
