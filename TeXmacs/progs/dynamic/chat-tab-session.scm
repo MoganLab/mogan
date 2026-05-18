@@ -237,6 +237,7 @@
 ;; ----
 ;; 此函数与 chat-tab-session-decode 成对使用，负责在任务进入 pending
 ;; 队列前将上下文打包。
+
 (define (chat-tab-session-encode input message-buffer input-buffer out opts)
   (list (list chat-tab-session-do
           chat-tab-session-notify
@@ -274,6 +275,7 @@
 ;; ----
 ;; 返回值通常通过 with 绑定解构为多个变量使用。
 ;; 此函数与 chat-tab-session-encode 成对使用。
+
 (define (chat-tab-session-decode l)
   (list (second l) (third l) (fourth l) (tree-pointer->tree (fifth l)) (sixth l))
 ) ;define
@@ -315,6 +317,7 @@
 ;; ----
 ;; 此函数作为 do 回调传递给 plugin-feed，由 plugin-do 在任务开始执行时调用。
 ;; 当输入为空时直接跳过，避免向插件发送无意义请求。
+
 (define (chat-tab-session-do lan ses)
   (with l
     (pending-ref lan ses)
@@ -365,6 +368,7 @@
 ;; ----
 ;; 此函数作为 next 回调传递给 plugin-feed，由 plugin-next 在任务完成后调用。
 ;; 主要职责是结束输出区域的忙等状态并释放 tree-pointer 资源。
+
 (define (chat-tab-session-next lan ses)
   (with l
     (pending-ref lan ses)
@@ -432,6 +436,7 @@
 ;; ----
 ;; 此函数作为 notify 回调传递给 plugin-feed，由插件连接层异步调用。
 ;; "input" 通道仅在队列为单任务时更新输入缓冲区，避免多任务竞争。
+
 (define (chat-tab-session-notify lan ses ch t)
   (with l
     (pending-ref lan ses)
@@ -501,6 +506,7 @@
 ;; ----
 ;; 此函数作为 cancel 回调传递给 plugin-feed，由 plugin-cancel 在任务被取消
 ;; 或插件进程异常终止时调用。
+
 (define (chat-tab-session-cancel lan ses dead?)
   (with l
     (pending-ref lan ses)
@@ -573,6 +579,7 @@
 ;; ----
 ;; 此函数是聊天标签会话向底层插件引擎提交任务的唯一入口。
 ;; out 被重置为 script-busy 后，用户界面会显示忙等指示，直到任务完成。
+
 (define (chat-tab-session-feed lan ses input message-buffer input-buffer out opts)
   (set! input (plugin-preprocess lan ses input opts))
   (with-buffer message-buffer (tree-assign! out '(document (script-busy))))
@@ -683,7 +690,14 @@
               #t
             ) ;begin
             (begin
-              (chat-tab-session-feed chat-tab-session-name ses input message-buffer input-buffer out '())
+              (chat-tab-session-feed chat-tab-session-name
+                ses
+                input
+                message-buffer
+                input-buffer
+                out
+                '()
+              ) ;chat-tab-session-feed
               #t
             ) ;begin
           ) ;if
