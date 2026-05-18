@@ -723,6 +723,19 @@ tree 或 #f
       (perform-search*)
       (set! isreplace? #t))))
 
+(tm-define (replace-all-occurrences . args)
+  (let ((u    (if (null? args) (master-buffer)  (car args)))
+        (raux (if (null? args) (replace-buffer) (cadr args))))
+    (and-with by (or (by-tree raux) current-replace)
+      (with-buffer u
+        (search-extreme-match #f)
+        (start-editing)
+        (while (replace-next by)
+          (perform-search*))
+        (end-editing))
+      (perform-search*)
+      (set! isreplace? #t))))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customized keyboard shortcuts in search and replace modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -957,6 +970,8 @@ tree 或 #f
                                                     "Replace all further occurrences (Command+Enter)"
                                                     "Replace all further occurrences (Ctrl+Enter)")))
        (replace-all u raux))
+      ((balloon (icon "tm_replace_all.xpm") "Replace all occurrences")
+       (replace-all-occurrences u raux))
       >>>
       (=> (balloon (icon "tm_preferences.xpm")
                    "Search and replace preferences")
@@ -996,6 +1011,8 @@ tree 或 #f
          (replace-one))
         ((balloon (icon "tm_replace_all.xpm") "Replace all further occurrences")
          (replace-all))
+        ((balloon (icon "tm_replace_all.xpm") "Replace all occurrences")
+         (replace-all-occurrences))
         >>>
         (=> (balloon (icon "tm_preferences.xpm")
                      "Search and replace preferences")
@@ -1197,6 +1214,8 @@ tree 或 #f
      (replace-one))
     ((balloon (icon "tm_replace_all.xpm") "Replace all further occurrences")
      (replace-all))
+    ((balloon (icon "tm_replace_all.xpm") "Replace all occurrences")
+     (replace-all-occurrences))
     >>>
     ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
             "v" (search-filter-enabled?))
