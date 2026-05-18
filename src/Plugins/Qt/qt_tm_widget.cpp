@@ -947,6 +947,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     // Show PDF viewer
     hide_widget_from_layout (editorWidget, layout);
     hide_widget_from_layout (startupContentWidget, layout);
+    hide_widget_from_layout (chatContentWidget, layout);
 
     update_visibility ();
 
@@ -965,6 +966,7 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
   else {
     // Show normal editor view (unless chat tab mode is active)
     hide_widget_from_layout (startupContentWidget, layout);
+    hide_widget_from_layout (pdfViewerWidget, layout);
     if (!chatTabMode) {
       show_widget_in_layout (editorWidget, layout);
 
@@ -990,7 +992,6 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
     hide_widget_from_layout (editorWidget, layout);
     hide_widget_from_layout (startupContentWidget, layout);
     hide_widget_from_layout (pdfViewerWidget, layout);
-    show_widget_in_layout (editorWidget, layout);
 
     update_visibility ();
 
@@ -1001,9 +1002,9 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
     chatContentWidget->setFocus (Qt::OtherFocusReason);
   }
   else {
-    // Show normal editor view (unless startup tab mode is active)
+    // Show normal editor view only when no special tab mode is active
     hide_widget_from_layout (chatContentWidget, layout);
-    if (!startupTabMode) {
+    if (!startupTabMode && !pdfTabMode) {
       show_widget_in_layout (editorWidget, layout);
 
       update_visibility ();
