@@ -1133,7 +1133,7 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
         add_deps("stem")
         on_run(function (target)
             name = target:name()
-            test_name = "(catch #t (lambda () (test_"..name..")) (lambda (key . args) (display (list \"TEST-ERROR:\" key args)) (newline)))"
+            test_name = "(test_"..name..")"
             print("------------------------------------------------------")
             print("Executing: " .. test_name)
             params = {

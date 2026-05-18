@@ -82,12 +82,13 @@
   (map tree-copy (tree-children (chat-tab-normalize-document body)))
 ) ;define
 
-(tm-define (chat-tab-model-prompt model)
+(define (chat-tab-model-prompt model)
   (with parts (string-tokenize-by-char model #\-)
     (with part
       (list-find parts (lambda (p) (string-occurs? "0123456789" p)))
-      (string-append (if part part (cAr parts)) "> ")))
-) ;tm-define
+      (if part part (cAr parts)))
+    (string-append part "> "))
+) ;define
 
 (define (var-tree-children t)
   (with r (tree-children t) (if (and (nnull? r) (tree-empty? (cAr r))) (cDr r) r))
