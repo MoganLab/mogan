@@ -232,7 +232,8 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   setup_left_sidebar (sidebarLayout);
   sidebar->adjustSize ();
   const int contentWidth= sidebar->sizeHint ().width ();
-  sidebarExpandedWidth_= qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth);
+  sidebarExpandedWidth_=
+      qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth);
   sidebar->setFixedWidth (sidebarExpandedWidth_);
   mainLayout->addWidget (sidebar);
 
@@ -321,7 +322,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   QWidget* collapsedBar= new QWidget (sidebarWidget_);
   collapsedBar->setObjectName ("chat-tab-sidebar-collapsed");
   QVBoxLayout* collapsedLayout= new QVBoxLayout (collapsedBar);
-  collapsedLayout->setContentsMargins (0, 0, 0, DpiUtils::scaled (kSidebarMarginY));
+  collapsedLayout->setContentsMargins (0, 0, 0,
+                                       DpiUtils::scaled (kSidebarMarginY));
   collapsedLayout->setSpacing (0);
 
   collapsedLayout->addStretch ();

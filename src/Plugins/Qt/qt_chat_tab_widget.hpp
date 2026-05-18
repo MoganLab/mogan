@@ -159,17 +159,17 @@ public:
   void set_chat_focus_icons (widget focusWidget);
 
 private:
-  QWidget*        sidebarWidget_;                    ///< 左侧边栏容器。
-  QWidget*        contentWidget_;                    ///< 右侧内容区容器。
-  QLabel*         conversationCountLabel_;           ///< 显示会话数量的标签。
-  QWidget*        conversationListWidget_;           ///< 承载会话列表的控件。
-  QVBoxLayout*    conversationListLayout_;           ///< 会话按钮的布局。
-  QPushButton*    collapseButton_;                   ///< 侧边栏内的收缩按钮。
-  QPushButton*    newChatButton_;                    ///< 新建会话按钮。
-  QWidget*        sidebarNormalContent_;             ///< 侧边栏展开时的内容容器。
-  QWidget*        sidebarCollapsedBar_;              ///< 侧边栏收起时的窄条容器。
-  QStackedWidget* conversationStack_;                ///< 会话页面的堆叠控件。
-  QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
+  QWidget*        sidebarWidget_;               ///< 左侧边栏容器。
+  QWidget*        contentWidget_;               ///< 右侧内容区容器。
+  QLabel*         conversationCountLabel_;      ///< 显示会话数量的标签。
+  QWidget*        conversationListWidget_;      ///< 承载会话列表的控件。
+  QVBoxLayout*    conversationListLayout_;      ///< 会话按钮的布局。
+  QPushButton*    collapseButton_;              ///< 侧边栏内的收缩按钮。
+  QPushButton*    newChatButton_;               ///< 新建会话按钮。
+  QWidget*        sidebarNormalContent_;        ///< 侧边栏展开时的内容容器。
+  QWidget*        sidebarCollapsedBar_;         ///< 侧边栏收起时的窄条容器。
+  QStackedWidget* conversationStack_;           ///< 会话页面的堆叠控件。
+  QList<ChatConversationPanel*> conversations_; ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
   int       nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
   bool      sidebarCollapsed_;        ///< 侧边栏当前是否处于收起状态。
