@@ -25,8 +25,7 @@ QTMTemplateOpener::~QTMTemplateOpener () { cleanupProgressDialog_ (); }
 
 bool
 QTMTemplateOpener::isAvailableLocally (const QString& templateId) {
-  return templateManager_ &&
-         templateManager_->isTemplateAvailableLocally (templateId);
+  return templateManager_ && templateManager_->verifyLocalTemplate (templateId);
 }
 
 bool
