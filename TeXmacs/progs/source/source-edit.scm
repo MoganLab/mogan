@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (source source-edit)
-  (:use (generic document-style)
-        (source source-drd)))
+  (:use (generic document-style) (source source-drd))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Editing command tags
@@ -21,78 +21,96 @@
 
 (tm-define (make-latex)
   (make 'latex)
-  (set-message "Type a latex command followed by return" "latex"))
+  (set-message "Type a latex command followed by return" "latex")
+) ;tm-define
 
 (tm-define (activate-compound)
-  (with-innermost t 'compound
+  (with-innermost t
+    'compound
     (when (not (tree-is? t :up 'inactive))
-      (tree-set! t `(inactive ,t)))
-    (activate)))
+      (tree-set! t `(inactive ,t))
+    ) ;when
+    (activate)
+  ) ;with-innermost
+) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
   (:require (tree-is? t 'hybrid))
-  (activate-hybrid #f))
+  (activate-hybrid #f)
+) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
   (:require (tree-is? t 'compound))
-  (activate-compound))
+  (activate-compound)
+) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
   (:require (tree-is? t 'latex))
-  (activate-latex))
+  (activate-latex)
+) ;tm-define
 
 (tm-define (kbd-enter t forwards?)
   (:require (tree-is? t 'symbol))
-  (activate-symbol))
+  (activate-symbol)
+) ;tm-define
 
-(tm-define (kbd-enter t forwards?)
-  (:require (tree-is? t 'inactive))
-  (activate))
+(tm-define (kbd-enter t forwards?) (:require (tree-is? t 'inactive)) (activate))
 
 (tm-define (kbd-variant t forwards?)
   (:require (tree-is? t 'hybrid))
-  (activate-hybrid #t))
+  (activate-hybrid #t)
+) ;tm-define
 
 (tm-define (kbd-variant t forwards?)
   (:require (tree-in? t '(inactive tuple attr)))
-  (insert-argument forwards?))
+  (insert-argument forwards?)
+) ;tm-define
 
 (tm-define (kbd-variant t forwards?)
   (:require (in-source?))
-  (insert-argument forwards?))
+  (insert-argument forwards?)
+) ;tm-define
 
 (tm-define (structured-insert-horizontal t forwards?)
   (:require (tree-is? t 'hybrid))
-  (activate-hybrid #t))
+  (activate-hybrid #t)
+) ;tm-define
 
 (tm-define (inactive-toggle t)
   (if (or (tree-is? t 'inactive) (tree-is? t :up 'inactive))
-      (activate)
-      (with t-copy t
-        (tree-set t `(inactive ,t))
-        (notify-disactivated t-copy))))
+    (activate)
+    (with t-copy t (tree-set t `(inactive ,t)) (notify-disactivated t-copy))
+  ) ;if
+) ;tm-define
 
 (tm-define (inactive-toggle t)
   (:require (and (tree-is? t 'hybrid) (tree-is? t :up 'inactive)))
-  (activate-hybrid #f))
+  (activate-hybrid #f)
+) ;tm-define
 
 (tm-define (inactive-toggle t)
   (:require (and (tree-is? t 'compound) (tree-is? t :up 'inactive)))
-  (activate-compound))
+  (activate-compound)
+) ;tm-define
 
 (tm-define (inactive-toggle t)
   (:require (and (tree-is? t 'latex) (tree-is? t :up 'inactive)))
-  (activate-latex))
+  (activate-latex)
+) ;tm-define
 
 (tm-define (inactive-toggle t)
   (:require (and (tree-is? t 'symbol) (tree-is? t :up 'inactive)))
-  (activate-symbol))
+  (activate-symbol)
+) ;tm-define
 
 (tm-define (remove-unary-document)
-  (with-innermost doc 'document
-    (when (and (== (tree-arity doc) 1)
-               (> (length (tree->path doc)) 1))
-      (tree-remove-node! doc 0))))
+  (with-innermost doc
+    'document
+    (when (and (== (tree-arity doc) 1) (> (length (tree->path doc)) 1))
+      (tree-remove-node! doc 0)
+    ) ;when
+  ) ;with-innermost
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Extracting a style file or package from the current file
@@ -100,72 +118,95 @@
 
 (define (extract-source-title style?)
   (let* ((tag (if style? 'src-style-file 'src-package))
-	 (what (if style? "style file" "style package"))
-	 (purpose (string-append "Automatically generated " what "."))
-	 (name (url-basename (current-buffer))))
-    `(active*
-       (document
-	 (src-title
-	   (document
-	     (,tag ,(string-append name "-macros") "1.0")
-	     (src-purpose ,purpose)))))))
+         (what (if style? "style file" "style package"))
+         (purpose (string-append "Automatically generated " what "."))
+         (name (url-basename (current-buffer)))
+        ) ;
+    `(active* (document (src-title (document (,tag
+                                              ,(string-append name "-macros")
+                                              ,"1.0")
+                                     (src-purpose ,purpose)))))
+  ) ;let*
+) ;define
 
 (define (extract-use-package style?)
-  (with l (get-style-list)
+  (with l
+    (get-style-list)
     (when (and (not style?) (nnull? l))
-      (set! l (cdr l)))
-    (if (null? l) (list) (list `(use-package ,@l)))))
+      (set! l (cdr l))
+    ) ;when
+    (if (null? l) (list) (list `(use-package ,@l)))
+  ) ;with
+) ;define
 
 (define (init<=? a b)
-  (and (tm-func? a 'associate 2) (tm-func? b 'associate 2)
-       (string? (tm-ref a 0)) (string? (tm-ref b 0))
-       (string<=? (tm-ref a 0) (tm-ref b 0))))
+  (and (tm-func? a 'associate 2)
+    (tm-func? b 'associate 2)
+    (string? (tm-ref a 0))
+    (string? (tm-ref b 0))
+    (string<=? (tm-ref a 0) (tm-ref b 0))
+  ) ;and
+) ;define
 
 (define (inits->assignments l)
-  (if (null? l) l
-      (let* ((head (car l))
-	     (tail (inits->assignments (cdr l))))
-	(cond ((not (and (tm-func? head 'associate 2)
-			 (string? (tm-ref head 0))))
-	       tail)
-	      ((in? (tm-ref head 0) (list "zoom-factor" "sfactor"
-					  "preamble"
-					  "page-screen-width"
-					  "page-screen-height"))
-	       tail)
-	      (else (cons `(assign ,(tm-ref head 0) ,(tm-ref head 1))
-			  tail))))))
+  (if (null? l)
+    l
+    (let* ((head (car l)) (tail (inits->assignments (cdr l))))
+      (cond ((not (and (tm-func? head 'associate 2) (string? (tm-ref head 0)))) tail)
+            ((in? (tm-ref head 0)
+               (list "zoom-factor"
+                 "sfactor"
+                 "preamble"
+                 "page-screen-width"
+                 "page-screen-height"
+               ) ;list
+             ) ;in?
+             tail
+            ) ;
+            (else (cons `(assign ,(tm-ref head 0) ,(tm-ref head 1)) tail))
+      ) ;cond
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (source-comment s)
-  `(active* (document (src-comment (document ,s)))))
+  `(active* (document (src-comment (document ,s))))
+) ;define
 
 (define (extract-style-parameters)
   (let* ((inits (cdr (tm->stree (get-all-inits))))
-	 (sorted (sort inits init<=?))
-	 (pars (inits->assignments sorted)))
-    (if (null? pars) (list)
-	(cons (source-comment "Style parameters.") pars))))
+         (sorted (sort inits init<=?))
+         (pars (inits->assignments sorted))
+        ) ;
+    (if (null? pars) (list) (cons (source-comment "Style parameters.") pars))
+  ) ;let*
+) ;define
 
 (define (extract-macro-definitions)
-  (with body (buffer-get-body (current-buffer))
+  (with body
+    (buffer-get-body (current-buffer))
     (if (and (tree-is? body 'document)
-	     (tree-in? body 0 '(show-preamble hide-preamble))
-	     (tree-is? body 0 0 'document))
-	(cons (source-comment "Macro definitions.")
-	      (tree-children (tree-ref body 0 0)))
-	(list))))
+          (tree-in? body 0 '(show-preamble hide-preamble))
+          (tree-is? body 0 0 'document)
+        ) ;and
+      (cons (source-comment "Macro definitions.") (tree-children (tree-ref body 0 0)))
+      (list)
+    ) ;if
+  ) ;with
+) ;define
 
 (tm-define (extract-style-file style?)
   (let* ((tit (extract-source-title style?))
-	 (packs (extract-use-package style?))
-	 (inits (extract-style-parameters))
-	 (defs (extract-macro-definitions))
-	 (body `(document ,tit ,@packs ,@inits ,@defs))
-	 (doc `(document
-		 (TeXmacs ,(texmacs-version))
-		 (style (tuple "source"))
-		 (body ,body))))
+         (packs (extract-use-package style?))
+         (inits (extract-style-parameters))
+         (defs (extract-macro-definitions))
+         (body `(document ,tit ,@packs ,@inits ,@defs))
+         (doc `(document (TeXmacs ,(texmacs-version))
+                 (style (tuple "source"))
+                 (body ,body))
+         ) ;doc
+        ) ;
     (new-buffer)
-    (delayed
-      (:idle 1)
-      (buffer-set (current-buffer) doc))))
+    (delayed (:idle 1) (buffer-set (current-buffer) doc))
+  ) ;let*
+) ;tm-define

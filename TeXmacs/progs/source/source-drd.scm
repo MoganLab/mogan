@@ -11,18 +11,14 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (source source-drd)
-  (:use (utils edit variants)))
+(texmacs-module (source source-drd) (:use (utils edit variants)))
 
 ;; General groups
 
-(define-group variant-tag
-  (assign-tag))
+(define-group variant-tag (assign-tag))
 
-(define-group similar-tag
-  (assign-tag))
+(define-group similar-tag (assign-tag))
 
 ;; Variable tags
 
-(define-group assign-tag
-  assign provide)
+(define-group assign-tag assign provide)

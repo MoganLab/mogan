@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (source macro-menu)
-  (:use (source macro-edit)
-	(source macro-widgets)))
+  (:use (source macro-edit) (source macro-widgets))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Exposed menu for editing user-defined macros
@@ -22,17 +22,27 @@
 (menu-bind insert-macro-menu
   (assuming (nnull? (get-macro-list :preamble))
     (for (m (get-macro-list :preamble :sort 20))
-      ((eval `(verbatim ,m)) (make (string->symbol m))))
-    ---)
+     ((eval `(verbatim ,m)) (make (string->symbol m)))
+    ) ;for
+    ---
+  ) ;assuming
   (assuming (nnull? (get-macro-list :packages))
     (for (pack (get-public-style-list))
       (assuming (nnull? (get-macro-list pack))
         (-> (eval `(verbatim ,pack))
-            (for (m (get-macro-list pack :sort 30))
-              ((eval `(verbatim ,m)) (make (string->symbol m)))))))
-    ---)
+          (for (m (get-macro-list pack :sort 30))
+           ((eval `(verbatim ,m)) (make (string->symbol m)))
+          ) ;for
+        ) ;->
+      ) ;assuming
+    ) ;for
+    ---
+  ) ;assuming
   ("New macro" (open-macro-editor "" :global))
   (when (can-create-context-macro?)
-    ("New context macro" (create-context-macro "" :global)))
+    ("New context macro" (create-context-macro "" :global))
+  ) ;when
   (when (can-create-table-macro?)
-    ("New table macro" (create-table-macro "" :global))))
+    ("New table macro" (create-table-macro "" :global))
+  ) ;when
+) ;menu-bind
