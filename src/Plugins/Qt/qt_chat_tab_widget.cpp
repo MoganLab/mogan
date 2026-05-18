@@ -21,14 +21,19 @@
 #include "s7_tm.hpp"
 #include "tm_window.hpp"
 
+#include <lolly/hash/uuid.hpp>
 #include <moebius/tree_label.hpp>
 
 #include <QAbstractScrollArea>
+#include <QApplication>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
+#include <QInputDialog>
 #include <QKeyEvent>
 #include <QLabel>
+#include <QLineEdit>
 #include <QMenuBar>
+#include <QMenu>
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QScrollBar>
@@ -44,32 +49,23 @@ using namespace moebius;
 namespace {
 
 /**
- * @brief 生成下一个聊天 buffer 的唯一 ID。
- * @return 递增后的 ID。
+ * @brief 从文档树中提取纯文本标题。
+ * @param body TeXmacs 文档树。
+ * @param maxLen 标题最大字符数。
+ * @return 提取的标题字符串。
  */
-int
-next_chat_input_buffer_id () {
-  static int s_nextId= 0;
-  return ++s_nextId;
-}
-
-/**
- * @brief 创建唯一的输入 buffer URL。
- * @return 格式为 tmfs://chat-input-<id> 的 URL。
- */
-url
-make_chat_input_buffer_name () {
-  return url ("tmfs://chat-input-" * as_string (next_chat_input_buffer_id ()));
-}
-
-/**
- * @brief 创建唯一的消息 buffer URL。
- * @return 格式为 tmfs://chat-message-<id> 的 URL。
- */
-url
-make_chat_message_buffer_name () {
-  return url ("tmfs://chat-message-" *
-              as_string (next_chat_input_buffer_id ()));
+string
+extract_title (tree body, int maxLen) {
+  string result;
+  if (is_func (body, DOCUMENT)) {
+    for (int i= 0; i < N (body) && N (result) < maxLen; ++i) {
+      if (is_atomic (body[i])) result << body[i]->label;
+    }
+  }
+  if (N (result) > maxLen) {
+    result= result (0, maxLen) * "...";
+  }
+  return result;
 }
 
 /**
@@ -183,15 +179,13 @@ struct QTChatTabWidget::ChatConversationPanel {
   QLabel*      welcomeTitle     = nullptr; ///< 欢迎标题标签。
   QWidget*     messageFrame     = nullptr; ///< 承载消息控件的边框。
   QWidget*     inputEditorWidget= nullptr; ///< 输入编辑器的 Qt 控件。
-  QPushButton* sendButton       = nullptr; ///< 发送按钮。
+  QPushButton* sendButton       = nullptr; ///< 发送/停止按钮。
   QPushButton* sidebarButton    = nullptr; ///< 侧边栏入口按钮。
   QSpacerItem* topSpacer        = nullptr; ///< 顶部占位，用于垂直偏移。
   widget       messageWidget;              ///< 消息显示的 TeXmacs 控件。
   widget       inputWidget;                ///< 用户输入的 TeXmacs 控件。
-  url          messageBufferName;          ///< 消息历史 buffer 的 URL。
-  url          inputBufferName;            ///< 输入编辑器 buffer 的 URL。
+  string       sessionId;                  ///< 会话 UUID（跨层交互标识）。
   bool         conversationMode= false;    ///< 面板是否已离开欢迎态。
-  QString      title;                      ///< 会话的显示标题。
 };
 
 /**
@@ -202,13 +196,14 @@ struct QTChatTabWidget::ChatConversationPanel {
 QTChatTabWidget::QTChatTabWidget (QWidget* parent)
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
       conversationCountLabel_ (nullptr), conversationListWidget_ (nullptr),
-      conversationListLayout_ (nullptr), newChatButton_ (nullptr),
+      conversationListLayout_ (nullptr), archiveHeaderButton_ (nullptr),
+      archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
+      archiveCollapsed_ (true), newChatButton_ (nullptr),
       collapseButton_ (nullptr), sidebarNormalContent_ (nullptr),
       sidebarCollapsedBar_ (nullptr), conversationStack_ (nullptr),
-      activeConversation_ (nullptr), nextConversationTitleId_ (1),
-      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
-      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
-      chatFocusToolBar_ (nullptr) {
+      activeConversation_ (nullptr), sidebarCollapsed_ (false),
+      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
+      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -295,6 +290,36 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   conversationListLayout_->setContentsMargins (0, 0, 0, 0);
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
   normalLayout->addWidget (conversationListWidget_);
+
+  // 归档区标题按钮：点击展开/折叠归档列表
+  archiveHeaderButton_= new QPushButton ("Archived (0)", normalContent);
+  archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
+  archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
+  archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (archiveHeaderButton_, kNavTitleFontPx);
+  archiveHeaderButton_->setStyleSheet (
+      QString ("QPushButton { text-align: left; border: none; "
+               "padding: %1px %2px; color: #666666; background: transparent; "
+               "font-weight: bold; } "
+               "QPushButton:hover { color: #333333; }")
+          .arg (DpiUtils::scaled (kNavTitlePadding))
+          .arg (DpiUtils::scaled (kNavButtonPadX)));
+  connect (archiveHeaderButton_, &QPushButton::clicked, this,
+           [this] () {
+             archiveCollapsed_= !archiveCollapsed_;
+             if (archiveListWidget_)
+               archiveListWidget_->setVisible (!archiveCollapsed_);
+           });
+  normalLayout->addWidget (archiveHeaderButton_);
+
+  // 归档会话列表
+  archiveListWidget_= new QWidget (normalContent);
+  archiveListWidget_->setObjectName ("chat-tab-archive-list");
+  archiveListLayout_= new QVBoxLayout (archiveListWidget_);
+  archiveListLayout_->setContentsMargins (0, 0, 0, 0);
+  archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  archiveListWidget_->hide (); // 默认折叠
+  normalLayout->addWidget (archiveListWidget_);
 
   normalLayout->addStretch ();
 
@@ -396,10 +421,13 @@ QTChatTabWidget::ChatConversationPanel*
 QTChatTabWidget::create_conversation (const QString& title) {
   if (!conversationStack_ || !conversationListLayout_) return nullptr;
 
+  string sessionId= sessionManager_.createSession ();
   ChatConversationPanel* panel= new ChatConversationPanel ();
-  panel->title                = title;
-  panel->messageBufferName    = make_chat_message_buffer_name ();
-  panel->inputBufferName      = make_chat_input_buffer_name ();
+  panel->sessionId            = sessionId;
+  sessionManager_.setPanel (sessionId, panel);
+
+  url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
+  url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
 
   QWidget* page= new QWidget (conversationStack_);
   page->setObjectName ("chat-tab-conversation-page");
@@ -428,7 +456,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
 
   panel->messageWidget=
       texmacs_input_widget (tree (DOCUMENT, ""), make_chat_embedded_style (),
-                            panel->messageBufferName);
+                            msgBufUrl);
   QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
   panel->messageFrame    = new QWidget (topPanel);
   panel->messageFrame->setObjectName ("chat-tab-message-frame");
@@ -449,7 +477,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   topLayout->addWidget (panel->messageFrame, 1);
 
   panel->inputWidget= texmacs_input_widget (
-      tree (DOCUMENT, ""), make_chat_embedded_style (), panel->inputBufferName);
+      tree (DOCUMENT, ""), make_chat_embedded_style (), inBufUrl);
   QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
   panel->inputEditorWidget= inputQWidget;
   disable_scrollbars_recursively (inputQWidget);
@@ -494,7 +522,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   contentLayout->addWidget (topPanel, 1, Qt::AlignHCenter | Qt::AlignTop);
   conversationStack_->addWidget (page);
 
-  panel->sidebarButton= new QPushButton (title, conversationListWidget_);
+  panel->sidebarButton= new QPushButton ("新会话", conversationListWidget_);
   panel->sidebarButton->setObjectName ("chat-tab-conversation-btn");
   panel->sidebarButton->setCheckable (true);
   panel->sidebarButton->setFocusPolicy (Qt::NoFocus);
@@ -521,8 +549,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
  */
 void
 QTChatTabWidget::create_new_conversation () {
-  QString title= QString ("Chat %1").arg (nextConversationTitleId_++);
-  ChatConversationPanel* panel= create_conversation (title);
+  ChatConversationPanel* panel= create_conversation ("");
   if (!panel) return;
   conversations_.append (panel);
   activate_conversation (panel);
@@ -546,14 +573,135 @@ QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
  */
 void
 QTChatTabWidget::refresh_sidebar () {
+  // 统计活跃和归档会话数
+  int activeCount= 0;
+  int archivedCount= 0;
+  for (ChatConversationPanel* panel : conversations_) {
+    if (!panel) continue;
+    ChatSession* session= sessionManager_.getSession (panel->sessionId);
+    if (session && session->archived) ++archivedCount;
+    else ++activeCount;
+  }
   if (conversationCountLabel_) {
     conversationCountLabel_->setText (
-        QString ("Conversations (%1)").arg (conversations_.size ()));
+        QString ("Conversations (%1)").arg (activeCount));
   }
+
+  // 更新归档区标题
+  if (archiveHeaderButton_) {
+    archiveHeaderButton_->setText (
+        QString ("Archived (%1)").arg (archivedCount));
+    archiveHeaderButton_->setVisible (true);
+  }
+
+  // 标题去重：统计每个 title 出现次数
+  QMap<QString, int> titleCounts;
+  for (ChatConversationPanel* panel : conversations_) {
+    if (!panel) continue;
+    ChatSession* session= sessionManager_.getSession (panel->sessionId);
+    if (!session || is_empty (session->title)) continue;
+    QString t= to_qstring (session->title);
+    titleCounts[t]++;
+  }
+
+  // 先将归档按钮从旧父控件移除，以便重新分配
   for (ChatConversationPanel* panel : conversations_) {
     if (!panel || !panel->sidebarButton) continue;
-    panel->sidebarButton->setText (panel->title);
-    panel->sidebarButton->setChecked (panel == activeConversation_);
+    panel->sidebarButton->setParent (nullptr);
+  }
+
+  // 清空两个列表布局
+  while (conversationListLayout_->count () > 0) {
+    QLayoutItem* item= conversationListLayout_->takeAt (0);
+    delete item;
+  }
+  while (archiveListLayout_->count () > 0) {
+    QLayoutItem* item= archiveListLayout_->takeAt (0);
+    delete item;
+  }
+
+  // 更新侧边栏按钮
+  QMap<QString, int> titleSeq; // 去重序号
+  for (ChatConversationPanel* panel : conversations_) {
+    if (!panel || !panel->sidebarButton) continue;
+    ChatSession* session= sessionManager_.getSession (panel->sessionId);
+    bool archived= session && session->archived;
+
+    QString displayText;
+    if (session && !is_empty (session->title)) {
+      displayText= to_qstring (session->title);
+      // 标题去重：同标题追加序号
+      if (titleCounts[displayText] > 1) {
+        int seq= ++titleSeq[displayText];
+        displayText+= QString (" (%1)").arg (seq);
+      }
+    }
+    else {
+      displayText= QString::fromUtf8 ("新会话");
+    }
+
+    panel->sidebarButton->setText (displayText);
+    panel->sidebarButton->setChecked (panel == activeConversation_ && !archived);
+    panel->sidebarButton->setVisible (true);
+
+    if (archived) {
+      // 归档会话：放入归档列表，禁止点击导航
+      panel->sidebarButton->setParent (archiveListWidget_);
+      archiveListLayout_->addWidget (panel->sidebarButton);
+      disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
+      // 点击归档项不做任何导航
+      connect (panel->sidebarButton, &QPushButton::clicked, this,
+               [] () {});
+    }
+    else {
+      // 活跃会话：放入会话列表，点击切换
+      panel->sidebarButton->setParent (conversationListWidget_);
+      conversationListLayout_->addWidget (panel->sidebarButton);
+      disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
+      connect (panel->sidebarButton, &QPushButton::clicked, this,
+               [this, panel] () { activate_conversation (panel); });
+    }
+
+    // 右键菜单：重命名、归档/恢复
+    panel->sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
+    disconnect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
+                this, nullptr);
+    connect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
+             this, [this, panel] (const QPoint& pos) {
+      QMenu menu (panel->sidebarButton);
+      ChatSession* s= sessionManager_.getSession (panel->sessionId);
+      QAction* renameAction= menu.addAction ("重命名");
+      QAction* archiveAction=
+          menu.addAction (s && s->archived ? "恢复" : "归档");
+      QAction* chosen= menu.exec (
+          panel->sidebarButton->mapToGlobal (pos));
+      if (chosen == renameAction) {
+        // 重命名：通过输入对话框
+        bool ok;
+        QString newTitle= QInputDialog::getText (
+            panel->sidebarButton, "重命名会话", "新标题:",
+            QLineEdit::Normal,
+            s ? to_qstring (s->title) : "", &ok);
+        if (ok && s) {
+          sessionManager_.setTitle (panel->sessionId,
+              from_qstring (newTitle));
+          refresh_sidebar ();
+        }
+      }
+      else if (chosen == archiveAction) {
+        if (s && s->archived)
+          sessionManager_.restoreSession (panel->sessionId);
+        else
+          sessionManager_.archiveSession (panel->sessionId);
+        refresh_sidebar ();
+      }
+    });
+  }
+
+  // 归档列表可见性：有归档项且非折叠时显示
+  if (archiveListWidget_) {
+    archiveListWidget_->setVisible (
+        archivedCount > 0 && !archiveCollapsed_);
   }
 }
 
@@ -658,11 +806,18 @@ QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
   tree inputBody= read_input_message (panel);
   if (is_empty_document_body (inputBody)) return;
 
-  if (!as_bool (call ("chat-tab-send", as_string (panel->messageBufferName),
-                      as_string (panel->inputBufferName), object (inputBody))))
-    return;
+  // 首次发送：自动提取标题
+  ChatSession* session= sessionManager_.getSession (panel->sessionId);
+  if (session && is_empty (session->title)) {
+    string extracted= extract_title (inputBody, 20);
+    sessionManager_.setTitle (panel->sessionId, extracted);
+  }
 
+  if (!as_bool (call ("chat-tab-send", panel->sessionId))) return;
+
+  sessionManager_.setState (panel->sessionId, ChatState::Generating);
   enter_conversation_mode (panel);
+  refresh_sidebar ();
   focus_input_editor (panel);
 }
 
@@ -674,7 +829,52 @@ QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
 tree
 QTChatTabWidget::read_input_message (const ChatConversationPanel* panel) const {
   if (!panel) return tree (DOCUMENT, "");
-  return get_buffer_body (panel->inputBufferName);
+  return get_buffer_body (ChatSessionManager::inputBufferUrl (panel->sessionId));
+}
+
+/**
+ * @brief 取消当前会话的 LLM 生成。
+ * @param panel 待取消的会话面板。
+ */
+void
+QTChatTabWidget::handle_cancel (ChatConversationPanel* panel) {
+  if (!panel) return;
+  call ("chat-tab-cancel", panel->sessionId);
+  sessionManager_.setState (panel->sessionId, ChatState::Idle);
+}
+
+/**
+ * @brief 被 Scheme 侧通知生成状态变更。
+ * @param sessionId 会话 ID。
+ * @param stateStr 状态字符串 ("idle" 或 "generating")。
+ */
+void
+QTChatTabWidget::notifyStateChanged (const string& sessionId,
+                                     const string& stateStr) {
+  ChatSession* session= sessionManager_.getSession (sessionId);
+  if (!session) return;
+
+  ChatState newState=
+      (stateStr == "generating") ? ChatState::Generating : ChatState::Idle;
+  sessionManager_.setState (sessionId, newState);
+
+  // 更新按钮状态
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
+  if (!panel || !panel->sendButton) return;
+
+  if (newState == ChatState::Generating) {
+    panel->sendButton->setText ("Stop");
+    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
+    connect (panel->sendButton, &QPushButton::clicked, this,
+             [this, panel] () { handle_cancel (panel); });
+  }
+  else {
+    panel->sendButton->setText ("Send");
+    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
+    connect (panel->sendButton, &QPushButton::clicked, this,
+             [this, panel] () { handle_send (panel); });
+  }
 }
 
 /**
@@ -833,4 +1033,97 @@ QTChatTabWidget::set_chat_focus_icons (widget focusWidget) {
   if (visible) chatFocusToolBar_->show ();
   chatFocusToolBar_->setUpdatesEnabled (true);
   chatFocusToolBar_->setVisible (true);
+}
+
+/******************************************************************************
+ * ChatSessionManager 实现
+ ******************************************************************************/
+
+string
+ChatSessionManager::createSession () {
+  string sessionId= lolly::hash::uuid_make ();
+  ChatSession session;
+  session.sessionId= sessionId;
+  session.state    = ChatState::Idle;
+  session.archived = false;
+  session.panel    = nullptr;
+  sessions_.insert (std::make_pair (sessionId, session));
+  return sessionId;
+}
+
+void
+ChatSessionManager::removeSession (const string& sessionId) {
+  sessions_.erase (sessionId);
+}
+
+void
+ChatSessionManager::archiveSession (const string& sessionId) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->archived= true;
+}
+
+void
+ChatSessionManager::restoreSession (const string& sessionId) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->archived= false;
+}
+
+void
+ChatSessionManager::setTitle (const string& sessionId, const string& title) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->title= title;
+}
+
+void
+ChatSessionManager::setState (const string& sessionId, ChatState state) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->state= state;
+}
+
+ChatSession*
+ChatSessionManager::getSession (const string& sessionId) {
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) return &(it->second);
+  return nullptr;
+}
+
+ChatSession*
+ChatSessionManager::findSessionByPanel (void* panel) {
+  for (auto& kv : sessions_) {
+    if (kv.second.panel == panel) return &kv.second;
+  }
+  return nullptr;
+}
+
+void
+ChatSessionManager::setPanel (const string& sessionId, void* panel) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->panel= panel;
+}
+
+url
+ChatSessionManager::messageBufferUrl (const string& sessionId) {
+  return url ("tmfs://chat-message-" * sessionId);
+}
+
+url
+ChatSessionManager::inputBufferUrl (const string& sessionId) {
+  return url ("tmfs://chat-input-" * sessionId);
+}
+
+/******************************************************************************
+ * qt_chat_tab_set_state 自由函数（Scheme→C++ 回调）
+ ******************************************************************************/
+
+void
+qt_chat_tab_set_state (string sessionId, string stateStr) {
+  // 从顶层窗口查找 QTChatTabWidget
+  QWidgetList topWidgets= QApplication::topLevelWidgets ();
+  for (QWidget* top : topWidgets) {
+    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
+    if (chat) {
+      chat->notifyStateChanged (sessionId, stateStr);
+      return;
+    }
+  }
 }

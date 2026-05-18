@@ -24,33 +24,41 @@
 
 (define chat-tab-current-model "default")
 
-(define chat-tab-session-serial 0)
-
 (define chat-tab-session-states (make-ahash-table))
 
-(define (chat-tab-state input-buffer model session-id)
-  (list input-buffer model session-id)
+;;; ---------- Buffer URL 推导函数 ----------
+
+(define (chat-tab-session->message-buffer session-id)
+  (string->url (string-append "tmfs://chat-message-" session-id))
 ) ;define
 
-(define (chat-tab-state-input-buffer st)
-  (list-ref st 0)
+(define (chat-tab-session->input-buffer session-id)
+  (string->url (string-append "tmfs://chat-input-" session-id))
+) ;define
+
+;;; ---------- State 构造器和访问器 ----------
+
+(define (chat-tab-state model)
+  (list model)
 ) ;define
 
 (define (chat-tab-state-model st)
-  (list-ref st 1)
+  (list-ref st 0)
 ) ;define
 
-(define (chat-tab-state-session-id st)
-  (list-ref st 2)
+(define (chat-tab-state->plugin-session-id st session-id)
+  (string-append (chat-tab-state-model st) ":chat-tab:" session-id)
 ) ;define
 
-(define (chat-tab-set-state! message-buffer st)
-  (ahash-set! chat-tab-session-states message-buffer st)
+(define (chat-tab-set-state! session-id st)
+  (ahash-set! chat-tab-session-states session-id st)
 ) ;define
 
-(define (chat-tab-get-state message-buffer)
-  (ahash-ref chat-tab-session-states message-buffer)
+(define (chat-tab-get-state session-id)
+  (ahash-ref chat-tab-session-states session-id)
 ) ;define
+
+;;; ---------- 文档处理工具 ----------
 
 (define (chat-tab-normalize-document body)
   (cond ((tree? body)
@@ -177,60 +185,40 @@
   ) ;with-buffer
 ) ;define
 
-(define (chat-tab-next-session-id model)
-  (set! chat-tab-session-serial (+ chat-tab-session-serial 1))
-  (string-append model
-    ":chat-tab:"
-    (number->string (texmacs-time))
-    "-"
-    (number->string chat-tab-session-serial)
-  ) ;string-append
-) ;define
+;;; ---------- 会话管理 ----------
 
-(define (chat-tab-ensure-session! message-buffer input-buffer)
-  (let ((st (chat-tab-get-state message-buffer)))
+(define (chat-tab-ensure-session! session-id)
+  (let ((st (chat-tab-get-state session-id)))
     (if st
-      (if (== (chat-tab-state-input-buffer st) input-buffer)
-        st
-        (let ((updated (chat-tab-state input-buffer
-                         (chat-tab-state-model st)
-                         (chat-tab-state-session-id st)
-                       ) ;chat-tab-state
-              ) ;updated
-             ) ;
-          (chat-tab-set-state! message-buffer updated)
-          updated
-        ) ;let
-      ) ;if
+      st
       (let* ((model (or chat-tab-current-model "default"))
-             (ses (chat-tab-next-session-id model))
-             (new (chat-tab-state input-buffer model ses))
+             (plugin-ses (string-append model ":chat-tab:" session-id))
+             (new (chat-tab-state model))
             ) ;
-        (session-enable-text-input chat-tab-session-name ses)
-        (chat-tab-set-state! message-buffer new)
+        (session-enable-text-input chat-tab-session-name plugin-ses)
+        (chat-tab-set-state! session-id new)
         new
       ) ;let*
     ) ;if
   ) ;let
 ) ;define
 
+;;; ---------- 编码/解码 ----------
+
 ;; chat-tab-session-encode
 ;; 将聊天标签会话的上下文编码为一个列表，用于传递给 plugin-feed。
 ;;
 ;; 语法
 ;; ----
-;; (chat-tab-session-encode input message-buffer input-buffer out opts)
+;; (chat-tab-session-encode input session-id out opts)
 ;;
 ;; 参数
 ;; ----
 ;; input : tree
 ;; 规范化后的输入消息树。
 ;;
-;; message-buffer : url
-;; 消息缓冲区名称。
-;;
-;; input-buffer : url
-;; 输入缓冲区名称。
+;; session-id : string
+;; 会话 UUID，从中可推导出 message-buffer 和 input-buffer。
 ;;
 ;; out : tree
 ;; 输出节点树。
@@ -242,24 +230,18 @@
 ;; ----
 ;; list
 ;; 编码后的列表，结构为：
-;;   ((do notify next cancel) input message-buffer input-buffer tree-pointer opts)
+;;   ((do notify next cancel) input session-id tree-pointer opts)
 ;; 其中第一个元素是四个回调函数的列表，out 被转换为 tree-pointer 以避免
 ;; 在异步执行期间被垃圾回收。
-;;
-;; 注意
-;; ----
-;; 此函数与 chat-tab-session-decode 成对使用，负责在任务进入 pending
-;; 队列前将上下文打包。
 
-(define (chat-tab-session-encode input message-buffer input-buffer out opts)
+(define (chat-tab-session-encode input session-id out opts)
   (list (list chat-tab-session-do
           chat-tab-session-notify
           chat-tab-session-next
           chat-tab-session-cancel
         ) ;list
     input
-    message-buffer
-    input-buffer
+    session-id
     (tree->tree-pointer out)
     opts
   ) ;list
@@ -281,21 +263,18 @@
 ;; ----
 ;; list
 ;; 解码后的上下文列表：
-;;   (input message-buffer input-buffer out opts)
+;;   (input session-id out opts)
 ;; 其中 out 由 tree-pointer 还原为 tree。
-;;
-;; 注意
-;; ----
-;; 返回值通常通过 with 绑定解构为多个变量使用。
-;; 此函数与 chat-tab-session-encode 成对使用。
 
 (define (chat-tab-session-decode l)
-  (list (second l) (third l) (fourth l) (tree-pointer->tree (fifth l)) (sixth l))
+  (list (second l) (third l) (tree-pointer->tree (fourth l)) (fifth l))
 ) ;define
 
 (define (chat-tab-session-detach l)
-  (tree-pointer-detach (fifth l))
+  (tree-pointer-detach (fourth l))
 ) ;define
+
+;;; ---------- 回调函数 ----------
 
 ;; chat-tab-session-do
 ;; 聊天标签会话的任务开始回调。
@@ -312,30 +291,12 @@
 ;;
 ;; ses : string
 ;; 会话标识字符串。
-;;
-;; 返回值
-;; ----
-;; #<unspecified>
-;; 无显式返回值。
-;;
-;; 逻辑
-;; ----
-;; 1. 获取当前 (lan ses) 的待处理队列 l。
-;; 2. 若队列非空：
-;;    a. 解码首元素，获取 input、message-buffer 等上下文。
-;;    b. 若 input 为空树，调用 plugin-next 跳过当前任务。
-;;    c. 否则，调用 plugin-write 将 input 以 :session 模式写入插件。
-;;
-;; 注意
-;; ----
-;; 此函数作为 do 回调传递给 plugin-feed，由 plugin-do 在任务开始执行时调用。
-;; 当输入为空时直接跳过，避免向插件发送无意义请求。
 
 (define (chat-tab-session-do lan ses)
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
-      (with (input message-buffer input-buffer out opts)
+      (with (input session-id out opts)
         (chat-tab-session-decode (car l))
         (if (tree-empty? input)
           (plugin-next lan ses)
@@ -348,7 +309,8 @@
 
 ;; chat-tab-session-next
 ;; 聊天标签会话的任务完成回调。
-;; 清理输出区域的 script-busy 标记，并分离当前任务的 tree-pointer。
+;; 清理输出区域的 script-busy 标记，分离当前任务的 tree-pointer，
+;; 并通知 C++ 生成结束。
 ;;
 ;; 语法
 ;; ----
@@ -361,43 +323,27 @@
 ;;
 ;; ses : string
 ;; 会话标识字符串。
-;;
-;; 返回值
-;; ----
-;; #<unspecified>
-;; 无显式返回值。
-;;
-;; 逻辑
-;; ----
-;; 1. 获取当前 (lan ses) 的待处理队列 l。
-;; 2. 若队列非空：
-;;    a. 解码首元素，获取 message-buffer、out 等上下文。
-;;    b. 在 message-buffer 中检查 out 的最后一个节点是否为 script-busy，
-;;       若是则移除该节点。
-;;    c. 标记 message-buffer 为已保存。
-;;    d. 分离当前任务的 tree-pointer。
-;;
-;; 注意
-;; ----
-;; 此函数作为 next 回调传递给 plugin-feed，由 plugin-next 在任务完成后调用。
-;; 主要职责是结束输出区域的忙等状态并释放 tree-pointer 资源。
 
 (define (chat-tab-session-next lan ses)
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
-      (with (input message-buffer input-buffer out opts)
+      (with (input session-id out opts)
         (chat-tab-session-decode (car l))
-        (with-buffer message-buffer
-          (when (and (tm-func? out 'document)
-                  (> (tree-arity out) 0)
-                  (tm-func? (tree-ref out :last) 'script-busy)
-                ) ;and
-            (tree-remove! out (- (tree-arity out) 1) 1)
-          ) ;when
-          (buffer-pretend-saved message-buffer)
-        ) ;with-buffer
+        (let ((msg-buf (chat-tab-session->message-buffer session-id)))
+          (with-buffer msg-buf
+            (when (and (tm-func? out 'document)
+                    (> (tree-arity out) 0)
+                    (tm-func? (tree-ref out :last) 'script-busy)
+                  ) ;and
+              (tree-remove! out (- (tree-arity out) 1) 1)
+            ) ;when
+            (buffer-pretend-saved msg-buf)
+          ) ;with-buffer
+        ) ;let
         (chat-tab-session-detach (car l))
+        ;; 通知 C++ 生成结束
+        (exec-delayed (lambda () (qt-chat-tab-set-state session-id "idle")))
       ) ;with
     ) ;when
   ) ;with
@@ -428,51 +374,33 @@
 ;;
 ;; t : tree
 ;; 通知携带的数据树。
-;;
-;; 返回值
-;; ----
-;; #<unspecified>
-;; 无显式返回值。
-;;
-;; 逻辑
-;; ----
-;; 1. 获取当前 (lan ses) 的待处理队列 l。
-;; 2. 若队列非空，解码首元素获取上下文。
-;; 3. 根据通道 ch 分派处理：
-;;    - "output" : 调用 chat-tab-output 将 t 追加到输出区域。
-;;    - "error"  : 调用 chat-tab-errput 将 t 追加到错误输出区域。
-;;    - "prompt" : 无操作。
-;;    - "input"  : 若队列中仅剩当前任务，将 t 设置到输入缓冲区。
-;; 4. 每次写入后标记 message-buffer 为已保存。
-;;
-;; 注意
-;; ----
-;; 此函数作为 notify 回调传递给 plugin-feed，由插件连接层异步调用。
-;; "input" 通道仅在队列为单任务时更新输入缓冲区，避免多任务竞争。
 
 (define (chat-tab-session-notify lan ses ch t)
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
-      (with (input message-buffer input-buffer out opts)
+      (with (input session-id out opts)
         (chat-tab-session-decode (car l))
-        (cond ((== ch "output")
-               (with-buffer message-buffer
-                 (chat-tab-output out t)
-                 (buffer-pretend-saved message-buffer)
-               ) ;with-buffer
-              ) ;
-              ((== ch "error")
-               (with-buffer message-buffer
-                 (chat-tab-errput out t)
-                 (buffer-pretend-saved message-buffer)
-               ) ;with-buffer
-              ) ;
-              ((== ch "prompt") (noop))
-              ((and (== ch "input") (null? (cdr l)))
-               (chat-tab-set-input-body! input-buffer t)
-              ) ;
-        ) ;cond
+        (let ((msg-buf (chat-tab-session->message-buffer session-id))
+              (in-buf (chat-tab-session->input-buffer session-id)))
+          (cond ((== ch "output")
+                 (with-buffer msg-buf
+                   (chat-tab-output out t)
+                   (buffer-pretend-saved msg-buf)
+                 ) ;with-buffer
+                ) ;
+                ((== ch "error")
+                 (with-buffer msg-buf
+                   (chat-tab-errput out t)
+                   (buffer-pretend-saved msg-buf)
+                 ) ;with-buffer
+                ) ;
+                ((== ch "prompt") (noop))
+                ((and (== ch "input") (null? (cdr l)))
+                 (chat-tab-set-input-body! in-buf t)
+                ) ;
+          ) ;cond
+        ) ;let
       ) ;with
     ) ;when
   ) ;with
@@ -481,7 +409,7 @@
 ;; chat-tab-session-cancel
 ;; 聊天标签会话的任务取消回调。
 ;; 将输出区域的 script-busy 标记替换为 script-dead 或 script-interrupted，
-;; 并分离当前任务的 tree-pointer。
+;; 分离当前任务的 tree-pointer，并通知 C++ 生成结束。
 ;;
 ;; 语法
 ;; ----
@@ -499,56 +427,42 @@
 ;; 取消原因标志：
 ;; - #t : 插件进程已死亡，替换为 script-dead。
 ;; - #f : 任务被用户中断，替换为 script-interrupted。
-;;
-;; 返回值
-;; ----
-;; #<unspecified>
-;; 无显式返回值。
-;;
-;; 逻辑
-;; ----
-;; 1. 获取当前 (lan ses) 的待处理队列 l。
-;; 2. 若队列非空：
-;;    a. 解码首元素，获取 message-buffer、out 等上下文。
-;;    b. 在 message-buffer 中检查 out 的最后一个节点是否为 script-busy，
-;;       若是则根据 dead? 替换为 script-dead 或 script-interrupted。
-;;    c. 标记 message-buffer 为已保存。
-;;    d. 分离当前任务的 tree-pointer。
-;;
-;; 注意
-;; ----
-;; 此函数作为 cancel 回调传递给 plugin-feed，由 plugin-cancel 在任务被取消
-;; 或插件进程异常终止时调用。
 
 (define (chat-tab-session-cancel lan ses dead?)
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
-      (with (input message-buffer input-buffer out opts)
+      (with (input session-id out opts)
         (chat-tab-session-decode (car l))
-        (with-buffer message-buffer
-          (when (and (tm-func? out 'document)
-                  (> (tree-arity out) 0)
-                  (tm-func? (tree-ref out :last) 'script-busy)
-                ) ;and
-            (tree-assign (tree-ref out :last)
-              (if dead? '(script-dead) '(script-interrupted))
-            ) ;tree-assign
-          ) ;when
-          (buffer-pretend-saved message-buffer)
-        ) ;with-buffer
+        (let ((msg-buf (chat-tab-session->message-buffer session-id)))
+          (with-buffer msg-buf
+            (when (and (tm-func? out 'document)
+                    (> (tree-arity out) 0)
+                    (tm-func? (tree-ref out :last) 'script-busy)
+                  ) ;and
+              (tree-assign (tree-ref out :last)
+                (if dead? '(script-dead) '(script-interrupted))
+              ) ;tree-assign
+            ) ;when
+            (buffer-pretend-saved msg-buf)
+          ) ;with-buffer
+        ) ;let
         (chat-tab-session-detach (car l))
+        ;; 通知 C++ 生成结束
+        (exec-delayed (lambda () (qt-chat-tab-set-state session-id "idle")))
       ) ;with
     ) ;when
   ) ;with
 ) ;define
+
+;;; ---------- Feed ----------
 
 ;; chat-tab-session-feed
 ;; 将用户输入投递到插件会话的待处理队列，并标记输出区域为忙等状态。
 ;;
 ;; 语法
 ;; ----
-;; (chat-tab-session-feed lan ses input message-buffer input-buffer out opts)
+;; (chat-tab-session-feed lan ses input session-id out opts)
 ;;
 ;; 参数
 ;; ----
@@ -561,46 +475,27 @@
 ;; input : tree
 ;; 规范化后的输入消息树。
 ;;
-;; message-buffer : url
-;; 消息缓冲区名称。
-;;
-;; input-buffer : url
-;; 输入缓冲区名称。
+;; session-id : string
+;; 会话 UUID。
 ;;
 ;; out : tree
 ;; 输出节点树，将被重置为 (document (script-busy))。
 ;;
 ;; opts : list
 ;; 附加选项列表。
-;;
-;; 返回值
-;; ----
-;; #<unspecified>
-;; 无显式返回值。
-;;
-;; 逻辑
-;; ----
-;; 1. 调用 plugin-preprocess 对 input 进行预处理。
-;; 2. 在 message-buffer 中将 out 重置为 (document (script-busy))，表示开始忙等。
-;; 3. 调用 chat-tab-session-encode 编码上下文为 x。
-;;    - (car x) 为回调列表 (do notify next cancel)。
-;;    - (cdr x) 为附加参数列表 (input message-buffer input-buffer tree-pointer opts)。
-;; 4. 通过 apply 调用 plugin-feed，将任务加入 pending 队列。
-;;    若队列为空则立即开始执行。
-;;
-;; 注意
-;; ----
-;; 此函数是聊天标签会话向底层插件引擎提交任务的唯一入口。
-;; out 被重置为 script-busy 后，用户界面会显示忙等指示，直到任务完成。
 
-(define (chat-tab-session-feed lan ses input message-buffer input-buffer out opts)
+(define (chat-tab-session-feed lan ses input session-id out opts)
   (set! input (plugin-preprocess lan ses input opts))
-  (with-buffer message-buffer (tree-assign! out '(document (script-busy))))
+  (with-buffer (chat-tab-session->message-buffer session-id)
+    (tree-assign! out '(document (script-busy)))
+  ) ;with-buffer
   (with x
-    (chat-tab-session-encode input message-buffer input-buffer out opts)
+    (chat-tab-session-encode input session-id out opts)
     (apply plugin-feed `(,lan ,ses ,@(car x) ,(cdr x)))
   ) ;with
 ) ;define
+
+;;; ---------- 模型选择 ----------
 
 ;; chat-tab-session-select-model
 ;; 选择用于新聊天标签会话的模型。
@@ -617,17 +512,8 @@
 ;; 返回值
 ;; ----
 ;; string
-;; 当前选中的模型名称（全局变量 chat-tab-current-model）。
-;;
-;; 逻辑
-;; ----
-;; 1. 检查 model 非空
-;;    - 若非空，将 chat-tab-current-model 设置为该模型
-;; 2. 返回 chat-tab-current-model
-;;
-;; 注意
-;; ----
-;; 此函数仅影响后续新建的会话，不会更改已有会话的模型。
+;; 当前选中的模型名称。
+
 (tm-define (chat-tab-session-select-model model)
   (:synopsis "Select the model used for new chat tab sessions")
   (:argument model "Model")
@@ -637,23 +523,19 @@
   chat-tab-current-model
 ) ;tm-define
 
+;;; ---------- 发送 ----------
+
 ;; chat-tab-session-send
 ;; 通过聊天标签会话发送用户消息。
 ;;
 ;; 语法
 ;; ----
-;; (chat-tab-session-send message-buffer input-buffer body)
+;; (chat-tab-session-send session-id)
 ;;
 ;; 参数
 ;; ----
-;; message-buffer : url
-;; 消息缓冲区名称（URL），用于存储对话历史。
-;;
-;; input-buffer : url
-;; 输入缓冲区名称（URL），用户在此输入消息。
-;;
-;; body : tree
-;; 输入消息树，即用户要发送的内容。
+;; session-id : string
+;; 会话 UUID，C++ 侧传入。
 ;;
 ;; 返回值
 ;; ----
@@ -663,59 +545,77 @@
 ;;
 ;; 逻辑
 ;; ----
-;; 1. 检查 body 是否为空
-;;    - 若为空，返回 #f
-;; 2. 规范化输入文档
+;; 1. 从 input buffer 读取 body
+;; 2. 检查 body 是否为空
 ;; 3. 确保会话存在（chat-tab-ensure-session!）
-;; 4. 在消息缓冲区追加一轮对话（chat-tab-append-round!）
-;;    - 若追加失败，返回 #f
+;; 4. 在消息缓冲区追加一轮对话
 ;; 5. 清空输入缓冲区
-;; 6. 检查是否已定义 chat-tab-session-name 连接
-;;    - 若未定义，直接将输入回显到输出区域
-;;    - 若已定义，通过 plugin 机制发送消息（chat-tab-session-feed）
-;; 7. 返回 #t
-;;
-;; 注意
-;; ----
-;; 此函数是聊天标签会话的核心发送入口，负责消息格式化、会话管理和插件交互。
-(tm-define (chat-tab-session-send message-buffer input-buffer body)
+;; 6. 通过 plugin 机制发送消息
+
+(tm-define (chat-tab-session-send session-id)
   (:synopsis "Send user message through chat tab session")
-  (:argument message-buffer "Message buffer name")
-  (:argument input-buffer "Input buffer name")
-  (:argument body "Input message tree")
-  (if (chat-tab-empty-body? body)
-    #f
-    (let* ((input (chat-tab-normalize-document body))
-           (st (chat-tab-ensure-session! message-buffer input-buffer))
-           (ses (chat-tab-state-session-id st))
-           (out (chat-tab-append-round! message-buffer input))
-          ) ;
-      (if (not out)
-        #f
-        (begin
-          (chat-tab-clear-input! input-buffer)
-          (if (not (connection-defined? chat-tab-session-name))
-            (begin
-              (with-buffer message-buffer
-                (chat-tab-output out input)
-                (buffer-pretend-saved message-buffer)
-              ) ;with-buffer
-              #t
-            ) ;begin
-            (begin
-              (chat-tab-session-feed chat-tab-session-name
-                ses
-                input
-                message-buffer
-                input-buffer
-                out
-                '()
-              ) ;chat-tab-session-feed
-              #t
-            ) ;begin
-          ) ;if
-        ) ;begin
-      ) ;if
-    ) ;let*
-  ) ;if
+  (:argument session-id "Session UUID")
+  (let* ((in-buf (chat-tab-session->input-buffer session-id))
+         (body (buffer-get-body in-buf)))
+    (if (chat-tab-empty-body? body)
+      #f
+      (let* ((input (chat-tab-normalize-document body))
+             (msg-buf (chat-tab-session->message-buffer session-id))
+             (st (chat-tab-ensure-session! session-id))
+             (plugin-ses (chat-tab-state->plugin-session-id st session-id))
+             (out (chat-tab-append-round! msg-buf input))
+            ) ;
+        (if (not out)
+          #f
+          (begin
+            (chat-tab-clear-input! in-buf)
+            (if (not (connection-defined? chat-tab-session-name))
+              (begin
+                (with-buffer msg-buf
+                  (chat-tab-output out input)
+                  (buffer-pretend-saved msg-buf)
+                ) ;with-buffer
+                #t
+              ) ;begin
+              (begin
+                (chat-tab-session-feed chat-tab-session-name
+                  plugin-ses
+                  input
+                  session-id
+                  out
+                  '()
+                ) ;chat-tab-session-feed
+                #t
+              ) ;begin
+            ) ;if
+          ) ;begin
+        ) ;if
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;tm-define
+
+;;; ---------- 通知 C++ ----------
+
+;; chat-tab-notify-state
+;; 通知 C++ 侧会话生成状态变更。
+;;
+;; 语法
+;; ----
+;; (chat-tab-notify-state session-id state)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;; 会话 UUID。
+;;
+;; state : string
+;; 新状态："idle" 或 "generating"。
+
+(tm-define (chat-tab-notify-state session-id state)
+  (:synopsis "Notify C++ that session generation state changed")
+  (:argument session-id "Session UUID")
+  (:argument state "New state: idle or generating")
+  (exec-delayed
+    (lambda () (qt-chat-tab-set-state session-id state)))
 ) ;tm-define

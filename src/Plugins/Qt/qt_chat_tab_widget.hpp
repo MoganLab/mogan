@@ -18,6 +18,8 @@
 
 #include "widget.hpp"
 
+#include <map>
+
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
@@ -27,6 +29,89 @@ class QString;
 class QToolBar;
 class QVBoxLayout;
 class QEvent;
+
+/**
+ * @brief 聊天会话的生成状态。
+ */
+enum class ChatState {
+  Idle,       ///< 空闲，可发送
+  Generating, ///< LLM 正在生成，可取消
+};
+
+/**
+ * @brief 单个聊天会话的数据。
+ */
+struct ChatSession {
+  string  sessionId;  ///< UUID，创建时生成
+  string  title;      ///< 会话标题，初始为空字符串
+  ChatState state;    ///< 当前生成状态
+  bool    archived;   ///< 是否归档
+  void*   panel;      ///< 关联的 ChatConversationPanel 指针
+};
+
+/**
+ * @brief 聊天会话管理器，负责会话的创建、销毁和元数据管理。
+ */
+class ChatSessionManager {
+public:
+  /**
+   * @brief 创建新会话，分配 UUID，返回 sessionId。
+   */
+  string createSession ();
+
+  /**
+   * @brief 销毁指定会话。
+   */
+  void removeSession (const string& sessionId);
+
+  /**
+   * @brief 将会话移入归档区。
+   */
+  void archiveSession (const string& sessionId);
+
+  /**
+   * @brief 将会话从归档区恢复。
+   */
+  void restoreSession (const string& sessionId);
+
+  /**
+   * @brief 设置会话标题。
+   */
+  void setTitle (const string& sessionId, const string& title);
+
+  /**
+   * @brief 设置会话生成状态。
+   */
+  void setState (const string& sessionId, ChatState state);
+
+  /**
+   * @brief 获取会话数据，不存在则返回 nullptr。
+   */
+  ChatSession* getSession (const string& sessionId);
+
+  /**
+   * @brief 通过面板指针反查会话。
+   */
+  ChatSession* findSessionByPanel (void* panel);
+
+  /**
+   * @brief 设置会话关联的面板指针。
+   */
+  void setPanel (const string& sessionId, void* panel);
+
+  /**
+   * @brief 根据 sessionId 推导消息 buffer URL。
+   */
+  static url messageBufferUrl (const string& sessionId);
+
+  /**
+   * @brief 根据 sessionId 推导输入 buffer URL。
+   */
+  static url inputBufferUrl (const string& sessionId);
+
+private:
+  std::map<string, ChatSession> sessions_; ///< sessionId → ChatSession 映射。
+};
 
 /**
  * @brief Mogan STEM 的 LLM 聊天标签页控件。
@@ -122,6 +207,12 @@ private:
   void handle_send (ChatConversationPanel* panel);
 
   /**
+   * @brief 取消当前会话的 LLM 生成。
+   * @param panel 待取消的会话面板。
+   */
+  void handle_cancel (ChatConversationPanel* panel);
+
+  /**
    * @brief 从输入 buffer 中获取文档树。
    * @param panel 待读取输入的会话面板。
    * @return 输入内容对应的 TeXmacs 树。
@@ -158,12 +249,23 @@ public:
    */
   void set_chat_focus_icons (widget focusWidget);
 
+  /**
+   * @brief 被通知 Scheme 侧生成状态变更。
+   * @param sessionId 会话 ID。
+   * @param stateStr 状态字符串 ("idle" 或 "generating")。
+   */
+  void notifyStateChanged (const string& sessionId, const string& stateStr);
+
 private:
   QWidget*        sidebarWidget_;               ///< 左侧边栏容器。
   QWidget*        contentWidget_;               ///< 右侧内容区容器。
   QLabel*         conversationCountLabel_;      ///< 显示会话数量的标签。
   QWidget*        conversationListWidget_;      ///< 承载会话列表的控件。
   QVBoxLayout*    conversationListLayout_;      ///< 会话按钮的布局。
+  QPushButton*    archiveHeaderButton_;         ///< 归档区标题按钮（点击展开/折叠）。
+  QWidget*        archiveListWidget_;           ///< 承载归档会话列表的控件。
+  QVBoxLayout*    archiveListLayout_;           ///< 归档会话按钮的布局。
+  bool            archiveCollapsed_;            ///< 归档区当前是否折叠。
   QPushButton*    collapseButton_;              ///< 侧边栏内的收缩按钮。
   QPushButton*    newChatButton_;               ///< 新建会话按钮。
   QWidget*        sidebarNormalContent_;        ///< 侧边栏展开时的内容容器。
@@ -171,12 +273,19 @@ private:
   QStackedWidget* conversationStack_;           ///< 会话页面的堆叠控件。
   QList<ChatConversationPanel*> conversations_; ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
-  int       nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
+  ChatSessionManager            sessionManager_;     ///< 会话管理器。
   bool      sidebarCollapsed_;        ///< 侧边栏当前是否处于收起状态。
   int       sidebarExpandedWidth_;    ///< 侧边栏展开时的宽度（像素）。
   QToolBar* chatMenuToolBar_;         ///< Chat Tab 的菜单工具栏。
   QToolBar* chatModeToolBar_;         ///< Chat Tab 的模式工具栏。
   QToolBar* chatFocusToolBar_;        ///< Chat Tab 的焦点工具栏。
 };
+
+/**
+ * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
+ * @param sessionId 会话 UUID。
+ * @param stateStr 状态字符串 ("idle" 或 "generating")。
+ */
+void qt_chat_tab_set_state (string sessionId, string stateStr);
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
