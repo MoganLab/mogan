@@ -106,63 +106,63 @@ is_empty_document_body (tree body) {
 }
 
 /// 左侧边栏最小宽度（像素）。
-constexpr int kSidebarMinWidth       = 200;
+constexpr int kSidebarMinWidth= 200;
 /// 边栏布局水平边距。
-constexpr int kSidebarMarginX        = 12;
+constexpr int kSidebarMarginX= 12;
 /// 边栏布局垂直边距。
-constexpr int kSidebarMarginY        = 16;
+constexpr int kSidebarMarginY= 16;
 /// 边栏元素间距。
-constexpr int kSidebarSpacing        = 8;
+constexpr int kSidebarSpacing= 8;
 /// 导航标题字体大小（像素）。
-constexpr int kNavTitleFontPx        = 11;
+constexpr int kNavTitleFontPx= 11;
 /// 导航标题内边距。
-constexpr int kNavTitlePadding       = 4;
+constexpr int kNavTitlePadding= 4;
 /// 导航按钮垂直内边距。
-constexpr int kNavButtonPadY         = 8;
+constexpr int kNavButtonPadY= 8;
 /// 导航按钮水平内边距。
-constexpr int kNavButtonPadX         = 12;
+constexpr int kNavButtonPadX= 12;
 /// 导航按钮字体大小（像素）。
-constexpr int kNavButtonFontPx       = 13;
+constexpr int kNavButtonFontPx= 13;
 /// 收缩按钮字体大小（像素）。
-constexpr int kCollapseFontPx        = 11;
+constexpr int kCollapseFontPx= 11;
 /// 收缩按钮圆角半径。
-constexpr int kCollapseBorderRadius  = 4;
+constexpr int kCollapseBorderRadius= 4;
 /// 收缩按钮垂直内边距。
-constexpr int kCollapsePadY          = 4;
+constexpr int kCollapsePadY= 4;
 /// 收缩按钮水平内边距。
-constexpr int kCollapsePadX          = 8;
+constexpr int kCollapsePadX= 8;
 /// 欢迎标题字体大小（像素）。
-constexpr int kWelcomeFontPx         = 34;
+constexpr int kWelcomeFontPx= 34;
 /// 输入编辑器固定高度（像素）。
-constexpr int kInputHeight           = 44;
+constexpr int kInputHeight= 44;
 /// 发送按钮垂直内边距。
-constexpr int kSendButtonPadY        = 6;
+constexpr int kSendButtonPadY= 6;
 /// 发送按钮水平内边距。
-constexpr int kSendButtonPadX        = 16;
+constexpr int kSendButtonPadX= 16;
 /// 发送按钮字体大小（像素）。
-constexpr int kSendButtonFontPx      = 13;
+constexpr int kSendButtonFontPx= 13;
 /// 内容区水平边距。
-constexpr int kContentMarginX        = 24;
+constexpr int kContentMarginX= 24;
 /// 内容区垂直边距。
-constexpr int kContentMarginY        = 24;
+constexpr int kContentMarginY= 24;
 /// 内容区元素间距。
-constexpr int kContentSpacing        = 16;
+constexpr int kContentSpacing= 16;
 /// 欢迎模式下顶部占位高度（像素）。
-constexpr int kWelcomeTopOffsetY     = 240;
+constexpr int kWelcomeTopOffsetY= 240;
 /// 会话模式下顶部占位高度（像素）。
 constexpr int kConversationTopOffsetY= 24;
 /// 顶部面板最大宽度（像素）。
-constexpr int kTopPanelMaxWidth      = 680;
+constexpr int kTopPanelMaxWidth= 680;
 /// 输入/消息框圆角半径。
-constexpr int kInputFrameRadius      = 8;
+constexpr int kInputFrameRadius= 8;
 /// 输入/消息框边框宽度（像素）。
-constexpr int kInputFrameBorder      = 1;
+constexpr int kInputFrameBorder= 1;
 /// 输入/消息框内边距。
-constexpr int kInputFramePad         = 8;
+constexpr int kInputFramePad= 8;
 /// 消息展示区最小高度（像素）。
-constexpr int kMessageMinHeight      = 240;
+constexpr int kMessageMinHeight= 240;
 /// 欢迎态到会话态过渡动画时长（毫秒）。
-constexpr int kTransitionDurationMs  = 220;
+constexpr int kTransitionDurationMs= 220;
 
 } // namespace
 

@@ -132,16 +132,16 @@ private:
   void focus_input_editor (ChatConversationPanel* panel);
 
 private:
-  QWidget*                      sidebarWidget_;         ///< 左侧边栏容器。
-  QWidget*                      contentWidget_;         ///< 右侧内容区容器。
-  QLabel*                       conversationCountLabel_;///< 显示会话数量的标签。
-  QWidget*                      conversationListWidget_;///< 承载会话列表的控件。
-  QVBoxLayout*                  conversationListLayout_;///< 会话按钮的布局。
-  QPushButton*                  newChatButton_;         ///< 新建会话按钮。
-  QStackedWidget*               conversationStack_;     ///< 会话页面的堆叠控件。
-  QList<ChatConversationPanel*> conversations_;         ///< 所有会话面板的列表。
-  ChatConversationPanel*        activeConversation_;    ///< 当前激活的会话。
-  int                           nextConversationTitleId_;///< 自动生成会话标题的 ID 计数器。
+  QWidget*        sidebarWidget_;                    ///< 左侧边栏容器。
+  QWidget*        contentWidget_;                    ///< 右侧内容区容器。
+  QLabel*         conversationCountLabel_;           ///< 显示会话数量的标签。
+  QWidget*        conversationListWidget_;           ///< 承载会话列表的控件。
+  QVBoxLayout*    conversationListLayout_;           ///< 会话按钮的布局。
+  QPushButton*    newChatButton_;                    ///< 新建会话按钮。
+  QStackedWidget* conversationStack_;                ///< 会话页面的堆叠控件。
+  QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
+  ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
+  int nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
