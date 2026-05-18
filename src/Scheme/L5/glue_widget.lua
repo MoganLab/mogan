@@ -511,6 +511,14 @@ function main()
                     "string",
                     "string"
                 }
+            },
+            {
+                scm_name = "qt-chat-tab-new-session",
+                cpp_name = "qt_chat_tab_new_session",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
             }
         }
     }

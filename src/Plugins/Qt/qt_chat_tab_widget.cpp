@@ -26,6 +26,7 @@
 
 #include <QAbstractScrollArea>
 #include <QApplication>
+#include <QComboBox>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -177,6 +178,7 @@ constexpr int kTransitionDurationMs= 220;
 struct QTChatTabWidget::ChatConversationPanel {
   QWidget*     pageWidget       = nullptr; ///< 本会话的堆叠页面。
   QLabel*      welcomeTitle     = nullptr; ///< 欢迎标题标签。
+  QLabel*      modelLabel       = nullptr; ///< 模型名称标签。
   QWidget*     messageFrame     = nullptr; ///< 承载消息控件的边框。
   QWidget*     inputEditorWidget= nullptr; ///< 输入编辑器的 Qt 控件。
   QPushButton* sendButton       = nullptr; ///< 发送/停止按钮。
@@ -199,7 +201,8 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       conversationListLayout_ (nullptr), archiveHeaderButton_ (nullptr),
       archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
       archiveCollapsed_ (true), newChatButton_ (nullptr),
-      collapseButton_ (nullptr), sidebarNormalContent_ (nullptr),
+      modelSelector_ (nullptr), collapseButton_ (nullptr),
+      sidebarNormalContent_ (nullptr),
       sidebarCollapsedBar_ (nullptr), conversationStack_ (nullptr),
       activeConversation_ (nullptr), sidebarCollapsed_ (false),
       sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
@@ -265,8 +268,14 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
   normalLayout->addWidget (navTitle);
 
-  // New chat 按钮
-  newChatButton_= new QPushButton ("New chat", normalContent);
+  // New chat 按钮和模型选择器
+  QWidget* newChatRow= new QWidget (normalContent);
+  newChatRow->setObjectName ("chat-tab-new-chat-row");
+  QHBoxLayout* newChatRowLayout= new QHBoxLayout (newChatRow);
+  newChatRowLayout->setContentsMargins (0, 0, 0, 0);
+  newChatRowLayout->setSpacing (DpiUtils::scaled (4));
+
+  newChatButton_= new QPushButton ("New chat", newChatRow);
   newChatButton_->setObjectName ("chat-tab-new-btn");
   newChatButton_->setFocusPolicy (Qt::NoFocus);
   newChatButton_->setCursor (Qt::PointingHandCursor);
@@ -276,7 +285,30 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
                                      .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (newChatButton_, &QPushButton::clicked, this,
            [this] () { create_new_conversation (); });
-  normalLayout->addWidget (newChatButton_);
+  newChatRowLayout->addWidget (newChatButton_);
+
+  modelSelector_= new QComboBox (newChatRow);
+  modelSelector_->setObjectName ("chat-tab-model-selector");
+  modelSelector_->setFocusPolicy (Qt::NoFocus);
+  modelSelector_->setCursor (Qt::PointingHandCursor);
+  modelSelector_->setSizeAdjustPolicy (QComboBox::AdjustToContents);
+  // 从 Scheme 获取可用模型列表
+  tree models_tree= as_tree (call ("chat-tab-list-models"));
+  if (is_tuple (models_tree)) {
+    for (int i= 0; i < N (models_tree); ++i) {
+      if (is_atomic (models_tree[i])) {
+        modelSelector_->addItem (to_qstring (models_tree[i]->label));
+      }
+    }
+  }
+  connect (modelSelector_, QOverload<int>::of (&QComboBox::activated), this,
+           [this] (int index) {
+             string model= from_qstring (modelSelector_->itemText (index));
+             create_new_conversation_with_model (model);
+           });
+  newChatRowLayout->addWidget (modelSelector_, 1);
+
+  normalLayout->addWidget (newChatRow);
 
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
   conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
@@ -454,6 +486,17 @@ QTChatTabWidget::create_conversation (const QString& title) {
   DpiUtils::applyScaledFont (panel->welcomeTitle, kWelcomeFontPx);
   topLayout->addWidget (panel->welcomeTitle);
 
+  // 模型名称标签
+  panel->modelLabel= new QLabel ("", topPanel);
+  panel->modelLabel->setObjectName ("chat-tab-model-label");
+  panel->modelLabel->setAlignment (Qt::AlignCenter);
+  DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
+  panel->modelLabel->setStyleSheet (
+      "color: #888888; padding: 2px 8px; background-color: #f0f0f0; "
+      "border-radius: 4px;");
+  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (20));
+  topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
+
   panel->messageWidget=
       texmacs_input_widget (tree (DOCUMENT, ""), make_chat_embedded_style (),
                             msgBufUrl);
@@ -549,9 +592,36 @@ QTChatTabWidget::create_conversation (const QString& title) {
  */
 void
 QTChatTabWidget::create_new_conversation () {
+  // 从 Scheme 获取当前模型
+  string model= as_string (call ("chat-tab-session-select-model", string ("")));
+  create_new_conversation_with_model (model);
+}
+
+/**
+ * @brief 使用指定模型创建并激活一个新会话。
+ * @param model 模型名称。
+ */
+void
+QTChatTabWidget::create_new_conversation_with_model (const string& model) {
+  // 通知 Scheme 层切换模型
+  call ("chat-tab-session-select-model", model);
+
   ChatConversationPanel* panel= create_conversation ("");
   if (!panel) return;
   conversations_.append (panel);
+
+  // 绑定模型到会话并显示
+  sessionManager_.setModel (panel->sessionId, model);
+  if (panel->modelLabel) {
+    panel->modelLabel->setText (to_qstring (model));
+  }
+
+  // 同步模型选择器
+  if (modelSelector_) {
+    int idx= modelSelector_->findText (to_qstring (model));
+    if (idx >= 0) modelSelector_->setCurrentIndex (idx);
+  }
+
   activate_conversation (panel);
 }
 
@@ -644,14 +714,29 @@ QTChatTabWidget::refresh_sidebar () {
     panel->sidebarButton->setChecked (panel == activeConversation_ && !archived);
     panel->sidebarButton->setVisible (true);
 
+    // 同步模型标签
+    if (panel->modelLabel && session) {
+      panel->modelLabel->setText (to_qstring (session->model));
+    }
+
     if (archived) {
-      // 归档会话：放入归档列表，禁止点击导航
+      // 归档会话：放入归档列表，点击切换到空白会话
       panel->sidebarButton->setParent (archiveListWidget_);
       archiveListLayout_->addWidget (panel->sidebarButton);
       disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
-      // 点击归档项不做任何导航
       connect (panel->sidebarButton, &QPushButton::clicked, this,
-               [] () {});
+               [this, panel] () {
+                 // 如果当前激活的是空白的非归档会话，直接切换过去
+                 if (activeConversation_
+                     && activeConversation_ != panel
+                     && !activeConversation_->conversationMode) {
+                   activate_conversation (activeConversation_);
+                 }
+                 else {
+                   // 否则创建新会话
+                   create_new_conversation ();
+                 }
+               });
     }
     else {
       // 活跃会话：放入会话列表，点击切换
@@ -878,6 +963,15 @@ QTChatTabWidget::notifyStateChanged (const string& sessionId,
 }
 
 /**
+ * @brief 使用指定模型创建新会话（供 Scheme 回调调用）。
+ * @param model 模型名称。
+ */
+void
+QTChatTabWidget::newSessionWithModel (const string& model) {
+  create_new_conversation_with_model (model);
+}
+
+/**
  * @brief 将键盘焦点设置到指定面板的输入编辑器。
  * @param panel 目标会话面板。
  */
@@ -1080,6 +1174,19 @@ ChatSessionManager::setState (const string& sessionId, ChatState state) {
   if (s) s->state= state;
 }
 
+void
+ChatSessionManager::setModel (const string& sessionId, const string& model) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->model= model;
+}
+
+string
+ChatSessionManager::getModel (const string& sessionId) {
+  ChatSession* s= getSession (sessionId);
+  if (s) return s->model;
+  return "";
+}
+
 ChatSession*
 ChatSessionManager::getSession (const string& sessionId) {
   auto it= sessions_.find (sessionId);
@@ -1123,6 +1230,21 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
       chat->notifyStateChanged (sessionId, stateStr);
+      return;
+    }
+  }
+}
+
+/**
+ * @brief Scheme→C++ 回调：使用指定模型创建新会话。
+ */
+void
+qt_chat_tab_new_session (string model) {
+  QWidgetList topWidgets= QApplication::topLevelWidgets ();
+  for (QWidget* top : topWidgets) {
+    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
+    if (chat) {
+      chat->newSessionWithModel (model);
       return;
     }
   }

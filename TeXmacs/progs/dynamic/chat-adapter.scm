@@ -42,7 +42,13 @@
     (chat-tab-session-select-model (car model-opt))
   ) ;when
   (if (buffer-exists? chat-tab-url)
-    (switch-to-buffer chat-tab-url)
+    (begin
+      (switch-to-buffer chat-tab-url)
+      ;; 如果指定了模型，在已有的 Chat Tab 中新建会话
+      (when (nnull? model-opt)
+        (qt-chat-tab-new-session (car model-opt))
+      ) ;when
+    ) ;begin
     (begin
       (buffer-set chat-tab-url '(document ""))
       (buffer-set-title chat-tab-url "Chat")

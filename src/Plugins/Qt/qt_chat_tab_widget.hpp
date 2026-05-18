@@ -29,6 +29,7 @@ class QString;
 class QToolBar;
 class QVBoxLayout;
 class QEvent;
+class QComboBox;
 
 /**
  * @brief 聊天会话的生成状态。
@@ -44,6 +45,7 @@ enum class ChatState {
 struct ChatSession {
   string  sessionId;  ///< UUID，创建时生成
   string  title;      ///< 会话标题，初始为空字符串
+  string  model;      ///< 绑定的模型名称
   ChatState state;    ///< 当前生成状态
   bool    archived;   ///< 是否归档
   void*   panel;      ///< 关联的 ChatConversationPanel 指针
@@ -83,6 +85,16 @@ public:
    * @brief 设置会话生成状态。
    */
   void setState (const string& sessionId, ChatState state);
+
+  /**
+   * @brief 设置会话绑定的模型。
+   */
+  void setModel (const string& sessionId, const string& model);
+
+  /**
+   * @brief 获取会话绑定的模型。
+   */
+  string getModel (const string& sessionId);
 
   /**
    * @brief 获取会话数据，不存在则返回 nullptr。
@@ -182,6 +194,12 @@ private:
   void create_new_conversation ();
 
   /**
+   * @brief 使用指定模型创建并激活一个新会话。
+   * @param model 模型名称。
+   */
+  void create_new_conversation_with_model (const string& model);
+
+  /**
    * @brief 将可见页面切换到指定会话。
    * @param panel 待激活的会话面板。
    */
@@ -256,6 +274,12 @@ public:
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);
 
+  /**
+   * @brief 使用指定模型创建新会话（供 Scheme 回调调用）。
+   * @param model 模型名称。
+   */
+  void newSessionWithModel (const string& model);
+
 private:
   QWidget*        sidebarWidget_;               ///< 左侧边栏容器。
   QWidget*        contentWidget_;               ///< 右侧内容区容器。
@@ -268,6 +292,7 @@ private:
   bool            archiveCollapsed_;            ///< 归档区当前是否折叠。
   QPushButton*    collapseButton_;              ///< 侧边栏内的收缩按钮。
   QPushButton*    newChatButton_;               ///< 新建会话按钮。
+  QComboBox*      modelSelector_;               ///< 模型选择下拉框。
   QWidget*        sidebarNormalContent_;        ///< 侧边栏展开时的内容容器。
   QWidget*        sidebarCollapsedBar_;         ///< 侧边栏收起时的窄条容器。
   QStackedWidget* conversationStack_;           ///< 会话页面的堆叠控件。
@@ -287,5 +312,11 @@ private:
  * @param stateStr 状态字符串 ("idle" 或 "generating")。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
+
+/**
+ * @brief Scheme→C++ 回调：使用指定模型创建新会话。
+ * @param model 模型名称。
+ */
+void qt_chat_tab_new_session (string model);
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
