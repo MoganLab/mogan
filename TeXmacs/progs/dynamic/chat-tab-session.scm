@@ -207,22 +207,6 @@
              (new (chat-tab-state input-buffer model ses))
             ) ;
         (session-enable-text-input chat-tab-session-name ses)
-        (with-buffer message-buffer
-          (let ((body (buffer-get-body message-buffer)))
-            (when (not (or (tree-is? body 'session)
-                         (and (tree-is? body 'document)
-                           (> (tree-arity body) 0)
-                           (tree-is? (tree-ref body 0) 'session)
-                         ) ;and
-                       ) ;or
-                  ) ;not
-              (buffer-set-body message-buffer
-                `(document (session ,chat-tab-session-name ,ses (document)))
-              ) ;buffer-set-body
-              (buffer-pretend-saved message-buffer)
-            ) ;when
-          ) ;let
-        ) ;with-buffer
         (chat-tab-set-state! message-buffer new)
         new
       ) ;let*
