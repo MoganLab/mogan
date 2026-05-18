@@ -13,6 +13,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QRubberBand>
 #include <QScrollArea>
 #include <QTimer>
 #include <QToolBar>
@@ -69,12 +70,15 @@ public:
   QWidget*    viewport () const;
   QScrollBar* verticalScrollBar () const;
 
+  bool isRectSelectMode () const;
+
 private slots:
   void onZoomChanged (int index);
   void onPrevPage ();
   void onNextPage ();
   void onPageEditingFinished ();
   void updatePageNavigation ();
+  void onRectSelectToggled (bool checked);
 
   void keyPressEvent (QKeyEvent* event) override;
 
@@ -84,6 +88,9 @@ private:
   int  pageWidth () const;
   void setupToolBar ();
   void updateZoomDisplay ();
+  void finishRectSelect (const QPoint& viewportPos);
+  QLabel* findPageLabelAt (const QPoint& contentPos) const;
+  QPixmap extractSelectionPixmap (QLabel* label, const QRect& contentRect) const;
 
   bool eventFilter (QObject* watched, QEvent* event) override;
 
@@ -100,6 +107,12 @@ private:
   QLabel*      pageTotalLabel_;
   QPushButton* nextPageBtn_;
   QPushButton* zoomInBtn_;
+  QPushButton* rectSelectBtn_;
+
+  QRubberBand* rubberBand_;
+  bool         rectSelectMode_;
+  QPoint       rectSelectStart_;
+  bool         rectSelectDragging_;
 
   QByteArray pdfData_;
   int        pageCount_;
