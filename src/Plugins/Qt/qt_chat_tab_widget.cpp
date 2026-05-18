@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_chat_tab_widget.hpp"
+#include "QTMWidget.hpp"
 #include "new_buffer.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
@@ -304,6 +305,10 @@ QTChatTabWidget::create_conversation (const QString& title) {
   QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
   panel->inputEditorWidget= inputQWidget;
   disable_scrollbars_recursively (inputQWidget);
+  if (QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ()) {
+    editor->setProperty ("chat_panel", QVariant::fromValue ((void*) panel));
+    editor->installEventFilter (this);
+  }
   QWidget* inputFrame= new QWidget (topPanel);
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
@@ -497,4 +502,22 @@ QTChatTabWidget::keyReleaseEvent (QKeyEvent* event) {
 
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
   event->accept ();
+}
+
+bool
+QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
+  if (event->type () == QEvent::KeyPress) {
+    QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+    if ((keyEvent->key () == Qt::Key_Return ||
+         keyEvent->key () == Qt::Key_Enter) &&
+        (keyEvent->modifiers () & Qt::ShiftModifier)) {
+      void* ptr= watched->property ("chat_panel").value<void*> ();
+      if (ptr) {
+        ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (ptr);
+        handle_send (panel);
+        return true;
+      }
+    }
+  }
+  return QWidget::eventFilter (watched, event);
 }
