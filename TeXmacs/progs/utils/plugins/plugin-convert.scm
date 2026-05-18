@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils plugins plugin-convert)
-  (:use (convert rewrite tmtm-brackets)))
+  (:use (convert rewrite tmtm-brackets))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main conversion routines
@@ -23,36 +24,43 @@
 (define (convert-test)
   (set! current-plugin-input-stree (tree->stree (selection-tree)))
   (write (tm-with-output-to-string plugin-input-caller))
-  (display "\n"))
+  (display "\n")
+) ;define
 
 (tm-define (plugin-math-input l)
   (:synopsis "Convert mathematical input to a string")
   (:argument l "A list of the form @(tuple plugin expr)")
   (set! current-plugin-input-stree (caddr l))
   (set! plugin-input-current-plugin (cadr l))
-  (tm-with-output-to-string plugin-input-caller))
+  (tm-with-output-to-string plugin-input-caller)
+) ;tm-define
 
 (define (plugin-input-caller)
-  (plugin-input (tree-upgrade-big current-plugin-input-stree)))
+  (plugin-input (tree-upgrade-big current-plugin-input-stree))
+) ;define
 
 (tm-define (plugin-input t)
-  (cond ((string? t)
-         (plugin-input-tmtokens (string->tmtokens t 0 (string-length t))))
-        ((tree? t)
-         (plugin-input (tree->stree t)))
-        (else
-          (let* ((f (car t)) (args (cdr t)) (im (plugin-input-ref f)))
-            (cond ((!= im #f) (im args))
-                  (else (noop)))))))
+  (cond ((string? t) (plugin-input-tmtokens (string->tmtokens t 0 (string-length t))))
+        ((tree? t) (plugin-input (tree->stree t)))
+        (else (let* ((f (car t)) (args (cdr t)) (im (plugin-input-ref f)))
+                (cond ((!= im #f) (im args))
+                      (else (noop))
+                ) ;cond
+              ) ;let*
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (tm-define (plugin-input-arg t)
-  (if (and (string? t)
-           (= (length (string->tmtokens t 0 (string-length t))) 1))
+  (if (and (string? t) (= (length (string->tmtokens t 0 (string-length t))) 1))
+    (plugin-input t)
+    (begin
+      (display "(")
       (plugin-input t)
-      (begin
-        (display "(")
-        (plugin-input t)
-        (display ")"))))
+      (display ")")
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conversion of strings
@@ -61,126 +69,162 @@
 (define (string-find-char s i n c)
   (cond ((>= i n) n)
         ((== (string-ref s i) c) i)
-        (else (string-find-char s (+ i 1) n c))))
+        (else (string-find-char s (+ i 1) n c))
+  ) ;cond
+) ;define
 
 (define (string-find-end s i n pred)
   (cond ((>= i n) n)
         ((not (pred (string-ref s i))) i)
-        (else (string-find-end s (+ i 1) n pred))))
+        (else (string-find-end s (+ i 1) n pred))
+  ) ;cond
+) ;define
 
 (define (string->tmtokens s i n)
   (cond ((>= i n) '())
         ((== (string-ref s i) #\<)
          (let ((j (min n (+ (string-find-char s i n #\>) 1))))
-           (cons (substring s i j) (string->tmtokens s j n))))
+           (cons (substring s i j) (string->tmtokens s j n))
+         ) ;let
+        ) ;
         ((char-alphabetic? (string-ref s i))
          (let ((j (string-find-end s i n char-alphabetic?)))
-           (cons (substring s i j) (string->tmtokens s j n))))
+           (cons (substring s i j) (string->tmtokens s j n))
+         ) ;let
+        ) ;
         ((char-numeric? (string-ref s i))
          (let ((j (string-find-end s i n char-numeric?)))
-           (cons (substring s i j) (string->tmtokens s j n))))
-        (else (cons (substring s i (+ 1 i))
-                    (string->tmtokens s (+ 1 i) n)))))
+           (cons (substring s i j) (string->tmtokens s j n))
+         ) ;let
+        ) ;
+        (else (cons (substring s i (+ 1 i)) (string->tmtokens s (+ 1 i) n)))
+  ) ;cond
+) ;define
 
 (define (plugin-input-tmtoken s)
   (let ((im (plugin-input-ref s)))
     (if (== im #f)
-        (if (and (!= s "") (== (string-ref s 0) #\<))
-            (display (substring s 1 (- (string-length s) 1)))
-            (display s))
-        (if (procedure? im)
-            (im s)
-            (display im)))))
+      (if (and (!= s "") (== (string-ref s 0) #\<))
+        (display (substring s 1 (- (string-length s) 1)))
+        (display s)
+      ) ;if
+      (if (procedure? im) (im s) (display im))
+    ) ;if
+  ) ;let
+) ;define
 
 (define (plugin-input-tmtokens l)
   (if (nnull? l)
-      (begin
-        (plugin-input-tmtoken (car l))
-        (plugin-input-tmtokens (cdr l)))))
+    (begin
+      (plugin-input-tmtoken (car l))
+      (plugin-input-tmtokens (cdr l))
+    ) ;begin
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; conversion of other nodes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (plugin-input-with args)
-  (if (null? (cdr args))
-      (plugin-input (car args))
-      (plugin-input-with (cdr args))))
+  (if (null? (cdr args)) (plugin-input (car args)) (plugin-input-with (cdr args)))
+) ;define
 
 (define (plugin-input-concat-big op args)
   (let* ((i (list-find-index args (lambda (x) (== x '(big ".")))))
          (head (if i (sublist args 0 i) args))
          (tail (if i (sublist args (+ i 1) (length args)) '()))
-         (bigop `(big-around ,(small-bracket op) (concat ,@head))))
-    (plugin-input `(concat ,bigop ,@tail))))
+         (bigop `(big-around ,(small-bracket op) (concat ,@head)))
+        ) ;
+    (plugin-input `(concat ,bigop ,@tail))
+  ) ;let*
+) ;define
 
 (define (plugin-input-concat args)
   (cond ((null? args) (noop))
         ((and (func? (car args) 'big) (nnull? (cdr args)))
-         (plugin-input-concat-big (car args) (cdr args)))
-        (else
-         (plugin-input (car args))
-         (plugin-input-concat (cdr args)))))
+         (plugin-input-concat-big (car args) (cdr args))
+        ) ;
+        (else (plugin-input (car args)) (plugin-input-concat (cdr args)))
+  ) ;cond
+) ;define
 
 (define (plugin-input-math args)
-  (plugin-input (car args)))
+  (plugin-input (car args))
+) ;define
 
 (define (plugin-input-frac args)
   (display "(")
   (plugin-input-arg (car args))
   (display "/")
   (plugin-input-arg (cadr args))
-  (display ")"))
+  (display ")")
+) ;define
 
 (define (plugin-input-sqrt args)
   (if (= (length args) 1)
-      (begin
-        (display "sqrt(")
-        (plugin-input (car args))
-        (display ")"))
-      (begin
-        (plugin-input-arg (car args))
-        (display "^(1/")
-        (plugin-input-arg (cadr args))
-        (display ")"))))
+    (begin
+      (display "sqrt(")
+      (plugin-input (car args))
+      (display ")")
+    ) ;begin
+    (begin
+      (plugin-input-arg (car args))
+      (display "^(1/")
+      (plugin-input-arg (cadr args))
+      (display ")")
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (plugin-input-rsub args)
   (display "[")
   (plugin-input (car args))
-  (display "]"))
+  (display "]")
+) ;define
 
 (define (plugin-input-rsup args)
   (display "^")
-  (plugin-input-arg (car args)))
+  (plugin-input-arg (car args))
+) ;define
 
 (define (plugin-input-around args)
-  (plugin-input (tree-downgrade-brackets (cons 'around args) #f #t)))
+  (plugin-input (tree-downgrade-brackets (cons 'around args) #f #t))
+) ;define
 
 (define (plugin-input-around* args)
-  (plugin-input (tree-downgrade-brackets (cons 'around* args) #f #t)))
+  (plugin-input (tree-downgrade-brackets (cons 'around* args) #f #t))
+) ;define
 
 (define (plugin-input-big-around args)
   (let* ((b `(big-around ,@args))
          (name (big-name b))
          (sub (big-subscript b))
          (sup (big-supscript b))
-         (body (big-body b)))
+         (body (big-body b))
+        ) ;
     (display name)
     (display "(")
     (when sub
       (plugin-input sub)
-      (display ","))
+      (display ",")
+    ) ;when
     (when (and sub sup)
       (plugin-input sup)
-      (display ","))
+      (display ",")
+    ) ;when
     (plugin-input body)
-    (display ")")))
+    (display ")")
+  ) ;let*
+) ;define
 
 (define (plugin-input-large args)
-  (display (car args)))
+  (display (car args))
+) ;define
 
 (define (plugin-input-script-assign args)
-  (display ":="))
+  (display ":=")
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Conversion of matrices
@@ -188,47 +232,62 @@
 
 (define (plugin-input-descend-last args)
   (if (null? (cdr args))
-      (plugin-input (car args))
-      (plugin-input-descend-last (cdr args))))
+    (plugin-input (car args))
+    (plugin-input-descend-last (cdr args))
+  ) ;if
+) ;define
 
 (define (plugin-input-det args)
   (display "matdet(")
   (plugin-input-descend-last args)
-  (display ")"))
+  (display ")")
+) ;define
 
 (define (rewrite-cell c)
-  (if (and (list? c) (== (car c) 'cell)) (cadr c) c))
+  (if (and (list? c) (== (car c) 'cell)) (cadr c) c)
+) ;define
 
 (define (rewrite-row r)
-  (if (null? r) r (cons (rewrite-cell (car r)) (rewrite-row (cdr r)))))
+  (if (null? r) r (cons (rewrite-cell (car r)) (rewrite-row (cdr r))))
+) ;define
 
 (define (rewrite-table t)
-  (if (null? t) t (cons (rewrite-row (cdar t)) (rewrite-table (cdr t)))))
+  (if (null? t) t (cons (rewrite-row (cdar t)) (rewrite-table (cdr t))))
+) ;define
 
 (define (plugin-input-row r)
   (if (null? (cdr r))
+    (plugin-input (car r))
+    (begin
       (plugin-input (car r))
-      (begin
-        (plugin-input (car r))
-        (display ", ")
-        (plugin-input-row (cdr r)))))
+      (display ", ")
+      (plugin-input-row (cdr r))
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (plugin-input-var-rows t)
   (if (nnull? t)
-      (begin
-        (display "; ")
-        (plugin-input-row (car t))
-        (plugin-input-var-rows (cdr t)))))
+    (begin
+      (display "; ")
+      (plugin-input-row (car t))
+      (plugin-input-var-rows (cdr t))
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (plugin-input-rows t)
   (display "[")
   (plugin-input-row (car t))
   (plugin-input-var-rows (cdr t))
-  (display "]"))
+  (display "]")
+) ;define
 
 (define (plugin-input-table args)
   (let ((t (rewrite-table args)))
-    (plugin-input (cons 'rows t))))
+    (plugin-input (cons 'rows t))
+  ) ;let
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Lazy input converters
@@ -239,15 +298,23 @@
 (tm-define-macro (lazy-input-converter module plugin)
   (lazy-input-converter-force plugin)
   (ahash-set! lazy-input-converter-table plugin module)
-  '(noop))
+  '(noop)
+) ;tm-define-macro
 
 (define (lazy-input-converter-force plugin2)
-  (with plugin (if (string? plugin2) (string->symbol plugin2) plugin2)
-    (with module (ahash-ref lazy-input-converter-table plugin)
+  (with plugin
+    (if (string? plugin2) (string->symbol plugin2) plugin2)
+    (with module
+      (ahash-ref lazy-input-converter-table plugin)
       (if module
-          (begin
-            (ahash-remove! lazy-input-converter-table plugin)
-            (module-load module))))))
+        (begin
+          (ahash-remove! lazy-input-converter-table plugin)
+          (module-load module)
+        ) ;begin
+      ) ;if
+    ) ;with
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialization subroutines
@@ -256,28 +323,36 @@
 (define plugin-input-current-plugin "generic")
 
 (define (plugin-input-converters-rules name l)
-  (if (null? l) '()
-      (cons (let* ((rule (car l))
-                   (key (car rule))
-                   (im (list 'unquote (cadr rule))))
-              (list (list 'plugin-input-converter% (list name key) im)))
-            (plugin-input-converters-rules name (cdr l)))))
+  (if (null? l)
+    '()
+    (cons (let* ((rule (car l)) (key (car rule)) (im (list 'unquote (cadr rule))))
+            (list (list 'plugin-input-converter% (list name key) im))
+          ) ;let*
+      (plugin-input-converters-rules name (cdr l))
+    ) ;cons
+  ) ;if
+) ;define
 
 (tm-define-macro (plugin-input-converters name2 . l)
   (let ((name (if (string? name2) name2 (symbol->string name2))))
     (lazy-input-converter-force name)
     (logic-group plugin-input-converters% ,name)
-    `(logic-rules ,@(plugin-input-converters-rules name l))))
+    `(logic-rules ,@(plugin-input-converters-rules name l))
+  ) ;let
+) ;tm-define-macro
 
 (define (plugin-input-ref key)
   (lazy-input-converter-force plugin-input-current-plugin)
-  (let ((im (logic-ref plugin-input-converter%
-                     (list plugin-input-current-plugin key))))
-    (if im im (logic-ref plugin-input-converter% (list "generic" key)))))
+  (let ((im (logic-ref plugin-input-converter% (list plugin-input-current-plugin key)))
+       ) ;
+    (if im im (logic-ref plugin-input-converter% (list "generic" key)))
+  ) ;let
+) ;define
 
 (tm-define (plugin-supports-math-input-ref key)
   (lazy-input-converter-force key)
-  (logic-in? key plugin-input-converters%))
+  (logic-in? key plugin-input-converters%)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Initialization
@@ -361,58 +436,59 @@
   ("<mathpi>" "(4*atan(1))")
   ("<mathi>" "(sqrt(-1))")
 
-  ("<alpha>"      "alpha")
-  ("<beta>"       "beta")
-  ("<gamma>"      "gamma")
-  ("<delta>"      "delta")
-  ("<epsilon>"    "epsilon")
+  ("<alpha>" "alpha")
+  ("<beta>" "beta")
+  ("<gamma>" "gamma")
+  ("<delta>" "delta")
+  ("<epsilon>" "epsilon")
   ("<varepsilon>" "epsilon")
-  ("<zeta>"       "zeta")
-  ("<eta>"        "eta")
-  ("<theta>"      "theta")
-  ("<vartheta>"   "theta")
-  ("<iota>"       "iota")
-  ("<kappa>"      "kappa")
-  ("<lambda>"     "lambda")
-  ("<mu>"         "mu")
-  ("<nu>"         "nu")
-  ("<xi>"         "xi")
-  ("<omicron>"    "omicron")
-  ("<pi>"         "pi")
-  ("<varpi>"         "pi")
-  ("<rho>"        "rho")
-  ("<varrho>"     "varrho")
-  ("<sigma>"      "sigma")
-  ("<varsigma>"   "sigma")
-  ("<tau>"        "tau")
-  ("<upsilon>"    "upsilon")
-  ("<phi>"        "phi")
-  ("<varphi>"     "phi")
-  ("<chi>"        "chi")
-  ("<psi>"        "psi")
-  ("<omega>"      "omega")
+  ("<zeta>" "zeta")
+  ("<eta>" "eta")
+  ("<theta>" "theta")
+  ("<vartheta>" "theta")
+  ("<iota>" "iota")
+  ("<kappa>" "kappa")
+  ("<lambda>" "lambda")
+  ("<mu>" "mu")
+  ("<nu>" "nu")
+  ("<xi>" "xi")
+  ("<omicron>" "omicron")
+  ("<pi>" "pi")
+  ("<varpi>" "pi")
+  ("<rho>" "rho")
+  ("<varrho>" "varrho")
+  ("<sigma>" "sigma")
+  ("<varsigma>" "sigma")
+  ("<tau>" "tau")
+  ("<upsilon>" "upsilon")
+  ("<phi>" "phi")
+  ("<varphi>" "phi")
+  ("<chi>" "chi")
+  ("<psi>" "psi")
+  ("<omega>" "omega")
 
-  ("<Alpha>"      "Alpha")
-  ("<Beta>"       "Beta")
-  ("<Gamma>"      "Gamma")
-  ("<Delta>"      "Delta")
-  ("<Epsilon>"    "Epsilon")
-  ("<Zeta>"       "Zeta")
-  ("<Eta>"        "Eta")
-  ("<Theta>"      "Theta")
-  ("<Iota>"       "Iota")
-  ("<Kappa>"      "Kappa")
-  ("<Lambda>"     "Lambda")
-  ("<Mu>"         "Mu")
-  ("<Nu>"         "Nu")
-  ("<Xi>"         "Xi")
-  ("<Omicron>"    "Omicron")
-  ("<Pi>"         "Pi")
-  ("<Rho>"        "Rho")
-  ("<Sigma>"      "Sigma")
-  ("<Tau>"        "Tau")
-  ("<Upsilon>"    "Upsilon")
-  ("<Phi>"        "Phi")
-  ("<Chi>"        "Chi")
-  ("<Psi>"        "Psi")
-  ("<Omega>"      "Omega"))
+  ("<Alpha>" "Alpha")
+  ("<Beta>" "Beta")
+  ("<Gamma>" "Gamma")
+  ("<Delta>" "Delta")
+  ("<Epsilon>" "Epsilon")
+  ("<Zeta>" "Zeta")
+  ("<Eta>" "Eta")
+  ("<Theta>" "Theta")
+  ("<Iota>" "Iota")
+  ("<Kappa>" "Kappa")
+  ("<Lambda>" "Lambda")
+  ("<Mu>" "Mu")
+  ("<Nu>" "Nu")
+  ("<Xi>" "Xi")
+  ("<Omicron>" "Omicron")
+  ("<Pi>" "Pi")
+  ("<Rho>" "Rho")
+  ("<Sigma>" "Sigma")
+  ("<Tau>" "Tau")
+  ("<Upsilon>" "Upsilon")
+  ("<Phi>" "Phi")
+  ("<Chi>" "Chi")
+  ("<Psi>" "Psi")
+  ("<Omega>" "Omega")
+) ;plugin-input-converters
