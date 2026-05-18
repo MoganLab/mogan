@@ -503,7 +503,8 @@ QTChatTabWidget::create_conversation (const QString& title) {
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
   panel->inputWidget= texmacs_input_widget (
-      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")), make_chat_embedded_style (), inBufUrl);
+      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")),
+      make_chat_embedded_style (), inBufUrl);
   QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
   panel->inputEditorWidget= inputQWidget;
   disable_scrollbars_recursively (inputQWidget);
