@@ -19,40 +19,38 @@
 (define search-replace-text "")
 (define isreplace? #f)
 
-#|
-set-search-window-state
-设置搜索/替换辅助窗口的打开状态和模式。
-
-语法
-----
-(set-search-window-state opened? is-search?)
-
-参数
-----
-opened? : boolean
-窗口是否打开：
-- #t : 窗口打开
-- #f : 窗口关闭
-
-is-search? : boolean
-窗口模式：
-- #t : 搜索模式
-- #f : 替换模式
-
-返回值
-----
-#<unspecified>
-无显式返回值（返回 #<unspecified>）。
-
-逻辑
-----
-将状态转换为widget-type并存储到统一的辅助窗口状态表中。
-
-注意
-----
-此函数用于管理搜索/替换辅助窗口的显示状态和模式切换。
-每个文档视图有独立的搜索缓冲区，因此状态与当前文档视图关联。
-|#
+;; set-search-window-state
+;; 设置搜索/替换辅助窗口的打开状态和模式。
+;;
+;; 语法
+;; ----
+;; (set-search-window-state opened? is-search?)
+;;
+;; 参数
+;; ----
+;; opened? : boolean
+;; 窗口是否打开：
+;; - #t : 窗口打开
+;; - #f : 窗口关闭
+;;
+;; is-search? : boolean
+;; 窗口模式：
+;; - #t : 搜索模式
+;; - #f : 替换模式
+;;
+;; 返回值
+;; ----
+;; #<unspecified>
+;; 无显式返回值（返回 #<unspecified>）。
+;;
+;; 逻辑
+;; ----
+;; 将状态转换为widget-type并存储到统一的辅助窗口状态表中。
+;;
+;; 注意
+;; ----
+;; 此函数用于管理搜索/替换辅助窗口的显示状态和模式切换。
+;; 每个文档视图有独立的搜索缓冲区，因此状态与当前文档视图关联。
 (tm-define (set-search-window-state opened? is-search?)
   (let ((widget-type (if is-search? 'search 'replace)))
     (set-auxiliary-widget-state opened? widget-type)))
@@ -66,43 +64,41 @@ is-search? : boolean
           (list opened? (== widget-type 'search)))
         #f)))
 
-#|
-update-search-pos-text
-更新搜索/替换窗口的位置显示文本。
-
-语法
-----
-(update-search-pos-text action)
-
-参数
-----
-action : string
-表示搜索动作类型的字符串：
-- "new"      : 新搜索
-- "next"     : 下一个匹配项
-- "previous" : 上一个匹配项
-- "first"    : 第一个匹配项
-- "last"     : 最后一个匹配项
-
-返回值
-----
-#<unspecified>
-无显式返回值（返回 #<unspecified>）。
-
-逻辑
-----
-1. 如果 isreplace? 为 #t（刚刚执行了替换操作），使用 "new" 作为 action
-   否则使用传入的 action 参数
-2. 调用 get-alt-selection-index 获取当前选择项的索引字符串（如 "1/5"）
-3. 重置 isreplace? 标志为 #f，确保只影响当前这次调用
-4. 根据索引字符串设置辅助窗口标题：
-   - 如果索引字符串为空，只显示搜索/替换文本
-   - 否则显示 "搜索文本 (索引字符串)" 格式
-
-注意
-----
-此函数用于在搜索/替换操作后更新辅助窗口的标题显示，提供用户友好的位置反馈。
-|#
+;; update-search-pos-text
+;; 更新搜索/替换窗口的位置显示文本。
+;;
+;; 语法
+;; ----
+;; (update-search-pos-text action)
+;;
+;; 参数
+;; ----
+;; action : string
+;; 表示搜索动作类型的字符串：
+;; - "new"      : 新搜索
+;; - "next"     : 下一个匹配项
+;; - "previous" : 上一个匹配项
+;; - "first"    : 第一个匹配项
+;; - "last"     : 最后一个匹配项
+;;
+;; 返回值
+;; ----
+;; #<unspecified>
+;; 无显式返回值（返回 #<unspecified>）。
+;;
+;; 逻辑
+;; ----
+;; 1. 如果 isreplace? 为 #t（刚刚执行了替换操作），使用 "new" 作为 action
+;; 否则使用传入的 action 参数
+;; 2. 调用 get-alt-selection-index 获取当前选择项的索引字符串（如 "1/5"）
+;; 3. 重置 isreplace? 标志为 #f，确保只影响当前这次调用
+;; 4. 根据索引字符串设置辅助窗口标题：
+;; - 如果索引字符串为空，只显示搜索/替换文本
+;; - 否则显示 "搜索文本 (索引字符串)" 格式
+;;
+;; 注意
+;; ----
+;; 此函数用于在搜索/替换操作后更新辅助窗口的标题显示，提供用户友好的位置反馈。
 (tm-define (update-search-pos-text action)
   (let* ((effective-action (if isreplace? "new" action))
          (index-str (get-alt-selection-index "alternate" effective-action)))
@@ -124,35 +120,33 @@ action : string
 (define search-window #f)
 
 
-#|
-search-buffer
-获取或创建搜索辅助缓冲区的URL。
-
-语法
-----
-(search-buffer)
-
-参数
-----
-无参数。
-
-返回值
-----
-url
-如果当前缓冲区已经是 tmfs://aux/search 类型的辅助缓冲区，则返回该缓冲区URL；
-否则返回基于当前视图URL MD5哈希的唯一搜索缓冲区URL和当前窗口。
-
-逻辑
-----
-1. 获取当前缓冲区 u
-2. 检查 u 是否是以 tmfs://aux/search 为根URL的辅助缓冲区
-   - 如果是，直接返回 u
-   - 否则，生成新的URL：tmfs://aux/search/<当前视图URL的MD5哈希>
-
-注意
-----
-此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
-|#
+;; search-buffer
+;; 获取或创建搜索辅助缓冲区的URL。
+;;
+;; 语法
+;; ----
+;; (search-buffer)
+;;
+;; 参数
+;; ----
+;; 无参数。
+;;
+;; 返回值
+;; ----
+;; url
+;; 如果当前缓冲区已经是 tmfs://aux/search 类型的辅助缓冲区，则返回该缓冲区URL；
+;; 否则返回基于当前视图URL MD5哈希的唯一搜索缓冲区URL和当前窗口。
+;;
+;; 逻辑
+;; ----
+;; 1. 获取当前缓冲区 u
+;; 2. 检查 u 是否是以 tmfs://aux/search 为根URL的辅助缓冲区
+;; - 如果是，直接返回 u
+;; - 否则，生成新的URL：tmfs://aux/search/<当前视图URL的MD5哈希>
+;;
+;; 注意
+;; ----
+;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
   (with u (current-buffer)
     (if (and (url-rooted-tmfs? u)
@@ -164,35 +158,33 @@ url
                          "/"
                          (url->string (url-tail (current-window))))))))
 
-#|
-replace-buffer
-获取或创建替换辅助缓冲区的URL。
-
-语法
-----
-(replace-buffer)
-
-参数
-----
-无参数。
-
-返回值
-----
-url
-如果当前缓冲区已经是 tmfs://aux/replace 类型的辅助缓冲区，则返回该缓冲区URL；
-否则返回基于当前视图URL MD5哈希的唯一替换缓冲区URL和当前窗口。
-
-逻辑
-----
-1. 获取当前缓冲区 u
-2. 检查 u 是否是以 tmfs://aux/replace 为根URL的辅助缓冲区
-   - 如果是，直接返回 u
-   - 否则，生成新的URL：tmfs://aux/replace/<当前视图URL的MD5哈希>
-
-注意
-----
-此函数用于管理替换辅助缓冲区的生命周期，确保每个主文档视图有唯一的替换缓冲区。
-|#
+;; replace-buffer
+;; 获取或创建替换辅助缓冲区的URL。
+;;
+;; 语法
+;; ----
+;; (replace-buffer)
+;;
+;; 参数
+;; ----
+;; 无参数。
+;;
+;; 返回值
+;; ----
+;; url
+;; 如果当前缓冲区已经是 tmfs://aux/replace 类型的辅助缓冲区，则返回该缓冲区URL；
+;; 否则返回基于当前视图URL MD5哈希的唯一替换缓冲区URL和当前窗口。
+;;
+;; 逻辑
+;; ----
+;; 1. 获取当前缓冲区 u
+;; 2. 检查 u 是否是以 tmfs://aux/replace 为根URL的辅助缓冲区
+;; - 如果是，直接返回 u
+;; - 否则，生成新的URL：tmfs://aux/replace/<当前视图URL的MD5哈希>
+;;
+;; 注意
+;; ----
+;; 此函数用于管理替换辅助缓冲区的生命周期，确保每个主文档视图有唯一的替换缓冲区。
 (tm-define (replace-buffer)
   (with u (current-buffer)
     (if (and (url-rooted-tmfs? u)
@@ -204,33 +196,31 @@ url
                          "/"
                          (url->string (url-tail (current-window))))))))
 
-#|
-convert-search-replace-buffer
-在搜索缓冲区和替换缓冲区的URL之间进行转换。
-
-语法
-----
-(convert-search-replace-buffer u)
-
-参数
-----
-u : url
-输入的缓冲区URL。
-
-返回值
-----
-url 或 #f
-- 如果输入是搜索缓冲区，返回对应的替换缓冲区URL。
-- 如果输入是替换缓冲区，返回对应的搜索缓冲区URL。
-- 否则返回 #f。
-
-逻辑
-----
-检查URL字符串的前缀：
-1. 若为 "tmfs://aux/search/"，将其替换为 "tmfs://aux/replace/"。
-2. 若为 "tmfs://aux/replace/"，将其替换为 "tmfs://aux/search/"。
-3. 保持后续的哈希标识符不变。
-|#
+;; convert-search-replace-buffer
+;; 在搜索缓冲区和替换缓冲区的URL之间进行转换。
+;;
+;; 语法
+;; ----
+;; (convert-search-replace-buffer u)
+;;
+;; 参数
+;; ----
+;; u : url
+;; 输入的缓冲区URL。
+;;
+;; 返回值
+;; ----
+;; url 或 #f
+;; - 如果输入是搜索缓冲区，返回对应的替换缓冲区URL。
+;; - 如果输入是替换缓冲区，返回对应的搜索缓冲区URL。
+;; - 否则返回 #f。
+;;
+;; 逻辑
+;; ----
+;; 检查URL字符串的前缀：
+;; 1. 若为 "tmfs://aux/search/"，将其替换为 "tmfs://aux/replace/"。
+;; 2. 若为 "tmfs://aux/replace/"，将其替换为 "tmfs://aux/search/"。
+;; 3. 保持后续的哈希标识符不变。
 (tm-define (convert-search-replace-buffer u)
   (let* ((s (url->string u))
          (search-pre "tmfs://aux/search/")
@@ -242,48 +232,46 @@ url 或 #f
           (else #f))))
 
 
-#|
-search-replace-up-down
-处理搜索/替换输入框中的键盘上下导航行为。
-
-语法
-----
-(search-replace-up-down down?)
-
-参数
-----
-down? : boolean
-导航方向：
-- #t : 向下移动
-- #f : 向上移动
-
-返回值
-----
-#<unspecified>
-无显式返回值。
-
-逻辑
-----
-1. 检查 "search-and-replace" 偏好设置是否开启。
-2. 如果未开启 (当前打开的是查找窗口)：
-   直接调用标准键盘导航 (kbd-down 或 kbd-up)。
-3. 如果已开启（当前打开的是替换窗口）：
-   - 获取当前焦点文档树。
-   - 如果向下移动 (down? 为 #t)：
-     检查光标是否位于当前输入框最后元素的末尾。
-     - 是：切换焦点到替换框。
-     - 否：执行标准向下移动 (kbd-down)。
-   - 如果向上移动 (down? 为 #f)：
-     检查光标是否位于当前输入框第一个元素的开头。
-     - 是：切换焦点到查找框。
-     - 否：执行标准向上移动 (kbd-up)。
-
-注意
-----
-此函数实现了在搜索框和替换框之间通过上下键无缝切换焦点的功能。
-当用户光标到达输入框边缘时，继续按方向键会将焦点转移到另一个输入框，
-提升了表单填写的流畅度。
-|#
+;; search-replace-up-down
+;; 处理搜索/替换输入框中的键盘上下导航行为。
+;;
+;; 语法
+;; ----
+;; (search-replace-up-down down?)
+;;
+;; 参数
+;; ----
+;; down? : boolean
+;; 导航方向：
+;; - #t : 向下移动
+;; - #f : 向上移动
+;;
+;; 返回值
+;; ----
+;; #<unspecified>
+;; 无显式返回值。
+;;
+;; 逻辑
+;; ----
+;; 1. 检查 "search-and-replace" 偏好设置是否开启。
+;; 2. 如果未开启 (当前打开的是查找窗口)：
+;; 直接调用标准键盘导航 (kbd-down 或 kbd-up)。
+;; 3. 如果已开启（当前打开的是替换窗口）：
+;; - 获取当前焦点文档树。
+;; - 如果向下移动 (down? 为 #t)：
+;; 检查光标是否位于当前输入框最后元素的末尾。
+;; - 是：切换焦点到替换框。
+;; - 否：执行标准向下移动 (kbd-down)。
+;; - 如果向上移动 (down? 为 #f)：
+;; 检查光标是否位于当前输入框第一个元素的开头。
+;; - 是：切换焦点到查找框。
+;; - 否：执行标准向上移动 (kbd-up)。
+;;
+;; 注意
+;; ----
+;; 此函数实现了在搜索框和替换框之间通过上下键无缝切换焦点的功能。
+;; 当用户光标到达输入框边缘时，继续按方向键会将焦点转移到另一个输入框，
+;; 提升了表单填写的流畅度。
 (tm-define (search-replace-up-down down?)
   (if (not (get-boolean-preference "search-and-replace"))
       (if down? (kbd-down) (kbd-up))
@@ -547,37 +535,35 @@ down? : boolean
 
 
 
-#|
-by-tree
-从替换辅助缓冲区中提取替换内容树。
-
-语法
-----
-(by-tree raux)
-
-参数
-----
-raux : url
-替换辅助缓冲区的URL。
-
-返回值
-----
-tree 或 #f
-- 如果 raux 缓冲区不存在，返回 #f
-- 如果缓冲区存在，返回缓冲区的内容树：
-  - 如果内容体是 (document 1) 类型（包含单个元素的文档），返回其第一个子元素
-  - 否则返回原始内容体
-
-逻辑
-----
-1. 检查 raux 缓冲区是否存在
-2. 如果存在，获取缓冲区的内容体 by
-3. 检查 by 是否是 (document 1) 类型的树：
-   - 如果是，提取第一个子元素 (tm-ref by 0)
-   - 否则保持 by 不变
-4. 返回处理后的内容树
-
-|#
+;; by-tree
+;; 从替换辅助缓冲区中提取替换内容树。
+;;
+;; 语法
+;; ----
+;; (by-tree raux)
+;;
+;; 参数
+;; ----
+;; raux : url
+;; 替换辅助缓冲区的URL。
+;;
+;; 返回值
+;; ----
+;; tree 或 #f
+;; - 如果 raux 缓冲区不存在，返回 #f
+;; - 如果缓冲区存在，返回缓冲区的内容树：
+;; - 如果内容体是 (document 1) 类型（包含单个元素的文档），返回其第一个子元素
+;; - 否则返回原始内容体
+;;
+;; 逻辑
+;; ----
+;; 1. 检查 raux 缓冲区是否存在
+;; 2. 如果存在，获取缓冲区的内容体 by
+;; 3. 检查 by 是否是 (document 1) 类型的树：
+;; - 如果是，提取第一个子元素 (tm-ref by 0)
+;; - 否则保持 by 不变
+;; 4. 返回处理后的内容树
+;;
 
 (define (by-tree raux)
   (and (buffer-exists? raux)

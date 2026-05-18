@@ -683,14 +683,12 @@
 (tm-define (kbd-cancel)
   (clipboard-clear "primary"))
 
-#|
-ocr-paste
-剪贴板中的内容是图像时，OCR并插入已识别的内容到当前光标处
-
-语法
-----
-(ocr-paste)
-|#
+;; ocr-paste
+;; 剪贴板中的内容是图像时，OCR并插入已识别的内容到当前光标处
+;;
+;; 语法
+;; ----
+;; (ocr-paste)
 (tm-define (ocr-paste)
   (when (not (defined? 'ocr-to-latex-by-cursor))
     (use-modules (liii ocr)))
@@ -699,14 +697,12 @@ ocr-paste
     (when (tree-is? (tree-ref data 0) 'image)
           (ocr-to-latex-by-cursor data))))
 
-#|
-image-and-ocr-paste
-剪贴板中的内容是图像时，OCR并插入图像和已识别的内容到当前光标处。图像和已识别的内容通过回车键分隔。
-
-语法
-----
-(image-and-ocr-paste)
-|#
+;; image-and-ocr-paste
+;; 剪贴板中的内容是图像时，OCR并插入图像和已识别的内容到当前光标处。图像和已识别的内容通过回车键分隔。
+;;
+;; 语法
+;; ----
+;; (image-and-ocr-paste)
 (tm-define (image-and-ocr-paste)
   (with data 
     (parse-texmacs-snippet (tree->string (tree-ref (clipboard-get "primary") 1)))
@@ -738,13 +734,11 @@ image-and-ocr-paste
           (insert texmacs-latex)))
       (clipboard-paste-import "markdown" "primary")))
 
-#|
-paste-as-texmacs
-期望以texmacs格式粘贴
-
-语法
-(paste-as-texmacs)
-|#
+;; paste-as-texmacs
+;; 期望以texmacs格式粘贴
+;;
+;; 语法
+;; (paste-as-texmacs)
 
 (tm-define (paste-as-texmacs)
   (when (not (defined? 'ocr-to-latex-by-cursor))
@@ -757,13 +751,11 @@ paste-as-texmacs
              (when (tree-is? sub-img-tree 'image)
                (ocr-to-latex-by-cursor img-tree)))))))
 
-#|
-smart-format-paste
-智能格式粘贴，对剪贴板格式进行检测，按照对应格式进行粘贴
-
-语法
-(smart-format-paste)
-|#
+;; smart-format-paste
+;; 智能格式粘贴，对剪贴板格式进行检测，按照对应格式进行粘贴
+;;
+;; 语法
+;; (smart-format-paste)
 
 (tm-define (smart-format-paste)
   (with source-format (qt-clipboard-format)
@@ -776,24 +768,22 @@ smart-format-paste
           ((string=? source-format "texmacs-snippet") (paste-as-texmacs))
           (else (kbd-paste-verbatim)))))
 
-#|
-kbd-magic-paste
-智能粘贴。通过`Ctrl+Shift+v`或者`编辑->智能粘贴`触发，能够根据粘贴内容和当前模式，切换粘贴的方式。
-
-语法
-----
-(kbd-magic-paste)
-
-逻辑
-----
-如果剪贴板中的内容是图像，那么调用`(ocr-paste)`，先OCR然后粘贴。否则：
-1. 代码模式：将剪贴板中的内容粘贴为代码块
-2. 数学模式：将剪贴板中的内容作为LaTeX格式粘贴
-3. 文本模式：将剪贴板中的内容作为纯文本粘贴
-
-TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能粘贴。比如，内容格式经过识别，发现是LaTeX格式，
-那么应该粘贴为LaTeX格式
-|#
+;; kbd-magic-paste
+;; 智能粘贴。通过`Ctrl+Shift+v`或者`编辑->智能粘贴`触发，能够根据粘贴内容和当前模式，切换粘贴的方式。
+;;
+;; 语法
+;; ----
+;; (kbd-magic-paste)
+;;
+;; 逻辑
+;; ----
+;; 如果剪贴板中的内容是图像，那么调用`(ocr-paste)`，先OCR然后粘贴。否则：
+;; 1. 代码模式：将剪贴板中的内容粘贴为代码块
+;; 2. 数学模式：将剪贴板中的内容作为LaTeX格式粘贴
+;; 3. 文本模式：将剪贴板中的内容作为纯文本粘贴
+;;
+;; TODO: 在文本模式中，可以自动识别剪贴板中的内容，并智能粘贴。比如，内容格式经过识别，发现是LaTeX格式，
+;; 那么应该粘贴为LaTeX格式
 (tm-define (kbd-magic-paste)
   (if (string-starts? (qt-clipboard-format) "image")
       (begin
