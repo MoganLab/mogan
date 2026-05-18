@@ -21,13 +21,15 @@
  * @brief Template category structure (liiistem.cn API format)
  */
 struct TemplateCategory {
-  QString id;          // Unique category identifier
-  QString name;        // Display name (localized)
-  QString description; // Category description
-  QString icon;        // Icon emoji or name
-  int     order;       // Display order
+  QString id;            // Unique category identifier (categoryKey from API)
+  QString name;          // Display name (localized)
+  QString nameEn;        // English display name
+  QString description;   // Category description
+  QString icon;          // Icon emoji or name
+  int     order;         // Display order
+  int     templateCount; // Number of templates in this category
 
-  TemplateCategory () : order (0) {}
+  TemplateCategory () : order (0), templateCount (0) {}
 };
 
 /**

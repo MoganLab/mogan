@@ -55,14 +55,14 @@ TemplateCache::loadMetadataCache () {
 
   QFile file (cachePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    qWarning () << "Failed to open metadata cache:" << cachePath;
+    qWarning () << "[Template] Failed to open metadata cache:" << cachePath;
     return metadata;
   }
 
   QByteArray    data= file.readAll ();
   QJsonDocument doc = QJsonDocument::fromJson (data);
   if (doc.isNull () || !doc.isObject ()) {
-    qWarning () << "Invalid metadata cache format";
+    qWarning () << "[Template] Invalid metadata cache format";
     return metadata;
   }
 
@@ -158,7 +158,7 @@ TemplateCache::saveMetadataCache (
   QString cachePath= metadataCachePath ();
   QFile   file (cachePath);
   if (!file.open (QIODevice::WriteOnly)) {
-    qWarning () << "Failed to write metadata cache:" << cachePath;
+    qWarning () << "[Template] Failed to write metadata cache:" << cachePath;
     return;
   }
 
@@ -189,11 +189,13 @@ TemplateCache::cachedTemplatePath (const QString& templateId) const {
 void
 TemplateCache::registerCachedTemplate (const QString& templateId,
                                        const QString& localPath,
-                                       qint64         fileSize) {
+                                       qint64         fileSize,
+                                       const QString& fileMd5) {
   CacheEntry entry;
   entry.templateId= templateId;
   entry.localPath = localPath;
   entry.fileSize  = fileSize;
+  entry.fileMd5   = fileMd5;
   entry.cachedAt  = QDateTime::currentDateTime ();
 
   cacheIndex_[templateId]= entry;
@@ -207,10 +209,11 @@ TemplateCache::removeCachedTemplate (const QString& templateId) {
     // Remove file
     bool removed= QFile::remove (it->localPath);
     if (!removed) {
-      qWarning () << "Failed to remove cached template file:" << it->localPath;
+      qWarning () << "[Template] Failed to remove cached template file:"
+                  << it->localPath;
     }
     else {
-      qDebug () << "Removed cached template file:" << it->localPath;
+      qDebug () << "[Template] Removed cached template file:" << it->localPath;
     }
 
     cacheIndex_.erase (it);
@@ -238,10 +241,6 @@ TemplateCache::clearCache () {
   // Clear metadata cache
   QString metadataPath= metadataCachePath ();
   QFile::remove (metadataPath);
-
-  // Clear metadata ETag
-  QFile::remove (metadataEtagPath ());
-  metadataEtag_.clear ();
 
   emit cacheCleared ();
 }
@@ -272,41 +271,6 @@ TemplateCache::metadataCachePath () const {
 }
 
 QString
-TemplateCache::metadataEtagPath () const {
-  return QDir (cacheDirectory ()).filePath ("metadata_etag.txt");
-}
-
-QString
-TemplateCache::metadataEtag () const {
-  if (!metadataEtag_.isEmpty ()) {
-    return metadataEtag_;
-  }
-
-  QFile file (metadataEtagPath ());
-  if (file.open (QIODevice::ReadOnly)) {
-    QString etag= QString::fromUtf8 (file.readAll ()).trimmed ();
-    // Cache in memory for subsequent reads
-    metadataEtag_= etag;
-    return etag;
-  }
-  return QString ();
-}
-
-void
-TemplateCache::setMetadataEtag (const QString& etag) {
-  metadataEtag_= etag;
-
-  QFile file (metadataEtagPath ());
-  if (file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
-    file.write (etag.toUtf8 ());
-    file.close ();
-  }
-  else {
-    qWarning () << "Failed to write metadata ETag:" << metadataEtagPath ();
-  }
-}
-
-QString
 TemplateCache::categoriesCachePath () const {
   return QDir (cacheDirectory ()).filePath ("categories.json");
 }
@@ -324,14 +288,15 @@ TemplateCache::loadCategoriesCache () {
   QString   lockPath= cachePath + ".lock";
   QLockFile lockFile (lockPath);
   if (!lockFile.tryLock (5000)) { // Wait up to 5 seconds
-    qWarning () << "Could not acquire lock for categories cache read:"
-                << lockPath;
+    qWarning ()
+        << "[Template] Could not acquire lock for categories cache read:"
+        << lockPath;
     return categories;
   }
 
   QFile file (cachePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    qWarning () << "Failed to open categories cache:" << cachePath
+    qWarning () << "[Template] Failed to open categories cache:" << cachePath
                 << "Error:" << file.errorString ();
     return categories;
   }
@@ -340,7 +305,7 @@ TemplateCache::loadCategoriesCache () {
   QJsonParseError parseError;
   QJsonDocument   doc= QJsonDocument::fromJson (data, &parseError);
   if (doc.isNull () || !doc.isObject ()) {
-    qWarning () << "Invalid categories cache format:"
+    qWarning () << "[Template] Invalid categories cache format:"
                 << parseError.errorString () << "at offset"
                 << parseError.offset;
     // Remove corrupted cache file to trigger regeneration
@@ -356,18 +321,20 @@ TemplateCache::loadCategoriesCache () {
     QJsonObject catObj= catValue.toObject ();
 
     TemplateCategory category;
-    category.id         = catObj.value ("id").toString ();
-    category.name       = catObj.value ("name").toString ();
-    category.description= catObj.value ("description").toString ();
-    category.icon       = catObj.value ("icon").toString ();
-    category.order      = catObj.value ("order").toInt ();
+    category.id           = catObj.value ("id").toString ();
+    category.name         = catObj.value ("name").toString ();
+    category.nameEn       = catObj.value ("nameEn").toString ();
+    category.description  = catObj.value ("description").toString ();
+    category.order        = catObj.value ("order").toInt ();
+    category.templateCount= catObj.value ("templateCount").toInt ();
 
     if (!category.id.isEmpty () && !category.name.isEmpty ()) {
       categories.append (category);
     }
     else {
-      qWarning () << "Skipping invalid category: missing id or name. ID:"
-                  << category.id << "Name:" << category.name;
+      qWarning ()
+          << "[Template] Skipping invalid category: missing id or name. ID:"
+          << category.id << "Name:" << category.name;
     }
   }
 
@@ -377,7 +344,8 @@ TemplateCache::loadCategoriesCache () {
                return a.order < b.order;
              });
 
-  qDebug () << "Loaded" << categories.size () << "categories from cache";
+  qDebug () << "[Template] Loaded" << categories.size ()
+            << "categories from cache";
   return categories;
 }
 
@@ -391,9 +359,10 @@ TemplateCache::saveCategoriesCache (const QList<TemplateCategory>& categories) {
     QJsonObject catObj;
     catObj.insert ("id", cat.id);
     catObj.insert ("name", cat.name);
+    catObj.insert ("nameEn", cat.nameEn);
     catObj.insert ("description", cat.description);
-    catObj.insert ("icon", cat.icon);
     catObj.insert ("order", cat.order);
+    catObj.insert ("templateCount", cat.templateCount);
     categoriesArray.append (catObj);
   }
   root.insert ("categories", categoriesArray);
@@ -406,27 +375,29 @@ TemplateCache::saveCategoriesCache (const QList<TemplateCategory>& categories) {
   QString   lockPath= cachePath + ".lock";
   QLockFile lockFile (lockPath);
   if (!lockFile.tryLock (5000)) { // Wait up to 5 seconds
-    qWarning () << "Could not acquire lock for categories cache write:"
-                << lockPath;
+    qWarning ()
+        << "[Template] Could not acquire lock for categories cache write:"
+        << lockPath;
     return;
   }
 
   QFile file (cachePath);
   if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
-    qWarning () << "Failed to write categories cache:" << cachePath
+    qWarning () << "[Template] Failed to write categories cache:" << cachePath
                 << "Error:" << file.errorString ();
     return;
   }
 
   qint64 bytesWritten= file.write (doc.toJson (QJsonDocument::Compact));
   if (bytesWritten == -1) {
-    qWarning () << "Failed to write categories cache data:"
+    qWarning () << "[Template] Failed to write categories cache data:"
                 << file.errorString ();
     file.close ();
     QFile::remove (cachePath);
   }
   else {
-    qDebug () << "Saved" << categories.size () << "categories to cache";
+    qDebug () << "[Template] Saved" << categories.size ()
+              << "categories to cache";
   }
 }
 
@@ -468,6 +439,7 @@ TemplateCache::loadCacheIndex () {
     entry.templateId= entryObj.value ("templateId").toString ();
     entry.localPath = entryObj.value ("localPath").toString ();
     entry.fileSize  = entryObj.value ("fileSize").toVariant ().toLongLong ();
+    entry.fileMd5   = entryObj.value ("fileMd5").toString ();
     entry.cachedAt  = QDateTime::fromString (
         entryObj.value ("cachedAt").toString (), Qt::ISODate);
 
@@ -489,6 +461,7 @@ TemplateCache::saveCacheIndex () {
     entryObj.insert ("templateId", entry.templateId);
     entryObj.insert ("localPath", entry.localPath);
     entryObj.insert ("fileSize", entry.fileSize);
+    entryObj.insert ("fileMd5", entry.fileMd5);
     entryObj.insert ("cachedAt", entry.cachedAt.toString (Qt::ISODate));
     entries.append (entryObj);
   }
@@ -499,7 +472,7 @@ TemplateCache::saveCacheIndex () {
   QString indexPath= cacheIndexPath ();
   QFile   file (indexPath);
   if (!file.open (QIODevice::WriteOnly)) {
-    qWarning () << "Failed to write cache index:" << indexPath;
+    qWarning () << "[Template] Failed to write cache index:" << indexPath;
     return;
   }
 

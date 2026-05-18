@@ -60,11 +60,14 @@ public:
   TemplateMetadataPtr templateById (const QString& templateId) const;
 
   // Template availability
-  bool    isTemplateAvailableLocally (const QString& templateId) const;
+  bool    isTemplateAvailableLocally (const QString& templateId);
   QString localTemplatePath (const QString& templateId) const;
 
   // Operations
-  void refreshTemplates (); // Force refresh from remote
+  void refreshCategories (); // Force refresh categories from remote
+  void refreshTemplates ();  // Force refresh all templates from remote
+  void refreshTemplatesByCategory (
+      const QString& categoryId); // Refresh templates for a specific category
 
   // Template download
   void downloadTemplate (const QString& templateId);
@@ -109,12 +112,11 @@ signals:
   void updateAvailable (int newTemplatesCount, int updatedTemplatesCount);
 
 private slots:
-  // liiistem.cn API format with categories
+  void onRemoteCategoriesLoaded (const QList<TemplateCategory>& categories);
+  void onRemoteCategoriesFailed (const QString& error);
   void
-  onRemoteMetadataLoaded (const QHash<QString, TemplateMetadataPtr>& metadata,
-                          const QList<TemplateCategory>& categories);
-  void onRemoteMetadataFailed (const QString& error);
-  void onMetadataNotModified ();
+  onRemoteTemplatesLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
+  void onRemoteTemplatesFailed (const QString& error);
   void onTemplateDownloaded (const QString& templateId,
                              const QString& localPath);
   void onTemplateDownloadFailed (const QString& templateId,
@@ -129,8 +131,8 @@ private:
   QList<TemplateCategory> loadLocalCategoriesFromScheme ();
 
   // Merge remote metadata with local cache
-  void
-  mergeMetadata (const QHash<QString, TemplateMetadataPtr>& remoteMetadata);
+  void mergeMetadata (const QHash<QString, TemplateMetadataPtr>& remoteMetadata,
+                      bool incremental= false);
 
   // Utility functions
   QString localTemplatesDir () const;
@@ -150,8 +152,12 @@ private:
 
   // State
   bool isOnline_;
-  bool isRefreshing_;
-  bool isRetryingWithoutEtag_;
+  bool isRefreshingCategories_;
+  bool isRefreshingTemplates_;
+  bool categoriesFetched_; // true after first successful categories fetch
+  QSet<QString> fetchedCategories_; // categories whose templates have been
+                                    // fetched this session
+  QString pendingIncrementalCategoryId_; // 当前正在请求的分类 ID，用于增量更新标记
 };
 
 #endif // TEMPLATE_MANAGER_HPP

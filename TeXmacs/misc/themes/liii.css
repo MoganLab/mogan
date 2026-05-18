@@ -1021,32 +1021,9 @@ QWidget#startup-tab-content {
   background-color: #f3f3f3;
 }
 
-/* 页面标题 */
-QLabel#startup-tab-page-title {
-  font-weight: bold;
-  color: #215a6a;
-}
-
 /* 页面描述文字 */
 QLabel#startup-tab-page-desc {
   color: #666666;
-}
-
-/* 分类按钮 */
-QPushButton#startup-tab-category-btn {
-  background: transparent;
-  border: none;
-  color: #666666;
-}
-
-QPushButton#startup-tab-category-btn:hover {
-  background: #dfdfdf;
-  color: #333333;
-}
-
-QPushButton#startup-tab-category-btn:checked {
-  background: #215a6a;
-  color: white;
 }
 
 /* 模板网格容器 */

@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : template_api.cpp
- * DESCRIPTION: Gitee Releases API client implementation
+ * DESCRIPTION: liiistem.cn API client implementation
  * COPYRIGHT  : (C) 2026 Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -20,18 +20,12 @@
 #include <QNetworkReply>
 #include <QTimer>
 
+#include "qt_utilities.hpp"
+
 TemplateAPI::TemplateAPI (QObject* parent)
-    : QObject (parent), networkManager_ (nullptr), offlineMode_ (false),
-      metadataReply_ (nullptr) {
+    : QObject (parent), networkManager_ (nullptr), offlineMode_ (false) {
   networkManager_= new QNetworkAccessManager (this);
-
-  // Set default API endpoint
-  apiBaseUrl_= QString (DEFAULT_API_BASE_URL);
-}
-
-void
-TemplateAPI::setMetadataEtag (const QString& etag) {
-  metadataEtag_= etag;
+  apiBaseUrl_    = QString (DEFAULT_API_BASE_URL);
 }
 
 TemplateAPI::~TemplateAPI () {
@@ -40,11 +34,17 @@ TemplateAPI::~TemplateAPI () {
     abortDownload (downloadReplies_.begin ().key ());
   }
 
-  if (metadataReply_) {
-    disconnect (metadataReply_, nullptr, this, nullptr);
-    metadataReply_->abort ();
-    metadataReply_->deleteLater ();
-    metadataReply_= nullptr;
+  if (categoriesReply_) {
+    disconnect (categoriesReply_, nullptr, this, nullptr);
+    categoriesReply_->abort ();
+    categoriesReply_->deleteLater ();
+    categoriesReply_= nullptr;
+  }
+  if (templatesReply_) {
+    disconnect (templatesReply_, nullptr, this, nullptr);
+    templatesReply_->abort ();
+    templatesReply_->deleteLater ();
+    templatesReply_= nullptr;
   }
 }
 
@@ -54,32 +54,56 @@ TemplateAPI::setApiBaseUrl (const QString& baseUrl) {
 }
 
 void
-TemplateAPI::fetchMetadata () {
+TemplateAPI::fetchCategories () {
   if (offlineMode_) {
-    emit metadataLoadFailed (tr ("Offline mode"));
+    emit categoriesLoadFailed (qt_translate ("Offline mode"));
     return;
   }
 
-  // Cancel any existing request
-  if (metadataReply_) {
-    disconnect (metadataReply_, nullptr, this, nullptr);
-    metadataReply_->abort ();
-    metadataReply_->deleteLater ();
-    metadataReply_= nullptr;
+  if (categoriesReply_) {
+    disconnect (categoriesReply_, nullptr, this, nullptr);
+    categoriesReply_->abort ();
+    categoriesReply_->deleteLater ();
+    categoriesReply_= nullptr;
   }
 
-  QNetworkRequest request{metadataUrl ()};
+  QNetworkRequest request{categoriesUrl ()};
   setupRequestHeaders (request);
 
-  // Send conditional request if we have a cached ETag
-  if (!metadataEtag_.isEmpty ()) {
-    request.setRawHeader ("If-None-Match", metadataEtag_.toUtf8 ());
+  QJsonObject bodyObj;
+  QByteArray  bodyData= QJsonDocument (bodyObj).toJson ();
+
+  categoriesReply_= networkManager_->post (request, bodyData);
+  connect (categoriesReply_, &QNetworkReply::finished, this,
+           &TemplateAPI::onCategoriesReplyFinished);
+}
+
+void
+TemplateAPI::fetchTemplates (const QString& categoryId) {
+  if (offlineMode_) {
+    emit templatesLoadFailed (qt_translate ("Offline mode"));
+    return;
   }
 
-  metadataReply_= networkManager_->get (request);
+  if (templatesReply_) {
+    disconnect (templatesReply_, nullptr, this, nullptr);
+    templatesReply_->abort ();
+    templatesReply_->deleteLater ();
+    templatesReply_= nullptr;
+  }
 
-  connect (metadataReply_, &QNetworkReply::finished, this,
-           &TemplateAPI::onMetadataReplyFinished);
+  QNetworkRequest request{templatesUrl ()};
+  setupRequestHeaders (request);
+
+  QJsonObject bodyObj;
+  if (!categoryId.isEmpty ()) {
+    bodyObj.insert ("categoryKey", categoryId);
+  }
+  QByteArray bodyData= QJsonDocument (bodyObj).toJson ();
+
+  templatesReply_= networkManager_->post (request, bodyData);
+  connect (templatesReply_, &QNetworkReply::finished, this,
+           &TemplateAPI::onTemplatesReplyFinished);
 }
 
 void
@@ -87,7 +111,7 @@ TemplateAPI::downloadTemplate (const QString& templateId,
                                const QString& downloadUrl,
                                const QString& targetPath) {
   if (offlineMode_) {
-    emit downloadFailed (templateId, tr ("Offline mode"));
+    emit downloadFailed (templateId, qt_translate ("Offline mode"));
     return;
   }
 
@@ -100,7 +124,6 @@ TemplateAPI::downloadTemplate (const QString& templateId,
   QNetworkReply* reply        = networkManager_->get (request);
   downloadReplies_[templateId]= reply;
 
-  // Store target path as property
   reply->setProperty ("templateId", templateId);
   reply->setProperty ("targetPath", targetPath);
 
@@ -146,46 +169,95 @@ TemplateAPI::setOfflineMode (bool offline) {
   emit networkStateChanged (!offline);
 }
 
+static bool
+extractApiData (const QByteArray& data, QJsonValue& outData,
+                QString& outError) {
+  QJsonDocument doc= QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    outError= qt_translate ("Invalid JSON response");
+    return false;
+  }
+
+  QJsonObject root= doc.object ();
+  int         code= root.value ("code").toInt (-1);
+  if (code != 0) {
+    outError= root.value ("message").toString ();
+    if (outError.isEmpty ()) {
+      outError= qt_translate ("API error: code %1").arg (code);
+    }
+    return false;
+  }
+
+  if (!root.value ("success").toBool (false)) {
+    outError= root.value ("message").toString ();
+    if (outError.isEmpty ()) {
+      outError= qt_translate ("API returned failure");
+    }
+    return false;
+  }
+
+  outData= root.value ("data");
+  return true;
+}
+
 void
-TemplateAPI::onMetadataReplyFinished () {
+TemplateAPI::onCategoriesReplyFinished () {
   QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
   if (!reply) return;
 
-  metadataReply_= nullptr;
-
-  // Check HTTP status code first for 304 Not Modified
-  // (some Qt versions report 304 as a network error, so check before error())
-  int statusCode=
-      reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
-  if (statusCode == 304) {
-    emit metadataNotModified ();
-    reply->deleteLater ();
-    return;
-  }
+  categoriesReply_= nullptr;
 
   if (reply->error () != QNetworkReply::NoError) {
-    QString error= tr ("Network error: %1").arg (reply->errorString ());
-    emit    metadataLoadFailed (error);
+    emit categoriesLoadFailed (
+        qt_translate ("Network error: %1").arg (reply->errorString ()));
     reply->deleteLater ();
     return;
-  }
-
-  // Extract ETag from 2xx responses for future conditional requests
-  if (statusCode >= 200 && statusCode < 300) {
-    lastMetadataEtag_= QString::fromUtf8 (reply->rawHeader ("ETag"));
   }
 
   QByteArray response= reply->readAll ();
   reply->deleteLater ();
 
-  QList<TemplateCategory> categories;
-  bool                    isValidResponse= false;
-  auto metadata= parseMetadataResponse (response, categories, &isValidResponse);
-  if (!isValidResponse) {
-    emit metadataLoadFailed (tr ("Invalid metadata response"));
+  QJsonValue data;
+  QString    error;
+  if (!extractApiData (response, data, error)) {
+    emit categoriesLoadFailed (error);
     return;
   }
-  emit metadataLoaded (metadata, categories);
+
+  auto categories= parseCategoriesResponse (data);
+  if (categories.isEmpty ()) {
+    emit categoriesLoadFailed (qt_translate ("Empty categories list"));
+    return;
+  }
+  emit categoriesLoaded (categories);
+}
+
+void
+TemplateAPI::onTemplatesReplyFinished () {
+  QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
+  if (!reply) return;
+
+  templatesReply_= nullptr;
+
+  if (reply->error () != QNetworkReply::NoError) {
+    emit templatesLoadFailed (
+        qt_translate ("Network error: %1").arg (reply->errorString ()));
+    reply->deleteLater ();
+    return;
+  }
+
+  QByteArray response= reply->readAll ();
+  reply->deleteLater ();
+
+  QJsonValue data;
+  QString    error;
+  if (!extractApiData (response, data, error)) {
+    emit templatesLoadFailed (error);
+    return;
+  }
+
+  auto metadata= parseTemplatesResponse (data);
+  emit templatesLoaded (metadata);
 }
 
 void
@@ -210,7 +282,8 @@ TemplateAPI::onDownloadFinished () {
 
   if (reply->error () != QNetworkReply::NoError) {
     emit downloadFailed (
-        templateId, tr ("Download failed: %1").arg (reply->errorString ()));
+        templateId,
+        qt_translate ("Download failed: %1").arg (reply->errorString ()));
     reply->deleteLater ();
     return;
   }
@@ -234,8 +307,9 @@ TemplateAPI::onDownloadFinished () {
   // Save file
   QFile file (targetPath);
   if (!file.open (QIODevice::WriteOnly)) {
-    emit downloadFailed (templateId,
-                         tr ("Cannot save file: %1").arg (file.errorString ()));
+    emit downloadFailed (
+        templateId,
+        qt_translate ("Cannot save file: %1").arg (file.errorString ()));
     reply->deleteLater ();
     return;
   }
@@ -244,7 +318,8 @@ TemplateAPI::onDownloadFinished () {
   qint64     written= file.write (data);
   file.close ();
   if (written != data.size ()) {
-    emit downloadFailed (templateId, tr ("Failed to write complete file"));
+    emit downloadFailed (templateId,
+                         qt_translate ("Failed to write complete file"));
     reply->deleteLater ();
     return;
   }
@@ -253,118 +328,113 @@ TemplateAPI::onDownloadFinished () {
   reply->deleteLater ();
 }
 
-void
-TemplateAPI::onNetworkError (QNetworkReply::NetworkError error) {
-  Q_UNUSED (error);
-  QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
-  if (!reply) return;
-
-  // Only handle metadata reply errors here
-  // Download errors are handled in onDownloadFinished
-  if (reply == metadataReply_) {
-    metadataReply_= nullptr;
-    emit metadataLoadFailed (
-        tr ("Network error: %1").arg (reply->errorString ()));
-    reply->deleteLater ();
-  }
+QString
+TemplateAPI::categoriesUrl () const {
+  return QString ("%1/api/v1/doc/template/categories").arg (apiBaseUrl_);
 }
 
 QString
-TemplateAPI::metadataUrl () const {
-  // Fetch templates.json from liiistem.cn API
-  return QString ("%1/templates.json").arg (apiBaseUrl_);
+TemplateAPI::templatesUrl () const {
+  return QString ("%1/api/v1/doc/template/list").arg (apiBaseUrl_);
+}
+
+QList<TemplateCategory>
+TemplateAPI::parseCategoriesResponse (const QJsonValue& data) {
+  QList<TemplateCategory> categories;
+
+  QJsonArray array;
+  if (data.isArray ()) {
+    array= data.toArray ();
+  }
+  else {
+    qWarning () << "[Template] Categories data is not an array";
+    return categories;
+  }
+
+  for (const auto& val : array) {
+    QJsonObject      obj= val.toObject ();
+    TemplateCategory cat;
+    cat.id           = obj.value ("categoryKey").toString ();
+    cat.name         = obj.value ("name").toString ();
+    cat.nameEn       = obj.value ("nameEn").toString ();
+    cat.description  = obj.value ("description").toString ();
+    cat.order        = obj.value ("order").toInt ();
+    cat.templateCount= obj.value ("templateCount").toInt ();
+    if (!cat.id.isEmpty () && !cat.name.isEmpty ()) {
+      categories.append (cat);
+    }
+  }
+
+  std::sort (categories.begin (), categories.end (),
+             [] (const TemplateCategory& a, const TemplateCategory& b) {
+               return a.order < b.order;
+             });
+
+  return categories;
 }
 
 QHash<QString, TemplateMetadataPtr>
-TemplateAPI::parseMetadataResponse (const QByteArray&        data,
-                                    QList<TemplateCategory>& outCategories,
-                                    bool*                    isValidResponse) {
+TemplateAPI::parseTemplatesResponse (const QJsonValue& data) {
   QHash<QString, TemplateMetadataPtr> metadata;
-  if (isValidResponse) {
-    *isValidResponse= false;
-  }
 
-  QJsonDocument doc= QJsonDocument::fromJson (data);
-  if (doc.isNull () || !doc.isObject ()) {
-    qWarning () << "Invalid JSON response";
+  if (!data.isObject ()) {
+    qWarning () << "[Template] Templates data is not an object";
     return metadata;
   }
 
-  QJsonObject root= doc.object ();
+  QJsonObject dataObj= data.toObject ();
+  QJsonArray  array  = dataObj.value ("items").toArray ();
 
-  // Check if this is the nested categories format (liiistem.cn API v2)
-  bool hasSchemaField=
-      (root.contains ("categories") && root.value ("categories").isArray ()) ||
-      (root.contains ("templates") && root.value ("templates").isArray ());
-  if (!hasSchemaField) {
-    qWarning () << "Invalid metadata schema";
-    return metadata;
+  for (const auto& val : array) {
+    parseTemplateObject (val.toObject (), metadata);
   }
 
-  QJsonArray categories= root.value ("categories").toArray ();
-  if (!categories.isEmpty ()) {
-    // Parse categories array with nested templates
-    for (const auto& catValue : categories) {
-      QJsonObject catObj= catValue.toObject ();
-
-      // Parse category info
-      TemplateCategory category;
-      category.id         = catObj.value ("id").toString ();
-      category.name       = catObj.value ("name").toString ();
-      category.description= catObj.value ("description").toString ();
-      category.icon       = catObj.value ("icon").toString ();
-      category.order      = catObj.value ("order").toInt ();
-      outCategories.append (category);
-
-      QString categoryId= category.id;
-
-      QJsonArray templates= catObj.value ("templates").toArray ();
-      for (const auto& tmplValue : templates) {
-        parseTemplateObject (tmplValue.toObject (), categoryId, metadata);
-      }
-    }
-  }
-  else {
-    // Fallback: flat templates array format (legacy/Gitee style)
-    QJsonArray templates= root.value ("templates").toArray ();
-    for (const auto& tmplValue : templates) {
-      parseTemplateObject (tmplValue.toObject (), QString (), metadata);
-    }
-  }
-
-  if (isValidResponse) {
-    *isValidResponse= true;
-  }
   return metadata;
 }
 
 void
 TemplateAPI::parseTemplateObject (
-    const QJsonObject& tmplObj, const QString& defaultCategoryId,
-    QHash<QString, TemplateMetadataPtr>& metadata) {
+    const QJsonObject& tmplObj, QHash<QString, TemplateMetadataPtr>& metadata) {
   TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
-  tmpl->id                = tmplObj.value ("id").toString ();
+  tmpl->id                = tmplObj.value ("templateKey").toString ();
   tmpl->name              = tmplObj.value ("name").toString ();
   tmpl->description       = tmplObj.value ("description").toString ();
-  // Use category field if present, otherwise use parent category
-  tmpl->category    = tmplObj.value ("category").toString (defaultCategoryId);
-  tmpl->author      = tmplObj.value ("author").toString ();
-  tmpl->version     = tmplObj.value ("version").toString ();
-  tmpl->license     = tmplObj.value ("license").toString ();
-  tmpl->thumbnailUrl= tmplObj.value ("thumbnail_url").toString ();
-  tmpl->previewUrl  = tmplObj.value ("preview_url").toString ();
-  // Support both download_url (new) and file_url (legacy)
-  tmpl->fileUrl= tmplObj.value ("download_url")
-                     .toString (tmplObj.value ("file_url").toString ());
-  tmpl->fileSize = tmplObj.value ("file_size").toVariant ().toLongLong ();
-  tmpl->fileMd5  = tmplObj.value ("file_md5").toString ();
-  tmpl->createdAt= QDateTime::fromString (
-      tmplObj.value ("created_at").toString (), Qt::ISODate);
-  tmpl->updatedAt= QDateTime::fromString (
-      tmplObj.value ("updated_at").toString (), Qt::ISODate);
+  tmpl->author            = tmplObj.value ("author").toString ();
+  tmpl->version           = tmplObj.value ("version").toString ();
+  tmpl->license           = tmplObj.value ("license").toString ();
+  tmpl->thumbnailUrl      = tmplObj.value ("thumbnailUrl").toString ();
+  tmpl->fileSize= tmplObj.value ("fileSize").toVariant ().toLongLong ();
+  tmpl->fileMd5 = tmplObj.value ("fileMd5").toString ();
   tmpl->language= tmplObj.value ("language").toString ();
 
-  // Parse tags array
+  // category is an object: {"categoryKey", "name"}
+  QJsonObject catObj= tmplObj.value ("category").toObject ();
+  tmpl->category    = catObj.value ("categoryKey").toString ();
+
+  // url → fileUrl, pdfUrl → previewUrl
+  tmpl->fileUrl   = tmplObj.value ("url").toString ();
+  tmpl->previewUrl= tmplObj.value ("pdfUrl").toString ();
+
+  // createTime 优先，回退到 created_at
+  QString createTime= tmplObj.value ("createTime").toString ();
+  if (createTime.isEmpty ()) {
+    createTime= tmplObj.value ("created_at").toString ();
+  }
+  tmpl->createdAt= QDateTime::fromString (createTime, Qt::ISODate);
+
+  // updateTime 优先，回退到 updated_at，最后回退到 createdAt
+  QString updateTime= tmplObj.value ("updateTime").toString ();
+  if (updateTime.isEmpty ()) {
+    updateTime= tmplObj.value ("updated_at").toString ();
+  }
+  if (!updateTime.isEmpty ()) {
+    tmpl->updatedAt= QDateTime::fromString (updateTime, Qt::ISODate);
+  }
+  else {
+    tmpl->updatedAt= tmpl->createdAt;
+  }
+
+  // tags array
   QJsonArray  tagsArray= tmplObj.value ("tags").toArray ();
   QStringList tags;
   for (const auto& tag : tagsArray) {
@@ -372,11 +442,11 @@ TemplateAPI::parseTemplateObject (
   }
   tmpl->tags= tags;
 
-  // Parse compatibility info
+  // compatibility
   QJsonObject compatObj= tmplObj.value ("compatibility").toObject ();
   tmpl->moganMinVersion= compatObj.value ("mogan_min_version").toString ();
 
-  // Parse statistics
+  // statistics
   QJsonObject statsObj= tmplObj.value ("statistics").toObject ();
   tmpl->downloadCount = statsObj.value ("downloads").toInt ();
   tmpl->rating        = statsObj.value ("rating").toDouble ();
@@ -388,6 +458,7 @@ TemplateAPI::parseTemplateObject (
 
 void
 TemplateAPI::setupRequestHeaders (QNetworkRequest& request) {
+  request.setHeader (QNetworkRequest::ContentTypeHeader, "application/json");
   request.setHeader (QNetworkRequest::UserAgentHeader,
                      "Mogan-TemplateCenter/1.0");
   request.setRawHeader ("Accept", "application/json");
