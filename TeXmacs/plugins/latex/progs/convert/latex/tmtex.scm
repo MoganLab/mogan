@@ -1841,22 +1841,64 @@
 (define (tmtex-graphics l)
   (tmtex-eps (cons 'graphics l)))
 
+(define (tmtex-guess-format u suffix)
+  "Detect image format via magic header when suffix is unknown."
+  (if (and (url-exists? u) (== (format-from-suffix suffix) "generic"))
+      (with data (string-load u)
+        (cond ((and (> (string-length data) 8)
+                    (== (char->integer (string-ref data 0)) #xff)
+                    (== (char->integer (string-ref data 1)) #xd8))
+               "jpeg")
+              ((and (> (string-length data) 8)
+                    (string-starts? data "\x89PNG"))
+               "png")
+              ((and (> (string-length data) 5)
+                    (string-starts? data "%PDF-"))
+               "pdf")
+              (else #f)))
+      #f))
+
 (define (tmtex-as-eps name)
   (let* ((u (url-relative current-save-target (unix->url name)))
          (suffix (url-suffix u))
-         (fm (string-append (format-from-suffix suffix) "-file")))
-    (if (and (url-exists? u) (in? suffix (list "eps" "pdf" "png" "jpg")))
+         (detected (tmtex-guess-format u suffix))
+         (fm (if detected
+                 (string-append detected "-file")
+                 (string-append (format-from-suffix suffix) "-file"))))
+    (if (and (url-exists? u)
+             (in? suffix (list "eps" "pdf" "png" "jpg" "jpeg")))
+        ;; Fast path: image already in LaTeX-compatible format
         (with p (url->string "$TEXMACS_PATH")
           (set! name (string-replace name "$TEXMACS_PATH" p))
           (set! name (string-replace name "file://" ""))
           (list 'includegraphics name))
-        (receive (name-url name-string) (tmtex-eps-names)
-          (when (string-starts? name "..")
-            (set! u (url-relative current-save-source (unix->url name))))
-          (with nfm (if (== (url-suffix name-url) "pdf") "pdf-file"
-                        "postscript-file")
-            (convert-to-file u fm nfm name-url))
-          (list 'includegraphics name-string)))))
+        (if (and (url-exists? u) detected
+                 (in? detected (list "pdf" "png" "jpeg")))
+            ;; Image has wrong suffix but is actually LaTeX-compatible;
+            ;; copy with correct extension
+            (receive (name-url name-string) (tmtex-eps-names)
+              (let* ((ext (if (== detected "jpeg") "jpg" detected))
+                     (dest-url (url-glue (url-unglue name-url 4)
+                                         (string-append "." ext)))
+                     (dest-string (string-append
+                                   (string-drop-right name-string 4)
+                                   "." ext)))
+                (system-copy u dest-url)
+                (list 'includegraphics dest-string)))
+            ;; Need format conversion
+            (receive (name-url name-string) (tmtex-eps-names)
+              (when (string-starts? name "..")
+                (set! u (url-relative current-save-source (unix->url name))))
+              (let* ((nfm (if (== (url-suffix name-url) "pdf") "pdf-file"
+                              "postscript-file"))
+                     (result (convert-to-file u fm nfm name-url)))
+                (if result
+                    (list 'includegraphics name-string)
+                    ;; Conversion failed: fall back to rendering via TeXmacs
+                    (begin
+                      (print-snippet name-url
+                                     `(image ,name "0.618par" "" "" "") #t)
+                      (list 'includegraphics name-string)))))))))
 
 (define (tmtex-image-length len)
   (let* ((s (force-string len))

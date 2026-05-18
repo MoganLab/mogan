@@ -12,7 +12,12 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image tif))
+(texmacs-module (image tif)
+  (:use (binary convert)))
 
 (converter tif-file postscript-document
   (:function image->psdoc))
+
+(converter tif-file postscript-file
+  (:require (has-binary-convert?))
+  (:shell ,(url->system (find-binary-convert)) from to))

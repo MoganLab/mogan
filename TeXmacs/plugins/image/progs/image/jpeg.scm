@@ -12,7 +12,12 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image jpeg))
+(texmacs-module (image jpeg)
+  (:use (binary convert)))
 
 (converter jpeg-file postscript-document
   (:function image->psdoc))
+
+(converter jpeg-file postscript-file
+  (:require (has-binary-convert?))
+  (:shell ,(url->system (find-binary-convert)) from to))

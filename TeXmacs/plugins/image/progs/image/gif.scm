@@ -12,7 +12,12 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (image gif))
+(texmacs-module (image gif)
+  (:use (binary convert)))
 
 (converter gif-file postscript-document
   (:function image->psdoc))
+
+(converter gif-file postscript-file
+  (:require (has-binary-convert?))
+  (:shell ,(url->system (find-binary-convert)) from to))

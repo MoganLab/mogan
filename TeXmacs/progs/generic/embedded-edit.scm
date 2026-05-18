@@ -143,7 +143,7 @@
            (u (url-relative (current-buffer) f))
            (s (url-suffix f)))
       (when (url-exists? u)
-        (let* ((data (string-load u))
+        (let* ((data (encode-base64 (string-load u)))
                (raw `(tuple (raw-data ,data) ,(utf8->cork (url->string (url-tail f))))))
           (tree-set t 0 raw))))))
 

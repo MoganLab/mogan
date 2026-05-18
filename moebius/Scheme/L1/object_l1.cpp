@@ -17,7 +17,10 @@
 #include "moebius/data/scheme.hpp"
 #include "moebius/tree_label.hpp"
 
+#include <lolly/data/base64.hpp>
+
 using moebius::make_tree_label;
+using moebius::RAW_DATA;
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
 using moebius::data::tree_to_scheme_tree;
@@ -122,7 +125,16 @@ tmscm_to_content (tmscm p) {
   if (tmscm_is_tree (p)) return tmscm_to_tree (p);
   if (tmscm_is_pair (p)) {
     if (!tmscm_is_symbol (tmscm_car (p))) return "?";
-    tree t (make_tree_label (tmscm_to_symbol (tmscm_car (p))));
+    tree_label tl= make_tree_label (tmscm_to_symbol (tmscm_car (p)));
+    if (tl == RAW_DATA) {
+      // RAW_DATA in Scheme S-expression contains base64-encoded data;
+      // decode back to binary for the C++ tree representation
+      tree t (RAW_DATA, 1);
+      t[0]->label=
+          lolly::data::decode_base64 (tmscm_to_string (tmscm_cadr (p)));
+      return t;
+    }
+    tree t (tl);
     p= tmscm_cdr (p);
     while (!tmscm_is_null (p)) {
       t << tmscm_to_content (tmscm_car (p));
