@@ -40,8 +40,9 @@ function add_target_cpp_test(filepath, dep1, dep2)
         add_files("tests/Base/base.cpp")
         add_files(filepath)
         add_files(filepath, {rules = "qt.moc"})
-        before_build(function (target)
+        on_load(function (target)
             target:add("forceincludes", path.absolute("$(buildir)/config.h"))
+            target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
         end)
 
         if is_plat("wasm") then
@@ -89,8 +90,9 @@ function add_target_cpp_bench(filepath, dep)
         add_files("tests/Base/base.cpp")
         add_files(filepath)
         add_files(filepath, {rules = "qt.moc"})
-        before_build(function (target)
+        on_load(function (target)
             target:add("forceincludes", path.absolute("$(buildir)/config.h"))
+            target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
         end)
     end
 end

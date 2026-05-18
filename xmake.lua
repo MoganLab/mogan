@@ -647,7 +647,7 @@ target("libmogan") do
     --    * https://github.com/xmake-io/xmake/issues/320
     --    * https://github.com/xmake-io/xmake/issues/342
     ---------------------------------------------------------------------------
-    set_configdir("src/System")
+    set_configdir("$(buildir)")
     -- check for dl library
     -- configvar_check_cxxfuncs("TM_DYNAMIC_LINKING","dlopen")
     configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
@@ -719,6 +719,7 @@ target("libmogan") do
     ---------------------------------------------------------------------------
     -- add source and header files
     ---------------------------------------------------------------------------
+    add_includedirs("$(buildir)", {public = true})
     add_includedirs(moe_includedirs)
     add_includedirs({
             "src/Data/Convert",
@@ -848,8 +849,8 @@ target("libmogan") do
 
     add_mxflags("-fno-objc-arc")
     on_load(function (target)
-        target:add("forceincludes", path.absolute("src/System/config.h"))
-        target:add("forceincludes", path.absolute("src/System/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
+        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
     end)
 end 
 
@@ -1081,8 +1082,8 @@ target("stem") do
     end)
 
     on_load(function (target)
-        target:add("forceincludes", path.absolute("src/System/config.h"))
-        target:add("forceincludes", path.absolute("src/System/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
+        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
     end)
 
     -- After install callback for Linux to rename MIME icon files
