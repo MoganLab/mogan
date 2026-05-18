@@ -51,12 +51,6 @@
       ("Styles" (style-clear-cache)))
   (-> "References"
       (link ref-menu))
-  (if supports-email?
-      (-> "Email"
-          ("Open mailbox" (email-open-mailbox))
-          ("Retrieve email" (begin (email-pop) (email-open-inbox)))
-          ---
-          ("Pop server settings" (interactive email-settings))))
   (-> "Project"
       (link project-manage-menu))
   ("Statistics" (show-counts))
