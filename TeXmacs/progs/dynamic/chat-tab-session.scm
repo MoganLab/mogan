@@ -82,6 +82,14 @@
   (map tree-copy (tree-children (chat-tab-normalize-document body)))
 ) ;define
 
+(define (chat-tab-model-prompt model)
+  (with parts (string-tokenize-by-char model #\-)
+    (with part
+      (list-find parts (lambda (p) (string-occurs? "0123456789" p)))
+      (if part part (cAr parts)))
+    (string-append part "> "))
+) ;define
+
 (define (var-tree-children t)
   (with r (tree-children t) (if (and (nnull? r) (tree-empty? (cAr r))) (cDr r) r))
 ) ;define
@@ -89,14 +97,16 @@
 (define (chat-tab-message-document message-buffer)
   (with-buffer message-buffer
     (let ((doc (buffer-get-body message-buffer)))
-      (if (tree-is? doc 'document)
-        doc
-        (begin
-          (buffer-set-body message-buffer '(document ""))
-          (buffer-pretend-saved message-buffer)
-          (buffer-get-body message-buffer)
-        ) ;begin
-      ) ;if
+      (cond ((tree-is? doc 'document) doc)
+            ((tree-is? doc 'session)
+             (with d (tree-ref doc 2)
+               (if (tree-is? d 'document) d doc)))
+            (else
+              (buffer-set-body message-buffer '(document ""))
+              (buffer-pretend-saved message-buffer)
+              (buffer-get-body message-buffer)
+            ) ;else
+      ) ;cond
     ) ;let
   ) ;with-buffer
 ) ;define
@@ -146,20 +156,19 @@
 (define (chat-tab-append-round! message-buffer body)
   (with-buffer message-buffer
     (let* ((doc (chat-tab-message-document message-buffer))
-           (prefix (if (> (tree-arity doc) 0) (list "") '()))
-           (payload (append prefix
-                      (list '(with "font-series" "bold" "User:"))
-                      (chat-tab-body-children body)
-                      (list "" '(with "font-series" "bold" "Assistant:") '(output (document "")))
-                    ) ;append
-           ) ;payload
-          ) ;
-      (tree-insert! doc (tree-arity doc) payload)
+           (model (chat-tab-current-model))
+           (prompt (chat-tab-model-prompt model))
+           (input-children (chat-tab-body-children body))
+           (input-stree (map tree->stree input-children))
+           (io-node (stree->tree `(unfolded-io-text
+                                    (document ,prompt)
+                                    (document ,@input-stree)
+                                    (document "")))))
+      (tree-insert! doc (tree-arity doc) (list io-node))
       (set-user-active #f)
       (buffer-pretend-saved message-buffer)
-      (let ((out-node (tree-ref doc :last)))
-        (and (tree-is? out-node 'output) (tree-ref out-node 0))
-      ) ;let
+      (let ((last-node (tree-ref doc :last)))
+        (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2)))
     ) ;let*
   ) ;with-buffer
 ) ;define
@@ -194,6 +203,11 @@
              (new (chat-tab-state input-buffer model ses))
             ) ;
         (session-enable-text-input chat-tab-session-name ses)
+        (with-buffer message-buffer
+          (let ((body (buffer-get-body message-buffer)))
+            (when (not (tree-is? body 'session))
+              (buffer-set-body message-buffer `(session ,chat-tab-session-name ,ses (document)))
+              (buffer-pretend-saved message-buffer))))
         (chat-tab-set-state! message-buffer new)
         new
       ) ;let*
