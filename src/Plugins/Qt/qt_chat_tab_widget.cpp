@@ -10,9 +10,12 @@
  ******************************************************************************/
 
 #include "qt_chat_tab_widget.hpp"
+#include "QTMGuiHelper.hpp"
+#include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
 #include "new_buffer.hpp"
 #include "qt_dpi_utils.hpp"
+#include "qt_gui.hpp"
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
@@ -665,8 +668,7 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
 void
 QTChatTabWidget::install_chat_menu_bar (widget menuWidget) {
   if (!chatMenuToolBar_) return;
-  qt_widget_rep*   menu_rep= concrete (menuWidget);
-  QList<QAction*>* src     = menu_rep->get_qactionlist ();
+  QList<QAction*>* src= concrete (menuWidget)->get_qactionlist ();
   if (!src) return;
 
   QMenuBar* dest= new QMenuBar ();
@@ -705,8 +707,7 @@ QTChatTabWidget::install_chat_menu_bar (widget menuWidget) {
 void
 QTChatTabWidget::set_chat_mode_icons (widget modeWidget) {
   if (!chatModeToolBar_) return;
-  qt_widget_rep*   mode_rep= concrete (modeWidget);
-  QList<QAction*>* src     = mode_rep->get_qactionlist ();
+  QList<QAction*>* src= concrete (modeWidget)->get_qactionlist ();
   if (!src) return;
 
   chatModeToolBar_->setUpdatesEnabled (false);
@@ -738,8 +739,7 @@ QTChatTabWidget::set_chat_mode_icons (widget modeWidget) {
 void
 QTChatTabWidget::set_chat_focus_icons (widget focusWidget) {
   if (!chatFocusToolBar_) return;
-  qt_widget_rep*   focus_rep= concrete (focusWidget);
-  QList<QAction*>* src      = focus_rep->get_qactionlist ();
+  QList<QAction*>* src= concrete (focusWidget)->get_qactionlist ();
   if (!src) return;
 
   chatFocusToolBar_->setUpdatesEnabled (false);
