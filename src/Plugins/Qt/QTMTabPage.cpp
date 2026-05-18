@@ -109,17 +109,31 @@ startup_tab_index (const QList<QTMTabPage*>& tabs) {
   return -1;
 }
 
+/**
+ * @brief Returns the URL of the chat tab buffer.
+ * @return \c tmfs://chat-tab.
+ */
 static url
 chat_tab_buffer_name () {
   return url ("tmfs://chat-tab");
 }
 
+/**
+ * @brief Checks whether a view URL belongs to the chat tab.
+ * @param viewUrl The view URL to test.
+ * @return True if the view is backed by the chat tab buffer.
+ */
 static bool
 is_chat_tab_view (url viewUrl) {
   if (is_none (viewUrl)) return false;
   return view_to_buffer (viewUrl) == chat_tab_buffer_name ();
 }
 
+/**
+ * @brief Finds the index of the chat tab in the given tab list.
+ * @param tabs List of tab pages to search.
+ * @return Index of the chat tab, or -1 if not found.
+ */
 static int
 chat_tab_index (const QList<QTMTabPage*>& tabs) {
   for (int i= 0; i < tabs.size (); ++i)

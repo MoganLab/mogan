@@ -173,14 +173,14 @@ private:
   qt_widget notification_bar_widget;
   qt_widget auxiliary_widget;
   qt_widget dock_window_widget; // trick to return correct widget position
-  QWidget*  startupContentWidget;
-  QWidget*  chatContentWidget;
-  bool      startupTabMode;
-  PDFReaderWidget* pdfViewerWidget;
-  bool             pdfTabMode;
-  QString          currentPdfPath;
-  QString          lastLoadedPdfPath;
-  bool             chatTabMode;
+  QWidget*  startupContentWidget;  ///< Widget displayed in startup tab mode.
+  QWidget*  chatContentWidget;     ///< Widget displayed in chat tab mode (QTChatTabWidget).
+  bool      startupTabMode;        ///< Whether the startup tab view is active.
+  PDFReaderWidget* pdfViewerWidget;///< PDF reader widget for PDF tab mode.
+  bool             pdfTabMode;     ///< Whether the PDF viewer tab is active.
+  QString          currentPdfPath; ///< Path of the currently displayed PDF.
+  QString          lastLoadedPdfPath;///< Path of the last loaded PDF.
+  bool      chatTabMode;           ///< Whether the chat tab view is active.
 
 public:
   qt_tm_widget_rep (int mask, command _quit);
@@ -200,6 +200,13 @@ public:
   void        openRenewalPage ();
   void        checkNetworkAvailable ();
   void        sync_startup_tab_mode ();
+  /**
+   * @brief Synchronizes the visibility of the chat tab widget.
+   *
+   * When \ref chatTabMode is true, hides the editor and shows
+   * \ref chatContentWidget (creating it on demand).
+   * Otherwise hides the chat widget and restores the editor.
+   */
   void        sync_chat_tab_mode ();
 
   friend class QTMInteractiveInputHelper;

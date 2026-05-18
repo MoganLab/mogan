@@ -77,6 +77,11 @@ decode_url (string s) {
   return url_root (s (0, i)) * url_general (s (i + 1, N (s)), URL_CLEAN_UNIX);
 }
 
+/**
+ * @brief Checks whether a buffer name refers to the chat tab.
+ * @param name Buffer URL to test.
+ * @return True if the name starts with \c tmfs://chat-tab.
+ */
 static bool
 is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
@@ -447,6 +452,12 @@ kill_tabpage (url win_u, url u) {
   if (win == NULL) win= win_tabpage;
   url  current_u = get_current_view_safe ();
   bool is_current= (!is_none (current_u) && current_u == u);
+  /**
+   * @note For chat tab buffers, the embedded input editor may hold the
+   *       keyboard focus while the view URL points to the underlying
+   *       tmfs://chat-input-* / chat-message-* buffer. We treat such views as
+   *       current when they share the same main widget.
+   */
   if (!is_current && vw->buf != NULL &&
       is_chat_tab_buffer (vw->buf->buf->name)) {
     tm_view current_vw= concrete_view (current_u);

@@ -79,6 +79,11 @@ is_startup_tab_file (const string& file) {
   return file == "tmfs://startup-tab";
 }
 
+/**
+ * @brief Checks whether the given file path refers to the chat tab buffer.
+ * @param file File path string.
+ * @return True if the file is \c tmfs://chat-tab.
+ */
 static bool
 is_chat_tab_file (const string& file) {
   return file == "tmfs://chat-tab";
@@ -849,7 +854,7 @@ qt_tm_widget_rep::~qt_tm_widget_rep () {
   if (pdfViewerWidget) {
     delete pdfViewerWidget;
   }
-  // delete chat content widget
+  /// delete chat content widget
   if (chatContentWidget) {
     delete chatContentWidget;
   }
@@ -979,6 +984,14 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
   }
 }
 
+/**
+ * @brief Synchronizes the visibility of the chat tab widget.
+ *
+ * When \ref chatTabMode is active, hides the editor, startup page, and PDF
+ * viewer, then shows \ref chatContentWidget (creating it on demand).
+ * Otherwise hides the chat widget and restores the normal editor view unless
+ * startup tab mode is active.
+ */
 void
 qt_tm_widget_rep::sync_chat_tab_mode () {
   QWidget* editorWidget= main_widget->qwid;

@@ -35,28 +35,49 @@
 using namespace moebius;
 
 namespace {
+
+/**
+ * @brief Generates the next unique id for chat buffers.
+ * @return Incremented id.
+ */
 int
 next_chat_input_buffer_id () {
   static int s_nextId= 0;
   return ++s_nextId;
 }
 
+/**
+ * @brief Creates a unique input buffer URL.
+ * @return URL in the form tmfs://chat-input-<id>.
+ */
 url
 make_chat_input_buffer_name () {
   return url ("tmfs://chat-input-" * as_string (next_chat_input_buffer_id ()));
 }
 
+/**
+ * @brief Creates a unique message buffer URL.
+ * @return URL in the form tmfs://chat-message-<id>.
+ */
 url
 make_chat_message_buffer_name () {
   return url ("tmfs://chat-message-" *
               as_string (next_chat_input_buffer_id ()));
 }
 
+/**
+ * @brief Returns the embedded style tree for chat widgets.
+ * @return A compound style tree with "generic" and "llm" tags.
+ */
 tree
 make_chat_embedded_style () {
   return compound ("style", tuple ("generic", "llm"));
 }
 
+/**
+ * @brief Disables scrollbars for all QAbstractScrollArea descendants.
+ * @param root Root widget to search from.
+ */
 void
 disable_scrollbars_recursively (QWidget* root) {
   if (!root) return;
@@ -72,6 +93,11 @@ disable_scrollbars_recursively (QWidget* root) {
   }
 }
 
+/**
+ * @brief Checks whether a document body is effectively empty.
+ * @param body TeXmacs document tree.
+ * @return True if the body contains no visible content.
+ */
 bool
 is_empty_document_body (tree body) {
   if (!is_func (body, DOCUMENT)) return false;
@@ -79,53 +105,92 @@ is_empty_document_body (tree body) {
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
+/// Minimum width of the left sidebar in pixels.
 constexpr int kSidebarMinWidth       = 200;
+/// Horizontal margin of the sidebar layout.
 constexpr int kSidebarMarginX        = 12;
+/// Vertical margin of the sidebar layout.
 constexpr int kSidebarMarginY        = 16;
+/// Spacing between sidebar elements.
 constexpr int kSidebarSpacing        = 8;
+/// Font size of the navigation title in pixels.
 constexpr int kNavTitleFontPx        = 11;
+/// Padding around the navigation title.
 constexpr int kNavTitlePadding       = 4;
+/// Vertical padding of navigation buttons.
 constexpr int kNavButtonPadY         = 8;
+/// Horizontal padding of navigation buttons.
 constexpr int kNavButtonPadX         = 12;
+/// Font size of navigation button text in pixels.
 constexpr int kNavButtonFontPx       = 13;
+/// Font size of the collapse button in pixels.
 constexpr int kCollapseFontPx        = 11;
+/// Border radius of the collapse button.
 constexpr int kCollapseBorderRadius  = 4;
+/// Vertical padding of the collapse button.
 constexpr int kCollapsePadY          = 4;
+/// Horizontal padding of the collapse button.
 constexpr int kCollapsePadX          = 8;
+/// Font size of the welcome title in pixels.
 constexpr int kWelcomeFontPx         = 34;
+/// Fixed height of the input editor in pixels.
 constexpr int kInputHeight           = 44;
+/// Vertical padding of the send button.
 constexpr int kSendButtonPadY        = 6;
+/// Horizontal padding of the send button.
 constexpr int kSendButtonPadX        = 16;
+/// Font size of the send button text in pixels.
 constexpr int kSendButtonFontPx      = 13;
+/// Horizontal margin of the content area.
 constexpr int kContentMarginX        = 24;
+/// Vertical margin of the content area.
 constexpr int kContentMarginY        = 24;
+/// Spacing between content area elements.
 constexpr int kContentSpacing        = 16;
+/// Top spacer height in welcome mode in pixels.
 constexpr int kWelcomeTopOffsetY     = 240;
+/// Top spacer height in conversation mode in pixels.
 constexpr int kConversationTopOffsetY= 24;
+/// Maximum width of the top panel in pixels.
 constexpr int kTopPanelMaxWidth      = 680;
+/// Border radius of input/message frames.
 constexpr int kInputFrameRadius      = 8;
+/// Border width of input/message frames in pixels.
 constexpr int kInputFrameBorder      = 1;
+/// Padding inside input/message frames.
 constexpr int kInputFramePad         = 8;
+/// Minimum height of the message display area in pixels.
 constexpr int kMessageMinHeight      = 240;
+/// Duration of welcome-to-conversation transition in milliseconds.
 constexpr int kTransitionDurationMs  = 220;
+
 } // namespace
 
+/**
+ * @brief Internal data for a single conversation panel.
+ */
 struct QTChatTabWidget::ChatConversationPanel {
-  QWidget*     pageWidget       = nullptr;
-  QLabel*      welcomeTitle     = nullptr;
-  QWidget*     messageFrame     = nullptr;
-  QWidget*     inputEditorWidget= nullptr;
-  QPushButton* sendButton       = nullptr;
-  QPushButton* sidebarButton    = nullptr;
-  QSpacerItem* topSpacer        = nullptr;
-  widget       messageWidget;
-  widget       inputWidget;
-  url          messageBufferName;
-  url          inputBufferName;
-  bool         conversationMode= false;
-  QString      title;
+  QWidget*     pageWidget       = nullptr; ///\< Stacked page for this conversation.
+  QLabel*      welcomeTitle     = nullptr; ///\< Welcome title label.
+  QWidget*     messageFrame     = nullptr; ///\< Frame holding the message widget.
+  QWidget*     inputEditorWidget= nullptr; ///\< Qt widget of the input editor.
+  QPushButton* sendButton       = nullptr; ///\< Send button.
+  QPushButton* sidebarButton    = nullptr; ///\< Sidebar entry button.
+  QSpacerItem* topSpacer        = nullptr; ///\< Top spacer for vertical offset.
+  widget       messageWidget;              ///\< TeXmacs widget for message display.
+  widget       inputWidget;                ///\< TeXmacs widget for user input.
+  url          messageBufferName;          ///\< Buffer URL for message history.
+  url          inputBufferName;            ///\< Buffer URL for the input editor.
+  bool         conversationMode= false;    ///\< Whether the panel has left welcome mode.
+  QString      title;                      ///\< Display title of the conversation.
 };
 
+/**
+ * @brief Constructs the chat tab widget.
+ *
+ * Creates a left sidebar and a right content area, then creates the first
+ * conversation.
+ */
 QTChatTabWidget::QTChatTabWidget (QWidget* parent)
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
       conversationCountLabel_ (nullptr), conversationListWidget_ (nullptr),
@@ -164,12 +229,19 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   create_new_conversation ();
 }
 
+/**
+ * @brief Destroys the widget and all conversation panels.
+ */
 QTChatTabWidget::~QTChatTabWidget () {
   for (ChatConversationPanel* panel : conversations_)
     delete panel;
   conversations_.clear ();
 }
 
+/**
+ * @brief Builds the left sidebar with title, new-chat button, and conversation list.
+ * @param sidebarLayout Layout to populate.
+ */
 void
 QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   // 顶部行：标题 + 收缩按钮
@@ -227,6 +299,10 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   sidebarLayout->addStretch ();
 }
 
+/**
+ * @brief Builds the right content area using a QStackedWidget for conversation pages.
+ * @param mainLayout Main horizontal layout to insert into.
+ */
 void
 QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   QWidget* content= new QWidget (this);
@@ -243,6 +319,11 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   mainLayout->addWidget (content, 1);
 }
 
+/**
+ * @brief Creates a new conversation panel with widgets and buffers.
+ * @param title Display title for the conversation.
+ * @return Pointer to the newly created panel, or nullptr on failure.
+ */
 QTChatTabWidget::ChatConversationPanel*
 QTChatTabWidget::create_conversation (const QString& title) {
   if (!conversationStack_ || !conversationListLayout_) return nullptr;
@@ -363,6 +444,9 @@ QTChatTabWidget::create_conversation (const QString& title) {
   return panel;
 }
 
+/**
+ * @brief Creates and activates a new conversation with an auto-generated title.
+ */
 void
 QTChatTabWidget::create_new_conversation () {
   QString title= QString ("Chat %1").arg (nextConversationTitleId_++);
@@ -372,6 +456,10 @@ QTChatTabWidget::create_new_conversation () {
   activate_conversation (panel);
 }
 
+/**
+ * @brief Switches the visible page to the given conversation and updates the sidebar.
+ * @param panel Conversation panel to activate.
+ */
 void
 QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
   if (!panel || !conversationStack_) return;
@@ -381,6 +469,9 @@ QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
   focus_input_editor (panel);
 }
 
+/**
+ * @brief Updates the conversation count label and sidebar button checked states.
+ */
 void
 QTChatTabWidget::refresh_sidebar () {
   if (conversationCountLabel_) {
@@ -394,6 +485,12 @@ QTChatTabWidget::refresh_sidebar () {
   }
 }
 
+/**
+ * @brief Transitions the given panel from welcome state to conversation state.
+ *
+ * Plays fade and spacer animations over \ref kTransitionDurationMs milliseconds.
+ * @param panel Target conversation panel.
+ */
 void
 QTChatTabWidget::enter_conversation_mode (ChatConversationPanel* panel) {
   if (!panel || panel->conversationMode) return;
@@ -453,6 +550,11 @@ QTChatTabWidget::enter_conversation_mode (ChatConversationPanel* panel) {
   }
 }
 
+/**
+ * @brief Reads input from the panel, delegates sending to Scheme, and enters
+ *        conversation mode on success.
+ * @param panel Conversation panel to send from.
+ */
 void
 QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
   if (!panel) return;
@@ -468,12 +570,21 @@ QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
   focus_input_editor (panel);
 }
 
+/**
+ * @brief Retrieves the document tree from the panel's input buffer.
+ * @param panel Conversation panel whose input is read.
+ * @return The input body as a TeXmacs tree.
+ */
 tree
 QTChatTabWidget::read_input_message (const ChatConversationPanel* panel) const {
   if (!panel) return tree (DOCUMENT, "");
   return get_buffer_body (panel->inputBufferName);
 }
 
+/**
+ * @brief Sets keyboard focus to the input editor of the given panel.
+ * @param panel Target conversation panel.
+ */
 void
 QTChatTabWidget::focus_input_editor (ChatConversationPanel* panel) {
   if (panel && panel->inputEditorWidget) {
@@ -481,6 +592,10 @@ QTChatTabWidget::focus_input_editor (ChatConversationPanel* panel) {
   }
 }
 
+/**
+ * @brief Forwards key press events to the Scheme layer via \c eval_scheme.
+ * @param event The Qt key event.
+ */
 void
 QTChatTabWidget::keyPressEvent (QKeyEvent* event) {
   string key= from_key_press_event (event);
@@ -490,6 +605,10 @@ QTChatTabWidget::keyPressEvent (QKeyEvent* event) {
   event->accept ();
 }
 
+/**
+ * @brief Forwards key release events to the Scheme layer via \c eval_scheme.
+ * @param event The Qt key event.
+ */
 void
 QTChatTabWidget::keyReleaseEvent (QKeyEvent* event) {
   string key= from_key_release_event (event);
