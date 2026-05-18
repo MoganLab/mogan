@@ -3,6 +3,10 @@
  * MODULE     : QTMTemplatePage.cpp
  * DESCRIPTION: Template page implementation for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
 #include "QTMTemplatePage.hpp"
@@ -43,7 +47,6 @@ constexpr int THUMBNAIL_HEIGHT= 227;
 
 constexpr int kPageMargin          = 16;  // 页面边距（减小边白）
 constexpr int kPageSpacing         = 24;  // 页面主布局间距
-constexpr int kCategorySpacing     = 8;   // 分类按钮间距
 constexpr int kGridSpacing         = 16;  // 模板网格间距
 constexpr int kCardWidth           = 176; // 模板卡片宽度
 constexpr int kCardHeight          = 243; // 模板卡片高度（仅缩略图区域）
@@ -55,7 +58,7 @@ constexpr int kPreviewDialogMinW   = 700; // 预览弹窗最小宽度
 constexpr int kPreviewDialogMinH   = 800; // 预览弹窗最小高度
 constexpr int kPreviewLayoutSpacing= 16;  // 预览弹窗布局间距
 constexpr int kPreviewLayoutMargin = 24;  // 预览弹窗布局边距
-constexpr int kPageTitleFontPx     = 24;  // 页面标题字号
+constexpr int kSectionTitleFontPx  = 16;  // 分区标题字号
 constexpr int kLoadingFontPx       = 14;  // Loading 文案字号
 constexpr int kTemplateNameFontPx  = 11;  // 模板名称字号
 constexpr int kPreviewTitleFontPx  = 18;  // 预览标题字号
@@ -67,18 +70,14 @@ constexpr int kUseButtonPadYPx     = 8;   // Use Template 按钮纵向内边距
 constexpr int kUseButtonPadXPx     = 24;  // Use Template 按钮横向内边距
 constexpr int kGridMarginYPx       = 5;   // 网格布局上下边距
 constexpr int kGridMarginXPx       = 10;  // 网格布局左右边距
-constexpr int kCategoryBtnRadiusPx = 12;  // 分类按钮圆角
-constexpr int kCategoryBtnPadYPx   = 6;   // 分类按钮纵向内边距
-constexpr int kCategoryBtnPadXPx   = 14;  // 分类按钮横向内边距
 constexpr int kCardRadiusPx        = 8;   // 模板卡片圆角
 
 } // namespace
 
 QTMTemplatePage::QTMTemplatePage (QWidget* parent)
-    : QWidget (parent), titleLabel_ (nullptr), categoryBar_ (nullptr),
-      scrollArea_ (nullptr), gridWidget_ (nullptr), gridLayout_ (nullptr),
-      templateManager_ (nullptr), currentCategory_ (""),
-      activeCategoryBtn_ (nullptr), resizeDebounceTimer_ (nullptr) {
+    : QWidget (parent), titleLabel_ (nullptr), scrollArea_ (nullptr),
+      gridWidget_ (nullptr), gridLayout_ (nullptr), templateManager_ (nullptr),
+      resizeDebounceTimer_ (nullptr) {
 
   resizeDebounceTimer_= new QTimer (this);
   resizeDebounceTimer_->setSingleShot (true);
@@ -87,7 +86,7 @@ QTMTemplatePage::QTMTemplatePage (QWidget* parent)
     if (templateManager_ && templateManager_->isInitialized ()) {
       int newColumnCount= calculateColumnCount ();
       if (newColumnCount != currentColumnCount_) {
-        refreshTemplateGrid (currentCategory_);
+        refreshTemplateGrid ();
       }
     }
   });
@@ -103,8 +102,6 @@ QTMTemplatePage::initialize () {
 
   connect (templateManager_, &TemplateManager::templatesLoaded, this,
            &QTMTemplatePage::onTemplatesLoaded, Qt::UniqueConnection);
-  connect (templateManager_, &TemplateManager::categoriesLoaded, this,
-           &QTMTemplatePage::onCategoriesLoaded, Qt::UniqueConnection);
 
   // Check if already initialized with data
   if (templateManager_->isInitialized () &&
@@ -120,6 +117,27 @@ QTMTemplatePage::initialize () {
 }
 
 void
+QTMTemplatePage::setCategory (const QString& categoryId,
+                              const QString& displayName) {
+  if (currentCategory_ != categoryId) {
+    currentCategory_ = categoryId;
+    gridNeedsRefresh_= true;
+    if (isVisible ()) {
+      refreshTemplateGrid ();
+    }
+  }
+  if (titleLabel_ && !displayName.isEmpty ()) {
+    titleLabel_->setText (qt_translate (from_qstring (displayName)));
+  }
+}
+
+void
+QTMTemplatePage::refreshGrid () {
+  gridNeedsRefresh_= true;
+  refreshTemplateGrid ();
+}
+
+void
 QTMTemplatePage::setupUI () {
   QVBoxLayout* layout= new QVBoxLayout (this);
   layout->setContentsMargins (
@@ -127,19 +145,10 @@ QTMTemplatePage::setupUI () {
       DpiUtils::scaled (kPageMargin), DpiUtils::scaled (kPageMargin));
   layout->setSpacing (DpiUtils::scaled (kPageSpacing));
 
-  // Title
   titleLabel_= new QLabel (qt_translate ("Template Center"), this);
-  titleLabel_->setObjectName ("startup-tab-page-title");
-  DpiUtils::applyScaledFont (titleLabel_, kPageTitleFontPx);
+  titleLabel_->setObjectName ("startup-tab-section-title");
+  DpiUtils::applyScaledFont (titleLabel_, kSectionTitleFontPx);
   layout->addWidget (titleLabel_);
-
-  // Category bar
-  categoryBar_= new QWidget (this);
-  categoryBar_->setObjectName ("startup-tab-category-bar");
-  QHBoxLayout* categoryLayout= new QHBoxLayout (categoryBar_);
-  categoryLayout->setContentsMargins (0, 0, 0, 0);
-  categoryLayout->setSpacing (DpiUtils::scaled (kCategorySpacing));
-  layout->addWidget (categoryBar_);
 
   // Scroll area for templates
   scrollArea_= new QScrollArea (this);
@@ -167,90 +176,6 @@ QTMTemplatePage::setupUI () {
   gridLayout_->addWidget (loadingLabel, 0, 0, 1, 1);
 }
 
-void
-QTMTemplatePage::setupCategoryBar () {
-  if (!categoryBar_) return;
-  activeCategoryBtn_= nullptr;
-
-  // Clear existing buttons
-  QLayout* layout= categoryBar_->layout ();
-  if (layout) {
-    QLayoutItem* item;
-    while ((item= layout->takeAt (0)) != nullptr) {
-      if (item->widget ()) {
-        delete item->widget ();
-      }
-      delete item;
-    }
-  }
-
-  if (!templateManager_) return;
-
-  QHBoxLayout* categoryLayout= qobject_cast<QHBoxLayout*> (layout);
-  if (!categoryLayout) return;
-
-  // Helper: apply category button style
-  auto styleCategoryBtn= [] (QPushButton* btn) {
-    btn->setStyleSheet (QString ("QPushButton#startup-tab-category-btn {"
-                                 "  border-radius: %1px;"
-                                 "  padding: %2px %3px;"
-                                 "}")
-                            .arg (DpiUtils::scaled (kCategoryBtnRadiusPx))
-                            .arg (DpiUtils::scaled (kCategoryBtnPadYPx))
-                            .arg (DpiUtils::scaled (kCategoryBtnPadXPx)));
-    btn->setCursor (Qt::PointingHandCursor);
-  };
-
-  // Add "All" button
-  QPushButton* allBtn= new QPushButton (qt_translate ("All"), categoryBar_);
-  allBtn->setObjectName ("startup-tab-category-btn");
-  allBtn->setCheckable (true);
-  allBtn->setChecked (currentCategory_.isEmpty ());
-  allBtn->setProperty ("categoryId", QString ());
-  styleCategoryBtn (allBtn);
-  connect (allBtn, &QPushButton::clicked, this,
-           &QTMTemplatePage::onCategoryClicked);
-  categoryLayout->addWidget (allBtn);
-
-  if (currentCategory_.isEmpty ()) {
-    activeCategoryBtn_= allBtn;
-  }
-
-  // Add category buttons
-  QList<TemplateCategory> categories= templateManager_->categories ();
-  bool hasMatchedCurrentCategory    = currentCategory_.isEmpty ();
-  for (const auto& cat : categories) {
-    QPushButton* btn=
-        new QPushButton (qt_translate (from_qstring (cat.name)), categoryBar_);
-    btn->setObjectName ("startup-tab-category-btn");
-    btn->setCheckable (true);
-    btn->setChecked (cat.id == currentCategory_);
-    btn->setProperty ("categoryId", cat.id);
-    styleCategoryBtn (btn);
-    connect (btn, &QPushButton::clicked, this,
-             &QTMTemplatePage::onCategoryClicked);
-    categoryLayout->addWidget (btn);
-
-    if (cat.id == currentCategory_) {
-      activeCategoryBtn_       = btn;
-      hasMatchedCurrentCategory= true;
-    }
-  }
-
-  if (!hasMatchedCurrentCategory) {
-    currentCategory_.clear ();
-    allBtn->setChecked (true);
-    activeCategoryBtn_= allBtn;
-  }
-
-  categoryLayout->addStretch ();
-}
-
-void
-QTMTemplatePage::onCategoriesLoaded () {
-  setupCategoryBar ();
-}
-
 int
 QTMTemplatePage::calculateColumnCount () const {
   if (!scrollArea_) return 4;
@@ -269,27 +194,7 @@ QTMTemplatePage::calculateColumnCount () const {
 }
 
 void
-QTMTemplatePage::onCategoryClicked () {
-  QPushButton* btn= qobject_cast<QPushButton*> (sender ());
-  if (!btn) return;
-
-  // Uncheck previous button
-  if (activeCategoryBtn_ && activeCategoryBtn_ != btn) {
-    activeCategoryBtn_->setChecked (false);
-  }
-
-  // Check current button
-  btn->setChecked (true);
-  activeCategoryBtn_= btn;
-
-  // Update current category and refresh
-  currentCategory_= btn->property ("categoryId").toString ();
-  refreshTemplateGrid (currentCategory_);
-}
-
-void
-QTMTemplatePage::refreshTemplateGrid (const QString& category) {
-  // Clear existing content
+QTMTemplatePage::refreshTemplateGrid () {
   QLayoutItem* item;
   while ((item= gridLayout_->takeAt (0)) != nullptr) {
     if (item->widget ()) {
@@ -311,11 +216,11 @@ QTMTemplatePage::refreshTemplateGrid (const QString& category) {
 
   // Get templates by category or all templates
   QList<TemplateMetadataPtr> templates;
-  if (category.isEmpty ()) {
+  if (currentCategory_.isEmpty ()) {
     templates= templateManager_->templates ();
   }
   else {
-    templates= templateManager_->templatesByCategory (category);
+    templates= templateManager_->templatesByCategory (currentCategory_);
   }
 
   if (templates.isEmpty ()) {
@@ -341,7 +246,6 @@ QTMTemplatePage::refreshTemplateGrid (const QString& category) {
   }
 
   gridLayout_->setRowStretch (row + 1, 1);
-
   gridNeedsRefresh_= false;
 }
 
@@ -573,13 +477,8 @@ QTMTemplatePage::showTemplatePreview (const QString& templateId) {
 
 void
 QTMTemplatePage::onTemplatesLoaded () {
-  // Initialize category bar if not already done
-  if (categoryBar_ && categoryBar_->layout () &&
-      categoryBar_->layout ()->count () == 0) {
-    setupCategoryBar ();
-  }
   gridNeedsRefresh_= true;
-  refreshTemplateGrid (currentCategory_);
+  refreshTemplateGrid ();
 }
 
 void
@@ -593,7 +492,7 @@ QTMTemplatePage::showEvent (QShowEvent* event) {
       !templateManager_->templates ().isEmpty ()) {
     int newColumnCount= calculateColumnCount ();
     if (gridNeedsRefresh_ || newColumnCount != currentColumnCount_) {
-      refreshTemplateGrid (currentCategory_);
+      refreshTemplateGrid ();
     }
   }
 }

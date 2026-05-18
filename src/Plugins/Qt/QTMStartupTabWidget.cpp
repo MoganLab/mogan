@@ -14,6 +14,7 @@
 #include "QTMTemplatePage.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
+#include "template_manager.hpp"
 
 #include <QButtonGroup>
 #include <QHBoxLayout>
@@ -56,8 +57,9 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
  */
 QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
     : QWidget (parent), currentEntry_ (Entry::Home), navHomeBtn_ (nullptr),
-      navTemplateBtn_ (nullptr), navQuitBtn_ (nullptr),
-      navButtonGroup_ (nullptr), homePage_ (nullptr), templatePage_ (nullptr) {
+      navQuitBtn_ (nullptr), categoryLayout_ (nullptr),
+      navButtonGroup_ (nullptr), homePage_ (nullptr), templatePage_ (nullptr),
+      templateManager_ (nullptr) {
 
   setMinimumSize (DpiUtils::scaled (kMinWidth), DpiUtils::scaled (kMinHeight));
   setFocusPolicy (Qt::StrongFocus);
@@ -144,25 +146,22 @@ QTMStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   navButtonGroup_= new QButtonGroup (this);
   navButtonGroup_->setExclusive (true);
 
-  // 导航按钮（2个入口）
-  navHomeBtn_    = create_nav_button (qt_translate ("Home"));
-  navTemplateBtn_= create_nav_button (qt_translate ("Template"));
-
-  // 添加到按钮组
+  navHomeBtn_= create_nav_button (qt_translate ("Home"));
   navButtonGroup_->addButton (navHomeBtn_, static_cast<int> (Entry::Home));
-  navButtonGroup_->addButton (navTemplateBtn_,
-                              static_cast<int> (Entry::Template));
-
   sidebarLayout->addWidget (navHomeBtn_);
-  sidebarLayout->addWidget (navTemplateBtn_);
 
   // 导航按钮点击事件：切换到对应页面
   connect (navHomeBtn_, &QPushButton::clicked, this,
            [this] () { set_current_entry (Entry::Home); });
-  connect (navTemplateBtn_, &QPushButton::clicked, this,
-           [this] () { set_current_entry (Entry::Template); });
 
-  // 弹性空间，将 Quit 按钮推到底部
+  // Category buttons container (populated when categories load)
+  QWidget* categoryContainer= new QWidget (this);
+  categoryContainer->setObjectName ("startup-tab-category-container");
+  categoryLayout_= new QVBoxLayout (categoryContainer);
+  categoryLayout_->setContentsMargins (0, 0, 0, 0);
+  categoryLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  sidebarLayout->addWidget (categoryContainer);
+
   sidebarLayout->addStretch ();
   sidebarLayout->addSpacing (DpiUtils::scaled (kQuitTopSpacing));
 
@@ -184,6 +183,17 @@ QTMStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   // 默认选中 Home
   navHomeBtn_->setChecked (true);
+
+  // Connect to TemplateManager for dynamic categories
+  templateManager_= TemplateManager::instance ();
+  connect (templateManager_, &TemplateManager::categoriesLoaded, this,
+           &QTMStartupTabWidget::onCategoriesLoaded, Qt::UniqueConnection);
+
+  // If categories already loaded, set up immediately
+  if (templateManager_->isInitialized () &&
+      !templateManager_->categories ().isEmpty ()) {
+    setupCategoryNavButtons ();
+  }
 }
 
 /**
@@ -191,6 +201,64 @@ QTMStartupTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
  * @param text 按钮文字
  * @return 配置好的 QPushButton
  */
+void
+QTMStartupTabWidget::setupCategoryNavButtons () {
+  if (!templateManager_ || !categoryLayout_) return;
+
+  clearCategoryNavButtons ();
+
+  auto categories= templateManager_->categories ();
+  for (const auto& cat : categories) {
+    QPushButton* btn=
+        create_nav_button (qt_translate (from_qstring (cat.nameEn)));
+    btn->setProperty ("categoryId", cat.id);
+    btn->setProperty ("nameEn", cat.nameEn);
+    navButtonGroup_->addButton (btn);
+    categoryLayout_->addWidget (btn);
+    navCategoryBtns_.append (btn);
+
+    connect (btn, &QPushButton::clicked, this,
+             &QTMStartupTabWidget::onCategoryClicked);
+  }
+}
+
+void
+QTMStartupTabWidget::clearCategoryNavButtons () {
+  for (QPushButton* btn : navCategoryBtns_) {
+    if (btn) {
+      navButtonGroup_->removeButton (btn);
+      btn->deleteLater ();
+    }
+  }
+  navCategoryBtns_.clear ();
+}
+
+void
+QTMStartupTabWidget::onCategoryClicked () {
+  QPushButton* btn= qobject_cast<QPushButton*> (sender ());
+  if (!btn) return;
+
+  QString categoryId= btn->property ("categoryId").toString ();
+  if (categoryId.isEmpty ()) return;
+
+  currentCategory_= categoryId;
+  if (templatePage_) {
+    QString nameEn= btn->property ("nameEn").toString ();
+    templatePage_->setCategory (categoryId, nameEn);
+  }
+
+  if (templateManager_) {
+    templateManager_->refreshTemplatesByCategory (categoryId);
+  }
+
+  set_current_entry (Entry::Template);
+}
+
+void
+QTMStartupTabWidget::onCategoriesLoaded () {
+  setupCategoryNavButtons ();
+}
+
 QPushButton*
 QTMStartupTabWidget::create_nav_button (const QString& text) {
   QPushButton* btn= new QPushButton (text, this);
@@ -269,6 +337,18 @@ QTMStartupTabWidget::set_active_nav_button (Entry entry) {
   QAbstractButton* btn= navButtonGroup_->button (static_cast<int> (entry));
   if (btn) {
     btn->setChecked (true);
+    return;
+  }
+
+  // For Template entry, activate the matching category button
+  if (entry == Entry::Template) {
+    for (QPushButton* catBtn : navCategoryBtns_) {
+      if (catBtn &&
+          catBtn->property ("categoryId").toString () == currentCategory_) {
+        catBtn->setChecked (true);
+        return;
+      }
+    }
   }
 }
 

@@ -12,6 +12,7 @@
 #ifndef QTMSTARTUPTABWIDGET_HPP
 #define QTMSTARTUPTABWIDGET_HPP
 
+#include <QList>
 #include <QWidget>
 
 class QKeyEvent;
@@ -22,6 +23,7 @@ class QStackedWidget;
 class QButtonGroup;
 class QTMHomePage;
 class QTMTemplatePage;
+class TemplateManager;
 
 class QTMStartupTabWidget : public QWidget {
   Q_OBJECT
@@ -41,6 +43,8 @@ signals:
 private slots:
   // Application operation
   void on_app_quit ();
+  void onCategoryClicked ();
+  void onCategoriesLoaded ();
 
 protected:
   void keyPressEvent (QKeyEvent* event) override;
@@ -50,6 +54,8 @@ private:
   // 界面构建辅助函数
   void         setup_left_sidebar (QVBoxLayout* sidebarLayout);
   void         setup_right_content (QStackedWidget* stackedWidget);
+  void         setupCategoryNavButtons ();
+  void         clearCategoryNavButtons ();
   QPushButton* create_nav_button (const QString& text);
 
   // 页面创建函数
@@ -61,21 +67,21 @@ private:
   void refresh_recent_docs_on_file_entry (Entry entry);
 
 private:
-  Entry currentEntry_;
+  Entry   currentEntry_;
+  QString currentCategory_;
 
   // Navigation buttons
-  QPushButton* navHomeBtn_;
-  QPushButton* navTemplateBtn_;
-  QPushButton* navQuitBtn_;
+  QPushButton*        navHomeBtn_;
+  QPushButton*        navQuitBtn_;
+  QList<QPushButton*> navCategoryBtns_;
+  QVBoxLayout*        categoryLayout_;
 
   // 互斥按钮组
   QButtonGroup* navButtonGroup_;
 
-  // 各页面实例
-  QTMHomePage* homePage_;
-
-  // Template page (separate widget)
+  QTMHomePage*     homePage_;
   QTMTemplatePage* templatePage_;
+  TemplateManager* templateManager_;
 };
 
 #endif

@@ -1,21 +1,22 @@
 
 /******************************************************************************
  * MODULE     : QTMTemplatePage.hpp
- * DESCRIPTION: Template page widget for startup tab
+ * DESCRIPTION: Template page implementation for startup tab
  * COPYRIGHT  : (C) 2026 Yuki Lu
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
 #ifndef QTMTEMPLATEPAGE_HPP
 #define QTMTEMPLATEPAGE_HPP
 
-#include <QPointer>
-#include <QQueue>
 #include <QSharedPointer>
 #include <QWidget>
 
 class QGridLayout;
 class QLabel;
-class QPushButton;
 class QResizeEvent;
 class QScrollArea;
 class QTimer;
@@ -26,7 +27,7 @@ using TemplateMetadataPtr= QSharedPointer<TemplateMetadata>;
 /**
  * @brief Template page widget for startup tab
  *
- * Displays template categories and grid of template cards.
+ * Displays a grid of template cards for the selected category.
  * Handles template download and opening.
  */
 class QTMTemplatePage : public QWidget {
@@ -38,6 +39,11 @@ public:
 
   void initialize ();
 
+  void    setCategory (const QString& categoryId,
+                       const QString& displayName= QString ());
+  QString currentCategory () const { return currentCategory_; }
+  void    refreshGrid ();
+
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
   void showEvent (QShowEvent* event) override;
@@ -45,20 +51,16 @@ protected:
 
 private slots:
   void onTemplatesLoaded ();
-  void onCategoriesLoaded ();
-  void onCategoryClicked ();
 
 private:
   void     setupUI ();
-  void     setupCategoryBar ();
   QWidget* createTemplateCard (const TemplateMetadataPtr& tmpl);
-  void     refreshTemplateGrid (const QString& category);
+  void     refreshTemplateGrid ();
   int      calculateColumnCount () const;
   void     showTemplatePreview (const QString& templateId);
 
   // UI components
   QLabel*      titleLabel_;
-  QWidget*     categoryBar_;
   QScrollArea* scrollArea_;
   QWidget*     gridWidget_;
   QGridLayout* gridLayout_;
@@ -66,7 +68,6 @@ private:
   // Data
   TemplateManager* templateManager_;
   QString          currentCategory_;
-  QPushButton*     activeCategoryBtn_;
 
   // Responsive grid
   int currentColumnCount_= 4;
