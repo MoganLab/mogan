@@ -317,6 +317,32 @@
   ) ;with
 ) ;define
 
+;; chat-tab-session-select-model
+;; 选择用于新聊天标签会话的模型。
+;;
+;; 语法
+;; ----
+;; (chat-tab-session-select-model model)
+;;
+;; 参数
+;; ----
+;; model : string
+;; 模型名称字符串。非空时更新当前模型；为空时仅返回当前模型。
+;;
+;; 返回值
+;; ----
+;; string
+;; 当前选中的模型名称（全局变量 chat-tab-current-model）。
+;;
+;; 逻辑
+;; ----
+;; 1. 检查 model 非空
+;;    - 若非空，将 chat-tab-current-model 设置为该模型
+;; 2. 返回 chat-tab-current-model
+;;
+;; 注意
+;; ----
+;; 此函数仅影响后续新建的会话，不会更改已有会话的模型。
 (tm-define (chat-tab-session-select-model model)
   (:synopsis "Select the model used for new chat tab sessions")
   (:argument model "Model")
@@ -326,6 +352,47 @@
   chat-tab-current-model
 ) ;tm-define
 
+;; chat-tab-session-send
+;; 通过聊天标签会话发送用户消息。
+;;
+;; 语法
+;; ----
+;; (chat-tab-session-send message-buffer input-buffer body)
+;;
+;; 参数
+;; ----
+;; message-buffer : url
+;; 消息缓冲区名称（URL），用于存储对话历史。
+;;
+;; input-buffer : url
+;; 输入缓冲区名称（URL），用户在此输入消息。
+;;
+;; body : tree
+;; 输入消息树，即用户要发送的内容。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; - #t : 消息发送成功
+;; - #f : 消息为空，未发送
+;;
+;; 逻辑
+;; ----
+;; 1. 检查 body 是否为空
+;;    - 若为空，返回 #f
+;; 2. 规范化输入文档
+;; 3. 确保会话存在（chat-tab-ensure-session!）
+;; 4. 在消息缓冲区追加一轮对话（chat-tab-append-round!）
+;;    - 若追加失败，返回 #f
+;; 5. 清空输入缓冲区
+;; 6. 检查是否已定义 "llm" 连接
+;;    - 若未定义，直接将输入回显到输出区域
+;;    - 若已定义，通过 plugin 机制发送消息（chat-tab-session-feed）
+;; 7. 返回 #t
+;;
+;; 注意
+;; ----
+;; 此函数是聊天标签会话的核心发送入口，负责消息格式化、会话管理和插件交互。
 (tm-define (chat-tab-session-send message-buffer input-buffer body)
   (:synopsis "Send user message through chat tab session")
   (:argument message-buffer "Message buffer name")
