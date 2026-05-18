@@ -111,6 +111,7 @@ function add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
             print("Executing: " .. regtest_name)
             params = {
                 "-headless",
+                "-d",
                 "-b", filepath,
                 "-x", "(catch #t (lambda () " .. regtest_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
             }
@@ -147,6 +148,7 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             print("Executing: " .. test_name)
             params = {
                 "-headless",
+                "-d",
                 "-b", path.join("TeXmacs","tests",name..".scm"),
                 "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
             }
