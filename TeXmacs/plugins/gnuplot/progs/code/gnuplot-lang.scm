@@ -11,17 +11,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (code gnuplot-lang)
-  (:use (prog default-lang)))
+(texmacs-module (code gnuplot-lang) (:use (prog default-lang)))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "gnuplot") (== key "keyword")))
-  `(,(string->symbol key)
-    (keyword
-      "set" "plot")))
+  `(,(string->symbol key) (keyword "set" "plot"))
+) ;tm-define
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "gnuplot") (== key "string")))
   `(,(string->symbol key)
     (bool_features)
-    (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t")))
+    (escape_sequences "\\" "\"" "'" "b" "f" "n" "r" "t"))
+) ;tm-define

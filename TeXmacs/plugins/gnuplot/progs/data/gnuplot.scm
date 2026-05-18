@@ -13,27 +13,24 @@
 
 (texmacs-module (data gnuplot))
 
-(define-format gnuplot
-  (:name "Gnuplot Source Code")
-  (:suffix "gp"))
+(define-format gnuplot (:name "Gnuplot Source Code") (:suffix "gp"))
 
 (define (texmacs->gnuplot x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (gnuplot->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (gnuplot-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree gnuplot-document
-  (:function texmacs->gnuplot))
+(converter texmacs-tree gnuplot-document (:function texmacs->gnuplot))
 
-(converter gnuplot-document texmacs-tree
-  (:function gnuplot->texmacs))
-  
-(converter texmacs-tree gnuplot-snippet
-  (:function texmacs->gnuplot))
+(converter gnuplot-document texmacs-tree (:function gnuplot->texmacs))
 
-(converter gnuplot-snippet texmacs-tree
-  (:function gnuplot-snippet->texmacs))
+(converter texmacs-tree gnuplot-snippet (:function texmacs->gnuplot))
+
+(converter gnuplot-snippet texmacs-tree (:function gnuplot-snippet->texmacs))
