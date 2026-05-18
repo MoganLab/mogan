@@ -138,6 +138,15 @@
             (cons-new (ahash-ref new "par-sep")
                       '("0fn" "0.2fn" "0.5fn" "1fn" ""))
             (ahash-ref new "par-sep") "10em"))
+    (item (hlist // (text "Line spacing presets:"))
+      (hlist
+        ("1.5x" (begin
+                  (change "par-sep" "0.5fn" old new fun u)
+                  (refresh-now "paragraph-formatter")))
+        // //
+        ("2.0x" (begin
+                  (change "par-sep" "1.0fn" old new fun u)
+                  (refresh-now "paragraph-formatter")))))
     (item (text "Interparagraph space:")
       (enum (change "par-par-sep" answer old new fun u)
             (cons-new (ahash-ref new "par-par-sep")

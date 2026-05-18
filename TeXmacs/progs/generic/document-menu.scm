@@ -492,6 +492,9 @@
       ("Default" (init-default "par-sep" "par-line-sep"
                                "interpargraph space"))
       ---
+      ("1.5 line spacing" (init-env "par-sep" "0.5fn"))
+      ("Double line spacing" (init-env "par-sep" "1.0fn"))
+      ---
       ("Interline separation" (init-interactive-env "par-sep"))
       ("Interline space" (init-interactive-env "par-line-sep"))
       ("Interparagraph space" (init-interactive-env "par-par-sep")))
@@ -641,7 +644,7 @@
   ("One column" (init-env "par-columns" "1"))
   ("Two columns" (init-env "par-columns" "2"))
   ("Three columns" (init-env "par-columns" "3")))
-  
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Page menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1056,10 +1059,10 @@
   (cond ((not (string? s)) "One column")
         ((== s "1") "One column")
         ((== s "2") "Two columns")
-        ((== s "3") "Three columns")
-        ((== s "4") "Four columns")
-        ((== s "5") "Five columns")
-        (else (string-append s " columns"))))
+         ((== s "3") "Three columns")
+         ((== s "4") "Four columns")
+         ((== s "5") "Five columns")
+         (else (string-append s " columns"))))
 
 (tm-menu (focus-document-menu t)
   (group "Document")
