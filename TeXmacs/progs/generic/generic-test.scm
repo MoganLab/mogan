@@ -11,28 +11,31 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic generic-test)
-  (:use (generic generic-menu)
-        (table table-menu) ))
+  (:use (generic generic-menu) (table table-menu))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; generic menu functions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (regtest-focus-tag-name)
-  (regression-test-group
-   "focus-tag-name" "string"
-   focus-tag-name :none
-   (test "bmatrix" 'bmatrix "bmatrix")
-   (test "Bmatrix" 'Bmatrix "Bmatrix")
-   (test "tabular" 'tabular "tabular")
-   (test "tabular*" 'tabular* "centered tabular")
-   (test "block" 'block "block")
-   (test "block*" 'block* "centered block")
-   (test "big-table" 'big-table "big table")
-  ))
+  (regression-test-group "focus-tag-name"
+    "string"
+    focus-tag-name
+    :none
+    (test "bmatrix" 'bmatrix "bmatrix")
+    (test "Bmatrix" 'Bmatrix "Bmatrix")
+    (test "tabular" 'tabular "tabular")
+    (test "tabular*" 'tabular* "centered tabular")
+    (test "block" 'block "block")
+    (test "block*" 'block* "centered block")
+    (test "big-table" 'big-table "big table")
+  ) ;regression-test-group
+) ;define
 
 (tm-define (regtest-generic)
-  (let ((n (+ (regtest-focus-tag-name)
-              )))
+  (let ((n (+ (regtest-focus-tag-name))))
     (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of generic: ok\n")))
+    (display "Test suite of generic: ok\n")
+  ) ;let
+) ;tm-define

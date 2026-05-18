@@ -13,10 +13,12 @@
 
 (texmacs-module (generic document-menu)
   (:use (generic document-edit)
-        (generic generic-menu)
-        (language locale)
-        (texmacs menus file-menu)
-        (fonts font-new-widgets)))
+    (generic generic-menu)
+    (language locale)
+    (texmacs menus file-menu)
+    (fonts font-new-widgets)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Project menu
@@ -24,31 +26,34 @@
 
 (tm-define (include-list base t)
   (cond ((tree-is? t 'document)
-         (apply append (map (cut include-list base <>) (tree-children t))))
+         (apply append (map (cut include-list base <>) (tree-children t)))
+        ) ;
         ((and (tree-is? t 'include) (tree-atomic? (tree-ref t 0)))
-         (list (url-relative base (tree->string (tree-ref t 0)))))
-        (else (list))))
+         (list (url-relative base (tree->string (tree-ref t 0))))
+        ) ;
+        (else (list))
+  ) ;cond
+) ;tm-define
 
 (tm-define (project-file-list)
   (if (project-attached?)
-      (let* ((prj (project-get))
-             (t (buffer->tree prj)))
-        (include-list prj t))
-      (list)))
+    (let* ((prj (project-get)) (t (buffer->tree prj)))
+      (include-list prj t)
+    ) ;let*
+    (list)
+  ) ;if
+) ;tm-define
 
-(tm-define (main-project-entry)
-  (buffer-list-menu (list (project-get))))
+(tm-define (main-project-entry) (buffer-list-menu (list (project-get))))
 
-(tm-define (project-list-menu)
-  (buffer-list-menu (project-file-list)))
+(tm-define (project-list-menu) (buffer-list-menu (project-file-list)))
 
 (menu-bind project-menu
-  (if (== (project-get) (current-buffer))
-      (link preamble-menu))
-  (if (!= (project-get) (current-buffer))
-      (link main-project-entry))
-  ---    
-  (link project-list-menu))
+  (if (== (project-get) (current-buffer)) (link preamble-menu))
+  (if (!= (project-get) (current-buffer)) (link main-project-entry))
+  ---
+  (link project-list-menu)
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document style
@@ -62,21 +67,28 @@
   ("Other style" (interactive set-main-style))
   ---
   (group "Customizations")
-  (with l (get-style-list)
+  (with l
+    (get-style-list)
     (for (pack (if (null? l) l (cdr l)))
       (-> (eval `(verbatim ,pack))
-          ("Edit package" (edit-package-source pack))
-          ("Remove package" (remove-style-package pack)))))
+       ("Edit package" (edit-package-source pack))
+       ("Remove package" (remove-style-package pack))
+      ) ;->
+    ) ;for
+  ) ;with
   (-> "Add package"
-      (link toggle-package-menu)
-      ---
-      ("Add other package" (interactive add-style-package))))
+    (link toggle-package-menu)
+    ---
+    ("Add other package" (interactive add-style-package))
+  ) ;->
+) ;menu-bind
 
 (menu-bind document-style-extra-menu)
 
 (menu-bind document-style-extra-menu
   (:require (not (or (in-beamer?) (in-poster?))))
-  (-> "Theme" (link basic-theme-menu)))
+  (-> "Theme" (link basic-theme-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document -> Source submenus
@@ -84,50 +96,54 @@
 
 (menu-bind document-source-preferences-menu
   (-> "Style"
-      ("Default" (init-default "src-style"))
-      ---
-      ("Angular" (init-env "src-style" "angular"))
-      ("Scheme" (init-env "src-style" "scheme"))
-      ("Functional" (init-env "src-style" "functional"))
-      ("Latex" (init-env "src-style" "latex")))
+   ("Default" (init-default "src-style"))
+   ---
+   ("Angular" (init-env "src-style" "angular"))
+   ("Scheme" (init-env "src-style" "scheme"))
+   ("Functional" (init-env "src-style" "functional"))
+   ("Latex" (init-env "src-style" "latex"))
+  ) ;->
   (-> "Special"
-      ("Default" (init-default "src-special"))
-      ---
-      ("None" (init-env "src-special" "raw"))
-      ("Formatting" (init-env "src-special" "format"))
-      ("Normal" (init-env "src-special" "normal"))
-      ("Maximal" (init-env "src-special" "maximal")))
+   ("Default" (init-default "src-special"))
+   ---
+   ("None" (init-env "src-special" "raw"))
+   ("Formatting" (init-env "src-special" "format"))
+   ("Normal" (init-env "src-special" "normal"))
+   ("Maximal" (init-env "src-special" "maximal"))
+  ) ;->
   (-> "Compactification"
-      ("Default" (init-default "src-compact"))
-      ---
-      ("Minimal" (init-env "src-compact" "none"))
-      ("Only inline tags" (init-env "src-compact" "inline"))
-      ("Normal" (init-env "src-compact" "normal"))
-      ("Inline arguments" (init-env "src-compact" "inline args"))
-      ("Maximal" (init-env "src-compact" "all")))
+   ("Default" (init-default "src-compact"))
+   ---
+   ("Minimal" (init-env "src-compact" "none"))
+   ("Only inline tags" (init-env "src-compact" "inline"))
+   ("Normal" (init-env "src-compact" "normal"))
+   ("Inline arguments" (init-env "src-compact" "inline args"))
+   ("Maximal" (init-env "src-compact" "all"))
+  ) ;->
   (-> "Closing style"
-      ("Default" (init-default "src-close"))
-      ---
-      ("Repeat" (init-env "src-close" "repeat"))
-      ("Stretched" (init-env "src-close" "long"))
-      ("Compact" (init-env "src-close" "compact"))
-      ("Minimal" (init-env "src-close" "minimal"))))
+   ("Default" (init-default "src-close"))
+   ---
+   ("Repeat" (init-env "src-close" "repeat"))
+   ("Stretched" (init-env "src-close" "long"))
+   ("Compact" (init-env "src-close" "compact"))
+   ("Minimal" (init-env "src-close" "minimal"))
+  ) ;->
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Update menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-update-menu
-  ("All" (update-document "all"))
-  ---
-  ("Buffer" (update-document "buffer"))
-  ("Bibliography" (update-document "bibliography"))
-  ("Table of contents" (update-document "table-of-contents"))
-  ("Index" (update-document "index"))
-  ("Glossary" (update-document "glossary"))
-  (if (project-attached?)
-      ---
-      ("Clear local information" (clear-local-info))))
+ ("All" (update-document "all"))
+ ---
+ ("Buffer" (update-document "buffer"))
+ ("Bibliography" (update-document "bibliography"))
+ ("Table of contents" (update-document "table-of-contents"))
+ ("Index" (update-document "index"))
+ ("Glossary" (update-document "glossary"))
+ (if (project-attached?) --- ("Clear local information" (clear-local-info)))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Font menus
@@ -135,337 +151,387 @@
 
 (menu-bind document-font-menu
   (-> "Text font"
-      ("Default" (init-default "font" "math-font" "prg-font"))
-      ---
-      ("Concrete" (init-env "font" "concrete"))
-      (if (url-exists-in-tex? "pnr10.mf")
-          ("Pandora" (init-env "font" "pandora")))
-      ("Roman" (init-env "font" "roman"))
-      (if (font-exists-in-tt? "STIX-Regular")
-          ("Stix" (init-env "font" "stix")))
-      ---
-      ("Avant Garde" (init-env "font" "avant-garde"))
-      ("Bookman" (init-env "font" "bookman"))
-      ("Courier" (init-env "font" "courier"))
-      ("Helvetica" (init-env "font" "helvetica"))
-      ("N.C. Schoolbook" (init-env "font" "new-century-schoolbook"))
-      ("Palatino" (init-env "font" "palatino"))
-      ("Times" (init-env "font" "times"))
-      ---
-      (if (font-exists-in-tt? "texgyrebonum-regular")
-          ("Bonum" (init-env "font" "bonum")))
-      (if (font-exists-in-tt? "DejaVuSerif")
-          ("Dejavu" (init-env "font" "dejavu")))
-      ("Lucida" (init-env "font" "x-lucida"))
-      (if (font-exists-in-tt? "luxirr")
-          ("Luxi" (init-env "font" "luxi")))
-      (if (font-exists-in-tt? "texgyrepagella-regular")
-          ("Pagella" (init-env "font" "pagella")))
-      (if (font-exists-in-tt? "texgyreschola-regular")
-          ("Schola" (init-env "font" "schola")))
-      (if (font-exists-in-tt? "texgyretermes-regular")
-          ("Termes" (init-env "font" "termes")))
-      ("Utopia" (init-env "font" "x-utopia"))
-      (if (or (supports-chinese?)
-              (supports-japanese?)
-              (supports-korean?))
-          ---
-          (if (font-exists-in-tt? "Batang")
-              ("Batang" (init-env "font" "batang")))
-          (if (font-exists-in-tt? "FandolFang-Regular")
-              ("FandolFang" (init-env "font" "FandolFang")))
-          (if (font-exists-in-tt? "FandolHei-Regular")
-              ("FandolHei" (init-env "font" "FandolHei")))
-          (if (font-exists-in-tt? "FandolKai-Regular")
-              ("FandolKai" (init-env "font" "FandolKai")))
-          (if (font-exists-in-tt? "FandolSong-Regular")
-              ("FandolSong" (init-env "font" "FandolSong")))
-          (if (font-exists-in-tt? "fireflysung")
-              ("Fireflysung" (init-env "font" "fireflysung")))
-          (if (font-exists-in-tt? "AppleGothic")
-              ("Gothic" (init-env "font" "apple-gothic")))
-          (if (font-exists-in-tt? "Gulim")
-              ("Gulim" (init-env "font" "gulim")))
-          (if (font-exists-in-tt? "华文细黑")
-              ("HeiTi" (init-env "font" "heiti")))
-          (if (font-exists-in-tt? "ヒラギノ明朝 ProN W6")
-              ("Hiragino Kaku" (init-env "font" "kaku")))
-          (if (font-exists-in-tt? "ipam")
-              ("Ipa" (init-env "font" "ipa")))
-          (if (font-exists-in-tt? "ttf-japanese-gothic")
-              ("Japanese" (init-env "font" "ttf-japanese")))
-          (if (font-exists-in-tt? "kochi-mincho")
-              ("Kochi" (init-env "font" "kochi")))
-          (if (font-exists-in-tt? "儷黑 Pro")
-              ("LiHei" (init-env "font" "lihei")))
-          (if (font-exists-in-tt? "wqy-microhei")
-              ("MicroHei" (init-env "font" "wqy-microhei")))
-          (if (font-exists-in-tt? "mingliu")
-              ("MingLiU" (init-env "font" "mingliu")))
-          (if (and (font-exists-in-tt? "PMingLiU")
-                   (not (font-exists-in-tt? "mingliu")))
-              ("MingLiU" (init-env "font" "pmingliu")))       
-          (if (font-exists-in-tt? "MS Gothic")
-              ("MS Gothic" (init-env "font" "ms-gothic")))
-          (if (font-exists-in-tt? "MS Mincho")
-              ("MS Mincho" (init-env "font" "ms-mincho")))
-          (if (font-exists-in-tt? "sazanami-gothic")
-              ("Sazanami" (init-env "font" "sazanami")))
-          (if (font-exists-in-tt? "simfang")
-              ("SimFang" (init-env "font" "simfang")))
-          (if (font-exists-in-tt? "simhei")
-              ("SimHei" (init-env "font" "simhei")))
-          (if (font-exists-in-tt? "simkai")
-              ("SimKai" (init-env "font" "simkai")))
-          (if (font-exists-in-tt? "simli")
-              ("SimLi" (init-env "font" "simli")))
-          (if (font-exists-in-tt? "simsun")
-              ("SimSun" (init-env "font" "simsun")))
-          (if (and (font-exists-in-tt? "SimSun")
-                   (not (font-exists-in-tt? "simsun")))
-              ("SimSun" (init-env "font" "apple-simsun")))
-          (if (font-exists-in-tt? "simyou")
-              ("SimYou" (init-env "font" "simyou")))
-          (if (font-exists-in-tt? "ukai")
-              ("UKai" (init-env "font" "ukai")))
-          (if (font-exists-in-tt? "UnBatang")
-              ("UnBatang" (init-env "font" "unbatang")))
-          (if (font-exists-in-tt? "uming")
-              ("UMing" (init-env "font" "uming")))
-          (if (font-exists-in-tt? "wqy-zenhei")
-              ("ZenHei" (init-env "font" "wqy-zenhei")))))
+   ("Default" (init-default "font" "math-font" "prg-font"))
+   ---
+   ("Concrete" (init-env "font" "concrete"))
+   (if (url-exists-in-tex? "pnr10.mf") ("Pandora" (init-env "font" "pandora")))
+   ("Roman" (init-env "font" "roman"))
+   (if (font-exists-in-tt? "STIX-Regular") ("Stix" (init-env "font" "stix")))
+   ---
+   ("Avant Garde" (init-env "font" "avant-garde"))
+   ("Bookman" (init-env "font" "bookman"))
+   ("Courier" (init-env "font" "courier"))
+   ("Helvetica" (init-env "font" "helvetica"))
+   ("N.C. Schoolbook" (init-env "font" "new-century-schoolbook"))
+   ("Palatino" (init-env "font" "palatino"))
+   ("Times" (init-env "font" "times"))
+   ---
+   (if (font-exists-in-tt? "texgyrebonum-regular")
+    ("Bonum" (init-env "font" "bonum"))
+   ) ;if
+   (if (font-exists-in-tt? "DejaVuSerif") ("Dejavu" (init-env "font" "dejavu")))
+   ("Lucida" (init-env "font" "x-lucida"))
+   (if (font-exists-in-tt? "luxirr") ("Luxi" (init-env "font" "luxi")))
+   (if (font-exists-in-tt? "texgyrepagella-regular")
+    ("Pagella" (init-env "font" "pagella"))
+   ) ;if
+   (if (font-exists-in-tt? "texgyreschola-regular")
+    ("Schola" (init-env "font" "schola"))
+   ) ;if
+   (if (font-exists-in-tt? "texgyretermes-regular")
+    ("Termes" (init-env "font" "termes"))
+   ) ;if
+   ("Utopia" (init-env "font" "x-utopia"))
+   (if (or (supports-chinese?) (supports-japanese?) (supports-korean?))
+     ---
+     (if (font-exists-in-tt? "Batang") ("Batang" (init-env "font" "batang")))
+     (if (font-exists-in-tt? "FandolFang-Regular")
+      ("FandolFang" (init-env "font" "FandolFang"))
+     ) ;if
+     (if (font-exists-in-tt? "FandolHei-Regular")
+      ("FandolHei" (init-env "font" "FandolHei"))
+     ) ;if
+     (if (font-exists-in-tt? "FandolKai-Regular")
+      ("FandolKai" (init-env "font" "FandolKai"))
+     ) ;if
+     (if (font-exists-in-tt? "FandolSong-Regular")
+      ("FandolSong" (init-env "font" "FandolSong"))
+     ) ;if
+     (if (font-exists-in-tt? "fireflysung")
+      ("Fireflysung" (init-env "font" "fireflysung"))
+     ) ;if
+     (if (font-exists-in-tt? "AppleGothic")
+      ("Gothic" (init-env "font" "apple-gothic"))
+     ) ;if
+     (if (font-exists-in-tt? "Gulim") ("Gulim" (init-env "font" "gulim")))
+     (if (font-exists-in-tt? "华文细黑") ("HeiTi" (init-env "font" "heiti")))
+     (if (font-exists-in-tt? "ヒラギノ明朝 ProN W6")
+      ("Hiragino Kaku" (init-env "font" "kaku"))
+     ) ;if
+     (if (font-exists-in-tt? "ipam") ("Ipa" (init-env "font" "ipa")))
+     (if (font-exists-in-tt? "ttf-japanese-gothic")
+      ("Japanese" (init-env "font" "ttf-japanese"))
+     ) ;if
+     (if (font-exists-in-tt? "kochi-mincho") ("Kochi" (init-env "font" "kochi")))
+     (if (font-exists-in-tt? "儷黑 Pro") ("LiHei" (init-env "font" "lihei")))
+     (if (font-exists-in-tt? "wqy-microhei")
+      ("MicroHei" (init-env "font" "wqy-microhei"))
+     ) ;if
+     (if (font-exists-in-tt? "mingliu") ("MingLiU" (init-env "font" "mingliu")))
+     (if (and (font-exists-in-tt? "PMingLiU") (not (font-exists-in-tt? "mingliu")))
+      ("MingLiU" (init-env "font" "pmingliu"))
+     ) ;if
+     (if (font-exists-in-tt? "MS Gothic")
+      ("MS Gothic" (init-env "font" "ms-gothic"))
+     ) ;if
+     (if (font-exists-in-tt? "MS Mincho")
+      ("MS Mincho" (init-env "font" "ms-mincho"))
+     ) ;if
+     (if (font-exists-in-tt? "sazanami-gothic")
+      ("Sazanami" (init-env "font" "sazanami"))
+     ) ;if
+     (if (font-exists-in-tt? "simfang") ("SimFang" (init-env "font" "simfang")))
+     (if (font-exists-in-tt? "simhei") ("SimHei" (init-env "font" "simhei")))
+     (if (font-exists-in-tt? "simkai") ("SimKai" (init-env "font" "simkai")))
+     (if (font-exists-in-tt? "simli") ("SimLi" (init-env "font" "simli")))
+     (if (font-exists-in-tt? "simsun") ("SimSun" (init-env "font" "simsun")))
+     (if (and (font-exists-in-tt? "SimSun") (not (font-exists-in-tt? "simsun")))
+      ("SimSun" (init-env "font" "apple-simsun"))
+     ) ;if
+     (if (font-exists-in-tt? "simyou") ("SimYou" (init-env "font" "simyou")))
+     (if (font-exists-in-tt? "ukai") ("UKai" (init-env "font" "ukai")))
+     (if (font-exists-in-tt? "UnBatang") ("UnBatang" (init-env "font" "unbatang")))
+     (if (font-exists-in-tt? "uming") ("UMing" (init-env "font" "uming")))
+     (if (font-exists-in-tt? "wqy-zenhei") ("ZenHei" (init-env "font" "wqy-zenhei")))
+   ) ;if
+  ) ;->
   (-> "Mathematical font"
-      ("Default" (init-default "math-font"))
-      ---
-      ("Adobe" (init-env "math-font" "adobe"))
-      (if (font-exists-in-tt? "Apple Symbols")
-          ("Apple symbols" (init-env "math-font" "math-apple")))
-      (if (font-exists-in-tt? "Asana-Math")
-          ("Asana" (init-env "math-font" "math-asana")))
-      (if (font-exists-in-tt? "texgyrebonum-math")
-          ("Bonum" (init-env "math-font" "math-bonum")))
-      ("Concrete" (init-env "math-font" "concrete"))
-      (if (font-exists-in-tt? "DejaVuSerif")
-          ("Dejavu" (init-env "math-font" "math-dejavu")))
-      ("Euler new roman" (init-env "math-font" "ENR"))
-      (if (font-exists-in-tt? "LucidaGrande")
-          ("Lucida" (init-env "math-font" "math-lucida")))
-      (if (font-exists-in-tt? "texgyrepagella-math")
-          ("Pagella" (init-env "math-font" "math-pagella")))
-      ("Roman" (init-env "math-font" "roman"))
-      (if (font-exists-in-tt? "texgyreschola-math")
-          ("Schola" (init-env "math-font" "math-schola")))
-      (if (font-exists-in-tt? "STIX-Regular")
-          ("Stix" (init-env "math-font" "math-stix")))
-      (if (font-exists-in-tt? "texgyretermes-math")
-          ("Termes" (init-env "math-font" "math-termes"))))
+   ("Default" (init-default "math-font"))
+   ---
+   ("Adobe" (init-env "math-font" "adobe"))
+   (if (font-exists-in-tt? "Apple Symbols")
+    ("Apple symbols" (init-env "math-font" "math-apple"))
+   ) ;if
+   (if (font-exists-in-tt? "Asana-Math")
+    ("Asana" (init-env "math-font" "math-asana"))
+   ) ;if
+   (if (font-exists-in-tt? "texgyrebonum-math")
+    ("Bonum" (init-env "math-font" "math-bonum"))
+   ) ;if
+   ("Concrete" (init-env "math-font" "concrete"))
+   (if (font-exists-in-tt? "DejaVuSerif")
+    ("Dejavu" (init-env "math-font" "math-dejavu"))
+   ) ;if
+   ("Euler new roman" (init-env "math-font" "ENR"))
+   (if (font-exists-in-tt? "LucidaGrande")
+    ("Lucida" (init-env "math-font" "math-lucida"))
+   ) ;if
+   (if (font-exists-in-tt? "texgyrepagella-math")
+    ("Pagella" (init-env "math-font" "math-pagella"))
+   ) ;if
+   ("Roman" (init-env "math-font" "roman"))
+   (if (font-exists-in-tt? "texgyreschola-math")
+    ("Schola" (init-env "math-font" "math-schola"))
+   ) ;if
+   (if (font-exists-in-tt? "STIX-Regular")
+    ("Stix" (init-env "math-font" "math-stix"))
+   ) ;if
+   (if (font-exists-in-tt? "texgyretermes-math")
+    ("Termes" (init-env "math-font" "math-termes"))
+   ) ;if
+  ) ;->
   (-> "Program font"
-      ("Default" (init-default "prog-font"))
-      ---
-      ("Concrete" (init-env "prog-font" "concrete"))
-      (if (url-exists-in-tex? "pnr10.mf")
-          ("Pandora" (init-env "prog-font" "pandora")))
-      ("Roman" (init-env "prog-font" "roman"))
-      ("Times" (init-env "prog-font" "times"))))
+   ("Default" (init-default "prog-font"))
+   ---
+   ("Concrete" (init-env "prog-font" "concrete"))
+   (if (url-exists-in-tex? "pnr10.mf")
+    ("Pandora" (init-env "prog-font" "pandora"))
+   ) ;if
+   ("Roman" (init-env "prog-font" "roman"))
+   ("Times" (init-env "prog-font" "times"))
+  ) ;->
+) ;menu-bind
 
 (tm-define (init-font-base-size-interactive)
   (:interactive #t)
   (interactive (lambda (s)
-    (let* ((num (string->number s))
-           (normalized (if (and num (> num 0)) (/ (floor (+ (* num 2) 0.5)) 2) 10))
-           (val (if (= normalized (floor normalized))
-                    (number->string (inexact->exact (floor normalized)))
-                    (number->string normalized))))
-      (set-init-env "font-base-size" val)))
-    (list "Font size" "string" (get-init-env "font-base-size"))))
+                 (let* ((num (string->number s))
+                        (normalized (if (and num (> num 0)) (/ (floor (+ (* num 2) 0.5)) 2) 10))
+                        (val (if (= normalized (floor normalized))
+                               (number->string (inexact->exact (floor normalized)))
+                               (number->string normalized)
+                             ) ;if
+                        ) ;val
+                       ) ;
+                   (set-init-env "font-base-size" val)
+                 ) ;let*
+               ) ;lambda
+    (list "Font size" "string" (get-init-env "font-base-size"))
+  ) ;interactive
+) ;tm-define
 
 (tm-define (font-base-size-menu-name)
   (let* ((raw (string->number (get-init "font-base-size")))
          (normalized (if (and raw (> raw 0)) (/ (floor (+ (* raw 2) 0.5)) 2) 10))
          (sz-str (if (= normalized (floor normalized))
-                     (number->string (inexact->exact (floor normalized)))
-                     (number->string normalized))))
-    (if (== sz-str "10")
-        "Font size"
-        (string-append sz-str "pt"))))
+                   (number->string (inexact->exact (floor normalized)))
+                   (number->string normalized)
+                 ) ;if
+         ) ;sz-str
+        ) ;
+    (if (== sz-str "10") "Font size" (string-append sz-str "pt"))
+  ) ;let*
+) ;tm-define
 
 (menu-bind document-font-base-size-menu
-  ("Default" (init-default "font-base-size"))
-  ---
-  ("8" (init-env "font-base-size" "8"))
-  ("9" (init-env "font-base-size" "9"))
-  ("10" (init-env "font-base-size" "10"))
-  ("11" (init-env "font-base-size" "11"))
-  ("12" (init-env "font-base-size" "12"))
-  ("14" (init-env "font-base-size" "14"))
-  ---
-  ("Other" (init-font-base-size-interactive)))
+ ("Default" (init-default "font-base-size"))
+ ---
+ ("8" (init-env "font-base-size" "8"))
+ ("9" (init-env "font-base-size" "9"))
+ ("10" (init-env "font-base-size" "10"))
+ ("11" (init-env "font-base-size" "11"))
+ ("12" (init-env "font-base-size" "12"))
+ ("14" (init-env "font-base-size" "14"))
+ ---
+ ("Other" (init-font-base-size-interactive))
+) ;menu-bind
 
 (menu-bind document-font-dpi-menu
-  ("Default" (init-default "dpi"))
-  ---
-  ("150" (init-env "dpi" "150"))
-  ("200" (init-env "dpi" "200"))
-  ("300" (init-env "dpi" "300"))
-  ("400" (init-env "dpi" "400"))
-  ("600" (init-env "dpi" "600"))
-  ("800" (init-env "dpi" "800"))
-  ("1200" (init-env "dpi" "1200"))
-  ---
-  ("Other" (init-interactive-env "dpi")))
+ ("Default" (init-default "dpi"))
+ ---
+ ("150" (init-env "dpi" "150"))
+ ("200" (init-env "dpi" "200"))
+ ("300" (init-env "dpi" "300"))
+ ("400" (init-env "dpi" "400"))
+ ("600" (init-env "dpi" "600"))
+ ("800" (init-env "dpi" "800"))
+ ("1200" (init-env "dpi" "1200"))
+ ---
+ ("Other" (init-interactive-env "dpi"))
+) ;menu-bind
 
 (menu-bind document-full-font-menu
   (link document-font-menu)
   ---
   (-> "Size" (link document-font-base-size-menu))
-  (-> "Dpi" (link document-font-dpi-menu)))
+  (-> "Dpi" (link document-font-dpi-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Short document font menu for focus bar
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (test-default-font?)
-  (with l (get-style-list)
-    (with f (list-filter l (lambda (p) (string-ends? p "-font")))
-      (and (test-default? "font") (null? f)))))
+  (with l
+    (get-style-list)
+    (with f
+      (list-filter l (lambda (p) (string-ends? p "-font")))
+      (and (test-default? "font") (null? f))
+    ) ;with
+  ) ;with
+) ;tm-define
 
 (tm-define (init-default-font)
   (:check-mark "*" test-default-font?)
   (init-default "font")
   (init-default "math-font")
   (init-default "font-family")
-  (remove-font-packages))
+  (remove-font-packages)
+) ;tm-define
 
 (menu-bind document-short-chinese-font-menu
-  (cond
-   ((os-win32?)
-    (if (font-exists-in-tt? "simhei")
-        ("SimHei" (init-font "simhei")))
-    (if (font-exists-in-tt? "simfang")
-        ("SimFang" (init-font "simfang")))
-    (if (font-exists-in-tt? "simkai")
-        ("SimKai" (init-font "simkai"))))
-   ((os-macos?)
-    (if (font-exists-in-tt? "华文黑体")
-        ("STHeiti" (init-font "STHeiti")))
-    (if (font-exists-in-tt? "华文仿宋")
-        ("STFangsong" (init-font "STFangsong")))
-    (if (font-exists-in-tt? "Kaiti")
-        ("Kaiti SC" (init-font "Kaiti SC"))))
-   (else
-    (if (font-exists-in-tt? "FandolSong-Regular")
-        ("FandolSong" (init-font "FandolSong")))
-    (if (font-exists-in-tt? "FandolHei-Regular")
-        ("FandolHei" (init-font "FandolHei")))
-    (if (font-exists-in-tt? "FandolFang-Regular")
-        ("FandolFang" (init-font "FandolFang")))
-    (if (font-exists-in-tt? "FandolKai-Regular")
-        ("FandolKai" (init-font "FandolKai"))))))
+  (cond ((os-win32?)
+         (if (font-exists-in-tt? "simhei") ("SimHei" (init-font "simhei")))
+         (if (font-exists-in-tt? "simfang") ("SimFang" (init-font "simfang")))
+         (if (font-exists-in-tt? "simkai") ("SimKai" (init-font "simkai")))
+        ) ;
+        ((os-macos?)
+         (if (font-exists-in-tt? "华文黑体") ("STHeiti" (init-font "STHeiti")))
+         (if (font-exists-in-tt? "华文仿宋") ("STFangsong" (init-font "STFangsong")))
+         (if (font-exists-in-tt? "Kaiti") ("Kaiti SC" (init-font "Kaiti SC")))
+        ) ;
+        (else (if (font-exists-in-tt? "FandolSong-Regular")
+               ("FandolSong" (init-font "FandolSong"))
+              ) ;if
+          (if (font-exists-in-tt? "FandolHei-Regular")
+           ("FandolHei" (init-font "FandolHei"))
+          ) ;if
+          (if (font-exists-in-tt? "FandolFang-Regular")
+           ("FandolFang" (init-font "FandolFang"))
+          ) ;if
+          (if (font-exists-in-tt? "FandolKai-Regular")
+           ("FandolKai" (init-font "FandolKai"))
+          ) ;if
+        ) ;else
+  ) ;cond
+) ;menu-bind
 
 (menu-bind document-short-japanese-font-menu
   (if (font-exists-in-tt? "AppleGothic")
-      ("Apple Gothic" (init-font "apple-gothic")))
-  (if (font-exists-in-tt? "华文细黑")
-      ("HeiTi" (init-font "heiti")))
+   ("Apple Gothic" (init-font "apple-gothic"))
+  ) ;if
+  (if (font-exists-in-tt? "华文细黑") ("HeiTi" (init-font "heiti")))
   (if (font-exists-in-tt? "ヒラギノ明朝 ProN W6")
-      ("Hiragino Kaku" (init-font "kaku")))
-  (if (font-exists-in-tt? "ipam")
-      ("Ipa" (init-font "ipa")))
+   ("Hiragino Kaku" (init-font "kaku"))
+  ) ;if
+  (if (font-exists-in-tt? "ipam") ("Ipa" (init-font "ipa")))
   (if (font-exists-in-tt? "ttf-japanese-gothic")
-      ("Japanese" (init-font "ttf-japanese")))
-  (if (font-exists-in-tt? "sazanami-gothic")
-      ("Sazanami" (init-font "sazanami")))
-  (if (font-exists-in-tt? "ukai")
-      ("UKai" (init-font "ukai"))))
+   ("Japanese" (init-font "ttf-japanese"))
+  ) ;if
+  (if (font-exists-in-tt? "sazanami-gothic") ("Sazanami" (init-font "sazanami")))
+  (if (font-exists-in-tt? "ukai") ("UKai" (init-font "ukai")))
+) ;menu-bind
 
 (menu-bind document-short-korean-font-menu
   (if (font-exists-in-tt? "AppleGothic")
-      ("Apple Gothic" (init-font "apple-gothic")))
-  (if (font-exists-in-tt? "Batang")
-      ("Batang" (init-font "batang")))
-  (if (font-exists-in-tt? "Gulim")
-      ("Gulim" (init-font "gulim")))
-  (if (font-exists-in-tt? "UnBatang")
-      ("UnBatang" (init-font "unbatang"))))
+   ("Apple Gothic" (init-font "apple-gothic"))
+  ) ;if
+  (if (font-exists-in-tt? "Batang") ("Batang" (init-font "batang")))
+  (if (font-exists-in-tt? "Gulim") ("Gulim" (init-font "gulim")))
+  (if (font-exists-in-tt? "UnBatang") ("UnBatang" (init-font "unbatang")))
+) ;menu-bind
 
 (menu-bind document-short-font-menu
-  (cond
-   ((and (supports-chinese?)
-         (or (== (get-init "language") "chinese")
-             (== (get-init "language") "taiwanese")))
-    ((eval (string-append "Default: " (font-family->master (default-chinese-font)))) (init-default-font))
-    ---
-    (link document-short-chinese-font-menu))
-   ((and (supports-japanese?) (== (get-init "language") "japanese"))
-    ("Default" (init-default-font))
-    ---
-    (link document-short-japanese-font-menu))
-   ((and (supports-korean?) (== (get-init "language") "korean"))
-    ("Default" (init-default-font))
-    ---
-    (link document-short-korean-font-menu))
-   (else
-    ("Default" (init-default-font))))
+  (cond ((and (supports-chinese?)
+           (or (== (get-init "language") "chinese") (== (get-init "language") "taiwanese"))
+         ) ;and
+         ((eval (string-append "Default: " (font-family->master (default-chinese-font))))
+          (init-default-font)
+         ) ;
+         ---
+         (link document-short-chinese-font-menu)
+        ) ;
+        ((and (supports-japanese?) (== (get-init "language") "japanese"))
+         ("Default" (init-default-font))
+         ---
+         (link document-short-japanese-font-menu)
+        ) ;
+        ((and (supports-korean?) (== (get-init "language") "korean"))
+         ("Default" (init-default-font))
+         ---
+         (link document-short-korean-font-menu)
+        ) ;
+        (else ("Default" (init-default-font)))
+  ) ;cond
   ---
   ("Roman" (init-font "roman" "roman"))
   ("Stix" (init-font "stix" "math-stix"))
   (if (or (font-exists-in-tt? "texgyrebonum-math")
-          (font-exists-in-tt? "texgyrepagella-math")
-          (font-exists-in-tt? "texgyreschola-math")
-          (font-exists-in-tt? "texgyretermes-math"))
-      ---
-      (group "TeX Gyre")
-      (if (font-exists-in-tt? "texgyrebonum-math")
-          ("Bonum" (init-font "bonum" "math-bonum")))
-      (if (font-exists-in-tt? "texgyrepagella-math")
-          ("Pagella" (init-font "pagella" "math-pagella")))
-      (if (font-exists-in-tt? "texgyreschola-math")
-          ("Schola" (init-font "schola" "math-schola")))
-      (if (font-exists-in-tt? "texgyretermes-math")
-          ("Termes" (init-font "termes" "math-termes"))))
+        (font-exists-in-tt? "texgyrepagella-math")
+        (font-exists-in-tt? "texgyreschola-math")
+        (font-exists-in-tt? "texgyretermes-math")
+      ) ;or
+    ---
+    (group "TeX Gyre")
+    (if (font-exists-in-tt? "texgyrebonum-math")
+     ("Bonum" (init-font "bonum" "math-bonum"))
+    ) ;if
+    (if (font-exists-in-tt? "texgyrepagella-math")
+     ("Pagella" (init-font "pagella" "math-pagella"))
+    ) ;if
+    (if (font-exists-in-tt? "texgyreschola-math")
+     ("Schola" (init-font "schola" "math-schola"))
+    ) ;if
+    (if (font-exists-in-tt? "texgyretermes-math")
+     ("Termes" (init-font "termes" "math-termes"))
+    ) ;if
+  ) ;if
   (if (or (font-exists-in-tt? "DejaVuSerif")
-          (font-exists-in-tt? "FiraSans-Regular")
-          (font-exists-in-tt? "LinLibertine_R")
-          (font-exists-in-tt? "Optima")
-          (font-exists-in-tt? "Papyrus"))
-      ---
-      (if (and (os-macos?) (font-exists-in-tt? "AmericanTypewriter"))
-          ("American Typewriter" (init-font "American Typewriter")))
-      (if (and (os-macos?) (font-exists-in-tt? "Baskerville"))
-          ("Baskerville" (init-font "Baskerville")))
-      (if (and (os-macos?) (font-exists-in-tt? "Chalkboard"))
-          ("Chalkboard" (init-font "Chalkboard")))
-      (if (and (os-macos?) (font-exists-in-tt? "Chalkduster"))
-          ("Chalkduster" (init-font "Chalkduster")))
-      (if (and (os-macos?) (font-exists-in-tt? "Cochin"))
-          ("Cochin" (init-font "Cochin")))
-      (if (and (os-macos?) (font-exists-in-tt? "Cuprum-Regular"))
-          ("Cuprum" (init-font "Cuprum")))
-      (if (font-exists-in-tt? "DejaVuSerif")
-          ("Dejavu" (init-font "dejavu" "math-dejavu")))
-      (if (and (os-macos?) (font-exists-in-tt? "Didot"))
-          ("Didot" (init-font "Didot")))
-      (if (font-exists-in-tt? "Essays1743")
-          ("Essays1743" (init-font "Essays1743")))
-      (if (font-exists-in-tt? "FiraSans-Regular")
-          ("Fira" (init-font "Fira")))
-      (if (and (os-macos?) (font-exists-in-tt? "MarkerFelt"))
-          ("Marker Felt" (init-font "Marker Felt")))
-      (if (font-exists-in-tt? "meyne_textur")
-          ("Meyne Textur" (init-font "Meyne Textur")))
-      (if (font-exists-in-tt? "LinBiolinum_R")
-          ("Linux Biolinum" (init-font "Linux Biolinum")))
-      (if (font-exists-in-tt? "LinLibertine_R")
-          ("Linux Libertine" (init-font "Linux Libertine")))
-      (if (and (os-macos?) (font-exists-in-tt? "Optima"))
-          ("Optima" (init-font "Optima")))
-      (if (and (os-macos?) (font-exists-in-tt? "Papyrus"))
-          ("Papyrus" (init-font "Papyrus"))))
+        (font-exists-in-tt? "FiraSans-Regular")
+        (font-exists-in-tt? "LinLibertine_R")
+        (font-exists-in-tt? "Optima")
+        (font-exists-in-tt? "Papyrus")
+      ) ;or
+    ---
+    (if (and (os-macos?) (font-exists-in-tt? "AmericanTypewriter"))
+     ("American Typewriter" (init-font "American Typewriter"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Baskerville"))
+     ("Baskerville" (init-font "Baskerville"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Chalkboard"))
+     ("Chalkboard" (init-font "Chalkboard"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Chalkduster"))
+     ("Chalkduster" (init-font "Chalkduster"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Cochin"))
+     ("Cochin" (init-font "Cochin"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Cuprum-Regular"))
+     ("Cuprum" (init-font "Cuprum"))
+    ) ;if
+    (if (font-exists-in-tt? "DejaVuSerif")
+     ("Dejavu" (init-font "dejavu" "math-dejavu"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Didot"))
+     ("Didot" (init-font "Didot"))
+    ) ;if
+    (if (font-exists-in-tt? "Essays1743") ("Essays1743" (init-font "Essays1743")))
+    (if (font-exists-in-tt? "FiraSans-Regular") ("Fira" (init-font "Fira")))
+    (if (and (os-macos?) (font-exists-in-tt? "MarkerFelt"))
+     ("Marker Felt" (init-font "Marker Felt"))
+    ) ;if
+    (if (font-exists-in-tt? "meyne_textur")
+     ("Meyne Textur" (init-font "Meyne Textur"))
+    ) ;if
+    (if (font-exists-in-tt? "LinBiolinum_R")
+     ("Linux Biolinum" (init-font "Linux Biolinum"))
+    ) ;if
+    (if (font-exists-in-tt? "LinLibertine_R")
+     ("Linux Libertine" (init-font "Linux Libertine"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Optima"))
+     ("Optima" (init-font "Optima"))
+    ) ;if
+    (if (and (os-macos?) (font-exists-in-tt? "Papyrus"))
+     ("Papyrus" (init-font "Papyrus"))
+    ) ;if
+  ) ;if
   ---
-  (if (use-popups?)
-      ("Other" (open-document-font-selector)))
-  (if (not (use-popups?))
-      (-> "Other" (link document-font-menu))))
+  (if (use-popups?) ("Other" (open-document-font-selector)))
+  (if (not (use-popups?)) (-> "Other" (link document-font-menu)))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Paragraph menu
@@ -473,154 +539,171 @@
 
 (menu-bind document-paragraph-menu
   (-> "Style"
-      ("Default" (init-default "par-mode"))
-      ---
-      ("Justified" (init-env "par-mode" "justify"))
-      ("Left aligned" (init-env "par-mode" "left"))
-      ("Centered" (init-env "par-mode" "center"))
-      ("Right aligned" (init-env "par-mode" "right")))
+   ("Default" (init-default "par-mode"))
+   ---
+   ("Justified" (init-env "par-mode" "justify"))
+   ("Left aligned" (init-env "par-mode" "left"))
+   ("Centered" (init-env "par-mode" "center"))
+   ("Right aligned" (init-env "par-mode" "right"))
+  ) ;->
   (-> "Line breaking"
-      ("Default" (init-default "par-hyphen"))
-      ---
-      ("Normal" (init-env "par-hyphen" "normal"))
-      ("Professional" (init-env "par-hyphen" "professional")))
+   ("Default" (init-default "par-hyphen"))
+   ---
+   ("Normal" (init-env "par-hyphen" "normal"))
+   ("Professional" (init-env "par-hyphen" "professional"))
+  ) ;->
   (-> "Margins"
-      ("Default" (init-default "par-first"))
-      ---
-      ("First indentation" (init-interactive-env "par-first")))
+   ("Default" (init-default "par-first"))
+   ---
+   ("First indentation" (init-interactive-env "par-first"))
+  ) ;->
   (-> "Spacing"
-      ("Default" (init-default "par-sep" "par-line-sep"
-                               "interpargraph space"))
-      ---
-      ("1.5 line spacing" (init-env "par-sep" "0.5fn"))
-      ("Double line spacing" (init-env "par-sep" "1.0fn"))
-      ---
-      ("Interline separation" (init-interactive-env "par-sep"))
-      ("Interline space" (init-interactive-env "par-line-sep"))
-      ("Interparagraph space" (init-interactive-env "par-par-sep")))
+   ("Default" (init-default "par-sep" "par-line-sep" "interpargraph space"))
+   ---
+   ("1.5 line spacing" (init-env "par-sep" "0.5fn"))
+   ("Double line spacing" (init-env "par-sep" "1.0fn"))
+   ---
+   ("Interline separation" (init-interactive-env "par-sep"))
+   ("Interline space" (init-interactive-env "par-line-sep"))
+   ("Interparagraph space" (init-interactive-env "par-par-sep"))
+  ) ;->
   (-> "Number of columns"
-      ("Default" (init-default "par-columns"))
-      ---
-      (link document-columns-menu))
+   ("Default" (init-default "par-columns"))
+   ---
+   (link document-columns-menu)
+  ) ;->
   (-> "Advanced"
-      (-> "Space stretchability"
-          ("Default" (init-default "par-flexibility"))
-          ---
-          ("Minimal (1)" (init-env "par-flexibility" "1"))
-          ("Small (2)" (init-env "par-flexibility" "2"))
-          ("Modest (4)" (init-env "par-flexibility" "4"))
-          ("Large (1000)" (init-env "par-flexibility" "1000"))
-          ---
-          ("Other" (init-interactive-env "par-flexibility")))
-      (-> "Intercharacter stretching"
-          ("Default" (init-default "par-kerning-stretch"))
-          ("Automatic" (init-env "par-kerning-stretch" "auto"))
-          ("Tolerant" (init-env "par-kerning-stretch" "tolerant"))
-          ---
-          ("Off" (init-env "par-kerning-stretch" "0"))
-          ("Tiny (0.02)" (init-env "par-kerning-stretch" "0.02"))
-          ("Modest (0.05)" (init-env "par-kerning-stretch" "0.05"))
-          ("Flexible (1.0)" (init-env "par-kerning-stretch" "1.0"))
-          ---
-          ("Other" (init-interactive-env "par-kerning-stretch")))
-      (-> "CJK spacing"
-          ("Default" (init-default "par-spacing"))
-          ---
-          ("Plain" (init-env "par-spacing" "plain"))
-          ("Quanjiao" (init-env "par-spacing" "quanjiao"))
-          ("Banjiao" (init-env "par-spacing" "banjiao"))
-          ("Hangmobanjiao" (init-env "par-spacing" "hangmobanjiao"))
-          ("Kaiming" (init-env "par-spacing" "kaiming")))
-      ("Use protrusion" (toggle-init-env "par-kerning-margin"))))
+    (-> "Space stretchability"
+     ("Default" (init-default "par-flexibility"))
+     ---
+     ("Minimal (1)" (init-env "par-flexibility" "1"))
+     ("Small (2)" (init-env "par-flexibility" "2"))
+     ("Modest (4)" (init-env "par-flexibility" "4"))
+     ("Large (1000)" (init-env "par-flexibility" "1000"))
+     ---
+     ("Other" (init-interactive-env "par-flexibility"))
+    ) ;->
+    (-> "Intercharacter stretching"
+     ("Default" (init-default "par-kerning-stretch"))
+     ("Automatic" (init-env "par-kerning-stretch" "auto"))
+     ("Tolerant" (init-env "par-kerning-stretch" "tolerant"))
+     ---
+     ("Off" (init-env "par-kerning-stretch" "0"))
+     ("Tiny (0.02)" (init-env "par-kerning-stretch" "0.02"))
+     ("Modest (0.05)" (init-env "par-kerning-stretch" "0.05"))
+     ("Flexible (1.0)" (init-env "par-kerning-stretch" "1.0"))
+     ---
+     ("Other" (init-interactive-env "par-kerning-stretch"))
+    ) ;->
+    (-> "CJK spacing"
+     ("Default" (init-default "par-spacing"))
+     ---
+     ("Plain" (init-env "par-spacing" "plain"))
+     ("Quanjiao" (init-env "par-spacing" "quanjiao"))
+     ("Banjiao" (init-env "par-spacing" "banjiao"))
+     ("Hangmobanjiao" (init-env "par-spacing" "hangmobanjiao"))
+     ("Kaiming" (init-env "par-spacing" "kaiming"))
+    ) ;->
+    ("Use protrusion" (toggle-init-env "par-kerning-margin"))
+  ) ;->
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Page sizes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (document-common-page-size-menu)
-  ("A3" (init-page-type "a3"))
-  ("A4" (init-page-type "a4"))
-  ("A5" (init-page-type "a5"))
-  ("B4" (init-page-type "b4"))
-  ("B5" (init-page-type "b5"))
-  ("Letter" (init-page-type "letter"))
-  ("Legal" (init-page-type "legal"))
-  ("Executive" (init-page-type "executive")))
+ ("A3" (init-page-type "a3"))
+ ("A4" (init-page-type "a4"))
+ ("A5" (init-page-type "a5"))
+ ("B4" (init-page-type "b4"))
+ ("B5" (init-page-type "b5"))
+ ("Letter" (init-page-type "letter"))
+ ("Legal" (init-page-type "legal"))
+ ("Executive" (init-page-type "executive"))
+) ;tm-menu
 
 (tm-menu (document-beamer-page-size-menu)
-  ("Widescreen 16:9" (init-page-type "16:9"))
-  ("Widescreen 8:5" (init-page-type "8:5"))
-  ;;("Widescreen 3:2" (init-page-type "3:2"))
-  ("Standard 4:3" (init-page-type "4:3"))
-  ("Standard 5:4" (init-page-type "5:4")))
+ ("Widescreen 16:9" (init-page-type "16:9"))
+ ("Widescreen 8:5" (init-page-type "8:5"))
+ ;; ("Widescreen 3:2" (init-page-type "3:2"))
+ ("Standard 4:3" (init-page-type "4:3"))
+ ("Standard 5:4" (init-page-type "5:4"))
+) ;tm-menu
 
 (tm-menu (document-standard-page-formats)
   (-> "A series"
-      ("A0" (init-page-type "a0"))
-      ("A1" (init-page-type "a1"))
-      ("A2" (init-page-type "a2"))
-      ("A3" (init-page-type "a3"))
-      ("A4" (init-page-type "a4"))
-      ("A5" (init-page-type "a5"))
-      ("A6" (init-page-type "a6"))
-      ("A7" (init-page-type "a7"))
-      ("A8" (init-page-type "a8"))
-      ("A9" (init-page-type "a9")))
+   ("A0" (init-page-type "a0"))
+   ("A1" (init-page-type "a1"))
+   ("A2" (init-page-type "a2"))
+   ("A3" (init-page-type "a3"))
+   ("A4" (init-page-type "a4"))
+   ("A5" (init-page-type "a5"))
+   ("A6" (init-page-type "a6"))
+   ("A7" (init-page-type "a7"))
+   ("A8" (init-page-type "a8"))
+   ("A9" (init-page-type "a9"))
+  ) ;->
   (-> "B series"
-      ("B0" (init-page-type "b0"))
-      ("B1" (init-page-type "b1"))
-      ("B2" (init-page-type "b2"))
-      ("B3" (init-page-type "b3"))
-      ("B4" (init-page-type "b4"))
-      ("B5" (init-page-type "b5"))
-      ("B6" (init-page-type "b6"))
-      ("B7" (init-page-type "b7"))
-      ("B8" (init-page-type "b8"))
-      ("B9" (init-page-type "b9")))
+   ("B0" (init-page-type "b0"))
+   ("B1" (init-page-type "b1"))
+   ("B2" (init-page-type "b2"))
+   ("B3" (init-page-type "b3"))
+   ("B4" (init-page-type "b4"))
+   ("B5" (init-page-type "b5"))
+   ("B6" (init-page-type "b6"))
+   ("B7" (init-page-type "b7"))
+   ("B8" (init-page-type "b8"))
+   ("B9" (init-page-type "b9"))
+  ) ;->
   (-> "Arch series"
-      ("ArchA" (init-page-type "archA"))
-      ("ArchB" (init-page-type "archB"))
-      ("ArchC" (init-page-type "archC"))
-      ("ArchD" (init-page-type "archD"))
-      ("ArchE" (init-page-type "archE")))
+   ("ArchA" (init-page-type "archA"))
+   ("ArchB" (init-page-type "archB"))
+   ("ArchC" (init-page-type "archC"))
+   ("ArchD" (init-page-type "archD"))
+   ("ArchE" (init-page-type "archE"))
+  ) ;->
   (-> "American"
-      ("10x14" (init-page-type "10x14"))
-      ("11x17" (init-page-type "11x17"))
-      ("C5" (init-page-type "C5"))
-      ("Comm10" (init-page-type "Comm10"))
-      ("DL" (init-page-type "DL"))
-      ("Executive" (init-page-type "executive"))
-      ("Half letter" (init-page-type "halfletter"))
-      ("Half executive" (init-page-type "halfexecutive"))
-      ("Ledger" (init-page-type "ledger"))
-      ("Legal" (init-page-type "legal"))
-      ("Letter" (init-page-type "letter"))
-      ("Monarch" (init-page-type "Monarch")))
+   ("10x14" (init-page-type "10x14"))
+   ("11x17" (init-page-type "11x17"))
+   ("C5" (init-page-type "C5"))
+   ("Comm10" (init-page-type "Comm10"))
+   ("DL" (init-page-type "DL"))
+   ("Executive" (init-page-type "executive"))
+   ("Half letter" (init-page-type "halfletter"))
+   ("Half executive" (init-page-type "halfexecutive"))
+   ("Ledger" (init-page-type "ledger"))
+   ("Legal" (init-page-type "legal"))
+   ("Letter" (init-page-type "letter"))
+   ("Monarch" (init-page-type "Monarch"))
+  ) ;->
   (-> "Miscellaneous"
-      ("C sheet" (init-page-type "csheet"))
-      ("D sheet" (init-page-type "dsheet"))
-      ("E sheet" (init-page-type "esheet"))
-      ("Flsa" (init-page-type "flsa"))
-      ("Flse" (init-page-type "flse"))
-      ("Folio" (init-page-type "folio"))
-      ("Lecture note" (init-page-type "lecture note"))
-      ("Note" (init-page-type "note"))
-      ("Quarto" (init-page-type "quarto"))
-      ("Statement" (init-page-type "statement"))
-      ("Tabloid" (init-page-type "tabloid"))))
+   ("C sheet" (init-page-type "csheet"))
+   ("D sheet" (init-page-type "dsheet"))
+   ("E sheet" (init-page-type "esheet"))
+   ("Flsa" (init-page-type "flsa"))
+   ("Flse" (init-page-type "flse"))
+   ("Folio" (init-page-type "folio"))
+   ("Lecture note" (init-page-type "lecture note"))
+   ("Note" (init-page-type "note"))
+   ("Quarto" (init-page-type "quarto"))
+   ("Statement" (init-page-type "statement"))
+   ("Tabloid" (init-page-type "tabloid"))
+  ) ;->
+) ;tm-menu
 
 (tm-menu (document-page-size-menu)
-  ("Default" (default-page-type))
-  ---
-  (group "Common formats")
-  (link document-common-page-size-menu)
-  ---
-  (group "Standard formats")
-  (link document-standard-page-formats)
-  (-> "Beamer"
-      (link document-beamer-page-size-menu))
-  ---
-  ("Other size" (interactive init-page-size)))
+ ("Default" (default-page-type))
+ ---
+ (group "Common formats")
+ (link document-common-page-size-menu)
+ ---
+ (group "Standard formats")
+ (link document-standard-page-formats)
+ (-> "Beamer" (link document-beamer-page-size-menu))
+ ---
+ ("Other size" (interactive init-page-size))
+) ;tm-menu
 
 (tm-menu (document-page-size-menu)
   (:require (style-has? "beamer-style"))
@@ -630,196 +713,238 @@
   (link document-beamer-page-size-menu)
   ---
   (group "Standard formats")
-  (-> "Common"
-      (link document-common-page-size-menu))
+  (-> "Common" (link document-common-page-size-menu))
   (link document-standard-page-formats)
   ---
-  ("Other" (interactive init-page-size)))
+  ("Other" (interactive init-page-size))
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Number of columns
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (document-columns-menu)
-  ("One column" (init-env "par-columns" "1"))
-  ("Two columns" (init-env "par-columns" "2"))
-  ("Three columns" (init-env "par-columns" "3")))
+ ("One column" (init-env "par-columns" "1"))
+ ("Two columns" (init-env "par-columns" "2"))
+ ("Three columns" (init-env "par-columns" "3"))
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Page menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind page-rendering-menu
-  ("Single Page" (init-page-rendering "paper"))
-  ("Continuous Scroll" (init-page-rendering "papyrus"))
-  ("Screen" (init-page-rendering "automatic"))
-  (assuming (in-beamer?)
-    ("Beamer" (init-page-rendering "beamer")))
-  ("Two Page" (init-page-rendering "book"))
-  ("Panorama" (init-page-rendering "panorama"))
-  (assuming (in-beamer?)
-    ("Slideshow" (init-page-rendering "slideshow"))))
+ ("Single Page" (init-page-rendering "paper"))
+ ("Continuous Scroll" (init-page-rendering "papyrus"))
+ ("Screen" (init-page-rendering "automatic"))
+ (assuming (in-beamer?) ("Beamer" (init-page-rendering "beamer")))
+ ("Two Page" (init-page-rendering "book"))
+ ("Panorama" (init-page-rendering "panorama"))
+ (assuming (in-beamer?) ("Slideshow" (init-page-rendering "slideshow")))
+) ;menu-bind
 
 (menu-bind page-layout-menu
-  ("Margins as on paper" (toggle-page-screen-margin))
-  ("Reduced margins" (toggle-reduced-margins))
-  ("No page numbers" (toggle-no-page-numbers)))
+ ("Margins as on paper" (toggle-page-screen-margin))
+ ("Reduced margins" (toggle-reduced-margins))
+ ("No page numbers" (toggle-no-page-numbers))
+) ;menu-bind
 
 (menu-bind document-page-menu
   (-> "Type"
-      ("Default" (init-default-page-rendering))
-      ---
-      (link page-rendering-menu))
-  (-> "Size"
-      (link document-page-size-menu))
+   ("Default" (init-default-page-rendering))
+   ---
+   (link page-rendering-menu)
+  ) ;->
+  (-> "Size" (link document-page-size-menu))
   (-> "Orientation"
-      ("Default" (init-default-page-orientation))
-      ---
-      ("Portrait" (init-page-orientation "portrait"))
-      ("Landscape" (init-page-orientation "landscape")))
+   ("Default" (init-default-page-orientation))
+   ---
+   ("Portrait" (init-page-orientation "portrait"))
+   ("Landscape" (init-page-orientation "landscape"))
+  ) ;->
   (-> "Crop marks"
-      ("Default" (init-default "page-crop-marks"))
-      ---
-      ("None" (init-env "page-crop-marks" ""))
-      ("A3" (init-env "page-crop-marks" "a3"))
-      ("A4" (init-env "page-crop-marks" "a4"))
-      ("Letter" (init-env "page-crop-marks" "letter")))
+   ("Default" (init-default "page-crop-marks"))
+   ---
+   ("None" (init-env "page-crop-marks" ""))
+   ("A3" (init-env "page-crop-marks" "a3"))
+   ("A4" (init-env "page-crop-marks" "a4"))
+   ("Letter" (init-env "page-crop-marks" "letter"))
+  ) ;->
   (-> "Margins"
-      ("Default" (init-default "page-width-margin" "page-height-margin"
-                               "page-odd" "page-even" "page-right"
-                               "par-width" "page-odd-shift"
-                               "page-even-shift" "page-top" "page-bot"
-                               "page-height-margin"))
-      ---
-      ("Explicit margins" (init-env "page-width-margin" "false"))
-      (when (test-env? "page-width-margin" "false")
-        ("Odd page left margin" (init-interactive-env "page-odd"))
-        ("Odd page right margin" (init-interactive-env "page-right"))
-        ("Even page left margin" (init-interactive-env "page-even"))
-        (when (test-env? "page-height-margin" "false")
-          ("Top margin" (init-interactive-env "page-top"))
-          ("Bottom margin" (init-interactive-env "page-bot"))))
-      ---
-      ("Margins from width" (init-env "page-width-margin" "true"))
-      (when (test-env? "page-width-margin" "true")
-        ("Paragraph width" (init-interactive-env "par-width"))
-        ("Odd page shift" (init-interactive-env "page-odd-shift"))
-        ("Even page shift" (init-interactive-env "page-even-shift"))
-        (when (test-env? "page-height-margin" "false")
-          ("Top margin" (init-interactive-env "page-top"))
-          ("Bottom margin" (init-interactive-env "page-bot")))))
+   ("Default"
+     (init-default "page-width-margin"
+       "page-height-margin"
+       "page-odd"
+       "page-even"
+       "page-right"
+       "par-width"
+       "page-odd-shift"
+       "page-even-shift"
+       "page-top"
+       "page-bot"
+       "page-height-margin"
+     ) ;init-default
+   ) ;
+   ---
+   ("Explicit margins" (init-env "page-width-margin" "false"))
+   (when (test-env? "page-width-margin" "false")
+     ("Odd page left margin" (init-interactive-env "page-odd"))
+     ("Odd page right margin" (init-interactive-env "page-right"))
+     ("Even page left margin" (init-interactive-env "page-even"))
+     (when (test-env? "page-height-margin" "false")
+       ("Top margin" (init-interactive-env "page-top"))
+       ("Bottom margin" (init-interactive-env "page-bot"))
+     ) ;when
+   ) ;when
+   ---
+   ("Margins from width" (init-env "page-width-margin" "true"))
+   (when (test-env? "page-width-margin" "true")
+     ("Paragraph width" (init-interactive-env "par-width"))
+     ("Odd page shift" (init-interactive-env "page-odd-shift"))
+     ("Even page shift" (init-interactive-env "page-even-shift"))
+     (when (test-env? "page-height-margin" "false")
+       ("Top margin" (init-interactive-env "page-top"))
+       ("Bottom margin" (init-interactive-env "page-bot"))
+     ) ;when
+   ) ;when
+  ) ;->
   (-> "Screen margins"
-      ("Default" (init-default "page-screen-margin"
-                               "page-screen-left" "page-screen-right"
-                               "page-screen-top" "page-screen-bot"))
-      ("Margins as on paper" (toggle-page-screen-margin))
-      ---
-      (when (test-env? "page-screen-margin" "true")
-        ("Left margin" (init-interactive-env "page-screen-left"))
-        ("Right margin" (init-interactive-env "page-screen-right"))
-        ("Top margin" (init-interactive-env "page-screen-top"))
-        ("Bottom margin" (init-interactive-env "page-screen-bot"))))
+   ("Default"
+     (init-default "page-screen-margin"
+       "page-screen-left"
+       "page-screen-right"
+       "page-screen-top"
+       "page-screen-bot"
+     ) ;init-default
+   ) ;
+   ("Margins as on paper" (toggle-page-screen-margin))
+   ---
+   (when (test-env? "page-screen-margin" "true")
+     ("Left margin" (init-interactive-env "page-screen-left"))
+     ("Right margin" (init-interactive-env "page-screen-right"))
+     ("Top margin" (init-interactive-env "page-screen-top"))
+     ("Bottom margin" (init-interactive-env "page-screen-bot"))
+   ) ;when
+  ) ;->
   (if (detailed-menus?)
-      ---
-      (group "Breaking")
-      (-> "Algorithm"
-          ("Default" (init-default "page-breaking"))
-          ---
-          ("Sloppy" (init-env "page-breaking" "sloppy"))
-          ("Medium" (init-env "page-breaking" "medium"))
-          ("Professional" (init-env "page-breaking" "professional")))
-      (-> "Limits"
-          ("Allowed reduction" (init-interactive-env "page-shrink"))
-          ("Allowed extension" (init-interactive-env "page-extend")))
-      (-> "Flexibility"
-          ("Default" (init-default "page-flexibility"))
-          ---
-          ("0" (init-env "page-flexibility" "0.0"))
-          ("1/4" (init-env "page-flexibility" "0.25"))
-          ("1/2" (init-env "page-flexibility" "0.5"))
-          ("3/4" (init-env "page-flexibility" "0.75"))
-          ("1" (init-env "page-flexibility" "1.0"))
-          ---
-          ("Other" (init-interactive-env "page-flexibility")))))
+    ---
+    (group "Breaking")
+    (-> "Algorithm"
+     ("Default" (init-default "page-breaking"))
+     ---
+     ("Sloppy" (init-env "page-breaking" "sloppy"))
+     ("Medium" (init-env "page-breaking" "medium"))
+     ("Professional" (init-env "page-breaking" "professional"))
+    ) ;->
+    (-> "Limits"
+     ("Allowed reduction" (init-interactive-env "page-shrink"))
+     ("Allowed extension" (init-interactive-env "page-extend"))
+    ) ;->
+    (-> "Flexibility"
+     ("Default" (init-default "page-flexibility"))
+     ---
+     ("0" (init-env "page-flexibility" "0.0"))
+     ("1/4" (init-env "page-flexibility" "0.25"))
+     ("1/2" (init-env "page-flexibility" "0.5"))
+     ("3/4" (init-env "page-flexibility" "0.75"))
+     ("1" (init-env "page-flexibility" "1.0"))
+     ---
+     ("Other" (init-interactive-env "page-flexibility"))
+    ) ;->
+  ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Page number menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-page-number-menu
-  ("New page number style layer" (open-document-page-number)))
+ ("New page number style layer" (open-document-page-number))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Headers and footers menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-headers-footers-menu
-  ("Edit headers and footers" (open-page-headers-footers)))
+ ("Edit headers and footers" (open-page-headers-footers))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Metadata menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-metadata-menu
-  ("Title" (init-interactive-env "global-title"))
-  ("Author" (init-interactive-env "global-author"))
-  ("Subject" (init-interactive-env "global-subject")))
+ ("Title" (init-interactive-env "global-title"))
+ ("Author" (init-interactive-env "global-author"))
+ ("Subject" (init-interactive-env "global-subject"))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Magnification menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-magnification-menu
-  ("Default" (init-default "magnification"))
-  ---
-  ("0.7" (init-env "magnification" "0.7"))
-  ("0.8" (init-env "magnification" "0.8"))
-  ("1" (init-env "magnification" "1"))
-  ("1.2" (init-env "magnification" "1.2"))
-  ("1.4" (init-env "magnification" "1.4"))
-  ("1.7" (init-env "magnification" "1.7"))
-  ("2" (init-env "magnification" "2"))
-  ---
-  ("Other" (init-interactive-env "magnification")))
+ ("Default" (init-default "magnification"))
+ ---
+ ("0.7" (init-env "magnification" "0.7"))
+ ("0.8" (init-env "magnification" "0.8"))
+ ("1" (init-env "magnification" "1"))
+ ("1.2" (init-env "magnification" "1.2"))
+ ("1.4" (init-env "magnification" "1.4"))
+ ("1.7" (init-env "magnification" "1.7"))
+ ("2" (init-env "magnification" "2"))
+ ---
+ ("Other" (init-interactive-env "magnification"))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Color menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (set-background col)
-  (init-env-tree "bg-color" col))
+  (init-env-tree "bg-color" col)
+) ;define
 
 (define (set-background-pattern name)
-  (when (pair? name) (set! name (car name)))
-  (init-env-tree "bg-color" (tm-pattern name "" "")))
+  (when (pair? name)
+    (set! name (car name))
+  ) ;when
+  (init-env-tree "bg-color" (tm-pattern name "" ""))
+) ;define
 
 (define (set-background-picture name)
-  (when (pair? name) (set! name (car name)))
-  (init-env-tree "bg-color" (tm-pattern name "100%" "100@")))
+  (when (pair? name)
+    (set! name (car name))
+  ) ;when
+  (init-env-tree "bg-color" (tm-pattern name "100%" "100@"))
+) ;define
 
 (menu-bind document-foreground-color-menu
-  ("Default" (init-default "color"))
-  ---
-  (pick-color (init-env "color" answer))
-  ---
-  ("Palette" (interactive-color
-              (lambda (col) (init-env "color" col)) '()))
-  ("Other" (init-interactive-env "color")))
+ ("Default" (init-default "color"))
+ ---
+ (pick-color (init-env "color" answer))
+ ---
+ ("Palette" (interactive-color (lambda (col) (init-env "color" col)) '()))
+ ("Other" (init-interactive-env "color"))
+) ;menu-bind
 
 (menu-bind document-background-color-menu
-  ("None" (init-default "bg-color"))
-  ---
-  (pick-background "" (init-env-tree "bg-color" answer))
-  ---
-  ("Palette" (interactive-background set-background '()))
-  ("Pattern" (open-pattern-selector set-background "1cm"))
-  ("Gradient" (open-gradient-selector set-background))
-  ("Picture" (open-background-picture-selector set-background))
-  ("Other" (init-interactive-env "bg-color")))
+ ("None" (init-default "bg-color"))
+ ---
+ (pick-background "" (init-env-tree "bg-color" answer))
+ ---
+ ("Palette" (interactive-background set-background '()))
+ ("Pattern" (open-pattern-selector set-background "1cm"))
+ ("Gradient" (open-gradient-selector set-background))
+ ("Picture" (open-background-picture-selector set-background))
+ ("Other" (init-interactive-env "bg-color"))
+) ;menu-bind
 
 (menu-bind document-colors-menu
   (-> "Background" (link document-background-color-menu))
-  (-> "Foreground" (link document-foreground-color-menu)))
+  (-> "Foreground" (link document-foreground-color-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Global and document language
@@ -828,51 +953,65 @@
 (menu-bind global-language-menu
   (for (lan supported-languages)
     (when (supported-language? lan)
-      ((check (eval (upcase-first lan)) "*"
-              (and (test-document-language? lan)
-                   (== lan (get-output-language))))
+      ((check (eval (upcase-first lan))
+         "*"
+         (and (test-document-language? lan) (== lan (get-output-language)))
+       ) ;check
        (set-document-language lan)
-       (set-output-language lan)))))
+       (set-output-language lan)
+      ) ;
+    ) ;when
+  ) ;for
+) ;menu-bind
 
 (menu-bind document-language-menu
-  ("Default" (set-default-document-language))
-  ---
-  (for (lan supported-languages)
-    (when (supported-language? lan)
-      ((check (eval (language-to-language-name lan)) "*" (test-document-language? lan))
-       (set-document-language lan)))))
+ ("Default" (set-default-document-language))
+ ---
+ (for (lan supported-languages)
+   (when (supported-language? lan)
+     ((check (eval (language-to-language-name lan)) "*" (test-document-language? lan))
+      (set-document-language lan)
+     ) ;
+   ) ;when
+ ) ;for
+) ;menu-bind
 
 (tm-define (current-language-name)
-  (with lan (get-env "language")
-    (if (in? lan supported-languages)
-        (language-to-language-name lan)
-        "Unknown")))
+  (with lan
+    (get-env "language")
+    (if (in? lan supported-languages) (language-to-language-name lan) "Unknown")
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Document -> Supported scripts menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (supported-scripts-menu)
-  (let* ((dummy (lazy-plugin-force))
-         (l (scripts-list)))
+  (let* ((dummy (lazy-plugin-force)) (l (scripts-list)))
     (for (name l)
-      ((check (eval (scripts-name name)) "v"
-              (test-env? "prog-scripts" name))
-       (noop) ;; NOTE: inhibit segfault due to property searching?
-       (init-env "prog-scripts" name)))))
+     ((check (eval (scripts-name name)) "v" (test-env? "prog-scripts" name))
+      (noop)
+      ;; NOTE: inhibit segfault due to property searching?
+      (init-env "prog-scripts" name)
+     ) ;
+    ) ;for
+  ) ;let*
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document -> Informative flags menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind document-informative-flags-menu
-  ("Default" (init-default "info-flag"))
-  ---
-  ("None" (init-env "info-flag" "none"))
-  ("Minimal" (init-env "info-flag" "minimal"))
-  ("Short" (init-env "info-flag" "short"))
-  ("Detailed" (init-env "info-flag" "detailed"))
-  ("Also on paper" (init-env "info-flag" "paper")))
+ ("Default" (init-default "info-flag"))
+ ---
+ ("None" (init-env "info-flag" "none"))
+ ("Minimal" (init-env "info-flag" "minimal"))
+ ("Short" (init-env "info-flag" "short"))
+ ("Detailed" (init-env "info-flag" "detailed"))
+ ("Also on paper" (init-env "info-flag" "paper"))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Document menu
@@ -881,22 +1020,25 @@
 (menu-bind full-document-menu
   (-> "Style" (link document-style-menu))
   (link document-style-extra-menu)
-  ;;(-> "Add package"
-  ;;(link add-package-menu)
-  ;;---
-  ;;("Other" (interactive add-style-package)))
-  ;;(-> "Remove package"
-  ;;(link remove-package-menu)
-  ;;---
-  ;;("Other" (interactive remove-style-package)))
+  ;; (-> "Add package"
+  ;; (link add-package-menu)
+  ;; ---
+  ;; ("Other" (interactive add-style-package)))
+  ;; (-> "Remove package"
+  ;; (link remove-package-menu)
+  ;; ---
+  ;; ("Other" (interactive remove-style-package)))
   (if (and (not (project-attached?))
-           (!= (get-init-tree "sectional-short-style") (tree 'macro "false")))
-      (-> "Part" (link document-part-menu)))
+        (!= (get-init-tree "sectional-short-style") (tree 'macro "false"))
+      ) ;and
+    (-> "Part" (link document-part-menu))
+  ) ;if
   (-> "Source"
-      ("Edit source tree" (toggle-source-mode))
-      ---
-      (group "Preferences")
-      (link document-source-preferences-menu))
+   ("Edit source tree" (toggle-source-mode))
+   ---
+   (group "Preferences")
+   (link document-source-preferences-menu)
+  ) ;->
   (-> "Update" (link document-update-menu))
   ---
   (-> "Font" (link document-full-font-menu))
@@ -906,30 +1048,37 @@
   (-> "Headers and footers" (link document-headers-footers-menu))
   (-> "Metadata" (link document-metadata-menu))
   (-> "Bibliography"
-      (when (buffer-has-biblio? (current-buffer))
-	("Local entries" (open-biblio))))
+    (when (buffer-has-biblio? (current-buffer))
+      ("Local entries" (open-biblio))
+    ) ;when
+  ) ;->
   ---
   (-> "Magnification" (link document-magnification-menu))
   (-> "Colors" (link document-colors-menu))
-  (if (detailed-menus?)
-      (-> "Language" (link document-language-menu)))
+  (if (detailed-menus?) (-> "Language" (link document-language-menu)))
   (-> "Scripts"
-      ("Default" (init-default "prog-scripts"))
-      ---
-      (link supported-scripts-menu))
+   ("Default" (init-default "prog-scripts"))
+   ---
+   (link supported-scripts-menu)
+  ) ;->
   (-> "Informative flags" (link document-informative-flags-menu))
   (if (== (get-preference "experimental encryption") "on")
-      (-> "Encryption" (link document-encryption-menu))))
+    (-> "Encryption" (link document-encryption-menu))
+  ) ;if
+) ;menu-bind
 
 (menu-bind compressed-document-menu
   (-> "Style" (link document-style-menu))
   (link document-style-extra-menu)
   (if (and (not (project-attached?))
-           (!= (get-init-tree "sectional-short-style") (tree 'macro "false")))
-      (-> "Part" (link document-part-menu)))
+        (!= (get-init-tree "sectional-short-style") (tree 'macro "false"))
+      ) ;and
+    (-> "Part" (link document-part-menu))
+  ) ;if
   (-> "Source"
-      ("Edit source tree" (toggle-source-mode))
-      ("Preferences" (open-source-tree-preferences)))
+   ("Edit source tree" (toggle-source-mode))
+   ("Preferences" (open-source-tree-preferences))
+  ) ;->
   (-> "Update" (link document-update-menu))
   ---
   ("Font" (interactive open-document-font-selector))
@@ -939,26 +1088,28 @@
   ("Headers and footers" (open-page-headers-footers))
   ("Metadata" (open-document-metadata))
   (when (buffer-has-biblio? (current-buffer))
-    ("Bibliography" (open-biblio)))
-  ;;("Colors" (open-document-colors))
+    ("Bibliography" (open-biblio))
+  ) ;when
+  ;; ("Colors" (open-document-colors))
   ---
   (-> "Magnification" (link document-magnification-menu))
   (-> "Colors" (link document-colors-menu))
-  (if (detailed-menus?)
-      (-> "Language" (link document-language-menu)))
+  (if (detailed-menus?) (-> "Language" (link document-language-menu)))
   (-> "Scripts"
-      ("Default" (init-default "prog-scripts"))
-      ---
-      (link supported-scripts-menu))
+   ("Default" (init-default "prog-scripts"))
+   ---
+   (link supported-scripts-menu)
+  ) ;->
   (-> "Informative flags" (link document-informative-flags-menu))
   (if (== (get-preference "experimental encryption") "on")
-      (-> "Encryption" (link document-encryption-menu))))
+    (-> "Encryption" (link document-encryption-menu))
+  ) ;if
+) ;menu-bind
 
 (menu-bind document-menu
-  (if (use-menus?)
-      (link full-document-menu))
-  (if (use-popups?)
-      (link compressed-document-menu)))
+  (if (use-menus?) (link full-document-menu))
+  (if (use-popups?) (link compressed-document-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Document focus menus
@@ -971,121 +1122,139 @@
   (:require (not (or (in-beamer?) (in-poster?))))
   (-> "Theme" (link basic-theme-menu))
   (assuming (!= (current-basic-theme) "plain")
-    (-> "Background color" (link document-background-color-menu))))
+    (-> "Background color" (link document-background-color-menu))
+  ) ;assuming
+) ;tm-menu
 
 (menu-bind cite-texmacs-only-menu
-  ("The Jolly Writer" (cite-texmacs "TeXmacs:vdH:book"))
-  ("TeXmacs website" (cite-texmacs "TeXmacs:website"))
-  ("TeXmacs manual" (cite-texmacs "TeXmacs:manual")))
+ ("The Jolly Writer" (cite-texmacs "TeXmacs:vdH:book"))
+ ("TeXmacs website" (cite-texmacs "TeXmacs:website"))
+ ("TeXmacs manual" (cite-texmacs "TeXmacs:manual"))
+) ;menu-bind
 
 (menu-bind cite-texmacs-related-menu
   (-> "Tutorials"
-      ("GNU TeXmacs: a scientific editing platform"
-       (cite-texmacs "TeXmacs:vdH2:2006"))
-      ("TeXmacs in 60 minutes"
-       (cite-texmacs "TeXmacs:Seidl:2003"))
-      ("TeXmacs Quick-Start Guide"
-       (cite-texmacs "TeXmacs:Ratier:2005")))
+   ("GNU TeXmacs: a scientific editing platform"
+     (cite-texmacs "TeXmacs:vdH2:2006")
+   ) ;
+   ("TeXmacs in 60 minutes" (cite-texmacs "TeXmacs:Seidl:2003"))
+   ("TeXmacs Quick-Start Guide" (cite-texmacs "TeXmacs:Ratier:2005"))
+  ) ;->
   (-> "Surveys"
-      ("GNU TeXmacs (ASCM 2005)"
-       (cite-texmacs "TeXmacs:vdH:2005"))
-      ("GNU TeXmacs (Dagstuhl 2006)"
-       (cite-texmacs "TeXmacs:vdH1:2006"))
-      ("GNU TeXmacs: a scientific editing platform"
-       (cite-texmacs "TeXmacs:HGGLPR:2012"))
-      ("GNU TeXmacs: Towards a Scientific Office Suite"
-       (cite-texmacs "TeXmacs:GHPR:2014")))      
+   ("GNU TeXmacs (ASCM 2005)" (cite-texmacs "TeXmacs:vdH:2005"))
+   ("GNU TeXmacs (Dagstuhl 2006)" (cite-texmacs "TeXmacs:vdH1:2006"))
+   ("GNU TeXmacs: a scientific editing platform"
+     (cite-texmacs "TeXmacs:HGGLPR:2012")
+   ) ;
+   ("GNU TeXmacs: Towards a Scientific Office Suite"
+     (cite-texmacs "TeXmacs:GHPR:2014")
+   ) ;
+  ) ;->
   (-> "Research papers"
-      ("GNU TeXmacs, a free, structured, wysiwyg and technical text editor"
-       (cite-texmacs "TeXmacs:vdH:2001"))
-      ("Conservative conversion between LaTeX and TeXmacs"
-       (cite-texmacs "TeXmacs:HP:2014"))
-      ("Towards semantic mathematical editing"
-       (cite-texmacs "TeXmacs:vdH:2015"))
-      ("Preserving syntactic correctness while editing mathematical formulas"
-       (cite-texmacs "TeXmacs:HLR:2015"))
-      ("Mathematical Font Art"
-       (cite-texmacs "TeXmacs:vdH:2016")))
+   ("GNU TeXmacs, a free, structured, wysiwyg and technical text editor"
+     (cite-texmacs "TeXmacs:vdH:2001")
+   ) ;
+   ("Conservative conversion between LaTeX and TeXmacs"
+     (cite-texmacs "TeXmacs:HP:2014")
+   ) ;
+   ("Towards semantic mathematical editing" (cite-texmacs "TeXmacs:vdH:2015"))
+   ("Preserving syntactic correctness while editing mathematical formulas"
+     (cite-texmacs "TeXmacs:HLR:2015")
+   ) ;
+   ("Mathematical Font Art" (cite-texmacs "TeXmacs:vdH:2016"))
+  ) ;->
   (-> "Plug-ins"
-      ("TeXmacs interfaces to Maxima, Mupad and Reduce"
-       (cite-texmacs "TeXmacs:Grozin:2001"))
-      ("TeXmacs-Maxima interface"
-       (cite-texmacs "TeXmacs:Grozin:2005"))
-      ("TeXmacs-Reduce interface"
-       (cite-texmacs "TeXmacs:Grozin:2012"))
-      ("TeXmacs as an authoring tool for formal developments"
-       (cite-texmacs "TeXmacs:AR:2004"))
-      ("A Document-Oriented Coq Plugin for TeXmacs"
-       (cite-texmacs "TeXmacs:MG:2006"))))
+   ("TeXmacs interfaces to Maxima, Mupad and Reduce"
+     (cite-texmacs "TeXmacs:Grozin:2001")
+   ) ;
+   ("TeXmacs-Maxima interface" (cite-texmacs "TeXmacs:Grozin:2005"))
+   ("TeXmacs-Reduce interface" (cite-texmacs "TeXmacs:Grozin:2012"))
+   ("TeXmacs as an authoring tool for formal developments"
+     (cite-texmacs "TeXmacs:AR:2004")
+   ) ;
+   ("A Document-Oriented Coq Plugin for TeXmacs" (cite-texmacs "TeXmacs:MG:2006"))
+  ) ;->
+) ;menu-bind
 
 (menu-bind cite-texmacs-menu
   (assuming (or (in-beamer?) (in-seminar?) (in-browser?))
     (group "Acknowledge")
     ("Written with TeXmacs" (acknowledge-texmacs))
-    ---)
+    ---
+  ) ;assuming
   (group "Cite")
   (link cite-texmacs-only-menu)
   ---
   (group "Cite related work")
-  (link cite-texmacs-related-menu))
+  (link cite-texmacs-related-menu)
+) ;menu-bind
 
 (menu-bind cite-texmacs-short-menu
   (link cite-texmacs-only-menu)
   ---
-  (link cite-texmacs-related-menu))
+  (link cite-texmacs-related-menu)
+) ;menu-bind
 
 (tm-menu (focus-style-menu t)
   (group "Style")
-  (let* ((st* (get-style-list))
-         (st (if (null? st*) (list "no style") st*)))
-    ;;((eval (upcase-first (car st)))
-    ;;(open-style-selector))
+  (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
+    ;; ((eval (upcase-first (car st)))
+    ;; (open-style-selector))
     (-> (eval (upcase-first (car st)))
-        (link style-menu)
-        ---
-        ("Edit style" (edit-style-source))
-        ("Other style" (interactive set-main-style)))
+      (link style-menu)
+      ---
+      ("Edit style" (edit-style-source))
+      ("Other style" (interactive set-main-style))
+    ) ;->
     (dynamic (focus-style-extra-menu t))
     (for (pack (list-filter (cdr st) (negate hidden-package?)))
       (-> (eval `(verbatim ,(upcase-first pack)))
-          ("Edit package" (edit-package-source pack))
-          ("Remove package" (remove-style-package pack)))))
+       ("Edit package" (edit-package-source pack))
+       ("Remove package" (remove-style-package pack))
+      ) ;->
+    ) ;for
+  ) ;let*
   (-> "Add style package"
-      (link add-package-menu)
-      ---
-      ("Other package" (interactive add-style-package))))
+    (link add-package-menu)
+    ---
+    ("Other package" (interactive add-style-package))
+  ) ;->
+) ;tm-menu
 
 (define (number-columns-text s)
   (cond ((not (string? s)) "One column")
         ((== s "1") "One column")
         ((== s "2") "Two columns")
-         ((== s "3") "Three columns")
-         ((== s "4") "Four columns")
-         ((== s "5") "Five columns")
-         (else (string-append s " columns"))))
+        ((== s "3") "Three columns")
+        ((== s "4") "Four columns")
+        ((== s "5") "Five columns")
+        (else (string-append s " columns"))
+  ) ;cond
+) ;define
 
 (tm-menu (focus-document-menu t)
   (group "Document")
   (-> (eval (upcase-first (get-init "page-orientation")))
-      ("Portrait" (init-page-orientation "portrait"))
-      ("Landscape" (init-page-orientation "landscape")))
+   ("Portrait" (init-page-orientation "portrait"))
+   ("Landscape" (init-page-orientation "landscape"))
+  ) ;->
   (-> (eval (number-columns-text (get-init "par-columns")))
-      (link document-columns-menu))
+    (link document-columns-menu)
+  ) ;->
   (-> (eval (page-rendering-label (get-init-page-rendering)))
-      (link page-rendering-menu))
-  (-> "Layout"
-      (link page-layout-menu))
-  (-> (eval (upcase-first (get-init "page-type")))
-      (link document-page-size-menu))
-  (-> (eval (upcase-first (get-init "language")))
-      (link document-language-menu))
-  (-> (eval (short-font-menu-name))
-      (link document-short-font-menu))
-  (-> (eval (font-base-size-menu-name))
-      (link document-font-base-size-menu))
+    (link page-rendering-menu)
+  ) ;->
+  (-> "Layout" (link page-layout-menu))
+  (-> (eval (upcase-first (get-init "page-type"))) (link document-page-size-menu))
+  (-> (eval (upcase-first (get-init "language"))) (link document-language-menu))
+  (-> (eval (short-font-menu-name)) (link document-short-font-menu))
+  (-> (eval (font-base-size-menu-name)) (link document-font-base-size-menu))
   (if (and (== (get-preference "experimental encryption") "on")
-           (!= (get-init "encryption") ""))
-      (-> "Encryption" (link document-encryption-menu))))
+        (!= (get-init "encryption") "")
+      ) ;and
+    (-> "Encryption" (link document-encryption-menu))
+  ) ;if
+) ;tm-menu
 
 (tm-menu (standard-focus-menu t)
   (:require (tree-is-buffer? t))
@@ -1095,7 +1264,8 @@
   (-> "Cite TeXmacs" (link cite-texmacs-menu))
   (dynamic (focus-document-extra-menu t))
   ---
-  ("Help" (focus-help)))
+  ("Help" (focus-help))
+) ;tm-menu
 
 (tm-menu (focus-document-extra-icons t))
 (tm-menu (focus-style-extra-icons t))
@@ -1103,106 +1273,144 @@
 (tm-menu (focus-style-extra-icons t)
   (:require (not (or (in-beamer?) (in-poster?))))
   (=> (balloon (eval (basic-theme-name (current-basic-theme))) "Document theme")
-      (link basic-theme-menu))
+    (link basic-theme-menu)
+  ) ;=>
   (assuming (!= (current-basic-theme) "plain")
-    (link focus-background-color-icons)))
+    (link focus-background-color-icons)
+  ) ;assuming
+) ;tm-menu
 
 (define (style-menu-name style)
-  (with name (if (== style "generic") "style" style)
-    (upcase-first name)))
+  (with name (if (== style "generic") "style" style) (upcase-first name))
+) ;define
 
 (tm-menu (focus-style-icons t)
-  (minibar
-    (let* ((st* (get-style-list))
-           (st (if (null? st*) (list "no style") st*)))
-      (=> (balloon (eval (style-menu-name (car st))) "Document style")
-          (link style-menu)
-          ---
-          ("Edit style" (edit-style-source))
-          ("Other style" (interactive set-main-style)))
-      (dynamic (focus-style-extra-icons t))
-      (for (pack (list-filter (cdr st) (negate hidden-package?)))
-        (=> (eval `(verbatim ,pack))
-            ("Edit package" (edit-package-source pack))
-            ("Remove package" (remove-style-package pack)))))
+  (minibar (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
+             (=> (balloon (eval (style-menu-name (car st))) "Document style")
+               (link style-menu)
+               ---
+               ("Edit style" (edit-style-source))
+               ("Other style" (interactive set-main-style))
+             ) ;=>
+             (dynamic (focus-style-extra-icons t))
+             (for (pack (list-filter (cdr st) (negate hidden-package?)))
+               (=> (eval `(verbatim ,pack))
+                ("Edit package" (edit-package-source pack))
+                ("Remove package" (remove-style-package pack))
+               ) ;=>
+             ) ;for
+           ) ;let*
     (=> (balloon (icon "tm_add.xpm") "Add style package")
-        (link add-package-menu)
-        ---
-        ("Other package" (interactive add-style-package)))
+      (link add-package-menu)
+      ---
+      ("Other package" (interactive add-style-package))
+    ) ;=>
     (assuming (tree-is-buffer? t)
-      ((balloon (icon "tm_focus_help.xpm") "Describe tag")
-       (focus-help)))
+     ((balloon (icon "tm_focus_help.xpm") "Describe tag") (focus-help))
+    ) ;assuming
     (assuming (and (!= (get-preference "gui theme") "liii")
-                   (!= (get-preference "gui theme") "liii-night")
-                   (!= (get-preference "gui theme") "default"))
-      (=> (balloon (icon "tm_like.xpm") "Cite TeXmacs")
-          (link cite-texmacs-menu)))))
+                (!= (get-preference "gui theme") "liii-night")
+                (!= (get-preference "gui theme") "default")
+              ) ;and
+      (=> (balloon (icon "tm_like.xpm") "Cite TeXmacs") (link cite-texmacs-menu))
+    ) ;assuming
+  ) ;minibar
+) ;tm-menu
 
 (define (is-background-picture? bg*)
-  (with bg (tm->stree bg*)
+  (with bg
+    (tm->stree bg*)
     (and (tm-is? bg 'pattern)
-         (>= (tm-arity bg) 3)
-         (in? (tm-ref bg 1) '("100%" "100@"))
-         (in? (tm-ref bg 2) '("100%" "100@")))))
+      (>= (tm-arity bg) 3)
+      (in? (tm-ref bg 1) '("100%" "100@"))
+      (in? (tm-ref bg 2) '("100%" "100@"))
+    ) ;and
+  ) ;with
+) ;define
 
 (tm-menu (focus-background-color-icons)
-  (with setter (lambda (col) (init-env-tree "bg-color" col))
+  (with setter
+    (lambda (col) (init-env-tree "bg-color" col))
     (assuming (not (is-background-picture? (get-init-tree "bg-color")))
-      (dynamic (focus-customizable-icons-item
-                "bg-color" "Background color" :global)))
+      (dynamic (focus-customizable-icons-item "bg-color" "Background color" :global))
+    ) ;assuming
     (assuming (is-background-picture? (get-init-tree "bg-color"))
       (=> (balloon (icon "tm_camera.xpm") "Select background picture")
-          (when (init-has? "bg-color")
-            ("Restore default background" (init-default "bg-color")))
-          ("Select background picture"
-           (with bg (tree->stree (get-init-tree "bg-color"))
-             (open-background-picture-selector setter bg)))))))
+        (when (init-has? "bg-color")
+          ("Restore default background" (init-default "bg-color"))
+        ) ;when
+        ("Select background picture"
+          (with bg
+            (tree->stree (get-init-tree "bg-color"))
+            (open-background-picture-selector setter bg)
+          ) ;with
+        ) ;
+      ) ;=>
+    ) ;assuming
+  ) ;with
+) ;tm-menu
 
 (tm-define (current-page-icon)
   (cond ((test-init? "page-orientation" "landscape")
          (cond ((test-init? "par-columns" "1") "tm_landscape_1col.xpm")
                ((test-init? "par-columns" "2") "tm_landscape_2col.xpm")
                ((test-init? "par-columns" "3") "tm_landscape_2col.xpm")
-               (else "tm_landscape.xpm")))
-        (else
-         (cond ((test-init? "par-columns" "1") "tm_portrait_1col.xpm")
-               ((test-init? "par-columns" "2") "tm_portrait_2col.xpm")
-               ((test-init? "par-columns" "3") "tm_portrait_2col.xpm")
-               (else "tm_portrait.xpm")))))
+               (else "tm_landscape.xpm")
+         ) ;cond
+        ) ;
+        (else (cond ((test-init? "par-columns" "1") "tm_portrait_1col.xpm")
+                    ((test-init? "par-columns" "2") "tm_portrait_2col.xpm")
+                    ((test-init? "par-columns" "3") "tm_portrait_2col.xpm")
+                    (else "tm_portrait.xpm")
+              ) ;cond
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (tm-menu (focus-document-icons t)
-  (minibar
-    (=> (balloon (icon (eval (current-page-icon))) "Page layout")
-        ("Portrait" (init-page-orientation "portrait"))
-        ("Landscape" (init-page-orientation "landscape"))
-        ---
-        (link document-columns-menu)
-        ---
-        (link page-rendering-menu)
-        ---
-        (link page-layout-menu))
+  (minibar (=> (balloon (icon (eval (current-page-icon))) "Page layout")
+            ("Portrait" (init-page-orientation "portrait"))
+            ("Landscape" (init-page-orientation "landscape"))
+            ---
+            (link document-columns-menu)
+            ---
+            (link page-rendering-menu)
+            ---
+            (link page-layout-menu)
+           ) ;=>
     (=> (balloon (eval (if (string=? (locase-all (get-init "page-type")) "user")
-                           (string-append (get-init "page-width") " x " (get-init "page-height"))
-                           (upcase-first (get-init "page-type"))))
-                 "Paper size")
-        (link document-page-size-menu))
+                         (string-append (get-init "page-width") " x " (get-init "page-height"))
+                         (upcase-first (get-init "page-type"))
+                       ) ;if
+                 ) ;eval
+          "Paper size"
+        ) ;balloon
+      (link document-page-size-menu)
+    ) ;=>
     (=> (balloon (eval (current-language-name)) "Document language")
-        (link document-language-menu))
-    (=> (balloon (eval (short-font-menu-name))
-                 "Main document font")
-        (link document-short-font-menu))
-    (=> (balloon (eval (font-base-size-menu-name))
-                 "Main document font size")
-        (link document-font-base-size-menu))
+      (link document-language-menu)
+    ) ;=>
+    (=> (balloon (eval (short-font-menu-name)) "Main document font")
+      (link document-short-font-menu)
+    ) ;=>
+    (=> (balloon (eval (font-base-size-menu-name)) "Main document font size")
+      (link document-font-base-size-menu)
+    ) ;=>
     (if (and (== (get-preference "experimental encryption") "on")
-             (!= (get-init "encryption") ""))
-        (=> (balloon (icon "tm_lock_open.xpm") "Encryption")
-            (link document-encryption-menu)))))
+          (!= (get-init "encryption") "")
+        ) ;and
+      (=> (balloon (icon "tm_lock_open.xpm") "Encryption")
+        (link document-encryption-menu)
+      ) ;=>
+    ) ;if
+  ) ;minibar
+) ;tm-menu
 
 (tm-menu (standard-focus-icons t)
   (:require (tree-is-buffer? t))
-  (dynamic (focus-style-icons t))  
+  (dynamic (focus-style-icons t))
   //
-  (dynamic (focus-document-icons t))  
-  //   
-  (dynamic (focus-document-extra-icons t)))
+  (dynamic (focus-document-icons t))
+  //
+  (dynamic (focus-document-extra-icons t))
+) ;tm-menu

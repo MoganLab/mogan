@@ -11,14 +11,14 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic generic-speech-fr)
-  (:use (generic generic-speech)))
+(texmacs-module (generic generic-speech-fr) (:use (generic generic-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General speech commands for all modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map french any
+(speech-map french
+  any
   ("point" ".")
   ("comma" ",")
   ("double point" ":")
@@ -75,7 +75,8 @@
   ("basculer" (alternate-toggle (focus-tree)))
   ("zoomer" (zoom-in (sqrt (sqrt 2.0))))
   ("dézoomer" (zoom-out (sqrt (sqrt 2.0))))
-  
+
   ("tout sur l'écran" (fit-all-to-screen))
   ("grand comme l'écran" (fit-to-screen))
-  ("largeur de l'écran" (fit-to-screen-width)))
+  ("largeur de l'écran" (fit-to-screen-width))
+) ;speech-map

@@ -11,14 +11,14 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic generic-speech-en)
-  (:use (generic generic-speech)))
+(texmacs-module (generic generic-speech-en) (:use (generic generic-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General speech commands for all modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map english any
+(speech-map english
+  any
   ("period" ".")
   ("comma" ",")
   ("colon" ":")
@@ -84,7 +84,7 @@
   ("cut" (kbd-cut))
   ("paste" (kbd-paste))
   ("copy" (kbd-copy))
-  
+
   ("back" (cursor-history-backward))
   ("forward" (cursor-history-backward))
   ("number" (numbered-toggle (focus-tree)))
@@ -92,7 +92,8 @@
   ("zoom in" (zoom-in (sqrt (sqrt 2.0))))
   ("zoom out" (zoom-out (sqrt (sqrt 2.0))))
   ("reset zoom" (change-zoom-factor 1.0))
-  
+
   ("fit all to screen" (fit-all-to-screen))
   ("fit to screen" (fit-to-screen))
-  ("fit to screen width" (fit-to-screen-width)))
+  ("fit to screen width" (fit-to-screen-width))
+) ;speech-map

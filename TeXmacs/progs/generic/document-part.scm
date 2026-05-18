@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (generic document-part)
-  (:use (generic document-edit)
-        (text text-structure)))
+  (:use (generic document-edit) (text text-structure))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Flatten old-style projects into one file
@@ -21,38 +21,58 @@
 
 (define (inclusion-children t)
   (cond ((tree-is? t 'with) (inclusion-children (cAr (tree-children t))))
-	((tree-is? t 'document) (tree-children t))
-	(else (list t))))
+        ((tree-is? t 'document) (tree-children t))
+        (else (list t))
+  ) ;cond
+) ;define
 
 (define (expand-includes-one t r)
   (if (tree-is? t 'include)
-      (with u (url-relative r (unix->url (tree->string (tree-ref t 0))))
-	(inclusion-children (tree-load-inclusion u)))
-      (list (expand-includes t r))))
+    (with u
+      (url-relative r (unix->url (tree->string (tree-ref t 0))))
+      (inclusion-children (tree-load-inclusion u))
+    ) ;with
+    (list (expand-includes t r))
+  ) ;if
+) ;define
 
 (define (expand-includes t r)
   (cond ((tree-atomic? t) t)
-	((tree-is? t 'document)
-	 (with l (map (lambda (x) (expand-includes-one x r)) (tree-children t))
-	   (cons 'document (apply append l))))
-	(else
-	 (with l (map (lambda (x) (expand-includes x r)) (tree-children t))
-	   (cons (tree-label t) l)))))
+        ((tree-is? t 'document)
+         (with l
+           (map (lambda (x) (expand-includes-one x r)) (tree-children t))
+           (cons 'document (apply append l))
+         ) ;with
+        ) ;
+        (else (with l
+                (map (lambda (x) (expand-includes x r)) (tree-children t))
+                (cons (tree-label t) l)
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (buffer-expand-includes)
-  (with t (buffer-tree)
-    (tree-assign! t (expand-includes (buffer-tree) (buffer-master)))))
+  (with t
+    (buffer-tree)
+    (tree-assign! t (expand-includes (buffer-tree) (buffer-master)))
+  ) ;with
+) ;tm-define
 
-(define (buffer-master?) (== (get-init "project-flag") "true"))
+(define (buffer-master?)
+  (== (get-init "project-flag") "true")
+) ;define
 (tm-define (buffer-toggle-master)
   (:synopsis "Toggle using current buffer as master file of project")
   (:check-mark "v" buffer-master?)
   (init-env "project-flag"
-            (if (== (get-init "project-flag") "true") "false" "true")))
+    (if (== (get-init "project-flag") "true") "false" "true")
+  ) ;init-env
+) ;tm-define
 
 (define (project-attach* u)
-  (with name (url->unix (url-delta (current-buffer) u))
-    (project-attach name)))
+  (with name (url->unix (url-delta (current-buffer) u)) (project-attach name))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main internal representations for document parts:
@@ -67,127 +87,179 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define part-mode :one)
+
 (define body-restore-path #f)
+
 (define preamble-restore-path #f)
 
 (define (buffer-body-paragraphs)
-  (with t (buffer-tree)
+  (with t
+    (buffer-tree)
     (if (tree-in? (tree-ref t 0) '(show-preamble hide-preamble))
-	(cdr (tree-children t))
-	(tree-children t))))
+      (cdr (tree-children t))
+      (tree-children t)
+    ) ;if
+  ) ;with
+) ;define
 
 (define (buffer-show-preamble)
-  (with t (buffer-tree)
+  (with t
+    (buffer-tree)
     (when (tree-is? (tree-ref t 0) 'hide-preamble)
       (buffer-flatten-parts)
       (let* ((t (buffer-tree))
-	     (preamble `(show-preamble ,(tree-ref t 0 0)))
-	     (body `(ignore (document ,@(cdr (tree-children t))))))
-	(tree-assign! t `(document ,preamble ,body))))))
+             (preamble `(show-preamble ,(tree-ref t 0 0)))
+             (body `(ignore (document ,@(cdr (tree-children t)))))
+            ) ;
+        (tree-assign! t `(document ,preamble ,body))
+      ) ;let*
+    ) ;when
+  ) ;with
+) ;define
 
 (define (buffer-hide-preamble)
-  (with t (buffer-tree)
+  (with t
+    (buffer-tree)
     (when (match? t '(document (show-preamble :%1) (ignore (document :*))))
-      (tree-assign! t `(document (hide-preamble ,(tree-ref t 0 0))
-				 ,@(tree-children (tree-ref t 1 0)))))))
+      (tree-assign! t
+        `(document (hide-preamble ,(tree-ref t 0 0))
+           ,@(tree-children (tree-ref t 1 0)))
+      ) ;tree-assign!
+    ) ;when
+  ) ;with
+) ;define
 
 (tm-define (kbd-remove t forwards?)
   (:require (and (tree-is? t 'show-preamble) (tree-empty? (tree-ref t 0))))
   (buffer-set-part-mode :all)
   (when (buffer-has-preamble?)
-    (tree-remove (buffer-tree) 0 1)))
+    (tree-remove (buffer-tree) 0 1)
+  ) ;when
+) ;tm-define
 
 (define (buffer-flatten-subpart t)
-  (if (tree-in? t '(show-part hide-part))
-      (tree-children (tree-ref t 1))
-      (list t)))
+  (if (tree-in? t '(show-part hide-part)) (tree-children (tree-ref t 1)) (list t))
+) ;define
 
 (define (buffer-flatten-part t)
   (if (tree-in? t '(show-part hide-part))
-      (append-map buffer-flatten-subpart (tree-children (tree-ref t 1)))
-      (list t)))
+    (append-map buffer-flatten-subpart (tree-children (tree-ref t 1)))
+    (list t)
+  ) ;if
+) ;define
 
 (define (buffer-flatten-parts)
   (when (tree-in? (car (buffer-body-paragraphs)) '(hide-part show-part))
     (let* ((t (buffer-tree))
-	   (l (buffer-body-paragraphs))
-	   (parts (apply append (map buffer-flatten-part l)))
-	   (preamble? (tree-in? (tree-ref t 0) '(show-preamble hide-preamble)))
-	   (r (if preamble? (cons (tree-ref t 0) parts) parts)))
-      (tree-assign! t `(document ,@r)))))
+           (l (buffer-body-paragraphs))
+           (parts (apply append (map buffer-flatten-part l)))
+           (preamble? (tree-in? (tree-ref t 0) '(show-preamble hide-preamble)))
+           (r (if preamble? (cons (tree-ref t 0) parts) parts))
+          ) ;
+      (tree-assign! t `(document ,@r))
+    ) ;let*
+  ) ;when
+) ;define
 
 (define (buffer-make-parts)
   (when (not (tree-in? (car (buffer-body-paragraphs)) '(hide-part show-part)))
     (let* ((t (buffer-tree))
-	   (l (buffer-body-paragraphs))
-	   (parts (principal-sections-to-document-parts l))
-	   (preamble? (tree-in? (tree-ref t 0) '(show-preamble hide-preamble)))
-	   (r (if preamble? (cons (tree-ref t 0) parts) parts)))
-      (tree-assign! t `(document ,@r)))))
+           (l (buffer-body-paragraphs))
+           (parts (principal-sections-to-document-parts l))
+           (preamble? (tree-in? (tree-ref t 0) '(show-preamble hide-preamble)))
+           (r (if preamble? (cons (tree-ref t 0) parts) parts))
+          ) ;
+      (tree-assign! t `(document ,@r))
+    ) ;let*
+  ) ;when
+) ;define
 
 (tm-define (buffer-get-part-mode)
   (:synopsis "Get the mode for document part selections")
   (cond ((tree-is? (tree-ref (buffer-tree) 0) 'show-preamble) :preamble)
-	((tree-in? (car (buffer-body-paragraphs)) '(show-part hide-part))
-	 part-mode)
-	(else :all)))
+        ((tree-in? (car (buffer-body-paragraphs)) '(show-part hide-part)) part-mode)
+        (else :all)
+  ) ;cond
+) ;tm-define
 
 (define (buffer-test-part-mode? mode)
-  (== (buffer-get-part-mode) mode))
+  (== (buffer-get-part-mode) mode)
+) ;define
 
 (tm-define (buffer-set-part-mode mode)
   (:synopsis "Set the mode for document part selections")
   (:check-mark "v" buffer-test-part-mode?)
-  (with old-mode (buffer-get-part-mode)
+  (with old-mode
+    (buffer-get-part-mode)
     (when (and (== mode :preamble) (!= old-mode :preamble))
-      (set! body-restore-path (cursor-path)))
+      (set! body-restore-path (cursor-path))
+    ) ;when
     (when (and (!= mode :preamble) (== old-mode :preamble))
-      (set! preamble-restore-path (cursor-path)))
+      (set! preamble-restore-path (cursor-path))
+    ) ;when
     (cond ((== mode old-mode) (noop))
-          ((and (== mode :preamble) (not (buffer-has-preamble?)))
-           (buffer-make-preamble))
+          ((and (== mode :preamble) (not (buffer-has-preamble?))) (buffer-make-preamble))
           ((== mode :preamble)
            (when (tree-is? (tree-ref (buffer-tree) 0) 'hide-preamble)
-             (buffer-show-preamble))
-           (with p preamble-restore-path
+             (buffer-show-preamble)
+           ) ;when
+           (with p
+             preamble-restore-path
              (set! preamble-restore-path #f)
              (if p
-                 (delayed (:idle 1)
-                   (catch #t
-                     (lambda () (go-to-path p))
-                     (lambda err (tree-go-to (buffer-tree) 0 0 :start))))
-                 (tree-go-to (buffer-tree) 0 0 :start))))
+               (delayed (:idle 1)
+                 (catch #t
+                   (lambda () (go-to-path p))
+                   (lambda err (tree-go-to (buffer-tree) 0 0 :start))
+                 ) ;catch
+               ) ;delayed
+               (tree-go-to (buffer-tree) 0 0 :start)
+             ) ;if
+           ) ;with
+          ) ;
           ((== mode :all)
            (buffer-hide-preamble)
            (buffer-flatten-parts)
-           (with p body-restore-path
+           (with p
+             body-restore-path
              (set! body-restore-path #f)
              (if p
-                 (delayed (:idle 1)
-                   (catch #t
-                     (lambda () (go-to-path p))
-                     (lambda err (tree-go-to (car (buffer-body-paragraphs)) :start))))
-                 (tree-go-to (car (buffer-body-paragraphs)) :start)))
-           (update-current-buffer))
-          (else
-           (buffer-hide-preamble)
-           (buffer-make-parts)
-           (set! part-mode mode)
-           (with first (car (buffer-parts-list #f))
-             (if (== mode :one)
-                 (buffer-show-part first)
-                 (buffer-go-to-part first)))
-                  (update-current-buffer)))))
+               (delayed (:idle 1)
+                 (catch #t
+                   (lambda () (go-to-path p))
+                   (lambda err (tree-go-to (car (buffer-body-paragraphs)) :start))
+                 ) ;catch
+               ) ;delayed
+               (tree-go-to (car (buffer-body-paragraphs)) :start)
+             ) ;if
+           ) ;with
+           (update-current-buffer)
+          ) ;
+          (else (buffer-hide-preamble)
+            (buffer-make-parts)
+            (set! part-mode mode)
+            (with first
+              (car (buffer-parts-list #f))
+              (if (== mode :one) (buffer-show-part first) (buffer-go-to-part first))
+            ) ;with
+            (update-current-buffer)
+          ) ;else
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 (tm-define (in-preamble-mode?)
-  (tree-is? (tree-ref (buffer-tree) 0) 'show-preamble))
+  (tree-is? (tree-ref (buffer-tree) 0) 'show-preamble)
+) ;tm-define
 
 (tm-define (toggle-preamble-mode)
   (:synopsis "Toggle the preamble mode for the document")
   (:check-mark "v" in-preamble-mode?)
   (if (in-preamble-mode?)
-      (buffer-set-part-mode :all)
-      (buffer-set-part-mode :preamble)))
+    (buffer-set-part-mode :all)
+    (buffer-set-part-mode :preamble)
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Listing the document parts
@@ -195,47 +267,65 @@
 
 (tm-define (document-has-preamble? t)
   (:synopsis "Does the document tree @t contain a preamble?")
-  (tree-in? (tree-ref t 0) '(show-preamble hide-preamble)))
+  (tree-in? (tree-ref t 0) '(show-preamble hide-preamble))
+) ;tm-define
 
 (tm-define (document-get-preamble t)
   (:synopsis "Obtain the preamble of the document tree @t")
-  (if (document-has-preamble? t) (tree-ref t 0 0) `(document "")))
+  (if (document-has-preamble? t) (tree-ref t 0 0) '(document ""))
+) ;tm-define
 
 (define (document-part-name t)
   (if (== (tree-ref t 1) (string->tree ""))
-      (string->tree "no title")
-      (principal-section-title (tree-ref t 1))))
+    (string->tree "no title")
+    (principal-section-title (tree-ref t 1))
+  ) ;if
+) ;define
 
 (define (document-get-parts t all?)
   (cond ((tree-atomic? t) '())
-	((or (tree-is? t 'show-part) (and all? (tree-is? t 'hide-part)))
-	 (list (document-part-name t)))
-	((principal-section? t)
-	 (list (tm/section-get-title-string t #f)))
-	((not (tree-in? t '(document ignore))) '())
-	(else (with ls (map (lambda (x) (document-get-parts x all?))
-			    (tree-children t))
-		(apply append ls)))))
+        ((or (tree-is? t 'show-part) (and all? (tree-is? t 'hide-part)))
+         (list (document-part-name t))
+        ) ;
+        ((principal-section? t) (list (tm/section-get-title-string t #f)))
+        ((not (tree-in? t '(document ignore))) '())
+        (else (with ls
+                (map (lambda (x) (document-get-parts x all?)) (tree-children t))
+                (apply append ls)
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (buffer-has-preamble?)
   (:synopsis "Does the current buffer contain a preamble?")
-  (document-has-preamble? (buffer-tree)))
+  (document-has-preamble? (buffer-tree))
+) ;tm-define
 
 (tm-define (buffer-get-preamble)
   (:synopsis "Obtain the preamble of the current buffer")
-  (document-get-preamble (buffer-tree)))
+  (document-get-preamble (buffer-tree))
+) ;tm-define
 
 (tm-define (buffer-parts-list all?)
   (:synopsis "Get the list of all document parts of the current buffer")
-  (with l (buffer-body-paragraphs)
+  (with l
+    (buffer-body-paragraphs)
     (if (match? l '((ignore (document :*))))
-	(set! l (tree-children (tree-ref (car l) 0))))
-    (with parts (document-get-parts (tm->tree `(document ,@l)) all?)
+      (set! l (tree-children (tree-ref (car l) 0)))
+    ) ;if
+    (with parts
+      (document-get-parts (tm->tree `(document ,@l)) all?)
       (if (and (not (tree-in? (car l) '(show-part hide-part)))
-	       (not (principal-section? (car l)))
-	       (or all? (== (buffer-get-part-mode) :all)))
-	  (cons "front matter" parts)
-	  parts))))
+            (not (principal-section? (car l)))
+            (or all? (== (buffer-get-part-mode) :all))
+          ) ;and
+        (cons "front matter" parts)
+        parts
+      ) ;if
+    ) ;with
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Selection of specific document parts
@@ -243,54 +333,70 @@
 
 (define (document-find-part t id)
   (cond ((tree-atomic? t) #f)
-	((tree-in? t '(show-part hide-part))
-	 (and (== id (document-part-name t)) t))
-	((not (tree-in? t '(document ignore))) #f)
-	(else (list-find (tree-children t)
-			 (lambda (x) (document-find-part x id))))))
+        ((tree-in? t '(show-part hide-part)) (and (== id (document-part-name t)) t))
+        ((not (tree-in? t '(document ignore))) #f)
+        (else (list-find (tree-children t) (lambda (x) (document-find-part x id))))
+  ) ;cond
+) ;define
 
 (define (document-select-part t id)
   (cond ((tree-atomic? t) (noop))
-	((tree-in? t '(show-part hide-part))
-	 (with show? (== id (document-part-name t))
-	   (if (and show? (tree-is? t 'hide-part))
-	       (tree-assign-node! t 'show-part))
-	   (if (and (not show?) (tree-is? t 'show-part))
-	       (tree-assign-node! t 'hide-part))))
-	((not (tree-is? t 'document)) (noop))
-	(else (for-each (lambda (x) (document-select-part x id))
-			(tree-children t)))))
+        ((tree-in? t '(show-part hide-part))
+         (with show?
+           (== id (document-part-name t))
+           (if (and show? (tree-is? t 'hide-part)) (tree-assign-node! t 'show-part))
+           (if (and (not show?) (tree-is? t 'show-part)) (tree-assign-node! t 'hide-part))
+         ) ;with
+        ) ;
+        ((not (tree-is? t 'document)) (noop))
+        (else (for-each (lambda (x) (document-select-part x id)) (tree-children t)))
+  ) ;cond
+) ;define
 
 (tm-define (buffer-go-to-part id)
   (:synopsis "Go to the part with name @id")
-  (with t (document-find-part (buffer-tree) id)
-    (and t (tree-go-to t 1 :start))))
+  (with t (document-find-part (buffer-tree) id) (and t (tree-go-to t 1 :start)))
+) ;tm-define
 
 (tm-define (buffer-show-part id)
   (:synopsis "Show the document part with name @id")
   (when (== (buffer-get-part-mode) :one)
     (document-select-part (buffer-tree) id)
-    (buffer-go-to-part id)))
+    (buffer-go-to-part id)
+  ) ;when
+) ;tm-define
 
 (tm-define (buffer-toggle-part id)
   (:synopsis "Toggle the visibility of the document part with name @id")
   (when (and (== (buffer-get-part-mode) :several)
-	     (list-find (buffer-parts-list #f) (lambda (x) (!= x id))))
-    (with t (document-find-part (buffer-tree) id)
+          (list-find (buffer-parts-list #f) (lambda (x) (!= x id)))
+        ) ;and
+    (with t
+      (document-find-part (buffer-tree) id)
       (cond ((not t) (noop))
-	    ((tree-is? t 'show-part)
-	     (tree-assign-node! t 'hide-part)
-	     (buffer-go-to-part (car (buffer-parts-list #f))))
-	    ((tree-is? t 'hide-part)
-	     (tree-assign-node! t 'show-part)
-	     (buffer-go-to-part id))))))
+            ((tree-is? t 'show-part)
+             (tree-assign-node! t 'hide-part)
+             (buffer-go-to-part (car (buffer-parts-list #f)))
+            ) ;
+            ((tree-is? t 'hide-part)
+             (tree-assign-node! t 'show-part)
+             (buffer-go-to-part id)
+            ) ;
+      ) ;cond
+    ) ;with
+  ) ;when
+) ;tm-define
 
 (tm-define (buffer-make-preamble)
   (:synopsis "Create a preamble for the current document")
   (when (not (buffer-has-preamble?))
-    (with t (buffer-tree)
+    (with t
+      (buffer-tree)
       (tree-insert! t 0 '((hide-preamble (document ""))))
-      (buffer-set-part-mode :preamble))))
+      (buffer-set-part-mode :preamble)
+    ) ;with
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Making hidden parts visible
@@ -299,39 +405,42 @@
 (tm-define (tree-show-hidden t)
   (:require (and (tree-is? t 'hide-part) (== (tree-up t) (buffer-tree))))
   (if (== (buffer-get-part-mode) :one)
-      (with id (document-part-name t)
-	(document-select-part (tree-up t) id))
-      (tree-assign-node! t 'show-part)))
+    (with id (document-part-name t) (document-select-part (tree-up t) id))
+    (tree-assign-node! t 'show-part)
+  ) ;if
+) ;tm-define
 
 (tm-define (show-hidden-part id)
   (:synopsis "Make hidden part with identifier @id visible")
-  (with search? (lambda (t) (match? t `(hide-part ,id :%2)))
-    (and-with t (list-find (tree-children (buffer-tree)) search?)
+  (with search?
+    (lambda (t) (match? t `(hide-part ,id ,:%2)))
+    (and-with t
+      (list-find (tree-children (buffer-tree)) search?)
       (tree-show-hidden t)
-      #t)))
+      #t
+    ) ;and-with
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Buffer with included files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tm-include? t)
-  (and (tm-func? t 'include 1)
-       (tm-atomic? (tm-ref t 0))))
+  (and (tm-func? t 'include 1) (tm-atomic? (tm-ref t 0)))
+) ;define
 
 (tm-define (tm-get-includes doc)
-  (cond ((tm-func? doc 'with)
-	 (tm-get-includes (tm-ref doc :last)))
-	((tm-func? doc 'document)
-	 (append-map tm-get-includes (tm-children doc)))
-	((tm-include? doc)
-	 (list (tm->string (tm-ref doc 0))))
-	(else (list))))
+  (cond ((tm-func? doc 'with) (tm-get-includes (tm-ref doc :last)))
+        ((tm-func? doc 'document) (append-map tm-get-includes (tm-children doc)))
+        ((tm-include? doc) (list (tm->string (tm-ref doc 0))))
+        (else (list))
+  ) ;cond
+) ;tm-define
 
-(tm-define (buffer-get-includes)
-  (tm-get-includes (buffer-tree)))
+(tm-define (buffer-get-includes) (tm-get-includes (buffer-tree)))
 
-(tm-define (buffer-contains-includes?)
-  (nnull? (buffer-get-includes)))
+(tm-define (buffer-contains-includes?) (nnull? (buffer-get-includes)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The dynamic document part menu
@@ -339,47 +448,61 @@
 
 (tm-menu (document-parts-menu)
   (let* ((all (buffer-parts-list #t))
-	 (active (buffer-parts-list #f))
-	 (make (lambda (id) (document-parts-menu-entry id (in? id active)))))
+         (active (buffer-parts-list #f))
+         (make (lambda (id) (document-parts-menu-entry id (in? id active))))
+        ) ;
     (for (id all)
-      ((check (eval (upcase-first id)) "v" (in? id active))
-       (if (== (buffer-get-part-mode) :one)
-           (buffer-show-part id)
-           (buffer-toggle-part id))))))
+     ((check (eval (upcase-first id)) "v" (in? id active))
+      (if (== (buffer-get-part-mode) :one)
+        (buffer-show-part id)
+        (buffer-toggle-part id)
+      ) ;if
+     ) ;
+    ) ;for
+  ) ;let*
+) ;tm-menu
 
 (menu-bind preamble-menu
-  (if (buffer-has-preamble?)
-      ("Show preamble" (toggle-preamble-mode)))
-  (if (not (buffer-has-preamble?))
-      ("Create preamble" (toggle-preamble-mode)))
-  ("Show main document" (buffer-set-part-mode :all)))
+  (if (buffer-has-preamble?) ("Show preamble" (toggle-preamble-mode)))
+  (if (not (buffer-has-preamble?)) ("Create preamble" (toggle-preamble-mode)))
+  ("Show main document" (buffer-set-part-mode :all))
+) ;menu-bind
 
 (menu-bind document-part-menu
-  (if (buffer-has-preamble?)
-      ("Show preamble" (toggle-preamble-mode)))
-  (if (not (buffer-has-preamble?))
-      ("Create preamble" (toggle-preamble-mode)))
+  (if (buffer-has-preamble?) ("Show preamble" (toggle-preamble-mode)))
+  (if (not (buffer-has-preamble?)) ("Create preamble" (toggle-preamble-mode)))
   ("Show one part" (buffer-set-part-mode :one))
   ("Show several parts" (buffer-set-part-mode :several))
   ("Show all parts" (buffer-set-part-mode :all))
   (if (or (in? (buffer-get-part-mode) '(:one :several))
-	  (!= (get-init-tree "sectional-short-style") (tree 'macro "false")))
-      ---
-      (when (in? (buffer-get-part-mode) '(:one :several))
-	(link document-parts-menu))))
+        (!= (get-init-tree "sectional-short-style") (tree 'macro "false"))
+      ) ;or
+    ---
+    (when (in? (buffer-get-part-mode) '(:one :several))
+      (link document-parts-menu)
+    ) ;when
+  ) ;if
+) ;menu-bind
 
 (menu-bind document-part-menu
   (:require (buffer-contains-includes?))
-  (link document-master-menu))
+  (link document-master-menu)
+) ;menu-bind
 
 (menu-bind project-manage-menu
   (if (!= (url-suffix (current-buffer)) "tp")
-      ("Use as master" (buffer-toggle-master)))
+   ("Use as master" (buffer-toggle-master))
+  ) ;if
   (when (buffer-contains-includes?)
-    ("Expand inclusions" (buffer-expand-includes)))
+    ("Expand inclusions" (buffer-expand-includes))
+  ) ;when
   ---
   (when (not (project-attached?))
     ("Attach master"
-     (choose-file project-attach* "Attach master file for project" "texmacs")))
+      (choose-file project-attach* "Attach master file for project" "texmacs")
+    ) ;
+  ) ;when
   (when (project-attached?)
-    ("Detach master" (project-detach))))
+    ("Detach master" (project-detach))
+  ) ;when
+) ;menu-bind

@@ -11,90 +11,142 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic format-drd)
-  (:use (utils edit variants)))
+(texmacs-module (generic format-drd) (:use (utils edit variants)))
 
 ;; General groups
 
 (define-group variant-tag
-  (vspace-tag) (indent-tag) (new-page-tag) (page-break-tag)
-  (move-tag) (resize-tag) (smash-tag) (inflate-tag) (reduce-by-tag)
+  (vspace-tag)
+  (indent-tag)
+  (new-page-tag)
+  (page-break-tag)
+  (move-tag)
+  (resize-tag)
+  (smash-tag)
+  (inflate-tag)
+  (reduce-by-tag)
   (font-effect-tag)
-  (eff-tag) (basic-effect-tag) (color-effect-tag)
-  (gaussian-effect-tag) (oval-effect-tag)
-  (rectangular-effect-tag) (motion-effect-tag))
+  (eff-tag)
+  (basic-effect-tag)
+  (color-effect-tag)
+  (gaussian-effect-tag)
+  (oval-effect-tag)
+  (rectangular-effect-tag)
+  (motion-effect-tag)
+) ;define-group
 
 (define-group similar-tag
-  (vspace-tag) (indent-tag) (new-page-tag) (page-break-tag)
-  (move-tag) (resize-tag) (smash-tag) (inflate-tag) (reduce-by-tag)
+  (vspace-tag)
+  (indent-tag)
+  (new-page-tag)
+  (page-break-tag)
+  (move-tag)
+  (resize-tag)
+  (smash-tag)
+  (inflate-tag)
+  (reduce-by-tag)
   (font-effect-tag)
-  (eff-tag) (basic-effect-tag) (color-effect-tag)
-  (gaussian-effect-tag) (oval-effect-tag)
-  (rectangular-effect-tag) (motion-effect-tag))
+  (eff-tag)
+  (basic-effect-tag)
+  (color-effect-tag)
+  (gaussian-effect-tag)
+  (oval-effect-tag)
+  (rectangular-effect-tag)
+  (motion-effect-tag)
+) ;define-group
 
-(define-group make-inline-tag
-  (basic-effect-tag))
+(define-group make-inline-tag (basic-effect-tag))
 
 ;; Various formatting tags
 
-(define-group vspace-tag
-  vspace vspace*)
+(define-group vspace-tag vspace vspace*)
 
-(define-group indent-tag
-  no-indent no-indent* yes-indent yes-indent*)
+(define-group indent-tag no-indent no-indent* yes-indent yes-indent*)
 
-(define-group new-page-tag
-  new-page new-page* new-dpage new-dpage*)
+(define-group new-page-tag new-page new-page* new-dpage new-dpage*)
 
 (define-group page-break-tag
-  page-break page-break* no-break-here no-break-here*)
+  page-break
+  page-break*
+  no-break-here
+  no-break-here*
+) ;define-group
 
 ;; Various geometry adjustment tags
 
-(define-group move-tag
-  move shift)
+(define-group move-tag move shift)
 
-(define-group resize-tag
-  resize extend clipped)
+(define-group resize-tag resize extend clipped)
 
-(define-group smash-tag
-  smash smash-bottom smash-top)
+(define-group smash-tag smash smash-bottom smash-top)
 
-(define-group inflate-tag
-  inflate inflate-bottom inflate-top)
+(define-group inflate-tag inflate inflate-bottom inflate-top)
 
-(define-group reduce-by-tag
-  reduce-by reduce-bottom-by reduce-top-by)
+(define-group reduce-by-tag reduce-by reduce-bottom-by reduce-top-by)
 
 (define-group font-effect-tag
-  embold embbb slanted hmagnified vmagnified
-  condensed extended degraded distorted gnawed)
+  embold
+  embbb
+  slanted
+  hmagnified
+  vmagnified
+  condensed
+  extended
+  degraded
+  distorted
+  gnawed
+) ;define-group
 
-(define-group eff-tag
-  eff-blur eff-outline eff-thicken eff-erode)
+(define-group eff-tag eff-blur eff-outline eff-thicken eff-erode)
 
 (define-group basic-effect-tag
-  blur outline thicken erode
-  shadow engrave emboss
-  shadowed-raise outlined-engrave outlined-emboss
-  degrade distort gnaw)
+  blur
+  outline
+  thicken
+  erode
+  shadow
+  engrave
+  emboss
+  shadowed-raise
+  outlined-engrave
+  outlined-emboss
+  degrade
+  distort
+  gnaw
+) ;define-group
 
-(define-group color-effect-tag
-  make-transparent make-opaque recolor skin)
+(define-group color-effect-tag make-transparent make-opaque recolor skin)
 
 (define-group pen-effect-tag
-  blur outline thicken erode
-  (gaussian-effect-tag) (oval-effect-tag)
-  (rectangular-effect-tag) (motion-effect-tag))
-  
-(define-group gaussian-effect-tag
-  gaussian-blur gaussian-outline gaussian-thicken gaussian-erode)
+  blur
+  outline
+  thicken
+  erode
+  (gaussian-effect-tag)
+  (oval-effect-tag)
+  (rectangular-effect-tag)
+  (motion-effect-tag)
+) ;define-group
 
-(define-group oval-effect-tag
-  oval-blur oval-outline oval-thicken oval-erode)
+(define-group gaussian-effect-tag
+  gaussian-blur
+  gaussian-outline
+  gaussian-thicken
+  gaussian-erode
+) ;define-group
+
+(define-group oval-effect-tag oval-blur oval-outline oval-thicken oval-erode)
 
 (define-group rectangular-effect-tag
-  rectangular-blur rectangular-outline rectangular-thicken rectangular-erode)
+  rectangular-blur
+  rectangular-outline
+  rectangular-thicken
+  rectangular-erode
+) ;define-group
 
 (define-group motion-effect-tag
-  motion-blur motion-outline motion-thicken motion-erode)
+  motion-blur
+  motion-outline
+  motion-thicken
+  motion-erode
+) ;define-group

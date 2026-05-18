@@ -11,32 +11,30 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic generic-speech)
-  (:use (generic generic-kbd)))
+(texmacs-module (generic generic-speech) (:use (generic generic-kbd)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Helper routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (speech-leave)
-  (structured-exit-right))
+(tm-define (speech-leave) (structured-exit-right))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Moving inside tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (cell-left)
-  (and-with t (tree-innermost 'table)
-    (structured-horizontal t #f)))
+  (and-with t (tree-innermost 'table) (structured-horizontal t #f))
+) ;tm-define
 
 (tm-define (cell-right)
-  (and-with t (tree-innermost 'table)
-    (structured-horizontal t #t)))
+  (and-with t (tree-innermost 'table) (structured-horizontal t #t))
+) ;tm-define
 
 (tm-define (cell-up)
-  (and-with t (tree-innermost 'table)
-    (structured-vertical t #f)))
+  (and-with t (tree-innermost 'table) (structured-vertical t #f))
+) ;tm-define
 
 (tm-define (cell-down)
-  (and-with t (tree-innermost 'table)
-    (structured-vertical t #t)))
+  (and-with t (tree-innermost 'table) (structured-vertical t #t))
+) ;tm-define

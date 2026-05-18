@@ -12,11 +12,11 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 (import (liii hashlib))
 (texmacs-module (generic search-widgets)
-  (:use (generic generic-edit)
-        (utils library cursor)
-        (kernel gui menu-widget)))
+  (:use (generic generic-edit) (utils library cursor) (kernel gui menu-widget))
+) ;texmacs-module
 
 (define search-replace-text "")
+
 (define isreplace? #f)
 
 ;; set-search-window-state
@@ -53,16 +53,21 @@
 ;; 每个文档视图有独立的搜索缓冲区，因此状态与当前文档视图关联。
 (tm-define (set-search-window-state opened? is-search?)
   (let ((widget-type (if is-search? 'search 'replace)))
-    (set-auxiliary-widget-state opened? widget-type)))
+    (set-auxiliary-widget-state opened? widget-type)
+  ) ;let
+) ;tm-define
 
 ;; 获取当前窗口的辅助窗口状态
 (tm-define (get-search-window-state)
   (let ((state (get-auxiliary-widget-state)))
     (if state
-        (let ((opened? (car state))
-              (widget-type (cadr state)))
-          (list opened? (== widget-type 'search)))
-        #f)))
+      (let ((opened? (car state)) (widget-type (cadr state)))
+        (list opened? (== widget-type 'search))
+      ) ;let
+      #f
+    ) ;if
+  ) ;let
+) ;tm-define
 
 ;; update-search-pos-text
 ;; 更新搜索/替换窗口的位置显示文本。
@@ -101,13 +106,18 @@
 ;; 此函数用于在搜索/替换操作后更新辅助窗口的标题显示，提供用户友好的位置反馈。
 (tm-define (update-search-pos-text action)
   (let* ((effective-action (if isreplace? "new" action))
-         (index-str (get-alt-selection-index "alternate" effective-action)))
+         (index-str (get-alt-selection-index "alternate" effective-action))
+        ) ;
     (when isreplace?
-      (set! isreplace? #f))
+      (set! isreplace? #f)
+    ) ;when
     (if (== index-str "")
-        (set-auxiliary-widget-title (translate search-replace-text))
-        (set-auxiliary-widget-title
-          (string-append (translate search-replace-text) " (" index-str ")")))))
+      (set-auxiliary-widget-title (translate search-replace-text))
+      (set-auxiliary-widget-title (string-append (translate search-replace-text) " (" index-str ")")
+      ) ;set-auxiliary-widget-title
+    ) ;if
+  ) ;let*
+) ;tm-define
 
 
 
@@ -148,15 +158,21 @@
 ;; ----
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
-  (with u (current-buffer)
+  (with u
+    (current-buffer)
     (if (and (url-rooted-tmfs? u)
-             (== (url-head(url-head u)) (string->url "tmfs://aux/search")))
-        u
-        (string->url
-          (string-append "tmfs://aux/search/" 
-                         (md5 (url->string (current-view-url)))
-                         "/"
-                         (url->string (url-tail (current-window))))))))
+          (== (url-head (url-head u)) (string->url "tmfs://aux/search"))
+        ) ;and
+      u
+      (string->url (string-append "tmfs://aux/search/"
+                     (md5 (url->string (current-view-url)))
+                     "/"
+                     (url->string (url-tail (current-window)))
+                   ) ;string-append
+      ) ;string->url
+    ) ;if
+  ) ;with
+) ;tm-define
 
 ;; replace-buffer
 ;; 获取或创建替换辅助缓冲区的URL。
@@ -186,15 +202,21 @@
 ;; ----
 ;; 此函数用于管理替换辅助缓冲区的生命周期，确保每个主文档视图有唯一的替换缓冲区。
 (tm-define (replace-buffer)
-  (with u (current-buffer)
+  (with u
+    (current-buffer)
     (if (and (url-rooted-tmfs? u)
-             (== (url-head(url-head u)) (string->url "tmfs://aux/replace")))
-        u
-        (string->url
-          (string-append "tmfs://aux/replace/" 
-                         (md5 (url->string (current-view-url)))
-                         "/"
-                         (url->string (url-tail (current-window))))))))
+          (== (url-head (url-head u)) (string->url "tmfs://aux/replace"))
+        ) ;and
+      u
+      (string->url (string-append "tmfs://aux/replace/"
+                     (md5 (url->string (current-view-url)))
+                     "/"
+                     (url->string (url-tail (current-window)))
+                   ) ;string-append
+      ) ;string->url
+    ) ;if
+  ) ;with
+) ;tm-define
 
 ;; convert-search-replace-buffer
 ;; 在搜索缓冲区和替换缓冲区的URL之间进行转换。
@@ -224,12 +246,20 @@
 (tm-define (convert-search-replace-buffer u)
   (let* ((s (url->string u))
          (search-pre "tmfs://aux/search/")
-         (replace-pre "tmfs://aux/replace/"))
+         (replace-pre "tmfs://aux/replace/")
+        ) ;
     (cond ((string-starts? s search-pre)
-           (string->url (string-append replace-pre (substring s (string-length search-pre)))))
+           (string->url (string-append replace-pre (substring s (string-length search-pre)))
+           ) ;string->url
+          ) ;
           ((string-starts? s replace-pre)
-           (string->url (string-append search-pre (substring s (string-length replace-pre)))))
-          (else #f))))
+           (string->url (string-append search-pre (substring s (string-length replace-pre)))
+           ) ;string->url
+          ) ;
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 
 ;; search-replace-up-down
@@ -274,47 +304,60 @@
 ;; 提升了表单填写的流畅度。
 (tm-define (search-replace-up-down down?)
   (if (not (get-boolean-preference "search-and-replace"))
-      (if down? (kbd-down) (kbd-up))
-      ;; 当 search-and-replace 为 true 时，检查边界
-      (with doc (focus-tree)
-        (if down?
-            ;; 向下移动：检查是否在底部
-            (if (tree-at-end? (tm-ref doc :last))
-                (buffer-focus (convert-search-replace-buffer (search-buffer)) #t)
-                (kbd-down))     ; 不在底部，执行 kbd-down
-            ;; 向上移动：检查是否在顶部
-            (if (tree-at-start? (tm-ref doc :first))
-                (buffer-focus (convert-search-replace-buffer (replace-buffer)) #t)
-                (kbd-up))))))   ; 不在顶部，执行 kbd-up
+    (if down? (kbd-down) (kbd-up))
+    ;; 当 search-and-replace 为 true 时，检查边界
+    (with doc
+      (focus-tree)
+      (if down?
+        ;; 向下移动：检查是否在底部
+        (if (tree-at-end? (tm-ref doc :last))
+          (buffer-focus (convert-search-replace-buffer (search-buffer)) #t)
+          (kbd-down)
+        ) ;if
+        ;; 向上移动：检查是否在顶部
+        (if (tree-at-start? (tm-ref doc :first))
+          (buffer-focus (convert-search-replace-buffer (replace-buffer)) #t)
+          (kbd-up)
+        ) ;if
+      ) ;if
+    ) ;with
+  ) ;if
+) ;tm-define
 
 (tm-define (auxiliary-buffer->window x)
-  (url-append (string->url "tmfs://window") (url-tail x)))
+  (url-append (string->url "tmfs://window") (url-tail x))
+) ;tm-define
 
 (tm-define (master-buffer)
   (and (buffer-exists? (search-buffer))
-       (with mas (buffer-get-master (search-buffer))
-         (cond ((nnull? (buffer->windows mas))
-                mas)
-               ((in? search-window (window-list))
-                (buffer-set-master (search-buffer)
-                                   (window->buffer search-window))
-                (with-buffer (buffer-get-master (search-buffer))
-                  (set-search-reference (cursor-path))
-                  (set-search-filter))
-                (master-buffer))
-               ((nnull? (window-list))
-                (set! search-window (car (window-list)))
-                (master-buffer))
-               (else #f)))))
+    (with mas
+      (buffer-get-master (search-buffer))
+      (cond ((nnull? (buffer->windows mas)) mas)
+            ((in? search-window (window-list))
+             (buffer-set-master (search-buffer) (window->buffer search-window))
+             (with-buffer (buffer-get-master (search-buffer))
+               (set-search-reference (cursor-path))
+               (set-search-filter)
+             ) ;with-buffer
+             (master-buffer)
+            ) ;
+            ((nnull? (window-list))
+             (set! search-window (car (window-list)))
+             (master-buffer)
+            ) ;
+            (else #f)
+      ) ;cond
+    ) ;with
+  ) ;and
+) ;tm-define
 
-(tm-define (inside-search-buffer?)
-  (== (current-buffer) (search-buffer)))
+(tm-define (inside-search-buffer?) (== (current-buffer) (search-buffer)))
 
-(tm-define (inside-replace-buffer?)
-  (== (current-buffer) (replace-buffer)))
+(tm-define (inside-replace-buffer?) (== (current-buffer) (replace-buffer)))
 
 (tm-define (inside-search-or-replace-buffer?)
-  (in? (current-buffer) (list (search-buffer) (replace-buffer))))
+  (in? (current-buffer) (list (search-buffer) (replace-buffer)))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Filtered searching
@@ -326,201 +369,276 @@
   (cond ((== mode "text") "language")
         ((== mode "math") "math-language")
         ((== mode "prog") "prog-language")
-        (else "language")))
+        (else "language")
+  ) ;cond
+) ;define
 
 (define (get-main-attrs getter)
-  (list "mode" (getter "mode")
-        "language" (getter "language")
-        "math-language" (getter "math-language")
-        "prog-language" (getter "prog-language")))
+  (list "mode"
+    (getter "mode")
+    "language"
+    (getter "language")
+    "math-language"
+    (getter "math-language")
+    "prog-language"
+    (getter "prog-language")
+  ) ;list
+) ;define
 
 (define (set-search-filter)
   (let* ((vars (list "mode" (mode-language (get-env "mode"))))
          (vals (map get-env-tree vars))
          (attrs (append-map list vars vals))
-         (env `(attr ,@attrs)))
-    (ahash-set! search-filter-table (current-buffer) env)))
+         (env `(attr ,@attrs))
+        ) ;
+    (ahash-set! search-filter-table (current-buffer) env)
+  ) ;let*
+) ;define
 
 (define (get-search-filter)
-  (ahash-ref search-filter-table (current-buffer)))
+  (ahash-ref search-filter-table (current-buffer))
+) ;define
 
 (define (check-same-sub? env var val)
   (cond ((or (null? env) (null? (cdr env))) #f)
         ((tm-equal? (car env) var) (tm-equal? (cadr env) val))
-        (else (check-same-sub? (cddr env) var val))))
+        (else (check-same-sub? (cddr env) var val))
+  ) ;cond
+) ;define
 
 (define (check-same? new-env old-env)
-  ;;(display* "Check " new-env ", " old-env "\n")
-  (if (null? old-env) #t
-      (and (check-same-sub? new-env (car old-env) (cadr old-env))
-           (check-same? new-env (cddr old-env)))))
+  ;; (display* "Check " new-env ", " old-env "\n")
+  (if (null? old-env)
+    #t
+    (and (check-same-sub? new-env (car old-env) (cadr old-env))
+      (check-same? new-env (cddr old-env))
+    ) ;and
+  ) ;if
+) ;define
 
 (define (accept-search-result? p)
   (or (== (get-init "mode") "src")
-      (let* ((buf (buffer-tree))
-             (rel (path-strip (cDr p) (tree->path buf)))
-             (initial (cons 'attr (get-main-attrs get-init)))
-             (old-env (get-search-filter))
-             (new-env (tree-descendant-env* buf rel initial)))
-        ;;(display* p " ~> " new-env "\n")
-        (check-same? (tm-children new-env) (tm-children old-env)))))
+    (let* ((buf (buffer-tree))
+           (rel (path-strip (cDr p) (tree->path buf)))
+           (initial (cons 'attr (get-main-attrs get-init)))
+           (old-env (get-search-filter))
+           (new-env (tree-descendant-env* buf rel initial))
+          ) ;
+      ;; (display* p " ~> " new-env "\n")
+      (check-same? (tm-children new-env) (tm-children old-env))
+    ) ;let*
+  ) ;or
+) ;define
 
 (define (filter-search-results sels)
-  (if (or (null? sels) (null? (cdr sels))) (list)
-      (with r (filter-search-results (cddr sels))
-        (if (accept-search-result? (car sels))
-            (cons* (car sels) (cadr sels) r)
-            r))))
+  (if (or (null? sels) (null? (cdr sels)))
+    (list)
+    (with r
+      (filter-search-results (cddr sels))
+      (if (accept-search-result? (car sels)) (cons* (car sels) (cadr sels) r) r)
+    ) ;with
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting the search results
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define search-serial 0)
+
 (define search-filter-out? #f)
 
 (define (tree-perform-search t what p limit)
   (let* ((source-mode 2)
          (old-mode (get-access-mode))
-         (new-mode (if (== (get-init "mode") "src") source-mode old-mode)))
+         (new-mode (if (== (get-init "mode") "src") source-mode old-mode))
+        ) ;
     (set-access-mode new-mode)
     (let* ((cp (cDr (cursor-path)))
            (pos (if (list-starts? cp p) (list-tail cp (length p)) (list)))
-           (r (tree-search-tree-at t what p pos limit)))
+           (r (tree-search-tree-at t what p pos limit))
+          ) ;
       (set-access-mode old-mode)
-      r)))
+      r
+    ) ;let*
+  ) ;let*
+) ;define
 
 (define (go-to* p)
   (go-to p)
   (when (and (not (cursor-accessible?)) (not (in-source?)))
     (cursor-show-hidden)
-    (delayed
-      (:pause 50)
+    (delayed (:pause 50)
       (set! search-serial (+ search-serial 1))
-      (perform-search-sub 100 #f))))
+      (perform-search-sub 100 #f)
+    ) ;delayed
+  ) ;when
+) ;define
 
 (define (perform-search-sub limit top?)
   (let* ((what (buffer-get-body (search-buffer)))
          (ok? #t)
          (too-many-matches? #f)
          (serial search-serial)
-         (go-to** (if top? go-to* go-to)))
+         (go-to** (if top? go-to* go-to))
+        ) ;
     (when (tm-func? what 'document 1)
-      (set! what (tm-ref what 0)))
+      (set! what (tm-ref what 0))
+    ) ;when
     (when (tm-func? what 'inactive 1)
-      (set! what (tm-ref what 0)))
+      (set! what (tm-ref what 0))
+    ) ;when
     (when (tm-func? what 'inactive* 1)
-      (set! what (tm-ref what 0)))
+      (set! what (tm-ref what 0))
+    ) ;when
     (with-buffer (master-buffer)
       (if (tree-empty? what)
-          (begin
-            (selection-cancel)
-            (cancel-alt-selection "alternate")
-            (update-search-pos-text "new")
-            (go-to** (get-search-reference #t)))
-          (let* ((t (buffer-tree))
-                 (sels* (tree-perform-search t what (tree->path t) limit))
-                 (sels (filter-search-results sels*)))
-            ;;(display* "sels= " sels "\n")
-            (cond ((>= (length sels*) limit)
-                   (set-alt-selection "alternate" sels)
-                   (set! too-many-matches? #t)
-                   (next-search-result #t #f)
-                   (update-search-pos-text "new"))
-                  ((null? sels)
-                   (selection-cancel)
-                   (cancel-alt-selection "alternate")
-                   (update-search-pos-text "new")
-                   (go-to** (get-search-reference #t))
-                   (set! ok? #f))
-                  (else
-                   (set-alt-selection "alternate" sels)
-                   (with after? (next-search-result #t #f)
-                     (when (not after?)
-                       (selection-cancel))
-                     (update-search-pos-text "new")))))))
+        (begin
+          (selection-cancel)
+          (cancel-alt-selection "alternate")
+          (update-search-pos-text "new")
+          (go-to** (get-search-reference #t))
+        ) ;begin
+        (let* ((t (buffer-tree))
+               (sels* (tree-perform-search t what (tree->path t) limit))
+               (sels (filter-search-results sels*))
+              ) ;
+          ;; (display* "sels= " sels "\n")
+          (cond ((>= (length sels*) limit)
+                 (set-alt-selection "alternate" sels)
+                 (set! too-many-matches? #t)
+                 (next-search-result #t #f)
+                 (update-search-pos-text "new")
+                ) ;
+                ((null? sels)
+                 (selection-cancel)
+                 (cancel-alt-selection "alternate")
+                 (update-search-pos-text "new")
+                 (go-to** (get-search-reference #t))
+                 (set! ok? #f)
+                ) ;
+                (else (set-alt-selection "alternate" sels)
+                  (with after?
+                    (next-search-result #t #f)
+                    (when (not after?)
+                      (selection-cancel)
+                    ) ;when
+                    (update-search-pos-text "new")
+                  ) ;with
+                ) ;else
+          ) ;cond
+        ) ;let*
+      ) ;if
+    ) ;with-buffer
     (with-buffer (search-buffer)
       (if ok?
-          (init-default "bg-color")
-          (init-env "bg-color" (if (has-style-package? "dark") "#4a2c2c" "#fff0f0"))))
+        (init-default "bg-color")
+        (init-env "bg-color" (if (has-style-package? "dark") "#4a2c2c" "#fff0f0"))
+      ) ;if
+    ) ;with-buffer
     (when too-many-matches?
-      ;;(display* "Extend limit to " (* 2 limit) "\n")
-      (delayed
-        (:pause limit)
+      ;; (display* "Extend limit to " (* 2 limit) "\n")
+      (delayed (:pause limit)
         (when (== serial search-serial)
-          (perform-search-sub (* 2 limit) top?))))))
+          (perform-search-sub (* 2 limit) top?)
+        ) ;when
+      ) ;delayed
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (perform-search*)
   (set! search-serial (+ search-serial 1))
-  (perform-search-sub 100 #t))
+  (perform-search-sub 100 #t)
+) ;define
 
 (define (perform-search)
   (search-show-only)
-  (perform-search*))
+  (perform-search*)
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting a particular next or previous search result
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (set-search-reference cur)
-  (set-alt-selection "search-reference" (list cur cur)))
+  (set-alt-selection "search-reference" (list cur cur))
+) ;define
 
 (define (get-search-reference forward?)
-  (with sel (get-alt-selection "search-reference")
-    (if (nnull? sel) (car sel)
-        (if forward? (cursor-path) (cursor-path*)))))
+  (with sel
+    (get-alt-selection "search-reference")
+    (if (nnull? sel) (car sel) (if forward? (cursor-path) (cursor-path*)))
+  ) ;with
+) ;define
 
 (define (search-next sels cur strict?)
-  (with sel (next-search-hit sels cur strict?)
-    (and (nnull? sel) sel)))
+  (with sel (next-search-hit sels cur strict?) (and (nnull? sel) sel))
+) ;define
 
 (define (search-previous sels cur strict?)
-  (with sel (previous-search-hit sels cur strict?)
-    (and (nnull? sel) sel)))
+  (with sel (previous-search-hit sels cur strict?) (and (nnull? sel) sel))
+) ;define
 
 (define (next-search-result forward? strict?)
   (let* ((cur (get-search-reference forward?))
-         (sel (navigate-search-hit cur forward? #f strict?)))
+         (sel (navigate-search-hit cur forward? #f strict?))
+        ) ;
     (and (nnull? sel)
-         (begin
-           (selection-set-range-set sel)
-           (go-to* (car sel))
-           (when strict? (set-search-reference (car sel)))
-           (update-search-pos-text (if forward? "next" "previous"))
-           #t))))
+      (begin
+        (selection-set-range-set sel)
+        (go-to* (car sel))
+        (when strict?
+          (set-search-reference (car sel))
+        ) ;when
+        (update-search-pos-text (if forward? "next" "previous"))
+        #t
+      ) ;begin
+    ) ;and
+  ) ;let*
+) ;define
 
 (define (extreme-search-result last?)
-  (let* ((cur (get-search-reference last?))
-         (sel (navigate-search-hit cur last? #t #f)))
+  (let* ((cur (get-search-reference last?)) (sel (navigate-search-hit cur last? #t #f)))
     (and (nnull? sel)
-         (begin
-           (selection-set-range-set sel)
-           (go-to* (car sel))
-           (set-search-reference (car sel))
-           (update-search-pos-text (if last? "last" "first"))))))
+      (begin
+        (selection-set-range-set sel)
+        (go-to* (car sel))
+        (set-search-reference (car sel))
+        (update-search-pos-text (if last? "last" "first"))
+      ) ;begin
+    ) ;and
+  ) ;let*
+) ;define
 
 (tm-define (search-next-match forward? . args)
   (let ((u (if (null? args) (master-buffer) (car args))))
-    (with-buffer u
-      (next-search-result forward? #t))))
+    (with-buffer u (next-search-result forward? #t))
+  ) ;let
+) ;tm-define
 
 (tm-define (search-extreme-match last? . args)
   (let ((u (if (null? args) (master-buffer) (car args))))
-    (with-buffer u
-      (extreme-search-result last?))))
+    (with-buffer u (extreme-search-result last?))
+  ) ;let
+) ;tm-define
 
 (tm-define (search-rotate-match backward?)
-  (with ok? (search-next-match backward?)
+  (with ok?
+    (search-next-match backward?)
     (when (not ok?)
-      (search-extreme-match (not backward?)))))
+      (search-extreme-match (not backward?))
+    ) ;when
+  ) ;with
+) ;tm-define
 
 (tm-define ((search-cancel u) . args)
   (search-show-all)
   (set! search-serial (+ search-serial 1))
-  (with-buffer (master-buffer)
-    (cancel-alt-selection "alternate"))
+  (with-buffer (master-buffer) (cancel-alt-selection "alternate"))
   (set-search-window-state #f #f)
-  (buffer-focus u #t))
+  (buffer-focus u #t)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Replace occurrences
@@ -528,10 +646,15 @@
 
 (define (search-tree)
   (and (buffer-exists? (search-buffer))
-       (with what (buffer-get-body (search-buffer))
-         (when (tm-func? what 'document 1)
-           (set! what (tm-ref what 0)))
-         what)))
+    (with what
+      (buffer-get-body (search-buffer))
+      (when (tm-func? what 'document 1)
+        (set! what (tm-ref what 0))
+      ) ;when
+      what
+    ) ;with
+  ) ;and
+) ;define
 
 
 
@@ -567,55 +690,74 @@
 
 (define (by-tree raux)
   (and (buffer-exists? raux)
-       (with by (buffer-get-body raux)
-         (when (tm-func? by 'document 1)
-           (set! by (tm-ref by 0)))
-         by)))
+    (with by
+      (buffer-get-body raux)
+      (when (tm-func? by 'document 1)
+        (set! by (tm-ref by 0))
+      ) ;when
+      by
+    ) ;with
+  ) ;and
+) ;define
 
 (define (get-wildcards what match)
   (cond ((tm-equal? what match) (list))
         ((tm-func? what 'wildcard 1)
-         (list `(:wildcard ,(tm->stree (tm-ref what 0)) ,(tm->stree match))))
-        ((tm-equal? what "")
-         (list `(:empty ,(tm->stree match))))
-        ((and (tm-compound? what) (tm-compound? match)
-              (== (tm-label what) (tm-label match))
-              (== (tm-arity what) (tm-arity match)))
-         (append-map get-wildcards (tm-children what) (tm-children match)))
-        (else (list))))
+         (list `(,:wildcard ,(tm->stree (tm-ref what 0)) ,(tm->stree match)))
+        ) ;
+        ((tm-equal? what "") (list `(,:empty ,(tm->stree match))))
+        ((and (tm-compound? what)
+           (tm-compound? match)
+           (== (tm-label what) (tm-label match))
+           (== (tm-arity what) (tm-arity match))
+         ) ;and
+         (append-map get-wildcards (tm-children what) (tm-children match))
+        ) ;
+        (else (list))
+  ) ;cond
+) ;define
 
 (define (find-wildcard wc which)
   (cond ((null? wc) "")
-        ((and (tm-func? (car wc) :wildcard 2)
-              (== (cadr (car wc)) which))
-         (caddr (car wc)))
-        (else (find-wildcard (cdr wc) which))))
+        ((and (tm-func? (car wc) :wildcard 2) (== (cadr (car wc)) which))
+         (caddr (car wc))
+        ) ;
+        (else (find-wildcard (cdr wc) which))
+  ) ;cond
+) ;define
 
 (define (find-empty wc)
-  (cond ((null? wc)
-         (cons "" wc))
-        ((tm-func? (car wc) :empty 1)
-         (cons (cadar wc) (cdr wc)))
-        (else (with r (find-empty (cdr wc))
-                (cons (car r) (cons (car wc) (cdr r)))))))
+  (cond ((null? wc) (cons "" wc))
+        ((tm-func? (car wc) :empty 1) (cons (cadar wc) (cdr wc)))
+        (else (with r (find-empty (cdr wc)) (cons (car r) (cons (car wc) (cdr r)))))
+  ) ;cond
+) ;define
 
 (define (replace-wildcards-list l wc)
-  (if (null? l) (cons l wc)
-      (let* ((h (replace-wildcards (car l) wc))
-             (t (replace-wildcards-list (cdr l) (cdr h))))
-        (cons (cons (car h) (car t)) (cdr t)))))
+  (if (null? l)
+    (cons l wc)
+    (let* ((h (replace-wildcards (car l) wc))
+           (t (replace-wildcards-list (cdr l) (cdr h)))
+          ) ;
+      (cons (cons (car h) (car t)) (cdr t))
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (replace-wildcards by wc)
-  (cond ((null? wc)
-         (cons by wc))
+  (cond ((null? wc) (cons by wc))
         ((tm-func? by 'wildcard 1)
-         (cons (find-wildcard wc (tm->stree (tm-ref by 0))) wc))
-        ((tm-equal? by "")
-         (find-empty wc))
-        ((tm-atomic? by)
-         (cons by wc))
-        (else (with r (replace-wildcards-list (tm-children by) wc)
-                (cons (cons (tm-label by) (car r)) (cdr r))))))
+         (cons (find-wildcard wc (tm->stree (tm-ref by 0))) wc)
+        ) ;
+        ((tm-equal? by "") (find-empty wc))
+        ((tm-atomic? by) (cons by wc))
+        (else (with r
+                (replace-wildcards-list (tm-children by) wc)
+                (cons (cons (tm-label by) (car r)) (cdr r))
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;define
 
 (define (adjust-by by what match)
   (let* ((swhat (and (tm-atomic? what) (tm->string what)))
@@ -623,91 +765,125 @@
          (sby (and (tm-atomic? by) (tm->string by)))
          (lwhat (and (tm-compound? what) (tm->list what)))
          (lmatch (and (tm-compound? match) (tm->list match)))
-         (wc (get-wildcards what match)))
+         (wc (get-wildcards what match))
+        ) ;
     (cond ((tm-equal? what match) by)
           ((and (tm-func? what 'concat)
-                (tm-func? match 'concat)
-                (< (length lwhat) (length lmatch))
-                (tm-equal? what (sublist lmatch 0 (length lwhat))))
+             (tm-func? match 'concat)
+             (< (length lwhat) (length lmatch))
+             (tm-equal? what (sublist lmatch 0 (length lwhat)))
+           ) ;and
            (let* ((lby (if (tm-func? by 'concat) (tm->list by) `(concat ,by)))
-                  (xby (sublist lmatch (length lwhat) (length lmatch))))
-             (append lby xby)))
+                  (xby (sublist lmatch (length lwhat) (length lmatch)))
+                 ) ;
+             (append lby xby)
+           ) ;let*
+          ) ;
           ((and swhat smatch sby (== (locase-all swhat) (locase-all smatch)))
            (cond ((== (locase-all swhat) smatch) (locase-all sby))
                  ((== (upcase-all swhat) smatch) (upcase-all sby))
                  ((== (locase-first swhat) smatch) (locase-first sby))
                  ((== (upcase-first swhat) smatch) (upcase-first sby))
-                 (else sby)))
-          (else (car (replace-wildcards by wc))))))
+                 (else sby)
+           ) ;cond
+          ) ;
+          (else (car (replace-wildcards by wc)))
+    ) ;cond
+  ) ;let*
+) ;define
 
 (define (replace-next* by)
-  (let* ((sels (get-alt-selection "alternate"))
-         (cur (get-search-reference #t)))
+  (let* ((sels (get-alt-selection "alternate")) (cur (get-search-reference #t)))
     (and (nnull? sels)
-         (and-with sel (search-next sels cur #f)
-           (go-to* (car sel))
-           (selection-set-range-set sel)
-           (with by* (tm->tree (adjust-by by (search-tree) (selection-tree)))
-             (clipboard-cut "dummy")
-             (insert-go-to (tree-copy by*) (path-end by* '())))
-           #t))))
+      (and-with sel
+        (search-next sels cur #f)
+        (go-to* (car sel))
+        (selection-set-range-set sel)
+        (with by*
+          (tm->tree (adjust-by by (search-tree) (selection-tree)))
+          (clipboard-cut "dummy")
+          (insert-go-to (tree-copy by*) (path-end by* '()))
+        ) ;with
+        #t
+      ) ;and-with
+    ) ;and
+  ) ;let*
+) ;define
 
 (define replace-search-max-limit 1000000)
 
 (define (replace-next-selection-after-start sels cur)
   (cond ((or (null? sels) (null? (cdr sels))) #f)
-        ((path-less-eq? cur (car sels))
-         (list (car sels) (cadr sels)))
-        (else (replace-next-selection-after-start (cddr sels) cur))))
+        ((path-less-eq? cur (car sels)) (list (car sels) (cadr sels)))
+        (else (replace-next-selection-after-start (cddr sels) cur))
+  ) ;cond
+) ;define
 
 (define (replace-move-to-next-after mid-p)
-  (and-with sel (replace-next-selection-after-start
-                  (get-alt-selection "alternate")
-                  mid-p)
+  (and-with sel
+    (replace-next-selection-after-start (get-alt-selection "alternate") mid-p)
     (selection-set-range-set sel)
     (go-to* (car sel))
     (set-search-reference (car sel))
     (update-search-pos-text "next")
-    #t))
+    #t
+  ) ;and-with
+) ;define
 
 (define (replace-search-next-after mid-p)
-  (let loop ((limit 100))
+  (let loop
+    ((limit 100))
     (set-search-reference mid-p)
     (set! search-serial (+ search-serial 1))
     (perform-search-sub limit #t)
     (cond ((replace-move-to-next-after mid-p) #t)
           ((>= limit replace-search-max-limit) #f)
-          (else (loop (* 2 limit))))))
+          (else (loop (* 2 limit)))
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (replace-next by)
-  (with old-p (cursor-path)
+  (with old-p
+    (cursor-path)
     (and (replace-next* by)
-         (with mid-p (cursor-path)
-           (and (replace-search-next-after mid-p)
-                (path-less? old-p (cursor-path)))))))
+      (with mid-p
+        (cursor-path)
+        (and (replace-search-next-after mid-p) (path-less? old-p (cursor-path)))
+      ) ;with
+    ) ;and
+  ) ;with
+) ;define
 
 (tm-define (replace-one . args)
-  (let ((u    (if (null? args) (master-buffer)  (car args)))
-        (raux (if (null? args) (replace-buffer) (cadr args))))
-    (and-with by (or (by-tree raux) current-replace)
-      (with-buffer u
-        (start-editing)
-        (replace-next by)
-        (end-editing))
+  (let ((u (if (null? args) (master-buffer) (car args)))
+        (raux (if (null? args) (replace-buffer) (cadr args)))
+       ) ;
+    (and-with by
+      (or (by-tree raux) current-replace)
+      (with-buffer u (start-editing) (replace-next by) (end-editing))
       (perform-search*)
-      (set! isreplace? #t))))
+      (set! isreplace? #t)
+    ) ;and-with
+  ) ;let
+) ;tm-define
 
 (tm-define (replace-all . args)
-  (let ((u    (if (null? args) (master-buffer)  (car args)))
-        (raux (if (null? args) (replace-buffer) (cadr args))))
-    (and-with by (or (by-tree raux) current-replace)
+  (let ((u (if (null? args) (master-buffer) (car args)))
+        (raux (if (null? args) (replace-buffer) (cadr args)))
+       ) ;
+    (and-with by
+      (or (by-tree raux) current-replace)
       (with-buffer u
         (start-editing)
-        (while (replace-next by)
-          (perform-search*))
-        (end-editing))
+        (while (replace-next by) (perform-search*))
+        (end-editing)
+      ) ;with-buffer
       (perform-search*)
-      (set! isreplace? #t))))
+      (set! isreplace? #t)
+    ) ;and-with
+  ) ;let
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Customized keyboard shortcuts in search and replace modes
@@ -720,36 +896,46 @@
   (set! search-kbd-intercepted? #f)
   (former key time)
   (when (not search-kbd-intercepted?)
-    (perform-search)))
+    (perform-search)
+  ) ;when
+) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (inside-search-buffer?))
   (if (or shift? (inside? 'inactive) (inside? 'inactive*))
-      (former t shift?)
-      (begin
-        (set! search-kbd-intercepted? #t)
-        (search-rotate-match #t))))
+    (former t shift?)
+    (begin
+      (set! search-kbd-intercepted? #t)
+      (search-rotate-match #t)
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (inside-replace-buffer?))
   (if (or shift? (inside? 'inactive) (inside? 'inactive*))
-      (former t shift?)
-      (replace-one)))
+    (former t shift?)
+    (replace-one)
+  ) ;if
+) ;tm-define
 
 (tm-define (kbd-incremental t forwards?)
   (:require (inside-search-or-replace-buffer?))
   (set! search-kbd-intercepted? #t)
-  (search-next-match forwards?))
+  (search-next-match forwards?)
+) ;tm-define
 
 (tm-define (traverse-incremental t forwards?)
   (:require (inside-search-or-replace-buffer?))
   (set! search-kbd-intercepted? #t)
-  (search-next-match forwards?))
+  (search-next-match forwards?)
+) ;tm-define
 
 (tm-define (traverse-extremal t forwards?)
   (:require (inside-search-or-replace-buffer?))
   (set! search-kbd-intercepted? #t)
-  (search-extreme-match forwards?))
+  (search-extreme-match forwards?)
+) ;tm-define
 
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -758,118 +944,140 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define waiting-for-toolbar? #f)
+
 (define pending-key-strokes "")
+
 (define current-search #f)
+
 (define current-replace #f)
 
 (define (wait-for-toolbar)
   (set! waiting-for-toolbar? #t)
   (set! pending-key-strokes "")
-  (delayed
-    (:pause 3000)
-    (when waiting-for-toolbar?
-      (stop-waiting-for-toolbar))))
+  (delayed (:pause 3000) (when waiting-for-toolbar? (stop-waiting-for-toolbar)))
+) ;define
 
 (define (stop-waiting-for-toolbar)
-  (set! waiting-for-toolbar? #f))
+  (set! waiting-for-toolbar? #f)
+) ;define
 
 (tm-define (keyboard-press key time)
   (:require waiting-for-toolbar?)
   (when (== (tmstring-length key) 1)
-    (set! pending-key-strokes (string-append pending-key-strokes key))))
+    (set! pending-key-strokes (string-append pending-key-strokes key))
+  ) ;when
+) ;tm-define
 
 (define (notify-bar-change)
   ;; FIXME: not clear what is the most appriate setting here
-  ;; The value 127 is safest, but causes the whole document to be re-typeset 
-  (if (style-has? "beamer-style")
-      (notify-change 127)
-      (notify-change 68)))
+  ;; The value 127 is safest, but causes the whole document to be re-typeset
+  (if (style-has? "beamer-style") (notify-change 127) (notify-change 68))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search widget
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-preferences
-  ("allow-blank-match" "on" noop)
-  ("allow-initial-match" "on" noop)
-  ("allow-partial-match" "on" noop)
-  ("allow-injective-match" "on" noop)
-  ("allow-cascaded-match" "on" noop)
-  ("case-insensitive-match" "off" noop))
+(define-preferences ("allow-blank-match" "on" noop)
+ ("allow-initial-match" "on" noop)
+ ("allow-partial-match" "on" noop)
+ ("allow-injective-match" "on" noop)
+ ("allow-cascaded-match" "on" noop)
+ ("case-insensitive-match" "off" noop)
+) ;define-preferences
 
 (tm-define (toggle-search-preference which)
   (:synopsis "Toggle the search preference @which")
   (:check-mark "v" preference-on?)
   (toggle-preference which)
-  (perform-search*))
+  (perform-search*)
+) ;tm-define
 
 (menu-bind search-preferences-menu
-  ("Allow blank matches" (toggle-search-preference "allow-blank-match"))
-  ("Allow initial matches" (toggle-search-preference "allow-initial-match"))
-  ("Allow partial matches" (toggle-search-preference "allow-partial-match"))
-  ("Allow injective matches" (toggle-search-preference "allow-injective-match"))
-  ("Allow cascaded matches" (toggle-search-preference "allow-cascaded-match"))
-  ("Disable case sensitivity"
-   (toggle-search-preference "case-insensitive-match")))
+ ("Allow blank matches" (toggle-search-preference "allow-blank-match"))
+ ("Allow initial matches" (toggle-search-preference "allow-initial-match"))
+ ("Allow partial matches" (toggle-search-preference "allow-partial-match"))
+ ("Allow injective matches" (toggle-search-preference "allow-injective-match"))
+ ("Allow cascaded matches" (toggle-search-preference "allow-cascaded-match"))
+ ("Disable case sensitivity" (toggle-search-preference "case-insensitive-match"))
+) ;menu-bind
 
 (tm-define (search-document)
   (if (buffer-exists? (search-buffer))
-      (buffer->tree (search-buffer))
-      `(document "")))
+    (buffer->tree (search-buffer))
+    '(document "")
+  ) ;if
+) ;tm-define
 
 (tm-widget ((search-widget u style init aux) quit)
-  (padded
-    (resize "480px" "200px"
-      (texmacs-input `(with ,@init ,(search-document))
-                     `(style (tuple ,@style)) aux))
+  (padded (resize "480px"
+            "200px"
+            (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) aux)
+          ) ;resize
     ===
-    (hlist
-      ((balloon (icon "tm_search_first.xpm") "First occurrence (Home)")
-       (search-extreme-match #f u))
-      ((balloon (icon "tm_search_previous.xpm") "Previous occurrence (PageUp)")
-       (search-next-match #f u))
-      ((balloon (icon "tm_search_next.xpm") "Next occurrence (PageDown)")
-       (search-next-match #t u))
-      ((balloon (icon "tm_search_last.xpm") "Last occurrence (End)")
-       (search-extreme-match #t u))
-      >>>
-      (=> (balloon (icon "tm_preferences.xpm") "Search preferences")
-          (link search-preferences-menu))
-      ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
-              "v" (search-filter-enabled?))
-       (search-toggle-filter))
-      ((balloon (icon "tm_close_tool.xpm") "Close search tool (Esc)")
-       (quit)))))
+    (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence (Home)")
+            (search-extreme-match #f u)
+           ) ;
+     ((balloon (icon "tm_search_previous.xpm") "Previous occurrence (PageUp)")
+      (search-next-match #f u)
+     ) ;
+     ((balloon (icon "tm_search_next.xpm") "Next occurrence (PageDown)")
+      (search-next-match #t u)
+     ) ;
+     ((balloon (icon "tm_search_last.xpm") "Last occurrence (End)")
+      (search-extreme-match #t u)
+     ) ;
+     >>>
+     (=> (balloon (icon "tm_preferences.xpm") "Search preferences")
+       (link search-preferences-menu)
+     ) ;=>
+     ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
+        "v"
+        (search-filter-enabled?)
+      ) ;check
+      (search-toggle-filter)
+     ) ;
+     ((balloon (icon "tm_close_tool.xpm") "Close search tool (Esc)") (quit))
+    ) ;hlist
+  ) ;padded
+) ;tm-widget
 
 (tm-tool* (search-tool win u style init aux)
   (:name "Search")
   (:quit ((search-cancel u)))
   ===
-  (horizontal
-    //
-    (vertical
-      (resize "360px" "60px"
-        (texmacs-input `(with ,@init ,(search-document))
-                       `(style (tuple ,@style)) aux))
+  (horizontal //
+    (vertical (resize "360px"
+                "60px"
+                (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) aux)
+              ) ;resize
       ===
-      (hlist
-        ((balloon (icon "tm_search_first.xpm") "First occurrence")
-         (search-extreme-match #f))
-        ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
-         (search-next-match #f))
-        ((balloon (icon "tm_search_next.xpm") "Next occurrence")
-         (search-next-match #t))
-        ((balloon (icon "tm_search_last.xpm") "Last occurrence")
-         (search-extreme-matche #t))
-        >>>
-        (=> (balloon (icon "tm_preferences.xpm") "Search preferences")
-            (link search-preferences-menu))
-        ((check (balloon (icon "tm_filter.xpm")
-                         "Only show paragraphs with hits")
-                "v" (search-filter-enabled?))
-         (search-toggle-filter)))
-      ===)
-    //))
+      (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence")
+              (search-extreme-match #f)
+             ) ;
+       ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
+        (search-next-match #f)
+       ) ;
+       ((balloon (icon "tm_search_next.xpm") "Next occurrence") (search-next-match #t))
+       ((balloon (icon "tm_search_last.xpm") "Last occurrence")
+        (search-extreme-matche #t)
+       ) ;
+       >>>
+       (=> (balloon (icon "tm_preferences.xpm") "Search preferences")
+         (link search-preferences-menu)
+       ) ;=>
+       ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
+          "v"
+          (search-filter-enabled?)
+        ) ;check
+        (search-toggle-filter)
+       ) ;
+      ) ;hlist
+      ===
+    ) ;vertical
+    //
+  ) ;horizontal
+) ;tm-tool*
 
 (tm-define (open-search)
   (:interactive #t)
@@ -879,7 +1087,8 @@
            (st (embedded-style-list "macro-editor"))
            (init (get-main-attrs get-env))
            (aux (search-buffer))
-           (tool (list 'search-tool u st init aux)))
+           (tool (list 'search-tool u st init aux))
+          ) ;
       (buffer-set-master aux u)
       (set-search-window-state #t #t)
       (set! search-window (current-window))
@@ -887,111 +1096,150 @@
       (set-search-filter)
       (set! search-filter-out? #f)
       (auxiliary-widget (search-widget u st init aux)
-                        (search-cancel u)
-                        (translate "Search") aux)
+        (search-cancel u)
+        (translate "Search")
+        aux
+      ) ;auxiliary-widget
       (when (selection-active?)
         (begin
-          (buffer-set-body aux `(document ,(selection-tree)))))
+          (buffer-set-body aux `(document ,(selection-tree)))
+        ) ;begin
+      ) ;when
       (perform-search*)
       (buffer-focus (search-buffer) #t)
-      (go-end))))
+      (go-end)
+    ) ;let*
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search and replace widget
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-preferences
-  ("allow-blank-replace" "off" noop)
-  ("allow-initial-replace" "off" noop)
-  ("allow-partial-replace" "off" noop)
-  ("allow-injective-replace" "off" noop))
+(define-preferences ("allow-blank-replace" "off" noop)
+ ("allow-initial-replace" "off" noop)
+ ("allow-partial-replace" "off" noop)
+ ("allow-injective-replace" "off" noop)
+) ;define-preferences
 
 (menu-bind replace-preferences-menu
-  ("Allow blank matches" (toggle-search-preference "allow-blank-replace"))
-  ("Allow cascaded matches" (toggle-search-preference "allow-cascaded-match"))
-  ("Disable case sensitivity"
-   (toggle-search-preference "case-insensitive-match")))
+ ("Allow blank matches" (toggle-search-preference "allow-blank-replace"))
+ ("Allow cascaded matches" (toggle-search-preference "allow-cascaded-match"))
+ ("Disable case sensitivity" (toggle-search-preference "case-insensitive-match"))
+) ;menu-bind
 
 (tm-define (replace-document)
   (if (buffer-exists? (replace-buffer))
-      (buffer->tree (replace-buffer))
-      `(document "")))
+    (buffer->tree (replace-buffer))
+    '(document "")
+  ) ;if
+) ;tm-define
 
 (tm-widget ((replace-widget u style init saux raux) quit)
-  (padded
-    (resize "480px" "100px"
-      (texmacs-input `(with ,@init ,(search-document))
-                     `(style (tuple ,@style)) saux))
-    === ===
-    (resize "480px" "100px"
-      (texmacs-input `(with ,@init ,(replace-document))
-                     `(style (tuple ,@style)) raux))
-    === ===
-    (hlist
-      ((balloon (icon "tm_search_first.xpm") "First occurrence (Home)")
-       (search-extreme-match #f u))
-      ((balloon (icon "tm_search_previous.xpm") "Previous occurrence (PageUp)")
-       (search-next-match #f u))
-      ((balloon (icon "tm_search_next.xpm") "Next occurrence (PageDown)")
-       (search-next-match #t u))
-      ((balloon (icon "tm_search_last.xpm") "Last occurrence (End)")
-       (search-extreme-match #t u))
-      // // //
-      ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence (Enter)")
-       (replace-one u raux))
-      ((balloon (icon "tm_replace_all.xpm") (eval (if (os-macos?)
-                                                    "Replace all further occurrences (Command+Enter)"
-                                                    "Replace all further occurrences (Ctrl+Enter)")))
-       (replace-all u raux))
-      >>>
-      (=> (balloon (icon "tm_preferences.xpm")
-                   "Search and replace preferences")
-          (link replace-preferences-menu))
-      ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
-              "v" (search-filter-enabled?))
-       (search-toggle-filter))
-      ((balloon (icon "tm_close_tool.xpm") "Close replace tool (Esc)")
-       (quit)))))
+  (padded (resize "480px"
+            "100px"
+            (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) saux)
+          ) ;resize
+    ===
+    ===
+    (resize "480px"
+      "100px"
+      (texmacs-input `(with ,@init ,(replace-document)) `(style (tuple ,@style)) raux)
+    ) ;resize
+    ===
+    ===
+    (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence (Home)")
+            (search-extreme-match #f u)
+           ) ;
+     ((balloon (icon "tm_search_previous.xpm") "Previous occurrence (PageUp)")
+      (search-next-match #f u)
+     ) ;
+     ((balloon (icon "tm_search_next.xpm") "Next occurrence (PageDown)")
+      (search-next-match #t u)
+     ) ;
+     ((balloon (icon "tm_search_last.xpm") "Last occurrence (End)")
+      (search-extreme-match #t u)
+     ) ;
+     //
+     //
+     //
+     ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence (Enter)")
+      (replace-one u raux)
+     ) ;
+     ((balloon (icon "tm_replace_all.xpm")
+        (eval (if (os-macos?)
+                "Replace all further occurrences (Command+Enter)"
+                "Replace all further occurrences (Ctrl+Enter)"
+              ) ;if
+        ) ;eval
+      ) ;balloon
+      (replace-all u raux)
+     ) ;
+     >>>
+     (=> (balloon (icon "tm_preferences.xpm") "Search and replace preferences")
+       (link replace-preferences-menu)
+     ) ;=>
+     ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
+        "v"
+        (search-filter-enabled?)
+      ) ;check
+      (search-toggle-filter)
+     ) ;
+     ((balloon (icon "tm_close_tool.xpm") "Close replace tool (Esc)") (quit))
+    ) ;hlist
+  ) ;padded
+) ;tm-widget
 
 (tm-tool* (replace-tool win u style init saux raux)
   (:name "Search and replace")
   (:quit ((search-cancel u)))
   ===
-  (horizontal
+  (horizontal //
+    (vertical (resize "360px"
+                "60px"
+                (texmacs-input `(with ,@init ,(search-document)) `(style (tuple ,@style)) saux)
+              ) ;resize
+      ===
+      ===
+      (resize "360px"
+        "60px"
+        (texmacs-input `(with ,@init ,(replace-document)) `(style (tuple ,@style)) raux)
+      ) ;resize
+      ===
+      ===
+      (hlist ((balloon (icon "tm_search_first.xpm") "First occurrence")
+              (search-extreme-match #f)
+             ) ;
+       ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
+        (search-next-match #f)
+       ) ;
+       ((balloon (icon "tm_search_next.xpm") "Next occurrence") (search-next-match #t))
+       ((balloon (icon "tm_search_last.xpm") "Last occurrence")
+        (search-extreme-match #t)
+       ) ;
+       //
+       //
+       //
+       ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence") (replace-one))
+       ((balloon (icon "tm_replace_all.xpm") "Replace all further occurrences")
+        (replace-all)
+       ) ;
+       >>>
+       (=> (balloon (icon "tm_preferences.xpm") "Search and replace preferences")
+         (link replace-preferences-menu)
+       ) ;=>
+       ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
+          "v"
+          (search-filter-enabled?)
+        ) ;check
+        (search-toggle-filter)
+       ) ;
+      ) ;hlist
+      ===
+    ) ;vertical
     //
-    (vertical
-      (resize "360px" "60px"
-        (texmacs-input `(with ,@init ,(search-document))
-                       `(style (tuple ,@style)) saux))
-      === ===
-      (resize "360px" "60px"
-        (texmacs-input `(with ,@init ,(replace-document))
-                       `(style (tuple ,@style)) raux))
-      === ===
-      (hlist
-        ((balloon (icon "tm_search_first.xpm") "First occurrence")
-         (search-extreme-match #f))
-        ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
-         (search-next-match #f))
-        ((balloon (icon "tm_search_next.xpm") "Next occurrence")
-         (search-next-match #t))
-        ((balloon (icon "tm_search_last.xpm") "Last occurrence")
-         (search-extreme-match #t))
-        // // //
-        ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence")
-         (replace-one))
-        ((balloon (icon "tm_replace_all.xpm") "Replace all further occurrences")
-         (replace-all))
-        >>>
-        (=> (balloon (icon "tm_preferences.xpm")
-                     "Search and replace preferences")
-            (link replace-preferences-menu))
-        ((check (balloon (icon "tm_filter.xpm")
-                         "Only show paragraphs with hits")
-                "v" (search-filter-enabled?))
-         (search-toggle-filter)))
-      ===)
-    //))
+  ) ;horizontal
+) ;tm-tool*
 
 (tm-define (open-replace)
   (:interactive #t)
@@ -1002,7 +1250,8 @@
            (init (get-main-attrs get-env))
            (saux (search-buffer))
            (raux (replace-buffer))
-           (tool (list 'replace-tool u st init saux raux)))
+           (tool (list 'replace-tool u st init saux raux))
+          ) ;
       (buffer-set-master saux u)
       (buffer-set-master raux u)
       (set-search-window-state #t #f)
@@ -1011,14 +1260,22 @@
       (set-search-filter)
       (set! search-filter-out? #f)
       (auxiliary-widget (replace-widget u st init saux raux)
-                        (search-cancel u)
-                        (translate "Search and replace") saux raux)
+        (search-cancel u)
+        (translate "Search and replace")
+        saux
+        raux
+      ) ;auxiliary-widget
       (when (selection-active?)
         (begin
-          (buffer-set-body saux `(document ,(selection-tree)))))
+          (buffer-set-body saux `(document ,(selection-tree)))
+        ) ;begin
+      ) ;when
       (perform-search*)
       (buffer-focus (search-buffer) #t)
-      (go-end))))
+      (go-end)
+    ) ;let*
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search toolbar
@@ -1028,16 +1285,23 @@
   (let* ((u (current-buffer))
          (aux (search-buffer))
          (what-case (if (get-boolean-preference "case-insensitive-match")
-                        (string-downcase what) what)))
+                      (string-downcase what)
+                      what
+                    ) ;if
+         ) ;what-case
+        ) ;
     (set-search-reference (cursor-path))
     (set-search-filter)
     (buffer-set-body aux `(document ,what-case))
     (buffer-set-master aux u)
     (set! search-window (current-window))
-    (perform-search)))
+    (perform-search)
+  ) ;let*
+) ;define
 
 (tm-define (search-toolbar-keypress what r?)
-  (with key (and (pair? what) (cadr what))
+  (with key
+    (and (pair? what) (cadr what))
     (if (pair? what) (set! what (car what)))
     (set! current-search what)
     (cond ((== key "home") (search-extreme-match #f))
@@ -1049,49 +1313,66 @@
           ((== key "S-F3") (search-next-match #f))
           ((== key "F3") (search-next-match #t))
           ((in? key '("C-F" "A-F" "M-F" "C-G" "A-G" "M-G" "C-r" "A-r" "M-r"))
-           (search-next-match #f))
+           (search-next-match #f)
+          ) ;
           ((in? key '("C-f" "A-f" "M-f" "C-g" "A-g" "M-g" "C-s" "A-s" "M-s"))
-           (search-next-match #t))
+           (search-next-match #t)
+          ) ;
           ((and r? (in? key (list "tab" "S-tab" "return")))
            (search-toolbar-search what)
-           (keyboard-focus-on "replace-by"))
+           (keyboard-focus-on "replace-by")
+          ) ;
           ((== key "return") (search-rotate-match))
           ((== key "escape") (toolbar-search-end))
           ((string? what) (search-toolbar-search what))
-          (else (cancel-alt-selection "alternate")))))
+          (else (cancel-alt-selection "alternate"))
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 (tm-widget (search-toolbar)
   ===
-  (hlist
+  (hlist //
+    (text "Search: ")
     //
-    (text "Search: ") //
-    ;;(resize "0.5w" "24px"
+    ;; (resize "0.5w" "24px"
     ;;  (texmacs-input `(document "")
     ;;                 `(style (tuple "generic"))
     ;;                 (search-buffer)))
-    (input (search-toolbar-keypress answer #f) "search"
-           (list (or current-search pending-key-strokes)) "25em")
-    // //
+    (input (search-toolbar-keypress answer #f)
+      "search"
+      (list (or current-search pending-key-strokes))
+      "25em"
+    ) ;input
+    //
+    //
     ((balloon (icon "tm_search_first.xpm") "First occurrence")
-     (search-extreme-match #f))
+     (search-extreme-match #f)
+    ) ;
     ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
-     (search-next-match #f))
-    ((balloon (icon "tm_search_next.xpm") "Next occurrence")
-     (search-next-match #t))
+     (search-next-match #f)
+    ) ;
+    ((balloon (icon "tm_search_next.xpm") "Next occurrence") (search-next-match #t))
     ((balloon (icon "tm_search_last.xpm") "Last occurrence")
-     (search-extreme-match #t))
+     (search-extreme-match #t)
+    ) ;
     >>>
     ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
-            "v" (search-filter-enabled?))
-     (search-toggle-filter))
+       "v"
+       (search-filter-enabled?)
+     ) ;check
+     (search-toggle-filter)
+    ) ;
     ((balloon (icon "tm_expand_tool.xpm") "Open tool in separate window")
      (set-boolean-preference "toolbar search" #f)
      (toolbar-search-end)
-     (open-search))
-    ((balloon (icon "tm_close_tool.xpm") "Close search tool")
-     (toolbar-search-end))
-    //)
-  ===)
+     (open-search)
+    ) ;
+    ((balloon (icon "tm_close_tool.xpm") "Close search tool") (toolbar-search-end))
+    //
+  ) ;hlist
+  ===
+) ;tm-widget
 
 (tm-define (toolbar-search-start)
   (:interactive #t)
@@ -1103,12 +1384,13 @@
   (search-toolbar-search "")
   (wait-for-toolbar)
   (notify-bar-change)
-  (delayed
-    (:idle 250)
+  (delayed (:idle 250)
     (keyboard-focus-on "search")
     (search-toolbar-search (or current-search pending-key-strokes))
     (notify-bar-change)
-    (stop-waiting-for-toolbar)))
+    (stop-waiting-for-toolbar)
+  ) ;delayed
+) ;tm-define
 
 (tm-define (toolbar-search-end)
   (cancel-alt-selection "alternate")
@@ -1122,24 +1404,29 @@
   (set! current-search #f)
   (set! current-replace #f)
   (when toolbar-db-active?
-    (db-show-toolbar))
+    (db-show-toolbar)
+  ) ;when
   (when (and (not (cursor-accessible?)) (not (in-source?)))
-    (cursor-show-hidden)))
+    (cursor-show-hidden)
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Replace toolbar
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (replace-toolbar-replace by)
-  (let* ((u (current-buffer))
-         (aux (replace-buffer)))
+  (let* ((u (current-buffer)) (aux (replace-buffer)))
     (buffer-set-body aux `(document ,by))
     (buffer-set-master aux u)
     (set! search-window (current-window))
-    (replace-one)))
+    (replace-one)
+  ) ;let*
+) ;define
 
 (tm-define (replace-toolbar-keypress by)
-  (with key (and (pair? by) (cadr by))
+  (with key
+    (and (pair? by) (cadr by))
     (if (pair? by) (set! by (car by)))
     (set! current-replace by)
     (cond ((not (string? by)) (cancel-alt-selection "alternate"))
@@ -1155,46 +1442,63 @@
           ((== key "S-return") (undo 0) (perform-search*))
           ((== key "C-return") (replace-all))
           ((== key "escape") (toolbar-search-end))
-          (else (perform-search*)))))
+          (else (perform-search*))
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 (tm-widget (replace-toolbar)
   ===
-  (hlist
+  (hlist //
+    (text "Replace: ")
     //
-    (text "Replace: ") //
-    (input (search-toolbar-keypress answer #t) "replace-what"
-           (list (or current-search pending-key-strokes)) "15em")
+    (input (search-toolbar-keypress answer #t)
+      "replace-what"
+      (list (or current-search pending-key-strokes))
+      "15em"
+    ) ;input
     //
     (text " by: ")
-    (input (replace-toolbar-keypress answer) "replace-by"
-           (list (or current-replace "")) "15em")
-    // //
-    ;;(if (nnull? (get-alt-selection "alternate"))
-    ((balloon (icon "tm_search_first.xpm") "First occurrence")
-     (search-extreme-match #f))
-    ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
-     (search-next-match #f))
-    ((balloon (icon "tm_search_next.xpm") "Next occurrence")
-     (search-next-match #t))
-    ((balloon (icon "tm_search_last.xpm") "Last occurrence")
-     (search-extreme-match #t))
+    (input (replace-toolbar-keypress answer)
+      "replace-by"
+      (list (or current-replace ""))
+      "15em"
+    ) ;input
     //
-    ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence")
-     (replace-one))
+    //
+    ;; (if (nnull? (get-alt-selection "alternate"))
+    ((balloon (icon "tm_search_first.xpm") "First occurrence")
+     (search-extreme-match #f)
+    ) ;
+    ((balloon (icon "tm_search_previous.xpm") "Previous occurrence")
+     (search-next-match #f)
+    ) ;
+    ((balloon (icon "tm_search_next.xpm") "Next occurrence") (search-next-match #t))
+    ((balloon (icon "tm_search_last.xpm") "Last occurrence")
+     (search-extreme-match #t)
+    ) ;
+    //
+    ((balloon (icon "tm_replace_one.xpm") "Replace one occurrence") (replace-one))
     ((balloon (icon "tm_replace_all.xpm") "Replace all further occurrences")
-     (replace-all))
+     (replace-all)
+    ) ;
     >>>
     ((check (balloon (icon "tm_filter.xpm") "Only show paragraphs with hits")
-            "v" (search-filter-enabled?))
-     (search-toggle-filter))
+       "v"
+       (search-filter-enabled?)
+     ) ;check
+     (search-toggle-filter)
+    ) ;
     ((balloon (icon "tm_expand_tool.xpm") "Open tool in separate window")
      (set-boolean-preference "toolbar replace" #f)
      (toolbar-search-end)
-     (open-replace))
-    ((balloon (icon "tm_close_tool.xpm") "Close replace tool")
-     (toolbar-search-end))
-    //)
-  ===)
+     (open-replace)
+    ) ;
+    ((balloon (icon "tm_close_tool.xpm") "Close replace tool") (toolbar-search-end))
+    //
+  ) ;hlist
+  ===
+) ;tm-widget
 
 (tm-define (toolbar-replace-start)
   (:interactive #t)
@@ -1206,123 +1510,155 @@
   (search-toolbar-search "")
   (wait-for-toolbar)
   (notify-bar-change)
-  (delayed
-    (:idle 250)
+  (delayed (:idle 250)
     (keyboard-focus-on "replace-what")
     (search-toolbar-search pending-key-strokes)
     (notify-bar-change)
-    (stop-waiting-for-toolbar)))
+    (stop-waiting-for-toolbar)
+  ) ;delayed
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Hiding paragraphs that do not match
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (show-only-sub u what)
-  (with t (if (tree-is? u 'hide-para) (tree-ref u 0) u)
+  (with t
+    (if (tree-is? u 'hide-para) (tree-ref u 0) u)
     (let* ((sels* (tree-search-tree t what (tree->path t) 100))
-           (sels (filter-search-results sels*)))
+           (sels (filter-search-results sels*))
+          ) ;
       (if (null? sels)
-          (when (not (tree-is? u 'hide-para))
-            (tree-insert-node u 0 '(hide-para)))
-          (begin
-            (when (tree-is? u 'hide-para)
-              (tree-remove-node! u 0))
-            (show-only u what))))))
+        (when (not (tree-is? u 'hide-para))
+          (tree-insert-node u 0 '(hide-para))
+        ) ;when
+        (begin
+          (when (tree-is? u 'hide-para)
+            (tree-remove-node! u 0)
+          ) ;when
+          (show-only u what)
+        ) ;begin
+      ) ;if
+    ) ;let*
+  ) ;with
+) ;define
 
 (define (show-only-document t what)
-  (if (tree-is? t 'document) (show-only t what)))
+  (if (tree-is? t 'document) (show-only t what))
+) ;define
 
 (define (show-only t what)
-  (cond ((== what (string->tree ""))
-         (show-all t))
+  (cond ((== what (string->tree "")) (show-all t))
         ((tree-is? t 'document)
-         (for-each (cut show-only-sub <> what) (tree-children t)))
-        ((tree-is? t 'hide-para)
-         (show-only-sub t what))
+         (for-each (cut show-only-sub <> what) (tree-children t))
+        ) ;
+        ((tree-is? t 'hide-para) (show-only-sub t what))
         ((tree-compound? t)
-         (for-each (cut show-only-document <> what)
-                   (tree-accessible-children t)))
-        (else (noop))))
+         (for-each (cut show-only-document <> what) (tree-accessible-children t))
+        ) ;
+        (else (noop))
+  ) ;cond
+) ;define
 
 (define (show-all-document t)
-  (if (tree-is? t 'document) (show-all t)))
+  (if (tree-is? t 'document) (show-all t))
+) ;define
 
 (define (show-all t)
-  (cond ((tree-is? t 'document)
-         (for-each show-all (tree-children t)))
-        ((tree-is? t 'hide-para)
-         (tree-remove-node t 0))
-        ((tree-compound? t)
-         (for-each show-all-document (tree-accessible-children t)))
-        (else (noop))))
+  (cond ((tree-is? t 'document) (for-each show-all (tree-children t)))
+        ((tree-is? t 'hide-para) (tree-remove-node t 0))
+        ((tree-compound? t) (for-each show-all-document (tree-accessible-children t)))
+        (else (noop))
+  ) ;cond
+) ;define
 
 (define (search-show-only)
   (when search-filter-out?
     (with-buffer (master-buffer)
       (let* ((doc (buffer-get-body (master-buffer)))
-             (what (buffer-get-body (search-buffer))))
+             (what (buffer-get-body (search-buffer)))
+            ) ;
         (when (tree-func? what 'document 1)
-          (set! what (tree-ref what 0)))
-        (when (and (tree-func? doc 'document)
-                   (tree-func? (tree-ref doc :last) 'blank-line))
-          (tree-remove! doc (- (tree-arity doc) 1) 1))
+          (set! what (tree-ref what 0))
+        ) ;when
+        (when (and (tree-func? doc 'document) (tree-func? (tree-ref doc :last) 'blank-line))
+          (tree-remove! doc (- (tree-arity doc) 1) 1)
+        ) ;when
         (show-only doc what)
         (when (and (tree-func? doc 'document)
-                   (list-and (map (lambda (x) (tree-is? x 'hide-para))
-                                  (tree-children doc)))
-                   (not (tree-func? (tree-ref doc :last) 'blank-line)))
-          (tree-insert! doc (tree-arity doc) '((blank-line))))))))
+                (list-and (map (lambda (x) (tree-is? x 'hide-para)) (tree-children doc)))
+                (not (tree-func? (tree-ref doc :last) 'blank-line))
+              ) ;and
+          (tree-insert! doc (tree-arity doc) '((blank-line)))
+        ) ;when
+      ) ;let*
+    ) ;with-buffer
+  ) ;when
+) ;define
 
 (define (search-show-all)
   (when search-filter-out?
     (with-buffer (master-buffer)
-      (with doc (buffer-get-body (master-buffer))
+      (with doc
+        (buffer-get-body (master-buffer))
         (show-all doc)
-        (when (and (tree-func? doc 'document)
-                   (tree-func? (tree-ref doc :last) 'blank-line))
-          (tree-remove! doc (- (tree-arity doc) 1) 1))))))
+        (when (and (tree-func? doc 'document) (tree-func? (tree-ref doc :last) 'blank-line))
+          (tree-remove! doc (- (tree-arity doc) 1) 1)
+        ) ;when
+      ) ;with
+    ) ;with-buffer
+  ) ;when
+) ;define
 
 (define (search-filter-enabled?)
-  search-filter-out?)
+  search-filter-out?
+) ;define
 
 (define (search-toggle-filter)
   (search-show-all)
   (set! search-filter-out? (not search-filter-out?))
-  (perform-search))
+  (perform-search)
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Master routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define-preferences
-  ("toolbar search" "on" noop)
-  ("toolbar replace" "on" noop))
+(define-preferences ("toolbar search" "on" noop) ("toolbar replace" "on" noop))
 
 (tm-define (interactive-search)
   (:interactive #t)
-  (set! search-replace-text (cond 
-                              ((in-math?) "Only search in math mode")
-                              ((in-prog?)  "Only search in Program mode")
-                              ((in-graphics?) "Graphics mode cannot search")
-                              (else "Only search in text mode")))
+  (set! search-replace-text
+    (cond ((in-math?) "Only search in math mode")
+          ((in-prog?) "Only search in Program mode")
+          ((in-graphics?) "Graphics mode cannot search")
+          (else "Only search in text mode")
+    ) ;cond
+  ) ;set!
   (set-boolean-preference "search-and-replace" #f)
-  (open-search))
+  (open-search)
+) ;tm-define
 
 (tm-define (interactive-replace)
   (:interactive #t)
-  (set! search-replace-text (cond 
-                              ((in-math?) "Only search and replace in math mode")
-                              ((in-prog?)  "Only search and replace in Program mode")
-                              ((in-graphics?) "Graphics mode cannot search and replace")
-                              (else "Only search and replace in text mode")))
+  (set! search-replace-text
+    (cond ((in-math?) "Only search and replace in math mode")
+          ((in-prog?) "Only search and replace in Program mode")
+          ((in-graphics?) "Graphics mode cannot search and replace")
+          (else "Only search and replace in text mode")
+    ) ;cond
+  ) ;set!
   (set-boolean-preference "search-and-replace" #t)
-  (open-replace))
+  (open-replace)
+) ;tm-define
 
 (define (close-search-widget)
-  ((search-cancel 
-    (window->buffer
-      (auxiliary-buffer->window 
-        (search-buffer))))))
+ ((search-cancel (window->buffer (auxiliary-buffer->window (search-buffer)))))
+) ;define
 
-(register-auxiliary-widget-type 'search (list interactive-search close-search-widget))
-(register-auxiliary-widget-type 'replace (list interactive-replace close-search-widget))
+(register-auxiliary-widget-type 'search
+  (list interactive-search close-search-widget)
+) ;register-auxiliary-widget-type
+(register-auxiliary-widget-type 'replace
+  (list interactive-replace close-search-widget)
+) ;register-auxiliary-widget-type

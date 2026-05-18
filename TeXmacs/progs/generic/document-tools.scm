@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (generic document-tools)
-  (:use (generic document-widgets)))
+(texmacs-module (generic document-tools) (:use (generic document-widgets)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wrappers
@@ -20,18 +19,28 @@
 
 (tm-tool* (source-tree-preferences-tool win)
   (:name "Source tree preferences")
-  (with u (current-buffer)
+  (with u
+    (current-buffer)
     (dynamic ((source-tree-preferences-editor u)
-              (tool-quit 'source-tree-preferences-tool #f win)))))
+              (tool-quit 'source-tree-preferences-tool #f win)
+             ) ;
+    ) ;dynamic
+  ) ;with
+) ;tm-tool*
 
 (tm-tool* (document-metadata-tool win)
   (:name "Document metadata")
-  (with u (current-buffer)
-    (dynamic ((document-metadata-editor u)
-              (tool-quit 'document-metadata-tool #f win)))))
+  (with u
+    (current-buffer)
+    (dynamic ((document-metadata-editor u) (tool-quit 'document-metadata-tool #f win))
+    ) ;dynamic
+  ) ;with
+) ;tm-tool*
 
 (tm-tool* (document-colors-tool win)
   (:name "Document colors")
-  (with u (current-buffer)
-    (dynamic ((document-colors-picker u)
-              (tool-quit 'document-colors-tool #f win)))))
+  (with u
+    (current-buffer)
+    (dynamic ((document-colors-picker u) (tool-quit 'document-colors-tool #f win)))
+  ) ;with
+) ;tm-tool*
