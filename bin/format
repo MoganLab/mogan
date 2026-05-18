@@ -33,3 +33,4 @@ clang-format -i 3rdparty/lolly/**/*.cpp
 clang-format -i 3rdparty/lolly/**/*.hpp
 
 gf fix TeXmacs/progs/kernel
+gf fix TeXmacs/progs/utils/plugins/
