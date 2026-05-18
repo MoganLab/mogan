@@ -1,6 +1,6 @@
 
 /******************************************************************************
- * MODULE     : template_api_test.cpp
+ * MODULE     : template_api_integration_test.cpp
  * DESCRIPTION: Full regression tests for TemplateAPI
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
