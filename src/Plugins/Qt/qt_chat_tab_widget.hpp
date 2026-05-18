@@ -43,12 +43,12 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string  sessionId;  ///< UUID，创建时生成
-  string  title;      ///< 会话标题，初始为空字符串
-  string  model;      ///< 绑定的模型名称
-  ChatState state;    ///< 当前生成状态
-  bool    archived;   ///< 是否归档
-  void*   panel;      ///< 关联的 ChatConversationPanel 指针
+  string    sessionId; ///< UUID，创建时生成
+  string    title;     ///< 会话标题，初始为空字符串
+  string    model;     ///< 绑定的模型名称
+  ChatState state;     ///< 当前生成状态
+  bool      archived;  ///< 是否归档
+  void*     panel;     ///< 关联的 ChatConversationPanel 指针
 };
 
 /**
@@ -281,29 +281,29 @@ public:
   void newSessionWithModel (const string& model);
 
 private:
-  QWidget*        sidebarWidget_;               ///< 左侧边栏容器。
-  QWidget*        contentWidget_;               ///< 右侧内容区容器。
-  QLabel*         conversationCountLabel_;      ///< 显示会话数量的标签。
-  QWidget*        conversationListWidget_;      ///< 承载会话列表的控件。
-  QVBoxLayout*    conversationListLayout_;      ///< 会话按钮的布局。
-  QPushButton*    archiveHeaderButton_;         ///< 归档区标题按钮（点击展开/折叠）。
-  QWidget*        archiveListWidget_;           ///< 承载归档会话列表的控件。
-  QVBoxLayout*    archiveListLayout_;           ///< 归档会话按钮的布局。
-  bool            archiveCollapsed_;            ///< 归档区当前是否折叠。
-  QPushButton*    collapseButton_;              ///< 侧边栏内的收缩按钮。
-  QPushButton*    newChatButton_;               ///< 新建会话按钮。
-  QComboBox*      modelSelector_;               ///< 模型选择下拉框。
-  QWidget*        sidebarNormalContent_;        ///< 侧边栏展开时的内容容器。
-  QWidget*        sidebarCollapsedBar_;         ///< 侧边栏收起时的窄条容器。
-  QStackedWidget* conversationStack_;           ///< 会话页面的堆叠控件。
-  QList<ChatConversationPanel*> conversations_; ///< 所有会话面板的列表。
+  QWidget*        sidebarWidget_;          ///< 左侧边栏容器。
+  QWidget*        contentWidget_;          ///< 右侧内容区容器。
+  QLabel*         conversationCountLabel_; ///< 显示会话数量的标签。
+  QWidget*        conversationListWidget_; ///< 承载会话列表的控件。
+  QVBoxLayout*    conversationListLayout_; ///< 会话按钮的布局。
+  QPushButton*    archiveHeaderButton_;  ///< 归档区标题按钮（点击展开/折叠）。
+  QWidget*        archiveListWidget_;    ///< 承载归档会话列表的控件。
+  QVBoxLayout*    archiveListLayout_;    ///< 归档会话按钮的布局。
+  bool            archiveCollapsed_;     ///< 归档区当前是否折叠。
+  QPushButton*    collapseButton_;       ///< 侧边栏内的收缩按钮。
+  QPushButton*    newChatButton_;        ///< 新建会话按钮。
+  QComboBox*      modelSelector_;        ///< 模型选择下拉框。
+  QWidget*        sidebarNormalContent_; ///< 侧边栏展开时的内容容器。
+  QWidget*        sidebarCollapsedBar_;  ///< 侧边栏收起时的窄条容器。
+  QStackedWidget* conversationStack_;    ///< 会话页面的堆叠控件。
+  QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
   ChatSessionManager            sessionManager_;     ///< 会话管理器。
-  bool      sidebarCollapsed_;        ///< 侧边栏当前是否处于收起状态。
-  int       sidebarExpandedWidth_;    ///< 侧边栏展开时的宽度（像素）。
-  QToolBar* chatMenuToolBar_;         ///< Chat Tab 的菜单工具栏。
-  QToolBar* chatModeToolBar_;         ///< Chat Tab 的模式工具栏。
-  QToolBar* chatFocusToolBar_;        ///< Chat Tab 的焦点工具栏。
+  bool      sidebarCollapsed_;     ///< 侧边栏当前是否处于收起状态。
+  int       sidebarExpandedWidth_; ///< 侧边栏展开时的宽度（像素）。
+  QToolBar* chatMenuToolBar_;      ///< Chat Tab 的菜单工具栏。
+  QToolBar* chatModeToolBar_;      ///< Chat Tab 的模式工具栏。
+  QToolBar* chatFocusToolBar_;     ///< Chat Tab 的焦点工具栏。
 };
 
 /**
