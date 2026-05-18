@@ -20,6 +20,8 @@
   ) ;:use
 ) ;texmacs-module
 
+(define chat-tab-session-name "llm")
+
 (define chat-tab-current-model "default")
 
 (define chat-tab-session-serial 0)
@@ -191,7 +193,7 @@
              (ses (chat-tab-next-session-id model))
              (new (chat-tab-state input-buffer model ses))
             ) ;
-        (session-enable-text-input "llm" ses)
+        (session-enable-text-input chat-tab-session-name ses)
         (chat-tab-set-state! message-buffer new)
         new
       ) ;let*
@@ -385,7 +387,7 @@
 ;; 4. 在消息缓冲区追加一轮对话（chat-tab-append-round!）
 ;;    - 若追加失败，返回 #f
 ;; 5. 清空输入缓冲区
-;; 6. 检查是否已定义 "llm" 连接
+;; 6. 检查是否已定义 chat-tab-session-name 连接
 ;;    - 若未定义，直接将输入回显到输出区域
 ;;    - 若已定义，通过 plugin 机制发送消息（chat-tab-session-feed）
 ;; 7. 返回 #t
@@ -409,7 +411,7 @@
         #f
         (begin
           (chat-tab-clear-input! input-buffer)
-          (if (not (connection-defined? "llm"))
+          (if (not (connection-defined? chat-tab-session-name))
             (begin
               (with-buffer message-buffer
                 (chat-tab-output out input)
@@ -418,7 +420,7 @@
               #t
             ) ;begin
             (begin
-              (chat-tab-session-feed "llm" ses input message-buffer input-buffer out '())
+              (chat-tab-session-feed chat-tab-session-name ses input message-buffer input-buffer out '())
               #t
             ) ;begin
           ) ;if
