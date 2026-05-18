@@ -155,7 +155,7 @@
 (define (chat-tab-append-round! message-buffer body)
   (with-buffer message-buffer
     (let* ((doc (chat-tab-message-document message-buffer))
-           (model (chat-tab-current-model))
+           (model chat-tab-current-model)
            (prompt (chat-tab-model-prompt model))
            (input-children (chat-tab-body-children body))
            (input-stree (map tree->stree input-children))
