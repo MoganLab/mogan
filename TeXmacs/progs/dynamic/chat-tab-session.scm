@@ -83,11 +83,13 @@
 ) ;define
 
 (define (chat-tab-model-prompt model)
-  (with parts (string-tokenize-by-char model #\-)
+  (with parts
+    (string-tokenize-by-char model #\-)
     (with part
       (list-find parts (lambda (p) (string-occurs? "0123456789" p)))
-      (if part part (cAr parts)))
-    (string-append part "> "))
+      (string-append (if part part (cAr parts)) "> ")
+    ) ;with
+  ) ;with
 ) ;define
 
 (define (var-tree-children t)
@@ -99,10 +101,9 @@
     (let ((doc (buffer-get-body message-buffer)))
       (cond ((tree-is? doc 'document) doc)
             ((tree-is? doc 'session)
-             (with d (tree-ref doc 2)
-               (if (tree-is? d 'document) d doc)))
-            (else
-              (buffer-set-body message-buffer '(document ""))
+             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
+            ) ;
+            (else (buffer-set-body message-buffer '(document ""))
               (buffer-pretend-saved message-buffer)
               (buffer-get-body message-buffer)
             ) ;else
@@ -160,15 +161,18 @@
            (prompt (chat-tab-model-prompt model))
            (input-children (chat-tab-body-children body))
            (input-stree (map tree->stree input-children))
-           (io-node (stree->tree `(unfolded-io-text
-                                    (document ,prompt)
+           (io-node (stree->tree `(unfolded-io-text (document ,prompt)
                                     (document ,@input-stree)
-                                    (document "")))))
+                                    (document ""))
+                    ) ;stree->tree
+           ) ;io-node
+          ) ;
       (tree-insert! doc (tree-arity doc) (list io-node))
       (set-user-active #f)
       (buffer-pretend-saved message-buffer)
       (let ((last-node (tree-ref doc :last)))
-        (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2)))
+        (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2))
+      ) ;let
     ) ;let*
   ) ;with-buffer
 ) ;define
@@ -206,8 +210,13 @@
         (with-buffer message-buffer
           (let ((body (buffer-get-body message-buffer)))
             (when (not (tree-is? body 'session))
-              (buffer-set-body message-buffer `(session ,chat-tab-session-name ,ses (document)))
-              (buffer-pretend-saved message-buffer))))
+              (buffer-set-body message-buffer
+                `(session ,chat-tab-session-name ,ses (document))
+              ) ;buffer-set-body
+              (buffer-pretend-saved message-buffer)
+            ) ;when
+          ) ;let
+        ) ;with-buffer
         (chat-tab-set-state! message-buffer new)
         new
       ) ;let*
