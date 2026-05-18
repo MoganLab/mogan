@@ -24,6 +24,7 @@ class QPushButton;
 class QSpacerItem;
 class QStackedWidget;
 class QString;
+class QToolBar;
 class QVBoxLayout;
 class QEvent;
 
@@ -133,6 +134,25 @@ private:
    */
   void focus_input_editor (ChatConversationPanel* panel);
 
+public:
+  /**
+   * @brief 为 Chat Tab 安装主菜单栏内容。
+   * @param menuWidget 菜单 widget。
+   */
+  void install_chat_menu_bar (widget menuWidget);
+
+  /**
+   * @brief 设置 Chat Tab 的模式工具栏内容。
+   * @param modeWidget 模式图标 widget。
+   */
+  void set_chat_mode_icons (widget modeWidget);
+
+  /**
+   * @brief 设置 Chat Tab 的焦点工具栏内容。
+   * @param focusWidget 焦点图标 widget。
+   */
+  void set_chat_focus_icons (widget focusWidget);
+
 private:
   QWidget*        sidebarWidget_;                    ///< 左侧边栏容器。
   QWidget*        contentWidget_;                    ///< 右侧内容区容器。
@@ -144,6 +164,9 @@ private:
   QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
   int nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
+  QToolBar*       chatMenuToolBar_;                  ///< Chat Tab 的菜单工具栏。
+  QToolBar*       chatModeToolBar_;                  ///< Chat Tab 的模式工具栏。
+  QToolBar*       chatFocusToolBar_;                 ///< Chat Tab 的焦点工具栏。
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

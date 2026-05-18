@@ -2041,9 +2041,22 @@ qt_tm_embedded_widget_rep::write (slot s, blackbox index, widget w) {
   } break;
     /// FIXME: decide what to do with these for embedded widgets
   case SLOT_MAIN_MENU:
-  case SLOT_MAIN_ICONS:
   case SLOT_MODE_ICONS:
-  case SLOT_FOCUS_ICONS:
+  case SLOT_FOCUS_ICONS: {
+    if (!qwid) as_qwidget ();
+    QWidget* p= qwid;
+    while (p) {
+      if (QTChatTabWidget* chat= qobject_cast<QTChatTabWidget*> (p)) {
+        if (s == SLOT_MAIN_MENU) chat->install_chat_menu_bar (w);
+        else if (s == SLOT_MODE_ICONS) chat->set_chat_mode_icons (w);
+        else if (s == SLOT_FOCUS_ICONS) chat->set_chat_focus_icons (w);
+        return;
+      }
+      p= p->parentWidget ();
+    }
+    qt_widget_rep::write (s, index, w);
+  } break;
+  case SLOT_MAIN_ICONS:
   case SLOT_USER_ICONS:
   case SLOT_SIDE_TOOLS:
   case SLOT_LEFT_TOOLS:
