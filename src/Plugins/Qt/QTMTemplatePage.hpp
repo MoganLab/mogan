@@ -37,8 +37,10 @@ public:
   explicit QTMTemplatePage (QWidget* parent= nullptr);
   ~QTMTemplatePage ();
 
+  // 初始化：连接 TemplateManager 信号
   void initialize ();
 
+  // 设置当前显示的分类
   void    setCategory (const QString& categoryId,
                        const QString& displayName= QString ());
   QString currentCategory () const { return currentCategory_; }
@@ -59,23 +61,23 @@ private:
   int      calculateColumnCount () const;
   void     showTemplatePreview (const QString& templateId);
 
-  // UI components
+  // UI 组件
   QLabel*      titleLabel_;
   QScrollArea* scrollArea_;
   QWidget*     gridWidget_;
   QGridLayout* gridLayout_;
 
-  // Data
+  // 数据
   TemplateManager* templateManager_;
   QString          currentCategory_;
 
-  // Responsive grid
+  // 响应式网格：当前列数
   int currentColumnCount_= 4;
 
-  // Avoid duplicate refresh when onTemplatesLoaded and showEvent both fire
+  // 避免 onTemplatesLoaded 和 showEvent 重复刷新
   bool gridNeedsRefresh_= true;
 
-  // Debounce timer for resize events to avoid frequent grid rebuilds
+  // resize 防抖定时器，避免拖拽窗口时频繁重建网格
   QTimer* resizeDebounceTimer_;
 };
 

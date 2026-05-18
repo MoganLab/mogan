@@ -83,6 +83,12 @@ signals:
   // Network state
   void networkStateChanged (bool isOnline);
 
+public:
+  // Response parsing (exposed for unit testing)
+  QList<TemplateCategory> parseCategoriesResponse (const QJsonValue& data);
+  QHash<QString, TemplateMetadataPtr>
+  parseTemplatesResponse (const QJsonValue& data);
+
 private slots:
   void onCategoriesReplyFinished ();
   void onTemplatesReplyFinished ();
@@ -93,11 +99,6 @@ private:
   // API URL construction
   QString categoriesUrl () const;
   QString templatesUrl () const;
-
-  // Response parsing
-  QList<TemplateCategory> parseCategoriesResponse (const QJsonValue& data);
-  QHash<QString, TemplateMetadataPtr>
-  parseTemplatesResponse (const QJsonValue& data);
 
   // Helper to parse individual template objects
   void parseTemplateObject (const QJsonObject&                   tmplObj,

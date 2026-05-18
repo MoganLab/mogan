@@ -42,6 +42,7 @@ private slots:
 
   void cleanup () { clearCacheDir (); }
 
+  // 测试分类缓存的 save/load 往返：验证字段完整性和顺序保持
   void test_save_and_load_categories_cache () {
     TemplateCache cache;
     cache.initialize ();
@@ -76,6 +77,7 @@ private slots:
     QCOMPARE (loaded[1].order, 2);
   }
 
+  // 测试缓存文件损坏时返回空列表并自动清理
   void test_load_categories_cache_returns_empty_on_corruption () {
     TemplateCache cache;
     cache.initialize ();
@@ -91,6 +93,7 @@ private slots:
     QVERIFY (!QFile::exists (cachePath));
   }
 
+  // 测试注册缓存模板后能通过 ID 查询路径和 MD5
   void test_register_and_query_cached_template () {
     TemplateCache cache;
     cache.initialize ();
@@ -112,6 +115,7 @@ private slots:
     QCOMPARE (entries[0].fileMd5, QString ("abc123"));
   }
 
+  // 测试移除缓存：索引和物理文件均被删除
   void test_remove_cached_template () {
     TemplateCache cache;
     cache.initialize ();
@@ -130,6 +134,7 @@ private slots:
     QVERIFY (!QFile::exists (templatePath));
   }
 
+  // 测试缓存总大小计算（累加所有模板文件大小）
   void test_cache_size_computation () {
     TemplateCache cache;
     cache.initialize ();
@@ -152,6 +157,7 @@ private slots:
     QCOMPARE (cache.cacheSize (), qint64 (300));
   }
 
+  // 测试清空缓存：索引、分类缓存、物理文件全部清除
   void test_clear_cache_removes_all () {
     TemplateCache cache;
     cache.initialize ();

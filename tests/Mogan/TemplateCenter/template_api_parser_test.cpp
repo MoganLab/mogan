@@ -5,9 +5,7 @@
  * COPYRIGHT  : (C) 2026 Yuki Lu
  ******************************************************************************/
 
-#define private public
 #include "template_api.hpp"
-#undef private
 
 #include <QtTest/QtTest>
 
@@ -19,6 +17,7 @@ class TestTemplateAPI : public QObject {
   Q_OBJECT
 
 private slots:
+  // 测试分类列表解析：验证字段映射和按 order 排序
   void test_categories_response_parsing () {
     TemplateAPI api;
 
@@ -53,6 +52,8 @@ private slots:
     QCOMPARE (result[1].templateCount, 10);
   }
 
+  // 测试模板详情解析：验证所有字段映射（包括 category
+  // 嵌套对象、tags、statistics）
   void test_templates_response_field_mapping () {
     TemplateAPI api;
 
@@ -121,6 +122,7 @@ private slots:
               QDateTime::fromString ("2026-04-25T12:00:00Z", Qt::ISODate));
   }
 
+  // 测试 createTime 缺失时回退到 created_at（兼容旧 API 格式）
   void test_created_at_fallback_when_createTime_missing () {
     TemplateAPI api;
 
@@ -152,12 +154,14 @@ private slots:
               QDateTime::fromString ("2026-06-01T00:00:00Z", Qt::ISODate));
   }
 
+  // 测试空数组返回空列表而非崩溃
   void test_empty_categories_returns_empty_list () {
     TemplateAPI api;
     auto result= api.parseCategoriesResponse (QJsonValue (QJsonArray ()));
     QVERIFY (result.isEmpty ());
   }
 
+  // 测试非数组输入返回空列表（容错）
   void test_non_array_categories_returns_empty () {
     TemplateAPI api;
     auto result= api.parseCategoriesResponse (QJsonValue (QJsonObject ()));
@@ -166,4 +170,4 @@ private slots:
 };
 
 QTEST_MAIN (TestTemplateAPI)
-#include "template_api_test.moc"
+#include "template_api_parser_test.moc"

@@ -488,10 +488,13 @@ QTMTemplatePage::showEvent (QShowEvent* event) {
   // Refresh grid when page becomes visible. If onTemplatesLoaded already
   // refreshed while the widget had no proper size, recalculate now that
   // the viewport has its final width to avoid showing the wrong column count.
-  if (templateManager_ && templateManager_->isInitialized () &&
-      !templateManager_->templates ().isEmpty ()) {
+  if (gridNeedsRefresh_) {
+    refreshTemplateGrid ();
+  }
+  else if (templateManager_ && templateManager_->isInitialized () &&
+           !templateManager_->templates ().isEmpty ()) {
     int newColumnCount= calculateColumnCount ();
-    if (gridNeedsRefresh_ || newColumnCount != currentColumnCount_) {
+    if (newColumnCount != currentColumnCount_) {
       refreshTemplateGrid ();
     }
   }

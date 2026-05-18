@@ -49,25 +49,28 @@ public:
   void initialize ();
   bool isInitialized () const { return initialized_; }
 
-  // Category operations
+  // 分类操作
   QList<TemplateCategory> categories () const;
   QString                 categoryName (const QString& categoryId) const;
 
-  // Template queries
+  // 模板查询
   QList<TemplateMetadataPtr> templates () const;
   QList<TemplateMetadataPtr>
                       templatesByCategory (const QString& categoryId) const;
   TemplateMetadataPtr templateById (const QString& templateId) const;
 
-  // Template availability
-  bool    isTemplateAvailableLocally (const QString& templateId);
+  // 本地模板可用性（纯查询，不验证 MD5）
+  bool    isTemplateAvailableLocally (const QString& templateId) const;
   QString localTemplatePath (const QString& templateId) const;
 
-  // Operations
-  void refreshCategories (); // Force refresh categories from remote
-  void refreshTemplates ();  // Force refresh all templates from remote
-  void refreshTemplatesByCategory (
-      const QString& categoryId); // Refresh templates for a specific category
+  // 验证本地模板完整性（MD5 校验），损坏时自动清理缓存
+  bool verifyLocalTemplate (const QString& templateId);
+
+  // 刷新操作
+  void refreshCategories (); // 强制刷新分类列表
+  void refreshTemplates ();  // 强制刷新全部模板
+  void
+  refreshTemplatesByCategory (const QString& categoryId); // 按分类增量刷新模板
 
   // Template download
   void downloadTemplate (const QString& templateId);

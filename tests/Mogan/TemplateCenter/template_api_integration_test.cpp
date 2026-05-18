@@ -70,7 +70,7 @@ private slots:
 
   void test_api_base_url () {
     TemplateAPI api;
-    QCOMPARE (api.apiBaseUrl (), QString ("https://liiistem.cn/template-api"));
+    QCOMPARE (api.apiBaseUrl (), QString ("https://liiistem.cn"));
     api.setApiBaseUrl ("http://example.com/api");
     QCOMPARE (api.apiBaseUrl (), QString ("http://example.com/api"));
   }
@@ -115,13 +115,26 @@ private slots:
     QVERIFY (args[1].toString ().contains ("Offline"));
   }
 
-  void test_offline_mode_blocks_metadata () {
+  void test_offline_mode_blocks_categories () {
     TemplateAPI api;
     api.setOfflineMode (true);
-    QSignalSpy spy (&api, &TemplateAPI::metadataLoadFailed);
+    QSignalSpy spy (&api, &TemplateAPI::categoriesLoadFailed);
     QVERIFY (spy.isValid ());
 
-    api.fetchMetadata ();
+    api.fetchCategories ();
+    QCoreApplication::processEvents ();
+
+    QCOMPARE (spy.count (), 1);
+    QVERIFY (spy.takeFirst ()[0].toString ().contains ("Offline"));
+  }
+
+  void test_offline_mode_blocks_templates () {
+    TemplateAPI api;
+    api.setOfflineMode (true);
+    QSignalSpy spy (&api, &TemplateAPI::templatesLoadFailed);
+    QVERIFY (spy.isValid ());
+
+    api.fetchTemplates ("cat1");
     QCoreApplication::processEvents ();
 
     QCOMPARE (spy.count (), 1);
@@ -193,7 +206,6 @@ private slots:
   // --- 下载失败场景 ---
 
   void test_download_network_error () {
-    // 空响应：服务器收到请求后直接断开，触发网络错误
     MiniHttpServer server ("");
     TemplateAPI    api;
 
@@ -386,11 +398,9 @@ private slots:
     QTemporaryDir tempDir;
     QString       targetPath= tempDir.filePath ("reuse.tmu");
 
-    // 启动一个会 hang 的旧下载
     api.downloadTemplate ("test-tmpl", hangUrl, targetPath);
     QCoreApplication::processEvents ();
 
-    // 再次下载同一个 templateId，内部 abort 旧请求，新请求应成功
     QByteArray body= "Template Reuse Success";
     QByteArray response=
         QByteArray ("HTTP/1.1 200 OK\r\n") +
@@ -402,7 +412,6 @@ private slots:
     api.downloadTemplate ("test-tmpl", server.url () + "/file", newPath);
     QVERIFY (completedSpy.wait (1000));
 
-    // 旧请求不应触发 downloadFailed，新请求应成功完成
     QCOMPARE (failedSpy.count (), 0);
     QCOMPARE (completedSpy.count (), 1);
     QList<QVariant> args= completedSpy.takeFirst ();
@@ -414,7 +423,6 @@ private slots:
     QCOMPARE (file.readAll (), body);
   }
 
-  // 测试取消不存在的 templateId：验证不会崩溃也不会误发射 downloadFailed 信号
   void test_cancel_nonexistent_download () {
     TemplateAPI api;
     QSignalSpy  spy (&api, &TemplateAPI::downloadFailed);
@@ -426,132 +434,78 @@ private slots:
     QCOMPARE (spy.count (), 0);
   }
 
-  // --- Metadata 获取 ---
+  // --- 分类获取 ---
 
-  void test_fetch_metadata_success () {
-    QJsonObject stats;
-    stats["downloads"]= 42;
-    stats["rating"]   = 4.5;
+  void test_fetch_categories_success () {
+    QJsonArray  categories;
+    QJsonObject cat1;
+    cat1["categoryKey"]  = "thesis";
+    cat1["name"]         = u8"论文";
+    cat1["nameEn"]       = "Thesis";
+    cat1["description"]  = u8"学位论文模板";
+    cat1["order"]        = 1;
+    cat1["templateCount"]= 15;
+    categories.append (cat1);
 
-    QJsonObject compat;
-    compat["mogan_min_version"]= "1.0";
-
-    QJsonArray tags;
-    tags.append ("math");
-    tags.append ("physics");
-
-    QJsonObject tmplObj;
-    tmplObj["id"]           = "tmpl1";
-    tmplObj["name"]         = "Template 1";
-    tmplObj["description"]  = "A template";
-    tmplObj["category"]     = "cat1";
-    tmplObj["author"]       = "Author";
-    tmplObj["version"]      = "1.0";
-    tmplObj["license"]      = "MIT";
-    tmplObj["thumbnail_url"]= "";
-    tmplObj["preview_url"]  = "";
-    tmplObj["download_url"] = "http://example.com/file";
-    tmplObj["file_size"]    = 100;
-    tmplObj["file_md5"]     = "abc123";
-    tmplObj["created_at"]   = "2024-01-01T00:00:00Z";
-    tmplObj["updated_at"]   = "2024-06-01T00:00:00Z";
-    tmplObj["language"]     = "zh-CN";
-    tmplObj["tags"]         = tags;
-    tmplObj["compatibility"]= compat;
-    tmplObj["statistics"]   = stats;
-
-    QJsonArray templates;
-    templates.append (tmplObj);
-
-    QJsonObject category;
-    category["id"]         = "cat1";
-    category["name"]       = "Category 1";
-    category["description"]= "Desc";
-    category["icon"]       = "icon";
-    category["order"]      = 1;
-    category["templates"]  = templates;
-
-    QJsonArray categories;
-    categories.append (category);
+    QJsonObject cat2;
+    cat2["categoryKey"]  = "report";
+    cat2["name"]         = u8"报告";
+    cat2["nameEn"]       = "Report";
+    cat2["description"]  = u8"实验报告模板";
+    cat2["order"]        = 2;
+    cat2["templateCount"]= 10;
+    categories.append (cat2);
 
     QJsonObject root;
-    root["categories"]= categories;
+    root["code"]   = 0;
+    root["success"]= true;
+    root["message"]= "ok";
+    root["data"]   = categories;
 
     QByteArray body= QJsonDocument (root).toJson (QJsonDocument::Compact);
 
     QByteArray response=
         QByteArray ("HTTP/1.1 200 OK\r\n") +
         "Content-Length: " + QByteArray::number (body.size ()) + "\r\n" +
-        "ETag: \"test-etag-123\"\r\n" + "\r\n" + body;
+        "\r\n" + body;
 
     MiniHttpServer server (response);
     TemplateAPI    api;
     api.setApiBaseUrl (server.url ());
 
-    QHash<QString, TemplateMetadataPtr> receivedMetadata;
-    QList<TemplateCategory>             receivedCategories;
-    connect (&api, &TemplateAPI::metadataLoaded,
-             [&] (const QHash<QString, TemplateMetadataPtr>& m,
-                  const QList<TemplateCategory>&             c) {
-               receivedMetadata  = m;
-               receivedCategories= c;
-             });
+    QList<TemplateCategory> receivedCategories;
+    connect (&api, &TemplateAPI::categoriesLoaded,
+             [&] (const QList<TemplateCategory>& c) { receivedCategories= c; });
 
-    QSignalSpy failedSpy (&api, &TemplateAPI::metadataLoadFailed);
+    QSignalSpy failedSpy (&api, &TemplateAPI::categoriesLoadFailed);
     QVERIFY (failedSpy.isValid ());
 
-    api.fetchMetadata ();
-    QVERIFY (QSignalSpy (&api, &TemplateAPI::metadataLoaded).wait (1000));
+    api.fetchCategories ();
+    QVERIFY (QSignalSpy (&api, &TemplateAPI::categoriesLoaded).wait (1000));
 
     QCOMPARE (failedSpy.count (), 0);
-    QCOMPARE (receivedCategories.size (), 1);
-    QCOMPARE (receivedCategories[0].id, QString ("cat1"));
-    QCOMPARE (receivedCategories[0].name, QString ("Category 1"));
+    QCOMPARE (receivedCategories.size (), 2);
+    QCOMPARE (receivedCategories[0].id, QString ("thesis"));
+    QCOMPARE (receivedCategories[0].nameEn, QString ("Thesis"));
     QCOMPARE (receivedCategories[0].order, 1);
-
-    QVERIFY (receivedMetadata.contains ("tmpl1"));
-    auto tmpl= receivedMetadata["tmpl1"];
-    QVERIFY (tmpl);
-    QCOMPARE (tmpl->id, QString ("tmpl1"));
-    QCOMPARE (tmpl->name, QString ("Template 1"));
-    QCOMPARE (tmpl->author, QString ("Author"));
-    QCOMPARE (tmpl->fileSize, qint64 (100));
-    QCOMPARE (tmpl->downloadCount, 42);
-    QCOMPARE (tmpl->rating, 4.5);
-    QCOMPARE (tmpl->tags, QStringList ({"math", "physics"}));
-    QCOMPARE (tmpl->moganMinVersion, QString ("1.0"));
-
-    QCOMPARE (api.lastMetadataEtag (), QString ("\"test-etag-123\""));
+    QCOMPARE (receivedCategories[1].id, QString ("report"));
+    QCOMPARE (receivedCategories[1].order, 2);
   }
 
-  void test_fetch_metadata_304_not_modified () {
-    QByteArray     response= "HTTP/1.1 304 Not Modified\r\n\r\n";
-    MiniHttpServer server (response);
-    TemplateAPI    api;
-    api.setApiBaseUrl (server.url ());
-
-    QSignalSpy spy (&api, &TemplateAPI::metadataNotModified);
-    QVERIFY (spy.isValid ());
-
-    api.fetchMetadata ();
-    QVERIFY (spy.wait (1000));
-    QCOMPARE (spy.count (), 1);
-  }
-
-  void test_fetch_metadata_network_error () {
+  void test_fetch_categories_network_error () {
     MiniHttpServer server ("");
     TemplateAPI    api;
     api.setApiBaseUrl (server.url ());
 
-    QSignalSpy spy (&api, &TemplateAPI::metadataLoadFailed);
+    QSignalSpy spy (&api, &TemplateAPI::categoriesLoadFailed);
     QVERIFY (spy.isValid ());
 
-    api.fetchMetadata ();
+    api.fetchCategories ();
     QVERIFY (spy.wait (1000));
     QCOMPARE (spy.count (), 1);
   }
 
-  void test_fetch_metadata_invalid_json () {
+  void test_fetch_categories_invalid_json () {
     QByteArray body= "not json";
     QByteArray response=
         QByteArray ("HTTP/1.1 200 OK\r\n") +
@@ -562,14 +516,13 @@ private slots:
     TemplateAPI    api;
     api.setApiBaseUrl (server.url ());
 
-    QSignalSpy spy (&api, &TemplateAPI::metadataLoadFailed);
+    QSignalSpy spy (&api, &TemplateAPI::categoriesLoadFailed);
     QVERIFY (spy.isValid ());
 
-    // 抑制 parseMetadataResponse 中预期内的 qWarning
     QtMessageHandler oldHandler= qInstallMessageHandler (
         [] (QtMsgType, const QMessageLogContext&, const QString&) {});
 
-    api.fetchMetadata ();
+    api.fetchCategories ();
     QVERIFY (spy.wait (1000));
 
     qInstallMessageHandler (oldHandler);
@@ -578,83 +531,56 @@ private slots:
     QVERIFY (spy.takeFirst ()[0].toString ().contains ("Invalid"));
   }
 
-  void test_fetch_metadata_conditional_request () {
-    QByteArray body= R"({"categories":[],"templates":[]})";
-    QByteArray response=
-        QByteArray ("HTTP/1.1 200 OK\r\n") +
-        "Content-Length: " + QByteArray::number (body.size ()) + "\r\n" +
-        "ETag: \"etag-456\"\r\n" + "\r\n" + body;
+  // --- 模板获取 ---
 
-    MiniHttpServer server (response);
-    TemplateAPI    api;
-    api.setApiBaseUrl (server.url ());
-    api.setMetadataEtag ("\"prev-etag\"");
+  void test_fetch_templates_success () {
+    QJsonArray  items;
+    QJsonObject tmpl;
+    tmpl["templateKey"] = "nsfc-ysf-c";
+    tmpl["name"]        = u8"国自然青年C类";
+    tmpl["description"] = u8"申请书模板";
+    tmpl["author"]      = "Liii Network";
+    tmpl["version"]     = "20260424";
+    tmpl["license"]     = "GPL-3.0";
+    tmpl["thumbnailUrl"]= "https://cdn.liiistem.cn/images/thumb.png";
+    tmpl["fileSize"]    = 1024;
+    tmpl["fileMd5"]     = "53213b7dd8736afbf9a927cccac16533";
+    tmpl["language"]    = "zh-CN";
 
-    QSignalSpy spy (&api, &TemplateAPI::metadataLoaded);
-    QVERIFY (spy.isValid ());
+    QJsonObject categoryObj;
+    categoryObj["categoryKey"]= "resume-report-application";
+    categoryObj["name"]       = u8"简历报告申请";
+    tmpl["category"]          = categoryObj;
 
-    api.fetchMetadata ();
-    QVERIFY (spy.wait (1000));
+    tmpl["url"]       = "https://cdn.liiistem.cn/library/file.tmu";
+    tmpl["pdfUrl"]    = "https://cdn.liiistem.cn/library/file.pdf";
+    tmpl["createTime"]= "2026-04-24T00:00:00Z";
+    tmpl["updateTime"]= "2026-04-25T12:00:00Z";
 
-    QCOMPARE (spy.count (), 1);
-    QCOMPARE (api.lastMetadataEtag (), QString ("\"etag-456\""));
-    QVERIFY (server.lastRequest ().contains ("if-none-match"));
-  }
+    QJsonArray tags;
+    tags.append ("NSFC");
+    tags.append (u8"国自然");
+    tmpl["tags"]= tags;
 
-  // 测试 API 返回空的 categories 和
-  // templates：验证正常解析为空的元数据和分类列表
-  void test_fetch_metadata_empty_result () {
-    QByteArray body= R"({"categories":[],"templates":[]})";
-    QByteArray response=
-        QByteArray ("HTTP/1.1 200 OK\r\n") +
-        "Content-Length: " + QByteArray::number (body.size ()) + "\r\n" +
-        "ETag: \"empty-etag\"\r\n" + "\r\n" + body;
+    QJsonObject compat;
+    compat["mogan_min_version"]= "1.2.0";
+    tmpl["compatibility"]      = compat;
 
-    MiniHttpServer server (response);
-    TemplateAPI    api;
-    api.setApiBaseUrl (server.url ());
+    QJsonObject stats;
+    stats["downloads"]= 100;
+    stats["rating"]   = 4.5;
+    tmpl["statistics"]= stats;
 
-    QHash<QString, TemplateMetadataPtr> receivedMetadata;
-    QList<TemplateCategory>             receivedCategories;
-    connect (&api, &TemplateAPI::metadataLoaded,
-             [&] (const QHash<QString, TemplateMetadataPtr>& m,
-                  const QList<TemplateCategory>&             c) {
-               receivedMetadata  = m;
-               receivedCategories= c;
-             });
+    items.append (tmpl);
 
-    QSignalSpy failedSpy (&api, &TemplateAPI::metadataLoadFailed);
-    QVERIFY (failedSpy.isValid ());
-
-    api.fetchMetadata ();
-    QVERIFY (QSignalSpy (&api, &TemplateAPI::metadataLoaded).wait (1000));
-
-    QCOMPARE (failedSpy.count (), 0);
-    QCOMPARE (receivedCategories.size (), 0);
-    QCOMPARE (receivedMetadata.size (), 0);
-    QCOMPARE (api.lastMetadataEtag (), QString ("\"empty-etag\""));
-  }
-
-  // 测试模板字段缺失或 id 为空：验证空 id 模板被忽略且解析过程不会崩溃
-  void test_fetch_metadata_missing_required_fields () {
-    QJsonObject tmplObj;
-    tmplObj["id"]          = "";
-    tmplObj["name"]        = "";
-    tmplObj["download_url"]= "";
-
-    QJsonArray templates;
-    templates.append (tmplObj);
-
-    QJsonObject category;
-    category["id"]       = "cat1";
-    category["name"]     = "";
-    category["templates"]= templates;
-
-    QJsonArray categories;
-    categories.append (category);
+    QJsonObject dataObj;
+    dataObj["items"]= items;
 
     QJsonObject root;
-    root["categories"]= categories;
+    root["code"]   = 0;
+    root["success"]= true;
+    root["message"]= "ok";
+    root["data"]   = dataObj;
 
     QByteArray body= QJsonDocument (root).toJson (QJsonDocument::Compact);
 
@@ -668,26 +594,39 @@ private slots:
     api.setApiBaseUrl (server.url ());
 
     QHash<QString, TemplateMetadataPtr> receivedMetadata;
-    QList<TemplateCategory>             receivedCategories;
-    connect (&api, &TemplateAPI::metadataLoaded,
-             [&] (const QHash<QString, TemplateMetadataPtr>& m,
-                  const QList<TemplateCategory>&             c) {
-               receivedMetadata  = m;
-               receivedCategories= c;
+    connect (&api, &TemplateAPI::templatesLoaded,
+             [&] (const QHash<QString, TemplateMetadataPtr>& m) {
+               receivedMetadata= m;
              });
 
-    QSignalSpy failedSpy (&api, &TemplateAPI::metadataLoadFailed);
+    QSignalSpy failedSpy (&api, &TemplateAPI::templatesLoadFailed);
     QVERIFY (failedSpy.isValid ());
 
-    api.fetchMetadata ();
-    QVERIFY (QSignalSpy (&api, &TemplateAPI::metadataLoaded).wait (1000));
+    api.fetchTemplates ("resume-report-application");
+    QVERIFY (QSignalSpy (&api, &TemplateAPI::templatesLoaded).wait (1000));
 
     QCOMPARE (failedSpy.count (), 0);
-    QCOMPARE (receivedCategories.size (), 1);
-    QCOMPARE (receivedCategories[0].id, QString ("cat1"));
+    QCOMPARE (receivedMetadata.size (), 1);
 
-    QVERIFY (!receivedMetadata.contains (""));
-    QCOMPARE (receivedMetadata.size (), 0);
+    auto ptr= receivedMetadata["nsfc-ysf-c"];
+    QVERIFY (!ptr.isNull ());
+    QCOMPARE (ptr->id, QString ("nsfc-ysf-c"));
+    QCOMPARE (ptr->category, QString ("resume-report-application"));
+    QCOMPARE (ptr->fileSize, qint64 (1024));
+    QCOMPARE (ptr->downloadCount, 100);
+  }
+
+  void test_fetch_templates_network_error () {
+    MiniHttpServer server ("");
+    TemplateAPI    api;
+    api.setApiBaseUrl (server.url ());
+
+    QSignalSpy spy (&api, &TemplateAPI::templatesLoadFailed);
+    QVERIFY (spy.isValid ());
+
+    api.fetchTemplates ("cat1");
+    QVERIFY (spy.wait (1000));
+    QCOMPARE (spy.count (), 1);
   }
 
   // --- 生命周期安全 ---
@@ -701,20 +640,30 @@ private slots:
       QTemporaryDir tempDir;
       QString       targetPath= tempDir.filePath ("destructor.tmu");
       api.downloadTemplate ("test-tmpl", url, targetPath);
-      // api 离开作用域，destructor 被调用
     }
     QVERIFY (true);
   }
 
-  void test_destructor_with_active_metadata_fetch () {
+  void test_destructor_with_active_categories_fetch () {
     QString url=
         QString ("http://127.0.0.1:%1/hang").arg (hangServer_.serverPort ());
 
     {
       TemplateAPI api;
       api.setApiBaseUrl (url);
-      api.fetchMetadata ();
-      // api 离开作用域，destructor 被调用
+      api.fetchCategories ();
+    }
+    QVERIFY (true);
+  }
+
+  void test_destructor_with_active_templates_fetch () {
+    QString url=
+        QString ("http://127.0.0.1:%1/hang").arg (hangServer_.serverPort ());
+
+    {
+      TemplateAPI api;
+      api.setApiBaseUrl (url);
+      api.fetchTemplates ("cat1");
     }
     QVERIFY (true);
   }
@@ -792,4 +741,4 @@ MiniHttpServer::lastRequest () const {
 }
 
 QTEST_MAIN (TestTemplateAPI)
-#include "template_api_test.moc"
+#include "template_api_integration_test.moc"

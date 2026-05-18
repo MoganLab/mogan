@@ -29,6 +29,8 @@ private slots:
     qInstallMessageHandler (oldHandler);
   }
 
+  // --- 构造与初始化 ---
+
   // QTMTemplatePage 应能正常构造和初始化
   void test_template_page_construct_and_initialize () {
     QTMTemplatePage page;
@@ -40,6 +42,8 @@ private slots:
     // initialize 连接信号后不应改变基本结构
     QVERIFY (page.findChild<QWidget*> ("startup-tab-grid") != nullptr);
   }
+
+  // --- 信号响应 ---
 
   // 手动发射 TemplateManager::templatesLoaded 后，网格应被刷新
   void test_templates_loaded_signal_refreshes_grid () {
@@ -73,6 +77,8 @@ private slots:
               "templatesLoaded signal with empty template list");
   }
 
+  // --- 分类操作 ---
+
   // setCategory 不应导致崩溃
   void test_set_category_does_not_crash () {
     QTMTemplatePage page;
@@ -101,6 +107,8 @@ private slots:
 
     QVERIFY (page.currentCategory () == "thesis");
   }
+
+  // --- 事件处理 ---
 
   void test_resize_event_does_not_crash () {
     QTMTemplatePage page;

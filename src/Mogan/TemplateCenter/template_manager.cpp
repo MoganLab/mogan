@@ -117,9 +117,12 @@ computeFileMd5 (const QString& filePath) {
   if (!file.open (QIODevice::ReadOnly)) {
     return QString ();
   }
-  QByteArray hash=
-      QCryptographicHash::hash (file.readAll (), QCryptographicHash::Md5);
-  return hash.toHex ();
+  QCryptographicHash hasher (QCryptographicHash::Md5);
+  while (!file.atEnd ()) {
+    hasher.addData (
+        file.read (64 * 1024)); // 64KB chunks, avoid OOM on large files
+  }
+  return hasher.result ().toHex ();
 }
 
 void
@@ -302,7 +305,21 @@ TemplateManager::templateById (const QString& templateId) const {
 }
 
 bool
-TemplateManager::isTemplateAvailableLocally (const QString& templateId) {
+TemplateManager::isTemplateAvailableLocally (const QString& templateId) const {
+  auto tmpl= templates_.value (templateId);
+  if (!tmpl) {
+    return false;
+  }
+
+  if (!tmpl->localPath.isEmpty () && QFile::exists (tmpl->localPath)) {
+    return true;
+  }
+
+  return cache_->isTemplateCached (templateId);
+}
+
+bool
+TemplateManager::verifyLocalTemplate (const QString& templateId) {
   auto tmpl= templates_.value (templateId);
   if (!tmpl) {
     return false;
@@ -310,7 +327,6 @@ TemplateManager::isTemplateAvailableLocally (const QString& templateId) {
 
   if (!tmpl->localPath.isEmpty () && QFile::exists (tmpl->localPath)) {
     if (!tmpl->fileMd5.isEmpty ()) {
-      // MD5 校验：验证本地文件是否被篡改
       QString actualMd5= computeFileMd5 (tmpl->localPath);
       if (actualMd5 == tmpl->fileMd5) {
         qDebug () << "[Template]" << templateId << "MD5 verified:" << actualMd5;
@@ -402,7 +418,7 @@ TemplateManager::cancelDownload (const QString& templateId) {
 QString
 TemplateManager::downloadTemplateSync (const QString& templateId, int timeoutMs,
                                        QString* errorMessage) {
-  if (isTemplateAvailableLocally (templateId)) {
+  if (verifyLocalTemplate (templateId)) {
     return localTemplatePath (templateId);
   }
 

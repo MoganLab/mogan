@@ -47,19 +47,19 @@ public:
   explicit TemplateCache (QObject* parent= nullptr);
   ~TemplateCache ();
 
-  // Initialization
+  // 初始化
   bool initialize ();
   bool isInitialized () const { return initialized_; }
 
-  // Metadata cache operations
+  // 元数据缓存
   QHash<QString, TemplateMetadataPtr> loadMetadataCache ();
   void saveMetadataCache (const QHash<QString, TemplateMetadataPtr>& metadata);
 
-  // Category cache operations
+  // 分类缓存
   QList<TemplateCategory> loadCategoriesCache ();
   void saveCategoriesCache (const QList<TemplateCategory>& categories);
 
-  // Template file operations
+  // 模板文件缓存
   bool              isTemplateCached (const QString& templateId) const;
   QString           cachedTemplatePath (const QString& templateId) const;
   void              registerCachedTemplate (const QString& templateId,
@@ -68,7 +68,7 @@ public:
   void              removeCachedTemplate (const QString& templateId);
   QList<CacheEntry> cachedTemplates () const;
 
-  // Cache management
+  // 缓存管理
   void   clearCache ();
   qint64 cacheSize () const;
 
