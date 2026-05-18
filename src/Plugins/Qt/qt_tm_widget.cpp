@@ -80,9 +80,9 @@ is_startup_tab_file (const string& file) {
 }
 
 /**
- * @brief Checks whether the given file path refers to the chat tab buffer.
- * @param file File path string.
- * @return True if the file is \c tmfs://chat-tab.
+ * @brief 判断给定文件路径是否指向聊天标签页 buffer。
+ * @param file 文件路径字符串。
+ * @return 若文件为 \c tmfs://chat-tab 则返回 true。
  */
 static bool
 is_chat_tab_file (const string& file) {
@@ -985,12 +985,11 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
 }
 
 /**
- * @brief Synchronizes the visibility of the chat tab widget.
+ * @brief 同步聊天标签页控件的可见性。
  *
- * When \ref chatTabMode is active, hides the editor, startup page, and PDF
- * viewer, then shows \ref chatContentWidget (creating it on demand).
- * Otherwise hides the chat widget and restores the normal editor view unless
- * startup tab mode is active.
+ * 当 \ref chatTabMode 激活时，隐藏编辑器、启动页和 PDF
+ * 阅读器，然后显示 \ref chatContentWidget（按需创建）。
+ * 否则隐藏聊天控件，并在启动标签页模式未激活时恢复普通编辑器视图。
  */
 void
 qt_tm_widget_rep::sync_chat_tab_mode () {

@@ -78,9 +78,9 @@ decode_url (string s) {
 }
 
 /**
- * @brief Checks whether a buffer name refers to the chat tab.
- * @param name Buffer URL to test.
- * @return True if the name starts with \c tmfs://chat-tab.
+ * @brief 判断 buffer 名称是否指向聊天标签页。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称以 \c tmfs://chat-tab 开头则返回 true。
  */
 static bool
 is_chat_tab_buffer (url name) {
@@ -453,10 +453,9 @@ kill_tabpage (url win_u, url u) {
   url  current_u = get_current_view_safe ();
   bool is_current= (!is_none (current_u) && current_u == u);
   /**
-   * @note For chat tab buffers, the embedded input editor may hold the
-   *       keyboard focus while the view URL points to the underlying
-   *       tmfs://chat-input-* / chat-message-* buffer. We treat such views as
-   *       current when they share the same main widget.
+   * @note 对于聊天标签页 buffer，嵌入的输入编辑器可能持有键盘焦点，
+   *       而视图 URL 指向底层的 tmfs://chat-input-* / chat-message-* buffer。
+   *       当它们共享同一个主控件时，我们将这类视图视为当前视图。
    */
   if (!is_current && vw->buf != NULL &&
       is_chat_tab_buffer (vw->buf->buf->name)) {

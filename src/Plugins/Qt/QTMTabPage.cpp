@@ -110,8 +110,8 @@ startup_tab_index (const QList<QTMTabPage*>& tabs) {
 }
 
 /**
- * @brief Returns the URL of the chat tab buffer.
- * @return \c tmfs://chat-tab.
+ * @brief 返回聊天标签页 buffer 的 URL。
+ * @return \c tmfs://chat-tab。
  */
 static url
 chat_tab_buffer_name () {
@@ -119,9 +119,9 @@ chat_tab_buffer_name () {
 }
 
 /**
- * @brief Checks whether a view URL belongs to the chat tab.
- * @param viewUrl The view URL to test.
- * @return True if the view is backed by the chat tab buffer.
+ * @brief 判断视图 URL 是否属于聊天标签页。
+ * @param viewUrl 待检测的视图 URL。
+ * @return 若视图由聊天标签页 buffer 支撑则返回 true。
  */
 static bool
 is_chat_tab_view (url viewUrl) {
@@ -130,9 +130,9 @@ is_chat_tab_view (url viewUrl) {
 }
 
 /**
- * @brief Finds the index of the chat tab in the given tab list.
- * @param tabs List of tab pages to search.
- * @return Index of the chat tab, or -1 if not found.
+ * @brief 在给定标签列表中查找聊天标签页的索引。
+ * @param tabs 待搜索的标签页列表。
+ * @return 聊天标签页的索引，未找到则返回 -1。
  */
 static int
 chat_tab_index (const QList<QTMTabPage*>& tabs) {
