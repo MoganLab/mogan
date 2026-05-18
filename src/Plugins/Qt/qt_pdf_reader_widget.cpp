@@ -17,6 +17,8 @@
 #include <QResizeEvent>
 #include <QScreen>
 #include <QScrollBar>
+#include <QSizePolicy>
+#include <QToolButton>
 #include <QWheelEvent>
 
 #include "MuPDF/mupdf_renderer.hpp"
@@ -100,7 +102,11 @@ PDFReaderWidget::setupToolBar () {
   zoomCombo_->setEditable (true);
   zoomCombo_->lineEdit ()->setReadOnly (true);
   zoomCombo_->lineEdit ()->setAlignment (Qt::AlignCenter);
-  zoomCombo_->setMinimumWidth (80);
+  zoomCombo_->setSizeAdjustPolicy (QComboBox::AdjustToContents);
+  zoomCombo_->setFixedHeight (DpiUtils::scaled (32));
+  QFont comboFont= zoomCombo_->font ();
+  comboFont.setPixelSize (DpiUtils::scaled (14));
+  zoomCombo_->setFont (comboFont);
 
   zoomCombo_->addItem ("Fit Width");
   zoomCombo_->addItem ("Fit Height");
@@ -120,35 +126,57 @@ PDFReaderWidget::setupToolBar () {
   connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
            this, &PDFReaderWidget::onZoomChanged);
 
-  zoomOutBtn_= new QPushButton ("-", toolBar_);
-  zoomOutBtn_->setFixedWidth (30);
-  connect (zoomOutBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomOut);
+  QFont zoomBtnFont;
+  zoomBtnFont.setPixelSize (DpiUtils::scaled (18));
+  QFont navBtnFont;
+  navBtnFont.setPixelSize (DpiUtils::scaled (14));
 
-  zoomInBtn_= new QPushButton ("+", toolBar_);
-  zoomInBtn_->setFixedWidth (30);
-  connect (zoomInBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomIn);
+  zoomOutBtn_= new QToolButton (toolBar_);
+  zoomOutBtn_->setText ("\u2212");
+  zoomOutBtn_->setAutoRaise (true);
+  zoomOutBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomOutBtn_->setFont (zoomBtnFont);
+  zoomOutBtn_->setToolTip (qt_translate ("Zoom Out"));
+  connect (zoomOutBtn_, &QToolButton::clicked, this,
+           &PDFReaderWidget::zoomOut);
+
+  zoomInBtn_= new QToolButton (toolBar_);
+  zoomInBtn_->setText ("+");
+  zoomInBtn_->setAutoRaise (true);
+  zoomInBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomInBtn_->setFont (zoomBtnFont);
+  zoomInBtn_->setToolTip (qt_translate ("Zoom In"));
+  connect (zoomInBtn_, &QToolButton::clicked, this, &PDFReaderWidget::zoomIn);
 
   toolBar_->addWidget (zoomOutBtn_);
   toolBar_->addWidget (zoomCombo_);
   toolBar_->addWidget (zoomInBtn_);
-  toolBar_->addSeparator ();
 
-  prevPageBtn_= new QPushButton ("<", toolBar_);
-  prevPageBtn_->setFixedWidth (30);
-  connect (prevPageBtn_, &QPushButton::clicked, this,
+  prevPageBtn_= new QToolButton (toolBar_);
+  prevPageBtn_->setText ("\u25C0");
+  prevPageBtn_->setAutoRaise (true);
+  prevPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  prevPageBtn_->setFont (navBtnFont);
+  prevPageBtn_->setToolTip (qt_translate ("Previous Page"));
+  connect (prevPageBtn_, &QToolButton::clicked, this,
            &PDFReaderWidget::onPrevPage);
 
   pageEdit_= new QLineEdit (toolBar_);
-  pageEdit_->setFixedWidth (40);
+  pageEdit_->setFixedWidth (DpiUtils::scaled (50));
+  pageEdit_->setFixedHeight (DpiUtils::scaled (32));
   pageEdit_->setAlignment (Qt::AlignCenter);
   connect (pageEdit_, &QLineEdit::editingFinished, this,
            &PDFReaderWidget::onPageEditingFinished);
 
   pageTotalLabel_= new QLabel ("of 0", toolBar_);
 
-  nextPageBtn_= new QPushButton (">", toolBar_);
-  nextPageBtn_->setFixedWidth (30);
-  connect (nextPageBtn_, &QPushButton::clicked, this,
+  nextPageBtn_= new QToolButton (toolBar_);
+  nextPageBtn_->setText ("\u25B6");
+  nextPageBtn_->setAutoRaise (true);
+  nextPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  nextPageBtn_->setFont (navBtnFont);
+  nextPageBtn_->setToolTip (qt_translate ("Next Page"));
+  connect (nextPageBtn_, &QToolButton::clicked, this,
            &PDFReaderWidget::onNextPage);
 
   toolBar_->addWidget (prevPageBtn_);
