@@ -129,6 +129,7 @@
 ;; ----
 ;; any
 ;; 反序列化后的 Scheme 对象。
+
 (define (tmstring->object s)
   (string->object s)
 ) ;define
@@ -584,12 +585,14 @@
 
 ;; escape-entry
 ;; 对查询参数值进行转义，将冒号替换为 %3A。
+
 (define (escape-entry s)
   (if (string? s) (string-replace s ":" "%3A") "")
 ) ;define
 
 ;; unescape-entry
 ;; 对查询参数值进行反转义，将 %3A 还原为冒号。
+
 (define (unescape-entry s)
   (if (string? s) (string-replace s "%3A" ":") "")
 ) ;define
@@ -610,6 +613,7 @@
 ;; ----
 ;; string
 ;; 转义后的 "key=value" 字符串。
+
 (define (pair->entry p)
   (string-append (escape-entry (car p)) "=" (escape-entry (cdr p)))
 ) ;define
@@ -640,6 +644,7 @@
 
 ;; entry->pair
 ;; 将查询字符串中的单个 "key=value" 条目解析为键值对。
+
 (define (entry->pair e)
   (with l
     (string-tokenize-by-char-n e #\= 1)

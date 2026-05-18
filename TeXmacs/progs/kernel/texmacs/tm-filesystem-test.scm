@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (kernel texmacs tm-filesystem-test)
-  (:use (kernel texmacs tm-file-system)))
+  (:use (kernel texmacs tm-file-system))
+) ;texmacs-module
 
 (import (liii check))
 
@@ -96,7 +97,10 @@
   ;; 反转义测试
   (check (query->list "a=b%3Ac") => '(("a" . "b:c")))
   ;; 互逆测试
-  (check (query->list (list->query '(("x" . "1") ("y" . "2")))) => '(("x" . "1") ("y" . "2")))
+  (check (query->list (list->query '(("x" . "1") ("y" . "2"))))
+    =>
+    '(("x" . "1") ("y" . "2"))
+  ) ;check
   ;; query-ref 提取变量值
   (check (query-ref "a=1&b=2" "a") => "1")
   (check (query-ref "a=1&b=2" "b") => "2")
@@ -145,7 +149,10 @@
   ;; 注册延迟处理器（使用符号作为类别名）
   (lazy-tmfs-handler (kernel texmacs tm-file-system) lazytest)
   ;; 首次调用前表中应存在该条目
-  (check (ahash-ref lazy-tmfs-table 'lazytest) => '(kernel texmacs tm-file-system))
+  (check (ahash-ref lazy-tmfs-table 'lazytest)
+    =>
+    '(kernel texmacs tm-file-system)
+  ) ;check
   ;; 调用 lazy-tmfs-force 后应从表中移除
   (lazy-tmfs-force "lazytest")
   (check (ahash-ref lazy-tmfs-table 'lazytest) => #f)
@@ -206,4 +213,5 @@
   (test-tmfs-auxiliary)
   (test-aux-name)
   (test-object-tmstring)
-  (check-report))
+  (check-report)
+) ;tm-define
