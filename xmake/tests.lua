@@ -112,8 +112,7 @@ function add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
             params = {
                 "-headless",
                 "-b", filepath,
-                "-x", regtest_name,
-                "-q"
+                "-x", "(catch #t (lambda () " .. regtest_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
             }
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
@@ -149,8 +148,7 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             params = {
                 "-headless",
                 "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", test_name,
-                "-q"
+                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
             }
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()

@@ -1138,9 +1138,9 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             print("Executing: " .. test_name)
             params = {
                 "-headless",
+                "-d",
                 "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", test_name,
-                "-q"
+                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
             }
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
