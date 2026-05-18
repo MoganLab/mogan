@@ -29,7 +29,6 @@ class QString;
 class QToolBar;
 class QVBoxLayout;
 class QEvent;
-class QComboBox;
 
 /**
  * @brief 聊天会话的生成状态。
@@ -292,7 +291,6 @@ private:
   bool            archiveCollapsed_;     ///< 归档区当前是否折叠。
   QPushButton*    collapseButton_;       ///< 侧边栏内的收缩按钮。
   QPushButton*    newChatButton_;        ///< 新建会话按钮。
-  QComboBox*      modelSelector_;        ///< 模型选择下拉框。
   QWidget*        sidebarNormalContent_; ///< 侧边栏展开时的内容容器。
   QWidget*        sidebarCollapsedBar_;  ///< 侧边栏收起时的窄条容器。
   QStackedWidget* conversationStack_;    ///< 会话页面的堆叠控件。

@@ -26,7 +26,6 @@
 
 #include <QAbstractScrollArea>
 #include <QApplication>
-#include <QComboBox>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -201,12 +200,11 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       conversationListLayout_ (nullptr), archiveHeaderButton_ (nullptr),
       archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
       archiveCollapsed_ (true), newChatButton_ (nullptr),
-      modelSelector_ (nullptr), collapseButton_ (nullptr),
-      sidebarNormalContent_ (nullptr), sidebarCollapsedBar_ (nullptr),
-      conversationStack_ (nullptr), activeConversation_ (nullptr),
-      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
-      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
-      chatFocusToolBar_ (nullptr) {
+      collapseButton_ (nullptr), sidebarNormalContent_ (nullptr),
+      sidebarCollapsedBar_ (nullptr), conversationStack_ (nullptr),
+      activeConversation_ (nullptr), sidebarCollapsed_ (false),
+      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
+      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -268,14 +266,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
   normalLayout->addWidget (navTitle);
 
-  // New chat 按钮和模型选择器
-  QWidget* newChatRow= new QWidget (normalContent);
-  newChatRow->setObjectName ("chat-tab-new-chat-row");
-  QHBoxLayout* newChatRowLayout= new QHBoxLayout (newChatRow);
-  newChatRowLayout->setContentsMargins (0, 0, 0, 0);
-  newChatRowLayout->setSpacing (DpiUtils::scaled (4));
-
-  newChatButton_= new QPushButton ("New chat", newChatRow);
+  // New chat 按钮
+  newChatButton_= new QPushButton ("New chat", normalContent);
   newChatButton_->setObjectName ("chat-tab-new-btn");
   newChatButton_->setFocusPolicy (Qt::NoFocus);
   newChatButton_->setCursor (Qt::PointingHandCursor);
@@ -285,30 +277,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
                                      .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (newChatButton_, &QPushButton::clicked, this,
            [this] () { create_new_conversation (); });
-  newChatRowLayout->addWidget (newChatButton_);
-
-  modelSelector_= new QComboBox (newChatRow);
-  modelSelector_->setObjectName ("chat-tab-model-selector");
-  modelSelector_->setFocusPolicy (Qt::NoFocus);
-  modelSelector_->setCursor (Qt::PointingHandCursor);
-  modelSelector_->setSizeAdjustPolicy (QComboBox::AdjustToContents);
-  // 从 Scheme 获取可用模型列表
-  tree models_tree= as_tree (call ("chat-tab-list-models"));
-  if (is_tuple (models_tree)) {
-    for (int i= 0; i < N (models_tree); ++i) {
-      if (is_atomic (models_tree[i])) {
-        modelSelector_->addItem (to_qstring (models_tree[i]->label));
-      }
-    }
-  }
-  connect (modelSelector_, QOverload<int>::of (&QComboBox::activated), this,
-           [this] (int index) {
-             string model= from_qstring (modelSelector_->itemText (index));
-             create_new_conversation_with_model (model);
-           });
-  newChatRowLayout->addWidget (modelSelector_, 1);
-
-  normalLayout->addWidget (newChatRow);
+  normalLayout->addWidget (newChatButton_);
 
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
   conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
@@ -611,12 +580,6 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
   sessionManager_.setModel (panel->sessionId, model);
   if (panel->modelLabel) {
     panel->modelLabel->setText (to_qstring (model));
-  }
-
-  // 同步模型选择器
-  if (modelSelector_) {
-    int idx= modelSelector_->findText (to_qstring (model));
-    if (idx >= 0) modelSelector_->setCurrentIndex (idx);
   }
 
   activate_conversation (panel);
