@@ -134,6 +134,11 @@ private:
    */
   void focus_input_editor (ChatConversationPanel* panel);
 
+  /**
+   * @brief 切换侧边栏的收起/展开状态。
+   */
+  void toggle_sidebar ();
+
 public:
   /**
    * @brief 为 Chat Tab 安装主菜单栏内容。
@@ -159,11 +164,16 @@ private:
   QLabel*         conversationCountLabel_;           ///< 显示会话数量的标签。
   QWidget*        conversationListWidget_;           ///< 承载会话列表的控件。
   QVBoxLayout*    conversationListLayout_;           ///< 会话按钮的布局。
+  QPushButton*    collapseButton_;                   ///< 侧边栏内的收缩按钮。
   QPushButton*    newChatButton_;                    ///< 新建会话按钮。
+  QWidget*        sidebarNormalContent_;             ///< 侧边栏展开时的内容容器。
+  QWidget*        sidebarCollapsedBar_;              ///< 侧边栏收起时的窄条容器。
   QStackedWidget* conversationStack_;                ///< 会话页面的堆叠控件。
   QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
   int       nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
+  bool      sidebarCollapsed_;        ///< 侧边栏当前是否处于收起状态。
+  int       sidebarExpandedWidth_;    ///< 侧边栏展开时的宽度（像素）。
   QToolBar* chatMenuToolBar_;         ///< Chat Tab 的菜单工具栏。
   QToolBar* chatModeToolBar_;         ///< Chat Tab 的模式工具栏。
   QToolBar* chatFocusToolBar_;        ///< Chat Tab 的焦点工具栏。

@@ -114,6 +114,8 @@ is_empty_document_body (tree body) {
 
 /// 左侧边栏最小宽度（像素）。
 constexpr int kSidebarMinWidth= 200;
+/// 左侧边栏收起后的窄条宽度（像素）。
+constexpr int kSidebarCollapsedWidth= 48;
 /// 边栏布局水平边距。
 constexpr int kSidebarMarginX= 12;
 /// 边栏布局垂直边距。
@@ -201,9 +203,12 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
       conversationCountLabel_ (nullptr), conversationListWidget_ (nullptr),
       conversationListLayout_ (nullptr), newChatButton_ (nullptr),
-      conversationStack_ (nullptr), activeConversation_ (nullptr),
-      nextConversationTitleId_ (1), chatMenuToolBar_ (nullptr),
-      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr) {
+      collapseButton_ (nullptr), sidebarNormalContent_ (nullptr),
+      sidebarCollapsedBar_ (nullptr), conversationStack_ (nullptr),
+      activeConversation_ (nullptr), nextConversationTitleId_ (1),
+      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
+      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
+      chatFocusToolBar_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -227,8 +232,8 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   setup_left_sidebar (sidebarLayout);
   sidebar->adjustSize ();
   const int contentWidth= sidebar->sizeHint ().width ();
-  sidebar->setFixedWidth (
-      qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth));
+  sidebarExpandedWidth_= qMax (DpiUtils::scaled (kSidebarMinWidth), contentWidth);
+  sidebar->setFixedWidth (sidebarExpandedWidth_);
   mainLayout->addWidget (sidebar);
 
   // 右侧内容区
@@ -251,18 +256,49 @@ QTChatTabWidget::~QTChatTabWidget () {
  */
 void
 QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
-  // 顶部行：标题 + 收缩按钮
-  QHBoxLayout* headerLayout= new QHBoxLayout ();
-  headerLayout->setSpacing (0);
+  // ---- 展开态：正常内容容器 ----
+  QWidget* normalContent= new QWidget (sidebarWidget_);
+  normalContent->setObjectName ("chat-tab-sidebar-normal");
+  QVBoxLayout* normalLayout= new QVBoxLayout (normalContent);
+  normalLayout->setContentsMargins (0, 0, 0, 0);
+  normalLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
-  QLabel* navTitle= new QLabel ("Chat", this);
+  // 顶部标题
+  QLabel* navTitle= new QLabel ("Chat", normalContent);
   navTitle->setObjectName ("chat-tab-nav-title");
   DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
-  headerLayout->addWidget (navTitle);
+  normalLayout->addWidget (navTitle);
 
-  headerLayout->addStretch ();
+  // New chat 按钮
+  newChatButton_= new QPushButton ("New chat", normalContent);
+  newChatButton_->setObjectName ("chat-tab-new-btn");
+  newChatButton_->setFocusPolicy (Qt::NoFocus);
+  newChatButton_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (newChatButton_, kNavButtonFontPx);
+  newChatButton_->setStyleSheet (QString ("padding: %1px %2px;")
+                                     .arg (DpiUtils::scaled (kNavButtonPadY))
+                                     .arg (DpiUtils::scaled (kNavButtonPadX)));
+  connect (newChatButton_, &QPushButton::clicked, this,
+           [this] () { create_new_conversation (); });
+  normalLayout->addWidget (newChatButton_);
 
-  QPushButton* collapseBtn= new QPushButton ("收缩", this);
+  conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
+  conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
+  DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
+  conversationCountLabel_->setStyleSheet ("color: #666666;");
+  normalLayout->addWidget (conversationCountLabel_);
+
+  conversationListWidget_= new QWidget (normalContent);
+  conversationListWidget_->setObjectName ("chat-tab-conversation-list");
+  conversationListLayout_= new QVBoxLayout (conversationListWidget_);
+  conversationListLayout_->setContentsMargins (0, 0, 0, 0);
+  conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  normalLayout->addWidget (conversationListWidget_);
+
+  normalLayout->addStretch ();
+
+  // 底部收缩按钮
+  QPushButton* collapseBtn= new QPushButton ("收缩", normalContent);
   collapseBtn->setObjectName ("chat-tab-collapse-btn");
   collapseBtn->setFocusPolicy (Qt::NoFocus);
   collapseBtn->setCursor (Qt::PointingHandCursor);
@@ -273,37 +309,41 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
-  headerLayout->addWidget (collapseBtn);
+  connect (collapseBtn, &QPushButton::clicked, this,
+           [this] () { toggle_sidebar (); });
+  collapseButton_= collapseBtn;
+  normalLayout->addWidget (collapseBtn);
 
-  sidebarLayout->addLayout (headerLayout);
+  sidebarNormalContent_= normalContent;
+  sidebarLayout->addWidget (normalContent);
 
-  // New chat 按钮
-  newChatButton_= new QPushButton ("New chat", this);
-  newChatButton_->setObjectName ("chat-tab-new-btn");
-  newChatButton_->setFocusPolicy (Qt::NoFocus);
-  newChatButton_->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (newChatButton_, kNavButtonFontPx);
-  newChatButton_->setStyleSheet (QString ("padding: %1px %2px;")
-                                     .arg (DpiUtils::scaled (kNavButtonPadY))
-                                     .arg (DpiUtils::scaled (kNavButtonPadX)));
-  connect (newChatButton_, &QPushButton::clicked, this,
-           [this] () { create_new_conversation (); });
-  sidebarLayout->addWidget (newChatButton_);
+  // ---- 收起态：窄条容器，底部展开按钮 ----
+  QWidget* collapsedBar= new QWidget (sidebarWidget_);
+  collapsedBar->setObjectName ("chat-tab-sidebar-collapsed");
+  QVBoxLayout* collapsedLayout= new QVBoxLayout (collapsedBar);
+  collapsedLayout->setContentsMargins (0, 0, 0, DpiUtils::scaled (kSidebarMarginY));
+  collapsedLayout->setSpacing (0);
 
-  conversationCountLabel_= new QLabel ("Conversations (0)", this);
-  conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
-  DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
-  conversationCountLabel_->setStyleSheet ("color: #666666;");
-  sidebarLayout->addWidget (conversationCountLabel_);
+  collapsedLayout->addStretch ();
 
-  conversationListWidget_= new QWidget (this);
-  conversationListWidget_->setObjectName ("chat-tab-conversation-list");
-  conversationListLayout_= new QVBoxLayout (conversationListWidget_);
-  conversationListLayout_->setContentsMargins (0, 0, 0, 0);
-  conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  sidebarLayout->addWidget (conversationListWidget_);
+  QPushButton* expandBtn= new QPushButton ("<", collapsedBar);
+  expandBtn->setObjectName ("chat-tab-collapsed-expand-btn");
+  expandBtn->setFocusPolicy (Qt::NoFocus);
+  expandBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (expandBtn, kCollapseFontPx);
+  expandBtn->setStyleSheet (
+      QString ("QPushButton { border: none; border-radius: %1px; "
+               "padding: %2px 0px; background-color: transparent; } "
+               "QPushButton:hover { background-color: #e0e0e0; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY)));
+  connect (expandBtn, &QPushButton::clicked, this,
+           [this] () { toggle_sidebar (); });
+  collapsedLayout->addWidget (expandBtn);
 
-  sidebarLayout->addStretch ();
+  collapsedBar->hide ();
+  sidebarCollapsedBar_= collapsedBar;
+  sidebarLayout->addWidget (collapsedBar);
 }
 
 /**
@@ -512,6 +552,31 @@ QTChatTabWidget::refresh_sidebar () {
     if (!panel || !panel->sidebarButton) continue;
     panel->sidebarButton->setText (panel->title);
     panel->sidebarButton->setChecked (panel == activeConversation_);
+  }
+}
+
+/**
+ * @brief 切换侧边栏的收起/展开状态。
+ *
+ * 收起时 sidebar 缩为窄条（仅含展开按钮），展开时恢复完整内容。
+ */
+void
+QTChatTabWidget::toggle_sidebar () {
+  if (!sidebarWidget_) return;
+
+  if (sidebarCollapsed_) {
+    // 展开：显示正常内容，隐藏窄条，恢复宽度
+    if (sidebarNormalContent_) sidebarNormalContent_->show ();
+    if (sidebarCollapsedBar_) sidebarCollapsedBar_->hide ();
+    sidebarWidget_->setFixedWidth (sidebarExpandedWidth_);
+    sidebarCollapsed_= false;
+  }
+  else {
+    // 收起：隐藏正常内容，显示窄条，缩为窄条
+    if (sidebarNormalContent_) sidebarNormalContent_->hide ();
+    if (sidebarCollapsedBar_) sidebarCollapsedBar_->show ();
+    sidebarWidget_->setFixedWidth (DpiUtils::scaled (kSidebarCollapsedWidth));
+    sidebarCollapsed_= true;
   }
 }
 
