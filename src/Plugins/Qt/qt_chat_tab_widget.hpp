@@ -263,6 +263,13 @@ public:
   static int count_input_lines (tree body);
 
   /**
+   * @brief 根据排版后的实际高度估算等效行数。
+   * @param contentHeight 排版后的内容高度（SI 单位）。
+   * @return 等效行数，若高度无效则返回 0。
+   */
+  static int estimate_lines_from_height (SI contentHeight);
+
+  /**
    * @brief 判断文档主体是否实际为空。
    * @param body TeXmacs 文档树。
    * @return 若主体不含可见内容则返回 true。

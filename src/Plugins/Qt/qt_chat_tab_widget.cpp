@@ -13,6 +13,7 @@
 #include "QTMGuiHelper.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
+#include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_gui.hpp"
@@ -987,6 +988,19 @@ QTChatTabWidget::count_input_lines (tree body) {
 }
 
 /**
+ * @brief 根据排版后的实际高度估算等效行数。
+ * @param contentHeight 排版后的内容高度（SI 单位）。
+ * @return 等效行数，若高度无效则返回 0。
+ */
+int
+QTChatTabWidget::estimate_lines_from_height (SI contentHeight) {
+  if (contentHeight <= 0) return 0;
+  int px= to_qsize (0, contentHeight).height ();
+  if (px <= 0) return 0;
+  return (px + kInputLineHeight - 1) / kInputLineHeight;
+}
+
+/**
  * @brief 根据输入内容自适应调整输入框高度。
  * @param panel 目标会话面板。
  */
@@ -995,7 +1009,17 @@ QTChatTabWidget::adjust_input_height (ChatConversationPanel* panel) {
   if (!panel || !panel->inputEditorWidget) return;
 
   tree body       = read_input_message (panel);
-  int  lines      = count_input_lines (body);
+  int  docLines   = count_input_lines (body);
+  int  visualLines= 0;
+
+  if (QTMWidget* editor= panel->inputEditorWidget->findChild<QTMWidget*> ()) {
+    if (edit_interface_rep* ed=
+            dynamic_cast<edit_interface_rep*> (editor->tm_widget ())) {
+      visualLines= estimate_lines_from_height (ed->get_total_height (true));
+    }
+  }
+
+  int  lines      = qMax (docLines, visualLines);
   int  targetLines= qMax (kInputDefaultLines, lines);
   targetLines     = qMin (targetLines, kInputMaxLines);
   int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
