@@ -671,9 +671,9 @@ QTChatTabWidget::install_chat_menu_bar (widget menuWidget) {
   QList<QAction*>* src= concrete (menuWidget)->get_qactionlist ();
   if (!src) return;
 
-  QMenuBar* dest= new QMenuBar ();
+  QMenuBar* dest = new QMenuBar ();
   double    scale= DpiUtils::scaleFactor ();
-  int       h= DpiUtils::scaled (108);
+  int       h    = DpiUtils::scaled (108);
   dest->setFixedHeight (h);
   if (tm_style_sheet == "") dest->setStyle (qtmstyle ());
   dest->setNativeMenuBar (false);

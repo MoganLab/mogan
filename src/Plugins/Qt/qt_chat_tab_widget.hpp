@@ -163,10 +163,10 @@ private:
   QStackedWidget* conversationStack_;                ///< 会话页面的堆叠控件。
   QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
-  int nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
-  QToolBar*       chatMenuToolBar_;                  ///< Chat Tab 的菜单工具栏。
-  QToolBar*       chatModeToolBar_;                  ///< Chat Tab 的模式工具栏。
-  QToolBar*       chatFocusToolBar_;                 ///< Chat Tab 的焦点工具栏。
+  int       nextConversationTitleId_; ///< 自动生成会话标题的 ID 计数器。
+  QToolBar* chatMenuToolBar_;         ///< Chat Tab 的菜单工具栏。
+  QToolBar* chatModeToolBar_;         ///< Chat Tab 的模式工具栏。
+  QToolBar* chatFocusToolBar_;        ///< Chat Tab 的焦点工具栏。
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
