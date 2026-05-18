@@ -157,7 +157,8 @@ private:
   bool categoriesFetched_; // true after first successful categories fetch
   QSet<QString> fetchedCategories_; // categories whose templates have been
                                     // fetched this session
-  QString pendingIncrementalCategoryId_; // 当前正在请求的分类 ID，用于增量更新标记
+  QString
+      pendingIncrementalCategoryId_; // 当前正在请求的分类 ID，用于增量更新标记
 };
 
 #endif // TEMPLATE_MANAGER_HPP
