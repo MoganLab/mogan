@@ -180,7 +180,7 @@ private:
   bool             pdfTabMode;
   QString          currentPdfPath;
   QString          lastLoadedPdfPath;
-  bool      chatTabMode;
+  bool             chatTabMode;
 
 public:
   qt_tm_widget_rep (int mask, command _quit);

@@ -172,9 +172,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       m_memberType (""), m_currentScmNotificationItem (""),
       startupContentWidget (nullptr), startupTabMode (false),
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      lastLoadedPdfPath (""),
-      chatContentWidget (nullptr),
-      chatTabMode (false) {
+      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -1337,7 +1335,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     if (pdfTabMode) {
       currentPdfPath= utf8_to_qstring (file);
     }
-    chatTabMode   = is_chat_tab_file (file);
+    chatTabMode= is_chat_tab_file (file);
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
   } break;
