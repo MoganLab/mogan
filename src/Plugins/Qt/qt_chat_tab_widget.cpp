@@ -38,7 +38,9 @@
 #include <QPushButton>
 #include <QScrollBar>
 #include <QSpacerItem>
+#include <QSplitter>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
@@ -96,18 +98,6 @@ disable_scrollbars_recursively (QWidget* root) {
   }
 }
 
-/**
- * @brief 判断文档主体是否实际为空。
- * @param body TeXmacs 文档树。
- * @return 若主体不含可见内容则返回 true。
- */
-bool
-is_empty_document_body (tree body) {
-  if (!is_func (body, DOCUMENT)) return false;
-  if (N (body) == 0) return true;
-  return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
-}
-
 /// 左侧边栏最小宽度（像素）。
 constexpr int kSidebarMinWidth= 200;
 /// 左侧边栏收起后的窄条宽度（像素）。
@@ -138,8 +128,12 @@ constexpr int kCollapsePadY= 4;
 constexpr int kCollapsePadX= 8;
 /// 欢迎标题字体大小（像素）。
 constexpr int kWelcomeFontPx= 34;
-/// 输入编辑器固定高度（像素）。
-constexpr int kInputHeight= 44;
+/// 输入编辑器单行高度（像素）。
+constexpr int kInputLineHeight= 22;
+/// 输入编辑器默认行数。
+constexpr int kInputDefaultLines= 3;
+/// 输入编辑器最大行数。
+constexpr int kInputMaxLines= 10;
 /// 发送按钮垂直内边距。
 constexpr int kSendButtonPadY= 6;
 /// 发送按钮水平内边距。
@@ -170,6 +164,18 @@ constexpr int kMessageMinHeight= 240;
 constexpr int kTransitionDurationMs= 220;
 
 } // namespace
+
+/**
+ * @brief 判断文档主体是否实际为空。
+ * @param body TeXmacs 文档树。
+ * @return 若主体不含可见内容则返回 true。
+ */
+bool
+QTChatTabWidget::is_empty_document_body (tree body) {
+  if (!is_func (body, DOCUMENT)) return false;
+  if (N (body) == 0) return true;
+  return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
+}
 
 /**
  * @brief 单个会话面板的内部数据。
@@ -466,8 +472,13 @@ QTChatTabWidget::create_conversation (const QString& title) {
 
   panel->messageWidget= texmacs_input_widget (
       tree (DOCUMENT, ""), make_chat_embedded_style (), msgBufUrl);
+  QSplitter* splitter= new QSplitter (Qt::Vertical, topPanel);
+  splitter->setObjectName ("chat-tab-splitter");
+  splitter->setHandleWidth (DpiUtils::scaled (4));
+  splitter->setChildrenCollapsible (false);
+
   QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
-  panel->messageFrame    = new QWidget (topPanel);
+  panel->messageFrame    = new QWidget (splitter);
   panel->messageFrame->setObjectName ("chat-tab-message-frame");
   panel->messageFrame->setStyleSheet (
       QString ("border: %1px solid #d9d9d9; border-radius: %2px; "
@@ -483,10 +494,16 @@ QTChatTabWidget::create_conversation (const QString& title) {
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
   messageFrameLayout->addWidget (messageQWidget);
   panel->messageFrame->hide ();
-  topLayout->addWidget (panel->messageFrame, 1);
+  splitter->addWidget (panel->messageFrame);
+
+  QWidget* inputArea= new QWidget (splitter);
+  inputArea->setObjectName ("chat-tab-input-area");
+  QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
+  inputAreaLayout->setContentsMargins (0, 0, 0, 0);
+  inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
   panel->inputWidget= texmacs_input_widget (
-      tree (DOCUMENT, ""), make_chat_embedded_style (), inBufUrl);
+      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")), make_chat_embedded_style (), inBufUrl);
   QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
   panel->inputEditorWidget= inputQWidget;
   disable_scrollbars_recursively (inputQWidget);
@@ -494,7 +511,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
     editor->setProperty ("chat_panel", QVariant::fromValue ((void*) panel));
     editor->installEventFilter (this);
   }
-  QWidget* inputFrame= new QWidget (topPanel);
+  QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
       QString ("border: %1px solid #d9d9d9; border-radius: %2px; "
@@ -507,14 +524,22 @@ QTChatTabWidget::create_conversation (const QString& title) {
       DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad));
   inputFrameLayout->setSpacing (0);
   inputQWidget->setParent (inputFrame);
-  inputQWidget->setFixedHeight (DpiUtils::scaled (kInputHeight));
+  int defaultHeight= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+  inputQWidget->setMinimumHeight (defaultHeight);
+  inputQWidget->setMaximumHeight (defaultHeight);
   inputFrameLayout->addWidget (inputQWidget);
-  topLayout->addWidget (inputFrame, 0);
+  inputAreaLayout->addWidget (inputFrame, 0);
+
+  QTimer* inputHeightTimer= new QTimer (inputFrame);
+  inputHeightTimer->setInterval (100);
+  connect (inputHeightTimer, &QTimer::timeout, this,
+           [this, panel] () { adjust_input_height (panel); });
+  inputHeightTimer->start ();
 
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
 
-  panel->sendButton= new QPushButton ("Send", topPanel);
+  panel->sendButton= new QPushButton ("Send", inputArea);
   panel->sendButton->setObjectName ("chat-tab-send-btn");
   panel->sendButton->setFocusPolicy (Qt::NoFocus);
   panel->sendButton->setCursor (Qt::PointingHandCursor);
@@ -526,7 +551,13 @@ QTChatTabWidget::create_conversation (const QString& title) {
   connect (panel->sendButton, &QPushButton::clicked, this,
            [this, panel] () { handle_send (panel); });
   btnLayout->addWidget (panel->sendButton);
-  topLayout->addLayout (btnLayout);
+  inputAreaLayout->addLayout (btnLayout);
+
+  splitter->addWidget (inputArea);
+  splitter->setStretchFactor (0, 1);
+  splitter->setStretchFactor (1, 0);
+
+  topLayout->addWidget (splitter, 1);
 
   contentLayout->addWidget (topPanel, 1, Qt::AlignHCenter | Qt::AlignTop);
   conversationStack_->addWidget (page);
@@ -938,6 +969,40 @@ void
 QTChatTabWidget::focus_input_editor (ChatConversationPanel* panel) {
   if (panel && panel->inputEditorWidget) {
     panel->inputEditorWidget->setFocus (Qt::OtherFocusReason);
+  }
+}
+
+/**
+ * @brief 计算输入文档的段落（行）数。
+ * @param body TeXmacs 文档树。
+ * @return 段落数量。
+ */
+int
+QTChatTabWidget::count_input_lines (tree body) {
+  if (!is_func (body, DOCUMENT)) return 1;
+  if (N (body) == 0) return 1;
+  if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
+  return N (body);
+}
+
+/**
+ * @brief 根据输入内容自适应调整输入框高度。
+ * @param panel 目标会话面板。
+ */
+void
+QTChatTabWidget::adjust_input_height (ChatConversationPanel* panel) {
+  if (!panel || !panel->inputEditorWidget) return;
+
+  tree body       = read_input_message (panel);
+  int  lines      = count_input_lines (body);
+  int  targetLines= qMax (kInputDefaultLines, lines);
+  targetLines     = qMin (targetLines, kInputMaxLines);
+  int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
+
+  if (panel->inputEditorWidget->minimumHeight () != targetHeight ||
+      panel->inputEditorWidget->maximumHeight () != targetHeight) {
+    panel->inputEditorWidget->setMinimumHeight (targetHeight);
+    panel->inputEditorWidget->setMaximumHeight (targetHeight);
   }
 }
 

@@ -26,6 +26,7 @@ class QPushButton;
 class QSpacerItem;
 class QStackedWidget;
 class QString;
+class QTimer;
 class QToolBar;
 class QVBoxLayout;
 class QEvent;
@@ -247,7 +248,27 @@ private:
    */
   void toggle_sidebar ();
 
+  /**
+   * @brief 根据输入内容自适应调整输入框高度。
+   * @param panel 目标会话面板。
+   */
+  void adjust_input_height (ChatConversationPanel* panel);
+
 public:
+  /**
+   * @brief 计算输入文档的段落（行）数。
+   * @param body TeXmacs 文档树。
+   * @return 段落数量。
+   */
+  static int count_input_lines (tree body);
+
+  /**
+   * @brief 判断文档主体是否实际为空。
+   * @param body TeXmacs 文档树。
+   * @return 若主体不含可见内容则返回 true。
+   */
+  static bool is_empty_document_body (tree body);
+
   /**
    * @brief 为 Chat Tab 安装主菜单栏内容。
    * @param menuWidget 菜单 widget。
