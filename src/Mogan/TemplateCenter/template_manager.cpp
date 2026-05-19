@@ -512,6 +512,11 @@ TemplateManager::onNetworkStateChanged (bool isOnline) {
   isOnline_= isOnline;
   if (isOnline && initialized_) {
     refreshCategories ();
+    // Refresh recommend templates on network recovery
+    if (recommendTemplatesFetched_) {
+      recommendTemplatesFetched_= false;
+    }
+    refreshRecommendTemplates ();
   }
 }
 
@@ -612,15 +617,16 @@ TemplateManager::onRemoteRecommendTemplatesLoaded (
     return;
   }
 
-  recommendTemplateIds_.clear ();
+  QList<QString>                      newRecommendIds;
   QHash<QString, TemplateMetadataPtr> metadata;
   for (const auto& tmpl : templates) {
     if (tmpl) {
-      recommendTemplateIds_.append (tmpl->id);
+      newRecommendIds.append (tmpl->id);
       metadata.insert (tmpl->id, tmpl);
     }
   }
 
+  recommendTemplateIds_= newRecommendIds;
   mergeMetadata (metadata, true);
   cache_->saveMetadataCache (templates_);
   cache_->saveRecommendIds (recommendTemplateIds_);

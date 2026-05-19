@@ -791,42 +791,71 @@ QTMHomePage::refreshTemplateCards () {
   if (!mgr || !mgr->isInitialized ()) return;
 
   const int fixedCardCount= 2;
+  auto      newTemplates  = mgr->recommendTemplates ();
 
-  while (styleCards_.size () > fixedCardCount) {
-    StyleCard* card= styleCards_.takeLast ();
-    cardsLayout_->removeWidget (card);
-    card->deleteLater ();
+  // Collect existing recommend cards (skip fixed cards)
+  QHash<QString, StyleCard*> existingCards;
+  for (int i= fixedCardCount; i < styles_.size (); ++i) {
+    existingCards.insert (styles_[i].id, styleCards_[i]);
   }
 
-  while (styles_.size () > fixedCardCount) {
-    styles_.removeLast ();
+  // Collect new IDs
+  QSet<QString> newIdSet;
+  for (const auto& tmpl : newTemplates) {
+    if (tmpl) newIdSet.insert (tmpl->id);
   }
 
-  for (const auto& tmpl : mgr->recommendTemplates ()) {
+  // 1. Remove cards not in new list
+  for (auto it= existingCards.begin (); it != existingCards.end ();) {
+    if (!newIdSet.contains (it.key ())) {
+      StyleCard* card= it.value ();
+      cardsLayout_->removeWidget (card);
+      card->deleteLater ();
+      it= existingCards.erase (it);
+    }
+    else {
+      ++it;
+    }
+  }
+
+  // 2. Rebuild lists in new API order, reusing existing cards
+  QList<DocStyle>   newStyles;
+  QList<StyleCard*> newCards;
+
+  for (int i= 0; i < fixedCardCount; ++i) {
+    newStyles.append (styles_[i]);
+    newCards.append (styleCards_[i]);
+  }
+
+  for (const auto& tmpl : newTemplates) {
     if (!tmpl) continue;
     DocStyle style;
     style.id         = tmpl->id;
     style.name       = tmpl->name;
     style.description= tmpl->description;
     style.templateId = tmpl->id;
-    styles_.append (style);
-  }
+    newStyles.append (style);
 
-  for (int i= fixedCardCount; i < styles_.size (); ++i) {
-    StyleCard* card= new StyleCard (styles_[i], cardsContainer_);
-    styleCards_.append (card);
-
-    connect (card, &StyleCard::clicked, this,
-             [this, card] () { createDocumentWithStyle (card->styleId ()); });
-
-    if (card->isTemplate ()) {
-      if (auto meta= mgr->templateById (card->templateId ())) {
-        if (!meta->thumbnailUrl.isEmpty ()) {
-          card->loadThumbnail (meta->thumbnailUrl);
-        }
+    StyleCard* card= existingCards.value (tmpl->id);
+    if (card) {
+      newCards.append (card);
+      if (!tmpl->thumbnailUrl.isEmpty ()) {
+        card->loadThumbnail (tmpl->thumbnailUrl);
+      }
+    }
+    else {
+      card= new StyleCard (style, cardsContainer_);
+      newCards.append (card);
+      connect (card, &StyleCard::clicked, this,
+               [this, card] () { createDocumentWithStyle (card->styleId ()); });
+      if (!tmpl->thumbnailUrl.isEmpty ()) {
+        card->loadThumbnail (tmpl->thumbnailUrl);
       }
     }
   }
+
+  styles_    = newStyles;
+  styleCards_= newCards;
 
   rearrangeStyleCards ();
 }

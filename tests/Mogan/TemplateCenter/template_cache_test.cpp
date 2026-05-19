@@ -177,12 +177,28 @@ private slots:
 
     cache.registerCachedTemplate ("clear-id", path, 1, "m");
     cache.saveCategoriesCache (QList<TemplateCategory> ());
+    cache.saveRecommendIds (QList<QString>{"a", "b"});
 
     QSignalSpy spy (&cache, &TemplateCache::cacheCleared);
     cache.clearCache ();
 
     QVERIFY (cache.cachedTemplates ().isEmpty ());
     QCOMPARE (spy.count (), 1);
+  }
+
+  // 测试清空缓存后 recommend_ids.json 也被删除
+  void test_clear_cache_removes_recommend_ids () {
+    TemplateCache cache;
+    cache.initialize ();
+
+    cache.saveRecommendIds (QList<QString>{"test-id"});
+
+    QString recommendPath= QDir (cacheDir_).filePath ("recommend_ids.json");
+    QVERIFY (QFile::exists (recommendPath));
+
+    cache.clearCache ();
+
+    QVERIFY (!QFile::exists (recommendPath));
   }
 
   // 测试推荐 ID 列表的 save/load 往返

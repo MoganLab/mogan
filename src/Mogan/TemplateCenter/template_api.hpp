@@ -92,6 +92,8 @@ public:
   QList<TemplateCategory> parseCategoriesResponse (const QJsonValue& data);
   QHash<QString, TemplateMetadataPtr>
   parseTemplatesResponse (const QJsonValue& data);
+  QList<TemplateMetadataPtr>
+  parseTemplatesResponseOrdered (const QJsonValue& data);
 
 private slots:
   void onCategoriesReplyFinished ();
@@ -110,9 +112,6 @@ private:
   TemplateMetadataPtr parseTemplateObject (const QJsonObject& tmplObj);
   void                parseTemplateObject (const QJsonObject&                   tmplObj,
                                            QHash<QString, TemplateMetadataPtr>& metadata);
-
-  QList<TemplateMetadataPtr>
-  parseTemplatesResponseOrdered (const QJsonValue& data);
 
   // Request management
   void setupRequestHeaders (QNetworkRequest& request);

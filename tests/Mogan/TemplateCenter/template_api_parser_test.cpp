@@ -167,6 +167,46 @@ private slots:
     auto result= api.parseCategoriesResponse (QJsonValue (QJsonObject ()));
     QVERIFY (result.isEmpty ());
   }
+
+  // 测试有序解析保持 API 返回顺序（推荐模板场景）
+  void test_recommend_templates_order_preserved () {
+    TemplateAPI api;
+
+    QJsonArray items;
+    for (int i= 0; i < 5; ++i) {
+      QJsonObject tmpl;
+      tmpl.insert ("templateKey", QString ("tmpl-%1").arg (i));
+      tmpl.insert ("name", QString ("Template %1").arg (i));
+
+      QJsonObject categoryObj;
+      categoryObj.insert ("categoryKey", "test");
+      tmpl.insert ("category", categoryObj);
+
+      tmpl.insert ("url", "http://example.com/file.tmu");
+      items.append (tmpl);
+    }
+
+    auto result= api.parseTemplatesResponseOrdered (QJsonValue (items));
+    QCOMPARE (result.size (), 5);
+    for (int i= 0; i < 5; ++i) {
+      QCOMPARE (result[i]->id, QString ("tmpl-%1").arg (i));
+    }
+  }
+
+  // 测试有序解析对空数组返回空列表
+  void test_recommend_templates_empty_array () {
+    TemplateAPI api;
+    auto result= api.parseTemplatesResponseOrdered (QJsonValue (QJsonArray ()));
+    QVERIFY (result.isEmpty ());
+  }
+
+  // 测试有序解析对非法输入返回空列表（容错）
+  void test_recommend_templates_invalid_data () {
+    TemplateAPI api;
+    auto        result=
+        api.parseTemplatesResponseOrdered (QJsonValue (QJsonObject ()));
+    QVERIFY (result.isEmpty ());
+  }
 };
 
 QTEST_MAIN (TestTemplateAPI)
