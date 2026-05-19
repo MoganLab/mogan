@@ -120,7 +120,7 @@
                                 (y1 (cadr parts))
                                 (x2 (caddr parts))
                                 (y2 (cadddr parts)))
-                            (or (<= (- x2 x1) 0) (<= (- y2 y1) 0)))
+                            (or (<= (- x2 x1) 1) (<= (- y2 y1) 1)))
                           #t))
                     (loop (+ i 1)))))))))
 

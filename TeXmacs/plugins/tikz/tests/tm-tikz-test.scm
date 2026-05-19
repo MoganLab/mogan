@@ -161,7 +161,7 @@
                                 (y1 (cadr parts))
                                 (x2 (caddr parts))
                                 (y2 (cadddr parts)))
-                            (or (<= (- x2 x1) 0) (<= (- y2 y1) 0)))
+                            (or (<= (- x2 x1) 1) (<= (- y2 y1) 1)))
                           #t))
                     (loop (+ i 1)))))))))
 
@@ -171,6 +171,7 @@
 
 (define test-eps-empty-path "/tmp/tikz-test-empty.eps")
 (define test-eps-valid-path "/tmp/tikz-test-valid.eps")
+(define test-eps-1x1-path "/tmp/tikz-test-1x1.eps")
 
 (with-output-to-file test-eps-empty-path
   (lambda ()
@@ -184,8 +185,15 @@
     (display "%%BoundingBox: 0 0 10 10\n")
     (display "%%EndComments\n")))
 
+(with-output-to-file test-eps-1x1-path
+  (lambda ()
+    (display "%!PS-Adobe-3.0 EPSF-3.0\n")
+    (display "%%BoundingBox: 0 0 1 1\n")
+    (display "%%EndComments\n")))
+
 (check (eps-bbox-empty? test-eps-empty-path) => #t)
 (check (eps-bbox-empty? test-eps-valid-path) => #f)
+(check (eps-bbox-empty? test-eps-1x1-path) => #t)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run all tests
