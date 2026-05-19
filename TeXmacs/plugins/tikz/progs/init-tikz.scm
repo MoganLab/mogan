@@ -15,7 +15,7 @@
   (import (scheme base) (liii list))
   (export init-tikz)
   (begin
-    (use-modules (binary tikz) (binary goldfish))
+    (use-modules (binary tikz) (binary goldfish) (binary gs))
 
     (define (tikz-serialize lan t)
       (let* ((u (pre-serialize lan t))
@@ -39,6 +39,8 @@
         (string-quote (url->system (find-binary-latex)))
         " "
         (string-quote (url->system (find-binary-dvips)))
+        " "
+        (string-quote (url->system (find-binary-gs)))
       )
     )
 
@@ -46,7 +48,8 @@
       (plugin-configure tikz
         (:require (and (has-binary-goldfish?)
                        (has-binary-latex?)
-                       (has-binary-dvips?)))
+                       (has-binary-dvips?)
+                       (has-binary-gs?)))
         (:launch ,(tikz-launcher))
         (:serializer ,tikz-serialize)
         (:session "TikZ")
