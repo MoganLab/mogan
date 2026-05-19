@@ -39,7 +39,7 @@
     (unsetenv "DYLD_FRAMEWORK_PATH")
     (unsetenv "DYLD_FALLBACK_LIBRARY_PATH")
     (unsetenv "DYLD_FALLBACK_FRAMEWORK_PATH")
-    (let ((ret (system (tikz-build-cmd cmd tex-path pdf-path))))
+    (let ((ret (g_system (tikz-build-cmd cmd tex-path pdf-path))))
       (if (= ret 0)
         #t
         (begin
@@ -93,7 +93,7 @@
 
 (define (tikz-repl)
   (safe-read-eval-print)
-  (tikz-repl)
+  (if (eof-object? (peek-char (current-input-port))) (exit 0) (tikz-repl))
 ) ;define
 
 (tikz-welcome)
