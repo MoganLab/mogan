@@ -249,7 +249,6 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
  * @brief 销毁控件及其所有会话面板。
  */
 QTChatTabWidget::~QTChatTabWidget () {
-  saveSessions ();
   for (ChatConversationPanel* panel : conversations_)
     delete panel;
   conversations_.clear ();
@@ -617,6 +616,7 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
   }
 
   activate_conversation (panel);
+  saveOneSession (panel->sessionId);
 }
 
 /**
@@ -765,7 +765,7 @@ QTChatTabWidget::refresh_sidebar () {
                    sessionManager_.setTitle (panel->sessionId,
                                              from_qstring (newTitle));
                    refresh_sidebar ();
-                   saveSessions ();
+                   saveOneSession (panel->sessionId);
                  }
                }
                else if (chosen == archiveAction) {
@@ -773,7 +773,7 @@ QTChatTabWidget::refresh_sidebar () {
                    sessionManager_.restoreSession (panel->sessionId);
                  else sessionManager_.archiveSession (panel->sessionId);
                  refresh_sidebar ();
-                 saveSessions ();
+                 saveOneSession (panel->sessionId);
                }
              });
   }
@@ -898,7 +898,7 @@ QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
   enter_conversation_mode (panel);
   refresh_sidebar ();
   focus_input_editor (panel);
-  saveSessions ();
+  saveOneSession (panel->sessionId);
 }
 
 /**
@@ -1224,6 +1224,14 @@ ChatSessionManager::getSession (const string& sessionId) {
   return nullptr;
 }
 
+std::vector<string>
+ChatSessionManager::getAllSessionIds () const {
+  std::vector<string> ids;
+  for (const auto& kv : sessions_)
+    ids.push_back (kv.first);
+  return ids;
+}
+
 ChatSession*
 ChatSessionManager::findSessionByPanel (void* panel) {
   for (auto& kv : sessions_) {
@@ -1258,37 +1266,20 @@ ChatSessionManager::insertSession (const ChatSession& session) {
  ******************************************************************************/
 
 void
-QTChatTabWidget::saveSessions () {
-  if (conversations_.isEmpty ()) return;
-
-  call ("chat-persist-save-begin");
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel) continue;
-    ChatSession* s= sessionManager_.getSession (panel->sessionId);
-    if (!s) continue;
-    call ("chat-persist-save-session", panel->sessionId, s->title, s->model,
-          s->archived ? string ("true") : string ("false"));
-  }
-  call ("chat-persist-save-end");
+QTChatTabWidget::saveOneSession (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s) return;
+  call ("chat-persist-save-one", sessionId, s->title, s->model,
+        s->archived ? string ("true") : string ("false"));
 }
 
 void
 QTChatTabWidget::loadSessions () {
-  tree result= as_tree (call ("chat-persist-load-all"));
-  if (is_atomic (result) || N (result) == 0) return;
-
-  for (int i= 0; i < N (result); ++i) {
-    tree entry= result[i];
-    if (!is_func (entry, TUPLE) || N (entry) < 4) continue;
-    string sessionId= as_string (entry[0]);
-    string title    = as_string (entry[1]);
-    string model    = as_string (entry[2]);
-    bool   archived = as_bool (entry[3]);
-
-    ChatConversationPanel* panel=
-        restore_conversation (sessionId, title, model, archived);
-    if (panel) conversations_.append (panel);
-  }
+  cout << "[chat-persist] loadSessions started" << LF;
+  // Scheme 端 chat-persist-load-all 会逐个调用 qt-chat-tab-restore-session
+  call ("chat-persist-load-all");
+  cout << "[chat-persist] loadSessions: restored " << conversations_.size ()
+       << " sessions" << LF;
 
   // 激活第一个非归档会话，否则激活第一个
   for (ChatConversationPanel* panel : conversations_) {
@@ -1300,6 +1291,20 @@ QTChatTabWidget::loadSessions () {
     }
   }
   if (!conversations_.isEmpty ()) activate_conversation (conversations_.first ());
+
+  // 恢复 Scheme 层的全局当前模型
+  if (!conversations_.isEmpty ()) {
+    ChatConversationPanel* last= conversations_.last ();
+    ChatSession* s= sessionManager_.getSession (last->sessionId);
+    if (s && !is_empty (s->model)) {
+      call ("chat-tab-session-select-model", s->model);
+    }
+  }
+}
+
+void
+QTChatTabWidget::addConversation (ChatConversationPanel* panel) {
+  if (panel) conversations_.append (panel);
 }
 
 QTChatTabWidget::ChatConversationPanel*
@@ -1521,31 +1526,40 @@ qt_chat_tab_new_session (string model) {
 }
 
 /**
- * @brief Scheme→C++ 回调：保存所有聊天会话。
+ * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void
-qt_chat_tab_save_sessions () {
+qt_chat_tab_restore_session (string sessionId, string title,
+                              string model, string archived) {
   QWidgetList topWidgets= QApplication::topLevelWidgets ();
   for (QWidget* top : topWidgets) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
-      chat->saveSessions ();
+      bool isArchived= (archived == "true");
+      auto* panel=
+          chat->restore_conversation (sessionId, title, model, isArchived);
+      if (panel) chat->addConversation (panel);
       return;
     }
   }
 }
+
 
 /**
  * @brief Scheme→C++ 回调：加载所有聊天会话。
  */
 void
 qt_chat_tab_load_sessions () {
+  cout << "[chat-persist] qt_chat_tab_load_sessions called" << LF;
   QWidgetList topWidgets= QApplication::topLevelWidgets ();
+  cout << "[chat-persist] top-level widgets count: " << topWidgets.size () << LF;
   for (QWidget* top : topWidgets) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
+      cout << "[chat-persist] found QTChatTabWidget, calling loadSessions" << LF;
       chat->loadSessions ();
       return;
     }
   }
+  cout << "[chat-persist] WARNING: QTChatTabWidget not found in any top-level widget" << LF;
 }
