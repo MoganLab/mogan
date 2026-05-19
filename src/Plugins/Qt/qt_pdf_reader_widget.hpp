@@ -15,9 +15,8 @@
 #include <QRubberBand>
 #include <QScrollArea>
 #include <QScrollBar>
-#include <QToolButton>
 #include <QTimer>
-#include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -101,7 +100,7 @@ private:
   QVBoxLayout* pageLayout_;
   QVBoxLayout* mainLayout_;
 
-  QToolBar*    toolBar_;
+  QWidget*     toolBar_;
   QComboBox*   zoomCombo_;
   QToolButton* zoomOutBtn_;
   QToolButton* prevPageBtn_;

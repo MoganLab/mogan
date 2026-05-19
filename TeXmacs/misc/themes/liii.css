@@ -426,17 +426,25 @@ QToolButton#pdf-next-btn {
   border: none;
 }
 
+QToolButton#pdf-screenshot-btn {
+  qproperty-icon: url(":/pdf-reader/screenshot.svg");
+  background-color: transparent;
+  border: none;
+}
+
 QToolButton#pdf-zoom-out-btn:hover,
 QToolButton#pdf-zoom-in-btn:hover,
 QToolButton#pdf-prev-btn:hover,
-QToolButton#pdf-next-btn:hover {
+QToolButton#pdf-next-btn:hover,
+QToolButton#pdf-screenshot-btn:hover {
   background-color: rgba(0, 0, 0, 0.08);
 }
 
 QToolButton#pdf-zoom-out-btn:pressed,
 QToolButton#pdf-zoom-in-btn:pressed,
 QToolButton#pdf-prev-btn:pressed,
-QToolButton#pdf-next-btn:pressed {
+QToolButton#pdf-next-btn:pressed,
+QToolButton#pdf-screenshot-btn:pressed {
   background-color: rgba(0, 0, 0, 0.12);
 }
 
