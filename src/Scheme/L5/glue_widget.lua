@@ -519,6 +519,18 @@ function main()
                 arg_list = {
                     "string"
                 }
+            },
+            {
+                scm_name = "qt-chat-tab-save-sessions",
+                cpp_name = "qt_chat_tab_save_sessions",
+                ret_type = "void",
+                arg_list = {}
+            },
+            {
+                scm_name = "qt-chat-tab-load-sessions",
+                cpp_name = "qt_chat_tab_load_sessions",
+                ret_type = "void",
+                arg_list = {}
             }
         }
     }

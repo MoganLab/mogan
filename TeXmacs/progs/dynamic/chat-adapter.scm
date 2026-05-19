@@ -12,6 +12,7 @@
 
 (texmacs-module (dynamic chat-adapter)
   (:use (dynamic chat-tab-session)
+    (dynamic chat-session-persist)
     (texmacs texmacs tm-files)
     (texmacs texmacs tm-server)
   ) ;:use
@@ -100,7 +101,8 @@
   (:argument session-id "Session UUID")
   (let* ((st (chat-tab-get-state session-id))
          (model (chat-tab-state-model st))
-         (plugin-ses (string-append model ":chat-tab:" session-id)))
+         (plugin-ses (string-append model ":chat-tab:" session-id))
+        ) ;
     (plugin-cancel chat-tab-session-name plugin-ses #f)
   ) ;let*
 ) ;tm-define

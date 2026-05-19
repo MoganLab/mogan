@@ -112,6 +112,11 @@ public:
   void setPanel (const string& sessionId, void* panel);
 
   /**
+   * @brief 手动插入已有会话（用于恢复持久化会话）。
+   */
+  void insertSession (const ChatSession& session);
+
+  /**
    * @brief 根据 sessionId 推导消息 buffer URL。
    */
   static url messageBufferUrl (const string& sessionId);
@@ -300,7 +305,28 @@ public:
    */
   void newSessionWithModel (const string& model);
 
+  /**
+   * @brief 保存所有会话到磁盘。
+   */
+  void saveSessions ();
+
+  /**
+   * @brief 从磁盘加载会话。
+   */
+  void loadSessions ();
+
 private:
+  /**
+   * @brief 恢复单个会话面板（用于加载持久化会话）。
+   * @param sessionId 会话 UUID。
+   * @param title 会话标题。
+   * @param model 模型名称。
+   * @param archived 是否归档。
+   * @return 恢复的会话面板指针。
+   */
+  ChatConversationPanel* restore_conversation (
+      const string& sessionId, const string& title,
+      const string& model, bool archived);
   QWidget*        sidebarWidget_;          ///< 左侧边栏容器。
   QWidget*        contentWidget_;          ///< 右侧内容区容器。
   QLabel*         conversationCountLabel_; ///< 显示会话数量的标签。
@@ -337,5 +363,15 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @param model 模型名称。
  */
 void qt_chat_tab_new_session (string model);
+
+/**
+ * @brief Scheme→C++ 回调：保存所有聊天会话。
+ */
+void qt_chat_tab_save_sessions ();
+
+/**
+ * @brief Scheme→C++ 回调：加载所有聊天会话。
+ */
+void qt_chat_tab_load_sessions ();
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

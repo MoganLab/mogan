@@ -28,9 +28,9 @@
 
 ;;; ---------- Buffer URL 推导函数 ----------
 
-(define (chat-tab-session->message-buffer session-id)
+(tm-define (chat-tab-session->message-buffer session-id)
   (string->url (string-append "tmfs://chat-message-" session-id))
-) ;define
+) ;tm-define
 
 (define (chat-tab-session->input-buffer session-id)
   (string->url (string-append "tmfs://chat-input-" session-id))
@@ -38,9 +38,9 @@
 
 ;;; ---------- State 构造器和访问器 ----------
 
-(define (chat-tab-state model)
+(tm-define (chat-tab-state model)
   (list model)
-) ;define
+) ;tm-define
 
 (define (chat-tab-state-model st)
   (list-ref st 0)
@@ -50,13 +50,13 @@
   (string-append (chat-tab-state-model st) ":chat-tab:" session-id)
 ) ;define
 
-(define (chat-tab-set-state! session-id st)
+(tm-define (chat-tab-set-state! session-id st)
   (ahash-set! chat-tab-session-states session-id st)
-) ;define
+) ;tm-define
 
-(define (chat-tab-get-state session-id)
+(tm-define (chat-tab-get-state session-id)
   (ahash-ref chat-tab-session-states session-id)
-) ;define
+) ;tm-define
 
 ;;; ---------- 文档处理工具 ----------
 
