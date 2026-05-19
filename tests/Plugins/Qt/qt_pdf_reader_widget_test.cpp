@@ -166,14 +166,14 @@ private slots:
   }
 
   void test_rectSelectButtonExists () {
-    PDFReaderWidget* widget= new PDFReaderWidget ();
+    PDFReaderWidget* widget = new PDFReaderWidget ();
     QPushButton*     rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
     QVERIFY (rectBtn != nullptr);
     delete widget;
   }
 
   void test_rectSelectModeToggle () {
-    PDFReaderWidget* widget= new PDFReaderWidget ();
+    PDFReaderWidget* widget = new PDFReaderWidget ();
     QPushButton*     rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
     QVERIFY (rectBtn != nullptr);
 

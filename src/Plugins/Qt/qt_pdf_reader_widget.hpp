@@ -83,14 +83,15 @@ private slots:
   void keyPressEvent (QKeyEvent* event) override;
 
 private:
-  bool renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
-  void rebuildPages ();
-  int  pageWidth () const;
-  void setupToolBar ();
-  void updateZoomDisplay ();
-  void finishRectSelect (const QPoint& viewportPos);
+  bool    renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
+  void    rebuildPages ();
+  int     pageWidth () const;
+  void    setupToolBar ();
+  void    updateZoomDisplay ();
+  void    finishRectSelect (const QPoint& viewportPos);
   QLabel* findPageLabelAt (const QPoint& contentPos) const;
-  QPixmap extractSelectionPixmap (QLabel* label, const QRect& contentRect) const;
+  QPixmap extractSelectionPixmap (QLabel*      label,
+                                  const QRect& contentRect) const;
 
   bool eventFilter (QObject* watched, QEvent* event) override;
 

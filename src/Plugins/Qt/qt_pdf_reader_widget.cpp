@@ -39,10 +39,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr), pageCount_ (0),
-      hasError_ (false),
-      targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0), pageAspectRatio_ (0.0),
-      pageBaseWidthPts_ (0.0), zoomDebounceTimer_ (nullptr),
-      resizeDebounceTimer_ (nullptr) {
+      hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
+      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -359,8 +358,7 @@ PDFReaderWidget::onRectSelectToggled (bool checked) {
     QString shortcut= "Ctrl+Shift+v";
 #endif
     hintLabel_->setText (
-        QString ("Draw a rectangle and use %1 to magic paste!")
-            .arg (shortcut));
+        QString ("Draw a rectangle and use %1 to magic paste!").arg (shortcut));
     hintLabel_->adjustSize ();
     hintLabel_->move (PAGE_MARGIN, PAGE_MARGIN);
     hintLabel_->show ();
@@ -378,7 +376,7 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   rubberBand_->hide ();
 
   // 将 rubber band 的 geometry（contentWidget_ 坐标）转换为内容坐标
-  QPoint contentTopLeft= rubberRect.topLeft ();
+  QPoint contentTopLeft    = rubberRect.topLeft ();
   QPoint contentBottomRight= rubberRect.bottomRight ();
 
   QRect contentRect (contentTopLeft, contentBottomRight);
@@ -419,7 +417,7 @@ PDFReaderWidget::findPageLabelAt (const QPoint& contentPos) const {
 }
 
 QPixmap
-PDFReaderWidget::extractSelectionPixmap (QLabel* label,
+PDFReaderWidget::extractSelectionPixmap (QLabel*      label,
                                          const QRect& contentRect) const {
   if (!label) return QPixmap ();
 
@@ -428,7 +426,7 @@ PDFReaderWidget::extractSelectionPixmap (QLabel* label,
 
   // 计算选择区域相对于 label 的坐标
   QRect labelRect= label->geometry ();
-  QRect intersect = contentRect.intersected (labelRect);
+  QRect intersect= contentRect.intersected (labelRect);
   if (intersect.isEmpty ()) return QPixmap ();
 
   int relX= intersect.x () - labelRect.x ();
@@ -965,13 +963,11 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
       if (mouseEvent->button () == Qt::LeftButton) {
         rectSelectDragging_= true;
-        rectSelectStart_   = scrollArea_->viewport ()->mapToGlobal (
-            mouseEvent->pos ());
         rectSelectStart_=
-            contentWidget_->mapFromGlobal (rectSelectStart_);
+            scrollArea_->viewport ()->mapToGlobal (mouseEvent->pos ());
+        rectSelectStart_= contentWidget_->mapFromGlobal (rectSelectStart_);
         if (!rubberBand_) {
-          rubberBand_=
-              new QRubberBand (QRubberBand::Rectangle, contentWidget_);
+          rubberBand_= new QRubberBand (QRubberBand::Rectangle, contentWidget_);
         }
         rubberBand_->setGeometry (QRect (rectSelectStart_, QSize ()));
         rubberBand_->show ();
@@ -982,9 +978,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     else if (rectSelectMode_ && rectSelectDragging_ &&
              event->type () == QEvent::MouseMove) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      QPoint currentPos=
-          contentWidget_->mapFromGlobal (
-              scrollArea_->viewport ()->mapToGlobal (mouseEvent->pos ()));
+      QPoint       currentPos= contentWidget_->mapFromGlobal (
+          scrollArea_->viewport ()->mapToGlobal (mouseEvent->pos ()));
       QRect rect (rectSelectStart_, currentPos);
       rect= rect.normalized ();
       rubberBand_->setGeometry (rect);
