@@ -14,6 +14,7 @@
 #include <QLineEdit>
 #include <QRubberBand>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QToolButton>
 #include <QTimer>
 #include <QToolBar>
@@ -108,7 +109,7 @@ private:
   QLabel*      pageTotalLabel_;
   QToolButton* nextPageBtn_;
   QToolButton* zoomInBtn_;
-  QPushButton* rectSelectBtn_;
+  QToolButton* rectSelectBtn_;
 
   QRubberBand* rubberBand_;
   bool         rectSelectMode_;

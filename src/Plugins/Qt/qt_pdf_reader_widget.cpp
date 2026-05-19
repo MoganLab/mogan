@@ -184,11 +184,12 @@ PDFReaderWidget::setupToolBar () {
   toolBar_->addWidget (pageTotalLabel_);
   toolBar_->addWidget (nextPageBtn_);
 
-  rectSelectBtn_= new QPushButton ("□", toolBar_);
+  rectSelectBtn_= new QToolButton (toolBar_);
+  rectSelectBtn_->setText ("□");
   rectSelectBtn_->setObjectName ("rectSelectBtn");
   rectSelectBtn_->setFixedWidth (30);
   rectSelectBtn_->setCheckable (true);
-  connect (rectSelectBtn_, &QPushButton::toggled, this,
+  connect (rectSelectBtn_, &QToolButton::toggled, this,
            &PDFReaderWidget::onRectSelectToggled);
 
   toolBar_->addSeparator ();
