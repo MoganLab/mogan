@@ -13,6 +13,9 @@
 
         <file>pdf-reader/next.svg</file>
         <file>pdf-reader/previous.svg</file>
+        <file>pdf-reader/minus.svg</file>
+        <file>pdf-reader/open.svg</file>
+        <file>pdf-reader/screenshot.svg</file>
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>
@@ -28,6 +31,9 @@
 
         <file>pdf-reader/next-white.svg</file>
         <file>pdf-reader/previous-white.svg</file>
+        <file>pdf-reader/minus-white.svg</file>
+        <file>pdf-reader/open-white.svg</file>
+        <file>pdf-reader/screenshot-white.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>

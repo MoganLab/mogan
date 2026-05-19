@@ -410,6 +410,47 @@ QTMTabPageContainer QPushButton#add-tab-button:pressed {
   background-color: rgba(255, 255, 255, 0.10);
 }
 
+/****************************************************************************
+* PDF Reader 工具栏按钮样式
+****************************************************************************/
+QToolButton#pdf-zoom-out-btn {
+  qproperty-icon: url(":/pdf-reader/minus-white.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-zoom-in-btn {
+  qproperty-icon: url(":/tabpage/add-white.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-prev-btn {
+  qproperty-icon: url(":/pdf-reader/previous-white.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-next-btn {
+  qproperty-icon: url(":/pdf-reader/next-white.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-zoom-out-btn:hover,
+QToolButton#pdf-zoom-in-btn:hover,
+QToolButton#pdf-prev-btn:hover,
+QToolButton#pdf-next-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+QToolButton#pdf-zoom-out-btn:pressed,
+QToolButton#pdf-zoom-in-btn:pressed,
+QToolButton#pdf-prev-btn:pressed,
+QToolButton#pdf-next-btn:pressed {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
 /* Tab Widget 样式 */
 QTabBar::tab {
   background: #4c4c4c;

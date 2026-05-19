@@ -400,6 +400,47 @@ QTMTabPageContainer QPushButton#add-tab-button:pressed {
 }
 
 /****************************************************************************
+* PDF Reader 工具栏按钮样式
+****************************************************************************/
+QToolButton#pdf-zoom-out-btn {
+  qproperty-icon: url(":/pdf-reader/minus.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-zoom-in-btn {
+  qproperty-icon: url(":/tabpage/add.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-prev-btn {
+  qproperty-icon: url(":/pdf-reader/previous.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-next-btn {
+  qproperty-icon: url(":/pdf-reader/next.svg");
+  background-color: transparent;
+  border: none;
+}
+
+QToolButton#pdf-zoom-out-btn:hover,
+QToolButton#pdf-zoom-in-btn:hover,
+QToolButton#pdf-prev-btn:hover,
+QToolButton#pdf-next-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+}
+
+QToolButton#pdf-zoom-out-btn:pressed,
+QToolButton#pdf-zoom-in-btn:pressed,
+QToolButton#pdf-prev-btn:pressed,
+QToolButton#pdf-next-btn:pressed {
+  background-color: rgba(0, 0, 0, 0.12);
+}
+
+/****************************************************************************
 * 菜单样式
 ****************************************************************************/
 QMenu {
