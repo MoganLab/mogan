@@ -43,6 +43,10 @@
   (check-equal? name expr #t)
 ) ;define
 
+(define (check-false name expr)
+  (check-equal? name expr #f)
+) ;define
+
 ;; Test escape-string
 (check-equal? "escape-string plain" (escape-string "hello") "hello")
 (check-equal? "escape-string quote" (escape-string "a\"b") "a\\\"b")
@@ -51,6 +55,7 @@
   (escape-string "\\\"hello\\\"")
   "\\\\\\\"hello\\\\\\\""
 ) ;check-equal?
+(check-equal? "escape-string empty" (escape-string "") "")
 
 ;; Test goldfish-quote
 (check-equal? "goldfish-quote plain" (goldfish-quote "hello") "\"hello\"")
@@ -59,6 +64,7 @@
   (goldfish-quote "a\\b")
   "\"a\\\\b\""
 ) ;check-equal?
+(check-equal? "goldfish-quote empty" (goldfish-quote "") "\"\"")
 
 ;; Test wrap-tikz-code
 (let ((wrapped (wrap-tikz-code "\\draw (0,0) -- (1,1);")))
@@ -77,13 +83,95 @@
   (check-true "wrap-tikz-code contains user code"
     (string-contains? wrapped "\\draw (0,0) -- (1,1);")
   ) ;check-true
+  (check-true "wrap-tikz-code starts with documentclass"
+    (string=? (substring wrapped 0 14) "\\documentclass")
+  ) ;check-true
+  (check-true "wrap-tikz-code ends with newline end document"
+    (string=? (substring wrapped (- (string-length wrapped) 15) (string-length wrapped))
+      "\\end{document}\n"
+    ) ;string=?
+  ) ;check-true
 ) ;let
+
+(check-equal? "wrap-tikz-code empty"
+  (wrap-tikz-code "")
+  "\\documentclass[tikz,border=10pt]{standalone}\n\\usepackage{tikz}\n\\begin{document}\n\\end{document}\n"
+) ;check-equal?
 
 ;; Test gen-temp-path
 (let ((p (gen-temp-path)))
   (check-true "gen-temp-path is string" (string? p))
   (check-true "gen-temp-path is non-empty" (> (string-length p) 0))
   (check-true "gen-temp-path contains /tikz/" (string-contains? p "/tikz/"))
+  (check-false "gen-temp-path no trailing slash"
+    (string=? (substring p (- (string-length p) 1) (string-length p)) "/")
+  ) ;check-false
+) ;let
+
+(let ((p1 (gen-temp-path)) (p2 (gen-temp-path)))
+  (check-false "gen-temp-path unique" (string=? p1 p2))
+) ;let
+
+;; Test tikz-read-code-from-port
+(let ((port (open-input-string "\\draw (0,0) -- (1,1);\n<EOF>\n")))
+  (check-equal? "tikz-read-code-from-port simple"
+    (tikz-read-code-from-port port)
+    "\\draw (0,0) -- (1,1);\n"
+  ) ;check-equal?
+) ;let
+
+(let ((port (open-input-string "line1\nline2\n<EOF>\n")))
+  (check-equal? "tikz-read-code-from-port multi-line"
+    (tikz-read-code-from-port port)
+    "line1\nline2\n"
+  ) ;check-equal?
+) ;let
+
+(let ((port (open-input-string "<EOF>\n")))
+  (check-equal? "tikz-read-code-from-port empty"
+    (tikz-read-code-from-port port)
+    ""
+  ) ;check-equal?
+) ;let
+
+(let ((port (open-input-string "no newline at end\n<EOF>\n")))
+  (check-equal? "tikz-read-code-from-port code then eof on next line"
+    (tikz-read-code-from-port port)
+    "no newline at end\n"
+  ) ;check-equal?
+) ;let
+
+;; Test tikz-build-cmd
+(let ((cmd (tikz-build-cmd "/usr/bin/pdflatex" "/tmp/tikz/abc.tex" "/tmp/tikz/abc.pdf")
+      ) ;cmd
+     ) ;
+  (check-true "tikz-build-cmd contains cmd"
+    (string-contains? cmd "/usr/bin/pdflatex")
+  ) ;check-true
+  (check-true "tikz-build-cmd contains tex-path"
+    (string-contains? cmd "/tmp/tikz/abc.tex")
+  ) ;check-true
+  (check-true "tikz-build-cmd contains output-directory"
+    (string-contains? cmd "-output-directory")
+  ) ;check-true
+  (check-true "tikz-build-cmd contains interaction"
+    (string-contains? cmd "-interaction=nonstopmode")
+  ) ;check-true
+  (check-true "tikz-build-cmd contains redirect"
+    (string-contains? cmd " > /dev/null 2>&1 ")
+  ) ;check-true
+  (check-true "tikz-build-cmd quotes cmd"
+    (string-contains? cmd "\"/usr/bin/pdflatex\"")
+  ) ;check-true
+  (check-true "tikz-build-cmd quotes tex-path"
+    (string-contains? cmd "\"/tmp/tikz/abc.tex\"")
+  ) ;check-true
+) ;let
+
+(let ((cmd (tikz-build-cmd "pdflatex" "/tmp/tikz/test.tex" "/tmp/tikz/test.pdf")))
+  (check-true "tikz-build-cmd output-directory is parent"
+    (string-contains? cmd "/tmp/tikz")
+  ) ;check-true
 ) ;let
 
 (display (string-append "\nTotal: "

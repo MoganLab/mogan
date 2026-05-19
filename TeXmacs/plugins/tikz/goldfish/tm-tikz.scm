@@ -11,14 +11,12 @@
 ;;
 ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol)
-  (liii os)
-  (liii path)
-  (liii sys)
-  (liii error)
-) ;import
+(import (texmacs protocol) (liii os) (liii path) (liii sys) (liii error))
 
-(load (string-append (path->string (path-parent (path (list-ref (argv) 2)))) "/tikz-lib.scm"))
+(load (string-append (path->string (path-parent (path (list-ref (argv) 2))))
+        "/tikz-lib.scm"
+      ) ;string-append
+) ;load
 (import (tikz lib))
 
 (define (tikz-welcome)
@@ -32,32 +30,16 @@
 ) ;define
 
 (define (tikz-read-code)
-  (define (read-code code)
-    (let ((line (read-line)))
-      (if (string=? line "<EOF>\n") code (read-code (string-append code line)))
-    ) ;let
-  ) ;define
-  (read-code "")
+  (tikz-read-code-from-port (current-input-port))
 ) ;define
 
 (define (tikz-compile tex-path pdf-path)
-  (let ((cmd (fourth (argv)))
-        (redirect (if (os-windows?) " > NUL 2>&1 " " > /dev/null 2>&1 "))
-       ) ;
+  (let ((cmd (list-ref (argv) 3)))
     (unsetenv "DYLD_LIBRARY_PATH")
     (unsetenv "DYLD_FRAMEWORK_PATH")
     (unsetenv "DYLD_FALLBACK_LIBRARY_PATH")
     (unsetenv "DYLD_FALLBACK_FRAMEWORK_PATH")
-    (let ((ret (system (string-append (goldfish-quote cmd)
-                         " -interaction=nonstopmode -output-directory "
-                         (goldfish-quote (path->string (path-parent pdf-path)))
-                         " "
-                         (goldfish-quote tex-path)
-                         redirect
-                       ) ;string-append
-               ) ;system
-          ) ;ret
-         ) ;
+    (let ((ret (system (tikz-build-cmd cmd tex-path pdf-path))))
       (if (= ret 0)
         #t
         (begin
