@@ -23,6 +23,7 @@
 class QCheckBox;
 class QHBoxLayout;
 class QLabel;
+class QLineEdit;
 class QPushButton;
 class QSpacerItem;
 class QStackedWidget;
@@ -396,6 +397,7 @@ private:
   bool         archiveSelectMode_;    ///< 是否处于多选模式（归档会话）。
   QWidget*     multiSelectBar_;       ///< 多选模式下的批量操作栏。
   QPushButton* batchArchiveBtn_;      ///< 批量归档按钮（归档区多选时隐藏）。
+  QLineEdit*   searchEdit_;           ///< 会话搜索输入框。
   QList<ChatConversationPanel*>
       zombiePanels_; ///< 已删除的会话面板（隐藏但未释放）。
 };

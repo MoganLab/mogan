@@ -216,7 +216,8 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
       chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
       multiSelectMode_ (false), archiveSelectMode_ (false),
-      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr) {
+      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr),
+      searchEdit_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -300,6 +301,24 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
   conversationCountLabel_->setStyleSheet ("color: #666666;");
   normalLayout->addWidget (conversationCountLabel_);
+
+  // 搜索框
+  QLineEdit* searchEdit= new QLineEdit (normalContent);
+  searchEdit->setObjectName ("chat-tab-search-edit");
+  searchEdit->setPlaceholderText (QString::fromUtf8 ("搜索会话..."));
+  searchEdit->setClearButtonEnabled (true);
+  searchEdit->setFocusPolicy (Qt::ClickFocus);
+  DpiUtils::applyScaledFont (searchEdit, kCollapseFontPx);
+  searchEdit->setStyleSheet (
+      QString ("QLineEdit { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (searchEdit, &QLineEdit::textChanged, this,
+           [this] () { refresh_sidebar (); });
+  normalLayout->addWidget (searchEdit);
+  searchEdit_= searchEdit;
 
   // 多选模式批量操作栏（默认隐藏）
   multiSelectBar_= new QWidget (normalContent);
@@ -756,28 +775,11 @@ void
 QTChatTabWidget::refresh_sidebar () {
   cout << "[chat-persist] refresh_sidebar: conversations_.size()="
        << conversations_.size () << LF;
-  // 统计活跃和归档会话数
-  int activeCount  = 0;
-  int archivedCount= 0;
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel) continue;
-    ChatSession* session= sessionManager_.getSession (panel->sessionId);
-    if (session && session->archived) ++archivedCount;
-    else ++activeCount;
-  }
-  if (conversationCountLabel_) {
-    conversationCountLabel_->setText (
-        QString ("Conversations (%1)").arg (activeCount));
-  }
 
-  // 更新归档区标题
-  if (archiveHeaderButton_) {
-    archiveHeaderButton_->setText (
-        QString ("Archived (%1)").arg (archivedCount));
-    archiveHeaderButton_->setVisible (true);
-  }
+  QString filterText=
+      searchEdit_ ? searchEdit_->text ().toLower () : QString ();
 
-  // 标题去重：统计每个 title 出现次数
+  // 标题去重：统计每个 title 出现次数（基于所有会话）
   QMap<QString, int> titleCounts;
   for (ChatConversationPanel* panel : conversations_) {
     if (!panel) continue;
@@ -809,6 +811,8 @@ QTChatTabWidget::refresh_sidebar () {
   }
 
   // 更新侧边栏按钮
+  int                activeCount  = 0;
+  int                archivedCount= 0;
   QMap<QString, int> titleSeq; // 去重序号
   for (ChatConversationPanel* panel : conversations_) {
     if (!panel || !panel->sidebarButton) continue;
@@ -838,7 +842,6 @@ QTChatTabWidget::refresh_sidebar () {
     panel->sidebarButton->setText (displayText);
     panel->sidebarButton->setChecked (panel == activeConversation_ &&
                                       !archived);
-    panel->sidebarButton->setVisible (true);
 
     // 多选模式：仅在对应区域显示 checkbox
     if (panel->selectCheckBox) {
@@ -851,7 +854,19 @@ QTChatTabWidget::refresh_sidebar () {
       panel->modelLabel->setText (to_qstring (session->model));
     }
 
+    // 搜索过滤
+    bool matchesFilter=
+        filterText.isEmpty () || displayText.toLower ().contains (filterText);
+    if (!matchesFilter) {
+      panel->itemWidget->setVisible (false);
+      continue;
+    }
+
+    panel->itemWidget->setVisible (true);
+    panel->sidebarButton->setVisible (true);
+
     if (archived) {
+      ++archivedCount;
       // 归档会话：放入归档列表，点击切换到空白会话
       panel->itemWidget->setParent (archiveListWidget_);
       archiveListLayout_->addWidget (panel->itemWidget);
@@ -870,6 +885,7 @@ QTChatTabWidget::refresh_sidebar () {
                });
     }
     else {
+      ++activeCount;
       // 活跃会话：放入会话列表，点击切换
       panel->itemWidget->setParent (conversationListWidget_);
       conversationListLayout_->addWidget (panel->itemWidget);
@@ -948,6 +964,18 @@ QTChatTabWidget::refresh_sidebar () {
                  }
                }
              });
+  }
+
+  if (conversationCountLabel_) {
+    conversationCountLabel_->setText (
+        QString ("Conversations (%1)").arg (activeCount));
+  }
+
+  // 更新归档区标题
+  if (archiveHeaderButton_) {
+    archiveHeaderButton_->setText (
+        QString ("Archived (%1)").arg (archivedCount));
+    archiveHeaderButton_->setVisible (true);
   }
 
   // 归档列表可见性：有归档项且非折叠时显示
