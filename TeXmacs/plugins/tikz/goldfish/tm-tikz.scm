@@ -125,17 +125,18 @@
                     (loop (+ i 1)))))))))
 
 (define (run-gs eps-path png-path gs-bin)
-  (let ((cmd (string-append (goldfish-quote gs-bin)
-                            " -dQUIET"
-                            " -dNOPAUSE"
-                            " -dBATCH"
-                            " -dSAFER"
-                            " -sDEVICE=pngalpha"
-                            " -dGraphicsAlphaBits=4"
-                            " -dTextAlphaBits=4"
-                            " -r144"
-                            " -sOutputFile=" (goldfish-quote png-path)
-                            " -f " (goldfish-quote eps-path))))
+  (let* ((inner-cmd (string-append (goldfish-quote gs-bin)
+                                   " -dQUIET"
+                                   " -dNOPAUSE"
+                                   " -dBATCH"
+                                   " -dSAFER"
+                                   " -sDEVICE=pngalpha"
+                                   " -dGraphicsAlphaBits=4"
+                                   " -dTextAlphaBits=4"
+                                   " -r144"
+                                   " -sOutputFile=" (goldfish-quote png-path)
+                                   " -f " (goldfish-quote eps-path)))
+         (cmd (string-append "sh -c " (goldfish-quote inner-cmd))))
     (os-call cmd)))
 
 (define (png-size path)
