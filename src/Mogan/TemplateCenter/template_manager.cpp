@@ -114,7 +114,8 @@ TemplateManager::initialize () {
       }
     }
     if (validIds.size () != cachedRecommendIds.size ()) {
-      qWarning () << "[Template]" << cachedRecommendIds.size () - validIds.size ()
+      qWarning () << "[Template]"
+                  << cachedRecommendIds.size () - validIds.size ()
                   << "cached recommend IDs are stale, purging";
       cache_->saveRecommendIds (validIds);
     }

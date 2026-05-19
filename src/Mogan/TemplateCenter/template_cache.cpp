@@ -338,7 +338,7 @@ TemplateCache::saveRecommendIds (const QList<QString>& ids) {
   QString cachePath= recommendIdsCachePath ();
   QString tmpPath  = cachePath + ".tmp";
   QFile   file (tmpPath);
-  if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+  if (!file.open (QIODevice::WriteOnly)) {
     qWarning () << "[Template] Failed to write recommend ids cache temp file:"
                 << tmpPath;
     return;

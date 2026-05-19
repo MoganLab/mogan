@@ -687,8 +687,8 @@ private slots:
     tmpl["name"]       = "Post Abort";
     QJsonObject cat;
     cat["categoryKey"]= "test";
-    tmpl["category"]= cat;
-    tmpl["url"]     = "http://example.com/file.tmu";
+    tmpl["category"]  = cat;
+    tmpl["url"]       = "http://example.com/file.tmu";
     items.append (tmpl);
 
     QJsonObject root;

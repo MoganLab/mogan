@@ -254,16 +254,17 @@ private slots:
     cache.initialize ();
 
     QHash<QString, TemplateMetadataPtr> metadata;
-    auto tmpl= QSharedPointer<TemplateMetadata>::create ();
-    tmpl->id   = "test-id";
-    tmpl->name = "Test";
+    auto tmpl = QSharedPointer<TemplateMetadata>::create ();
+    tmpl->id  = "test-id";
+    tmpl->name= "Test";
     metadata.insert (tmpl->id, tmpl);
     cache.saveMetadataCache (metadata);
 
     cache.saveRecommendIds (QList<QString>{"a", "b", "c"});
 
-    QDir dir (cacheDir_);
-    QStringList tmpFiles= dir.entryList (QStringList () << "*.tmp", QDir::Files);
+    QDir        dir (cacheDir_);
+    QStringList tmpFiles=
+        dir.entryList (QStringList () << "*.tmp", QDir::Files);
     QVERIFY2 (tmpFiles.isEmpty (),
               "Atomic write should not leave .tmp files behind");
   }
