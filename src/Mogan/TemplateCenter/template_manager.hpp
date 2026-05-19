@@ -126,7 +126,7 @@ private slots:
   onRemoteTemplatesLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
   void onRemoteTemplatesFailed (const QString& error);
   void onRemoteRecommendTemplatesLoaded (
-      const QHash<QString, TemplateMetadataPtr>& metadata);
+      const QList<TemplateMetadataPtr>& templates);
   void onRemoteRecommendTemplatesFailed (const QString& error);
   void onTemplateDownloaded (const QString& templateId,
                              const QString& localPath);

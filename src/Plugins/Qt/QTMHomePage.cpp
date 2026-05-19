@@ -236,6 +236,9 @@ QTMHomePage::QTMHomePage (QWidget* parent) : QWidget (parent) {
              Qt::UniqueConnection);
     if (mgr->isInitialized () && !mgr->templates ().isEmpty ()) {
       refreshTemplateThumbnails ();
+      if (!mgr->recommendTemplates ().isEmpty ()) {
+        refreshTemplateCards ();
+      }
     }
     else if (!mgr->isInitialized ()) {
       QTimer::singleShot (0, [mgr] () { mgr->initialize (); });

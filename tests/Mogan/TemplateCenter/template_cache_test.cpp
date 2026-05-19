@@ -18,7 +18,11 @@ class TestTemplateCache : public QObject {
   Q_OBJECT
 
 private:
-  QString cacheDir_;
+  QString                 cacheDir_;
+  static QtMessageHandler originalHandler_;
+
+  static void silentMessageHandler (QtMsgType, const QMessageLogContext&,
+                                    const QString&) {}
 
   void clearCacheDir () {
     QDir dir (cacheDir_);
@@ -29,11 +33,14 @@ private:
 
 private slots:
   void initTestCase () {
+    originalHandler_= qInstallMessageHandler (silentMessageHandler);
     QStandardPaths::setTestModeEnabled (true);
     QString appData=
         QStandardPaths::writableLocation (QStandardPaths::AppDataLocation);
     cacheDir_= QDir (appData).filePath ("system/template_cache");
   }
+
+  void cleanupTestCase () { qInstallMessageHandler (originalHandler_); }
 
   void init () {
     clearCacheDir ();
@@ -177,7 +184,56 @@ private slots:
     QVERIFY (cache.cachedTemplates ().isEmpty ());
     QCOMPARE (spy.count (), 1);
   }
+
+  // 测试推荐 ID 列表的 save/load 往返
+  void test_save_and_load_recommend_ids () {
+    TemplateCache cache;
+    cache.initialize ();
+
+    QList<QString> ids;
+    ids.append ("thu-undergraduate-thesis");
+    ids.append ("nsfc-ysf-c");
+    ids.append ("elegantbook");
+
+    cache.saveRecommendIds (ids);
+
+    QList<QString> loaded= cache.loadRecommendIds ();
+    QCOMPARE (loaded.size (), 3);
+    QCOMPARE (loaded[0], QString ("thu-undergraduate-thesis"));
+    QCOMPARE (loaded[1], QString ("nsfc-ysf-c"));
+    QCOMPARE (loaded[2], QString ("elegantbook"));
+  }
+
+  // 测试推荐 ID 空列表
+  void test_load_recommend_ids_empty () {
+    TemplateCache cache;
+    cache.initialize ();
+
+    QList<QString> loaded= cache.loadRecommendIds ();
+    QVERIFY (loaded.isEmpty ());
+  }
+
+  // 测试推荐 ID 顺序保持
+  void test_recommend_ids_order_preserved () {
+    TemplateCache cache;
+    cache.initialize ();
+
+    QList<QString> ids;
+    for (int i= 0; i < 10; ++i) {
+      ids.append (QString ("template-%1").arg (i));
+    }
+
+    cache.saveRecommendIds (ids);
+
+    QList<QString> loaded= cache.loadRecommendIds ();
+    QCOMPARE (loaded.size (), 10);
+    for (int i= 0; i < 10; ++i) {
+      QCOMPARE (loaded[i], QString ("template-%1").arg (i));
+    }
+  }
 };
+
+QtMessageHandler TestTemplateCache::originalHandler_= nullptr;
 
 QTEST_MAIN (TestTemplateCache)
 #include "template_cache_test.moc"

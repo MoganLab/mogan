@@ -104,6 +104,13 @@ TemplateManager::initialize () {
     mergeMetadata (cachedMetadata);
   }
 
+  // Load cached recommend template IDs if available
+  QList<QString> cachedRecommendIds= cache_->loadRecommendIds ();
+  if (!cachedRecommendIds.isEmpty ()) {
+    recommendTemplateIds_= cachedRecommendIds;
+    emit recommendTemplatesLoaded ();
+  }
+
   // Always try to refresh categories in the background
   refreshCategories ();
 
@@ -595,23 +602,28 @@ TemplateManager::onRemoteTemplatesFailed (const QString& error) {
 
 void
 TemplateManager::onRemoteRecommendTemplatesLoaded (
-    const QHash<QString, TemplateMetadataPtr>& metadata) {
+    const QList<TemplateMetadataPtr>& templates) {
   isRefreshingRecommendTemplates_= false;
   recommendTemplatesFetched_     = true;
 
-  if (metadata.isEmpty () && !templates_.isEmpty ()) {
+  if (templates.isEmpty () && !templates_.isEmpty ()) {
     qWarning () << "[Template] Skip recommend templates merge: empty list";
     emit recommendTemplatesLoaded ();
     return;
   }
 
   recommendTemplateIds_.clear ();
-  for (auto it= metadata.constBegin (); it != metadata.constEnd (); ++it) {
-    recommendTemplateIds_.append (it.key ());
+  QHash<QString, TemplateMetadataPtr> metadata;
+  for (const auto& tmpl : templates) {
+    if (tmpl) {
+      recommendTemplateIds_.append (tmpl->id);
+      metadata.insert (tmpl->id, tmpl);
+    }
   }
 
   mergeMetadata (metadata, true);
   cache_->saveMetadataCache (templates_);
+  cache_->saveRecommendIds (recommendTemplateIds_);
   emit recommendTemplatesLoaded ();
 }
 

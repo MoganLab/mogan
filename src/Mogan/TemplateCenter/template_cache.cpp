@@ -242,6 +242,8 @@ TemplateCache::clearCache () {
   QString metadataPath= metadataCachePath ();
   QFile::remove (metadataPath);
 
+  QFile::remove (recommendIdsCachePath ());
+
   emit cacheCleared ();
 }
 
@@ -273,6 +275,71 @@ TemplateCache::metadataCachePath () const {
 QString
 TemplateCache::categoriesCachePath () const {
   return QDir (cacheDirectory ()).filePath ("categories.json");
+}
+
+QList<QString>
+TemplateCache::loadRecommendIds () {
+  QList<QString> ids;
+
+  QString cachePath= recommendIdsCachePath ();
+  if (!QFile::exists (cachePath)) {
+    return ids;
+  }
+
+  QFile file (cachePath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    qWarning () << "[Template] Failed to open recommend ids cache:"
+                << cachePath;
+    return ids;
+  }
+
+  QByteArray    data= file.readAll ();
+  QJsonDocument doc = QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    qWarning () << "[Template] Invalid recommend ids cache format";
+    return ids;
+  }
+
+  QJsonObject root        = doc.object ();
+  QJsonArray  recommendIds= root.value ("recommend_ids").toArray ();
+
+  for (const auto& val : recommendIds) {
+    QString id= val.toString ();
+    if (!id.isEmpty ()) {
+      ids.append (id);
+    }
+  }
+
+  return ids;
+}
+
+void
+TemplateCache::saveRecommendIds (const QList<QString>& ids) {
+  QJsonObject root;
+  root.insert ("version", "1.0");
+
+  QJsonArray recommendIds;
+  for (const auto& id : ids) {
+    recommendIds.append (id);
+  }
+  root.insert ("recommend_ids", recommendIds);
+
+  QJsonDocument doc (root);
+
+  QString cachePath= recommendIdsCachePath ();
+  QFile   file (cachePath);
+  if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
+    qWarning () << "[Template] Failed to write recommend ids cache:"
+                << cachePath;
+    return;
+  }
+
+  file.write (doc.toJson (QJsonDocument::Compact));
+}
+
+QString
+TemplateCache::recommendIdsCachePath () const {
+  return QDir (cacheDirectory ()).filePath ("recommend_ids.json");
 }
 
 QList<TemplateCategory>

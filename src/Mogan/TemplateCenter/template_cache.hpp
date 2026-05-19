@@ -59,6 +59,10 @@ public:
   QList<TemplateCategory> loadCategoriesCache ();
   void saveCategoriesCache (const QList<TemplateCategory>& categories);
 
+  // 推荐模板 ID 缓存（保持顺序）
+  QList<QString> loadRecommendIds ();
+  void           saveRecommendIds (const QList<QString>& ids);
+
   // 模板文件缓存
   bool              isTemplateCached (const QString& templateId) const;
   QString           cachedTemplatePath (const QString& templateId) const;
@@ -83,6 +87,7 @@ private:
   // Cache file paths
   QString metadataCachePath () const;
   QString categoriesCachePath () const;
+  QString recommendIdsCachePath () const;
   QString templatesCacheDir () const;
   QString cacheIndexPath () const;
 

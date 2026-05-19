@@ -315,8 +315,8 @@ TemplateAPI::onRecommendTemplatesReplyFinished () {
     return;
   }
 
-  auto metadata= parseTemplatesResponse (data);
-  emit recommendTemplatesLoaded (metadata);
+  auto templates= parseTemplatesResponseOrdered (data);
+  emit recommendTemplatesLoaded (templates);
 }
 
 void
@@ -460,9 +460,34 @@ TemplateAPI::parseTemplatesResponse (const QJsonValue& data) {
   return metadata;
 }
 
-void
-TemplateAPI::parseTemplateObject (
-    const QJsonObject& tmplObj, QHash<QString, TemplateMetadataPtr>& metadata) {
+QList<TemplateMetadataPtr>
+TemplateAPI::parseTemplatesResponseOrdered (const QJsonValue& data) {
+  QList<TemplateMetadataPtr> result;
+
+  QJsonArray array;
+  if (data.isArray ()) {
+    array= data.toArray ();
+  }
+  else if (data.isObject ()) {
+    array= data.toObject ().value ("items").toArray ();
+  }
+  else {
+    qWarning () << "[Template] Templates data is not an object or array";
+    return result;
+  }
+
+  for (const auto& val : array) {
+    auto tmpl= parseTemplateObject (val.toObject ());
+    if (tmpl) {
+      result.append (tmpl);
+    }
+  }
+
+  return result;
+}
+
+TemplateMetadataPtr
+TemplateAPI::parseTemplateObject (const QJsonObject& tmplObj) {
   TemplateMetadataPtr tmpl= QSharedPointer<TemplateMetadata>::create ();
   tmpl->id                = tmplObj.value ("templateKey").toString ();
   tmpl->name              = tmplObj.value ("name").toString ();
@@ -519,7 +544,17 @@ TemplateAPI::parseTemplateObject (
   tmpl->downloadCount = statsObj.value ("downloads").toInt ();
   tmpl->rating        = statsObj.value ("rating").toDouble ();
 
-  if (!tmpl->id.isEmpty ()) {
+  if (tmpl->id.isEmpty ()) {
+    return TemplateMetadataPtr ();
+  }
+  return tmpl;
+}
+
+void
+TemplateAPI::parseTemplateObject (
+    const QJsonObject& tmplObj, QHash<QString, TemplateMetadataPtr>& metadata) {
+  auto tmpl= parseTemplateObject (tmplObj);
+  if (tmpl) {
     metadata.insert (tmpl->id, tmpl);
   }
 }

@@ -75,8 +75,7 @@ signals:
   void templatesLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
   void templatesLoadFailed (const QString& error);
 
-  void recommendTemplatesLoaded (
-      const QHash<QString, TemplateMetadataPtr>& metadata);
+  void recommendTemplatesLoaded (const QList<TemplateMetadataPtr>& templates);
   void recommendTemplatesLoadFailed (const QString& error);
 
   // Download progress
@@ -108,8 +107,12 @@ private:
   QString recommendTemplatesUrl () const;
 
   // Helper to parse individual template objects
-  void parseTemplateObject (const QJsonObject&                   tmplObj,
-                            QHash<QString, TemplateMetadataPtr>& metadata);
+  TemplateMetadataPtr parseTemplateObject (const QJsonObject& tmplObj);
+  void                parseTemplateObject (const QJsonObject&                   tmplObj,
+                                           QHash<QString, TemplateMetadataPtr>& metadata);
+
+  QList<TemplateMetadataPtr>
+  parseTemplatesResponseOrdered (const QJsonValue& data);
 
   // Request management
   void setupRequestHeaders (QNetworkRequest& request);
