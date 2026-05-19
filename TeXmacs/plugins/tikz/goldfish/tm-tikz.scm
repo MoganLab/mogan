@@ -122,7 +122,7 @@
                                 (y2 (cadddr parts)))
                             (or (<= (- x2 x1) 0) (<= (- y2 y1) 0)))
                           #t))
-                    (loop (+ i 1))))))))))
+                    (loop (+ i 1)))))))))
 
 (define (run-gs eps-path png-path gs-bin)
   (let ((cmd (string-append (goldfish-quote gs-bin)
