@@ -311,6 +311,11 @@ public:
   static bool is_empty_document_body (tree body);
 
   /**
+   * @brief 确保至少存在一个空白新对话，若没有则创建。
+   */
+  void ensure_new_conversation ();
+
+  /**
    * @brief 为 Chat Tab 安装主菜单栏内容。
    * @param menuWidget 菜单 widget。
    */

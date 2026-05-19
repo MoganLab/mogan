@@ -721,7 +721,7 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
 
   ChatConversationPanel* panel= create_conversation ("");
   if (!panel) return;
-  conversations_.append (panel);
+  conversations_.prepend (panel);
 
   // 绑定模型到会话并显示
   sessionManager_.setModel (panel->sessionId, model);
@@ -730,7 +730,27 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
   }
 
   activate_conversation (panel);
+
+  // 标记 buffer 为已保存，避免关闭 tab 时弹出保存提示
+  call ("buffer-pretend-saved",
+        ChatSessionManager::messageBufferUrl (panel->sessionId));
+  call ("buffer-pretend-saved",
+        ChatSessionManager::inputBufferUrl (panel->sessionId));
+
   saveOneSession (panel->sessionId);
+}
+
+/**
+ * @brief 确保至少存在一个空白新对话（conversationMode == false）。
+ *
+ * 遍历所有会话，若已有空白对话则直接返回；否则新建一个。
+ */
+void
+QTChatTabWidget::ensure_new_conversation () {
+  for (ChatConversationPanel* panel : conversations_) {
+    if (!panel->conversationMode) return;
+  }
+  create_new_conversation ();
 }
 
 /**

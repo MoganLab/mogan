@@ -1008,6 +1008,8 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
     if (!chatContentWidget) {
       chatContentWidget= new QTChatTabWidget (centralwidget ());
     }
+    static_cast<QTChatTabWidget*> (chatContentWidget)
+        ->ensure_new_conversation ();
     show_widget_in_layout (chatContentWidget, layout);
     chatContentWidget->setFocus (Qt::OtherFocusReason);
   }
