@@ -20,6 +20,7 @@
 
 #include <map>
 
+class QCheckBox;
 class QHBoxLayout;
 class QLabel;
 class QPushButton;
@@ -264,6 +265,29 @@ private:
    */
   void adjust_input_height (ChatConversationPanel* panel);
 
+  /**
+   * @brief 删除指定的会话面板列表。
+   * @param panels 待删除的会话面板列表。
+   */
+  void delete_sessions (const QList<ChatConversationPanel*>& panels);
+
+  /**
+   * @brief 获取所有 checkbox 被勾选的会话面板。
+   * @return 被勾选的面板列表。
+   */
+  QList<ChatConversationPanel*> get_checked_panels () const;
+
+  /**
+   * @brief 进入多选模式，显示 checkbox 和批量操作栏。
+   * @param archived 是否从归档区进入（决定显示哪些操作按钮）。
+   */
+  void enter_multi_select_mode (bool archived);
+
+  /**
+   * @brief 退出多选模式，隐藏 checkbox 和批量操作栏。
+   */
+  void exit_multi_select_mode ();
+
 public:
   /**
    * @brief 计算输入文档的段落（行）数。
@@ -368,6 +392,11 @@ private:
   QToolBar* chatMenuToolBar_;      ///< Chat Tab 的菜单工具栏。
   QToolBar* chatModeToolBar_;      ///< Chat Tab 的模式工具栏。
   QToolBar* chatFocusToolBar_;     ///< Chat Tab 的焦点工具栏。
+  bool      multiSelectMode_;      ///< 是否处于多选模式（活跃会话）。
+  bool      archiveSelectMode_;    ///< 是否处于多选模式（归档会话）。
+  QWidget*  multiSelectBar_;       ///< 多选模式下的批量操作栏。
+  QPushButton* batchArchiveBtn_;   ///< 批量归档按钮（归档区多选时隐藏）。
+  QList<ChatConversationPanel*> zombiePanels_; ///< 已删除的会话面板（隐藏但未释放）。
 };
 
 /**

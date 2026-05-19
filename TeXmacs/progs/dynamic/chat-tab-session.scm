@@ -619,3 +619,23 @@
   (exec-delayed
     (lambda () (qt-chat-tab-set-state session-id state)))
 ) ;tm-define
+
+;;; ---------- 会话销毁 ----------
+
+;; chat-tab-session-destroy
+;; 销毁聊天标签会话并清理 Scheme 层状态。
+;;
+;; 语法
+;; ----
+;; (chat-tab-session-destroy session-id)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID。
+
+(tm-define (chat-tab-session-destroy session-id)
+  (:synopsis "Destroy a chat tab session and clean up state")
+  (:argument session-id "Session UUID")
+  (ahash-remove! chat-tab-session-states session-id)
+) ;tm-define

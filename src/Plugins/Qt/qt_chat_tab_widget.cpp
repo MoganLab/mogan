@@ -27,6 +27,7 @@
 
 #include <QAbstractScrollArea>
 #include <QApplication>
+#include <QCheckBox>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -189,11 +190,13 @@ struct QTChatTabWidget::ChatConversationPanel {
   QWidget*     inputEditorWidget= nullptr; ///< 输入编辑器的 Qt 控件。
   QPushButton* sendButton       = nullptr; ///< 发送/停止按钮。
   QPushButton* sidebarButton    = nullptr; ///< 侧边栏入口按钮。
-  QSpacerItem* topSpacer        = nullptr; ///< 顶部占位，用于垂直偏移。
-  widget       messageWidget;              ///< 消息显示的 TeXmacs 控件。
-  widget       inputWidget;                ///< 用户输入的 TeXmacs 控件。
-  string       sessionId;                  ///< 会话 UUID（跨层交互标识）。
-  bool         conversationMode= false;    ///< 面板是否已离开欢迎态。
+  QCheckBox*   selectCheckBox   = nullptr; ///< 多选复选框（仅多选模式可见）。
+  QWidget*     itemWidget= nullptr; ///< 包含 checkbox + sidebarButton 的容器。
+  QSpacerItem* topSpacer = nullptr; ///< 顶部占位，用于垂直偏移。
+  widget       messageWidget;       ///< 消息显示的 TeXmacs 控件。
+  widget       inputWidget;         ///< 用户输入的 TeXmacs 控件。
+  string       sessionId;           ///< 会话 UUID（跨层交互标识）。
+  bool         conversationMode= false; ///< 面板是否已离开欢迎态。
 };
 
 /**
@@ -211,7 +214,9 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       sidebarCollapsedBar_ (nullptr), conversationStack_ (nullptr),
       activeConversation_ (nullptr), sidebarCollapsed_ (false),
       sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
-      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr) {
+      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
+      multiSelectMode_ (false), archiveSelectMode_ (false),
+      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -253,6 +258,9 @@ QTChatTabWidget::~QTChatTabWidget () {
   for (ChatConversationPanel* panel : conversations_)
     delete panel;
   conversations_.clear ();
+  for (ChatConversationPanel* panel : zombiePanels_)
+    delete panel;
+  zombiePanels_.clear ();
 }
 
 /**
@@ -292,6 +300,91 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
   conversationCountLabel_->setStyleSheet ("color: #666666;");
   normalLayout->addWidget (conversationCountLabel_);
+
+  // 多选模式批量操作栏（默认隐藏）
+  multiSelectBar_= new QWidget (normalContent);
+  multiSelectBar_->setObjectName ("chat-tab-multi-select-bar");
+  QHBoxLayout* multiSelectLayout= new QHBoxLayout (multiSelectBar_);
+  multiSelectLayout->setContentsMargins (0, 0, 0, 0);
+  multiSelectLayout->setSpacing (DpiUtils::scaled (4));
+
+  QPushButton* cancelSelectBtn= new QPushButton ("取消", multiSelectBar_);
+  cancelSelectBtn->setObjectName ("chat-tab-cancel-select-btn");
+  cancelSelectBtn->setFocusPolicy (Qt::NoFocus);
+  cancelSelectBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (cancelSelectBtn, kCollapseFontPx);
+  cancelSelectBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (cancelSelectBtn, &QPushButton::clicked, this,
+           [this] () { exit_multi_select_mode (); });
+  multiSelectLayout->addWidget (cancelSelectBtn);
+
+  QPushButton* selectAllBtn= new QPushButton ("全选", multiSelectBar_);
+  selectAllBtn->setObjectName ("chat-tab-select-all-btn");
+  selectAllBtn->setFocusPolicy (Qt::NoFocus);
+  selectAllBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (selectAllBtn, kCollapseFontPx);
+  selectAllBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
+    for (ChatConversationPanel* panel : conversations_) {
+      if (!panel || !panel->selectCheckBox) continue;
+      ChatSession* s       = sessionManager_.getSession (panel->sessionId);
+      bool         archived= s && s->archived;
+      if (archived == archiveSelectMode_)
+        panel->selectCheckBox->setChecked (true);
+    }
+  });
+  multiSelectLayout->addWidget (selectAllBtn);
+
+  multiSelectLayout->addStretch ();
+
+  batchArchiveBtn_= new QPushButton ("归档", multiSelectBar_);
+  batchArchiveBtn_->setObjectName ("chat-tab-batch-archive-btn");
+  batchArchiveBtn_->setFocusPolicy (Qt::NoFocus);
+  batchArchiveBtn_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (batchArchiveBtn_, kCollapseFontPx);
+  batchArchiveBtn_->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (batchArchiveBtn_, &QPushButton::clicked, this, [this] () {
+    QList<ChatConversationPanel*> checked= get_checked_panels ();
+    for (ChatConversationPanel* panel : checked)
+      sessionManager_.archiveSession (panel->sessionId);
+    exit_multi_select_mode ();
+  });
+  multiSelectLayout->addWidget (batchArchiveBtn_);
+
+  QPushButton* batchDeleteBtn= new QPushButton ("删除", multiSelectBar_);
+  batchDeleteBtn->setObjectName ("chat-tab-batch-delete-btn");
+  batchDeleteBtn->setFocusPolicy (Qt::NoFocus);
+  batchDeleteBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (batchDeleteBtn, kCollapseFontPx);
+  batchDeleteBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (batchDeleteBtn, &QPushButton::clicked, this, [this] () {
+    QList<ChatConversationPanel*> checked= get_checked_panels ();
+    if (!checked.isEmpty ()) delete_sessions (checked);
+  });
+  multiSelectLayout->addWidget (batchDeleteBtn);
+
+  multiSelectBar_->hide ();
+  normalLayout->addWidget (multiSelectBar_);
 
   conversationListWidget_= new QWidget (normalContent);
   conversationListWidget_->setObjectName ("chat-tab-conversation-list");
@@ -565,7 +658,26 @@ QTChatTabWidget::create_conversation (const QString& title) {
   contentLayout->addWidget (topPanel, 1, Qt::AlignHCenter | Qt::AlignTop);
   conversationStack_->addWidget (page);
 
-  panel->sidebarButton= new QPushButton ("新会话", conversationListWidget_);
+  panel->itemWidget= new QWidget (conversationListWidget_);
+  panel->itemWidget->setObjectName ("chat-tab-session-item");
+  QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
+  itemLayout->setContentsMargins (0, 0, 0, 0);
+  itemLayout->setSpacing (DpiUtils::scaled (4));
+
+  panel->selectCheckBox= new QCheckBox (panel->itemWidget);
+  panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
+  panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
+  panel->selectCheckBox->setStyleSheet (
+      "QCheckBox::indicator:checked { "
+      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+      "  border-radius: 3px; }"
+      "QCheckBox::indicator:unchecked { "
+      "  background-color: #ffffff; border: 2px solid #cccccc; "
+      "  border-radius: 3px; }");
+  panel->selectCheckBox->hide ();
+  itemLayout->addWidget (panel->selectCheckBox);
+
+  panel->sidebarButton= new QPushButton ("新会话", panel->itemWidget);
   panel->sidebarButton->setObjectName ("chat-tab-conversation-btn");
   panel->sidebarButton->setCheckable (true);
   panel->sidebarButton->setFocusPolicy (Qt::NoFocus);
@@ -582,7 +694,8 @@ QTChatTabWidget::create_conversation (const QString& title) {
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (panel->sidebarButton, &QPushButton::clicked, this,
            [this, panel] () { activate_conversation (panel); });
-  conversationListLayout_->addWidget (panel->sidebarButton);
+  itemLayout->addWidget (panel->sidebarButton, 1);
+  conversationListLayout_->addWidget (panel->itemWidget);
 
   return panel;
 }
@@ -674,10 +787,15 @@ QTChatTabWidget::refresh_sidebar () {
     titleCounts[t]++;
   }
 
-  // 先将归档按钮从旧父控件移除，以便重新分配
+  // 多选模式操作栏可见性
+  if (multiSelectBar_)
+    multiSelectBar_->setVisible (multiSelectMode_ || archiveSelectMode_);
+  if (batchArchiveBtn_) batchArchiveBtn_->setVisible (multiSelectMode_);
+
+  // 先将 item 容器从旧父控件移除，以便重新分配
   for (ChatConversationPanel* panel : conversations_) {
-    if (!panel || !panel->sidebarButton) continue;
-    panel->sidebarButton->setParent (nullptr);
+    if (!panel || !panel->itemWidget) continue;
+    panel->itemWidget->setParent (nullptr);
   }
 
   // 清空两个列表布局
@@ -722,6 +840,12 @@ QTChatTabWidget::refresh_sidebar () {
                                       !archived);
     panel->sidebarButton->setVisible (true);
 
+    // 多选模式：仅在对应区域显示 checkbox
+    if (panel->selectCheckBox) {
+      if (archived) panel->selectCheckBox->setVisible (archiveSelectMode_);
+      else panel->selectCheckBox->setVisible (multiSelectMode_);
+    }
+
     // 同步模型标签
     if (panel->modelLabel && session) {
       panel->modelLabel->setText (to_qstring (session->model));
@@ -729,8 +853,8 @@ QTChatTabWidget::refresh_sidebar () {
 
     if (archived) {
       // 归档会话：放入归档列表，点击切换到空白会话
-      panel->sidebarButton->setParent (archiveListWidget_);
-      archiveListLayout_->addWidget (panel->sidebarButton);
+      panel->itemWidget->setParent (archiveListWidget_);
+      archiveListLayout_->addWidget (panel->itemWidget);
       disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
       connect (panel->sidebarButton, &QPushButton::clicked, this,
                [this, panel] () {
@@ -747,46 +871,81 @@ QTChatTabWidget::refresh_sidebar () {
     }
     else {
       // 活跃会话：放入会话列表，点击切换
-      panel->sidebarButton->setParent (conversationListWidget_);
-      conversationListLayout_->addWidget (panel->sidebarButton);
+      panel->itemWidget->setParent (conversationListWidget_);
+      conversationListLayout_->addWidget (panel->itemWidget);
       disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
       connect (panel->sidebarButton, &QPushButton::clicked, this,
                [this, panel] () { activate_conversation (panel); });
     }
 
-    // 右键菜单：重命名、归档/恢复
+    // 右键菜单
     panel->sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
     disconnect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
                 this, nullptr);
     connect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
-             this, [this, panel] (const QPoint& pos) {
+             this, [this, panel, archived] (const QPoint& pos) {
                QMenu        menu (panel->sidebarButton);
                ChatSession* s= sessionManager_.getSession (panel->sessionId);
-               QAction*     renameAction= menu.addAction ("重命名");
-               QAction*     archiveAction=
-                   menu.addAction (s && s->archived ? "恢复" : "归档");
-               QAction* chosen=
-                   menu.exec (panel->sidebarButton->mapToGlobal (pos));
-               if (chosen == renameAction) {
-                 // 重命名：通过输入对话框
-                 bool    ok;
-                 QString newTitle= QInputDialog::getText (
-                     panel->sidebarButton, "重命名会话",
-                     "新标题:", QLineEdit::Normal,
-                     s ? to_qstring (s->title) : "", &ok);
-                 if (ok && s) {
-                   sessionManager_.setTitle (panel->sessionId,
-                                             from_qstring (newTitle));
-                   refresh_sidebar ();
-                   saveOneSession (panel->sessionId);
+
+               // 获取所有 checkbox 选中的 panel
+               QList<ChatConversationPanel*> checked= get_checked_panels ();
+
+               if (!checked.isEmpty ()) {
+                 // 多选模式：批量操作
+                 if (!s || !s->archived) {
+                   QAction* batchArchive= menu.addAction (
+                       QString ("归档所选 (%1)").arg (checked.size ()));
+                   QAction* chosen=
+                       menu.exec (panel->sidebarButton->mapToGlobal (pos));
+                   if (chosen == batchArchive) {
+                     for (ChatConversationPanel* p : checked)
+                       sessionManager_.archiveSession (p->sessionId);
+                     exit_multi_select_mode ();
+                   }
+                 }
+                 QAction* batchDelete= menu.addAction (
+                     QString ("删除所选 (%1)").arg (checked.size ()));
+                 QAction* chosen=
+                     menu.exec (panel->sidebarButton->mapToGlobal (pos));
+                 if (chosen == batchDelete) {
+                   delete_sessions (checked);
                  }
                }
-               else if (chosen == archiveAction) {
-                 if (s && s->archived)
-                   sessionManager_.restoreSession (panel->sessionId);
-                 else sessionManager_.archiveSession (panel->sessionId);
-                 refresh_sidebar ();
-                 saveOneSession (panel->sessionId);
+               else {
+                 // 单选模式：原有菜单 + 删除 + 多选
+                 QAction* renameAction= menu.addAction ("重命名");
+                 QAction* archiveAction=
+                     menu.addAction (s && s->archived ? "恢复" : "归档");
+                 QAction* deleteAction= menu.addAction ("删除");
+                 menu.addSeparator ();
+                 QAction* multiSelectAction= menu.addAction ("多选");
+                 QAction* chosen=
+                     menu.exec (panel->sidebarButton->mapToGlobal (pos));
+                 if (chosen == renameAction) {
+                   bool    ok;
+                   QString newTitle= QInputDialog::getText (
+                       panel->sidebarButton, "重命名会话",
+                       "新标题:", QLineEdit::Normal,
+                       s ? to_qstring (s->title) : "", &ok);
+                   if (ok && s) {
+                     sessionManager_.setTitle (panel->sessionId,
+                                               from_qstring (newTitle));
+                     refresh_sidebar ();
+                   }
+                 }
+                 else if (chosen == archiveAction) {
+                   if (s && s->archived)
+                     sessionManager_.restoreSession (panel->sessionId);
+                   else sessionManager_.archiveSession (panel->sessionId);
+                   refresh_sidebar ();
+                 }
+                 else if (chosen == deleteAction) {
+                   QList<ChatConversationPanel*> single= {panel};
+                   delete_sessions (single);
+                 }
+                 else if (chosen == multiSelectAction) {
+                   enter_multi_select_mode (archived);
+                 }
                }
              });
   }
@@ -795,6 +954,127 @@ QTChatTabWidget::refresh_sidebar () {
   if (archiveListWidget_) {
     archiveListWidget_->setVisible (archivedCount > 0 && !archiveCollapsed_);
   }
+}
+
+/**
+ * @brief 删除指定的会话面板列表。
+ *
+ * 从数据结构和 UI 中移除会话，但只隐藏控件，不释放内存。
+ * @param panels 待删除的会话面板列表。
+ */
+void
+QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
+
+  for (ChatConversationPanel* panel : panels) {
+    // 1. 从 QStackedWidget 移除页面
+    if (conversationStack_ && panel->pageWidget)
+      conversationStack_->removeWidget (panel->pageWidget);
+
+    // 2. 从 conversations_ 列表移除
+    conversations_.removeOne (panel);
+
+    // 3. 清理当前激活指针
+    if (activeConversation_ == panel) activeConversation_= nullptr;
+
+    // 4. 调用 Scheme 清理会话状态
+    call ("chat-tab-session-destroy", panel->sessionId);
+
+    // 5. 从 SessionManager 移除（含 buffer 清理）
+    sessionManager_.removeSession (panel->sessionId);
+
+    // 6. 断开信号连接
+    if (panel->sidebarButton)
+      disconnect (panel->sidebarButton, nullptr, this, nullptr);
+    if (panel->sendButton)
+      disconnect (panel->sendButton, nullptr, this, nullptr);
+    if (panel->selectCheckBox)
+      disconnect (panel->selectCheckBox, nullptr, this, nullptr);
+
+    // 7. 隐藏并脱离父控件
+    if (panel->itemWidget) {
+      panel->itemWidget->hide ();
+      panel->itemWidget->setParent (nullptr);
+    }
+    if (panel->pageWidget) {
+      panel->pageWidget->hide ();
+      panel->pageWidget->setParent (nullptr);
+    }
+
+    // 8. 移入僵尸列表，等待析构时统一释放
+    zombiePanels_.append (panel);
+  }
+
+  // 退出多选模式
+  multiSelectMode_  = false;
+  archiveSelectMode_= false;
+
+  // 切换到剩余会话，若无剩余则新建
+  if (!conversations_.isEmpty ()) {
+    ChatConversationPanel* next= nullptr;
+    for (ChatConversationPanel* p : conversations_) {
+      ChatSession* s= sessionManager_.getSession (p->sessionId);
+      if (s && !s->archived) {
+        next= p;
+        break;
+      }
+    }
+    if (!next) next= conversations_.last ();
+    activeConversation_= next;
+    if (conversationStack_)
+      conversationStack_->setCurrentWidget (next->pageWidget);
+    refresh_sidebar ();
+  }
+  else {
+    create_new_conversation ();
+  }
+
+  // 确保当前活跃会话的 buffer 标记为已保存，避免关闭 Tab 时弹出确认对话框
+  if (activeConversation_) {
+    call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (
+                                      activeConversation_->sessionId));
+    call ("buffer-pretend-saved",
+          ChatSessionManager::inputBufferUrl (activeConversation_->sessionId));
+  }
+}
+
+/**
+ * @brief 获取所有 checkbox 被勾选的会话面板。
+ * @return 被勾选的面板列表。
+ */
+QList<QTChatTabWidget::ChatConversationPanel*>
+QTChatTabWidget::get_checked_panels () const {
+  QList<ChatConversationPanel*> result;
+  for (ChatConversationPanel* panel : conversations_) {
+    if (panel && panel->selectCheckBox && panel->selectCheckBox->isChecked ())
+      result.append (panel);
+  }
+  return result;
+}
+
+/**
+ * @brief 进入多选模式，显示 checkbox 和批量操作栏。
+ * @param archived 是否从归档区进入。
+ */
+void
+QTChatTabWidget::enter_multi_select_mode (bool archived) {
+  if (archived) archiveSelectMode_= true;
+  else multiSelectMode_= true;
+  refresh_sidebar ();
+}
+
+/**
+ * @brief 退出多选模式，隐藏 checkbox 和批量操作栏。
+ */
+void
+QTChatTabWidget::exit_multi_select_mode () {
+  multiSelectMode_  = false;
+  archiveSelectMode_= false;
+  // 取消所有 checkbox 选中
+  for (ChatConversationPanel* panel : conversations_) {
+    if (panel && panel->selectCheckBox)
+      panel->selectCheckBox->setChecked (false);
+  }
+  refresh_sidebar ();
 }
 
 /**
