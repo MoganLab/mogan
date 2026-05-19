@@ -149,6 +149,24 @@ tmu_reader::read_next () {
   string r;
   pos= old_pos;
   while (true) {
+    // fast path: avoid creating temporary strings for ordinary characters
+    while (pos < buf_N) {
+      char ch= buf[pos];
+      if (ch == '\t' || ch == '\r' || ch == '\n' || ch == ' ' ||
+          ch == '<' || ch == '|' || ch == '>' || ch == '\\')
+        break;
+      if ((buf[pos] & 0x80) == 0) {
+        r << buf[pos++];
+      }
+      else {
+        int start_pos= pos;
+        decode_from_utf8 (buf, pos);
+        for (int i= start_pos; i < pos; i++)
+          r << buf[i];
+      }
+    }
+    if (pos >= buf_N) return r;
+
     old_pos= pos;
     c      = read_char ();
     if (c == "") return r;

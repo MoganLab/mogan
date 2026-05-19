@@ -28,6 +28,7 @@ private slots:
   void test_search_metadata ();
   void test_tmu_raw_data ();
   void test_tmu_raw_data_performance ();
+  void test_tmu_text_performance ();
 };
 
 void
@@ -100,6 +101,26 @@ TestConverter::test_tmu_raw_data_performance () {
   qint64 elapsed= timer.elapsed ();
 
   cout << "Performance: parsed 1M hex bytes in " << (int) elapsed << " ms\n";
+  QVERIFY (!is_compound (t, "error"));
+}
+
+void
+TestConverter::test_tmu_text_performance () {
+  string text;
+  for (int i= 0; i < 1000000; i++) {
+    text << 'a';
+  }
+  string s= "<TMU|<tuple|1.1.0|2025.1.5>>\n<text|";
+  s << text;
+  s << "|>";
+
+  QElapsedTimer timer;
+  timer.start ();
+  tree t= tmu_document_to_tree (s);
+  qint64 elapsed= timer.elapsed ();
+
+  cout << "Performance: parsed 1M text chars in " << (int) elapsed
+      << " ms\n";
   QVERIFY (!is_compound (t, "error"));
 }
 
