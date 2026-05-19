@@ -158,13 +158,20 @@ TemplateCache::saveMetadataCache (
   QString cachePath= metadataCachePath ();
   QString tmpPath  = cachePath + ".tmp";
   QFile   file (tmpPath);
-  if (!file.open (QIODevice::WriteOnly)) {
+  if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
     qWarning () << "[Template] Failed to write metadata cache temp file:"
                 << tmpPath;
     return;
   }
 
-  file.write (doc.toJson (QJsonDocument::Compact));
+  QByteArray data= doc.toJson (QJsonDocument::Compact);
+  if (file.write (data) != data.size ()) {
+    qWarning ()
+        << "[Template] Failed to write complete metadata cache temp file";
+    file.close ();
+    QFile::remove (tmpPath);
+    return;
+  }
   file.close ();
 
   if (!QFile::rename (tmpPath, cachePath)) {
@@ -338,13 +345,20 @@ TemplateCache::saveRecommendIds (const QList<QString>& ids) {
   QString cachePath= recommendIdsCachePath ();
   QString tmpPath  = cachePath + ".tmp";
   QFile   file (tmpPath);
-  if (!file.open (QIODevice::WriteOnly)) {
+  if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
     qWarning () << "[Template] Failed to write recommend ids cache temp file:"
                 << tmpPath;
     return;
   }
 
-  file.write (doc.toJson (QJsonDocument::Compact));
+  QByteArray data= doc.toJson (QJsonDocument::Compact);
+  if (file.write (data) != data.size ()) {
+    qWarning ()
+        << "[Template] Failed to write complete recommend ids cache temp file";
+    file.close ();
+    QFile::remove (tmpPath);
+    return;
+  }
   file.close ();
 
   if (!QFile::rename (tmpPath, cachePath)) {
@@ -556,13 +570,19 @@ TemplateCache::saveCacheIndex () {
   QString indexPath= cacheIndexPath ();
   QString tmpPath  = indexPath + ".tmp";
   QFile   file (tmpPath);
-  if (!file.open (QIODevice::WriteOnly)) {
+  if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
     qWarning () << "[Template] Failed to write cache index temp file:"
                 << tmpPath;
     return;
   }
 
-  file.write (doc.toJson (QJsonDocument::Compact));
+  QByteArray data= doc.toJson (QJsonDocument::Compact);
+  if (file.write (data) != data.size ()) {
+    qWarning () << "[Template] Failed to write complete cache index temp file";
+    file.close ();
+    QFile::remove (tmpPath);
+    return;
+  }
   file.close ();
 
   if (!QFile::rename (tmpPath, indexPath)) {

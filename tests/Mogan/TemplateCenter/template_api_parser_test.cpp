@@ -29,7 +29,6 @@ private slots:
 
   void cleanupTestCase () { qInstallMessageHandler (originalHandler_); }
 
-private slots:
   // 测试分类列表解析：验证字段映射和按 order 排序
   void test_categories_response_parsing () {
     TemplateAPI api;
