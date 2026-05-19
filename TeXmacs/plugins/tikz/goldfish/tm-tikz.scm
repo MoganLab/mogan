@@ -23,7 +23,7 @@
 
 (define (tikz-welcome)
   (flush-prompt "tikz] ")
-  (flush-verbatim "TeXmacs interface to TikZ"))
+  (flush-verbatim "Liii STEM interface to TikZ"))
 
 (define (tikz-read-code)
   (define (read-code code)
@@ -77,11 +77,12 @@
   (string-append (os-temp-dir) "/tikz"))
 
 (define (run-latex tex-path latex-bin)
-  (let ((cmd (string-append (goldfish-quote latex-bin)
-                            " --interaction=errorstopmode -halt-on-error "
-                            (goldfish-quote tex-path)
-                            " > /dev/null 2>&1"))
-        (orig-dir (getcwd)))
+  (let* ((inner-cmd (string-append (goldfish-quote latex-bin)
+                                   " --interaction=errorstopmode -halt-on-error "
+                                   (goldfish-quote tex-path)
+                                   " > /dev/null 2>&1"))
+         (cmd (string-append "sh -c " (goldfish-quote inner-cmd)))
+         (orig-dir (getcwd)))
     (unsetenv "DYLD_LIBRARY_PATH")
     (unsetenv "DYLD_FRAMEWORK_PATH")
     (unsetenv "DYLD_FALLBACK_LIBRARY_PATH")
@@ -92,12 +93,13 @@
       result)))
 
 (define (run-dvips dvi-path eps-path dvips-bin)
-  (let ((cmd (string-append (goldfish-quote dvips-bin)
-                            " -q "
-                            (goldfish-quote dvi-path)
-                            " -o "
-                            (goldfish-quote eps-path)
-                            " > /dev/null 2>&1")))
+  (let* ((inner-cmd (string-append (goldfish-quote dvips-bin)
+                                   " -q "
+                                   (goldfish-quote dvi-path)
+                                   " -o "
+                                   (goldfish-quote eps-path)
+                                   " > /dev/null 2>&1"))
+         (cmd (string-append "sh -c " (goldfish-quote inner-cmd))))
     (os-call cmd)))
 
 (define (flush-image path width height)
