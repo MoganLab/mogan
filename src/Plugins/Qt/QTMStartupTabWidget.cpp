@@ -209,8 +209,7 @@ QTMStartupTabWidget::setupCategoryNavButtons () {
 
   auto categories= templateManager_->categories ();
   for (const auto& cat : categories) {
-    QPushButton* btn=
-        create_nav_button (cat.name);
+    QPushButton* btn= create_nav_button (cat.name);
     btn->setProperty ("categoryId", cat.id);
     btn->setProperty ("name", cat.name);
     navButtonGroup_->addButton (btn);

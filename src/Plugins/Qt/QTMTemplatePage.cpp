@@ -127,7 +127,7 @@ QTMTemplatePage::setCategory (const QString& categoryId,
     }
   }
   if (titleLabel_ && !displayName.isEmpty ()) {
-    titleLabel_->setText (qt_translate (from_qstring (displayName)));
+    titleLabel_->setText (displayName);
   }
 }
 
