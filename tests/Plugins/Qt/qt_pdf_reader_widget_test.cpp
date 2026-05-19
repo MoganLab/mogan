@@ -185,6 +185,27 @@ private slots:
     delete widget;
   }
 
+  void test_rectSelectCursor () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->show ();
+    QApplication::processEvents ();
+
+    QPushButton* rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QVERIFY (rectBtn != nullptr);
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    delete widget;
+  }
+
   void test_rectSelectClipboard () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (400, 300);

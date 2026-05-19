@@ -333,7 +333,9 @@ void
 PDFReaderWidget::onRectSelectToggled (bool checked) {
   rectSelectMode_= checked;
   if (scrollArea_ && scrollArea_->viewport ()) {
-    scrollArea_->viewport ()->setMouseTracking (rectSelectMode_);
+    QWidget* vp= scrollArea_->viewport ();
+    vp->setMouseTracking (rectSelectMode_);
+    vp->setCursor (rectSelectMode_ ? Qt::CrossCursor : Qt::ArrowCursor);
   }
   if (!rectSelectMode_ && rubberBand_) {
     rubberBand_->hide ();
