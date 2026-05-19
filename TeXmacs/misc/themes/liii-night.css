@@ -966,6 +966,10 @@ QWidget#centralWidget QWidget#startup-tab-sidebar {
   background-color: #215a6a;
 }
 
+QWidget#centralWidget QWidget#startup-tab-category-container {
+  background-color: #215a6a;
+}
+
 /* 导航栏分组标题 */
 QLabel#startup-tab-nav-title {
   color: rgba(255, 255, 255, 0.6);
@@ -980,7 +984,7 @@ QWidget#centralWidget QLabel#startup-tab-nav-title {
 QPushButton#startup-tab-nav-btn {
   color: #ffffff;
   border: none;
-  text-align: left;
+  text-align: center;
 }
 
 QWidget#centralWidget QPushButton#startup-tab-nav-btn {

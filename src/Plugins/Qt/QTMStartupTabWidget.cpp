@@ -29,7 +29,7 @@
 namespace {
 constexpr int kMinWidth        = 600; // 启动页最小宽度
 constexpr int kMinHeight       = 400; // 启动页最小高度
-constexpr int kSidebarMinWidth = 120; // 左侧导航栏最小宽度
+constexpr int kSidebarMinWidth = 150; // 左侧导航栏最小宽度
 constexpr int kSidebarMarginX  = 8;   // 左侧导航栏水平内边距
 constexpr int kSidebarMarginY  = 16;  // 左侧导航栏垂直内边距
 constexpr int kSidebarSpacing  = 4;   // 左侧导航栏控件间距
@@ -52,7 +52,7 @@ constexpr int kQuitButtonFontPx= 13;  // Quit 按钮字号
  * 布局结构:
  * +------------------+----------------------------------------+
  * |  左侧导航栏       |              右侧内容区                  |
- * |  (120px固定宽度)  |              (自适应剩余宽度)            |
+ * |  (150px固定宽度)  |              (自适应剩余宽度)            |
  * +------------------+----------------------------------------+
  */
 QTMStartupTabWidget::QTMStartupTabWidget (QWidget* parent)
@@ -210,9 +210,9 @@ QTMStartupTabWidget::setupCategoryNavButtons () {
   auto categories= templateManager_->categories ();
   for (const auto& cat : categories) {
     QPushButton* btn=
-        create_nav_button (qt_translate (from_qstring (cat.nameEn)));
+        create_nav_button (cat.name);
     btn->setProperty ("categoryId", cat.id);
-    btn->setProperty ("nameEn", cat.nameEn);
+    btn->setProperty ("name", cat.name);
     navButtonGroup_->addButton (btn);
     categoryLayout_->addWidget (btn);
     navCategoryBtns_.append (btn);
@@ -243,8 +243,8 @@ QTMStartupTabWidget::onCategoryClicked () {
 
   currentCategory_= categoryId;
   if (templatePage_) {
-    QString nameEn= btn->property ("nameEn").toString ();
-    templatePage_->setCategory (categoryId, nameEn);
+    QString name= btn->property ("name").toString ();
+    templatePage_->setCategory (categoryId, name);
   }
 
   if (templateManager_) {

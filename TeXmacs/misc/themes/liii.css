@@ -991,7 +991,7 @@ QPushButton#startup-tab-nav-btn {
   color: #ffffff;
   background-color: transparent;
   border: none;
-  text-align: left;
+  text-align: center;
 }
 
 QPushButton#startup-tab-nav-btn:hover {
