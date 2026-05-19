@@ -35,7 +35,7 @@
 ) ;tm-define
 
 (tm-define (chat-persist-message-path session-id)
-  (string-append (chat-persist-base-dir) "/" session-id "/message.tm")
+  (string-append (chat-persist-base-dir) "/" session-id "/message.tmu")
 ) ;tm-define
 
 ;;; ---------- 目录管理 ----------

@@ -626,6 +626,10 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
 void
 QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
   if (!panel || !conversationStack_) return;
+  cout << "[chat-persist] activate_conversation: sid=" << panel->sessionId
+       << " panel=" << (void*)panel
+       << " page=" << (void*)panel->pageWidget
+       << " stack_count=" << conversationStack_->count () << LF;
   activeConversation_= panel;
   conversationStack_->setCurrentWidget (panel->pageWidget);
   refresh_sidebar ();
@@ -637,6 +641,8 @@ QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
  */
 void
 QTChatTabWidget::refresh_sidebar () {
+  cout << "[chat-persist] refresh_sidebar: conversations_.size()="
+       << conversations_.size () << LF;
   // 统计活跃和归档会话数
   int activeCount  = 0;
   int archivedCount= 0;
@@ -690,6 +696,13 @@ QTChatTabWidget::refresh_sidebar () {
     if (!panel || !panel->sidebarButton) continue;
     ChatSession* session = sessionManager_.getSession (panel->sessionId);
     bool         archived= session && session->archived;
+
+    cout << "[chat-persist] refresh_sidebar panel: sid=" << panel->sessionId
+         << " btn=" << (void*)panel->sidebarButton
+         << " parent=" << (void*)panel->sidebarButton->parent()
+         << " visible=" << panel->sidebarButton->isVisible()
+         << " enabled=" << panel->sidebarButton->isEnabled()
+         << " archived=" << archived << LF;
 
     QString displayText;
     if (session && !is_empty (session->title)) {
@@ -955,6 +968,8 @@ QTChatTabWidget::notifyStateChanged (const string& sessionId,
     disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
     connect (panel->sendButton, &QPushButton::clicked, this,
              [this, panel] () { handle_send (panel); });
+    // 模型输出结束，保存会话内容
+    saveOneSession (sessionId);
   }
 }
 
@@ -1285,13 +1300,20 @@ QTChatTabWidget::loadSessions () {
   for (ChatConversationPanel* panel : conversations_) {
     if (!panel) continue;
     ChatSession* s= sessionManager_.getSession (panel->sessionId);
+    cout << "[chat-persist] loadSessions scanning: sid=" << panel->sessionId
+         << " archived=" << (s ? s->archived : -1)
+         << " panel=" << (void*)panel
+         << " page=" << (void*)panel->pageWidget << LF;
     if (s && !s->archived) {
+      cout << "[chat-persist] loadSessions: activating first non-archived" << LF;
       activate_conversation (panel);
       return;
     }
   }
-  if (!conversations_.isEmpty ())
+  if (!conversations_.isEmpty ()) {
+    cout << "[chat-persist] loadSessions: activating first (all archived)" << LF;
     activate_conversation (conversations_.first ());
+  }
 
   // 恢复 Scheme 层的全局当前模型
   if (!conversations_.isEmpty ()) {
@@ -1369,8 +1391,11 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->modelLabel->setMinimumHeight (DpiUtils::scaled (20));
   topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
 
+  // 恢复会话时，buffer 中已有 Scheme 加载的消息内容，需使用 buffer 内容而非空 tree
+  tree msgBody= get_buffer_body (msgBufUrl);
+  if (is_empty_document_body (msgBody)) msgBody= tree (DOCUMENT, "");
   panel->messageWidget= texmacs_input_widget (
-      tree (DOCUMENT, ""), make_chat_embedded_style (), msgBufUrl);
+      msgBody, make_chat_embedded_style (), msgBufUrl);
   QSplitter* splitter= new QSplitter (Qt::Vertical, topPanel);
   splitter->setObjectName ("chat-tab-splitter");
   splitter->setHandleWidth (DpiUtils::scaled (4));
@@ -1482,7 +1507,6 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   conversationListLayout_->addWidget (panel->sidebarButton);
 
   // 如果消息 buffer 非空，进入会话模式
-  tree msgBody= get_buffer_body (msgBufUrl);
   if (!is_empty_document_body (msgBody)) {
     enter_conversation_mode (panel);
   }
@@ -1490,6 +1514,12 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   if (panel->modelLabel) {
     panel->modelLabel->setText (to_qstring (model));
   }
+
+  cout << "[chat-persist] restore_conversation: sid=" << sessionId
+       << " panel=" << (void*)panel
+       << " btn=" << (void*)panel->sidebarButton
+       << " page=" << (void*)panel->pageWidget
+       << " stack_count=" << conversationStack_->count () << LF;
 
   return panel;
 }
