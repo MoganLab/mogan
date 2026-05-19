@@ -15,29 +15,30 @@
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "tikz") (== key "keyword")))
-  `(,(string->symbol key)
-    (keyword "draw"
-      "fill"
-      "path"
-      "node"
-      "coordinate"
-      "tikzpicture"
-      "end"
-      "begin"
-      "foreach"
-      "def"
-      "let"
-      "if"
-      "else"
-      "fi"
-      "scope"
-      "endscope"
-      "pgfdeclarelayer"
-      "pgfsetlayers"
-      "usetikzlibrary"
-      "usepgflibrary"
-      "definecolor"
-      "colorlet"))
+  (list (string->symbol key)
+    "draw"
+    "fill"
+    "path"
+    "node"
+    "coordinate"
+    "tikzpicture"
+    "end"
+    "begin"
+    "foreach"
+    "def"
+    "let"
+    "if"
+    "else"
+    "fi"
+    "scope"
+    "endscope"
+    "pgfdeclarelayer"
+    "pgfsetlayers"
+    "usetikzlibrary"
+    "usepgflibrary"
+    "definecolor"
+    "colorlet"
+  ) ;list
 ) ;tm-define
 
 (tm-define (parser-feature lan key)
