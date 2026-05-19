@@ -12,6 +12,7 @@
 
 #include "base.hpp"
 #include "convert.hpp"
+#include "tm_ostream.hpp"
 #include "tree_helper.hpp"
 
 using namespace moebius;
@@ -25,6 +26,8 @@ class TestConverter : public QObject {
 private slots:
   void test_search_metadata_data ();
   void test_search_metadata ();
+  void test_tmu_raw_data ();
+  void test_tmu_raw_data_performance ();
 };
 
 void
@@ -70,6 +73,34 @@ TestConverter::test_search_metadata () {
   qcompare (search_metadata (input_tree, "author"), author);
   qcompare (search_metadata (input_tree, "keyword"), keyword);
   qcompare (search_metadata (input_tree, "invalid"), invalid);
+}
+
+void
+TestConverter::test_tmu_raw_data () {
+  string s= "<#41424344>";
+  tree   t= tmu_to_tree (s);
+  QVERIFY (is_func (t, RAW_DATA));
+  QCOMPARE (N (t), 1);
+  qcompare (as_string (t[0]), string ("ABCD"));
+}
+
+void
+TestConverter::test_tmu_raw_data_performance () {
+  string hex_data;
+  for (int i= 0; i < 1000000; i++) {
+    hex_data << string ("41");
+  }
+  string s= "<TMU|<tuple|1.1.0|2025.1.5>>\n<#";
+  s << hex_data;
+  s << ">";
+
+  QElapsedTimer timer;
+  timer.start ();
+  tree t= tmu_document_to_tree (s);
+  qint64 elapsed= timer.elapsed ();
+
+  cout << "Performance: parsed 1M hex bytes in " << (int) elapsed << " ms\n";
+  QVERIFY (!is_compound (t, "error"));
 }
 
 QTEST_MAIN (TestConverter)

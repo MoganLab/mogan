@@ -27,6 +27,14 @@ using moebius::drd::STD_CODE;
 
 using namespace moebius;
 
+static inline int
+from_hex_char (char c) {
+  if (is_digit (c)) return (int) (c - '0');
+  if ((c >= 'A') && (c <= 'F')) return (int) (c + 10 - 'A');
+  if ((c >= 'a') && (c <= 'f')) return (int) (c + 10 - 'a');
+  return 0;
+}
+
 /******************************************************************************
  * Conversion of TeXmacs strings of the present format to TeXmacs trees
  ******************************************************************************/
@@ -276,7 +284,8 @@ tmu_reader::read (bool skip_flag) {
       else if (tail_char_of_last == '#') {
         string r;
         while ((buf[pos] != '>') && (pos + 2 < buf_N)) {
-          r << ((char) from_hex (buf (pos, pos + 2)));
+          r << ((char) ((from_hex_char (buf[pos]) << 4) +
+                        from_hex_char (buf[pos + 1])));
           pos+= 2;
         }
         if (buf[pos] == '>') pos++;
