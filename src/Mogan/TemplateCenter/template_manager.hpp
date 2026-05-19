@@ -58,6 +58,7 @@ public:
   QList<TemplateMetadataPtr>
                       templatesByCategory (const QString& categoryId) const;
   TemplateMetadataPtr templateById (const QString& templateId) const;
+  QList<TemplateMetadataPtr> recommendTemplates () const;
 
   // 本地模板可用性（纯查询，不验证 MD5）
   bool    isTemplateAvailableLocally (const QString& templateId) const;
@@ -71,6 +72,7 @@ public:
   void refreshTemplates ();  // 强制刷新全部模板
   void
   refreshTemplatesByCategory (const QString& categoryId); // 按分类增量刷新模板
+  void refreshRecommendTemplates ();
 
   // Template download
   void downloadTemplate (const QString& templateId);
@@ -105,6 +107,9 @@ signals:
   // Category updates
   void categoriesLoaded ();
 
+  void recommendTemplatesLoaded ();
+  void recommendTemplatesLoadFailed (const QString& error);
+
   // Template download progress
   void downloadProgress (const QString& templateId, qint64 bytesReceived,
                          qint64 bytesTotal);
@@ -120,6 +125,9 @@ private slots:
   void
   onRemoteTemplatesLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
   void onRemoteTemplatesFailed (const QString& error);
+  void onRemoteRecommendTemplatesLoaded (
+      const QHash<QString, TemplateMetadataPtr>& metadata);
+  void onRemoteRecommendTemplatesFailed (const QString& error);
   void onTemplateDownloaded (const QString& templateId,
                              const QString& localPath);
   void onTemplateDownloadFailed (const QString& templateId,
@@ -148,20 +156,21 @@ private:
   QList<TemplateCategory>             categories_;
   QHash<QString, TemplateCategory>    categoryMap_;
   QHash<QString, TemplateMetadataPtr> templates_;
+  QList<QString>                      recommendTemplateIds_;
 
   // Components
   TemplateCache* cache_;
   TemplateAPI*   api_;
 
   // State
-  bool isOnline_;
-  bool isRefreshingCategories_;
-  bool isRefreshingTemplates_;
-  bool categoriesFetched_; // true after first successful categories fetch
-  QSet<QString> fetchedCategories_; // categories whose templates have been
-                                    // fetched this session
-  QString
-      pendingIncrementalCategoryId_; // 当前正在请求的分类 ID，用于增量更新标记
+  bool          isOnline_;
+  bool          isRefreshingCategories_;
+  bool          isRefreshingTemplates_;
+  bool          categoriesFetched_;
+  bool          isRefreshingRecommendTemplates_;
+  bool          recommendTemplatesFetched_;
+  QSet<QString> fetchedCategories_;
+  QString       pendingIncrementalCategoryId_;
 };
 
 #endif // TEMPLATE_MANAGER_HPP

@@ -39,7 +39,9 @@ static TemplateManager* g_instance= nullptr;
 TemplateManager::TemplateManager (QObject* parent)
     : QObject (parent), initialized_ (false), cache_ (nullptr), api_ (nullptr),
       isOnline_ (true), isRefreshingCategories_ (false),
-      isRefreshingTemplates_ (false), categoriesFetched_ (false) {
+      isRefreshingTemplates_ (false), categoriesFetched_ (false),
+      isRefreshingRecommendTemplates_ (false),
+      recommendTemplatesFetched_ (false) {
   cache_= new TemplateCache (this);
   api_  = new TemplateAPI (this);
 
@@ -60,6 +62,10 @@ TemplateManager::TemplateManager (QObject* parent)
            &TemplateManager::downloadProgress);
   connect (api_, &TemplateAPI::networkStateChanged, this,
            &TemplateManager::onNetworkStateChanged);
+  connect (api_, &TemplateAPI::recommendTemplatesLoaded, this,
+           &TemplateManager::onRemoteRecommendTemplatesLoaded);
+  connect (api_, &TemplateAPI::recommendTemplatesLoadFailed, this,
+           &TemplateManager::onRemoteRecommendTemplatesFailed);
 }
 
 TemplateManager::~TemplateManager () { g_instance= nullptr; }
@@ -100,6 +106,8 @@ TemplateManager::initialize () {
 
   // Always try to refresh categories in the background
   refreshCategories ();
+
+  refreshRecommendTemplates ();
 
   initialized_= true;
   emit initialized (true);
@@ -304,6 +312,16 @@ TemplateManager::templateById (const QString& templateId) const {
   return templates_.value (templateId);
 }
 
+QList<TemplateMetadataPtr>
+TemplateManager::recommendTemplates () const {
+  QList<TemplateMetadataPtr> result;
+  for (const QString& id : recommendTemplateIds_) {
+    auto tmpl= templates_.value (id);
+    if (tmpl) result.append (tmpl);
+  }
+  return result;
+}
+
 bool
 TemplateManager::isTemplateAvailableLocally (const QString& templateId) const {
   auto tmpl= templates_.value (templateId);
@@ -378,13 +396,21 @@ TemplateManager::refreshTemplates () {
 
 void
 TemplateManager::refreshTemplatesByCategory (const QString& categoryId) {
-  // 防重复：正在请求中或本会话已获取过该分类
   if (isRefreshingTemplates_ || fetchedCategories_.contains (categoryId)) {
     return;
   }
   isRefreshingTemplates_       = true;
-  pendingIncrementalCategoryId_= categoryId; // 显式标记增量更新
+  pendingIncrementalCategoryId_= categoryId;
   api_->fetchTemplates (categoryId);
+}
+
+void
+TemplateManager::refreshRecommendTemplates () {
+  if (isRefreshingRecommendTemplates_ || recommendTemplatesFetched_) {
+    return;
+  }
+  isRefreshingRecommendTemplates_= true;
+  api_->fetchRecommendTemplates ();
 }
 
 void
@@ -565,6 +591,35 @@ TemplateManager::onRemoteTemplatesFailed (const QString& error) {
   qWarning () << "[Template] Failed to load remote templates:" << error;
   emit templatesLoaded ();
   emit templatesLoadFailed (error);
+}
+
+void
+TemplateManager::onRemoteRecommendTemplatesLoaded (
+    const QHash<QString, TemplateMetadataPtr>& metadata) {
+  isRefreshingRecommendTemplates_= false;
+  recommendTemplatesFetched_     = true;
+
+  if (metadata.isEmpty () && !templates_.isEmpty ()) {
+    qWarning () << "[Template] Skip recommend templates merge: empty list";
+    emit recommendTemplatesLoaded ();
+    return;
+  }
+
+  recommendTemplateIds_.clear ();
+  for (auto it= metadata.constBegin (); it != metadata.constEnd (); ++it) {
+    recommendTemplateIds_.append (it.key ());
+  }
+
+  mergeMetadata (metadata, true);
+  cache_->saveMetadataCache (templates_);
+  emit recommendTemplatesLoaded ();
+}
+
+void
+TemplateManager::onRemoteRecommendTemplatesFailed (const QString& error) {
+  isRefreshingRecommendTemplates_= false;
+  qWarning () << "[Template] Failed to load recommend templates:" << error;
+  emit recommendTemplatesLoadFailed (error);
 }
 
 void

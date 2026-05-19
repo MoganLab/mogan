@@ -109,6 +109,10 @@ private:
   void onRecentDocClicked (QListWidgetItem* item);
   void onRecentDocContextMenu (const QPoint& pos);
 
+private slots:
+  void onRecommendTemplatesLoaded ();
+  void onRecommendTemplatesLoadFailed (const QString& error);
+
 private:
   void setupUI ();
   void setupStyleCards (QVBoxLayout* layout);
@@ -120,6 +124,7 @@ private:
   void clearAllRecentDocs ();
   void createDocumentWithStyle (const QString& styleId);
   void refreshTemplateThumbnails ();
+  void refreshTemplateCards ();
 
   // 样式卡片相关
   QList<DocStyle>   styles_;

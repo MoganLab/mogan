@@ -46,6 +46,12 @@ TemplateAPI::~TemplateAPI () {
     templatesReply_->deleteLater ();
     templatesReply_= nullptr;
   }
+  if (recommendTemplatesReply_) {
+    disconnect (recommendTemplatesReply_, nullptr, this, nullptr);
+    recommendTemplatesReply_->abort ();
+    recommendTemplatesReply_->deleteLater ();
+    recommendTemplatesReply_= nullptr;
+  }
 }
 
 void
@@ -104,6 +110,31 @@ TemplateAPI::fetchTemplates (const QString& categoryId) {
   templatesReply_= networkManager_->post (request, bodyData);
   connect (templatesReply_, &QNetworkReply::finished, this,
            &TemplateAPI::onTemplatesReplyFinished);
+}
+
+void
+TemplateAPI::fetchRecommendTemplates () {
+  if (offlineMode_) {
+    emit recommendTemplatesLoadFailed (qt_translate ("Offline mode"));
+    return;
+  }
+
+  if (recommendTemplatesReply_) {
+    disconnect (recommendTemplatesReply_, nullptr, this, nullptr);
+    recommendTemplatesReply_->abort ();
+    recommendTemplatesReply_->deleteLater ();
+    recommendTemplatesReply_= nullptr;
+  }
+
+  QNetworkRequest request{recommendTemplatesUrl ()};
+  setupRequestHeaders (request);
+
+  QJsonObject bodyObj;
+  QByteArray  bodyData= QJsonDocument (bodyObj).toJson ();
+
+  recommendTemplatesReply_= networkManager_->post (request, bodyData);
+  connect (recommendTemplatesReply_, &QNetworkReply::finished, this,
+           &TemplateAPI::onRecommendTemplatesReplyFinished);
 }
 
 void
@@ -261,6 +292,34 @@ TemplateAPI::onTemplatesReplyFinished () {
 }
 
 void
+TemplateAPI::onRecommendTemplatesReplyFinished () {
+  QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
+  if (!reply) return;
+
+  recommendTemplatesReply_= nullptr;
+
+  if (reply->error () != QNetworkReply::NoError) {
+    emit recommendTemplatesLoadFailed (
+        qt_translate ("Network error: %1").arg (reply->errorString ()));
+    reply->deleteLater ();
+    return;
+  }
+
+  QByteArray response= reply->readAll ();
+  reply->deleteLater ();
+
+  QJsonValue data;
+  QString    error;
+  if (!extractApiData (response, data, error)) {
+    emit recommendTemplatesLoadFailed (error);
+    return;
+  }
+
+  auto metadata= parseTemplatesResponse (data);
+  emit recommendTemplatesLoaded (metadata);
+}
+
+void
 TemplateAPI::onDownloadProgress (qint64 bytesReceived, qint64 bytesTotal) {
   QNetworkReply* reply= qobject_cast<QNetworkReply*> (sender ());
   if (!reply) return;
@@ -338,6 +397,11 @@ TemplateAPI::templatesUrl () const {
   return QString ("%1/api/v1/doc/template/list").arg (apiBaseUrl_);
 }
 
+QString
+TemplateAPI::recommendTemplatesUrl () const {
+  return QString ("%1/api/v1/doc/template/recommend").arg (apiBaseUrl_);
+}
+
 QList<TemplateCategory>
 TemplateAPI::parseCategoriesResponse (const QJsonValue& data) {
   QList<TemplateCategory> categories;
@@ -377,13 +441,17 @@ QHash<QString, TemplateMetadataPtr>
 TemplateAPI::parseTemplatesResponse (const QJsonValue& data) {
   QHash<QString, TemplateMetadataPtr> metadata;
 
-  if (!data.isObject ()) {
-    qWarning () << "[Template] Templates data is not an object";
+  QJsonArray array;
+  if (data.isArray ()) {
+    array= data.toArray ();
+  }
+  else if (data.isObject ()) {
+    array= data.toObject ().value ("items").toArray ();
+  }
+  else {
+    qWarning () << "[Template] Templates data is not an object or array";
     return metadata;
   }
-
-  QJsonObject dataObj= data.toObject ();
-  QJsonArray  array  = dataObj.value ("items").toArray ();
 
   for (const auto& val : array) {
     parseTemplateObject (val.toObject (), metadata);

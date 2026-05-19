@@ -217,16 +217,10 @@ StyleCard::paintEvent (QPaintEvent* event) {
 QTMHomePage::QTMHomePage (QWidget* parent) : QWidget (parent) {
   eval_scheme ("(use-modules (startup-tab startup-tab-file))");
 
-  styles_= {
-      {"new", qt_translate ("New document"),
-       qt_translate ("Create a new blank document"), ""},
-      {"open", qt_translate ("Open document"),
-       qt_translate ("Open an existing document"), ""},
-      {"elegantbook", qt_translate ("ElegantBook Notes Template"),
-       qt_translate ("ElegantBook-style notes template"), "elegantbook"},
-      {"nsfc-ysf-c", qt_translate ("NSFC Young Scientists Fund"),
-       qt_translate ("NSFC Young Scientists Fund (Category C) Application"),
-       "nsfc-ysf-c"}};
+  styles_= {{"new", qt_translate ("New document"),
+             qt_translate ("Create a new blank document"), ""},
+            {"open", qt_translate ("Open document"),
+             qt_translate ("Open an existing document"), ""}};
 
   setupUI ();
   loadRecentDocs ();
@@ -235,6 +229,11 @@ QTMHomePage::QTMHomePage (QWidget* parent) : QWidget (parent) {
   if (mgr) {
     connect (mgr, &TemplateManager::templatesLoaded, this,
              &QTMHomePage::refreshTemplateThumbnails, Qt::UniqueConnection);
+    connect (mgr, &TemplateManager::recommendTemplatesLoaded, this,
+             &QTMHomePage::onRecommendTemplatesLoaded, Qt::UniqueConnection);
+    connect (mgr, &TemplateManager::recommendTemplatesLoadFailed, this,
+             &QTMHomePage::onRecommendTemplatesLoadFailed,
+             Qt::UniqueConnection);
     if (mgr->isInitialized () && !mgr->templates ().isEmpty ()) {
       refreshTemplateThumbnails ();
     }
@@ -781,4 +780,60 @@ QTMHomePage::refreshTemplateThumbnails () {
       card->loadThumbnail (meta->thumbnailUrl);
     }
   }
+}
+
+void
+QTMHomePage::refreshTemplateCards () {
+  TemplateManager* mgr= TemplateManager::instance ();
+  if (!mgr || !mgr->isInitialized ()) return;
+
+  const int fixedCardCount= 2;
+
+  while (styleCards_.size () > fixedCardCount) {
+    StyleCard* card= styleCards_.takeLast ();
+    cardsLayout_->removeWidget (card);
+    card->deleteLater ();
+  }
+
+  while (styles_.size () > fixedCardCount) {
+    styles_.removeLast ();
+  }
+
+  for (const auto& tmpl : mgr->recommendTemplates ()) {
+    if (!tmpl) continue;
+    DocStyle style;
+    style.id         = tmpl->id;
+    style.name       = tmpl->name;
+    style.description= tmpl->description;
+    style.templateId = tmpl->id;
+    styles_.append (style);
+  }
+
+  for (int i= fixedCardCount; i < styles_.size (); ++i) {
+    StyleCard* card= new StyleCard (styles_[i], cardsContainer_);
+    styleCards_.append (card);
+
+    connect (card, &StyleCard::clicked, this,
+             [this, card] () { createDocumentWithStyle (card->styleId ()); });
+
+    if (card->isTemplate ()) {
+      if (auto meta= mgr->templateById (card->templateId ())) {
+        if (!meta->thumbnailUrl.isEmpty ()) {
+          card->loadThumbnail (meta->thumbnailUrl);
+        }
+      }
+    }
+  }
+
+  rearrangeStyleCards ();
+}
+
+void
+QTMHomePage::onRecommendTemplatesLoaded () {
+  refreshTemplateCards ();
+}
+
+void
+QTMHomePage::onRecommendTemplatesLoadFailed (const QString& error) {
+  qWarning () << "[HomePage] Failed to load recommend templates:" << error;
 }

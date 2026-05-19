@@ -48,6 +48,7 @@ public:
   // API operations (POST based)
   void fetchCategories ();
   void fetchTemplates (const QString& categoryId= QString ());
+  void fetchRecommendTemplates ();
 
   void downloadTemplate (const QString& templateId, const QString& downloadUrl,
                          const QString& targetPath);
@@ -74,6 +75,10 @@ signals:
   void templatesLoaded (const QHash<QString, TemplateMetadataPtr>& metadata);
   void templatesLoadFailed (const QString& error);
 
+  void recommendTemplatesLoaded (
+      const QHash<QString, TemplateMetadataPtr>& metadata);
+  void recommendTemplatesLoadFailed (const QString& error);
+
   // Download progress
   void downloadProgress (const QString& templateId, qint64 bytesReceived,
                          qint64 bytesTotal);
@@ -92,6 +97,7 @@ public:
 private slots:
   void onCategoriesReplyFinished ();
   void onTemplatesReplyFinished ();
+  void onRecommendTemplatesReplyFinished ();
   void onDownloadProgress (qint64 bytesReceived, qint64 bytesTotal);
   void onDownloadFinished ();
 
@@ -99,6 +105,7 @@ private:
   // API URL construction
   QString categoriesUrl () const;
   QString templatesUrl () const;
+  QString recommendTemplatesUrl () const;
 
   // Helper to parse individual template objects
   void parseTemplateObject (const QJsonObject&                   tmplObj,
@@ -131,6 +138,7 @@ private:
   QHash<QString, QPointer<QNetworkReply>> downloadReplies_;
   QPointer<QNetworkReply>                 categoriesReply_;
   QPointer<QNetworkReply>                 templatesReply_;
+  QPointer<QNetworkReply>                 recommendTemplatesReply_;
 
   // Default API endpoint
   static constexpr const char* DEFAULT_API_BASE_URL= "https://liiistem.cn";
