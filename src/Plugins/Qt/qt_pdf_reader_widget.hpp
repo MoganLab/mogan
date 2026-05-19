@@ -113,6 +113,7 @@ private:
   bool         rectSelectMode_;
   QPoint       rectSelectStart_;
   bool         rectSelectDragging_;
+  QLabel*      hintLabel_;
 
   QByteArray pdfData_;
   int        pageCount_;

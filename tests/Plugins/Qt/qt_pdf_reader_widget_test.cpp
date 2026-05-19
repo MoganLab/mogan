@@ -206,6 +206,51 @@ private slots:
     delete widget;
   }
 
+  void test_rectSelectHint () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QPushButton* rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QVERIFY (rectBtn != nullptr);
+
+    // 进入选择模式后显示提示
+    rectBtn->click ();
+    QApplication::processEvents ();
+
+    QLabel* hint= widget->findChild<QLabel*> ("rectSelectHint");
+    QVERIFY (hint != nullptr);
+    QVERIFY (hint->isVisible ());
+    QVERIFY (hint->text ().contains ("Draw a rectangle"));
+
+    // 模拟拖拽选择
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QPoint start (50, 50);
+    QPoint end (150, 150);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove (vp, end);
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+
+    // 选择完成后提示变为 Copied to Clipboard!
+    QCOMPARE (hint->text (), QString ("Copied to Clipboard!"));
+
+    // 退出选择模式后隐藏提示
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QVERIFY (!hint->isVisible ());
+
+    delete widget;
+  }
+
   void test_rectSelectClipboard () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (400, 300);

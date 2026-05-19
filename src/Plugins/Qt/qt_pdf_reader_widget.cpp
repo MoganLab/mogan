@@ -38,7 +38,8 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
-      rectSelectDragging_ (false), pageCount_ (0), hasError_ (false),
+      rectSelectDragging_ (false), hintLabel_ (nullptr), pageCount_ (0),
+      hasError_ (false),
       targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0), pageAspectRatio_ (0.0),
       pageBaseWidthPts_ (0.0), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr) {
@@ -343,6 +344,30 @@ PDFReaderWidget::onRectSelectToggled (bool checked) {
     rubberBand_= nullptr;
   }
   rectSelectDragging_= false;
+
+  if (rectSelectMode_) {
+    if (!hintLabel_) {
+      hintLabel_= new QLabel (contentWidget_);
+      hintLabel_->setObjectName ("rectSelectHint");
+      hintLabel_->setStyleSheet (
+          "QLabel { background-color: rgba(0, 0, 0, 180); color: white; "
+          "padding: 4px 8px; border-radius: 4px; font-size: 12px; }");
+    }
+#ifdef Q_OS_MACOS
+    QString shortcut= "Cmd+Shift+v";
+#else
+    QString shortcut= "Ctrl+Shift+v";
+#endif
+    hintLabel_->setText (
+        QString ("Draw a rectangle and use %1 to magic paste!")
+            .arg (shortcut));
+    hintLabel_->adjustSize ();
+    hintLabel_->move (PAGE_MARGIN, PAGE_MARGIN);
+    hintLabel_->show ();
+  }
+  else if (hintLabel_) {
+    hintLabel_->hide ();
+  }
 }
 
 void
@@ -368,6 +393,11 @@ PDFReaderWidget::finishRectSelect (const QPoint& viewportPos) {
   QClipboard* clipboard= QApplication::clipboard ();
   if (clipboard) {
     clipboard->setPixmap (selected);
+  }
+
+  if (hintLabel_) {
+    hintLabel_->setText ("Copied to Clipboard!");
+    hintLabel_->adjustSize ();
   }
 }
 
