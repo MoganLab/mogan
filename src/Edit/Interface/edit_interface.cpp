@@ -70,8 +70,9 @@ edit_interface_rep::edit_interface_rep ()
       cursor_blink_active (false), cursor_blink_next (0),
       cursor_blink_period (500), table_selection (false),
       mouse_adjusting (false), oc (0, 0), temp_invalid_cursor (false),
-      hover_image_rect (0, 0, 0, 0), hover_image_path (), shadow (NULL),
-      stored (NULL), cur_sb (2), cur_wb (2) {
+      hover_image_rect (0, 0, 0, 0), hover_image_path (),
+      table_env_cache (rectangles ()), shadow (NULL), stored (NULL), cur_sb (2),
+      cur_wb (2) {
   user_active= false;
   input_mode = INPUT_NORMAL;
   gui_root_extents (cur_wx, cur_wy);
@@ -606,6 +607,11 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
   tree st= subtree (et, p);
   if ((is_func (st, TABLE) || is_func (st, SUBTABLE)) && recurse &&
       get_preference ("show table cells") == "on") {
+    if (table_env_cache->contains (st)) {
+      rs << table_env_cache[st];
+      return;
+    }
+
     bool is_subtable_inner= false;
     if (is_func (st, TABLE)) {
       tree ppt= subtree (et, path_up (path_up (p)));
@@ -717,6 +723,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       }
     }
     rs << simplify (rl);
+    table_env_cache (st)= simplify (rl);
     if (recurse) compute_env_rects (path_up (p), rs, recurse);
   }
   else if (is_atomic (st) || drd->is_child_enforcing (st) ||
@@ -856,6 +863,9 @@ edit_interface_rep::apply_changes () {
   // cout << "et= " << et << "\n";
   // cout << "tp= " << tp << "\n";
   // cout << HRULE << "\n";
+
+  if (env_change & (THE_TREE + THE_ENVIRONMENT))
+    table_env_cache= hashmap<tree, rectangles> (rectangles ());
 
   update_visible ();
   rectangle new_visible= rectangle (vx1, vy1, vx2, vy2);
