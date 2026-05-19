@@ -48,6 +48,10 @@
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 
+#if !IS_COMMUNITY
+#include "telemetry.hpp"
+#endif
+
 #include "QTMGuiHelper.hpp" // needed to connect()
 #include "QTMInteractiveInputHelper.hpp"
 #include "QTMInteractivePrompt.hpp"
@@ -447,6 +451,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
           dynamic_cast<tm_server_rep*> (get_server ().operator->());
       if (server && server->getAccount () &&
           server->getAccount ()->isLoggedIn ()) {
+#if !IS_COMMUNITY
+        telemetry_track ("VIP_CLICK", "'((\"mode\" . \"upgrade\"))");
+#endif
         openRenewalPage ();
       }
       else {
@@ -2297,6 +2304,9 @@ qt_tm_widget_rep::setupLoginDialog (QWK::LoginDialog* loginDialog) {
     else {
       // 打开会员购买/续费链接
       qDebug ("打开会员购买/续费链接");
+#if !IS_COMMUNITY
+      telemetry_track ("VIP_CLICK", "'((\"mode\" . \"activate\"))");
+#endif
       openRenewalPage ();
     }
   });
