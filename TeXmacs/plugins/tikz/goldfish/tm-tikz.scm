@@ -79,7 +79,8 @@
 (define (run-latex tex-path latex-bin)
   (let ((cmd (string-append (goldfish-quote latex-bin)
                             " --interaction=errorstopmode -halt-on-error "
-                            (goldfish-quote tex-path)))
+                            (goldfish-quote tex-path)
+                            " > /dev/null 2>&1"))
         (orig-dir (getcwd)))
     (unsetenv "DYLD_LIBRARY_PATH")
     (unsetenv "DYLD_FRAMEWORK_PATH")
@@ -95,7 +96,8 @@
                             " -q "
                             (goldfish-quote dvi-path)
                             " -o "
-                            (goldfish-quote eps-path))))
+                            (goldfish-quote eps-path)
+                            " > /dev/null 2>&1")))
     (os-call cmd)))
 
 (define (flush-image path width height)
