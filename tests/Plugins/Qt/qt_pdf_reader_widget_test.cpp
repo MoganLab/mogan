@@ -18,10 +18,28 @@
 #include <QWheelEvent>
 #include <QtTest/QtTest>
 
+static QtMessageHandler defaultMessageHandler= nullptr;
+
+static void
+filterTestWarnings (QtMsgType type, const QMessageLogContext& context,
+                    const QString& msg) {
+  if (type == QtWarningMsg) {
+    if (msg.contains ("cached device pixel ratio") ||
+        msg.contains ("wayland.textinput")) {
+      return;
+    }
+  }
+  defaultMessageHandler (type, context, msg);
+}
+
 class TestPdfReaderWidget : public QObject {
   Q_OBJECT
 
 private slots:
+  void initTestCase () {
+    defaultMessageHandler= qInstallMessageHandler (filterTestWarnings);
+  }
+
   void init () { init_lolly (); }
 
   void test_creation () {
@@ -64,9 +82,10 @@ private slots:
 
     QApplication::processEvents ();
 
-    QScrollBar* vbar      = widget->verticalScrollBar ();
-    int         initialPos= vbar->value ();
-    QVERIFY (vbar->maximum () > 0);
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    // Wayland 下布局/滚动条更新是异步的，轮询等待生效
+    QVERIFY (QTest::qWaitFor ([&]() { return vbar->maximum () > 0; }, 1000));
+    int initialPos= vbar->value ();
 
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
@@ -167,14 +186,14 @@ private slots:
 
   void test_rectSelectButtonExists () {
     PDFReaderWidget* widget = new PDFReaderWidget ();
-    QPushButton*     rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QToolButton*     rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
     delete widget;
   }
 
   void test_rectSelectModeToggle () {
     PDFReaderWidget* widget = new PDFReaderWidget ();
-    QPushButton*     rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QToolButton*     rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     QVERIFY (!widget->isRectSelectMode ());
@@ -190,7 +209,7 @@ private slots:
     widget->show ();
     QApplication::processEvents ();
 
-    QPushButton* rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     QWidget* vp= widget->viewport ();
@@ -218,7 +237,7 @@ private slots:
 
     QApplication::processEvents ();
 
-    QPushButton* rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     // 进入选择模式后显示提示
@@ -269,7 +288,7 @@ private slots:
     QApplication::processEvents ();
 
     // 进入选择模式
-    QPushButton* rectBtn= widget->findChild<QPushButton*> ("rectSelectBtn");
+    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
     rectBtn->click ();
     QApplication::processEvents ();
