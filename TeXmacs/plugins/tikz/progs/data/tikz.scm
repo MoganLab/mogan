@@ -1,5 +1,4 @@
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : tikz.scm
 ;; DESCRIPTION : prog format for TikZ
@@ -10,7 +9,7 @@
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 ;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (data tikz))
 
@@ -18,15 +17,15 @@
 
 (define (texmacs->tikz x . opts)
   (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
-)
+) ;define
 
 (define (tikz->texmacs x . opts)
   (code->texmacs x)
-)
+) ;define
 
 (define (tikz-snippet->texmacs x . opts)
   (code-snippet->texmacs x)
-)
+) ;define
 
 (converter texmacs-tree tikz-document (:function texmacs->tikz))
 

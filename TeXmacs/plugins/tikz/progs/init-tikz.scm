@@ -1,5 +1,4 @@
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : init-tikz.scm
 ;; DESCRIPTION : Initialize TikZ plugin
@@ -11,7 +10,7 @@
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 ;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 ;;
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-library (session tikz)
   (import (scheme base) (liii list))
@@ -22,29 +21,26 @@
     (lazy-format (data tikz) tikz)
 
     (define (tikz-serialize lan t)
-      (let* ((u (pre-serialize lan t))
-             (s (texmacs->code (stree->tree u) "SourceCode")))
+      (let* ((u (pre-serialize lan t)) (s (texmacs->code (stree->tree u) "SourceCode")))
         (string-append s "\n<EOF>\n")
-      )
-    )
+      ) ;let*
+    ) ;define
 
     (define (tikz-launcher)
-      (string-append
-        (string-quote (url->system (find-binary-goldfish)))
+      (string-append (string-quote (url->system (find-binary-goldfish)))
         " "
         "load"
         " "
-        (string-quote
-          (string-append (url->system (get-texmacs-path))
-            "/plugins/tikz/goldfish/tm-tikz.scm"
-          )
-        )
+        (string-quote (string-append (url->system (get-texmacs-path))
+                        "/plugins/tikz/goldfish/tm-tikz.scm"
+                      ) ;string-append
+        ) ;string-quote
         " "
         (string-quote (url->system (find-binary-tikz)))
         " "
         "pdf"
-      )
-    )
+      ) ;string-append
+    ) ;define
 
     (define (init-tikz)
       (plugin-configure tikz
@@ -52,10 +48,10 @@
         (:launch ,(tikz-launcher))
         (:serializer ,tikz-serialize)
         (:session "TikZ")
-      )
-    )
-  )
-)
+      ) ;plugin-configure
+    ) ;define
+  ) ;begin
+) ;define-library
 
 (import (session tikz))
 (init-tikz)
