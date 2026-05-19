@@ -138,6 +138,16 @@ TemplateAPI::fetchRecommendTemplates () {
 }
 
 void
+TemplateAPI::abortRecommendTemplatesRequest () {
+  if (recommendTemplatesReply_) {
+    disconnect (recommendTemplatesReply_, nullptr, this, nullptr);
+    recommendTemplatesReply_->abort ();
+    recommendTemplatesReply_->deleteLater ();
+    recommendTemplatesReply_= nullptr;
+  }
+}
+
+void
 TemplateAPI::downloadTemplate (const QString& templateId,
                                const QString& downloadUrl,
                                const QString& targetPath) {

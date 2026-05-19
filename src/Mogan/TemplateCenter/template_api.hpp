@@ -49,6 +49,7 @@ public:
   void fetchCategories ();
   void fetchTemplates (const QString& categoryId= QString ());
   void fetchRecommendTemplates ();
+  void abortRecommendTemplatesRequest ();
 
   void downloadTemplate (const QString& templateId, const QString& downloadUrl,
                          const QString& targetPath);

@@ -667,6 +667,55 @@ private slots:
     }
     QVERIFY (true);
   }
+
+  // 测试 abortRecommendTemplatesRequest 能安全终止进行中的请求
+  void test_abort_recommend_templates_request () {
+    QString hangUrl=
+        QString ("http://127.0.0.1:%1/hang").arg (hangServer_.serverPort ());
+
+    TemplateAPI api;
+    api.setApiBaseUrl (hangUrl);
+
+    api.fetchRecommendTemplates ();
+    QCoreApplication::processEvents ();
+
+    api.abortRecommendTemplatesRequest ();
+
+    QJsonArray  items;
+    QJsonObject tmpl;
+    tmpl["templateKey"]= "post-abort";
+    tmpl["name"]       = "Post Abort";
+    QJsonObject cat;
+    cat["categoryKey"]= "test";
+    tmpl["category"]= cat;
+    tmpl["url"]     = "http://example.com/file.tmu";
+    items.append (tmpl);
+
+    QJsonObject root;
+    root["code"]   = 0;
+    root["success"]= true;
+    root["data"]   = items;
+
+    QByteArray body= QJsonDocument (root).toJson (QJsonDocument::Compact);
+    QByteArray response=
+        QByteArray ("HTTP/1.1 200 OK\r\n") +
+        "Content-Length: " + QByteArray::number (body.size ()) + "\r\n" +
+        "\r\n" + body;
+
+    MiniHttpServer server (response);
+    api.setApiBaseUrl (server.url ());
+
+    QSignalSpy spy (&api, &TemplateAPI::recommendTemplatesLoaded);
+    QVERIFY (spy.isValid ());
+
+    api.fetchRecommendTemplates ();
+    QVERIFY (spy.wait (1000));
+    QCOMPARE (spy.count (), 1);
+
+    auto received= spy.takeFirst ()[0].value<QList<TemplateMetadataPtr>> ();
+    QCOMPARE (received.size (), 1);
+    QCOMPARE (received[0]->id, QString ("post-abort"));
+  }
 };
 
 // MiniHttpServer 方法定义（放在 TestTemplateAPI 之后，避免 moc 被嵌套 lambda

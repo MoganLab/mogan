@@ -107,8 +107,21 @@ TemplateManager::initialize () {
   // Load cached recommend template IDs if available
   QList<QString> cachedRecommendIds= cache_->loadRecommendIds ();
   if (!cachedRecommendIds.isEmpty ()) {
-    recommendTemplateIds_= cachedRecommendIds;
-    emit recommendTemplatesLoaded ();
+    QList<QString> validIds;
+    for (const QString& id : cachedRecommendIds) {
+      if (templates_.contains (id)) {
+        validIds.append (id);
+      }
+    }
+    if (validIds.size () != cachedRecommendIds.size ()) {
+      qWarning () << "[Template]" << cachedRecommendIds.size () - validIds.size ()
+                  << "cached recommend IDs are stale, purging";
+      cache_->saveRecommendIds (validIds);
+    }
+    recommendTemplateIds_= validIds;
+    if (!recommendTemplateIds_.isEmpty ()) {
+      emit recommendTemplatesLoaded ();
+    }
   }
 
   // Always try to refresh categories in the background
@@ -513,9 +526,11 @@ TemplateManager::onNetworkStateChanged (bool isOnline) {
   if (isOnline && initialized_) {
     refreshCategories ();
     // Refresh recommend templates on network recovery
-    if (recommendTemplatesFetched_) {
-      recommendTemplatesFetched_= false;
+    if (isRefreshingRecommendTemplates_) {
+      api_->abortRecommendTemplatesRequest ();
+      isRefreshingRecommendTemplates_= false;
     }
+    recommendTemplatesFetched_= false;
     refreshRecommendTemplates ();
   }
 }
@@ -618,9 +633,11 @@ TemplateManager::onRemoteRecommendTemplatesLoaded (
   }
 
   QList<QString>                      newRecommendIds;
+  QSet<QString>                       seenIds;
   QHash<QString, TemplateMetadataPtr> metadata;
   for (const auto& tmpl : templates) {
-    if (tmpl) {
+    if (tmpl && !seenIds.contains (tmpl->id)) {
+      seenIds.insert (tmpl->id);
       newRecommendIds.append (tmpl->id);
       metadata.insert (tmpl->id, tmpl);
     }

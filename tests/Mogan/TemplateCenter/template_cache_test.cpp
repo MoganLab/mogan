@@ -247,6 +247,26 @@ private slots:
       QCOMPARE (loaded[i], QString ("template-%1").arg (i));
     }
   }
+
+  // 测试原子写入：save 后不应残留 .tmp 文件
+  void test_atomic_write_leaves_no_temp_file () {
+    TemplateCache cache;
+    cache.initialize ();
+
+    QHash<QString, TemplateMetadataPtr> metadata;
+    auto tmpl= QSharedPointer<TemplateMetadata>::create ();
+    tmpl->id   = "test-id";
+    tmpl->name = "Test";
+    metadata.insert (tmpl->id, tmpl);
+    cache.saveMetadataCache (metadata);
+
+    cache.saveRecommendIds (QList<QString>{"a", "b", "c"});
+
+    QDir dir (cacheDir_);
+    QStringList tmpFiles= dir.entryList (QStringList () << "*.tmp", QDir::Files);
+    QVERIFY2 (tmpFiles.isEmpty (),
+              "Atomic write should not leave .tmp files behind");
+  }
 };
 
 QtMessageHandler TestTemplateCache::originalHandler_= nullptr;

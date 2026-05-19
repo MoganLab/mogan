@@ -16,6 +16,19 @@
 class TestTemplateAPI : public QObject {
   Q_OBJECT
 
+private:
+  static QtMessageHandler originalHandler_;
+
+  static void silentMessageHandler (QtMsgType, const QMessageLogContext&,
+                                    const QString&) {}
+
+private slots:
+  void initTestCase () {
+    originalHandler_= qInstallMessageHandler (silentMessageHandler);
+  }
+
+  void cleanupTestCase () { qInstallMessageHandler (originalHandler_); }
+
 private slots:
   // 测试分类列表解析：验证字段映射和按 order 排序
   void test_categories_response_parsing () {
@@ -208,6 +221,8 @@ private slots:
     QVERIFY (result.isEmpty ());
   }
 };
+
+QtMessageHandler TestTemplateAPI::originalHandler_= nullptr;
 
 QTEST_MAIN (TestTemplateAPI)
 #include "template_api_parser_test.moc"

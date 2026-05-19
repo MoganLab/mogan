@@ -156,13 +156,22 @@ TemplateCache::saveMetadataCache (
   QJsonDocument doc (root);
 
   QString cachePath= metadataCachePath ();
-  QFile   file (cachePath);
+  QString tmpPath  = cachePath + ".tmp";
+  QFile   file (tmpPath);
   if (!file.open (QIODevice::WriteOnly)) {
-    qWarning () << "[Template] Failed to write metadata cache:" << cachePath;
+    qWarning () << "[Template] Failed to write metadata cache temp file:"
+                << tmpPath;
     return;
   }
 
   file.write (doc.toJson (QJsonDocument::Compact));
+  file.close ();
+
+  if (!QFile::rename (tmpPath, cachePath)) {
+    qWarning () << "[Template] Failed to atomically rename metadata cache:"
+                << tmpPath << "->" << cachePath;
+    QFile::remove (tmpPath);
+  }
 }
 
 bool
@@ -327,14 +336,22 @@ TemplateCache::saveRecommendIds (const QList<QString>& ids) {
   QJsonDocument doc (root);
 
   QString cachePath= recommendIdsCachePath ();
-  QFile   file (cachePath);
+  QString tmpPath  = cachePath + ".tmp";
+  QFile   file (tmpPath);
   if (!file.open (QIODevice::WriteOnly | QIODevice::Truncate)) {
-    qWarning () << "[Template] Failed to write recommend ids cache:"
-                << cachePath;
+    qWarning () << "[Template] Failed to write recommend ids cache temp file:"
+                << tmpPath;
     return;
   }
 
   file.write (doc.toJson (QJsonDocument::Compact));
+  file.close ();
+
+  if (!QFile::rename (tmpPath, cachePath)) {
+    qWarning () << "[Template] Failed to atomically rename recommend ids cache:"
+                << tmpPath << "->" << cachePath;
+    QFile::remove (tmpPath);
+  }
 }
 
 QString
@@ -537,13 +554,22 @@ TemplateCache::saveCacheIndex () {
   QJsonDocument doc (root);
 
   QString indexPath= cacheIndexPath ();
-  QFile   file (indexPath);
+  QString tmpPath  = indexPath + ".tmp";
+  QFile   file (tmpPath);
   if (!file.open (QIODevice::WriteOnly)) {
-    qWarning () << "[Template] Failed to write cache index:" << indexPath;
+    qWarning () << "[Template] Failed to write cache index temp file:"
+                << tmpPath;
     return;
   }
 
   file.write (doc.toJson (QJsonDocument::Compact));
+  file.close ();
+
+  if (!QFile::rename (tmpPath, indexPath)) {
+    qWarning () << "[Template] Failed to atomically rename cache index:"
+                << tmpPath << "->" << indexPath;
+    QFile::remove (tmpPath);
+  }
 }
 
 void
