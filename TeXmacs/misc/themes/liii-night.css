@@ -523,7 +523,7 @@ QMenu::separator {
 ****************************************************************************/
 QComboBox {
   background: #2c2c2c;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #5c5c5c;
   padding: 4px 8px;
   padding-right: 24px;
   min-width: 6em;
