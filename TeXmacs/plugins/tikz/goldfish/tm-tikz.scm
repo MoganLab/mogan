@@ -19,6 +19,7 @@
 ) ;import
 
 (load (string-append (path->string (path-parent (path (list-ref (argv) 2)))) "/tikz-lib.scm"))
+(import (tikz lib))
 
 (define (tikz-welcome)
   (flush-prompt "tikz] ")
