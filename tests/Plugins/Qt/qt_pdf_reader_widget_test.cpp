@@ -84,7 +84,7 @@ private slots:
 
     QScrollBar* vbar= widget->verticalScrollBar ();
     // Wayland 下布局/滚动条更新是异步的，轮询等待生效
-    QVERIFY (QTest::qWaitFor ([&]() { return vbar->maximum () > 0; }, 1000));
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
     int initialPos= vbar->value ();
 
     QWidget* vp= widget->viewport ();
@@ -185,15 +185,17 @@ private slots:
   }
 
   void test_rectSelectButtonExists () {
-    PDFReaderWidget* widget = new PDFReaderWidget ();
-    QToolButton*     rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    QToolButton*     rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
     delete widget;
   }
 
   void test_rectSelectModeToggle () {
-    PDFReaderWidget* widget = new PDFReaderWidget ();
-    QToolButton*     rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    QToolButton*     rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     QVERIFY (!widget->isRectSelectMode ());
@@ -209,7 +211,8 @@ private slots:
     widget->show ();
     QApplication::processEvents ();
 
-    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     QWidget* vp= widget->viewport ();
@@ -237,7 +240,8 @@ private slots:
 
     QApplication::processEvents ();
 
-    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
 
     // 进入选择模式后显示提示
@@ -288,7 +292,8 @@ private slots:
     QApplication::processEvents ();
 
     // 进入选择模式
-    QToolButton* rectBtn= widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
     QVERIFY (rectBtn != nullptr);
     rectBtn->click ();
     QApplication::processEvents ();
