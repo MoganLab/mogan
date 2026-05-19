@@ -20,7 +20,7 @@
 (define (regtest-tikz-binary)
   (regression-test-group
     "tikz" "binary"
-    has-binary-tikz? :none
+    (lambda (args) (boolean? (has-binary-tikz?))) :none
     (test "has-binary-tikz? returns boolean" '() #t))
 )
 
