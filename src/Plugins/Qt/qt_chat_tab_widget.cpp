@@ -1019,8 +1019,8 @@ QTChatTabWidget::adjust_input_height (ChatConversationPanel* panel) {
     }
   }
 
-  int  lines      = qMax (docLines, visualLines);
-  int  targetLines= qMax (kInputDefaultLines, lines);
+  int lines       = qMax (docLines, visualLines);
+  int targetLines = qMax (kInputDefaultLines, lines);
   targetLines     = qMin (targetLines, kInputMaxLines);
   int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
 
