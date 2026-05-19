@@ -97,7 +97,8 @@ PDFReaderWidget::~PDFReaderWidget () {}
 
 void
 PDFReaderWidget::setupToolBar () {
-  toolBar_                  = new QWidget (this);
+  toolBar_= new QWidget (this);
+  toolBar_->setObjectName ("pdf-reader-tool-bar");
   QHBoxLayout* toolBarLayout= new QHBoxLayout (toolBar_);
   toolBarLayout->setContentsMargins (4, 2, 4, 2);
   toolBarLayout->setSpacing (4);
@@ -159,6 +160,7 @@ PDFReaderWidget::setupToolBar () {
            &PDFReaderWidget::onPrevPage);
 
   pageEdit_= new QLineEdit (toolBar_);
+  pageEdit_->setObjectName ("pdf-page-edit");
   pageEdit_->setFixedWidth (DpiUtils::scaled (50));
   pageEdit_->setFixedHeight (DpiUtils::scaled (32));
   pageEdit_->setAlignment (Qt::AlignCenter);
@@ -211,8 +213,8 @@ PDFReaderWidget::setupToolBar () {
   QWidget*     rightWidget= new QWidget (toolBar_);
   QHBoxLayout* rightLayout= new QHBoxLayout (rightWidget);
   rightLayout->setContentsMargins (0, 0, 0, 0);
-  rightLayout->addStretch ();
   rightLayout->addWidget (rectSelectBtn_);
+  rightLayout->addStretch ();
   rightWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 
   toolBarLayout->addWidget (leftWidget, 1);

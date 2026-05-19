@@ -404,32 +404,22 @@ QTMTabPageContainer QPushButton#add-tab-button:pressed {
 ****************************************************************************/
 QToolButton#pdf-zoom-out-btn {
   qproperty-icon: url(":/pdf-reader/minus.svg");
-  background-color: transparent;
-  border: none;
 }
 
 QToolButton#pdf-zoom-in-btn {
   qproperty-icon: url(":/tabpage/add.svg");
-  background-color: transparent;
-  border: none;
 }
 
 QToolButton#pdf-prev-btn {
   qproperty-icon: url(":/pdf-reader/previous.svg");
-  background-color: transparent;
-  border: none;
 }
 
 QToolButton#pdf-next-btn {
   qproperty-icon: url(":/pdf-reader/next.svg");
-  background-color: transparent;
-  border: none;
 }
 
 QToolButton#pdf-screenshot-btn {
   qproperty-icon: url(":/pdf-reader/screenshot.svg");
-  background-color: transparent;
-  border: none;
 }
 
 QToolButton#pdf-zoom-out-btn:hover,
@@ -446,6 +436,16 @@ QToolButton#pdf-prev-btn:pressed,
 QToolButton#pdf-next-btn:pressed,
 QToolButton#pdf-screenshot-btn:pressed {
   background-color: rgba(0, 0, 0, 0.12);
+}
+
+QWidget#pdf-reader-tool-bar {
+  background: #f3f3f3;
+}
+
+QLineEdit#pdf-page-edit {
+  background: #ffffff;
+  border: 1px solid #d0d0d0;
+  border-radius: 2px;
 }
 
 /****************************************************************************
@@ -508,7 +508,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-  border-image: url($TEXMACS_PATH/misc/pixmaps/modern/tm_down_arrow.png) 0 0 0 0 stretch stretch;
+  image: url(":/pdf-reader/open.svg");
   width: 12px;
   height: 12px;
   margin-top: 4px;
