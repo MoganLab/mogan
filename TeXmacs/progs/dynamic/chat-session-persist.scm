@@ -173,6 +173,63 @@
   ) ;let
 ) ;tm-define
 
+;;; ---------- 删除持久化会话 ----------
+
+;; chat-persist-delete-one
+;; 从磁盘和 manifest 中删除指定会话的持久化数据。
+;;
+;; 语法
+;; ----
+;; (chat-persist-delete-one session-id)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID。
+
+(tm-define (chat-persist-delete-one session-id)
+  (:synopsis "Delete a chat session from persistent storage")
+  (:argument session-id "Session UUID")
+  ;; 1. 删除会话目录及消息文件
+  (let ((session-dir (string-append (chat-persist-base-dir) "/" session-id)))
+    (when (file-exists? session-dir)
+      (let ((msg-path (chat-persist-message-path session-id)))
+        (when (file-exists? msg-path)
+          (system-remove (system->url msg-path))
+        ) ;when
+      ) ;let
+      (system-rmdir (system->url session-dir))
+    ) ;when
+  ) ;let
+  ;; 2. 从 manifest 中移除条目
+  (let ((manifest-path (chat-persist-manifest-path)))
+    (when (file-exists? manifest-path)
+      (let* ((manifest (file->njson manifest-path))
+             (sessions-arr (njson-ref manifest "sessions"))
+             (entries (njson-array->list sessions-arr))
+            ) ;
+        (let ((new-arr (string->njson "[]")))
+          (for-each
+            (lambda (e)
+              (let ((sid-pair (assoc "sessionId" e)))
+                (when (not (and sid-pair (== (cdr sid-pair) session-id)))
+                  (njson-append! new-arr (json->njson e))
+                ) ;when
+              ) ;let
+            ) ;lambda
+            entries
+          ) ;for-each
+          (njson-drop! manifest "sessions")
+          (njson-set! manifest "sessions" new-arr)
+          (njson->file manifest-path manifest)
+          (njson-free new-arr)
+          (njson-free manifest)
+        ) ;let
+      ) ;let*
+    ) ;when
+  ) ;let
+) ;tm-define
+
 ;;; ---------- 注册恢复后的会话 ----------
 
 (tm-define (chat-persist-register-session session-id model)

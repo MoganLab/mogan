@@ -976,13 +976,16 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
     // 3. 清理当前激活指针
     if (activeConversation_ == panel) activeConversation_= nullptr;
 
-    // 4. 调用 Scheme 清理会话状态
+    // 4. 删除持久化数据（磁盘文件 + manifest 条目）
+    call ("chat-persist-delete-one", panel->sessionId);
+
+    // 5. 调用 Scheme 清理会话状态
     call ("chat-tab-session-destroy", panel->sessionId);
 
-    // 5. 从 SessionManager 移除（含 buffer 清理）
+    // 6. 从 SessionManager 移除（含 buffer 清理）
     sessionManager_.removeSession (panel->sessionId);
 
-    // 6. 断开信号连接
+    // 7. 断开信号连接
     if (panel->sidebarButton)
       disconnect (panel->sidebarButton, nullptr, this, nullptr);
     if (panel->sendButton)
@@ -990,7 +993,7 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
     if (panel->selectCheckBox)
       disconnect (panel->selectCheckBox, nullptr, this, nullptr);
 
-    // 7. 隐藏并脱离父控件
+    // 8. 隐藏并脱离父控件
     if (panel->itemWidget) {
       panel->itemWidget->hide ();
       panel->itemWidget->setParent (nullptr);
@@ -1000,7 +1003,7 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
       panel->pageWidget->setParent (nullptr);
     }
 
-    // 8. 移入僵尸列表，等待析构时统一释放
+    // 9. 移入僵尸列表，等待析构时统一释放
     zombiePanels_.append (panel);
   }
 
@@ -1028,13 +1031,15 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
     create_new_conversation ();
   }
 
-  // 确保当前活跃会话的 buffer 标记为已保存，避免关闭 Tab 时弹出确认对话框
-  if (activeConversation_) {
-    call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (
-                                      activeConversation_->sessionId));
+  // 确保所有聊天相关 buffer 标记为已保存，避免关闭 Tab 时弹出确认对话框
+  for (ChatConversationPanel* panel : conversations_) {
     call ("buffer-pretend-saved",
-          ChatSessionManager::inputBufferUrl (activeConversation_->sessionId));
+          ChatSessionManager::messageBufferUrl (panel->sessionId));
+    call ("buffer-pretend-saved",
+          ChatSessionManager::inputBufferUrl (panel->sessionId));
   }
+  // 主 chat-tab buffer
+  call ("buffer-pretend-saved", url ("tmfs://chat-tab"));
 }
 
 /**
@@ -1792,7 +1797,26 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   contentLayout->addWidget (topPanel, 1, Qt::AlignHCenter | Qt::AlignTop);
   conversationStack_->addWidget (page);
 
-  panel->sidebarButton= new QPushButton ("新会话", conversationListWidget_);
+  panel->itemWidget= new QWidget (conversationListWidget_);
+  panel->itemWidget->setObjectName ("chat-tab-session-item");
+  QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
+  itemLayout->setContentsMargins (0, 0, 0, 0);
+  itemLayout->setSpacing (DpiUtils::scaled (4));
+
+  panel->selectCheckBox= new QCheckBox (panel->itemWidget);
+  panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
+  panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
+  panel->selectCheckBox->setStyleSheet (
+      "QCheckBox::indicator:checked { "
+      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+      "  border-radius: 3px; }"
+      "QCheckBox::indicator:unchecked { "
+      "  background-color: #ffffff; border: 2px solid #cccccc; "
+      "  border-radius: 3px; }");
+  panel->selectCheckBox->hide ();
+  itemLayout->addWidget (panel->selectCheckBox);
+
+  panel->sidebarButton= new QPushButton ("新会话", panel->itemWidget);
   panel->sidebarButton->setObjectName ("chat-tab-conversation-btn");
   panel->sidebarButton->setCheckable (true);
   panel->sidebarButton->setFocusPolicy (Qt::NoFocus);
@@ -1809,7 +1833,8 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (panel->sidebarButton, &QPushButton::clicked, this,
            [this, panel] () { activate_conversation (panel); });
-  conversationListLayout_->addWidget (panel->sidebarButton);
+  itemLayout->addWidget (panel->sidebarButton, 1);
+  conversationListLayout_->addWidget (panel->itemWidget);
 
   // 如果消息 buffer 非空，进入会话模式
   if (!is_empty_document_body (msgBody)) {
