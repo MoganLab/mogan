@@ -1290,12 +1290,13 @@ QTChatTabWidget::loadSessions () {
       return;
     }
   }
-  if (!conversations_.isEmpty ()) activate_conversation (conversations_.first ());
+  if (!conversations_.isEmpty ())
+    activate_conversation (conversations_.first ());
 
   // 恢复 Scheme 层的全局当前模型
   if (!conversations_.isEmpty ()) {
     ChatConversationPanel* last= conversations_.last ();
-    ChatSession* s= sessionManager_.getSession (last->sessionId);
+    ChatSession*           s   = sessionManager_.getSession (last->sessionId);
     if (s && !is_empty (s->model)) {
       call ("chat-tab-session-select-model", s->model);
     }
@@ -1309,8 +1310,8 @@ QTChatTabWidget::addConversation (ChatConversationPanel* panel) {
 
 QTChatTabWidget::ChatConversationPanel*
 QTChatTabWidget::restore_conversation (const string& sessionId,
-                                       const string& title,
-                                       const string& model, bool archived) {
+                                       const string& title, const string& model,
+                                       bool archived) {
   if (!conversationStack_ || !conversationListLayout_) return nullptr;
 
   // 注册 Scheme 侧会话状态
@@ -1529,13 +1530,13 @@ qt_chat_tab_new_session (string model) {
  * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void
-qt_chat_tab_restore_session (string sessionId, string title,
-                              string model, string archived) {
+qt_chat_tab_restore_session (string sessionId, string title, string model,
+                             string archived) {
   QWidgetList topWidgets= QApplication::topLevelWidgets ();
   for (QWidget* top : topWidgets) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
-      bool isArchived= (archived == "true");
+      bool  isArchived= (archived == "true");
       auto* panel=
           chat->restore_conversation (sessionId, title, model, isArchived);
       if (panel) chat->addConversation (panel);
@@ -1544,7 +1545,6 @@ qt_chat_tab_restore_session (string sessionId, string title,
   }
 }
 
-
 /**
  * @brief Scheme→C++ 回调：加载所有聊天会话。
  */
@@ -1552,14 +1552,18 @@ void
 qt_chat_tab_load_sessions () {
   cout << "[chat-persist] qt_chat_tab_load_sessions called" << LF;
   QWidgetList topWidgets= QApplication::topLevelWidgets ();
-  cout << "[chat-persist] top-level widgets count: " << topWidgets.size () << LF;
+  cout << "[chat-persist] top-level widgets count: " << topWidgets.size ()
+       << LF;
   for (QWidget* top : topWidgets) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
-      cout << "[chat-persist] found QTChatTabWidget, calling loadSessions" << LF;
+      cout << "[chat-persist] found QTChatTabWidget, calling loadSessions"
+           << LF;
       chat->loadSessions ();
       return;
     }
   }
-  cout << "[chat-persist] WARNING: QTChatTabWidget not found in any top-level widget" << LF;
+  cout << "[chat-persist] WARNING: QTChatTabWidget not found in any top-level "
+          "widget"
+       << LF;
 }

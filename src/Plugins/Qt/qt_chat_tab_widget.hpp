@@ -333,9 +333,10 @@ public:
    * @param archived 是否归档。
    * @return 恢复的会话面板指针。
    */
-  ChatConversationPanel* restore_conversation (
-      const string& sessionId, const string& title,
-      const string& model, bool archived);
+  ChatConversationPanel* restore_conversation (const string& sessionId,
+                                               const string& title,
+                                               const string& model,
+                                               bool          archived);
 
 private:
   QWidget*        sidebarWidget_;          ///< 左侧边栏容器。
@@ -387,7 +388,7 @@ void qt_chat_tab_load_sessions ();
  * @param model 模型名称。
  * @param archived 是否归档（"true"/"false"）。
  */
-void qt_chat_tab_restore_session (string sessionId, string title,
-                                   string model, string archived);
+void qt_chat_tab_restore_session (string sessionId, string title, string model,
+                                  string archived);
 
 #endif // QT_CHAT_TAB_WIDGET_HPP
