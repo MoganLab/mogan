@@ -360,8 +360,10 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
           .arg (DpiUtils::scaled (kCollapsePadX)));
   connect (batchArchiveBtn_, &QPushButton::clicked, this, [this] () {
     QList<ChatConversationPanel*> checked= get_checked_panels ();
-    for (ChatConversationPanel* panel : checked)
+    for (ChatConversationPanel* panel : checked) {
       sessionManager_.archiveSession (panel->sessionId);
+      saveOneSession (panel->sessionId);
+    }
     exit_multi_select_mode ();
   });
   multiSelectLayout->addWidget (batchArchiveBtn_);
@@ -898,8 +900,10 @@ QTChatTabWidget::refresh_sidebar () {
                    QAction* chosen=
                        menu.exec (panel->sidebarButton->mapToGlobal (pos));
                    if (chosen == batchArchive) {
-                     for (ChatConversationPanel* p : checked)
+                     for (ChatConversationPanel* p : checked) {
                        sessionManager_.archiveSession (p->sessionId);
+                       saveOneSession (p->sessionId);
+                     }
                      exit_multi_select_mode ();
                    }
                  }
@@ -937,6 +941,7 @@ QTChatTabWidget::refresh_sidebar () {
                    if (s && s->archived)
                      sessionManager_.restoreSession (panel->sessionId);
                    else sessionManager_.archiveSession (panel->sessionId);
+                   saveOneSession (panel->sessionId);
                    refresh_sidebar ();
                  }
                  else if (chosen == deleteAction) {
