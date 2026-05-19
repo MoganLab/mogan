@@ -80,9 +80,13 @@ tmu_reader::skip_blank () {
 
 string
 tmu_reader::decode (string s) {
-  int    i, n= N (s);
-  string r;
+  int i, n= N (s);
   for (i= 0; i < n; i++)
+    if (((i + 1) < n) && (s[i] == '\\')) break;
+  if (i == n) return s;
+
+  string r (s (0, i));
+  for (; i < n; i++)
     if (((i + 1) < n) && (s[i] == '\\')) {
       i++;
       if (s[i] == ';')
