@@ -445,7 +445,6 @@ private slots:
     delete widget;
   }
 
-
   void test_dragCursorChangesToClosedHand () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (400, 300);
