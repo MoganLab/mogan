@@ -116,6 +116,12 @@ private:
   bool         rectSelectDragging_;
   QLabel*      hintLabel_;
 
+  // Browse (hand) tool state
+  bool    browseDragging_;
+  QPoint  browseDragStartPos_;
+  int     browseDragStartY_;
+  bool    browseDragActive_;
+
   QByteArray pdfData_;
   int        pageCount_;
   bool       hasError_;

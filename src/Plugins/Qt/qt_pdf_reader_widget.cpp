@@ -42,9 +42,10 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
-      rectSelectDragging_ (false), hintLabel_ (nullptr), pageCount_ (0),
-      hasError_ (false), targetDpi_ (DEFAULT_DPI), zoomFactor_ (1.0),
-      pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      rectSelectDragging_ (false), hintLabel_ (nullptr),
+      browseDragging_ (false), browseDragStartY_ (0), browseDragActive_ (false),
+      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+      zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
       zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr) {
 
   mainLayout_= new QVBoxLayout (this);
@@ -68,6 +69,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
 
   scrollArea_->setWidget (contentWidget_);
   scrollArea_->viewport ()->installEventFilter (this);
+  scrollArea_->viewport ()->setCursor (Qt::OpenHandCursor);
 
   mainLayout_->addWidget (scrollArea_);
 
@@ -390,7 +392,7 @@ PDFReaderWidget::onRectSelectToggled (bool checked) {
   if (scrollArea_ && scrollArea_->viewport ()) {
     QWidget* vp= scrollArea_->viewport ();
     vp->setMouseTracking (rectSelectMode_);
-    vp->setCursor (rectSelectMode_ ? Qt::CrossCursor : Qt::ArrowCursor);
+    vp->setCursor (rectSelectMode_ ? Qt::CrossCursor : Qt::OpenHandCursor);
   }
   if (!rectSelectMode_ && rubberBand_) {
     rubberBand_->hide ();
@@ -1039,6 +1041,64 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         resizeDebounceTimer_->start ();
       }
     }
+    // ============================================================
+    // Browse (hand) tool: default drag-to-scroll behavior
+    // ============================================================
+    else if (!rectSelectMode_ && event->type () == QEvent::MouseButtonPress) {
+      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+      if (mouseEvent->button () == Qt::LeftButton) {
+        browseDragging_    = true;
+        browseDragActive_  = false;
+        browseDragStartPos_= mouseEvent->globalPosition ().toPoint ();
+        browseDragStartY_  = scrollArea_->verticalScrollBar ()->value ();
+#ifdef LIII_DEBUG
+        cout << "Browse press at y=" << browseDragStartY_ << "\n";
+#endif
+        mouseEvent->accept ();
+        return true;
+      }
+    }
+    else if (!rectSelectMode_ && browseDragging_ &&
+             event->type () == QEvent::MouseMove) {
+      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+      int          delta     = (mouseEvent->globalPosition ().toPoint () - browseDragStartPos_)
+                           .manhattanLength ();
+      if (!browseDragActive_ &&
+          delta > QApplication::startDragDistance ()) {
+        browseDragActive_= true;
+        scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
+#ifdef LIII_DEBUG
+        cout << "Browse drag activated, delta=" << delta << "\n";
+#endif
+      }
+      if (browseDragActive_) {
+        int dy    = mouseEvent->globalPosition ().toPoint ().y () - browseDragStartPos_.y ();
+        int newY  = browseDragStartY_ + dy;
+        QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+        newY= qBound (vbar->minimum (), newY, vbar->maximum ());
+        vbar->setValue (newY);
+      }
+      mouseEvent->accept ();
+      return true;
+    }
+    else if (!rectSelectMode_ && browseDragging_ &&
+             event->type () == QEvent::MouseButtonRelease) {
+      QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
+      if (mouseEvent->button () == Qt::LeftButton) {
+        browseDragging_= false;
+        scrollArea_->viewport ()->setCursor (Qt::OpenHandCursor);
+#ifdef LIII_DEBUG
+        cout << "Browse release, wasDrag=" << browseDragActive_
+             << " finalY=" << scrollArea_->verticalScrollBar ()->value ()
+             << "\n";
+#endif
+        mouseEvent->accept ();
+        return true;
+      }
+    }
+    // ============================================================
+    // Rectangular selection mode
+    // ============================================================
     else if (rectSelectMode_ && event->type () == QEvent::MouseButtonPress) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
       if (mouseEvent->button () == Qt::LeftButton) {

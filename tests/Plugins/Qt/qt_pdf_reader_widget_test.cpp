@@ -218,13 +218,13 @@ private slots:
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
 
-    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
     rectBtn->click ();
     QApplication::processEvents ();
     QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
     rectBtn->click ();
     QApplication::processEvents ();
-    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
     delete widget;
   }
 
@@ -340,7 +340,7 @@ private slots:
     QApplication::processEvents ();
 
     QVERIFY (!widget->isRectSelectMode ());
-    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
     delete widget;
   }
 
@@ -385,7 +385,196 @@ private slots:
     QApplication::processEvents ();
 
     QVERIFY (!widget->isRectSelectMode ());
-    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    delete widget;
+  }
+
+  // ============================================================
+  // Browse (Hand) Tool Tests
+  // ============================================================
+
+  void test_defaultCursorIsOpenHand () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+    delete widget;
+  }
+
+  void test_dragScrollsDown () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    int initialPos= vbar->value ();
+
+    // 模拟向下拖动 30px（应该使页面上移，滚动条值增大）
+    QPoint start (100, 100);
+    QPoint end (100, 130);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove (vp, end);
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+
+    int newPos= vbar->value ();
+    QVERIFY (newPos > initialPos);
+    delete widget;
+  }
+
+  void test_dragCursorChangesToClosedHand () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    QPoint start (100, 100);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QApplication::processEvents ();
+
+    // 移动超过 startDragDistance 阈值后光标应变为 ClosedHandCursor
+    QPoint beyondThreshold (
+        start.x (),
+        start.y () + QApplication::startDragDistance () + 2);
+    QTest::mouseMove (vp, beyondThreshold);
+    QApplication::processEvents ();
+
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, beyondThreshold);
+    QApplication::processEvents ();
+    delete widget;
+  }
+
+  void test_releaseRestoresOpenHand () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QPoint start (100, 100);
+    QPoint end (100, 140);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove (vp, end);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+    delete widget;
+  }
+
+  void test_clickDoesNotScroll () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    int initialPos= vbar->value ();
+
+    // 模拟短距离点击（2px，小于 startDragDistance）
+    QPoint start (100, 100);
+    QPoint end (101, 101);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove (vp, end);
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+
+    QCOMPARE (vbar->value (), initialPos);
+    delete widget;
+  }
+
+  void test_rectSelectModeOverridesHand () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QVERIFY (rectBtn != nullptr);
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    // 默认小手模式
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    // 进入选择模式
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
+
+    // 在选择模式下点击不应触发小手拖动
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+    int initialPos= vbar->value ();
+
+    QPoint start (50, 50);
+    QPoint end (50, 150);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QTest::mouseMove (vp, end);
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+
+    // 选择模式下是 rubber band 选择，滚动条不应因小手拖动而变化
+    // 但 rubber band 操作本身不滚动，所以值应保持不变
+    QCOMPARE (vbar->value (), initialPos);
+
+    // 退出选择模式后恢复小手
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
 
     delete widget;
   }
