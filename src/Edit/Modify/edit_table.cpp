@@ -62,6 +62,8 @@ default_table_tree (int nr_rows, int nr_cols) {
   tree format_T (TFORMAT);
   tree with (CWITH, "1", "-1", "1", "-1", "cell-hyphen", "t");
   format_T << with;
+  tree hyphen_with (TWITH, "table-hyphen", "y");
+  format_T << hyphen_with;
   format_T << T;
   return format_T;
 }
