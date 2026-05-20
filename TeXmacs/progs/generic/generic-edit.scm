@@ -199,10 +199,14 @@
                                             (with lc-path (tree->path last-child)
                                               (and lc-path
                                                    (> (length path) (length lc-path))
-                                                   (begin
-                                                     (display* "DEBUG body-end? cAr-path="
-                                                               (cAr path) "\n")
-                                                     (== (cAr path) :end))))))))))))))))
+                                                   (let ((rel-path (list-tail path (length lc-path))))
+                                                     (display* "DEBUG body-end? rel-path="
+                                                               rel-path " arity="
+                                                               (tree-arity last-child) "\n")
+                                                     (or (== (cAr path) :end)
+                                                         (and (== (length rel-path) 1)
+                                                              (integer? (car rel-path))
+                                                              (== (car rel-path) (tree-arity last-child)))))))))))))))))))
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
