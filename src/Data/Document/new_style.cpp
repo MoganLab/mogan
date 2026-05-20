@@ -383,7 +383,7 @@ bool
 hidden_package (string name) {
   if (name == "std-latex") return false;
   if (!hidden_packages->contains (name)) {
-    static url pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
+    static url pck_u      = descendance ("$TEXMACS_PACKAGE_ROOT");
     hidden_packages (name)= hidden_package (pck_u, name, false);
   }
   return hidden_packages[name];
@@ -432,7 +432,7 @@ get_style_menu () {
   if (cache != null_object ()) return cache;
   url    sty_u= descendance ("$TEXMACS_STYLE_ROOT");
   string sty  = compute_style_menu (sty_u, 0);
-  cache= eval ("(menu-dynamic " * sty * ")");
+  cache       = eval ("(menu-dynamic " * sty * ")");
   return cache;
 }
 
@@ -442,7 +442,7 @@ get_add_package_menu () {
   if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 1);
-  cache= eval ("(menu-dynamic " * pck * ")");
+  cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;
 }
 
@@ -452,7 +452,7 @@ get_remove_package_menu () {
   if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 2);
-  cache= eval ("(menu-dynamic " * pck * ")");
+  cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;
 }
 
@@ -462,6 +462,6 @@ get_toggle_package_menu () {
   if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 3);
-  cache= eval ("(menu-dynamic " * pck * ")");
+  cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;
 }

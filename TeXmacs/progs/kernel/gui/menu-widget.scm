@@ -1248,32 +1248,54 @@
 
 (define (static-menu-link? name)
   "Menus whose expanded result never changes at runtime."
-  (in? name '(style-menu add-package-menu remove-package-menu
-              toggle-package-menu basic-theme-menu
-              document-page-size-menu document-language-menu
-              document-short-font-menu document-font-base-size-menu
-              page-rendering-menu page-layout-menu document-columns-menu
-              print-menu-inline new-file-menu load-menu save-menu
-              close-menu cite-texmacs-menu cite-texmacs-related-menu
-              color-menu document-encryption-menu
-              document-columns-menu)))
+  (in? name
+    '(style-menu add-package-menu
+       remove-package-menu
+       toggle-package-menu
+       basic-theme-menu
+       document-page-size-menu
+       document-language-menu
+       document-short-font-menu
+       document-font-base-size-menu
+       page-rendering-menu
+       page-layout-menu
+       document-columns-menu
+       print-menu-inline
+       new-file-menu
+       load-menu
+       save-menu
+       close-menu
+       cite-texmacs-menu
+       cite-texmacs-related-menu
+       color-menu
+       document-encryption-menu
+       document-columns-menu)
+  ) ;in?
+) ;define
 
 (define (menu-expand-link p)
   "Expand menu link @p."
   (let* ((name (cadr p))
-         (cached (and (static-menu-link? name) (ahash-ref menu-expand-link-cache name))))
-    (if cached cached
-      (let* ((linked ((eval name)))
-             (result (if linked (menu-expand linked) p)))
+         (cached (and (static-menu-link? name) (ahash-ref menu-expand-link-cache name)))
+        ) ;
+    (if cached
+      cached
+      (let* ((linked ((eval name))) (result (if linked (menu-expand linked) p)))
         (when (and (static-menu-link? name) linked)
-          (ahash-set! menu-expand-link-cache name result))
-        result))))
+          (ahash-set! menu-expand-link-cache name result)
+        ) ;when
+        result
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define
 
 (define (menu-expand-dynamic p)
   "Expand menu link @p."
-  (let* ((dyn (eval (cadr p)))
-         (result (if dyn (menu-expand dyn) p)))
-    result))
+  (let* ((dyn (eval (cadr p))) (result (if dyn (menu-expand dyn) p)))
+    result
+  ) ;let*
+) ;define
 
 (define (menu-expand-resize p)
   "Expand resize menu @p."
@@ -1394,8 +1416,10 @@
   "Expand links and conditional menus in list of menus @l."
   (map (lambda (item)
          (set! menu-expand-count (+ menu-expand-count 1))
-         (menu-expand item))
-       l)
+         (menu-expand item)
+       ) ;lambda
+    l
+  ) ;map
 ) ;define
 
 (define must-eval-list '(input enum choice filtered-choice toggle))
