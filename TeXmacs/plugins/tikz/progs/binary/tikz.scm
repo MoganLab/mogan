@@ -47,32 +47,32 @@
   (version-binary (find-binary-latex)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; dvips
+;; pdflatex
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (dvips-binary-candidates)
+(define (pdflatex-binary-candidates)
   (cond ((os-macos?)
-         (list "/Library/TeX/texbin/dvips"
-           "/usr/texbin/dvips"
-           "/opt/homebrew/bin/dvips"
-           "/usr/local/bin/dvips"
+         (list "/Library/TeX/texbin/pdflatex"
+           "/usr/texbin/pdflatex"
+           "/opt/homebrew/bin/pdflatex"
+           "/usr/local/bin/pdflatex"
          ))
         ((os-win32?)
          (list
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\x64\\dvips.exe"
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\dvips.exe"
+          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\x64\\pdflatex.exe"
+          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\pdflatex.exe"
          ))
         (else
-         (list "/usr/bin/dvips"
-           "/usr/local/bin/dvips"
+         (list "/usr/bin/pdflatex"
+           "/usr/local/bin/pdflatex"
          ))))
 
-(tm-define (find-binary-dvips)
-  (:synopsis "Find the url to the dvips binary, return (url-none) if not found")
-  (find-binary (dvips-binary-candidates) "dvips"))
+(tm-define (find-binary-pdflatex)
+  (:synopsis "Find the url to the pdflatex binary, return (url-none) if not found")
+  (find-binary (pdflatex-binary-candidates) "pdflatex"))
 
-(tm-define (has-binary-dvips?)
-  (not (url-none? (find-binary-dvips))))
+(tm-define (has-binary-pdflatex?)
+  (not (url-none? (find-binary-pdflatex))))
 
-(tm-define (version-binary-dvips)
-  (version-binary (find-binary-dvips)))
+(tm-define (version-binary-pdflatex)
+  (version-binary (find-binary-pdflatex)))
