@@ -202,7 +202,7 @@
                                                    (begin
                                                      (display* "DEBUG body-end? cAr-path="
                                                                (cAr path) "\n")
-                                                     (== (cAr path) :end)))))))))))))))
+                                                     (== (cAr path) :end))))))))))))))))
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
