@@ -1448,7 +1448,7 @@ smart_font_rep::get_extents (string s, metric& ex) {
   if (n == 0) fn[0]->get_extents (empty_string, ex);
   else {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     while (true) {
       advance (s, i, r, nr);
@@ -1486,7 +1486,7 @@ smart_font_rep::get_xpositions (string s, SI* xpos) {
   xpos[0]= x;
   while (i < n) {
     int    nr;
-    string r    = s;
+    string r;
     int    start= i;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1518,7 +1518,7 @@ smart_font_rep::get_xpositions (string s, SI* xpos, SI xk) {
   xpos[0]= x;
   while (i < n) {
     int    nr;
-    string r    = s;
+    string r;
     int    start= i;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1548,7 +1548,7 @@ smart_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
   int i= 0, n= N (s);
   while (i < n) {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1566,7 +1566,7 @@ smart_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI xk) {
   int i= 0, n= N (s);
   while (i < n) {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     advance (s, i, r, nr);
     if (nr >= 0) {
