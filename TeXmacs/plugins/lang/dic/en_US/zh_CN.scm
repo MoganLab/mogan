@@ -2550,6 +2550,7 @@
 ("use blackboard bold font" "")
 ("use bold font series" "")
 ("use calligraphical font" "")
+("Use external pdf viewer" "使用外部 PDF 阅读器")
 ("use fonts in texlive" "使用texlive中的字体")
 ("use footnote font size" "")
 ("use fraktur font" "")
