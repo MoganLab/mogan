@@ -1853,6 +1853,10 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         QWidget* viewport= scrollView->viewport ();
         if (viewport) {
           viewport->setBackgroundRole (QPalette::Shadow);
+          viewport->setAutoFillBackground (false);
+          viewport->setAttribute (Qt::WA_OpaquePaintEvent);
+          cout << "[0150] Enter presentation mode: disable viewport auto-fill"
+               << "\n";
         }
       }
     }
@@ -1890,6 +1894,10 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         QWidget* viewport= scrollView->viewport ();
         if (viewport) {
           viewport->setBackgroundRole (QPalette::Mid);
+          viewport->setAutoFillBackground (true);
+          viewport->setAttribute (Qt::WA_OpaquePaintEvent, false);
+          cout << "[0150] Exit presentation mode: restore viewport auto-fill"
+               << "\n";
         }
       }
 #ifdef UNIFIED_TOOLBAR
