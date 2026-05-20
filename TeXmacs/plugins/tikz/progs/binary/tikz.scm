@@ -4,6 +4,7 @@
 ;; MODULE      : tikz.scm
 ;; DESCRIPTION : TikZ Binary plugin (latex / dvips)
 ;; COPYRIGHT   : (C) 2024  Darcy Shen
+;;                   2026  (Jack) Yansong Li
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
