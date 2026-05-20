@@ -144,6 +144,7 @@ tm_window_rep::tm_window_rep (widget wid2, tree geom)
       serial (tm_window_serial++), menu_current (object ()),
       menu_cache (widget ()), text_ptr (NULL) {
   zoomf= retina_zoom * get_server ()->get_default_zoom_factor ();
+  icon_bar_pending= array<string> (5);
 }
 
 double
@@ -449,6 +450,10 @@ tm_window_rep::menu_main (string menu) {
 
 void
 tm_window_rep::menu_icons (int which, string menu) {
+  if (!get_icon_bar_flag (which)) {
+    icon_bar_pending[which]= menu;
+    return;
+  }
   eval ("(lazy-initialize-force)");
   widget w;
   if (get_menu_widget (which, menu, w)) {
@@ -458,6 +463,7 @@ tm_window_rep::menu_icons (int which, string menu) {
     else if (which == 3) set_user_icons (wid, w);
     else if (which == 4) set_tab_pages (wid, w);
   }
+  icon_bar_pending[which]= "";
 }
 
 void
@@ -506,6 +512,8 @@ tm_window_rep::set_icon_bar_flag (int which, bool flag) {
   else if (which == 2) set_focus_icons_visibility (wid, flag);
   else if (which == 3) set_user_icons_visibility (wid, flag);
   else if (which == 4) set_tab_pages_visibility (wid, flag);
+  if (flag && which < N(icon_bar_pending) && icon_bar_pending[which] != "")
+    menu_icons (which, icon_bar_pending[which]);
 }
 
 void

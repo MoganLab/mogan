@@ -33,6 +33,7 @@ protected:
   string*                 text_ptr;  // where the interactive string is returned
   command                 call_back; // called when typing finished
   string                  cur_title; // current window title
+  array<string>           icon_bar_pending; // lazy load pending menus
 
 public:
   tm_window_rep (widget wid2, tree geom);
