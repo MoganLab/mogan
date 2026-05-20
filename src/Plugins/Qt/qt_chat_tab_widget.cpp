@@ -38,6 +38,7 @@
 #include <QMenuBar>
 #include <QPropertyAnimation>
 #include <QPushButton>
+#include <QScrollArea>
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QSplitter>
@@ -407,15 +408,21 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   multiSelectBar_->hide ();
   normalLayout->addWidget (multiSelectBar_);
 
-  conversationListWidget_= new QWidget (normalContent);
+  // 列表滚动区
+  QWidget*     scrollContent= new QWidget (normalContent);
+  QVBoxLayout* scrollLayout = new QVBoxLayout (scrollContent);
+  scrollLayout->setContentsMargins (0, 0, 0, 0);
+  scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  conversationListWidget_= new QWidget (scrollContent);
   conversationListWidget_->setObjectName ("chat-tab-conversation-list");
   conversationListLayout_= new QVBoxLayout (conversationListWidget_);
   conversationListLayout_->setContentsMargins (0, 0, 0, 0);
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  normalLayout->addWidget (conversationListWidget_);
+  scrollLayout->addWidget (conversationListWidget_);
 
   // 归档区标题按钮：点击展开/折叠归档列表
-  archiveHeaderButton_= new QPushButton ("Archived (0)", normalContent);
+  archiveHeaderButton_= new QPushButton ("Archived (0)", scrollContent);
   archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
   archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
   archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
@@ -431,18 +438,26 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
     archiveCollapsed_= !archiveCollapsed_;
     if (archiveListWidget_) archiveListWidget_->setVisible (!archiveCollapsed_);
   });
-  normalLayout->addWidget (archiveHeaderButton_);
+  scrollLayout->addWidget (archiveHeaderButton_);
 
   // 归档会话列表
-  archiveListWidget_= new QWidget (normalContent);
+  archiveListWidget_= new QWidget (scrollContent);
   archiveListWidget_->setObjectName ("chat-tab-archive-list");
   archiveListLayout_= new QVBoxLayout (archiveListWidget_);
   archiveListLayout_->setContentsMargins (0, 0, 0, 0);
   archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  archiveListWidget_->hide (); // 默认折叠
-  normalLayout->addWidget (archiveListWidget_);
+  archiveListWidget_->hide ();
+  scrollLayout->addWidget (archiveListWidget_);
 
-  normalLayout->addStretch ();
+  scrollLayout->addStretch ();
+
+  QScrollArea* scrollArea= new QScrollArea (normalContent);
+  scrollArea->setWidgetResizable (true);
+  scrollArea->setFrameShape (QFrame::NoFrame);
+  scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+  scrollArea->setWidget (scrollContent);
+  normalLayout->addWidget (scrollArea, 1);
 
   // 底部收缩按钮
   QPushButton* collapseBtn= new QPushButton ("收缩", normalContent);
@@ -688,13 +703,23 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  panel->selectCheckBox->setStyleSheet (
-      "QCheckBox::indicator:checked { "
-      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-      "  border-radius: 3px; }"
-      "QCheckBox::indicator:unchecked { "
-      "  background-color: #ffffff; border: 2px solid #cccccc; "
-      "  border-radius: 3px; }");
+  {
+    int checkSize= DpiUtils::scaled (18);
+    panel->selectCheckBox->setFixedSize (checkSize, checkSize);
+    panel->selectCheckBox->setStyleSheet (
+        QString ("QCheckBox { spacing: 0px; margin: 0px; padding: 0px; "
+                 "        min-width: %1px; max-width: %1px; "
+                 "        min-height: %2px; max-height: %2px; }"
+                 "QCheckBox::indicator { width: %1px; height: %2px; }"
+                 "QCheckBox::indicator:checked { "
+                 "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+                 "  border-radius: 3px; }"
+                 "QCheckBox::indicator:unchecked { "
+                 "  background-color: #ffffff; border: 2px solid #cccccc; "
+                 "  border-radius: 3px; }")
+            .arg (checkSize)
+            .arg (checkSize));
+  }
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
@@ -900,75 +925,73 @@ QTChatTabWidget::refresh_sidebar () {
     panel->sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
     disconnect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
                 this, nullptr);
-    connect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
-             this, [this, panel, archived] (const QPoint& pos) {
-               QMenu        menu (panel->sidebarButton);
-               ChatSession* s= sessionManager_.getSession (panel->sessionId);
+    connect (
+        panel->sidebarButton, &QPushButton::customContextMenuRequested, this,
+        [this, panel, archived] (const QPoint& pos) {
+          QMenu        menu (panel->sidebarButton);
+          ChatSession* s= sessionManager_.getSession (panel->sessionId);
 
-               // 获取所有 checkbox 选中的 panel
-               QList<ChatConversationPanel*> checked= get_checked_panels ();
+          // 获取所有 checkbox 选中的 panel
+          QList<ChatConversationPanel*> checked= get_checked_panels ();
 
-               if (!checked.isEmpty ()) {
-                 // 多选模式：批量操作
-                 if (!s || !s->archived) {
-                   QAction* batchArchive= menu.addAction (
-                       QString ("归档所选 (%1)").arg (checked.size ()));
-                   QAction* chosen=
-                       menu.exec (panel->sidebarButton->mapToGlobal (pos));
-                   if (chosen == batchArchive) {
-                     for (ChatConversationPanel* p : checked) {
-                       sessionManager_.archiveSession (p->sessionId);
-                       saveOneSession (p->sessionId);
-                     }
-                     exit_multi_select_mode ();
-                   }
-                 }
-                 QAction* batchDelete= menu.addAction (
-                     QString ("删除所选 (%1)").arg (checked.size ()));
-                 QAction* chosen=
-                     menu.exec (panel->sidebarButton->mapToGlobal (pos));
-                 if (chosen == batchDelete) {
-                   delete_sessions (checked);
-                 }
-               }
-               else {
-                 // 单选模式：原有菜单 + 删除 + 多选
-                 QAction* renameAction= menu.addAction ("重命名");
-                 QAction* archiveAction=
-                     menu.addAction (s && s->archived ? "恢复" : "归档");
-                 QAction* deleteAction= menu.addAction ("删除");
-                 menu.addSeparator ();
-                 QAction* multiSelectAction= menu.addAction ("多选");
-                 QAction* chosen=
-                     menu.exec (panel->sidebarButton->mapToGlobal (pos));
-                 if (chosen == renameAction) {
-                   bool    ok;
-                   QString newTitle= QInputDialog::getText (
-                       panel->sidebarButton, "重命名会话",
-                       "新标题:", QLineEdit::Normal,
-                       s ? to_qstring (s->title) : "", &ok);
-                   if (ok && s) {
-                     sessionManager_.setTitle (panel->sessionId,
-                                               from_qstring (newTitle));
-                     refresh_sidebar ();
-                   }
-                 }
-                 else if (chosen == archiveAction) {
-                   if (s && s->archived)
-                     sessionManager_.restoreSession (panel->sessionId);
-                   else sessionManager_.archiveSession (panel->sessionId);
-                   saveOneSession (panel->sessionId);
-                   refresh_sidebar ();
-                 }
-                 else if (chosen == deleteAction) {
-                   QList<ChatConversationPanel*> single= {panel};
-                   delete_sessions (single);
-                 }
-                 else if (chosen == multiSelectAction) {
-                   enter_multi_select_mode (archived);
-                 }
-               }
-             });
+          if (!checked.isEmpty ()) {
+            if (!s || !s->archived) {
+              menu.addAction (QString ("归档所选 (%1)").arg (checked.size ()));
+            }
+            menu.addAction (QString ("删除所选 (%1)").arg (checked.size ()));
+            QAction* chosen=
+                menu.exec (panel->sidebarButton->mapToGlobal (pos));
+            if (!chosen) return;
+            QString txt= chosen->text ();
+            if (txt.startsWith ("归档所选")) {
+              for (ChatConversationPanel* p : checked) {
+                sessionManager_.archiveSession (p->sessionId);
+                saveOneSession (p->sessionId);
+              }
+              exit_multi_select_mode ();
+            }
+            else if (txt.startsWith ("删除所选")) {
+              delete_sessions (checked);
+            }
+          }
+          else {
+            // 单选模式：原有菜单 + 删除 + 多选
+            QAction* renameAction= menu.addAction ("重命名");
+            QAction* archiveAction=
+                menu.addAction (s && s->archived ? "恢复" : "归档");
+            QAction* deleteAction= menu.addAction ("删除");
+            menu.addSeparator ();
+            QAction* multiSelectAction= menu.addAction ("多选");
+            QAction* chosen=
+                menu.exec (panel->sidebarButton->mapToGlobal (pos));
+            if (chosen == renameAction) {
+              bool    ok;
+              QString newTitle=
+                  QInputDialog::getText (panel->sidebarButton, "重命名会话",
+                                         "新标题:", QLineEdit::Normal,
+                                         s ? to_qstring (s->title) : "", &ok);
+              if (ok && s) {
+                sessionManager_.setTitle (panel->sessionId,
+                                          from_qstring (newTitle));
+                refresh_sidebar ();
+              }
+            }
+            else if (chosen == archiveAction) {
+              if (s && s->archived)
+                sessionManager_.restoreSession (panel->sessionId);
+              else sessionManager_.archiveSession (panel->sessionId);
+              saveOneSession (panel->sessionId);
+              refresh_sidebar ();
+            }
+            else if (chosen == deleteAction) {
+              QList<ChatConversationPanel*> single= {panel};
+              delete_sessions (single);
+            }
+            else if (chosen == multiSelectAction) {
+              enter_multi_select_mode (archived);
+            }
+          }
+        });
   }
 
   if (conversationCountLabel_) {
@@ -1839,13 +1862,23 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  panel->selectCheckBox->setStyleSheet (
-      "QCheckBox::indicator:checked { "
-      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-      "  border-radius: 3px; }"
-      "QCheckBox::indicator:unchecked { "
-      "  background-color: #ffffff; border: 2px solid #cccccc; "
-      "  border-radius: 3px; }");
+  {
+    int checkSize= DpiUtils::scaled (18);
+    panel->selectCheckBox->setFixedSize (checkSize, checkSize);
+    panel->selectCheckBox->setStyleSheet (
+        QString ("QCheckBox { spacing: 0px; margin: 0px; padding: 0px; "
+                 "        min-width: %1px; max-width: %1px; "
+                 "        min-height: %2px; max-height: %2px; }"
+                 "QCheckBox::indicator { width: %1px; height: %2px; }"
+                 "QCheckBox::indicator:checked { "
+                 "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+                 "  border-radius: 3px; }"
+                 "QCheckBox::indicator:unchecked { "
+                 "  background-color: #ffffff; border: 2px solid #cccccc; "
+                 "  border-radius: 3px; }")
+            .arg (checkSize)
+            .arg (checkSize));
+  }
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
