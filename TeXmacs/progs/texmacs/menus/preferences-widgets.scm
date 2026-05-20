@@ -627,7 +627,10 @@ pretty-val : string
   (aligned
     (meti (hlist // (text "Expand beamer slides"))
       (toggle (set-boolean-preference "texmacs->pdf:expand slides" answer)
-              (get-boolean-preference "texmacs->pdf:expand slides"))))
+              (get-boolean-preference "texmacs->pdf:expand slides")))
+    (meti (hlist // (text "Use external pdf viewer"))
+      (toggle (set-boolean-preference "use external pdf viewer" answer)
+              (get-boolean-preference "use external pdf viewer"))))
   (assuming (supports-native-pdf?)
     (aligned
       (item (text "Pdf version number:")
