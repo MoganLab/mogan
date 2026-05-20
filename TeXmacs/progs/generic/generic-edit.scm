@@ -166,32 +166,55 @@
 
 (define (cursor-in-algo-macro-body-end? t)
   "Check if cursor is at the end of the body (last param) of algo-macro t"
+  (display* "DEBUG body-end? label=" (tree-label t)
+            " arity=" (tree-arity t)
+            " in-tags=" (tree-in? t algo-macro-tags) "\n")
   (and (tree-in? t algo-macro-tags)
        (>= (tree-arity t) 1)
        (let* ((body-idx (- (tree-arity t) 1))
               (path (cursor-path))
               (t-path (tree->path t)))
+         (display* "DEBUG body-end? path=" path " t-path=" t-path
+                   " body-idx=" body-idx "\n")
          (and t-path
               (> (length path) (length t-path))
               (== (list-ref path (length t-path)) body-idx)
               (let ((body (tm-ref t body-idx)))
+                (display* "DEBUG body-end? body-label=" (and body (tree-label body))
+                          " body-arity=" (and body (tree-arity body)) "\n")
                 (and body
                      (let ((body-path (tree->path body)))
                        (and body-path
-                            (or (== path (append body-path '(:end)))
+                            (or (begin
+                                  (display* "DEBUG body-end? check1="
+                                            (== path (append body-path '(:end))) "\n")
+                                  (== path (append body-path '(:end))))
                                 (and (> (tree-arity body) 0)
                                      (with last-child (tm-ref body (- (tree-arity body) 1))
+                                       (display* "DEBUG body-end? last-child-label="
+                                                 (and last-child (tree-label last-child)) "\n")
                                        (and last-child
                                             (with lc-path (tree->path last-child)
                                               (and lc-path
                                                    (> (length path) (length lc-path))
-                                                   (== (cAr path) :end)))))))))))))))
+                                                   (begin
+                                                     (display* "DEBUG body-end? cAr-path="
+                                                               (cAr path) "\n")
+                                                     (== (cAr path) :end)))))))))))))))
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
+  (display* "DEBUG kbd-h label=" (tree-label t)
+            " forwards=" forwards?
+            " listing=" (in-listing-context? t) "\n")
   (if (cursor-in-algo-macro-body-end? t)
-      (tree-go-to t :after)
-      (go-right))
+      (begin
+        (display* "DEBUG -> body-end, jump to :after\n")
+        (tree-go-to t (- (tree-arity t) 1) :end)
+        (go-right))
+      (begin
+        (display* "DEBUG -> go-right\n")
+        (go-right)))
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
