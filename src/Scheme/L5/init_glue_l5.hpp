@@ -14,5 +14,8 @@
 
 void initialize_glue_l5 ();
 void open_pricing_url ();
+void split_window_horizontally_cmd ();
+void unsplit_window_cmd ();
+void other_pane_cmd ();
 
 #endif

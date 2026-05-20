@@ -181,7 +181,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       m_memberType (""), m_currentScmNotificationItem (""),
       startupContentWidget (nullptr), startupTabMode (false),
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false) {
+      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
+      splitMode (false), activePane (0), splitter (nullptr),
+      leftPaneWidget (nullptr), rightPaneWidget (nullptr) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -1038,6 +1040,76 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
 }
 
 void
+qt_tm_widget_rep::sync_pane_content (int pane) {
+  if (!splitMode) return;
+  QWidget* paneWidget= pane == 0 ? leftPaneWidget : rightPaneWidget;
+  if (!paneWidget) return;
+  QLayout* paneLayout= paneWidget->layout ();
+  if (!paneLayout) return;
+
+  PaneContentState& state= pane == 0 ? leftPaneState : rightPaneState;
+
+  QWidget* editorWidget= main_widget->qwid;
+
+  if (state.startupTabMode) {
+    hide_widget_from_layout (editorWidget, paneLayout);
+    if (pdfViewerWidget) hide_widget_from_layout (pdfViewerWidget, paneLayout);
+    if (chatContentWidget) hide_widget_from_layout (chatContentWidget, paneLayout);
+
+    if (!startupContentWidget) {
+      startupContentWidget= new QTMStartupTabWidget (centralwidget ());
+    }
+    show_widget_in_layout (startupContentWidget, paneLayout);
+    startupContentWidget->setFocus (Qt::OtherFocusReason);
+  }
+  else if (state.pdfTabMode) {
+    hide_widget_from_layout (editorWidget, paneLayout);
+    if (startupContentWidget)
+      hide_widget_from_layout (startupContentWidget, paneLayout);
+    if (chatContentWidget) hide_widget_from_layout (chatContentWidget, paneLayout);
+
+    if (!pdfViewerWidget) {
+      pdfViewerWidget= new PDFReaderWidget (centralwidget ());
+    }
+    show_widget_in_layout (pdfViewerWidget, paneLayout);
+    pdfViewerWidget->setFocus (Qt::OtherFocusReason);
+
+    if (!state.currentPdfPath.isEmpty () &&
+        state.currentPdfPath != state.lastLoadedPdfPath) {
+      pdfViewerWidget->loadFromFile (state.currentPdfPath);
+      state.lastLoadedPdfPath= state.currentPdfPath;
+    }
+  }
+  else if (state.chatTabMode) {
+    hide_widget_from_layout (editorWidget, paneLayout);
+    if (startupContentWidget)
+      hide_widget_from_layout (startupContentWidget, paneLayout);
+    if (pdfViewerWidget) hide_widget_from_layout (pdfViewerWidget, paneLayout);
+
+    if (!chatContentWidget) {
+      chatContentWidget= new QTChatTabWidget (centralwidget ());
+    }
+    static_cast<QTChatTabWidget*> (chatContentWidget)
+        ->ensure_new_conversation ();
+    show_widget_in_layout (chatContentWidget, paneLayout);
+    chatContentWidget->setFocus (Qt::OtherFocusReason);
+  }
+  else {
+    if (startupContentWidget)
+      hide_widget_from_layout (startupContentWidget, paneLayout);
+    if (pdfViewerWidget) hide_widget_from_layout (pdfViewerWidget, paneLayout);
+    if (chatContentWidget) hide_widget_from_layout (chatContentWidget, paneLayout);
+    show_widget_in_layout (editorWidget, paneLayout);
+
+    if (scrollarea ())
+      scrollarea ()->surface ()->setSizePolicy (QSizePolicy::Fixed,
+                                                QSizePolicy::Fixed);
+    url currentView= get_current_view_safe ();
+    if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+  }
+}
+
+void
 qt_tm_widget_rep::update_visibility () {
 #define XOR(exp1, exp2) (((!exp1) && (exp2)) || ((exp1) && (!exp2)))
 
@@ -1351,14 +1423,27 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     string file= open_box<string> (val);
     if (DEBUG_QT_WIDGETS) debug_widgets << "\tFile: " << file << LF;
     mainwindow ()->setWindowFilePath (utf8_to_qstring (file));
-    startupTabMode= is_startup_tab_file (file);
-    pdfTabMode    = is_pdf_tab_file (file);
-    if (pdfTabMode) {
-      currentPdfPath= utf8_to_qstring (file);
+    if (splitMode) {
+      PaneContentState& state=
+          activePane == 0 ? leftPaneState : rightPaneState;
+      state.startupTabMode= is_startup_tab_file (file);
+      state.pdfTabMode    = is_pdf_tab_file (file);
+      if (state.pdfTabMode) {
+        state.currentPdfPath= utf8_to_qstring (file);
+      }
+      state.chatTabMode= is_chat_tab_file (file);
+      sync_pane_content (activePane);
     }
-    chatTabMode= is_chat_tab_file (file);
-    sync_startup_tab_mode ();
-    sync_chat_tab_mode ();
+    else {
+      startupTabMode= is_startup_tab_file (file);
+      pdfTabMode    = is_pdf_tab_file (file);
+      if (pdfTabMode) {
+        currentPdfPath= utf8_to_qstring (file);
+      }
+      chatTabMode= is_chat_tab_file (file);
+      sync_startup_tab_mode ();
+      sync_chat_tab_mode ();
+    }
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);
@@ -1560,15 +1645,50 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
     QWidget* q= main_widget->qwid;
     QLayout* l= centralwidget ()->layout ();
-    if (q && l->indexOf (q) >= 0) {
-      l->removeWidget (q);
-      q->hide (); // 隐藏旧的 widget
+    if (q) {
+      if (splitMode) {
+        // Save current main_widget into the active pane state before
+        // replacing it, so that we can restore it when switching back.
+        PaneContentState& state=
+            activePane == 0 ? leftPaneState : rightPaneState;
+        state.editorWidget= main_widget;
+
+        // Only remove from the active pane (or central layout), never
+        // from the other pane -- that pane keeps its own content.
+        QWidget* activePaneW=
+            activePane == 0 ? leftPaneWidget : rightPaneWidget;
+        if (activePaneW && activePaneW->layout () &&
+            activePaneW->layout ()->indexOf (q) >= 0) {
+          activePaneW->layout ()->removeWidget (q);
+        }
+        else if (l->indexOf (q) >= 0) {
+          l->removeWidget (q);
+        }
+        q->hide ();
+      }
+      else {
+        if (l->indexOf (q) >= 0) {
+          l->removeWidget (q);
+          q->hide (); // 隐藏旧的 widget
+        }
+      }
     }
 
     q= concrete (w)->as_qwidget (); // force creation of the new QWidget
     // SLOT_SCROLLABLE 只更新 main_widget，不设置 startupTabMode
     // startupTabMode 的判定和界面更新由 SLOT_FILE 处理
     main_widget= concrete (w);
+
+    if (splitMode) {
+      // In split mode, add the new editor widget to the active pane
+      QWidget* paneWidget=
+          activePane == 0 ? leftPaneWidget : rightPaneWidget;
+      if (paneWidget && paneWidget->layout ()) {
+        QLayout* paneLayout= paneWidget->layout ();
+        hide_widget_from_layout (q, paneLayout);
+        show_widget_in_layout (q, paneLayout);
+      }
+    }
   } break;
 
   case SLOT_MAIN_MENU:
@@ -2916,4 +3036,196 @@ qt_tm_widget_rep::isVersionNewer (const QString& remote, const QString& local) {
     }
   }
   return false; // 版本相同
+}
+
+/******************************************************************************
+ * Split screen implementation
+ ******************************************************************************/
+
+class PaneFocusTracker : public QObject {
+  qt_tm_widget_rep* widget;
+  int               paneIndex;
+
+public:
+  PaneFocusTracker (qt_tm_widget_rep* w, int pane, QObject* parent= nullptr)
+      : QObject (parent), widget (w), paneIndex (pane) {}
+
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override {
+    (void) watched;
+    if (event->type () == QEvent::FocusIn ||
+        event->type () == QEvent::MouseButtonPress) {
+      widget->set_active_pane (paneIndex);
+    }
+    return QObject::eventFilter (watched, event);
+  }
+};
+
+void
+qt_tm_widget_rep::split_window_horizontally () {
+  if (splitMode) return;
+#ifdef LIII_DEBUG
+  cout << "Split window horizontally\n";
+#endif
+  splitMode= true;
+  activePane= 0;
+
+  // Initialize pane states from current global state
+  leftPaneState.startupTabMode = startupTabMode;
+  leftPaneState.pdfTabMode     = pdfTabMode;
+  leftPaneState.chatTabMode    = chatTabMode;
+  leftPaneState.currentPdfPath = currentPdfPath;
+  leftPaneState.lastLoadedPdfPath= lastLoadedPdfPath;
+  leftPaneState.editorWidget   = main_widget;
+  rightPaneState= PaneContentState ();
+
+  QWidget* cw= centralwidget ();
+  QLayout* layout= cw->layout ();
+  if (!layout) return;
+
+  // Create splitter and panes
+  splitter= new QSplitter (Qt::Horizontal, cw);
+  leftPaneWidget = new QWidget (splitter);
+  rightPaneWidget= new QWidget (splitter);
+
+  QVBoxLayout* leftLayout = new QVBoxLayout (leftPaneWidget);
+  QVBoxLayout* rightLayout= new QVBoxLayout (rightPaneWidget);
+  leftLayout->setContentsMargins (0, 0, 0, 0);
+  leftLayout->setSpacing (0);
+  rightLayout->setContentsMargins (0, 0, 0, 0);
+  rightLayout->setSpacing (0);
+
+  // Move current main_widget into left pane
+  QWidget* editorWidget= main_widget->qwid;
+  if (editorWidget) {
+    hide_widget_from_layout (editorWidget, layout);
+    leftLayout->addWidget (editorWidget);
+  }
+
+  // Hide other widgets from central layout
+  hide_widget_from_layout (startupContentWidget, layout);
+  hide_widget_from_layout (pdfViewerWidget, layout);
+  hide_widget_from_layout (chatContentWidget, layout);
+
+  // Install focus trackers on panes
+  leftPaneWidget->installEventFilter (
+      new PaneFocusTracker (this, 0, leftPaneWidget));
+  rightPaneWidget->installEventFilter (
+      new PaneFocusTracker (this, 1, rightPaneWidget));
+
+  layout->addWidget (splitter);
+  splitter->show ();
+  leftPaneWidget->show ();
+  rightPaneWidget->show ();
+}
+
+void
+qt_tm_widget_rep::unsplit_window () {
+  if (!splitMode) return;
+#ifdef LIII_DEBUG
+  cout << "Unsplit window\n";
+#endif
+  QWidget* cw    = centralwidget ();
+  QLayout* layout= cw->layout ();
+  if (!layout) return;
+
+  // Move main_widget back to central layout
+  QWidget* editorWidget= main_widget->qwid;
+  if (editorWidget) {
+    if (leftPaneWidget && leftPaneWidget->layout () &&
+        leftPaneWidget->layout ()->indexOf (editorWidget) >= 0) {
+      leftPaneWidget->layout ()->removeWidget (editorWidget);
+    }
+    if (rightPaneWidget && rightPaneWidget->layout () &&
+        rightPaneWidget->layout ()->indexOf (editorWidget) >= 0) {
+      rightPaneWidget->layout ()->removeWidget (editorWidget);
+    }
+    hide_widget_from_layout (editorWidget, layout);
+    show_widget_in_layout (editorWidget, layout);
+  }
+
+  // Remove splitter from layout
+  if (splitter) {
+    hide_widget_from_layout (splitter, layout);
+    splitter->deleteLater ();
+    splitter= nullptr;
+  }
+  leftPaneWidget = nullptr;
+  rightPaneWidget= nullptr;
+
+  splitMode= false;
+  activePane= 0;
+
+  // Restore normal editor visibility for single pane mode
+  // (avoid calling sync_startup_tab_mode here, which requires scheme server)
+  QWidget* editorWidget2= main_widget->qwid;
+  if (editorWidget2) {
+    hide_widget_from_layout (editorWidget2, layout);
+    show_widget_in_layout (editorWidget2, layout);
+  }
+  hide_widget_from_layout (startupContentWidget, layout);
+  hide_widget_from_layout (pdfViewerWidget, layout);
+  hide_widget_from_layout (chatContentWidget, layout);
+  update_visibility ();
+}
+
+void
+qt_tm_widget_rep::set_active_pane (int pane) {
+  if (!splitMode) return;
+  if (pane != 0 && pane != 1) return;
+  if (activePane == pane) return;
+#ifdef LIII_DEBUG
+  cout << "Set active pane " << pane << "\n";
+#endif
+  activePane= pane;
+
+  // Sync global state flags to the active pane's state so that
+  // menu/toolbar updates use the correct context.
+  PaneContentState& state= activePane == 0 ? leftPaneState : rightPaneState;
+  startupTabMode = state.startupTabMode;
+  pdfTabMode     = state.pdfTabMode;
+  chatTabMode    = state.chatTabMode;
+  currentPdfPath = state.currentPdfPath;
+  lastLoadedPdfPath= state.lastLoadedPdfPath;
+
+  // If the target pane has its own editor widget, restore it as main_widget.
+  if (!is_nil (state.editorWidget)) {
+    QWidget* qw= state.editorWidget->qwid;
+    if (qw) {
+      // Move the restored widget into the active pane if needed.
+      QWidget* paneWidget= activePane == 0 ? leftPaneWidget : rightPaneWidget;
+      if (paneWidget && paneWidget->layout () &&
+          paneWidget->layout ()->indexOf (qw) < 0) {
+        // Remove from other pane or central layout first.
+        QWidget* otherPane= activePane == 0 ? rightPaneWidget : leftPaneWidget;
+        if (otherPane && otherPane->layout () &&
+            otherPane->layout ()->indexOf (qw) >= 0) {
+          otherPane->layout ()->removeWidget (qw);
+        }
+        QLayout* cl= centralwidget ()->layout ();
+        if (cl->indexOf (qw) >= 0) cl->removeWidget (qw);
+        show_widget_in_layout (qw, paneWidget->layout ());
+      }
+      main_widget= state.editorWidget;
+    }
+  }
+
+  // Refresh menu bar for the new active pane context
+  install_main_menu ();
+
+  // If the active pane contains the main editor widget, ensure it has focus.
+  QWidget* editorWidget= main_widget->qwid;
+  if (editorWidget) {
+    QWidget* paneWidget= activePane == 0 ? leftPaneWidget : rightPaneWidget;
+    if (paneWidget && paneWidget->layout () &&
+        paneWidget->layout ()->indexOf (editorWidget) >= 0) {
+      if (!editorWidget->hasFocus ()) {
+        editorWidget->setFocus (Qt::OtherFocusReason);
+      }
+      url currentView= get_current_view_safe ();
+      if (!is_none (currentView)) {
+        send_keyboard_focus (abstract (main_widget));
+      }
+    }
+  }
 }

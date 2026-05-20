@@ -528,6 +528,21 @@ function main()
                     "string",
                     "string"
                 }
+            },
+            {
+                scm_name = "split-window-horizontally",
+                cpp_name = "split_window_horizontally_cmd",
+                ret_type = "void"
+            },
+            {
+                scm_name = "unsplit-window",
+                cpp_name = "unsplit_window_cmd",
+                ret_type = "void"
+            },
+            {
+                scm_name = "other-pane",
+                cpp_name = "other_pane_cmd",
+                ret_type = "void"
             }
         }
     }
