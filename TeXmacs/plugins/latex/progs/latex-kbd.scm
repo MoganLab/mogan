@@ -23,7 +23,7 @@
   "lambda" "mu" "nu" "xi" "omicron" "pi" "rho"
   "sigma" "tau" "upsilon" "phi" "chi"
   "psi" "omega" "varepsilon" "vartheta"
-  "varpi" "varrho" "varsigma" "varphi"
+  "varpi" "varrho" "varsigma" "varphi" "varomega"
   "leftharpoonup" "leftharpoondown"
   "rightharpoonup" "rightharpoondown" "lefthook" "righthook"
   "triangleright" "triangleleft" "star" "partial"

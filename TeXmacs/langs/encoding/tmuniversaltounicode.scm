@@ -1173,9 +1173,10 @@
 ("<varphi>"	"#03C6")
 ("<chi>"	"#03C7")
 ("<psi>"	"#03C8")
-("<omega>"	"#03C9")
+  ("<omega>"	"#03C9")
+  ("<varomega>"	"#1D714")
 
-;; Variant letterforms
+  ;; Variant letterforms
 ("<vartheta>"	  "#03D1")
 ("<phi>"	  "#03D5")
 ("<varpi>"	  "#03D6")

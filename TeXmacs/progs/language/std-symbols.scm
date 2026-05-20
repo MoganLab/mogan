@@ -503,7 +503,7 @@
     "<iota>" "<kappa>" "<varkappa>" "<lambda>" "<mu>" "<nu>"
     "<xi>" "<omicron>" "<pi>" "<varpi>" "<rho>" "<varrho>"
     "<sigma>" "<varsigma>" "<tau>" "<upsilon>"
-    "<phi>" "<varphi>" "<psi>" "<chi>" "<omega>"
+    "<phi>" "<varphi>" "<psi>" "<chi>" "<omega>" "<varomega>"
     "<backepsilon>" "<mho>"
 
     "<Alpha>" "<Beta>" "<Gamma>" "<Delta>" "<Epsilon>" "<Zeta>"

@@ -26,7 +26,7 @@
   iota kappa lambda mu nu omicron
   xi pi varpi rho
   varrho sigma varsigma tau upsilon
-  phi varphi chi psi omega
+  phi varphi chi psi omega varomega
 
   ;; Binary operations
   pm mp times div ast star circ bullet cdot
