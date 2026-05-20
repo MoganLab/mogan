@@ -1243,6 +1243,9 @@ smart_font_rep::resolve (string c) {
     return sm->add_char (tuple ("italic-roman"), c);
 
   string sf= substitute_math_letter (c, math_kind);
+  bool   rubber    = is_rubber (c);
+  bool   wide      = starts (c, "<wide-");
+  bool   main_supp = wide && fn[SUBFONT_MAIN]->supports (c);
   for (int attempt= 1; attempt <= FONT_ATTEMPTS; attempt++) {
     if (attempt > 1 && sf != "") break;
     for (int i= 0; i < N (a); i++) {
@@ -1252,15 +1255,15 @@ smart_font_rep::resolve (string c) {
         // cout << "Found " << c << " in " << fn[nr]->res_name << "\n";
         return nr;
       }
-      if (is_rubber (c)) {
+      if (rubber) {
         nr= resolve_rubber (c, a[i], attempt);
         if (nr >= 0) {
           // cout << "Found " << c << " in poor-rubber\n";
           return nr;
         }
       }
-      if (starts (c, "<wide-")) {
-        if (fn[SUBFONT_MAIN]->supports (c)) {
+      if (wide) {
+        if (main_supp) {
           // cout << "Found " << c << " in main\n";
           return sm->add_char (tuple ("main"), c);
         }
