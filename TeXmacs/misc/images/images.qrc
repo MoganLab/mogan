@@ -19,6 +19,7 @@
 
         <file>llm-chat/send.svg</file>
         <file>llm-chat/sidebar.svg</file>
+        <file>llm-chat/addchat.svg</file>
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>
