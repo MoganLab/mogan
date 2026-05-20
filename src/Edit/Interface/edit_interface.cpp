@@ -19,6 +19,7 @@
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
+#include "tm_debug.hpp"
 #include "tm_window.hpp"
 #include "tree_traverse.hpp"
 
@@ -113,11 +114,21 @@ edit_interface_rep::resume () {
   // cout << "Resume " << buf->buf->name << LF;
   got_focus= true;
   SERVER (menu_main ("(horizontal (link texmacs-menu))"));
+  bench_start ("resume/main-icons");
   SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
+  bench_end ("resume/main-icons");
+  bench_start ("resume/mode-icons");
   SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
+  bench_end ("resume/mode-icons");
+  bench_start ("resume/focus-icons");
   SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
+  bench_end ("resume/focus-icons");
+  bench_start ("resume/extra-icons");
   SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
+  bench_end ("resume/extra-icons");
+  bench_start ("resume/tab-pages");
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
+  bench_end ("resume/tab-pages");
   SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   array<url> a= buffer_to_windows (buf->buf->name);
   if (N (a) > 0) {

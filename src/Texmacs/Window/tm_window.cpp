@@ -16,6 +16,7 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "tm_data.hpp"
+#include "tm_debug.hpp"
 #include "tm_url.hpp"
 
 #include <moebius/drd/drd_std.hpp>
@@ -144,6 +145,7 @@ tm_window_rep::tm_window_rep (widget wid2, tree geom)
       serial (tm_window_serial++), menu_current (object ()),
       menu_cache (widget ()), text_ptr (NULL) {
   zoomf= retina_zoom * get_server ()->get_default_zoom_factor ();
+  icon_bar_pending= array<string> (5);
 }
 
 double
@@ -402,12 +404,15 @@ bool menu_caching= true;
 
 bool
 tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
+  string bench_prefix= "get_menu_widget/" * as_string (which);
   drd_info old_drd= the_drd;
   if (!is_none (window_to_view (id))) {
     tm_view vw= concrete_view (window_to_view (id));
     if (vw != NULL) the_drd= vw->ed->drd;
   }
+  bench_start (bench_prefix * "/expand");
   object xmenu= call ("menu-expand", eval ("'" * menu));
+  bench_end (bench_prefix * "/expand");
   the_drd     = old_drd;
   // if (which == 10) cout << "xmenu= " << xmenu << "\n";
   // cout << "xmenu= " << xmenu << "\n";
@@ -429,8 +434,10 @@ tm_window_rep::get_menu_widget (int which, string menu, widget& w) {
   menu_current (which)= xmenu;
   // cout << "Compute " << menu << "\n";
   object umenu= eval ("'" * menu);
+  bench_start (bench_prefix * "/make_widget");
   if (which == 10 || which == 11) w= make_menu_widget (umenu, 400, 1000);
   else w= make_menu_widget (umenu);
+  bench_end (bench_prefix * "/make_widget");
   if (menu_caching)
     if (which >= 10 || as_bool (call ("cache-menu?", xmenu))) {
       // if (which == 10) cout << which << " -> cached" << LF;
@@ -449,15 +456,28 @@ tm_window_rep::menu_main (string menu) {
 
 void
 tm_window_rep::menu_icons (int which, string menu) {
+  if (!get_icon_bar_flag (which)) {
+    icon_bar_pending[which]= menu;
+    return;
+  }
+  string bench_prefix= "menu_icons/" * as_string (which);
+  bench_start (bench_prefix * "/lazy-init");
   eval ("(lazy-initialize-force)");
+  bench_end (bench_prefix * "/lazy-init");
+  bench_start (bench_prefix * "/get_widget");
   widget w;
-  if (get_menu_widget (which, menu, w)) {
+  bool   ok= get_menu_widget (which, menu, w);
+  bench_end (bench_prefix * "/get_widget");
+  if (ok) {
+    bench_start (bench_prefix * "/set_icons");
     if (which == 0) set_main_icons (wid, w);
     else if (which == 1) set_mode_icons (wid, w);
     else if (which == 2) set_focus_icons (wid, w);
     else if (which == 3) set_user_icons (wid, w);
     else if (which == 4) set_tab_pages (wid, w);
+    bench_end (bench_prefix * "/set_icons");
   }
+  icon_bar_pending[which]= "";
 }
 
 void
@@ -506,6 +526,8 @@ tm_window_rep::set_icon_bar_flag (int which, bool flag) {
   else if (which == 2) set_focus_icons_visibility (wid, flag);
   else if (which == 3) set_user_icons_visibility (wid, flag);
   else if (which == 4) set_tab_pages_visibility (wid, flag);
+  if (flag && which < N(icon_bar_pending) && icon_bar_pending[which] != "")
+    menu_icons (which, icon_bar_pending[which]);
 }
 
 void
