@@ -1062,6 +1062,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         lastMoveTimestamp_ = 0;
         inertialVelocityY_ = 0.0;
         inertialTimer_->stop ();
+        scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
 #ifdef LIII_DEBUG
         cout << "Browse press at y=" << browseDragStartY_ << "\n";
 #endif
@@ -1077,18 +1078,16 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (!browseDragActive_ &&
           delta > QApplication::startDragDistance ()) {
         browseDragActive_= true;
-        scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
 #ifdef LIII_DEBUG
         cout << "Browse drag activated, delta=" << delta << "\n";
 #endif
       }
-      if (browseDragActive_) {
-        int dy    = mouseEvent->globalPosition ().toPoint ().y () - browseDragStartPos_.y ();
-        int newY  = browseDragStartY_ - dy;
-        QScrollBar* vbar= scrollArea_->verticalScrollBar ();
-        newY= qBound (vbar->minimum (), newY, vbar->maximum ());
-        vbar->setValue (newY);
-      }
+      // 零延迟响应：无论是否超过阈值，直接更新滚动条
+      int dy    = mouseEvent->globalPosition ().toPoint ().y () - browseDragStartPos_.y ();
+      int newY  = browseDragStartY_ - dy;
+      QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+      newY= qBound (vbar->minimum (), newY, vbar->maximum ());
+      vbar->setValue (newY);
       // 记录速度用于惯性滚动
       QPoint currentPos= mouseEvent->globalPosition ().toPoint ();
       qint64 currentTs = QDateTime::currentMSecsSinceEpoch ();

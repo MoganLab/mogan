@@ -461,13 +461,16 @@ private slots:
     QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
     QApplication::processEvents ();
 
-    // 移动超过 startDragDistance 阈值后光标应变为 ClosedHandCursor
+    // 零延迟响应：按下后立即显示 ClosedHandCursor
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
     QPoint beyondThreshold (
         start.x (),
         start.y () + QApplication::startDragDistance () + 2);
     QTest::mouseMove (vp, beyondThreshold);
     QApplication::processEvents ();
 
+    // 拖动过程中保持 ClosedHandCursor
     QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
 
     QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, beyondThreshold);
@@ -504,7 +507,7 @@ private slots:
 
   void test_clickDoesNotScroll () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
-    widget->resize (400, 300);
+    widget->resize (200, 100);
     widget->show ();
 
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
@@ -521,12 +524,11 @@ private slots:
 
     int initialPos= vbar->value ();
 
-    // 模拟短距离点击（2px，小于 startDragDistance）
+    // 零延迟响应下，任何移动都会滚动；
+    // 只有完全不动地按下释放才算单击，不触发滚动
     QPoint start (100, 100);
-    QPoint end (101, 101);
     QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
-    QTest::mouseMove (vp, end);
-    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, start);
     QApplication::processEvents ();
 
     QCOMPARE (vbar->value (), initialPos);
