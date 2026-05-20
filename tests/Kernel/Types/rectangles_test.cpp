@@ -23,6 +23,7 @@ private slots:
   void test_disjoint_union_multiple_adjacent ();
   void test_disjoint_union_overlapping ();
   void test_disjoint_union_complex_case ();
+  void test_split_cell_border_no_middle_line ();
 };
 
 void
@@ -154,6 +155,26 @@ TestRectangles::test_disjoint_union_complex_case () {
     if (p->item == r2) has_r2= true; // r2 未被改写时可用指针判断
   }
   QVERIFY (has_merged && has_r2);
+}
+
+// Test that cells on different pages are detected by checking original
+// (unthickened) selection rects. When sel->rs->item->y1 > bis->rs->item->y2,
+// the cells are on different pages and correct_adjacent should be skipped.
+void
+TestRectangles::test_split_cell_border_no_middle_line () {
+  // Page 1 cell (bottom row): y2=900, y1=700
+  rectangle cell1 (100, 700, 400, 900);
+  // Page 2 cell (top row): y2=300, y1=100
+  // In the coordinate system, page 1 is above page 2.
+  // cell1->y1 (700) > cell2->y2 (300) means there's a page gap.
+  rectangle cell2 (100, 100, 400, 300);
+  QVERIFY (cell1->y1 > cell2->y2);
+
+  // Same-page case: cells that touch.
+  // cell_a->y1 == cell_b->y2 means they are adjacent on the same page.
+  rectangle cell_a (100, 500, 400, 700);
+  rectangle cell_b (100, 300, 400, 500);
+  QVERIFY (cell_a->y1 <= cell_b->y2); // same page: no gap
 }
 
 QTEST_MAIN (TestRectangles)

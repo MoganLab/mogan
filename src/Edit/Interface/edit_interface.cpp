@@ -660,6 +660,12 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
             }
             if (bis->valid) {
               rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              // Skip if cells are on different pages (no vertical overlap
+              // in the original selection rects). bis is the upper cell,
+              // sel is the lower cell. If bis->y1 > sel->y2, there is
+              // a page gap between them.
+              if (bis->rs->item->y1 > sel->rs->item->y2)
+                continue;
               correct_adjacent (rbis, rsel);
             }
           }
@@ -673,6 +679,11 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
             }
             if (bis->valid) {
               rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
+              // Skip if cells are on different pages. sel is the upper cell,
+              // bis is the lower cell. If sel->y1 > bis->y2, there is
+              // a page gap between them.
+              if (sel->rs->item->y1 > bis->rs->item->y2)
+                continue;
               correct_adjacent (rsel, rbis);
             }
           }
