@@ -217,7 +217,9 @@
       (begin
         (display* "DEBUG -> body-end, jump to :after\n")
         (tree-go-to t (- (tree-arity t) 1) :end)
-        (go-right))
+        (display* "DEBUG after tree-go-to path=" (cursor-path) "\n")
+        (go-right)
+        (display* "DEBUG after go-right path=" (cursor-path) "\n"))
       (begin
         (display* "DEBUG -> go-right\n")
         (go-right)))
