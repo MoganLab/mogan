@@ -294,7 +294,9 @@ closest_font (string family, string variant, string series, string shape,
   string sz_str;
   if (sz == round (sz)) sz_str= as_string ((int) sz); // 整数
   else sz_str= as_string (sz);                        // 0.5倍数，保留一位小数
-  string extra= sz_str * "-" * as_string (dpi) * "-" * as_string (attempt);
+  string dpi_str    = as_string (dpi);
+  string attempt_str= as_string (attempt);
+  string extra      = sz_str * "-" * dpi_str * "-" * attempt_str;
   string s= family * "-" * variant * "-" * series * "-" * shape * "-" * extra;
   if (font::instances->contains (s)) return font (s);
   string orig_family= family;
