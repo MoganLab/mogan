@@ -1073,7 +1073,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       }
       if (browseDragActive_) {
         int dy    = mouseEvent->globalPosition ().toPoint ().y () - browseDragStartPos_.y ();
-        int newY  = browseDragStartY_ + dy;
+        int newY  = browseDragStartY_ - dy;
         QScrollBar* vbar= scrollArea_->verticalScrollBar ();
         newY= qBound (vbar->minimum (), newY, vbar->maximum ());
         vbar->setValue (newY);

@@ -423,9 +423,13 @@ private slots:
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
 
+    // 先将滚动条设到中间位置，以便双向验证
+    int midPos= vbar->maximum () / 2;
+    vbar->setValue (midPos);
+    QApplication::processEvents ();
     int initialPos= vbar->value ();
 
-    // 模拟向下拖动 30px（应该使页面上移，滚动条值增大）
+    // 模拟向下拖动 30px（grab-and-pull：页面向下移动，滚动条值减小）
     QPoint start (100, 100);
     QPoint end (100, 130);
     QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
@@ -434,7 +438,7 @@ private slots:
     QApplication::processEvents ();
 
     int newPos= vbar->value ();
-    QVERIFY (newPos > initialPos);
+    QVERIFY (newPos < initialPos);
     delete widget;
   }
 
