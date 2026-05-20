@@ -16,7 +16,7 @@
   (import (scheme base) (liii list))
   (export init-tikz)
   (begin
-    (use-modules (binary tikz) (binary goldfish))
+    (use-modules (binary pdflatex) (binary goldfish))
 
     (define (tikz-serialize lan t)
       (let* ((u (pre-serialize lan t))

@@ -1,8 +1,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : tikz.scm
-;; DESCRIPTION : TikZ Binary plugin (latex / dvips)
+;; MODULE      : pdflatex.scm
+;; DESCRIPTION : TikZ Binary plugin (pdflatex)
 ;; COPYRIGHT   : (C) 2024  Darcy Shen
 ;;                   2026  (Jack) Yansong Li
 ;;
@@ -12,39 +12,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (binary tikz)
+(texmacs-module (binary pdflatex)
   (:use (binary common)))
-
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; latex
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(define (latex-binary-candidates)
-  (cond ((os-macos?)
-         (list "/Library/TeX/texbin/latex"
-           "/usr/texbin/latex"
-           "/opt/homebrew/bin/latex"
-           "/usr/local/bin/latex"
-         ))
-        ((os-win32?)
-         (list
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\x64\\latex.exe"
-          "C:\\Program Files*\\MiKTeX*\\miktex\\bin\\latex.exe"
-         ))
-        (else
-         (list "/usr/bin/latex"
-           "/usr/local/bin/latex"
-         ))))
-
-(tm-define (find-binary-latex)
-  (:synopsis "Find the url to the latex binary, return (url-none) if not found")
-  (find-binary (latex-binary-candidates) "latex"))
-
-(tm-define (has-binary-latex?)
-  (not (url-none? (find-binary-latex))))
-
-(tm-define (version-binary-latex)
-  (version-binary (find-binary-latex)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; pdflatex
