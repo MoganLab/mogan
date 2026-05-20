@@ -111,6 +111,16 @@ TemplateManager::initialize () {
 
   initialized_= true;
   emit initialized (true);
+
+  // Load cached recommend template IDs AFTER initialized_= true so that
+  // UI callbacks like refreshTemplateCards() can safely query isInitialized().
+  recommendTemplateIds_= cache_->loadRecommendIdsCache ();
+  if (!recommendTemplateIds_.isEmpty ()) {
+    // Emit signal so UI can show cached recommendations immediately;
+    // do NOT set recommendTemplatesFetched_ here — we still want to
+    // refresh from network when online.
+    emit recommendTemplatesLoaded ();
+  }
 }
 
 void
@@ -505,6 +515,7 @@ TemplateManager::onNetworkStateChanged (bool isOnline) {
   isOnline_= isOnline;
   if (isOnline && initialized_) {
     refreshCategories ();
+    refreshRecommendTemplates ();
   }
 }
 
@@ -612,6 +623,7 @@ TemplateManager::onRemoteRecommendTemplatesLoaded (
 
   mergeMetadata (metadata, true);
   cache_->saveMetadataCache (templates_);
+  cache_->saveRecommendIdsCache (recommendTemplateIds_);
   emit recommendTemplatesLoaded ();
 }
 

@@ -55,6 +55,10 @@ public:
   QHash<QString, TemplateMetadataPtr> loadMetadataCache ();
   void saveMetadataCache (const QHash<QString, TemplateMetadataPtr>& metadata);
 
+  // 推荐模板ID缓存
+  QStringList loadRecommendIdsCache ();
+  void        saveRecommendIdsCache (const QStringList& recommendIds);
+
   // 分类缓存
   QList<TemplateCategory> loadCategoriesCache ();
   void saveCategoriesCache (const QList<TemplateCategory>& categories);

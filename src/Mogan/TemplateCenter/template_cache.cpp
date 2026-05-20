@@ -165,6 +165,68 @@ TemplateCache::saveMetadataCache (
   file.write (doc.toJson (QJsonDocument::Compact));
 }
 
+QStringList
+TemplateCache::loadRecommendIdsCache () {
+  QStringList result;
+
+  QString cachePath= metadataCachePath ();
+  if (!QFile::exists (cachePath)) {
+    return result;
+  }
+
+  QFile file (cachePath);
+  if (!file.open (QIODevice::ReadOnly)) {
+    qWarning () << "[Template] Failed to open metadata cache for recommend IDs:" << cachePath;
+    return result;
+  }
+
+  QByteArray    data= file.readAll ();
+  QJsonDocument doc = QJsonDocument::fromJson (data);
+  if (doc.isNull () || !doc.isObject ()) {
+    return result;
+  }
+
+  QJsonObject root         = doc.object ();
+  QJsonArray  recommendIds = root.value ("recommend_ids").toArray ();
+  for (const auto& val : recommendIds) {
+    QString id= val.toString ();
+    if (!id.isEmpty ()) result.append (id);
+  }
+
+  return result;
+}
+
+void
+TemplateCache::saveRecommendIdsCache (const QStringList& recommendIds) {
+  QString cachePath= metadataCachePath ();
+
+  // Read existing metadata JSON to preserve it
+  QJsonObject root;
+  if (QFile::exists (cachePath)) {
+    QFile file (cachePath);
+    if (file.open (QIODevice::ReadOnly)) {
+      QJsonDocument doc= QJsonDocument::fromJson (file.readAll ());
+      if (!doc.isNull () && doc.isObject ()) {
+        root= doc.object ();
+      }
+    }
+  }
+
+  QJsonArray idsArray;
+  for (const QString& id : recommendIds) {
+    idsArray.append (id);
+  }
+  root.insert ("recommend_ids", idsArray);
+
+  QJsonDocument doc (root);
+  QFile         file (cachePath);
+  if (!file.open (QIODevice::WriteOnly)) {
+    qWarning () << "[Template] Failed to write recommend IDs to metadata cache:" << cachePath;
+    return;
+  }
+  file.write (doc.toJson (QJsonDocument::Compact));
+}
+
 bool
 TemplateCache::isTemplateCached (const QString& templateId) const {
   auto it= cacheIndex_.find (templateId);
