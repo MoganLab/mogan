@@ -250,7 +250,7 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   loadSessions ();
   if (conversations_.isEmpty ()) {
     string model=
-      as_string (call ("chat-tab-session-select-model", string ("")));
+        as_string (call ("chat-tab-session-select-model", string ("")));
     create_new_conversation_with_model (model);
   }
 }
@@ -295,12 +295,11 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   newChatButton_->setStyleSheet (QString ("padding: %1px %2px;")
                                      .arg (DpiUtils::scaled (kNavButtonPadY))
                                      .arg (DpiUtils::scaled (kNavButtonPadX)));
-  connect (newChatButton_, &QPushButton::clicked, this,
-           [this] () {
-             string model=
-               as_string (call ("chat-tab-session-select-model", string ("")));
-             create_new_conversation_with_model (model);
-           });
+  connect (newChatButton_, &QPushButton::clicked, this, [this] () {
+    string model=
+        as_string (call ("chat-tab-session-select-model", string ("")));
+    create_new_conversation_with_model (model);
+  });
   normalLayout->addWidget (newChatButton_);
 
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
@@ -743,7 +742,7 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
 void
 QTChatTabWidget::ensure_new_conversation () {
   string currentModel=
-    as_string (call ("chat-tab-session-select-model", string ("")));
+      as_string (call ("chat-tab-session-select-model", string ("")));
 
   if (!conversations_.isEmpty ()) {
     ChatConversationPanel* first= conversations_.first ();
@@ -892,7 +891,7 @@ QTChatTabWidget::refresh_sidebar () {
                  else {
                    // 否则创建新会话
                    string model= as_string (
-                     call ("chat-tab-session-select-model", string ("")));
+                       call ("chat-tab-session-select-model", string ("")));
                    create_new_conversation_with_model (model);
                  }
                });
@@ -1057,7 +1056,7 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
   }
   else {
     string model=
-      as_string (call ("chat-tab-session-select-model", string ("")));
+        as_string (call ("chat-tab-session-select-model", string ("")));
     create_new_conversation_with_model (model);
   }
 
