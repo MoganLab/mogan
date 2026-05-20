@@ -29,11 +29,17 @@
 ;;; ---------- Buffer URL 推导函数 ----------
 
 (tm-define (chat-tab-session->message-buffer session-id)
-  (string->url (string-append "tmfs://chat-message-" session-id))
+  (let ((base-dir (string-append (url->system (get-texmacs-home-path))
+                    "/system/ai-chat-sessions")))
+    (string->url (string-append base-dir "/" session-id "/message.tmu"))
+  ) ;let
 ) ;tm-define
 
 (define (chat-tab-session->input-buffer session-id)
-  (string->url (string-append "tmfs://chat-input-" session-id))
+  (let ((base-dir (string-append (url->system (get-texmacs-home-path))
+                    "/system/ai-chat-sessions")))
+    (string->url (string-append base-dir "/" session-id "/input.tmu"))
+  ) ;let
 ) ;define
 
 ;;; ---------- State 构造器和访问器 ----------
