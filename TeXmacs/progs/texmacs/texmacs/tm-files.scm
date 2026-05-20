@@ -1582,17 +1582,14 @@
 (tm-define (load-pdf-buffer u)
   (when (not (url-rooted? u))
     (set! u (url-relative (current-buffer) u)))
-  (if (get-boolean-preference "use external pdf viewer")
-      (load-external u)
+  (if (buffer-exists? u)
+      (switch-to-buffer u)
       (begin
-        (if (buffer-exists? u)
-            (switch-to-buffer u)
-            (begin
-              (buffer-set u '(document))
-              (buffer-set-title u (url->system (url-tail u)))
-              (switch-to-buffer u)))
-        (buffer-notify-recent u)
-        (remember-file-dialog-directory u))))
+        (buffer-set u '(document))
+        (buffer-set-title u (url->system (url-tail u)))
+        (switch-to-buffer u)))
+  (buffer-notify-recent u)
+  (remember-file-dialog-directory u))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loading buffers
