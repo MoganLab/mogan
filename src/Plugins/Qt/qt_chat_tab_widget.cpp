@@ -138,14 +138,6 @@ constexpr int kInputLineHeight= 22;
 constexpr int kInputDefaultLines= 3;
 /// 输入编辑器最大行数。
 constexpr int kInputMaxLines= 10;
-/// 发送按钮垂直内边距。
-constexpr int kSendButtonPadY= 6;
-/// 发送按钮水平内边距。
-constexpr int kSendButtonPadX= 16;
-/// 发送按钮字体大小（像素）。
-constexpr int kSendButtonFontPx= 13;
-/// 内容区水平边距。
-constexpr int kContentMarginX= 24;
 /// 内容区垂直边距。
 constexpr int kContentMarginY= 24;
 /// 内容区元素间距。
@@ -154,12 +146,8 @@ constexpr int kContentSpacing= 16;
 constexpr int kWelcomeTopOffsetY= 240;
 /// 会话模式下顶部占位高度（像素）。
 constexpr int kConversationTopOffsetY= 24;
-/// 顶部面板最大宽度（像素）。
-constexpr int kTopPanelMaxWidth= 680;
 /// 输入/消息框圆角半径。
 constexpr int kInputFrameRadius= 8;
-/// 输入/消息框边框宽度（像素）。
-constexpr int kInputFrameBorder= 1;
 /// 输入/消息框内边距。
 constexpr int kInputFramePad= 8;
 /// 消息展示区最小高度（像素）。
@@ -174,8 +162,6 @@ constexpr int kToggleIconSize= 20;
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
 constexpr int kFloatingBtnMarginY= 130;
-/// 浮球新建聊天按钮水平边距（像素）。
-constexpr int kFloatingNewChatBtnMarginX= 60;
 /// 浮球容器内边距（像素）。
 constexpr int kFloatingContainerPad= 4;
 /// New chat 按钮图标尺寸（像素）。
@@ -184,6 +170,38 @@ constexpr int kNewChatIconSize= 18;
 constexpr int kNewChatButtonHeight= 36;
 /// New chat 按钮固定宽度（像素）。
 constexpr int kNewChatButtonWidth= 140;
+/// New chat 按钮阴影模糊半径（像素）。
+constexpr int kNewChatShadowBlur= 3;
+/// New chat 按钮阴影不透明度（0-255）。
+constexpr int kNewChatShadowAlpha= 25;
+/// New chat 按钮阴影垂直偏移（像素）。
+constexpr int kNewChatShadowOffsetY= 1;
+/// New chat 按钮悬停阴影模糊半径（像素）。
+constexpr int kNewChatHoverShadowBlur= 6;
+/// New chat 按钮悬停阴影不透明度（0-255）。
+constexpr int kNewChatHoverShadowAlpha= 50;
+/// New chat 按钮悬停阴影垂直偏移（像素）。
+constexpr int kNewChatHoverShadowOffsetY= 2;
+/// 多选操作栏元素间距（像素）。
+constexpr int kMultiSelectSpacing= 4;
+/// 会话项布局间距（像素）。
+constexpr int kSessionItemSpacing= 4;
+/// 模型标签最小高度（像素）。
+constexpr int kModelLabelMinHeight= 20;
+/// 模型标签圆角半径（像素）。
+constexpr int kModelLabelRadius= 4;
+/// 发送按钮图标尺寸（像素）。
+constexpr int kSendIconSize= 24;
+/// 发送按钮尺寸（像素）。
+constexpr int kSendButtonSize= 36;
+/// 发送按钮圆角半径（像素）。
+constexpr int kSendButtonRadius= 18;
+/// 会话按钮圆角半径（像素）。
+constexpr int kConversationBtnRadius= 6;
+/// 输入框高度检查间隔（毫秒）。
+constexpr int kInputHeightCheckIntervalMs= 100;
+/// 菜单栏固定高度（像素）。
+constexpr int kMenuBarHeight= 108;
 
 /**
  * @brief 创建统一风格的浮球按钮（圆形、无边框、灰色背景）。
@@ -381,9 +399,9 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   QGraphicsDropShadowEffect* newChatShadow=
       new QGraphicsDropShadowEffect (newChatButton_);
-  newChatShadow->setBlurRadius (DpiUtils::scaled (3));
-  newChatShadow->setColor (QColor (0, 0, 0, 25));
-  newChatShadow->setOffset (0, DpiUtils::scaled (1));
+  newChatShadow->setBlurRadius (DpiUtils::scaled (kNewChatShadowBlur));
+  newChatShadow->setColor (QColor (0, 0, 0, kNewChatShadowAlpha));
+  newChatShadow->setOffset (0, DpiUtils::scaled (kNewChatShadowOffsetY));
   newChatButton_->setGraphicsEffect (newChatShadow);
 
   newChatButton_->setAttribute (Qt::WA_Hover);
@@ -424,7 +442,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   multiSelectBar_->setObjectName ("chat-tab-multi-select-bar");
   QHBoxLayout* multiSelectLayout= new QHBoxLayout (multiSelectBar_);
   multiSelectLayout->setContentsMargins (0, 0, 0, 0);
-  multiSelectLayout->setSpacing (DpiUtils::scaled (4));
+  multiSelectLayout->setSpacing (DpiUtils::scaled (kMultiSelectSpacing));
 
   QPushButton* cancelSelectBtn= new QPushButton ("取消", multiSelectBar_);
   cancelSelectBtn->setObjectName ("chat-tab-cancel-select-btn");
@@ -606,17 +624,15 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
   QHBoxLayout* floatingLayout= new QHBoxLayout (floatingContainer);
-  floatingLayout->setContentsMargins (
-      DpiUtils::scaled (kFloatingContainerPad),
-      DpiUtils::scaled (kFloatingContainerPad),
-      DpiUtils::scaled (kFloatingContainerPad),
-      DpiUtils::scaled (kFloatingContainerPad));
+  floatingLayout->setContentsMargins (DpiUtils::scaled (kFloatingContainerPad),
+                                      DpiUtils::scaled (kFloatingContainerPad),
+                                      DpiUtils::scaled (kFloatingContainerPad),
+                                      DpiUtils::scaled (kFloatingContainerPad));
   floatingLayout->setSpacing (0);
   floatingContainer->setStyleSheet (
       QString ("QWidget#chat-tab-floating-container { "
                "background-color: #e8e8e8; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kToggleBtnSize / 2 +
-                                  kFloatingContainerPad)));
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2 + kFloatingContainerPad)));
 
   QPushButton* floatingBtn=
       setup_floating_button (floatingContainer, "chat-tab-floating-expand-btn",
@@ -689,9 +705,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->modelLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
   panel->modelLabel->setStyleSheet (
-      "color: #888888; padding: 2px 8px; background-color: #f0f0f0; "
-      "border-radius: 4px;");
-  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (20));
+      QString ("color: #888888; padding: 2px %1px; background-color: #f0f0f0; "
+               "border-radius: %2px;")
+          .arg (DpiUtils::scaled (kNavButtonPadX))
+          .arg (DpiUtils::scaled (kModelLabelRadius)));
+  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
   topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
 
   panel->messageWidget= texmacs_input_widget (
@@ -776,16 +794,16 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->sendButton->setFocusPolicy (Qt::NoFocus);
   panel->sendButton->setCursor (Qt::PointingHandCursor);
   panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (24);
+  int sendIconSize= DpiUtils::scaled (kSendIconSize);
   panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
-  panel->sendButton->setFixedSize (DpiUtils::scaled (36),
-                                   DpiUtils::scaled (36));
+  panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
+                                   DpiUtils::scaled (kSendButtonSize));
   panel->sendButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
                "            background-color: transparent; }"
                "QPushButton:hover { background-color: #f0f0f0; }"
                "QPushButton:pressed { background-color: #e0e0e0; }")
-          .arg (DpiUtils::scaled (18)));
+          .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (panel->sendButton, &QPushButton::clicked, this,
            [this, panel] () { handle_send (panel); });
   btnLayout->addWidget (panel->sendButton);
@@ -794,7 +812,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   inputAreaLayout->addWidget (inputFrame, 0);
 
   QTimer* inputHeightTimer= new QTimer (inputFrame);
-  inputHeightTimer->setInterval (100);
+  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
   connect (inputHeightTimer, &QTimer::timeout, this,
            [this, panel] () { adjust_input_height (panel); });
   inputHeightTimer->start ();
@@ -812,7 +830,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->itemWidget->setObjectName ("chat-tab-session-item");
   QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
   itemLayout->setContentsMargins (0, 0, 0, 0);
-  itemLayout->setSpacing (DpiUtils::scaled (4));
+  itemLayout->setSpacing (DpiUtils::scaled (kSessionItemSpacing));
 
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
@@ -839,7 +857,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
                "#ffffff; } "
                "QPushButton:checked { background-color: #e8eefc; "
                "border-color: #9bb3ff; font-weight: 600; }")
-          .arg (DpiUtils::scaled (6))
+          .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (panel->sidebarButton, &QPushButton::clicked, this,
@@ -1554,18 +1572,18 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
       if (QGraphicsDropShadowEffect* effect=
               qobject_cast<QGraphicsDropShadowEffect*> (
                   newChatButton_->graphicsEffect ())) {
-        effect->setBlurRadius (DpiUtils::scaled (6));
-        effect->setColor (QColor (0, 0, 0, 50));
-        effect->setOffset (0, DpiUtils::scaled (2));
+        effect->setBlurRadius (DpiUtils::scaled (kNewChatHoverShadowBlur));
+        effect->setColor (QColor (0, 0, 0, kNewChatHoverShadowAlpha));
+        effect->setOffset (0, DpiUtils::scaled (kNewChatHoverShadowOffsetY));
       }
     }
     else if (event->type () == QEvent::HoverLeave) {
       if (QGraphicsDropShadowEffect* effect=
               qobject_cast<QGraphicsDropShadowEffect*> (
                   newChatButton_->graphicsEffect ())) {
-        effect->setBlurRadius (DpiUtils::scaled (3));
-        effect->setColor (QColor (0, 0, 0, 25));
-        effect->setOffset (0, DpiUtils::scaled (1));
+        effect->setBlurRadius (DpiUtils::scaled (kNewChatShadowBlur));
+        effect->setColor (QColor (0, 0, 0, kNewChatShadowAlpha));
+        effect->setOffset (0, DpiUtils::scaled (kNewChatShadowOffsetY));
       }
     }
   }
@@ -1580,7 +1598,7 @@ QTChatTabWidget::install_chat_menu_bar (widget menuWidget) {
 
   QMenuBar* dest = new QMenuBar ();
   double    scale= DpiUtils::scaleFactor ();
-  int       h    = DpiUtils::scaled (108);
+  int       h    = DpiUtils::scaled (kMenuBarHeight);
   dest->setFixedHeight (h);
   if (tm_style_sheet == "") dest->setStyle (qtmstyle ());
   dest->setNativeMenuBar (false);
@@ -1886,9 +1904,11 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->modelLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
   panel->modelLabel->setStyleSheet (
-      "color: #888888; padding: 2px 8px; background-color: #f0f0f0; "
-      "border-radius: 4px;");
-  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (20));
+      QString ("color: #888888; padding: 2px %1px; background-color: #f0f0f0; "
+               "border-radius: %2px;")
+          .arg (DpiUtils::scaled (kNavButtonPadX))
+          .arg (DpiUtils::scaled (kModelLabelRadius)));
+  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
   topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
 
   // 恢复会话时，buffer 中已有 Scheme 加载的消息内容，需使用 buffer 内容而非空
@@ -1977,16 +1997,16 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->sendButton->setFocusPolicy (Qt::NoFocus);
   panel->sendButton->setCursor (Qt::PointingHandCursor);
   panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (24);
+  int sendIconSize= DpiUtils::scaled (kSendIconSize);
   panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
-  panel->sendButton->setFixedSize (DpiUtils::scaled (36),
-                                   DpiUtils::scaled (36));
+  panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
+                                   DpiUtils::scaled (kSendButtonSize));
   panel->sendButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
                "            background-color: transparent; }"
                "QPushButton:hover { background-color: #f0f0f0; }"
                "QPushButton:pressed { background-color: #e0e0e0; }")
-          .arg (DpiUtils::scaled (18)));
+          .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (panel->sendButton, &QPushButton::clicked, this,
            [this, panel] () { handle_send (panel); });
   btnLayout->addWidget (panel->sendButton);
@@ -1995,7 +2015,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   inputAreaLayout->addWidget (inputFrame, 0);
 
   QTimer* inputHeightTimer= new QTimer (inputFrame);
-  inputHeightTimer->setInterval (100);
+  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
   connect (inputHeightTimer, &QTimer::timeout, this,
            [this, panel] () { adjust_input_height (panel); });
   inputHeightTimer->start ();
@@ -2013,7 +2033,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->itemWidget->setObjectName ("chat-tab-session-item");
   QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
   itemLayout->setContentsMargins (0, 0, 0, 0);
-  itemLayout->setSpacing (DpiUtils::scaled (4));
+  itemLayout->setSpacing (DpiUtils::scaled (kSessionItemSpacing));
 
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
@@ -2040,7 +2060,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
                "#ffffff; } "
                "QPushButton:checked { background-color: #e8eefc; "
                "border-color: #9bb3ff; font-weight: 600; }")
-          .arg (DpiUtils::scaled (6))
+          .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (panel->sidebarButton, &QPushButton::clicked, this,
