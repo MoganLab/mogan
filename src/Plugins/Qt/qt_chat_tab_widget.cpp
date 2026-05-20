@@ -174,6 +174,12 @@ constexpr int kToggleIconSize= 20;
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
 constexpr int kFloatingBtnMarginY= 130;
+/// New chat 按钮图标尺寸（像素）。
+constexpr int kNewChatIconSize= 18;
+/// New chat 按钮固定高度（像素）。
+constexpr int kNewChatButtonHeight= 36;
+/// New chat 按钮固定宽度（像素）。
+constexpr int kNewChatButtonWidth= 140;
 
 } // namespace
 
@@ -332,22 +338,25 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   newChatButton_->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (newChatButton_, kNavButtonFontPx);
   newChatButton_->setIcon (QIcon (":llm-chat/addchat.svg"));
-  int newChatIconSize= DpiUtils::scaled (18);
-  newChatButton_->setIconSize (QSize (newChatIconSize, newChatIconSize));
+  newChatButton_->setIconSize (QSize (DpiUtils::scaled (kNewChatIconSize),
+                                      DpiUtils::scaled (kNewChatIconSize)));
+  newChatButton_->setFixedSize (
+      QSize (DpiUtils::scaled (kNewChatButtonWidth),
+             DpiUtils::scaled (kNewChatButtonHeight)));
   newChatButton_->setStyleSheet (
       QString ("QPushButton { text-align: center; border: none; "
                "border-radius: %1px; padding: %2px %3px; "
                "background-color: #ffffff; color: #333333; }"
                "QPushButton:hover { background-color: #e0e0e0; }")
-          .arg (DpiUtils::scaled (8))
+          .arg (DpiUtils::scaled (kNewChatButtonHeight / 2))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
 
   QGraphicsDropShadowEffect* newChatShadow=
       new QGraphicsDropShadowEffect (newChatButton_);
-  newChatShadow->setBlurRadius (DpiUtils::scaled (4));
-  newChatShadow->setColor (QColor (0, 0, 0, 40));
-  newChatShadow->setOffset (0, DpiUtils::scaled (2));
+  newChatShadow->setBlurRadius (DpiUtils::scaled (3));
+  newChatShadow->setColor (QColor (0, 0, 0, 25));
+  newChatShadow->setOffset (0, DpiUtils::scaled (1));
   newChatButton_->setGraphicsEffect (newChatShadow);
 
   connect (newChatButton_, &QPushButton::clicked, this, [this] () {
