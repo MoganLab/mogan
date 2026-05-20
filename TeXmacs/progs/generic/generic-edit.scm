@@ -109,7 +109,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define algo-macro-tags
-  '(algo-if algo-else-if
+  '(algo-if algo-else-if algo-else
      algo-while
      algo-for
      algo-for-all
@@ -163,6 +163,36 @@
     ) ;with
   ) ;and
 ) ;define
+
+(define (cursor-in-algo-macro-body-end? t)
+  "Check if cursor is at the end of the body (last param) of algo-macro t"
+  (and (tree-in? t algo-macro-tags)
+       (>= (tree-arity t) 1)
+       (let* ((body-idx (- (tree-arity t) 1))
+              (path (cursor-path))
+              (t-path (tree->path t)))
+         (and t-path
+              (> (length path) (length t-path))
+              (== (list-ref path (length t-path)) body-idx)
+              (let ((body (tm-ref t body-idx)))
+                (and body
+                     (let ((body-path (tree->path body)))
+                       (and body-path
+                            (or (== path (append body-path '(:end)))
+                                (and (> (tree-arity body) 0)
+                                     (with last-child (tm-ref body (- (tree-arity body) 1))
+                                       (and last-child
+                                            (with lc-path (tree->path last-child)
+                                              (and lc-path
+                                                   (> (length path) (length lc-path))
+                                                   (== (cAr path) :end)))))))))))))))
+
+(tm-define (kbd-horizontal t forwards?)
+  (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
+  (if (cursor-in-algo-macro-body-end? t)
+      (tree-go-to t :after)
+      (go-right))
+) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
