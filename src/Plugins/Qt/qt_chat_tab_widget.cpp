@@ -604,7 +604,9 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
   QHBoxLayout* floatingLayout= new QHBoxLayout (floatingContainer);
-  floatingLayout->setContentsMargins (0, 0, 0, 0);
+  floatingLayout->setContentsMargins (
+      DpiUtils::scaled (4), DpiUtils::scaled (4), DpiUtils::scaled (4),
+      DpiUtils::scaled (4));
   floatingLayout->setSpacing (0);
   floatingContainer->setStyleSheet (
       QString ("QWidget#chat-tab-floating-container { "
