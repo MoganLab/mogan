@@ -147,6 +147,8 @@
     <\unfolded-io>
       tikz]\ 
     <|unfolded-io>
+      \\usetikzlibrary{shapes.geometric}
+
       \\node[draw, circle] at (0,0) {A};
 
       \\node[draw, rectangle] at (2,0) {B};
