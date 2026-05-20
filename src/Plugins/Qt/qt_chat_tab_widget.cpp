@@ -1797,9 +1797,8 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
     buffer_load (msgBufUrl);
   }
 
-  panel->messageWidget=
-      texmacs_input_widget (tree (DOCUMENT, ""), make_chat_embedded_style (),
-                            msgBufUrl);
+  panel->messageWidget= texmacs_input_widget (
+      tree (DOCUMENT, ""), make_chat_embedded_style (), msgBufUrl);
 
   QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
   panel->messageFrame    = new QWidget (topPanel);
