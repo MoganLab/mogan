@@ -28,6 +28,7 @@
 #include <QLayout>
 #include <QMainWindow>
 #include <QSettings>
+#include <QSplitter>
 #include <QStackedWidget>
 
 #if defined(Q_OS_MAC) || defined(Q_OS_LINUX) || defined(Q_OS_WIN)
@@ -183,6 +184,24 @@ private:
   QString          lastLoadedPdfPath; ///\< 上次加载的 PDF 路径。
   bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
 
+  /* Split screen support */
+  struct PaneContentState {
+    bool    startupTabMode;
+    bool    pdfTabMode;
+    bool    chatTabMode;
+    QString currentPdfPath;
+    QString lastLoadedPdfPath;
+    PaneContentState ()
+        : startupTabMode (false), pdfTabMode (false), chatTabMode (false) {}
+  };
+  bool             splitMode;        ///\< 分屏模式是否激活。
+  int              activePane;       ///\< 当前活动 pane（0=左，1=右）。
+  QSplitter*       splitter;        ///\< 分屏分隔器。
+  QWidget*         leftPaneWidget;   ///\< 左 pane 容器。
+  QWidget*         rightPaneWidget;  ///\< 右 pane 容器。
+  PaneContentState leftPaneState;
+  PaneContentState rightPaneState;
+
 public:
   qt_tm_widget_rep (int mask, command _quit);
   ~qt_tm_widget_rep ();
@@ -201,6 +220,13 @@ public:
   void        openRenewalPage ();
   void        checkNetworkAvailable ();
   void        sync_startup_tab_mode ();
+
+  /* Split screen API */
+  void split_window_horizontally ();
+  void unsplit_window ();
+  bool is_split_mode () const { return splitMode; }
+  int  active_pane () const { return activePane; }
+  void set_active_pane (int pane);
   /**
    * @brief 同步聊天标签页控件的可见性。
    *
@@ -209,6 +235,7 @@ public:
    * 否则隐藏聊天控件并恢复编辑器。
    */
   void sync_chat_tab_mode ();
+  void sync_pane_content (int pane);
 
   friend class QTMInteractiveInputHelper;
 

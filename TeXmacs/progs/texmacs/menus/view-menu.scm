@@ -138,6 +138,10 @@
       ("200%" (change-zoom-factor 2.0))
       ---
       ("Other" (interactive other-zoom-factor)))
+  (-> "Split"
+      ("Split horizontally" (split-window-horizontally))
+      ("Unsplit" (unsplit-window))
+      ("Other pane" (other-pane)))
 
   ("Snap to pages" (toggle-snap-to-pages))
   ---
