@@ -178,9 +178,9 @@ void ensure_hidden_package_set ();
 
 void
 style_invalidate_cache () {
-  style_tree_cache             = hashmap<string, tree> ();
-  hidden_packages              = hashmap<string, bool> (false);
-  hidden_package_set           = hashmap<string, bool> (false);
+  style_tree_cache              = hashmap<string, tree> ();
+  hidden_packages               = hashmap<string, bool> (false);
+  hidden_package_set            = hashmap<string, bool> (false);
   hidden_package_set_initialized= false;
   if (sd != NULL) {
     tm_delete<style_data_rep> (sd);
