@@ -188,6 +188,26 @@
 
 ;;; ---------- 会话管理 ----------
 
+(define (chat-tab-add-default-style-packages!)
+  ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
+  (add-style-package "number-europe")
+  (add-style-package "preview-ref")
+  (with lan (get-preference "language")
+    (when (!= lan "english")
+      (set-document-language lan)
+      ;; 中文等 CJK 语言自动加载对应样式包
+      (when (== lan "chinese")
+        (add-style-package "chinese")
+        (add-style-package "table-captions-above")
+      ) ;when
+    ) ;when
+  ) ;with
+  ;; 插件样式包：动态检测，参考 session-edit 的 make-session
+  (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH"
+                      (string-append chat-tab-session-name ".ts")))
+    (add-style-package chat-tab-session-name))
+) ;define
+
 (define (chat-tab-ensure-session! session-id)
   (let ((st (chat-tab-get-state session-id)))
     (if st
@@ -195,9 +215,22 @@
       (let* ((model (or chat-tab-current-model "default"))
              (plugin-ses (string-append model ":chat-tab:" session-id))
              (new (chat-tab-state model))
+             (msg-buf (chat-tab-session->message-buffer session-id))
+             (in-buf (chat-tab-session->input-buffer session-id))
             ) ;
         (session-enable-text-input chat-tab-session-name plugin-ses)
         (chat-tab-set-state! session-id new)
+        ;; 初始化 message buffer 为 session 结构
+        (with-buffer msg-buf
+          (buffer-set-body msg-buf
+            `(session ,chat-tab-session-name ,plugin-ses (document)))
+          (buffer-pretend-saved msg-buf)
+          (chat-tab-add-default-style-packages!)
+        ) ;with-buffer
+        ;; input buffer 同样加载样式包
+        (with-buffer in-buf
+          (chat-tab-add-default-style-packages!)
+        ) ;with-buffer
         new
       ) ;let*
     ) ;if

@@ -79,7 +79,7 @@ extract_title (tree body, int maxLen) {
  */
 tree
 make_chat_embedded_style () {
-  return compound ("style", tuple ("generic", "llm"));
+  return compound ("style", tuple ("generic"));
 }
 
 /**
