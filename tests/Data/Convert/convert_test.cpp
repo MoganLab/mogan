@@ -99,7 +99,7 @@ TestConverter::test_tmu_raw_data_performance () {
 
   QElapsedTimer timer;
   timer.start ();
-  tree t= tmu_document_to_tree (s);
+  tree   t      = tmu_document_to_tree (s);
   qint64 elapsed= timer.elapsed ();
 
   cout << "Performance: parsed 1M hex bytes in " << (int) elapsed << " ms\n";
@@ -118,17 +118,16 @@ TestConverter::test_tmu_text_performance () {
 
   QElapsedTimer timer;
   timer.start ();
-  tree t= tmu_document_to_tree (s);
+  tree   t      = tmu_document_to_tree (s);
   qint64 elapsed= timer.elapsed ();
 
-  cout << "Performance: parsed 1M text chars in " << (int) elapsed
-      << " ms\n";
+  cout << "Performance: parsed 1M text chars in " << (int) elapsed << " ms\n";
   QVERIFY (!is_compound (t, "error"));
 }
 
 void
 TestConverter::test_tmu_real_file_performance () {
-  url    u  = url_system ("/home/da/DevTeam/chapter-4.tmu");
+  url    u= url_system ("/home/da/DevTeam/chapter-4.tmu");
   string doc_s;
   if (load_string (u, doc_s, false)) {
     QSKIP ("chapter-4.tmu not found");
@@ -136,11 +135,11 @@ TestConverter::test_tmu_real_file_performance () {
 
   QElapsedTimer timer;
   timer.start ();
-  tree t= tmu_document_to_tree (doc_s);
+  tree   t      = tmu_document_to_tree (doc_s);
   qint64 elapsed= timer.elapsed ();
 
-  cout << "Performance: parsed chapter-4.tmu (" << N (doc_s)
-      << " bytes) in " << (int) elapsed << " ms\n";
+  cout << "Performance: parsed chapter-4.tmu (" << N (doc_s) << " bytes) in "
+       << (int) elapsed << " ms\n";
   QVERIFY (!is_compound (t, "error"));
 }
 

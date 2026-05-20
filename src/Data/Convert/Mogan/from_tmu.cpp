@@ -15,11 +15,11 @@
 #include "preferences.hpp"
 #include "tree_helper.hpp"
 
+#include "tm_debug.hpp"
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/vars.hpp>
-#include "tm_debug.hpp"
 
 using lolly::data::decode_from_utf8;
 using lolly::data::from_hex;
@@ -157,8 +157,8 @@ tmu_reader::read_next () {
     // fast path: avoid creating temporary strings for ordinary characters
     while (pos < buf_N) {
       char ch= buf[pos];
-      if (ch == '\t' || ch == '\r' || ch == '\n' || ch == ' ' ||
-          ch == '<' || ch == '|' || ch == '>' || ch == '\\')
+      if (ch == '\t' || ch == '\r' || ch == '\n' || ch == ' ' || ch == '<' ||
+          ch == '|' || ch == '>' || ch == '\\')
         break;
       if ((buf[pos] & 0x80) == 0) {
         r << buf[pos++];
@@ -368,7 +368,7 @@ tree
 tmu_to_tree (string s) {
   bench_start ("tmu_to_tree");
   tmu_reader tmr (s);
-  tree t= tmr.read (true);
+  tree       t= tmr.read (true);
   bench_end ("tmu_to_tree");
   return t;
 }
@@ -377,7 +377,7 @@ tree
 tmu_to_tree (string s, string version) {
   bench_start ("tmu_to_tree");
   tmu_reader tmr (s, version);
-  tree t= tmr.read (true);
+  tree       t= tmr.read (true);
   bench_end ("tmu_to_tree");
   return t;
 }
