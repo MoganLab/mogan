@@ -465,8 +465,7 @@ private slots:
     QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
 
     QPoint beyondThreshold (
-        start.x (),
-        start.y () + QApplication::startDragDistance () + 2);
+        start.x (), start.y () + QApplication::startDragDistance () + 2);
     QTest::mouseMove (vp, beyondThreshold);
     QApplication::processEvents ();
 
@@ -614,8 +613,7 @@ private slots:
       QTest::mouseMove (vp, QPoint (50, 50 + i * 10));
       QApplication::processEvents ();
     }
-    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier,
-                         QPoint (50, 100));
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 100));
     int releasePos= vbar->value ();
 
     // 释放后等待一小段时间，惯性滚动应使值继续变化
@@ -653,8 +651,7 @@ private slots:
       QTest::mouseMove (vp, QPoint (50, 50 + i * 10));
       QApplication::processEvents ();
     }
-    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier,
-                         QPoint (50, 100));
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 100));
 
     // 等待足够长的时间让惯性滚动完全停止
     QTest::qWait (600);
