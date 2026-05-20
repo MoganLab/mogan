@@ -1550,6 +1550,7 @@
 ("new account" "新建账号")
 ("New Blank Document" "新建空白文档")
 ("new buffer" "")
+("new chat" "开启新对话")
 ("new column" "添加一行")
 ("new document" "新建文档")
 ("new double page before" "新起双页(在前面)")
