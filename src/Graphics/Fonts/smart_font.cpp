@@ -911,28 +911,30 @@ smart_font_rep::resolve (string c, string range, string fam, int attempt) {
                 << " in unicode range " << range << " in fam " << fam
                 << " mfam " << mfam << ", attempt " << attempt << LF;
   }
-  array<string> a= trimmed_tokenize (fam, "=");
-  if (N (a) >= 2) {
-    fam             = a[1];
-    array<string> b = tokenize (a[0], " ");
-    bool          ok= is_wanted (c, fam, b, given_font);
-    if (!ok) {
-      return -1;
-    }
+  if (occurs ("=", fam)) {
+    array<string> a= trimmed_tokenize (fam, "=");
+    if (N (a) >= 2) {
+      fam             = a[1];
+      array<string> b = tokenize (a[0], " ");
+      bool          ok= is_wanted (c, fam, b, given_font);
+      if (!ok) {
+        return -1;
+      }
 
-    fam= tex_gyre_fix (fam, series, shape);
-    fam= kepler_fix (fam, series, shape);
-    // fam= stix_fix (fam, series, shape);
+      fam= tex_gyre_fix (fam, series, shape);
+      fam= kepler_fix (fam, series, shape);
+      // fam= stix_fix (fam, series, shape);
 
-    if (math_kind != 0 && shape == "mathitalic" &&
-        (range == "greek" || (starts (c, "<b-") && ends (c, ">")) ||
-         c == "<imath>" || c == "<jmath>" || c == "<ell>")) {
-      font cfn= smart_font_bis (fam, variant, series, shape, sz, hdpi, dpi);
-      if (cfn->supports (c)) {
-        tree key= tuple ("subfont", fam);
-        int  nr = sm->add_font (key, REWRITE_NONE);
-        maybe_initialize_font (nr);
-        return sm->add_char (key, c);
+      if (math_kind != 0 && shape == "mathitalic" &&
+          (range == "greek" || (starts (c, "<b-") && ends (c, ">")) ||
+           c == "<imath>" || c == "<jmath>" || c == "<ell>")) {
+        font cfn= smart_font_bis (fam, variant, series, shape, sz, hdpi, dpi);
+        if (cfn->supports (c)) {
+          tree key= tuple ("subfont", fam);
+          int  nr = sm->add_font (key, REWRITE_NONE);
+          maybe_initialize_font (nr);
+          return sm->add_char (key, c);
+        }
       }
     }
   }
