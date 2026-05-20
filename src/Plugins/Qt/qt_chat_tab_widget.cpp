@@ -109,8 +109,10 @@ constexpr int kSidebarMarginX= 12;
 constexpr int kSidebarMarginY= 16;
 /// 边栏元素间距。
 constexpr int kSidebarSpacing= 8;
+/// 导航chat字体大小（像素）。
+constexpr int kNavChatFontPx= 22;
 /// 导航标题字体大小（像素）。
-constexpr int kNavTitleFontPx= 22;
+constexpr int kNavTitleFontPx= 11;
 /// 导航标题内边距。
 constexpr int kNavTitlePadding= 4;
 /// 导航按钮垂直内边距。
@@ -296,7 +298,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   QLabel* navTitle= new QLabel ("Chat", headerWidget);
   navTitle->setObjectName ("chat-tab-nav-title");
-  DpiUtils::applyScaledFont (navTitle, kNavTitleFontPx);
+  DpiUtils::applyScaledFont (navTitle, kNavChatFontPx);
   headerLayout->addWidget (navTitle);
 
   headerLayout->addStretch ();
