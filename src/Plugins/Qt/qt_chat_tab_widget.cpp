@@ -335,17 +335,17 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   int newChatIconSize= DpiUtils::scaled (18);
   newChatButton_->setIconSize (QSize (newChatIconSize, newChatIconSize));
   newChatButton_->setStyleSheet (
-      QString ("QPushButton { text-align: left; border: none; "
+      QString ("QPushButton { text-align: center; border: none; "
                "border-radius: %1px; padding: %2px %3px; "
                "background-color: #ffffff; color: #333333; }"
-               "QPushButton:hover { background-color: #f0f0f0; }")
-          .arg (DpiUtils::scaled (6))
+               "QPushButton:hover { background-color: #e0e0e0; }")
+          .arg (DpiUtils::scaled (8))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
 
   QGraphicsDropShadowEffect* newChatShadow=
       new QGraphicsDropShadowEffect (newChatButton_);
-  newChatShadow->setBlurRadius (DpiUtils::scaled (8));
+  newChatShadow->setBlurRadius (DpiUtils::scaled (4));
   newChatShadow->setColor (QColor (0, 0, 0, 40));
   newChatShadow->setOffset (0, DpiUtils::scaled (2));
   newChatButton_->setGraphicsEffect (newChatShadow);
