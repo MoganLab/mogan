@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.2.3>>
+<TMU|<tuple|1.1.0|2026.2.5>>
 
 <style|<tuple|generic|chinese|number-europe|modern-program|python>>
 
@@ -127,15 +127,17 @@
     </python-code>
   </listing>
 
-  <\algo-if|<math|N> is even>
-    <algo-state|<math|X\<leftarrow\>X\<times\>X>>
-  </algo-if>
-
   <\listing>
+    <\algo-if|<math|N\<gtr\>2>>
+      <math|X\<leftarrow\>X+1>
+    </algo-if>
+
     <\algo-else>
       <algo-state|<math|X\<leftarrow\>X\<times\>X>>
     </algo-else>
   </listing>
+
+  \;
 
   \;
 </body>
