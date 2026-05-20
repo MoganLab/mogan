@@ -445,6 +445,7 @@ private slots:
     delete widget;
   }
 
+
   void test_dragCursorChangesToClosedHand () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (400, 300);
@@ -688,7 +689,7 @@ private slots:
 
     // inject a link covering the top-left area of page 0
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "#page=2";
     links.append (link);
@@ -722,7 +723,7 @@ private slots:
     QVERIFY (vp != nullptr);
 
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.3, 0.3);
     link.uri = "#page=2";
     links.append (link);
@@ -770,7 +771,7 @@ private slots:
 
     // inject an internal link at page 0
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "#page=1";
     links.append (link);
@@ -816,7 +817,7 @@ private slots:
              [&capturedUri] (const QString& uri) { capturedUri= uri; });
 
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "https://example.com";
     links.append (link);
@@ -860,7 +861,7 @@ private slots:
              [&capturedUri] (const QString& uri) { capturedUri= uri; });
 
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "https://example.com";
     links.append (link);
@@ -904,7 +905,7 @@ private slots:
     QVERIFY (vp != nullptr);
 
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "#page=1";
     links.append (link);
@@ -933,9 +934,9 @@ private slots:
     // Now use postEvent to simulate event-loop delivery (like QTest::mouseMove
     // but guaranteed to work in headless environments)
     {
-      QMouseEvent* moveEvent= new QMouseEvent (QEvent::MouseMove, QPoint (50, 50),
-                                               Qt::NoButton, Qt::NoButton,
-                                               Qt::NoModifier);
+      QMouseEvent* moveEvent=
+          new QMouseEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                           Qt::NoButton, Qt::NoModifier);
       QCoreApplication::postEvent (vp, moveEvent);
     }
     QApplication::processEvents ();
@@ -970,7 +971,7 @@ private slots:
              [&capturedUri] (const QString& uri) { capturedUri= uri; });
 
     QVector<PdfLink> links;
-    PdfLink            link;
+    PdfLink          link;
     link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
     link.uri = "https://example.com";
     links.append (link);
