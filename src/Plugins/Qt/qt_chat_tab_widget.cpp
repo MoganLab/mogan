@@ -164,6 +164,8 @@ constexpr int kFloatingBtnMarginX= 12;
 constexpr int kFloatingBtnMarginY= 130;
 /// 浮球容器内边距（像素）。
 constexpr int kFloatingContainerPad= 4;
+/// 浮球按钮间距（像素）。
+constexpr int kFloatingBtnSpacing= 4;
 /// New chat 按钮图标尺寸（像素）。
 constexpr int kNewChatIconSize= 18;
 /// New chat 按钮固定高度（像素）。
@@ -628,7 +630,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
                                       DpiUtils::scaled (kFloatingContainerPad),
                                       DpiUtils::scaled (kFloatingContainerPad),
                                       DpiUtils::scaled (kFloatingContainerPad));
-  floatingLayout->setSpacing (0);
+  floatingLayout->setSpacing (DpiUtils::scaled (kFloatingBtnSpacing));
   floatingContainer->setStyleSheet (
       QString ("QWidget#chat-tab-floating-container { "
                "background-color: #e8e8e8; border-radius: %1px; }")
