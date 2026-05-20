@@ -176,6 +176,8 @@ constexpr int kFloatingBtnMarginX= 12;
 constexpr int kFloatingBtnMarginY= 130;
 /// 浮球新建聊天按钮水平边距（像素）。
 constexpr int kFloatingNewChatBtnMarginX= 60;
+/// 浮球容器内边距（像素）。
+constexpr int kFloatingContainerPad= 4;
 /// New chat 按钮图标尺寸（像素）。
 constexpr int kNewChatIconSize= 18;
 /// New chat 按钮固定高度（像素）。
@@ -605,13 +607,16 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   floatingContainer->setObjectName ("chat-tab-floating-container");
   QHBoxLayout* floatingLayout= new QHBoxLayout (floatingContainer);
   floatingLayout->setContentsMargins (
-      DpiUtils::scaled (4), DpiUtils::scaled (4), DpiUtils::scaled (4),
-      DpiUtils::scaled (4));
+      DpiUtils::scaled (kFloatingContainerPad),
+      DpiUtils::scaled (kFloatingContainerPad),
+      DpiUtils::scaled (kFloatingContainerPad),
+      DpiUtils::scaled (kFloatingContainerPad));
   floatingLayout->setSpacing (0);
   floatingContainer->setStyleSheet (
       QString ("QWidget#chat-tab-floating-container { "
                "background-color: #e8e8e8; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2 +
+                                  kFloatingContainerPad)));
 
   QPushButton* floatingBtn=
       setup_floating_button (floatingContainer, "chat-tab-floating-expand-btn",
