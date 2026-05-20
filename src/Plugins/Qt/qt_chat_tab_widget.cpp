@@ -1330,7 +1330,7 @@ QTChatTabWidget::update_send_button (ChatConversationPanel* panel,
 
   disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
   if (state == ChatState::Generating) {
-    panel->sendButton->setToolTip ("Stop");
+    panel->sendButton->setToolTip ("Cancel");
     panel->sendButton->setIcon (QIcon (":llm-chat/cancel.svg"));
     connect (panel->sendButton, &QPushButton::clicked, this,
              [this, panel] () { handle_cancel (panel); });
@@ -1887,7 +1887,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->sendButton->setFocusPolicy (Qt::NoFocus);
   panel->sendButton->setCursor (Qt::PointingHandCursor);
   panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (24);
+  int sendIconSize= DpiUtils::scaled (30);
   panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
   panel->sendButton->setFixedSize (DpiUtils::scaled (36),
                                    DpiUtils::scaled (36));

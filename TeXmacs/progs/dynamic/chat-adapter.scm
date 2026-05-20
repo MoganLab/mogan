@@ -94,9 +94,11 @@
   (:synopsis "Adapter cancel entry for a chat tab")
   (:argument session-id "Session UUID")
   (let* ((st (chat-tab-get-state session-id))
-         (model (chat-tab-state-model st))
+         (model (if st (chat-tab-state-model st) "default"))
          (plugin-ses (string-append model ":chat-tab:" session-id))
         ) ;
-    (plugin-cancel chat-tab-session-name plugin-ses #f)
+    (if (== (connection-status "llm" plugin-ses) 3)
+      (connection-interrupt "llm" plugin-ses))
+    (plugin-cancel "llm" plugin-ses #f)
   ) ;let*
 ) ;tm-define
