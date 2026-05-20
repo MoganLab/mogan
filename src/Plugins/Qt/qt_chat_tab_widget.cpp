@@ -332,7 +332,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   normalLayout->addWidget (headerWidget);
 
   // New chat 按钮
-  newChatButton_= new QPushButton ("New chat", normalContent);
+  newChatButton_= new QPushButton (qt_translate ("New chat"), normalContent);
   newChatButton_->setObjectName ("chat-tab-new-btn");
   newChatButton_->setFocusPolicy (Qt::NoFocus);
   newChatButton_->setCursor (Qt::PointingHandCursor);
@@ -346,8 +346,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   newChatButton_->setStyleSheet (
       QString ("QPushButton { text-align: center; border: none; "
                "border-radius: %1px; padding: %2px %3px; "
-               "background-color: #ffffff; color: #333333; }"
-               "QPushButton:hover { background-color: #e0e0e0; }")
+               "background-color: #ffffff; color: #333333; }")
           .arg (DpiUtils::scaled (kNewChatButtonHeight / 2))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
@@ -359,12 +358,14 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   newChatShadow->setOffset (0, DpiUtils::scaled (1));
   newChatButton_->setGraphicsEffect (newChatShadow);
 
+  newChatButton_->setAttribute (Qt::WA_Hover);
+  newChatButton_->installEventFilter (this);
   connect (newChatButton_, &QPushButton::clicked, this, [this] () {
     string model=
         as_string (call ("chat-tab-session-select-model", string ("")));
     create_new_conversation_with_model (model);
   });
-  normalLayout->addWidget (newChatButton_);
+  normalLayout->addWidget (newChatButton_, 0, Qt::AlignHCenter);
 
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
   conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
@@ -1499,6 +1500,26 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
         ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (ptr);
         handle_send (panel);
         return true;
+      }
+    }
+  }
+  if (watched == newChatButton_) {
+    if (event->type () == QEvent::HoverEnter) {
+      if (QGraphicsDropShadowEffect* effect=
+              qobject_cast<QGraphicsDropShadowEffect*> (
+                  newChatButton_->graphicsEffect ())) {
+        effect->setBlurRadius (DpiUtils::scaled (6));
+        effect->setColor (QColor (0, 0, 0, 50));
+        effect->setOffset (0, DpiUtils::scaled (2));
+      }
+    }
+    else if (event->type () == QEvent::HoverLeave) {
+      if (QGraphicsDropShadowEffect* effect=
+              qobject_cast<QGraphicsDropShadowEffect*> (
+                  newChatButton_->graphicsEffect ())) {
+        effect->setBlurRadius (DpiUtils::scaled (3));
+        effect->setColor (QColor (0, 0, 0, 25));
+        effect->setOffset (0, DpiUtils::scaled (1));
       }
     }
   }
