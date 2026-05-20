@@ -1266,11 +1266,14 @@
       (let* ((eval-start (texmacs-time))
              (linked ((eval name)))
              (eval-ms (- (texmacs-time) eval-start))
+             (count-before menu-expand-count)
              (expand-start (texmacs-time))
              (result (if linked (menu-expand linked) p))
-             (expand-ms (- (texmacs-time) expand-start)))
+             (expand-ms (- (texmacs-time) expand-start))
+             (count-after menu-expand-count))
         (when (> (+ eval-ms expand-ms) 5)
-          (display* "  link [" eval-ms "+" expand-ms "ms] " name "\n"))
+          (display* "  link [" eval-ms "+" expand-ms "ms, "
+                    (- count-after count-before) " nodes] " name "\n"))
         (when (and (static-menu-link? name) linked)
           (ahash-set! menu-expand-link-cache name result))
         result))))
@@ -1398,13 +1401,16 @@
   `(toggle ,(replace-procedures (cadr p)) ,((caddr p)))
 ) ;define
 
+(define menu-expand-count 0)
+
 (define (menu-expand-list l)
   "Expand links and conditional menus in list of menus @l."
   (map (lambda (item)
+         (set! menu-expand-count (+ menu-expand-count 1))
          (let* ((start (texmacs-time))
                 (result (menu-expand item))
                 (elapsed (- (texmacs-time) start)))
-           (when (> elapsed 5)
+           (when (> elapsed 1)
              (display* "  expand-item [" elapsed "ms] "
                (if (pair? item) (car item) item) "\n"))
            result))
