@@ -481,12 +481,12 @@ qt_simple_widget_rep::repaint_invalid_regions () {
     backing_pos= origin;
 
     QPixmap  newBackingPixmap (backingPixmap->size ());
+    newBackingPixmap.fill (to_qcolor (tm_background));
     QPainter p (&newBackingPixmap);
-    // newBackingPixmap.fill (Qt::black);
     p.drawPixmap (-dx, -dy, *backingPixmap);
     p.end ();
     *backingPixmap= newBackingPixmap;
-    // cout << "SCROLL CONTENTS BY " << dx << " " << dy << LF;
+    cout << "[0150] Scroll backing pixmap, fill with tm_background" << "\n";
 
     rectangles invalid;
     while (!is_nil (invalid_regions)) {
@@ -537,6 +537,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
     if (_newSize != _oldSize) {
       // cout << "RESIZING BITMAP"<< LF;
       QPixmap  newBackingPixmap (_newSize);
+      newBackingPixmap.fill (to_qcolor (tm_background));
       QPainter p (&newBackingPixmap);
       p.drawPixmap (0, 0, *backingPixmap);
       // p.fillRect (0, 0, _newSize.width(), _newSize.height(), Qt::red);
@@ -557,6 +558,7 @@ qt_simple_widget_rep::repaint_invalid_regions () {
       }
       p.end ();
       *backingPixmap= newBackingPixmap;
+      cout << "[0150] Resize backing pixmap, fill with tm_background" << "\n";
     }
   }
 
