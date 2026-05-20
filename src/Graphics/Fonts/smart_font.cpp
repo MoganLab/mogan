@@ -1771,11 +1771,14 @@ smart_font_bis (string family, string variant, string series, string shape,
     sz_str= as_string (sz); // 0.5倍数，保留一位小数
   }
 
-  string name= family * "-" * variant * "-" * series * "-" * shape * "-" *
-               sz_str * "-" * as_string (vdpi) * "-smart";
-  if (hdpi != vdpi)
-    name= family * "-" * variant * "-" * series * "-" * shape * "-" * sz_str *
-          "-" * as_string (hdpi) * "-" * as_string (vdpi) * "-smart";
+  string vdpi_str= as_string (vdpi);
+  string name    = family * "-" * variant * "-" * series * "-" * shape * "-" *
+               sz_str * "-" * vdpi_str * "-smart";
+  if (hdpi != vdpi) {
+    string hdpi_str= as_string (hdpi);
+    name           = family * "-" * variant * "-" * series * "-" * shape * "-" *
+           sz_str * "-" * hdpi_str * "-" * vdpi_str * "-smart";
+  }
   if (font::instances->contains (name)) return font (name);
   if (starts (family, "tc")) {
     // FIXME: temporary hack for symbols from std-symbol.ts
@@ -1817,7 +1820,6 @@ smart_font_bis (string family, string variant, string series, string shape,
 font
 smart_font (string family, string variant, string series, string shape,
             double sz, int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (variant == "rm")
     return smart_font_bis (family, variant, series, shape, sz, dpi, dpi);
   array<string> lfn1= logical_font (family, "rm", series, shape);
@@ -1838,7 +1840,6 @@ font
 math_smart_font (string family, string variant, string series, string shape,
                  string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman" || starts (tfam, "sys-")) {
     tfam= family;
   }
@@ -1854,7 +1855,6 @@ font
 prog_smart_font (string family, string variant, string series, string shape,
                  string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman") {
     tfam= family;
   }
