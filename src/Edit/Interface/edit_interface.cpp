@@ -16,7 +16,6 @@
 #include "file.hpp"
 #include "gui.hpp" // for gui_interrupted
 #include "message.hpp"
-#include "tm_debug.hpp"
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
@@ -73,7 +72,7 @@ edit_interface_rep::edit_interface_rep ()
       mouse_adjusting (false), oc (0, 0), temp_invalid_cursor (false),
       hover_image_rect (0, 0, 0, 0), hover_image_path (),
       table_env_cache (rectangles ()), shadow (NULL), stored (NULL), cur_sb (2),
-      cur_wb (2), deferred_icons_p (false) {
+      cur_wb (2) {
   user_active= false;
   input_mode = INPUT_NORMAL;
   gui_root_extents (cur_wx, cur_wy);
@@ -110,25 +109,15 @@ edit_interface_rep::suspend () {
 }
 
 void
-edit_interface_rep::resume (bool deferred_icons) {
+edit_interface_rep::resume () {
   // cout << "Resume " << buf->buf->name << LF;
   got_focus= true;
-  deferred_icons_p= deferred_icons;
   SERVER (menu_main ("(horizontal (link texmacs-menu))"));
-  if (deferred_icons) {
-    SERVER (show_icon_bar (0, false));
-    SERVER (show_icon_bar (1, false));
-    SERVER (show_icon_bar (2, false));
-    SERVER (show_icon_bar (3, false));
-    SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  }
-  else {
-    SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-    SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-    SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-    SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
-    SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  }
+  SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
+  SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
+  SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
+  SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
+  SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
   SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
   array<url> a= buffer_to_windows (buf->buf->name);
   if (N (a) > 0) {
@@ -156,19 +145,6 @@ edit_interface_rep::resume (bool deferred_icons) {
   // after a bugfix by Massimiliano during summer 2016
   eval ("(delayed (:idle 1) (refresh-window))");
 #endif
-}
-
-void
-edit_interface_rep::resume_icons () {
-  SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-  SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-  SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-  SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
-  SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  SERVER (show_icon_bar (1, true));
-  SERVER (show_icon_bar (2, true));
-  SERVER (show_icon_bar (4, true));
-  deferred_icons_p= false;
 }
 
 void

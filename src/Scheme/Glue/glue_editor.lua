@@ -1935,11 +1935,6 @@ function main()
                 ret_type = "void"
             },
             {
-                scm_name = "resume-icons",
-                cpp_name = "resume_icons",
-                ret_type = "void"
-            },
-            {
                 scm_name = "update-forced",
                 cpp_name = "typeset_forced",
                 ret_type = "void"

@@ -283,10 +283,8 @@ new_buffer_in_new_window (url name, tree doc, tree geom) {
 
 url
 create_buffer () {
-  bench_start ("create_buffer");
   url name= make_new_buffer ();
   switch_to_buffer (name);
-  bench_end ("create_buffer");
   return name;
 }
 
