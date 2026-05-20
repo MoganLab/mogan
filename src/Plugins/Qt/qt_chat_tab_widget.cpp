@@ -1287,6 +1287,7 @@ QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
   if (!as_bool (call ("chat-tab-send", panel->sessionId))) return;
 
   sessionManager_.setState (panel->sessionId, ChatState::Generating);
+  update_send_button (panel, ChatState::Generating);
   enter_conversation_mode (panel);
   refresh_sidebar ();
   focus_input_editor (panel);
@@ -1314,6 +1315,32 @@ QTChatTabWidget::handle_cancel (ChatConversationPanel* panel) {
   if (!panel) return;
   call ("chat-tab-cancel", panel->sessionId);
   sessionManager_.setState (panel->sessionId, ChatState::Idle);
+  update_send_button (panel, ChatState::Idle);
+}
+
+/**
+ * @brief 更新发送/取消按钮的图标和点击行为。
+ * @param panel 目标会话面板。
+ * @param state 当前生成状态。
+ */
+void
+QTChatTabWidget::update_send_button (ChatConversationPanel* panel,
+                                     ChatState              state) {
+  if (!panel || !panel->sendButton) return;
+
+  disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
+  if (state == ChatState::Generating) {
+    panel->sendButton->setToolTip ("Cancel");
+    panel->sendButton->setIcon (QIcon (":llm-chat/cancel.svg"));
+    connect (panel->sendButton, &QPushButton::clicked, this,
+             [this, panel] () { handle_cancel (panel); });
+  }
+  else {
+    panel->sendButton->setToolTip ("Send");
+    panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
+    connect (panel->sendButton, &QPushButton::clicked, this,
+             [this, panel] () { handle_send (panel); });
+  }
 }
 
 /**
@@ -1336,17 +1363,8 @@ QTChatTabWidget::notifyStateChanged (const string& sessionId,
       static_cast<ChatConversationPanel*> (session->panel);
   if (!panel || !panel->sendButton) return;
 
-  if (newState == ChatState::Generating) {
-    panel->sendButton->setToolTip ("Stop");
-    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
-    connect (panel->sendButton, &QPushButton::clicked, this,
-             [this, panel] () { handle_cancel (panel); });
-  }
-  else {
-    panel->sendButton->setToolTip ("Send");
-    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
-    connect (panel->sendButton, &QPushButton::clicked, this,
-             [this, panel] () { handle_send (panel); });
+  update_send_button (panel, newState);
+  if (newState == ChatState::Idle) {
     // 模型输出结束，保存会话内容
     saveOneSession (sessionId);
   }
@@ -1869,7 +1887,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->sendButton->setFocusPolicy (Qt::NoFocus);
   panel->sendButton->setCursor (Qt::PointingHandCursor);
   panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (24);
+  int sendIconSize= DpiUtils::scaled (30);
   panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
   panel->sendButton->setFixedSize (DpiUtils::scaled (36),
                                    DpiUtils::scaled (36));
