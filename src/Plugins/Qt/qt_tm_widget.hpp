@@ -186,13 +186,15 @@ private:
 
   /* Split screen support */
   struct PaneContentState {
-    bool    startupTabMode;
-    bool    pdfTabMode;
-    bool    chatTabMode;
-    QString currentPdfPath;
-    QString lastLoadedPdfPath;
+    bool      startupTabMode;
+    bool      pdfTabMode;
+    bool      chatTabMode;
+    QString   currentPdfPath;
+    QString   lastLoadedPdfPath;
+    qt_widget editorWidget; // 该 pane 中显示的编辑器 widget
     PaneContentState ()
-        : startupTabMode (false), pdfTabMode (false), chatTabMode (false) {}
+        : startupTabMode (false), pdfTabMode (false), chatTabMode (false),
+          editorWidget (NULL) {}
   };
   bool             splitMode;        ///\< 分屏模式是否激活。
   int              activePane;       ///\< 当前活动 pane（0=左，1=右）。

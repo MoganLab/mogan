@@ -1647,15 +1647,19 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
     QLayout* l= centralwidget ()->layout ();
     if (q) {
       if (splitMode) {
-        // In split mode, remove old widget from whichever pane it is in
-        QWidget* oldPane= activePane == 0 ? leftPaneWidget : rightPaneWidget;
-        QWidget* otherPane= activePane == 0 ? rightPaneWidget : leftPaneWidget;
-        if (oldPane && oldPane->layout () && oldPane->layout ()->indexOf (q) >= 0) {
-          oldPane->layout ()->removeWidget (q);
-        }
-        else if (otherPane && otherPane->layout () &&
-                 otherPane->layout ()->indexOf (q) >= 0) {
-          otherPane->layout ()->removeWidget (q);
+        // Save current main_widget into the active pane state before
+        // replacing it, so that we can restore it when switching back.
+        PaneContentState& state=
+            activePane == 0 ? leftPaneState : rightPaneState;
+        state.editorWidget= main_widget;
+
+        // Only remove from the active pane (or central layout), never
+        // from the other pane -- that pane keeps its own content.
+        QWidget* activePaneW=
+            activePane == 0 ? leftPaneWidget : rightPaneWidget;
+        if (activePaneW && activePaneW->layout () &&
+            activePaneW->layout ()->indexOf (q) >= 0) {
+          activePaneW->layout ()->removeWidget (q);
         }
         else if (l->indexOf (q) >= 0) {
           l->removeWidget (q);
@@ -3072,6 +3076,7 @@ qt_tm_widget_rep::split_window_horizontally () {
   leftPaneState.chatTabMode    = chatTabMode;
   leftPaneState.currentPdfPath = currentPdfPath;
   leftPaneState.lastLoadedPdfPath= lastLoadedPdfPath;
+  leftPaneState.editorWidget   = main_widget;
   rightPaneState= PaneContentState ();
 
   QWidget* cw= centralwidget ();
@@ -3182,6 +3187,28 @@ qt_tm_widget_rep::set_active_pane (int pane) {
   chatTabMode    = state.chatTabMode;
   currentPdfPath = state.currentPdfPath;
   lastLoadedPdfPath= state.lastLoadedPdfPath;
+
+  // If the target pane has its own editor widget, restore it as main_widget.
+  if (!is_nil (state.editorWidget)) {
+    QWidget* qw= state.editorWidget->qwid;
+    if (qw) {
+      // Move the restored widget into the active pane if needed.
+      QWidget* paneWidget= activePane == 0 ? leftPaneWidget : rightPaneWidget;
+      if (paneWidget && paneWidget->layout () &&
+          paneWidget->layout ()->indexOf (qw) < 0) {
+        // Remove from other pane or central layout first.
+        QWidget* otherPane= activePane == 0 ? rightPaneWidget : leftPaneWidget;
+        if (otherPane && otherPane->layout () &&
+            otherPane->layout ()->indexOf (qw) >= 0) {
+          otherPane->layout ()->removeWidget (qw);
+        }
+        QLayout* cl= centralwidget ()->layout ();
+        if (cl->indexOf (qw) >= 0) cl->removeWidget (qw);
+        show_widget_in_layout (qw, paneWidget->layout ());
+      }
+      main_widget= state.editorWidget;
+    }
+  }
 
   // Refresh menu bar for the new active pane context
   install_main_menu ();
