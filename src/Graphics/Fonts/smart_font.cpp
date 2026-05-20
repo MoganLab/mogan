@@ -906,7 +906,15 @@ is_wanted (string c, string family, array<string> rules, array<string> given) {
 
 int
 smart_font_rep::resolve (string c, string fam, int attempt) {
-  string range= get_unicode_range (c);
+  return resolve (c, get_unicode_range (c), fam, attempt);
+}
+
+int
+smart_font_rep::resolve (string c, string range, string fam, int attempt) {
+#ifdef LIII_DEBUG
+  cout << "resolve(c, range, fam, attempt) using cached range=" << range
+       << " for c=" << c << "\n";
+#endif
   if (DEBUG_VERBOSE) {
     debug_fonts << "Resolve " << c << " in math_kind " << math_kind
                 << " in unicode range " << range << " in fam " << fam
@@ -1149,6 +1157,9 @@ smart_font_rep::resolve (string c) {
   array<string> a= family_tokens;
 
   // Special handling for emoji characters - bypass font-family restrictions
+#ifdef LIII_DEBUG
+  cout << "resolve(c) calling get_unicode_range for " << c << "\n";
+#endif
   string range= get_unicode_range (c);
   // 如果设置了字体，就优先使用当前设置的字体
   if (fn[SUBFONT_MAIN]->supports (c)) {
@@ -1243,7 +1254,7 @@ smart_font_rep::resolve (string c) {
   for (int attempt= 1; attempt <= FONT_ATTEMPTS; attempt++) {
     if (attempt > 1 && substitute_math_letter (c, math_kind) != "") break;
     for (int i= 0; i < N (a); i++) {
-      int nr= resolve (c, a[i], attempt);
+      int nr= resolve (c, range, a[i], attempt);
       if (nr >= 0) {
         // initialize_font (nr);
         // cout << "Found " << c << " in " << fn[nr]->res_name << "\n";
