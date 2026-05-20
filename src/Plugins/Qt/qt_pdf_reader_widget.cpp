@@ -9,7 +9,6 @@
 
 #include <QApplication>
 #include <QClipboard>
-#include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QFrame>
@@ -84,6 +83,22 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
                         QScrollerProperties::OvershootAlwaysOff);
   prop.setScrollMetric (QScrollerProperties::DragStartDistance, 0.0);
   scroller_->setScrollerProperties (prop);
+
+  // 保持与 QScrollArea 内部一致的步长（Okular 同款 magic value）
+  scrollArea_->verticalScrollBar ()->setSingleStep (20);
+  scrollArea_->horizontalScrollBar ()->setSingleStep (20);
+
+  // 滚动条与 QScroller 同步（Okular 同款）
+  auto syncScroller= [this]() {
+    QScrollBar* hbar= scrollArea_->horizontalScrollBar ();
+    QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+    scroller_->scrollTo (QPoint (hbar->value (), vbar->value ()), 0);
+  };
+  connect (scrollArea_->verticalScrollBar (), &QAbstractSlider::actionTriggered,
+           this, syncScroller, Qt::QueuedConnection);
+  connect (scrollArea_->horizontalScrollBar (),
+           &QAbstractSlider::actionTriggered, this, syncScroller,
+           Qt::QueuedConnection);
 
   mainLayout_->addWidget (scrollArea_);
 
@@ -1065,7 +1080,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         browseDragActive_  = false;
         browseDragStartPos_= mouseEvent->globalPosition ().toPoint ();
         scroller_->handleInput (QScroller::InputPress, mouseEvent->pos (),
-                                QDateTime::currentMSecsSinceEpoch ());
+                                mouseEvent->timestamp ());
         scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
 #ifdef LIII_DEBUG
         cout << "Browse press at " << mouseEvent->pos ().x () << ","
@@ -1088,7 +1103,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
 #endif
       }
       scroller_->handleInput (QScroller::InputMove, mouseEvent->pos (),
-                              QDateTime::currentMSecsSinceEpoch ());
+                              mouseEvent->timestamp ());
       mouseEvent->accept ();
       return true;
     }
@@ -1099,7 +1114,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         browseDragging_= false;
         scrollArea_->viewport ()->setCursor (Qt::OpenHandCursor);
         scroller_->handleInput (QScroller::InputRelease, mouseEvent->pos (),
-                                QDateTime::currentMSecsSinceEpoch ());
+                                mouseEvent->timestamp ());
 #ifdef LIII_DEBUG
         cout << "Browse release, wasDrag=" << browseDragActive_ << "\n";
 #endif
