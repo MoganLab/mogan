@@ -1023,11 +1023,13 @@ PDFReaderWidget::extractPageLinks () {
           PdfLink pl;
           pl.uri = QString::fromUtf8 (link->uri);
           pl.page= -1;
-          // normalized coordinates (MuPDF: origin at bottom-left,
-          // Qt: origin at top-left, so flip Y)
+          // normalized coordinates
+          // MuPDF link rects and fz_bound_page both use the same coordinate
+          // space, so no Y-flip is needed — just normalize relative to the
+          // page box origin.
           if (pageW > 0 && pageH > 0) {
             pl.rect= QRectF ((link->rect.x0 - pageBounds.x0) / pageW,
-                             (pageBounds.y1 - link->rect.y1) / pageH,
+                             (link->rect.y0 - pageBounds.y0) / pageH,
                              (link->rect.x1 - link->rect.x0) / pageW,
                              (link->rect.y1 - link->rect.y0) / pageH);
           }
