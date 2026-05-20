@@ -63,7 +63,9 @@ new_breaker_rep::break_uniform (path b1, path b2) {
     path        key= b1 * path (-1, b2);
     array<path> r  = cache_uniform[key];
     if (N (r) != 0) return r;
-    // cout << "Break uniform " << b1 << ", " << b2 << LF;
+#ifdef LIII_DEBUG
+    cout << "Break uniform " << b1 << ", " << b2 << LF;
+#endif
     int  i1= b1->item, i2= b2->item;
     path bm;
     if (i1 < i2 && i1 < col_same[i2 - 1])
@@ -79,7 +81,9 @@ new_breaker_rep::break_uniform (path b1, path b2) {
     r->resize (N (r) - 1);
     r << break_uniform (bm, b2);
     cache_uniform (key)= r;
-    // cout << "Break uniform " << b1 << ", " << b2 << " ~> " << r << LF;
+#ifdef LIII_DEBUG
+    cout << "Break uniform " << b1 << ", " << b2 << " ~> " << r << LF;
+#endif
     return r;
   }
 }
@@ -203,17 +207,22 @@ new_breaker_rep::search_rightwards (path b1, path b2, path b, double fr) {
 path
 new_breaker_rep::break_columns_at (path b1, path b2, double fr) {
   if (b1 == b2) return b1;
-  // cout << "Break " << b1 << ", " << b2 << " at " << h << LF;
+#ifdef LIII_DEBUG
+  cout << "Break " << b1 << ", " << b2 << " at " << fr << LF;
+#endif
   path bm= break_columns_ansatz (b1, b2, b1, b2, fr);
-  // cout << "Ansatz " << bm << LF;
-  // if (b1 == path (0) && b2 == path (16))
-  //   cout << "Ansatz ~> " << bm << LF;
+#ifdef LIII_DEBUG
+  cout << "Ansatz " << bm << LF;
+  if (b1 == path (0) && b2 == path (16)) cout << "Ansatz ~> " << bm << LF;
+#endif
   path bl= search_leftwards (b1, b2, bm, fr);
-  // if (b1 == path (0) && b2 == path (16))
-  //   cout << "Left ~> " << bl << LF;
+#ifdef LIII_DEBUG
+  if (b1 == path (0) && b2 == path (16)) cout << "Left ~> " << bl << LF;
+#endif
   path br= search_rightwards (b1, b2, bm, fr);
-  // if (b1 == path (0) && b2 == path (16))
-  //   cout << "Right ~> " << br << LF;
+#ifdef LIII_DEBUG
+  if (b1 == path (0) && b2 == path (16)) cout << "Right ~> " << br << LF;
+#endif
   int penl= compute_penalty (bl);
   int penr= compute_penalty (br);
   if (penl == HYPH_INVALID) return br;
@@ -248,13 +257,17 @@ new_breaker_rep::break_columns (path b1, path b2) {
     array<path> r  = cache_colbreaks[key];
     if (N (r) != 0) return r;
     r= array<path> ();
-    // cout << "Breaking " << b1 << ", " << b2 << LF << INDENT;
+#ifdef LIII_DEBUG
+    cout << "Breaking " << b1 << ", " << b2 << LF << INDENT;
+#endif
     r << b1;
     for (int k= 1; k < cols; k++)
       r << break_columns_at (b1, b2, (1.0 * k) / cols);
     r << b2;
     cache_colbreaks (key)= r;
-    // cout << UNINDENT << "Broke " << b1 << ", " << b2 << " ~> " << r << LF;
+#ifdef LIII_DEBUG
+    cout << UNINDENT << "Broke " << b1 << ", " << b2 << " ~> " << r << LF;
+#endif
     return r;
   }
 }

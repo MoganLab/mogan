@@ -657,6 +657,11 @@ target("libmogan") do
     set_configvar("GS_EXE", "/usr/bin/gs")
 
     set_configvar("PDFHUMMUS_NO_TIFF", true)
+
+    if is_mode("debug") or is_mode("releasedbg") then
+        set_configvar("LIII_DEBUG", 1)
+    end
+
     add_configfiles(
         "src/System/config.h.xmake", {
             filename = "config.h",

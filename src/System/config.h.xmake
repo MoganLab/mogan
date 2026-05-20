@@ -21,6 +21,9 @@ ${define HAVE_STDINT_H}
 /* Enable timestamps in debug messages */
 ${define DEBUG_WITH_TIMESTAMP}
 
+/* Enable LIII debug logging in debug and releasedbg modes */
+${define LIII_DEBUG}
+
 ${define USE_PLUGIN_GS}
 
 /* Define to 1 if you have the <inttypes.h> header file. */

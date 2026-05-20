@@ -7,6 +7,27 @@
 3. **容器不支持现代 C++ 特性**：自定义容器（如 `rectangles`、`list`）不支持范围 for 循环（range-based for），需使用传统的迭代器或 `is_nil()`/`next` 遍历。
 4. **类型转换使用项目函数**：自定义类型（如 `path`）没有标准 `operator<<` 重载，输出前需先用 `as_string()` 转换。
 
+### 调试日志
+
+1. **临时调试**：使用 `#ifdef LIII_DEBUG` / `#endif` 包裹全局 `cout`（`tm_ostream` 类型）。该宏仅在 debug 编译模式下定义，release 模式下整段代码会被编译器剔除，避免影响性能：
+   ```cpp
+   #ifdef LIII_DEBUG
+   cout << "Assign " << p << ", " << u << " in " << st << "\n";
+   #endif
+   ```
+
+2. **标准调试流**：使用项目预定义的调试输出流（如 `debug_std`、`debug_typeset`、`debug_boot`、`debug_edit` 等），配合 `DEBUG_STD`、`DEBUG_AUTO` 等宏开关，可通过外部配置启用/禁用：
+   ```cpp
+   if (DEBUG_STD) debug_boot << "Loading welcome message...\n";
+   ```
+
+3. **性能调试**：使用 `bench_start`、`bench_end` 等函数进行性能计时：
+   ```cpp
+   bench_start ("my_task");
+   // ... 代码 ...
+   bench_end ("my_task");
+   ```
+
 ## 分支命名规则
 
 分支格式：`username/200_27/xxx`
