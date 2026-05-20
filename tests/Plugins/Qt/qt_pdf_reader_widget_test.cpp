@@ -879,6 +879,120 @@ private slots:
 
     delete widget;
   }
+
+  // Test: simulate real mouse event flow that QScroller would NOT intercept
+  // because there is no InputPress before the Move.
+  // This verifies that the eventFilter actually receives the hover MoveEvent
+  // when sent through the normal Qt event loop (not via sendEvent shortcut).
+  void test_linkHoverViaPostedEvent () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "#page=1";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // First verify sendEvent works (baseline)
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::PointingHandCursor);
+    QVERIFY (widget->isOverLink ());
+
+    // Move away to reset (position well outside the 0.5x0.5 link area)
+    // Page label is ~794x1123; need x/794 > 0.5 or y/1123 > 0.5
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (500, 700), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    // Now use postEvent to simulate event-loop delivery (like QTest::mouseMove
+    // but guaranteed to work in headless environments)
+    {
+      QMouseEvent* moveEvent= new QMouseEvent (QEvent::MouseMove, QPoint (50, 50),
+                                               Qt::NoButton, Qt::NoButton,
+                                               Qt::NoModifier);
+      QCoreApplication::postEvent (vp, moveEvent);
+    }
+    QApplication::processEvents ();
+
+    QCOMPARE (vp->cursor ().shape (), Qt::PointingHandCursor);
+    QVERIFY (widget->isOverLink ());
+
+    delete widget;
+  }
+
+  // Test: verify that when QScroller is in Dragging state (after Press),
+  // a click (press + release without drag) on a link still triggers the
+  // link click. This is the exact scenario that fails in production.
+  void test_linkClickAfterQScrollerPress () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QString capturedUri;
+    connect (widget, &PDFReaderWidget::linkClicked,
+             [&capturedUri] (const QString& uri) { capturedUri= uri; });
+
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "https://example.com";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // First hover to set overLink_ = true using sendEvent (known to work)
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QVERIFY (widget->isOverLink ());
+
+    // Simulate a real click sequence through the event loop:
+    // press → release without drag
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+
+    QCOMPARE (capturedUri, QString ("https://example.com"));
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)
