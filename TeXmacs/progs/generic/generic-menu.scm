@@ -947,7 +947,7 @@
   (dynamic (focus-misc-icons t))
   (mini #t
     (with l
-      (bench-focus "focus-variants-of" '(focus-variants-of t))
+      (focus-variants-of t)
       (assuming (<= (length l) 1)
         (inert ((eval `(verbatim ,(focus-tag-name (tree-label t)))) (noop)))
       ) ;assuming
@@ -968,11 +968,7 @@
     ) ;with
   ) ;mini
   (dynamic (focus-tag-extra-icons t))
-  (assuming (let* ((start (texmacs-time))
-                   (r (cursor-inside? t)))
-              (let ((ms (- (texmacs-time) start)))
-                (when (> ms 1) (display* "  focus-bench cursor-inside?=" ms "ms\n"))
-                r))
+  (assuming (cursor-inside? t)
    ((balloon (icon "tm_exit_left.xpm") "Exit tag on the left")
     (structured-exit-left)
    ) ;
@@ -981,20 +977,12 @@
    ) ;
    ((balloon (icon "tm_focus_delete.xpm") "Remove tag") (remove-structure-upwards))
   ) ;assuming
-  (assuming (let* ((start (texmacs-time))
-                   (r (focus-has-preferences? t)))
-              (let ((ms (- (texmacs-time) start)))
-                (when (> ms 1) (display* "  focus-bench focus-has-preferences?=" ms "ms\n"))
-                r))
+  (assuming (focus-has-preferences? t)
     (=> (balloon (icon "tm_focus_prefs.xpm") "Preferences for tag")
       (dynamic (focus-preferences-menu t))
     ) ;=>
   ) ;assuming
-  (assuming (let* ((start (texmacs-time))
-                   (r (focus-has-parameters? t)))
-              (let ((ms (- (texmacs-time) start)))
-                (when (> ms 1) (display* "  focus-bench focus-has-parameters?=" ms "ms\n"))
-                r))
+  (assuming (focus-has-parameters? t)
     (=> (balloon (icon "tm_theme.xpm") "Rendering options for tag")
       (dynamic (focus-rendering-menu t))
     ) ;=>
