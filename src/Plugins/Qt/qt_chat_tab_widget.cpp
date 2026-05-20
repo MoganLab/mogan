@@ -28,6 +28,7 @@
 #include <QAbstractScrollArea>
 #include <QApplication>
 #include <QCheckBox>
+#include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
 #include <QInputDialog>
@@ -330,9 +331,25 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   newChatButton_->setFocusPolicy (Qt::NoFocus);
   newChatButton_->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (newChatButton_, kNavButtonFontPx);
-  newChatButton_->setStyleSheet (QString ("padding: %1px %2px;")
-                                     .arg (DpiUtils::scaled (kNavButtonPadY))
-                                     .arg (DpiUtils::scaled (kNavButtonPadX)));
+  newChatButton_->setIcon (QIcon (":llm-chat/addchat.svg"));
+  int newChatIconSize= DpiUtils::scaled (18);
+  newChatButton_->setIconSize (QSize (newChatIconSize, newChatIconSize));
+  newChatButton_->setStyleSheet (
+      QString ("QPushButton { text-align: left; border: none; "
+               "border-radius: %1px; padding: %2px %3px; "
+               "background-color: #ffffff; color: #333333; }"
+               "QPushButton:hover { background-color: #f0f0f0; }")
+          .arg (DpiUtils::scaled (6))
+          .arg (DpiUtils::scaled (kNavButtonPadY))
+          .arg (DpiUtils::scaled (kNavButtonPadX)));
+
+  QGraphicsDropShadowEffect* newChatShadow=
+      new QGraphicsDropShadowEffect (newChatButton_);
+  newChatShadow->setBlurRadius (DpiUtils::scaled (8));
+  newChatShadow->setColor (QColor (0, 0, 0, 40));
+  newChatShadow->setOffset (0, DpiUtils::scaled (2));
+  newChatButton_->setGraphicsEffect (newChatShadow);
+
   connect (newChatButton_, &QPushButton::clicked, this, [this] () {
     string model=
         as_string (call ("chat-tab-session-select-model", string ("")));
