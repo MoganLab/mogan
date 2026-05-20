@@ -174,12 +174,38 @@ constexpr int kToggleIconSize= 20;
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
 constexpr int kFloatingBtnMarginY= 130;
+/// 浮球新建聊天按钮垂直边距（像素）。
+constexpr int kFloatingNewChatBtnMarginY= 182;
 /// New chat 按钮图标尺寸（像素）。
 constexpr int kNewChatIconSize= 18;
 /// New chat 按钮固定高度（像素）。
 constexpr int kNewChatButtonHeight= 36;
 /// New chat 按钮固定宽度（像素）。
 constexpr int kNewChatButtonWidth= 140;
+
+/**
+ * @brief 创建统一风格的浮球按钮（圆形、无边框、灰色背景）。
+ */
+QPushButton*
+setup_floating_button (QWidget* parent, const QString& objectName,
+                       const QString& iconPath) {
+  QPushButton* btn= new QPushButton (parent);
+  btn->setObjectName (objectName);
+  btn->setFocusPolicy (Qt::NoFocus);
+  btn->setCursor (Qt::PointingHandCursor);
+  btn->setIcon (QIcon (iconPath));
+  btn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                           DpiUtils::scaled (kToggleIconSize)));
+  btn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                     DpiUtils::scaled (kToggleBtnSize));
+  btn->setStyleSheet (
+      QString ("QPushButton { border: none; border-radius: %1px; "
+               "background-color: #e8e8e8; } "
+               "QPushButton:hover { background-color: #d0d0d0; }")
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+  btn->hide ();
+  return btn;
+}
 
 } // namespace
 
@@ -227,13 +253,13 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
       archiveCollapsed_ (true), newChatButton_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
-      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr),
-      activeConversation_ (nullptr), sidebarCollapsed_ (false),
-      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
-      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
-      multiSelectMode_ (false), archiveSelectMode_ (false),
-      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr),
-      searchEdit_ (nullptr) {
+      floatingNewChatBtn_ (nullptr), sidebarNormalContent_ (nullptr),
+      conversationStack_ (nullptr), activeConversation_ (nullptr),
+      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
+      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
+      chatFocusToolBar_ (nullptr), multiSelectMode_ (false),
+      archiveSelectMode_ (false), multiSelectBar_ (nullptr),
+      batchArchiveBtn_ (nullptr), searchEdit_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -575,26 +601,25 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   mainLayout->addWidget (content, 1);
 
   // 浮球展开按钮（侧边栏收起时显示在内容区左上角）
-  QPushButton* floatingBtn= new QPushButton (this);
-  floatingBtn->setObjectName ("chat-tab-floating-expand-btn");
-  floatingBtn->setFocusPolicy (Qt::NoFocus);
-  floatingBtn->setCursor (Qt::PointingHandCursor);
-  floatingBtn->setIcon (QIcon (":llm-chat/sidebar.svg"));
-  floatingBtn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
-                                   DpiUtils::scaled (kToggleIconSize)));
-  floatingBtn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
-                             DpiUtils::scaled (kToggleBtnSize));
-  floatingBtn->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "background-color: #e8e8e8; } "
-               "QPushButton:hover { background-color: #d0d0d0; }")
-          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+  QPushButton* floatingBtn= setup_floating_button (
+      this, "chat-tab-floating-expand-btn", ":llm-chat/sidebar.svg");
   connect (floatingBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
   floatingBtn->move (DpiUtils::scaled (kFloatingBtnMarginX),
                      DpiUtils::scaled (kFloatingBtnMarginY));
-  floatingBtn->hide ();
   floatingExpandBtn_= floatingBtn;
+
+  // 浮球新建聊天按钮（侧边栏收起时显示在内容区左上角）
+  QPushButton* floatingNewBtn= setup_floating_button (
+      this, "chat-tab-floating-new-btn", ":llm-chat/addchat.svg");
+  connect (floatingNewBtn, &QPushButton::clicked, this, [this] () {
+    string model=
+        as_string (call ("chat-tab-session-select-model", string ("")));
+    create_new_conversation_with_model (model);
+  });
+  floatingNewBtn->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                        DpiUtils::scaled (kFloatingNewChatBtnMarginY));
+  floatingNewChatBtn_= floatingNewBtn;
 }
 
 /**
@@ -1229,6 +1254,7 @@ QTChatTabWidget::toggle_sidebar () {
 
   if (sidebarCollapsed_) {
     if (floatingExpandBtn_) floatingExpandBtn_->hide ();
+    if (floatingNewChatBtn_) floatingNewChatBtn_->hide ();
     sidebarWidget_->show ();
     sidebarCollapsed_= false;
   }
@@ -1238,6 +1264,11 @@ QTChatTabWidget::toggle_sidebar () {
       floatingExpandBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
                                 DpiUtils::scaled (kFloatingBtnMarginY));
       floatingExpandBtn_->show ();
+    }
+    if (floatingNewChatBtn_) {
+      floatingNewChatBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                                 DpiUtils::scaled (kFloatingNewChatBtnMarginY));
+      floatingNewChatBtn_->show ();
     }
     sidebarCollapsed_= true;
   }
