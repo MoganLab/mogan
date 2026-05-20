@@ -143,34 +143,44 @@
 (check (image-valid? test-empty-path) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; pdf-page-empty? helper
+;; pdf-page-size helper
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (pdf-page-empty? log-path)
-  (let ((p (open-input-file log-path)))
-    (let loop ()
-      (let ((line (read-line p)))
-        (if (eof-object? line)
-            (begin (close-input-port p) #t)
-            (if (string-contains? line "papersize=")
-                (let* ((parts (string-split line #\=))
-                       (size-part (cadr parts))
-                       (dims (string-split size-part #\,))
-                       (w-str (string-remove-suffix (car dims) "pt"))
-                       (h-str (string-remove-suffix (cadr dims) "pt"))
-                       (w (string->number w-str))
-                       (h (string->number h-str)))
-                  (close-input-port p)
-                  (or (not w) (not h)
-                      (<= w 1.0) (<= h 1.0)))
-                (loop)))))))
+(define (parse-papersize line)
+  (let* ((parts (string-split line #\=))
+         (size-part (cadr parts))
+         (dims (string-split size-part #\,))
+         (w-str (string-remove-suffix (car dims) "pt"))
+         (h-str (string-remove-suffix (cadr dims) "pt"))
+         (w (string->number w-str))
+         (h (string->number h-str)))
+    (if (and w h)
+        (cons w h)
+        (cons 0 0))))
+
+(define (pdf-page-size log-path)
+  (if (not (file-exists? log-path))
+      (cons 0 0)
+      (let ((p (open-input-file log-path)))
+        (let loop ((n 0))
+          (if (>= n 100)
+              (begin (close-input-port p) (cons 0 0))
+              (let ((line (read-line p)))
+                (cond ((eof-object? line)
+                       (close-input-port p) (cons 0 0))
+                      ((string-contains? line "papersize=")
+                       (let ((size (parse-papersize line)))
+                         (close-input-port p)
+                         size))
+                      (else (loop (+ n 1))))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Tests for pdf-page-empty?
+;; Tests for pdf-page-size
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define test-log-empty-path "/tmp/tikz-test-log-empty.log")
 (define test-log-valid-path "/tmp/tikz-test-log-valid.log")
+(define test-log-missing-path "/tmp/tikz-test-log-missing.log")
 
 (with-output-to-file test-log-empty-path
   (lambda ()
@@ -179,6 +189,24 @@
 (with-output-to-file test-log-valid-path
   (lambda ()
     (display "<special> papersize=28.85274pt,28.85274pt\n")))
+
+(check (pdf-page-size test-log-empty-path) => (cons 0.4 0.4))
+(check (pdf-page-size test-log-valid-path) => (cons 28.85274 28.85274))
+(check (pdf-page-size test-log-missing-path) => (cons 0 0))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; pdf-page-empty? helper
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (pdf-page-empty? log-path)
+  (let ((size (pdf-page-size log-path)))
+    (let ((w (car size))
+          (h (cdr size)))
+      (or (<= w 1.0) (<= h 1.0)))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for pdf-page-empty?
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (check (pdf-page-empty? test-log-empty-path) => #t)
 (check (pdf-page-empty? test-log-valid-path) => #f)
