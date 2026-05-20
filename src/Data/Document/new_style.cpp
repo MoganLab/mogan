@@ -58,6 +58,8 @@ init_style_data () {
 
 extern hashmap<string, tree> style_tree_cache;
 hashmap<string, bool>        hidden_packages (false);
+static hashmap<string, bool> hidden_package_set (false);
+static bool                  hidden_package_set_initialized= false;
 
 static url
 resolve_local_style (string style_name) {
@@ -172,10 +174,14 @@ cache_file_name (tree t) {
   return lolly::hash::md5_hexdigest (tmp) * ".scm";
 }
 
+void ensure_hidden_package_set ();
+
 void
 style_invalidate_cache () {
-  style_tree_cache= hashmap<string, tree> ();
-  hidden_packages = hashmap<string, bool> (false);
+  style_tree_cache             = hashmap<string, tree> ();
+  hidden_packages              = hashmap<string, bool> (false);
+  hidden_package_set           = hashmap<string, bool> (false);
+  hidden_package_set_initialized= false;
   if (sd != NULL) {
     tm_delete<style_data_rep> (sd);
     sd= NULL;
@@ -359,34 +365,45 @@ ignore_dir (string dir) {
          (dir == "Standard") || (dir == "Test") || (dir == "Themes");
 }
 
-static bool
-hidden_package (url u, string name, bool hidden) {
-  if (is_or (u))
-    return hidden_package (u[1], name, hidden) ||
-           hidden_package (u[2], name, hidden);
+static void
+collect_hidden_packages (url u, bool hidden, hashmap<string, bool>& pkgs) {
+  if (is_or (u)) {
+    collect_hidden_packages (u[1], hidden, pkgs);
+    collect_hidden_packages (u[2], hidden, pkgs);
+    return;
+  }
   if (is_concat (u)) {
     string dir= upcase_first (as_string (u[1]));
-    if (dir == "CVS" || dir == ".svn") return false;
-    return hidden_package (u[2], name, hidden || ignore_dir (dir));
+    if (dir == "CVS" || dir == ".svn") return;
+    collect_hidden_packages (u[2], hidden || ignore_dir (dir), pkgs);
+    return;
   }
   if (hidden && is_atomic (u)) {
     string l= as_string (u);
     if (ends (l, ".ts")) l= l (0, N (l) - 3);
     else if (ends (l, ".hook")) l= l (0, N (l) - 5);
-    else return false;
-    return name == l;
+    else return;
+    pkgs (l)= true;
   }
-  return false;
+}
+
+static url get_package_root ();
+
+void
+ensure_hidden_package_set () {
+  if (!hidden_package_set_initialized) {
+    bench_start ("hidden_package_init");
+    collect_hidden_packages (get_package_root (), false, hidden_package_set);
+    hidden_package_set_initialized= true;
+    bench_end ("hidden_package_init");
+  }
 }
 
 bool
 hidden_package (string name) {
   if (name == "std-latex") return false;
-  if (!hidden_packages->contains (name)) {
-    static url pck_u      = descendance ("$TEXMACS_PACKAGE_ROOT");
-    hidden_packages (name)= hidden_package (pck_u, name, false);
-  }
-  return hidden_packages[name];
+  ensure_hidden_package_set ();
+  return hidden_package_set->contains (name);
 }
 
 static string
@@ -426,6 +443,12 @@ compute_style_menu (url u, int kind) {
   return "";
 }
 
+static url
+get_package_root () {
+  static url pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
+  return pck_u;
+}
+
 object
 get_style_menu () {
   static object cache;
@@ -440,7 +463,7 @@ object
 get_add_package_menu () {
   static object cache;
   if (cache != null_object ()) return cache;
-  url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
+  url    pck_u= get_package_root ();
   string pck  = compute_style_menu (pck_u, 1);
   cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;
@@ -450,7 +473,7 @@ object
 get_remove_package_menu () {
   static object cache;
   if (cache != null_object ()) return cache;
-  url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
+  url    pck_u= get_package_root ();
   string pck  = compute_style_menu (pck_u, 2);
   cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;
@@ -460,7 +483,7 @@ object
 get_toggle_package_menu () {
   static object cache;
   if (cache != null_object ()) return cache;
-  url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
+  url    pck_u= get_package_root ();
   string pck  = compute_style_menu (pck_u, 3);
   cache       = eval ("(menu-dynamic " * pck * ")");
   return cache;

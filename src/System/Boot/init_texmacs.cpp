@@ -18,6 +18,7 @@
 #include "merge_sort.hpp"
 #include "moebius/tree_label.hpp"
 #include "new_buffer.hpp"
+#include "new_style.hpp"
 #include "new_window.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
@@ -969,6 +970,7 @@ TeXmacs_main (int argc, char** argv) {
 #endif
 
     if (N (extra_init_cmd) > 0) exec_delayed (scheme_cmd (extra_init_cmd));
+    ensure_hidden_package_set ();
     gui_start_loop ();
 
     if (DEBUG_STD) debug_boot << "Stopping server...\n";
