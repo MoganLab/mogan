@@ -78,7 +78,9 @@
 ) ;tm-define
 
 (tm-define (kbd-left) (kbd-horizontal (focus-tree) #f))
-(tm-define (kbd-right) (kbd-horizontal (focus-tree) #t))
+(tm-define (kbd-right)
+  (display* "DEBUG kbd-right focus=" (tree-label (focus-tree)) "\n")
+  (kbd-horizontal (focus-tree) #t))
 (tm-define (kbd-up) (kbd-vertical (focus-tree) #f))
 (tm-define (kbd-down) (kbd-vertical (focus-tree) #t))
 (tm-define (kbd-start-line) (kbd-extremal (focus-tree) #f))
