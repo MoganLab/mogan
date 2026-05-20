@@ -20,6 +20,8 @@
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
+#include "tm_file.hpp"
+#include "tm_sys_utils.hpp"
 #include "tm_window.hpp"
 
 #include <lolly/hash/uuid.hpp>
@@ -586,6 +588,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
 
   url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
   url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
+
+  // 确保消息 buffer 的父目录存在，以便后续 buffer-save 可写入
+  url msgDir= get_texmacs_home_path () * url ("system/ai-chat-sessions") *
+              url (sessionId);
+  if (!is_directory (msgDir)) mkdir (msgDir);
 
   QWidget* page= new QWidget (conversationStack_);
   page->setObjectName ("chat-tab-conversation-page");
@@ -1671,12 +1678,14 @@ ChatSessionManager::setPanel (const string& sessionId, void* panel) {
 
 url
 ChatSessionManager::messageBufferUrl (const string& sessionId) {
-  return url ("tmfs://chat-message-" * sessionId);
+  return get_texmacs_home_path () * url ("system/ai-chat-sessions") *
+         url (sessionId) * url ("message.tmu");
 }
 
 url
 ChatSessionManager::inputBufferUrl (const string& sessionId) {
-  return url ("tmfs://chat-input-" * sessionId);
+  return get_texmacs_home_path () * url ("system/ai-chat-sessions") *
+         url (sessionId) * url ("input.tmu");
 }
 
 void
@@ -1798,12 +1807,13 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->modelLabel->setMinimumHeight (DpiUtils::scaled (20));
   topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
 
-  // 恢复会话时，buffer 中已有 Scheme 加载的消息内容，需使用 buffer 内容而非空
-  // tree
-  tree msgBody= get_buffer_body (msgBufUrl);
-  if (is_empty_document_body (msgBody)) msgBody= tree (DOCUMENT, "");
-  panel->messageWidget=
-      texmacs_input_widget (msgBody, make_chat_embedded_style (), msgBufUrl);
+  // 从磁盘文件加载消息内容到 buffer
+  if (exists (msgBufUrl)) {
+    buffer_load (msgBufUrl);
+  }
+
+  panel->messageWidget= texmacs_input_widget (
+      tree (DOCUMENT, ""), make_chat_embedded_style (), msgBufUrl);
 
   QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
   panel->messageFrame    = new QWidget (topPanel);
@@ -1956,7 +1966,8 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   conversationListLayout_->addWidget (panel->itemWidget);
 
   // 如果消息 buffer 非空，进入会话模式
-  if (!is_empty_document_body (msgBody)) {
+  tree restoredBody= get_buffer_body (msgBufUrl);
+  if (!is_empty_document_body (restoredBody)) {
     enter_conversation_mode (panel);
   }
 

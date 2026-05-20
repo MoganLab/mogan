@@ -84,18 +84,9 @@
                            (title (cdr (assoc "title" entry)))
                            (model (cdr (assoc "model" entry)))
                            (archived-str (cdr (assoc "archived" entry)))
-                           (msg-path (chat-persist-message-path sid))
-                           (msg-buf (chat-tab-session->message-buffer sid))
                           ) ;
-                      ;; 加载消息内容到 buffer
-                      (when (file-exists? msg-path)
-                        (let ((file-url (system->url msg-path)))
-                          (buffer-load file-url)
-                          (buffer-set-body msg-buf (buffer-get-body file-url))
-                          (buffer-pretend-saved msg-buf)
-                        ) ;let
-                      ) ;when
                       ;; 直接调用 C++ 回调创建 panel
+                      ;; C++ restore_conversation 会从文件加载消息内容
                       (qt-chat-tab-restore-session sid title model archived-str)
                     ) ;let*
                   ) ;lambda
@@ -110,12 +101,10 @@
 ;;; ---------- 增量保存 ----------
 
 (tm-define (chat-persist-save-one session-id title model archived)
-  (let ((msg-path (chat-persist-message-path session-id))
-        (msg-buf (chat-tab-session->message-buffer session-id))
+  (let ((msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
-    ;; 1. 导出 message buffer
-    (chat-persist-ensure-dir! (chat-persist-parent-dir msg-path))
-    (buffer-export msg-buf (system->url msg-path) "tmu")
+    ;; 1. 保存 message buffer 到磁盘（buffer 已绑定文件 URL，直接 save）
+    (buffer-save msg-buf)
     ;; 2. 增量更新 manifest
     (let ((manifest-path (chat-persist-manifest-path))
           (entry (chat-persist-make-entry session-id title model archived))
