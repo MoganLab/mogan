@@ -51,19 +51,9 @@ typesetter_rep::insert_parunit (tree t, path ip) {
 
 void
 typesetter_rep::insert_paragraph (tree t, path ip) {
-#ifdef LIII_DEBUG
-  cout << "Typesetting " << t << ", " << ip << "\n";
-#endif
   stack_border     temp_sb;
   array<page_item> temp_l= typeset_stack (env, t, ip, a, b, temp_sb);
   insert_stack (temp_l, temp_sb);
-
-#ifdef LIII_DEBUG
-  int i, n= N (temp_l);
-  for (i= 0; i < n; i++)
-    cout << i << ", " << temp_l[i]->b->find_lip () << ", "
-         << temp_l[i]->b->find_rip () << ",\t" << temp_l[i]->b << "\n";
-#endif
 }
 
 void
@@ -228,9 +218,6 @@ typesetter_rep::typeset (SI& x1b, SI& y1b, SI& x2b, SI& y2b) {
 
 void
 notify_assign (typesetter ttt, path p, tree u) {
-#ifdef LIII_DEBUG
-  cout << "Assign " << p << ", " << u << "\n";
-#endif
   if (is_nil (p)) ttt->br= make_bridge (ttt, u, ttt->br->ip);
   else ttt->br->notify_assign (p, u);
 }
