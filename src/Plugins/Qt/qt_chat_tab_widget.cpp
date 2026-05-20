@@ -467,14 +467,17 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   normalLayout->addWidget (scrollArea, 1);
 
   // 底部收缩按钮
-  QPushButton* collapseBtn= new QPushButton ("收缩", normalContent);
+  QPushButton* collapseBtn= new QPushButton (normalContent);
   collapseBtn->setObjectName ("chat-tab-collapse-btn");
   collapseBtn->setFocusPolicy (Qt::NoFocus);
   collapseBtn->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (collapseBtn, kCollapseFontPx);
+  collapseBtn->setIcon (QIcon (":llm-chat/sidebar.svg"));
+  int collapseIconSize= DpiUtils::scaled (20);
+  collapseBtn->setIconSize (QSize (collapseIconSize, collapseIconSize));
   collapseBtn->setStyleSheet (
       QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+               "padding: %2px %3px; background-color: #ffffff; }"
+               "QPushButton:hover { background-color: #f0f0f0; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -486,30 +489,34 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   sidebarNormalContent_= normalContent;
   sidebarLayout->addWidget (normalContent);
 
-  // ---- 收起态：窄条容器，底部展开按钮 ----
+  // ---- 收起态：窄条容器，左上角浮球展开按钮 ----
   QWidget* collapsedBar= new QWidget (sidebarWidget_);
   collapsedBar->setObjectName ("chat-tab-sidebar-collapsed");
   QVBoxLayout* collapsedLayout= new QVBoxLayout (collapsedBar);
-  collapsedLayout->setContentsMargins (0, 0, 0,
-                                       DpiUtils::scaled (kSidebarMarginY));
+  collapsedLayout->setContentsMargins (
+      DpiUtils::scaled (8), DpiUtils::scaled (kSidebarMarginY),
+      DpiUtils::scaled (8), DpiUtils::scaled (kSidebarMarginY));
   collapsedLayout->setSpacing (0);
 
-  collapsedLayout->addStretch ();
-
-  QPushButton* expandBtn= new QPushButton ("<", collapsedBar);
+  QPushButton* expandBtn= new QPushButton (collapsedBar);
   expandBtn->setObjectName ("chat-tab-collapsed-expand-btn");
   expandBtn->setFocusPolicy (Qt::NoFocus);
   expandBtn->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (expandBtn, kCollapseFontPx);
+  expandBtn->setIcon (QIcon (":llm-chat/sidebar.svg"));
+  int expandIconSize= DpiUtils::scaled (22);
+  expandBtn->setIconSize (QSize (expandIconSize, expandIconSize));
+  int expandBtnSize= DpiUtils::scaled (40);
+  expandBtn->setFixedSize (expandBtnSize, expandBtnSize);
   expandBtn->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
-               "padding: %2px 0px; background-color: transparent; } "
-               "QPushButton:hover { background-color: #e0e0e0; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY)));
+               "background-color: #e8e8e8; } "
+               "QPushButton:hover { background-color: #d0d0d0; }")
+          .arg (expandBtnSize / 2));
   connect (expandBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
   collapsedLayout->addWidget (expandBtn);
+
+  collapsedLayout->addStretch ();
 
   collapsedBar->hide ();
   sidebarCollapsedBar_= collapsedBar;
