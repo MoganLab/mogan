@@ -375,6 +375,7 @@ private:
   QVBoxLayout*    archiveListLayout_;    ///< 归档会话按钮的布局。
   bool            archiveCollapsed_;     ///< 归档区当前是否折叠。
   QPushButton*    collapseButton_;       ///< 侧边栏内的收缩按钮。
+  QPushButton*    floatingExpandBtn_;    ///< 内容区左上角的浮球展开按钮。
   QPushButton*    newChatButton_;        ///< 新建会话按钮。
   QWidget*        sidebarNormalContent_; ///< 侧边栏展开时的内容容器。
   QWidget*        sidebarCollapsedBar_;  ///< 侧边栏收起时的窄条容器。
