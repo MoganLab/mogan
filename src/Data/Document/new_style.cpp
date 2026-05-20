@@ -383,7 +383,7 @@ bool
 hidden_package (string name) {
   if (name == "std-latex") return false;
   if (!hidden_packages->contains (name)) {
-    url pck_u             = descendance ("$TEXMACS_PACKAGE_ROOT");
+    static url pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
     hidden_packages (name)= hidden_package (pck_u, name, false);
   }
   return hidden_packages[name];
@@ -429,11 +429,7 @@ compute_style_menu (url u, int kind) {
 object
 get_style_menu () {
   static object cache;
-  if (cache != null_object ()) {
-    cout << "get_style_menu: cached\n";
-    return cache;
-  }
-  cout << "get_style_menu: computing...\n";
+  if (cache != null_object ()) return cache;
   url    sty_u= descendance ("$TEXMACS_STYLE_ROOT");
   string sty  = compute_style_menu (sty_u, 0);
   cache= eval ("(menu-dynamic " * sty * ")");
