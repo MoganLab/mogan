@@ -1242,8 +1242,9 @@ smart_font_rep::resolve (string c) {
       (c[0] < 'A' || c[0] > 'Z') && (c[0] < 'a' || c[0] > 'z'))
     return sm->add_char (tuple ("italic-roman"), c);
 
+  string sf= substitute_math_letter (c, math_kind);
   for (int attempt= 1; attempt <= FONT_ATTEMPTS; attempt++) {
-    if (attempt > 1 && substitute_math_letter (c, math_kind) != "") break;
+    if (attempt > 1 && sf != "") break;
     for (int i= 0; i < N (a); i++) {
       int nr= resolve (c, range, a[i], attempt);
       if (nr >= 0) {
@@ -1271,7 +1272,6 @@ smart_font_rep::resolve (string c) {
     }
   }
 
-  string sf= substitute_math_letter (c, math_kind);
   if (sf != "") {
     // cout << "Found " << c << " in " << sf << " (math-letter)\n";
     return sm->add_char (tuple (sf), c);
