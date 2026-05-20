@@ -437,6 +437,9 @@ private slots:
     QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
     QApplication::processEvents ();
 
+    // QScroller 的滚动更新是异步的，给一点时间让动画生效
+    QTest::qWait (100);
+
     int newPos= vbar->value ();
     QVERIFY (newPos < initialPos);
     delete widget;
