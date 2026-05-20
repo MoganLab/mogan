@@ -424,7 +424,7 @@ PDFReaderWidget::onRectSelectToggled (bool checked) {
   rectSelectMode_= checked;
   if (scrollArea_ && scrollArea_->viewport ()) {
     QWidget* vp= scrollArea_->viewport ();
-    vp->setMouseTracking (rectSelectMode_);
+    vp->setMouseTracking (true);
     vp->setCursor (rectSelectMode_ ? Qt::CrossCursor : Qt::OpenHandCursor);
   }
   if (!rectSelectMode_ && rubberBand_) {
@@ -932,6 +932,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     label->setAutoFillBackground (true);
     label->setBackgroundRole (QPalette::Base);
     label->setStyleSheet ("QLabel { border: 1px solid #cccccc; }");
+    label->setMouseTracking (true);
     pageLayout_->addWidget (label);
   }
 
@@ -1266,9 +1267,14 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     else if (!rectSelectMode_ && !browseDragging_ &&
              event->type () == QEvent::MouseMove) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      QPoint       contentPos= mouseEvent->pos ();
-      contentPos.rx ()+= scrollArea_->horizontalScrollBar ()->value ();
-      contentPos.ry ()+= scrollArea_->verticalScrollBar ()->value ();
+      QPoint       contentPos= contentWidget_->mapFrom (
+          scrollArea_->viewport (), mouseEvent->pos ());
+#ifdef LIII_DEBUG
+      cout << "MouseMove viewport=" << mouseEvent->pos ().x () << ","
+           << mouseEvent->pos ().y ()
+           << " contentPos=" << contentPos.x () << "," << contentPos.y ()
+           << "\n";
+#endif
       updateLinkCursor (contentPos);
       // do not consume the event, let it propagate for potential tooltip etc.
     }
@@ -1299,9 +1305,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       }
       // while not yet dragging, keep updating link cursor
       if (!browseDragActive_) {
-        QPoint contentPos= mouseEvent->pos ();
-        contentPos.rx ()+= scrollArea_->horizontalScrollBar ()->value ();
-        contentPos.ry ()+= scrollArea_->verticalScrollBar ()->value ();
+        QPoint contentPos= contentWidget_->mapFrom (
+            scrollArea_->viewport (), mouseEvent->pos ());
         updateLinkCursor (contentPos);
       }
       scroller_->handleInput (QScroller::InputMove, mouseEvent->pos (),
