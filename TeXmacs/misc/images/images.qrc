@@ -18,8 +18,12 @@
         <file>pdf-reader/screenshot.svg</file>
 
         <file>llm-chat/send.svg</file>
+<<<<<<< HEAD
         <file>llm-chat/sidebar.svg</file>
         <file>llm-chat/addchat.svg</file>
+=======
+        <file>llm-chat/cancel.svg</file>
+>>>>>>> db026c154 (cancel-button)
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>

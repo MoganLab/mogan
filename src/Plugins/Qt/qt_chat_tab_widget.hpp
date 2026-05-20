@@ -209,6 +209,77 @@ private:
                            const QList<SessionDisplayInfo>& sessions,
                            const string&                    activeSessionId);
   void setup_right_content (QHBoxLayout* mainLayout);
+<<<<<<< HEAD
+=======
+
+  /**
+   * @brief 创建新的会话面板，包含控件和 buffer。
+   * @param title 会话的显示标题。
+   * @return 新建会话面板的指针。
+   */
+  ChatConversationPanel* create_conversation (const QString& title);
+
+  /**
+   * @brief 使用指定模型创建并激活一个新会话。
+   * @param model 模型名称。
+   */
+  void create_new_conversation_with_model (const string& model);
+
+  /**
+   * @brief 将可见页面切换到指定会话。
+   * @param panel 待激活的会话面板。
+   */
+  void activate_conversation (ChatConversationPanel* panel);
+
+  /**
+   * @brief 更新侧边栏标签及选中状态。
+   */
+  void refresh_sidebar ();
+
+  /**
+   * @brief 将指定面板从欢迎态切换到会话态。
+   *
+   * 播放淡入淡出及顶部间距动画。
+   * @param panel 目标会话面板。
+   */
+  void enter_conversation_mode (ChatConversationPanel* panel);
+
+  /**
+   * @brief 读取输入内容，委托给 Scheme 层处理，并触发模式切换。
+   * @param panel 发送消息的会话面板。
+   */
+  void handle_send (ChatConversationPanel* panel);
+
+  /**
+   * @brief 取消当前会话的 LLM 生成。
+   * @param panel 待取消的会话面板。
+   */
+  void handle_cancel (ChatConversationPanel* panel);
+
+  /**
+   * @brief 更新发送/取消按钮的图标和点击行为。
+   * @param panel 目标会话面板。
+   * @param state 当前生成状态。
+   */
+  void update_send_button (ChatConversationPanel* panel, ChatState state);
+
+  /**
+   * @brief 从输入 buffer 中获取文档树。
+   * @param panel 待读取输入的会话面板。
+   * @return 输入内容对应的 TeXmacs 树。
+   */
+  tree read_input_message (const ChatConversationPanel* panel) const;
+
+  /**
+   * @brief 将键盘焦点设置到指定面板的输入编辑器。
+   * @param panel 目标会话面板。
+   */
+  void focus_input_editor (ChatConversationPanel* panel);
+
+  /**
+   * @brief 切换侧边栏的收起/展开状态。
+   */
+>>>>>>> db026c154 (cancel-button)
   void toggle_sidebar ();
 
   // ---- 子组件 ----
