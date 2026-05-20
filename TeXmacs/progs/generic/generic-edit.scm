@@ -216,11 +216,12 @@
   (if (cursor-in-algo-macro-body-end? t)
       (begin
         (display* "DEBUG -> body-end, jump to :after\n")
-        (with body (tm-ref t (- (tree-arity t) 1))
-          (tree-go-to body :end)
-          (display* "DEBUG after tree-go-to path=" (cursor-path) "\n"))
-        (go-right)
-        (display* "DEBUG after go-right path=" (cursor-path) "\n"))
+        (with t-path (tree->path t)
+          (and t-path
+               (let ((parent-path (cDr t-path))
+                     (t-index (cAr t-path)))
+                 (go-to (rcons parent-path (+ 1 t-index))))))
+        (display* "DEBUG after go-to path=" (cursor-path) "\n"))
       (begin
         (display* "DEBUG -> go-right\n")
         (go-right)))
