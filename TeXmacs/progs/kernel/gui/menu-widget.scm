@@ -1263,29 +1263,16 @@
   (let* ((name (cadr p))
          (cached (and (static-menu-link? name) (ahash-ref menu-expand-link-cache name))))
     (if cached cached
-      (let* ((eval-start (texmacs-time))
-             (linked ((eval name)))
-             (eval-ms (- (texmacs-time) eval-start))
-             (count-before menu-expand-count)
-             (expand-start (texmacs-time))
-             (result (if linked (menu-expand linked) p))
-             (expand-ms (- (texmacs-time) expand-start))
-             (count-after menu-expand-count))
-        (when (> (+ eval-ms expand-ms) 5)
-          (display* "  link [" eval-ms "+" expand-ms "ms, "
-                    (- count-after count-before) " nodes] " name "\n"))
+      (let* ((linked ((eval name)))
+             (result (if linked (menu-expand linked) p)))
         (when (and (static-menu-link? name) linked)
           (ahash-set! menu-expand-link-cache name result))
         result))))
 
 (define (menu-expand-dynamic p)
   "Expand menu link @p."
-  (let* ((start (texmacs-time))
-         (dyn (eval (cadr p)))
-         (result (if dyn (menu-expand dyn) p))
-         (elapsed (- (texmacs-time) start)))
-    (when (> elapsed 2)
-      (display* "  dynamic " (cadr p) " " elapsed "ms\n"))
+  (let* ((dyn (eval (cadr p)))
+         (result (if dyn (menu-expand dyn) p)))
     result))
 
 (define (menu-expand-resize p)
@@ -1407,13 +1394,7 @@
   "Expand links and conditional menus in list of menus @l."
   (map (lambda (item)
          (set! menu-expand-count (+ menu-expand-count 1))
-         (let* ((start (texmacs-time))
-                (result (menu-expand item))
-                (elapsed (- (texmacs-time) start)))
-           (when (> elapsed 1)
-             (display* "  expand-item [" elapsed "ms] "
-               (if (pair? item) (car item) item) "\n"))
-           result))
+         (menu-expand item))
        l)
 ) ;define
 
