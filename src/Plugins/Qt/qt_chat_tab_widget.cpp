@@ -103,8 +103,6 @@ disable_scrollbars_recursively (QWidget* root) {
 
 /// 左侧边栏最小宽度（像素）。
 constexpr int kSidebarMinWidth= 200;
-/// 左侧边栏收起后的窄条宽度（像素）。
-constexpr int kSidebarCollapsedWidth= 48;
 /// 边栏布局水平边距。
 constexpr int kSidebarMarginX= 12;
 /// 边栏布局垂直边距。
@@ -165,6 +163,14 @@ constexpr int kInputFramePad= 8;
 constexpr int kMessageMinHeight= 240;
 /// 欢迎态到会话态过渡动画时长（毫秒）。
 constexpr int kTransitionDurationMs= 220;
+/// 侧边栏切换按钮尺寸（像素）。
+constexpr int kToggleBtnSize= 40;
+/// 侧边栏切换按钮图标尺寸（像素）。
+constexpr int kToggleIconSize= 20;
+/// 浮球展开按钮水平边距（像素）。
+constexpr int kFloatingBtnMarginX= 12;
+/// 浮球展开按钮垂直边距（像素）。
+constexpr int kFloatingBtnMarginY= 60;
 
 } // namespace
 
@@ -212,13 +218,13 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
       archiveCollapsed_ (true), newChatButton_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
-      sidebarNormalContent_ (nullptr), sidebarCollapsedBar_ (nullptr),
-      conversationStack_ (nullptr), activeConversation_ (nullptr),
-      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
-      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
-      chatFocusToolBar_ (nullptr), multiSelectMode_ (false),
-      archiveSelectMode_ (false), multiSelectBar_ (nullptr),
-      batchArchiveBtn_ (nullptr), searchEdit_ (nullptr) {
+      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr),
+      activeConversation_ (nullptr), sidebarCollapsed_ (false),
+      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
+      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
+      multiSelectMode_ (false), archiveSelectMode_ (false),
+      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr),
+      searchEdit_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -300,15 +306,15 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   collapseBtn->setFocusPolicy (Qt::NoFocus);
   collapseBtn->setCursor (Qt::PointingHandCursor);
   collapseBtn->setIcon (QIcon (":llm-chat/sidebar.svg"));
-  int collapseIconSize= DpiUtils::scaled (20);
-  collapseBtn->setIconSize (QSize (collapseIconSize, collapseIconSize));
+  collapseBtn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                                   DpiUtils::scaled (kToggleIconSize)));
+  collapseBtn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                             DpiUtils::scaled (kToggleBtnSize));
   collapseBtn->setStyleSheet (
-      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }"
-               "QPushButton:hover { background-color: #f0f0f0; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
+      QString ("QPushButton { border: none; border-radius: %1px; "
+               "background-color: #e8e8e8; }"
+               "QPushButton:hover { background-color: #d0d0d0; }")
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
   connect (collapseBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
   collapseButton_= collapseBtn;
@@ -545,18 +551,19 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   floatingBtn->setFocusPolicy (Qt::NoFocus);
   floatingBtn->setCursor (Qt::PointingHandCursor);
   floatingBtn->setIcon (QIcon (":llm-chat/sidebar.svg"));
-  int floatingIconSize= DpiUtils::scaled (20);
-  floatingBtn->setIconSize (QSize (floatingIconSize, floatingIconSize));
-  int floatingBtnSize= DpiUtils::scaled (40);
-  floatingBtn->setFixedSize (floatingBtnSize, floatingBtnSize);
+  floatingBtn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                                   DpiUtils::scaled (kToggleIconSize)));
+  floatingBtn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                             DpiUtils::scaled (kToggleBtnSize));
   floatingBtn->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
                "background-color: #e8e8e8; } "
                "QPushButton:hover { background-color: #d0d0d0; }")
-          .arg (floatingBtnSize / 2));
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
   connect (floatingBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
-  floatingBtn->move (DpiUtils::scaled (12), DpiUtils::scaled (12));
+  floatingBtn->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                     DpiUtils::scaled (kFloatingBtnMarginY));
   floatingBtn->hide ();
   floatingExpandBtn_= floatingBtn;
 }
@@ -1199,7 +1206,8 @@ QTChatTabWidget::toggle_sidebar () {
   else {
     sidebarWidget_->hide ();
     if (floatingExpandBtn_) {
-      floatingExpandBtn_->move (DpiUtils::scaled (12), DpiUtils::scaled (12));
+      floatingExpandBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                                DpiUtils::scaled (kFloatingBtnMarginY));
       floatingExpandBtn_->show ();
     }
     sidebarCollapsed_= true;
