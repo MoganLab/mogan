@@ -1024,6 +1024,18 @@ PDFReaderWidget::extractPageLinks () {
   if (stream) fz_drop_stream (ctx, stream);
   if (buf) fz_drop_buffer (ctx, buf);
   if (doc) fz_drop_document (ctx, doc);
+
+#ifdef LIII_DEBUG
+  cout << "extractPageLinks: total pages=" << pageCount_ << "\n";
+  for (int i= 0; i < pageLinks_.size (); ++i) {
+    cout << "  page " << i << " has " << pageLinks_[i].size () << " links\n";
+    for (const PdfLink& pl : pageLinks_[i]) {
+      cout << "    link rect=" << pl.rect.x () << "," << pl.rect.y () << " "
+           << pl.rect.width () << "x" << pl.rect.height () << " uri="
+           << from_qstring (pl.uri) << "\n";
+    }
+  }
+#endif
 }
 
 void
@@ -1038,12 +1050,22 @@ PDFReaderWidget::linkAtPos (const QPoint& contentPos) const {
   if (pageLinks_.isEmpty ()) return PdfLink ();
 
   int childCount= pageLayout_->count ();
+#ifdef LIII_DEBUG
+  cout << "linkAtPos contentPos=" << contentPos.x () << "," << contentPos.y ()
+       << " childCount=" << childCount << "\n";
+#endif
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
     if (!item) continue;
     QLabel* label= qobject_cast<QLabel*> (item->widget ());
     if (!label) continue;
     QRect labelRect= label->geometry ();
+#ifdef LIII_DEBUG
+    cout << "  label[" << i << "] rect=" << labelRect.x () << ","
+         << labelRect.y () << " " << labelRect.width () << "x"
+         << labelRect.height () << " contains="
+         << (labelRect.contains (contentPos) ? "yes" : "no") << "\n";
+#endif
     if (!labelRect.contains (contentPos)) continue;
 
     if (i < pageLinks_.size () && !pageLinks_[i].isEmpty ()) {
@@ -1052,7 +1074,17 @@ PDFReaderWidget::linkAtPos (const QPoint& contentPos) const {
                  qMax (1, labelRect.width ());
       double ny= static_cast<double> (contentPos.y () - labelRect.y ()) /
                  qMax (1, labelRect.height ());
+#ifdef LIII_DEBUG
+      cout << "  normalized=" << nx << "," << ny << " links="
+           << pageLinks_[i].size () << "\n";
+#endif
       for (const PdfLink& link : pageLinks_[i]) {
+#ifdef LIII_DEBUG
+        cout << "    check link rect=" << link.rect.x () << ","
+             << link.rect.y () << " " << link.rect.width () << "x"
+             << link.rect.height () << " hit="
+             << (link.rect.contains (nx, ny) ? "yes" : "no") << "\n";
+#endif
         if (link.rect.contains (nx, ny)) {
           return link;
         }
