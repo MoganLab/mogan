@@ -176,7 +176,8 @@ TemplateCache::loadRecommendIdsCache () {
 
   QFile file (cachePath);
   if (!file.open (QIODevice::ReadOnly)) {
-    qWarning () << "[Template] Failed to open metadata cache for recommend IDs:" << cachePath;
+    qWarning () << "[Template] Failed to open metadata cache for recommend IDs:"
+                << cachePath;
     return result;
   }
 
@@ -186,8 +187,8 @@ TemplateCache::loadRecommendIdsCache () {
     return result;
   }
 
-  QJsonObject root         = doc.object ();
-  QJsonArray  recommendIds = root.value ("recommend_ids").toArray ();
+  QJsonObject root        = doc.object ();
+  QJsonArray  recommendIds= root.value ("recommend_ids").toArray ();
   for (const auto& val : recommendIds) {
     QString id= val.toString ();
     if (!id.isEmpty ()) result.append (id);
@@ -221,7 +222,8 @@ TemplateCache::saveRecommendIdsCache (const QStringList& recommendIds) {
   QJsonDocument doc (root);
   QFile         file (cachePath);
   if (!file.open (QIODevice::WriteOnly)) {
-    qWarning () << "[Template] Failed to write recommend IDs to metadata cache:" << cachePath;
+    qWarning () << "[Template] Failed to write recommend IDs to metadata cache:"
+                << cachePath;
     return;
   }
   file.write (doc.toJson (QJsonDocument::Compact));
