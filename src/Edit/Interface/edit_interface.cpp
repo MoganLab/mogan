@@ -111,6 +111,7 @@ edit_interface_rep::suspend () {
 void
 edit_interface_rep::resume () {
   // cout << "Resume " << buf->buf->name << LF;
+  bench_start ("resume");
   got_focus= true;
   SERVER (menu_main ("(horizontal (link texmacs-menu))"));
   SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
@@ -145,6 +146,7 @@ edit_interface_rep::resume () {
   // after a bugfix by Massimiliano during summer 2016
   eval ("(delayed (:idle 1) (refresh-window))");
 #endif
+  bench_end ("resume");
 }
 
 void
@@ -810,6 +812,7 @@ edit_interface_rep::change_time () {
 
 void
 edit_interface_rep::update_menus () {
+  bench_start ("update_menus");
   SERVER (menu_main ("(horizontal (link texmacs-menu))"));
   SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
   SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
@@ -840,6 +843,7 @@ edit_interface_rep::update_menus () {
   cache_memorize ();
   last_update= last_change;
   save_user_preferences ();
+  bench_end ("update_menus");
 }
 
 int

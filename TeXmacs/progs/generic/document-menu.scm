@@ -1285,7 +1285,11 @@
 ) ;define
 
 (tm-menu (focus-style-icons t)
-  (minibar (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
+  (minibar (let* ((start0 (texmacs-time))
+                  (st* (get-style-list))
+                  (_ (let ((ms (- (texmacs-time) start0)))
+                       (when (> ms 1) (display* "  focus-bench get-style-list=" ms "ms\n"))))
+                  (st (if (null? st*) (list "no style") st*)))
              (=> (balloon (eval (style-menu-name (car st))) "Document style")
                (link style-menu)
                ---

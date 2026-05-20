@@ -1244,15 +1244,46 @@
 ;; Menu expansion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define menu-expand-link-cache (make-ahash-table))
+
+(define (static-menu-link? name)
+  "Menus whose expanded result never changes at runtime."
+  (in? name '(style-menu add-package-menu remove-package-menu
+              toggle-package-menu basic-theme-menu
+              document-page-size-menu document-language-menu
+              document-short-font-menu document-font-base-size-menu
+              page-rendering-menu page-layout-menu document-columns-menu
+              print-menu-inline new-file-menu load-menu save-menu
+              close-menu cite-texmacs-menu cite-texmacs-related-menu
+              color-menu document-encryption-menu
+              document-columns-menu)))
+
 (define (menu-expand-link p)
   "Expand menu link @p."
-  (with linked ((eval (cadr p))) (if linked (menu-expand linked) p))
-) ;define
+  (let* ((name (cadr p))
+         (cached (and (static-menu-link? name) (ahash-ref menu-expand-link-cache name))))
+    (if cached cached
+      (let* ((eval-start (texmacs-time))
+             (linked ((eval name)))
+             (eval-ms (- (texmacs-time) eval-start))
+             (expand-start (texmacs-time))
+             (result (if linked (menu-expand linked) p))
+             (expand-ms (- (texmacs-time) expand-start)))
+        (when (> (+ eval-ms expand-ms) 5)
+          (display* "  link [" eval-ms "+" expand-ms "ms] " name "\n"))
+        (when (and (static-menu-link? name) linked)
+          (ahash-set! menu-expand-link-cache name result))
+        result))))
 
 (define (menu-expand-dynamic p)
   "Expand menu link @p."
-  (with dyn (eval (cadr p)) (if dyn (menu-expand dyn) p))
-) ;define
+  (let* ((start (texmacs-time))
+         (dyn (eval (cadr p)))
+         (result (if dyn (menu-expand dyn) p))
+         (elapsed (- (texmacs-time) start)))
+    (when (> elapsed 2)
+      (display* "  dynamic " (cadr p) " " elapsed "ms\n"))
+    result))
 
 (define (menu-expand-resize p)
   "Expand resize menu @p."
@@ -1369,7 +1400,15 @@
 
 (define (menu-expand-list l)
   "Expand links and conditional menus in list of menus @l."
-  (map menu-expand l)
+  (map (lambda (item)
+         (let* ((start (texmacs-time))
+                (result (menu-expand item))
+                (elapsed (- (texmacs-time) start)))
+           (when (> elapsed 5)
+             (display* "  expand-item [" elapsed "ms] "
+               (if (pair? item) (car item) item) "\n"))
+           result))
+       l)
 ) ;define
 
 (define must-eval-list '(input enum choice filtered-choice toggle))

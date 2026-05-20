@@ -428,28 +428,44 @@ compute_style_menu (url u, int kind) {
 
 object
 get_style_menu () {
+  static object cache;
+  if (cache != null_object ()) {
+    cout << "get_style_menu: cached\n";
+    return cache;
+  }
+  cout << "get_style_menu: computing...\n";
   url    sty_u= descendance ("$TEXMACS_STYLE_ROOT");
   string sty  = compute_style_menu (sty_u, 0);
-  return eval ("(menu-dynamic " * sty * ")");
+  cache= eval ("(menu-dynamic " * sty * ")");
+  return cache;
 }
 
 object
 get_add_package_menu () {
+  static object cache;
+  if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 1);
-  return eval ("(menu-dynamic " * pck * ")");
+  cache= eval ("(menu-dynamic " * pck * ")");
+  return cache;
 }
 
 object
 get_remove_package_menu () {
+  static object cache;
+  if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 2);
-  return eval ("(menu-dynamic " * pck * ")");
+  cache= eval ("(menu-dynamic " * pck * ")");
+  return cache;
 }
 
 object
 get_toggle_package_menu () {
+  static object cache;
+  if (cache != null_object ()) return cache;
   url    pck_u= descendance ("$TEXMACS_PACKAGE_ROOT");
   string pck  = compute_style_menu (pck_u, 3);
-  return eval ("(menu-dynamic " * pck * ")");
+  cache= eval ("(menu-dynamic " * pck * ")");
+  return cache;
 }
