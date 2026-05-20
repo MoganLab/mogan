@@ -79,6 +79,7 @@ private slots:
   void onPageEditingFinished ();
   void updatePageNavigation ();
   void onRectSelectToggled (bool checked);
+  void onInertialScroll ();
 
   void keyPressEvent (QKeyEvent* event) override;
 
@@ -121,6 +122,12 @@ private:
   QPoint  browseDragStartPos_;
   int     browseDragStartY_;
   bool    browseDragActive_;
+
+  // Inertial scroll state
+  QTimer* inertialTimer_;
+  double  inertialVelocityY_;
+  QPoint  lastMovePos_;
+  qint64  lastMoveTimestamp_;
 
   QByteArray pdfData_;
   int        pageCount_;

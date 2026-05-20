@@ -582,6 +582,88 @@ private slots:
 
     delete widget;
   }
+
+  void test_inertialScrollAfterRelease () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    // 先将滚动条设到中间，避免触顶/底
+    int midPos= vbar->maximum () / 2;
+    vbar->setValue (midPos);
+    QApplication::processEvents ();
+
+    // 快速向下拖动 50px（多步模拟高速运动）
+    QPoint start (50, 50);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    for (int i= 1; i <= 5; ++i) {
+      QTest::mouseMove (vp, QPoint (50, 50 + i * 10));
+      QApplication::processEvents ();
+    }
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier,
+                         QPoint (50, 100));
+    int releasePos= vbar->value ();
+
+    // 释放后等待一小段时间，惯性滚动应使值继续变化
+    QTest::qWait (80);
+    int afterInertia= vbar->value ();
+    QVERIFY (afterInertia != releasePos);
+
+    delete widget;
+  }
+
+  void test_inertialScrollStopsEventually () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    int midPos= vbar->maximum () / 2;
+    vbar->setValue (midPos);
+    QApplication::processEvents ();
+
+    QPoint start (50, 50);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    for (int i= 1; i <= 5; ++i) {
+      QTest::mouseMove (vp, QPoint (50, 50 + i * 10));
+      QApplication::processEvents ();
+    }
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier,
+                         QPoint (50, 100));
+
+    // 等待足够长的时间让惯性滚动完全停止
+    QTest::qWait (600);
+    int stablePos= vbar->value ();
+
+    // 再等待一帧，值应不再变化
+    QTest::qWait (50);
+    QCOMPARE (vbar->value (), stablePos);
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)

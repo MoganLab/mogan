@@ -9,6 +9,7 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QDateTime>
 #include <QDebug>
 #include <QFile>
 #include <QFrame>
@@ -44,6 +45,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
       browseDragging_ (false), browseDragStartY_ (0), browseDragActive_ (false),
+      inertialTimer_ (nullptr), inertialVelocityY_ (0.0), lastMoveTimestamp_ (0),
       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
       zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
       zoomDebounceTimer_ (nullptr), resizeDebounceTimer_ (nullptr) {
@@ -93,6 +95,12 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
   resizeDebounceTimer_->setInterval (RESIZE_DEBOUNCE_MS);
   connect (resizeDebounceTimer_, &QTimer::timeout, this,
            &PDFReaderWidget::rebuildPages);
+
+  // 惯性滚动定时器 (60fps)
+  inertialTimer_= new QTimer (this);
+  inertialTimer_->setInterval (16); // ~60fps
+  connect (inertialTimer_, &QTimer::timeout, this,
+           &PDFReaderWidget::onInertialScroll);
 }
 
 PDFReaderWidget::~PDFReaderWidget () {}
@@ -1051,6 +1059,9 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         browseDragActive_  = false;
         browseDragStartPos_= mouseEvent->globalPosition ().toPoint ();
         browseDragStartY_  = scrollArea_->verticalScrollBar ()->value ();
+        lastMoveTimestamp_ = 0;
+        inertialVelocityY_ = 0.0;
+        inertialTimer_->stop ();
 #ifdef LIII_DEBUG
         cout << "Browse press at y=" << browseDragStartY_ << "\n";
 #endif
@@ -1078,6 +1089,17 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         newY= qBound (vbar->minimum (), newY, vbar->maximum ());
         vbar->setValue (newY);
       }
+      // 记录速度用于惯性滚动
+      QPoint currentPos= mouseEvent->globalPosition ().toPoint ();
+      qint64 currentTs = QDateTime::currentMSecsSinceEpoch ();
+      if (lastMoveTimestamp_ > 0) {
+        qint64 dt= currentTs - lastMoveTimestamp_;
+        if (dt > 0) {
+          inertialVelocityY_= static_cast<double> (currentPos.y () - lastMovePos_.y ()) / dt;
+        }
+      }
+      lastMovePos_     = currentPos;
+      lastMoveTimestamp_= currentTs;
       mouseEvent->accept ();
       return true;
     }
@@ -1090,8 +1112,13 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
 #ifdef LIII_DEBUG
         cout << "Browse release, wasDrag=" << browseDragActive_
              << " finalY=" << scrollArea_->verticalScrollBar ()->value ()
+             << " velocityY=" << inertialVelocityY_
              << "\n";
 #endif
+        // 启动惯性滚动（速度阈值 0.5 px/ms，约 30px/60ms）
+        if (browseDragActive_ && qAbs (inertialVelocityY_) > 0.5) {
+          inertialTimer_->start ();
+        }
         mouseEvent->accept ();
         return true;
       }
@@ -1138,4 +1165,29 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   return QWidget::eventFilter (watched, event);
+}
+
+void
+PDFReaderWidget::onInertialScroll () {
+  if (qAbs (inertialVelocityY_) < 0.3) {
+    inertialTimer_->stop ();
+    inertialVelocityY_= 0.0;
+#ifdef LIII_DEBUG
+    cout << "Inertial scroll stopped\n";
+#endif
+    return;
+  }
+
+  QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+  int         newY  = vbar->value () - qRound (inertialVelocityY_ * 16);
+  newY= qBound (vbar->minimum (), newY, vbar->maximum ());
+  vbar->setValue (newY);
+
+  // 减速因子 0.85，每帧衰减 15%
+  inertialVelocityY_ *= 0.85;
+
+#ifdef LIII_DEBUG
+  cout << "Inertial scroll y=" << newY << " velocity=" << inertialVelocityY_
+       << "\n";
+#endif
 }
