@@ -1285,8 +1285,7 @@
 ) ;define
 
 (tm-menu (focus-style-icons t)
-  (minibar (let* ((st* (get-style-list))
-                  (st (if (null? st*) (list "no style") st*)))
+  (minibar (let* ((st* (get-style-list)) (st (if (null? st*) (list "no style") st*)))
              (=> (balloon (eval (style-menu-name (car st))) "Document style")
                (link style-menu)
                ---
