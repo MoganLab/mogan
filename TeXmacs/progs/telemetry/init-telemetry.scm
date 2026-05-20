@@ -67,7 +67,9 @@
                  ) ;string-append
         ) ;display
         (on-exit (catch #t
-                   (lambda () (telemetry-flush-if-needed))
+                   (lambda ()
+                     (track-event "CLOSE" '())
+                     (telemetry-flush-if-needed))
                    (lambda args
                      (display (string-append "[telemetry] error: exit flush failed: "
                                 (object->string args)

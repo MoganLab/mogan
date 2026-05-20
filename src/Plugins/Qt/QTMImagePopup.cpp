@@ -78,7 +78,7 @@ QTMImagePopup::QTMImagePopup (QWidget* parent, qt_simple_widget_rep* owner)
                eval ("(when (defined? 'tutorial-notify-action) "
                      "(tutorial-notify-action \"ocr-paste\"))");
 #if !IS_COMMUNITY
-               telemetry_track ("OCR_RECOGNIZE");
+               telemetry_track ("OCR_RECOGNIZE", "'((\"mode\" . \"picture\"))");
 #endif
              }
              current_align=

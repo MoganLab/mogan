@@ -473,7 +473,8 @@
     (use-modules (telemetry telemetry-utils))
     (use-modules (telemetry telemetry-track))
     (use-modules (telemetry init-telemetry))
-    (init-telemetry))
+    (init-telemetry)
+    (track-event "OPEN" '()))
   (lambda args
     (let ((msg (string-append "[telemetry] error: init failed: "
                               (object->string args) "\n")))

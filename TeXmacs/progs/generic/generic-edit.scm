@@ -1009,7 +1009,7 @@
   (if (string-starts? (qt-clipboard-format) "image")
     (begin
       (ocr-paste)
-      (track-event "OCR_RECOGNIZE" '())
+      (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
     ) ;begin
     (with mode
       (get-env "mode")

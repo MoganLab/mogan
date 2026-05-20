@@ -20,8 +20,10 @@
 
 #include <map>
 
+class QCheckBox;
 class QHBoxLayout;
 class QLabel;
+class QLineEdit;
 class QPushButton;
 class QSpacerItem;
 class QStackedWidget;
@@ -199,11 +201,6 @@ private:
   ChatConversationPanel* create_conversation (const QString& title);
 
   /**
-   * @brief 创建并激活一个以自动生成标题命名的新会话。
-   */
-  void create_new_conversation ();
-
-  /**
    * @brief 使用指定模型创建并激活一个新会话。
    * @param model 模型名称。
    */
@@ -264,6 +261,29 @@ private:
    */
   void adjust_input_height (ChatConversationPanel* panel);
 
+  /**
+   * @brief 删除指定的会话面板列表。
+   * @param panels 待删除的会话面板列表。
+   */
+  void delete_sessions (const QList<ChatConversationPanel*>& panels);
+
+  /**
+   * @brief 获取所有 checkbox 被勾选的会话面板。
+   * @return 被勾选的面板列表。
+   */
+  QList<ChatConversationPanel*> get_checked_panels () const;
+
+  /**
+   * @brief 进入多选模式，显示 checkbox 和批量操作栏。
+   * @param archived 是否从归档区进入（决定显示哪些操作按钮）。
+   */
+  void enter_multi_select_mode (bool archived);
+
+  /**
+   * @brief 退出多选模式，隐藏 checkbox 和批量操作栏。
+   */
+  void exit_multi_select_mode ();
+
 public:
   /**
    * @brief 计算输入文档的段落（行）数。
@@ -285,6 +305,11 @@ public:
    * @return 若主体不含可见内容则返回 true。
    */
   static bool is_empty_document_body (tree body);
+
+  /**
+   * @brief 确保至少存在一个空白新对话，若没有则创建。
+   */
+  void ensure_new_conversation ();
 
   /**
    * @brief 为 Chat Tab 安装主菜单栏内容。
@@ -310,12 +335,6 @@ public:
    * @param stateStr 状态字符串 ("idle" 或 "generating")。
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);
-
-  /**
-   * @brief 使用指定模型创建新会话（供 Scheme 回调调用）。
-   * @param model 模型名称。
-   */
-  void newSessionWithModel (const string& model);
 
   /**
    * @brief 保存单个会话到磁盘（增量）。
@@ -363,11 +382,18 @@ private:
   QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
   ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
   ChatSessionManager            sessionManager_;     ///< 会话管理器。
-  bool      sidebarCollapsed_;     ///< 侧边栏当前是否处于收起状态。
-  int       sidebarExpandedWidth_; ///< 侧边栏展开时的宽度（像素）。
-  QToolBar* chatMenuToolBar_;      ///< Chat Tab 的菜单工具栏。
-  QToolBar* chatModeToolBar_;      ///< Chat Tab 的模式工具栏。
-  QToolBar* chatFocusToolBar_;     ///< Chat Tab 的焦点工具栏。
+  bool         sidebarCollapsed_;     ///< 侧边栏当前是否处于收起状态。
+  int          sidebarExpandedWidth_; ///< 侧边栏展开时的宽度（像素）。
+  QToolBar*    chatMenuToolBar_;      ///< Chat Tab 的菜单工具栏。
+  QToolBar*    chatModeToolBar_;      ///< Chat Tab 的模式工具栏。
+  QToolBar*    chatFocusToolBar_;     ///< Chat Tab 的焦点工具栏。
+  bool         multiSelectMode_;      ///< 是否处于多选模式（活跃会话）。
+  bool         archiveSelectMode_;    ///< 是否处于多选模式（归档会话）。
+  QWidget*     multiSelectBar_;       ///< 多选模式下的批量操作栏。
+  QPushButton* batchArchiveBtn_;      ///< 批量归档按钮（归档区多选时隐藏）。
+  QLineEdit*   searchEdit_;           ///< 会话搜索输入框。
+  QList<ChatConversationPanel*>
+      zombiePanels_; ///< 已删除的会话面板（隐藏但未释放）。
 };
 
 /**
@@ -376,12 +402,6 @@ private:
  * @param stateStr 状态字符串 ("idle" 或 "generating")。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
-
-/**
- * @brief Scheme→C++ 回调：使用指定模型创建新会话。
- * @param model 模型名称。
- */
-void qt_chat_tab_new_session (string model);
 
 /**
  * @brief Scheme→C++ 回调：加载所有聊天会话。

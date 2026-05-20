@@ -263,6 +263,7 @@
 
   <assign|to|<macro|\<rightarrow\>>>
   <assign|varomega|<macro|\<varomega\>>>
+  <assign|varOmega|<macro|\<varOmega\>>>
 </body>
 
 <\initial>

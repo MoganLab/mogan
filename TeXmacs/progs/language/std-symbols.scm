@@ -509,7 +509,7 @@
     "<Alpha>" "<Beta>" "<Gamma>" "<Delta>" "<Epsilon>" "<Zeta>"
     "<Eta>" "<Theta>" "<Iota>" "<Kappa>" "<Lambda>" "<Mu>" "<Nu>"
     "<Xi>" "<Omicron>" "<Pi>" "<Rho>" "<Sigma>" "<Tau>"
-    "<Upsilon>" "<Phi>" "<Psi>" "<Chi>" "<Omega>"
+    "<Upsilon>" "<Phi>" "<Psi>" "<Chi>" "<Omega>" "<varOmega>"
     "<Backepsilon>" "<Backsigma>" "<Mho>"
 
     "<b-0>" "<b-1>" "<b-2>" "<b-3>" "<b-4>"

@@ -410,6 +410,57 @@ QTMTabPageContainer QPushButton#add-tab-button:pressed {
   background-color: rgba(255, 255, 255, 0.10);
 }
 
+/****************************************************************************
+* PDF Reader 工具栏按钮样式
+****************************************************************************/
+QToolButton#pdf-zoom-out-btn {
+  qproperty-icon: url(":/pdf-reader/minus-white.svg");
+}
+
+QToolButton#pdf-zoom-in-btn {
+  qproperty-icon: url(":/tabpage/add-white.svg");
+}
+
+QToolButton#pdf-prev-btn {
+  qproperty-icon: url(":/pdf-reader/previous-white.svg");
+}
+
+QToolButton#pdf-next-btn {
+  qproperty-icon: url(":/pdf-reader/next-white.svg");
+}
+
+QToolButton#pdf-screenshot-btn {
+  qproperty-icon: url(":/pdf-reader/screenshot-white.svg");
+}
+
+QWidget#centralWidget QToolButton#pdf-zoom-out-btn:hover,
+QWidget#centralWidget QToolButton#pdf-zoom-in-btn:hover,
+QWidget#centralWidget QToolButton#pdf-prev-btn:hover,
+QWidget#centralWidget QToolButton#pdf-next-btn:hover,
+QWidget#centralWidget QToolButton#pdf-screenshot-btn:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+QWidget#centralWidget QToolButton#pdf-zoom-out-btn:pressed,
+QWidget#centralWidget QToolButton#pdf-zoom-in-btn:pressed,
+QWidget#centralWidget QToolButton#pdf-prev-btn:pressed,
+QWidget#centralWidget QToolButton#pdf-next-btn:pressed,
+QWidget#centralWidget QToolButton#pdf-screenshot-btn:pressed {
+  background-color: rgba(255, 255, 255, 0.10);
+}
+
+QWidget#centralWidget QWidget#pdf-reader-tool-bar,
+QWidget#centralWidget QWidget#pdf-reader-tool-bar QWidget {
+  background: #2c2c2c;
+}
+
+QLineEdit#pdf-page-edit {
+  background: #ffffff;
+  color: #2c2c2c;
+  border: 1px solid #5c5c5c;
+  border-radius: 2px;
+}
+
 /* Tab Widget 样式 */
 QTabBar::tab {
   background: #4c4c4c;
@@ -472,7 +523,7 @@ QMenu::separator {
 ****************************************************************************/
 QComboBox {
   background: #2c2c2c;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #5c5c5c;
   padding: 4px 8px;
   padding-right: 24px;
   min-width: 6em;
@@ -494,7 +545,7 @@ QComboBox::drop-down {
 }
 
 QComboBox::down-arrow {
-  border-image: url($TEXMACS_PATH/misc/pixmaps/modern/tm_down_arrow_dark.png) 0 0 0 0 stretch stretch;
+  image: url(":/pdf-reader/open-white.svg");
   width: 12px;
   height: 12px;
   margin-top: 4px;

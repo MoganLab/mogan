@@ -34,6 +34,7 @@
   "Zeta" "Eta" "Theta" "Iota" "Kappa" "Lambda"
   "Mu" "Nu" "Xi" "Omicron" "Pi" "Rho"
   "Sigma" "Tau" "Upsilon" "Phi" "Chi" "Psi" "Omega"
+  "varOmega"
   "grave" "acute" "check" "breve" "invbreve" "bar"
   "cedille"
 

@@ -12,11 +12,11 @@
 #include <QHash>
 #include <QLabel>
 #include <QLineEdit>
-#include <QPushButton>
 #include <QRubberBand>
 #include <QScrollArea>
+#include <QScrollBar>
 #include <QTimer>
-#include <QToolBar>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -100,15 +100,15 @@ private:
   QVBoxLayout* pageLayout_;
   QVBoxLayout* mainLayout_;
 
-  QToolBar*    toolBar_;
+  QWidget*     toolBar_;
   QComboBox*   zoomCombo_;
-  QPushButton* zoomOutBtn_;
-  QPushButton* prevPageBtn_;
+  QToolButton* zoomOutBtn_;
+  QToolButton* prevPageBtn_;
   QLineEdit*   pageEdit_;
   QLabel*      pageTotalLabel_;
-  QPushButton* nextPageBtn_;
-  QPushButton* zoomInBtn_;
-  QPushButton* rectSelectBtn_;
+  QToolButton* nextPageBtn_;
+  QToolButton* zoomInBtn_;
+  QToolButton* rectSelectBtn_;
 
   QRubberBand* rubberBand_;
   bool         rectSelectMode_;

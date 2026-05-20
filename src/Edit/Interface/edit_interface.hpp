@@ -119,28 +119,29 @@ protected:
   path              hover_image_path; // 鼠标悬停图片的路径缓存
   rectangle         last_table_brec;  // 表格 bbox 缓存
   SI                last_table_hr;    // 表格 handles 半径缓存
-  rectangles        env_rects;
-  rectangles        foc_rects;
-  rectangles        sem_rects;
-  bool              sem_correct;
-  cursor            oc;
-  bool              temp_invalid_cursor;
-  array<string>     completions;
-  string            completion_prefix;
-  int               completion_pos;
-  string            completion_style;
-  string            prev_math_comb;
-  cursor            last_cursor;
-  renderer          shadow;
-  SI                vx1, vy1, vx2, vy2;
-  rectangles        stored_rects;
-  renderer          stored;
-  rectangles        locus_new_rects;
-  rectangles        locus_rects;
-  list<string>      mouse_ids;
-  list<string>      focus_ids;
-  int               cur_sb, cur_wb;
-  SI                cur_wx, cur_wy;
+  hashmap<tree, rectangles> table_env_cache; // 表格环境矩形缓存
+  rectangles                env_rects;
+  rectangles                foc_rects;
+  rectangles                sem_rects;
+  bool                      sem_correct;
+  cursor                    oc;
+  bool                      temp_invalid_cursor;
+  array<string>             completions;
+  string                    completion_prefix;
+  int                       completion_pos;
+  string                    completion_style;
+  string                    prev_math_comb;
+  cursor                    last_cursor;
+  renderer                  shadow;
+  SI                        vx1, vy1, vx2, vy2;
+  rectangles                stored_rects;
+  renderer                  stored;
+  rectangles                locus_new_rects;
+  rectangles                locus_rects;
+  list<string>              mouse_ids;
+  list<string>              focus_ids;
+  int                       cur_sb, cur_wb;
+  SI                        cur_wx, cur_wy;
 
 public:
   edit_interface_rep ();

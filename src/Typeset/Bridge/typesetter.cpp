@@ -51,19 +51,9 @@ typesetter_rep::insert_parunit (tree t, path ip) {
 
 void
 typesetter_rep::insert_paragraph (tree t, path ip) {
-  // cout << "Typesetting " << t << ", " << ip << "\n";
   stack_border     temp_sb;
   array<page_item> temp_l= typeset_stack (env, t, ip, a, b, temp_sb);
   insert_stack (temp_l, temp_sb);
-
-  /*
-  int i, n= N(temp_l);
-  for (i=0; i<n; i++)
-    cout << i << ", "
-         << temp_l[i]->b->find_lip () << ", "
-         << temp_l[i]->b->find_rip () << ",\t"
-         << temp_l[i]->b << "\n";
-  */
 }
 
 void
@@ -228,38 +218,47 @@ typesetter_rep::typeset (SI& x1b, SI& y1b, SI& x2b, SI& y2b) {
 
 void
 notify_assign (typesetter ttt, path p, tree u) {
-  // cout << "Assign " << p << ", " << u << "\n";
   if (is_nil (p)) ttt->br= make_bridge (ttt, u, ttt->br->ip);
   else ttt->br->notify_assign (p, u);
 }
 
 void
 notify_insert (typesetter ttt, path p, tree u) {
-  // cout << "Insert " << p << ", " << u << "\n";
+#ifdef LIII_DEBUG
+  cout << "Insert " << p << ", " << u << "\n";
+#endif
   ttt->br->notify_insert (p, u);
 }
 
 void
 notify_remove (typesetter ttt, path p, int nr) {
-  // cout << "Remove " << p << ", " << nr << "\n";
+#ifdef LIII_DEBUG
+  cout << "Remove " << p << ", " << nr << "\n";
+#endif
   ttt->br->notify_remove (p, nr);
 }
 
 void
 notify_split (typesetter ttt, path p) {
-  // cout << "Split " << p << "\n";
+#ifdef LIII_DEBUG
+  cout << "Split " << p << "\n";
+#endif
   ttt->br->notify_split (p);
 }
 
 void
 notify_join (typesetter ttt, path p) {
-  // cout << "Join " << p << "\n";
+#ifdef LIII_DEBUG
+  cout << "Join " << p << "\n";
+#endif
   ttt->br->notify_join (p);
 }
 
 void
 notify_assign_node (typesetter ttt, path p, tree_label op) {
-  // cout << "Assign node " << p << ", " << as_string (op) << "\n";
+#ifdef LIII_DEBUG
+  cout << "Assign node " << p << ", " << as_string (op) << "\n";
+#endif
   tree t= subtree (ttt->br->st, p);
   int  i, n= N (t);
   tree r (op, n);
@@ -271,7 +270,9 @@ notify_assign_node (typesetter ttt, path p, tree_label op) {
 
 void
 notify_insert_node (typesetter ttt, path p, tree t) {
-  // cout << "Insert node " << p << ", " << t << "\n";
+#ifdef LIII_DEBUG
+  cout << "Insert node " << p << ", " << t << "\n";
+#endif
   int  i, pos= last_item (p), n= N (t);
   tree r (t, n + 1);
   for (i= 0; i < pos; i++)
@@ -285,7 +286,9 @@ notify_insert_node (typesetter ttt, path p, tree t) {
 
 void
 notify_remove_node (typesetter ttt, path p) {
-  // cout << "Remove node " << p << "\n";
+#ifdef LIII_DEBUG
+  cout << "Remove node " << p << "\n";
+#endif
   tree t= subtree (ttt->br->st, p);
   if (is_nil (path_up (p))) ttt->br= make_bridge (ttt, t, ttt->br->ip);
   else ttt->br->notify_assign (path_up (p), t);

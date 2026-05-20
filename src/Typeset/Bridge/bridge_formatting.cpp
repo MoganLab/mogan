@@ -58,7 +58,9 @@ bridge_formatting (typesetter ttt, tree st, path ip, string v) {
 
 void
 bridge_formatting_rep::notify_assign (path p, tree u) {
-  // cout << "Assign " << p << ", " << u << " in " << st << "\n";
+#ifdef LIII_DEBUG
+  cout << "Assign " << p << ", " << u << " in " << st << "\n";
+#endif
   ASSERT (!is_nil (p) || is_func (u, TFORMAT), "nil path");
   if (is_nil (p)) {
     st= u;

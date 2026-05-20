@@ -11,12 +11,16 @@
 #include <QClipboard>
 #include <QDebug>
 #include <QFile>
+#include <QFrame>
+#include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QScreen>
 #include <QScrollBar>
+#include <QSizePolicy>
+#include <QToolButton>
 #include <QWheelEvent>
 
 #include "MuPDF/mupdf_renderer.hpp"
@@ -93,14 +97,21 @@ PDFReaderWidget::~PDFReaderWidget () {}
 
 void
 PDFReaderWidget::setupToolBar () {
-  toolBar_= new QToolBar (this);
-  toolBar_->setMovable (false);
+  toolBar_= new QWidget (this);
+  toolBar_->setObjectName ("pdf-reader-tool-bar");
+  QHBoxLayout* toolBarLayout= new QHBoxLayout (toolBar_);
+  toolBarLayout->setContentsMargins (4, 2, 4, 2);
+  toolBarLayout->setSpacing (4);
 
   zoomCombo_= new QComboBox (toolBar_);
   zoomCombo_->setEditable (true);
   zoomCombo_->lineEdit ()->setReadOnly (true);
   zoomCombo_->lineEdit ()->setAlignment (Qt::AlignCenter);
-  zoomCombo_->setMinimumWidth (80);
+  zoomCombo_->setSizeAdjustPolicy (QComboBox::AdjustToContents);
+  zoomCombo_->setFixedHeight (DpiUtils::scaled (32));
+  QFont comboFont= zoomCombo_->font ();
+  comboFont.setPixelSize (DpiUtils::scaled (14));
+  zoomCombo_->setFont (comboFont);
 
   zoomCombo_->addItem ("Fit Width");
   zoomCombo_->addItem ("Fit Height");
@@ -120,51 +131,95 @@ PDFReaderWidget::setupToolBar () {
   connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
            this, &PDFReaderWidget::onZoomChanged);
 
-  zoomOutBtn_= new QPushButton ("-", toolBar_);
-  zoomOutBtn_->setFixedWidth (30);
-  connect (zoomOutBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomOut);
+  zoomOutBtn_= new QToolButton (toolBar_);
+  zoomOutBtn_->setObjectName ("pdf-zoom-out-btn");
+  zoomOutBtn_->setAutoRaise (true);
+  zoomOutBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomOutBtn_->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+  zoomOutBtn_->setToolTip (qt_translate ("Zoom Out"));
+  connect (zoomOutBtn_, &QToolButton::clicked, this, &PDFReaderWidget::zoomOut);
 
-  zoomInBtn_= new QPushButton ("+", toolBar_);
-  zoomInBtn_->setFixedWidth (30);
-  connect (zoomInBtn_, &QPushButton::clicked, this, &PDFReaderWidget::zoomIn);
+  zoomInBtn_= new QToolButton (toolBar_);
+  zoomInBtn_->setObjectName ("pdf-zoom-in-btn");
+  zoomInBtn_->setAutoRaise (true);
+  zoomInBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomInBtn_->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+  zoomInBtn_->setToolTip (qt_translate ("Zoom In"));
+  connect (zoomInBtn_, &QToolButton::clicked, this, &PDFReaderWidget::zoomIn);
 
-  toolBar_->addWidget (zoomOutBtn_);
-  toolBar_->addWidget (zoomCombo_);
-  toolBar_->addWidget (zoomInBtn_);
-  toolBar_->addSeparator ();
-
-  prevPageBtn_= new QPushButton ("<", toolBar_);
-  prevPageBtn_->setFixedWidth (30);
-  connect (prevPageBtn_, &QPushButton::clicked, this,
+  prevPageBtn_= new QToolButton (toolBar_);
+  prevPageBtn_->setObjectName ("pdf-prev-btn");
+  prevPageBtn_->setAutoRaise (true);
+  prevPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  prevPageBtn_->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+  prevPageBtn_->setToolTip (qt_translate ("Previous Page"));
+  connect (prevPageBtn_, &QToolButton::clicked, this,
            &PDFReaderWidget::onPrevPage);
 
   pageEdit_= new QLineEdit (toolBar_);
-  pageEdit_->setFixedWidth (40);
+  pageEdit_->setObjectName ("pdf-page-edit");
+  pageEdit_->setFixedWidth (DpiUtils::scaled (50));
+  pageEdit_->setFixedHeight (DpiUtils::scaled (32));
   pageEdit_->setAlignment (Qt::AlignCenter);
   connect (pageEdit_, &QLineEdit::editingFinished, this,
            &PDFReaderWidget::onPageEditingFinished);
 
-  pageTotalLabel_= new QLabel ("of 0", toolBar_);
+  pageTotalLabel_= new QLabel ("/ 0", toolBar_);
+  pageTotalLabel_->setFixedWidth (DpiUtils::scaled (45));
+  pageTotalLabel_->setFixedHeight (DpiUtils::scaled (32));
+  pageTotalLabel_->setAlignment (Qt::AlignCenter);
 
-  nextPageBtn_= new QPushButton (">", toolBar_);
-  nextPageBtn_->setFixedWidth (30);
-  connect (nextPageBtn_, &QPushButton::clicked, this,
+  nextPageBtn_= new QToolButton (toolBar_);
+  nextPageBtn_->setObjectName ("pdf-next-btn");
+  nextPageBtn_->setAutoRaise (true);
+  nextPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  nextPageBtn_->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+  nextPageBtn_->setToolTip (qt_translate ("Next Page"));
+  connect (nextPageBtn_, &QToolButton::clicked, this,
            &PDFReaderWidget::onNextPage);
 
-  toolBar_->addWidget (prevPageBtn_);
-  toolBar_->addWidget (pageEdit_);
-  toolBar_->addWidget (pageTotalLabel_);
-  toolBar_->addWidget (nextPageBtn_);
+  QWidget*     navWidget= new QWidget (toolBar_);
+  QHBoxLayout* navLayout= new QHBoxLayout (navWidget);
+  navLayout->setContentsMargins (0, 0, 0, 0);
+  navLayout->setSpacing (0);
+  navLayout->addWidget (zoomOutBtn_);
+  navLayout->addWidget (prevPageBtn_);
+  navLayout->addWidget (pageEdit_);
+  navLayout->addWidget (pageTotalLabel_);
+  navLayout->addWidget (nextPageBtn_);
+  navLayout->addWidget (zoomInBtn_);
 
-  rectSelectBtn_= new QPushButton ("□", toolBar_);
-  rectSelectBtn_->setObjectName ("rectSelectBtn");
-  rectSelectBtn_->setFixedWidth (30);
+  QWidget*     leftWidget= new QWidget (toolBar_);
+  QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
+  leftLayout->setContentsMargins (0, 0, 0, 0);
+  leftLayout->addWidget (zoomCombo_);
+  leftLayout->addStretch ();
+  leftWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+  rectSelectBtn_= new QToolButton (toolBar_);
+  rectSelectBtn_->setObjectName ("pdf-screenshot-btn");
+  rectSelectBtn_->setAutoRaise (true);
+  rectSelectBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  rectSelectBtn_->setIconSize (
+      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
   rectSelectBtn_->setCheckable (true);
-  connect (rectSelectBtn_, &QPushButton::toggled, this,
+  connect (rectSelectBtn_, &QToolButton::toggled, this,
            &PDFReaderWidget::onRectSelectToggled);
 
-  toolBar_->addSeparator ();
-  toolBar_->addWidget (rectSelectBtn_);
+  QWidget*     rightWidget= new QWidget (toolBar_);
+  QHBoxLayout* rightLayout= new QHBoxLayout (rightWidget);
+  rightLayout->setContentsMargins (0, 0, 0, 0);
+  rightLayout->addWidget (rectSelectBtn_);
+  rightLayout->addStretch ();
+  rightWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
+
+  toolBarLayout->addWidget (leftWidget, 1);
+  toolBarLayout->addWidget (navWidget, 0);
+  toolBarLayout->addWidget (rightWidget, 1);
 
   mainLayout_->insertWidget (0, toolBar_);
 }
@@ -306,7 +361,7 @@ PDFReaderWidget::updatePageNavigation () {
 
   int current= currentPage ();
   pageEdit_->setText (QString::number (current));
-  pageTotalLabel_->setText (QString ("of %1").arg (pageCount_));
+  pageTotalLabel_->setText (QString ("/ %1").arg (pageCount_));
 
   prevPageBtn_->setEnabled (current > 1);
   nextPageBtn_->setEnabled (current < pageCount_);

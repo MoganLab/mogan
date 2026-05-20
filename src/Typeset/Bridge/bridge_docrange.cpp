@@ -55,7 +55,9 @@ public:
 bridge
 bridge_docrange (typesetter ttt, tree st, path ip, array<bridge>& brs,
                  int begin, int end, bool divide= false) {
-  // cout << "Make range: " << begin << " -- " << end << "\n";
+#ifdef LIII_DEBUG
+  cout << "Make range: " << begin << " -- " << end << "\n";
+#endif
   return tm_new<bridge_docrange_rep> (ttt, st, ip, brs, begin, end, divide);
 }
 
@@ -90,9 +92,11 @@ bridge_docrange_rep::rebalance () {
       while ((i < n - 1) && ((mid[i + 2] == mid[start + 1]) ||
                              (mid[i + 2] - mid[start] <= ACC_THRESHOLD)))
         i++;
-      // cout << "  Compactify " << i-start << " at " << start << ", ";
-      // if (mid[i+1] == mid[start+1]) cout << "suppress\n";
-      // else cout << "compress\n";
+#ifdef LIII_DEBUG
+      cout << "  Compactify " << i - start << " at " << start << ", ";
+      if (mid[i + 1] == mid[start + 1]) cout << "suppress\n";
+      else cout << "compress\n";
+#endif
       if (mid[i + 1] == mid[start + 1]) acc2 << acc[start];
       else acc2 << bridge_docrange (ttt, st, ip, brs, mid[start], mid[i + 1]);
       mid2 << mid[start];
@@ -101,7 +105,9 @@ bridge_docrange_rep::rebalance () {
     // Expand?
     else if (mid[i + 1] - mid[i] > (7 * ACC_THRESHOLD / 4)) {
       int j, k= (mid[i + 1] - mid[i] - 1) / ACC_THRESHOLD + 1;
-      // cout << "  Expand " << k << " at " << i << "\n";
+#ifdef LIII_DEBUG
+      cout << "  Expand " << k << " at " << i << "\n";
+#endif
       for (j= 0; j < k; j++) {
         int b= mid[i] + j * ACC_THRESHOLD;
         int e= min (b + ACC_THRESHOLD, mid[i + 1]);
@@ -118,7 +124,9 @@ bridge_docrange_rep::rebalance () {
   }
 
   mid2 << end;
-  // if (mid2 != mid) cout << mid << " -> " << mid2 << "\n";
+#ifdef LIII_DEBUG
+  if (mid2 != mid) cout << mid << " -> " << mid2 << "\n";
+#endif
   acc= acc2;
   mid= mid2;
 }
@@ -141,8 +149,10 @@ bridge_docrange_rep::notify_assign (path p, tree u) {
 
 void
 bridge_docrange_rep::notify_insert (path p, tree u) {
-  // cout << "Notify insert " << p << ", " << N(u)
-  //      << " [ " << begin << "--" << end << " ]\n";
+#ifdef LIII_DEBUG
+  cout << "Notify insert " << p << ", " << N (u) << " [ " << begin << "--"
+       << end << " ]\n";
+#endif
   ASSERT (!is_nil (p), "erroneous nil path");
   if (p->item > end) {
     failed_error << "Notify insert " << u << " at " << p << "\n";
@@ -161,16 +171,22 @@ bridge_docrange_rep::notify_insert (path p, tree u) {
       acc[i]->notify_insert (p, u);
       mid[i + 1]+= N (u);
     }
-    // cout << "mid[ins,0]= " << mid << "\n";
+#ifdef LIII_DEBUG
+    cout << "mid[ins,0]= " << mid << "\n";
+#endif
     rebalance ();
-    // cout << "mid[ins,1]= " << mid << "\n";
+#ifdef LIII_DEBUG
+    cout << "mid[ins,1]= " << mid << "\n";
+#endif
   }
 }
 
 void
 bridge_docrange_rep::notify_remove (path p, int nr) {
-  // cout << "Notify insert " << p << ", " << nr
-  //      << " [ " << begin << "--" << end << " ]\n";
+#ifdef LIII_DEBUG
+  cout << "Notify insert " << p << ", " << nr << " [ " << begin << "--" << end
+       << " ]\n";
+#endif
   ASSERT (!is_nil (p), "erroneous nil path");
   ASSERT (p->item < end, "out of range");
   if (p->item + nr > begin) {
@@ -191,9 +207,13 @@ bridge_docrange_rep::notify_remove (path p, int nr) {
       acc[i]->notify_remove (p, nr);
       mid[i + 1]= max (mid[i + 1] - nr, p->item);
     }
-    // cout << "mid[rem,0]= " << mid << "\n";
+#ifdef LIII_DEBUG
+    cout << "mid[rem,0]= " << mid << "\n";
+#endif
     rebalance ();
-    // cout << "mid[rem,1]= " << mid << "\n";
+#ifdef LIII_DEBUG
+    cout << "mid[rem,1]= " << mid << "\n";
+#endif
   }
 }
 
