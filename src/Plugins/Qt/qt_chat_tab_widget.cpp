@@ -253,13 +253,14 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
       archiveCollapsed_ (true), newChatButton_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
-      floatingNewChatBtn_ (nullptr), sidebarNormalContent_ (nullptr),
-      conversationStack_ (nullptr), activeConversation_ (nullptr),
-      sidebarCollapsed_ (false), sidebarExpandedWidth_ (0),
-      chatMenuToolBar_ (nullptr), chatModeToolBar_ (nullptr),
-      chatFocusToolBar_ (nullptr), multiSelectMode_ (false),
-      archiveSelectMode_ (false), multiSelectBar_ (nullptr),
-      batchArchiveBtn_ (nullptr), searchEdit_ (nullptr) {
+      floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
+      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr),
+      activeConversation_ (nullptr), sidebarCollapsed_ (false),
+      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
+      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
+      multiSelectMode_ (false), archiveSelectMode_ (false),
+      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr),
+      searchEdit_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -600,26 +601,40 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
 
   mainLayout->addWidget (content, 1);
 
-  // 浮球展开按钮（侧边栏收起时显示在内容区左上角）
-  QPushButton* floatingBtn= setup_floating_button (
-      this, "chat-tab-floating-expand-btn", ":llm-chat/sidebar.svg");
+  // 浮球按钮容器（侧边栏收起时显示在内容区左上角）
+  QWidget* floatingContainer= new QWidget (this);
+  floatingContainer->setObjectName ("chat-tab-floating-container");
+  QHBoxLayout* floatingLayout= new QHBoxLayout (floatingContainer);
+  floatingLayout->setContentsMargins (0, 0, 0, 0);
+  floatingLayout->setSpacing (0);
+  floatingContainer->setStyleSheet (
+      QString ("QWidget#chat-tab-floating-container { "
+               "background-color: #e8e8e8; border-radius: %1px; }")
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+
+  QPushButton* floatingBtn=
+      setup_floating_button (floatingContainer, "chat-tab-floating-expand-btn",
+                             ":llm-chat/sidebar.svg");
   connect (floatingBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
-  floatingBtn->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                     DpiUtils::scaled (kFloatingBtnMarginY));
+  floatingLayout->addWidget (floatingBtn);
   floatingExpandBtn_= floatingBtn;
 
-  // 浮球新建聊天按钮（侧边栏收起时显示在内容区左上角）
   QPushButton* floatingNewBtn= setup_floating_button (
-      this, "chat-tab-floating-new-btn", ":llm-chat/addchat.svg");
+      floatingContainer, "chat-tab-floating-new-btn", ":llm-chat/addchat.svg");
   connect (floatingNewBtn, &QPushButton::clicked, this, [this] () {
     string model=
         as_string (call ("chat-tab-session-select-model", string ("")));
     create_new_conversation_with_model (model);
   });
-  floatingNewBtn->move (DpiUtils::scaled (kFloatingNewChatBtnMarginX),
-                        DpiUtils::scaled (kFloatingBtnMarginY));
+  floatingLayout->addWidget (floatingNewBtn);
   floatingNewChatBtn_= floatingNewBtn;
+
+  floatingContainer->adjustSize ();
+  floatingContainer->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                           DpiUtils::scaled (kFloatingBtnMarginY));
+  floatingContainer->hide ();
+  floatingBtnContainer_= floatingContainer;
 }
 
 /**
@@ -1253,22 +1268,16 @@ QTChatTabWidget::toggle_sidebar () {
   if (!sidebarWidget_) return;
 
   if (sidebarCollapsed_) {
-    if (floatingExpandBtn_) floatingExpandBtn_->hide ();
-    if (floatingNewChatBtn_) floatingNewChatBtn_->hide ();
+    if (floatingBtnContainer_) floatingBtnContainer_->hide ();
     sidebarWidget_->show ();
     sidebarCollapsed_= false;
   }
   else {
     sidebarWidget_->hide ();
-    if (floatingExpandBtn_) {
-      floatingExpandBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                                DpiUtils::scaled (kFloatingBtnMarginY));
-      floatingExpandBtn_->show ();
-    }
-    if (floatingNewChatBtn_) {
-      floatingNewChatBtn_->move (DpiUtils::scaled (kFloatingNewChatBtnMarginX),
-                                 DpiUtils::scaled (kFloatingBtnMarginY));
-      floatingNewChatBtn_->show ();
+    if (floatingBtnContainer_) {
+      floatingBtnContainer_->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                                   DpiUtils::scaled (kFloatingBtnMarginY));
+      floatingBtnContainer_->show ();
     }
     sidebarCollapsed_= true;
   }
