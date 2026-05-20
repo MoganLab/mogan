@@ -200,11 +200,6 @@ private:
   ChatConversationPanel* create_conversation (const QString& title);
 
   /**
-   * @brief 创建并激活一个以自动生成标题命名的新会话。
-   */
-  void create_new_conversation ();
-
-  /**
    * @brief 使用指定模型创建并激活一个新会话。
    * @param model 模型名称。
    */
@@ -341,12 +336,6 @@ public:
   void notifyStateChanged (const string& sessionId, const string& stateStr);
 
   /**
-   * @brief 使用指定模型创建新会话（供 Scheme 回调调用）。
-   * @param model 模型名称。
-   */
-  void newSessionWithModel (const string& model);
-
-  /**
    * @brief 保存单个会话到磁盘（增量）。
    */
   void saveOneSession (const string& sessionId);
@@ -411,12 +400,6 @@ private:
  * @param stateStr 状态字符串 ("idle" 或 "generating")。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
-
-/**
- * @brief Scheme→C++ 回调：使用指定模型创建新会话。
- * @param model 模型名称。
- */
-void qt_chat_tab_new_session (string model);
 
 /**
  * @brief Scheme→C++ 回调：加载所有聊天会话。

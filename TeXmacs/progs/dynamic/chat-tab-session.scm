@@ -162,10 +162,11 @@
   ) ;with-buffer
 ) ;define
 
-(define (chat-tab-append-round! message-buffer body)
+(define (chat-tab-append-round! message-buffer body session-id)
   (with-buffer message-buffer
     (let* ((doc (chat-tab-message-document message-buffer))
-           (model chat-tab-current-model)
+           (st (chat-tab-ensure-session! session-id))
+           (model (chat-tab-state-model st))
            (prompt (chat-tab-model-prompt model))
            (input-children (chat-tab-body-children body))
            (input-stree (map tree->stree input-children))
@@ -563,7 +564,7 @@
              (msg-buf (chat-tab-session->message-buffer session-id))
              (st (chat-tab-ensure-session! session-id))
              (plugin-ses (chat-tab-state->plugin-session-id st session-id))
-             (out (chat-tab-append-round! msg-buf input))
+             (out (chat-tab-append-round! msg-buf input session-id))
             ) ;
         (if (not out)
           #f

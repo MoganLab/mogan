@@ -248,7 +248,11 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   // 右侧内容区
   setup_right_content (mainLayout);
   loadSessions ();
-  if (conversations_.isEmpty ()) create_new_conversation ();
+  if (conversations_.isEmpty ()) {
+    string model=
+      as_string (call ("chat-tab-session-select-model", string ("")));
+    create_new_conversation_with_model (model);
+  }
 }
 
 /**
@@ -292,7 +296,11 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
                                      .arg (DpiUtils::scaled (kNavButtonPadY))
                                      .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (newChatButton_, &QPushButton::clicked, this,
-           [this] () { create_new_conversation (); });
+           [this] () {
+             string model=
+               as_string (call ("chat-tab-session-select-model", string ("")));
+             create_new_conversation_with_model (model);
+           });
   normalLayout->addWidget (newChatButton_);
 
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
@@ -701,24 +709,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
 }
 
 /**
- * @brief 创建并激活一个以自动生成标题命名的新会话。
- */
-void
-QTChatTabWidget::create_new_conversation () {
-  // 从 Scheme 获取当前模型
-  string model= as_string (call ("chat-tab-session-select-model", string ("")));
-  create_new_conversation_with_model (model);
-}
-
-/**
  * @brief 使用指定模型创建并激活一个新会话。
  * @param model 模型名称。
  */
 void
 QTChatTabWidget::create_new_conversation_with_model (const string& model) {
-  // 通知 Scheme 层切换模型
-  call ("chat-tab-session-select-model", model);
-
   ChatConversationPanel* panel= create_conversation ("");
   if (!panel) return;
   conversations_.prepend (panel);
@@ -741,16 +736,27 @@ QTChatTabWidget::create_new_conversation_with_model (const string& model) {
 }
 
 /**
- * @brief 确保至少存在一个空白新对话（conversationMode == false）。
+ * @brief 确保最新的会话是空白对话且模型一致，若不是则新建一个。
  *
- * 遍历所有会话，若已有空白对话则直接返回；否则新建一个。
+ * 只检查最新（最上方）的会话，避免旧空白会话影响判断。
  */
 void
 QTChatTabWidget::ensure_new_conversation () {
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel->conversationMode) return;
+  string currentModel=
+    as_string (call ("chat-tab-session-select-model", string ("")));
+
+  if (!conversations_.isEmpty ()) {
+    ChatConversationPanel* first= conversations_.first ();
+    if (!first->conversationMode) {
+      // 空白 session：检查 model 是否一致
+      if (sessionManager_.getModel (first->sessionId) == currentModel) {
+        activate_conversation (first); // 复用，切焦点
+        return;
+      }
+      // model 不一致：需要新建
+    }
   }
-  create_new_conversation ();
+  create_new_conversation_with_model (currentModel);
 }
 
 /**
@@ -885,7 +891,9 @@ QTChatTabWidget::refresh_sidebar () {
                  }
                  else {
                    // 否则创建新会话
-                   create_new_conversation ();
+                   string model= as_string (
+                     call ("chat-tab-session-select-model", string ("")));
+                   create_new_conversation_with_model (model);
                  }
                });
     }
@@ -1048,7 +1056,9 @@ QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
     refresh_sidebar ();
   }
   else {
-    create_new_conversation ();
+    string model=
+      as_string (call ("chat-tab-session-select-model", string ("")));
+    create_new_conversation_with_model (model);
   }
 
   // 确保所有聊天相关 buffer 标记为已保存，避免关闭 Tab 时弹出确认对话框
@@ -1276,15 +1286,6 @@ QTChatTabWidget::notifyStateChanged (const string& sessionId,
     // 模型输出结束，保存会话内容
     saveOneSession (sessionId);
   }
-}
-
-/**
- * @brief 使用指定模型创建新会话（供 Scheme 回调调用）。
- * @param model 模型名称。
- */
-void
-QTChatTabWidget::newSessionWithModel (const string& model) {
-  create_new_conversation_with_model (model);
 }
 
 /**
@@ -1885,21 +1886,6 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
     QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
     if (chat) {
       chat->notifyStateChanged (sessionId, stateStr);
-      return;
-    }
-  }
-}
-
-/**
- * @brief Scheme→C++ 回调：使用指定模型创建新会话。
- */
-void
-qt_chat_tab_new_session (string model) {
-  QWidgetList topWidgets= QApplication::topLevelWidgets ();
-  for (QWidget* top : topWidgets) {
-    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
-    if (chat) {
-      chat->newSessionWithModel (model);
       return;
     }
   }

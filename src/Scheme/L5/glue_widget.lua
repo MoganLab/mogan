@@ -513,14 +513,6 @@ function main()
                 }
             },
             {
-                scm_name = "qt-chat-tab-new-session",
-                cpp_name = "qt_chat_tab_new_session",
-                ret_type = "void",
-                arg_list = {
-                    "string"
-                }
-            },
-            {
                 scm_name = "qt-chat-tab-load-sessions",
                 cpp_name = "qt_chat_tab_load_sessions",
                 ret_type = "void",
