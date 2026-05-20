@@ -110,7 +110,7 @@ constexpr int kSidebarMarginY= 16;
 /// 边栏元素间距。
 constexpr int kSidebarSpacing= 8;
 /// 导航标题字体大小（像素）。
-constexpr int kNavTitleFontPx= 11;
+constexpr int kNavTitleFontPx= 14;
 /// 导航标题内边距。
 constexpr int kNavTitlePadding= 4;
 /// 导航按钮垂直内边距。
@@ -170,7 +170,7 @@ constexpr int kToggleIconSize= 20;
 /// 浮球展开按钮水平边距（像素）。
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
-constexpr int kFloatingBtnMarginY= 60;
+constexpr int kFloatingBtnMarginY= 100;
 
 } // namespace
 
