@@ -19,6 +19,7 @@
 #include <lolly/data/unicode.hpp>
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/vars.hpp>
+#include "tm_debug.hpp"
 
 using lolly::data::decode_from_utf8;
 using lolly::data::from_hex;
@@ -334,14 +335,20 @@ tmu_reader::read (bool skip_flag) {
 
 tree
 tmu_to_tree (string s) {
+  bench_start ("tmu_to_tree");
   tmu_reader tmr (s);
-  return tmr.read (true);
+  tree t= tmr.read (true);
+  bench_end ("tmu_to_tree");
+  return t;
 }
 
 tree
 tmu_to_tree (string s, string version) {
+  bench_start ("tmu_to_tree");
   tmu_reader tmr (s, version);
-  return tmr.read (true);
+  tree t= tmr.read (true);
+  bench_end ("tmu_to_tree");
+  return t;
 }
 
 /******************************************************************************
