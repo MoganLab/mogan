@@ -25,9 +25,9 @@
  * @brief Represents a clickable link on a PDF page
  */
 struct PdfLink {
-  QRectF  rect;   // normalized page coordinates [0,1]
-  QString uri;    // original URI from MuPDF
-  int     page;   // resolved target page (0-based), -1 if unresolved
+  QRectF  rect; // normalized page coordinates [0,1]
+  QString uri;  // original URI from MuPDF
+  int     page; // resolved target page (0-based), -1 if unresolved
 };
 
 /**
