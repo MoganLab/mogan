@@ -118,7 +118,7 @@ constexpr int kNavTitlePadding= 4;
 /// 导航按钮垂直内边距。
 constexpr int kNavButtonPadY= 8;
 /// 导航按钮水平内边距。
-constexpr int kNavButtonPadX= 12;
+constexpr int kNavButtonPadX= 8;
 /// 导航按钮字体大小（像素）。
 constexpr int kNavButtonFontPx= 13;
 /// 收缩按钮字体大小（像素）。
@@ -455,7 +455,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   scrollArea->setWidgetResizable (true);
   scrollArea->setFrameShape (QFrame::NoFrame);
   scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
   scrollArea->setWidget (scrollContent);
   normalLayout->addWidget (scrollArea, 1);
 
@@ -703,23 +703,13 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  {
-    int checkSize= DpiUtils::scaled (18);
-    panel->selectCheckBox->setFixedSize (checkSize, checkSize);
-    panel->selectCheckBox->setStyleSheet (
-        QString ("QCheckBox { spacing: 0px; margin: 0px; padding: 0px; "
-                 "        min-width: %1px; max-width: %1px; "
-                 "        min-height: %2px; max-height: %2px; }"
-                 "QCheckBox::indicator { width: %1px; height: %2px; }"
-                 "QCheckBox::indicator:checked { "
-                 "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-                 "  border-radius: 3px; }"
-                 "QCheckBox::indicator:unchecked { "
-                 "  background-color: #ffffff; border: 2px solid #cccccc; "
-                 "  border-radius: 3px; }")
-            .arg (checkSize)
-            .arg (checkSize));
-  }
+  panel->selectCheckBox->setStyleSheet (
+      "QCheckBox::indicator:checked { "
+      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+      "  border-radius: 3px; }"
+      "QCheckBox::indicator:unchecked { "
+      "  background-color: #ffffff; border: 2px solid #cccccc; "
+      "  border-radius: 3px; }");
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
@@ -1862,23 +1852,13 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->selectCheckBox= new QCheckBox (panel->itemWidget);
   panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  {
-    int checkSize= DpiUtils::scaled (18);
-    panel->selectCheckBox->setFixedSize (checkSize, checkSize);
-    panel->selectCheckBox->setStyleSheet (
-        QString ("QCheckBox { spacing: 0px; margin: 0px; padding: 0px; "
-                 "        min-width: %1px; max-width: %1px; "
-                 "        min-height: %2px; max-height: %2px; }"
-                 "QCheckBox::indicator { width: %1px; height: %2px; }"
-                 "QCheckBox::indicator:checked { "
-                 "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-                 "  border-radius: 3px; }"
-                 "QCheckBox::indicator:unchecked { "
-                 "  background-color: #ffffff; border: 2px solid #cccccc; "
-                 "  border-radius: 3px; }")
-            .arg (checkSize)
-            .arg (checkSize));
-  }
+  panel->selectCheckBox->setStyleSheet (
+      "QCheckBox::indicator:checked { "
+      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+      "  border-radius: 3px; }"
+      "QCheckBox::indicator:unchecked { "
+      "  background-color: #ffffff; border: 2px solid #cccccc; "
+      "  border-radius: 3px; }");
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
