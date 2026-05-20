@@ -148,7 +148,9 @@ public:
   ~edit_interface_rep ();
   operator tree ();
   void suspend ();
-  void resume ();
+  void resume (bool deferred_icons= false);
+  void resume_icons ();
+  bool deferred_icons_p;
   void keyboard_focus_on (string field);
   void get_size (SI& wx, SI& wy);
 

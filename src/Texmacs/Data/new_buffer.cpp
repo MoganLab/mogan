@@ -19,6 +19,7 @@
 #include "new_document.hpp"
 #include "preferences.hpp"
 #include "tm_data.hpp"
+#include "tm_debug.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tmfs_url.hpp"
@@ -209,11 +210,13 @@ make_welcome_buffer () {
 
 url
 make_new_buffer () {
+  bench_start ("make_new_buffer");
   int i= 1;
   while (true) {
     url name= url_scratch ("no_name_", ".tm", i);
     if (is_nil (concrete_buffer (name))) {
       set_buffer_tree (name, tree (DOCUMENT));
+      bench_end ("make_new_buffer");
       return name;
     }
     else i++;

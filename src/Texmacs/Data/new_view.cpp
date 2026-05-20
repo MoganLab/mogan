@@ -16,6 +16,7 @@
 #include "new_document.hpp"
 #include "new_window.hpp"
 #include "tm_data.hpp"
+#include "tm_debug.hpp"
 #include "tm_file.hpp"
 #include "tm_link.hpp"
 #include "tm_url.hpp"
@@ -337,16 +338,20 @@ url my_init_buffer_file= url_none ();
 url
 get_new_view (url name) {
   // cout << "Creating new view " << name << "\n";
+  bench_start ("get_new_view");
 
   create_buffer (name, tree (DOCUMENT));
   tm_buffer buf= concrete_buffer (name);
+  bench_start ("get_new_view/new_editor");
   editor    ed = new_editor (get_server ()->get_server (), buf);
+  bench_end ("get_new_view/new_editor");
   tm_view   vw = tm_new<tm_view_rep> (buf, ed);
   buf->vws << vw;
   ed->set_data (buf->data);
 
   url temp= get_current_view_safe ();
   set_current_view (abstract_view (vw));
+  bench_start ("get_new_view/init_buffer");
   if (is_none (tm_init_buffer_file))
     tm_init_buffer_file= "$TEXMACS_PATH/progs/init-buffer.scm";
   if (is_none (my_init_buffer_file))
@@ -355,8 +360,10 @@ get_new_view (url name) {
     exec_file (materialize (tm_init_buffer_file));
   if (exists (my_init_buffer_file))
     exec_file (materialize (my_init_buffer_file));
+  bench_end ("get_new_view/init_buffer");
   set_current_view (temp);
 
+  bench_end ("get_new_view");
   // cout << "View created " << abstract_view (vw) << "\n";
   return abstract_view (vw);
 }
@@ -580,14 +587,26 @@ attach_view (url win_u, url u) {
     vw->win_tabpage= win;
   }
   widget wid= win->wid;
+  bench_start ("attach_view/set_scrollable");
   set_scrollable (wid, vw->ed);
+  bench_end ("attach_view/set_scrollable");
   vw->ed->cvw= wid.rep;
   ASSERT (is_attached (wid), "widget should be attached");
   // 先通知 view 被设置，确保 view_history 更新后再调用 resume
   // 这样 resume() 中的菜单刷新能获取到正确的 view 列表
+  bench_start ("attach_view/notify_set_view");
   notify_set_view (u);
-  vw->ed->resume ();
+  bench_end ("attach_view/notify_set_view");
+  bench_start ("attach_view/resume");
+  static bool first_attach= true;
+  vw->ed->resume (first_attach);
+  first_attach= false;
+  bench_end ("attach_view/resume");
+  if (vw->ed->deferred_icons_p)
+    exec_delayed (scheme_cmd ("(delayed (:idle 1) (resume-icons))"));
+  bench_start ("attach_view/set_window_name");
   win->set_window_name (vw->buf->buf->title);
+  bench_end ("attach_view/set_window_name");
   // set_window_url 移到 window_set_view 中，在 set_current_view 之后调用
   // win->set_window_url (vw->buf->buf->name);
   // cout << "View attached\n";
@@ -625,16 +644,26 @@ window_set_view (url win_u, url new_u, bool focus) {
   // cout << "Found view\n";
   ASSERT (new_vw->win == NULL, "view attached to other window");
   url old_u= window_to_view (win_u);
+  bench_start ("window_set_view/detach_view");
   if (!is_none (old_u)) detach_view (old_u);
+  bench_end ("window_set_view/detach_view");
+  bench_start ("window_set_view/attach_view");
   attach_view (win_u, new_u);
+  bench_end ("window_set_view/attach_view");
+  bench_start ("window_set_view/set_current_view");
   if (focus || get_current_view () == old_u) set_current_view (new_u);
+  bench_end ("window_set_view/set_current_view");
   // 在 set_current_view 之后调用 set_window_url，确保 SLOT_FILE 处理时 current
   // view 已更新
+  bench_start ("window_set_view/set_window_url");
   win->set_window_url (new_vw->buf->buf->name);
+  bench_end ("window_set_view/set_window_url");
+  bench_start ("window_set_view/exec_delayed");
   exec_delayed (scheme_cmd ("(make-cursor-visible '" *
                             scm_quote (as_string (new_u)) * ")"));
   exec_delayed (scheme_cmd ("(when (defined? 'refresh-auxiliary-widget) "
                             "(refresh-auxiliary-widget))"));
+  bench_end ("window_set_view/exec_delayed");
 }
 
 void
@@ -750,13 +779,20 @@ switch_to_other_tabpage (url view_u) {
 void
 switch_to_buffer (url name) {
   // cout << "Switching to buffer " << name << "\n";
+  bench_start ("switch_to_buffer/get_passive_view");
   url     u = get_passive_view_of_tabpage (name);
+  bench_end ("switch_to_buffer/get_passive_view");
   tm_view vw= concrete_view (u);
   if (vw == NULL) return;
+  bench_start ("switch_to_buffer/window_set_view");
   window_set_view (get_current_window (), u, true);
+  bench_end ("switch_to_buffer/window_set_view");
   tm_window nwin= vw->win;
-  if (nwin != NULL)
+  if (nwin != NULL) {
+    bench_start ("switch_to_buffer/set_zoom_factor");
     nwin->set_window_zoom_factor (nwin->get_window_zoom_factor ());
+    bench_end ("switch_to_buffer/set_zoom_factor");
+  }
   // cout << "Switched to buffer " << vw->buf->buf->name << "\n";
 }
 
