@@ -2614,6 +2614,7 @@
 ("very small" "很小")
 ("vietnamese" "")
 ("view" "查看")
+("view::menu" "视图")
 ("visible" "可见")
 ("visual grid" "可视网格")
 ("volume" "卷")

@@ -53,7 +53,7 @@
   (:require (in-prog-scheme?))
   (-> "File" (link file-menu))
   (-> "Edit" (link edit-menu))
-  (-> "View" (link view-menu))
+  (-> "View::menu" (link view-menu))
   (-> "Go" (link go-menu))
   (if (detailed-menus?) (-> "Tools" (link tools-menu)))
   (if (with-remote-tool?) (-> "Remote" (link remote-menu)))
