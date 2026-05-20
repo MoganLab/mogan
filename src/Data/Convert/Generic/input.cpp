@@ -475,6 +475,11 @@ texmacs_input_rep::file_flush (bool force) {
       if (width == 0 && height == 0) {
         if (type == "png") native_image_size (file, real_w, real_h);
         else if (type == "svg") svg_image_size (file, real_w, real_h);
+        else if (type == "pdf") {
+          image_size (file, real_w, real_h);
+          real_w= (int) tm_round (real_w * 2.0);
+          real_h= (int) tm_round (real_h * 2.0);
+        }
 
         if (real_w > 0) width= real_w;
         if (real_h > 0) height= real_h;
