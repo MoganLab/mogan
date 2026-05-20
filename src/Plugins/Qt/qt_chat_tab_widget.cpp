@@ -174,8 +174,8 @@ constexpr int kToggleIconSize= 20;
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
 constexpr int kFloatingBtnMarginY= 130;
-/// 浮球新建聊天按钮垂直边距（像素）。
-constexpr int kFloatingNewChatBtnMarginY= 182;
+/// 浮球新建聊天按钮水平边距（像素）。
+constexpr int kFloatingNewChatBtnMarginX= 60;
 /// New chat 按钮图标尺寸（像素）。
 constexpr int kNewChatIconSize= 18;
 /// New chat 按钮固定高度（像素）。
@@ -617,8 +617,8 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
         as_string (call ("chat-tab-session-select-model", string ("")));
     create_new_conversation_with_model (model);
   });
-  floatingNewBtn->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                        DpiUtils::scaled (kFloatingNewChatBtnMarginY));
+  floatingNewBtn->move (DpiUtils::scaled (kFloatingNewChatBtnMarginX),
+                        DpiUtils::scaled (kFloatingBtnMarginY));
   floatingNewChatBtn_= floatingNewBtn;
 }
 
@@ -1266,8 +1266,8 @@ QTChatTabWidget::toggle_sidebar () {
       floatingExpandBtn_->show ();
     }
     if (floatingNewChatBtn_) {
-      floatingNewChatBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                                 DpiUtils::scaled (kFloatingNewChatBtnMarginY));
+      floatingNewChatBtn_->move (DpiUtils::scaled (kFloatingNewChatBtnMarginX),
+                                 DpiUtils::scaled (kFloatingBtnMarginY));
       floatingNewChatBtn_->show ();
     }
     sidebarCollapsed_= true;
