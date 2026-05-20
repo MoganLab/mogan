@@ -456,6 +456,7 @@
 ("#25E6" "{\\ensuremath{\\openbullet}}")
 ("#25EF" "{\\ensuremath{\\bigcircle}}")
 ("#266A" "{\\ensuremath{\\musicalnote}}")
+("#1D6FA" "{\\ensuremath{\\varOmega}}")
 ("#1D6FC" "{\\ensuremath{\\alpha}}")
 ("#1D6FD" "{\\ensuremath{\\beta}}")
 ("#1D6FE" "{\\ensuremath{\\gamma}}")

@@ -1147,6 +1147,7 @@
 ("<Chi>"	"#03A7")
 ("<Psi>"	"#03A8")
 ("<Omega>"	"#03A9")
+("<varOmega>"	"#1D6FA")
 
 ;; Lowercase Greek
 ("<alpha>"	"#03B1")

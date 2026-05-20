@@ -20,7 +20,7 @@
 
 (logic-group latex-symbol%
   ;; Greek letters
-  Gamma Delta Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega
+  Gamma Delta Theta Lambda Xi Pi Sigma Upsilon Phi Psi Omega varOmega
   alpha beta gamma delta epsilon
   varepsilon zeta eta theta vartheta
   iota kappa lambda mu nu omicron
