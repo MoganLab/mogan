@@ -216,8 +216,9 @@
   (if (cursor-in-algo-macro-body-end? t)
       (begin
         (display* "DEBUG -> body-end, jump to :after\n")
-        (tree-go-to t (- (tree-arity t) 1) :end)
-        (display* "DEBUG after tree-go-to path=" (cursor-path) "\n")
+        (with body (tm-ref t (- (tree-arity t) 1))
+          (tree-go-to body :end)
+          (display* "DEBUG after tree-go-to path=" (cursor-path) "\n"))
         (go-right)
         (display* "DEBUG after go-right path=" (cursor-path) "\n"))
       (begin
