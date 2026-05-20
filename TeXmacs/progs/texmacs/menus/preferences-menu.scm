@@ -263,7 +263,9 @@
           ("On" "120")
           ("Off" "0"))
     (enum ("Bibtex command" "bibtex command")
-          "bibtex" "biber" "biblatex" "rubibtex" *)))
+          "bibtex" "biber" "biblatex" "rubibtex" *)
+    (-> "Experimental"
+        (toggle ("Inline spellcheck" "spell underlines")))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Computation of the preference menu

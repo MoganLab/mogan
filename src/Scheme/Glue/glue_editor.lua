@@ -1593,6 +1593,24 @@ function main()
                 cpp_name = "cancel_alt_selections",
                 ret_type = "void"
             },
+            {
+                scm_name = "set-spell-errors",
+                cpp_name = "set_spell_errors",
+                ret_type = "void",
+                arg_list = {
+                    "array_path"
+                }
+            },
+            {
+                scm_name = "get-spell-errors",
+                cpp_name = "get_spell_errors",
+                ret_type = "array_path"
+            },
+            {
+                scm_name = "clear-spell-errors",
+                cpp_name = "clear_spell_errors",
+                ret_type = "void"
+            },
             
             -- undo and redo
             {

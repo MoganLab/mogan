@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "Interface/edit_interface.hpp"
+#include "colors.hpp"
 #include "gui.hpp" // for gui_interrupted
 #include "message.hpp"
 #include "preferences.hpp"
@@ -150,6 +151,33 @@ edit_interface_rep::draw_context (renderer ren, rectangle r) {
   draw_surround (ren, r);
 }
 
+static void
+draw_spell_error_wave (renderer ren, rectangles rs) {
+  SI pixel= max ((SI) 1, ren->pixel);
+  SI width= max ((SI) 5, 5 * pixel);
+  SI step = max ((SI) 8, 8 * pixel);
+  SI amp  = max ((SI) 4, 4 * pixel);
+  while (!is_nil (rs)) {
+    rectangle r     = rs->item;
+    SI        x     = r->x1;
+    SI        base  = r->y1 + 2 * pixel;
+    SI        y_near= base;
+    SI        y_far = base - amp;
+    ren->set_pencil (pencil (ren->get_pencil ()->get_color (), width));
+    if (r->x2 - r->x1 <= step) ren->line (r->x1, y_near, r->x2, y_near);
+    else {
+      bool up= true;
+      while (x < r->x2) {
+        SI nx= min (x + step, r->x2);
+        ren->line (x, up ? y_near : y_far, nx, up ? y_far : y_near);
+        x = nx;
+        up= !up;
+      }
+    }
+    rs= rs->next;
+  }
+}
+
 void
 edit_interface_rep::draw_selection (renderer ren, rectangle r) {
   rectangles visible (thicken (r, 2 * ren->pixel, 2 * ren->pixel));
@@ -172,6 +200,14 @@ edit_interface_rep::draw_selection (renderer ren, rectangle r) {
 #else
     ren->draw_rectangles (alt_selection_rects[i] & visible);
 #endif
+  }
+  int spell_count= N (spell_error_rects);
+  if (spell_count > 0) {
+    color col= blend_colors (rgb_color (220, 70, 70, 220),
+                             get_env_color (INCORRECT_COLOR));
+    ren->set_pencil (pencil (col, ren->pixel));
+    for (int i= 0; i < spell_count; i++)
+      draw_spell_error_wave (ren, spell_error_rects[i] & visible);
   }
   if (!is_nil (selection_rects)) {
     color col= get_env_color (SELECTION_COLOR);

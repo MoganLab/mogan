@@ -47,6 +47,80 @@
 
 (tm-define (inside-spell-buffer?) (== (current-buffer) (spell-buffer)))
 
+(define inline-spell-underlines-serial 0)
+(define inline-spell-underlines-buffer #f)
+
+(define (inline-spell-current-word)
+  (let* ((t (buffer-tree))
+         (p (tree->path t))
+         (lan (get-init "language"))
+         (cp (cursor-path))
+         (pos (and cp (cDr cp))))
+    (if (and pos (list-starts? pos p))
+        (tree-spell-at lan t p (list-tail pos (length p)) 1000)
+        (list))))
+
+(define (inline-spell-underlines-active?)
+  (and (current-view)
+       (get-boolean-preference "spell underlines")
+       (current-buffer)
+       (not (inside-spell-buffer?))
+       (not (buffer-aux? (current-buffer)))))
+
+(define (clear-inline-spell-underlines)
+  (set! inline-spell-underlines-serial (+ inline-spell-underlines-serial 1))
+  (set! inline-spell-underlines-buffer #f)
+  (when (current-view)
+    (clear-spell-errors)))
+
+(tm-define (inline-spell-underlines-refresh)
+  (if (not (inline-spell-underlines-active?))
+      (clear-inline-spell-underlines)
+      (let* ((t (buffer-tree))
+             (buf (current-buffer))
+             (p (tree->path t)))
+        (when (not (== inline-spell-underlines-buffer buf))
+          (set! inline-spell-underlines-buffer buf))
+        (let ((sels (inline-spell-current-word)))
+          (if (null? sels)
+              (clear-spell-errors)
+              (set-spell-errors sels))))))
+
+(define (inline-spell-underlines-key? key)
+  (or (in? key (list "space" "return" "tab" "backspace" "delete"
+                     "left" "right" "up" "down"
+                     "home" "end" "pageup" "pagedown"))
+      (and (== (string-length key) 1)
+           (not (or (char-alphabetic? (string-ref key 0))
+                    (char-numeric? (string-ref key 0)))))))
+
+(define (inline-spell-underlines-typing-key? key)
+  (and (== (string-length key) 1)
+       (or (char-alphabetic? (string-ref key 0))
+           (char-numeric? (string-ref key 0)))))
+
+(define (schedule-inline-spell-underlines-after delay)
+  (when (current-view)
+    (set! inline-spell-underlines-serial (+ inline-spell-underlines-serial 1))
+    (let ((ticket inline-spell-underlines-serial)
+          (buf (current-buffer)))
+      (delayed
+        (:idle delay)
+        (when (and (== ticket inline-spell-underlines-serial)
+                   (== buf (current-buffer)))
+          (inline-spell-underlines-refresh))))))
+
+(define (schedule-inline-spell-underlines)
+  (schedule-inline-spell-underlines-after 350))
+
+(define (schedule-inline-spell-underlines-slow)
+  (schedule-inline-spell-underlines-after 900))
+
+(tm-define (inline-spell-underlines-preference-changed which val)
+  (if (== val "on")
+      (schedule-inline-spell-underlines)
+      (clear-inline-spell-underlines)))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting the spell results
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -162,6 +236,60 @@
   ) ;with-buffer
 ) ;define
 
+(define (inline-spell-selection-at-cursor)
+  (and-with cp (cursor-path)
+    (let loop ((sels (get-spell-errors)))
+      (cond ((or (null? sels) (null? (cdr sels))) #f)
+            ((and (path-less-eq? (car sels) cp)
+                  (path-less? cp (cadr sels)))
+             (list (car sels) (cadr sels)))
+            (else (loop (cddr sels)))))))
+
+(define (inline-spell-get-language sel)
+  (let* ((bt (buffer-tree))
+         (rp (tree->path bt))
+         (sp (car sel))
+         (p (and (list-starts? sp rp) (sublist sp (length rp) (length sp))))
+         (lan (get-init "language")))
+    (if (not p) lan
+        (tm->stree (tree-descendant-env bt (cDr p) "language" lan)))))
+
+(define (inline-spell-suggestions sel)
+  (and-with ss (selection->string sel)
+    (let* ((lan (inline-spell-get-language sel))
+           (st (tm->stree (spell-check lan ss)))
+           (l0 (if (tm-func? st 'tuple) (cdr st) (list)))
+           (l1 (if (null? l0) l0 (cdr l0))))
+      (if (<= (length l1) 5) l1 (sublist l1 0 5)))))
+
+(define (inline-spell-suggestions-at-cursor)
+  (and-with sel (inline-spell-selection-at-cursor)
+    (inline-spell-suggestions sel)))
+
+(define (inline-spell-toolbar-open sel)
+  (let* ((u (current-buffer))
+         (aux (spell-buffer)))
+    (when (not toolbar-spell-active?)
+      (multi-spell-start)
+      (set! toolbar-spell-active? #t)
+      (set! spell-focus-hack? #t)
+      (set! spell-correct-string "")
+      (set! spell-suggestions (list))
+      (set! spell-corrected 0)
+      (set! spell-accepted 0)
+      (set! spell-inserted 0)
+      (update-bottom-tools))
+    (buffer-set-body aux `(document ""))
+    (buffer-set-master aux u)
+    (set! spell-window (current-window))
+    (set-alt-selection "alternate" (get-spell-errors))
+    (set-spell-reference (car sel))
+    (spell-focus-on sel)))
+
+(tm-define (inline-spell-show-toolbar-at-cursor)
+  (and-with sel (inline-spell-selection-at-cursor)
+    (inline-spell-toolbar-open sel)))
+
 (define (spell-focus-on sel)
   ;; (display* "spell-focus-on " sel "\n")
   (selection-set-range-set sel)
@@ -213,6 +341,27 @@
     (former key time)
   ) ;when
 ) ;tm-define
+
+(tm-define (keyboard-press key time)
+  (:require (get-boolean-preference "spell underlines"))
+  (former key time)
+  (cond ((inline-spell-underlines-key? key)
+         (schedule-inline-spell-underlines))
+        ((inline-spell-underlines-typing-key? key)
+         (schedule-inline-spell-underlines-slow))))
+
+(tm-define (keyboard-focus has-focus? time)
+  (:require (get-boolean-preference "spell underlines"))
+  (former has-focus? time)
+  (when has-focus?
+    (schedule-inline-spell-underlines)))
+
+(tm-define (mouse-event key x y mods time data)
+  (:require (get-boolean-preference "spell underlines"))
+  (former key x y mods time data)
+  (when (== key "release-left")
+    (inline-spell-underlines-refresh)
+    (inline-spell-show-toolbar-at-cursor)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting a particular next or previous spell result

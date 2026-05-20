@@ -164,7 +164,10 @@
              search-next-match)
 (lazy-keyboard (generic search-kbd))
 (lazy-define (generic spell-widgets) spell-toolbar
-             open-spell toolbar-spell-start interactive-spell)
+             open-spell toolbar-spell-start interactive-spell
+             inline-spell-underlines-refresh
+             inline-spell-underlines-preference-changed
+             inline-spell-show-toolbar-at-cursor)
 (lazy-define (generic format-widgets) open-paragraph-format open-page-format)
 (lazy-define (generic pattern-selector) open-pattern-selector
              open-gradient-selector open-background-picture-selector)
@@ -180,6 +183,14 @@
 (tm-property (open-source-tree-preferences) (:interactive #t))
 (tm-property (open-document-paragraph-format) (:interactive #t))
 (tm-property (open-document-page-format) (:interactive #t))
+
+(define-preferences
+  ("spell underlines" "off" inline-spell-underlines-preference-changed))
+
+(delayed
+  (:idle 500)
+  (when (get-boolean-preference "spell underlines")
+    (inline-spell-underlines-refresh)))
 (tm-property (open-document-metadata) (:interactive #t))
 (tm-property (open-document-colors) (:interactive #t))
 (tm-property (open-page-headers-footers) (:interactive #t))

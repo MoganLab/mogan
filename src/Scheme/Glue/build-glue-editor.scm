@@ -260,6 +260,9 @@
   (get-alt-selection get_alt_selection (array_path string))
   (cancel-alt-selection cancel_alt_selection (void string))
   (cancel-alt-selections cancel_alt_selections (void))
+  (set-spell-errors set_spell_errors (void array_path))
+  (get-spell-errors get_spell_errors (array_path))
+  (clear-spell-errors clear_spell_errors (void))
 
   ;; undo and redo
   (clear-undo-history clear_undo_history (void))

@@ -40,6 +40,7 @@
 #define THE_LOCUS 128
 #define THE_MENUS 256
 #define THE_FREEZE 512
+#define THE_SPELL_ERRORS 1024
 
 class tm_buffer_rep;
 class tm_view_rep;
@@ -557,6 +558,9 @@ public:
   virtual string    get_alt_selection_index (string s, string action)= 0;
   virtual void      cancel_alt_selection (string s)                  = 0;
   virtual void      cancel_alt_selections ()                         = 0;
+  virtual void      set_spell_errors (range_set sel)                 = 0;
+  virtual range_set get_spell_errors ()                              = 0;
+  virtual void      clear_spell_errors ()                            = 0;
 
   /* public routines from edit_replace */
   virtual bool   inside (string what)                                  = 0;

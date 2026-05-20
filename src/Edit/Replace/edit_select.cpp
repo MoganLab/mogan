@@ -63,7 +63,7 @@ edit_select_rep::edit_select_rep ()
     : cur_sel (no_ranges ()), selecting (false), shift_selecting (false),
       mid_p (), selection_import ("default"), selection_export ("default"),
       focus_p (), focus_hold (false) {}
-edit_select_rep::~edit_select_rep () {}
+edit_select_rep::~edit_select_rep () { clear_spell_error_positions (); }
 
 /******************************************************************************
  * Semantic selections
@@ -1108,5 +1108,49 @@ edit_select_rep::cancel_alt_selections () {
   if (N (alt_sels) > 0) {
     alt_sels= hashmap<string, range_set> ();
     notify_change (THE_SELECTION);
+  }
+}
+
+void
+edit_select_rep::clear_spell_error_positions () {
+  for (int i= 0; i < N (spell_errors_pos); ++i)
+    if (!is_nil (spell_errors_pos[i])) position_delete (spell_errors_pos[i]);
+  spell_errors_pos= array<observer> ();
+}
+
+range_set
+edit_select_rep::resolve_spell_errors () {
+  range_set sel;
+  for (int i= 0; i + 1 < N (spell_errors_pos); i+= 2) {
+    path p1= position_get (spell_errors_pos[i]);
+    path p2= position_get (spell_errors_pos[i + 1]);
+    if (!is_nil (p1) && !is_nil (p2) && p1 != p2) sel << p1 << p2;
+  }
+  return sel;
+}
+
+void
+edit_select_rep::set_spell_errors (range_set sel) {
+  if (resolve_spell_errors () != sel) {
+    clear_spell_error_positions ();
+    for (int i= 0; i + 1 < N (sel); i+= 2)
+      if (sel[i] != sel[i + 1]) {
+        spell_errors_pos << position_new (sel[i]);
+        spell_errors_pos << position_new (sel[i + 1]);
+      }
+    notify_change (THE_SPELL_ERRORS);
+  }
+}
+
+range_set
+edit_select_rep::get_spell_errors () {
+  return resolve_spell_errors ();
+}
+
+void
+edit_select_rep::clear_spell_errors () {
+  if (N (spell_errors_pos) != 0) {
+    clear_spell_error_positions ();
+    notify_change (THE_SPELL_ERRORS);
   }
 }

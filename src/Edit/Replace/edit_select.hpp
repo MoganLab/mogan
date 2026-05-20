@@ -27,14 +27,17 @@ protected:
   string                     selection_export;
   path                       focus_p;
   bool                       focus_hold;
+  array<observer>            spell_errors_pos;
   hashmap<string, range_set> alt_sels;
   int                        total= 0;
   int                        index= 0;
 
 protected:
-  void get_selection (path& start, path& end);
-  void set_selection (path start, path end);
-  void raw_cut (path start, path end);
+  void      get_selection (path& start, path& end);
+  void      set_selection (path start, path end);
+  void      raw_cut (path start, path end);
+  void      clear_spell_error_positions ();
+  range_set resolve_spell_errors ();
 
 public:
   edit_select_rep ();
@@ -111,6 +114,9 @@ public:
   string    get_alt_selection_index (string s, string action);
   void      cancel_alt_selection (string s);
   void      cancel_alt_selections ();
+  void      set_spell_errors (range_set sel);
+  range_set get_spell_errors ();
+  void      clear_spell_errors ();
 };
 
 #endif // defined EDIT_SELECT_H

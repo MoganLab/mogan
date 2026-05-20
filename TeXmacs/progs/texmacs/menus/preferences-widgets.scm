@@ -881,7 +881,10 @@ pretty-val : string
                   (get-boolean-preference "gui:print dialogue"))))
       (meti (hlist // (text "Use fonts in texlive"))
         (toggle (set-boolean-preference "texlive:fonts" answer)
-                (get-boolean-preference "texlive:fonts"))))))
+                (get-boolean-preference "texlive:fonts")))
+      (meti (hlist // (text "Inline spellcheck"))
+        (toggle (set-boolean-preference "spell underlines" answer)
+                (get-boolean-preference "spell underlines"))))))
 
 (tm-widget (experimental-preferences-widget*)
   (aligned
@@ -919,7 +922,10 @@ pretty-val : string
                 (get-boolean-preference "use native menubar")))
       (meti (hlist // (text "Use unified toolbars"))
         (toggle (set-boolean-preference "use unified toolbar" answer)
-                (get-boolean-preference "use unified toolbar"))))))
+                (get-boolean-preference "use unified toolbar"))))
+    (meti (hlist // (text "Inline spellcheck"))
+      (toggle (set-boolean-preference "spell underlines" answer)
+              (get-boolean-preference "spell underlines")))))
 
 (tm-widget (other-preferences-widget)
   (centered

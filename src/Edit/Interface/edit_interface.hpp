@@ -112,6 +112,7 @@ protected:
   void   table_scale_apply (SI x, SI y);
   void   table_scale_stop ();
   array<rectangles> alt_selection_rects;
+  array<rectangles> spell_error_rects;
   rectangle         last_visible;
   rectangle         last_image_brec;  // 图片 bbox 缓存
   SI                last_image_hr;    // 图片 handle 半径缓存

@@ -979,6 +979,15 @@ edit_interface_rep::apply_changes () {
       if (is_empty (alt_sel)) alt_selection_rects= array<rectangles> ();
     }
   }
+  if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_SPELL_ERRORS)) {
+    if (N (spell_error_rects) != 0) {
+      rectangles visible (rectangle (vx1, vy1, vx2, vy2));
+      for (int i= 0; i < N (spell_error_rects); i++)
+        invalidate (spell_error_rects[i] & visible);
+      if (is_empty (get_spell_errors ()))
+        spell_error_rects= array<rectangles> ();
+    }
+  }
 
   // cout << "Handling environment\n";
   if (env_change & THE_ENVIRONMENT) {
@@ -1162,6 +1171,30 @@ edit_interface_rep::apply_changes () {
       for (int i= 0; i < N (alt_selection_rects); i++)
         invalidate (alt_selection_rects[i] & visible);
     }
+    else alt_selection_rects= array<rectangles> ();
+  }
+
+  if (env_change & (THE_TREE + THE_ENVIRONMENT + THE_SPELL_ERRORS) ||
+      new_visible != last_visible) {
+    range_set spell_sel= get_spell_errors ();
+    if (!is_empty (spell_sel)) {
+      spell_error_rects= array<rectangles> ();
+      int b= 0, e= N (spell_sel);
+      if (e - b >= 200) {
+        b= max (find_alt_selection_index (spell_sel, vy2, b, e) - 100, b);
+        e= min (find_alt_selection_index (spell_sel, vy1, b, e) + 100, e);
+      }
+      for (int i= b; i + 1 < e; i+= 2) {
+        range_set  sub_sel= simple_range (spell_sel[i], spell_sel[i + 1]);
+        selection  sel    = compute_selection (sub_sel);
+        rectangles rs     = sel->rs;
+        if (N (rs) != 0) spell_error_rects << rs;
+      }
+      rectangles visible (new_visible);
+      for (int i= 0; i < N (spell_error_rects); i++)
+        invalidate (spell_error_rects[i] & visible);
+    }
+    else spell_error_rects= array<rectangles> ();
   }
 
   // cout << "Handling locus highlighting\n";
