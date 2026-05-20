@@ -18,6 +18,7 @@
         <file>pdf-reader/screenshot.svg</file>
 
         <file>llm-chat/send.svg</file>
+        <file>llm-chat/cancel.svg</file>
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>

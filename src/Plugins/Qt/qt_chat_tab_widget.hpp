@@ -238,6 +238,13 @@ private:
   void handle_cancel (ChatConversationPanel* panel);
 
   /**
+   * @brief 更新发送/取消按钮的图标和点击行为。
+   * @param panel 目标会话面板。
+   * @param state 当前生成状态。
+   */
+  void update_send_button (ChatConversationPanel* panel, ChatState state);
+
+  /**
    * @brief 从输入 buffer 中获取文档树。
    * @param panel 待读取输入的会话面板。
    * @return 输入内容对应的 TeXmacs 树。
