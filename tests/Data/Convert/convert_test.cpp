@@ -28,6 +28,11 @@ private slots:
   void test_search_metadata_data ();
   void test_search_metadata ();
   void test_tmu_raw_data ();
+  void test_tmu_plain_text ();
+  void test_tmu_escape_sequences ();
+  void test_tmu_document ();
+  void test_tmu_compound ();
+  void test_tmu_nested_compound ();
   void test_tmu_raw_data_performance ();
   void test_tmu_text_performance ();
 };
@@ -87,10 +92,78 @@ TestConverter::test_tmu_raw_data () {
 }
 
 void
+TestConverter::test_tmu_plain_text () {
+  tree t= tmu_to_tree ("hello");
+  QVERIFY (is_func (t, DOCUMENT));
+  QCOMPARE (N (t), 1);
+  QVERIFY (t[0] == tree ("hello"));
+
+  tree t2= tmu_to_tree ("hello world");
+  QVERIFY (is_func (t2, DOCUMENT));
+  QCOMPARE (N (t2), 1);
+  QVERIFY (t2[0] == tree ("hello world"));
+}
+
+void
+TestConverter::test_tmu_escape_sequences () {
+  tree t1= tmu_to_tree ("a\\;b");
+  QVERIFY (is_func (t1, DOCUMENT));
+  QVERIFY (t1[0] == tree ("ab"));
+
+  tree t2= tmu_to_tree ("a\\\\b");
+  QVERIFY (is_func (t2, DOCUMENT));
+  QVERIFY (t2[0] == tree ("a\\b"));
+
+  tree t3= tmu_to_tree ("a\\|b");
+  QVERIFY (is_func (t3, DOCUMENT));
+  QVERIFY (t3[0] == tree ("a|b"));
+
+  tree t4= tmu_to_tree ("a\\>b");
+  QVERIFY (is_func (t4, DOCUMENT));
+  QVERIFY (t4[0] == tree ("a>b"));
+
+  QVERIFY (tmu_to_tree ("a\\<b")[0] == tree ("a<b"));
+  QVERIFY (tmu_to_tree ("\\;")[0] == tree (""));
+  QVERIFY (tmu_to_tree ("no escape")[0] == tree ("no escape"));
+}
+
+void
+TestConverter::test_tmu_document () {
+  string s= "line1\n\nline2\n\nline3";
+  tree   t= tmu_to_tree (s);
+  QVERIFY (is_func (t, DOCUMENT));
+  QCOMPARE (N (t), 3);
+  QVERIFY (t[0] == tree ("line1"));
+  QVERIFY (t[1] == tree ("line2"));
+  QVERIFY (t[2] == tree ("line3"));
+}
+
+void
+TestConverter::test_tmu_compound () {
+  tree t= tmu_to_tree ("<bold|text>");
+  QVERIFY (is_func (t, DOCUMENT));
+  QCOMPARE (N (t), 1);
+  QVERIFY (is_compound (t[0]));
+  QVERIFY (t[0][0] == tree ("text"));
+}
+
+void
+TestConverter::test_tmu_nested_compound () {
+  tree t= tmu_to_tree ("<with|color|red|hello>");
+  QVERIFY (is_func (t, DOCUMENT));
+  QCOMPARE (N (t), 1);
+  QVERIFY (is_compound (t[0]));
+  QCOMPARE (N (t[0]), 3);
+  QVERIFY (t[0][0] == tree ("color"));
+  QVERIFY (t[0][1] == tree ("red"));
+  QVERIFY (t[0][2] == tree ("hello"));
+}
+
+void
 TestConverter::test_tmu_raw_data_performance () {
   string hex_data;
   for (int i= 0; i < 1000000; i++) {
-    hex_data << string ("41");
+    hex_data << '4' << '1';
   }
   string s= "<TMU|<tuple|1.1.0|2025.1.5>>\n<#";
   s << hex_data;

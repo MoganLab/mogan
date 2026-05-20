@@ -30,9 +30,9 @@ using namespace moebius;
 
 static inline int
 from_hex_char (char c) {
-  if (is_digit (c)) return (int) (c - '0');
-  if ((c >= 'A') && (c <= 'F')) return (int) (c + 10 - 'A');
-  if ((c >= 'a') && (c <= 'f')) return (int) (c + 10 - 'a');
+  if (is_digit (c)) return c - '0';
+  if ((c >= 'A') && (c <= 'F')) return c + 10 - 'A';
+  if ((c >= 'a') && (c <= 'f')) return c + 10 - 'a';
   return 0;
 }
 
@@ -133,18 +133,8 @@ tmu_reader::read_next () {
     if (c == "") return "";
     if (c == "#") return "<#";
     if ((c == "\\") || (c == "|") || (c == "/")) return "<" * c;
-    if (is_iso_alpha (c[0]) || (c == ">")) {
-      pos= old_pos;
-      return "<";
-    }
     pos= old_pos;
     return "<";
-    /*
-    string d= read_char ();
-    if ((d == "\\") || (d == "|") || (d == "/")) return "<" * c * d;
-    pos= old_pos;
-    return "<" * c;
-    */
   }
   case '|':
   case '>':
@@ -154,20 +144,19 @@ tmu_reader::read_next () {
   string r;
   pos= old_pos;
   while (true) {
-    // fast path: avoid creating temporary strings for ordinary characters
     while (pos < buf_N) {
       char ch= buf[pos];
       if (ch == '\t' || ch == '\r' || ch == '\n' || ch == ' ' || ch == '<' ||
           ch == '|' || ch == '>' || ch == '\\')
         break;
-      if ((buf[pos] & 0x80) == 0) {
-        r << buf[pos++];
+      if ((ch & 0x80) == 0) {
+        r << ch;
+        pos++;
       }
       else {
         int start_pos= pos;
         decode_from_utf8 (buf, pos);
-        for (int i= start_pos; i < pos; i++)
-          r << buf[i];
+        r << buf (start_pos, pos);
       }
     }
     if (pos >= buf_N) return r;
