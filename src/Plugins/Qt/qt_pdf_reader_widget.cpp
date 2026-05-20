@@ -89,7 +89,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
   scrollArea_->horizontalScrollBar ()->setSingleStep (20);
 
   // 滚动条与 QScroller 同步（Okular 同款）
-  auto syncScroller= [this]() {
+  auto syncScroller= [this] () {
     QScrollBar* hbar= scrollArea_->horizontalScrollBar ();
     QScrollBar* vbar= scrollArea_->verticalScrollBar ();
     scroller_->scrollTo (QPoint (hbar->value (), vbar->value ()), 0);
