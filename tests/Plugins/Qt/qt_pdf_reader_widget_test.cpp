@@ -313,6 +313,82 @@ private slots:
     QVERIFY (clipboard->mimeData ()->hasImage ());
     delete widget;
   }
+
+  void test_rectSelectEscExitsMode () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QVERIFY (rectBtn != nullptr);
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QVERIFY (widget->isRectSelectMode ());
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    vp->setFocus ();
+    QTest::keyClick (vp, Qt::Key_Escape);
+    QApplication::processEvents ();
+
+    QVERIFY (!widget->isRectSelectMode ());
+    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+    delete widget;
+  }
+
+  void test_rectSelectEscCancelsDrag () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+
+    QApplication::processEvents ();
+
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QVERIFY (rectBtn != nullptr);
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QVERIFY (widget->isRectSelectMode ());
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    // 开始拖拽
+    QPoint start (50, 50);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QApplication::processEvents ();
+
+    // 按下 ESC 取消拖拽
+    vp->setFocus ();
+    QTest::keyClick (vp, Qt::Key_Escape);
+    QApplication::processEvents ();
+
+    // 选框模式仍然开启
+    QVERIFY (widget->isRectSelectMode ());
+    QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
+
+    // 再次按下 ESC 退出选框模式
+    QTest::keyClick (vp, Qt::Key_Escape);
+    QApplication::processEvents ();
+
+    QVERIFY (!widget->isRectSelectMode ());
+    QCOMPARE (vp->cursor ().shape (), Qt::ArrowCursor);
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)

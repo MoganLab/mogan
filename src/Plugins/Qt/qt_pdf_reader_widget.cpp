@@ -940,6 +940,20 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
 
+  if (event->key () == Qt::Key_Escape) {
+    if (rectSelectDragging_) {
+      rectSelectDragging_= false;
+      if (rubberBand_) rubberBand_->hide ();
+      event->accept ();
+      return;
+    }
+    if (rectSelectMode_) {
+      rectSelectBtn_->setChecked (false);
+      event->accept ();
+      return;
+    }
+  }
+
   if (event->key () == Qt::Key_J || event->key () == Qt::Key_K) {
     QScrollBar* vbar= scrollArea_->verticalScrollBar ();
     if (vbar) {
@@ -1007,6 +1021,17 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
           vbar->setValue (vbar->value () + direction * vbar->singleStep ());
         }
         return true;
+      }
+      if (keyEvent->key () == Qt::Key_Escape) {
+        if (rectSelectDragging_) {
+          rectSelectDragging_= false;
+          if (rubberBand_) rubberBand_->hide ();
+          return true;
+        }
+        if (rectSelectMode_) {
+          rectSelectBtn_->setChecked (false);
+          return true;
+        }
       }
     }
     else if (event->type () == QEvent::Resize) {
