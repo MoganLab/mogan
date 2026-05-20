@@ -22,6 +22,14 @@
 #include <QWidget>
 
 /**
+ * @brief Represents a clickable link on a PDF page
+ */
+struct PdfLink {
+  QRectF  rect; // normalized page coordinates [0,1]
+  QString uri;
+};
+
+/**
  * @brief Key for per-page render cache
  */
 struct PdfPageCacheKey {
@@ -73,6 +81,13 @@ public:
 
   bool isRectSelectMode () const;
 
+  // Link support (public for testing)
+  void setTestLinks (int page, const QVector<PdfLink>& links);
+  bool isOverLink () const;
+
+Q_SIGNALS:
+  void linkClicked (const QString& uri);
+
 private slots:
   void onZoomChanged (int index);
   void onPrevPage ();
@@ -92,6 +107,12 @@ private:
   QLabel* findPageLabelAt (const QPoint& contentPos) const;
   QPixmap extractSelectionPixmap (QLabel*      label,
                                   const QRect& contentRect) const;
+
+  void    extractPageLinks ();
+  void    clearPageLinks ();
+  PdfLink linkAtPos (const QPoint& contentPos) const;
+  void    handleLinkClick (const PdfLink& link);
+  void    updateLinkCursor (const QPoint& contentPos);
 
   bool eventFilter (QObject* watched, QEvent* event) override;
 
@@ -133,6 +154,11 @@ private:
 
   // 每页宽高比缓存（用于可见性裁剪和快速高度计算）
   QVector<double> pageAspectRatios_;
+
+  // 每页链接列表（用于点击跳转）
+  QVector<QVector<PdfLink>> pageLinks_;
+  PdfLink                   currentLink_;
+  bool                      overLink_;
 
   // 页面渲染缓存：key = (pageNumber, targetWidth)
   QHash<PdfPageCacheKey, QPixmap> pageCache_;

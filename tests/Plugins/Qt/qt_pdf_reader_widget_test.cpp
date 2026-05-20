@@ -666,6 +666,222 @@ private slots:
 
     delete widget;
   }
+
+  // ============================================================
+  // Link hover and click tests
+  // ============================================================
+
+  void test_linkCursorOnHover () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    // inject a link covering the top-left area of page 0
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "#page=2";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // move mouse into the link area
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::PointingHandCursor);
+    QVERIFY (widget->isOverLink ());
+
+    delete widget;
+  }
+
+  void test_linkCursorOffHover () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.3, 0.3);
+    link.uri = "#page=2";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // move into link area
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::PointingHandCursor);
+
+    // move outside link area
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (300, 250), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+    QVERIFY (!widget->isOverLink ());
+
+    delete widget;
+  }
+
+  void test_linkClickInternalPage () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    // we need at least 2 pages to test page navigation; use a multi-page
+    // PDF if available, otherwise this test will skip
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    // inject an internal link at page 0
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "#page=1";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // move into link area and click (press+release without moving)
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QVERIFY (widget->isOverLink ());
+
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+
+    // internal link should navigate to page 1 (no error / crash)
+    QCOMPARE (widget->currentPage (), 1);
+
+    delete widget;
+  }
+
+  void test_linkClickSignal () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QString capturedUri;
+    connect (widget, &PDFReaderWidget::linkClicked,
+             [&capturedUri] (const QString& uri) { capturedUri= uri; });
+
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "https://example.com";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QVERIFY (widget->isOverLink ());
+
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+
+    QCOMPARE (capturedUri, QString ("https://example.com"));
+
+    delete widget;
+  }
+
+  void test_linkDragDoesNotTriggerClick () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QString capturedUri;
+    connect (widget, &PDFReaderWidget::linkClicked,
+             [&capturedUri] (const QString& uri) { capturedUri= uri; });
+
+    QVector<PdfLink> links;
+    PdfLink            link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "https://example.com";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    QPoint start (50, 50);
+    QPoint end (50, 150);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, end, Qt::LeftButton,
+                             Qt::LeftButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
+    QApplication::processEvents ();
+
+    // drag should NOT trigger link click
+    QVERIFY (capturedUri.isEmpty ());
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)
