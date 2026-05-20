@@ -200,10 +200,9 @@ setup_floating_button (QWidget* parent, const QString& objectName,
                      DpiUtils::scaled (kToggleBtnSize));
   btn->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
-               "background-color: #e8e8e8; } "
+               "background-color: transparent; } "
                "QPushButton:hover { background-color: #d0d0d0; }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
-  btn->hide ();
   return btn;
 }
 
