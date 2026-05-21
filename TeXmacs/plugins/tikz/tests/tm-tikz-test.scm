@@ -24,20 +24,33 @@
   (let ((trimmed (string-trim-left code)))
     (if (string-starts? trimmed "\\documentclass")
       code
-      (let ((inner-code
-              (if (or (string-starts? trimmed "\\usetikzlibrary")
-                      (string-starts? trimmed "\\begin{tikzpicture}"))
-                code
-                (string-append "\\begin{tikzpicture}\n" code "\n\\end{tikzpicture}")
-              ) ;if
-            ) ;inner-code
-           ) ;
+      (let* ((lines (string-split code #\newline))
+             (library-lines
+               (filter (lambda (line)
+                         (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                       lines))
+             (other-lines
+               (filter (lambda (line)
+                         (not (string-starts? (string-trim-left line) "\\usetikzlibrary")))
+                       lines))
+             (body (string-join other-lines "\n"))
+             (body-trimmed (string-trim-left body)))
+        (let ((inner-code
+                (if (or (string-null? body-trimmed)
+                        (string-starts? body-trimmed "\\begin{tikzpicture}"))
+                  body
+                  (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
+                ) ;if
+              ) ;inner-code
+             ) ;
         (string-append
           "\\documentclass[tikz]{standalone}\n\\begin{document}\n"
+          (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
           inner-code
           "\n\\end{document}"
         ) ;string-append
-      ) ;let
+        ) ;let inner-code
+      ) ;let*
     ) ;if
   ) ;let
 ) ;define
@@ -83,7 +96,7 @@
 (check
   (wrap-tikz-code "\\usetikzlibrary{calc}\n\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\draw (0,0) -- (1,1);\n\\end{document}"
+  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
@@ -102,6 +115,30 @@
   (wrap-tikz-code "  \\draw (0,0) -- (1,1);")
   =>
   "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n  \\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usetikzlibrary{shapes.geometric}\n\\node[draw, circle] at (0,0) {A};")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\\begin{tikzpicture}\n\\node[draw, circle] at (0,0) {A};\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usetikzlibrary{calc}\n\\usetikzlibrary{arrows.meta}\n\\draw (0,0) -- (1,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\usetikzlibrary{arrows.meta}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usetikzlibrary{shapes.geometric}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\n\\end{document}"
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

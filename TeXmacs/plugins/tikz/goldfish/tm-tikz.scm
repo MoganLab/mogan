@@ -44,15 +44,27 @@
   (let ((trimmed (string-trim-left code)))
     (if (string-starts? trimmed "\\documentclass")
         code
-        (let ((inner-code
-                (if (or (string-starts? trimmed "\\usetikzlibrary")
-                        (string-starts? trimmed "\\begin{tikzpicture}"))
-                    code
-                    (string-append "\\begin{tikzpicture}\n" code "\n\\end{tikzpicture}"))))
-          (string-append
-            "\\documentclass[tikz]{standalone}\n\\begin{document}\n"
-            inner-code
-            "\n\\end{document}")))))
+        (let* ((lines (string-split code #\newline))
+               (library-lines
+                 (filter (lambda (line)
+                           (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                         lines))
+               (other-lines
+                 (filter (lambda (line)
+                           (not (string-starts? (string-trim-left line) "\\usetikzlibrary")))
+                         lines))
+               (body (string-join other-lines "\n"))
+               (body-trimmed (string-trim-left body)))
+          (let ((inner-code
+                  (if (or (string-null? body-trimmed)
+                          (string-starts? body-trimmed "\\begin{tikzpicture}"))
+                      body
+                      (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
+            (string-append
+              "\\documentclass[tikz]{standalone}\n\\begin{document}\n"
+              (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
+              inner-code
+              "\n\\end{document}"))))))
 
 (define (parse-magic-line magic-line)
   (let ((tokens (filter (lambda (x) (not (string-null? x)))
