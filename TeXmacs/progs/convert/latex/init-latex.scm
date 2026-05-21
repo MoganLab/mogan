@@ -114,3 +114,98 @@
 
 (converter latex-tree texmacs-tree
   (:function latex->texmacs))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Post-processing imported LaTeX differentials in math mode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (is-letter-char? c)
+  (and (char? c)
+       (or (and (char>=? c #\a) (char<=? c #\z))
+           (and (char>=? c #\A) (char<=? c #\Z)))))
+
+(define (is-word-boundary-before? s i)
+  (or (= i 0)
+      (not (is-letter-char? (string-ref s (- i 1))))))
+
+(define (is-word-boundary-after? s i)
+  (or (= i (- (string-length s) 1))
+      (not (is-letter-char? (string-ref s (+ i 1))))))
+
+(define (transform-math-string s)
+  (let* ((n (string-length s))
+         (modified #f)
+         (res '()))
+    (let loop ((i 0) (last-idx 0))
+      (cond ((>= i (- n 1))
+             (if (null? res) s
+                 (begin
+                   (if (< last-idx n)
+                       (set! res (append res (list (substring s last-idx n)))))
+                   (cons 'concat res))))
+            ((and (char=? (string-ref s i) #\d)
+                  (or (char=? (string-ref s (+ i 1)) #\x)
+                      (char=? (string-ref s (+ i 1)) #\y)
+                      (char=? (string-ref s (+ i 1)) #\z)
+                      (char=? (string-ref s (+ i 1)) #\r))
+                  (is-word-boundary-before? s i)
+                  (is-word-boundary-after? s (+ i 1)))
+             (let ((var (substring s (+ i 1) (+ i 2))))
+               (if (> i last-idx)
+                   (set! res (append res (list (substring s last-idx i)))))
+               (set! res (append res (list "<mathd>" var)))
+               (set! modified #t)
+               (loop (+ i 2) (+ i 2))))
+            (else
+             (loop (+ i 1) last-idx))))))
+
+(define (transform-concat-children children)
+  (cond ((null? children) '())
+        ((and (pair? children) (pair? (cdr children)))
+         (let* ((c1 (car children))
+                (c2 (cadr children)))
+           (if (and (string? c1) (string? c2)
+                    (or (string=? c2 "<rho>") (string=? c2 "<varrho>")
+                        (string=? c2 "<theta>") (string=? c2 "<vartheta>"))
+                    (let ((len (string-length c1)))
+                      (and (> len 0)
+                           (char=? (string-ref c1 (- len 1)) #\d)
+                           (or (= len 1)
+                               (not (is-letter-char? (string-ref c1 (- len 2))))))))
+               (let* ((len (string-length c1))
+                      (prefix (if (> len 1) (substring c1 0 (- len 1)) #f))
+                      (mathd-part (if prefix (list prefix "<mathd>" c2) (list "<mathd>" c2))))
+                 (append mathd-part (transform-concat-children (cddr children))))
+               (cons (car children) (transform-concat-children (cdr children))))))
+        (else children)))
+
+(define (upgrade-latex-differentials-stree t in-math)
+  (cond ((string? t)
+         (if in-math
+             (transform-math-string t)
+             t))
+        ((pair? t)
+         (let* ((head (car t))
+                (next-in-math (or in-math (eq? head 'math))))
+           (if (and next-in-math (eq? head 'concat))
+               (let* ((new-children (map (lambda (x) (upgrade-latex-differentials-stree x #t)) (cdr t)))
+                      (transformed-children (transform-concat-children new-children)))
+                 (cons 'concat transformed-children))
+               (cons head (map (lambda (x) (upgrade-latex-differentials-stree x next-in-math)) (cdr t))))))
+        (else t)))
+
+(define latex->texmacs-original latex->texmacs)
+
+(tm-define (latex->texmacs t)
+  (let* ((res (latex->texmacs-original t))
+         (st (tree->stree res))
+         (new-st (upgrade-latex-differentials-stree st #f)))
+    (stree->tree new-st)))
+
+(define latex-document->texmacs-original latex-document->texmacs)
+
+(tm-define (latex-document->texmacs x . opts)
+  (let* ((res (apply latex-document->texmacs-original (cons x opts)))
+         (st (tree->stree res))
+         (new-st (upgrade-latex-differentials-stree st #f)))
+    (stree->tree new-st)))
