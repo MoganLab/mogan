@@ -20,6 +20,8 @@
   ) ;:use
 ) ;texmacs-module
 
+(import (liii njson))
+
 (define chat-tab-session-name "llm")
 
 (define chat-tab-current-model "default")
@@ -90,6 +92,19 @@
   (map tree-copy (tree-children (chat-tab-normalize-document body)))
 ) ;define
 
+;; chat-tab-buffer-empty?
+;; 检查 buffer body 是否为空（无对话历史）。
+(define (chat-tab-buffer-empty? body)
+  (or (not body)
+    (and (tree-is? body 'document) (== (tree-arity body) 0))
+    (and (tree-is? body 'document)
+      (== (tree-arity body) 1)
+      (tree-empty? (tree-ref body 0)))
+    (and (tree-is? body 'session)
+      (let ((d (tree-ref body 2)))
+        (or (not (tree-is? d 'document)) (== (tree-arity d) 0)))))
+) ;define
+
 (define (chat-tab-model-prompt model)
   (with parts
     (string-tokenize-by-char model #\-)
@@ -104,17 +119,106 @@
   (with r (tree-children t) (if (and (nnull? r) (tree-empty? (cAr r))) (cDr r) r))
 ) ;define
 
+;; chat-tab-tree->plain-text
+;; 将 TeXmacs 树转为纯文本，直接提取字符串（不经过 LaTeX 管线，保留中文等 Unicode）。
+;;
+;; 语法
+;; ----
+;; (chat-tab-tree->plain-text t)
+;;
+;; 参数
+;; ----
+;; t : tree 或 stree
+;; 待转换的 TeXmacs 树。
+;;
+;; 返回值
+;; ----
+;; string
+;; 纯文本表示。
+
+(define (chat-tab-tree->plain-text t)
+  (let ((s (if (tree? t) (tree->stree t) t)))
+    (cond ((string? s) (cork->utf8 s))
+          ((null? s) "")
+          ((number? s) (number->string s))
+          ((symbol? s) "")
+          ((not (pair? s)) "")
+          ((eq? (car s) 'document)
+           (chat-tab-join-nonempty
+             (map chat-tab-tree->plain-text (cdr s)) "\n"))
+          ((eq? (car s) 'concat)
+           (apply string-append (map chat-tab-tree->plain-text (cdr s))))
+          ((eq? (car s) 'new-line) "\n")
+          ((eq? (car s) 'folded-explain) "")
+          ((eq? (car s) 'unfolded-explain) "")
+          ((eq? (car s) 'with)
+           ;; (with var1 val1 ... body) → 只取 body
+           (if (null? (cdr s)) "" (chat-tab-tree->plain-text (car (reverse s)))))
+          (else
+           (apply string-append (map chat-tab-tree->plain-text (cdr s))))
+    ) ;cond
+  ) ;let
+) ;define
+
+;; chat-tab-join-nonempty
+;; 用分隔符连接非空字符串列表。
+;;
+;; 语法
+;; ----
+;; (chat-tab-join-nonempty strs sep)
+;;
+;; 参数
+;; ----
+;; strs : list of string
+;; sep : string
+;;
+;; 返回值
+;; ----
+;; string
+
+(define (chat-tab-join-nonempty strs sep)
+  (let loop ((rest strs) (acc '()) (first? #t))
+    (if (null? rest)
+      (apply string-append (reverse acc))
+      (let ((s (car rest)))
+        (if (or (string-null? s) (string=? s "\n"))
+          (loop (cdr rest) acc first?)
+          (loop (cdr rest)
+            (if first? (list s) (cons s (cons sep acc)))
+            #f)))))
+) ;define
+
+;; chat-tab-find-session
+;; 在 body 树中查找 session 节点（处理 TMU 加载后 body 为 document 包裹的情况）。
+(define (chat-tab-find-session body)
+  (if (tree-is? body 'session)
+    body
+    (if (tree-is? body 'document)
+      (let loop ((i 0))
+        (if (>= i (tree-arity body))
+          #f
+          (if (tree-is? (tree-ref body i) 'session)
+            (tree-ref body i)
+            (loop (+ i 1)))))
+      #f)))
+ ;define
+
 (define (chat-tab-message-document message-buffer)
   (with-buffer message-buffer
     (let ((doc (buffer-get-body message-buffer)))
-      (cond ((tree-is? doc 'document) doc)
-            ((tree-is? doc 'session)
-             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
-            ) ;
-            (else (buffer-set-body message-buffer '(document ""))
+      (cond ((tree-is? doc 'session)
+             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc)))
+            ((tree-is? doc 'document)
+             ;; body 为 document 时，查找其中的 session 节点
+             (let ((sess (chat-tab-find-session doc)))
+               (if sess
+                 (let ((d (tree-ref sess 2)))
+                   (if (tree-is? d 'document) d doc))
+                 doc)))
+            (else
+              (buffer-set-body message-buffer '(document ""))
               (buffer-pretend-saved message-buffer)
-              (buffer-get-body message-buffer)
-            ) ;else
+              (buffer-get-body message-buffer))
       ) ;cond
     ) ;let
   ) ;with-buffer
@@ -220,11 +324,15 @@
             ) ;
         (session-enable-text-input chat-tab-session-name plugin-ses)
         (chat-tab-set-state! session-id new)
-        ;; 初始化 message buffer 为 session 结构
+        ;; 初始化 message buffer：仅在空缓冲时创建新 session 结构
         (with-buffer msg-buf
-          (buffer-set-body msg-buf
-            `(session ,chat-tab-session-name ,plugin-ses (document)))
-          (buffer-pretend-saved msg-buf)
+          (let ((body (buffer-get-body msg-buf)))
+            (when (chat-tab-buffer-empty? body)
+              (buffer-set-body msg-buf
+                `(session ,chat-tab-session-name ,plugin-ses (document)))
+              (buffer-pretend-saved msg-buf)
+            ) ;when
+          ) ;let
           (chat-tab-add-default-style-packages!)
         ) ;with-buffer
         ;; input buffer 同样加载样式包
@@ -489,6 +597,128 @@
   ) ;with
 ) ;define
 
+;;; ---------- 上下文构建 ----------
+
+;; chat-tab-extract-rounds
+;; 从 message buffer 提取所有已完成对话轮次的 (role . text) 列表。
+;;
+;; 语法
+;; ----
+;; (chat-tab-extract-rounds message-buffer)
+;;
+;; 参数
+;; ----
+;; message-buffer : url
+;; 消息缓冲区 URL。
+;;
+;; 返回值
+;; ----
+;; list
+;; (role . text) 对列表，按时间顺序排列。
+
+(define (chat-tab-extract-rounds message-buffer)
+  (with-buffer message-buffer
+    (let ((doc (chat-tab-message-document message-buffer)))
+      (display "[chat-context] extract-rounds: ")
+      (display (tree-arity doc))
+      (display " children in session doc\n")
+      (let loop ((children (tree-children doc)) (rounds '()))
+        (if (null? children)
+          (begin
+            (display "[chat-context] extract-rounds: ")
+            (display (length rounds))
+            (display " rounds extracted\n")
+            (reverse rounds))
+          (let ((child (car children)))
+            (if (tm-func? child 'unfolded-io-text 3)
+              (let* ((user-text (chat-tab-tree->plain-text (tree-ref child 1)))
+                     (asst-doc (tree-ref child 2))
+                     (asst-text (chat-tab-tree->plain-text asst-doc)))
+                (if (chat-tab-empty-body? asst-doc)
+                  (loop (cdr children)
+                    (cons (cons "user" user-text) rounds))
+                  (loop (cdr children)
+                    (cons (cons "assistant" asst-text)
+                      (cons (cons "user" user-text) rounds)))))
+              (loop (cdr children) rounds))))))
+  ) ;with-buffer
+) ;define
+
+;; chat-tab-rounds->json
+;; 将 (role . text) 列表转为 JSON 字符串。
+;;
+;; 语法
+;; ----
+;; (chat-tab-rounds->json rounds)
+;;
+;; 参数
+;; ----
+;; rounds : list of (role . text)
+;; 对话轮次列表。
+;;
+;; 返回值
+;; ----
+;; string
+;; JSON 字符串，格式为 {"messages":[...]}。
+
+(define (chat-tab-rounds->json rounds)
+  (let ((arr (string->njson "[]")))
+    (for-each
+      (lambda (pair)
+        (let ((entry (string->njson "{}")))
+          (njson-set! entry "role" (car pair))
+          (njson-set! entry "content" (cdr pair))
+          (njson-append! arr entry)
+          (njson-free entry)))
+      rounds)
+    (let ((obj (string->njson "{}")))
+      (njson-set! obj "messages" arr)
+      (let ((result (njson->string obj)))
+        (njson-free arr)
+        (njson-free obj)
+        result)))
+) ;define
+
+;; chat-tab-build-context-input
+;; 构建 %context 命令树，包含完整对话历史。
+;;
+;; 语法
+;; ----
+;; (chat-tab-build-context-input session-id input)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;; 会话 UUID。
+;;
+;; input : tree
+;; 当前用户输入树。
+;;
+;; 返回值
+;; ----
+;; tree
+;; 包含 %context 命令的文档树。
+
+(define (chat-tab-build-context-input session-id input)
+  (let* ((msg-buf (chat-tab-session->message-buffer session-id))
+         (rounds (chat-tab-extract-rounds msg-buf))
+         (json-str (chat-tab-rounds->json rounds))
+         (cmd (string-append "%context " (utf8->cork json-str))))
+    (let ((user-count (length (filter (lambda (p) (string=? (car p) "user")) rounds)))
+          (asst-count (length (filter (lambda (p) (string=? (car p) "assistant")) rounds))))
+      (display "[chat-context] build-context: total=")
+      (display (length rounds))
+      (display " user=")
+      (display user-count)
+      (display " assistant=")
+      (display asst-count)
+      (display "\n"))
+    (display "[chat-context] JSON:\n")
+    (display json-str)
+    (display "\n")
+    (stree->tree `(document ,cmd)))
+) ;define
+
 ;;; ---------- Feed ----------
 
 ;; chat-tab-session-feed
@@ -519,6 +749,8 @@
 ;; 附加选项列表。
 
 (define (chat-tab-session-feed lan ses input session-id out opts)
+  ;; 用完整上下文替换原始输入
+  (set! input (chat-tab-build-context-input session-id input))
   (set! input (plugin-preprocess lan ses input opts))
   (with-buffer (chat-tab-session->message-buffer session-id)
     (tree-assign! out '(document (script-busy)))
