@@ -135,7 +135,7 @@
                   (final-height height))
               (when (and (string=? width "0px") (string=? height "0px"))
                 (set! final-width "0.3par")
-                (set! final-height ""))
+                (set! final-height "0px"))
               (flush-image pdf-path final-width final-height)))
         (begin
           (flush-verbatim "pdflatex error")
