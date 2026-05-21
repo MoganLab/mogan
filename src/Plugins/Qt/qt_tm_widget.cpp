@@ -1089,8 +1089,8 @@ qt_tm_widget_rep::update_visibility () {
   if (chatTabMode) {
     new_mainVisibility  = false;
     new_menuVisibility  = true;
-    new_modeVisibility  = false;
-    new_focusVisibility = false;
+    new_modeVisibility  = true;
+    new_focusVisibility = true;
     new_userVisibility  = false;
     new_statusVisibility= false;
     new_sideVisibility  = false;
