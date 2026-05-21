@@ -116,7 +116,8 @@
   (:function latex->texmacs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Post-processing imported LaTeX differentials in math mode
+;; Post-processing imported LaTeX: insert space between d and differential
+;; variables so they are not merged into a single operator in math mode.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (is-letter-char? c)
@@ -171,7 +172,7 @@
                           (var (cdr match)))
                      (if (> i last-idx)
                          (set! res (append res (list (substring s last-idx i)))))
-                     (set! res (append res (list "<mathd>" var)))
+                     (set! res (append res (list "d" " " var)))
                      (loop (+ i 2 match-len) (+ i 2 match-len)))
                    (loop (+ i 1) last-idx))))))))
 
@@ -190,8 +191,8 @@
                                (not (is-letter-char? (string-ref c1 (- len 2))))))))
                (let* ((len (string-length c1))
                       (prefix (if (> len 1) (substring c1 0 (- len 1)) #f))
-                      (mathd-part (if prefix (list prefix "<mathd>" c2) (list "<mathd>" c2))))
-                 (append mathd-part (transform-concat-children (cddr children))))
+                      (spaced-part (if prefix (list prefix "d" " " c2) (list "d" " " c2))))
+                 (append spaced-part (transform-concat-children (cddr children))))
                (cons (car children) (transform-concat-children (cdr children))))))
         (else children)))
 
@@ -228,3 +229,16 @@
          (st (tree->stree res))
          (new-st (upgrade-latex-differentials-stree st #f)))
     (stree->tree new-st)))
+
+;; Re-register converters so that `converter-function` table points
+;; to our wrapper definitions.  The `converter` macro resolves the
+;; function symbol at registration time; simply redefining the symbol
+;; afterwards leaves the old reference in the table.
+(converter latex-tree texmacs-tree
+  (:function latex->texmacs))
+(converter latex-document texmacs-tree
+  (:function-with-options latex-document->texmacs)
+  (:option "latex->texmacs:fallback-on-pictures" "on")
+  (:option "latex->texmacs:source-tracking" "off")
+  (:option "latex->texmacs:conservative" "off")
+  (:option "latex->texmacs:transparent-source-tracking" "off"))
