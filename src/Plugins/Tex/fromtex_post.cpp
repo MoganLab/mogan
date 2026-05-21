@@ -448,6 +448,7 @@ finalize_pmatrix (tree t) {
         else if (u[i][0] == "aligned")
           parse_pmatrix (r, u, i, "", "", "tabular*");
         else if (u[i][0] == "stack") parse_pmatrix (r, u, i, "", "", "stack");
+        else if (u[i][0] == "subarray") parse_pmatrix (r, u, i, "", "", "stack");
         else if (u[i][0] == "matrix")
           parse_pmatrix (r, u, i, "", "", "tabular*");
         else if (u[i][0] == "pmatrix")
