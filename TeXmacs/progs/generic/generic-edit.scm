@@ -243,17 +243,20 @@
                         (begin
                           (debug-message "debug-io" "kbd-h last: insert-return\n")
                           (go-to (rcons parent-path (+ 1 t-index)))
+                          (debug-message "debug-io" (string-append "after goto path=" (object->string (cursor-path)) "\n"))
                           (insert-return))
                         ;; Not last child: jump to next sibling
                         (begin
                           (debug-message "debug-io" "kbd-h not-last: goto\n")
-                          (go-to (rcons parent-path (+ 1 t-index))))))))))
+                          (go-to (rcons parent-path (+ 1 t-index)))
+                          (debug-message "debug-io" (string-append "after goto path=" (object->string (cursor-path)) "\n")))))))))
         ((cursor-in-algo-macro-condition-end? t)
          (debug-message "debug-io" "kbd-h cond-end\n")
          (tree-go-to t 1))
         (else
          (debug-message "debug-io" "kbd-h else\n")
-         (go-right)))
+         (go-right)
+         (debug-message "debug-io" (string-append "after go-right path=" (object->string (cursor-path)) "\n"))))
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
