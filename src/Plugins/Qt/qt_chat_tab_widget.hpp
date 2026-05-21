@@ -29,7 +29,6 @@ class QSpacerItem;
 class QStackedWidget;
 class QString;
 class QTimer;
-class QToolBar;
 class QVBoxLayout;
 class QEvent;
 
@@ -312,24 +311,6 @@ public:
   void ensure_new_conversation ();
 
   /**
-   * @brief 为 Chat Tab 安装主菜单栏内容。
-   * @param menuWidget 菜单 widget。
-   */
-  void install_chat_menu_bar (widget menuWidget);
-
-  /**
-   * @brief 设置 Chat Tab 的模式工具栏内容。
-   * @param modeWidget 模式图标 widget。
-   */
-  void set_chat_mode_icons (widget modeWidget);
-
-  /**
-   * @brief 设置 Chat Tab 的焦点工具栏内容。
-   * @param focusWidget 焦点图标 widget。
-   */
-  void set_chat_focus_icons (widget focusWidget);
-
-  /**
    * @brief 被通知 Scheme 侧生成状态变更。
    * @param sessionId 会话 ID。
    * @param stateStr 状态字符串 ("idle" 或 "generating")。
@@ -386,9 +367,6 @@ private:
   ChatSessionManager            sessionManager_;     ///< 会话管理器。
   bool         sidebarCollapsed_;     ///< 侧边栏当前是否处于收起状态。
   int          sidebarExpandedWidth_; ///< 侧边栏展开时的宽度（像素）。
-  QToolBar*    chatMenuToolBar_;      ///< Chat Tab 的菜单工具栏。
-  QToolBar*    chatModeToolBar_;      ///< Chat Tab 的模式工具栏。
-  QToolBar*    chatFocusToolBar_;     ///< Chat Tab 的焦点工具栏。
   bool         multiSelectMode_;      ///< 是否处于多选模式（活跃会话）。
   bool         archiveSelectMode_;    ///< 是否处于多选模式（归档会话）。
   QWidget*     multiSelectBar_;       ///< 多选模式下的批量操作栏。

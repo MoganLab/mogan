@@ -36,7 +36,6 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
-#include <QMenuBar>
 #include <QPropertyAnimation>
 #include <QPushButton>
 #include <QScrollArea>
@@ -45,7 +44,6 @@
 #include <QSplitter>
 #include <QStackedWidget>
 #include <QTimer>
-#include <QToolBar>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
@@ -277,11 +275,9 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
       sidebarNormalContent_ (nullptr), conversationStack_ (nullptr),
       activeConversation_ (nullptr), sidebarCollapsed_ (false),
-      sidebarExpandedWidth_ (0), chatMenuToolBar_ (nullptr),
-      chatModeToolBar_ (nullptr), chatFocusToolBar_ (nullptr),
-      multiSelectMode_ (false), archiveSelectMode_ (false),
-      multiSelectBar_ (nullptr), batchArchiveBtn_ (nullptr),
-      searchEdit_ (nullptr) {
+      sidebarExpandedWidth_ (0), multiSelectMode_ (false),
+      archiveSelectMode_ (false), multiSelectBar_ (nullptr),
+      batchArchiveBtn_ (nullptr), searchEdit_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -597,24 +593,6 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   QVBoxLayout* contentLayout= new QVBoxLayout (content);
   contentLayout->setContentsMargins (0, 0, 0, 0);
   contentLayout->setSpacing (0);
-
-  chatMenuToolBar_= new QToolBar ("chat menu toolbar", content);
-  chatMenuToolBar_->setObjectName ("chat-menu-tool-bar");
-  chatMenuToolBar_->setMovable (false);
-  chatMenuToolBar_->setVisible (false);
-  contentLayout->addWidget (chatMenuToolBar_);
-
-  chatModeToolBar_= new QToolBar ("chat mode toolbar", content);
-  chatModeToolBar_->setObjectName ("chat-mode-tool-bar");
-  chatModeToolBar_->setMovable (false);
-  chatModeToolBar_->setVisible (false);
-  contentLayout->addWidget (chatModeToolBar_);
-
-  chatFocusToolBar_= new QToolBar ("chat focus toolbar", content);
-  chatFocusToolBar_->setObjectName ("chat-focus-tool-bar");
-  chatFocusToolBar_->setMovable (false);
-  chatFocusToolBar_->setVisible (false);
-  contentLayout->addWidget (chatFocusToolBar_);
 
   conversationStack_= new QStackedWidget (content);
   conversationStack_->setObjectName ("chat-tab-conversation-stack");
@@ -1590,109 +1568,6 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   return QWidget::eventFilter (watched, event);
-}
-
-void
-QTChatTabWidget::install_chat_menu_bar (widget menuWidget) {
-  if (!chatMenuToolBar_) return;
-  QList<QAction*>* src= concrete (menuWidget)->get_qactionlist ();
-  if (!src) return;
-
-  QMenuBar* dest = new QMenuBar ();
-  double    scale= DpiUtils::scaleFactor ();
-  int       h    = DpiUtils::scaled (kMenuBarHeight);
-  dest->setFixedHeight (h);
-  if (tm_style_sheet == "") dest->setStyle (qtmstyle ());
-  dest->setNativeMenuBar (false);
-
-  dest->clear ();
-  for (int i= 0; i < src->count (); i++) {
-    QAction* a= (*src)[i];
-    if (a->menu ()) {
-      a->menu ()->addAction ("native menubar trick");
-      dest->addAction (a->menu ()->menuAction ());
-      QObject::connect (a->menu (), SIGNAL (aboutToShow ()),
-                        the_gui->gui_helper, SLOT (aboutToShowMainMenu ()));
-      QObject::connect (a->menu (), SIGNAL (aboutToHide ()),
-                        the_gui->gui_helper, SLOT (aboutToHideMainMenu ()));
-    }
-  }
-
-  QList<QWidget*> widgets= chatMenuToolBar_->findChildren<QWidget*> ();
-  for (QWidget* w : widgets) {
-    w->setParent (nullptr);
-  }
-  chatMenuToolBar_->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
-  if (chatMenuToolBar_->layout ()) {
-    chatMenuToolBar_->layout ()->setContentsMargins (2, 0, 2, 0);
-    chatMenuToolBar_->layout ()->setSpacing (4);
-  }
-  chatMenuToolBar_->addWidget (dest);
-  chatMenuToolBar_->setVisible (true);
-}
-
-void
-QTChatTabWidget::set_chat_mode_icons (widget modeWidget) {
-  if (!chatModeToolBar_) return;
-  QList<QAction*>* src= concrete (modeWidget)->get_qactionlist ();
-  if (!src) return;
-
-  chatModeToolBar_->setUpdatesEnabled (false);
-  bool visible= chatModeToolBar_->isVisible ();
-  if (visible) chatModeToolBar_->hide ();
-
-  QList<QAction*> actions= chatModeToolBar_->actions ();
-  for (int i= 0; i < actions.count (); i++) {
-    chatModeToolBar_->removeAction (actions[i]);
-  }
-  for (int i= 0; i < src->count (); i++) {
-    chatModeToolBar_->addAction ((*src)[i]);
-  }
-
-  QList<QObject*> list= chatModeToolBar_->children ();
-  for (int i= 0; i < list.count (); ++i) {
-    QToolButton* button= qobject_cast<QToolButton*> (list[i]);
-    if (button) {
-      button->setPopupMode (QToolButton::InstantPopup);
-      if (tm_style_sheet == "") button->setStyle (qtmstyle ());
-    }
-  }
-
-  if (visible) chatModeToolBar_->show ();
-  chatModeToolBar_->setUpdatesEnabled (true);
-  chatModeToolBar_->setVisible (true);
-}
-
-void
-QTChatTabWidget::set_chat_focus_icons (widget focusWidget) {
-  if (!chatFocusToolBar_) return;
-  QList<QAction*>* src= concrete (focusWidget)->get_qactionlist ();
-  if (!src) return;
-
-  chatFocusToolBar_->setUpdatesEnabled (false);
-  bool visible= chatFocusToolBar_->isVisible ();
-  if (visible) chatFocusToolBar_->hide ();
-
-  QList<QAction*> actions= chatFocusToolBar_->actions ();
-  for (int i= 0; i < actions.count (); i++) {
-    chatFocusToolBar_->removeAction (actions[i]);
-  }
-  for (int i= 0; i < src->count (); i++) {
-    chatFocusToolBar_->addAction ((*src)[i]);
-  }
-
-  QList<QObject*> list= chatFocusToolBar_->children ();
-  for (int i= 0; i < list.count (); ++i) {
-    QToolButton* button= qobject_cast<QToolButton*> (list[i]);
-    if (button) {
-      button->setPopupMode (QToolButton::InstantPopup);
-      if (tm_style_sheet == "") button->setStyle (qtmstyle ());
-    }
-  }
-
-  if (visible) chatFocusToolBar_->show ();
-  chatFocusToolBar_->setUpdatesEnabled (true);
-  chatFocusToolBar_->setVisible (true);
 }
 
 /******************************************************************************
