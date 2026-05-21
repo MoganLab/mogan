@@ -40,9 +40,6 @@ bridge_argument_rep::bridge_argument_rep (typesetter ttt, tree st, path ip)
 
 void
 bridge_argument_rep::initialize (string name2, path pf, tree b_t, path b_ip) {
-#ifdef LIII_DEBUG
-  cout << "Initialize arg: " << name2 << ", " << pf << ": " << b_t << "\n";
-#endif
   if ((!valid) || (name != name2) || (prefix != pf) || (body->st != b_t) ||
       (body->ip != b_ip)) {
     valid = true;
