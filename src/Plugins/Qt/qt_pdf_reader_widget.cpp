@@ -16,6 +16,7 @@
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLineEdit>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QResizeEvent>
 #include <QScreen>
@@ -41,9 +42,11 @@ constexpr float kMaxRenderScale  = 8.0F;
 PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
       pageLayout_ (nullptr), mainLayout_ (nullptr), toolBar_ (nullptr),
-      zoomCombo_ (nullptr), prevPageBtn_ (nullptr), pageEdit_ (nullptr),
+      zoomCombo_ (nullptr), zoomDropBtn_ (nullptr), prevPageBtn_ (nullptr),
+      pageEdit_ (nullptr),
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
-      rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
+      rectSelectBtn_ (nullptr), zoomMenu_ (nullptr), rubberBand_ (nullptr),
+      rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
       browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
@@ -153,33 +156,49 @@ PDFReaderWidget::setupToolBar () {
   toolBarLayout->setContentsMargins (4, 2, 4, 2);
   toolBarLayout->setSpacing (4);
 
-  zoomCombo_= new QComboBox (toolBar_);
-  zoomCombo_->setEditable (true);
-  zoomCombo_->lineEdit ()->setReadOnly (true);
-  zoomCombo_->lineEdit ()->setAlignment (Qt::AlignCenter);
+  // 比例显示框（纯 QLineEdit，和页码框保持完全一致）
+  zoomCombo_= new QLineEdit (toolBar_);
+  zoomCombo_->setObjectName ("pdf-zoom-edit");
   zoomCombo_->setFixedWidth (DpiUtils::scaled (80));
   zoomCombo_->setFixedHeight (DpiUtils::scaled (26));
+  zoomCombo_->setFrame (false);
+  zoomCombo_->setStyleSheet (
+      "QLineEdit { padding: 0px; margin: 0px; border: 0.5px solid #CCC; }");
+  zoomCombo_->setAlignment (Qt::AlignCenter);
+  zoomCombo_->setReadOnly (true);
+
+  // 下拉按钮（触发比例选择菜单）
+  zoomDropBtn_= new QToolButton (toolBar_);
+  zoomDropBtn_->setObjectName ("pdf-zoom-drop-btn");
+  zoomDropBtn_->setAutoRaise (true);
+  zoomDropBtn_->setFixedSize (DpiUtils::scaled (16), DpiUtils::scaled (26));
+  zoomDropBtn_->setToolTip (qt_translate ("Zoom"));
+
+  zoomMenu_= new QMenu (zoomDropBtn_);
+  zoomMenu_->addAction ("Fit Width");
+  zoomMenu_->addAction ("Fit Height");
+  zoomMenu_->addAction ("25%");
+  zoomMenu_->addAction ("33%");
+  zoomMenu_->addAction ("50%");
+  zoomMenu_->addAction ("75%");
+  zoomMenu_->addAction ("100%");
+  zoomMenu_->addAction ("125%");
+  zoomMenu_->addAction ("150%");
+  zoomMenu_->addAction ("200%");
+  zoomMenu_->addAction ("300%");
+  zoomMenu_->addAction ("400%");
+  zoomMenu_->addAction ("600%");
+  zoomMenu_->addAction ("800%");
+  connect (zoomMenu_, &QMenu::triggered, this,
+           [=](QAction* action) { onZoomChanged (action->text ()); });
+  connect (zoomDropBtn_, &QToolButton::clicked, this, [=]() {
+    zoomMenu_->popup (
+        zoomDropBtn_->mapToGlobal (QPoint (0, zoomDropBtn_->height ())));
+  });
+
   QFont comboFont= zoomCombo_->font ();
   comboFont.setPixelSize (DpiUtils::scaled (14));
   zoomCombo_->setFont (comboFont);
-
-  zoomCombo_->addItem ("Fit Width");
-  zoomCombo_->addItem ("Fit Height");
-  zoomCombo_->addItem ("25%");
-  zoomCombo_->addItem ("33%");
-  zoomCombo_->addItem ("50%");
-  zoomCombo_->addItem ("75%");
-  zoomCombo_->addItem ("100%");
-  zoomCombo_->addItem ("125%");
-  zoomCombo_->addItem ("150%");
-  zoomCombo_->addItem ("200%");
-  zoomCombo_->addItem ("300%");
-  zoomCombo_->addItem ("400%");
-  zoomCombo_->addItem ("600%");
-  zoomCombo_->addItem ("800%");
-
-  connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
-           this, &PDFReaderWidget::onZoomChanged);
 
   zoomOutBtn_= new QToolButton (toolBar_);
   zoomOutBtn_->setObjectName ("pdf-zoom-out-btn");
@@ -213,6 +232,9 @@ PDFReaderWidget::setupToolBar () {
   pageEdit_->setObjectName ("pdf-page-edit");
   pageEdit_->setFixedWidth (DpiUtils::scaled (50));
   pageEdit_->setFixedHeight (DpiUtils::scaled (26));
+  pageEdit_->setFrame (false);
+  pageEdit_->setStyleSheet (
+      "QLineEdit { padding: 0px; margin: 0px; border: 0.5px solid #CCC; }");
   pageEdit_->setAlignment (Qt::AlignCenter);
   connect (pageEdit_, &QLineEdit::editingFinished, this,
            &PDFReaderWidget::onPageEditingFinished);
@@ -247,6 +269,7 @@ PDFReaderWidget::setupToolBar () {
   QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
   leftLayout->setContentsMargins (0, 0, 0, 0);
   leftLayout->addWidget (zoomCombo_, 0, Qt::AlignVCenter);
+  leftLayout->addWidget (zoomDropBtn_, 0, Qt::AlignVCenter);
   leftLayout->addStretch ();
   leftWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 
@@ -277,25 +300,12 @@ PDFReaderWidget::setupToolBar () {
 void
 PDFReaderWidget::updateZoomDisplay () {
   if (!zoomCombo_) return;
-
-  int     percent= qRound (zoomFactor_ * 100);
-  QString text   = QString::number (percent) + "%";
-
-  disconnect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
-              this, &PDFReaderWidget::onZoomChanged);
-
-  int idx= zoomCombo_->findText (text);
-  if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
-  else zoomCombo_->setCurrentText (text);
-
-  connect (zoomCombo_, QOverload<int>::of (&QComboBox::currentIndexChanged),
-           this, &PDFReaderWidget::onZoomChanged);
+  int percent= qRound (zoomFactor_ * 100);
+  zoomCombo_->setText (QString::number (percent) + "%");
 }
 
 void
-PDFReaderWidget::onZoomChanged (int index) {
-  if (index < 0) return;
-  QString text= zoomCombo_->itemText (index);
+PDFReaderWidget::onZoomChanged (QString text) {
   if (text == "Fit Width") {
     fitWidth ();
   }
