@@ -548,7 +548,7 @@
             (add-style-package lan))
         (if (not (has-style-package? "framed-session"))
             (add-style-package "framed-session"))
-        (session-feed lan ses :start u t '()))))))
+        (session-feed lan ses :start u t '())))))
 
 (define (input-options t)
   (with opts '()
