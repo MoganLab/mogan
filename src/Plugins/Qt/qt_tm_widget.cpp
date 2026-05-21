@@ -1014,6 +1014,8 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
 
     if (!chatContentWidget) {
       chatContentWidget= new QTChatTabWidget (centralwidget ());
+      static_cast<QTChatTabWidget*> (chatContentWidget)
+          ->setParentTmWidget (this);
     }
     static_cast<QTChatTabWidget*> (chatContentWidget)
         ->ensure_new_conversation ();
@@ -2066,9 +2068,21 @@ qt_tm_embedded_widget_rep::write (slot s, blackbox index, widget w) {
   } break;
   case SLOT_MAIN_MENU:
   case SLOT_MODE_ICONS:
-  case SLOT_FOCUS_ICONS:
+  case SLOT_FOCUS_ICONS: {
+    if (!qwid) as_qwidget ();
+    QWidget* p= qwid;
+    while (p) {
+      if (QTChatTabWidget* chat= qobject_cast<QTChatTabWidget*> (p)) {
+        qt_tm_widget_rep* mainW= chat->parentTmWidget ();
+        if (mainW) {
+          mainW->write (s, index, w);
+          return;
+        }
+      }
+      p= p->parentWidget ();
+    }
     qt_widget_rep::write (s, index, w);
-    break;
+  } break;
   case SLOT_MAIN_ICONS:
   case SLOT_USER_ICONS:
   case SLOT_SIDE_TOOLS:
