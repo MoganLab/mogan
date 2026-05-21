@@ -677,6 +677,7 @@ view_set_window (url view_u, url win_u, bool focus) {
     }
   }
   view->win_tabpage= win;
+  notify_set_view (view_u);
   if (attached && !found) {
     // view 所在的 TabBar 没有其他标签页了
     kill_window (view_win_tabpage_u);
