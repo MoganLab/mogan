@@ -242,6 +242,8 @@ PDFReaderWidget::setupToolBar () {
   pageTotalLabel_= new QLabel ("/ 0", toolBar_);
   pageTotalLabel_->setFixedWidth (DpiUtils::scaled (45));
   pageTotalLabel_->setFixedHeight (DpiUtils::scaled (26));
+  pageTotalLabel_->setStyleSheet (
+      "QLabel { padding: 0px; margin: 0px; border: none; }");
   pageTotalLabel_->setAlignment (Qt::AlignCenter);
 
   nextPageBtn_= new QToolButton (toolBar_);
