@@ -171,7 +171,8 @@ PDFReaderWidget::setupToolBar () {
   zoomDropBtn_= new QToolButton (toolBar_);
   zoomDropBtn_->setObjectName ("pdf-zoom-drop-btn");
   zoomDropBtn_->setAutoRaise (true);
-  zoomDropBtn_->setFixedSize (DpiUtils::scaled (16), DpiUtils::scaled (26));
+  zoomDropBtn_->setFixedSize (DpiUtils::scaled (24), DpiUtils::scaled (26));
+  zoomDropBtn_->setArrowType (Qt::DownArrow);
   zoomDropBtn_->setToolTip (qt_translate ("Zoom"));
 
   zoomMenu_= new QMenu (zoomDropBtn_);
@@ -236,6 +237,7 @@ PDFReaderWidget::setupToolBar () {
   pageEdit_->setStyleSheet (
       "QLineEdit { padding: 0px; margin: 0px; border: 0.5px solid #CCC; }");
   pageEdit_->setAlignment (Qt::AlignCenter);
+  pageEdit_->setFont (comboFont);
   connect (pageEdit_, &QLineEdit::editingFinished, this,
            &PDFReaderWidget::onPageEditingFinished);
 
@@ -270,6 +272,7 @@ PDFReaderWidget::setupToolBar () {
   QWidget*     leftWidget= new QWidget (toolBar_);
   QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
   leftLayout->setContentsMargins (0, 0, 0, 0);
+  leftLayout->setSpacing (0);
   leftLayout->addWidget (zoomCombo_, 0, Qt::AlignVCenter);
   leftLayout->addWidget (zoomDropBtn_, 0, Qt::AlignVCenter);
   leftLayout->addStretch ();
