@@ -43,10 +43,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
     : QWidget (parent), scrollArea_ (nullptr), contentWidget_ (nullptr),
       pageLayout_ (nullptr), mainLayout_ (nullptr), toolBar_ (nullptr),
       zoomCombo_ (nullptr), zoomDropBtn_ (nullptr), prevPageBtn_ (nullptr),
-      pageEdit_ (nullptr),
-      pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
-      rectSelectBtn_ (nullptr), zoomMenu_ (nullptr), rubberBand_ (nullptr),
-      rectSelectMode_ (false),
+      pageEdit_ (nullptr), pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr),
+      zoomInBtn_ (nullptr), rectSelectBtn_ (nullptr), zoomMenu_ (nullptr),
+      rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
       browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
@@ -191,8 +190,8 @@ PDFReaderWidget::setupToolBar () {
   zoomMenu_->addAction ("600%");
   zoomMenu_->addAction ("800%");
   connect (zoomMenu_, &QMenu::triggered, this,
-           [=](QAction* action) { onZoomChanged (action->text ()); });
-  connect (zoomDropBtn_, &QToolButton::clicked, this, [=]() {
+           [=] (QAction* action) { onZoomChanged (action->text ()); });
+  connect (zoomDropBtn_, &QToolButton::clicked, this, [=] () {
     zoomMenu_->popup (
         zoomDropBtn_->mapToGlobal (QPoint (0, zoomDropBtn_->height ())));
   });

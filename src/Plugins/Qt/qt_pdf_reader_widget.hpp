@@ -9,9 +9,9 @@
 #define QT_PDF_READER_WIDGET_HPP
 
 #include <QHash>
-#include <QMenu>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
 #include <QRubberBand>
 #include <QScrollArea>
 #include <QScrollBar>
