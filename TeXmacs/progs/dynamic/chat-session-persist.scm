@@ -99,7 +99,7 @@
                       (qt-chat-tab-restore-session sid title model archived-str)
                     ) ;let*
                   ) ;lambda
-          entries
+          (reverse entries)
         ) ;for-each
         (njson-free manifest)
       ) ;let*
