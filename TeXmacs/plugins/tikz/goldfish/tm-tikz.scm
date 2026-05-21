@@ -139,7 +139,7 @@
               (flush-image pdf-path final-width final-height)))
         (begin
           (flush-verbatim "pdflatex error")
-          (flush-verbatim ""))))))
+          (flush-verbatim "")))))
 
 (define (split-code-and-magic code)
   (if (not (string-starts? code "%"))
