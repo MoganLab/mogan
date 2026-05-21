@@ -226,7 +226,11 @@
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
+  (write (list 'kbd-horizontal-algo (tree-label t) forwards? (cursor-path)))
+  (newline)
   (cond ((cursor-in-algo-macro-body-end? t)
+         (write (list 'body-end (tree-label t)))
+         (newline)
          (with t-path (tree->path t)
            (and t-path
                 (with parent (tree-up t)
@@ -236,13 +240,19 @@
                              (== (+ 1 t-index) (tree-arity parent)))
                         ;; Last child in document: create a new paragraph
                         (begin
+                          (write (list 'last-child t-index (tree-arity parent)))
+                          (newline)
                           (go-to (rcons parent-path (+ 1 t-index)))
                           (insert-return))
                         ;; Not last child: jump to next sibling
-                        (go-to (rcons parent-path (+ 1 t-index))))))))
+                        (go-to (rcons parent-path (+ 1 t-index))))))))))
         ((cursor-in-algo-macro-condition-end? t)
+         (write (list 'condition-end (tree-label t)))
+         (newline)
          (tree-go-to t 1))
         (else
+         (write (list 'else (tree-label t)))
+         (newline)
          (go-right)))
 ) ;tm-define
 
