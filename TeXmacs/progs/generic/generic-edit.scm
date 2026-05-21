@@ -224,45 +224,75 @@
                                                      (or (== (cAr path) :end)
                                                          (is-end-relative-path? last-child rel-path)))))))))))))))))
 
+(define (cursor-in-algo-macro-body-empty-end? t)
+  "Check if the cursor is in the empty last line/paragraph of the body of algo-macro t"
+  (and (cursor-in-algo-macro-body-end? t)
+       (let* ((body-idx (- (tree-arity t) 1))
+              (body (tm-ref t body-idx)))
+         (and body (tree-is? body 'document)
+              (> (tree-arity body) 1)
+              (let* ((last-idx (- (tree-arity body) 1))
+                     (last-child (tm-ref body last-idx)))
+                (and (tree-empty? last-child)
+                     (let ((path (cursor-path))
+                           (lc-path (tree->path last-child)))
+                       (and path lc-path
+                            (list-starts? path lc-path)))))))))
+
 (tm-define (kbd-horizontal t forwards?)
-  (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
-  (debug-message "debug-io" (string-append "kbd-h t=" (symbol->string (tree-label t)) " fwd=" (if forwards? "y" "n") "\n"))
+  (:require (and forwards?
+                 (tree-in? t algo-macro-tags)
+                 (in-listing-context? t)
+                 (or (cursor-in-algo-macro-body-end? t)
+                     (cursor-in-algo-macro-condition-end? t))))
   (cond ((cursor-in-algo-macro-body-end? t)
          (with t-path (tree->path t)
            (and t-path
                 (with parent (tree-up t)
                   (let* ((parent-path (cDr t-path))
                          (t-index (cAr t-path)))
-                    (debug-message "debug-io"
-                      (string-append "kbd-h idx=" (number->string t-index)
-                                     " arity=" (number->string (tree-arity parent))
-                                     " last?=" (if (== (+ 1 t-index) (tree-arity parent)) "y" "n") "\n"))
-                    (if (and parent (tree-is? parent 'document)
-                             (== (+ 1 t-index) (tree-arity parent)))
-                        ;; Last child in document: create a new paragraph
+                    (if (< (+ 1 t-index) (tree-arity parent))
+                        (let ((sibling (tm-ref parent (+ 1 t-index))))
+                          (if (and sibling (tree-in? sibling algo-macro-tags))
+                              (begin
+                                (display* "kbd-h body-end -> go-to sibling body\n")
+                                (tree-go-to sibling 0))
+                              (begin
+                                (display* "kbd-h body-end -> go-to sibling paragraph\n")
+                                (go-to (tree->path sibling)))))
                         (begin
-                          (debug-message "debug-io" "kbd-h last: insert-return\n")
-                          (go-to (rcons parent-path (+ 1 t-index)))
-                          (debug-message "debug-io" (string-append "after goto path=" (object->string (cursor-path)) "\n"))
-                          (insert-return))
-                        ;; Not last child: jump to next sibling
-                        (begin
-                          (debug-message "debug-io" "kbd-h not-last: goto\n")
-                          (go-to (rcons parent-path (+ 1 t-index)))
-                          (debug-message "debug-io" (string-append "after goto path=" (object->string (cursor-path)) "\n")))))))))
+                          (display* "kbd-h body-end -> go-to end of parent\n")
+                          (go-to (rcons parent-path (+ 1 t-index))))))))))
         ((cursor-in-algo-macro-condition-end? t)
-         (debug-message "debug-io" "kbd-h cond-end\n")
-         (tree-go-to t 1))
-        (else
-         (debug-message "debug-io" "kbd-h else\n")
-         (go-right)
-         (debug-message "debug-io" (string-append "after go-right path=" (object->string (cursor-path)) "\n"))))
+         (display* "kbd-h cond-end -> go-to body\n")
+         (tree-go-to t 1)))
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (and (not shift?) (cursor-in-algo-macro-first-param? t)))
   (with macro (find-algo-macro-ancestor t) (tree-go-to macro 0 :end) (go-right))
 ) ;tm-define
+
+(tm-define (kbd-enter t shift?)
+  (:require (and (not shift?)
+                 (in-listing-context? t)
+                 (with macro (find-algo-macro-ancestor t)
+                   (and macro (cursor-in-algo-macro-body-empty-end? macro)))))
+  (with macro (find-algo-macro-ancestor t)
+    (with t-path (tree->path macro)
+      (and t-path
+           (with parent (tree-up macro)
+             (and parent
+                  (let* ((parent-path (cDr t-path))
+                         (t-index (cAr t-path))
+                         (body-idx (- (tree-arity macro) 1))
+                         (body (tm-ref macro body-idx))
+                         (last-idx (- (tree-arity body) 1)))
+                    (display* "kbd-enter body-empty-end -> remove empty line & insert sibling\n")
+                    (tree-remove! body last-idx 1)
+                    (tree-insert! parent (+ 1 t-index) '((concat "")))
+                    (go-to (rcons parent-path (+ 1 t-index))))))))))
+ ;tm-define
 
 (tm-define (kbd-control-enter t shift?)
   (and-with p (tree-outer t) (kbd-control-enter p shift?))
