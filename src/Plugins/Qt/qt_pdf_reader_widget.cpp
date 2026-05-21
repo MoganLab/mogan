@@ -13,10 +13,12 @@
 #include <QDesktopServices>
 #include <QFile>
 #include <QFrame>
+#include <QGestureEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMouseEvent>
+#include <QPinchGesture>
 #include <QResizeEvent>
 #include <QScreen>
 #include <QScrollBar>
@@ -45,11 +47,12 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
-      browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
-      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
-      zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
-      overLink_ (false), zoomDebounceTimer_ (nullptr),
-      resizeDebounceTimer_ (nullptr) {
+       browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
+       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+       zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+       overLink_ (false), zoomDebounceTimer_ (nullptr),
+       resizeDebounceTimer_ (nullptr), pinchStartZoom_ (1.0),
+       inPinchGesture_ (false) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -102,6 +105,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
   scrollArea_->viewport ()->installEventFilter (this);
   scrollArea_->viewport ()->setMouseTracking (true);
   scrollArea_->viewport ()->setCursor (Qt::OpenHandCursor);
+  scrollArea_->viewport ()->grabGesture (Qt::PinchGesture);
 
   // 保持与 QScrollArea 内部一致的步长（Okular 同款 magic value）
   scrollArea_->verticalScrollBar ()->setSingleStep (20);
@@ -1227,6 +1231,34 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
         }
         wheelEvent->accept ();
         return true;
+      }
+    }
+    else if (event->type () == QEvent::Gesture) {
+      QGestureEvent* gestureEvent= static_cast<QGestureEvent*> (event);
+      if (QPinchGesture* pinch= qobject_cast<QPinchGesture*> (
+              gestureEvent->gesture (Qt::PinchGesture))) {
+        if (pinch->changeFlags () & QPinchGesture::ScaleFactorChanged) {
+          if (!inPinchGesture_) {
+            pinchStartZoom_= zoomFactor_;
+            inPinchGesture_= true;
+          }
+          double newZoom=
+              qBound (MIN_ZOOM, pinchStartZoom_ * pinch->totalScaleFactor (),
+                      MAX_ZOOM);
+          if (qAbs (newZoom - zoomFactor_) > 0.01) {
+            zoomFactor_= newZoom;
+            updateZoomDisplay ();
+          }
+          gestureEvent->accept (pinch);
+          return true;
+        }
+        if (pinch->state () == Qt::GestureFinished ||
+            pinch->state () == Qt::GestureCanceled) {
+          inPinchGesture_= false;
+          if (!pdfData_.isEmpty () && pageCount_ > 0) {
+            zoomDebounceTimer_->start ();
+          }
+        }
       }
     }
     else if (event->type () == QEvent::KeyPress) {

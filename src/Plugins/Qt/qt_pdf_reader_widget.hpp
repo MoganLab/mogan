@@ -168,6 +168,9 @@ private:
   QTimer* zoomDebounceTimer_;
   QTimer* resizeDebounceTimer_;
 
+  double pinchStartZoom_;
+  bool   inPinchGesture_;
+
   static constexpr int    DEFAULT_DPI       = 150;
   static constexpr int    PAGE_MARGIN       = 16;
   static constexpr int    PRELOAD_MARGIN    = 200;
