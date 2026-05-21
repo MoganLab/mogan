@@ -546,7 +546,9 @@
       (with u (tree-ref t :previous 0)
         (if (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append lan ".ts")))
             (add-style-package lan))
-  (session-feed lan ses :start u t '())))))
+        (if (not (has-style-package? "framed-session"))
+            (add-style-package "framed-session"))
+        (session-feed lan ses :start u t '()))))))
 
 (define (input-options t)
   (with opts '()
