@@ -24,7 +24,7 @@
 
 (define chat-tab-session-name "llm")
 
-(define chat-tab-current-model "default")
+(define chat-tab-current-model "Kimi-VLM")
 
 (define chat-tab-session-states (make-ahash-table))
 
