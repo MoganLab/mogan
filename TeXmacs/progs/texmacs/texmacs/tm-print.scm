@@ -221,7 +221,9 @@
   (:proposals last  (list (number->string (get-page-count)) "")))
 
 (tm-define (preview-file u)
-  (load-pdf-buffer u))
+  (if (get-boolean-preference "use external pdf viewer")
+      (load-external u)
+      (load-pdf-buffer u)))
 
 (tm-define (preview-buffer)
   (with-default-view
