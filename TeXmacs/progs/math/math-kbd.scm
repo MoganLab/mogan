@@ -2889,6 +2889,7 @@
   ("d r var" "<mathd><rho>")
   ("d r var var" "<mathd><varrho>")
   ("d j var" "<mathd><theta>")
+  ("d j var var" "<mathd><jmath>")
   ("d j var var var" "<mathd><vartheta>"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
