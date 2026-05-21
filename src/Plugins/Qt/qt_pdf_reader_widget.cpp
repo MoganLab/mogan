@@ -157,8 +157,8 @@ PDFReaderWidget::setupToolBar () {
   zoomCombo_->setEditable (true);
   zoomCombo_->lineEdit ()->setReadOnly (true);
   zoomCombo_->lineEdit ()->setAlignment (Qt::AlignCenter);
-  zoomCombo_->setSizeAdjustPolicy (QComboBox::AdjustToContents);
-  zoomCombo_->setFixedHeight (DpiUtils::scaled (32));
+  zoomCombo_->setFixedWidth (DpiUtils::scaled (80));
+  zoomCombo_->setFixedHeight (DpiUtils::scaled (26));
   QFont comboFont= zoomCombo_->font ();
   comboFont.setPixelSize (DpiUtils::scaled (14));
   zoomCombo_->setFont (comboFont);
@@ -212,14 +212,14 @@ PDFReaderWidget::setupToolBar () {
   pageEdit_= new QLineEdit (toolBar_);
   pageEdit_->setObjectName ("pdf-page-edit");
   pageEdit_->setFixedWidth (DpiUtils::scaled (50));
-  pageEdit_->setFixedHeight (DpiUtils::scaled (32));
+  pageEdit_->setFixedHeight (DpiUtils::scaled (26));
   pageEdit_->setAlignment (Qt::AlignCenter);
   connect (pageEdit_, &QLineEdit::editingFinished, this,
            &PDFReaderWidget::onPageEditingFinished);
 
   pageTotalLabel_= new QLabel ("/ 0", toolBar_);
   pageTotalLabel_->setFixedWidth (DpiUtils::scaled (45));
-  pageTotalLabel_->setFixedHeight (DpiUtils::scaled (32));
+  pageTotalLabel_->setFixedHeight (DpiUtils::scaled (26));
   pageTotalLabel_->setAlignment (Qt::AlignCenter);
 
   nextPageBtn_= new QToolButton (toolBar_);
@@ -246,7 +246,7 @@ PDFReaderWidget::setupToolBar () {
   QWidget*     leftWidget= new QWidget (toolBar_);
   QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
   leftLayout->setContentsMargins (0, 0, 0, 0);
-  leftLayout->addWidget (zoomCombo_);
+  leftLayout->addWidget (zoomCombo_, 0, Qt::AlignVCenter);
   leftLayout->addStretch ();
   leftWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 
