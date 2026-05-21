@@ -1575,21 +1575,27 @@
       (file-of-format? u "generic")))
 
 (tm-define (load-external u)
-  (when (not (url-rooted? u))
+  (when (and (not (url-rooted? u)) (current-buffer))
     (set! u (url-relative (current-buffer) u)))
   (open-url u))
 
 (tm-define (load-pdf-buffer u)
-  (when (not (url-rooted? u))
+  (when (and (not (url-rooted? u)) (current-buffer))
     (set! u (url-relative (current-buffer) u)))
-  (if (buffer-exists? u)
-      (switch-to-buffer u)
+  (if (get-boolean-preference "use external pdf viewer")
       (begin
-        (buffer-set u '(document))
-        (buffer-set-title u (url->system (url-tail u)))
-        (switch-to-buffer u)))
-  (buffer-notify-recent u)
-  (remember-file-dialog-directory u))
+        (load-external u)
+        (buffer-notify-recent u)
+        (remember-file-dialog-directory u))
+      (begin
+        (if (buffer-exists? u)
+            (switch-to-buffer u)
+            (begin
+              (buffer-set u '(document))
+              (buffer-set-title u (url->system (url-tail u)))
+              (switch-to-buffer u)))
+        (buffer-notify-recent u)
+        (remember-file-dialog-directory u))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Loading buffers

@@ -70,6 +70,7 @@
 (define-preferences
   ("texmacs->pdf:expand slides" "on" noop)
   ("preview command" "default" notify-preview-command)
+  ("use external pdf viewer" "off" noop)
   ("printing command" (get-default-printing-command) notify-printing-command)
   ("paper type" (get-default-paper-size) notify-paper-type)
   ("printer dpi" "1200" notify-printer-dpi))
