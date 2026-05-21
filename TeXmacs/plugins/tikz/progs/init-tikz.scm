@@ -55,4 +55,5 @@
 
 (import (session tikz))
 (init-tikz)
+(lazy-format (data tikz) tikz)
 (use-modules (code tikz-mode) (code tikz-edit))
