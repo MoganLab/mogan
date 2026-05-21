@@ -454,8 +454,8 @@ kill_tabpage (url win_u, url u) {
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
-  url  current_u = get_current_view_safe ();
-  bool is_current= (!is_none (current_u) && current_u == u);
+  url  current_u                     = get_current_view_safe ();
+  bool is_current                    = (!is_none (current_u) && current_u == u);
   bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage
