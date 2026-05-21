@@ -226,23 +226,33 @@
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards? (tree-in? t algo-macro-tags) (in-listing-context? t)))
+  (set-message "kbd-h" (string-append "t=" (symbol->string (tree-label t)) " fwd=" (if forwards? "y" "n")))
   (cond ((cursor-in-algo-macro-body-end? t)
          (with t-path (tree->path t)
            (and t-path
                 (with parent (tree-up t)
                   (let* ((parent-path (cDr t-path))
                          (t-index (cAr t-path)))
+                    (set-message "kbd-h"
+                      (string-append "idx=" (number->string t-index)
+                                     " arity=" (number->string (tree-arity parent))
+                                     " last?=" (if (== (+ 1 t-index) (tree-arity parent)) "y" "n")))
                     (if (and parent (tree-is? parent 'document)
                              (== (+ 1 t-index) (tree-arity parent)))
                         ;; Last child in document: create a new paragraph
                         (begin
+                          (set-message "kbd-h" "last: insert-return")
                           (go-to (rcons parent-path (+ 1 t-index)))
                           (insert-return))
                         ;; Not last child: jump to next sibling
-                        (go-to (rcons parent-path (+ 1 t-index)))))))))
+                        (begin
+                          (set-message "kbd-h" "not-last: goto")
+                          (go-to (rcons parent-path (+ 1 t-index))))))))))
         ((cursor-in-algo-macro-condition-end? t)
+         (set-message "kbd-h" "cond-end")
          (tree-go-to t 1))
         (else
+         (set-message "kbd-h" "else")
          (go-right)))
 ) ;tm-define
 
