@@ -121,6 +121,10 @@
      algo-if-else-if)
 ) ;define
 
+(define algo-no-cond-macros
+  '(algo-else algo-loop algo-body algo-begin algo-inputs algo-outputs)
+) ;define
+
 (define (in-listing-context? t)
   (and t (tree-search-upwards t (lambda (n) (tree-in? n '(listing)))))
 ) ;define
@@ -238,6 +242,129 @@
                            (lc-path (tree->path last-child)))
                        (and path lc-path
                             (list-starts? path lc-path)))))))))
+
+(define (is-start-relative-path? t path)
+  "Check if path (relative to t) points to the start of t"
+  (cond ((null? path) #t)
+        ((== path '(:start)) #t)
+        ((and (== (length path) 1)
+              (integer? (car path))
+              (== (car path) 0)) #t)
+        ((and (> (length path) 1)
+              (integer? (car path))
+              (== (car path) 0))
+         (with child (tm-ref t 0)
+           (and child
+                (is-start-relative-path? child (cdr path)))))
+        (else #f)))
+
+(define (cursor-in-algo-macro-first-arg-start? t)
+  "Check if cursor is at the start of the first argument of algo-macro t"
+  (and (tree-in? t algo-macro-tags)
+       (>= (tree-arity t) 1)
+       (let* ((first-idx 0)
+              (path (cursor-path))
+              (t-path (tree->path t)))
+         (and t-path
+              (> (length path) (length t-path))
+              (== (list-ref path (length t-path)) first-idx)
+              (let ((first-arg (tm-ref t first-idx)))
+                (and first-arg
+                     (let ((arg-path (tree->path first-arg)))
+                       (and arg-path
+                            (>= (length path) (length arg-path))
+                            (is-start-relative-path? first-arg
+                              (list-tail path (length arg-path)))))))))))
+
+(define (cursor-at-algo-macro-start? t)
+  "Check if the cursor is at the start of algo-macro t"
+  (and (tree-in? t algo-macro-tags)
+       (in-listing-context? t)
+       (with t-path (tree->path t)
+         (and t-path (== (cursor-path) t-path)))))
+
+(define (cursor-in-algo-macro-body-first-line? t)
+  "Check if cursor is on the first line of the body of a no-cond algo-macro t"
+  (and (tree-in? t algo-no-cond-macros)
+       (in-listing-context? t)
+       (let* ((body-idx 0)
+              (path (cursor-path))
+              (t-path (tree->path t)))
+         (and t-path
+              (> (length path) (length t-path))
+              (== (list-ref path (length t-path)) body-idx)
+              (let ((body (tm-ref t body-idx)))
+                (and body
+                     (let ((body-path (tree->path body)))
+                       (and body-path
+                            (if (tree-is? body 'document)
+                                (and (> (tree-arity body) 0)
+                                     (list-starts? path (append body-path '(0))))
+                                #t)))))))))
+
+(tm-define (kbd-horizontal t forwards?)
+  (:require (and (not forwards?)
+                 (tree-in? t algo-macro-tags)
+                 (in-listing-context? t)
+                 (or (cursor-in-algo-macro-first-arg-start? t)
+                     (cursor-at-algo-macro-start? t))))
+  (with t-path (tree->path t)
+    (and t-path
+         (with parent (tree-up t)
+           (let* ((parent-path (cDr t-path))
+                  (t-index (cAr t-path)))
+             (if (> t-index 0)
+                 (let ((sibling (tm-ref parent (- t-index 1))))
+                   (if (and sibling (tree-in? sibling algo-macro-tags))
+                       (begin
+                         (display* "kbd-h backwards -> go-to sibling body end\n")
+                         (tree-go-to sibling (- (tree-arity sibling) 1) :end))
+                       (begin
+                         (display* "kbd-h backwards -> go-to sibling paragraph\n")
+                         (go-to (tree->path sibling)))))
+                 (begin
+                   (display* "kbd-h backwards -> go-to start of parent\n")
+                   (go-to parent-path))))))))
+
+(tm-define (kbd-horizontal t forwards?)
+  (:require (and forwards?
+                 (tree-in? t algo-no-cond-macros)
+                 (in-listing-context? t)
+                 (cursor-at-algo-macro-start? t)))
+  (display* "kbd-h forwards at start -> go-to body\n")
+  (tree-go-to t 0))
+
+(tm-define (kbd-vertical t downwards?)
+  (:require (and (not downwards?)
+                 (tree-in? t algo-no-cond-macros)
+                 (in-listing-context? t)
+                 (or (cursor-in-algo-macro-body-first-line? t)
+                     (cursor-at-algo-macro-start? t))))
+  (with t-path (tree->path t)
+    (and t-path
+         (with parent (tree-up t)
+           (let* ((parent-path (cDr t-path))
+                  (t-index (cAr t-path)))
+             (if (> t-index 0)
+                 (let ((sibling (tm-ref parent (- t-index 1))))
+                   (if (and sibling (tree-in? sibling algo-macro-tags))
+                       (begin
+                         (display* "kbd-v upwards -> go-to sibling body end\n")
+                         (tree-go-to sibling (- (tree-arity sibling) 1) :end))
+                       (begin
+                         (display* "kbd-v upwards -> go-to sibling paragraph\n")
+                         (go-to (tree->path sibling)))))
+                 (begin
+                   (display* "kbd-v upwards -> go-to start of parent\n")
+                   (go-to parent-path))))))))
+
+(tm-define (kbd-vertical t downwards?)
+  (:require (and downwards?
+                 (tree-in? t algo-no-cond-macros)
+                 (in-listing-context? t)
+                 (cursor-at-algo-macro-start? t)))
+  (display* "kbd-v downwards at start -> go-to body\n")
+  (tree-go-to t 0))
 
 (tm-define (kbd-horizontal t forwards?)
   (:require (and forwards?
