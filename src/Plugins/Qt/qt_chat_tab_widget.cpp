@@ -1467,7 +1467,7 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     if ((keyEvent->key () == Qt::Key_Return ||
          keyEvent->key () == Qt::Key_Enter) &&
-        (keyEvent->modifiers () & Qt::ShiftModifier)) {
+        !(keyEvent->modifiers () & Qt::ShiftModifier)) {
       void* ptr= watched->property ("chat_panel").value<void*> ();
       if (ptr) {
         ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (ptr);
