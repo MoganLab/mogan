@@ -305,11 +305,25 @@ ensure_window (tree geom) {
     set_title_buffer (name, title);
     url win= new_window (true, geom, true);
     window_set_view (win, get_passive_view (name), true);
-    return win;
 #else
     url name= make_welcome_buffer ();
-    return new_buffer_in_new_window (name, tree (DOCUMENT), geom);
+    url win = new_buffer_in_new_window (name, tree (DOCUMENT), geom);
 #endif
+
+#ifndef IS_COMMUNITY
+    // 商业版默认创建 AI 聊天标签页，固定在第二个位置
+    url chat_name= "tmfs://chat-tab";
+    if (is_nil (concrete_buffer (chat_name))) {
+      create_buffer (chat_name, tree (DOCUMENT));
+      set_title_buffer (chat_name, "Chat");
+    }
+    url chat_view= get_passive_view (chat_name);
+    if (!is_none (chat_view)) {
+      view_set_window (chat_view, win, false);
+    }
+#endif
+
+    return win;
   }
 
   array<url> all_views = get_all_views ();
@@ -342,6 +356,8 @@ clone_window () {
 void
 kill_buffer (url name) {
   if (name == url ("tmfs://startup-tab")) return;
+  // TODO: 聊天标签页当前不可关闭，后续需支持可删除
+  if (is_chat_tab_buffer (name)) return;
   array<url> vs= buffer_to_views (name);
   for (int i= 0; i < N (vs); i++)
     if (!is_none (vs[i])) {

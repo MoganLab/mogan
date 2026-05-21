@@ -51,6 +51,7 @@ bool       var_focus_on_buffer (url name);
 void       make_cursor_visible (url u);
 url        get_most_recent_view ();
 void       invalidate_most_recent_view ();
+bool       is_chat_tab_buffer (url name);
 bool       is_tmfs_view_type (string s, string type);
 bool       is_tmfs_view_type (url s, string type);
 

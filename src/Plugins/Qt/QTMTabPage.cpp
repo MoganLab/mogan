@@ -319,8 +319,10 @@ QTMTabPage::leaveEvent (QEvent* e) {
 void
 QTMTabPage::updateCloseButtonVisibility () {
   if (!m_closeBtn) return;
-  bool shouldShow=
-      !is_startup_tab_view (m_viewUrl) && (underMouse () || isChecked ());
+  // TODO: 聊天标签页当前不可关闭，后续需支持可删除
+  bool shouldShow= !is_startup_tab_view (m_viewUrl) &&
+                   !is_chat_tab_view (m_viewUrl) &&
+                   (underMouse () || isChecked ());
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 

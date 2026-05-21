@@ -82,7 +82,7 @@ decode_url (string s) {
  * @param name 待检测的 buffer URL。
  * @return 若名称以 \c tmfs://chat-tab 开头则返回 true。
  */
-static bool
+bool
 is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
 }
@@ -446,25 +446,16 @@ kill_tabpage (url win_u, url u) {
   if (vw->buf != NULL && vw->buf->buf->name == url ("tmfs://startup-tab")) {
     return;
   }
+  // TODO: 聊天标签页当前不可关闭，后续需支持可删除
+  if (vw->buf != NULL && is_chat_tab_buffer (vw->buf->buf->name)) {
+    return;
+  }
   tm_window win        = vw->win;
   tm_window win_tabpage= vw->win_tabpage;
   if (win_tabpage == NULL) return;
   if (win == NULL) win= win_tabpage;
   url  current_u = get_current_view_safe ();
   bool is_current= (!is_none (current_u) && current_u == u);
-  /**
-   * @note 对于聊天标签页 buffer，嵌入的输入编辑器可能持有键盘焦点，
-   *       而视图 URL 指向底层的 tmfs://chat-input-* / chat-message-* buffer。
-   *       当它们共享同一个主控件时，我们将这类视图视为当前视图。
-   */
-  if (!is_current && vw->buf != NULL &&
-      is_chat_tab_buffer (vw->buf->buf->name)) {
-    tm_view current_vw= concrete_view (current_u);
-    if (current_vw != NULL && current_vw->ed != NULL &&
-        current_vw->ed->mvw == vw) {
-      is_current= true;
-    }
-  }
   bool refresh_tabbar_for_non_current= !is_current;
 
   // 第一步: 设定 win_tabpage
