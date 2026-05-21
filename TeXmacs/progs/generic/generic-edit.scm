@@ -229,12 +229,21 @@
   (cond ((cursor-in-algo-macro-body-end? t)
          (with t-path (tree->path t)
            (and t-path
-                (let ((parent-path (cDr t-path))
-                      (t-index (cAr t-path)))
-                  (go-to (rcons parent-path (+ 1 t-index)))))))
+                (with parent (tree-up t)
+                  (let* ((parent-path (cDr t-path))
+                         (t-index (cAr t-path)))
+                    (if (and parent (tree-is? parent 'document)
+                             (== (+ 1 t-index) (tree-arity parent)))
+                        ;; Last child in document: create a new paragraph
+                        (begin
+                          (go-to (rcons parent-path (+ 1 t-index)))
+                          (insert-return))
+                        ;; Not last child: jump to next sibling
+                        (go-to (rcons parent-path (+ 1 t-index))))))))
         ((cursor-in-algo-macro-condition-end? t)
          (tree-go-to t 1))
-        (else (go-right)))
+        (else
+         (go-right)))
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
