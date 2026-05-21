@@ -36,7 +36,7 @@
   (let* ((latex-content (load-latex "0616_differential_test.tex"))
          (texmacs-tree (latex-document->texmacs latex-content))
          (st (tree->stree texmacs-tree)))
-    (display* "LaTeX Document converted tree stree: " st "\n")
+    (display* "LaTeX Document converted tree TMU: " (serialize-tmu texmacs-tree) "\n")
     (check (stree-has-mathd? st) => #t)))
 
 (define (test-markdown-differentials)
