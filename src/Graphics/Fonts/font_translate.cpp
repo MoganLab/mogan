@@ -290,10 +290,9 @@ find_closest (string& family, string& variant, string& series, string& shape,
 font
 closest_font (string family, string variant, string series, string shape,
               double sz, int dpi, int attempt) {
-  // 浮点尺寸字符串处理：整数如"10"，0.5倍数如"10.5"
   string sz_str;
-  if (sz == round (sz)) sz_str= as_string ((int) sz); // 整数
-  else sz_str= as_string (sz);                        // 0.5倍数，保留一位小数
+  if (sz == round (sz)) sz_str= as_string ((int) sz);
+  else sz_str= as_string (sz);
   string dpi_str    = as_string (dpi);
   string attempt_str= as_string (attempt);
   string extra      = sz_str * "-" * dpi_str * "-" * attempt_str;

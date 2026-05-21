@@ -40,7 +40,7 @@ private slots:
   void test_cursor_position_iii ();
   void test_performance ();
   void test_math_performance ();
-  void test_resolve_performance ();
+  void test_resolve_mixed_chars ();
 };
 
 void
@@ -190,7 +190,7 @@ TestSmartFont::test_math_performance () {
 }
 
 void
-TestSmartFont::test_resolve_performance () {
+TestSmartFont::test_resolve_mixed_chars () {
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
 
