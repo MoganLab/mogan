@@ -2881,7 +2881,15 @@
   ;;("l l" "<mathlambda>")
   ;;("p p" "<mathpi>")
   ("R E" "<Re>")
-  ("I M" "<Im>"))
+  ("I M" "<Im>")
+  ("d x" "<mathd>x")
+  ("d y" "<mathd>y")
+  ("d z" "<mathd>z")
+  ("d r" "<mathd>r")
+  ("d r var" "<mathd><rho>")
+  ("d r var var" "<mathd><varrho>")
+  ("d j var" "<mathd><theta>")
+  ("d j var var var" "<mathd><vartheta>"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Textual operators
