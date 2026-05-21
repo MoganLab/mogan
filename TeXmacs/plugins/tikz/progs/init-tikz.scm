@@ -55,3 +55,4 @@
 
 (import (session tikz))
 (init-tikz)
+(use-modules (code tikz-mode) (code tikz-edit))
