@@ -47,12 +47,12 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageTotalLabel_ (nullptr), nextPageBtn_ (nullptr), zoomInBtn_ (nullptr),
       rectSelectBtn_ (nullptr), rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
-       browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
-       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
-       zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
-       overLink_ (false), zoomDebounceTimer_ (nullptr),
-       resizeDebounceTimer_ (nullptr), pinchStartZoom_ (1.0),
-       inPinchGesture_ (false) {
+      browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
+      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+      zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      overLink_ (false), zoomDebounceTimer_ (nullptr),
+      resizeDebounceTimer_ (nullptr), pinchStartZoom_ (1.0),
+      inPinchGesture_ (false) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -1242,9 +1242,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
             pinchStartZoom_= zoomFactor_;
             inPinchGesture_= true;
           }
-          double newZoom=
-              qBound (MIN_ZOOM, pinchStartZoom_ * pinch->totalScaleFactor (),
-                      MAX_ZOOM);
+          double newZoom= qBound (
+              MIN_ZOOM, pinchStartZoom_ * pinch->totalScaleFactor (), MAX_ZOOM);
           if (qAbs (newZoom - zoomFactor_) > 0.01) {
             zoomFactor_= newZoom;
             updateZoomDisplay ();
