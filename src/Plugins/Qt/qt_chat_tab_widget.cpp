@@ -15,6 +15,7 @@
 #include "QTMWidget.hpp"
 #include "edit_interface.hpp"
 #include "new_buffer.hpp"
+#include "new_view.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_gui.hpp"
 #include "qt_utilities.hpp"
@@ -159,7 +160,7 @@ constexpr int kToggleIconSize= 20;
 /// 浮球展开按钮水平边距（像素）。
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
-constexpr int kFloatingBtnMarginY= 30;
+constexpr int kFloatingBtnMarginY= 12;
 /// 浮球容器内边距（像素）。
 constexpr int kFloatingContainerPad= 4;
 /// 浮球按钮间距（像素）。
@@ -1446,6 +1447,13 @@ void
 QTChatTabWidget::focus_input_editor (ChatConversationPanel* panel) {
   if (panel && panel->inputEditorWidget) {
     panel->inputEditorWidget->setFocus (Qt::OtherFocusReason);
+
+    url inBufUrl= ChatSessionManager::inputBufferUrl (panel->sessionId);
+    url vw      = get_passive_view (inBufUrl);
+    if (!is_none (vw)) {
+      set_current_view (vw);
+      call ("update-menus");
+    }
   }
 }
 
