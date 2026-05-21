@@ -159,7 +159,7 @@ constexpr int kToggleIconSize= 20;
 /// 浮球展开按钮水平边距（像素）。
 constexpr int kFloatingBtnMarginX= 12;
 /// 浮球展开按钮垂直边距（像素）。
-constexpr int kFloatingBtnMarginY= 130;
+constexpr int kFloatingBtnMarginY= 30;
 /// 浮球容器内边距（像素）。
 constexpr int kFloatingContainerPad= 4;
 /// 浮球按钮间距（像素）。
