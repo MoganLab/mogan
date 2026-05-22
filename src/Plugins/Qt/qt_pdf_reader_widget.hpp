@@ -8,10 +8,10 @@
 #ifndef QT_PDF_READER_WIDGET_HPP
 #define QT_PDF_READER_WIDGET_HPP
 
-#include <QComboBox>
 #include <QHash>
 #include <QLabel>
 #include <QLineEdit>
+#include <QMenu>
 #include <QRubberBand>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -92,7 +92,7 @@ Q_SIGNALS:
   void linkClicked (const QString& uri);
 
 private slots:
-  void onZoomChanged (int index);
+  void onZoomChanged (QString text);
   void onPrevPage ();
   void onNextPage ();
   void onPageEditingFinished ();
@@ -130,7 +130,8 @@ private:
   QVBoxLayout* mainLayout_;
 
   QWidget*     toolBar_;
-  QComboBox*   zoomCombo_;
+  QLineEdit*   zoomCombo_;
+  QToolButton* zoomDropBtn_;
   QToolButton* zoomOutBtn_;
   QToolButton* prevPageBtn_;
   QLineEdit*   pageEdit_;
@@ -138,6 +139,7 @@ private:
   QToolButton* nextPageBtn_;
   QToolButton* zoomInBtn_;
   QToolButton* rectSelectBtn_;
+  QMenu*       zoomMenu_;
 
   QRubberBand* rubberBand_;
   bool         rectSelectMode_;

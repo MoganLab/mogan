@@ -52,6 +52,25 @@ private slots:
     delete widget;
   }
 
+  void test_toolBarWidgetsHeightAligned () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->show ();
+    QApplication::processEvents ();
+
+    QLineEdit* zoomEdit= widget->findChild<QLineEdit*> ("pdf-zoom-edit");
+    QVERIFY (zoomEdit != nullptr);
+    QLineEdit* pageEdit= widget->findChild<QLineEdit*> ("pdf-page-edit");
+    QVERIFY (pageEdit != nullptr);
+    QToolButton* zoomDropBtn=
+        widget->findChild<QToolButton*> ("pdf-zoom-drop-btn");
+    QVERIFY (zoomDropBtn != nullptr);
+
+    QCOMPARE (zoomEdit->height (), pageEdit->height ());
+    QVERIFY (zoomDropBtn->arrowType () == Qt::DownArrow);
+
+    delete widget;
+  }
+
   void test_loadFromFile_validPdf () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");

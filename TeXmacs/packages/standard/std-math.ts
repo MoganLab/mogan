@@ -261,6 +261,8 @@
 
   <assign|stack|<macro|x|<tformat|<twith|table-valign|C>|<cwith|1|-1|1|-1|cell-halign|c>|<cwith|1|-1|1|1|cell-lsep|0spc>|<cwith|1|-1|-1|-1|cell-rsep|0spc>|<cwith|1|-1|1|-1|cell-bsep|0.5sep>|<cwith|1|-1|1|-1|cell-tsep|0.5sep>|<cwith|1|1|1|-1|cell-tsep|0sep>|<cwith|-1|-1|1|-1|cell-bsep|0sep>|<arg|x>>>>
 
+  <assign|subarray|<macro|x|<stack|<arg|x>>>>>
+
   <assign|to|<macro|\<rightarrow\>>>
   <assign|varOmega|<macro|\<varOmega\>>>
 </body>

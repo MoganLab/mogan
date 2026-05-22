@@ -24,7 +24,7 @@
 
 (define chat-tab-session-name "llm")
 
-(define chat-tab-current-model "default")
+(define chat-tab-current-model "Kimi-VLM")
 
 (define chat-tab-session-states (make-ahash-table))
 
@@ -151,12 +151,44 @@
           ((eq? (car s) 'new-line) "\n")
           ((eq? (car s) 'folded-explain) "")
           ((eq? (car s) 'unfolded-explain) "")
+          ((eq? (car s) 'image) "filtered image")
           ((eq? (car s) 'with)
            ;; (with var1 val1 ... body) → 只取 body
            (if (null? (cdr s)) "" (chat-tab-tree->plain-text (car (reverse s)))))
           (else
            (apply string-append (map chat-tab-tree->plain-text (cdr s))))
     ) ;cond
+  ) ;let
+) ;define
+
+;; chat-tab-tree-has-image?
+;; 递归检测 tree/stree 中是否包含 (image ...) 元素。
+;;
+;; 语法
+;; ----
+;; (chat-tab-tree-has-image? t)
+;;
+;; 参数
+;; ----
+;; t : tree 或 stree
+;; 待检测的 TeXmacs 树。
+;;
+;; 返回值
+;; ----
+;; boolean
+;; #t 表示包含图片元素。
+
+(define (chat-tab-tree-has-image? t)
+  (let ((s (if (tree? t) (tree->stree t) t)))
+    (cond ((string? s) #f)
+          ((not (pair? s)) #f)
+          ((eq? (car s) 'image) #t)
+          (else
+            (let loop ((rest (cdr s)))
+              (if (null? rest)
+                #f
+                (or (chat-tab-tree-has-image? (car rest))
+                  (loop (cdr rest)))))))
   ) ;let
 ) ;define
 
@@ -814,9 +846,12 @@
 ;; 1. 从 input buffer 读取 body
 ;; 2. 检查 body 是否为空
 ;; 3. 确保会话存在（chat-tab-ensure-session!）
-;; 4. 在消息缓冲区追加一轮对话
-;; 5. 清空输入缓冲区
-;; 6. 通过 plugin 机制发送消息
+;; 4. 检测是否包含图片等非文本内容
+;;    - 包含：过滤图片后追加到 message buffer，输出提示，不发给插件
+;;    - 不包含：继续后续流程
+;; 5. 在消息缓冲区追加一轮对话
+;; 6. 清空输入缓冲区
+;; 7. 通过 plugin 机制发送消息
 
 (tm-define (chat-tab-session-send session-id)
   (:synopsis "Send user message through chat tab session")
@@ -829,32 +864,56 @@
              (msg-buf (chat-tab-session->message-buffer session-id))
              (st (chat-tab-ensure-session! session-id))
              (plugin-ses (chat-tab-state->plugin-session-id st session-id))
-             (out (chat-tab-append-round! msg-buf input session-id))
             ) ;
-        (if (not out)
-          #f
+        (if (chat-tab-tree-has-image? input)
+          ;; 包含图片等非文本内容：过滤图片，输出提示，不发给插件
           (begin
             (chat-tab-clear-input! in-buf)
-            (if (not (connection-defined? chat-tab-session-name))
+            (let* ((plain (chat-tab-tree->plain-text input))
+                   (filtered (stree->tree `(document ,plain)))
+                   (out (chat-tab-append-round! msg-buf filtered session-id)))
+              (if (not out)
+                #f
+                (begin
+                  (with-buffer msg-buf
+                    (chat-tab-output out
+                      (stree->tree `(document
+                        (with "color" "dark grey" "font-shape" "italic"
+                          ,(utf8->cork "AI 聊天暂不支持图片等非文本内容，相关内容已过滤。")))))
+                    (buffer-pretend-saved msg-buf))
+                  #t
+                ) ;begin
+              ) ;if
+            ) ;let*
+          ) ;begin
+          ;; 纯文本内容：正常发送流程
+          (let* ((out (chat-tab-append-round! msg-buf input session-id)))
+            (if (not out)
+              #f
               (begin
-                (with-buffer msg-buf
-                  (chat-tab-output out input)
-                  (buffer-pretend-saved msg-buf)
-                ) ;with-buffer
-                #t
-              ) ;begin
-              (begin
-                (chat-tab-session-feed chat-tab-session-name
-                  plugin-ses
-                  input
-                  session-id
-                  out
-                  '()
-                ) ;chat-tab-session-feed
-                #t
+                (chat-tab-clear-input! in-buf)
+                (if (not (connection-defined? chat-tab-session-name))
+                  (begin
+                    (with-buffer msg-buf
+                      (chat-tab-output out input)
+                      (buffer-pretend-saved msg-buf)
+                    ) ;with-buffer
+                    #t
+                  ) ;begin
+                  (begin
+                    (chat-tab-session-feed chat-tab-session-name
+                      plugin-ses
+                      input
+                      session-id
+                      out
+                      '()
+                    ) ;chat-tab-session-feed
+                    #t
+                  ) ;begin
+                ) ;if
               ) ;begin
             ) ;if
-          ) ;begin
+          ) ;let*
         ) ;if
       ) ;let*
     ) ;if

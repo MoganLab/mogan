@@ -172,23 +172,6 @@
   (if (not (or (in-text?) (in-math?))) (link texmacs-insert-menu))
 ) ;menu-bind
 
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Insert LLM session
-;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-;; Placeholder when the LLM plugin does not exist
-(menu-bind insert-llm-menu
-  (assuming (not (connection-defined? "llm"))
-   ((balloon (icon "tm_ai.xpm") "AI")
-    (open-url "https://liiistem.cn?from=ai_button")
-   ) ;
-  ) ;assuming
-) ;menu-bind
-
-(menu-bind llm-login-menu
- ((balloon (icon "tm_ai.xpm") "Sign in to use AI features") (login))
-) ;menu-bind
-
 (tm-define (zhihu-share-current-buffer)
   (use-modules (data zhihu))
   (if (logged-in?)
@@ -246,7 +229,5 @@
       (link insert-session-menu)
     ) ;=>
   ) ;if
-  (if (or (community-stem?) (logged-in?)) (link insert-llm-menu))
-  (if (and (not (logged-in?)) (not (community-stem?))) (link llm-login-menu))
   (if (not (community-stem?)) (link insert-zhihu-share-menu))
 ) ;menu-bind

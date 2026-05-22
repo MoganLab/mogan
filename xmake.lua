@@ -341,10 +341,7 @@ target("QWKCore")
             table.insert(private_paths, path.join(qt_package, "mkspecs", "win32-msvc"))
         end
         target:add("includedirs", private_paths, {public = true})
-    end)
 
-    -- Generate config header before build
-    before_build(function (target)
         -- Create build directories
         os.mkdir("$(buildir)/include/QWKCore")
         os.mkdir("$(buildir)/include/QWKCore/private")
@@ -535,10 +532,7 @@ target("QWKWidgets")
             table.insert(private_paths, path.join(qt_package, "mkspecs", "win32-msvc"))
         end
         target:add("includedirs", private_paths, {public = true})
-    end)
 
-    -- Generate config header and copy headers before build
-    before_build(function (target)
         os.mkdir("$(buildir)/include/QWKWidgets")
         os.mkdir("$(buildir)/include/QWKWidgets/ui/widgetframe")
         local function safe_cp(src, dst)
