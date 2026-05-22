@@ -12,7 +12,9 @@
 #include "url.hpp"
 #include <QApplication>
 #include <QClipboard>
+#include <QGestureEvent>
 #include <QMouseEvent>
+#include <QPinchGesture>
 #include <QRubberBand>
 #include <QScrollBar>
 #include <QWheelEvent>
@@ -877,8 +879,70 @@ private slots:
     QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
     QApplication::processEvents ();
 
-    // drag should NOT trigger link click
     QVERIFY (capturedUri.isEmpty ());
+
+    delete widget;
+  }
+
+  void test_pinchZoomIn () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    double initialZoom= widget->zoomFactor ();
+
+    widget->simulatePinchGesture (Qt::GestureStarted, 1.0);
+    QApplication::processEvents ();
+
+    widget->simulatePinchGesture (Qt::GestureUpdated, 1.5);
+    QApplication::processEvents ();
+
+    double newZoom= widget->zoomFactor ();
+    QVERIFY (newZoom > initialZoom);
+
+    widget->simulatePinchGesture (Qt::GestureFinished, 1.5);
+    QApplication::processEvents ();
+
+    delete widget;
+  }
+
+  void test_pinchZoomBlocksRender () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    int initialRenderCount= widget->renderCallCount ();
+
+    widget->simulatePinchGesture (Qt::GestureStarted, 1.0);
+    QApplication::processEvents ();
+
+    for (int i= 0; i < 5; ++i) {
+      widget->simulatePinchGesture (Qt::GestureUpdated,
+                                    1.0 + (i + 1) * 0.1);
+      QApplication::processEvents ();
+    }
+
+    QCOMPARE (widget->renderCallCount (), initialRenderCount);
+
+    widget->simulatePinchGesture (Qt::GestureFinished, 1.5);
+    QApplication::processEvents ();
+
+    QTest::qWait (250);
+    QApplication::processEvents ();
+
+    QVERIFY (widget->renderCallCount () > initialRenderCount);
 
     delete widget;
   }

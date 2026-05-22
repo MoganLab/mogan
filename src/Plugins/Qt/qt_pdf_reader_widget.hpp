@@ -82,7 +82,9 @@ public:
 
   bool isRectSelectMode () const;
 
-  // Link support (public for testing)
+  int renderCallCount () const { return renderCallCount_; }
+  void simulatePinchGesture (Qt::GestureState state, double scaleFactor);
+
   void setTestLinks (int page, const QVector<PdfLink>& links);
   bool isOverLink () const;
 
@@ -98,12 +100,17 @@ private slots:
   void onRectSelectToggled (bool checked);
   void keyPressEvent (QKeyEvent* event) override;
 
+  bool event (QEvent* event) override;
+
 private:
+  void    startPinchGesture ();
+  void    finishPinchGesture ();
   bool    renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
   void    rebuildPages ();
   int     pageWidth () const;
   void    setupToolBar ();
   void    updateZoomDisplay ();
+  void    applyZoomToLabels ();
   void    finishRectSelect (const QPoint& viewportPos);
   QLabel* findPageLabelAt (const QPoint& contentPos) const;
   QPixmap extractSelectionPixmap (QLabel*      label,
@@ -167,9 +174,13 @@ private:
   // 防抖定时器
   QTimer* zoomDebounceTimer_;
   QTimer* resizeDebounceTimer_;
+  QTimer* gestureSafetyTimer_;
 
-  double pinchStartZoom_;
   bool   inPinchGesture_;
+  bool   blockRender_;
+  double pinchStartZoom_;
+
+  int renderCallCount_;
 
   static constexpr int    DEFAULT_DPI       = 150;
   static constexpr int    PAGE_MARGIN       = 16;
@@ -178,6 +189,7 @@ private:
   static constexpr double MAX_ZOOM          = 8.0;
   static constexpr int    ZOOM_DEBOUNCE_MS  = 200;
   static constexpr int    RESIZE_DEBOUNCE_MS= 300;
+  static constexpr int    GESTURE_SAFETY_TIMEOUT_MS= 500;
 
   static constexpr int    ZOOM_LEVEL_COUNT= 12;
   static constexpr double ZOOM_LEVELS[ZOOM_LEVEL_COUNT]{
