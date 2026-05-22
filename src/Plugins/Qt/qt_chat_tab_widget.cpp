@@ -340,7 +340,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   normalLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   // 顶部标题栏（Chat + 收缩按钮）
-  QWidget*     headerWidget= new QWidget (normalContent);
+  QWidget* headerWidget= new QWidget (normalContent);
+  headerWidget->setObjectName ("chat-tab-header");
   QHBoxLayout* headerLayout= new QHBoxLayout (headerWidget);
   headerLayout->setContentsMargins (0, 0, 0, 0);
   headerLayout->setSpacing (0);
@@ -516,9 +517,9 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   normalLayout->addWidget (multiSelectBar_);
 
   // 列表滚动区
-  QWidget*     scrollContent= new QWidget (normalContent);
+  QWidget* scrollContent= new QWidget (normalContent);
   scrollContent->setObjectName ("chat-tab-scroll-content");
-  QVBoxLayout* scrollLayout = new QVBoxLayout (scrollContent);
+  QVBoxLayout* scrollLayout= new QVBoxLayout (scrollContent);
   scrollLayout->setContentsMargins (0, 0, 0, 0);
   scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
@@ -719,11 +720,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
       area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
       if (area->viewport ()) {
-
       }
       area->setStyleSheet (
           "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; }"
+          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; "
+          "}"
           "QScrollBar::add-line:vertical, "
           "QScrollBar::sub-line:vertical { height: 0px; }");
     }
@@ -735,10 +736,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
-      QString ("QWidget#chat-tab-input-frame { "
-               "  border-width: 1px; border-style: solid; border-radius: %1px; }"
-               "QWidget#chat-tab-input-frame:hover { "
-               "  border-width: 1px; border-style: solid; }")
+      QString (
+          "QWidget#chat-tab-input-frame { "
+          "  border-width: 1px; border-style: solid; border-radius: %1px; }"
+          "QWidget#chat-tab-input-frame:hover { "
+          "  border-width: 1px; border-style: solid; }")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
   inputFrameLayout->setContentsMargins (
@@ -1811,11 +1813,11 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
       area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
       if (area->viewport ()) {
-
       }
       area->setStyleSheet (
           "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; }"
+          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; "
+          "}"
           "QScrollBar::add-line:vertical, "
           "QScrollBar::sub-line:vertical { height: 0px; }");
     }
@@ -1827,10 +1829,11 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
-      QString ("QWidget#chat-tab-input-frame { "
-               "  border-width: 1px; border-style: solid; border-radius: %1px; }"
-               "QWidget#chat-tab-input-frame:hover { "
-               "  border-width: 1px; border-style: solid; }")
+      QString (
+          "QWidget#chat-tab-input-frame { "
+          "  border-width: 1px; border-style: solid; border-radius: %1px; }"
+          "QWidget#chat-tab-input-frame:hover { "
+          "  border-width: 1px; border-style: solid; }")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
   inputFrameLayout->setContentsMargins (

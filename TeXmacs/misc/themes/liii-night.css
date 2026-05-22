@@ -1311,6 +1311,11 @@ QLabel#login-update-title {
 
 /* 侧边栏 */
 QWidget#centralWidget QWidget#chat-tab-sidebar,
+QWidget#centralWidget QWidget#chat-tab-sidebar-normal,
+QWidget#centralWidget QWidget#chat-tab-header,
+QWidget#centralWidget QLabel#chat-tab-nav-title,
+QWidget#centralWidget QLabel#chat-tab-conversation-count,
+QWidget#centralWidget QWidget#chat-tab-multi-select-bar,
 QWidget#centralWidget QWidget#chat-tab-session-item QWidget,
 QWidget#centralWidget QWidget#chat-tab-scroll-content,
 QWidget#centralWidget QWidget#chat-tab-archive-header,
@@ -1332,10 +1337,10 @@ QLabel#chat-tab-nav-title {
 
 /* 收缩按钮 */
 QWidget#centralWidget QPushButton#chat-tab-collapse-btn {
-  background-color: #3a3a3a;
+  background-color: #bababa;
 }
 QWidget#centralWidget QPushButton#chat-tab-collapse-btn:hover {
-  background-color: #4c4c4c;
+  background-color: #999999;
 }
 
 /* 新建聊天按钮 */
@@ -1345,7 +1350,7 @@ QPushButton#chat-tab-new-btn {
   color: #ffffff;
 }
 QWidget#centralWidget QPushButton#chat-tab-new-btn {
-  background-color: #4c4c4c;
+  background-color: #3e3e3e;
 }
 
 /* 会话计数标签 */
