@@ -36,6 +36,7 @@
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
+#include "scheme.hpp"
 #include <mupdf/fitz.h>
 
 #include <mutex>
@@ -1332,6 +1333,18 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     }
   }
 
+#ifdef Q_OS_MACOS
+  bool closeModifier= (event->modifiers () & Qt::MetaModifier) ||
+                      (event->modifiers () & Qt::ControlModifier);
+#else
+  bool closeModifier= event->modifiers () & Qt::ControlModifier;
+#endif
+  if (closeModifier && event->key () == Qt::Key_W) {
+    eval ("(safely-kill-tabpage)");
+    event->accept ();
+    return;
+  }
+
   QWidget::keyPressEvent (event);
 }
 
@@ -1465,6 +1478,16 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
           rectSelectBtn_->setChecked (false);
           return true;
         }
+      }
+#ifdef Q_OS_MACOS
+      bool closeModifier= (keyEvent->modifiers () & Qt::MetaModifier) ||
+                          (keyEvent->modifiers () & Qt::ControlModifier);
+#else
+      bool closeModifier= keyEvent->modifiers () & Qt::ControlModifier;
+#endif
+      if (closeModifier && keyEvent->key () == Qt::Key_W) {
+        eval ("(safely-kill-tabpage)");
+        return true;
       }
     }
     else if (event->type () == QEvent::Resize) {
