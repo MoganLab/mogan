@@ -7,12 +7,12 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "base.hpp"
-#include "analyze.hpp"
-#include "file.hpp"
 #include "Generic/input.hpp"
-#include "tm_url.hpp"
+#include "analyze.hpp"
+#include "base.hpp"
+#include "file.hpp"
 #include "tm_link.hpp"
+#include "tm_url.hpp"
 #include "tree.hpp"
 #include "tree_helper.hpp"
 #include "url.hpp"
@@ -28,19 +28,19 @@ private slots:
 
 void
 TestInputFileFlush::test_file_protocol_loads_pdf_as_image () {
-  url pdf_url= resolve (url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf"),
-                        "r");
+  url pdf_url=
+      resolve (url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf"), "r");
   QVERIFY (exists (pdf_url));
 
-  string pdf_path   = concretize (pdf_url);
-  string pdf_bytes  = string_load (pdf_url);
-  url    reparsed   = url_system (pdf_path);
+  string pdf_path = concretize (pdf_url);
+  string pdf_bytes= string_load (pdf_url);
+  url    reparsed = url_system (pdf_path);
   QVERIFY (exists (reparsed));
   qcompare (suffix (reparsed), "pdf");
 
   string protocol_s;
-  protocol_s << DATA_BEGIN << "file:" << pdf_path
-             << "?width=0.3par&height=0px" << DATA_END;
+  protocol_s << DATA_BEGIN << "file:" << pdf_path << "?width=0.3par&height=0px"
+             << DATA_END;
 
   texmacs_input in ("output");
   for (int i= 0; i < N (protocol_s); ++i)
