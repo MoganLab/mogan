@@ -3,6 +3,10 @@
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|framed-session|tikz>>
 
 <\body>
+  <\section|静态绘图与循环测试>
+    \;
+  </section>
+
   <\listing>
     <\tikz-code>
       \\draw[-\<gtr\>] (-2,0) -- (2,0) node[right] {$x$};
@@ -18,6 +22,10 @@
       \ \ \\draw (0.1,\\y) -- (-0.1,\\y) node[left] {\\y};
     </tikz-code>
   </listing>
+
+  <\section|交互式会话测试>
+    \;
+  </section>
 
   <\session|tikz|default>
     <\output>
@@ -200,6 +208,100 @@
       \;
     </input>
   </session>
+
+  <\section|交换图测试>
+    \;
+  </section>
+
+  <\listing>
+    <\tikz-code>
+      \\usetikzlibrary{arrows}
+
+      \\node (A) at (0,2) {$A$};
+
+      \\node (B) at (2,2) {$B$};
+
+      \\node (C) at (0,0) {$C$};
+
+      \\node (D) at (2,0) {$D$};
+
+      \\draw[-\<gtr\>] (A) -- node[above] {$f$} (B);
+
+      \\draw[-\<gtr\>] (A) -- node[left] {$g$} (C);
+
+      \\draw[-\<gtr\>] (B) -- node[right] {$h$} (D);
+
+      \\draw[-\<gtr\>] (C) -- node[below] {$k$} (D);
+    </tikz-code>
+  </listing>
+
+  <\section|费曼图测试>
+    \;
+  </section>
+
+  <\listing>
+    <\tikz-code>
+      \\usetikzlibrary{decorations.pathmorphing}
+
+      \\draw[thick] (-2,1) -- (0,0) node[midway, above left] {$e^-$};
+
+      \\draw[thick] (-2,-1) -- (0,0) node[midway, below left] {$e^+$};
+
+      \\draw[thick, decorate, decoration=snake] (0,0) -- (2,0) node[midway, above] {$\\gamma$};
+
+      \\draw[thick] (2,0) -- (4,1) node[midway, above right] {$\\mu^-$};
+
+      \\draw[thick] (2,0) -- (4,-1) node[midway, below right] {$\\mu^+$};
+    </tikz-code>
+  </listing>
+
+  <\section|化学有机苯环图测试>
+    \;
+  </section>
+
+  <\listing>
+    <\tikz-code>
+      \\draw (30:1) -- (90:1) -- (150:1) -- (210:1) -- (270:1) -- (330:1) -- cycle;
+
+      \\draw (30:0.8) -- (90:0.8);
+
+      \\draw (150:0.8) -- (210:0.8);
+
+      \\draw (270:0.8) -- (330:0.8);
+
+      \\draw (90:1) -- (90:1.5) node[above] {OH};
+    </tikz-code>
+  </listing>
+
+  <\section|计算机流程图测试>
+    \;
+  </section>
+
+  <\listing>
+    <\tikz-code>
+      \\usetikzlibrary{shapes.geometric, shapes.misc}
+
+      \\node[draw, rounded rectangle] (start) at (0,4) {Start};
+
+      \\node[draw, rectangle] (proc) at (0,2.5) {Input $x$};
+
+      \\node[draw, diamond, aspect=2] (dec) at (0,0.5) {$x \<gtr\> 0$?};
+
+      \\node[draw, rectangle] (yes) at (2.5,0.5) {Print "Positive"};
+
+      \\node[draw, rounded rectangle] (stop) at (0,-1.5) {Stop};
+
+      \\draw[-\<gtr\>] (start) -- (proc);
+
+      \\draw[-\<gtr\>] (proc) -- (dec);
+
+      \\draw[-\<gtr\>] (dec) -- node[above] {Yes} (yes);
+
+      \\draw[-\<gtr\>] (dec) -- node[left] {No} (stop);
+
+      \\draw[-\<gtr\>] (yes) |- (stop);
+    </tikz-code>
+  </listing>
 </body>
 
 <\initial>
