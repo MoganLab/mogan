@@ -264,7 +264,7 @@
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
       (when (tm-func? u 'document)
         (tree-insert! t i (var-tree-children u))
-        (set-user-active #f)
+        (tree-go-to t :end)
       ) ;when
     ) ;with
   ) ;when
@@ -313,7 +313,7 @@
            ) ;io-node
           ) ;
       (tree-insert! doc (tree-arity doc) (list io-node))
-      (set-user-active #f)
+      (tree-go-to doc :end)
       (buffer-pretend-saved message-buffer)
       (let ((last-node (tree-ref doc :last)))
         (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2))
