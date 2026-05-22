@@ -124,7 +124,7 @@
                        (h (string->number h-str)))
                   (close-input-port p)
                   (or (not w) (not h)
-                      (<= w 1.0) (<= h 1.0)))
+                      (and (<= w 1.0) (<= h 1.0))))
                 (loop)))))))
 
 (define (flush-image path width height)

@@ -199,7 +199,7 @@
                        (h (string->number h-str)))
                   (close-input-port p)
                   (or (not w) (not h)
-                      (<= w 1.0) (<= h 1.0)))
+                      (and (<= w 1.0) (<= h 1.0))))
                 (loop)))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -208,6 +208,8 @@
 
 (define test-log-empty-path "/tmp/tikz-test-log-empty.log")
 (define test-log-valid-path "/tmp/tikz-test-log-valid.log")
+(define test-log-vertical-path "/tmp/tikz-test-log-vertical.log")
+(define test-log-horizontal-path "/tmp/tikz-test-log-horizontal.log")
 
 (with-output-to-file test-log-empty-path
   (lambda ()
@@ -217,8 +219,18 @@
   (lambda ()
     (display "<special> papersize=28.85274pt,28.85274pt\n")))
 
+(with-output-to-file test-log-vertical-path
+  (lambda ()
+    (display "<special> papersize=0.4pt,28.85274pt\n")))
+
+(with-output-to-file test-log-horizontal-path
+  (lambda ()
+    (display "<special> papersize=28.85274pt,0.4pt\n")))
+
 (check (pdf-page-empty? test-log-empty-path) => #t)
 (check (pdf-page-empty? test-log-valid-path) => #f)
+(check (pdf-page-empty? test-log-vertical-path) => #f)
+(check (pdf-page-empty? test-log-horizontal-path) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run all tests
