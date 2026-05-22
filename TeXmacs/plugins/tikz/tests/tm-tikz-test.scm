@@ -15,6 +15,7 @@
   (liii string)
   (liii list)
   (liii path)
+  (liii os)
 )
 
 ; Simulate the wrap-tikz-code logic from tm-tikz.scm
@@ -210,6 +211,14 @@
 (check (parse-magic-line "% -width 0.8par -height") => (list "0.8par" "0px"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+(check
+  (if (and (os-windows?) (string-contains? (getenv "TEMP" "") "~"))
+      (not (string-contains? (os-temp-dir) "~"))
+      #t)
+  =>
+  #t)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; image-valid? helper
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -220,13 +229,13 @@
 ;; Tests for image-valid?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define test-empty-path "/tmp/tikz-test-empty.txt")
+(define test-empty-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-empty.txt"))
 
 (with-output-to-file test-empty-path
   (lambda ()
     (display "")))
 
-(check (image-valid? "/tmp/nonexistent-file-12345.txt") => #f)
+(check (image-valid? (string-append (os-temp-dir) (string (os-sep)) "nonexistent-file-12345.txt")) => #f)
 (check (image-valid? test-empty-path) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -265,11 +274,11 @@
 ;; Tests for pdf-page-empty?
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define test-log-empty-path "/tmp/tikz-test-log-empty.log")
-(define test-log-valid-path "/tmp/tikz-test-log-valid.log")
-(define test-log-vertical-path "/tmp/tikz-test-log-vertical.log")
-(define test-log-horizontal-path "/tmp/tikz-test-log-horizontal.log")
-(define test-log-point-path "/tmp/tikz-test-log-point.log")
+(define test-log-empty-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-log-empty.log"))
+(define test-log-valid-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-log-valid.log"))
+(define test-log-vertical-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-log-vertical.log"))
+(define test-log-horizontal-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-log-horizontal.log"))
+(define test-log-point-path (string-append (os-temp-dir) (string (os-sep)) "tikz-test-log-point.log"))
 
 (with-output-to-file test-log-empty-path
   (lambda ()

@@ -2473,6 +2473,28 @@ static s7_pointer
 f_os_temp_dir (s7_scheme* sc, s7_pointer args) {
   tb_char_t path[GOLDFISH_PATH_MAXN];
   tb_directory_temporary (path, GOLDFISH_PATH_MAXN);
+#ifdef TB_CONFIG_OS_WINDOWS
+  tb_wchar_t path_w[GOLDFISH_PATH_MAXN]     = {0};
+  tb_wchar_t path_long_w[GOLDFISH_PATH_MAXN]= {0};
+  if (tb_atow (path_w, path, GOLDFISH_PATH_MAXN) != -1) {
+    tb_size_t path_len= tb_wcslen (path_w);
+    tb_bool_t had_sep = path_len > 0
+                     && (path_w[path_len - 1] == L'\\' || path_w[path_len - 1] == L'/');
+    if (had_sep) path_w[path_len - 1]= L'\0';
+
+    DWORD long_len= GetLongPathNameW (path_w, path_long_w, GOLDFISH_PATH_MAXN);
+    if (long_len > 0 && long_len < GOLDFISH_PATH_MAXN) {
+      if (had_sep) {
+        path_long_w[long_len++] = L'\\';
+        path_long_w[long_len]   = L'\0';
+      }
+
+      tb_char_t path_long[GOLDFISH_PATH_MAXN];
+      tb_size_t size= tb_wtoa (path_long, path_long_w, GOLDFISH_PATH_MAXN);
+      if (size != -1 && size > 0) return s7_make_string (sc, path_long);
+    }
+  }
+#endif
   return s7_make_string (sc, path);
 }
 
