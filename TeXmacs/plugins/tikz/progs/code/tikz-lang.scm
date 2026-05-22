@@ -20,7 +20,7 @@
 (tm-define (parser-feature lan key)
   (:require (and (== lan "tikz") (== key "keyword")))
   `(,(string->symbol key)
-    (extra_chars "_" "." "-")
+    (extra_chars "_.-")
     (constant
       "true" "false" "none" "solid" "dashed" "dotted" "thick" "thin" "ultra" "very" "semithick"
       "help" "lines" "densely" "loosely" "double" "double distance" "smooth" "tension")
@@ -29,23 +29,25 @@
       "lightgray" "brown" "lime" "olive" "orange" "pink" "purple" "teal" "violet" "help lines")
     (constant_type
       "circle" "rectangle" "coordinate" "ellipse" "diamond" "trapezium" "semicircle"
-      "regular polygon" "star" "isosceles triangle" "kite" "dart" "circular sector" "cylinder"
-      "split" "solidus")
+      "regular polygon" "star" "isosceles triangle" "kite" "dart" "circular sector" "cylinder")
     (declare_function
       "draw" "node" "path" "fill" "clip" "filldraw" "shadedraw" "shade" "select" "foreach"
       "definecolor" "colorlet" "tikzset" "tikzstyle" "useasboundingbox" "matrix" "pic"
       "graph" "calendar" "scoped" "scope" "pgfextra" "pgfmathsetmacro" "pgfmathtruncatemacro")
     (declare_module
       "arrows" "shapes" "backgrounds" "calc" "positioning" "fit" "petri" "mindmap" "intersections"
-      "tangent" "geometric" "symbols" "multipart" "callouts" "misc" "path" "shapes.geometric"
-      "shapes.symbols" "shapes.arrows" "shapes.multipart" "shapes.callouts" "shapes.misc" "svg.path")
+      "tangent" "shapes.geometric" "shapes.symbols" "shapes.arrows" "shapes.multipart"
+      "shapes.callouts" "shapes.misc" "svg.path")
     (variable_identifier
       "above" "below" "left" "right" "anchor" "above left" "above right" "below left" "below right"
-      "mid" "base" "sep" "width" "height" "size" "minimum" "inner" "outer" "font" "node" "text"
-      "align" "line" "opacity" "shading" "angle" "top" "bottom" "variable" "samples" "domain"
-      "preaction" "postaction" "start" "end" "radius" "in" "out" "looseness" "bend" "step" "xstep"
-      "ystep" "bend pos" "parabola height" "mark" "double" "distance" "scale" "xscale" "yscale"
-      "rotate" "shift" "xshift" "yshift" "xslant" "yslant" "transform" "shape" "around")
+      "mid" "base" "inner sep" "inner xsep" "inner ysep" "outer sep" "outer xsep" "outer ysep"
+      "minimum height" "minimum width" "minimum size" "font" "node font" "text" "text width" "align"
+      "line width" "opacity" "fill opacity" "draw opacity" "text opacity" "shading" "shading angle"
+      "top color" "bottom color" "left color" "right color" "inner color" "outer color"
+      "variable" "samples" "domain" "preaction" "postaction" "start angle" "end angle" "radius"
+      "x radius" "y radius" "in" "out" "looseness" "bend" "step" "xstep" "ystep" "bend pos"
+      "parabola height" "mark" "mark size" "mark options" "double" "double distance" "scale"
+      "xscale" "yscale" "rotate" "rotate around" "shift" "xshift" "yshift" "xslant" "yslant" "transform shape")
     (keyword
       "at" "cycle" "circle" "rectangle" "ellipse" "arc" "to" "grid" "step" "controls" "plot"
       "coordinates" "parabola" "sin" "cos" "child" "edge" "svg")

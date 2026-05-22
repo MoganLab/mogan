@@ -21,12 +21,6 @@
       <tikz|<arg|body>>
     </pseudo-code>
   </macro>>
-
-  <assign|tikz-input|<\macro|prompt|body>
-    <\with|generic-input-color|black|generic-prompt-color|#008080ff>
-      <generic-input|<arg|prompt>|<arg|body>>
-    </with>
-  </macro>>
 </body>
 
 <\initial>
