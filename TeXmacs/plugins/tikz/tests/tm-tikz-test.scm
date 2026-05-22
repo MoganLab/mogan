@@ -27,22 +27,44 @@
                (filter (lambda (line)
                          (string-starts? (string-trim-left line) "\\usetikzlibrary"))
                        lines))
+             (package-lines
+               (filter (lambda (line)
+                         (string-starts? (string-trim-left line) "\\usepackage"))
+                       lines))
              (other-lines
                (filter (lambda (line)
-                         (not (string-starts? (string-trim-left line) "\\usetikzlibrary")))
+                         (let ((trimmed-line (string-trim-left line)))
+                           (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                                (not (string-starts? trimmed-line "\\usepackage")))))
                        lines))
              (body (string-join other-lines "\n"))
              (body-trimmed (string-trim-left body)))
-        (let ((inner-code
-                (if (or (string-null? body-trimmed)
-                        (string-starts? body-trimmed "\\begin{tikzpicture}"))
-                  body
-                  (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
-                ) ;if
-              ) ;inner-code
-             ) ;
+        (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
+                                (string-starts? body-trimmed "\\scheme")))
+               (need-chemfig-package?
+                 (or has-chemfig?
+                     (string-contains? body "\\chem")
+                     (string-contains? body "\\scheme")))
+               (extra-packages
+                 (if (and need-chemfig-package?
+                          (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                         package-lines)))
+                     '("\\usepackage{chemfig}")
+                     '()))
+               (inner-code
+                 (if (or (string-null? body-trimmed)
+                         (string-starts? body-trimmed "\\begin{tikzpicture}")
+                         has-chemfig?)
+                   body
+                   (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
+                 ) ;if
+               ) ;inner-code
+              ) ;
         (string-append
-          "\\documentclass[tikz]{standalone}\n\\begin{document}\n"
+          "\\documentclass[tikz]{standalone}\n"
+          (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
+          (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
+          "\\begin{document}\n"
           (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
           inner-code
           "\n\\end{document}"
@@ -137,6 +159,36 @@
   (wrap-tikz-code "\\usetikzlibrary{shapes.geometric}")
   =>
   "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usepackage{chemfig}\n\\chemfig{*6(=-=-=-)}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\chemfig{*6(=-=-=-)}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usepackage{chemfig}\n\\draw (0,0) -- (1,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\node (molecule) at (0,0) {\\chemfig{*6(--=--)}};\n\\draw[->, red] (molecule) -- (2,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\node (molecule) at (0,0) {\\chemfig{*6(--=--)}};\n\\draw[->, red] (molecule) -- (2,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usepackage{pgfplots}\n\\draw (0,0) -- (1,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{pgfplots}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

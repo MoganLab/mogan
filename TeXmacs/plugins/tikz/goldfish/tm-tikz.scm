@@ -49,19 +49,41 @@
                  (filter (lambda (line)
                            (string-starts? (string-trim-left line) "\\usetikzlibrary"))
                          lines))
+               (package-lines
+                 (filter (lambda (line)
+                           (string-starts? (string-trim-left line) "\\usepackage"))
+                         lines))
                (other-lines
                  (filter (lambda (line)
-                           (not (string-starts? (string-trim-left line) "\\usetikzlibrary")))
+                           (let ((trimmed-line (string-trim-left line)))
+                             (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                                  (not (string-starts? trimmed-line "\\usepackage")))))
                          lines))
                (body (string-join other-lines "\n"))
                (body-trimmed (string-trim-left body)))
-          (let ((inner-code
-                  (if (or (string-null? body-trimmed)
-                          (string-starts? body-trimmed "\\begin{tikzpicture}"))
-                      body
-                      (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
+          (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
+                                  (string-starts? body-trimmed "\\scheme")))
+                 (need-chemfig-package?
+                   (or has-chemfig?
+                       (string-contains? body "\\chem")
+                       (string-contains? body "\\scheme")))
+                 (extra-packages
+                   (if (and need-chemfig-package?
+                            (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                           package-lines)))
+                       '("\\usepackage{chemfig}")
+                       '()))
+                 (inner-code
+                   (if (or (string-null? body-trimmed)
+                           (string-starts? body-trimmed "\\begin{tikzpicture}")
+                           has-chemfig?)
+                       body
+                       (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
             (string-append
-              "\\documentclass[tikz]{standalone}\n\\begin{document}\n"
+              "\\documentclass[tikz]{standalone}\n"
+              (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
+              (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
+              "\\begin{document}\n"
               (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
               inner-code
               "\n\\end{document}"))))))
