@@ -41,6 +41,7 @@
 #include "config.h"
 #include "scheme.hpp"
 
+#include "qt_chat_controller.hpp"
 #include "qt_gui.hpp"
 #include "qt_pdf_reader_widget.hpp"
 #include "qt_picture.hpp"
@@ -1013,12 +1014,9 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
     update_visibility ();
 
     if (!chatContentWidget) {
-      chatContentWidget= new QTChatTabWidget (centralwidget ());
-      static_cast<QTChatTabWidget*> (chatContentWidget)
-          ->setParentTmWidget (this);
+      chatContentWidget=
+          get_chat_controller ()->createView (centralwidget (), this);
     }
-    static_cast<QTChatTabWidget*> (chatContentWidget)
-        ->ensure_new_conversation ();
     show_widget_in_layout (chatContentWidget, layout);
     chatContentWidget->setFocus (Qt::OtherFocusReason);
   }

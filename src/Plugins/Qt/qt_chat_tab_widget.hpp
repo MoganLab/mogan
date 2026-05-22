@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_chat_tab_widget.hpp
- * DESCRIPTION: Mogan STEM 的 LLM 聊天标签页控件
+ * DESCRIPTION: Mogan STEM 的 LLM 聊天标签页控件（纯 View）
  * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -12,13 +12,12 @@
 #ifndef QT_CHAT_TAB_WIDGET_HPP
 #define QT_CHAT_TAB_WIDGET_HPP
 
-#include "url.hpp"
+#include "qt_chat_session.hpp"
 #include <QList>
+#include <QMap>
 #include <QWidget>
 
 #include "widget.hpp"
-
-#include <map>
 
 class QCheckBox;
 class QHBoxLayout;
@@ -27,389 +26,198 @@ class QLineEdit;
 class QPushButton;
 class QSpacerItem;
 class QStackedWidget;
-class QString;
 class QTimer;
 class QVBoxLayout;
 class QEvent;
 class qt_tm_widget_rep;
 
 /**
- * @brief 聊天会话的生成状态。
+ * @brief 传递给侧边栏刷新的显示数据（值类型，由 Controller 准备）。
  */
-enum class ChatState {
-  Idle,       ///< 空闲，可发送
-  Generating, ///< LLM 正在生成，可取消
+struct SessionDisplayInfo {
+  string sessionId;
+  string displayTitle; ///< 去重后的标题（如 "hello (2)"）
+  string model;
+  bool   archived;
 };
 
 /**
- * @brief 单个聊天会话的数据。
+ * @brief 单个会话内容页（QWidget 子类，只管右侧内容区）。
+ *
+ * 封装消息区、输入区、发送按钮，不持有任何 sidebar 相关字段。
  */
-struct ChatSession {
-  string    sessionId; ///< UUID，创建时生成
-  string    title;     ///< 会话标题，初始为空字符串
-  string    model;     ///< 绑定的模型名称
-  ChatState state;     ///< 当前生成状态
-  bool      archived;  ///< 是否归档
-  void*     panel;     ///< 关联的 ChatConversationPanel 指针
-};
+class ChatConversationPanel : public QWidget {
+  Q_OBJECT
 
-/**
- * @brief 聊天会话管理器，负责会话的创建、销毁和元数据管理。
- */
-class ChatSessionManager {
 public:
-  /**
-   * @brief 创建新会话，分配 UUID，返回 sessionId。
-   */
-  string createSession ();
+  explicit ChatConversationPanel (const string& sessionId, QWidget* parent);
 
-  /**
-   * @brief 销毁指定会话。
-   */
-  void removeSession (const string& sessionId);
+  // 被 Controller/Widget 调用的接口
+  void enterConversationMode ();
+  void focusInput ();
+  tree readInputMessage () const;
 
-  /**
-   * @brief 将会话移入归档区。
-   */
-  void archiveSession (const string& sessionId);
+  // 被 Controller 访问
+  QPushButton*  sendButton () const { return sendButton_; }
+  QLabel*       modelLabel () const { return modelLabel_; }
+  const string& sessionId () const { return sessionId_; }
+  bool          conversationMode () const { return conversationMode_; }
 
-  /**
-   * @brief 将会话从归档区恢复。
-   */
-  void restoreSession (const string& sessionId);
+  // 静态工具
+  static bool is_empty_document_body (tree body);
+  static int  count_input_lines (tree body);
+  static int  estimate_lines_from_height (SI contentHeight);
 
-  /**
-   * @brief 设置会话标题。
-   */
-  void setTitle (const string& sessionId, const string& title);
+signals:
+  void sendRequested (const string& sessionId);
+  void inputHeightChanged ();
 
-  /**
-   * @brief 设置会话生成状态。
-   */
-  void setState (const string& sessionId, ChatState state);
-
-  /**
-   * @brief 设置会话绑定的模型。
-   */
-  void setModel (const string& sessionId, const string& model);
-
-  /**
-   * @brief 获取会话绑定的模型。
-   */
-  string getModel (const string& sessionId);
-
-  /**
-   * @brief 获取所有会话 ID 列表。
-   */
-  std::vector<string> getAllSessionIds () const;
-
-  /**
-   * @brief 获取会话数据，不存在则返回 nullptr。
-   */
-  ChatSession* getSession (const string& sessionId);
-
-  /**
-   * @brief 通过面板指针反查会话。
-   */
-  ChatSession* findSessionByPanel (void* panel);
-
-  /**
-   * @brief 设置会话关联的面板指针。
-   */
-  void setPanel (const string& sessionId, void* panel);
-
-  /**
-   * @brief 手动插入已有会话（用于恢复持久化会话）。
-   */
-  void insertSession (const ChatSession& session);
-
-  /**
-   * @brief 根据 sessionId 推导消息 buffer URL。
-   */
-  static url messageBufferUrl (const string& sessionId);
-
-  /**
-   * @brief 根据 sessionId 推导输入 buffer URL。
-   */
-  static url inputBufferUrl (const string& sessionId);
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
-  std::map<string, ChatSession> sessions_; ///< sessionId → ChatSession 映射。
+  void setup_ui ();
+  void adjust_input_height ();
+
+  string       sessionId_;
+  bool         conversationMode_ = false;
+  QLabel*      welcomeTitle_     = nullptr;
+  QLabel*      modelLabel_       = nullptr;
+  QWidget*     messageFrame_     = nullptr;
+  QWidget*     inputEditorWidget_= nullptr;
+  QPushButton* sendButton_       = nullptr;
+  QSpacerItem* topSpacer_        = nullptr;
+  widget       messageWidget_;
+  widget       inputWidget;
 };
 
 /**
- * @brief Mogan STEM 的 LLM 聊天标签页控件。
+ * @brief 聊天侧边栏控件（纯 UI，自管理 items）。
  *
- * 提供基于侧边栏的聊天界面，支持多会话切换。
- * 每个会话拥有独立的输入区和消息展示区，
- * 底层由嵌入的 TeXmacs 控件承载。
+ * 根据 Controller 传入的 SessionDisplayInfo 数据，
+ * 自行创建/更新/删除 sidebar item widgets。
+ * 所有用户操作通过 signal 发出。
+ */
+class ChatSidebar : public QWidget {
+  Q_OBJECT
+
+public:
+  /// 侧边栏项数据（内部使用）。
+  struct SidebarItem {
+    QWidget*     itemWidget    = nullptr;
+    QPushButton* sidebarButton = nullptr;
+    QCheckBox*   selectCheckBox= nullptr;
+  };
+
+  explicit ChatSidebar (QWidget* parent= nullptr);
+
+  void refresh (const QList<SessionDisplayInfo>& sessions,
+                const string&                    activeSessionId);
+  void removeItem (const string& sessionId);
+  void enterMultiSelectMode (bool archived);
+  void exitMultiSelectMode ();
+
+signals:
+  void sessionClicked (const string& sessionId);
+  void deleteRequested (const string& sessionId);
+  void archiveRequested (const string& sessionId);
+  void restoreRequested (const string& sessionId);
+  void renameRequested (const string& sessionId, const string& newTitle);
+  void newChatRequested ();
+  void multiDeleteRequested (const QList<string>& sessionIds);
+  void multiArchiveRequested (const QList<string>& sessionIds);
+
+private:
+  QMap<string, SidebarItem> items_;
+
+  QLabel*                   conversationCountLabel_= nullptr;
+  QWidget*                  conversationListWidget_= nullptr;
+  QVBoxLayout*              conversationListLayout_= nullptr;
+  QPushButton*              archiveHeaderButton_   = nullptr;
+  QWidget*                  archiveListWidget_     = nullptr;
+  QVBoxLayout*              archiveListLayout_     = nullptr;
+  bool                      archiveCollapsed_      = true;
+  QWidget*                  multiSelectBar_        = nullptr;
+  QPushButton*              batchArchiveBtn_       = nullptr;
+  QLineEdit*                searchEdit_            = nullptr;
+  bool                      multiSelectMode_       = false;
+  bool                      archiveSelectMode_     = false;
+  QList<SessionDisplayInfo> lastSessions_;
+  string                    lastActiveId_;
+
+  SidebarItem   createItem (const string& sessionId);
+  void          destroyItem (const string& sessionId);
+  void          refreshInternal (const QList<SessionDisplayInfo>& sessions,
+                                 const string&                    activeSessionId);
+  QList<string> getCheckedSessionIds () const;
+};
+
+/**
+ * @brief Mogan STEM 的 LLM 聊天标签页控件（纯 View，整体协调）。
+ *
+ * 只负责 UI 展示和子组件的协调。
+ * 所有用户操作通过 signal 发出，由 ChatController 连接处理。
+ * View 不知道 Controller 的存在。
  */
 class QTChatTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  /**
-   * @brief 构造聊天标签页控件。
-   * @param parent 父控件。
-   */
   explicit QTChatTabWidget (QWidget* parent= nullptr);
-
-  /**
-   * @brief 销毁控件及其所有会话面板。
-   */
   ~QTChatTabWidget () override;
 
-protected:
-  /**
-   * @brief 将按键按下事件转发到 Scheme 层。
-   * @param event 按键事件。
-   */
-  void keyPressEvent (QKeyEvent* event) override;
+  // ---- 被 Controller 调用的方法（View 接口） ----
 
-  /**
-   * @brief 将按键释放事件转发到 Scheme 层。
-   * @param event 按键事件。
-   */
+  ChatConversationPanel* createPanel (const string& sessionId);
+  void                   activatePanel (ChatConversationPanel* panel);
+  void                   removePanel (ChatConversationPanel* panel);
+  void refreshSidebar (const QList<SessionDisplayInfo>& sessions,
+                       const string&                    activeSessionId);
+
+  // ---- 状态 ----
+  void setParentTmWidget (qt_tm_widget_rep* tm) { parentTmWidget_= tm; }
+  qt_tm_widget_rep* parentTmWidget () const { return parentTmWidget_; }
+
+  // ---- 供 Controller 读取 ----
+  ChatSidebar* sidebar () const { return sidebar_; }
+  QPushButton* newChatButton () const { return newChatButton_; }
+  QPushButton* floatingNewChatButton () const { return floatingNewChatBtn_; }
+  QList<ChatConversationPanel*>& conversations () { return conversations_; }
+  ChatConversationPanel*         activeConversation () const {
+    return activeConversation_;
+  }
+
+signals:
+  void cancelRequested (const string& sessionId);
+  void newChatRequested ();
+
+protected:
+  void keyPressEvent (QKeyEvent* event) override;
   void keyReleaseEvent (QKeyEvent* event) override;
   bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
-  /**
-   * @brief 单个会话面板的内部数据。
-   *
-   * 保存与会话轮次关联的所有 Qt 控件和 TeXmacs buffer。
-   */
-  struct ChatConversationPanel;
-
-  /**
-   * @brief 构建左侧边栏（标题、新建聊天按钮、会话列表）。
-   * @param sidebarLayout 待填充的布局。
-   */
   void setup_left_sidebar (QVBoxLayout* sidebarLayout);
-
-  /**
-   * @brief 构建右侧内容区（堆叠的会话页面）。
-   * @param mainLayout 主水平布局，用于插入内容区。
-   */
   void setup_right_content (QHBoxLayout* mainLayout);
-
-  /**
-   * @brief 创建新的会话面板，包含控件和 buffer。
-   * @param title 会话的显示标题。
-   * @return 新建会话面板的指针。
-   */
-  ChatConversationPanel* create_conversation (const QString& title);
-
-  /**
-   * @brief 使用指定模型创建并激活一个新会话。
-   * @param model 模型名称。
-   */
-  void create_new_conversation_with_model (const string& model);
-
-  /**
-   * @brief 将可见页面切换到指定会话。
-   * @param panel 待激活的会话面板。
-   */
-  void activate_conversation (ChatConversationPanel* panel);
-
-  /**
-   * @brief 更新侧边栏标签及选中状态。
-   */
-  void refresh_sidebar ();
-
-  /**
-   * @brief 将指定面板从欢迎态切换到会话态。
-   *
-   * 播放淡入淡出及顶部间距动画。
-   * @param panel 目标会话面板。
-   */
-  void enter_conversation_mode (ChatConversationPanel* panel);
-
-  /**
-   * @brief 读取输入内容，委托给 Scheme 层处理，并触发模式切换。
-   * @param panel 发送消息的会话面板。
-   */
-  void handle_send (ChatConversationPanel* panel);
-
-  /**
-   * @brief 取消当前会话的 LLM 生成。
-   * @param panel 待取消的会话面板。
-   */
-  void handle_cancel (ChatConversationPanel* panel);
-
-  /**
-   * @brief 从输入 buffer 中获取文档树。
-   * @param panel 待读取输入的会话面板。
-   * @return 输入内容对应的 TeXmacs 树。
-   */
-  tree read_input_message (const ChatConversationPanel* panel) const;
-
-  /**
-   * @brief 将键盘焦点设置到指定面板的输入编辑器。
-   * @param panel 目标会话面板。
-   */
-  void focus_input_editor (ChatConversationPanel* panel);
-
-  /**
-   * @brief 切换侧边栏的收起/展开状态。
-   */
   void toggle_sidebar ();
 
-  /**
-   * @brief 根据输入内容自适应调整输入框高度。
-   * @param panel 目标会话面板。
-   */
-  void adjust_input_height (ChatConversationPanel* panel);
+  // ---- 子组件 ----
+  ChatSidebar*    sidebar_             = nullptr;
+  QWidget*        sidebarWidget_       = nullptr;
+  QWidget*        contentWidget_       = nullptr;
+  QPushButton*    collapseButton_      = nullptr;
+  QPushButton*    floatingExpandBtn_   = nullptr;
+  QPushButton*    floatingNewChatBtn_  = nullptr;
+  QWidget*        floatingBtnContainer_= nullptr;
+  QPushButton*    newChatButton_       = nullptr;
+  QWidget*        sidebarNormalContent_= nullptr;
+  QStackedWidget* conversationStack_   = nullptr;
 
-  /**
-   * @brief 删除指定的会话面板列表。
-   * @param panels 待删除的会话面板列表。
-   */
-  void delete_sessions (const QList<ChatConversationPanel*>& panels);
-
-  /**
-   * @brief 获取所有 checkbox 被勾选的会话面板。
-   * @return 被勾选的面板列表。
-   */
-  QList<ChatConversationPanel*> get_checked_panels () const;
-
-  /**
-   * @brief 进入多选模式，显示 checkbox 和批量操作栏。
-   * @param archived 是否从归档区进入（决定显示哪些操作按钮）。
-   */
-  void enter_multi_select_mode (bool archived);
-
-  /**
-   * @brief 退出多选模式，隐藏 checkbox 和批量操作栏。
-   */
-  void exit_multi_select_mode ();
-
-public:
-  /**
-   * @brief 计算输入文档的段落（行）数。
-   * @param body TeXmacs 文档树。
-   * @return 段落数量。
-   */
-  static int count_input_lines (tree body);
-
-  /**
-   * @brief 根据排版后的实际高度估算等效行数。
-   * @param contentHeight 排版后的内容高度（SI 单位）。
-   * @return 等效行数，若高度无效则返回 0。
-   */
-  static int estimate_lines_from_height (SI contentHeight);
-
-  /**
-   * @brief 判断文档主体是否实际为空。
-   * @param body TeXmacs 文档树。
-   * @return 若主体不含可见内容则返回 true。
-   */
-  static bool is_empty_document_body (tree body);
-
-  /**
-   * @brief 确保至少存在一个空白新对话，若没有则创建。
-   */
-  void ensure_new_conversation ();
-
-  /**
-   * @brief 设置主窗口 widget 指针，用于工具栏转发。
-   * @param tm 主窗口 qt_tm_widget_rep 指针。
-   */
-  void setParentTmWidget (qt_tm_widget_rep* tm) { parentTmWidget_= tm; }
-
-  /**
-   * @brief 获取主窗口 widget 指针。
-   * @return 主窗口 qt_tm_widget_rep 指针。
-   */
-  qt_tm_widget_rep* parentTmWidget () const { return parentTmWidget_; }
-
-  /**
-   * @brief 被通知 Scheme 侧生成状态变更。
-   * @param sessionId 会话 ID。
-   * @param stateStr 状态字符串 ("idle" 或 "generating")。
-   */
-  void notifyStateChanged (const string& sessionId, const string& stateStr);
-
-  /**
-   * @brief 保存单个会话到磁盘（增量）。
-   */
-  void saveOneSession (const string& sessionId);
-
-  /**
-   * @brief 从磁盘加载会话。
-   */
-  void loadSessions ();
-
-  /**
-   * @brief 将恢复的面板添加到会话列表。
-   */
-  void addConversation (ChatConversationPanel* panel);
-
-  /**
-   * @brief 恢复单个会话面板（用于加载持久化会话）。
-   * @param sessionId 会话 UUID。
-   * @param title 会话标题。
-   * @param model 模型名称。
-   * @param archived 是否归档。
-   * @return 恢复的会话面板指针。
-   */
-  ChatConversationPanel* restore_conversation (const string& sessionId,
-                                               const string& title,
-                                               const string& model,
-                                               bool          archived);
-
-private:
-  QWidget*        sidebarWidget_;          ///< 左侧边栏容器。
-  QWidget*        contentWidget_;          ///< 右侧内容区容器。
-  QLabel*         conversationCountLabel_; ///< 显示会话数量的标签。
-  QWidget*        conversationListWidget_; ///< 承载会话列表的控件。
-  QVBoxLayout*    conversationListLayout_; ///< 会话按钮的布局。
-  QPushButton*    archiveHeaderButton_;  ///< 归档区标题按钮（点击展开/折叠）。
-  QWidget*        archiveListWidget_;    ///< 承载归档会话列表的控件。
-  QVBoxLayout*    archiveListLayout_;    ///< 归档会话按钮的布局。
-  bool            archiveCollapsed_;     ///< 归档区当前是否折叠。
-  QPushButton*    collapseButton_;       ///< 侧边栏内的收缩按钮。
-  QPushButton*    floatingExpandBtn_;    ///< 内容区左上角的浮球展开按钮。
-  QPushButton*    floatingNewChatBtn_;   ///< 内容区左上角的新建聊天浮球按钮。
-  QWidget*        floatingBtnContainer_; ///< 浮球按钮的胶囊形容器。
-  QPushButton*    newChatButton_;        ///< 新建会话按钮。
-  QWidget*        sidebarNormalContent_; ///< 侧边栏展开时的内容容器。
-  QStackedWidget* conversationStack_;    ///< 会话页面的堆叠控件。
-  QList<ChatConversationPanel*> conversations_;      ///< 所有会话面板的列表。
-  ChatConversationPanel*        activeConversation_; ///< 当前激活的会话。
-  ChatSessionManager            sessionManager_;     ///< 会话管理器。
-  bool              sidebarCollapsed_;        ///< 侧边栏当前是否处于收起状态。
-  int               sidebarExpandedWidth_;    ///< 侧边栏展开时的宽度（像素）。
-  qt_tm_widget_rep* parentTmWidget_= nullptr; ///< 主窗口指针，用于工具栏转发。
-  bool              multiSelectMode_;   ///< 是否处于多选模式（活跃会话）。
-  bool              archiveSelectMode_; ///< 是否处于多选模式（归档会话）。
-  QWidget*          multiSelectBar_;    ///< 多选模式下的批量操作栏。
-  QPushButton*      batchArchiveBtn_;   ///< 批量归档按钮（归档区多选时隐藏）。
-  QLineEdit*        searchEdit_;        ///< 会话搜索输入框。
-  QList<ChatConversationPanel*>
-      zombiePanels_; ///< 已删除的会话面板（隐藏但未释放）。
+  QList<ChatConversationPanel*> conversations_;
+  ChatConversationPanel*        activeConversation_  = nullptr;
+  bool                          sidebarCollapsed_    = false;
+  int                           sidebarExpandedWidth_= 0;
+  qt_tm_widget_rep*             parentTmWidget_      = nullptr;
 };
-
-/**
- * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
- * @param sessionId 会话 UUID。
- * @param stateStr 状态字符串 ("idle" 或 "generating")。
- */
-void qt_chat_tab_set_state (string sessionId, string stateStr);
-
-/**
- * @brief Scheme→C++ 回调：加载所有聊天会话。
- */
-void qt_chat_tab_load_sessions ();
-
-/**
- * @brief Scheme→C++ 回调：恢复单个聊天会话。
- * @param sessionId 会话 UUID。
- * @param title 会话标题。
- * @param model 模型名称。
- * @param archived 是否归档（"true"/"false"）。
- */
-void qt_chat_tab_restore_session (string sessionId, string title, string model,
-                                  string archived);
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

@@ -65,7 +65,77 @@
   ) ;let
 ) ;tm-define
 
+;;; ---------- 标题提取 ----------
+
+;; chat-persist-extract-title
+;; 从文档树中提取纯文本标题。
+;;
+;; 语法
+;; ----
+;; (chat-persist-extract-title session-id max-len)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID，用于推导输入 buffer URL。
+;; max-len : int
+;;   标题最大字符数。
+;;
+;; 返回值
+;; ----
+;; string
+;;   提取的标题字符串。
+
+(tm-define (chat-persist-extract-title session-id max-len)
+  (let* ((in-buf (chat-tab-session->input-buffer session-id))
+         (body (buffer-get-body in-buf))
+        ) ;
+    (chat-persist-extract-title-from-tree body max-len)
+  ) ;let*
+) ;tm-define
+
+;; chat-persist-extract-title-from-tree
+;; 从文档树 body 中提取纯文本标题（内部辅助函数）。
+
+(tm-define (chat-persist-extract-title-from-tree body max-len)
+  (let ((result (chat-persist-extract-title-loop body max-len 0 "")))
+    (if (> (string-length result) max-len)
+      (string-append (substring result 0 max-len) "...")
+      result
+    ) ;if
+  ) ;let
+) ;tm-define
+
+;; 内部递归：遍历 DOCUMENT 子节点，拼接原子文本。
+
+(tm-define (chat-persist-extract-title-loop body max-len idx result)
+  (if (or (not (tree-children body))
+          (>= idx (length (tree-children body)))
+          (>= (string-length result) max-len))
+    result
+    (let ((child (tree-ref body idx)))
+      (if (tree-atomic? child)
+        (chat-persist-extract-title-loop body max-len (+ idx 1)
+          (string-append result (tree->string child)))
+        (chat-persist-extract-title-loop body max-len (+ idx 1) result)
+      ) ;if
+    ) ;let
+  ) ;if
+) ;tm-define
+
 ;;; ---------- 加载状态 ----------
+
+;; chat-persist-load-all
+;; 启动时仅加载元数据（sessionId, title, model, archived），
+;; 不加载消息内容到 buffer，实现延迟加载。
+;;
+;; 语法
+;; ----
+;; (chat-persist-load-all)
+;;
+;; 说明
+;; ----
+;; 消息内容由 chat-persist-load-session-content 在用户点击会话时按需加载。
 
 (tm-define (chat-persist-load-all)
   (let ((manifest-path (chat-persist-manifest-path)))
@@ -84,18 +154,11 @@
                            (title (cdr (assoc "title" entry)))
                            (model (cdr (assoc "model" entry)))
                            (archived-str (cdr (assoc "archived" entry)))
-                           (msg-path (chat-persist-message-path sid))
-                           (msg-buf (chat-tab-session->message-buffer sid))
                           ) ;
-                      ;; 加载消息内容到 buffer
-                      (when (file-exists? msg-path)
-                        (let ((file-url (system->url msg-path)))
-                          (buffer-load file-url)
-                          (buffer-set-body msg-buf (buffer-get-body file-url))
-                          (buffer-pretend-saved msg-buf)
-                        ) ;let
-                      ) ;when
-                      ;; 直接调用 C++ 回调创建 panel
+                      (display "[chat-persist]   restoring meta: sid=")
+                      (display sid)
+                      (newline)
+                      ;; 只传元数据给 C++，不加载 buffer 内容
                       (qt-chat-tab-restore-session sid title model archived-str)
                     ) ;let*
                   ) ;lambda
@@ -104,6 +167,36 @@
         (njson-free manifest)
       ) ;let*
     ) ;if
+  ) ;let
+) ;tm-define
+
+;; chat-persist-load-session-content
+;; 按需加载指定会话的消息内容到 buffer。
+;; 由 ChatController::loadSessionContent 在用户点击会话时调用。
+;;
+;; 语法
+;; ----
+;; (chat-persist-load-session-content session-id)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID。
+
+(tm-define (chat-persist-load-session-content session-id)
+  (let ((msg-path (chat-persist-message-path session-id))
+        (msg-buf (chat-tab-session->message-buffer session-id))
+       ) ;
+    (when (file-exists? msg-path)
+      (display "[chat-persist] load-session-content: sid=")
+      (display session-id)
+      (newline)
+      (let ((file-url (system->url msg-path)))
+        (buffer-load file-url)
+        (buffer-set-body msg-buf (buffer-get-body file-url))
+        (buffer-pretend-saved msg-buf)
+      ) ;let
+    ) ;when
   ) ;let
 ) ;tm-define
 

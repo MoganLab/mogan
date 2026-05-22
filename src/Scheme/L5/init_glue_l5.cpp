@@ -28,6 +28,7 @@
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "promise.hpp"
+#include "qt_chat_controller.hpp"
 #include "tm_debug.hpp"
 #include "tm_locale.hpp"
 #include "tree_observer.hpp"

@@ -1,7 +1,7 @@
 
 /******************************************************************************
  * MODULE     : qt_chat_tab_widget.cpp
- * DESCRIPTION: Mogan STEM 的 LLM 聊天标签页控件
+ * DESCRIPTION: Mogan STEM 的 LLM 聊天标签页控件（纯 View）
  * COPYRIGHT  : (C) 2026 Mogan STEM
  ******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -23,11 +23,9 @@
 #include "s7_tm.hpp"
 #include "tm_window.hpp"
 
-#include <lolly/hash/uuid.hpp>
 #include <moebius/tree_label.hpp>
 
 #include <QAbstractScrollArea>
-#include <QApplication>
 #include <QCheckBox>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
@@ -42,10 +40,8 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpacerItem>
-#include <QSplitter>
 #include <QStackedWidget>
 #include <QTimer>
-#include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
 
@@ -53,230 +49,814 @@ using namespace moebius;
 
 namespace {
 
-/**
- * @brief 从文档树中提取纯文本标题。
- * @param body TeXmacs 文档树。
- * @param maxLen 标题最大字符数。
- * @return 提取的标题字符串。
- */
-string
-extract_title (tree body, int maxLen) {
-  string result;
-  if (is_func (body, DOCUMENT)) {
-    for (int i= 0; i < N (body) && N (result) < maxLen; ++i) {
-      if (is_atomic (body[i])) result << body[i]->label;
-    }
-  }
-  if (N (result) > maxLen) {
-    result= result (0, maxLen) * "...";
-  }
-  return result;
-}
-
-/**
- * @brief 返回聊天控件使用的嵌入样式树。
- * @return 包含 "generic" 和 "llm" 标签的复合样式树。
- */
-tree
-make_chat_embedded_style () {
-  return compound ("style", tuple ("generic"));
-}
-
-/**
- * @brief 递归禁用所有 QAbstractScrollArea 后代控件的滚动条。
- * @param root 搜索起始的根控件。
- */
-void
-disable_scrollbars_recursively (QWidget* root) {
-  if (!root) return;
-
-  QList<QAbstractScrollArea*> scrollAreas=
-      root->findChildren<QAbstractScrollArea*> ();
-  for (QAbstractScrollArea* area : scrollAreas) {
-    if (!area) continue;
-    area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    area->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-    if (area->horizontalScrollBar ()) area->horizontalScrollBar ()->hide ();
-    if (area->verticalScrollBar ()) area->verticalScrollBar ()->hide ();
-  }
-}
-
-/// 左侧边栏最小宽度（像素）。
-constexpr int kSidebarMinWidth= 200;
-/// 边栏布局水平边距。
-constexpr int kSidebarMarginX= 12;
-/// 边栏布局垂直边距。
-constexpr int kSidebarMarginY= 16;
-/// 边栏元素间距。
-constexpr int kSidebarSpacing= 8;
-/// 导航chat字体大小（像素）。
-constexpr int kNavChatFontPx= 22;
-/// 导航标题字体大小（像素）。
-constexpr int kNavTitleFontPx= 11;
-/// 导航标题内边距。
-constexpr int kNavTitlePadding= 4;
-/// 导航按钮垂直内边距。
-constexpr int kNavButtonPadY= 8;
-/// 导航按钮水平内边距。
-constexpr int kNavButtonPadX= 8;
-/// 导航按钮字体大小（像素）。
-constexpr int kNavButtonFontPx= 13;
-/// 收缩按钮字体大小（像素）。
-constexpr int kCollapseFontPx= 11;
-/// 收缩按钮圆角半径。
-constexpr int kCollapseBorderRadius= 4;
-/// 收缩按钮垂直内边距。
-constexpr int kCollapsePadY= 4;
-/// 收缩按钮水平内边距。
-constexpr int kCollapsePadX= 8;
-/// 欢迎标题字体大小（像素）。
-constexpr int kWelcomeFontPx= 34;
-/// 输入编辑器单行高度（像素）。
-constexpr int kInputLineHeight= 22;
-/// 输入编辑器默认行数。
-constexpr int kInputDefaultLines= 3;
-/// 输入编辑器最大行数。
-constexpr int kInputMaxLines= 10;
-/// 内容区垂直边距。
-constexpr int kContentMarginY= 24;
-/// 内容区元素间距。
-constexpr int kContentSpacing= 16;
-/// 欢迎模式下顶部占位高度（像素）。
-constexpr int kWelcomeTopOffsetY= 240;
-/// 会话模式下顶部占位高度（像素）。
-constexpr int kConversationTopOffsetY= 24;
-/// 输入/消息框圆角半径。
-constexpr int kInputFrameRadius= 8;
-/// 输入/消息框内边距。
-constexpr int kInputFramePad= 8;
-/// 消息展示区最小高度（像素）。
-constexpr int kMessageMinHeight= 240;
-/// 欢迎态到会话态过渡动画时长（毫秒）。
-constexpr int kTransitionDurationMs= 220;
-/// 侧边栏切换按钮尺寸（像素）。
-constexpr int kToggleBtnSize= 40;
-/// 侧边栏切换按钮图标尺寸（像素）。
-constexpr int kToggleIconSize= 20;
-/// 浮球展开按钮水平边距（像素）。
-constexpr int kFloatingBtnMarginX= 12;
-/// 浮球展开按钮垂直边距（像素）。
-constexpr int kFloatingBtnMarginY= 12;
-/// 浮球容器内边距（像素）。
-constexpr int kFloatingContainerPad= 4;
-/// 浮球按钮间距（像素）。
-constexpr int kFloatingBtnSpacing= 4;
-/// New chat 按钮图标尺寸（像素）。
-constexpr int kNewChatIconSize= 18;
-/// New chat 按钮固定高度（像素）。
-constexpr int kNewChatButtonHeight= 36;
-/// New chat 按钮固定宽度（像素）。
-constexpr int kNewChatButtonWidth= 140;
-/// New chat 按钮阴影模糊半径（像素）。
-constexpr int kNewChatShadowBlur= 3;
-/// New chat 按钮阴影不透明度（0-255）。
-constexpr int kNewChatShadowAlpha= 25;
-/// New chat 按钮阴影垂直偏移（像素）。
-constexpr int kNewChatShadowOffsetY= 1;
-/// New chat 按钮悬停阴影模糊半径（像素）。
-constexpr int kNewChatHoverShadowBlur= 6;
-/// New chat 按钮悬停阴影不透明度（0-255）。
-constexpr int kNewChatHoverShadowAlpha= 50;
-/// New chat 按钮悬停阴影垂直偏移（像素）。
+// ---- Widget 框架相关常量 ----
+constexpr int kSidebarMinWidth          = 200;
+constexpr int kSidebarMarginX           = 12;
+constexpr int kSidebarMarginY           = 16;
+constexpr int kSidebarSpacing           = 8;
+constexpr int kNavChatFontPx            = 22;
+constexpr int kNavButtonFontPx          = 13;
+constexpr int kToggleBtnSize            = 40;
+constexpr int kToggleIconSize           = 20;
+constexpr int kFloatingBtnMarginX       = 12;
+constexpr int kFloatingBtnMarginY       = 12;
+constexpr int kFloatingContainerPad     = 4;
+constexpr int kFloatingBtnSpacing       = 4;
+constexpr int kNewChatIconSize          = 18;
+constexpr int kNewChatButtonHeight      = 36;
+constexpr int kNewChatButtonWidth       = 140;
+constexpr int kNewChatShadowBlur        = 3;
+constexpr int kNewChatShadowAlpha       = 25;
+constexpr int kNewChatShadowOffsetY     = 1;
+constexpr int kNewChatHoverShadowBlur   = 6;
+constexpr int kNewChatHoverShadowAlpha  = 50;
 constexpr int kNewChatHoverShadowOffsetY= 2;
-/// 多选操作栏元素间距（像素）。
-constexpr int kMultiSelectSpacing= 4;
-/// 会话项布局间距（像素）。
-constexpr int kSessionItemSpacing= 4;
-/// 模型标签最小高度（像素）。
-constexpr int kModelLabelMinHeight= 20;
-/// 模型标签圆角半径（像素）。
-constexpr int kModelLabelRadius= 4;
-/// 发送按钮图标尺寸（像素）。
-constexpr int kSendIconSize= 24;
-/// 发送按钮尺寸（像素）。
-constexpr int kSendButtonSize= 36;
-/// 发送按钮圆角半径（像素）。
-constexpr int kSendButtonRadius= 18;
-/// 会话按钮圆角半径（像素）。
-constexpr int kConversationBtnRadius= 6;
-/// 输入框高度检查间隔（毫秒）。
-constexpr int kInputHeightCheckIntervalMs= 100;
-/// 菜单栏固定高度（像素）。
-constexpr int kMenuBarHeight= 108;
+constexpr int kNavButtonPadY            = 8;
+constexpr int kNavButtonPadX            = 8;
+constexpr int kSessionItemSpacing       = 4;
 
-/**
- * @brief 创建统一风格的浮球按钮（圆形、无边框、灰色背景）。
- */
-QPushButton*
-setup_floating_button (QWidget* parent, const QString& objectName,
-                       const QString& iconPath) {
-  QPushButton* btn= new QPushButton (parent);
-  btn->setObjectName (objectName);
-  btn->setFocusPolicy (Qt::NoFocus);
-  btn->setCursor (Qt::PointingHandCursor);
-  btn->setIcon (QIcon (iconPath));
-  btn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
-                           DpiUtils::scaled (kToggleIconSize)));
-  btn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
-                     DpiUtils::scaled (kToggleBtnSize));
-  btn->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
-  return btn;
-}
+// ---- 侧边栏常量 ----
+constexpr int kNavTitleFontPx      = 11;
+constexpr int kNavTitlePadding     = 4;
+constexpr int kCollapseFontPx      = 11;
+constexpr int kCollapseBorderRadius= 4;
+constexpr int kCollapsePadY        = 4;
+constexpr int kCollapsePadX        = 8;
+constexpr int kMultiSelectSpacing  = 4;
+
+// ---- Panel 内容区常量 ----
+constexpr int kWelcomeFontPx             = 34;
+constexpr int kInputLineHeight           = 22;
+constexpr int kInputDefaultLines         = 3;
+constexpr int kInputMaxLines             = 10;
+constexpr int kContentMarginY            = 24;
+constexpr int kContentSpacing            = 16;
+constexpr int kWelcomeTopOffsetY         = 240;
+constexpr int kConversationTopOffsetY    = 24;
+constexpr int kInputFrameRadius          = 8;
+constexpr int kInputFramePad             = 8;
+constexpr int kMessageMinHeight          = 240;
+constexpr int kTransitionDurationMs      = 220;
+constexpr int kModelLabelMinHeight       = 20;
+constexpr int kModelLabelRadius          = 4;
+constexpr int kSendIconSize              = 24;
+constexpr int kSendButtonSize            = 36;
+constexpr int kSendButtonRadius          = 18;
+constexpr int kConversationBtnRadius     = 6;
+constexpr int kInputHeightCheckIntervalMs= 100;
+
+constexpr char kChatEmbeddedStyle[]= "style";
 
 } // namespace
 
-/**
- * @brief 判断文档主体是否实际为空。
- * @param body TeXmacs 文档树。
- * @return 若主体不含可见内容则返回 true。
- */
+/******************************************************************************
+ * ChatConversationPanel 实现
+ ******************************************************************************/
+
+ChatConversationPanel::ChatConversationPanel (const string& sessionId,
+                                              QWidget*      parent)
+    : QWidget (parent), sessionId_ (sessionId) {
+  setObjectName ("chat-tab-conversation-page");
+  setup_ui ();
+}
+
+void
+ChatConversationPanel::setup_ui () {
+  QVBoxLayout* contentLayout= new QVBoxLayout (this);
+  contentLayout->setContentsMargins (0, DpiUtils::scaled (kContentMarginY), 0,
+                                     DpiUtils::scaled (kContentMarginY));
+  contentLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+  topSpacer_= new QSpacerItem (0, DpiUtils::scaled (kWelcomeTopOffsetY),
+                               QSizePolicy::Minimum, QSizePolicy::Fixed);
+  contentLayout->addSpacerItem (topSpacer_);
+
+  QWidget*     topPanel = new QWidget (this);
+  QVBoxLayout* topLayout= new QVBoxLayout (topPanel);
+  topLayout->setContentsMargins (0, 0, 0, 0);
+  topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+
+  // Welcome title
+  welcomeTitle_= new QLabel ("Welcome to Liii STEM!", topPanel);
+  welcomeTitle_->setObjectName ("chat-tab-welcome-title");
+  welcomeTitle_->setAlignment (Qt::AlignCenter);
+  DpiUtils::applyScaledFont (welcomeTitle_, kWelcomeFontPx);
+  topLayout->addWidget (welcomeTitle_);
+
+  // Model label
+  modelLabel_= new QLabel ("", topPanel);
+  modelLabel_->setObjectName ("chat-tab-model-label");
+  modelLabel_->setAlignment (Qt::AlignCenter);
+  DpiUtils::applyScaledFont (modelLabel_, kNavButtonFontPx);
+  modelLabel_->setStyleSheet (
+      QString ("color: #888888; padding: 2px %1px; background-color: #f0f0f0; "
+               "border-radius: %2px;")
+          .arg (DpiUtils::scaled (kNavButtonPadX))
+          .arg (DpiUtils::scaled (kModelLabelRadius)));
+  modelLabel_->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
+  topLayout->addWidget (modelLabel_, 0, Qt::AlignHCenter);
+
+  // Message area
+  url msgBufUrl = ChatSessionManager::messageBufferUrl (sessionId_);
+  messageWidget_= texmacs_input_widget (
+      tree (DOCUMENT, ""), compound (kChatEmbeddedStyle, tuple ("generic")),
+      msgBufUrl);
+
+  QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
+  messageFrame_          = new QWidget (topPanel);
+  messageFrame_->setObjectName ("chat-tab-message-frame");
+  messageFrame_->setStyleSheet (
+      QString ("border: none; border-radius: %1px; background-color: #ffffff;")
+          .arg (DpiUtils::scaled (kInputFrameRadius)));
+  QVBoxLayout* messageFrameLayout= new QVBoxLayout (messageFrame_);
+  messageFrameLayout->setContentsMargins (0, 0, 0, 0);
+  messageFrameLayout->setSpacing (0);
+  messageQWidget->setParent (messageFrame_);
+  messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
+  messageFrameLayout->addWidget (messageQWidget);
+  messageFrame_->hide ();
+  topLayout->addWidget (messageFrame_, 1);
+
+  // Input area
+  QWidget*     inputArea      = new QWidget (topPanel);
+  QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
+  inputAreaLayout->setContentsMargins (0, 0, 0, 0);
+  inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+
+  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
+  inputWidget = texmacs_input_widget (
+      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), inBufUrl);
+  QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
+  inputEditorWidget_   = inputQWidget;
+  {
+    QList<QAbstractScrollArea*> areas=
+        inputQWidget->findChildren<QAbstractScrollArea*> ();
+    for (QAbstractScrollArea* area : areas) {
+      if (!area) continue;
+      area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+      area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+      if (area->viewport ()) {
+        area->viewport ()->setStyleSheet ("background-color: #ffffff;");
+      }
+      area->setStyleSheet (
+          "QScrollBar:vertical { background: transparent; width: 6px; "
+          "                      margin: 0px; border: none; }"
+          "QScrollBar::handle:vertical { background: #c8c8c8; "
+          "                            border-radius: 3px; "
+          "                            min-height: 20px; }"
+          "QScrollBar::handle:vertical:hover { background: #a0a0a0; }"
+          "QScrollBar::add-line:vertical, "
+          "QScrollBar::sub-line:vertical { height: 0px; }");
+    }
+  }
+  if (QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ()) {
+    editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
+    editor->installEventFilter (this);
+  }
+
+  QWidget* inputFrame= new QWidget (inputArea);
+  inputFrame->setObjectName ("chat-tab-input-frame");
+  inputFrame->setStyleSheet (
+      QString ("QWidget#chat-tab-input-frame { "
+               "  border: 1px solid #e0e0e0; border-radius: %1px; "
+               "  background-color: #ffffff; }"
+               "QWidget#chat-tab-input-frame:hover { "
+               "  border: 1px solid #c0c0c0; }")
+          .arg (DpiUtils::scaled (kInputFrameRadius)));
+  QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
+  inputFrameLayout->setContentsMargins (
+      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad),
+      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad));
+  inputFrameLayout->setSpacing (0);
+  inputQWidget->setParent (inputFrame);
+  int defaultHeight= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+  inputQWidget->setMinimumHeight (defaultHeight);
+  inputQWidget->setMaximumHeight (defaultHeight);
+  inputFrameLayout->addWidget (inputQWidget);
+
+  QHBoxLayout* btnLayout= new QHBoxLayout ();
+  btnLayout->addStretch ();
+
+  // Send button
+  sendButton_= new QPushButton (inputFrame);
+  sendButton_->setObjectName ("chat-tab-send-btn");
+  sendButton_->setFocusPolicy (Qt::NoFocus);
+  sendButton_->setCursor (Qt::PointingHandCursor);
+  sendButton_->setIcon (QIcon (":llm-chat/send.svg"));
+  int sendIconSize= DpiUtils::scaled (kSendIconSize);
+  sendButton_->setIconSize (QSize (sendIconSize, sendIconSize));
+  sendButton_->setFixedSize (DpiUtils::scaled (kSendButtonSize),
+                             DpiUtils::scaled (kSendButtonSize));
+  sendButton_->setStyleSheet (
+      QString ("QPushButton { border: none; border-radius: %1px; "
+               "            background-color: transparent; }"
+               "QPushButton:hover { background-color: #f0f0f0; }"
+               "QPushButton:pressed { background-color: #e0e0e0; }")
+          .arg (DpiUtils::scaled (kSendButtonRadius)));
+  connect (sendButton_, &QPushButton::clicked, this,
+           [this] () { emit sendRequested (sessionId_); });
+  btnLayout->addWidget (sendButton_);
+  inputFrameLayout->addLayout (btnLayout);
+
+  inputAreaLayout->addWidget (inputFrame, 0);
+
+  // Input height timer
+  QTimer* inputHeightTimer= new QTimer (inputFrame);
+  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
+  connect (inputHeightTimer, &QTimer::timeout, this,
+           [this] () { adjust_input_height (); });
+  inputHeightTimer->start ();
+
+  QHBoxLayout* inputWrap= new QHBoxLayout ();
+  inputWrap->addStretch (1);
+  inputWrap->addWidget (inputArea, 8);
+  inputWrap->addStretch (1);
+  topLayout->addLayout (inputWrap, 0);
+
+  contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
+}
+
+void
+ChatConversationPanel::enterConversationMode () {
+  if (conversationMode_) return;
+
+  conversationMode_    = true;
+  const int startOffset= DpiUtils::scaled (kWelcomeTopOffsetY);
+  const int endOffset  = DpiUtils::scaled (kConversationTopOffsetY);
+
+  if (messageFrame_) {
+    QGraphicsOpacityEffect* messageEffect=
+        new QGraphicsOpacityEffect (messageFrame_);
+    messageEffect->setOpacity (0.0);
+    messageFrame_->setGraphicsEffect (messageEffect);
+    messageFrame_->show ();
+
+    QPropertyAnimation* fadeIn=
+        new QPropertyAnimation (messageEffect, "opacity", messageFrame_);
+    fadeIn->setDuration (kTransitionDurationMs);
+    fadeIn->setStartValue (0.0);
+    fadeIn->setEndValue (1.0);
+    fadeIn->start (QAbstractAnimation::DeleteWhenStopped);
+  }
+
+  if (welcomeTitle_) {
+    QGraphicsOpacityEffect* titleEffect=
+        new QGraphicsOpacityEffect (welcomeTitle_);
+    titleEffect->setOpacity (1.0);
+    welcomeTitle_->setGraphicsEffect (titleEffect);
+
+    QPropertyAnimation* fadeOut=
+        new QPropertyAnimation (titleEffect, "opacity", welcomeTitle_);
+    fadeOut->setDuration (kTransitionDurationMs);
+    fadeOut->setStartValue (1.0);
+    fadeOut->setEndValue (0.0);
+    connect (fadeOut, &QPropertyAnimation::finished, this, [this] () {
+      if (welcomeTitle_) welcomeTitle_->hide ();
+    });
+    fadeOut->start (QAbstractAnimation::DeleteWhenStopped);
+  }
+
+  if (topSpacer_ && layout ()) {
+    QVariantAnimation* offsetAnim= new QVariantAnimation (this);
+    offsetAnim->setDuration (kTransitionDurationMs);
+    offsetAnim->setStartValue (startOffset);
+    offsetAnim->setEndValue (endOffset);
+    connect (offsetAnim, &QVariantAnimation::valueChanged, this,
+             [this] (const QVariant& value) {
+               if (!topSpacer_ || !layout ()) return;
+               topSpacer_->changeSize (0, value.toInt (), QSizePolicy::Minimum,
+                                       QSizePolicy::Fixed);
+               layout ()->invalidate ();
+               layout ()->activate ();
+             });
+    offsetAnim->start (QAbstractAnimation::DeleteWhenStopped);
+  }
+}
+
+void
+ChatConversationPanel::focusInput () {
+  if (inputEditorWidget_) {
+    inputEditorWidget_->setFocus (Qt::OtherFocusReason);
+    url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
+    url vw      = get_passive_view (inBufUrl);
+    if (!is_none (vw)) {
+      set_current_view (vw);
+      call ("update-menus");
+    }
+  }
+}
+
+tree
+ChatConversationPanel::readInputMessage () const {
+  return get_buffer_body (ChatSessionManager::inputBufferUrl (sessionId_));
+}
+
 bool
-QTChatTabWidget::is_empty_document_body (tree body) {
+ChatConversationPanel::is_empty_document_body (tree body) {
   if (!is_func (body, DOCUMENT)) return false;
   if (N (body) == 0) return true;
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
-/**
- * @brief 单个会话面板的内部数据。
- */
-struct QTChatTabWidget::ChatConversationPanel {
-  QWidget*     pageWidget       = nullptr; ///< 本会话的堆叠页面。
-  QLabel*      welcomeTitle     = nullptr; ///< 欢迎标题标签。
-  QLabel*      modelLabel       = nullptr; ///< 模型名称标签。
-  QWidget*     messageFrame     = nullptr; ///< 承载消息控件的边框。
-  QWidget*     inputEditorWidget= nullptr; ///< 输入编辑器的 Qt 控件。
-  QPushButton* sendButton       = nullptr; ///< 发送/停止按钮。
-  QPushButton* sidebarButton    = nullptr; ///< 侧边栏入口按钮。
-  QCheckBox*   selectCheckBox   = nullptr; ///< 多选复选框（仅多选模式可见）。
-  QWidget*     itemWidget= nullptr; ///< 包含 checkbox + sidebarButton 的容器。
-  QSpacerItem* topSpacer = nullptr; ///< 顶部占位，用于垂直偏移。
-  widget       messageWidget;       ///< 消息显示的 TeXmacs 控件。
-  widget       inputWidget;         ///< 用户输入的 TeXmacs 控件。
-  string       sessionId;           ///< 会话 UUID（跨层交互标识）。
-  bool         conversationMode= false; ///< 面板是否已离开欢迎态。
-};
+int
+ChatConversationPanel::count_input_lines (tree body) {
+  if (!is_func (body, DOCUMENT)) return 1;
+  if (N (body) == 0) return 1;
+  if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
+  return N (body);
+}
 
-/**
- * @brief 构造聊天标签页控件。
- *
- * 创建左侧边栏和右侧内容区，然后创建第一个会话。
- */
+int
+ChatConversationPanel::estimate_lines_from_height (SI contentHeight) {
+  if (contentHeight <= 0) return 0;
+  int px= to_qsize (0, contentHeight).height ();
+  if (px <= 0) return 0;
+  return (px + kInputLineHeight - 1) / kInputLineHeight;
+}
+
+void
+ChatConversationPanel::adjust_input_height () {
+  if (!inputEditorWidget_) return;
+
+  tree body       = readInputMessage ();
+  int  docLines   = count_input_lines (body);
+  int  visualLines= 0;
+
+  if (QTMWidget* editor= inputEditorWidget_->findChild<QTMWidget*> ()) {
+    if (edit_interface_rep* ed=
+            dynamic_cast<edit_interface_rep*> (editor->tm_widget ())) {
+      visualLines= estimate_lines_from_height (ed->get_total_height (true));
+    }
+  }
+
+  int lines       = qMax (docLines, visualLines);
+  int targetLines = qMax (kInputDefaultLines, lines);
+  targetLines     = qMin (targetLines, kInputMaxLines);
+  int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
+
+  if (inputEditorWidget_->minimumHeight () != targetHeight ||
+      inputEditorWidget_->maximumHeight () != targetHeight) {
+    inputEditorWidget_->setMinimumHeight (targetHeight);
+    inputEditorWidget_->setMaximumHeight (targetHeight);
+  }
+}
+
+bool
+ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
+  if (event->type () == QEvent::KeyPress) {
+    QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+    if ((keyEvent->key () == Qt::Key_Return ||
+         keyEvent->key () == Qt::Key_Enter) &&
+        !(keyEvent->modifiers () & Qt::ShiftModifier)) {
+      void* ptr= watched->property ("chat_panel").value<void*> ();
+      if (ptr == this) {
+        emit sendRequested (sessionId_);
+        return true;
+      }
+    }
+  }
+  return QWidget::eventFilter (watched, event);
+}
+
+/******************************************************************************
+ * ChatSidebar 实现
+ ******************************************************************************/
+
+ChatSidebar::ChatSidebar (QWidget* parent) : QWidget (parent) {
+  setObjectName ("chat-tab-sidebar-list");
+
+  QVBoxLayout* mainLayout= new QVBoxLayout (this);
+  mainLayout->setContentsMargins (0, 0, 0, 0);
+  mainLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  // 会话数量标签
+  conversationCountLabel_= new QLabel ("Conversations (0)", this);
+  conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
+  DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
+  conversationCountLabel_->setStyleSheet ("color: #666666;");
+  mainLayout->addWidget (conversationCountLabel_);
+
+  // 搜索框
+  searchEdit_= new QLineEdit (this);
+  searchEdit_->setObjectName ("chat-tab-search-edit");
+  searchEdit_->setPlaceholderText (QString::fromUtf8 ("搜索会话..."));
+  searchEdit_->setClearButtonEnabled (true);
+  searchEdit_->setFocusPolicy (Qt::ClickFocus);
+  DpiUtils::applyScaledFont (searchEdit_, kCollapseFontPx);
+  searchEdit_->setStyleSheet (
+      QString ("QLineEdit { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (searchEdit_, &QLineEdit::textChanged, this,
+           [this] () { refreshInternal (lastSessions_, lastActiveId_); });
+  mainLayout->addWidget (searchEdit_);
+
+  // 多选模式批量操作栏（默认隐藏）
+  multiSelectBar_= new QWidget (this);
+  multiSelectBar_->setObjectName ("chat-tab-multi-select-bar");
+  QHBoxLayout* multiSelectLayout= new QHBoxLayout (multiSelectBar_);
+  multiSelectLayout->setContentsMargins (0, 0, 0, 0);
+  multiSelectLayout->setSpacing (DpiUtils::scaled (kMultiSelectSpacing));
+
+  QPushButton* cancelSelectBtn= new QPushButton ("取消", multiSelectBar_);
+  cancelSelectBtn->setFocusPolicy (Qt::NoFocus);
+  cancelSelectBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (cancelSelectBtn, kCollapseFontPx);
+  cancelSelectBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (cancelSelectBtn, &QPushButton::clicked, this,
+           [this] () { exitMultiSelectMode (); });
+  multiSelectLayout->addWidget (cancelSelectBtn);
+
+  QPushButton* selectAllBtn= new QPushButton ("全选", multiSelectBar_);
+  selectAllBtn->setFocusPolicy (Qt::NoFocus);
+  selectAllBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (selectAllBtn, kCollapseFontPx);
+  selectAllBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
+    for (auto it= items_.begin (); it != items_.end (); ++it) {
+      if (!it->selectCheckBox) continue;
+      for (const auto& info : lastSessions_) {
+        if (info.sessionId == it.key () &&
+            info.archived == archiveSelectMode_) {
+          it->selectCheckBox->setChecked (true);
+        }
+      }
+    }
+  });
+  multiSelectLayout->addWidget (selectAllBtn);
+
+  multiSelectLayout->addStretch ();
+
+  batchArchiveBtn_= new QPushButton ("归档", multiSelectBar_);
+  batchArchiveBtn_->setFocusPolicy (Qt::NoFocus);
+  batchArchiveBtn_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (batchArchiveBtn_, kCollapseFontPx);
+  batchArchiveBtn_->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (batchArchiveBtn_, &QPushButton::clicked, this, [this] () {
+    QList<string> ids= getCheckedSessionIds ();
+    if (!ids.isEmpty ()) emit multiArchiveRequested (ids);
+  });
+  multiSelectLayout->addWidget (batchArchiveBtn_);
+
+  QPushButton* batchDeleteBtn= new QPushButton ("删除", multiSelectBar_);
+  batchDeleteBtn->setFocusPolicy (Qt::NoFocus);
+  batchDeleteBtn->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (batchDeleteBtn, kCollapseFontPx);
+  batchDeleteBtn->setStyleSheet (
+      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
+               "padding: %2px %3px; background-color: #ffffff; }")
+          .arg (DpiUtils::scaled (kCollapseBorderRadius))
+          .arg (DpiUtils::scaled (kCollapsePadY))
+          .arg (DpiUtils::scaled (kCollapsePadX)));
+  connect (batchDeleteBtn, &QPushButton::clicked, this, [this] () {
+    QList<string> ids= getCheckedSessionIds ();
+    if (!ids.isEmpty ()) emit multiDeleteRequested (ids);
+  });
+  multiSelectLayout->addWidget (batchDeleteBtn);
+
+  multiSelectBar_->hide ();
+  mainLayout->addWidget (multiSelectBar_);
+
+  // 列表滚动区
+  QWidget*     scrollContent= new QWidget (this);
+  QVBoxLayout* scrollLayout = new QVBoxLayout (scrollContent);
+  scrollLayout->setContentsMargins (0, 0, 0, 0);
+  scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+
+  conversationListWidget_= new QWidget (scrollContent);
+  conversationListWidget_->setObjectName ("chat-tab-conversation-list");
+  conversationListLayout_= new QVBoxLayout (conversationListWidget_);
+  conversationListLayout_->setContentsMargins (0, 0, 0, 0);
+  conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  scrollLayout->addWidget (conversationListWidget_);
+
+  // 归档区标题
+  archiveHeaderButton_= new QPushButton ("Archived (0)", scrollContent);
+  archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
+  archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
+  archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (archiveHeaderButton_, kNavTitleFontPx);
+  archiveHeaderButton_->setStyleSheet (
+      QString ("QPushButton { text-align: left; border: none; "
+               "padding: %1px %2px; color: #666666; background: transparent; "
+               "font-weight: bold; } "
+               "QPushButton:hover { color: #333333; }")
+          .arg (DpiUtils::scaled (kNavTitlePadding))
+          .arg (DpiUtils::scaled (kNavButtonPadX)));
+  connect (archiveHeaderButton_, &QPushButton::clicked, this, [this] () {
+    archiveCollapsed_= !archiveCollapsed_;
+    if (archiveListWidget_) archiveListWidget_->setVisible (!archiveCollapsed_);
+  });
+  scrollLayout->addWidget (archiveHeaderButton_);
+
+  archiveListWidget_= new QWidget (scrollContent);
+  archiveListWidget_->setObjectName ("chat-tab-archive-list");
+  archiveListLayout_= new QVBoxLayout (archiveListWidget_);
+  archiveListLayout_->setContentsMargins (0, 0, 0, 0);
+  archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
+  archiveListWidget_->hide ();
+  scrollLayout->addWidget (archiveListWidget_);
+
+  scrollLayout->addStretch ();
+
+  QScrollArea* scrollArea= new QScrollArea (this);
+  scrollArea->setWidgetResizable (true);
+  scrollArea->setFrameShape (QFrame::NoFrame);
+  scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  scrollArea->setWidget (scrollContent);
+  mainLayout->addWidget (scrollArea, 1);
+}
+
+void
+ChatSidebar::refresh (const QList<SessionDisplayInfo>& sessions,
+                      const string&                    activeSessionId) {
+  lastSessions_= sessions;
+  lastActiveId_= activeSessionId;
+
+  // Auto-create/destroy items based on session data
+  QMap<string, bool> sessionIds;
+  for (const SessionDisplayInfo& info : sessions) {
+    sessionIds[info.sessionId]= true;
+    if (!items_.contains (info.sessionId)) {
+      SidebarItem item= createItem (info.sessionId);
+      items_.insert (info.sessionId, item);
+    }
+  }
+
+  // Destroy items not in the session list
+  QList<string> toRemove;
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (!sessionIds.contains (it.key ())) {
+      toRemove.append (it.key ());
+    }
+  }
+  for (const string& sid : toRemove) {
+    destroyItem (sid);
+  }
+
+  refreshInternal (sessions, activeSessionId);
+}
+
+void
+ChatSidebar::refreshInternal (const QList<SessionDisplayInfo>& sessions,
+                              const string& activeSessionId) {
+  QString filterText=
+      searchEdit_ ? searchEdit_->text ().toLower () : QString ();
+
+  // 多选模式操作栏可见性
+  if (multiSelectBar_)
+    multiSelectBar_->setVisible (multiSelectMode_ || archiveSelectMode_);
+  if (batchArchiveBtn_) batchArchiveBtn_->setVisible (multiSelectMode_);
+
+  // 先将 item 容器从旧父控件移除
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (it->itemWidget) it->itemWidget->setParent (nullptr);
+  }
+
+  // 清空两个列表布局
+  while (conversationListLayout_->count () > 0) {
+    QLayoutItem* item= conversationListLayout_->takeAt (0);
+    delete item;
+  }
+  while (archiveListLayout_->count () > 0) {
+    QLayoutItem* item= archiveListLayout_->takeAt (0);
+    delete item;
+  }
+
+  int activeCount  = 0;
+  int archivedCount= 0;
+
+  for (const SessionDisplayInfo& info : sessions) {
+    auto itemIt= items_.find (info.sessionId);
+    if (itemIt == items_.end ()) continue;
+    SidebarItem& item= itemIt.value ();
+    if (!item.sidebarButton) continue;
+
+    QString displayText= to_qstring (info.displayTitle);
+    item.sidebarButton->setText (displayText);
+    item.sidebarButton->setChecked (info.sessionId == activeSessionId &&
+                                    !info.archived);
+
+    // 多选模式：checkbox 可见性
+    if (item.selectCheckBox) {
+      if (info.archived) item.selectCheckBox->setVisible (archiveSelectMode_);
+      else item.selectCheckBox->setVisible (multiSelectMode_);
+    }
+
+    // 搜索过滤
+    bool matchesFilter=
+        filterText.isEmpty () || displayText.toLower ().contains (filterText);
+    if (!matchesFilter) {
+      item.itemWidget->setVisible (false);
+      continue;
+    }
+
+    item.itemWidget->setVisible (true);
+    item.sidebarButton->setVisible (true);
+
+    if (info.archived) {
+      ++archivedCount;
+      item.itemWidget->setParent (archiveListWidget_);
+      archiveListLayout_->addWidget (item.itemWidget);
+      disconnect (item.sidebarButton, nullptr, this, nullptr);
+      connect (item.sidebarButton, &QPushButton::clicked, this,
+               [this, sid= info.sessionId] () { emit sessionClicked (sid); });
+    }
+    else {
+      ++activeCount;
+      item.itemWidget->setParent (conversationListWidget_);
+      conversationListLayout_->addWidget (item.itemWidget);
+      disconnect (item.sidebarButton, nullptr, this, nullptr);
+      connect (item.sidebarButton, &QPushButton::clicked, this,
+               [this, sid= info.sessionId] () { emit sessionClicked (sid); });
+    }
+
+    // 右键菜单
+    item.sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
+    disconnect (item.sidebarButton, &QPushButton::customContextMenuRequested,
+                this, nullptr);
+    connect (
+        item.sidebarButton, &QPushButton::customContextMenuRequested, this,
+        [this, info] (const QPoint& pos) {
+          QMenu         menu;
+          QList<string> checked  = getCheckedSessionIds ();
+          QPushButton*  senderBtn= qobject_cast<QPushButton*> (sender ());
+
+          if (!checked.isEmpty ()) {
+            if (!info.archived) {
+              menu.addAction (QString ("归档所选 (%1)").arg (checked.size ()));
+            }
+            menu.addAction (QString ("删除所选 (%1)").arg (checked.size ()));
+            QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
+            if (!chosen) return;
+            QString txt= chosen->text ();
+            if (txt.startsWith ("归档所选")) {
+              emit multiArchiveRequested (checked);
+            }
+            else if (txt.startsWith ("删除所选")) {
+              emit multiDeleteRequested (checked);
+            }
+          }
+          else {
+            QAction* renameAction= menu.addAction ("重命名");
+            QAction* archiveAction=
+                menu.addAction (info.archived ? "恢复" : "归档");
+            QAction* deleteAction= menu.addAction ("删除");
+            menu.addSeparator ();
+            QAction* multiSelectAction= menu.addAction ("多选");
+            QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
+            if (chosen == renameAction) {
+              emit renameRequested (info.sessionId, "");
+            }
+            else if (chosen == archiveAction) {
+              if (info.archived) emit restoreRequested (info.sessionId);
+              else emit archiveRequested (info.sessionId);
+            }
+            else if (chosen == deleteAction) {
+              emit deleteRequested (info.sessionId);
+            }
+            else if (chosen == multiSelectAction) {
+              enterMultiSelectMode (info.archived);
+            }
+          }
+        });
+  }
+
+  if (conversationCountLabel_) {
+    conversationCountLabel_->setText (
+        QString ("Conversations (%1)").arg (activeCount));
+  }
+  if (archiveHeaderButton_) {
+    archiveHeaderButton_->setText (
+        QString ("Archived (%1)").arg (archivedCount));
+    archiveHeaderButton_->setVisible (true);
+  }
+  if (archiveListWidget_) {
+    archiveListWidget_->setVisible (archivedCount > 0 && !archiveCollapsed_);
+  }
+}
+
+ChatSidebar::SidebarItem
+ChatSidebar::createItem (const string& sessionId) {
+  SidebarItem item;
+
+  item.itemWidget= new QWidget ();
+  item.itemWidget->setObjectName ("chat-tab-session-item");
+  QHBoxLayout* itemLayout= new QHBoxLayout (item.itemWidget);
+  itemLayout->setContentsMargins (0, 0, 0, 0);
+  itemLayout->setSpacing (DpiUtils::scaled (kSessionItemSpacing));
+
+  item.selectCheckBox= new QCheckBox (item.itemWidget);
+  item.selectCheckBox->setObjectName ("chat-tab-select-checkbox");
+  item.selectCheckBox->setFocusPolicy (Qt::NoFocus);
+  item.selectCheckBox->setStyleSheet (
+      "QCheckBox::indicator:checked { "
+      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
+      "  border-radius: 3px; }"
+      "QCheckBox::indicator:unchecked { "
+      "  background-color: #ffffff; border: 2px solid #cccccc; "
+      "  border-radius: 3px; }");
+  item.selectCheckBox->hide ();
+  itemLayout->addWidget (item.selectCheckBox);
+
+  item.sidebarButton= new QPushButton ("新会话", item.itemWidget);
+  item.sidebarButton->setObjectName ("chat-tab-conversation-btn");
+  item.sidebarButton->setCheckable (true);
+  item.sidebarButton->setFocusPolicy (Qt::NoFocus);
+  item.sidebarButton->setCursor (Qt::PointingHandCursor);
+  DpiUtils::applyScaledFont (item.sidebarButton, kNavButtonFontPx);
+  item.sidebarButton->setStyleSheet (
+      QString ("QPushButton { text-align: left; border: 1px solid #d9d9d9; "
+               "border-radius: %1px; padding: %2px %3px; background-color: "
+               "#ffffff; } "
+               "QPushButton:checked { background-color: #e8eefc; "
+               "border-color: #9bb3ff; font-weight: 600; }")
+          .arg (DpiUtils::scaled (kConversationBtnRadius))
+          .arg (DpiUtils::scaled (kNavButtonPadY))
+          .arg (DpiUtils::scaled (kNavButtonPadX)));
+  itemLayout->addWidget (item.sidebarButton, 1);
+
+  return item;
+}
+
+void
+ChatSidebar::destroyItem (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+
+  SidebarItem& item= it.value ();
+  if (item.sidebarButton)
+    disconnect (item.sidebarButton, nullptr, this, nullptr);
+  if (item.selectCheckBox)
+    disconnect (item.selectCheckBox, nullptr, this, nullptr);
+  if (item.itemWidget) {
+    item.itemWidget->hide ();
+    item.itemWidget->setParent (nullptr);
+    delete item.itemWidget;
+  }
+  items_.erase (it);
+}
+
+void
+ChatSidebar::removeItem (const string& sessionId) {
+  destroyItem (sessionId);
+}
+
+void
+ChatSidebar::enterMultiSelectMode (bool archived) {
+  if (archived) archiveSelectMode_= true;
+  else multiSelectMode_= true;
+  refreshInternal (lastSessions_, lastActiveId_);
+}
+
+void
+ChatSidebar::exitMultiSelectMode () {
+  multiSelectMode_  = false;
+  archiveSelectMode_= false;
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (it->selectCheckBox) it->selectCheckBox->setChecked (false);
+  }
+  refreshInternal (lastSessions_, lastActiveId_);
+}
+
+QList<string>
+ChatSidebar::getCheckedSessionIds () const {
+  QList<string> result;
+  for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
+    if (it->selectCheckBox && it->selectCheckBox->isChecked ())
+      result.append (it.key ());
+  }
+  return result;
+}
+
+/******************************************************************************
+ * QTChatTabWidget 构造/析构
+ ******************************************************************************/
+
 QTChatTabWidget::QTChatTabWidget (QWidget* parent)
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
-      conversationCountLabel_ (nullptr), conversationListWidget_ (nullptr),
-      conversationListLayout_ (nullptr), archiveHeaderButton_ (nullptr),
-      archiveListWidget_ (nullptr), archiveListLayout_ (nullptr),
-      archiveCollapsed_ (true), newChatButton_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
-      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr),
-      activeConversation_ (nullptr), sidebarCollapsed_ (false),
-      sidebarExpandedWidth_ (0), multiSelectMode_ (false),
-      archiveSelectMode_ (false), multiSelectBar_ (nullptr),
-      batchArchiveBtn_ (nullptr), searchEdit_ (nullptr) {
+      newChatButton_ (nullptr), sidebarNormalContent_ (nullptr),
+      conversationStack_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -306,33 +886,64 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
 
   // 右侧内容区
   setup_right_content (mainLayout);
-  loadSessions ();
-  if (conversations_.isEmpty ()) {
-    string model=
-        as_string (call ("chat-tab-session-select-model", string ("")));
-    create_new_conversation_with_model (model);
-  }
 }
 
-/**
- * @brief 销毁控件及其所有会话面板。
- */
 QTChatTabWidget::~QTChatTabWidget () {
   for (ChatConversationPanel* panel : conversations_)
     delete panel;
   conversations_.clear ();
-  for (ChatConversationPanel* panel : zombiePanels_)
-    delete panel;
-  zombiePanels_.clear ();
 }
 
-/**
- * @brief 构建左侧边栏，包含标题、新建聊天按钮和会话列表。
- * @param sidebarLayout 待填充的布局。
- */
+/******************************************************************************
+ * QTChatTabWidget 公共方法（View 接口，被 Controller 调用）
+ ******************************************************************************/
+
+ChatConversationPanel*
+QTChatTabWidget::createPanel (const string& sessionId) {
+  if (!conversationStack_) return nullptr;
+
+  ChatConversationPanel* panel=
+      new ChatConversationPanel (sessionId, conversationStack_);
+  conversationStack_->addWidget (panel);
+  conversations_.append (panel);
+  return panel;
+}
+
+void
+QTChatTabWidget::activatePanel (ChatConversationPanel* panel) {
+  if (!panel || !conversationStack_) return;
+  activeConversation_= panel;
+  conversationStack_->setCurrentWidget (panel);
+  panel->focusInput ();
+}
+
+void
+QTChatTabWidget::removePanel (ChatConversationPanel* panel) {
+  if (!panel) return;
+
+  if (conversationStack_) conversationStack_->removeWidget (panel);
+
+  conversations_.removeOne (panel);
+
+  if (activeConversation_ == panel) activeConversation_= nullptr;
+
+  if (sidebar_) sidebar_->removeItem (panel->sessionId ());
+
+  delete panel;
+}
+
+void
+QTChatTabWidget::refreshSidebar (const QList<SessionDisplayInfo>& sessions,
+                                 const string& activeSessionId) {
+  if (sidebar_) sidebar_->refresh (sessions, activeSessionId);
+}
+
+/******************************************************************************
+ * QTChatTabWidget UI 设置
+ ******************************************************************************/
+
 void
 QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
-  // ---- 展开态：正常内容容器 ----
   QWidget* normalContent= new QWidget (sidebarWidget_);
   normalContent->setObjectName ("chat-tab-sidebar-normal");
   QVBoxLayout* normalLayout= new QVBoxLayout (normalContent);
@@ -399,183 +1010,16 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   newChatButton_->setAttribute (Qt::WA_Hover);
   newChatButton_->installEventFilter (this);
-  connect (newChatButton_, &QPushButton::clicked, this, [this] () {
-    string model=
-        as_string (call ("chat-tab-session-select-model", string ("")));
-    create_new_conversation_with_model (model);
-  });
   normalLayout->addWidget (newChatButton_, 0, Qt::AlignHCenter);
 
-  conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
-  conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
-  DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
-  normalLayout->addWidget (conversationCountLabel_);
-
-  // 搜索框
-  QLineEdit* searchEdit= new QLineEdit (normalContent);
-  searchEdit->setObjectName ("chat-tab-search-edit");
-  searchEdit->setPlaceholderText (QString::fromUtf8 ("搜索会话..."));
-  searchEdit->setClearButtonEnabled (true);
-  searchEdit->setFocusPolicy (Qt::ClickFocus);
-  DpiUtils::applyScaledFont (searchEdit, kCollapseFontPx);
-  searchEdit->setStyleSheet (
-      QString ("QLineEdit { border-width: 1px; border-style: solid; "
-               "border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
-  connect (searchEdit, &QLineEdit::textChanged, this,
-           [this] () { refresh_sidebar (); });
-  normalLayout->addWidget (searchEdit);
-  searchEdit_= searchEdit;
-
-  // 多选模式批量操作栏（默认隐藏）
-  multiSelectBar_= new QWidget (normalContent);
-  multiSelectBar_->setObjectName ("chat-tab-multi-select-bar");
-  QHBoxLayout* multiSelectLayout= new QHBoxLayout (multiSelectBar_);
-  multiSelectLayout->setContentsMargins (0, 0, 0, 0);
-  multiSelectLayout->setSpacing (DpiUtils::scaled (kMultiSelectSpacing));
-
-  QPushButton* cancelSelectBtn= new QPushButton ("取消", multiSelectBar_);
-  cancelSelectBtn->setObjectName ("chat-tab-cancel-select-btn");
-  cancelSelectBtn->setFocusPolicy (Qt::NoFocus);
-  cancelSelectBtn->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (cancelSelectBtn, kCollapseFontPx);
-  cancelSelectBtn->setStyleSheet (
-      QString ("QPushButton { border-width: 1px; border-style: solid; "
-               "border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
-  connect (cancelSelectBtn, &QPushButton::clicked, this,
-           [this] () { exit_multi_select_mode (); });
-  multiSelectLayout->addWidget (cancelSelectBtn);
-
-  QPushButton* selectAllBtn= new QPushButton ("全选", multiSelectBar_);
-  selectAllBtn->setObjectName ("chat-tab-select-all-btn");
-  selectAllBtn->setFocusPolicy (Qt::NoFocus);
-  selectAllBtn->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (selectAllBtn, kCollapseFontPx);
-  selectAllBtn->setStyleSheet (
-      QString ("QPushButton { border-width: 1px; border-style: solid; "
-               "border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
-  connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
-    for (ChatConversationPanel* panel : conversations_) {
-      if (!panel || !panel->selectCheckBox) continue;
-      ChatSession* s       = sessionManager_.getSession (panel->sessionId);
-      bool         archived= s && s->archived;
-      if (archived == archiveSelectMode_)
-        panel->selectCheckBox->setChecked (true);
-    }
-  });
-  multiSelectLayout->addWidget (selectAllBtn);
-
-  multiSelectLayout->addStretch ();
-
-  batchArchiveBtn_= new QPushButton ("归档", multiSelectBar_);
-  batchArchiveBtn_->setObjectName ("chat-tab-batch-archive-btn");
-  batchArchiveBtn_->setFocusPolicy (Qt::NoFocus);
-  batchArchiveBtn_->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (batchArchiveBtn_, kCollapseFontPx);
-  batchArchiveBtn_->setStyleSheet (
-      QString ("QPushButton { border-width: 1px; border-style: solid; "
-               "border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
-  connect (batchArchiveBtn_, &QPushButton::clicked, this, [this] () {
-    QList<ChatConversationPanel*> checked= get_checked_panels ();
-    for (ChatConversationPanel* panel : checked) {
-      sessionManager_.archiveSession (panel->sessionId);
-      saveOneSession (panel->sessionId);
-    }
-    exit_multi_select_mode ();
-  });
-  multiSelectLayout->addWidget (batchArchiveBtn_);
-
-  QPushButton* batchDeleteBtn= new QPushButton ("删除", multiSelectBar_);
-  batchDeleteBtn->setObjectName ("chat-tab-batch-delete-btn");
-  batchDeleteBtn->setFocusPolicy (Qt::NoFocus);
-  batchDeleteBtn->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (batchDeleteBtn, kCollapseFontPx);
-  batchDeleteBtn->setStyleSheet (
-      QString ("QPushButton { border-width: 1px; border-style: solid; "
-               "border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kCollapseBorderRadius))
-          .arg (DpiUtils::scaled (kCollapsePadY))
-          .arg (DpiUtils::scaled (kCollapsePadX)));
-  connect (batchDeleteBtn, &QPushButton::clicked, this, [this] () {
-    QList<ChatConversationPanel*> checked= get_checked_panels ();
-    if (!checked.isEmpty ()) delete_sessions (checked);
-  });
-  multiSelectLayout->addWidget (batchDeleteBtn);
-
-  multiSelectBar_->hide ();
-  normalLayout->addWidget (multiSelectBar_);
-
-  // 列表滚动区
-  QWidget* scrollContent= new QWidget (normalContent);
-  scrollContent->setObjectName ("chat-tab-scroll-content");
-  QVBoxLayout* scrollLayout= new QVBoxLayout (scrollContent);
-  scrollLayout->setContentsMargins (0, 0, 0, 0);
-  scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-
-  conversationListWidget_= new QWidget (scrollContent);
-  conversationListWidget_->setObjectName ("chat-tab-conversation-list");
-  conversationListLayout_= new QVBoxLayout (conversationListWidget_);
-  conversationListLayout_->setContentsMargins (0, 0, 0, 0);
-  conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  scrollLayout->addWidget (conversationListWidget_);
-
-  // 归档区标题按钮：点击展开/折叠归档列表
-  archiveHeaderButton_= new QPushButton ("Archived (0)", scrollContent);
-  archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
-  archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
-  archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (archiveHeaderButton_, kNavTitleFontPx);
-  archiveHeaderButton_->setStyleSheet (
-      QString ("QPushButton { padding: %1px %2px; }")
-          .arg (DpiUtils::scaled (kNavTitlePadding))
-          .arg (DpiUtils::scaled (kNavButtonPadX)));
-  connect (archiveHeaderButton_, &QPushButton::clicked, this, [this] () {
-    archiveCollapsed_= !archiveCollapsed_;
-    if (archiveListWidget_) archiveListWidget_->setVisible (!archiveCollapsed_);
-  });
-  scrollLayout->addWidget (archiveHeaderButton_);
-
-  // 归档会话列表
-  archiveListWidget_= new QWidget (scrollContent);
-  archiveListWidget_->setObjectName ("chat-tab-archive-list");
-  archiveListLayout_= new QVBoxLayout (archiveListWidget_);
-  archiveListLayout_->setContentsMargins (0, 0, 0, 0);
-  archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  archiveListWidget_->hide ();
-  scrollLayout->addWidget (archiveListWidget_);
-
-  scrollLayout->addStretch ();
-
-  QScrollArea* scrollArea= new QScrollArea (normalContent);
-  scrollArea->setWidgetResizable (true);
-  scrollArea->setFrameShape (QFrame::NoFrame);
-  scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-  scrollArea->setWidget (scrollContent);
-  normalLayout->addWidget (scrollArea, 1);
-
-  sidebarNormalContent_= normalContent;
-  sidebarLayout->addWidget (normalContent);
+  // ChatSidebar
+  sidebar_= new ChatSidebar (normalContent);
+  normalLayout->addWidget (sidebar_, 1);
 
   sidebarNormalContent_= normalContent;
   sidebarLayout->addWidget (normalContent);
 }
 
-/**
- * @brief 构建右侧内容区，使用 QStackedWidget 管理会话页面。
- * @param mainLayout 主水平布局，用于插入内容区。
- */
 void
 QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   QWidget* content= new QWidget (this);
@@ -592,7 +1036,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
 
   mainLayout->addWidget (content, 1);
 
-  // 浮球按钮容器（侧边栏收起时显示在内容区左上角）
+  // 浮球按钮容器
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
   QHBoxLayout* floatingLayout= new QHBoxLayout (floatingContainer);
@@ -606,23 +1050,37 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
                "border-radius: %1px; }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2 + kFloatingContainerPad)));
 
+  auto make_floating_btn= [] (QWidget* parent, const QString& name,
+                              const QString& icon) {
+    QPushButton* btn= new QPushButton (parent);
+    btn->setObjectName (name);
+    btn->setFocusPolicy (Qt::NoFocus);
+    btn->setCursor (Qt::PointingHandCursor);
+    btn->setIcon (QIcon (icon));
+    btn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                             DpiUtils::scaled (kToggleIconSize)));
+    btn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                       DpiUtils::scaled (kToggleBtnSize));
+    btn->setStyleSheet (
+        QString ("QPushButton { border: none; border-radius: %1px; "
+                 "background-color: transparent; } "
+                 "QPushButton:hover { background-color: #d0d0d0; }")
+            .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+    return btn;
+  };
+
   QPushButton* floatingBtn=
-      setup_floating_button (floatingContainer, "chat-tab-floating-expand-btn",
-                             ":llm-chat/sidebar.svg");
+      make_floating_btn (floatingContainer, "chat-tab-floating-expand-btn",
+                         ":llm-chat/sidebar.svg");
   connect (floatingBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
   floatingLayout->addWidget (floatingBtn);
   floatingExpandBtn_= floatingBtn;
 
-  QPushButton* floatingNewBtn= setup_floating_button (
+  QPushButton* floatingNewBtn= make_floating_btn (
       floatingContainer, "chat-tab-floating-new-btn", ":llm-chat/addchat.svg");
-  connect (floatingNewBtn, &QPushButton::clicked, this, [this] () {
-    string model=
-        as_string (call ("chat-tab-session-select-model", string ("")));
-    create_new_conversation_with_model (model);
-  });
-  floatingLayout->addWidget (floatingNewBtn);
   floatingNewChatBtn_= floatingNewBtn;
+  floatingLayout->addWidget (floatingNewBtn);
 
   floatingContainer->adjustSize ();
   floatingContainer->move (DpiUtils::scaled (kFloatingBtnMarginX),
@@ -631,624 +1089,13 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   floatingBtnContainer_= floatingContainer;
 }
 
-/**
- * @brief 创建新的会话面板，包含控件和 buffer。
- * @param title 会话的显示标题。
- * @return 新建会话面板的指针，失败时返回 nullptr。
- */
-QTChatTabWidget::ChatConversationPanel*
-QTChatTabWidget::create_conversation (const QString& title) {
-  if (!conversationStack_ || !conversationListLayout_) return nullptr;
+/******************************************************************************
+ * QTChatTabWidget 内部 UI 方法
+ ******************************************************************************/
 
-  string                 sessionId= sessionManager_.createSession ();
-  ChatConversationPanel* panel    = new ChatConversationPanel ();
-  panel->sessionId                = sessionId;
-  sessionManager_.setPanel (sessionId, panel);
-
-  url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
-  url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
-
-  QWidget* page= new QWidget (conversationStack_);
-  page->setObjectName ("chat-tab-conversation-page");
-  panel->pageWidget= page;
-
-  QVBoxLayout* contentLayout= new QVBoxLayout (page);
-  contentLayout->setContentsMargins (0, DpiUtils::scaled (kContentMarginY), 0,
-                                     DpiUtils::scaled (kContentMarginY));
-  contentLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-  panel->topSpacer= new QSpacerItem (0, DpiUtils::scaled (kWelcomeTopOffsetY),
-                                     QSizePolicy::Minimum, QSizePolicy::Fixed);
-  contentLayout->addSpacerItem (panel->topSpacer);
-
-  QWidget*     topPanel = new QWidget (page);
-  QVBoxLayout* topLayout= new QVBoxLayout (topPanel);
-  topLayout->setContentsMargins (0, 0, 0, 0);
-  topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-
-  panel->welcomeTitle= new QLabel ("Welcome to Liii STEM!", topPanel);
-  panel->welcomeTitle->setObjectName ("chat-tab-welcome-title");
-  panel->welcomeTitle->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (panel->welcomeTitle, kWelcomeFontPx);
-  topLayout->addWidget (panel->welcomeTitle);
-
-  // 模型名称标签
-  panel->modelLabel= new QLabel ("", topPanel);
-  panel->modelLabel->setObjectName ("chat-tab-model-label");
-  panel->modelLabel->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
-  panel->modelLabel->setStyleSheet (
-      QString ("padding: 2px %1px; border-radius: %2px;")
-          .arg (DpiUtils::scaled (kNavButtonPadX))
-          .arg (DpiUtils::scaled (kModelLabelRadius)));
-  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
-  topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
-
-  panel->messageWidget= texmacs_input_widget (
-      tree (DOCUMENT, ""), make_chat_embedded_style (), msgBufUrl);
-
-  QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
-  panel->messageFrame    = new QWidget (topPanel);
-  panel->messageFrame->setObjectName ("chat-tab-message-frame");
-  panel->messageFrame->setStyleSheet (
-      QString ("border: none; border-radius: %1px;")
-          .arg (DpiUtils::scaled (kInputFrameRadius)));
-  QVBoxLayout* messageFrameLayout= new QVBoxLayout (panel->messageFrame);
-  messageFrameLayout->setContentsMargins (0, 0, 0, 0);
-  messageFrameLayout->setSpacing (0);
-  messageQWidget->setParent (panel->messageFrame);
-  messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
-  messageFrameLayout->addWidget (messageQWidget);
-  panel->messageFrame->hide ();
-  topLayout->addWidget (panel->messageFrame, 1);
-
-  QWidget* inputArea= new QWidget (topPanel);
-  inputArea->setObjectName ("chat-tab-input-area");
-  QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
-  inputAreaLayout->setContentsMargins (0, 0, 0, 0);
-  inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-
-  panel->inputWidget= texmacs_input_widget (
-      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")),
-      make_chat_embedded_style (), inBufUrl);
-  QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
-  panel->inputEditorWidget= inputQWidget;
-  {
-    QList<QAbstractScrollArea*> areas=
-        inputQWidget->findChildren<QAbstractScrollArea*> ();
-    for (QAbstractScrollArea* area : areas) {
-      if (!area) continue;
-      area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
-      if (area->viewport ()) {
-      }
-      area->setStyleSheet (
-          "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; "
-          "}"
-          "QScrollBar::add-line:vertical, "
-          "QScrollBar::sub-line:vertical { height: 0px; }");
-    }
-  }
-  if (QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ()) {
-    editor->setProperty ("chat_panel", QVariant::fromValue ((void*) panel));
-    editor->installEventFilter (this);
-  }
-  QWidget* inputFrame= new QWidget (inputArea);
-  inputFrame->setObjectName ("chat-tab-input-frame");
-  inputFrame->setStyleSheet (
-      QString (
-          "QWidget#chat-tab-input-frame { "
-          "  border-width: 1px; border-style: solid; border-radius: %1px; }"
-          "QWidget#chat-tab-input-frame:hover { "
-          "  border-width: 1px; border-style: solid; }")
-          .arg (DpiUtils::scaled (kInputFrameRadius)));
-  QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
-  inputFrameLayout->setContentsMargins (
-      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad),
-      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad));
-  inputFrameLayout->setSpacing (0);
-  inputQWidget->setParent (inputFrame);
-  int defaultHeight= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  inputQWidget->setMinimumHeight (defaultHeight);
-  inputQWidget->setMaximumHeight (defaultHeight);
-  inputFrameLayout->addWidget (inputQWidget);
-
-  QHBoxLayout* btnLayout= new QHBoxLayout ();
-  btnLayout->addStretch ();
-
-  panel->sendButton= new QPushButton (inputFrame);
-  panel->sendButton->setObjectName ("chat-tab-send-btn");
-  panel->sendButton->setFocusPolicy (Qt::NoFocus);
-  panel->sendButton->setCursor (Qt::PointingHandCursor);
-  panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (kSendIconSize);
-  panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
-  panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
-                                   DpiUtils::scaled (kSendButtonSize));
-  panel->sendButton->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kSendButtonRadius)));
-  connect (panel->sendButton, &QPushButton::clicked, this,
-           [this, panel] () { handle_send (panel); });
-  btnLayout->addWidget (panel->sendButton);
-  inputFrameLayout->addLayout (btnLayout);
-
-  inputAreaLayout->addWidget (inputFrame, 0);
-
-  QTimer* inputHeightTimer= new QTimer (inputFrame);
-  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
-  connect (inputHeightTimer, &QTimer::timeout, this,
-           [this, panel] () { adjust_input_height (panel); });
-  inputHeightTimer->start ();
-
-  QHBoxLayout* inputWrap= new QHBoxLayout ();
-  inputWrap->addStretch (1);
-  inputWrap->addWidget (inputArea, 8);
-  inputWrap->addStretch (1);
-  topLayout->addLayout (inputWrap, 0);
-
-  contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
-  conversationStack_->addWidget (page);
-
-  panel->itemWidget= new QWidget (conversationListWidget_);
-  panel->itemWidget->setObjectName ("chat-tab-session-item");
-  QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
-  itemLayout->setContentsMargins (0, 0, 0, 0);
-  itemLayout->setSpacing (DpiUtils::scaled (kSessionItemSpacing));
-
-  panel->selectCheckBox= new QCheckBox (panel->itemWidget);
-  panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
-  panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  panel->selectCheckBox->setStyleSheet (
-      "QCheckBox::indicator:checked { "
-      "  border: 2px solid; border-radius: 3px; }"
-      "QCheckBox::indicator:unchecked { "
-      "  border: 2px solid; border-radius: 3px; }");
-  panel->selectCheckBox->hide ();
-  itemLayout->addWidget (panel->selectCheckBox);
-
-  panel->sidebarButton= new QPushButton ("新会话", panel->itemWidget);
-  panel->sidebarButton->setObjectName ("chat-tab-conversation-btn");
-  panel->sidebarButton->setCheckable (true);
-  panel->sidebarButton->setFocusPolicy (Qt::NoFocus);
-  panel->sidebarButton->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (panel->sidebarButton, kNavButtonFontPx);
-  panel->sidebarButton->setStyleSheet (
-      QString ("QPushButton { border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kConversationBtnRadius))
-          .arg (DpiUtils::scaled (kNavButtonPadY))
-          .arg (DpiUtils::scaled (kNavButtonPadX)));
-  connect (panel->sidebarButton, &QPushButton::clicked, this,
-           [this, panel] () { activate_conversation (panel); });
-  itemLayout->addWidget (panel->sidebarButton, 1);
-  conversationListLayout_->addWidget (panel->itemWidget);
-
-  return panel;
-}
-
-/**
- * @brief 使用指定模型创建并激活一个新会话。
- * @param model 模型名称。
- */
-void
-QTChatTabWidget::create_new_conversation_with_model (const string& model) {
-  ChatConversationPanel* panel= create_conversation ("");
-  if (!panel) return;
-  conversations_.prepend (panel);
-
-  // 绑定模型到会话并显示
-  sessionManager_.setModel (panel->sessionId, model);
-  if (panel->modelLabel) {
-    panel->modelLabel->setText (to_qstring (model));
-  }
-
-  activate_conversation (panel);
-
-  // 标记 buffer 为已保存，避免关闭 tab 时弹出保存提示
-  call ("buffer-pretend-saved",
-        ChatSessionManager::messageBufferUrl (panel->sessionId));
-  call ("buffer-pretend-saved",
-        ChatSessionManager::inputBufferUrl (panel->sessionId));
-
-  saveOneSession (panel->sessionId);
-}
-
-/**
- * @brief 确保最新的会话是空白对话且模型一致，若不是则新建一个。
- *
- * 只检查最新（最上方）的会话，避免旧空白会话影响判断。
- */
-void
-QTChatTabWidget::ensure_new_conversation () {
-  string currentModel=
-      as_string (call ("chat-tab-session-select-model", string ("")));
-
-  if (!conversations_.isEmpty ()) {
-    ChatConversationPanel* first= conversations_.first ();
-    if (!first->conversationMode) {
-      // 空白 session：检查 model 是否一致
-      if (sessionManager_.getModel (first->sessionId) == currentModel) {
-        activate_conversation (first); // 复用，切焦点
-        return;
-      }
-      // model 不一致：需要新建
-    }
-  }
-  create_new_conversation_with_model (currentModel);
-}
-
-/**
- * @brief 将可见页面切换到指定会话，并更新侧边栏。
- * @param panel 待激活的会话面板。
- */
-void
-QTChatTabWidget::activate_conversation (ChatConversationPanel* panel) {
-  if (!panel || !conversationStack_) return;
-  cout << "[chat-persist] activate_conversation: sid=" << panel->sessionId
-       << " panel=" << (void*) panel << " page=" << (void*) panel->pageWidget
-       << " stack_count=" << conversationStack_->count () << LF;
-  activeConversation_= panel;
-  conversationStack_->setCurrentWidget (panel->pageWidget);
-  refresh_sidebar ();
-  focus_input_editor (panel);
-}
-
-/**
- * @brief 更新会话计数标签及侧边栏按钮的选中状态。
- */
-void
-QTChatTabWidget::refresh_sidebar () {
-  cout << "[chat-persist] refresh_sidebar: conversations_.size()="
-       << conversations_.size () << LF;
-
-  QString filterText=
-      searchEdit_ ? searchEdit_->text ().toLower () : QString ();
-
-  // 标题去重：统计每个 title 出现次数（基于所有会话）
-  QMap<QString, int> titleCounts;
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel) continue;
-    ChatSession* session= sessionManager_.getSession (panel->sessionId);
-    if (!session || is_empty (session->title)) continue;
-    QString t= to_qstring (session->title);
-    titleCounts[t]++;
-  }
-
-  // 多选模式操作栏可见性
-  if (multiSelectBar_)
-    multiSelectBar_->setVisible (multiSelectMode_ || archiveSelectMode_);
-  if (batchArchiveBtn_) batchArchiveBtn_->setVisible (multiSelectMode_);
-
-  // 先将 item 容器从旧父控件移除，以便重新分配
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel || !panel->itemWidget) continue;
-    panel->itemWidget->setParent (nullptr);
-  }
-
-  // 清空两个列表布局
-  while (conversationListLayout_->count () > 0) {
-    QLayoutItem* item= conversationListLayout_->takeAt (0);
-    delete item;
-  }
-  while (archiveListLayout_->count () > 0) {
-    QLayoutItem* item= archiveListLayout_->takeAt (0);
-    delete item;
-  }
-
-  // 更新侧边栏按钮
-  int                activeCount  = 0;
-  int                archivedCount= 0;
-  QMap<QString, int> titleSeq; // 去重序号
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel || !panel->sidebarButton) continue;
-    ChatSession* session = sessionManager_.getSession (panel->sessionId);
-    bool         archived= session && session->archived;
-
-    cout << "[chat-persist] refresh_sidebar panel: sid=" << panel->sessionId
-         << " btn=" << (void*) panel->sidebarButton
-         << " parent=" << (void*) panel->sidebarButton->parent ()
-         << " visible=" << panel->sidebarButton->isVisible ()
-         << " enabled=" << panel->sidebarButton->isEnabled ()
-         << " archived=" << archived << LF;
-
-    QString displayText;
-    if (session && !is_empty (session->title)) {
-      displayText= to_qstring (session->title);
-      // 标题去重：同标题追加序号
-      if (titleCounts[displayText] > 1) {
-        int seq= ++titleSeq[displayText];
-        displayText+= QString (" (%1)").arg (seq);
-      }
-    }
-    else {
-      displayText= QString::fromUtf8 ("新会话");
-    }
-
-    panel->sidebarButton->setText (displayText);
-    panel->sidebarButton->setChecked (panel == activeConversation_ &&
-                                      !archived);
-
-    // 多选模式：仅在对应区域显示 checkbox
-    if (panel->selectCheckBox) {
-      if (archived) panel->selectCheckBox->setVisible (archiveSelectMode_);
-      else panel->selectCheckBox->setVisible (multiSelectMode_);
-    }
-
-    // 同步模型标签
-    if (panel->modelLabel && session) {
-      panel->modelLabel->setText (to_qstring (session->model));
-    }
-
-    // 搜索过滤
-    bool matchesFilter=
-        filterText.isEmpty () || displayText.toLower ().contains (filterText);
-    if (!matchesFilter) {
-      panel->itemWidget->setVisible (false);
-      continue;
-    }
-
-    panel->itemWidget->setVisible (true);
-    panel->sidebarButton->setVisible (true);
-
-    if (archived) {
-      ++archivedCount;
-      // 归档会话：放入归档列表，点击切换到空白会话
-      panel->itemWidget->setParent (archiveListWidget_);
-      archiveListLayout_->addWidget (panel->itemWidget);
-      disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
-      connect (panel->sidebarButton, &QPushButton::clicked, this,
-               [this, panel] () {
-                 // 如果当前激活的是空白的非归档会话，直接切换过去
-                 if (activeConversation_ && activeConversation_ != panel &&
-                     !activeConversation_->conversationMode) {
-                   activate_conversation (activeConversation_);
-                 }
-                 else {
-                   // 否则创建新会话
-                   string model= as_string (
-                       call ("chat-tab-session-select-model", string ("")));
-                   create_new_conversation_with_model (model);
-                 }
-               });
-    }
-    else {
-      ++activeCount;
-      // 活跃会话：放入会话列表，点击切换
-      panel->itemWidget->setParent (conversationListWidget_);
-      conversationListLayout_->addWidget (panel->itemWidget);
-      disconnect (panel->sidebarButton, &QPushButton::clicked, this, nullptr);
-      connect (panel->sidebarButton, &QPushButton::clicked, this,
-               [this, panel] () { activate_conversation (panel); });
-    }
-
-    // 右键菜单
-    panel->sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
-    disconnect (panel->sidebarButton, &QPushButton::customContextMenuRequested,
-                this, nullptr);
-    connect (
-        panel->sidebarButton, &QPushButton::customContextMenuRequested, this,
-        [this, panel, archived] (const QPoint& pos) {
-          QMenu        menu (panel->sidebarButton);
-          ChatSession* s= sessionManager_.getSession (panel->sessionId);
-
-          // 获取所有 checkbox 选中的 panel
-          QList<ChatConversationPanel*> checked= get_checked_panels ();
-
-          if (!checked.isEmpty ()) {
-            if (!s || !s->archived) {
-              menu.addAction (QString ("归档所选 (%1)").arg (checked.size ()));
-            }
-            menu.addAction (QString ("删除所选 (%1)").arg (checked.size ()));
-            QAction* chosen=
-                menu.exec (panel->sidebarButton->mapToGlobal (pos));
-            if (!chosen) return;
-            QString txt= chosen->text ();
-            if (txt.startsWith ("归档所选")) {
-              for (ChatConversationPanel* p : checked) {
-                sessionManager_.archiveSession (p->sessionId);
-                saveOneSession (p->sessionId);
-              }
-              exit_multi_select_mode ();
-            }
-            else if (txt.startsWith ("删除所选")) {
-              delete_sessions (checked);
-            }
-          }
-          else {
-            // 单选模式：原有菜单 + 删除 + 多选
-            QAction* renameAction= menu.addAction ("重命名");
-            QAction* archiveAction=
-                menu.addAction (s && s->archived ? "恢复" : "归档");
-            QAction* deleteAction= menu.addAction ("删除");
-            menu.addSeparator ();
-            QAction* multiSelectAction= menu.addAction ("多选");
-            QAction* chosen=
-                menu.exec (panel->sidebarButton->mapToGlobal (pos));
-            if (chosen == renameAction) {
-              bool    ok;
-              QString newTitle=
-                  QInputDialog::getText (panel->sidebarButton, "重命名会话",
-                                         "新标题:", QLineEdit::Normal,
-                                         s ? to_qstring (s->title) : "", &ok);
-              if (ok && s) {
-                sessionManager_.setTitle (panel->sessionId,
-                                          from_qstring (newTitle));
-                refresh_sidebar ();
-              }
-            }
-            else if (chosen == archiveAction) {
-              if (s && s->archived)
-                sessionManager_.restoreSession (panel->sessionId);
-              else sessionManager_.archiveSession (panel->sessionId);
-              saveOneSession (panel->sessionId);
-              refresh_sidebar ();
-            }
-            else if (chosen == deleteAction) {
-              QList<ChatConversationPanel*> single= {panel};
-              delete_sessions (single);
-            }
-            else if (chosen == multiSelectAction) {
-              enter_multi_select_mode (archived);
-            }
-          }
-        });
-  }
-
-  if (conversationCountLabel_) {
-    conversationCountLabel_->setText (
-        QString ("Conversations (%1)").arg (activeCount));
-  }
-
-  // 更新归档区标题
-  if (archiveHeaderButton_) {
-    archiveHeaderButton_->setText (
-        QString ("Archived (%1)").arg (archivedCount));
-    archiveHeaderButton_->setVisible (true);
-  }
-
-  // 归档列表可见性：有归档项且非折叠时显示
-  if (archiveListWidget_) {
-    archiveListWidget_->setVisible (archivedCount > 0 && !archiveCollapsed_);
-  }
-}
-
-/**
- * @brief 删除指定的会话面板列表。
- *
- * 从数据结构和 UI 中移除会话，但只隐藏控件，不释放内存。
- * @param panels 待删除的会话面板列表。
- */
-void
-QTChatTabWidget::delete_sessions (const QList<ChatConversationPanel*>& panels) {
-
-  for (ChatConversationPanel* panel : panels) {
-    // 1. 从 QStackedWidget 移除页面
-    if (conversationStack_ && panel->pageWidget)
-      conversationStack_->removeWidget (panel->pageWidget);
-
-    // 2. 从 conversations_ 列表移除
-    conversations_.removeOne (panel);
-
-    // 3. 清理当前激活指针
-    if (activeConversation_ == panel) activeConversation_= nullptr;
-
-    // 4. 删除持久化数据（磁盘文件 + manifest 条目）
-    call ("chat-persist-delete-one", panel->sessionId);
-
-    // 5. 调用 Scheme 清理会话状态
-    call ("chat-tab-session-destroy", panel->sessionId);
-
-    // 6. 从 SessionManager 移除（含 buffer 清理）
-    sessionManager_.removeSession (panel->sessionId);
-
-    // 7. 断开信号连接
-    if (panel->sidebarButton)
-      disconnect (panel->sidebarButton, nullptr, this, nullptr);
-    if (panel->sendButton)
-      disconnect (panel->sendButton, nullptr, this, nullptr);
-    if (panel->selectCheckBox)
-      disconnect (panel->selectCheckBox, nullptr, this, nullptr);
-
-    // 8. 隐藏并脱离父控件
-    if (panel->itemWidget) {
-      panel->itemWidget->hide ();
-      panel->itemWidget->setParent (nullptr);
-    }
-    if (panel->pageWidget) {
-      panel->pageWidget->hide ();
-      panel->pageWidget->setParent (nullptr);
-    }
-
-    // 9. 移入僵尸列表，等待析构时统一释放
-    zombiePanels_.append (panel);
-  }
-
-  // 退出多选模式
-  multiSelectMode_  = false;
-  archiveSelectMode_= false;
-
-  // 切换到剩余会话，若无剩余则新建
-  if (!conversations_.isEmpty ()) {
-    ChatConversationPanel* next= nullptr;
-    for (ChatConversationPanel* p : conversations_) {
-      ChatSession* s= sessionManager_.getSession (p->sessionId);
-      if (s && !s->archived) {
-        next= p;
-        break;
-      }
-    }
-    if (!next) next= conversations_.last ();
-    activeConversation_= next;
-    if (conversationStack_)
-      conversationStack_->setCurrentWidget (next->pageWidget);
-    refresh_sidebar ();
-  }
-  else {
-    string model=
-        as_string (call ("chat-tab-session-select-model", string ("")));
-    create_new_conversation_with_model (model);
-  }
-
-  // 确保所有聊天相关 buffer 标记为已保存，避免关闭 Tab 时弹出确认对话框
-  for (ChatConversationPanel* panel : conversations_) {
-    call ("buffer-pretend-saved",
-          ChatSessionManager::messageBufferUrl (panel->sessionId));
-    call ("buffer-pretend-saved",
-          ChatSessionManager::inputBufferUrl (panel->sessionId));
-  }
-  // 主 chat-tab buffer
-  call ("buffer-pretend-saved", url ("tmfs://chat-tab"));
-}
-
-/**
- * @brief 获取所有 checkbox 被勾选的会话面板。
- * @return 被勾选的面板列表。
- */
-QList<QTChatTabWidget::ChatConversationPanel*>
-QTChatTabWidget::get_checked_panels () const {
-  QList<ChatConversationPanel*> result;
-  for (ChatConversationPanel* panel : conversations_) {
-    if (panel && panel->selectCheckBox && panel->selectCheckBox->isChecked ())
-      result.append (panel);
-  }
-  return result;
-}
-
-/**
- * @brief 进入多选模式，显示 checkbox 和批量操作栏。
- * @param archived 是否从归档区进入。
- */
-void
-QTChatTabWidget::enter_multi_select_mode (bool archived) {
-  if (archived) archiveSelectMode_= true;
-  else multiSelectMode_= true;
-  refresh_sidebar ();
-}
-
-/**
- * @brief 退出多选模式，隐藏 checkbox 和批量操作栏。
- */
-void
-QTChatTabWidget::exit_multi_select_mode () {
-  multiSelectMode_  = false;
-  archiveSelectMode_= false;
-  // 取消所有 checkbox 选中
-  for (ChatConversationPanel* panel : conversations_) {
-    if (panel && panel->selectCheckBox)
-      panel->selectCheckBox->setChecked (false);
-  }
-  refresh_sidebar ();
-}
-
-/**
- * @brief 切换侧边栏的收起/展开状态。
- *
- * 收起时 sidebar 缩为窄条（仅含展开按钮），展开时恢复完整内容。
- */
 void
 QTChatTabWidget::toggle_sidebar () {
   if (!sidebarWidget_) return;
-
   if (sidebarCollapsed_) {
     if (floatingBtnContainer_) floatingBtnContainer_->hide ();
     sidebarWidget_->show ();
@@ -1265,273 +1112,28 @@ QTChatTabWidget::toggle_sidebar () {
   }
 }
 
-/**
- * @brief 将指定面板从欢迎态切换到会话态。
- *
- * 播放时长为 \ref kTransitionDurationMs 毫秒的淡入淡出及间距动画。
- * @param panel 目标会话面板。
- */
-void
-QTChatTabWidget::enter_conversation_mode (ChatConversationPanel* panel) {
-  if (!panel || panel->conversationMode) return;
+/******************************************************************************
+ * QTChatTabWidget 事件处理
+ ******************************************************************************/
 
-  panel->conversationMode= true;
-  const int startOffset  = DpiUtils::scaled (kWelcomeTopOffsetY);
-  const int endOffset    = DpiUtils::scaled (kConversationTopOffsetY);
-
-  if (panel->messageFrame) {
-    QGraphicsOpacityEffect* messageEffect=
-        new QGraphicsOpacityEffect (panel->messageFrame);
-    messageEffect->setOpacity (0.0);
-    panel->messageFrame->setGraphicsEffect (messageEffect);
-    panel->messageFrame->show ();
-
-    QPropertyAnimation* fadeIn=
-        new QPropertyAnimation (messageEffect, "opacity", panel->messageFrame);
-    fadeIn->setDuration (kTransitionDurationMs);
-    fadeIn->setStartValue (0.0);
-    fadeIn->setEndValue (1.0);
-    fadeIn->start (QAbstractAnimation::DeleteWhenStopped);
-  }
-
-  if (panel->welcomeTitle) {
-    QGraphicsOpacityEffect* titleEffect=
-        new QGraphicsOpacityEffect (panel->welcomeTitle);
-    titleEffect->setOpacity (1.0);
-    panel->welcomeTitle->setGraphicsEffect (titleEffect);
-
-    QPropertyAnimation* fadeOut=
-        new QPropertyAnimation (titleEffect, "opacity", panel->welcomeTitle);
-    fadeOut->setDuration (kTransitionDurationMs);
-    fadeOut->setStartValue (1.0);
-    fadeOut->setEndValue (0.0);
-    connect (fadeOut, &QPropertyAnimation::finished, this, [panel] () {
-      if (panel->welcomeTitle) panel->welcomeTitle->hide ();
-    });
-    fadeOut->start (QAbstractAnimation::DeleteWhenStopped);
-  }
-
-  if (panel->topSpacer && panel->pageWidget && panel->pageWidget->layout ()) {
-    QVariantAnimation* offsetAnim= new QVariantAnimation (panel->pageWidget);
-    offsetAnim->setDuration (kTransitionDurationMs);
-    offsetAnim->setStartValue (startOffset);
-    offsetAnim->setEndValue (endOffset);
-    connect (offsetAnim, &QVariantAnimation::valueChanged, this,
-             [panel] (const QVariant& value) {
-               if (!panel->topSpacer || !panel->pageWidget ||
-                   !panel->pageWidget->layout ())
-                 return;
-               panel->topSpacer->changeSize (
-                   0, value.toInt (), QSizePolicy::Minimum, QSizePolicy::Fixed);
-               panel->pageWidget->layout ()->invalidate ();
-               panel->pageWidget->layout ()->activate ();
-             });
-    offsetAnim->start (QAbstractAnimation::DeleteWhenStopped);
-  }
-}
-
-/**
- * @brief 读取面板输入内容，委托发送给 Scheme 层，成功后进入会话态。
- * @param panel 发送消息的会话面板。
- */
-void
-QTChatTabWidget::handle_send (ChatConversationPanel* panel) {
-  if (!panel) return;
-
-  tree inputBody= read_input_message (panel);
-  if (is_empty_document_body (inputBody)) return;
-
-  // 首次发送：自动提取标题
-  ChatSession* session= sessionManager_.getSession (panel->sessionId);
-  if (session && is_empty (session->title)) {
-    string extracted= extract_title (inputBody, 20);
-    sessionManager_.setTitle (panel->sessionId, extracted);
-  }
-
-  if (!as_bool (call ("chat-tab-send", panel->sessionId))) return;
-
-  sessionManager_.setState (panel->sessionId, ChatState::Generating);
-  enter_conversation_mode (panel);
-  refresh_sidebar ();
-  focus_input_editor (panel);
-  saveOneSession (panel->sessionId);
-}
-
-/**
- * @brief 从面板输入 buffer 中获取文档树。
- * @param panel 待读取输入的会话面板。
- * @return 输入内容对应的 TeXmacs 树。
- */
-tree
-QTChatTabWidget::read_input_message (const ChatConversationPanel* panel) const {
-  if (!panel) return tree (DOCUMENT, "");
-  return get_buffer_body (
-      ChatSessionManager::inputBufferUrl (panel->sessionId));
-}
-
-/**
- * @brief 取消当前会话的 LLM 生成。
- * @param panel 待取消的会话面板。
- */
-void
-QTChatTabWidget::handle_cancel (ChatConversationPanel* panel) {
-  if (!panel) return;
-  call ("chat-tab-cancel", panel->sessionId);
-  sessionManager_.setState (panel->sessionId, ChatState::Idle);
-}
-
-/**
- * @brief 被 Scheme 侧通知生成状态变更。
- * @param sessionId 会话 ID。
- * @param stateStr 状态字符串 ("idle" 或 "generating")。
- */
-void
-QTChatTabWidget::notifyStateChanged (const string& sessionId,
-                                     const string& stateStr) {
-  ChatSession* session= sessionManager_.getSession (sessionId);
-  if (!session) return;
-
-  ChatState newState=
-      (stateStr == "generating") ? ChatState::Generating : ChatState::Idle;
-  sessionManager_.setState (sessionId, newState);
-
-  // 更新按钮状态
-  ChatConversationPanel* panel=
-      static_cast<ChatConversationPanel*> (session->panel);
-  if (!panel || !panel->sendButton) return;
-
-  if (newState == ChatState::Generating) {
-    panel->sendButton->setToolTip ("Stop");
-    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
-    connect (panel->sendButton, &QPushButton::clicked, this,
-             [this, panel] () { handle_cancel (panel); });
-  }
-  else {
-    panel->sendButton->setToolTip ("Send");
-    disconnect (panel->sendButton, &QPushButton::clicked, this, nullptr);
-    connect (panel->sendButton, &QPushButton::clicked, this,
-             [this, panel] () { handle_send (panel); });
-    // 模型输出结束，保存会话内容
-    saveOneSession (sessionId);
-  }
-}
-
-/**
- * @brief 将键盘焦点设置到指定面板的输入编辑器。
- * @param panel 目标会话面板。
- */
-void
-QTChatTabWidget::focus_input_editor (ChatConversationPanel* panel) {
-  if (panel && panel->inputEditorWidget) {
-    panel->inputEditorWidget->setFocus (Qt::OtherFocusReason);
-
-    url inBufUrl= ChatSessionManager::inputBufferUrl (panel->sessionId);
-    url vw      = get_passive_view (inBufUrl);
-    if (!is_none (vw)) {
-      set_current_view (vw);
-      call ("update-menus");
-    }
-  }
-}
-
-/**
- * @brief 计算输入文档的段落（行）数。
- * @param body TeXmacs 文档树。
- * @return 段落数量。
- */
-int
-QTChatTabWidget::count_input_lines (tree body) {
-  if (!is_func (body, DOCUMENT)) return 1;
-  if (N (body) == 0) return 1;
-  if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  return N (body);
-}
-
-/**
- * @brief 根据排版后的实际高度估算等效行数。
- * @param contentHeight 排版后的内容高度（SI 单位）。
- * @return 等效行数，若高度无效则返回 0。
- */
-int
-QTChatTabWidget::estimate_lines_from_height (SI contentHeight) {
-  if (contentHeight <= 0) return 0;
-  int px= to_qsize (0, contentHeight).height ();
-  if (px <= 0) return 0;
-  return (px + kInputLineHeight - 1) / kInputLineHeight;
-}
-
-/**
- * @brief 根据输入内容自适应调整输入框高度。
- * @param panel 目标会话面板。
- */
-void
-QTChatTabWidget::adjust_input_height (ChatConversationPanel* panel) {
-  if (!panel || !panel->inputEditorWidget) return;
-
-  tree body       = read_input_message (panel);
-  int  docLines   = count_input_lines (body);
-  int  visualLines= 0;
-
-  if (QTMWidget* editor= panel->inputEditorWidget->findChild<QTMWidget*> ()) {
-    if (edit_interface_rep* ed=
-            dynamic_cast<edit_interface_rep*> (editor->tm_widget ())) {
-      visualLines= estimate_lines_from_height (ed->get_total_height (true));
-    }
-  }
-
-  int lines       = qMax (docLines, visualLines);
-  int targetLines = qMax (kInputDefaultLines, lines);
-  targetLines     = qMin (targetLines, kInputMaxLines);
-  int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
-
-  if (panel->inputEditorWidget->minimumHeight () != targetHeight ||
-      panel->inputEditorWidget->maximumHeight () != targetHeight) {
-    panel->inputEditorWidget->setMinimumHeight (targetHeight);
-    panel->inputEditorWidget->setMaximumHeight (targetHeight);
-  }
-}
-
-/**
- * @brief 通过 \c eval_scheme 将按键按下事件转发到 Scheme 层。
- * @param event Qt 按键事件。
- */
 void
 QTChatTabWidget::keyPressEvent (QKeyEvent* event) {
   string key= from_key_press_event (event);
   if (is_empty (key)) return QWidget::keyPressEvent (event);
-
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
   event->accept ();
 }
 
-/**
- * @brief 通过 \c eval_scheme 将按键释放事件转发到 Scheme 层。
- * @param event Qt 按键事件。
- */
 void
 QTChatTabWidget::keyReleaseEvent (QKeyEvent* event) {
   string key= from_key_release_event (event);
   if (is_empty (key)) return QWidget::keyReleaseEvent (event);
-
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");
   event->accept ();
 }
 
 bool
 QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
-  if (event->type () == QEvent::KeyPress) {
-    QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
-    if ((keyEvent->key () == Qt::Key_Return ||
-         keyEvent->key () == Qt::Key_Enter) &&
-        !(keyEvent->modifiers () & Qt::ShiftModifier)) {
-      void* ptr= watched->property ("chat_panel").value<void*> ();
-      if (ptr) {
-        ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (ptr);
-        handle_send (panel);
-        return true;
-      }
-    }
-  }
   if (watched == newChatButton_) {
     if (event->type () == QEvent::HoverEnter) {
       if (QGraphicsDropShadowEffect* effect=
@@ -1553,441 +1155,4 @@ QTChatTabWidget::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   return QWidget::eventFilter (watched, event);
-}
-
-/******************************************************************************
- * ChatSessionManager 实现
- ******************************************************************************/
-
-string
-ChatSessionManager::createSession () {
-  string      sessionId= lolly::hash::uuid_make ();
-  ChatSession session;
-  session.sessionId= sessionId;
-  session.state    = ChatState::Idle;
-  session.archived = false;
-  session.panel    = nullptr;
-  sessions_.insert (std::make_pair (sessionId, session));
-  return sessionId;
-}
-
-void
-ChatSessionManager::removeSession (const string& sessionId) {
-  sessions_.erase (sessionId);
-}
-
-void
-ChatSessionManager::archiveSession (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->archived= true;
-}
-
-void
-ChatSessionManager::restoreSession (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->archived= false;
-}
-
-void
-ChatSessionManager::setTitle (const string& sessionId, const string& title) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->title= title;
-}
-
-void
-ChatSessionManager::setState (const string& sessionId, ChatState state) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->state= state;
-}
-
-void
-ChatSessionManager::setModel (const string& sessionId, const string& model) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->model= model;
-}
-
-string
-ChatSessionManager::getModel (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) return s->model;
-  return "";
-}
-
-ChatSession*
-ChatSessionManager::getSession (const string& sessionId) {
-  auto it= sessions_.find (sessionId);
-  if (it != sessions_.end ()) return &(it->second);
-  return nullptr;
-}
-
-std::vector<string>
-ChatSessionManager::getAllSessionIds () const {
-  std::vector<string> ids;
-  for (const auto& kv : sessions_)
-    ids.push_back (kv.first);
-  return ids;
-}
-
-ChatSession*
-ChatSessionManager::findSessionByPanel (void* panel) {
-  for (auto& kv : sessions_) {
-    if (kv.second.panel == panel) return &kv.second;
-  }
-  return nullptr;
-}
-
-void
-ChatSessionManager::setPanel (const string& sessionId, void* panel) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->panel= panel;
-}
-
-url
-ChatSessionManager::messageBufferUrl (const string& sessionId) {
-  return url ("tmfs://chat-message-" * sessionId);
-}
-
-url
-ChatSessionManager::inputBufferUrl (const string& sessionId) {
-  return url ("tmfs://chat-input-" * sessionId);
-}
-
-void
-ChatSessionManager::insertSession (const ChatSession& session) {
-  sessions_.insert (std::make_pair (session.sessionId, session));
-}
-
-/******************************************************************************
- * QTChatTabWidget 持久化实现
- ******************************************************************************/
-
-void
-QTChatTabWidget::saveOneSession (const string& sessionId) {
-  ChatSession* s= sessionManager_.getSession (sessionId);
-  if (!s) return;
-  call ("chat-persist-save-one", sessionId, s->title, s->model,
-        s->archived ? string ("true") : string ("false"));
-}
-
-void
-QTChatTabWidget::loadSessions () {
-  cout << "[chat-persist] loadSessions started" << LF;
-  // Scheme 端 chat-persist-load-all 会逐个调用 qt-chat-tab-restore-session
-  call ("chat-persist-load-all");
-  cout << "[chat-persist] loadSessions: restored " << conversations_.size ()
-       << " sessions" << LF;
-
-  // 激活第一个非归档会话，否则激活第一个
-  for (ChatConversationPanel* panel : conversations_) {
-    if (!panel) continue;
-    ChatSession* s= sessionManager_.getSession (panel->sessionId);
-    cout << "[chat-persist] loadSessions scanning: sid=" << panel->sessionId
-         << " archived=" << (s ? s->archived : -1) << " panel=" << (void*) panel
-         << " page=" << (void*) panel->pageWidget << LF;
-    if (s && !s->archived) {
-      cout << "[chat-persist] loadSessions: activating first non-archived"
-           << LF;
-      activate_conversation (panel);
-      return;
-    }
-  }
-  if (!conversations_.isEmpty ()) {
-    cout << "[chat-persist] loadSessions: activating first (all archived)"
-         << LF;
-    activate_conversation (conversations_.first ());
-  }
-
-  // 恢复 Scheme 层的全局当前模型
-  if (!conversations_.isEmpty ()) {
-    ChatConversationPanel* last= conversations_.last ();
-    ChatSession*           s   = sessionManager_.getSession (last->sessionId);
-    if (s && !is_empty (s->model)) {
-      call ("chat-tab-session-select-model", s->model);
-    }
-  }
-}
-
-void
-QTChatTabWidget::addConversation (ChatConversationPanel* panel) {
-  if (panel) conversations_.append (panel);
-}
-
-QTChatTabWidget::ChatConversationPanel*
-QTChatTabWidget::restore_conversation (const string& sessionId,
-                                       const string& title, const string& model,
-                                       bool archived) {
-  if (!conversationStack_ || !conversationListLayout_) return nullptr;
-
-  // 注册 Scheme 侧会话状态
-  call ("chat-persist-register-session", sessionId, model);
-
-  // 手动插入会话元数据
-  ChatSession session;
-  session.sessionId= sessionId;
-  session.title    = title;
-  session.model    = model;
-  session.state    = ChatState::Idle;
-  session.archived = archived;
-  session.panel    = nullptr;
-  sessionManager_.insertSession (session);
-
-  ChatConversationPanel* panel= new ChatConversationPanel ();
-  panel->sessionId            = sessionId;
-  sessionManager_.setPanel (sessionId, panel);
-
-  url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
-  url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
-
-  QWidget* page= new QWidget (conversationStack_);
-  page->setObjectName ("chat-tab-conversation-page");
-  panel->pageWidget= page;
-
-  QVBoxLayout* contentLayout= new QVBoxLayout (page);
-  contentLayout->setContentsMargins (0, DpiUtils::scaled (kContentMarginY), 0,
-                                     DpiUtils::scaled (kContentMarginY));
-  contentLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-  panel->topSpacer= new QSpacerItem (0, DpiUtils::scaled (kWelcomeTopOffsetY),
-                                     QSizePolicy::Minimum, QSizePolicy::Fixed);
-  contentLayout->addSpacerItem (panel->topSpacer);
-
-  QWidget*     topPanel = new QWidget (page);
-  QVBoxLayout* topLayout= new QVBoxLayout (topPanel);
-  topLayout->setContentsMargins (0, 0, 0, 0);
-  topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-
-  panel->welcomeTitle= new QLabel ("Welcome to Liii STEM!", topPanel);
-  panel->welcomeTitle->setObjectName ("chat-tab-welcome-title");
-  panel->welcomeTitle->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (panel->welcomeTitle, kWelcomeFontPx);
-  topLayout->addWidget (panel->welcomeTitle);
-
-  panel->modelLabel= new QLabel ("", topPanel);
-  panel->modelLabel->setObjectName ("chat-tab-model-label");
-  panel->modelLabel->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
-  panel->modelLabel->setStyleSheet (
-      QString ("padding: 2px %1px; border-radius: %2px;")
-          .arg (DpiUtils::scaled (kNavButtonPadX))
-          .arg (DpiUtils::scaled (kModelLabelRadius)));
-  panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
-  topLayout->addWidget (panel->modelLabel, 0, Qt::AlignHCenter);
-
-  // 恢复会话时，buffer 中已有 Scheme 加载的消息内容，需使用 buffer 内容而非空
-  // tree
-  tree msgBody= get_buffer_body (msgBufUrl);
-  if (is_empty_document_body (msgBody)) msgBody= tree (DOCUMENT, "");
-  panel->messageWidget=
-      texmacs_input_widget (msgBody, make_chat_embedded_style (), msgBufUrl);
-
-  QWidget* messageQWidget= concrete (panel->messageWidget)->as_qwidget ();
-  panel->messageFrame    = new QWidget (topPanel);
-  panel->messageFrame->setObjectName ("chat-tab-message-frame");
-  panel->messageFrame->setStyleSheet (
-      QString ("border: none; border-radius: %1px;")
-          .arg (DpiUtils::scaled (kInputFrameRadius)));
-  QVBoxLayout* messageFrameLayout= new QVBoxLayout (panel->messageFrame);
-  messageFrameLayout->setContentsMargins (0, 0, 0, 0);
-  messageFrameLayout->setSpacing (0);
-  messageQWidget->setParent (panel->messageFrame);
-  messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
-  messageFrameLayout->addWidget (messageQWidget);
-  panel->messageFrame->hide ();
-  topLayout->addWidget (panel->messageFrame, 1);
-
-  QWidget* inputArea= new QWidget (topPanel);
-  inputArea->setObjectName ("chat-tab-input-area");
-  QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
-  inputAreaLayout->setContentsMargins (0, 0, 0, 0);
-  inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-
-  panel->inputWidget= texmacs_input_widget (
-      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")),
-      make_chat_embedded_style (), inBufUrl);
-  QWidget* inputQWidget   = concrete (panel->inputWidget)->as_qwidget ();
-  panel->inputEditorWidget= inputQWidget;
-  {
-    QList<QAbstractScrollArea*> areas=
-        inputQWidget->findChildren<QAbstractScrollArea*> ();
-    for (QAbstractScrollArea* area : areas) {
-      if (!area) continue;
-      area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
-      if (area->viewport ()) {
-      }
-      area->setStyleSheet (
-          "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; "
-          "}"
-          "QScrollBar::add-line:vertical, "
-          "QScrollBar::sub-line:vertical { height: 0px; }");
-    }
-  }
-  if (QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ()) {
-    editor->setProperty ("chat_panel", QVariant::fromValue ((void*) panel));
-    editor->installEventFilter (this);
-  }
-  QWidget* inputFrame= new QWidget (inputArea);
-  inputFrame->setObjectName ("chat-tab-input-frame");
-  inputFrame->setStyleSheet (
-      QString (
-          "QWidget#chat-tab-input-frame { "
-          "  border-width: 1px; border-style: solid; border-radius: %1px; }"
-          "QWidget#chat-tab-input-frame:hover { "
-          "  border-width: 1px; border-style: solid; }")
-          .arg (DpiUtils::scaled (kInputFrameRadius)));
-  QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
-  inputFrameLayout->setContentsMargins (
-      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad),
-      DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad));
-  inputFrameLayout->setSpacing (0);
-  inputQWidget->setParent (inputFrame);
-  int defaultHeight= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  inputQWidget->setMinimumHeight (defaultHeight);
-  inputQWidget->setMaximumHeight (defaultHeight);
-  inputFrameLayout->addWidget (inputQWidget);
-
-  QHBoxLayout* btnLayout= new QHBoxLayout ();
-  btnLayout->addStretch ();
-
-  panel->sendButton= new QPushButton (inputFrame);
-  panel->sendButton->setObjectName ("chat-tab-send-btn");
-  panel->sendButton->setFocusPolicy (Qt::NoFocus);
-  panel->sendButton->setCursor (Qt::PointingHandCursor);
-  panel->sendButton->setIcon (QIcon (":llm-chat/send.svg"));
-  int sendIconSize= DpiUtils::scaled (kSendIconSize);
-  panel->sendButton->setIconSize (QSize (sendIconSize, sendIconSize));
-  panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
-                                   DpiUtils::scaled (kSendButtonSize));
-  panel->sendButton->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kSendButtonRadius)));
-  connect (panel->sendButton, &QPushButton::clicked, this,
-           [this, panel] () { handle_send (panel); });
-  btnLayout->addWidget (panel->sendButton);
-  inputFrameLayout->addLayout (btnLayout);
-
-  inputAreaLayout->addWidget (inputFrame, 0);
-
-  QTimer* inputHeightTimer= new QTimer (inputFrame);
-  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
-  connect (inputHeightTimer, &QTimer::timeout, this,
-           [this, panel] () { adjust_input_height (panel); });
-  inputHeightTimer->start ();
-
-  QHBoxLayout* inputWrap= new QHBoxLayout ();
-  inputWrap->addStretch (1);
-  inputWrap->addWidget (inputArea, 8);
-  inputWrap->addStretch (1);
-  topLayout->addLayout (inputWrap, 0);
-
-  contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
-  conversationStack_->addWidget (page);
-
-  panel->itemWidget= new QWidget (conversationListWidget_);
-  panel->itemWidget->setObjectName ("chat-tab-session-item");
-  QHBoxLayout* itemLayout= new QHBoxLayout (panel->itemWidget);
-  itemLayout->setContentsMargins (0, 0, 0, 0);
-  itemLayout->setSpacing (DpiUtils::scaled (kSessionItemSpacing));
-
-  panel->selectCheckBox= new QCheckBox (panel->itemWidget);
-  panel->selectCheckBox->setObjectName ("chat-tab-select-checkbox");
-  panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
-  panel->selectCheckBox->setStyleSheet (
-      "QCheckBox::indicator:checked { "
-      "  border: 2px solid; border-radius: 3px; }"
-      "QCheckBox::indicator:unchecked { "
-      "  border: 2px solid; border-radius: 3px; }");
-  panel->selectCheckBox->hide ();
-  itemLayout->addWidget (panel->selectCheckBox);
-
-  panel->sidebarButton= new QPushButton ("新会话", panel->itemWidget);
-  panel->sidebarButton->setObjectName ("chat-tab-conversation-btn");
-  panel->sidebarButton->setCheckable (true);
-  panel->sidebarButton->setFocusPolicy (Qt::NoFocus);
-  panel->sidebarButton->setCursor (Qt::PointingHandCursor);
-  DpiUtils::applyScaledFont (panel->sidebarButton, kNavButtonFontPx);
-  panel->sidebarButton->setStyleSheet (
-      QString ("QPushButton { border-radius: %1px; padding: %2px %3px; }")
-          .arg (DpiUtils::scaled (kConversationBtnRadius))
-          .arg (DpiUtils::scaled (kNavButtonPadY))
-          .arg (DpiUtils::scaled (kNavButtonPadX)));
-  connect (panel->sidebarButton, &QPushButton::clicked, this,
-           [this, panel] () { activate_conversation (panel); });
-  itemLayout->addWidget (panel->sidebarButton, 1);
-  conversationListLayout_->addWidget (panel->itemWidget);
-
-  // 如果消息 buffer 非空，进入会话模式
-  if (!is_empty_document_body (msgBody)) {
-    enter_conversation_mode (panel);
-  }
-
-  if (panel->modelLabel) {
-    panel->modelLabel->setText (to_qstring (model));
-  }
-
-  cout << "[chat-persist] restore_conversation: sid=" << sessionId
-       << " panel=" << (void*) panel << " btn=" << (void*) panel->sidebarButton
-       << " page=" << (void*) panel->pageWidget
-       << " stack_count=" << conversationStack_->count () << LF;
-
-  return panel;
-}
-
-/******************************************************************************
- * qt_chat_tab_set_state 自由函数（Scheme→C++ 回调）
- ******************************************************************************/
-
-void
-qt_chat_tab_set_state (string sessionId, string stateStr) {
-  // 从顶层窗口查找 QTChatTabWidget
-  QWidgetList topWidgets= QApplication::topLevelWidgets ();
-  for (QWidget* top : topWidgets) {
-    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
-    if (chat) {
-      chat->notifyStateChanged (sessionId, stateStr);
-      return;
-    }
-  }
-}
-
-/**
- * @brief Scheme→C++ 回调：恢复单个聊天会话。
- */
-void
-qt_chat_tab_restore_session (string sessionId, string title, string model,
-                             string archived) {
-  QWidgetList topWidgets= QApplication::topLevelWidgets ();
-  for (QWidget* top : topWidgets) {
-    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
-    if (chat) {
-      bool  isArchived= (archived == "true");
-      auto* panel=
-          chat->restore_conversation (sessionId, title, model, isArchived);
-      if (panel) chat->addConversation (panel);
-      return;
-    }
-  }
-}
-
-/**
- * @brief Scheme→C++ 回调：加载所有聊天会话。
- */
-void
-qt_chat_tab_load_sessions () {
-  cout << "[chat-persist] qt_chat_tab_load_sessions called" << LF;
-  QWidgetList topWidgets= QApplication::topLevelWidgets ();
-  cout << "[chat-persist] top-level widgets count: " << topWidgets.size ()
-       << LF;
-  for (QWidget* top : topWidgets) {
-    QTChatTabWidget* chat= top->findChild<QTChatTabWidget*> ();
-    if (chat) {
-      cout << "[chat-persist] found QTChatTabWidget, calling loadSessions"
-           << LF;
-      chat->loadSessions ();
-      return;
-    }
-  }
-  cout << "[chat-persist] WARNING: QTChatTabWidget not found in any top-level "
-          "widget"
-       << LF;
 }
