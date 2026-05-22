@@ -341,9 +341,7 @@ PDFReaderWidget::updateZoomDisplay () {
   QString text   = QString::number (percent) + "%";
 
   bool blocked= zoomCombo_->blockSignals (true);
-  int  idx    = zoomCombo_->findText (text);
-  if (idx >= 0) zoomCombo_->setCurrentIndex (idx);
-  else zoomCombo_->setCurrentText (text);
+  zoomCombo_->setText (text);
   zoomCombo_->blockSignals (blocked);
 }
 
