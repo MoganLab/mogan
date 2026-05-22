@@ -220,9 +220,7 @@ setup_floating_button (QWidget* parent, const QString& objectName,
   btn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
                      DpiUtils::scaled (kToggleBtnSize));
   btn->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "background-color: transparent; } "
-               "QPushButton:hover { background-color: #d0d0d0; }")
+      QString ("QPushButton { border: none; border-radius: %1px; }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
   return btn;
 }
@@ -290,7 +288,6 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
   sidebar->setObjectName ("chat-tab-sidebar");
   sidebar->setMinimumWidth (DpiUtils::scaled (kSidebarMinWidth));
   sidebar->setSizePolicy (QSizePolicy::Minimum, QSizePolicy::Preferred);
-  sidebar->setStyleSheet ("background-color: #f5f5f5;");
   sidebarWidget_= sidebar;
 
   QVBoxLayout* sidebarLayout= new QVBoxLayout (sidebar);
@@ -365,9 +362,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   collapseBtn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
                              DpiUtils::scaled (kToggleBtnSize));
   collapseBtn->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "background-color: #e8e8e8; }"
-               "QPushButton:hover { background-color: #d0d0d0; }")
+      QString ("QPushButton { border: none; border-radius: %1px; }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
   connect (collapseBtn, &QPushButton::clicked, this,
            [this] () { toggle_sidebar (); });
@@ -389,9 +384,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
       QSize (DpiUtils::scaled (kNewChatButtonWidth),
              DpiUtils::scaled (kNewChatButtonHeight)));
   newChatButton_->setStyleSheet (
-      QString ("QPushButton { text-align: center; border: none; "
-               "border-radius: %1px; padding: %2px %3px; "
-               "background-color: #ffffff; color: #333333; }")
+      QString ("QPushButton { border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kNewChatButtonHeight / 2))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
@@ -415,7 +408,6 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   conversationCountLabel_= new QLabel ("Conversations (0)", normalContent);
   conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
   DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
-  conversationCountLabel_->setStyleSheet ("color: #666666;");
   normalLayout->addWidget (conversationCountLabel_);
 
   // 搜索框
@@ -426,8 +418,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   searchEdit->setFocusPolicy (Qt::ClickFocus);
   DpiUtils::applyScaledFont (searchEdit, kCollapseFontPx);
   searchEdit->setStyleSheet (
-      QString ("QLineEdit { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+      QString ("QLineEdit { border-width: 1px; border-style: solid; "
+               "border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -449,8 +441,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   cancelSelectBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (cancelSelectBtn, kCollapseFontPx);
   cancelSelectBtn->setStyleSheet (
-      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+      QString ("QPushButton { border-width: 1px; border-style: solid; "
+               "border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -464,8 +456,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   selectAllBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (selectAllBtn, kCollapseFontPx);
   selectAllBtn->setStyleSheet (
-      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+      QString ("QPushButton { border-width: 1px; border-style: solid; "
+               "border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -488,8 +480,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   batchArchiveBtn_->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (batchArchiveBtn_, kCollapseFontPx);
   batchArchiveBtn_->setStyleSheet (
-      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+      QString ("QPushButton { border-width: 1px; border-style: solid; "
+               "border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -509,8 +501,8 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   batchDeleteBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (batchDeleteBtn, kCollapseFontPx);
   batchDeleteBtn->setStyleSheet (
-      QString ("QPushButton { border: 1px solid #cccccc; border-radius: %1px; "
-               "padding: %2px %3px; background-color: #ffffff; }")
+      QString ("QPushButton { border-width: 1px; border-style: solid; "
+               "border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kCollapseBorderRadius))
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
@@ -525,6 +517,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
 
   // 列表滚动区
   QWidget*     scrollContent= new QWidget (normalContent);
+  scrollContent->setObjectName ("chat-tab-scroll-content");
   QVBoxLayout* scrollLayout = new QVBoxLayout (scrollContent);
   scrollLayout->setContentsMargins (0, 0, 0, 0);
   scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
@@ -543,10 +536,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (archiveHeaderButton_, kNavTitleFontPx);
   archiveHeaderButton_->setStyleSheet (
-      QString ("QPushButton { text-align: left; border: none; "
-               "padding: %1px %2px; color: #666666; background: transparent; "
-               "font-weight: bold; } "
-               "QPushButton:hover { color: #333333; }")
+      QString ("QPushButton { padding: %1px %2px; }")
           .arg (DpiUtils::scaled (kNavTitlePadding))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   connect (archiveHeaderButton_, &QPushButton::clicked, this, [this] () {
@@ -612,7 +602,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
   floatingLayout->setSpacing (DpiUtils::scaled (kFloatingBtnSpacing));
   floatingContainer->setStyleSheet (
       QString ("QWidget#chat-tab-floating-container { "
-               "background-color: #e8e8e8; border-radius: %1px; }")
+               "border-radius: %1px; }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2 + kFloatingContainerPad)));
 
   QPushButton* floatingBtn=
@@ -686,8 +676,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->modelLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
   panel->modelLabel->setStyleSheet (
-      QString ("color: #888888; padding: 2px %1px; background-color: #f0f0f0; "
-               "border-radius: %2px;")
+      QString ("padding: 2px %1px; border-radius: %2px;")
           .arg (DpiUtils::scaled (kNavButtonPadX))
           .arg (DpiUtils::scaled (kModelLabelRadius)));
   panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
@@ -700,7 +689,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->messageFrame    = new QWidget (topPanel);
   panel->messageFrame->setObjectName ("chat-tab-message-frame");
   panel->messageFrame->setStyleSheet (
-      QString ("border: none; border-radius: %1px; background-color: #ffffff;")
+      QString ("border: none; border-radius: %1px;")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* messageFrameLayout= new QVBoxLayout (panel->messageFrame);
   messageFrameLayout->setContentsMargins (0, 0, 0, 0);
@@ -730,15 +719,11 @@ QTChatTabWidget::create_conversation (const QString& title) {
       area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
       if (area->viewport ()) {
-        area->viewport ()->setStyleSheet ("background-color: #ffffff;");
+
       }
       area->setStyleSheet (
-          "QScrollBar:vertical { background: transparent; width: 6px; "
-          "                      margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { background: #c8c8c8; "
-          "                            border-radius: 3px; "
-          "                            min-height: 20px; }"
-          "QScrollBar::handle:vertical:hover { background: #a0a0a0; }"
+          "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
+          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; }"
           "QScrollBar::add-line:vertical, "
           "QScrollBar::sub-line:vertical { height: 0px; }");
     }
@@ -751,10 +736,9 @@ QTChatTabWidget::create_conversation (const QString& title) {
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
       QString ("QWidget#chat-tab-input-frame { "
-               "  border: 1px solid #e0e0e0; border-radius: %1px; "
-               "  background-color: #ffffff; }"
+               "  border-width: 1px; border-style: solid; border-radius: %1px; }"
                "QWidget#chat-tab-input-frame:hover { "
-               "  border: 1px solid #c0c0c0; }")
+               "  border-width: 1px; border-style: solid; }")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
   inputFrameLayout->setContentsMargins (
@@ -780,10 +764,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
                                    DpiUtils::scaled (kSendButtonSize));
   panel->sendButton->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "            background-color: transparent; }"
-               "QPushButton:hover { background-color: #f0f0f0; }"
-               "QPushButton:pressed { background-color: #e0e0e0; }")
+      QString ("QPushButton { border: none; border-radius: %1px; }")
           .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (panel->sendButton, &QPushButton::clicked, this,
            [this, panel] () { handle_send (panel); });
@@ -818,11 +799,9 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
   panel->selectCheckBox->setStyleSheet (
       "QCheckBox::indicator:checked { "
-      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-      "  border-radius: 3px; }"
+      "  border: 2px solid; border-radius: 3px; }"
       "QCheckBox::indicator:unchecked { "
-      "  background-color: #ffffff; border: 2px solid #cccccc; "
-      "  border-radius: 3px; }");
+      "  border: 2px solid; border-radius: 3px; }");
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
@@ -833,11 +812,7 @@ QTChatTabWidget::create_conversation (const QString& title) {
   panel->sidebarButton->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (panel->sidebarButton, kNavButtonFontPx);
   panel->sidebarButton->setStyleSheet (
-      QString ("QPushButton { text-align: left; border: 1px solid #d9d9d9; "
-               "border-radius: %1px; padding: %2px %3px; background-color: "
-               "#ffffff; } "
-               "QPushButton:checked { background-color: #e8eefc; "
-               "border-color: #9bb3ff; font-weight: 600; }")
+      QString ("QPushButton { border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
@@ -1789,8 +1764,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->modelLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (panel->modelLabel, kNavTitleFontPx);
   panel->modelLabel->setStyleSheet (
-      QString ("color: #888888; padding: 2px %1px; background-color: #f0f0f0; "
-               "border-radius: %2px;")
+      QString ("padding: 2px %1px; border-radius: %2px;")
           .arg (DpiUtils::scaled (kNavButtonPadX))
           .arg (DpiUtils::scaled (kModelLabelRadius)));
   panel->modelLabel->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
@@ -1807,7 +1781,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->messageFrame    = new QWidget (topPanel);
   panel->messageFrame->setObjectName ("chat-tab-message-frame");
   panel->messageFrame->setStyleSheet (
-      QString ("border: none; border-radius: %1px; background-color: #ffffff;")
+      QString ("border: none; border-radius: %1px;")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* messageFrameLayout= new QVBoxLayout (panel->messageFrame);
   messageFrameLayout->setContentsMargins (0, 0, 0, 0);
@@ -1837,15 +1811,11 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
       area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
       if (area->viewport ()) {
-        area->viewport ()->setStyleSheet ("background-color: #ffffff;");
+
       }
       area->setStyleSheet (
-          "QScrollBar:vertical { background: transparent; width: 6px; "
-          "                      margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { background: #c8c8c8; "
-          "                            border-radius: 3px; "
-          "                            min-height: 20px; }"
-          "QScrollBar::handle:vertical:hover { background: #a0a0a0; }"
+          "QScrollBar:vertical { width: 6px; margin: 0px; border: none; }"
+          "QScrollBar::handle:vertical { border-radius: 3px; min-height: 20px; }"
           "QScrollBar::add-line:vertical, "
           "QScrollBar::sub-line:vertical { height: 0px; }");
     }
@@ -1858,10 +1828,9 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setStyleSheet (
       QString ("QWidget#chat-tab-input-frame { "
-               "  border: 1px solid #e0e0e0; border-radius: %1px; "
-               "  background-color: #ffffff; }"
+               "  border-width: 1px; border-style: solid; border-radius: %1px; }"
                "QWidget#chat-tab-input-frame:hover { "
-               "  border: 1px solid #c0c0c0; }")
+               "  border-width: 1px; border-style: solid; }")
           .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
   inputFrameLayout->setContentsMargins (
@@ -1887,10 +1856,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->sendButton->setFixedSize (DpiUtils::scaled (kSendButtonSize),
                                    DpiUtils::scaled (kSendButtonSize));
   panel->sendButton->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "            background-color: transparent; }"
-               "QPushButton:hover { background-color: #f0f0f0; }"
-               "QPushButton:pressed { background-color: #e0e0e0; }")
+      QString ("QPushButton { border: none; border-radius: %1px; }")
           .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (panel->sendButton, &QPushButton::clicked, this,
            [this, panel] () { handle_send (panel); });
@@ -1925,11 +1891,9 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->selectCheckBox->setFocusPolicy (Qt::NoFocus);
   panel->selectCheckBox->setStyleSheet (
       "QCheckBox::indicator:checked { "
-      "  background-color: #4a90d9; border: 2px solid #4a90d9; "
-      "  border-radius: 3px; }"
+      "  border: 2px solid; border-radius: 3px; }"
       "QCheckBox::indicator:unchecked { "
-      "  background-color: #ffffff; border: 2px solid #cccccc; "
-      "  border-radius: 3px; }");
+      "  border: 2px solid; border-radius: 3px; }");
   panel->selectCheckBox->hide ();
   itemLayout->addWidget (panel->selectCheckBox);
 
@@ -1940,11 +1904,7 @@ QTChatTabWidget::restore_conversation (const string& sessionId,
   panel->sidebarButton->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (panel->sidebarButton, kNavButtonFontPx);
   panel->sidebarButton->setStyleSheet (
-      QString ("QPushButton { text-align: left; border: 1px solid #d9d9d9; "
-               "border-radius: %1px; padding: %2px %3px; background-color: "
-               "#ffffff; } "
-               "QPushButton:checked { background-color: #e8eefc; "
-               "border-color: #9bb3ff; font-weight: 600; }")
+      QString ("QPushButton { border-radius: %1px; padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
           .arg (DpiUtils::scaled (kNavButtonPadX)));

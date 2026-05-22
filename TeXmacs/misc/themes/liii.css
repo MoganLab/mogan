@@ -1229,3 +1229,161 @@ QLabel#pdf-preview-page-indicator {
 QLabel#pdf-preview-label {
   border: 1px solid #dddddd;
 }
+
+/****************************************************************************
+* LLM Chat Tab 样式
+****************************************************************************/
+
+/* 侧边栏 */
+QWidget#chat-tab-sidebar,
+QWidget#chat-tab-scroll-content,
+QWidget#chat-tab-archive-header,
+QWidget#chat-tab-conversation-list,
+QWidget#chat-tab-archive-list {
+  background-color: #f5f5f5;
+}
+
+/* 右侧内容区 */
+QWidget#chat-tab-content,
+QWidget#chat-tab-conversation-page {
+  background-color: #ffffff;
+}
+
+/* 导航标题 */
+QLabel#chat-tab-nav-title {
+  color: #000000;
+}
+
+/* 收缩按钮 */
+QPushButton#chat-tab-collapse-btn {
+  background-color: #e8e8e8;
+}
+QPushButton#chat-tab-collapse-btn:hover {
+  background-color: #d0d0d0;
+}
+
+/* 新建聊天按钮 */
+QPushButton#chat-tab-new-btn {
+  text-align: center;
+  border: none;
+  background-color: #ffffff;
+  color: #333333;
+}
+
+/* 会话计数标签 */
+QLabel#chat-tab-conversation-count {
+  color: #666666;
+}
+
+/* 搜索框 */
+QLineEdit#chat-tab-search-edit {
+  background-color: #ffffff;
+  border-color: #cccccc;
+}
+
+/* 多选操作栏按钮 */
+QPushButton#chat-tab-cancel-select-btn,
+QPushButton#chat-tab-select-all-btn,
+QPushButton#chat-tab-batch-archive-btn,
+QPushButton#chat-tab-batch-delete-btn {
+  background-color: #ffffff;
+  border-color: #cccccc;
+}
+
+/* 归档区标题按钮 */
+QPushButton#chat-tab-archive-header {
+  text-align: left;
+  border: none;
+  font-weight: bold;
+  color: #666666;
+  background: transparent;
+}
+QPushButton#chat-tab-archive-header:hover {
+  color: #333333;
+}
+
+/* 浮球容器 */
+QWidget#chat-tab-floating-container {
+  background-color: #e8e8e8;
+}
+
+/* 浮球按钮 */
+QPushButton#chat-tab-floating-expand-btn,
+QPushButton#chat-tab-floating-new-btn {
+  background-color: transparent;
+}
+QPushButton#chat-tab-floating-expand-btn:hover,
+QPushButton#chat-tab-floating-new-btn:hover {
+  background-color: #d0d0d0;
+}
+
+/* 模型标签 */
+QLabel#chat-tab-model-label {
+  color: #888888;
+  background-color: #f0f0f0;
+}
+
+/* 消息框 */
+QWidget#chat-tab-message-frame {
+  background-color: #ffffff;
+}
+
+/* 输入区滚动条 */
+QAbstractScrollArea#chat-tab-input-area QScrollBar:vertical {
+  background: transparent;
+}
+QAbstractScrollArea#chat-tab-input-area QScrollBar::handle:vertical {
+  background: #c8c8c8;
+}
+QAbstractScrollArea#chat-tab-input-area QScrollBar::handle:vertical:hover {
+  background: #a0a0a0;
+}
+
+/* 输入框框架 */
+QWidget#chat-tab-input-frame {
+  background-color: #ffffff;
+  border-color: #e0e0e0;
+}
+QWidget#chat-tab-input-frame:hover {
+  border-color: #c0c0c0;
+}
+
+/* 发送按钮 */
+QPushButton#chat-tab-send-btn {
+  background-color: transparent;
+}
+QPushButton#chat-tab-send-btn:hover {
+  background-color: #f0f0f0;
+}
+QPushButton#chat-tab-send-btn:pressed {
+  background-color: #e0e0e0;
+}
+
+/* 选择复选框 */
+QCheckBox#chat-tab-select-checkbox::indicator:checked {
+  background-color: #4a90d9;
+  border-color: #4a90d9;
+}
+QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
+  background-color: #ffffff;
+  border-color: #cccccc;
+}
+
+/* 会话项容器 */
+QWidget#chat-tab-session-item {
+  background-color: #f5f5f5;
+}
+
+/* 会话按钮 */
+QPushButton#chat-tab-conversation-btn {
+  text-align: left;
+  border-width: 1px;
+  border-style: solid;
+  background-color: #ffffff;
+  border-color: #d9d9d9;
+}
+QPushButton#chat-tab-conversation-btn:checked {
+  font-weight: 600;
+  background-color: #e8eefc;
+  border-color: #9bb3ff;
+}
