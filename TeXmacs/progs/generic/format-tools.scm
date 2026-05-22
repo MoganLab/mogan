@@ -341,12 +341,11 @@
   (if (in-beamer?)
     '("Single Page"
       "Continuous Scroll"
-      "Screen"
       "Beamer"
       "Two Page"
       "Panorama"
       "Slideshow")
-    '("Single Page" "Continuous Scroll" "Screen" "Two Page" "Panorama")
+    '("Single Page" "Continuous Scroll" "Two Page" "Panorama")
   ) ;if
 ) ;define
 

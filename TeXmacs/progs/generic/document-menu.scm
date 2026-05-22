@@ -736,7 +736,6 @@
 (menu-bind page-rendering-menu
  ("Single Page" (init-page-rendering "paper"))
  ("Continuous Scroll" (init-page-rendering "papyrus"))
- ("Screen" (init-page-rendering "automatic"))
  (assuming (in-beamer?) ("Beamer" (init-page-rendering "beamer")))
  ("Two Page" (init-page-rendering "book"))
  ("Panorama" (init-page-rendering "panorama"))

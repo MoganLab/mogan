@@ -208,8 +208,8 @@
 
 (define (page-rendering-options)
   (if (in-beamer?)
-    '("Single Page" "Continuous Scroll" "Screen" "Beamer" "Two Page" "Panorama")
-    '("Single Page" "Continuous Scroll" "Screen" "Two Page" "Panorama")
+    '("Single Page" "Continuous Scroll" "Beamer" "Two Page" "Panorama")
+    '("Single Page" "Continuous Scroll" "Two Page" "Panorama")
   ) ;if
 ) ;define
 
