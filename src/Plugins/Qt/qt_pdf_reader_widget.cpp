@@ -70,13 +70,13 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       zoomInBtn_ (nullptr), rectSelectBtn_ (nullptr), zoomMenu_ (nullptr),
       rubberBand_ (nullptr), rectSelectMode_ (false),
       rectSelectDragging_ (false), hintLabel_ (nullptr),
-       browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
-       pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
-       zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
-       overLink_ (false),        zoomDebounceTimer_ (nullptr),
-       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
-       inPinchGesture_ (false),
-       blockRender_ (false), pinchStartZoom_ (1.0), renderCallCount_ (0) {
+      browseDragging_ (false), browseDragActive_ (false), scroller_ (nullptr),
+      pageCount_ (0), hasError_ (false), targetDpi_ (DEFAULT_DPI),
+      zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
+      overLink_ (false), zoomDebounceTimer_ (nullptr),
+      resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
+      inPinchGesture_ (false), blockRender_ (false), pinchStartZoom_ (1.0),
+      renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -357,7 +357,7 @@ PDFReaderWidget::applyZoomToLabels () {
     QLabel* label= qobject_cast<QLabel*> (item->widget ());
     if (!label) continue;
     double aspect= (i < pageAspectRatios_.size ()) ? pageAspectRatios_[i]
-                                                    : pageAspectRatio_;
+                                                   : pageAspectRatio_;
     if (aspect <= 0.0) aspect= 1.414;
     int height= qMax (1, qRound (width * aspect));
     label->setFixedSize (width, height);
@@ -403,14 +403,13 @@ PDFReaderWidget::finishPinchGesture () {
 
 void
 PDFReaderWidget::simulatePinchGesture (Qt::GestureState state,
-                                       double            scaleFactor) {
+                                       double           scaleFactor) {
   if (state == Qt::GestureStarted) {
     startPinchGesture ();
     return;
   }
   if (state == Qt::GestureUpdated) {
-    double newZoom=
-        qBound (MIN_ZOOM, pinchStartZoom_ * scaleFactor, MAX_ZOOM);
+    double newZoom= qBound (MIN_ZOOM, pinchStartZoom_ * scaleFactor, MAX_ZOOM);
     if (qAbs (newZoom - zoomFactor_) > 0.001) {
       zoomFactor_= newZoom;
       applyZoomToLabels ();
@@ -1351,9 +1350,8 @@ PDFReaderWidget::event (QEvent* event) {
         return true;
       }
       if (pinch->changeFlags () & QPinchGesture::ScaleFactorChanged) {
-        double newZoom= qBound (MIN_ZOOM,
-                                pinchStartZoom_ * pinch->totalScaleFactor (),
-                                MAX_ZOOM);
+        double newZoom= qBound (
+            MIN_ZOOM, pinchStartZoom_ * pinch->totalScaleFactor (), MAX_ZOOM);
         if (qAbs (newZoom - zoomFactor_) > 0.001) {
           zoomFactor_= newZoom;
           applyZoomToLabels ();
@@ -1375,8 +1373,7 @@ PDFReaderWidget::event (QEvent* event) {
   }
 #ifdef Q_OS_MACOS
   if (event->type () == QEvent::NativeGesture) {
-    QNativeGestureEvent* nativeEvent=
-        static_cast<QNativeGestureEvent*> (event);
+    QNativeGestureEvent* nativeEvent= static_cast<QNativeGestureEvent*> (event);
     Qt::NativeGestureType gestureType= nativeEvent->gestureType ();
     // If QPinchGesture is already handling the pinch, ignore native
     // gesture to avoid double-scaling.
@@ -1400,8 +1397,7 @@ PDFReaderWidget::event (QEvent* event) {
       gestureSafetyTimer_->start ();
       double delta= nativeEvent->value ();
       if (qAbs (delta) > 0.001) {
-        zoomFactor_=
-            qBound (MIN_ZOOM, zoomFactor_ * (1.0 + delta), MAX_ZOOM);
+        zoomFactor_= qBound (MIN_ZOOM, zoomFactor_ * (1.0 + delta), MAX_ZOOM);
         applyZoomToLabels ();
       }
       return true;

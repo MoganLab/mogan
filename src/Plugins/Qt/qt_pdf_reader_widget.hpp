@@ -82,7 +82,7 @@ public:
 
   bool isRectSelectMode () const;
 
-  int renderCallCount () const { return renderCallCount_; }
+  int  renderCallCount () const { return renderCallCount_; }
   void simulatePinchGesture (Qt::GestureState state, double scaleFactor);
 
   void setTestLinks (int page, const QVector<PdfLink>& links);
@@ -184,13 +184,13 @@ private:
 
   int renderCallCount_;
 
-  static constexpr int    DEFAULT_DPI       = 150;
-  static constexpr int    PAGE_MARGIN       = 16;
-  static constexpr int    PRELOAD_MARGIN    = 200;
-  static constexpr double MIN_ZOOM          = 0.12;
-  static constexpr double MAX_ZOOM          = 8.0;
-  static constexpr int    ZOOM_DEBOUNCE_MS  = 200;
-  static constexpr int    RESIZE_DEBOUNCE_MS= 300;
+  static constexpr int    DEFAULT_DPI              = 150;
+  static constexpr int    PAGE_MARGIN              = 16;
+  static constexpr int    PRELOAD_MARGIN           = 200;
+  static constexpr double MIN_ZOOM                 = 0.12;
+  static constexpr double MAX_ZOOM                 = 8.0;
+  static constexpr int    ZOOM_DEBOUNCE_MS         = 200;
+  static constexpr int    RESIZE_DEBOUNCE_MS       = 300;
   static constexpr int    GESTURE_SAFETY_TIMEOUT_MS= 500;
 
   static constexpr int    ZOOM_LEVEL_COUNT= 12;
