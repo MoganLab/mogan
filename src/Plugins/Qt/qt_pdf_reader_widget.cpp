@@ -360,6 +360,13 @@ PDFReaderWidget::finishPinchGesture () {
   if (!inPinchGesture_) return;
   inPinchGesture_= false;
   blockRender_   = false;
+
+  // Sync-render the correctly-sized pixmap before turning off
+  // scaledContents, so the label does not flicker from the old
+  // stretched image back to a mismatched original pixmap.
+  if (!pdfData_.isEmpty () && pageCount_ > 0) rebuildPages ();
+  updateZoomDisplay ();
+
   int childCount= pageLayout_->count ();
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
@@ -367,7 +374,6 @@ PDFReaderWidget::finishPinchGesture () {
     QLabel* label= qobject_cast<QLabel*> (item->widget ());
     if (label) label->setScaledContents (false);
   }
-  setZoomFactor (zoomFactor_);
 }
 
 void
@@ -1311,9 +1317,8 @@ PDFReaderWidget::event (QEvent* event) {
     QGestureEvent* gestureEvent= static_cast<QGestureEvent*> (event);
     if (QPinchGesture* pinch= qobject_cast<QPinchGesture*> (
             gestureEvent->gesture (Qt::PinchGesture))) {
-#ifdef Q_OS_MACOS
-      (void) pinch;
-#else
+      // Handle QPinchGesture on all platforms (including macOS).
+      // Qt 6 maps trackpad pinch to QPinchGesture on macOS as well.
       if (pinch->state () == Qt::GestureStarted) {
         startPinchGesture ();
         gestureSafetyTimer_->start ();
@@ -1341,7 +1346,6 @@ PDFReaderWidget::event (QEvent* event) {
       }
       gestureEvent->accept (pinch);
       return true;
-#endif
     }
   }
 #ifdef Q_OS_MACOS
@@ -1349,6 +1353,13 @@ PDFReaderWidget::event (QEvent* event) {
     QNativeGestureEvent* nativeEvent=
         static_cast<QNativeGestureEvent*> (event);
     Qt::NativeGestureType gestureType= nativeEvent->gestureType ();
+    // If QPinchGesture is already handling the pinch, ignore native
+    // gesture to avoid double-scaling.
+    if (inPinchGesture_ && (gestureType == Qt::BeginNativeGesture ||
+                            gestureType == Qt::EndNativeGesture ||
+                            gestureType == Qt::ZoomNativeGesture)) {
+      return true;
+    }
     if (gestureType == Qt::BeginNativeGesture) {
       startPinchGesture ();
       gestureSafetyTimer_->start ();
