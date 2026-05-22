@@ -134,7 +134,7 @@
         #t
         (let ((w (car size))
               (h (cadr size)))
-          (and (<= w 1.0) (<= h 1.0))))))
+          (and (<= w 0.1) (<= h 0.1))))))
 
 (define (flush-image path width height)
   (if (image-valid? path)
@@ -151,7 +151,7 @@
     (dump-tex-code tex-path wrapped-code)
     (if (zero? (run-pdflatex tex-path pdflatex-bin))
         (let ((size (get-pdf-page-size log-path)))
-          (if (or (not size) (and (<= (car size) 1.0) (<= (cadr size) 1.0)))
+          (if (or (not size) (and (<= (car size) 0.1) (<= (cadr size) 0.1)))
               (flush-verbatim "TikZ produced an empty image (0x0 bounding box)")
               (let ((final-width width)
                     (final-height height))

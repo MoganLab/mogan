@@ -207,7 +207,7 @@
         #t
         (let ((w (car size))
               (h (cadr size)))
-          (and (<= w 1.0) (<= h 1.0))))))
+          (and (<= w 0.1) (<= h 0.1))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tests for pdf-page-empty?
@@ -217,10 +217,11 @@
 (define test-log-valid-path "/tmp/tikz-test-log-valid.log")
 (define test-log-vertical-path "/tmp/tikz-test-log-vertical.log")
 (define test-log-horizontal-path "/tmp/tikz-test-log-horizontal.log")
+(define test-log-point-path "/tmp/tikz-test-log-point.log")
 
 (with-output-to-file test-log-empty-path
   (lambda ()
-    (display "<special> papersize=0.4pt,0.4pt\n")))
+    (display "<special> papersize=0.0pt,0.0pt\n")))
 
 (with-output-to-file test-log-valid-path
   (lambda ()
@@ -234,15 +235,21 @@
   (lambda ()
     (display "<special> papersize=28.85274pt,0.4pt\n")))
 
-(check (get-pdf-page-size test-log-empty-path) => (list 0.4 0.4))
+(with-output-to-file test-log-point-path
+  (lambda ()
+    (display "<special> papersize=0.4pt,0.4pt\n")))
+
+(check (get-pdf-page-size test-log-empty-path) => (list 0.0 0.0))
 (check (get-pdf-page-size test-log-valid-path) => (list 28.85274 28.85274))
 (check (get-pdf-page-size test-log-vertical-path) => (list 0.4 28.85274))
 (check (get-pdf-page-size test-log-horizontal-path) => (list 28.85274 0.4))
+(check (get-pdf-page-size test-log-point-path) => (list 0.4 0.4))
 
 (check (pdf-page-empty? test-log-empty-path) => #t)
 (check (pdf-page-empty? test-log-valid-path) => #f)
 (check (pdf-page-empty? test-log-vertical-path) => #f)
 (check (pdf-page-empty? test-log-horizontal-path) => #f)
+(check (pdf-page-empty? test-log-point-path) => #f)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run all tests
