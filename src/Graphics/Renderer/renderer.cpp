@@ -536,6 +536,11 @@ renderer_rep::draw_emoji (int char_code, font_glyphs fn, SI x, SI y) {
   return true;
 }
 
+void
+renderer_rep::end_text () {
+  return;
+}
+
 /******************************************************************************
  * Drawing selections using alpha transparency
  ******************************************************************************/

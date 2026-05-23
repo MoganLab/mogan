@@ -136,6 +136,7 @@ void
 edit_interface_rep::draw_surround (renderer ren, rectangle r) {
   ren->set_background (tm_background);
   string medium= get_init_string (PAGE_MEDIUM);
+  ren->end_text ();
   if (medium == "automatic") return;
   if (medium == "beamer" && full_screen) return;
   ren->clear (r->x1, r->y1, max (r->x1, eb->x1), r->y2);
