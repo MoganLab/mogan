@@ -117,6 +117,7 @@ struct smart_font_rep : font_rep {
 
   void advance (string s, int& pos, string& r, int& nr);
   int  resolve (string c, string fam, int attempt);
+  int  resolve (string c, string range, string fam, int attempt);
   bool is_italic_prime (string c);
   int  resolve_rubber (string c, string fam, int attempt);
   int  resolve (string c);

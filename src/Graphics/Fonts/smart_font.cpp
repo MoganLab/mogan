@@ -269,16 +269,7 @@ init_unicode_substitution () {
 
 int
 get_utf8_code (string c) {
-  int c_N= N (c);
-  if (c_N <= 2 || c_N > 6) {
-    // the largest unicode is U+10FFFF
-    return -1;
-  }
-  string uc  = strict_cork_to_utf8 (c);
-  int    pos = 0;
-  int    code= decode_from_utf8 (uc, pos);
-  if (pos == c_N) return code;
-  else return -1;
+  return get_utf8_code_cached (c);
 }
 
 string
@@ -906,34 +897,40 @@ is_wanted (string c, string family, array<string> rules, array<string> given) {
 
 int
 smart_font_rep::resolve (string c, string fam, int attempt) {
-  string range= get_unicode_range (c);
+  return resolve (c, get_unicode_range (c), fam, attempt);
+}
+
+int
+smart_font_rep::resolve (string c, string range, string fam, int attempt) {
   if (DEBUG_VERBOSE) {
     debug_fonts << "Resolve " << c << " in math_kind " << math_kind
                 << " in unicode range " << range << " in fam " << fam
                 << " mfam " << mfam << ", attempt " << attempt << LF;
   }
-  array<string> a= trimmed_tokenize (fam, "=");
-  if (N (a) >= 2) {
-    fam             = a[1];
-    array<string> b = tokenize (a[0], " ");
-    bool          ok= is_wanted (c, fam, b, given_font);
-    if (!ok) {
-      return -1;
-    }
+  if (occurs ("=", fam)) {
+    array<string> a= trimmed_tokenize (fam, "=");
+    if (N (a) >= 2) {
+      fam             = a[1];
+      array<string> b = tokenize (a[0], " ");
+      bool          ok= is_wanted (c, fam, b, given_font);
+      if (!ok) {
+        return -1;
+      }
 
-    fam= tex_gyre_fix (fam, series, shape);
-    fam= kepler_fix (fam, series, shape);
-    // fam= stix_fix (fam, series, shape);
+      fam= tex_gyre_fix (fam, series, shape);
+      fam= kepler_fix (fam, series, shape);
+      // fam= stix_fix (fam, series, shape);
 
-    if (math_kind != 0 && shape == "mathitalic" &&
-        (range == "greek" || (starts (c, "<b-") && ends (c, ">")) ||
-         c == "<imath>" || c == "<jmath>" || c == "<ell>")) {
-      font cfn= smart_font_bis (fam, variant, series, shape, sz, hdpi, dpi);
-      if (cfn->supports (c)) {
-        tree key= tuple ("subfont", fam);
-        int  nr = sm->add_font (key, REWRITE_NONE);
-        maybe_initialize_font (nr);
-        return sm->add_char (key, c);
+      if (math_kind != 0 && shape == "mathitalic" &&
+          (range == "greek" || (starts (c, "<b-") && ends (c, ">")) ||
+           c == "<imath>" || c == "<jmath>" || c == "<ell>")) {
+        font cfn= smart_font_bis (fam, variant, series, shape, sz, hdpi, dpi);
+        if (cfn->supports (c)) {
+          tree key= tuple ("subfont", fam);
+          int  nr = sm->add_font (key, REWRITE_NONE);
+          maybe_initialize_font (nr);
+          return sm->add_char (key, c);
+        }
       }
     }
   }
@@ -1240,24 +1237,28 @@ smart_font_rep::resolve (string c) {
       (c[0] < 'A' || c[0] > 'Z') && (c[0] < 'a' || c[0] > 'z'))
     return sm->add_char (tuple ("italic-roman"), c);
 
+  string sf= substitute_math_letter (c, math_kind);
+  bool   rubber    = is_rubber (c);
+  bool   wide      = starts (c, "<wide-");
+  bool   main_supp = wide && fn[SUBFONT_MAIN]->supports (c);
   for (int attempt= 1; attempt <= FONT_ATTEMPTS; attempt++) {
-    if (attempt > 1 && substitute_math_letter (c, math_kind) != "") break;
+    if (attempt > 1 && sf != "") break;
     for (int i= 0; i < N (a); i++) {
-      int nr= resolve (c, a[i], attempt);
+      int nr= resolve (c, range, a[i], attempt);
       if (nr >= 0) {
         // initialize_font (nr);
         // cout << "Found " << c << " in " << fn[nr]->res_name << "\n";
         return nr;
       }
-      if (is_rubber (c)) {
+      if (rubber) {
         nr= resolve_rubber (c, a[i], attempt);
         if (nr >= 0) {
           // cout << "Found " << c << " in poor-rubber\n";
           return nr;
         }
       }
-      if (starts (c, "<wide-")) {
-        if (fn[SUBFONT_MAIN]->supports (c)) {
+      if (wide) {
+        if (main_supp) {
           // cout << "Found " << c << " in main\n";
           return sm->add_char (tuple ("main"), c);
         }
@@ -1269,7 +1270,6 @@ smart_font_rep::resolve (string c) {
     }
   }
 
-  string sf= substitute_math_letter (c, math_kind);
   if (sf != "") {
     // cout << "Found " << c << " in " << sf << " (math-letter)\n";
     return sm->add_char (tuple (sf), c);
@@ -1446,7 +1446,7 @@ smart_font_rep::get_extents (string s, metric& ex) {
   if (n == 0) fn[0]->get_extents (empty_string, ex);
   else {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     while (true) {
       advance (s, i, r, nr);
@@ -1484,7 +1484,7 @@ smart_font_rep::get_xpositions (string s, SI* xpos) {
   xpos[0]= x;
   while (i < n) {
     int    nr;
-    string r    = s;
+    string r;
     int    start= i;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1516,7 +1516,7 @@ smart_font_rep::get_xpositions (string s, SI* xpos, SI xk) {
   xpos[0]= x;
   while (i < n) {
     int    nr;
-    string r    = s;
+    string r;
     int    start= i;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1546,7 +1546,7 @@ smart_font_rep::draw_fixed (renderer ren, string s, SI x, SI y) {
   int i= 0, n= N (s);
   while (i < n) {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1564,7 +1564,7 @@ smart_font_rep::draw_fixed (renderer ren, string s, SI x, SI y, SI xk) {
   int i= 0, n= N (s);
   while (i < n) {
     int    nr;
-    string r= s;
+    string r;
     metric ey;
     advance (s, i, r, nr);
     if (nr >= 0) {
@@ -1769,11 +1769,14 @@ smart_font_bis (string family, string variant, string series, string shape,
     sz_str= as_string (sz); // 0.5倍数，保留一位小数
   }
 
-  string name= family * "-" * variant * "-" * series * "-" * shape * "-" *
-               sz_str * "-" * as_string (vdpi) * "-smart";
-  if (hdpi != vdpi)
-    name= family * "-" * variant * "-" * series * "-" * shape * "-" * sz_str *
-          "-" * as_string (hdpi) * "-" * as_string (vdpi) * "-smart";
+  string vdpi_str= as_string (vdpi);
+  string name    = family * "-" * variant * "-" * series * "-" * shape * "-" *
+               sz_str * "-" * vdpi_str * "-smart";
+  if (hdpi != vdpi) {
+    string hdpi_str= as_string (hdpi);
+    name           = family * "-" * variant * "-" * series * "-" * shape * "-" *
+           sz_str * "-" * hdpi_str * "-" * vdpi_str * "-smart";
+  }
   if (font::instances->contains (name)) return font (name);
   if (starts (family, "tc")) {
     // FIXME: temporary hack for symbols from std-symbol.ts
@@ -1815,7 +1818,6 @@ smart_font_bis (string family, string variant, string series, string shape,
 font
 smart_font (string family, string variant, string series, string shape,
             double sz, int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (variant == "rm")
     return smart_font_bis (family, variant, series, shape, sz, dpi, dpi);
   array<string> lfn1= logical_font (family, "rm", series, shape);
@@ -1836,7 +1838,6 @@ font
 math_smart_font (string family, string variant, string series, string shape,
                  string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman" || starts (tfam, "sys-")) {
     tfam= family;
   }
@@ -1852,7 +1853,6 @@ font
 prog_smart_font (string family, string variant, string series, string shape,
                  string tfam, string tvar, string tser, string tsh, double sz,
                  int dpi) {
-  sz= normalize_half_multiple_size (sz);
   if (tfam == "roman") {
     tfam= family;
   }

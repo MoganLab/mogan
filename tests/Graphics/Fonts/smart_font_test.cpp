@@ -40,6 +40,7 @@ private slots:
   void test_cursor_position_iii ();
   void test_performance ();
   void test_math_performance ();
+  void test_resolve_mixed_chars ();
 };
 
 void
@@ -186,6 +187,23 @@ TestSmartFont::test_math_performance () {
                     "<tau><upsilon><phi><chi><psi><omega>";
   metric ex;
   fn->get_extents (math_text, ex);
+}
+
+void
+TestSmartFont::test_resolve_mixed_chars () {
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+
+  // Verify resolve works correctly for a mix of characters
+  array<string> chars;
+  chars << "中" << "国" << "文" << "字" << "测" << "试" << "α" << "β" << "γ"
+        << "δ" << "€" << "©" << "®" << "™" << "←" << "↑" << "→" << "↓"
+        << "∀" << "∃" << "∈" << "∉" << "∑" << "∏" << "√" << "∞";
+
+  for (int j= 0; j < N (chars); j++) {
+    int nr= fn_rep->resolve (chars[j]);
+    QVERIFY (nr >= 0);
+  }
 }
 
 QTEST_MAIN (TestSmartFont)

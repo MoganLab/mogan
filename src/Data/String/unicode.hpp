@@ -17,6 +17,7 @@
 #include "string.hpp"
 
 string get_unicode_range (string c);
+int    get_utf8_code_cached (string c);
 bool   is_emoji_character (int uc);
 
 #endif

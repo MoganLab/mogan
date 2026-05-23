@@ -220,12 +220,12 @@ find_magnified_font (tree t, double zoomx, double zoomy) {
 font
 find_font (string family, string variant, string series, string shape,
            double sz, int dpi) {
-  // 浮点尺寸字符串处理：整数如"10"，0.5倍数如"10.5"
   string sz_str;
-  if (sz == round (sz)) sz_str= as_string ((int) sz); // 整数
-  else sz_str= as_string (sz);                        // 0.5倍数，保留一位小数
+  if (sz == round (sz)) sz_str= as_string ((int) sz);
+  else sz_str= as_string (sz);
+  string dpi_str= as_string (dpi);
   string s= family * "-" * variant * "-" * series * "-" * shape * "-" * sz_str *
-            "-" * as_string (dpi);
+            "-" * dpi_str;
   if (font::instances->contains (s)) return font (s);
 
   if (ends (shape, "-poorit")) {
@@ -284,10 +284,8 @@ find_font (string family, string variant, string series, string shape,
   t1[1]= variant;
   t1[2]= series;
   t1[3]= shape;
-  // 浮点尺寸字符串处理
-  if (sz == round (sz)) t1[4]= as_string ((int) sz); // 整数
-  else t1[4]= as_string (sz);                        // 0.5倍数，保留一位小数
-  t1[5]  = as_string (dpi);
+  t1[4]= sz_str;
+  t1[5]  = dpi_str;
   font fn= find_font (t1);
   if (!is_nil (fn)) {
     font::instances (s)= (pointer) fn.rep;
@@ -298,8 +296,8 @@ find_font (string family, string variant, string series, string shape,
   t2[0]= family;
   t2[1]= variant;
   t2[2]= series;
-  t2[3]= as_string (sz);
-  t2[4]= as_string (dpi);
+  t2[3]= sz_str;
+  t2[4]= dpi_str;
   fn   = find_font (t2);
   if (!is_nil (fn)) {
     font::instances (s)= (pointer) fn.rep;
@@ -309,15 +307,15 @@ find_font (string family, string variant, string series, string shape,
   tree t3 (TUPLE, 4);
   t3[0]= family;
   t3[1]= variant;
-  t3[2]= as_string (sz);
-  t3[3]= as_string (dpi);
+  t3[2]= sz_str;
+  t3[3]= dpi_str;
   fn   = find_font (t3);
   if (!is_nil (fn)) {
     font::instances (s)= (pointer) fn.rep;
     return fn;
   }
 
-  tree panic (TUPLE, "tex", "cmr", as_string (sz), as_string (dpi));
+  tree panic (TUPLE, "tex", "cmr", sz_str, dpi_str);
   fn                 = find_font (panic);
   font::instances (s)= (pointer) fn.rep;
   return fn;
