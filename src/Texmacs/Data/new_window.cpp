@@ -251,6 +251,8 @@ switch_to_parent_window () {
   if (parent == url_none ()) return;
   if (parent == get_current_window ()) return;
   switch_to_window (parent);
+  url parent_view= window_to_view (parent);
+  if (!is_none (parent_view)) set_current_view (parent_view);
 }
 
 /******************************************************************************
