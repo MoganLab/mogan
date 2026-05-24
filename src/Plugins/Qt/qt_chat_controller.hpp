@@ -41,11 +41,6 @@ public:
    */
   ChatSessionManager& sessionManager ();
 
-  /**
-   * @brief 启动时加载所有持久化会话的元数据，仅创建一个活跃面板。
-   */
-  void loadAllSessions ();
-
   // ---- 用户交互（由 View 的 signal 触发） ----
 
   void onSessionClicked (const string& sessionId);
@@ -73,17 +68,18 @@ private:
   ChatSessionManager sessionManager_;
 
   // 内部方法
-  void                   activateSession (const string& sessionId);
-  void                   loadSessionContent (ChatConversationPanel* panel);
-  void                   saveOneSession (const string& sessionId);
-  void                   ensureNewConversation ();
-  ChatConversationPanel* getOrCreatePanel (const string& sessionId);
-  void                   refreshSidebar (const string& activeSessionId);
+  void                      activateSession (const string& sessionId);
+  void                      loadSessionContent (ChatConversationPanel* panel);
+  void                      saveOneSession (const string& sessionId);
+  void                      ensureNewConversation ();
+  ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
+  QList<SessionDisplayInfo> buildDisplayInfos ();
+  string                    determineInitialActiveSession ();
+  string                    deduplicateTitle (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived);
-  friend void qt_chat_tab_load_sessions ();
 };
 
 /**
@@ -95,11 +91,6 @@ ChatController* get_chat_controller ();
  * @brief Scheme→C++ 回调：通知 Chat Tab 的会话状态变更。
  */
 void qt_chat_tab_set_state (string sessionId, string stateStr);
-
-/**
- * @brief Scheme→C++ 回调：加载所有聊天会话。
- */
-void qt_chat_tab_load_sessions ();
 
 /**
  * @brief Scheme→C++ 回调：恢复单个聊天会话。

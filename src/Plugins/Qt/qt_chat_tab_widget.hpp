@@ -107,15 +107,25 @@ public:
     QWidget*     itemWidget    = nullptr;
     QPushButton* sidebarButton = nullptr;
     QCheckBox*   selectCheckBox= nullptr;
+    bool         isArchived    = false;
   };
 
-  explicit ChatSidebar (QWidget* parent= nullptr);
+  ChatSidebar (const QList<SessionDisplayInfo>& sessions,
+               const string& activeSessionId, QWidget* parent= nullptr);
 
-  void refresh (const QList<SessionDisplayInfo>& sessions,
-                const string&                    activeSessionId);
-  void removeItem (const string& sessionId);
-  void enterMultiSelectMode (bool archived);
-  void exitMultiSelectMode ();
+  // ---- 按场景调用的针对性方法（替代 refresh） ----
+  void addItem (const string& sessionId, const string& displayTitle);
+  void updateItemTitle (const string& sessionId, const string& displayTitle);
+  void setActiveItem (const string& sessionId);
+  void moveToArchive (const string& sessionId);
+  void moveFromArchive (const string& sessionId);
+  void applySearchFilter ();
+
+  // ---- 其他公共方法 ----
+  void          removeItem (const string& sessionId);
+  void          enterMultiSelectMode (bool archived);
+  void          exitMultiSelectMode ();
+  const string& activeSessionId () const;
 
 signals:
   void sessionClicked (const string& sessionId);
@@ -142,13 +152,12 @@ private:
   QLineEdit*                searchEdit_            = nullptr;
   bool                      multiSelectMode_       = false;
   bool                      archiveSelectMode_     = false;
-  QList<SessionDisplayInfo> lastSessions_;
-  string                    lastActiveId_;
+  QList<SessionDisplayInfo> sessionCache_;
+  string                    activeSessionId_;
 
   SidebarItem   createItem (const string& sessionId);
   void          destroyItem (const string& sessionId);
-  void          refreshInternal (const QList<SessionDisplayInfo>& sessions,
-                                 const string&                    activeSessionId);
+  void          updateCountLabels ();
   QList<string> getCheckedSessionIds () const;
 };
 
@@ -163,7 +172,8 @@ class QTChatTabWidget : public QWidget {
   Q_OBJECT
 
 public:
-  explicit QTChatTabWidget (QWidget* parent= nullptr);
+  QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
+                   const string& activeSessionId, QWidget* parent= nullptr);
   ~QTChatTabWidget () override;
 
   // ---- 被 Controller 调用的方法（View 接口） ----
@@ -171,8 +181,6 @@ public:
   ChatConversationPanel* createPanel (const string& sessionId);
   void                   activatePanel (ChatConversationPanel* panel);
   void                   removePanel (ChatConversationPanel* panel);
-  void refreshSidebar (const QList<SessionDisplayInfo>& sessions,
-                       const string&                    activeSessionId);
 
   // ---- 状态 ----
   void setParentTmWidget (qt_tm_widget_rep* tm) { parentTmWidget_= tm; }
@@ -197,7 +205,9 @@ protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
-  void setup_left_sidebar (QVBoxLayout* sidebarLayout);
+  void setup_left_sidebar (QVBoxLayout*                     sidebarLayout,
+                           const QList<SessionDisplayInfo>& sessions,
+                           const string&                    activeSessionId);
   void setup_right_content (QHBoxLayout* mainLayout);
   void toggle_sidebar ();
 

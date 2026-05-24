@@ -34,7 +34,18 @@ ChatController::~ChatController () {}
 
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
-  view_= new QTChatTabWidget (parent);
+  // 1. 先加载元数据到 sessionManager_（不需要 View）
+  call ("chat-persist-load-all");
+  cout << "[chat-persist] ChatController: restored "
+       << sessionManager_.getAllSessionIds ().size () << " session metadatas"
+       << LF;
+
+  // 2. 构建显示数据 + 确定初始激活会话
+  QList<SessionDisplayInfo> infos    = buildDisplayInfos ();
+  string                    initialId= determineInitialActiveSession ();
+
+  // 3. 创建 View，Sidebar 构造时就有数据
+  view_= new QTChatTabWidget (infos, initialId, parent);
   view_->setParentTmWidget (tm);
 
   // 连接 Sidebar 信号
@@ -84,8 +95,23 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
              &ChatController::onNewChatRequested);
   }
 
-  // 延迟加载：初始化完成后加载会话
-  loadAllSessions ();
+  // 4. 激活初始会话（按需创建 Panel）
+  if (!is_empty (initialId)) {
+    activateSession (initialId);
+  }
+  else {
+    ensureNewConversation ();
+  }
+
+  // 5. 恢复 Scheme 层的全局当前模型
+  auto allIds= sessionManager_.getAllSessionIds ();
+  if (!allIds.empty ()) {
+    string       lastSid= allIds.back ();
+    ChatSession* s      = sessionManager_.getSession (lastSid);
+    if (s && !is_empty (s->model)) {
+      call ("chat-tab-session-select-model", s->model);
+    }
+  }
 
   return view_;
 }
@@ -95,45 +121,12 @@ ChatController::sessionManager () {
   return sessionManager_;
 }
 
-/**
- * @brief 启动时加载所有持久化会话。
- *
- * Scheme 端 chat-persist-load-all 会逐个调用 qt-chat-tab-restore-session
- * 来恢复元数据（不创建面板）。之后再激活第一个非归档会话。
- */
-void
-ChatController::loadAllSessions () {
-  cout << "[chat-persist] ChatController::loadAllSessions started" << LF;
-  call ("chat-persist-load-all");
-  cout << "[chat-persist] ChatController::loadAllSessions: restored "
-       << sessionManager_.getAllSessionIds ().size () << " session metadatas"
-       << LF;
-
-  // 激活第一个非归档会话
-  auto allIds= sessionManager_.getAllSessionIds ();
-  for (const string& sid : allIds) {
-    ChatSession* s= sessionManager_.getSession (sid);
-    if (s && !s->archived) {
-      activateSession (sid);
-      return;
-    }
-  }
-  // 全部归档或无会话，确保有一个空白新对话
-  ensureNewConversation ();
-
-  // 恢复 Scheme 层的全局当前模型
-  if (!allIds.empty ()) {
-    string       lastSid= allIds.back ();
-    ChatSession* s      = sessionManager_.getSession (lastSid);
-    if (s && !is_empty (s->model)) {
-      call ("chat-tab-session-select-model", s->model);
-    }
-  }
-}
-
 void
 ChatController::onSessionClicked (const string& sessionId) {
-  activateSession (sessionId);
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (s && !s->archived) {
+    activateSession (sessionId);
+  }
 }
 
 void
@@ -150,15 +143,18 @@ ChatController::onSendRequested (const string& sessionId) {
   // 首次发送：通过 Scheme 自动提取标题
   if (is_empty (session->title)) {
     string extracted=
-        as_string (call ("chat-persist-extract-title", sessionId, "20"));
+        as_string (call ("chat-persist-extract-title", sessionId, 20));
     sessionManager_.setTitle (sessionId, extracted);
+    string displayTitle= deduplicateTitle (sessionId);
+    view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
+    view_->sidebar ()->setActiveItem (sessionId);
   }
 
   if (!as_bool (call ("chat-tab-send", sessionId))) return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);
   panel->enterConversationMode ();
-  refreshSidebar (sessionId);
+
   panel->focusInput ();
   saveOneSession (sessionId);
 }
@@ -217,6 +213,9 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sid));
   }
   call ("buffer-pretend-saved", url ("tmfs://chat-tab"));
+
+  // 多选删除后退出多选模式
+  view_->sidebar ()->exitMultiSelectMode ();
 }
 
 void
@@ -224,15 +223,49 @@ ChatController::onArchiveRequested (const QList<string>& sessionIds) {
   for (const string& sid : sessionIds) {
     sessionManager_.archiveSession (sid);
     saveOneSession (sid);
+    view_->sidebar ()->moveToArchive (sid);
   }
-  refreshSidebar ("");
+
+  // 如果归档了当前激活会话，激活第一个非归档会话
+  string cur           = view_->sidebar ()->activeSessionId ();
+  bool   archivedActive= false;
+  for (const string& sid : sessionIds) {
+    if (sid == cur) {
+      archivedActive= true;
+      break;
+    }
+  }
+
+  string nextSid;
+
+  if (archivedActive) {
+    auto allIds= sessionManager_.getAllSessionIds ();
+    for (const string& sid : allIds) {
+      ChatSession* s= sessionManager_.getSession (sid);
+      if (s && !s->archived) {
+        nextSid= sid;
+        break;
+      }
+    }
+  }
+
+  if (!is_empty (nextSid)) {
+    activateSession (nextSid);
+  }
+  else {
+    ensureNewConversation ();
+  }
+
+  // 多选归档后退出多选模式
+  view_->sidebar ()->exitMultiSelectMode ();
 }
 
 void
 ChatController::onRestoreRequested (const string& sessionId) {
   sessionManager_.restoreSession (sessionId);
   saveOneSession (sessionId);
-  refreshSidebar (sessionId);
+  view_->sidebar ()->moveFromArchive (sessionId);
+  activateSession (sessionId);
 }
 
 void
@@ -244,7 +277,9 @@ void
 ChatController::onRenameRequested (const string& sessionId,
                                    const string& newTitle) {
   sessionManager_.setTitle (sessionId, newTitle);
-  refreshSidebar (sessionId);
+  string displayTitle= deduplicateTitle (sessionId);
+  view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
+  view_->sidebar ()->setActiveItem (sessionId);
 }
 
 void
@@ -312,6 +347,7 @@ ChatController::activateSession (const string& sessionId) {
   }
 
   view_->activatePanel (panel);
+  view_->sidebar ()->setActiveItem (sessionId);
 }
 
 /**
@@ -395,7 +431,11 @@ ChatController::ensureNewConversation () {
   connect (panel, &ChatConversationPanel::sendRequested, this,
            &ChatController::onSendRequested);
 
+  // 添加 sidebar item
+  view_->sidebar ()->addItem (sid, "新会话");
+
   view_->activatePanel (panel);
+  view_->sidebar ()->setActiveItem (sid);
 
   // 标记 buffer 为已保存
   call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (sid));
@@ -432,13 +472,11 @@ ChatController::getOrCreatePanel (const string& sessionId) {
 }
 
 /******************************************************************************
- * ChatController::refreshSidebar — 构建显示数据并刷新侧边栏
+ * ChatController 辅助方法
  ******************************************************************************/
 
-void
-ChatController::refreshSidebar (const string& activeSessionId) {
-  if (!view_ || !view_->sidebar ()) return;
-
+QList<SessionDisplayInfo>
+ChatController::buildDisplayInfos () {
   QList<SessionDisplayInfo> infos;
 
   // 标题去重计数
@@ -476,7 +514,44 @@ ChatController::refreshSidebar (const string& activeSessionId) {
     infos.append (info);
   }
 
-  view_->sidebar ()->refresh (infos, activeSessionId);
+  return infos;
+}
+
+string
+ChatController::determineInitialActiveSession () {
+  auto allIds= sessionManager_.getAllSessionIds ();
+  for (const string& sid : allIds) {
+    ChatSession* s= sessionManager_.getSession (sid);
+    if (s && !s->archived) return sid;
+  }
+  return "";
+}
+
+string
+ChatController::deduplicateTitle (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s) return "新会话";
+
+  if (is_empty (s->title)) return "新会话";
+
+  // 检查是否有同名会话
+  QString qtTitle      = to_qstring (s->title);
+  int     sameNameCount= 0;
+  int     mySeq        = 0;
+  auto    allIds       = sessionManager_.getAllSessionIds ();
+  for (const string& sid : allIds) {
+    ChatSession* other= sessionManager_.getSession (sid);
+    if (!other || is_empty (other->title)) continue;
+    if (to_qstring (other->title) == qtTitle) {
+      ++sameNameCount;
+      if (sid == sessionId) mySeq= sameNameCount;
+    }
+  }
+
+  if (sameNameCount > 1) {
+    return from_qstring (qtTitle + QString (" (%1)").arg (mySeq));
+  }
+  return s->title;
 }
 
 /******************************************************************************
@@ -504,10 +579,4 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   bool isArchived= (archived == "true");
   get_chat_controller ()->restoreSessionMeta (sessionId, title, model,
                                               isArchived);
-}
-
-void
-qt_chat_tab_load_sessions () {
-  cout << "[chat-persist] qt_chat_tab_load_sessions called" << LF;
-  get_chat_controller ()->loadAllSessions ();
 }

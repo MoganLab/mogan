@@ -34,9 +34,9 @@
   (string->url (string-append "tmfs://chat-message-" session-id))
 ) ;tm-define
 
-(define (chat-tab-session->input-buffer session-id)
+(tm-define (chat-tab-session->input-buffer session-id)
   (string->url (string-append "tmfs://chat-input-" session-id))
-) ;define
+) ;tm-define
 
 ;;; ---------- State 构造器和访问器 ----------
 

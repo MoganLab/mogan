@@ -422,7 +422,9 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
  * ChatSidebar 实现
  ******************************************************************************/
 
-ChatSidebar::ChatSidebar (QWidget* parent) : QWidget (parent) {
+ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
+                          const string& activeSessionId, QWidget* parent)
+    : QWidget (parent) {
   setObjectName ("chat-tab-sidebar-list");
 
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
@@ -450,7 +452,7 @@ ChatSidebar::ChatSidebar (QWidget* parent) : QWidget (parent) {
           .arg (DpiUtils::scaled (kCollapsePadY))
           .arg (DpiUtils::scaled (kCollapsePadX)));
   connect (searchEdit_, &QLineEdit::textChanged, this,
-           [this] () { refreshInternal (lastSessions_, lastActiveId_); });
+           [this] () { applySearchFilter (); });
   mainLayout->addWidget (searchEdit_);
 
   // 多选模式批量操作栏（默认隐藏）
@@ -487,7 +489,7 @@ ChatSidebar::ChatSidebar (QWidget* parent) : QWidget (parent) {
   connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
     for (auto it= items_.begin (); it != items_.end (); ++it) {
       if (!it->selectCheckBox) continue;
-      for (const auto& info : lastSessions_) {
+      for (const auto& info : sessionCache_) {
         if (info.sessionId == it.key () &&
             info.archived == archiveSelectMode_) {
           it->selectCheckBox->setChecked (true);
@@ -583,174 +585,168 @@ ChatSidebar::ChatSidebar (QWidget* parent) : QWidget (parent) {
   scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
   scrollArea->setWidget (scrollContent);
   mainLayout->addWidget (scrollArea, 1);
-}
 
-void
-ChatSidebar::refresh (const QList<SessionDisplayInfo>& sessions,
-                      const string&                    activeSessionId) {
-  lastSessions_= sessions;
-  lastActiveId_= activeSessionId;
+  // 构造时直接创建 items，按 archived 分组
+  sessionCache_   = sessions;
+  activeSessionId_= activeSessionId;
 
-  // Auto-create/destroy items based on session data
-  QMap<string, bool> sessionIds;
   for (const SessionDisplayInfo& info : sessions) {
-    sessionIds[info.sessionId]= true;
-    if (!items_.contains (info.sessionId)) {
-      SidebarItem item= createItem (info.sessionId);
-      items_.insert (info.sessionId, item);
+    SidebarItem item= createItem (info.sessionId);
+    item.sidebarButton->setText (to_qstring (info.displayTitle));
+    item.sidebarButton->setChecked (info.sessionId == activeSessionId &&
+                                    !info.archived);
+    item.isArchived= info.archived;
+
+    if (info.archived) {
+      archiveListLayout_->addWidget (item.itemWidget);
     }
+    else {
+      conversationListLayout_->addWidget (item.itemWidget);
+    }
+    items_.insert (info.sessionId, item);
   }
 
-  // Destroy items not in the session list
-  QList<string> toRemove;
-  for (auto it= items_.begin (); it != items_.end (); ++it) {
-    if (!sessionIds.contains (it.key ())) {
-      toRemove.append (it.key ());
-    }
-  }
-  for (const string& sid : toRemove) {
-    destroyItem (sid);
-  }
-
-  refreshInternal (sessions, activeSessionId);
+  updateCountLabels ();
 }
 
 void
-ChatSidebar::refreshInternal (const QList<SessionDisplayInfo>& sessions,
-                              const string& activeSessionId) {
+ChatSidebar::addItem (const string& sessionId, const string& displayTitle) {
+  if (items_.contains (sessionId)) return;
+
+  SidebarItem item= createItem (sessionId);
+  item.sidebarButton->setText (to_qstring (displayTitle));
+  item.sidebarButton->setChecked (true);
+  item.isArchived= false;
+  conversationListLayout_->insertWidget (0, item.itemWidget);
+  items_.insert (sessionId, item);
+
+  // 更新 sessionCache_ 以保持右键菜单数据同步
+  SessionDisplayInfo info;
+  info.sessionId   = sessionId;
+  info.displayTitle= displayTitle;
+  info.archived    = false;
+  sessionCache_.prepend (info);
+  activeSessionId_= sessionId;
+
+  updateCountLabels ();
+}
+
+void
+ChatSidebar::updateItemTitle (const string& sessionId,
+                              const string& displayTitle) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  if (it->sidebarButton) {
+    it->sidebarButton->setText (to_qstring (displayTitle));
+  }
+  // 更新 sessionCache_ 中的显示标题
+  for (auto& info : sessionCache_) {
+    if (info.sessionId == sessionId) {
+      info.displayTitle= displayTitle;
+      break;
+    }
+  }
+}
+
+void
+ChatSidebar::setActiveItem (const string& sessionId) {
+  activeSessionId_= sessionId;
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (!it->sidebarButton) continue;
+    bool isActive= (it.key () == sessionId && !it->isArchived);
+    it->sidebarButton->setChecked (isActive);
+  }
+}
+
+void
+ChatSidebar::moveToArchive (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  SidebarItem& item= it.value ();
+
+  if (!item.isArchived) {
+    item.isArchived= true;
+    archiveListLayout_->addWidget (item.itemWidget);
+    item.sidebarButton->setChecked (false);
+  }
+
+  // 更新 sessionCache_ 中的 archived 状态
+  for (auto& info : sessionCache_) {
+    if (info.sessionId == sessionId) {
+      info.archived= true;
+      break;
+    }
+  }
+  if (activeSessionId_ == sessionId) activeSessionId_= "";
+
+  updateCountLabels ();
+}
+
+void
+ChatSidebar::moveFromArchive (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  SidebarItem& item= it.value ();
+
+  if (item.isArchived) {
+    item.isArchived= false;
+    conversationListLayout_->insertWidget (0, item.itemWidget);
+  }
+
+  // 更新 sessionCache_ 中的 archived 状态
+  for (auto& info : sessionCache_) {
+    if (info.sessionId == sessionId) {
+      info.archived= false;
+      break;
+    }
+  }
+
+  updateCountLabels ();
+}
+
+void
+ChatSidebar::applySearchFilter () {
   QString filterText=
       searchEdit_ ? searchEdit_->text ().toLower () : QString ();
 
-  // 多选模式操作栏可见性
-  if (multiSelectBar_)
-    multiSelectBar_->setVisible (multiSelectMode_ || archiveSelectMode_);
-  if (batchArchiveBtn_) batchArchiveBtn_->setVisible (multiSelectMode_);
-
-  // 先将 item 容器从旧父控件移除
   for (auto it= items_.begin (); it != items_.end (); ++it) {
-    if (it->itemWidget) it->itemWidget->setParent (nullptr);
-  }
-
-  // 清空两个列表布局
-  while (conversationListLayout_->count () > 0) {
-    QLayoutItem* item= conversationListLayout_->takeAt (0);
-    delete item;
-  }
-  while (archiveListLayout_->count () > 0) {
-    QLayoutItem* item= archiveListLayout_->takeAt (0);
-    delete item;
-  }
-
-  int activeCount  = 0;
-  int archivedCount= 0;
-
-  for (const SessionDisplayInfo& info : sessions) {
-    auto itemIt= items_.find (info.sessionId);
-    if (itemIt == items_.end ()) continue;
-    SidebarItem& item= itemIt.value ();
-    if (!item.sidebarButton) continue;
-
-    QString displayText= to_qstring (info.displayTitle);
-    item.sidebarButton->setText (displayText);
-    item.sidebarButton->setChecked (info.sessionId == activeSessionId &&
-                                    !info.archived);
+    SidebarItem& item= it.value ();
+    if (!item.sidebarButton || !item.itemWidget) continue;
 
     // 多选模式：checkbox 可见性
     if (item.selectCheckBox) {
-      if (info.archived) item.selectCheckBox->setVisible (archiveSelectMode_);
+      if (item.isArchived) item.selectCheckBox->setVisible (archiveSelectMode_);
       else item.selectCheckBox->setVisible (multiSelectMode_);
     }
 
-    // 搜索过滤
-    bool matchesFilter=
+    QString displayText= item.sidebarButton->text ();
+    bool    matchesFilter=
         filterText.isEmpty () || displayText.toLower ().contains (filterText);
-    if (!matchesFilter) {
-      item.itemWidget->setVisible (false);
-      continue;
-    }
+    item.itemWidget->setVisible (matchesFilter);
+  }
 
-    item.itemWidget->setVisible (true);
-    item.sidebarButton->setVisible (true);
+  updateCountLabels ();
+}
 
-    if (info.archived) {
-      ++archivedCount;
-      item.itemWidget->setParent (archiveListWidget_);
-      archiveListLayout_->addWidget (item.itemWidget);
-      disconnect (item.sidebarButton, nullptr, this, nullptr);
-      connect (item.sidebarButton, &QPushButton::clicked, this,
-               [this, sid= info.sessionId] () { emit sessionClicked (sid); });
-    }
-    else {
-      ++activeCount;
-      item.itemWidget->setParent (conversationListWidget_);
-      conversationListLayout_->addWidget (item.itemWidget);
-      disconnect (item.sidebarButton, nullptr, this, nullptr);
-      connect (item.sidebarButton, &QPushButton::clicked, this,
-               [this, sid= info.sessionId] () { emit sessionClicked (sid); });
-    }
+void
+ChatSidebar::updateCountLabels () {
+  int activeCount  = 0;
+  int archivedCount= 0;
 
-    // 右键菜单
-    item.sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
-    disconnect (item.sidebarButton, &QPushButton::customContextMenuRequested,
-                this, nullptr);
-    connect (
-        item.sidebarButton, &QPushButton::customContextMenuRequested, this,
-        [this, info] (const QPoint& pos) {
-          QMenu         menu;
-          QList<string> checked  = getCheckedSessionIds ();
-          QPushButton*  senderBtn= qobject_cast<QPushButton*> (sender ());
-
-          if (!checked.isEmpty ()) {
-            if (!info.archived) {
-              menu.addAction (QString ("归档所选 (%1)").arg (checked.size ()));
-            }
-            menu.addAction (QString ("删除所选 (%1)").arg (checked.size ()));
-            QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
-            if (!chosen) return;
-            QString txt= chosen->text ();
-            if (txt.startsWith ("归档所选")) {
-              emit multiArchiveRequested (checked);
-            }
-            else if (txt.startsWith ("删除所选")) {
-              emit multiDeleteRequested (checked);
-            }
-          }
-          else {
-            QAction* renameAction= menu.addAction ("重命名");
-            QAction* archiveAction=
-                menu.addAction (info.archived ? "恢复" : "归档");
-            QAction* deleteAction= menu.addAction ("删除");
-            menu.addSeparator ();
-            QAction* multiSelectAction= menu.addAction ("多选");
-            QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
-            if (chosen == renameAction) {
-              emit renameRequested (info.sessionId, "");
-            }
-            else if (chosen == archiveAction) {
-              if (info.archived) emit restoreRequested (info.sessionId);
-              else emit archiveRequested (info.sessionId);
-            }
-            else if (chosen == deleteAction) {
-              emit deleteRequested (info.sessionId);
-            }
-            else if (chosen == multiSelectAction) {
-              enterMultiSelectMode (info.archived);
-            }
-          }
-        });
+  for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
+    if (it->isArchived) ++archivedCount;
+    else ++activeCount;
   }
 
   if (conversationCountLabel_) {
     conversationCountLabel_->setText (
         QString ("Conversations (%1)").arg (activeCount));
+    conversationCountLabel_->setVisible (true);
   }
   if (archiveHeaderButton_) {
     archiveHeaderButton_->setText (
         QString ("Archived (%1)").arg (archivedCount));
     archiveHeaderButton_->setVisible (true);
-  }
-  if (archiveListWidget_) {
-    archiveListWidget_->setVisible (archivedCount > 0 && !archiveCollapsed_);
   }
 }
 
@@ -794,6 +790,65 @@ ChatSidebar::createItem (const string& sessionId) {
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   itemLayout->addWidget (item.sidebarButton, 1);
 
+  // clicked 信号：连接一次，不再在 refreshInternal 中反复 disconnect/connect
+  connect (item.sidebarButton, &QPushButton::clicked, this,
+           [this, sid= sessionId] () { emit sessionClicked (sid); });
+
+  // 右键菜单：连接一次，执行时从 sessionCache_ 查找当前状态
+  item.sidebarButton->setContextMenuPolicy (Qt::CustomContextMenu);
+  connect (
+      item.sidebarButton, &QPushButton::customContextMenuRequested, this,
+      [this, sid= sessionId] (const QPoint& pos) {
+        QPushButton* senderBtn= qobject_cast<QPushButton*> (sender ());
+        bool         archived = false;
+        for (const auto& info : sessionCache_) {
+          if (info.sessionId == sid) {
+            archived= info.archived;
+            break;
+          }
+        }
+
+        QMenu         menu;
+        QList<string> checked= getCheckedSessionIds ();
+
+        if (!checked.isEmpty ()) {
+          if (!archived) {
+            menu.addAction (QString ("归档所选 (%1)").arg (checked.size ()));
+          }
+          menu.addAction (QString ("删除所选 (%1)").arg (checked.size ()));
+          QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
+          if (!chosen) return;
+          QString txt= chosen->text ();
+          if (txt.startsWith ("归档所选")) {
+            emit multiArchiveRequested (checked);
+          }
+          else if (txt.startsWith ("删除所选")) {
+            emit multiDeleteRequested (checked);
+          }
+        }
+        else {
+          QAction* renameAction = menu.addAction ("重命名");
+          QAction* archiveAction= menu.addAction (archived ? "恢复" : "归档");
+          QAction* deleteAction = menu.addAction ("删除");
+          menu.addSeparator ();
+          QAction* multiSelectAction= menu.addAction ("多选");
+          QAction* chosen           = menu.exec (senderBtn->mapToGlobal (pos));
+          if (chosen == renameAction) {
+            emit renameRequested (sid, "");
+          }
+          else if (chosen == archiveAction) {
+            if (archived) emit restoreRequested (sid);
+            else emit archiveRequested (sid);
+          }
+          else if (chosen == deleteAction) {
+            emit deleteRequested (sid);
+          }
+          else if (chosen == multiSelectAction) {
+            enterMultiSelectMode (archived);
+          }
+        }
+      });
+
   return item;
 }
 
@@ -818,13 +873,25 @@ ChatSidebar::destroyItem (const string& sessionId) {
 void
 ChatSidebar::removeItem (const string& sessionId) {
   destroyItem (sessionId);
+  if (activeSessionId_ == sessionId) activeSessionId_= "";
+  // 从 sessionCache_ 中移除
+  for (int i= 0; i < sessionCache_.size (); ++i) {
+    if (sessionCache_[i].sessionId == sessionId) {
+      sessionCache_.removeAt (i);
+      break;
+    }
+  }
+  updateCountLabels ();
 }
 
 void
 ChatSidebar::enterMultiSelectMode (bool archived) {
   if (archived) archiveSelectMode_= true;
   else multiSelectMode_= true;
-  refreshInternal (lastSessions_, lastActiveId_);
+  if (multiSelectBar_)
+    multiSelectBar_->setVisible (multiSelectMode_ || archiveSelectMode_);
+  if (batchArchiveBtn_) batchArchiveBtn_->setVisible (multiSelectMode_);
+  applySearchFilter ();
 }
 
 void
@@ -834,7 +901,13 @@ ChatSidebar::exitMultiSelectMode () {
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     if (it->selectCheckBox) it->selectCheckBox->setChecked (false);
   }
-  refreshInternal (lastSessions_, lastActiveId_);
+  if (multiSelectBar_) multiSelectBar_->hide ();
+  applySearchFilter ();
+}
+
+const string&
+ChatSidebar::activeSessionId () const {
+  return activeSessionId_;
 }
 
 QList<string>
@@ -851,7 +924,9 @@ ChatSidebar::getCheckedSessionIds () const {
  * QTChatTabWidget 构造/析构
  ******************************************************************************/
 
-QTChatTabWidget::QTChatTabWidget (QWidget* parent)
+QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
+                                  const string& activeSessionId,
+                                  QWidget*      parent)
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
@@ -876,7 +951,7 @@ QTChatTabWidget::QTChatTabWidget (QWidget* parent)
       DpiUtils::scaled (kSidebarMarginX), DpiUtils::scaled (kSidebarMarginY));
   sidebarLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
-  setup_left_sidebar (sidebarLayout);
+  setup_left_sidebar (sidebarLayout, sessions, activeSessionId);
   sidebar->adjustSize ();
   const int contentWidth= sidebar->sizeHint ().width ();
   sidebarExpandedWidth_=
@@ -932,18 +1007,14 @@ QTChatTabWidget::removePanel (ChatConversationPanel* panel) {
   delete panel;
 }
 
-void
-QTChatTabWidget::refreshSidebar (const QList<SessionDisplayInfo>& sessions,
-                                 const string& activeSessionId) {
-  if (sidebar_) sidebar_->refresh (sessions, activeSessionId);
-}
-
 /******************************************************************************
  * QTChatTabWidget UI 设置
  ******************************************************************************/
 
 void
-QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
+QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout,
+                                     const QList<SessionDisplayInfo>& sessions,
+                                     const string& activeSessionId) {
   QWidget* normalContent= new QWidget (sidebarWidget_);
   normalContent->setObjectName ("chat-tab-sidebar-normal");
   QVBoxLayout* normalLayout= new QVBoxLayout (normalContent);
@@ -1013,7 +1084,7 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout) {
   normalLayout->addWidget (newChatButton_, 0, Qt::AlignHCenter);
 
   // ChatSidebar
-  sidebar_= new ChatSidebar (normalContent);
+  sidebar_= new ChatSidebar (sessions, activeSessionId, normalContent);
   normalLayout->addWidget (sidebar_, 1);
 
   sidebarNormalContent_= normalContent;
