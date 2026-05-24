@@ -127,6 +127,11 @@ ChatController::onSessionClicked (const string& sessionId) {
   if (s && !s->archived) {
     activateSession (sessionId);
   }
+  else {
+    // 归档会话不可激活，刷新当前激活项以恢复视觉状态
+    string cur= view_->sidebar ()->activeSessionId ();
+    if (!is_empty (cur)) view_->sidebar ()->setActiveItem (cur);
+  }
 }
 
 void
@@ -394,25 +399,27 @@ ChatController::ensureNewConversation () {
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 检查是否已有空白的新会话且模型一致
+  // 检查第一个非归档会话是否可以复用
   auto allIds= sessionManager_.getAllSessionIds ();
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);
-    if (s && !s->archived && !s->panel && is_empty (s->title)) {
-      // 空白 session 无面板
-      if (s->model == currentModel) {
-        activateSession (sid);
-        return;
-      }
+    if (!s || s->archived) continue;
+    // 空白 session 无面板
+    if (!s->panel && is_empty (s->title) && s->model == currentModel) {
+      activateSession (sid);
+      return;
     }
     // 有面板但未进入会话模式
-    if (s && !s->archived && s->panel) {
+    if (s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
       if (p && !p->conversationMode () && s->model == currentModel) {
+        view_->sidebar ()->setActiveItem (sid);
         view_->activatePanel (p);
         return;
       }
     }
+    // 第一个非归档会话不可复用，跳出新建
+    break;
   }
 
   // 新建会话
