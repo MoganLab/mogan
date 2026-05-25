@@ -34,7 +34,8 @@
                (other-lines
                  (filter (lambda (line)
                            (let ((trimmed-line (string-trim-left line)))
-                             (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                             (and (not (string-null? trimmed-line))
+                                  (not (string-starts? trimmed-line "\\usetikzlibrary"))
                                   (not (string-starts? trimmed-line "\\usepackage")))))
                          lines))
                (body (string-join other-lines "\n"))
