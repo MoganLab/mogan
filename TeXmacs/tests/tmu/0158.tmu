@@ -1,0 +1,14 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <tabular|<tformat|<twith|table-hmode|min>|<twith|table-width|1par>|<cwith|1|-1|1|-1|cell-hyphen|t>|<table|<row|<cell|№>|<cell|Uppercase>|<cell|Lowercase>|<cell|Name>>|<row|<cell|1>|<cell|А>|<cell|а>|<cell|а>>|<row|<cell|2>|<cell|Б>|<cell|б>|<cell|бэ>>|<row|<cell|3>|<cell|В>|<cell|в>|<cell|вэ>>|<row|<cell|4>|<cell|Г>|<cell|г>|<cell|гэ>>|<row|<cell|5>|<cell|Д>|<cell|д>|<cell|дэ>>|<row|<cell|6>|<cell|Е>|<cell|е>|<cell|е>>|<row|<cell|7>|<cell|Ё>|<cell|ё>|<cell|ё>>|<row|<cell|8>|<cell|Ж>|<cell|ж>|<cell|жэ>>|<row|<cell|9>|<cell|З>|<cell|з>|<cell|зэ>>|<row|<cell|10>|<cell|И>|<cell|и>|<cell|и>>|<row|<cell|11>|<cell|Й>|<cell|й>|<cell|и краткое>>|<row|<cell|12>|<cell|К>|<cell|к>|<cell|ка>>|<row|<cell|13>|<cell|Л>|<cell|л>|<cell|эль>>|<row|<cell|14>|<cell|М>|<cell|м>|<cell|эм>>|<row|<cell|15>|<cell|Н>|<cell|н>|<cell|эн>>|<row|<cell|16>|<cell|О>|<cell|о>|<cell|о>>|<row|<cell|17>|<cell|П>|<cell|п>|<cell|пэ>>|<row|<cell|18>|<cell|Р>|<cell|р>|<cell|эр>>|<row|<cell|19>|<cell|С>|<cell|с>|<cell|эс>>|<row|<cell|20>|<cell|Т>|<cell|т>|<cell|тэ>>|<row|<cell|21>|<cell|У>|<cell|у>|<cell|у>>|<row|<cell|22>|<cell|Ф>|<cell|ф>|<cell|эф>>|<row|<cell|23>|<cell|Х>|<cell|х>|<cell|ха>>|<row|<cell|24>|<cell|Ц>|<cell|ц>|<cell|цэ>>|<row|<cell|25>|<cell|Ч>|<cell|ч>|<cell|че>>|<row|<cell|26>|<cell|Ш>|<cell|ш>|<cell|ша>>|<row|<cell|27>|<cell|Щ>|<cell|щ>|<cell|ща>>|<row|<cell|28>|<cell|Ъ>|<cell|ъ>|<cell|твёрдый знак>>|<row|<cell|29>|<cell|Ы>|<cell|ы>|<cell|ы>>|<row|<cell|30>|<cell|Ь>|<cell|ь>|<cell|мягкий знак>>|<row|<cell|31>|<cell|Э>|<cell|э>|<cell|э>>|<row|<cell|32>|<cell|Ю>|<cell|ю>|<cell|ю>>|<row|<cell|33>|<cell|Я>|<cell|я>|<cell|я>>>>>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|prog-scripts|maxima>
+  </collection>
+</initial>

@@ -40,6 +40,8 @@ private slots:
   void test_cursor_position_iii ();
   void test_performance ();
   void test_math_performance ();
+  void test_in_unicode_range_cyrillic ();
+  void test_sys_chinese_cyrillic ();
 };
 
 void
@@ -186,6 +188,33 @@ TestSmartFont::test_math_performance () {
                     "<tau><upsilon><phi><chi><psi><omega>";
   metric ex;
   fn->get_extents (math_text, ex);
+}
+
+void
+TestSmartFont::test_in_unicode_range_cyrillic () {
+  // Cyrillic 字符不应该被当作 CJK
+  QVERIFY (!in_unicode_range ("<#400>", "cjk"));
+  QVERIFY (!in_unicode_range ("<#4FF>", "cjk"));
+  // Cyrillic 字符应该属于 cyrillic range
+  QVERIFY (in_unicode_range ("<#400>", "cyrillic"));
+  QVERIFY (in_unicode_range ("<#4FF>", "cyrillic"));
+  // Latin 字符不应该属于 cyrillic range
+  QVERIFY (!in_unicode_range ("a", "cyrillic"));
+}
+
+void
+TestSmartFont::test_sys_chinese_cyrillic () {
+  // sys-chinese 展开后应该包含 cyrillic= 前缀
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep      = (smart_font_rep*) fn.rep;
+  bool            has_cyrillic= false;
+  for (int i= 0; i < N (fn_rep->family_tokens); i++) {
+    if (starts (fn_rep->family_tokens[i], "cyrillic=")) {
+      has_cyrillic= true;
+      break;
+    }
+  }
+  QVERIFY (has_cyrillic);
 }
 
 QTEST_MAIN (TestSmartFont)

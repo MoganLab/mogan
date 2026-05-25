@@ -159,4 +159,6 @@ struct smart_font_rep : font_rep {
   SI get_wide_correction (string s, int mode);
 };
 
+bool in_unicode_range (string c, string range);
+
 #endif

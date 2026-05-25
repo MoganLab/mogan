@@ -397,7 +397,7 @@ is_cjk_punct (string_u8 c) {
   return set->contains (c);
 }
 
-static bool
+bool
 in_unicode_range (string c, string range) {
   string uc= strict_cork_to_utf8 (c);
   if (N (uc) == 0) return false;
@@ -1784,7 +1784,7 @@ smart_font_bis (string family, string variant, string series, string shape,
   if (starts (family, "sys-")) {
     if (family == "sys-chinese") {
       string name= default_chinese_font_name ();
-      family     = "cjk=" * name * ",roman";
+      family     = "cjk=" * name * ",cyrillic=" * name * ",roman";
     }
     if (family == "sys-japanese") {
       string name= default_japanese_font_name ();
