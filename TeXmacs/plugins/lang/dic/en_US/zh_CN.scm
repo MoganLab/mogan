@@ -2233,7 +2233,6 @@
 ("source macros tool" "源码菜单")
 ("source tags" "代码标记")
 ("source" "源码")
-("space" "空格")
 ("space bar in math mode" "数学模式中的空格键")
 ("space bar in text mode" "文本模式中的空格键")
 ("space between lines" "行间空白")
