@@ -1078,6 +1078,162 @@ private slots:
 
     delete widget;
   }
+
+  // ============================================================
+  // Double-click tests (TDD for mouse-left-button-not-always-working)
+  // ============================================================
+
+  void test_doubleClickStartsDrag () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    // Simulate a double-click: press, release, dblclick, release
+    QPoint pos (100, 100);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    // Now the second click of the double-click sequence
+    QTest::mouseDClick (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+
+    // After the dblclick event the cursor must be ClosedHandCursor,
+    // proving the second press was handled.
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    delete widget;
+  }
+
+  void test_doubleClickInRectSelectMode () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QToolButton* rectBtn=
+        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
+    QVERIFY (rectBtn != nullptr);
+    rectBtn->click ();
+    QApplication::processEvents ();
+    QVERIFY (widget->isRectSelectMode ());
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QPoint pos (50, 50);
+
+    // First click starts rubber band
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+
+    QRubberBand* rb= widget->findChild<QRubberBand*> ();
+    QVERIFY (rb != nullptr);
+    QVERIFY (rb->isVisible ());
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, pos);
+    QApplication::processEvents ();
+
+    // Second click of a double-click must also start rubber band.
+    // QTest::mouseDClick sends dblclick+release; release hides the band,
+    // so we send only the dblclick event to verify the press path.
+    {
+      QMouseEvent dblClickEvent (QEvent::MouseButtonDblClick, pos, Qt::LeftButton,
+                                 Qt::LeftButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &dblClickEvent);
+    }
+    QApplication::processEvents ();
+    QVERIFY (rb->isVisible ());
+
+    delete widget;
+  }
+
+  void test_doubleClickOnLinkTriggersClick () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      return;
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+
+    QString capturedUri;
+    connect (widget, &PDFReaderWidget::linkClicked,
+             [&capturedUri] (const QString& uri) { capturedUri= uri; });
+
+    QVector<PdfLink> links;
+    PdfLink          link;
+    link.rect= QRectF (0.0, 0.0, 0.5, 0.5);
+    link.uri = "https://example.com";
+    links.append (link);
+    widget->setTestLinks (0, links);
+
+    // Hover to set overLink_
+    {
+      QMouseEvent moveEvent (QEvent::MouseMove, QPoint (50, 50), Qt::NoButton,
+                             Qt::NoButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &moveEvent);
+    }
+    QApplication::processEvents ();
+    QVERIFY (widget->isOverLink ());
+
+    // First click
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+
+    // Verify first click worked, then reset
+    QCOMPARE (capturedUri, QString ("https://example.com"));
+    capturedUri.clear ();
+
+    // Simulate only the dblclick event (the second press of a double-click)
+    {
+      QMouseEvent dblClickEvent (QEvent::MouseButtonDblClick, QPoint (50, 50),
+                                 Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+      QApplication::sendEvent (vp, &dblClickEvent);
+    }
+    QApplication::processEvents ();
+
+    // Release after dblclick
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 50));
+    QApplication::processEvents ();
+
+    // The dblclick-release should have triggered the link click
+    QCOMPARE (capturedUri, QString ("https://example.com"));
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)

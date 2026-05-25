@@ -1427,7 +1427,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     QPoint viewportPos, contentPos;
     bool   isMouseEvent= (event->type () == QEvent::MouseMove ||
                         event->type () == QEvent::MouseButtonPress ||
-                        event->type () == QEvent::MouseButtonRelease);
+                        event->type () == QEvent::MouseButtonRelease ||
+                        event->type () == QEvent::MouseButtonDblClick);
     if (isMouseEvent) {
       QMouseEvent* me= static_cast<QMouseEvent*> (event);
       viewportPos    = me->pos ();
@@ -1505,7 +1506,9 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     // ============================================================
     // Browse (hand) tool: default drag-to-scroll behavior
     // ============================================================
-    else if (!rectSelectMode_ && event->type () == QEvent::MouseButtonPress) {
+    else if (!rectSelectMode_ &&
+             (event->type () == QEvent::MouseButtonPress ||
+              event->type () == QEvent::MouseButtonDblClick)) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
       if (mouseEvent->button () == Qt::LeftButton) {
         browseDragging_    = true;
@@ -1553,7 +1556,9 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     // ============================================================
     // Rectangular selection mode
     // ============================================================
-    else if (rectSelectMode_ && event->type () == QEvent::MouseButtonPress) {
+    else if (rectSelectMode_ &&
+             (event->type () == QEvent::MouseButtonPress ||
+              event->type () == QEvent::MouseButtonDblClick)) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
       if (mouseEvent->button () == Qt::LeftButton) {
         rectSelectDragging_= true;
