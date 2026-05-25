@@ -522,8 +522,7 @@ private slots:
     QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
 
     // Move a tiny distance (below drag threshold) and not over a link
-    QPoint smallMove (
-        start.x () + 1, start.y () + 1);
+    QPoint smallMove (start.x () + 1, start.y () + 1);
     QTest::mouseMove (vp, smallMove);
     QApplication::processEvents ();
 
@@ -1197,8 +1196,9 @@ private slots:
     // QTest::mouseDClick sends dblclick+release; release hides the band,
     // so we send only the dblclick event to verify the press path.
     {
-      QMouseEvent dblClickEvent (QEvent::MouseButtonDblClick, pos, Qt::LeftButton,
-                                 Qt::LeftButton, Qt::NoModifier);
+      QMouseEvent dblClickEvent (QEvent::MouseButtonDblClick, pos,
+                                 Qt::LeftButton, Qt::LeftButton,
+                                 Qt::NoModifier);
       QApplication::sendEvent (vp, &dblClickEvent);
     }
     QApplication::processEvents ();
@@ -1256,7 +1256,8 @@ private slots:
     // Simulate only the dblclick event (the second press of a double-click)
     {
       QMouseEvent dblClickEvent (QEvent::MouseButtonDblClick, QPoint (50, 50),
-                                 Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+                                 Qt::LeftButton, Qt::LeftButton,
+                                 Qt::NoModifier);
       QApplication::sendEvent (vp, &dblClickEvent);
     }
     QApplication::processEvents ();
