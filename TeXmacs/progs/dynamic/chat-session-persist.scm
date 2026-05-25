@@ -13,6 +13,7 @@
 (texmacs-module (dynamic chat-session-persist)
   (:use (dynamic chat-tab-session)
     (texmacs texmacs tm-files)
+    (utils library cursor)
   ) ;:use
 ) ;texmacs-module
 
@@ -198,6 +199,10 @@
              (body (tmfile-extract doc 'body)))
         (when body
           (buffer-set-body msg-buf body)
+          ;; 恢复宏包：加载时 buffer 只有默认 generic 样式，
+          ;; 需要重新添加 number-europe、language 等宏包以正确渲染
+          (with-buffer msg-buf
+            (chat-tab-add-default-style-packages!))
           (buffer-pretend-saved msg-buf)))
     ) ;when
   ) ;let

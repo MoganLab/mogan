@@ -516,7 +516,7 @@
 
 ;;; ---------- 会话管理 ----------
 
-(define (chat-tab-add-default-style-packages!)
+(tm-define (chat-tab-add-default-style-packages!)
   ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
   (add-style-package "number-europe")
   (add-style-package "preview-ref")
