@@ -20,7 +20,8 @@
 ; Simulate the wrap-tikz-code logic from tm-tikz.scm
 (define (wrap-tikz-code code)
   (let ((trimmed (string-trim-left code)))
-    (if (string-starts? trimmed "\\documentclass")
+    (if (or (string-starts? trimmed "\\documentclass")
+            (string-contains? code "\\begin{document}"))
       code
       (let* ((lines (string-split code #\newline))
              (library-lines
@@ -130,6 +131,18 @@
   (wrap-tikz-code "\\documentclass{article}\n\\begin{document}\n\\end{document}")
   =>
   "\\documentclass{article}\n\\begin{document}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "% some comment\n\\documentclass[tikz]{standalone}\n\\begin{document}\n\\draw (0,0) -- (1,1);\n\\end{document}")
+  =>
+  "% some comment\n\\documentclass[tikz]{standalone}\n\\begin{document}\n\\draw (0,0) -- (1,1);\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\begin{document}\n\\draw (0,0) -- (1,1);\n\\end{document}")
+  =>
+  "\\begin{document}\n\\draw (0,0) -- (1,1);\n\\end{document}"
 )
 
 (check

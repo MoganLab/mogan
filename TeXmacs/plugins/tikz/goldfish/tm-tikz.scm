@@ -42,7 +42,8 @@
 
 (define (wrap-tikz-code code)
   (let ((trimmed (string-trim-left code)))
-    (if (string-starts? trimmed "\\documentclass")
+    (if (or (string-starts? trimmed "\\documentclass")
+            (string-contains? code "\\begin{document}"))
         code
         (let* ((lines (string-split code #\newline))
                (library-lines
