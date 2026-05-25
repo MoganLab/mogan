@@ -99,12 +99,12 @@
                                                package-lines)))
                        (set! pkgs (cons "\\usepackage{calc}" pkgs)))
                      (reverse pkgs)))
-                 (inner-code
-                   (if (or (string-null? body-trimmed)
-                           (string-starts? body-trimmed "\\begin{tikzpicture}")
-                           has-chemfig?)
-                       body
-                       (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
+                  (inner-code
+                    (if (or (string-null? body-trimmed)
+                            (string-contains? body "\\begin{tikzpicture}")
+                            has-chemfig?)
+                        body
+                        (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
             (string-append
               "\\documentclass[tikz,rgb]{standalone}\n"
               (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))

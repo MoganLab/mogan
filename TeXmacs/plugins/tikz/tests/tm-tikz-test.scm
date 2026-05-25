@@ -79,7 +79,7 @@
                    (reverse pkgs)))
                (inner-code
                  (if (or (string-null? body-trimmed)
-                         (string-starts? body-trimmed "\\begin{tikzpicture}")
+                         (string-contains? body "\\begin{tikzpicture}")
                          has-chemfig?)
                    body
                    (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
@@ -161,6 +161,12 @@
   (wrap-tikz-code "\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}")
   =>
   "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\def\\skala{0.8}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}")
+  =>
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\def\\skala{0.8}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
