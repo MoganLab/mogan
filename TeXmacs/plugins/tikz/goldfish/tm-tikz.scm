@@ -119,7 +119,7 @@
                 "\\begin{document}\n"
                 (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
                 inner-code
-                "\n\\end{document}"))))))))
+                "\n\\end{document}")))))))
 
 (define (parse-magic-line magic-line)
   (let ((tokens (filter (lambda (x) (not (string-null? x)))
