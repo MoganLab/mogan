@@ -94,11 +94,15 @@
   (:synopsis "Adapter cancel entry for a chat tab")
   (:argument session-id "Session UUID")
   (let* ((st (chat-tab-get-state session-id))
-         (model (if st (chat-tab-state-model st) "default"))
+         (model (if st (car st) "Kimi-VLM"))
          (plugin-ses (string-append model ":chat-tab:" session-id))
         ) ;
-    (if (== (connection-status "llm" plugin-ses) 3)
-      (connection-interrupt "llm" plugin-ses))
-    (plugin-cancel "llm" plugin-ses #f)
+    (if (!= (connection-status "llm" plugin-ses) 0)
+      (begin
+        (connection-stop "llm" plugin-ses)
+        ;; kill 子进程后 plugin 完成回调不会再触发，手动通知 C++ 恢复 Idle
+        (chat-tab-notify-state session-id "idle")
+      ) ;begin
+    ) ;if
   ) ;let*
 ) ;tm-define

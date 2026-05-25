@@ -40,9 +40,7 @@
 
 ;;; ---------- State 构造器和访问器 ----------
 
-(tm-define (chat-tab-state model)
-  (list model)
-) ;tm-define
+(tm-define (chat-tab-state model) (list model))
 
 (define (chat-tab-state-model st)
   (list-ref st 0)
@@ -94,15 +92,20 @@
 
 ;; chat-tab-buffer-empty?
 ;; 检查 buffer body 是否为空（无对话历史）。
+
 (define (chat-tab-buffer-empty? body)
   (or (not body)
     (and (tree-is? body 'document) (== (tree-arity body) 0))
     (and (tree-is? body 'document)
       (== (tree-arity body) 1)
-      (tree-empty? (tree-ref body 0)))
+      (tree-empty? (tree-ref body 0))
+    ) ;and
     (and (tree-is? body 'session)
       (let ((d (tree-ref body 2)))
-        (or (not (tree-is? d 'document)) (== (tree-arity d) 0)))))
+        (or (not (tree-is? d 'document)) (== (tree-arity d) 0))
+      ) ;let
+    ) ;and
+  ) ;or
 ) ;define
 
 (define (chat-tab-model-prompt model)
@@ -144,19 +147,20 @@
           ((symbol? s) "")
           ((not (pair? s)) "")
           ((eq? (car s) 'document)
-           (chat-tab-join-nonempty
-             (map chat-tab-tree->plain-text (cdr s)) "\n"))
+           (chat-tab-join-nonempty (map chat-tab-tree->plain-text (cdr s)) "\n")
+          ) ;
           ((eq? (car s) 'concat)
-           (apply string-append (map chat-tab-tree->plain-text (cdr s))))
+           (apply string-append (map chat-tab-tree->plain-text (cdr s)))
+          ) ;
           ((eq? (car s) 'new-line) "\n")
           ((eq? (car s) 'folded-explain) "")
           ((eq? (car s) 'unfolded-explain) "")
           ((eq? (car s) 'image) "filtered image")
           ((eq? (car s) 'with)
            ;; (with var1 val1 ... body) → 只取 body
-           (if (null? (cdr s)) "" (chat-tab-tree->plain-text (car (reverse s)))))
-          (else
-           (apply string-append (map chat-tab-tree->plain-text (cdr s))))
+           (if (null? (cdr s)) "" (chat-tab-tree->plain-text (car (reverse s))))
+          ) ;
+          (else (apply string-append (map chat-tab-tree->plain-text (cdr s))))
     ) ;cond
   ) ;let
 ) ;define
@@ -183,12 +187,15 @@
     (cond ((string? s) #f)
           ((not (pair? s)) #f)
           ((eq? (car s) 'image) #t)
-          (else
-            (let loop ((rest (cdr s)))
-              (if (null? rest)
-                #f
-                (or (chat-tab-tree-has-image? (car rest))
-                  (loop (cdr rest)))))))
+          (else (let loop
+                  ((rest (cdr s)))
+                  (if (null? rest)
+                    #f
+                    (or (chat-tab-tree-has-image? (car rest)) (loop (cdr rest)))
+                  ) ;if
+                ) ;let
+          ) ;else
+    ) ;cond
   ) ;let
 ) ;define
 
@@ -209,48 +216,55 @@
 ;; string
 
 (define (chat-tab-join-nonempty strs sep)
-  (let loop ((rest strs) (acc '()) (first? #t))
+  (let loop
+    ((rest strs) (acc '()) (first? #t))
     (if (null? rest)
       (apply string-append (reverse acc))
       (let ((s (car rest)))
         (if (or (string-null? s) (string=? s "\n"))
           (loop (cdr rest) acc first?)
-          (loop (cdr rest)
-            (if first? (list s) (cons s (cons sep acc)))
-            #f)))))
+          (loop (cdr rest) (if first? (list s) (cons s (cons sep acc))) #f)
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
 ) ;define
 
 ;; chat-tab-find-session
 ;; 在 body 树中查找 session 节点（处理 TMU 加载后 body 为 document 包裹的情况）。
+
 (define (chat-tab-find-session body)
   (if (tree-is? body 'session)
     body
     (if (tree-is? body 'document)
-      (let loop ((i 0))
+      (let loop
+        ((i 0))
         (if (>= i (tree-arity body))
           #f
-          (if (tree-is? (tree-ref body i) 'session)
-            (tree-ref body i)
-            (loop (+ i 1)))))
-      #f)))
- ;define
+          (if (tree-is? (tree-ref body i) 'session) (tree-ref body i) (loop (+ i 1)))
+        ) ;if
+      ) ;let
+      #f
+    ) ;if
+  ) ;if
+) ;define
 
 (define (chat-tab-message-document message-buffer)
   (with-buffer message-buffer
     (let ((doc (buffer-get-body message-buffer)))
       (cond ((tree-is? doc 'session)
-             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc)))
+             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
+            ) ;
             ((tree-is? doc 'document)
              ;; body 为 document 时，查找其中的 session 节点
              (let ((sess (chat-tab-find-session doc)))
-               (if sess
-                 (let ((d (tree-ref sess 2)))
-                   (if (tree-is? d 'document) d doc))
-                 doc)))
-            (else
-              (buffer-set-body message-buffer '(document ""))
+               (if sess (let ((d (tree-ref sess 2))) (if (tree-is? d 'document) d doc)) doc)
+             ) ;let
+            ) ;
+            (else (buffer-set-body message-buffer '(document ""))
               (buffer-pretend-saved message-buffer)
-              (buffer-get-body message-buffer))
+              (buffer-get-body message-buffer)
+            ) ;else
       ) ;cond
     ) ;let
   ) ;with-buffer
@@ -328,7 +342,8 @@
   ;; 偏好驱动，参考 buffer-set-default-style（tm-files.scm:130-146）
   (add-style-package "number-europe")
   (add-style-package "preview-ref")
-  (with lan (get-preference "language")
+  (with lan
+    (get-preference "language")
     (when (!= lan "english")
       (set-document-language lan)
       ;; 中文等 CJK 语言自动加载对应样式包
@@ -339,16 +354,17 @@
     ) ;when
   ) ;with
   ;; 插件样式包：动态检测，参考 session-edit 的 make-session
-  (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH"
-                      (string-append chat-tab-session-name ".ts")))
-    (add-style-package chat-tab-session-name))
+  (when (url-exists? (url-unix "$TEXMACS_STYLE_PATH" (string-append chat-tab-session-name ".ts"))
+        ) ;url-exists?
+    (add-style-package chat-tab-session-name)
+  ) ;when
 ) ;define
 
 (define (chat-tab-ensure-session! session-id)
   (let ((st (chat-tab-get-state session-id)))
     (if st
       st
-      (let* ((model (or chat-tab-current-model "default"))
+      (let* ((model (or chat-tab-current-model "Kimi-VLM"))
              (plugin-ses (string-append model ":chat-tab:" session-id))
              (new (chat-tab-state model))
              (msg-buf (chat-tab-session->message-buffer session-id))
@@ -361,16 +377,15 @@
           (let ((body (buffer-get-body msg-buf)))
             (when (chat-tab-buffer-empty? body)
               (buffer-set-body msg-buf
-                `(session ,chat-tab-session-name ,plugin-ses (document)))
+                `(session ,chat-tab-session-name ,plugin-ses (document))
+              ) ;buffer-set-body
               (buffer-pretend-saved msg-buf)
             ) ;when
           ) ;let
           (chat-tab-add-default-style-packages!)
         ) ;with-buffer
         ;; input buffer 同样加载样式包
-        (with-buffer in-buf
-          (chat-tab-add-default-style-packages!)
-        ) ;with-buffer
+        (with-buffer in-buf (chat-tab-add-default-style-packages!))
         new
       ) ;let*
     ) ;if
@@ -556,23 +571,16 @@
       (with (input session-id out opts)
         (chat-tab-session-decode (car l))
         (let ((msg-buf (chat-tab-session->message-buffer session-id))
-              (in-buf (chat-tab-session->input-buffer session-id)))
+              (in-buf (chat-tab-session->input-buffer session-id))
+             ) ;
           (cond ((== ch "output")
-                 (with-buffer msg-buf
-                   (chat-tab-output out t)
-                   (buffer-pretend-saved msg-buf)
-                 ) ;with-buffer
+                 (with-buffer msg-buf (chat-tab-output out t) (buffer-pretend-saved msg-buf))
                 ) ;
                 ((== ch "error")
-                 (with-buffer msg-buf
-                   (chat-tab-errput out t)
-                   (buffer-pretend-saved msg-buf)
-                 ) ;with-buffer
+                 (with-buffer msg-buf (chat-tab-errput out t) (buffer-pretend-saved msg-buf))
                 ) ;
                 ((== ch "prompt") (noop))
-                ((and (== ch "input") (null? (cdr l)))
-                 (chat-tab-set-input-body! in-buf t)
-                ) ;
+                ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
           ) ;cond
         ) ;let
       ) ;with
@@ -614,9 +622,7 @@
                     (> (tree-arity out) 0)
                     (tm-func? (tree-ref out :last) 'script-busy)
                   ) ;and
-              (tree-assign (tree-ref out :last)
-                (if dead? '(script-dead) '(script-interrupted))
-              ) ;tree-assign
+              (tree-assign (tree-ref out :last) '(script-interrupted))
             ) ;when
             (buffer-pretend-saved msg-buf)
           ) ;with-buffer
@@ -654,25 +660,34 @@
       (display "[chat-context] extract-rounds: ")
       (display (tree-arity doc))
       (display " children in session doc\n")
-      (let loop ((children (tree-children doc)) (rounds '()))
+      (let loop
+        ((children (tree-children doc)) (rounds '()))
         (if (null? children)
           (begin
             (display "[chat-context] extract-rounds: ")
             (display (length rounds))
             (display " rounds extracted\n")
-            (reverse rounds))
+            (reverse rounds)
+          ) ;begin
           (let ((child (car children)))
             (if (tm-func? child 'unfolded-io-text 3)
               (let* ((user-text (chat-tab-tree->plain-text (tree-ref child 1)))
                      (asst-doc (tree-ref child 2))
-                     (asst-text (chat-tab-tree->plain-text asst-doc)))
+                     (asst-text (chat-tab-tree->plain-text asst-doc))
+                    ) ;
                 (if (chat-tab-empty-body? asst-doc)
+                  (loop (cdr children) (cons (cons "user" user-text) rounds))
                   (loop (cdr children)
-                    (cons (cons "user" user-text) rounds))
-                  (loop (cdr children)
-                    (cons (cons "assistant" asst-text)
-                      (cons (cons "user" user-text) rounds)))))
-              (loop (cdr children) rounds))))))
+                    (cons (cons "assistant" asst-text) (cons (cons "user" user-text) rounds))
+                  ) ;loop
+                ) ;if
+              ) ;let*
+              (loop (cdr children) rounds)
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;let
   ) ;with-buffer
 ) ;define
 
@@ -695,20 +710,25 @@
 
 (define (chat-tab-rounds->json rounds)
   (let ((arr (string->njson "[]")))
-    (for-each
-      (lambda (pair)
-        (let ((entry (string->njson "{}")))
-          (njson-set! entry "role" (car pair))
-          (njson-set! entry "content" (cdr pair))
-          (njson-append! arr entry)
-          (njson-free entry)))
-      rounds)
+    (for-each (lambda (pair)
+                (let ((entry (string->njson "{}")))
+                  (njson-set! entry "role" (car pair))
+                  (njson-set! entry "content" (cdr pair))
+                  (njson-append! arr entry)
+                  (njson-free entry)
+                ) ;let
+              ) ;lambda
+      rounds
+    ) ;for-each
     (let ((obj (string->njson "{}")))
       (njson-set! obj "messages" arr)
       (let ((result (njson->string obj)))
         (njson-free arr)
         (njson-free obj)
-        result)))
+        result
+      ) ;let
+    ) ;let
+  ) ;let
 ) ;define
 
 ;; chat-tab-build-context-input
@@ -735,20 +755,25 @@
   (let* ((msg-buf (chat-tab-session->message-buffer session-id))
          (rounds (chat-tab-extract-rounds msg-buf))
          (json-str (chat-tab-rounds->json rounds))
-         (cmd (string-append "%context " (utf8->cork json-str))))
+         (cmd (string-append "%context " (utf8->cork json-str)))
+        ) ;
     (let ((user-count (length (filter (lambda (p) (string=? (car p) "user")) rounds)))
-          (asst-count (length (filter (lambda (p) (string=? (car p) "assistant")) rounds))))
+          (asst-count (length (filter (lambda (p) (string=? (car p) "assistant")) rounds))
+          ) ;asst-count
+         ) ;
       (display "[chat-context] build-context: total=")
       (display (length rounds))
       (display " user=")
       (display user-count)
       (display " assistant=")
       (display asst-count)
-      (display "\n"))
+      (display "\n")
+    ) ;let
     (display "[chat-context] JSON:\n")
     (display json-str)
     (display "\n")
-    (stree->tree `(document ,cmd)))
+    (stree->tree `(document ,cmd))
+  ) ;let*
 ) ;define
 
 ;;; ---------- Feed ----------
@@ -787,6 +812,8 @@
   (with-buffer (chat-tab-session->message-buffer session-id)
     (tree-assign! out '(document (script-busy)))
   ) ;with-buffer
+  ;; 通知 C++ 进入 Generating 状态，切换按钮为 Stop
+  (chat-tab-notify-state session-id "generating")
   (with x
     (chat-tab-session-encode input session-id out opts)
     (apply plugin-feed `(,lan ,ses ,@(car x) ,(cdr x)))
@@ -857,7 +884,8 @@
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
-         (body (buffer-get-body in-buf)))
+         (body (buffer-get-body in-buf))
+        ) ;
     (if (chat-tab-empty-body? body)
       #f
       (let* ((input (chat-tab-normalize-document body))
@@ -871,16 +899,22 @@
             (chat-tab-clear-input! in-buf)
             (let* ((plain (chat-tab-tree->plain-text input))
                    (filtered (stree->tree `(document ,plain)))
-                   (out (chat-tab-append-round! msg-buf filtered session-id)))
+                   (out (chat-tab-append-round! msg-buf filtered session-id))
+                  ) ;
               (if (not out)
                 #f
                 (begin
                   (with-buffer msg-buf
                     (chat-tab-output out
-                      (stree->tree `(document
-                        (with "color" "dark grey" "font-shape" "italic"
-                          ,(utf8->cork "AI 聊天暂不支持图片等非文本内容，相关内容已过滤。")))))
-                    (buffer-pretend-saved msg-buf))
+                      (stree->tree `(document (with ,"color"
+                                                ,"dark grey"
+                                                ,"font-shape"
+                                                ,"italic"
+                                                ,(utf8->cork "AI 聊天暂不支持图片等非文本内容，相关内容已过滤。")))
+                      ) ;stree->tree
+                    ) ;chat-tab-output
+                    (buffer-pretend-saved msg-buf)
+                  ) ;with-buffer
                   #t
                 ) ;begin
               ) ;if
@@ -894,10 +928,7 @@
                 (chat-tab-clear-input! in-buf)
                 (if (not (connection-defined? chat-tab-session-name))
                   (begin
-                    (with-buffer msg-buf
-                      (chat-tab-output out input)
-                      (buffer-pretend-saved msg-buf)
-                    ) ;with-buffer
+                    (with-buffer msg-buf (chat-tab-output out input) (buffer-pretend-saved msg-buf))
                     #t
                   ) ;begin
                   (begin
@@ -941,8 +972,7 @@
   (:synopsis "Notify C++ that session generation state changed")
   (:argument session-id "Session UUID")
   (:argument state "New state: idle or generating")
-  (exec-delayed
-    (lambda () (qt-chat-tab-set-state session-id state)))
+  (exec-delayed (lambda () (qt-chat-tab-set-state session-id state)))
 ) ;tm-define
 
 ;;; ---------- 会话销毁 ----------

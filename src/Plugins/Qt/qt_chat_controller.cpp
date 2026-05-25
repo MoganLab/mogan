@@ -149,6 +149,7 @@ ChatController::onSendRequested (const string& sessionId) {
   if (!view_) return;
   ChatSession* session= sessionManager_.getSession (sessionId);
   if (!session || !session->panel) return;
+  if (session->state == ChatState::Generating) return;
 
   ChatConversationPanel* panel=
       static_cast<ChatConversationPanel*> (session->panel);
@@ -177,7 +178,6 @@ ChatController::onSendRequested (const string& sessionId) {
 void
 ChatController::onCancelRequested (const string& sessionId) {
   call ("chat-tab-cancel", sessionId);
-  sessionManager_.setState (sessionId, ChatState::Idle);
 }
 
 void
@@ -310,6 +310,7 @@ ChatController::notifyStateChanged (const string& sessionId,
 
   if (newState == ChatState::Generating) {
     btn->setToolTip ("Stop");
+    btn->setIcon (QIcon (":llm-chat/cancel.svg"));
     disconnect (session->sendBtnConnection);
     session->sendBtnConnection=
         connect (btn, &QPushButton::clicked, this,
@@ -317,6 +318,7 @@ ChatController::notifyStateChanged (const string& sessionId,
   }
   else {
     btn->setToolTip ("Send");
+    btn->setIcon (QIcon (":llm-chat/send.svg"));
     disconnect (session->sendBtnConnection);
     session->sendBtnConnection=
         connect (btn, &QPushButton::clicked, this,
