@@ -1,0 +1,23 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref|framed-session|quiver>>
+
+<\body>
+  <\section|Quiver 静态与交互式会话测试>
+    \;
+  </section>
+
+  <\session|quiver|default>
+    <\input|quiver]>
+      \\begin{tikzcd}
+      A \\arrow[r, "f"] & B
+      \\end{tikzcd}
+    </input>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
