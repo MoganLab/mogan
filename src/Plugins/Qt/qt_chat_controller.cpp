@@ -33,7 +33,7 @@ static ChatController* g_chat_controller= nullptr;
 ChatController::ChatController (QObject* parent) : QObject (parent) {}
 
 ChatController::~ChatController () {
-  view_= nullptr;
+  view_            = nullptr;
   g_chat_controller= nullptr;
 }
 
@@ -150,7 +150,8 @@ ChatController::onSendRequested (const string& sessionId) {
   ChatSession* session= sessionManager_.getSession (sessionId);
   if (!session || !session->panel) return;
 
-  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (session->panel);
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
   tree inputBody= panel->readInputMessage ();
   if (ChatConversationPanel::is_empty_document_body (inputBody)) return;
 
@@ -187,7 +188,8 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     ChatSession* s= sessionManager_.getSession (sid);
     if (!s) continue;
 
-    ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (s->panel);
+    ChatConversationPanel* panel=
+        static_cast<ChatConversationPanel*> (s->panel);
 
     call ("chat-persist-delete-one", sid);
     call ("chat-tab-session-destroy", sid);
@@ -301,7 +303,8 @@ ChatController::notifyStateChanged (const string& sessionId,
   sessionManager_.setState (sessionId, newState);
 
   if (!session->panel || !view_) return;
-  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (session->panel);
+  ChatConversationPanel* panel=
+      static_cast<ChatConversationPanel*> (session->panel);
   QPushButton* btn= panel->sendButton ();
   if (!btn) return;
 
@@ -507,7 +510,7 @@ ChatController::computeDisplayTitles () {
     if (!is_empty (s->title)) {
       QString qtTitle= to_qstring (s->title);
       if (titleCounts[qtTitle] > 1) {
-        int seq= ++titleSeq[qtTitle];
+        int seq    = ++titleSeq[qtTitle];
         result[sid]= from_qstring (qtTitle + QString (" (%1)").arg (seq));
       }
       else {
@@ -525,8 +528,8 @@ ChatController::computeDisplayTitles () {
 QList<SessionDisplayInfo>
 ChatController::buildDisplayInfos () {
   QList<SessionDisplayInfo> infos;
-  QMap<string, string>     titles= computeDisplayTitles ();
-  auto                     allIds= sessionManager_.getAllSessionIds ();
+  QMap<string, string>      titles= computeDisplayTitles ();
+  auto                      allIds= sessionManager_.getAllSessionIds ();
 
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);

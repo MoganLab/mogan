@@ -13,9 +13,9 @@
 #define QT_CHAT_SESSION_HPP
 
 #include "url.hpp"
+#include <QMetaObject>
 #include <map>
 #include <vector>
-#include <QMetaObject>
 
 class ChatConversationPanel;
 
@@ -31,12 +31,12 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string    sessionId; ///< UUID，创建时生成
-  string    title;     ///< 会话标题，初始为空字符串
-  string    model;     ///< 绑定的模型名称
-  ChatState state;     ///< 当前生成状态
-  bool      archived;  ///< 是否归档
-  ChatConversationPanel* panel; ///< 关联的面板指针
+  string                  sessionId;         ///< UUID，创建时生成
+  string                  title;             ///< 会话标题，初始为空字符串
+  string                  model;             ///< 绑定的模型名称
+  ChatState               state;             ///< 当前生成状态
+  bool                    archived;          ///< 是否归档
+  ChatConversationPanel*  panel;             ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
 };
 
@@ -56,10 +56,10 @@ public:
   std::vector<string> getAllSessionIds () const;
   ChatSession*        getSession (const string& sessionId);
   ChatSession*        findSessionByPanel (ChatConversationPanel* panel);
-  void                setPanel (const string& sessionId, ChatConversationPanel* panel);
-  void                insertSession (const ChatSession& session);
-  static url          messageBufferUrl (const string& sessionId);
-  static url          inputBufferUrl (const string& sessionId);
+  void       setPanel (const string& sessionId, ChatConversationPanel* panel);
+  void       insertSession (const ChatSession& session);
+  static url messageBufferUrl (const string& sessionId);
+  static url inputBufferUrl (const string& sessionId);
 
 private:
   std::map<string, ChatSession> sessions_;
