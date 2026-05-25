@@ -67,16 +67,31 @@
                    (or has-chemfig?
                        (string-contains? body "\\chem")
                        (string-contains? body "\\scheme")))
+                 (has-quiver? (string-starts? body-trimmed "\\begin{tikzcd}"))
+                 (need-quiver-package?
+                   (or has-quiver?
+                       (string-contains? body "\\begin{tikzcd}")
+                       (string-contains? body "\\arrow")))
                  (extra-packages
-                   (if (and need-chemfig-package?
-                            (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                           package-lines)))
-                       '("\\usepackage{chemfig}")
-                       '()))
+                   (let ((pkgs '()))
+                     (when (and need-chemfig-package?
+                                (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                               package-lines)))
+                       (set! pkgs (append pkgs '("\\usepackage{chemfig}"))))
+                     (when (and need-quiver-package?
+                                (null? (filter (lambda (line) (string-contains? line "tikz-cd"))
+                                               package-lines)))
+                       (set! pkgs (append pkgs '("\\usepackage{tikz-cd}"))))
+                     (when (and need-quiver-package?
+                                (null? (filter (lambda (line) (string-contains? line "quiver"))
+                                               package-lines)))
+                       (set! pkgs (append pkgs '("\\usepackage{quiver}"))))
+                     pkgs))
                  (inner-code
                    (if (or (string-null? body-trimmed)
                            (string-starts? body-trimmed "\\begin{tikzpicture}")
-                           has-chemfig?)
+                           has-chemfig?
+                           has-quiver?)
                        body
                        (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
             (string-append

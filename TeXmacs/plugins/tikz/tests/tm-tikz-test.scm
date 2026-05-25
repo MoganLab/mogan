@@ -45,16 +45,31 @@
                  (or has-chemfig?
                      (string-contains? body "\\chem")
                      (string-contains? body "\\scheme")))
+               (has-quiver? (string-starts? body-trimmed "\\begin{tikzcd}"))
+               (need-quiver-package?
+                 (or has-quiver?
+                     (string-contains? body "\\begin{tikzcd}")
+                     (string-contains? body "\\arrow")))
                (extra-packages
-                 (if (and need-chemfig-package?
-                          (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                         package-lines)))
-                     '("\\usepackage{chemfig}")
-                     '()))
+                 (let ((pkgs '()))
+                   (when (and need-chemfig-package?
+                              (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                             package-lines)))
+                     (set! pkgs (append pkgs '("\\usepackage{chemfig}"))))
+                   (when (and need-quiver-package?
+                              (null? (filter (lambda (line) (string-contains? line "tikz-cd"))
+                                             package-lines)))
+                     (set! pkgs (append pkgs '("\\usepackage{tikz-cd}"))))
+                   (when (and need-quiver-package?
+                              (null? (filter (lambda (line) (string-contains? line "quiver"))
+                                             package-lines)))
+                     (set! pkgs (append pkgs '("\\usepackage{quiver}"))))
+                   pkgs))
                (inner-code
                  (if (or (string-null? body-trimmed)
                          (string-starts? body-trimmed "\\begin{tikzpicture}")
-                         has-chemfig?)
+                         has-chemfig?
+                         has-quiver?)
                    body
                    (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
                  ) ;if
@@ -302,6 +317,28 @@
 (check (pdf-page-empty? test-log-vertical-path) => #f)
 (check (pdf-page-empty? test-log-horizontal-path) => #f)
 (check (pdf-page-empty? test-log-point-path) => #f)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for Quiver support
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(check
+  (wrap-tikz-code "\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\usepackage{quiver}\n\\begin{document}\n\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usepackage{tikz-cd}\n\\usepackage{quiver}\n\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\usepackage{quiver}\n\\begin{document}\n\\begin{tikzcd}\nA \\arrow[r] & B\n\\end{tikzcd}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\node (diagram) at (0,0) {\\begin{tikzcd} A \\arrow[r] & B \\end{tikzcd}};\n\\draw (0,0) -- (1,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\usepackage{quiver}\n\\begin{document}\n\\begin{tikzpicture}\n\\node (diagram) at (0,0) {\\begin{tikzcd} A \\arrow[r] & B \\end{tikzcd}};\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Run all tests
