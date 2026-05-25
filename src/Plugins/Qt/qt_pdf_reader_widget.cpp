@@ -1532,6 +1532,9 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       }
       if (!browseDragActive_) {
         updateLinkCursor (contentPos);
+        if (!overLink_) {
+          scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
+        }
       }
       scroller_->handleInput (QScroller::InputMove, viewportPos,
                               mouseEvent->timestamp ());

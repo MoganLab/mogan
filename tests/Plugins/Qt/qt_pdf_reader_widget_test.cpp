@@ -501,6 +501,42 @@ private slots:
     delete widget;
   }
 
+  void test_dragKeepsClosedHandBeforeThreshold () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QWidget* vp= widget->viewport ();
+    QVERIFY (vp != nullptr);
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    QPoint start (100, 100);
+    QTest::mousePress (vp, Qt::LeftButton, Qt::NoModifier, start);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    // Move a tiny distance (below drag threshold) and not over a link
+    QPoint smallMove (
+        start.x () + 1, start.y () + 1);
+    QTest::mouseMove (vp, smallMove);
+    QApplication::processEvents ();
+
+    // Cursor must remain ClosedHandCursor because left button is still pressed
+    QCOMPARE (vp->cursor ().shape (), Qt::ClosedHandCursor);
+
+    QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, smallMove);
+    QApplication::processEvents ();
+    QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
+
+    delete widget;
+  }
+
   void test_releaseRestoresOpenHand () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (400, 300);
