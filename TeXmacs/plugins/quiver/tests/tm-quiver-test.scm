@@ -45,7 +45,7 @@
                    (if (or (string-null? body-trimmed)
                            has-tikzcd?)
                        body
-                       (string-append "\\begin{tikzcd}\n" body "\n\\end{tikzcd}"))))
+                       (string-append "\\begin{tikzcd}[nodes in empty cells]\n" body "\n\\end{tikzcd}"))))
             (string-append
               "\\documentclass[tikz]{standalone}\n"
               "\\usepackage{tikz-cd}\n"
@@ -112,7 +112,7 @@
     "\\tikzset{no body/.style={/tikz/dash pattern=on 0 off 1mm}}\n"
     "\n"
     "\\begin{document}\n"
-    "\\begin{tikzcd}\n"
+    "\\begin{tikzcd}[nodes in empty cells]\n"
     "A \\arrow[r] & B\n"
     "\\end{tikzcd}\n"
     "\\end{document}"

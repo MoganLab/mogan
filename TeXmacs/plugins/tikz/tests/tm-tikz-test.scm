@@ -87,7 +87,7 @@
                                 has-tikzcd-env?)
                             body)
                            (is-raw-tikzcd?
-                            (string-append "\\begin{tikzcd}\n" body "\n\\end{tikzcd}"))
+                            (string-append "\\begin{tikzcd}[nodes in empty cells]\n" body "\n\\end{tikzcd}"))
                            (else
                             (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")))))
               (string-append
@@ -222,7 +222,7 @@
 (check
   (wrap-tikz-code "A \\ar[r] & B;")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\begin{document}\n\\begin{tikzcd}\nA \\ar[r] & B;\n\\end{tikzcd}\n\\end{document}"
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\begin{document}\n\\begin{tikzcd}[nodes in empty cells]\nA \\ar[r] & B;\n\\end{tikzcd}\n\\end{document}"
 )
 
 (check

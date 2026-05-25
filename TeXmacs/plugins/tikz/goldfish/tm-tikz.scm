@@ -109,7 +109,7 @@
                                 has-tikzcd-env?)
                             body)
                            (is-raw-tikzcd?
-                            (string-append "\\begin{tikzcd}\n" body "\n\\end{tikzcd}"))
+                            (string-append "\\begin{tikzcd}[nodes in empty cells]\n" body "\n\\end{tikzcd}"))
                            (else
                             (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")))))
               (string-append

@@ -78,7 +78,7 @@
                    (if (or (string-null? body-trimmed)
                            has-tikzcd?)
                        body
-                       (string-append "\\begin{tikzcd}\n" body "\n\\end{tikzcd}"))))
+                       (string-append "\\begin{tikzcd}[nodes in empty cells]\n" body "\n\\end{tikzcd}"))))
             (string-append
               "\\documentclass[tikz]{standalone}\n"
               "\\usepackage{tikz-cd}\n"
