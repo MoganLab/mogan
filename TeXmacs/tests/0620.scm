@@ -16,9 +16,13 @@
 
 (check-set-mode! 'report-failed)
 
+(define (load-latex path)
+  (with path (string-append "$TEXMACS_PATH/tests/tex/" path)
+    (string-replace (string-load path) "\r\n" "\n")))
+
 (define (test-latex-snippet-preamble-filter)
   (display "Testing preamble filtering for selective LaTeX paste/snippet...\n")
-  (let* ((latex-content "\\documentclass{article}\n\\usepackage{amsmath}\n\\begin{document}\na+b\n\\end{document}")
+  (let* ((latex-content (load-latex "0620_selective_paste_test.tex"))
          (parsed (parse-latex latex-content))
          (texmacs-tree (latex->texmacs parsed))
          (st (tree->stree texmacs-tree))
