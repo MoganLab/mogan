@@ -1379,9 +1379,6 @@ QPushButton#chat-tab-archive-header {
   font-weight: bold;
   color: #cccccc;
 }
-QWidget#centralWidget QPushButton#chat-tab-archive-header {
-  background-color: transparent;
-}
 
 QPushButton#chat-tab-archive-header:hover {
   color: #ffffff;
