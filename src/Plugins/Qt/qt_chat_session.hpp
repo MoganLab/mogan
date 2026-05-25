@@ -15,6 +15,9 @@
 #include "url.hpp"
 #include <map>
 #include <vector>
+#include <QMetaObject>
+
+class ChatConversationPanel;
 
 /**
  * @brief 聊天会话的生成状态。
@@ -33,7 +36,8 @@ struct ChatSession {
   string    model;     ///< 绑定的模型名称
   ChatState state;     ///< 当前生成状态
   bool      archived;  ///< 是否归档
-  void*     panel;     ///< 关联的 ChatConversationPanel 指针
+  ChatConversationPanel* panel; ///< 关联的面板指针
+  QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
 };
 
 /**
@@ -51,8 +55,8 @@ public:
   string              getModel (const string& sessionId);
   std::vector<string> getAllSessionIds () const;
   ChatSession*        getSession (const string& sessionId);
-  ChatSession*        findSessionByPanel (void* panel);
-  void                setPanel (const string& sessionId, void* panel);
+  ChatSession*        findSessionByPanel (ChatConversationPanel* panel);
+  void                setPanel (const string& sessionId, ChatConversationPanel* panel);
   void                insertSession (const ChatSession& session);
   static url          messageBufferUrl (const string& sessionId);
   static url          inputBufferUrl (const string& sessionId);

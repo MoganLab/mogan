@@ -87,7 +87,7 @@ ChatSessionManager::getAllSessionIds () const {
 }
 
 ChatSession*
-ChatSessionManager::findSessionByPanel (void* panel) {
+ChatSessionManager::findSessionByPanel (ChatConversationPanel* panel) {
   for (auto& kv : sessions_) {
     if (kv.second.panel == panel) return &kv.second;
   }
@@ -95,7 +95,7 @@ ChatSessionManager::findSessionByPanel (void* panel) {
 }
 
 void
-ChatSessionManager::setPanel (const string& sessionId, void* panel) {
+ChatSessionManager::setPanel (const string& sessionId, ChatConversationPanel* panel) {
   ChatSession* s= getSession (sessionId);
   if (s) s->panel= panel;
 }

@@ -13,6 +13,7 @@
 #define QT_CHAT_CONTROLLER_HPP
 
 #include "qt_chat_tab_widget.hpp"
+#include <QMap>
 #include <QObject>
 
 /**
@@ -63,6 +64,11 @@ public:
   void restoreSessionMeta (const string& sessionId, const string& title,
                            const string& model, bool archived);
 
+  /**
+   * @brief 销毁 View 引用，防止悬垂指针。
+   */
+  void destroyView ();
+
 private:
   QTChatTabWidget*   view_= nullptr;
   ChatSessionManager sessionManager_;
@@ -75,6 +81,7 @@ private:
   ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
   QList<SessionDisplayInfo> buildDisplayInfos ();
   string                    determineInitialActiveSession ();
+  QMap<string, string>      computeDisplayTitles ();
   string                    deduplicateTitle (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);

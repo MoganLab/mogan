@@ -28,9 +28,19 @@ using namespace moebius;
  * ChatController 实现
  ******************************************************************************/
 
+static ChatController* g_chat_controller= nullptr;
+
 ChatController::ChatController (QObject* parent) : QObject (parent) {}
 
-ChatController::~ChatController () {}
+ChatController::~ChatController () {
+  view_= nullptr;
+  g_chat_controller= nullptr;
+}
+
+void
+ChatController::destroyView () {
+  view_= nullptr;
+}
 
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
@@ -140,8 +150,7 @@ ChatController::onSendRequested (const string& sessionId) {
   ChatSession* session= sessionManager_.getSession (sessionId);
   if (!session || !session->panel) return;
 
-  ChatConversationPanel* panel=
-      static_cast<ChatConversationPanel*> (session->panel);
+  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (session->panel);
   tree inputBody= panel->readInputMessage ();
   if (ChatConversationPanel::is_empty_document_body (inputBody)) return;
 
@@ -176,19 +185,16 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
 
   for (const string& sid : sessionIds) {
     ChatSession* s= sessionManager_.getSession (sid);
-    if (!s || !s->panel) continue;
+    if (!s) continue;
 
-    ChatConversationPanel* panel=
-        static_cast<ChatConversationPanel*> (s->panel);
+    ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (s->panel);
 
-    // 1. 从持久化数据删除
     call ("chat-persist-delete-one", sid);
-    // 2. 清理 Scheme 会话状态
     call ("chat-tab-session-destroy", sid);
-    // 3. 从 SessionManager 移除
+    view_->sidebar ()->removeItem (sid);
     sessionManager_.removeSession (sid);
-    // 4. 从 View 移除面板
-    view_->removePanel (panel);
+
+    if (panel) view_->removePanel (panel);
   }
 
   // 激活下一个可用会话
@@ -204,9 +210,6 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
 
   if (!is_empty (nextSid)) {
     activateSession (nextSid);
-  }
-  else if (!allIds.empty ()) {
-    activateSession (allIds.front ());
   }
   else {
     ensureNewConversation ();
@@ -298,22 +301,23 @@ ChatController::notifyStateChanged (const string& sessionId,
   sessionManager_.setState (sessionId, newState);
 
   if (!session->panel || !view_) return;
-  ChatConversationPanel* panel=
-      static_cast<ChatConversationPanel*> (session->panel);
+  ChatConversationPanel* panel= static_cast<ChatConversationPanel*> (session->panel);
   QPushButton* btn= panel->sendButton ();
   if (!btn) return;
 
   if (newState == ChatState::Generating) {
     btn->setToolTip ("Stop");
-    disconnect (btn, nullptr, this, nullptr);
-    connect (btn, &QPushButton::clicked, this,
-             [this, sessionId] () { onCancelRequested (sessionId); });
+    disconnect (session->sendBtnConnection);
+    session->sendBtnConnection=
+        connect (btn, &QPushButton::clicked, this,
+                 [this, sessionId] () { onCancelRequested (sessionId); });
   }
   else {
     btn->setToolTip ("Send");
-    disconnect (btn, nullptr, this, nullptr);
-    connect (btn, &QPushButton::clicked, this,
-             [this, sessionId] () { onSendRequested (sessionId); });
+    disconnect (session->sendBtnConnection);
+    session->sendBtnConnection=
+        connect (btn, &QPushButton::clicked, this,
+                 [this, sessionId] () { onSendRequested (sessionId); });
     saveOneSession (sessionId);
   }
 }
@@ -482,9 +486,9 @@ ChatController::getOrCreatePanel (const string& sessionId) {
  * ChatController 辅助方法
  ******************************************************************************/
 
-QList<SessionDisplayInfo>
-ChatController::buildDisplayInfos () {
-  QList<SessionDisplayInfo> infos;
+QMap<string, string>
+ChatController::computeDisplayTitles () {
+  QMap<string, string> result;
 
   // 标题去重计数
   QMap<QString, int> titleCounts;
@@ -494,29 +498,45 @@ ChatController::buildDisplayInfos () {
     if (s && !is_empty (s->title)) titleCounts[to_qstring (s->title)]++;
   }
 
+  // 分配去重序号
   QMap<QString, int> titleSeq;
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);
     if (!s) continue;
 
-    SessionDisplayInfo info;
-    info.sessionId= s->sessionId;
-    info.model    = s->model;
-    info.archived = s->archived;
-
     if (!is_empty (s->title)) {
       QString qtTitle= to_qstring (s->title);
       if (titleCounts[qtTitle] > 1) {
-        int seq          = ++titleSeq[qtTitle];
-        info.displayTitle= from_qstring (qtTitle + QString (" (%1)").arg (seq));
+        int seq= ++titleSeq[qtTitle];
+        result[sid]= from_qstring (qtTitle + QString (" (%1)").arg (seq));
       }
       else {
-        info.displayTitle= s->title;
+        result[sid]= s->title;
       }
     }
     else {
-      info.displayTitle= "新会话";
+      result[sid]= "新会话";
     }
+  }
+
+  return result;
+}
+
+QList<SessionDisplayInfo>
+ChatController::buildDisplayInfos () {
+  QList<SessionDisplayInfo> infos;
+  QMap<string, string>     titles= computeDisplayTitles ();
+  auto                     allIds= sessionManager_.getAllSessionIds ();
+
+  for (const string& sid : allIds) {
+    ChatSession* s= sessionManager_.getSession (sid);
+    if (!s) continue;
+
+    SessionDisplayInfo info;
+    info.sessionId   = s->sessionId;
+    info.model       = s->model;
+    info.archived    = s->archived;
+    info.displayTitle= titles.value (sid, "新会话");
 
     infos.append (info);
   }
@@ -536,36 +556,13 @@ ChatController::determineInitialActiveSession () {
 
 string
 ChatController::deduplicateTitle (const string& sessionId) {
-  ChatSession* s= sessionManager_.getSession (sessionId);
-  if (!s) return "新会话";
-
-  if (is_empty (s->title)) return "新会话";
-
-  // 检查是否有同名会话
-  QString qtTitle      = to_qstring (s->title);
-  int     sameNameCount= 0;
-  int     mySeq        = 0;
-  auto    allIds       = sessionManager_.getAllSessionIds ();
-  for (const string& sid : allIds) {
-    ChatSession* other= sessionManager_.getSession (sid);
-    if (!other || is_empty (other->title)) continue;
-    if (to_qstring (other->title) == qtTitle) {
-      ++sameNameCount;
-      if (sid == sessionId) mySeq= sameNameCount;
-    }
-  }
-
-  if (sameNameCount > 1) {
-    return from_qstring (qtTitle + QString (" (%1)").arg (mySeq));
-  }
-  return s->title;
+  QMap<string, string> titles= computeDisplayTitles ();
+  return titles.value (sessionId, "新会话");
 }
 
 /******************************************************************************
  * 自由函数回调（Scheme→C++）
  ******************************************************************************/
-
-static ChatController* g_chat_controller= nullptr;
 
 ChatController*
 get_chat_controller () {
