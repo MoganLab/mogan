@@ -132,9 +132,21 @@
 )
 
 (check
-  (wrap-tikz-code "  \\draw (0,0) -- (1,1);")
+  (wrap-tikz-code "A \\ar[r] & B;")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n  \\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\begin{document}\n\\begin{tikzcd}[nodes in empty cells]\nA \\ar[r] & B;\n\\end{tikzcd}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\begin{equation}\nA \\ar[r] & B;\n\\end{equation}")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\begin{document}\n\\begin{tikzcd}[nodes in empty cells]\nA \\ar[r] & B;\n\\end{tikzcd}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\node (diagram) at (0,0) {\\begin{tikzcd} A \\ar[r] & B \\end{tikzcd}};\n\\draw (0,0) -- (1,1);")
+  =>
+  "\\documentclass[tikz]{standalone}\n\\usepackage{tikz-cd}\n\\begin{document}\n\\begin{tikzpicture}\n\\node (diagram) at (0,0) {\\begin{tikzcd} A \\ar[r] & B \\end{tikzcd}};\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
