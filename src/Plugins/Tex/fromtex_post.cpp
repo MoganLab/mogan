@@ -2396,7 +2396,7 @@ latex_to_tree (tree t0) {
   // cout << "\n\nt3= " << t3 << "\n\n";
   tree t4= finalize_document (t3);
   // cout << "\n\nt4= " << t4 << "\n\n";
-  tree t5= is_document ? finalize_preamble (t4, style) : t4;
+  tree t5= finalize_preamble (t4, style);
   // cout << "\n\nt5= " << t5 << "\n\n";
   tree t6= handle_matches (t5);
   // cout << "\n\nt6= " << t6 << "\n\n";
