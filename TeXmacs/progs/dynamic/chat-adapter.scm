@@ -100,6 +100,7 @@
     (if (!= (connection-status "llm" plugin-ses) 0)
       (begin
         (connection-stop "llm" plugin-ses)
+        (plugin-cancel "llm" plugin-ses #t)
         ;; kill 子进程后 plugin 完成回调不会再触发，手动通知 C++ 恢复 Idle
         (chat-tab-notify-state session-id "idle")
       ) ;begin

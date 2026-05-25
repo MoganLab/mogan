@@ -869,25 +869,18 @@
 (define (chat-tab-extract-rounds message-buffer)
   (with-buffer message-buffer
     (let ((doc (chat-tab-message-document message-buffer)))
-      (display "[chat-context] extract-rounds: ")
-      (display (tree-arity doc))
-      (display " children in session doc\n")
       (let loop
         ((children (tree-children doc)) (rounds '()))
         (if (null? children)
-          (begin
-            (display "[chat-context] extract-rounds: ")
-            (display (length rounds))
-            (display " rounds extracted\n")
-            (reverse rounds)
-          ) ;begin
+          (chat-tab-merge-consecutive-rounds (reverse rounds))
           (let ((child (car children)))
             (if (tm-func? child 'unfolded-io-text 3)
               (let* ((user-text (chat-tab-tree->plain-text (tree-ref child 1)))
                      (asst-doc (tree-ref child 2))
                      (asst-text (chat-tab-tree->plain-text asst-doc))
                     ) ;
-                (if (chat-tab-empty-body? asst-doc)
+                (if (or (chat-tab-empty-body? asst-doc)
+                        (string-null? (string-trim-spaces asst-text)))
                   (loop (cdr children) (cons (cons "user" user-text) rounds))
                   (loop (cdr children)
                     (cons (cons "assistant" asst-text) (cons (cons "user" user-text) rounds))
@@ -901,6 +894,47 @@
       ) ;let
     ) ;let
   ) ;with-buffer
+) ;define
+
+;; chat-tab-merge-consecutive-rounds
+;; 合并连续相同 role 的消息。
+;;
+;; 语法
+;; ----
+;; (chat-tab-merge-consecutive-rounds rounds)
+;;
+;; 参数
+;; ----
+;; rounds : list of (role . text)
+;; 按时间顺序排列的对话轮次列表。
+;;
+;; 返回值
+;; ----
+;; list of (role . text)
+;; 合并后的对话轮次列表，不包含连续相同 role 的消息。
+
+(define (chat-tab-merge-consecutive-rounds rounds)
+  (let loop ((items rounds) (acc '()))
+    (if (null? items)
+      (reverse acc)
+      (let ((curr (car items)))
+        (if (null? acc)
+          (loop (cdr items) (cons curr acc))
+          (let ((prev (car acc)))
+            (if (string=? (car prev) (car curr))
+              (loop (cdr items)
+                (cons (cons (car curr)
+                        (string-append (cdr prev) "\n" (cdr curr)))
+                  (cdr acc)
+                ) ;cons
+              ) ;loop
+              (loop (cdr items) (cons curr acc))
+            ) ;if
+          ) ;let
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
 ) ;define
 
 ;; chat-tab-rounds->json
@@ -969,21 +1003,6 @@
          (json-str (chat-tab-rounds->json rounds))
          (cmd (string-append "%context " (utf8->cork json-str)))
         ) ;
-    (let ((user-count (length (filter (lambda (p) (string=? (car p) "user")) rounds)))
-          (asst-count (length (filter (lambda (p) (string=? (car p) "assistant")) rounds))
-          ) ;asst-count
-         ) ;
-      (display "[chat-context] build-context: total=")
-      (display (length rounds))
-      (display " user=")
-      (display user-count)
-      (display " assistant=")
-      (display asst-count)
-      (display "\n")
-    ) ;let
-    (display "[chat-context] JSON:\n")
-    (display json-str)
-    (display "\n")
     (stree->tree `(document ,cmd))
   ) ;let*
 ) ;define

@@ -272,7 +272,7 @@
   ) ;with
 ) ;tm-define
 
-(define (plugin-cancel lan ses dead?)
+(tm-define (plugin-cancel lan ses dead?)
   (with l
     (pending-ref lan ses)
     (when (nnull? l)
@@ -281,7 +281,7 @@
       (plugin-cancel lan ses dead?)
     ) ;when
   ) ;with
-) ;define
+) ;tm-define
 
 (tm-define (plugin-prompt lan ses)
   (with p
