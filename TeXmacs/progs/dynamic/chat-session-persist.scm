@@ -191,11 +191,14 @@
       (display "[chat-persist] load-session-content: sid=")
       (display session-id)
       (newline)
-      (let ((file-url (system->url msg-path)))
-        (buffer-load file-url)
-        (buffer-set-body msg-buf (buffer-get-body file-url))
-        (buffer-pretend-saved msg-buf)
-      ) ;let
+      ;; 用 tree-import 读取文件内容，不经过 buffer 系统
+      ;; 避免 buffer-load 创建临时文件 buffer 导致多余 tab
+      ;; 避免 buffer-set-body 对已有嵌入式 editor 触发 assign 导致 crash
+      (let* ((doc (tree-import (system->url msg-path) "generic"))
+             (body (tmfile-extract doc 'body)))
+        (when body
+          (buffer-set-body msg-buf body)
+          (buffer-pretend-saved msg-buf)))
     ) ;when
   ) ;let
 ) ;tm-define
