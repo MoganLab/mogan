@@ -53,5 +53,3 @@
 
 (import (session quiver))
 (init-quiver)
-(lazy-format (data quiver) quiver)
-(use-modules (code quiver-mode) (code quiver-edit))

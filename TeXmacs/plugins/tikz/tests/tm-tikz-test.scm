@@ -18,62 +18,119 @@
 )
 
 ; Simulate the wrap-tikz-code logic from tm-tikz.scm
-(define (wrap-tikz-code code)
-  (let ((trimmed (string-trim-left code)))
+(define (string-trim-both s)
+  (string-trim-right (string-trim s)))
+
+(define (strip-math-delimiters str)
+  (let* ((s (string-trim-both str))
+         (len (string-length s)))
+    (cond ((and (>= len 4)
+                (string-starts? s "\\[")
+                (string-ends? s "\\]"))
+           (strip-math-delimiters (substring s 2 (- len 2))))
+          ((and (>= len 4)
+                (string-starts? s "$$")
+                (string-ends? s "$$"))
+           (strip-math-delimiters (substring s 2 (- len 2))))
+          ((and (>= len 2)
+                (string-starts? s "$")
+                (string-ends? s "$"))
+           (strip-math-delimiters (substring s 1 (- len 1))))
+          ((and (>= len 32)
+                (string-starts? s "\\begin{equation*}")
+                (string-ends? s "\\end{equation*}"))
+           (strip-math-delimiters (substring s 17 (- len 15))))
+          ((and (>= len 30)
+                (string-starts? s "\\begin{equation}")
+                (string-ends? s "\\end{equation}"))
+           (strip-math-delimiters (substring s 16 (- len 14))))
+          ((and (>= len 36)
+                (string-starts? s "\\begin{displaymath}")
+                (string-ends? s "\\end{displaymath}"))
+           (strip-math-delimiters (substring s 19 (- len 17))))
+          (else s))))
+
+(define (wrap-tikz-code raw-code)
+  (let ((trimmed (string-trim-left raw-code)))
     (if (string-starts? trimmed "\\documentclass")
-      code
-      (let* ((lines (string-split code #\newline))
-             (library-lines
-               (filter (lambda (line)
-                         (string-starts? (string-trim-left line) "\\usetikzlibrary"))
-                       lines))
-             (package-lines
-               (filter (lambda (line)
-                         (string-starts? (string-trim-left line) "\\usepackage"))
-                       lines))
-             (other-lines
-               (filter (lambda (line)
-                         (let ((trimmed-line (string-trim-left line)))
-                           (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                (not (string-starts? trimmed-line "\\usepackage")))))
-                       lines))
-             (body (string-join other-lines "\n"))
-             (body-trimmed (string-trim-left body)))
-        (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
-                                (string-starts? body-trimmed "\\scheme")))
-               (need-chemfig-package?
-                 (or has-chemfig?
-                     (string-contains? body "\\chem")
-                     (string-contains? body "\\scheme")))
-               (extra-packages
-                 (if (and need-chemfig-package?
-                          (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                         package-lines)))
-                     '("\\usepackage{chemfig}")
-                     '()))
-               (inner-code
-                 (if (or (string-null? body-trimmed)
-                         (string-starts? body-trimmed "\\begin{tikzpicture}")
-                         has-chemfig?)
-                   body
-                   (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")
-                 ) ;if
-               ) ;inner-code
-              ) ;
-        (string-append
-          "\\documentclass[tikz]{standalone}\n"
-          (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
-          (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
-          "\\begin{document}\n"
-          (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
-          inner-code
-          "\n\\end{document}"
-        ) ;string-append
-        ) ;let inner-code
-      ) ;let*
-    ) ;if
-  ) ;let
-) ;define
+        raw-code
+        (let* ((code (strip-math-delimiters raw-code))
+               (lines (string-split code #\newline))
+               (library-lines
+                 (filter (lambda (line)
+                           (string-starts? (string-trim-left line) "\\usetikzlibrary"))
+                         lines))
+               (package-lines
+                 (filter (lambda (line)
+                           (string-starts? (string-trim-left line) "\\usepackage"))
+                         lines))
+               (other-lines
+                 (filter (lambda (line)
+                           (let ((trimmed-line (string-trim-left line)))
+                             (and (not (string-null? trimmed-line))
+                                  (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                                  (not (string-starts? trimmed-line "\\usepackage")))))
+                         lines))
+               (body (string-join other-lines "\n"))
+               (body-trimmed (string-trim-left body)))
+          (let ((is-tikz-command?
+                  (lambda (str)
+                    (or (string-starts? str "\\draw")
+                        (string-starts? str "\\node")
+                        (string-starts? str "\\path")
+                        (string-starts? str "\\fill")
+                        (string-starts? str "\\clip")
+                        (string-starts? str "\\filldraw")
+                        (string-starts? str "\\shadedraw")
+                        (string-starts? str "\\shade")
+                        (string-starts? str "\\usetikzlibrary")
+                        (string-starts? str "\\usepackage")
+                        (string-starts? str "\\begin{tikzpicture}")))))
+            (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
+                                    (string-starts? body-trimmed "\\scheme")))
+                   (need-chemfig-package?
+                     (or has-chemfig?
+                         (string-contains? body "\\chem")
+                         (string-contains? body "\\scheme")))
+                   (has-tikzcd-env? (string-starts? body-trimmed "\\begin{tikzcd}"))
+                   (need-tikzcd-package?
+                     (or has-tikzcd-env?
+                         (string-contains? body "\\begin{tikzcd}")
+                         (string-contains? body "\\ar")
+                         (string-contains? body "\\arrow")))
+                   (is-raw-tikzcd?
+                     (and need-tikzcd-package?
+                          (not has-tikzcd-env?)
+                          (not (is-tikz-command? body-trimmed))))
+                   (extra-packages
+                     (let ((pkgs '()))
+                       (when (and need-chemfig-package?
+                                  (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                                 package-lines)))
+                         (set! pkgs (append pkgs '("\\usepackage{chemfig}"))))
+                       (when (and need-tikzcd-package?
+                                  (null? (filter (lambda (line) (string-contains? line "tikz-cd"))
+                                                 package-lines)))
+                         (set! pkgs (append pkgs '("\\usepackage{tikz-cd}"))))
+                       pkgs))
+                   (inner-code
+                     (cond ((or (string-null? body-trimmed)
+                                (string-starts? body-trimmed "\\begin{tikzpicture}")
+                                has-chemfig?
+                                has-tikzcd-env?)
+                            body)
+                           (is-raw-tikzcd?
+                            (string-append "\\begin{tikzcd}[nodes in empty cells]\n" body "\n\\end{tikzcd}"))
+                           (else
+                            (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")))))
+              (string-append
+                "\\documentclass[tikz]{standalone}\n"
+                (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
+                (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
+                "\\begin{document}\n"
+                (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
+                inner-code
+                "\n\\end{document}")))))))
 
 ; Simulate the parse-magic-line logic from tm-tikz.scm
 (define (parse-magic-line magic-line)
