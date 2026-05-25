@@ -56,37 +56,70 @@
                (other-lines
                  (filter (lambda (line)
                            (let ((trimmed-line (string-trim-left line)))
-                             (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                             (and (not (string-null? trimmed-line))
+                                  (not (string-starts? trimmed-line "\\usetikzlibrary"))
                                   (not (string-starts? trimmed-line "\\usepackage")))))
                          lines))
                (body (string-join other-lines "\n"))
                (body-trimmed (string-trim-left body)))
-          (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
-                                  (string-starts? body-trimmed "\\scheme")))
-                 (need-chemfig-package?
-                   (or has-chemfig?
-                       (string-contains? body "\\chem")
-                       (string-contains? body "\\scheme")))
-                 (extra-packages
-                   (if (and need-chemfig-package?
-                            (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                           package-lines)))
-                       '("\\usepackage{chemfig}")
-                       '()))
-                 (inner-code
-                   (if (or (string-null? body-trimmed)
-                           (string-starts? body-trimmed "\\begin{tikzpicture}")
-                           has-chemfig?)
-                       body
-                       (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
-            (string-append
-              "\\documentclass[tikz]{standalone}\n"
-              (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
-              (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
-              "\\begin{document}\n"
-              (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
-              inner-code
-              "\n\\end{document}"))))))
+          (let ((is-tikz-command?
+                  (lambda (str)
+                    (or (string-starts? str "\\draw")
+                        (string-starts? str "\\node")
+                        (string-starts? str "\\path")
+                        (string-starts? str "\\fill")
+                        (string-starts? str "\\clip")
+                        (string-starts? str "\\filldraw")
+                        (string-starts? str "\\shadedraw")
+                        (string-starts? str "\\shade")
+                        (string-starts? str "\\usetikzlibrary")
+                        (string-starts? str "\\usepackage")
+                        (string-starts? str "\\begin{tikzpicture}")))))
+            (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
+                                    (string-starts? body-trimmed "\\scheme")))
+                   (need-chemfig-package?
+                     (or has-chemfig?
+                         (string-contains? body "\\chem")
+                         (string-contains? body "\\scheme")))
+                   (has-tikzcd-env? (string-starts? body-trimmed "\\begin{tikzcd}"))
+                   (need-tikzcd-package?
+                     (or has-tikzcd-env?
+                         (string-contains? body "\\begin{tikzcd}")
+                         (string-contains? body "\\ar")
+                         (string-contains? body "\\arrow")))
+                   (is-raw-tikzcd?
+                     (and need-tikzcd-package?
+                          (not has-tikzcd-env?)
+                          (not (is-tikz-command? body-trimmed))))
+                   (extra-packages
+                     (let ((pkgs '()))
+                       (when (and need-chemfig-package?
+                                  (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                                 package-lines)))
+                         (set! pkgs (append pkgs '("\\usepackage{chemfig}"))))
+                       (when (and need-tikzcd-package?
+                                  (null? (filter (lambda (line) (string-contains? line "tikz-cd"))
+                                                 package-lines)))
+                         (set! pkgs (append pkgs '("\\usepackage{tikz-cd}"))))
+                       pkgs))
+                   (inner-code
+                     (cond ((or (string-null? body-trimmed)
+                                (string-starts? body-trimmed "\\begin{tikzpicture}")
+                                has-chemfig?
+                                has-tikzcd-env?)
+                            body)
+                           (is-raw-tikzcd?
+                            (string-append "\\begin{tikzcd}\n" body "\n\\end{tikzcd}"))
+                           (else
+                            (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}")))))
+              (string-append
+                "\\documentclass[tikz]{standalone}\n"
+                (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
+                (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
+                "\\begin{document}\n"
+                (if (null? library-lines) "" (string-append (string-join library-lines "\n") "\n"))
+                inner-code
+                "\n\\end{document}"))))))))
 
 (define (parse-magic-line magic-line)
   (let ((tokens (filter (lambda (x) (not (string-null? x)))
