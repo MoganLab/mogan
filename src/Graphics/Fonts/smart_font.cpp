@@ -1182,6 +1182,17 @@ smart_font_rep::resolve (string c) {
     }
   }
 
+  // Fallback Cyrillic characters to default Chinese font
+  if (range == "cyrillic") {
+    string chinese_name= default_chinese_font_name ();
+    if (chinese_name != "roman") {
+      for (int attempt= 1; attempt <= FONT_ATTEMPTS; attempt++) {
+        int nr= resolve (c, "cyrillic=" * chinese_name, attempt);
+        if (nr >= 0) return nr;
+      }
+    }
+  }
+
   if (math_kind != 0) {
     string upc= substitute_upright (c);
     if (upc != "" && fn[SUBFONT_MAIN]->supports (upc)) {
@@ -1784,7 +1795,7 @@ smart_font_bis (string family, string variant, string series, string shape,
   if (starts (family, "sys-")) {
     if (family == "sys-chinese") {
       string name= default_chinese_font_name ();
-      family     = "cjk=" * name * ",cyrillic=" * name * ",roman";
+      family     = "cjk=" * name * ",roman";
     }
     if (family == "sys-japanese") {
       string name= default_japanese_font_name ();
