@@ -35,22 +35,47 @@
                (filter (lambda (line)
                          (let ((trimmed-line (string-trim-left line)))
                            (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                (not (string-starts? trimmed-line "\\usepackage")))))
+                                (not (string-starts? trimmed-line "\\usepackage"))
+                                (not (string-null? trimmed-line)))))
                        lines))
              (body (string-join other-lines "\n"))
              (body-trimmed (string-trim-left body)))
         (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
-                                (string-starts? body-trimmed "\\scheme")))
+                                 (string-starts? body-trimmed "\\scheme")))
                (need-chemfig-package?
                  (or has-chemfig?
                      (string-contains? body "\\chem")
                      (string-contains? body "\\scheme")))
+               (need-optikz-package?
+                 (or (string-contains? body "\\spectrometer")
+                     (string-contains? body "\\camera")
+                     (string-contains? body "\\diode")
+                     (string-contains? body "\\splitter")
+                     (string-contains? body "\\convexlens")
+                     (string-contains? body "\\concavelens")
+                     (string-contains? body "\\planconvexlens")
+                     (string-contains? body "\\mirror")
+                     (string-contains? body "\\curvedmirror")
+                     (string-contains? body "\\pockelscell")
+                     (string-contains? body "\\laser")
+                     (string-contains? body "\\grating")
+                     (string-contains? body "\\drawrainbow")
+                     (string-contains? body "\\TFP")))
                (extra-packages
-                 (if (and need-chemfig-package?
-                          (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                         package-lines)))
-                     '("\\usepackage{chemfig}")
-                     '()))
+                 (let ((pkgs '()))
+                   (when (and need-chemfig-package?
+                              (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                             package-lines)))
+                     (set! pkgs (cons "\\usepackage{chemfig}" pkgs)))
+                   (when (and need-optikz-package?
+                              (null? (filter (lambda (line) (string-contains? line "optikz"))
+                                             package-lines)))
+                     (set! pkgs (cons "\\usepackage{optikz}" pkgs)))
+                   (when (and need-optikz-package?
+                              (null? (filter (lambda (line) (string-contains? line "calc"))
+                                             package-lines)))
+                     (set! pkgs (cons "\\usepackage{calc}" pkgs)))
+                   (reverse pkgs)))
                (inner-code
                  (if (or (string-null? body-trimmed)
                          (string-starts? body-trimmed "\\begin{tikzpicture}")
@@ -61,7 +86,7 @@
                ) ;inner-code
               ) ;
         (string-append
-          "\\documentclass[tikz]{standalone}\n"
+          "\\documentclass[tikz,rgb]{standalone}\n"
           (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
           (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
           "\\begin{document}\n"
@@ -116,79 +141,91 @@
 (check
   (wrap-tikz-code "\\usetikzlibrary{calc}\n\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "  \\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n  \\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\begin{tikzpicture}\n  \\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usetikzlibrary{shapes.geometric}\n\\node[draw, circle] at (0,0) {A};")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\\begin{tikzpicture}\n\\node[draw, circle] at (0,0) {A};\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\\begin{tikzpicture}\n\\node[draw, circle] at (0,0) {A};\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usetikzlibrary{calc}\n\\usetikzlibrary{arrows.meta}\n\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\usetikzlibrary{arrows.meta}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\usetikzlibrary{arrows.meta}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\usetikzlibrary{calc}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usetikzlibrary{shapes.geometric}")
   =>
-  "\\documentclass[tikz]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\begin{document}\n\\usetikzlibrary{shapes.geometric}\n\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usepackage{chemfig}\n\\chemfig{*6(=-=-=-)}")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\chemfig{*6(=-=-=-)}")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\chemfig{*6(=-=-=-)}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usepackage{chemfig}\n\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\node (molecule) at (0,0) {\\chemfig{*6(--=--)}};\n\\draw[->, red] (molecule) -- (2,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\node (molecule) at (0,0) {\\chemfig{*6(--=--)}};\n\\draw[->, red] (molecule) -- (2,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{chemfig}\n\\begin{document}\n\\begin{tikzpicture}\n\\node (molecule) at (0,0) {\\chemfig{*6(--=--)}};\n\\draw[->, red] (molecule) -- (2,1);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 (check
   (wrap-tikz-code "\\usepackage{pgfplots}\n\\draw (0,0) -- (1,1);")
   =>
-  "\\documentclass[tikz]{standalone}\n\\usepackage{pgfplots}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{pgfplots}\n\\begin{document}\n\\begin{tikzpicture}\n\\draw (0,0) -- (1,1);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\def\\skala{0.8}\n\\spectrometer[angle=0] at (5.5,4);")
+  =>
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{optikz}\n\\usepackage{calc}\n\\begin{document}\n\\begin{tikzpicture}\n\\def\\skala{0.8}\n\\spectrometer[angle=0] at (5.5,4);\n\\end{tikzpicture}\n\\end{document}"
+)
+
+(check
+  (wrap-tikz-code "\\usepackage{optikz}\n\\usepackage{calc}\n\\def\\skala{0.8}\n\\spectrometer[angle=0] at (5.5,4);")
+  =>
+  "\\documentclass[tikz,rgb]{standalone}\n\\usepackage{optikz}\n\\usepackage{calc}\n\\begin{document}\n\\begin{tikzpicture}\n\\def\\skala{0.8}\n\\spectrometer[angle=0] at (5.5,4);\n\\end{tikzpicture}\n\\end{document}"
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

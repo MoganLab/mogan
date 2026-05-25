@@ -53,12 +53,13 @@
                  (filter (lambda (line)
                            (string-starts? (string-trim-left line) "\\usepackage"))
                          lines))
-               (other-lines
-                 (filter (lambda (line)
-                           (let ((trimmed-line (string-trim-left line)))
-                             (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
-                                  (not (string-starts? trimmed-line "\\usepackage")))))
-                         lines))
+             (other-lines
+               (filter (lambda (line)
+                         (let ((trimmed-line (string-trim-left line)))
+                           (and (not (string-starts? trimmed-line "\\usetikzlibrary"))
+                                (not (string-starts? trimmed-line "\\usepackage"))
+                                (not (string-null? trimmed-line)))))
+                       lines))
                (body (string-join other-lines "\n"))
                (body-trimmed (string-trim-left body)))
           (let* ((has-chemfig? (or (string-starts? body-trimmed "\\chem")
@@ -67,12 +68,36 @@
                    (or has-chemfig?
                        (string-contains? body "\\chem")
                        (string-contains? body "\\scheme")))
+                 (need-optikz-package?
+                   (or (string-contains? body "\\spectrometer")
+                       (string-contains? body "\\camera")
+                       (string-contains? body "\\diode")
+                       (string-contains? body "\\splitter")
+                       (string-contains? body "\\convexlens")
+                       (string-contains? body "\\concavelens")
+                       (string-contains? body "\\planconvexlens")
+                       (string-contains? body "\\mirror")
+                       (string-contains? body "\\curvedmirror")
+                       (string-contains? body "\\pockelscell")
+                       (string-contains? body "\\laser")
+                       (string-contains? body "\\grating")
+                       (string-contains? body "\\drawrainbow")
+                       (string-contains? body "\\TFP")))
                  (extra-packages
-                   (if (and need-chemfig-package?
-                            (null? (filter (lambda (line) (string-contains? line "chemfig"))
-                                           package-lines)))
-                       '("\\usepackage{chemfig}")
-                       '()))
+                   (let ((pkgs '()))
+                     (when (and need-chemfig-package?
+                                (null? (filter (lambda (line) (string-contains? line "chemfig"))
+                                               package-lines)))
+                       (set! pkgs (cons "\\usepackage{chemfig}" pkgs)))
+                     (when (and need-optikz-package?
+                                (null? (filter (lambda (line) (string-contains? line "optikz"))
+                                               package-lines)))
+                       (set! pkgs (cons "\\usepackage{optikz}" pkgs)))
+                     (when (and need-optikz-package?
+                                (null? (filter (lambda (line) (string-contains? line "calc"))
+                                               package-lines)))
+                       (set! pkgs (cons "\\usepackage{calc}" pkgs)))
+                     (reverse pkgs)))
                  (inner-code
                    (if (or (string-null? body-trimmed)
                            (string-starts? body-trimmed "\\begin{tikzpicture}")
@@ -80,7 +105,7 @@
                        body
                        (string-append "\\begin{tikzpicture}\n" body "\n\\end{tikzpicture}"))))
             (string-append
-              "\\documentclass[tikz]{standalone}\n"
+              "\\documentclass[tikz,rgb]{standalone}\n"
               (if (null? package-lines) "" (string-append (string-join package-lines "\n") "\n"))
               (if (null? extra-packages) "" (string-append (string-join extra-packages "\n") "\n"))
               "\\begin{document}\n"
