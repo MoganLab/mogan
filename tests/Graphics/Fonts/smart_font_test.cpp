@@ -206,7 +206,7 @@ TestSmartFont::test_in_unicode_range_cyrillic () {
 void
 TestSmartFont::test_roman_cyrillic_fallback () {
   // roman 文档中的 Cyrillic 字符应该 fallback 到 default_chinese_font_name
-  font fn= smart_font ("roman", "rm", "medium", "right", 10, 600);
+  font            fn= smart_font ("roman", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
   string          c     = utf8_to_cork ("А");
   int             nr    = fn_rep->resolve (c);
