@@ -18,8 +18,41 @@
 )
 
 ; Simulate the wrap-quiver-code logic from tm-quiver.scm
-(define (wrap-quiver-code code)
-  (let ((trimmed (string-trim-left code)))
+(define (string-trim-both s)
+  (string-trim-right (string-trim s)))
+
+(define (strip-math-delimiters str)
+  (let* ((s (string-trim-both str))
+         (len (string-length s)))
+    (cond ((and (>= len 4)
+                (string-starts? s "\\[")
+                (string-ends? s "\\]"))
+           (strip-math-delimiters (substring s 2 (- len 2))))
+          ((and (>= len 4)
+                (string-starts? s "$$")
+                (string-ends? s "$$"))
+           (strip-math-delimiters (substring s 2 (- len 2))))
+          ((and (>= len 2)
+                (string-starts? s "$")
+                (string-ends? s "$"))
+           (strip-math-delimiters (substring s 1 (- len 1))))
+          ((and (>= len 32)
+                (string-starts? s "\\begin{equation*}")
+                (string-ends? s "\\end{equation*}"))
+           (strip-math-delimiters (substring s 17 (- len 15))))
+          ((and (>= len 30)
+                (string-starts? s "\\begin{equation}")
+                (string-ends? s "\\end{equation}"))
+           (strip-math-delimiters (substring s 16 (- len 14))))
+          ((and (>= len 36)
+                (string-starts? s "\\begin{displaymath}")
+                (string-ends? s "\\end{displaymath}"))
+           (strip-math-delimiters (substring s 19 (- len 17))))
+          (else s))))
+
+(define (wrap-quiver-code raw-code)
+  (let* ((code (strip-math-delimiters raw-code))
+         (trimmed (string-trim-left code)))
     (if (string-starts? trimmed "\\documentclass")
         code
         (let* ((lines (string-split code #\newline))
@@ -150,6 +183,84 @@
     "\\begin{document}\n"
     "\\begin{tikzcd}\n"
     "A \\arrow[r] & B\n"
+    "\\end{tikzcd}\n"
+    "\\end{document}"
+  )
+)
+
+(check
+  (wrap-quiver-code "\\[\\begin{tikzcd}\n&& \\bullet && \\bullet \\\\\n\\bullet && \\bullet\n\\arrow[from=1-3, to=2-1]\n\\arrow[from=2-3, to=1-5]\n\\end{tikzcd}\\]")
+  =>
+  (string-append
+    "\\documentclass[tikz]{standalone}\n"
+    "\\usepackage{tikz-cd}\n"
+    "\\usepackage{amssymb}\n"
+    "\\usetikzlibrary{calc}\n"
+    "\\usetikzlibrary{decorations.pathmorphing}\n"
+    "\\usetikzlibrary{spath3}\n"
+    "\n"
+    "\\tikzset{curve/.style={settings={#1},to path={(\\tikztostart)\n"
+    "    .. controls ($(\\tikztostart)!\\pv{pos}!(\\tikztotarget)!\\pv{height}!270:(\\tikztotarget)$)\n"
+    "    and ($(\\tikztostart)!1-\\pv{pos}!(\\tikztotarget)!\\pv{height}!270:(\\tikztotarget)$)\n"
+    "    .. (\\tikztostart)\\tikztonodes}},\n"
+    "    settings/.code={\\tikzset{quiver/.cd,#1}\n"
+    "        \\def\\pv##1{\\pgfkeysvalueof{/tikz/quiver/##1}}},\n"
+    "    quiver/.cd,pos/.initial=0.35,height/.initial=0}\n"
+    "\n"
+    "\\tikzset{between/.style n args={2}{/tikz/execute at end to={\n"
+    "    \\tikzset{spath/split at keep middle={current}{#1}{#2}}\n"
+    "}}}\n"
+    "\n"
+    "\\tikzset{tail reversed/.code={\\pgfsetarrowsstart{tikzcd to}}}\n"
+    "\\tikzset{2tail/.code={\\pgfsetarrowsstart{Implies[reversed]}}}\n"
+    "\\tikzset{2tail reversed/.code={\\pgfsetarrowsstart{Implies}}}\n"
+    "\\tikzset{no body/.style={/tikz/dash pattern=on 0 off 1mm}}\n"
+    "\n"
+    "\\begin{document}\n"
+    "\\begin{tikzcd}\n"
+    "&& \\bullet && \\bullet \\\\\n"
+    "\\bullet && \\bullet\n"
+    "\\arrow[from=1-3, to=2-1]\n"
+    "\\arrow[from=2-3, to=1-5]\n"
+    "\\end{tikzcd}\n"
+    "\\end{document}"
+  )
+)
+
+(check
+  (wrap-quiver-code "\\begin{equation*}\n\\begin{tikzcd}\n&& \\bullet && \\bullet \\\\\n\\bullet && \\bullet\n\\arrow[from=1-3, to=2-1]\n\\arrow[from=2-3, to=1-5]\n\\end{tikzcd}\n\\end{equation*}")
+  =>
+  (string-append
+    "\\documentclass[tikz]{standalone}\n"
+    "\\usepackage{tikz-cd}\n"
+    "\\usepackage{amssymb}\n"
+    "\\usetikzlibrary{calc}\n"
+    "\\usetikzlibrary{decorations.pathmorphing}\n"
+    "\\usetikzlibrary{spath3}\n"
+    "\n"
+    "\\tikzset{curve/.style={settings={#1},to path={(\\tikztostart)\n"
+    "    .. controls ($(\\tikztostart)!\\pv{pos}!(\\tikztotarget)!\\pv{height}!270:(\\tikztotarget)$)\n"
+    "    and ($(\\tikztostart)!1-\\pv{pos}!(\\tikztotarget)!\\pv{height}!270:(\\tikztotarget)$)\n"
+    "    .. (\\tikztostart)\\tikztonodes}},\n"
+    "    settings/.code={\\tikzset{quiver/.cd,#1}\n"
+    "        \\def\\pv##1{\\pgfkeysvalueof{/tikz/quiver/##1}}},\n"
+    "    quiver/.cd,pos/.initial=0.35,height/.initial=0}\n"
+    "\n"
+    "\\tikzset{between/.style n args={2}{/tikz/execute at end to={\n"
+    "    \\tikzset{spath/split at keep middle={current}{#1}{#2}}\n"
+    "}}}\n"
+    "\n"
+    "\\tikzset{tail reversed/.code={\\pgfsetarrowsstart{tikzcd to}}}\n"
+    "\\tikzset{2tail/.code={\\pgfsetarrowsstart{Implies[reversed]}}}\n"
+    "\\tikzset{2tail reversed/.code={\\pgfsetarrowsstart{Implies}}}\n"
+    "\\tikzset{no body/.style={/tikz/dash pattern=on 0 off 1mm}}\n"
+    "\n"
+    "\\begin{document}\n"
+    "\\begin{tikzcd}\n"
+    "&& \\bullet && \\bullet \\\\\n"
+    "\\bullet && \\bullet\n"
+    "\\arrow[from=1-3, to=2-1]\n"
+    "\\arrow[from=2-3, to=1-5]\n"
     "\\end{tikzcd}\n"
     "\\end{document}"
   )
