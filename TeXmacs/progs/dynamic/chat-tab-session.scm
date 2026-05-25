@@ -426,7 +426,8 @@
                   (let* ((doc (tree-ref body j)) (content (if (tree? text) (tree->stree text) text)))
                     ;; 按 \n 拆分：首段追加到 doc 末尾，后续段落新增
                     (when (and (string? content) (not (string-null? content)))
-                      (let ((parts (string-split content #\newline)))
+                      (let* ((cork-parts (string-split (cork->utf8 content) #\newline))
+                             (parts (map utf8->cork cork-parts)))
                         (when (nnull? parts)
                           ;; 追加第一段到 doc 最后一个子节点
                           (let ((last-idx (- (tree-arity doc) 1)))
