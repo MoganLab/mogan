@@ -14,6 +14,7 @@
   (:use (utils library tree)
     (utils library cursor)
     (utils plugins plugin-eval)
+    (utils edit variants)
     (dynamic session-edit)
     (kernel texmacs tm-plugins)
     (texmacs texmacs tm-files)
@@ -199,6 +200,81 @@
   ) ;let
 ) ;define
 
+;; tree-contains-label?
+;; 递归检查 tree 中是否包含指定 label 的节点
+
+(define (tree-contains-label? t label)
+  (cond ((not (tree? t)) #f)
+        ((eq? (tree-label t) label) #t)
+        (else (let loop
+                ((i 0) (n (tree-arity t)))
+                (if (>= i n)
+                  #f
+                  (or (tree-contains-label? (tree-ref t i) label) (loop (+ i 1) n))
+                ) ;if
+              ) ;let
+        ) ;else
+  ) ;cond
+) ;define
+
+;; tree-remove-label-from-children!
+;; 从 document 的直接子节点和 concat 子节点中移除指定 label 的节点
+
+(define (tree-remove-label-from-children! t label)
+  (when (tm-func? t 'document)
+    (let loop
+      ((i (- (tree-arity t) 1)))
+      (when (>= i 0)
+        (let ((child (tree-ref t i)))
+          (cond ((eq? (tree-label child) label) (tree-remove! t i 1))
+                ((tm-func? child 'concat)
+                 (let sub-loop
+                   ((j (- (tree-arity child) 1)))
+                   (when (>= j 0)
+                     (when (eq? (tree-label (tree-ref child j)) label)
+                       (tree-remove! child j 1)
+                     ) ;when
+                     (sub-loop (- j 1))
+                   ) ;when
+                 ) ;let
+                ) ;
+                (else (noop))
+          ) ;cond
+        ) ;let
+        (loop (- i 1))
+      ) ;when
+    ) ;let
+  ) ;when
+) ;define
+
+;; tree-extract-reasoning-delta!
+;; 从 tree 中递归提取所有 reasoning-delta 节点的文本，并清除这些节点
+;; 返回提取的文本字符串
+
+(define (tree-extract-reasoning-delta! t)
+  ;; 递归收集所有 reasoning-delta 的文本
+  (define (collect node)
+    (cond ((not (tree? node)) "")
+          ((eq? (tree-label node) 'reasoning-delta)
+           (if (> (tree-arity node) 0) (or (tree->stree (tree-ref node 0)) "") "")
+          ) ;
+          (else (let loop
+                  ((i 0) (n (tree-arity node)) (acc '()))
+                  (if (>= i n)
+                    (apply string-append (reverse acc))
+                    (loop (+ i 1) n (cons (collect (tree-ref node i)) acc))
+                  ) ;if
+                ) ;let
+          ) ;else
+    ) ;cond
+  ) ;define
+
+  (let ((text (collect t)))
+    (tree-remove-label-from-children! t 'reasoning-delta)
+    text
+  ) ;let
+) ;define
+
 ;; chat-tab-join-nonempty
 ;; 用分隔符连接非空字符串列表。
 ;;
@@ -294,6 +370,107 @@
         (tree-insert! t i '((errput (document))))
       ) ;if
       (chat-tab-output (tree-ref t i 0) u)
+    ) ;with
+  ) ;when
+) ;define
+
+;; chat-tab-find-last-unfolded-explain
+;; 从 out 的位置 i-1 向前搜索 unfolded-explain
+;; 支持直接子节点和 concat 内包裹的情况
+
+(define (chat-tab-find-last-unfolded-explain out i)
+  (let loop
+    ((k (- i 1)))
+    (if (< k 0)
+      #f
+      (let ((child (tree-ref out k)))
+        (cond ((tm-func? child 'unfolded-explain) child)
+              ((tm-func? child 'concat)
+               (let sub-loop
+                 ((j 0) (n (tree-arity child)))
+                 (if (>= j n)
+                   (loop (- k 1))
+                   (if (tm-func? (tree-ref child j) 'unfolded-explain)
+                     (tree-ref child j)
+                     (sub-loop (+ j 1) n)
+                   ) ;if
+                 ) ;if
+               ) ;let
+              ) ;
+              (else (loop (- k 1)))
+        ) ;cond
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
+
+(define (chat-tab-append-reasoning! out text)
+  (when (tm-func? out 'document)
+    (with i
+      (tree-arity out)
+      ;; 跳过 script-busy
+      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      ;; 找到 unfolded-explain（直接子节点或在 concat 内）
+      (with ue
+        (chat-tab-find-last-unfolded-explain out i)
+        (when ue
+          (with body
+            (tree-ref ue 1)
+            ;; 在 body(with) 的子节点中搜索 document
+            (let doc-loop
+              ((j 0))
+              (when (< j (tree-arity body))
+                (if (tm-func? (tree-ref body j) 'document)
+                  (let* ((doc (tree-ref body j)) (content (if (tree? text) (tree->stree text) text)))
+                    ;; 按 \n 拆分：首段追加到 doc 末尾，后续段落新增
+                    (when (and (string? content) (not (string-null? content)))
+                      (let ((parts (string-split content #\newline)))
+                        (when (nnull? parts)
+                          ;; 追加第一段到 doc 最后一个子节点
+                          (let ((last-idx (- (tree-arity doc) 1)))
+                            (when (>= last-idx 0)
+                              (tree-set doc
+                                last-idx
+                                (string-append (or (tree->stree (tree-ref doc last-idx)) "") (car parts))
+                              ) ;tree-set
+                            ) ;when
+                          ) ;let
+                          ;; 后续段落作为新子节点插入
+                          (when (> (length parts) 1)
+                            (tree-insert! doc (tree-arity doc) (cdr parts))
+                          ) ;when
+                        ) ;when
+                      ) ;let
+                    ) ;when
+                  ) ;let*
+                  (doc-loop (+ j 1))
+                ) ;if
+              ) ;when
+            ) ;let
+          ) ;with
+        ) ;when
+      ) ;with
+    ) ;with
+  ) ;when
+) ;define
+
+(define (chat-tab-fold-last-explain! out)
+  (when (tm-func? out 'document)
+    (with i
+      (tree-arity out)
+      ;; 跳过 script-busy
+      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      ;; 找到并折叠 unfolded-explain（直接子节点或在 concat 内）
+      (with ue
+        (chat-tab-find-last-unfolded-explain out i)
+        (when ue
+          (variant-set ue 'folded-explain)
+        ) ;when
+      ) ;with
     ) ;with
   ) ;when
 ) ;define
@@ -574,7 +751,42 @@
               (in-buf (chat-tab-session->input-buffer session-id))
              ) ;
           (cond ((== ch "output")
-                 (with-buffer msg-buf (chat-tab-output out t) (buffer-pretend-saved msg-buf))
+                 (cond
+                   ;; t 包含 reasoning-delta → 提取并追加到 unfolded-explain
+                   ;; 注意：t 可能同时包含 fold-explain-reasoning，需要一并处理
+                   ((tree-contains-label? t 'reasoning-delta)
+                    (with-buffer msg-buf
+                      (let* ((text (tree-extract-reasoning-delta! t))
+                             (has-fold? (tree-contains-label? t 'fold-explain-reasoning))
+                            ) ;
+                        (when has-fold?
+                          (tree-remove-label-from-children! t 'fold-explain-reasoning)
+                        ) ;when
+                        ;; 输出 t 中剩余的非 reasoning 内容（如 unfolded-explain）
+                        (when (> (tree-arity t) 0)
+                          (chat-tab-output out t)
+                        ) ;when
+                        ;; 追加 reasoning 文本到 out 中的 unfolded-explain
+                        (chat-tab-append-reasoning! out text)
+                        ;; 如果同时有 fold 命令，折叠
+                        (when has-fold?
+                          (chat-tab-fold-last-explain! out)
+                        ) ;when
+                      ) ;let*
+                      (buffer-pretend-saved msg-buf)
+                    ) ;with-buffer
+                   ) ;
+                   ;; t 仅包含 fold-explain-reasoning → 直接折叠
+                   ((tree-contains-label? t 'fold-explain-reasoning)
+                    (with-buffer msg-buf
+                      (chat-tab-fold-last-explain! out)
+                      (buffer-pretend-saved msg-buf)
+                    ) ;with-buffer
+                   ) ;
+                   ;; 正常输出
+                   (else (with-buffer msg-buf (chat-tab-output out t) (buffer-pretend-saved msg-buf))
+                   ) ;else
+                 ) ;cond
                 ) ;
                 ((== ch "error")
                  (with-buffer msg-buf (chat-tab-errput out t) (buffer-pretend-saved msg-buf))
