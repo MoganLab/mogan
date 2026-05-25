@@ -1236,6 +1236,12 @@ QLabel#pdf-preview-label {
 
 /* 侧边栏 */
 QWidget#chat-tab-sidebar,
+QWidget#chat-tab-sidebar-normal,
+QWidget#chat-tab-header,
+QLabel#chat-tab-nav-title,
+QLabel#chat-tab-conversation-count,
+QWidget#chat-tab-multi-select-bar,
+QWidget#chat-tab-session-item QWidget,
 QWidget#chat-tab-scroll-content,
 QWidget#chat-tab-archive-header,
 QWidget#chat-tab-conversation-list,
@@ -1278,7 +1284,6 @@ QLabel#chat-tab-conversation-count {
 /* 搜索框 */
 QLineEdit#chat-tab-search-edit {
   background-color: #ffffff;
-  border-color: #cccccc;
 }
 
 /* 多选操作栏按钮 */
@@ -1362,11 +1367,9 @@ QPushButton#chat-tab-send-btn:pressed {
 /* 选择复选框 */
 QCheckBox#chat-tab-select-checkbox::indicator:checked {
   background-color: #4a90d9;
-  border-color: #4a90d9;
 }
 QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
   background-color: #ffffff;
-  border-color: #cccccc;
 }
 
 /* 会话项容器 */
@@ -1377,13 +1380,9 @@ QWidget#chat-tab-session-item {
 /* 会话按钮 */
 QPushButton#chat-tab-conversation-btn {
   text-align: left;
-  border-width: 1px;
-  border-style: solid;
   background-color: #ffffff;
-  border-color: #d9d9d9;
 }
 QPushButton#chat-tab-conversation-btn:checked {
   font-weight: 600;
   background-color: #e8eefc;
-  border-color: #9bb3ff;
 }

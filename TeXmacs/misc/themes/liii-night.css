@@ -1361,7 +1361,6 @@ QLabel#chat-tab-conversation-count {
 /* 搜索框 */
 QWidget#centralWidget QLineEdit#chat-tab-search-edit {
   background-color: #3a3a3a;
-  border-color: #5c5c5c;
 }
 
 /* 多选操作栏按钮 */
@@ -1448,11 +1447,9 @@ QWidget#centralWidget QPushButton#chat-tab-send-btn:pressed {
 /* 选择复选框 */
 QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:checked {
   background-color: #4a90d9;
-  border-color: #4a90d9;
 }
 QWidget#centralWidget QCheckBox#chat-tab-select-checkbox::indicator:unchecked {
   background-color: #2c2c2c;
-  border-color: #5c5c5c;
 }
 
 /* 会话项容器 */
@@ -1463,9 +1460,6 @@ QWidget#centralWidget QWidget#chat-tab-session-item {
 /* 会话按钮 */
 QPushButton#chat-tab-conversation-btn {
   text-align: left;
-  border-width: 1px;
-  border-style: solid;
-  border-color: #5c5c5c;
 }
 QWidget#centralWidget QPushButton#chat-tab-conversation-btn {
   background-color: #3a3a3a;
@@ -1473,7 +1467,6 @@ QWidget#centralWidget QPushButton#chat-tab-conversation-btn {
 
 QPushButton#chat-tab-conversation-btn:checked {
   font-weight: 600;
-  border-color: #4a90d9;
 }
 QWidget#centralWidget QPushButton#chat-tab-conversation-btn:checked {
   background-color: #1a3a5a;
