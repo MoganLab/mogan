@@ -527,8 +527,9 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   mainLayout->addWidget (multiSelectBar_);
 
   // 列表滚动区
-  QWidget*     scrollContent= new QWidget (this);
-  QVBoxLayout* scrollLayout = new QVBoxLayout (scrollContent);
+  QWidget* scrollContent= new QWidget (this);
+  scrollContent->setObjectName ("chat-tab-scroll-content");
+  QVBoxLayout* scrollLayout= new QVBoxLayout (scrollContent);
   scrollLayout->setContentsMargins (0, 0, 0, 0);
   scrollLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 

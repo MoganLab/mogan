@@ -1381,6 +1381,9 @@ QPushButton#chat-tab-conversation-btn {
   text-align: left;
   background-color: #ffffff;
 }
+QPushButton#chat-tab-conversation-btn:hover {
+  background-color: #f0f0f0;
+}
 QPushButton#chat-tab-conversation-btn:checked {
   font-weight: 600;
   background-color: #e8eefc;

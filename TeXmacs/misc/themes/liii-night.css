@@ -1461,7 +1461,9 @@ QPushButton#chat-tab-conversation-btn {
 QWidget#centralWidget QPushButton#chat-tab-conversation-btn {
   background-color: #3a3a3a;
 }
-
+QWidget#centralWidget QPushButton#chat-tab-conversation-btn:hover {
+  background-color: #444444;
+}
 QPushButton#chat-tab-conversation-btn:checked {
   font-weight: 600;
 }
