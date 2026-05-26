@@ -216,16 +216,15 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   if (isStartup || isChatTab) {
     static const QIcon startupIcon (":/app/stem.png");
     static const QIcon chatIcon (":/window-bar/ai.svg");
-    const QIcon& icon= isStartup ? startupIcon : chatIcon;
+    const QIcon&       icon= isStartup ? startupIcon : chatIcon;
 
-    int iconSize     = DpiUtils::scaled (TAB_ICON_SIZE);
-    int spacing      = DpiUtils::scaled (TAB_ICON_TEXT_SPACING);
-    int textAvailWidth= width () - iconSize - spacing;
-    QString elidedText=
-        fm.elidedText (text (), Qt::ElideRight, textAvailWidth);
-    int textWidth  = fm.horizontalAdvance (elidedText);
-    int totalWidth = iconSize + spacing + textWidth;
-    int startX    = (width () - totalWidth) / 2;
+    int     iconSize      = DpiUtils::scaled (TAB_ICON_SIZE);
+    int     spacing       = DpiUtils::scaled (TAB_ICON_TEXT_SPACING);
+    int     textAvailWidth= width () - iconSize - spacing;
+    QString elidedText= fm.elidedText (text (), Qt::ElideRight, textAvailWidth);
+    int     textWidth = fm.horizontalAdvance (elidedText);
+    int     totalWidth= iconSize + spacing + textWidth;
+    int     startX    = (width () - totalWidth) / 2;
 
     p.drawPixmap (startX, (height () - iconSize) / 2,
                   icon.pixmap (iconSize, iconSize));
@@ -235,17 +234,17 @@ QTMTabPage::paintEvent (QPaintEvent*) {
                     isEnabled (), elidedText, QPalette::ButtonText);
   }
   else {
-    int leftPadding   = DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
-    int rightPadding  = (m_closeBtn && m_closeBtn->isVisible ())
-                            ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
-                            : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
+    int leftPadding= DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
+    int rightPadding=
+        (m_closeBtn && m_closeBtn->isVisible ())
+            ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
+            : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
     int availableWidth= width () - leftPadding - rightPadding;
     if (availableWidth < 20) {
       availableWidth= 20;
     }
-    QString elidedText=
-        fm.elidedText (text (), Qt::ElideRight, availableWidth);
-    QRect textRect (leftPadding, 0, availableWidth, height ());
+    QString elidedText= fm.elidedText (text (), Qt::ElideRight, availableWidth);
+    QRect   textRect (leftPadding, 0, availableWidth, height ());
     p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
                     isEnabled (), elidedText, QPalette::ButtonText);
   }
