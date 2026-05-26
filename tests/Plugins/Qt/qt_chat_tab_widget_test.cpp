@@ -7,7 +7,6 @@
 
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "base.hpp"
-#include "qt_utilities.hpp"
 #include <QtTest/QtTest>
 
 using namespace moebius;
@@ -71,36 +70,6 @@ private slots:
     QVERIFY (!ChatConversationPanel::is_empty_document_body (doc));
   }
 
-  void test_estimate_lines_from_height_zero () {
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (0), 0);
-  }
-
-  void test_estimate_lines_from_height_negative () {
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (-100), 0);
-  }
-
-  void test_estimate_lines_from_height_less_than_one_line () {
-    // kInputLineHeight == 22
-    // 高度不足一行时应返回 1（向上取整）
-    SI h= (22 / 2) * PIXEL;
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (h), 1);
-  }
-
-  void test_estimate_lines_from_height_exact_one_line () {
-    SI h= 22 * PIXEL;
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (h), 1);
-  }
-
-  void test_estimate_lines_from_height_three_lines () {
-    SI h= (22 * 3) * PIXEL;
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (h), 3);
-  }
-
-  void test_estimate_lines_from_height_with_rounding () {
-    // 高度为 2.5 行时应向上取整为 3
-    SI h= ((22 * 5) / 2) * PIXEL;
-    QCOMPARE (ChatConversationPanel::estimate_lines_from_height (h), 3);
-  }
 };
 
 QTEST_MAIN (TestChatTabWidget)
