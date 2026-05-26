@@ -69,7 +69,6 @@ private slots:
     tree doc= tree (DOCUMENT, "para1", "para2");
     QVERIFY (!ChatConversationPanel::is_empty_document_body (doc));
   }
-
 };
 
 QTEST_MAIN (TestChatTabWidget)
