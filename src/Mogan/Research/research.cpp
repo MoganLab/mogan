@@ -131,12 +131,6 @@ immediate_options (int argc, char** argv) {
     }
     else if (s == "-delete-plugin-cache")
       remove (get_tm_cache_path () * url ("plugin_cache.scm"));
-    else if (s == "-delete-server-data")
-      remove (url ("$TEXMACS_HOME_PATH/server") * url_wildcard ("*"));
-    else if (s == "-delete-databases") {
-      remove (url ("$TEXMACS_HOME_PATH/system/database") * url_wildcard ("*"));
-      remove (url ("$TEXMACS_HOME_PATH/users") * url_wildcard ("*"));
-    }
 #ifdef QTTEXMACS
     else if (s == "-headless") headless_mode= true;
 #endif

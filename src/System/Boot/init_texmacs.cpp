@@ -799,8 +799,7 @@ TeXmacs_main (int argc, char** argv) {
       else if ((s == "-S") || (s == "-setup") || (s == "-delete-cache") ||
                (s == "-delete-font-cache") || (s == "-delete-style-cache") ||
                (s == "-delete-file-cache") || (s == "-delete-doc-cache") ||
-               (s == "-delete-plugin-cache") || (s == "-delete-server-data") ||
-               (s == "-delete-databases") || (s == "-headless"))
+               (s == "-delete-plugin-cache") || (s == "-headless"))
         ;
       else if (s == "-build-manual") {
         if ((++i) < argc)
