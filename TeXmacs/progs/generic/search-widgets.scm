@@ -1628,7 +1628,7 @@
 
 (tm-define (interactive-search)
   (:interactive #t)
-  (unless (string-starts? (url->system (current-buffer)) "tmfs://chat-")
+  (unless (string-starts? (url->system (current-buffer)) "tmfs:")
     (set! search-replace-text
       (cond ((in-math?) "Only search in math mode")
             ((in-prog?) "Only search in Program mode")
@@ -1643,7 +1643,7 @@
 
 (tm-define (interactive-replace)
   (:interactive #t)
-  (unless (string-starts? (url->system (current-buffer)) "tmfs://chat-")
+  (unless (string-starts? (url->system (current-buffer)) "tmfs:")
     (set! search-replace-text
       (cond ((in-math?) "Only search and replace in math mode")
             ((in-prog?) "Only search and replace in Program mode")
