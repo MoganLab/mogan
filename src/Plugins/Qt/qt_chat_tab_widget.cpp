@@ -423,7 +423,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   mainLayout->setSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   // 会话数量标签
-  conversationCountLabel_= new QLabel (qt_translate ("Conversations (%1)").arg (0), this);
+  conversationCountLabel_=
+      new QLabel (qt_translate ("Conversations (%1)").arg (0), this);
   conversationCountLabel_->setObjectName ("chat-tab-conversation-count");
   DpiUtils::applyScaledFont (conversationCountLabel_, kNavTitleFontPx);
   mainLayout->addWidget (conversationCountLabel_);
@@ -452,7 +453,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   multiSelectLayout->setContentsMargins (0, 0, 0, 0);
   multiSelectLayout->setSpacing (DpiUtils::scaled (kMultiSelectSpacing));
 
-  QPushButton* cancelSelectBtn= new QPushButton (qt_translate ("Cancel"), multiSelectBar_);
+  QPushButton* cancelSelectBtn=
+      new QPushButton (qt_translate ("Cancel"), multiSelectBar_);
   cancelSelectBtn->setFocusPolicy (Qt::NoFocus);
   cancelSelectBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (cancelSelectBtn, kCollapseFontPx);
@@ -466,7 +468,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
            [this] () { exitMultiSelectMode (); });
   multiSelectLayout->addWidget (cancelSelectBtn);
 
-  QPushButton* selectAllBtn= new QPushButton (qt_translate ("Select all"), multiSelectBar_);
+  QPushButton* selectAllBtn=
+      new QPushButton (qt_translate ("Select all"), multiSelectBar_);
   selectAllBtn->setFocusPolicy (Qt::NoFocus);
   selectAllBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (selectAllBtn, kCollapseFontPx);
@@ -507,7 +510,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   });
   multiSelectLayout->addWidget (batchArchiveBtn_);
 
-  QPushButton* batchDeleteBtn= new QPushButton (qt_translate ("Delete"), multiSelectBar_);
+  QPushButton* batchDeleteBtn=
+      new QPushButton (qt_translate ("Delete"), multiSelectBar_);
   batchDeleteBtn->setFocusPolicy (Qt::NoFocus);
   batchDeleteBtn->setCursor (Qt::PointingHandCursor);
   DpiUtils::applyScaledFont (batchDeleteBtn, kCollapseFontPx);
@@ -541,7 +545,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   scrollLayout->addWidget (conversationListWidget_);
 
   // 归档区标题
-  archiveHeaderButton_= new QPushButton (qt_translate ("Archived (%1)").arg (0), scrollContent);
+  archiveHeaderButton_=
+      new QPushButton (qt_translate ("Archived (%1)").arg (0), scrollContent);
   archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
   archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
   archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
@@ -761,7 +766,8 @@ ChatSidebar::createItem (const string& sessionId) {
   item.selectCheckBox->hide ();
   itemLayout->addWidget (item.selectCheckBox);
 
-  item.sidebarButton= new QPushButton (qt_translate ("New conversation"), item.itemWidget);
+  item.sidebarButton=
+      new QPushButton (qt_translate ("New conversation"), item.itemWidget);
   item.sidebarButton->setObjectName ("chat-tab-conversation-btn");
   item.sidebarButton->setCheckable (true);
   item.sidebarButton->setFocusPolicy (Qt::NoFocus);
@@ -798,9 +804,11 @@ ChatSidebar::createItem (const string& sessionId) {
 
         if (!checked.isEmpty ()) {
           if (!archived) {
-            menu.addAction (qt_translate ("Archive selected (%1)").arg (checked.size ()));
+            menu.addAction (
+                qt_translate ("Archive selected (%1)").arg (checked.size ()));
           }
-          menu.addAction (qt_translate ("Delete selected (%1)").arg (checked.size ()));
+          menu.addAction (
+              qt_translate ("Delete selected (%1)").arg (checked.size ()));
           QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
           if (!chosen) return;
           QString txt= chosen->text ();
@@ -813,11 +821,13 @@ ChatSidebar::createItem (const string& sessionId) {
         }
         else {
           QAction* renameAction = menu.addAction (qt_translate ("Rename"));
-          QAction* archiveAction= menu.addAction (archived ? qt_translate ("Restore") : qt_translate ("Archive"));
-          QAction* deleteAction = menu.addAction (qt_translate ("Delete"));
+          QAction* archiveAction= menu.addAction (
+              archived ? qt_translate ("Restore") : qt_translate ("Archive"));
+          QAction* deleteAction= menu.addAction (qt_translate ("Delete"));
           menu.addSeparator ();
-          QAction* multiSelectAction= menu.addAction (qt_translate ("Multi-select"));
-          QAction* chosen           = menu.exec (senderBtn->mapToGlobal (pos));
+          QAction* multiSelectAction=
+              menu.addAction (qt_translate ("Multi-select"));
+          QAction* chosen= menu.exec (senderBtn->mapToGlobal (pos));
           if (chosen == renameAction) {
             emit renameRequested (sid, "");
           }
