@@ -542,6 +542,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   conversationListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
   scrollLayout->addWidget (conversationListWidget_);
 
+  scrollLayout->addStretch ();
+
   // 归档区标题
   archiveHeaderButton_=
       new QPushButton (qt_translate ("Archived (%1)").arg (0), scrollContent);
@@ -554,6 +556,7 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
                "padding: %1px %2px; } ")
           .arg (DpiUtils::scaled (kNavTitlePadding))
           .arg (DpiUtils::scaled (kNavButtonPadX)));
+  archiveHeaderButton_->hide ();
   connect (archiveHeaderButton_, &QPushButton::clicked, this, [this] () {
     archiveCollapsed_= !archiveCollapsed_;
     if (archiveListWidget_) archiveListWidget_->setVisible (!archiveCollapsed_);
@@ -567,8 +570,6 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
   archiveListWidget_->hide ();
   scrollLayout->addWidget (archiveListWidget_);
-
-  scrollLayout->addStretch ();
 
   QScrollArea* scrollArea= new QScrollArea (this);
   scrollArea->setWidgetResizable (true);
@@ -587,7 +588,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
     item.sidebarButton->setText (to_qstring (info.displayTitle));
     bool isActive= (info.sessionId == activeSessionId && !info.archived);
     item.sidebarButton->setChecked (isActive);
-    if (item.moreButton) item.moreButton->setVisible (isActive);
+    if (item.moreButton)
+      item.moreButton->setVisible (isActive || info.archived);
     item.isArchived= info.archived;
 
     if (info.archived) {
@@ -646,7 +648,8 @@ ChatSidebar::setActiveItem (const string& sessionId) {
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
-    if (it->moreButton) it->moreButton->setVisible (isActive);
+    if (it->moreButton && !it->isArchived)
+      it->moreButton->setVisible (isActive);
   }
 }
 
@@ -660,6 +663,7 @@ ChatSidebar::moveToArchive (const string& sessionId) {
     item.isArchived= true;
     archiveListLayout_->addWidget (item.itemWidget);
     item.sidebarButton->setChecked (false);
+    if (item.moreButton) item.moreButton->show ();
   }
 
   // 更新 sessionCache_ 中的 archived 状态
@@ -738,7 +742,7 @@ ChatSidebar::updateCountLabels () {
   if (archiveHeaderButton_) {
     archiveHeaderButton_->setText (
         qt_translate ("Archived (%1)").arg (archivedCount));
-    archiveHeaderButton_->setVisible (true);
+    archiveHeaderButton_->setVisible (archivedCount > 0);
   }
 }
 
