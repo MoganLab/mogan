@@ -1660,9 +1660,8 @@ pdf_hummus_renderer_rep::image (url u, double w, double h, SI x, SI y,
   // from Qt's QImage loader), fallback to rasterization to avoid extreme
   // scaling that produces spurious lines.
   if (im->w <= 1 || im->h <= 1) {
-    scalable sim=
-        load_scalable_image (u, (SI) (w * pixel), (SI) (h * pixel), tree (),
-                             pixel);
+    scalable sim= load_scalable_image (u, (SI) (w * pixel), (SI) (h * pixel),
+                                       tree (), pixel);
     renderer_rep::draw_scalable (sim, x, y, alpha);
     return;
   }
