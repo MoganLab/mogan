@@ -202,7 +202,8 @@ ChatController::onSendRequested (const string& sessionId) {
   panel->enterConversationMode ();
 
   panel->focusInput ();
-  saveOneSession (sessionId);
+  exportBuffer (sessionId);
+  updateManifest (sessionId);
 }
 
 void
@@ -261,8 +262,10 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
 void
 ChatController::onArchiveRequested (const QList<string>& sessionIds) {
   for (const string& sid : sessionIds) {
+    ChatSession* s= sessionManager_.getSession (sid);
+    if (!s || is_empty (s->title)) continue; // 空白会话跳过归档
     sessionManager_.archiveSession (sid);
-    saveOneSession (sid);
+    updateManifest (sid);
     view_->sidebar ()->moveToArchive (sid);
   }
 
@@ -303,7 +306,7 @@ ChatController::onArchiveRequested (const QList<string>& sessionIds) {
 void
 ChatController::onRestoreRequested (const string& sessionId) {
   sessionManager_.restoreSession (sessionId);
-  saveOneSession (sessionId);
+  updateManifest (sessionId);
   view_->sidebar ()->moveFromArchive (sessionId);
   activateSession (sessionId);
 }
@@ -355,7 +358,7 @@ ChatController::notifyStateChanged (const string& sessionId,
     session->sendBtnConnection=
         connect (btn, &QPushButton::clicked, this,
                  [this, sessionId] () { onSendRequested (sessionId); });
-    saveOneSession (sessionId);
+    exportBuffer (sessionId);
   }
 }
 
@@ -428,14 +431,19 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
 }
 
 void
-ChatController::saveOneSession (const string& sessionId) {
+ChatController::exportBuffer (const string& sessionId) {
+  call ("chat-persist-export-buffer", sessionId);
+}
+
+void
+ChatController::updateManifest (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
   array<object> args;
   args << object (sessionId) << object (s->title) << object (s->model)
        << object (s->archived ? string ("true") : string ("false"))
        << object (s->createdAt);
-  call ("chat-persist-save-one", args);
+  call ("chat-persist-update-manifest", args);
 }
 
 void
@@ -497,8 +505,6 @@ ChatController::ensureNewConversation () {
   // 标记 buffer 为已保存
   call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (sid));
   call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sid));
-
-  saveOneSession (sid);
 }
 
 /**

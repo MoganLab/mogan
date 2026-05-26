@@ -124,44 +124,13 @@ private:
   ChatSessionManager sessionManager_;  ///< 会话管理器
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
 
-  /**
-   * @brief 激活指定会话：按需创建面板，按需加载内容。
-   * @param sessionId 要激活的会话 ID
-   */
-  void activateSession (const string& sessionId);
-
-  /**
-   * @brief 按需加载会话的消息内容到面板。
-   *
-   * 调用 Scheme 的 chat-persist-load-session-content 加载消息 buffer。
-   * @param panel 目标面板
-   */
-  void loadSessionContent (ChatConversationPanel* panel);
-
-  /**
-   * @brief 将单个会话元数据持久化到 Scheme 层。
-   * @param sessionId 要保存的会话 ID
-   */
-  void saveOneSession (const string& sessionId);
-
-  /**
-   * @brief 确保存在一个可用的空白会话。
-   *
-   * 优先复用已有的空白会话，否则创建新会话。
-   */
-  void ensureNewConversation ();
-
-  /**
-   * @brief 获取或按需创建面板（延迟加载场景）。
-   * @param sessionId 目标会话 ID
-   * @return 面板指针，失败时返回 nullptr
-   */
-  ChatConversationPanel* getOrCreatePanel (const string& sessionId);
-
-  /**
-   * @brief 构建所有会话的显示信息列表，供 Sidebar 初始化使用。
-   * @return 显示信息列表
-   */
+  // 内部方法
+  void                      activateSession (const string& sessionId);
+  void                      loadSessionContent (ChatConversationPanel* panel);
+  void                      exportBuffer (const string& sessionId);
+  void                      updateManifest (const string& sessionId);
+  void                      ensureNewConversation ();
+  ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
   QList<SessionDisplayInfo> buildDisplayInfos ();
 
   /**

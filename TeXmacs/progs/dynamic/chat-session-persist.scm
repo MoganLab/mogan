@@ -207,68 +207,88 @@
 
 ;;; ---------- 增量保存 ----------
 
-(tm-define (chat-persist-save-one session-id title model archived created-at)
+;; chat-persist-export-buffer
+;; 只导出 message buffer 到磁盘。
+;;
+;; 语法
+;; ----
+;; (chat-persist-export-buffer session-id)
+
+(tm-define (chat-persist-export-buffer session-id)
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
-    ;; 1. 导出 message buffer
     (chat-persist-ensure-dir! (chat-persist-parent-dir msg-path))
     (buffer-export msg-buf (system->url msg-path) "tmu")
-    ;; 2. 增量更新 manifest
-    (let ((manifest-path (chat-persist-manifest-path))
-          (entry (chat-persist-make-entry session-id title model archived created-at))
-         ) ;
-      (chat-persist-ensure-dir! (chat-persist-base-dir))
-      (if (not (file-exists? manifest-path))
-        ;; manifest 不存在：创建新的，直接构建包含 entry 的数组
-        (let* ((manifest (string->njson "{\"version\":1,\"sessions\":[]}"))
-               (new-arr (string->njson "[]"))
-              ) ;
-          (njson-append! new-arr entry)
+  ) ;let
+) ;tm-define
+
+;; chat-persist-update-manifest
+;; 只更新 manifest 中的条目（不导出 buffer）。
+;;
+;; 语法
+;; ----
+;; (chat-persist-update-manifest session-id title model archived created-at)
+
+(tm-define (chat-persist-update-manifest session-id title model archived created-at)
+  (let ((manifest-path (chat-persist-manifest-path))
+        (entry (chat-persist-make-entry session-id title model archived created-at))
+       ) ;
+    (chat-persist-ensure-dir! (chat-persist-base-dir))
+    (if (not (file-exists? manifest-path))
+      ;; manifest 不存在：创建新的，直接构建包含 entry 的数组
+      (let* ((manifest (string->njson "{\"version\":1,\"sessions\":[]}"))
+             (new-arr (string->njson "[]"))
+            ) ;
+        (njson-append! new-arr entry)
+        (njson-set! manifest "sessions" new-arr)
+        (njson->file manifest-path manifest)
+        (njson-free new-arr)
+        (njson-free manifest)
+      ) ;let*
+      ;; manifest 存在：读取，查找并更新或追加
+      (let* ((manifest (file->njson manifest-path))
+             (sessions-arr (njson-ref manifest "sessions"))
+             (entries (njson-array->list sessions-arr))
+            ) ;
+        (let ((new-arr (string->njson "[]"))
+              (found #f)
+             ) ;
+          (for-each
+            (lambda (e)
+              (let ((sid-pair (assoc "sessionId" e)))
+                (if (and sid-pair (== (cdr sid-pair) session-id))
+                  (begin
+                    (njson-append! new-arr entry)
+                    (set! found #t)
+                  ) ;begin
+                  (njson-append! new-arr (json->njson e))
+                ) ;if
+              ) ;let
+            ) ;lambda
+            entries
+          ) ;for-each
+          (when (not found)
+            (njson-append! new-arr entry)
+          ) ;when
+          (njson-drop! manifest "sessions")
           (njson-set! manifest "sessions" new-arr)
           (njson->file manifest-path manifest)
           (njson-free new-arr)
           (njson-free manifest)
-        ) ;let*
-        ;; manifest 存在：读取，查找并更新或追加
-        (let* ((manifest (file->njson manifest-path))
-               (sessions-arr (njson-ref manifest "sessions"))
-               (entries (njson-array->list sessions-arr))
-              ) ;
-          ;; 遍历查找匹配的 sessionId，构建新数组
-          ;; njson-array->list 返回 alist，需要 json->njson 转回
-          (let ((new-arr (string->njson "[]"))
-                (found #f)
-               ) ;
-            (for-each
-              (lambda (e)
-                (let ((sid-pair (assoc "sessionId" e)))
-                  (if (and sid-pair (== (cdr sid-pair) session-id))
-                    (begin
-                      (njson-append! new-arr entry)
-                      (set! found #t)
-                    ) ;begin
-                    (njson-append! new-arr (json->njson e))
-                  ) ;if
-                ) ;let
-              ) ;lambda
-              entries
-            ) ;for-each
-            (when (not found)
-              (njson-append! new-arr entry)
-            ) ;when
-            ;; 替换 sessions 数组并写回
-            (njson-drop! manifest "sessions")
-            (njson-set! manifest "sessions" new-arr)
-            (njson->file manifest-path manifest)
-            (njson-free new-arr)
-            (njson-free manifest)
-          ) ;let
-        ) ;let*
-      ) ;if
-      (njson-free entry)
-    ) ;let
+        ) ;let
+      ) ;let*
+    ) ;if
+    (njson-free entry)
   ) ;let
+) ;tm-define
+
+;; chat-persist-save-one
+;; 导出 buffer 并更新 manifest（组合调用）。
+
+(tm-define (chat-persist-save-one session-id title model archived created-at)
+  (chat-persist-export-buffer session-id)
+  (chat-persist-update-manifest session-id title model archived created-at)
 ) ;tm-define
 
 ;;; ---------- 删除持久化会话 ----------
