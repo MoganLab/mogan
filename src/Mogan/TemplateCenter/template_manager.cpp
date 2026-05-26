@@ -649,6 +649,8 @@ TemplateManager::onTemplateDownloaded (const QString& templateId,
   cache_->registerCachedTemplate (templateId, localPath, fileInfo.size (),
                                   fileMd5);
 
+  api_->incrementDownloadCount (templateId);
+
   emit downloadCompleted (templateId, localPath);
 }
 

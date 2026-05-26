@@ -189,6 +189,33 @@ TemplateAPI::cancelDownload (const QString& templateId) {
   }
 }
 
+void
+TemplateAPI::incrementDownloadCount (const QString& templateId) {
+  if (offlineMode_) {
+    return;
+  }
+
+  QString url= downloadTemplatesUrl ();
+  QNetworkRequest request{QUrl (url)};
+  setupRequestHeaders (request);
+
+  QJsonObject bodyObj;
+  bodyObj.insert ("templateKey", templateId);
+  QByteArray bodyData= QJsonDocument (bodyObj).toJson ();
+
+  QNetworkReply* reply= networkManager_->post (request, bodyData);
+  connect (reply, &QNetworkReply::finished, [reply, templateId] () {
+    if (reply->error () != QNetworkReply::NoError) {
+      qWarning () << "[TemplateAPI] Failed to increment download count for template:" << templateId
+                  << "Error:" << reply->errorString ();
+    }
+    else {
+      qDebug () << "[TemplateAPI] Successfully incremented download count for template:" << templateId;
+    }
+    reply->deleteLater ();
+  });
+}
+
 bool
 TemplateAPI::isOnline () const {
   return !offlineMode_;
@@ -400,6 +427,11 @@ TemplateAPI::templatesUrl () const {
 QString
 TemplateAPI::recommendTemplatesUrl () const {
   return QString ("%1/api/v1/doc/template/recommend").arg (apiBaseUrl_);
+}
+
+QString
+TemplateAPI::downloadTemplatesUrl () const {
+  return QString ("%1/api/v1/doc/template/download").arg (apiBaseUrl_);
 }
 
 QList<TemplateCategory>

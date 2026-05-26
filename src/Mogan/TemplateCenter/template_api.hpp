@@ -53,6 +53,8 @@ public:
   void downloadTemplate (const QString& templateId, const QString& downloadUrl,
                          const QString& targetPath);
 
+  void incrementDownloadCount (const QString& templateId);
+
   /**
    * @brief 终止下载并发射 downloadFailed（用户点击取消）。
    *
@@ -106,6 +108,7 @@ private:
   QString categoriesUrl () const;
   QString templatesUrl () const;
   QString recommendTemplatesUrl () const;
+  QString downloadTemplatesUrl () const;
 
   // Helper to parse individual template objects
   void parseTemplateObject (const QJsonObject&                   tmplObj,
