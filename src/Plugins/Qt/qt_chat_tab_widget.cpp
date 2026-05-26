@@ -389,9 +389,10 @@ ChatConversationPanel::adjust_input_height () {
   tree body    = readInputMessage ();
   int  docLines= count_input_lines (body);
 
-  int targetLines = qMax (kInputDefaultLines, docLines + 1);
-  targetLines     = qMin (targetLines, kInputMaxLines);
-  int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
+  int targetLines= qMax (kInputDefaultLines, docLines + 1);
+  targetLines    = qMin (targetLines, kInputMaxLines);
+  int targetFrameH=
+      DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
 
   if (frame->height () != targetFrameH) {
     bool wasEnabled= frame->updatesEnabled ();

@@ -88,7 +88,7 @@ private:
   QSpacerItem* topSpacer_        = nullptr;
   widget       messageWidget_;
   widget       inputWidget;
-  int          fixedFrameExtra_  = 0;
+  int          fixedFrameExtra_= 0;
 };
 
 /**
