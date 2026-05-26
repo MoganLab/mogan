@@ -66,7 +66,6 @@ public:
   // 静态工具
   static bool is_empty_document_body (tree body);
   static int  count_input_lines (tree body);
-  static int  estimate_lines_from_height (SI contentHeight);
 
 signals:
   void sendRequested (const string& sessionId);
@@ -89,6 +88,7 @@ private:
   QSpacerItem* topSpacer_        = nullptr;
   widget       messageWidget_;
   widget       inputWidget;
+  int          fixedFrameExtra_  = 0;
 };
 
 /**

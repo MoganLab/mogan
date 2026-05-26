@@ -41,7 +41,6 @@
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
-#include <QTimer>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
 
@@ -85,25 +84,24 @@ constexpr int kCollapsePadX        = 8;
 constexpr int kMultiSelectSpacing  = 4;
 
 // ---- Panel 内容区常量 ----
-constexpr int kWelcomeFontPx             = 34;
-constexpr int kInputLineHeight           = 22;
-constexpr int kInputDefaultLines         = 3;
-constexpr int kInputMaxLines             = 10;
-constexpr int kContentMarginY            = 24;
-constexpr int kContentSpacing            = 16;
-constexpr int kWelcomeTopOffsetY         = 240;
-constexpr int kConversationTopOffsetY    = 8;
-constexpr int kInputFrameRadius          = 8;
-constexpr int kInputFramePad             = 8;
-constexpr int kMessageMinHeight          = 240;
-constexpr int kTransitionDurationMs      = 220;
-constexpr int kModelLabelMinHeight       = 20;
-constexpr int kModelLabelRadius          = 4;
-constexpr int kSendIconSize              = 24;
-constexpr int kSendButtonSize            = 36;
-constexpr int kSendButtonRadius          = 18;
-constexpr int kConversationBtnRadius     = 6;
-constexpr int kInputHeightCheckIntervalMs= 100;
+constexpr int kWelcomeFontPx         = 34;
+constexpr int kInputLineHeight       = 22;
+constexpr int kInputDefaultLines     = 3;
+constexpr int kInputMaxLines         = 10;
+constexpr int kContentMarginY        = 24;
+constexpr int kContentSpacing        = 16;
+constexpr int kWelcomeTopOffsetY     = 240;
+constexpr int kConversationTopOffsetY= 8;
+constexpr int kInputFrameRadius      = 8;
+constexpr int kInputFramePad         = 8;
+constexpr int kMessageMinHeight      = 240;
+constexpr int kTransitionDurationMs  = 220;
+constexpr int kModelLabelMinHeight   = 20;
+constexpr int kModelLabelRadius      = 4;
+constexpr int kSendIconSize          = 24;
+constexpr int kSendButtonSize        = 36;
+constexpr int kSendButtonRadius      = 18;
+constexpr int kConversationBtnRadius = 6;
 
 constexpr char kChatEmbeddedStyle[]= "style";
 
@@ -171,12 +169,22 @@ ChatConversationPanel::setup_ui () {
   messageFrameLayout->setSpacing (0);
   messageQWidget->setParent (messageFrame_);
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
+  {
+    QAbstractScrollArea* msgArea=
+        messageQWidget->findChild<QAbstractScrollArea*> ();
+    if (msgArea) {
+      msgArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+      msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+      msgArea->viewport ()->setBackgroundRole (QPalette::Base);
+    }
+  }
   messageFrameLayout->addWidget (messageQWidget);
   messageFrame_->hide ();
   topLayout->addWidget (messageFrame_, 1);
 
   // Input area
-  QWidget*     inputArea      = new QWidget (topPanel);
+  QWidget* inputArea= new QWidget (topPanel);
+  inputArea->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
   QVBoxLayout* inputAreaLayout= new QVBoxLayout (inputArea);
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
@@ -187,29 +195,10 @@ ChatConversationPanel::setup_ui () {
       compound (kChatEmbeddedStyle, tuple ("generic")), inBufUrl);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
-  {
-    QList<QAbstractScrollArea*> areas=
-        inputQWidget->findChildren<QAbstractScrollArea*> ();
-    for (QAbstractScrollArea* area : areas) {
-      if (!area) continue;
-      area->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      area->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
-      area->setStyleSheet (
-          "QScrollBar:vertical { background: transparent; width: 6px; "
-          "                      margin: 0px; border: none; }"
-          "QScrollBar::handle:vertical { border-radius: 3px; "
-          "                            min-height: 20px; }"
-          "QScrollBar::add-line:vertical, "
-          "QScrollBar::sub-line:vertical { height: 0px; }");
-    }
-  }
-  if (QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ()) {
-    editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
-    editor->installEventFilter (this);
-  }
 
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
+  inputFrame->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
   inputFrame->setStyleSheet (
       QString ("QWidget#chat-tab-input-frame { "
                "  border: 1px solid; border-radius: %1px; }"
@@ -222,10 +211,31 @@ ChatConversationPanel::setup_ui () {
       DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad));
   inputFrameLayout->setSpacing (0);
   inputQWidget->setParent (inputFrame);
-  int defaultHeight= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  inputQWidget->setMinimumHeight (defaultHeight);
-  inputQWidget->setMaximumHeight (defaultHeight);
   inputFrameLayout->addWidget (inputQWidget);
+
+  // Set initial frame height (includes padding + editor + button)
+  int defaultEditorH= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+  int btnH          = DpiUtils::scaled (kSendButtonSize);
+  int padTotal      = DpiUtils::scaled (kInputFramePad) * 2;
+  fixedFrameExtra_  = btnH + padTotal;
+  inputFrame->setFixedHeight (defaultEditorH + fixedFrameExtra_);
+
+  // Scrollbar policy & EventFilter for Enter key handling
+  {
+    QTMWidget* editor= inputQWidget->findChild<QTMWidget*> ();
+    if (editor) {
+      editor->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+      editor->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+      editor->viewport ()->setBackgroundRole (QPalette::Base);
+      // Make the canvas surface fill the viewport instead of centering
+      if (QLayout* vpLayout= editor->viewport ()->layout ()) {
+        if (QLayoutItem* item= vpLayout->itemAt (0))
+          item->setAlignment (Qt::AlignLeft | Qt::AlignTop);
+      }
+      editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
+      editor->installEventFilter (this);
+    }
+  }
 
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
@@ -250,13 +260,6 @@ ChatConversationPanel::setup_ui () {
   inputFrameLayout->addLayout (btnLayout);
 
   inputAreaLayout->addWidget (inputFrame, 0);
-
-  // Input height timer
-  QTimer* inputHeightTimer= new QTimer (inputFrame);
-  inputHeightTimer->setInterval (kInputHeightCheckIntervalMs);
-  connect (inputHeightTimer, &QTimer::timeout, this,
-           [this] () { adjust_input_height (); });
-  inputHeightTimer->start ();
 
   QHBoxLayout* inputWrap= new QHBoxLayout ();
   inputWrap->addStretch (1);
@@ -357,41 +360,6 @@ ChatConversationPanel::count_input_lines (tree body) {
   return N (body);
 }
 
-int
-ChatConversationPanel::estimate_lines_from_height (SI contentHeight) {
-  if (contentHeight <= 0) return 0;
-  int px= to_qsize (0, contentHeight).height ();
-  if (px <= 0) return 0;
-  return (px + kInputLineHeight - 1) / kInputLineHeight;
-}
-
-void
-ChatConversationPanel::adjust_input_height () {
-  if (!inputEditorWidget_) return;
-
-  tree body       = readInputMessage ();
-  int  docLines   = count_input_lines (body);
-  int  visualLines= 0;
-
-  if (QTMWidget* editor= inputEditorWidget_->findChild<QTMWidget*> ()) {
-    if (edit_interface_rep* ed=
-            dynamic_cast<edit_interface_rep*> (editor->tm_widget ())) {
-      visualLines= estimate_lines_from_height (ed->get_total_height (true));
-    }
-  }
-
-  int lines       = qMax (docLines, visualLines);
-  int targetLines = qMax (kInputDefaultLines, lines);
-  targetLines     = qMin (targetLines, kInputMaxLines);
-  int targetHeight= DpiUtils::scaled (kInputLineHeight * targetLines);
-
-  if (inputEditorWidget_->minimumHeight () != targetHeight ||
-      inputEditorWidget_->maximumHeight () != targetHeight) {
-    inputEditorWidget_->setMinimumHeight (targetHeight);
-    inputEditorWidget_->setMaximumHeight (targetHeight);
-  }
-}
-
 bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   if (event->type () == QEvent::KeyPress) {
@@ -406,7 +374,33 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       }
     }
   }
+  if (event->type () == QEvent::KeyRelease) {
+    adjust_input_height ();
+  }
   return QWidget::eventFilter (watched, event);
+}
+
+void
+ChatConversationPanel::adjust_input_height () {
+  if (!inputEditorWidget_) return;
+  QWidget* frame= inputEditorWidget_->parentWidget ();
+  if (!frame) return;
+
+  tree body    = readInputMessage ();
+  int  docLines= count_input_lines (body);
+
+  int targetLines = qMax (kInputDefaultLines, docLines + 1);
+  targetLines     = qMin (targetLines, kInputMaxLines);
+  int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
+
+  if (frame->height () != targetFrameH) {
+    bool wasEnabled= frame->updatesEnabled ();
+    frame->setUpdatesEnabled (false);
+    inputEditorWidget_->setUpdatesEnabled (false);
+    frame->setFixedHeight (targetFrameH);
+    inputEditorWidget_->setUpdatesEnabled (true);
+    frame->setUpdatesEnabled (wasEnabled);
+  }
 }
 
 /******************************************************************************
