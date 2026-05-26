@@ -285,17 +285,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   windowBar->setFixedHeight (titleBarHeight);
 
   // 系统按钮（图标来自 3rdparty/qwindowkitty/src/styles/styles.qrc）
-  auto iconBtn= new QWK::WindowButton (windowBar);
-  iconBtn->setFlat (true);
-  iconBtn->setFocusPolicy (Qt::NoFocus);
-  iconBtn->setIcon (QIcon (":/app/stem.png"));
-  iconBtn->setObjectName ("icon-button");
-  iconBtn->setIconSize (QSize (int (30 * scale), int (30 * scale)));
-  windowBar->setIconButton (iconBtn);
-  iconBtn->setAttribute (Qt::WA_TransparentForMouseEvents, true);
-  iconBtn->setCursor (Qt::ArrowCursor);
-  iconBtn->setContextMenuPolicy (Qt::NoContextMenu);
-
   auto pinBtn= new QWK::WindowButton (windowBar);
   pinBtn->setCheckable (true);
   pinBtn->setFlat (true);

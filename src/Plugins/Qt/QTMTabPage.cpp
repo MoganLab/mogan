@@ -15,6 +15,7 @@
 #include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
+#include <QIcon>
 #include <QSize>
 
 // Base tab widths
@@ -205,33 +206,52 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   // draw the text now
   QFontMetrics fm (opt.fontMetrics);
 
-  // 计算可用的文字绘制区域，需要排除关闭按钮的空间
+  bool isStartup= is_startup_tab_view (m_viewUrl);
+  bool isChatTab= is_chat_tab_view (m_viewUrl);
+
   int leftPadding   = 10;
   int rightPadding  = (m_closeBtn && m_closeBtn->isVisible ())
                           ? m_closeBtn->width () + 12
-                          : 12; // 如果关闭按钮可见，留出更多空间
+                          : 12;
   int availableWidth= width () - leftPadding - rightPadding;
 
-  // 如果可用宽度太小，至少保证最小宽度
   if (availableWidth < 20) {
     availableWidth= 20;
     rightPadding  = width () - leftPadding - availableWidth;
   }
 
-  // 使用省略号来处理过长的文字
-  QString elidedText= fm.elidedText (text (), Qt::ElideRight, availableWidth);
-
-  bool isStartup= is_startup_tab_view (m_viewUrl);
-  bool isChatTab= is_chat_tab_view (m_viewUrl);
-  int  textAlign= (isStartup || isChatTab) ? Qt::AlignCenter : Qt::AlignLeft;
-
-  QRect textRect (leftPadding, 0, availableWidth, height ());
+  // 绘制启动页/聊天标签页的图标
+  int iconWidth= 0;
   if (isStartup || isChatTab) {
-    textRect= QRect (0, 0, width (), height ());
-  }
+    QString iconPath=
+        isStartup ? QString (":/app/stem.png") : QString (":/window-bar/ai.svg");
+    int    iconSize= DpiUtils::scaled (16);
+    int    iconY   = (height () - iconSize) / 2;
 
-  p.drawItemText (textRect, textAlign | Qt::AlignVCenter, palette (),
-                  isEnabled (), elidedText, QPalette::ButtonText);
+    // 计算图标+文字的总宽度，以居中绘制
+    QString elidedText=
+        fm.elidedText (text (), Qt::ElideRight, availableWidth);
+    int textWidth = fm.horizontalAdvance (elidedText);
+    int spacing   = DpiUtils::scaled (4);
+    int totalWidth= iconSize + spacing + textWidth;
+    int startX    = (width () - totalWidth) / 2;
+
+    p.drawPixmap (startX, iconY,
+                  QIcon (iconPath).pixmap (iconSize, iconSize));
+    iconWidth= iconSize + spacing;
+
+    // 居中绘制文字（图标右侧）
+    QRect textRect (startX + iconWidth, 0, textWidth, height ());
+    p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
+                    isEnabled (), elidedText, QPalette::ButtonText);
+  }
+  else {
+    QString elidedText=
+        fm.elidedText (text (), Qt::ElideRight, availableWidth);
+    QRect textRect (leftPadding, 0, availableWidth, height ());
+    p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
+                    isEnabled (), elidedText, QPalette::ButtonText);
+  }
 }
 
 void
