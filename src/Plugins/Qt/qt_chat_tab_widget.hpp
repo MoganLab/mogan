@@ -106,6 +106,7 @@ public:
   struct SidebarItem {
     QWidget*     itemWidget    = nullptr;
     QPushButton* sidebarButton = nullptr;
+    QPushButton* moreButton    = nullptr;
     QCheckBox*   selectCheckBox= nullptr;
     bool         isArchived    = false;
   };
@@ -126,6 +127,9 @@ public:
   void          enterMultiSelectMode (bool archived);
   void          exitMultiSelectMode ();
   const string& activeSessionId () const;
+
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override;
 
 signals:
   void sessionClicked (const string& sessionId);
