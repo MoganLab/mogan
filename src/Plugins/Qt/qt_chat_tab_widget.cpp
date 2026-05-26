@@ -745,7 +745,7 @@ ChatSidebar::updateCountLabels () {
 ChatSidebar::SidebarItem
 ChatSidebar::createItem (const string& sessionId) {
   SidebarItem item;
-  int moreBtnSize= DpiUtils::scaled (kMoreBtnSize);
+  int         moreBtnSize= DpiUtils::scaled (kMoreBtnSize);
 
   item.itemWidget= new QWidget ();
   item.itemWidget->setObjectName ("chat-tab-session-item");
@@ -787,8 +787,8 @@ ChatSidebar::createItem (const string& sessionId) {
   item.moreButton->setFocusPolicy (Qt::NoFocus);
   item.moreButton->setCursor (Qt::PointingHandCursor);
   item.moreButton->setIcon (QIcon (":llm-chat/ellipsis.svg"));
-  item.moreButton->setIconSize (
-      QSize (DpiUtils::scaled (kMoreBtnIconSize), DpiUtils::scaled (kMoreBtnIconSize)));
+  item.moreButton->setIconSize (QSize (DpiUtils::scaled (kMoreBtnIconSize),
+                                       DpiUtils::scaled (kMoreBtnIconSize)));
   item.moreButton->setFixedSize (moreBtnSize, moreBtnSize);
   item.moreButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
@@ -931,7 +931,8 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
         QRect cr= it->sidebarButton->contentsRect ();
         int   bw= it->moreButton->width ();
         int   bh= it->moreButton->height ();
-        it->moreButton->move (cr.right () - bw - DpiUtils::scaled (kMoreBtnMargin),
+        it->moreButton->move (cr.right () - bw -
+                                  DpiUtils::scaled (kMoreBtnMargin),
                               cr.top () + (cr.height () - bh) / 2);
         break;
       }
