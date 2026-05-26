@@ -11,6 +11,9 @@
 
 #include "qt_chat_session.hpp"
 
+#include <algorithm>
+#include <cstdio>
+#include <ctime>
 #include <lolly/hash/uuid.hpp>
 
 /******************************************************************************
@@ -24,6 +27,11 @@ ChatSessionManager::createSession () {
   session.sessionId= sessionId;
   session.state    = ChatState::Idle;
   session.archived = false;
+  // 生成 Unix 时间戳字符串
+  std::time_t now= std::time (nullptr);
+  char        buf[32];
+  std::snprintf (buf, sizeof (buf), "%ld", (long) now);
+  session.createdAt= string (buf);
   session.panel    = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
   return sessionId;
@@ -83,6 +91,16 @@ ChatSessionManager::getAllSessionIds () const {
   std::vector<string> ids;
   for (const auto& kv : sessions_)
     ids.push_back (kv.first);
+  // 按 createdAt 降序排列（新在前），空 createdAt 排最后
+  std::sort (ids.begin (), ids.end (),
+             [this] (const string& a, const string& b) {
+               auto it_a= sessions_.find (a);
+               auto it_b= sessions_.find (b);
+               if (it_a == sessions_.end () || it_b == sessions_.end ())
+                 return false;
+               // a > b 等价于 !(a <= b)
+               return !(it_a->second.createdAt <= it_b->second.createdAt);
+             });
   return ids;
 }
 

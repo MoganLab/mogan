@@ -51,8 +51,16 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
        << LF;
 
   // 2. 构建显示数据 + 确定初始激活会话
-  QList<SessionDisplayInfo> infos    = buildDisplayInfos ();
-  string                    initialId= determineInitialActiveSession ();
+  QList<SessionDisplayInfo> infos= buildDisplayInfos ();
+  string                    initialId;
+  if (firstOpen_) {
+    // 首次打开：切换到新会话（触发 ensureNewConversation）
+    initialId = "";
+    firstOpen_= false;
+  }
+  else {
+    initialId= determineInitialActiveSession ();
+  }
 
   // 3. 创建 View，Sidebar 构造时就有数据
   view_= new QTChatTabWidget (infos, initialId, parent);
@@ -113,10 +121,10 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     ensureNewConversation ();
   }
 
-  // 5. 恢复 Scheme 层的全局当前模型
+  // 5. 恢复 Scheme 层的全局当前模型（使用最新的会话）
   auto allIds= sessionManager_.getAllSessionIds ();
   if (!allIds.empty ()) {
-    string       lastSid= allIds.back ();
+    string       lastSid= allIds.front ();
     ChatSession* s      = sessionManager_.getSession (lastSid);
     if (s && !is_empty (s->model)) {
       call ("chat-tab-session-select-model", s->model);
@@ -330,7 +338,7 @@ ChatController::notifyStateChanged (const string& sessionId,
 void
 ChatController::restoreSessionMeta (const string& sessionId,
                                     const string& title, const string& model,
-                                    bool archived) {
+                                    bool archived, const string& createdAt) {
   // 注册 Scheme 侧会话状态
   call ("chat-persist-register-session", sessionId, model);
 
@@ -341,6 +349,7 @@ ChatController::restoreSessionMeta (const string& sessionId,
   session.model    = model;
   session.state    = ChatState::Idle;
   session.archived = archived;
+  session.createdAt= createdAt;
   session.panel    = nullptr;
   sessionManager_.insertSession (session);
 }
@@ -398,8 +407,11 @@ void
 ChatController::saveOneSession (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
-  call ("chat-persist-save-one", sessionId, s->title, s->model,
-        s->archived ? string ("true") : string ("false"));
+  array<object> args;
+  args << object (sessionId) << object (s->title) << object (s->model)
+       << object (s->archived ? string ("true") : string ("false"))
+       << object (s->createdAt);
+  call ("chat-persist-save-one", args);
 }
 
 void
@@ -408,27 +420,30 @@ ChatController::ensureNewConversation () {
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 检查第一个非归档会话是否可以复用
+  // 检查所有非归档会话是否可以复用（无标题、未发送过的空白会话）
   auto allIds= sessionManager_.getAllSessionIds ();
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);
     if (!s || s->archived) continue;
-    // 空白 session 无面板
-    if (!s->panel && is_empty (s->title) && s->model == currentModel) {
+    // 空白 session 无面板：复用并更新模型
+    if (!s->panel && is_empty (s->title)) {
+      sessionManager_.setModel (sid, currentModel);
       activateSession (sid);
       return;
     }
-    // 有面板但未进入会话模式
+    // 有面板但未进入会话模式：复用并更新模型
     if (s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
-      if (p && !p->conversationMode () && s->model == currentModel) {
+      if (p && !p->conversationMode ()) {
+        sessionManager_.setModel (sid, currentModel);
+        if (p->modelLabel ()) {
+          p->modelLabel ()->setText (to_qstring (currentModel));
+        }
         view_->sidebar ()->setActiveItem (sid);
         view_->activatePanel (p);
         return;
       }
     }
-    // 第一个非归档会话不可复用，跳出新建
-    break;
   }
 
   // 新建会话
@@ -584,8 +599,8 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 
 void
 qt_chat_tab_restore_session (string sessionId, string title, string model,
-                             string archived) {
+                             string archived, string createdAt) {
   bool isArchived= (archived == "true");
   get_chat_controller ()->restoreSessionMeta (sessionId, title, model,
-                                              isArchived);
+                                              isArchived, createdAt);
 }

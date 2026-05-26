@@ -55,12 +55,13 @@
 
 ;;; ---------- JSON 条目 ----------
 
-(tm-define (chat-persist-make-entry sid title model archived)
+(tm-define (chat-persist-make-entry sid title model archived created-at)
   (let ((entry (string->njson "{}")))
     (njson-set! entry "sessionId" sid)
     (njson-set! entry "title" title)
     (njson-set! entry "model" model)
     (njson-set! entry "archived" (if (or (not archived) (== archived "false")) "false" "true"))
+    (njson-set! entry "createdAt" (or created-at ""))
     entry
   ) ;let
 ) ;tm-define
@@ -154,15 +155,17 @@
                            (title (cdr (assoc "title" entry)))
                            (model (cdr (assoc "model" entry)))
                            (archived-str (cdr (assoc "archived" entry)))
+                           (created-at-pair (assoc "createdAt" entry))
+                           (created-at (if created-at-pair (cdr created-at-pair) ""))
                           ) ;
                       (display "[chat-persist]   restoring meta: sid=")
                       (display sid)
                       (newline)
                       ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid title model archived-str)
+                      (qt-chat-tab-restore-session sid title model archived-str created-at)
                     ) ;let*
                   ) ;lambda
-          (reverse entries)
+          entries
         ) ;for-each
         (njson-free manifest)
       ) ;let*
@@ -205,7 +208,7 @@
 
 ;;; ---------- 增量保存 ----------
 
-(tm-define (chat-persist-save-one session-id title model archived)
+(tm-define (chat-persist-save-one session-id title model archived created-at)
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
@@ -214,7 +217,7 @@
     (buffer-export msg-buf (system->url msg-path) "tmu")
     ;; 2. 增量更新 manifest
     (let ((manifest-path (chat-persist-manifest-path))
-          (entry (chat-persist-make-entry session-id title model archived))
+          (entry (chat-persist-make-entry session-id title model archived created-at))
          ) ;
       (chat-persist-ensure-dir! (chat-persist-base-dir))
       (if (not (file-exists? manifest-path))

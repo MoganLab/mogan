@@ -62,7 +62,8 @@ public:
    * @brief Scheme→C++ 回调：恢复单个会话元数据。
    */
   void restoreSessionMeta (const string& sessionId, const string& title,
-                           const string& model, bool archived);
+                           const string& model, bool archived,
+                           const string& createdAt);
 
   /**
    * @brief 销毁 View 引用，防止悬垂指针。
@@ -72,6 +73,7 @@ public:
 private:
   QTChatTabWidget*   view_= nullptr;
   ChatSessionManager sessionManager_;
+  bool               firstOpen_= true;
 
   // 内部方法
   void                      activateSession (const string& sessionId);
@@ -86,7 +88,8 @@ private:
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
-                                           string model, string archived);
+                                           string model, string archived,
+                                           string createdAt);
 };
 
 /**
@@ -103,6 +106,6 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
-                                  string archived);
+                                  string archived, string createdAt);
 
 #endif // QT_CHAT_CONTROLLER_HPP

@@ -31,12 +31,13 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string                  sessionId;         ///< UUID，创建时生成
-  string                  title;             ///< 会话标题，初始为空字符串
-  string                  model;             ///< 绑定的模型名称
-  ChatState               state;             ///< 当前生成状态
-  bool                    archived;          ///< 是否归档
-  ChatConversationPanel*  panel;             ///< 关联的面板指针
+  string                  sessionId; ///< UUID，创建时生成
+  string                  title;     ///< 会话标题，初始为空字符串
+  string                  model;     ///< 绑定的模型名称
+  ChatState               state;     ///< 当前生成状态
+  bool                    archived;  ///< 是否归档
+  string                  createdAt; ///< Unix 时间戳字符串，如 "1748266800"
+  ChatConversationPanel*  panel;     ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
 };
 
