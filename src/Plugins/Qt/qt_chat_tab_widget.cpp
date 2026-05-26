@@ -775,12 +775,16 @@ ChatSidebar::createItem (const string& sessionId) {
   item.sidebarButton->setCheckable (true);
   item.sidebarButton->setFocusPolicy (Qt::NoFocus);
   item.sidebarButton->setCursor (Qt::PointingHandCursor);
+  item.sidebarButton->setSizePolicy (QSizePolicy::Ignored,
+                                     QSizePolicy::Preferred);
   DpiUtils::applyScaledFont (item.sidebarButton, kNavButtonFontPx);
+  int rightPad= moreBtnSize + DpiUtils::scaled (kMoreBtnMargin);
   item.sidebarButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
-               "padding: %2px %3px; }")
+               "padding: %2px %3px %2px %4px; }")
           .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
+          .arg (rightPad)
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   item.sidebarButton->installEventFilter (this);
   itemLayout->addWidget (item.sidebarButton, 1);
@@ -801,9 +805,15 @@ ChatSidebar::createItem (const string& sessionId) {
           .arg (moreBtnSize / 2));
   item.moreButton->hide ();
 
-  // clicked 信号：连接一次，不再在 refreshInternal 中反复 disconnect/connect
+  // clicked 信号：已选中时保持选中状态，不重复触发
   connect (item.sidebarButton, &QPushButton::clicked, this,
-           [this, sid= sessionId] () { emit sessionClicked (sid); });
+           [this, sid= sessionId, btn= item.sidebarButton] () {
+             if (sid == activeSessionId_) {
+               btn->setChecked (true);
+               return;
+             }
+             emit sessionClicked (sid);
+           });
 
   // "..." 按钮菜单：点击弹出操作菜单
   connect (
