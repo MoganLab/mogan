@@ -83,8 +83,8 @@ private:
   ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
   QList<SessionDisplayInfo> buildDisplayInfos ();
   string                    determineInitialActiveSession ();
-  QMap<string, string>      computeDisplayTitles ();
-  string                    deduplicateTitle (const string& sessionId);
+  QMap<string, string>      getDisplayTitles ();
+  string                    getSessionDisplayTitle (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,

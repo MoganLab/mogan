@@ -88,38 +88,32 @@
 ;; string
 ;;   提取的标题字符串。
 
-(tm-define (chat-persist-extract-title session-id max-len)
+(tm-define (chat-persist-extract-title session-id)
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
-    (chat-persist-extract-title-from-tree body max-len)
+    (chat-persist-extract-title-from-tree body)
   ) ;let*
 ) ;tm-define
 
 ;; chat-persist-extract-title-from-tree
-;; 从文档树 body 中提取纯文本标题（内部辅助函数）。
+;; 从文档树 body 中提取纯文本标题（拼接所有原子文本）。
 
-(tm-define (chat-persist-extract-title-from-tree body max-len)
-  (let ((result (chat-persist-extract-title-loop body max-len 0 "")))
-    (if (> (string-length result) max-len)
-      (string-append (substring result 0 max-len) "...")
-      result
-    ) ;if
-  ) ;let
+(tm-define (chat-persist-extract-title-from-tree body)
+  (chat-persist-extract-title-loop body 0 "")
 ) ;tm-define
 
-;; 内部递归：遍历 DOCUMENT 子节点，拼接原子文本。
+;; 内部递归：遍历 DOCUMENT 子节点，拼接所有原子文本。
 
-(tm-define (chat-persist-extract-title-loop body max-len idx result)
+(tm-define (chat-persist-extract-title-loop body idx result)
   (if (or (not (tree-children body))
-          (>= idx (length (tree-children body)))
-          (>= (string-length result) max-len))
+          (>= idx (length (tree-children body))))
     result
     (let ((child (tree-ref body idx)))
       (if (tree-atomic? child)
-        (chat-persist-extract-title-loop body max-len (+ idx 1)
+        (chat-persist-extract-title-loop body (+ idx 1)
           (string-append result (tree->string child)))
-        (chat-persist-extract-title-loop body max-len (+ idx 1) result)
+        (chat-persist-extract-title-loop body (+ idx 1) result)
       ) ;if
     ) ;let
   ) ;if

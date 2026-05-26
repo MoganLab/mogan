@@ -167,9 +167,27 @@ ChatController::onSendRequested (const string& sessionId) {
   // 首次发送：通过 Scheme 自动提取标题
   if (is_empty (session->title)) {
     string extracted=
-        as_string (call ("chat-persist-extract-title", sessionId, 20));
-    sessionManager_.setTitle (sessionId, extracted);
-    string displayTitle= deduplicateTitle (sessionId);
+        as_string (call ("chat-persist-extract-title", sessionId));
+    QString  qTitle= to_qstring (extracted);
+    // 截断：含 CJK 取前 10 个字符，纯英文取前 5 个单词
+    bool     hasCJK= false;
+    for (int i= 0; i < qTitle.length (); i++) {
+      ushort code= qTitle[i].unicode ();
+      if (code >= 0x4E00 && code <= 0x9FFF) { hasCJK= true; break; }
+    }
+    if (hasCJK) {
+      if (qTitle.length () > 10)
+        qTitle= qTitle.left (10) + "...";
+    }
+    else {
+      QStringList words= qTitle.split (' ', Qt::SkipEmptyParts);
+      if (words.size () > 5) {
+        words= words.mid (0, 5);
+        qTitle= words.join (" ") + "...";
+      }
+    }
+    sessionManager_.setTitle (sessionId, from_qstring (qTitle));
+    string displayTitle= getSessionDisplayTitle (sessionId);
     view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
     view_->sidebar ()->setActiveItem (sessionId);
   }
@@ -295,7 +313,7 @@ void
 ChatController::onRenameRequested (const string& sessionId,
                                    const string& newTitle) {
   sessionManager_.setTitle (sessionId, newTitle);
-  string displayTitle= deduplicateTitle (sessionId);
+  string displayTitle= getSessionDisplayTitle (sessionId);
   view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
   view_->sidebar ()->setActiveItem (sessionId);
 }
@@ -507,36 +525,14 @@ ChatController::getOrCreatePanel (const string& sessionId) {
  ******************************************************************************/
 
 QMap<string, string>
-ChatController::computeDisplayTitles () {
+ChatController::getDisplayTitles () {
   QMap<string, string> result;
 
-  // 标题去重计数
-  QMap<QString, int> titleCounts;
-  auto               allIds= sessionManager_.getAllSessionIds ();
-  for (const string& sid : allIds) {
-    ChatSession* s= sessionManager_.getSession (sid);
-    if (s && !is_empty (s->title)) titleCounts[to_qstring (s->title)]++;
-  }
-
-  // 分配去重序号
-  QMap<QString, int> titleSeq;
+  auto allIds= sessionManager_.getAllSessionIds ();
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);
     if (!s) continue;
-
-    if (!is_empty (s->title)) {
-      QString qtTitle= to_qstring (s->title);
-      if (titleCounts[qtTitle] > 1) {
-        int seq    = ++titleSeq[qtTitle];
-        result[sid]= from_qstring (qtTitle + QString (" (%1)").arg (seq));
-      }
-      else {
-        result[sid]= s->title;
-      }
-    }
-    else {
-      result[sid]= "新会话";
-    }
+    result[sid]= is_empty (s->title) ? string ("新会话") : s->title;
   }
 
   return result;
@@ -545,7 +541,7 @@ ChatController::computeDisplayTitles () {
 QList<SessionDisplayInfo>
 ChatController::buildDisplayInfos () {
   QList<SessionDisplayInfo> infos;
-  QMap<string, string>      titles= computeDisplayTitles ();
+  QMap<string, string>      titles= getDisplayTitles ();
   auto                      allIds= sessionManager_.getAllSessionIds ();
 
   for (const string& sid : allIds) {
@@ -575,8 +571,8 @@ ChatController::determineInitialActiveSession () {
 }
 
 string
-ChatController::deduplicateTitle (const string& sessionId) {
-  QMap<string, string> titles= computeDisplayTitles ();
+ChatController::getSessionDisplayTitle (const string& sessionId) {
+  QMap<string, string> titles= getDisplayTitles ();
   return titles.value (sessionId, "新会话");
 }
 
