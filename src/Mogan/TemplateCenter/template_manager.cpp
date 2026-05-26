@@ -33,6 +33,10 @@
 #include "image_cache_base.hpp"
 #include "qt_utilities.hpp"
 
+#if !IS_COMMUNITY
+#include "telemetry.hpp"
+#endif
+
 // Singleton instance
 static TemplateManager* g_instance= nullptr;
 
@@ -650,6 +654,11 @@ TemplateManager::onTemplateDownloaded (const QString& templateId,
                                   fileMd5);
 
   api_->incrementDownloadCount (templateId);
+
+#if !IS_COMMUNITY
+  telemetry_track ("TEMPLATE_DOWNLOAD",
+                   from_qstring (QString ("'((\"template_id\" . \"%1\"))").arg (templateId)));
+#endif
 
   emit downloadCompleted (templateId, localPath);
 }
