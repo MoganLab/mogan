@@ -168,21 +168,23 @@ ChatController::onSendRequested (const string& sessionId) {
   if (is_empty (session->title)) {
     string extracted=
         as_string (call ("chat-persist-extract-title", sessionId));
-    QString  qTitle= to_qstring (extracted);
+    QString qTitle= to_qstring (extracted);
     // 截断：含 CJK 取前 10 个字符，纯英文取前 5 个单词
-    bool     hasCJK= false;
+    bool hasCJK= false;
     for (int i= 0; i < qTitle.length (); i++) {
       ushort code= qTitle[i].unicode ();
-      if (code >= 0x4E00 && code <= 0x9FFF) { hasCJK= true; break; }
+      if (code >= 0x4E00 && code <= 0x9FFF) {
+        hasCJK= true;
+        break;
+      }
     }
     if (hasCJK) {
-      if (qTitle.length () > 10)
-        qTitle= qTitle.left (10) + "...";
+      if (qTitle.length () > 10) qTitle= qTitle.left (10) + "...";
     }
     else {
       QStringList words= qTitle.split (' ', Qt::SkipEmptyParts);
       if (words.size () > 5) {
-        words= words.mid (0, 5);
+        words = words.mid (0, 5);
         qTitle= words.join (" ") + "...";
       }
     }
