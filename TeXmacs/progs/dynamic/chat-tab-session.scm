@@ -476,6 +476,44 @@
   ) ;when
 ) ;define
 
+(define (chat-tab-render-last-explain! out)
+  (when (tm-func? out 'document)
+    (with i
+      (tree-arity out)
+      ;; 跳过 script-busy
+      (if (and (> i 0) (tm-func? (tree-ref out (- i 1)) 'script-busy))
+        (set! i (- i 1))
+      ) ;if
+      ;; 找到 unfolded-explain（直接子节点或在 concat 内）
+      (with ue
+        (chat-tab-find-last-unfolded-explain out i)
+        (when ue
+          (with body
+            (tree-ref ue 1)
+            ;; 在 body(with) 的子节点中搜索 document
+            (let doc-loop
+              ((j 0))
+              (when (< j (tree-arity body))
+                (if (tm-func? (tree-ref body j) 'document)
+                  (let* ((doc (tree-ref body j))
+                         (plain-text (chat-tab-tree->plain-text doc))
+                         (parsed (generic->texmacs plain-text "markdown-snippet"))
+                        ) ;let*
+                    (when (and parsed (tree? parsed))
+                      (tree-assign! doc parsed)
+                    ) ;when
+                  ) ;let*
+                  (doc-loop (+ j 1))
+                ) ;if
+              ) ;when
+            ) ;let
+          ) ;with
+        ) ;when
+      ) ;with
+    ) ;with
+  ) ;when
+) ;define
+
 (define (chat-tab-clear-input! input-buffer)
   (with-buffer input-buffer
     (buffer-set-body input-buffer '(document ""))
@@ -771,6 +809,7 @@
                         (chat-tab-append-reasoning! out text)
                         ;; 如果同时有 fold 命令，折叠
                         (when has-fold?
+                          (chat-tab-render-last-explain! out)
                           (chat-tab-fold-last-explain! out)
                         ) ;when
                       ) ;let*
@@ -780,6 +819,7 @@
                    ;; t 仅包含 fold-explain-reasoning → 直接折叠
                    ((tree-contains-label? t 'fold-explain-reasoning)
                     (with-buffer msg-buf
+                      (chat-tab-render-last-explain! out)
                       (chat-tab-fold-last-explain! out)
                       (buffer-pretend-saved msg-buf)
                     ) ;with-buffer
