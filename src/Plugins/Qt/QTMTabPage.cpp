@@ -38,6 +38,10 @@ constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
 constexpr int ADD_TAB_BUTTON_VERTICAL_OFFSET= 0;
 constexpr int ADD_BUTTON_SIZE               = 20;
 constexpr int CLOSE_BUTTON_SIZE             = 18;
+constexpr int TAB_ICON_SIZE                 = 16;
+constexpr int TAB_ICON_TEXT_SPACING         = 4;
+constexpr int NORMAL_TAB_LEFT_PADDING       = 10;
+constexpr int NORMAL_TAB_RIGHT_PADDING      = 12;
 
 // DPI scaling utility functions (使用 DpiUtils)
 static double
@@ -209,43 +213,36 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   bool isStartup= is_startup_tab_view (m_viewUrl);
   bool isChatTab= is_chat_tab_view (m_viewUrl);
 
-  int leftPadding   = 10;
-  int rightPadding  = (m_closeBtn && m_closeBtn->isVisible ())
-                          ? m_closeBtn->width () + 12
-                          : 12;
-  int availableWidth= width () - leftPadding - rightPadding;
-
-  if (availableWidth < 20) {
-    availableWidth= 20;
-    rightPadding  = width () - leftPadding - availableWidth;
-  }
-
-  // 绘制启动页/聊天标签页的图标
-  int iconWidth= 0;
   if (isStartup || isChatTab) {
-    QString iconPath=
-        isStartup ? QString (":/app/stem.png") : QString (":/window-bar/ai.svg");
-    int    iconSize= DpiUtils::scaled (16);
-    int    iconY   = (height () - iconSize) / 2;
+    static const QIcon startupIcon (":/app/stem.png");
+    static const QIcon chatIcon (":/window-bar/ai.svg");
+    const QIcon& icon= isStartup ? startupIcon : chatIcon;
 
-    // 计算图标+文字的总宽度，以居中绘制
+    int iconSize     = DpiUtils::scaled (TAB_ICON_SIZE);
+    int spacing      = DpiUtils::scaled (TAB_ICON_TEXT_SPACING);
+    int textAvailWidth= width () - iconSize - spacing;
     QString elidedText=
-        fm.elidedText (text (), Qt::ElideRight, availableWidth);
-    int textWidth = fm.horizontalAdvance (elidedText);
-    int spacing   = DpiUtils::scaled (4);
-    int totalWidth= iconSize + spacing + textWidth;
+        fm.elidedText (text (), Qt::ElideRight, textAvailWidth);
+    int textWidth  = fm.horizontalAdvance (elidedText);
+    int totalWidth = iconSize + spacing + textWidth;
     int startX    = (width () - totalWidth) / 2;
 
-    p.drawPixmap (startX, iconY,
-                  QIcon (iconPath).pixmap (iconSize, iconSize));
-    iconWidth= iconSize + spacing;
+    p.drawPixmap (startX, (height () - iconSize) / 2,
+                  icon.pixmap (iconSize, iconSize));
 
-    // 居中绘制文字（图标右侧）
-    QRect textRect (startX + iconWidth, 0, textWidth, height ());
+    QRect textRect (startX + iconSize + spacing, 0, textWidth, height ());
     p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
                     isEnabled (), elidedText, QPalette::ButtonText);
   }
   else {
+    int leftPadding   = DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
+    int rightPadding  = (m_closeBtn && m_closeBtn->isVisible ())
+                            ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
+                            : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
+    int availableWidth= width () - leftPadding - rightPadding;
+    if (availableWidth < 20) {
+      availableWidth= 20;
+    }
     QString elidedText=
         fm.elidedText (text (), Qt::ElideRight, availableWidth);
     QRect textRect (leftPadding, 0, availableWidth, height ());
@@ -259,7 +256,7 @@ QTMTabPage::resizeEvent (QResizeEvent* e) {
   if (!m_closeBtn) return;
   int w= m_closeBtn->width ();
   int h= m_closeBtn->height ();
-  int x= e->size ().width () - w - 12;
+  int x= e->size ().width () - w - DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
   int y= (height () - h) / 2;
   y+= TAB_CONTENT_VERTICAL_OFFSET;
 
