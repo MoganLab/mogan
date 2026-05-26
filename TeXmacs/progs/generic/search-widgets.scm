@@ -1628,28 +1628,32 @@
 
 (tm-define (interactive-search)
   (:interactive #t)
-  (set! search-replace-text
-    (cond ((in-math?) "Only search in math mode")
-          ((in-prog?) "Only search in Program mode")
-          ((in-graphics?) "Graphics mode cannot search")
-          (else "Only search in text mode")
-    ) ;cond
-  ) ;set!
-  (set-boolean-preference "search-and-replace" #f)
-  (open-search)
+  (unless (string-starts? (url->system (current-buffer)) "tmfs://chat-")
+    (set! search-replace-text
+      (cond ((in-math?) "Only search in math mode")
+            ((in-prog?) "Only search in Program mode")
+            ((in-graphics?) "Graphics mode cannot search")
+            (else "Only search in text mode")
+      ) ;cond
+    ) ;set!
+    (set-boolean-preference "search-and-replace" #f)
+    (open-search)
+  ) ;unless
 ) ;tm-define
 
 (tm-define (interactive-replace)
   (:interactive #t)
-  (set! search-replace-text
-    (cond ((in-math?) "Only search and replace in math mode")
-          ((in-prog?) "Only search and replace in Program mode")
-          ((in-graphics?) "Graphics mode cannot search and replace")
-          (else "Only search and replace in text mode")
-    ) ;cond
-  ) ;set!
-  (set-boolean-preference "search-and-replace" #t)
-  (open-replace)
+  (unless (string-starts? (url->system (current-buffer)) "tmfs://chat-")
+    (set! search-replace-text
+      (cond ((in-math?) "Only search and replace in math mode")
+            ((in-prog?) "Only search and replace in Program mode")
+            ((in-graphics?) "Graphics mode cannot search and replace")
+            (else "Only search and replace in text mode")
+      ) ;cond
+    ) ;set!
+    (set-boolean-preference "search-and-replace" #t)
+    (open-replace)
+  ) ;unless
 ) ;tm-define
 
 (define (close-search-widget)
