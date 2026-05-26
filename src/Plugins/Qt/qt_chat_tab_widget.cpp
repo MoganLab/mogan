@@ -92,7 +92,7 @@ constexpr int kInputMaxLines             = 10;
 constexpr int kContentMarginY            = 24;
 constexpr int kContentSpacing            = 16;
 constexpr int kWelcomeTopOffsetY         = 240;
-constexpr int kConversationTopOffsetY    = 24;
+constexpr int kConversationTopOffsetY    = 8;
 constexpr int kInputFrameRadius          = 8;
 constexpr int kInputFramePad             = 8;
 constexpr int kMessageMinHeight          = 240;
@@ -1118,8 +1118,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
     btn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
                        DpiUtils::scaled (kToggleBtnSize));
     btn->setStyleSheet (
-        QString ("QPushButton { border: none; border-radius: %1px; "
-                 "background-color: transparent; } ")
+        QString ("QPushButton { border: none; border-radius: %1px; } ")
             .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
     return btn;
   };
