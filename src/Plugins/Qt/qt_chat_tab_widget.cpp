@@ -73,6 +73,9 @@ constexpr int kNewChatHoverShadowOffsetY= 2;
 constexpr int kNavButtonPadY            = 8;
 constexpr int kNavButtonPadX            = 8;
 constexpr int kSessionItemSpacing       = 4;
+constexpr int kMoreBtnSize              = 22;
+constexpr int kMoreBtnIconSize          = 12;
+constexpr int kMoreBtnMargin            = 4;
 
 // ---- 侧边栏常量 ----
 constexpr int kNavTitleFontPx      = 11;
@@ -742,6 +745,7 @@ ChatSidebar::updateCountLabels () {
 ChatSidebar::SidebarItem
 ChatSidebar::createItem (const string& sessionId) {
   SidebarItem item;
+  int moreBtnSize= DpiUtils::scaled (kMoreBtnSize);
 
   item.itemWidget= new QWidget ();
   item.itemWidget->setObjectName ("chat-tab-session-item");
@@ -761,9 +765,6 @@ ChatSidebar::createItem (const string& sessionId) {
   item.selectCheckBox->hide ();
   itemLayout->addWidget (item.selectCheckBox);
 
-  int moreBtnSize= DpiUtils::scaled (22);
-  int rightPad   = moreBtnSize + DpiUtils::scaled (4);
-
   item.sidebarButton=
       new QPushButton (qt_translate ("New conversation"), item.itemWidget);
   item.sidebarButton->setObjectName ("chat-tab-conversation-btn");
@@ -773,10 +774,9 @@ ChatSidebar::createItem (const string& sessionId) {
   DpiUtils::applyScaledFont (item.sidebarButton, kNavButtonFontPx);
   item.sidebarButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
-               "padding: %2px %3px %2px %4px; }")
+               "padding: %2px %3px; }")
           .arg (DpiUtils::scaled (kConversationBtnRadius))
           .arg (DpiUtils::scaled (kNavButtonPadY))
-          .arg (rightPad)
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   item.sidebarButton->installEventFilter (this);
   itemLayout->addWidget (item.sidebarButton, 1);
@@ -788,7 +788,7 @@ ChatSidebar::createItem (const string& sessionId) {
   item.moreButton->setCursor (Qt::PointingHandCursor);
   item.moreButton->setIcon (QIcon (":llm-chat/ellipsis.svg"));
   item.moreButton->setIconSize (
-      QSize (DpiUtils::scaled (12), DpiUtils::scaled (12)));
+      QSize (DpiUtils::scaled (kMoreBtnIconSize), DpiUtils::scaled (kMoreBtnIconSize)));
   item.moreButton->setFixedSize (moreBtnSize, moreBtnSize);
   item.moreButton->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; "
@@ -931,7 +931,7 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
         QRect cr= it->sidebarButton->contentsRect ();
         int   bw= it->moreButton->width ();
         int   bh= it->moreButton->height ();
-        it->moreButton->move (cr.right () - bw - DpiUtils::scaled (4),
+        it->moreButton->move (cr.right () - bw - DpiUtils::scaled (kMoreBtnMargin),
                               cr.top () + (cr.height () - bh) / 2);
         break;
       }
