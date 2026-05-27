@@ -56,5 +56,4 @@
     ,@(map tmhtml-env-macro
            '(shrink-inline
              binom tbinom dbinom choose ontop
-             tfrac dfrac cfrac
              bmod pmod pod))))
