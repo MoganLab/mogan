@@ -77,8 +77,8 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
       inPinchGesture_ (false), blockRender_ (false), pinchStartZoom_ (1.0),
-      renderCallCount_ (0), pdfDocHandle_ (nullptr),
-      pdfStreamHandle_ (nullptr), pdfBufferHandle_ (nullptr) {
+      renderCallCount_ (0), pdfDocHandle_ (nullptr), pdfStreamHandle_ (nullptr),
+      pdfBufferHandle_ (nullptr) {
   pageCache_.setMaxCost (30);
 
   mainLayout_= new QVBoxLayout (this);
@@ -956,7 +956,7 @@ PDFReaderWidget::rebuildPages () {
         QPixmap scaled;
         if (cached->width () != pxW || cached->height () != pxH) {
           scaled= cached->scaled (pxW, pxH, Qt::KeepAspectRatio,
-                                    Qt::FastTransformation);
+                                  Qt::FastTransformation);
           scaled.setDevicePixelRatio (dpr);
         }
         else {
@@ -1016,8 +1016,8 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     }
   }
 
-  fz_buffer*   buf   = nullptr;
-  fz_stream*   stream= nullptr;
+  fz_buffer* buf   = nullptr;
+  fz_stream* stream= nullptr;
 
   fz_var (buf);
   fz_var (stream);
@@ -1028,19 +1028,16 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
         ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
         pdfData_.size ());
 
-    stream= fz_open_buffer (ctx, buf);
-    pdfDocHandle_=
-        fz_open_document_with_stream (ctx, "pdf", stream);
+    stream       = fz_open_buffer (ctx, buf);
+    pdfDocHandle_= fz_open_document_with_stream (ctx, "pdf", stream);
 
     if (pdfDocHandle_) {
-      pageCount_=
-          fz_count_pages (ctx, (fz_document*) pdfDocHandle_);
-      opened= (pageCount_ > 0);
+      pageCount_= fz_count_pages (ctx, (fz_document*) pdfDocHandle_);
+      opened    = (pageCount_ > 0);
       if (opened && pageCount_ > 0) {
         pageAspectRatios_.reserve (pageCount_);
         for (int i= 0; i < pageCount_; ++i) {
-          fz_page* page=
-              fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
+          fz_page* page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
           if (page) {
             fz_rect bbox  = fz_bound_page (ctx, page);
             double  aspect= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
@@ -1178,8 +1175,8 @@ PDFReaderWidget::extractPageLinks () {
           if (pl.uri.startsWith ("#") || pl.uri.startsWith ("#nameddest=") ||
               pl.uri.startsWith ("#page=")) {
             float       xp= 0, yp= 0;
-            fz_location loc= fz_resolve_link (
-                ctx, (fz_document*) pdfDocHandle_, link->uri, &xp, &yp);
+            fz_location loc= fz_resolve_link (ctx, (fz_document*) pdfDocHandle_,
+                                              link->uri, &xp, &yp);
             if (loc.page >= 0) {
               pl.page= loc.page; // 0-based page index
             }
