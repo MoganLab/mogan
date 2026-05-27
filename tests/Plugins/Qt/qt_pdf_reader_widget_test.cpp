@@ -1271,6 +1271,69 @@ private slots:
 
     delete widget;
   }
+
+  // ============================================================
+  // Cache limit tests (TDD for [0168] PDF performance)
+  // ============================================================
+
+  void test_cacheRespectsMaxSize () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->setCacheMaxSize (2);
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    int initialSize= widget->cacheSize ();
+    QVERIFY (initialSize >= 1);
+
+    // 缩放触发不同 targetWidth 的渲染
+    widget->setZoomFactor (1.5);
+    QTest::qWait (300); // ZOOM_DEBOUNCE_MS(200) + margin
+    QApplication::processEvents ();
+
+    int size2= widget->cacheSize ();
+    QVERIFY (size2 >= initialSize);
+
+    // 再次缩放，上限为 2，不应超过
+    widget->setZoomFactor (2.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QCOMPARE (widget->cacheSize (), 2);
+
+    delete widget;
+  }
+
+  void test_cacheDoesNotGrowUnbounded () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
+    QApplication::processEvents ();
+
+    QVERIFY (widget->cacheSize () >= 1);
+
+    // 反复缩放 8 次
+    for (int i= 0; i < 8; ++i) {
+      widget->setZoomFactor (0.5 + i * 0.15);
+      QTest::qWait (300); // ZOOM_DEBOUNCE_MS(200) + margin
+      QApplication::processEvents ();
+    }
+
+    // 默认上限 30，但单页 PDF 缓存条目数等于不同 width 的数量
+    QVERIFY (widget->cacheSize () <= widget->cacheMaxSize ());
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)
