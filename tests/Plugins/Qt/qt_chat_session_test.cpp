@@ -64,6 +64,11 @@ private slots:
   // === defaultExpandCount ===
   void test_createSession_defaultExpandCount ();
   void test_insertSession_defaultExpandCount ();
+
+  // === 会话标题可见性判断 ===
+  void test_title_empty_for_new_session ();
+  void test_title_nonempty_after_set ();
+  void test_title_preserved_across_archive_restore ();
 };
 
 /******************************************************************************
@@ -412,3 +417,46 @@ TestChatSession::test_insertSession_defaultExpandCount () {
 
 QTEST_MAIN (TestChatSession)
 #include "qt_chat_session_test.moc"
+
+/******************************************************************************
+ * 会话标题可见性判断
+ *
+ * 验证 Controller 用来决定 sessionTitle 标签显隐的 is_empty(s->title) 判断：
+ * - 新会话 title 为空 → 标签应隐藏
+ * - 设置 title 后非空 → 标签应显示
+ * - 归档/恢复后 title 保持 → 标签应保持显示
+ ******************************************************************************/
+
+void
+TestChatSession::test_title_empty_for_new_session () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  ChatSession*       s  = mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (is_empty (s->title));
+}
+
+void
+TestChatSession::test_title_nonempty_after_set () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setTitle (sid, "测试标题");
+  ChatSession* s= mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!is_empty (s->title));
+  QVERIFY (s->title == string ("测试标题"));
+}
+
+void
+TestChatSession::test_title_preserved_across_archive_restore () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setTitle (sid, "My Session");
+  mgr.archiveSession (sid);
+  mgr.restoreSession (sid);
+  ChatSession* s= mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!s->archived);
+  QVERIFY (!is_empty (s->title));
+  QVERIFY (s->title == string ("My Session"));
+}

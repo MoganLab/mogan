@@ -74,7 +74,7 @@ public:
   tree readInputMessage () const;
 
   QPushButton*  sendButton () const { return sendButton_; }
-  QLabel*       modelLabel () const { return modelLabel_; }
+  QLabel*       sessionTitle () const { return sessionTitle_; }
   const string& sessionId () const { return sessionId_; }
   bool          conversationMode () const { return conversationMode_; }
 
@@ -109,7 +109,7 @@ private:
   string       sessionId_;                  ///< 所属会话 ID
   bool         conversationMode_ = false;   ///< 是否已进入对话模式
   QLabel*      welcomeTitle_     = nullptr; ///< 欢迎页标题
-  QLabel*      modelLabel_       = nullptr; ///< 模型名称标签
+  QLabel*      sessionTitle_     = nullptr; ///< 会话标题标签
   QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
   QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
   QWidget*     inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget

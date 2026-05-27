@@ -143,17 +143,17 @@ ChatConversationPanel::setup_ui () {
   DpiUtils::applyScaledFont (welcomeTitle_, kWelcomeFontPx);
   topLayout->addWidget (welcomeTitle_);
 
-  // Model label
-  modelLabel_= new QLabel ("", topPanel);
-  modelLabel_->setObjectName ("chat-tab-model-label");
-  modelLabel_->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (modelLabel_, kNavButtonFontPx);
-  modelLabel_->setStyleSheet (
+  // Session title label
+  sessionTitle_= new QLabel ("", topPanel);
+  sessionTitle_->setObjectName ("chat-tab-model-label");
+  sessionTitle_->setAlignment (Qt::AlignCenter);
+  DpiUtils::applyScaledFont (sessionTitle_, kNavButtonFontPx);
+  sessionTitle_->setStyleSheet (
       QString ("padding: 2px %1px; border-radius: %2px;")
           .arg (DpiUtils::scaled (kNavButtonPadX))
           .arg (DpiUtils::scaled (kModelLabelRadius)));
-  modelLabel_->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
-  topLayout->addWidget (modelLabel_, 0, Qt::AlignHCenter);
+  sessionTitle_->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
+  topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
 
   // Message area
   url msgBufUrl = ChatSessionManager::messageBufferUrl (sessionId_);
