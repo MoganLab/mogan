@@ -19,6 +19,7 @@
 #include <QPushButton>
 #include <QProgressBar>
 #include <QApplication>
+#include <QThread>
 #endif
 
 #include "Xml/xml.hpp"
@@ -207,6 +208,8 @@ html_progress_start (int total) {
     bar->setRange (0, total);
     bar->setValue (0);
     bar->setTextVisible (true);
+    bar->setMinimumHeight (20);
+    bar->setStyleSheet ("QProgressBar { border: 1px solid grey; border-radius: 5px; text-align: center; background-color: #f0f0f0; } QProgressBar::chunk { background-color: #3498db; }");
     layout->addWidget (bar);
 
     QHBoxLayout* btnLayout = new QHBoxLayout ();
@@ -220,6 +223,7 @@ html_progress_start (int total) {
     dlg->show ();
     dlg->repaint ();
     QCoreApplication::processEvents ();
+    QThread::msleep (50); // 给 Qt 50ms 充分的时间完成第一帧渲染
 
     html_progress_dialog = dlg;
   }
@@ -239,6 +243,7 @@ html_progress_update (int current) {
     }
     html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
+    QThread::msleep (50); // 每次更新进度后休眠 50ms 确保重绘
   }
 #else
   (void) current;
