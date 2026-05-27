@@ -194,6 +194,15 @@ ChatController::onSendRequested (const string& sessionId) {
     string displayTitle= getSessionDisplayTitle (sessionId);
     view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
     view_->sidebar ()->setActiveItem (sessionId);
+    // 更新会话标题标签
+    if (session->panel) {
+      ChatConversationPanel* p=
+          static_cast<ChatConversationPanel*> (session->panel);
+      if (p->sessionTitle ()) {
+        p->sessionTitle ()->setText (qTitle);
+        p->sessionTitle ()->show ();
+      }
+    }
   }
 
   if (!as_bool (call ("chat-tab-send", sessionId))) return;
@@ -425,9 +434,15 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
     panel->enterConversationMode ();
   }
 
-  // 同步模型标签
-  if (panel->modelLabel () && s) {
-    panel->modelLabel ()->setText (to_qstring (s->model));
+  // 同步会话标题标签
+  if (panel->sessionTitle () && s) {
+    if (is_empty (s->title)) {
+      panel->sessionTitle ()->hide ();
+    }
+    else {
+      panel->sessionTitle ()->setText (to_qstring (s->title));
+      panel->sessionTitle ()->show ();
+    }
   }
 }
 
@@ -469,8 +484,8 @@ ChatController::ensureNewConversation () {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
       if (p && !p->conversationMode ()) {
         sessionManager_.setModel (sid, currentModel);
-        if (p->modelLabel ()) {
-          p->modelLabel ()->setText (to_qstring (currentModel));
+        if (p->sessionTitle ()) {
+          p->sessionTitle ()->hide ();
         }
         view_->sidebar ()->setActiveItem (sid);
         view_->activatePanel (p);
@@ -489,8 +504,8 @@ ChatController::ensureNewConversation () {
 
   call ("chat-tab-sync-dark-style!", sid);
 
-  if (panel->modelLabel ()) {
-    panel->modelLabel ()->setText (to_qstring (currentModel));
+  if (panel->sessionTitle ()) {
+    panel->sessionTitle ()->hide ();
   }
 
   // 连接 Panel 的信号
