@@ -44,13 +44,62 @@ public:
 
   // ---- 用户交互（由 View 的 signal 触发） ----
 
+  /**
+   * @brief 侧边栏点击会话项时触发。
+   *
+   * 活跃会话执行 activateSession，已归档会话忽略并恢复视觉状态。
+   * @param sessionId 被点击的会话 ID
+   */
   void onSessionClicked (const string& sessionId);
+
+  /**
+   * @brief 用户点击发送按钮时触发。
+   *
+   * 执行空输入检查、自动提取标题（首次发送时）、调用 Scheme 发送、
+   * 更新状态为 Generating。
+   * @param sessionId 目标会话 ID
+   */
   void onSendRequested (const string& sessionId);
+
+  /**
+   * @brief 用户点击取消/停止按钮时触发。
+   * @param sessionId 目标会话 ID
+   */
   void onCancelRequested (const string& sessionId);
+
+  /**
+   * @brief 删除指定会话列表。
+   *
+   * 逐个调用 Scheme 销毁、移除 sidebar item、移除面板，
+   * 然后激活下一个可用会话或创建新会话。
+   * @param sessionIds 要删除的会话 ID 列表
+   */
   void onDeleteRequested (const QList<string>& sessionIds);
+
+  /**
+   * @brief 归档指定会话列表。
+   *
+   * 如果归档了当前激活会话，自动激活下一个非归档会话。
+   * @param sessionIds 要归档的会话 ID 列表
+   */
   void onArchiveRequested (const QList<string>& sessionIds);
+
+  /**
+   * @brief 恢复已归档的会话并激活。
+   * @param sessionId 要恢复的会话 ID
+   */
   void onRestoreRequested (const string& sessionId);
+
+  /**
+   * @brief 创建新会话或复用空白会话。
+   */
   void onNewChatRequested ();
+
+  /**
+   * @brief 重命名会话标题并更新侧边栏显示。
+   * @param sessionId 目标会话 ID
+   * @param newTitle  新标题
+   */
   void onRenameRequested (const string& sessionId, const string& newTitle);
 
   /**
@@ -71,20 +120,68 @@ public:
   void destroyView ();
 
 private:
-  QTChatTabWidget*   view_= nullptr;
-  ChatSessionManager sessionManager_;
-  bool               firstOpen_= true;
+  QTChatTabWidget*   view_= nullptr;       ///< View 指针，由 createView 创建
+  ChatSessionManager sessionManager_;       ///< 会话管理器
+  bool               firstOpen_= true;     ///< 是否首次打开（首次时切换到新会话）
 
-  // 内部方法
-  void                      activateSession (const string& sessionId);
-  void                      loadSessionContent (ChatConversationPanel* panel);
-  void                      saveOneSession (const string& sessionId);
-  void                      ensureNewConversation ();
-  ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
+  /**
+   * @brief 激活指定会话：按需创建面板，按需加载内容。
+   * @param sessionId 要激活的会话 ID
+   */
+  void activateSession (const string& sessionId);
+
+  /**
+   * @brief 按需加载会话的消息内容到面板。
+   *
+   * 调用 Scheme 的 chat-persist-load-session-content 加载消息 buffer。
+   * @param panel 目标面板
+   */
+  void loadSessionContent (ChatConversationPanel* panel);
+
+  /**
+   * @brief 将单个会话元数据持久化到 Scheme 层。
+   * @param sessionId 要保存的会话 ID
+   */
+  void saveOneSession (const string& sessionId);
+
+  /**
+   * @brief 确保存在一个可用的空白会话。
+   *
+   * 优先复用已有的空白会话，否则创建新会话。
+   */
+  void ensureNewConversation ();
+
+  /**
+   * @brief 获取或按需创建面板（延迟加载场景）。
+   * @param sessionId 目标会话 ID
+   * @return 面板指针，失败时返回 nullptr
+   */
+  ChatConversationPanel* getOrCreatePanel (const string& sessionId);
+
+  /**
+   * @brief 构建所有会话的显示信息列表，供 Sidebar 初始化使用。
+   * @return 显示信息列表
+   */
   QList<SessionDisplayInfo> buildDisplayInfos ();
-  string                    determineInitialActiveSession ();
-  QMap<string, string>      getDisplayTitles ();
-  string                    getSessionDisplayTitle (const string& sessionId);
+
+  /**
+   * @brief 确定初始激活会话（第一个非归档会话）。
+   * @return 会话 ID，无可用会话时返回空字符串
+   */
+  string determineInitialActiveSession ();
+
+  /**
+   * @brief 获取所有会话的显示标题映射。
+   * @return sessionId → displayTitle 映射
+   */
+  QMap<string, string> getDisplayTitles ();
+
+  /**
+   * @brief 获取单个会话的显示标题。
+   * @param sessionId 目标会话 ID
+   * @return 显示标题，无标题时返回 "新会话"
+   */
+  string getSessionDisplayTitle (const string& sessionId);
 
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,

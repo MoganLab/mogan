@@ -169,7 +169,7 @@ ChatController::onSendRequested (const string& sessionId) {
     string extracted=
         as_string (call ("chat-persist-extract-title", sessionId));
     QString qTitle= to_qstring (extracted);
-    // 截断：含 CJK 取前 10 个字符，纯英文取前 5 个单词
+    // 检测标题是否含 CJK 字符
     bool hasCJK= false;
     for (int i= 0; i < qTitle.length (); i++) {
       ushort code= qTitle[i].unicode ();
@@ -178,9 +178,11 @@ ChatController::onSendRequested (const string& sessionId) {
         break;
       }
     }
+    // 含 CJK: 截取前 10 个字符
     if (hasCJK) {
       if (qTitle.length () > 10) qTitle= qTitle.left (10) + "...";
     }
+    // 纯英文: 截取前 5 个单词
     else {
       QStringList words= qTitle.split (' ', Qt::SkipEmptyParts);
       if (words.size () > 5) {
@@ -227,7 +229,7 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     if (panel) view_->removePanel (panel);
   }
 
-  // 激活下一个可用会话
+  // 查找第一个非归档会话作为下一个激活项
   auto   allIds= sessionManager_.getAllSessionIds ();
   string nextSid;
   for (const string& sid : allIds) {
@@ -245,7 +247,7 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     ensureNewConversation ();
   }
 
-  // 确保所有 buffer 标记为已保存
+  // 将被删除的 buffer 标记为已保存，避免关闭时弹窗
   for (const string& sid : allIds) {
     call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (sid));
     call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sid));
@@ -264,7 +266,7 @@ ChatController::onArchiveRequested (const QList<string>& sessionIds) {
     view_->sidebar ()->moveToArchive (sid);
   }
 
-  // 如果归档了当前激活会话，激活第一个非归档会话
+  // 检查是否归档了当前激活会话
   string cur           = view_->sidebar ()->activeSessionId ();
   bool   archivedActive= false;
   for (const string& sid : sessionIds) {
@@ -336,6 +338,7 @@ ChatController::notifyStateChanged (const string& sessionId,
   QPushButton* btn= panel->sendButton ();
   if (!btn) return;
 
+  // Generating 状态：切换按钮为 Stop
   if (newState == ChatState::Generating) {
     btn->setToolTip ("Stop");
     btn->setIcon (QIcon (":llm-chat/cancel.svg"));
@@ -344,6 +347,7 @@ ChatController::notifyStateChanged (const string& sessionId,
         connect (btn, &QPushButton::clicked, this,
                  [this, sessionId] () { onCancelRequested (sessionId); });
   }
+  // Idle 状态：切换按钮为 Send，并保存会话
   else {
     btn->setToolTip ("Send");
     btn->setIcon (QIcon (":llm-chat/send.svg"));
@@ -440,7 +444,7 @@ ChatController::ensureNewConversation () {
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 检查所有非归档会话是否可以复用（无标题、未发送过的空白会话）
+  // 尝试复用已有的空白会话（无标题、未发送过的）
   auto allIds= sessionManager_.getAllSessionIds ();
   for (const string& sid : allIds) {
     ChatSession* s= sessionManager_.getSession (sid);
@@ -466,7 +470,7 @@ ChatController::ensureNewConversation () {
     }
   }
 
-  // 新建会话
+  // 无可复用会话，创建新会话
   string                 sid  = sessionManager_.createSession ();
   ChatConversationPanel* panel= view_->createPanel (sid);
   if (!panel) return;

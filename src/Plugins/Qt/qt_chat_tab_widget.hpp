@@ -50,21 +50,46 @@ class ChatConversationPanel : public QWidget {
   Q_OBJECT
 
 public:
+  /**
+   * @brief 构造会话内容面板。
+   * @param sessionId 所属会话 ID
+   * @param parent    父控件
+   */
   explicit ChatConversationPanel (const string& sessionId, QWidget* parent);
 
-  // 被 Controller/Widget 调用的接口
+  /**
+   * @brief 进入对话模式（隐藏欢迎页，显示消息区域）。
+   */
   void enterConversationMode ();
+
+  /**
+   * @brief 聚焦到输入区域。
+   */
   void focusInput ();
+
+  /**
+   * @brief 读取输入区域的文档内容。
+   * @return 输入内容的 tree 表示
+   */
   tree readInputMessage () const;
 
-  // 被 Controller 访问
   QPushButton*  sendButton () const { return sendButton_; }
   QLabel*       modelLabel () const { return modelLabel_; }
   const string& sessionId () const { return sessionId_; }
   bool          conversationMode () const { return conversationMode_; }
 
-  // 静态工具
+  /**
+   * @brief 判断文档体是否为空（仅含一个空字符串的 DOCUMENT 节点）。
+   * @param body 文档体 tree
+   * @return 为空时返回 true
+   */
   static bool is_empty_document_body (tree body);
+
+  /**
+   * @brief 计算输入文档的行数。
+   * @param body 文档体 tree
+   * @return 行数，非 DOCUMENT 类型返回 1
+   */
   static int  count_input_lines (tree body);
 
 signals:
@@ -72,23 +97,26 @@ signals:
   void inputHeightChanged ();
 
 protected:
+  /// 事件过滤器：拦截 Enter 键触发发送
   bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
+  /// 构建面板 UI 布局
   void setup_ui ();
+  /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;
-  bool         conversationMode_ = false;
-  QLabel*      welcomeTitle_     = nullptr;
-  QLabel*      modelLabel_       = nullptr;
-  QWidget*     messageFrame_     = nullptr;
-  QWidget*     inputEditorWidget_= nullptr;
-  QPushButton* sendButton_       = nullptr;
-  QSpacerItem* topSpacer_        = nullptr;
-  widget       messageWidget_;
-  widget       inputWidget;
-  int          fixedFrameExtra_= 0;
+  string       sessionId_;                 ///< 所属会话 ID
+  bool         conversationMode_ = false;  ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr;///< 欢迎页标题
+  QLabel*      modelLabel_       = nullptr;///< 模型名称标签
+  QWidget*     messageFrame_     = nullptr;///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr;///< 输入编辑器容器
+  QPushButton* sendButton_       = nullptr;///< 发送/停止按钮
+  QSpacerItem* topSpacer_        = nullptr;///< 欢迎页顶部弹性空间
+  widget       messageWidget_;             ///< 消息区 TeXmacs widget
+  widget       inputWidget;                ///< 输入区 TeXmacs widget
+  int          fixedFrameExtra_= 0;        ///< 输入框额外高度（边框等）
 };
 
 /**
@@ -110,21 +138,77 @@ public:
     bool         isArchived    = false;
   };
 
+  /**
+   * @brief 构造侧边栏。
+   * @param sessions        会话显示数据列表
+   * @param activeSessionId 初始激活会话 ID（可为空）
+   * @param parent          父控件
+   */
   ChatSidebar (const QList<SessionDisplayInfo>& sessions,
                const string& activeSessionId, QWidget* parent= nullptr);
 
   // ---- 按场景调用的针对性方法（替代 refresh） ----
+
+  /**
+   * @brief 添加新的侧边栏项。
+   * @param sessionId   会话 ID
+   * @param displayTitle 显示标题
+   */
   void addItem (const string& sessionId, const string& displayTitle);
+
+  /**
+   * @brief 更新指定会话的显示标题。
+   * @param sessionId   目标会话 ID
+   * @param displayTitle 新标题
+   */
   void updateItemTitle (const string& sessionId, const string& displayTitle);
+
+  /**
+   * @brief 设置激活的侧边栏项（高亮显示）。
+   * @param sessionId 要激活的会话 ID
+   */
   void setActiveItem (const string& sessionId);
+
+  /**
+   * @brief 将会话项从活跃列表移到归档列表。
+   * @param sessionId 目标会话 ID
+   */
   void moveToArchive (const string& sessionId);
+
+  /**
+   * @brief 将会话项从归档列表移回活跃列表。
+   * @param sessionId 目标会话 ID
+   */
   void moveFromArchive (const string& sessionId);
+
+  /**
+   * @brief 根据搜索框文本过滤显示的会话项。
+   */
   void applySearchFilter ();
 
   // ---- 其他公共方法 ----
-  void          removeItem (const string& sessionId);
-  void          enterMultiSelectMode (bool archived);
-  void          exitMultiSelectMode ();
+
+  /**
+   * @brief 移除指定的侧边栏项。
+   * @param sessionId 要移除的会话 ID
+   */
+  void removeItem (const string& sessionId);
+
+  /**
+   * @brief 进入多选模式。
+   * @param archived 是否在归档列表中多选
+   */
+  void enterMultiSelectMode (bool archived);
+
+  /**
+   * @brief 退出多选模式。
+   */
+  void exitMultiSelectMode ();
+
+  /**
+   * @brief 获取当前激活的会话 ID。
+   * @return 激活的会话 ID，无激活项时返回空字符串
+   */
   const string& activeSessionId () const;
 
 signals:
@@ -138,27 +222,27 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_;
+  QMap<string, SidebarItem> items_;                ///< sessionId → SidebarItem 映射
 
-  QLabel*                   conversationCountLabel_= nullptr;
-  QWidget*                  conversationListWidget_= nullptr;
-  QVBoxLayout*              conversationListLayout_= nullptr;
-  QPushButton*              archiveHeaderButton_   = nullptr;
-  QWidget*                  archiveListWidget_     = nullptr;
-  QVBoxLayout*              archiveListLayout_     = nullptr;
-  bool                      archiveCollapsed_      = true;
-  QWidget*                  multiSelectBar_        = nullptr;
-  QPushButton*              batchArchiveBtn_       = nullptr;
-  QLineEdit*                searchEdit_            = nullptr;
-  bool                      multiSelectMode_       = false;
-  bool                      archiveSelectMode_     = false;
-  QList<SessionDisplayInfo> sessionCache_;
-  string                    activeSessionId_;
+  QLabel*                   conversationCountLabel_= nullptr; ///< 活跃会话计数标签
+  QWidget*                  conversationListWidget_= nullptr; ///< 活跃会话列表容器
+  QVBoxLayout*              conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  QPushButton*              archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
+  QWidget*                  archiveListWidget_     = nullptr; ///< 归档会话列表容器
+  QVBoxLayout*              archiveListLayout_     = nullptr; ///< 归档会话列表布局
+  bool                      archiveCollapsed_      = true;   ///< 归档区是否折叠
+  QWidget*                  multiSelectBar_        = nullptr; ///< 多选操作栏
+  QPushButton*              batchArchiveBtn_       = nullptr; ///< 批量归档按钮
+  QLineEdit*                searchEdit_            = nullptr; ///< 搜索框
+  bool                      multiSelectMode_       = false;  ///< 是否处于多选模式
+  bool                      archiveSelectMode_     = false;  ///< 是否在归档区多选
+  QList<SessionDisplayInfo> sessionCache_;                    ///< 会话显示数据缓存
+  string                    activeSessionId_;                ///< 当前激活的会话 ID
 
-  SidebarItem   createItem (const string& sessionId);
-  void          destroyItem (const string& sessionId);
-  void          updateCountLabels ();
-  QList<string> getCheckedSessionIds () const;
+  SidebarItem   createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
+  void          destroyItem (const string& sessionId); ///< 销毁单个侧边栏项 widget
+  void          updateCountLabels ();                  ///< 更新会话数/归档数标签
+  QList<string> getCheckedSessionIds () const;         ///< 获取多选模式下已勾选的会话 ID 列表
 };
 
 /**
@@ -172,18 +256,41 @@ class QTChatTabWidget : public QWidget {
   Q_OBJECT
 
 public:
+  /**
+   * @brief 构造聊天标签页控件。
+   * @param sessions        会话显示数据列表
+   * @param activeSessionId 初始激活会话 ID
+   * @param parent          父控件
+   */
   QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
                    const string& activeSessionId, QWidget* parent= nullptr);
   ~QTChatTabWidget () override;
 
   // ---- 被 Controller 调用的方法（View 接口） ----
 
+  /**
+   * @brief 创建新的会话内容面板并加入堆栈。
+   * @param sessionId 关联的会话 ID
+   * @return 创建的面板指针
+   */
   ChatConversationPanel* createPanel (const string& sessionId);
-  void                   activatePanel (ChatConversationPanel* panel);
-  void                   removePanel (ChatConversationPanel* panel);
+
+  /**
+   * @brief 激活指定面板（切换堆栈当前页）。
+   * @param panel 要激活的面板
+   */
+  void activatePanel (ChatConversationPanel* panel);
+
+  /**
+   * @brief 从堆栈中移除并销毁指定面板。
+   * @param panel 要移除的面板
+   */
+  void removePanel (ChatConversationPanel* panel);
 
   // ---- 状态 ----
+  /// 设置关联的 TeXmacs widget（用于 Scheme 交互）
   void setParentTmWidget (qt_tm_widget_rep* tm) { parentTmWidget_= tm; }
+  /// 获取关联的 TeXmacs widget
   qt_tm_widget_rep* parentTmWidget () const { return parentTmWidget_; }
 
   // ---- 供 Controller 读取 ----
@@ -200,34 +307,39 @@ signals:
   void newChatRequested ();
 
 protected:
+  /// 键盘事件处理（Ctrl+N 新建会话等）
   void keyPressEvent (QKeyEvent* event) override;
   void keyReleaseEvent (QKeyEvent* event) override;
+  /// 事件过滤器
   bool eventFilter (QObject* watched, QEvent* event) override;
 
 private:
+  /// 构建左侧侧边栏布局
   void setup_left_sidebar (QVBoxLayout*                     sidebarLayout,
                            const QList<SessionDisplayInfo>& sessions,
                            const string&                    activeSessionId);
+  /// 构建右侧内容区布局
   void setup_right_content (QHBoxLayout* mainLayout);
+  /// 切换侧边栏展开/折叠状态
   void toggle_sidebar ();
 
   // ---- 子组件 ----
-  ChatSidebar*    sidebar_             = nullptr;
-  QWidget*        sidebarWidget_       = nullptr;
-  QWidget*        contentWidget_       = nullptr;
-  QPushButton*    collapseButton_      = nullptr;
-  QPushButton*    floatingExpandBtn_   = nullptr;
-  QPushButton*    floatingNewChatBtn_  = nullptr;
-  QWidget*        floatingBtnContainer_= nullptr;
-  QPushButton*    newChatButton_       = nullptr;
-  QWidget*        sidebarNormalContent_= nullptr;
-  QStackedWidget* conversationStack_   = nullptr;
+  ChatSidebar*    sidebar_             = nullptr; ///< 侧边栏控件
+  QWidget*        sidebarWidget_       = nullptr; ///< 侧边栏容器
+  QWidget*        contentWidget_       = nullptr; ///< 右侧内容区容器
+  QPushButton*    collapseButton_      = nullptr; ///< 折叠按钮
+  QPushButton*    floatingExpandBtn_   = nullptr; ///< 浮动展开按钮
+  QPushButton*    floatingNewChatBtn_  = nullptr; ///< 浮动新建按钮
+  QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
+  QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
+  QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
+  QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈
 
-  QList<ChatConversationPanel*> conversations_;
-  ChatConversationPanel*        activeConversation_  = nullptr;
-  bool                          sidebarCollapsed_    = false;
-  int                           sidebarExpandedWidth_= 0;
-  qt_tm_widget_rep*             parentTmWidget_      = nullptr;
+  QList<ChatConversationPanel*> conversations_;           ///< 所有会话面板
+  ChatConversationPanel*        activeConversation_  = nullptr; ///< 当前激活的面板
+  bool                          sidebarCollapsed_    = false;   ///< 侧边栏是否折叠
+  int                           sidebarExpandedWidth_= 0;       ///< 侧边栏展开时宽度
+  qt_tm_widget_rep*             parentTmWidget_      = nullptr; ///< 关联的 TeXmacs widget
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

@@ -46,24 +46,111 @@ struct ChatSession {
  */
 class ChatSessionManager {
 public:
-  string              createSession ();
-  void                removeSession (const string& sessionId);
-  void                archiveSession (const string& sessionId);
-  void                restoreSession (const string& sessionId);
-  void                setTitle (const string& sessionId, const string& title);
-  void                setState (const string& sessionId, ChatState state);
-  void                setModel (const string& sessionId, const string& model);
-  string              getModel (const string& sessionId);
+  /**
+   * @brief 创建新的聊天会话。
+   *
+   * 生成 UUID 作为 sessionId，初始化状态为 Idle、archived 为 false，
+   * 记录当前 Unix 时间戳。
+   *
+   * @return 新创建会话的 sessionId
+   */
+  string createSession ();
+
+  /**
+   * @brief 删除指定会话。
+   * @param sessionId 要删除的会话 ID
+   */
+  void removeSession (const string& sessionId);
+
+  /**
+   * @brief 将指定会话标记为已归档。
+   * @param sessionId 要归档的会话 ID
+   */
+  void archiveSession (const string& sessionId);
+
+  /**
+   * @brief 将已归档的会话恢复为活跃状态。
+   * @param sessionId 要恢复的会话 ID
+   */
+  void restoreSession (const string& sessionId);
+
+  /**
+   * @brief 设置会话标题。
+   * @param sessionId 目标会话 ID
+   * @param title     新标题
+   */
+  void setTitle (const string& sessionId, const string& title);
+
+  /**
+   * @brief 设置会话生成状态。
+   * @param sessionId 目标会话 ID
+   * @param state     新状态（Idle 或 Generating）
+   */
+  void setState (const string& sessionId, ChatState state);
+
+  /**
+   * @brief 设置会话绑定的模型名称。
+   * @param sessionId 目标会话 ID
+   * @param model     模型名称
+   */
+  void setModel (const string& sessionId, const string& model);
+
+  /**
+   * @brief 获取会话绑定的模型名称。
+   * @param sessionId 目标会话 ID
+   * @return 模型名称，会话不存在时返回空字符串
+   */
+  string getModel (const string& sessionId);
+
+  /**
+   * @brief 获取所有会话 ID，按 createdAt 降序排列（最新的在前）。
+   * @return 会话 ID 列表
+   */
   std::vector<string> getAllSessionIds () const;
-  ChatSession*        getSession (const string& sessionId);
-  ChatSession*        findSessionByPanel (ChatConversationPanel* panel);
-  void       setPanel (const string& sessionId, ChatConversationPanel* panel);
-  void       insertSession (const ChatSession& session);
+
+  /**
+   * @brief 根据 ID 获取会话指针。
+   * @param sessionId 目标会话 ID
+   * @return 会话指针，不存在时返回 nullptr
+   */
+  ChatSession* getSession (const string& sessionId);
+
+  /**
+   * @brief 根据面板指针反查所属会话。
+   * @param panel 面板指针
+   * @return 关联的会话指针，未找到时返回 nullptr
+   */
+  ChatSession* findSessionByPanel (ChatConversationPanel* panel);
+
+  /**
+   * @brief 设置会话关联的面板指针。
+   * @param sessionId 目标会话 ID
+   * @param panel     面板指针
+   */
+  void setPanel (const string& sessionId, ChatConversationPanel* panel);
+
+  /**
+   * @brief 插入预构造的会话（用于从持久化数据恢复）。
+   * @param session 要插入的会话数据
+   */
+  void insertSession (const ChatSession& session);
+
+  /**
+   * @brief 获取会话消息缓冲区的 tmfs URL。
+   * @param sessionId 会话 ID
+   * @return 格式为 "tmfs://chat-message-{sessionId}" 的 URL
+   */
   static url messageBufferUrl (const string& sessionId);
+
+  /**
+   * @brief 获取会话输入缓冲区的 tmfs URL。
+   * @param sessionId 会话 ID
+   * @return 格式为 "tmfs://chat-input-{sessionId}" 的 URL
+   */
   static url inputBufferUrl (const string& sessionId);
 
 private:
-  std::map<string, ChatSession> sessions_;
+  std::map<string, ChatSession> sessions_; ///< sessionId → ChatSession 映射
 };
 
 #endif // QT_CHAT_SESSION_HPP
