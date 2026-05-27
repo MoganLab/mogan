@@ -88,8 +88,9 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     connect (sb, &ChatSidebar::newChatRequested, this,
              &ChatController::onNewChatRequested);
     connect (sb, &ChatSidebar::renameRequested, this,
-             [this] (const string& sid, const string&) {
-               // TODO: 重命名弹框
+             [this, sb] (const string& sid, const string& newTitle) {
+               if (is_empty (newTitle)) sb->beginEditTitle (sid);
+               else onRenameRequested (sid, newTitle);
              });
     connect (sb, &ChatSidebar::multiDeleteRequested, this,
              &ChatController::onDeleteRequested);
@@ -323,6 +324,7 @@ ChatController::onRenameRequested (const string& sessionId,
   string displayTitle= getSessionDisplayTitle (sessionId);
   view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
   view_->sidebar ()->setActiveItem (sessionId);
+  updateManifest (sessionId);
 }
 
 void

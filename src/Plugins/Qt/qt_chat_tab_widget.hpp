@@ -136,6 +136,7 @@ public:
     QPushButton* sidebarButton = nullptr;
     QPushButton* moreButton    = nullptr;
     QCheckBox*   selectCheckBox= nullptr;
+    QLineEdit*   titleEdit     = nullptr;
     bool         isArchived    = false;
   };
 
@@ -186,6 +187,12 @@ public:
    * @brief 根据搜索框文本过滤显示的会话项。
    */
   void applySearchFilter ();
+
+  /**
+   * @brief 开始内联编辑指定会话的标题。
+   * @param sessionId 目标会话 ID
+   */
+  void beginEditTitle (const string& sessionId);
 
   // ---- 其他公共方法 ----
 
@@ -246,6 +253,7 @@ private:
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
   void updateCountLabels ();                        ///< 更新会话数/归档数标签
+  void endEditTitle (const string& sessionId, bool accept); ///< 结束内联编辑
   QList<string>
   getCheckedSessionIds () const; ///< 获取多选模式下已勾选的会话 ID 列表
 };

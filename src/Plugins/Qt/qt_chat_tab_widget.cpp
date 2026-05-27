@@ -635,8 +635,12 @@ ChatSidebar::updateItemTitle (const string& sessionId,
                               const string& displayTitle) {
   auto it= items_.find (sessionId);
   if (it == items_.end ()) return;
+  QString qTitle= to_qstring (displayTitle);
   if (it->sidebarButton) {
-    it->sidebarButton->setText (to_qstring (displayTitle));
+    it->sidebarButton->setText (qTitle);
+  }
+  if (it->titleEdit) {
+    it->titleEdit->setText (qTitle);
   }
   // 更新 sessionCache_ 中的显示标题
   for (auto& info : sessionCache_) {
@@ -653,6 +657,39 @@ ChatSidebar::setActiveItem (const string& sessionId) {
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
+  }
+}
+
+void
+ChatSidebar::beginEditTitle (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  if (!it->sidebarButton || !it->titleEdit) return;
+
+  it->titleEdit->setText (it->sidebarButton->text ());
+  it->sidebarButton->hide ();
+  it->titleEdit->show ();
+  it->titleEdit->setFocus ();
+  it->titleEdit->selectAll ();
+}
+
+void
+ChatSidebar::endEditTitle (const string& sessionId, bool accept) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  if (!it->sidebarButton || !it->titleEdit) return;
+
+  // titleEdit 不可见说明不在编辑状态，跳过
+  if (!it->titleEdit->isVisible ()) return;
+
+  QString newTitle= it->titleEdit->text ().trimmed ();
+  QString oldTitle= it->sidebarButton->text ();
+
+  it->titleEdit->hide ();
+  it->sidebarButton->show ();
+
+  if (accept && !newTitle.isEmpty () && newTitle != oldTitle) {
+    emit renameRequested (sessionId, from_qstring (newTitle));
   }
 }
 
@@ -793,6 +830,30 @@ ChatSidebar::createItem (const string& sessionId) {
           .arg (DpiUtils::scaled (kNavButtonPadX)));
   item.sidebarButton->installEventFilter (this);
   itemLayout->addWidget (item.sidebarButton, 1);
+
+  // 内联标题编辑器（初始隐藏，右键 Rename 时显示）
+  item.titleEdit= new QLineEdit (item.itemWidget);
+  item.titleEdit->setObjectName ("chat-tab-title-edit");
+  item.titleEdit->setFocusPolicy (Qt::StrongFocus);
+  item.titleEdit->setSizePolicy (QSizePolicy::Ignored, QSizePolicy::Preferred);
+  DpiUtils::applyScaledFont (item.titleEdit, kNavButtonFontPx);
+  item.titleEdit->setStyleSheet (
+      QString ("QLineEdit { border: none; border-radius: %1px; "
+               "padding: %2px %3px %2px %4px; "
+               "background: rgba(0,0,0,0.05); }")
+          .arg (DpiUtils::scaled (kConversationBtnRadius))
+          .arg (DpiUtils::scaled (kNavButtonPadY))
+          .arg (DpiUtils::scaled (kMoreBtnSize + kMoreBtnMargin))
+          .arg (DpiUtils::scaled (kNavButtonPadX)));
+  item.titleEdit->hide ();
+  itemLayout->addWidget (item.titleEdit, 1);
+
+  // 回车确认编辑
+  connect (item.titleEdit, &QLineEdit::returnPressed, this,
+           [this, sid= sessionId] () { endEditTitle (sid, true); });
+  // 失焦确认编辑
+  connect (item.titleEdit, &QLineEdit::editingFinished, this,
+           [this, sid= sessionId] () { endEditTitle (sid, true); });
 
   // "..." 更多按钮（在 sidebarButton 内部右侧，仅选中项显示）
   item.moreButton= new QPushButton (item.sidebarButton);
