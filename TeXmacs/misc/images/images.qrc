@@ -22,6 +22,7 @@
         <file>llm-chat/addchat.svg</file>
         <file>llm-chat/cancel.svg</file>
         <file>llm-chat/ellipsis.svg</file>
+        <file>llm-chat/search.svg</file>
 
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>

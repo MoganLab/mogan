@@ -61,6 +61,7 @@ constexpr int kFloatingBtnMarginX       = 12;
 constexpr int kFloatingBtnMarginY       = 12;
 constexpr int kFloatingContainerPad     = 4;
 constexpr int kFloatingBtnSpacing       = 4;
+constexpr int kHeaderBtnSpacing         = 4;
 constexpr int kNewChatIconSize          = 18;
 constexpr int kNewChatButtonHeight      = 36;
 constexpr int kNewChatButtonWidth       = 140;
@@ -441,6 +442,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
           .arg (DpiUtils::scaled (kCollapsePadX)));
   connect (searchEdit_, &QLineEdit::textChanged, this,
            [this] () { applySearchFilter (); });
+  searchEdit_->hide ();
+  searchEdit_->installEventFilter (this);
   mainLayout->addWidget (searchEdit_);
 
   // 多选模式批量操作栏（默认隐藏）
@@ -722,6 +725,15 @@ ChatSidebar::applySearchFilter () {
 }
 
 void
+ChatSidebar::focusSearch () {
+  if (searchEdit_) {
+    searchEdit_->show ();
+    searchEdit_->setFocus ();
+    searchEdit_->selectAll ();
+  }
+}
+
+void
 ChatSidebar::updateCountLabels () {
   int activeCount  = 0;
   int archivedCount= 0;
@@ -939,7 +951,10 @@ ChatSidebar::activeSessionId () const {
 
 bool
 ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
-  if (event->type () == QEvent::Resize) {
+  if (watched == searchEdit_ && event->type () == QEvent::FocusOut) {
+    if (searchEdit_->text ().isEmpty ()) searchEdit_->hide ();
+  }
+  else if (event->type () == QEvent::Resize) {
     for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
       if (it->sidebarButton == watched && it->moreButton) {
         QRect cr= it->sidebarButton->contentsRect ();
@@ -1096,6 +1111,25 @@ QTChatTabWidget::setup_left_sidebar (QVBoxLayout* sidebarLayout,
 
   headerLayout->addStretch ();
 
+  QPushButton* searchBtn= new QPushButton (headerWidget);
+  searchBtn->setObjectName ("chat-tab-search-btn");
+  searchBtn->setFocusPolicy (Qt::NoFocus);
+  searchBtn->setCursor (Qt::PointingHandCursor);
+  searchBtn->setIcon (QIcon (":llm-chat/search.svg"));
+  searchBtn->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                                 DpiUtils::scaled (kToggleIconSize)));
+  searchBtn->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                           DpiUtils::scaled (kToggleBtnSize));
+  searchBtn->setStyleSheet (
+      QString ("QPushButton { border: none; border-radius: %1px; }")
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+  connect (searchBtn, &QPushButton::clicked, this,
+           [this] () { sidebar_->focusSearch (); });
+  searchButton_= searchBtn;
+  headerLayout->addWidget (searchBtn);
+
+  headerLayout->addSpacing (DpiUtils::scaled (kHeaderBtnSpacing));
+
   QPushButton* collapseBtn= new QPushButton (headerWidget);
   collapseBtn->setObjectName ("chat-tab-collapse-btn");
   collapseBtn->setFocusPolicy (Qt::NoFocus);
@@ -1206,6 +1240,16 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
            [this] () { toggle_sidebar (); });
   floatingLayout->addWidget (floatingBtn);
   floatingExpandBtn_= floatingBtn;
+
+  QPushButton* floatingSearchBtn=
+      make_floating_btn (floatingContainer, "chat-tab-floating-search-btn",
+                         ":llm-chat/search.svg");
+  connect (floatingSearchBtn, &QPushButton::clicked, this, [this] () {
+    toggle_sidebar ();
+    QTimer::singleShot (0, this, [this] () { sidebar_->focusSearch (); });
+  });
+  floatingSearchBtn_= floatingSearchBtn;
+  floatingLayout->addWidget (floatingSearchBtn);
 
   QPushButton* floatingNewBtn= make_floating_btn (
       floatingContainer, "chat-tab-floating-new-btn", ":llm-chat/addchat.svg");

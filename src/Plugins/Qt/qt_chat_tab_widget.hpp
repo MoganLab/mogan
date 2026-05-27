@@ -188,6 +188,11 @@ public:
    */
   void applySearchFilter ();
 
+  /**
+   * @brief 聚焦搜索框。
+   */
+  void focusSearch ();
+
   // ---- 其他公共方法 ----
 
   /**
@@ -334,7 +339,9 @@ private:
   QWidget*        sidebarWidget_       = nullptr; ///< 侧边栏容器
   QWidget*        contentWidget_       = nullptr; ///< 右侧内容区容器
   QPushButton*    collapseButton_      = nullptr; ///< 折叠按钮
+  QPushButton*    searchButton_        = nullptr; ///< 搜索按钮
   QPushButton*    floatingExpandBtn_   = nullptr; ///< 浮动展开按钮
+  QPushButton*    floatingSearchBtn_   = nullptr; ///< 浮动搜索按钮
   QPushButton*    floatingNewChatBtn_  = nullptr; ///< 浮动新建按钮
   QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
   QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
