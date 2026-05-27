@@ -816,6 +816,11 @@ edit_interface_rep::update_menus () {
   bool is_startup= is_startup_tab_buffer (buf->buf->name);
   bool is_chat   = is_chat_tab_buffer (buf->buf->name);
   bench_start ("update_menus");
+  if (get_server ()->in_full_screen_mode ()) {
+    bench_end ("update_menus");
+    return;
+  }
+
   if (!is_startup && !is_chat)
     SERVER (menu_main ("(horizontal (link texmacs-menu))"));
   if (!is_startup && !is_chat)
@@ -1284,6 +1289,9 @@ void
 edit_interface_rep::full_screen_mode (bool flag) {
   full_screen= flag;
   send_invalidate_all (this);
+  if (!flag) {
+    notify_change (THE_MENUS);
+  }
 }
 
 void
