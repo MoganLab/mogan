@@ -1,7 +1,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : 0622.scm
-;; DESCRIPTION : Unit tests for PR 0622 MathML/HTML export environment patch
+;; DESCRIPTION : Unit and Integration tests for MathML/HTML export of dfrac, tfrac, cfrac
 ;; COPYRIGHT   : (C) 2026 Sisyphus
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -37,6 +37,19 @@
     (check (patch-has-macro? patch "TeXmacs") => #t)
     (check (patch-has-macro? patch "binom") => #t)))
 
+(define (test-dfrac-html-export-integration)
+  (display "Verifying end-to-end HTML/MathML export with buffer-export...\n")
+  (let* ((tmu-path "$TEXMACS_PATH/tests/tmu/0622_infinity_sizes.tmu")
+         (tmp-html (url-temp))
+         (dummy (load-buffer tmu-path))
+         (dummy2 (buffer-export tmu-path tmp-html "html"))
+         (html-content (string-load tmp-html)))
+    ;; Under full buffer export, the fixed dfrac must properly expand to mfrac in MathML!
+    (check (string-contains? html-content "mfrac") => #t)
+    (check (string-contains? html-content "偶数") => #t)
+    (check (string-contains? html-content "奇数") => #t)))
+
 (tm-define (test_0622)
   (test-dfrac-env-patch-exclusion)
+  (test-dfrac-html-export-integration)
   (check-report))
