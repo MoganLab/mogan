@@ -588,8 +588,7 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
     item.sidebarButton->setText (to_qstring (info.displayTitle));
     bool isActive= (info.sessionId == activeSessionId && !info.archived);
     item.sidebarButton->setChecked (isActive);
-    if (item.moreButton)
-      item.moreButton->setVisible (isActive || info.archived);
+    if (item.moreButton) item.moreButton->setVisible (info.archived);
     item.isArchived= info.archived;
 
     if (info.archived) {
@@ -648,8 +647,6 @@ ChatSidebar::setActiveItem (const string& sessionId) {
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
-    if (it->moreButton && !it->isArchived)
-      it->moreButton->setVisible (isActive);
   }
 }
 
@@ -804,6 +801,8 @@ ChatSidebar::createItem (const string& sessionId) {
                "QPushButton:hover { background: rgba(0,0,0,0.08); }")
           .arg (moreBtnSize / 2));
   item.moreButton->hide ();
+  item.itemWidget->setAttribute (Qt::WA_Hover);
+  item.itemWidget->installEventFilter (this);
 
   // clicked 信号：已选中时保持选中状态，不重复触发
   connect (item.sidebarButton, &QPushButton::clicked, this,
@@ -948,6 +947,23 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
         it->moreButton->move (cr.right () - bw -
                                   DpiUtils::scaled (kMoreBtnMargin),
                               cr.top () + (cr.height () - bh) / 2);
+        break;
+      }
+    }
+  }
+  else if (event->type () == QEvent::HoverEnter) {
+    for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
+      if (it->itemWidget == watched && it->moreButton) {
+        it->moreButton->show ();
+        break;
+      }
+    }
+  }
+  else if (event->type () == QEvent::HoverLeave) {
+    for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
+      if (it->itemWidget == watched && it->moreButton) {
+        bool isActive= (it.key () == activeSessionId_ && !it->isArchived);
+        it->moreButton->setVisible (it->isArchived);
         break;
       }
     }
