@@ -463,6 +463,7 @@ qt_load_svg_icon (url file_name) {
 
   QPixmap icon (pm->size ());
   icon.convertFromImage (*pm);
+  delete pm;
   return icon;
 }
 
