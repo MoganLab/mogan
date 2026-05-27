@@ -1130,9 +1130,7 @@
     (set-search-filter)
     (set! search-filter-out? #f)
     (qt-floating-search-init (url->string aux))
-    (qt-floating-search "true")
-    (with-buffer target-buf
-      (perform-search*))))
+    (qt-floating-search "true")))
 
 (define (chat-tab-perform-search)
   (when (and chat-tab-search-target chat-tab-search-aux
@@ -1145,7 +1143,6 @@
 
 (tm-define (chat-tab-search-next forward?)
   (when (and chat-tab-search-target chat-tab-search-aux)
-    (chat-tab-perform-search)
     (with-buffer chat-tab-search-target
       (search-next-match forward? chat-tab-search-target))))
 
@@ -1703,7 +1700,10 @@
                 (string->url (string-append "tmfs://chat-message-" sid))))
          (chat-tab-search-init
            (string->url (string-append "tmfs://chat-message-" sid))))
-        ((not (string-starts? (url->system buf) "tmfs:"))
+        ((string-starts? (url->system buf) "tmfs:")
+         ;; 其他 tmfs:// 缓冲区不支持搜索
+         (noop))
+        (else
          (set! search-replace-text
            (cond ((in-math?) "Only search in math mode")
                  ((in-prog?) "Only search in Program mode")

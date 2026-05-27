@@ -246,6 +246,13 @@ ensure_search_bar (QWidget* content) {
   g_resize_filter    = new SearchBarResizeFilter (content);
   content->installEventFilter (g_resize_filter);
 
+  // content 被 Qt 销毁时自动清理全局指针，避免悬空
+  QObject::connect (content, &QObject::destroyed, [] () {
+    g_search_bar       = nullptr;
+    g_search_bar_parent= nullptr;
+    g_resize_filter    = nullptr;
+  });
+
   g_search_bar->setFixedWidth (DpiUtils::scaled (kBarWidth));
   connect_search_bar_signals (g_search_bar);
 }
@@ -285,10 +292,11 @@ qt_floating_search_init (string aux_url_str) {
   ensure_search_bar (content);
 
   // 创建 texmacs_input_widget 绑定到 search-buffer
-  url      aux_url= url_system (aux_url_str);
-  tree     doc (DOCUMENT, "");
-  tree     sty   = compound ("style", tree (TUPLE, "generic"));
-  widget   tw    = texmacs_input_widget (doc, sty, aux_url);
+  url    aux_url= url_system (aux_url_str);
+  tree   doc (DOCUMENT, "");
+  tree   sty= compound ("style", tree (TUPLE, "generic"));
+  widget tw = texmacs_input_widget (doc, sty, aux_url);
+  if (is_nil (tw)) return;
   QWidget* inputW= concrete (tw)->as_qwidget ();
   if (inputW) {
     inputW->setStyleSheet ("QWidget {"
