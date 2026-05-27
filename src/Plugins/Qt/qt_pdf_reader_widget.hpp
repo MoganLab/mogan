@@ -173,6 +173,11 @@ private:
   // 页面渲染缓存：key = (pageNumber, targetWidth)
   QHash<PdfPageCacheKey, QPixmap> pageCache_;
 
+  // PDF 文档常驻句柄（避免每次渲染都重新打开文档）
+  void* pdfDocHandle_;    // fz_document*
+  void* pdfStreamHandle_; // fz_stream*
+  void* pdfBufferHandle_; // fz_buffer*
+
   // 防抖定时器
   QTimer* zoomDebounceTimer_;
   QTimer* resizeDebounceTimer_;

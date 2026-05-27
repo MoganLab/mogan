@@ -77,7 +77,8 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
       inPinchGesture_ (false), blockRender_ (false), pinchStartZoom_ (1.0),
-      renderCallCount_ (0) {
+      renderCallCount_ (0), pdfDocHandle_ (nullptr),
+      pdfStreamHandle_ (nullptr), pdfBufferHandle_ (nullptr) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -178,7 +179,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
            &PDFReaderWidget::finishPinchGesture);
 }
 
-PDFReaderWidget::~PDFReaderWidget () {}
+PDFReaderWidget::~PDFReaderWidget () { clear (); }
 
 void
 PDFReaderWidget::setupToolBar () {
@@ -784,41 +785,26 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
     }
   }
 
-  fz_document* doc    = nullptr;
-  fz_pixmap*   pix    = nullptr;
-  fz_page*     page   = nullptr;
-  fz_buffer*   buf    = nullptr;
-  fz_stream*   stream = nullptr;
-  bool         success= false;
+  fz_pixmap* pix    = nullptr;
+  fz_page*   page   = nullptr;
+  bool       success= false;
 
-  fz_var (doc);
   fz_var (pix);
   fz_var (page);
-  fz_var (buf);
-  fz_var (stream);
+
+  // 复用常驻的 PDF 文档句柄
+  if (!pdfDocHandle_) {
+    errorString_= qt_translate ("PDF document not open");
+    hasError_   = true;
+    return false;
+  }
 
   fz_try (ctx) {
-    buf= fz_new_buffer_from_copied_data (
-        ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
-        pdfData_.size ());
-
-    stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-
-    if (!doc) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
-    }
-
-    int totalPages= fz_count_pages (ctx, doc);
-    if (totalPages <= 0) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
-    }
-
-    if (pageNumber < 0 || pageNumber >= totalPages) {
+    if (pageNumber < 0 || pageNumber >= pageCount_) {
       pageNumber= 0;
     }
 
-    page= fz_load_page (ctx, doc, pageNumber);
+    page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, pageNumber);
     if (!page) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
     }
@@ -894,9 +880,6 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
 
   if (pix) fz_drop_pixmap (ctx, pix);
   if (page) fz_drop_page (ctx, page);
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
 
   return success;
 }
@@ -1017,11 +1000,9 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     }
   }
 
-  fz_document* doc   = nullptr;
   fz_buffer*   buf   = nullptr;
   fz_stream*   stream= nullptr;
 
-  fz_var (doc);
   fz_var (buf);
   fz_var (stream);
 
@@ -1032,15 +1013,18 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
         pdfData_.size ());
 
     stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
+    pdfDocHandle_=
+        fz_open_document_with_stream (ctx, "pdf", stream);
 
-    if (doc) {
-      pageCount_= fz_count_pages (ctx, doc);
-      opened    = (pageCount_ > 0);
+    if (pdfDocHandle_) {
+      pageCount_=
+          fz_count_pages (ctx, (fz_document*) pdfDocHandle_);
+      opened= (pageCount_ > 0);
       if (opened && pageCount_ > 0) {
         pageAspectRatios_.reserve (pageCount_);
         for (int i= 0; i < pageCount_; ++i) {
-          fz_page* page= fz_load_page (ctx, doc, i);
+          fz_page* page=
+              fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
           if (page) {
             fz_rect bbox  = fz_bound_page (ctx, page);
             double  aspect= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
@@ -1063,17 +1047,23 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     hasError_   = true;
   }
 
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
-
   if (!opened) {
+    if (pdfDocHandle_) {
+      fz_drop_document (ctx, (fz_document*) pdfDocHandle_);
+      pdfDocHandle_= nullptr;
+    }
+    if (stream) fz_drop_stream (ctx, stream);
+    if (buf) fz_drop_buffer (ctx, buf);
     if (!hasError_) {
       errorString_= qt_translate ("Failed to open PDF");
       hasError_   = true;
     }
     return false;
   }
+
+  // 保存 stream/buf 句柄，确保文档生命周期内它们有效
+  pdfStreamHandle_= stream;
+  pdfBufferHandle_= buf;
 
   extractPageLinks ();
 
@@ -1116,6 +1106,21 @@ PDFReaderWidget::clear () {
     delete item;
   }
 
+  // 释放常驻 PDF 文档句柄
+  fz_context* ctx= mupdf_context ();
+  if (pdfDocHandle_) {
+    fz_drop_document (ctx, (fz_document*) pdfDocHandle_);
+    pdfDocHandle_= nullptr;
+  }
+  if (pdfStreamHandle_) {
+    fz_drop_stream (ctx, (fz_stream*) pdfStreamHandle_);
+    pdfStreamHandle_= nullptr;
+  }
+  if (pdfBufferHandle_) {
+    fz_drop_buffer (ctx, (fz_buffer*) pdfBufferHandle_);
+    pdfBufferHandle_= nullptr;
+  }
+
   updatePageNavigation ();
 }
 
@@ -1127,25 +1132,12 @@ PDFReaderWidget::extractPageLinks () {
   fz_context* ctx= mupdf_context ();
   if (!ctx) return;
 
-  fz_document* doc   = nullptr;
-  fz_buffer*   buf   = nullptr;
-  fz_stream*   stream= nullptr;
-
-  fz_var (doc);
-  fz_var (buf);
-  fz_var (stream);
+  if (!pdfDocHandle_) return;
 
   fz_try (ctx) {
-    buf= fz_new_buffer_from_copied_data (
-        ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
-        pdfData_.size ());
-    stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-    if (!doc) fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF");
-
     pageLinks_.resize (pageCount_);
     for (int i= 0; i < pageCount_; ++i) {
-      fz_page* page= fz_load_page (ctx, doc, i);
+      fz_page* page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
       if (!page) continue;
       fz_link* links= fz_load_links (ctx, page);
       if (links) {
@@ -1170,7 +1162,8 @@ PDFReaderWidget::extractPageLinks () {
           if (pl.uri.startsWith ("#") || pl.uri.startsWith ("#nameddest=") ||
               pl.uri.startsWith ("#page=")) {
             float       xp= 0, yp= 0;
-            fz_location loc= fz_resolve_link (ctx, doc, link->uri, &xp, &yp);
+            fz_location loc= fz_resolve_link (
+                ctx, (fz_document*) pdfDocHandle_, link->uri, &xp, &yp);
             if (loc.page >= 0) {
               pl.page= loc.page; // 0-based page index
             }
@@ -1185,10 +1178,6 @@ PDFReaderWidget::extractPageLinks () {
   fz_catch (ctx) {
     qWarning () << "MuPDF link extraction error:" << fz_caught_message (ctx);
   }
-
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
 }
 
 void
