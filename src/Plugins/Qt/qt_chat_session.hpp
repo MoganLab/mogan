@@ -38,6 +38,7 @@ struct ChatSession {
   bool                    archived;  ///< 是否归档
   string                  createdAt; ///< Unix 时间戳字符串，如 "1748266800"
   int                     defaultExpandCount; ///< 默认展开对话条数，固定为 5
+  bool                    thinking;           ///< 是否启用推理模式，默认 false
   ChatConversationPanel*  panel;              ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection;  ///< send/stop 按钮信号连接句柄
 };
@@ -102,6 +103,20 @@ public:
    * @return 模型名称，会话不存在时返回空字符串
    */
   string getModel (const string& sessionId);
+
+  /**
+   * @brief 设置会话的推理模式开关。
+   * @param sessionId 目标会话 ID
+   * @param thinking  是否启用推理模式
+   */
+  void setThinking (const string& sessionId, bool thinking);
+
+  /**
+   * @brief 获取会话的推理模式开关状态。
+   * @param sessionId 目标会话 ID
+   * @return 是否启用推理模式，会话不存在时返回 false
+   */
+  bool getThinking (const string& sessionId);
 
   /**
    * @brief 获取所有会话 ID，按 createdAt 降序排列（最新的在前）。

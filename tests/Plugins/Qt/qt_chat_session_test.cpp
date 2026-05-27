@@ -69,6 +69,12 @@ private slots:
   void test_title_empty_for_new_session ();
   void test_title_nonempty_after_set ();
   void test_title_preserved_across_archive_restore ();
+
+  // === thinking ===
+  void test_createSession_thinking_default_false ();
+  void test_setThinking_and_getThinking ();
+  void test_getThinking_nonexistent ();
+  void test_setThinking_nonexistent ();
 };
 
 /******************************************************************************
@@ -413,6 +419,46 @@ TestChatSession::test_insertSession_defaultExpandCount () {
   ChatSession* found= mgr.getSession ("test-expand");
   QVERIFY (found != nullptr);
   QCOMPARE (found->defaultExpandCount, 5);
+}
+
+/******************************************************************************
+ * thinking
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_thinking_default_false () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  ChatSession*       s  = mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!s->thinking);
+  QVERIFY (!mgr.getThinking (sid));
+}
+
+void
+TestChatSession::test_setThinking_and_getThinking () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setThinking (sid, true);
+  QVERIFY (mgr.getThinking (sid));
+  QCOMPARE (mgr.getSession (sid)->thinking, true);
+
+  mgr.setThinking (sid, false);
+  QVERIFY (!mgr.getThinking (sid));
+  QCOMPARE (mgr.getSession (sid)->thinking, false);
+}
+
+void
+TestChatSession::test_getThinking_nonexistent () {
+  ChatSessionManager mgr;
+  QVERIFY (!mgr.getThinking ("nonexistent-id"));
+}
+
+void
+TestChatSession::test_setThinking_nonexistent () {
+  ChatSessionManager mgr;
+  mgr.setThinking ("nonexistent-id", true);
+  // 不应崩溃
 }
 
 QTEST_MAIN (TestChatSession)

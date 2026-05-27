@@ -53,8 +53,9 @@
 
 ;;; ---------- JSON 条目 ----------
 
-(tm-define (chat-persist-make-entry sid title model archived created-at)
-  (let ((entry (string->njson "{}")))
+(tm-define (chat-persist-make-entry sid title model archived created-at . opts)
+  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+        (entry (string->njson "{}")))
     (njson-set! entry "sessionId" sid)
     (njson-set! entry "title" title)
     (njson-set! entry "model" model)
@@ -64,6 +65,7 @@
     ) ;njson-set!
     (njson-set! entry "createdAt" (or created-at ""))
     (njson-set! entry "defaultExpandCount" 5)
+    (njson-set! entry "thinking" thinking)
     entry
   ) ;let
 ) ;tm-define
@@ -156,12 +158,16 @@
                            (created-at (if created-at-pair (cdr created-at-pair) ""))
                            (expand-count-pair (assoc "defaultExpandCount" entry))
                            (expand-count (if expand-count-pair (cdr expand-count-pair) 5))
+                           (thinking-pair (assoc "thinking" entry))
+                           (thinking (if thinking-pair (cdr thinking-pair) "disabled"))
                           ) ;
                       (display "[chat-persist]   restoring meta: sid=")
                       (display sid)
                       (newline)
                       ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid title model archived-str created-at expand-count)
+                      (qt-chat-tab-restore-session sid title model archived-str created-at expand-count thinking)
+                      ;; 恢复 Scheme 侧 session state（包含 thinking）
+                      (chat-persist-register-session sid model thinking)
                     ) ;let*
                   ) ;lambda
           entries
@@ -255,10 +261,11 @@
 ;; ----
 ;; (chat-persist-update-manifest session-id title model archived created-at)
 
-(tm-define (chat-persist-update-manifest session-id title model archived created-at)
-  (let ((manifest-path (chat-persist-manifest-path))
-        (entry (chat-persist-make-entry session-id title model archived created-at))
-       ) ;
+(tm-define (chat-persist-update-manifest session-id title model archived created-at . opts)
+  (let* ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+         (manifest-path (chat-persist-manifest-path))
+         (entry (chat-persist-make-entry session-id title model archived created-at thinking))
+        ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
     (if (not (file-exists? manifest-path))
       ;; manifest 不存在：创建新的，直接构建包含 entry 的数组
@@ -308,9 +315,11 @@
 ;; chat-persist-save-one
 ;; 导出 buffer 并更新 manifest（组合调用）。
 
-(tm-define (chat-persist-save-one session-id title model archived created-at)
-  (chat-persist-export-buffer session-id)
-  (chat-persist-update-manifest session-id title model archived created-at)
+(tm-define (chat-persist-save-one session-id title model archived created-at . opts)
+  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled")))
+    (chat-persist-export-buffer session-id)
+    (chat-persist-update-manifest session-id title model archived created-at thinking)
+  ) ;let
 ) ;tm-define
 
 ;;; ---------- 删除持久化会话 ----------
@@ -405,10 +414,11 @@
 
 ;;; ---------- 注册恢复后的会话 ----------
 
-(tm-define (chat-persist-register-session session-id model)
-  (let ((st (chat-tab-get-state session-id)))
+(tm-define (chat-persist-register-session session-id model . opts)
+  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+        (st (chat-tab-get-state session-id)))
     (when (not st)
-      (chat-tab-set-state! session-id (chat-tab-state model))
+      (chat-tab-set-state! session-id (chat-tab-state model thinking))
     ) ;when
   ) ;let
 ) ;tm-define

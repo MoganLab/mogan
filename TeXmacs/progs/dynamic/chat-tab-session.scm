@@ -41,10 +41,18 @@
 
 ;;; ---------- State 构造器和访问器 ----------
 
-(tm-define (chat-tab-state model) (list model))
+(tm-define (chat-tab-state model . opts)
+  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled")))
+    (list model thinking)
+  ) ;let
+) ;tm-define
 
 (define (chat-tab-state-model st)
   (list-ref st 0)
+) ;define
+
+(define (chat-tab-state-thinking st)
+  (if (>= (length st) 2) (list-ref st 1) "disabled")
 ) ;define
 
 (define (chat-tab-state->plugin-session-id st session-id)
@@ -57,6 +65,33 @@
 
 (tm-define (chat-tab-get-state session-id)
   (ahash-ref chat-tab-session-states session-id)
+) ;tm-define
+
+;; chat-tab-session-set-thinking
+;; 设置会话的推理模式开关，并持久化到 manifest。
+;;
+;; 语法
+;; ----
+;; (chat-tab-session-set-thinking session-id thinking)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID。
+;; thinking : string
+;;   "enabled" 或 "disabled"。
+
+(tm-define (chat-tab-session-set-thinking session-id thinking)
+  (:synopsis "Set thinking mode for a chat session")
+  (:argument session-id "Session UUID")
+  (:argument thinking "Thinking mode: enabled or disabled")
+  (let ((st (chat-tab-get-state session-id)))
+    (when st
+      (chat-tab-set-state! session-id
+        (chat-tab-state (chat-tab-state-model st) thinking)
+      ) ;chat-tab-set-state!
+    ) ;when
+  ) ;let
 ) ;tm-define
 
 ;;; ---------- 文档处理工具 ----------
@@ -967,7 +1002,7 @@
 ;; string
 ;; JSON 字符串，格式为 {"messages":[...]}。
 
-(define (chat-tab-rounds->json rounds)
+(define (chat-tab-rounds->json rounds thinking)
   (let ((arr (string->njson "[]")))
     (for-each (lambda (pair)
                 (let ((entry (string->njson "{}")))
@@ -981,6 +1016,11 @@
     ) ;for-each
     (let ((obj (string->njson "{}")))
       (njson-set! obj "messages" arr)
+      (when (and thinking
+                 (not (string=? thinking "default"))
+                 (not (string=? thinking "")))
+        (njson-set! obj "thinking" thinking)
+      ) ;when
       (let ((result (njson->string obj)))
         (njson-free arr)
         (njson-free obj)
@@ -1013,7 +1053,9 @@
 (define (chat-tab-build-context-input session-id input)
   (let* ((msg-buf (chat-tab-session->message-buffer session-id))
          (rounds (chat-tab-extract-rounds msg-buf))
-         (json-str (chat-tab-rounds->json rounds))
+         (st (chat-tab-get-state session-id))
+         (thinking (if st (chat-tab-state-thinking st) "disabled"))
+         (json-str (chat-tab-rounds->json rounds thinking))
          (cmd (string-append "%context " (utf8->cork json-str)))
         ) ;
     (stree->tree `(document ,cmd))

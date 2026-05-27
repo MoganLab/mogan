@@ -21,6 +21,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QTimer>
+#include <QToolButton>
 
 #include "qt_utilities.hpp"
 
@@ -226,6 +227,14 @@ ChatController::onCancelRequested (const string& sessionId) {
 }
 
 void
+ChatController::onThinkingToggled (const string& sessionId, bool enabled) {
+  sessionManager_.setThinking (sessionId, enabled);
+  call ("chat-tab-session-set-thinking", sessionId,
+        enabled ? string ("enabled") : string ("disabled"));
+  updateManifest (sessionId);
+}
+
+void
 ChatController::onDeleteRequested (const QList<string>& sessionIds) {
   if (!view_) return;
 
@@ -398,9 +407,10 @@ void
 ChatController::restoreSessionMeta (const string& sessionId,
                                     const string& title, const string& model,
                                     bool archived, const string& createdAt,
-                                    int defaultExpandCount) {
+                                    int defaultExpandCount, bool thinking) {
   // 注册 Scheme 侧会话状态
-  call ("chat-persist-register-session", sessionId, model);
+  call ("chat-persist-register-session", sessionId, model,
+        thinking ? string ("enabled") : string ("disabled"));
 
   // 插入元数据，不创建面板
   ChatSession session;
@@ -411,6 +421,7 @@ ChatController::restoreSessionMeta (const string& sessionId,
   session.archived          = archived;
   session.createdAt         = createdAt;
   session.defaultExpandCount= defaultExpandCount;
+  session.thinking          = thinking;
   session.panel             = nullptr;
   sessionManager_.insertSession (session);
 }
@@ -490,7 +501,8 @@ ChatController::updateManifest (const string& sessionId) {
   array<object> args;
   args << object (sessionId) << object (s->title) << object (s->model)
        << object (s->archived ? string ("true") : string ("false"))
-       << object (s->createdAt);
+       << object (s->createdAt)
+       << object (s->thinking ? string ("enabled") : string ("disabled"));
   call ("chat-persist-update-manifest", args);
 }
 
@@ -543,6 +555,8 @@ ChatController::ensureNewConversation () {
   // 连接 Panel 的信号
   connect (panel, &ChatConversationPanel::sendRequested, this,
            &ChatController::onSendRequested);
+  connect (panel, &ChatConversationPanel::thinkingToggled, this,
+           &ChatController::onThinkingToggled);
 
   // 添加 sidebar item
   view_->sidebar ()->addItem (sid, "新会话");
@@ -580,6 +594,13 @@ ChatController::getOrCreatePanel (const string& sessionId) {
   // 连接 Panel 的信号
   connect (panel, &ChatConversationPanel::sendRequested, this,
            &ChatController::onSendRequested);
+  connect (panel, &ChatConversationPanel::thinkingToggled, this,
+           &ChatController::onThinkingToggled);
+
+  // 恢复推理模式按钮状态
+  if (panel->thinkingButton () && s->thinking) {
+    panel->thinkingButton ()->setChecked (true);
+  }
 
   return panel;
 }
@@ -660,9 +681,10 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 void
 qt_chat_tab_restore_session (string sessionId, string title, string model,
                              string archived, string createdAt,
-                             int defaultExpandCount) {
+                             int defaultExpandCount, string thinking) {
   bool isArchived = (archived == "true");
   int  expandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
+  bool isThinking = (thinking == "enabled");
   get_chat_controller ()->restoreSessionMeta (
-      sessionId, title, model, isArchived, createdAt, expandCount);
+      sessionId, title, model, isArchived, createdAt, expandCount, isThinking);
 }

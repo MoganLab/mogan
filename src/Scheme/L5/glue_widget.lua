@@ -523,7 +523,8 @@ function main()
                     "string",
                     "string",
                     "string",
-                    "int"
+                    "int",
+                    "string"
                 }
             }
         }

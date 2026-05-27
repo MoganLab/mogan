@@ -109,6 +109,13 @@ public:
   void onRenameRequested (const string& sessionId, const string& newTitle);
 
   /**
+   * @brief 推理模式开关切换时触发。
+   * @param sessionId 目标会话 ID
+   * @param enabled   是否启用推理模式
+   */
+  void onThinkingToggled (const string& sessionId, bool enabled);
+
+  /**
    * @brief Scheme→C++ 回调：通知状态变更。
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);
@@ -118,7 +125,8 @@ public:
    */
   void restoreSessionMeta (const string& sessionId, const string& title,
                            const string& model, bool archived,
-                           const string& createdAt, int defaultExpandCount);
+                           const string& createdAt, int defaultExpandCount,
+                           bool thinking);
 
   /**
    * @brief 销毁 View 引用，防止悬垂指针。
@@ -224,6 +232,6 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  */
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
                                   string archived, string createdAt,
-                                  int defaultExpandCount);
+                                  int defaultExpandCount, string thinking);
 
 #endif // QT_CHAT_CONTROLLER_HPP

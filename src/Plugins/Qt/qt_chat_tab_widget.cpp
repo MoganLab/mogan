@@ -41,6 +41,7 @@
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
+#include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
 
@@ -240,6 +241,30 @@ ChatConversationPanel::setup_ui () {
 
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
+
+  // Thinking toggle button
+  thinkingButton_= new QToolButton (inputFrame);
+  thinkingButton_->setObjectName ("chat-tab-thinking-btn");
+  thinkingButton_->setCheckable (true);
+  thinkingButton_->setChecked (false);
+  thinkingButton_->setFocusPolicy (Qt::NoFocus);
+  thinkingButton_->setCursor (Qt::PointingHandCursor);
+  thinkingButton_->setToolTip (tr ("Deep Reasoning"));
+  thinkingButton_->setIcon (QIcon (":llm-chat/thinking.svg"));
+  thinkingButton_->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                                       DpiUtils::scaled (kToggleIconSize)));
+  thinkingButton_->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                                 DpiUtils::scaled (kToggleBtnSize));
+  thinkingButton_->setStyleSheet (
+      QString ("QToolButton { border: none; border-radius: %1px; background: "
+               "transparent; }"
+               "QToolButton:checked { background: rgba(59,130,246,0.15); }"
+               "QToolButton:hover { background: rgba(0,0,0,0.06); }")
+          .arg (DpiUtils::scaled (4)));
+  connect (thinkingButton_, &QToolButton::toggled, this, [this] (bool checked) {
+    emit thinkingToggled (sessionId_, checked);
+  });
+  btnLayout->addWidget (thinkingButton_);
 
   // Send button
   sendButton_= new QPushButton (inputFrame);

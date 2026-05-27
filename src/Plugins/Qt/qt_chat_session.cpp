@@ -33,6 +33,7 @@ ChatSessionManager::createSession () {
   std::snprintf (buf, sizeof (buf), "%ld", (long) now);
   session.createdAt         = string (buf);
   session.defaultExpandCount= 5;
+  session.thinking          = false;
   session.panel             = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
   return sessionId;
@@ -78,6 +79,19 @@ ChatSessionManager::getModel (const string& sessionId) {
   ChatSession* s= getSession (sessionId);
   if (s) return s->model;
   return "";
+}
+
+void
+ChatSessionManager::setThinking (const string& sessionId, bool thinking) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->thinking= thinking;
+}
+
+bool
+ChatSessionManager::getThinking (const string& sessionId) {
+  ChatSession* s= getSession (sessionId);
+  if (s) return s->thinking;
+  return false;
 }
 
 ChatSession*
