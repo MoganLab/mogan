@@ -27,7 +27,7 @@
          ) ;entry
         ) ;
     (string-append (string-quote (url->system (find-binary-goldfish)))
-      " -l "
+      " load "
       (string-quote (url->system entry))
     ) ;string-append
   ) ;let*
