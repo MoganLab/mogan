@@ -1346,10 +1346,13 @@ QAbstractScrollArea#chat-tab-input-area QScrollBar::handle:vertical:hover {
 /* 输入框框架 */
 QWidget#chat-tab-input-frame {
   background-color: #ffffff;
-  border-color: #e0e0e0;
+  border: 1px solid #e0e0e0;
 }
 QWidget#chat-tab-input-frame:hover {
-  border-color: #c0c0c0;
+  border: 1px solid #808080;
+}
+QWidget#chat-tab-input-frame[hasFocus="true"] {
+  border: 1px solid #808080;
 }
 
 /* 发送按钮 */

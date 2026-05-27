@@ -199,12 +199,9 @@ ChatConversationPanel::setup_ui () {
   QWidget* inputFrame= new QWidget (inputArea);
   inputFrame->setObjectName ("chat-tab-input-frame");
   inputFrame->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
-  inputFrame->setStyleSheet (
-      QString ("QWidget#chat-tab-input-frame { "
-               "  border: 1px solid; border-radius: %1px; }"
-               "QWidget#chat-tab-input-frame:hover { "
-               "  border: 1px solid; }")
-          .arg (DpiUtils::scaled (kInputFrameRadius)));
+  inputFrame->setStyleSheet (QString ("QWidget#chat-tab-input-frame { "
+                                      " border-radius: %1px; }")
+                                 .arg (DpiUtils::scaled (kInputFrameRadius)));
   QVBoxLayout* inputFrameLayout= new QVBoxLayout (inputFrame);
   inputFrameLayout->setContentsMargins (
       DpiUtils::scaled (kInputFramePad), DpiUtils::scaled (kInputFramePad),
@@ -376,6 +373,17 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   }
   if (event->type () == QEvent::KeyRelease) {
     adjust_input_height ();
+  }
+  if (event->type () == QEvent::FocusIn || event->type () == QEvent::FocusOut) {
+    if (watched->property ("chat_panel").value<void*> () == this) {
+      QWidget* frame=
+          inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
+      if (frame) {
+        frame->setProperty ("hasFocus", event->type () == QEvent::FocusIn);
+        frame->style ()->unpolish (frame);
+        frame->style ()->polish (frame);
+      }
+    }
   }
   return QWidget::eventFilter (watched, event);
 }

@@ -1407,7 +1407,7 @@ QWidget#centralWidget QLabel#chat-tab-model-label {
 
 /* 消息框 */
 QWidget#centralWidget QWidget#chat-tab-message-frame {
-  background-color: #2c2c2c;
+  background-color: #1e1e1e;
 }
 
 /* 输入区滚动条 */
@@ -1423,11 +1423,14 @@ QWidget#centralWidget QAbstractScrollArea#chat-tab-input-area QScrollBar::handle
 
 /* 输入框框架 */
 QWidget#centralWidget QWidget#chat-tab-input-frame {
-  background-color: #ffffff;
-  border-color: #4c4c4c;
+  background-color: #404040;
+  border: 1px solid #4c4c4c;
 }
 QWidget#centralWidget QWidget#chat-tab-input-frame:hover {
-  border-color: #6a6a6a;
+  border: 1px solid #6a6a6a;
+}
+QWidget#centralWidget QWidget#chat-tab-input-frame[hasFocus="true"] {
+  border: 1px solid #6a6a6a;
 }
 
 /* 发送按钮 */
@@ -1435,10 +1438,10 @@ QWidget#centralWidget QPushButton#chat-tab-send-btn {
   background-color: transparent;
 }
 QWidget#centralWidget QPushButton#chat-tab-send-btn:hover {
-  background-color: #f0f0f0;
+  background-color: #6c6c6c;
 }
 QWidget#centralWidget QPushButton#chat-tab-send-btn:pressed {
-  background-color: #e0e0e0;
+  background-color: #8e8e8e;
 }
 
 /* 选择复选框 */
