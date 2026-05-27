@@ -309,19 +309,10 @@ ChatConversationPanel::enterConversationMode () {
   }
 
   if (topSpacer_ && layout ()) {
-    QVariantAnimation* offsetAnim= new QVariantAnimation (this);
-    offsetAnim->setDuration (kTransitionDurationMs);
-    offsetAnim->setStartValue (startOffset);
-    offsetAnim->setEndValue (endOffset);
-    connect (offsetAnim, &QVariantAnimation::valueChanged, this,
-             [this] (const QVariant& value) {
-               if (!topSpacer_ || !layout ()) return;
-               topSpacer_->changeSize (0, value.toInt (), QSizePolicy::Minimum,
-                                       QSizePolicy::Fixed);
-               layout ()->invalidate ();
-               layout ()->activate ();
-             });
-    offsetAnim->start (QAbstractAnimation::DeleteWhenStopped);
+    topSpacer_->changeSize (0, endOffset, QSizePolicy::Minimum,
+                            QSizePolicy::Fixed);
+    layout ()->invalidate ();
+    layout ()->activate ();
   }
 }
 
