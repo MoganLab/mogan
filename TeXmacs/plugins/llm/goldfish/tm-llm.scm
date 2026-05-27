@@ -19,14 +19,8 @@
 
 (define (eval-and-print code)
   (set! echo-count (+ echo-count 1))
-  (let* ((count-str (number->string echo-count))
-         (stree (with-input-from-string code (lambda () (read))))
-         (tag (if (pair? stree) (car stree) '()))
-        ) ;
-    (if (member tag '(document math equation* align))
-      (flush-scheme `(document (concat ,count-str ," " ,stree)))
-      (flush-verbatim (string-append count-str " " (length code)))
-    ) ;if
+  (let* ((count-str (number->string echo-count)) (N (length code)))
+    (flush-verbatim (string-append count-str " " (number->string N)))
   ) ;let*
 ) ;define
 
