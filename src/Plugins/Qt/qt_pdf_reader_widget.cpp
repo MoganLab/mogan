@@ -76,8 +76,8 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       zoomFactor_ (1.0), pageAspectRatio_ (0.0), pageBaseWidthPts_ (0.0),
       overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
-      inPinchGesture_ (false), blockRender_ (false), pinchStartZoom_ (1.0),
-      renderCallCount_ (0) {
+      inPinchGesture_ (false), blockRender_ (false), autoFitApplied_ (false),
+      pinchStartZoom_ (1.0), renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -169,7 +169,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
   resizeDebounceTimer_->setSingleShot (true);
   resizeDebounceTimer_->setInterval (RESIZE_DEBOUNCE_MS);
   connect (resizeDebounceTimer_, &QTimer::timeout, this,
-           &PDFReaderWidget::rebuildPages);
+           &PDFReaderWidget::onResizeDebounced);
 
   gestureSafetyTimer_= new QTimer (this);
   gestureSafetyTimer_->setSingleShot (true);
@@ -344,6 +344,31 @@ PDFReaderWidget::updateZoomDisplay () {
   bool blocked= zoomCombo_->blockSignals (true);
   zoomCombo_->setText (text);
   zoomCombo_->blockSignals (blocked);
+}
+
+void
+PDFReaderWidget::onResizeDebounced () {
+  if (!maybeAutoFitWidth ()) {
+    rebuildPages ();
+  }
+}
+
+bool
+PDFReaderWidget::maybeAutoFitWidth () {
+  if (autoFitApplied_) return false;
+  if (pdfData_.isEmpty () || pageCount_ <= 0) return false;
+  if (pageBaseWidthPts_ <= 0) return false;
+
+  QScreen* screen= this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  int screenWidth= screen ? screen->availableSize ().width () : 1920;
+
+  if (width () <= screenWidth / 2) {
+    fitWidth ();
+    autoFitApplied_= true;
+    return true;
+  }
+  return false;
 }
 
 void
@@ -976,6 +1001,7 @@ PDFReaderWidget::rebuildPages () {
 bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   clear ();
+  autoFitApplied_= false;
 
   targetDpi_= dpi;
   hasError_ = false;
@@ -1089,6 +1115,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   }
 
   pageLayout_->addStretch (1);
+  maybeAutoFitWidth ();
   rebuildPages ();
   contentWidget_->adjustSize ();
   updateZoomDisplay ();
@@ -1105,6 +1132,7 @@ PDFReaderWidget::clear () {
   pageAspectRatio_ = 0.0;
   pageBaseWidthPts_= 0.0;
   pageAspectRatios_.clear ();
+  autoFitApplied_= false;
   clearPageLinks ();
   pageCache_.clear ();
 

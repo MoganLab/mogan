@@ -1271,6 +1271,44 @@ private slots:
 
     delete widget;
   }
+
+  void test_autoFitWidth_whenNarrow () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    QScreen*         screen= QApplication::primaryScreen ();
+    int screenWidth= screen ? screen->availableSize ().width () : 1920;
+    widget->resize (screenWidth / 4, 300);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    // 当 widget 宽度不超过屏幕一半时，应自动触发 Fit Width
+    QVERIFY (widget->zoomFactor () != 1.0);
+    delete widget;
+  }
+
+  void test_noAutoFitWidth_whenWide () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    QScreen*         screen= QApplication::primaryScreen ();
+    int screenWidth= screen ? screen->availableSize ().width () : 1920;
+    widget->resize (screenWidth * 2 / 3, 800);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    // 当 widget 宽度超过屏幕一半时，应保持默认 100% 缩放
+    QCOMPARE (widget->zoomFactor (), 1.0);
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)

@@ -107,6 +107,8 @@ private:
   void    finishPinchGesture ();
   bool    renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
   void    rebuildPages ();
+  void    onResizeDebounced ();
+  bool    maybeAutoFitWidth ();
   int     pageWidth () const;
   void    setupToolBar ();
   void    updateZoomDisplay ();
@@ -180,6 +182,7 @@ private:
 
   bool   inPinchGesture_;
   bool   blockRender_;
+  bool   autoFitApplied_;
   double pinchStartZoom_;
 
   int renderCallCount_;
