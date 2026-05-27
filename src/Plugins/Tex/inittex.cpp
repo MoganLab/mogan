@@ -86,6 +86,11 @@ latex_progress_start (int total) {
 #ifdef QTTEXMACS
   if (QApplication::instance () &&
       qobject_cast<QApplication*> (QApplication::instance ())) {
+    if (latex_progress_dialog) {
+      latex_progress_dialog->close ();
+      delete latex_progress_dialog;
+      latex_progress_dialog = nullptr;
+    }
     QWidget* main_window = QApplication::activeWindow ();
     latex_progress_total = total;
 

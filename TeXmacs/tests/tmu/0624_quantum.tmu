@@ -1,0 +1,335 @@
+<TMU|<tuple|1.1.0|2025.2.2-rc1>>
+
+<style|<tuple|generic|number-europe|preview-ref|smart-ref|python|doc|framed-theorems|physics>>
+
+<\body>
+  <doc-data|<doc-title|Fine Structure of a Hydrogen Atom>>
+
+  <\framed>
+    <paragraph|Recap Chapter 4.2 Hydrogen Atom>
+
+    <\equation*>
+      H=-<frac|\<hbar\><rsup|2>|2 m>\<nabla\><rsup|2>-<frac|1|4\<pi\>\<epsilon\><rsub|0>><frac|1|r>
+    </equation*>
+
+    <math|\<Longrightarrow\>> Bohr energy
+
+    <\equation*>
+      E<rsub|0>=-<frac|13.6|n<rsup|2>>eV
+    </equation*>
+  </framed>
+
+  Hierarchy Bohr
+
+  <big-table|<tabular|<tformat|<cwith|4|4|2|2|cell-bborder|0ln>|<cwith|1|-1|2|2|cell-lborder|1ln>|<cwith|1|-1|1|1|cell-rborder|1ln>|<cwith|1|-1|2|2|cell-rborder|0ln>|<cwith|1|1|1|-1|cell-tborder|0ln>|<cwith|1|1|1|-1|cell-bborder|1ln>|<cwith|2|2|1|-1|cell-tborder|1ln>|<cwith|1|1|1|1|cell-lborder|0ln>|<cwith|1|1|2|2|cell-rborder|0ln>|<table|<row|<cell|Bohr>|<cell|<math|\<alpha\><rsup|2>MC<rsup|2>>>>|<row|<cell|Fine Structure>|<cell|<math|\<alpha\><rsup|4>MC<rsup|2>>>>|<row|<cell|Lamb Shift>|<cell|<math|\<alpha\><rsup|5>MC<rsup|2>>>>|<row|<cell|Hydro splitting>|<cell|<math|<around*|(|<frac|m|m<rsub|p>>|)>\<alpha\><rsup|7>>MC<math|<rsup|2>>>>>>>|>
+
+  Fine structure = (spinless) relativistic + spin-orbit coupling\ 
+
+  <\problem*>
+    (6.11) Express Bohr energy in terms of <math|\<alpha\>> and <math|MC<rsup|2>>
+
+    Page 149 Eq<nbsp>[4.70]
+
+    <\equation*>
+      E<rsub|n>=-<around*|[|<frac|m|2\<hbar\><rsup|2>><around*|(|<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>>|)><rsup|2>|]><frac|1|n<rsup|2>>=-<frac|MC<rsup|2>|2><around*|(|<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>\<pi\>C>|)><rsup|2><frac|1|n<rsup|2>>=-<frac|1|2>MC<rsup|2>\<alpha\><rsup|2><frac|1|n<rsup|2>>
+    </equation*>
+  </problem*>
+
+  <section|Spinless Relativistic Correction>
+
+  In QM, Kinetic energy <math|T=<frac*|p<rsup|2>|2m>\<rightarrow\>-<frac*|\<hbar\><rsup|2>|><around*|(|2m|)>\<nabla\><rsup|2>>, where <math|<wide|p|\<vect\>>=-\<mathi\>\<hbar\><wide|\<nabla\>|\<vect\>>>, <math|<wide|<wide|p|\<vect\>>|^>e<rsup|\<mathi\><wide|p|\<vect\>>\<cdot\><wide|x|\<vect\>>/\<hbar\>>>
+
+  \;
+
+  Relativistic kinetic energy
+
+  <\equation*>
+    T=<frac|m v<rsup|2>|<sqrt|1-<around*|(|<frac|v|c>|)><rsup|2>>>-m c<rsup|2>,<space|1em>p=<frac|m v|<sqrt|1-<around*|(|<frac|v|c>|)><rsup|2>>>
+  </equation*>
+
+  Note that\ 
+
+  <\equation*>
+    p<rsup|2>c<rsup|2>+m<rsup|2>c<rsup|4>=<frac|m<rsup|2>v<rsup|2>c<rsup|2>|1-<around*|(|<frac|v|c>|)><rsup|2>>+m<rsup|2>c<rsup|4>=<frac|m<rsup|2>v<rsup|2>c<rsup|2>+m<rsup|2>c<rsup|4><around*|(|1-<around*|(|<frac|v|c>|)><rsup|2>|)>|1-<around*|(|<frac|v|c>|)><rsup|2>>
+  </equation*>
+
+  gives us
+
+  <\equation*>
+    T=<sqrt|p<rsup|2>c<rsup|2>+m<rsup|2>c<rsup|4>>-m c<rsup|2>=m c<rsup|2><around*|(|<sqrt|1+<around*|(|<frac|p|m c<rsup|2>>|)><rsup|2>>-1|)>.
+  </equation*>
+
+  By Taylor expansion
+
+  <\align>
+    <tformat|<table|<row|<cell|T=>|<cell|m c<rsup|2><around*|[|1+<frac|1|2><around*|(|<frac|p|m c<rsup|2>>|)><rsup|2>-<frac|1|8><around*|(|<frac|p|m c<rsup|2>>|)><rsup|4>+\<cdots\>-1|]>>>|<row|<cell|=>|<cell|<wide*|<frac|p<rsup|2>|2m >|\<wide-underbrace\>><rsub|<text|unperterbed term>>-<frac|p<rsup|4>|8m<rsup|3>c<rsup|2>>+\<cdots\>.>>>>
+  </align>
+
+  Therefore,
+
+  <\equation*>
+    H<rprime|'><rsub|r>=-<frac|p<rsup|4>|8m<rsup|3>c<rsup|2>>=<frac|<around*|(|<frac|p<rsup|2>|2 m>|)><rsup|2>|2m c<rsup|2>>\<approx\>-<frac|<around*|(|10eV|)><rsup|2>|10<rsup|6>eV>
+  </equation*>
+
+  <with|font-series|bold|1st order correction to energy>
+
+  <\equation>
+    E<rsub|r><rsup|<around*|(|1|)>>\<equiv\><around*|\<langle\>|\<psi\><rsub|n l m>\|H<rsub|r><rprime|'>\|\<psi\><rsub|n l m>|\<rangle\>><label|eq:non-dege>
+  </equation>
+
+  <math|n=1,<space|1em>l=0,<space|1em>m=0>
+
+  <math|n=2,<space|1em>l=0,1,<space|1em>m=0,\<pm\>1> \ Degenerate case.
+
+  <\question>
+    Why the non-degenerate correction <smart-ref|eq:non-dege> can be used in hydrogen atom?<label|question:non-dege>
+  </question>
+
+  To answer Question<nbsp><smart-ref|question:non-dege>, we prove the following theorem:
+
+  <\theorem>
+    Given Hermitian operator <math|<wide|A|^>> and <math|<around*|[|<wide|A|^>,H<rsup|<around*|(|0|)>>|]>=0>, <math|<around*|[|<wide|A|^>,H<rprime|'>|]>=0>. If <math|\<psi\><rsub|a><rsup|<around*|(|0|)>>> and <math|\<psi\><rsub|b><rsup|<around*|(|0|)>>> are the eigenstate of <math|<wide|A|^>> with distinct eigenstates
+
+    <\equation*>
+      <wide|A|^>\<psi\><rsub|a><rsup|<around*|(|0|)>>=\<mu\>\<psi\><rsub|a><rsup|<around*|(|0|)>>,<space|1em><wide|A|^>\<psi\><rsub|b><rsup|<around*|(|0|)>>=\<nu\>\<psi\><rsub|b><rsup|<around*|(|0|)>>,<space|1em>and<space|1em>\<mu\>\<neq\>\<nu\>
+    </equation*>
+
+    then\ 
+
+    <\equation*>
+      <around*|\<langle\>|\<psi\><rsub|a><rsup|<around*|(|0|)>>\|H<rprime|'>\|\<psi\><rsub|b><rsup|<around*|(|0|)>>|\<rangle\>>=0.
+    </equation*>
+  </theorem>
+
+  <\proof>
+    Note that
+
+    <\equation*>
+      <around*|[|<wide|A|^>,H<rprime|'>|]>=0\<Longrightarrow\><around*|\<langle\>|\<psi\><rsub|a><rsup|<around*|(|0|)>>\|<around*|[|<wide|A|^>,H<rprime|'>|]>\|\<psi\><rsub|b><rsup|<around*|(|0|)>>|\<rangle\>>=0
+    </equation*>
+
+    which implies
+
+    <\equation*>
+      <around*|\<langle\>|\<psi\><rsub|a><rsup|<around*|(|0|)>>\|<wide|A|^>H<rprime|'>\|\<psi\><rsub|b><rsup|<around*|(|0|)>>|\<rangle\>>-<around*|\<langle\>|\<psi\><rsub|a><rsup|<around*|(|0|)>>\|H<rprime|'><wide|A|^>\|\<psi\><rsub|b><rsup|<around*|(|0|)>>|\<rangle\>>=0.
+    </equation*>
+
+    Therefore,
+
+    <\equation*>
+      <around*|(|\<mu\>-\<nu\>|)><around*|\<langle\>|\<psi\><rsub|a><rsup|<around*|(|0|)>>\|H<rprime|'>\|\<psi\><rsub|b><rsup|<around*|(|0|)>>|\<rangle\>>=0.
+    </equation*>
+
+    The proof is finished by the fact that <math|\<mu\>-\<nu\>\<neq\>0>.
+  </proof>
+
+  In the present case,
+
+  <\equation*>
+    <wide|A|^>\<rightarrow\>L<rsup|2>,L<rsub|z>,<space|1em>H<rprime|'>\<propto\>p<rsup|4>,<space|1em>H<rsup|<around*|(|0|)>>=-<frac|\<hbar\><rsup|2>|2 m>\<nabla\><rsup|2>-<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><frac|1|r>.
+  </equation*>
+
+  We need
+
+  <\equation*>
+    <around*|[|H<rsup|<around*|(|0|)>>,L<rsup|2>|]>=0,<space|1em><around*|[|H<rsup|<around*|(|0|)>>,L<rsub|z>|]>=0.
+  </equation*>
+
+  This is known because <math|H<rsup|<around*|(|0|)>>,L<rsup|2>> and <math|L<rsub|z>> share <math|\<psi\><rsub|n l m>> as eigenstate.
+
+  Also, we need
+
+  <\equation>
+    <around*|[|p<rsup|4>,L<rsup|2>|]>=0,<space|1em><around*|[|p<rsup|4>,L<rsub|z>|]>=0.<label|eq:comm-hydro>
+  </equation>
+
+  To show Eq.<nbsp><smart-ref|eq:comm-hydro> holds, we note that
+
+  <\equation*>
+    <frame|<around*|[|A B,C|]>=A<around*|[|B,C|]>+<around*|[|A ,C|]>B>
+  </equation*>
+
+  which implies
+
+  <\equation*>
+    <around*|[|p<rsup|4>,L<rsub|z>|]>=p<rsup|2><around*|[|p<rsup|2>,L<rsub|z>|]>+<around*|[|p<rsup|2>,L<rsub|z>|]>p<rsup|2>.
+  </equation*>
+
+  In page 167 Problem 4.19 (c), we proved <math|<around*|[|p<rsup|2>,L<rsub|z>|]>=0>.
+
+  <paragraph|Recap>
+
+  <\align>
+    <tformat|<table|<row|<cell|<around*|[|L<rsub|z>,p<rsup|2>|]>=>|<cell|<around*|[|L<rsub|z>,p<rsup|2><rsub|x>|]>+<around*|[|L<rsub|z>,p<rsup|2><rsub|y>|]>+<around*|[|L<rsub|z>,p<rsup|2><rsub|z>|]>>>>>
+  </align>
+
+  where
+
+  <\equation*>
+    L<rsub|z>=x p<rsub|y>-y p<rsub|x>\<Longleftarrow\><wide|L|\<vect\>>=<wide|r|\<vect\>>\<times\><wide|p|\<vect\>>.
+  </equation*>
+
+  The last term <math|<around*|[|L<rsub|z>,p<rsup|2><rsub|z>|]>> vanishes by definition of <math|L<rsub|z>>. Thus,
+
+  <\equation*>
+    <around*|[|L<rsub|z>,p<rsup|2>|]>=<around*|[|L<rsub|z>,p<rsub|x>|]>p<rsub|x>+p<rsub|x><around*|[|L<rsub|z>,p<rsub|x>|]>+<around*|[|L<rsub|z>,p<rsub|y>|]>p<rsub|y>+p<rsub|y><around*|[|L<rsub|z>,p<rsub|y>|]>
+  </equation*>
+
+  where
+
+  <\equation*>
+    <around*|[|L<rsub|z>,p<rsub|x>|]>=<around*|[|x p<rsub|y>,p<rsub|x>|]>-<around*|[|y p<rsub|x>,p<rsub|x>|]>,<space|1em>and<space|1em><around*|[|L<rsub|z>,p<rsub|y>|]>=0
+  </equation*>
+
+  and
+
+  <\equation*>
+    <around*|[|x p<rsub|y>,p<rsub|x>|]>=x<around*|[|p<rsub|y>,p<rsub|x>|]>+<around*|[|x,p<rsub|x>|]>p<rsub|y>=\<mathi\>\<hbar\>p<rsub|y>.
+  </equation*>
+
+  Thus,
+
+  <\equation*>
+    <around*|[|L<rsub|z>,p<rsup|2>|]>=0
+  </equation*>
+
+  For <math|p<rsup|4>>, <math|L<rsub|x>>, <math|L<rsub|y>>, <math|L<rsub|z>> are equivalent. Similarly, <math|L<rsup|2>=L<rsub|x><rsup|2>+L<rsub|y><rsup|2>+L<rsub|z><rsup|2>>, we have <math|<around*|[|L<rsup|2>,p<rsup|2>|]>=0>. Finally, Question<nbsp><smart-ref|question:non-dege> is answered!
+
+  Now, we evaluate <math|<around*|\<langle\>|\<psi\><rsub|n l m>\|H<rprime|'>\|\<psi\><rsub|n l m>|\<rangle\>>>
+
+  <with|font-series|bold|[Trick:]> <math|p<rsup|2><ket|\<psi\><rsub|n l m>>=2 m<around*|(|E<rsub|n>-<wide|V|^>|)><ket|\<psi\><rsub|n l m>>\<Longrightarrow\>>
+
+  <\equation*>
+    <around*|\<langle\>|p<rsup|2>\<psi\><rsub|n l m>\|p<rsup|2>\<psi\><rsub|n l m>|\<rangle\>>=<around*|(|2m|)><rsup|2><around*|\<langle\>|\<psi\><rsub|n l m>\|<around*|(|E<rsub|n>-<wide|V|^>|)>\|\<psi\><rsub|n l m>|\<rangle\>>
+  </equation*>
+
+  which imples
+
+  <\equation*>
+    E<rsub|r><rsup|<around*|(|1|)>>=-<frac|1|8 m<rsup|3>c<rsup|2>><around*|(|2m|)><rsup|2><around*|(|E<rsub|n><rsup|2>-2E<rsub|n><around*|\<langle\>|V|\<rangle\>>+<around*|\<langle\>|V<rsup|2>|\<rangle\>>|)>,
+  </equation*>
+
+  where
+
+  <\equation*>
+    <around*|\<langle\>|V|\<rangle\>>\<equiv\><around*|\<langle\>|\<psi\><rsub|n l m>\|<wide|V|^>\|\<psi\><rsub|n l m>|\<rangle\>>
+  </equation*>
+
+  and
+
+  <\equation*>
+    <around*|\<langle\>|V<rsup|2>|\<rangle\>>\<equiv\><around*|\<langle\>|\<psi\><rsub|n l m>\|<wide|V|^><rsup|2>\|\<psi\><rsub|n l m>|\<rangle\>>.
+  </equation*>
+
+  For Hydrogen atom, <math|V=-<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><frac|1|r>> we evaluate <math|<around*|\<langle\>|V|\<rangle\>>> by using Eq.<nbsp>[3.97]: Stationary vivid theorem in 1D
+
+  <\equation*>
+    2<around*|\<langle\>|T|\<rangle\>>=<around*|\<langle\>|x<frac|\<mathd\>V|\<mathd\>x>|\<rangle\>>
+  </equation*>
+
+  In 3D:
+
+  <\equation*>
+    2<around*|\<langle\>|T|\<rangle\>>=<around*|\<langle\>|<wide|r|\<vect\>>\<cdot\>\<nabla\>V|\<rangle\>>.<space|1em><wide|r|\<vect\>>\<triangleq\><around*|(|x,y,z|)>
+  </equation*>
+
+  Because <math|V<around*|(|<wide|r|\<vect\>>|)>> has the spherical symmetry, so we use spherical coordinates
+
+  <\equation*>
+    \<nabla\>V<around*|(|<wide|r|\<vect\>>|)>=-<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><frac|\<mathd\>|\<mathd\>r><around*|(|<frac|1|r>|)><wide|r|^>+<wide|\<theta\>|^>\<ldots\>+<wide|\<phi\>|^>\<ldots\>
+  </equation*>
+
+  Thus,
+
+  <\equation*>
+    2<around*|\<langle\>|T|\<rangle\>>=<around*|\<langle\>|<wide|r|\<vect\>>\<cdot\>\<nabla\>V|\<rangle\>>=<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><around*|\<langle\>|<frac|1|r<rsup|2>><wide|r|\<vect\>>\<cdot\><wide|r|^>|\<rangle\>>=<around*|\<langle\>|<frac|1|4\<pi\>\<epsilon\><rsub|0>><frac|1|r>|\<rangle\>>=-<around*|\<langle\>|V|\<rangle\>>.
+  </equation*>
+
+  Note that
+
+  <\equation*>
+    <around*|\<langle\>|T|\<rangle\>>+<around*|\<langle\>|V|\<rangle\>>=E<rsub|n>.
+  </equation*>
+
+  Therefore,
+
+  <\equation*>
+    <choice|<tformat|<table|<row|<cell|<around*|\<langle\>|T|\<rangle\>>=-E<rsub|n>>>|<row|<cell|<around*|\<langle\>|V|\<rangle\>>=2E<rsub|n>>>|<row|<cell|<around*|\<langle\>|V<rsup|2>|\<rangle\>>=<around*|(|<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>>|)><rsup|2><around*|\<langle\>|<frac|1|r<rsup|2>>|\<rangle\>>=<frac|1|<around*|(|\<ell\>+<frac|1|2>|)>n<rsup|3>a<rsup|2>>>>>>>.
+  </equation*>
+
+  <\remark>
+    For hydrogen atom, <math|2<around*|\<langle\>|T|\<rangle\>>=-<around*|\<langle\>|V|\<rangle\>>>. For Harmonic oscillator <math|<around*|\<langle\>|T|\<rangle\>>=<around*|\<langle\>|V|\<rangle\>>>. The result of the var vivid theorem is case by case, depend on <math|V<around*|(|<wide|r|\<vect\>>|)>>.\ 
+  </remark>
+
+  Finally,
+
+  <\equation*>
+    E<rsub|r><rsup|<around*|(|1|)>>=-<frac|1|2m c<rsup|2>><around*|[|E<rsub|n><rsup|2>-2E<rsub|n><around*|(|2E<rsub|n>|)>+<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><frac|1|<around*|(|\<ell\>+<frac|1|2>|)>n<rsup|3>a<rsup|2>>|]>.
+  </equation*>
+
+  <\framed>
+    Express Bohr energy <math|E<rsub|n>> in terms of Bohr radius. Bohr radius
+
+    <\equation*>
+      a\<triangleq\><frac|4\<pi\>\<epsilon\><rsub|0>\<hbar\><rsup|2>|m<rsub|e><rsup|2>>
+    </equation*>
+
+    [4.72]\ 
+
+    <\equation*>
+      E<rsub|n>=<frac|E<rsub|1>|n<rsup|2>>,<space|1em>E<rsub|1>\<triangleq\>-<frac|m|2\<hbar\><rsup|2>><around*|(|<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>>|)><rsup|2>
+    </equation*>
+
+    <\equation*>
+      <around*|\<langle\>|<frac|1|r>|\<rangle\>>=<frac|1|a><frac|1|n<rsup|2>>\<Leftrightarrow\><around*|\<langle\>|V|\<rangle\>>=2E<rsub|n>=-<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><around*|\<langle\>|<frac|1|r>|\<rangle\>>
+    </equation*>
+
+    Therefore,
+
+    <\equation*>
+      E<rsub|n>=<wide*|-<frac|1|2><frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>><frac|1|a><frac|1|n<rsup|2>>|\<wide-underbrace\>><rsub|<text|potential-like>>=<wide*|-<frac|\<hbar\><rsup|2>|2m><frac|1|a<rsup|2>><frac|1|n<rsup|2>>|\<wide-underbrace\>><rsub|<text|kinetic-like>>.
+    </equation*>
+
+    <\align>
+      <tformat|<table|<row|<cell|E<rsub|r><rsup|<around*|(|1|)>>=>|<cell|<frac|1|2 m c<rsup|2>><around*|[|-3E<rsub|n><rsup|2>+E<rsub|n><rsup|2><frac|4n|\<ell\>+<frac|1|2>>|]>>>|<row|<cell|=>|<cell|<frac|E<rsub|n><rsup|2>|2 m c<rsup|2>><around*|(|3-<frac|4n|\<ell\>+<frac|1|2>>|)><below|\<sim\>|<around*|[|6.57|]>>10<rsup|-5>E<rsub|n>.>>>>
+    </align>
+
+    <\equation*>
+      E<rsub|n,\<ell\>>=E<rsub|n>+E<rsub|r><rsup|<around*|(|1|)>>=-<frac|13.6|h<rsup|2>>eV+<frac|E<rsub|n><rsup|2>|2 m c<rsup|2>><around*|(|3-<frac|4n|\<ell\>+<frac|1|2>>|)>
+    </equation*>
+  </framed>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|1>>
+    <associate|auto-2|<tuple|1|1>>
+    <associate|auto-3|<tuple|1|2>>
+    <associate|auto-4|<tuple|1|4>>
+    <associate|eq:comm-hydro|<tuple|2|3>>
+    <associate|eq:non-dege|<tuple|1|2>>
+    <associate|question:non-dege|<tuple|1|2>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|table>
+      <tuple|normal|<surround|<hidden-binding|<tuple|auto-2>|1>||>|<pageref|auto-2>>
+    </associate>
+    <\associate|toc>
+      <with|par-left|<quote|3tab>|Recap Chapter 4.2 Hydrogen Atom <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>> <no-break><pageref|auto-1>>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>Spinless Relativistic Correction> <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>> <no-break><pageref|auto-3><vspace|0.5fn>
+
+      <with|par-left|<quote|3tab>|Recap <datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.2fn>.<space|0.2fn>>>>>|<htab|5mm>> <no-break><pageref|auto-4>>
+    </associate>
+  </collection>
+</auxiliary>
