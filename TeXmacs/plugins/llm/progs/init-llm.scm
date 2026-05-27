@@ -44,12 +44,6 @@
   (when (supports-llm?)
     (session-enable-text-input "llm" "default")
   ) ;when
-
-  (menu-bind insert-llm-menu
-    (=> (balloon (icon "tm_ai.xpm") "AI")
-     ("LLM Chat" (open-llm-chat-tab "default"))
-    ) ;=>
-  ) ;menu-bind
 ) ;define
 
 (init-llm)
