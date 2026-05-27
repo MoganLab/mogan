@@ -98,7 +98,7 @@ constexpr int kMessageMinHeight      = 240;
 constexpr int kTransitionDurationMs  = 220;
 constexpr int kModelLabelMinHeight   = 20;
 constexpr int kModelLabelRadius      = 4;
-constexpr int kSendIconSize          = 24;
+constexpr int kSendIconSize          = 30;
 constexpr int kSendButtonSize        = 36;
 constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
@@ -251,8 +251,7 @@ ChatConversationPanel::setup_ui () {
   sendButton_->setFixedSize (DpiUtils::scaled (kSendButtonSize),
                              DpiUtils::scaled (kSendButtonSize));
   sendButton_->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; "
-               "            background-color: transparent; }")
+      QString ("QPushButton { border-radius: %1px; }")
           .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (sendButton_, &QPushButton::clicked, this,
            [this] () { emit sendRequested (sessionId_); });

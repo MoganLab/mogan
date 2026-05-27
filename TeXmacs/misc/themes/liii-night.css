@@ -1433,6 +1433,7 @@ QWidget#centralWidget QWidget#chat-tab-input-frame:hover {
 /* 发送按钮 */
 QWidget#centralWidget QPushButton#chat-tab-send-btn {
   background-color: transparent;
+  border: none;
 }
 QWidget#centralWidget QPushButton#chat-tab-send-btn:hover {
   background-color: #f0f0f0;
