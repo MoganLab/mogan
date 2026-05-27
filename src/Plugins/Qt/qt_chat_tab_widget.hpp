@@ -312,14 +312,30 @@ public:
   ChatSidebar* sidebar () const { return sidebar_; }
   QPushButton* newChatButton () const { return newChatButton_; }
   QPushButton* floatingNewChatButton () const { return floatingNewChatBtn_; }
+  QPushButton* closeSidebarButton () const { return closeSidebarBtn_; }
   QList<ChatConversationPanel*>& conversations () { return conversations_; }
   ChatConversationPanel*         activeConversation () const {
     return activeConversation_;
   }
+  void setSidebarCollapsed (bool collapsed);
+  bool isSidebarCollapsed () const { return sidebarCollapsed_; }
+  bool isSidebarWidgetVisible () const {
+    return sidebarWidget_ != nullptr && sidebarWidget_->isVisible ();
+  }
+  bool isFloatingContainerVisible () const {
+    return floatingBtnContainer_ != nullptr &&
+           floatingBtnContainer_->isVisible ();
+  }
+  /**
+   * @brief 直接设置内部侧边栏显隐（dock 模式使用，不触发浮动按钮）。
+   */
+  void setSidebarVisible (bool visible);
+  void setCloseSidebarButtonVisible (bool visible);
 
 signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
+  void closeSidebarRequested ();
 
 protected:
   /// 键盘事件处理（Ctrl+N 新建会话等）
@@ -347,6 +363,7 @@ private:
   QPushButton*    floatingNewChatBtn_  = nullptr; ///< 浮动新建按钮
   QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
   QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
+  QPushButton*    closeSidebarBtn_     = nullptr; ///< 对话区域关闭侧边栏按钮
   QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
   QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈
 

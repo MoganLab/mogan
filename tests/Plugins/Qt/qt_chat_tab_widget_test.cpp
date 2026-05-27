@@ -7,6 +7,8 @@
 
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "base.hpp"
+#include <QPushButton>
+#include <QSignalSpy>
 #include <QtTest/QtTest>
 
 using namespace moebius;
@@ -68,6 +70,120 @@ private slots:
   void test_is_empty_document_body_multiple_paragraphs () {
     tree doc= tree (DOCUMENT, "para1", "para2");
     QVERIFY (!ChatConversationPanel::is_empty_document_body (doc));
+  }
+
+  // === setSidebarCollapsed / isSidebarCollapsed ===
+  void test_setSidebarCollapsed_expand () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.setSidebarCollapsed (false);
+    QVERIFY (!widget.isSidebarCollapsed ());
+  }
+
+  void test_setSidebarCollapsed_collapse () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.setSidebarCollapsed (true);
+    QVERIFY (widget.isSidebarCollapsed ());
+  }
+
+  void test_setSidebarCollapsed_toggle () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    bool                      initial= widget.isSidebarCollapsed ();
+    widget.setSidebarCollapsed (!initial);
+    QCOMPARE (widget.isSidebarCollapsed (), !initial);
+    widget.setSidebarCollapsed (initial);
+    QCOMPARE (widget.isSidebarCollapsed (), initial);
+  }
+
+  void test_setSidebarCollapsed_idempotent () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.setSidebarCollapsed (true);
+    widget.setSidebarCollapsed (true);
+    QVERIFY (widget.isSidebarCollapsed ());
+    widget.setSidebarCollapsed (false);
+    widget.setSidebarCollapsed (false);
+    QVERIFY (!widget.isSidebarCollapsed ());
+  }
+
+  void test_setSidebarCollapsed_affects_widget_visibility () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show (); // 必须 show 才能检查实际 Qt 可见性
+    // 默认侧边栏可见，浮动按钮隐藏
+    QVERIFY (widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+
+    widget.setSidebarCollapsed (true);
+    QVERIFY (!widget.isSidebarWidgetVisible ());
+    QVERIFY (widget.isFloatingContainerVisible ());
+
+    widget.setSidebarCollapsed (false);
+    QVERIFY (widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  // === setSidebarVisible (dock 模式专用) ===
+  void test_setSidebarVisible_hide () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setSidebarVisible (false);
+    QVERIFY (!widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  void test_setSidebarVisible_show () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setSidebarVisible (false);
+    widget.setSidebarVisible (true);
+    QVERIFY (widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  void test_setSidebarVisible_does_not_show_floating_buttons () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setSidebarCollapsed (true); // 正常折叠会显示浮动按钮
+    QVERIFY (widget.isFloatingContainerVisible ());
+
+    widget.setSidebarVisible (false); // dock 模式隐藏，不显示浮动按钮
+    QVERIFY (!widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  // === close sidebar 按钮 ===
+  void test_closeSidebarButton_visible () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    QVERIFY (widget.closeSidebarButton () != nullptr);
+    widget.setCloseSidebarButtonVisible (true);
+    QVERIFY (widget.closeSidebarButton ()->isVisible ());
+  }
+
+  void test_closeSidebarButton_hidden () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    widget.setCloseSidebarButtonVisible (true);
+    widget.setCloseSidebarButtonVisible (false);
+    QVERIFY (!widget.closeSidebarButton ()->isVisible ());
+  }
+
+  void test_closeSidebarButton_emits_signal () {
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+    QSignalSpy spy (&widget, &QTChatTabWidget::closeSidebarRequested);
+    widget.setCloseSidebarButtonVisible (true);
+    QTest::mouseClick (widget.closeSidebarButton (), Qt::LeftButton);
+    QCOMPARE (spy.count (), 1);
   }
 };
 

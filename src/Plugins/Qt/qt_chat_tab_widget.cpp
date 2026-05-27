@@ -1233,6 +1233,27 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
 
   mainLayout->addWidget (content, 1);
 
+  // 对话区域左上角关闭侧边栏按钮（dock 模式使用）
+  closeSidebarBtn_= new QPushButton (content);
+  closeSidebarBtn_->setObjectName ("chat-tab-close-sidebar-btn");
+  closeSidebarBtn_->setFocusPolicy (Qt::NoFocus);
+  closeSidebarBtn_->setCursor (Qt::PointingHandCursor);
+  closeSidebarBtn_->setIcon (QIcon (":llm-chat/sidebar.svg"));
+  closeSidebarBtn_->setIconSize (QSize (DpiUtils::scaled (kToggleIconSize),
+                                        DpiUtils::scaled (kToggleIconSize)));
+  closeSidebarBtn_->setFixedSize (DpiUtils::scaled (kToggleBtnSize),
+                                  DpiUtils::scaled (kToggleBtnSize));
+  closeSidebarBtn_->setStyleSheet (
+      QString ("QPushButton { border: none; border-radius: %1px; "
+               "background: transparent; }"
+               "QPushButton:hover { background: rgba(0,0,0,0.08); }")
+          .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
+  closeSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
+                          DpiUtils::scaled (kFloatingBtnMarginY));
+  connect (closeSidebarBtn_, &QPushButton::clicked, this,
+           [this] () { emit closeSidebarRequested (); });
+  closeSidebarBtn_->hide ();
+
   // 浮球按钮容器
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
@@ -1305,6 +1326,26 @@ QTChatTabWidget::toggle_sidebar () {
     }
     sidebarCollapsed_= true;
   }
+}
+
+void
+QTChatTabWidget::setSidebarCollapsed (bool collapsed) {
+  if (sidebarCollapsed_ == collapsed) return;
+  toggle_sidebar ();
+}
+
+void
+QTChatTabWidget::setSidebarVisible (bool visible) {
+  if (!sidebarWidget_) return;
+  sidebarWidget_->setVisible (visible);
+  sidebarCollapsed_= !visible;
+  // dock 模式下不需要浮动按钮，始终隐藏
+  if (floatingBtnContainer_) floatingBtnContainer_->hide ();
+}
+
+void
+QTChatTabWidget::setCloseSidebarButtonVisible (bool visible) {
+  if (closeSidebarBtn_) closeSidebarBtn_->setVisible (visible);
 }
 
 /******************************************************************************

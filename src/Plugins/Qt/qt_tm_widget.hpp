@@ -79,6 +79,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QDockWidget*            leftTools;
   QDockWidget*            bottomTools;
   QDockWidget*            extraTools;
+  QDockWidget*            chatSideDock; ///< AI 聊天侧边栏 Dock
   QTMTabPageContainer*    tabPageContainer;
   QTMAuxiliaryWidget*     auxiliaryWidget;
   QWK::WidgetWindowAgent* windowAgent;
@@ -93,6 +94,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QLabel*                 membershipTitleLabel;
   QPushButton*            loginActionButton;
   QPushButton*            logoutButton;
+  QPushButton* chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
 
   // 更新提示区域控件
   QWidget*     m_updateSection     = nullptr;
@@ -152,6 +154,8 @@ private:
   void showNotLoggedInDialog (const QString& errorMessage);
   void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
   void logout ();
+  void sync_chat_sidebar_mode ();
+  void position_chat_sidebar_button ();
 
   // Version update notification
   void    checkVersionUpdate ();
@@ -182,6 +186,8 @@ private:
   QString          currentPdfPath;    ///\< 当前显示的 PDF 路径。
   QString          lastLoadedPdfPath; ///\< 上次加载的 PDF 路径。
   bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
+  bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
+  string           currentEditorFile; ///\< 当前编辑器打开的文件路径。
 
 public:
   qt_tm_widget_rep (int mask, command _quit);
