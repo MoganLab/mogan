@@ -234,6 +234,7 @@ ChatConversationPanel::setup_ui () {
       }
       editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
       editor->installEventFilter (this);
+      inputQTMWidget_= editor;
     }
   }
 
@@ -327,14 +328,15 @@ ChatConversationPanel::enterConversationMode () {
 
 void
 ChatConversationPanel::focusInput () {
-  if (inputEditorWidget_) {
-    inputEditorWidget_->setFocus (Qt::OtherFocusReason);
-    url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
-    url vw      = get_passive_view (inBufUrl);
-    if (!is_none (vw)) {
-      set_current_view (vw);
-      call ("update-menus");
-    }
+  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
+  url vw      = get_passive_view (inBufUrl);
+  if (!is_none (vw)) {
+    set_current_view (vw);
+    call ("update-menus");
+  }
+  if (inputQTMWidget_) {
+    inputQTMWidget_->clearFocus ();
+    inputQTMWidget_->setFocus (Qt::OtherFocusReason);
   }
 }
 

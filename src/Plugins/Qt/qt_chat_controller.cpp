@@ -359,6 +359,7 @@ ChatController::notifyStateChanged (const string& sessionId,
         connect (btn, &QPushButton::clicked, this,
                  [this, sessionId] () { onSendRequested (sessionId); });
     exportBuffer (sessionId);
+    panel->focusInput ();
   }
 }
 

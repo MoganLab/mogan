@@ -112,6 +112,7 @@ private:
   QLabel*      modelLabel_       = nullptr; ///< 模型名称标签
   QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
   QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
+  QWidget*     inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
   QPushButton* sendButton_       = nullptr; ///< 发送/停止按钮
   QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
   widget       messageWidget_;              ///< 消息区 TeXmacs widget
