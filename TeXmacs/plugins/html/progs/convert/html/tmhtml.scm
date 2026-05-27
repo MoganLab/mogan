@@ -34,6 +34,7 @@
 (define tmhtml-images? #f)
 (tm-define tmhtml-base64? #t)
 (define tmhtml-image-serial 0)
+(define tmhtml-image-total 0)
 (define tmhtml-image-cache (make-ahash-table))
 (define tmhtml-image-root-url (unix->url "image"))
 (define tmhtml-image-root-string "image")
@@ -1363,6 +1364,9 @@
     (with cached (ahash-ref tmhtml-image-cache x)
       (if (not cached)
           (receive (name-url name-string) (tmhtml-image-names "png")
+            (set-message (string-append "Exporting inline image " (number->string tmhtml-image-serial) " ...") "HTML Export")
+            (when (and (qt-gui?) (> tmhtml-image-total 0))
+              (html-progress-update tmhtml-image-serial))
             ;;(display* x " -> " name-url ", " name-string "\n")
             (let* ((extents (print-snippet name-url x #t))
                    (m (magic-png-number))
@@ -2308,6 +2312,18 @@
         (else
          (map strip-latex-spacing-artifacts x))))
 
+(define (tmhtml-count-images t)
+  (cond ((null? t) 0)
+        ((npair? t) 0)
+        ((in? (car t) '(image graphics draw-over draw-under)) 1)
+        (else
+         (let loop ((lst t) (sum 0))
+           (if (null? lst)
+               sum
+               (if (pair? lst)
+                   (loop (cdr lst) (+ sum (tmhtml-count-images (car lst))))
+                   (+ sum (tmhtml-count-images lst))))))))
+
 (tm-define (texmacs->html x opts)
   (let ((x* (strip-latex-spacing-artifacts x)))
     (if (tmfile? x*)
@@ -2320,7 +2336,15 @@
           (texmacs->html doc opts))
         (begin
           (tmhtml-initialize opts)
-          ((if (func? x* '!file)
-               tmhtml-finalize-document
-               tmhtml-finalize-selection)
-           (tmhtml-root x*))))))
+          (set! tmhtml-image-total (tmhtml-count-images x*))
+          (set-message "Exporting document to HTML..." "HTML Export")
+          (when (and (qt-gui?) (> tmhtml-image-total 0))
+            (html-progress-start tmhtml-image-total))
+          (with res ((if (func? x* '!file)
+                         tmhtml-finalize-document
+                         tmhtml-finalize-selection)
+                     (tmhtml-root x*))
+            (when (and (qt-gui?) (> tmhtml-image-total 0))
+              (html-progress-end))
+            (set-message "HTML export completed successfully." "HTML Export")
+            res)))))

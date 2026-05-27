@@ -47,6 +47,27 @@ function main()
                     "int"
                 }
             },
+            {
+                scm_name = "html-progress-start",
+                cpp_name = "html_progress_start",
+                ret_type = "void",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
+                scm_name = "html-progress-update",
+                cpp_name = "html_progress_update",
+                ret_type = "void",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
+                scm_name = "html-progress-end",
+                cpp_name = "html_progress_end",
+                ret_type = "void"
+            },
         }
     }
 end

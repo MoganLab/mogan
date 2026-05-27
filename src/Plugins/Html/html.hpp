@@ -18,6 +18,10 @@ tree parse_html (string s);
 tree clean_html (tree t);
 tree parse_plain_html (string s);
 
+void html_progress_start (int total);
+void html_progress_update (int current);
+void html_progress_end ();
+
 tree upgrade_mathml (tree t);
 tree retrieve_mathjax (int id);
 

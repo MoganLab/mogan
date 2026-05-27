@@ -11,6 +11,11 @@
 
 #include "html.hpp"
 
+#ifdef QTTEXMACS
+#include <QProgressDialog>
+#include <QApplication>
+#endif
+
 #include "Xml/xml.hpp"
 #include "converter.hpp"
 #include "hashset.hpp"
@@ -172,4 +177,49 @@ parse_html (string s) {
   if (contains_mathjax (s)) s= process_mathjax (s);
   if (contains_script (s)) s= process_script (s);
   return parse_plain_html (s);
+}
+
+#ifdef QTTEXMACS
+static QProgressDialog* html_progress_dialog = nullptr;
+#endif
+
+void
+html_progress_start (int total) {
+#ifdef QTTEXMACS
+  if (QApplication::instance () && qobject_cast<QApplication*> (QApplication::instance ())) {
+    QWidget* main_window = QApplication::activeWindow ();
+    html_progress_dialog = new QProgressDialog (
+        "Exporting HTML...", "Cancel", 0, total, main_window);
+    html_progress_dialog->setWindowModality (Qt::WindowModal);
+    html_progress_dialog->setMinimumDuration (0);
+    html_progress_dialog->setValue (0);
+    html_progress_dialog->show ();
+    QCoreApplication::processEvents ();
+  }
+#else
+  (void) total;
+#endif
+}
+
+void
+html_progress_update (int current) {
+#ifdef QTTEXMACS
+  if (html_progress_dialog) {
+    html_progress_dialog->setValue (current);
+    QCoreApplication::processEvents ();
+  }
+#else
+  (void) current;
+#endif
+}
+
+void
+html_progress_end () {
+#ifdef QTTEXMACS
+  if (html_progress_dialog) {
+    html_progress_dialog->close ();
+    delete html_progress_dialog;
+    html_progress_dialog = nullptr;
+  }
+#endif
 }
