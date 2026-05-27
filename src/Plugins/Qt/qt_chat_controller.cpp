@@ -152,7 +152,7 @@ ChatController::onSessionClicked (const string& sessionId) {
   else {
     // 归档会话不可激活，刷新当前激活项以恢复视觉状态
     string cur= view_->sidebar ()->activeSessionId ();
-    if (!is_empty (cur)) view_->sidebar ()->setActiveItem (cur);
+    view_->sidebar ()->setActiveItem (cur);
   }
 }
 
@@ -274,22 +274,16 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
 
 void
 ChatController::onArchiveRequested (const QList<string>& sessionIds) {
-  for (const string& sid : sessionIds) {
-    ChatSession* s= sessionManager_.getSession (sid);
-    if (!s || is_empty (s->title)) continue; // 空白会话跳过归档
-    sessionManager_.archiveSession (sid);
-    updateManifest (sid);
-    view_->sidebar ()->moveToArchive (sid);
-  }
-
-  // 检查是否归档了当前激活会话
+  // 在 moveToArchive 前保存当前激活会话 ID（moveToArchive 会清空它）
   string cur           = view_->sidebar ()->activeSessionId ();
   bool   archivedActive= false;
   for (const string& sid : sessionIds) {
-    if (sid == cur) {
-      archivedActive= true;
-      break;
-    }
+    ChatSession* s= sessionManager_.getSession (sid);
+    if (!s || is_empty (s->title)) continue; // 空白会话跳过归档
+    if (sid == cur) archivedActive= true;
+    sessionManager_.archiveSession (sid);
+    updateManifest (sid);
+    view_->sidebar ()->moveToArchive (sid);
   }
 
   string nextSid;

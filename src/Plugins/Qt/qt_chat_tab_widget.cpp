@@ -37,6 +37,7 @@
 #include <QMenu>
 #include <QPropertyAnimation>
 #include <QPushButton>
+#include <QResizeEvent>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QSpacerItem>
@@ -543,9 +544,25 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
 
   scrollLayout->addStretch ();
 
-  // 归档区标题
+  QScrollArea* scrollArea= new QScrollArea (this);
+  scrollArea->setWidgetResizable (true);
+  scrollArea->setFrameShape (QFrame::NoFrame);
+  scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  scrollArea->setWidget (scrollContent);
+  mainLayout->addWidget (scrollArea, 1);
+
+  // 归档区——固定在底部，不在滚动区内
+  // 分割线
+  archiveSeparator_= new QFrame (this);
+  archiveSeparator_->setObjectName ("chat-tab-archive-separator");
+  archiveSeparator_->setFrameShape (QFrame::HLine);
+  archiveSeparator_->setStyleSheet ("QFrame { color: rgba(0,0,0,40); }");
+  archiveSeparator_->hide ();
+  mainLayout->addWidget (archiveSeparator_);
+
   archiveHeaderButton_=
-      new QPushButton (qt_translate ("Archived (%1)").arg (0), scrollContent);
+      new QPushButton (qt_translate ("Archived (%1)").arg (0), this);
   archiveHeaderButton_->setObjectName ("chat-tab-archive-header");
   archiveHeaderButton_->setFocusPolicy (Qt::NoFocus);
   archiveHeaderButton_->setCursor (Qt::PointingHandCursor);
@@ -558,25 +575,27 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   archiveHeaderButton_->hide ();
   connect (archiveHeaderButton_, &QPushButton::clicked, this, [this] () {
     archiveCollapsed_= !archiveCollapsed_;
-    if (archiveListWidget_) archiveListWidget_->setVisible (!archiveCollapsed_);
+    updateArchiveListVisibility ();
   });
-  scrollLayout->addWidget (archiveHeaderButton_);
+  mainLayout->addWidget (archiveHeaderButton_);
 
-  archiveListWidget_= new QWidget (scrollContent);
-  archiveListWidget_->setObjectName ("chat-tab-archive-list");
-  archiveListLayout_= new QVBoxLayout (archiveListWidget_);
+  QWidget* archiveContent= new QWidget (this);
+  archiveContent->setObjectName ("chat-tab-archive-list");
+  archiveListLayout_= new QVBoxLayout (archiveContent);
   archiveListLayout_->setContentsMargins (0, 0, 0, 0);
   archiveListLayout_->setSpacing (DpiUtils::scaled (kSidebarSpacing));
-  archiveListWidget_->hide ();
-  scrollLayout->addWidget (archiveListWidget_);
 
-  QScrollArea* scrollArea= new QScrollArea (this);
-  scrollArea->setWidgetResizable (true);
-  scrollArea->setFrameShape (QFrame::NoFrame);
-  scrollArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-  scrollArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-  scrollArea->setWidget (scrollContent);
-  mainLayout->addWidget (scrollArea, 1);
+  archiveListWidget_= new QScrollArea (this);
+  archiveListWidget_->setObjectName ("chat-tab-archive-scroll");
+  archiveListWidget_->setWidgetResizable (true);
+  archiveListWidget_->setFrameShape (QFrame::NoFrame);
+  archiveListWidget_->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  archiveListWidget_->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+  archiveListWidget_->setSizePolicy (QSizePolicy::Preferred,
+                                     QSizePolicy::Preferred);
+  archiveListWidget_->setWidget (archiveContent);
+  archiveListWidget_->hide ();
+  mainLayout->addWidget (archiveListWidget_);
 
   // 构造时直接创建 items，按 archived 分组
   sessionCache_   = sessions;
@@ -759,6 +778,45 @@ ChatSidebar::applySearchFilter () {
 }
 
 void
+ChatSidebar::updateArchiveListVisibility () {
+  if (!archiveListWidget_) return;
+  if (archiveCollapsed_) {
+    archiveListWidget_->hide ();
+    return;
+  }
+
+  int contentH= computeArchiveContentHeight ();
+  int maxH    = height () / 2;
+  int actualH = maxH > 0 ? qMin (maxH, contentH) : contentH;
+  archiveListWidget_->setFixedHeight (actualH);
+
+  archiveListWidget_->show ();
+}
+
+int
+ChatSidebar::computeArchiveContentHeight () const {
+  QWidget* content= archiveListWidget_->widget ();
+  if (!content || !content->layout ()) return 0;
+
+  QLayout* lay= content->layout ();
+  QMargins m  = lay->contentsMargins ();
+  int      n  = lay->count ();
+  int      h  = m.top () + m.bottom ();
+  for (int i= 0; i < n; i++) {
+    QLayoutItem* item= lay->itemAt (i);
+    if (item && item->widget ()) h+= item->widget ()->sizeHint ().height ();
+  }
+  if (n > 1) h+= lay->spacing () * (n - 1);
+  return h;
+}
+
+void
+ChatSidebar::resizeEvent (QResizeEvent* event) {
+  QWidget::resizeEvent (event);
+  if (!archiveCollapsed_) updateArchiveListVisibility ();
+}
+
+void
 ChatSidebar::updateCountLabels () {
   int activeCount  = 0;
   int archivedCount= 0;
@@ -776,8 +834,16 @@ ChatSidebar::updateCountLabels () {
   if (archiveHeaderButton_) {
     archiveHeaderButton_->setText (
         qt_translate ("Archived (%1)").arg (archivedCount));
-    archiveHeaderButton_->setVisible (archivedCount > 0);
-    if (archivedCount == 0 && archiveListWidget_) archiveListWidget_->hide ();
+    if (archivedCount > 0) {
+      archiveHeaderButton_->show ();
+      if (archiveSeparator_) archiveSeparator_->show ();
+      if (!archiveCollapsed_) updateArchiveListVisibility ();
+    }
+    else {
+      archiveHeaderButton_->hide ();
+      if (archiveSeparator_) archiveSeparator_->hide ();
+      if (archiveListWidget_) archiveListWidget_->hide ();
+    }
   }
 }
 

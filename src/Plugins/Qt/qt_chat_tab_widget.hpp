@@ -20,10 +20,12 @@
 #include "widget.hpp"
 
 class QCheckBox;
+class QFrame;
 class QHBoxLayout;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QScrollArea;
 class QSpacerItem;
 class QStackedWidget;
 class QTimer;
@@ -222,6 +224,7 @@ public:
 
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
+  void resizeEvent (QResizeEvent* event) override;
 
 signals:
   void sessionClicked (const string& sessionId);
@@ -240,8 +243,9 @@ private:
   QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
   QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
   QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  QFrame*      archiveSeparator_      = nullptr; ///< 归档区分割线
   QPushButton* archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
-  QWidget*     archiveListWidget_     = nullptr; ///< 归档会话列表容器
+  QScrollArea* archiveListWidget_     = nullptr; ///< 归档会话列表滚动容器
   QVBoxLayout* archiveListLayout_     = nullptr; ///< 归档会话列表布局
   bool         archiveCollapsed_      = true;    ///< 归档区是否折叠
   QWidget*     multiSelectBar_        = nullptr; ///< 多选操作栏
@@ -255,6 +259,8 @@ private:
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
   void updateCountLabels ();                        ///< 更新会话数/归档数标签
+  void updateArchiveListVisibility ();       ///< 调整归档列表可见性与高度
+  int  computeArchiveContentHeight () const; ///< 计算归档区内容总高度
   void endEditTitle (const string& sessionId, bool accept); ///< 结束内联编辑
   QList<string>
   getCheckedSessionIds () const; ///< 获取多选模式下已勾选的会话 ID 列表
