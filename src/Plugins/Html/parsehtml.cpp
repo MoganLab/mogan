@@ -187,6 +187,7 @@ parse_html (string s) {
 
 #ifdef QTTEXMACS
 static QDialog* html_progress_dialog = nullptr;
+static int      html_progress_total  = 0;
 #endif
 
 void
@@ -194,6 +195,8 @@ html_progress_start (int total) {
 #ifdef QTTEXMACS
   if (QApplication::instance () && qobject_cast<QApplication*> (QApplication::instance ())) {
     QWidget* main_window = QApplication::activeWindow ();
+    html_progress_total = total;
+
     QDialog* dlg = new QDialog (main_window, Qt::Sheet);
     dlg->setWindowTitle ("HTML Export");
     dlg->setMinimumWidth (400);
@@ -205,7 +208,7 @@ html_progress_start (int total) {
     layout->addWidget (label);
 
     QProgressBar* bar = new QProgressBar (dlg);
-    bar->setRange (0, total);
+    bar->setRange (0, 100);
     bar->setValue (0);
     bar->setTextVisible (true);
     bar->setMinimumHeight (20);
@@ -238,12 +241,26 @@ html_progress_update (int current) {
   if (html_progress_dialog) {
     QProgressBar* bar = html_progress_dialog->findChild<QProgressBar*> ();
     if (bar) {
-      bar->setValue (current);
+      int target = 100;
+      if (html_progress_total > 0) {
+        target = (current * 100) / html_progress_total;
+      }
+      int prev = bar->value ();
+      if (target > prev) {
+        int step = (target - prev) / 10;
+        if (step < 1) step = 1;
+        for (int val = prev + step; val <= target; val += step) {
+          bar->setValue (val);
+          bar->repaint ();
+          QCoreApplication::processEvents ();
+          QThread::msleep (15);
+        }
+      }
+      bar->setValue (target);
       bar->repaint ();
     }
     html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
-    QThread::msleep (50); // 每次更新进度后休眠 50ms 确保重绘
   }
 #else
   (void) current;
