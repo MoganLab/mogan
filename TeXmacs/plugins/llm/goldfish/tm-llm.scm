@@ -25,7 +25,7 @@
         ) ;
     (if (member tag '(document math equation* align))
       (flush-scheme `(document (concat ,count-str ," " ,stree)))
-      (flush-verbatim (string-append count-str " " code))
+      (flush-verbatim (string-append count-str " " (length code)))
     ) ;if
   ) ;let*
 ) ;define
