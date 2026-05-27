@@ -22,7 +22,9 @@
 /**
  * 悬浮搜索栏容器。
  *
- * 布局: [TeXmacs 输入区] [上一个] [下一个] [关闭] [匹配计数]
+ * 布局:
+ *   上层: [TeXmacs 输入区] [上一个] [下一个] [关闭]
+ *   下层: [TeXmacs 输入区] [匹配计数]
  * 输入区是嵌入的 texmacs_input_widget，绑定到 search-buffer，
  * 搜索逻辑与底部搜索面板完全一致。
  */
@@ -45,9 +47,9 @@ signals:
   void closeRequested ();
 
 private:
-  QHBoxLayout* layout_ = nullptr;
-  QWidget*     inputQW_= nullptr; ///< 嵌入的 TeXmacs 输入 QWidget
-  QLabel*      infoLbl_= nullptr; ///< 匹配计数标签
+  QHBoxLayout* rowLayout_= nullptr; ///< 上层水平布局（输入+按钮）
+  QWidget*     inputQW_  = nullptr; ///< 嵌入的 TeXmacs 输入 QWidget
+  QLabel*      infoLbl_  = nullptr; ///< 匹配计数标签
 };
 
 /// Scheme 胶水函数：显示 ("true"/"#t") 或隐藏悬浮搜索栏。
