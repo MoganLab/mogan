@@ -20,6 +20,7 @@
 #include <QFileDialog>
 #include <QLabel>
 #include <QPushButton>
+#include <QTimer>
 
 #include "qt_utilities.hpp"
 
@@ -428,6 +429,10 @@ ChatController::activateSession (const string& sessionId) {
   if (!panel->conversationMode ()) {
     loadSessionContent (panel);
   }
+  else {
+    // 已加载过内容，滚动消息区域到底部
+    call ("chat-scroll-message-to-end", sessionId);
+  }
 
   view_->activatePanel (panel);
   view_->sidebar ()->setActiveItem (sessionId);
@@ -451,11 +456,14 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   call ("chat-persist-load-session-content", panel->sessionId (),
         object (s->defaultExpandCount));
 
-  // 检查消息 buffer 是否非空，若非空则进入会话模式
+  // 检查消息 buffer 是否非空，若非空则进入会话模式并滚动到底部
   tree msgBody= get_buffer_body (
       ChatSessionManager::messageBufferUrl (panel->sessionId ()));
   if (!ChatConversationPanel::is_empty_document_body (msgBody)) {
     panel->enterConversationMode ();
+    QTimer::singleShot (3000, this, [this, sid= panel->sessionId ()] () {
+      call ("chat-scroll-message-to-end", sid);
+    });
   }
 
   // 同步会话标题标签

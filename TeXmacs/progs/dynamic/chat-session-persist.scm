@@ -18,15 +18,11 @@
   ) ;:use
 ) ;texmacs-module
 
-(import (liii njson)
-  (liii os)
-)
+(import (liii njson) (liii os))
 
 ;;; ---------- 路径工具 ----------
 
-(tm-define (chat-persist-home-path)
-  (url->system (get-texmacs-home-path))
-) ;tm-define
+(tm-define (chat-persist-home-path) (url->system (get-texmacs-home-path)))
 
 (tm-define (chat-persist-base-dir)
   (string-append (chat-persist-home-path) "/system/ai-chat-sessions")
@@ -62,7 +58,10 @@
     (njson-set! entry "sessionId" sid)
     (njson-set! entry "title" title)
     (njson-set! entry "model" model)
-    (njson-set! entry "archived" (if (or (not archived) (== archived "false")) "false" "true"))
+    (njson-set! entry
+      "archived"
+      (if (or (not archived) (== archived "false")) "false" "true")
+    ) ;njson-set!
     (njson-set! entry "createdAt" (or created-at ""))
     (njson-set! entry "defaultExpandCount" 5)
     entry
@@ -108,13 +107,14 @@
 ;; 内部递归：遍历 DOCUMENT 子节点，拼接所有原子文本。
 
 (tm-define (chat-persist-extract-title-loop body idx result)
-  (if (or (not (tree-children body))
-          (>= idx (length (tree-children body))))
+  (if (or (not (tree-children body)) (>= idx (length (tree-children body))))
     result
     (let ((child (tree-ref body idx)))
       (if (tree-atomic? child)
-        (chat-persist-extract-title-loop body (+ idx 1)
-          (string-append result (tree->string child)))
+        (chat-persist-extract-title-loop body
+          (+ idx 1)
+          (string-append result (tree->string child))
+        ) ;chat-persist-extract-title-loop
         (chat-persist-extract-title-loop body (+ idx 1) result)
       ) ;if
     ) ;let
@@ -199,15 +199,33 @@
       ;; 避免 buffer-load 创建临时文件 buffer 导致多余 tab
       ;; 避免 buffer-set-body 对已有嵌入式 editor 触发 assign 导致 crash
       (let* ((doc (tree-import (system->url msg-path) "generic"))
-             (body (tmfile-extract doc 'body)))
+             (body (tmfile-extract doc 'body))
+            ) ;
         (when body
           (buffer-set-body msg-buf body)
           ;; 恢复宏包：加载时 buffer 只有默认 generic 样式，
           ;; 需要重新添加 number-europe、language 等宏包以正确渲染
           (with-buffer msg-buf
             (session-unfold-last-n n)
-            (chat-tab-add-default-style-packages!))
+            (chat-tab-add-default-style-packages!)
+            (go-end))
           (buffer-pretend-saved msg-buf)))
+    ) ;when
+  ) ;let
+) ;tm-define
+
+;; chat-scroll-message-to-end
+;; 将消息 buffer 的光标移动到末尾，触发滚动到底部。
+;; 用于切换到已加载内容的会话时。
+;;
+;; 语法
+;; ----
+;; (chat-scroll-message-to-end session-id)
+
+(tm-define (chat-scroll-message-to-end session-id)
+  (let ((msg-buf (chat-tab-session->message-buffer session-id)))
+    (when msg-buf
+      (with-buffer msg-buf (go-end))
     ) ;when
   ) ;let
 ) ;tm-define
@@ -258,21 +276,18 @@
              (sessions-arr (njson-ref manifest "sessions"))
              (entries (njson-array->list sessions-arr))
             ) ;
-        (let ((new-arr (string->njson "[]"))
-              (found #f)
-             ) ;
-          (for-each
-            (lambda (e)
-              (let ((sid-pair (assoc "sessionId" e)))
-                (if (and sid-pair (== (cdr sid-pair) session-id))
-                  (begin
-                    (njson-append! new-arr entry)
-                    (set! found #t)
-                  ) ;begin
-                  (njson-append! new-arr (json->njson e))
-                ) ;if
-              ) ;let
-            ) ;lambda
+        (let ((new-arr (string->njson "[]")) (found #f))
+          (for-each (lambda (e)
+                      (let ((sid-pair (assoc "sessionId" e)))
+                        (if (and sid-pair (== (cdr sid-pair) session-id))
+                          (begin
+                            (njson-append! new-arr entry)
+                            (set! found #t)
+                          ) ;begin
+                          (njson-append! new-arr (json->njson e))
+                        ) ;if
+                      ) ;let
+                    ) ;lambda
             entries
           ) ;for-each
           (when (not found)
@@ -334,14 +349,13 @@
              (entries (njson-array->list sessions-arr))
             ) ;
         (let ((new-arr (string->njson "[]")))
-          (for-each
-            (lambda (e)
-              (let ((sid-pair (assoc "sessionId" e)))
-                (when (not (and sid-pair (== (cdr sid-pair) session-id)))
-                  (njson-append! new-arr (json->njson e))
-                ) ;when
-              ) ;let
-            ) ;lambda
+          (for-each (lambda (e)
+                      (let ((sid-pair (assoc "sessionId" e)))
+                        (when (not (and sid-pair (== (cdr sid-pair) session-id)))
+                          (njson-append! new-arr (json->njson e))
+                        ) ;when
+                      ) ;let
+                    ) ;lambda
             entries
           ) ;for-each
           (njson-drop! manifest "sessions")
