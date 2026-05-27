@@ -194,6 +194,7 @@ html_progress_start (int total) {
     html_progress_dialog->setMinimumDuration (0);
     html_progress_dialog->setValue (0);
     html_progress_dialog->show ();
+    html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
   }
 #else
@@ -206,6 +207,7 @@ html_progress_update (int current) {
 #ifdef QTTEXMACS
   if (html_progress_dialog) {
     html_progress_dialog->setValue (current);
+    html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
   }
 #else
