@@ -684,6 +684,7 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
   if (item.isArchived) {
     item.isArchived= false;
     conversationListLayout_->insertWidget (0, item.itemWidget);
+    if (item.moreButton) item.moreButton->hide ();
   }
 
   // 更新 sessionCache_ 中的 archived 状态
@@ -740,6 +741,7 @@ ChatSidebar::updateCountLabels () {
     archiveHeaderButton_->setText (
         qt_translate ("Archived (%1)").arg (archivedCount));
     archiveHeaderButton_->setVisible (archivedCount > 0);
+    if (archivedCount == 0 && archiveListWidget_) archiveListWidget_->hide ();
   }
 }
 
@@ -962,7 +964,6 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
   else if (event->type () == QEvent::HoverLeave) {
     for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
       if (it->itemWidget == watched && it->moreButton) {
-        bool isActive= (it.key () == activeSessionId_ && !it->isArchived);
         it->moreButton->setVisible (it->isArchived);
         break;
       }
