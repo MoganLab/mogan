@@ -1260,9 +1260,17 @@ QLabel#chat-tab-nav-title {
   color: #000000;
 }
 
+/* 搜索按钮 */
+QPushButton#chat-tab-search-btn {
+  background-color: transparent;
+}
+QPushButton#chat-tab-search-btn:hover {
+  background-color: #d0d0d0;
+}
+
 /* 收缩按钮 */
 QPushButton#chat-tab-collapse-btn {
-  background-color: #e8e8e8;
+  background-color: transparent;
 }
 QPushButton#chat-tab-collapse-btn:hover {
   background-color: #d0d0d0;
@@ -1313,11 +1321,13 @@ QWidget#chat-tab-floating-container {
 
 /* 浮球按钮 */
 QPushButton#chat-tab-floating-expand-btn,
-QPushButton#chat-tab-floating-new-btn {
+QPushButton#chat-tab-floating-new-btn,
+QPushButton#chat-tab-floating-search-btn {
   background-color: transparent;
 }
 QPushButton#chat-tab-floating-expand-btn:hover,
-QPushButton#chat-tab-floating-new-btn:hover {
+QPushButton#chat-tab-floating-new-btn:hover,
+QPushButton#chat-tab-floating-search-btn:hover {
   background-color: #d0d0d0;
 }
 
