@@ -2179,18 +2179,40 @@
 ;; Interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (strip-latex-spacing-artifacts x)
+  (cond ((not (pair? x)) x)
+        ((and (in? (car x) '(around around*))
+              (>= (length x) 4)
+              (string=? (cadr x) "[")
+              (string=? (cadddr x) "]")
+              (string? (caddr x))
+              (let ((s (caddr x)))
+                (or (string-ends? s "*p*t")
+                    (string-ends? s "pt")
+                    (string-ends? s "*e*m")
+                    (string-ends? s "em")
+                    (string-ends? s "*e*x")
+                    (string-ends? s "ex")
+                    (string-ends? s "cm")
+                    (string-ends? s "mm")
+                    (string-ends? s "in"))))
+         "")
+        (else
+         (map strip-latex-spacing-artifacts x))))
+
 (tm-define (texmacs->html x opts)
-  (if (tmfile? x)
-      (let* ((body (tmfile-extract x 'body))
-             (style* (tmfile-extract x 'style))
-             (style (if (list? style*) style* (list style*)))
-             (lan (tmfile-language x))
-             (doc (list '!file body style lan
-                        (url->string (get-texmacs-path)))))
-        (texmacs->html doc opts))
-      (begin
-        (tmhtml-initialize opts)
-        ((if (func? x '!file)
-             tmhtml-finalize-document
-             tmhtml-finalize-selection)
-         (tmhtml-root x)))))
+  (let ((x* (strip-latex-spacing-artifacts x)))
+    (if (tmfile? x*)
+        (let* ((body (tmfile-extract x* 'body))
+               (style* (tmfile-extract x* 'style))
+               (style (if (list? style*) style* (list style*)))
+               (lan (tmfile-language x*))
+               (doc (list '!file body style lan
+                          (url->string (get-texmacs-path)))))
+          (texmacs->html doc opts))
+        (begin
+          (tmhtml-initialize opts)
+          ((if (func? x* '!file)
+               tmhtml-finalize-document
+               tmhtml-finalize-selection)
+           (tmhtml-root x*))))))

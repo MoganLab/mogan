@@ -47,7 +47,11 @@
     ;; Under full buffer export, the fixed dfrac must properly expand to mfrac in MathML!
     (check (string-contains? html-content "mfrac") => #t)
     (check (string-contains? html-content "偶数") => #t)
-    (check (string-contains? html-content "奇数") => #t)))
+    (check (string-contains? html-content "奇数") => #t)
+    
+    ;; Also verify that LaTeX raw spacing artifacts like [6pt] have been cleanly removed!
+    (check (string-contains? html-content "6pt") => #f)
+    (check (string-contains? html-content "2pt") => #f)))
 
 (tm-define (test_0622)
   (test-dfrac-env-patch-exclusion)
