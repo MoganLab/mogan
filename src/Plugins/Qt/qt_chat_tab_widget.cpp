@@ -250,9 +250,8 @@ ChatConversationPanel::setup_ui () {
   sendButton_->setIconSize (QSize (sendIconSize, sendIconSize));
   sendButton_->setFixedSize (DpiUtils::scaled (kSendButtonSize),
                              DpiUtils::scaled (kSendButtonSize));
-  sendButton_->setStyleSheet (
-      QString ("QPushButton { border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kSendButtonRadius)));
+  sendButton_->setStyleSheet (QString ("QPushButton { border-radius: %1px; }")
+                                  .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (sendButton_, &QPushButton::clicked, this,
            [this] () { emit sendRequested (sessionId_); });
   btnLayout->addWidget (sendButton_);
