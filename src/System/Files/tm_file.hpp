@@ -46,9 +46,9 @@ eval_system (string which, url u1, url u2) {
                       escape_sh (concretize (u2)));
 }
 
-url    url_numbered (url dir, string prefix, string postfix, int i= 1);
-url    url_scratch (string prefix= "no_name_", string postfix= ".tm", int i= 1);
-bool   is_scratch (url u);
+url  url_numbered (url dir, string prefix, string postfix, int i= 1);
+url  url_scratch (string prefix= "no_name_", string postfix= ".tmu", int i= 1);
+bool is_scratch (url u);
 string file_format (url u);
 
 /**

@@ -136,6 +136,13 @@ init_texmacs_home_path () {
 }
 
 url
+get_documents_path () {
+  string docs= get_env ("TEXMACS_DOCUMENTS_PATH");
+  if (!is_empty (docs)) return url_system (docs);
+  return url_system (get_env ("HOME") * "/Documents");
+}
+
+url
 get_tm_cache_path () {
 #if defined(OS_WIN) || defined(OS_MINGW)
   return url (string ("$LOCALAPPDATA/") * CACHE_NAME * "/system/cache/" *

@@ -49,6 +49,7 @@ void mac_fix_paths ();
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QKeySequence>
+#include <QStandardPaths>
 #endif
 
 #ifdef MACOSX_EXTENSIONS
@@ -231,6 +232,15 @@ main (int argc, char** argv) {
   // initialize the Qt application infrastructure
   if (headless_mode) qtmcoreapp= new QTMCoreApplication (argc, argv);
   else qtmapp= new QTMApplication (argc, argv);
+
+  // Set documents path for scratch files
+  {
+    QString docsDir=
+        QStandardPaths::writableLocation (QStandardPaths::DocumentsLocation);
+    if (docsDir.isEmpty ())
+      docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
+    set_env ("TEXMACS_DOCUMENTS_PATH", from_qstring_utf8 (docsDir));
+  }
 
   // before startup login dialog
   init_texmacs_path (argc, argv);

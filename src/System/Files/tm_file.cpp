@@ -18,6 +18,7 @@
 #include "lolly/system/subprocess.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
+#include "tm_sys_utils.hpp"
 #include "tm_timer.hpp"
 #include "tmfs_url.hpp"
 #include "tree_helper.hpp"
@@ -104,13 +105,13 @@ url_numbered (url dir, string prefix, string postfix, int i) {
 
 url
 url_scratch (string prefix, string postfix, int i) {
-  url dir ("$TEXMACS_HOME_PATH/texts/scratch");
+  url dir= get_documents_path () * "LiiiSTEM/no_name";
   return url_numbered (dir, prefix, postfix, i);
 }
 
 bool
 is_scratch (url u) {
-  return head (u) == url ("$TEXMACS_HOME_PATH/texts/scratch");
+  return head (u) == get_documents_path () * "LiiiSTEM/no_name";
 }
 
 string

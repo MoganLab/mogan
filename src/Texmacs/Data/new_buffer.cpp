@@ -211,7 +211,7 @@ url
 make_new_buffer () {
   int i= 1;
   while (true) {
-    url name= url_scratch ("no_name_", ".tm", i);
+    url name= url_scratch ("no_name_", ".tmu", i);
     if (is_nil (concrete_buffer (name))) {
       set_buffer_tree (name, tree (DOCUMENT));
       return name;
@@ -232,14 +232,14 @@ buffer_has_name (url name) {
 string
 propose_title (string old_title, url u, tree doc) {
   string name= as_string (tail (u));
-  if (starts (name, "no_name_") && ends (name, ".tm")) {
+  if (starts (name, "no_name_") && ends (name, ".tmu")) {
     string no_name= translate ("No name");
     for (int i= 0; i < N (no_name); i++)
       if (((unsigned char) (no_name[i])) >= (unsigned char) 128) {
         no_name= "No name";
         break;
       }
-    name= no_name * " [" * name (8, N (name) - 3) * "]";
+    name= no_name * " [" * name (8, N (name) - 4) * "]";
   }
   if ((name == "") || (name == ".")) name= as_string (tail (u * url_parent ()));
   if ((name == "") || (name == ".")) name= as_string (u);

@@ -27,7 +27,8 @@ private slots:
 
 void
 Test_view_type::test_normal_cases () {
-  string normal_url_1= "tmfs://view/1/default/Users/texts/scratch/no_name_5.tm";
+  string normal_url_1=
+      "tmfs://view/1/default/Users/texts/scratch/no_name_5.tmu";
   string normal_url_2=
       "tmfs://view/2/default/Users/jimzhou/Downloads/user_guide.tmu";
   string normal_url_114514= "tmfs://view/114514/default/Users/Documents/A.tmu";
@@ -62,10 +63,11 @@ Test_view_type::test_live_cases () {
 
 void
 Test_view_type::test_broken_cases () {
-  string broken_url_1= "ntfs://view/1/default/Users/texts/scratch/no_name_5.tm";
+  string broken_url_1=
+      "ntfs://view/1/default/Users/texts/scratch/no_name_5.tmu";
   string broken_url_2= "tmfs://view//tmfs/aux/edit-strong";
   string broken_url_3=
-      "tmfs://view/<number>/default/Users/texts/scratch/no_name_5.tm";
+      "tmfs://view/<number>/default/Users/texts/scratch/no_name_5.tmu";
   string broken_url_4= "tmfs://view/abc/tmfs/aux/edit-strong";
   QCOMPARE (is_tmfs_view_type (broken_url_1, "default"), false);
   QCOMPARE (is_tmfs_view_type (broken_url_2, "aux"), false);

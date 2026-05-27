@@ -29,6 +29,7 @@ string check_stderr (string s);
 url  get_texmacs_path ();
 url  get_texmacs_home_path ();
 void init_texmacs_home_path ();
+url  get_documents_path ();
 url  get_tm_cache_path ();
 url  get_tm_preference_path ();
 
