@@ -223,6 +223,7 @@ signals:
   void restoreRequested (const string& sessionId);
   void renameRequested (const string& sessionId, const string& newTitle);
   void newChatRequested ();
+  void exportRequested (const string& sessionId);
   void multiDeleteRequested (const QList<string>& sessionIds);
   void multiArchiveRequested (const QList<string>& sessionIds);
 

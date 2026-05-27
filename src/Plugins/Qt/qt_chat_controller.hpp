@@ -91,6 +91,12 @@ public:
   void onRestoreRequested (const string& sessionId);
 
   /**
+   * @brief 导出指定会话的消息 buffer 到用户选择的路径（TMU 格式）。
+   * @param sessionId 要导出的会话 ID
+   */
+  void onExportRequested (const string& sessionId);
+
+  /**
    * @brief 创建新会话或复用空白会话。
    */
   void onNewChatRequested ();

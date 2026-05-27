@@ -17,6 +17,7 @@
 #include "scheme.hpp"
 
 #include <QApplication>
+#include <QFileDialog>
 #include <QLabel>
 #include <QPushButton>
 
@@ -85,6 +86,8 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
              });
     connect (sb, &ChatSidebar::restoreRequested, this,
              &ChatController::onRestoreRequested);
+    connect (sb, &ChatSidebar::exportRequested, this,
+             &ChatController::onExportRequested);
     connect (sb, &ChatSidebar::newChatRequested, this,
              &ChatController::onNewChatRequested);
     connect (sb, &ChatSidebar::renameRequested, this,
@@ -318,6 +321,23 @@ ChatController::onRestoreRequested (const string& sessionId) {
   updateManifest (sessionId);
   view_->sidebar ()->moveFromArchive (sessionId);
   activateSession (sessionId);
+}
+
+void
+ChatController::onExportRequested (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s) return;
+
+  QString defaultName= is_empty (s->title)
+                           ? QString ("export.tmu")
+                           : to_qstring (s->title) + ".tmu";
+  QString targetPath= QFileDialog::getSaveFileName (
+      nullptr, qt_translate ("Export Conversation"), defaultName,
+      qt_translate ("TMU Files (*.tmu)"));
+  if (targetPath.isEmpty ()) return;
+
+  call ("chat-persist-export-session-to", sessionId,
+        from_qstring_utf8 (targetPath));
 }
 
 void

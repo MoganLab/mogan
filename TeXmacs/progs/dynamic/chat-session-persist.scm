@@ -351,6 +351,40 @@
   ) ;let
 ) ;tm-define
 
+;;; ---------- 导出会话到指定路径 ----------
+
+;; chat-persist-export-session-to
+;; 将指定会话的消息内容保存到用户选择的目标路径（TMU 格式）。
+;; 先 buffer-save 保证 buffer 内容已写入磁盘，再 system-copy 到目标路径。
+;;
+;; 语法
+;; ----
+;; (chat-persist-export-session-to session-id target-path)
+;;
+;; 参数
+;; ----
+;; session-id : string
+;;   会话 UUID。
+;; target-path : string
+;;   目标文件路径（系统路径，以 .tmu 结尾）。
+
+(tm-define (chat-persist-export-session-to session-id target-path)
+  (let ((msg-buf (chat-tab-session->message-buffer session-id))
+        (msg-path (chat-persist-message-path session-id))
+       ) ;
+    ;; 确保 buffer 内容已写入磁盘
+    (chat-persist-ensure-dir! (chat-persist-parent-dir msg-path))
+    (buffer-export msg-buf (system->url msg-path) "tmu")
+    ;; 复制到用户指定路径
+    (when (file-exists? msg-path)
+      (chat-persist-ensure-dir! (chat-persist-parent-dir target-path))
+      (system-copy (system->url msg-path) (system->url target-path))
+      ;; 加入最近文档列表
+      (startup-tab-add-recent-doc target-path)
+    ) ;when
+  ) ;let
+) ;tm-define
+
 ;;; ---------- 注册恢复后的会话 ----------
 
 (tm-define (chat-persist-register-session session-id model)

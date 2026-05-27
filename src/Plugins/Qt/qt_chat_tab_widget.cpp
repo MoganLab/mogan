@@ -852,6 +852,7 @@ ChatSidebar::createItem (const string& sessionId) {
         }
         else {
           QAction* renameAction = menu.addAction (qt_translate ("Rename"));
+          QAction* exportAction= menu.addAction (qt_translate ("Export"));
           QAction* archiveAction= menu.addAction (
               archived ? qt_translate ("Restore") : qt_translate ("Archive"));
           QAction* deleteAction= menu.addAction (qt_translate ("Delete"));
@@ -862,6 +863,9 @@ ChatSidebar::createItem (const string& sessionId) {
               menu.exec (btn->mapToGlobal (btn->rect ().bottomLeft ()));
           if (chosen == renameAction) {
             emit renameRequested (sid, "");
+          }
+          else if (chosen == exportAction) {
+            emit exportRequested (sid);
           }
           else if (chosen == archiveAction) {
             if (archived) emit restoreRequested (sid);
