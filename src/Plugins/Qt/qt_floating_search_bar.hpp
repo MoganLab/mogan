@@ -12,18 +12,19 @@
 #ifndef QT_FLOATING_SEARCH_BAR_HPP
 #define QT_FLOATING_SEARCH_BAR_HPP
 
+#include <QHBoxLayout>
 #include <QLabel>
-#include <QLineEdit>
 #include <QPushButton>
 #include <QWidget>
 
 #include "string.hpp"
 
 /**
- * 轻量级悬浮搜索栏，布局类似 VSCode 的 Ctrl+F 搜索框。
+ * 悬浮搜索栏容器。
  *
- * 布局: [搜索输入框] [上一个] [下一个] [关闭] [匹配计数]
- * 通过信号通知宿主执行搜索操作。
+ * 布局: [TeXmacs 输入区] [上一个] [下一个] [关闭] [匹配计数]
+ * 输入区是嵌入的 texmacs_input_widget，绑定到 search-buffer，
+ * 搜索逻辑与底部搜索面板完全一致。
  */
 class QTMFloatingSearchBar : public QWidget {
   Q_OBJECT
@@ -31,32 +32,29 @@ class QTMFloatingSearchBar : public QWidget {
 public:
   QTMFloatingSearchBar (QWidget* parent= nullptr);
 
-  /// 显示搜索栏，清空输入并聚焦。
+  /// 设置嵌入的 TeXmacs 搜索输入 widget。
+  void setSearchInput (QWidget* input);
+  /// 显示搜索栏并聚焦输入区。
   void activate ();
-  /// 获取当前搜索文本。
-  QString queryText () const;
-  /// 设置匹配信息标签（如 "3/12" 或 "无结果"）。
-  void setMatchInfo (const QString& info);
+  /// 设置匹配信息（current=0, total=0 显示"无匹配"）。
+  void setMatchInfo (int current, int total);
 
 signals:
-  /// 搜索文本变化时触发（实时搜索）。
-  void queryChanged (const QString& text);
-  /// 用户点击下一个或按 Enter 时触发。
   void findNextRequested ();
-  /// 用户点击上一个或按 Shift+Enter 时触发。
   void findPreviousRequested ();
-  /// 用户关闭搜索栏时触发。
   void closeRequested ();
 
-protected:
-  void keyPressEvent (QKeyEvent* event) override;
-
 private:
-  QLineEdit* edit_;    ///< 搜索输入框
-  QLabel*    infoLbl_; ///< 匹配计数标签
+  QHBoxLayout* layout_ = nullptr;
+  QWidget*     inputQW_= nullptr; ///< 嵌入的 TeXmacs 输入 QWidget
+  QLabel*      infoLbl_= nullptr; ///< 匹配计数标签
 };
 
 /// Scheme 胶水函数：显示 ("true"/"#t") 或隐藏悬浮搜索栏。
 void qt_floating_search (string flag);
+
+/// Scheme 胶水函数：传入 search-buffer URL，创建 texmacs-input
+/// 并嵌入浮动搜索栏。
+void qt_floating_search_init (string aux_url_str);
 
 #endif // QT_FLOATING_SEARCH_BAR_HPP

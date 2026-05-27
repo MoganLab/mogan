@@ -534,6 +534,14 @@ function main()
                 arg_list = {
                     "string"
                 }
+            },
+            {
+                scm_name = "qt-floating-search-init",
+                cpp_name = "qt_floating_search_init",
+                ret_type = "void",
+                arg_list = {
+                    "string"
+                }
             }
         }
     }

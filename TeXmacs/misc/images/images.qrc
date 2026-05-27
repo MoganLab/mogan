@@ -25,6 +25,9 @@
         <file>llm-chat/thinking.svg</file>
         <file>llm-chat/thinking-white.svg</file>
 
+        <file>floating-search/down.svg</file>
+        <file>floating-search/up.svg</file>
+
         <!-- dark theme -->
         <file>ocr-button/left-align-white.svg</file>
         <file>ocr-button/middle-align-white.svg</file>

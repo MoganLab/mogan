@@ -1117,25 +1117,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define chat-tab-search-target #f)
+(define chat-tab-search-aux #f)
 
 (define (chat-tab-search-init target-buf)
   (set! chat-tab-search-target target-buf)
-  (let* ((aux (search-buffer)))
+  (let ((aux (search-buffer)))
+    (set! chat-tab-search-aux aux)
     (buffer-set-master aux target-buf)
     (set-search-window-state #t #t)
     (with-buffer target-buf
       (set-search-reference (cursor-path)))
     (set-search-filter)
-    (set! search-filter-out? #f)))
-
-(tm-define (chat-tab-set-query text)
-  (when (and chat-tab-search-target (buffer-exists? (search-buffer)))
-    (buffer-set-body (search-buffer) `(document ,text))
-    (with-buffer chat-tab-search-target
+    (set! search-filter-out? #f)
+    (qt-floating-search-init (url->string aux))
+    (qt-floating-search "true")
+    (with-buffer target-buf
       (perform-search*))))
 
+(define (chat-tab-perform-search)
+  (when (and chat-tab-search-target chat-tab-search-aux
+             (buffer-exists? chat-tab-search-aux))
+    (with-buffer chat-tab-search-target
+      (set-search-reference (cursor-path)))
+    (set-search-filter)
+    (with-buffer chat-tab-search-target
+      (perform-search))))
+
 (tm-define (chat-tab-search-next forward?)
-  (when chat-tab-search-target
+  (when (and chat-tab-search-target chat-tab-search-aux)
+    (chat-tab-perform-search)
     (with-buffer chat-tab-search-target
       (search-next-match forward? chat-tab-search-target))))
 
@@ -1146,7 +1156,8 @@
     (with-buffer chat-tab-search-target
       (cancel-alt-selection "alternate"))
     (set-search-window-state #f #f)
-    (set! chat-tab-search-target #f)))
+    (set! chat-tab-search-target #f)
+    (set! chat-tab-search-aux #f)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search and replace widget
@@ -1690,9 +1701,8 @@
         ((and sid
               (chat-message-buffer-has-content?
                 (string->url (string-append "tmfs://chat-message-" sid))))
-         (with msg-buf (string->url (string-append "tmfs://chat-message-" sid))
-           (chat-tab-search-init msg-buf)
-           (qt-floating-search "true")))
+         (chat-tab-search-init
+           (string->url (string-append "tmfs://chat-message-" sid))))
         ((not (string-starts? (url->system buf) "tmfs:"))
          (set! search-replace-text
            (cond ((in-math?) "Only search in math mode")
