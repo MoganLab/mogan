@@ -100,6 +100,27 @@ function main()
                     "url"
                 }
             },
+            {
+                scm_name = "latex-progress-start",
+                cpp_name = "latex_progress_start",
+                ret_type = "void",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
+                scm_name = "latex-progress-update",
+                cpp_name = "latex_progress_update",
+                ret_type = "void",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
+                scm_name = "latex-progress-end",
+                cpp_name = "latex_progress_end",
+                ret_type = "void"
+            },
         }
     }
 end
