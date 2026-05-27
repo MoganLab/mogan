@@ -12,6 +12,7 @@
 
 (texmacs-module (dynamic chat-session-persist)
   (:use (dynamic chat-tab-session)
+    (dynamic session-edit)
     (texmacs texmacs tm-files)
     (utils library cursor)
   ) ;:use
@@ -183,8 +184,15 @@
 ;; ----
 ;; session-id : string
 ;;   会话 UUID。
+;; n : int
+;;   展开末尾 n 条对话，其余折叠。
 
-(tm-define (chat-persist-load-session-content session-id)
+(tm-define (chat-persist-load-session-content session-id n)
+  (display "[chat-persist-load-session-content] called with sid=")
+  (display session-id)
+  (display ", n=")
+  (display n)
+  (newline)
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
@@ -202,6 +210,7 @@
           ;; 恢复宏包：加载时 buffer 只有默认 generic 样式，
           ;; 需要重新添加 number-europe、language 等宏包以正确渲染
           (with-buffer msg-buf
+            (session-unfold-last-n n)
             (chat-tab-add-default-style-packages!))
           (buffer-pretend-saved msg-buf)))
     ) ;when

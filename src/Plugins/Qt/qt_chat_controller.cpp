@@ -427,7 +427,8 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   // 只在非归档会话且内容未加载时才加载
   if (s->archived) return;
 
-  call ("chat-persist-load-session-content", panel->sessionId ());
+  call ("chat-persist-load-session-content", panel->sessionId (),
+        object (s->defaultExpandCount));
 
   // 检查消息 buffer 是否非空，若非空则进入会话模式
   tree msgBody= get_buffer_body (

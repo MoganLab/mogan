@@ -342,7 +342,7 @@
        (tm-func? (tree-ref t :up) 'document)))
 
 (tm-define (field-unfolded-context? t)
-  (and (tree-in? t '(unfolded-io unfolded-io-math unfoled-io-text))
+  (and (tree-in? t '(unfolded-io unfolded-io-math unfolded-io-text))
        (tm-func? (tree-ref t :up) 'document)))
 
 (tm-define (field-prog-context? t)
@@ -522,9 +522,23 @@
 	       (tm-func? (tree-ref u 1) 'document))
       (session-forall-sub fun (tree-ref u 1)))))
 
+(define (session-forall-find-doc body)
+  (cond ((not (tree? body)) #f)
+        ((tm-func? body 'session)
+         (with d (tree-ref body 2)
+           (if (tree-is? d 'document) d #f)))
+        ((tm-func? body 'document)
+         (let loop ((i 0))
+           (if (>= i (tree-arity body)) #f
+             (or (session-forall-find-doc (tree-ref body i))
+                 (loop (+ i 1))))))
+        (else #f)))
+
 (define (session-forall fun)
-  (with-innermost t subsession-document-context?
-    (session-forall-sub fun t)))
+  (let ((t (or (tree-innermost subsession-document-context?)
+               (session-forall-find-doc (buffer-get-body (current-buffer))))))
+    (when t
+      (session-forall-sub fun t))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Processing input
@@ -835,6 +849,29 @@
 
 (tm-define (session-unfold-all)
   (session-forall field-unfold))
+
+(define (session-collect-fields-sub t)
+  (let ((result '()))
+    (for (u (tree-children t))
+      (when (field-context? u)
+        (set! result (append result (list u))))
+      (when (and (tm-func? u 'unfolded-subsession)
+                 (tm-func? (tree-ref u 1) 'document))
+        (set! result (append result (session-collect-fields-sub (tree-ref u 1))))))
+    result))
+
+(define (session-unfold-last-n-sub n)
+  (let ((t (or (tree-innermost subsession-document-context?)
+               (session-forall-find-doc (buffer-get-body (current-buffer))))))
+    (when t
+      (let* ((fields (session-collect-fields-sub t))
+             (total (length fields)))
+        (for (i (.. (max 0 (- total n)) total))
+          (field-unfold (list-ref fields i)))))))
+
+(tm-define (session-unfold-last-n n)
+  (session-fold-all)
+  (session-unfold-last-n-sub n))
 
 (tm-define (field-insert-fold t*)
   (and-with t (tree-search-upwards t* field-input-context?)
