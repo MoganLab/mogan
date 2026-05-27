@@ -542,6 +542,15 @@ function main()
                 arg_list = {
                     "string"
                 }
+            },
+            {
+                scm_name = "qt-floating-search-set-match-info",
+                cpp_name = "qt_floating_search_set_match_info",
+                ret_type = "void",
+                arg_list = {
+                    "int",
+                    "int"
+                }
             }
         }
     }

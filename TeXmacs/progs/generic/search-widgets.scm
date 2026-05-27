@@ -111,6 +111,15 @@
     (when isreplace?
       (set! isreplace? #f)
     ) ;when
+    ;; 更新浮动搜索栏的匹配计数
+    (when chat-tab-search-target
+      (if (== index-str "")
+        (qt-floating-search-set-match-info 0 0)
+        (let* ((parts (string-split index-str #\/))
+               (cur (string->number (car parts)))
+               (tot (string->number (cadr parts))))
+          (when (and cur tot)
+            (qt-floating-search-set-match-info cur tot)))))
     (if (== index-str "")
       (set-auxiliary-widget-title (translate search-replace-text))
       (set-auxiliary-widget-title (string-append (translate search-replace-text) " (" index-str ")")
@@ -158,20 +167,24 @@
 ;; ----
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
-  (with u
-    (current-buffer)
-    (if (and (url-rooted-tmfs? u)
-          (== (url-head (url-head u)) (string->url "tmfs://aux/search"))
-        ) ;and
-      u
-      (string->url (string-append "tmfs://aux/search/"
-                     (md5 (url->string (current-view-url)))
-                     "/"
-                     (url->string (url-tail (current-window)))
-                   ) ;string-append
-      ) ;string->url
-    ) ;if
-  ) ;with
+  ;; chat tab 搜索激活期间，直接返回保存的 aux buffer
+  (if chat-tab-search-active?
+    chat-tab-search-aux
+    (with u
+      (current-buffer)
+      (if (and (url-rooted-tmfs? u)
+            (== (url-head (url-head u)) (string->url "tmfs://aux/search"))
+          ) ;and
+        u
+        (string->url (string-append "tmfs://aux/search/"
+                       (md5 (url->string (current-view-url)))
+                       "/"
+                       (url->string (url-tail (current-window)))
+                     ) ;string-append
+        ) ;string->url
+      ) ;if
+    ) ;with
+  ) ;if
 ) ;tm-define
 
 ;; replace-buffer
@@ -329,29 +342,36 @@
 ) ;tm-define
 
 (tm-define (master-buffer)
-  (and (buffer-exists? (search-buffer))
-    (with mas
-      (buffer-get-master (search-buffer))
-      (cond ((nnull? (buffer->windows mas)) mas)
-            ((in? search-window (window-list))
-             (buffer-set-master (search-buffer) (window->buffer search-window))
-             (with-buffer (buffer-get-master (search-buffer))
-               (set-search-reference (cursor-path))
-               (set-search-filter)
-             ) ;with-buffer
-             (master-buffer)
-            ) ;
-            ((nnull? (window-list))
-             (set! search-window (car (window-list)))
-             (master-buffer)
-            ) ;
-            (else #f)
-      ) ;cond
-    ) ;with
-  ) ;and
+  ;; chat tab 搜索激活期间，直接返回保存的 target buffer
+  (if chat-tab-search-active?
+    chat-tab-search-target
+    (and (buffer-exists? (search-buffer))
+      (with mas
+        (buffer-get-master (search-buffer))
+        (cond ((nnull? (buffer->windows mas)) mas)
+              ((in? search-window (window-list))
+               (buffer-set-master (search-buffer) (window->buffer search-window))
+               (with-buffer (buffer-get-master (search-buffer))
+                 (set-search-reference (cursor-path))
+                 (set-search-filter)
+               ) ;with-buffer
+               (master-buffer)
+              ) ;
+              ((nnull? (window-list))
+               (set! search-window (car (window-list)))
+               (master-buffer)
+              ) ;
+              (else #f)
+        ) ;cond
+      ) ;with
+    ) ;and
+  ) ;if
 ) ;tm-define
 
-(tm-define (inside-search-buffer?) (== (current-buffer) (search-buffer)))
+(tm-define (inside-search-buffer?)
+  (if chat-tab-search-active?
+    (== (current-buffer) chat-tab-search-aux)
+    (== (current-buffer) (search-buffer))))
 
 (tm-define (inside-replace-buffer?) (== (current-buffer) (replace-buffer)))
 
@@ -418,15 +438,17 @@
 
 (define (accept-search-result? p)
   (or (== (get-init "mode") "src")
-    (let* ((buf (buffer-tree))
-           (rel (path-strip (cDr p) (tree->path buf)))
-           (initial (cons 'attr (get-main-attrs get-init)))
-           (old-env (get-search-filter))
-           (new-env (tree-descendant-env* buf rel initial))
-          ) ;
-      ;; (display* p " ~> " new-env "\n")
-      (check-same? (tm-children new-env) (tm-children old-env))
-    ) ;let*
+    (catch #t
+      (lambda ()
+        (let* ((buf (buffer-tree))
+               (rel (path-strip (cDr p) (tree->path buf))))
+          (if (not rel) #t
+            (let* ((initial (cons 'attr (get-main-attrs get-init)))
+                   (old-env (get-search-filter))
+                   (new-env (tree-descendant-env* buf rel initial)))
+              (if (not new-env) #t
+                (check-same? (tm-children new-env) (tm-children old-env)))))))
+      (lambda (key msg . rest) #t))
   ) ;or
 ) ;define
 
@@ -1118,11 +1140,13 @@
 
 (define chat-tab-search-target #f)
 (define chat-tab-search-aux #f)
+(define chat-tab-search-active? #f)
 
 (define (chat-tab-search-init target-buf)
   (set! chat-tab-search-target target-buf)
   (let ((aux (search-buffer)))
     (set! chat-tab-search-aux aux)
+    (set! chat-tab-search-active? #t)
     (buffer-set-master aux target-buf)
     (set-search-window-state #t #t)
     (with-buffer target-buf
@@ -1153,6 +1177,7 @@
     (with-buffer chat-tab-search-target
       (cancel-alt-selection "alternate"))
     (set-search-window-state #f #f)
+    (set! chat-tab-search-active? #f)
     (set! chat-tab-search-target #f)
     (set! chat-tab-search-aux #f)))
 

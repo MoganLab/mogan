@@ -59,4 +59,7 @@ void qt_floating_search (string flag);
 /// 并嵌入浮动搜索栏。
 void qt_floating_search_init (string aux_url_str);
 
+/// Scheme 胶水函数：更新浮动搜索栏的匹配计数显示。
+void qt_floating_search_set_match_info (int current, int total);
+
 #endif // QT_FLOATING_SEARCH_BAR_HPP

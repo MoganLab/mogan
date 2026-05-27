@@ -309,3 +309,8 @@ qt_floating_search_init (string aux_url_str) {
     g_search_bar->setSearchInput (inputW);
   }
 }
+
+void
+qt_floating_search_set_match_info (int current, int total) {
+  if (g_search_bar) g_search_bar->setMatchInfo (current, total);
+}
