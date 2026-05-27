@@ -34,8 +34,8 @@ tree        conservative_latex_to_texmacs (string s, bool as_pic);
 int         number_latex_pages (url log);
 tree        postprocess_metadata (tree t);
 
-void        latex_progress_start (int total);
-void        latex_progress_update (int current);
-void        latex_progress_end ();
+void latex_progress_start (int total);
+void latex_progress_update (int current);
+void latex_progress_end ();
 
 #endif

@@ -77,8 +77,8 @@ latex_arity (string s) {
 #include <QThread>
 #include <QVBoxLayout>
 
-static QDialog* latex_progress_dialog = nullptr;
-static int      latex_progress_total  = 0;
+static QDialog* latex_progress_dialog= nullptr;
+static int      latex_progress_total = 0;
 #endif
 
 void
@@ -89,22 +89,22 @@ latex_progress_start (int total) {
     if (latex_progress_dialog) {
       latex_progress_dialog->close ();
       delete latex_progress_dialog;
-      latex_progress_dialog = nullptr;
+      latex_progress_dialog= nullptr;
     }
-    QWidget* main_window = QApplication::activeWindow ();
-    latex_progress_total = total;
+    QWidget* main_window= QApplication::activeWindow ();
+    latex_progress_total= total;
 
-    QDialog* dlg = new QDialog (main_window, Qt::Sheet);
+    QDialog* dlg= new QDialog (main_window, Qt::Sheet);
     dlg->setWindowTitle ("LaTeX Export");
     dlg->setMinimumWidth (400);
     dlg->setWindowModality (Qt::WindowModal);
 
-    QVBoxLayout* layout = new QVBoxLayout (dlg);
-    QLabel*      label  = new QLabel ("Exporting LaTeX...", dlg);
+    QVBoxLayout* layout= new QVBoxLayout (dlg);
+    QLabel*      label = new QLabel ("Exporting LaTeX...", dlg);
     label->setAlignment (Qt::AlignCenter);
     layout->addWidget (label);
 
-    QProgressBar* bar = new QProgressBar (dlg);
+    QProgressBar* bar= new QProgressBar (dlg);
     bar->setRange (0, 100);
     bar->setValue (0);
     bar->setTextVisible (true);
@@ -114,8 +114,8 @@ latex_progress_start (int total) {
                         "QProgressBar::chunk { background-color: #3498db; }");
     layout->addWidget (bar);
 
-    QHBoxLayout* btnLayout = new QHBoxLayout ();
-    QPushButton* btn       = new QPushButton ("Cancel", dlg);
+    QHBoxLayout* btnLayout= new QHBoxLayout ();
+    QPushButton* btn      = new QPushButton ("Cancel", dlg);
     btnLayout->addStretch ();
     btnLayout->addWidget (btn);
     layout->addLayout (btnLayout);
@@ -127,7 +127,7 @@ latex_progress_start (int total) {
     QCoreApplication::processEvents ();
     QThread::msleep (50); // 给 Qt 50ms 充分的时间完成第一帧渲染
 
-    latex_progress_dialog = dlg;
+    latex_progress_dialog= dlg;
   }
 #else
   (void) total;
@@ -138,17 +138,17 @@ void
 latex_progress_update (int current) {
 #ifdef QTTEXMACS
   if (latex_progress_dialog) {
-    QProgressBar* bar = latex_progress_dialog->findChild<QProgressBar*> ();
+    QProgressBar* bar= latex_progress_dialog->findChild<QProgressBar*> ();
     if (bar) {
-      int target = 100;
+      int target= 100;
       if (latex_progress_total > 0) {
-        target = (current * 100) / latex_progress_total;
+        target= (current * 100) / latex_progress_total;
       }
-      int prev = bar->value ();
+      int prev= bar->value ();
       if (target > prev) {
-        int step = (target - prev) / 10;
-        if (step < 1) step = 1;
-        for (int val = prev + step; val <= target; val += step) {
+        int step= (target - prev) / 10;
+        if (step < 1) step= 1;
+        for (int val= prev + step; val <= target; val+= step) {
           bar->setValue (val);
           bar->repaint ();
           QCoreApplication::processEvents ();
@@ -172,7 +172,7 @@ latex_progress_end () {
   if (latex_progress_dialog) {
     latex_progress_dialog->close ();
     delete latex_progress_dialog;
-    latex_progress_dialog = nullptr;
+    latex_progress_dialog= nullptr;
   }
 #endif
 }
