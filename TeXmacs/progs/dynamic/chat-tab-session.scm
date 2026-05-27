@@ -538,6 +538,18 @@
   ) ;when
 ) ;define
 
+(tm-define (chat-tab-sync-dark-style! session-id)
+  ;; C++ 侧创建 panel 后调用，同步暗色样式包
+  (when (== (get-preference "gui theme") "liii-night")
+    (let ((msg-buf (chat-tab-session->message-buffer session-id))
+          (in-buf (chat-tab-session->input-buffer session-id)))
+      (with-buffer msg-buf
+        (when (not (has-style-package? "dark"))
+          (add-style-package "dark")))
+      (with-buffer in-buf
+        (when (not (has-style-package? "dark"))
+          (add-style-package "dark"))))))
+
 (define (chat-tab-ensure-session! session-id)
   (let ((st (chat-tab-get-state session-id)))
     (if st
