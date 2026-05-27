@@ -195,7 +195,7 @@ TemplateAPI::incrementDownloadCount (const QString& templateId) {
     return;
   }
 
-  QString url= downloadTemplatesUrl ();
+  QString         url= downloadTemplatesUrl ();
   QNetworkRequest request{QUrl (url)};
   setupRequestHeaders (request);
 
@@ -206,11 +206,14 @@ TemplateAPI::incrementDownloadCount (const QString& templateId) {
   QNetworkReply* reply= networkManager_->post (request, bodyData);
   connect (reply, &QNetworkReply::finished, [reply, templateId] () {
     if (reply->error () != QNetworkReply::NoError) {
-      qWarning () << "[TemplateAPI] Failed to increment download count for template:" << templateId
-                  << "Error:" << reply->errorString ();
+      qWarning ()
+          << "[TemplateAPI] Failed to increment download count for template:"
+          << templateId << "Error:" << reply->errorString ();
     }
     else {
-      qDebug () << "[TemplateAPI] Successfully incremented download count for template:" << templateId;
+      qDebug () << "[TemplateAPI] Successfully incremented download count for "
+                   "template:"
+                << templateId;
     }
     reply->deleteLater ();
   });

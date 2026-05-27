@@ -656,8 +656,10 @@ TemplateManager::onTemplateDownloaded (const QString& templateId,
   api_->incrementDownloadCount (templateId);
 
 #if !IS_COMMUNITY
-  telemetry_track ("TEMPLATE_DOWNLOAD",
-                   from_qstring (QString ("'((\"template_id\" . \"%1\"))").arg (templateId)));
+  telemetry_track (
+      "TEMPLATE_DOWNLOAD",
+      from_qstring (
+          QString ("'((\"template_id\" . \"%1\"))").arg (templateId)));
 #endif
 
   emit downloadCompleted (templateId, localPath);
