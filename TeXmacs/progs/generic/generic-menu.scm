@@ -1335,8 +1335,8 @@
 
 (tm-define (rendering-parameters-merge t base mode)
   (if (func? mode :local)
-    (let ((global (focus-parameters-list-memo t :global)))
-      (if (and (in? "item-nr" global) (not (in? "item-nr" base)))
+    (let ((params (search-parameters (tree-label t))))
+      (if (and (in? "item-nr" params) (not (in? "item-nr" base)))
         (append base (list "item-nr"))
         base
       ) ;if
