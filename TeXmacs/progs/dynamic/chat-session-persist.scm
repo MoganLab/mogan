@@ -188,11 +188,6 @@
 ;;   展开末尾 n 条对话，其余折叠。
 
 (tm-define (chat-persist-load-session-content session-id n)
-  (display "[chat-persist-load-session-content] called with sid=")
-  (display session-id)
-  (display ", n=")
-  (display n)
-  (newline)
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
