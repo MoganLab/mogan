@@ -12,7 +12,11 @@
 #include "html.hpp"
 
 #ifdef QTTEXMACS
-#include <QProgressDialog>
+#include <QDialog>
+#include <QVBoxLayout>
+#include <QHBoxLayout>
+#include <QLabel>
+#include <QPushButton>
 #include <QProgressBar>
 #include <QApplication>
 #endif
@@ -181,7 +185,7 @@ parse_html (string s) {
 }
 
 #ifdef QTTEXMACS
-static QProgressDialog* html_progress_dialog = nullptr;
+static QDialog* html_progress_dialog = nullptr;
 #endif
 
 void
@@ -189,22 +193,35 @@ html_progress_start (int total) {
 #ifdef QTTEXMACS
   if (QApplication::instance () && qobject_cast<QApplication*> (QApplication::instance ())) {
     QWidget* main_window = QApplication::activeWindow ();
-    html_progress_dialog = new QProgressDialog (
-        "Exporting HTML...", "Cancel", 0, total, main_window);
-    html_progress_dialog->setWindowModality (Qt::WindowModal);
-    html_progress_dialog->setMinimumDuration (0);
-    html_progress_dialog->setMinimumWidth (400);
-    html_progress_dialog->setValue (0);
-    html_progress_dialog->setValue (1);
-    html_progress_dialog->setValue (0);
-    html_progress_dialog->show ();
-    QProgressBar* bar = html_progress_dialog->findChild<QProgressBar*> ();
-    if (bar) {
-      bar->show ();
-      bar->repaint ();
-    }
-    html_progress_dialog->repaint ();
+    QDialog* dlg = new QDialog (main_window, Qt::Sheet);
+    dlg->setWindowTitle ("HTML Export");
+    dlg->setMinimumWidth (400);
+    dlg->setWindowModality (Qt::WindowModal);
+
+    QVBoxLayout* layout = new QVBoxLayout (dlg);
+    QLabel* label = new QLabel ("Exporting HTML...", dlg);
+    label->setAlignment (Qt::AlignCenter);
+    layout->addWidget (label);
+
+    QProgressBar* bar = new QProgressBar (dlg);
+    bar->setRange (0, total);
+    bar->setValue (0);
+    bar->setTextVisible (true);
+    layout->addWidget (bar);
+
+    QHBoxLayout* btnLayout = new QHBoxLayout ();
+    QPushButton* btn = new QPushButton ("Cancel", dlg);
+    btnLayout->addStretch ();
+    btnLayout->addWidget (btn);
+    layout->addLayout (btnLayout);
+
+    QObject::connect (btn, &QPushButton::clicked, dlg, &QDialog::reject);
+
+    dlg->show ();
+    dlg->repaint ();
     QCoreApplication::processEvents ();
+
+    html_progress_dialog = dlg;
   }
 #else
   (void) total;
@@ -215,10 +232,9 @@ void
 html_progress_update (int current) {
 #ifdef QTTEXMACS
   if (html_progress_dialog) {
-    html_progress_dialog->setValue (current);
     QProgressBar* bar = html_progress_dialog->findChild<QProgressBar*> ();
     if (bar) {
-      bar->show ();
+      bar->setValue (current);
       bar->repaint ();
     }
     html_progress_dialog->repaint ();
