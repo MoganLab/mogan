@@ -1321,7 +1321,7 @@
          (s (url->string (url-tail css))))
     (if (string-starts? s "web-") 19000.0 20625.0)))
 
-(define (tmhtml-read-binary-file file-url)
+(tm-define (tmhtml-read-binary-file file-url)
   (let* ((path (url->string (url-concretize file-url)))
          (port (open-input-file path)))
     (if (not port)
@@ -1333,7 +1333,7 @@
                (dummy (close-input-port port)))
           (apply byte-vector bytes)))))
 
-(define (tmhtml-write-binary-file file-url data)
+(tm-define (tmhtml-write-binary-file file-url data)
   (let* ((path (url->string (url-concretize file-url)))
          (port (open-output-file path)))
     (if port

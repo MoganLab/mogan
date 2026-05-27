@@ -110,8 +110,29 @@
     (check (string-contains? html-content "-2.png") => #t)
     (display "HTML export with Base64 off verified successfully.\n")))
 
+(define (test-chinese-path-safety)
+  (display "Verifying path safety with Chinese characters...\n")
+  (let* ((chinese-url (url-glue (url-temp) "_测试_中文路径_测试.png"))
+         (dummy-bytes #u8(137 80 78 71 13 10 26 10))) ; PNG magic header
+    ;; 1. Write to a Chinese path
+    (tmhtml-write-binary-file chinese-url dummy-bytes)
+    (check (url-exists? chinese-url) => #t)
+    ;; 2. Read back from a Chinese path
+    (let ((read-bytes (tmhtml-read-binary-file chinese-url)))
+      (check (byte-vector? read-bytes) => #t)
+      (check (length read-bytes) => 8)
+      (check (vector-ref read-bytes 0) => 137)
+      (check (vector-ref read-bytes 1) => 80)
+      (check (vector-ref read-bytes 2) => 78)
+      (check (vector-ref read-bytes 3) => 71))
+    ;; 3. Cleanup Chinese path file
+    (url-remove chinese-url)
+    (check (url-exists? chinese-url) => #f)
+    (display "Chinese path safety verified successfully.\n")))
+
 (tm-define (test_0623)
   (test-embedded-extraction-logic)
+  (test-chinese-path-safety)
   (test-gnuplot-html-export-integration)
   (test-gnuplot-html-export-base64-off-integration)
   (check-report))
