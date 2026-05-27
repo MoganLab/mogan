@@ -124,13 +124,57 @@ private:
   ChatSessionManager sessionManager_;  ///< 会话管理器
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
 
-  // 内部方法
-  void                      activateSession (const string& sessionId);
-  void                      loadSessionContent (ChatConversationPanel* panel);
-  void                      exportBuffer (const string& sessionId);
-  void                      updateManifest (const string& sessionId);
-  void                      ensureNewConversation ();
-  ChatConversationPanel*    getOrCreatePanel (const string& sessionId);
+  /**
+   * @brief 激活指定会话：按需创建面板，按需加载内容。
+   * @param sessionId 要激活的会话 ID
+   */
+  void activateSession (const string& sessionId);
+
+  /**
+   * @brief 按需加载会话的消息内容到面板。
+   *
+   * 调用 Scheme 的 chat-persist-load-session-content 加载消息 buffer。
+   * @param panel 目标面板
+   */
+  void loadSessionContent (ChatConversationPanel* panel);
+
+  /**
+   * @brief 导出会话的 message buffer 到磁盘（TMU 格式）。
+   *
+   * 调用 Scheme 的 chat-persist-export-buffer，仅写 buffer 文件，不更新
+   * manifest。 适用于 buffer 内容确实发生变更的场景（发送消息、LLM 生成完成）。
+   * @param sessionId 目标会话 ID
+   */
+  void exportBuffer (const string& sessionId);
+
+  /**
+   * @brief 更新 manifest 中指定会话的元数据条目。
+   *
+   * 调用 Scheme 的 chat-persist-update-manifest，仅写 manifest JSON，不导出
+   * buffer。 适用于归档、恢复等仅元数据变更的场景，避免用空 buffer
+   * 覆盖磁盘文件。
+   * @param sessionId 目标会话 ID
+   */
+  void updateManifest (const string& sessionId);
+
+  /**
+   * @brief 确保存在一个可用的空白会话。
+   *
+   * 优先复用已有的空白会话，否则创建新会话。
+   */
+  void ensureNewConversation ();
+
+  /**
+   * @brief 获取或按需创建面板（延迟加载场景）。
+   * @param sessionId 目标会话 ID
+   * @return 面板指针，失败时返回 nullptr
+   */
+  ChatConversationPanel* getOrCreatePanel (const string& sessionId);
+
+  /**
+   * @brief 构建所有会话的显示信息列表，供 Sidebar 初始化使用。
+   * @return 显示信息列表
+   */
   QList<SessionDisplayInfo> buildDisplayInfos ();
 
   /**

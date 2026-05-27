@@ -50,6 +50,13 @@ private slots:
   // === insertSession ===
   void test_insertSession ();
 
+  // === 空白会话（title 为空）相关场景 ===
+  void test_createSession_empty_title ();
+  void test_archiveSession_preserves_empty_title ();
+  void test_restoreSession_preserves_title ();
+  void test_insertSession_empty_title ();
+  void test_archiveSession_with_title ();
+
   // === messageBufferUrl / inputBufferUrl ===
   void test_messageBufferUrl ();
   void test_inputBufferUrl ();
@@ -272,6 +279,81 @@ TestChatSession::test_insertSession () {
   QVERIFY (found->archived);
   QVERIFY (found->createdAt == string ("1234567890"));
   QVERIFY (found->panel == nullptr);
+}
+
+/******************************************************************************
+ * 空白会话（title 为空）相关场景
+ *
+ * 验证 [0229] 中"空白会话不归档"的判断依据：
+ * ChatController 通过 is_empty(s->title) 判断空白会话，
+ * 因此 ChatSessionManager 必须保证 title 在各种操作后保持一致。
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_empty_title () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  ChatSession*       s  = mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  // 新创建的会话 title 必须为空（空白会话判断依据）
+  QVERIFY (is_empty (s->title));
+}
+
+void
+TestChatSession::test_archiveSession_preserves_empty_title () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  // 空白会话归档后，title 仍为空（Manager 不自动填充 title）
+  mgr.archiveSession (sid);
+  ChatSession* s= mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (s->archived);
+  QVERIFY (is_empty (s->title));
+}
+
+void
+TestChatSession::test_restoreSession_preserves_title () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setTitle (sid, "My Chat");
+  mgr.archiveSession (sid);
+  mgr.restoreSession (sid);
+  // 恢复后 title 保持不变
+  ChatSession* s= mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!s->archived);
+  QVERIFY (s->title == string ("My Chat"));
+}
+
+void
+TestChatSession::test_insertSession_empty_title () {
+  ChatSessionManager mgr;
+  ChatSession        s;
+  s.sessionId= "blank-id";
+  s.title    = ""; // 空白会话
+  s.model    = "gpt-4";
+  s.state    = ChatState::Idle;
+  s.archived = false;
+  s.createdAt= "1000";
+  s.panel    = nullptr;
+  mgr.insertSession (s);
+
+  ChatSession* found= mgr.getSession ("blank-id");
+  QVERIFY (found != nullptr);
+  QVERIFY (is_empty (found->title));
+}
+
+void
+TestChatSession::test_archiveSession_with_title () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setTitle (sid, "Has Title");
+  mgr.archiveSession (sid);
+  // 有标题的会话归档后 title 保持
+  ChatSession* s= mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (s->archived);
+  QVERIFY (s->title == string ("Has Title"));
 }
 
 /******************************************************************************
