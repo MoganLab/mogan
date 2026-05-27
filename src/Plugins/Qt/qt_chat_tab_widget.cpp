@@ -852,7 +852,7 @@ ChatSidebar::createItem (const string& sessionId) {
         }
         else {
           QAction* renameAction = menu.addAction (qt_translate ("Rename"));
-          QAction* exportAction= menu.addAction (qt_translate ("Export"));
+          QAction* exportAction = menu.addAction (qt_translate ("Export"));
           QAction* archiveAction= menu.addAction (
               archived ? qt_translate ("Restore") : qt_translate ("Archive"));
           QAction* deleteAction= menu.addAction (qt_translate ("Delete"));

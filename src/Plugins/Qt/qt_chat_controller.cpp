@@ -328,10 +328,9 @@ ChatController::onExportRequested (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
 
-  QString defaultName= is_empty (s->title)
-                           ? QString ("export.tmu")
-                           : to_qstring (s->title) + ".tmu";
-  QString targetPath= QFileDialog::getSaveFileName (
+  QString defaultName= is_empty (s->title) ? QString ("export.tmu")
+                                           : to_qstring (s->title) + ".tmu";
+  QString targetPath = QFileDialog::getSaveFileName (
       nullptr, qt_translate ("Export Conversation"), defaultName,
       qt_translate ("TMU Files (*.tmu)"));
   if (targetPath.isEmpty ()) return;
