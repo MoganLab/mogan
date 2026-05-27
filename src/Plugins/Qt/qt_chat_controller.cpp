@@ -373,14 +373,14 @@ ChatController::restoreSessionMeta (const string& sessionId,
 
   // 插入元数据，不创建面板
   ChatSession session;
-  session.sessionId        = sessionId;
-  session.title            = title;
-  session.model            = model;
-  session.state            = ChatState::Idle;
-  session.archived         = archived;
-  session.createdAt        = createdAt;
+  session.sessionId         = sessionId;
+  session.title             = title;
+  session.model             = model;
+  session.state             = ChatState::Idle;
+  session.archived          = archived;
+  session.createdAt         = createdAt;
   session.defaultExpandCount= defaultExpandCount;
-  session.panel            = nullptr;
+  session.panel             = nullptr;
   sessionManager_.insertSession (session);
 }
 
@@ -618,7 +618,6 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
                              int defaultExpandCount) {
   bool isArchived = (archived == "true");
   int  expandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
-  get_chat_controller ()->restoreSessionMeta (sessionId, title, model,
-                                              isArchived, createdAt,
-                                              expandCount);
+  get_chat_controller ()->restoreSessionMeta (
+      sessionId, title, model, isArchived, createdAt, expandCount);
 }

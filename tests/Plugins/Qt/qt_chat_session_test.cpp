@@ -395,14 +395,14 @@ void
 TestChatSession::test_insertSession_defaultExpandCount () {
   ChatSessionManager mgr;
   ChatSession        s;
-  s.sessionId        = "test-expand";
-  s.title            = "Test";
-  s.model            = "gpt-4";
-  s.state            = ChatState::Idle;
-  s.archived         = false;
-  s.createdAt        = "1234567890";
+  s.sessionId         = "test-expand";
+  s.title             = "Test";
+  s.model             = "gpt-4";
+  s.state             = ChatState::Idle;
+  s.archived          = false;
+  s.createdAt         = "1234567890";
   s.defaultExpandCount= 5;
-  s.panel            = nullptr;
+  s.panel             = nullptr;
   mgr.insertSession (s);
 
   ChatSession* found= mgr.getSession ("test-expand");

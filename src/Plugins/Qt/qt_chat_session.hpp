@@ -38,8 +38,8 @@ struct ChatSession {
   bool                    archived;  ///< 是否归档
   string                  createdAt; ///< Unix 时间戳字符串，如 "1748266800"
   int                     defaultExpandCount; ///< 默认展开对话条数，固定为 5
-  ChatConversationPanel*  panel;     ///< 关联的面板指针
-  QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
+  ChatConversationPanel*  panel;              ///< 关联的面板指针
+  QMetaObject::Connection sendBtnConnection;  ///< send/stop 按钮信号连接句柄
 };
 
 /**

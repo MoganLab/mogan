@@ -200,7 +200,7 @@ private:
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,
                                            string createdAt,
-                                           int defaultExpandCount);
+                                           int    defaultExpandCount);
 };
 
 /**
