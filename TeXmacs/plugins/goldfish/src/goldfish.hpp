@@ -70,7 +70,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.55"
+#define GOLDFISH_VERSION "18.11.8"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -524,7 +524,22 @@ scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, st
     return false;
   }
 
-  error_msg = "value must be njson handle, string?, number?, boolean?, or null symbol";
+  if (s7_is_vector (value)) {
+    s7_int len = s7_vector_length (value);
+    s7_pointer* elements = s7_vector_elements (value);
+    out = json::array ();
+    for (s7_int i = 0; i < len; ++i) {
+      json element_json;
+      if (!scheme_to_njson_scalar_or_handle (sc, elements[i], element_json, error_msg)) {
+        error_msg = "vector element " + std::to_string (i) + ": " + error_msg;
+        return false;
+      }
+      out.push_back (element_json);
+    }
+    return true;
+  }
+
+  error_msg = "value must be njson handle, string?, number?, boolean?, vector?, or null symbol";
   return false;
 }
 
@@ -1512,6 +1527,16 @@ glue_njson (s7_scheme* sc) {
 }
 
 static s7_pointer
+error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
+  s7_pointer ht= s7_make_hash_table (sc, 4);
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, status_code));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, url.c_str()));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, ""));
+  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str()));
+  return ht;
+}
+
+static s7_pointer
 response2hashtable (s7_scheme* sc, cpr::Response r) {
   s7_pointer ht= s7_make_hash_table (sc, 8);
   s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, r.status_code));
@@ -1700,10 +1725,10 @@ f_http_get (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Get ();
+      return response2hashtable (sc, response);
     } catch (const std::exception& e) {
-      return s7_make_integer (sc, 500);
+      return error2hashtable (sc, 0, url, e.what());
     }
-    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Get ();
@@ -1764,10 +1789,10 @@ f_http_post (s7_scheme* sc, s7_pointer args) {
 
     try {
       cpr::Response response = session.Post ();
+      return response2hashtable (sc, response);
     } catch (const std::exception& e) {
-      return s7_make_integer (sc, 500);
+      return error2hashtable (sc, 0, url, e.what());
     }
-    return s7_undefined (sc);
   }
 
   cpr::Response r= session.Post ();
@@ -3210,6 +3235,61 @@ glue_path_touch (s7_scheme* sc) {
   s7_define_function (sc, name, f_path_touch, 1, 0, false, desc);
 }
 
+static s7_pointer
+f_path_copy (s7_scheme* sc, s7_pointer args) {
+  const char* source= s7_string (s7_car (args));
+  const char* target= s7_string (s7_cadr (args));
+
+  if (!source || !target) {
+    return s7_make_boolean (sc, false);
+  }
+
+  tb_file_ref_t src_file= tb_file_init (source, TB_FILE_MODE_RO);
+  if (src_file == tb_null) {
+    return s7_make_boolean (sc, false);
+  }
+
+  tb_file_sync (src_file);
+  tb_size_t size= tb_file_size (src_file);
+
+  tb_file_ref_t dst_file= tb_file_init (target, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
+  if (dst_file == tb_null) {
+    tb_file_exit (src_file);
+    return s7_make_boolean (sc, false);
+  }
+
+  bool success= true;
+
+  if (size > 0) {
+    tb_byte_t* buffer   = new tb_byte_t[size];
+    tb_size_t  read_size= tb_file_read (src_file, buffer, size);
+
+    if (read_size != size) {
+      success= false;
+    }
+    else {
+      tb_size_t written_size= tb_file_writ (dst_file, buffer, read_size);
+      if (written_size != read_size) {
+        success= false;
+      }
+    }
+
+    delete[] buffer;
+  }
+
+  tb_file_exit (src_file);
+  tb_file_exit (dst_file);
+
+  return s7_make_boolean (sc, success);
+}
+
+inline void
+glue_path_copy (s7_scheme* sc) {
+  const char* name= "g_path-copy";
+  const char* desc= "(g_path-copy source target) => boolean, copy file from source to target";
+  s7_define_function (sc, name, f_path_copy, 2, 0, false, desc);
+}
+
 inline void
 glue_liii_path (s7_scheme* sc) {
   glue_isfile (sc);
@@ -3220,6 +3300,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_path_write_text (sc);
   glue_path_append_text (sc);
   glue_path_touch (sc);
+  glue_path_copy (sc);
 }
 
 static s7_pointer
@@ -3444,6 +3525,7 @@ display_help () {
   cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
   cout << "  -I DIR             Prepend DIR to library search path" << endl;
   cout << "  -A DIR             Append DIR to library search path" << endl;
+  cout << "  -e CODE            Alias for eval CODE" << endl;
   cout << endl;
   cout << "If no command is specified, help is displayed by default." << endl;
 }
@@ -4190,7 +4272,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
   }
 
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii string))");
+    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii string))");
   }
   else if (mode == "scheme") {
     s7_eval_c_string (sc, "(import (liii base) (liii error))");
@@ -4639,7 +4721,7 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
              GOLDFISH_VERSION, S7_VERSION, S7_DATE);
   // Display mode info; liii mode shows extra imported libraries
   if (mode == "liii" || mode == "default") {
-    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (liii base) (liii error) (liii string) compared to r7rs)\n\n",
+    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (scheme base) (liii base) (liii error) (liii string) compared to r7rs)\n\n",
                mode.c_str ());
   }
   else {
@@ -4713,7 +4795,7 @@ parse_mode_option (int argc, char** argv, const std::string& default_mode= "defa
 
 static bool
 is_legacy_cli_command (const string& arg) {
-  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v";
+  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v" || arg == "-e";
 }
 
 static string
@@ -5206,6 +5288,36 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   // 如果没有找到命令或没有参数，使用 help 命令
   if (argc <= 1 || command.empty ()) {
     command = "help";
+  }
+  if (command == "-e") {
+    command = "eval";
+    if (command_index >= 0 && command_index < static_cast<int> (command_args.size ())) {
+      command_args[command_index] = "eval";
+    }
+  }
+
+  // 自动路由：如果参数是目录且第一级文件夹是 tests，自动视为 test 命令
+  if (!command.empty () && command != "help" && command != "version" &&
+      command != "eval" && command != "load" && command != "repl" &&
+      command != "run" && command != "test" && command != "-e") {
+    std::error_code ec;
+    if (fs::is_directory (command, ec)) {
+      fs::path p (command);
+      auto     it= p.begin ();
+      if (it != p.end () && *it == "tests") {
+        if (command_index >= 0 && command_index <= static_cast<int> (command_args.size ())) {
+          command_args.insert (command_args.begin () + command_index, "test");
+        }
+        command= "test";
+        std::cerr << "[gf] Auto-routing: detected tests directory, routing to test command" << "\n";
+        std::cerr << "[gf] Executing: ";
+        for (size_t i= 0; i < command_args.size (); ++i) {
+          if (i > 0) std::cerr << " ";
+          std::cerr << command_args[i];
+        }
+        std::cerr << std::endl;
+      }
+    }
   }
 
   // 根据命令类型确定默认模式：
