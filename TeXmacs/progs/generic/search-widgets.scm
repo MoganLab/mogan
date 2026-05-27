@@ -1113,6 +1113,42 @@
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Chat tab search (floating search bar)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define chat-tab-search-target #f)
+
+(define (chat-tab-search-init target-buf)
+  (set! chat-tab-search-target target-buf)
+  (let* ((aux (search-buffer)))
+    (buffer-set-master aux target-buf)
+    (set-search-window-state #t #t)
+    (with-buffer target-buf
+      (set-search-reference (cursor-path)))
+    (set-search-filter)
+    (set! search-filter-out? #f)))
+
+(tm-define (chat-tab-set-query text)
+  (when (and chat-tab-search-target (buffer-exists? (search-buffer)))
+    (buffer-set-body (search-buffer) `(document ,text))
+    (with-buffer chat-tab-search-target
+      (perform-search*))))
+
+(tm-define (chat-tab-search-next forward?)
+  (when chat-tab-search-target
+    (with-buffer chat-tab-search-target
+      (search-next-match forward? chat-tab-search-target))))
+
+(tm-define (chat-tab-search-close)
+  (when chat-tab-search-target
+    (search-show-all)
+    (set! search-serial (+ search-serial 1))
+    (with-buffer chat-tab-search-target
+      (cancel-alt-selection "alternate"))
+    (set-search-window-state #f #f)
+    (set! chat-tab-search-target #f)))
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Search and replace widget
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
@@ -1626,19 +1662,50 @@
 
 (define-preferences ("toolbar search" "on" noop) ("toolbar replace" "on" noop))
 
+(define (chat-message-buffer? buf)
+  (string-starts? (url->system buf) "tmfs://chat-message-"))
+
+(define (chat-input-buffer? buf)
+  (string-starts? (url->system buf) "tmfs://chat-input-"))
+
+(define (chat-buffer-session-id buf)
+  (with s (url->system buf)
+    (cond ((chat-message-buffer? buf)
+           (substring s (string-length "tmfs://chat-message-")))
+          ((chat-input-buffer? buf)
+           (substring s (string-length "tmfs://chat-input-")))
+          (else #f))))
+
+(define (chat-message-buffer-has-content? msg-buf)
+  (and (buffer-exists? msg-buf)
+       (with body (buffer-get-body msg-buf)
+         (not (and (tm-func? body 'document 1)
+                   (tree-empty? (tm-ref body 0)))))))
+
 (tm-define (interactive-search)
   (:interactive #t)
-  (unless (string-starts? (url->system (current-buffer)) "tmfs:")
-    (set! search-replace-text
-      (cond ((in-math?) "Only search in math mode")
-            ((in-prog?) "Only search in Program mode")
-            ((in-graphics?) "Graphics mode cannot search")
-            (else "Only search in text mode")
+  (with buf (current-buffer)
+    (with sid (chat-buffer-session-id buf)
+      (cond
+        ((and sid
+              (chat-message-buffer-has-content?
+                (string->url (string-append "tmfs://chat-message-" sid))))
+         (with msg-buf (string->url (string-append "tmfs://chat-message-" sid))
+           (chat-tab-search-init msg-buf)
+           (qt-floating-search "true")))
+        ((not (string-starts? (url->system buf) "tmfs:"))
+         (set! search-replace-text
+           (cond ((in-math?) "Only search in math mode")
+                 ((in-prog?) "Only search in Program mode")
+                 ((in-graphics?) "Graphics mode cannot search")
+                 (else "Only search in text mode")
+           ) ;cond
+         ) ;set!
+         (set-boolean-preference "search-and-replace" #f)
+         (open-search))
       ) ;cond
-    ) ;set!
-    (set-boolean-preference "search-and-replace" #f)
-    (open-search)
-  ) ;unless
+    ) ;with
+  ) ;with
 ) ;tm-define
 
 (tm-define (interactive-replace)

@@ -133,6 +133,9 @@ public:
    */
   void destroyView ();
 
+public:
+  QTChatTabWidget* view () const { return view_; }
+
 private:
   QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_;  ///< 会话管理器

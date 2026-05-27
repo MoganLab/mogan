@@ -355,6 +355,9 @@ public:
   void setSidebarVisible (bool visible);
   void setCloseSidebarButtonVisible (bool visible);
 
+  // ---- 供外部组件访问 ----
+  QWidget* contentWidget () const { return contentWidget_; }
+
 signals:
   void cancelRequested (const string& sessionId);
   void newChatRequested ();
