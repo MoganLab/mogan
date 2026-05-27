@@ -32,6 +32,7 @@ ChatSessionManager::createSession () {
   char        buf[32];
   std::snprintf (buf, sizeof (buf), "%ld", (long) now);
   session.createdAt= string (buf);
+  session.defaultExpandCount= 5;
   session.panel    = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
   return sessionId;

@@ -63,6 +63,7 @@
     (njson-set! entry "model" model)
     (njson-set! entry "archived" (if (or (not archived) (== archived "false")) "false" "true"))
     (njson-set! entry "createdAt" (or created-at ""))
+    (njson-set! entry "defaultExpandCount" 5)
     entry
   ) ;let
 ) ;tm-define
@@ -152,12 +153,14 @@
                            (archived-str (cdr (assoc "archived" entry)))
                            (created-at-pair (assoc "createdAt" entry))
                            (created-at (if created-at-pair (cdr created-at-pair) ""))
+                           (expand-count-pair (assoc "defaultExpandCount" entry))
+                           (expand-count (if expand-count-pair (cdr expand-count-pair) 5))
                           ) ;
                       (display "[chat-persist]   restoring meta: sid=")
                       (display sid)
                       (newline)
                       ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid title model archived-str created-at)
+                      (qt-chat-tab-restore-session sid title model archived-str created-at expand-count)
                     ) ;let*
                   ) ;lambda
           entries

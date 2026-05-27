@@ -112,7 +112,7 @@ public:
    */
   void restoreSessionMeta (const string& sessionId, const string& title,
                            const string& model, bool archived,
-                           const string& createdAt);
+                           const string& createdAt, int defaultExpandCount);
 
   /**
    * @brief 销毁 View 引用，防止悬垂指针。
@@ -199,7 +199,8 @@ private:
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,
-                                           string createdAt);
+                                           string createdAt,
+                                           int defaultExpandCount);
 };
 
 /**
@@ -216,6 +217,7 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
-                                  string archived, string createdAt);
+                                  string archived, string createdAt,
+                                  int defaultExpandCount);
 
 #endif // QT_CHAT_CONTROLLER_HPP

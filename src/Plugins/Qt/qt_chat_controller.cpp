@@ -366,19 +366,21 @@ ChatController::notifyStateChanged (const string& sessionId,
 void
 ChatController::restoreSessionMeta (const string& sessionId,
                                     const string& title, const string& model,
-                                    bool archived, const string& createdAt) {
+                                    bool archived, const string& createdAt,
+                                    int defaultExpandCount) {
   // 注册 Scheme 侧会话状态
   call ("chat-persist-register-session", sessionId, model);
 
   // 插入元数据，不创建面板
   ChatSession session;
-  session.sessionId= sessionId;
-  session.title    = title;
-  session.model    = model;
-  session.state    = ChatState::Idle;
-  session.archived = archived;
-  session.createdAt= createdAt;
-  session.panel    = nullptr;
+  session.sessionId        = sessionId;
+  session.title            = title;
+  session.model            = model;
+  session.state            = ChatState::Idle;
+  session.archived         = archived;
+  session.createdAt        = createdAt;
+  session.defaultExpandCount= defaultExpandCount;
+  session.panel            = nullptr;
   sessionManager_.insertSession (session);
 }
 
@@ -612,8 +614,11 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 
 void
 qt_chat_tab_restore_session (string sessionId, string title, string model,
-                             string archived, string createdAt) {
-  bool isArchived= (archived == "true");
+                             string archived, string createdAt,
+                             int defaultExpandCount) {
+  bool isArchived = (archived == "true");
+  int  expandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
   get_chat_controller ()->restoreSessionMeta (sessionId, title, model,
-                                              isArchived, createdAt);
+                                              isArchived, createdAt,
+                                              expandCount);
 }
