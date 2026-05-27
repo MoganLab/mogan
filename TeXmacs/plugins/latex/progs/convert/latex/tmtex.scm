@@ -70,7 +70,23 @@
 (define (tmtex-count-images t)
   (cond ((null? t) 0)
         ((npair? t) 0)
-        ((in? (car t) '(image graphics draw-over draw-under)) 1)
+        ((in? (car t)
+           '(image graphics
+              draw-over
+              draw-under
+              para
+              table
+              tformat
+              equation
+              equation*
+              eqnarray
+              eqnarray*
+              section
+              subsection
+              subsubsection)
+         ) ;in?
+         1
+        ) ;
         (else (let loop
                 ((lst t) (sum 0))
                 (if (null? lst)
@@ -1150,6 +1166,7 @@
 ) ;define
 
 (define (tmtex-para l)
+  (tmtex-image-increment)
   (cons '!paragraph (tmtex-list l))
 ) ;define
 
@@ -2019,6 +2036,7 @@
 ) ;define
 
 (define (tmtex-table l)
+  (tmtex-image-increment)
   (tmtex-table-apply 'tabular '() (cons 'table l))
 ) ;define
 
@@ -2946,6 +2964,7 @@
 ) ;define
 
 (define (tmtex-sectional s l)
+  (tmtex-image-increment)
   (let* ((lab (find-label (car l)))
          (tit (if lab (remove-labels (car l)) (car l)))
          (sec (list (string->symbol s) (tmtex tit)))
@@ -3310,6 +3329,7 @@
 ) ;define
 
 (tm-define (tmtex-equation s l)
+  (tmtex-image-increment)
   (tmtex-env-set "mode" "math")
   (let ((r (tmtex (car l))))
     (tmtex-env-reset "mode")
@@ -3318,6 +3338,7 @@
 ) ;tm-define
 
 (define (tmtex-eqnarray s l)
+  (tmtex-image-increment)
   (tmtex-env-set "mode" "math")
   (let ((r (tmtex-table-apply (string->symbol s) '() (car l))))
     (tmtex-env-reset "mode")

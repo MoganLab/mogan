@@ -146,13 +146,13 @@
       (check (string-contains? tex-content "\\rangle") => #t)
       (check (string-contains? tex-content "\\nabla") => #t)
 
-      ;; Assert that tmtex-image-total is evaluated as 0
-      (check ((resolve-module '(convert latex tmtex)) 'tmtex-image-total) => 0)
+      ;; Assert that tmtex-image-total is evaluated as greater than 0
+      (check (> ((resolve-module '(convert latex tmtex)) 'tmtex-image-total) 0) => #t)
 
-      ;; Assert that no progress bar functions were triggered
-      (check progress-start-count => 0)
-      (check progress-update-count => 0)
-      (check progress-end-count => 0)
+      ;; Assert that progress bar functions were triggered
+      (check (> progress-start-count 0) => #t)
+      (check (> progress-update-count 0) => #t)
+      (check (= progress-end-count 1) => #t)
 
       (display "Quantum LaTeX export verified successfully!\n")
     ) ;let*
