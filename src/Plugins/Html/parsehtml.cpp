@@ -13,6 +13,7 @@
 
 #ifdef QTTEXMACS
 #include <QProgressDialog>
+#include <QProgressBar>
 #include <QApplication>
 #endif
 
@@ -192,8 +193,14 @@ html_progress_start (int total) {
         "Exporting HTML...", "Cancel", 0, total, main_window);
     html_progress_dialog->setWindowModality (Qt::WindowModal);
     html_progress_dialog->setMinimumDuration (0);
+    html_progress_dialog->setMinimumWidth (400);
     html_progress_dialog->setValue (0);
     html_progress_dialog->show ();
+    QProgressBar* bar = html_progress_dialog->findChild<QProgressBar*> ();
+    if (bar) {
+      bar->show ();
+      bar->repaint ();
+    }
     html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
   }
@@ -207,6 +214,11 @@ html_progress_update (int current) {
 #ifdef QTTEXMACS
   if (html_progress_dialog) {
     html_progress_dialog->setValue (current);
+    QProgressBar* bar = html_progress_dialog->findChild<QProgressBar*> ();
+    if (bar) {
+      bar->show ();
+      bar->repaint ();
+    }
     html_progress_dialog->repaint ();
     QCoreApplication::processEvents ();
   }
