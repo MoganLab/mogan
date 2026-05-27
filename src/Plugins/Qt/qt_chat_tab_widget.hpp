@@ -90,7 +90,7 @@ public:
    * @param body 文档体 tree
    * @return 行数，非 DOCUMENT 类型返回 1
    */
-  static int  count_input_lines (tree body);
+  static int count_input_lines (tree body);
 
 signals:
   void sendRequested (const string& sessionId);
@@ -106,17 +106,17 @@ private:
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;                 ///< 所属会话 ID
-  bool         conversationMode_ = false;  ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr;///< 欢迎页标题
-  QLabel*      modelLabel_       = nullptr;///< 模型名称标签
-  QWidget*     messageFrame_     = nullptr;///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr;///< 输入编辑器容器
-  QPushButton* sendButton_       = nullptr;///< 发送/停止按钮
-  QSpacerItem* topSpacer_        = nullptr;///< 欢迎页顶部弹性空间
-  widget       messageWidget_;             ///< 消息区 TeXmacs widget
-  widget       inputWidget;                ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_= 0;        ///< 输入框额外高度（边框等）
+  string       sessionId_;                  ///< 所属会话 ID
+  bool         conversationMode_ = false;   ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr; ///< 欢迎页标题
+  QLabel*      modelLabel_       = nullptr; ///< 模型名称标签
+  QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
+  QPushButton* sendButton_       = nullptr; ///< 发送/停止按钮
+  QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
+  widget       messageWidget_;              ///< 消息区 TeXmacs widget
+  widget       inputWidget;                 ///< 输入区 TeXmacs widget
+  int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
 };
 
 /**
@@ -222,27 +222,28 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_;                ///< sessionId → SidebarItem 映射
+  QMap<string, SidebarItem> items_; ///< sessionId → SidebarItem 映射
 
-  QLabel*                   conversationCountLabel_= nullptr; ///< 活跃会话计数标签
-  QWidget*                  conversationListWidget_= nullptr; ///< 活跃会话列表容器
-  QVBoxLayout*              conversationListLayout_= nullptr; ///< 活跃会话列表布局
-  QPushButton*              archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
-  QWidget*                  archiveListWidget_     = nullptr; ///< 归档会话列表容器
-  QVBoxLayout*              archiveListLayout_     = nullptr; ///< 归档会话列表布局
-  bool                      archiveCollapsed_      = true;   ///< 归档区是否折叠
-  QWidget*                  multiSelectBar_        = nullptr; ///< 多选操作栏
-  QPushButton*              batchArchiveBtn_       = nullptr; ///< 批量归档按钮
-  QLineEdit*                searchEdit_            = nullptr; ///< 搜索框
-  bool                      multiSelectMode_       = false;  ///< 是否处于多选模式
-  bool                      archiveSelectMode_     = false;  ///< 是否在归档区多选
-  QList<SessionDisplayInfo> sessionCache_;                    ///< 会话显示数据缓存
-  string                    activeSessionId_;                ///< 当前激活的会话 ID
+  QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
+  QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
+  QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
+  QPushButton* archiveHeaderButton_   = nullptr; ///< 归档区折叠按钮
+  QWidget*     archiveListWidget_     = nullptr; ///< 归档会话列表容器
+  QVBoxLayout* archiveListLayout_     = nullptr; ///< 归档会话列表布局
+  bool         archiveCollapsed_      = true;    ///< 归档区是否折叠
+  QWidget*     multiSelectBar_        = nullptr; ///< 多选操作栏
+  QPushButton* batchArchiveBtn_       = nullptr; ///< 批量归档按钮
+  QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
+  bool         multiSelectMode_       = false;   ///< 是否处于多选模式
+  bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
+  QList<SessionDisplayInfo> sessionCache_;       ///< 会话显示数据缓存
+  string                    activeSessionId_;    ///< 当前激活的会话 ID
 
-  SidebarItem   createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
-  void          destroyItem (const string& sessionId); ///< 销毁单个侧边栏项 widget
-  void          updateCountLabels ();                  ///< 更新会话数/归档数标签
-  QList<string> getCheckedSessionIds () const;         ///< 获取多选模式下已勾选的会话 ID 列表
+  SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
+  void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
+  void updateCountLabels ();                        ///< 更新会话数/归档数标签
+  QList<string>
+  getCheckedSessionIds () const; ///< 获取多选模式下已勾选的会话 ID 列表
 };
 
 /**
@@ -335,11 +336,11 @@ private:
   QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
   QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈
 
-  QList<ChatConversationPanel*> conversations_;           ///< 所有会话面板
-  ChatConversationPanel*        activeConversation_  = nullptr; ///< 当前激活的面板
-  bool                          sidebarCollapsed_    = false;   ///< 侧边栏是否折叠
-  int                           sidebarExpandedWidth_= 0;       ///< 侧边栏展开时宽度
-  qt_tm_widget_rep*             parentTmWidget_      = nullptr; ///< 关联的 TeXmacs widget
+  QList<ChatConversationPanel*> conversations_;          ///< 所有会话面板
+  ChatConversationPanel* activeConversation_  = nullptr; ///< 当前激活的面板
+  bool                   sidebarCollapsed_    = false;   ///< 侧边栏是否折叠
+  int                    sidebarExpandedWidth_= 0;       ///< 侧边栏展开时宽度
+  qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

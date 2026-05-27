@@ -280,14 +280,14 @@ TestChatSession::test_insertSession () {
 
 void
 TestChatSession::test_messageBufferUrl () {
-  url result= ChatSessionManager::messageBufferUrl ("abc-123");
+  url result  = ChatSessionManager::messageBufferUrl ("abc-123");
   url expected= url ("tmfs://chat-message-abc-123");
   QVERIFY (result == expected);
 }
 
 void
 TestChatSession::test_inputBufferUrl () {
-  url result= ChatSessionManager::inputBufferUrl ("abc-123");
+  url result  = ChatSessionManager::inputBufferUrl ("abc-123");
   url expected= url ("tmfs://chat-input-abc-123");
   QVERIFY (result == expected);
 }
