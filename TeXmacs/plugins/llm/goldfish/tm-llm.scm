@@ -12,8 +12,8 @@
 
 (define (welcome)
   (flush-prompt "llm> ")
-  (flush-verbatim
-    "Fake LLM: demo plugin (echo mode)"))
+  (flush-verbatim "Fake LLM: demo plugin (echo mode)")
+) ;define
 
 (define echo-count 0)
 
@@ -21,20 +21,25 @@
   (set! echo-count (+ echo-count 1))
   (let* ((count-str (number->string echo-count))
          (stree (with-input-from-string code (lambda () (read))))
-         (tag (if (pair? stree) (car stree) '())))
+         (tag (if (pair? stree) (car stree) '()))
+        ) ;
     (if (member tag '(document math equation* align))
-      (flush-scheme `(document (concat ,count-str " " ,stree)))
-      (flush-verbatim (string-append count-str " " code)))))
+      (flush-scheme `(document (concat ,count-str ," " ,stree)))
+      (flush-verbatim (string-append count-str " " code))
+    ) ;if
+  ) ;let*
+) ;define
 
 (define (read-eval-print)
   (let ((code (read-paragraph-by-visible-eof)))
-    (if (string=? code "")
-        #t
-        (eval-and-print code))))
+    (if (string=? code "") #t (eval-and-print code))
+  ) ;let
+) ;define
 
 (define (repl)
   (read-eval-print)
-  (repl))
+  (repl)
+) ;define
 
 (welcome)
 (repl)
