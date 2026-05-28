@@ -219,7 +219,7 @@
                 ".fill-out { text-decoration: underline dotted; } "
               ) ;string-append
         ) ;html
-        (mathml "math { font-family: cmr, times, verdana } ")
+        (mathml "math { font-family: \"Latin Modern Math\", \"Cambria Math\", \"STIX Two Math\", \"Noto Sans Math\", \"STIXGeneral\", cmr, times, verdana, serif } ")
        ) ;
     (if tmhtml-mathml? (string-append html mathml) html)
   ) ;let

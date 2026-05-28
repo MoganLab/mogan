@@ -10,7 +10,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (liii check))
+(import (liii check)
+        (liii path))
 
 (check-set-mode! 'report-failed)
 
@@ -21,6 +22,7 @@
          (dummy (load-buffer tmu-path))
          (dummy2 (buffer-export tmu-path tmp-html "html"))
          (html-content (string-load tmp-html)))
+    (path-write-text "0625_out.html" html-content)
     (display* "Exported HTML length: " (string-length html-content) "\n")
     ;; In MathML mode, the <space|1em> should be exported as `<mspace width="1em"/>` or `<m:mspace width="1em"/>`!
     (check (string-contains? html-content "mspace") => #t)
