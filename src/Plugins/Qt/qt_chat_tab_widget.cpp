@@ -57,6 +57,7 @@ constexpr int kSidebarMarginY           = 16;
 constexpr int kSidebarSpacing           = 8;
 constexpr int kNavChatFontPx            = 22;
 constexpr int kNavButtonFontPx          = 13;
+constexpr int kSessionTitleFontPx       = 18;
 constexpr int kToggleBtnSize            = 40;
 constexpr int kToggleIconSize           = 20;
 constexpr int kFloatingBtnMarginX       = 12;
@@ -101,8 +102,7 @@ constexpr int kInputFrameRadius      = 8;
 constexpr int kInputFramePad         = 8;
 constexpr int kMessageMinHeight      = 240;
 constexpr int kTransitionDurationMs  = 220;
-constexpr int kModelLabelMinHeight   = 20;
-constexpr int kModelLabelRadius      = 4;
+
 constexpr int kSendIconSize          = 30;
 constexpr int kSendButtonSize        = 36;
 constexpr int kSendButtonRadius      = 18;
@@ -149,12 +149,7 @@ ChatConversationPanel::setup_ui () {
   sessionTitle_= new QLabel ("", topPanel);
   sessionTitle_->setObjectName ("chat-tab-model-label");
   sessionTitle_->setAlignment (Qt::AlignCenter);
-  DpiUtils::applyScaledFont (sessionTitle_, kNavButtonFontPx);
-  sessionTitle_->setStyleSheet (
-      QString ("padding: 2px %1px; border-radius: %2px;")
-          .arg (DpiUtils::scaled (kNavButtonPadX))
-          .arg (DpiUtils::scaled (kModelLabelRadius)));
-  sessionTitle_->setMinimumHeight (DpiUtils::scaled (kModelLabelMinHeight));
+  DpiUtils::applyScaledFont (sessionTitle_, kSessionTitleFontPx);
   topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
 
   // Message area

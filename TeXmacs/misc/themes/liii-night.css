@@ -1401,8 +1401,8 @@ QWidget#centralWidget QPushButton#chat-tab-floating-new-btn:hover {
 
 /* 模型标签 */
 QWidget#centralWidget QLabel#chat-tab-model-label {
-  color: #aaaaaa;
-  background-color: #3a3a3a;
+  color: #ffffff;
+  background-color: transparent;
 }
 
 /* 消息框 */

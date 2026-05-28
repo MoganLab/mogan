@@ -1323,8 +1323,8 @@ QPushButton#chat-tab-floating-new-btn:hover {
 
 /* 模型标签 */
 QLabel#chat-tab-model-label {
-  color: #888888;
-  background-color: #f0f0f0;
+  color: #000000;
+  background-color: transparent;
 }
 
 /* 消息框 */
