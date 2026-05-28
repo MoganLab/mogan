@@ -2866,10 +2866,13 @@
 ) ;tm-define
 
 (tm-define (tmtex-abstract-arxiv t)
-  (with args
-    (list-intersperse (map tmtex (cdr t)) '(tmsep))
-    `(!concat (tmarxiv) ,@(map (lambda (x) `(!group ,x)) args))
-  ) ;with
+  (let* ((tls tmtex-languages)
+         (lan (or (and (pair? tls) (car tls)) "english"))
+         (txt (translate-from-to "arXiv subject classification:" "english" lan))
+         (args (list-intersperse (map tmtex (cdr t)) '(tmsep)))
+        ) ;
+    `(!concat (textbf ,txt) ," " ,@(map (lambda (x) `(!group ,x)) args))
+  ) ;let*
 ) ;tm-define
 
 (tm-define (tmtex-abstract-msc t)
