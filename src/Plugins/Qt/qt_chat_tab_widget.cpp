@@ -181,6 +181,11 @@ ChatConversationPanel::setup_ui () {
       msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
       msgArea->viewport ()->setBackgroundRole (QPalette::Base);
     }
+    QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
+    if (msgEditor) {
+      msgEditor->setProperty ("chat_message_readonly", true);
+      msgEditor->installEventFilter (this);
+    }
   }
   messageFrameLayout->addWidget (messageQWidget);
   messageFrame_->hide ();
@@ -383,6 +388,23 @@ ChatConversationPanel::count_input_lines (tree body) {
 
 bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
+  // 拦截 message 区域的文字输入（只读，但保留快捷键如 Ctrl+C/Ctrl+F/⌘+C/⌘+F）
+  if (watched->property ("chat_message_readonly").toBool ()) {
+    QEvent::Type t= event->type ();
+    if (t == QEvent::InputMethod) return true;
+    if (t == QEvent::KeyPress) {
+      QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+      Qt::KeyboardModifiers mods= ke->modifiers ();
+      if (mods & (Qt::ControlModifier | Qt::MetaModifier)) return false;
+      return true;
+    }
+    if (t == QEvent::KeyRelease) {
+      QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+      Qt::KeyboardModifiers mods= ke->modifiers ();
+      if (mods & (Qt::ControlModifier | Qt::MetaModifier)) return false;
+      return true;
+    }
+  }
   if (event->type () == QEvent::KeyPress) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     if ((keyEvent->key () == Qt::Key_Return ||
