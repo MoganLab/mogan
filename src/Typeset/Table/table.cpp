@@ -309,6 +309,11 @@ table_rep::format_table (tree fm) {
   if (var->contains (TABLE_COL_ORIGIN))
     col_origin= as_int (env->exec (var[TABLE_COL_ORIGIN]));
   else col_origin= 1;
+  if (var->contains (TABLE_BORDER_COLOR)) {
+    bcolor= env->exec (var[TABLE_BORDER_COLOR]);
+    if (bcolor == "foreground") bcolor= env->get_string (COLOR);
+  }
+  else bcolor= "";
 }
 
 void
@@ -992,6 +997,7 @@ table_rep::finish () {
   SI    x2= tb->x2;
   SI    y2= tb->y2;
   brush fg= env->pen->get_brush ();
+  if (bcolor != "") fg= brush (bcolor, env->alpha);
   brush bg= brush (false);
   b= cell_box (tb->ip, tb, 0, 0, x1, y1, x2, y2, lborder, rborder, bborder,
                tborder, 0, 0, fg, bg);
@@ -1037,6 +1043,7 @@ table_rep::var_finish () {
     SI    y1= tb->y1 - BB;
     SI    y2= tb->y2 + TB;
     brush fg= env->pen->get_brush ();
+    if (bcolor != "") fg= brush (bcolor, env->alpha);
     brush bg= brush (false);
     b= cell_box (tb->ip, tb, 0, 0, x1, y1, x2, y2, lborder, rborder, BB, TB, 0,
                  0, fg, bg);

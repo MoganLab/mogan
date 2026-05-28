@@ -8,6 +8,7 @@
 #include "env.hpp"
 #include <QtTest/QtTest>
 #include <moebius/tree_label.hpp>
+#include <moebius/vars.hpp>
 
 using namespace moebius;
 
@@ -22,6 +23,7 @@ private slots:
   void test_empty_table_structure ();
   void test_default_table_tree_has_cell_hyphen ();
   void test_default_table_tree_cwith_range ();
+  void test_custom_border_colors_registered ();
 };
 
 void
@@ -71,6 +73,12 @@ TestEditTable::test_default_table_tree_cwith_range () {
     }
   }
   QFAIL ("cell-hyphen cwith not found");
+}
+
+void
+TestEditTable::test_custom_border_colors_registered () {
+  QCOMPARE (CELL_BORDER_COLOR, "cell-border-color");
+  QCOMPARE (TABLE_BORDER_COLOR, "table-border-color");
 }
 
 QTEST_MAIN (TestEditTable)

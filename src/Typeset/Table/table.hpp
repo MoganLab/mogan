@@ -54,6 +54,7 @@ public:
   SI     bborder;    // bottom border width
   SI     tborder;    // top border width
   SI     dborder;    // diagonal border width
+  tree   bcolor;     // border color
   string hmode;      // how to interpret the width
   string vmode;      // how to interpret the height
   string halign;     // horizontal alignment
@@ -116,6 +117,7 @@ public:
 
   tree   decoration;   // decoration
   tree   bg;           // background color or pattern
+  tree   bcolor;       // border color
   bool   orientation;  // portrait or landscape
   SI     width;        // the width of the cell
   SI     height;       // the height of the cell

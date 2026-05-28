@@ -1347,6 +1347,7 @@ init_std_drd () {
   init_var (TABLE_RBORDER, TYPE_LENGTH);
   init_var (TABLE_BBORDER, TYPE_LENGTH);
   init_var (TABLE_TBORDER, TYPE_LENGTH);
+  init_var (TABLE_BORDER_COLOR, TYPE_COLOR);
   init_var (TABLE_HYPHEN, TYPE_STRING);
   init_var (TABLE_MIN_ROWS, TYPE_INTEGER);
   init_var (TABLE_MIN_COLS, TYPE_INTEGER);
@@ -1357,6 +1358,7 @@ init_std_drd () {
   init_var (CELL_FORMAT, TYPE_ADHOC);
   init_var (CELL_DECORATION, TYPE_ADHOC);
   init_var (CELL_BACKGROUND, TYPE_COLOR);
+  init_var (CELL_BORDER_COLOR, TYPE_COLOR);
   init_var (CELL_ORIENTATION, TYPE_STRING);
   init_var (CELL_WIDTH, TYPE_LENGTH);
   init_var (CELL_HEIGHT, TYPE_LENGTH);

@@ -228,6 +228,7 @@ initialize_default_env () {
   env (TABLE_RBORDER)   = "0ln";  // right table border width
   env (TABLE_BBORDER)   = "0ln";  // bottom table border width
   env (TABLE_TBORDER)   = "0ln";  // top table border width
+  env (TABLE_BORDER_COLOR) = "";   // border color of table
   env (TABLE_HYPHEN)    = "n";    // vertical hyphenation
   env (TABLE_BLOCK)     = "no";   // consider table as block content
   env (TABLE_MIN_ROWS)  = "";     // suggested minimal number of rows
@@ -239,6 +240,7 @@ initialize_default_env () {
   env (CELL_DECORATION) = "";             // decorating table of cell
   env (CELL_FORMAT)     = tree (TFORMAT); // format of cell
   env (CELL_BACKGROUND) = "";             // background color of cell
+  env (CELL_BORDER_COLOR) = "";           // border color of cell
   env (CELL_ORIENTATION)= "portrait";     // orientation of cell
   env (CELL_WIDTH)      = "";             // width of cell
   env (CELL_HEIGHT)     = "";             // height of cell
