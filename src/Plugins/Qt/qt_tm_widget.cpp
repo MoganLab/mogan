@@ -1578,6 +1578,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_MAIN_MENU:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       waiting_main_menu_widget= concrete (w);
       if (menu_count <= 0) install_main_menu ();
@@ -1589,6 +1590,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_MAIN_ICONS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       main_icons_widget    = concrete (w);
       QList<QAction*>* list= main_icons_widget->get_qactionlist ();
@@ -1601,6 +1603,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_TAB_PAGES:
     check_type_void (index, s);
+    if (startupTabMode) break;
     {
       tab_bar_widget       = concrete (w);
       QList<QAction*>* list= tab_bar_widget->get_qactionlist ();
@@ -1617,6 +1620,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_NOTIFICATION_BAR:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       notification_bar_widget     = concrete (w);
       QList<QAction*>* action_list= notification_bar_widget->get_qactionlist ();
@@ -1678,6 +1682,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_FOCUS_ICONS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       bool can_update= true;
 #if (QT_VERSION >= 0x050000)
@@ -1707,6 +1712,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_USER_ICONS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       user_icons_widget    = concrete (w);
       QList<QAction*>* list= user_icons_widget->get_qactionlist ();
@@ -1719,6 +1725,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_SIDE_TOOLS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       side_tools_widget   = concrete (w);
       QWidget* new_qwidget= side_tools_widget->as_qwidget ();
@@ -1739,6 +1746,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_LEFT_TOOLS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       left_tools_widget   = concrete (w);
       QWidget* new_qwidget= left_tools_widget->as_qwidget ();
@@ -1759,6 +1767,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_BOTTOM_TOOLS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       bottom_tools_widget = concrete (w);
       QWidget* new_qwidget= bottom_tools_widget->as_qwidget ();
@@ -1779,6 +1788,7 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
   case SLOT_EXTRA_TOOLS:
     check_type_void (index, s);
+    if (startupTabMode || chatTabMode) break;
     {
       extra_tools_widget  = concrete (w);
       QWidget* new_qwidget= extra_tools_widget->as_qwidget ();

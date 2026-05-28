@@ -16,6 +16,7 @@
 #include "file.hpp"
 #include "gui.hpp" // for gui_interrupted
 #include "message.hpp"
+#include "new_view.hpp"
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
@@ -810,8 +811,18 @@ edit_interface_rep::change_time () {
   return last_change;
 }
 
+bool
+should_skip_menu_update (url buffer_name) {
+  return is_startup_tab_buffer (buffer_name) ||
+         is_chat_tab_buffer (buffer_name);
+}
+
 void
 edit_interface_rep::update_menus () {
+  if (should_skip_menu_update (buf->buf->name)) {
+    last_update= last_change;
+    return;
+  }
   bench_start ("update_menus");
   SERVER (menu_main ("(horizontal (link texmacs-menu))"));
   SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));

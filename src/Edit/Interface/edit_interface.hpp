@@ -313,4 +313,6 @@ public:
   friend class tm_window_rep;
 };
 
+bool should_skip_menu_update (url buffer_name);
+
 #endif // defined EDIT_INTERFACE_H

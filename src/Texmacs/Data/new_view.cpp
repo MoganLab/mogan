@@ -87,6 +87,16 @@ is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
 }
 
+/**
+ * @brief 判断 buffer 名称是否指向启动标签页。
+ * @param name 待检测的 buffer URL。
+ * @return 若名称为 \c tmfs://startup-tab 则返回 true。
+ */
+bool
+is_startup_tab_buffer (url name) {
+  return name == url ("tmfs://startup-tab");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();
