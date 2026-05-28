@@ -359,21 +359,25 @@
 
 (menu-bind cell-border-color-menu
  ("Default" (cell-set-border-color ""))
- ("Black" (cell-set-border-color "black"))
- ("Red" (cell-set-border-color "red"))
- ("Blue" (cell-set-border-color "blue"))
- ("Green" (cell-set-border-color "green"))
+ ("Foreground" (cell-set-border-color "foreground"))
  ---
+ (pick-color (cell-set-border-color answer))
+ ---
+ ("Palette"
+   (interactive-background (lambda (col) (cell-set-border-color col)) '())
+ ) ;
  ("Other" (interactive cell-set-border-color))
 ) ;menu-bind
 
 (menu-bind table-border-color-menu
  ("Default" (table-set-border-color ""))
- ("Black" (table-set-border-color "black"))
- ("Red" (table-set-border-color "red"))
- ("Blue" (table-set-border-color "blue"))
- ("Green" (table-set-border-color "green"))
+ ("Foreground" (table-set-border-color "foreground"))
  ---
+ (pick-color (table-set-border-color answer))
+ ---
+ ("Palette"
+   (interactive-background (lambda (col) (table-set-border-color col)) '())
+ ) ;
  ("Other" (interactive table-set-border-color))
 ) ;menu-bind
 
