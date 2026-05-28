@@ -348,6 +348,23 @@ PDFReaderWidget::updateZoomDisplay () {
 
 void
 PDFReaderWidget::onResizeDebounced () {
+  // 当窗口离开半屏贴靠状态时，重置自动适配标志，
+  // 以便下次贴靠到左/右半屏时仍能触发 Fit Width
+  if (autoFitApplied_) {
+    QScreen* screen= this->screen ();
+    if (!screen) screen= QApplication::primaryScreen ();
+    if (screen) {
+      QRect screenGeo= screen->availableGeometry ();
+      int   screenW  = screenGeo.width ();
+      QRect winGeo   = window ()->frameGeometry ();
+      int   halfWidth= screenW / 2;
+      int   tolerance= qMax (20, screenW / 20);
+      if (qAbs (winGeo.width () - halfWidth) > tolerance) {
+        autoFitApplied_= false;
+      }
+    }
+  }
+
   if (!maybeAutoFitWidth ()) {
     rebuildPages ();
   }
@@ -358,12 +375,34 @@ PDFReaderWidget::maybeAutoFitWidth () {
   if (autoFitApplied_) return false;
   if (pdfData_.isEmpty () || pageCount_ <= 0) return false;
   if (pageBaseWidthPts_ <= 0) return false;
+  if (isMaximized () || isFullScreen ()) return false;
 
   QScreen* screen= this->screen ();
   if (!screen) screen= QApplication::primaryScreen ();
-  int screenWidth= screen ? screen->availableSize ().width () : 1920;
+  if (!screen) return false;
 
-  if (width () <= screenWidth / 2) {
+  QRect screenGeo= screen->availableGeometry ();
+  int   screenW  = screenGeo.width ();
+  int   screenH  = screenGeo.height ();
+  QRect winGeo   = window ()->frameGeometry ();
+
+  // 判断是否贴靠到左半屏或右半屏：
+  // 1. 宽度约等于屏幕宽度的一半
+  // 2. 高度约等于屏幕可用高度
+  // 3. 窗口左边缘贴近屏幕左边缘（左半屏）或
+  //    窗口右边缘贴近屏幕右边缘（右半屏）
+  int halfWidth      = screenW / 2;
+  int widthTolerance = qMax (20, screenW / 20);
+  int heightTolerance= qMax (40, screenH / 20);
+
+  if (qAbs (winGeo.width () - halfWidth) > widthTolerance) return false;
+  if (qAbs (winGeo.height () - screenH) > heightTolerance) return false;
+
+  bool snappedLeft = qAbs (winGeo.x () - screenGeo.x ()) <= 10;
+  bool snappedRight= qAbs ((winGeo.x () + winGeo.width ()) -
+                           (screenGeo.x () + screenGeo.width ())) <= 10;
+
+  if (snappedLeft || snappedRight) {
     fitWidth ();
     autoFitApplied_= true;
     return true;

@@ -1275,7 +1275,7 @@ private slots:
   void test_autoFitWidth_whenNarrow () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    int screenWidth= screen ? screen->availableSize ().width () : 1920;
+    int screenWidth        = screen ? screen->availableSize ().width () : 1920;
     widget->resize (screenWidth / 4, 300);
     widget->show ();
 
@@ -1294,7 +1294,7 @@ private slots:
   void test_noAutoFitWidth_whenWide () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    int screenWidth= screen ? screen->availableSize ().width () : 1920;
+    int screenWidth        = screen ? screen->availableSize ().width () : 1920;
     widget->resize (screenWidth * 2 / 3, 800);
     widget->show ();
 
