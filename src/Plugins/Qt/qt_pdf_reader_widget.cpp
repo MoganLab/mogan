@@ -77,7 +77,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
       inPinchGesture_ (false), blockRender_ (false), pinchStartZoom_ (1.0),
-      renderCallCount_ (0) {
+      renderCallCount_ (0), pdfDocHandle_ (nullptr), pdfStreamHandle_ (nullptr),
+      pdfBufferHandle_ (nullptr) {
+  pageCache_.setMaxCost (30);
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -178,7 +180,7 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
            &PDFReaderWidget::finishPinchGesture);
 }
 
-PDFReaderWidget::~PDFReaderWidget () {}
+PDFReaderWidget::~PDFReaderWidget () { clear (); }
 
 void
 PDFReaderWidget::setupToolBar () {
@@ -351,6 +353,12 @@ PDFReaderWidget::applyZoomToLabels () {
   int width= pageWidth ();
   if (width <= 0) return;
 
+  // 仅调整可见及预加载范围内的 label，避免大文档缩放时遍历全部页面
+  int scrollY       = scrollArea_->verticalScrollBar ()->value ();
+  int viewportHeight= scrollArea_->viewport ()->height ();
+  int minY          = scrollY - PRELOAD_MARGIN;
+  int maxY          = scrollY + viewportHeight + PRELOAD_MARGIN;
+
   int childCount= pageLayout_->count ();
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
@@ -361,7 +369,13 @@ PDFReaderWidget::applyZoomToLabels () {
                                                    : pageAspectRatio_;
     if (aspect <= 0.0) aspect= 1.414;
     int height= qMax (1, qRound (width * aspect));
-    label->setFixedSize (width, height);
+
+    int labelTop   = PAGE_MARGIN + i * (height + PAGE_MARGIN);
+    int labelBottom= labelTop + height;
+
+    if (labelBottom >= minY && labelTop <= maxY) {
+      label->setFixedSize (width, height);
+    }
   }
 }
 
@@ -739,19 +753,18 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
 
   // 尝试从缓存读取
   PdfPageCacheKey key{pageNumber, targetWidth};
-  auto            it= pageCache_.find (key);
-  if (it != pageCache_.end ()) {
-    QPixmap cached= it.value ();
-    qreal   dpr   = devicePixelRatioF ();
-    int     pxW   = qMax (1, qRound (targetWidth * dpr));
-    int     pxH   = qMax (1, qRound (targetHeight * dpr));
-    if (cached.width () == pxW && cached.height () == pxH) {
-      label->setPixmap (cached);
+  QPixmap*        cached= pageCache_.object (key);
+  if (cached) {
+    qreal dpr= devicePixelRatioF ();
+    int   pxW= qMax (1, qRound (targetWidth * dpr));
+    int   pxH= qMax (1, qRound (targetHeight * dpr));
+    if (cached->width () == pxW && cached->height () == pxH) {
+      label->setPixmap (*cached);
       label->setFixedSize (targetWidth, targetHeight);
       return true;
     }
     // 尺寸不匹配（如 DPR 变化），移除旧缓存
-    pageCache_.erase (it);
+    pageCache_.remove (key);
   }
 
   fz_context* ctx= mupdf_context ();
@@ -784,41 +797,26 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
     }
   }
 
-  fz_document* doc    = nullptr;
-  fz_pixmap*   pix    = nullptr;
-  fz_page*     page   = nullptr;
-  fz_buffer*   buf    = nullptr;
-  fz_stream*   stream = nullptr;
-  bool         success= false;
+  fz_pixmap* pix    = nullptr;
+  fz_page*   page   = nullptr;
+  bool       success= false;
 
-  fz_var (doc);
   fz_var (pix);
   fz_var (page);
-  fz_var (buf);
-  fz_var (stream);
+
+  // 复用常驻的 PDF 文档句柄
+  if (!pdfDocHandle_) {
+    errorString_= qt_translate ("PDF document not open");
+    hasError_   = true;
+    return false;
+  }
 
   fz_try (ctx) {
-    buf= fz_new_buffer_from_copied_data (
-        ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
-        pdfData_.size ());
-
-    stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-
-    if (!doc) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
-    }
-
-    int totalPages= fz_count_pages (ctx, doc);
-    if (totalPages <= 0) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
-    }
-
-    if (pageNumber < 0 || pageNumber >= totalPages) {
+    if (pageNumber < 0 || pageNumber >= pageCount_) {
       pageNumber= 0;
     }
 
-    page= fz_load_page (ctx, doc, pageNumber);
+    page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, pageNumber);
     if (!page) {
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
     }
@@ -881,8 +879,8 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
     label->setPixmap (pixmap);
     label->setFixedSize (targetWidth, targetHeight);
 
-    // 写入缓存
-    pageCache_.insert (key, pixmap);
+    // 写入缓存（QCache 取得所有权）
+    pageCache_.insert (key, new QPixmap (pixmap));
     success= true;
   }
   fz_catch (ctx) {
@@ -894,9 +892,6 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
 
   if (pix) fz_drop_pixmap (ctx, pix);
   if (page) fz_drop_page (ctx, page);
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
 
   return success;
 }
@@ -953,18 +948,22 @@ PDFReaderWidget::rebuildPages () {
     else {
       // 视口外：尝试用缓存的降级版本显示，避免空白跳动
       PdfPageCacheKey key{i, width};
-      auto            it= pageCache_.find (key);
-      if (it != pageCache_.end ()) {
-        QPixmap cached= it.value ();
-        qreal   dpr   = devicePixelRatioF ();
-        int     pxW   = qMax (1, qRound (width * dpr));
-        int     pxH   = qMax (1, qRound (height * dpr));
-        if (cached.width () != pxW || cached.height () != pxH) {
-          cached= cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
-                                 Qt::FastTransformation);
-          cached.setDevicePixelRatio (dpr);
+      QPixmap*        cached= pageCache_.object (key);
+      if (cached) {
+        qreal   dpr= devicePixelRatioF ();
+        int     pxW= qMax (1, qRound (width * dpr));
+        int     pxH= qMax (1, qRound (height * dpr));
+        QPixmap scaled;
+        if (cached->width () != pxW || cached->height () != pxH) {
+          scaled= cached->scaled (pxW, pxH, Qt::KeepAspectRatio,
+                                  Qt::FastTransformation);
+          scaled.setDevicePixelRatio (dpr);
         }
-        label->setPixmap (cached);
+        else {
+          scaled= *cached;
+          scaled.setDevicePixelRatio (dpr);
+        }
+        label->setPixmap (scaled);
       }
       else {
         label->clear ();
@@ -1017,11 +1016,9 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     }
   }
 
-  fz_document* doc   = nullptr;
-  fz_buffer*   buf   = nullptr;
-  fz_stream*   stream= nullptr;
+  fz_buffer* buf   = nullptr;
+  fz_stream* stream= nullptr;
 
-  fz_var (doc);
   fz_var (buf);
   fz_var (stream);
 
@@ -1031,16 +1028,16 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
         ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
         pdfData_.size ());
 
-    stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
+    stream       = fz_open_buffer (ctx, buf);
+    pdfDocHandle_= fz_open_document_with_stream (ctx, "pdf", stream);
 
-    if (doc) {
-      pageCount_= fz_count_pages (ctx, doc);
+    if (pdfDocHandle_) {
+      pageCount_= fz_count_pages (ctx, (fz_document*) pdfDocHandle_);
       opened    = (pageCount_ > 0);
       if (opened && pageCount_ > 0) {
         pageAspectRatios_.reserve (pageCount_);
         for (int i= 0; i < pageCount_; ++i) {
-          fz_page* page= fz_load_page (ctx, doc, i);
+          fz_page* page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
           if (page) {
             fz_rect bbox  = fz_bound_page (ctx, page);
             double  aspect= (bbox.y1 - bbox.y0) / (bbox.x1 - bbox.x0);
@@ -1063,17 +1060,23 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     hasError_   = true;
   }
 
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
-
   if (!opened) {
+    if (pdfDocHandle_) {
+      fz_drop_document (ctx, (fz_document*) pdfDocHandle_);
+      pdfDocHandle_= nullptr;
+    }
+    if (stream) fz_drop_stream (ctx, stream);
+    if (buf) fz_drop_buffer (ctx, buf);
     if (!hasError_) {
       errorString_= qt_translate ("Failed to open PDF");
       hasError_   = true;
     }
     return false;
   }
+
+  // 保存 stream/buf 句柄，确保文档生命周期内它们有效
+  pdfStreamHandle_= stream;
+  pdfBufferHandle_= buf;
 
   extractPageLinks ();
 
@@ -1116,6 +1119,21 @@ PDFReaderWidget::clear () {
     delete item;
   }
 
+  // 释放常驻 PDF 文档句柄
+  fz_context* ctx= mupdf_context ();
+  if (pdfDocHandle_) {
+    fz_drop_document (ctx, (fz_document*) pdfDocHandle_);
+    pdfDocHandle_= nullptr;
+  }
+  if (pdfStreamHandle_) {
+    fz_drop_stream (ctx, (fz_stream*) pdfStreamHandle_);
+    pdfStreamHandle_= nullptr;
+  }
+  if (pdfBufferHandle_) {
+    fz_drop_buffer (ctx, (fz_buffer*) pdfBufferHandle_);
+    pdfBufferHandle_= nullptr;
+  }
+
   updatePageNavigation ();
 }
 
@@ -1127,25 +1145,12 @@ PDFReaderWidget::extractPageLinks () {
   fz_context* ctx= mupdf_context ();
   if (!ctx) return;
 
-  fz_document* doc   = nullptr;
-  fz_buffer*   buf   = nullptr;
-  fz_stream*   stream= nullptr;
-
-  fz_var (doc);
-  fz_var (buf);
-  fz_var (stream);
+  if (!pdfDocHandle_) return;
 
   fz_try (ctx) {
-    buf= fz_new_buffer_from_copied_data (
-        ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
-        pdfData_.size ());
-    stream= fz_open_buffer (ctx, buf);
-    doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-    if (!doc) fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF");
-
     pageLinks_.resize (pageCount_);
     for (int i= 0; i < pageCount_; ++i) {
-      fz_page* page= fz_load_page (ctx, doc, i);
+      fz_page* page= fz_load_page (ctx, (fz_document*) pdfDocHandle_, i);
       if (!page) continue;
       fz_link* links= fz_load_links (ctx, page);
       if (links) {
@@ -1170,7 +1175,8 @@ PDFReaderWidget::extractPageLinks () {
           if (pl.uri.startsWith ("#") || pl.uri.startsWith ("#nameddest=") ||
               pl.uri.startsWith ("#page=")) {
             float       xp= 0, yp= 0;
-            fz_location loc= fz_resolve_link (ctx, doc, link->uri, &xp, &yp);
+            fz_location loc= fz_resolve_link (ctx, (fz_document*) pdfDocHandle_,
+                                              link->uri, &xp, &yp);
             if (loc.page >= 0) {
               pl.page= loc.page; // 0-based page index
             }
@@ -1185,10 +1191,6 @@ PDFReaderWidget::extractPageLinks () {
   fz_catch (ctx) {
     qWarning () << "MuPDF link extraction error:" << fz_caught_message (ctx);
   }
-
-  if (stream) fz_drop_stream (ctx, stream);
-  if (buf) fz_drop_buffer (ctx, buf);
-  if (doc) fz_drop_document (ctx, doc);
 }
 
 void

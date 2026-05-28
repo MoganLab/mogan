@@ -8,6 +8,7 @@
 #ifndef QT_PDF_READER_WIDGET_HPP
 #define QT_PDF_READER_WIDGET_HPP
 
+#include <QCache>
 #include <QHash>
 #include <QLabel>
 #include <QLineEdit>
@@ -87,6 +88,11 @@ public:
 
   void setTestLinks (int page, const QVector<PdfLink>& links);
   bool isOverLink () const;
+
+  // 测试接口：缓存上限与当前大小
+  int  cacheMaxSize () const { return pageCache_.maxCost (); }
+  int  cacheSize () const { return pageCache_.size (); }
+  void setCacheMaxSize (int size) { pageCache_.setMaxCost (size); }
 
 Q_SIGNALS:
   void linkClicked (const QString& uri);
@@ -170,8 +176,13 @@ private:
   PdfLink                   currentLink_;
   bool                      overLink_;
 
-  // 页面渲染缓存：key = (pageNumber, targetWidth)
-  QHash<PdfPageCacheKey, QPixmap> pageCache_;
+  // 页面渲染缓存：key = (pageNumber, targetWidth)，带 LRU 淘汰
+  QCache<PdfPageCacheKey, QPixmap> pageCache_;
+
+  // PDF 文档常驻句柄（避免每次渲染都重新打开文档）
+  void* pdfDocHandle_;    // fz_document*
+  void* pdfStreamHandle_; // fz_stream*
+  void* pdfBufferHandle_; // fz_buffer*
 
   // 防抖定时器
   QTimer* zoomDebounceTimer_;
