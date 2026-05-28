@@ -44,8 +44,9 @@ constexpr int kShadowBlur   = 8;
 constexpr int kShadowOffsetY= 1;
 constexpr int kShadowAlpha  = 30;
 
-constexpr int kPosRightPad= 8;
-constexpr int kPosTopPad  = 4;
+constexpr int kPosRightPad = 8;
+constexpr int kPosTopPad   = 4;
+constexpr int kInnerSpacing= 4;
 
 /******************************************************************************
  * QTMFloatingSearchBar 实现
@@ -83,11 +84,11 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
 
   // 右侧：垂直布局 [按钮行] + [匹配信息]
   auto* rightLayout= new QVBoxLayout ();
-  rightLayout->setSpacing (DpiUtils::scaled (4));
+  rightLayout->setSpacing (DpiUtils::scaled (kInnerSpacing));
 
   // 右侧上层：按钮行
   auto* btnRow= new QHBoxLayout ();
-  btnRow->setSpacing (DpiUtils::scaled (4));
+  btnRow->setSpacing (DpiUtils::scaled (kInnerSpacing));
 
   const QString btnRadiusStyle=
       QString (
