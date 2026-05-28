@@ -170,7 +170,7 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
 #endif
 }
 
-tm_server_rep::~tm_server_rep () {}
+tm_server_rep::~tm_server_rep () { delete m_account; }
 server::server (app_type app) : rep (tm_new<tm_server_rep> (app)) {}
 server_rep*
 tm_server_rep::get_server () {
