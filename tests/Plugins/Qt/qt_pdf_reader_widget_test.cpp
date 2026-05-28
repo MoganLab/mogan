@@ -1275,9 +1275,10 @@ private slots:
   void test_autoFitWidth_whenSnappedLeftHalf () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    QRect  screenGeo       = screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
-    int    screenW          = screenGeo.width ();
-    int    screenH          = screenGeo.height ();
+    QRect            screenGeo=
+        screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
+    int screenW= screenGeo.width ();
+    int screenH= screenGeo.height ();
     // 模拟左半屏贴靠：宽度=屏幕一半，高度=屏幕高度，左边缘对齐
     widget->resize (screenW / 2, screenH);
     widget->move (screenGeo.x (), screenGeo.y ());
@@ -1298,9 +1299,10 @@ private slots:
   void test_noAutoFitWidth_whenNotSnapped () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    QRect  screenGeo       = screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
-    int    screenW          = screenGeo.width ();
-    int    screenH          = screenGeo.height ();
+    QRect            screenGeo=
+        screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
+    int screenW= screenGeo.width ();
+    int screenH= screenGeo.height ();
     // 窗口宽度远超屏幕一半，不满足半屏贴靠条件
     widget->resize (screenW * 2 / 3, screenH);
     widget->move (screenGeo.x (), screenGeo.y ());
