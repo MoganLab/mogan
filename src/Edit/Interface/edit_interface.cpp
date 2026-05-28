@@ -813,16 +813,23 @@ edit_interface_rep::change_time () {
 
 void
 edit_interface_rep::update_menus () {
+  bool is_startup= is_startup_tab_buffer (buf->buf->name);
+  bool is_chat   = is_chat_tab_buffer (buf->buf->name);
   bench_start ("update_menus");
-  SERVER (menu_main ("(horizontal (link texmacs-menu))"));
-  SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
-  SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
-  SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
-  SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
+  if (!is_startup && !is_chat)
+    SERVER (menu_main ("(horizontal (link texmacs-menu))"));
+  if (!is_startup && !is_chat)
+    SERVER (menu_icons (0, "(horizontal (link texmacs-main-icons))"));
+  if (!is_startup)
+    SERVER (menu_icons (1, "(horizontal (link texmacs-mode-icons))"));
+  if (!is_startup && !is_chat)
+    SERVER (menu_icons (2, "(horizontal (link texmacs-focus-icons))"));
+  if (!is_startup && !is_chat)
+    SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
-  SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
-  if (is_startup_tab_buffer (buf->buf->name) ||
-      is_chat_tab_buffer (buf->buf->name)) {
+  if (!is_startup && !is_chat)
+    SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
+  if (is_startup || is_chat) {
     last_update= last_change;
     bench_end ("update_menus");
     return;
