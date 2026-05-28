@@ -428,8 +428,11 @@ void
 table_rep::merge_borders () {
   int       hh= nr_cols + 1, vv= nr_rows + 1, nn= hh * vv;
   array<SI> horb (nn), verb (nn);
-  for (int i= 0; i < nn; i++)
+  array<tree> hor_color (nn), ver_color (nn);
+  for (int i= 0; i < nn; i++) {
     horb[i]= verb[i]= 0;
+    hor_color[i]= ver_color[i]= "";
+  }
 
   for (int i= 0; i < nr_rows; i++)
     for (int j= 0; j < nr_cols; j++) {
@@ -437,17 +440,37 @@ table_rep::merge_borders () {
       if (!is_nil (C)) {
         for (int di= 0; di < C->row_span; di++) {
           int ii= i + di, jj= j, kk= ii * hh + jj;
-          horb[kk]= max (horb[kk], C->lborder);
+          if (C->lborder > horb[kk]) {
+            horb[kk]= C->lborder;
+            hor_color[kk]= C->bcolor;
+          } else if (C->lborder == horb[kk] && C->bcolor != "") {
+            hor_color[kk]= C->bcolor;
+          }
           jj      = j + C->col_span;
           kk      = ii * hh + jj;
-          horb[kk]= max (horb[kk], C->rborder);
+          if (C->rborder > horb[kk]) {
+            horb[kk]= C->rborder;
+            hor_color[kk]= C->bcolor;
+          } else if (C->rborder == horb[kk] && C->bcolor != "") {
+            hor_color[kk]= C->bcolor;
+          }
         }
         for (int dj= 0; dj < C->col_span; dj++) {
           int ii= i, jj= j + dj, kk= ii * hh + jj;
-          verb[kk]= max (verb[kk], C->tborder);
+          if (C->tborder > verb[kk]) {
+            verb[kk]= C->tborder;
+            ver_color[kk]= C->bcolor;
+          } else if (C->tborder == verb[kk] && C->bcolor != "") {
+            ver_color[kk]= C->bcolor;
+          }
           ii      = i + C->row_span;
           kk      = ii * hh + jj;
-          verb[kk]= max (verb[kk], C->bborder);
+          if (C->bborder > verb[kk]) {
+            verb[kk]= C->bborder;
+            ver_color[kk]= C->bcolor;
+          } else if (C->bborder == verb[kk] && C->bcolor != "") {
+            ver_color[kk]= C->bcolor;
+          }
         }
       }
     }
@@ -482,6 +505,24 @@ table_rep::merge_borders () {
           C->rborder= rb;
           C->bborder= bb;
           C->tborder= tb;
+          if (C->bcolor == "") {
+            tree merged_color= "";
+            for (int di= 0; di < C->row_span; di++) {
+              int ii= i + di, jj= j, kk= ii * hh + jj;
+              if (horb[kk] > 0 && hor_color[kk] != "") merged_color= hor_color[kk];
+              jj= j + C->col_span;
+              kk= ii * hh + jj;
+              if (horb[kk] > 0 && hor_color[kk] != "") merged_color= hor_color[kk];
+            }
+            for (int dj= 0; dj < C->col_span; dj++) {
+              int ii= i, jj= j + dj, kk= ii * hh + jj;
+              if (verb[kk] > 0 && ver_color[kk] != "") merged_color= ver_color[kk];
+              ii= i + C->row_span;
+              kk= ii * hh + jj;
+              if (verb[kk] > 0 && ver_color[kk] != "") merged_color= ver_color[kk];
+            }
+            if (merged_color != "") C->bcolor= merged_color;
+          }
         }
       }
     }
