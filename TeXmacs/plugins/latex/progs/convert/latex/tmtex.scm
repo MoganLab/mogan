@@ -2882,10 +2882,13 @@
 ) ;tm-define
 
 (tm-define (tmtex-abstract-pacs t)
-  (with args
-    (list-intersperse (map tmtex (cdr t)) '(tmsep))
-    `(!concat (tmpacs) ,@(map (lambda (x) `(!group ,x)) args))
-  ) ;with
+  (let* ((tls tmtex-languages)
+         (lan (or (and (pair? tls) (car tls)) "english"))
+         (txt (translate-from-to "P.A.C.S. subject classification:" "english" lan))
+         (args (list-intersperse (map tmtex (cdr t)) '(tmsep)))
+        ) ;
+    `(!concat (textbf ,txt) ," " ,@(map (lambda (x) `(!group ,x)) args))
+  ) ;let*
 ) ;tm-define
 
 (tm-define (tmtex-make-abstract-data keywords acm arxiv msc pacs abstract)
