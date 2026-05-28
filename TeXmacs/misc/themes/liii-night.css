@@ -1491,3 +1491,50 @@ QPushButton#chat-tab-conversation-btn:checked {
 QWidget#centralWidget QPushButton#chat-tab-conversation-btn:checked {
   background-color: #1a3a5a;
 }
+
+/****************************************************************************
+* 悬浮搜索栏样式
+****************************************************************************/
+
+QWidget#centralWidget QWidget#floating_search_bar {
+  background: #2d2d2d;
+  border: none;
+}
+
+QWidget#floating_search_bar QToolButton {
+  border: none;
+  background: transparent;
+}
+
+QWidget#floating_search_bar QToolButton:hover {
+  background: rgba(255, 255, 255, 30);
+}
+
+QWidget#floating_search_bar QToolButton:pressed {
+  background: rgba(255, 255, 255, 50);
+}
+
+QWidget#floating_search_bar QToolButton#floating-search-prev {
+  qproperty-icon: url(":/floating-search/up-white.svg");
+}
+
+QWidget#floating_search_bar QToolButton#floating-search-next {
+  qproperty-icon: url(":/floating-search/down-white.svg");
+}
+
+QWidget#floating_search_bar QToolButton#floating-search-close {
+  qproperty-icon: url(":/tabpage/close-white.svg");
+}
+
+QWidget#floating_search_bar QWidget#floating-search-input {
+  border: 1px solid #555555;
+}
+
+QWidget#floating_search_bar QWidget#floating-search-input:focus {
+  border: 1px solid #215a6a;
+}
+
+QWidget#floating_search_bar QLabel#floating-search-info {
+  background: transparent;
+  color: #ffffff;
+}

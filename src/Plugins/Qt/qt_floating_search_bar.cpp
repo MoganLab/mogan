@@ -10,8 +10,6 @@
  ******************************************************************************/
 
 #include "qt_floating_search_bar.hpp"
-#include "qt_chat_controller.hpp"
-#include "qt_chat_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
@@ -23,12 +21,14 @@
 
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
+#include <QHash>
 #include <QResizeEvent>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 using namespace moebius;
 
-// ---- 尺寸常量（单位：逻辑像素，经 DpiUtils::scaled 缩放） ---- //
+// ---- 尺寸常量（逻辑像素，经 DpiUtils 缩放） ----
 constexpr int kBarMinHeight= 64;
 constexpr int kBarWidth    = 420;
 constexpr int kBarRadius   = 4;
@@ -38,8 +38,7 @@ constexpr int kBarSpacing  = 4;
 constexpr int kBtnSize  = 24;
 constexpr int kBtnRadius= 12;
 
-constexpr int kInfoHeight  = 24;
-constexpr int kInfoMinWidth= 80;
+constexpr int kInfoHeight= 24;
 
 constexpr int kShadowBlur   = 8;
 constexpr int kShadowOffsetY= 1;
@@ -49,7 +48,7 @@ constexpr int kPosRightPad= 8;
 constexpr int kPosTopPad  = 4;
 
 /******************************************************************************
- * QTMFloatingSearchBar
+ * QTMFloatingSearchBar 实现
  ******************************************************************************/
 
 QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
@@ -59,34 +58,20 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
   setAttribute (Qt::WA_StyledBackground);
   setMinimumHeight (DpiUtils::scaled (kBarMinHeight));
 
+  // border-radius 由代码动态计算，支持 DPI 缩放
   setStyleSheet (QString ("#floating_search_bar {"
-                          "  background: #f3f3f3;"
-                          "  border: none;"
                           "  border-radius: %1px;"
                           "}")
                      .arg (DpiUtils::scaled (kBarRadius)));
 
-  QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (this);
+  auto* shadow= new QGraphicsDropShadowEffect (this);
   shadow->setBlurRadius (DpiUtils::scaled (kShadowBlur));
   shadow->setOffset (0, DpiUtils::scaled (kShadowOffsetY));
   shadow->setColor (QColor (0, 0, 0, kShadowAlpha));
   setGraphicsEffect (shadow);
 
-  const QString btnStyle= QString ("QPushButton {"
-                                   "  border: none;"
-                                   "  border-radius: %1px;"
-                                   "  background: transparent;"
-                                   "}"
-                                   "QPushButton:hover {"
-                                   "  background: rgba(0,0,0,30);"
-                                   "}"
-                                   "QPushButton:pressed {"
-                                   "  background: rgba(0,0,0,50);"
-                                   "}")
-                              .arg (DpiUtils::scaled (kBtnRadius));
-
   // 外层水平布局：左边 [输入区]，右边 [按钮 + 匹配信息]
-  QHBoxLayout* mainLayout= new QHBoxLayout (this);
+  auto* mainLayout= new QHBoxLayout (this);
   mainLayout->setContentsMargins (
       DpiUtils::scaled (kBarMargin), DpiUtils::scaled (kBarMargin),
       DpiUtils::scaled (kBarMargin), DpiUtils::scaled (kBarMargin));
@@ -97,68 +82,83 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
   rowLayout_->setSpacing (0);
 
   // 右侧：垂直布局 [按钮行] + [匹配信息]
-  QVBoxLayout* rightLayout= new QVBoxLayout ();
+  auto* rightLayout= new QVBoxLayout ();
   rightLayout->setSpacing (DpiUtils::scaled (4));
 
   // 右侧上层：按钮行
-  QHBoxLayout* btnRow= new QHBoxLayout ();
+  auto* btnRow= new QHBoxLayout ();
   btnRow->setSpacing (DpiUtils::scaled (4));
 
-  QPushButton* prevBtn= new QPushButton (this);
-  prevBtn->setIcon (QIcon (":floating-search/up.svg"));
+  const QString btnRadiusStyle=
+      QString (
+          "QToolButton { border-radius: %1px; padding: 0px; margin: 0px; }")
+          .arg (DpiUtils::scaled (kBtnRadius));
+
+  auto* prevBtn= new QToolButton (this);
+  prevBtn->setObjectName ("floating-search-prev");
   prevBtn->setFixedSize (DpiUtils::scaled (kBtnSize),
                          DpiUtils::scaled (kBtnSize));
-  prevBtn->setToolTip (tr ("Previous (Shift+Enter)"));
-  prevBtn->setStyleSheet (btnStyle);
+  prevBtn->setToolTip (qt_translate ("Previous (Shift+Enter)"));
+  prevBtn->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (prevBtn);
 
-  QPushButton* nextBtn= new QPushButton (this);
-  nextBtn->setIcon (QIcon (":floating-search/down.svg"));
+  auto* nextBtn= new QToolButton (this);
+  nextBtn->setObjectName ("floating-search-next");
   nextBtn->setFixedSize (DpiUtils::scaled (kBtnSize),
                          DpiUtils::scaled (kBtnSize));
-  nextBtn->setToolTip (tr ("Next (Enter)"));
-  nextBtn->setStyleSheet (btnStyle);
+  nextBtn->setToolTip (qt_translate ("Next (Enter)"));
+  nextBtn->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (nextBtn);
 
-  QPushButton* closeBtn= new QPushButton (this);
-  closeBtn->setIcon (QIcon (":tabpage/close.svg"));
+  auto* closeBtn= new QToolButton (this);
+  closeBtn->setObjectName ("floating-search-close");
   closeBtn->setFixedSize (DpiUtils::scaled (kBtnSize),
                           DpiUtils::scaled (kBtnSize));
-  closeBtn->setToolTip (tr ("Close (Esc)"));
-  closeBtn->setStyleSheet (btnStyle);
+  closeBtn->setToolTip (qt_translate ("Close (Esc)"));
+  closeBtn->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (closeBtn);
 
   rightLayout->addLayout (btnRow);
 
   // 右侧下层：匹配信息
   infoLbl_= new QLabel (this);
+  infoLbl_->setObjectName ("floating-search-info");
   infoLbl_->setFixedHeight (DpiUtils::scaled (kInfoHeight));
   infoLbl_->setAlignment (Qt::AlignCenter);
-  infoLbl_->setText (QString::fromUtf8 ("无匹配"));
+  infoLbl_->setText (qt_translate ("No matches"));
   rightLayout->addWidget (infoLbl_);
 
   // 组装：左输入(stretch=1) + 右面板
   mainLayout->addLayout (rowLayout_, 1);
   mainLayout->addLayout (rightLayout);
 
-  QObject::connect (nextBtn, &QPushButton::clicked, this,
-                    &QTMFloatingSearchBar::findNextRequested);
-  QObject::connect (prevBtn, &QPushButton::clicked, this,
-                    &QTMFloatingSearchBar::findPreviousRequested);
-  QObject::connect (closeBtn, &QPushButton::clicked, this,
-                    &QTMFloatingSearchBar::closeRequested);
+  connect (nextBtn, &QToolButton::clicked, this,
+           &QTMFloatingSearchBar::findNextRequested);
+  connect (prevBtn, &QToolButton::clicked, this,
+           &QTMFloatingSearchBar::findPreviousRequested);
+  connect (closeBtn, &QToolButton::clicked, this,
+           &QTMFloatingSearchBar::closeRequested);
+
+  if (parent) parent->installEventFilter (this);
 
   hide ();
+}
+
+QTMFloatingSearchBar::~QTMFloatingSearchBar () {
+  if (parent ()) parent ()->removeEventFilter (this);
 }
 
 void
 QTMFloatingSearchBar::setSearchInput (QWidget* input) {
   if (inputQW_) {
     rowLayout_->removeWidget (inputQW_);
-    delete inputQW_;
+    inputQW_->deleteLater ();
   }
   inputQW_= input;
-  rowLayout_->insertWidget (0, input, 1);
+  if (input) {
+    input->setObjectName ("floating-search-input");
+    rowLayout_->insertWidget (0, input, 1);
+  }
 }
 
 void
@@ -170,147 +170,206 @@ QTMFloatingSearchBar::activate () {
 
 void
 QTMFloatingSearchBar::setMatchInfo (int current, int total) {
-  if (total == 0) infoLbl_->setText (tr ("No matches"));
-  else infoLbl_->setText (tr ("%1 of %2").arg (current).arg (total));
+  if (total == 0) infoLbl_->setText (qt_translate ("No matches"));
+  else infoLbl_->setText (qt_translate ("%1 of %2").arg (current).arg (total));
 }
 
-/******************************************************************************
- * 浮动搜索栏管理
- ******************************************************************************/
-
-static QTMFloatingSearchBar* g_search_bar       = nullptr;
-static QWidget*              g_search_bar_parent= nullptr;
-
-// 事件过滤器：parent resize 时重新定位搜索栏
-class SearchBarResizeFilter : public QObject {
-public:
-  SearchBarResizeFilter (QObject* parent) : QObject (parent) {}
-
-protected:
-  bool eventFilter (QObject* watched, QEvent* event) override {
-    if (event->type () == QEvent::Resize && g_search_bar &&
-        g_search_bar->isVisible ()) {
-      QWidget* w= qobject_cast<QWidget*> (watched);
-      if (w) {
-        int x= w->width () - g_search_bar->width () -
-               DpiUtils::scaled (kPosRightPad);
-        int y= DpiUtils::scaled (kPosTopPad);
-        g_search_bar->move (x, y);
-      }
-    }
-    return QObject::eventFilter (watched, event);
+void
+QTMFloatingSearchBar::setSchemeCallbacks (const string& next_cmd,
+                                          const string& prev_cmd,
+                                          const string& close_cmd) {
+  next_cmd_ = next_cmd;
+  prev_cmd_ = prev_cmd;
+  close_cmd_= close_cmd;
+  if (!callbacksConnected_) {
+    connectSignals ();
+    callbacksConnected_= true;
   }
-};
+}
 
-static SearchBarResizeFilter* g_resize_filter= nullptr;
+void
+QTMFloatingSearchBar::connectSignals () {
+  if (!is_empty (next_cmd_)) {
+    connect (this, &QTMFloatingSearchBar::findNextRequested, this,
+             [this] () { eval_scheme (next_cmd_); });
+  }
+  if (!is_empty (prev_cmd_)) {
+    connect (this, &QTMFloatingSearchBar::findPreviousRequested, this,
+             [this] () { eval_scheme (prev_cmd_); });
+  }
+  if (!is_empty (close_cmd_)) {
+    connect (this, &QTMFloatingSearchBar::closeRequested, this, [this] () {
+      eval_scheme (close_cmd_);
+      hide ();
+    });
+  }
+}
 
-static void
-position_search_bar () {
-  if (!g_search_bar || !g_search_bar_parent) return;
-  int x= g_search_bar_parent->width () - g_search_bar->width () -
-         DpiUtils::scaled (kPosRightPad);
+bool
+QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
+  if (event->type () == QEvent::Resize && watched == parent () &&
+      isVisible ()) {
+    reposition ();
+  }
+  return QWidget::eventFilter (watched, event);
+}
+
+void
+QTMFloatingSearchBar::showEvent (QShowEvent* event) {
+  QWidget::showEvent (event);
+  reposition ();
+}
+
+void
+QTMFloatingSearchBar::reposition () {
+  QWidget* p= qobject_cast<QWidget*> (parent ());
+  if (!p) return;
+  int x= p->width () - width () - DpiUtils::scaled (kPosRightPad);
   int y= DpiUtils::scaled (kPosTopPad);
-  g_search_bar->move (x, y);
-}
-
-static void
-connect_search_bar_signals (QTMFloatingSearchBar* bar) {
-  QObject::connect (bar, &QTMFloatingSearchBar::findNextRequested, bar,
-                    [] () { eval_scheme ("(chat-tab-search-next #t)"); });
-  QObject::connect (bar, &QTMFloatingSearchBar::findPreviousRequested, bar,
-                    [] () { eval_scheme ("(chat-tab-search-next #f)"); });
-  QObject::connect (bar, &QTMFloatingSearchBar::closeRequested, bar, [] () {
-    eval_scheme ("(chat-tab-search-close)");
-    if (g_search_bar) g_search_bar->hide ();
-  });
-}
-
-/// 创建或重建浮动栏容器，确保 attach 到 content。
-static void
-ensure_search_bar (QWidget* content) {
-  if (g_search_bar && g_search_bar_parent == content) return;
-
-  if (g_search_bar) {
-    delete g_search_bar;
-    g_search_bar= nullptr;
-  }
-  if (g_resize_filter) {
-    if (g_search_bar_parent)
-      g_search_bar_parent->removeEventFilter (g_resize_filter);
-    delete g_resize_filter;
-    g_resize_filter= nullptr;
-  }
-
-  g_search_bar       = new QTMFloatingSearchBar (content);
-  g_search_bar_parent= content;
-  g_resize_filter    = new SearchBarResizeFilter (content);
-  content->installEventFilter (g_resize_filter);
-
-  // content 被 Qt 销毁时自动清理全局指针，避免悬空
-  QObject::connect (content, &QObject::destroyed, [] () {
-    g_search_bar       = nullptr;
-    g_search_bar_parent= nullptr;
-    g_resize_filter    = nullptr;
-  });
-
-  g_search_bar->setFixedWidth (DpiUtils::scaled (kBarWidth));
-  connect_search_bar_signals (g_search_bar);
+  move (x, y);
 }
 
 /******************************************************************************
- * Scheme 胶水函数
+ * 搜索栏管理器
  ******************************************************************************/
+
+static QHash<QWidget*, QTMFloatingSearchBar*>&
+searchBars () {
+  static QHash<QWidget*, QTMFloatingSearchBar*> bars;
+  return bars;
+}
+
+static QTMFloatingSearchBar*
+get_or_create_bar (QWidget* parent) {
+  if (!parent) return nullptr;
+  auto& bars= searchBars ();
+  auto  it  = bars.find (parent);
+  if (it != bars.end () && *it) return *it;
+
+  auto* bar   = new QTMFloatingSearchBar (parent);
+  bars[parent]= bar;
+
+  QObject::connect (parent, &QObject::destroyed, [parent] () {
+    auto& b= searchBars ();
+    auto  i= b.find (parent);
+    if (i != b.end ()) b.erase (i);
+  });
+
+  bar->setFixedWidth (DpiUtils::scaled (kBarWidth));
+  return bar;
+}
+
+void
+qt_floating_search_bar_show (QWidget* parent, bool show) {
+  if (!parent) return;
+  auto* bar= get_or_create_bar (parent);
+  if (!bar) return;
+  if (show) bar->show ();
+  else bar->hide ();
+}
+
+bool
+qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str) {
+  if (!parent) return false;
+  auto* bar= get_or_create_bar (parent);
+
+  url    aux_url= url_system (aux_url_str);
+  tree   doc (DOCUMENT, "");
+  tree   sty= compound ("style", tree (TUPLE, "generic"));
+  widget tw = texmacs_input_widget (doc, sty, aux_url);
+  if (is_nil (tw)) {
+    bar->hide ();
+    return false;
+  }
+  QWidget* inputW= concrete (tw)->as_qwidget ();
+  if (!inputW) {
+    bar->hide ();
+    return false;
+  }
+  bar->setSearchInput (inputW);
+  return true;
+}
+
+void
+qt_floating_search_bar_set_match_info (QWidget* parent, int current,
+                                       int total) {
+  if (!parent) return;
+  auto* bar= searchBars ().value (parent);
+  if (bar) bar->setMatchInfo (current, total);
+}
+
+void
+qt_floating_search_bar_set_callbacks (QWidget* parent, const string& next_cmd,
+                                      const string& prev_cmd,
+                                      const string& close_cmd) {
+  if (!parent) return;
+  auto* bar= get_or_create_bar (parent);
+  bar->setSchemeCallbacks (next_cmd, prev_cmd, close_cmd);
+}
+
+void
+qt_floating_search_bar_destroy (QWidget* parent) {
+  if (!parent) return;
+  auto& bars= searchBars ();
+  auto  it  = bars.find (parent);
+  if (it != bars.end ()) {
+    (*it)->setParent (nullptr);
+    delete *it;
+    bars.erase (it);
+  }
+}
+
+/******************************************************************************
+ * 兼容层胶水函数（通过 provider 代理）
+ ******************************************************************************/
+
+static qt_floating_search_parent_provider g_parent_provider;
+
+void
+qt_floating_search_set_parent_provider (
+    qt_floating_search_parent_provider provider) {
+  g_parent_provider= provider;
+}
+
+static QWidget*
+get_provider_parent () {
+  return g_parent_provider ? g_parent_provider () : nullptr;
+}
 
 void
 qt_floating_search (string flag) {
-  ChatController* ctrl= get_chat_controller ();
-  if (!ctrl) return;
-  QTChatTabWidget* view= ctrl->view ();
-  if (!view) return;
-  QWidget* content= view->contentWidget ();
-  if (!content) return;
-
-  if (flag == "true" || flag == "#t") {
-    ensure_search_bar (content);
-    g_search_bar->activate ();
-    position_search_bar ();
+  QWidget* parent= get_provider_parent ();
+  if (!parent) return;
+  bool show= (flag == "true" || flag == "#t");
+  if (show) {
+    auto* bar= get_or_create_bar (parent);
+    if (bar) bar->activate ();
   }
   else {
-    if (g_search_bar) g_search_bar->hide ();
+    qt_floating_search_bar_show (parent, false);
   }
 }
 
 void
 qt_floating_search_init (string aux_url_str) {
-  ChatController* ctrl= get_chat_controller ();
-  if (!ctrl) return;
-  QTChatTabWidget* view= ctrl->view ();
-  if (!view) return;
-  QWidget* content= view->contentWidget ();
-  if (!content) return;
-
-  ensure_search_bar (content);
-
-  // 创建 texmacs_input_widget 绑定到 search-buffer
-  url    aux_url= url_system (aux_url_str);
-  tree   doc (DOCUMENT, "");
-  tree   sty= compound ("style", tree (TUPLE, "generic"));
-  widget tw = texmacs_input_widget (doc, sty, aux_url);
-  if (is_nil (tw)) return;
-  QWidget* inputW= concrete (tw)->as_qwidget ();
-  if (inputW) {
-    inputW->setStyleSheet ("QWidget {"
-                           "  background: white;"
-                           "  border: 1px solid #d0d0d0;"
-                           "}"
-                           "QWidget:focus {"
-                           "  border: 1px solid #215a6a;"
-                           "}");
-    g_search_bar->setSearchInput (inputW);
-  }
+  QWidget* parent= get_provider_parent ();
+  if (!parent) return;
+  if (!qt_floating_search_bar_init (parent, aux_url_str)) return;
+  auto* bar= get_or_create_bar (parent);
+  if (bar) bar->activate ();
 }
 
 void
 qt_floating_search_set_match_info (int current, int total) {
-  if (g_search_bar) g_search_bar->setMatchInfo (current, total);
+  QWidget* parent= get_provider_parent ();
+  if (!parent) return;
+  qt_floating_search_bar_set_match_info (parent, current, total);
+}
+
+void
+qt_floating_search_set_callbacks (string next_cmd, string prev_cmd,
+                                  string close_cmd) {
+  QWidget* parent= get_provider_parent ();
+  if (!parent) return;
+  qt_floating_search_bar_set_callbacks (parent, next_cmd, prev_cmd, close_cmd);
 }

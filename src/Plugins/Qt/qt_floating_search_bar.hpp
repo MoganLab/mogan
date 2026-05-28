@@ -14,43 +14,95 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
-#include <QPushButton>
 #include <QWidget>
 
 #include "string.hpp"
 
+#include <functional>
+
 /**
- * 悬浮搜索栏容器。
+ * VSCode 风格的悬浮搜索栏组件。
  *
- * 布局:
- *   上层: [TeXmacs 输入区] [上一个] [下一个] [关闭]
- *   下层: [TeXmacs 输入区] [匹配计数]
- * 输入区是嵌入的 texmacs_input_widget，绑定到 search-buffer，
- * 搜索逻辑与底部搜索面板完全一致。
+ * 布局：
+ *   左侧：嵌入的输入框（如 texmacs_input_widget）
+ *   右侧：[上一个] [下一个] [关闭] 按钮 + 匹配计数
  */
 class QTMFloatingSearchBar : public QWidget {
   Q_OBJECT
 
 public:
-  QTMFloatingSearchBar (QWidget* parent= nullptr);
+  explicit QTMFloatingSearchBar (QWidget* parent= nullptr);
+  ~QTMFloatingSearchBar ();
 
-  /// 设置嵌入的 TeXmacs 搜索输入 widget。
+  /// 设置嵌入的搜索输入框。旧的输入框（如有）会被移除并 deleteLater。
   void setSearchInput (QWidget* input);
-  /// 显示搜索栏并聚焦输入区。
+  /// 显示搜索栏并聚焦输入框。
   void activate ();
-  /// 设置匹配信息（current=0, total=0 显示"无匹配"）。
+  /// 设置匹配信息（current=0, total=0 时显示"无匹配"）。
   void setMatchInfo (int current, int total);
+
+  /// 配置按钮点击时求值的 Scheme 命令。
+  void setSchemeCallbacks (const string& next_cmd, const string& prev_cmd,
+                           const string& close_cmd);
 
 signals:
   void findNextRequested ();
   void findPreviousRequested ();
   void closeRequested ();
 
+protected:
+  bool eventFilter (QObject* watched, QEvent* event) override;
+  void showEvent (QShowEvent* event) override;
+
 private:
-  QHBoxLayout* rowLayout_= nullptr; ///< 上层水平布局（输入+按钮）
-  QWidget*     inputQW_  = nullptr; ///< 嵌入的 TeXmacs 输入 QWidget
-  QLabel*      infoLbl_  = nullptr; ///< 匹配计数标签
+  void reposition ();
+  void connectSignals ();
+
+  QHBoxLayout* rowLayout_= nullptr;
+  QWidget*     inputQW_  = nullptr;
+  QLabel*      infoLbl_  = nullptr;
+
+  string next_cmd_;
+  string prev_cmd_;
+  string close_cmd_;
+  bool   callbacksConnected_= false;
 };
+
+/******************************************************************************
+ * 通用管理 API（基于 parent widget，不依赖 ChatController）
+ ******************************************************************************/
+
+/// 显示或隐藏 attach 到 \a parent 的悬浮搜索栏。
+void qt_floating_search_bar_show (QWidget* parent, bool show);
+
+/// 为 \a parent 创建/attach 搜索栏，并用绑定到 \a aux_url_str 的
+/// texmacs 输入框初始化。失败时返回 false。
+bool qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str);
+
+/// 更新 attach 到 \a parent 的搜索栏的匹配计数。
+void qt_floating_search_bar_set_match_info (QWidget* parent, int current,
+                                            int total);
+
+/// 为 attach 到 \a parent 的搜索栏设置 Scheme 回调。
+void qt_floating_search_bar_set_callbacks (QWidget*      parent,
+                                           const string& next_cmd,
+                                           const string& prev_cmd,
+                                           const string& close_cmd);
+
+/// 销毁 attach 到 \a parent 的搜索栏。
+void qt_floating_search_bar_destroy (QWidget* parent);
+
+/******************************************************************************
+ * 兼容层胶水函数（保留向后兼容）。
+ * 通过注册的 parent provider 代理到上面的通用 API。
+ ******************************************************************************/
+
+using qt_floating_search_parent_provider= std::function<QWidget*()>;
+
+/// 注册一个返回默认 parent widget 的函数，供兼容层胶水函数使用。
+/// 通常在 chat controller 初始化时调用。
+void qt_floating_search_set_parent_provider (
+    qt_floating_search_parent_provider provider);
 
 /// Scheme 胶水函数：显示 ("true"/"#t") 或隐藏悬浮搜索栏。
 void qt_floating_search (string flag);
@@ -61,5 +113,9 @@ void qt_floating_search_init (string aux_url_str);
 
 /// Scheme 胶水函数：更新浮动搜索栏的匹配计数显示。
 void qt_floating_search_set_match_info (int current, int total);
+
+/// Scheme 胶水函数：设置搜索栏按钮点击时求值的 Scheme 回调命令。
+void qt_floating_search_set_callbacks (string next_cmd, string prev_cmd,
+                                       string close_cmd);
 
 #endif // QT_FLOATING_SEARCH_BAR_HPP

@@ -1608,6 +1608,7 @@
 ("no line break" "禁止换行")
 ("no matches found for" "")
 ("no matches found" "")
+("No matches" "无匹配")
 ("no more matches for" "")
 ("no more redo information available" "")
 ("no more undo information available" "")
