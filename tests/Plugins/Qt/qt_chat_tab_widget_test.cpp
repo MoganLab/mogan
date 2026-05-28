@@ -224,7 +224,7 @@ private slots:
     QString capturedNewTitle;
     connect (&sidebar, &ChatSidebar::renameRequested,
              [&capturedSessionId, &capturedNewTitle] (const string& sessionId,
-                                                   const string& newTitle) {
+                                                      const string& newTitle) {
                capturedSessionId= to_qstring (sessionId);
                capturedNewTitle = to_qstring (newTitle);
              });
