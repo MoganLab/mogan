@@ -1166,6 +1166,7 @@ mupdf_renderer_rep::draw (int glyph_index, font_glyphs fng, SI x, SI y,
     fz_pixmap* pix= fz_new_pixmap_with_data (mupdf_context (),
                                              fz_device_rgb (mupdf_context ()),
                                              w, h, NULL, 1, w * 4, samples);
+    pix->flags|= FZ_PIXMAP_FLAG_FREE_SAMPLES;
     fz_image*  im = fz_new_image_from_pixmap (mupdf_context (), pix, NULL);
     mi            = mupdf_image (im);
     mi->xo        = xo;
