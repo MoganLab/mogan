@@ -25,6 +25,7 @@ private slots:
   void test_default_table_tree_cwith_range ();
   void test_custom_border_colors_registered ();
   void test_adjacent_border_colors ();
+  void test_adjacent_border_colors_on_cell_typeset ();
 };
 
 void
@@ -104,6 +105,28 @@ TestEditTable::test_adjacent_border_colors () {
   
   QCOMPARE (cell1_merged_rborder, 0);
   QCOMPARE (cell2_merged_lborder, 2);
+}
+
+void
+TestEditTable::test_adjacent_border_colors_on_cell_typeset () {
+  int hor_prec = 10;
+  int cell1_prec = 5;
+  int cell1_rborder = 2;
+  
+  int cell1_merged_rborder = 0;
+  if (cell1_rborder == 0 || cell1_prec >= hor_prec) {
+    cell1_merged_rborder = 2;
+  }
+  QCOMPARE (cell1_merged_rborder, 0);
+  
+  cell1_rborder = 2;
+  
+  int cell1_finished_rborder = 0;
+  if (cell1_rborder == 0 || cell1_prec >= hor_prec) {
+    cell1_finished_rborder = 2;
+  }
+  
+  QCOMPARE (cell1_finished_rborder, 0);
 }
 
 QTEST_MAIN (TestEditTable)

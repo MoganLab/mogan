@@ -1009,6 +1009,7 @@ table_rep::finish_horizontal () {
 
 void
 table_rep::finish () {
+  merge_borders ();
   int           i, j;
   array<box>    bs;
   array<SI>     x;
@@ -1060,6 +1061,7 @@ table_rep::finish () {
 
 array<box>
 table_rep::var_finish () {
+  merge_borders ();
   if (hyphen == "n") {
     array<box> bs (1);
     finish ();
