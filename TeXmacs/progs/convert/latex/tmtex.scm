@@ -3175,7 +3175,7 @@
 ) ;define
 
 (define (tmtex-frame s l)
-  `(fbox ,(car l))
+  `(fbox ,(tmtex (car l)))
 ) ;define
 
 (define (tmtex-colored-frame s l)
