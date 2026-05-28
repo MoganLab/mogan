@@ -251,14 +251,8 @@
 
 (define (tmmath-hspace l)
   (let* ((len (if (null? l) "1em" (car l)))
-         (s (cond ((string? len) len)
-                  ((symbol? len) (symbol->string len))
-                  (else (object->string len))))
-         (s* (cond ((string-ends? s "*p*t") (string-append (substring s 0 (- (string-length s) 4)) "pt"))
-                   ((string-ends? s "*e*m") (string-append (substring s 0 (- (string-length s) 4)) "em"))
-                   ((string-ends? s "*e*x") (string-append (substring s 0 (- (string-length s) 4)) "ex"))
-                   ((string->number s) (string-append s "em"))
-                   (else s))))
+         (s (string-replace (if (string? len) len (object->string len)) "*" ""))
+         (s* (if (string->number s) (string-append s "em") s)))
     `(m:mspace (@ (width ,s*)))))
 
 (define (tmmath-first l)
