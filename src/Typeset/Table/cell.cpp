@@ -19,7 +19,7 @@ using namespace moebius;
  * Cells
  ******************************************************************************/
 
-cell_rep::cell_rep (edit_env env2) : var (""), env (env2), border_flags (0) {}
+cell_rep::cell_rep (edit_env env2) : var (""), env (env2), border_flags (0), bcolor_precedence (-1) {}
 
 void
 cell_rep::typeset (tree fm, tree t, path iq) {

@@ -143,6 +143,7 @@ public:
   int    col_span;     // column span
   SI     swell;        // amount of swell for cells of large height
   int    border_flags; // 1: top row, 2: bottom row
+  int    bcolor_precedence; // border color precedence
   table  D;            // potential decoration
   table  T;            // potential subtable
 
