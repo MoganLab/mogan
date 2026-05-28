@@ -2861,10 +2861,13 @@
 ) ;tm-define
 
 (tm-define (tmtex-abstract-acm t)
-  (with args
-    (list-intersperse (map tmtex (cdr t)) '(tmsep))
-    `(!concat (tmacm) ,@(map (lambda (x) `(!group ,x)) args))
-  ) ;with
+  (let* ((tls tmtex-languages)
+         (lan (or (and (pair? tls) (car tls)) "english"))
+         (txt (translate-from-to "A.C.M. subject classification:" "english" lan))
+         (args (list-intersperse (map tmtex (cdr t)) '(tmsep)))
+        ) ;
+    `(!concat (textbf ,txt) ," " ,@(map (lambda (x) `(!group ,x)) args))
+  ) ;let*
 ) ;tm-define
 
 (tm-define (tmtex-abstract-arxiv t)
