@@ -45,7 +45,7 @@ namespace {
 constexpr float kRenderOversample  = 1.5F;
 constexpr float kMinRenderScale    = 0.1F;
 constexpr int   kMaxRenderPixels   = 4000 * 4000; // max pixels for MuPDF pixmap
-constexpr int   kMaxRenderDimension= 6000;         // max width or height in pixels
+constexpr int   kMaxRenderDimension= 6000; // max width or height in pixels
 
 /**
  * @brief Check if the zoom modifier key is pressed.
@@ -912,8 +912,8 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
         static_cast<float> (kMaxRenderDimension) / qMax (pageWidth, pageHeight);
     float maxAreaScale= sqrtf (static_cast<float> (kMaxRenderPixels) /
                                (pageWidth * pageHeight));
-    float cappedScale= qMin (maxDimScale, maxAreaScale);
-    renderScale= qMax (kMinRenderScale, qMin (renderScale, cappedScale));
+    float cappedScale = qMin (maxDimScale, maxAreaScale);
+    renderScale       = qMax (kMinRenderScale, qMin (renderScale, cappedScale));
 
     fz_matrix ctm= fz_scale (renderScale, renderScale);
     pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
@@ -1033,8 +1033,8 @@ PDFReaderWidget::rebuildPages () {
             qreal dpr= devicePixelRatioF ();
             int   pxW= qMax (1, qRound (width * dpr));
             int   pxH= qMax (1, qRound (height * dpr));
-            cached= cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
-                                   Qt::SmoothTransformation);
+            cached   = cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
+                                      Qt::SmoothTransformation);
             cached.setDevicePixelRatio (dpr);
             label->setPixmap (cached);
             found= true;

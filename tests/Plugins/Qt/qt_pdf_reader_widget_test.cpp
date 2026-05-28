@@ -1418,7 +1418,7 @@ private slots:
     QVERIFY (!pm.isNull ());
 
     // Convert to image and check not all white
-    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    QImage img        = pm.toImage ().convertToFormat (QImage::Format_RGB888);
     bool   hasNonWhite= false;
     for (int y= 0; y < img.height () && !hasNonWhite; y++) {
       const uchar* scanLine= img.constScanLine (y);
@@ -1503,7 +1503,7 @@ private slots:
                               .arg (pageLabel->height ())));
 
     // Verify non-white content (PDF has text)
-    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    QImage img        = pm.toImage ().convertToFormat (QImage::Format_RGB888);
     bool   hasNonWhite= false;
     for (int y= 0; y < img.height () && !hasNonWhite; y++) {
       const uchar* scanLine= img.constScanLine (y);
@@ -1529,8 +1529,8 @@ private slots:
 
   // Test renderPageToLabel directly at high DPR and zoom
   void test_renderScaleDoesNotExceedMax () {
-    // Verify that at 200% zoom with DPR=2, the render scale is computed correctly
-    // and the rendered pixmap is non-empty.
+    // Verify that at 200% zoom with DPR=2, the render scale is computed
+    // correctly and the rendered pixmap is non-empty.
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (800, 600);
     widget->show ();
@@ -1553,7 +1553,7 @@ private slots:
     QVERIFY (!pm.isNull ());
 
     // Check non-white
-    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    QImage img        = pm.toImage ().convertToFormat (QImage::Format_RGB888);
     bool   hasNonWhite= false;
     for (int y= 0; y < img.height () && !hasNonWhite; y++) {
       const uchar* scanLine= img.constScanLine (y);
@@ -1593,7 +1593,7 @@ private slots:
     QVERIFY (!pm.isNull ());
 
     // Pixmap should exist and be non-white
-    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    QImage img        = pm.toImage ().convertToFormat (QImage::Format_RGB888);
     bool   hasNonWhite= false;
     for (int y= 0; y < img.height () && !hasNonWhite; y++) {
       const uchar* scanLine= img.constScanLine (y);
