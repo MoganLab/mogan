@@ -139,6 +139,146 @@
   ) ;list
 ) ;tm-define
 
+(define (safe-string-null? s)
+  (or (not s) (not (string? s)) (equal? s "")))
+
+(define (safe-string-ends? s suffix)
+  (and (string? s)
+       (string? suffix)
+       (>= (string-length s) (string-length suffix))
+       (equal? (substring s (- (string-length s) (string-length suffix)) (string-length s)) suffix)))
+
+(define (get-current-par-sep new)
+  (let ((val (ahash-ref new "par-sep")))
+    (if (and val (string? val)) val "")))
+
+(define (get-current-par-ver-sep new)
+  (let ((val (ahash-ref new "par-ver-sep")))
+    (if (and val (string? val)) val "")))
+
+(define (par-sep->multiplier par-sep)
+  (if (and (safe-string-ends? par-sep "fn") (>= (string-length par-sep) 2))
+      (let* ((num-str (substring par-sep 0 (- (string-length par-sep) 2)))
+             (num (string->number num-str)))
+        (if num
+            (number->string (+ num 1.0))
+            "1.2"))
+      "1.2"))
+
+(define (multiplier->par-sep mult-str)
+  (let ((num (string->number mult-str)))
+    (if num
+        (let ((val (- num 1.0)))
+          (string-append (number->string val) "fn"))
+        "0.2fn")))
+
+(define (get-fn-val s)
+  (and (string? s)
+       (safe-string-ends? s "fn")
+       (>= (string-length s) 2)
+       (string->number (substring s 0 (- (string-length s) 2)))))
+
+(define (get-line-spacing-type par-sep par-ver-sep)
+  (let ((val (get-fn-val par-sep)))
+    (cond
+      ((and (not (safe-string-null? par-ver-sep))
+            (not (equal? par-ver-sep ""))
+            (or (safe-string-null? par-sep) (and val (= val 0))))
+       "At least")
+      ((or (safe-string-null? par-sep) (and val (= val 0)))
+       "Single line spacing")
+      ((and val (= val 0.5))
+       "1.5 line spacing")
+      ((and val (= val 1.0))
+       "2 line spacing")
+      ((and val (not (or (= val 0) (= val 0.5) (= val 1.0))))
+       "Multiple")
+      (else
+       "Exactly"))))
+
+(define (par-sep->multiplier-str par-sep)
+  (let ((val (get-fn-val par-sep)))
+    (if val
+        (number->string (+ val 1.0))
+        "1.2")))
+
+(define (multiplier-str->par-sep mult-str)
+  (let ((num (string->number mult-str)))
+    (if num
+        (let ((val (- num 1.0)))
+          (string-append (number->string val) "fn"))
+        "0.2fn")))
+
+(define (get-multiple-default par-sep)
+  (let ((val (get-fn-val par-sep)))
+    (if (and val (not (or (= val 0) (= val 0.5) (= val 1.0))))
+        par-sep
+        "0.2fn")))
+
+(define (get-at-least-default par-ver-sep)
+  (if (and (string? par-ver-sep) (not (safe-string-null? par-ver-sep)))
+      par-ver-sep
+      "12pt"))
+
+(define (get-exactly-default par-sep)
+  (let ((val (get-fn-val par-sep)))
+    (if (not val)
+        (if (and (string? par-sep) (not (safe-string-null? par-sep)))
+            par-sep
+            "12pt")
+        "12pt")))
+
+;; State variables to preserve line spacing values across type switches
+(define line-spacing-exactly-value "12pt")
+(define line-spacing-at-least-value "12pt")
+(define line-spacing-multiple-value "0.2fn")
+
+(define (save-line-spacing-values new)
+  "Save current line spacing values before switching types"
+  (let* ((p-sep (get-current-par-sep new))
+         (pv-sep (get-current-par-ver-sep new))
+         (sp-type (get-line-spacing-type p-sep pv-sep)))
+    (cond ((equal? sp-type "Exactly")
+           (set! line-spacing-exactly-value p-sep))
+          ((equal? sp-type "At least")
+           (set! line-spacing-at-least-value pv-sep))
+          ((equal? sp-type "Multiple")
+           (set! line-spacing-multiple-value p-sep)))))
+
+(define (get-exactly-default-with-save par-sep)
+  "Get default for Exactly mode, using saved value if current is a fn value"
+  (let ((val (get-fn-val par-sep)))
+    (if (not val)
+        (if (and (string? par-sep) (not (safe-string-null? par-sep)))
+            par-sep
+            line-spacing-exactly-value)
+        line-spacing-exactly-value)))
+
+(define (get-at-least-default-with-save par-ver-sep)
+  "Get default for At least mode, using saved value if current is empty"
+  (if (and (string? par-ver-sep) (not (safe-string-null? par-ver-sep)))
+      par-ver-sep
+      line-spacing-at-least-value))
+
+(define (get-multiple-default-with-save par-sep)
+  "Get default for Multiple mode, using saved value if current is a standard fn value"
+  (let ((val (get-fn-val par-sep)))
+    (if (and val (not (or (= val 0) (= val 0.5) (= val 1.0))))
+        par-sep
+        line-spacing-multiple-value)))
+
+(define (line-spacing-exactly? new)
+  "Check if current line spacing type is Exactly"
+  (equal? (get-line-spacing-type (get-current-par-sep new) (get-current-par-ver-sep new)) "Exactly"))
+
+(define (line-spacing-at-least? new)
+  "Check if current line spacing type is At least"
+  (equal? (get-line-spacing-type (get-current-par-sep new) (get-current-par-ver-sep new)) "At least"))
+
+(define (line-spacing-multiple? new)
+  "Check if current line spacing type is Multiple"
+  (equal? (get-line-spacing-type (get-current-par-sep new) (get-current-par-ver-sep new)) "Multiple"))
+
 (tm-widget (paragraph-formatter-basic old new fun u flag?)
   (aligned (item (text "Alignment:")
              (enum (change "par-mode" answer old new fun u)
@@ -172,30 +312,87 @@
       ) ;enum
     ) ;item
     (item ====== ======)
-    (item (text "Interline space:")
-      (enum (change "par-sep" answer old new fun u)
-        (cons-new (ahash-ref new "par-sep") '("0fn" "0.2fn" "0.5fn" "1fn" ""))
-        (ahash-ref new "par-sep")
+    (item (text "Line spacing:")
+      (enum
+        (cond
+          ((equal? answer "Single line spacing")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" "0fn" old new fun u)
+             (change "par-ver-sep" "" old new fun u)
+             (refresh-now "paragraph-formatter")))
+          ((equal? answer "1.5 line spacing")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" "0.5fn" old new fun u)
+             (change "par-ver-sep" "" old new fun u)
+             (refresh-now "paragraph-formatter")))
+          ((equal? answer "2 line spacing")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" "1.0fn" old new fun u)
+             (change "par-ver-sep" "" old new fun u)
+             (refresh-now "paragraph-formatter")))
+          ((equal? answer "At least")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" "0fn" old new fun u)
+             (change "par-ver-sep" (get-at-least-default-with-save (get-current-par-ver-sep new)) old new fun u)
+             (refresh-now "paragraph-formatter")))
+          ((equal? answer "Exactly")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" (get-exactly-default-with-save (get-current-par-sep new)) old new fun u)
+             (change "par-ver-sep" "" old new fun u)
+             (refresh-now "paragraph-formatter")))
+          ((equal? answer "Multiple")
+           (begin
+             (save-line-spacing-values new)
+             (change "par-sep" (get-multiple-default-with-save (get-current-par-sep new)) old new fun u)
+             (change "par-ver-sep" "" old new fun u)
+             (refresh-now "paragraph-formatter")))
+        ) ;cond
+        '("Single line spacing" "1.5 line spacing" "2 line spacing" "At least" "Exactly" "Multiple")
+        (get-line-spacing-type (get-current-par-sep new) (get-current-par-ver-sep new))
         "10em"
       ) ;enum
     ) ;item
-    (item (hlist // (text "Line spacing presets:"))
-      (hlist ("1.5x"
-               (begin
-                 (change "par-sep" "0.5fn" old new fun u)
-                 (refresh-now "paragraph-formatter")
-               ) ;begin
-             ) ;
-        //
-        //
-        ("2.0x"
+    (assuming (line-spacing-exactly? new)
+      (item (text "Spacing value:")
+        (enum
           (begin
-            (change "par-sep" "1.0fn" old new fun u)
-            (refresh-now "paragraph-formatter")
-          ) ;begin
-        ) ;
-      ) ;hlist
-    ) ;item
+            (change "par-sep" answer old new fun u)
+            (refresh-now "paragraph-formatter"))
+          (cons-new (get-current-par-sep new) '("10pt" "12pt" "15pt" "18pt" "20pt" "24pt"))
+          (get-current-par-sep new)
+          "10em"
+        ) ;enum
+      ) ;item
+    ) ;assuming
+    (assuming (line-spacing-at-least? new)
+      (item (text "Minimum value:")
+        (enum
+          (begin
+            (change "par-ver-sep" answer old new fun u)
+            (refresh-now "paragraph-formatter"))
+          (cons-new (get-current-par-ver-sep new) '("10pt" "12pt" "15pt" "18pt" "20pt" "24pt"))
+          (get-current-par-ver-sep new)
+          "10em"
+        ) ;enum
+      ) ;item
+    ) ;assuming
+    (assuming (line-spacing-multiple? new)
+      (item (text "Multiple value:")
+        (enum
+          (begin
+            (change "par-sep" (multiplier-str->par-sep answer) old new fun u)
+            (refresh-now "paragraph-formatter"))
+          (cons-new (par-sep->multiplier-str (get-current-par-sep new)) '("1.2" "1.3" "1.4" "1.6" "1.8" "2.5"))
+          (par-sep->multiplier-str (get-current-par-sep new))
+          "10em"
+        ) ;enum
+      ) ;item
+    ) ;assuming
     (item (text "Interparagraph space:")
       (enum (change "par-par-sep" answer old new fun u)
         (cons-new (ahash-ref new "par-par-sep")
@@ -369,7 +566,17 @@
   (let* ((old (get-env-table paragraph-parameters))
          (new (get-env-table paragraph-parameters))
          (u (current-buffer))
-        ) ;
+         (p-sep (get-current-par-sep new))
+         (pv-sep (get-current-par-ver-sep new))
+         (sp-type (get-line-spacing-type p-sep pv-sep))
+         ) ;
+    ;; Initialize saved values from current document state
+    (cond ((equal? sp-type "Exactly")
+           (set! line-spacing-exactly-value p-sep))
+          ((equal? sp-type "At least")
+           (set! line-spacing-at-least-value pv-sep))
+          ((equal? sp-type "Multiple")
+           (set! line-spacing-multiple-value p-sep)))
     (dialogue-window (paragraph-formatter old new make-multi-line-with u #f)
       noop
       "Paragraph format"

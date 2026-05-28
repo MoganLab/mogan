@@ -560,8 +560,9 @@
   (-> "Spacing"
    ("Default" (init-default "par-sep" "par-line-sep" "interpargraph space"))
    ---
+   ("Single line spacing" (init-env "par-sep" "0fn"))
    ("1.5 line spacing" (init-env "par-sep" "0.5fn"))
-   ("Double line spacing" (init-env "par-sep" "1.0fn"))
+   ("2 line spacing" (init-env "par-sep" "1.0fn"))
    ---
    ("Interline separation" (init-interactive-env "par-sep"))
    ("Interline space" (init-interactive-env "par-line-sep"))
