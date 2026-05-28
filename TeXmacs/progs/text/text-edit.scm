@@ -636,6 +636,7 @@
                  "item-2"
                  "item-3"
                  "item-4"
+                 "item-nr"
                  (search-parameters "itemize-1")
                ) ;cons*
     "itemize-level"
@@ -657,6 +658,7 @@
                  "enum-2"
                  "enum-3"
                  "enum-4"
+                 "item-nr"
                  (search-parameters "enumerate-1")
                ) ;cons*
     "enumerate-level"
