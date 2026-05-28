@@ -3577,12 +3577,18 @@
 ) ;define
 
 (define (tmtex-ornamented s l)
-  (let* ((env (string-append "tm" s))
-         (option (get-ornament-env))
-         (option* (if (!= option "") `((!option ,option)) '()))
-        ) ;
-    `((!begin ,env ,@option*) ,(tmtex (car l)))
-  ) ;let*
+  (if (== s "framed")
+    (if (not (and (pair? (car l)) (in? (caar l) '(document para))))
+      `(fbox ,(tmtex (car l)))
+      `((!begin "mdframed") ,(tmtex (car l)))
+    ) ;if
+    (let* ((env (string-append "tm" s))
+           (option (get-ornament-env))
+           (option* (if (!= option "") `((!option ,option)) '()))
+          ) ;
+      `((!begin ,env ,@option*) ,(tmtex (car l)))
+    ) ;let*
+  ) ;if
 ) ;define
 
 (logic-table tex-ornament-opts%

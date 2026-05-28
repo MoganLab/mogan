@@ -4,6 +4,14 @@
 
 <\body>
   This is a <frame|text with <math|x<rsup|2>>> frame test.
+
+  This is an <framed|inline framed text with <math|z<rsup|4>>> test.
+
+  <\framed>
+    This is a <math|y<rsup|3>> framed block test.
+
+    This is the second paragraph of the framed block.
+  </framed>
 </body>
 
 <\initial>

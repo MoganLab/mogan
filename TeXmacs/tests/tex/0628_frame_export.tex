@@ -1,8 +1,17 @@
 \documentclass{article}
 \usepackage[english]{babel}
+\usepackage{mdframed}
 
 \begin{document}
 
-This is a \fbox{text with $x 2$} frame test.
+This is a \fbox{text with $x^2$} frame test.
+
+This is an \fbox{inline framed text with $z^4$} test.
+
+\begin{mdframed}
+  This is a $y^3$ framed block test.
+  
+  This is the second paragraph of the framed block.
+\end{mdframed}
 
 \end{document}
