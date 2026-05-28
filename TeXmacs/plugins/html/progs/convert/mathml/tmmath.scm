@@ -80,9 +80,9 @@
   (with y (logic-ref tm->mathml-large% x)
     (if y y (cork->utf8 x))))
 
-(define (tmmath-left l) `(m:mo (@ (form "prefix")) ,(tmmath-large (car l))))
-(define (tmmath-mid l) `(m:mo ,(tmmath-large (car l))))
-(define (tmmath-right l) `(m:mo (@ (form "postfix")) ,(tmmath-large (car l))))
+(define (tmmath-left l) `(m:mo (@ (form "prefix") (stretchy "true")) ,(tmmath-large (car l))))
+(define (tmmath-mid l) `(m:mo (@ (stretchy "true")) ,(tmmath-large (car l))))
+(define (tmmath-right l) `(m:mo (@ (form "postfix") (stretchy "true")) ,(tmmath-large (car l))))
 
 (define (tmmath-big l)
   (cond ((== (car l) ".") "")

@@ -24,7 +24,10 @@
     (display* "Exported HTML length: " (string-length html-content) "\n")
     ;; In MathML mode, the <space|1em> should be exported as `<mspace width="1em"/>` or `<m:mspace width="1em"/>`!
     (check (string-contains? html-content "mspace") => #t)
-    (check (string-contains? html-content "width=\"1em\"") => #t)))
+    (check (string-contains? html-content "width=\"1em\"") => #t)
+    
+    ;; Also verify that the left brace of the piecewise choice block has stretchy="true" to scale vertically!
+    (check (string-contains? html-content "stretchy=\"true\"") => #t)))
 
 (tm-define (test_0625)
   (test-math-space-export-integration)
