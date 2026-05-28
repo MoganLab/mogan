@@ -225,6 +225,8 @@ class pdf_hummus_renderer_rep : public renderer_rep {
     }
   };
 
+  DestinationsWriter* destinations_writer;
+
   PDFHummus::EStatusCode
   on_catalog_write (CatalogInformation*         inCatalogInformation,
                     DictionaryContext*          inCatalogDictionaryContext,
@@ -310,7 +312,7 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
       paper_w (paper_w2), paper_h (paper_h2), page_num (0), inText (false),
       fg (-1), bg (-1), lw (-1), pen (black), bgb (white), fgb (black),
       cfn (""), cfid (NULL), native_fonts (NULL), t3font_registry_id (-1),
-      destId (0), label_count (0), outlineId (0) {
+      destId (0), label_count (0), outlineId (0), destinations_writer (NULL) {
   width = default_dpi * paper_w / 2.54;
   height= default_dpi * paper_h / 2.54;
 
@@ -334,9 +336,10 @@ pdf_hummus_renderer_rep::pdf_hummus_renderer_rep (
     started= false;
   }
   else {
-    started= true;
+    started            = true;
+    destinations_writer= new DestinationsWriter (this);
     pdfWriter.GetDocumentContext ().AddDocumentContextExtender (
-        new DestinationsWriter (this));
+        destinations_writer);
 
     // create a graphic state with default values
     initial_GState_id= pdfWriter.GetObjectsContext ()
@@ -419,6 +422,8 @@ pdf_hummus_renderer_rep::~pdf_hummus_renderer_rep () {
   if (status != PDFHummus::eSuccess) {
     convert_error << "Failed in end PDF\n";
   }
+
+  delete destinations_writer;
 
   // remove temporary pictures
   for (int i= 0; i < N (temp_images); i++)
