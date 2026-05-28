@@ -19,17 +19,17 @@
     (string-append s "\n<EOF>\n")))
 
 (define (julia-entry)
-  (system-url->string
+  (url->system (string->url
     (if (url-exists? "$TEXMACS_HOME_PATH/plugins/julia/julia/MoganJulia.jl")
         "$TEXMACS_HOME_PATH/plugins/julia/julia/MoganJulia.jl"
-        "$TEXMACS_PATH/plugins/julia/julia/MoganJulia.jl")))
+        "$TEXMACS_PATH/plugins/julia/julia/MoganJulia.jl"))))
 
 (define (julia-launcher)
   (let* ((boot (string-quote (julia-entry))))
     (string-append "julia " boot)))
 
 (plugin-configure julia
-  (:winpath "Julia" "bin")
+  (:winpath "Julia*" "bin")
   (:macpath "Julia*" "Contents/Resources/julia/bin")
   (:require (url-exists-in-path? "julia"))
   (:serializer ,julia-serialize)

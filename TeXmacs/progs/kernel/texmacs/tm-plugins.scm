@@ -605,7 +605,7 @@
          (connection-insert-handler name (second cmd) (symbol->string (third cmd)))
         ) ;
         ((func? cmd :winpath 2)
-         (when (os-mingw?)
+         (when (or (os-win32?) (os-mingw?))
            (add-windows-program-path (url-append (second cmd) (third cmd)) #t)
          ) ;when
         ) ;
