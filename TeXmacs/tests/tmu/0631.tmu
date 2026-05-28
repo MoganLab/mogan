@@ -1,0 +1,13 @@
+<TMU|<tuple|1.1.0|2026.5.28>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <abstract-keywords|first|second|third>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
