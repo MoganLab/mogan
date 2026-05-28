@@ -59,6 +59,9 @@
   (begin-proof "amsthm")
 
   (begin-tabularx "tabularx")
+  (toprule "booktabs")
+  (midrule "booktabs")
+  (bottomrule "booktabs")
 
   (geometry "geometry")
   (epsfig "epsfig")
