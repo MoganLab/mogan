@@ -46,6 +46,9 @@
         <file>pdf-reader/open-white.svg</file>
         <file>pdf-reader/screenshot-white.svg</file>
 
+        <file>floating-search/down-white.svg</file>
+        <file>floating-search/up-white.svg</file>
+
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>
         <file>tutorial/magic-paste-tutorial.gif</file>

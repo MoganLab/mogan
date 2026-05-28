@@ -11,6 +11,7 @@
 
 #include "qt_chat_controller.hpp"
 #include "qt_chat_tab_widget.hpp"
+#include "qt_floating_search_bar.hpp"
 
 #include "new_buffer.hpp"
 #include "s7_tm.hpp"
@@ -138,6 +139,12 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
       call ("chat-tab-session-select-model", s->model);
     }
   }
+
+  // 6. 注册浮动搜索栏的 parent provider
+  qt_floating_search_set_parent_provider ([this] () -> QWidget* {
+    if (!view_) return nullptr;
+    return view_->contentWidget ();
+  });
 
   return view_;
 }

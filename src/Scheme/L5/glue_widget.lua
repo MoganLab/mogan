@@ -551,6 +551,16 @@ function main()
                     "int",
                     "int"
                 }
+            },
+            {
+                scm_name = "qt-floating-search-set-callbacks",
+                cpp_name = "qt_floating_search_set_callbacks",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string",
+                    "string"
+                }
             }
         }
     }

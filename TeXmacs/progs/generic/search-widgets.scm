@@ -1153,6 +1153,8 @@
       (set-search-reference (cursor-path)))
     (set-search-filter)
     (set! search-filter-out? #f)
+    (qt-floating-search-set-callbacks
+      "(chat-tab-search-next #t)" "(chat-tab-search-next #f)" "(chat-tab-search-close)")
     (qt-floating-search-init (url->string aux))
     (qt-floating-search "true")))
 
