@@ -42,9 +42,10 @@
 #include <mutex>
 
 namespace {
-constexpr float kRenderOversample= 1.5F;
-constexpr float kMinRenderScale  = 0.1F;
-constexpr float kMaxRenderScale  = 8.0F;
+constexpr float kRenderOversample  = 1.5F;
+constexpr float kMinRenderScale    = 0.1F;
+constexpr int   kMaxRenderPixels   = 4000 * 4000; // max pixels for MuPDF pixmap
+constexpr int   kMaxRenderDimension= 6000;         // max width or height in pixels
 
 /**
  * @brief Check if the zoom modifier key is pressed.
@@ -902,9 +903,17 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
     float scale = qMin (scaleX, scaleY);
     float qualityScale=
         qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
-    float renderScale=
-        qBound (kMinRenderScale, scale * kRenderOversample * qualityScale,
-                kMaxRenderScale);
+    float renderScale= scale * kRenderOversample * qualityScale;
+
+    // Clamp render resolution to avoid excessive memory usage.
+    // On HiDPI + high zoom, renderScale can produce huge pixmaps that
+    // cause QImage/QPixmap allocation failures (blank pages).
+    float maxDimScale=
+        static_cast<float> (kMaxRenderDimension) / qMax (pageWidth, pageHeight);
+    float maxAreaScale= sqrtf (static_cast<float> (kMaxRenderPixels) /
+                               (pageWidth * pageHeight));
+    float cappedScale= qMin (maxDimScale, maxAreaScale);
+    renderScale= qMax (kMinRenderScale, qMin (renderScale, cappedScale));
 
     fz_matrix ctm= fz_scale (renderScale, renderScale);
     pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
@@ -1012,7 +1021,28 @@ PDFReaderWidget::rebuildPages () {
     int labelBottom= labelTop + height;
 
     if (labelBottom >= minY && labelTop <= maxY) {
-      renderPageToLabel (i, label, width);
+      bool rendered= renderPageToLabel (i, label, width);
+      if (!rendered) {
+        // Rendering failed: try a cached fallback from a different width
+        // to avoid showing a blank page.
+        bool found= false;
+        for (auto it= pageCache_.begin (); it != pageCache_.end (); ++it) {
+          if (it.key ().pageNumber == i) {
+            QPixmap cached= it.value ();
+            if (cached.isNull ()) continue;
+            qreal dpr= devicePixelRatioF ();
+            int   pxW= qMax (1, qRound (width * dpr));
+            int   pxH= qMax (1, qRound (height * dpr));
+            cached= cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
+                                   Qt::SmoothTransformation);
+            cached.setDevicePixelRatio (dpr);
+            label->setPixmap (cached);
+            found= true;
+            break;
+          }
+        }
+        if (!found) label->clear ();
+      }
     }
     else {
       // 视口外：尝试用缓存的降级版本显示，避免空白跳动

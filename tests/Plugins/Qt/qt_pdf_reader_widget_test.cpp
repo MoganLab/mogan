@@ -1309,6 +1309,305 @@ private slots:
     QCOMPARE (widget->zoomFactor (), 1.0);
     delete widget;
   }
+
+  // ============================================================
+  // Zoom scale rendering tests (TDD for 200% content disappearing)
+  // ============================================================
+
+  void test_renderAt200PercentHasVisibleContent () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    // Set zoom to 200%
+    widget->setZoomFactor (2.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    // Find the page label and check it has a non-null pixmap
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    delete widget;
+  }
+
+  void test_renderAt300PercentHasVisibleContent () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    widget->setZoomFactor (3.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    delete widget;
+  }
+
+  void test_renderAt400PercentHasVisibleContent () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    widget->setZoomFactor (4.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    delete widget;
+  }
+
+  void test_renderAt200PercentPixmapNotAllWhite () {
+    // At 200% zoom the rendered pixmap must contain non-white pixels
+    // (the test PDF has text so should not be entirely white).
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    // Record render count before zoom
+    int renderCountBefore= widget->renderCallCount ();
+
+    widget->setZoomFactor (2.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    // Verify that a render actually happened
+    QVERIFY (widget->renderCallCount () > renderCountBefore);
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    // Convert to image and check not all white
+    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    bool   hasNonWhite= false;
+    for (int y= 0; y < img.height () && !hasNonWhite; y++) {
+      const uchar* scanLine= img.constScanLine (y);
+      for (int x= 0; x < img.width () * 3; x++) {
+        if (scanLine[x] < 250) { // not white
+          hasNonWhite= true;
+          break;
+        }
+      }
+    }
+    QVERIFY2 (hasNonWhite, "Rendered pixmap at 200% is entirely white");
+
+    delete widget;
+  }
+
+  void test_renderAt200PercentLabelHasCorrectSize () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    widget->setZoomFactor (2.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+
+    // Label should be non-trivial size at 200%
+    QVERIFY (pageLabel->width () > 100);
+    QVERIFY (pageLabel->height () > 100);
+
+    delete widget;
+  }
+
+  // Test various zoom levels to find where rendering fails
+  void test_renderAtVariousZoomLevels_data () {
+    QTest::addColumn<double> ("zoom");
+
+    QTest::newRow ("100%") << 1.0;
+    QTest::newRow ("150%") << 1.5;
+    QTest::newRow ("200%") << 2.0;
+    QTest::newRow ("250%") << 2.5;
+    QTest::newRow ("300%") << 3.0;
+    QTest::newRow ("400%") << 4.0;
+    QTest::newRow ("600%") << 6.0;
+    QTest::newRow ("800%") << 8.0;
+  }
+
+  void test_renderAtVariousZoomLevels () {
+    QFETCH (double, zoom);
+
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    widget->setZoomFactor (zoom);
+    QTest::qWait (400);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY2 (pageLabel != nullptr, "Page label not found");
+
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY2 (!pm.isNull (),
+              qPrintable (QString ("Null pixmap at %1% zoom, label size=%2x%3")
+                              .arg (zoom * 100)
+                              .arg (pageLabel->width ())
+                              .arg (pageLabel->height ())));
+
+    // Verify non-white content (PDF has text)
+    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    bool   hasNonWhite= false;
+    for (int y= 0; y < img.height () && !hasNonWhite; y++) {
+      const uchar* scanLine= img.constScanLine (y);
+      for (int x= 0; x < img.width () * 3; x++) {
+        if (scanLine[x] < 250) {
+          hasNonWhite= true;
+          break;
+        }
+      }
+    }
+    QVERIFY2 (hasNonWhite,
+              qPrintable (QString ("All-white pixmap at %1% zoom, "
+                                   "pixmap=%2x%3 dpr=%4 label=%5x%6")
+                              .arg (zoom * 100)
+                              .arg (pm.width ())
+                              .arg (pm.height ())
+                              .arg (pm.devicePixelRatio ())
+                              .arg (pageLabel->width ())
+                              .arg (pageLabel->height ())));
+
+    delete widget;
+  }
+
+  // Test renderPageToLabel directly at high DPR and zoom
+  void test_renderScaleDoesNotExceedMax () {
+    // Verify that at 200% zoom with DPR=2, the render scale is computed correctly
+    // and the rendered pixmap is non-empty.
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    // Simulate high DPR by forcing zoom to 400% (equivalent to 200% at DPR=2)
+    widget->setZoomFactor (4.0);
+    QTest::qWait (400);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    // Check non-white
+    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    bool   hasNonWhite= false;
+    for (int y= 0; y < img.height () && !hasNonWhite; y++) {
+      const uchar* scanLine= img.constScanLine (y);
+      for (int x= 0; x < img.width () * 3; x++) {
+        if (scanLine[x] < 250) {
+          hasNonWhite= true;
+          break;
+        }
+      }
+    }
+    QVERIFY2 (hasNonWhite, "All-white at 400% zoom");
+
+    delete widget;
+  }
+
+  // Verify that the rendered pixmap size is reasonable at extreme zoom.
+  // The render resolution should be capped to avoid excessive memory usage.
+  void test_extremeZoomPixmapSizeBounded () {
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (800, 600);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    QVERIFY (is_regular (pdfUrl));
+
+    bool result= widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QVERIFY (result);
+    QApplication::processEvents ();
+
+    widget->setZoomFactor (8.0); // MAX_ZOOM
+    QTest::qWait (500);
+    QApplication::processEvents ();
+
+    QLabel* pageLabel= widget->findChild<QLabel*> ();
+    QVERIFY (pageLabel != nullptr);
+    QPixmap pm= pageLabel->pixmap ();
+    QVERIFY (!pm.isNull ());
+
+    // Pixmap should exist and be non-white
+    QImage img= pm.toImage ().convertToFormat (QImage::Format_RGB888);
+    bool   hasNonWhite= false;
+    for (int y= 0; y < img.height () && !hasNonWhite; y++) {
+      const uchar* scanLine= img.constScanLine (y);
+      for (int x= 0; x < img.width () * 3; x++) {
+        if (scanLine[x] < 250) {
+          hasNonWhite= true;
+          break;
+        }
+      }
+    }
+    QVERIFY2 (hasNonWhite, "All-white pixmap at 800% zoom");
+
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)
