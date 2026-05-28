@@ -746,6 +746,9 @@
         (group "Pen width")
         (link cell-compact-pen-width-menu)
         ---
+        (group "Border color")
+        (link cell-border-color-menu)
+        ---
         (group "Padding")
         (link cell-padding-menu)
       ) ;mini
