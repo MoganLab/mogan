@@ -1434,21 +1434,26 @@ QWidget#centralWidget QWidget#chat-tab-input-frame[hasFocus="true"] {
 }
 
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
-  color: #215a6a;
-  border: 1px solid #215a6a;
-  background: #6c6c6c;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  background: transparent;
+  qproperty-iconNormal: url(":/llm-chat/thinking-white.svg");
+  qproperty-iconChecked: url(":/llm-chat/thinking.svg");
+  qproperty-iconHovered: url(":/llm-chat/thinking-white.svg");
 }
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
-  background: #6c7774;
+  background: #ffffff;
+  color: #215a6a;
 }
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:hover {
-  background: #7a7a7a;
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
 }
 
 /* 发送按钮 */
 QWidget#centralWidget QPushButton#chat-tab-send-btn {
-  background-color: #6c6c6c;
-  border: none;
+  background-color: #ffffff;
+  border: 1px solid #215a6a;
 }
 QWidget#centralWidget QPushButton#chat-tab-send-btn:hover {
   background-color: #7a7a7a;

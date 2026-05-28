@@ -32,6 +32,7 @@ class QTimer;
 class QToolButton;
 class QVBoxLayout;
 class QEvent;
+class QTMStateToolButton;
 class qt_tm_widget_rep;
 
 /**

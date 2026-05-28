@@ -11,6 +11,7 @@
 
 #include "qt_chat_tab_widget.hpp"
 #include "QTMGuiHelper.hpp"
+#include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
 #include "edit_interface.hpp"
@@ -241,14 +242,13 @@ ChatConversationPanel::setup_ui () {
 
   // Thinking toggle button
   int thinkingBtnH= DpiUtils::scaled (kSendButtonSize);
-  thinkingButton_ = new QToolButton (inputFrame);
+  thinkingButton_ = new QTMStateToolButton (inputFrame);
   thinkingButton_->setObjectName ("chat-tab-thinking-btn");
   thinkingButton_->setCheckable (true);
   thinkingButton_->setChecked (false);
   thinkingButton_->setFocusPolicy (Qt::NoFocus);
   thinkingButton_->setCursor (Qt::PointingHandCursor);
   thinkingButton_->setToolTip (tr ("Deep Reasoning"));
-  thinkingButton_->setIcon (QIcon (":llm-chat/thinking.svg"));
   thinkingButton_->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
                                        DpiUtils::scaled (kSendIconSize)));
   thinkingButton_->setText (qt_translate ("Deep Reasoning"));
@@ -277,10 +277,8 @@ ChatConversationPanel::setup_ui () {
   sendButton_->setIconSize (QSize (sendIconSize, sendIconSize));
   sendButton_->setFixedSize (DpiUtils::scaled (kSendButtonSize),
                              DpiUtils::scaled (kSendButtonSize));
-  sendButton_->setStyleSheet (
-      QString (
-          "QPushButton { border: 1px solid #215a6a; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (kSendButtonRadius)));
+  sendButton_->setStyleSheet (QString ("QPushButton { border-radius: %1px; }")
+                                  .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (sendButton_, &QPushButton::clicked, this,
            [this] () { emit sendRequested (sessionId_); });
   btnLayout->addWidget (sendButton_);
