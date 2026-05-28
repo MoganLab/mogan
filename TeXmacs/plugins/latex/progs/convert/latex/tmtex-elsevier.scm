@@ -52,10 +52,7 @@
   (:mode jsc-style?)
   (init-elsevier body)
   ;; (set! tmtex-packages (cons "cite-author-year" tmtex-packages))
-  (latex-set-packages '("amsthm"
-                        "yjsco"
-                        ;; "natbib")
-  ) ;latex-set-packages
+  (latex-set-packages '("amsthm" "yjsco"))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
