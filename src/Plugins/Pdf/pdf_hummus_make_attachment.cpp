@@ -177,7 +177,7 @@ PDFAttachment::PDFAttachment (Byte inByte[], size_t inLenth, string inName) {
 }
 
 PDFAttachment::~PDFAttachment (void) {
-  if (file_content) delete file_content;
+  if (file_content) delete[] file_content;
 }
 
 PDFAttachmentWriter::PDFAttachmentWriter (PDFWriter* inPDFWriter) {
