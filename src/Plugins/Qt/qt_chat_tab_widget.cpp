@@ -257,12 +257,8 @@ ChatConversationPanel::setup_ui () {
   thinkingButton_->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
   int thinkingFontPx= DpiUtils::scaled (12);
   thinkingButton_->setStyleSheet (
-      QString (
-          "QToolButton { border: 1px solid #215a6a; border-radius: %1px; "
-          "background: transparent; padding: 2px 2px 2px 6px; margin: 0px; "
-          "font-size: %2px; }"
-          "QToolButton:checked { background: rgba(33,90,106,0.15); }"
-          "QToolButton:hover { background: rgba(0,0,0,0.06); }")
+      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
+               "margin: 0px; font-size: %2px; }")
           .arg (thinkingBtnH / 2)
           .arg (thinkingFontPx));
   connect (thinkingButton_, &QToolButton::toggled, this, [this] (bool checked) {
