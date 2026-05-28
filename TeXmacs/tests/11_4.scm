@@ -21,7 +21,7 @@
           "fun" "result"
           (default-chinese-font) :none
           (test "macOS" :none "Singti SC")))
-        ((os-mingw?)
+        ((or (os-win32?) (os-mingw?))
          (regression-test-group
           "fun" "result"
           (default-chinese-font) :none

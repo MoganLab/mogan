@@ -883,7 +883,7 @@
     (let* ((protocol (url-root u)) (file (url->unix (url-unroot u))))
       (cond ((== protocol "") (string-append "here/" file))
             ((== protocol "default")
-             (if (os-mingw?)
+             (if (or (os-win32?) (os-mingw?))
                (string-append "file/" (strip-colon file))
                (string-append "file/" file)
              ) ;if
@@ -922,7 +922,7 @@
       (cond ((== protocol "tm") (url-append (get-texmacs-path) file))
             ((== protocol "here") file)
             ((== protocol "file")
-             (if (os-mingw?)
+             (if (or (os-win32?) (os-mingw?))
                (string->url (string-append "/" (tmfs-cdr s)))
                (url-append (root->url "default") file)
              ) ;if
