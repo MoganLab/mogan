@@ -1170,7 +1170,7 @@
 (tm-define (chat-tab-search-next forward?)
   (when (and chat-tab-search-target chat-tab-search-aux)
     (with-buffer chat-tab-search-target
-      (search-next-match forward? chat-tab-search-target))))
+      (search-rotate-match forward?))))
 
 (tm-define (chat-tab-search-close)
   (when chat-tab-search-target
