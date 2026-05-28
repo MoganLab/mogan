@@ -473,6 +473,7 @@ QTMTemplatePage::showTemplatePreview (const QString& templateId) {
   layout->addLayout (btnLayout);
 
   dialog->exec ();
+  delete dialog;
 }
 
 void
