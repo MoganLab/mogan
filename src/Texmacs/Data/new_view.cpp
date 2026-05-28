@@ -87,6 +87,11 @@ is_chat_tab_buffer (url name) {
   return starts (as_string (name), "tmfs://chat-tab");
 }
 
+bool
+is_startup_tab_buffer (url name) {
+  return name == url ("tmfs://startup-tab");
+}
+
 url
 abstract_view (tm_view vw) {
   if (vw == NULL) return url_none ();

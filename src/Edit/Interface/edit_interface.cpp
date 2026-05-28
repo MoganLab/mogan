@@ -16,6 +16,7 @@
 #include "file.hpp"
 #include "gui.hpp" // for gui_interrupted
 #include "message.hpp"
+#include "new_view.hpp"
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "server.hpp"
@@ -820,6 +821,11 @@ edit_interface_rep::update_menus () {
   SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
   SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
+  if (is_startup_tab_buffer (buf->buf->name)) {
+    last_update= last_change;
+    bench_end ("update_menus");
+    return;
+  }
   array<url> a= buffer_to_windows (buf->buf->name);
   if (N (a) > 0) {
     string win = "(string->url \"" * as_string (a[0]) * "\")";
