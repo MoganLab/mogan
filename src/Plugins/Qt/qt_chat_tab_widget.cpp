@@ -155,10 +155,12 @@ ChatConversationPanel::setup_ui () {
   topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
 
   // Message area
-  url msgBufUrl = ChatSessionManager::messageBufferUrl (sessionId_);
-  messageWidget_= texmacs_input_widget (
-      tree (DOCUMENT, ""), compound (kChatEmbeddedStyle, tuple ("generic")),
-      msgBufUrl);
+  qreal chatZoom = DpiUtils::scaled (100) / 100.0;
+  url   msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId_);
+  messageWidget_ = texmacs_input_widget (
+      tree (WITH, "zoom-factor", as_string (chatZoom), tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufUrl);
+  set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
   messageFrame_          = new QWidget (topPanel);
@@ -193,8 +195,10 @@ ChatConversationPanel::setup_ui () {
 
   url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
   inputWidget = texmacs_input_widget (
-      tree (WITH, "par-par-sep", "0.05fn", tree (DOCUMENT, "")),
+      tree (WITH, "par-par-sep", "0.05fn", "zoom-factor", as_string (chatZoom),
+             tree (DOCUMENT, "")),
       compound (kChatEmbeddedStyle, tuple ("generic")), inBufUrl);
+  set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
 
