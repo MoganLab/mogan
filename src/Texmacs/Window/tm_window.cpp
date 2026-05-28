@@ -322,11 +322,9 @@ enrich_embedded_document (tree body, tree style) {
         // cout << "Set " << orig[i] << " = " << orig[i+1] << LF;
         initial (orig[i]->label)= orig[i + 1];
       }
-  // initial (DPI)= "720";
-  // initial (ZOOM_FACTOR)= (retina_zoom==1? "1.2": "1.8");
-  initial (DPI)        = "600";
-  initial (ZOOM_FACTOR)= (retina_zoom == 2 ? "1.0" : "1.2");
-  // TODO: to be carefully checked for all operating systems
+  initial (DPI)= "600";
+  if (!initial->contains (ZOOM_FACTOR))
+    initial (ZOOM_FACTOR)= (retina_zoom == 2 ? "1.0" : "1.2");
   initial ("no-zoom")= "true";
   tree doc (DOCUMENT);
   doc << compound ("TeXmacs", TEXMACS_VERSION);
