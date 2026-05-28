@@ -6,7 +6,9 @@
  ******************************************************************************/
 
 #include "Qt/qt_chat_tab_widget.hpp"
+#include "Qt/qt_utilities.hpp"
 #include "base.hpp"
+#include <QLineEdit>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QtTest/QtTest>
@@ -184,6 +186,132 @@ private slots:
     widget.setCloseSidebarButtonVisible (true);
     QTest::mouseClick (widget.closeSidebarButton (), Qt::LeftButton);
     QCOMPARE (spy.count (), 1);
+  }
+
+  // === ChatSidebar title rename ===
+  void test_beginEditTitle_shows_editor () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+    sidebar.beginEditTitle ("s1");
+
+    auto item= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (item != nullptr);
+    QVERIFY (item->isVisible ());
+  }
+
+  void test_beginEditTitle_hides_button () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+    auto button= sidebar.findChild<QPushButton*> ("chat-tab-conversation-btn");
+    QVERIFY (button != nullptr);
+    QVERIFY (button->isVisible ());
+
+    sidebar.beginEditTitle ("s1");
+    QVERIFY (!button->isVisible ());
+  }
+
+  void test_endEditTitle_accept_emits_signal () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QString capturedSessionId;
+    QString capturedNewTitle;
+    connect (&sidebar, &ChatSidebar::renameRequested,
+             [&capturedSessionId, &capturedNewTitle] (const string& sessionId,
+                                                   const string& newTitle) {
+               capturedSessionId= to_qstring (sessionId);
+               capturedNewTitle = to_qstring (newTitle);
+             });
+
+    sidebar.beginEditTitle ("s1");
+    auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (edit != nullptr);
+    edit->setText ("world");
+    emit edit->returnPressed ();
+
+    QCOMPARE (capturedSessionId, QString ("s1"));
+    QCOMPARE (capturedNewTitle, QString ("world"));
+  }
+
+  void test_endEditTitle_empty_title_no_signal () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    bool signalEmitted= false;
+    connect (&sidebar, &ChatSidebar::renameRequested,
+             [&signalEmitted] (const string&, const string&) {
+               signalEmitted= true;
+             });
+
+    sidebar.beginEditTitle ("s1");
+    auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (edit != nullptr);
+    edit->setText ("");
+    emit edit->returnPressed ();
+
+    QVERIFY (!signalEmitted);
+  }
+
+  void test_endEditTitle_same_title_no_signal () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    bool signalEmitted= false;
+    connect (&sidebar, &ChatSidebar::renameRequested,
+             [&signalEmitted] (const string&, const string&) {
+               signalEmitted= true;
+             });
+
+    sidebar.beginEditTitle ("s1");
+    auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (edit != nullptr);
+    edit->setText ("hello");
+    emit edit->returnPressed ();
+
+    QVERIFY (!signalEmitted);
+  }
+
+  void test_endEditTitle_trims_whitespace () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QString capturedNewTitle;
+    connect (&sidebar, &ChatSidebar::renameRequested,
+             [&capturedNewTitle] (const string&, const string& newTitle) {
+               capturedNewTitle= to_qstring (newTitle);
+             });
+
+    sidebar.beginEditTitle ("s1");
+    auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (edit != nullptr);
+    edit->setText ("  world  ");
+    emit edit->returnPressed ();
+
+    QCOMPARE (capturedNewTitle, QString ("world"));
+  }
+
+  void test_updateItemTitle_updates_titleEdit () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.updateItemTitle ("s1", "world");
+    auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
+    QVERIFY (edit != nullptr);
+    QCOMPARE (edit->text (), QString ("world"));
   }
 };
 
