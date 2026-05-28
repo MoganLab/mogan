@@ -1,0 +1,16 @@
+<TMU|<tuple|1.1.0|2026.2.7-rc6>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <\equation*>
+    <choice|<tformat|<table|<row|<cell|<around*|\<langle\>|T|\<rangle\>>=-E<rsub|n>>|<cell|if<space|1em>x\<gtr\>0>>|<row|<cell|<around*|\<langle\>|V|\<rangle\>>=2E<rsub|n>>|<cell|if<space|1em>x\<less\>0>>|<row|<cell|<around*|\<langle\>|V<rsup|2>|\<rangle\>>=<around*|(|<frac|e<rsup|2>|4\<pi\>\<epsilon\><rsub|0>>|)><rsup|2><around*|\<langle\>|<frac|1|r<rsup|2>>|\<rangle\>>=<frac|1|<around*|(|\<ell\>+<frac|1|2>|)>n<rsup|3>a<rsup|2>>>|<cell|if<space|1em>x=0>>>>>.
+  </equation*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|3106D53A-25DC-4D10-8327-C9F53D26CE30>
+  </collection>
+</initial>
