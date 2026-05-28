@@ -103,10 +103,10 @@ constexpr int kInputFramePad         = 8;
 constexpr int kMessageMinHeight      = 240;
 constexpr int kTransitionDurationMs  = 220;
 
-constexpr int kSendIconSize          = 30;
-constexpr int kSendButtonSize        = 36;
-constexpr int kSendButtonRadius      = 18;
-constexpr int kConversationBtnRadius = 6;
+constexpr int kSendIconSize         = 30;
+constexpr int kSendButtonSize       = 36;
+constexpr int kSendButtonRadius     = 18;
+constexpr int kConversationBtnRadius= 6;
 
 constexpr char kChatEmbeddedStyle[]= "style";
 
