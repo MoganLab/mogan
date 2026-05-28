@@ -1379,10 +1379,10 @@ QPushButton#chat-tab-send-btn {
   border: 1px solid #215a6a;
 }
 QPushButton#chat-tab-send-btn:hover {
-  background-color: #f0f0f0;
+  background-color: #dddddd;
 }
 QPushButton#chat-tab-send-btn:pressed {
-  background-color: #e0e0e0;
+  background-color: #d3d3d3;
 }
 
 /* 选择复选框 */
