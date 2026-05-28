@@ -115,37 +115,37 @@ public:
   SI       y2;    // upper right coordinate of cell
   SI       shift; // shift when tables may be hyphenated
 
-  tree   decoration;   // decoration
-  tree   bg;           // background color or pattern
-  tree   bcolor;       // border color
-  bool   orientation;  // portrait or landscape
-  SI     width;        // the width of the cell
-  SI     height;       // the height of the cell
-  double hpart;        // part in unused horizontal space
-  double vpart;        // part in unused vertical space
-  SI     lsep;         // left padding
-  SI     rsep;         // right padding
-  SI     bsep;         // bottom padding
-  SI     tsep;         // top padding
-  SI     lborder;      // left border width
-  SI     rborder;      // right border width
-  SI     bborder;      // bottom border width
-  SI     tborder;      // top border width
-  SI     dborder;      // diagonal border width
-  SI     aborder;      // anti-diagonal border width
-  string hmode;        // how to interpret the width
-  string vmode;        // how to interpret the height
-  string halign;       // horizontal alignment
-  string valign;       // vertical alignment
-  string vcorrect;     // vertical limits correction
-  string hyphen;       // horizontal hyphenation
-  int    row_span;     // row span
-  int    col_span;     // column span
-  SI     swell;        // amount of swell for cells of large height
-  int    border_flags; // 1: top row, 2: bottom row
+  tree   decoration;        // decoration
+  tree   bg;                // background color or pattern
+  tree   bcolor;            // border color
+  bool   orientation;       // portrait or landscape
+  SI     width;             // the width of the cell
+  SI     height;            // the height of the cell
+  double hpart;             // part in unused horizontal space
+  double vpart;             // part in unused vertical space
+  SI     lsep;              // left padding
+  SI     rsep;              // right padding
+  SI     bsep;              // bottom padding
+  SI     tsep;              // top padding
+  SI     lborder;           // left border width
+  SI     rborder;           // right border width
+  SI     bborder;           // bottom border width
+  SI     tborder;           // top border width
+  SI     dborder;           // diagonal border width
+  SI     aborder;           // anti-diagonal border width
+  string hmode;             // how to interpret the width
+  string vmode;             // how to interpret the height
+  string halign;            // horizontal alignment
+  string valign;            // vertical alignment
+  string vcorrect;          // vertical limits correction
+  string hyphen;            // horizontal hyphenation
+  int    row_span;          // row span
+  int    col_span;          // column span
+  SI     swell;             // amount of swell for cells of large height
+  int    border_flags;      // 1: top row, 2: bottom row
   int    bcolor_precedence; // border color precedence
-  table  D;            // potential decoration
-  table  T;            // potential subtable
+  table  D;                 // potential decoration
+  table  T;                 // potential subtable
 
   cell_rep (edit_env env);
 

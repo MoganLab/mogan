@@ -101,20 +101,26 @@ table_rep::typeset_table (tree fm, tree t, path ip) {
   }
   if (is_func (fm, TFORMAT)) {
     for (int i= 0; i < N (fm); i++) {
-      if (is_func (fm[i], CWITH) && N (fm[i]) >= 6 && fm[i][4] == "cell-border-color") {
-        if (is_int (fm[i][0]) && is_int (fm[i][1]) && is_int (fm[i][2]) && is_int (fm[i][3])) {
+      if (is_func (fm[i], CWITH) && N (fm[i]) >= 6 &&
+          fm[i][4] == "cell-border-color") {
+        if (is_int (fm[i][0]) && is_int (fm[i][1]) && is_int (fm[i][2]) &&
+            is_int (fm[i][3])) {
           int r1= as_int (fm[i][0]);
           int r2= as_int (fm[i][1]);
           int c1= as_int (fm[i][2]);
           int c2= as_int (fm[i][3]);
 
-          if (r1 >= 0) r1--; else r1+= nr_rows;
-          if (r2 > 0) r2--; else r2+= nr_rows;
+          if (r1 >= 0) r1--;
+          else r1+= nr_rows;
+          if (r2 > 0) r2--;
+          else r2+= nr_rows;
           r1= max (r1, 0);
           r2= min (r2, nr_rows - 1);
 
-          if (c1 >= 0) c1--; else c1+= nr_cols;
-          if (c2 > 0) c2--; else c2+= nr_cols;
+          if (c1 >= 0) c1--;
+          else c1+= nr_cols;
+          if (c2 > 0) c2--;
+          else c2+= nr_cols;
           c1= max (c1, 0);
           c2= min (c2, nr_cols - 1);
 
@@ -453,8 +459,8 @@ table_rep::handle_span () {
 
 void
 table_rep::merge_borders () {
-  int       hh= nr_cols + 1, vv= nr_rows + 1, nn= hh * vv;
-  array<SI> horb (nn), verb (nn);
+  int        hh= nr_cols + 1, vv= nr_rows + 1, nn= hh * vv;
+  array<SI>  horb (nn), verb (nn);
   array<int> hor_prec (nn), ver_prec (nn);
   for (int i= 0; i < nn; i++) {
     horb[i]= verb[i]= 0;

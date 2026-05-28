@@ -17,7 +17,10 @@ if (eq $platform:os windows) {
   ]
 } else {
   set paths = [
+    /Users/jackyansongli/git/goldfish/bin/
     /opt/homebrew/opt/llvm@19/bin/
+    /opt/homebrew/bin/
+    /usr/local/bin/
   ]
 }
 
