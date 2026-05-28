@@ -1275,8 +1275,13 @@ private slots:
   void test_autoFitWidth_whenNarrow () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    int screenWidth        = screen ? screen->availableSize ().width () : 1920;
-    widget->resize (screenWidth / 4, 300);
+    QRect  screenGeo       = screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
+    int    screenW         = screenGeo.width ();
+    int    screenH         = screenGeo.height ();
+    // Simulate snapped to left half-screen:
+    // width ≈ half screen, height ≈ screen height, left edge at screen left
+    widget->resize (screenW / 2, screenH);
+    widget->move (screenGeo.x (), screenGeo.y ());
     widget->show ();
 
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
@@ -1286,7 +1291,7 @@ private slots:
     QVERIFY (result);
     QApplication::processEvents ();
 
-    // 当 widget 宽度不超过屏幕一半时，应自动触发 Fit Width
+    // 当窗口贴靠到半屏时，应自动触发 Fit Width
     QVERIFY (widget->zoomFactor () != 1.0);
     delete widget;
   }
