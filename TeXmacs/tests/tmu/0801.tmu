@@ -1,0 +1,117 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|preview-ref|framed-session|julia>>
+
+<\body>
+  <\session|julia|default>
+    <\output>
+      \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ _
+
+      \ \ \ _ \ \ \ \ \ \ _ _(_)_ \ \ \ \ \| \ Documentation: https://docs.julialang.org
+
+      \ \ (_) \ \ \ \ \| (_) (_) \ \ \ \|
+
+      \ \ \ _ _ \ \ _\| \|_ \ __ _ \ \ \| \ Type "?" for help, "]?" for Pkg help.
+
+      \ \ \| \| \| \| \| \| \|/ _‘ \| \ \|
+
+      \ \ \| \| \|_\| \| \| \| (_\| \| \ \| \ Version 1.12.6 (2026-04-09)
+
+      \ _/ \|\\__'_\|_\|_\|\\__'_\| \ \| \ Official https://julialang.org release
+
+      \|__/ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \|
+
+      \;
+
+      Julia plugin for Mogan STEM.
+    </output>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      1 + 2
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      ?sin
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      sin(fill(1.0, (2,2)))
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      sqrt(-1)
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      non_existent_variable
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      ; ls -la
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      prin
+    <|unfolded-io>
+      \;
+    </unfolded-io>
+
+    <\unfolded-io>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|unfolded-io>
+      using Markdown
+
+      Markdown.parse("# Title\\nthis is **bold** font.\\n\\nthis is a list:\\n- A\\n - B")
+    <|unfolded-io>
+      <\html-text>
+        \;
+      </html-text>
+    </unfolded-io>
+
+    <\input>
+      \<gtr\>\<gtr\>\<gtr\>\ 
+    <|input>
+      \;
+    </input>
+  </session>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|B5E48B3A-CB10-4210-8018-C6BF17CD3640>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|?|?>>
+  </collection>
+</references>
