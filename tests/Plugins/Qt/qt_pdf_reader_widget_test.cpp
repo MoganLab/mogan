@@ -1272,11 +1272,15 @@ private slots:
     delete widget;
   }
 
-  void test_autoFitWidth_whenNarrow () {
+  void test_autoFitWidth_whenSnappedLeftHalf () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    int screenWidth        = screen ? screen->availableSize ().width () : 1920;
-    widget->resize (screenWidth / 4, 300);
+    QRect  screenGeo       = screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
+    int    screenW          = screenGeo.width ();
+    int    screenH          = screenGeo.height ();
+    // 模拟左半屏贴靠：宽度=屏幕一半，高度=屏幕高度，左边缘对齐
+    widget->resize (screenW / 2, screenH);
+    widget->move (screenGeo.x (), screenGeo.y ());
     widget->show ();
 
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
@@ -1286,16 +1290,20 @@ private slots:
     QVERIFY (result);
     QApplication::processEvents ();
 
-    // 当 widget 宽度不超过屏幕一半时，应自动触发 Fit Width
+    // 当窗口贴靠到左半屏时，应自动触发 Fit Width
     QVERIFY (widget->zoomFactor () != 1.0);
     delete widget;
   }
 
-  void test_noAutoFitWidth_whenWide () {
+  void test_noAutoFitWidth_whenNotSnapped () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
-    int screenWidth        = screen ? screen->availableSize ().width () : 1920;
-    widget->resize (screenWidth * 2 / 3, 800);
+    QRect  screenGeo       = screen ? screen->availableGeometry () : QRect (0, 0, 1920, 1080);
+    int    screenW          = screenGeo.width ();
+    int    screenH          = screenGeo.height ();
+    // 窗口宽度远超屏幕一半，不满足半屏贴靠条件
+    widget->resize (screenW * 2 / 3, screenH);
+    widget->move (screenGeo.x (), screenGeo.y ());
     widget->show ();
 
     url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
@@ -1305,7 +1313,7 @@ private slots:
     QVERIFY (result);
     QApplication::processEvents ();
 
-    // 当 widget 宽度超过屏幕一半时，应保持默认 100% 缩放
+    // 不满足半屏贴靠条件，应保持默认 100% 缩放
     QCOMPARE (widget->zoomFactor (), 1.0);
     delete widget;
   }
