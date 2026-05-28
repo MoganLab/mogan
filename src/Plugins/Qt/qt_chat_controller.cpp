@@ -356,6 +356,17 @@ ChatController::onRenameRequested (const string& sessionId,
   string displayTitle= getSessionDisplayTitle (sessionId);
   view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
   view_->sidebar ()->setActiveItem (sessionId);
+
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (s && s->panel) {
+    ChatConversationPanel* panel=
+        static_cast<ChatConversationPanel*> (s->panel);
+    if (panel->sessionTitle ()) {
+      panel->sessionTitle ()->setText (to_qstring (newTitle));
+      panel->sessionTitle ()->show ();
+    }
+  }
+
   updateManifest (sessionId);
 }
 
