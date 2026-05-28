@@ -821,7 +821,8 @@ edit_interface_rep::update_menus () {
   SERVER (menu_icons (3, "(horizontal (link texmacs-extra-icons))"));
   SERVER (menu_icons (4, "(horizontal (link texmacs-tab-pages))"));
   SERVER (notification_bar ("(horizontal (link texmacs-notification-bar))"));
-  if (is_startup_tab_buffer (buf->buf->name)) {
+  if (is_startup_tab_buffer (buf->buf->name) ||
+      is_chat_tab_buffer (buf->buf->name)) {
     last_update= last_change;
     bench_end ("update_menus");
     return;
