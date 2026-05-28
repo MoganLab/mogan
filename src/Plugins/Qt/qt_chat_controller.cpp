@@ -245,9 +245,9 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     ChatConversationPanel* panel=
         static_cast<ChatConversationPanel*> (s->panel);
 
+    call ("chat-tab-cancel", sid);
     call ("chat-persist-delete-one", sid);
     call ("chat-tab-session-destroy", sid);
-    view_->sidebar ()->removeItem (sid);
     sessionManager_.removeSession (sid);
 
     if (panel) view_->removePanel (panel);

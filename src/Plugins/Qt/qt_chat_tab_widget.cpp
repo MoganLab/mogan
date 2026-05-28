@@ -1221,7 +1221,7 @@ QTChatTabWidget::removePanel (ChatConversationPanel* panel) {
 
   if (sidebar_) sidebar_->removeItem (panel->sessionId ());
 
-  delete panel;
+  panel->deleteLater ();
 }
 
 /******************************************************************************
