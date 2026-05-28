@@ -341,14 +341,17 @@ mupdf_load_image (url u) {
     // try to load higher definition png equivalent if available
     url png_equiv= glue (unglue (u, 4), "_x4.png");
     if (exists (png_equiv)) {
+      fz_drop_buffer (ctx, buffer);
       return mupdf_load_image (png_equiv);
     }
     png_equiv= glue (unglue (u, 4), "_x2.png");
     if (exists (png_equiv)) {
+      fz_drop_buffer (ctx, buffer);
       return mupdf_load_image (png_equiv);
     }
     png_equiv= glue (unglue (u, 4), ".png");
     if (exists (png_equiv)) {
+      fz_drop_buffer (ctx, buffer);
       return mupdf_load_image (png_equiv);
     }
     // ok, try to load the xpm finally
