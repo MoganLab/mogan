@@ -1,0 +1,13 @@
+<TMU|<tuple|1.1.0|2026.5.28>>
+
+<style|<tuple|elsarticle>>
+
+<\body>
+  <author-misc-label|mylabel|This is a misc note.>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
