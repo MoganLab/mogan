@@ -404,13 +404,13 @@ hummus_pdf_image_size (url image, int& w, int& h) {
     double       tMat[6]= {1, 0, 0, 1, 0, 0};
     PDFRectangle cropBox (0, 0, 0, 0);
     pdf_image_info (image, w, h, cropBox, tMat, pageInput);
-    delete (parser);
   }
   else {
     convert_error << "pdf_hummus, failed to get image size for: "
                   << resolved_image << LF << "resolved from " << image << LF;
     w= h= 0;
   }
+  delete parser;
 }
 
 void
