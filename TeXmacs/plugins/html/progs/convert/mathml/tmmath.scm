@@ -13,9 +13,11 @@
 
 (texmacs-module (convert mathml tmmath)
   (:use (convert tools tmconcat)
-	(convert tools tmtable)
-	(convert mathml mathml-drd)
-	(convert rewrite tmtm-brackets)))
+    (convert tools tmtable)
+    (convert mathml mathml-drd)
+    (convert rewrite tmtm-brackets)
+  ) ;:use
+) ;texmacs-module
 
 (define tmmath-env (make-ahash-table))
 
@@ -24,295 +26,416 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmmath-concat-explode x)
-  (if (string? x)
-      (tmconcat-tokenize-math x)
-      (list x)))
+  (if (string? x) (tmconcat-tokenize-math x) (list x))
+) ;define
 
 (define (tmmath-concat l)
   (let* ((l2 (apply append (map tmmath-concat-explode l)))
-	 (l3 (tmconcat-structure-brackets l2)))
-    (tmmath (cons 'concat! l3))))
+         (l3 (tmconcat-structure-brackets l2))
+        ) ;
+    (tmmath (cons 'concat! l3))
+  ) ;let*
+) ;define
 
 (define (cork->utf8* x)
-  (with y (cork->utf8 x)
-    (if (and (== x y) (== (string-ref y 0) #\<)) "?" y)))
+  (with y (cork->utf8 x) (if (and (== x y) (== (string-ref y 0) #\<)) "?" y))
+) ;define
 
 (define (tmmath-concat-item x)
   (if (string? x)
-      (with type (math-symbol-type x)
-	(cond ((string-number? x) `(m:mn ,x))
-	      ((logic-ref tm->mathml-constant% x) => (lambda (y) `(m:mn ,y)))
-	      ((logic-ref tm->mathml-operator% x) => (lambda (y) `(m:mo ,y)))
-              ((and (string-starts? x "<up-") (== (string-length x) 6))
-               `(m:mo ,(substring x 4 5)))
-	      ((in? type '("unknown" "symbol")) `(m:mi ,(cork->utf8* x)))
-	      (else `(m:mo ,(cork->utf8* x)))))
-      (tmmath x)))
+    (with type
+      (math-symbol-type x)
+      (cond ((string-number? x) `(m:mn ,x))
+            ((logic-ref tm->mathml-constant% x) => (lambda (y) `(m:mn ,y)))
+            ((logic-ref tm->mathml-operator% x) => (lambda (y) `(m:mo ,y)))
+            ((and (string-starts? x "<up-") (== (string-length x) 6))
+             `(m:mo ,(substring x 4 5))
+            ) ;
+            ((in? type '("unknown" "symbol")) `(m:mi ,(cork->utf8* x)))
+            (else `(m:mo ,(cork->utf8* x)))
+      ) ;cond
+    ) ;with
+    (tmmath x)
+  ) ;if
+) ;define
 
 (define (tmmath-concat! l)
-  (with r (map tmmath-concat-item (tmconcat-structure-scripts l))
+  (with r
+    (map tmmath-concat-item (tmconcat-structure-scripts l))
     (set! r (list-filter r (lambda (x) (!= x ""))))
     (cond ((null? r) '(m:mrow))
-	  ((null? (cdr r)) (car r))
-	  (else `(m:mrow ,@r)))))
+          ((null? (cdr r)) (car r))
+          (else `(m:mrow ,@r))
+    ) ;cond
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Mathematics
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmmath-rigid l)
-  `(m:mrow ,(tmmath (car l))))
+  `(m:mrow ,(tmmath (car l)))
+) ;define
 
 (define (convert-around x)
-  (with d (downgrade-brackets x)
-    (tmmath-concat (if (pair? d) (cdr d) (list d)))))
+  (with d (downgrade-brackets x) (tmmath-concat (if (pair? d) (cdr d) (list d))))
+) ;define
 
 (define (tmmath-around l)
-  (convert-around (cons 'around l)))
+  (convert-around (cons 'around l))
+) ;define
 
 (define (tmmath-around* l)
-  (convert-around (cons 'around* l)))
+  (convert-around (cons 'around* l))
+) ;define
 
 (define (tmmath-big-around l)
-  (convert-around (cons 'big-around l)))
+  (convert-around (cons 'big-around l))
+) ;define
 
 (define (tmmath-large x)
-  (with y (logic-ref tm->mathml-large% x)
-    (if y y (cork->utf8 x))))
+  (with y (logic-ref tm->mathml-large% x) (if y y (cork->utf8 x)))
+) ;define
 
-(define (tmmath-left l) `(m:mo (@ (form "prefix")) ,(tmmath-large (car l))))
-(define (tmmath-mid l) `(m:mo ,(tmmath-large (car l))))
-(define (tmmath-right l) `(m:mo (@ (form "postfix")) ,(tmmath-large (car l))))
+(define (tmmath-left l)
+  `(m:mo (@ (form "prefix")) ,(tmmath-large (car l)))
+) ;define
+
+(define (tmmath-mid l)
+  `(m:mo ,(tmmath-large (car l)))
+) ;define
+
+(define (tmmath-right l)
+  `(m:mo (@ (form "postfix")) ,(tmmath-large (car l)))
+) ;define
 
 (define (tmmath-big l)
   (cond ((== (car l) ".") "")
-	((logic-ref tm->mathml-big% (car l)) => (lambda (y) `(m:mo ,y)))
-	(else `(m:mo ,(car l)))))
+        ((logic-ref tm->mathml-big% (car l)) => (lambda (y) `(m:mo ,y)))
+        (else `(m:mo ,(car l)))
+  ) ;cond
+) ;define
 
-(define (tmmath-lsub l) (tmmath-concat `((lsub ,(car l)))))
-(define (tmmath-lsup l) (tmmath-concat `((lsup ,(car l)))))
-(define (tmmath-rsub l) (tmmath-concat `((rsub ,(car l)))))
-(define (tmmath-rsup l) (tmmath-concat `((rsup ,(car l)))))
+(define (tmmath-lsub l)
+  (tmmath-concat `((lsub ,(car l))))
+) ;define
+
+(define (tmmath-lsup l)
+  (tmmath-concat `((lsup ,(car l))))
+) ;define
+
+(define (tmmath-rsub l)
+  (tmmath-concat `((rsub ,(car l))))
+) ;define
+
+(define (tmmath-rsup l)
+  (tmmath-concat `((rsup ,(car l))))
+) ;define
 
 (define (tmmath-lscript base sub sup)
   (if (and (pair? base) (in? (car base) '(m:msub m:msup m:msubsup)))
-      (let ((nbase (cadr base))
-	    (rsub '(m:none))
-	    (rsup '(m:none)))
-	(if (func? base 'm:msub) (set! rsub (caddr base)))
-	(if (func? base 'm:msup) (set! rsup (caddr base)))
-	(if (func? base 'm:msubsup) (set! rsub (caddr base)))
-	(if (func? base 'm:msubsup) (set! rsup (cadddr base)))
-	`(m:mmultiscripts ,nbase ,rsub ,rsup (m:mprescripts) ,sub ,sup))
-      `(m:mmultiscripts ,base (m:mprescripts) ,sub ,sup)))
+    (let ((nbase (cadr base)) (rsub '(m:none)) (rsup '(m:none)))
+      (if (func? base 'm:msub) (set! rsub (caddr base)))
+      (if (func? base 'm:msup) (set! rsup (caddr base)))
+      (if (func? base 'm:msubsup) (set! rsub (caddr base)))
+      (if (func? base 'm:msubsup) (set! rsup (cadddr base)))
+      `(m:mmultiscripts ,nbase ,rsub ,rsup (m:mprescripts) ,sub ,sup)
+    ) ;let
+    `(m:mmultiscripts ,base (m:mprescripts) ,sub ,sup)
+  ) ;if
+) ;define
 
 (define (tmmath-lsub! l)
-  (tmmath-lscript (tmmath (car l)) (tmmath (cadr l)) '(m:none)))
+  (tmmath-lscript (tmmath (car l)) (tmmath (cadr l)) '(m:none))
+) ;define
 
 (define (tmmath-lsup! l)
-  (tmmath-lscript (tmmath (car l)) '(m:none) (tmmath (cadr l))))
+  (tmmath-lscript (tmmath (car l)) '(m:none) (tmmath (cadr l)))
+) ;define
 
 (define (tmmath-lsubsup! l)
-  (tmmath-lscript (tmmath (car l)) (tmmath (cadr l)) (tmmath (caddr l))))
+  (tmmath-lscript (tmmath (car l)) (tmmath (cadr l)) (tmmath (caddr l)))
+) ;define
 
 (define (tmmath-with-limits? x)
-  (and (func? x 'big)
-       (== (ahash-ref tmmath-env "math-display") "true")))
+  (and (func? x 'big) (== (ahash-ref tmmath-env "math-display") "true"))
+) ;define
 
 (define (tmmath-rsub! l)
-  (with op (if (tmmath-with-limits? (car l)) 'm:munder 'm:msub)
-    (list op (tmmath (car l)) (tmmath (cadr l)))))
+  (with op
+    (if (tmmath-with-limits? (car l)) 'm:munder 'm:msub)
+    (list op (tmmath (car l)) (tmmath (cadr l)))
+  ) ;with
+) ;define
 
 (define (tmmath-rsup! l)
-  (with op (if (tmmath-with-limits? (car l)) 'm:mover 'm:msup)
-    (list op (tmmath (car l)) (tmmath (cadr l)))))
+  (with op
+    (if (tmmath-with-limits? (car l)) 'm:mover 'm:msup)
+    (list op (tmmath (car l)) (tmmath (cadr l)))
+  ) ;with
+) ;define
 
 (define (tmmath-rsubsup! l)
-  (with op (if (tmmath-with-limits? (car l)) 'm:munderover 'm:msubsup)
-    (list op (tmmath (car l)) (tmmath (cadr l)) (tmmath (caddr l)))))
+  (with op
+    (if (tmmath-with-limits? (car l)) 'm:munderover 'm:msubsup)
+    (list op (tmmath (car l)) (tmmath (cadr l)) (tmmath (caddr l)))
+  ) ;with
+) ;define
 
 (define (tmmath-frac l)
-  `(m:mfrac ,(tmmath (car l)) ,(tmmath (cadr l))))
+  `(m:mfrac ,(tmmath (car l)) ,(tmmath (cadr l)))
+) ;define
 
 (define (tmmath-sqrt l)
   (if (null? (cdr l))
-      `(m:msqrt ,(tmmath (car l)))
-      `(m:mroot ,(tmmath (car l)) ,(tmmath (cadr l)))))
+    `(m:msqrt ,(tmmath (car l)))
+    `(m:mroot ,(tmmath (car l)) ,(tmmath (cadr l)))
+  ) ;if
+) ;define
 
 (define (tmmath-wide l)
-  (with acc (or (logic-ref tm->mathml-wide% (cadr l)) "")
-    `(m:mover ,(tmmath (car l)) (m:mo ,acc))))
+  (with acc
+    (or (logic-ref tm->mathml-wide% (cadr l)) "")
+    `(m:mover ,(tmmath (car l)) (m:mo ,acc))
+  ) ;with
+) ;define
 
 (define (tmmath-wide* l)
-  (with acc (or (logic-ref tm->mathml-wide% (cadr l)) "")
-    `(m:munder ,(tmmath (car l)) (m:mo ,acc))))
+  (with acc
+    (or (logic-ref tm->mathml-wide% (cadr l)) "")
+    `(m:munder ,(tmmath (car l)) (m:mo ,acc))
+  ) ;with
+) ;define
 
 (define (tmmath-long-arrow l)
   (let* ((a (car l))
          (above (if (>= (length l) 2) (cadr l) ""))
-         (below (if (>= (length l) 3) (caddr l) "")))
+         (below (if (>= (length l) 3) (caddr l) ""))
+        ) ;
     (when (and (string? a) (string-starts? a "<rubber-"))
-      (set! a (string-append "<" (substring a 8 (string-length a)))))
+      (set! a (string-append "<" (substring a 8 (string-length a))))
+    ) ;when
     (let* ((mo (tmmath a))
-           (mo* (if (func? mo 'm:mo)
-                    `(m:mo (@ (stretchy "true")) ,@(cdr mo))
-                    mo)))
-      (cond ((and (!= above "") (== below ""))
-             `(m:mover ,mo* ,(tmmath above)))
-            ((and (== above "") (!= below ""))
-             `(m:munder ,mo* ,(tmmath below)))
-            (else
-              `(m:munderover ,mo* ,(tmmath below) ,(tmmath above)))))))
+           (mo* (if (func? mo 'm:mo) `(m:mo (@ (stretchy "true")) ,@(cdr mo)) mo))
+          ) ;
+      (cond ((and (!= above "") (== below "")) `(m:mover ,mo* ,(tmmath above)))
+            ((and (== above "") (!= below "")) `(m:munder ,mo* ,(tmmath below)))
+            (else `(m:munderover ,mo* ,(tmmath below) ,(tmmath above)))
+      ) ;cond
+    ) ;let*
+  ) ;let*
+) ;define
 
 (define (tmmath-above l)
-  `(m:mover ,(tmmath (car l)) ,(tmmath (cadr l))))
+  `(m:mover ,(tmmath (car l)) ,(tmmath (cadr l)))
+) ;define
 
 (define (tmmath-below l)
-  `(m:munder ,(tmmath (car l)) ,(tmmath (cadr l))))
+  `(m:munder ,(tmmath (car l)) ,(tmmath (cadr l)))
+) ;define
 
 (define (tmmath-neg l)
-  `(m:menclose (@ (notation "updiagonalstrike")) ,(tmmath (car l))))
+  `(m:menclose (@ (notation "updiagonalstrike")) ,(tmmath (car l)))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmmath-make-attrs fun l)
-  (with attrs (list-filter (map fun l) identity)
-    (if (null? attrs) '() `((@ ,@attrs)))))
+  (with attrs
+    (list-filter (map fun l) identity)
+    (if (null? attrs) '() `((@ ,@attrs)))
+  ) ;with
+) ;define
 
 (define (tmmath-make-cell-attr x)
   (cond ((== x '("cell-halign" "l")) '(columnalign "left"))
-	((== x '("cell-halign" "c")) '(columnalign "center"))
-	((== x '("cell-halign" "r")) '(columnalign "right"))
-	((== x '("cell-valign" "t")) '(rowalign "top"))
-	((== x '("cell-valign" "c")) '(rowalign "center"))
-	((== x '("cell-valign" "b")) '(rowalign "bottom"))
-	((== x '("cell-valign" "B")) '(rowalign "baseline"))
-	((== x '("cell-valign" "f")) '(rowalign "axis"))
-	(else #f)))
+        ((== x '("cell-halign" "c")) '(columnalign "center"))
+        ((== x '("cell-halign" "r")) '(columnalign "right"))
+        ((== x '("cell-valign" "t")) '(rowalign "top"))
+        ((== x '("cell-valign" "c")) '(rowalign "center"))
+        ((== x '("cell-valign" "b")) '(rowalign "bottom"))
+        ((== x '("cell-valign" "B")) '(rowalign "baseline"))
+        ((== x '("cell-valign" "f")) '(rowalign "axis"))
+        (else #f)
+  ) ;cond
+) ;define
 
 (define (tmmath-make-cell c cellf)
-  `(m:mtd ,@(tmmath-make-attrs tmmath-make-cell-attr cellf)
-	  ,(tmmath (cadr c))))
+  `(m:mtd ,@(tmmath-make-attrs tmmath-make-cell-attr cellf) ,(tmmath (cadr c)))
+) ;define
 
 (define (tmmath-make-cells l cellf)
-  (if (null? l) l
-      (cons (tmmath-make-cell (car l) (car cellf))
-	    (tmmath-make-cells (cdr l) (cdr cellf)))))
+  (if (null? l)
+    l
+    (cons (tmmath-make-cell (car l) (car cellf))
+      (tmmath-make-cells (cdr l) (cdr cellf))
+    ) ;cons
+  ) ;if
+) ;define
 
 (define (tmmath-make-row-attr x)
-  (tmmath-make-cell-attr x))
+  (tmmath-make-cell-attr x)
+) ;define
 
 (define (tmmath-make-row r rowf cellf)
   `(m:mtr ,@(tmmath-make-attrs tmmath-make-row-attr rowf)
-	  ,@(tmmath-make-cells (cdr r) cellf)))
+     ,@(tmmath-make-cells (cdr r) cellf))
+) ;define
 
 (define (tmmath-make-rows l rowf cellf)
-  (if (null? l) l
-      (cons (tmmath-make-row  (car l) (car rowf) (car cellf))
-	    (tmmath-make-rows (cdr l) (cdr rowf) (cdr cellf)))))
+  (if (null? l)
+    l
+    (cons (tmmath-make-row (car l) (car rowf) (car cellf))
+      (tmmath-make-rows (cdr l) (cdr rowf) (cdr cellf))
+    ) ;cons
+  ) ;if
+) ;define
 
 (define (tmmath-make-column-attr l)
   (cond ((null? l) "left")
-	((== (car l) '("cell-halign" "l")) "left")
-	((== (car l) '("cell-halign" "c")) "center")
-	((== (car l) '("cell-halign" "r")) "right")
-	(else (tmmath-make-column-attr (cdr l)))))
+        ((== (car l) '("cell-halign" "l")) "left")
+        ((== (car l) '("cell-halign" "c")) "center")
+        ((== (car l) '("cell-halign" "r")) "right")
+        (else (tmmath-make-column-attr (cdr l)))
+  ) ;cond
+) ;define
 
 (define (tmmath-make-table-attr x)
   (cond ((== x '("table-valign" "t")) '(align "top"))
-	((== x '("table-valign" "c")) '(align "center"))
-	((== x '("table-valign" "b")) '(align "bottom"))
-	((== x '("table-valign" "B")) '(align "baseline"))
-	((== x '("table-valign" "f")) '(align "axis"))
-	(else (tmmath-make-cell-attr x))))
+        ((== x '("table-valign" "c")) '(align "center"))
+        ((== x '("table-valign" "b")) '(align "bottom"))
+        ((== x '("table-valign" "B")) '(align "baseline"))
+        ((== x '("table-valign" "f")) '(align "axis"))
+        (else (tmmath-make-cell-attr x))
+  ) ;cond
+) ;define
 
 (define (tmmath-make-table t tablef colf rowf cellf)
   (let* ((l1 (list-filter (map tmmath-make-table-attr tablef) identity))
-	 (l2 (map tmmath-make-column-attr (map reverse colf)))
-	 (cs (apply string-append (list-intersperse l2 " ")))
-	 (l3 (cons `(columnalign ,cs) l1)))
-    `(m:mtable (@ ,@l3) ,@(tmmath-make-rows (cdr t) rowf cellf))))
+         (l2 (map tmmath-make-column-attr (map reverse colf)))
+         (cs (apply string-append (list-intersperse l2 " ")))
+         (l3 (cons `(columnalign ,cs) l1))
+        ) ;
+    `(m:mtable (@ ,@l3) ,@(tmmath-make-rows (cdr t) rowf cellf))
+  ) ;let*
+) ;define
 
 (define (tmmath-table l)
-  (list (tmmath-make-table (cons 'table l) '() '() '() '())))
+  (list (tmmath-make-table (cons 'table l) '() '() '() '()))
+) ;define
 
 (define (tmmath-tformat l)
-  (with t (tmtable-normalize (cons 'tformat l))
-    (receive (tablef colf rowf cellf) (tmtable-properties** t)
-      (tmmath-make-table (cAr t) tablef colf rowf cellf))))
+  (with t
+    (tmtable-normalize (cons 'tformat l))
+    (receive (tablef colf rowf cellf)
+      (tmtable-properties** t)
+      (tmmath-make-table (cAr t) tablef colf rowf cellf)
+    ) ;receive
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Other constructs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (tmmath-noop l) "")
+(define (tmmath-noop l)
+  ""
+) ;define
 
 (define (tmmath-first l)
-  (tmmath (car l)))
+  (tmmath (car l))
+) ;define
 
 (define (tmmath-last l)
-  (tmmath (cAr l)))
+  (tmmath (cAr l))
+) ;define
 
 (define (tmmath-surround l)
-  (tmmath-concat (list (car l) (caddr l) (cadr l))))
+  (tmmath-concat (list (car l) (caddr l) (cadr l)))
+) ;define
 
 (define (tmmath-attr x)
-  (with (var val) x
+  (with (var val)
+    x
     (cond ((== var "color") (list 'mathcolor val))
-	  ((== x '("math-font-series" "medium")) (list 'mathvariant "normal"))
-	  ((== x '("math-font-series" "bold")) (list 'mathvariant "bold"))
-	  ((== x '("math-font-series" "bold")) (list 'mathvariant "bold"))
-	  ((== var "math-level") (list 'scriptlevel val))
-	  ((== var "math-display") (list 'displaystyle val))
-	  (else #f))))
+          ((== x '("math-font-series" "medium")) (list 'mathvariant "normal"))
+          ((== x '("math-font-series" "bold")) (list 'mathvariant "bold"))
+          ((== x '("math-font-series" "bold")) (list 'mathvariant "bold"))
+          ((== var "math-level") (list 'scriptlevel val))
+          ((== var "math-display") (list 'displaystyle val))
+          (else #f)
+    ) ;cond
+  ) ;with
+) ;define
 
 (define (list-two-by-two l)
-  (if (null? l) l
-      (cons (list (car l) (cadr l)) (list-two-by-two (cddr l)))))
+  (if (null? l) l (cons (list (car l) (cadr l)) (list-two-by-two (cddr l))))
+) ;define
 
 (define (tmmath-with-sub attrs body)
-  (if (null? attrs) (tmmath body)
-      (with (var val) (car attrs)
-	(ahash-with tmmath-env var val
-	  (tmmath-with-sub (cdr attrs) body)))))
+  (if (null? attrs)
+    (tmmath body)
+    (with (var val)
+      (car attrs)
+      (ahash-with tmmath-env var val (tmmath-with-sub (cdr attrs) body))
+    ) ;with
+  ) ;if
+) ;define
 
 (define (tmmath-with l)
   (let* ((attrs-1 (list-two-by-two (cDr l)))
-	 (attrs-2 (map tmmath-attr attrs-1))
-	 (attrs-3 (list-filter attrs-2 identity))
-	 (body (tmmath-with-sub attrs-1 (cAr l))))
-    (if (null? attrs-3) body
-	`(m:mstyle (@ ,@attrs-3) ,body))))
+         (attrs-2 (map tmmath-attr attrs-1))
+         (attrs-3 (list-filter attrs-2 identity))
+         (body (tmmath-with-sub attrs-1 (cAr l)))
+        ) ;
+    (if (null? attrs-3) body `(m:mstyle (@ ,@attrs-3) ,body))
+  ) ;let*
+) ;define
 
 (define (tmmath-text x)
-  ;; we protect via non-breaking spaces the initial and final whitespaces 
+  ;; we protect via non-breaking spaces the initial and final whitespaces
   ;; which are otherwise stripped by the MathML processor from <mtext> tags
   ;; see https://www.xmlmind.com/tutorials/MathML/
-  (let* ((s (texmacs->code x  "utf-8"))
-         (s (if (string-starts? s " ") 
-            (string-append "&#xA0; " (substring s 1 (string-length s))) s))
-         (s (if (string-ends? s " ") 
-            (string-append (substring s 0 (- (string-length s) 1)) " &#xA0;") s)))
-    `(m:mtext ,s)))
-       
+  (let* ((s (texmacs->code x "utf-8"))
+         (s (if (string-starts? s " ")
+              (string-append "&#xA0; " (substring s 1 (string-length s)))
+              s
+            ) ;if
+         ) ;s
+         (s (if (string-ends? s " ")
+              (string-append (substring s 0 (- (string-length s) 1)) " &#xA0;")
+              s
+            ) ;if
+         ) ;s
+        ) ;
+    `(m:mtext ,s)
+  ) ;let*
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main conversion routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmmath-dispatch htable l)
   (let ((x (logic-ref ,htable (car l))))
-    (and (procedure? x)
-	 (x (cdr l)))))
+    (and (procedure? x) (x (cdr l)))
+  ) ;let
+) ;define
 
 (define (tmmath x)
   (if (!= (ahash-ref tmmath-env "mode") "math")
-      (cond ((string? x) (tmmath-text x))
-            ((== (car x) 'with) (tmmath-with (cdr x)))
-            (else `(m:mrow ,@(map tmmath (cdr x)))))
-      (cond ((string? x) (tmmath-concat (list x)))
-            (else (or (tmmath-dispatch 'tmmath-primitives% x) "")))))
+    (cond ((string? x) (tmmath-text x))
+          ((== (car x) 'with) (tmmath-with (cdr x)))
+          (else `(m:mrow ,@(map tmmath (cdr x))))
+    ) ;cond
+    (cond ((string? x) (tmmath-concat (list x)))
+          (else (or (tmmath-dispatch 'tmmath-primitives% x) ""))
+    ) ;cond
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dispatching
@@ -369,7 +492,8 @@
   (surround tmmath-surround)
   (move tmmath-first)
   (resize tmmath-first)
-  (with tmmath-with))
+  (with tmmath-with)
+) ;logic-dispatcher
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
@@ -377,10 +501,6 @@
 
 (tm-define (texmacs->mathml x . opt-env)
   (if (nnull? opt-env) (set! tmmath-env (car opt-env)))
-  (ahash-with tmmath-env "mode" "math"
-    (tmmath x)))
+  (ahash-with tmmath-env "mode" "math" (tmmath x))
+) ;tm-define
 
-;(display-err* "x= " x "\n")
-;(with y (tmmath x)
-;(display-err* "y= " y "\n")
-;y)))

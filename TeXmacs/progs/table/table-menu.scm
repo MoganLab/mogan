@@ -745,16 +745,13 @@
     (=> (balloon (icon "tm_cell_border.xpm") "Change border of cell")
       (mini #f
         (group "Border")
+        (-> (balloon "Pen width" "Set border pen width")
+          (link cell-compact-pen-width-menu)
+        ) ;->
+        (-> (balloon "Border color" "Set border color") (link cell-border-color-menu))
         (link cell-alt-border-menu)
         ---
-        (group "Pen width")
-        (link cell-compact-pen-width-menu)
-        ---
-        (group "Border color")
-        (link cell-border-color-menu)
-        ---
-        (group "Padding")
-        (link cell-padding-menu)
+        (-> (balloon "Padding" "Set cell padding") (link cell-padding-menu))
       ) ;mini
     ) ;=>
     (=> (balloon (icon (eval (cell-halign-icon))) "Modify cell alignment")
