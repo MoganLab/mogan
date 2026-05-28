@@ -1355,6 +1355,11 @@ QWidget#chat-tab-input-frame[hasFocus="true"] {
   border: 1px solid #808080;
 }
 
+/* 思考按钮 */
+QToolButton#chat-tab-thinking-btn {
+  color: #215a6a;
+}
+
 /* 发送按钮 */
 QPushButton#chat-tab-send-btn {
   background-color: transparent;

@@ -603,6 +603,7 @@
 ("decimal comma" "小数逗号")
 ("decimal dot" "小数点")
 ("decorate atoms" "")
+("Deep Reasoning" "深度思考")
 ("default padding" "默认填充")
 ("default" "默认")
 ("default style for writing books" "书籍默认样式")
