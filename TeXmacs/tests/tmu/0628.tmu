@@ -1,9 +1,9 @@
-<TMU|<tuple|1.1.0|2026.5.28>>
+<TMU|<tuple|1.1.0|2026.2.5>>
 
 <style|<tuple|generic|number-europe|preview-ref>>
 
 <\body>
-  This is a <frame|text with <math|x^2>> frame test.
+  This is a <frame|text with <math|x<rsup|2>>> frame test.
 </body>
 
 <\initial>
