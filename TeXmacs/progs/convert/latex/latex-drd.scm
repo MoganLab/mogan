@@ -123,6 +123,7 @@
   (euro "eurosym")
 
   (mdfsetup ("tikz" "mdframed"))
+  (newmdenv ("tikz" "mdframed"))
   (tikz "tikz")
 
   (omicron "pslatex")
