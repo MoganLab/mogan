@@ -301,8 +301,9 @@
    (link indentation-menu)
   ) ;->
   (-> "Spacing"
+   ("Single line spacing" (make-line-with "par-sep" "0fn"))
    ("1.5 line spacing" (make-line-with "par-sep" "0.5fn"))
-   ("Double line spacing" (make-line-with "par-sep" "1.0fn"))
+   ("2 line spacing" (make-line-with "par-sep" "1.0fn"))
    ---
    ("Interline separation" (make-interactive-line-with "par-sep"))
    ("Interline space" (make-interactive-line-with "par-line-sep"))
