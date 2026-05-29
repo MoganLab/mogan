@@ -17,9 +17,11 @@
 #include "scheme.hpp"
 
 #include <QApplication>
+#include <QDir>
 #include <QFileDialog>
 #include <QLabel>
 #include <QPushButton>
+#include <QStandardPaths>
 #include <QTimer>
 #include <QToolButton>
 
@@ -333,10 +335,19 @@ ChatController::onExportRequested (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
 
+  QString docsDir=
+      QStandardPaths::writableLocation (QStandardPaths::DocumentsLocation);
+  if (docsDir.isEmpty ()) {
+    docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
+  }
+  docsDir= QDir (docsDir).filePath ("LiiiSTEM");
+  if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
+
   QString defaultName= is_empty (s->title) ? QString ("export.tmu")
                                            : to_qstring (s->title) + ".tmu";
+  QString defaultPath= QDir (docsDir).filePath (defaultName);
   QString targetPath = QFileDialog::getSaveFileName (
-      nullptr, qt_translate ("Export Conversation"), defaultName,
+      nullptr, qt_translate ("Export Conversation"), defaultPath,
       qt_translate ("TMU Files (*.tmu)"));
   if (targetPath.isEmpty ()) return;
 

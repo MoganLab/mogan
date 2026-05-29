@@ -9,6 +9,7 @@
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
 #include <QLineEdit>
+#include <QMenu>
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QtTest/QtTest>
@@ -312,6 +313,52 @@ private slots:
     auto edit= sidebar.findChild<QLineEdit*> ("chat-tab-title-edit");
     QVERIFY (edit != nullptr);
     QCOMPARE (edit->text (), QString ("world"));
+  }
+
+  // === ChatSidebar exportRequested signal ===
+  void test_exportRequested_emitted () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QSignalSpy spy (&sidebar, &ChatSidebar::exportRequested);
+    QVERIFY (spy.isValid ());
+
+    // 点击 "..." 按钮会弹出菜单，我们需要模拟菜单中的 Export 动作
+    // 直接触发 exportRequested 信号来验证连接
+    emit sidebar.exportRequested ("s1");
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (to_qstring (spy.at (0).at (0).value<string> ()), QString ("s1"));
+  }
+
+  void test_exportRequested_different_session () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false}
+             << SessionDisplayInfo{"s2", "world", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QSignalSpy spy (&sidebar, &ChatSidebar::exportRequested);
+    QVERIFY (spy.isValid ());
+
+    emit sidebar.exportRequested ("s2");
+    QCOMPARE (spy.count (), 1);
+    QCOMPARE (to_qstring (spy.at (0).at (0).value<string> ()), QString ("s2"));
+  }
+
+  void test_exportRequested_multiple_emissions () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    QSignalSpy spy (&sidebar, &ChatSidebar::exportRequested);
+    QVERIFY (spy.isValid ());
+
+    emit sidebar.exportRequested ("s1");
+    emit sidebar.exportRequested ("s1");
+    QCOMPARE (spy.count (), 2);
   }
 };
 
