@@ -50,8 +50,6 @@
 
   <assign|BibTeX|<macro|<active*|<with|font-shape|small-caps|Bib>T<rsub|<space|-0.4spc><move|<resize|<with|math-level|0|E>||||0.5fn>|0fn|-0.1fn>><space|-0.4spc>X>>>
 
-  <assign|multirow|<macro|num|width|body|<arg|body>>>
-
   <assign|old-hrule|<macro|<no-indent><tabular|<tformat|<cwith|1|-1|1|-1|cell-tborder|1ln>|<twith|table-width|1par>|<cwith|1|-1|1|-1|cell-vmode|exact>|<cwith|1|-1|1|-1|cell-height|1ln>|<cwith|1|-1|1|-1|cell-lsep|0fn>|<cwith|1|-1|1|-1|cell-rsep|0fn>|<cwith|1|-1|1|-1|cell-bsep|0fn>|<cwith|1|-1|1|-1|cell-tsep|0fn>|<cwith|1|-1|1|-1|cell-vcorrect|n>|<table|<row|<cell|<space|1fn|0ln|1ln>>>>>>>>
 
   <assign|pre-edit|<macro|body|<with|ornament-color|#ffffc0|ornament-sunny-color|#fff0e0|ornament-shadow-color|#ffc080|ornament-border|1px|ornament-hpadding|2px|ornament-vpadding|2px|<smash|<ornament|<with|color|#4040c0|<arg|body>>>>>>>

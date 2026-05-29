@@ -45,8 +45,6 @@
     <with|text-color|<value|color>|<with|color|<arg|border>|<colored-frame|<arg|background>|<with|color|<value|text-color>|<arg|body>>>>>
   </macro>>
 
-  <assign|multirow|<macro|num|width|body|<arg|body>>>
-
   <\active*>
     <\src-comment>
       Footnotes.
