@@ -43,10 +43,10 @@
 #include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
+#include <QTimer>
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
-#include <QTimer>
 
 using namespace moebius;
 
@@ -454,8 +454,7 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   if (event->type () == QEvent::KeyRelease ||
-      event->type () == QEvent::InputMethod ||
-      event->type () == QEvent::Drop) {
+      event->type () == QEvent::InputMethod || event->type () == QEvent::Drop) {
     if (watched->property ("chat_panel").value<void*> () == this)
       schedule_input_height_adjust ();
   }
@@ -489,8 +488,8 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  int lineH   = DpiUtils::scaled (kInputLineHeight);
-  int docLines= count_input_lines (readInputMessage ());
+  int lineH      = DpiUtils::scaled (kInputLineHeight);
+  int docLines   = count_input_lines (readInputMessage ());
   int visualLines= count_visual_input_lines (inputQTMWidget_, lineH);
 
 #ifdef LIII_DEBUG
