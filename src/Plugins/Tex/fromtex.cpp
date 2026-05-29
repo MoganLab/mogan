@@ -782,9 +782,9 @@ latex_symbol_to_tree (string s) {
       if (s == "hfill") return tree (HTAB, "0pt");
       if (s == "hfilll") return tree (HTAB, "0pt");
       if (s == "hline") return tree (APPLY, "hline");
-      if (s == "toprule") return tree (APPLY, "toprule");
-      if (s == "midrule") return tree (APPLY, "midrule");
-      if (s == "bottomrule") return tree (APPLY, "bottomrule");
+      if (s == "toprule") return tree (APPLY, "hline");
+      if (s == "midrule") return tree (APPLY, "hline");
+      if (s == "bottomrule") return tree (APPLY, "hline");
       if (s == "hrulefill") return tree (APPLY, "hrule");
       if (s == "hdashline") return "";
       if (s == "appendix") {
