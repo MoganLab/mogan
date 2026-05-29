@@ -14,7 +14,6 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
-#include "tree_helper.hpp"
 #include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
@@ -24,6 +23,7 @@
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
 #include "tm_window.hpp"
+#include "tree_helper.hpp"
 
 #include <moebius/tree_label.hpp>
 
@@ -399,8 +399,7 @@ ChatConversationPanel::count_input_lines (tree body) {
   for (int i= 0; i < N (body); i++) {
     if (is_compound (body[i]) && !is_func (body[i], DOCUMENT))
       lines+= count_compound_lines (body[i]);
-    else
-      lines++;
+    else lines++;
   }
   return lines;
 }
