@@ -480,7 +480,7 @@ ChatConversationPanel::adjust_input_height () {
   if (!editor) return;
 
   // Restore default size before reading extents to avoid feedback loop
-  int defaultH= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+  int  defaultH   = DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
   bool needsResize= (frame->height () != defaultH + fixedFrameExtra_);
   if (needsResize) {
     frame->setUpdatesEnabled (false);
