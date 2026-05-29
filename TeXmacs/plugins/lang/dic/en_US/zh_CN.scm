@@ -2430,6 +2430,8 @@
 ("Buy it! Convenient and fast OCR features!" "快来买！方便又快捷的OCR功能！")
 ("Upgrade" "升级会员")
 ("Upgrade to continue using OCR." "升级会员后可继续使用 OCR 识别。")
+("Daily AI chat limit reached" "今日 AI 聊天次数已达上限")
+("Upgrade to continue using AI chat." "升级会员后可继续使用 AI 聊天。")
 ("Copy the image and press Ctrl+Shift+v to paste the OCR recognition result" "复制图片，按 Ctrl+Shift+V 粘贴OCR识别结果")
 ("Copy the image and press Command+Shift+v to paste the OCR recognition result" "复制图片，按 Command+Shift+v 粘贴OCR识别结果")
 ("An error occurred..." "出错了...")
