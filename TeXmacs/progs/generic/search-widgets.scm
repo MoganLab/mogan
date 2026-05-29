@@ -1156,6 +1156,11 @@
     (qt-floating-search-set-callbacks
       "(chat-tab-search-next #t)" "(chat-tab-search-next #f)" "(chat-tab-search-close)")
     (qt-floating-search-init (url->string aux))
+    ;; 同步暗色样式到搜索缓冲区
+    (when (== (get-preference "gui theme") "liii-night")
+      (with-buffer aux
+        (when (not (has-style-package? "dark"))
+          (add-style-package "dark"))))
     (qt-floating-search "true")))
 
 (define (chat-tab-perform-search)
