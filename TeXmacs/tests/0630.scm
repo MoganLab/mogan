@@ -15,17 +15,29 @@
 (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
 (define (export-as-latex-and-load path)
-  (with path (string-append "$TEXMACS_PATH/tests/tmu/" path)
-    (with tmpfile (url-temp)
+  (with path
+    (string-append "$TEXMACS_PATH/tests/tmu/" path)
+    (with tmpfile
+      (url-temp)
       (load-buffer path)
       (buffer-export path tmpfile "latex")
-      (string-load tmpfile))))
-  
+      (string-load tmpfile)
+    ) ;with
+  ) ;with
+) ;define
+
 (define (load-latex path)
-  (with path (string-append "$TEXMACS_PATH/tests/tex/" path)
-    (string-replace (string-load path)  "\r\n" "\n")))
+  (with path
+    (string-append "$TEXMACS_PATH/tests/tex/" path)
+    (string-replace (string-load path) "\r\n" "\n")
+  ) ;with
+) ;define
 
 
 (define (test_0630)
-  (check (export-as-latex-and-load "0630.tmu") => (load-latex "0630_booktabs_dependency_export.tex"))
-  (check-report))
+  (check (export-as-latex-and-load "0630.tmu")
+    =>
+    (load-latex "0630_three_line_table_export.tex")
+  ) ;check
+  (check-report)
+) ;define

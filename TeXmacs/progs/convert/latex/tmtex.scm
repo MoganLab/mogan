@@ -390,6 +390,7 @@
   (tabbed* ("" "l" "" #f))
   (rcl-table ("{\\setlength\\arraylinesep{0.4em}\\everymath={\\displaystyle}" "rcl" "}" #f)
   ) ;rcl-table
+  (three-line-table ("" "c" "" #f))
 ) ;logic-table
 
 (logic-table tex-with-cmd%
@@ -1403,7 +1404,16 @@
          (type* (if wide? (string-append type "*") type))
          (body (tmtex x))
          (caption (tmtex (into-single-paragraph capt)))
-         (body* `(!paragraph ,body (caption ,caption)))
+         (body* (if (and (== type "table")
+                      (or (func? x 'three-line-table)
+                        (func? x 'three-line-table 1)
+                        (tmtex-is-three-line-table-tree? x)
+                      ) ;or
+                    ) ;and
+                  `(!paragraph ,(list 'centering) ,body (caption ,caption))
+                  `(!paragraph ,body (caption ,caption))
+                ) ;if
+         ) ;body*
         ) ;
     (cond ((and (== size "big") (== type "figure"))
            (if (== pos "")
@@ -1981,6 +1991,23 @@
   ) ;let
 ) ;define
 
+(define (tmtex-three-line-table-rows-assemble tb bb rows is-first)
+  (cond ((null? rows) (if (null? bb) '() (if (car bb) (list (list 'bottomrule)) '())))
+        (else (append (if (or (car tb) (car bb)) (list (list (if is-first 'toprule 'midrule))) '())
+                (cons (cons '!row (map tmtex (car rows)))
+                  (tmtex-three-line-table-rows-assemble (cdr tb) (cdr bb) (cdr rows) #f)
+                ) ;cons
+              ) ;append
+        ) ;else
+  ) ;cond
+) ;define
+
+(define (tmtex-three-line-table-make p)
+  (let ((tb (p 'rows 'tborder)) (bb (p 'rows 'bborder)) (l (p 'rows 'content)))
+    (cons '!table (tmtex-three-line-table-rows-assemble tb (cons (car tb) bb) l #t))
+  ) ;let
+) ;define
+
 (define (tmtex-table-args-assemble lb rb ha)
   (cond ((null? ha) (if (null? rb) '() (list (if (car rb) "|" ""))))
         (else (cons (if (or (car lb) (car rb)) "|" "")
@@ -2016,28 +2043,99 @@
                          (tmtable-block-borders (cadddr props))
                        ) ;append
              ) ;defaults
-             (p (tmtable-parser `(tformat ,@defaults ,x)))
+             (p (tmtable-parser (if (== key 'three-line-table)
+                                  `(tformat ,@defaults ,@(cdr x))
+                                  `(tformat ,@defaults ,x)
+                                ) ;if
+                ) ;tmtable-parser
+             ) ;p
              (e `(!begin ,@env* ,(tmtex-table-args p)))
-             (r (tmtex-table-make p))
+             (r (if (== key 'three-line-table)
+                  (tmtex-three-line-table-make p)
+                  (tmtex-table-make p)
+                ) ;if
+             ) ;r
             ) ;
         (tex-concat (list before (list e r) after))
       ) ;let*
       (begin
         (list `(!begin ,(symbol->string key) ,@args)
-          (tmtex-table-make (tmtable-parser x))
+          (if (== key 'three-line-table)
+            (tmtex-three-line-table-make (tmtable-parser `(tformat ,@(cdr x))))
+            (tmtex-table-make (tmtable-parser x))
+          ) ;if
         ) ;list
       ) ;begin
     ) ;if
   ) ;let*
 ) ;define
 
+(define (tmtex-is-three-line-table? l)
+  (let* ((has-tborder1 (list-or (map (lambda (x)
+                                       (and (pair? x) (== (car x) 'cwith) (member "cell-tborder" x) (member "1ln" x))
+                                     ) ;lambda
+                                  l
+                                ) ;map
+                       ) ;list-or
+         ) ;has-tborder1
+         (has-bborder1 (list-or (map (lambda (x)
+                                       (and (pair? x) (== (car x) 'cwith) (member "cell-bborder" x) (member "1ln" x))
+                                     ) ;lambda
+                                  l
+                                ) ;map
+                       ) ;list-or
+         ) ;has-bborder1
+         (has-bborder05 (list-or (map (lambda (x)
+                                        (and (pair? x) (== (car x) 'cwith) (member "cell-bborder" x) (member "0.5ln" x))
+                                      ) ;lambda
+                                   l
+                                 ) ;map
+                        ) ;list-or
+         ) ;has-bborder05
+        ) ;
+    (and has-tborder1 has-bborder1 has-bborder05)
+  ) ;let*
+) ;define
+
+(define (tmtex-is-three-line-table-tree? x)
+  (and (pair? x) (== (car x) 'tformat) (tmtex-is-three-line-table? (cdr x)))
+) ;define
+
+(define (tmtex-extract-table-element l)
+  (cond ((null? l) #f)
+        ((and (pair? (car l)) (in? (caar l) '(tformat table))) (car l))
+        (else (tmtex-extract-table-element (cdr l)))
+  ) ;cond
+) ;define
+
+(define (tmtex-inject-three-line-table-borders l)
+  (append (list '(cwith "1" "1" "1" "-1" "cell-tborder" "1ln")
+            '(cwith "-1" "-1" "1" "-1" "cell-bborder" "1ln")
+            '(cwith "1" "1" "1" "-1" "cell-bborder" "0.5ln")
+          ) ;list
+    l
+  ) ;append
+) ;define
+
 (define (tmtex-tformat l)
-  (tmtex-table-apply 'tabular '() (cons 'tformat l))
+  (if (tmtex-is-three-line-table? l)
+    (let* ((tbl (tmtex-extract-table-element l)))
+      (if tbl
+        (tmtex-three-line-table (tmtex-inject-three-line-table-borders (cdr tbl)))
+        (tmtex-table-apply 'tabular '() (cons 'tformat l))
+      ) ;if
+    ) ;let*
+    (tmtex-table-apply 'tabular '() (cons 'tformat l))
+  ) ;if
 ) ;define
 
 (define (tmtex-table l)
   (tmtex-image-increment)
   (tmtex-table-apply 'tabular '() (cons 'table l))
+) ;define
+
+(define (tmtex-three-line-table l)
+  (tmtex-table-apply 'three-line-table '() (cons 'three-line-table l))
 ) ;define
 
 (define (tmtex-stack l)
@@ -4011,6 +4109,7 @@
  (tformat tmtex-tformat)
  ((:or twith cwith tmarker) tmtex-noop)
  (table tmtex-table)
+ (three-line-table tmtex-three-line-table)
  ((:or row cell subtable) tmtex-noop)
 
  (assign tmtex-assign)
