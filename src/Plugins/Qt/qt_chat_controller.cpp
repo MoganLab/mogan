@@ -352,10 +352,11 @@ ChatController::onNewChatRequested () {
 void
 ChatController::onRenameRequested (const string& sessionId,
                                    const string& newTitle) {
+  string curActiveId= view_->sidebar ()->activeSessionId ();
   sessionManager_.setTitle (sessionId, newTitle);
   string displayTitle= getSessionDisplayTitle (sessionId);
   view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
-  view_->sidebar ()->setActiveItem (sessionId);
+  view_->sidebar ()->setActiveItem (curActiveId);
 
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (s && s->panel) {
