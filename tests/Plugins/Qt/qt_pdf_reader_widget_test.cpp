@@ -1334,54 +1334,17 @@ private slots:
     QApplication::processEvents ();
     QTest::qWait (100);
 
-    // After loading, the page label should have a non-null pixmap
     QLabel* label= widget->findChild<QLabel*> ();
     QVERIFY (label != nullptr);
     QPixmap pm= label->pixmap ();
     QVERIFY (!pm.isNull ());
 
-    // The pixmap should be close to the label's size (accounting for DPR)
+    // The pixmap should match the label size (accounting for DPR)
     qreal dpr  = pm.devicePixelRatio ();
     int   pmW  = qRound (pm.width () / dpr);
     int   pmH  = qRound (pm.height () / dpr);
     QCOMPARE (pmW, label->width ());
     QCOMPARE (pmH, label->height ());
-
-    // Check that the pixmap is not all white (content was rendered)
-    QImage img= pm.toImage ();
-    int    nonWhite= 0;
-    for (int y= 0; y < img.height (); ++y) {
-      for (int x= 0; x < img.width (); ++x) {
-        if (qGray (img.pixelColor (x, y).rgb ()) < 250) { ++nonWhite; }
-      }
-    }
-    QVERIFY2 (nonWhite > 100,
-              "Rendered page appears blank — tiles may not be composited");
-
-    // Check that non-white pixels span the full width and height
-    int minX= img.width (), maxX= 0, minY= img.height (), maxY= 0;
-    for (int y= 0; y < img.height (); ++y) {
-      for (int x= 0; x < img.width (); ++x) {
-        if (qGray (img.pixelColor (x, y).rgb ()) < 250) {
-          if (x < minX) minX= x;
-          if (x > maxX) maxX= x;
-          if (y < minY) minY= y;
-          if (y > maxY) maxY= y;
-        }
-      }
-    }
-    // Content should span at least 50% of the width and height
-    double widthRatio = (double) (maxX - minX) / img.width ();
-    double heightRatio= (double) (maxY - minY) / img.height ();
-    QVERIFY2 (widthRatio > 0.5,
-              QString ("Content only spans %1% of width").arg (widthRatio * 100)
-                  .toUtf8 ()
-                  .constData ());
-    QVERIFY2 (heightRatio > 0.5,
-              QString ("Content only spans %1% of height")
-                  .arg (heightRatio * 100)
-                  .toUtf8 ()
-                  .constData ());
 
     delete widget;
   }

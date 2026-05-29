@@ -878,24 +878,32 @@ PDFReaderWidget::renderTile (int pageNumber, const QRectF& tileRect,
     int tileW= qMax (1, tileR - tileX);
     int tileH= qMax (1, tileB - tileY);
 
-    fz_irect clip= fz_make_irect (0, 0, tileW, tileH);
-    pix= fz_new_pixmap_with_bbox (ctx, fz_device_rgb (ctx), clip, nullptr, 0);
-    fz_clear_pixmap_with_value (ctx, pix, 0xFF);
+    // Render full page at the target scale, then crop the tile region.
+    // This is simpler than fz_new_draw_device_with_bbox and avoids
+    // subtle clip/CTM interaction issues.
+    fz_matrix pageCtm= fz_scale (renderScale, renderScale);
+    fz_pixmap* fullPix= fz_new_pixmap_from_page (ctx, page, pageCtm,
+                                                  fz_device_rgb (ctx), 0);
+    if (fullPix) {
+      int fullW= fz_pixmap_width (ctx, fullPix);
+      int fullH= fz_pixmap_height (ctx, fullPix);
+      fz_irect tileBBox= fz_make_irect (tileX, tileY,
+                                        qMin (tileX + tileW, fullW),
+                                        qMin (tileY + tileH, fullH));
+      pix= fz_new_pixmap_with_bbox (ctx, fz_device_rgb (ctx), tileBBox,
+                                    nullptr, 0);
+      fz_clear_pixmap_with_value (ctx, pix, 0xFF);
+      fz_copy_pixmap_rect (ctx, pix, fullPix, tileBBox, nullptr);
+      fz_drop_pixmap (ctx, fullPix);
+    }
+    if (!pix) {
+      pix= fz_new_pixmap_with_bbox (ctx, fz_device_rgb (ctx),
+                                    fz_make_irect (0, 0, tileW, tileH), nullptr,
+                                    0);
+      fz_clear_pixmap_with_value (ctx, pix, 0xFF);
+    }
 
-    dev= fz_new_draw_device_with_bbox (ctx, fz_identity, pix, &clip);
-
-    fz_matrix ctm;
-    ctm.a= renderScale;
-    ctm.b= 0;
-    ctm.c= 0;
-    ctm.d= renderScale;
-    ctm.e= -(float) tileX;
-    ctm.f= -(float) tileY;
-
-    fz_run_page (ctx, page, dev, ctm, nullptr);
-    fz_close_device (ctx, dev);
-    fz_drop_device (ctx, dev);
-    dev= nullptr;
+    (void) dev; // dev not used in this path
 
     int            pixW   = fz_pixmap_width (ctx, pix);
     int            pixH   = fz_pixmap_height (ctx, pix);
