@@ -98,6 +98,7 @@ extract_attachments_from_pdf (url pdf_path, list<url>& names) {
       status= PDFHummus::eFailure;
       break;
     }
+    IByteReader* streamReader= nullptr;
     for (unsigned long i= 0; i < n; i+= 2) {
       PDFObjectCastPtr<PDFLiteralString> name (arr->QueryObject (i));
       if (!name) {
@@ -129,8 +130,7 @@ extract_attachments_from_pdf (url pdf_path, list<url>& names) {
       }
       PDFDictionary* dir= stream->QueryStreamDictionary ();
 
-      IByteReader* streamReader=
-          parser.CreateInputStreamReader (stream.GetPtr ());
+      streamReader= parser.CreateInputStreamReader (stream.GetPtr ());
       if (!streamReader) {
         if (DEBUG_CONVERT) debug_convert << "Can't find streamReader" << LF;
         status= PDFHummus::eFailure;
@@ -165,7 +165,9 @@ extract_attachments_from_pdf (url pdf_path, list<url>& names) {
 
       names= names * attachment_path;
       delete streamReader;
+      streamReader= nullptr;
     }
+    delete streamReader;
   } while (false);
   if (status == PDFHummus::eFailure) return false;
   else return true;
