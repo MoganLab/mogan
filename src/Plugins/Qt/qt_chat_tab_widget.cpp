@@ -476,21 +476,42 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  tree body    = readInputMessage ();
-  int  docLines= count_input_lines (body);
+  QTMWidget* editor= inputEditorWidget_->findChild<QTMWidget*> ();
+  if (!editor) return;
 
-  int targetLines= qMax (kInputDefaultLines, docLines + 1);
+  // Restore default size before reading extents to avoid feedback loop
+  int defaultH= DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
+  bool needsResize= (frame->height () != defaultH + fixedFrameExtra_);
+  if (needsResize) {
+    frame->setUpdatesEnabled (false);
+    editor->setUpdatesEnabled (false);
+    frame->setFixedHeight (defaultH + fixedFrameExtra_);
+  }
+
+  int contentH= editor->extents ().height ();
+  int lineH   = DpiUtils::scaled (kInputLineHeight);
+  int docLines= (lineH > 0) ? (contentH + lineH - 1) / lineH : 1;
+
+#ifdef LIII_DEBUG
+  cout << "adjust_input_height: contentH= " << contentH
+       << ", docLines= " << docLines << "\n";
+#endif
+
+  int targetLines= qMax (kInputDefaultLines, docLines);
   targetLines    = qMin (targetLines, kInputMaxLines);
   int targetFrameH=
       DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
 
   if (frame->height () != targetFrameH) {
-    bool wasEnabled= frame->updatesEnabled ();
     frame->setUpdatesEnabled (false);
-    inputEditorWidget_->setUpdatesEnabled (false);
+    editor->setUpdatesEnabled (false);
     frame->setFixedHeight (targetFrameH);
-    inputEditorWidget_->setUpdatesEnabled (true);
-    frame->setUpdatesEnabled (wasEnabled);
+    editor->setUpdatesEnabled (true);
+    frame->setUpdatesEnabled (true);
+  }
+  else if (needsResize) {
+    editor->setUpdatesEnabled (true);
+    frame->setUpdatesEnabled (true);
   }
 }
 
