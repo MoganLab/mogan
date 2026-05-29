@@ -248,9 +248,7 @@
   (let* ((latex-content (load-latex "0631_table_import.tex"))
          (parsed (parse-latex-document latex-content))
          (texmacs-tree (latex->texmacs parsed))
-         (st-orig (tree->stree texmacs-tree))
-         (st-three (transform-three-line-tables st-orig))
-         (st (transform-multirow st-three)))
+         (st (tree->stree texmacs-tree)))
     
     (display "Verifying specific table properties in converted tree...\n")
     
