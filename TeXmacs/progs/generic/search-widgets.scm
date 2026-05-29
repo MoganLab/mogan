@@ -168,7 +168,7 @@
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
   ;; chat tab 搜索激活期间，直接返回保存的 aux buffer
-  (if chat-tab-search-active?
+  (if (and chat-tab-search-active? chat-tab-search-aux)
     chat-tab-search-aux
     (with u
       (current-buffer)
@@ -343,7 +343,7 @@
 
 (tm-define (master-buffer)
   ;; chat tab 搜索激活期间，直接返回保存的 target buffer
-  (if chat-tab-search-active?
+  (if (and chat-tab-search-active? chat-tab-search-target)
     chat-tab-search-target
     (and (buffer-exists? (search-buffer))
       (with mas
@@ -448,7 +448,9 @@
                    (new-env (tree-descendant-env* buf rel initial)))
               (if (not new-env) #t
                 (check-same? (tm-children new-env) (tm-children old-env)))))))
-      (lambda (key msg . rest) #t))
+      (lambda (key msg . rest)
+        (display* "Warning: accept-search-result? error: " msg "\n")
+        #t))
   ) ;or
 ) ;define
 
@@ -1162,15 +1164,6 @@
         (when (not (has-style-package? "dark"))
           (add-style-package "dark"))))
     (qt-floating-search "true")))
-
-(define (chat-tab-perform-search)
-  (when (and chat-tab-search-target chat-tab-search-aux
-             (buffer-exists? chat-tab-search-aux))
-    (with-buffer chat-tab-search-target
-      (set-search-reference (cursor-path)))
-    (set-search-filter)
-    (with-buffer chat-tab-search-target
-      (perform-search))))
 
 (tm-define (chat-tab-search-next forward?)
   (when (and chat-tab-search-target chat-tab-search-aux)

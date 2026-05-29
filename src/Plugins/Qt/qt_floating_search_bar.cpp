@@ -256,10 +256,8 @@ get_or_create_bar (QWidget* parent) {
   auto* bar   = new QTMFloatingSearchBar (parent);
   bars[parent]= bar;
 
-  QObject::connect (parent, &QObject::destroyed, [parent] () {
-    auto& b= searchBars ();
-    auto  i= b.find (parent);
-    if (i != b.end ()) b.erase (i);
+  QObject::connect (parent, &QObject::destroyed, [] (QObject* obj) {
+    searchBars ().remove (static_cast<QWidget*> (obj));
   });
 
   bar->setFixedWidth (DpiUtils::scaled (kBarWidth));
