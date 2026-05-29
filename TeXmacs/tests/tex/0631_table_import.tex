@@ -1,0 +1,278 @@
+% Case 1: Standard tabular with basic ccc columns and no borders
+\begin{tabular}{ccc}
+  1 & 2 & 3 \\
+  4 & 5 & 6 \\
+\end{tabular}
+
+% Case 2: Standard tabular with lrc columns and single borders
+\begin{tabular}{|l|r|c|}
+  a & b & c \\
+  d & e & f \\
+\end{tabular}
+
+% Case 3: Standard tabular with double vertical borders
+\begin{tabular}{||c||c||}
+  1 & 2 \\
+  3 & 4 \\
+\end{tabular}
+
+% Case 4: Tabular with p{width} columns
+\begin{tabular}{p{3cm}p{4.5cm}}
+  Left text & Right text \\
+  More left & More right \\
+\end{tabular}
+
+% Case 5: Tabular with mix of alignment and width
+\begin{tabular}{|c|p{2cm}|l|}
+  A & Width block & Left \\
+  B & Content & Text \\
+\end{tabular}
+
+% Case 6: Tabular with hline at top, bottom, and middle
+\begin{tabular}{cc}
+  \hline
+  1 & 2 \\
+  \hline
+  3 & 4 \\
+  \hline
+\end{tabular}
+
+% Case 7: Tabular with double hline
+\begin{tabular}{cc}
+  \hline\hline
+  A & B \\
+  \hline\hline
+  C & D \\
+\end{tabular}
+
+% Case 8: Tabular with cline{1-2}
+\begin{tabular}{ccc}
+  1 & 2 & 3 \\
+  \cline{1-2}
+  4 & 5 & 6 \\
+\end{tabular}
+
+% Case 9: Tabular with multiple clines on same row
+\begin{tabular}{cccc}
+  a & b & c & d \\
+  \cline{1-1}\cline{3-3}
+  e & f & g & h \\
+\end{tabular}
+
+% Case 10: Booktabs three-line table (toprule, midrule, bottomrule)
+\begin{tabular}{cc}
+  \toprule
+  Header 1 & Header 2 \\
+  \midrule
+  Value 1 & Value 2 \\
+  Value 3 & Value 4 \\
+  \bottomrule
+\end{tabular}
+
+% Case 11: Booktabs three-line table with cmidrule{1-1} and cmidrule{2-2}
+\begin{tabular}{cc}
+  \toprule
+  A & B \\
+  \cmidrule{1-1}\cmidrule{2-2}
+  C & D \\
+  \bottomrule
+\end{tabular}
+
+% Case 12: Booktabs with thick/thin lines via custom trim
+\begin{tabular}{cc}
+  \toprule
+  1 & 2 \\
+  \cmidrule(r){1-1}
+  3 & 4 \\
+  \bottomrule
+\end{tabular}
+
+% Case 13: multicolumn spanning 3 columns with vertical borders
+\begin{tabular}{|c|c|c|}
+  \hline
+  \multicolumn{3}{|c|}{Span Three Columns} \\
+  \hline
+  A & B & C \\
+\end{tabular}
+
+% Case 14: multicolumn spanning 2 columns with right alignment
+\begin{tabular}{ccc}
+  \multicolumn{2}{r}{Span Two Right} & C \\
+  A & B & D \\
+\end{tabular}
+
+% Case 15: multirow spanning 2 rows
+\begin{tabular}{cc}
+  \multirow{2}{*}{Row Span} & A \\
+                            & B \\
+  C                         & D \\
+\end{tabular}
+
+% Case 16: multirow spanning 3 rows with custom width
+\begin{tabular}{cc}
+  \multirow{3}{2cm}{Fixed Width Row} & X \\
+                                      & Y \\
+                                      & Z \\
+\end{tabular}
+
+% Case 17: Multirow and multicolumn combined
+\begin{tabular}{ccc}
+  \multicolumn{2}{c}{\multirow{2}{*}{MultiRowCol}} & A \\
+  \multicolumn{2}{c}{}                             & B \\
+  C & D & E \\
+\end{tabular}
+
+% Case 18: Empty cell at the beginning of row
+\begin{tabular}{ccc}
+  & 2 & 3 \\
+  4 & 5 & 6 \\
+\end{tabular}
+
+% Case 19: Empty cell at the end of row
+\begin{tabular}{ccc}
+  1 & 2 & \\
+  4 & 5 & 6 \\
+\end{tabular}
+
+% Case 20: Multiple consecutive empty cells
+\begin{tabular}{cccc}
+  1 & & & 4 \\
+  5 & 6 & 7 & 8 \\
+\end{tabular}
+
+% Case 21: Entirely empty row
+\begin{tabular}{cc}
+  & \\
+  3 & 4 \\
+\end{tabular}
+
+% Case 22: Extra spaces and weird padding around & and \\
+\begin{tabular}{  c  c  }
+    1   &    2    \\
+    3   &    4    \\
+\end{tabular}
+
+% Case 23: Tabularnewline instead of \\
+\begin{tabular}{cc}
+  1 & 2 \tabularnewline
+  3 & 4 \tabularnewline
+\end{tabular}
+
+% Case 24: Nested tabular environments
+\begin{tabular}{c}
+  Outer cell \\
+  \begin{tabular}{cc}
+    Inner 1 & Inner 2 \\
+  \end{tabular} \\
+\end{tabular}
+
+% Case 25: Table with math mode cells (inline $)
+\begin{tabular}{cc}
+  $x^2 + y^2$ & $\alpha \beta$ \\
+  $\int_0^1 f(x) dx$ & $\sqrt{2}$ \\
+\end{tabular}
+
+% Case 26: Table with displaystyle block math
+\begin{tabular}{c}
+  $\displaystyle \sum_{i=1}^{n} i = \frac{n(n+1)}{2}$ \\
+\end{tabular}
+
+% Case 27: Table with text formatting inside cells
+\begin{tabular}{cc}
+  \textbf{Bold Text} & \textit{Italic Text} \\
+  \underline{Underlined} & Plain \\
+\end{tabular}
+
+% Case 28: Table with special LaTeX character symbols
+\begin{tabular}{cc}
+  \% & \& \\
+  \_ & \# \\
+\end{tabular}
+
+% Case 29: Extremely long text in cells
+\begin{tabular}{p{5cm}}
+  This is an extremely long sentence to test how natural word wrapping is handled inside a table cell when exporting or importing documents. \\
+\end{tabular}
+
+% Case 30: Very many columns (12 columns)
+\begin{tabular}{cccccccccccc}
+  1 & 2 & 3 & 4 & 5 & 6 & 7 & 8 & 9 & 10 & 11 & 12 \\
+\end{tabular}
+
+% Case 31: Very many rows (10 rows)
+\begin{tabular}{c}
+  Row 1 \\
+  Row 2 \\
+  Row 3 \\
+  Row 4 \\
+  Row 5 \\
+  Row 6 \\
+  Row 7 \\
+  Row 8 \\
+  Row 9 & Row 10 \\
+\end{tabular}
+
+% Case 32: Table wrapped in standard table float environment
+\begin{table}[h]
+  \begin{tabular}{cc}
+    1 & 2 \\
+    3 & 4 \\
+  \end{tabular}
+\end{table}
+
+% Case 33: Table float with centering
+\begin{table}[htbp]
+  \centering
+  \begin{tabular}{cc}
+    A & B \\
+  \end{tabular}
+\end{table}
+
+% Case 34: Table float with caption and label
+\begin{table}
+  \centering
+  \begin{tabular}{cc}
+    1 & 2 \\
+  \end{tabular}
+  \caption{Test Caption}
+  \label{tab:test_label}
+\end{table}
+
+% Case 35: Table with vertical alignments t and b
+\begin{tabular}[t]{cc}
+  1 & 2 \\
+\end{tabular}
+
+% Case 36: Table with [b] vertical alignment
+\begin{tabular}[b]{cc}
+  3 & 4 \\
+\end{tabular}
+
+% Case 37: Multiple tabular environments inside one table float
+\begin{table}
+  \begin{tabular}{c}
+    Table A \\
+  \end{tabular}
+  \begin{tabular}{c}
+    Table B \\
+  \end{tabular}
+\end{table}
+
+% Case 38: Comments inside tabular environment
+\begin{tabular}{cc}
+  % This is a comment row
+  1 & 2 \\
+  % Another comment
+  3 & 4 % inline comment
+\end{tabular}
+
+% Case 39: Single cell table
+\begin{tabular}{c}
+  Solo \\
+\end{tabular}
+
+% Case 40: Table with no data cells but hlines
+\begin{tabular}{c}
+  \hline
+  \hline
+\end{tabular}
