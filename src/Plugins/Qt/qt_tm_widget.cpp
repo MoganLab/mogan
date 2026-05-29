@@ -2097,8 +2097,8 @@ void set_standard_style_sheet (QWidget* w);
 void
 qt_tm_widget_rep::set_full_screen (bool flag) {
   bool was_presentation= in_presentation_mode ();
-  full_screen = flag;
-  QWidget* win= mainwindow ()->window ();
+  full_screen          = flag;
+  QWidget* win         = mainwindow ()->window ();
   if (win) {
     if (flag) {
       QPalette pal;
