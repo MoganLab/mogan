@@ -1412,6 +1412,16 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
     return;
   }
 
+  if (closeModifier) {
+    int key= event->key ();
+    if (key >= Qt::Key_1 && key <= Qt::Key_9) {
+      int index= key - Qt::Key_1;
+      eval ("(switch-to-view-index " * as_string (index) * ")");
+      event->accept ();
+      return;
+    }
+  }
+
   QWidget::keyPressEvent (event);
 }
 
