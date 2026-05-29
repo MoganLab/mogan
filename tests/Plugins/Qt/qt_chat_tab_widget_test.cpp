@@ -362,7 +362,7 @@ private slots:
     emit sidebar.exportRequested ("s1");
     emit sidebar.exportRequested ("s1");
     QCOMPARE (spy.count (), 2);
-  // ---- should_block_readonly_event 测试 ----
+    // ---- should_block_readonly_event 测试 ----
   }
 
   void test_readonly_no_property () {
