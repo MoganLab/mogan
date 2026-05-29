@@ -101,7 +101,11 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
   prevBtn->setObjectName ("floating-search-prev");
   prevBtn->setFixedSize (DpiUtils::scaled (kBtnSize),
                          DpiUtils::scaled (kBtnSize));
-  prevBtn->setToolTip (qt_translate ("Previous (Shift+Enter)"));
+#ifdef Q_OS_MAC
+  prevBtn->setToolTip (qt_translate ("Previous (Cmd+Enter)"));
+#else
+  prevBtn->setToolTip (qt_translate ("Previous (Ctrl+Enter)"));
+#endif
   prevBtn->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (prevBtn);
 
