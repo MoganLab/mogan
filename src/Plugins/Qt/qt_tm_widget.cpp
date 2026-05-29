@@ -2126,20 +2126,18 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         titleBarVisibleCache= tb && tb->isVisible ();
         if (tb) tb->setVisible (false);
       }
-      bool is_slide_style= false;
-      try {
-        is_slide_style= as_bool (call ("in-presentation?"));
-      } catch (...) {
-        is_slide_style= false;
-      }
-      bool           is_presentation_mode= !visibility[0];
-      QTMScrollView* scrollView          = scrollarea ();
-      if (scrollView && is_presentation_mode && is_slide_style) {
+      QTMScrollView* scrollView= scrollarea ();
+      if (scrollView) {
         QWidget* viewport= scrollView->viewport ();
         if (viewport) {
+          QPalette vpal;
+          vpal.setColor (QPalette::Shadow, QColor (0, 0, 0));
+          vpal.setColor (QPalette::Mid, QColor (0, 0, 0));
+          viewport->setPalette (vpal);
           viewport->setBackgroundRole (QPalette::Shadow);
         }
       }
+      if (chatSidebarToggleBtn) chatSidebarToggleBtn->hide ();
     }
     else {
       QPalette pal;
@@ -2164,16 +2162,14 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         QWidget* tb= windowAgent->titleBar ();
         if (tb) tb->setVisible (titleBarVisibleCache);
       }
-      bool is_slide_style= false;
-      try {
-        is_slide_style= as_bool (call ("in-presentation?"));
-      } catch (...) {
-        is_slide_style= false;
-      }
-      QTMScrollView* scrollView= scrollarea ();
-      if (scrollView && is_slide_style) {
-        QWidget* viewport= scrollView->viewport ();
+      QTMScrollView* scrollView2= scrollarea ();
+      if (scrollView2) {
+        QWidget* viewport= scrollView2->viewport ();
         if (viewport) {
+          QPalette vpal;
+          vpal.setColor (QPalette::Mid, bgcol);
+          vpal.setColor (QPalette::Shadow, bgcol);
+          viewport->setPalette (vpal);
           viewport->setBackgroundRole (QPalette::Mid);
         }
       }
