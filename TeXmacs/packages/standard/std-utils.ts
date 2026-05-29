@@ -199,6 +199,10 @@
     <padded|<wide-std-framed|<arg|body>>>
   </macro>>
 
+  <assign|mdframed|<\macro|body>
+    <framed|<arg|body>>
+  </macro>>
+
   <assign|framed-titled|<\macro|body|title>
     <padded|<compound|wide-std-framed-titled|<arg|body>|<arg|title>>>
   </macro>>
