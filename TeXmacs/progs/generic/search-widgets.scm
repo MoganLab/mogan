@@ -167,8 +167,10 @@
 ;; ----
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
-  ;; chat tab 搜索激活期间，直接返回保存的 aux buffer
-  (if (and chat-tab-search-active? chat-tab-search-aux)
+  ;; chat tab 搜索激活且当前在 chat tab 上下文中时，返回保存的 aux buffer
+  (if (and chat-tab-search-active? chat-tab-search-aux
+           (or (== (current-buffer) chat-tab-search-aux)
+               (== (current-buffer) chat-tab-search-target)))
     chat-tab-search-aux
     (with u
       (current-buffer)
@@ -342,8 +344,10 @@
 ) ;tm-define
 
 (tm-define (master-buffer)
-  ;; chat tab 搜索激活期间，直接返回保存的 target buffer
-  (if (and chat-tab-search-active? chat-tab-search-target)
+  ;; chat tab 搜索激活且当前在 chat tab 上下文中时，返回保存的 target buffer
+  (if (and chat-tab-search-active? chat-tab-search-target
+           (or (== (current-buffer) chat-tab-search-aux)
+               (== (current-buffer) chat-tab-search-target)))
     chat-tab-search-target
     (and (buffer-exists? (search-buffer))
       (with mas
@@ -369,7 +373,9 @@
 ) ;tm-define
 
 (tm-define (inside-search-buffer?)
-  (if chat-tab-search-active?
+  (if (and chat-tab-search-active?
+           (or (== (current-buffer) chat-tab-search-aux)
+               (== (current-buffer) chat-tab-search-target)))
     (== (current-buffer) chat-tab-search-aux)
     (== (current-buffer) (search-buffer))))
 
@@ -661,7 +667,7 @@
   (set! search-serial (+ search-serial 1))
   (with-buffer (master-buffer) (cancel-alt-selection "alternate"))
   (set-search-window-state #f #f)
-  (buffer-focus u #t)
+  (when u (buffer-focus u #t))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1462,6 +1468,7 @@
 ) ;tm-define
 
 (tm-define (toolbar-search-end)
+  (when chat-tab-search-active? (chat-tab-search-close))
   (cancel-alt-selection "alternate")
   (search-show-all)
   (set! search-filter-out? #f)
