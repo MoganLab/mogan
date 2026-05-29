@@ -338,24 +338,21 @@ parse_pmatrix (tree& r, tree t, int& i, string lb, string rb, string fm) {
     else if (v == tree (END, "vmatrix")) break;
     else if (v == tree (END, "smallmatrix")) break;
     else if (v == tree (END, "aligned")) break;
-    else if (v == tree (APPLY, "hline") ||
-             is_apply (v, "toprule", 0) ||
-             is_apply (v, "midrule", 0) ||
-             is_apply (v, "bottomrule", 0)) {
-      bool is_booktabs = is_apply (v, "toprule", 0) ||
-                         is_apply (v, "midrule", 0) ||
-                         is_apply (v, "bottomrule", 0);
+    else if (v == tree (APPLY, "hline") || is_apply (v, "toprule", 0) ||
+             is_apply (v, "midrule", 0) || is_apply (v, "bottomrule", 0)) {
+      bool is_booktabs= is_apply (v, "toprule", 0) ||
+                        is_apply (v, "midrule", 0) ||
+                        is_apply (v, "bottomrule", 0);
       if (is_booktabs) {
-        is_three_line_table = true;
+        is_three_line_table= true;
       }
-      int howmany= 1;
-      string line_type = is_apply (v, "midrule", 0) ? "0.5ln" : "1ln";
+      int    howmany  = 1;
+      string line_type= is_apply (v, "midrule", 0) ? "0.5ln" : "1ln";
       while (i + 1 < N (t) &&
              (t[i + 1] == tree (APPLY, "hline") ||
               is_apply (t[i + 1], "toprule", 0) ||
               is_apply (t[i + 1], "midrule", 0) ||
-              is_apply (t[i + 1], "bottomrule", 0) ||
-              t[i + 1] == " ")) {
+              is_apply (t[i + 1], "bottomrule", 0) || t[i + 1] == " ")) {
         if (t[i + 1] == tree (APPLY, "hline") ||
             is_apply (t[i + 1], "toprule", 0) ||
             is_apply (t[i + 1], "midrule", 0) ||
@@ -373,9 +370,9 @@ parse_pmatrix (tree& r, tree t, int& i, string lb, string rb, string fm) {
       tformat << tree (CWITH, row_s, row_s, "1", "-1", vbor, how);
     }
     else if (is_apply (v, "cline", 1) || is_apply (v, "cmidrule")) {
-      bool is_cmid = is_apply (v, "cmidrule");
+      bool is_cmid= is_apply (v, "cmidrule");
       if (is_cmid) {
-        is_three_line_table = true;
+        is_three_line_table= true;
       }
       int    row  = N (V) + (N (L) == 0 ? 0 : 1);
       tree   arg  = parse_cline (v[N (v) - 1]);
@@ -412,10 +409,12 @@ parse_pmatrix (tree& r, tree t, int& i, string lb, string rb, string fm) {
         tformat << tmp[j];
       if (is_apply (v[3], "multirow", 3)) {
         string height= as_string (v[3][1]);
-        tformat << tree (CWITH, row_s, row_s, col_s, col_s, CELL_ROW_SPAN, height);
+        tformat << tree (CWITH, row_s, row_s, col_s, col_s, CELL_ROW_SPAN,
+                         height);
         tformat << tree (CWITH, row_s, row_s, col_s, col_s, CELL_VALIGN, "c");
         E << v[3][3];
-      } else {
+      }
+      else {
         E << v[3];
       }
       for (int j= 1; j < as_int (width); j++)
@@ -457,7 +456,8 @@ parse_pmatrix (tree& r, tree t, int& i, string lb, string rb, string fm) {
   tformat << trim_cell_spaces (M);
   if (is_three_line_table) {
     r << compound ("three-line-table", tformat);
-  } else {
+  }
+  else {
     r << compound (fm, tformat);
   }
   if (rb != "") r << tree (RIGHT, rb);
