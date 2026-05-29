@@ -1307,7 +1307,7 @@ qt_tm_widget_rep::update_visibility () {
 
   if (pdfTabMode) {
     new_mainVisibility  = false;
-    new_menuVisibility  = true;
+    new_menuVisibility  = false;
     new_modeVisibility  = false;
     new_focusVisibility = false;
     new_userVisibility  = false;
