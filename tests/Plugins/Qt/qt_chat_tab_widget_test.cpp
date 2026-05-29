@@ -8,12 +8,12 @@
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
+#include <QInputMethodEvent>
 #include <QLineEdit>
 #include <QMenu>
+#include <QMouseEvent>
 #include <QPushButton>
 #include <QSignalSpy>
-#include <QInputMethodEvent>
-#include <QMouseEvent>
 #include <QWheelEvent>
 #include <QtTest/QtTest>
 
