@@ -32,6 +32,7 @@ class QTimer;
 class QToolButton;
 class QVBoxLayout;
 class QEvent;
+class QTMWidget;
 class QTMStateToolButton;
 class qt_tm_widget_rep;
 
@@ -117,6 +118,8 @@ protected:
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
+  /// 在当前事件处理完成后更新输入区高度，避免读取到旧排版结果
+  void schedule_input_height_adjust ();
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
@@ -126,13 +129,14 @@ private:
   QLabel*      sessionTitle_     = nullptr; ///< 会话标题标签
   QWidget*     messageFrame_     = nullptr; ///< 消息区域容器
   QWidget*     inputEditorWidget_= nullptr; ///< 输入编辑器容器
-  QWidget*     inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
+  QTMWidget*   inputQTMWidget_   = nullptr; ///< 输入区 QTMWidget
   QPushButton* sendButton_       = nullptr; ///< 发送/停止按钮
   QToolButton* thinkingButton_   = nullptr; ///< 推理模式开关
   QSpacerItem* topSpacer_        = nullptr; ///< 欢迎页顶部弹性空间
   widget       messageWidget_;              ///< 消息区 TeXmacs widget
   widget       inputWidget;                 ///< 输入区 TeXmacs widget
   int          fixedFrameExtra_= 0;         ///< 输入框额外高度（边框等）
+  bool inputHeightAdjustScheduled_= false;  ///< 是否已有待执行的高度更新
 };
 
 /**

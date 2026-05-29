@@ -23,7 +23,6 @@
 #include "qt_widget.hpp"
 #include "s7_tm.hpp"
 #include "tm_window.hpp"
-#include "tree_helper.hpp"
 
 #include <moebius/tree_label.hpp>
 
@@ -47,6 +46,7 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QVariantAnimation>
+#include <QTimer>
 
 using namespace moebius;
 
@@ -380,28 +380,28 @@ ChatConversationPanel::is_empty_document_body (tree body) {
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
-static int
-count_compound_lines (tree t) {
-  int lines= 0;
-  for (int i= 0; i < N (t); i++) {
-    if (is_compound (t[i]) && is_formatting (t[i])) continue;
-    lines++;
-  }
-  return qMax (lines, 1);
-}
-
 int
 ChatConversationPanel::count_input_lines (tree body) {
   if (!is_func (body, DOCUMENT)) return 1;
   if (N (body) == 0) return 1;
   if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  int lines= 0;
-  for (int i= 0; i < N (body); i++) {
-    if (is_compound (body[i]) && !is_func (body[i], DOCUMENT))
-      lines+= count_compound_lines (body[i]);
-    else lines++;
-  }
-  return lines;
+  return N (body);
+}
+
+static int
+count_visual_input_lines (QTMWidget* editor, int lineHeight) {
+  if (!editor || lineHeight <= 0 || !editor->isVisible ()) return 1;
+
+  qt_simple_widget_rep* tmEditor= editor->tm_widget ();
+  if (!tmEditor) return 1;
+
+  if (the_gui) the_gui->force_update ();
+
+  edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (tmEditor);
+  if (!ed) return 1;
+
+  int contentH= to_qsize (0, ed->get_total_height (false)).height ();
+  return qMax (1, (contentH + lineHeight - 1) / lineHeight);
 }
 
 bool
@@ -453,8 +453,11 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       }
     }
   }
-  if (event->type () == QEvent::KeyRelease) {
-    adjust_input_height ();
+  if (event->type () == QEvent::KeyRelease ||
+      event->type () == QEvent::InputMethod ||
+      event->type () == QEvent::Drop) {
+    if (watched->property ("chat_panel").value<void*> () == this)
+      schedule_input_height_adjust ();
   }
   if (event->type () == QEvent::FocusIn || event->type () == QEvent::FocusOut) {
     if (watched->property ("chat_panel").value<void*> () == this) {
@@ -471,47 +474,38 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
 }
 
 void
+ChatConversationPanel::schedule_input_height_adjust () {
+  if (inputHeightAdjustScheduled_) return;
+  inputHeightAdjustScheduled_= true;
+  QTimer::singleShot (0, this, [this] () {
+    inputHeightAdjustScheduled_= false;
+    adjust_input_height ();
+  });
+}
+
+void
 ChatConversationPanel::adjust_input_height () {
-  if (!inputEditorWidget_) return;
+  if (!inputEditorWidget_ || !inputQTMWidget_) return;
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  QTMWidget* editor= inputEditorWidget_->findChild<QTMWidget*> ();
-  if (!editor) return;
-
-  // Restore default size before reading extents to avoid feedback loop
-  int  defaultH   = DpiUtils::scaled (kInputLineHeight * kInputDefaultLines);
-  bool needsResize= (frame->height () != defaultH + fixedFrameExtra_);
-  if (needsResize) {
-    frame->setUpdatesEnabled (false);
-    editor->setUpdatesEnabled (false);
-    frame->setFixedHeight (defaultH + fixedFrameExtra_);
-  }
-
-  int contentH= editor->extents ().height ();
   int lineH   = DpiUtils::scaled (kInputLineHeight);
-  int docLines= (lineH > 0) ? (contentH + lineH - 1) / lineH : 1;
+  int docLines= count_input_lines (readInputMessage ());
+  int visualLines= count_visual_input_lines (inputQTMWidget_, lineH);
 
 #ifdef LIII_DEBUG
-  cout << "adjust_input_height: contentH= " << contentH
-       << ", docLines= " << docLines << "\n";
+  cout << "adjust_input_height: docLines= " << docLines
+       << ", visualLines= " << visualLines << "\n";
 #endif
 
-  int targetLines= qMax (kInputDefaultLines, docLines);
+  int targetLines= qMax (kInputDefaultLines, qMax (docLines, visualLines));
   targetLines    = qMin (targetLines, kInputMaxLines);
   int targetFrameH=
       DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;
 
   if (frame->height () != targetFrameH) {
-    frame->setUpdatesEnabled (false);
-    editor->setUpdatesEnabled (false);
     frame->setFixedHeight (targetFrameH);
-    editor->setUpdatesEnabled (true);
-    frame->setUpdatesEnabled (true);
-  }
-  else if (needsResize) {
-    editor->setUpdatesEnabled (true);
-    frame->setUpdatesEnabled (true);
+    emit inputHeightChanged ();
   }
 }
 

@@ -51,6 +51,16 @@ private slots:
     QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
   }
 
+  void test_count_input_lines_concat_formula_counts_as_one_paragraph () {
+    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"));
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 1);
+  }
+
+  void test_count_input_lines_concat_formula_with_second_paragraph () {
+    tree doc= tree (DOCUMENT, tree (CONCAT, "x", "y", "z"), "para2");
+    QCOMPARE (ChatConversationPanel::count_input_lines (doc), 2);
+  }
+
   void test_is_empty_document_body_truly_empty () {
     // tree(DOCUMENT) 在 TeXmacs 中实际创建的是带有一个空子节点的 DOCUMENT
     // 空文档的标准表示是 tree(DOCUMENT, "")
