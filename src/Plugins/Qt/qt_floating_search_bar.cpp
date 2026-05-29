@@ -23,6 +23,7 @@
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QHash>
+#include <QKeyEvent>
 #include <QPalette>
 #include <QResizeEvent>
 #include <QToolButton>
@@ -158,6 +159,8 @@ QTMFloatingSearchBar::~QTMFloatingSearchBar () {
 void
 QTMFloatingSearchBar::setSearchInput (QWidget* input) {
   if (inputQW_) {
+    QAbstractScrollArea* oldArea= inputQW_->findChild<QAbstractScrollArea*> ();
+    if (oldArea) oldArea->removeEventFilter (this);
     rowLayout_->removeWidget (inputQW_);
     inputQW_->deleteLater ();
   }
@@ -167,6 +170,7 @@ QTMFloatingSearchBar::setSearchInput (QWidget* input) {
     QAbstractScrollArea* scrollArea= input->findChild<QAbstractScrollArea*> ();
     if (scrollArea) {
       scrollArea->viewport ()->setBackgroundRole (QPalette::Base);
+      scrollArea->installEventFilter (this);
     }
     rowLayout_->insertWidget (0, input, 1);
   }
@@ -176,7 +180,11 @@ void
 QTMFloatingSearchBar::activate () {
   show ();
   raise ();
-  if (inputQW_) inputQW_->setFocus ();
+  if (inputQW_) {
+    QAbstractScrollArea* sa= inputQW_->findChild<QAbstractScrollArea*> ();
+    if (sa) sa->setFocus ();
+    else inputQW_->setFocus ();
+  }
 }
 
 void
@@ -222,6 +230,16 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
       isVisible ()) {
     reposition ();
   }
+  if (event->type () == QEvent::KeyPress && isVisible () && inputQW_) {
+    auto* ke= static_cast<QKeyEvent*> (event);
+    if (ke->key () == Qt::Key_Escape) {
+      QAbstractScrollArea* sa= inputQW_->findChild<QAbstractScrollArea*> ();
+      if (sa && watched == sa) {
+        emit closeRequested ();
+        return true;
+      }
+    }
+  }
   return QWidget::eventFilter (watched, event);
 }
 
@@ -260,9 +278,9 @@ get_or_create_bar (QWidget* parent) {
   auto* bar   = new QTMFloatingSearchBar (parent);
   bars[parent]= bar;
 
-  QObject::connect (parent, &QObject::destroyed, [] (QObject* obj) {
-    searchBars ().remove (static_cast<QWidget*> (obj));
-  });
+  QWidget* pw= parent;
+  QObject::connect (parent, &QObject::destroyed,
+                    [pw] () { searchBars ().remove (pw); });
 
   bar->setFixedWidth (DpiUtils::scaled (kBarWidth));
   return bar;
@@ -366,9 +384,7 @@ void
 qt_floating_search_init (string aux_url_str) {
   QWidget* parent= get_provider_parent ();
   if (!parent) return;
-  if (!qt_floating_search_bar_init (parent, aux_url_str)) return;
-  auto* bar= get_or_create_bar (parent);
-  if (bar) bar->activate ();
+  qt_floating_search_bar_init (parent, aux_url_str);
 }
 
 void

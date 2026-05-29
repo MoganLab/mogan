@@ -528,6 +528,13 @@ function main()
                 }
             },
             {
+                scm_name = "qt-chat-tab-active-message-buffer-url",
+                cpp_name = "qt_chat_tab_active_message_buffer_url",
+                ret_type = "string",
+                arg_list = {}
+            },
+
+            {
                 scm_name = "qt-floating-search",
                 cpp_name = "qt_floating_search",
                 ret_type = "void",

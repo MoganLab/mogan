@@ -456,7 +456,7 @@
                 (check-same? (tm-children new-env) (tm-children old-env)))))))
       (lambda (key msg . rest)
         (display* "Warning: accept-search-result? error: " msg "\n")
-        #t))
+        (if chat-tab-search-active? #t #f)))
   ) ;or
 ) ;define
 
@@ -1183,6 +1183,14 @@
     (with-buffer chat-tab-search-target
       (cancel-alt-selection "alternate"))
     (set-search-window-state #f #f)
+    (let* ((msg-url (url->system chat-tab-search-target))
+           (in-url (if (string-starts? msg-url "tmfs://chat-message-")
+                     (string-append "tmfs://chat-input-"
+                       (substring msg-url
+                         (string-length "tmfs://chat-message-")))
+                     "")))
+      (when (not (== in-url ""))
+        (buffer-focus (string->url in-url) #t)))
     (set! chat-tab-search-active? #f)
     (set! chat-tab-search-target #f)
     (set! chat-tab-search-aux #f)))
@@ -1727,13 +1735,18 @@
   (with buf (current-buffer)
     (with sid (chat-buffer-session-id buf)
       (cond
-        ((and sid
-              (chat-message-buffer-has-content?
-                (string->url (string-append "tmfs://chat-message-" sid))))
-         (chat-tab-search-init
-           (string->url (string-append "tmfs://chat-message-" sid))))
+        ((string-starts? (url->system buf) "tmfs://chat-")
+         ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
+         (let* ((msg-url (if sid
+                           (string-append "tmfs://chat-message-" sid)
+                           (qt-chat-tab-active-message-buffer-url)))
+                (msg-u (and msg-url (not (== msg-url ""))
+                            (string->url msg-url))))
+           (if (and msg-u (chat-message-buffer-has-content? msg-u))
+             (chat-tab-search-init msg-u)
+             (noop))))
         ((string-starts? (url->system buf) "tmfs:")
-         ;; 其他 tmfs:// 缓冲区不支持搜索
+         ;; 其他 tmfs:// 缓冲区保持禁用搜索
          (noop))
         (else
          (set! search-replace-text

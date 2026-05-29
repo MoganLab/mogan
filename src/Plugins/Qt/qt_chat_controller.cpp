@@ -712,3 +712,19 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   get_chat_controller ()->restoreSessionMeta (
       sessionId, title, model, isArchived, createdAt, expandCount, isThinking);
 }
+
+string
+ChatController::activeSessionMessageBufferUrl () const {
+  if (!view_) return "";
+  ChatSidebar* sidebar= view_->sidebar ();
+  if (!sidebar) return "";
+  string activeId= sidebar->activeSessionId ();
+  if (is_empty (activeId)) return "";
+  url msgBufUrl= ChatSessionManager::messageBufferUrl (activeId);
+  return as_string (msgBufUrl);
+}
+
+string
+qt_chat_tab_active_message_buffer_url () {
+  return get_chat_controller ()->activeSessionMessageBufferUrl ();
+}

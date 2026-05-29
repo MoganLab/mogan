@@ -133,6 +133,8 @@ public:
    */
   void destroyView ();
 
+  string activeSessionMessageBufferUrl () const;
+
 private:
   QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_;  ///< 会话管理器
@@ -233,5 +235,7 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
                                   string archived, string createdAt,
                                   int defaultExpandCount, string thinking);
+
+string qt_chat_tab_active_message_buffer_url ();
 
 #endif // QT_CHAT_CONTROLLER_HPP
