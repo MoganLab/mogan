@@ -652,16 +652,16 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
       if (is_func (st[i], ROW)) {
         for (int j= 0; j < N (st[i]); j++) {
           selection sel= cell_cache[i][j];
-          if (!sel->valid) continue;
+          if (!sel->valid || is_nil (sel->rs) || N (sel->rs) == 0) continue;
           rectangles rsel= copy (thicken (sel->rs, 0, 2 * pixel));
 
           if (i > 0 && j < row_sizes[i - 1] && N (cell_cache[i - 1]) > j) {
             selection bis= cell_cache[i - 1][j];
-            if (!bis->valid) {
+            if (!bis->valid || is_nil (bis->rs) || N (bis->rs) == 0) {
               bis= find_adjacent_selection (cell_cache, i, j, sel->rs->item->x1,
                                             sel->rs->item->x2, false);
             }
-            if (bis->valid) {
+            if (bis->valid && !is_nil (bis->rs) && N (bis->rs) > 0) {
               // Skip if cells are on different pages. Use un-thickened rects
               // because thickening could mask the page gap.
               if (!(bis->rs->item->y1 > sel->rs->item->y2)) {
@@ -674,11 +674,11 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
           if (i + 1 < table_rows && j < row_sizes[i + 1] &&
               N (cell_cache[i + 1]) > j) {
             selection bis= cell_cache[i + 1][j];
-            if (!bis->valid) {
+            if (!bis->valid || is_nil (bis->rs) || N (bis->rs) == 0) {
               bis= find_adjacent_selection (cell_cache, i, j, sel->rs->item->x1,
                                             sel->rs->item->x2, true);
             }
-            if (bis->valid) {
+            if (bis->valid && !is_nil (bis->rs) && N (bis->rs) > 0) {
               if (!(sel->rs->item->y1 > bis->rs->item->y2)) {
                 rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
                 correct_adjacent (rsel, rbis);
@@ -688,7 +688,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
 
           if (j > 0) {
             selection bis= cell_cache[i][j - 1];
-            if (bis->valid) {
+            if (bis->valid && !is_nil (bis->rs) && N (bis->rs) > 0) {
               rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
               correct_adjacent_horizontal (rbis, rsel);
             }
@@ -696,7 +696,7 @@ edit_interface_rep::compute_env_rects (path p, rectangles& rs, bool recurse) {
 
           if (j + 1 < N (cell_cache[i])) {
             selection bis= cell_cache[i][j + 1];
-            if (bis->valid) {
+            if (bis->valid && !is_nil (bis->rs) && N (bis->rs) > 0) {
               rectangles rbis= copy (thicken (bis->rs, 0, 2 * pixel));
               correct_adjacent_horizontal (rsel, rbis);
             }
