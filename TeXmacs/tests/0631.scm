@@ -28,7 +28,7 @@
 (define (test-latex-table-import)
   (display "Testing 40 extreme cases of LaTeX table import...\n")
   (let* ((latex-content (load-latex "0631_table_import.tex"))
-         (parsed (parse-latex latex-content))
+         (parsed (parse-latex-document latex-content))
          (texmacs-tree (latex->texmacs parsed))
          (st (tree->stree texmacs-tree)))
     
