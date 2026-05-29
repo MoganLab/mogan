@@ -285,4 +285,47 @@
   \hline
 \end{tabular}
 
+% Case 41: Multirow inside a tabular with top and bottom borders (test three-line support with multirow)
+\begin{tabular}{cc}
+  \toprule
+  \multirow{2}{*}{DualHeader} & Header B \\
+                              & Header C \\
+  \midrule
+  Value 1 & Value 2 \\
+  \bottomrule
+\end{tabular}
+
+% Case 42: Tabular with multiple independent multirows on the same row
+\begin{tabular}{ccc}
+  \multirow{2}{*}{Multi 1} & \multirow{2}{*}{Multi 2} & Simple \\
+                           &                          & Simple 2 \\
+\end{tabular}
+
+% Case 43: Tabular with multirow spanning 4 rows
+\begin{tabular}{cc}
+  \multirow{4}{*}{Span Four Rows} & R1 \\
+                                  & R2 \\
+                                  & R3 \\
+                                  & R4 \\
+\end{tabular}
+
+% Case 44: Multirow inside multicolumn with custom width and border
+\begin{tabular}{|ccc|}
+  \hline
+  \multicolumn{2}{|c|}{\multirow{2}{*}{Combined MultiRowCol Width}} & Col 3 \\
+  \multicolumn{2}{|c|}{}                                            & Col 3 Row 2 \\
+  \hline
+\end{tabular}
+
+% Case 45: Extreme multirow and multicolumn nested complex table
+\begin{tabular}{|c|c|c|c|}
+  \hline
+  \multicolumn{3}{|c|}{\multirow{3}{*}{Extreme Nested Combined}} & Header 4 \\
+  \multicolumn{3}{|c|}{}                                         & Sub 4-1 \\
+  \multicolumn{3}{|c|}{}                                         & Sub 4-2 \\
+  \hline
+  Val 1 & Val 2 & Val 3 & Val 4 \\
+  \hline
+\end{tabular}
+
 \end{document}

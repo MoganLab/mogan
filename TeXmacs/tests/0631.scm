@@ -71,6 +71,99 @@
                (transform-three-line-tables (cdr x))))
         (else x)))
 
+(define (clean-multirow t)
+  (cond ((null? t) (cons '() #f))
+        ((and (pair? t) (eq? (car t) 'multirow))
+         (let ((n (list-ref t 1))
+               (w (list-ref t 2))
+               (text (if (> (length t) 3) (list-ref t 3) "")))
+           (cons text (cons n w))))
+        ((pair? t)
+         (let* ((res-car (clean-multirow (car t)))
+                (res-cdr (clean-multirow (cdr t))))
+           (cond ((cdr res-car)
+                  (cons (cons (car res-car) (car res-cdr)) (cdr res-car)))
+                 ((cdr res-cdr)
+                  (cons (cons (car res-car) (car res-cdr)) (cdr res-cdr)))
+                 (else
+                  (cons (cons (car res-car) (car res-cdr)) #f)))))
+        (else (cons t #f))))
+
+(define (process-row-cells cells r c options-acc new-cells-acc)
+  (cond ((null? cells)
+         (cons (reverse new-cells-acc) options-acc))
+        (else
+         (let* ((cell (car cells))
+                (cleaned-res (clean-multirow cell))
+                (new-cell (car cleaned-res))
+                (info (cdr cleaned-res)))
+           (if info
+               (let* ((n (car info))
+                      (row-str (number->string r))
+                      (col-str (number->string c))
+                      (new-opt1 (list 'cwith row-str row-str col-str col-str "cell-row-span" n))
+                      (new-opt2 (list 'cwith row-str row-str col-str col-str "cell-valign" "c")))
+                 (process-row-cells (cdr cells)
+                                    r
+                                    (+ c 1)
+                                    (cons new-opt1 (cons new-opt2 options-acc))
+                                    (cons new-cell new-cells-acc)))
+               (process-row-cells (cdr cells)
+                                  r
+                                  (+ c 1)
+                                  options-acc
+                                  (cons cell new-cells-acc)))))))
+
+(define (process-table-rows rows r options-acc new-rows-acc)
+  (cond ((null? rows)
+         (cons (reverse new-rows-acc) options-acc))
+        (else
+         (let* ((row (car rows))
+                (cells (cdr row))
+                (res-cells (process-row-cells cells r 1 '() '())))
+           (process-table-rows (cdr rows)
+                               (+ r 1)
+                               (append options-acc (cdr res-cells))
+                               (cons (cons 'row (car res-cells)) new-rows-acc))))))
+
+(define (filter-table options)
+  (cond ((null? options) '())
+        ((and (pair? (car options)) (eq? (caar options) 'table))
+         (filter-table (cdr options)))
+        (else (cons (car options) (filter-table (cdr options))))))
+
+(define (transform-multirow-tformat x)
+  (if (and (pair? x) (eq? (car x) 'tformat))
+      (let* ((options (cdr x))
+             (table-cell-pair (let loop ((lst options))
+                                (cond ((null? lst) #f)
+                                      ((and (pair? (car lst)) (eq? (caar lst) 'table))
+                                       (car lst))
+                                      (else (loop (cdr lst)))))))
+        (if table-cell-pair
+            (let* ((table-rows (cdr table-cell-pair))
+                   (processed (process-table-rows table-rows 1 '() '()))
+                   (new-rows (car processed))
+                   (new-options (cdr processed)))
+              (if (null? new-options)
+                  x
+                  (let* ((filtered-options (filter-table options))
+                         (rebuilt-options (append filtered-options new-options (list (cons 'table new-rows)))))
+                    (cons 'tformat rebuilt-options))))
+            x))
+      x))
+
+(define (transform-multirow x)
+  (cond ((null? x) '())
+        ((and (pair? x) (eq? (car x) 'tformat))
+         (let* ((new-t (transform-multirow-tformat x))
+                (transformed-args (map transform-multirow (cdr new-t))))
+           (cons 'tformat transformed-args)))
+        ((pair? x)
+         (cons (transform-multirow (car x))
+               (transform-multirow (cdr x))))
+        (else x)))
+
 (define (stree-contains? x target)
   (cond ((null? x) #f)
         ((equal? x target) #t)
@@ -79,12 +172,13 @@
         (else #f)))
 
 (define (test-latex-table-import)
-  (display "Testing 40 extreme cases of LaTeX table import...\n")
+  (display "Testing 45 extreme cases of LaTeX table import...\n")
   (let* ((latex-content (load-latex "0631_table_import.tex"))
          (parsed (parse-latex-document latex-content))
          (texmacs-tree (latex->texmacs parsed))
          (st-orig (tree->stree texmacs-tree))
-         (st (transform-three-line-tables st-orig)))
+         (st-three (transform-three-line-tables st-orig))
+         (st (transform-multirow st-three)))
     
     (display "Verifying specific table properties in converted tree...\n")
     
@@ -118,6 +212,16 @@
     (check (stree-contains? st 'big-table) => #t)
     (check (stree-contains? st "Test Caption") => #t)
     (check (stree-contains? st "tab:test_label") => #t)
+    
+    ;; 7. Check multirow resolution and cleanliness
+    ;; There must be NO undefined multirow macro in the final tree
+    (check (stree-contains? st 'multirow) => #f)
+    ;; Check new extreme cases of multirow combined/nested
+    (check (stree-contains? st "DualHeader") => #t)
+    (check (stree-contains? st "Multi 1") => #t)
+    (check (stree-contains? st "Span Four Rows") => #t)
+    (check (stree-contains? st "Combined MultiRowCol Width") => #t)
+    (check (stree-contains? st "Extreme Nested Combined") => #t)
     ))
 
 (tm-define (test_0631)
