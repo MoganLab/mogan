@@ -2096,6 +2096,7 @@ void set_standard_style_sheet (QWidget* w);
 
 void
 qt_tm_widget_rep::set_full_screen (bool flag) {
+  bool was_presentation= in_presentation_mode ();
   full_screen = flag;
   QWidget* win= mainwindow ()->window ();
   if (win) {
@@ -2166,15 +2167,17 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         QWidget* tb= windowAgent->titleBar ();
         if (tb) tb->setVisible (titleBarVisibleCache);
       }
-      QTMScrollView* scrollView2= scrollarea ();
-      if (scrollView2) {
-        QWidget* viewport= scrollView2->viewport ();
-        if (viewport) {
-          QPalette vpal;
-          vpal.setColor (QPalette::Mid, bgcol);
-          vpal.setColor (QPalette::Shadow, bgcol);
-          viewport->setPalette (vpal);
-          viewport->setBackgroundRole (QPalette::Mid);
+      if (was_presentation) {
+        QTMScrollView* scrollView= scrollarea ();
+        if (scrollView) {
+          QWidget* viewport= scrollView->viewport ();
+          if (viewport) {
+            QPalette vpal;
+            vpal.setColor (QPalette::Mid, bgcol);
+            vpal.setColor (QPalette::Shadow, bgcol);
+            viewport->setPalette (vpal);
+            viewport->setBackgroundRole (QPalette::Mid);
+          }
         }
       }
 #ifdef UNIFIED_TOOLBAR
