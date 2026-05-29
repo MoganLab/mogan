@@ -12,6 +12,9 @@
 #include <QMenu>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QInputMethodEvent>
+#include <QMouseEvent>
+#include <QWheelEvent>
 #include <QtTest/QtTest>
 
 using namespace moebius;
@@ -359,6 +362,145 @@ private slots:
     emit sidebar.exportRequested ("s1");
     emit sidebar.exportRequested ("s1");
     QCOMPARE (spy.count (), 2);
+  // ---- should_block_readonly_event 测试 ----
+  }
+
+  void test_readonly_no_property () {
+    // 无 chat_message_readonly 属性的对象 → 不拦截
+    QObject   obj;
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_A, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_property_false () {
+    // 属性显式为 false → 不拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", false);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_A, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_plain_keypress () {
+    // 无修饰键的 KeyPress → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_A, Qt::NoModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_enter_keypress () {
+    // Enter 键无修饰 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Return, Qt::NoModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_c () {
+    // Ctrl+C 复制 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_C, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_meta_c () {
+    // Meta+C（macOS ⌘+C）→ 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_C, Qt::MetaModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_a () {
+    // Ctrl+A 全选 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_A, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_f () {
+    // Ctrl+F 搜索 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_F, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_ctrl_v () {
+    // Ctrl+V 粘贴 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_V, Qt::ControlModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_ctrl_x () {
+    // Ctrl+X 剪切 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_X, Qt::ControlModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_ctrl_z () {
+    // Ctrl+Z 撤销 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Z, Qt::ControlModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_plain_keyrelease () {
+    // 无修饰键的 KeyRelease → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_A, Qt::NoModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_f_keyrelease () {
+    // Ctrl+F 的 KeyRelease → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_F, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_ctrl_v_keyrelease () {
+    // Ctrl+V 的 KeyRelease → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_V, Qt::ControlModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_input_method () {
+    // InputMethod 事件 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QInputMethodEvent ime{QString (), QList<QInputMethodEvent::Attribute>{}};
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ime));
+  }
+
+  void test_readonly_allows_mouse_events () {
+    // 鼠标事件 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QMouseEvent me (QEvent::MouseButtonPress, QPointF (0, 0), QPointF (0, 0),
+                    Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &me));
+  }
+
+  void test_readonly_allows_wheel_event () {
+    // 滚轮事件 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QWheelEvent we (QPointF (0, 0), QPointF (0, 0), QPoint (0, 120),
+                    QPoint (0, 120), Qt::NoButton, Qt::NoModifier,
+                    Qt::NoScrollPhase, false);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &we));
   }
 };
 

@@ -97,6 +97,14 @@ public:
    */
   static int count_input_lines (tree body);
 
+  /**
+   * @brief 判断只读控件是否应拦截该事件。
+   * @param watched 事件目标对象（需带有 chat_message_readonly 属性）
+   * @param event   待判断的事件
+   * @return 应拦截返回 true，放行返回 false
+   */
+  static bool should_block_readonly_event (QObject* watched, QEvent* event);
+
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);

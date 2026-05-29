@@ -387,24 +387,42 @@ ChatConversationPanel::count_input_lines (tree body) {
 }
 
 bool
-ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
-  // 拦截 message 区域的文字输入（只读，但保留快捷键如 Ctrl+C/Ctrl+F/⌘+C/⌘+F）
-  if (watched->property ("chat_message_readonly").toBool ()) {
-    QEvent::Type t= event->type ();
-    if (t == QEvent::InputMethod) return true;
-    if (t == QEvent::KeyPress) {
-      QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
-      Qt::KeyboardModifiers mods= ke->modifiers ();
-      if (mods & (Qt::ControlModifier | Qt::MetaModifier)) return false;
+ChatConversationPanel::should_block_readonly_event (QObject* watched,
+                                                    QEvent*  event) {
+  if (!watched->property ("chat_message_readonly").toBool ()) return false;
+  QEvent::Type t= event->type ();
+  if (t == QEvent::InputMethod) return true;
+  if (t == QEvent::KeyPress) {
+    QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+    Qt::KeyboardModifiers mods= ke->modifiers ();
+    bool has_modifier         = mods & (Qt::ControlModifier | Qt::MetaModifier);
+    if (has_modifier) {
+      int key= ke->key ();
+      // 只放行允许的快捷键：复制(C)、全选(A)、搜索(F)
+      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F)
+        return false;
       return true;
     }
-    if (t == QEvent::KeyRelease) {
-      QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
-      Qt::KeyboardModifiers mods= ke->modifiers ();
-      if (mods & (Qt::ControlModifier | Qt::MetaModifier)) return false;
-      return true;
-    }
+    return true;
   }
+  if (t == QEvent::KeyRelease) {
+    QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+    Qt::KeyboardModifiers mods= ke->modifiers ();
+    bool has_modifier         = mods & (Qt::ControlModifier | Qt::MetaModifier);
+    if (has_modifier) {
+      int key= ke->key ();
+      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F)
+        return false;
+      return true;
+    }
+    return true;
+  }
+  return false;
+}
+
+bool
+ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
+  if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     if ((keyEvent->key () == Qt::Key_Return ||
