@@ -49,6 +49,8 @@
 #include "qt_tm_widget.hpp"
 #include "qt_utilities.hpp"
 
+bool in_presentation_mode ();
+
 #if !IS_COMMUNITY
 #include "telemetry.hpp"
 #endif
@@ -2126,18 +2128,20 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         titleBarVisibleCache= tb && tb->isVisible ();
         if (tb) tb->setVisible (false);
       }
-      QTMScrollView* scrollView= scrollarea ();
-      if (scrollView) {
-        QWidget* viewport= scrollView->viewport ();
-        if (viewport) {
-          QPalette vpal;
-          vpal.setColor (QPalette::Shadow, QColor (0, 0, 0));
-          vpal.setColor (QPalette::Mid, QColor (0, 0, 0));
-          viewport->setPalette (vpal);
-          viewport->setBackgroundRole (QPalette::Shadow);
+      if (in_presentation_mode ()) {
+        QTMScrollView* scrollView= scrollarea ();
+        if (scrollView) {
+          QWidget* viewport= scrollView->viewport ();
+          if (viewport) {
+            QPalette vpal;
+            vpal.setColor (QPalette::Shadow, QColor (0, 0, 0));
+            vpal.setColor (QPalette::Mid, QColor (0, 0, 0));
+            viewport->setPalette (vpal);
+            viewport->setBackgroundRole (QPalette::Shadow);
+          }
         }
+        if (chatSidebarToggleBtn) chatSidebarToggleBtn->hide ();
       }
-      if (chatSidebarToggleBtn) chatSidebarToggleBtn->hide ();
     }
     else {
       QPalette pal;
