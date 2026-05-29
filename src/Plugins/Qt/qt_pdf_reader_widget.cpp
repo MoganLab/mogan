@@ -17,6 +17,7 @@
 #include <QGestureEvent>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QPainter>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMouseEvent>
@@ -786,73 +787,59 @@ PDFReaderWidget::pageWidth () const {
 }
 
 bool
-PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
-                                    int targetWidth) {
+PDFReaderWidget::renderPageTiled (int pageNumber, QLabel* label, int targetWidth,
+                                  int targetHeight) {
+  if (pageNumber < 0 || pageNumber >= pageTileManagers_.size ()) return false;
+
   ++renderCallCount_;
 #ifdef LIII_DEBUG
-  cout << "renderPageToLabel page=" << pageNumber << " width=" << targetWidth
+  cout << "renderPageTiled page=" << pageNumber << " width=" << targetWidth
        << "\n";
 #endif
-  // 计算目标高度（优先使用预缓存的宽高比）
-  double aspectRatio= pageAspectRatio_;
-  if (pageNumber >= 0 && pageNumber < pageAspectRatios_.size ()) {
-    aspectRatio= pageAspectRatios_[pageNumber];
-  }
-  if (aspectRatio <= 0.0) aspectRatio= 1.414;
-  int targetHeight= qMax (1, qRound (targetWidth * aspectRatio));
 
-  // 尝试从缓存读取
-  PdfPageCacheKey key{pageNumber, targetWidth};
-  auto            it= pageCache_.find (key);
-  if (it != pageCache_.end ()) {
-    QPixmap cached= it.value ();
-    qreal   dpr   = devicePixelRatioF ();
-    int     pxW   = qMax (1, qRound (targetWidth * dpr));
-    int     pxH   = qMax (1, qRound (targetHeight * dpr));
-    if (cached.width () == pxW && cached.height () == pxH) {
-      label->setPixmap (cached);
-      label->setFixedSize (targetWidth, targetHeight);
-      return true;
-    }
-    // 尺寸不匹配（如 DPR 变化），移除旧缓存
-    pageCache_.erase (it);
+  PdfTilesManager* mgr= pageTileManagers_[pageNumber];
+  qreal            dpr= devicePixelRatioF ();
+  int              pxW= qMax (1, qRound (targetWidth * dpr));
+  int              pxH= qMax (1, qRound (targetHeight * dpr));
+
+  if (mgr->width () != pxW || mgr->height () != pxH) {
+    mgr->setSize (pxW, pxH);
   }
 
-  fz_context* ctx= mupdf_context ();
-  if (!ctx) {
-    errorString_= qt_translate ("PDF engine not available");
-    hasError_   = true;
-    return false;
-  }
+  // Render ALL tiles for this page (not just visible ones) so composite
+  // produces a complete display image. The visible rect is only used for
+  // memory cleanup priority in cleanupTileMemory().
+  QList<PdfTile> tiles=
+      mgr->tilesAt (QRectF (0, 0, 1, 1), PdfTilesManager::TerminalTile);
 
-  static std::mutex registerMutex;
-  static bool       handlersRegistered= false;
-  if (!handlersRegistered) {
-    QString registerError;
-    {
-      std::lock_guard<std::mutex> lock (registerMutex);
-      if (!handlersRegistered) {
-        fz_try (ctx) {
-          fz_register_document_handlers (ctx);
-          handlersRegistered= true;
-        }
-        fz_catch (ctx) {
-          registerError= QString::fromUtf8 (fz_caught_message (ctx));
-        }
+  for (const PdfTile& tile : tiles) {
+    if (!tile.isValid ()) {
+      if (!renderTile (pageNumber, tile.rect (), pxW, pxH)) {
+        return false;
       }
     }
-    if (!handlersRegistered) {
-      errorString_= qt_translate ("Failed to initialize PDF handlers");
-      hasError_   = true;
-      return false;
-    }
   }
+
+  QPixmap display= compositeTiles (pageNumber, targetWidth, targetHeight);
+  if (display.isNull ()) return false;
+
+  label->setPixmap (display);
+  label->setFixedSize (targetWidth, targetHeight);
+  return true;
+}
+
+bool
+PDFReaderWidget::renderTile (int pageNumber, const QRectF& tileRect,
+                             int fullWidth, int fullHeight) {
+  fz_context* ctx= mupdf_context ();
+  if (!ctx) return false;
 
   fz_document* doc    = nullptr;
   fz_pixmap*   pix    = nullptr;
   fz_page*     page   = nullptr;
   fz_buffer*   buf    = nullptr;
   fz_stream*   stream = nullptr;
+  fz_device*   dev    = nullptr;
   bool         success= false;
 
   fz_var (doc);
@@ -860,57 +847,55 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
   fz_var (page);
   fz_var (buf);
   fz_var (stream);
+  fz_var (dev);
 
   fz_try (ctx) {
     buf= fz_new_buffer_from_copied_data (
         ctx, reinterpret_cast<const unsigned char*> (pdfData_.constData ()),
         pdfData_.size ());
-
     stream= fz_open_buffer (ctx, buf);
     doc   = fz_open_document_with_stream (ctx, "pdf", stream);
-
-    if (!doc) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
-    }
-
-    int totalPages= fz_count_pages (ctx, doc);
-    if (totalPages <= 0) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "PDF has no pages");
-    }
-
-    if (pageNumber < 0 || pageNumber >= totalPages) {
-      pageNumber= 0;
-    }
+    if (!doc) fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to open PDF document");
 
     page= fz_load_page (ctx, doc, pageNumber);
-    if (!page) {
+    if (!page)
       fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to load page %d", pageNumber);
-    }
 
-    fz_rect bbox      = fz_bound_page (ctx, page);
-    float   pageWidth = bbox.x1 - bbox.x0;
-    float   pageHeight= bbox.y1 - bbox.y0;
-    aspectRatio       = pageHeight / pageWidth;
-    targetHeight      = qMax (1, qRound (targetWidth * aspectRatio));
+    fz_rect bbox     = fz_bound_page (ctx, page);
+    float   pageWPts = bbox.x1 - bbox.x0;
+    float   pageHPts = bbox.y1 - bbox.y0;
 
-    qreal dpr      = devicePixelRatioF ();
-    int   targetPxW= qMax (1, qRound (targetWidth * dpr));
-    int   targetPxH= qMax (1, qRound (targetHeight * dpr));
-
-    float scaleX= static_cast<float> (targetPxW) / pageWidth;
-    float scaleY= static_cast<float> (targetPxH) / pageHeight;
-    float scale = qMin (scaleX, scaleY);
     float qualityScale=
         qMax (1.0F, static_cast<float> (targetDpi_) / DEFAULT_DPI);
     float renderScale=
-        qBound (kMinRenderScale, scale * kRenderOversample * qualityScale,
-                kMaxRenderScale);
+        (static_cast<float> (fullWidth) / pageWPts) * qualityScale;
+    renderScale= qBound (kMinRenderScale, renderScale, kMaxRenderScale);
 
-    fz_matrix ctm= fz_scale (renderScale, renderScale);
-    pix= fz_new_pixmap_from_page (ctx, page, ctm, fz_device_rgb (ctx), 0);
-    if (!pix) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to render page");
-    }
+    int tileX= qMax (0, qRound (tileRect.left () * fullWidth));
+    int tileY= qMax (0, qRound (tileRect.top () * fullHeight));
+    int tileR= qMin (fullWidth, qRound (tileRect.right () * fullWidth));
+    int tileB= qMin (fullHeight, qRound (tileRect.bottom () * fullHeight));
+    int tileW= qMax (1, tileR - tileX);
+    int tileH= qMax (1, tileB - tileY);
+
+    fz_irect clip= fz_make_irect (0, 0, tileW, tileH);
+    pix= fz_new_pixmap_with_bbox (ctx, fz_device_rgb (ctx), clip, nullptr, 0);
+    fz_clear_pixmap_with_value (ctx, pix, 0xFF);
+
+    dev= fz_new_draw_device_with_bbox (ctx, fz_identity, pix, &clip);
+
+    fz_matrix ctm;
+    ctm.a= renderScale;
+    ctm.b= 0;
+    ctm.c= 0;
+    ctm.d= renderScale;
+    ctm.e= -(float) tileX;
+    ctm.f= -(float) tileY;
+
+    fz_run_page (ctx, page, dev, ctm, nullptr);
+    fz_close_device (ctx, dev);
+    fz_drop_device (ctx, dev);
+    dev= nullptr;
 
     int            pixW   = fz_pixmap_width (ctx, pix);
     int            pixH   = fz_pixmap_height (ctx, pix);
@@ -929,33 +914,19 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
       image= tempImage.copy ();
     }
     else {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Unsupported pixmap format (n=%d)",
-                comps);
+      fz_throw (ctx, FZ_ERROR_GENERIC, "Unsupported pixmap format");
     }
 
-    if (image.isNull ()) {
-      fz_throw (ctx, FZ_ERROR_GENERIC, "Failed to convert to image");
-    }
-
-    QPixmap pixmap= QPixmap::fromImage (std::move (image));
-    pixmap        = pixmap.scaled (targetPxW, targetPxH, Qt::KeepAspectRatio,
-                                   Qt::SmoothTransformation);
-    pixmap.setDevicePixelRatio (dpr);
-
-    label->setPixmap (pixmap);
-    label->setFixedSize (targetWidth, targetHeight);
-
-    // 写入缓存
-    pageCache_.insert (key, pixmap);
+    QPixmap tilePixmap= QPixmap::fromImage (std::move (image));
+    pageTileManagers_[pageNumber]->setPixmap (&tilePixmap, tileRect, false);
     success= true;
   }
   fz_catch (ctx) {
-    qWarning () << "MuPDF error:" << fz_caught_message (ctx);
-    errorString_= qt_translate ("PDF render error");
-    hasError_   = true;
-    success     = false;
+    qWarning () << "MuPDF tile render error:" << fz_caught_message (ctx);
+    success= false;
   }
 
+  if (dev) fz_drop_device (ctx, dev);
   if (pix) fz_drop_pixmap (ctx, pix);
   if (page) fz_drop_page (ctx, page);
   if (stream) fz_drop_stream (ctx, stream);
@@ -963,6 +934,96 @@ PDFReaderWidget::renderPageToLabel (int pageNumber, QLabel* label,
   if (doc) fz_drop_document (ctx, doc);
 
   return success;
+}
+
+QPixmap
+PDFReaderWidget::compositeTiles (int pageNumber, int targetWidth,
+                                 int targetHeight) {
+  if (pageNumber < 0 || pageNumber >= pageTileManagers_.size ()) {
+    return QPixmap ();
+  }
+
+  qreal    dpr= devicePixelRatioF ();
+  int      pxW= qMax (1, qRound (targetWidth * dpr));
+  int      pxH= qMax (1, qRound (targetHeight * dpr));
+  QPixmap  result (pxW, pxH);
+  result.setDevicePixelRatio (dpr);
+  result.fill (Qt::white);
+
+  PdfTilesManager* mgr= pageTileManagers_[pageNumber];
+  QList<PdfTile>   tiles=
+      mgr->tilesAt (QRectF (0, 0, 1, 1), PdfTilesManager::PixmapTile);
+
+  QPainter painter (&result);
+  for (const PdfTile& tile : tiles) {
+    QPixmap* pm= tile.pixmap ();
+    if (!pm || pm->isNull ()) continue;
+
+    QRectF destRect (tile.rect ().left () * pxW, tile.rect ().top () * pxH,
+                     tile.rect ().width () * pxW, tile.rect ().height () * pxH);
+    painter.drawPixmap (destRect, *pm, QRectF (pm->rect ()));
+  }
+
+  return result;
+}
+
+void
+PDFReaderWidget::cleanupTileMemory () {
+  qulonglong total= 0;
+  for (const PdfTilesManager* mgr : pageTileManagers_) {
+    total+= mgr->totalMemory ();
+  }
+  if (total <= TILE_MEMORY_BUDGET) return;
+
+  qulonglong toFree  = total - TILE_MEMORY_BUDGET;
+  int        curPage = qMax (0, currentPage () - 1);
+
+  for (int i= 0; i < pageTileManagers_.size (); ++i) {
+    if (toFree <= 0) break;
+
+    QRectF visibleRect;
+    if (i == curPage) {
+      visibleRect= visibleRectForPage (i);
+    }
+
+    qulonglong before= pageTileManagers_[i]->totalMemory ();
+    pageTileManagers_[i]->cleanupPixmapMemory (toFree, visibleRect, curPage);
+    qulonglong freed= before - pageTileManagers_[i]->totalMemory ();
+    if (toFree > freed) {
+      toFree-= freed;
+    }
+    else {
+      toFree= 0;
+    }
+  }
+}
+
+QRectF
+PDFReaderWidget::visibleRectForPage (int pageIndex) const {
+  if (pageIndex < 0 || pageIndex >= pageCount_) {
+    return QRectF (0, 0, 1, 1);
+  }
+
+  int width      = pageWidth ();
+  double aspect  = (pageIndex < pageAspectRatios_.size ())
+                       ? pageAspectRatios_[pageIndex]
+                       : pageAspectRatio_;
+  if (aspect <= 0.0) aspect= 1.414;
+  int height     = qMax (1, qRound (width * aspect));
+  int pageTopY   = PAGE_MARGIN + pageIndex * (height + PAGE_MARGIN);
+  int pageBottomY= pageTopY + height;
+
+  int scrollY       = scrollArea_->verticalScrollBar ()->value ();
+  int viewportHeight= scrollArea_->viewport ()->height ();
+  int visTop        = qMax (pageTopY, scrollY - PRELOAD_MARGIN) - pageTopY;
+  int visBottom     = qMin (pageBottomY,
+                            scrollY + viewportHeight + PRELOAD_MARGIN) -
+                   pageTopY;
+
+  double normTop   = qMax (0.0, (double) visTop / height);
+  double normBottom= qMin (1.0, (double) visBottom / height);
+
+  return QRectF (0.0, normTop, 1.0, normBottom - normTop);
 }
 
 void
@@ -974,7 +1035,6 @@ PDFReaderWidget::rebuildPages () {
 
   int childCount= pageLayout_->count ();
 
-  // 第一轮：统一设置所有 label 的目标尺寸，保证布局正确
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
     if (!item) continue;
@@ -987,7 +1047,6 @@ PDFReaderWidget::rebuildPages () {
     label->setFixedSize (width, height);
   }
 
-  // 计算当前视口范围（考虑预加载边距）
   int scrollY       = scrollArea_->verticalScrollBar ()->value ();
   int viewportHeight= scrollArea_->viewport ()->height ();
   int minY          = scrollY - PRELOAD_MARGIN;
@@ -995,7 +1054,6 @@ PDFReaderWidget::rebuildPages () {
 
   if (blockRender_) return;
 
-  // 第二轮：只渲染可见及预加载范围内的页面
   for (int i= 0; i < childCount && i < pageCount_; ++i) {
     QLayoutItem* item= pageLayout_->itemAt (i);
     if (!item) continue;
@@ -1007,34 +1065,27 @@ PDFReaderWidget::rebuildPages () {
     if (aspect <= 0.0) aspect= 1.414;
     int height= qMax (1, qRound (width * aspect));
 
-    // 使用理论 Y 坐标判断可见性（布局 spacing = PAGE_MARGIN）
     int labelTop   = PAGE_MARGIN + i * (height + PAGE_MARGIN);
     int labelBottom= labelTop + height;
 
     if (labelBottom >= minY && labelTop <= maxY) {
-      renderPageToLabel (i, label, width);
+      renderPageTiled (i, label, width, height);
     }
     else {
-      // 视口外：尝试用缓存的降级版本显示，避免空白跳动
-      PdfPageCacheKey key{i, width};
-      auto            it= pageCache_.find (key);
-      if (it != pageCache_.end ()) {
-        QPixmap cached= it.value ();
-        qreal   dpr   = devicePixelRatioF ();
-        int     pxW   = qMax (1, qRound (width * dpr));
-        int     pxH   = qMax (1, qRound (height * dpr));
-        if (cached.width () != pxW || cached.height () != pxH) {
-          cached= cached.scaled (pxW, pxH, Qt::KeepAspectRatio,
-                                 Qt::FastTransformation);
-          cached.setDevicePixelRatio (dpr);
+      // 视口外：尝试用现有瓦片合成降级显示
+      if (i < pageTileManagers_.size ()) {
+        QPixmap display= compositeTiles (i, width, height);
+        if (!display.isNull ()) {
+          label->setPixmap (display);
         }
-        label->setPixmap (cached);
-      }
-      else {
-        label->clear ();
+        else {
+          label->clear ();
+        }
       }
     }
   }
+
+  cleanupTileMemory ();
 }
 
 bool
@@ -1140,6 +1191,19 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
     return false;
   }
 
+  // 创建每页的瓦片管理器
+  {
+    int pw= pageWidth ();
+    pageTileManagers_.reserve (pageCount_);
+    for (int i= 0; i < pageCount_; ++i) {
+      double aspect= (i < pageAspectRatios_.size ()) ? pageAspectRatios_[i]
+                                                     : pageAspectRatio_;
+      if (aspect <= 0.0) aspect= 1.414;
+      int ph= qMax (1, qRound (pw * aspect));
+      pageTileManagers_.append (new PdfTilesManager (i, pw, ph));
+    }
+  }
+
   extractPageLinks ();
 
   // 创建所有页面 label（先不渲染，由 rebuildPages 统一处理可见性）
@@ -1173,7 +1237,8 @@ PDFReaderWidget::clear () {
   pageAspectRatios_.clear ();
   autoFitApplied_= false;
   clearPageLinks ();
-  pageCache_.clear ();
+  qDeleteAll (pageTileManagers_);
+  pageTileManagers_.clear ();
 
   QLayoutItem* item;
   while ((item= pageLayout_->takeAt (0)) != nullptr) {

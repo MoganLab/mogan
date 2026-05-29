@@ -8,7 +8,6 @@
 #ifndef QT_PDF_READER_WIDGET_HPP
 #define QT_PDF_READER_WIDGET_HPP
 
-#include <QHash>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
@@ -21,6 +20,8 @@
 #include <QVBoxLayout>
 #include <QWidget>
 
+#include "pdf_tiles_manager.hpp"
+
 /**
  * @brief Represents a clickable link on a PDF page
  */
@@ -31,25 +32,9 @@ struct PdfLink {
 };
 
 /**
- * @brief Key for per-page render cache
- */
-struct PdfPageCacheKey {
-  int  pageNumber;
-  int  targetWidth;
-  bool operator== (const PdfPageCacheKey& other) const {
-    return pageNumber == other.pageNumber && targetWidth == other.targetWidth;
-  }
-};
-
-inline uint
-qHash (const PdfPageCacheKey& key, uint seed= 0) {
-  return qHash (key.pageNumber, seed) ^ qHash (key.targetWidth, seed);
-}
-
-/**
  * @brief Continuous-scroll PDF reader widget with toolbar
  *
- * Renders all pages vertically in a scroll area.
+ * Renders all pages vertically in a scroll area using tiled rendering.
  * Supports mouse wheel zoom, Fit Width/Height, and page navigation.
  */
 class PDFReaderWidget : public QWidget {
@@ -105,7 +90,13 @@ private slots:
 private:
   void    startPinchGesture ();
   void    finishPinchGesture ();
-  bool    renderPageToLabel (int pageNumber, QLabel* label, int targetWidth);
+  bool    renderPageTiled (int pageNumber, QLabel* label, int targetWidth,
+                           int targetHeight);
+  bool    renderTile (int pageNumber, const QRectF& tileRect, int fullWidth,
+                      int fullHeight);
+  QPixmap compositeTiles (int pageNumber, int targetWidth, int targetHeight);
+  void    cleanupTileMemory ();
+  QRectF  visibleRectForPage (int pageIndex) const;
   void    rebuildPages ();
   void    onResizeDebounced ();
   bool    maybeAutoFitWidth ();
@@ -172,8 +163,8 @@ private:
   PdfLink                   currentLink_;
   bool                      overLink_;
 
-  // 页面渲染缓存：key = (pageNumber, targetWidth)
-  QHash<PdfPageCacheKey, QPixmap> pageCache_;
+  // 每页一个瓦片管理器
+  QVector<PdfTilesManager*> pageTileManagers_;
 
   // 防抖定时器
   QTimer* zoomDebounceTimer_;
@@ -199,8 +190,8 @@ private:
   static constexpr int    ZOOM_LEVEL_COUNT= 12;
   static constexpr double ZOOM_LEVELS[ZOOM_LEVEL_COUNT]{
       0.25, 0.33, 0.50, 0.75, 1.00, 1.25, 1.50, 2.00, 3.00, 4.00, 6.00, 8.00};
-};
 
-/* PdfPageCacheKey qHash defined above */
+  static constexpr qulonglong TILE_MEMORY_BUDGET= 256ULL * 1024 * 1024;
+};
 
 #endif // QT_PDF_READER_WIDGET_HPP
