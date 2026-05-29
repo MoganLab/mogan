@@ -14,6 +14,7 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
+#include "tree_helper.hpp"
 #include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
@@ -379,12 +380,29 @@ ChatConversationPanel::is_empty_document_body (tree body) {
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
+static int
+count_compound_lines (tree t) {
+  int lines= 0;
+  for (int i= 0; i < N (t); i++) {
+    if (is_compound (t[i]) && is_formatting (t[i])) continue;
+    lines++;
+  }
+  return qMax (lines, 1);
+}
+
 int
 ChatConversationPanel::count_input_lines (tree body) {
   if (!is_func (body, DOCUMENT)) return 1;
   if (N (body) == 0) return 1;
   if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  return N (body);
+  int lines= 0;
+  for (int i= 0; i < N (body); i++) {
+    if (is_compound (body[i]) && !is_func (body[i], DOCUMENT))
+      lines+= count_compound_lines (body[i]);
+    else
+      lines++;
+  }
+  return lines;
 }
 
 bool
