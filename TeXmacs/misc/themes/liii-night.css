@@ -1526,6 +1526,14 @@ QWidget#floating_search_bar QToolButton#floating-search-close {
   qproperty-icon: url(":/tabpage/close-white.svg");
 }
 
+QWidget#floating_search_bar QToolButton#floating-search-mode-text {
+  qproperty-icon: url(":/floating-search/text-mode-white.svg");
+}
+
+QWidget#floating_search_bar QToolButton#floating-search-mode-math {
+  qproperty-icon: url(":/floating-search/math-mode-white.svg");
+}
+
 QWidget#floating_search_bar QWidget#floating-search-input {
   border: 1px solid #555555;
 }

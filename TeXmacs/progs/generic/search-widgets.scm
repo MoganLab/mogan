@@ -443,7 +443,10 @@
 ) ;define
 
 (define (accept-search-result? p)
-  (or (== (get-init "mode") "src")
+  (or (and chat-tab-search-active?
+           (== chat-tab-search-mode "math")
+           (search-path-inside-math? p))
+      (== (get-init "mode") "src")
     (catch #t
       (lambda ()
         (let* ((buf (buffer-tree))
@@ -481,8 +484,11 @@
 (define (tree-perform-search t what p limit)
   (let* ((source-mode 2)
          (old-mode (get-access-mode))
-         (new-mode (if (== (get-init "mode") "src") source-mode old-mode))
-        ) ;
+         (new-mode (if (or (== (get-init "mode") "src")
+                           (and chat-tab-search-active?
+                                (== chat-tab-search-mode "math")))
+                     source-mode old-mode))
+         ) ;
     (set-access-mode new-mode)
     (let* ((cp (cDr (cursor-path)))
            (pos (if (list-starts? cp p) (list-tail cp (length p)) (list)))
@@ -1149,6 +1155,27 @@
 (define chat-tab-search-target #f)
 (define chat-tab-search-aux #f)
 (define chat-tab-search-active? #f)
+(define chat-tab-search-mode "text")
+
+(define (chat-tab-search-toggle-mode)
+  (set! chat-tab-search-mode
+    (if (== chat-tab-search-mode "text") "math" "text"))
+  (with-buffer (master-buffer)
+    (if (== chat-tab-search-mode "math")
+      (begin (set-access-mode 2) (init-env "mode" "math"))
+      (begin (set-access-mode 0) (init-default "mode"))))
+  (perform-search*))
+
+(define (search-path-inside-math? p)
+  (with-buffer (master-buffer)
+    (let* ((buf (buffer-tree))
+           (dr (cDr p))
+           (len (length dr)))
+      (let loop ((i (- len 1)))
+        (if (< i 0) #f
+          (let ((node (subtree buf (sublist dr 0 (- i 1)))))
+            (if (tm-func? node 'math) #t
+              (loop (- i 1)))))))))
 
 (define (chat-tab-search-init target-buf)
   (set! chat-tab-search-target target-buf)

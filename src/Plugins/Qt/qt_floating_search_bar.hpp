@@ -32,7 +32,7 @@ class QTMFloatingSearchBar : public QWidget {
 
 public:
   explicit QTMFloatingSearchBar (QWidget* parent= nullptr);
-  ~QTMFloatingSearchBar ();
+  ~QTMFloatingSearchBar () override;
 
   /// 设置嵌入的搜索输入框。旧的输入框（如有）会被移除并 deleteLater。
   void setSearchInput (QWidget* input);
@@ -44,11 +44,13 @@ public:
   /// 配置按钮点击时求值的 Scheme 命令。
   void setSchemeCallbacks (const string& next_cmd, const string& prev_cmd,
                            const string& close_cmd);
+  void setModeIcon (bool mathMode);
 
 signals:
   void findNextRequested ();
   void findPreviousRequested ();
   void closeRequested ();
+  void modeToggled ();
 
 protected:
   bool eventFilter (QObject* watched, QEvent* event) override;
@@ -61,10 +63,12 @@ private:
   QHBoxLayout* rowLayout_= nullptr;
   QWidget*     inputQW_  = nullptr;
   QLabel*      infoLbl_  = nullptr;
+  QToolButton* modeBtn_  = nullptr;
 
   string next_cmd_;
   string prev_cmd_;
   string close_cmd_;
+  string mode_cmd_;
   bool   callbacksConnected_= false;
 };
 

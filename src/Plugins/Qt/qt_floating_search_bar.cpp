@@ -26,6 +26,7 @@
 #include <QKeyEvent>
 #include <QPalette>
 #include <QResizeEvent>
+#include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
 
@@ -98,6 +99,14 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
           "QToolButton { border-radius: %1px; padding: 0px; margin: 0px; }")
           .arg (DpiUtils::scaled (kBtnRadius));
 
+  modeBtn_= new QToolButton (this);
+  modeBtn_->setObjectName ("floating-search-mode-text");
+  modeBtn_->setFixedSize (DpiUtils::scaled (kBtnSize),
+                          DpiUtils::scaled (kBtnSize));
+  modeBtn_->setToolTip (qt_translate ("Toggle search mode (text/math)"));
+  modeBtn_->setStyleSheet (btnRadiusStyle);
+  btnRow->addWidget (modeBtn_);
+
   auto* prevBtn= new QToolButton (this);
   prevBtn->setObjectName ("floating-search-prev");
   prevBtn->setFixedSize (DpiUtils::scaled (kBtnSize),
@@ -146,6 +155,12 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
            &QTMFloatingSearchBar::findPreviousRequested);
   connect (closeBtn, &QToolButton::clicked, this,
            &QTMFloatingSearchBar::closeRequested);
+  connect (modeBtn_, &QToolButton::clicked, this, [this] () {
+    bool isMath= (modeBtn_->objectName () ==
+                  QStringLiteral ("floating-search-mode-text"));
+    setModeIcon (isMath);
+    eval_scheme ("(chat-tab-search-toggle-mode)");
+  });
 
   if (parent) parent->installEventFilter (this);
 
@@ -222,6 +237,15 @@ QTMFloatingSearchBar::connectSignals () {
       hide ();
     });
   }
+}
+
+void
+QTMFloatingSearchBar::setModeIcon (bool mathMode) {
+  if (!modeBtn_) return;
+  modeBtn_->setObjectName (mathMode ? "floating-search-mode-math"
+                                    : "floating-search-mode-text");
+  modeBtn_->style ()->unpolish (modeBtn_);
+  modeBtn_->style ()->polish (modeBtn_);
 }
 
 bool
