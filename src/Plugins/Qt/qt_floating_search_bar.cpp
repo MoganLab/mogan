@@ -275,9 +275,12 @@ qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str) {
   auto* bar= get_or_create_bar (parent);
 
   url    aux_url= url_system (aux_url_str);
-  tree   doc (DOCUMENT, "");
+  qreal  searchZoom= DpiUtils::scaled (100) / 100.0;
+  tree   doc (WITH, "font", "sys-chinese", "zoom-factor", as_string (searchZoom),
+              tree (DOCUMENT, ""));
   tree   sty= compound ("style", tree (TUPLE, "generic"));
   widget tw = texmacs_input_widget (doc, sty, aux_url);
+  set_zoom_factor (tw, searchZoom);
   if (is_nil (tw)) {
     bar->hide ();
     return false;
