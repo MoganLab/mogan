@@ -462,17 +462,20 @@
 (define (accept-search-result? p)
   (if (and floating-search-active? (== floating-search-mode "math"))
     (search-path-inside-math? p)
-    (or (== (get-init "mode") "src")
-      (let* ((buf (buffer-tree))
-             (rel (path-strip (cDr p) (tree->path buf)))
-             (initial (cons 'attr (get-main-attrs get-init)))
-             (old-env (get-search-filter))
-             (new-env (tree-descendant-env* buf rel initial))
-            ) ;
-        ;; (display* p " ~> " new-env "\n")
-        (check-same? (tm-children new-env) (tm-children old-env))
-      ) ;let*
-    ) ;or
+    (if floating-search-active?
+      #t  ;; text mode: tree-perform-search 中 access=0 已限制只搜文本节点，无需额外 filter
+      (or (== (get-init "mode") "src")
+        (let* ((buf (buffer-tree))
+               (rel (path-strip (cDr p) (tree->path buf)))
+               (initial (cons 'attr (get-main-attrs get-init)))
+               (old-env (get-search-filter))
+               (new-env (tree-descendant-env* buf rel initial))
+              ) ;
+          ;; (display* p " ~> " new-env "\n")
+          (check-same? (tm-children new-env) (tm-children old-env))
+        ) ;let*
+      ) ;or
+    ) ;if
   ) ;if
 ) ;define
 
