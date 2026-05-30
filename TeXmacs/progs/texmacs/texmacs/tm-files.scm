@@ -118,7 +118,7 @@
   (with t (tree->stree (get-style-tree))
     (and (pair? t) (== (car t) 'tuple) (null? (cdr t)))))
 
-(define (sync-buffer-dark-style-with-gui-theme . opt-buf)
+(tm-define (sync-buffer-dark-style-with-gui-theme . opt-buf)
   (with buf (if (null? opt-buf) (current-buffer) (car opt-buf))
     (with-buffer buf
       (if (== (get-preference "gui theme") "liii-night")

@@ -1213,6 +1213,8 @@
       (when (not (tree-empty? saved-body))
         (buffer-set-body floating-search-aux saved-body)
       ) ;when
+      ;; 重建 widget 后同步暗色样式
+      (sync-buffer-dark-style-with-gui-theme floating-search-aux)
     ) ;let
   ) ;when
   ;; 在 floating-search-aux 上下文中搜索，确保 guards 通过
@@ -1242,13 +1244,7 @@
     ) ;qt-floating-search-set-callbacks
     (qt-floating-search-init (url->string aux) floating-search-mode)
     ;; 同步暗色样式到搜索缓冲区
-    (when (== (get-preference "gui theme") "liii-night")
-      (with-buffer aux
-        (when (not (has-style-package? "dark"))
-          (add-style-package "dark")
-        ) ;when
-      ) ;with-buffer
-    ) ;when
+    (sync-buffer-dark-style-with-gui-theme aux)
     (qt-floating-search "true")
   ) ;let
 ) ;define
