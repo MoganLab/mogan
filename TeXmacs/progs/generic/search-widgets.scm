@@ -1189,8 +1189,7 @@
 
 (tm-define (chat-tab-search-toggle-mode)
   (set! chat-tab-search-mode (if (== chat-tab-search-mode "text") "math" "text"))
-  ;; 重建 texmacs_input_widget，使其拥有正确的数学/文本环境
-  ;; （与侧边栏 (with mode "math" ...) 行为一致）
+  ;; 更新搜索缓冲区的 init env
   (when chat-tab-search-aux
     (with-buffer chat-tab-search-aux
       (if (== chat-tab-search-mode "math")
@@ -1198,24 +1197,11 @@
         (init-default "mode")
       ) ;if
     ) ;with-buffer
-    (qt-floating-search-init (url->string chat-tab-search-aux) chat-tab-search-mode)
-    ;; 重建 widget 后重新同步暗色样式
-    (when (== (get-preference "gui theme") "liii-night")
-      (with-buffer chat-tab-search-aux
-        (when (not (has-style-package? "dark"))
-          (add-style-package "dark")
-        ) ;when
-      ) ;with-buffer
-    ) ;when
   ) ;when
-  ;; 更新搜索过滤器（在 target buffer 上下文中）
-  ;; accept-search-result? 对 math 模式有特殊处理绕过 filter，
-  ;; 但对 text 模式需要正确的 filter
+  ;; 更新搜索过滤器
   (when chat-tab-search-target
     (with-buffer chat-tab-search-target (set-search-filter))
   ) ;when
-  ;; tree-perform-search 已通过 chat-tab-search-active? + chat-tab-search-mode
-  ;; 正确处理 access mode，无需手动修改 master buffer
   (perform-search*)
 ) ;tm-define
 
