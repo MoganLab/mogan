@@ -457,6 +457,9 @@ void
 ChatController::activateSession (const string& sessionId) {
   if (!view_) return;
 
+  // 切换 session 时隐藏悬浮搜索栏
+  qt_floating_search_bar_show (view_->contentWidget (), false);
+
   ChatConversationPanel* panel= getOrCreatePanel (sessionId);
   if (!panel) return;
 

@@ -172,9 +172,10 @@
 ;; ----
 ;; 此函数用于管理搜索辅助缓冲区的生命周期，确保每个主文档视图有唯一的搜索缓冲区。
 (tm-define (search-buffer)
-  ;; chat tab 搜索激活且当前在 chat tab 上下文中时，返回保存的 aux buffer
+  ;; 悬浮搜索激活时直接返回保存的 aux buffer
   (if (and floating-search-active?
         floating-search-aux
+        (buffer-exists? floating-search-aux)
         (or (== (current-buffer) floating-search-aux)
           (== (current-buffer) floating-search-target)
         ) ;or
@@ -352,9 +353,10 @@
 ) ;tm-define
 
 (tm-define (master-buffer)
-  ;; chat tab 搜索激活且当前在 chat tab 上下文中时，返回保存的 target buffer
+  ;; 悬浮搜索激活时直接返回保存的 target buffer
   (if (and floating-search-active?
         floating-search-target
+        (buffer-exists? floating-search-target)
         (or (== (current-buffer) floating-search-aux)
           (== (current-buffer) floating-search-target)
         ) ;or
@@ -460,7 +462,8 @@
 (define (accept-search-result? p)
   (or (and floating-search-active?
         (== floating-search-mode "math")
-        (search-path-inside-math? p))
+        (search-path-inside-math? p)
+      ) ;and
     (== (get-init "mode") "src")
     (let* ((buf (buffer-tree))
            (rel (path-strip (cDr p) (tree->path buf)))
@@ -472,6 +475,22 @@
       (check-same? (tm-children new-env) (tm-children old-env))
     ) ;let*
   ) ;or
+) ;define
+
+(define (search-path-inside-math? p)
+  (with-buffer (master-buffer)
+    (let* ((buf (buffer-tree)) (rel (path-strip (cDr p) (tree->path buf))))
+      (and rel
+        (let* ((initial (cons 'attr (get-main-attrs get-init)))
+               (env (tree-descendant-env* buf rel initial))
+              ) ;
+          (and env
+            (with env-attrs (tm-children env) (check-same-sub? env-attrs "mode" "math"))
+          ) ;and
+        ) ;let*
+      ) ;and
+    ) ;let*
+  ) ;with-buffer
 ) ;define
 
 (define (filter-search-results sels)
@@ -496,8 +515,12 @@
   (let* ((source-mode 2)
          (old-mode (get-access-mode))
          (new-mode (if (or (== (get-init "mode") "src")
-                         (and floating-search-active? (== floating-search-mode "math")))
-                     source-mode old-mode))
+                         (and floating-search-active? (== floating-search-mode "math"))
+                       ) ;or
+                     source-mode
+                     old-mode
+                   ) ;if
+         ) ;new-mode
         ) ;
     (set-access-mode new-mode)
     (let* ((cp (cDr (cursor-path)))
@@ -1174,38 +1197,19 @@
 
 (tm-define (floating-search-toggle-mode)
   (set! floating-search-mode (if (== floating-search-mode "text") "math" "text"))
-  ;; 更新搜索缓冲区的 init env
-  (when floating-search-aux
-    (with-buffer floating-search-aux
-      (if (== floating-search-mode "math")
-        (init-env "mode" "math")
-        (init-default "mode")
-      ) ;if
-    ) ;with-buffer
-  ) ;when
-  ;; 更新搜索过滤器
+  ;; 更新 filter
   (when floating-search-target
     (with-buffer floating-search-target (set-search-filter))
   ) ;when
-  (perform-search*)
+  ;; 重建 widget 以切换数学/文本输入环境
+  (when floating-search-aux
+    (qt-floating-search-init (url->string floating-search-aux) floating-search-mode)
+  ) ;when
+  ;; 在 floating-search-aux 上下文中搜索，确保 guards 通过
+  (when floating-search-aux
+    (with-buffer floating-search-aux (perform-search*))
+  ) ;when
 ) ;tm-define
-
-(define (search-path-inside-math? p)
-  (with-buffer (master-buffer)
-    (let* ((buf (buffer-tree)) (dr (cDr p)) (len (length dr)))
-      ;; 从父节点向上遍历祖先，检查是否有 math 节点
-      (let loop
-        ((i (- len 1)))
-        (if (< i 1)
-          #f
-          (let ((node (subtree buf (sublist dr 0 i))))
-            (if (tm-func? node 'math) #t (loop (- i 1)))
-          ) ;let
-        ) ;if
-      ) ;let
-    ) ;let*
-  ) ;with-buffer
-) ;define
 
 (define (floating-search-init target-buf)
   (set! floating-search-target target-buf)
@@ -1214,8 +1218,10 @@
     (set! floating-search-active? #t)
     (buffer-set-master aux target-buf)
     (set-search-window-state #t #t)
-    (with-buffer target-buf (set-search-reference (cursor-path)))
-    (set-search-filter)
+    (with-buffer target-buf
+      (set-search-reference (cursor-path))
+      (set-search-filter)
+    ) ;with-buffer
     (set! search-filter-out? #f)
     ;; 设置搜索缓冲区的初始 init env（与侧边栏 texmacs-input 行为一致）
     (with-buffer aux (init-env "mode" floating-search-mode))
