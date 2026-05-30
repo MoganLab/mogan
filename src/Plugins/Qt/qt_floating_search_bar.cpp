@@ -320,16 +320,24 @@ qt_floating_search_bar_show (QWidget* parent, bool show) {
 }
 
 bool
-qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str) {
+qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str,
+                             const string& mode) {
   if (!parent) return false;
   auto* bar= get_or_create_bar (parent);
 
   url   aux_url   = url_system (aux_url_str);
   qreal searchZoom= DpiUtils::scaled (100) / 100.0;
-  tree  doc (WITH, "font", "sys-chinese", "zoom-factor", as_string (searchZoom),
-             tree (DOCUMENT, ""));
-  tree  sty= compound ("style", tree (TUPLE, "generic"));
-  widget tw= texmacs_input_widget (doc, sty, aux_url);
+  tree  doc;
+  if (mode == "math") {
+    doc= tree (WITH, "font", "sys-chinese", "zoom-factor",
+               as_string (searchZoom), "mode", "math", tree (DOCUMENT, ""));
+  }
+  else {
+    doc= tree (WITH, "font", "sys-chinese", "zoom-factor",
+               as_string (searchZoom), tree (DOCUMENT, ""));
+  }
+  tree   sty= compound ("style", tree (TUPLE, "generic"));
+  widget tw = texmacs_input_widget (doc, sty, aux_url);
   set_zoom_factor (tw, searchZoom);
   if (is_nil (tw)) {
     bar->hide ();
@@ -405,10 +413,10 @@ qt_floating_search (string flag) {
 }
 
 void
-qt_floating_search_init (string aux_url_str) {
+qt_floating_search_init (string aux_url_str, string mode) {
   QWidget* parent= get_provider_parent ();
   if (!parent) return;
-  qt_floating_search_bar_init (parent, aux_url_str);
+  qt_floating_search_bar_init (parent, aux_url_str, mode);
 }
 
 void

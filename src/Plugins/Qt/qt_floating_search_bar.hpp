@@ -81,8 +81,10 @@ private:
 void qt_floating_search_bar_show (QWidget* parent, bool show);
 
 /// 为 \a parent 创建/attach 搜索栏，并用绑定到 \a aux_url_str 的
-/// texmacs 输入框初始化。失败时返回 false。
-bool qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str);
+/// texmacs 输入框初始化。\a mode 为 "text" 或 "math"，决定输入框的数学环境。
+/// 失败时返回 false。
+bool qt_floating_search_bar_init (QWidget* parent, const string& aux_url_str,
+                                  const string& mode);
 
 /// 更新 attach 到 \a parent 的搜索栏的匹配计数。
 void qt_floating_search_bar_set_match_info (QWidget* parent, int current,
@@ -112,9 +114,9 @@ void qt_floating_search_set_parent_provider (
 /// Scheme 胶水函数：显示 ("true"/"#t") 或隐藏悬浮搜索栏。
 void qt_floating_search (string flag);
 
-/// Scheme 胶水函数：传入 search-buffer URL，创建 texmacs-input
-/// 并嵌入浮动搜索栏。
-void qt_floating_search_init (string aux_url_str);
+/// Scheme 胶水函数：传入 search-buffer URL 和 mode ("text"/"math")，
+/// 创建 texmacs-input 并嵌入浮动搜索栏。
+void qt_floating_search_init (string aux_url_str, string mode);
 
 /// Scheme 胶水函数：更新浮动搜索栏的匹配计数显示。
 void qt_floating_search_set_match_info (int current, int total);

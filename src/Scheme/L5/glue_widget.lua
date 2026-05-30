@@ -547,6 +547,7 @@ function main()
                 cpp_name = "qt_floating_search_init",
                 ret_type = "void",
                 arg_list = {
+                    "string",
                     "string"
                 }
             },
