@@ -46,6 +46,7 @@ public:
   void setSchemeCallbacks (const string& next_cmd, const string& prev_cmd,
                            const string& close_cmd);
   void setModeIcon (bool mathMode);
+  void toggleMode ();
 
 signals:
   void findNextRequested ();

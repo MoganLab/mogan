@@ -103,7 +103,7 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
   modeBtn_->setObjectName ("floating-search-mode-text");
   modeBtn_->setFixedSize (DpiUtils::scaled (kBtnSize),
                           DpiUtils::scaled (kBtnSize));
-  modeBtn_->setToolTip (qt_translate ("Toggle search mode (text/math)"));
+  modeBtn_->setToolTip (qt_translate ("text mode (Ctrl+Tab)"));
   modeBtn_->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (modeBtn_);
 
@@ -155,12 +155,8 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
            &QTMFloatingSearchBar::findPreviousRequested);
   connect (closeBtn, &QToolButton::clicked, this,
            &QTMFloatingSearchBar::closeRequested);
-  connect (modeBtn_, &QToolButton::clicked, this, [this] () {
-    bool isMath= (modeBtn_->objectName () ==
-                  QStringLiteral ("floating-search-mode-text"));
-    setModeIcon (isMath);
-    eval_scheme ("(floating-search-toggle-mode)");
-  });
+  connect (modeBtn_, &QToolButton::clicked, this,
+           &QTMFloatingSearchBar::toggleMode);
 
   if (parent) parent->installEventFilter (this);
 
@@ -188,6 +184,17 @@ QTMFloatingSearchBar::setSearchInput (QWidget* input) {
       scrollArea->installEventFilter (this);
     }
     rowLayout_->insertWidget (0, input, 1);
+    QMetaObject::invokeMethod (
+        this,
+        [this] {
+          if (inputQW_) {
+            QAbstractScrollArea* sa=
+                inputQW_->findChild<QAbstractScrollArea*> ();
+            if (sa) sa->setFocus ();
+            else inputQW_->setFocus ();
+          }
+        },
+        Qt::QueuedConnection);
   }
 }
 
@@ -246,6 +253,16 @@ QTMFloatingSearchBar::setModeIcon (bool mathMode) {
                                     : "floating-search-mode-text");
   modeBtn_->style ()->unpolish (modeBtn_);
   modeBtn_->style ()->polish (modeBtn_);
+  modeBtn_->setToolTip (mathMode ? qt_translate ("math mode (Ctrl+Tab)")
+                                 : qt_translate ("text mode (Ctrl+Tab)"));
+}
+
+void
+QTMFloatingSearchBar::toggleMode () {
+  bool isMath=
+      (modeBtn_->objectName () == QStringLiteral ("floating-search-mode-text"));
+  setModeIcon (isMath);
+  eval_scheme ("(floating-search-toggle-mode)");
 }
 
 bool
@@ -262,6 +279,10 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
         emit closeRequested ();
         return true;
       }
+    }
+    if (ke->key () == Qt::Key_Tab && (ke->modifiers () & Qt::ControlModifier)) {
+      toggleMode ();
+      return true;
     }
   }
   return QWidget::eventFilter (watched, event);
