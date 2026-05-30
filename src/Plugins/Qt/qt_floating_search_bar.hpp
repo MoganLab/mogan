@@ -14,6 +14,7 @@
 
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QToolButton>
 #include <QWidget>
 
 #include "string.hpp"
