@@ -2,7 +2,7 @@
 /******************************************************************************
  * MODULE     : qt_floating_search_bar.hpp
  * DESCRIPTION: A VSCode-style floating search bar widget for TeXmacs
- * COPYRIGHT  : (C) 2026 Mogan STEM
+ * COPYRIGHT  : (C) 2026  Yuki Lu
  ******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
