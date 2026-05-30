@@ -463,7 +463,8 @@
   (if (and floating-search-active? (== floating-search-mode "math"))
     (search-path-inside-math? p)
     (if floating-search-active?
-      #t  ;; text mode: tree-perform-search 中 access=0 已限制只搜文本节点，无需额外 filter
+      #t
+      ;; text mode: tree-perform-search 中 access=0 已限制只搜文本节点，无需额外 filter
       (or (== (get-init "mode") "src")
         (let* ((buf (buffer-tree))
                (rel (path-strip (cDr p) (tree->path buf)))
@@ -1203,9 +1204,14 @@
   (when floating-search-target
     (with-buffer floating-search-target (set-search-filter))
   ) ;when
-  ;; 重建 widget 以切换数学/文本输入环境
+  ;; 重建 widget 以切换数学/文本输入环境，保留已输入文本
   (when floating-search-aux
-    (qt-floating-search-init (url->string floating-search-aux) floating-search-mode)
+    (let ((saved-body (buffer-get-body floating-search-aux)))
+      (qt-floating-search-init (url->string floating-search-aux) floating-search-mode)
+      (when (not (tree-empty? saved-body))
+        (buffer-set-body floating-search-aux saved-body)
+      ) ;when
+    ) ;let
   ) ;when
   ;; 在 floating-search-aux 上下文中搜索，确保 guards 通过
   (when floating-search-aux

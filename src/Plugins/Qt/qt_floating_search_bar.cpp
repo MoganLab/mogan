@@ -238,17 +238,17 @@ QTMFloatingSearchBar::connectSignals () {
     connect (this, &QTMFloatingSearchBar::findPreviousRequested, this,
              [this] () { eval_scheme (prev_cmd_); });
   }
-  if (!is_empty (close_cmd_)) {
-    connect (this, &QTMFloatingSearchBar::closeRequested, this, [this] () {
-      eval_scheme (close_cmd_);
-      hide ();
-    });
-  }
+  // close: 始终 hide，callback 非空时才调 eval_scheme
+  connect (this, &QTMFloatingSearchBar::closeRequested, this, [this] () {
+    if (!is_empty (close_cmd_)) eval_scheme (close_cmd_);
+    hide ();
+  });
 }
 
 void
 QTMFloatingSearchBar::setModeIcon (bool mathMode) {
   if (!modeBtn_) return;
+  mathMode_= mathMode;
   modeBtn_->setObjectName (mathMode ? "floating-search-mode-math"
                                     : "floating-search-mode-text");
   modeBtn_->style ()->unpolish (modeBtn_);
@@ -259,8 +259,7 @@ QTMFloatingSearchBar::setModeIcon (bool mathMode) {
 
 void
 QTMFloatingSearchBar::toggleMode () {
-  bool isMath=
-      (modeBtn_->objectName () == QStringLiteral ("floating-search-mode-text"));
+  bool isMath= !mathMode_;
   setModeIcon (isMath);
   eval_scheme ("(floating-search-toggle-mode)");
 }

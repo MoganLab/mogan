@@ -70,7 +70,7 @@ private:
   string next_cmd_;
   string prev_cmd_;
   string close_cmd_;
-  string mode_cmd_;
+  bool   mathMode_          = false;
   bool   callbacksConnected_= false;
 };
 
