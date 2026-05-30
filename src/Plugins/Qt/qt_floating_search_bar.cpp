@@ -159,7 +159,7 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
     bool isMath= (modeBtn_->objectName () ==
                   QStringLiteral ("floating-search-mode-text"));
     setModeIcon (isMath);
-    eval_scheme ("(chat-tab-search-toggle-mode)");
+    eval_scheme ("(floating-search-toggle-mode)");
   });
 
   if (parent) parent->installEventFilter (this);
