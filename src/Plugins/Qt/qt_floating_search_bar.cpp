@@ -170,28 +170,35 @@ QTMFloatingSearchBar::~QTMFloatingSearchBar () {
 void
 QTMFloatingSearchBar::setSearchInput (QWidget* input) {
   if (inputQW_) {
-    QAbstractScrollArea* oldArea= inputQW_->findChild<QAbstractScrollArea*> ();
-    if (oldArea) oldArea->removeEventFilter (this);
+    if (inputScrollArea_) {
+      inputScrollArea_->removeEventFilter (this);
+      inputScrollArea_= nullptr;
+    }
     rowLayout_->removeWidget (inputQW_);
     inputQW_->deleteLater ();
   }
   inputQW_= input;
   if (input) {
     input->setObjectName ("floating-search-input");
-    QAbstractScrollArea* scrollArea= input->findChild<QAbstractScrollArea*> ();
-    if (scrollArea) {
-      scrollArea->viewport ()->setBackgroundRole (QPalette::Base);
-      scrollArea->installEventFilter (this);
-    }
     rowLayout_->insertWidget (0, input, 1);
+    // texmacs_input_widget 内部的 QAbstractScrollArea 可能延迟创建（show 时），
+    // 所有 scroll area 设置统一延迟到事件循环处理
     QMetaObject::invokeMethod (
         this,
         [this] {
           if (inputQW_) {
             QAbstractScrollArea* sa=
                 inputQW_->findChild<QAbstractScrollArea*> ();
-            if (sa) sa->setFocus ();
-            else inputQW_->setFocus ();
+            if (sa) {
+              sa->viewport ()->setBackgroundRole (QPalette::Base);
+              sa->installEventFilter (this);
+              sa->setFocus ();
+              inputScrollArea_= sa;
+            }
+            else {
+              inputScrollArea_= nullptr;
+              inputQW_->setFocus ();
+            }
           }
         },
         Qt::QueuedConnection);
@@ -203,7 +210,8 @@ QTMFloatingSearchBar::activate () {
   show ();
   raise ();
   if (inputQW_) {
-    QAbstractScrollArea* sa= inputQW_->findChild<QAbstractScrollArea*> ();
+    QAbstractScrollArea* sa= inputScrollArea_;
+    if (!sa) sa= inputQW_->findChild<QAbstractScrollArea*> ();
     if (sa) sa->setFocus ();
     else inputQW_->setFocus ();
   }
@@ -271,9 +279,10 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
     reposition ();
   }
   if (event->type () == QEvent::KeyPress && isVisible () && inputQW_) {
-    auto* ke= static_cast<QKeyEvent*> (event);
+    auto*                ke= static_cast<QKeyEvent*> (event);
+    QAbstractScrollArea* sa= inputScrollArea_;
+
     if (ke->key () == Qt::Key_Escape) {
-      QAbstractScrollArea* sa= inputQW_->findChild<QAbstractScrollArea*> ();
       if (sa && watched == sa) {
         emit closeRequested ();
         return true;
@@ -282,6 +291,30 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
     if (ke->key () == Qt::Key_Tab && (ke->modifiers () & Qt::ControlModifier)) {
       toggleMode ();
       return true;
+    }
+
+    // 输入区内非修饰键/非导航键按键：触发实时搜索更新
+    if (sa && watched == sa) {
+      switch (ke->key ()) {
+      case Qt::Key_Shift:
+      case Qt::Key_Control:
+      case Qt::Key_Meta:
+      case Qt::Key_Alt:
+      case Qt::Key_Left:
+      case Qt::Key_Right:
+      case Qt::Key_Up:
+      case Qt::Key_Down:
+      case Qt::Key_Home:
+      case Qt::Key_End:
+      case Qt::Key_PageUp:
+      case Qt::Key_PageDown:
+        break;
+      default:
+        QMetaObject::invokeMethod (
+            this, [this] () { eval_scheme ("(floating-search-on-input)"); },
+            Qt::QueuedConnection);
+        break;
+      }
     }
   }
   return QWidget::eventFilter (watched, event);

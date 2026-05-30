@@ -21,6 +21,8 @@
 
 #include <functional>
 
+class QAbstractScrollArea;
+
 /**
  * VSCode 风格的悬浮搜索栏组件。
  *
@@ -62,10 +64,11 @@ private:
   void reposition ();
   void connectSignals ();
 
-  QHBoxLayout* rowLayout_= nullptr;
-  QWidget*     inputQW_  = nullptr;
-  QLabel*      infoLbl_  = nullptr;
-  QToolButton* modeBtn_  = nullptr;
+  QHBoxLayout*         rowLayout_      = nullptr;
+  QWidget*             inputQW_        = nullptr;
+  QAbstractScrollArea* inputScrollArea_= nullptr;
+  QLabel*              infoLbl_        = nullptr;
+  QToolButton*         modeBtn_        = nullptr;
 
   string next_cmd_;
   string prev_cmd_;

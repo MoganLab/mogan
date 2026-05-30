@@ -1198,6 +1198,8 @@
 
 (define floating-search-mode "text")
 
+(define floating-search-last-content "")
+
 (tm-define (floating-search-toggle-mode)
   (set! floating-search-mode (if (== floating-search-mode "text") "math" "text"))
   ;; 更新 filter
@@ -1221,6 +1223,7 @@
 
 (define (floating-search-init target-buf)
   (set! floating-search-target target-buf)
+  (set! floating-search-last-content "")
   (let ((aux (search-buffer)))
     (set! floating-search-aux aux)
     (set! floating-search-active? #t)
@@ -1253,6 +1256,17 @@
 (tm-define (floating-search-next forward?)
   (when (and floating-search-target floating-search-aux)
     (with-buffer floating-search-target (search-rotate-match forward?))
+  ) ;when
+) ;tm-define
+
+(tm-define (floating-search-on-input)
+  (when (and floating-search-active? floating-search-aux)
+    (let ((current (tree->string (buffer-get-body floating-search-aux))))
+      (when (not (== current floating-search-last-content))
+        (set! floating-search-last-content current)
+        (with-buffer floating-search-aux (perform-search*))
+      ) ;when
+    ) ;let
   ) ;when
 ) ;tm-define
 
