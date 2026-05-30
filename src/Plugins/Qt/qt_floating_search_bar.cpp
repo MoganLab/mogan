@@ -103,7 +103,11 @@ QTMFloatingSearchBar::QTMFloatingSearchBar (QWidget* parent)
   modeBtn_->setObjectName ("floating-search-mode-text");
   modeBtn_->setFixedSize (DpiUtils::scaled (kBtnSize),
                           DpiUtils::scaled (kBtnSize));
-  modeBtn_->setToolTip (qt_translate ("text mode (Ctrl+Tab)"));
+#ifdef Q_OS_MAC
+  modeBtn_->setToolTip (qt_translate ("text mode (Option+Tab)"));
+#else
+  modeBtn_->setToolTip (qt_translate ("text mode (Alt+Tab)"));
+#endif
   modeBtn_->setStyleSheet (btnRadiusStyle);
   btnRow->addWidget (modeBtn_);
 
@@ -261,8 +265,13 @@ QTMFloatingSearchBar::setModeIcon (bool mathMode) {
                                     : "floating-search-mode-text");
   modeBtn_->style ()->unpolish (modeBtn_);
   modeBtn_->style ()->polish (modeBtn_);
-  modeBtn_->setToolTip (mathMode ? qt_translate ("math mode (Ctrl+Tab)")
-                                 : qt_translate ("text mode (Ctrl+Tab)"));
+#ifdef Q_OS_MAC
+  modeBtn_->setToolTip (mathMode ? qt_translate ("math mode (Option+Tab)")
+                                 : qt_translate ("text mode (Option+Tab)"));
+#else
+  modeBtn_->setToolTip (mathMode ? qt_translate ("math mode (Alt+Tab)")
+                                 : qt_translate ("text mode (Alt+Tab)"));
+#endif
 }
 
 void
@@ -288,7 +297,7 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
         return true;
       }
     }
-    if (ke->key () == Qt::Key_Tab && (ke->modifiers () & Qt::ControlModifier)) {
+    if (ke->key () == Qt::Key_Tab && (ke->modifiers () & Qt::AltModifier)) {
       toggleMode ();
       return true;
     }

@@ -44,7 +44,8 @@ TestFloatingSearchBar::test_constructor () {
   QTMFloatingSearchBar bar;
   QCOMPARE (bar.objectName (), QString ("floating_search_bar"));
   QVERIFY (bar.findChild<QLabel*> ("floating-search-info") != nullptr);
-  QVERIFY (bar.findChild<QToolButton*> ("floating-search-mode-text") != nullptr);
+  QVERIFY (bar.findChild<QToolButton*> ("floating-search-mode-text") !=
+           nullptr);
   QVERIFY (bar.findChild<QToolButton*> ("floating-search-prev") != nullptr);
   QVERIFY (bar.findChild<QToolButton*> ("floating-search-next") != nullptr);
   QVERIFY (bar.findChild<QToolButton*> ("floating-search-close") != nullptr);
