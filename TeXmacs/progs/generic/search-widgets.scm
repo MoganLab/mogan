@@ -460,34 +460,31 @@
 ) ;define
 
 (define (accept-search-result? p)
-  (or (and floating-search-active?
-        (== floating-search-mode "math")
-        (search-path-inside-math? p)
-      ) ;and
-    (== (get-init "mode") "src")
-    (let* ((buf (buffer-tree))
-           (rel (path-strip (cDr p) (tree->path buf)))
-           (initial (cons 'attr (get-main-attrs get-init)))
-           (old-env (get-search-filter))
-           (new-env (tree-descendant-env* buf rel initial))
-          ) ;
-      ;; (display* p " ~> " new-env "\n")
-      (check-same? (tm-children new-env) (tm-children old-env))
-    ) ;let*
-  ) ;or
+  (if (and floating-search-active? (== floating-search-mode "math"))
+    (search-path-inside-math? p)
+    (or (== (get-init "mode") "src")
+      (let* ((buf (buffer-tree))
+             (rel (path-strip (cDr p) (tree->path buf)))
+             (initial (cons 'attr (get-main-attrs get-init)))
+             (old-env (get-search-filter))
+             (new-env (tree-descendant-env* buf rel initial))
+            ) ;
+        ;; (display* p " ~> " new-env "\n")
+        (check-same? (tm-children new-env) (tm-children old-env))
+      ) ;let*
+    ) ;or
+  ) ;if
 ) ;define
 
 (define (search-path-inside-math? p)
   (with-buffer (master-buffer)
-    (let* ((buf (buffer-tree)) (rel (path-strip (cDr p) (tree->path buf))))
-      (and rel
-        (let* ((initial (cons 'attr (get-main-attrs get-init)))
-               (env (tree-descendant-env* buf rel initial))
-              ) ;
-          (and env
-            (with env-attrs (tm-children env) (check-same-sub? env-attrs "mode" "math"))
-          ) ;and
-        ) ;let*
+    (let* ((buf (buffer-tree))
+           (rel (path-strip (cDr p) (tree->path buf)))
+           (initial (cons 'attr (get-main-attrs get-init)))
+           (env (and rel (tree-descendant-env* buf rel initial)))
+          ) ;
+      (and env
+        (with env-attrs (tm-children env) (check-same-sub? env-attrs "mode" "math"))
       ) ;and
     ) ;let*
   ) ;with-buffer
@@ -513,13 +510,12 @@
 
 (define (tree-perform-search t what p limit)
   (let* ((source-mode 2)
+         (math-mode 1)
          (old-mode (get-access-mode))
-         (new-mode (if (or (== (get-init "mode") "src")
-                         (and floating-search-active? (== floating-search-mode "math"))
-                       ) ;or
-                     source-mode
-                     old-mode
-                   ) ;if
+         (new-mode (cond ((== (get-init "mode") "src") source-mode)
+                         ((and floating-search-active? (== floating-search-mode "math")) math-mode)
+                         (else old-mode)
+                   ) ;cond
          ) ;new-mode
         ) ;
     (set-access-mode new-mode)
@@ -535,7 +531,10 @@
 
 (define (go-to* p)
   (go-to p)
-  (when (and (not (cursor-accessible?)) (not (in-source?)))
+  (when (and (not (cursor-accessible?))
+          (not (in-source?))
+          (not floating-search-active?)
+        ) ;and
     (cursor-show-hidden)
     (delayed (:pause 50)
       (set! search-serial (+ search-serial 1))

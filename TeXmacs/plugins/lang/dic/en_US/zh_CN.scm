@@ -1611,7 +1611,7 @@
 ("no matches found for" "")
 ("no matches found" "")
 ("No matches" "无匹配")
-("%1 of %2" "%1 / %2")
+("%1 of %2" "第%1项，共%2项")
 ("no more matches for" "")
 ("no more redo information available" "")
 ("no more undo information available" "")
