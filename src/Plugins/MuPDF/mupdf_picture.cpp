@@ -477,11 +477,19 @@ get_real_size_from_dpi (int px, int dpi) {
 static void
 format_picsize_string (index_type px, index_type dpi, int& w, int& h,
                        string* out_wcm_pointer, string* out_hcm_pointer) {
+  double dwcm= get_real_size_from_dpi (px.x1, dpi.x1);
+  double dhcm= get_real_size_from_dpi (px.x2, dpi.x2);
+
+  if (!has_current_view ()) {
+    // Fallback for headless/test environments: 1cm = 28.3464567pt
+    w= (int) (dwcm * 28.3464567 + 0.5);
+    h= (int) (dhcm * 28.3464567 + 0.5);
+    return;
+  }
+
   SI     cm  = get_current_editor ()->as_length ("1cm");
   SI     pt  = get_current_editor ()->as_length ("1pt");
   SI     par = get_current_editor ()->as_length ("1par");
-  double dwcm= get_real_size_from_dpi (px.x1, dpi.x1);
-  double dhcm= get_real_size_from_dpi (px.x2, dpi.x2);
   w          = dwcm * cm / pt;
   h          = dhcm * cm / pt;
 
