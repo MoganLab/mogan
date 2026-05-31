@@ -1390,10 +1390,14 @@ QTMPixmapOrImage
 get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix) {
   QImage qim= get_QImage_from_pixmap (pix);
   if (headless_mode) {
-    return QTMPixmapOrImage (qim);
+    QTMPixmapOrImage ret (qim);
+    fz_drop_pixmap (mupdf_context (), pix);
+    return ret;
   }
   else {
-    return QTMPixmapOrImage (QPixmap::fromImage (qim));
+    QTMPixmapOrImage ret (QPixmap::fromImage (qim));
+    fz_drop_pixmap (mupdf_context (), pix);
+    return ret;
   }
 }
 
