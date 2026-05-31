@@ -15,8 +15,8 @@ class TestMupdfRenderer : public QObject {
   Q_OBJECT
 
 private slots:
-  void   init () { init_lolly (); }
-  void   test_render_does_not_leak ();
+  void init () { init_lolly (); }
+  void test_render_does_not_leak ();
 };
 
 void
@@ -26,8 +26,8 @@ TestMupdfRenderer::test_render_does_not_leak () {
 #endif
 
   // Create a minimal glue widget to exercise the render() path
-  qt_glue_widget_rep* wid=
-      new qt_glue_widget_rep (tree (""), false, false, 100 * PIXEL, 100 * PIXEL);
+  qt_glue_widget_rep* wid= new qt_glue_widget_rep (tree (""), false, false,
+                                                   100 * PIXEL, 100 * PIXEL);
 
   // Warm up: first call may allocate caches
   {
