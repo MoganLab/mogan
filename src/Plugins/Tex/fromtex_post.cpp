@@ -137,7 +137,7 @@ parse_matrix_params (tree t, string tr, string br, string hoff) {
         int start= ++i;
         if (i < n && s[start] == '{') {
           start++;
-          int braces = 1;
+          int braces= 1;
           while (i < n && braces > 0) {
             i++;
             if (i < n) {
