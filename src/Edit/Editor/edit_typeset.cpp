@@ -989,6 +989,7 @@ edit_typeset_rep::init_env (string var, tree by) {
   if (init (var) == by) return;
   init (var)= by;
   if (var == "full-screen-mode") return;
+  if (var == "info-flag") return;
   if (var != PAGE_SCREEN_WIDTH && var != PAGE_SCREEN_HEIGHT &&
       var != ZOOM_FACTOR)
     require_save ();
@@ -1001,7 +1002,7 @@ edit_typeset_rep::init_default (string var) {
   init->reset (var);
   if (stydef->contains (var)) pre (var)= stydef[var];
   else pre->reset (var);
-  notify_change (THE_ENVIRONMENT);
+  if (var != "info-flag") notify_change (THE_ENVIRONMENT);
 }
 
 /******************************************************************************
