@@ -111,6 +111,9 @@ constexpr int kSendButtonSize        = 36;
 constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
 
+//---- dock 模式 常量 ----
+constexpr int kCloseSidebarBtnMarginY= 21;
+
 constexpr char kChatEmbeddedStyle[]= "style";
 
 } // namespace
@@ -1416,7 +1419,7 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
                "QPushButton:hover { background: rgba(0,0,0,0.08); }")
           .arg (DpiUtils::scaled (kToggleBtnSize / 2)));
   closeSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
-                          DpiUtils::scaled (kFloatingBtnMarginY));
+                          DpiUtils::scaled (kCloseSidebarBtnMarginY));
   connect (closeSidebarBtn_, &QPushButton::clicked, this,
            [this] () { emit closeSidebarRequested (); });
   closeSidebarBtn_->hide ();
