@@ -145,14 +145,6 @@ ChatConversationPanel::setup_ui () {
   topLayout->setContentsMargins (0, 0, 0, 0);
   topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
-  // 顶部弹性空间（欢迎模式下将内容推到中心偏上）
-  topInnerSpacer_= new QSpacerItem (0, DpiUtils::scaled (120),
-                                    QSizePolicy::Minimum,
-                                    QSizePolicy::Expanding);
-  int topInnerIdx= topLayout->count ();
-  topLayout->addSpacerItem (topInnerSpacer_);
-  topLayout->setStretch (topInnerIdx, 1);
-
   // Welcome title
   welcomeTitle_= new QLabel (qt_translate ("Welcome to Liii STEM!"), topPanel);
   welcomeTitle_->setObjectName ("chat-tab-welcome-title");
@@ -315,13 +307,6 @@ ChatConversationPanel::setup_ui () {
   inputWrap->addStretch (1);
   topLayout->addLayout (inputWrap, 0);
 
-  // 底部弹性空间（欢迎模式下与顶部弹性空间配合，将内容推到中心偏上）
-  bottomInnerSpacer_= new QSpacerItem (0, 0, QSizePolicy::Minimum,
-                                       QSizePolicy::Expanding);
-  int bottomInnerIdx= topLayout->count ();
-  topLayout->addSpacerItem (bottomInnerSpacer_);
-  topLayout->setStretch (bottomInnerIdx, 1);
-
   contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
 }
 
@@ -370,19 +355,19 @@ ChatConversationPanel::enterConversationMode () {
     layout ()->invalidate ();
     layout ()->activate ();
   }
+}
 
-  if (topInnerSpacer_) {
-    topInnerSpacer_->changeSize (0, 0, QSizePolicy::Minimum,
-                                 QSizePolicy::Fixed);
-  }
-  if (bottomInnerSpacer_) {
-    bottomInnerSpacer_->changeSize (0, 0, QSizePolicy::Minimum,
-                                    QSizePolicy::Fixed);
-  }
-  if (welcomeTitle_ && welcomeTitle_->parentWidget () &&
-      welcomeTitle_->parentWidget ()->layout ()) {
-    welcomeTitle_->parentWidget ()->layout ()->invalidate ();
-    welcomeTitle_->parentWidget ()->layout ()->activate ();
+void
+ChatConversationPanel::resizeEvent (QResizeEvent* event) {
+  QWidget::resizeEvent (event);
+  if (conversationMode_ || !topSpacer_) return;
+  int targetOffset= height () * 2 / 5 - DpiUtils::scaled (kContentMarginY);
+  if (targetOffset < 0) targetOffset= 0;
+  topSpacer_->changeSize (0, targetOffset, QSizePolicy::Minimum,
+                            QSizePolicy::Fixed);
+  if (layout ()) {
+    layout ()->invalidate ();
+    layout ()->activate ();
   }
 }
 

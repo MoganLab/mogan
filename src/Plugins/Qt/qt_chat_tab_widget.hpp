@@ -114,6 +114,8 @@ signals:
 protected:
   /// 事件过滤器：拦截 Enter 键触发发送
   bool eventFilter (QObject* watched, QEvent* event) override;
+  /// 欢迎模式下按容器高度比例调整顶部偏移
+  void resizeEvent (QResizeEvent* event) override;
 
 private:
   /// 构建面板 UI 布局
@@ -133,8 +135,6 @@ private:
   QPushButton* sendButton_       = nullptr;        ///< 发送/停止按钮
   QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
   QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
-  QSpacerItem* topInnerSpacer_   = nullptr;        ///< topPanel 内顶部弹性空间
-  QSpacerItem* bottomInnerSpacer_= nullptr;        ///< topPanel 内底部弹性空间
   widget       messageWidget_;                     ///< 消息区 TeXmacs widget
   widget       inputWidget;                        ///< 输入区 TeXmacs widget
   int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
