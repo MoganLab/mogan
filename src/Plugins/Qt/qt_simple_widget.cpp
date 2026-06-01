@@ -51,7 +51,7 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
 #endif
   if (completionPopUp != nullptr) delete completionPopUp;
   if (mathCompletionPopUp != nullptr) {
-    mathCompletionPopUp->setParent(nullptr);
+    mathCompletionPopUp->setParent (nullptr);
     delete mathCompletionPopUp;
   }
   if (textPopup != nullptr) delete textPopup;

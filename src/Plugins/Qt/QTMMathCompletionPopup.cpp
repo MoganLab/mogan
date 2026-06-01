@@ -21,7 +21,8 @@ QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
                                                 qt_simple_widget_rep* owner)
     : QWidget (parent), owner (owner), layout (nullptr) {
   setObjectName ("math_completion_popup");
-  setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+  setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint |
+                  Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
   setAttribute (Qt::WA_DeleteOnClose, false); // Explicitly manage deletion
   setAttribute (Qt::WA_TranslucentBackground);
