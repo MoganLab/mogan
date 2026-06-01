@@ -316,7 +316,7 @@
 ;; tree-contains-label?
 ;; 递归检查 tree 中是否包含指定 label 的节点
 
-(define (tree-contains-label? t label)
+(define-public (tree-contains-label? t label)
   (cond ((not (tree? t)) #f)
         ((eq? (tree-label t) label) #t)
         (else (let loop
@@ -333,7 +333,7 @@
 ;; tree-remove-label-from-children!
 ;; 从 document 的直接子节点和 concat 子节点中移除指定 label 的节点
 
-(define (tree-remove-label-from-children! t label)
+(define-public (tree-remove-label-from-children! t label)
   (when (tm-func? t 'document)
     (let loop
       ((i (- (tree-arity t) 1)))
@@ -364,7 +364,7 @@
 ;; 从 tree 中递归提取所有 reasoning-delta 节点的文本，并清除这些节点
 ;; 返回提取的文本字符串
 
-(define (tree-extract-reasoning-delta! t)
+(define-public (tree-extract-reasoning-delta! t)
   (define (collect node)
     (cond ((not (tree? node)) "")
           ((eq? (tree-label node) 'reasoning-delta)
@@ -389,7 +389,7 @@
 ;; session-find-last-unfolded-explain
 ;; 从 out 的位置 i-1 向前搜索 unfolded-explain
 
-(define (session-find-last-unfolded-explain out i)
+(define-public (session-find-last-unfolded-explain out i)
   (let loop
     ((k (- i 1)))
     (if (< k 0)
@@ -418,7 +418,7 @@
 ;; session-append-reasoning!
 ;; 追加 reasoning 文本到 out 中最后一个 unfolded-explain 的 document 中
 
-(define (session-append-reasoning! out text)
+(define-public (session-append-reasoning! out text)
   (when (tm-func? out 'document)
     (with i
       (tree-arity out)
@@ -469,7 +469,7 @@
 ;; session-fold-last-explain!
 ;; 折叠 out 中最后一个 unfolded-explain 为 folded-explain
 
-(define (session-fold-last-explain! out)
+(define-public (session-fold-last-explain! out)
   (when (tm-func? out 'document)
     (with i
       (tree-arity out)
