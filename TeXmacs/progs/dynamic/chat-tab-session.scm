@@ -723,7 +723,14 @@
         (chat-tab-session-decode (car l))
         (if (tree-empty? input)
           (plugin-next lan ses)
-          (plugin-write lan ses input :session)
+          (begin
+            (plugin-write lan ses input :session)
+            (with p (plugin-prompt lan ses)
+              (when p
+                (tree-set out :up 0 (tree-copy p))
+              ) ;when
+            ) ;with
+          ) ;begin
         ) ;if
       ) ;with
     ) ;when
@@ -851,7 +858,12 @@
                   ((== ch "error")
                    (with-buffer msg-buf (chat-tab-errput out t) (buffer-pretend-saved msg-buf))
                   ) ;
-                  ((== ch "prompt") (noop))
+                  ((== ch "prompt")
+                   (with-buffer msg-buf
+                     (tree-set out :up 0 (tree-copy t))
+                     (buffer-pretend-saved msg-buf)
+                   ) ;with-buffer
+                  )
                   ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
             ) ;cond
           ) ;let
