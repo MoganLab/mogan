@@ -1325,6 +1325,8 @@ QWidget#centralWidget QWidget#chat-tab-archive-list {
 }
 
 /* 右侧内容区 */
+QWidget#chat-tab-content,
+QWidget#chat-tab-conversation-page,
 QWidget#centralWidget QWidget#chat-tab-content,
 QWidget#centralWidget QWidget#chat-tab-conversation-page {
   background-color: #202020;
@@ -1336,9 +1338,11 @@ QLabel#chat-tab-nav-title {
 }
 
 /* 收缩按钮 */
+QPushButton#chat-tab-collapse-btn,
 QWidget#centralWidget QPushButton#chat-tab-collapse-btn {
   background-color: #bababa;
 }
+QPushButton#chat-tab-collapse-btn:hover,
 QWidget#centralWidget QPushButton#chat-tab-collapse-btn:hover {
   background-color: #999999;
 }
@@ -1400,12 +1404,14 @@ QWidget#centralWidget QPushButton#chat-tab-floating-new-btn:hover {
 }
 
 /* 模型标签 */
+QLabel#chat-tab-model-label,
 QWidget#centralWidget QLabel#chat-tab-model-label {
   color: #ffffff;
   background-color: transparent;
 }
 
 /* 消息框 */
+QWidget#chat-tab-message-frame,
 QWidget#centralWidget QWidget#chat-tab-message-frame {
   background-color: #1e1e1e;
 }
@@ -1422,17 +1428,21 @@ QWidget#centralWidget QAbstractScrollArea#chat-tab-input-area QScrollBar::handle
 }
 
 /* 输入框框架 */
+QWidget#chat-tab-input-frame,
 QWidget#centralWidget QWidget#chat-tab-input-frame {
   background-color: #404040;
   border: 1px solid #4c4c4c;
 }
+QWidget#chat-tab-input-frame:hover,
 QWidget#centralWidget QWidget#chat-tab-input-frame:hover {
   border: 1px solid #6a6a6a;
 }
+QWidget#chat-tab-input-frame[hasFocus="true"],
 QWidget#centralWidget QWidget#chat-tab-input-frame[hasFocus="true"] {
   border: 1px solid #6a6a6a;
 }
 
+QToolButton#chat-tab-thinking-btn,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
   color: #ffffff;
   border: 1px solid #ffffff;
@@ -1441,23 +1451,28 @@ QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
   qproperty-iconChecked: url(":/llm-chat/thinking.svg");
   qproperty-iconHovered: url(":/llm-chat/thinking-white.svg");
 }
+QToolButton#chat-tab-thinking-btn:checked,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
   background: #ffffff;
   color: #215a6a;
 }
+QToolButton#chat-tab-thinking-btn:hover,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:hover {
   background: rgba(255,255,255,0.15);
   color: #ffffff;
 }
 
 /* 发送按钮 */
+QPushButton#chat-tab-send-btn,
 QWidget#centralWidget QPushButton#chat-tab-send-btn {
   background-color: #ffffff;
   border: 1px solid #215a6a;
 }
+QPushButton#chat-tab-send-btn:hover,
 QWidget#centralWidget QPushButton#chat-tab-send-btn:hover {
   background-color: #7a7a7a;
 }
+QPushButton#chat-tab-send-btn:pressed,
 QWidget#centralWidget QPushButton#chat-tab-send-btn:pressed {
   background-color: #8e8e8e;
 }
