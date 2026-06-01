@@ -726,8 +726,8 @@
           (begin
             (plugin-write lan ses input :session)
             (with p (plugin-prompt lan ses)
-              (when p
-                (tree-set out :up 0 (tree-copy p))
+              (when (tree? p)
+                (tree-set out :up 0 p)
               ) ;when
             ) ;with
           ) ;begin
