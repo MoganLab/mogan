@@ -821,25 +821,23 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // 使用 QObject 辅助类处理 central widget 的 resize 事件以更新按钮位置
   class ChatSidebarBtnPositioner : public QObject {
   public:
-    ChatSidebarBtnPositioner (QPushButton* btn, QWidget* parent)
-        : QObject (parent), button_ (btn), parent_ (parent) {}
+    ChatSidebarBtnPositioner (QPushButton* btn, QWidget* parent,
+                              qt_tm_widget_rep* widget)
+        : QObject (parent), button_ (btn), parent_ (parent), widget_ (widget) {}
     bool eventFilter (QObject* obj, QEvent* event) override {
       if (obj == parent_ && event->type () == QEvent::Resize) {
-        int margin = DpiUtils::scaled (12);
-        int btnSize= button_->width ();
-        int x      = parent_->width () - btnSize - margin;
-        int y      = margin;
-        button_->move (x, y);
+        widget_->position_chat_sidebar_button ();
       }
       return QObject::eventFilter (obj, event);
     }
 
   private:
-    QPushButton* button_;
-    QWidget*     parent_;
+    QPushButton*       button_;
+    QWidget*           parent_;
+    qt_tm_widget_rep*  widget_;
   };
   cw->installEventFilter (
-      new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw));
+      new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw, this));
 
   QObject::connect (chatSidebarToggleBtn, &QPushButton::clicked, [this] () {
     chatSidebarMode= !chatSidebarMode;
@@ -1128,14 +1126,15 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
 void
 qt_tm_widget_rep::position_chat_sidebar_button () {
   if (!chatSidebarToggleBtn || !centralwidget ()) return;
-  QWidget* cw     = centralwidget ();
-  int      margin = DpiUtils::scaled (12);
-  int      btnSize= chatSidebarToggleBtn->width ();
-  int      cwW    = cw->width ();
-  int      cwH    = cw->height ();
+  QWidget* cw         = centralwidget ();
+  int      topMargin  = DpiUtils::scaled (12);
+  int      rightMargin= DpiUtils::scaled (20);
+  int      btnSize    = chatSidebarToggleBtn->width ();
+  int      cwW        = cw->width ();
+  int      cwH        = cw->height ();
   if (cwW <= 0 || cwH <= 0) return; // 窗口尚未就绪
-  int x= cwW - btnSize - margin;
-  int y= margin;
+  int x= cwW - btnSize - rightMargin;
+  int y= topMargin;
   chatSidebarToggleBtn->move (x, y);
 }
 
