@@ -44,14 +44,16 @@ qt_simple_widget_rep::qt_simple_widget_rep ()
   backing_store= native_picture (0, 0, 0, 0);
 #endif
 }
-
 qt_simple_widget_rep::~qt_simple_widget_rep () {
   all_widgets->remove ((pointer) this);
 #ifndef USE_MUPDF_RENDERER
   if (backingPixmap != NULL) delete backingPixmap;
 #endif
   if (completionPopUp != nullptr) delete completionPopUp;
-  if (mathCompletionPopUp != nullptr) delete mathCompletionPopUp;
+  if (mathCompletionPopUp != nullptr) {
+    mathCompletionPopUp->setParent(nullptr);
+    delete mathCompletionPopUp;
+  }
   if (textPopup != nullptr) delete textPopup;
 }
 
@@ -730,7 +732,7 @@ qt_simple_widget_rep::hide_math_completion_popup () {
   if (mathCompletionPopUp) {
     mathCompletionPopUp->hide ();
     mathCompletionPopUp->setParent (nullptr);
-    mathCompletionPopUp->deleteLater ();
+    delete mathCompletionPopUp;
     mathCompletionPopUp= nullptr;
   }
 }

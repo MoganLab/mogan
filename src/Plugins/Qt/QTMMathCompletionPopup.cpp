@@ -19,11 +19,12 @@
 
 QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
                                                 qt_simple_widget_rep* owner)
-    : QWidget (nullptr), owner (owner), layout (nullptr) {
-  (void) parent;
+    : QWidget (parent), owner (owner), layout (nullptr) {
   setObjectName ("math_completion_popup");
   setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
+  setAttribute (Qt::WA_DeleteOnClose, false); // Explicitly manage deletion
+  setAttribute (Qt::WA_TranslucentBackground);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
   layout= new QVBoxLayout (this);
@@ -94,6 +95,7 @@ QTMMathCompletionPopup::setWidget (QWidget* w) {
 
     // 恢复绘制
     this->setUpdatesEnabled (true);
+    updatePosition ();
     this->update ();
   }
 }
@@ -103,9 +105,19 @@ QTMMathCompletionPopup::showMathCompletions (struct cursor cu, double magf,
                                              int scroll_x, int scroll_y,
                                              int canvas_x) {
   cachePosition (cu, magf, scroll_x, scroll_y, canvas_x);
-  updatePosition ();
+
+  int x, y;
+  getCachedPosition (x, y);
+
+  if (!isVisible ()) {
+    move (x, y);
+    show ();
+  }
+  else {
+    move (x, y);
+    update ();
+  }
   raise ();
-  show ();
   this->adjustSize ();
 }
 
