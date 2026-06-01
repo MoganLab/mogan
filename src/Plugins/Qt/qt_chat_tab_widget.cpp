@@ -146,11 +146,12 @@ ChatConversationPanel::setup_ui () {
   topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
   // 顶部弹性空间（欢迎模式下将内容推到中心偏上）
-  topInnerSpacer_= new QSpacerItem (0, 0, QSizePolicy::Minimum,
+  topInnerSpacer_= new QSpacerItem (0, DpiUtils::scaled (120),
+                                    QSizePolicy::Minimum,
                                     QSizePolicy::Expanding);
   int topInnerIdx= topLayout->count ();
   topLayout->addSpacerItem (topInnerSpacer_);
-  topLayout->setStretch (topInnerIdx, 2);
+  topLayout->setStretch (topInnerIdx, 1);
 
   // Welcome title
   welcomeTitle_= new QLabel (qt_translate ("Welcome to Liii STEM!"), topPanel);
