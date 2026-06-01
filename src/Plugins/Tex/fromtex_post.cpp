@@ -86,11 +86,27 @@ finalize_returns (tree t) {
   else return u;
 }
 
+static string
+column_format_to_string (tree t) {
+  if (is_atomic (t)) return t->label;
+  else if (is_concat (t)) {
+    string r;
+    int    i, n= N (t);
+    for (i= 0; i < n; i++)
+      r << column_format_to_string (t[i]);
+    return r;
+  }
+  else if (is_apply (t, "begingroup")) return "{";
+  else if (is_apply (t, "endgroup")) return "}";
+  else if (is_func (t, APPLY, 1) && t[0] == "nbsp") return " ";
+  else return "";
+}
+
 static tree
 parse_matrix_params (tree t, string tr, string br, string hoff) {
   // cout << "parse_matrix_params: " << hoff << LF;
   tree   tformat (TFORMAT);
-  string s       = string_arg (t);
+  string s       = column_format_to_string (t);
   bool   col_flag= true;
   int    i, n= N (s), col= as_int (hoff);
   for (i= 0; i < n; i++) {
@@ -119,12 +135,29 @@ parse_matrix_params (tree t, string tr, string br, string hoff) {
       tformat << tree (CWITH, tr, br, col_s, col_s, halign, how);
       if (how_c != 'X') {
         int start= ++i;
-        while (i < n && (s[i] != ' ') && (s[i] != '|') && (s[i] != '<') &&
-               (s[i] != '*'))
-          i++;
-        string width= s (start, i);
-        tformat << tree (CWITH, tr, br, col_s, col_s, CELL_HMODE, "exact");
-        tformat << tree (CWITH, tr, br, col_s, col_s, CELL_WIDTH, width);
+        if (i < n && s[start] == '{') {
+          start++;
+          int braces = 1;
+          while (i < n && braces > 0) {
+            i++;
+            if (i < n) {
+              if (s[i] == '{') braces++;
+              else if (s[i] == '}') braces--;
+            }
+          }
+          string width= s (start, i);
+          tformat << tree (CWITH, tr, br, col_s, col_s, CELL_HMODE, "exact");
+          tformat << tree (CWITH, tr, br, col_s, col_s, CELL_WIDTH, width);
+        }
+        else {
+          while (i < n && (s[i] != ' ') && (s[i] != '|') && (s[i] != '<') &&
+                 (s[i] != '*'))
+            i++;
+          string width= s (start, i);
+          tformat << tree (CWITH, tr, br, col_s, col_s, CELL_HMODE, "exact");
+          tformat << tree (CWITH, tr, br, col_s, col_s, CELL_WIDTH, width);
+          i--;
+        }
       }
       else {
         tformat << tree (CWITH, tr, br, col_s, col_s, CELL_HALIGN, "l");
