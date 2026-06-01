@@ -18,6 +18,8 @@ if (eq $platform:os windows) {
 } else {
   set paths = [
     /opt/homebrew/opt/llvm@19/bin/
+    $E:HOME/git/goldfish/bin # Development binaries
+    $E:HOME/bin # User binaries
   ]
 }
 
