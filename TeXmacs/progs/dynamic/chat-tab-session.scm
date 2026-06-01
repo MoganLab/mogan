@@ -421,7 +421,6 @@
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
       (when (tm-func? u 'document)
-        (display "AI Parsed AST: ") (display (tree->stree u)) (newline)
         (let ((u-stree (chat-tab-add-table-borders-stree (tree->stree u))))
           (tree-insert! t i (var-tree-children (stree->tree u-stree)))
           (tree-go-to t :end)

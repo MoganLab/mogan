@@ -310,7 +310,6 @@ void
 texmacs_input_rep::markdown_flush (bool force) {
   // ignore: empty buf in markdown is meaningless
   if (force && !is_empty (buf)) {
-    cout << "AI Raw Markdown:\n" << buf << "\n";
     write (generic_to_tree (buf, "markdown-snippet"));
     buf= "";
   }
