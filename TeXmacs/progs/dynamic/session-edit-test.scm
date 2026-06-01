@@ -6,7 +6,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic session-edit-test) (:use (dynamic session-edit)))
+(import (liii check))
+
+(load "./TeXmacs/progs/dynamic/session-edit.scm")
 
 ;; regtest-tree-contains-label?
 ;; 测试 tree-contains-label? 的递归查找能力
