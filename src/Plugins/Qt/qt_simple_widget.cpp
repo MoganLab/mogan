@@ -51,7 +51,6 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
 #endif
   if (completionPopUp != nullptr) delete completionPopUp;
   if (mathCompletionPopUp != nullptr) {
-    mathCompletionPopUp->setParent (nullptr);
     delete mathCompletionPopUp;
   }
   if (textPopup != nullptr) delete textPopup;
@@ -731,7 +730,6 @@ qt_simple_widget_rep::hide_math_completion_popup () {
   // 调用的结果就是没有操作，直接返回。
   if (mathCompletionPopUp) {
     mathCompletionPopUp->hide ();
-    mathCompletionPopUp->setParent (nullptr);
     delete mathCompletionPopUp;
     mathCompletionPopUp= nullptr;
   }

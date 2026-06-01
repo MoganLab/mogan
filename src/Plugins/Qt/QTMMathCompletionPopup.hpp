@@ -50,7 +50,6 @@ protected:
   void installEventFilterRecursively (QWidget* widget, QObject* filterObj);
 
 protected:
-  void paintEvent (QPaintEvent* event) override;
   bool eventFilter (QObject* obj, QEvent* event);
 };
 

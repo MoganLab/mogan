@@ -12,6 +12,7 @@
 #include "QTMMathCompletionPopup.hpp"
 #include "server.hpp"
 
+#include <QFrame>
 #include <QPainter>
 #include <QPen>
 #include <QTimer>
@@ -28,16 +29,31 @@ QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
   setAttribute (Qt::WA_TranslucentBackground);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
-  layout= new QVBoxLayout (this);
-  layout->setContentsMargins (0, 0, 0, 0);
+
+  QVBoxLayout* mainLayout = new QVBoxLayout (this);
+  mainLayout->setContentsMargins (12, 12, 12, 12);
+  mainLayout->setSizeConstraint (QLayout::SetMinimumSize);
+  setLayout (mainLayout);
+
+  QFrame* container = new QFrame (this);
+  container->setObjectName ("math_completion_container");
+  container->setStyleSheet ("QFrame#math_completion_container { "
+                            "background: white; "
+                            "border: 1.5px solid black; "
+                            "border-radius: 6px; }");
+  mainLayout->addWidget (container);
+
+  layout= new QVBoxLayout (container);
+  layout->setContentsMargins (2, 2, 2, 2);
   layout->setSizeConstraint (QLayout::SetMinimumSize);
-  setLayout (layout);
+  container->setLayout (layout);
+
   // 阴影效果
-  QGraphicsDropShadowEffect* effect= new QGraphicsDropShadowEffect (this);
-  effect->setBlurRadius (40);
+  effect= new QGraphicsDropShadowEffect (container);
+  effect->setBlurRadius (20);
   effect->setOffset (0, 4);
-  effect->setColor (QColor (0, 0, 0, 120));
-  this->setGraphicsEffect (effect);
+  effect->setColor (QColor (0, 0, 0, 80));
+  container->setGraphicsEffect (effect);
 }
 
 QTMMathCompletionPopup::~QTMMathCompletionPopup () {
@@ -86,7 +102,7 @@ QTMMathCompletionPopup::setWidget (QWidget* w) {
     // 暂停绘制，防止闪烁
     this->setUpdatesEnabled (false);
 
-    w->setParent (this);
+    w->setParent (layout->parentWidget ());
     layout->addWidget (w);
     installEventFilterRecursively (w, this);
 
@@ -164,25 +180,6 @@ void
 QTMMathCompletionPopup::scrollBy (int x, int y) {
   cached_scroll_x-= (int) (x / cached_magf);
   cached_scroll_y-= (int) (y / cached_magf);
-}
-
-void
-QTMMathCompletionPopup::paintEvent (QPaintEvent* event) {
-  // 保持原有绘制
-  QPainter painter (this);
-  painter.setRenderHint (QPainter::Antialiasing);
-  // 绘制白色背景
-  painter.setPen (Qt::NoPen);
-  painter.setBrush (QColor (255, 255, 255, 255));
-  QRectF bgRect= this->rect ();
-  painter.drawRoundedRect (bgRect, 6, 6);
-  // 绘制黑色边框
-  QPen pen (Qt::black, 1.5);
-  painter.setPen (pen);
-  painter.setBrush (Qt::NoBrush);
-  QRectF rect= this->rect ();
-  rect.adjust (0.75, 0.75, -0.75, -0.75); // 居中描边
-  painter.drawRoundedRect (rect, 6, 6);   // 圆角
 }
 
 bool
