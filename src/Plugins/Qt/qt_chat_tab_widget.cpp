@@ -50,6 +50,8 @@
 
 using namespace moebius;
 
+bool QTChatTabWidget::globalSidebarCollapsed_= false;
+
 namespace {
 
 // ---- Widget 框架相关常量 ----
@@ -1264,6 +1266,13 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
 
   // 右侧内容区
   setup_right_content (mainLayout);
+
+  // 根据全局记忆的状态恢复侧边栏
+  if (globalSidebarCollapsed_ && sidebarWidget_ && floatingBtnContainer_) {
+    sidebarWidget_->hide ();
+    floatingBtnContainer_->show ();
+    sidebarCollapsed_= true;
+  }
 }
 
 QTChatTabWidget::~QTChatTabWidget () {
@@ -1503,6 +1512,7 @@ QTChatTabWidget::toggle_sidebar () {
     }
     sidebarCollapsed_= true;
   }
+  globalSidebarCollapsed_= sidebarCollapsed_;
 }
 
 void
@@ -1523,6 +1533,16 @@ QTChatTabWidget::setSidebarVisible (bool visible) {
 void
 QTChatTabWidget::setCloseSidebarButtonVisible (bool visible) {
   if (closeSidebarBtn_) closeSidebarBtn_->setVisible (visible);
+}
+
+bool
+QTChatTabWidget::globalSidebarCollapsed () {
+  return globalSidebarCollapsed_;
+}
+
+void
+QTChatTabWidget::setGlobalSidebarCollapsed (bool collapsed) {
+  globalSidebarCollapsed_= collapsed;
 }
 
 /******************************************************************************

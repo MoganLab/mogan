@@ -342,7 +342,16 @@ public:
   }
   void setSidebarCollapsed (bool collapsed);
   bool isSidebarCollapsed () const { return sidebarCollapsed_; }
-  bool isSidebarWidgetVisible () const {
+
+  /**
+   * @brief 获取全局记忆的侧边栏折叠状态。
+   */
+  static bool globalSidebarCollapsed ();
+  /**
+   * @brief 设置全局记忆的侧边栏折叠状态。
+   */
+  static void setGlobalSidebarCollapsed (bool collapsed);
+  bool        isSidebarWidgetVisible () const {
     return sidebarWidget_ != nullptr && sidebarWidget_->isVisible ();
   }
   bool isFloatingContainerVisible () const {
@@ -398,6 +407,8 @@ private:
   bool                   sidebarCollapsed_    = false;   ///< 侧边栏是否折叠
   int                    sidebarExpandedWidth_= 0;       ///< 侧边栏展开时宽度
   qt_tm_widget_rep*      parentTmWidget_= nullptr; ///< 关联的 TeXmacs widget
+
+  static bool globalSidebarCollapsed_; ///< 全局记忆的侧边栏折叠状态
 };
 
 #endif // QT_CHAT_TAB_WIDGET_HPP

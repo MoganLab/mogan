@@ -187,7 +187,8 @@ private:
   QString          lastLoadedPdfPath; ///\< 上次加载的 PDF 路径。
   bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
   bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
-  string           currentEditorFile; ///\< 当前编辑器打开的文件路径。
+  bool   chatSidebarModeMemory_;      ///\< 记忆用户主动设置的侧边栏模式状态。
+  string currentEditorFile;           ///\< 当前编辑器打开的文件路径。
 
 public:
   qt_tm_widget_rep (int mask, command _quit);

@@ -184,7 +184,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
       lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
       chatSideDock (nullptr), chatSidebarToggleBtn (nullptr),
-      chatSidebarMode (false) {
+      chatSidebarMode (false), chatSidebarModeMemory_ (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -788,7 +788,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   QObject::connect (chatSideDock, &QDockWidget::visibilityChanged,
                     [this] (bool visible) {
                       if (!visible && chatSidebarMode) {
-                        chatSidebarMode= false;
+                        chatSidebarMode       = false;
+                        chatSidebarModeMemory_= false;
                         if (chatContentWidget && chatSideDock &&
                             chatSideDock->widget () == chatContentWidget) {
                           chatSideDock->setWidget (nullptr);
@@ -842,7 +843,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw));
 
   QObject::connect (chatSidebarToggleBtn, &QPushButton::clicked, [this] () {
-    chatSidebarMode= !chatSidebarMode;
+    chatSidebarMode       = !chatSidebarMode;
+    chatSidebarModeMemory_= chatSidebarMode;
     sync_chat_sidebar_mode ();
   });
 
@@ -1012,6 +1014,13 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
 
   if (startupTabMode) {
     // Show Backstage/Startup view
+    // 进入首页前保存并关闭 dock
+    if (chatSidebarMode) {
+      chatSidebarModeMemory_= true;
+      chatSidebarMode       = false;
+      sync_chat_sidebar_mode ();
+    }
+
     hide_widget_from_layout (editorWidget, layout);
     hide_widget_from_layout (pdfViewerWidget, layout);
     hide_widget_from_layout (chatContentWidget, layout);
@@ -1059,6 +1068,12 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
       url currentView= get_current_view_safe ();
       if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
     }
+    // 从首页切回文档时恢复 dock（Chat 标签页模式下不恢复，由 sync_chat_tab_mode
+    // 处理）
+    if (chatSidebarModeMemory_ && !chatSidebarMode && !chatTabMode) {
+      chatSidebarMode= true;
+      sync_chat_sidebar_mode ();
+    }
   }
 }
 
@@ -1077,18 +1092,23 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
 
   if (chatTabMode) {
     // Show Chat tab view
-    // 如果之前处于侧边栏模式，先关闭
+    // 如果之前处于侧边栏模式，先关闭（记住用户选择，切回时恢复）
     if (chatSidebarMode) {
-      chatSidebarMode= false;
+      chatSidebarModeMemory_= true;
+      chatSidebarMode       = false;
       if (chatSideDock && chatContentWidget &&
           chatSideDock->widget () == chatContentWidget) {
         chatSideDock->setWidget (nullptr);
         chatContentWidget->setParent (centralwidget ());
-        // 恢复内部对话列表显示（全屏模式需要）
+        // 恢复内部对话列表显示（全屏模式需要），
+        // 尊重用户记忆的侧边栏展开/收缩状态
         QTChatTabWidget* chatWidget=
             qobject_cast<QTChatTabWidget*> (chatContentWidget);
         if (chatWidget) {
+          // 先从 dock 模式的隐藏状态恢复，再根据用户记忆的状态设置
           chatWidget->setSidebarVisible (true);
+          chatWidget->setSidebarCollapsed (
+              QTChatTabWidget::globalSidebarCollapsed ());
           chatWidget->setCloseSidebarButtonVisible (false);
         }
       }
@@ -1121,6 +1141,12 @@ qt_tm_widget_rep::sync_chat_tab_mode () {
                                                   QSizePolicy::Fixed);
       url currentView= get_current_view_safe ();
       if (!is_none (currentView)) send_keyboard_focus (abstract (main_widget));
+    }
+    // 如果用户之前主动打开了侧边栏，从 Chat 标签页切回时恢复
+    // 注意：从首页切回时由 sync_startup_tab_mode() 负责恢复，这里不再重复处理
+    if (chatSidebarModeMemory_ && !chatSidebarMode && !startupTabMode) {
+      chatSidebarMode= true;
+      sync_chat_sidebar_mode ();
     }
   }
 }
@@ -1185,7 +1211,8 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
       // 连接关闭按钮信号
       QObject::connect (chatWidget, &QTChatTabWidget::closeSidebarRequested,
                         [this] () {
-                          chatSidebarMode= false;
+                          chatSidebarMode       = false;
+                          chatSidebarModeMemory_= false;
                           sync_chat_sidebar_mode ();
                         });
     }
@@ -1227,11 +1254,15 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
       // 不加入布局，保持隐藏
       chatContentWidget->hide ();
 
-      // 恢复内部对话列表显示（全屏模式需要）
+      // 恢复内部对话列表显示（全屏模式需要），
+      // 尊重用户记忆的侧边栏展开/收缩状态
       QTChatTabWidget* chatWidget=
           qobject_cast<QTChatTabWidget*> (chatContentWidget);
       if (chatWidget) {
+        // 先从 dock 模式的隐藏状态恢复，再根据用户记忆的状态设置
         chatWidget->setSidebarVisible (true);
+        chatWidget->setSidebarCollapsed (
+            QTChatTabWidget::globalSidebarCollapsed ());
         chatWidget->setCloseSidebarButtonVisible (false);
       }
     }

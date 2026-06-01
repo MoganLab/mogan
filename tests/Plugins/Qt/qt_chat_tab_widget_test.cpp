@@ -23,7 +23,11 @@ class TestChatTabWidget : public QObject {
   Q_OBJECT
 
 private slots:
-  void init () { init_lolly (); }
+  void init () {
+    init_lolly ();
+    // 重置全局侧边栏折叠状态，避免测试间互相影响
+    QTChatTabWidget::setGlobalSidebarCollapsed (false);
+  }
 
   void test_count_input_lines_empty_document () {
     tree empty_doc= tree (DOCUMENT, "");
@@ -139,6 +143,72 @@ private slots:
     widget.setSidebarCollapsed (false);
     QVERIFY (widget.isSidebarWidgetVisible ());
     QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  // === globalSidebarCollapsed 全局状态记忆 ===
+  void test_globalSidebarCollapsed_default () {
+    QCOMPARE (QTChatTabWidget::globalSidebarCollapsed (), false);
+  }
+
+  void test_globalSidebarCollapsed_set_and_get () {
+    QTChatTabWidget::setGlobalSidebarCollapsed (true);
+    QVERIFY (QTChatTabWidget::globalSidebarCollapsed ());
+
+    QTChatTabWidget::setGlobalSidebarCollapsed (false);
+    QVERIFY (!QTChatTabWidget::globalSidebarCollapsed ());
+  }
+
+  void test_constructor_respects_global_collapsed () {
+    QTChatTabWidget::setGlobalSidebarCollapsed (true);
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+
+    QVERIFY (widget.isSidebarCollapsed ());
+    QVERIFY (!widget.isSidebarWidgetVisible ());
+    QVERIFY (widget.isFloatingContainerVisible ());
+  }
+
+  void test_constructor_respects_global_expanded () {
+    QTChatTabWidget::setGlobalSidebarCollapsed (false);
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+    widget.show ();
+
+    QVERIFY (!widget.isSidebarCollapsed ());
+    QVERIFY (widget.isSidebarWidgetVisible ());
+    QVERIFY (!widget.isFloatingContainerVisible ());
+  }
+
+  void test_setSidebarCollapsed_updates_global () {
+    QTChatTabWidget::setGlobalSidebarCollapsed (false);
+    QList<SessionDisplayInfo> sessions;
+    QTChatTabWidget           widget (sessions, "", nullptr);
+
+    widget.setSidebarCollapsed (true);
+    QVERIFY (QTChatTabWidget::globalSidebarCollapsed ());
+
+    widget.setSidebarCollapsed (false);
+    QVERIFY (!QTChatTabWidget::globalSidebarCollapsed ());
+  }
+
+  void test_global_state_persists_across_instances () {
+    QTChatTabWidget::setGlobalSidebarCollapsed (false);
+    QList<SessionDisplayInfo> sessions;
+
+    {
+      QTChatTabWidget widget1 (sessions, "", nullptr);
+      widget1.setSidebarCollapsed (true);
+      QVERIFY (QTChatTabWidget::globalSidebarCollapsed ());
+    }
+
+    {
+      QTChatTabWidget widget2 (sessions, "", nullptr);
+      widget2.show ();
+      QVERIFY (widget2.isSidebarCollapsed ());
+      QVERIFY (!widget2.isSidebarWidgetVisible ());
+      QVERIFY (widget2.isFloatingContainerVisible ());
+    }
   }
 
   // === setSidebarVisible (dock 模式专用) ===
