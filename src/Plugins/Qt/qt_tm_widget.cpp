@@ -774,6 +774,13 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   // auxiliaryWidget->setTitleBarWidget (new QWidget ()); // Disables title bar
   mw->addDockWidget (Qt::RightDockWidgetArea, auxiliaryWidget);
 
+  // 统一为所有 dock 分隔线添加可视边框
+  int borderWidth= DpiUtils::scaled (1);
+  mw->setStyleSheet (mw->styleSheet () +
+                     QString ("QMainWindow::separator { "
+                              "border-left: %1px solid rgba(0,0,0,0.12); }")
+                         .arg (borderWidth));
+
   // AI 聊天侧边栏 Dock
   chatSideDock= new QDockWidget ("AI Chat Sidebar", mw);
   chatSideDock->setObjectName ("chatSideDock");
@@ -832,9 +839,9 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     }
 
   private:
-    QPushButton*       button_;
-    QWidget*           parent_;
-    qt_tm_widget_rep*  widget_;
+    QPushButton*      button_;
+    QWidget*          parent_;
+    qt_tm_widget_rep* widget_;
   };
   cw->installEventFilter (
       new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw, this));
