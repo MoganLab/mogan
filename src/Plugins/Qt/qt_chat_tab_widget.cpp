@@ -137,14 +137,20 @@ ChatConversationPanel::setup_ui () {
   contentLayout->setContentsMargins (0, DpiUtils::scaled (kContentMarginY), 0,
                                      DpiUtils::scaled (kContentMarginY));
   contentLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
-  topSpacer_= new QSpacerItem (0, DpiUtils::scaled (kWelcomeTopOffsetY),
-                               QSizePolicy::Minimum, QSizePolicy::Fixed);
+  topSpacer_= new QSpacerItem (0, 0, QSizePolicy::Minimum, QSizePolicy::Fixed);
   contentLayout->addSpacerItem (topSpacer_);
 
   QWidget*     topPanel = new QWidget (this);
   QVBoxLayout* topLayout= new QVBoxLayout (topPanel);
   topLayout->setContentsMargins (0, 0, 0, 0);
   topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+
+  // 顶部弹性空间（欢迎模式下将内容推到中心偏上）
+  topInnerSpacer_= new QSpacerItem (0, 0, QSizePolicy::Minimum,
+                                    QSizePolicy::Expanding);
+  int topInnerIdx= topLayout->count ();
+  topLayout->addSpacerItem (topInnerSpacer_);
+  topLayout->setStretch (topInnerIdx, 2);
 
   // Welcome title
   welcomeTitle_= new QLabel (qt_translate ("Welcome to Liii STEM!"), topPanel);
@@ -308,6 +314,13 @@ ChatConversationPanel::setup_ui () {
   inputWrap->addStretch (1);
   topLayout->addLayout (inputWrap, 0);
 
+  // 底部弹性空间（欢迎模式下与顶部弹性空间配合，将内容推到中心偏上）
+  bottomInnerSpacer_= new QSpacerItem (0, 0, QSizePolicy::Minimum,
+                                       QSizePolicy::Expanding);
+  int bottomInnerIdx= topLayout->count ();
+  topLayout->addSpacerItem (bottomInnerSpacer_);
+  topLayout->setStretch (bottomInnerIdx, 1);
+
   contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
 }
 
@@ -315,9 +328,8 @@ void
 ChatConversationPanel::enterConversationMode () {
   if (conversationMode_) return;
 
-  conversationMode_    = true;
-  const int startOffset= DpiUtils::scaled (kWelcomeTopOffsetY);
-  const int endOffset  = DpiUtils::scaled (kConversationTopOffsetY);
+  conversationMode_  = true;
+  const int endOffset= DpiUtils::scaled (kConversationTopOffsetY);
 
   if (messageFrame_) {
     QGraphicsOpacityEffect* messageEffect=
@@ -356,6 +368,20 @@ ChatConversationPanel::enterConversationMode () {
                             QSizePolicy::Fixed);
     layout ()->invalidate ();
     layout ()->activate ();
+  }
+
+  if (topInnerSpacer_) {
+    topInnerSpacer_->changeSize (0, 0, QSizePolicy::Minimum,
+                                 QSizePolicy::Fixed);
+  }
+  if (bottomInnerSpacer_) {
+    bottomInnerSpacer_->changeSize (0, 0, QSizePolicy::Minimum,
+                                    QSizePolicy::Fixed);
+  }
+  if (welcomeTitle_ && welcomeTitle_->parentWidget () &&
+      welcomeTitle_->parentWidget ()->layout ()) {
+    welcomeTitle_->parentWidget ()->layout ()->invalidate ();
+    welcomeTitle_->parentWidget ()->layout ()->activate ();
   }
 }
 

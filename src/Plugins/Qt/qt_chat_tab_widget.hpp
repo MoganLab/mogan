@@ -133,6 +133,8 @@ private:
   QPushButton* sendButton_       = nullptr;        ///< 发送/停止按钮
   QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
   QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
+  QSpacerItem* topInnerSpacer_   = nullptr;        ///< topPanel 内顶部弹性空间
+  QSpacerItem* bottomInnerSpacer_= nullptr;        ///< topPanel 内底部弹性空间
   widget       messageWidget_;                     ///< 消息区 TeXmacs widget
   widget       inputWidget;                        ///< 输入区 TeXmacs widget
   int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）

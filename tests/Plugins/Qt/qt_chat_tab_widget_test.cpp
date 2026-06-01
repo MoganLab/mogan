@@ -8,6 +8,7 @@
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
+#include <QLabel>
 #include <QInputMethodEvent>
 #include <QLineEdit>
 #include <QMenu>
@@ -15,6 +16,7 @@
 #include <QPushButton>
 #include <QSignalSpy>
 #include <QWheelEvent>
+#include <QWidget>
 #include <QtTest/QtTest>
 
 using namespace moebius;
