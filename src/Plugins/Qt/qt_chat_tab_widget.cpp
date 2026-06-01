@@ -707,7 +707,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
     item.sidebarButton->setText (to_qstring (info.displayTitle));
     bool isActive= (info.sessionId == activeSessionId && !info.archived);
     item.sidebarButton->setChecked (isActive);
-    if (item.moreButton) item.moreButton->setVisible (info.archived);
+    if (item.moreButton)
+      item.moreButton->setVisible (info.archived || isActive);
     item.isArchived= info.archived;
 
     if (info.archived) {
@@ -766,10 +767,17 @@ ChatSidebar::updateItemTitle (const string& sessionId,
 
 void
 ChatSidebar::setActiveItem (const string& sessionId) {
+  if (activeSessionId_ != sessionId) {
+    auto oldIt= items_.find (activeSessionId_);
+    if (oldIt != items_.end () && oldIt->moreButton && !oldIt->isArchived) {
+      oldIt->moreButton->hide ();
+    }
+  }
   activeSessionId_= sessionId;
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     bool isActive= (it.key () == sessionId && !it->isArchived);
     if (it->sidebarButton) it->sidebarButton->setChecked (isActive);
+    if (isActive && it->moreButton) it->moreButton->show ();
   }
 }
 
@@ -840,7 +848,8 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
   if (item.isArchived) {
     item.isArchived= false;
     conversationListLayout_->insertWidget (0, item.itemWidget);
-    if (item.moreButton) item.moreButton->hide ();
+    if (item.moreButton)
+      item.moreButton->setVisible (activeSessionId_ == sessionId);
   }
 
   // 更新 sessionCache_ 中的 archived 状态
@@ -1195,7 +1204,7 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
   else if (event->type () == QEvent::HoverLeave) {
     for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
       if (it->itemWidget == watched && it->moreButton) {
-        it->moreButton->setVisible (it->isArchived);
+        it->moreButton->setVisible (it->isArchived || it.key () == activeSessionId_);
         break;
       }
     }
