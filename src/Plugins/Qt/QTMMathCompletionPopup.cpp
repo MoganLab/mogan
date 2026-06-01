@@ -30,12 +30,12 @@ QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
 
-  QVBoxLayout* mainLayout = new QVBoxLayout (this);
+  QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setContentsMargins (12, 12, 12, 12);
   mainLayout->setSizeConstraint (QLayout::SetMinimumSize);
   setLayout (mainLayout);
 
-  QFrame* container = new QFrame (this);
+  QFrame* container= new QFrame (this);
   container->setObjectName ("math_completion_container");
   container->setStyleSheet ("QFrame#math_completion_container { "
                             "background: white; "
