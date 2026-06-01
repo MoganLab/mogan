@@ -1204,7 +1204,8 @@ ChatSidebar::eventFilter (QObject* watched, QEvent* event) {
   else if (event->type () == QEvent::HoverLeave) {
     for (auto it= items_.constBegin (); it != items_.constEnd (); ++it) {
       if (it->itemWidget == watched && it->moreButton) {
-        it->moreButton->setVisible (it->isArchived || it.key () == activeSessionId_);
+        it->moreButton->setVisible (it->isArchived ||
+                                    it.key () == activeSessionId_);
         break;
       }
     }
