@@ -16,45 +16,79 @@
 
 (check-set-mode! 'report-failed)
 
-(define (stree-has-spaced-differential? t)
-  ;; Check for pattern: "d" followed by " " followed by x/y/z/r/<rho>/<theta> etc.
-  (define (check-list lst)
+(define (collect-spaced-differentials t)
+  (define (collect-list lst)
     (if (or (null? lst) (null? (cdr lst)) (null? (cddr lst)))
-        #f
-        (let ((a (car lst))
-              (b (cadr lst))
-              (c (caddr lst)))
-          (if (and (string? a) (string=? a "d")
-                   (string? b) (string=? b " ")
-                   (string? c)
-                   (or (string=? c "x") (string=? c "y") (string=? c "z") (string=? c "r")
-                       (string=? c "<rho>") (string=? c "<varrho>")
-                       (string=? c "<theta>") (string=? c "<vartheta>")))
-              #t
-              (check-list (cdr lst))))))
-  (define (check-children lst)
+      '()
+      (let ((a (car lst)) (b (cadr lst)) (c (caddr lst)))
+        (if (and (string? a) (string=? a "d") (string? b) (string=? b " ") (string? c))
+          (cons c (collect-list (cddr lst)))
+          (collect-list (cdr lst))
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;define
+  (define (collect-children lst)
     (if (null? lst)
-        #f
-        (or (stree-has-spaced-differential? (car lst))
-            (check-children (cdr lst)))))
-  (cond ((not (pair? t)) #f)
+      '()
+      (append (collect-spaced-differentials (car lst)) (collect-children (cdr lst)))
+    ) ;if
+  ) ;define
+  (cond ((not (pair? t)) '())
         ((eq? (car t) 'concat)
-         (or (check-list (cdr t))
-             (check-children (cdr t))))
-        (else (check-children (cdr t)))))
+         (append (collect-list (cdr t)) (collect-children (cdr t)))
+        ) ;
+        (else (collect-children (cdr t)))
+  ) ;cond
+) ;define
+
+(define (stree-has-all-spaced-differentials? t)
+  (let ((collected (collect-spaced-differentials t))
+        (expected '("x"
+                    "y"
+                    "z"
+                    "r"
+                    "<rho>"
+                    "<varrho>"
+                    "<theta>"
+                    "<vartheta>"
+                    "u"
+                    "v"
+                    "w"
+                    "<upsilon>"
+                    "<phi>"
+                    "<varphi>"
+                    "<omega>")
+        ) ;expected
+       ) ;
+    (define (all-expected? lst)
+      (if (null? lst) #t (and (member (car lst) collected) (all-expected? (cdr lst))))
+    ) ;define
+    (display* "Collected spaced differentials: " collected "\n")
+    (all-expected? expected)
+  ) ;let
+) ;define
 
 (define (load-latex path)
-  (with path (string-append "$TEXMACS_PATH/tests/tex/" path)
-    (string-replace (string-load path) "\r\n" "\n")))
+  (with path
+    (string-append "$TEXMACS_PATH/tests/tex/" path)
+    (string-replace (string-load path) "\r\n" "\n")
+  ) ;with
+) ;define
 
 (define (test-latex-document-differentials)
-  (display "Testing space insertion for differentials in LaTeX document import...\n")
+  (display "Testing space insertion for differentials in LaTeX document import...\n"
+  ) ;display
   (let* ((latex-content (load-latex "0616_differential_test.tex"))
          (texmacs-tree (latex-document->texmacs latex-content))
-         (st (tree->stree texmacs-tree)))
-    (display* "LaTeX Document converted tree TMU: " (serialize-tmu texmacs-tree) "\n")
-    (check (stree-has-spaced-differential? st) => #t)))
+         (st (tree->stree texmacs-tree))
+        ) ;
+    (display* "LaTeX Document converted tree TMU: "
+      (serialize-tmu texmacs-tree)
+      "\n"
+    ) ;display*
+    (check (stree-has-all-spaced-differentials? st) => #t)
+  ) ;let*
+) ;define
 
-(tm-define (test_0616)
-  (test-latex-document-differentials)
-  (check-report))
+(tm-define (test_0616) (test-latex-document-differentials) (check-report))

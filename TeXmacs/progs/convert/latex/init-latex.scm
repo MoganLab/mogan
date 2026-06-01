@@ -153,6 +153,9 @@
                (string-starts? rest "y")
                (string-starts? rest "z")
                (string-starts? rest "r")
+               (string-starts? rest "u")
+               (string-starts? rest "v")
+               (string-starts? rest "w")
              ) ;or
              (cons 1 (substring rest 0 1))
             ) ;
@@ -160,6 +163,10 @@
             ((string-starts? rest "<varrho>") (cons 8 "<varrho>"))
             ((string-starts? rest "<theta>") (cons 7 "<theta>"))
             ((string-starts? rest "<vartheta>") (cons 10 "<vartheta>"))
+            ((string-starts? rest "<upsilon>") (cons 9 "<upsilon>"))
+            ((string-starts? rest "<phi>") (cons 5 "<phi>"))
+            ((string-starts? rest "<varphi>") (cons 8 "<varphi>"))
+            ((string-starts? rest "<omega>") (cons 7 "<omega>"))
             (else #f)
       ) ;cond
     ) ;let
@@ -208,6 +215,10 @@
                    (string=? c2 "<varrho>")
                    (string=? c2 "<theta>")
                    (string=? c2 "<vartheta>")
+                   (string=? c2 "<upsilon>")
+                   (string=? c2 "<phi>")
+                   (string=? c2 "<varphi>")
+                   (string=? c2 "<omega>")
                  ) ;or
                  (let ((len (string-length c1)))
                    (and (> len 0)
