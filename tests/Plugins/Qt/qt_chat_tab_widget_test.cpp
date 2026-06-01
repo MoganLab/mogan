@@ -512,6 +512,186 @@ private slots:
                     Qt::NoScrollPhase, false);
     QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &we));
   }
+
+  // === shift+方向键 选中内容 ===
+  void test_readonly_allows_shift_left () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Left, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_right () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Right, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_up () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Up, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_down () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Down, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_home () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Home, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_end () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_End, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_pageup () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_PageUp, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_pagedown () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_PageDown, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_left () {
+    // 单独方向键 → 放行（移动光标）
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Left, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_right () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Right, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_up () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Up, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_down () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Down, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_home () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Home, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_end () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_End, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_pageup () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_PageUp, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_plain_pagedown () {
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_PageDown, Qt::NoModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_plain_shift () {
+    // 单独按 Shift 键 → 拦截
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Shift, Qt::ShiftModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_shift_left () {
+    // Ctrl+Shift+Left 选中单词 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Left,
+                  Qt::ControlModifier | Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_shift_left_keyrelease () {
+    // Shift+Left 的 KeyRelease → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_Left, Qt::ShiftModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  // === cmd+/- 缩放 ===
+  void test_readonly_allows_ctrl_plus () {
+    // Ctrl+Plus 放大 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Plus, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_equal () {
+    // Ctrl+Equal（主键盘 + 号）放大 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Equal, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_minus () {
+    // Ctrl+Minus 缩小 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Minus, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_meta_plus () {
+    // Meta+Plus（macOS Cmd+Plus）放大 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_Plus, Qt::MetaModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_plus_keyrelease () {
+    // Ctrl+Plus 的 KeyRelease → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_Plus, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
 };
 
 QTEST_MAIN (TestChatTabWidget)

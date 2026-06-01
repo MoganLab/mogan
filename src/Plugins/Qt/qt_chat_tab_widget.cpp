@@ -412,12 +412,18 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
   if (t == QEvent::InputMethod) return true;
   if (t == QEvent::KeyPress) {
     QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+    int                   key = ke->key ();
     Qt::KeyboardModifiers mods= ke->modifiers ();
-    bool has_modifier         = mods & (Qt::ControlModifier | Qt::MetaModifier);
-    if (has_modifier) {
-      int key= ke->key ();
-      // 只放行允许的快捷键：复制(C)、全选(A)、搜索(F)
-      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F)
+    bool ctrl_or_meta         = mods & (Qt::ControlModifier | Qt::MetaModifier);
+    bool is_nav_key=
+        (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up ||
+         key == Qt::Key_Down || key == Qt::Key_Home || key == Qt::Key_End ||
+         key == Qt::Key_PageUp || key == Qt::Key_PageDown);
+    if (is_nav_key) return false;
+    if (ctrl_or_meta) {
+      // 放行允许的快捷键：复制(C)、全选(A)、搜索(F)、缩放(+/-/=)
+      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
+          key == Qt::Key_Plus || key == Qt::Key_Equal || key == Qt::Key_Minus)
         return false;
       return true;
     }
@@ -425,11 +431,17 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
   }
   if (t == QEvent::KeyRelease) {
     QKeyEvent*            ke  = static_cast<QKeyEvent*> (event);
+    int                   key = ke->key ();
     Qt::KeyboardModifiers mods= ke->modifiers ();
-    bool has_modifier         = mods & (Qt::ControlModifier | Qt::MetaModifier);
-    if (has_modifier) {
-      int key= ke->key ();
-      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F)
+    bool ctrl_or_meta         = mods & (Qt::ControlModifier | Qt::MetaModifier);
+    bool is_nav_key=
+        (key == Qt::Key_Left || key == Qt::Key_Right || key == Qt::Key_Up ||
+         key == Qt::Key_Down || key == Qt::Key_Home || key == Qt::Key_End ||
+         key == Qt::Key_PageUp || key == Qt::Key_PageDown);
+    if (is_nav_key) return false;
+    if (ctrl_or_meta) {
+      if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
+          key == Qt::Key_Plus || key == Qt::Key_Equal || key == Qt::Key_Minus)
         return false;
       return true;
     }
