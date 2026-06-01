@@ -390,12 +390,15 @@
                     (if (null? children)
                         (if has-border?
                             `(tformat ,@(map chat-tab-add-table-borders-stree (cdr x)))
-                            `(tformat (cwith "1" "-1" "1" "-1" "cell-border" "1ln")
+                            `(tformat (cwith "1" "-1" "1" "-1" "cell-tborder" "1ln")
+                                      (cwith "1" "-1" "1" "-1" "cell-bborder" "1ln")
+                                      (cwith "1" "-1" "1" "-1" "cell-lborder" "1ln")
+                                      (cwith "1" "-1" "1" "-1" "cell-rborder" "1ln")
                                       ,@(map chat-tab-add-table-borders-stree (cdr x))))
                         (let ((child (car children)))
                           (if (and (list? child) (eq? (car child) 'cwith)
                                    (>= (length child) 6)
-                                   (equal? (list-ref child 5) "cell-border"))
+                                   (member (list-ref child 5) '("cell-tborder" "cell-bborder" "cell-lborder" "cell-rborder" "cell-border")))
                               (loop (cdr children) #t)
                               (loop (cdr children) has-border?))))))
                  (else
