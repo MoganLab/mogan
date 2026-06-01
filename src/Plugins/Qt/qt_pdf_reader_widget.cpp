@@ -1406,6 +1406,11 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
 #else
   bool closeModifier= event->modifiers () & Qt::ControlModifier;
 #endif
+  if (closeModifier && event->key () == Qt::Key_T) {
+    eval ("(new-document)");
+    event->accept ();
+    return;
+  }
   if (closeModifier && event->key () == Qt::Key_W) {
     eval ("(safely-kill-tabpage)");
     event->accept ();
