@@ -364,7 +364,7 @@ ChatConversationPanel::resizeEvent (QResizeEvent* event) {
   int targetOffset= height () * 2 / 7 - DpiUtils::scaled (kContentMarginY);
   if (targetOffset < 0) targetOffset= 0;
   topSpacer_->changeSize (0, targetOffset, QSizePolicy::Minimum,
-                            QSizePolicy::Fixed);
+                          QSizePolicy::Fixed);
   if (layout ()) {
     layout ()->invalidate ();
     layout ()->activate ();

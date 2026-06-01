@@ -8,8 +8,8 @@
 #include "Qt/qt_chat_tab_widget.hpp"
 #include "Qt/qt_utilities.hpp"
 #include "base.hpp"
-#include <QLabel>
 #include <QInputMethodEvent>
+#include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMouseEvent>
