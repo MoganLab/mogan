@@ -381,6 +381,27 @@
   ) ;with-buffer
 ) ;define
 
+(define (chat-tab-add-table-borders-stree x)
+  (cond ((string? x) x)
+        ((list? x)
+         (let ((head (car x)))
+           (cond ((eq? head 'tformat)
+                  (let loop ((children (cdr x)) (has-border? #f))
+                    (if (null? children)
+                        (if has-border?
+                            `(tformat ,@(map chat-tab-add-table-borders-stree (cdr x)))
+                            `(tformat (cwith "1" "-1" "1" "-1" "cell-border" "1ln")
+                                      ,@(map chat-tab-add-table-borders-stree (cdr x))))
+                        (let ((child (car children)))
+                          (if (and (list? child) (eq? (car child) 'cwith)
+                                   (>= (length child) 6)
+                                   (equal? (list-ref child 5) "cell-border"))
+                              (loop (cdr children) #t)
+                              (loop (cdr children) has-border?))))))
+                 (else
+                  (cons head (map chat-tab-add-table-borders-stree (cdr x)))))))
+        (else x)))
+
 (define (chat-tab-output t u)
   (when (tm-func? t 'document)
     (with i
@@ -388,8 +409,10 @@
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'script-busy)) (set! i (- i 1)))
       (if (and (> i 0) (tm-func? (tree-ref t (- i 1)) 'errput)) (set! i (- i 1)))
       (when (tm-func? u 'document)
-        (tree-insert! t i (var-tree-children u))
-        (tree-go-to t :end)
+        (let ((u-stree (chat-tab-add-table-borders-stree (tree->stree u))))
+          (tree-insert! t i (var-tree-children (stree->tree u-stree)))
+          (tree-go-to t :end)
+        ) ;let
       ) ;when
     ) ;with
   ) ;when
