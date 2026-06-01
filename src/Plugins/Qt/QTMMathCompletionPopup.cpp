@@ -19,9 +19,10 @@
 
 QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
                                                 qt_simple_widget_rep* owner)
-    : QWidget (parent), owner (owner), layout (nullptr) {
+    : QWidget (nullptr), owner (owner), layout (nullptr) {
+  (void) parent;
   setObjectName ("math_completion_popup");
-  setWindowFlags (Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+  setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
@@ -102,14 +103,10 @@ QTMMathCompletionPopup::showMathCompletions (struct cursor cu, double magf,
                                              int scroll_x, int scroll_y,
                                              int canvas_x) {
   cachePosition (cu, magf, scroll_x, scroll_y, canvas_x);
-  int x, y;
-  getCachedPosition (x, y);
-  QPoint topLeft (x, y);
-  move (topLeft);
+  updatePosition ();
   raise ();
   show ();
   this->adjustSize ();
-  QTimer::singleShot (0, this, [this] () { updatePosition (); });
 }
 
 void
@@ -127,17 +124,20 @@ QTMMathCompletionPopup::cachePosition (struct cursor cu, double magf,
 void
 QTMMathCompletionPopup::getCachedPosition (int& x, int& y) {
   QTMWidget* canvas= owner ? owner->canvas () : nullptr;
-  QPoint     cursor_pos;
-  QPoint     origin;
-  QPoint     surface_top_left;
   if (canvas && canvas->surface ()) {
-    cursor_pos      = canvas->cursorPos ();
-    origin          = canvas->origin ();
-    surface_top_left= canvas->surface ()->geometry ().topLeft ();
+    QPoint cursor_pos      = canvas->cursorPos ();
+    QPoint origin          = canvas->origin ();
+    QPoint surface_top_left= canvas->surface ()->geometry ().topLeft ();
+    QPoint local_pos (cursor_pos.x () - origin.x () + surface_top_left.x (),
+                      cursor_pos.y () - origin.y () + surface_top_left.y ());
+    QPoint global_pos= canvas->viewport ()->mapToGlobal (local_pos);
+    x                = global_pos.x ();
+    y                = global_pos.y () + 10;
   }
-  x= cursor_pos.x () - origin.x () + surface_top_left.x ();
-  y= cursor_pos.y () - origin.y () + surface_top_left.y ();
-  y+= 10;
+  else {
+    x= 0;
+    y= 0;
+  }
 }
 
 void

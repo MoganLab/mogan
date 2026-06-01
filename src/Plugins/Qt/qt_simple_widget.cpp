@@ -51,6 +51,7 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
   if (backingPixmap != NULL) delete backingPixmap;
 #endif
   if (completionPopUp != nullptr) delete completionPopUp;
+  if (mathCompletionPopUp != nullptr) delete mathCompletionPopUp;
   if (textPopup != nullptr) delete textPopup;
 }
 
