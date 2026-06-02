@@ -128,6 +128,9 @@ ChatConversationPanel::ChatConversationPanel (const string& sessionId,
                                               QWidget*      parent)
     : QWidget (parent), sessionId_ (sessionId) {
   setObjectName ("chat-tab-conversation-page");
+  // 限制垂直方向不向上传播 TeXmacs widget 的屏幕尺寸 sizeHint，
+  // 避免 dock 模式下窗口被向下拉伸。
+  setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
   setup_ui ();
 }
 
@@ -179,6 +182,9 @@ ChatConversationPanel::setup_ui () {
   messageFrameLayout->setSpacing (0);
   messageQWidget->setParent (messageFrame_);
   messageQWidget->setMinimumHeight (DpiUtils::scaled (kMessageMinHeight));
+  // Ignored: 忽略 TeXmacs widget 返回的屏幕尺寸 sizeHint，
+  // 避免在 dock 模式下窗口被向下拉伸。
+  messageQWidget->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
   {
     QAbstractScrollArea* msgArea=
         messageQWidget->findChild<QAbstractScrollArea*> ();
