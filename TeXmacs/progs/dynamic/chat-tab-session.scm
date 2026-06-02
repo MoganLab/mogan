@@ -29,6 +29,16 @@
 
 (define chat-tab-session-states (make-ahash-table))
 
+(define chat-tab-style-loaded (make-ahash-table))
+
+(define (chat-tab-style-loaded? session-id)
+  (ahash-ref chat-tab-style-loaded session-id)
+) ;define
+
+(define (chat-tab-set-style-loaded! session-id)
+  (ahash-set! chat-tab-style-loaded session-id #t)
+) ;define
+
 ;;; ---------- Buffer URL 推导函数 ----------
 
 (tm-define (chat-tab-session->message-buffer session-id)
@@ -597,7 +607,19 @@
 (define (chat-tab-ensure-session! session-id)
   (let ((st (chat-tab-get-state session-id)))
     (if st
-      st
+      ;; state 已存在，检查样式包是否需要加载
+      (if (chat-tab-style-loaded? session-id)
+        st
+        (let ((msg-buf (chat-tab-session->message-buffer session-id))
+              (in-buf (chat-tab-session->input-buffer session-id))
+             ) ;
+          (with-buffer msg-buf (chat-tab-add-default-style-packages!))
+          (with-buffer in-buf (chat-tab-add-default-style-packages!))
+          (chat-tab-set-style-loaded! session-id)
+          st
+        ) ;let
+      ) ;if
+      ;; state 不存在，创建 state 并初始化
       (let* ((model (or chat-tab-current-model "Kimi-VLM"))
              (plugin-ses (string-append model ":chat-tab:" session-id))
              (new (chat-tab-state model))
@@ -620,6 +642,7 @@
         ) ;with-buffer
         ;; input buffer 同样加载样式包
         (with-buffer in-buf (chat-tab-add-default-style-packages!))
+        (chat-tab-set-style-loaded! session-id)
         new
       ) ;let*
     ) ;if
@@ -725,11 +748,7 @@
           (plugin-next lan ses)
           (begin
             (plugin-write lan ses input :session)
-            (with p (plugin-prompt lan ses)
-              (when (tree? p)
-                (tree-set out :up 0 p)
-              ) ;when
-            ) ;with
+            (with p (plugin-prompt lan ses) (when (tree? p) (tree-set out :up 0 p)))
           ) ;begin
         ) ;if
       ) ;with
@@ -863,7 +882,7 @@
                      (tree-set out :up 0 (tree-copy t))
                      (buffer-pretend-saved msg-buf)
                    ) ;with-buffer
-                  )
+                  ) ;
                   ((and (== ch "input") (null? (cdr l))) (chat-tab-set-input-body! in-buf t))
             ) ;cond
           ) ;let
