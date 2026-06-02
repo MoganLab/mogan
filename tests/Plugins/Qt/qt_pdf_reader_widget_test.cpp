@@ -52,21 +52,27 @@ private slots:
     delete widget;
   }
 
-  void test_toolBarWidgetsHeightAligned () {
+  void test_zoomPageSignals () {
+    // Toolbar widgets are now in PdfToolBar, not PDFReaderWidget.
+    // Verify that the reader emits the expected signals via setZoomFactor.
     PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (400, 300);
     widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (is_regular (pdfUrl)) {
+      widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    }
     QApplication::processEvents ();
 
-    QLineEdit* zoomEdit= widget->findChild<QLineEdit*> ("pdf-zoom-edit");
-    QVERIFY (zoomEdit != nullptr);
-    QLineEdit* pageEdit= widget->findChild<QLineEdit*> ("pdf-page-edit");
-    QVERIFY (pageEdit != nullptr);
-    QToolButton* zoomDropBtn=
-        widget->findChild<QToolButton*> ("pdf-zoom-drop-btn");
-    QVERIFY (zoomDropBtn != nullptr);
+    QString capturedZoom;
+    connect (widget, &PDFReaderWidget::zoomChanged,
+             [&capturedZoom] (const QString& text) { capturedZoom= text; });
 
-    QCOMPARE (zoomEdit->height (), pageEdit->height ());
-    QVERIFY (zoomDropBtn->arrowType () == Qt::DownArrow);
+    widget->setZoomFactor (1.5);
+    QApplication::processEvents ();
+
+    QCOMPARE (capturedZoom, QString ("150%"));
 
     delete widget;
   }
@@ -205,24 +211,25 @@ private slots:
     delete widget;
   }
 
-  void test_rectSelectButtonExists () {
+  void test_rectSelectModeApi () {
+    // The rect-select button is now in PdfToolBar.
+    // Verify the public API setRectSelectMode works.
     PDFReaderWidget* widget= new PDFReaderWidget ();
-    QToolButton*     rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
+    QVERIFY (!widget->isRectSelectMode ());
+    widget->setRectSelectMode (true);
+    QVERIFY (widget->isRectSelectMode ());
+    widget->setRectSelectMode (false);
+    QVERIFY (!widget->isRectSelectMode ());
     delete widget;
   }
 
   void test_rectSelectModeToggle () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
-    QToolButton*     rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
 
     QVERIFY (!widget->isRectSelectMode ());
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QVERIFY (widget->isRectSelectMode ());
-    rectBtn->click ();
+    widget->setRectSelectMode (false);
     QVERIFY (!widget->isRectSelectMode ());
     delete widget;
   }
@@ -232,18 +239,14 @@ private slots:
     widget->show ();
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
 
     QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
     QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
-    rectBtn->click ();
+    widget->setRectSelectMode (false);
     QApplication::processEvents ();
     QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
     delete widget;
@@ -261,12 +264,8 @@ private slots:
 
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-
     // 进入选择模式后显示提示
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
 
     QLabel* hint= widget->findChild<QLabel*> ("rectSelectHint");
@@ -288,7 +287,7 @@ private slots:
     QCOMPARE (hint->text (), QString ("Copied to Clipboard!"));
 
     // 退出选择模式后隐藏提示
-    rectBtn->click ();
+    widget->setRectSelectMode (false);
     QApplication::processEvents ();
     QVERIFY (!hint->isVisible ());
 
@@ -313,10 +312,7 @@ private slots:
     QApplication::processEvents ();
 
     // 进入选择模式
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
 
     QWidget* vp= widget->viewport ();
@@ -347,10 +343,7 @@ private slots:
 
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
     QVERIFY (widget->isRectSelectMode ());
 
@@ -377,10 +370,7 @@ private slots:
 
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
     QVERIFY (widget->isRectSelectMode ());
 
@@ -604,10 +594,6 @@ private slots:
     }
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-
     QWidget* vp= widget->viewport ();
     QVERIFY (vp != nullptr);
 
@@ -615,7 +601,7 @@ private slots:
     QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
 
     // 进入选择模式
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
     QCOMPARE (vp->cursor ().shape (), Qt::CrossCursor);
 
@@ -636,7 +622,7 @@ private slots:
     QCOMPARE (vbar->value (), initialPos);
 
     // 退出选择模式后恢复小手
-    rectBtn->click ();
+    widget->setRectSelectMode (false);
     QApplication::processEvents ();
     QCOMPARE (vp->cursor ().shape (), Qt::OpenHandCursor);
 
@@ -1169,10 +1155,7 @@ private slots:
     }
     QApplication::processEvents ();
 
-    QToolButton* rectBtn=
-        widget->findChild<QToolButton*> ("pdf-screenshot-btn");
-    QVERIFY (rectBtn != nullptr);
-    rectBtn->click ();
+    widget->setRectSelectMode (true);
     QApplication::processEvents ();
     QVERIFY (widget->isRectSelectMode ());
 
@@ -1273,6 +1256,11 @@ private slots:
   }
 
   void test_autoFitWidth_whenSnappedLeftHalf () {
+    // Wayland 下客户端无法控制窗口位置，frameGeometry() 不可靠，跳过
+    if (qEnvironmentVariable ("XDG_SESSION_TYPE") == "wayland") {
+      QSKIP ("Wayland does not support client-side window positioning");
+    }
+
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QScreen*         screen= QApplication::primaryScreen ();
     QRect            screenGeo=
