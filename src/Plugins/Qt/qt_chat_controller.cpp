@@ -572,6 +572,8 @@ ChatController::ensureNewConversation () {
 
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, currentModel);
+  call ("chat-persist-register-session", sid, currentModel,
+        string ("disabled"));
 
   call ("chat-tab-sync-dark-style!", sid);
 
