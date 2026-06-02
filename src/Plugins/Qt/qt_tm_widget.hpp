@@ -194,6 +194,22 @@ public:
   qt_tm_widget_rep (int mask, command _quit);
   ~qt_tm_widget_rep ();
 
+  /**
+   * @brief 判断新建标签页前是否需要把 current view 切回主窗口默认 view。
+   *
+   * 当焦点位于 AI Chat 输入框等非默认 view 时，顶部标签栏 “+” 的新建命令
+   * 需要先恢复到所属主窗口的默认 view，否则 `(new-document)` 可能在错误的
+   * view 上执行或直接失败。此逻辑提取为静态方法，便于单元测试。
+   *
+   * @param currentView   当前全局 current view
+   * @param currentWindow 当前 view 关联的 window（可为空）
+   * @param ownerWindow   触发新建操作的主窗口
+   * @return 需要切回主窗口默认 view 时返回 true
+   */
+  static bool shouldResetCurrentViewForNewTab (url currentView,
+                                               url currentWindow,
+                                               url ownerWindow);
+
   virtual widget plain_window_widget (string name, command quit, int b);
 
   virtual void     send (slot s, blackbox val);

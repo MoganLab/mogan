@@ -62,6 +62,7 @@
 #include "QTMTabPage.hpp"
 #include "QTMWindow.hpp"
 #include "new_view.hpp"
+#include "new_window.hpp"
 #include "preferences.hpp"
 #include "qt_dialogues.hpp"
 #include "qt_menu.hpp"
@@ -92,6 +93,22 @@ is_startup_tab_file (const string& file) {
 static bool
 is_chat_tab_file (const string& file) {
   return file == "tmfs://chat-tab";
+}
+
+static url
+window_view_for_widget (qt_tm_widget_rep* owner) {
+  if (owner == nullptr) return url_none ();
+
+  array<url> win_urls= windows_list ();
+  for (int i= 0; i < N (win_urls); ++i) {
+    tm_window win= concrete_window (win_urls[i]);
+    if (win != NULL && win->wid.rep == owner) {
+      url win_view= window_to_view (win_urls[i]);
+      if (!is_none (win_view)) return win_view;
+    }
+  }
+
+  return url_none ();
 }
 
 static bool
@@ -2390,6 +2407,20 @@ qt_tm_widget_rep::onAddTabRequested () {
   }
   lastCallTime= QTime::currentTime ();
 
+  // 顶部标签栏 “+” 来自当前主窗口，但焦点可能位于 AI Chat 输入框等非默认
+  // view（无 window 的 passive view，或挂在 embedded/aux window 上的 view）。
+  // 这种情况下直接执行 `(new-document)` 会在错误 view 上运行，甚至在
+  // switch-to-parent-window -> concrete_window 处失败。这里改为基于当前
+  // qt_tm_widget_rep 所属主窗口恢复到该窗口的默认 view，再触发新建。
+  url owner_view= window_view_for_widget (this);
+  if (!is_none (owner_view)) {
+    url cur_view   = get_current_view_safe ();
+    url cur_window = is_none (cur_view) ? url_none () : view_to_window (cur_view);
+    url owner_window= view_to_window (owner_view);
+    if (shouldResetCurrentViewForNewTab (cur_view, cur_window, owner_window))
+      set_current_view (owner_view);
+  }
+
   exec_delayed (scheme_cmd ("(new-document)"));
 }
 
@@ -2646,6 +2677,16 @@ void
 qt_tm_widget_rep::refreshScmNotificationBar () {
   if (!has_current_window ()) return;
   call ("update-menus");
+}
+
+bool
+qt_tm_widget_rep::shouldResetCurrentViewForNewTab (url currentView,
+                                                   url currentWindow,
+                                                   url ownerWindow) {
+  if (is_none (ownerWindow)) return false;
+  if (is_none (currentView) || is_none (currentWindow)) return true;
+  if (currentWindow != ownerWindow) return true;
+  return !is_tmfs_view_type (currentView, "default");
 }
 
 void
