@@ -1464,3 +1464,9 @@ QWidget#floating_search_bar QLabel#floating-search-info {
   background: transparent;
   color: #2c2c2c;
 }
+
+/* 数学补全弹窗容器 */
+QFrame#math_completion_container {
+  background: white;
+  border-color: black;
+}

@@ -10,13 +10,14 @@
  ******************************************************************************/
 
 #include "QTMMathCompletionPopup.hpp"
+#include "qt_dpi_utils.hpp"
 #include "server.hpp"
 
 #include <QFrame>
-#include <QPainter>
-#include <QPen>
-#include <QTimer>
-#include <cmath>
+
+static constexpr int    kContainerBorderRadius= 6;
+static constexpr double kContainerBorderWidth = 1;
+static constexpr int    kContentMargin        = 2;
 
 QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
                                                 qt_simple_widget_rep* owner)
@@ -25,35 +26,30 @@ QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
   setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint |
                   Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
-  setAttribute (Qt::WA_DeleteOnClose, false); // Explicitly manage deletion
+  setAttribute (Qt::WA_DeleteOnClose, false);
   setAttribute (Qt::WA_TranslucentBackground);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
 
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
-  mainLayout->setContentsMargins (12, 12, 12, 12);
   mainLayout->setSizeConstraint (QLayout::SetMinimumSize);
   setLayout (mainLayout);
 
   QFrame* container= new QFrame (this);
   container->setObjectName ("math_completion_container");
-  container->setStyleSheet ("QFrame#math_completion_container { "
-                            "background: white; "
-                            "border: 1.5px solid black; "
-                            "border-radius: 6px; }");
+  container->setStyleSheet (
+      QString ("QFrame#math_completion_container { "
+               "border: %1px solid; "
+               "border-radius: %2px; }")
+          .arg (DpiUtils::scaledF (kContainerBorderWidth))
+          .arg (DpiUtils::scaled (kContainerBorderRadius)));
   mainLayout->addWidget (container);
 
-  layout= new QVBoxLayout (container);
-  layout->setContentsMargins (2, 2, 2, 2);
+  int margin= DpiUtils::scaled (kContentMargin);
+  layout    = new QVBoxLayout (container);
+  layout->setContentsMargins (margin, margin, margin, margin);
   layout->setSizeConstraint (QLayout::SetMinimumSize);
   container->setLayout (layout);
-
-  // 阴影效果
-  effect= new QGraphicsDropShadowEffect (container);
-  effect->setBlurRadius (20);
-  effect->setOffset (0, 4);
-  effect->setColor (QColor (0, 0, 0, 80));
-  container->setGraphicsEffect (effect);
 }
 
 QTMMathCompletionPopup::~QTMMathCompletionPopup () {
@@ -81,7 +77,6 @@ QTMMathCompletionPopup::installEventFilterRecursively (QWidget* widget,
 
 void
 QTMMathCompletionPopup::cleanLayout () {
-  // 清空 Layout 中已有的内容
   QLayoutItem* item;
   while ((item= layout->takeAt (0)) != nullptr) {
     if (item->widget ()) {
@@ -89,31 +84,26 @@ QTMMathCompletionPopup::cleanLayout () {
     }
     delete item;
   }
-  // 如果布局为空，隐藏窗口
-  if (layout->count () == 0) {
-    this->hide ();
-  }
 }
 
 void
 QTMMathCompletionPopup::setWidget (QWidget* w) {
   if (w) {
-    cleanLayout ();
-    // 暂停绘制，防止闪烁
+    // 暂停绘制，防止 cleanLayout 和添加新 widget 之间闪烁
     this->setUpdatesEnabled (false);
+
+    cleanLayout ();
 
     w->setParent (layout->parentWidget ());
     layout->addWidget (w);
     installEventFilterRecursively (w, this);
-
-    // 提前显示组件，防止闪烁
     w->show ();
+
     this->adjustSize ();
 
     // 恢复绘制
     this->setUpdatesEnabled (true);
     updatePosition ();
-    this->update ();
   }
 }
 
@@ -131,8 +121,10 @@ QTMMathCompletionPopup::showMathCompletions (struct cursor cu, double magf,
     show ();
   }
   else {
-    move (x, y);
-    update ();
+    QPoint cur= pos ();
+    if (cur.x () != x || cur.y () != y) {
+      move (x, y);
+    }
   }
   raise ();
   this->adjustSize ();
