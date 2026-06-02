@@ -318,23 +318,6 @@ PDFReaderWidget::simulatePinchGesture (Qt::GestureState state,
 }
 
 void
-PDFReaderWidget::onZoomChanged (QString text) {
-  if (text == "Fit Width") {
-    fitWidth ();
-  }
-  else if (text == "Fit Height") {
-    fitHeight ();
-  }
-  else {
-    QString numStr= text;
-    numStr.chop (1);
-    bool   ok;
-    double percent= numStr.toDouble (&ok);
-    if (ok) setZoomFactor (percent / 100.0);
-  }
-}
-
-void
 PDFReaderWidget::setZoomFactor (double factor) {
   zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
   updateZoomDisplay ();

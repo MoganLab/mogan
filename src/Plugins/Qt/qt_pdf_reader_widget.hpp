@@ -100,7 +100,6 @@ public slots:
   void updatePageNavigation ();
 
 private slots:
-  void onZoomChanged (QString text);
   void keyPressEvent (QKeyEvent* event) override;
 
   bool event (QEvent* event) override;
