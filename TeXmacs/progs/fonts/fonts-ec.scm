@@ -93,7 +93,7 @@
     ((cal* rm $a $b $s $d) (tex rsfs $s $d))
     ((cal** rm $a $b $s $d) (tex euxm $s $d))
 
-    ((Bbb rm medium $a $s $d) (tex msbm $s $d))
+    ((Bbb rm medium $a $s $d) (bold-math-capital msbm $s $d))
     ((Bbb* rm medium slanted $s $d) (tex bbmsl $s $d))
     ((Bbb* rm medium $a $s $d) (tex bbm $s $d))
     ((Bbb* rm bold slanted $s $d) (tex bbmbxsl $s $d))
