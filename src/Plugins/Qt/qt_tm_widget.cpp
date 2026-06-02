@@ -1563,7 +1563,15 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   } break;
   case SLOT_AUXILIARY_WIDGET_VISIBILITY: {
     check_type<bool> (val, s);
-    visibility[11]= open_box<bool> (val);
+    bool visible= open_box<bool> (val);
+    // 辅助窗口与 AI 侧边栏共用右侧 dock 区域；打开辅助窗口时直接关闭
+    // AI 侧边栏，避免两个 dock 纵向堆叠把侧边栏挤下去。
+    if (visible && chatSidebarMode) {
+      chatSidebarMode       = false;
+      chatSidebarModeMemory_= false;
+      sync_chat_sidebar_mode ();
+    }
+    visibility[11]= visible;
     update_visibility ();
   } break;
   case SLOT_AUXILIARY_WIDGET: {
