@@ -214,7 +214,7 @@ PdfToolBar::connectTo (PDFReaderWidget* reader) {
            &PDFReaderWidget::setRectSelectMode);
 
   // zoom menu → reader
-  connect (zoomMenu_, &QMenu::triggered, this, [=, this] (QAction* action) {
+  connect (zoomMenu_, &QMenu::triggered, this, [this] (QAction* action) {
     if (!reader_) return;
     QString text= action->text ();
     if (text == "Fit Width") {
@@ -233,7 +233,7 @@ PdfToolBar::connectTo (PDFReaderWidget* reader) {
   });
 
   // page edit → reader
-  connect (pageEdit_, &QLineEdit::editingFinished, this, [=, this] () {
+  connect (pageEdit_, &QLineEdit::editingFinished, this, [this] () {
     if (!reader_) return;
     bool ok;
     int  page= pageEdit_->text ().toInt (&ok);
@@ -242,14 +242,14 @@ PdfToolBar::connectTo (PDFReaderWidget* reader) {
 
   // reader → toolbar
   connect (reader, &PDFReaderWidget::zoomChanged, this,
-           [=, this] (const QString& text) {
+           [this] (const QString& text) {
              bool blocked= zoomCombo_->blockSignals (true);
              zoomCombo_->setText (text);
              zoomCombo_->blockSignals (blocked);
            });
 
   connect (reader, &PDFReaderWidget::pageChanged, this,
-           [=, this] (int current, int total) {
+           [this] (int current, int total) {
              pageEdit_->setText (QString::number (current));
              pageTotalLabel_->setText (QString ("/ %1").arg (total));
              prevPageBtn_->setEnabled (current > 1);
@@ -257,7 +257,7 @@ PdfToolBar::connectTo (PDFReaderWidget* reader) {
            });
 
   connect (reader, &PDFReaderWidget::rectSelectModeChanged, this,
-           [=, this] (bool checked) {
+           [this] (bool checked) {
              bool blocked= rectSelectBtn_->blockSignals (true);
              rectSelectBtn_->setChecked (checked);
              rectSelectBtn_->blockSignals (blocked);
