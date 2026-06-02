@@ -10,14 +10,11 @@
 
 #include <QHash>
 #include <QLabel>
-#include <QLineEdit>
-#include <QMenu>
 #include <QRubberBand>
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QScroller>
 #include <QTimer>
-#include <QToolButton>
 #include <QVBoxLayout>
 #include <QWidget>
 
@@ -88,16 +85,22 @@ public:
   void setTestLinks (int page, const QVector<PdfLink>& links);
   bool isOverLink () const;
 
+  void updateZoomDisplay ();
+
 Q_SIGNALS:
   void linkClicked (const QString& uri);
+  void zoomChanged (const QString& text);
+  void pageChanged (int current, int total);
+  void rectSelectModeChanged (bool checked);
+
+public slots:
+  void setRectSelectMode (bool checked);
+  void onPrevPage ();
+  void onNextPage ();
+  void updatePageNavigation ();
 
 private slots:
   void onZoomChanged (QString text);
-  void onPrevPage ();
-  void onNextPage ();
-  void onPageEditingFinished ();
-  void updatePageNavigation ();
-  void onRectSelectToggled (bool checked);
   void keyPressEvent (QKeyEvent* event) override;
 
   bool event (QEvent* event) override;
@@ -110,8 +113,6 @@ private:
   void    onResizeDebounced ();
   bool    maybeAutoFitWidth ();
   int     pageWidth () const;
-  void    setupToolBar ();
-  void    updateZoomDisplay ();
   void    applyZoomToLabels ();
   void    finishRectSelect (const QPoint& viewportPos);
   QLabel* findPageLabelAt (const QPoint& contentPos) const;
@@ -130,18 +131,6 @@ private:
   QWidget*     contentWidget_;
   QVBoxLayout* pageLayout_;
   QVBoxLayout* mainLayout_;
-
-  QWidget*     toolBar_;
-  QLineEdit*   zoomCombo_;
-  QToolButton* zoomDropBtn_;
-  QToolButton* zoomOutBtn_;
-  QToolButton* prevPageBtn_;
-  QLineEdit*   pageEdit_;
-  QLabel*      pageTotalLabel_;
-  QToolButton* nextPageBtn_;
-  QToolButton* zoomInBtn_;
-  QToolButton* rectSelectBtn_;
-  QMenu*       zoomMenu_;
 
   QRubberBand* rubberBand_;
   bool         rectSelectMode_;

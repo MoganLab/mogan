@@ -44,6 +44,7 @@
 #include "qt_chat_controller.hpp"
 #include "qt_gui.hpp"
 #include "qt_pdf_reader_widget.hpp"
+#include "qt_pdf_toolbar.hpp"
 #include "qt_picture.hpp"
 #include "qt_renderer.hpp"
 #include "qt_tm_widget.hpp"
@@ -633,6 +634,11 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     menuToolBar->setMovable (false);
   }
 
+  // PDF 工具栏（仅在 PDF 标签页模式下可见）
+  pdfToolBar= new PdfToolBar ("pdf toolbar", mw);
+  mw->addToolBar (pdfToolBar);
+  pdfToolBar->setVisible (false);
+
   QWidget* cw= new QWidget ();
   cw->setObjectName (
       "centralWidget"); // this is important for styling toolbars.
@@ -1030,6 +1036,9 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     hide_widget_from_layout (pdfViewerWidget, layout);
     hide_widget_from_layout (chatContentWidget, layout);
 
+    // Disconnect toolbar when leaving PDF mode
+    pdfToolBar->disconnectFrom ();
+
     update_visibility ();
 
     if (!startupContentWidget) {
@@ -1052,6 +1061,9 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     show_widget_in_layout (pdfViewerWidget, layout);
     pdfViewerWidget->setFocus (Qt::OtherFocusReason);
 
+    // Connect toolbar to the PDF reader
+    pdfToolBar->connectTo (pdfViewerWidget);
+
     // Load PDF if path changed
     if (!currentPdfPath.isEmpty () && currentPdfPath != lastLoadedPdfPath) {
       pdfViewerWidget->loadFromFile (currentPdfPath);
@@ -1062,6 +1074,10 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
     // Show normal editor view (unless chat tab mode is active)
     hide_widget_from_layout (startupContentWidget, layout);
     hide_widget_from_layout (pdfViewerWidget, layout);
+
+    // Disconnect toolbar when leaving PDF mode
+    pdfToolBar->disconnectFrom ();
+
     if (!chatTabMode) {
       show_widget_in_layout (editorWidget, layout);
 
@@ -1293,22 +1309,24 @@ qt_tm_widget_rep::update_visibility () {
   bool old_auxVisibility   = auxiliaryWidget->isVisible ();
   bool old_tabVisibility=
       tabPageContainer ? tabPageContainer->isVisible () : false;
-  bool old_statusVisibility= mainwindow ()->statusBar ()->isVisible ();
-  bool old_titleVisibility = windowAgent->titleBar ()->isVisible ();
+  bool old_statusVisibility    = mainwindow ()->statusBar ()->isVisible ();
+  bool old_titleVisibility     = windowAgent->titleBar ()->isVisible ();
+  bool old_pdfToolBarVisibility= pdfToolBar->isVisible ();
 
-  bool new_mainVisibility  = visibility[1] && visibility[0];
-  bool new_menuVisibility  = visibility[0];
-  bool new_modeVisibility  = visibility[2] && visibility[0];
-  bool new_focusVisibility = visibility[3] && visibility[0];
-  bool new_userVisibility  = visibility[4] && visibility[0];
-  bool new_statusVisibility= visibility[5];
-  bool new_sideVisibility  = visibility[6];
-  bool new_leftVisibility  = visibility[7];
-  bool new_bottomVisibility= visibility[8];
-  bool new_extraVisibility = visibility[9];
-  bool new_tabVisibility   = visibility[10] && visibility[0];
-  bool new_auxVisibility   = visibility[11];
-  bool new_titleVisibility = visibility[0];
+  bool new_mainVisibility      = visibility[1] && visibility[0];
+  bool new_menuVisibility      = visibility[0];
+  bool new_modeVisibility      = visibility[2] && visibility[0];
+  bool new_focusVisibility     = visibility[3] && visibility[0];
+  bool new_userVisibility      = visibility[4] && visibility[0];
+  bool new_statusVisibility    = visibility[5];
+  bool new_sideVisibility      = visibility[6];
+  bool new_leftVisibility      = visibility[7];
+  bool new_bottomVisibility    = visibility[8];
+  bool new_extraVisibility     = visibility[9];
+  bool new_tabVisibility       = visibility[10] && visibility[0];
+  bool new_auxVisibility       = visibility[11];
+  bool new_titleVisibility     = visibility[0];
+  bool new_pdfToolBarVisibility= false;
 
   if (startupTabMode) {
     new_mainVisibility  = false;
@@ -1343,19 +1361,20 @@ qt_tm_widget_rep::update_visibility () {
   }
 
   if (pdfTabMode) {
-    new_mainVisibility  = false;
-    new_menuVisibility  = false;
-    new_modeVisibility  = false;
-    new_focusVisibility = false;
-    new_userVisibility  = false;
-    new_statusVisibility= false;
-    new_sideVisibility  = false;
-    new_leftVisibility  = false;
-    new_bottomVisibility= false;
-    new_extraVisibility = false;
-    new_auxVisibility   = false;
-    new_tabVisibility   = true;
-    new_titleVisibility = true;
+    new_mainVisibility      = false;
+    new_menuVisibility      = false;
+    new_modeVisibility      = false;
+    new_focusVisibility     = false;
+    new_userVisibility      = false;
+    new_statusVisibility    = false;
+    new_sideVisibility      = false;
+    new_leftVisibility      = false;
+    new_bottomVisibility    = false;
+    new_extraVisibility     = false;
+    new_auxVisibility       = false;
+    new_tabVisibility       = true;
+    new_titleVisibility     = true;
+    new_pdfToolBarVisibility= true;
   }
 
   if (XOR (old_mainVisibility, new_mainVisibility))
@@ -1384,6 +1403,8 @@ qt_tm_widget_rep::update_visibility () {
     windowAgent->titleBar ()->setVisible (new_titleVisibility);
   if (XOR (old_statusVisibility, new_statusVisibility))
     mainwindow ()->statusBar ()->setVisible (new_statusVisibility);
+  if (XOR (old_pdfToolBarVisibility, new_pdfToolBarVisibility))
+    pdfToolBar->setVisible (new_pdfToolBarVisibility);
 
   // AI 聊天侧边栏浮动按钮可见性
   if (chatSidebarToggleBtn) {
