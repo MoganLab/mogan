@@ -15,11 +15,31 @@
 #include <QHBoxLayout>
 #include <QSizePolicy>
 
+namespace {
+// -- widget sizes (base px, scaled at runtime) --
+constexpr int kToolBarHeight = 32;
+constexpr int kButtonSize    = 32;
+constexpr int kIconSize      = 16;
+constexpr int kComboHeight   = 26;
+constexpr int kComboWidth    = 80;
+constexpr int kDropBtnWidth  = 24;
+constexpr int kPageEditWidth = 50;
+constexpr int kPageTotalWidth= 45;
+constexpr int kComboFontSize = 14;
+
+// -- layout margins & spacing --
+constexpr int kLayoutMarginLeft  = 4;
+constexpr int kLayoutMarginTop   = 2;
+constexpr int kLayoutMarginRight = 4;
+constexpr int kLayoutMarginBottom= 2;
+constexpr int kLayoutSpacing     = 4;
+} // namespace
+
 PdfToolBar::PdfToolBar (const QString& title, QWidget* parent)
     : QToolBar (title, parent) {
   setObjectName ("pdfToolBar");
   setMovable (false);
-  setFixedHeight (DpiUtils::scaled (32));
+  setFixedHeight (DpiUtils::scaled (kToolBarHeight));
   setupWidgets ();
 }
 
@@ -28,8 +48,8 @@ PdfToolBar::setupWidgets () {
   // -- zoom display --
   zoomCombo_= new QLineEdit (this);
   zoomCombo_->setObjectName ("pdf-zoom-edit");
-  zoomCombo_->setFixedWidth (DpiUtils::scaled (80));
-  zoomCombo_->setFixedHeight (DpiUtils::scaled (26));
+  zoomCombo_->setFixedWidth (DpiUtils::scaled (kComboWidth));
+  zoomCombo_->setFixedHeight (DpiUtils::scaled (kComboHeight));
   zoomCombo_->setFrame (false);
   zoomCombo_->setStyleSheet (
       "QLineEdit { padding: 0px; margin: 0px; border: 0.5px solid #CCC; }");
@@ -37,14 +57,15 @@ PdfToolBar::setupWidgets () {
   zoomCombo_->setReadOnly (true);
 
   QFont comboFont= zoomCombo_->font ();
-  comboFont.setPixelSize (DpiUtils::scaled (14));
+  comboFont.setPixelSize (DpiUtils::scaled (kComboFontSize));
   zoomCombo_->setFont (comboFont);
 
   // -- zoom dropdown button + menu --
   zoomDropBtn_= new QToolButton (this);
   zoomDropBtn_->setObjectName ("pdf-zoom-drop-btn");
   zoomDropBtn_->setAutoRaise (true);
-  zoomDropBtn_->setFixedSize (DpiUtils::scaled (24), DpiUtils::scaled (26));
+  zoomDropBtn_->setFixedSize (DpiUtils::scaled (kDropBtnWidth),
+                              DpiUtils::scaled (kComboHeight));
   zoomDropBtn_->setArrowType (Qt::DownArrow);
   zoomDropBtn_->setToolTip (qt_translate ("Zoom"));
 
@@ -73,32 +94,35 @@ PdfToolBar::setupWidgets () {
   zoomOutBtn_= new QToolButton (this);
   zoomOutBtn_->setObjectName ("pdf-zoom-out-btn");
   zoomOutBtn_->setAutoRaise (true);
-  zoomOutBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomOutBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                             DpiUtils::scaled (kButtonSize));
   zoomOutBtn_->setIconSize (
-      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
   zoomOutBtn_->setToolTip (qt_translate ("Zoom Out"));
 
   zoomInBtn_= new QToolButton (this);
   zoomInBtn_->setObjectName ("pdf-zoom-in-btn");
   zoomInBtn_->setAutoRaise (true);
-  zoomInBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  zoomInBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                            DpiUtils::scaled (kButtonSize));
   zoomInBtn_->setIconSize (
-      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
   zoomInBtn_->setToolTip (qt_translate ("Zoom In"));
 
   // -- page navigation --
   prevPageBtn_= new QToolButton (this);
   prevPageBtn_->setObjectName ("pdf-prev-btn");
   prevPageBtn_->setAutoRaise (true);
-  prevPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  prevPageBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                              DpiUtils::scaled (kButtonSize));
   prevPageBtn_->setIconSize (
-      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
   prevPageBtn_->setToolTip (qt_translate ("Previous Page"));
 
   pageEdit_= new QLineEdit (this);
   pageEdit_->setObjectName ("pdf-page-edit");
-  pageEdit_->setFixedWidth (DpiUtils::scaled (50));
-  pageEdit_->setFixedHeight (DpiUtils::scaled (26));
+  pageEdit_->setFixedWidth (DpiUtils::scaled (kPageEditWidth));
+  pageEdit_->setFixedHeight (DpiUtils::scaled (kComboHeight));
   pageEdit_->setFrame (false);
   pageEdit_->setStyleSheet (
       "QLineEdit { padding: 0px; margin: 0px; border: 0.5px solid #CCC; }");
@@ -106,8 +130,8 @@ PdfToolBar::setupWidgets () {
   pageEdit_->setFont (comboFont);
 
   pageTotalLabel_= new QLabel ("/ 0", this);
-  pageTotalLabel_->setFixedWidth (DpiUtils::scaled (45));
-  pageTotalLabel_->setFixedHeight (DpiUtils::scaled (26));
+  pageTotalLabel_->setFixedWidth (DpiUtils::scaled (kPageTotalWidth));
+  pageTotalLabel_->setFixedHeight (DpiUtils::scaled (kComboHeight));
   pageTotalLabel_->setStyleSheet (
       "QLabel { padding: 0px; margin: 0px; border: none; }");
   pageTotalLabel_->setAlignment (Qt::AlignCenter);
@@ -115,22 +139,31 @@ PdfToolBar::setupWidgets () {
   nextPageBtn_= new QToolButton (this);
   nextPageBtn_->setObjectName ("pdf-next-btn");
   nextPageBtn_->setAutoRaise (true);
-  nextPageBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  nextPageBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                              DpiUtils::scaled (kButtonSize));
   nextPageBtn_->setIconSize (
-      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
   nextPageBtn_->setToolTip (qt_translate ("Next Page"));
 
   // -- rect select (screenshot) --
   rectSelectBtn_= new QToolButton (this);
   rectSelectBtn_->setObjectName ("pdf-screenshot-btn");
   rectSelectBtn_->setAutoRaise (true);
-  rectSelectBtn_->setFixedSize (DpiUtils::scaled (32), DpiUtils::scaled (32));
+  rectSelectBtn_->setFixedSize (DpiUtils::scaled (kButtonSize),
+                                DpiUtils::scaled (kButtonSize));
   rectSelectBtn_->setIconSize (
-      QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+      QSize (DpiUtils::scaled (kIconSize), DpiUtils::scaled (kIconSize)));
   rectSelectBtn_->setCheckable (true);
 
-  // -- layout: left | nav center | right --
-  QWidget*     leftWidget= new QWidget (this);
+  // -- layout: single container matching the original compact toolbar --
+  QWidget* container= new QWidget (this);
+  container->setObjectName ("pdf-reader-tool-bar");
+  QHBoxLayout* layout= new QHBoxLayout (container);
+  layout->setContentsMargins (kLayoutMarginLeft, kLayoutMarginTop,
+                              kLayoutMarginRight, kLayoutMarginBottom);
+  layout->setSpacing (kLayoutSpacing);
+
+  QWidget*     leftWidget= new QWidget (container);
   QHBoxLayout* leftLayout= new QHBoxLayout (leftWidget);
   leftLayout->setContentsMargins (0, 0, 0, 0);
   leftLayout->setSpacing (0);
@@ -139,7 +172,7 @@ PdfToolBar::setupWidgets () {
   leftLayout->addStretch ();
   leftWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-  QWidget*     navWidget= new QWidget (this);
+  QWidget*     navWidget= new QWidget (container);
   QHBoxLayout* navLayout= new QHBoxLayout (navWidget);
   navLayout->setContentsMargins (0, 0, 0, 0);
   navLayout->setSpacing (0);
@@ -150,16 +183,18 @@ PdfToolBar::setupWidgets () {
   navLayout->addWidget (nextPageBtn_);
   navLayout->addWidget (zoomInBtn_);
 
-  QWidget*     rightWidget= new QWidget (this);
+  QWidget*     rightWidget= new QWidget (container);
   QHBoxLayout* rightLayout= new QHBoxLayout (rightWidget);
   rightLayout->setContentsMargins (0, 0, 0, 0);
   rightLayout->addWidget (rectSelectBtn_);
   rightLayout->addStretch ();
   rightWidget->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Preferred);
 
-  addWidget (leftWidget);
-  addWidget (navWidget);
-  addWidget (rightWidget);
+  layout->addWidget (leftWidget, 1);
+  layout->addWidget (navWidget, 0);
+  layout->addWidget (rightWidget, 1);
+
+  addWidget (container);
 }
 
 void
