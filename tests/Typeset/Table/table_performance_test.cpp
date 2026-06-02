@@ -168,6 +168,7 @@ private slots:
   void test_handle_decorations_performance ();
   void test_cell_hyphen_wrapping ();
   void test_cell_hyphen_multi_column ();
+  void test_cell_long_content_no_row_duplication ();
   void cleanupTestCase ();
 };
 
@@ -725,6 +726,57 @@ TestTablePerformance::test_cell_hyphen_multi_column () {
       Q_UNUSED (box_w);
       Q_UNUSED (col_w);
     }
+}
+
+// Regression test: when a table cell has very long horizontal content that
+// exceeds the page width, position_columns() calls lz->produce() to calculate
+// minimum widths, and finish_horizontal() calls lz->produce() again for the
+// actual content. Without the fix, the lazy_paragraph's stacker accumulates
+// items from both calls, causing the cell content to appear twice.
+void
+TestTablePerformance::test_cell_long_content_no_row_duplication () {
+  cache_refresh ();
+  edit_env env= create_test_env ();
+
+  // Create very long text (single unbreakable word)
+  string long_text;
+  for (int i= 0; i < 200; i++)
+    long_text << "d";
+
+  // Create a 2-column table with cell-hyphen enabled
+  // Two columns with long text triggers total > page_w in position_columns(),
+  // which causes lz->produce() to be called for width calculation.
+  tree table_tree (TFORMAT);
+  table_tree << tree (CWITH, "1", "-1", "1", "-1", "cell-hyphen", "t");
+  table_tree << tree (TABLE, 1);
+  tree row (ROW, 2);
+  row[0]          = tree (CELL, tree (DOCUMENT, long_text));
+  row[1]          = tree (CELL, tree (DOCUMENT, long_text));
+  table_tree[1][0]= row;
+
+  table tab (env);
+  tab->typeset (table_tree, path ());
+  tab->handle_decorations ();
+  tab->handle_span ();
+  tab->merge_borders ();
+  tab->position_columns (true);
+  tab->finish_horizontal ();
+  tab->position_rows ();
+  tab->finish ();
+
+  // The cell's b is a cell_box; b[0] is the inner content from lz->produce().
+  // Without the fix, b[0]->h() would be roughly doubled because
+  // format_paragraph() was called twice on the same lazy_paragraph.
+  SI content_h0= tab->T[0][0]->b[0]->h ();
+  SI content_h1= tab->T[0][1]->b[0]->h ();
+  SI line_h    = env->fn->yx;
+
+  // A generous upper bound: 10x line height.
+  // With the bug, content height would be ~2x of normal (roughly doubled).
+  QVERIFY2 (content_h0 < 10 * line_h,
+            "Cell 0 content height too large - possible row duplication");
+  QVERIFY2 (content_h1 < 10 * line_h,
+            "Cell 1 content height too large - possible row duplication");
 }
 
 void

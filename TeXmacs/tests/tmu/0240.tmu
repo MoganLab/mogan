@@ -1,0 +1,36 @@
+<TMU|<tuple|1.1.0|2026.2.7-rc10>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\big-table|<block|<tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<twith|table-hyphen|y>|<table|<row|<\cell>
+    这是一个很长的表格这是一个很长的表格这是一个很长的表格这是一个很长的表格这是一个很长的表格这是一个很长的表格
+  </cell>|<\cell>
+    \;
+  </cell>>>>>>
+    \;
+  </big-table>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|5978AB51-17BE-4100-8121-E5F66277DC60>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|table>
+      <tuple|normal|<\surround|<hidden-binding|<tuple>|1>|>
+        \;
+      </surround>|<pageref|auto-1>>
+    </associate>
+  </collection>
+</auxiliary>

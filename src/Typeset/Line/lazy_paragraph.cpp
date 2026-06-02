@@ -1198,6 +1198,11 @@ lazy_paragraph_rep::produce (lazy_type request, format fm) {
       if (N (fs->before) != 0) a= join (fs->before, a);
       if (N (fs->after) != 0) a= join (a, fs->after);
     }
+    // Reset stacker to prevent accumulation across multiple produce() calls
+    // on the same lazy_paragraph (e.g. position_columns then finish_horizontal)
+    tm_delete (sss);
+    sss    = tm_new<stacker_rep> ();
+    sss->ip= ip;
     format_paragraph ();
     /* Hide line items of height 0 */
     int i, n= N (sss->l);
