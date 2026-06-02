@@ -1227,10 +1227,10 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
     chatContentWidget->show ();
     chatContentWidget->setFocus (Qt::OtherFocusReason);
 
-    // 设置 dock 宽度为屏幕宽度的 1/4
+    // 设置 dock 宽度为屏幕宽度的 1/3
     QMainWindow* mw= mainwindow ();
     if (mw) {
-      int dockWidth= qMax (DpiUtils::scaled (280), mw->width () / 4);
+      int dockWidth= qMax (DpiUtils::scaled (280), mw->width () / 3);
       mw->resizeDocks ({chatSideDock}, {dockWidth}, Qt::Horizontal);
     }
 
