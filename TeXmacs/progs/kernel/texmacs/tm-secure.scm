@@ -96,6 +96,19 @@
   refresh-now
 ) ;define-secure-symbols
 
+(lazy-define (various comment-edit)
+  ext-abbreviate-name
+  ext-contains-shown-comments?
+  ext-comment-color
+  ext-comment-bg-color
+) ;lazy-define
+
+(define-secure-symbols ext-abbreviate-name
+  ext-contains-shown-comments?
+  ext-comment-color
+  ext-comment-bg-color
+) ;define-secure-symbols
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Secure evaluation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
