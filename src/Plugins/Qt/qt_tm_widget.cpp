@@ -2414,8 +2414,9 @@ qt_tm_widget_rep::onAddTabRequested () {
   // qt_tm_widget_rep 所属主窗口恢复到该窗口的默认 view，再触发新建。
   url owner_view= window_view_for_widget (this);
   if (!is_none (owner_view)) {
-    url cur_view   = get_current_view_safe ();
-    url cur_window = is_none (cur_view) ? url_none () : view_to_window (cur_view);
+    url cur_view= get_current_view_safe ();
+    url cur_window=
+        is_none (cur_view) ? url_none () : view_to_window (cur_view);
     url owner_window= view_to_window (owner_view);
     if (shouldResetCurrentViewForNewTab (cur_view, cur_window, owner_window))
       set_current_view (owner_view);
