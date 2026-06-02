@@ -19,6 +19,12 @@
   (let* ((tmu-path "$TEXMACS_PATH/tests/tmu/0636.tmu") (dummy (load-buffer tmu-path)))
     ;; Verify that the buffer is loaded successfully and is a valid buffer
     (check (buffer-exists? tmu-path) => #t)
+    ;; Verify that the key comment functions are trusted/secure
+    (check (secure? '(ext-comment-color "comment" "Jack")) => #t)
+    (check (secure? '(ext-comment-bg-color)) => #t)
+    (check (secure? '(ext-abbreviate-name "Jack")) => #t)
+    (check (secure? '(ext-contains-shown-comments? "body")) => #t)
+    (check (secure? '(mirror-initialize "body")) => #t)
   ) ;let*
 ) ;define
 
