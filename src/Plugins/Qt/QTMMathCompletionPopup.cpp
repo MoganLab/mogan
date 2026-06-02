@@ -18,6 +18,8 @@
 static constexpr int    kContainerBorderRadius= 6;
 static constexpr double kContainerBorderWidth = 1;
 static constexpr int    kContentMargin        = 2;
+static constexpr int    kPositionOffsetX      = 15;
+static constexpr int    kPositionOffsetY      = 10;
 
 QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
                                                 qt_simple_widget_rep* owner)
@@ -152,8 +154,8 @@ QTMMathCompletionPopup::getCachedPosition (int& x, int& y) {
     QPoint local_pos (cursor_pos.x () - origin.x () + surface_top_left.x (),
                       cursor_pos.y () - origin.y () + surface_top_left.y ());
     QPoint global_pos= canvas->viewport ()->mapToGlobal (local_pos);
-    x                = global_pos.x ();
-    y                = global_pos.y () + 10;
+    x                = global_pos.x () - DpiUtils::scaled (kPositionOffsetX);
+    y                = global_pos.y () - DpiUtils::scaled (kPositionOffsetY);
   }
   else {
     x= 0;
