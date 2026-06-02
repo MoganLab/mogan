@@ -20,7 +20,7 @@ static constexpr double kContainerBorderWidth = 1;
 static constexpr int    kContentMargin        = 2;
 #ifdef Q_OS_MAC
 static constexpr int kPositionOffsetX= 15;
-static constexpr int kPositionOffsetY= 10;
+static constexpr int kPositionOffsetY= 15;
 #else
 static constexpr int kPositionOffsetX= 8;
 static constexpr int kPositionOffsetY= 8;
