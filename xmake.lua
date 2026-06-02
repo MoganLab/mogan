@@ -612,6 +612,7 @@ target("libmogan") do
         print("No need to install libmogan")
     end)
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+    add_frameworks("QtQml", "QtQuick", "QtBodymovin")
 
     build_glue_on_config()
     set_configvar("QTTEXMACS", 1)
@@ -966,6 +967,7 @@ target("stem") do
     end
 
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+    add_frameworks("QtQml", "QtQuick", "QtBodymovin")
     add_packages("s7")
     add_packages("lolly")
     add_deps("libmogan")

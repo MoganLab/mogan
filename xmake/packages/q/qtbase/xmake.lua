@@ -300,6 +300,7 @@ package("qtbase")
         table.insert(aqt_args, "-m")
         table.insert(aqt_args, "qtimageformats")
         table.insert(aqt_args, "qtnetworkauth")
+        table.insert(aqt_args, "qtlottie")
 
         os.vrunv("aqt", aqt_args)
 
