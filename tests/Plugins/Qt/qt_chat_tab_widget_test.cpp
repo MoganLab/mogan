@@ -10,11 +10,13 @@
 #include "base.hpp"
 #include <QInputMethodEvent>
 #include <QLabel>
+#include <QLayout>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QPushButton>
 #include <QSignalSpy>
+#include <QStackedWidget>
 #include <QWheelEvent>
 #include <QWidget>
 #include <QtTest/QtTest>
@@ -763,6 +765,117 @@ private slots:
     obj.setProperty ("chat_message_readonly", true);
     QKeyEvent ke (QEvent::KeyRelease, Qt::Key_Plus, Qt::ControlModifier);
     QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  // === enterConversationMode 布局行为 ===
+  // 模拟 contentLayout + topPanel 的布局结构，验证 enterConversationMode
+  // 的布局逻辑：将 topPanel 从 Preferred/AlignTop 切换到 Expanding/无对齐
+  void test_enterConversationMode_topPanel_expands () {
+    // 模拟 contentLayout 的结构：topSpacer + topPanel(AlignTop, stretch=1)
+    QWidget     container;
+    QVBoxLayout contentLayout (&container);
+    contentLayout.setContentsMargins (0, 0, 0, 0);
+
+    QSpacerItem* topSpacer=
+        new QSpacerItem (0, 100, QSizePolicy::Minimum, QSizePolicy::Fixed);
+    contentLayout.addSpacerItem (topSpacer);
+
+    QWidget* topPanel= new QWidget (&container);
+    topPanel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Preferred);
+    contentLayout.addWidget (topPanel, 1, Qt::AlignTop);
+
+    container.resize (400, 600);
+    QTest::qWait (0);
+
+    // 验证初始状态
+    QCOMPARE (topPanel->sizePolicy ().verticalPolicy (),
+              QSizePolicy::Preferred);
+    QLayoutItem* topPanelItem= contentLayout.itemAt (1);
+    QVERIFY (topPanelItem != nullptr);
+    QVERIFY (topPanelItem->alignment () & Qt::AlignTop);
+
+    // 模拟 enterConversationMode 的布局逻辑
+    topSpacer->changeSize (0, 30, QSizePolicy::Minimum, QSizePolicy::Fixed);
+    topPanel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Expanding);
+    contentLayout.setAlignment (topPanel, Qt::Alignment ());
+    contentLayout.invalidate ();
+    contentLayout.activate ();
+    container.updateGeometry ();
+    QTest::qWait (0);
+
+    // 验证：sizePolicy 变为 Expanding
+    QCOMPARE (topPanel->sizePolicy ().verticalPolicy (),
+              QSizePolicy::Expanding);
+    // 验证：AlignTop 已被移除
+    QCOMPARE (topPanelItem->alignment (), Qt::Alignment ());
+    // 验证：topPanel 填满剩余空间（600 - 30 spacer = ~570）
+    QVERIFY (topPanel->height () > 500);
+  }
+
+  void test_enterConversationMode_topPanel_before_expand () {
+    // 验证 AlignTop + Preferred 下 topPanel 不扩展
+    QWidget     container;
+    QVBoxLayout contentLayout (&container);
+    contentLayout.setContentsMargins (0, 0, 0, 0);
+
+    QSpacerItem* topSpacer=
+        new QSpacerItem (0, 100, QSizePolicy::Minimum, QSizePolicy::Fixed);
+    contentLayout.addSpacerItem (topSpacer);
+
+    QWidget* topPanel= new QWidget (&container);
+    topPanel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Preferred);
+    contentLayout.addWidget (topPanel, 1, Qt::AlignTop);
+
+    container.resize (400, 600);
+    QTest::qWait (0);
+
+    // Preferred + AlignTop：topPanel 只取 sizeHint（很小），不填满空间
+    QVERIFY (topPanel->height () < 100);
+  }
+
+  // 模拟真实的 QStackedWidget + Ignored panel 场景
+  void test_enterConversationMode_ignored_panel_expands () {
+    // 外层 QStackedWidget 模拟 conversationStack_
+    QStackedWidget stack;
+    stack.resize (400, 600);
+
+    // 内层 panel 模拟 ChatConversationPanel（Ignored 垂直策略）
+    QWidget* panel= new QWidget (&stack);
+    panel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
+    stack.addWidget (panel);
+
+    // panel 内部的 contentLayout
+    QVBoxLayout* contentLayout= new QVBoxLayout (panel);
+    contentLayout->setContentsMargins (0, 0, 0, 0);
+
+    QSpacerItem* topSpacer=
+        new QSpacerItem (0, 100, QSizePolicy::Minimum, QSizePolicy::Fixed);
+    contentLayout->addSpacerItem (topSpacer);
+
+    QWidget* topPanel= new QWidget (panel);
+    topPanel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Preferred);
+    contentLayout->addWidget (topPanel, 1, Qt::AlignTop);
+
+    stack.show ();
+    QTest::qWaitFor ([&stack] { return stack.isVisible (); });
+
+    // 初始状态：Ignored panel 在 QStackedWidget 中，
+    // topPanel(AlignTop+Preferred) 不应扩展
+    QVERIFY (topPanel->height () < 100);
+
+    // 模拟 enterConversationMode 的布局操作
+    topSpacer->changeSize (0, 30, QSizePolicy::Minimum, QSizePolicy::Fixed);
+    topPanel->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Expanding);
+    contentLayout->setAlignment (topPanel, Qt::Alignment ());
+    contentLayout->invalidate ();
+    contentLayout->activate ();
+    panel->updateGeometry ();
+    QTest::qWait (0);
+
+    // 验证：即使 panel 自身是 Ignored，topPanel 仍能扩展填满空间
+    QVERIFY2 (topPanel->height () > 400,
+              qPrintable (QString ("topPanel height = %1, expected > 400")
+                              .arg (topPanel->height ())));
   }
 };
 

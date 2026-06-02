@@ -358,8 +358,17 @@ ChatConversationPanel::enterConversationMode () {
   if (topSpacer_ && layout ()) {
     topSpacer_->changeSize (0, endOffset, QSizePolicy::Minimum,
                             QSizePolicy::Fixed);
+    // 让 topPanel 填满剩余空间，使 messageFrame_(stretch=1) 能够展开
+    QLayoutItem* topPanelItem= layout ()->itemAt (1);
+    if (topPanelItem && topPanelItem->widget ()) {
+      topPanelItem->widget ()->setSizePolicy (QSizePolicy::Preferred,
+                                              QSizePolicy::Expanding);
+      layout ()->setAlignment (topPanelItem->widget (), Qt::Alignment ());
+    }
     layout ()->invalidate ();
     layout ()->activate ();
+    // 通知父级布局链重新计算
+    updateGeometry ();
   }
 }
 
