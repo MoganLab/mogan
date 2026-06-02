@@ -112,6 +112,7 @@ public:
                                    int scroll_y, int canvas_x);
   void set_math_completion_popup (widget w);
   void hide_math_completion_popup ();
+  bool math_completion_popup_visible ();
   void scroll_math_completion_popup_by (SI x, SI y);
 
   ////////////////////// Image popup support

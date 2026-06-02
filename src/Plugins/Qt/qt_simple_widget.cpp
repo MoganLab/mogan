@@ -735,6 +735,11 @@ qt_simple_widget_rep::hide_math_completion_popup () {
   }
 }
 
+bool
+qt_simple_widget_rep::math_completion_popup_visible () {
+  return mathCompletionPopUp && mathCompletionPopUp->isVisible ();
+}
+
 void
 qt_simple_widget_rep::set_math_completion_popup (widget w) {
   ensure_math_completion_popup ();

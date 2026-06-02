@@ -106,6 +106,17 @@ public:
    */
   static bool should_block_readonly_event (QObject* watched, QEvent* event);
 
+  /**
+   * @brief 判断输入区当前按键是否应触发发送。
+   * @param key 按键值
+   * @param mods 修饰键状态
+   * @param hasActiveCompletionPopup 是否存在待确认的补全/Tab cycle 弹窗
+   * @return 应触发发送时返回 true
+   */
+  static bool should_send_on_keypress (int                   key,
+                                       Qt::KeyboardModifiers mods,
+                                       bool hasActiveCompletionPopup);
+
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);

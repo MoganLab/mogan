@@ -421,6 +421,15 @@ count_visual_input_lines (QTMWidget* editor, int lineHeight) {
   return qMax (1, (contentH + lineHeight - 1) / lineHeight);
 }
 
+static bool
+has_active_math_completion_popup (QObject* watched) {
+  QTMWidget* editor= qobject_cast<QTMWidget*> (watched);
+  if (!editor) return false;
+
+  qt_simple_widget_rep* tmEditor= editor->tm_widget ();
+  return tmEditor && tmEditor->math_completion_popup_visible ();
+}
+
 bool
 ChatConversationPanel::should_block_readonly_event (QObject* watched,
                                                     QEvent*  event) {
@@ -468,13 +477,23 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
 }
 
 bool
+ChatConversationPanel::should_send_on_keypress (
+    int key, Qt::KeyboardModifiers mods, bool hasActiveCompletionPopup) {
+  bool isEnterKey= (key == Qt::Key_Return || key == Qt::Key_Enter);
+  if (!isEnterKey) return false;
+  if (mods & Qt::ShiftModifier) return false;
+  if (hasActiveCompletionPopup) return false;
+  return true;
+}
+
+bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
-    if ((keyEvent->key () == Qt::Key_Return ||
-         keyEvent->key () == Qt::Key_Enter) &&
-        !(keyEvent->modifiers () & Qt::ShiftModifier)) {
+    bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
+    if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),
+                                 hasActiveCompletionPopup)) {
       void* ptr= watched->property ("chat_panel").value<void*> ();
       if (ptr == this) {
         emit sendRequested (sessionId_);

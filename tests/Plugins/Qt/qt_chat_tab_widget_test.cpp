@@ -444,6 +444,32 @@ private slots:
     emit sidebar.exportRequested ("s1");
     emit sidebar.exportRequested ("s1");
     QCOMPARE (spy.count (), 2);
+    // ---- ChatConversationPanel 输入事件判定测试 ----
+  }
+
+  void test_send_on_plain_enter_without_completion_popup () {
+    QVERIFY (ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_Return, Qt::NoModifier, false));
+  }
+
+  void test_send_on_ctrl_enter_without_completion_popup () {
+    QVERIFY (ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_Return, Qt::ControlModifier, false));
+  }
+
+  void test_not_send_on_shift_enter () {
+    QVERIFY (!ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_Return, Qt::ShiftModifier, false));
+  }
+
+  void test_not_send_on_plain_enter_with_completion_popup () {
+    QVERIFY (!ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_Return, Qt::NoModifier, true));
+  }
+
+  void test_not_send_on_non_enter_key () {
+    QVERIFY (!ChatConversationPanel::should_send_on_keypress (
+        Qt::Key_A, Qt::NoModifier, false));
     // ---- should_block_readonly_event 测试 ----
   }
 
