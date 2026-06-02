@@ -113,8 +113,7 @@ public:
    * @param hasActiveCompletionPopup 是否存在待确认的补全/Tab cycle 弹窗
    * @return 应触发发送时返回 true
    */
-  static bool should_send_on_keypress (int                   key,
-                                       Qt::KeyboardModifiers mods,
+  static bool should_send_on_keypress (int key, Qt::KeyboardModifiers mods,
                                        bool hasActiveCompletionPopup);
 
 signals:

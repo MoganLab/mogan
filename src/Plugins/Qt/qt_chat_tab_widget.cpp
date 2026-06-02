@@ -477,8 +477,9 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
 }
 
 bool
-ChatConversationPanel::should_send_on_keypress (
-    int key, Qt::KeyboardModifiers mods, bool hasActiveCompletionPopup) {
+ChatConversationPanel::should_send_on_keypress (int                   key,
+                                                Qt::KeyboardModifiers mods,
+                                                bool hasActiveCompletionPopup) {
   bool isEnterKey= (key == Qt::Key_Return || key == Qt::Key_Enter);
   if (!isEnterKey) return false;
   if (mods & Qt::ShiftModifier) return false;
@@ -490,7 +491,7 @@ bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
-    QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+    QKeyEvent* keyEvent          = static_cast<QKeyEvent*> (event);
     bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
     if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),
                                  hasActiveCompletionPopup)) {
