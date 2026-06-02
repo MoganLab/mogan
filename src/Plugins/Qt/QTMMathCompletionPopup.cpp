@@ -14,6 +14,7 @@
 #include "server.hpp"
 
 #include <QFrame>
+#include <QWindow>
 
 static constexpr int    kContainerBorderRadius= 6;
 static constexpr double kContainerBorderWidth = 1;
@@ -37,6 +38,8 @@ QTMMathCompletionPopup::QTMMathCompletionPopup (QWidget*              parent,
   setAttribute (Qt::WA_TranslucentBackground);
   setMouseTracking (true);
   setFocusPolicy (Qt::NoFocus);
+
+  installTopLevelWindowFilter ();
 
   QVBoxLayout* mainLayout= new QVBoxLayout (this);
   mainLayout->setSizeConstraint (QLayout::SetMinimumSize);
@@ -181,9 +184,34 @@ QTMMathCompletionPopup::scrollBy (int x, int y) {
   cached_scroll_y-= (int) (y / cached_magf);
 }
 
+void
+QTMMathCompletionPopup::installTopLevelWindowFilter () {
+  // 监听所属顶层窗口的状态变化，当主窗口最小化/隐藏时自动隐藏 popup。
+  // 由于 popup 是独立顶层窗口（Qt::ToolTip），不会跟随主窗口自动隐藏。
+  QWidget* w= parentWidget ();
+  while (w) {
+    if (w->isWindow ()) {
+      w->installEventFilter (this);
+      break;
+    }
+    w= w->parentWidget ();
+  }
+}
+
 bool
 QTMMathCompletionPopup::eventFilter (QObject* obj, QEvent* event) {
-  if (event->type () == QEvent::MouseButtonPress) {
+  if (event->type () == QEvent::WindowStateChange) {
+    // 主窗口最小化时隐藏 popup
+    QWidget* tlw= qobject_cast<QWidget*> (obj);
+    if (tlw && tlw->windowState () & Qt::WindowMinimized) {
+      hide ();
+    }
+  }
+  else if (event->type () == QEvent::Hide) {
+    // 主窗口被隐藏时隐藏 popup
+    hide ();
+  }
+  else if (event->type () == QEvent::MouseButtonPress) {
     const char* className= obj->metaObject ()->className ();
     if (!strcmp (className, "QToolButton")) {
       // 如果点击的是

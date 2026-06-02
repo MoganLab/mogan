@@ -45,9 +45,10 @@ protected:
                       int canvas_x);
   void getCachedPosition (int& x, int& y);
   void installEventFilterRecursively (QWidget* widget, QObject* filterObj);
+  void installTopLevelWindowFilter ();
 
 protected:
-  bool eventFilter (QObject* obj, QEvent* event);
+  bool eventFilter (QObject* obj, QEvent* event) override;
 };
 
 #endif // QT_MATH_COMPLETION_POPUP_HPP
