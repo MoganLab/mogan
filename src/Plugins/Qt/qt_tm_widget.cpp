@@ -176,17 +176,18 @@ QTMInteractiveInputHelper::commit (int result) {
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), is_presentation (false),
-      menuToolBarVisibleCache (false), titleBarVisibleCache (false), scmNotificationBar (nullptr),
-      loginButton (nullptr), vipButton (nullptr), m_loginDialog (nullptr),
-      avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
-      membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
-      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
-      m_memberType (""), m_currentScmNotificationItem (""),
-      startupContentWidget (nullptr), startupTabMode (false),
-      pdfViewerWidget (nullptr), pdfTabMode (false), currentPdfPath (""),
-      lastLoadedPdfPath (""), chatContentWidget (nullptr), chatTabMode (false),
-      chatSideDock (nullptr), chatSidebarToggleBtn (nullptr),
-      chatSidebarMode (false), chatSidebarModeMemory_ (false) {
+      menuToolBarVisibleCache (false), titleBarVisibleCache (false),
+      scmNotificationBar (nullptr), loginButton (nullptr), vipButton (nullptr),
+      m_loginDialog (nullptr), avatarLabel (nullptr), nameLabel (nullptr),
+      accountIdLabel (nullptr), membershipPeriodLabel (nullptr),
+      membershipTitleLabel (nullptr), loginActionButton (nullptr),
+      logoutButton (nullptr), m_userId (""), m_memberType (""),
+      m_currentScmNotificationItem (""), startupContentWidget (nullptr),
+      startupTabMode (false), pdfViewerWidget (nullptr), pdfTabMode (false),
+      currentPdfPath (""), lastLoadedPdfPath (""), chatContentWidget (nullptr),
+      chatTabMode (false), chatSideDock (nullptr),
+      chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
+      chatSidebarModeMemory_ (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -2196,7 +2197,7 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
           }
         }
       }
-      is_presentation = false;
+      is_presentation= false;
 #ifdef UNIFIED_TOOLBAR
       if (use_unified_toolbar) {
         mainwindow ()->centralWidget ()->layout ()->setContentsMargins (0, 1, 0,
