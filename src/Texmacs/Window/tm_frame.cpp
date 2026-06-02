@@ -359,10 +359,10 @@ tm_frame_rep::full_screen_mode (bool on, bool edit) {
     show_header (true);
     show_footer (true);
   }
-  set_full_screen (concrete_window ()->win, on);
-  get_current_editor ()->full_screen_mode (on && !edit);
   full_screen     = on;
   full_screen_edit= on && edit;
+  set_full_screen (concrete_window ()->win, on);
+  get_current_editor ()->full_screen_mode (on && !edit);
 }
 
 bool
