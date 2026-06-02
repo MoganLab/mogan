@@ -175,8 +175,8 @@ QTMInteractiveInputHelper::commit (int result) {
 
 qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
-      prompt (NULL), full_screen (false), menuToolBarVisibleCache (false),
-      titleBarVisibleCache (false), scmNotificationBar (nullptr),
+      prompt (NULL), full_screen (false), is_presentation (false),
+      menuToolBarVisibleCache (false), titleBarVisibleCache (false), scmNotificationBar (nullptr),
       loginButton (nullptr), vipButton (nullptr), m_loginDialog (nullptr),
       avatarLabel (nullptr), nameLabel (nullptr), accountIdLabel (nullptr),
       membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
@@ -2096,7 +2096,7 @@ void set_standard_style_sheet (QWidget* w);
 
 void
 qt_tm_widget_rep::set_full_screen (bool flag) {
-  bool was_presentation= in_presentation_mode ();
+  bool was_presentation= is_presentation;
   full_screen          = flag;
   QWidget* win         = mainwindow ()->window ();
   if (win) {
@@ -2130,6 +2130,7 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
         if (tb) tb->setVisible (false);
       }
       if (in_presentation_mode ()) {
+        is_presentation          = true;
         QTMScrollView* scrollView= scrollarea ();
         if (scrollView) {
           QWidget* viewport= scrollView->viewport ();
@@ -2142,6 +2143,21 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
           }
         }
         if (chatSidebarToggleBtn) chatSidebarToggleBtn->hide ();
+      }
+      else if (was_presentation) {
+        is_presentation          = false;
+        QColor         bgcol     = to_qcolor (tm_background);
+        QTMScrollView* scrollView= scrollarea ();
+        if (scrollView) {
+          QWidget* viewport= scrollView->viewport ();
+          if (viewport) {
+            QPalette vpal;
+            vpal.setColor (QPalette::Mid, bgcol);
+            vpal.setColor (QPalette::Shadow, bgcol);
+            viewport->setPalette (vpal);
+            viewport->setBackgroundRole (QPalette::Mid);
+          }
+        }
       }
     }
     else {
@@ -2180,6 +2196,7 @@ qt_tm_widget_rep::set_full_screen (bool flag) {
           }
         }
       }
+      is_presentation = false;
 #ifdef UNIFIED_TOOLBAR
       if (use_unified_toolbar) {
         mainwindow ()->centralWidget ()->layout ()->setContentsMargins (0, 1, 0,

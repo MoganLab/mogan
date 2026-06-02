@@ -117,6 +117,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
 
   bool    visibility[12];
   bool    full_screen;
+  bool    is_presentation;
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;
   QString m_userId;
