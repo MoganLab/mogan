@@ -62,6 +62,7 @@
 #include "QTMTabPage.hpp"
 #include "QTMWindow.hpp"
 #include "new_view.hpp"
+#include "new_window.hpp"
 #include "preferences.hpp"
 #include "qt_dialogues.hpp"
 #include "qt_menu.hpp"
@@ -2389,6 +2390,18 @@ qt_tm_widget_rep::onAddTabRequested () {
     return;
   }
   lastCallTime= QTime::currentTime ();
+
+  // 当 current view 未挂载到任何窗口时（典型场景：焦点位于 AI Chat 输入框，
+  // current-view 被切到 tmfs://chat-input-XXX 的 passive view），
+  // (new-document) 内部 switch-to-parent-window -> concrete_window 会触发
+  // vw->win != NULL 的断言失败，整个命令中断。这里在调用前把 current view
+  // 切回当前窗口实际挂载的视图，使命令能正常执行。
+  url cur_view= get_current_view_safe ();
+  if (!is_none (cur_view) && is_none (view_to_window (cur_view)) &&
+      has_current_window ()) {
+    url win_view= window_to_view (abstract_window (concrete_window ()));
+    if (!is_none (win_view)) set_current_view (win_view);
+  }
 
   exec_delayed (scheme_cmd ("(new-document)"));
 }
