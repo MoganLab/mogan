@@ -2242,7 +2242,7 @@
 ("small table" "小表格")
 ("small" "小")
 ("Small inline fraction" "行内分式")
-("smart paste" "智能粘贴")
+("magic paste" "魔法粘贴")
 ("smooth" "平滑")
 ("smooth" "平滑曲线")
 ("snap distance" "吸附距离")

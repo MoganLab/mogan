@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs menus main-menu)
-  (:use (utils library cursor)
-        (texmacs menus edit-menu)))
+  (:use (utils library cursor) (texmacs menus edit-menu))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main dynamic, extensible or user defined submenus
@@ -40,116 +40,109 @@
   (=> "File" (link file-menu))
   (=> "Edit" (link edit-menu))
   (if (in-graphics?)
-      (=> "Insert" (link graphics-insert-menu))
-      (link texmacs-extra-menu)
-      (=> "Focus" (link graphics-focus-menu)))
+    (=> "Insert" (link graphics-insert-menu))
+    (link texmacs-extra-menu)
+    (=> "Focus" (link graphics-focus-menu))
+  ) ;if
   (if (not (in-graphics?))
-      (=> "Insert" (link insert-menu))
-      (if (in-manual?)
-          (=> "Manual" (link tmdoc-menu)))
-      (if (or (in-source?) (with-source-tool?))
-          (=> "Source" (link source-menu)))
-      (if (with-linking-tool?)
-          (=> "Link" (link link-menu)))
-      (if (in-comment?)
-          (=> "Comment" (link comment-menu)))
-      (if (in-presentation?)
-          (=> "Dynamic" (link dynamic-menu)))
-      (if (style-has? "icourse-dtd")
-          (=> "Icourse" (link calc-icourse-menu)))
-      (link plugin-menu)
-      (link texmacs-extra-menu)
-      (=> "Focus" (link focus-menu))
-      (=> "Format" (link format-menu)))
+    (=> "Insert" (link insert-menu))
+    (if (in-manual?) (=> "Manual" (link tmdoc-menu)))
+    (if (or (in-source?) (with-source-tool?)) (=> "Source" (link source-menu)))
+    (if (with-linking-tool?) (=> "Link" (link link-menu)))
+    (if (in-comment?) (=> "Comment" (link comment-menu)))
+    (if (in-presentation?) (=> "Dynamic" (link dynamic-menu)))
+    (if (style-has? "icourse-dtd") (=> "Icourse" (link calc-icourse-menu)))
+    (link plugin-menu)
+    (link texmacs-extra-menu)
+    (=> "Focus" (link focus-menu))
+    (=> "Format" (link format-menu))
+  ) ;if
   (=> "Document" (link document-menu))
   (if (and (not (project-attached?))
-           (== (get-init-tree "sectional-short-style") (tree 'macro "false")))
-      (=> "Part" (link document-part-menu)))
+        (== (get-init-tree "sectional-short-style") (tree 'macro "false"))
+      ) ;and
+    (=> "Part" (link document-part-menu))
+  ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
-  (if (with-versioning-tool?)
-      (=> "Version" (link version-menu)))
+  (if (with-versioning-tool?) (=> "Version" (link version-menu)))
   (=> "View::menu" (link view-menu))
   (=> "Go" (link go-menu))
   (if (detailed-menus?) (=> "Tools" (link tools-menu)))
-  (if (with-database-tool?)
-      (=> "Data" (link db-menu)))
-  (if (with-remote-tool?)
-      (=> "Remote" (link remote-menu)))
-  (if (with-debugging-tool?)
-      (=> "Debug" (link debug-menu)))
-  (if (with-developer-tool?)
-      (=> "Developer" (link developer-menu)))
-  (if (nnull? (test-menu))
-      (=> "Test" (link test-menu)))
-  (=> "Help" (link help-menu)))
+  (if (with-database-tool?) (=> "Data" (link db-menu)))
+  (if (with-remote-tool?) (=> "Remote" (link remote-menu)))
+  (if (with-debugging-tool?) (=> "Debug" (link debug-menu)))
+  (if (with-developer-tool?) (=> "Developer" (link developer-menu)))
+  (if (nnull? (test-menu)) (=> "Test" (link test-menu)))
+  (=> "Help" (link help-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The TeXmacs popup menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind presentation-popup-menu
-  ("Presentation mode" (toggle-full-screen-mode))
-  ("Show panorama" (toggle-panorama-mode))
-  ("Show all slides" (toggle-slideshow-mode))
-  ("Remote control" (toggle-remote-control-mode)))
+ ("Presentation mode" (toggle-full-screen-mode))
+ ("Show panorama" (toggle-panorama-mode))
+ ("Show all slides" (toggle-slideshow-mode))
+ ("Remote control" (toggle-remote-control-mode))
+) ;menu-bind
 
-(menu-bind texmacs-popup-menu
-  (link focus-menu))
+(menu-bind texmacs-popup-menu (link focus-menu))
 
 (tm-menu (texmacs-popup-menu)
   (:require (full-screen?))
   (link presentation-popup-menu)
   ---
-  (former))
+  (former)
+) ;tm-menu
 
-(menu-bind focus-popup-menu
-  ("Focus mode" (toggle-focus-mode)))
+(menu-bind focus-popup-menu ("Focus mode" (toggle-focus-mode)))
 
 (tm-menu (texmacs-popup-menu)
   (:require (and (focus-mode?) (not (simplest-mode?))))
   (link focus-popup-menu)
   ---
-  (former))
+  (former)
+) ;tm-menu
 
-(menu-bind simplest-popup-menu
-  ("Simplest mode" (toggle-simplest-mode)))
+(menu-bind simplest-popup-menu ("Simplest mode" (toggle-simplest-mode)))
 
 (tm-menu (texmacs-popup-menu)
   (:require (simplest-mode?))
   (link simplest-popup-menu)
   ---
-  (former))
+  (former)
+) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
-  ("Smart paste" (kbd-magic-paste))
-  ("Paste special" (interactive-paste-special))
-  (=> "Copy to" (link clipboard-copy-export-menu))
-  ---
-  (former))
+ ("Magic paste" (kbd-magic-paste))
+ ("Paste special" (interactive-paste-special))
+ (=> "Copy to" (link clipboard-copy-export-menu))
+ ---
+ (former)
+) ;tm-menu
 
 (menu-bind texmacs-alternative-popup-menu
   (-> "File" (link file-menu))
   (-> "Edit" (link edit-menu))
   (if (in-graphics?)
-      (-> "Insert" (link graphics-insert-menu))
-      (-> "Focus" (link graphics-focus-menu)))
+    (-> "Insert" (link graphics-insert-menu))
+    (-> "Focus" (link graphics-focus-menu))
+  ) ;if
   (if (not (in-graphics?))
-      (-> "Insert" (link insert-menu))
-      (if (in-manual?)
-          (-> "Manual" (link tmdoc-menu)))
-      (if (or (in-source?) (with-source-tool?))
-          (-> "Source" (link source-menu)))
-      (if (with-linking-tool?)
-          (-> "Link" (link link-menu)))
-      (if (in-presentation?)
-          (-> "Dynamic" (link dynamic-menu)))
-      (if (style-has? "icourse-dtd")
-          (-> "Icourse" (link calc-icourse-menu)))
-      (-> "Focus" (link focus-menu))
-      (-> "Format" (link format-menu)))
+    (-> "Insert" (link insert-menu))
+    (if (in-manual?) (-> "Manual" (link tmdoc-menu)))
+    (if (or (in-source?) (with-source-tool?)) (-> "Source" (link source-menu)))
+    (if (with-linking-tool?) (-> "Link" (link link-menu)))
+    (if (in-presentation?) (-> "Dynamic" (link dynamic-menu)))
+    (if (style-has? "icourse-dtd") (-> "Icourse" (link calc-icourse-menu)))
+    (-> "Focus" (link focus-menu))
+    (-> "Format" (link format-menu))
+  ) ;if
   (-> "Document" (link document-menu))
   (if (== (get-init-tree "sectional-short-style") (tree 'macro "false"))
-      (-> "Part" (link document-part-menu)))
+    (-> "Part" (link document-part-menu))
+  ) ;if
   (if (project-attached?) (=> "Project" (link project-menu)))
   (if (with-versioning-tool?) (-> "Version" (link version-menu)))
   (-> "View::menu" (link view-menu))
@@ -160,13 +153,15 @@
   (if (with-debugging-tool?) (-> "Debug" (link debug-menu)))
   (if (nnull? (test-menu)) (-> "Test" (link test-menu)))
   ---
-  (-> "Help" (link help-menu)))
+  (-> "Help" (link help-menu))
+) ;menu-bind
 
 (tm-menu (texmacs-alternative-popup-menu)
   (:require (full-screen?))
   (link presentation-popup-menu)
   ---
-  (former))
+  (former)
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main icon bar
@@ -174,62 +169,57 @@
 
 (menu-bind texmacs-main-icons
   (if (window-per-buffer?)
-      ((balloon (icon "tm_new.xpm") "Create a new document")
-       (new-document)))
+   ((balloon (icon "tm_new.xpm") "Create a new document") (new-document))
+  ) ;if
   (if (not (window-per-buffer?))
-      (=> (balloon (icon "tm_new.xpm") "Create a new document")
-          (link new-file-menu)))
+    (=> (balloon (icon "tm_new.xpm") "Create a new document") (link new-file-menu))
+  ) ;if
   (=> (balloon (icon "tm_open.xpm") "Load a file") (link load-menu))
   (=> (balloon (icon "tm_save.xpm") "Save this buffer") (link save-menu))
-  ((balloon (icon "tm_build.xpm") "Update this buffer")
-   (update-document "all"))
+  ((balloon (icon "tm_build.xpm") "Update this buffer") (update-document "all"))
   (=> (balloon (icon "tm_print.xpm") "Print") (link print-menu-inline))
   (if (use-menus?)
-      (=> (balloon (icon "tm_preferences.xpm") "Change the TeXmacs preferences")
-          (link preferences-menu)))
+    (=> (balloon (icon "tm_preferences.xpm") "Change the TeXmacs preferences")
+      (link preferences-menu)
+    ) ;=>
+  ) ;if
   (if (use-popups?)
-      ((balloon (icon "tm_preferences.xpm") "Change the TeXmacs preferences")
-       (open-preferences)))
+   ((balloon (icon "tm_preferences.xpm") "Change the TeXmacs preferences")
+    (open-preferences)
+   ) ;
+  ) ;if
   (if (detailed-menus?)
-      ;;(=> (balloon (icon "tm_style.xpm") "Select a document style")
-      ;;(link document-style-menu))
-      ;;(=> (balloon (icon "tm_language.xpm") "Select a language")
-      ;;(link global-language-menu))
-      )
+    ;; (=> (balloon (icon "tm_style.xpm") "Select a document style")
+    ;; (link document-style-menu))
+    ;; (=> (balloon (icon "tm_language.xpm") "Select a language")
+    ;; (link global-language-menu))
+  ) ;if
   (=> (balloon (icon "tm_cancel.xpm") "Close") (link close-menu))
   /
-  ((balloon (icon "tm_cut.xpm") "Cut text")
-   (kbd-cut))
-  ((balloon (icon "tm_copy.xpm") "Copy text")
-   (kbd-copy))
-  ((balloon (icon "tm_paste.xpm") "Paste text")
-   (kbd-paste))
-  ((balloon (icon "tm_find.xpm") "Find text")
-   (interactive-search))
-  ((balloon (icon "tm_replace.xpm") "Query replace")
-   (interactive-replace))
+  ((balloon (icon "tm_cut.xpm") "Cut text") (kbd-cut))
+  ((balloon (icon "tm_copy.xpm") "Copy text") (kbd-copy))
+  ((balloon (icon "tm_paste.xpm") "Paste text") (kbd-paste))
+  ((balloon (icon "tm_find.xpm") "Find text") (interactive-search))
+  ((balloon (icon "tm_replace.xpm") "Query replace") (interactive-replace))
   (if (not (in-math?))
-      ((balloon (icon "tm_spell.xpm") "Check text for spelling errors")
-       (interactive-spell)))
+   ((balloon (icon "tm_spell.xpm") "Check text for spelling errors")
+    (interactive-spell)
+   ) ;
+  ) ;if
   (if (in-math?)
-      (=> (balloon (icon "tm_spell.xpm") "Correct mathematical formulas")
-          (link math-correct-menu)))
+    (=> (balloon (icon "tm_spell.xpm") "Correct mathematical formulas")
+      (link math-correct-menu)
+    ) ;=>
+  ) ;if
   ((balloon (icon "tm_undo.xpm") "Undo last changes") (undo 0))
   ((balloon (icon "tm_redo.xpm") "Redo undone changes") (redo 0))
   /
-  ((balloon (icon "tm_back.xpm") "Browse back")
-   (cursor-history-backward))
-  ((balloon (icon "tm_reload.xpm") "Reload")
-   (revert-buffer))
-  ((balloon (icon "tm_forward.xpm") "Browse forward")
-   (cursor-history-forward))
-  (if (in-presentation?)
-    /
-    (link dynamic-icons))
-  (if (with-remote-tool?)
-    /
-    (link remote-icons))
-)
+  ((balloon (icon "tm_back.xpm") "Browse back") (cursor-history-backward))
+  ((balloon (icon "tm_reload.xpm") "Reload") (revert-buffer))
+  ((balloon (icon "tm_forward.xpm") "Browse forward") (cursor-history-forward))
+  (if (in-presentation?) / (link dynamic-icons))
+  (if (with-remote-tool?) / (link remote-icons))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The TeXmacs side tools
@@ -237,56 +227,61 @@
 
 (tm-widget (texmacs-left-tools win)
   (for (tool (window->tools win :transient-left :left))
-    (dynamic (texmacs-side-tool win tool :title)))
+    (dynamic (texmacs-side-tool win tool :title))
+  ) ;for
   ===
   (glue #t #t 300 1)
   (for (tool (window->tools win :bottom-left))
-    (dynamic (texmacs-side-tool win tool :title))))
+    (dynamic (texmacs-side-tool win tool :title))
+  ) ;for
+) ;tm-widget
 
 (tm-widget (texmacs-side-tools win)
   (for (tool (window->tools win :transient-right :right))
-    (dynamic (texmacs-side-tool win tool :title)))
+    (dynamic (texmacs-side-tool win tool :title))
+  ) ;for
   ===
   (glue #t #t 300 1)
   (for (tool (window->tools win :bottom-right))
-    (dynamic (texmacs-side-tool win tool :title))))
+    (dynamic (texmacs-side-tool win tool :title))
+  ) ;for
+) ;tm-widget
 
 (tm-widget (texmacs-bottom-tools win)
-  (with tools (window->tools win :transient-bottom :bottom)
+  (with tools
+    (window->tools win :transient-bottom :bottom)
     (if (not (qt-gui?)) (glue #f #f 0 2))
     (link texmacs-bottom-toolbars)
-    (for (tool tools)
-      (dynamic (texmacs-side-tool win tool :title)))
+    (for (tool tools) (dynamic (texmacs-side-tool win tool :title)))
     (if (with-keyboard-tool?)
-        (if (or (extra-bottom-tools?) (nnull? tools)) ---)
-        (dynamic (custom-keyboard-toolbar)))
-    (if (not (qt-gui?)) (glue #f #f 0 1) ---)))
+      (if (or (extra-bottom-tools?) (nnull? tools)) ---)
+      (dynamic (custom-keyboard-toolbar))
+    ) ;if
+    (if (not (qt-gui?)) (glue #f #f 0 1) ---)
+  ) ;with
+) ;tm-widget
 
-(tm-widget (texmacs-extra-tools win)
-  (text "Deprecated"))
+(tm-widget (texmacs-extra-tools win) (text "Deprecated"))
 
 (tm-tool* (buffer-tool win)
   (:name "Open documents")
-  (hlist
-    ===
-    (vertical
-      (division "plain"
-        (link buffer-go-menu)))
-    === ===
-    >>))
+  (hlist === (vertical (division "plain" (link buffer-go-menu))) === === >>)
+) ;tm-tool*
 
 (tm-define (upward-context-trees t)
   (cond ((tree-is-buffer? t) (list t))
         ((tree-atomic? t) (upward-context-trees (tree-up t)))
-        (else (cons t (upward-context-trees (tree-up t))))))
+        (else (cons t (upward-context-trees (tree-up t))))
+  ) ;cond
+) ;tm-define
 
 (tm-tool (context-tool win)
   (:name "Context tool")
   (for (t (reverse (upward-context-trees (cursor-tree))))
     ===
-    (horizontal
-      ((eval (symbol->string (tree-label t)))
-       (tree-select t)))))
+    (horizontal ((eval (symbol->string (tree-label t))) (tree-select t)))
+  ) ;for
+) ;tm-tool
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The mode dependent icon bar
@@ -298,4 +293,5 @@
   (if (in-math?) (link math-icons))
   (if (in-prog?) (link prog-icons))
   (if (in-graphics?) (link graphics-icons))
-  (link help-icons))
+  (link help-icons)
+) ;menu-bind
