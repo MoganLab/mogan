@@ -1449,17 +1449,11 @@ QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
   background: transparent;
   qproperty-iconNormal: url(":/llm-chat/thinking-white.svg");
   qproperty-iconChecked: url(":/llm-chat/thinking.svg");
-  qproperty-iconHovered: url(":/llm-chat/thinking-white.svg");
 }
 QToolButton#chat-tab-thinking-btn:checked,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
   background: #ffffff;
   color: #215a6a;
-}
-QToolButton#chat-tab-thinking-btn:hover,
-QWidget#centralWidget QToolButton#chat-tab-thinking-btn:hover {
-  background: rgba(255,255,255,0.15);
-  color: #ffffff;
 }
 
 /* 发送按钮 */

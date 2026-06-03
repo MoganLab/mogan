@@ -22,7 +22,12 @@ class QTMStateToolButton : public QToolButton {
   Q_PROPERTY (QIcon iconHovered READ iconHovered WRITE setIconHovered FINAL)
 public:
   explicit QTMStateToolButton (QWidget* parent= nullptr)
-      : QToolButton (parent) {}
+      : QToolButton (parent) {
+    // toggled 在 setChecked() 完全结束后发射，此时 isChecked() 已稳定，
+    // 比 checkStateSet() 更可靠地触发图标切换。
+    connect (this, &QTMStateToolButton::toggled, this,
+             &QTMStateToolButton::reloadIcon, Qt::DirectConnection);
+  }
 
   QIcon iconNormal () const { return iconNormal_; }
   void  setIconNormal (const QIcon& icon) {
@@ -43,11 +48,6 @@ public:
   }
 
 protected:
-  void checkStateSet () override {
-    QToolButton::checkStateSet ();
-    reloadIcon ();
-  }
-
   bool event (QEvent* event) override {
     if (event->type () == QEvent::Enter || event->type () == QEvent::Leave) {
       reloadIcon ();

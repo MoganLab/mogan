@@ -1362,15 +1362,10 @@ QToolButton#chat-tab-thinking-btn {
   background: transparent;
   qproperty-iconNormal: url(":/llm-chat/thinking.svg");
   qproperty-iconChecked: url(":/llm-chat/thinking-white.svg");
-  qproperty-iconHovered: url(":/llm-chat/thinking.svg");
 }
 QToolButton#chat-tab-thinking-btn:checked {
   background: #215a6a;
   color: #ffffff;
-}
-QToolButton#chat-tab-thinking-btn:hover {
-  background: rgba(33,90,106,0.15);
-  color: #215a6a;
 }
 
 /* 发送按钮 */
