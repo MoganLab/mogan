@@ -1171,7 +1171,7 @@
 ) ;tm-define
 
 (tm-define (bib-cite-context? t)
-  (and (tree-in? t '(cite nocite cite-detail cite-TeXmacs)) (cursor-inside? t))
+  (and (tree-in? t '(cite nocite cite-detail)) (cursor-inside? t))
 ) ;tm-define
 
 (tm-define (kbd-variant t forwards?)

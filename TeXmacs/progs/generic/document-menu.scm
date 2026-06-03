@@ -1125,74 +1125,7 @@
   ) ;assuming
 ) ;tm-menu
 
-(menu-bind cite-texmacs-only-menu
- ("The Jolly Writer" (cite-texmacs "TeXmacs:vdH:book"))
- ("TeXmacs website" (cite-texmacs "TeXmacs:website"))
- ("TeXmacs manual" (cite-texmacs "TeXmacs:manual"))
-) ;menu-bind
 
-(menu-bind cite-texmacs-related-menu
-  (-> "Tutorials"
-   ("GNU TeXmacs: a scientific editing platform"
-     (cite-texmacs "TeXmacs:vdH2:2006")
-   ) ;
-   ("TeXmacs in 60 minutes" (cite-texmacs "TeXmacs:Seidl:2003"))
-   ("TeXmacs Quick-Start Guide" (cite-texmacs "TeXmacs:Ratier:2005"))
-  ) ;->
-  (-> "Surveys"
-   ("GNU TeXmacs (ASCM 2005)" (cite-texmacs "TeXmacs:vdH:2005"))
-   ("GNU TeXmacs (Dagstuhl 2006)" (cite-texmacs "TeXmacs:vdH1:2006"))
-   ("GNU TeXmacs: a scientific editing platform"
-     (cite-texmacs "TeXmacs:HGGLPR:2012")
-   ) ;
-   ("GNU TeXmacs: Towards a Scientific Office Suite"
-     (cite-texmacs "TeXmacs:GHPR:2014")
-   ) ;
-  ) ;->
-  (-> "Research papers"
-   ("GNU TeXmacs, a free, structured, wysiwyg and technical text editor"
-     (cite-texmacs "TeXmacs:vdH:2001")
-   ) ;
-   ("Conservative conversion between LaTeX and TeXmacs"
-     (cite-texmacs "TeXmacs:HP:2014")
-   ) ;
-   ("Towards semantic mathematical editing" (cite-texmacs "TeXmacs:vdH:2015"))
-   ("Preserving syntactic correctness while editing mathematical formulas"
-     (cite-texmacs "TeXmacs:HLR:2015")
-   ) ;
-   ("Mathematical Font Art" (cite-texmacs "TeXmacs:vdH:2016"))
-  ) ;->
-  (-> "Plug-ins"
-   ("TeXmacs interfaces to Maxima, Mupad and Reduce"
-     (cite-texmacs "TeXmacs:Grozin:2001")
-   ) ;
-   ("TeXmacs-Maxima interface" (cite-texmacs "TeXmacs:Grozin:2005"))
-   ("TeXmacs-Reduce interface" (cite-texmacs "TeXmacs:Grozin:2012"))
-   ("TeXmacs as an authoring tool for formal developments"
-     (cite-texmacs "TeXmacs:AR:2004")
-   ) ;
-   ("A Document-Oriented Coq Plugin for TeXmacs" (cite-texmacs "TeXmacs:MG:2006"))
-  ) ;->
-) ;menu-bind
-
-(menu-bind cite-texmacs-menu
-  (assuming (or (in-beamer?) (in-seminar?) (in-browser?))
-    (group "Acknowledge")
-    ("Written with TeXmacs" (acknowledge-texmacs))
-    ---
-  ) ;assuming
-  (group "Cite")
-  (link cite-texmacs-only-menu)
-  ---
-  (group "Cite related work")
-  (link cite-texmacs-related-menu)
-) ;menu-bind
-
-(menu-bind cite-texmacs-short-menu
-  (link cite-texmacs-only-menu)
-  ---
-  (link cite-texmacs-related-menu)
-) ;menu-bind
 
 (tm-menu (focus-style-menu t)
   (group "Style")
@@ -1260,7 +1193,6 @@
   (dynamic (focus-style-menu t))
   ---
   (dynamic (focus-document-menu t))
-  (-> "Cite TeXmacs" (link cite-texmacs-menu))
   (dynamic (focus-document-extra-menu t))
   ---
   ("Help" (focus-help))
@@ -1306,12 +1238,6 @@
     ) ;=>
     (assuming (tree-is-buffer? t)
      ((balloon (icon "tm_focus_help.xpm") "Describe tag") (focus-help))
-    ) ;assuming
-    (assuming (and (!= (get-preference "gui theme") "liii")
-                (!= (get-preference "gui theme") "liii-night")
-                (!= (get-preference "gui theme") "default")
-              ) ;and
-      (=> (balloon (icon "tm_like.xpm") "Cite TeXmacs") (link cite-texmacs-menu))
     ) ;assuming
   ) ;minibar
 ) ;tm-menu

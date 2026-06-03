@@ -3859,10 +3859,6 @@
   (tex-apply 'nocite (tmtex-cite-list l))
 ) ;define
 
-(define (tmtex-cite-TeXmacs s l)
-  (tex-apply 'citetexmacs (tmtex-cite-list l))
-) ;define
-
 (tm-define (tmtex-cite-detail s l)
   (with c
     (tmtex-cite-list (list (car l)))
@@ -4585,7 +4581,6 @@
  (tm-made (,(tmtex-rename 'tmmade) 0))
  (cite (,tmtex-cite -1))
  (nocite (,tmtex-nocite -1))
- (cite-TeXmacs (,tmtex-cite-TeXmacs -1))
  (cite-detail (,tmtex-cite-detail-hook 2))
  (cite-raw (,tmtex-cite-raw -1))
  (cite-raw* (,tmtex-cite-raw* -1))

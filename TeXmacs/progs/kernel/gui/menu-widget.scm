@@ -1265,8 +1265,6 @@
        load-menu
        save-menu
        close-menu
-       cite-texmacs-menu
-       cite-texmacs-related-menu
        color-menu
        document-encryption-menu
        document-columns-menu)

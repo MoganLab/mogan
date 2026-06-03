@@ -130,5 +130,5 @@
        (when (and key
                   (tree->path u)
 		  (tree-in? (tree-up u)
-                            '(cite nocite cite-detail cite-TeXmacs)))
+                            '(cite nocite cite-detail)))
 	 (tree-set! u key))))))

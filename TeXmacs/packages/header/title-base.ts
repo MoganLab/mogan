@@ -55,9 +55,6 @@
   GNU <TeXmacs><if|<equal|<value|language>|french>| ; |; ><localize|see>
   <hlink|<with|font-family|tt|www.texmacs.org>|https://www.texmacs.org>.>>
 
-  <assign|cite-TeXmacs|<xmacro|keys|<localize|This document has been written
-  using> GNU <TeXmacs><nbsp><map-args|identity|cite|keys>.>>
-
   <\active*>
     <\src-comment>
       DRD properties of tags with title and author data.

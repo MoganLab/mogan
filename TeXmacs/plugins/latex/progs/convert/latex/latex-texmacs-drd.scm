@@ -278,7 +278,6 @@
 
 (logic-group latex-texmacs-1%
   three-line-table
-  citetexmacs
   key
   tmrsub
   tmrsup

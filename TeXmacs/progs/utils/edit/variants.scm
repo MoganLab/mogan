@@ -370,10 +370,10 @@
   reference pageref eqref smart-ref)
 
 (define-group n-ary-citation-tag
-  cite nocite cite-TeXmacs)
+  cite nocite)
 
 (define-group citation-tag
-  cite nocite cite-TeXmacs cite-detail)
+  cite nocite cite-detail)
 
 (define-group mini-flow-tag
   table graphics ornament ornamented tree)
