@@ -605,30 +605,26 @@
 ) ;tm-define
 
 (define (chat-tab-ensure-session! session-id)
+  ;; Step 1: 确保 state 存在
   (let ((st (chat-tab-get-state session-id)))
-    (if st
-      ;; state 已存在，检查样式包是否需要加载
-      (if (chat-tab-style-loaded? session-id)
-        st
-        (let ((msg-buf (chat-tab-session->message-buffer session-id))
-              (in-buf (chat-tab-session->input-buffer session-id))
-             ) ;
-          (with-buffer msg-buf (chat-tab-add-default-style-packages!))
-          (with-buffer in-buf (chat-tab-add-default-style-packages!))
-          (chat-tab-set-style-loaded! session-id)
-          st
-        ) ;let
-      ) ;if
-      ;; state 不存在，创建 state 并初始化
+    (when (not st)
       (let* ((model (or chat-tab-current-model "Kimi-VLM"))
              (plugin-ses (string-append model ":chat-tab:" session-id))
              (new (chat-tab-state model))
-             (msg-buf (chat-tab-session->message-buffer session-id))
-             (in-buf (chat-tab-session->input-buffer session-id))
             ) ;
         (session-enable-text-input chat-tab-session-name plugin-ses)
         (chat-tab-set-state! session-id new)
-        ;; 初始化 message buffer：仅在空缓冲时创建新 session 结构
+      ) ;let*
+    ) ;when
+  ) ;let
+  ;; Step 2: 确保初始化完成（幂等保护）
+  (let ((st (chat-tab-get-state session-id)))
+    (if (chat-tab-style-loaded? session-id)
+      st
+      (let* ((plugin-ses (chat-tab-state->plugin-session-id st session-id))
+             (msg-buf (chat-tab-session->message-buffer session-id))
+             (in-buf (chat-tab-session->input-buffer session-id))
+            ) ;
         (with-buffer msg-buf
           (let ((body (buffer-get-body msg-buf)))
             (when (chat-tab-buffer-empty? body)
@@ -640,10 +636,9 @@
           ) ;let
           (chat-tab-add-default-style-packages!)
         ) ;with-buffer
-        ;; input buffer 同样加载样式包
         (with-buffer in-buf (chat-tab-add-default-style-packages!))
         (chat-tab-set-style-loaded! session-id)
-        new
+        st
       ) ;let*
     ) ;if
   ) ;let
