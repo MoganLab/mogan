@@ -836,10 +836,10 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   chatSidebarToggleBtn->setFocusPolicy (Qt::NoFocus);
   chatSidebarToggleBtn->setCursor (Qt::PointingHandCursor);
   chatSidebarToggleBtn->setIcon (QIcon (":llm-chat/addchat.svg"));
-  chatSidebarToggleBtn->setIconSize (QSize (DpiUtils::scaled (20),
-                                             DpiUtils::scaled (20)));
+  chatSidebarToggleBtn->setIconSize (
+      QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
   chatSidebarToggleBtn->setFixedSize (DpiUtils::scaled (40),
-                                       DpiUtils::scaled (40));
+                                      DpiUtils::scaled (40));
   chatSidebarToggleBtn->setStyleSheet (
       QString ("QPushButton { border: none; border-radius: %1px; }")
           .arg (DpiUtils::scaled (20)));
