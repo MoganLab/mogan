@@ -31,7 +31,7 @@ constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 90;
 #ifdef Q_OS_MAC
 const int TAB_CONTAINER_PADDING= 75;
 #else
-const int TAB_CONTAINER_PADDING= 0;
+const int TAB_CONTAINER_PADDING= 10;
 #endif
 
 constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
