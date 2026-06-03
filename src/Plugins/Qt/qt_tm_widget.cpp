@@ -818,21 +818,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   chatSideDock->setVisible (false);
   mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
 
-  QObject::connect (chatSideDock, &QDockWidget::visibilityChanged,
-                    [this] (bool visible) {
-                      if (!visible && chatSidebarMode) {
-                        chatSidebarMode       = false;
-                        chatSidebarModeMemory_= false;
-                        if (chatContentWidget && chatSideDock &&
-                            chatSideDock->widget () == chatContentWidget) {
-                          chatSideDock->setWidget (nullptr);
-                          chatContentWidget->setParent (centralwidget ());
-                          chatContentWidget->hide ();
-                        }
-                        update_visibility ();
-                      }
-                    });
-
   // 文档区域右上角浮动新建对话按钮
   chatSidebarToggleBtn= new QPushButton (cw);
   chatSidebarToggleBtn->setObjectName ("chat-sidebar-toggle-btn");
