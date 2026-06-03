@@ -15,7 +15,7 @@
   (:use (utils library cursor) (texmacs menus edit-menu))
 ) ;texmacs-module
 
-(import (liii string))
+(import (only (liii string) string-starts?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main dynamic, extensible or user defined submenus
