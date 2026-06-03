@@ -55,7 +55,8 @@
 
 (tm-define (chat-persist-make-entry sid title model archived created-at . opts)
   (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-        (entry (string->njson "{}")))
+        (entry (string->njson "{}"))
+       ) ;
     (njson-set! entry "sessionId" sid)
     (njson-set! entry "title" title)
     (njson-set! entry "model" model)
@@ -101,28 +102,21 @@
 
 ;; chat-persist-extract-title-from-tree
 ;; 从文档树节点中递归提取纯文本标题。
-;; 原子节点直接返回文本，复合节点递归遍历子节点拼接文本。
+;; 原子节点直接返回文本，复合节点用 named let 遍历子节点拼接文本。
 
 (tm-define (chat-persist-extract-title-from-tree tree)
   (if (tree-atomic? tree)
     (tree->string tree)
-    (let ((n (length (tree-children tree))))
-      (chat-persist-extract-title-loop tree 0 n "")
-    ) ;let
-  ) ;if
-) ;tm-define
-
-;; 内部递归：遍历树节点的子节点，递归拼接所有文本。
-
-(tm-define (chat-persist-extract-title-loop tree idx len result)
-  (if (>= idx len)
-    result
-    (let ((child (tree-ref tree idx)))
-      (chat-persist-extract-title-loop tree
-        (+ idx 1)
-        len
-        (string-append result (chat-persist-extract-title-from-tree child))
-      ) ;chat-persist-extract-title-loop
+    (let ((children (tree-children tree)))
+      (let loop
+        ((lst children) (result ""))
+        (if (null? lst)
+          result
+          (loop (cdr lst)
+            (string-append result (chat-persist-extract-title-from-tree (car lst)))
+          ) ;loop
+        ) ;if
+      ) ;let
     ) ;let
   ) ;if
 ) ;tm-define
@@ -169,7 +163,14 @@
                       (display sid)
                       (newline)
                       ;; 只传元数据给 C++，不加载 buffer 内容
-                      (qt-chat-tab-restore-session sid title model archived-str created-at expand-count thinking)
+                      (qt-chat-tab-restore-session sid
+                        title
+                        model
+                        archived-str
+                        created-at
+                        expand-count
+                        thinking
+                      ) ;qt-chat-tab-restore-session
                       ;; 恢复 Scheme 侧 session state（包含 thinking）
                       (chat-persist-register-session sid model thinking)
                     ) ;let*
@@ -218,8 +219,11 @@
           (with-buffer msg-buf
             (session-unfold-last-n n)
             (chat-tab-add-default-style-packages!)
-            (go-end))
-          (buffer-pretend-saved msg-buf)))
+            (go-end)
+          ) ;with-buffer
+          (buffer-pretend-saved msg-buf)
+        ) ;when
+      ) ;let*
     ) ;when
   ) ;let
 ) ;tm-define
@@ -268,7 +272,8 @@
 (tm-define (chat-persist-update-manifest session-id title model archived created-at . opts)
   (let* ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
          (manifest-path (chat-persist-manifest-path))
-         (entry (chat-persist-make-entry session-id title model archived created-at thinking))
+         (entry (chat-persist-make-entry session-id title model archived created-at thinking)
+         ) ;entry
         ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
     (if (not (file-exists? manifest-path))
@@ -313,7 +318,7 @@
       ) ;let*
     ) ;if
     (njson-free entry)
-  ) ;let
+  ) ;let*
 ) ;tm-define
 
 ;; chat-persist-save-one
@@ -322,7 +327,13 @@
 (tm-define (chat-persist-save-one session-id title model archived created-at . opts)
   (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled")))
     (chat-persist-export-buffer session-id)
-    (chat-persist-update-manifest session-id title model archived created-at thinking)
+    (chat-persist-update-manifest session-id
+      title
+      model
+      archived
+      created-at
+      thinking
+    ) ;chat-persist-update-manifest
   ) ;let
 ) ;tm-define
 
@@ -420,7 +431,8 @@
 
 (tm-define (chat-persist-register-session session-id model . opts)
   (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-        (st (chat-tab-get-state session-id)))
+        (st (chat-tab-get-state session-id))
+       ) ;
     (when (not st)
       (chat-tab-set-state! session-id (chat-tab-state model thinking))
     ) ;when

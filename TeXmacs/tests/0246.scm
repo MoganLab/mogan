@@ -21,17 +21,15 @@
 ;; chat-persist-extract-title-from-tree 使用相同逻辑。
 
 (define (tree-extract-text tree)
-  (if (string? tree) tree (tree-extract-text-loop tree 0 (length tree) ""))
-) ;define
-
-(define (tree-extract-text-loop tree idx len result)
-  (if (>= idx len)
-    result
-    (tree-extract-text-loop tree
-      (+ idx 1)
-      len
-      (string-append result (tree-extract-text (list-ref tree idx)))
-    ) ;tree-extract-text-loop
+  (if (string? tree)
+    tree
+    (let loop
+      ((lst tree) (result ""))
+      (if (null? lst)
+        result
+        (loop (cdr lst) (string-append result (tree-extract-text (car lst))))
+      ) ;if
+    ) ;let
   ) ;if
 ) ;define
 
