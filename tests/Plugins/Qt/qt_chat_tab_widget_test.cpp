@@ -793,6 +793,47 @@ private slots:
     QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
   }
 
+  // === Ctrl/Cmd+J AI 侧边栏快捷键 ===
+  void test_readonly_allows_ctrl_j () {
+    // Ctrl+J 切换 AI 侧边栏 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_J, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_meta_j () {
+    // Meta+J（macOS ⌘+J）切换 AI 侧边栏 → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_J, Qt::MetaModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_ctrl_j_keyrelease () {
+    // Ctrl+J 的 KeyRelease → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_J, Qt::ControlModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_allows_meta_j_keyrelease () {
+    // Meta+J 的 KeyRelease → 放行
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyRelease, Qt::Key_J, Qt::MetaModifier);
+    QVERIFY (!ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
+  void test_readonly_blocks_plain_j () {
+    // 无修饰键的 J → 拦截（readonly 区域禁止输入）
+    QObject obj;
+    obj.setProperty ("chat_message_readonly", true);
+    QKeyEvent ke (QEvent::KeyPress, Qt::Key_J, Qt::NoModifier);
+    QVERIFY (ChatConversationPanel::should_block_readonly_event (&obj, &ke));
+  }
+
   // === enterConversationMode 布局行为 ===
   // 模拟 contentLayout + topPanel 的布局结构，验证 enterConversationMode
   // 的布局逻辑：将 topPanel 从 Preferred/AlignTop 切换到 Expanding/无对齐

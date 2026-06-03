@@ -92,6 +92,7 @@ enum slot_id {
   SLOT_INPUT_PROPOSAL,
   SLOT_FILE,
   SLOT_DIRECTORY,
+  SLOT_CHAT_SIDEBAR_VISIBILITY,
 
   slot_id__LAST // Please leave last and don't assign integer values to members
 };
@@ -605,6 +606,16 @@ set_auxiliary_widget_headline (widget w, string title) {
 inline bool
 get_auxiliary_widget_visibility (widget w) {
   return query<bool> (w, SLOT_AUXILIARY_WIDGET_VISIBILITY);
+}
+
+inline void
+set_chat_sidebar_visibility (widget w, bool visible) {
+  send<bool> (w, SLOT_CHAT_SIDEBAR_VISIBILITY, visible);
+}
+
+inline bool
+get_chat_sidebar_visibility (widget w) {
+  return query<bool> (w, SLOT_CHAT_SIDEBAR_VISIBILITY);
 }
 
 inline void

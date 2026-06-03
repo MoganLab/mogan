@@ -223,6 +223,7 @@
  ("cmd t var var var" (make 'block))
  ("cmd t var var var var" (make 'block*))
  ("cmd t var var var var var" (make 'wide-block))
+ ("std j" (toggle-chat-sidebar))
 ) ;kbd-map
 
 (kbd-map (:require (list-structured-insert-context?))

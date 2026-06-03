@@ -238,6 +238,14 @@ tm_frame_rep::show_bottom_tools (int which, bool flag) {
 }
 
 void
+tm_frame_rep::show_chat_sidebar (bool flag) {
+  if (!has_current_view ()) return;
+  tm_window win= has_current_window () ? concrete_window ()
+                                       : concrete_window (windows_list ()[0]);
+  win->set_chat_sidebar_flag (flag);
+}
+
+void
 tm_frame_rep::show_footer (bool flag) {
   if (!has_current_view ()) return;
   concrete_window ()->set_footer_flag (flag);
@@ -264,6 +272,14 @@ bool
 tm_frame_rep::visible_bottom_tools (int which) {
   if ((which < 0) || (which > 1)) return false;
   return concrete_window ()->get_bottom_tools_flag (which);
+}
+
+bool
+tm_frame_rep::visible_chat_sidebar () {
+  if (!has_current_view ()) return false;
+  tm_window win= has_current_window () ? concrete_window ()
+                                       : concrete_window (windows_list ()[0]);
+  return win->get_chat_sidebar_flag ();
 }
 
 bool

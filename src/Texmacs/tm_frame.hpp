@@ -43,11 +43,13 @@ public:
   void change_auxiliary_widget_focus ();
   url  get_auxiliary_widget_parent_url ();
   void show_bottom_tools (int which, bool flag);
+  void show_chat_sidebar (bool flag);
   bool visible_header ();
   bool auxiliary_widget_visible ();
   bool visible_icon_bar (int which);
   bool visible_side_tools (int which);
   bool visible_bottom_tools (int which);
+  bool visible_chat_sidebar ();
   void menu_widget (string menu, widget& w);
   void menu_main (string menu);
   void menu_icons (int which, string menu);

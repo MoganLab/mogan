@@ -10,6 +10,7 @@
  ******************************************************************************/
 
 #include "qt_floating_search_bar.hpp"
+#include "qt_chat_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
@@ -20,11 +21,14 @@
 #include <moebius/tree_label.hpp>
 
 #include <QAbstractScrollArea>
+#include <QDockWidget>
 #include <QGraphicsDropShadowEffect>
 #include <QHBoxLayout>
 #include <QHash>
 #include <QKeyEvent>
+#include <QMainWindow>
 #include <QPalette>
+#include <QPushButton>
 #include <QResizeEvent>
 #include <QStyle>
 #include <QToolButton>
@@ -196,6 +200,7 @@ QTMFloatingSearchBar::setSearchInput (QWidget* input) {
             if (sa) {
               sa->viewport ()->setBackgroundRole (QPalette::Base);
               sa->installEventFilter (this);
+              sa->viewport ()->installEventFilter (this);
               sa->setFocus ();
               inputScrollArea_= sa;
             }
@@ -296,6 +301,27 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
         emit closeRequested ();
         return true;
       }
+    }
+    // Ctrl/Cmd+J：切换 AI 聊天侧边栏
+    if (ke->key () == Qt::Key_J &&
+        (ke->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
+      QMainWindow* mw= qobject_cast<QMainWindow*> (window ());
+      if (mw) {
+        QDockWidget* dock= mw->findChild<QDockWidget*> ("chatSideDock");
+        if (dock) {
+          if (dock->isVisible ()) {
+            QTChatTabWidget* chatWidget=
+                qobject_cast<QTChatTabWidget*> (dock->widget ());
+            if (chatWidget) emit chatWidget->closeSidebarRequested ();
+          }
+          else {
+            QPushButton* toggleBtn=
+                mw->findChild<QPushButton*> ("chat-sidebar-toggle-btn");
+            if (toggleBtn) toggleBtn->click ();
+          }
+        }
+      }
+      return true;
     }
 #ifdef Q_OS_MAC
     if (ke->key () == Qt::Key_Tab && (ke->modifiers () & Qt::AltModifier)) {

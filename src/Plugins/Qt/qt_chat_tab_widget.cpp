@@ -28,6 +28,7 @@
 
 #include <QAbstractScrollArea>
 #include <QCheckBox>
+#include <QDockWidget>
 #include <QGraphicsDropShadowEffect>
 #include <QGraphicsOpacityEffect>
 #include <QHBoxLayout>
@@ -475,9 +476,10 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
          key == Qt::Key_PageUp || key == Qt::Key_PageDown);
     if (is_nav_key) return false;
     if (ctrl_or_meta) {
-      // 放行允许的快捷键：复制(C)、全选(A)、搜索(F)、缩放(+/-/=)
+      // 放行允许的快捷键：复制(C)、全选(A)、搜索(F)、缩放(+/-/=)、AI 侧边栏(J)
       if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
-          key == Qt::Key_Plus || key == Qt::Key_Equal || key == Qt::Key_Minus)
+          key == Qt::Key_J || key == Qt::Key_Plus || key == Qt::Key_Equal ||
+          key == Qt::Key_Minus)
         return false;
       return true;
     }
@@ -495,7 +497,8 @@ ChatConversationPanel::should_block_readonly_event (QObject* watched,
     if (is_nav_key) return false;
     if (ctrl_or_meta) {
       if (key == Qt::Key_C || key == Qt::Key_A || key == Qt::Key_F ||
-          key == Qt::Key_Plus || key == Qt::Key_Equal || key == Qt::Key_Minus)
+          key == Qt::Key_J || key == Qt::Key_Plus || key == Qt::Key_Equal ||
+          key == Qt::Key_Minus)
         return false;
       return true;
     }
@@ -519,7 +522,25 @@ bool
 ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
-    QKeyEvent* keyEvent          = static_cast<QKeyEvent*> (event);
+    QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+    // Ctrl/Cmd+J：关闭 AI 聊天侧边栏（仅在 dock 模式下触发）
+    if (keyEvent->key () == Qt::Key_J &&
+        (keyEvent->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
+      QTChatTabWidget* chatWidget= nullptr;
+      QWidget*         p         = parentWidget ();
+      while (p) {
+        chatWidget= qobject_cast<QTChatTabWidget*> (p);
+        if (chatWidget) break;
+        p= p->parentWidget ();
+      }
+      if (chatWidget) {
+        QWidget* gp= chatWidget->parentWidget ();
+        if (gp && qobject_cast<QDockWidget*> (gp)) {
+          emit chatWidget->closeSidebarRequested ();
+          return true;
+        }
+      }
+    }
     bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
     if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),
                                  hasActiveCompletionPopup)) {
@@ -1503,6 +1524,12 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
 
   // 对话区域左上角关闭侧边栏按钮（dock 模式使用）
   closeSidebarBtn_= make_sidebar_toggle_btn (content);
+#ifdef Q_OS_MACOS
+  closeSidebarBtn_->setToolTip (tr ("Close AI Chat (\xe2\x8c\x98"
+                                    "J)"));
+#else
+  closeSidebarBtn_->setToolTip (tr ("Close AI Chat (Ctrl+J)"));
+#endif
   closeSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX),
                           DpiUtils::scaled (kCloseSidebarBtnMarginY));
   connect (closeSidebarBtn_, &QPushButton::clicked, this,

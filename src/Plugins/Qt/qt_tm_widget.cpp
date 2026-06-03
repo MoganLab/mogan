@@ -814,7 +814,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   chatSideDock->setFeatures (QDockWidget::DockWidgetClosable);
   chatSideDock->setFloating (false);
   chatSideDock->setTitleBarWidget (new QWidget ()); // 禁用标题栏
-  chatSideDock->setMinimumWidth (DpiUtils::scaled (320));
+  chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
   chatSideDock->setVisible (false);
   mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
 
@@ -1428,9 +1428,16 @@ qt_tm_widget_rep::update_visibility () {
       // 动态 tooltip：已有会话时显示 "Open AI Chat"，否则显示 "New AI Chat"
       ChatController* ctrl= get_chat_controller ();
       bool hasSessions= !ctrl->sessionManager ().getAllSessionIds ().empty ();
-      chatSidebarToggleBtn->setToolTip (hasSessions
-                                            ? qt_translate ("Open AI Chat")
-                                            : qt_translate ("New AI Chat"));
+#ifdef Q_OS_MACOS
+      QString shortcutHint= " (\xe2\x8c\x98"
+                            "J)";
+#else
+      QString shortcutHint= " (Ctrl+J)";
+#endif
+      chatSidebarToggleBtn->setToolTip ((hasSessions
+                                             ? qt_translate ("Open AI Chat")
+                                             : qt_translate ("New AI Chat")) +
+                                        shortcutHint);
     }
   }
 
@@ -1604,6 +1611,13 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     visibility[11]= visible;
     update_visibility ();
   } break;
+  case SLOT_CHAT_SIDEBAR_VISIBILITY: {
+    check_type<bool> (val, s);
+    bool show             = open_box<bool> (val);
+    chatSidebarMode       = show;
+    chatSidebarModeMemory_= show;
+    sync_chat_sidebar_mode ();
+  } break;
   case SLOT_AUXILIARY_WIDGET: {
     check_type<string> (val, s);
     auxiliaryWidget->setWindowTitle (to_qstring (open_box<string> (val)));
@@ -1771,6 +1785,10 @@ qt_tm_widget_rep::query (slot s, int type_id) {
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (visibility[11]);
+
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
+    check_type_id<bool> (type_id, s);
+    return close_box<bool> (chatSidebarMode);
 
   case SLOT_INTERACTIVE_INPUT: {
     check_type_id<string> (type_id, s);
@@ -2289,6 +2307,7 @@ qt_tm_embedded_widget_rep::send (slot s, blackbox val) {
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
   case SLOT_NOTIFICATION_BAR:
   case SLOT_AUXILIARY_WIDGET:
   case SLOT_LEFT_FOOTER:
@@ -2349,6 +2368,7 @@ qt_tm_embedded_widget_rep::query (slot s, int type_id) {
   case SLOT_EXTRA_TOOLS_VISIBILITY:
   case SLOT_TAB_PAGES_VISIBILITY:
   case SLOT_AUXILIARY_WIDGET_VISIBILITY:
+  case SLOT_CHAT_SIDEBAR_VISIBILITY:
     check_type_id<bool> (type_id, s);
     return close_box<bool> (false);
 

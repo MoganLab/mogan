@@ -528,6 +528,11 @@ tm_window_rep::set_bottom_tools_flag (int which, bool flag) {
   else if (which == 1) set_extra_tools_visibility (wid, flag);
 }
 
+void
+tm_window_rep::set_chat_sidebar_flag (bool flag) {
+  set_chat_sidebar_visibility (wid, flag);
+}
+
 bool
 tm_window_rep::get_header_flag () {
   return get_header_visibility (wid);
@@ -560,6 +565,11 @@ tm_window_rep::get_bottom_tools_flag (int which) {
   if (which == 0) return get_bottom_tools_visibility (wid);
   else if (which == 1) return get_extra_tools_visibility (wid);
   else return false;
+}
+
+bool
+tm_window_rep::get_chat_sidebar_flag () {
+  return get_chat_sidebar_visibility (wid);
 }
 
 /******************************************************************************

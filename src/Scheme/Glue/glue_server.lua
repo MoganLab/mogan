@@ -218,6 +218,19 @@ function main()
                 ret_type = "bool"
             },
             {
+                scm_name = "show-chat-sidebar",
+                cpp_name = "show_chat_sidebar",
+                ret_type = "void",
+                arg_list = {
+                    "bool"
+                }
+            },
+            {
+                scm_name = "visible-chat-sidebar?",
+                cpp_name = "visible_chat_sidebar",
+                ret_type = "bool"
+            },
+            {
                 scm_name = "full-screen-mode",
                 cpp_name = "full_screen_mode",
                 ret_type = "void",
