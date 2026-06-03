@@ -100,25 +100,29 @@
 ) ;tm-define
 
 ;; chat-persist-extract-title-from-tree
-;; 从文档树 body 中提取纯文本标题（拼接所有原子文本）。
+;; 从文档树节点中递归提取纯文本标题。
+;; 原子节点直接返回文本，复合节点递归遍历子节点拼接文本。
 
-(tm-define (chat-persist-extract-title-from-tree body)
-  (chat-persist-extract-title-loop body 0 "")
+(tm-define (chat-persist-extract-title-from-tree tree)
+  (if (tree-atomic? tree)
+    (tree->string tree)
+    (let ((n (length (tree-children tree))))
+      (chat-persist-extract-title-loop tree 0 n "")
+    ) ;let
+  ) ;if
 ) ;tm-define
 
-;; 内部递归：遍历 DOCUMENT 子节点，拼接所有原子文本。
+;; 内部递归：遍历树节点的子节点，递归拼接所有文本。
 
-(tm-define (chat-persist-extract-title-loop body idx result)
-  (if (or (not (tree-children body)) (>= idx (length (tree-children body))))
+(tm-define (chat-persist-extract-title-loop tree idx len result)
+  (if (>= idx len)
     result
-    (let ((child (tree-ref body idx)))
-      (if (tree-atomic? child)
-        (chat-persist-extract-title-loop body
-          (+ idx 1)
-          (string-append result (tree->string child))
-        ) ;chat-persist-extract-title-loop
-        (chat-persist-extract-title-loop body (+ idx 1) result)
-      ) ;if
+    (let ((child (tree-ref tree idx)))
+      (chat-persist-extract-title-loop tree
+        (+ idx 1)
+        len
+        (string-append result (chat-persist-extract-title-from-tree child))
+      ) ;chat-persist-extract-title-loop
     ) ;let
   ) ;if
 ) ;tm-define
