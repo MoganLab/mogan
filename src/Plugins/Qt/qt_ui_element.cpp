@@ -9,6 +9,7 @@
  ******************************************************************************/
 
 #include "qt_ui_element.hpp"
+#include "preferences.hpp"
 #include "qt_gui.hpp"
 #include "qt_menu.hpp"
 #include "qt_picture.hpp"
@@ -17,7 +18,6 @@
 #include "qt_utilities.hpp"
 #include "qt_widget.hpp"
 #include "qt_window_widget.hpp"
-#include "preferences.hpp"
 
 #include "analyze.hpp"
 #include "converter.hpp"
@@ -452,14 +452,16 @@ qt_ui_element_rep::as_qaction () {
        */
       const QKeySequence& qks= to_qkeysequence (ks);
       if (!qks.isEmpty ()) {
-        string shortcut_style = get_preference ("keyboard shortcut style", "default");
-        bool is_mac = false;
+        string shortcut_style=
+            get_preference ("keyboard shortcut style", "default");
+        bool is_mac= false;
 #ifdef Q_OS_MAC
-        is_mac = true;
+        is_mac= true;
 #endif
 
         if (shortcut_style == "text" && is_mac) {
-        } else {
+        }
+        else {
           act->setShortcut (qks);
           act->setShortcutVisibleInContextMenu (true);
         }
@@ -470,21 +472,23 @@ qt_ui_element_rep::as_qaction () {
 
         if (is_mac) {
           if (shortcut_style == "text") {
-            QString disp = qks.toString (QKeySequence::PortableText);
+            QString disp= qks.toString (QKeySequence::PortableText);
             disp.replace (QStringLiteral ("Meta+"), QStringLiteral ("Cmd+"));
             disp.replace (QStringLiteral ("Alt+"), QStringLiteral ("Option+"));
             act->setText (base + QLatin1Char ('\t') + disp);
           }
-        } else {
+        }
+        else {
           if (shortcut_style == "symbol") {
-            QString disp = qks.toString (QKeySequence::PortableText);
+            QString disp= qks.toString (QKeySequence::PortableText);
             disp.replace (QStringLiteral ("Ctrl+"), QStringLiteral ("⌃"));
             disp.replace (QStringLiteral ("Alt+"), QStringLiteral ("⌥"));
             disp.replace (QStringLiteral ("Shift+"), QStringLiteral ("⇧"));
             disp.replace (QStringLiteral ("Meta+"), QStringLiteral ("⌘"));
             act->setText (base + QLatin1Char ('\t') + disp);
-          } else {
-            QString disp = qks.toString (QKeySequence::NativeText);
+          }
+          else {
+            QString disp= qks.toString (QKeySequence::NativeText);
 #ifdef Q_OS_WIN
             disp.replace (QStringLiteral ("Meta+"), QStringLiteral ("Win+"));
 #else

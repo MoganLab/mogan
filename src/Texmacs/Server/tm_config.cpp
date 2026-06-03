@@ -232,11 +232,12 @@ mathop (string s) {
 
 static void
 system_kbd_initialize (hashmap<string, tree>& h) {
-  if (N (h) != 0)
-    return;
-  string style = get_preference ("keyboard shortcut style", "default");
-  bool show_symbols = (style == "symbol") || (style == "default" && use_macos_fonts ());
-  bool show_text = (style == "text") || (style == "default" && !use_macos_fonts () && gui_is_qt ());
+  if (N (h) != 0) return;
+  string style= get_preference ("keyboard shortcut style", "default");
+  bool   show_symbols=
+      (style == "symbol") || (style == "default" && use_macos_fonts ());
+  bool show_text= (style == "text") ||
+                  (style == "default" && !use_macos_fonts () && gui_is_qt ());
 
   if (show_symbols) {
     h ("S-")       = "<#21E7>";
