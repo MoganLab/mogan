@@ -473,7 +473,11 @@ qt_ui_element_rep::as_qaction () {
         if (is_mac) {
           if (shortcut_style == "text") {
             QString disp= qks.toString (QKeySequence::PortableText);
-            disp.replace (QStringLiteral ("Meta+"), QStringLiteral ("Cmd+"));
+            disp.replace (QStringLiteral ("Meta+"),
+                          QStringLiteral ("Ctrl_TEMP+"));
+            disp.replace (QStringLiteral ("Ctrl+"), QStringLiteral ("Cmd+"));
+            disp.replace (QStringLiteral ("Ctrl_TEMP+"),
+                          QStringLiteral ("Ctrl+"));
             disp.replace (QStringLiteral ("Alt+"), QStringLiteral ("Option+"));
             act->setText (base + QLatin1Char ('\t') + disp);
           }
