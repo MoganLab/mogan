@@ -402,6 +402,34 @@
   (in? (current-buffer) (list (search-buffer) (replace-buffer)))
 ) ;tm-define
 
+(define (search-or-replace-aux-buffer? u)
+  (and (url-rooted-tmfs? u)
+    (with root
+      (url-head (url-head u))
+      (or (== root (string->url "tmfs://aux/search"))
+        (== root (string->url "tmfs://aux/replace"))
+      ) ;or
+    ) ;with
+  ) ;and
+) ;define
+
+(define (search-command-target-buffer u)
+  (with mas
+    (buffer-get-master u)
+    (search-command-target-buffer* u mas)
+  ) ;with
+) ;define
+
+(define (search-command-target-buffer* u mas)
+  (if (and (search-or-replace-aux-buffer? u)
+        mas
+        (buffer-exists? mas)
+      ) ;and
+    mas
+    u
+  ) ;if
+) ;define
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Filtered searching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -1839,57 +1867,61 @@
 
 (tm-define (interactive-search)
   (:interactive #t)
-  (with buf
-    (current-buffer)
-    (with sid
-      (chat-buffer-session-id buf)
-      (cond ((string-starts? (url->system buf) "tmfs://chat-")
-             ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
-             (let* ((msg-url (if sid
-                               (string-append "tmfs://chat-message-" sid)
-                               (qt-chat-tab-active-message-buffer-url)
-                             ) ;if
-                    ) ;msg-url
-                    (msg-u (and msg-url (not (== msg-url "")) (string->url msg-url)))
-                   ) ;
-               (if (and msg-u (chat-message-buffer-has-content? msg-u))
-                 (floating-search-init msg-u)
-                 (noop)
-               ) ;if
-             ) ;let*
-            ) ;
-            ((string-starts? (url->system buf) "tmfs:")
-             ;; 其他 tmfs:// 缓冲区保持禁用搜索
-             (noop)
-            ) ;
-            (else (set! search-replace-text
-                    (cond ((in-math?) "Only search in math mode")
-                          ((in-prog?) "Only search in Program mode")
-                          ((in-graphics?) "Graphics mode cannot search")
-                          (else "Only search in text mode")
-                    ) ;cond
-                  ) ;set!
-              (set-boolean-preference "search-and-replace" #f)
-              (open-search)
-            ) ;else
-      ) ;cond
+  (with-buffer (search-command-target-buffer (current-buffer))
+    (with buf
+      (current-buffer)
+      (with sid
+        (chat-buffer-session-id buf)
+        (cond ((string-starts? (url->system buf) "tmfs://chat-")
+               ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
+               (let* ((msg-url (if sid
+                                 (string-append "tmfs://chat-message-" sid)
+                                 (qt-chat-tab-active-message-buffer-url)
+                               ) ;if
+                      ) ;msg-url
+                      (msg-u (and msg-url (not (== msg-url "")) (string->url msg-url)))
+                     ) ;
+                 (if (and msg-u (chat-message-buffer-has-content? msg-u))
+                   (floating-search-init msg-u)
+                   (noop)
+                 ) ;if
+               ) ;let*
+              ) ;
+              ((string-starts? (url->system buf) "tmfs:")
+               ;; 其他 tmfs:// 缓冲区保持禁用搜索
+               (noop)
+              ) ;
+              (else (set! search-replace-text
+                      (cond ((in-math?) "Only search in math mode")
+                            ((in-prog?) "Only search in Program mode")
+                            ((in-graphics?) "Graphics mode cannot search")
+                            (else "Only search in text mode")
+                      ) ;cond
+                    ) ;set!
+                (set-boolean-preference "search-and-replace" #f)
+                (open-search)
+              ) ;else
+        ) ;cond
+      ) ;with
     ) ;with
-  ) ;with
+  ) ;with-buffer
 ) ;tm-define
 
 (tm-define (interactive-replace)
   (:interactive #t)
-  (unless (string-starts? (url->system (current-buffer)) "tmfs:")
-    (set! search-replace-text
-      (cond ((in-math?) "Only search and replace in math mode")
-            ((in-prog?) "Only search and replace in Program mode")
-            ((in-graphics?) "Graphics mode cannot search and replace")
-            (else "Only search and replace in text mode")
-      ) ;cond
-    ) ;set!
-    (set-boolean-preference "search-and-replace" #t)
-    (open-replace)
-  ) ;unless
+  (with-buffer (search-command-target-buffer (current-buffer))
+    (unless (string-starts? (url->system (current-buffer)) "tmfs:")
+      (set! search-replace-text
+        (cond ((in-math?) "Only search and replace in math mode")
+              ((in-prog?) "Only search and replace in Program mode")
+              ((in-graphics?) "Graphics mode cannot search and replace")
+              (else "Only search and replace in text mode")
+        ) ;cond
+      ) ;set!
+      (set-boolean-preference "search-and-replace" #t)
+      (open-replace)
+    ) ;unless
+  ) ;with-buffer
 ) ;tm-define
 
 (define (close-search-widget)
