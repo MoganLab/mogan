@@ -832,21 +832,17 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
   // 文档区域右上角浮动新建对话按钮
   chatSidebarToggleBtn= new QPushButton (cw);
-  chatSidebarToggleBtn->setObjectName ("chat-sidebar-toggle-btn");
+  chatSidebarToggleBtn->setObjectName ("chat-tab-collapse-btn");
   chatSidebarToggleBtn->setFocusPolicy (Qt::NoFocus);
   chatSidebarToggleBtn->setCursor (Qt::PointingHandCursor);
   chatSidebarToggleBtn->setIcon (QIcon (":llm-chat/addchat.svg"));
-  int toggleIconSize= DpiUtils::scaled (24);
-  chatSidebarToggleBtn->setIconSize (QSize (toggleIconSize, toggleIconSize));
-  int toggleBtnSize= DpiUtils::scaled (40);
-  chatSidebarToggleBtn->setFixedSize (toggleBtnSize, toggleBtnSize);
+  chatSidebarToggleBtn->setIconSize (QSize (DpiUtils::scaled (20),
+                                             DpiUtils::scaled (20)));
+  chatSidebarToggleBtn->setFixedSize (DpiUtils::scaled (40),
+                                       DpiUtils::scaled (40));
   chatSidebarToggleBtn->setStyleSheet (
-      QString ("QPushButton { border-radius: %1px; "
-               "background: rgba(255,255,255,0.9); "
-               "border: 1px solid rgba(0,0,0,0.12); }"
-               "QPushButton:hover { background: rgba(255,255,255,1.0); "
-               "border: 1px solid rgba(0,0,0,0.2); }")
-          .arg (toggleBtnSize / 2));
+      QString ("QPushButton { border: none; border-radius: %1px; }")
+          .arg (DpiUtils::scaled (20)));
   chatSidebarToggleBtn->hide ();
 
   // 使用 QObject 辅助类处理 central widget 的 resize 事件以更新按钮位置
