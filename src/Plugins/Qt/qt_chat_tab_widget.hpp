@@ -137,18 +137,18 @@ private:
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;                           ///< 所属会话 ID
-  bool         conversationMode_ = false;            ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr;          ///< 欢迎页标题
-  QLabel*      sessionTitle_     = nullptr;          ///< 会话标题标签
-  QWidget*     messageFrame_     = nullptr;          ///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr;          ///< 输入编辑器容器
-  QTMWidget*   inputQTMWidget_   = nullptr;          ///< 输入区 QTMWidget
-  QPushButton* sendButton_       = nullptr;          ///< 发送/停止按钮
-  QToolButton* thinkingButton_   = nullptr;          ///< 推理模式开关
-  QSpacerItem* topSpacer_        = nullptr;          ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;                       ///< 消息区 TeXmacs widget
-  widget       inputWidget;                          ///< 输入区 TeXmacs widget
+  string       sessionId_;                         ///< 所属会话 ID
+  bool         conversationMode_ = false;          ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr;        ///< 欢迎页标题
+  QLabel*      sessionTitle_     = nullptr;        ///< 会话标题标签
+  QWidget*     messageFrame_     = nullptr;        ///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr;        ///< 输入编辑器容器
+  QTMWidget*   inputQTMWidget_   = nullptr;        ///< 输入区 QTMWidget
+  QPushButton* sendButton_       = nullptr;        ///< 发送/停止按钮
+  QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
+  QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
+  widget       messageWidget_;                     ///< 消息区 TeXmacs widget
+  widget       inputWidget;                        ///< 输入区 TeXmacs widget
   int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
