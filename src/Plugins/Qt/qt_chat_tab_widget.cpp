@@ -99,7 +99,7 @@ constexpr int kInputLineHeight       = 22;
 constexpr int kInputDefaultLines     = 3;
 constexpr int kInputMaxLines         = 10;
 constexpr int kContentMarginY        = 24;
-constexpr int kContentSpacing        = 16;
+constexpr int kContentSpacing        = 8;
 constexpr int kWelcomeTopOffsetY     = 240;
 constexpr int kConversationTopOffsetY= 8;
 constexpr int kInputFrameRadius      = 8;
@@ -146,7 +146,7 @@ ChatConversationPanel::setup_ui () {
   QWidget*     topPanel = new QWidget (this);
   QVBoxLayout* topLayout= new QVBoxLayout (topPanel);
   topLayout->setContentsMargins (0, 0, 0, 0);
-  topLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
+  topLayout->setSpacing (0);
 
   // Welcome title
   welcomeTitle_= new QLabel (qt_translate ("Welcome to Liii STEM!"), topPanel);
@@ -161,6 +161,7 @@ ChatConversationPanel::setup_ui () {
   sessionTitle_->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (sessionTitle_, kSessionTitleFontPx);
   topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
+  topLayout->addSpacing (DpiUtils::scaled (kContentSpacing));
 
   // Message area
   qreal chatZoom = DpiUtils::scaled (100) / 100.0;
