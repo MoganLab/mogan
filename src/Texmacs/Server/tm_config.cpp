@@ -240,16 +240,10 @@ system_kbd_initialize (hashmap<string, tree>& h) {
                   (style == "default" && !use_macos_fonts () && gui_is_qt ());
 
   if (show_symbols) {
-    h ("S-")= "<#21E7>";
-    if (os_macos ()) {
-      h ("C-")= "<#2318>";
-      h ("M-")= "<#2303>";
-    }
-    else {
-      h ("C-")= "<#2303>";
-      h ("M-")= "<#2318>";
-    }
+    h ("S-")       = "<#21E7>";
+    h ("C-")       = "<#2303>";
     h ("A-")       = "<#2325>";
+    h ("M-")       = "<#2318>";
     h ("H-")       = localize ("Hyper");
     h ("windows")  = localize ("Windows");
     h ("capslock") = "<#21EA>";
@@ -276,16 +270,11 @@ system_kbd_initialize (hashmap<string, tree>& h) {
   }
   else if (show_text) {
     h ("S-")= localize ("Shift::keyboard", true);
-    if (os_macos ()) {
-      h ("C-")= localize ("Command::keyboard", true);
-      h ("M-")= localize ("Ctrl::keyboard", true);
-    }
-    else {
-      h ("C-")= localize ("Ctrl::keyboard", true);
-      if (os_win ()) h ("M-")= localize ("Win::keyboard", true);
-      else h ("M-")= localize ("Super::keyboard", true);
-    }
-    h ("A-")       = localize ("Alt::keyboard", true);
+    h ("C-")= localize ("Ctrl::keyboard", true);
+    h ("A-")= localize ("Alt::keyboard", true);
+    if (os_win ()) h ("M-")= localize ("Win::keyboard", true);
+    else if (os_macos ()) h ("M-")= localize ("Command::keyboard", true);
+    else h ("M-")= localize ("Super::keyboard", true);
     h ("H-")       = localize ("Hyper::keyboard", true);
     h ("windows")  = localize ("Windows::keyboard");
     h ("capslock") = localize ("Capslock::keyboard");

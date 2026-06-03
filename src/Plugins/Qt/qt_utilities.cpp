@@ -309,18 +309,12 @@ qt_decode_length (string width, string height, const QSize& ref,
 static string
 conv_sub (const string& ks) {
   string r (ks);
-  r= replace (r, "pageup", "pgup");
-  r= replace (r, "pagedown", "pgdown");
-  r= replace (r, "S-", "Shift+");
-  r= replace (r, "A-", "Alt+");
-  // r = replace (r, "K-", "");
-#ifdef Q_OS_MAC
-  r= replace (r, "C-", "Meta+");
-  r= replace (r, "M-", "Ctrl+");
-#else
-  r= replace (r, "C-", "Ctrl+");
-  r= replace (r, "M-", "Meta+");
-#endif
+  r              = replace (r, "pageup", "pgup");
+  r              = replace (r, "pagedown", "pgdown");
+  r              = replace (r, "S-", "Shift+");
+  r              = replace (r, "A-", "Alt+");
+  r              = replace (r, "C-", "Ctrl+");
+  r              = replace (r, "M-", "Meta+");
   array<string> a= tokenize (r, " ");
   for (int i= 0; i < N (a); ++i) {
     int pos= -1, tmp= 0, n= N (a[i]);
@@ -1201,14 +1195,8 @@ from_modifiers (Qt::KeyboardModifiers mods) {
 
   if (mods & Qt::ShiftModifier) r= "S-" * r;
   if (mods & Qt::AltModifier) r= "A-" * r;
-  if (os_macos ()) {
-    if (mods & Qt::MetaModifier) r= "C-" * r;    // The "Control" key
-    if (mods & Qt::ControlModifier) r= "M-" * r; // The "Command" key
-  }
-  else {
-    if (mods & Qt::ControlModifier) r= "C-" * r;
-    if (mods & Qt::MetaModifier) r= "M-" * r; // The "Windows" key
-  }
+  if (mods & Qt::ControlModifier) r= "C-" * r;
+  if (mods & Qt::MetaModifier) r= "M-" * r;
   return r;
 }
 
