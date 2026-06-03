@@ -288,7 +288,7 @@ QFileDialog QListView::item:selected {
 ****************************************************************************/
 QScrollBar:vertical,
 QScrollBar:horizontal {
-  background: #000000;  
+  background: #202020;
   margin: 0px;
   border: none;         
 }
@@ -305,7 +305,7 @@ QScrollBar::handle:vertical,
 QScrollBar::handle:horizontal {
   background: #4c4c4c;       
   border-radius: 7px;        
-  border: 3px solid #000000; 
+  border: 3px solid #202020;
   min-height: 20px;
   min-width: 20px;
 }
