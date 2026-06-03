@@ -453,13 +453,13 @@ qt_ui_element_rep::as_qaction () {
       const QKeySequence& qks= to_qkeysequence (ks);
       if (!qks.isEmpty ()) {
         string shortcut_style=
-            get_preference ("keyboard shortcut style", "default");
+            get_preference ("keyboard shortcut style", "text");
         bool is_mac= false;
 #ifdef Q_OS_MAC
         is_mac= true;
 #endif
 
-        if (shortcut_style == "text" && is_mac) {
+        if ((shortcut_style == "text" || shortcut_style == "Text") && is_mac) {
         }
         else {
           act->setShortcut (qks);
@@ -471,7 +471,7 @@ qt_ui_element_rep::as_qaction () {
         if (tabPos >= 0) base= base.left (tabPos); // avoid duplicate suffix
 
         if (is_mac) {
-          if (shortcut_style == "text") {
+          if (shortcut_style == "text" || shortcut_style == "Text") {
             QString disp= qks.toString (QKeySequence::PortableText);
             disp.replace (QStringLiteral ("Meta+"),
                           QStringLiteral ("Ctrl_TEMP+"));
