@@ -1427,6 +1427,12 @@ QWidget#centralWidget QAbstractScrollArea#chat-tab-input-area QScrollBar::handle
   background: #808080;
 }
 
+/* AI 免责提示 */
+QLabel#chat-tab-disclaimer,
+QWidget#centralWidget QLabel#chat-tab-disclaimer {
+  color: rgba(255, 255, 255, 102);
+}
+
 /* 输入框框架 */
 QWidget#chat-tab-input-frame,
 QWidget#centralWidget QWidget#chat-tab-input-frame {

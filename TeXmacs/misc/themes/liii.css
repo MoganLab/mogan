@@ -1343,6 +1343,11 @@ QAbstractScrollArea#chat-tab-input-area QScrollBar::handle:vertical:hover {
   background: #a0a0a0;
 }
 
+/* AI 免责提示 */
+QLabel#chat-tab-disclaimer {
+  color: rgba(0, 0, 0, 102);
+}
+
 /* 输入框框架 */
 QWidget#chat-tab-input-frame {
   background-color: #ffffff;

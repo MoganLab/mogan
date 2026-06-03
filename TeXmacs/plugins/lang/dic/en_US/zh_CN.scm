@@ -3,6 +3,7 @@
 ("1.5 line spacing" "1.5 倍行距")
 ("Upgrade VIP" "升级会员")
 ("Upgrade to unlock AI writing, MathOCR, and more advanced features." "开通会员，立即解锁 AI 写作、MathOCR 等高阶功能。")
+("AI-generated content may be inaccurate. Please verify carefully." "内容由 AI 生成，请仔细甄别。")
 ("All" "全部")
 ("Advanced footer" "高级页脚")
 ("Advanced header" "高级页眉")
