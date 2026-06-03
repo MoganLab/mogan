@@ -130,6 +130,8 @@ protected:
 private:
   /// 构建面板 UI 布局
   void setup_ui ();
+  /// 轮询输入文档是否变化，兜底菜单类修改路径
+  void poll_input_body_change ();
   /// 在当前事件处理完成后更新输入区高度，避免读取到旧排版结果
   void schedule_input_height_adjust ();
   /// 根据内容动态调整输入区高度
@@ -147,8 +149,10 @@ private:
   QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
   widget       messageWidget_;                     ///< 消息区 TeXmacs widget
   widget       inputWidget;                        ///< 输入区 TeXmacs widget
+  QTimer*      inputHeightPollTimer_     = nullptr; ///< 输入区高度兜底轮询
   int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
+  tree         lastInputBody_;                     ///< 最近一次已同步的输入文档
 };
 
 /**
