@@ -148,6 +148,29 @@
         (load-buffer (system->url path))
         (load-buffer (system->url en_doc)))))
 
+;; 显示Mogan版本信息
+(tm-define (mogan-version)
+  (let* ((cur-ver (xmacs-version))
+         (latest-ver "2026.2.5")
+         (latest? (== cur-ver latest-ver))
+         (lan (get-output-language)))
+    (cond
+      ((== lan "chinese")
+       (if latest?
+           (show-message (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。") "版本")
+           (user-confirm (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。是否要访问官网 https://liiistem.cn 下载最新稳定版？") #t
+                         (lambda (answ) (when answ (open-url "https://liiistem.cn"))))))
+      ((== lan "taiwanese")
+       (if latest?
+           (show-message (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。") "版本")
+           (user-confirm (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。是否要訪問官網 https://liiistem.cn 下載最新穩定版？") #t
+                         (lambda (answ) (when answ (open-url "https://liiistem.cn"))))))
+      (else
+       (if latest?
+           (show-message (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ".") "Version")
+           (user-confirm (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ". Do you want to visit the official website https://liiistem.cn to download the latest stable version?") #t
+                         (lambda (answ) (when answ (open-url "https://liiistem.cn")))))))))
+
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)
   ;; 如果可以访问远程星球页面则加载，否则加载本地欢迎文档

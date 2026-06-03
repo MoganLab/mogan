@@ -965,6 +965,7 @@
 ("utf-8 with inputenc LaTeX package" "帶有inputenc LaTeX軟件包的UTF-8")
 ("vanish" "消失")
 ("verbose" "詳細")
+("Version" "版本")
 ("vertical margins" "個 垂直邊距")
 ("vertical space after" "之後的垂直空間")
 ("vertical space before" "之前的垂直空間")

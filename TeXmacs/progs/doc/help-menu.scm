@@ -41,6 +41,7 @@
 
 (menu-bind help-menu
   ("Welcome" (mogan-welcome))
+  ("Version" (mogan-version))
   (-> "Manual"
     (link help-manual-menu))
   (-> "Plugins"

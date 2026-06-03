@@ -950,6 +950,7 @@
 ("utf-8 with inputenc LaTeX package" "带有inputenc LaTeX软件包的UTF-8")
 ("vanish" "消失")
 ("verbose" "详细")
+("Version" "版本")
 ("vertical margins" "垂直边距")
 ("vertical space after" "之后的垂直空间")
 ("vertical space before" "之前的垂直空间")
