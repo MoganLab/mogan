@@ -154,10 +154,22 @@ replaceActions (QWidget* dest, QList<QAction*>* src) {
   dest->setUpdatesEnabled (true);
 }
 
+static bool
+same_actions (QWidget* dest, QList<QAction*>* src) {
+  if (src == NULL || dest == NULL) return false;
+  QList<QAction*> current= dest->actions ();
+  if (current.count () != src->count ()) return false;
+  for (int i= 0; i < current.count (); ++i) {
+    if (current[i] != (*src)[i]) return false;
+  }
+  return true;
+}
+
 static void
 replaceButtons (QToolBar* dest, QList<QAction*>* src) {
   if (src == NULL || dest == NULL)
     TM_FAILED ("replaceButtons expects valid objects");
+  if (same_actions (dest, src)) return;
   dest->setUpdatesEnabled (false);
   bool visible= dest->isVisible ();
   if (visible) dest->hide (); // TRICK: to avoid flicker of the dest widget
@@ -205,7 +217,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       currentPdfPath (""), lastLoadedPdfPath (""), chatContentWidget (nullptr),
       chatTabMode (false), chatSideDock (nullptr),
       chatSidebarToggleBtn (nullptr), chatSidebarMode (false),
-      chatSidebarModeMemory_ (false) {
+      chatSidebarModeMemory_ (false), centralWidgetUpdatesFrozen_ (false) {
   type= texmacs_widget;
 
   main_widget= concrete (::glue_widget (true, true, 1, 1));
@@ -1000,7 +1012,9 @@ qt_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
 static void
 show_widget_in_layout (QWidget* widget, QLayout* layout) {
   if (!widget || !layout) return;
-  if (layout->indexOf (widget) < 0) {
+  int index= layout->indexOf (widget);
+  if (index >= 0 && widget->isVisible ()) return;
+  if (index < 0) {
     layout->addWidget (widget);
   }
   widget->show ();
@@ -1012,6 +1026,19 @@ hide_widget_from_layout (QWidget* widget, QLayout* layout) {
   widget->hide ();
   if (layout->indexOf (widget) >= 0) {
     layout->removeWidget (widget);
+  }
+}
+
+void
+qt_tm_widget_rep::set_central_widget_updates_frozen (bool frozen) {
+  QWidget* cw= centralwidget ();
+  if (!cw || centralWidgetUpdatesFrozen_ == frozen) return;
+
+  centralWidgetUpdatesFrozen_= frozen;
+  cw->setUpdatesEnabled (!frozen);
+  if (!frozen) {
+    if (cw->layout ()) cw->layout ()->invalidate ();
+    cw->update ();
   }
 }
 
@@ -1388,17 +1415,21 @@ qt_tm_widget_rep::update_visibility () {
     new_titleVisibility     = true;
     new_pdfToolBarVisibility= true;
   }
-
-  if (XOR (old_mainVisibility, new_mainVisibility))
+  if (XOR (old_mainVisibility, new_mainVisibility)) {
     mainToolBar->setVisible (new_mainVisibility);
-  if (XOR (old_menuVisibility, new_menuVisibility))
+  }
+  if (XOR (old_menuVisibility, new_menuVisibility)) {
     menuToolBar->setVisible (new_menuVisibility);
-  if (XOR (old_modeVisibility, new_modeVisibility))
+  }
+  if (XOR (old_modeVisibility, new_modeVisibility)) {
     modeToolBar->setVisible (new_modeVisibility);
-  if (XOR (old_focusVisibility, new_focusVisibility))
+  }
+  if (XOR (old_focusVisibility, new_focusVisibility)) {
     focusToolBar->setVisible (new_focusVisibility);
-  if (XOR (old_userVisibility, new_userVisibility))
+  }
+  if (XOR (old_userVisibility, new_userVisibility)) {
     userToolBar->setVisible (new_userVisibility);
+  }
   if (XOR (old_sideVisibility, new_sideVisibility))
     sideTools->setVisible (new_sideVisibility);
   if (XOR (old_leftVisibility, new_leftVisibility))
@@ -1413,10 +1444,12 @@ qt_tm_widget_rep::update_visibility () {
     tabPageContainer->setVisible (new_tabVisibility);
   if (XOR (old_titleVisibility, new_titleVisibility))
     windowAgent->titleBar ()->setVisible (new_titleVisibility);
-  if (XOR (old_statusVisibility, new_statusVisibility))
+  if (XOR (old_statusVisibility, new_statusVisibility)) {
     mainwindow ()->statusBar ()->setVisible (new_statusVisibility);
-  if (XOR (old_pdfToolBarVisibility, new_pdfToolBarVisibility))
+  }
+  if (XOR (old_pdfToolBarVisibility, new_pdfToolBarVisibility)) {
     pdfToolBar->setVisible (new_pdfToolBarVisibility);
+  }
 
   // AI 聊天侧边栏浮动按钮可见性
   if (chatSidebarToggleBtn) {
@@ -1674,6 +1707,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
     sync_startup_tab_mode ();
     sync_chat_tab_mode ();
     sync_chat_sidebar_mode ();
+    set_central_widget_updates_frozen (false);
   } break;
   case SLOT_POSITION: {
     check_type<coord2> (val, s);
@@ -1875,6 +1909,23 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
 
     QWidget* q= main_widget->qwid;
     QLayout* l= centralwidget ()->layout ();
+    qt_widget nextWidget= concrete (w);
+    bool isGluePlaceholder=
+        !is_nil (nextWidget) &&
+        nextWidget->type == qt_widget_rep::glue_widget;
+    bool hasVisibleCentralContent=
+        (q && (l->indexOf (q) >= 0 || q->isVisible ())) ||
+        (startupContentWidget &&
+         (l->indexOf (startupContentWidget) >= 0 ||
+          startupContentWidget->isVisible ())) ||
+        (pdfViewerWidget &&
+         (l->indexOf (pdfViewerWidget) >= 0 || pdfViewerWidget->isVisible ())) ||
+        (chatContentWidget &&
+         (l->indexOf (chatContentWidget) >= 0 ||
+          chatContentWidget->isVisible ()));
+    if (!isGluePlaceholder && hasVisibleCentralContent) {
+      set_central_widget_updates_frozen (true);
+    }
     if (q && l->indexOf (q) >= 0) {
       l->removeWidget (q);
       q->hide (); // 隐藏旧的 widget

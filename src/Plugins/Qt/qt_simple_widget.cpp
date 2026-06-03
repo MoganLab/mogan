@@ -58,6 +58,8 @@ qt_simple_widget_rep::~qt_simple_widget_rep () {
 
 QWidget*
 qt_simple_widget_rep::as_qwidget () {
+  if (qwid) return qwid;
+
   qwid= new QTMWidget (0, this);
   reapply_sent_slots ();
   SI width, height;

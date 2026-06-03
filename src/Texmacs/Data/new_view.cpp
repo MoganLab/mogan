@@ -589,6 +589,18 @@ attach_view (url win_u, url u) {
   // cout << "View attached\n";
 }
 
+static void
+detach_view_for_switch (url u) {
+  tm_view vw= concrete_view (u);
+  if (vw == NULL) return;
+  tm_window win= vw->win;
+  if (win == NULL) return;
+  vw->win= NULL;
+  widget wid= win->wid;
+  ASSERT (is_attached (wid), "widget should be attached");
+  vw->ed->suspend ();
+}
+
 void
 detach_view (url u) {
   tm_view vw= concrete_view (u);
@@ -621,7 +633,7 @@ window_set_view (url win_u, url new_u, bool focus) {
   // cout << "Found view\n";
   ASSERT (new_vw->win == NULL, "view attached to other window");
   url old_u= window_to_view (win_u);
-  if (!is_none (old_u)) detach_view (old_u);
+  if (!is_none (old_u)) detach_view_for_switch (old_u);
   attach_view (win_u, new_u);
   if (focus || get_current_view () == old_u) set_current_view (new_u);
   // 在 set_current_view 之后调用 set_window_url，确保 SLOT_FILE 处理时 current

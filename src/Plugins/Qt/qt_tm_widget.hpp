@@ -159,6 +159,7 @@ private:
   void logout ();
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();
+  void set_central_widget_updates_frozen (bool frozen);
 
   // Version update notification
   void    checkVersionUpdate ();
@@ -191,6 +192,7 @@ private:
   bool             chatTabMode;       ///\< 聊天标签页视图是否激活。
   bool             chatSidebarMode;   ///\< AI 聊天侧边栏模式是否激活。
   bool   chatSidebarModeMemory_;      ///\< 记忆用户主动设置的侧边栏模式状态。
+  bool   centralWidgetUpdatesFrozen_; ///\< 标签切换期间冻结编辑区更新。
   string currentEditorFile;           ///\< 当前编辑器打开的文件路径。
 
 public:
