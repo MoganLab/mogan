@@ -533,6 +533,12 @@ function main()
                 ret_type = "string",
                 arg_list = {}
             },
+            {
+                scm_name = "qt-chat-notify-input-height",
+                cpp_name = "qt_chat_notify_input_height",
+                ret_type = "void",
+                arg_list = {}
+            },
 
             {
                 scm_name = "qt-floating-search",

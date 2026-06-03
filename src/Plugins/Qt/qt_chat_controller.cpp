@@ -733,3 +733,14 @@ string
 qt_chat_tab_active_message_buffer_url () {
   return get_chat_controller ()->activeSessionMessageBufferUrl ();
 }
+
+void
+qt_chat_notify_input_height () {
+  ChatController* ctrl= get_chat_controller ();
+  if (!ctrl || !ctrl->view_) return;
+
+  ChatConversationPanel* panel= ctrl->view_->activeConversation ();
+  if (!panel || !panel->isVisible ()) return;
+
+  panel->schedule_input_height_adjust ();
+}

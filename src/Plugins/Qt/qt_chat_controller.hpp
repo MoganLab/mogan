@@ -217,6 +217,7 @@ private:
                                            string model, string archived,
                                            string createdAt,
                                            int    defaultExpandCount);
+  friend void qt_chat_notify_input_height ();
 };
 
 /**
@@ -237,5 +238,10 @@ void qt_chat_tab_restore_session (string sessionId, string title, string model,
                                   int defaultExpandCount, string thinking);
 
 string qt_chat_tab_active_message_buffer_url ();
+
+/**
+ * @brief Scheme→C++ 回调：通知 Chat 输入区重新计算高度。
+ */
+void qt_chat_notify_input_height ();
 
 #endif // QT_CHAT_CONTROLLER_HPP

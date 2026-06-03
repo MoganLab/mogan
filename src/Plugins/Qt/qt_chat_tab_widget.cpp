@@ -257,12 +257,6 @@ ChatConversationPanel::setup_ui () {
       inputQTMWidget_= editor;
     }
   }
-  inputHeightPollTimer_= new QTimer (this);
-  inputHeightPollTimer_->setInterval (100);
-  connect (inputHeightPollTimer_, &QTimer::timeout, this,
-           [this] () { poll_input_body_change (); });
-  inputHeightPollTimer_->start ();
-
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
 
@@ -543,18 +537,6 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
 }
 
 void
-ChatConversationPanel::poll_input_body_change () {
-  if (!isVisible () || !inputQTMWidget_ || !inputQTMWidget_->isVisible ())
-    return;
-
-  tree body= readInputMessage ();
-  if (body != lastInputBody_) {
-    lastInputBody_= copy (body);
-    schedule_input_height_adjust ();
-  }
-}
-
-void
 ChatConversationPanel::schedule_input_height_adjust () {
   if (inputHeightAdjustScheduled_) return;
   inputHeightAdjustScheduled_= true;
@@ -571,7 +553,6 @@ ChatConversationPanel::adjust_input_height () {
   if (!frame) return;
 
   tree body      = readInputMessage ();
-  lastInputBody_ = copy (body);
   int lineH      = DpiUtils::scaled (kInputLineHeight);
   int docLines   = count_input_lines (body);
   int visualLines= count_visual_input_lines (inputQTMWidget_, lineH);

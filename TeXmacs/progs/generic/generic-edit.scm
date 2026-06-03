@@ -1378,6 +1378,8 @@
       ) ;cond
     ) ;with
   ) ;if
+  (when (defined? 'qt-chat-notify-input-height)
+    (qt-chat-notify-input-height))
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "ocr-paste")
   ) ;when
