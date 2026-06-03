@@ -1326,10 +1326,23 @@ QWidget#centralWidget QWidget#chat-tab-archive-list {
 
 /* 右侧内容区 */
 QWidget#chat-tab-content,
+QWidget#chat-tab-conversation-stack,
 QWidget#chat-tab-conversation-page,
+QWidget#chat-tab-top-panel,
+QWidget#chat-tab-input-area-wrap,
 QWidget#centralWidget QWidget#chat-tab-content,
-QWidget#centralWidget QWidget#chat-tab-conversation-page {
-  background-color: #202020;
+QWidget#centralWidget QWidget#chat-tab-conversation-stack,
+QWidget#centralWidget QWidget#chat-tab-conversation-page,
+QWidget#centralWidget QWidget#chat-tab-top-panel,
+QWidget#centralWidget QWidget#chat-tab-input-area-wrap {
+  background-color: #404040;
+}
+
+/* 欢迎标题 */
+QLabel#chat-tab-welcome-title,
+QWidget#centralWidget QLabel#chat-tab-welcome-title {
+  color: #ffffff;
+  background-color: #404040;
 }
 
 /* 导航标题 */
@@ -1407,7 +1420,7 @@ QWidget#centralWidget QPushButton#chat-tab-floating-new-btn:hover {
 QLabel#chat-tab-model-label,
 QWidget#centralWidget QLabel#chat-tab-model-label {
   color: #ffffff;
-  background-color: transparent;
+  background-color: #404040;
 }
 
 /* 消息框 */
@@ -1431,6 +1444,7 @@ QWidget#centralWidget QAbstractScrollArea#chat-tab-input-area QScrollBar::handle
 QLabel#chat-tab-disclaimer,
 QWidget#centralWidget QLabel#chat-tab-disclaimer {
   color: rgba(255, 255, 255, 102);
+  background-color: #404040;
 }
 
 /* 输入框框架 */

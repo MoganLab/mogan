@@ -1251,7 +1251,10 @@ QWidget#chat-tab-archive-list {
 
 /* 右侧内容区 */
 QWidget#chat-tab-content,
-QWidget#chat-tab-conversation-page {
+QWidget#chat-tab-conversation-stack,
+QWidget#chat-tab-conversation-page,
+QWidget#chat-tab-top-panel,
+QWidget#chat-tab-input-area-wrap {
   background-color: #ffffff;
 }
 
