@@ -96,27 +96,8 @@
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
-    (chat-persist-extract-title-from-tree body)
+    (string-replace (texmacs->verbatim body) "\n" " ")
   ) ;let*
-) ;tm-define
-
-;; chat-persist-extract-title-from-tree
-;; 从文档树节点中递归提取纯文本标题。
-;; 原子节点直接返回文本，复合节点用 named let 遍历子节点拼接文本。
-
-(tm-define (chat-persist-extract-title-from-tree tree)
-  (let loop
-    ((worklist (list tree)) (result ""))
-    (if (null? worklist)
-      result
-      (let ((current (car worklist)) (rest (cdr worklist)))
-        (if (tree-atomic? current)
-          (loop rest (string-append result (tree->string current)))
-          (loop (append (tree-children current) rest) result)
-        ) ;if
-      ) ;let
-    ) ;if
-  ) ;let
 ) ;tm-define
 
 ;;; ---------- 加载状态 ----------
