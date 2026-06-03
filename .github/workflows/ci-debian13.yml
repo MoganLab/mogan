@@ -43,8 +43,12 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y gcc git 7zip unzip curl build-essential \
               fonts-noto-cjk libcurl4-openssl-dev libfreetype-dev libfontconfig-dev \
               libmimalloc-dev libgit2-dev zlib1g-dev libssl-dev libjpeg62-turbo-dev cmake \
-              pandoc xmake python3.13 ninja-build \
+              pandoc xmake python3.13 python3.13-venv python3-pip ninja-build \
               libdbus-1-3 libglib2.0-0t64 libegl1 libgl-dev libxkbcommon0
+          # Make python3 point to python3.13 so xmake uses system Python instead of compiling its own
+          update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
+          # Pre-install aqtinstall to avoid xmake pulling its own Python 3.14
+          python3 -m pip install --break-system-packages aqtinstall
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
