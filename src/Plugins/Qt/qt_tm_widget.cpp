@@ -1212,6 +1212,13 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
       sync_chat_tab_mode ();
     }
 
+    // AI 侧边栏与辅助窗口共用右侧 dock 区域；打开 AI 侧边栏时，
+    // 也要同步关闭辅助窗口，避免两个 dock 纵向堆叠。
+    if (visibility[11] && auxiliaryWidget && auxiliaryWidget->isVisible ()) {
+      visibility[11]= false;
+      auxiliaryWidget->close ();
+    }
+
     // 确保聊天控件已创建
     if (!chatContentWidget) {
       chatContentWidget=
