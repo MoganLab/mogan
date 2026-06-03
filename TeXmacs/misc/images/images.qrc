@@ -53,6 +53,10 @@
         <file>floating-search/text-mode-white.svg</file>
         <file>floating-search/math-mode-white.svg</file>
 
+        <file>llm-chat/send-dark.svg</file>
+        <file>llm-chat/cancel-dark.svg</file>
+        <file>llm-chat/thinking-dark.svg</file>
+
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>
         <file>tutorial/magic-paste-tutorial.gif</file>

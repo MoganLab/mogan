@@ -1462,32 +1462,39 @@ QWidget#centralWidget QWidget#chat-tab-input-frame[hasFocus="true"] {
   border: 1px solid #6a6a6a;
 }
 
+/* 思考按钮 */
 QToolButton#chat-tab-thinking-btn,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn {
   color: #ffffff;
-  border: 1px solid #ffffff;
+  border: 1px solid #7a7a7a;
   background: transparent;
   qproperty-iconNormal: url(":/llm-chat/thinking-white.svg");
-  qproperty-iconChecked: url(":/llm-chat/thinking.svg");
+  qproperty-iconChecked: url(":/llm-chat/thinking-dark.svg");
 }
 QToolButton#chat-tab-thinking-btn:checked,
 QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
-  background: #ffffff;
-  color: #215a6a;
+  background: #215a6a33;
+  border: 1px solid #2791ad;
+  color: #2791ad;
 }
 
 /* 发送按钮 */
-QPushButton#chat-tab-send-btn,
-QWidget#centralWidget QPushButton#chat-tab-send-btn {
+QToolButton#chat-tab-send-btn,
+QWidget#centralWidget QToolButton#chat-tab-send-btn {
   background-color: #ffffff;
-  border: 1px solid #215a6a;
+  border: 1px solid #2791ad;
+  qproperty-icon: url(":/llm-chat/send-dark.svg");
 }
-QPushButton#chat-tab-send-btn:hover,
-QWidget#centralWidget QPushButton#chat-tab-send-btn:hover {
+QToolButton#chat-tab-send-btn[generating="true"],
+QWidget#centralWidget QToolButton#chat-tab-send-btn[generating="true"] {
+  qproperty-icon: url(":/llm-chat/cancel-dark.svg");
+}
+QToolButton#chat-tab-send-btn:hover,
+QWidget#centralWidget QToolButton#chat-tab-send-btn:hover {
   background-color: #7a7a7a;
 }
-QPushButton#chat-tab-send-btn:pressed,
-QWidget#centralWidget QPushButton#chat-tab-send-btn:pressed {
+QToolButton#chat-tab-send-btn:pressed,
+QWidget#centralWidget QToolButton#chat-tab-send-btn:pressed {
   background-color: #8e8e8e;
 }
 

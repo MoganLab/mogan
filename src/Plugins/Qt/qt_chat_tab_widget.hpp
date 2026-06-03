@@ -78,7 +78,7 @@ public:
    */
   tree readInputMessage () const;
 
-  QPushButton*  sendButton () const { return sendButton_; }
+  QToolButton*  sendButton () const { return sendButton_; }
   QToolButton*  thinkingButton () const { return thinkingButton_; }
   QLabel*       sessionTitle () const { return sessionTitle_; }
   const string& sessionId () const { return sessionId_; }
@@ -144,7 +144,7 @@ private:
   QWidget*     messageFrame_     = nullptr;        ///< 消息区域容器
   QWidget*     inputEditorWidget_= nullptr;        ///< 输入编辑器容器
   QTMWidget*   inputQTMWidget_   = nullptr;        ///< 输入区 QTMWidget
-  QPushButton* sendButton_       = nullptr;        ///< 发送/停止按钮
+  QToolButton* sendButton_       = nullptr;        ///< 发送/停止按钮
   QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
   QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
   widget       messageWidget_;                     ///< 消息区 TeXmacs widget

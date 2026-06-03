@@ -23,6 +23,7 @@
 #include <QLabel>
 #include <QPushButton>
 #include <QStandardPaths>
+#include <QStyle>
 #include <QTimer>
 #include <QToolButton>
 
@@ -402,25 +403,29 @@ ChatController::notifyStateChanged (const string& sessionId,
   if (!session->panel || !view_) return;
   ChatConversationPanel* panel=
       static_cast<ChatConversationPanel*> (session->panel);
-  QPushButton* btn= panel->sendButton ();
+  QToolButton* btn= panel->sendButton ();
   if (!btn) return;
 
   // Generating 状态：切换按钮为 Stop
   if (newState == ChatState::Generating) {
+    btn->setProperty ("generating", true);
+    btn->style ()->unpolish (btn);
+    btn->style ()->polish (btn);
     btn->setToolTip ("Stop");
-    btn->setIcon (QIcon (":llm-chat/cancel.svg"));
     disconnect (session->sendBtnConnection);
     session->sendBtnConnection=
-        connect (btn, &QPushButton::clicked, this,
+        connect (btn, &QToolButton::clicked, this,
                  [this, sessionId] () { onCancelRequested (sessionId); });
   }
   // Idle 状态：切换按钮为 Send，并保存会话
   else {
+    btn->setProperty ("generating", false);
+    btn->style ()->unpolish (btn);
+    btn->style ()->polish (btn);
     btn->setToolTip ("Send");
-    btn->setIcon (QIcon (":llm-chat/send.svg"));
     disconnect (session->sendBtnConnection);
     session->sendBtnConnection=
-        connect (btn, &QPushButton::clicked, this,
+        connect (btn, &QToolButton::clicked, this,
                  [this, sessionId] () { onSendRequested (sessionId); });
     exportBuffer (sessionId);
     panel->focusInput ();

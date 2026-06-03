@@ -291,18 +291,19 @@ ChatConversationPanel::setup_ui () {
   btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
 
   // Send button
-  sendButton_= new QPushButton (inputFrame);
+  sendButton_= new QToolButton (inputFrame);
   sendButton_->setObjectName ("chat-tab-send-btn");
   sendButton_->setFocusPolicy (Qt::NoFocus);
   sendButton_->setCursor (Qt::PointingHandCursor);
-  sendButton_->setIcon (QIcon (":llm-chat/send.svg"));
   int sendIconSize= DpiUtils::scaled (kSendButtonSize);
   sendButton_->setIconSize (QSize (sendIconSize, sendIconSize));
-  sendButton_->setFixedSize (DpiUtils::scaled (kSendButtonSize),
-                             DpiUtils::scaled (kSendButtonSize));
-  sendButton_->setStyleSheet (QString ("QPushButton { border-radius: %1px; }")
-                                  .arg (DpiUtils::scaled (kSendButtonRadius)));
-  connect (sendButton_, &QPushButton::clicked, this,
+  sendButton_->setFixedSize (DpiUtils::scaled (sendIconSize),
+                             DpiUtils::scaled (sendIconSize));
+  sendButton_->setStyleSheet (
+      QString (
+          "QToolButton { border-radius: %1px; padding: 0px; margin: 0px; }")
+          .arg (DpiUtils::scaled (kSendButtonRadius)));
+  connect (sendButton_, &QToolButton::clicked, this,
            [this] () { emit sendRequested (sessionId_); });
   btnLayout->addWidget (sendButton_);
   inputFrameLayout->addLayout (btnLayout);

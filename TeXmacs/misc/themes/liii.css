@@ -1377,14 +1377,18 @@ QToolButton#chat-tab-thinking-btn:checked {
 }
 
 /* 发送按钮 */
-QPushButton#chat-tab-send-btn {
+QToolButton#chat-tab-send-btn {
   background-color: transparent;
   border: 1px solid #215a6a;
+  qproperty-icon: url(":/llm-chat/send.svg");
 }
-QPushButton#chat-tab-send-btn:hover {
+QToolButton#chat-tab-send-btn[generating="true"] {
+  qproperty-icon: url(":/llm-chat/cancel.svg");
+}
+QToolButton#chat-tab-send-btn:hover {
   background-color: #dddddd;
 }
-QPushButton#chat-tab-send-btn:pressed {
+QToolButton#chat-tab-send-btn:pressed {
   background-color: #d3d3d3;
 }
 
