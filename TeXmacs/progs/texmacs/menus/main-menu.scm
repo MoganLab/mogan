@@ -115,12 +115,18 @@
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
- ("Magic paste" (kbd-magic-paste))
- ("Paste special" (interactive-paste-special))
- (=> "Copy to" (link clipboard-copy-export-menu))
- ---
- (former)
-) ;tm-menu
+  (:require (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-"))
+  ("Paste" (kbd-paste))
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special)))
+
+(tm-menu (texmacs-popup-menu)
+  (:require (not (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")))
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  (=> "Copy to" (link clipboard-copy-export-menu))
+  ---
+  (former))
 
 (menu-bind texmacs-alternative-popup-menu
   (-> "File" (link file-menu))
