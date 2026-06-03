@@ -410,6 +410,7 @@ private:
   QPushButton*    floatingNewChatBtn_  = nullptr; ///< 浮动新建按钮
   QWidget*        floatingBtnContainer_= nullptr; ///< 浮动按钮容器
   QPushButton*    newChatButton_       = nullptr; ///< 侧边栏新建按钮
+  QPushButton*    newChatSidebarBtn_   = nullptr; ///< 新建按钮（dock 模式）
   QPushButton*    closeSidebarBtn_     = nullptr; ///< 对话区域关闭侧边栏按钮
   QWidget*        sidebarNormalContent_= nullptr; ///< 侧边栏常规内容区
   QStackedWidget* conversationStack_   = nullptr; ///< 会话面板堆栈

@@ -1297,8 +1297,8 @@ QTChatTabWidget::QTChatTabWidget (const QList<SessionDisplayInfo>& sessions,
     : QWidget (parent), sidebarWidget_ (nullptr), contentWidget_ (nullptr),
       collapseButton_ (nullptr), floatingExpandBtn_ (nullptr),
       floatingNewChatBtn_ (nullptr), floatingBtnContainer_ (nullptr),
-      newChatButton_ (nullptr), sidebarNormalContent_ (nullptr),
-      conversationStack_ (nullptr) {
+      newChatButton_ (nullptr), newChatSidebarBtn_ (nullptr),
+      sidebarNormalContent_ (nullptr), conversationStack_ (nullptr) {
   setFocusPolicy (Qt::StrongFocus);
 
   QHBoxLayout* mainLayout= new QHBoxLayout (this);
@@ -1496,6 +1496,17 @@ QTChatTabWidget::setup_right_content (QHBoxLayout* mainLayout) {
            [this] () { emit closeSidebarRequested (); });
   closeSidebarBtn_->hide ();
 
+  // 对话区域新建会话按钮（dock 模式使用，位于关闭侧边栏按钮右侧）
+  newChatSidebarBtn_= make_sidebar_toggle_btn (content);
+  newChatSidebarBtn_->setIcon (QIcon (":llm-chat/addchat.svg"));
+  newChatSidebarBtn_->move (DpiUtils::scaled (kFloatingBtnMarginX +
+                                              kToggleBtnSize +
+                                              kFloatingBtnSpacing),
+                            DpiUtils::scaled (kCloseSidebarBtnMarginY));
+  connect (newChatSidebarBtn_, &QPushButton::clicked, this,
+           [this] () { emit newChatRequested (); });
+  newChatSidebarBtn_->hide ();
+
   // 浮球按钮容器
   QWidget* floatingContainer= new QWidget (this);
   floatingContainer->setObjectName ("chat-tab-floating-container");
@@ -1589,6 +1600,7 @@ QTChatTabWidget::setSidebarVisible (bool visible) {
 void
 QTChatTabWidget::setCloseSidebarButtonVisible (bool visible) {
   if (closeSidebarBtn_) closeSidebarBtn_->setVisible (visible);
+  if (newChatSidebarBtn_) newChatSidebarBtn_->setVisible (visible);
 }
 
 bool
