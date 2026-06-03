@@ -105,20 +105,18 @@
 ;; 原子节点直接返回文本，复合节点用 named let 遍历子节点拼接文本。
 
 (tm-define (chat-persist-extract-title-from-tree tree)
-  (if (tree-atomic? tree)
-    (tree->string tree)
-    (let ((children (tree-children tree)))
-      (let loop
-        ((lst children) (result ""))
-        (if (null? lst)
-          result
-          (loop (cdr lst)
-            (string-append result (chat-persist-extract-title-from-tree (car lst)))
-          ) ;loop
+  (let loop
+    ((worklist (list tree)) (result ""))
+    (if (null? worklist)
+      result
+      (let ((current (car worklist)) (rest (cdr worklist)))
+        (if (tree-atomic? current)
+          (loop rest (string-append result (tree->string current)))
+          (loop (append (tree-children current) rest) result)
         ) ;if
       ) ;let
-    ) ;let
-  ) ;if
+    ) ;if
+  ) ;let
 ) ;tm-define
 
 ;;; ---------- 加载状态 ----------

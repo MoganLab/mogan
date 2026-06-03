@@ -21,16 +21,18 @@
 ;; chat-persist-extract-title-from-tree 使用相同逻辑。
 
 (define (tree-extract-text tree)
-  (if (string? tree)
-    tree
-    (let loop
-      ((lst tree) (result ""))
-      (if (null? lst)
-        result
-        (loop (cdr lst) (string-append result (tree-extract-text (car lst))))
-      ) ;if
-    ) ;let
-  ) ;if
+  (let loop
+    ((worklist (list tree)) (result ""))
+    (if (null? worklist)
+      result
+      (let ((current (car worklist)) (rest (cdr worklist)))
+        (if (string? current)
+          (loop rest (string-append result current))
+          (loop (append current rest) result)
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
 ) ;define
 
 ;;; ========== tree-extract-text: 基本行为 ==========
