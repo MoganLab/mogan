@@ -740,7 +740,7 @@ qt_chat_notify_input_height () {
   if (!ctrl || !ctrl->view_) return;
 
   ChatConversationPanel* panel= ctrl->view_->activeConversation ();
-  if (!panel || !panel->isVisible ()) return;
+  if (!panel) return;
 
   panel->schedule_input_height_adjust ();
 }
