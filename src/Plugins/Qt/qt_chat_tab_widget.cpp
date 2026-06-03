@@ -570,8 +570,8 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  tree body     = readInputMessage ();
-  lastInputBody_= copy (body);
+  tree body      = readInputMessage ();
+  lastInputBody_ = copy (body);
   int lineH      = DpiUtils::scaled (kInputLineHeight);
   int docLines   = count_input_lines (body);
   int visualLines= count_visual_input_lines (inputQTMWidget_, lineH);
