@@ -595,7 +595,7 @@ detach_view_for_switch (url u) {
   if (vw == NULL) return;
   tm_window win= vw->win;
   if (win == NULL) return;
-  vw->win= NULL;
+  vw->win   = NULL;
   widget wid= win->wid;
   ASSERT (is_attached (wid), "widget should be attached");
   vw->ed->suspend ();

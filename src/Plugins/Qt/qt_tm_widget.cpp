@@ -1907,22 +1907,19 @@ qt_tm_widget_rep::write (slot s, blackbox index, widget w) {
   case SLOT_SCROLLABLE: {
     check_type_void (index, s);
 
-    QWidget* q= main_widget->qwid;
-    QLayout* l= centralwidget ()->layout ();
+    QWidget*  q         = main_widget->qwid;
+    QLayout*  l         = centralwidget ()->layout ();
     qt_widget nextWidget= concrete (w);
-    bool isGluePlaceholder=
-        !is_nil (nextWidget) &&
-        nextWidget->type == qt_widget_rep::glue_widget;
+    bool      isGluePlaceholder=
+        !is_nil (nextWidget) && nextWidget->type == qt_widget_rep::glue_widget;
     bool hasVisibleCentralContent=
         (q && (l->indexOf (q) >= 0 || q->isVisible ())) ||
-        (startupContentWidget &&
-         (l->indexOf (startupContentWidget) >= 0 ||
-          startupContentWidget->isVisible ())) ||
-        (pdfViewerWidget &&
-         (l->indexOf (pdfViewerWidget) >= 0 || pdfViewerWidget->isVisible ())) ||
-        (chatContentWidget &&
-         (l->indexOf (chatContentWidget) >= 0 ||
-          chatContentWidget->isVisible ()));
+        (startupContentWidget && (l->indexOf (startupContentWidget) >= 0 ||
+                                  startupContentWidget->isVisible ())) ||
+        (pdfViewerWidget && (l->indexOf (pdfViewerWidget) >= 0 ||
+                             pdfViewerWidget->isVisible ())) ||
+        (chatContentWidget && (l->indexOf (chatContentWidget) >= 0 ||
+                               chatContentWidget->isVisible ()));
     if (!isGluePlaceholder && hasVisibleCentralContent) {
       set_central_widget_updates_frozen (true);
     }
