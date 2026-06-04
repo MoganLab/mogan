@@ -149,7 +149,7 @@
   </macro>>
 
   <assign|aligned*|<\macro|body>
-    <tformat|<twith|table-min-cols|2>|<twith|table-max-cols|2>|<cwith|1|-1|1|1|cell-lsep|0spc>|<cwith|1|-1|1|1|cell-rsep|0.5spc>|<cwith|1|-1|-1|-1|cell-rsep|0spc>|<cwith|1|-1|-1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-bsep|0.1fn>|<cwith|1|-1|1|-1|cell-tsep|0.1fn>|<cwith|1|-1|1|1|cell-halign|r>|<cwith|1|-1|-1|-1|cell-halign|l>|<cwith|1|-1|1|-1|cell-block|no>|<arg|body>>
+    <math-table-base|<tformat|<twith|table-min-cols|2>|<twith|table-max-cols|2>|<cwith|1|-1|1|1|cell-lsep|0spc>|<cwith|1|-1|1|1|cell-rsep|0.5spc>|<cwith|1|-1|-1|-1|cell-rsep|0spc>|<cwith|1|-1|-1|-1|cell-lsep|0spc>|<cwith|1|-1|1|-1|cell-bsep|0.1fn>|<cwith|1|-1|1|-1|cell-tsep|0.1fn>|<cwith|1|-1|1|1|cell-halign|r>|<cwith|1|-1|-1|-1|cell-halign|l>|<cwith|1|-1|1|-1|cell-block|no>|<arg|body>>>
   </macro>>
 
   <assign|aligned|<\macro|body>
