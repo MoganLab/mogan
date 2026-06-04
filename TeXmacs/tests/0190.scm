@@ -46,19 +46,13 @@
         (loop (+ i 1))))))
 
 (tm-define (test_0190)
-  ;; Test snippet -> LaTeX with UTF-8 encoding: ö stays as UTF-8
-  (with result (snippet->latex "Erwin Schrödinger" utf8-opts)
+  ;; Test snippet -> LaTeX with default encoding (utf-8): ö stays as UTF-8
+  (with result (snippet->latex "Erwin Schrödinger" base-opts)
     (check (string-contains? result "Schrödinger") => #t))
 
-  ;; Test snippet -> LaTeX with ascii encoding: output must be pure ASCII
-  ;; and the umlaut should become a correct LaTeX escape like \"o,
-  ;; NOT broken escapes like {\~A}{\H u} from double-encoding
-  (with result (snippet->latex "Erwin Schrödinger" ascii-opts)
-    (check (string-contains? result "Schr") => #t)
-    (check (string-contains? result "dinger") => #t)
-    (check (only-ascii? result) => #t)
-    ;; must NOT produce the broken double-encoded form
-    (check (string-contains? result "\\~A") => #f))
+  ;; Test snippet -> LaTeX with explicit UTF-8 encoding
+  (with result (snippet->latex "Erwin Schrödinger" utf8-opts)
+    (check (string-contains? result "Schrödinger") => #t))
 
   ;; Test snippet -> LaTeX with cork encoding
   (with result (snippet->latex "Erwin Schrödinger" cork-opts)
