@@ -142,10 +142,18 @@
 (tm-define (import-top-menu) (import-menu #t))
 (tm-define (import-import-menu) (import-menu #f))
 
+(define (export-latex-file dest)
+  (with opts '(("texmacs->latex:progress" . "on"))
+    (with s (texmacs->latex-document (buffer-tree) opts)
+      (string-save s dest)
+      (set-message `(concat "Exported " ,(url->system dest)) "Export LaTeX"))))
+
 (tm-menu (export-menu flag?)
   (with l (converters-from-special "texmacs-file" "-file" #f)
     (with l2 (filter (lambda (x)
                        (and (not (string=? x "tmu"))
+                            (not (string=? x "latex"))
+                            (not (string=? x "latex-class"))
                             (or (with-developer-tool?)
                                 (and (not (string=? x "mgs"))
                                      (not (string=? x "stm"))))))
@@ -310,6 +318,7 @@
   (-> "Export"
       (link export-export-menu)
       ---
+      ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "tex"))
       ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
       ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
       ("Pdf with embedded document" (choose-file wrapped-print-to-pdf-embeded-with-tmu "Save tmu.pdf file" "tmu.pdf"))
