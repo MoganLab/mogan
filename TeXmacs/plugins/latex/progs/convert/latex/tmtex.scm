@@ -3201,10 +3201,12 @@
   (set! l (escape-backslashes l))
   (set! l (escape-braces l))
   (set! s (car (string-decompose s "-")))
-  (with lang
-    (if (or (== s "verbatim") (== s "code")) '() `((!option ,s)))
-    `((!begin* ,"tmcode" ,@lang) ,(tmtex-verbatim* "" l))
-  ) ;with
+  (if (or (== s "verbatim") (== s "code"))
+    `((!begin* ,"alltt") ,(tmtex-verbatim* "" l))
+    (with lang `((!option ,s))
+      `((!begin* ,"tmcode" ,@lang) ,(tmtex-verbatim* "" l))
+    ) ;with
+  ) ;if
 ) ;define
 
 (define (tmtex-add-preview-packages x)
