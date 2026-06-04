@@ -20,7 +20,6 @@
 (tm-define tmtex-cjk-document? #f)
 (tm-define tmtex-use-catcodes? #f)
 (tm-define tmtex-use-unicode? #f)
-(tm-define tmtex-use-ascii? #f)
 (tm-define tmtex-use-macros? #f)
 
 (define latex-language "english")

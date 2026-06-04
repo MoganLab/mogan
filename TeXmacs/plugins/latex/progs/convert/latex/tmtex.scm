@@ -255,17 +255,10 @@
     (if tmtex-cjk-document? (set! charset "utf-8"))
     (cond ((== charset "utf-8")
            (set! tmtex-use-catcodes? #f)
-           (set! tmtex-use-ascii? #f)
            (set! tmtex-use-unicode? #t)
           ) ;
           ((== charset "cork")
            (set! tmtex-use-catcodes? #t)
-           (set! tmtex-use-ascii? #f)
-           (set! tmtex-use-unicode? #f)
-          ) ;
-          ((== charset "ascii")
-           (set! tmtex-use-catcodes? #f)
-           (set! tmtex-use-ascii? #t)
            (set! tmtex-use-unicode? #f)
           ) ;
     ) ;cond
@@ -752,7 +745,7 @@
             ((== c #\x1E) (tmtex-text-sub "ffi" l))
             ((== c #\x1F) (tmtex-text-sub "ffl" l))
             ((== c #\|) (tmtex-text-sub '(textbar) l))
-            (else (append (if (or tmtex-use-unicode? tmtex-use-ascii?)
+            (else (append (if tmtex-use-unicode?
                             (string->list (string-convert (char->string c) "Cork" "UTF-8"))
                             (list c)
                           ) ;if
@@ -796,7 +789,7 @@
              (tmtex-math-operator l)
             ) ;
             (else (with c
-                    (if (or tmtex-use-unicode? tmtex-use-ascii?)
+                    (if tmtex-use-unicode?
                       (string->list (string-convert (char->string c) "Cork" "UTF-8"))
                       (list c)
                     ) ;if
@@ -877,7 +870,7 @@
     (set! s (texmacs->verbatim (tm->tree s)))
   ) ;when
   (let* ((l (string->list s)) (t (tmtex-verb-list l)) (r (tmtex-string-produce t)))
-    (if (or tmtex-use-unicode? tmtex-use-ascii?)
+    (if tmtex-use-unicode?
       (set! r (map (lambda (x) (string-convert* x "Cork" "UTF-8")) r))
       (set! r (map unescape-angles r))
     ) ;if

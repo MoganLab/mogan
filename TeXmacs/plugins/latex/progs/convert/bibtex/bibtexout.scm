@@ -37,7 +37,7 @@
                    (cons "texmacs->latex:expand-macros"      "on")
                    (cons "texmacs->latex:expand-user-macros" "off")
                    (cons "texmacs->latex:indirect-bib"       "off")
-                   (cons "texmacs->latex:encoding"           "ascii")
+                   (cons "texmacs->latex:encoding"           "UTF-8")
                    (cons "texmacs->latex:use-macros"         "off"))))
     (with old-exact (output-set-exact #t)
       (output-flush)
