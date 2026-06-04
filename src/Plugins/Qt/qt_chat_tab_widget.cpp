@@ -298,11 +298,9 @@ ChatConversationPanel::setup_ui () {
   sendButton_->setCursor (Qt::PointingHandCursor);
   int sendIconSize= DpiUtils::scaled (kSendButtonSize);
   sendButton_->setIconSize (QSize (sendIconSize, sendIconSize));
-  sendButton_->setFixedSize (DpiUtils::scaled (sendIconSize),
-                             DpiUtils::scaled (sendIconSize));
+  sendButton_->setFixedSize (sendIconSize, sendIconSize);
   sendButton_->setStyleSheet (
-      QString (
-          "QToolButton { border-radius: %1px; padding: 0px; margin: 0px; }")
+      QString ("QToolButton#chat-tab-send-btn { border-radius: %1px; padding: 0px; margin: 0px; }")
           .arg (DpiUtils::scaled (kSendButtonRadius)));
   connect (sendButton_, &QToolButton::clicked, this,
            [this] () { emit sendRequested (sessionId_); });
