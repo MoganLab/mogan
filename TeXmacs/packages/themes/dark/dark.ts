@@ -100,12 +100,6 @@
 
   <assign|gr-grid-aspect|<tuple|<tuple|axes|#999999>|<tuple|1|#666666>|<tuple|10|#003153>>>
 
-  <assign|llm-input-bg-color|#9ba8c2>
-
-  <assign|llm-prompt-color|#4d6cff>
-
-  <assign|llm-input-color|#242938>
-
   <\active*>
     <\src-comment>
       Preamble
