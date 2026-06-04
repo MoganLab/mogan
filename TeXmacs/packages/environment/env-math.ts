@@ -153,15 +153,15 @@
   </macro>>
 
   <assign|aligned|<\macro|body>
-    <aligned*|<tformat|<arg|body>>>
+    <aligned*|<arg|body>>
   </macro>>
 
   <assign|alignedat*|<\macro|ncol|body>
-    <aligned*|<tformat|<arg|body>>>
+    <aligned*|<arg|body>>
   </macro>>
 
   <assign|alignedat|<\macro|ncol|body>
-    <aligned*|<tformat|<arg|body>>>
+    <aligned*|<arg|body>>
   </macro>>
 
   <assign|flalign*|<\macro|body>
