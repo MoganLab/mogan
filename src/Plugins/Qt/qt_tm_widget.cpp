@@ -1253,7 +1253,13 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
 
     chatSideDock->show ();
     chatContentWidget->show ();
-    chatContentWidget->setFocus (Qt::OtherFocusReason);
+    // 焦点切到聊天输入框
+    if (chatWidget && chatWidget->activeConversation ()) {
+      chatWidget->activeConversation ()->focusInput ();
+    }
+    else {
+      chatContentWidget->setFocus (Qt::OtherFocusReason);
+    }
 
     // 设置 dock 宽度为屏幕宽度的 1/3
     QMainWindow* mw= mainwindow ();
@@ -1300,6 +1306,9 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
         chatWidget->setCloseSidebarButtonVisible (false);
       }
     }
+
+    // 恢复焦点到编辑器
+    if (editorWidget) editorWidget->setFocus (Qt::OtherFocusReason);
   }
 
   update_visibility ();

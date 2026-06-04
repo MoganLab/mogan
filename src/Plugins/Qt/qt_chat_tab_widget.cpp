@@ -523,6 +523,8 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
   if (should_block_readonly_event (watched, event)) return true;
   if (event->type () == QEvent::KeyPress) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
+    cout << "[ChatConvPanel::eventFilter] key=" << keyEvent->key ()
+         << " modifiers=" << keyEvent->modifiers () << "\n";
     // Ctrl/Cmd+J：关闭 AI 聊天侧边栏（仅在 dock 模式下触发）
     if (keyEvent->key () == Qt::Key_J &&
         (keyEvent->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
@@ -1659,6 +1661,15 @@ QTChatTabWidget::setGlobalSidebarCollapsed (bool collapsed) {
 
 void
 QTChatTabWidget::keyPressEvent (QKeyEvent* event) {
+  // Ctrl/Cmd+J：关闭 AI 聊天侧边栏（仅在 dock 模式下触发）
+  if (event->key () == Qt::Key_J &&
+      (event->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
+    QWidget* gp= parentWidget ();
+    if (gp && qobject_cast<QDockWidget*> (gp)) {
+      emit closeSidebarRequested ();
+      return;
+    }
+  }
   string key= from_key_press_event (event);
   if (is_empty (key)) return QWidget::keyPressEvent (event);
   eval_scheme ("(key-press " * qt_scheme_quote (to_qstring (key)) * ")");

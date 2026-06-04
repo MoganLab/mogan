@@ -234,22 +234,39 @@ void
 QTMWidget::keyPressEvent (QKeyEvent* event) {
   if (is_nil (tmwid)) return;
 
+  cout << "[QTMWidget::keyPressEvent] key=" << event->key ()
+       << " modifiers=" << event->modifiers () << "\n";
+
   // Ctrl/Cmd+J：切换 AI 聊天侧边栏（绕过 Scheme slot 链路）
   if (event->key () == Qt::Key_J &&
       (event->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
-    QMainWindow* mw= qobject_cast<QMainWindow*> (window ());
-    if (mw) {
-      QDockWidget* dock= mw->findChild<QDockWidget*> ("chatSideDock");
-      if (dock) {
-        if (dock->isVisible ()) {
-          QTChatTabWidget* chatWidget=
-              qobject_cast<QTChatTabWidget*> (dock->widget ());
-          if (chatWidget) emit chatWidget->closeSidebarRequested ();
-        }
-        else {
-          QPushButton* toggleBtn=
-              mw->findChild<QPushButton*> ("chat-sidebar-toggle-btn");
-          if (toggleBtn) toggleBtn->click ();
+    // 检查是否在 chat tab 模式（非 dock 的 QTChatTabWidget 内）
+    bool     inChatTab= false;
+    QWidget* p        = parentWidget ();
+    while (p) {
+      auto* cw= qobject_cast<QTChatTabWidget*> (p);
+      if (cw) {
+        QWidget* gp= cw->parentWidget ();
+        if (!gp || !qobject_cast<QDockWidget*> (gp)) inChatTab= true;
+        break;
+      }
+      p= p->parentWidget ();
+    }
+    if (!inChatTab) {
+      QMainWindow* mw= qobject_cast<QMainWindow*> (window ());
+      if (mw) {
+        QDockWidget* dock= mw->findChild<QDockWidget*> ("chatSideDock");
+        if (dock) {
+          if (dock->isVisible ()) {
+            QTChatTabWidget* chatWidget=
+                qobject_cast<QTChatTabWidget*> (dock->widget ());
+            if (chatWidget) emit chatWidget->closeSidebarRequested ();
+          }
+          else {
+            QPushButton* toggleBtn=
+                mw->findChild<QPushButton*> ("chat-sidebar-toggle-btn");
+            if (toggleBtn) toggleBtn->click ();
+          }
         }
       }
     }
