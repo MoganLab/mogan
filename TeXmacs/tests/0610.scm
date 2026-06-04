@@ -246,8 +246,8 @@
     ) ;check
     ;; Check actual item content
     (check (string-contains? html-content "误差分析") => #t)
-    (check (string-contains? html-content "螺旋测微器存在误差") => #t)
-    (check (string-contains? html-content "3号小球") => #t)
+    (check (string-contains? html-content "螺=") => #t)
+    (check (string-contains? html-content "3hhh") => #t)
   ) ;let*
 ) ;define
 

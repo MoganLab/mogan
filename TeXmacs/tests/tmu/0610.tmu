@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.2.7-rc12>>
+<TMU|<tuple|1.1.0|2026.2.5>>
 
 <style|<tuple|generic|chinese|std-edu|smart-ref|compact-list|std-frame>>
 
@@ -25,51 +25,115 @@
     <with|font-series|bold|<item>误差分析>
 
     <\enumerate-numeric-paren>
-      <item>第1，2号小球的流体静力称衡法测量结果均比直接测量法大，可能有以下误差来源：
+      <item>第1=：
 
       <\enumerate-alpha>
-        <item>螺旋测微器存在误差，本人所在实验台的螺旋测微器由于上一组实验者的不当操作遭到了损坏，测量结果可能存在一定偏差
+        <item>螺=
 
-        <item>实验二中使用的纯水密度为室温<math|<around*|(|20℃|)>>下数据，实际夏季实验室室温高于该值，导致测量结果偏大
+        <item>实=
 
-        <item>将小球放入水中，小球表面沾有气泡，导致实际排水体积大于小球体积，最终测量结果偏大
+        <item>将小=
       </enumerate-alpha>
 
-      <item>3号小球的流体静力称衡法测量结果比直接测量法小，且相对差异小于1，2号小球。这应当是多重原因下误打误撞的结果。本人实验台的3号小球由于先前多次磕碰，形状不规则。因此直径测量存在很大的误差，实际的等效直径应大于测量直径（10.596mm），这样会与前两组实验的结果规律大致相符。
+      <item>3hhh
 
-      <item>其他误差来源：
+      <item>其
 
       <\enumerate-alpha>
-        <item>样品放入或取出样品笼时的微小晃动/碰撞/影响实验结果
+        <item>样品
 
-        <item>样品浸入后，吊丝或样品表面与液面之间的表面张力会产生附加力，影响测量
+        <item>样品
 
-        <item>水中有杂质、气泡、油污等，改变实际密度
+        <item>水中
 
-        <item>人为读数、记录、计算过程中的误差
+        <item>人为
       </enumerate-alpha>
     </enumerate-numeric-paren>
 
-    <with|font-series|bold|<item>可能的改进方向>
+    <with|font-series|bold|<item>可能的改进方>
 
     <\enumerate-numeric-paren>
-      <item>样品放入水中时，用镊子轻轻敲打样品以排出气泡。 放入前应确保样品表面干净无杂质，减少气泡吸附
+      <item>样品
 
-      <item>修正液体密度/使用恒温的水浴控制水温
+      <item>修正
 
-      <item>使用多种液体测量，修正一部分系统误差
+      <item>使用
     </enumerate-numeric-paren>
 
     <with|font-series|bold|<item>收获与感想>
 
     <\enumerate-numeric-paren>
-      <item>理解了测量固体密度的两种基本方法——直接测量法与流体静力称衡法（阿基米德原理法），并体会到了它们各自适用的场景。直接测量法通过测量质量与几何尺寸计算密度，适用于形状规则、表面光滑的样品，测量精度取决于长度测量仪器的精度；而流体静力称衡法利用物体浸入液体中所受浮力等于排开液体重力的原理，通过称量物体在空气中和在液体中的视重差来推算密度，特别适用于形状不规则或难以直接测量体积的样品。两种方法的原理相互印证，让我对阿基米德原理有了更直观的认识
+      <item>理解
 
-      <item>直接测量法用多次直径测量取平均的做法，本质上是在用一个“等效球体”近似描述不规则物体，而这种近似必然会引入较大误差——缺损部分的体积没有被扣除，导致计算出的体积偏大、密度偏小。对于不规则样品，直接测量法往往不可靠，而流体静力称衡法不依赖于样品的几何形状，具有天然的优越性
+      <item>直接
 
-      <item>本次实验也让我对误差来源有了更全面的认识。首先，螺旋测微器由于上一组实验者的不当操作已经损坏，这提醒我在实验开始前应首先检查仪器的完好状态。其次，静力称衡法要求样品表面完全浸润且无气泡附着，但实际操作中，将小球放入样品笼时难免带入微小气泡，这些气泡附着在小球表面会增加排开水的体积，使测得的<nbsp><math|\<Delta\>m><nbsp>偏大，从而计算出的密度偏大。实验中的每一个细节——从仪器的状态、样品的预处理，到环境条件的记录——都可能对最终结果产生显著影响。
+      <item>本次实
     </enumerate-numeric-paren>
   </enumerate-numeric>
+
+  <\enumerate-hanzi>
+    <item>test
+
+    <item>dddd
+
+    <item>ddd
+  </enumerate-hanzi>
+
+  <\enumerate-circle>
+    <item>ddd
+
+    <item>ddd
+
+    <item>dd
+  </enumerate-circle>
+
+  <\enumerate-Alpha>
+    <item>dd
+
+    <item>dd
+
+    <item>dd
+  </enumerate-Alpha>
+
+  <\enumerate-alpha-full-paren>
+    <item>ss
+
+    <item>ss
+
+    <item>ss
+  </enumerate-alpha-full-paren>
+
+  <\enumerate-numeric-bracket>
+    <item>ss
+
+    <item>sss
+
+    <item>ss
+  </enumerate-numeric-bracket>
+
+  <\enumerate-Roman>
+    <item>ssss
+
+    <item>sss
+
+    <item>sss
+  </enumerate-Roman>
+
+  <\enumerate-roman-bracket>
+    <item>222
+
+    <item>222
+
+    <item>333
+  </enumerate-roman-bracket>
+
+  <\enumerate-roman>
+    <item>ddd
+
+    <item>ddd
+
+    <item>ddd
+  </enumerate-roman>
 
   \;
 </body>
@@ -98,24 +162,15 @@
 <\references>
   <\collection>
     <associate|auto-1|<tuple|?|1>>
-    <associate|auto-2|<tuple|?|1>>
-    <associate|auto-3|<tuple|?|1>>
-    <associate|auto-4|<tuple|?|2>>
   </collection>
 </references>
 
 <\auxiliary>
   <\collection>
     <\associate|toc>
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|实验名称><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
-
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|实验数据><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2><vspace|0.5fn>
-
-      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|数据处理><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3><vspace|0.5fn>
-
       <vspace*|1fn><\with|font-series|<quote|bold>|math-font-series|<quote|bold>>
         分析与讨论
-      </with><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4><vspace|0.5fn>
+      </with><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
     </associate>
   </collection>
 </auxiliary>
