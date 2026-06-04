@@ -319,7 +319,7 @@
       (link export-export-menu)
       ---
       (when (defined? 'texmacs->latex-document)
-        ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "tex")))
+        ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex")))
       ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
       ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
       ("Pdf with embedded document" (choose-file wrapped-print-to-pdf-embeded-with-tmu "Save tmu.pdf file" "tmu.pdf"))
