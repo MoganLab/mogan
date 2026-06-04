@@ -17,8 +17,7 @@
 
 namespace {
 // -- widget sizes (base px, scaled at runtime) --
-constexpr int kToolBarHeight = 32;
-constexpr int kButtonSize    = 32;
+constexpr int kButtonSize    = 28;
 constexpr int kIconSize      = 16;
 constexpr int kComboHeight   = 26;
 constexpr int kComboWidth    = 80;
@@ -39,7 +38,7 @@ PdfToolBar::PdfToolBar (const QString& title, QWidget* parent)
     : QToolBar (title, parent) {
   setObjectName ("pdfToolBar");
   setMovable (false);
-  setFixedHeight (DpiUtils::scaled (kToolBarHeight));
+  setContextMenuPolicy (Qt::PreventContextMenu);
   setupWidgets ();
 }
 

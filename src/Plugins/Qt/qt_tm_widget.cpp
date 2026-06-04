@@ -667,9 +667,17 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   }
 
   // PDF 工具栏（仅在 PDF 标签页模式下可见）
-  pdfToolBar= new PdfToolBar ("pdf toolbar", mw);
-  mw->addToolBar (pdfToolBar);
-  pdfToolBar->setVisible (false);
+  {
+    int h= DpiUtils::scaled (32);
+    pdfToolBar= new PdfToolBar ("pdf toolbar", mw);
+    mw->addToolBar (pdfToolBar);
+    pdfToolBar->setIconSize (QSize (DpiUtils::scaled (16), DpiUtils::scaled (16)));
+    pdfToolBar->setStyleSheet (
+        QString ("QToolBar#pdfToolBar { padding: 0px; margin: 0px; "
+                 "border: none; min-height: %1px; max-height: %1px; }")
+            .arg (h));
+    pdfToolBar->setVisible (false);
+  }
 
   QWidget* cw= new QWidget ();
   cw->setObjectName (
