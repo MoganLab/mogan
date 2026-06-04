@@ -32,7 +32,7 @@
     <\with|prog-language|<arg|language>|prog-session|<arg|session>>
       <render-session|<arg|body>>
 
-      <new-line>
+      \;
     </with>
   </macro>>
 
@@ -92,7 +92,7 @@
 
   <assign|llm-thinking-dots|<macro|<anim-repeat|<anim-compose|<anim-constant||0.35sec>|<anim-constant|.|0.35sec>|<anim-constant|..|0.35sec>|<anim-constant|...|0.35sec>>>>>
 
-  <assign|script-busy|<macro|msg|<script-status|<if|<equal|<arg|msg>|<uninit>>|<localize|Thinking><llm-thinking-dots>|<arg|msg>>>>>
+  <assign|script-busy|<macro|msg|<script-status|<if|<equal|<arg|msg>|<uninit>>|<concat|<localize|Thinking>|<llm-thinking-dots>>|<arg|msg>>>>>
 </body>
 
 <\initial>
