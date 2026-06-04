@@ -419,12 +419,44 @@ ChatConversationPanel::is_empty_document_body (tree body) {
   return N (body) == 1 && is_atomic (body[0]) && body[0]->label == "";
 }
 
+static tree
+find_table_node (tree t) {
+  // Recursively search for TABLE label inside compound wrappers
+  // e.g. big-table -> tabular -> tformat -> table
+  if (is_func (t, TABLE)) return t;
+  if (is_func (t, TFORMAT) && N (t) > 0) {
+    tree last= t[N (t) - 1];
+    if (is_func (last, TABLE)) return last;
+  }
+  if (is_compound (t)) {
+    for (int i= 0; i < N (t); i++) {
+      tree r= find_table_node (t[i]);
+      if (!is_nil (r)) return r;
+    }
+  }
+  return tree ();
+}
+
+static int
+count_table_rows (tree t) {
+  tree tbl= find_table_node (t);
+  if (is_nil (tbl)) return 1;
+  int rows= N (tbl);
+  return rows > 0 ? rows : 1;
+}
+
 int
 ChatConversationPanel::count_input_lines (tree body) {
   if (!is_func (body, DOCUMENT)) return 1;
   if (N (body) == 0) return 1;
   if (N (body) == 1 && is_atomic (body[0]) && body[0]->label == "") return 1;
-  return N (body);
+  int total= 0;
+  for (int i= 0; i < N (body); i++) {
+    tree child= body[i];
+    if (is_compound (child)) total+= count_table_rows (child);
+    else total++;
+  }
+  return total;
 }
 
 static bool
