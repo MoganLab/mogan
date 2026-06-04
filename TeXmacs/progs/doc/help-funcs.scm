@@ -84,10 +84,10 @@
                (url-resolve (url-unix dir (string-append s suf)) "r"))
          ;; 如果不是英语且存在英语文档，则使用英语文档
          ((and (!= suf ".en.tm")
-                    (url-exists? (url-unix dir (string-append s ".en.tm"))))
-               (url-resolve (url-unix dir (string-append s ".en.tm")) "r"))
+                    (url-exists? (url-unix dir (string-append s ".en.tm")))
+               (url-resolve (url-unix dir (string-append s ".en.tm")) "r")
          ;; 如果都不存在，返回空URL
-              (else (url-none))))))
+              (else (url-none))))))))
 
 ;; 加载帮助文档的核心函数
 ;; 参数 s: 文档路径
@@ -148,28 +148,34 @@
         (load-buffer (system->url path))
         (load-buffer (system->url en_doc)))))
 
+;; 显示带回调的消息对话框，点击 OK 后执行指定操作
+(tm-define (show-message-with-callback msg title callback)
+  (:interactive #t)
+  (dialogue-window (message-widget msg) callback title))
+
 ;; 显示Mogan版本信息
 (tm-define (mogan-version)
-  (let* ((cur-ver (xmacs-version))
+  (let* ((cur-ver "2026.2.4")
          (latest-ver "2026.2.5")
          (latest? (== cur-ver latest-ver))
-         (lan (get-output-language)))
+         (lan (get-output-language))
+         (url "https://liiistem.cn?utm_source=mogan-app&utm_medium=referral&utm_campaign=version-check"))
     (cond
       ((== lan "chinese")
        (if latest?
            (show-message (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。") "版本")
-           (user-confirm (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。是否要访问官网 https://liiistem.cn 下载最新稳定版？") #t
-                         (lambda (answ) (when answ (open-url "https://liiistem.cn"))))))
+           (show-message-with-callback (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。请点击确认前往官网下载最新稳定版。") "版本"
+                         (lambda x (open-url url)))))
       ((== lan "taiwanese")
        (if latest?
            (show-message (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。") "版本")
-           (user-confirm (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。是否要訪問官網 https://liiistem.cn 下載最新穩定版？") #t
-                         (lambda (answ) (when answ (open-url "https://liiistem.cn"))))))
+           (show-message-with-callback (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。請點擊確認前往官網下載最新穩定版。") "版本"
+                         (lambda x (open-url url)))))
       (else
        (if latest?
            (show-message (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ".") "Version")
-           (user-confirm (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ". Do you want to visit the official website https://liiistem.cn to download the latest stable version?") #t
-                         (lambda (answ) (when answ (open-url "https://liiistem.cn")))))))))
+           (show-message-with-callback (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ". Please click OK to visit the official website to download the latest stable version.") "Version"
+                         (lambda x (open-url url))))))))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)
