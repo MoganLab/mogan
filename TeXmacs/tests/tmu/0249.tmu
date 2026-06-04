@@ -1,0 +1,27 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|preview-ref|chinese|table-captions-above|llm>>
+
+<body|<\session|llm|Kimi-VLM:chat-tab:BD187793-425F-4020-8ADF-11C504E58540>
+  <\unfolded-io-text>
+    kimi-k2.6\<gtr\>\ 
+  <|unfolded-io-text>
+    输出一段特别长（200字）的话，不要回车
+  <|unfolded-io-text>
+    在这个信息爆炸的时代，我们每个人都像是站在知识海洋边缘的探索者，面对着无穷无尽的数据流与思想浪潮，试图从中筛选出真正有价值的智慧结晶，而教育作为人类文明传承与创新的核心纽带，承载着塑造未来、启迪心智、培养批判性思维与创造力的神圣使命，它不仅仅是知识的简单传递，更是价值观的潜移默化、人格的悉心雕琢以及社会责任感与全球视野的逐步建构，优质的STEM教育尤其强调跨学科整合、问题导向学习与真实情境中的实践探索，鼓励学习者像科学家一样思考、像工程师一样设计、像数学家一样推理、像技术专家一样创新，从而在面对复杂多变的现实世界挑战时，能够灵活运用多学科工具与方法，协同合作，持续迭代，最终提出兼具科学性、可行性与人文关怀的解决方案，推动社会向着更加公平、可持续与繁荣的方向不断迈进。\ 
+  </unfolded-io-text>
+</session>>
+
+<\initial>
+  <\collection>
+    <associate|dpi|600>
+    <associate|font|sys-chinese>
+    <associate|no-zoom|true>
+    <associate|page-medium|automatic>
+    <associate|page-screen-bot|2px>
+    <associate|page-screen-left|4px>
+    <associate|page-screen-right|4px>
+    <associate|page-screen-top|2px>
+    <associate|zoom-factor|1>
+  </collection>
+</initial>

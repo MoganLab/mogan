@@ -186,11 +186,11 @@
   </macro>>
 
   <assign|unfolded-io-text|<\macro|prompt|in|out>
-    <unfolded-io|<arg|prompt>|<text|<arg|in>>|<arg|out>>
+    <unfolded-io|<arg|prompt>|<text|<arg|in>>|<text|<arg|out>>>
   </macro>>
 
   <assign|folded-io-text|<\macro|prompt|in|out>
-    <folded-io|<arg|prompt>|<text|<arg|in>>|<arg|out>>
+    <folded-io|<arg|prompt>|<text|<arg|in>>|<text|<arg|out>>>
   </macro>>
 </body>
 
