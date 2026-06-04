@@ -80,6 +80,7 @@
   (mathbb "amssymb")
   (theorembodyfont "theorem")
   (substack "mathtools")
+  (coloneqq "mathtools")
 
   (begin-align "amsmath")
   (begin-align* "amsmath")
