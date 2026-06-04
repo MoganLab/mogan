@@ -21,17 +21,14 @@
 // Base tab widths
 constexpr int MAX_TAB_PAGE_WIDTH_BASE= 150;
 constexpr int MIN_TAB_PAGE_WIDTH_BASE= 25;
-#ifdef IS_COMMUNITY
-constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 120;
-#else
-constexpr int STARTUP_TAB_MAX_WIDTH_BASE= 90;
-#endif
+// Padding used when calculating content-based width for startup/chat tabs
+constexpr int SPECIAL_TAB_HORIZONTAL_PADDING= 10;
 
 // The horizontal padding for tab container (in pixels).
 #ifdef Q_OS_MAC
 const int TAB_CONTAINER_PADDING= 75;
 #else
-const int TAB_CONTAINER_PADDING= 0;
+const int TAB_CONTAINER_PADDING= 2;
 #endif
 
 constexpr int TAB_CONTENT_VERTICAL_OFFSET   = 0;
@@ -41,7 +38,7 @@ constexpr int CLOSE_BUTTON_SIZE             = 18;
 constexpr int TAB_ICON_SIZE                 = 16;
 constexpr int TAB_ICON_TEXT_SPACING         = 4;
 constexpr int NORMAL_TAB_LEFT_PADDING       = 10;
-constexpr int NORMAL_TAB_RIGHT_PADDING      = 12;
+constexpr int NORMAL_TAB_RIGHT_PADDING      = 10;
 
 // DPI scaling utility functions (使用 DpiUtils)
 static double
@@ -60,8 +57,8 @@ getScaledMinTabPageWidth () {
 }
 
 static int
-getScaledStartupTabMaxWidth () {
-  return DpiUtils::scaled (STARTUP_TAB_MAX_WIDTH_BASE);
+getScaledSpecialTabHorizontalPadding () {
+  return DpiUtils::scaled (SPECIAL_TAB_HORIZONTAL_PADDING);
 }
 
 static int
@@ -489,7 +486,31 @@ QTMTabPageContainer::arrangeTabPages () {
 
   // Calculate tab dimensions
   int availableWidth= windowWidth - 2 * TAB_CONTAINER_PADDING - reservedRight;
-  int tabWidth      = availableWidth / visibleTabCount;
+
+  // Pre-compute special tab widths (startup/chat) so they are excluded from
+  // the evenly-divided space and never compressed.
+  int specialTabWidth= 0;
+  int specialTabCount= 0;
+  for (int i= 0; i < m_tabPageList.size (); ++i) {
+    QTMTabPage* tab= m_tabPageList[i];
+    if (g_mostRecentlyClosedTab == tab->m_viewUrl) continue;
+    if (is_startup_tab_view (tab->m_viewUrl) ||
+        is_chat_tab_view (tab->m_viewUrl)) {
+      QFontMetrics fm (tab->font ());
+      int          iconSize    = DpiUtils::scaled (TAB_ICON_SIZE);
+      int          spacing     = DpiUtils::scaled (TAB_ICON_TEXT_SPACING);
+      int          textWidth   = fm.horizontalAdvance (tab->text ());
+      int          contentWidth= iconSize + spacing + textWidth;
+      specialTabWidth+=
+          contentWidth + 2 * getScaledSpecialTabHorizontalPadding ();
+      specialTabCount++;
+    }
+  }
+
+  int normalTabCount = visibleTabCount - specialTabCount;
+  int normalAvailable= availableWidth - specialTabWidth;
+  int tabWidth=
+      normalTabCount > 0 ? normalAvailable / normalTabCount : availableWidth;
   // Clamp width into a reasonable range: allow longer tabs when count is small
   tabWidth  = std::max (getScaledMinTabPageWidth (),
                         std::min (getScaledMaxTabPageWidth (), tabWidth));
@@ -503,7 +524,13 @@ QTMTabPageContainer::arrangeTabPages () {
     int         currentTabWidth= tabWidth;
     if (is_startup_tab_view (tab->m_viewUrl) ||
         is_chat_tab_view (tab->m_viewUrl)) {
-      currentTabWidth= std::min (tabWidth, getScaledStartupTabMaxWidth ());
+      QFontMetrics fm (tab->font ());
+      int          iconSize    = DpiUtils::scaled (TAB_ICON_SIZE);
+      int          spacing     = DpiUtils::scaled (TAB_ICON_TEXT_SPACING);
+      int          textWidth   = fm.horizontalAdvance (tab->text ());
+      int          contentWidth= iconSize + spacing + textWidth;
+      currentTabWidth=
+          contentWidth + 2 * getScaledSpecialTabHorizontalPadding ();
     }
 
     if (g_pointingIndex == i) {
