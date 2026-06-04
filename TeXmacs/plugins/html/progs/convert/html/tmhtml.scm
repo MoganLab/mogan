@@ -219,7 +219,8 @@
                 ".fill-out { text-decoration: underline dotted; } "
               ) ;string-append
         ) ;html
-        (mathml "math { font-family: \"Latin Modern Math\", \"Cambria Math\", \"STIX Two Math\", \"Noto Sans Math\", \"STIXGeneral\", cmr, times, verdana, serif } ")
+        (mathml "math { font-family: \"Latin Modern Math\", \"Cambria Math\", \"STIX Two Math\", \"Noto Sans Math\", \"STIXGeneral\", cmr, times, verdana, serif } "
+        ) ;mathml
        ) ;
     (if tmhtml-mathml? (string-append html mathml) html)
   ) ;let
@@ -2867,6 +2868,7 @@
   ((:or enumerate
      enumerate-numeric
      enumerate-numeric-bracket
+     enumerate-numeric-paren
      enumerate-roman
      enumerate-roman-bracket
      enumerate-roman-paren
@@ -2875,6 +2877,8 @@
      enumerate-alpha-bracket
      enumerate-alpha-full-paren
      enumerate-Alpha
+     enumerate-circle
+     enumerate-hanzi
    ) ;:or
    ,tmhtml-enumerate
   ) ;
