@@ -12,8 +12,12 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (convert data xmltm)
-  (:use (convert tools stm) (convert data sxml)
-        (convert tools environment) (convert tools tmconcat)))
+  (:use (convert tools stm)
+    (convert data sxml)
+    (convert tools environment)
+    (convert tools tmconcat)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; XML namespace normalization
@@ -34,7 +38,7 @@
 ;;          Any HTML or HTML-like data.
 ;;   m  --  MathML - http://www.w3.org/1998/Math/MathML
 ;;
-;;Non-Normalized namespace prefixes are:
+;; Non-Normalized namespace prefixes are:
 ;;   g  --  Gallina language.
 ;;   c  --  Coq XML format (we named it CoqML).
 ;;
@@ -43,82 +47,105 @@
 ;; orginial sxml tree. Namespace normalization is not reversible.
 
 (define xmlns-uri-xml "http://www.w3.org/XML/1998/namespace")
+
 (define xmlns-uri-xhtml "http://www.w3.org/1999/xhtml")
+
 (define xmlns-uri-mathml "http://www.w3.org/1998/Math/MathML")
+
 (define xmlns-uri-gallina "Gallina")
+
 (define xmlns-uri-coqml "CoqML")
 
 ;;; Building the namespace bindings environment
 
 (define-macro (with-xmltm-environment env ns . body)
   `(let ((,env (environment)))
-     (with-environment ,env ((*default* ,ns)
-                             (xml ,xmlns-uri-xml))
-       ,@body)))
+     (with-environment ,env ((*default* ,ns) (xml ,xmlns-uri-xml)) ,@body))
+) ;define-macro
 
 (define (consume-xmlns env attrs proc)
-  (receive (attrs f+bindings )
-      ((cut list-partition <> first)
-       ((cut map <> attrs)
-        (lambda (attr)
-          (if (eq? 'xmlns (first attr))
-              `(#f *default* ,(second attr))
-              (receive (ns-id ncname) (sxml-split-name (first attr))
-                (if (== "xmlns" ns-id)
-                    (list #f (string->symbol ncname) (second attr))
-                    attr))))))
-    ;; Either bindings or attributes are prefixed by #f to allow easy
-    ;; partition. Regular attributes are (likely) more numerous than xmlns
-    ;; attributes, so bindings are prefixed to reduce prefix-stripping cost.
-    (if (null? f+bindings) (proc env attrs)
-        (with-environment* env (map cdr f+bindings)
-          (cute proc <> attrs)))))
+  (receive (attrs f+bindings)
+   ((cut list-partition <> first)
+    ((cut map <> attrs)
+     (lambda (attr)
+       (if (eq? 'xmlns (first attr))
+         `(,#f *default* ,(second attr))
+         (receive (ns-id ncname)
+           (sxml-split-name (first attr))
+           (if (== "xmlns" ns-id) (list #f (string->symbol ncname) (second attr)) attr)
+         ) ;receive
+       ) ;if
+     ) ;lambda
+    ) ;
+   ) ;
+   ;; Either bindings or attributes are prefixed by #f to allow easy
+   ;; partition. Regular attributes are (likely) more numerous than xmlns
+   ;; attributes, so bindings are prefixed to reduce prefix-stripping cost.
+   (if (null? f+bindings)
+     (proc env attrs)
+     (with-environment* env (map cdr f+bindings) (cute proc <> attrs))
+   ) ;if
+  ) ;receive
+) ;define
 
 ;;; Converting nodes
 
-(tm-define (coqml-parse s)
-  (xmltm-parse xmlns-uri-coqml parse-xml s))
+(tm-define (coqml-parse s) (xmltm-parse xmlns-uri-coqml parse-xml s))
 
-(tm-define (gallinatm-parse s)
-  (xmltm-parse xmlns-uri-gallina parse-xml s))
+(tm-define (gallinatm-parse s) (xmltm-parse xmlns-uri-gallina parse-xml s))
 
-(tm-define (htmltm-parse s)
-  (xmltm-parse xmlns-uri-xhtml parse-html s))
+(tm-define (htmltm-parse s) (xmltm-parse xmlns-uri-xhtml parse-html s))
 
 (tm-define (xmltm-parse default-ns parser s)
-  (with-xmltm-environment
-   env default-ns
-   (let sub ((env env)
-             (t (parser s)))
-     (cond ((string? t) t)
-           ((sxml-top-node? t) `(*TOP* ,@(map (cut sub env <>) (cdr t))))
-           ((sxml-control-node? t) t)
-           (else (ns-import-element sub env t))))))
+  (with-xmltm-environment env
+    default-ns
+    (let sub
+      ((env env) (t (parser s)))
+      (cond ((string? t) t)
+            ((sxml-top-node? t) `(*TOP* ,@(map (cut sub env <>) (cdr t))))
+            ((sxml-control-node? t) t)
+            (else (ns-import-element sub env t))
+      ) ;cond
+    ) ;let
+  ) ;with-xmltm-environment
+) ;tm-define
 
-(define (null->false x) (if (null? x) #f x))
+(define (null->false x)
+  (if (null? x) #f x)
+) ;define
 
 (define (ns-import-element sub env t)
-  (consume-xmlns
-   env (sxml-attr-list t)
-   (lambda (env attrs)
+  (consume-xmlns env
+    (sxml-attr-list t)
+    (lambda (env attrs)
      ((cut sxml-set-name <> (ns-import-name env #t (sxml-name t)))
       ((cut sxml-set-attrlist <> (null->false (ns-import-attrs env attrs)))
-       (sxml-set-content t (map (cut sub env <>)
-                                (sxml-content t))))))))
+       (sxml-set-content t (map (cut sub env <>) (sxml-content t)))
+      ) ;
+     ) ;
+    ) ;lambda
+  ) ;consume-xmlns
+) ;define
 
 (define (ns-import-attrs env attrs)
-  ((cut map <> attrs)
-   (lambda (attr)
-     ;; handles correctly the pseudo-sxml produced by enumerated html
-     ;; attributes without left hand side. (e.g. <frame noresize>)
-     (cons (string->symbol (ns-import-name env #f (first attr)))
-           (cdr attr)))))
+ ((cut map <> attrs)
+  (lambda (attr)
+    ;; handles correctly the pseudo-sxml produced by enumerated html
+    ;; attributes without left hand side. (e.g. <frame noresize>)
+    (cons (string->symbol (ns-import-name env #f (first attr))) (cdr attr))
+  ) ;lambda
+ ) ;
+) ;define
 
 (define (ns-import-name env use-default? name)
-  (receive (ns-id ncname) (sxml-split-name name)
+  (receive (ns-id ncname)
+    (sxml-split-name name)
     (let ((ns-uri (cond (ns-id (environment-ref* env (string->symbol ns-id)))
                         (use-default? (environment-ref env *default*))
-                        (else ""))))
+                        (else "")
+                  ) ;cond
+          ) ;ns-uri
+         ) ;
       (string-append
         ;; FIXME: user namespace prefix list should be extensible
         (cond ((== ns-uri xmlns-uri-xhtml) "h:")
@@ -128,42 +155,52 @@
               ((== ns-uri xmlns-uri-xml) "x:")
               ((string-null? ns-uri) "")
               ((not (string? ns-uri)) "")
-              (else (string-append ns-uri ":")))
-        ncname))))
+              (else (string-append ns-uri ":"))
+        ) ;cond
+        ncname
+      ) ;string-append
+    ) ;let
+  ) ;receive
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; htmltm environment
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (initialize-htmltm env proc)
-  (with-environment* env '((preserve-space? #f)) proc))
+  (with-environment* env '((preserve-space? #f)) proc)
+) ;tm-define
 
-(tm-define (htmltm-preserve-space? env)
-  (environment-ref env preserve-space?))
+(tm-define (htmltm-preserve-space? env) (environment-ref env preserve-space?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; String conversion
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (xmltm-text s)
-  (cork-grave->backquote (utf8->cork s)))
+(tm-define (xmltm-text s) (cork-grave->backquote (utf8->cork s)))
 
 (tm-define (xmltm-url-text s)
   ;; (cork-grave->backquote (utf8->cork (url-decode s)))
   ;; NOTE: don't decode URL names, or also implement a corresponding
   ;; routine for the encoding, when we click on a hyperlink
-  (string->tmstring s))
+  (string->tmstring s)
+) ;tm-define
 
 ;; Conversion of Cork GRAVE ACCENT to LEFT SINGLE QUOTATION MARK
 
 (define cork-grave-char #\nul)
+
 (define cork-grave (list->string '(#\nul)))
-(define cork-backquote (list->string '(#\`))) ;; that is GRAVE ACCENT in ASCII
+
+(define cork-backquote (list->string '(#\`)))
+;; that is GRAVE ACCENT in ASCII
 
 (define (cork-grave->backquote s)
   (if (string-index s cork-grave-char)
-      (string-replace s cork-grave cork-backquote)
-      s))
+    (string-replace s cork-grave cork-backquote)
+    s
+  ) ;if
+) ;define
 
 ;; Decoding URL strings
 ;;
@@ -175,49 +212,66 @@
 
 (define (url-decode s)
   ;; Decode a URL-encoded (rfc-2141) UTF-8 string.
-  (url-decode/finish (string-fold (lambda (kar kdr) (kdr kar))
-                                  (cut url-decode/trans <> '())
-                                  s)))
+  (url-decode/finish (string-fold (lambda (kar kdr) (kdr kar)) (cut url-decode/trans <> '()) s)
+  ) ;url-decode/finish
+) ;define
 
 (define (url-decode/finish proc)
-  (reverse-list->string (proc #f)))
+  (reverse-list->string (proc #f))
+) ;define
 
 (define (url-decode/trans kar cs)
   ;; State when the next character is not escaped.
-  (if (not kar) cs
-      (if (char=? #\% kar)
-          (cut url-decode/hex-1 <> cs)
-          (cut url-decode/trans <> (cons kar cs)))))
-  
+  (if (not kar)
+    cs
+    (if (char=? #\% kar)
+      (cut url-decode/hex-1 <> cs)
+      (cut url-decode/trans <> (cons kar cs))
+    ) ;if
+  ) ;if
+) ;define
+
 (define (url-decode/hex-1 kar cs)
   ;; State when the previous character was a % (escape character).
   ;; When a % is not followed by a pair of hexadecimal digits (that is an
   ;; error), then % and its following chars are preserved.
-  (if (not kar) (cons #\% cs)
-      (if (char-hexadecimal? kar)
-          (cut url-decode/hex-2 <> cs kar)
-          (cut url-decode/trans <> (cons* kar #\% cs)))))
+  (if (not kar)
+    (cons #\% cs)
+    (if (char-hexadecimal? kar)
+      (cut url-decode/hex-2 <> cs kar)
+      (cut url-decode/trans <> (cons* kar #\% cs))
+    ) ;if
+  ) ;if
+) ;define
 
 (define (url-decode/hex-2 kar cs hex1)
   ;; State when the last two characters were a % and an hexadecimal digit
-  (if (not kar) (cons* hex1 #\% cs)
-      (if (char-hexadecimal? kar)
-          (cut url-decode/trans <> (cons (hexadecimal->char hex1 kar) cs))
-          (cut url-decode/trans <> (cons* kar hex1 #\% cs)))))
+  (if (not kar)
+    (cons* hex1 #\% cs)
+    (if (char-hexadecimal? kar)
+      (cut url-decode/trans <> (cons (hexadecimal->char hex1 kar) cs))
+      (cut url-decode/trans <> (cons* kar hex1 #\% cs))
+    ) ;if
+  ) ;if
+) ;define
 
 (tm-define (char-hexadecimal? c)
   ;; Is @c an hexadecimal digit.
-  (char-in-string? c "01234567890ABCDEFabcdef"))
+  (char-in-string? c "01234567890ABCDEFabcdef")
+) ;tm-define
 
 (define (hexadecimal->char hex1 hex2)
   ;; Convert two hexadecimal digits @hex1 and @hex2 to a single character.
-  (integer->char (+ (* 16 (hexadecimal-digit->integer hex1))
-                    (hexadecimal-digit->integer hex2))))
+  (integer->char (+ (* 16 (hexadecimal-digit->integer hex1)) (hexadecimal-digit->integer hex2))
+  ) ;integer->char
+) ;define
 
 (tm-define (hexadecimal-digit->integer c)
   (cond ((char-numeric? c) (- (char->integer c) 48))
         ((char-in-string? c "ABCDEF") (- (char->integer c) 55))
-        ((char-in-string? c "abcdef") (- (char->integer c) 87))))
+        ((char-in-string? c "abcdef") (- (char->integer c) 87))
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Label constructors
@@ -225,13 +279,15 @@
 
 (tm-define (xmltm-attr->label a name)
   (let ((val (shtml-attr-non-null a name)))
-    (and val `(label ,(xmltm-url-text val)))))
+    (and val `(label ,(xmltm-url-text val)))
+  ) ;let
+) ;tm-define
 
 (tm-define (xmltm-label-decorate a name t)
   (let ((label (xmltm-attr->label a name)))
-    (if label
-        (stm-insert-first-data t label)
-        t)))
+    (if label (stm-insert-first-data t label) t)
+  ) ;let
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Whitespace handling
@@ -239,17 +295,21 @@
 
 (define (htmltm-space-element env l)
   ;; remove string nodes in the sxml node-list @l.
-  (sxml-filter-element-content l))
+  (sxml-filter-element-content l)
+) ;define
 
 (define (htmltm-collapse-spaces s)
   ;; normalize (convert to #\space) and collapse whitespace in s.
-  (list->string (string-fold-right htmltm-collapse-spaces/kons '() s)))
+  (list->string (string-fold-right htmltm-collapse-spaces/kons '() s))
+) ;define
 
 (define (htmltm-collapse-spaces/kons kar kdr)
   (cond ((not (tm-char-whitespace? kar)) (cons kar kdr))
         ((null? kdr) (list #\space))
         ((tm-char-whitespace? (first kdr)) kdr)
-        (else (cons #\space kdr))))
+        (else (cons #\space kdr))
+  ) ;cond
+) ;define
 
 (tm-define (htmltm-space-collapse env l)
   ;; Collapses whitespaces in sxml node list @l. Correctly merges consecutive
@@ -257,9 +317,11 @@
   (cond ((null? l) '())
         ((htmltm-preserve-space? env) (htmltm-space-preserve l))
         (else (let ((l2 (list-fold-right htmltm-space-collapse/kons #f l)))
-                (if (string? (first l2))
-                    (cons (htmltm-collapse-spaces (car l2)) (cdr l2))
-                    l2)))))
+                (if (string? (first l2)) (cons (htmltm-collapse-spaces (car l2)) (cdr l2)) l2)
+              ) ;let
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (tm-define (htmltm-space-mixed env l)
   ;; remove heading and trailing spaces, and collapses whitespaces in sxml node
@@ -268,35 +330,43 @@
         ((htmltm-preserve-space? env) (htmltm-space-preserve l))
         (else (let ((l2 (list-fold-right htmltm-space-mixed/kons #f l)))
                 (if (string? (first l2))
-                    (cons (htmltm-collapse-spaces (tm-string-trim (car l2)))
-                          (cdr l2))
-                    l2)))))
+                  (cons (htmltm-collapse-spaces (tm-string-trim (car l2))) (cdr l2))
+                  l2
+                ) ;if
+              ) ;let
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (define (htmltm-space-collapse/kons kar kdr)
-  (cond ((not kdr)                      ; kar is last node
-         (list kar))
+  (cond ((not kdr) (list kar))
         ((string? kar)
          (if (string? (first kdr))
-             (cons (string-append kar (car kdr)) (cdr kdr))
-             (cons kar kdr)))
+           (cons (string-append kar (car kdr)) (cdr kdr))
+           (cons kar kdr)
+         ) ;if
+        ) ;
         ((string? (first kdr))
-         (cons kar (cons (htmltm-collapse-spaces (car kdr)) (cdr kdr))))
-        (else
-         (cons kar kdr))))
+         (cons kar (cons (htmltm-collapse-spaces (car kdr)) (cdr kdr)))
+        ) ;
+        (else (cons kar kdr))
+  ) ;cond
+) ;define
 
 (define (htmltm-space-mixed/kons kar kdr)
-  (cond ((not kdr)                      ; kar is last node
-         (if (string? kar)
-             (list (tm-string-trim-right kar))
-             (list kar)))
+  (cond ((not kdr) (if (string? kar) (list (tm-string-trim-right kar)) (list kar)))
         ((string? kar)
          (if (string? (first kdr))
-             (cons (string-append kar (car kdr)) (cdr kdr))
-             (cons kar kdr)))
+           (cons (string-append kar (car kdr)) (cdr kdr))
+           (cons kar kdr)
+         ) ;if
+        ) ;
         ((string? (first kdr))
-         (cons kar (cons (htmltm-collapse-spaces (car kdr)) (cdr kdr))))
-        (else
-         (cons kar kdr))))
+         (cons kar (cons (htmltm-collapse-spaces (car kdr)) (cdr kdr)))
+        ) ;
+        (else (cons kar kdr))
+  ) ;cond
+) ;define
 
 (define (htmltm-space-preformatted env l)
   ;; Drop newline at start and end of @l if present.
@@ -304,14 +374,19 @@
   ;; Convert other newlines to <p> elements.
   (cond ((null? l) '())
         ((htmltm-preserve-space? env) (htmltm-space-preserve l))
-        (else (htmltm-space-preserve (htmltm-space-pre-first
-                                      (htmltm-space-pre-last l))))))
+        (else (htmltm-space-preserve (htmltm-space-pre-first (htmltm-space-pre-last l)))
+        ) ;else
+  ) ;cond
+) ;define
 
 (define (htmltm-space-pre-first l)
   (let ((x (first l)))
-    (if (and (string? x) (string-starts? x "\n")) ; WARNING: \n is not R5RS
-        (cons (string-drop x 1) (cdr l))
-        l)))
+    (if (and (string? x) (string-starts? x "\n"))
+      (cons (string-drop x 1) (cdr l))
+      l
+    ) ;if
+  ) ;let
+) ;define
 
 (define (htmltm-space-pre-last l)
   ;; If @l ends with newline, drop newline.
@@ -324,20 +399,29 @@
           ;; ((string-ends? x "\n")     ; WARNING: \n is not R5RS
           ;;  (rcons (but-last l) (string-drop-right x 1)))
           ((do ((i (1- (string-length x)) (1- i)))
-               ((!= #\space (string-ref x i))
-                (and (== #\newline (string-ref x i)) i)))
-           => (lambda (n) (rcons (but-last l) (string-take x n))))
-          (else l))))
+             ((!= #\space (string-ref x i)) (and (== #\newline (string-ref x i)) i))
+           ) ;do
+           =>
+           (lambda (n) (rcons (but-last l) (string-take x n)))
+          ) ;
+          (else l)
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (htmltm-space-preserve l)
   ;; Convert newlines to <p> elements.
-  (append-map htmltm-space-preserve/sub l))
+  (append-map htmltm-space-preserve/sub l)
+) ;define
 
 (define (htmltm-space-preserve/sub x)
   (if (string? x)
-      (let ((l (string-split-lines x)))
-        (if (null? (cdr l)) l (map (lambda (x) `(h:p ,x)) l)))
-      (list x)))
+    (let ((l (string-split-lines x)))
+      (if (null? (cdr l)) l (map (lambda (x) `(h:p ,x)) l))
+    ) ;let
+    (list x)
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Producing handlers for dispatch table
@@ -393,97 +477,137 @@
                      ((eq? model :collapse) htmltm-space-collapse)
                      ((eq? model :mixed) htmltm-space-mixed)
                      ((eq? model :pre) htmltm-space-preformatted)
-                     (else (error "Bad model: " model))))
-        (proc-alist
-         (cond ((eq? kind :inline)
-                `((:procedure . ,htmltm-handler/procedure/inline)
-                  (:environment . ,htmltm-handler/environment/inline)
-                  (:literal . ,htmltm-handler/literal/inline)))
-               ((eq? kind :block)
-                `((:procedure . ,htmltm-handler/procedure/block)
-                  (:environment . ,htmltm-handler/environment/block)
-                  (:literal . ,htmltm-handler/literal/block)))
-               (error "Bad kind: " kind))))
+                     (else (error "Bad model: " model))
+               ) ;cond
+        ) ;clean
+        (proc-alist (cond ((eq? kind :inline)
+                           `((,:procedure
+                              unquote
+                              htmltm-handler/procedure/inline)
+                             (,:environment
+                              unquote
+                              htmltm-handler/environment/inline)
+                             (,:literal unquote htmltm-handler/literal/inline))
+                          ) ;
+                          ((eq? kind :block)
+                           `((,:procedure
+                              unquote
+                              htmltm-handler/procedure/block)
+                             (,:environment
+                              unquote
+                              htmltm-handler/environment/block)
+                             (,:literal unquote htmltm-handler/literal/block))
+                          ) ;
+                          (error "Bad kind: " kind)
+                    ) ;cond
+        ) ;proc-alist
+       ) ;
 
-    (define (proc key) (cdr (assq key proc-alist)))
+    (define (proc key)
+      (cdr (assq key proc-alist))
+    ) ;define
     (define (make-handler proc . extra)
       (lambda (env a c)
         (let ((cc (clean env c)))
           (with-environment env
-              ((preserve-space? (or (eq? model :pre)
-                                    (htmltm-preserve-space? env))))
-            (apply proc env a cc extra)))))
+           ((preserve-space? (or (eq? model :pre) (htmltm-preserve-space? env))))
+           (apply proc env a cc extra)
+          ) ;with-environment
+        ) ;let
+      ) ;lambda
+    ) ;define
 
-    (cond ((procedure? method)
-           (make-handler (proc :procedure) method))
+    (cond ((procedure? method) (make-handler (proc :procedure) method))
           ((or (string? method) (symbol? (first method)))
            (make-handler (proc :environment)
-                         (if (string? method) ; this is ugly, should be removed
-                             (if (stm-primitive? (string->symbol method))
-                                 `(expand ,method)
-                                 `(,(string->symbol method)))
-                             method)
-                         args->serial))
-           (else (cut (proc :literal) <> <> <> (stm-serial method))))))
+             (if (string? method)
+               (if (stm-primitive? (string->symbol method))
+                 `(expand ,method)
+                 `(,(string->symbol method))
+               ) ;if
+               method
+             ) ;if
+             args->serial
+           ) ;make-handler
+          ) ;
+          (else (cut (proc :literal) <> <> <> (stm-serial method)))
+    ) ;cond
+  ) ;let
+) ;tm-define
 
 (define (htmltm-handler/procedure/inline env a c proc)
-  (proc env a c))
+  (proc env a c)
+) ;define
 
 (define (htmltm-handler/procedure/block env a c proc)
-  (list (stm-unary-document (htmltm-serial
-                             (htmltm-preserve-space? env)
-                             (proc env a c)))))
+  (list (stm-unary-document (htmltm-serial (htmltm-preserve-space? env) (proc env a c)))
+  ) ;list
+) ;define
 
 (define (htmltm-handler/literal/inline env a c literal)
-  (list (xmltm-label-decorate a 'id literal)))
+  (list (xmltm-label-decorate a 'id literal))
+) ;define
 
 (define (htmltm-handler/literal/block env a c literal)
-  (list (xmltm-label-decorate a 'id (stm-unary-document literal))))
+  (list (xmltm-label-decorate a 'id (stm-unary-document literal)))
+) ;define
 
 (define (htmltm-handler/environment/inline env a c head args->serial)
   (list (let ((t (xmltm-label-decorate a 'id (args->serial env c))))
           (if (stm-document? t)
-              `(document (,@head ,(stm-remove-unary-document t)))
-              `(,@head ,t)))))
+            `(document (,@head ,(stm-remove-unary-document t)))
+            `(,@head ,t)
+          ) ;if
+        ) ;let
+  ) ;list
+) ;define
 
 (define (htmltm-handler/environment/block env a c head args->serial)
-  (let ((make-block (if (stm-block-environment? head)
-                        stm-unary-document noop))
-        (make-list (if (stm-list-environment? head)
-                       htmltm-list-glue noop))
+  (let ((make-block (if (stm-block-environment? head) stm-unary-document noop))
+        (make-list (if (stm-list-environment? head) htmltm-list-glue noop))
         (make-label (if (stm-section-environment? head)
-                        (lambda (x)
-                          (xmltm-label-decorate a 'id (rcons head x)))
-                        (lambda (x)
-                          (rcons head (xmltm-label-decorate a 'id x))))))
-    (list `(document ,(make-label (make-list (make-block
-                                              (args->serial env c))))))))
+                      (lambda (x) (xmltm-label-decorate a 'id (rcons head x)))
+                      (lambda (x) (rcons head (xmltm-label-decorate a 'id x)))
+                    ) ;if
+        ) ;make-label
+       ) ;
+    (list `(document ,(make-label (make-list (make-block (args->serial env c))))))
+  ) ;let
+) ;define
 
-(define (htmltm-list-glue x)
+(tm-define (htmltm-list-glue x)
   ;; assert (stm-document? x)
   (cons 'document
-        (receive (first kdr)
-          (car+cdr (list-fold-right htmltm-list-glue/kons '(#f . ()) (cdr x)))
-          (htmltm-list-glue/flush first kdr))))
-    
+    (receive (first kdr)
+      (car+cdr (list-fold-right htmltm-list-glue/kons '(#f) (cdr x)))
+      (htmltm-list-glue/flush first kdr)
+    ) ;receive
+  ) ;cons
+) ;tm-define
+
 (define (htmltm-list-glue/kons kar next+kdr)
-  (cons kar (receive (next kdr) (car+cdr next+kdr)
-              (if (stm-list-marker? (stm-first-data kar))
-                  (cond ((not next) (list kar))
-                        ((stm-list-marker? (stm-first-data next))
-                         (cons kar kdr))
-                        (else
-                         (cons
-                          ; WARNING: no extra whitespace cleanup here
-                          (htmltm-serial #t (list kar next)) kdr)))
-                  ;; previous item may be a marker, do not stack kar
-                  ;; but if next is not a marker, stack it now
-                  (htmltm-list-glue/flush next kdr)))))
+  (cons kar
+    (receive (next kdr)
+      (car+cdr next+kdr)
+      (if (stm-list-marker? (stm-first-data kar))
+        (cond ((not next) (list kar))
+              ((stm-list-marker? (stm-first-data next)) (cons kar kdr))
+              (else (cons (htmltm-serial #t (list kar next)) kdr))
+        ) ;cond
+        ;; previous item may be a marker, do not stack kar
+        ;; but if next is not a marker, stack it now
+        (htmltm-list-glue/flush next kdr)
+      ) ;if
+    ) ;receive
+  ) ;cons
+) ;define
 
 (define (htmltm-list-glue/flush line stack)
   (cond ((not line) stack)
         ((stm-list-marker? (stm-first-data line)) stack)
-        (else (cons line stack))))
+        (else (cons line stack))
+  ) ;cond
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Producing mathml handlers for dispatch table
@@ -498,38 +622,43 @@
   ;;           collapse internal whitespaces.
   ;;  method: <procedure> to convert the element content to a node-list.
   ;;  amethod <procedure> to process global attributes
-  (if (not (in? model '(:empty :element :mixed)))
-      (error "Bad model: " model))
-  (if (not (procedure? method))
-      (error "Bad method: " method))
+  (if (not (in? model '(:empty :element :mixed))) (error "Bad model: " model))
+  (if (not (procedure? method)) (error "Bad method: " method))
   (let ((clean (cond ((eq? model :empty) (lambda (env c) c))
                      ((eq? model :element) htmltm-space-element)
-                     ((eq? model :mixed) htmltm-space-mixed))))
-    ;(let ((proc method))
-      (lambda (env a c)
-        (mathtm-handler/procedure
-         env a (clean env c) method amethod))));)
+                     ((eq? model :mixed) htmltm-space-mixed)
+               ) ;cond
+        ) ;clean
+       ) ;
+    (lambda (env a c) (mathtm-handler/procedure env a (clean env c) method amethod))
+  ) ;let
+) ;tm-define
 
 (define (mathtm-handler/procedure env a c proc aproc)
-  (if (null? aproc) 
-    (proc env a c)
-    ((car aproc) env a c proc)))
+  (if (null? aproc) (proc env a c) ((car aproc) env a c proc))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Producing gallina handlers for dispatch table
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define gallinatm-raw    htmltm-space-preformatted)
-(define gallinatm-terms  htmltm-space-element)
+(define gallinatm-raw htmltm-space-preformatted)
+
+(define gallinatm-terms htmltm-space-element)
+
 (define gallinatm-vernac htmltm-space-element)
+
 (define gallinatm-toplvl htmltm-space-element)
-(define gallinatm-ltac   htmltm-space-element)
+
+(define gallinatm-ltac htmltm-space-element)
 
 (define (gallinatm-handler/inline env a c proc)
-  (proc env a c))
+  (proc env a c)
+) ;define
 
 (define (gallinatm-handler/bloc env a c proc)
-  `((document ,@(proc env a c))))
+  `((document ,@(proc env a c)))
+) ;define
 
 (tm-define (gallinatm-handler model method)
   ;;  model:  content model category
@@ -541,26 +670,36 @@
   ;;            collapse internal whitespaces.
   ;;  method: <procedure> to convert the element content to a node-list.
   (if (not (in? model '(:raw :terms :vernac :toplvl :ltac)))
-      (error "Bad model: " model))
-  (if (not (procedure? method))
-      (error "Bad method: " method))
-  (let ((clean (cond ((eq? model :raw)    gallinatm-raw)
-                     ((eq? model :terms)  gallinatm-terms)
+    (error "Bad model: " model)
+  ) ;if
+  (if (not (procedure? method)) (error "Bad method: " method))
+  (let ((clean (cond ((eq? model :raw) gallinatm-raw)
+                     ((eq? model :terms) gallinatm-terms)
                      ((eq? model :toplvl) gallinatm-toplvl)
                      ((eq? model :vernac) gallinatm-vernac)
-                     ((eq? model :ltac)   gallinatm-ltac)))
-        (para  (cond ((eq? model :raw)    gallinatm-handler/inline)
-                     ((eq? model :terms)  gallinatm-handler/inline)
-                     ((eq? model :ltac)   gallinatm-handler/inline)
-                     ((eq? model :toplvl) gallinatm-handler/bloc)
-                     ((eq? model :vernac) gallinatm-handler/bloc))))
+                     ((eq? model :ltac) gallinatm-ltac)
+               ) ;cond
+        ) ;clean
+        (para (cond ((eq? model :raw) gallinatm-handler/inline)
+                    ((eq? model :terms) gallinatm-handler/inline)
+                    ((eq? model :ltac) gallinatm-handler/inline)
+                    ((eq? model :toplvl) gallinatm-handler/bloc)
+                    ((eq? model :vernac) gallinatm-handler/bloc)
+              ) ;cond
+        ) ;para
+       ) ;
     (let ((proc method))
-      (lambda (env a c)
-        (para env a (clean env c) proc)))))
+      (lambda (env a c) (para env a (clean env c) proc))
+    ) ;let
+  ) ;let
+) ;tm-define
 
 (tm-define (gallinatm-serial p? l)
-  (if p? (stm-serial l stm-document?)
-      (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)))
+  (if p?
+    (stm-serial l stm-document?)
+    (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Producing coqml handlers for dispatch table
@@ -568,29 +707,33 @@
 
 (tm-define (blank? s)
   (:synopsis "does @s contain only whitespace?")
-  (list-and (map tm-char-whitespace? (string->list s))))
+  (list-and (map tm-char-whitespace? (string->list s)))
+) ;tm-define
 
 (define (trim-newlines s)
   (letrec ((nl? (lambda (c) (== c #\newline)))
-           (trim-right (lambda (l)
-                         (if (and (list>0? l) (nl? (car l)))
-                           (trim-right (cdr l)) l)))
-           (trim-left  (lambda (l)
-                         (if (and (list>0? l) (nl? (cAr l)))
-                           (trim-left  (cDr l)) l))))
-  (list->string (trim-right (trim-left (string->list s))))))
+           (trim-right (lambda (l) (if (and (list>0? l) (nl? (car l))) (trim-right (cdr l)) l))
+           ) ;trim-right
+           (trim-left (lambda (l) (if (and (list>0? l) (nl? (cAr l))) (trim-left (cDr l)) l))
+           ) ;trim-left
+          ) ;
+    (list->string (trim-right (trim-left (string->list s))))
+  ) ;letrec
+) ;define
 
 (define (coqml-space-cleaning env l)
   ;; Drop blank lines. Trim newlines at begin and end of strings.
   ;; Conserve spaces. Put text in string tags.
-  (set! l (filter (lambda (x) (or (nstring? x)
-                                  (not (blank? x)))) l))
+  (set! l (filter (lambda (x) (or (nstring? x) (not (blank? x)))) l))
   (if (and (nnull? l) (null? (filter nstring? l)))
     (list (trim-newlines (apply string-append l)))
-    (map (lambda (x) (if (string? x) `(c:string ,(trim-newlines x)) x)) l)))
+    (map (lambda (x) (if (string? x) `(c:string ,(trim-newlines x)) x)) l)
+  ) ;if
+) ;define
 
-(define coqml-pre    coqml-space-cleaning)
-(define coqml-elem   htmltm-space-element)
+(define coqml-pre coqml-space-cleaning)
+
+(define coqml-elem htmltm-space-element)
 
 (tm-define (coqml-handler model method)
   ;;  model:  content model category
@@ -598,19 +741,21 @@
   ;;          :pre -- Drop blank lines. Trim newlines at beginning and ending
   ;;            of strings.  Conserve spaces. Put text in string tags.
   ;;  method: <procedure> to convert the element content to a node-list.
-  (if (not (in? model '(:pre :elem)))
-      (error "Bad model: " model))
-  (if (not (procedure? method))
-      (error "Bad method: " method))
-  (let ((clean (cond ((eq? model :pre)  coqml-pre)
-                     ((eq? model :elem) coqml-elem))))
+  (if (not (in? model '(:pre :elem))) (error "Bad model: " model))
+  (if (not (procedure? method)) (error "Bad method: " method))
+  (let ((clean (cond ((eq? model :pre) coqml-pre) ((eq? model :elem) coqml-elem))))
     (let ((proc method))
-      (lambda (env a c)
-        (proc env a (clean env c))))))
+      (lambda (env a c) (proc env a (clean env c)))
+    ) ;let
+  ) ;let
+) ;tm-define
 
 (tm-define (coqml-serial p? l)
-  (if p? (stm-serial l stm-document?)
-      (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)))
+  (if p?
+    (stm-serial l stm-document?)
+    (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generic XML dispatcher
@@ -621,7 +766,9 @@
         ((== ns-id "m") (logic-ref mathtm-methods% ncname))
         ((== ns-id "g") (logic-ref gallinatm-methods% ncname))
         ((== ns-id "c") (logic-ref coqml-methods% ncname))
-        (else #f)))
+        (else #f)
+  ) ;cond
+) ;define
 
 (tm-define (sxml-dispatch x-string x-pass env t)
   ;; Generic xml dispatcher
@@ -631,11 +778,20 @@
   (cond ((string? t) (x-string env t))
         ((sxml-top-node? t) (x-pass env '() (sxml-content t)))
         ((sxml-control-node? t) '())
-        (else
-         (receive (ns-id ncname) (sxml-split-name (sxml-name t))
-           (cond ((and (not (string-null? ncname)) (sxml-meta-logic-ref ns-id (string->symbol ncname)))
-                  => (cut <> env (sxml-attr-list t) (sxml-content t)))
-                 (else (x-pass env (sxml-attr-list t) (sxml-content t))))))))
+        (else (receive (ns-id ncname)
+                (sxml-split-name (sxml-name t))
+                (cond ((and (not (string-null? ncname))
+                         (sxml-meta-logic-ref ns-id (string->symbol ncname))
+                       ) ;and
+                       =>
+                       (cut <> env (sxml-attr-list t) (sxml-content t))
+                      ) ;
+                      (else (x-pass env (sxml-attr-list t) (sxml-content t)))
+                ) ;cond
+              ) ;receive
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Special serial constructors
@@ -651,37 +807,52 @@
 ;; take a block-structure as input have their result wrapped in a 'document'.
 
 (tm-define (htmltm-serial p? l)
-  (if p? (stm-serial l stm-document?)
-      (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)))
+  (if p?
+    (stm-serial l stm-document?)
+    (stm-serial l stm-document? htmltm-make-line htmltm-make-concat)
+  ) ;if
+) ;tm-define
 
 (define (htmltm-make-line l)
   ;; Trim whitespaces at ends of lines.
   ;; Drop lines which are empty after simplification.
-  (stm-concat l htmltm-make-line/concat))
+  (stm-concat l htmltm-make-line/concat)
+) ;define
 
 (define (htmltm-make-line/concat l)
   ;; TODO: preserve empty lines if creator is TeXmacs.
   (let ((x (stm-list->concat (stm-line-trim-both l))))
-    (if (== "" x) #f x)))
+    (if (== "" x) #f x)
+  ) ;let
+) ;define
 
 (define (htmltm-make-concat l)
   ;; Trim whitespace around line-breaks.
   ;; Invisible nodes between line-breaks and whitespaces are moved.
   ;;
   ;; TODO: remove whitespaces surrounding invisibles in the middle of concat
-  (stm-list->concat
-   (if (null? l) '()
-       (let ((line-lists (stm-parse-lines l)))
-         (if (null? (cdr line-lists)) l
-             (stm-unparse-lines
-              `(,(stm-line-trim-right (first line-lists))
-                ,@(map stm-line-trim-both (cDdr line-lists))
-                ,(stm-line-trim (last line-lists)))))))))
+  (stm-list->concat (if (null? l)
+                      '()
+                      (let ((line-lists (stm-parse-lines l)))
+                        (if (null? (cdr line-lists))
+                          l
+                          (stm-unparse-lines `(,(stm-line-trim-right (first line-lists))
+                                               ,@(map stm-line-trim-both
+                                                   (cDdr line-lists))
+                                               ,(stm-line-trim (last line-lists)))
+                          ) ;stm-unparse-lines
+                        ) ;if
+                      ) ;let
+                    ) ;if
+  ) ;stm-list->concat
+) ;define
 
 (tm-define (mathtm-serial env l)
   ;; Except for the top-level math element, MathML produce only inlines.
   ;; Collapse whitespaces.
   ;; TODO: consolidate with htmltm-serial
-  (with c (apply tmconcat l)
-    (if (not (func? c 'concat)) c
-        (stm-concat (cdr c) htmltm-make-concat))))
+  (with c
+    (apply tmconcat l)
+    (if (not (func? c 'concat)) c (stm-concat (cdr c) htmltm-make-concat))
+  ) ;with
+) ;tm-define

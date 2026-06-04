@@ -242,10 +242,34 @@
   ) ;let*
 ) ;define
 
+(define (test-0610-html-import-integration)
+  (display "Verifying HTML import of nested lists to exact TeXmacs environments...\n"
+  ) ;display
+  (let* ((html-path "$TEXMACS_PATH/tests/tmu/0610_import_test.html")
+         (imported-tree (tree-import html-path "html"))
+         (stree (tree->stree imported-tree))
+         (stree-str (object->string stree))
+        ) ;
+    ;; Check that imported document contains our custom nested list environments!
+    (check (string-contains? stree-str "enumerate-numeric") => #t)
+    (check (string-contains? stree-str "enumerate-numeric-paren") => #t)
+    (check (string-contains? stree-str "enumerate-alpha") => #t)
+    (check (string-contains? stree-str "enumerate-hanzi") => #t)
+    (check (string-contains? stree-str "enumerate-circle") => #t)
+    (check (string-contains? stree-str "enumerate-Alpha") => #t)
+    (check (string-contains? stree-str "enumerate-alpha-full-paren") => #t)
+    (check (string-contains? stree-str "enumerate-numeric-bracket") => #t)
+    (check (string-contains? stree-str "enumerate-Roman") => #t)
+    (check (string-contains? stree-str "enumerate-roman-bracket") => #t)
+    (check (string-contains? stree-str "enumerate-roman") => #t)
+  ) ;let*
+) ;define
+
 (tm-define (test_0610)
   (test-0610-all-list-environments-registration)
   (test-0610-all-list-environments-dispatch)
   (test-0610-html-export-css-verification)
   (test-0610-html-export-integration)
+  (test-0610-html-import-integration)
   (check-report)
 ) ;tm-define
