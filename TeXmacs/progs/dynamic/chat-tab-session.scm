@@ -1197,37 +1197,17 @@
              (plugin-ses (chat-tab-state->plugin-session-id st session-id))
             ) ;
         (if (chat-tab-tree-has-image? input)
-          ;; 包含图片：替换为不支持图片的问答，走正常发送流程
-          (let* ((qa-input (stree->tree `(document ,(translate "Does the current AI chat support images?"))
-                           ) ;stree->tree
-                 ) ;qa-input
-                 (out (chat-tab-append-round! msg-buf qa-input session-id))
-                ) ;
+          ;; 包含图片：替换为不支持图片的问答，直接设置输出
+          (let* ((qa-input (stree->tree
+                      `(document ,(translate "Does the current AI chat support images?"))))
+                 (out (chat-tab-append-round! msg-buf qa-input session-id)))
             (if (not out)
               #f
               (begin
-                (if (not (connection-defined? chat-tab-session-name))
-                  (begin
-                    (with-buffer msg-buf
-                      (chat-tab-output out (stree->tree `(document ,(translate "No, it does not."))))
-                      (buffer-pretend-saved msg-buf)
-                    ) ;with-buffer
-                    #t
-                  ) ;begin
-                  (begin
-                    (chat-tab-session-feed chat-tab-session-name
-                      plugin-ses
-                      qa-input
-                      session-id
-                      out
-                      '()
-                    ) ;chat-tab-session-feed
-                    #t
-                  ) ;begin
-                ) ;if
-              ) ;begin
-            ) ;if
-          ) ;let*
+                (with-buffer msg-buf
+                  (chat-tab-output out (stree->tree `(document ,(translate "No, it does not."))))
+                  (buffer-pretend-saved msg-buf))
+                #t)))
           ;; 纯文本内容：正常发送流程
           (let* ((out (chat-tab-append-round! msg-buf input session-id)))
             (if (not out)
