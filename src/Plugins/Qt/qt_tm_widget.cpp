@@ -1275,9 +1275,8 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
       chatWidget->setSidebarVisible (false);
       chatWidget->setCloseSidebarButtonVisible (true);
       // 连接关闭按钮信号（先断开所有旧连接，避免重复触发）
-      QObject::disconnect (chatWidget,
-                           &QTChatTabWidget::closeSidebarRequested, nullptr,
-                           nullptr);
+      QObject::disconnect (chatWidget, &QTChatTabWidget::closeSidebarRequested,
+                           nullptr, nullptr);
       QObject::connect (chatWidget, &QTChatTabWidget::closeSidebarRequested,
                         [this] () {
                           chatSidebarMode       = false;
@@ -1345,8 +1344,7 @@ qt_tm_widget_rep::sync_chat_sidebar_mode () {
     // 恢复焦点到当前可见的编辑器或 PDF 阅读器
     if (pdfTabMode && pdfViewerWidget)
       pdfViewerWidget->setFocus (Qt::OtherFocusReason);
-    else if (editorWidget)
-      editorWidget->setFocus (Qt::OtherFocusReason);
+    else if (editorWidget) editorWidget->setFocus (Qt::OtherFocusReason);
   }
 
   update_visibility ();
