@@ -1215,8 +1215,7 @@
 (tm-define (kbd-cut) (clipboard-cut "primary"))
 (tm-define (kbd-paste)
   (clipboard-paste "primary")
-  (when (and (defined? 'qt-chat-notify-input-height)
-             (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-"))
+  (when (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")
     (qt-chat-notify-input-height))
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "paste")
@@ -1381,8 +1380,7 @@
       ) ;cond
     ) ;with
   ) ;if
-  (when (and (defined? 'qt-chat-notify-input-height)
-             (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-"))
+  (when (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")
     (qt-chat-notify-input-height))
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "ocr-paste")
