@@ -318,7 +318,7 @@ QTMFloatingSearchBar::eventFilter (QObject* watched, QEvent* event) {
           }
           else {
             QPushButton* toggleBtn=
-                mw->findChild<QPushButton*> ("chat-sidebar-toggle-btn");
+                mw->findChild<QPushButton*> ("chat-tab-collapse-btn");
             if (toggleBtn) toggleBtn->click ();
           }
         }
