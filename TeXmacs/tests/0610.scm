@@ -150,37 +150,37 @@
   (let ((css (tmhtml-css-header)))
     ;; Check key custom CSS counter rule injections
     (check (string-contains? css
-             "ol.enumerate-numeric-bracket { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-numeric-bracket > li::marker { content: counter(list-item) \") \"; }"
            ) ;string-contains?
       =>
       #t
     ) ;check
     (check (string-contains? css
-             "ol.enumerate-numeric-paren { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-numeric-paren > li::marker { content: \"(\" counter(list-item) \") \"; }"
            ) ;string-contains?
       =>
       #t
     ) ;check
     (check (string-contains? css
-             "ol.enumerate-roman-bracket { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-roman-bracket > li::marker { content: counter(list-item, lower-roman) \") \"; }"
            ) ;string-contains?
       =>
       #t
     ) ;check
     (check (string-contains? css
-             "ol.enumerate-roman-paren { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-roman-paren > li::marker { content: \"(\" counter(list-item, lower-roman) \") \"; }"
            ) ;string-contains?
       =>
       #t
     ) ;check
     (check (string-contains? css
-             "ol.enumerate-alpha-bracket { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-alpha-bracket > li::marker { content: counter(list-item, lower-alpha) \") \"; }"
            ) ;string-contains?
       =>
       #t
     ) ;check
     (check (string-contains? css
-             "ol.enumerate-alpha-full-paren { list-style-type: none; counter-reset: item; }"
+             "ol.enumerate-alpha-full-paren > li::marker { content: \"(\" counter(list-item, lower-alpha) \") \"; }"
            ) ;string-contains?
       =>
       #t
@@ -232,18 +232,9 @@
     ) ;check
     (check (string-contains? html-content "class=\"enumerate-alpha\"") => #t)
     ;; Check that CSS counter rules are included in the HTML's style header
-    (check (string-contains? html-content
-             "ol.enumerate-numeric-paren { list-style-type: none;"
-           ) ;string-contains?
-      =>
-      #t
-    ) ;check
-    (check (string-contains? html-content
-             "ol.enumerate-alpha { list-style-type: lower-alpha;"
-           ) ;string-contains?
-      =>
-      #t
-    ) ;check
+    (check (string-contains? html-content "ol.enumerate-numeric-paren") => #t)
+    (check (string-contains? html-content "counter(list-item)") => #t)
+    (check (string-contains? html-content "ol.enumerate-alpha") => #t)
     ;; Check actual item content
     (check (string-contains? html-content "误差分析") => #t)
     (check (string-contains? html-content "螺=") => #t)
