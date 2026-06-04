@@ -84,10 +84,10 @@
                (url-resolve (url-unix dir (string-append s suf)) "r"))
          ;; 如果不是英语且存在英语文档，则使用英语文档
          ((and (!= suf ".en.tm")
-                    (url-exists? (url-unix dir (string-append s ".en.tm")))
-               (url-resolve (url-unix dir (string-append s ".en.tm")) "r")
+                    (url-exists? (url-unix dir (string-append s ".en.tm"))))
+               (url-resolve (url-unix dir (string-append s ".en.tm")) "r"))
          ;; 如果都不存在，返回空URL
-              (else (url-none))))))))
+              (else (url-none))))))
 
 ;; 加载帮助文档的核心函数
 ;; 参数 s: 文档路径
@@ -155,7 +155,7 @@
 
 ;; 显示Mogan版本信息
 (tm-define (mogan-version)
-  (let* ((cur-ver "2026.2.4")
+  (let* ((cur-ver (xmacs-version))
          (latest-ver "2026.2.5")
          (latest? (== cur-ver latest-ver))
          (lan (get-output-language))
@@ -165,17 +165,17 @@
        (if latest?
            (show-message (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。") "版本")
            (show-message-with-callback (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。请点击确认前往官网下载最新稳定版。") "版本"
-                         (lambda x (open-url url)))))
+                         (lambda x (open-url url))))))
       ((== lan "taiwanese")
        (if latest?
            (show-message (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。") "版本")
            (show-message-with-callback (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。請點擊確認前往官網下載最新穩定版。") "版本"
-                         (lambda x (open-url url)))))
+                         (lambda x (open-url url))))))
       (else
        (if latest?
            (show-message (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ".") "Version")
            (show-message-with-callback (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ". Please click OK to visit the official website to download the latest stable version.") "Version"
-                         (lambda x (open-url url))))))))
+                         (lambda x (open-url url)))))))))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)
