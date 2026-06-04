@@ -153,15 +153,17 @@ QTMScrollView::updateScrollBars (void) {
   QScrollBar* _hScrollBar= QAbstractScrollArea::horizontalScrollBar ();
   QScrollBar* _vScrollBar= QAbstractScrollArea::verticalScrollBar ();
 
-  int xw = p_extents.width ();
-  int xh = p_extents.height ();
-  int w  = _viewport->width ();  // -2
-  int h  = _viewport->height (); // -2
-  int sbw= qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent);
-  if (_hScrollBar->maximum () > _hScrollBar->minimum ()) h+= sbw;
-  if (_vScrollBar->maximum () > _vScrollBar->minimum ()) w+= sbw;
-  if (xw > w) h-= sbw;
-  if (xh > h) w-= sbw;
+  int  xw    = p_extents.width ();
+  int  xh    = p_extents.height ();
+  int  w     = _viewport->width ();  // -2
+  int  h     = _viewport->height (); // -2
+  bool hbarOn= horizontalScrollBarPolicy () != Qt::ScrollBarAlwaysOff;
+  bool vbarOn= verticalScrollBarPolicy () != Qt::ScrollBarAlwaysOff;
+  int  sbw   = qApp->style ()->pixelMetric (QStyle::PM_ScrollBarExtent);
+  if (hbarOn && _hScrollBar->maximum () > _hScrollBar->minimum ()) h+= sbw;
+  if (vbarOn && _vScrollBar->maximum () > _vScrollBar->minimum ()) w+= sbw;
+  if (hbarOn && xw > w) h-= sbw;
+  if (vbarOn && xh > h) w-= sbw;
   if (!editor_flag) {
     if (xw < w) xw= w;
     if (xh < h) xh= h;

@@ -14,7 +14,6 @@
 #include "QTMStateToolButton.hpp"
 #include "QTMStyle.hpp"
 #include "QTMWidget.hpp"
-#include "edit_interface.hpp"
 #include "new_buffer.hpp"
 #include "new_view.hpp"
 #include "qt_dpi_utils.hpp"
@@ -41,7 +40,6 @@
 #include <QPushButton>
 #include <QResizeEvent>
 #include <QScrollArea>
-#include <QScrollBar>
 #include <QSpacerItem>
 #include <QStackedWidget>
 #include <QTimer>
@@ -194,7 +192,7 @@ ChatConversationPanel::setup_ui () {
         messageQWidget->findChild<QAbstractScrollArea*> ();
     if (msgArea) {
       msgArea->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
-      msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAsNeeded);
+      msgArea->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       msgArea->viewport ()->setBackgroundRole (QPalette::Base);
     }
     QTMWidget* msgEditor= messageQWidget->findChild<QTMWidget*> ();
@@ -252,11 +250,6 @@ ChatConversationPanel::setup_ui () {
       editor->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       editor->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
       editor->viewport ()->setBackgroundRole (QPalette::Base);
-      // Make the canvas surface fill the viewport instead of centering
-      if (QLayout* vpLayout= editor->viewport ()->layout ()) {
-        if (QLayoutItem* item= vpLayout->itemAt (0))
-          item->setAlignment (Qt::AlignLeft | Qt::AlignTop);
-      }
       editor->setProperty ("chat_panel", QVariant::fromValue ((void*) this));
       editor->installEventFilter (this);
       inputQTMWidget_= editor;
@@ -434,22 +427,6 @@ ChatConversationPanel::count_input_lines (tree body) {
   return N (body);
 }
 
-static int
-count_visual_input_lines (QTMWidget* editor, int lineHeight) {
-  if (!editor || lineHeight <= 0 || !editor->isVisible ()) return 1;
-
-  qt_simple_widget_rep* tmEditor= editor->tm_widget ();
-  if (!tmEditor) return 1;
-
-  if (the_gui) the_gui->force_update ();
-
-  edit_interface_rep* ed= dynamic_cast<edit_interface_rep*> (tmEditor);
-  if (!ed) return 1;
-
-  int contentH= to_qsize (0, ed->get_total_height (false)).height ();
-  return qMax (1, (contentH + lineHeight - 1) / lineHeight);
-}
-
 static bool
 has_active_math_completion_popup (QObject* watched) {
   QTMWidget* editor= qobject_cast<QTMWidget*> (watched);
@@ -589,17 +566,10 @@ ChatConversationPanel::adjust_input_height () {
   QWidget* frame= inputEditorWidget_->parentWidget ();
   if (!frame) return;
 
-  tree body       = readInputMessage ();
-  int  lineH      = DpiUtils::scaled (kInputLineHeight);
-  int  docLines   = count_input_lines (body);
-  int  visualLines= count_visual_input_lines (inputQTMWidget_, lineH);
+  tree body    = readInputMessage ();
+  int  docLines= count_input_lines (body);
 
-#ifdef LIII_DEBUG
-  cout << "adjust_input_height: docLines= " << docLines
-       << ", visualLines= " << visualLines << "\n";
-#endif
-
-  int targetLines= qMax (kInputDefaultLines, qMax (docLines, visualLines));
+  int targetLines= qMax (kInputDefaultLines, docLines);
   targetLines    = qMin (targetLines, kInputMaxLines);
   int targetFrameH=
       DpiUtils::scaled (kInputLineHeight * targetLines) + fixedFrameExtra_;

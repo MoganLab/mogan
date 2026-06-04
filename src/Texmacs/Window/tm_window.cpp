@@ -311,6 +311,7 @@ enrich_embedded_document (tree body, tree style) {
   if (!is_func (body, DOCUMENT)) body= tree (DOCUMENT, body);
   hashmap<string, tree> initial (UNINIT);
   initial (PAGE_MEDIUM)      = "automatic";
+  initial (SCROLL_BARS)      = "false";
   initial (PAGE_SCREEN_LEFT) = "4px";
   initial (PAGE_SCREEN_RIGHT)= "4px";
   initial (PAGE_SCREEN_TOP)  = "2px";

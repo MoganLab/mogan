@@ -198,6 +198,8 @@ QTMFloatingSearchBar::setSearchInput (QWidget* input) {
             QAbstractScrollArea* sa=
                 inputQW_->findChild<QAbstractScrollArea*> ();
             if (sa) {
+              sa->setHorizontalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
+              sa->setVerticalScrollBarPolicy (Qt::ScrollBarAlwaysOff);
               sa->viewport ()->setBackgroundRole (QPalette::Base);
               sa->installEventFilter (this);
               sa->viewport ()->installEventFilter (this);
