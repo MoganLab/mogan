@@ -119,18 +119,21 @@
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'math))
+  (scheme-log ">>> math-edit.scm kbd-enter matched math! t:" t)
   (go-end-of 'math)
   (insert-return)
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'equation))
+  (scheme-log ">>> math-edit.scm kbd-enter matched equation! t:" t)
   (go-end-of 'equation)
   (insert-return)
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'equation*))
+  (scheme-log ">>> math-edit.scm kbd-enter matched equation*! t:" t)
   (go-end-of 'equation*)
   (insert-return)
 ) ;tm-define

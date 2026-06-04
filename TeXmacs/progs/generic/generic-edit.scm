@@ -22,6 +22,23 @@
   ) ;:use
 ) ;texmacs-module
 
+(define (scheme-log . msg)
+  (catch #t
+    (lambda ()
+      (let ((port (open-file "/Users/jackyansongli/git/mogan/scheme_debug.log" "a")))
+        (for-each (lambda (x)
+                    (cond ((string? x) (display x port))
+                          ((symbol? x) (display (symbol->string x) port))
+                          ((number? x) (display (number->string x) port))
+                          ((tree? x) (display (tree->string x) port))
+                          (else (display x port)))
+                    (display " " port))
+                  msg)
+        (newline port)
+        (close-port port)))
+    (lambda (key . args)
+      (display* "scheme-log-error: " key " " args "\n"))))
+
 (tm-define (generic-context? t) #t)
 ;; overridden in, e.g., graphics mode
 
@@ -101,6 +118,7 @@
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
+  (scheme-log ">>> recursive kbd-enter t:" t "label:" (tree-label t))
   (and-with p (tree-outer t) (kbd-enter p shift?))
 ) ;tm-define
 
@@ -1199,7 +1217,9 @@
 
 (tm-define (kbd-space) (kbd-space-bar (focus-tree) #f))
 (tm-define (kbd-shift-space) (kbd-space-bar (focus-tree) #t))
-(tm-define (kbd-return) (kbd-enter (focus-tree) #f))
+(tm-define (kbd-return)
+  (scheme-log ">>> kbd-return called, focus-tree is:" (focus-tree))
+  (kbd-enter (focus-tree) #f))
 (tm-define (kbd-shift-return) (kbd-enter (focus-tree) #t))
 (tm-define (kbd-control-return) (kbd-control-enter (focus-tree) #f))
 (tm-define (kbd-shift-control-return) (kbd-control-enter (focus-tree) #t))
