@@ -67,6 +67,8 @@
 
 (define tmtex-image-total 0)
 
+(define tmtex-progress? #f)
+
 (define (tmtex-count-images t)
   (cond ((null? t) 0)
         ((npair? t) 0)
@@ -103,7 +105,7 @@
 
 (define (tmtex-image-increment)
   (set! tmtex-image-progress (+ tmtex-image-progress 1))
-  (when (and (qt-gui?) (> tmtex-image-total 0))
+  (when (and tmtex-progress? (> tmtex-image-total 0))
     (latex-progress-update tmtex-image-progress)
   ) ;when
 ) ;define
@@ -209,6 +211,7 @@
 
 (define (tmtex-initialize opts)
   (set! tmtex-image-progress 0)
+  (set! tmtex-progress? #f)
   (set! tmtex-ref-cnt 1)
   (set! tmtex-env (make-ahash-table))
   (set! tmtex-macros (make-ahash-table))
@@ -5039,7 +5042,13 @@
           ) ;
       (tmtex-initialize opts)
       (set! tmtex-image-total (tmtex-count-images x3))
-      (when (and (qt-gui?) (> tmtex-image-total 0))
+      (set! tmtex-progress?
+        (and (qt-gui?)
+          (== (assoc-ref opts "texmacs->latex:progress") "on")
+          (> tmtex-image-total 0)
+        ) ;and
+      ) ;set!
+      (when tmtex-progress?
         (latex-progress-start tmtex-image-total)
       ) ;when
       (with r
@@ -5047,8 +5056,9 @@
         (if tmtex-mathjax? (set! r (latex-mathjax-pre r)))
         (if (not tmtex-use-macros?) (set! r (latex-expand-macros r)))
         (if tmtex-mathjax? (set! r (latex-mathjax r)))
-        (when (and (qt-gui?) (> tmtex-image-total 0))
+        (when tmtex-progress?
           (latex-progress-end)
+          (set! tmtex-progress? #f)
         ) ;when
         r
       ) ;with
