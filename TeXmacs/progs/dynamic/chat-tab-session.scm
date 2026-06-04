@@ -1197,31 +1197,10 @@
              (plugin-ses (chat-tab-state->plugin-session-id st session-id))
             ) ;
         (if (chat-tab-tree-has-image? input)
-          ;; 包含图片等非文本内容：过滤图片，输出提示，不发给插件
+          ;; 包含图片：弹窗提示用户不支持，不发送
           (begin
-            (chat-tab-clear-input! in-buf)
-            (let* ((plain (chat-tab-tree->plain-text input))
-                   (filtered (stree->tree `(document ,plain)))
-                   (out (chat-tab-append-round! msg-buf filtered session-id))
-                  ) ;
-              (if (not out)
-                #f
-                (begin
-                  (with-buffer msg-buf
-                    (chat-tab-output out
-                      (stree->tree `(document (with ,"color"
-                                                ,"dark grey"
-                                                ,"font-shape"
-                                                ,"italic"
-                                                ,(utf8->cork "AI 聊天暂不支持图片等非文本内容，相关内容已过滤。")))
-                      ) ;stree->tree
-                    ) ;chat-tab-output
-                    (buffer-pretend-saved msg-buf)
-                  ) ;with-buffer
-                  #t
-                ) ;begin
-              ) ;if
-            ) ;let*
+            (user-confirm (translate "AI chat does not support images yet.") #t (lambda (answ) (noop)))
+            #f
           ) ;begin
           ;; 纯文本内容：正常发送流程
           (let* ((out (chat-tab-append-round! msg-buf input session-id)))
