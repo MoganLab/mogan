@@ -311,10 +311,9 @@ ChatConversationPanel::setup_ui () {
   inputAreaLayout->addWidget (inputFrame, 0);
 
   // AI disclaimer label
-  QLabel* disclaimerLabel=
-      new QLabel (qt_translate ("AI-generated content may be inaccurate. "
-                                "Please verify carefully."),
-                  inputArea);
+  QLabel* disclaimerLabel= new QLabel (
+      qt_translate ("Liii STEM can make mistakes. Check important info."),
+      inputArea);
   disclaimerLabel->setObjectName ("chat-tab-disclaimer");
   disclaimerLabel->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (disclaimerLabel, 11);
