@@ -444,7 +444,6 @@ pretty-val : string
 ;; LaTeX ----------
 
 (define-preference-names "texmacs->latex:encoding"
-  ("ascii" "Ascii")
   ("cork"  "Cork with catcodes")
   ("utf-8" "Utf-8 with inputenc"))
 

@@ -181,7 +181,6 @@
                      "texmacs->latex:use-macros"))
             (enum ("Encoding" "texmacs->latex:encoding")
                   ("Utf-8 with inputenc LaTeX package" "utf-8")
-                  ("Strict Ascii" "ascii")
                   ("Cork charset with TeX catcode definition in preamble" "cork"))
             ---
             (toggle ("Keep track of source code"
