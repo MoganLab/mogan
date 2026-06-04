@@ -134,15 +134,9 @@
 
 (tm-define (kbd-enter t shift?)
   (:require (table-markup-context? t))
-  (display* ">>> table-edit.scm kbd-enter matched! t: " t " table-markup-context?: " (table-markup-context? t) "\n")
   (let ((x (inside-which '(table document))))
-    (display* ">>> table-edit.scm kbd-enter inside-which: " x "\n")
-    (cond ((== x 'document)
-           (display* ">>> table-edit.scm kbd-enter doing insert-return\n")
-           (insert-return))
-          (else
-           (display* ">>> table-edit.scm kbd-enter doing table-insert-row and table-go-to\n")
-           (table-insert-row #t) (table-go-to (table-which-row) 1))
+    (cond ((== x 'document) (insert-return))
+          (else (table-insert-row #t) (table-go-to (table-which-row) 1))
     ) ;cond
   ) ;let
 ) ;tm-define

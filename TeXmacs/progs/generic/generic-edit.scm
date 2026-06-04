@@ -101,7 +101,6 @@
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
-  (display* ">>> recursive kbd-enter t: " t " label: " (tree-label t) "\n")
   (and-with p (tree-outer t) (kbd-enter p shift?))
 ) ;tm-define
 
@@ -1200,9 +1199,7 @@
 
 (tm-define (kbd-space) (kbd-space-bar (focus-tree) #f))
 (tm-define (kbd-shift-space) (kbd-space-bar (focus-tree) #t))
-(tm-define (kbd-return)
-  (display* ">>> kbd-return called, focus-tree is: " (focus-tree) "\n")
-  (kbd-enter (focus-tree) #f))
+(tm-define (kbd-return) (kbd-enter (focus-tree) #f))
 (tm-define (kbd-shift-return) (kbd-enter (focus-tree) #t))
 (tm-define (kbd-control-return) (kbd-control-enter (focus-tree) #f))
 (tm-define (kbd-shift-control-return) (kbd-control-enter (focus-tree) #t))

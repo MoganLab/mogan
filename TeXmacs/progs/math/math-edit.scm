@@ -119,35 +119,31 @@
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'math))
-  (display* ">>> math-edit.scm kbd-enter matched math! t: " t "\n")
   (go-end-of 'math)
   (insert-return)
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'equation))
-  (display* ">>> math-edit.scm kbd-enter matched equation! t: " t "\n")
   (go-end-of 'equation)
   (insert-return)
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'equation*))
-  (display* ">>> math-edit.scm kbd-enter matched equation*! t: " t "\n")
   (go-end-of 'equation*)
   (insert-return)
 ) ;tm-define
 
 (tm-define (kbd-enter t shift?)
   (:require (tree-is? t 'aligned))
-  (display* ">>> math-edit.scm kbd-enter matched aligned! t: " t "\n")
   (let* ((c (tree-ref t 0))
          (l0 (concat-decompose c))
          (l2 (list-scatter l0 binary-relation? #t))
         )
     (if (>= (length l2) 2)
-        (let* ((col1 (apply tmconcat (append (car l2) (list (caadr l2)))))
-               (col2 (apply tmconcat (cdadr l2)))
+        (let* ((col1 (apply tmconcat (car l2)))
+               (col2 (apply tmconcat (cadr l2)))
                (r `(tformat (table (row (cell ,col1) (cell ,col2))
                                    (row (cell "") (cell "")))))
               )
