@@ -2365,37 +2365,119 @@
               (cell ,(cadr r)))
          ) ;let*
         ) ;
+        ((tm-func? t 'row 2)
+         (let* ((l (tm-ref t 0 0)) (r (split-htab (tm-ref t 1 0))))
+           `(row (cell (big-math ,l))
+              (cell "")
+              (cell (big-math ,(car r)))
+              (cell ,(cadr r)))
+         ) ;let*
+        ) ;
+        ((tm-func? t 'row 1)
+         (let* ((r (split-htab (tm-ref t 0 0))))
+           `(row (cell (big-math ,(car r))) (cell ,(cadr r)))
+         ) ;let*
+        ) ;
         (else (cons (tm-label t) (map rewrite-eqnarray* (tm-children t))))
   ) ;cond
 ) ;define
 
 (tm-define (ext-tmhtml-eqnarray* body)
   (:secure #t)
-  (if (tm-func? body 'document 1)
-    `(document ,(ext-tmhtml-eqnarray* (tm-ref body 0)))
-    (cond ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
-           `(equation* (rcl-table ,body))
-          ) ;
-          ((and (tm-func? body 'tformat)
-             (tm-func? (tm-ref body :last) 'table 1)
-             (tm-func? (tm-ref body :last 0) 'row 3)
-           ) ;and
-           (let* ((row (tm-ref body :last 0))
-                  (l (tm-ref row 0 0))
-                  (c (tm-ref row 1 0))
-                  (r (split-htab (tm-ref row 2 0)))
-                  (row1 `(row (cell ,l) (cell ,c) (cell ,(car r))))
-                  (rcl `(rcl-table (tformat (table ,row1))))
-                  (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                  (res `(cx-table (tformat (table ,row2))))
-                 ) ;
-             res
-           ) ;let*
-          ) ;
-          (else `(rclx-table ,(rewrite-eqnarray* body)))
-    ) ;cond
-  ) ;if
+  (let* ((wrapped? (tm-func? body 'document 1))
+         (inner (if wrapped? (tm-ref body 0) body))
+         (res (cond ((null? (tm-search inner (lambda (x) (tm-func? x 'htab))))
+                     (let* ((row (if (and (tm-func? inner 'tformat)
+                                       (tm-func? (tm-ref inner :last) 'table)
+                                       (tm-ref inner :last 0)
+                                     ) ;and
+                                   (tm-ref inner :last 0)
+                                   #f
+                                 ) ;if
+                            ) ;row
+                            (cells (if row (tm-children row) '()))
+                           ) ;
+                       (if (== (length cells) 3)
+                         `(equation* (rcl-table ,inner))
+                         `(equations-base ,inner)
+                       ) ;if
+                     ) ;let*
+                    ) ;
+                    ((and (tm-func? inner 'tformat)
+                       (tm-func? (tm-ref inner :last) 'table 1)
+                       (tm-func? (tm-ref inner :last 0) 'row 3)
+                     ) ;and
+                     (let* ((row (tm-ref inner :last 0))
+                            (l (tm-ref row 0 0))
+                            (c (tm-ref row 1 0))
+                            (r (split-htab (tm-ref row 2 0)))
+                            (row1 `(row (cell ,l) (cell ,c) (cell ,(car r))))
+                            (rcl `(rcl-table (tformat (table ,row1))))
+                            (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
+                            (res `(cx-table (tformat (table ,row2))))
+                           ) ;
+                       res
+                     ) ;let*
+                    ) ;
+                    ((and (tm-func? inner 'tformat)
+                       (tm-func? (tm-ref inner :last) 'table 1)
+                       (tm-func? (tm-ref inner :last 0) 'row 2)
+                     ) ;and
+                     (let* ((row (tm-ref inner :last 0))
+                            (l (tm-ref row 0 0))
+                            (r (split-htab (tm-ref row 1 0)))
+                            (row1 `(row (cell ,l) (cell ,(car r))))
+                            (rcl `(align* (tformat (table ,row1))))
+                            (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
+                            (res `(cx-table (tformat (table ,row2))))
+                           ) ;
+                       res
+                     ) ;let*
+                    ) ;
+                    ((and (tm-func? inner 'tformat)
+                       (tm-func? (tm-ref inner :last) 'table 1)
+                       (tm-func? (tm-ref inner :last 0) 'row 1)
+                     ) ;and
+                     (let* ((row (tm-ref inner :last 0))
+                            (r (split-htab (tm-ref row 0 0)))
+                            (row1 `(row (cell ,(car r))))
+                            (rcl `(equations-base (tformat (table ,row1))))
+                            (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
+                            (res `(cx-table (tformat (table ,row2))))
+                           ) ;
+                       res
+                     ) ;let*
+                    ) ;
+                    (else (let* ((row (if (and (tm-func? inner 'tformat)
+                                            (tm-func? (tm-ref inner :last) 'table)
+                                            (tm-ref inner :last 0)
+                                          ) ;and
+                                        (tm-ref inner :last 0)
+                                        #f
+                                      ) ;if
+                                 ) ;row
+                                 (cells (if row (tm-children row) '()))
+                                ) ;
+                            (cond ((== (length cells) 3) `(rclx-table ,(rewrite-eqnarray* inner)))
+                                  ((== (length cells) 2) `(rclx-table ,(rewrite-eqnarray* inner)))
+                                  (else `(cx-table ,(rewrite-eqnarray* inner)))
+                            ) ;cond
+                          ) ;let*
+                    ) ;else
+              ) ;cond
+         ) ;res
+        ) ;
+    res
+  ) ;let*
 ) ;tm-define
+
+(define (tmhtml-eqnarray-dispatch l)
+  (tmhtml (ext-tmhtml-eqnarray* (car l)))
+) ;define
+
+(define (tmhtml-alignat-dispatch l)
+  (tmhtml (ext-tmhtml-eqnarray* (cadr l)))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tags for customized html generation
@@ -2964,6 +3046,18 @@
   (equation* ,tmhtml-equation*)
   (equation-lab ,tmhtml-equation-lab)
   (equations-base ,tmhtml-equation*)
+  (eqnarray* ,tmhtml-eqnarray-dispatch)
+  (eqnarray ,tmhtml-eqnarray-dispatch)
+  (align* ,tmhtml-eqnarray-dispatch)
+  (align ,tmhtml-eqnarray-dispatch)
+  (flalign* ,tmhtml-eqnarray-dispatch)
+  (flalign ,tmhtml-eqnarray-dispatch)
+  (alignat* ,tmhtml-alignat-dispatch)
+  (alignat ,tmhtml-alignat-dispatch)
+  (gather* ,tmhtml-eqnarray-dispatch)
+  (gather ,tmhtml-eqnarray-dispatch)
+  (multline* ,tmhtml-eqnarray-dispatch)
+  (multline ,tmhtml-eqnarray-dispatch)
   (wide-float ,tmhtml-float)
   (draw-over ,tmhtml-draw-over)
   (draw-under ,tmhtml-draw-under)

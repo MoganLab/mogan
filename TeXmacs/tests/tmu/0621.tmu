@@ -1,0 +1,41 @@
+<TMU|<tuple|1.1.0|2026.2.7-rc12>>
+
+<style|<tuple|generic|number-europe|preview-ref|chinese|table-captions-above>>
+
+<\body>
+  <\hide-preamble>
+    <assign|me|<macro|<math-up|e>>>% 自然指数 <assign|dif|<macro|<math-up|d>>>% 微分 d
+
+    <assign|imag|<macro|<math-up|i>>>% 虚数单位
+
+    <assign|bra|<macro|1|\<langle\><arg|1>\|>><assign|ket|<macro|1|\|<arg|1>\<rangle\>>><assign|braket|<macro|1|2|\<langle\><arg|1>\|<arg|2>\<rangle\>>>
+  </hide-preamble>
+
+  公式 (1) (2) (3) 导出 HTML 正常
+
+  <\eqnarray*>
+    <tformat|<cwith|1|-1|1|-1|cell-hyphen|t>|<twith|table-hyphen|y>|<table|<row|<cell|f<around*|(|x|)>>|<cell|\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><eq-number>>>|<row|<cell|>|<cell|\<leq\>>|<cell|<around*|\<\|\|\>|g<around*|(|x|)>-z<around*|(|x|)>|\<\|\|\>>+<around*|\<\|\|\>|z<around*|(|x|)>-h<around*|(|x|)>|\<\|\|\>><eq-number>>>>>
+  </eqnarray*>
+
+  公式 (4) (5) 导出 HTML 不正常，公式编号没有到最右方
+
+  <\align>
+    <tformat|<table|<row|<cell|<frac|<dif><rsup|2>\<Phi\>|<dif>\<phi\><rsup|2>>+m<rsup|2>*\<Phi\>>|<cell|=0,<eq-number><label|eq:phi>>>|<row|<cell|<frac|1|sin \<theta\>>*<frac|<dif>|<dif>\<theta\>><space|-0.17em><around*|(|sin \<theta\><frac|<dif>\<Theta\>|<dif>\<theta\>>|)>+<around*|(|\<lambda\>-<frac|m<rsup|2>|sin<rsup|2> \<theta\>>|)>*\<Theta\>>|<cell|=0.<eq-number><label|eq:theta>>>>>
+  </align>
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|02EF9BEB-8CB5-4B10-8510-7BC96DB8FE30>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|eq:phi|<tuple|4|?>>
+    <associate|eq:theta|<tuple|5|?>>
+  </collection>
+</references>

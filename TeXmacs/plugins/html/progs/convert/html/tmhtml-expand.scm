@@ -87,6 +87,18 @@
                       equation*
                       equation-lab
                       equations-base
+                      eqnarray
+                      eqnarray*
+                      align
+                      align*
+                      flalign
+                      flalign*
+                      alignat
+                      alignat*
+                      gather
+                      gather*
+                      multline
+                      multline*
                       wide-float
                       draw-over
                       draw-under
