@@ -31,13 +31,10 @@
 
 (define tmhtml-env (make-ahash-table))
 
-(define tmhtml-css? #t)
-
-(define tmhtml-mathjax? #f)
-
-(define tmhtml-mathml? #f)
-
-(define tmhtml-images? #f)
+(tm-define tmhtml-css? #t)
+(tm-define tmhtml-mathjax? #f)
+(tm-define tmhtml-mathml? #f)
+(tm-define tmhtml-images? #f)
 (tm-define tmhtml-base64? #t)
 
 (define tmhtml-image-serial 0)
@@ -2355,7 +2352,86 @@
   ) ;let*
 ) ;define
 
-(define (rewrite-eqnarray* t)
+(tm-define (make-html-equation-table rows cols)
+  (let* ((twith-width '(twith "table-width" "1par"))
+         (twith-min `(twith ,"table-min-cols" ,(number->string cols)))
+         (twith-max `(twith ,"table-max-cols" ,(number->string cols)))
+         (cwith-lsep '(cwith "1" "-1" "1" "1" "cell-lsep" "0spc"))
+         (cwith-rsep '(cwith "1" "-1" "-1" "-1" "cell-rsep" "0spc"))
+         (cwith-bsep '(cwith "1" "-1" "1" "-1" "cell-bsep" "0sep"))
+         (cwith-tsep '(cwith "1" "-1" "1" "-1" "cell-tsep" "0sep"))
+         (cwith-block '(cwith "1" "-1" "1" "-1" "cell-block" "no"))
+         (props (list twith-width
+                  twith-min
+                  twith-max
+                  cwith-lsep
+                  cwith-rsep
+                  cwith-bsep
+                  cwith-tsep
+                  cwith-block
+                ) ;list
+         ) ;props
+        ) ;
+    (cond ((== cols 4)
+           ;; 4 columns: r c l r
+           (let ((cwith-h1 '(cwith "1" "-1" "1" "1" "cell-hpart" "1"))
+                 (cwith-h3 '(cwith "1" "-1" "3" "3" "cell-hpart" "2"))
+                 (cwith-a1 '(cwith "1" "-1" "1" "1" "cell-halign" "r"))
+                 (cwith-a2 '(cwith "1" "-1" "2" "2" "cell-halign" "c"))
+                 (cwith-a3 '(cwith "1" "-1" "3" "3" "cell-halign" "l"))
+                 (cwith-a4 '(cwith "1" "-1" "4" "4" "cell-halign" "r"))
+                ) ;
+             `(tformat ,@props
+                ,cwith-h1
+                ,cwith-h3
+                ,cwith-a1
+                ,cwith-a2
+                ,cwith-a3
+                ,cwith-a4
+                (table ,@rows))
+           ) ;let
+          ) ;
+          ((== cols 3)
+           ;; 3 columns: r l r (for 2-column equations like align with eq-number)
+           (let ((cwith-h1 '(cwith "1" "-1" "1" "1" "cell-hpart" "1"))
+                 (cwith-h2 '(cwith "1" "-1" "2" "2" "cell-hpart" "1"))
+                 (cwith-a1 '(cwith "1" "-1" "1" "1" "cell-halign" "r"))
+                 (cwith-a2 '(cwith "1" "-1" "2" "2" "cell-halign" "l"))
+                 (cwith-a3 '(cwith "1" "-1" "3" "3" "cell-halign" "r"))
+                ) ;
+             `(tformat ,@props
+                ,cwith-h1
+                ,cwith-h2
+                ,cwith-a1
+                ,cwith-a2
+                ,cwith-a3
+                (table ,@rows))
+           ) ;let
+          ) ;
+          ((== cols 2)
+           ;; 2 columns: c r
+           (let ((cwith-h1 '(cwith "1" "-1" "1" "1" "cell-hpart" "1"))
+                 (cwith-a1 '(cwith "1" "-1" "1" "1" "cell-halign" "c"))
+                 (cwith-a2 '(cwith "1" "-1" "2" "2" "cell-halign" "r"))
+                ) ;
+             `(tformat ,@props ,cwith-h1 ,cwith-a1 ,cwith-a2 (table ,@rows))
+           ) ;let
+          ) ;
+          (else `(tformat ,@props (table ,@rows)))
+    ) ;cond
+  ) ;let*
+) ;tm-define
+
+(tm-define (tformat-rows tf)
+  (if (and (pair? tf) (eq? (car tf) 'tformat))
+    (let* ((tbl (car (last-pair tf))))
+      (if (and (pair? tbl) (eq? (car tbl) 'table)) (cdr tbl) '())
+    ) ;let*
+    '()
+  ) ;if
+) ;tm-define
+
+(tm-define (rewrite-eqnarray* t)
   (cond ((tm-atomic? t) t)
         ((tm-func? t 'row 3)
          (let* ((l (tm-ref t 0 0)) (c (tm-ref t 1 0)) (r (split-htab (tm-ref t 2 0))))
@@ -2380,7 +2456,7 @@
         ) ;
         (else (cons (tm-label t) (map rewrite-eqnarray* (tm-children t))))
   ) ;cond
-) ;define
+) ;tm-define
 
 (tm-define (ext-tmhtml-eqnarray* body)
   (:secure #t)
@@ -2412,11 +2488,11 @@
                             (c (tm-ref row 1 0))
                             (r (split-htab (tm-ref row 2 0)))
                             (row1 `(row (cell ,l) (cell ,c) (cell ,(car r))))
-                            (rcl `(rcl-table (tformat (table ,row1))))
+                            (rcl (make-html-equation-table (list row1) 3))
                             (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                            (res `(cx-table (tformat (table ,row2))))
+                            (res (make-html-equation-table (list row2) 2))
                            ) ;
-                       res
+                       `(equations-base ,res)
                      ) ;let*
                     ) ;
                     ((and (tm-func? inner 'tformat)
@@ -2427,11 +2503,11 @@
                             (l (tm-ref row 0 0))
                             (r (split-htab (tm-ref row 1 0)))
                             (row1 `(row (cell ,l) (cell ,(car r))))
-                            (rcl `(align* (tformat (table ,row1))))
+                            (rcl (make-html-equation-table (list row1) 2))
                             (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                            (res `(cx-table (tformat (table ,row2))))
+                            (res (make-html-equation-table (list row2) 2))
                            ) ;
-                       res
+                       `(equations-base ,res)
                      ) ;let*
                     ) ;
                     ((and (tm-func? inner 'tformat)
@@ -2441,11 +2517,11 @@
                      (let* ((row (tm-ref inner :last 0))
                             (r (split-htab (tm-ref row 0 0)))
                             (row1 `(row (cell ,(car r))))
-                            (rcl `(equations-base (tformat (table ,row1))))
+                            (rcl (make-html-equation-table (list row1) 1))
                             (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                            (res `(cx-table (tformat (table ,row2))))
+                            (res (make-html-equation-table (list row2) 2))
                            ) ;
-                       res
+                       `(equations-base ,res)
                      ) ;let*
                     ) ;
                     (else (let* ((row (if (and (tm-func? inner 'tformat)
@@ -2458,16 +2534,24 @@
                                  ) ;row
                                  (cells (if row (tm-children row) '()))
                                 ) ;
-                            (cond ((== (length cells) 3) `(rclx-table ,(rewrite-eqnarray* inner)))
-                                  ((== (length cells) 2) `(rclx-table ,(rewrite-eqnarray* inner)))
-                                  (else `(cx-table ,(rewrite-eqnarray* inner)))
+                            (cond ((== (length cells) 3)
+                                   `(equations-base ,(make-html-equation-table (tformat-rows (rewrite-eqnarray* inner))
+                                                       4))
+                                  ) ;
+                                  ((== (length cells) 2)
+                                   `(equations-base ,(make-html-equation-table (tformat-rows (rewrite-eqnarray* inner))
+                                                       4))
+                                  ) ;
+                                  (else `(equations-base ,(make-html-equation-table (tformat-rows (rewrite-eqnarray* inner))
+                                                            2))
+                                  ) ;else
                             ) ;cond
                           ) ;let*
                     ) ;else
               ) ;cond
          ) ;res
         ) ;
-    res
+    (if wrapped? `(document ,res) res)
   ) ;let*
 ) ;tm-define
 
