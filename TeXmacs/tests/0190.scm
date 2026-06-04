@@ -16,47 +16,39 @@
 
 (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
-(define base-opts
-  '(("texmacs->latex:source-tracking" . "off")
-    ("texmacs->latex:conservative" . "on")
-    ("texmacs->latex:transparent-source-tracking" . "on")
-    ("texmacs->latex:attach-tracking-info" . "on")
-    ("texmacs->latex:replace-style" . "on")
-    ("texmacs->latex:expand-macros" . "on")
-    ("texmacs->latex:expand-user-macros" . "off")
-    ("texmacs->latex:indirect-bib" . "off")
-    ("texmacs->latex:use-macros" . "off")))
-
-(define utf8-opts
-  (acons "texmacs->latex:encoding" "UTF-8" base-opts))
-
-(define ascii-opts
-  (acons "texmacs->latex:encoding" "ascii" base-opts))
-
-(define cork-opts
-  (acons "texmacs->latex:encoding" "cork" base-opts))
-
 (define (snippet->latex snippet opts)
   (serialize-latex (texmacs->latex snippet opts)))
 
-(define (only-ascii? s)
-  (let loop ((i 0))
-    (if (>= i (string-length s)) #t
-      (if (> (char->integer (string-ref s i)) 127) #f
-        (loop (+ i 1))))))
-
 (tm-define (test_0190)
-  ;; Test snippet -> LaTeX with default encoding (utf-8): ö stays as UTF-8
-  (with result (snippet->latex "Erwin Schrödinger" base-opts)
-    (check (string-contains? result "Schrödinger") => #t))
+  ;; texmacs->latex input must be Cork-encoded (internal representation)
+  (with cork-text (utf8->cork "Erwin Schrödinger")
+    ;; Test: explicit UTF-8 encoding
+    (with result (snippet->latex cork-text '(("texmacs->latex:encoding" . "UTF-8")))
+      (display* ";;; UTF-8: " result "\n")
+      (check (string-contains? result "Schrödinger") => #t))
 
-  ;; Test snippet -> LaTeX with explicit UTF-8 encoding
-  (with result (snippet->latex "Erwin Schrödinger" utf8-opts)
-    (check (string-contains? result "Schrödinger") => #t))
+    ;; Test: no encoding key → defaults to utf-8
+    (with result (snippet->latex cork-text '())
+      (display* ";;; no-encoding: " result "\n")
+      (check (string-contains? result "Schrödinger") => #t))
 
-  ;; Test snippet -> LaTeX with cork encoding
-  (with result (snippet->latex "Erwin Schrödinger" cork-opts)
-    (check (string-contains? result "Schr") => #t)
-    (check (string-contains? result "dinger") => #t))
+    ;; Test: explicit lowercase utf-8
+    (with result (snippet->latex cork-text '(("texmacs->latex:encoding" . "utf-8")))
+      (display* ";;; lowercase utf-8: " result "\n")
+      (check (string-contains? result "Schrödinger") => #t))
+
+    ;; Test: cork encoding
+    (with result (snippet->latex cork-text '(("texmacs->latex:encoding" . "cork")))
+      (display* ";;; cork: " result "\n")
+      (check (string-contains? result "Schr") => #t)
+      (check (string-contains? result "dinger") => #t)))
+
+  ;; Test: texmacs->generic "latex-snippet" (clipboard path)
+  (with cork-text (utf8->cork "Erwin Schrödinger")
+    (with doc `(document ,cork-text)
+      (with result (texmacs->generic (stree->tree doc) "latex-snippet")
+        (display* ";;; latex-snippet: " result "\n")
+        (check (string? result) => #t)
+        (check (string-contains? result "Schrödinger") => #t))))
 
   (check-report))

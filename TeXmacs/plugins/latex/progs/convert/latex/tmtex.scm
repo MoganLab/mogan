@@ -251,9 +251,9 @@
     (set! tmtex-mathjax? #t)
   ) ;when
   (with charset
-    (assoc-ref opts "texmacs->latex:encoding")
+    (or (assoc-ref opts "texmacs->latex:encoding") "utf-8")
     (if tmtex-cjk-document? (set! charset "utf-8"))
-    (cond ((== charset "utf-8")
+    (cond ((== (locase-all charset) "utf-8")
            (set! tmtex-use-catcodes? #f)
            (set! tmtex-use-unicode? #t)
           ) ;
