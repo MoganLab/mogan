@@ -57,7 +57,7 @@ namespace {
 // ---- Widget 框架相关常量 ----
 constexpr int kSidebarMinWidth          = 200;
 constexpr int kSidebarMarginX           = 12;
-constexpr int kSidebarMarginY           = 16;
+constexpr int kSidebarMarginY           = 8;
 constexpr int kSidebarSpacing           = 8;
 constexpr int kNavChatFontPx            = 22;
 constexpr int kNavButtonFontPx          = 13;
@@ -98,8 +98,9 @@ constexpr int kWelcomeFontPx         = 34;
 constexpr int kInputLineHeight       = 22;
 constexpr int kInputDefaultLines     = 3;
 constexpr int kInputMaxLines         = 10;
-constexpr int kContentMarginY        = 24;
+constexpr int kContentMarginY        = 12;
 constexpr int kContentSpacing        = 8;
+constexpr int kTitleToMessageSpacing = 16;
 constexpr int kWelcomeTopOffsetY     = 240;
 constexpr int kConversationTopOffsetY= 8;
 constexpr int kInputFrameRadius      = 8;
@@ -114,7 +115,7 @@ constexpr int kSendButtonRadius      = 18;
 constexpr int kConversationBtnRadius = 6;
 
 //---- dock 模式 常量 ----
-constexpr int kCloseSidebarBtnMarginY= 22;
+constexpr int kCloseSidebarBtnMarginY= 12;
 
 constexpr char kChatEmbeddedStyle[]= "style";
 
@@ -162,7 +163,7 @@ ChatConversationPanel::setup_ui () {
   sessionTitle_->setAlignment (Qt::AlignCenter);
   DpiUtils::applyScaledFont (sessionTitle_, kSessionTitleFontPx);
   topLayout->addWidget (sessionTitle_, 0, Qt::AlignHCenter);
-  topLayout->addSpacing (DpiUtils::scaled (kContentSpacing));
+  topLayout->addSpacing (DpiUtils::scaled (kTitleToMessageSpacing));
 
   // Message area
   qreal chatZoom = DpiUtils::scaled (100) / 100.0;
