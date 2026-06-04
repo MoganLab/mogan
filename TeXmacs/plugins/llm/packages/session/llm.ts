@@ -54,7 +54,7 @@
     <with|par-left|<plus|<value|par-left>|<arg|left-indentation>>|par-right|<plus|<value|par-right>|<arg|right-indentation>>|<arg|body>>
   </macro>>
 
-  <assign|llm-indent|<macro|<if|<greater|1par|10cm>|0.1par|0par>>>
+  <assign|llm-indent|<macro|<if|<greater|1par|20cm>|0.1par|0par>>>
 
   <assign|llm-input|<\macro|prompt|body>
     <\indent-both|<llm-indent>|<llm-indent>>
