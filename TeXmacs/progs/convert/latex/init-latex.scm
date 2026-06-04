@@ -65,6 +65,7 @@
   (:option "texmacs->latex:indirect-bib" "off")
   (:option "texmacs->latex:use-macros" "on")
   (:option "texmacs->latex:encoding" "ascii")
+  (:option "texmacs->latex:progress" "off")
 ) ;converter
 
 (converter latex-stree latex-document (:function serialize-latex))
