@@ -28,6 +28,16 @@
 
   <use-package|session>
 
+  <assign|session|<\macro|language|session|body>
+    <\with|prog-language|<arg|language>|prog-session|<arg|session>>
+      <render-session|<arg|body>>
+
+      <new-line>
+    </with>
+  </macro>>
+
+  \;
+
   <assign|llm-prompt-color|#4d6cff>
 
   <assign|llm-input-color|dark blue>
@@ -67,8 +77,6 @@
       <\with|info-flag|none|font-family|CMU>
         <\generic-output>
           <text|<arg|body>>
-
-          \;
         </generic-output>
       </with>
     </indent-both>
@@ -84,7 +92,7 @@
 
   <assign|llm-thinking-dots|<macro|<anim-repeat|<anim-compose|<anim-constant||0.35sec>|<anim-constant|.|0.35sec>|<anim-constant|..|0.35sec>|<anim-constant|...|0.35sec>>>>>
 
-  <assign|script-busy|<macro|msg|<script-status|<if|<equal|<arg|msg>|<uninit>>|<concat|<localize|Thinking>|<llm-thinking-dots>>|<arg|msg>>>>>
+  <assign|script-busy|<macro|msg|<script-status|<if|<equal|<arg|msg>|<uninit>>|<localize|Thinking><llm-thinking-dots>|<arg|msg>>>>>
 </body>
 
 <\initial>
