@@ -245,7 +245,7 @@
 (define (test-0610-html-import-integration)
   (display "Verifying HTML import of nested lists to exact TeXmacs environments...\n"
   ) ;display
-  (let* ((html-path "$TEXMACS_PATH/tests/tmu/0610_import_test.html")
+  (let* ((html-path "$TEXMACS_PATH/tests/html/0610_import_test.html")
          (imported-tree (tree-import html-path "html"))
          (stree (tree->stree imported-tree))
          (stree-str (object->string stree))
