@@ -57,7 +57,7 @@
   <assign|llm-indent|<macro|<if|<greater|1par|10cm>|0.1par|0par>>>
 
   <assign|llm-input|<\macro|prompt|body>
-    <\indent-both|<llm-indent>|<llm-indent>>>
+    <\indent-both|<llm-indent>|<llm-indent>>
       <\with|ornament-shape|classic|ornament-color|<llm-input-bg-color>|ornament-border|0ln|ornament-vpadding|0.3fn>
         <\ornament>
           <tabular|<tformat|<twith|table-width|1par>|<cwith|1|1|2|2|cell-hpart|1>|<cwith|1|1|1|1|cell-lsep|0fn>|<cwith|1|1|1|1|cell-rsep|0fn>|<cwith|1|1|2|2|cell-lsep|0fn>|<cwith|1|1|2|2|cell-rsep|0fn>|<cwith|1|1|2|2|cell-hyphen|t>|<twith|table-hyphen|y>|<table|<row|<cell|<id-function|<with|color|<value|llm-prompt-color>|<arg|prompt>>>>|<\cell>
