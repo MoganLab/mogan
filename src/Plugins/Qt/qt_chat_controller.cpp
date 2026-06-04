@@ -260,7 +260,13 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
     call ("chat-tab-session-destroy", sid);
     sessionManager_.removeSession (sid);
 
-    if (panel) view_->removePanel (panel);
+    if (panel) {
+      view_->removePanel (panel);
+    }
+    else if (view_->sidebar ()) {
+      // 无 panel 的 session（延迟加载，从未激活），仍需清理侧边栏项
+      view_->sidebar ()->removeItem (sid);
+    }
   }
 
   // 查找第一个非归档会话作为下一个激活项
@@ -505,6 +511,7 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   if (!ChatConversationPanel::is_empty_document_body (msgBody)) {
     panel->enterConversationMode ();
     QTimer::singleShot (3000, this, [this, sid= panel->sessionId ()] () {
+      if (!sessionManager_.getSession (sid)) return;
       call ("chat-scroll-message-to-end", sid);
     });
   }
