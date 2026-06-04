@@ -1199,7 +1199,7 @@
         (if (chat-tab-tree-has-image? input)
           ;; 包含图片：弹窗提示用户不支持，不发送
           (begin
-            (user-confirm (translate "AI chat does not support images yet.") #t (lambda (answ) (noop)))
+            (user-ask (list (translate "AI chat does not support images yet.") "question-no-cancel" (translate "ok")) (lambda (answ) (noop)))
             #f
           ) ;begin
           ;; 纯文本内容：正常发送流程
