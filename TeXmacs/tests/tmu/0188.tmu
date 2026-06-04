@@ -1,0 +1,38 @@
+<TMU|<tuple|1.1.0|2026.2.5>>
+
+<style|<tuple|generic|number-europe|preview-ref|llm|chinese|table-captions-above>>
+
+<\body>
+  <\code>
+    \\marked{\\text{Var}}
+  </code>
+
+  \;
+
+  \;
+
+  \;
+
+  \;
+
+  \;
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|dpi|600>
+    <associate|font|sys-chinese>
+    <associate|no-zoom|true>
+    <associate|page-medium|paper>
+    <associate|page-screen-bot|2px>
+    <associate|page-screen-left|4px>
+    <associate|page-screen-margin|false>
+    <associate|page-screen-right|4px>
+    <associate|page-screen-top|2px>
+    <associate|scroll-bars|false>
+    <associate|stem-doc-id|EB5560B6-5AF6-4530-8CC8-867856CE7DA0>
+    <associate|zoom-factor|1>
+  </collection>
+</initial>
