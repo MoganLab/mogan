@@ -86,7 +86,7 @@
 
   <assign|generic-prompt-color|#4d6cff>
 
-  <assign|generic-input-color|#9fb8ff>
+  <assign|generic-input-color|#242938>
 
   <assign|defined-color|#4a71a1>
 
