@@ -11,12 +11,15 @@
 #include <QClipboard>
 #include <QDebug>
 #include <QDesktopServices>
+#include <QDockWidget>
 #include <QFile>
 #include <QFrame>
 #include <QGestureEvent>
 #include <QKeyEvent>
+#include <QMainWindow>
 #include <QMouseEvent>
 #include <QPinchGesture>
+#include <QPushButton>
 #include <QResizeEvent>
 #include <QScreen>
 #include <QScrollBar>
@@ -28,6 +31,7 @@
 #endif
 
 #include "MuPDF/mupdf_renderer.hpp"
+#include "qt_chat_tab_widget.hpp"
 #include "qt_dpi_utils.hpp"
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
@@ -1171,6 +1175,29 @@ PDFReaderWidget::keyPressEvent (QKeyEvent* event) {
       event->accept ();
       return;
     }
+  }
+
+  // Ctrl/Cmd+J：切换 AI 聊天侧边栏
+  if (event->key () == Qt::Key_J &&
+      (event->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
+    QMainWindow* mw= qobject_cast<QMainWindow*> (window ());
+    if (mw) {
+      QDockWidget* dock= mw->findChild<QDockWidget*> ("chatSideDock");
+      if (dock) {
+        if (dock->isVisible ()) {
+          QTChatTabWidget* chatWidget=
+              qobject_cast<QTChatTabWidget*> (dock->widget ());
+          if (chatWidget) emit chatWidget->closeSidebarRequested ();
+        }
+        else {
+          QPushButton* toggleBtn=
+              mw->findChild<QPushButton*> ("chat-tab-collapse-btn");
+          if (toggleBtn) toggleBtn->click ();
+        }
+      }
+    }
+    event->accept ();
+    return;
   }
 
   if (event->key () == Qt::Key_J || event->key () == Qt::Key_K) {
