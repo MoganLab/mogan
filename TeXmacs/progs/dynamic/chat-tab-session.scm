@@ -585,7 +585,7 @@
 ) ;tm-define
 
 (tm-define (chat-tab-sync-dark-style! session-id)
-  ;; 在 llm 样式包之后加载暗色主题，确保 dark 中的覆盖值生效
+  ;; C++ 侧创建 panel 后调用，同步暗色样式包
   (when (== (get-preference "gui theme") "liii-night")
     (let ((msg-buf (chat-tab-session->message-buffer session-id))
           (in-buf (chat-tab-session->input-buffer session-id))
@@ -637,8 +637,6 @@
           (chat-tab-add-default-style-packages!)
         ) ;with-buffer
         (with-buffer in-buf (chat-tab-add-default-style-packages!))
-        ;; dark 必须在 llm 之后加载，确保覆盖值生效
-        (chat-tab-sync-dark-style! session-id)
         (chat-tab-set-style-loaded! session-id)
         st
       ) ;let*
