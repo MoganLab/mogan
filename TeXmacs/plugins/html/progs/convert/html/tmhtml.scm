@@ -31,13 +31,13 @@
 
 (define tmhtml-env (make-ahash-table))
 
-(define tmhtml-css? #t)
+(tm-define tmhtml-css? #t)
 
-(define tmhtml-mathjax? #f)
+(tm-define tmhtml-mathjax? #f)
 
-(define tmhtml-mathml? #f)
+(tm-define tmhtml-mathml? #f)
 
-(define tmhtml-images? #f)
+(tm-define tmhtml-images? #f)
 (tm-define tmhtml-base64? #t)
 
 (define tmhtml-image-serial 0)
@@ -2393,6 +2393,46 @@
            ) ;let*
           ) ;
           (else `(rclx-table ,(rewrite-eqnarray* body)))
+    ) ;cond
+  ) ;if
+) ;tm-define
+
+(tm-define (rewrite-align* t)
+  (cond ((tm-atomic? t) t)
+        ((tm-func? t 'row 2)
+         (let* ((l (tm-ref t 0 0)) (r (split-htab (tm-ref t 1 0))))
+           `(row (cell (big-math ,l))
+              (cell (big-math ,(car r)))
+              (cell ,(cadr r)))
+         ) ;let*
+        ) ;
+        (else (cons (tm-label t) (map rewrite-align* (tm-children t))))
+  ) ;cond
+) ;tm-define
+
+(tm-define (ext-tmhtml-align* body)
+  (:secure #t)
+  (if (tm-func? body 'document 1)
+    `(document ,(ext-tmhtml-align* (tm-ref body 0)))
+    (cond ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
+           `(equation* (aligned* ,body))
+          ) ;
+          ((and (tm-func? body 'tformat)
+             (tm-func? (tm-ref body :last) 'table 1)
+             (tm-func? (tm-ref body :last 0) 'row 2)
+           ) ;and
+           (let* ((row (tm-ref body :last 0))
+                  (l (tm-ref row 0 0))
+                  (r (split-htab (tm-ref row 1 0)))
+                  (row1 `(row (cell ,l) (cell ,(car r))))
+                  (rcl `(aligned* (tformat (table ,row1))))
+                  (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
+                  (res `(cx-table (tformat (table ,row2))))
+                 ) ;
+             res
+           ) ;let*
+          ) ;
+          (else `(alignx-table ,(rewrite-align* body)))
     ) ;cond
   ) ;if
 ) ;tm-define

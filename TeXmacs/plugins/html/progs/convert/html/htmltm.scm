@@ -92,23 +92,39 @@
 ;; Tables
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (htmltm-table env a c)
+(tm-define (htmltm-table env a c)
   ;; TODO: support @lang attributes
   ;; NOT SUPPORTED: @summary - for spoken rendering
   ;;                @title   - no tooltip feature
   ;;                @style   - no CSS support
   ;;                @events  - no event support
-  (let ((cells (table-cells env a c)))
+  (let* ((class-value (shtml-attr-non-null a 'class)) (cells (table-cells env a c)))
     (if (null? cells)
       '()
-      ((cut table-align env a <>)
-       (append (list (tmtable->stm (tmtable (table-formats env a c) cells)))
-         (table-label env a)
-       ) ;append
-      ) ;
+      (let* ((tbl-stm (tmtable->stm (tmtable (table-formats env a c) cells)))
+             (stms (append (list tbl-stm) (table-label env a)))
+             (aligned ((cut table-align env a <>) stms))
+            ) ;
+        (cond ((and (string? class-value)
+                 (in? class-value
+                   '("eqnarray"
+                     "eqnarray*"
+                     "align"
+                     "align*"
+                     "gather"
+                     "gather*"
+                     "multline"
+                     "multline*")
+                 ) ;in?
+               ) ;and
+               (list `(,(string->symbol class-value) (document ,tbl-stm)))
+              ) ;
+              (else aligned)
+        ) ;cond
+      ) ;let*
     ) ;if
-  ) ;let
-) ;define
+  ) ;let*
+) ;tm-define
 
 (define (table-label env a)
   (let ((label (xmltm-attr->label a 'id)))
