@@ -41,8 +41,14 @@
          ) ;inner
          (res (ext-tmhtml-align* inner))
         ) ;
-    (check (car res) => 'alignx-table)
-    (let* ((rewritten (cadr res)) (tbl (last rewritten)) (rows (cdr tbl)))
+    (check (car res) => 'html-class)
+    (check (cadr res) => "equations-table")
+    (let* ((table-node (caddr res))
+           (rewritten (cadr table-node))
+           (tbl (last rewritten))
+           (rows (cdr tbl))
+          ) ;
+      (check (car table-node) => 'alignx-table)
       (check (car rewritten) => 'tformat)
       (check (not (not (member '(row (cell (big-math "L1"))
                                   (cell (big-math "R1"))

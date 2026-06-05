@@ -185,6 +185,7 @@
                 "h6 { display: inline; padding-right: 1em } "
                 "table { border-collapse: collapse } "
                 "td { padding: 0.2em; vertical-align: baseline } "
+                ".equations-table td { vertical-align: middle } "
                 "dt { float: left; min-width: 1.75em; text-align: right; "
                 "padding-right: 0.75em; font-weight: bold; } "
                 "dd { margin-left: 2.75em; padding-bottom: 0.25em; } "
@@ -2374,7 +2375,7 @@
   (if (tm-func? body 'document 1)
     `(document ,(ext-tmhtml-eqnarray* (tm-ref body 0)))
     (cond ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
-           `(equation* (rcl-table ,body))
+           `(equation* (html-class ,"equations-table" (rcl-table ,body)))
           ) ;
           ((and (tm-func? body 'tformat)
              (tm-func? (tm-ref body :last) 'table 1)
@@ -2387,12 +2388,14 @@
                   (row1 `(row (cell ,l) (cell ,c) (cell ,(car r))))
                   (rcl `(rcl-table (tformat (table ,row1))))
                   (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                  (res `(cx-table (tformat (table ,row2))))
+                  (res `(html-class ,"equations-table"
+                          (cx-table (tformat (table ,row2)))))
                  ) ;
              res
            ) ;let*
           ) ;
-          (else `(rclx-table ,(rewrite-eqnarray* body)))
+          (else `(html-class ,"equations-table"
+                   (rclx-table ,(rewrite-eqnarray* body))))
     ) ;cond
   ) ;if
 ) ;tm-define
@@ -2415,7 +2418,7 @@
   (if (tm-func? body 'document 1)
     `(document ,(ext-tmhtml-align* (tm-ref body 0)))
     (cond ((null? (tm-search body (lambda (x) (tm-func? x 'htab))))
-           `(equation* (aligned* ,body))
+           `(equation* (html-class ,"equations-table" (aligned* ,body)))
           ) ;
           ((and (tm-func? body 'tformat)
              (tm-func? (tm-ref body :last) 'table 1)
@@ -2427,12 +2430,14 @@
                   (row1 `(row (cell ,l) (cell ,(car r))))
                   (rcl `(aligned* (tformat (table ,row1))))
                   (row2 `(row (cell (big-math ,rcl)) (cell ,(cadr r))))
-                  (res `(cx-table (tformat (table ,row2))))
+                  (res `(html-class ,"equations-table"
+                          (cx-table (tformat (table ,row2)))))
                  ) ;
              res
            ) ;let*
           ) ;
-          (else `(alignx-table ,(rewrite-align* body)))
+          (else `(html-class ,"equations-table"
+                   (alignx-table ,(rewrite-align* body))))
     ) ;cond
   ) ;if
 ) ;tm-define
