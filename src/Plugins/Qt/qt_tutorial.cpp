@@ -37,8 +37,6 @@
 #include <QVBoxLayout>
 #include <QWheelEvent>
 
-extern bool texmacs_started;
-
 #include <nlohmann/json.hpp>
 
 using nlohmann::json;
@@ -1445,14 +1443,6 @@ FirstLaunchTutorialController::maybeStartForMainWindow (
   QPointer<QMainWindow> target= mainWindow;
   QTimer::singleShot (0, mainWindow, [this, target, flow] () {
     if (target == nullptr) return;
-    if (!texmacs_started) {
-      QTimer::singleShot (500, target, [this, target, flow] () {
-        if (target == nullptr) return;
-        target->setProperty ("tutorialScheduled", false);
-        maybeStartForMainWindow (target);
-      });
-      return;
-    }
     target->setProperty ("tutorialScheduled", false);
     if (!shouldStart (flow)) return;
 
