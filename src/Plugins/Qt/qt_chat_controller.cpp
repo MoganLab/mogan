@@ -206,7 +206,7 @@ ChatController::onSendRequested (const string& sessionId) {
         qTitle= words.join (" ") + "...";
       }
     }
-    sessionManager_.setTitle (sessionId, from_qstring (qTitle));
+    sessionManager_.setTitle (sessionId, from_qstring_utf8 (qTitle));
     string displayTitle= getSessionDisplayTitle (sessionId);
     view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
     view_->sidebar ()->setActiveItem (sessionId);

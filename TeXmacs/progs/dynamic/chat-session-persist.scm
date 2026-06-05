@@ -95,8 +95,10 @@
 (tm-define (chat-persist-extract-title session-id)
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
+         (verbatim-text (texmacs->verbatim body))
+         (title (string-replace verbatim-text "\n" " "))
         ) ;
-    (string-replace (texmacs->verbatim body) "\n" " ")
+    title
   ) ;let*
 ) ;tm-define
 

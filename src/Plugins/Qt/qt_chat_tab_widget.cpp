@@ -913,7 +913,7 @@ ChatSidebar::endEditTitle (const string& sessionId, bool accept) {
   it->sidebarButton->show ();
 
   if (accept && !newTitle.isEmpty () && newTitle != oldTitle) {
-    emit renameRequested (sessionId, from_qstring (newTitle));
+    emit renameRequested (sessionId, from_qstring_utf8 (newTitle));
   }
 }
 

@@ -1072,10 +1072,14 @@
          (rounds (chat-tab-extract-rounds msg-buf))
          (st (chat-tab-get-state session-id))
          (thinking (if st (chat-tab-state-thinking st) "disabled"))
-         (json-str (chat-tab-rounds->json rounds thinking))
-         (cmd (string-append "%context " (utf8->cork json-str)))
         ) ;
-    (stree->tree `(document ,cmd))
+    (let ((json-str (chat-tab-rounds->json rounds thinking)))
+      (let ((cork-json (utf8->cork json-str)))
+        (let ((cmd (string-append "%context " cork-json)))
+          (stree->tree `(document ,cmd))
+        ) ;let
+      ) ;let
+    ) ;let
   ) ;let*
 ) ;define
 
