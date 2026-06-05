@@ -371,9 +371,9 @@ ChatController::onExportRequested (const string& sessionId) {
   docsDir= QDir (docsDir).filePath ("LiiiSTEM");
   if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
 
-  QString rawName= is_empty (s->title) ? QString ("export")
-                                       : to_qstring (s->title);
-  QString sanitized= sanitizeExportFileName (rawName);
+  QString rawName=
+      is_empty (s->title) ? QString ("export") : to_qstring (s->title);
+  QString sanitized  = sanitizeExportFileName (rawName);
   QString defaultName= sanitized + ".tmu";
   QString defaultPath= QDir (docsDir).filePath (defaultName);
   QString targetPath = QFileDialog::getSaveFileName (

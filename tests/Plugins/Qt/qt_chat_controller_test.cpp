@@ -80,8 +80,7 @@ private slots:
   }
 
   void test_sanitize_empty_returns_export () {
-    QCOMPARE (ChatController::sanitizeExportFileName (""),
-              QString ("export"));
+    QCOMPARE (ChatController::sanitizeExportFileName (""), QString ("export"));
   }
 
   void test_sanitize_only_invalid_returns_export () {
@@ -90,8 +89,7 @@ private slots:
   }
 
   void test_sanitize_only_spaces_becomes_underscores () {
-    QCOMPARE (ChatController::sanitizeExportFileName ("   "),
-              QString ("___"));
+    QCOMPARE (ChatController::sanitizeExportFileName ("   "), QString ("___"));
   }
 
   void test_sanitize_cjk_preserved () {
@@ -100,8 +98,9 @@ private slots:
   }
 
   void test_sanitize_mixed_valid_and_invalid () {
-    QCOMPARE (ChatController::sanitizeExportFileName ("My *cool* chat / session?"),
-              QString ("My_cool_chat__session"));
+    QCOMPARE (
+        ChatController::sanitizeExportFileName ("My *cool* chat / session?"),
+        QString ("My_cool_chat__session"));
   }
 
   void test_sanitize_leading_trailing_spaces () {
