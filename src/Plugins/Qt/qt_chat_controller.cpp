@@ -344,6 +344,20 @@ ChatController::onRestoreRequested (const string& sessionId) {
   activateSession (sessionId);
 }
 
+QString
+ChatController::sanitizeExportFileName (const QString& rawName) {
+  QString sanitized;
+  for (int i= 0; i < rawName.size (); ++i) {
+    QChar c= rawName[i];
+    if (c == ' ') sanitized+= '_';
+    else if (c != '\\' && c != '/' && c != ':' && c != '*' && c != '?' &&
+             c != '"' && c != '<' && c != '>' && c != '|')
+      sanitized+= c;
+  }
+  if (sanitized.isEmpty ()) sanitized= "export";
+  return sanitized;
+}
+
 void
 ChatController::onExportRequested (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
@@ -357,8 +371,10 @@ ChatController::onExportRequested (const string& sessionId) {
   docsDir= QDir (docsDir).filePath ("LiiiSTEM");
   if (!QDir (docsDir).exists ()) QDir ().mkpath (docsDir);
 
-  QString defaultName= is_empty (s->title) ? QString ("export.tmu")
-                                           : to_qstring (s->title) + ".tmu";
+  QString rawName= is_empty (s->title) ? QString ("export")
+                                       : to_qstring (s->title);
+  QString sanitized= sanitizeExportFileName (rawName);
+  QString defaultName= sanitized + ".tmu";
   QString defaultPath= QDir (docsDir).filePath (defaultName);
   QString targetPath = QFileDialog::getSaveFileName (
       nullptr, qt_translate ("Export Conversation"), defaultPath,

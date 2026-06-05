@@ -135,6 +135,13 @@ public:
 
   string activeSessionMessageBufferUrl () const;
 
+  /**
+   * @brief 清理导出文件名：空格替换为下划线，过滤非法字符。
+   * @param rawName 原始文件名（不含后缀）
+   * @return 清理后的文件名（不含后缀）
+   */
+  static QString sanitizeExportFileName (const QString& rawName);
+
 private:
   QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_;  ///< 会话管理器
