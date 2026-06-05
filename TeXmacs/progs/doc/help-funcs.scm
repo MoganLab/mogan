@@ -158,24 +158,13 @@
   (let* ((cur-ver (xmacs-version))
          (latest-ver "2026.2.5")
          (latest? (== cur-ver latest-ver))
-         (lan (get-output-language))
          (url "https://liiistem.cn?utm_source=mogan-app&utm_medium=referral&utm_campaign=version-check"))
-    (cond
-      ((== lan "chinese")
-       (if latest?
-           (show-message (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。") "版本")
-           (show-message-with-callback (string-append "您正在使用 v" cur-ver "，当前最新稳定版是 v" latest-ver "。请点击确认前往官网下载最新稳定版。") "版本"
-                         (lambda x (open-url url)))))
-      ((== lan "taiwanese")
-       (if latest?
-           (show-message (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。") "版本")
-           (show-message-with-callback (string-append "您正在使用 v" cur-ver "，目前最新穩定版是 v" latest-ver "。請點擊確認前往官網下載最新穩定版。") "版本"
-                         (lambda x (open-url url)))))
-      (else
-       (if latest?
-           (show-message (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ".") "Version")
-           (show-message-with-callback (string-append "You are using v" cur-ver ", and the latest stable version is v" latest-ver ". Please click OK to visit the official website to download the latest stable version.") "Version"
-                         (lambda x (open-url url))))))))
+    (if latest?
+        (show-message (replace "You are using v%1, and the latest stable version is v%2." cur-ver latest-ver)
+                      (translate "Version"))
+        (show-message-with-callback (replace "You are using v%1, and the latest stable version is v%2. Please click OK to visit the official website to download the latest stable version." cur-ver latest-ver)
+                                    (translate "Version")
+                                    (lambda x (open-url url))))))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)

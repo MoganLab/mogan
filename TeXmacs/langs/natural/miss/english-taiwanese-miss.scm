@@ -991,6 +991,8 @@
 ("wrong passphrase" "個 錯誤的密碼短語")
 ("year" "年")
 ("you are attempting to open an encrypted file while" "您正在嘗試同時打開加密文件")
+("You are using v%1, and the latest stable version is v%2." "您正在使用 v%1，目前最新穩定版是 v%2。")
+("You are using v%1, and the latest stable version is v%2. Please click OK to visit the official website to download the latest stable version." "您正在使用 v%1，目前最新穩定版是 v%2。請點擊確認前往官網下載最新穩定版。")
 ("you might consider enabling the experimental" "您可以考慮啟用實驗性功能")
 ("you must add a bibliography file" "您必須添加書目文件")
 ("you should also make sure that GnuPG is installed" "您還應確保已安裝GnuPG")

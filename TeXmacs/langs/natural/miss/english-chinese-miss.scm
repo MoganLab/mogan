@@ -975,6 +975,8 @@
 ("wrong empty passphrase" "错误的空密码")
 ("wrong passphrase" "错误的密码短语")
 ("you are attempting to open an encrypted file while" "您正在尝试同时打开加密文件")
+("You are using v%1, and the latest stable version is v%2." "您正在使用 v%1，当前最新稳定版是 v%2。")
+("You are using v%1, and the latest stable version is v%2. Please click OK to visit the official website to download the latest stable version." "您正在使用 v%1，当前最新稳定版是 v%2。请点击确认前往官网下载最新稳定版。")
 ("you might consider enabling the experimental" "您可以考虑启用实验性功能")
 ("you must add a bibliography file" "您必须添加书目文件")
 ("you should also make sure that GnuPG is installed" "您还应确保已安装GnuPG")
