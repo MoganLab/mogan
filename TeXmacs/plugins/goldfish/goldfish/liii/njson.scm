@@ -205,7 +205,12 @@
           json-string
         ) ;type-error
       ) ;unless
-      (g_njson-string->json json-string)
+      (catch #t
+        (lambda () (g_njson-string->json json-string))
+        (lambda args
+          (apply error (cons "string->njson" args))
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     (define (file->njson path)
@@ -223,7 +228,12 @@
           x
         ) ;type-error
       ) ;unless
-      (g_njson-json->string x)
+      (catch #t
+        (lambda () (g_njson-json->string x))
+        (lambda args
+          (apply error (cons "njson->string" args))
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     (define (njson-format-string json-string . rest)
@@ -312,7 +322,12 @@
           json
         ) ;type-error
       ) ;unless
-      (g_njson-object->alist json)
+      (catch #t
+        (lambda () (g_njson-object->alist json))
+        (lambda args
+          (apply error (cons "njson-object->alist" args))
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     (define (njson-object->hash-table json)
@@ -330,7 +345,12 @@
           json
         ) ;type-error
       ) ;unless
-      (g_njson-array->list json)
+      (catch #t
+        (lambda () (g_njson-array->list json))
+        (lambda args
+          (apply error (cons "njson-array->list" args))
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     (define (njson-array->vector json)
@@ -348,9 +368,16 @@
           json
         ) ;type-error
       ) ;unless
-      (apply g_njson-ref
-        (cons json (cons key keys))
-      ) ;apply
+      (catch #t
+        (lambda ()
+          (apply g_njson-ref
+            (cons json (cons key keys))
+          ) ;apply
+        ) ;lambda
+        (lambda args
+          (apply error (cons "njson-ref" args))
+        ) ;lambda
+      ) ;catch
     ) ;define
 
     ;; Same calling style as (liii json):

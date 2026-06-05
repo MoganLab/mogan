@@ -654,7 +654,15 @@ njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_
     return njson_error (sc, "type-error", std::string (api_name) + ": json root must be array", handle);
   }
 
-  return njson_value_to_scheme_tree (sc, *root, mode);
+  try {
+    return njson_value_to_scheme_tree (sc, *root, mode);
+  }
+  catch (const json::exception& err) {
+    return njson_error (sc, "njson-error", std::string (api_name) + ": " + std::string (err.what ()), handle);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
@@ -684,6 +692,9 @@ f_njson_string_to_json (s7_scheme* sc, s7_pointer args) {
   catch (const json::parse_error& err) {
     return njson_error (sc, "parse-error", err.what (), input);
   }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", err.what (), input);
+  }
 }
 
 static s7_pointer
@@ -698,8 +709,16 @@ f_njson_json_to_string (s7_scheme* sc, s7_pointer args) {
   if (!scheme_to_njson_scalar_or_handle (sc, input, encoded, error_msg)) {
     return njson_error (sc, "type-error", "g_njson-json->string: " + error_msg, input);
   }
-  std::string dumped = encoded.dump ();
-  return s7_make_string (sc, dumped.c_str ());
+  try {
+    std::string dumped = encoded.dump ();
+    return s7_make_string (sc, dumped.c_str ());
+  }
+  catch (const json::exception& err) {
+    return njson_error (sc, "njson-error", "g_njson-json->string: " + std::string (err.what ()), input);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-json->string: " + std::string (err.what ()), input);
+  }
 }
 
 static s7_pointer
@@ -733,6 +752,9 @@ f_njson_format_string (s7_scheme* sc, s7_pointer args) {
   }
   catch (const json::parse_error& err) {
     return njson_error (sc, "parse-error", err.what (), input);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", err.what (), input);
   }
 }
 
@@ -769,7 +791,12 @@ njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_
     return njson_error (sc, "type-error",
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", input);
   }
-  return s7_make_boolean (sc, handle_pred (*value));
+  try {
+    return s7_make_boolean (sc, handle_pred (*value));
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (err.what ()), input);
+  }
 }
 
 static s7_pointer
@@ -839,11 +866,16 @@ f_njson_free (s7_scheme* sc, s7_pointer args) {
   if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
     return njson_error (sc, "type-error", "g_njson-free: " + error_msg, handle);
   }
-  NjsonState& state = njson_get_or_create_state (sc);
-  njson_clear_keys_cache_slot (sc, id);
-  state.handle_store[static_cast<size_t> (id)].reset ();
-  state.handle_free_ids.push_back (id);
-  return s7_t (sc);
+  try {
+    NjsonState& state = njson_get_or_create_state (sc);
+    njson_clear_keys_cache_slot (sc, id);
+    state.handle_store[static_cast<size_t> (id)].reset ();
+    state.handle_free_ids.push_back (id);
+    return s7_t (sc);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-free: " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
@@ -864,10 +896,15 @@ f_njson_size (s7_scheme* sc, s7_pointer args) {
     return njson_error (sc, "type-error", "g_njson-size: njson handle does not exist (may have been freed)", handle);
   }
 
-  if (root->is_object () || root->is_array ()) {
-    return s7_make_integer (sc, static_cast<s7_int> (root->size ()));
+  try {
+    if (root->is_object () || root->is_array ()) {
+      return s7_make_integer (sc, static_cast<s7_int> (root->size ()));
+    }
+    return s7_make_integer (sc, 0);
   }
-  return s7_make_integer (sc, 0);
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-size: " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
@@ -889,10 +926,15 @@ f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
                         "g_njson-empty?: njson handle does not exist (may have been freed)", handle);
   }
 
-  if (root->is_object () || root->is_array ()) {
-    return s7_make_boolean (sc, root->empty ());
+  try {
+    if (root->is_object () || root->is_array ()) {
+      return s7_make_boolean (sc, root->empty ());
+    }
+    return s7_t (sc);
   }
-  return s7_t (sc);
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-empty?: " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
@@ -925,7 +967,15 @@ f_njson_ref (s7_scheme* sc, s7_pointer args) {
   if (!lookup_path_const (sc, *root, path, found_value, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
   }
-  return njson_value_to_scheme_or_handle (sc, *found_value);
+  try {
+    return njson_value_to_scheme_or_handle (sc, *found_value);
+  }
+  catch (const json::exception& err) {
+    return njson_error (sc, "njson-error", "g_njson-ref: " + std::string (err.what ()), handle);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-ref: " + std::string (err.what ()), handle);
+  }
 }
 
 enum class njson_update_op {
@@ -1088,32 +1138,40 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
     return err;
   }
 
-  if (in_place) {
-    json* root = njson_value_by_id (sc, id);
+  try {
+    if (in_place) {
+      json* root = njson_value_by_id (sc, id);
+      if (!root) {
+        return njson_error (sc, "type-error",
+                            std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+      }
+      err = njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle);
+      if (err) {
+        return err;
+      }
+      // Keep write-path fast: only invalidate; keys will be rebuilt lazily on next njson-keys call.
+      njson_invalidate_keys_cache_if_present (sc, id);
+      return handle;
+    }
+
+    const json* root = njson_value_by_id_const (sc, id);
     if (!root) {
       return njson_error (sc, "type-error",
                           std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
     }
-    err = njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle);
+    json out = *root;
+    err = njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle);
     if (err) {
       return err;
     }
-    // Keep write-path fast: only invalidate; keys will be rebuilt lazily on next njson-keys call.
-    njson_invalidate_keys_cache_if_present (sc, id);
-    return handle;
+    return make_njson_handle (sc, store_njson_value (sc, std::move (out)));
   }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error",
-                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
+  catch (const json::exception& ex) {
+    return njson_error (sc, "njson-error", std::string (api_name) + ": " + std::string (ex.what ()), handle);
   }
-  json out = *root;
-  err = njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle);
-  if (err) {
-    return err;
+  catch (const std::exception& ex) {
+    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (ex.what ()), handle);
   }
-  return make_njson_handle (sc, store_njson_value (sc, std::move (out)));
 }
 
 enum class njson_merge_mode {
@@ -1258,7 +1316,15 @@ f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
   if (!scheme_json_key_to_string (sc, key, key_name, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-contains-key?: " + error_msg, key);
   }
-  return s7_make_boolean (sc, root->contains (key_name));
+  try {
+    return s7_make_boolean (sc, root->contains (key_name));
+  }
+  catch (const json::exception& err) {
+    return njson_error (sc, "njson-error", "g_njson-contains-key?: " + std::string (err.what ()), handle);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-contains-key?: " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
@@ -1288,13 +1354,21 @@ f_njson_keys (s7_scheme* sc, s7_pointer args) {
   }
 
   std::vector<std::string> keys;
-  njson_collect_keys (*root, keys);
-  njson_store_keys_cache (sc, id, std::move (keys));
-  const std::vector<std::string>* stored = nullptr;
-  if (njson_try_get_keys_cache (sc, id, stored)) {
-    return njson_build_keys_list (sc, *stored);
+  try {
+    njson_collect_keys (*root, keys);
+    njson_store_keys_cache (sc, id, std::move (keys));
+    const std::vector<std::string>* stored = nullptr;
+    if (njson_try_get_keys_cache (sc, id, stored)) {
+      return njson_build_keys_list (sc, *stored);
+    }
+    return s7_nil (sc);
   }
-  return s7_nil (sc);
+  catch (const json::exception& err) {
+    return njson_error (sc, "njson-error", "g_njson-keys: " + std::string (err.what ()), handle);
+  }
+  catch (const std::exception& err) {
+    return njson_error (sc, "misc-error", "g_njson-keys: " + std::string (err.what ()), handle);
+  }
 }
 
 static s7_pointer
