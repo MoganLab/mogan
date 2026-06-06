@@ -19,9 +19,7 @@
 #include "dictionary.hpp"
 #include "file.hpp"
 #include "glue.hpp"
-#ifndef OS_WASM
 #include "goldfish.hpp"
-#endif
 #include "lolly/system/subprocess.hpp"
 #include "new_style.hpp"
 #include "s7_blackbox.hpp"
@@ -34,7 +32,7 @@
 #include <moebius/drd/drd_std.hpp>
 #include <s7_tm.hpp>
 
-#ifdef QTTEXMACS
+#if defined(QTTEXMACS) && !defined(OS_WASM)
 #include <QApplication>
 #include <QProcess>
 #include <QStringList>
@@ -154,14 +152,14 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
   eval_scheme_root (init_prg);
   initialize_smobs (initialize_scheme ());
   initialize_glue ();
-#ifndef OS_WASM
   goldfish::glue_for_community_edition (tm_s7);
-#endif
   gui_interpose (texmacs_interpose_handler);
   set_wait_handler (texmacs_wait_handler);
 
   init_app (app);
+#ifndef OS_WASM
   m_account= new QTMOAuth ();
+#endif
 
 #ifdef OS_GNU_LINUX
   return; // in order to avoid segmentation faults
@@ -170,7 +168,11 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
 #endif
 }
 
-tm_server_rep::~tm_server_rep () { delete m_account; }
+tm_server_rep::~tm_server_rep () {
+#ifndef OS_WASM
+  delete m_account;
+#endif
+}
 server::server (app_type app) : rep (tm_new<tm_server_rep> (app)) {}
 server_rep*
 tm_server_rep::get_server () {
@@ -327,7 +329,7 @@ tm_server_rep::restart () {
   call ("quit-TeXmacs-scheme");
   clear_pending_commands ();
 
-#ifdef QTTEXMACS
+#if defined(QTTEXMACS) && !defined(OS_WASM)
   del_obj_qt_renderer ();
   array<url>  buffers= get_all_buffers ();
   QStringList args   = QApplication::arguments ();
@@ -347,12 +349,18 @@ tm_server_rep::restart () {
 
 void
 tm_server_rep::login () {
+#ifndef OS_WASM
   m_account->login ();
+#endif
 }
 
 bool
 tm_server_rep::is_logged_in () {
+#ifdef OS_WASM
+  return false;
+#else
   return m_account->isLoggedIn ();
+#endif
 }
 
 /******************************************************************************

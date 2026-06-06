@@ -59,8 +59,10 @@ bool in_presentation_mode ();
 #include "QTMGuiHelper.hpp" // needed to connect()
 #include "QTMInteractiveInputHelper.hpp"
 #include "QTMInteractivePrompt.hpp"
+#ifndef OS_WASM
 #include "QTMOAuth.hpp"
 #include "QTMStartupTabWidget.hpp"
+#endif
 #include "QTMStyle.hpp" // qtstyle()
 #include "QTMTabPage.hpp"
 #include "QTMWindow.hpp"
@@ -309,7 +311,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
     windowAgent->setSystemButtonArea (sysBtnArea);
   }
-#elif defined(Q_OS_WIN) || defined(Q_OS_LINUX)
+#elif defined(Q_OS_WIN) || defined(Q_OS_LINUX) || defined(Q_OS_WASM)
   // 无边框布局（Windows / Linux），并使用 /styles 资源中的图标
   Q_INIT_RESOURCE (styles);
   QWK::WindowBar* windowBar= nullptr;
@@ -471,6 +473,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       return;
     }
 
+#ifndef OS_WASM
     if (is_server_started ()) {
       tm_server_rep* server=
           dynamic_cast<tm_server_rep*> (get_server ().operator->());
@@ -485,6 +488,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
         checkLocalTokenAndLogin ();
       }
     }
+#endif
   });
 
   // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
@@ -911,6 +915,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   update_visibility ();
 
   // 连接登录状态变化信号
+#ifndef OS_WASM
   if (is_server_started ()) {
     tm_server_rep* server=
         dynamic_cast<tm_server_rep*> (get_server ().operator->());
@@ -944,6 +949,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   else {
     std_error << "qt_tm_widget_rep: server not started, cannot connect ";
   }
+#endif
 }
 
 qt_tm_widget_rep::~qt_tm_widget_rep () {
@@ -1078,11 +1084,13 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
 
     update_visibility ();
 
+#ifndef OS_WASM
     if (!startupContentWidget) {
       startupContentWidget= new QTMStartupTabWidget (centralwidget ());
     }
     show_widget_in_layout (startupContentWidget, layout);
     startupContentWidget->setFocus (Qt::OtherFocusReason);
+#endif
   }
   else if (pdfTabMode) {
     // Show PDF viewer
@@ -3213,6 +3221,7 @@ qt_tm_widget_rep::logout () {
   syncScmMembershipNotification (false);
 
   // 通过tm_server获取QTMOAuth实例并调用clearInvalidTokens
+#ifndef OS_WASM
   if (is_server_started ()) {
     tm_server_rep* server=
         dynamic_cast<tm_server_rep*> (get_server ().operator->());
@@ -3220,6 +3229,7 @@ qt_tm_widget_rep::logout () {
       server->getAccount ()->clearInvalidTokens ();
     }
   }
+#endif
 }
 
 void
