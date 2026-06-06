@@ -13,14 +13,14 @@ end
 if has_config("libjpeg") then
     add_requires("libjpeg")
 end
-add_requires("freetype", "zlib", "libaesgm")
+add_requires("freetype", "zlib", "liii-libaesgm")
 target("pdfhummus")
     set_kind("$(kind)")
     add_files("PDFWriter/*.cpp")
     add_headerfiles("(PDFWriter/*.h)")
     add_packages("freetype")
     add_packages("libtiff", "libpng", "libjpeg")
-    add_packages("libaesgm", "zlib")
+    add_packages("liii-libaesgm", "zlib")
     if has_package("libtiff") then
         add_defines("_INCLUDE_TIFF_HEADER")
         add_cxflags("-Wno-deprecated-declarations")

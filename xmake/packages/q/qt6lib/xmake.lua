@@ -82,10 +82,19 @@ package("qt6lib")
         end
 
         table.insert(links, 1, linkname)
+        if package:is_plat("wasm") then
+            table.insert(links, "qwasm")
+            table.insert(links, "embind")
+        end
         if frameworks then
             table.join2(frameworks, package:data("frameworks"))
         else
             frameworks = package:data("frameworks")
+        end
+
+        local linkdirs = qt.libdir
+        if package:is_plat("wasm") then
+            linkdirs = {qt.libdir, path.join(qt.sdkdir, "plugins/platforms")}
         end
 
         return {
@@ -93,7 +102,7 @@ package("qt6lib")
             version = qt.version,
             includedirs = includedirs,
             links = links,
-            linkdirs = qt.libdir,
+            linkdirs = linkdirs,
             frameworks = frameworks,
             frameworkdirs = qt.libdir,
             syslinks = package:data("syslinks")

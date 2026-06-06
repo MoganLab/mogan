@@ -20,7 +20,10 @@ set_encodings("utf-8")
 add_requires("s7", {system=false})
 add_requires("tbox", {system=false})
 add_requires("cpr", {system=false})
+add_requires("zlib", {system=false})
+
 includes("xmake/goldfish.lua")
+includes("xmake/toolchains/liii-emcc/xmake.lua")
 
 option("mupdf")
     set_default(true)
@@ -46,7 +49,7 @@ option("is_community")
     set_description("Adjust community or commercial version")
 option_end()
 
-local enable_tutorial = not has_config("is_community")
+local enable_tutorial = not has_config("is_community") and not is_plat("wasm")
 
 option("tutorial")
     set_default(enable_tutorial)
@@ -60,11 +63,19 @@ option_end()
 
 set_config("debug_with_timestamp", true)
 
+if is_plat("wasm") then
+    set_configvar("OS_WASM", true)
+    add_requires("emscripten 3.1.56")
+    set_toolchains("liii-emcc@emscripten")
+else
+    set_configvar("OS_WASM", false)
+end
+
 -- because this cpp project use variant length arrays which is not supported by
 -- msvc, this project will not support windows env.
 -- because some package is not ported to cygwin env, this project will not
 -- support cygwin env.
-set_allowedplats("linux", "macosx", "windows")
+set_allowedplats("linux", "macosx", "windows", "wasm")
 
 if is_plat("windows") then
     set_runtimes("MT")
@@ -103,86 +114,7 @@ add_repositories("liii-repo xmake")
 TBOX_VERSION= "1.7.5"
 LOLLY_VERSION= "1.4.26"
 S7_VERSION = "20240816"
-
-package("liii-libaesgm")
-    set_homepage("https://github.com/xmake-mirror/libaesgm")
-    set_description("https://repology.org/project/libaesgm/packages")
-
-    set_sourcedir(path.join(os.scriptdir(), "3rdparty/libaesgm"))
-
-    on_install("linux", "macosx", "windows", "mingw", function (package)
-        if package:is_plat("windows", "mingw") and package:is_arch("arm", "arm64") then
-            -- Windows is always little endian
-            io.replace("brg_endian.h", [[
-#elif 0     /* **** EDIT HERE IF NECESSARY **** */
-#  define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN]], [[
-#elif 1     /* Edited: Windows ARM is little endian */
-#  define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN]], { plain = true })
-        end
-        local configs = {}
-        if package:config("shared") then
-            configs.kind = "shared"
-        end
-        import("package.tools.xmake").install(package, configs)
-    end)
-
-    on_test(function (package)
-        assert(package:has_cfuncs("aes_init", {includes = "aes.h"}))
-    end)
-package_end()
-
 PDFHUMMUS_VERSION = "4.6.2"
-package("liii-pdfhummus")
-    set_homepage("https://www.pdfhummus.com/")
-    set_description("High performance library for creating, modiyfing and parsing PDF files in C++ ")
-    set_license("Apache-2.0")
-
-    set_sourcedir(path.join(os.scriptdir(), "3rdparty/pdfhummus"))
-
-    add_deps("zlib", "liii-libaesgm")
-    add_deps("freetype", {configs={png=true}})
-
-    add_configs("libtiff", {description = "Supporting tiff image", default = false, type = "boolean"})
-    add_configs("libjpeg", {description = "Support DCT encoding", default = false, type = "boolean"})
-    add_configs("libpng", {description = "Support png image", default = false, type = "boolean"})
-
-    if is_plat("linux") then
-        add_syslinks("m")
-    end
-
-    on_load(function (package)
-        for _, dep in ipairs({"libtiff", "libpng", "libjpeg"}) do
-            if package:config(dep) then
-                package:add("deps", dep)
-            end
-        end
-    end)
-    on_install("linux", "windows", "mingw", "macosx", function (package)
-        local configs = {}
-        if package:config("shared") then
-            configs.kind = "shared"
-        end
-        for _, dep in ipairs({"libtiff", "libpng", "libjpeg"}) do
-            if package:config(dep) then
-                configs[dep] = true
-            end
-        end
-        import("package.tools.xmake").install(package, configs)
-    end)
-
-    on_test(function (package)
-        assert(package:check_cxxsnippets({test = [[
-            #include "PDFWriter/PDFWriter.h"
-            #include <iostream>
-            using namespace std;
-            using namespace PDFHummus;
-            void test() {
-                PDFWriter pdfWriter;
-                pdfWriter.Reset();
-            }
-        ]]}, {configs = {languages = "c++11"}}))
-    end)
-package_end()
 
 includes("@builtin/check")
 configvar_check_cxxtypes("HAVE_INTPTR_T", "intptr_t", {includes = {"memory"}})
@@ -229,6 +161,10 @@ add_requires("argh v1.3.2")
 --- package: qt6widgets
 QT6_VERSION="6.8.3"
 add_requires("qt6widgets "..QT6_VERSION)
+if is_plat("wasm") then
+    add_requires("qt6network "..QT6_VERSION)
+    add_requires("qt6svg "..QT6_VERSION)
+end
 
 if has_config("mupdf") then
     if (linuxos.name() == "debian" and linuxos.version():major() >= CURRENT_DEBIAN_VERSION) or
@@ -307,7 +243,7 @@ target("QWKCore")
     if is_plat("windows") then
         add_cxxflags("/Zc:__cplusplus", "/permissive-")
         add_syslinks("mpr", "userenv", "kernel32", "user32", "gdi32", "winspool", "shell32", "ole32", "oleaut32", "uuid", "comdlg32", "advapi32")
-    else
+    elseif not is_plat("wasm") then
         add_cxxflags("-fPIC", "-fvisibility=hidden", "-fvisibility-inlines-hidden")
     end
     add_packages("qt6base", "qt6core", "qt6gui", "qt6widgets")
@@ -452,7 +388,7 @@ target("QWKCore")
         add_files("3rdparty/qwindowkitty/src/core/contexts/cocoawindowcontext_p.h")
         add_files("3rdparty/qwindowkitty/src/core/contexts/cocoawindowcontext.mm")
     end
-    if is_plat("linux") then
+    if is_plat("linux", "wasm") then
         add_files("3rdparty/qwindowkitty/src/core/contexts/qtwindowcontext_p.h")
         add_files("3rdparty/qwindowkitty/src/core/contexts/qtwindowcontext.cpp")
     end
@@ -491,7 +427,7 @@ target("QWKWidgets")
 
     if is_plat("windows") then
         add_cxxflags("/Zc:__cplusplus", "/permissive-")
-    else
+    elseif not is_plat("wasm") then
         add_cxxflags("-fPIC", "-fvisibility=hidden", "-fvisibility-inlines-hidden")
     end
     add_deps("QWKCore")
@@ -607,25 +543,40 @@ target("libmogan") do
     add_includedirs("3rdparty", {public = true})
     
     set_policy("check.auto_ignore_flags", false)
-    add_rules("qt.static")
     on_install(function (target)
         print("No need to install libmogan")
     end)
-    add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+    if is_plat("wasm") then
+        -- build static libmogan.a explicitly, otherwise it will generate libmogan.js
+        set_kind("static")
+        add_rules("qt.moc")
+        -- WASM build does not support frameworks
+        add_packages("qt6base", "qt6core", "qt6gui", "qt6widgets", "qt6network", "qt6svg")
+    else
+        add_rules("qt.static")
+        add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+    end
 
     build_glue_on_config()
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)
     add_defines("QTPIPES")
-    set_configvar("USE_QT_PRINTER", 1)
-    add_defines("USE_QT_PRINTER")
+    if not is_plat("wasm") then
+        set_configvar("USE_QT_PRINTER", 1)
+        add_defines("USE_QT_PRINTER")
+    end
 
     add_packages("lolly")
     add_packages("liii-pdfhummus")
     add_packages("freetype")
     add_packages("s7")
     add_packages("argh")
+    if is_plat("wasm") then
+        add_packages("tbox")
+        add_packages("cpr")
+        add_packages("zlib")
+    end
     if not is_plat("macosx") then
         add_packages("libiconv")
     end
@@ -689,10 +640,18 @@ target("libmogan") do
         set_configvar("CONFIG_OS", "")
     end
 
-    configvar_check_cxxsnippets(
-        "CONFIG_LARGE_POINTER", [[
-            #include <stdlib.h>
-            static_assert(sizeof(void*) == 8, "");]])
+    if not is_plat("wasm") then
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 8, "");]])
+    else
+        -- WASM use 32 bit pointers
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 4, "");]])
+    end
     add_configfiles(
         "src/System/tm_configure.hpp.xmake", {
             filename = "tm_configure.hpp",
@@ -815,6 +774,21 @@ target("libmogan") do
     add_files("src/Plugins/Qt/**.cpp", "src/Plugins/Qt/**.hpp")
     add_files("src/Mogan/Cache/**.cpp", "src/Mogan/Cache/**.hpp")
     add_files("src/Mogan/TemplateCenter/**.cpp", "src/Mogan/TemplateCenter/**.hpp")
+    if is_plat("wasm") then
+        -- QtPrinter does not support WASM
+        remove_files("src/Plugins/Qt/qt_printer_widget.cpp")
+        remove_files("src/Plugins/Qt/QTMPrintDialog.cpp")
+        remove_files("src/Plugins/Qt/QTMPrintDialog.hpp")
+        remove_files("src/Plugins/Qt/QTMPrinterSettings.cpp")
+        remove_files("src/Plugins/Qt/QTMPrinterSettings.hpp")
+        -- QTMPipeLink requires QProcess, which does not support WASM
+        remove_files("src/Plugins/Qt/qt_pipe_link.cpp")
+        remove_files("src/Plugins/Qt/QTMPipeLink.hpp")
+        remove_files("src/Plugins/Qt/QTMPipeLink.cpp")
+        remove_files("src/Plugins/Qt/QTMOAuth.cpp")
+        -- QtNetworkAuth does not support WASM
+        remove_files("src/Plugins/Qt/QTMOAuth.hpp")
+    end
 
     -- Add Qt resource file
     add_rules("qt.qrc")
@@ -830,7 +804,7 @@ target("libmogan") do
         add_includedirs("src/Plugins/MacOS", {public = true})
         add_files(plugin_macos_srcs)
     end
-    if is_plat("macosx", "linux", "windows") then
+    if is_plat("macosx", "linux", "windows", "wasm") then
         add_includedirs("src/Plugins/QWindowKit", {public = true})
         add_files("src/Plugins/QWindowKit/**.cpp")
         add_files("src/Plugins/QWindowKit/**.hpp")
@@ -896,6 +870,8 @@ target("stem") do
         set_filename(stem_binary_linux)
     elseif is_plat("macosx") then
         set_filename(stem_binary_macos)
+    elseif is_plat("wasm") then
+        set_filename(stem_binary_wasm)
     else
         set_filename(stem_binary_windows)
     end
@@ -965,7 +941,19 @@ target("stem") do
         add_rules("qt.widgetapp")
     end
 
-    add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+    add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork")
+    if not is_plat("wasm") then
+        add_frameworks("QtNetworkAuth")
+    end
+    if is_plat("wasm") then
+        add_links("qwasm")
+        add_ldflags("-O3") -- 使用 Asyncify 时 -O3 优化很重要，否则产物体积会很大，此处 em++ 优化器可能会内存不足崩溃
+        add_ldflags("-s INITIAL_MEMORY=64MB")
+        add_ldflags("-s ASYNCIFY=1")
+        add_ldflags("-s MODULARIZE=1", {force = true})
+        add_ldflags("-s EXPORT_NAME=\"createQtAppInstance\"", {force = true})
+        add_ldflags("--preload-file=" .. path.absolute("TeXmacs") .. "@/TeXmacs")
+    end
     add_packages("s7")
     add_packages("lolly")
     add_deps("libmogan")
@@ -1074,6 +1062,12 @@ target("stem") do
                 os.execv(binary, params, {envs={TEXMACS_PATH= path.join(os.projectdir(), "TeXmacs")}})
             elseif is_plat("windows") then
                 os.execv(binary, params)
+            elseif is_plat("wasm") then
+                local build_dir = path.absolute(path.directory(binary))
+                os.execv("python3", {
+                    path.join(os.projectdir(), "bin/wasm_server.py"),
+                    build_dir
+                })
             else
                 print("Unsupported platform: " .. tostring(os.host()))
             end
