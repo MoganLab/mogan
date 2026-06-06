@@ -42,6 +42,10 @@
 #include <QCoreApplication>
 #include <QFileInfo>
 #include <QFileOpenEvent>
+#ifdef OS_WASM
+#include <QFont>
+#include <QFontDatabase>
+#endif
 #include <QImage>
 #include <QLabel>
 #include <QLibraryInfo>
@@ -104,6 +108,39 @@ bool        qt_startup_quit_requested= false;
  * FIXME: temporary hack by Joris
  * Additional wait mechanism to keep CPU usage down
  ******************************************************************************/
+#ifdef OS_WASM
+static void
+ensure_wasm_widget_fonts () {
+  QStringList font_files;
+  font_files << "/TeXmacs/fonts/truetype/DejaVuSans.ttf"
+             << "/TeXmacs/fonts/truetype/DejaVuSans-Bold.ttf"
+             << "/TeXmacs/fonts/truetype/DejaVuSansMono.ttf"
+             << "/TeXmacs/fonts/truetype/DejaVuSansMono-Bold.ttf"
+             << "/TeXmacs/fonts/truetype/DejaVuSerif.ttf"
+             << "/TeXmacs/fonts/truetype/DejaVuSerif-Bold.ttf";
+
+  QString first_family;
+  for (int i= 0; i < font_files.size (); ++i) {
+    int font_id= QFontDatabase::addApplicationFont (font_files[i]);
+    if (font_id < 0) continue;
+
+    QStringList families= QFontDatabase::applicationFontFamilies (font_id);
+    if (first_family.isEmpty () && !families.isEmpty ())
+      first_family= families.first ();
+  }
+
+  if (first_family.isEmpty ()) return;
+
+  QFont::insertSubstitution ("Sans Serif", first_family);
+  QFont::insertSubstitution ("Helvetica", first_family);
+  QFont::insertSubstitution ("Arial", first_family);
+  QFont::insertSubstitution ("Monospace", "DejaVu Sans Mono");
+
+  QFont app_font= qApp->font ();
+  app_font.setFamily (first_family);
+  qApp->setFont (app_font);
+}
+#endif
 
 #ifdef QT_CPU_FIX
 #include <unistd.h>
@@ -153,6 +190,9 @@ qt_gui_rep::qt_gui_rep (int& argc, char** argv)
   // HACK: this filter is needed to overcome a bug in Qt/Cocoa
   extern void mac_install_filter (); // defined in src/Plugins/MacOS/mac_app.mm
   mac_install_filter ();
+#endif
+#ifdef OS_WASM
+  ensure_wasm_widget_fonts ();
 #endif
 
   set_output_language (get_locale_language ());
