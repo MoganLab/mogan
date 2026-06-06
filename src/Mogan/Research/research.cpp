@@ -66,6 +66,10 @@ static QTMCoreApplication* qtmcoreapp= NULL;
 bool                       show_startup_login_dialog ();
 #endif
 
+#ifdef Q_OS_WASM
+#include <QtPlugin>
+Q_IMPORT_PLUGIN (QWasmIntegrationPlugin)
+#endif
 /******************************************************************************
  * Main program
  ******************************************************************************/
