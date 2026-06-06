@@ -1,4 +1,5 @@
 # binary files
+TeXmacs/plugins/goldfish/bin/*
 *.vs
 *.so
 *.[oa]
