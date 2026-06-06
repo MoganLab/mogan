@@ -38,7 +38,9 @@ target ("goldfish") do
     })
 
     add_defines("WITH_SYSTEM_EXTRAS=0")
-    add_defines("HAVE_OVERFLOW_CHECKS=0")
+    if not is_plat("wasm") then
+        add_defines("HAVE_OVERFLOW_CHECKS=0")
+    end
     add_defines("WITH_WARNINGS")
     add_defines("WITH_R7RS=1")
     if is_mode("debug") then
