@@ -144,7 +144,7 @@
 
 (define (export-latex-file dest)
   (with opts '(("texmacs->latex:progress" . "on"))
-    (with s (texmacs->latex-document (buffer-tree) opts)
+    (with s (texmacs->latex-document (buffer-get (current-buffer)) opts)
       (string-save s dest)
       (set-message `(concat "Exported " ,(url->system dest)) "Export LaTeX"))))
 
