@@ -1,0 +1,45 @@
+<TMU|<tuple|1.1.0|2026.2.7-rc17>>
+
+<style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
+
+<\body>
+  <\enumerate>
+    <item>答卷前，考生务必将自己的姓名、考生号、考场号、座位号填写在答题卡上。\ 
+
+    <item>回答选择题时，选出每小题答案后，用铅笔把答题卡上对应题目的答案标号涂黑。如需改动，用橡皮擦干净后，再选涂其他答案标号。回答非选择题时，将答案写在答题卡上。写在本试卷上无效。\ 
+
+    <item>考试结束后，将本试卷和答题卡一并交回。\ 
+  </enumerate>
+
+  \;
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|3503759A-FB43-4860-896C-664DE0EF45D0>
+  </collection>
+</initial>
+
+<\references>
+  <\collection>
+    <associate|auto-1|<tuple|1|?|../../../../../æŰĞæąč/LiiiSTEM/no_name/no_name_12.tmu>>
+    <associate|auto-2|<tuple|1|?|../../../../../æŰĞæąč/LiiiSTEM/no_name/no_name_12.tmu>>
+    <associate|auto-3|<tuple|1|?|../../../../../æŰĞæąč/LiiiSTEM/no_name/no_name_12.tmu>>
+    <associate|auto-4|<tuple|1|?|../../../../../æŰĞæąč/LiiiSTEM/no_name/no_name_12.tmu>>
+  </collection>
+</references>
+
+<\auxiliary>
+  <\collection>
+    <\associate|toc>
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|1<space|2spc>年普通高等学校招生全国统一考试><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-1><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|数 学><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-2><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|注意事项><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-3><vspace|0.5fn>
+
+      <vspace*|1fn><with|font-series|<quote|bold>|math-font-series|<quote|bold>|一、选择题：本题共8小题，每小题5分，共40分。在每小题给出的四个选项中，只有一项是符合题目要求的。><datoms|<macro|x|<repeat|<arg|x>|<with|font-series|medium|<with|font-size|1|<space|0.05fn>.<space|0.05fn>>>>>|<htab|5mm>><no-break><pageref|auto-4><vspace|0.5fn>
+    </associate>
+  </collection>
+</auxiliary>
