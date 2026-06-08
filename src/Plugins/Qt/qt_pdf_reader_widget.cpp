@@ -804,6 +804,9 @@ PDFReaderWidget::rebuildPages () {
     label->setFixedSize (width, height);
   }
 
+  // Force the layout to recalculate so that scroll bar ranges are correct
+  contentWidget_->adjustSize ();
+
   // Restore scroll position anchored to the saved content point
   restoreZoomAnchor ();
 
@@ -1173,12 +1176,55 @@ PDFReaderWidget::restoreZoomAnchor () {
   if (!hasZoomAnchor_) return;
   hasZoomAnchor_= false;
 
-  // Scale the saved content Y by the zoom ratio to get the new position
-  double      zoomRatio     = zoomFactor_ / zoomAnchorOldZoom_;
-  double      scaledContentY= zoomAnchorContentY_ * zoomRatio;
-  int         targetScrollY = qRound (scaledContentY - zoomAnchorViewportY_);
-  QScrollBar* vbar          = scrollArea_->verticalScrollBar ();
-  targetScrollY             = qBound (0, targetScrollY, vbar->maximum ());
+  // Read the actual new page height from the label that was just resized in
+  // rebuildPages.  This avoids qRound mismatches between the saved anchor
+  // and the real layout geometry.
+  int pageIdx= 0;
+  {
+    double remaining= zoomAnchorContentY_ - PAGE_MARGIN;
+    for (int i= 0; i < pageCount_ && i < pageLayout_->count (); ++i) {
+      QLayoutItem* item= pageLayout_->itemAt (i);
+      if (!item) continue;
+      int h= item->widget ()->height ();
+      if (remaining >= 0) pageIdx= i;
+      remaining-= (h + PAGE_MARGIN);
+    }
+  }
+
+  // Compute old page top/height from the anchor content Y by finding which
+  // page the anchor falls on. We use the same formula rebuildPages uses.
+  QScreen* screen= this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  qreal dpi= screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseW= (pageBaseWidthPts_ > 0)
+                 ? qRound (pageBaseWidthPts_ * dpi / 72.0)
+                 : scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  int   oldPageW= qMax (1, qRound (baseW * zoomAnchorOldZoom_));
+  int   oldPageH= 0;
+  {
+    double aspect=
+        (pageIdx < pageAspectRatios_.size ()) ? pageAspectRatios_[pageIdx]
+                                               : pageAspectRatio_;
+    if (aspect <= 0.0) aspect= 1.414;
+    oldPageH= qMax (1, qRound (oldPageW * aspect));
+  }
+  double oldPageTop= PAGE_MARGIN + pageIdx * (oldPageH + PAGE_MARGIN);
+  double offset    = zoomAnchorContentY_ - oldPageTop;
+
+  // Read the actual new page height from the layout (just set by rebuildPages)
+  int newPageH= 1;
+  if (pageIdx < pageLayout_->count ()) {
+    QLayoutItem* item= pageLayout_->itemAt (pageIdx);
+    if (item && item->widget ()) newPageH= item->widget ()->height ();
+  }
+  int newPageTop= PAGE_MARGIN + pageIdx * (newPageH + PAGE_MARGIN);
+
+  double zoomRatio  = (oldPageH > 0) ? static_cast<double> (newPageH) / oldPageH
+                                     : 1.0;
+  double contentY   = newPageTop + offset * zoomRatio;
+  int targetScrollY = qRound (contentY - zoomAnchorViewportY_);
+  QScrollBar* vbar  = scrollArea_->verticalScrollBar ();
+  targetScrollY     = qBound (0, targetScrollY, vbar->maximum ());
   vbar->setValue (targetScrollY);
 }
 

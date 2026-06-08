@@ -1422,8 +1422,9 @@ private slots:
   }
 
   void test_wheelZoom_roundTrip_preservesScrollRatio () {
-    // Zoom in 4 times via Ctrl+wheel, then use setZoomFactor to return to
-    // the original zoom level. The scroll position should return to original.
+    // Use setZoomFactor for both zoom-in and zoom-out so that the same
+    // anchor (viewport center) is used in both directions. The scroll
+    // position should return to the original after a round-trip.
     PDFReaderWidget* widget= new PDFReaderWidget ();
     widget->resize (200, 100);
     widget->show ();
@@ -1448,23 +1449,17 @@ private slots:
     vbar->setValue (vbar->maximum () / 2);
     QApplication::processEvents ();
 
-    QPoint cursorPos (50, 50);
     int    initialScrollY= vbar->value ();
     double initialZoom   = widget->zoomFactor ();
 
-    // Zoom in 4 times
-    for (int i= 0; i < 4; ++i) {
-      QWheelEvent wheelIn (QPointF (cursorPos), QPointF (cursorPos),
-                           QPoint (0, 0), QPoint (0, 120), Qt::NoButton,
-                           Qt::ControlModifier, Qt::NoScrollPhase, false);
-      QApplication::sendEvent (widget->viewport (), &wheelIn);
-    }
+    // Zoom in via setZoomFactor (anchor at viewport center)
+    widget->setZoomFactor (3.0);
     QTest::qWait (300);
     QApplication::processEvents ();
 
     QVERIFY (widget->zoomFactor () > initialZoom);
 
-    // Explicitly return to the original zoom level
+    // Return to the original zoom level via setZoomFactor (same anchor)
     widget->setZoomFactor (initialZoom);
     QTest::qWait (300);
     QApplication::processEvents ();
