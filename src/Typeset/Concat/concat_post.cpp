@@ -316,8 +316,8 @@ concater_rep::handle_matching (int start, int end) {
     // y2= max (y2, a[i]->b->sup_base());
     SI lo, hi;
     a[i]->b->get_bracket_extents (lo, hi);
-    y1= min (y1, lo);
-    y2= max (y2, hi);
+    y1    = min (y1, lo);
+    y2    = max (y2, hi);
     uninit= false;
   }
   if (uninit) {

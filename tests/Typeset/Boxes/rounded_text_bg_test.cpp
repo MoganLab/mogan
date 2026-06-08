@@ -527,10 +527,10 @@ TestRoundedTextBg::test_middle_bracket_with_rsub_tracks_tall_item_height () {
   QCOMPARE (N (items_mid), 2);
   QCOMPARE (N (items_rsub), 2);
 
-  box mid_plain      = items_mid[1]->b;
-  box mid_with_rsub  = items_rsub[1]->b;
+  box mid_plain    = items_mid[1]->b;
+  box mid_with_rsub= items_rsub[1]->b;
   QVERIFY (mid_with_rsub->subnr () >= 1);
-  box mid_script_ref = mid_with_rsub[0];
+  box mid_script_ref= mid_with_rsub[0];
 
   QCOMPARE (mid_script_ref->y1, mid_plain->y1);
   QCOMPARE (mid_script_ref->y2, mid_plain->y2);
