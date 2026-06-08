@@ -127,10 +127,10 @@
         (sid "TEST-UUID-1234")
        ) ;
     (check (chat-persist-message-path sid)
-      => (string-append base "/" sid "/message.tm"))
+      => (string-append base "/" sid "/message.tmu"))
     ;; 不同 sid 得到不同路径
     (check (chat-persist-message-path "other-sid")
-      => (string-append base "/other-sid/message.tm"))
+      => (string-append base "/other-sid/message.tmu"))
   ) ;let
 ) ;define
 
@@ -184,6 +184,32 @@
   ) ;let
 ) ;define
 
+;;; ========== chat-persist-make-entry updateAt 字段 ==========
+
+(define (test-chat-persist-make-entry-updateAt-default)
+  ;; 不传 updateAt 时，回退到 createdAt（传入 "1700000000"）
+  (let ((entry (chat-persist-make-entry "sid-ua1" "Title" "Model" #f "1700000000")))
+    (check (njson-ref entry "updateAt") => "1700000000")
+    (njson-free entry)
+  ) ;let
+) ;define
+
+(define (test-chat-persist-make-entry-updateAt-explicit)
+  ;; 显式传 updateAt
+  (let ((entry (chat-persist-make-entry "sid-ua2" "Title" "Model" #f "1700000000" "enabled" "1800000000")))
+    (check (njson-ref entry "updateAt") => "1800000000")
+    (njson-free entry)
+  ) ;let
+) ;define
+
+(define (test-chat-persist-make-entry-updateAt-no-createdAt)
+  ;; 不传 updateAt 时，updateAt 回退到 createdAt
+  (let ((entry (chat-persist-make-entry "sid-ua3" "Title" "Model" #f "1000")))
+    (check (njson-ref entry "updateAt") => "1000")
+    (njson-free entry)
+  ) ;let
+) ;define
+
 ;;; ========== chat-persist-register-session ==========
 
 (define (test-chat-persist-register-session)
@@ -195,10 +221,10 @@
     (check (chat-tab-get-state sid) => #f)
     ;; 注册后状态存在
     (chat-persist-register-session sid model)
-    (check (chat-tab-get-state sid) => (list model))
+    (check (chat-tab-get-state sid) => (list model "disabled"))
     ;; 重复注册不会覆盖
     (chat-persist-register-session sid "OtherModel")
-    (check (chat-tab-get-state sid) => (list model))
+    (check (chat-tab-get-state sid) => (list model "disabled"))
   ) ;let*
 ) ;define
 
@@ -491,6 +517,101 @@
   ) ;chat-persist-with-backup
 ) ;define
 
+;;; ========== update-manifest updateAt 持久化 ==========
+
+(define (test-chat-persist-update-manifest-with-updateAt)
+  (chat-persist-with-backup
+    (lambda ()
+      (let* ((sid (string-append "uma-"
+                   (number->string (current-time))))
+             (model "UpAtModel")
+            ) ;
+        (setup-test-session sid model "Content")
+        ;; update-manifest 带 updateAt 参数
+        (chat-persist-update-manifest sid "Title" model #f "1700000000" "disabled" "1800000000")
+        (check (manifest-find-session sid "updateAt") => "1800000000")
+        (check (manifest-find-session sid "createdAt") => "1700000000")
+      ) ;let*
+    ) ;lambda
+  ) ;chat-persist-with-backup
+) ;define
+
+(define (test-chat-persist-update-manifest-without-updateAt)
+  (chat-persist-with-backup
+    (lambda ()
+      (let* ((sid (string-append "umano-"
+                   (number->string (current-time))))
+             (model "UpAtModel2")
+            ) ;
+        (setup-test-session sid model "Content")
+        ;; update-manifest 不带 updateAt 参数，应回退到 createdAt
+        (chat-persist-update-manifest sid "Title" model #f "1700000000")
+        (check (manifest-find-session sid "updateAt") => "1700000000")
+      ) ;let*
+    ) ;lambda
+  ) ;chat-persist-with-backup
+) ;define
+
+(define (test-chat-persist-save-one-with-updateAt)
+  (chat-persist-with-backup
+    (lambda ()
+      (let* ((sid (string-append "so-ua-"
+                   (number->string (current-time))))
+             (model "UpAtModel3")
+            ) ;
+        (setup-test-session sid model "Content")
+        ;; save-one 带 updateAt
+        (chat-persist-save-one sid "Title" model #f "1700000000" "disabled" "1900000000")
+        (check (manifest-find-session sid "updateAt") => "1900000000")
+      ) ;let*
+    ) ;lambda
+  ) ;chat-persist-with-backup
+) ;define
+
+;;; ========== 旧 manifest 兼容性（无 updateAt 字段）==========
+
+(define (test-chat-persist-load-all-legacy-manifest)
+  (chat-persist-with-backup
+    (lambda ()
+      ;; 手写一个无 updateAt 字段的旧版 manifest
+      (let* ((manifest-path (chat-persist-manifest-path))
+             (legacy-json "{\"version\":1,\"sessions\":[{\"sessionId\":\"legacy-1\",\"title\":\"Old Chat\",\"model\":\"GPT\",\"archived\":\"false\",\"createdAt\":\"1700000000\",\"defaultExpandCount\":5,\"thinking\":\"disabled\"}]}")
+            ) ;
+        (chat-persist-ensure-dir! (chat-persist-parent-dir manifest-path))
+        (string-save legacy-json (system->url manifest-path))
+        ;; load-all 不应崩溃
+        (chat-persist-load-all)
+        ;; 验证 manifest 仍然可读
+        (check (manifest-session-count) => 1)
+        (check (manifest-find-session "legacy-1" "title") => "Old Chat")
+      ) ;let*
+    ) ;lambda
+  ) ;chat-persist-with-backup
+) ;define
+
+;;; ========== updateAt 更新覆盖测试 ==========
+
+(define (test-chat-persist-update-manifest-updateAt-changes)
+  (chat-persist-with-backup
+    (lambda ()
+      (let* ((sid (string-append "umch-"
+                   (number->string (current-time))))
+             (model "ChangeModel")
+            ) ;
+        (setup-test-session sid model "Content")
+        ;; 第一次保存，updateAt = 1700000000
+        (chat-persist-update-manifest sid "Title" model #f "1700000000" "disabled" "1700000000")
+        (check (manifest-find-session sid "updateAt") => "1700000000")
+        ;; 第二次保存，updateAt 更新为 1800000000
+        (chat-persist-update-manifest sid "Title" model #f "1700000000" "disabled" "1800000000")
+        (check (manifest-find-session sid "updateAt") => "1800000000")
+        ;; createdAt 不应被改变
+        (check (manifest-find-session sid "createdAt") => "1700000000")
+      ) ;let*
+    ) ;lambda
+  ) ;chat-persist-with-backup
+) ;define
+
 ;;; ========== 测试入口 ==========
 
 (tm-define (test_0205)
@@ -501,6 +622,9 @@
   (test-chat-persist-parent-dir)
   (test-chat-persist-ensure-dir!)
   (test-chat-persist-make-entry)
+  (test-chat-persist-make-entry-updateAt-default)
+  (test-chat-persist-make-entry-updateAt-explicit)
+  (test-chat-persist-make-entry-updateAt-no-createdAt)
   (test-chat-persist-register-session)
   (test-chat-persist-load-empty)
   (test-chat-persist-load-all-with-data)
@@ -515,4 +639,9 @@
   (test-chat-persist-save-one-three-sessions)
   (test-chat-persist-make-entry-string-archived)
   (test-chat-persist-save-one-string-archived-false)
+  (test-chat-persist-update-manifest-with-updateAt)
+  (test-chat-persist-update-manifest-without-updateAt)
+  (test-chat-persist-save-one-with-updateAt)
+  (test-chat-persist-load-all-legacy-manifest)
+  (test-chat-persist-update-manifest-updateAt-changes)
   (check-report))

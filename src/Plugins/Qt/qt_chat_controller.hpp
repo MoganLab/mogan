@@ -123,10 +123,7 @@ public:
   /**
    * @brief Scheme→C++ 回调：恢复单个会话元数据。
    */
-  void restoreSessionMeta (const string& sessionId, const string& title,
-                           const string& model, bool archived,
-                           const string& createdAt, int defaultExpandCount,
-                           bool thinking);
+  void restoreSessionMeta (const ChatSession& session);
 
   /**
    * @brief 销毁 View 引用，防止悬垂指针。
@@ -207,12 +204,6 @@ private:
   string determineInitialActiveSession ();
 
   /**
-   * @brief 获取所有会话的显示标题映射。
-   * @return sessionId → displayTitle 映射
-   */
-  QMap<string, string> getDisplayTitles ();
-
-  /**
    * @brief 获取单个会话的显示标题。
    * @param sessionId 目标会话 ID
    * @return 显示标题，无标题时返回 "新会话"
@@ -222,8 +213,10 @@ private:
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,
-                                           string createdAt,
-                                           int    defaultExpandCount);
+                                           string createdAtStr,
+                                           string updatedAtStr,
+                                           int    defaultExpandCount,
+                                           string thinking);
   friend void qt_chat_notify_input_height ();
 };
 
@@ -241,7 +234,8 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
-                                  string archived, string createdAt,
+                                  string archived, string createdAtStr,
+                                  string updatedAtStr,
                                   int defaultExpandCount, string thinking);
 
 string qt_chat_tab_active_message_buffer_url ();

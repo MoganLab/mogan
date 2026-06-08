@@ -12,6 +12,7 @@
 #include "Qt/qt_chat_session.hpp"
 #include "base.hpp"
 #include <QtTest/QtTest>
+#include <chrono>
 
 class TestChatSession : public QObject {
   Q_OBJECT
@@ -40,6 +41,20 @@ private slots:
 
   // === getAllSessionIds ===
   void test_getAllSessionIds_ordering ();
+
+  // === sessionCount ===
+  void test_sessionCount_empty ();
+  void test_sessionCount_after_create ();
+  void test_sessionCount_after_remove ();
+
+  // === firstActiveSessionId ===
+  void test_firstActiveSessionId_empty ();
+  void test_firstActiveSessionId_returns_newest ();
+  void test_firstActiveSessionId_skips_archived ();
+
+  // === touchSession ===
+  void test_touchSession_updates_order ();
+  void test_touchSession_nonexistent ();
 
   // === getSession / findSessionByPanel ===
   void test_getSession ();
@@ -75,6 +90,14 @@ private slots:
   void test_setThinking_and_getThinking ();
   void test_getThinking_nonexistent ();
   void test_setThinking_nonexistent ();
+
+  // === 双容器一致性 ===
+  void test_dual_container_consistency_after_create ();
+  void test_dual_container_consistency_after_remove ();
+  void test_dual_container_consistency_after_insert ();
+
+  // === 性能 benchmark ===
+  void test_benchmark_getAllSessionIds_linear_scaling ();
 };
 
 /******************************************************************************
@@ -95,7 +118,8 @@ TestChatSession::test_createSession () {
   QVERIFY (!s->archived);
   QVERIFY (is_empty (s->title));
   QVERIFY (is_empty (s->model));
-  QVERIFY (!is_empty (s->createdAt));
+  QVERIFY (s->createdAt > 0);
+  QVERIFY (s->updateAt > 0);
   QVERIFY (s->panel == nullptr);
 }
 
@@ -197,21 +221,24 @@ void
 TestChatSession::test_getAllSessionIds_ordering () {
   ChatSessionManager mgr;
 
-  // 用 insertSession 注入已知时间戳的会话，验证降序排列
+  // 用 insertSession 注入已知 updateAt 的会话，验证降序排列
   ChatSession s1;
   s1.sessionId= "old-session";
   s1.state    = ChatState::Idle;
-  s1.createdAt= "1000";
+  s1.createdAt= 1000;
+  s1.updateAt = 1000;
 
   ChatSession s2;
   s2.sessionId= "new-session";
   s2.state    = ChatState::Idle;
-  s2.createdAt= "2000";
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
 
   ChatSession s3;
   s3.sessionId= "mid-session";
   s3.state    = ChatState::Idle;
-  s3.createdAt= "1500";
+  s3.createdAt= 1500;
+  s3.updateAt = 1500;
 
   mgr.insertSession (s1);
   mgr.insertSession (s2);
@@ -222,6 +249,143 @@ TestChatSession::test_getAllSessionIds_ordering () {
   QVERIFY (ids[0] == string ("new-session"));
   QVERIFY (ids[1] == string ("mid-session"));
   QVERIFY (ids[2] == string ("old-session"));
+}
+
+/******************************************************************************
+ * sessionCount
+ ******************************************************************************/
+
+void
+TestChatSession::test_sessionCount_empty () {
+  ChatSessionManager mgr;
+  QCOMPARE ((int) mgr.sessionCount (), 0);
+}
+
+void
+TestChatSession::test_sessionCount_after_create () {
+  ChatSessionManager mgr;
+  mgr.createSession ();
+  mgr.createSession ();
+  QCOMPARE ((int) mgr.sessionCount (), 2);
+}
+
+void
+TestChatSession::test_sessionCount_after_remove () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.createSession ();
+  QCOMPARE ((int) mgr.sessionCount (), 2);
+  mgr.removeSession (sid);
+  QCOMPARE ((int) mgr.sessionCount (), 1);
+}
+
+/******************************************************************************
+ * firstActiveSessionId
+ ******************************************************************************/
+
+void
+TestChatSession::test_firstActiveSessionId_empty () {
+  ChatSessionManager mgr;
+  QVERIFY (is_empty (mgr.firstActiveSessionId ()));
+}
+
+void
+TestChatSession::test_firstActiveSessionId_returns_newest () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId= "older";
+  s1.state    = ChatState::Idle;
+  s1.createdAt= 1000;
+  s1.updateAt = 1000;
+  s1.archived = false;
+  s1.panel    = nullptr;
+
+  ChatSession s2;
+  s2.sessionId= "newer";
+  s2.state    = ChatState::Idle;
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
+  s2.archived = false;
+  s2.panel    = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  QVERIFY (mgr.firstActiveSessionId () == string ("newer"));
+}
+
+void
+TestChatSession::test_firstActiveSessionId_skips_archived () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId= "archived-one";
+  s1.state    = ChatState::Idle;
+  s1.createdAt= 3000;
+  s1.updateAt = 3000;
+  s1.archived = true;
+  s1.panel    = nullptr;
+
+  ChatSession s2;
+  s2.sessionId= "active-one";
+  s2.state    = ChatState::Idle;
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
+  s2.archived = false;
+  s2.panel    = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  QVERIFY (mgr.firstActiveSessionId () == string ("active-one"));
+}
+
+/******************************************************************************
+ * touchSession
+ ******************************************************************************/
+
+void
+TestChatSession::test_touchSession_updates_order () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId= "old-session";
+  s1.state    = ChatState::Idle;
+  s1.createdAt= 1000;
+  s1.updateAt = 1000;
+  s1.archived = false;
+  s1.panel    = nullptr;
+
+  ChatSession s2;
+  s2.sessionId= "new-session";
+  s2.state    = ChatState::Idle;
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
+  s2.archived = false;
+  s2.panel    = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  // 初始顺序：new-session (2000) > old-session (1000)
+  auto ids= mgr.getAllSessionIds ();
+  QVERIFY (ids[0] == string ("new-session"));
+
+  // touch old-session，将其 updateAt 设为当前时间（> 2000）
+  mgr.touchSession ("old-session");
+
+  // 现在 old-session 应该在最前面
+  ids= mgr.getAllSessionIds ();
+  QVERIFY (ids[0] == string ("old-session"));
+  QVERIFY (ids[1] == string ("new-session"));
+}
+
+void
+TestChatSession::test_touchSession_nonexistent () {
+  ChatSessionManager mgr;
+  // 不应崩溃
+  mgr.touchSession ("nonexistent-id");
 }
 
 /******************************************************************************
@@ -280,7 +444,8 @@ TestChatSession::test_insertSession () {
   s.model    = "gpt-4";
   s.state    = ChatState::Idle;
   s.archived = true;
-  s.createdAt= "1234567890";
+  s.createdAt= 1234567890;
+  s.updateAt = 1234567890;
   s.panel    = nullptr;
 
   mgr.insertSession (s);
@@ -292,7 +457,7 @@ TestChatSession::test_insertSession () {
   QVERIFY (found->model == string ("gpt-4"));
   QCOMPARE ((int) found->state, (int) ChatState::Idle);
   QVERIFY (found->archived);
-  QVERIFY (found->createdAt == string ("1234567890"));
+  QCOMPARE ((long) found->createdAt, (long) 1234567890);
   QVERIFY (found->panel == nullptr);
 }
 
@@ -349,7 +514,8 @@ TestChatSession::test_insertSession_empty_title () {
   s.model    = "gpt-4";
   s.state    = ChatState::Idle;
   s.archived = false;
-  s.createdAt= "1000";
+  s.createdAt= 1000;
+  s.updateAt = 1000;
   s.panel    = nullptr;
   mgr.insertSession (s);
 
@@ -411,7 +577,8 @@ TestChatSession::test_insertSession_defaultExpandCount () {
   s.model             = "gpt-4";
   s.state             = ChatState::Idle;
   s.archived          = false;
-  s.createdAt         = "1234567890";
+  s.createdAt         = 1234567890;
+  s.updateAt          = 1234567890;
   s.defaultExpandCount= 5;
   s.panel             = nullptr;
   mgr.insertSession (s);
@@ -505,4 +672,122 @@ TestChatSession::test_title_preserved_across_archive_restore () {
   QVERIFY (!s->archived);
   QVERIFY (!is_empty (s->title));
   QVERIFY (s->title == string ("My Session"));
+}
+
+/******************************************************************************
+ * 双容器一致性
+ ******************************************************************************/
+
+void
+TestChatSession::test_dual_container_consistency_after_create () {
+  ChatSessionManager mgr;
+  mgr.createSession ();
+  mgr.createSession ();
+  mgr.createSession ();
+  QCOMPARE ((int) mgr.sessionCount (), 3);
+  QCOMPARE ((int) mgr.getAllSessionIds ().size (), 3);
+}
+
+void
+TestChatSession::test_dual_container_consistency_after_remove () {
+  ChatSessionManager mgr;
+  string             sid1= mgr.createSession ();
+  string             sid2= mgr.createSession ();
+  mgr.removeSession (sid1);
+  QCOMPARE ((int) mgr.sessionCount (), 1);
+  QCOMPARE ((int) mgr.getAllSessionIds ().size (), 1);
+  QVERIFY (mgr.getAllSessionIds ()[0] == sid2);
+}
+
+void
+TestChatSession::test_dual_container_consistency_after_insert () {
+  ChatSessionManager mgr;
+
+  ChatSession s;
+  s.sessionId= "inserted";
+  s.state    = ChatState::Idle;
+  s.createdAt= 1000;
+  s.updateAt = 1000;
+  s.panel    = nullptr;
+  mgr.insertSession (s);
+
+  QCOMPARE ((int) mgr.sessionCount (), 1);
+  QCOMPARE ((int) mgr.getAllSessionIds ().size (), 1);
+}
+
+/******************************************************************************
+ * 性能 benchmark：验证 getAllSessionIds 是 O(n)
+ *
+ * 方法：测量 3 组数据（N, 2N, 4N）的单次调用均摊耗时（per-session us）。
+ * O(n) 时均摊耗时应为常数（三组接近）；O(n log² n) 时均摊耗时会随 N 增长。
+ ******************************************************************************/
+
+/// 向 manager 插入 N 个 session
+static void
+insertNSessions (ChatSessionManager& mgr, int n, time_t baseTime) {
+  for (int i= 0; i < n; i++) {
+    ChatSession s;
+    char        buf[32];
+    std::snprintf (buf, sizeof (buf), "bench-%d", i);
+    s.sessionId= string (buf);
+    s.state    = ChatState::Idle;
+    s.archived = false;
+    s.createdAt= baseTime + i;
+    s.updateAt = baseTime + i;
+    s.panel    = nullptr;
+    mgr.insertSession (s);
+  }
+}
+
+/// 测量 getAllSessionIds 单次调用平均耗时（微秒）
+static double
+measureAvgUs (ChatSessionManager& mgr, int repeats) {
+  auto t1= std::chrono::high_resolution_clock::now ();
+  for (int i= 0; i < repeats; i++)
+    mgr.getAllSessionIds ();
+  auto t2= std::chrono::high_resolution_clock::now ();
+  return std::chrono::duration<double, std::micro> (t2 - t1).count () / repeats;
+}
+
+void
+TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
+  const int    N1= 200, N2= 400, N3= 800;
+  const int    REPEAT= 100;
+  const time_t BASE = 1000000000;
+
+  ChatSessionManager mgr1, mgr2, mgr3;
+  insertNSessions (mgr1, N1, BASE);
+  insertNSessions (mgr2, N2, BASE);
+  insertNSessions (mgr3, N3, BASE);
+
+  double us1= measureAvgUs (mgr1, REPEAT);
+  double us2= measureAvgUs (mgr2, REPEAT);
+  double us3= measureAvgUs (mgr3, REPEAT);
+
+  // per-session 均摊耗时：O(n) 时应为常数
+  double per1= us1 / N1;
+  double per2= us2 / N2;
+  double per3= us3 / N3;
+
+  // 三组的 per-session 耗时变化不应超过 2x（排除 cache 效应等噪声）
+  // O(n log² n) 时，per3/per1 会随 N 显著增长
+  double maxPer= std::max ({per1, per2, per3});
+  double minPer= std::min ({per1, per2, per3});
+  double variation= maxPer / minPer;
+
+  QVERIFY2 (variation < 2.0,
+            QString ("per-session variation %1x (expected ~1.0 for O(n)), "
+                     "N=%2: %3, N=%4: %5, N=%6: %7 us/session")
+                .arg (variation, 0, 'f', 2)
+                .arg (N1).arg (per1, 0, 'f', 4)
+                .arg (N2).arg (per2, 0, 'f', 4)
+                .arg (N3).arg (per3, 0, 'f', 4)
+                .toUtf8 ()
+                .constData ());
+
+  qDebug () << "=== getAllSessionIds O(n) verification ===";
+  qDebug () << "  N=" << N1 << ":" << per1 << "us/session (" << us1 << "us total)";
+  qDebug () << "  N=" << N2 << ":" << per2 << "us/session (" << us2 << "us total)";
+  qDebug () << "  N=" << N3 << ":" << per3 << "us/session (" << us3 << "us total)";
+  qDebug () << "  variation:" << variation << "x";
 }

@@ -53,9 +53,13 @@
 
 ;;; ---------- JSON 条目 ----------
 
-(tm-define (chat-persist-make-entry sid title model archived created-at . opts)
-  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-        (entry (string->njson "{}"))
+(tm-define (chat-persist-make-entry sid title model archived . rest)
+  (let* ((created-at (if (and (pair? rest) (car rest)) (car rest)
+                        (number->string (current-time))))
+         (opts (if (pair? rest) (cdr rest) '()))
+         (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f))
+         (entry (string->njson "{}"))
        ) ;
     (njson-set! entry "sessionId" sid)
     (njson-set! entry "title" title)
@@ -67,6 +71,8 @@
     (njson-set! entry "createdAt" (or created-at ""))
     (njson-set! entry "defaultExpandCount" 5)
     (njson-set! entry "thinking" thinking)
+    ;; updateAt: 最近活跃时间戳，用于排序索引；缺失时回退到 createdAt
+    (njson-set! entry "updateAt" (or updated-at created-at ""))
     entry
   ) ;let
 ) ;tm-define
@@ -135,6 +141,9 @@
                            (archived-str (cdr (assoc "archived" entry)))
                            (created-at-pair (assoc "createdAt" entry))
                            (created-at (if created-at-pair (cdr created-at-pair) ""))
+                           (updated-at-pair (assoc "updateAt" entry))
+                           ;; updateAt 缺失时回退到 createdAt（兼容旧 manifest）
+                           (updated-at (if updated-at-pair (cdr updated-at-pair) created-at))
                            (expand-count-pair (assoc "defaultExpandCount" entry))
                            (expand-count (if expand-count-pair (cdr expand-count-pair) 5))
                            (thinking-pair (assoc "thinking" entry))
@@ -149,6 +158,7 @@
                         model
                         archived-str
                         created-at
+                        updated-at
                         expand-count
                         thinking
                       ) ;qt-chat-tab-restore-session
@@ -250,10 +260,14 @@
 ;; ----
 ;; (chat-persist-update-manifest session-id title model archived created-at)
 
-(tm-define (chat-persist-update-manifest session-id title model archived created-at . opts)
-  (let* ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+(tm-define (chat-persist-update-manifest session-id title model archived . rest)
+  (let* ((created-at (if (and (pair? rest) (car rest)) (car rest)
+                        (number->string (current-time))))
+         (opts (if (pair? rest) (cdr rest) '()))
+         (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f))
          (manifest-path (chat-persist-manifest-path))
-         (entry (chat-persist-make-entry session-id title model archived created-at thinking)
+         (entry (chat-persist-make-entry session-id title model archived created-at thinking updated-at)
          ) ;entry
         ) ;
     (chat-persist-ensure-dir! (chat-persist-base-dir))
@@ -305,8 +319,12 @@
 ;; chat-persist-save-one
 ;; 导出 buffer 并更新 manifest（组合调用）。
 
-(tm-define (chat-persist-save-one session-id title model archived created-at . opts)
-  (let ((thinking (if (and (pair? opts) (car opts)) (car opts) "disabled")))
+(tm-define (chat-persist-save-one session-id title model archived . rest)
+  (let* ((created-at (if (and (pair? rest) (car rest)) (car rest)
+                        (number->string (current-time))))
+         (opts (if (pair? rest) (cdr rest) '()))
+         (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
+         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f)))
     (chat-persist-export-buffer session-id)
     (chat-persist-update-manifest session-id
       title
@@ -314,6 +332,7 @@
       archived
       created-at
       thinking
+      updated-at
     ) ;chat-persist-update-manifest
   ) ;let
 ) ;tm-define

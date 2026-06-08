@@ -1477,8 +1477,8 @@ qt_tm_widget_rep::update_visibility () {
       chatSidebarToggleBtn->raise ();
       position_chat_sidebar_button ();
       // 动态 tooltip：已有会话时显示 "Open AI Chat"，否则显示 "New AI Chat"
-      ChatController* ctrl= get_chat_controller ();
-      bool hasSessions= !ctrl->sessionManager ().getAllSessionIds ().empty ();
+      ChatController* ctrl       = get_chat_controller ();
+      bool            hasSessions= ctrl->sessionManager ().sessionCount () > 0;
 #ifdef Q_OS_MACOS
       QString shortcutHint= " (\xe2\x8c\x98"
                             "J)";

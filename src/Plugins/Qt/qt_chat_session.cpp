@@ -11,7 +11,6 @@
 
 #include "qt_chat_session.hpp"
 
-#include <algorithm>
 #include <cstdio>
 #include <ctime>
 #include <lolly/hash/uuid.hpp>
@@ -27,33 +26,45 @@ ChatSessionManager::createSession () {
   session.sessionId= sessionId;
   session.state    = ChatState::Idle;
   session.archived = false;
-  // 生成 Unix 时间戳字符串
-  std::time_t now= std::time (nullptr);
-  char        buf[32];
-  std::snprintf (buf, sizeof (buf), "%ld", (long) now);
-  session.createdAt         = string (buf);
+  std::time_t now          = std::time (nullptr);
+  session.createdAt        = now;
+  session.updateAt         = now;
   session.defaultExpandCount= 5;
   session.thinking          = false;
   session.panel             = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
+  timeIndex_.insert ({session.updateAt, sessionId});
   return sessionId;
 }
 
 void
 ChatSessionManager::removeSession (const string& sessionId) {
-  sessions_.erase (sessionId);
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) {
+    timeIndex_.erase ({it->second.updateAt, sessionId});
+    sessions_.erase (it);
+  }
 }
 
 void
 ChatSessionManager::archiveSession (const string& sessionId) {
   ChatSession* s= getSession (sessionId);
   if (s) s->archived= true;
+  // archive 不改变 updateAt，无需更新 timeIndex_
 }
 
 void
 ChatSessionManager::restoreSession (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) s->archived= false;
+  auto it= sessions_.find (sessionId);
+  if (it == sessions_.end ()) return;
+
+  auto& s   = it->second;
+  s.archived= false;
+
+  // 更新 updateAt 并重排：用户恢复会话是要继续对话，置顶到最前面
+  timeIndex_.erase ({s.updateAt, sessionId});
+  s.updateAt= std::time (nullptr);
+  timeIndex_.insert ({s.updateAt, sessionId});
 }
 
 void
@@ -75,9 +86,9 @@ ChatSessionManager::setModel (const string& sessionId, const string& model) {
 }
 
 string
-ChatSessionManager::getModel (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) return s->model;
+ChatSessionManager::getModel (const string& sessionId) const {
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) return it->second.model;
   return "";
 }
 
@@ -88,9 +99,9 @@ ChatSessionManager::setThinking (const string& sessionId, bool thinking) {
 }
 
 bool
-ChatSessionManager::getThinking (const string& sessionId) {
-  ChatSession* s= getSession (sessionId);
-  if (s) return s->thinking;
+ChatSessionManager::getThinking (const string& sessionId) const {
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) return it->second.thinking;
   return false;
 }
 
@@ -104,19 +115,53 @@ ChatSessionManager::getSession (const string& sessionId) {
 std::vector<string>
 ChatSessionManager::getAllSessionIds () const {
   std::vector<string> ids;
-  for (const auto& kv : sessions_)
-    ids.push_back (kv.first);
-  // 按 createdAt 降序排列（新在前），空 createdAt 排最后
-  std::sort (ids.begin (), ids.end (),
-             [this] (const string& a, const string& b) {
-               auto it_a= sessions_.find (a);
-               auto it_b= sessions_.find (b);
-               if (it_a == sessions_.end () || it_b == sessions_.end ())
-                 return false;
-               // a > b 等价于 !(a <= b)
-               return !(it_a->second.createdAt <= it_b->second.createdAt);
-             });
+  ids.reserve (timeIndex_.size ());
+  for (const auto& ti : timeIndex_)
+    ids.push_back (ti.sessionId);
   return ids;
+}
+
+size_t
+ChatSessionManager::sessionCount () const {
+  return sessions_.size ();
+}
+
+string
+ChatSessionManager::firstActiveSessionId () const {
+  for (const auto& ti : timeIndex_) {
+    auto it= sessions_.find (ti.sessionId);
+    if (it != sessions_.end () && !it->second.archived) return ti.sessionId;
+  }
+  return "";
+}
+
+string
+ChatSessionManager::findReusableSession () const {
+  for (const auto& ti : timeIndex_) {
+    auto it= sessions_.find (ti.sessionId);
+    if (it == sessions_.end () || it->second.archived) continue;
+    const ChatSession& s= it->second;
+    // 空白 session 无面板且无标题
+    if (!s.panel && is_empty (s.title)) return ti.sessionId;
+  }
+  return "";
+}
+
+void
+ChatSessionManager::touchSession (const string& sessionId) {
+  auto it= sessions_.find (sessionId);
+  if (it == sessions_.end ()) return;
+
+  auto& s= it->second;
+
+  // 从索引中删除旧 key（updateAt 是排序键，必须更新）
+  timeIndex_.erase ({s.updateAt, sessionId});
+
+  // 更新时间
+  s.updateAt= std::time (nullptr);
+
+  // 插入新 key
+  timeIndex_.insert ({s.updateAt, sessionId});
 }
 
 ChatSession*
@@ -146,5 +191,10 @@ ChatSessionManager::inputBufferUrl (const string& sessionId) {
 
 void
 ChatSessionManager::insertSession (const ChatSession& session) {
-  sessions_.insert (std::make_pair (session.sessionId, session));
+  // 如果已存在，先清理旧的 timeIndex_ 条目
+  auto it= sessions_.find (session.sessionId);
+  if (it != sessions_.end ())
+    timeIndex_.erase ({it->second.updateAt, session.sessionId});
+  sessions_[session.sessionId]= session;
+  timeIndex_.insert ({session.updateAt, session.sessionId});
 }
