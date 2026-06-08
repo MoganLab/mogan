@@ -28,7 +28,9 @@ extern tree the_et;
 static void
 simplify_concat (tree& r, tree t) {
   if (is_atomic (t)) {
-    r= concat (t);
+    if (N (r) > 0 && is_atomic (r[N (r) - 1]))
+      r[N (r) - 1]= tree (r[N (r) - 1]->label * t->label);
+    else r << t;
     return;
   }
   int i, n= N (t);
@@ -36,6 +38,8 @@ simplify_concat (tree& r, tree t) {
     if (is_concat (t[i])) simplify_concat (r, t[i]);
     else if (t[i] == "")
       ;
+    else if (is_document (t[i]) && N (t[i]) == 1)
+      simplify_concat (r, t[i][0]);
     else if (is_atomic (t[i]) && (N (r) > 0) && is_atomic (r[N (r) - 1]))
       r[N (r) - 1]= tree (r[N (r) - 1]->label * t[i]->label);
     else r << t[i];
