@@ -753,7 +753,7 @@ void
 TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
   const int    N1= 200, N2= 400, N3= 800;
   const int    REPEAT= 100;
-  const time_t BASE = 1000000000;
+  const time_t BASE  = 1000000000;
 
   ChatSessionManager mgr1, mgr2, mgr3;
   insertNSessions (mgr1, N1, BASE);
@@ -771,23 +771,29 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
 
   // 三组的 per-session 耗时变化不应超过 2x（排除 cache 效应等噪声）
   // O(n log² n) 时，per3/per1 会随 N 显著增长
-  double maxPer= std::max ({per1, per2, per3});
-  double minPer= std::min ({per1, per2, per3});
+  double maxPer   = std::max ({per1, per2, per3});
+  double minPer   = std::min ({per1, per2, per3});
   double variation= maxPer / minPer;
 
   QVERIFY2 (variation < 2.0,
             QString ("per-session variation %1x (expected ~1.0 for O(n)), "
                      "N=%2: %3, N=%4: %5, N=%6: %7 us/session")
                 .arg (variation, 0, 'f', 2)
-                .arg (N1).arg (per1, 0, 'f', 4)
-                .arg (N2).arg (per2, 0, 'f', 4)
-                .arg (N3).arg (per3, 0, 'f', 4)
+                .arg (N1)
+                .arg (per1, 0, 'f', 4)
+                .arg (N2)
+                .arg (per2, 0, 'f', 4)
+                .arg (N3)
+                .arg (per3, 0, 'f', 4)
                 .toUtf8 ()
                 .constData ());
 
   qDebug () << "=== getAllSessionIds O(n) verification ===";
-  qDebug () << "  N=" << N1 << ":" << per1 << "us/session (" << us1 << "us total)";
-  qDebug () << "  N=" << N2 << ":" << per2 << "us/session (" << us2 << "us total)";
-  qDebug () << "  N=" << N3 << ":" << per3 << "us/session (" << us3 << "us total)";
+  qDebug () << "  N=" << N1 << ":" << per1 << "us/session (" << us1
+            << "us total)";
+  qDebug () << "  N=" << N2 << ":" << per2 << "us/session (" << us2
+            << "us total)";
+  qDebug () << "  N=" << N3 << ":" << per3 << "us/session (" << us3
+            << "us total)";
   qDebug () << "  variation:" << variation << "x";
 }

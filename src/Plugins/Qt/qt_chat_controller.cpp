@@ -527,7 +527,8 @@ ChatController::updateManifest (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
   char createdAtBuf[32];
-  std::snprintf (createdAtBuf, sizeof (createdAtBuf), "%ld", (long) s->createdAt);
+  std::snprintf (createdAtBuf, sizeof (createdAtBuf), "%ld",
+                 (long) s->createdAt);
   char updateAtBuf[32];
   std::snprintf (updateAtBuf, sizeof (updateAtBuf), "%ld", (long) s->updateAt);
   array<object> args;
@@ -694,12 +695,12 @@ qt_chat_tab_set_state (string sessionId, string stateStr) {
 void
 qt_chat_tab_restore_session (string sessionId, string title, string model,
                              string archived, string createdAtStr,
-                             string updatedAtStr,
-                             int defaultExpandCount, string thinking) {
-  time_t createdAt = (time_t) std::atol (c_string (createdAtStr));
-  time_t updateAt  = is_empty (updatedAtStr)
-                       ? createdAt
-                       : (time_t) std::atol (c_string (updatedAtStr));
+                             string updatedAtStr, int defaultExpandCount,
+                             string thinking) {
+  time_t      createdAt= (time_t) std::atol (c_string (createdAtStr));
+  time_t      updateAt = is_empty (updatedAtStr)
+                             ? createdAt
+                             : (time_t) std::atol (c_string (updatedAtStr));
   ChatSession session;
   session.sessionId         = sessionId;
   session.title             = title;

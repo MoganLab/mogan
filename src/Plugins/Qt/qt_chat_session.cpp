@@ -23,12 +23,12 @@ string
 ChatSessionManager::createSession () {
   string      sessionId= lolly::hash::uuid_make ();
   ChatSession session;
-  session.sessionId= sessionId;
-  session.state    = ChatState::Idle;
-  session.archived = false;
-  std::time_t now          = std::time (nullptr);
-  session.createdAt        = now;
-  session.updateAt         = now;
+  session.sessionId         = sessionId;
+  session.state             = ChatState::Idle;
+  session.archived          = false;
+  std::time_t now           = std::time (nullptr);
+  session.createdAt         = now;
+  session.updateAt          = now;
   session.defaultExpandCount= 5;
   session.thinking          = false;
   session.panel             = nullptr;
