@@ -10,8 +10,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic chat-session-persist)
-  (:use (dynamic chat-tab-session)
+(texmacs-module (llm chat-session-persist)
+  (:use (llm chat-tab-session)
     (dynamic session-edit)
     (texmacs texmacs tm-files)
     (utils library cursor)

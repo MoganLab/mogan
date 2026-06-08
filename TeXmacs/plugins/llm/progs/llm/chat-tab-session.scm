@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic chat-tab-session)
+(texmacs-module (llm chat-tab-session)
   (:use (utils library tree)
     (utils library cursor)
     (utils plugins plugin-eval)

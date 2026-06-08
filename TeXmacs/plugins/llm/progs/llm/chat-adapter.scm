@@ -10,9 +10,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic chat-adapter)
-  (:use (dynamic chat-tab-session)
-    (dynamic chat-session-persist)
+(texmacs-module (llm chat-adapter)
+  (:use (llm chat-tab-session)
+    (llm chat-session-persist)
     (texmacs texmacs tm-files)
     (texmacs texmacs tm-server)
   ) ;:use
