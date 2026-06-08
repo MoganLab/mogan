@@ -26,6 +26,8 @@ private slots:
   void test_custom_border_colors_registered ();
   void test_adjacent_border_colors ();
   void test_adjacent_border_colors_on_cell_typeset ();
+  void test_default_table_tree_has_table_hyphen ();
+  void test_default_table_tree_twith_value ();
 };
 
 void
@@ -127,6 +129,35 @@ TestEditTable::test_adjacent_border_colors_on_cell_typeset () {
   }
 
   QCOMPARE (cell1_finished_rborder, 0);
+}
+
+void
+TestEditTable::test_default_table_tree_has_table_hyphen () {
+  tree T= default_table_tree (2, 3);
+  QVERIFY (is_func (T, TFORMAT));
+
+  bool found= false;
+  for (int i= 0; i < N (T); i++) {
+    if (is_func (T[i], TWITH, 2) && T[i][0] == "table-hyphen") {
+      found= true;
+      break;
+    }
+  }
+  QVERIFY (found);
+}
+
+void
+TestEditTable::test_default_table_tree_twith_value () {
+  tree T= default_table_tree (2, 3);
+  QVERIFY (is_func (T, TFORMAT));
+
+  for (int i= 0; i < N (T); i++) {
+    if (is_func (T[i], TWITH, 2) && T[i][0] == "table-hyphen") {
+      QCOMPARE (T[i][1], "y");
+      return;
+    }
+  }
+  QFAIL ("table-hyphen twith not found");
 }
 
 QTEST_MAIN (TestEditTable)
