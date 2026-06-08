@@ -71,7 +71,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageBaseWidthPts_ (0.0), overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
       inPinchGesture_ (false), blockRender_ (false), autoFitApplied_ (false),
-      pinchStartZoom_ (1.0), renderCallCount_ (0) {
+      pinchStartZoom_ (1.0), zoomAnchorContentY_ (0.0),
+      zoomAnchorViewportY_ (0.0), zoomAnchorOldZoom_ (1.0),
+      hasZoomAnchor_ (false), renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -323,6 +325,16 @@ PDFReaderWidget::simulatePinchGesture (Qt::GestureState state,
 
 void
 PDFReaderWidget::setZoomFactor (double factor) {
+  if (pdfData_.isEmpty () || pageCount_ <= 0) {
+    zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
+    updateZoomDisplay ();
+    return;
+  }
+  // Save anchor at viewport center before zoom
+  int    vpHeight = scrollArea_->viewport ()->height ();
+  QPoint vpCenter (scrollArea_->viewport ()->width () / 2, vpHeight / 2);
+  saveZoomAnchor (vpCenter);
+
   zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
   updateZoomDisplay ();
   if (!pdfData_.isEmpty () && pageCount_ > 0) {
@@ -792,6 +804,9 @@ PDFReaderWidget::rebuildPages () {
     label->setFixedSize (width, height);
   }
 
+  // Restore scroll position anchored to the saved content point
+  restoreZoomAnchor ();
+
   // 计算当前视口范围（考虑预加载边距）
   int scrollY       = scrollArea_->verticalScrollBar ()->value ();
   int viewportHeight= scrollArea_->viewport ()->height ();
@@ -1140,6 +1155,30 @@ PDFReaderWidget::updateLinkCursor (const QPoint& contentPos) {
 }
 
 void
+PDFReaderWidget::saveZoomAnchor (const QPoint& viewportPos) {
+  QPoint contentPos=
+      contentWidget_->mapFrom (scrollArea_->viewport (), viewportPos);
+  zoomAnchorContentY_ = static_cast<double> (contentPos.y ());
+  zoomAnchorViewportY_= static_cast<double> (viewportPos.y ());
+  zoomAnchorOldZoom_  = zoomFactor_;
+  hasZoomAnchor_      = true;
+}
+
+void
+PDFReaderWidget::restoreZoomAnchor () {
+  if (!hasZoomAnchor_) return;
+  hasZoomAnchor_= false;
+
+  // Scale the saved content Y by the zoom ratio to get the new position
+  double zoomRatio= zoomFactor_ / zoomAnchorOldZoom_;
+  double scaledContentY= zoomAnchorContentY_ * zoomRatio;
+  int    targetScrollY= qRound (scaledContentY - zoomAnchorViewportY_);
+  QScrollBar* vbar= scrollArea_->verticalScrollBar ();
+  targetScrollY   = qBound (0, targetScrollY, vbar->maximum ());
+  vbar->setValue (targetScrollY);
+}
+
+void
 PDFReaderWidget::setTestLinks (int page, const QVector<PdfLink>& links) {
   if (page < 0) return;
   if (page >= pageLinks_.size ()) pageLinks_.resize (page + 1);
@@ -1350,6 +1389,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (isZoomModifier (wheelEvent->modifiers ())) {
         int delta= wheelEvent->angleDelta ().y ();
         if (delta != 0) {
+          // Save anchor at cursor position before zoom
+          saveZoomAnchor (wheelEvent->position ().toPoint ());
           double factor= 1.0 + static_cast<double> (delta) / 500.0;
           zoomFactor_  = qBound (MIN_ZOOM, zoomFactor_ * factor, MAX_ZOOM);
           updateZoomDisplay ();
