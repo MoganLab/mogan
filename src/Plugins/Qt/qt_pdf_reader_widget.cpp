@@ -331,7 +331,7 @@ PDFReaderWidget::setZoomFactor (double factor) {
     return;
   }
   // Save anchor at viewport center before zoom
-  int    vpHeight = scrollArea_->viewport ()->height ();
+  int    vpHeight= scrollArea_->viewport ()->height ();
   QPoint vpCenter (scrollArea_->viewport ()->width () / 2, vpHeight / 2);
   saveZoomAnchor (vpCenter);
 
@@ -1174,11 +1174,11 @@ PDFReaderWidget::restoreZoomAnchor () {
   hasZoomAnchor_= false;
 
   // Scale the saved content Y by the zoom ratio to get the new position
-  double zoomRatio= zoomFactor_ / zoomAnchorOldZoom_;
-  double scaledContentY= zoomAnchorContentY_ * zoomRatio;
-  int    targetScrollY= qRound (scaledContentY - zoomAnchorViewportY_);
-  QScrollBar* vbar= scrollArea_->verticalScrollBar ();
-  targetScrollY   = qBound (0, targetScrollY, vbar->maximum ());
+  double      zoomRatio     = zoomFactor_ / zoomAnchorOldZoom_;
+  double      scaledContentY= zoomAnchorContentY_ * zoomRatio;
+  int         targetScrollY = qRound (scaledContentY - zoomAnchorViewportY_);
+  QScrollBar* vbar          = scrollArea_->verticalScrollBar ();
+  targetScrollY             = qBound (0, targetScrollY, vbar->maximum ());
   vbar->setValue (targetScrollY);
 }
 

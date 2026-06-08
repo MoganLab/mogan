@@ -1341,10 +1341,10 @@ private slots:
     QApplication::processEvents ();
 
     // Record the absolute content Y coordinate at viewport center
-    int    scrollY1       = vbar->value ();
-    int    viewportHeight = widget->viewport ()->height ();
-    double contentYBefore = static_cast<double> (scrollY1) +
-                            static_cast<double> (viewportHeight) / 2.0;
+    int    scrollY1      = vbar->value ();
+    int    viewportHeight= widget->viewport ()->height ();
+    double contentYBefore= static_cast<double> (scrollY1) +
+                           static_cast<double> (viewportHeight) / 2.0;
 
     // Zoom in further — content size scales by 2.0/1.5 = 1.333x
     double oldZoom= 1.5;
@@ -1353,9 +1353,9 @@ private slots:
     QTest::qWait (300);
     QApplication::processEvents ();
 
-    int    scrollY2      = vbar->value ();
-    double contentYAfter = static_cast<double> (scrollY2) +
-                           static_cast<double> (viewportHeight) / 2.0;
+    int    scrollY2     = vbar->value ();
+    double contentYAfter= static_cast<double> (scrollY2) +
+                          static_cast<double> (viewportHeight) / 2.0;
 
     // After zoom, the content Y that was at viewport center should
     // have scaled by the zoom ratio. So:
@@ -1395,9 +1395,9 @@ private slots:
 
     // Cursor is at viewport position (50, 50)
     QPoint cursorPos (50, 50);
-    double oldZoom          = widget->zoomFactor ();
-    double contentYAtCursor = static_cast<double> (vbar->value ()) +
-                              static_cast<double> (cursorPos.y ());
+    double oldZoom         = widget->zoomFactor ();
+    double contentYAtCursor= static_cast<double> (vbar->value ()) +
+                             static_cast<double> (cursorPos.y ());
 
     // Ctrl+wheel zoom in
     QWheelEvent wheelEvent (QPointF (cursorPos), QPointF (cursorPos),
@@ -1409,8 +1409,8 @@ private slots:
 
     double newZoom= widget->zoomFactor ();
 
-    double contentYAtCursorAfter=
-        static_cast<double> (vbar->value ()) + static_cast<double> (cursorPos.y ());
+    double contentYAtCursorAfter= static_cast<double> (vbar->value ()) +
+                                  static_cast<double> (cursorPos.y ());
 
     // After zoom, the content point that was under the cursor should
     // have been scaled by the zoom ratio.
@@ -1449,8 +1449,8 @@ private slots:
     QApplication::processEvents ();
 
     QPoint cursorPos (50, 50);
-    int    initialScrollY = vbar->value ();
-    double initialZoom    = widget->zoomFactor ();
+    int    initialScrollY= vbar->value ();
+    double initialZoom   = widget->zoomFactor ();
 
     // Zoom in 4 times
     for (int i= 0; i < 4; ++i) {
@@ -1472,8 +1472,9 @@ private slots:
     QCOMPARE (widget->zoomFactor (), initialZoom);
 
     // Scroll position should return to the original (within 5px)
-    QVERIFY2 (qAbs (vbar->value () - initialScrollY) <= 5,
-              "Scroll position did not return to original after round-trip zoom");
+    QVERIFY2 (
+        qAbs (vbar->value () - initialScrollY) <= 5,
+        "Scroll position did not return to original after round-trip zoom");
     delete widget;
   }
 };

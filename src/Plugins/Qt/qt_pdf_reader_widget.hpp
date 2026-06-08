@@ -177,9 +177,9 @@ private:
 
   // Zoom anchor: remembers the content position that should stay
   // fixed during a zoom operation.
-  double zoomAnchorContentY_; // content Y in contentWidget coords
+  double zoomAnchorContentY_;  // content Y in contentWidget coords
   double zoomAnchorViewportY_; // corresponding Y in viewport coords
-  double zoomAnchorOldZoom_; // zoom factor when anchor was saved
+  double zoomAnchorOldZoom_;   // zoom factor when anchor was saved
   bool   hasZoomAnchor_;
 
   int renderCallCount_;
