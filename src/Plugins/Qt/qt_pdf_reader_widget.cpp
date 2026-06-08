@@ -1195,16 +1195,16 @@ PDFReaderWidget::restoreZoomAnchor () {
   // page the anchor falls on. We use the same formula rebuildPages uses.
   QScreen* screen= this->screen ();
   if (!screen) screen= QApplication::primaryScreen ();
-  qreal dpi= screen ? screen->logicalDotsPerInch () : 96.0;
-  int   baseW= (pageBaseWidthPts_ > 0)
-                 ? qRound (pageBaseWidthPts_ * dpi / 72.0)
-                 : scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  qreal dpi     = screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseW   = (pageBaseWidthPts_ > 0)
+                      ? qRound (pageBaseWidthPts_ * dpi / 72.0)
+                      : scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
   int   oldPageW= qMax (1, qRound (baseW * zoomAnchorOldZoom_));
   int   oldPageH= 0;
   {
-    double aspect=
-        (pageIdx < pageAspectRatios_.size ()) ? pageAspectRatios_[pageIdx]
-                                               : pageAspectRatio_;
+    double aspect= (pageIdx < pageAspectRatios_.size ())
+                       ? pageAspectRatios_[pageIdx]
+                       : pageAspectRatio_;
     if (aspect <= 0.0) aspect= 1.414;
     oldPageH= qMax (1, qRound (oldPageW * aspect));
   }
@@ -1219,12 +1219,12 @@ PDFReaderWidget::restoreZoomAnchor () {
   }
   int newPageTop= PAGE_MARGIN + pageIdx * (newPageH + PAGE_MARGIN);
 
-  double zoomRatio  = (oldPageH > 0) ? static_cast<double> (newPageH) / oldPageH
-                                     : 1.0;
-  double contentY   = newPageTop + offset * zoomRatio;
-  int targetScrollY = qRound (contentY - zoomAnchorViewportY_);
-  QScrollBar* vbar  = scrollArea_->verticalScrollBar ();
-  targetScrollY     = qBound (0, targetScrollY, vbar->maximum ());
+  double zoomRatio=
+      (oldPageH > 0) ? static_cast<double> (newPageH) / oldPageH : 1.0;
+  double      contentY     = newPageTop + offset * zoomRatio;
+  int         targetScrollY= qRound (contentY - zoomAnchorViewportY_);
+  QScrollBar* vbar         = scrollArea_->verticalScrollBar ();
+  targetScrollY            = qBound (0, targetScrollY, vbar->maximum ());
   vbar->setValue (targetScrollY);
 }
 
