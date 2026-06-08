@@ -394,12 +394,6 @@ ChatConversationPanel::resizeEvent (QResizeEvent* event) {
 
 void
 ChatConversationPanel::focusInput () {
-  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
-  url vw      = get_passive_view (inBufUrl);
-  if (!is_none (vw)) {
-    set_current_view (vw);
-    call ("update-menus");
-  }
   if (inputQTMWidget_) {
     inputQTMWidget_->clearFocus ();
     inputQTMWidget_->setFocus (Qt::OtherFocusReason);
