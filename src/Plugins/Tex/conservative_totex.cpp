@@ -564,8 +564,8 @@ conservative_texmacs_to_latex (tree doc, object opts) {
   string lsource= as_string (atts_map["latex-source"]);
   if (search_forwards ("\\begin{document}", lsource) < 0)
     return tracked_texmacs_to_latex (doc, opts);
-  tree   ltarget= atts_map["latex-target"];
-  tree   target = texmacs_unmark (ltarget);
+  tree ltarget= atts_map["latex-target"];
+  tree target = texmacs_unmark (ltarget);
   if (doc == target) return lsource;
   tree idoc= texmacs_invarianted (doc, ltarget, lsource);
   call ("latex-set-virtual-packages", get_used_packages (lsource));
