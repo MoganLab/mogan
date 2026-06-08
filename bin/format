@@ -30,8 +30,11 @@ clang-format -i moebius/**/*.hpp
 clang-format -i 3rdparty/lolly/**/*.cpp
 clang-format -i 3rdparty/lolly/**/*.hpp
 
-gf fix TeXmacs/plugins/gnuplot
-gf fix TeXmacs/progs/generic
-gf fix TeXmacs/progs/kernel
-gf fix TeXmacs/progs/source
-gf fix TeXmacs/progs/utils/plugins/
+gf fmt TeXmacs/plugins/gnuplot
+gf fmt TeXmacs/progs/generic
+gf fmt TeXmacs/progs/kernel
+gf fmt TeXmacs/progs/source
+gf fmt TeXmacs/progs/utils/plugins/
+
+gf fmt TeXmacs/plugins/llm/progs
+

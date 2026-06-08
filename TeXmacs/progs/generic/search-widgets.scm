@@ -414,20 +414,11 @@
 ) ;define
 
 (define (search-command-target-buffer u)
-  (with mas
-    (buffer-get-master u)
-    (search-command-target-buffer* u mas)
-  ) ;with
+  (with mas (buffer-get-master u) (search-command-target-buffer* u mas))
 ) ;define
 
 (define (search-command-target-buffer* u mas)
-  (if (and (search-or-replace-aux-buffer? u)
-        mas
-        (buffer-exists? mas)
-      ) ;and
-    mas
-    u
-  ) ;if
+  (if (and (search-or-replace-aux-buffer? u) mas (buffer-exists? mas)) mas u)
 ) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

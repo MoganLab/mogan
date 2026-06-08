@@ -215,7 +215,8 @@
               (else (clipboard-paste-import fm "primary"))
         ) ;cond
         (when (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")
-          (qt-chat-notify-input-height))
+          (qt-chat-notify-input-height)
+        ) ;when
       ) ;when
     ) ;lambda
   ) ;define

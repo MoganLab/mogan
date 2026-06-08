@@ -1202,16 +1202,22 @@
             ) ;
         (if (chat-tab-tree-has-image? input)
           ;; 包含图片：替换为不支持图片的问答，直接设置输出
-          (let* ((qa-input (stree->tree
-                      `(document ,(translate "Does the current AI chat support images?"))))
-                 (out (chat-tab-append-round! msg-buf qa-input session-id)))
+          (let* ((qa-input (stree->tree `(document ,(translate "Does the current AI chat support images?"))
+                           ) ;stree->tree
+                 ) ;qa-input
+                 (out (chat-tab-append-round! msg-buf qa-input session-id))
+                ) ;
             (if (not out)
               #f
               (begin
                 (with-buffer msg-buf
                   (chat-tab-output out (stree->tree `(document ,(translate "No, it does not."))))
-                  (buffer-pretend-saved msg-buf))
-                #t)))
+                  (buffer-pretend-saved msg-buf)
+                ) ;with-buffer
+                #t
+              ) ;begin
+            ) ;if
+          ) ;let*
           ;; 纯文本内容：正常发送流程
           (let* ((out (chat-tab-append-round! msg-buf input session-id)))
             (if (not out)
