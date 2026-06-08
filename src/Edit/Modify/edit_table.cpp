@@ -56,6 +56,11 @@ empty_table (int nr_rows, int nr_cols) {
   return T;
 }
 
+bool
+table_needs_document_wrap (string hyphen, string block, string mode) {
+  return (hyphen == "y" || block == "yes") && mode != "math";
+}
+
 tree
 default_table_tree (int nr_rows, int nr_cols) {
   tree T= empty_table (nr_rows, nr_cols);
@@ -1077,7 +1082,7 @@ edit_table_rep::make_table (int nr_rows, int nr_cols) {
   string hyphen= as_string (table_get_format (fp, TABLE_HYPHEN));
   string block = as_string (table_get_format (fp, TABLE_BLOCK));
   string mode  = get_env_string (MODE);
-  if ((hyphen == "y" || block == "yes") && mode != "math") {
+  if (table_needs_document_wrap (hyphen, block, mode)) {
     path q= fp;
     if (is_extension (subtree (et, path_up (q)), 1)) q= path_up (q);
     tree st= subtree (et, path_up (q));

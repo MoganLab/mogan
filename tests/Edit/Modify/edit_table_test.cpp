@@ -15,6 +15,8 @@ using namespace moebius;
 // Declared in src/Edit/Modify/edit_table.cpp
 extern tree empty_table (int nr_rows, int nr_cols);
 extern tree default_table_tree (int nr_rows, int nr_cols);
+extern bool table_needs_document_wrap (string hyphen, string block,
+                                       string mode);
 
 class TestEditTable : public QObject {
   Q_OBJECT
@@ -28,6 +30,7 @@ private slots:
   void test_adjacent_border_colors_on_cell_typeset ();
   void test_default_table_tree_has_table_hyphen ();
   void test_default_table_tree_twith_value ();
+  void test_no_document_wrap_in_math_mode ();
 };
 
 void
@@ -158,6 +161,11 @@ TestEditTable::test_default_table_tree_twith_value () {
     }
   }
   QFAIL ("table-hyphen twith not found");
+}
+
+void
+TestEditTable::test_no_document_wrap_in_math_mode () {
+  QVERIFY (!table_needs_document_wrap ("y", "no", "math"));
 }
 
 QTEST_MAIN (TestEditTable)
