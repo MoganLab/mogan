@@ -231,6 +231,12 @@ public:
   // ---- 其他公共方法 ----
 
   /**
+   * @brief 将指定会话项移到活跃列表顶部。
+   * @param sessionId 目标会话 ID
+   */
+  void reorderItem (const string& sessionId);
+
+  /**
    * @brief 移除指定的侧边栏项。
    * @param sessionId 要移除的会话 ID
    */

@@ -438,6 +438,7 @@ ChatController::notifyStateChanged (const string& sessionId,
     exportBuffer (sessionId);
     sessionManager_.touchSession (sessionId);
     updateManifest (sessionId);
+    view_->sidebar ()->reorderItem (sessionId);
     panel->focusInput ();
   }
 }

@@ -961,6 +961,16 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
 }
 
 void
+ChatSidebar::reorderItem (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  SidebarItem& item= it.value ();
+  if (item.isArchived) return;
+
+  conversationListLayout_->insertWidget (0, item.itemWidget);
+}
+
+void
 ChatSidebar::applySearchFilter () {
   QString filterText=
       searchEdit_ ? searchEdit_->text ().toLower () : QString ();

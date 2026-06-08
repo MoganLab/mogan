@@ -84,6 +84,7 @@ private slots:
   void test_title_empty_for_new_session ();
   void test_title_nonempty_after_set ();
   void test_title_preserved_across_archive_restore ();
+  void test_archiveSession_preserves_updateAt ();
 
   // === thinking ===
   void test_createSession_thinking_default_false ();
@@ -682,6 +683,36 @@ TestChatSession::test_title_preserved_across_archive_restore () {
   QVERIFY (!s->archived);
   QVERIFY (!is_empty (s->title));
   QVERIFY (s->title == string ("My Session"));
+}
+
+void
+TestChatSession::test_archiveSession_preserves_updateAt () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId= "newer";
+  s1.state    = ChatState::Idle;
+  s1.createdAt= 2000;
+  s1.updateAt = 2000;
+  s1.archived = false;
+  s1.panel    = nullptr;
+
+  ChatSession s2;
+  s2.sessionId= "older";
+  s2.state    = ChatState::Idle;
+  s2.createdAt= 1000;
+  s2.updateAt = 1000;
+  s2.archived = false;
+  s2.panel    = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  // 归档 newer 后，timeIndex_ 顺序不变（updateAt 未改）
+  mgr.archiveSession ("newer");
+  auto ids= mgr.getAllSessionIds ();
+  QVERIFY (ids[0] == string ("newer"));
+  QVERIFY (ids[1] == string ("older"));
 }
 
 /******************************************************************************
