@@ -22,7 +22,7 @@ qt_generate_document_save_path (const QString& templateName) {
   if (docsDir.isEmpty ()) {
     docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
   }
-  docsDir= QDir (docsDir).filePath ("LiiiSTEM");
+  docsDir= QDir (docsDir).filePath ("LiiiSTEM/library");
 
   QString baseName= templateName;
   baseName.replace (QRegularExpression ("[\\\\/:*?\"<>|]"), "_");
