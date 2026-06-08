@@ -548,10 +548,16 @@ ChatController::ensureNewConversation () {
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 复用无面板且无标题的空白会话
+  // 复用无标题的空白会话（无论是否有面板）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
     sessionManager_.setModel (reusable, currentModel);
+    ChatSession* s= sessionManager_.getSession (reusable);
+    if (s && s->panel) {
+      // 有面板时隐藏标题标签，确保视觉状态干净
+      ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
+      if (p->sessionTitle ()) p->sessionTitle ()->hide ();
+    }
     activateSession (reusable);
     return;
   }

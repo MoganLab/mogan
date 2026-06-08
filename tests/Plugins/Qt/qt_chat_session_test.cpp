@@ -97,7 +97,8 @@ private slots:
   void test_dual_container_consistency_after_insert ();
 
   // === findReusableSession ===
-  void test_findReusableSession_returns_panelless_titleless ();
+  void test_findReusableSession_returns_titleless ();
+  void test_findReusableSession_returns_with_panel ();
   void test_findReusableSession_skips_archived ();
   void test_findReusableSession_skips_with_title ();
   void test_findReusableSession_empty_when_none ();
@@ -729,7 +730,7 @@ TestChatSession::test_dual_container_consistency_after_insert () {
  ******************************************************************************/
 
 void
-TestChatSession::test_findReusableSession_returns_panelless_titleless () {
+TestChatSession::test_findReusableSession_returns_titleless () {
   ChatSessionManager mgr;
 
   // 创建一个有标题的会话
@@ -757,6 +758,28 @@ TestChatSession::test_findReusableSession_returns_panelless_titleless () {
   // 应返回空白会话（updateAt 降序优先，即 blank-session 在前）
   string result= mgr.findReusableSession ();
   QVERIFY (result == string ("blank-session"));
+}
+
+void
+TestChatSession::test_findReusableSession_returns_with_panel () {
+  ChatSessionManager mgr;
+
+  // 有面板但无标题的会话（用户打开了空白面板但没发过消息）
+  auto* fakePanel=
+      reinterpret_cast<ChatConversationPanel*> (uintptr_t (0x1234));
+  ChatSession s;
+  s.sessionId= "panel-no-title";
+  s.title    = "";
+  s.state    = ChatState::Idle;
+  s.archived = false;
+  s.createdAt= 1000;
+  s.updateAt = 1000;
+  s.panel    = fakePanel;
+  mgr.insertSession (s);
+
+  // 应返回此会话（无标题 = 可复用，无论是否有面板）
+  string result= mgr.findReusableSession ();
+  QVERIFY (result == string ("panel-no-title"));
 }
 
 void

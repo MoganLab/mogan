@@ -141,8 +141,8 @@ ChatSessionManager::findReusableSession () const {
     auto it= sessions_.find (ti.sessionId);
     if (it == sessions_.end () || it->second.archived) continue;
     const ChatSession& s= it->second;
-    // 空白 session 无面板且无标题
-    if (!s.panel && is_empty (s.title)) return ti.sessionId;
+    // 无标题 = 空白会话（未发过消息），无论是否有面板都可复用
+    if (is_empty (s.title)) return ti.sessionId;
   }
   return "";
 }
