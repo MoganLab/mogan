@@ -191,10 +191,15 @@ ChatSessionManager::inputBufferUrl (const string& sessionId) {
 
 void
 ChatSessionManager::insertSession (const ChatSession& session) {
-  // 如果已存在，先清理旧的 timeIndex_ 条目
   auto it= sessions_.find (session.sessionId);
-  if (it != sessions_.end ())
+  if (it != sessions_.end ()) {
+    // 已存在：清理旧 timeIndex_，直接赋值避免默认构造
     timeIndex_.erase ({it->second.updateAt, session.sessionId});
-  sessions_[session.sessionId]= session;
+    it->second= session;
+  }
+  else {
+    // 不存在：insert 新条目
+    sessions_.insert ({session.sessionId, session});
+  }
   timeIndex_.insert ({session.updateAt, session.sessionId});
 }

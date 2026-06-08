@@ -153,7 +153,6 @@ public:
    * @brief 查找可复用的空白会话（按 updateAt 降序优先）。
    *
    * 条件：非归档、无面板且无标题（空白 session）。
-   * 有面板的会话由 ChatController 负责检查 conversationMode。
    *
    * @return 可复用的会话 ID，无则返回空字符串
    */

@@ -96,6 +96,15 @@ private slots:
   void test_dual_container_consistency_after_remove ();
   void test_dual_container_consistency_after_insert ();
 
+  // === findReusableSession ===
+  void test_findReusableSession_returns_panelless_titleless ();
+  void test_findReusableSession_skips_archived ();
+  void test_findReusableSession_skips_with_title ();
+  void test_findReusableSession_empty_when_none ();
+
+  // === restoreSession timeIndex ===
+  void test_restoreSession_updates_timeIndex ();
+
   // === 性能 benchmark ===
   void test_benchmark_getAllSessionIds_linear_scaling ();
 };
@@ -713,6 +722,127 @@ TestChatSession::test_dual_container_consistency_after_insert () {
 
   QCOMPARE ((int) mgr.sessionCount (), 1);
   QCOMPARE ((int) mgr.getAllSessionIds ().size (), 1);
+}
+
+/******************************************************************************
+ * findReusableSession
+ ******************************************************************************/
+
+void
+TestChatSession::test_findReusableSession_returns_panelless_titleless () {
+  ChatSessionManager mgr;
+
+  // 创建一个有标题的会话
+  ChatSession s1;
+  s1.sessionId= "titled-session";
+  s1.title    = "Has Title";
+  s1.state    = ChatState::Idle;
+  s1.archived = false;
+  s1.createdAt= 1000;
+  s1.updateAt = 1000;
+  s1.panel    = nullptr;
+  mgr.insertSession (s1);
+
+  // 创建一个无面板且无标题的空白会话
+  ChatSession s2;
+  s2.sessionId= "blank-session";
+  s2.title    = "";
+  s2.state    = ChatState::Idle;
+  s2.archived = false;
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
+  s2.panel    = nullptr;
+  mgr.insertSession (s2);
+
+  // 应返回空白会话（updateAt 降序优先，即 blank-session 在前）
+  string result= mgr.findReusableSession ();
+  QVERIFY (result == string ("blank-session"));
+}
+
+void
+TestChatSession::test_findReusableSession_skips_archived () {
+  ChatSessionManager mgr;
+
+  // 唯一的空白会话已归档
+  ChatSession s;
+  s.sessionId= "archived-blank";
+  s.title    = "";
+  s.state    = ChatState::Idle;
+  s.archived = true;
+  s.createdAt= 1000;
+  s.updateAt = 1000;
+  s.panel    = nullptr;
+  mgr.insertSession (s);
+
+  // 不应返回已归档的会话
+  QVERIFY (is_empty (mgr.findReusableSession ()));
+}
+
+void
+TestChatSession::test_findReusableSession_skips_with_title () {
+  ChatSessionManager mgr;
+
+  // 唯一的会话有标题
+  ChatSession s;
+  s.sessionId= "titled-only";
+  s.title    = "Has Title";
+  s.state    = ChatState::Idle;
+  s.archived = false;
+  s.createdAt= 1000;
+  s.updateAt = 1000;
+  s.panel    = nullptr;
+  mgr.insertSession (s);
+
+  // 有标题的会话不应被复用
+  QVERIFY (is_empty (mgr.findReusableSession ()));
+}
+
+void
+TestChatSession::test_findReusableSession_empty_when_none () {
+  ChatSessionManager mgr;
+  // 空管理器
+  QVERIFY (is_empty (mgr.findReusableSession ()));
+}
+
+/******************************************************************************
+ * restoreSession timeIndex
+ ******************************************************************************/
+
+void
+TestChatSession::test_restoreSession_updates_timeIndex () {
+  ChatSessionManager mgr;
+
+  ChatSession s1;
+  s1.sessionId= "older";
+  s1.state    = ChatState::Idle;
+  s1.createdAt= 1000;
+  s1.updateAt = 1000;
+  s1.archived = false;
+  s1.panel    = nullptr;
+
+  ChatSession s2;
+  s2.sessionId= "newer";
+  s2.state    = ChatState::Idle;
+  s2.createdAt= 2000;
+  s2.updateAt = 2000;
+  s2.archived = false;
+  s2.panel    = nullptr;
+
+  mgr.insertSession (s1);
+  mgr.insertSession (s2);
+
+  // 归档 older，再恢复 → updateAt 应更新为当前时间，置顶
+  mgr.archiveSession ("older");
+  mgr.restoreSession ("older");
+
+  auto ids= mgr.getAllSessionIds ();
+  // 恢复后的 older 应排在最前（updateAt > 2000）
+  QVERIFY (ids[0] == string ("older"));
+  QVERIFY (ids[1] == string ("newer"));
+
+  // 验证 updateAt 确实被更新
+  ChatSession* restored= mgr.getSession ("older");
+  QVERIFY (restored->updateAt > 2000);
 }
 
 /******************************************************************************

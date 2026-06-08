@@ -27,6 +27,7 @@
 #include <QStyle>
 #include <QTimer>
 #include <QToolButton>
+#include <cinttypes>
 #include <cstdio>
 
 using namespace moebius;
@@ -527,10 +528,11 @@ ChatController::updateManifest (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s) return;
   char createdAtBuf[32];
-  std::snprintf (createdAtBuf, sizeof (createdAtBuf), "%ld",
-                 (long) s->createdAt);
+  std::snprintf (createdAtBuf, sizeof (createdAtBuf), "%" PRId64,
+                 (int64_t) s->createdAt);
   char updateAtBuf[32];
-  std::snprintf (updateAtBuf, sizeof (updateAtBuf), "%ld", (long) s->updateAt);
+  std::snprintf (updateAtBuf, sizeof (updateAtBuf), "%" PRId64,
+                 (int64_t) s->updateAt);
   array<object> args;
   args << object (sessionId) << object (s->title) << object (s->model)
        << object (s->archived ? string ("true") : string ("false"))
@@ -546,27 +548,12 @@ ChatController::ensureNewConversation () {
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 尝试复用已有的空白会话（无标题、未发送过的）
+  // 复用无面板且无标题的空白会话
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
     sessionManager_.setModel (reusable, currentModel);
     activateSession (reusable);
     return;
-  }
-
-  // 尝试复用有面板但未进入会话模式的会话
-  auto allIds= sessionManager_.getAllSessionIds ();
-  for (const string& sid : allIds) {
-    ChatSession* s= sessionManager_.getSession (sid);
-    if (!s || s->archived || !s->panel) continue;
-    ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
-    if (p && !p->conversationMode ()) {
-      sessionManager_.setModel (sid, currentModel);
-      if (p->sessionTitle ()) p->sessionTitle ()->hide ();
-      view_->sidebar ()->setActiveItem (sid);
-      view_->activatePanel (p);
-      return;
-    }
   }
 
   // 无可复用会话，创建新会话
