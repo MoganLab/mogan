@@ -1156,6 +1156,10 @@ PDFReaderWidget::updateLinkCursor (const QPoint& contentPos) {
 
 void
 PDFReaderWidget::saveZoomAnchor (const QPoint& viewportPos) {
+  // Only save on the first zoom event of a sequence (before any zoom change).
+  // Subsequent wheel events reuse the same anchor so that restoreZoomAnchor
+  // correctly computes the full zoom ratio from the original state.
+  if (hasZoomAnchor_) return;
   QPoint contentPos=
       contentWidget_->mapFrom (scrollArea_->viewport (), viewportPos);
   zoomAnchorContentY_ = static_cast<double> (contentPos.y ());

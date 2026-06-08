@@ -1420,6 +1420,62 @@ private slots:
               "Content under cursor shifted after wheel zoom");
     delete widget;
   }
+
+  void test_wheelZoom_roundTrip_preservesScrollRatio () {
+    // Zoom in 4 times via Ctrl+wheel, then use setZoomFactor to return to
+    // the original zoom level. The scroll position should return to original.
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      QSKIP ("No test PDF");
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    // First zoom in to 1.5x so we have more scrollable area
+    widget->setZoomFactor (1.5);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    // Scroll to a non-trivial position
+    vbar->setValue (vbar->maximum () / 2);
+    QApplication::processEvents ();
+
+    QPoint cursorPos (50, 50);
+    int    initialScrollY = vbar->value ();
+    double initialZoom    = widget->zoomFactor ();
+
+    // Zoom in 4 times
+    for (int i= 0; i < 4; ++i) {
+      QWheelEvent wheelIn (QPointF (cursorPos), QPointF (cursorPos),
+                           QPoint (0, 0), QPoint (0, 120), Qt::NoButton,
+                           Qt::ControlModifier, Qt::NoScrollPhase, false);
+      QApplication::sendEvent (widget->viewport (), &wheelIn);
+    }
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QVERIFY (widget->zoomFactor () > initialZoom);
+
+    // Explicitly return to the original zoom level
+    widget->setZoomFactor (initialZoom);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QCOMPARE (widget->zoomFactor (), initialZoom);
+
+    // Scroll position should return to the original (within 5px)
+    QVERIFY2 (qAbs (vbar->value () - initialScrollY) <= 5,
+              "Scroll position did not return to original after round-trip zoom");
+    delete widget;
+  }
 };
 
 QTEST_MAIN (TestPdfReaderWidget)
