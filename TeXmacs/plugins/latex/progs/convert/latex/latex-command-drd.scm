@@ -255,6 +255,7 @@
   pod
   pmod
   label
+  tag
   ref
   pageref
   index
@@ -1074,7 +1075,7 @@
 
 (logic-group latex-ignore-0*% displaybreak allowdisplaybreaks)
 
-(logic-group latex-ignore-1% tag hyphenation)
+(logic-group latex-ignore-1% hyphenation)
 
 (logic-group latex-ignore-2% newdir)
 

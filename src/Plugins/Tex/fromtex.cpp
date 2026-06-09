@@ -2301,6 +2301,10 @@ latex_command_to_tree (tree t) {
   if (is_tuple (t, "\\tmcodeinline*", 2))
     return compound (string_arg (t[1]), v2e (t[2]));
   if (is_tuple (t, "\\label", 1)) return tree (LABEL, v2e (t[1]));
+  if (is_tuple (t, "\\tag", 1)) {
+    tree label= l2e (t[1]);
+    return concat (compound ("no-number"), compound ("eq-lab", label));
+  }
   if (is_tuple (t, "\\ref", 1)) return tree (REFERENCE, v2e (t[1]));
   if (is_tuple (t, "\\cref", 1) || is_tuple (t, "\\Cref", 1))
     return latex_cref_to_tree (v2e (t[1]));
