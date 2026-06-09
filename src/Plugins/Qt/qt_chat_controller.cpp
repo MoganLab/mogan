@@ -66,7 +66,7 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     firstOpen_= false;
   }
   else {
-    initialId= determineInitialActiveSession ();
+    initialId= sessionManager_.firstActiveSessionId ();
   }
 
   // 3. 创建 View，Sidebar 构造时就有数据
@@ -653,11 +653,6 @@ ChatController::buildDisplayInfos () {
   }
 
   return infos;
-}
-
-string
-ChatController::determineInitialActiveSession () {
-  return sessionManager_.firstActiveSessionId ();
 }
 
 string

@@ -198,12 +198,6 @@ private:
   QList<SessionDisplayInfo> buildDisplayInfos ();
 
   /**
-   * @brief 确定初始激活会话（第一个非归档会话）。
-   * @return 会话 ID，无可用会话时返回空字符串
-   */
-  string determineInitialActiveSession ();
-
-  /**
    * @brief 获取单个会话的显示标题。
    * @param sessionId 目标会话 ID
    * @return 显示标题，无标题时返回 "新会话"
