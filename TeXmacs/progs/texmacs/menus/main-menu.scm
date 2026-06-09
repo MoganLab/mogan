@@ -117,18 +117,20 @@
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
-  (:require (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-"))
+  (:require (string-ends? (url->system (current-buffer-url)) "/input"))
   ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
-  ("Paste special" (interactive-paste-special)))
+  ("Paste special" (interactive-paste-special))
+) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
-  (:require (not (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")))
+  (:require (not (string-ends? (url->system (current-buffer-url)) "/input")))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
   (=> "Copy to" (link clipboard-copy-export-menu))
   ---
-  (former))
+  (former)
+) ;tm-menu
 
 (menu-bind texmacs-alternative-popup-menu
   (-> "File" (link file-menu))

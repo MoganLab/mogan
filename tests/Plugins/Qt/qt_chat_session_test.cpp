@@ -76,6 +76,14 @@ private slots:
   void test_messageBufferUrl ();
   void test_inputBufferUrl ();
 
+  // === sessionIdFromUrl ===
+  void test_sessionIdFromUrl_message ();
+  void test_sessionIdFromUrl_input ();
+  void test_sessionIdFromUrl_non_chat ();
+  void test_sessionIdFromUrl_chat_tab ();
+  void test_sessionIdFromUrl_empty ();
+  void test_sessionIdFromUrl_uuid_format ();
+
   // === defaultExpandCount ===
   void test_createSession_defaultExpandCount ();
   void test_insertSession_defaultExpandCount ();
@@ -560,15 +568,62 @@ TestChatSession::test_archiveSession_with_title () {
 void
 TestChatSession::test_messageBufferUrl () {
   url result  = ChatSessionManager::messageBufferUrl ("abc-123");
-  url expected= url ("tmfs://chat-message-abc-123");
+  url expected= url ("tmfs://chat/abc-123/message");
   QVERIFY (result == expected);
 }
 
 void
 TestChatSession::test_inputBufferUrl () {
   url result  = ChatSessionManager::inputBufferUrl ("abc-123");
-  url expected= url ("tmfs://chat-input-abc-123");
+  url expected= url ("tmfs://chat/abc-123/input");
   QVERIFY (result == expected);
+}
+
+/******************************************************************************
+ * sessionIdFromUrl
+ ******************************************************************************/
+
+void
+TestChatSession::test_sessionIdFromUrl_message () {
+  url    u  = url ("tmfs://chat/abc-123/message");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (sid == string ("abc-123"));
+}
+
+void
+TestChatSession::test_sessionIdFromUrl_input () {
+  url    u  = url ("tmfs://chat/xyz-999/input");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (sid == string ("xyz-999"));
+}
+
+void
+TestChatSession::test_sessionIdFromUrl_non_chat () {
+  url    u  = url ("tmfs://aux/test-buffer");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (is_empty (sid));
+}
+
+void
+TestChatSession::test_sessionIdFromUrl_chat_tab () {
+  // tmfs://chat-tab 是主 chat tab 容器，不是会话 buffer
+  url    u  = url ("tmfs://chat-tab");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (is_empty (sid));
+}
+
+void
+TestChatSession::test_sessionIdFromUrl_empty () {
+  url    u  = url ("");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (is_empty (sid));
+}
+
+void
+TestChatSession::test_sessionIdFromUrl_uuid_format () {
+  url    u  = url ("tmfs://chat/550e8400-e29b-41d4-a716-446655440000/message");
+  string sid= ChatSessionManager::sessionIdFromUrl (u);
+  QVERIFY (sid == string ("550e8400-e29b-41d4-a716-446655440000"));
 }
 
 /******************************************************************************

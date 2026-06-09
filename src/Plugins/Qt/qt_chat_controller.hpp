@@ -142,6 +142,7 @@ private:
   QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_;  ///< 会话管理器
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
+  string             currentModel_= "Kimi-VLM"; ///< 当前选择的模型（C++ 管理）
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。

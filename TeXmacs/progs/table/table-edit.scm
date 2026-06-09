@@ -162,8 +162,10 @@
 ) ;tm-define
 
 (tm-define (table-resize-notify t)
-  (when (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")
-    (qt-chat-notify-input-height)))
+  (when (string-ends? (url->system (current-buffer-url)) "/input")
+    (qt-chat-notify-input-height)
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Posititioning

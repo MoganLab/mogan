@@ -1292,9 +1292,10 @@
     (with-buffer floating-search-target (cancel-alt-selection "alternate"))
     (set-search-window-state #f #f)
     (let* ((msg-url (url->system floating-search-target))
-           (in-url (if (string-starts? msg-url "tmfs://chat-message-")
-                     (string-append "tmfs://chat-input-"
-                       (substring msg-url (string-length "tmfs://chat-message-"))
+           (in-url (if (string-ends? msg-url "/message")
+                     (string-append "tmfs://chat/"
+                       (chat-buffer-session-id floating-search-target)
+                       "/input"
                      ) ;string-append
                      ""
                    ) ;if
@@ -1828,22 +1829,30 @@
 (define-preferences ("toolbar search" "on" noop) ("toolbar replace" "on" noop))
 
 (define (chat-message-buffer? buf)
-  (string-starts? (url->system buf) "tmfs://chat-message-")
+  (with s
+    (url->system buf)
+    (and (string-starts? s "tmfs://chat/") (string-ends? s "/message"))
+  ) ;with
 ) ;define
 
 (define (chat-input-buffer? buf)
-  (string-starts? (url->system buf) "tmfs://chat-input-")
+  (with s
+    (url->system buf)
+    (and (string-starts? s "tmfs://chat/") (string-ends? s "/input"))
+  ) ;with
 ) ;define
 
 (define (chat-buffer-session-id buf)
   (with s
     (url->system buf)
-    (cond ((chat-message-buffer? buf)
-           (substring s (string-length "tmfs://chat-message-"))
-          ) ;
-          ((chat-input-buffer? buf) (substring s (string-length "tmfs://chat-input-")))
-          (else #f)
-    ) ;cond
+    (if (string-starts? s "tmfs://chat/")
+      (let* ((rest (substring s (string-length "tmfs://chat/")))
+             (i (string-index rest #\/))
+            ) ;
+        (if i (substring rest 0 i) #f)
+      ) ;let*
+      #f
+    ) ;if
   ) ;with
 ) ;define
 
@@ -1863,10 +1872,10 @@
       (current-buffer)
       (with sid
         (chat-buffer-session-id buf)
-        (cond ((string-starts? (url->system buf) "tmfs://chat-")
+        (cond ((string-starts? (url->system buf) "tmfs://chat")
                ;; chat tab 任何缓冲区：通过 sid 或胶水函数找到消息缓冲区
                (let* ((msg-url (if sid
-                                 (string-append "tmfs://chat-message-" sid)
+                                 (string-append "tmfs://chat/" sid "/message")
                                  (qt-chat-tab-active-message-buffer-url)
                                ) ;if
                       ) ;msg-url

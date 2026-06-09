@@ -33,7 +33,7 @@ private slots:
 
   void test_should_reset_when_current_view_is_not_default () {
     QVERIFY (qt_tm_widget_rep::shouldResetCurrentViewForNewTab (
-        url ("tmfs://view/12/tmfs/aux/tmfs://chat-input-session-1"),
+        url ("tmfs://view/12/tmfs/aux/tmfs://chat/session-1/input"),
         url ("window-1"), url ("window-1")));
   }
 

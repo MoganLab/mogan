@@ -184,15 +184,8 @@
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
-    (display "[persist] export-buffer: sid=") (display session-id) (newline)
-    (display "[persist]   msg-path=") (display msg-path) (newline)
-    (display "[persist]   msg-buf=") (display msg-buf) (newline)
-    (display "[persist]   parent-dir=") (display (chat-persist-parent-dir msg-path)) (newline)
     (chat-persist-ensure-dir! (chat-persist-parent-dir msg-path))
-    (display "[persist]   dir exists=") (display (file-exists? (chat-persist-parent-dir msg-path))) (newline)
-    (display "[persist]   calling buffer-export...") (newline)
     (buffer-export msg-buf (system->url msg-path) "tmu")
-    (display "[persist]   buffer-export done, file exists=") (display (file-exists? msg-path)) (newline)
   ) ;let
 ) ;tm-define
 
@@ -214,11 +207,6 @@
                 ) ;chat-persist-make-entry
          ) ;entry
         ) ;
-    (display "[persist] update-manifest: sid=") (display session-id)
-    (display " title=") (display title)
-    (display " model=") (display model) (newline)
-    (display "[persist]   manifest-path=") (display manifest-path) (newline)
-    (display "[persist]   manifest exists=") (display (file-exists? manifest-path)) (newline)
     (chat-persist-ensure-dir! (chat-persist-base-dir))
     (if (not (file-exists? manifest-path))
       ;; manifest 不存在：创建新的，直接构建包含 entry 的数组

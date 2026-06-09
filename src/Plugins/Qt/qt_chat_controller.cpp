@@ -52,7 +52,7 @@ ChatController::destroyView () {
 
 QWidget*
 ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
-  // 1. 先加载元数据到 sessionManager_（不需要 View）
+  // 1. Load session metadata
   call ("chat-persist-load-all");
   cout << "[chat-persist] ChatController: restored "
        << sessionManager_.sessionCount () << " session metadatas" << LF;
@@ -131,11 +131,11 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     ensureNewConversation ();
   }
 
-  // 5. 恢复 Scheme 层的全局当前模型（使用激活的会话）
+  // 5. 恢复当前模型（使用激活的会话）
   if (!is_empty (initialId)) {
     ChatSession* s= sessionManager_.getSession (initialId);
     if (s && !is_empty (s->model)) {
-      call ("chat-tab-session-select-model", s->model);
+      currentModel_= s->model;
     }
   }
 
@@ -222,7 +222,11 @@ ChatController::onSendRequested (const string& sessionId) {
     }
   }
 
-  if (!as_bool (call ("chat-tab-send", sessionId))) return;
+  if (!as_bool (call ("chat-tab-send", sessionId,
+                       session->model,
+                       session->thinking ? string ("enabled")
+                                         : string ("disabled"))))
+    return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);
   sessionManager_.touchSession (sessionId);
@@ -242,12 +246,7 @@ ChatController::onCancelRequested (const string& sessionId) {
 void
 ChatController::onThinkingToggled (const string& sessionId, bool enabled) {
   sessionManager_.setThinking (sessionId, enabled);
-  ChatSession* s= sessionManager_.getSession (sessionId);
-  if (s && s->registered) {
-    call ("chat-tab-session-set-thinking", sessionId,
-          enabled ? string ("enabled") : string ("disabled"));
-    updateManifest (sessionId);
-  }
+  updateManifest (sessionId);
 }
 
 void
@@ -262,10 +261,7 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
         static_cast<ChatConversationPanel*> (s->panel);
 
     call ("chat-tab-cancel", sid);
-    if (s->registered) {
-      call ("chat-persist-delete-one", sid);
-    }
-    call ("chat-tab-session-destroy", sid);
+    call ("chat-persist-delete-one", sid);
     sessionManager_.removeSession (sid);
 
     if (panel) {
@@ -451,13 +447,7 @@ ChatController::notifyStateChanged (const string& sessionId,
 
 void
 ChatController::restoreSessionMeta (const ChatSession& session) {
-  // 注册 Scheme 侧会话状态
-  call ("chat-persist-register-session", session.sessionId, session.model,
-        session.thinking ? string ("enabled") : string ("disabled"));
-
-  ChatSession restored= session;
-  restored.registered = true;
-  sessionManager_.insertSession (restored);
+  sessionManager_.insertSession (session);
 }
 
 /**
@@ -575,13 +565,10 @@ void
 ChatController::ensureNewConversation () {
   if (!view_) return;
 
-  string currentModel=
-      as_string (call ("chat-tab-session-select-model", string ("")));
-
   // 复用无标题的空白会话（面板和输入内容保持不变）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
-    sessionManager_.setModel (reusable, currentModel);
+    sessionManager_.setModel (reusable, currentModel_);
     ChatSession* s= sessionManager_.getSession (reusable);
     if (s && s->panel) {
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
@@ -598,7 +585,7 @@ ChatController::ensureNewConversation () {
   if (!panel) return;
 
   sessionManager_.setPanel (sid, panel);
-  sessionManager_.setModel (sid, currentModel);
+  sessionManager_.setModel (sid, currentModel_);
 
   call ("chat-tab-sync-dark-style!", sid);
 
@@ -635,6 +622,7 @@ ChatController::getOrCreatePanel (const string& sessionId) {
   sessionManager_.setPanel (sessionId, panel);
 
   call ("chat-tab-sync-dark-style!", sessionId);
+  call ("chat-tab-init-session!", sessionId, s->model);
 
   // 连接 Panel 的信号
   connect (panel, &ChatConversationPanel::sendRequested, this,
