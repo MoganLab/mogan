@@ -11,7 +11,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-library (liii goldformat-path)
-  (import (liii base) (liii path) (srfi srfi-13))
+  (import (liii base) (liii path) (liii string))
   (export cpp-roots scm-dirs collect-cpp-files collect-all-cpp-files)
   (begin
 
@@ -31,7 +31,7 @@
     (define (cpp-file? name)
       (let loop
         ((exts cpp-exts))
-        (if (null? exts) #f (if (string-suffix? (car exts) name) #t (loop (cdr exts))))
+        (if (null? exts) #f (if (string-ends? name (car exts)) #t (loop (cdr exts))))
       ) ;let
     ) ;define
 
