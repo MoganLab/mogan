@@ -153,18 +153,62 @@
   (:interactive #t)
   (dialogue-window (message-widget msg) callback title))
 
+;; 版本检查 URL
+(define MOGAN-LATEST-VERSION-URL "https://liiistem.cn/mogan_latest_version.tm")
+(define LIII-LATEST-VERSION-URL "https://liiistem.cn/latest_version.tm")
+
+;; 从 TeXmacs 文档内容中提取 body 中的版本号
+(define (extract-version-from-tm-content content)
+  (if (not (string? content))
+      ""
+      (let* ((body-start (string-search-forwards "<\\body>" 0 content))
+             (body-end (string-search-forwards "</body>" 0 content)))
+         (if (and (!= body-start -1) (!= body-end -1) (> body-end body-start))
+             (tm-string-trim-both 
+              (substring content (+ body-start 7) body-end))
+            ""))))
+
+;; 获取远程最新版本号（返回字符串，失败返回空字符串）
+(define (fetch-latest-version url)
+  (with content (string-load (string->url url))
+    (if (and (string? content) (!= content ""))
+        (extract-version-from-tm-content content)
+        "")))
+
 ;; 显示Mogan版本信息
 (tm-define (mogan-version)
   (let* ((cur-ver (xmacs-version))
-         (latest-ver "2026.2.5")
-         (latest? (== cur-ver latest-ver))
-         (url "https://liiistem.cn?utm_source=mogan-app&utm_medium=referral&utm_campaign=version-check"))
-    (if latest?
-        (show-message (replace "You are using v%1, and the latest stable version is v%2." cur-ver latest-ver)
-                      (translate "Version"))
-        (show-message-with-callback (replace "You are using v%1, and the latest stable version is v%2. Please click OK to visit the official website to download the latest stable version." cur-ver latest-ver)
-                                    (translate "Version")
-                                    (lambda x (open-url url))))))
+         (community? (community-stem?))
+         (community-ver (if community?
+                            (fetch-latest-version MOGAN-LATEST-VERSION-URL)
+                            ""))
+         (commercial-ver (fetch-latest-version LIII-LATEST-VERSION-URL))
+         (community-latest? (and community? (== cur-ver community-ver)))
+         (commercial-latest? (== cur-ver commercial-ver))
+         (url (if community?
+                  "https://liiistem.cn?utm_source=mogan-community&utm_medium=referral&utm_campaign=version-check"
+                  "https://liiistem.cn?utm_source=mogan-commercial&utm_medium=referral&utm_campaign=version-check")))
+    (if community?
+        ;; 社区版：同时展示社区版和商业版的最新稳定版
+        (let ((msg (if community-latest?
+                       (replace "You are using v%1. The latest stable version of Mogan STEM is v%2, and the latest stable version of Liii STEM is v%3."
+                                cur-ver community-ver commercial-ver)
+                       (replace "You are using v%1. The latest stable version of Mogan STEM is v%2, and the latest stable version of Liii STEM is v%3. Please click OK to visit the official website to download the latest stable version."
+                                cur-ver community-ver commercial-ver))))
+          (if community-latest?
+              (show-message msg (translate "Version"))
+              (show-message-with-callback msg (translate "Version")
+                                          (lambda x (open-url url)))))
+        ;; 商业版：只展示商业版的最新稳定版
+        (let ((msg (if commercial-latest?
+                       (replace "You are using v%1, and the latest stable version of Liii STEM is v%2."
+                                cur-ver commercial-ver)
+                       (replace "You are using v%1, and the latest stable version of Liii STEM is v%2. Please click OK to visit the official website to download the latest stable version."
+                                cur-ver commercial-ver))))
+          (if commercial-latest?
+              (show-message msg (translate "Version"))
+              (show-message-with-callback msg (translate "Version")
+                                          (lambda x (open-url url))))))))
 
 ;; 加载Xmacs星球页面
 (tm-define (xmacs-planet)
