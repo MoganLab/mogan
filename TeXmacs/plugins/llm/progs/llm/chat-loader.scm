@@ -32,8 +32,4 @@
 ;; dependency modules (chat-protocol, chat-tmfs) can safely use (import ...).
 
 
-(texmacs-module (llm chat-loader)
-  (:use (llm chat-protocol)
-    (llm chat-tmfs)
-  ) ;:use
-) ;texmacs-module
+(texmacs-module (llm chat-loader) (:use (llm chat-protocol) (llm chat-tmfs)))

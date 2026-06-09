@@ -222,10 +222,9 @@ ChatController::onSendRequested (const string& sessionId) {
     }
   }
 
-  if (!as_bool (call ("chat-tab-send", sessionId,
-                       session->model,
-                       session->thinking ? string ("enabled")
-                                         : string ("disabled"))))
+  if (!as_bool (
+          call ("chat-tab-send", sessionId, session->model,
+                session->thinking ? string ("enabled") : string ("disabled"))))
     return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);

@@ -265,31 +265,37 @@
 (define (chat-tab-image-node->pair img-stree)
   ;; img-stree = (image <name> ...)
   ;; Returns (mime . base64-data) or #f
-  (if (< (length img-stree) 2) #f
+  (if (< (length img-stree) 2)
+    #f
     (let ((name (cadr img-stree)))
       (cond
         ;; Embedded: (tuple (raw-data <base64>) <filename>)
         ((and (pair? name) (eq? (car name) 'tuple) (>= (length name) 3))
-         (let ((data-node (cadr name))
-               (suffix-str (caddr name)))
+         (let ((data-node (cadr name)) (suffix-str (caddr name)))
            (let ((suffix (url-suffix suffix-str))
-                 (mime (chat-tab-suffix->mime (url-suffix suffix-str))))
-             (if (not mime) #f
+                 (mime (chat-tab-suffix->mime (url-suffix suffix-str)))
+                ) ;
+             (if (not mime)
+               #f
                (cond
                  ;; raw-data format: data already base64
-                 ((and (pair? data-node) (>= (length data-node) 2)
-                       (eq? (car data-node) 'raw-data))
-                  (cons mime (cadr data-node)))
+                 ((and (pair? data-node)
+                    (>= (length data-node) 2)
+                    (eq? (car data-node) 'raw-data)
+                  ) ;and
+                  (cons mime (cadr data-node))
+                 ) ;
                  (else #f)
                ) ;cond
              ) ;if
            ) ;let
-        )) ;let
+         ) ;let
+        ) ;
         ;; Linked: string path — 需要读文件并 base64 编码
         ((string? name)
          ;; TODO: 需要加载 (liii base64) 后支持链接图片的 base64 编码
          #f
-        )
+        ) ;
         (else #f)
       ) ;cond
     ) ;let
@@ -301,13 +307,13 @@
         ((not (pair? s)) acc)
         ((eq? (car s) 'image)
          (let ((img (chat-tab-image-node->pair s)))
-           (if img (cons img acc) acc)))
-        (else
-          (let loop ((rest (cdr s)) (a acc))
-            (if (null? rest) a
-              (loop (cdr rest) (chat-tab-collect-images (car rest) a))
-            ) ;if
-          ) ;let
+           (if img (cons img acc) acc)
+         ) ;let
+        ) ;
+        (else (let loop
+                ((rest (cdr s)) (a acc))
+                (if (null? rest) a (loop (cdr rest) (chat-tab-collect-images (car rest) a)))
+              ) ;let
         ) ;else
   ) ;cond
 ) ;define
