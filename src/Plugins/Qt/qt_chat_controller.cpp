@@ -516,7 +516,7 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
   }
 
   // 同步会话标题标签
-  if (panel->sessionTitle () && s) {
+  if (panel->sessionTitle ()) {
     if (is_empty (s->title)) {
       panel->sessionTitle ()->hide ();
     }

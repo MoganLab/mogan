@@ -13,7 +13,6 @@
 #define QT_CHAT_CONTROLLER_HPP
 
 #include "qt_chat_tab_widget.hpp"
-#include <QMap>
 #include <QObject>
 
 /**

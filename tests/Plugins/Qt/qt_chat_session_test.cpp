@@ -104,6 +104,11 @@ private slots:
   void test_findReusableSession_skips_with_title ();
   void test_findReusableSession_empty_when_none ();
 
+  // === registered（延迟注册）===
+  void test_createSession_registered_default_false ();
+  void test_insertSession_preserves_registered ();
+  void test_insertSession_unregistered_stays_unregistered ();
+
   // === restoreSession timeIndex ===
   void test_restoreSession_updates_timeIndex ();
 
@@ -639,8 +644,66 @@ TestChatSession::test_setThinking_nonexistent () {
   // 不应崩溃
 }
 
-QTEST_MAIN (TestChatSession)
-#include "qt_chat_session_test.moc"
+/******************************************************************************
+ * registered（延迟注册）
+ *
+ * 验证 registered 字段的行为：
+ * - 新创建的 session 默认 registered=false（未加入 sidebar/持久化）
+ * - insertSession 保留 registered 值（restoreSessionMeta 中设 registered=true）
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_registered_default_false () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  ChatSession*       s  = mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!s->registered);
+}
+
+void
+TestChatSession::test_insertSession_preserves_registered () {
+  ChatSessionManager mgr;
+
+  // 模拟 restoreSessionMeta：从磁盘恢复的 session 标记为 registered=true
+  ChatSession s;
+  s.sessionId= "restored-session";
+  s.title    = "Restored";
+  s.model    = "gpt-4";
+  s.state    = ChatState::Idle;
+  s.archived = false;
+  s.createdAt= 1000;
+  s.updateAt = 1000;
+  s.registered= true;
+  s.panel    = nullptr;
+  mgr.insertSession (s);
+
+  ChatSession* found= mgr.getSession ("restored-session");
+  QVERIFY (found != nullptr);
+  QVERIFY (found->registered);
+}
+
+void
+TestChatSession::test_insertSession_unregistered_stays_unregistered () {
+  ChatSessionManager mgr;
+
+  // 未注册的空白会话（ensureNewConversation 创建的）
+  ChatSession s;
+  s.sessionId = "new-blank";
+  s.title     = "";
+  s.model     = "";
+  s.state     = ChatState::Idle;
+  s.archived  = false;
+  s.createdAt = 1000;
+  s.updateAt  = 1000;
+  s.registered= false;
+  s.panel     = nullptr;
+  mgr.insertSession (s);
+
+  ChatSession* found= mgr.getSession ("new-blank");
+  QVERIFY (found != nullptr);
+  QVERIFY (!found->registered);
+}
 
 /******************************************************************************
  * 会话标题可见性判断
@@ -981,3 +1044,6 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
             << "us total)";
   qDebug () << "  variation:" << variation << "x";
 }
+
+QTEST_MAIN (TestChatSession)
+#include "qt_chat_session_test.moc"
