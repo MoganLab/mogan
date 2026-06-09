@@ -6,11 +6,18 @@
 
 #include "base.hpp"
 #include "env.hpp"
+#include "Table/table.hpp"
+#include "sys_utils.hpp"
+#include "tm_sys_utils.hpp"
+#include "data_cache.hpp"
+#include "Metafont/load_tex.hpp"
 #include <QtTest/QtTest>
 #include <moebius/tree_label.hpp>
 #include <moebius/vars.hpp>
+#include <moebius/drd/drd_std.hpp>
 
 using namespace moebius;
+using moebius::drd::std_drd;
 
 // Declared in src/Edit/Modify/edit_table.cpp
 extern tree empty_table (int nr_rows, int nr_cols);
@@ -24,6 +31,8 @@ class TestEditTable : public QObject {
   Q_OBJECT
 
 private slots:
+  void initTestCase ();
+  void cleanupTestCase ();
   void test_empty_table_structure ();
   void test_default_table_tree_has_cell_hyphen ();
   void test_default_table_tree_cwith_range ();
@@ -36,7 +45,22 @@ private slots:
   void test_default_hyphen_disabled_in_math_mode ();
   void test_default_table_tree_skips_table_hyphen_in_math_mode ();
   void test_no_document_wrap_in_math_mode ();
+  void test_border_color_precedence_robustness ();
+  void test_nil_tree_comparison ();
 };
+
+void
+TestEditTable::initTestCase () {
+  init_lolly ();
+  init_texmacs_home_path ();
+  cache_initialize ();
+  init_tex ();
+  moebius::drd::init_std_drd ();
+}
+
+void
+TestEditTable::cleanupTestCase () {
+}
 
 void
 TestEditTable::test_empty_table_structure () {
@@ -186,6 +210,49 @@ TestEditTable::test_default_table_tree_skips_table_hyphen_in_math_mode () {
   for (int i= 0; i < N (T); i++) {
     QVERIFY (!is_func (T[i], TWITH, 2) || T[i][0] != "table-hyphen");
   }
+}
+
+void
+TestEditTable::test_border_color_precedence_robustness () {
+  drd_info              drd ("none", std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  edit_env env = edit_env (drd, "none", h1, h2, h3, h4, h5, h6);
+
+  table_rep T (env, 0, 0, 0);
+  T.nr_rows = 2;
+  T.nr_cols = 1;
+  T.T = tm_new_array<cell*> (2);
+  T.T[0] = tm_new_array<cell> (1);
+  T.T[1] = tm_new_array<cell> (1);
+
+  cell C1 = cell (env);
+  C1->row_span = 1;
+  C1->col_span = 1;
+  C1->bborder = 2;
+  C1->bcolor = "green";
+  C1->bcolor_precedence = -1;
+
+  cell C2 = cell (env);
+  C2->row_span = 1;
+  C2->col_span = 1;
+  C2->tborder = 2;
+  C2->bcolor_precedence = -1;
+
+  T.T[0][0] = C1;
+  T.T[1][0] = C2;
+
+  T.merge_borders ();
+
+  QCOMPARE (C1->bborder, (SI)2);
+  QCOMPARE (C2->tborder, (SI)0);
+}
+
+void
+TestEditTable::test_nil_tree_comparison () {
+  tree t;
+  QVERIFY (t == "");
 }
 
 void
