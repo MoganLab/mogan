@@ -39,9 +39,7 @@
 
 (define (eval-and-print data)
   (if (> (string-length data) *large-data-threshold*)
-    (let ((tmp-path (llm-write-temp-file data)))
-      (flush-scheme-u8 (string-append "(document \"(temp-file " tmp-path ")\")"))
-    ) ;let
+    (flush-verbatim (llm-write-temp-file data))
     (flush-scheme-u8 data)
   ) ;if
 ) ;define
