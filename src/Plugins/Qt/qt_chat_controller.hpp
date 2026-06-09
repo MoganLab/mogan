@@ -204,6 +204,14 @@ private:
    */
   string getSessionDisplayTitle (const string& sessionId);
 
+  /**
+   * @brief 注册未注册的 session 到持久化层并加入 sidebar。
+   *
+   * 首次发送消息时调用，完成延迟注册。
+   * @param sessionId 目标会话 ID
+   */
+  void registerSession (const string& sessionId);
+
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,

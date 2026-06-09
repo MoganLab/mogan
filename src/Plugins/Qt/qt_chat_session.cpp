@@ -31,6 +31,7 @@ ChatSessionManager::createSession () {
   session.updateAt          = now;
   session.defaultExpandCount= 5;
   session.thinking          = false;
+  session.registered        = false;
   session.panel             = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
   timeIndex_.insert ({session.updateAt, sessionId});

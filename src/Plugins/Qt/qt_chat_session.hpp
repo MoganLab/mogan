@@ -33,17 +33,18 @@ enum class ChatState {
  * @brief 单个聊天会话的数据。
  */
 struct ChatSession {
-  string                  sessionId;          ///< UUID，创建时生成
-  string                  title;              ///< 会话标题，初始为空字符串
-  string                  model;              ///< 绑定的模型名称
-  ChatState               state;              ///< 当前生成状态
-  bool                    archived;           ///< 是否归档
-  time_t                  createdAt;          ///< 创建时间（Unix 时间戳）
-  time_t                  updateAt;           ///< 最近活跃时间（用于排序索引）
-  int                     defaultExpandCount; ///< 默认展开对话条数，固定为 5
-  bool                    thinking;           ///< 是否启用推理模式，默认 false
-  ChatConversationPanel*  panel;              ///< 关联的面板指针
-  QMetaObject::Connection sendBtnConnection;  ///< send/stop 按钮信号连接句柄
+  string                 sessionId;          ///< UUID，创建时生成
+  string                 title;              ///< 会话标题，初始为空字符串
+  string                 model;              ///< 绑定的模型名称
+  ChatState              state;              ///< 当前生成状态
+  bool                   archived;           ///< 是否归档
+  time_t                 createdAt;          ///< 创建时间（Unix 时间戳）
+  time_t                 updateAt;           ///< 最近活跃时间（用于排序索引）
+  int                    defaultExpandCount; ///< 默认展开对话条数，固定为 5
+  bool                   thinking;           ///< 是否启用推理模式，默认 false
+  bool                   registered; ///< 是否已注册到持久化层（已加入 sidebar）
+  ChatConversationPanel* panel;      ///< 关联的面板指针
+  QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
 };
 
 /**

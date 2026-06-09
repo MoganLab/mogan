@@ -178,6 +178,9 @@ ChatController::onSendRequested (const string& sessionId) {
   tree inputBody= panel->readInputMessage ();
   if (ChatConversationPanel::is_empty_document_body (inputBody)) return;
 
+  // 首次发送时注册 session 到持久化层 + 加入 sidebar
+  registerSession (sessionId);
+
   // 首次发送：通过 Scheme 自动提取标题
   if (is_empty (session->title)) {
     string extracted=
@@ -239,9 +242,12 @@ ChatController::onCancelRequested (const string& sessionId) {
 void
 ChatController::onThinkingToggled (const string& sessionId, bool enabled) {
   sessionManager_.setThinking (sessionId, enabled);
-  call ("chat-tab-session-set-thinking", sessionId,
-        enabled ? string ("enabled") : string ("disabled"));
-  updateManifest (sessionId);
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (s && s->registered) {
+    call ("chat-tab-session-set-thinking", sessionId,
+          enabled ? string ("enabled") : string ("disabled"));
+    updateManifest (sessionId);
+  }
 }
 
 void
@@ -256,7 +262,9 @@ ChatController::onDeleteRequested (const QList<string>& sessionIds) {
         static_cast<ChatConversationPanel*> (s->panel);
 
     call ("chat-tab-cancel", sid);
-    call ("chat-persist-delete-one", sid);
+    if (s->registered) {
+      call ("chat-persist-delete-one", sid);
+    }
     call ("chat-tab-session-destroy", sid);
     sessionManager_.removeSession (sid);
 
@@ -447,7 +455,9 @@ ChatController::restoreSessionMeta (const ChatSession& session) {
   call ("chat-persist-register-session", session.sessionId, session.model,
         session.thinking ? string ("enabled") : string ("disabled"));
 
-  sessionManager_.insertSession (session);
+  ChatSession restored= session;
+  restored.registered = true;
+  sessionManager_.insertSession (restored);
 }
 
 /**
@@ -519,13 +529,15 @@ ChatController::loadSessionContent (ChatConversationPanel* panel) {
 
 void
 ChatController::exportBuffer (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s || !s->registered) return;
   call ("chat-persist-export-buffer", sessionId);
 }
 
 void
 ChatController::updateManifest (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
-  if (!s) return;
+  if (!s || !s->registered) return;
   char createdAtBuf[32];
   std::snprintf (createdAtBuf, sizeof (createdAtBuf), "%" PRId64,
                  (int64_t) s->createdAt);
@@ -542,40 +554,55 @@ ChatController::updateManifest (const string& sessionId) {
 }
 
 void
+ChatController::registerSession (const string& sessionId) {
+  ChatSession* s= sessionManager_.getSession (sessionId);
+  if (!s || s->registered) return;
+
+  call ("chat-persist-register-session", sessionId, s->model,
+        s->thinking ? string ("enabled") : string ("disabled"));
+
+  call ("buffer-pretend-saved",
+        ChatSessionManager::messageBufferUrl (sessionId));
+  call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sessionId));
+
+  string displayTitle= getSessionDisplayTitle (sessionId);
+  view_->sidebar ()->addItem (sessionId, displayTitle);
+
+  s->registered= true;
+}
+
+void
 ChatController::ensureNewConversation () {
   if (!view_) return;
+
   string currentModel=
       as_string (call ("chat-tab-session-select-model", string ("")));
 
-  // 复用无标题的空白会话（无论是否有面板）
+  // 复用无标题的空白会话（面板和输入内容保持不变）
   string reusable= sessionManager_.findReusableSession ();
   if (!is_empty (reusable)) {
     sessionManager_.setModel (reusable, currentModel);
     ChatSession* s= sessionManager_.getSession (reusable);
     if (s && s->panel) {
-      // 有面板时隐藏标题标签，确保视觉状态干净
       ChatConversationPanel* p= static_cast<ChatConversationPanel*> (s->panel);
       if (p->sessionTitle ()) p->sessionTitle ()->hide ();
     }
     activateSession (reusable);
+    view_->sidebar ()->setActiveItem (""); // 未注册会话不在 sidebar，清除高亮
     return;
   }
 
-  // 无可复用会话，创建新会话
+  // 创建新会话
   string                 sid  = sessionManager_.createSession ();
   ChatConversationPanel* panel= view_->createPanel (sid);
   if (!panel) return;
 
   sessionManager_.setPanel (sid, panel);
   sessionManager_.setModel (sid, currentModel);
-  call ("chat-persist-register-session", sid, currentModel,
-        string ("disabled"));
 
   call ("chat-tab-sync-dark-style!", sid);
 
-  if (panel->sessionTitle ()) {
-    panel->sessionTitle ()->hide ();
-  }
+  if (panel->sessionTitle ()) panel->sessionTitle ()->hide ();
 
   // 连接 Panel 的信号
   connect (panel, &ChatConversationPanel::sendRequested, this,
@@ -583,15 +610,8 @@ ChatController::ensureNewConversation () {
   connect (panel, &ChatConversationPanel::thinkingToggled, this,
            &ChatController::onThinkingToggled);
 
-  // 添加 sidebar item
-  view_->sidebar ()->addItem (sid, "新会话");
-
   view_->activatePanel (panel);
-  view_->sidebar ()->setActiveItem (sid);
-
-  // 标记 buffer 为已保存
-  call ("buffer-pretend-saved", ChatSessionManager::messageBufferUrl (sid));
-  call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sid));
+  view_->sidebar ()->setActiveItem ("");
 }
 
 /**
@@ -698,6 +718,7 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   session.updateAt          = updateAt;
   session.defaultExpandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
   session.thinking          = (thinking == "enabled");
+  session.registered        = false;
   session.panel             = nullptr;
   get_chat_controller ()->restoreSessionMeta (session);
 }
