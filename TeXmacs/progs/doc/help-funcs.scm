@@ -191,20 +191,35 @@
     (if community?
         ;; 社区版：同时展示社区版和商业版的最新稳定版
         (let ((msg (if community-latest?
-                       (replace "You are using v%1. The latest stable version of Mogan STEM is v%2, and the latest stable version of Liii STEM is v%3."
-                                cur-ver community-ver commercial-ver)
-                       (replace "You are using v%1. The latest stable version of Mogan STEM is v%2, and the latest stable version of Liii STEM is v%3. Please click OK to visit the official website to download the latest stable version."
-                                cur-ver community-ver commercial-ver))))
+                       (replace
+                        (string-append
+                         "You are using v%1.\n"
+                         "The latest stable version of Mogan STEM is v%2, "
+                         "and the latest stable version of Liii STEM is v%3.")
+                        cur-ver community-ver commercial-ver)
+                       (replace
+                        (string-append
+                         "You are using v%1.\n"
+                         "The latest stable version of Mogan STEM is v%2, "
+                         "and the latest stable version of Liii STEM is v%3.\n"
+                         "Please click OK to visit the official website "
+                         "to download the latest stable version.")
+                        cur-ver community-ver commercial-ver))))
           (if community-latest?
               (show-message msg (translate "Version"))
               (show-message-with-callback msg (translate "Version")
                                           (lambda x (open-url url)))))
         ;; 商业版：只展示商业版的最新稳定版
         (let ((msg (if commercial-latest?
-                       (replace "You are using v%1, and the latest stable version of Liii STEM is v%2."
-                                cur-ver commercial-ver)
-                       (replace "You are using v%1, and the latest stable version of Liii STEM is v%2. Please click OK to visit the official website to download the latest stable version."
-                                cur-ver commercial-ver))))
+                       (replace
+                        "You are using v%1, and the latest stable version of Liii STEM is v%2."
+                        cur-ver commercial-ver)
+                       (replace
+                        (string-append
+                         "You are using v%1, and the latest stable version of Liii STEM is v%2.\n"
+                         "Please click OK to visit the official website "
+                         "to download the latest stable version.")
+                        cur-ver commercial-ver))))
           (if commercial-latest?
               (show-message msg (translate "Version"))
               (show-message-with-callback msg (translate "Version")
