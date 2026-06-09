@@ -1071,10 +1071,10 @@ edit_table_rep::table_ver_decorate (path fp, int row, int rbef, int raft) {
 void
 edit_table_rep::make_table (int nr_rows, int nr_cols) {
   // cout << "make_table " << nr_rows << ", " << nr_cols << "\n";
-  string mode= get_env_string (MODE);
+  string mode               = get_env_string (MODE);
   bool   enable_table_hyphen= table_default_hyphen_enabled (mode);
-  tree format_T= default_table_tree (nr_rows, nr_cols, enable_table_hyphen);
-  path p (0, 0, 0, 0);
+  tree   format_T= default_table_tree (nr_rows, nr_cols, enable_table_hyphen);
+  path   p (0, 0, 0, 0);
   insert_tree (format_T, path (N (format_T) - 1, p));
 
   int  i1, j1, i2, j2;
@@ -1083,8 +1083,8 @@ edit_table_rep::make_table (int nr_rows, int nr_cols) {
   typeset_invalidate_env (); // FIXME: dirty hack for getting correct limits
   table_get_limits (fp, i1, j1, i2, j2);
   if ((nr_rows < i1) || (nr_cols < j1)) {
-    format_T= default_table_tree (
-        max (nr_rows, i1), max (nr_cols, j1), enable_table_hyphen);
+    format_T= default_table_tree (max (nr_rows, i1), max (nr_cols, j1),
+                                  enable_table_hyphen);
     assign (fp, format_T);
     go_to (fp * path (N (format_T) - 1, p));
   }
