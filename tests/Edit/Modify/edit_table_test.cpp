@@ -46,6 +46,7 @@ private slots:
   void test_default_table_tree_skips_table_hyphen_in_math_mode ();
   void test_no_document_wrap_in_math_mode ();
   void test_border_color_precedence_robustness ();
+  void test_border_color_precedence_exhaustive ();
   void test_nil_tree_comparison ();
 };
 
@@ -247,6 +248,73 @@ TestEditTable::test_border_color_precedence_robustness () {
 
   QCOMPARE (C1->bborder, (SI)2);
   QCOMPARE (C2->tborder, (SI)0);
+}
+
+void
+TestEditTable::test_border_color_precedence_exhaustive () {
+  drd_info              drd ("none", std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+  edit_env env = edit_env (drd, "none", h1, h2, h3, h4, h5, h6);
+
+  int test_count = 0;
+
+  for (int prec1 = -1; prec1 <= 5; prec1++) {
+    for (int prec2 = -1; prec2 <= 5; prec2++) {
+      for (int has_color1 = 0; has_color1 <= 1; has_color1++) {
+        for (int has_color2 = 0; has_color2 <= 1; has_color2++) {
+          string color1 = (has_color1 ? "green" : "");
+          string color2 = (has_color2 ? "red" : "");
+
+          table_rep T (env, 0, 0, 0);
+          T.nr_rows = 2;
+          T.nr_cols = 1;
+          T.T = tm_new_array<cell*> (2);
+          T.T[0] = tm_new_array<cell> (1);
+          T.T[1] = tm_new_array<cell> (1);
+
+          cell C1 = cell (env);
+          C1->row_span = 1;
+          C1->col_span = 1;
+          C1->bborder = 2;
+          C1->bcolor = color1;
+          C1->bcolor_precedence = prec1;
+
+          cell C2 = cell (env);
+          C2->row_span = 1;
+          C2->col_span = 1;
+          C2->tborder = 2;
+          C2->bcolor = color2;
+          C2->bcolor_precedence = prec2;
+
+          T.T[0][0] = C1;
+          T.T[1][0] = C2;
+
+          T.merge_borders ();
+
+          int eff_prec1 = prec1;
+          if (eff_prec1 == -1 && color1 != "") eff_prec1 = 0;
+
+          int eff_prec2 = prec2;
+          if (eff_prec2 == -1 && color2 != "") eff_prec2 = 0;
+
+          if (eff_prec1 > eff_prec2) {
+            QCOMPARE (C1->bborder, (SI)2);
+            QCOMPARE (C2->tborder, (SI)0);
+          } else if (eff_prec2 > eff_prec1) {
+            QCOMPARE (C1->bborder, (SI)0);
+            QCOMPARE (C2->tborder, (SI)2);
+          } else {
+            QCOMPARE (C1->bborder, (SI)2);
+            QCOMPARE (C2->tborder, (SI)2);
+          }
+
+          test_count++;
+        }
+      }
+    }
+  }
 }
 
 void
