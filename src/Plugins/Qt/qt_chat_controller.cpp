@@ -131,11 +131,9 @@ ChatController::createView (QWidget* parent, qt_tm_widget_rep* tm) {
     ensureNewConversation ();
   }
 
-  // 5. 恢复 Scheme 层的全局当前模型（使用最新的会话）
-  auto allIds= sessionManager_.getAllSessionIds ();
-  if (!allIds.empty ()) {
-    string       lastSid= allIds.front ();
-    ChatSession* s      = sessionManager_.getSession (lastSid);
+  // 5. 恢复 Scheme 层的全局当前模型（使用激活的会话）
+  if (!is_empty (initialId)) {
+    ChatSession* s= sessionManager_.getSession (initialId);
     if (s && !is_empty (s->model)) {
       call ("chat-tab-session-select-model", s->model);
     }
