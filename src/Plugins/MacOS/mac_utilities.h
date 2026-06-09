@@ -13,14 +13,14 @@
 
 #include "string.hpp"
 
-bool mac_alternate_startup();
+bool mac_alternate_startup ();
 
-void mac_begin_remote();
-void mac_end_remote();
-void mac_remote_button (string button, bool pressed); 
-double mac_screen_scale_factor();
+void   mac_begin_remote ();
+void   mac_end_remote ();
+void   mac_remote_button (string button, bool pressed);
+double mac_screen_scale_factor ();
 
-void mac_fix_yosemite_bug();
+void mac_fix_yosemite_bug ();
 
 void mac_begin_server ();
 void mac_end_server ();

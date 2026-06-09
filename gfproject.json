@@ -1,0 +1,20 @@
+{
+  "tools": {
+    "format": {
+      "organization": "liii",
+      "module": "goldformat",
+      "description": {
+        "en_US": "Format C++ and Scheme files (replaces bin/format)",
+        "zh_CN": "格式化 C++ 和 Scheme 文件（替代 bin/format）"
+      }
+    },
+    "fmt": {
+      "organization": "liii",
+      "module": "goldfmt",
+      "description": {
+        "en_US": "Format PATH (PATH can be a .scm file or directory)",
+        "zh_CN": "格式化 PATH（可以是 .scm 文件或目录）"
+      }
+    }
+  }
+}
