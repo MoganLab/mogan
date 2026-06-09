@@ -224,11 +224,13 @@ ChatController::onSendRequested (const string& sessionId) {
   if (!as_bool (call ("chat-tab-send", sessionId))) return;
 
   sessionManager_.setState (sessionId, ChatState::Generating);
+  sessionManager_.touchSession (sessionId);
   panel->enterConversationMode ();
 
   panel->focusInput ();
   exportBuffer (sessionId);
   updateManifest (sessionId);
+  view_->sidebar ()->reorderItem (sessionId);
 }
 
 void
@@ -436,9 +438,7 @@ ChatController::notifyStateChanged (const string& sessionId,
         connect (btn, &QToolButton::clicked, this,
                  [this, sessionId] () { onSendRequested (sessionId); });
     exportBuffer (sessionId);
-    sessionManager_.touchSession (sessionId);
     updateManifest (sessionId);
-    view_->sidebar ()->reorderItem (sessionId);
     panel->focusInput ();
   }
 }
