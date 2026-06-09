@@ -1,103 +1,25 @@
-(define (%goldformat-common-dirname path-str)
-  (let loop
-    ((i (- (string-length path-str) 1)))
-    (cond ((< i 0) ".")
-          ((or (char=? (string-ref path-str i) #\/) (char=? (string-ref path-str i) #\\))
-           (if (= i 0) "." (substring path-str 0 i))
-          ) ;
-          (else (loop (- i 1)))
-    ) ;cond
-  ) ;let
-) ;define
-
-(set! *load-path*
-  (append (list "../common" "tools/common")
-    (map (lambda (root) (string-append (%goldformat-common-dirname root) "/common"))
-      *load-path*
-    ) ;map
-    *load-path*
-  ) ;append
-) ;set!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : goldformat.scm
+;; DESCRIPTION : Format C++ and Scheme files (replaces bin/format)
+;; COPYRIGHT   : (C) 2026 Mogan Contributors
+;;
+;; This software falls under the GNU general public license version 3 or later.
+;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+;; in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-library (liii goldformat)
-  (import (liii base) (liii sys) (liii os) (liii path) (srfi srfi-13))
+  (import (liii base)
+    (liii sys)
+    (liii os)
+    (liii path)
+    (liii goldformat-binary)
+    (liii goldformat-path)
+  ) ;import
   (export main)
   (begin
-
-    (define cpp-exts '(".cpp" ".hpp" ".h" ".c"))
-
-    (define cpp-roots '("tests" "src" "moebius" "3rdparty/lolly"))
-
-    (define scm-dirs
-      '("TeXmacs/plugins/gnuplot"
-        "TeXmacs/progs/generic"
-        "TeXmacs/progs/kernel"
-        "TeXmacs/progs/source"
-        "TeXmacs/progs/utils/plugins"
-        "TeXmacs/plugins/llm/progs")
-    ) ;define
-
-    (define (cpp-file? name)
-      (let loop
-        ((exts cpp-exts))
-        (if (null? exts) #f (if (string-suffix? (car exts) name) #t (loop (cdr exts))))
-      ) ;let
-    ) ;define
-
-    (define (collect-cpp-files dir-path)
-      (let ((entries (path-list-path (path dir-path))))
-        (let loop
-          ((i 0) (acc '()))
-          (if (>= i (vector-length entries))
-            acc
-            (let ((entry (vector-ref entries i)))
-              (cond ((path-file? entry)
-                     (let ((s (path->string entry)))
-                       (if (cpp-file? s) (loop (+ i 1) (cons s acc)) (loop (+ i 1) acc))
-                     ) ;let
-                    ) ;
-                    ((path-dir? entry)
-                     (loop (+ i 1) (append (collect-cpp-files (path->string entry)) acc))
-                    ) ;
-                    (else (loop (+ i 1) acc))
-              ) ;cond
-            ) ;let
-          ) ;if
-        ) ;let
-      ) ;let
-    ) ;define
-
-    (define (collect-all-cpp-files)
-      (let loop
-        ((roots cpp-roots) (acc '()))
-        (if (null? roots)
-          acc
-          (if (path-dir? (path (car roots)))
-            (loop (cdr roots) (append acc (collect-cpp-files (car roots))))
-            (loop (cdr roots) acc)
-          ) ;if
-        ) ;if
-      ) ;let
-    ) ;define
-
-    (define (clang-format-binary)
-      (cond ((os-windows?) "clang-format")
-            ((os-macos?) "/opt/homebrew/opt/llvm@19/bin/clang-format")
-            (else (let loop
-                    ((paths '("/usr/local/bin/clang-format-19"
-                              "/usr/lib/llvm-19/bin/clang-format"
-                              "/usr/bin/clang-format-19"
-                              "/usr/bin/clang-format")
-                     ) ;paths
-                    ) ;
-                    (if (null? paths)
-                      "clang-format"
-                      (if (file-exists? (car paths)) (car paths) (loop (cdr paths)))
-                    ) ;if
-                  ) ;let
-            ) ;else
-      ) ;cond
-    ) ;define
 
     (define (write-file-list files)
       (let ((tmp (path->string (path-join (os-temp-dir) "goldformat-cpp-files.txt"))))
