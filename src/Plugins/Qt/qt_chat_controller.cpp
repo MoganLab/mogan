@@ -718,7 +718,6 @@ qt_chat_tab_restore_session (string sessionId, string title, string model,
   session.updateAt          = updateAt;
   session.defaultExpandCount= (defaultExpandCount > 0) ? defaultExpandCount : 5;
   session.thinking          = (thinking == "enabled");
-  session.registered        = false;
   session.panel             = nullptr;
   get_chat_controller ()->restoreSessionMeta (session);
 }
