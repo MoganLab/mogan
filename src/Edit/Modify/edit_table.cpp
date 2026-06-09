@@ -61,6 +61,11 @@ table_needs_document_wrap (string hyphen, string block, string mode) {
   return (hyphen == "y" || block == "yes") && mode != "math";
 }
 
+bool
+table_default_hyphen_enabled (string mode) {
+  return mode != "math";
+}
+
 tree
 default_table_tree (int nr_rows, int nr_cols, bool enable_table_hyphen) {
   tree T= empty_table (nr_rows, nr_cols);
@@ -1067,7 +1072,7 @@ void
 edit_table_rep::make_table (int nr_rows, int nr_cols) {
   // cout << "make_table " << nr_rows << ", " << nr_cols << "\n";
   string mode= get_env_string (MODE);
-  bool   enable_table_hyphen= mode != "math";
+  bool   enable_table_hyphen= table_default_hyphen_enabled (mode);
   tree format_T= default_table_tree (nr_rows, nr_cols, enable_table_hyphen);
   path p (0, 0, 0, 0);
   insert_tree (format_T, path (N (format_T) - 1, p));
@@ -1117,7 +1122,8 @@ void
 edit_table_rep::make_subtable (int nr_rows, int nr_cols) {
   path cp= search_upwards (CELL);
   if (is_nil (cp)) return;
-  tree T= default_table_tree (nr_rows, nr_cols, get_env_string (MODE) != "math");
+  tree T= default_table_tree (
+      nr_rows, nr_cols, table_default_hyphen_enabled (get_env_string (MODE)));
   path p (0, 0, 0, 0);
   p= path (N (T) - 1, p);
   T= tree (SUBTABLE, T);

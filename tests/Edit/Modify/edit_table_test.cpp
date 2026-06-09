@@ -16,6 +16,7 @@ using namespace moebius;
 extern tree empty_table (int nr_rows, int nr_cols);
 extern tree default_table_tree (int nr_rows, int nr_cols,
                                 bool enable_table_hyphen);
+extern bool table_default_hyphen_enabled (string mode);
 extern bool table_needs_document_wrap (string hyphen, string block,
                                        string mode);
 
@@ -31,6 +32,8 @@ private slots:
   void test_adjacent_border_colors_on_cell_typeset ();
   void test_default_table_tree_has_table_hyphen ();
   void test_default_table_tree_twith_value ();
+  void test_default_hyphen_enabled_in_text_mode ();
+  void test_default_hyphen_disabled_in_math_mode ();
   void test_default_table_tree_skips_table_hyphen_in_math_mode ();
   void test_no_document_wrap_in_math_mode ();
 };
@@ -166,8 +169,18 @@ TestEditTable::test_default_table_tree_twith_value () {
 }
 
 void
+TestEditTable::test_default_hyphen_enabled_in_text_mode () {
+  QVERIFY (table_default_hyphen_enabled ("text"));
+}
+
+void
+TestEditTable::test_default_hyphen_disabled_in_math_mode () {
+  QVERIFY (!table_default_hyphen_enabled ("math"));
+}
+
+void
 TestEditTable::test_default_table_tree_skips_table_hyphen_in_math_mode () {
-  tree T= default_table_tree (2, 3, false);
+  tree T= default_table_tree (2, 3, table_default_hyphen_enabled ("math"));
   QVERIFY (is_func (T, TFORMAT));
 
   for (int i= 0; i < N (T); i++) {
