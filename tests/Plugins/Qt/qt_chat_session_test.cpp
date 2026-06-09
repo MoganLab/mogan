@@ -667,15 +667,15 @@ TestChatSession::test_insertSession_preserves_registered () {
 
   // 模拟 restoreSessionMeta：从磁盘恢复的 session 标记为 registered=true
   ChatSession s;
-  s.sessionId= "restored-session";
-  s.title    = "Restored";
-  s.model    = "gpt-4";
-  s.state    = ChatState::Idle;
-  s.archived = false;
-  s.createdAt= 1000;
-  s.updateAt = 1000;
+  s.sessionId = "restored-session";
+  s.title     = "Restored";
+  s.model     = "gpt-4";
+  s.state     = ChatState::Idle;
+  s.archived  = false;
+  s.createdAt = 1000;
+  s.updateAt  = 1000;
   s.registered= true;
-  s.panel    = nullptr;
+  s.panel     = nullptr;
   mgr.insertSession (s);
 
   ChatSession* found= mgr.getSession ("restored-session");
