@@ -547,9 +547,6 @@ ChatController::registerSession (const string& sessionId) {
   ChatSession* s= sessionManager_.getSession (sessionId);
   if (!s || s->registered) return;
 
-  call ("chat-persist-register-session", sessionId, s->model,
-        s->thinking ? string ("enabled") : string ("disabled"));
-
   call ("buffer-pretend-saved",
         ChatSessionManager::messageBufferUrl (sessionId));
   call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sessionId));
