@@ -333,72 +333,64 @@
 ) ;define
 
 (tm-define (chat-tab-message-document message-buffer)
-  (chat-tab-in-buffer message-buffer
-    (lambda ()
-      (let ((doc (buffer-get-body message-buffer)))
-        (cond ((tree-is? doc 'session)
-               (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
-              ) ;
-              ((tree-is? doc 'document)
-               ;; body 为 document 时，查找其中的 session 节点
-               (let ((sess (chat-tab-find-session doc)))
-                 (if sess (let ((d (tree-ref sess 2))) (if (tree-is? d 'document) d doc)) doc)
-               ) ;let
-              ) ;
-              (else (buffer-set-body message-buffer '(document ""))
-                (buffer-pretend-saved message-buffer)
-                (buffer-get-body message-buffer)
-              ) ;else
-        ) ;cond
-      ) ;let
-    ) ;lambda
-  ) ;chat-tab-in-buffer
+  (with-buffer message-buffer
+    (let ((doc (buffer-get-body message-buffer)))
+      (cond ((tree-is? doc 'session)
+             (with d (tree-ref doc 2) (if (tree-is? d 'document) d doc))
+            ) ;
+            ((tree-is? doc 'document)
+             ;; body 为 document 时，查找其中的 session 节点
+             (let ((sess (chat-tab-find-session doc)))
+               (if sess (let ((d (tree-ref sess 2))) (if (tree-is? d 'document) d doc)) doc)
+             ) ;let
+            ) ;
+            (else (buffer-set-body message-buffer '(document ""))
+              (buffer-pretend-saved message-buffer)
+              (buffer-get-body message-buffer)
+            ) ;else
+      ) ;cond
+    ) ;let
+  ) ;with-buffer
 ) ;tm-define
 
 ;;; ---------- 输入操作 ----------
 
 (tm-define (chat-tab-clear-input! input-buffer)
-  (chat-tab-in-buffer input-buffer
-    (lambda ()
-      (buffer-set-body input-buffer '(document ""))
-      (buffer-pretend-saved input-buffer)
-    ) ;lambda
-  ) ;chat-tab-in-buffer
+  (with-buffer input-buffer
+    (buffer-set-body input-buffer '(document ""))
+    (buffer-pretend-saved input-buffer)
+  ) ;with-buffer
 ) ;tm-define
 
 (tm-define (chat-tab-set-input-body! input-buffer body)
-  (chat-tab-in-buffer input-buffer
-    (lambda ()
-      (buffer-set-body input-buffer (chat-tab-normalize-document body))
-      (buffer-pretend-saved input-buffer)
-    ) ;lambda
-  ) ;chat-tab-in-buffer
+  (with-buffer input-buffer
+    (buffer-set-body input-buffer (chat-tab-normalize-document body))
+    (buffer-pretend-saved input-buffer)
+  ) ;with-buffer
 ) ;tm-define
 
 ;;; ---------- 追加对话轮次 ----------
 
 (tm-define (chat-tab-append-round! message-buffer body model)
-  (chat-tab-in-buffer message-buffer
-    (lambda ()
-      (let* ((doc (chat-tab-message-document message-buffer))
-             (prompt (chat-tab-model-prompt model))
-             (input-children (chat-tab-body-children body))
-             (input-stree (map tree->stree input-children))
-             (io-node (stree->tree `(unfolded-io-text (document ,prompt)
-                                      (document ,@input-stree)
-                                      (document ""))
-                      ) ;stree->tree
-             ) ;io-node
-            ) ;
-        (tree-insert! doc (tree-arity doc) (list io-node))
-        (tree-go-to doc :end)
-        (buffer-pretend-saved message-buffer)
-        (let ((last-node (tree-ref doc :last)))
-          (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2))
-        ) ;let
-      ) ;let*
-    ) ;lambda
-  ) ;chat-tab-in-buffer
+  (with-buffer message-buffer
+    (let* ((doc (chat-tab-message-document message-buffer))
+           (prompt (chat-tab-model-prompt model))
+           (input-children (chat-tab-body-children body))
+           (input-stree (map tree->stree input-children))
+           (io-node (stree->tree `(unfolded-io-text (document ,prompt)
+                                    (document ,@input-stree)
+                                    (document ""))
+                    ) ;stree->tree
+           ) ;io-node
+          ) ;
+      (tree-insert! doc (tree-arity doc) (list io-node))
+      (tree-go-to doc :end)
+      (buffer-pretend-saved message-buffer)
+      (let ((last-node (tree-ref doc :last)))
+        (and (tree-is? last-node 'unfolded-io-text) (tree-ref last-node 2))
+      ) ;let
+    ) ;let*
+  ) ;with-buffer
 ) ;tm-define
 
 ;;; ---------- 样式包管理 ----------
@@ -423,23 +415,4 @@
         ) ;url-exists?
     (add-style-package session-name)
   ) ;when
-) ;tm-define
-
-;;; ---------- Buffer 切换辅助 ----------
-
-;; 内联 with-buffer 宏展开，避免 tm-define 函数运行时找不到 with-buffer 宏的问题
-(tm-define (chat-tab-in-buffer name thunk)
-  (if (== name (current-buffer))
-    (thunk)
-    (let* ((old (current-buffer)) (new name))
-      (and (or (url? new) (string? new))
-        (buffer-exists? new)
-        (buffer-focus new #f)
-        (let ((res (thunk)))
-          (buffer-focus old #f)
-          res
-        ) ;let
-      ) ;and
-    ) ;let*
-  ) ;if
 ) ;tm-define
