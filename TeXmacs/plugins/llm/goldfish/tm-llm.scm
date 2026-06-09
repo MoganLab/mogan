@@ -18,33 +18,33 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol)
-        (liii path)
-        (liii uuid))
+(import (texmacs protocol) (liii path) (liii uuid))
 
 (define (welcome)
   (flush-prompt "llm> ")
   (flush-verbatim "LLM Plugin")
 ) ;define
 
-(define *large-data-threshold* 1048576) ; 1M
+(define *large-data-threshold* 1048576)
 
 (define (llm-write-temp-file data)
   (let* ((tmp-dir (path-temp-dir))
          (tmp-name (uuid4))
-         (tmp-path (path-join (path->string tmp-dir) tmp-name)))
+         (tmp-path (path-join (path->string tmp-dir) tmp-name))
+        ) ;
     (path-write-text tmp-path data)
-    tmp-path))
+    tmp-path
+  ) ;let*
+) ;define
 
-; data: the input from Mogan plugin
-; Uses flush-scheme-u8 to place data into the code environment.
-; If data exceeds 1M, writes to a temp file and returns the file path.
 (define (eval-and-print data)
   (if (> (string-length data) *large-data-threshold*)
     (let ((tmp-path (llm-write-temp-file data)))
-      (flush-scheme-u8
-        (string-append "(document \"(temp-file " tmp-path ")\")")))
-    (flush-scheme-u8 data)))
+      (flush-scheme-u8 (string-append "(document \"(temp-file " tmp-path ")\")"))
+    ) ;let
+    (flush-scheme-u8 data)
+  ) ;if
+) ;define
 
 (define (read-eval-print)
   (let ((data (read-paragraph-by-visible-eof)))
