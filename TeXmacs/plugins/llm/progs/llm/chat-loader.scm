@@ -10,7 +10,7 @@
 ;; in a way that breaks the texmacs module system when the importing module
 ;; is loaded directly by (use-modules ...) from init-research.scm.
 ;; By keeping this top-level loader free of (import ...), the deeper
-;; dependency modules (chat-protocol, chat-tmfs) can safely use (import ...).
+;; dependency modules (chat-protocol, chat-persist) can safely use (import ...).
 ;;
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
@@ -20,16 +20,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-
-;;
-;; This module serves as the entry point loaded by init-research.scm.
-;; It MUST NOT contain (import ...) statements.
-;;
-;; Rationale: S7's R7RS (import ...) modifies the evaluation environment
-;; in a way that breaks the texmacs module system when the importing module
-;; is loaded directly by (use-modules ...) from init-research.scm.
-;; By keeping this top-level loader free of (import ...), the deeper
-;; dependency modules (chat-protocol, chat-tmfs) can safely use (import ...).
-
-
-(texmacs-module (llm chat-loader) (:use (llm chat-protocol) (llm chat-tmfs)))
+(texmacs-module (llm chat-loader)
+  (:use (llm chat-protocol)
+    (llm chat-persist)
+  ) ;:use
+) ;texmacs-module

@@ -192,18 +192,6 @@ ChatSessionManager::inputBufferUrl (const string& sessionId) {
   return url ("tmfs://chat/" * sessionId * "/input");
 }
 
-string
-ChatSessionManager::sessionIdFromUrl (const url& u) {
-  string s= as_string (u);
-  // 必须以 tmfs://chat/ 开头（不含 tmfs://chat-tab）
-  if (!starts (s, "tmfs://chat/")) return "";
-  // 跳过 "tmfs://chat/" 前缀，提取到下一个 / 之前的部分
-  string rest= s (12, N (s));
-  int    i   = search_forwards ("/", 0, rest);
-  if (i < 0) return rest;
-  return rest (0, i);
-}
-
 void
 ChatSessionManager::insertSession (const ChatSession& session) {
   auto it= sessions_.find (session.sessionId);

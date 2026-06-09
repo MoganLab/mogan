@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : chat-tmfs.scm
+;; MODULE      : chat-persist.scm
 ;; DESCRIPTION : Chat session persistence across restarts
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
@@ -10,7 +10,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (llm chat-tmfs)
+(texmacs-module (llm chat-persist)
   (:use (llm chat-protocol)
     (dynamic session-edit)
     (texmacs texmacs tm-files)
@@ -95,14 +95,11 @@
 (tm-define (chat-persist-load-all)
   (let ((manifest-path (chat-persist-manifest-path)))
     (if (not (file-exists? manifest-path))
-      (display "[chat-persist] load-all: manifest not found\n")
+      (noop)
       (let* ((manifest (file->njson manifest-path))
              (sessions-json (njson-ref manifest "sessions"))
              (entries (njson-array->list sessions-json))
             ) ;
-        (display "[chat-persist] load-all: found ")
-        (display (length entries))
-        (display " sessions in manifest\n")
         (for-each (lambda (entry)
                     ;; njson-array->list 返回 alist，用 assoc 访问字段
                     (let* ((sid (cdr (assoc "sessionId" entry)))
@@ -119,9 +116,6 @@
                            (thinking-pair (assoc "thinking" entry))
                            (thinking (if thinking-pair (cdr thinking-pair) "disabled"))
                           ) ;
-                      (display "[chat-persist]   restoring meta: sid=")
-                      (display sid)
-                      (newline)
                       ;; 只传元数据给 C++，不加载 buffer 内容
                       (qt-chat-tab-restore-session sid
                         title
@@ -147,9 +141,6 @@
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
     (when (file-exists? msg-path)
-      (display "[chat-persist] load-session-content: sid=")
-      (display session-id)
-      (newline)
       ;; 用 tree-import 读取文件内容，不经过 buffer 系统
       ;; 避免 buffer-load 创建临时文件 buffer 导致多余 tab
       ;; 避免 buffer-set-body 对已有嵌入式 editor 触发 assign 导致 crash
@@ -184,28 +175,8 @@
   (let ((msg-path (chat-persist-message-path session-id))
         (msg-buf (chat-tab-session->message-buffer session-id))
        ) ;
-    (display "[persist] export-buffer: sid=")
-    (display session-id)
-    (newline)
-    (display "[persist]   msg-path=")
-    (display msg-path)
-    (newline)
-    (display "[persist]   msg-buf=")
-    (display msg-buf)
-    (newline)
-    (display "[persist]   parent-dir=")
-    (display (chat-persist-parent-dir msg-path))
-    (newline)
     (chat-persist-ensure-dir! (chat-persist-parent-dir msg-path))
-    (display "[persist]   dir exists=")
-    (display (file-exists? (chat-persist-parent-dir msg-path)))
-    (newline)
-    (display "[persist]   calling buffer-export...")
-    (newline)
     (buffer-export msg-buf (system->url msg-path) "tmu")
-    (display "[persist]   buffer-export done, file exists=")
-    (display (file-exists? msg-path))
-    (newline)
   ) ;let
 ) ;tm-define
 
@@ -227,19 +198,6 @@
                 ) ;chat-persist-make-entry
          ) ;entry
         ) ;
-    (display "[persist] update-manifest: sid=")
-    (display session-id)
-    (display " title=")
-    (display title)
-    (display " model=")
-    (display model)
-    (newline)
-    (display "[persist]   manifest-path=")
-    (display manifest-path)
-    (newline)
-    (display "[persist]   manifest exists=")
-    (display (file-exists? manifest-path))
-    (newline)
     (chat-persist-ensure-dir! (chat-persist-base-dir))
     (if (not (file-exists? manifest-path))
       ;; manifest 不存在：创建新的，直接构建包含 entry 的数组
@@ -283,26 +241,6 @@
       ) ;let*
     ) ;if
     (njson-free entry)
-  ) ;let*
-) ;tm-define
-
-(tm-define (chat-persist-save-one session-id title model archived . rest)
-  (let* ((created-at (if (and (pair? rest) (car rest)) (car rest) (number->string (current-time)))
-         ) ;created-at
-         (opts (if (pair? rest) (cdr rest) '()))
-         (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f)
-         ) ;updated-at
-        ) ;
-    (chat-persist-export-buffer session-id)
-    (chat-persist-update-manifest session-id
-      title
-      model
-      archived
-      created-at
-      thinking
-      updated-at
-    ) ;chat-persist-update-manifest
   ) ;let*
 ) ;tm-define
 

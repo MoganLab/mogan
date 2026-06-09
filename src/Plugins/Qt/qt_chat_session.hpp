@@ -208,17 +208,6 @@ public:
    */
   static url inputBufferUrl (const string& sessionId);
 
-  /**
-   * @brief 从 chat buffer URL 中提取 session ID。
-   * @param u chat buffer URL
-   * @return session ID 字符串；非 chat URL 返回空串
-   *
-   * 支持的 URL 格式：
-   * - tmfs://chat/{sessionId}/message → sessionId
-   * - tmfs://chat/{sessionId}/input   → sessionId
-   */
-  static string sessionIdFromUrl (const url& u);
-
 private:
   /// 时间索引结构，用于 set 排序
   struct TimeIndex {

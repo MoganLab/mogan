@@ -117,14 +117,14 @@
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
-  (:require (string-ends? (url->system (current-buffer-url)) "/input"))
+  (:require (chat-input-buffer? (current-buffer-url)))
   ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
-  (:require (not (string-ends? (url->system (current-buffer-url)) "/input")))
+  (:require (not (chat-input-buffer? (current-buffer-url))))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
   (=> "Copy to" (link clipboard-copy-export-menu))

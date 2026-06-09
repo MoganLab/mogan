@@ -41,6 +41,35 @@
   (string->url (string-append "tmfs://chat/" session-id "/input"))
 ) ;tm-define
 
+;;; ---------- Buffer 类型检测 ----------
+
+(tm-define (chat-message-buffer? buf)
+  (with s (url->system buf)
+    (and (string-starts? s "tmfs://chat/")
+         (string-contains? s "/message"))
+  ) ;with
+) ;tm-define
+
+(tm-define (chat-input-buffer? buf)
+  (with s (url->system buf)
+    (and (string-starts? s "tmfs://chat/")
+         (string-contains? s "/input"))
+  )
+) ;tm-define
+
+(tm-define (chat-buffer-session-id buf)
+  (with s (url->system buf)
+    (if (not (string-starts? s "tmfs://chat/"))
+      #f
+      (let* ((rest (substring s (string-length "tmfs://chat/")))
+             (i (string-index rest #\/))
+            ) ;
+        (if i (substring rest 0 i) #f)
+      ) ;let*
+    ) ;if
+  ) ;with
+) ;tm-define
+
 ;;; ---------- 会话初始化 ----------
 
 (tm-define (chat-tab-init-session! session-id model)
