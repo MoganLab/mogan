@@ -114,6 +114,17 @@ private slots:
 
   // === 性能 benchmark ===
   void test_benchmark_getAllSessionIds_linear_scaling ();
+
+  // === ChatSession::formatTitle ===
+  void test_formatTitle_cjk_short ();
+  void test_formatTitle_cjk_truncated ();
+  void test_formatTitle_english_short ();
+  void test_formatTitle_english_truncated ();
+  void test_formatTitle_english_exactly_five_words ();
+  void test_formatTitle_empty ();
+  void test_formatTitle_mixed_cjk_and_english ();
+  void test_formatTitle_cjk_exactly_ten_chars ();
+  void test_formatTitle_single_cjk_char ();
 };
 
 /******************************************************************************
@@ -1043,6 +1054,81 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
   qDebug () << "  N=" << N3 << ":" << per3 << "us/session (" << us3
             << "us total)";
   qDebug () << "  variation:" << variation << "x";
+}
+
+/******************************************************************************
+ * ChatSession::formatTitle
+ *
+ * 验证标题格式化：CJK 截前 10 字符加省略号，英文截前 5 个单词加省略号。
+ ******************************************************************************/
+
+void
+TestChatSession::test_formatTitle_cjk_short () {
+  // 5 个 CJK 字符，不截断
+  string result= ChatSession::formatTitle ("你好世界吗");
+  QVERIFY (result == string ("你好世界吗"));
+}
+
+void
+TestChatSession::test_formatTitle_cjk_truncated () {
+  // 15 个 CJK 字符，截断为前 10 个 + "..."
+  string raw     = "这是一段很长很长的中文标题内容";
+  string expected= "这是一段很长很长的中...";
+  string result  = ChatSession::formatTitle (raw);
+  QVERIFY (result == expected);
+}
+
+void
+TestChatSession::test_formatTitle_english_short () {
+  // 3 个单词，不截断
+  string result= ChatSession::formatTitle ("Hello World Test");
+  QVERIFY (result == string ("Hello World Test"));
+}
+
+void
+TestChatSession::test_formatTitle_english_truncated () {
+  // 7 个单词，截断为 5 + "..."
+  string result=
+      ChatSession::formatTitle ("This is a very long English title test");
+  QVERIFY (result == string ("This is a very long..."));
+}
+
+void
+TestChatSession::test_formatTitle_english_exactly_five_words () {
+  // 正好 5 个单词，不截断
+  string result= ChatSession::formatTitle ("One two three four five");
+  QVERIFY (result == string ("One two three four five"));
+}
+
+void
+TestChatSession::test_formatTitle_empty () {
+  string result= ChatSession::formatTitle ("");
+  QVERIFY (is_empty (result));
+}
+
+void
+TestChatSession::test_formatTitle_mixed_cjk_and_english () {
+  // 含 CJK 字符，走 CJK 分支，截前 10 个字符 + "..."
+  // "Hello你好世界这是一段测试内容" =
+  // H(1)e(2)l(3)l(4)o(5)你(6)好(7)世(8)界(9)这(10)是(11)...
+  string raw     = "Hello你好世界这是一段测试内容";
+  string expected= "Hello你好世界这...";
+  string result  = ChatSession::formatTitle (raw);
+  QVERIFY (result == expected);
+}
+
+void
+TestChatSession::test_formatTitle_cjk_exactly_ten_chars () {
+  // 正好 10 个 CJK 字符，不截断
+  string result= ChatSession::formatTitle ("一二三四五六七八九十");
+  QVERIFY (result == string ("一二三四五六七八九十"));
+}
+
+void
+TestChatSession::test_formatTitle_single_cjk_char () {
+  // 单个 CJK 字符
+  string result= ChatSession::formatTitle ("你");
+  QVERIFY (result == string ("你"));
 }
 
 QTEST_MAIN (TestChatSession)

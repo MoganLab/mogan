@@ -14,6 +14,8 @@
 
 #include "url.hpp"
 #include <QMetaObject>
+#include <QString>
+#include <QStringList>
 #include <ctime>
 #include <map>
 #include <set>
@@ -45,6 +47,13 @@ struct ChatSession {
   bool                   registered; ///< 是否已注册到持久化层（已加入 sidebar）
   ChatConversationPanel* panel;      ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
+
+  /**
+   * @brief 格式化原始标题文本，CJK 截前 10 字符，英文截前 5 个单词。
+   * @param rawTitle 从用户输入提取的原始标题
+   * @return 格式化后的标题
+   */
+  static string formatTitle (const string& rawTitle);
 };
 
 /**
@@ -193,6 +202,15 @@ public:
    * @param session 要插入的会话数据
    */
   void insertSession (const ChatSession& session);
+
+  /**
+   * @brief 从 Scheme 提取内容并生成标题，设置到 session。
+   *
+   * 调用 chat-persist-extract-title 获取原始文本，通过 formatTitle() 格式化后
+   * 写入 session->title。仅当 session 无标题时执行，已有标题不覆盖。
+   * @param sessionId 目标会话 ID
+   */
+  void generateTitleFromContent (const string& sessionId);
 
   /**
    * @brief 获取会话消息缓冲区的 tmfs URL。

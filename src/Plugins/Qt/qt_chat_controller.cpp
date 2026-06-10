@@ -181,33 +181,10 @@ ChatController::onSendRequested (const string& sessionId) {
   // 首次发送时注册 session 到持久化层 + 加入 sidebar
   registerSession (sessionId);
 
-  // 首次发送：通过 Scheme 自动提取标题
+  // 首次发送：生成标题
   if (is_empty (session->title)) {
-    string extracted=
-        as_string (call ("chat-persist-extract-title", sessionId));
-    QString qTitle= to_qstring (extracted);
-    // 检测标题是否含 CJK 字符
-    bool hasCJK= false;
-    for (int i= 0; i < qTitle.length (); i++) {
-      ushort code= qTitle[i].unicode ();
-      if (code >= 0x4E00 && code <= 0x9FFF) {
-        hasCJK= true;
-        break;
-      }
-    }
-    // 含 CJK: 截取前 10 个字符
-    if (hasCJK) {
-      if (qTitle.length () > 10) qTitle= qTitle.left (10) + "...";
-    }
-    // 纯英文: 截取前 5 个单词
-    else {
-      QStringList words= qTitle.split (' ', Qt::SkipEmptyParts);
-      if (words.size () > 5) {
-        words = words.mid (0, 5);
-        qTitle= words.join (" ") + "...";
-      }
-    }
-    sessionManager_.setTitle (sessionId, from_qstring_utf8 (qTitle));
+    sessionManager_.generateTitleFromContent (sessionId);
+
     string displayTitle= getSessionDisplayTitle (sessionId);
     view_->sidebar ()->updateItemTitle (sessionId, displayTitle);
     view_->sidebar ()->setActiveItem (sessionId);
@@ -216,7 +193,7 @@ ChatController::onSendRequested (const string& sessionId) {
       ChatConversationPanel* p=
           static_cast<ChatConversationPanel*> (session->panel);
       if (p->sessionTitle ()) {
-        p->sessionTitle ()->setText (qTitle);
+        p->sessionTitle ()->setText (to_qstring (session->title));
         p->sessionTitle ()->show ();
       }
     }

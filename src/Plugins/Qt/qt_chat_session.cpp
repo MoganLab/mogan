@@ -10,9 +10,10 @@
  ******************************************************************************/
 
 #include "qt_chat_session.hpp"
+#include "qt_utilities.hpp"
+#include "scheme.hpp"
 
 #include <analyze.hpp>
-
 #include <cstdio>
 #include <ctime>
 #include <lolly/hash/uuid.hpp>
@@ -205,4 +206,40 @@ ChatSessionManager::insertSession (const ChatSession& session) {
     sessions_.insert ({session.sessionId, session});
   }
   timeIndex_.insert ({session.updateAt, session.sessionId});
+}
+
+string
+ChatSession::formatTitle (const string& rawTitle) {
+  QString qTitle= to_qstring (rawTitle);
+  // 检测标题是否含 CJK 字符
+  bool hasCJK= false;
+  for (int i= 0; i < qTitle.length (); i++) {
+    ushort code= qTitle[i].unicode ();
+    if (code >= 0x4E00 && code <= 0x9FFF) {
+      hasCJK= true;
+      break;
+    }
+  }
+  // 含 CJK: 截取前 10 个字符
+  if (hasCJK) {
+    if (qTitle.length () > 10) qTitle= qTitle.left (10) + "...";
+  }
+  // 纯英文: 截取前 5 个单词
+  else {
+    QStringList words= qTitle.split (' ', Qt::SkipEmptyParts);
+    if (words.size () > 5) {
+      words = words.mid (0, 5);
+      qTitle= words.join (" ") + "...";
+    }
+  }
+  return from_qstring_utf8 (qTitle);
+}
+
+void
+ChatSessionManager::generateTitleFromContent (const string& sessionId) {
+  ChatSession* s= getSession (sessionId);
+  if (!s || !is_empty (s->title)) return;
+
+  string extracted= as_string (call ("chat-persist-extract-title", sessionId));
+  setTitle (sessionId, ChatSession::formatTitle (extracted));
 }
