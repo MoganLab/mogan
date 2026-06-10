@@ -304,17 +304,24 @@
 ) ;define
 
 (define (chat-tab-read-binary-file file-url)
-  (let* ((path (url->string (url-concretize file-url)))
-         (port (open-input-file path)))
+  (let* ((path (url->string (url-concretize file-url))) (port (open-input-file path)))
     (if (not port)
       #u8()
       (let* ((bytes (let loop
                       ((c (read-char port)) (res '()))
                       (if (eof-object? c)
                         (reverse res)
-                        (loop (read-char port) (cons (char->integer c) res)))))
-             (dummy (close-input-port port)))
-        (apply byte-vector bytes))))) ;define
+                        (loop (read-char port) (cons (char->integer c) res))
+                      ) ;if
+                    ) ;let
+             ) ;bytes
+             (dummy (close-input-port port))
+            ) ;
+        (apply byte-vector bytes)
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define
 
 (define (chat-tab-image-node->pair img-stree)
   ;; img-stree = (image <name> ...)
@@ -329,7 +336,7 @@
            (let* ((raw-suffix (url-suffix suffix-str))
                   (suffix (if (== raw-suffix "") suffix-str raw-suffix))
                   (mime (chat-tab-suffix->mime suffix))
-                 )
+                 ) ;
              (if (not mime)
                #f
                (cond
@@ -337,26 +344,32 @@
                  ((and (pair? data-node)
                     (>= (length data-node) 2)
                     (eq? (car data-node) 'raw-data)
-                  )
+                  ) ;and
                   (cons mime (cadr data-node))
-                 )
+                 ) ;
                  (else #f)
                ) ;cond
              ) ;if
-           ) ;let
+           ) ;let*
          ) ;let
-        )
+        ) ;
         ;; Linked: string path — 读取文件并 base64 编码
         ((string? name)
          (let* ((path-str (cork->utf8 name))
                 (suffix (url-suffix path-str))
-                (mime (chat-tab-suffix->mime suffix)))
+                (mime (chat-tab-suffix->mime suffix))
+               ) ;
            (if (not mime)
              #f
              (let ((raw-bytes (chat-tab-read-binary-file (string->url path-str))))
                (if (zero? (bytevector-length raw-bytes))
                  #f
-                 (cons mime (utf8->string (bytevector-base64-encode raw-bytes))))))))
+                 (cons mime (utf8->string (bytevector-base64-encode raw-bytes)))
+               ) ;if
+             ) ;let
+           ) ;if
+         ) ;let*
+        ) ;
         (else #f)
       ) ;cond
     ) ;let

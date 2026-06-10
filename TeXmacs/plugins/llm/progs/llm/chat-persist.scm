@@ -86,8 +86,7 @@
          (verbatim-text (texmacs->verbatim body))
          (title (string-replace verbatim-text "\n" " "))
         ) ;
-    (if (and (string-null? (string-trim-spaces title))
-             (chat-tab-tree-has-image? body))
+    (if (and (string-null? (string-trim-spaces title)) (chat-tab-tree-has-image? body))
       "[image]"
       title
     ) ;if

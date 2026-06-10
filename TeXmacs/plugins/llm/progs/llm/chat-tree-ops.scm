@@ -91,8 +91,8 @@
         ((not (pair? s)) s)
         ((eq? (car s) 'image) "[image]")
         (else (cons (car s) (map chat-tab-stree-strip-images (cdr s))))
-  )
-) ;define
+  ) ;cond
+) ;tm-define
 
 (tm-define (chat-tab-tree-has-image? t)
   (let ((s (if (tree? t) (tree->stree t) t)))
