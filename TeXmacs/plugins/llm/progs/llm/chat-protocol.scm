@@ -44,21 +44,22 @@
 ;;; ---------- Buffer 类型检测 ----------
 
 (tm-define (chat-message-buffer? buf)
-  (with s (url->system buf)
-    (and (string-starts? s "tmfs://chat/")
-         (string-contains? s "/message"))
+  (with s
+    (url->system buf)
+    (and (string-starts? s "tmfs://chat/") (string-contains? s "/message"))
   ) ;with
 ) ;tm-define
 
 (tm-define (chat-input-buffer? buf)
-  (with s (url->system buf)
-    (and (string-starts? s "tmfs://chat/")
-         (string-contains? s "/input"))
-  )
+  (with s
+    (url->system buf)
+    (and (string-starts? s "tmfs://chat/") (string-contains? s "/input"))
+  ) ;with
 ) ;tm-define
 
 (tm-define (chat-buffer-session-id buf)
-  (with s (url->system buf)
+  (with s
+    (url->system buf)
     (if (not (string-starts? s "tmfs://chat/"))
       #f
       (let* ((rest (substring s (string-length "tmfs://chat/")))
@@ -100,6 +101,16 @@
         (chat-tab-add-default-style-packages! chat-tab-session-name)
       ) ;with-buffer
     ) ;let*
+  ) ;let
+) ;tm-define
+
+(tm-define (chat-tab-load-input-styles! session-id)
+  (:synopsis "Load style packages for input buffer only (new conversation)")
+  (:argument session-id "Session UUID")
+  (let ((in-buf (chat-tab-session->input-buffer session-id)))
+    (with-buffer in-buf
+      (chat-tab-add-default-style-packages! chat-tab-session-name)
+    ) ;with-buffer
   ) ;let
 ) ;tm-define
 
@@ -419,8 +430,20 @@
       (let* ((input (chat-tab-normalize-document body))
              (msg-buf (chat-tab-session->message-buffer session-id))
             ) ;
-        ;; plugin session ID 不再包含 model 前缀
+        ;; 延迟初始化：首次发送时设置 session body 并加载样式包
         (let ((plugin-ses (string-append "chat-tab:" session-id)))
+          (with-buffer msg-buf
+            (let ((msg-body (buffer-get-body msg-buf)))
+              (when (chat-tab-buffer-empty? msg-body)
+                (session-enable-text-input chat-tab-session-name plugin-ses)
+                (buffer-set-body msg-buf
+                  `(session ,chat-tab-session-name ,plugin-ses (document))
+                ) ;buffer-set-body
+                (buffer-pretend-saved msg-buf)
+                (chat-tab-add-default-style-packages! chat-tab-session-name)
+              ) ;when
+            ) ;let
+          ) ;with-buffer
           (let* ((out (chat-tab-append-round! msg-buf input model)))
             (if (not out)
               #f

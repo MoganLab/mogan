@@ -584,6 +584,7 @@ ChatController::ensureNewConversation () {
   sessionManager_.setModel (sid, currentModel_);
 
   call ("chat-tab-sync-dark-style!", sid);
+  call ("chat-tab-load-input-styles!", sid);
 
   if (panel->sessionTitle ()) panel->sessionTitle ()->hide ();
 
