@@ -86,7 +86,11 @@
          (verbatim-text (texmacs->verbatim body))
          (title (string-replace verbatim-text "\n" " "))
         ) ;
-    title
+    (if (and (string-null? (string-trim-spaces title))
+             (chat-tab-tree-has-image? body))
+      "[image]"
+      title
+    ) ;if
   ) ;let*
 ) ;tm-define
 
@@ -146,9 +150,12 @@
       ;; 避免 buffer-set-body 对已有嵌入式 editor 触发 assign 导致 crash
       (let* ((doc (tree-import (system->url msg-path) "generic"))
              (body (tmfile-extract doc 'body))
+             ;; tmfile-extract 可能返回 stree 而非 tree，
+             ;; 显式转换以确保 raw-data 经 decode_base64 正确还原为二进制
+             (body-tree (if (tree? body) body (stree->tree body)))
             ) ;
-        (when body
-          (buffer-set-body msg-buf body)
+        (when body-tree
+          (buffer-set-body msg-buf body-tree)
           (with-buffer msg-buf
             (session-unfold-last-n n)
             (chat-tab-add-default-style-packages! "llm")
