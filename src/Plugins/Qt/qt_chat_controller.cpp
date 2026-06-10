@@ -528,7 +528,7 @@ ChatController::registerSession (const string& sessionId) {
         ChatSessionManager::messageBufferUrl (sessionId));
   call ("buffer-pretend-saved", ChatSessionManager::inputBufferUrl (sessionId));
 
-  string displayTitle= getSessionDisplayTitle (sessionId);
+  string             displayTitle= getSessionDisplayTitle (sessionId);
   SessionDisplayInfo info;
   info.sessionId   = sessionId;
   info.displayTitle= displayTitle;

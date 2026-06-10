@@ -1130,7 +1130,7 @@ ChatSidebar::createItem (const string& sessionId) {
   // "..." 按钮菜单：点击弹出操作菜单
   connect (
       item.moreButton, &QPushButton::clicked, this, [this, sid= sessionId] () {
-        auto  itemIt= items_.find (sid);
+        auto itemIt= items_.find (sid);
         if (itemIt == items_.end ()) return;
         bool archived= itemIt->isArchived;
 

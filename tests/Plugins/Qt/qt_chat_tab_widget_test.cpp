@@ -459,7 +459,8 @@ private slots:
     SessionDisplayInfo info{"s1", "hello", "", false};
     sidebar.addItem (info);
 
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
     QCOMPARE (buttons[0]->text (), QString ("hello"));
   }
@@ -473,7 +474,8 @@ private slots:
     sidebar.addItem (info);
 
     // 归档项不应出现在活跃列表的按钮中（在归档区）
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
     QCOMPARE (buttons[0]->text (), QString ("archived session"));
   }
@@ -487,7 +489,8 @@ private slots:
     SessionDisplayInfo info{"s1", "world", "", false};
     sidebar.addItem (info);
 
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
     QCOMPARE (buttons[0]->text (), QString ("hello"));
   }
@@ -513,7 +516,8 @@ private slots:
 
     sidebar.removeItem ("s1");
 
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 0);
   }
 
@@ -535,7 +539,8 @@ private slots:
 
     sidebar.removeItem ("nonexistent");
 
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
   }
 
@@ -566,7 +571,8 @@ private slots:
 
     // s1 已归档，再次 moveToArchive 不应崩溃或重复
     sidebar.moveToArchive ("s1");
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
   }
 
@@ -581,7 +587,8 @@ private slots:
     sidebar.moveFromArchive ("s1");
 
     // s1 应回到活跃列表顶部
-    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    auto buttons=
+        sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
     QCOMPARE (buttons.size (), 1);
   }
 

@@ -289,7 +289,7 @@ private:
   QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
   bool         multiSelectMode_       = false;   ///< 是否处于多选模式
   bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
-  string                    activeSessionId_;    ///< 当前激活的会话 ID
+  string       activeSessionId_;                 ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget
