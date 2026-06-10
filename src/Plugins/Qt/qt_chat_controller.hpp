@@ -212,6 +212,12 @@ private:
    */
   void registerSession (const string& sessionId);
 
+  /**
+   * @brief 连接 Panel 的所有 signal 到 Controller。
+   * @param panel 目标面板
+   */
+  void connectPanelSignals (ChatConversationPanel* panel);
+
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,
