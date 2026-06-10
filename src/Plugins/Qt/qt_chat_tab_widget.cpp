@@ -527,23 +527,11 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     cout << "[ChatConvPanel::eventFilter] key=" << keyEvent->key ()
          << " modifiers=" << keyEvent->modifiers () << "\n";
-    // Ctrl/Cmd+J：关闭 AI 聊天侧边栏（仅在 dock 模式下触发）
+    // Ctrl/Cmd+J：请求关闭侧边栏（由 Controller 判断是否在 dock 模式）
     if (keyEvent->key () == Qt::Key_J &&
         (keyEvent->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
-      QTChatTabWidget* chatWidget= nullptr;
-      QWidget*         p         = parentWidget ();
-      while (p) {
-        chatWidget= qobject_cast<QTChatTabWidget*> (p);
-        if (chatWidget) break;
-        p= p->parentWidget ();
-      }
-      if (chatWidget) {
-        QWidget* gp= chatWidget->parentWidget ();
-        if (gp && qobject_cast<QDockWidget*> (gp)) {
-          emit chatWidget->closeSidebarRequested ();
-          return true;
-        }
-      }
+      emit closeSidebarInDockModeRequested ();
+      return true;
     }
     bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
     if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),

@@ -19,6 +19,7 @@
 #include "scheme.hpp"
 
 #include <QApplication>
+#include <QDockWidget>
 #include <QDir>
 #include <QFileDialog>
 #include <QLabel>
@@ -575,6 +576,13 @@ ChatController::ensureNewConversation () {
            &ChatController::onSendRequested);
   connect (panel, &ChatConversationPanel::thinkingToggled, this,
            &ChatController::onThinkingToggled);
+  connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,
+           [this] () {
+             if (!view_) return;
+             QWidget* gp= view_->parentWidget ();
+             if (gp && qobject_cast<QDockWidget*> (gp))
+               emit view_->closeSidebarRequested ();
+           });
 
   view_->activatePanel (panel);
   view_->sidebar ()->setActiveItem ("");
@@ -608,6 +616,13 @@ ChatController::getOrCreatePanel (const string& sessionId) {
            &ChatController::onSendRequested);
   connect (panel, &ChatConversationPanel::thinkingToggled, this,
            &ChatController::onThinkingToggled);
+  connect (panel, &ChatConversationPanel::closeSidebarInDockModeRequested, this,
+           [this] () {
+             if (!view_) return;
+             QWidget* gp= view_->parentWidget ();
+             if (gp && qobject_cast<QDockWidget*> (gp))
+               emit view_->closeSidebarRequested ();
+           });
 
   // 恢复推理模式按钮状态
   if (panel->thinkingButton () && s->thinking) {

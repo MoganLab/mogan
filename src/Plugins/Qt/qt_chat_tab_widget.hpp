@@ -120,6 +120,7 @@ signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
   void inputHeightChanged ();
+  void closeSidebarInDockModeRequested ();
 
 protected:
   /// 事件过滤器：拦截 Enter 键触发发送
