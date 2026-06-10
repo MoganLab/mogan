@@ -678,11 +678,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
     for (auto it= items_.begin (); it != items_.end (); ++it) {
       if (!it->selectCheckBox) continue;
-      for (const auto& info : sessionCache_) {
-        if (info.sessionId == it.key () &&
-            info.archived == archiveSelectMode_) {
-          it->selectCheckBox->setChecked (true);
-        }
+      if (it->isArchived == archiveSelectMode_) {
+        it->selectCheckBox->setChecked (true);
       }
     }
   });
@@ -796,7 +793,6 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   mainLayout->addWidget (archiveListWidget_);
 
   // 构造时直接创建 items，按 archived 分组
-  sessionCache_   = sessions;
   activeSessionId_= activeSessionId;
 
   for (const SessionDisplayInfo& info : sessions) {
@@ -821,22 +817,16 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
 }
 
 void
-ChatSidebar::addItem (const string& sessionId, const string& displayTitle) {
-  if (items_.contains (sessionId)) return;
+ChatSidebar::addItem (const SessionDisplayInfo& info) {
+  if (items_.contains (info.sessionId)) return;
 
-  SidebarItem item= createItem (sessionId);
-  item.sidebarButton->setText (to_qstring (displayTitle));
-  item.isArchived= false;
+  SidebarItem item= createItem (info.sessionId);
+  item.sidebarButton->setText (to_qstring (info.displayTitle));
+  item.isArchived= info.archived;
   conversationListLayout_->insertWidget (0, item.itemWidget);
-  items_.insert (sessionId, item);
+  items_.insert (info.sessionId, item);
 
-  SessionDisplayInfo info;
-  info.sessionId   = sessionId;
-  info.displayTitle= displayTitle;
-  info.archived    = false;
-  sessionCache_.prepend (info);
-
-  setActiveItem (sessionId);
+  setActiveItem (info.sessionId);
 
   updateCountLabels ();
 }
@@ -852,13 +842,6 @@ ChatSidebar::updateItemTitle (const string& sessionId,
   }
   if (it->titleEdit) {
     it->titleEdit->setText (qTitle);
-  }
-  // 更新 sessionCache_ 中的显示标题
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.displayTitle= displayTitle;
-      break;
-    }
   }
 }
 
@@ -924,13 +907,6 @@ ChatSidebar::moveToArchive (const string& sessionId) {
     if (item.moreButton) item.moreButton->show ();
   }
 
-  // 更新 sessionCache_ 中的 archived 状态
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.archived= true;
-      break;
-    }
-  }
   if (activeSessionId_ == sessionId) activeSessionId_= "";
 
   updateCountLabels ();
@@ -947,14 +923,6 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
     conversationListLayout_->insertWidget (0, item.itemWidget);
     if (item.moreButton)
       item.moreButton->setVisible (activeSessionId_ == sessionId);
-  }
-
-  // 更新 sessionCache_ 中的 archived 状态
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.archived= false;
-      break;
-    }
   }
 
   updateCountLabels ();
@@ -1162,15 +1130,11 @@ ChatSidebar::createItem (const string& sessionId) {
   // "..." 按钮菜单：点击弹出操作菜单
   connect (
       item.moreButton, &QPushButton::clicked, this, [this, sid= sessionId] () {
-        bool archived= false;
-        for (const auto& info : sessionCache_) {
-          if (info.sessionId == sid) {
-            archived= info.archived;
-            break;
-          }
-        }
+        auto  itemIt= items_.find (sid);
+        if (itemIt == items_.end ()) return;
+        bool archived= itemIt->isArchived;
 
-        QPushButton* btn= items_.value (sid).moreButton;
+        QPushButton* btn= itemIt->moreButton;
         if (!btn) return;
 
         QMenu         menu;
@@ -1249,13 +1213,6 @@ void
 ChatSidebar::removeItem (const string& sessionId) {
   destroyItem (sessionId);
   if (activeSessionId_ == sessionId) activeSessionId_= "";
-  // 从 sessionCache_ 中移除
-  for (int i= 0; i < sessionCache_.size (); ++i) {
-    if (sessionCache_[i].sessionId == sessionId) {
-      sessionCache_.removeAt (i);
-      break;
-    }
-  }
   updateCountLabels ();
 }
 

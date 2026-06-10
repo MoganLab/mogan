@@ -187,10 +187,9 @@ public:
 
   /**
    * @brief 添加新的侧边栏项。
-   * @param sessionId   会话 ID
-   * @param displayTitle 显示标题
+   * @param info 会话显示数据
    */
-  void addItem (const string& sessionId, const string& displayTitle);
+  void addItem (const SessionDisplayInfo& info);
 
   /**
    * @brief 更新指定会话的显示标题。
@@ -290,7 +289,6 @@ private:
   QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
   bool         multiSelectMode_       = false;   ///< 是否处于多选模式
   bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
-  QList<SessionDisplayInfo> sessionCache_;       ///< 会话显示数据缓存
   string                    activeSessionId_;    ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget

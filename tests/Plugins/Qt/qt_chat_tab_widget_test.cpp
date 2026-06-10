@@ -449,6 +449,209 @@ private slots:
     // ---- ChatConversationPanel 输入事件判定测试 ----
   }
 
+  // === ChatSidebar addItem (SessionDisplayInfo) ===
+
+  void test_addItem_creates_visible_item () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    SessionDisplayInfo info{"s1", "hello", "", false};
+    sidebar.addItem (info);
+
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+    QCOMPARE (buttons[0]->text (), QString ("hello"));
+  }
+
+  void test_addItem_sets_archived_state () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    SessionDisplayInfo info{"s1", "archived session", "", true};
+    sidebar.addItem (info);
+
+    // 归档项不应出现在活跃列表的按钮中（在归档区）
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+    QCOMPARE (buttons[0]->text (), QString ("archived session"));
+  }
+
+  void test_addItem_duplicate_ignored () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    SessionDisplayInfo info{"s1", "world", "", false};
+    sidebar.addItem (info);
+
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+    QCOMPARE (buttons[0]->text (), QString ("hello"));
+  }
+
+  void test_addItem_sets_active () {
+    QList<SessionDisplayInfo> sessions;
+    ChatSidebar               sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    SessionDisplayInfo info{"s1", "hello", "", false};
+    sidebar.addItem (info);
+
+    QCOMPARE (to_qstring (sidebar.activeSessionId ()), QString ("s1"));
+  }
+
+  // === ChatSidebar removeItem ===
+
+  void test_removeItem_destroys_widget () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.removeItem ("s1");
+
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 0);
+  }
+
+  void test_removeItem_clears_active () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.removeItem ("s1");
+    QCOMPARE (to_qstring (sidebar.activeSessionId ()), QString (""));
+  }
+
+  void test_removeItem_nonexistent_noop () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.removeItem ("nonexistent");
+
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+  }
+
+  // === ChatSidebar moveToArchive ===
+
+  void test_moveToArchive_moves_item () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.moveToArchive ("s1");
+
+    // 归档后 activeSessionId 应被清除
+    QCOMPARE (to_qstring (sidebar.activeSessionId ()), QString (""));
+
+    // 归档 header 应显示
+    auto header= sidebar.findChild<QPushButton*> ("chat-tab-archive-header");
+    QVERIFY (header != nullptr);
+    QVERIFY (header->isVisible ());
+  }
+
+  void test_moveToArchive_already_archived_noop () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", true};
+    ChatSidebar sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    // s1 已归档，再次 moveToArchive 不应崩溃或重复
+    sidebar.moveToArchive ("s1");
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+  }
+
+  // === ChatSidebar moveFromArchive ===
+
+  void test_moveFromArchive_restores_item () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", true};
+    ChatSidebar sidebar (sessions, "", nullptr);
+    sidebar.show ();
+
+    sidebar.moveFromArchive ("s1");
+
+    // s1 应回到活跃列表顶部
+    auto buttons= sidebar.findChildren<QPushButton*> ("chat-tab-conversation-btn");
+    QCOMPARE (buttons.size (), 1);
+  }
+
+  void test_moveFromArchive_already_active_noop () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "hello", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.moveFromArchive ("s1");
+    QCOMPARE (to_qstring (sidebar.activeSessionId ()), QString ("s1"));
+  }
+
+  // === ChatSidebar updateCountLabels ===
+
+  void test_updateCountLabels_active_count () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "a", "", false}
+             << SessionDisplayInfo{"s2", "b", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    auto label= sidebar.findChild<QLabel*> ("chat-tab-conversation-count");
+    QVERIFY (label != nullptr);
+    QVERIFY (label->text ().contains ("2"));
+  }
+
+  void test_updateCountLabels_archived_shows_header () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "a", "", false}
+             << SessionDisplayInfo{"s2", "b", "", true};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    auto header= sidebar.findChild<QPushButton*> ("chat-tab-archive-header");
+    QVERIFY (header != nullptr);
+    QVERIFY (header->isVisible ());
+    QVERIFY (header->text ().contains ("1"));
+  }
+
+  void test_updateCountLabels_after_remove () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "a", "", false}
+             << SessionDisplayInfo{"s2", "b", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.removeItem ("s1");
+
+    auto label= sidebar.findChild<QLabel*> ("chat-tab-conversation-count");
+    QVERIFY (label != nullptr);
+    QVERIFY (label->text ().contains ("1"));
+  }
+
+  // === ChatSidebar exitMultiSelectMode ===
+
+  void test_exitMultiSelectMode_clears_flags () {
+    QList<SessionDisplayInfo> sessions;
+    sessions << SessionDisplayInfo{"s1", "a", "", false};
+    ChatSidebar sidebar (sessions, "s1", nullptr);
+    sidebar.show ();
+
+    sidebar.enterMultiSelectMode (false);
+    sidebar.exitMultiSelectMode ();
+
+    auto bar= sidebar.findChild<QWidget*> ("chat-tab-multi-select-bar");
+    QVERIFY (bar != nullptr);
+    QVERIFY (!bar->isVisible ());
+  }
+
   void test_send_on_plain_enter_without_completion_popup () {
     QVERIFY (ChatConversationPanel::should_send_on_keypress (
         Qt::Key_Return, Qt::NoModifier, false));
