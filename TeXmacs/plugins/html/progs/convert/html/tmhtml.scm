@@ -2055,7 +2055,7 @@
               ) ;let*
         ) ;else
   ) ;cond
-) ;define
+) ;tm-define
 
 (define-public (hash-map->list h)
   (map (lambda (x) (list (car x) (cdr x))) (map values h))
@@ -2074,8 +2074,8 @@
          ) ;l1
          (l2 (map car l1))
          (args (map cadr l1))
-         (funs (map cAr l2))
-         (stys (map (lambda (x) (cdr (cDr x))) l2))
+         (funs (map last l2))
+         (stys (map (lambda (x) (reverse (cdr (reverse (cdr x))))) l2))
         ) ;
     (apply string-append
       (list-intersperse (map (lambda (f arg sty)
@@ -2085,8 +2085,8 @@
                                    (list-intersperse (cond ((== (length args) (length sty))
                                                             (map (lambda (x y) (string-append x ":" (f y))) sty args)
                                                            ) ;
-                                                           ((>= 1 (length sty))
-                                                            (map (lambda (y) (string-append (car sty) ":" (f y))) args)
+                                                           ((>= 1 (length args))
+                                                            (map (lambda (x) (string-append x ":" (f (car args)))) sty)
                                                            ) ;
                                                            (else '())
                                                      ) ;cond
@@ -2642,7 +2642,10 @@
 
 (define (tmhtml-css-post body)
   (if (pair? body)
-    `(,(car body) ,@(tmhtml-breaks-post* (map tmhtml-css-post (cdr body))))
+    (if (symbol? (car body))
+      `(,(car body) ,@(tmhtml-breaks-post* (map tmhtml-css-post (cdr body))))
+      (map tmhtml-css-post body)
+    ) ;if
     body
   ) ;if
 ) ;define
