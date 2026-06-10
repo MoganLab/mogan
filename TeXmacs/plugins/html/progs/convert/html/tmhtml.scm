@@ -2006,7 +2006,7 @@
   ) ;if
 ) ;tm-define
 
-(define (tmhtml-image l)
+(tm-define (tmhtml-image l)
   ;; FIXME: Should also test that width and height are not magnifications.
   ;; Currently, magnifications make tmlength->htmllength return #f.
   (cond ((and (string? (car l))
