@@ -358,7 +358,7 @@
   ) ;cond
 ) ;define
 
-(define (chat-tab-build-context-input input model thinking)
+(define (chat-tab-build-context-input input session-id model thinking)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
   (let* ((content (chat-tab-tree->plain-text input))
@@ -367,6 +367,7 @@
          (stree-input (if (tree? input) (tree->stree input) input))
          (images (chat-tab-collect-images stree-input '()))
         ) ;
+    (njson-set! obj "sessionId" session-id)
     (njson-set! params "model" model)
     (njson-set! params "thinking" thinking)
     (njson-set! obj "params" params)
@@ -402,7 +403,7 @@
 
 (define (chat-tab-session-feed lan ses input session-id out opts model thinking)
   ;; 用单轮输入替换原始输入
-  (set! input (chat-tab-build-context-input input model thinking))
+  (set! input (chat-tab-build-context-input input session-id model thinking))
   (set! input (plugin-preprocess lan ses input opts))
   (with-buffer (chat-tab-session->message-buffer session-id)
     (tree-assign! out '(document (script-busy)))
