@@ -469,9 +469,10 @@ table_rep::merge_borders () {
 
   auto get_prec = [] (cell C) -> int {
     if (is_nil (C)) return -2;
-    int prec = C->bcolor_precedence;
-    if (prec == -1 && C->bcolor != "") return 0;
-    return prec;
+    if (!is_nil (C->bcolor) && C->bcolor != "") {
+      return 1000 + C->bcolor_precedence;
+    }
+    return -1;
   };
 
   for (int i= 0; i < nr_rows; i++)

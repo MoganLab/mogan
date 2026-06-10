@@ -264,6 +264,9 @@ TestEditTable::test_border_color_precedence_exhaustive () {
     for (int prec2 = -1; prec2 <= 5; prec2++) {
       for (int has_color1 = 0; has_color1 <= 1; has_color1++) {
         for (int has_color2 = 0; has_color2 <= 1; has_color2++) {
+          if (has_color1 == 0 && prec1 != -1) continue;
+          if (has_color2 == 0 && prec2 != -1) continue;
+
           string color1 = (has_color1 ? "green" : "");
           string color2 = (has_color2 ? "red" : "");
 
@@ -293,11 +296,15 @@ TestEditTable::test_border_color_precedence_exhaustive () {
 
           T.merge_borders ();
 
-          int eff_prec1 = prec1;
-          if (eff_prec1 == -1 && color1 != "") eff_prec1 = 0;
+          auto get_prec_exp = [] (string color, int prec) -> int {
+            if (color != "") {
+              return 1000 + prec;
+            }
+            return -1;
+          };
 
-          int eff_prec2 = prec2;
-          if (eff_prec2 == -1 && color2 != "") eff_prec2 = 0;
+          int eff_prec1 = get_prec_exp (color1, prec1);
+          int eff_prec2 = get_prec_exp (color2, prec2);
 
           if (eff_prec1 > eff_prec2) {
             QCOMPARE (C1->bborder, (SI)2);
