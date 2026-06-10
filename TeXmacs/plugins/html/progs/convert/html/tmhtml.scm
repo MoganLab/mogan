@@ -2018,32 +2018,48 @@
          (with embedded
            (tmhtml-extract-embedded (car l))
            (let* ((data (car embedded)) (ext (cdr embedded)))
-             (if tmhtml-base64?
-               (let* ((b64-str (begin
-                                  (import (liii base64))
-                                  (utf8->string (bytevector-base64-encode data))
-                                ) ;begin
-                        ) ;b64-str
-                        (src-uri (string-append "data:image/" ext ";base64," b64-str))
-                        (w (if (>= (length l) 2) (tmlength->htmllength (second l) #f) #f))
-                        (h (if (>= (length l) 3) (tmlength->htmllength (third l) #f) #f))
-                       ) ;let*
-                 `((h:img (@ (class "image")
-                            (src ,src-uri)
-                            ,@(if w `((width ,w)) '())
-                            ,@(if h `((height ,h)) '()))))
-               ) ;if
-               (receive (name-url name-string)
-                 (tmhtml-image-names ext)
-                 (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
-                   (tmhtml-write-binary-file abs-url data)
-                   (with res
-                     (tmhtml-image (cons abs-string (cdr l)))
-                     res
-                   ) ;with
-                 ) ;let*
-               ) ;receive
-             ) ;if
+              (if tmhtml-base64?
+                (if (in? ext (list "ps" "eps" "pdf" "tif"))
+                  ;; Convert to PNG first, then inline as Base64
+                  (receive (name-url name-string)
+                    (tmhtml-image-names ext)
+                    (let* ((abs-url (url-concretize name-url))
+                           (abs-string (url->unix abs-url)))
+                      (tmhtml-write-binary-file abs-url data)
+                      (let ((res (tmhtml-png (cons 'image (cons abs-string (cdr l))))))
+                        (when (url-exists? abs-url)
+                          (url-remove abs-url))
+                        res
+                      ) ;let
+                    ) ;let*
+                  ) ;receive
+                  ;; Direct Base64 inline for native image formats
+                  (let* ((b64-str (begin
+                                     (import (liii base64))
+                                     (utf8->string (bytevector-base64-encode data))
+                                   ) ;begin
+                           ) ;b64-str
+                           (src-uri (string-append "data:image/" ext ";base64," b64-str))
+                           (w (if (>= (length l) 2) (tmlength->htmllength (second l) #f) #f))
+                           (h (if (>= (length l) 3) (tmlength->htmllength (third l) #f) #f))
+                          ) ;let*
+                    `((h:img (@ (class "image")
+                               (src ,src-uri)
+                               ,@(if w `((width ,w)) '())
+                               ,@(if h `((height ,h)) '()))))
+                  ) ;if
+                ) ;if
+                (receive (name-url name-string)
+                  (tmhtml-image-names ext)
+                  (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
+                    (tmhtml-write-binary-file abs-url data)
+                    (with res
+                      (tmhtml-image (cons abs-string (cdr l)))
+                      res
+                    ) ;with
+                  ) ;let*
+                ) ;receive
+              ) ;if
            ) ;let*
          ) ;with
         ) ;
