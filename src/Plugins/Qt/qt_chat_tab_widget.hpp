@@ -58,9 +58,12 @@ public:
   /**
    * @brief 构造会话内容面板。
    * @param sessionId 所属会话 ID
+   * @param msgBufUrl 消息缓冲区 URL（外部注入）
+   * @param inBufUrl  输入缓冲区 URL（外部注入）
    * @param parent    父控件
    */
-  explicit ChatConversationPanel (const string& sessionId, QWidget* parent);
+  explicit ChatConversationPanel (const string& sessionId, const url& msgBufUrl,
+                                  const url& inBufUrl, QWidget* parent);
 
   /**
    * @brief 进入对话模式（隐藏欢迎页，显示消息区域）。
@@ -137,19 +140,21 @@ private:
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;                         ///< 所属会话 ID
-  bool         conversationMode_ = false;          ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr;        ///< 欢迎页标题
-  QLabel*      sessionTitle_     = nullptr;        ///< 会话标题标签
-  QWidget*     messageFrame_     = nullptr;        ///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr;        ///< 输入编辑器容器
-  QTMWidget*   inputQTMWidget_   = nullptr;        ///< 输入区 QTMWidget
-  QToolButton* sendButton_       = nullptr;        ///< 发送/停止按钮
-  QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
-  QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;                     ///< 消息区 TeXmacs widget
-  widget       inputWidget;                        ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
+  string       sessionId_;                     ///< 所属会话 ID
+  url          msgBufferUrl_;                  ///< 消息缓冲区 URL（外部注入）
+  url          inputBufferUrl_;                ///< 输入缓冲区 URL（外部注入）
+  bool         conversationMode_ = false;      ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr;    ///< 欢迎页标题
+  QLabel*      sessionTitle_     = nullptr;    ///< 会话标题标签
+  QWidget*     messageFrame_     = nullptr;    ///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr;    ///< 输入编辑器容器
+  QTMWidget*   inputQTMWidget_   = nullptr;    ///< 输入区 QTMWidget
+  QToolButton* sendButton_       = nullptr;    ///< 发送/停止按钮
+  QToolButton* thinkingButton_   = nullptr;    ///< 推理模式开关
+  QSpacerItem* topSpacer_        = nullptr;    ///< 欢迎页顶部弹性空间
+  widget       messageWidget_;                 ///< 消息区 TeXmacs widget
+  widget       inputWidget;                    ///< 输入区 TeXmacs widget
+  int          fixedFrameExtra_           = 0; ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
 

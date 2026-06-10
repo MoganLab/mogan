@@ -125,8 +125,11 @@ constexpr char kChatEmbeddedStyle[]= "style";
  ******************************************************************************/
 
 ChatConversationPanel::ChatConversationPanel (const string& sessionId,
+                                              const url&    msgBufUrl,
+                                              const url&    inBufUrl,
                                               QWidget*      parent)
-    : QWidget (parent), sessionId_ (sessionId) {
+    : QWidget (parent), sessionId_ (sessionId), msgBufferUrl_ (msgBufUrl),
+      inputBufferUrl_ (inBufUrl) {
   setObjectName ("chat-tab-conversation-page");
   // 限制垂直方向不向上传播 TeXmacs widget 的屏幕尺寸 sizeHint，
   // 避免 dock 模式下窗口被向下拉伸。
@@ -165,12 +168,11 @@ ChatConversationPanel::setup_ui () {
   topLayout->addSpacing (DpiUtils::scaled (kTitleToMessageSpacing));
 
   // Message area
-  qreal chatZoom = DpiUtils::scaled (100) / 100.0;
-  url   msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId_);
-  messageWidget_ = texmacs_input_widget (
+  qreal chatZoom= DpiUtils::scaled (100) / 100.0;
+  messageWidget_= texmacs_input_widget (
       tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
-             tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufUrl);
+            tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
   set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
@@ -213,11 +215,10 @@ ChatConversationPanel::setup_ui () {
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
-  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
-  inputWidget = texmacs_input_widget (
+  inputWidget= texmacs_input_widget (
       tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
-             as_string (chatZoom), tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), inBufUrl);
+            as_string (chatZoom), tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), inputBufferUrl_);
   set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
@@ -402,7 +403,7 @@ ChatConversationPanel::focusInput () {
 
 tree
 ChatConversationPanel::readInputMessage () const {
-  return get_buffer_body (ChatSessionManager::inputBufferUrl (sessionId_));
+  return get_buffer_body (inputBufferUrl_);
 }
 
 bool
@@ -1351,8 +1352,10 @@ ChatConversationPanel*
 QTChatTabWidget::createPanel (const string& sessionId) {
   if (!conversationStack_) return nullptr;
 
-  ChatConversationPanel* panel=
-      new ChatConversationPanel (sessionId, conversationStack_);
+  url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
+  url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
+  ChatConversationPanel* panel= new ChatConversationPanel (
+      sessionId, msgBufUrl, inBufUrl, conversationStack_);
   conversationStack_->addWidget (panel);
   conversations_.append (panel);
   return panel;
