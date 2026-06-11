@@ -84,6 +84,7 @@
 ("Home::keyboard" "Home")
 ("Image download failed: %1" "图片下载失败: %1")
 ("Image file" "图片文件")
+("Images are not supported in AI chat" "AI聊天中暂不支持图像")
 ("JPEG File InterChange Format" "JPEG文件交换格式")
 ("Keep track of source code" "保持源代码追踪")
 ("Log in Now!" "现在登录！")

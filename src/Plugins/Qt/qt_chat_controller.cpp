@@ -12,6 +12,7 @@
 #include "qt_chat_controller.hpp"
 #include "qt_chat_tab_widget.hpp"
 #include "qt_floating_search_bar.hpp"
+#include "qt_floating_toast.hpp"
 #include "qt_utilities.hpp"
 
 #include "new_buffer.hpp"
@@ -178,6 +179,14 @@ ChatController::onSendRequested (const string& sessionId) {
       static_cast<ChatConversationPanel*> (session->panel);
   tree inputBody= panel->readInputMessage ();
   if (ChatConversationPanel::is_empty_document_body (inputBody)) return;
+
+  // 包含图片时提示不支持，不发送
+  if (as_bool (call ("chat-tab-tree-has-image?", inputBody))) {
+    QtFloatingToast::showToast (
+        view_, qt_translate ("Images are not supported in AI chat"), 3000,
+        QtFloatingToast::Warning);
+    return;
+  }
 
   // 首次发送时注册 session 到持久化层 + 加入 sidebar
   registerSession (sessionId);
