@@ -543,6 +543,28 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
         return true;
       }
     }
+    // 回车键（Shift+Enter 排除，因发送已拦截）且当前是输入框：
+    // 在 TeXmacs 处理按键之前预先扩展 frame，使 viewport 提前变大，
+    // 这样 cursor_visible() 不会因 viewport 偏小而触发上滚。
+    if (watched->property ("chat_panel").value<void*> () == this) {
+      bool isEnter= (keyEvent->key () == Qt::Key_Return ||
+                     keyEvent->key () == Qt::Key_Enter);
+      if (isEnter) {
+        QWidget* frame=
+            inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
+        if (frame) {
+          tree body    = readInputMessage ();
+          int  docLines= count_input_lines (body);
+          int  targetLines=
+              qMin (kInputMaxLines, qMax (kInputDefaultLines, docLines + 1));
+          int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) +
+                            fixedFrameExtra_;
+          if (frame->height () < targetFrameH) {
+            frame->setFixedHeight (targetFrameH);
+          }
+        }
+      }
+    }
   }
   if (event->type () == QEvent::KeyRelease ||
       event->type () == QEvent::InputMethod || event->type () == QEvent::Drop) {
