@@ -378,6 +378,7 @@
   (surround tmmath-surround)
   (move tmmath-first)
   (resize tmmath-first)
+  (ornament tmmath-first)
   (with tmmath-with))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
