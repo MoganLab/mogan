@@ -525,6 +525,7 @@ function main()
                     "string",
                     "string",
                     "int",
+                    "string",
                     "string"
                 }
             },

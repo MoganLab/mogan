@@ -92,6 +92,12 @@ private slots:
   void test_getThinking_nonexistent ();
   void test_setThinking_nonexistent ();
 
+  // === search ===
+  void test_createSession_search_default_false ();
+  void test_setSearch_and_getSearch ();
+  void test_getSearch_nonexistent ();
+  void test_setSearch_nonexistent ();
+
   // === 双容器一致性 ===
   void test_dual_container_consistency_after_create ();
   void test_dual_container_consistency_after_remove ();
@@ -652,6 +658,46 @@ void
 TestChatSession::test_setThinking_nonexistent () {
   ChatSessionManager mgr;
   mgr.setThinking ("nonexistent-id", true);
+  // 不应崩溃
+}
+
+/******************************************************************************
+ * search
+ ******************************************************************************/
+
+void
+TestChatSession::test_createSession_search_default_false () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  ChatSession*       s  = mgr.getSession (sid);
+  QVERIFY (s != nullptr);
+  QVERIFY (!s->search);
+  QVERIFY (!mgr.getSearch (sid));
+}
+
+void
+TestChatSession::test_setSearch_and_getSearch () {
+  ChatSessionManager mgr;
+  string             sid= mgr.createSession ();
+  mgr.setSearch (sid, true);
+  QVERIFY (mgr.getSearch (sid));
+  QCOMPARE (mgr.getSession (sid)->search, true);
+
+  mgr.setSearch (sid, false);
+  QVERIFY (!mgr.getSearch (sid));
+  QCOMPARE (mgr.getSession (sid)->search, false);
+}
+
+void
+TestChatSession::test_getSearch_nonexistent () {
+  ChatSessionManager mgr;
+  QVERIFY (!mgr.getSearch ("nonexistent-id"));
+}
+
+void
+TestChatSession::test_setSearch_nonexistent () {
+  ChatSessionManager mgr;
+  mgr.setSearch ("nonexistent-id", true);
   // 不应崩溃
 }
 

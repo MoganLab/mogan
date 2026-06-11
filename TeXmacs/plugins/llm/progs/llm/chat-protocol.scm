@@ -358,7 +358,7 @@
   ) ;cond
 ) ;define
 
-(define (chat-tab-build-context-input input session-id model thinking)
+(define (chat-tab-build-context-input input session-id model thinking search)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
   (let* ((content (chat-tab-tree->plain-text input))
@@ -370,6 +370,7 @@
     (njson-set! obj "sessionId" session-id)
     (njson-set! params "model" model)
     (njson-set! params "thinking" thinking)
+    (njson-set! params "search" search)
     (njson-set! obj "params" params)
     (njson-set! obj "content" content)
     ;; 可选：有图片时加入 images 数组
@@ -401,9 +402,11 @@
 
 ;;; ---------- Feed ----------
 
-(define (chat-tab-session-feed lan ses input session-id out opts model thinking)
+(define (chat-tab-session-feed lan ses input session-id out opts model thinking search)
   ;; 用单轮输入替换原始输入
-  (set! input (chat-tab-build-context-input input session-id model thinking))
+  (set! input
+    (chat-tab-build-context-input input session-id model thinking search)
+  ) ;set!
   (set! input (plugin-preprocess lan ses input opts))
   (with-buffer (chat-tab-session->message-buffer session-id)
     (tree-assign! out '(document (script-busy)))
@@ -418,11 +421,12 @@
 
 ;;; ---------- 发送 ----------
 
-(tm-define (chat-tab-session-send session-id model thinking)
+(tm-define (chat-tab-session-send session-id model thinking search)
   (:synopsis "Send user message through chat tab session")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
   (:argument thinking "Thinking mode: enabled or disabled")
+  (:argument search "Search mode: enabled or disabled")
   (let* ((in-buf (chat-tab-session->input-buffer session-id))
          (body (buffer-get-body in-buf))
         ) ;
@@ -464,6 +468,7 @@
                       '()
                       model
                       thinking
+                      search
                     ) ;chat-tab-session-feed
                     #t
                   ) ;begin
@@ -503,12 +508,13 @@
   ) ;if
 ) ;tm-define
 
-(tm-define (chat-tab-send session-id model thinking)
+(tm-define (chat-tab-send session-id model thinking search)
   (:synopsis "Adapter send entry for a chat tab")
   (:argument session-id "Session UUID")
   (:argument model "Model name")
   (:argument thinking "Thinking mode")
-  (chat-tab-session-send session-id model thinking)
+  (:argument search "Search mode")
+  (chat-tab-session-send session-id model thinking search)
 ) ;tm-define
 
 (tm-define (chat-tab-cancel session-id)

@@ -1286,6 +1286,7 @@
 ("interline space" "行间空隔")
 ("Internal format" "内部格式")
 ("internationalization" "国际化")
+("Internet Search" "联网搜索")
 ("interparagraph space" "段落间空隔")
 ("interrupt execution" "中断执行")
 ("introduction" "介绍")

@@ -58,7 +58,9 @@
          ) ;created-at
          (opts (if (pair? rest) (cdr rest) '()))
          (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f)
+         (opts2 (if (pair? opts) (cdr opts) '()))
+         (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
+         (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
          (entry (string->njson "{}"))
         ) ;
@@ -72,6 +74,7 @@
     (njson-set! entry "createdAt" (or created-at ""))
     (njson-set! entry "defaultExpandCount" 5)
     (njson-set! entry "thinking" thinking)
+    (njson-set! entry "search" search)
     ;; updateAt: 最近活跃时间戳，用于排序索引；缺失时回退到 createdAt
     (njson-set! entry "updateAt" (or updated-at created-at ""))
     entry
@@ -115,6 +118,8 @@
                            (expand-count (if expand-count-pair (cdr expand-count-pair) 5))
                            (thinking-pair (assoc "thinking" entry))
                            (thinking (if thinking-pair (cdr thinking-pair) "disabled"))
+                           (search-pair (assoc "search" entry))
+                           (search (if search-pair (cdr search-pair) "disabled"))
                           ) ;
                       ;; 只传元数据给 C++，不加载 buffer 内容
                       (qt-chat-tab-restore-session sid
@@ -125,6 +130,7 @@
                         updated-at
                         expand-count
                         thinking
+                        search
                       ) ;qt-chat-tab-restore-session
                     ) ;let*
                   ) ;lambda
@@ -185,7 +191,9 @@
          ) ;created-at
          (opts (if (pair? rest) (cdr rest) '()))
          (thinking (if (and (pair? opts) (car opts)) (car opts) "disabled"))
-         (updated-at (if (and (pair? opts) (pair? (cdr opts)) (cadr opts)) (cadr opts) #f)
+         (opts2 (if (pair? opts) (cdr opts) '()))
+         (search (if (and (pair? opts2) (car opts2)) (car opts2) "disabled"))
+         (updated-at (if (and (pair? opts2) (pair? (cdr opts2)) (cadr opts2)) (cadr opts2) #f)
          ) ;updated-at
          (manifest-path (chat-persist-manifest-path))
          (entry (chat-persist-make-entry session-id
@@ -194,6 +202,7 @@
                   archived
                   created-at
                   thinking
+                  search
                   updated-at
                 ) ;chat-persist-make-entry
          ) ;entry

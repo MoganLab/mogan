@@ -1478,6 +1478,22 @@ QWidget#centralWidget QToolButton#chat-tab-thinking-btn:checked {
   color: #2791ad;
 }
 
+/* 搜索按钮 */
+QToolButton#chat-tab-search-btn,
+QWidget#centralWidget QToolButton#chat-tab-search-btn {
+  color: #ffffff;
+  border: 1px solid #7a7a7a;
+  background: transparent;
+  qproperty-iconNormal: url(":/llm-chat/search-white.svg");
+  qproperty-iconChecked: url(":/llm-chat/search-dark.svg");
+}
+QToolButton#chat-tab-search-btn:checked,
+QWidget#centralWidget QToolButton#chat-tab-search-btn:checked {
+  background: #215a6a33;
+  border: 1px solid #2791ad;
+  color: #2791ad;
+}
+
 /* 发送按钮 */
 QToolButton#chat-tab-send-btn,
 QWidget#centralWidget QToolButton#chat-tab-send-btn {

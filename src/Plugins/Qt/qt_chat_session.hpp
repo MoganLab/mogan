@@ -44,6 +44,7 @@ struct ChatSession {
   time_t                 updateAt;           ///< 最近活跃时间（用于排序索引）
   int                    defaultExpandCount; ///< 默认展开对话条数，固定为 5
   bool                   thinking;           ///< 是否启用推理模式，默认 false
+  bool                   search;             ///< 是否启用网络搜索，默认 false
   bool                   registered; ///< 是否已注册到持久化层（已加入 sidebar）
   ChatConversationPanel* panel;      ///< 关联的面板指针
   QMetaObject::Connection sendBtnConnection; ///< send/stop 按钮信号连接句柄
@@ -136,6 +137,20 @@ public:
    * @return 是否启用推理模式，会话不存在时返回 false
    */
   bool getThinking (const string& sessionId) const;
+
+  /**
+   * @brief 设置会话的网络搜索开关。
+   * @param sessionId 目标会话 ID
+   * @param search    是否启用网络搜索
+   */
+  void setSearch (const string& sessionId, bool search);
+
+  /**
+   * @brief 获取会话的网络搜索开关状态。
+   * @param sessionId 目标会话 ID
+   * @return 是否启用网络搜索，会话不存在时返回 false
+   */
+  bool getSearch (const string& sessionId) const;
 
   /**
    * @brief 获取所有会话 ID，按 updateAt 降序排列（最近活跃在前）。

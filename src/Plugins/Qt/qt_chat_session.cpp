@@ -34,6 +34,7 @@ ChatSessionManager::createSession () {
   session.updateAt          = now;
   session.defaultExpandCount= 5;
   session.thinking          = false;
+  session.search            = false;
   session.registered        = false;
   session.panel             = nullptr;
   sessions_.insert (std::make_pair (sessionId, session));
@@ -106,6 +107,19 @@ bool
 ChatSessionManager::getThinking (const string& sessionId) const {
   auto it= sessions_.find (sessionId);
   if (it != sessions_.end ()) return it->second.thinking;
+  return false;
+}
+
+void
+ChatSessionManager::setSearch (const string& sessionId, bool search) {
+  ChatSession* s= getSession (sessionId);
+  if (s) s->search= search;
+}
+
+bool
+ChatSessionManager::getSearch (const string& sessionId) const {
+  auto it= sessions_.find (sessionId);
+  if (it != sessions_.end ()) return it->second.search;
   return false;
 }
 

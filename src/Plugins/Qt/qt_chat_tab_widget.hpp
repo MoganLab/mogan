@@ -83,6 +83,7 @@ public:
 
   QToolButton*  sendButton () const { return sendButton_; }
   QToolButton*  thinkingButton () const { return thinkingButton_; }
+  QToolButton*  searchButton () const { return searchButton_; }
   QLabel*       sessionTitle () const { return sessionTitle_; }
   const string& sessionId () const { return sessionId_; }
   bool          conversationMode () const { return conversationMode_; }
@@ -122,6 +123,7 @@ public:
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
+  void searchToggled (const string& sessionId, bool enabled);
   void inputHeightChanged ();
   void closeSidebarInDockModeRequested ();
 
@@ -152,6 +154,7 @@ private:
   QTMWidget*   inputQTMWidget_   = nullptr;    ///< 输入区 QTMWidget
   QToolButton* sendButton_       = nullptr;    ///< 发送/停止按钮
   QToolButton* thinkingButton_   = nullptr;    ///< 推理模式开关
+  QToolButton* searchButton_     = nullptr;    ///< 网络搜索开关
   QSpacerItem* topSpacer_        = nullptr;    ///< 欢迎页顶部弹性空间
   widget       messageWidget_;                 ///< 消息区 TeXmacs widget
   widget       inputWidget;                    ///< 输入区 TeXmacs widget

@@ -137,6 +137,30 @@ ChatConversationPanel::ChatConversationPanel (const string& sessionId,
   setup_ui ();
 }
 
+QTMStateToolButton*
+make_toggle_btn (QWidget* parent, const char* objName, const QString& text) {
+  int   btnH= DpiUtils::scaled (kSendButtonSize);
+  auto* btn = new QTMStateToolButton (parent);
+  btn->setObjectName (objName);
+  btn->setCheckable (true);
+  btn->setChecked (false);
+  btn->setFocusPolicy (Qt::NoFocus);
+  btn->setCursor (Qt::PointingHandCursor);
+  btn->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
+                           DpiUtils::scaled (kSendIconSize)));
+  btn->setText (text);
+  btn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
+  btn->setFixedHeight (btnH);
+  btn->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+  int fontPx= DpiUtils::scaled (12);
+  btn->setStyleSheet (
+      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
+               "margin: 0px; font-size: %2px; }")
+          .arg (btnH / 2)
+          .arg (fontPx));
+  return btn;
+}
+
 void
 ChatConversationPanel::setup_ui () {
   QVBoxLayout* contentLayout= new QVBoxLayout (this);
@@ -259,27 +283,17 @@ ChatConversationPanel::setup_ui () {
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
 
+  // Search toggle button
+  searchButton_= make_toggle_btn (inputFrame, "chat-tab-search-btn",
+                                  qt_translate ("Internet Search"));
+  connect (searchButton_, &QToolButton::toggled, this,
+           [this] (bool checked) { emit searchToggled (sessionId_, checked); });
+  btnLayout->addWidget (searchButton_);
+  btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
+
   // Thinking toggle button
-  int thinkingBtnH= DpiUtils::scaled (kSendButtonSize);
-  thinkingButton_ = new QTMStateToolButton (inputFrame);
-  thinkingButton_->setObjectName ("chat-tab-thinking-btn");
-  thinkingButton_->setCheckable (true);
-  thinkingButton_->setChecked (false);
-  thinkingButton_->setFocusPolicy (Qt::NoFocus);
-  thinkingButton_->setCursor (Qt::PointingHandCursor);
-  thinkingButton_->setToolTip (tr ("Deep Reasoning"));
-  thinkingButton_->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
-                                       DpiUtils::scaled (kSendIconSize)));
-  thinkingButton_->setText (qt_translate ("Deep Reasoning"));
-  thinkingButton_->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
-  thinkingButton_->setFixedHeight (thinkingBtnH);
-  thinkingButton_->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-  int thinkingFontPx= DpiUtils::scaled (12);
-  thinkingButton_->setStyleSheet (
-      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
-               "margin: 0px; font-size: %2px; }")
-          .arg (thinkingBtnH / 2)
-          .arg (thinkingFontPx));
+  thinkingButton_= make_toggle_btn (inputFrame, "chat-tab-thinking-btn",
+                                    qt_translate ("Deep Reasoning"));
   connect (thinkingButton_, &QToolButton::toggled, this, [this] (bool checked) {
     emit thinkingToggled (sessionId_, checked);
   });
