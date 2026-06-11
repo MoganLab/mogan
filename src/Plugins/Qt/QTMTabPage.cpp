@@ -289,7 +289,9 @@ QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
     // avoid treating small movement(more like a click) as dragging
     return QToolButton::mouseMoveEvent (e);
   }
-  e->accept ();
+  // TODO: Re-enable tab tear-off (drag out of window to create new window)
+  // after stabilizing the drag-and-drop across windows.
+  return QToolButton::mouseMoveEvent (e);
 
   // 创建一个保留 alpha 通道和设备像素比 (devicePixelRatio) 的控件快照。
   // 使用 QWidget::grab() 可以避免生成带有黑色背景的 pixmap，
