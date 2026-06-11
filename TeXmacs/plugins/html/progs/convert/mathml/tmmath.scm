@@ -247,6 +247,10 @@
 ;; Other constructs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(define (tmmath-ornament l)
+  `(m:mrow (@ (style "border: 1px solid black; padding: 0.2em; display: inline-block;"))
+     ,(tmmath (car l))))
+
 (define (tmmath-noop l) "")
 
 (define (tmmath-hspace l)
@@ -378,7 +382,7 @@
   (surround tmmath-surround)
   (move tmmath-first)
   (resize tmmath-first)
-  (ornament tmmath-first)
+  (ornament tmmath-ornament)
   (with tmmath-with))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
