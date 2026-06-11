@@ -546,6 +546,7 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
     // 回车键（Shift+Enter 排除，因发送已拦截）且当前是输入框：
     // 在 TeXmacs 处理按键之前预先扩展 frame，使 viewport 提前变大，
     // 这样 cursor_visible() 不会因 viewport 偏小而触发上滚。
+    // 同时抑制绘制，避免 viewport 变大但内容未排版时出现边白闪烁。
     if (watched->property ("chat_panel").value<void*> () == this) {
       bool isEnter= (keyEvent->key () == Qt::Key_Return ||
                      keyEvent->key () == Qt::Key_Enter);
@@ -560,7 +561,11 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
           int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) +
                             fixedFrameExtra_;
           if (frame->height () < targetFrameH) {
+            setUpdatesEnabled (false);
             frame->setFixedHeight (targetFrameH);
+            // 等 TeXmacs 排版完成后再恢复绘制
+            QTimer::singleShot (0, this,
+                                [this] () { setUpdatesEnabled (true); });
           }
         }
       }
