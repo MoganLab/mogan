@@ -1729,54 +1729,23 @@
 ) ;define
 
 (tm-define (tmhtml-read-binary-file file-url)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-input-file path)))
-    (if (not port)
+  (import (liii path))
+  (let* ((p (url->string (url-concretize file-url))))
+    (if (file-exists? p)
+      (path-read-bytes p)
       #u8()
-      (let* ((bytes (let loop
-                      ((c (read-char port)) (res '()))
-                      (if (eof-object? c)
-                        (reverse res)
-                        (loop (read-char port) (cons (char->integer c) res))
-                      ) ;if
-                    ) ;let
-             ) ;bytes
-             (dummy (close-input-port port))
-            ) ;
-        (apply byte-vector bytes)
-      ) ;let*
     ) ;if
   ) ;let*
 ) ;tm-define
 
 (tm-define (tmhtml-write-binary-file file-url data)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-output-file path)))
-    (if port
-      (begin
-        (cond ((byte-vector? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (length data))
-                   (write-byte (vector-ref data i) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              ((string? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (string-length data))
-                   (write-byte (char->integer (string-ref data i)) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              (else (display data port))
-        ) ;cond
-        (close-output-port port)
-      ) ;begin
-      #f
-    ) ;if
-  ) ;let*
+  (import (liii path))
+  (let* ((p (cond ((string? file-url) file-url)
+                  (else (url->string (url-concretize file-url))))))
+    (cond ((byte-vector? data)
+           (path-write-bytes p data))
+          (else #f))
+    ) ;let*
 ) ;tm-define
 
 (define (tmhtml-png y)
@@ -2024,7 +1993,7 @@
                   (receive (name-url name-string)
                     (tmhtml-image-names ext)
                     (let* ((abs-url (url-concretize name-url))
-                           (abs-string (url->unix abs-url)))
+                           (abs-string abs-url))
                       (tmhtml-write-binary-file abs-url data)
                       (let ((res (tmhtml-png (cons 'image (cons abs-string (cdr l))))))
                         (when (url-exists? abs-url)

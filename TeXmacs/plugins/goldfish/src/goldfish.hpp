@@ -3223,6 +3223,54 @@ write content to the file at the given path and return the number of bytes writt
 }
 
 static s7_pointer
+f_path_write_bytes (s7_scheme* sc, s7_pointer args) {
+  const char* path= s7_string (s7_car (args));
+  if (!path) {
+    return s7_make_integer (sc, -1);
+  }
+
+  s7_pointer bv= s7_cadr (args);
+  if (!s7_is_byte_vector (bv)) {
+    return s7_make_integer (sc, -1);
+  }
+
+  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
+  if (file == tb_null) {
+    return s7_make_integer (sc, -1);
+  }
+
+  tb_filelock_ref_t lock= tb_filelock_init (file);
+  if (tb_filelock_enter (lock, TB_FILELOCK_MODE_EX) == tb_false) {
+    tb_filelock_exit (lock);
+    tb_file_exit (file);
+    return s7_make_integer (sc, -1);
+  }
+
+  tb_byte_t* data= s7_byte_vector_elements (bv);
+  tb_size_t content_size= s7_vector_length (bv);
+  tb_size_t written_size= tb_file_writ (file, data, content_size);
+
+  bool release_success= tb_filelock_leave (lock);
+  tb_filelock_exit (lock);
+  bool exit_success= tb_file_exit (file);
+
+  if (written_size == content_size && release_success && exit_success) {
+    return s7_make_integer (sc, written_size);
+  }
+  else {
+    return s7_make_integer (sc, -1);
+  }
+}
+
+inline void
+glue_path_write_bytes (s7_scheme* sc) {
+  const char* name= "g_path-write-bytes";
+  const char* desc= "(g_path-write-bytes path bytevector) => integer,\
+write bytevector to the file at the given path in binary mode and return the number of bytes written, or -1 on failure";
+  s7_define_function (sc, name, f_path_write_bytes, 2, 0, false, desc);
+}
+
+static s7_pointer
 f_path_append_text (s7_scheme* sc, s7_pointer args) {
   const char* path= s7_string (s7_car (args));
   if (!path) {
@@ -3302,6 +3350,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_path_read_text (sc);
   glue_path_read_bytes (sc);
   glue_path_write_text (sc);
+  glue_path_write_bytes (sc);
   glue_path_append_text (sc);
   glue_path_touch (sc);
 }
