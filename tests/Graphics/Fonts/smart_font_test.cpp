@@ -253,9 +253,9 @@ TestSmartFont::test_dingbats_font_support () {
 void
 TestSmartFont::test_dingbats_emoji_fallback () {
   // U+2717 (✗) 在 Noto Color Emoji 中不存在，应 fallback 到 DejaVu Sans
-  font            fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
-  int             nr= fn_rep->resolve ("<#2717>");
+  int             nr    = fn_rep->resolve ("<#2717>");
   QVERIFY (nr >= 0);
   // 不应路由到 error 字体
   QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
