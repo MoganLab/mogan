@@ -68,6 +68,40 @@ http_status_code (url u) {
   return status_code;
 }
 
+tmscm
+binary_load (tmscm u) {
+  TMSCM_ASSERT_URL (u, TMSCM_ARG1, "binary-load");
+  url      file_url= tmscm_to_url (u);
+  string   data    = tm_string_load_bytes (file_url);
+  s7_int   len     = N (data);
+  s7_pointer bv    = s7_make_byte_vector (tm_s7, len, 1, NULL);
+  if (len > 0) {
+    uint8_t* dest= s7_byte_vector_elements (bv);
+    memcpy (dest, data.begin (), len);
+  }
+  return bv;
+}
+
+tmscm
+binary_save (tmscm u, tmscm bv) {
+  TMSCM_ASSERT_URL (u, TMSCM_ARG1, "binary-save");
+  if (!s7_is_byte_vector (bv)) {
+    TMSCM_ASSERT (false, bv, TMSCM_ARG2, "binary-save");
+  }
+  url        file_url= tmscm_to_url (u);
+  s7_int     len     = s7_vector_length (bv);
+  string     data;
+  data->resize (len);
+  if (len > 0) {
+    uint8_t* src= s7_byte_vector_elements (bv);
+    for (s7_int i= 0; i < len; i++) {
+      data[i]= src[i];
+    }
+  }
+  tm_string_save_bytes (data, file_url);
+  return TMSCM_UNSPECIFIED;
+}
+
 #include "cork.hpp"
 #include "glue_lolly.cpp"
 
@@ -76,5 +110,7 @@ initialize_glue_l2 () {
   tmscm_install_procedure ("blackbox?", blackboxP, 1, 0, 0);
   tmscm_install_procedure ("tree?", treeP, 1, 0, 0);
   tmscm_install_procedure ("url?", urlP, 1, 0, 0);
+  tmscm_install_procedure ("binary-load", binary_load, 1, 0, 0);
+  tmscm_install_procedure ("binary-save", binary_save, 2, 0, 0);
   initialize_glue_lolly ();
 }

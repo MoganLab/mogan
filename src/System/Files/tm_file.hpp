@@ -28,6 +28,16 @@ tm_string_load (url u) {
 }
 
 inline string
+tm_string_load_bytes (url u) {
+  return string_load (u);
+}
+
+inline void
+tm_string_save_bytes (string s, url u) {
+  string_save (s, u);
+}
+
+inline string
 sys_concretize (url u1) {
   return escape_sh (concretize (u1));
 }

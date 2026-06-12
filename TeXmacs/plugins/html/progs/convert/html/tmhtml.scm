@@ -1729,54 +1729,26 @@
 ) ;define
 
 (tm-define (tmhtml-read-binary-file file-url)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-input-file path)))
-    (if (not port)
-      #u8()
-      (let* ((bytes (let loop
-                      ((c (read-char port)) (res '()))
-                      (if (eof-object? c)
-                        (reverse res)
-                        (loop (read-char port) (cons (char->integer c) res))
-                      ) ;if
-                    ) ;let
-             ) ;bytes
-             (dummy (close-input-port port))
-            ) ;
-        (apply byte-vector bytes)
-      ) ;let*
-    ) ;if
-  ) ;let*
+  (binary-load file-url)
 ) ;tm-define
 
 (tm-define (tmhtml-write-binary-file file-url data)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-output-file path)))
-    (if port
-      (begin
-        (cond ((byte-vector? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (length data))
-                   (write-byte (vector-ref data i) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              ((string? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (string-length data))
-                   (write-byte (char->integer (string-ref data i)) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              (else (display data port))
-        ) ;cond
-        (close-output-port port)
-      ) ;begin
-      #f
-    ) ;if
-  ) ;let*
+  (cond ((byte-vector? data) (binary-save file-url data))
+        ((string? data)
+         (let* ((len (string-length data))
+                (bv (make-byte-vector len))
+               ) ;let*
+           (let loop ((i 0))
+             (when (< i len)
+               (byte-vector-set! bv i (char->integer (string-ref data i)))
+               (loop (+ i 1))
+             ) ;when
+           ) ;let
+           (binary-save file-url bv)
+         ) ;let*
+        ) ;
+        (else (binary-save file-url (string->byte-vector (object->string data))))
+  ) ;cond
 ) ;tm-define
 
 (define (tmhtml-png y)

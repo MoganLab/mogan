@@ -566,6 +566,8 @@
 "string-save"
 "string-load"
 "string-append-to-file"
+"binary-load"
+"binary-save"
 "system-move"
 "system-copy"
 "system-remove"
