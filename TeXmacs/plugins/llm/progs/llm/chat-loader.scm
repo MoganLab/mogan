@@ -20,4 +20,8 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (llm chat-loader) (:use (llm chat-protocol) (llm chat-persist)))
+(texmacs-module (llm chat-loader)
+  (:use (llm chat-protocol)
+    (llm chat-persist)
+  ) ;:use
+) ;texmacs-module
