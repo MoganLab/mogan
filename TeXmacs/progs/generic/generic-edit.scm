@@ -1385,14 +1385,14 @@
 (tm-widget (magic-paste-login-widget cmd)
   (padded
     (text "Please log in to use Magic Paste")
-    ===
-    (bottom-buttons ("Login" (cmd "ok")))))
+    ======
+    (centered (explicit-buttons ("Login" (cmd "ok"))))))
 
 (tm-widget (magic-paste-upgrade-widget cmd)
   (padded
     (text "Daily Magic Paste limit reached. Upgrade for unlimited access.")
-    ===
-    (bottom-buttons ("Upgrade" (cmd "ok")))))
+    ======
+    (centered (explicit-buttons ("Upgrade" (cmd "ok"))))))
 
 (define (show-magic-paste-login-dialog)
   (dialogue-window magic-paste-login-widget
