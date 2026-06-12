@@ -1180,6 +1180,16 @@ smart_font_rep::resolve (string c) {
         }
       }
     }
+
+    // Fallback Dingbats (U+2700-U+27BF) to DejaVu Sans
+    font dejavu_fn=
+        closest_font ("DejaVu Sans", "rm", "medium", "right", sz, dpi, 1);
+    if (!is_nil (dejavu_fn) && dejavu_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "DejaVu Sans");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
   }
 
   // Fallback Cyrillic characters to default Chinese font
