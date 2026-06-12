@@ -3033,6 +3033,55 @@ qt_tm_widget_rep::triggerOAuth2 () {
   call ("login");
 }
 
+string
+check_magic_paste () {
+  if (is_community_stem ()) return "allowed";
+
+  eval ("(use-modules (liii account))");
+  string token= as_string (call ("account-load-token"));
+  if (N (token) == 0) return "not-logged-in";
+
+  string baseUrl  = as_string (call ("current-stem-site"));
+  string checkUrl = baseUrl * "/api/v1/oauth2/magicPaste/check";
+
+  string cleanToken= token;
+  if (N (cleanToken) > 0 && cleanToken[N (cleanToken) - 1] == '\xC2')
+    cleanToken= cleanToken (0, N (cleanToken) - 1);
+
+  QNetworkAccessManager manager;
+  QNetworkRequest       request;
+  request.setUrl (QUrl (to_qstring (checkUrl)));
+  request.setRawHeader ("Authorization",
+                         to_qstring ("Bearer " * cleanToken).toUtf8 ());
+  request.setRawHeader ("Content-Type", "application/json");
+  request.setRawHeader ("User-Agent",
+                         to_qstring (stem_user_agent ()).toUtf8 ());
+  request.setRawHeader ("X-Device-Id",
+                         to_qstring (stem_device_id ()).toUtf8 ());
+
+  QEventLoop loop;
+  QTimer     timer;
+  timer.setSingleShot (true);
+  QObject::connect (&timer, &QTimer::timeout, &loop, &QEventLoop::quit);
+  timer.start (3000);
+
+  QNetworkReply* reply= manager.post (request, QByteArray ("{}"));
+  QObject::connect (reply, &QNetworkReply::finished, &loop,
+                    &QEventLoop::quit);
+
+  loop.exec ();
+
+  int status=
+      reply->attribute (QNetworkRequest::HttpStatusCodeAttribute).toInt ();
+  reply->deleteLater ();
+
+  if (status == 200) return "allowed";
+  if (status == 401) return "not-logged-in";
+  if (status == 403) return "limit-exceeded";
+  if (status == 0) return "error:timeout";
+  return "error:" * as_string (status);
+}
+
 void
 qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
                                           const QString& displayName) {
