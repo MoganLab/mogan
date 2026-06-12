@@ -43,6 +43,8 @@ private slots:
   void test_in_unicode_range_cyrillic ();
   void test_roman_cyrillic_fallback ();
   void test_sys_chinese_cyrillic ();
+  void test_dingbats_font_support ();
+  void test_dingbats_emoji_fallback ();
 };
 
 void
@@ -231,6 +233,34 @@ TestSmartFont::test_sys_chinese_cyrillic () {
     // 确认没有 fallback 到 roman 的 ecrm 字体
     QVERIFY (!occurs ("ecrm", fn_rep->fn[nr]->res_name));
   }
+}
+
+void
+TestSmartFont::test_dingbats_font_support () {
+  // U+2700-U+27BF (Dingbats) 被归类为 emoji range
+  QVERIFY (in_unicode_range ("<#2700>", "emoji"));
+  QVERIFY (in_unicode_range ("<#27BF>", "emoji"));
+
+  // closest_font("DejaVu Sans") 不应被替换成 DejaVu Serif
+  font dejavu_fn=
+      closest_font ("DejaVu Sans", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (dejavu_fn));
+  QVERIFY (!occurs ("Serif", dejavu_fn->res_name));
+  QVERIFY (dejavu_fn->supports ("<#2702>"));
+  QVERIFY (dejavu_fn->supports ("<#2717>"));
+}
+
+void
+TestSmartFont::test_dingbats_emoji_fallback () {
+  // U+2717 (✗) 在 Noto Color Emoji 中不存在，应 fallback 到 DejaVu Sans
+  font            fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr= fn_rep->resolve ("<#2717>");
+  QVERIFY (nr >= 0);
+  // 不应路由到 error 字体
+  QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
+  // 应路由到 DejaVu Sans
+  QVERIFY (occurs ("DejaVuSans", fn_rep->fn[nr]->res_name));
 }
 
 QTEST_MAIN (TestSmartFont)
