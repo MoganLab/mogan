@@ -71,10 +71,10 @@ http_status_code (url u) {
 tmscm
 binary_load (tmscm u) {
   TMSCM_ASSERT_URL (u, TMSCM_ARG1, "binary-load");
-  url      file_url= tmscm_to_url (u);
-  string   data    = tm_string_load_bytes (file_url);
-  s7_int   len     = N (data);
-  s7_pointer bv    = s7_make_byte_vector (tm_s7, len, 1, NULL);
+  url        file_url= tmscm_to_url (u);
+  string     data    = tm_string_load_bytes (file_url);
+  s7_int     len     = N (data);
+  s7_pointer bv      = s7_make_byte_vector (tm_s7, len, 1, NULL);
   if (len > 0) {
     uint8_t* dest= s7_byte_vector_elements (bv);
     memcpy (dest, data.begin (), len);
@@ -88,9 +88,9 @@ binary_save (tmscm u, tmscm bv) {
   if (!s7_is_byte_vector (bv)) {
     TMSCM_ASSERT (false, bv, TMSCM_ARG2, "binary-save");
   }
-  url        file_url= tmscm_to_url (u);
-  s7_int     len     = s7_vector_length (bv);
-  string     data;
+  url    file_url= tmscm_to_url (u);
+  s7_int len     = s7_vector_length (bv);
+  string data;
   data->resize (len);
   if (len > 0) {
     uint8_t* src= s7_byte_vector_elements (bv);
