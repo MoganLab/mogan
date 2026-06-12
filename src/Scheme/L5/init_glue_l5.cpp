@@ -299,7 +299,6 @@ freetype_version () {
 #include "glue_editor.cpp"
 #include "glue_font.cpp"
 #include "glue_server.cpp"
-
 #include "glue_widget.cpp"
 
 void
