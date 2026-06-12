@@ -1379,9 +1379,8 @@
             (cond ((= status 200) "allowed")
                   ((= status 401) "not-logged-in")
                   ((= status 403) "limit-exceeded")
-                  (else (string-append "error:" (number->string status))))))
-        (lambda (key . args)
-          (string-append "error:" (symbol->string key)))))))
+                  (else "allowed"))))
+        (lambda (key . args) "allowed")))))
 
 (tm-define (with-magic-paste-check cont)
   (if (community-stem?) (cont)
@@ -1392,10 +1391,7 @@
                (lambda (answ) (when (== answ "Login") (login)))))
             ((== result "limit-exceeded")
              (user-ask '("Daily Magic Paste limit reached. Upgrade for unlimited access." "question" "Upgrade" "Cancel")
-               (lambda (answ) (when (== answ "Upgrade") (open-pricing-url)))))
-            (else
-             (user-ask (list (string-append "Magic Paste check failed (" result ")" ) "question" "OK" "Cancel")
-               (lambda (answ) (noop))))))))
+               (lambda (answ) (when (== answ "Upgrade") (open-pricing-url)))))))))
 
 (tm-define (kbd-magic-paste)
   (if (string-starts? (qt-clipboard-format) "image")

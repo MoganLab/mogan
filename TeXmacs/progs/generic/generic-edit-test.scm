@@ -39,64 +39,63 @@
 )
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Tests for error results and paste action classification
+;; Tests for check-magic-paste result handling
+;; Only 401 and 403 block; all other status codes and exceptions pass through
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (classify result)
-  (cond ((== result "allowed") 'allowed)
-        ((== result "not-logged-in") 'not-logged-in)
-        ((== result "limit-exceeded") 'limit-exceeded)
-        ((string-starts? result "error:") 'error)
-        (else 'unknown)))
+;; Simulates the result from check-magic-paste for a given HTTP status
+(define (check-result-for-status status)
+  (cond ((= status 200) "allowed")
+        ((= status 401) "not-logged-in")
+        ((= status 403) "limit-exceeded")
+        (else "allowed")))
 
-(define (test-error-results)
-  ;; HTTP status code errors
-  (check (classify "error:400") => 'error)
-  (check (classify "error:404") => 'error)
-  (check (classify "error:408") => 'error)
-  (check (classify "error:429") => 'error)
-  (check (classify "error:500") => 'error)
-  (check (classify "error:502") => 'error)
-  (check (classify "error:503") => 'error)
-  (check (classify "error:504") => 'error)
-  ;; Scheme exception keys
-  (check (classify "error:http-error") => 'error)
-  (check (classify "error:system-error") => 'error)
-  (check (classify "error:read-error") => 'error)
-  ;; Non-error results
-  (check (classify "allowed") => 'allowed)
-  (check (classify "not-logged-in") => 'not-logged-in)
-  (check (classify "limit-exceeded") => 'limit-exceeded)
-)
-
+;; Simulates the classification logic of with-magic-paste-check
 (define (classify-paste-action result)
   (cond ((== result "allowed") 'proceed)
         ((== result "not-logged-in") 'ask-login)
         ((== result "limit-exceeded") 'ask-upgrade)
-        ((string-starts? result "error:") 'show-error)
-        (else 'unknown)))
+        (else 'proceed)))
 
-(define (test-paste-action-on-error)
-  ;; HTTP errors -> show error dialog
-  (check (classify-paste-action "error:400") => 'show-error)
-  (check (classify-paste-action "error:404") => 'show-error)
-  (check (classify-paste-action "error:500") => 'show-error)
-  (check (classify-paste-action "error:502") => 'show-error)
-  (check (classify-paste-action "error:503") => 'show-error)
-  (check (classify-paste-action "error:504") => 'show-error)
-  (check (classify-paste-action "error:429") => 'show-error)
-  ;; Scheme exceptions -> show error dialog
-  (check (classify-paste-action "error:http-error") => 'show-error)
-  (check (classify-paste-action "error:system-error") => 'show-error)
-  (check (classify-paste-action "error:read-error") => 'show-error)
-  ;; Known non-error results
+(define (test-check-result-for-status)
+  ;; 200, 401, 403 have specific mappings
+  (check (check-result-for-status 200) => "allowed")
+  (check (check-result-for-status 401) => "not-logged-in")
+  (check (check-result-for-status 403) => "limit-exceeded")
+  ;; All other HTTP status codes -> "allowed" (pass-through)
+  (check (check-result-for-status 400) => "allowed")
+  (check (check-result-for-status 404) => "allowed")
+  (check (check-result-for-status 408) => "allowed")
+  (check (check-result-for-status 429) => "allowed")
+  (check (check-result-for-status 500) => "allowed")
+  (check (check-result-for-status 502) => "allowed")
+  (check (check-result-for-status 503) => "allowed")
+  (check (check-result-for-status 504) => "allowed")
+  ;; Timeout (status 0)
+  (check (check-result-for-status 0) => "allowed")
+)
+
+(define (test-paste-action)
   (check (classify-paste-action "allowed") => 'proceed)
   (check (classify-paste-action "not-logged-in") => 'ask-login)
   (check (classify-paste-action "limit-exceeded") => 'ask-upgrade)
 )
 
+(define (test-network-error-pass-through)
+  ;; HTTP server errors -> "allowed" -> proceed
+  (check (classify-paste-action (check-result-for-status 500)) => 'proceed)
+  (check (classify-paste-action (check-result-for-status 502)) => 'proceed)
+  (check (classify-paste-action (check-result-for-status 503)) => 'proceed)
+  (check (classify-paste-action (check-result-for-status 504)) => 'proceed)
+  ;; Timeout -> "allowed" -> proceed
+  (check (classify-paste-action (check-result-for-status 0)) => 'proceed)
+  ;; Scheme catch handler returns "allowed" for any exception
+  (check (classify-paste-action "allowed") => 'proceed)
+)
+
 (tm-define (regtest-generic-edit)
   (test-magic-paste-excluded?)
-  (test-error-results)
-  (test-paste-action-on-error)
+  (test-check-result-for-status)
+  (test-paste-action)
+  (test-network-error-pass-through)
   (check-report))
