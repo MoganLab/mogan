@@ -1380,7 +1380,8 @@
                   ((= status 401) "not-logged-in")
                   ((= status 403) "limit-exceeded")
                   (else (string-append "error:" (number->string status))))))
-        (lambda err "error:exception")))))
+        (lambda (key . args)
+          (string-append "error:" (symbol->string key)))))))
 
 (tm-define (with-magic-paste-check cont)
   (if (community-stem?) (cont)
