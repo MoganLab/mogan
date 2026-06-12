@@ -223,6 +223,7 @@
 (DecoType\ Naskh\ PUA DecoType\ Naskh\ PUA)
 (DejaVu\ Sans DejaVu\ Sans SansSerif)
 (Noto\ Sans\ Symbols Noto\ Sans\ Symbols SansSerif)
+(Noto\ Sans\ Symbols2 Noto\ Sans\ Symbols2 SansSerif)
 (DejaVu\ Sans\ Mono DejaVu\ Sans\ Mono Mono SansSerif)
 (DejaVu\ Serif DejaVu\ Serif Serif)
 (Delius Delius SansSerif)

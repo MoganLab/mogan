@@ -1181,11 +1181,20 @@ smart_font_rep::resolve (string c) {
       }
     }
 
-    // Fallback emoji (U+2600-U+27BF) to Noto Sans Symbols, then DejaVu Sans
-    font noto_fn= closest_font ("Noto Sans Symbols", "rm", "medium", "right",
-                                sz, dpi, 1);
+    // Fallback emoji (U+2600-U+27BF) to Noto Sans Symbols, Noto Sans Symbols2,
+    // then DejaVu Sans
+    font noto_fn=
+        closest_font ("Noto Sans Symbols", "rm", "medium", "right", sz, dpi, 1);
     if (!is_nil (noto_fn) && noto_fn->supports (c)) {
       tree key= tuple ("emoji-font", "Noto Sans Symbols");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+    font noto2_fn= closest_font ("Noto Sans Symbols2", "rm", "medium", "right",
+                                 sz, dpi, 1);
+    if (!is_nil (noto2_fn) && noto2_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "Noto Sans Symbols2");
       int  nr = sm->add_font (key, REWRITE_NONE);
       maybe_initialize_font (nr);
       return sm->add_char (key, c);

@@ -46,8 +46,9 @@ private slots:
   void test_dingbats_font_support ();
   void test_dingbats_emoji_fallback ();
   void test_noto_sans_symbols_font_support ();
+  void test_noto_sans_symbols2_font_support ();
   void test_misc_symbols_fallback ();
-  void test_misc_symbols_fallback_to_dejavu ();
+  void test_misc_symbols_fallback_to_symbols2 ();
 };
 
 void
@@ -255,30 +256,40 @@ TestSmartFont::test_dingbats_font_support () {
 
 void
 TestSmartFont::test_dingbats_emoji_fallback () {
-  // U+2717 (✗) 在 Noto Color Emoji 中不存在，应 fallback 到 DejaVu Sans
+  // U+2717 (✗) 在 Noto Color Emoji 中不存在，应 fallback 到 NotoSansSymbols2
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
   int             nr    = fn_rep->resolve ("<#2717>");
   QVERIFY (nr >= 0);
   // 不应路由到 error 字体
   QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
-  // 应路由到 DejaVu Sans
-  QVERIFY (occurs ("DejaVuSans", fn_rep->fn[nr]->res_name));
+  // 应路由到 NotoSansSymbols2
+  QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
 }
 
 void
 TestSmartFont::test_noto_sans_symbols_font_support () {
   // NotoSansSymbols 应该可以正确加载
-  font noto_fn= closest_font ("Noto Sans Symbols", "rm", "medium", "right", 10,
-                              600, 1);
+  font noto_fn=
+      closest_font ("Noto Sans Symbols", "rm", "medium", "right", 10, 600, 1);
   QVERIFY (!is_nil (noto_fn));
   // U+269D (⚝) 由 NotoSansSymbols 支持
   QVERIFY (noto_fn->supports ("<#269D>"));
 }
 
 void
+TestSmartFont::test_noto_sans_symbols2_font_support () {
+  // NotoSansSymbols2 应该可以正确加载
+  font noto2_fn=
+      closest_font ("Noto Sans Symbols2", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (noto2_fn));
+  // U+26BF (≛) 由 NotoSansSymbols2 支持
+  QVERIFY (noto2_fn->supports ("<#26BF>"));
+}
+
+void
 TestSmartFont::test_misc_symbols_fallback () {
-  // U+269D (⚝) 在 Miscellaneous Symbols 区段，应 fallback 到 NotoSansSymbols
+  // U+269D (⚝) 应 fallback 到 NotoSansSymbols（第一层）
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
   int             nr    = fn_rep->resolve ("<#269D>");
@@ -290,16 +301,17 @@ TestSmartFont::test_misc_symbols_fallback () {
 }
 
 void
-TestSmartFont::test_misc_symbols_fallback_to_dejavu () {
-  // U+2605 (★) 不在 NotoSansSymbols 和 Noto Color Emoji 中，应 fallback 到 DejaVu Sans
+TestSmartFont::test_misc_symbols_fallback_to_symbols2 () {
+  // U+26BF (≛) 不在 NotoSansSymbols 中，应 fallback 到
+  // NotoSansSymbols2（第二层）
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
-  int             nr    = fn_rep->resolve ("<#2605>");
+  int             nr    = fn_rep->resolve ("<#26BF>");
   QVERIFY (nr >= 0);
   // 不应路由到 error 字体
   QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
-  // 应 fallback 到 DejaVu Sans
-  QVERIFY (occurs ("DejaVuSans", fn_rep->fn[nr]->res_name));
+  // 应路由到 NotoSansSymbols2
+  QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
 }
 
 QTEST_MAIN (TestSmartFont)
