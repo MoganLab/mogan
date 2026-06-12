@@ -22,6 +22,8 @@
   ) ;:use
 ) ;texmacs-module
 
+(import (liii http))
+
 (tm-define (generic-context? t) #t)
 ;; overridden in, e.g., graphics mode
 
@@ -1360,6 +1362,26 @@
 ;;
 ;; TODO: 在文本模式中，可以自动识别剪贴板中的内容，并魔法粘贴。比如，内容格式经过识别，发现是LaTeX格式，
 ;; 那么应该粘贴为LaTeX格式
+(tm-define (check-magic-paste)
+  (when (not (defined? 'account-load-token))
+    (use-modules (liii account)))
+  (let* ((token (account-load-token))
+         (base-url (current-stem-site))
+         (check-url (string-append base-url "/api/v1/oauth2/magicPaste/check"))
+         (headers (list (cons "Authorization" (string-append "Bearer " token))
+                        (cons "Content-Type" "application/json"))))
+    (if (string=? token "")
+      "not-logged-in"
+      (catch #t
+        (lambda ()
+          (let* ((r (http-post check-url '() "{}" headers))
+                 (status (r 'status-code)))
+            (cond ((= status 200) "allowed")
+                  ((= status 401) "not-logged-in")
+                  ((= status 403) "limit-exceeded")
+                  (else (string-append "error:" (number->string status))))))
+        (lambda err "error:exception")))))
+
 (tm-define (with-magic-paste-check cont)
   (if (community-stem?) (cont)
     (let ((result (check-magic-paste)))

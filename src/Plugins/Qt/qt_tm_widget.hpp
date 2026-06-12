@@ -281,6 +281,5 @@ public:
   virtual QLayoutItem* as_qlayoutitem ();
 };
 
-string check_magic_paste ();
 
 #endif // QT_TM_WIDGET_HPP
