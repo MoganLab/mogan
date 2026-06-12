@@ -1293,8 +1293,8 @@
     (set-search-window-state #f #f)
     (let* ((msg-url (url->system floating-search-target))
            (in-url (if (chat-message-buffer? floating-search-target)
-                     (url->system (chat-tab-session->input-buffer (chat-buffer-session-id floating-search-target))
-                     ) ;url->system
+                     (url->system (chat-tab-session->input-buffer
+                       (chat-buffer-session-id floating-search-target)))
                      ""
                    ) ;if
            ) ;in-url
