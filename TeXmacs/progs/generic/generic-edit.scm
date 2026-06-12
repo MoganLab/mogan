@@ -1360,26 +1360,44 @@
 ;;
 ;; TODO: 在文本模式中，可以自动识别剪贴板中的内容，并魔法粘贴。比如，内容格式经过识别，发现是LaTeX格式，
 ;; 那么应该粘贴为LaTeX格式
+(tm-define (with-magic-paste-check cont)
+  (if (community-stem?) (cont)
+    (let ((result (check-magic-paste)))
+      (cond ((== result "allowed") (cont))
+            ((== result "not-logged-in")
+             (user-ask '("Please log in to use Magic Paste" "question" "Login" "Cancel")
+               (lambda (answ) (when (== answ "Login") (login)))))
+            ((== result "limit-exceeded")
+             (user-ask '("Daily Magic Paste limit reached. Upgrade for unlimited access." "question" "Upgrade" "Cancel")
+               (lambda (answ) (when (== answ "Upgrade") (open-pricing-url)))))
+            (else
+             (user-ask (list (string-append "Magic Paste check failed (" result ")" ) "question" "OK" "Cancel")
+               (lambda (answ) (noop))))))))
+
 (tm-define (kbd-magic-paste)
   (if (string-starts? (qt-clipboard-format) "image")
     (begin
       (ocr-paste)
       (track-event "OCR_RECOGNIZE" '(("mode" . "paste")))
     ) ;begin
-    (with mode
-      (get-env "mode")
-      (cond ((== mode "prog")
-             (clipboard-paste-import "code" "primary")
-             (track-event "MAGIC_PASTE" '(("mode" . "prog")))
-            ) ;
-            ((== mode "math")
-             (clipboard-paste-import "latex" "primary")
-             (track-event "MAGIC_PASTE" '(("mode" . "math")))
-            ) ;
-            (else (smart-format-paste) (track-event "MAGIC_PASTE" '(("mode"
-                                                                     . "text"))))
-      ) ;cond
-    ) ;with
+    (with-magic-paste-check
+      (lambda ()
+        (with mode
+          (get-env "mode")
+          (cond ((== mode "prog")
+                 (clipboard-paste-import "code" "primary")
+                 (track-event "MAGIC_PASTE" '(("mode" . "prog")))
+                ) ;
+                ((== mode "math")
+                 (clipboard-paste-import "latex" "primary")
+                 (track-event "MAGIC_PASTE" '(("mode" . "math")))
+                ) ;
+                (else (smart-format-paste) (track-event "MAGIC_PASTE" '(("mode"
+                                                                         . "text"))))
+          ) ;cond
+        ) ;with
+      ) ;lambda
+    ) ;with-magic-paste-check
   ) ;if
   (when (chat-input-buffer? (current-buffer-url))
     (qt-chat-notify-input-height)

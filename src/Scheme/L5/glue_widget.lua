@@ -504,6 +504,11 @@ function main()
                 ret_type = "void"
             },
             {
+                scm_name = "check-magic-paste",
+                cpp_name = "check_magic_paste",
+                ret_type = "string"
+            },
+            {
                 scm_name = "qt-chat-tab-set-state",
                 cpp_name = "qt_chat_tab_set_state",
                 ret_type = "void",
