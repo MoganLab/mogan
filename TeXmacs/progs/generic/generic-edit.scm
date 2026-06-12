@@ -1382,16 +1382,36 @@
                   (else "allowed"))))
         (lambda (key . args) "allowed")))))
 
+(tm-widget (magic-paste-login-widget cmd)
+  (padded
+    (text "Please log in to use Magic Paste")
+    ===
+    (bottom-buttons ("Login" (cmd "ok")))))
+
+(tm-widget (magic-paste-upgrade-widget cmd)
+  (padded
+    (text "Daily Magic Paste limit reached. Upgrade for unlimited access.")
+    ===
+    (bottom-buttons ("Upgrade" (cmd "ok")))))
+
+(define (show-magic-paste-login-dialog)
+  (dialogue-window magic-paste-login-widget
+    (lambda (answ) (when (== answ "ok") (login)))
+    "Magic Paste"))
+
+(define (show-magic-paste-upgrade-dialog)
+  (dialogue-window magic-paste-upgrade-widget
+    (lambda (answ) (when (== answ "ok") (open-pricing-url)))
+    "Magic Paste"))
+
 (tm-define (with-magic-paste-check cont)
   (if (community-stem?) (cont)
     (let ((result (check-magic-paste)))
       (cond ((== result "allowed") (cont))
             ((== result "not-logged-in")
-             (user-ask '("Please log in to use Magic Paste" "question" "Login" "Cancel")
-               (lambda (answ) (when (== answ "Login") (login)))))
+             (show-magic-paste-login-dialog))
             ((== result "limit-exceeded")
-             (user-ask '("Daily Magic Paste limit reached. Upgrade for unlimited access." "question" "Upgrade" "Cancel")
-               (lambda (answ) (when (== answ "Upgrade") (open-pricing-url)))))))))
+             (show-magic-paste-upgrade-dialog))))))
 
 (tm-define (kbd-magic-paste)
   (if (string-starts? (qt-clipboard-format) "image")
