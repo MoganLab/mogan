@@ -9,14 +9,17 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDockWidget>
 #include <QFile>
+#include <QFileDialog>
 #include <QFrame>
 #include <QGestureEvent>
 #include <QKeyEvent>
 #include <QMainWindow>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPinchGesture>
 #include <QPushButton>
@@ -864,6 +867,7 @@ bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   clear ();
   autoFitApplied_= false;
+  pdfFilePath_   = filePath;
 
   targetDpi_= dpi;
   hasError_ = false;
@@ -988,6 +992,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
 void
 PDFReaderWidget::clear () {
   pdfData_.clear ();
+  pdfFilePath_.clear ();
   pageCount_= 0;
   hasError_ = false;
   errorString_.clear ();
@@ -1498,6 +1503,15 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       }
     }
     // ============================================================
+    // Context menu (right-click)
+    // ============================================================
+    else if (event->type () == QEvent::ContextMenu) {
+      QContextMenuEvent* contextEvent= static_cast<QContextMenuEvent*> (event);
+      showContextMenu (contextEvent->pos ());
+      contextEvent->accept ();
+      return true;
+    }
+    // ============================================================
     // Link hover detection (no button pressed)
     // ============================================================
     else if (!rectSelectMode_ && !browseDragging_ &&
@@ -1596,4 +1610,20 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   return QWidget::eventFilter (watched, event);
+}
+
+void
+PDFReaderWidget::showContextMenu (const QPoint& pos) {
+  if (pdfFilePath_.isEmpty ()) return;
+  QMenu    menu (this);
+  QAction* saveAction= menu.addAction (qt_translate ("Save as..."));
+  QAction* selected  = menu.exec (scrollArea_->viewport ()->mapToGlobal (pos));
+  if (selected == saveAction) {
+    QString dest= QFileDialog::getSaveFileName (
+        this, qt_translate ("Save PDF file"), pdfFilePath_,
+        qt_translate ("PDF files (*.pdf)"));
+    if (!dest.isEmpty ()) {
+      QFile::copy (pdfFilePath_, dest);
+    }
+  }
 }

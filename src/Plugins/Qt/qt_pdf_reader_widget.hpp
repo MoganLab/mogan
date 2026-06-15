@@ -87,6 +87,8 @@ public:
 
   void updateZoomDisplay ();
 
+  void showContextMenu (const QPoint& pos);
+
 Q_SIGNALS:
   void linkClicked (const QString& uri);
   void zoomChanged (const QString& text);
@@ -146,6 +148,7 @@ private:
   QScroller* scroller_;
 
   QByteArray pdfData_;
+  QString    pdfFilePath_;
   int        pageCount_;
   bool       hasError_;
   QString    errorString_;
