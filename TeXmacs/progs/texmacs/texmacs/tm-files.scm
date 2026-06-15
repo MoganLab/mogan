@@ -366,7 +366,7 @@
 ;; doc id 只在用户明确保存时随文档持久化；打开已有文件时不会静默
 ;; 写回源文件。
 
-(define (save-buffer-save name opts . kind*)
+(tm-define (save-buffer-save name opts . kind*)
   ;; (display* "save-buffer-save " name "\n")
   (let ((kind (if (null? kind*) "save" (car kind*))))
     (with vname
@@ -390,7 +390,7 @@
       ) ;if
     ) ;with
   ) ;let
-) ;define
+) ;tm-define
 
 (define (save-buffer-check-faithful name opts)
   ;; (display* "save-buffer-check-faithful " name "\n")

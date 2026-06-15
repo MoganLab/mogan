@@ -326,6 +326,9 @@
                        (url-glue (url-temp) (if (supports-native-pdf?) ".pdf" ".ps"))
                        (print-to-file file)
                        (preview-file file)
+                       (let ((export-kind (string-append (url-suffix file) "_export")))
+                         (save-buffer-save (current-buffer) (list) export-kind)
+                       ) ;let
                      ) ;with
   ) ;with-default-view
 ) ;tm-define
