@@ -172,6 +172,9 @@
     (print-to-file fname)
     (switch-to-buffer cur)
     (buffer-close tmp-url)
+    (let ((export-kind (string-append (url-suffix fname) "_export")))
+      (save-buffer-save cur (list) export-kind)
+    ) ;let
   ) ;let*
   (system-wait "" "")
   (user-confirm-open-pdf fname)
