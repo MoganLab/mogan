@@ -15,8 +15,9 @@ private slots:
   void init () { init_lolly (); }
 
   void test_dirty_title_moves_star_to_close_slot () {
-    QAction titleAction (QString::fromUtf8 ("very-long-file-name.tm *"), nullptr);
-    QAction closeAction ("Close", nullptr);
+    QAction    titleAction (QString::fromUtf8 ("very-long-file-name.tm *"),
+                            nullptr);
+    QAction    closeAction ("Close", nullptr);
     QTMTabPage tab (url ("file:///tmp/test.tm"), &titleAction, &closeAction,
                     false);
     tab.resize (220, 32);
@@ -26,8 +27,7 @@ private slots:
     QCOMPARE (tab.text (), QString::fromUtf8 ("very-long-file-name.tm"));
     QVERIFY (tab.isDirty ());
 
-    auto* closeBtn=
-        tab.findChild<QWK::WindowButton*> ("tabpage-close-button");
+    auto* closeBtn= tab.findChild<QWK::WindowButton*> ("tabpage-close-button");
     QVERIFY (closeBtn != nullptr);
     QVERIFY (!closeBtn->isVisible ());
 
@@ -37,8 +37,8 @@ private slots:
   }
 
   void test_clean_title_keeps_close_button_hidden_without_hover () {
-    QAction titleAction ("clean-file.tm", nullptr);
-    QAction closeAction ("Close", nullptr);
+    QAction    titleAction ("clean-file.tm", nullptr);
+    QAction    closeAction ("Close", nullptr);
     QTMTabPage tab (url ("file:///tmp/test.tm"), &titleAction, &closeAction,
                     false);
     tab.resize (220, 32);

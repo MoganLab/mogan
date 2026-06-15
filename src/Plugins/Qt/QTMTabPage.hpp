@@ -33,7 +33,7 @@ class QTMTabPage : public QToolButton {
   Q_OBJECT
   QWK::WindowButton* m_closeBtn= nullptr;
   QPoint             m_dragStartPos;
-  bool               m_isDirty= false;
+  bool               m_isDirty         = false;
   bool               m_hoverOnCloseArea= false;
 
 public:

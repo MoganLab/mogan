@@ -236,7 +236,7 @@ QTMTabPage::eventFilter (QObject* watched, QEvent* event) {
       return false;
     }
     if (event->type () == QEvent::Leave) {
-      QPoint pos= mapFromGlobal (QCursor::pos ());
+      QPoint pos        = mapFromGlobal (QCursor::pos ());
       m_hoverOnCloseArea= isPointerOnCloseArea (pos);
       updateCloseButtonVisibility ();
       return false;
@@ -284,8 +284,9 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   else {
     int leftPadding= DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
     int rightPadding=
-        m_closeBtn ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
-                   : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
+        m_closeBtn
+            ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
+            : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
     int availableWidth= width () - leftPadding - rightPadding;
     if (availableWidth < 20) {
       availableWidth= 20;
