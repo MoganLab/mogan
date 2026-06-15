@@ -1856,11 +1856,7 @@
 (tm-define (open-auto-backup-location)
   (let ((name (auto-backup-manual-target)))
     (when name
-      (let ((backup-result (auto-backup-trig name "manual-open")))
-        (when (not (community-stem?))
-          (auto-backup-upload-buffer name backup-result)
-        ) ;when
-      ) ;let
+      (auto-backup-trig name "visit-cloud-backup")
     ) ;when
   ) ;let
   (if (community-stem?)
