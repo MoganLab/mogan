@@ -15,6 +15,8 @@
 #include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
+#include <QCursor>
+#include <QEvent>
 #include <QIcon>
 #include <QSize>
 
@@ -69,6 +71,20 @@ getScaledAddButtonHeight () {
 static int
 getScaledCloseButtonHeight () {
   return DpiUtils::scaled (CLOSE_BUTTON_SIZE);
+}
+
+static bool
+extract_dirty_suffix (const QString& rawTitle, QString& cleanTitle) {
+  if (rawTitle.endsWith (" *")) {
+    cleanTitle= rawTitle.left (rawTitle.size () - 2);
+    return true;
+  }
+  if (rawTitle.endsWith ('*')) {
+    cleanTitle= rawTitle.left (rawTitle.size () - 1).trimmed ();
+    return true;
+  }
+  cleanTitle= rawTitle;
+  return false;
 }
 
 /**
@@ -153,6 +169,7 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   p_title->setCheckable (true);
   p_title->setChecked (p_isActive);
   setDefaultAction (p_title);
+  applyDisplayTitle (p_title->text ());
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton (p_closeBtn);
   int pad   = DpiUtils::scaled (8);
@@ -160,6 +177,7 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   setStyleSheet (
       QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
+  setMouseTracking (true);
 }
 
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
@@ -169,6 +187,14 @@ QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setStyleSheet (
       QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
+  setMouseTracking (true);
+}
+
+void
+QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
+  QString cleanTitle;
+  m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
+  setText (cleanTitle);
 }
 
 void
@@ -183,6 +209,7 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
   int closeBtnRadius= DpiUtils::scaled (6);
   m_closeBtn->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (closeBtnRadius));
+  m_closeBtn->installEventFilter (this);
   if (closeAction) {
     QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
@@ -192,6 +219,30 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
     });
   }
   updateCloseButtonVisibility ();
+}
+
+bool
+QTMTabPage::isPointerOnCloseArea (const QPoint& pos) const {
+  if (!m_closeBtn) return false;
+  return m_closeBtn->geometry ().contains (pos);
+}
+
+bool
+QTMTabPage::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == m_closeBtn) {
+    if (event->type () == QEvent::Enter) {
+      m_hoverOnCloseArea= true;
+      updateCloseButtonVisibility ();
+      return false;
+    }
+    if (event->type () == QEvent::Leave) {
+      QPoint pos= mapFromGlobal (QCursor::pos ());
+      m_hoverOnCloseArea= isPointerOnCloseArea (pos);
+      updateCloseButtonVisibility ();
+      return false;
+    }
+  }
+  return QToolButton::eventFilter (watched, event);
 }
 
 /* We can't align the text to the left of the button by QSS or other methods,
@@ -233,9 +284,8 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   else {
     int leftPadding= DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
     int rightPadding=
-        (m_closeBtn && m_closeBtn->isVisible ())
-            ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
-            : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
+        m_closeBtn ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
+                   : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
     int availableWidth= width () - leftPadding - rightPadding;
     if (availableWidth < 20) {
       availableWidth= 20;
@@ -244,6 +294,12 @@ QTMTabPage::paintEvent (QPaintEvent*) {
     QRect   textRect (leftPadding, 0, availableWidth, height ());
     p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
                     isEnabled (), elidedText, QPalette::ButtonText);
+
+    if (m_isDirty && m_closeBtn && !m_closeBtn->isVisible ()) {
+      QRect dirtyRect= m_closeBtn->geometry ();
+      p.drawItemText (dirtyRect, Qt::AlignCenter, palette (), isEnabled (), "*",
+                      QPalette::ButtonText);
+    }
   }
 }
 
@@ -281,6 +337,8 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
+  m_hoverOnCloseArea= isPointerOnCloseArea (e->pos ());
+  updateCloseButtonVisibility ();
   if (is_startup_tab_view (m_viewUrl) || is_chat_tab_view (m_viewUrl)) {
     return QToolButton::mouseMoveEvent (e);
   }
@@ -321,12 +379,14 @@ QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::enterEvent (QEnterEvent* e) {
+  m_hoverOnCloseArea= isPointerOnCloseArea (e->position ().toPoint ());
   updateCloseButtonVisibility ();
   QToolButton::enterEvent (e);
 }
 
 void
 QTMTabPage::leaveEvent (QEvent* e) {
+  m_hoverOnCloseArea= false;
   updateCloseButtonVisibility ();
   QToolButton::leaveEvent (e);
 }
@@ -337,7 +397,8 @@ QTMTabPage::updateCloseButtonVisibility () {
   // TODO: 聊天标签页当前不可关闭，后续需支持可删除
   bool shouldShow= !is_startup_tab_view (m_viewUrl) &&
                    !is_chat_tab_view (m_viewUrl) &&
-                   (underMouse () || isChecked ());
+                   ((!m_isDirty && (underMouse () || isChecked ())) ||
+                    (m_isDirty && m_hoverOnCloseArea));
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 

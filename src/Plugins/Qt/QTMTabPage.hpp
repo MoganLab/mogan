@@ -33,6 +33,8 @@ class QTMTabPage : public QToolButton {
   Q_OBJECT
   QWK::WindowButton* m_closeBtn= nullptr;
   QPoint             m_dragStartPos;
+  bool               m_isDirty= false;
+  bool               m_hoverOnCloseArea= false;
 
 public:
   const url m_viewUrl;
@@ -42,11 +44,13 @@ public:
                        bool p_isActive);
   explicit QTMTabPage ();
   virtual void paintEvent (QPaintEvent*) override;
+  bool         isDirty () const { return m_isDirty; }
 
 public slots:
   void setChecked (bool checked);
 
 protected:
+  virtual bool eventFilter (QObject* watched, QEvent* event) override;
   virtual void resizeEvent (QResizeEvent* e) override;
   virtual void mousePressEvent (QMouseEvent* e) override;
   virtual void mouseMoveEvent (QMouseEvent* e) override;
@@ -54,6 +58,8 @@ protected:
   virtual void leaveEvent (QEvent* e) override;
 
 private:
+  void applyDisplayTitle (const QString& rawTitle);
+  bool isPointerOnCloseArea (const QPoint& pos) const;
   void updateCloseButtonVisibility ();
   void initializeCloseButton (QAction* closeAction= nullptr);
 };
