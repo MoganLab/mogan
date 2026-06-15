@@ -152,7 +152,7 @@
 
 (define (auto-backup-after-pdf-export fname)
   (when (and (== (url-suffix fname) "pdf") (url-exists? fname))
-    (auto-backup-buffer (current-buffer) "export-pdf")
+    (auto-backup-trig (current-buffer) "export-pdf")
   ) ;when
 ) ;define
 
