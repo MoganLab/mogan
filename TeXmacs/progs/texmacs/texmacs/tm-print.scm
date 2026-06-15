@@ -327,7 +327,7 @@
                        (print-to-file file)
                        (preview-file file)
                        (let ((export-kind (string-append (url-suffix file) "_export")))
-                         (save-buffer-save (current-buffer) (list) export-kind)
+                         (save-buffer-save (current-buffer-url) (list) export-kind)
                        ) ;let
                      ) ;with
   ) ;with-default-view
