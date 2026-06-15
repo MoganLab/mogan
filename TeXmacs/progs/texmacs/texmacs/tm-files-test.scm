@@ -16,6 +16,7 @@
 ) ;texmacs-module
 
 (import (liii njson))
+(import (only (liii json) json-set json->string string->json))
 (import (only (liii path) path-join))
 (import (only (srfi srfi-19) TIME-UTC current-time time-second))
 
@@ -220,6 +221,28 @@
   ) ;let-njson
 ) ;define
 
+(define (regtest-auto-backup-trig-payload)
+  (let* ((buf (buffer-new))
+         (name (url-append (url-temp-dir) "tm-files-auto-backup-payload.tm"))
+        ) ;
+    (buffer-set buf (auto-backup-doc-with-doc-id auto-backup-test-doc "doc-test-123"))
+    (buffer-rename buf name)
+    (let* ((payload-str (auto-backup-trig-payload name "pdf_export"))
+           (expected (string->json "{}"))
+          ) ;
+      (set! expected (json-set expected "path" (url->system name)))
+      (set! expected (json-set expected "type" "pdf_export"))
+      (set! expected (json-set expected "id" "doc-test-123"))
+      (regression-test-group "auto-backup"
+        "trigger payload"
+        (lambda (s) s)
+        :none
+        (test "payload json" payload-str (json->string expected))
+      ) ;regression-test-group
+    ) ;let*
+  ) ;let*
+) ;define
+
 (tm-define (regtest-tm-files)
   (let ((n (+ (regtest-auto-backup-safe-base)
              (regtest-auto-backup-doc-id)
@@ -228,6 +251,7 @@
              (regtest-auto-backup-texmacs-path)
              (regtest-auto-backup-manifest)
              (regtest-auto-backup-manifest-age-retention)
+             (regtest-auto-backup-trig-payload)
            ) ;+
         ) ;n
        ) ;

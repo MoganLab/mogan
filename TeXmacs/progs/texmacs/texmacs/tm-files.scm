@@ -1765,7 +1765,7 @@
   ) ;let
 ) ;tm-define
 
-(define (auto-backup-trig-payload name kind)
+(tm-define (auto-backup-trig-payload name kind)
   (let* ((path (auto-backup-buffer-path name))
          (doc-id (auto-backup-ensure-buffer-doc-id! name))
          (payload (string->json "{}")))
@@ -1774,7 +1774,7 @@
     (set! payload (json-set payload "id" doc-id))
     (json->string payload)
   ) ;let*
-) ;define
+) ;tm-define
 
 ;; auto-backup-trig
 ;; 自动备份统一触发入口，通过 autosave 插件异步分发事件。
