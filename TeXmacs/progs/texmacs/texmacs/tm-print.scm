@@ -150,12 +150,6 @@
   ) ;user-simple-confirm
 ) ;define
 
-(define (auto-backup-after-pdf-export fname)
-  (when (and (== (url-suffix fname) "pdf") (url-exists? fname))
-    (auto-backup-trig (current-buffer) "export-pdf")
-  ) ;when
-) ;define
-
 (tm-define (wrapped-print-to-file fname)
   (system-wait "Exporting, " (translate "please wait"))
   (let* ((cur (current-buffer))
@@ -177,7 +171,6 @@
     ) ;when
     (print-to-file fname)
     (switch-to-buffer cur)
-    (auto-backup-after-pdf-export fname)
     (buffer-close tmp-url)
   ) ;let*
   (system-wait "" "")
@@ -211,7 +204,6 @@
       (notify-now "Fail to attach tm to pdf")
     ) ;unless
     (switch-to-buffer cur)
-    (auto-backup-after-pdf-export fname)
     (buffer-close tmp-url)
   ) ;let*
   (system-wait "" "")
@@ -245,7 +237,6 @@
       (notify-now "Fail to attach tmu to pdf")
     ) ;unless
     (switch-to-buffer cur)
-    (auto-backup-after-pdf-export fname)
     (buffer-close tmp-url)
   ) ;let*
   (system-wait "" "")
