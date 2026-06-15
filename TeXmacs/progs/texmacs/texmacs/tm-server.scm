@@ -390,6 +390,7 @@
           (begin
             (if (== (url-suffix name) "ts") (style-clear-cache))
             (set-message `(concat "Saved " ,vname) "Save file")
+            (autosave-buffer name)
             (save-buffer-post name opts)
             (callback #t))))))
 

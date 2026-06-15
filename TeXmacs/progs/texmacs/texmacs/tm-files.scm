@@ -310,6 +310,7 @@
           (remember-file-dialog-directory name)
           (set-message `(concat "Saved " ,vname) "Save file")
           (auto-backup-buffer name kind)
+          (autosave-buffer name)
           (save-buffer-post name opts))))))
 
 (define (save-buffer-check-faithful name opts)
@@ -492,6 +493,7 @@
         (set-message `(concat "Could not save " ,vto) "Export file")
         (begin
           (set-message `(concat "Exported to " ,vto) "Export file")
+          (autosave-buffer name)
           (when (== fm "pdf")
             (auto-backup-buffer name "export-pdf"))))))
 
@@ -1629,6 +1631,7 @@
              (> (nr-pages) 1))
     (delayed (:idle 25) (fit-to-screen-width)))
   (auto-backup-opened-buffer! name)
+  (autosave-buffer name)
   (noop))
 
 (define (load-buffer-load name opts)
