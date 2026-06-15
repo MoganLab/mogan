@@ -42,6 +42,7 @@
 ) ;import
 (import (only (liii os) mkdir))
 (import (liii njson))
+(import (liii json))
 (import (only (srfi srfi-1) find))
 (import (only (srfi srfi-1) remove))
 (import (only (srfi srfi-19)
@@ -1762,6 +1763,17 @@
   ) ;let
 ) ;tm-define
 
+(tm-define (auto-backup-trig-payload name kind)
+  (let* ((path (auto-backup-buffer-path name))
+         (doc-id (auto-backup-ensure-buffer-doc-id! name))
+         (payload (string->json "{}")))
+    (set! payload (json-push payload "path" path))
+    (set! payload (json-push payload "type" kind))
+    (set! payload (json-push payload "id" doc-id))
+    (json->string payload)
+  ) ;let*
+) ;tm-define
+
 ;; auto-backup-trig
 ;; 自动备份触发入口，当前仅用于调试输出触发参数。
 ;;
@@ -1781,7 +1793,9 @@
 ;; ----
 ;; 仅打印触发参数，不执行实际备份逻辑；后续可在此扩展备份行为。
 (tm-define (auto-backup-trig u kind)
-  (silent-feed* "autosave" "default" `(document "hello") (lambda (r) (noop)) '())
+  (let ((s (auto-backup-trig-payload u kind)))
+    (silent-feed* "autosave" "default" `(document ,(utf8->cork s)) (lambda (r) (noop)) '())
+  )
 ) ;tm-define
 
 ;; auto-backup-opened-buffer!
