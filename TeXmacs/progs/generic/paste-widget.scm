@@ -200,7 +200,8 @@
   (:interactive #t)
 
   (define (magic-paste-excluded? fm)
-    (or (== fm "image") (== fm "verbatim") (== fm "internal")))
+    (or (== fm "image") (== fm "verbatim") (== fm "internal"))
+  ) ;define
 
   (define (do-paste fm)
     (cond ((== fm "md") (paste-as-markdown))
@@ -222,8 +223,8 @@
       (when fm
         (if (magic-paste-excluded? fm)
           (do-paste fm)
-          (with-magic-paste-check
-            (lambda () (do-paste fm))))
+          (with-magic-paste-check (lambda () (do-paste fm)))
+        ) ;if
         (when (chat-input-buffer? (current-buffer-url))
           (qt-chat-notify-input-height)
         ) ;when
