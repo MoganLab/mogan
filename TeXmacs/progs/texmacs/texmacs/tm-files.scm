@@ -370,20 +370,16 @@
 ;; 写回源文件。
 
 (tm-define (save-buffer-save name opts . kind*)
-  (display* "[autosave-debug] save-buffer-save name=" name "\n")
   (let ((kind (if (null? kind*) "save" (car kind*))))
-    (display* "[autosave-debug] save-buffer-save kind=" kind "\n")
     (with vname
       `(verbatim ,(utf8->cork (url->system name)))
       (auto-backup-ensure-buffer-doc-id! name)
       (if (buffer-save name)
         (begin
-          (display* "[autosave-debug] buffer-save failed name=" name "\n")
           (buffer-pretend-modified name)
           (set-message `(concat ,"Could not save " ,vname) "Save file")
         ) ;begin
         (begin
-          (display* "[autosave-debug] buffer-save ok name=" name "\n")
           (if (== (url-suffix name) "ts") (style-clear-cache))
           (autosave-remove name)
           (buffer-notify-recent name)
@@ -1798,25 +1794,16 @@
 ;; ----
 ;; 构造 {"path","type","id"} JSON，请求 autosave 插件处理。
 (tm-define (auto-backup-trig u kind)
-  (display* "[autosave-debug] auto-backup-trig u=" u ", kind=" kind "\n")
   (if (auto-backup-buffer-eligible? u)
     (let ((payload (auto-backup-trig-payload u kind)))
-      (display* "[autosave-debug] auto-backup-trig eligible #t\n")
-      (display* "[autosave-debug] auto-backup-trig payload=" payload "\n")
       (plugin-initialize 'autosave)
-      (display* "[autosave-debug] plugin-initialize autosave done\n")
       (plugin-command "autosave"
         "default"
         payload
-        (lambda args
-          (display* "[autosave-debug] plugin-command callback args=" args "\n")
-          (noop)
-        ) ;lambda
+        (lambda args (noop))
         '()
       ) ;plugin-command
-      (display* "[autosave-debug] plugin-command autosave dispatched\n")
     ) ;let
-    (display* "[autosave-debug] auto-backup-trig eligible #f\n")
   ) ;if
 ) ;tm-define
 

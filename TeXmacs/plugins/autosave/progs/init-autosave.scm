@@ -39,5 +39,4 @@
 
 (tm-define (autosave-send json return)
   (:synopsis "Send a JSON request to the autosave plugin asynchronously.")
-  (display* "[autosave-debug] autosave-send json=" json "\n")
   (plugin-command "autosave" "default" json return '()))
