@@ -1766,7 +1766,8 @@
 (tm-define (auto-backup-trig-payload name kind)
   (let* ((path (auto-backup-buffer-path name))
          (doc-id (auto-backup-ensure-buffer-doc-id! name))
-         (payload (string->json "{}")))
+         (payload (string->json "{}"))
+        ) ;
     (set! payload (json-push payload "path" path))
     (set! payload (json-push payload "type" kind))
     (set! payload (json-push payload "id" doc-id))
@@ -1795,8 +1796,13 @@
 (tm-define (auto-backup-trig u kind)
   (when (auto-backup-buffer-eligible? u)
     (let ((s (auto-backup-trig-payload u kind)))
-      (silent-feed* "autosave" "default" `(document ,(utf8->cork s)) (lambda (r) (noop)) '())
-    )
+      (silent-feed* "autosave"
+        "default"
+        `(document ,(utf8->cork s))
+        (lambda (r) (noop))
+        '()
+      ) ;silent-feed*
+    ) ;let
   ) ;when
 ) ;tm-define
 

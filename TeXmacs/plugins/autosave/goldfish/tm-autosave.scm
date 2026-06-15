@@ -2,18 +2,20 @@
 (import (liii path))
 
 (define (welcome)
-  (flush-verbatim "autosave"))
-  
+  (flush-verbatim "autosave")
+) ;define
+
 (define (read-eval-print)
   (let ((code (read-paragraph-by-visible-eof)))
     (path-append-text "/tmp/debug.log" code)
-    (if (string=? code "")
-        #t
-        (flush-verbatim code))))
+    (if (string=? code "") #t (flush-verbatim code))
+  ) ;let
+) ;define
 
 (define (repl)
   (read-eval-print)
-  (repl))
+  (repl)
+) ;define
 
 (welcome)
 (repl)

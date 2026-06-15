@@ -16,20 +16,30 @@
 (import (liii path))
 
 (define (autosave-serialize lan t)
-  (with u (pre-serialize lan t)
-    (with s (texmacs->code (stree->tree u) "SourceCode")
-      (string-append  s  "\n<EOF>\n"))))
+  (with u
+    (pre-serialize lan t)
+    (with s
+      (texmacs->code (stree->tree u) "SourceCode")
+      (string-append s "\n<EOF>\n")
+    ) ;with
+  ) ;with
+) ;define
 
 (define (launcher)
   (let* ((user "$TEXMACS_HOME_PATH/plugins/autosave/goldfish/tm-autosave.scm")
          (sys "$TEXMACS_PATH/plugins/autosave/goldfish/tm-autosave.scm")
-         (entry (if (url-exists? user) user sys)))
-  (string-append (string-quote (url->system (find-binary-goldfish)))
-                 " "
-                 (string-quote (url->system entry)))))
+         (entry (if (url-exists? user) user sys))
+        ) ;
+    (string-append (string-quote (url->system (find-binary-goldfish)))
+      " "
+      (string-quote (url->system entry))
+    ) ;string-append
+  ) ;let*
+) ;define
 
 (plugin-configure autosave
   (:require (has-binary-goldfish?))
   (:launch ,(launcher))
   (:serializer ,autosave-serialize)
-  (:session "autosave"))
+  (:session "autosave")
+) ;plugin-configure
