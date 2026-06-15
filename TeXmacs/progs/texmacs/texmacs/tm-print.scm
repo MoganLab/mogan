@@ -208,6 +208,7 @@
     ) ;unless
     (switch-to-buffer cur)
     (buffer-close tmp-url)
+    (save-buffer-save cur (list) "tm_pdf_export")
   ) ;let*
   (system-wait "" "")
   (user-confirm-open-pdf fname)
@@ -241,6 +242,7 @@
     ) ;unless
     (switch-to-buffer cur)
     (buffer-close tmp-url)
+    (save-buffer-save cur (list) "tmu_pdf_export")
   ) ;let*
   (system-wait "" "")
   (user-confirm-open-pdf fname)
@@ -327,7 +329,7 @@
                        (print-to-file file)
                        (preview-file file)
                        (let ((export-kind (string-append (url-suffix file) "_export")))
-                         (save-buffer-save (current-buffer-url) (list) export-kind)
+                         (save-buffer-save file (list) export-kind)
                        ) ;let
                      ) ;with
   ) ;with-default-view
