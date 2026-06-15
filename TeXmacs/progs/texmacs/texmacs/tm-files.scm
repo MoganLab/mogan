@@ -15,14 +15,17 @@
   (:use (texmacs texmacs tm-server)
     (texmacs texmacs tm-print)
     (kernel texmacs tm-convert)
+    (kernel texmacs tm-plugins)
     (kernel library content)
     (language locale)
     (utils library cursor)
+    (utils plugins plugin-eval)
   ) ;:use
 ) ;texmacs-module
 
 (import (only (liii string) string-contains))
 (import (only (liii hashlib) md5))
+(import (only (liii json) json-set json->string string->json))
 (import (only (liii uuid) uuid4))
 (import (only (liii path)
           path->string
@@ -1762,8 +1765,19 @@
   ) ;let
 ) ;tm-define
 
+(define (auto-backup-trig-payload name kind)
+  (let* ((path (auto-backup-buffer-path name))
+         (doc-id (auto-backup-ensure-buffer-doc-id! name))
+         (payload (string->json "{}")))
+    (set! payload (json-set payload "path" path))
+    (set! payload (json-set payload "type" kind))
+    (set! payload (json-set payload "id" doc-id))
+    (json->string payload)
+  ) ;let*
+) ;define
+
 ;; auto-backup-trig
-;; 自动备份触发入口，当前仅用于调试输出触发参数。
+;; 自动备份统一触发入口，通过 autosave 插件异步分发事件。
 ;;
 ;; 语法
 ;; ----
@@ -1779,9 +1793,17 @@
 ;;
 ;; 逻辑
 ;; ----
-;; 仅打印触发参数，不执行实际备份逻辑；后续可在此扩展备份行为。
+;; 构造 {"path","type","id"} JSON，请求 autosave 插件处理。
 (tm-define (auto-backup-trig u kind)
-  (display* "auto-backup-trig: u=" u ", kind=" kind "\n")
+  (when (auto-backup-buffer-eligible? u)
+    (plugin-initialize 'autosave)
+    (plugin-command "autosave"
+      "default"
+      (auto-backup-trig-payload u kind)
+      (lambda args (noop))
+      '()
+    ) ;plugin-command
+  ) ;when
 ) ;tm-define
 
 ;; auto-backup-opened-buffer!
