@@ -94,6 +94,35 @@
   (check (tmhtml-extract-embedded '(tuple "data" (invalid-suffix-type))) => #f)
 ) ;define
 
+(define (test-path-suffix-base64)
+  (display "Verifying path-style suffix normalizes to extension in Base64 URI...\n")
+  (set! tmhtml-base64? #t)
+  ;; Embedded tuple may carry a full relative path as its suffix (e.g. pasted screenshot metadata).
+  ;; The suffix must be normalized to the real extension for the data URI MIME type.
+  (let* ((path-tuple '(tuple <#89504E470D0A1A0A> "//d/LJQ/test.png"))
+         (res (tmhtml-image (list path-tuple "0.8w" "")))
+         (res-str (object->string res))
+        ) ;
+    (check (string-contains? res-str "data:image/png;base64,") => #t)
+    (check (string-contains? res-str "data:image//d/LJQ") => #f)
+  ) ;let*
+  ;; Simple suffix should continue to work
+  (let* ((simple-tuple '(tuple <#89504E470D0A1A0A> "png"))
+         (res (tmhtml-image (list simple-tuple "" "")))
+         (res-str (object->string res))
+        ) ;
+    (check (string-contains? res-str "data:image/png;base64,") => #t)
+  ) ;let*
+  ;; Path without extension should default to png
+  (let* ((noext-tuple '(tuple <#89504E470D0A1A0A> "//d/LJQ/test"))
+         (res (tmhtml-image (list noext-tuple "" "")))
+         (res-str (object->string res))
+        ) ;
+    (check (string-contains? res-str "data:image/png;base64,") => #t)
+  ) ;let*
+  (display "Path-style suffix Base64 URI verified successfully.\n")
+) ;define
+
 (define (test-gnuplot-html-export-integration)
   (display "Verifying end-to-end Gnuplot inline image HTML export with Base64 embedding...\n"
   ) ;display
@@ -154,6 +183,7 @@
 
 (tm-define (test_0623)
   (test-embedded-extraction-logic)
+  (test-path-suffix-base64)
   (test-chinese-path-safety)
   (test-gnuplot-html-export-integration)
   (test-gnuplot-html-export-base64-off-integration)

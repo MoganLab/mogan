@@ -1986,7 +1986,18 @@
         ((tmhtml-extract-embedded (car l))
          (with embedded
            (tmhtml-extract-embedded (car l))
-           (let* ((data (car embedded)) (ext (cdr embedded)))
+           (let* ((data (car embedded))
+                  (ext (let ((raw (cdr embedded)))
+                         (if (string? raw)
+                           (let ((s (url-suffix raw)))
+                             (if (== s "")
+                               (if (or (string-contains? raw "/")
+                                       (string-contains? raw "\\"))
+                                 "png"
+                                 raw)
+                               s))
+                           "")))
+                  )
               (if tmhtml-base64?
                 (if (in? ext (list "ps" "eps" "pdf" "tif"))
                   ;; Convert to PNG first, then inline as Base64
