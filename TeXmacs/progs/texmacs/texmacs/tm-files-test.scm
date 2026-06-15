@@ -16,7 +16,7 @@
 ) ;texmacs-module
 
 (import (liii njson))
-(import (only (liii json) json-set json->string string->json))
+(import (only (liii json) json-push json->string string->json))
 (import (only (liii path) path-join))
 (import (only (srfi srfi-19) TIME-UTC current-time time-second))
 
@@ -230,9 +230,9 @@
     (let* ((payload-str (auto-backup-trig-payload name "pdf_export"))
            (expected (string->json "{}"))
           ) ;
-      (set! expected (json-set expected "path" (url->system name)))
-      (set! expected (json-set expected "type" "pdf_export"))
-      (set! expected (json-set expected "id" "doc-test-123"))
+      (set! expected (json-push expected "path" (url->system name)))
+      (set! expected (json-push expected "type" "pdf_export"))
+      (set! expected (json-push expected "id" "doc-test-123"))
       (regression-test-group "auto-backup"
         "trigger payload"
         (lambda (s) s)

@@ -25,7 +25,7 @@
 
 (import (only (liii string) string-contains))
 (import (only (liii hashlib) md5))
-(import (only (liii json) json-set json->string string->json))
+(import (only (liii json) json-push json->string string->json))
 (import (only (liii uuid) uuid4))
 (import (only (liii path)
           path->string
@@ -370,17 +370,20 @@
 ;; 写回源文件。
 
 (tm-define (save-buffer-save name opts . kind*)
-  ;; (display* "save-buffer-save " name "\n")
+  (display* "[autosave-debug] save-buffer-save name=" name "\n")
   (let ((kind (if (null? kind*) "save" (car kind*))))
+    (display* "[autosave-debug] save-buffer-save kind=" kind "\n")
     (with vname
       `(verbatim ,(utf8->cork (url->system name)))
       (auto-backup-ensure-buffer-doc-id! name)
       (if (buffer-save name)
         (begin
+          (display* "[autosave-debug] buffer-save failed name=" name "\n")
           (buffer-pretend-modified name)
           (set-message `(concat ,"Could not save " ,vname) "Save file")
         ) ;begin
         (begin
+          (display* "[autosave-debug] buffer-save ok name=" name "\n")
           (if (== (url-suffix name) "ts") (style-clear-cache))
           (autosave-remove name)
           (buffer-notify-recent name)
@@ -1769,9 +1772,9 @@
   (let* ((path (auto-backup-buffer-path name))
          (doc-id (auto-backup-ensure-buffer-doc-id! name))
          (payload (string->json "{}")))
-    (set! payload (json-set payload "path" path))
-    (set! payload (json-set payload "type" kind))
-    (set! payload (json-set payload "id" doc-id))
+    (set! payload (json-push payload "path" path))
+    (set! payload (json-push payload "type" kind))
+    (set! payload (json-push payload "id" doc-id))
     (json->string payload)
   ) ;let*
 ) ;tm-define
@@ -1795,15 +1798,26 @@
 ;; ----
 ;; 构造 {"path","type","id"} JSON，请求 autosave 插件处理。
 (tm-define (auto-backup-trig u kind)
-  (when (auto-backup-buffer-eligible? u)
-    (plugin-initialize 'autosave)
-    (plugin-command "autosave"
-      "default"
-      (auto-backup-trig-payload u kind)
-      (lambda args (noop))
-      '()
-    ) ;plugin-command
-  ) ;when
+  (display* "[autosave-debug] auto-backup-trig u=" u ", kind=" kind "\n")
+  (if (auto-backup-buffer-eligible? u)
+    (let ((payload (auto-backup-trig-payload u kind)))
+      (display* "[autosave-debug] auto-backup-trig eligible #t\n")
+      (display* "[autosave-debug] auto-backup-trig payload=" payload "\n")
+      (plugin-initialize 'autosave)
+      (display* "[autosave-debug] plugin-initialize autosave done\n")
+      (plugin-command "autosave"
+        "default"
+        payload
+        (lambda args
+          (display* "[autosave-debug] plugin-command callback args=" args "\n")
+          (noop)
+        ) ;lambda
+        '()
+      ) ;plugin-command
+      (display* "[autosave-debug] plugin-command autosave dispatched\n")
+    ) ;let
+    (display* "[autosave-debug] auto-backup-trig eligible #f\n")
+  ) ;if
 ) ;tm-define
 
 ;; auto-backup-opened-buffer!
