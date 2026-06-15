@@ -41,5 +41,4 @@
   (:require (has-binary-goldfish?))
   (:launch ,(launcher))
   (:serializer ,autosave-serialize)
-  (:session "autosave")
 ) ;plugin-configure

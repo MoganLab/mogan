@@ -1,5 +1,6 @@
 (import (texmacs protocol))
 (import (liii path))
+(import (liii json))
 
 ;; 插件进程与主进程的握手：启动时必须 flush 插件名 "autosave"，
 ;; 否则主进程不会进入 DATA_COMMAND 状态、无法投递后续负载。
@@ -15,10 +16,5 @@
   ) ;let
 ) ;define
 
-(define (repl)
-  (read-eval-print)
-  (repl)
-) ;define
-
 (welcome)
-(repl)
+(read-eval-print)
