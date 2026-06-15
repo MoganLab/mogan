@@ -1781,7 +1781,7 @@
 ;; ----
 ;; 仅打印触发参数，不执行实际备份逻辑；后续可在此扩展备份行为。
 (tm-define (auto-backup-trig u kind)
-  (display* "auto-backup-trig: u=" u ", kind=" kind "\n")
+  (silent-feed* "autosave" "default" `(document "hello") (lambda (r) (noop)) '())
 ) ;tm-define
 
 ;; auto-backup-opened-buffer!
