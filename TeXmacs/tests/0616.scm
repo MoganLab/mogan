@@ -12,7 +12,7 @@
 
 (import (liii check))
 
-(load "./TeXmacs/progs/convert/latex/init-latex.scm")
+(load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
 (check-set-mode! 'report-failed)
 
@@ -52,9 +52,11 @@
                     "<varrho>"
                     "<theta>"
                     "<vartheta>"
+                    "t"
                     "u"
                     "v"
                     "w"
+                    "<tau>"
                     "<upsilon>"
                     "<phi>"
                     "<varphi>"
