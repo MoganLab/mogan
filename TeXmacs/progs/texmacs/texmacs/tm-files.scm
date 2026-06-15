@@ -624,9 +624,9 @@
       (set-message `(concat ,"Could not save " ,vto) "Export file")
       (begin
         (set-message `(concat ,"Exported to " ,vto) "Export file")
-        (when (== fm "pdf")
-          (auto-backup-trig name "export-pdf")
-        ) ;when
+        (let ((export-kind (string-append fm "_export")))
+          (save-buffer-save name opts export-kind)
+        ) ;let
       ) ;begin
     ) ;if
   ) ;with
