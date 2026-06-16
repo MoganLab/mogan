@@ -1,3 +1,23 @@
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;
+;; MODULE      : autosave-prune-test.scm
+;; DESCRIPTION : Unit tests for (liii autosave) autosave-prune-dir
+;; COPYRIGHT   : (C) 2026 Mogan Developers
+;;
+;; Licensed under the Apache License, Version 2.0 (the "License");
+;; you may not use this file except in compliance with the License.
+;; You may obtain a copy of the License at
+;;
+;;     http://www.apache.org/licenses/LICENSE-2.0
+;;
+;; Unless required by applicable law or agreed to in writing, software
+;; distributed under the License is distributed on an "AS IS" BASIS,
+;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;; See the License for the specific language governing permissions and
+;; limitations under the License.
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
 ;; ; 让 (liii autosave) 能被解析:
 ;; ; 运行入口是 `cd TeXmacs/plugins/autosave/goldfish && goldfish tests/autosave-prune-test.scm`
 ;; ; 所以 (getcwd) = 模块根目录,liii/autosave.scm 在其下
