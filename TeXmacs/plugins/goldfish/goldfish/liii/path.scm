@@ -149,26 +149,23 @@
     ) ;define
 
     ;; ; Parse Windows path string into parts
+    ;; ; 同时识别 \ 和 / 作为分隔符:Windows API 接受两种,但 s7 的 port-filename
+    ;; ; 和命令行参数经常返回正斜杠路径(如 "C:/Users/.../foo.scm"),不做规范化会
+    ;; ; 导致 string-split-vec 一刀不切、path-parent 把整串当单一 part。
     (define (parse-windows-path s)
       (let ((sep (os-sep)))
-        (if (and (> (string-length s) 2)
-              (or (char=? (string-ref s 2) #\\)
-                (char=? (string-ref s 2) #\/)
-              ) ;or
-            ) ;and
-          ;; Absolute Windows path like "C:\Users\..."
-          (let* ((rest (substring s 3 (string-length s)))
-                 (parts (if (string-null? rest)
-                          #()
-                          (string-split-vec rest sep)
-                        ) ;if
-                 ) ;parts
-                ) ;
-            parts
-          ) ;let*
-          ;; Relative to drive like "C:file.txt"
-          (string-split-vec s sep)
-        ) ;if
+        (let ((normalized (string-replace s "/" "\\")))
+          (if (and (> (string-length normalized) 2) (char=? (string-ref normalized 2) #\\))
+            ;; Absolute Windows path like "C:\Users\..."
+            (let* ((rest (substring normalized 3 (string-length normalized)))
+                   (parts (if (string-null? rest) #() (string-split-vec rest sep)))
+                  ) ;
+              parts
+            ) ;let*
+            ;; Relative to drive like "C:file.txt"
+            (string-split-vec normalized sep)
+          ) ;if
+        ) ;let
       ) ;let
     ) ;define
 
@@ -535,34 +532,33 @@
     ) ;define
 
     ;; ; Get parent directory
+    ;; ; Windows 上同时识别 / 和 \: port-filename / argv 经常返回正斜杠路径
     (define (path-parent p)
       (let ((s (path->string p)))
         (let ((sep (os-sep)))
-          ;; First, remove trailing separator if present (except for root)
-          (let ((s-trimmed (if (and (> (string-length s) 1)
-                                 (char=? (string-ref s (- (string-length s) 1))
-                                   sep
-                                 ) ;char=?
-                               ) ;and
-                             (substring s 0 (- (string-length s) 1))
-                             s
-                           ) ;if
-                ) ;s-trimmed
-               ) ;
-            (let loop
-              ((i (- (string-length s-trimmed) 1)))
-              (cond ((< i 0)
-                     (if (os-windows?) (path "") (path "."))
-                    ) ;
-                    ((char=? (string-ref s-trimmed i) sep)
-                     (if (= i 0)
-                       (path-root)
-                       ;; Keep the trailing separator for the parent path
-                       (path (substring s-trimmed 0 (+ i 1)))
-                     ) ;if
-                    ) ;
-                    (else (loop (- i 1)))
-              ) ;cond
+          (let ((s (if (os-windows?) (string-replace s "/" "\\") s)))
+            ;; First, remove trailing separator if present (except for root)
+            (let ((s-trimmed (if (and (> (string-length s) 1)
+                                   (char=? (string-ref s (- (string-length s) 1)) sep)
+                                 ) ;and
+                               (substring s 0 (- (string-length s) 1))
+                               s
+                             ) ;if
+                  ) ;s-trimmed
+                 ) ;
+              (let loop
+                ((i (- (string-length s-trimmed) 1)))
+                (cond ((< i 0) (if (os-windows?) (path "") (path ".")))
+                      ((char=? (string-ref s-trimmed i) sep)
+                       (if (= i 0)
+                         (path-root)
+                         ;; Keep the trailing separator for the parent path
+                         (path (substring s-trimmed 0 (+ i 1)))
+                       ) ;if
+                      ) ;
+                      (else (loop (- i 1)))
+                ) ;cond
+              ) ;let
             ) ;let
           ) ;let
         ) ;let
