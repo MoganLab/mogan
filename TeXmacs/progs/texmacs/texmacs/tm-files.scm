@@ -695,27 +695,8 @@
 
 (define auto-backup-scheduled? #f)
 
-(define (auto-backup-log msg)
-  (debug-message "debug-io" (string-append "Auto-backup " msg "\n"))
-) ;define
-
 (define (auto-backup-now-seconds)
   (time-second (current-time TIME-UTC))
-) ;define
-
-(define (auto-backup-home-path)
-  (path-from-env "TEXMACS_HOME_PATH")
-) ;define
-
-(define (auto-backup-url-stree-tag x)
-  (cond ((symbol? x) (symbol->string x))
-        ((string? x) x)
-        (else "")
-  ) ;cond
-) ;define
-
-(define (auto-backup-url-stree-ref t n)
-  (list-ref t n)
 ) ;define
 
 (define (auto-backup-url-stree->path t)
@@ -758,44 +739,6 @@
   ) ;catch
 ) ;define
 
-(define (auto-backup-trim-trailing-separators s)
-  (let loop
-    ((n (string-length s)))
-    (if (and (> n 1)
-          (let ((c (string-ref s (- n 1))))
-            (or (char=? c #\/) (char=? c #\\))
-          ) ;let
-        ) ;and
-      (loop (- n 1))
-      (substring s 0 n)
-    ) ;if
-  ) ;let
-) ;define
-
-(define (auto-backup-path-normal-string path)
-  (auto-backup-trim-trailing-separators (path->string path))
-) ;define
-
-(define (auto-backup-path-descends? child parent)
-  (catch #t
-    (lambda ()
-      (let ((parent-path (auto-backup-path-normal-string (path-from-string parent))))
-        (let loop
-          ((path (path-from-string child)))
-          (let ((current-path (auto-backup-path-normal-string path)))
-            (or (== current-path parent-path)
-              (let* ((next (path-parent path)) (next-path (auto-backup-path-normal-string next)))
-                (and (!= next-path current-path) (loop next))
-              ) ;let*
-            ) ;or
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
-) ;define
-
 ;; auto-backup-texmacs-path-buffer?
 ;; 判断 buffer 是否位于 get-texmacs-path 返回的目录或其子目录中。
 ;;
@@ -835,33 +778,6 @@
 (define (auto-backup-path->url p)
   (system->url (path->string p))
 ) ;define
-
-(tm-define (auto-backup-dir)
-  (path-join (auto-backup-home-path) "system" "backup")
-) ;tm-define
-
-(tm-define (auto-backup-manifest-path)
-  (path-join (auto-backup-dir) "auto-backup.json")
-) ;tm-define
-
-(tm-define (auto-backup-ensure-dir!)
-  (catch #t
-    (lambda ()
-      (let ((system-dir (path-join (auto-backup-home-path) "system"))
-            (backup-dir (auto-backup-dir))
-           ) ;
-        (when (not (path-exists? system-dir))
-          (mkdir system-dir)
-        ) ;when
-        (when (not (path-exists? backup-dir))
-          (mkdir backup-dir)
-        ) ;when
-        (and (path-exists? backup-dir) (path-dir? backup-dir))
-      ) ;let
-    ) ;lambda
-    (lambda args (auto-backup-log "failed-to-create-backup-dir") #f)
-  ) ;catch
-) ;tm-define
 
 ;; auto-backup-empty-manifest
 ;; 创建新的自动备份 manifest。
@@ -914,108 +830,6 @@
     (lambda args #f)
   ) ;catch
 ) ;define
-
-(define (auto-backup-mark-broken! path)
-  (catch #t
-    (lambda ()
-      (when (path-exists? path)
-        (let ((broken (string-append path
-                        (string-append ".broken." (number->string (auto-backup-now-seconds)))
-                      ) ;string-append
-              ) ;broken
-             ) ;
-          (path-rename path broken)
-          (auto-backup-log (string-append "manifest-broken moved-to " broken))
-        ) ;let
-      ) ;when
-    ) ;lambda
-    (lambda args (auto-backup-log "manifest-broken move-failed"))
-  ) ;catch
-) ;define
-
-(tm-define (auto-backup-load-manifest)
-  (let ((path (auto-backup-manifest-path)))
-    (if (not (path-exists? path))
-      (auto-backup-empty-manifest)
-      (catch #t
-        (lambda ()
-          (let ((manifest (file->njson path)))
-            (if (auto-backup-manifest-valid? manifest)
-              manifest
-              (begin
-                (njson-free manifest)
-                (auto-backup-mark-broken! path)
-                (auto-backup-empty-manifest)
-              ) ;begin
-            ) ;if
-          ) ;let
-        ) ;lambda
-        (lambda args (auto-backup-mark-broken! path) (auto-backup-empty-manifest))
-      ) ;catch
-    ) ;if
-  ) ;let
-) ;tm-define
-
-;; auto-backup-save-manifest!
-;; 将自动备份 manifest 原子化写回磁盘。
-;;
-;; 语法
-;; ----
-;; (auto-backup-save-manifest! manifest)
-;;
-;; 参数
-;; ----
-;; manifest : njson
-;; 待写回的 manifest 对象。
-;;
-;; 返回值
-;; ----
-;; boolean
-;; #t 表示写入成功，#f 表示失败。
-;;
-;; 逻辑
-;; ----
-;; 写入前先清理 30 天以上的 manifest 记录，再更新 meta 并通过临时文件
-;; 替换正式文件。
-;;
-;; 注意
-;; ----
-;; 清理旧记录时会同步删除对应的过期备份文件。
-(tm-define (auto-backup-save-manifest! manifest)
-  (let* ((path (auto-backup-manifest-path))
-         (tmp (string-append path
-                (string-append ".tmp." (number->string (auto-backup-now-seconds)))
-              ) ;string-append
-         ) ;tmp
-        ) ;
-    (catch #t
-      (lambda ()
-        (auto-backup-clean-stale-documents! manifest)
-        (njson-set! manifest "meta" "interval_seconds" 120)
-        (njson-set! manifest "meta" "retention" auto-backup-retention-count)
-        (njson-set! manifest
-          "meta"
-          "max_record_age_days"
-          auto-backup-record-retention-days
-        ) ;njson-set!
-        (njson-set! manifest "meta" "updated_at" (auto-backup-now-seconds))
-        (njson->file tmp manifest)
-        (when (path-exists? path)
-          (path-unlink path)
-        ) ;when
-        (path-rename tmp path)
-        #t
-      ) ;lambda
-      (lambda args
-        (auto-backup-log (string-append "manifest-save-failed " path))
-        (when (path-exists? tmp)
-          (path-unlink tmp)
-        ) ;when
-        #f
-      ) ;lambda
-    ) ;catch
-  ) ;let*
-) ;tm-define
 
 (define (auto-backup-format name)
   (if (url-scratch? name) "texmacs" (url-format name))
