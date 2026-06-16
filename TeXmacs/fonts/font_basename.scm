@@ -1264,4 +1264,10 @@
 "NotoSansSymbols2-Regular.ttf" "$TEXMACS_PATH/fonts/truetype/NotoSansSymbols2-Regular.ttf"
 "NotoSansCJK-Regular.ttc" "$TEXMACS_PATH/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
 "NotoSansCJK-Bold.ttc" "$TEXMACS_PATH/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
+"DejaVuSans.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSans.ttf"
+"DejaVuSans-Bold.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSans-Bold.ttf"
+"DejaVuSansMono.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSansMono.ttf"
+"DejaVuSansMono-Bold.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSansMono-Bold.ttf"
+"DejaVuSerif.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSerif.ttf"
+"DejaVuSerif-Bold.ttf" "$TEXMACS_PATH/fonts/truetype/DejaVuSerif-Bold.ttf"
 )
