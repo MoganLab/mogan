@@ -937,19 +937,11 @@
                        ) ;if
                ) ;doc-id
               ) ;
-          (auto-backup-log (string-append "buffer-doc-id "
-                             (auto-backup-buffer-path name)
-                             " -> "
-                             (if doc-id doc-id "#f")
-                           ) ;string-append
-          ) ;auto-backup-log
           doc-id
         ) ;let*
       ) ;with-buffer
     ) ;lambda
     (lambda args
-      (auto-backup-log (string-append "buffer-doc-id-error " (auto-backup-buffer-path name))
-      ) ;auto-backup-log
       #f
     ) ;lambda
   ) ;catch
