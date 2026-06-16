@@ -11,65 +11,65 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (texmacs menus tools-menu)
-  (:use (texmacs texmacs tm-tools)))
+(texmacs-module (texmacs menus tools-menu) (:use (texmacs texmacs tm-tools)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic menus for formats
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (clipboard-preference-menu cvs fun)
-  (with l (cvs "texmacs-file" "-file" #f)
-    (for (fm l)
-      (with name (format-get-name fm)
-        ((eval name) (fun fm))))))
+  (with l
+    (cvs "texmacs-file" "-file" #f)
+    (for (fm l) (with name (format-get-name fm) ((eval name) (fun fm))))
+  ) ;with
+) ;tm-menu
 
 (tm-define (clipboard-import-preference-menu)
-  (clipboard-preference-menu converters-to-special clipboard-set-import))
+  (clipboard-preference-menu converters-to-special clipboard-set-import)
+) ;tm-define
 (tm-define (clipboard-export-preference-menu)
-  (clipboard-preference-menu converters-from-special clipboard-set-export))
+  (clipboard-preference-menu converters-from-special clipboard-set-export)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Tools menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind tools-menu
-  (-> "Macros"
-      (link source-macros-menu))
-  (-> "Keyboard"
-      ("Edit keyboard shortcuts" (open-shortcuts-editor "" "")))
+  (-> "Macros" (link source-macros-menu))
+  (-> "Keyboard" ("Edit keyboard shortcuts" (open-shortcuts-editor "" "")))
   (-> "Speech"
-      ("Off" (reset-preference "speech"))
-      ---
-      ("English" (set-preference "speech" "english"))
-      ("French" (set-preference "speech" "french")))
+   ("Off" (reset-preference "speech"))
+   ---
+   ("English" (set-preference "speech" "english"))
+   ("French" (set-preference "speech" "french"))
+  ) ;->
   ---
   (-> "Update"
-      ("Inclusions" (inclusions-gc))
-      ("Pictures" (picture-gc))
-      ("Plugins" (reinit-plugin-cache))
-      ("Styles" (style-clear-cache)))
-  (-> "References"
-      (link ref-menu))
-  (-> "Project"
-      (link project-manage-menu))
+   ("Inclusions" (inclusions-gc))
+   ("Pictures" (picture-gc))
+   ("Plugins" (reinit-plugin-cache))
+   ("Styles" (style-clear-cache))
+  ) ;->
+  (-> "References" (link ref-menu))
+  (-> "Project" (link project-manage-menu))
   ("Statistics" (show-counts))
   ---
   ("Create web site" (open-website-builder))
-  ;;(-> "Web"
+  ;; (-> "Web"
   ;;    ("Create web site" (tmweb-interactive-build))
   ;;    ("Update web site" (tmweb-interactive-update)))
   (-> "Fonts"
-      ("Scan disk for fonts" (scan-disk-for-fonts))
-      ("Clear font cache" (clear-font-cache)))
+   ("Scan disk for fonts" (scan-disk-for-fonts))
+   ("Clear font cache" (clear-font-cache))
+  ) ;->
   (-> "Miscellaneous"
-      ("Clear undo history" (clear-undo-history))
-      ("Save auxiliary data" (toggle-save-aux))
-      ---
-      (-> "Import selections as"
-          (link clipboard-import-preference-menu))
-      (-> "Export selections as"
-          (link clipboard-export-preference-menu)))
+   ("Clear undo history" (clear-undo-history))
+   ("Save auxiliary data" (toggle-save-aux))
+   ---
+   (-> "Import selections as" (link clipboard-import-preference-menu))
+   (-> "Export selections as" (link clipboard-export-preference-menu))
+  ) ;->
   ---
   ("Debugging tool" (toggle-preference "debugging tool"))
   ("Developer tool" (toggle-preference "developer tool"))
@@ -77,4 +77,5 @@
   ("Presentation tool" (toggle-preference "presentation tool"))
   ("Remote tool" (toggle-preference "remote tool"))
   ("Source macros tool" (toggle-preference "source tool"))
-  ("Versioning tool" (toggle-preference "versioning tool")))
+  ("Versioning tool" (toggle-preference "versioning tool"))
+) ;menu-bind

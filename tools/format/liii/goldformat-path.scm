@@ -22,7 +22,8 @@
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
         "TeXmacs/progs/source"
-	"TeXmacs/progs/texmacs/texmacs"
+        "TeXmacs/progs/texmacs/texmacs"
+        "TeXmacs/progs/texmacs/menus"
         "TeXmacs/progs/utils/plugins"
         "TeXmacs/plugins/llm/progs")
     ) ;define
