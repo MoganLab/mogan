@@ -681,12 +681,6 @@
 
 (define auto-backup-fixed-interval-ms 120000)
 
-(define auto-backup-retention-count 7)
-
-(define auto-backup-record-retention-days 30)
-
-(define auto-backup-day-seconds 86400)
-
 (tm-define (autosave-enabled?) (!= (get-preference "autosave") "0"))
 
 (tm-define (auto-backup-enabled?) (!= (get-preference "autobackup") "off"))
@@ -882,36 +876,9 @@
   ) ;list-sort
 ) ;define
 
-(define (auto-backup-safe-char? c)
-  (let ((i (char->integer c)))
-    (or (and (>= i (char->integer #\a)) (<= i (char->integer #\z)))
-      (and (>= i (char->integer #\A)) (<= i (char->integer #\Z)))
-      (and (>= i (char->integer #\0)) (<= i (char->integer #\9)))
-      (in? c '(#\- #\_ #\.))
-      ;; Support UTF-8 multibyte characters (including Chinese)
-      ;; UTF-8 continuation bytes: 0x80-0xBF
-      ;; UTF-8 leading bytes: 0xC0-0xFD
-      (>= i 128)
-    ) ;or
-  ) ;let
-) ;define
-
 (define (auto-backup-doc-short-id doc-id)
   (if (>= (string-length doc-id) 8) (string-take doc-id 8) doc-id)
 ) ;define
-
-(tm-define (auto-backup-safe-base name doc-id)
-  (let* ((path (auto-backup-buffer-path name))
-         (raw (path-stem path))
-         (base (if (or (url-scratch? name) (== raw "") (== raw "."))
-                 (string-append "untitled_" (auto-backup-doc-short-id doc-id))
-                 raw
-               ) ;if
-         ) ;base
-        ) ;
-    (auto-backup-sanitize-name base)
-  ) ;let*
-) ;tm-define
 
 (tm-define (auto-backup-doc-id doc)
   (let ((initial (tmfile-extract doc 'initial)))
