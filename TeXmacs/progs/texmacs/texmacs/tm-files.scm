@@ -693,55 +693,8 @@
   (time-second (current-time TIME-UTC))
 ) ;define
 
-(define (auto-backup-url-stree-tag x)
-  (cond ((symbol? x) (symbol->string x))
-        ((string? x) x)
-        (else "")
-  ) ;cond
-) ;define
-
-(define (auto-backup-url-stree-ref t n)
-  (list-ref t n)
-) ;define
-
-(define (auto-backup-url-stree->path t)
-  (cond ((string? t) t)
-        ((symbol? t) (symbol->string t))
-        ((pair? t)
-         (let ((tag (auto-backup-url-stree-tag (car t))))
-           (cond ((== tag "concat")
-                  (let ((left (auto-backup-url-stree->path (auto-backup-url-stree-ref t 1)))
-                        (right (auto-backup-url-stree->path (auto-backup-url-stree-ref t 2)))
-                       ) ;
-                    (cond ((== left "") right)
-                          ((== right "") left)
-                          (else (path-join left right))
-                    ) ;cond
-                  ) ;let
-                 ) ;
-                 ((== tag "root")
-                  (let ((root (auto-backup-url-stree-tag (auto-backup-url-stree-ref t 1))))
-                    (if (in? root '("default" "file" "blank")) (path->string (path-root)) "")
-                  ) ;let
-                 ) ;
-                 ((== tag "none") "untitled")
-                 ((== tag "or") (auto-backup-url-stree->path (auto-backup-url-stree-ref t 1)))
-                 (else tag)
-           ) ;cond
-         ) ;let
-        ) ;
-        (else "untitled")
-  ) ;cond
-) ;define
-
 (define (auto-backup-buffer-path name)
-  (catch #t
-    (lambda ()
-      (path->string (path-from-string (auto-backup-url-stree->path (url->stree name)))
-      ) ;path->string
-    ) ;lambda
-    (lambda args "untitled")
-  ) ;catch
+  (catch #t (lambda () (url->system name)) (lambda args "untitled"))
 ) ;define
 
 (define (auto-backup-trim-trailing-separators s)
@@ -1109,14 +1062,30 @@
     ;; 构造 Authorization / User-Agent / X-Device-Id 头和 upload URL。
     ;; 账号模块或 glue 函数在未登录/未加载时会抛异常，逐个 catch 回退空串，
     ;; 避免 payload 构造失败导致整个 copy 流程中断。
-    (set! payload (json-push payload "site"
-                    (catch #t (lambda () (current-stem-site)) (lambda args ""))))
-    (set! payload (json-push payload "token"
-                    (catch #t (lambda () (account-load-token)) (lambda args ""))))
-    (set! payload (json-push payload "user-agent"
-                    (catch #t (lambda () (stem-user-agent)) (lambda args ""))))
-    (set! payload (json-push payload "device-id"
-                    (catch #t (lambda () (stem-device-id)) (lambda args ""))))
+    (set! payload
+      (json-push payload
+        "site"
+        (catch #t (lambda () (current-stem-site)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "token"
+        (catch #t (lambda () (account-load-token)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "user-agent"
+        (catch #t (lambda () (stem-user-agent)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "device-id"
+        (catch #t (lambda () (stem-device-id)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
     (values (json->string payload) session-id)
   ) ;let*
 ) ;tm-define

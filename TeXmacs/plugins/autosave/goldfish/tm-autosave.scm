@@ -38,8 +38,12 @@
   (flush-verbatim "autosave")
 ) ;define
 
+(define (autosave-log-path)
+  (path->string (path-join (path-temp-dir) "mogan-autosave-debug.log"))
+) ;define
+
 (define (autosave-log message)
-  (path-append-text "/tmp/debug.log" (string-append message "\n"))
+  (path-append-text (autosave-log-path) (string-append message "\n"))
 ) ;define
 
 (define (handle-copy payload)
