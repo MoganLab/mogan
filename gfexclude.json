@@ -1,0 +1,8 @@
+{
+  "exclude": [
+    {
+      "path": "TeXmacs/progs/texmacs/keyboard/prefix-kbd.scm",
+      "reason": "kbd-wildcards/kbd-map 平铺条目人工维护紧凑风格，自动格式化会重排为大段缩进+尾注释，diff 噪声大且与历史风格不符"
+    }
+  ]
+}
