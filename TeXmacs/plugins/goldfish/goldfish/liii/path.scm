@@ -1,7 +1,9 @@
 (define-library (liii path)
   (export path
     path?
+    path-clone
     path-copy
+    path-copy-into
     path-dir?
     path-file?
     path-exists?
@@ -192,7 +194,7 @@
                    ) ;let
                  ) ;if
                 ) ;
-                ((path? arg) (path-copy arg))
+                ((path? arg) (path-clone arg))
                 (else (type-error "path: argument must be string or path"
                       ) ;type-error
                 ) ;else
@@ -202,15 +204,32 @@
     ) ;define
 
     ;; ; Copy a path object
-    (define (path-copy p)
+    (define (path-clone p)
       (if (path? p)
         (make-path-record (vector-copy (path-record-parts p))
           (path-record-type p)
           (path-record-drive p)
         ) ;make-path-record
-        (type-error "path-copy: argument must be path"
+        (type-error "path-clone: argument must be path"
         ) ;type-error
       ) ;if
+    ) ;define
+
+    (define (path-copy source target)
+      (let ((src (path->string source)) (dst (path->string target)))
+        (if (not (file-exists? src))
+          (file-not-found-error (string-append "No such file or directory: '" src "'"))
+          (g_path-copy src dst)
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define (path-copy-into source target-dir)
+      (let ((filename (path-name (path-from-string source))))
+        (path-copy source
+          (path->string (path-join (path-from-string target-dir) (path filename)))
+        ) ;path-copy
+      ) ;let
     ) ;define
 
     ;; ; Get parts as vector

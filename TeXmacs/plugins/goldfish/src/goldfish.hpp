@@ -3342,6 +3342,61 @@ glue_path_touch (s7_scheme* sc) {
   s7_define_function (sc, name, f_path_touch, 1, 0, false, desc);
 }
 
+static s7_pointer
+f_path_copy (s7_scheme* sc, s7_pointer args) {
+  const char* source= s7_string (s7_car (args));
+  const char* target= s7_string (s7_cadr (args));
+
+  if (!source || !target) {
+    return s7_make_boolean (sc, false);
+  }
+
+  tb_file_ref_t src_file= tb_file_init (source, TB_FILE_MODE_RO);
+  if (src_file == tb_null) {
+    return s7_make_boolean (sc, false);
+  }
+
+  tb_file_sync (src_file);
+  tb_size_t size= tb_file_size (src_file);
+
+  tb_file_ref_t dst_file= tb_file_init (target, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
+  if (dst_file == tb_null) {
+    tb_file_exit (src_file);
+    return s7_make_boolean (sc, false);
+  }
+
+  bool success= true;
+
+  if (size > 0) {
+    tb_byte_t* buffer   = new tb_byte_t[size];
+    tb_size_t  read_size= tb_file_read (src_file, buffer, size);
+
+    if (read_size != size) {
+      success= false;
+    }
+    else {
+      tb_size_t written_size= tb_file_writ (dst_file, buffer, read_size);
+      if (written_size != read_size) {
+        success= false;
+      }
+    }
+
+    delete[] buffer;
+  }
+
+  tb_file_exit (src_file);
+  tb_file_exit (dst_file);
+
+  return s7_make_boolean (sc, success);
+}
+
+inline void
+glue_path_copy (s7_scheme* sc) {
+  const char* name= "g_path-copy";
+  const char* desc= "(g_path-copy source target) => boolean, copy file from source to target";
+  s7_define_function (sc, name, f_path_copy, 2, 0, false, desc);
+}
+
 inline void
 glue_liii_path (s7_scheme* sc) {
   glue_isfile (sc);
@@ -3353,6 +3408,7 @@ glue_liii_path (s7_scheme* sc) {
   glue_path_write_bytes (sc);
   glue_path_append_text (sc);
   glue_path_touch (sc);
+  glue_path_copy (sc);
 }
 
 static s7_pointer
