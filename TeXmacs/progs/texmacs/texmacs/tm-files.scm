@@ -693,95 +693,6 @@
   (time-second (current-time TIME-UTC))
 ) ;define
 
-(define (auto-backup-url-stree-tag x)
-  (cond ((symbol? x) (symbol->string x))
-        ((string? x) x)
-        (else "")
-  ) ;cond
-) ;define
-
-(define (auto-backup-url-stree-ref t n)
-  (list-ref t n)
-) ;define
-
-(define (auto-backup-url-stree->path t)
-  (cond ((string? t) t)
-        ((symbol? t) (symbol->string t))
-        ((pair? t)
-         (let ((tag (auto-backup-url-stree-tag (car t))))
-           (cond ((== tag "concat")
-                  (let ((left (auto-backup-url-stree->path (auto-backup-url-stree-ref t 1)))
-                        (right (auto-backup-url-stree->path (auto-backup-url-stree-ref t 2)))
-                       ) ;
-                    (cond ((== left "") right)
-                          ((== right "") left)
-                          (else (path-join left right))
-                    ) ;cond
-                  ) ;let
-                 ) ;
-                 ((== tag "root")
-                  (let ((root (auto-backup-url-stree-tag (auto-backup-url-stree-ref t 1))))
-                    (if (in? root '("default" "file" "blank")) (path->string (path-root)) "")
-                  ) ;let
-                 ) ;
-                 ((== tag "none") "untitled")
-                 ((== tag "or") (auto-backup-url-stree->path (auto-backup-url-stree-ref t 1)))
-                 (else tag)
-           ) ;cond
-         ) ;let
-        ) ;
-        (else "untitled")
-  ) ;cond
-) ;define
-
-(define (auto-backup-buffer-path name)
-  (catch #t
-    (lambda ()
-      (path->string (path-from-string (auto-backup-url-stree->path (url->stree name)))
-      ) ;path->string
-    ) ;lambda
-    (lambda args "untitled")
-  ) ;catch
-) ;define
-
-(define (auto-backup-trim-trailing-separators s)
-  (let loop
-    ((n (string-length s)))
-    (if (and (> n 1)
-          (let ((c (string-ref s (- n 1))))
-            (or (char=? c #\/) (char=? c #\\))
-          ) ;let
-        ) ;and
-      (loop (- n 1))
-      (substring s 0 n)
-    ) ;if
-  ) ;let
-) ;define
-
-(define (auto-backup-path-normal-string path)
-  (auto-backup-trim-trailing-separators (path->string path))
-) ;define
-
-(define (auto-backup-path-descends? child parent)
-  (catch #t
-    (lambda ()
-      (let ((parent-path (auto-backup-path-normal-string (path-from-string parent))))
-        (let loop
-          ((path (path-from-string child)))
-          (let ((current-path (auto-backup-path-normal-string path)))
-            (or (== current-path parent-path)
-              (let* ((next (path-parent path)) (next-path (auto-backup-path-normal-string next)))
-                (and (!= next-path current-path) (loop next))
-              ) ;let*
-            ) ;or
-          ) ;let
-        ) ;let
-      ) ;let
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
-) ;define
-
 ;; auto-backup-texmacs-path-buffer?
 ;; 判断 buffer 是否位于 get-texmacs-path 返回的目录或其子目录中。
 ;;
@@ -808,14 +719,7 @@
 ;; ----
 ;; TeXmacs 安装路径下的文件被视为只读内置资源，不进入自动备份。
 (tm-define (auto-backup-texmacs-path-buffer? name)
-  (catch #t
-    (lambda ()
-      (auto-backup-path-descends? (auto-backup-buffer-path name)
-        (url->system (get-texmacs-path))
-      ) ;auto-backup-path-descends?
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
+  (url-descends? name (get-texmacs-path))
 ) ;tm-define
 
 (define (auto-backup-path->url p)
@@ -1096,7 +1000,7 @@
 ) ;tm-define
 
 (tm-define (auto-backup-trig-payload name kind)
-  (let* ((path (auto-backup-buffer-path name))
+  (let* ((path (url->system name))
          (doc-id (auto-backup-ensure-buffer-doc-id! name))
          (session-id (uuid4))
          (payload (string->json "{}"))
