@@ -50,11 +50,7 @@
 ) ;define
 
 (tm-define (regtest-tm-files)
-  (let ((n (+ (regtest-auto-backup-official-url)
-             (regtest-auto-backup-texmacs-path)
-           ) ;+
-        ) ;n
-       ) ;
+  (let ((n (+ (regtest-auto-backup-official-url) (regtest-auto-backup-texmacs-path))))
     (display* "Total: " (object->string n) " tests.\n")
     (display "Test suite of tm-files: ok\n")
   ) ;let

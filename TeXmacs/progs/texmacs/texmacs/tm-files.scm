@@ -957,9 +957,7 @@
         ) ;let*
       ) ;with-buffer
     ) ;lambda
-    (lambda args
-      #f
-    ) ;lambda
+    (lambda args #f)
   ) ;catch
 ) ;tm-define
 
@@ -1053,9 +1051,7 @@
         ) ;with-buffer
       ) ;and
     ) ;lambda
-    (lambda args
-      #f
-    ) ;lambda
+    (lambda args #f)
   ) ;catch
 ) ;tm-define
 
@@ -1175,12 +1171,7 @@
 
 (tm-define (auto-backup-now)
   (set! auto-backup-scheduled? #f)
-  (if (auto-backup-enabled?)
-    (begin
-      (auto-backup-all)
-      (auto-backup-delayed)
-    ) ;begin
-  ) ;if
+  (if (auto-backup-enabled?) (begin (auto-backup-all) (auto-backup-delayed)))
 ) ;tm-define
 
 (tm-define (auto-backup-delayed)
