@@ -1015,11 +1015,7 @@
         (with-buffer name
           (let ((old-doc-id (auto-backup-buffer-doc-id name)))
             (if (auto-backup-valid-doc-id? old-doc-id)
-              (begin
-                (auto-backup-log (string-append "doc-id-reuse " (auto-backup-buffer-path name) " -> " old-doc-id)
-                ) ;auto-backup-log
-                old-doc-id
-              ) ;begin
+              old-doc-id
               ;; 已保存文件可按 source_url 复用 manifest 中的 doc id；
               ;; 新建 scratch 文档必须生成新的 doc id。
               (let-njson ((manifest (auto-backup-load-manifest)))
@@ -1033,11 +1029,6 @@
                   ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
                   ;; 文档重新解析。
                   (init-env "stem-doc-id" doc-id)
-                  (auto-backup-log (string-append "doc-id-created "
-                                     (auto-backup-buffer-path name)
-                                     (if existing-doc-id " (reused from manifest)" "")
-                                   ) ;string-append
-                  ) ;auto-backup-log
                   doc-id
                 ) ;let*
               ) ;let-njson
@@ -1047,8 +1038,6 @@
       ) ;and
     ) ;lambda
     (lambda args
-      (auto-backup-log (string-append "doc-id-create-failed " (auto-backup-buffer-path name))
-      ) ;auto-backup-log
       #f
     ) ;lambda
   ) ;catch
@@ -1164,8 +1153,6 @@
 
 (tm-define (auto-backup-all)
   (let ((buffers (buffer-list)))
-    (auto-backup-log (string-append "auto-scan buffers=" (number->string (length buffers)))
-    ) ;auto-backup-log
     (for-each (lambda (name) (auto-backup-trig name "auto")) buffers)
   ) ;let
 ) ;tm-define
@@ -1174,25 +1161,20 @@
   (set! auto-backup-scheduled? #f)
   (if (auto-backup-enabled?)
     (begin
-      (auto-backup-log "timer-fired")
       (auto-backup-all)
       (auto-backup-delayed)
     ) ;begin
-    (auto-backup-log "timer-skip-disabled")
   ) ;if
 ) ;tm-define
 
 (tm-define (auto-backup-delayed)
   (if (auto-backup-enabled?)
     (if auto-backup-scheduled?
-      (auto-backup-log "schedule-skip-already-pending")
       (begin
         (set! auto-backup-scheduled? #t)
-        (auto-backup-log "schedule-next 120s")
         (delayed (:pause auto-backup-fixed-interval-ms) (auto-backup-now))
       ) ;begin
     ) ;if
-    (auto-backup-log "schedule-disabled")
   ) ;if
 ) ;tm-define
 
