@@ -693,6 +693,17 @@
   (time-second (current-time TIME-UTC))
 ) ;define
 
+(define (auto-backup-url-stree-tag x)
+  (cond ((symbol? x) (symbol->string x))
+        ((string? x) x)
+        (else "")
+  ) ;cond
+) ;define
+
+(define (auto-backup-url-stree-ref t n)
+  (list-ref t n)
+) ;define
+
 (define (auto-backup-url-stree->path t)
   (cond ((string? t) t)
         ((symbol? t) (symbol->string t))
@@ -730,6 +741,44 @@
       ) ;path->string
     ) ;lambda
     (lambda args "untitled")
+  ) ;catch
+) ;define
+
+(define (auto-backup-trim-trailing-separators s)
+  (let loop
+    ((n (string-length s)))
+    (if (and (> n 1)
+          (let ((c (string-ref s (- n 1))))
+            (or (char=? c #\/) (char=? c #\\))
+          ) ;let
+        ) ;and
+      (loop (- n 1))
+      (substring s 0 n)
+    ) ;if
+  ) ;let
+) ;define
+
+(define (auto-backup-path-normal-string path)
+  (auto-backup-trim-trailing-separators (path->string path))
+) ;define
+
+(define (auto-backup-path-descends? child parent)
+  (catch #t
+    (lambda ()
+      (let ((parent-path (auto-backup-path-normal-string (path-from-string parent))))
+        (let loop
+          ((path (path-from-string child)))
+          (let ((current-path (auto-backup-path-normal-string path)))
+            (or (== current-path parent-path)
+              (let* ((next (path-parent path)) (next-path (auto-backup-path-normal-string next)))
+                (and (!= next-path current-path) (loop next))
+              ) ;let*
+            ) ;or
+          ) ;let
+        ) ;let
+      ) ;let
+    ) ;lambda
+    (lambda args #f)
   ) ;catch
 ) ;define
 
