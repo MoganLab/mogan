@@ -1141,13 +1141,14 @@
 ) ;tm-define
 
 (tm-define (autosave-delayed)
+  (display* "autosave-delayed\n")
   (when (autosave-enabled?)
     (delayed (:pause autosave-fixed-interval-ms) (autosave-now))
   ) ;when
 ) ;tm-define
 
 (define (notify-autosave var val)
-  (if (current-view) (begin (autosave-delayed) (auto-backup-delayed)))
+  (if (current-view) (begin (autosave-delayed)))
 ) ;define
 
 (define-preferences ("autosave" "120" notify-autosave))
