@@ -89,13 +89,15 @@
  ("Remote control" (toggle-remote-control-mode))
 ) ;menu-bind
 
-(menu-bind texmacs-popup-menu (link focus-menu))
+(tm-menu (texmacs-popup-menu)
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  (=> "Copy to" (link clipboard-copy-export-menu))
+) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
   (:require (full-screen?))
   (link presentation-popup-menu)
-  ---
-  (former)
 ) ;tm-menu
 
 (menu-bind focus-popup-menu ("Focus mode" (toggle-focus-mode)))
@@ -103,8 +105,6 @@
 (tm-menu (texmacs-popup-menu)
   (:require (and (focus-mode?) (not (simplest-mode?))))
   (link focus-popup-menu)
-  ---
-  (former)
 ) ;tm-menu
 
 (menu-bind simplest-popup-menu ("Simplest mode" (toggle-simplest-mode)))
@@ -112,8 +112,6 @@
 (tm-menu (texmacs-popup-menu)
   (:require (simplest-mode?))
   (link simplest-popup-menu)
-  ---
-  (former)
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
@@ -123,14 +121,6 @@
   ("Paste special" (interactive-paste-special))
 ) ;tm-menu
 
-(tm-menu (texmacs-popup-menu)
-  (:require (not (chat-input-buffer? (current-buffer-url))))
-  ("Magic paste" (kbd-magic-paste))
-  ("Paste special" (interactive-paste-special))
-  (=> "Copy to" (link clipboard-copy-export-menu))
-  ---
-  (former)
-) ;tm-menu
 
 (menu-bind texmacs-alternative-popup-menu
   (-> "File" (link file-menu))
