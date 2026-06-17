@@ -90,6 +90,7 @@
 ) ;menu-bind
 
 (tm-menu (texmacs-popup-menu)
+  ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
   ("Copy" (kbd-copy))
@@ -101,9 +102,10 @@
 (tm-menu (texmacs-popup-menu)
   (:require (and (focus-mode?) (not (simplest-mode?))))
   (link focus-popup-menu)
+  ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
-  ("Copy" (kbd-copy))
   ("Paste special" (interactive-paste-special))
+  ("Copy" (kbd-copy))
   (=> "Copy to" (link clipboard-copy-export-menu))
 ) ;tm-menu
 
@@ -112,6 +114,7 @@
 (tm-menu (texmacs-popup-menu)
   (:require (simplest-mode?))
   (link simplest-popup-menu)
+  ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
   ("Copy" (kbd-copy))
@@ -120,6 +123,7 @@
 
 (tm-menu (texmacs-popup-menu)
   (:require (chat-input-buffer? (current-buffer-url)))
+  ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
 ) ;tm-menu
@@ -133,6 +137,7 @@
 (tm-menu (texmacs-popup-menu)
   (:require (full-screen?))
   (link presentation-popup-menu)
+  ("Paste" (kbd-paste))
   ("Magic paste" (kbd-magic-paste))
   ("Paste special" (interactive-paste-special))
   ("Copy" (kbd-copy))
