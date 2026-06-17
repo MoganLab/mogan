@@ -195,9 +195,14 @@ display(d::InlineDisplay, m::MIME"text/html", x) =
 
 display(d::InlineDisplay, m::MIME"text/latex", x) = begin
     s = strip(limitstringmime(m, x))
-    # Remove outer $$, $, \[ \], or \( \) math delimiters if present
+    # 去除外层 $$, $, \[ \], or \( \) 修饰符直接解析
     s = replace(s, r"^(\$\$?|\\\[|\\\()|(\$\$?|\\\]|\\\))$" => "")
     s = strip(s)
+    # 去掉环境编号
+    s = replace(s, "begin{equation}" => "begin{equation*}")
+    s = replace(s, "end{equation}" => "end{equation*}")
+    s = replace(s, "begin{align}" => "begin{align*}")
+    s = replace(s, "end{align}" => "end{align*}")
     if occursin(r"^\\begin", s)
         tm_out("latex:", s)
     else
