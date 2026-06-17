@@ -380,7 +380,6 @@
         ) ;begin
         (begin
           (if (== (url-suffix name) "ts") (style-clear-cache))
-          (autosave-remove name)
           (buffer-notify-recent name)
           ;; Remember directory for file dialog
           (remember-file-dialog-directory name)
@@ -1048,81 +1047,17 @@
   (auto-backup-trig (current-buffer-url) "visit-cloud-backup")
 ) ;tm-define
 
-(define (more-recent file suffix1 suffix2)
-  (and (url-exists? (url-glue file suffix1))
-    (url-exists? (url-glue file suffix2))
-    (url-newer? (url-glue file suffix1) (url-glue file suffix2))
-  ) ;and
-) ;define
-
-(define (most-recent-suffix file)
-  (if (more-recent file "~" "")
-    (if (not (more-recent file "#" "")) "~" (if (more-recent file "#" "~") "#" "~"))
-    (if (more-recent file "#" "") "#" "")
-  ) ;if
-) ;define
-
-(define (autosave-eligible? name)
-  (and (not (url-rooted-web? name))
-    (or (not (url-rooted-tmfs? name)) (tmfs-autosave name "~"))
-  ) ;and
-) ;define
-
-(define (autosave-propose name)
-  (and (autosave-eligible? name)
-    (with s (most-recent-suffix name) (and (!= s "") (url-glue name s)))
-  ) ;and
-) ;define
-
-(define (autosave-rescue? name)
-  (and (autosave-eligible? name) (== (most-recent-suffix name) "#"))
-) ;define
-
-(define (autosave-remove name)
-  (when (url-exists? (url-glue name "~"))
-    (url-remove (url-glue name "~"))
-  ) ;when
-  (when (url-exists? (url-glue name "#"))
-    (url-remove (url-glue name "#"))
-  ) ;when
-) ;define
-
-(tm-define (autosave-buffer name)
-  (when (and (buffer-modified-since-autosave? name) (url-autosave name "~"))
-    (when (debug-get "io")
-      (debug-message "debug-io" (string-append "Autosave " (url->system name) "\n"))
-    ) ;when
-    ;; FIXME: incorrectly autosaves after cursor movements only
-    (let* ((vname `(verbatim ,(utf8->cork (url->system name))))
-           (suffix (if (rescue-mode?) "#" "~"))
-           (aname (if (url-scratch? name) name (url-autosave name suffix)))
-           (fm (url-format name))
-          ) ;
-      (cond ((nin? fm (list "texmacs" "stm" "mgs" "tmu"))
-             (when (not (rescue-mode?))
-               (set-message `(concat ,"Warning: " ,vname ," not auto-saved") "Auto-save file")
-             ) ;when
-            ) ;
-            ((buffer-export name aname fm)
-             (when (not (rescue-mode?))
-               (set-message `(concat ,"Failed to auto-save " ,vname) "Auto-save file")
-             ) ;when
-            ) ;
-            (else (when (not (rescue-mode?))
-                    (buffer-pretend-autosaved name)
-                    (set-temporary-message `(concat ,"Auto-saved " ,vname) "Auto-save file" 2500)
-                  ) ;when
-            ) ;else
-      ) ;cond
-    ) ;let*
-    (auto-backup-trig name "auto")
-  ) ;when
+(tm-define (autosave-all)
+  (for-each (lambda (name)
+              (when (and (buffer-modified? name) (not (url-scratch? name)))
+                (save-buffer-save name (list) "auto")
+              ) ;when
+            ) ;lambda
+    (buffer-list)
+  ) ;for-each
 ) ;tm-define
 
-(tm-define (autosave-all) (for-each autosave-buffer (buffer-list)))
-
 (tm-define (autosave-now)
-  (display* "autosave-now\n")
   (when (autosave-enabled?)
     (autosave-all)
     (autosave-delayed)
@@ -1141,7 +1076,6 @@
 ) ;tm-define
 
 (tm-define (autosave-delayed)
-  (display* "autosave-delayed\n")
   (when (autosave-enabled?)
     (delayed (:pause autosave-fixed-interval-ms) (autosave-now))
   ) ;when
@@ -1293,31 +1227,7 @@
 
 (define (load-buffer-check-autosave name opts)
   ;; (display* "load-buffer-check-autosave " name ", " opts "\n")
-  (if (and (autosave-propose name) (nin? :strict opts))
-    (with question
-      (if (autosave-rescue? name)
-        "Rescue file from crash?"
-        "Load more recent autosave file?"
-      ) ;if
-      (user-confirm question
-        #t
-        (lambda (answ)
-          (if answ
-            (let* ((autosave-name (autosave-propose name))
-                   (format (url-format name))
-                   (doc (tree-import autosave-name format))
-                  ) ;
-              (buffer-set name doc)
-              (load-buffer-open name opts)
-              (buffer-pretend-modified name)
-            ) ;let*
-            (load-buffer-check-permissions name opts)
-          ) ;if
-        ) ;lambda
-      ) ;user-confirm
-    ) ;with
-    (load-buffer-check-permissions name opts)
-  ) ;if
+  (load-buffer-check-permissions name opts)
 ) ;define
 
 (tm-define (load-buffer-main name . opts)

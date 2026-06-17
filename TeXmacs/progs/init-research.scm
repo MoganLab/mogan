@@ -463,7 +463,7 @@
 (display* "memory: " (texmacs-memory) " bytes\n")
 
 (display "------------------------------------------------------\n")
-(delayed (:idle 10000)
+(delayed (:pause 120000)
   (autosave-delayed))
 (catch #t
   (lambda ()
