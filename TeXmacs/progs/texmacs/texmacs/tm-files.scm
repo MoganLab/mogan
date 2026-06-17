@@ -756,28 +756,6 @@
   ) ;and
 ) ;tm-define
 
-(define (auto-backup-buffer-last-visited* name)
-  (catch #t (lambda () (buffer-last-visited name)) (lambda args 0))
-) ;define
-
-(define (auto-backup-recent-buffers buffers)
-  (list-sort buffers
-    (lambda (a b)
-      (> (auto-backup-buffer-last-visited* a) (auto-backup-buffer-last-visited* b))
-    ) ;lambda
-  ) ;list-sort
-) ;define
-
-(define (auto-backup-doc-short-id doc-id)
-  (if (>= (string-length doc-id) 8) (string-take doc-id 8) doc-id)
-) ;define
-
-(tm-define (auto-backup-doc-id doc)
-  (let ((initial (tmfile-extract doc 'initial)))
-    (and initial (collection-ref initial "stem-doc-id"))
-  ) ;let
-) ;tm-define
-
 (define (auto-backup-valid-doc-id? doc-id)
   (and (string? doc-id) (!= doc-id ""))
 ) ;define
@@ -810,34 +788,6 @@
   ) ;and
 ) ;tm-define
 
-;; auto-backup-find-doc-id-by-source-url
-;; 在 manifest 中按 source_url 查找已有 doc id。
-
-(define (auto-backup-find-doc-id-by-source-url manifest source-url)
-  (catch #t
-    (lambda ()
-      (let-njson ((docs (njson-ref manifest "documents")))
-        (let ((doc-ids (njson-keys docs)))
-          (let loop
-            ((keys doc-ids))
-            (if (null? keys)
-              #f
-              (let ((doc-id (car keys)))
-                (let-njson ((doc (njson-ref docs doc-id)))
-                  (let ((url (njson-ref doc "source_url")))
-                    (if (and url (== url source-url)) doc-id (loop (cdr keys)))
-                  ) ;let
-                ) ;let-njson
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;let
-      ) ;let-njson
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
-) ;define
-
 ;; auto-backup-ensure-buffer-doc-id!
 ;; 确保可备份 buffer 已经绑定 stem-doc-id。
 ;;
@@ -858,13 +808,12 @@
 ;; 逻辑
 ;; ----
 ;; 先读取 buffer 当前 init-env 或 initial collection 中的 stem-doc-id；
-;; 若没有，则已有文件按 source_url 从 manifest 复用旧 id，新建 scratch
-;; 文档直接生成新的 uuid4。
+;; 若没有，则生成新的 uuid4 并写入 init-env。
 ;;
 ;; 注意
 ;; ----
-;; 这里只写入 init-env，避免触发文档重新解析；已有文件是否持久化由用户
-;; 后续保存动作决定。
+;; 这里只写入 init-env，避免触发文档重新解析；doc id 是否持久化到文件由
+;; 用户后续保存动作决定。
 (tm-define (auto-backup-ensure-buffer-doc-id! name)
   (catch #t
     (lambda ()
@@ -873,22 +822,12 @@
           (let ((old-doc-id (auto-backup-buffer-doc-id name)))
             (if (auto-backup-valid-doc-id? old-doc-id)
               old-doc-id
-              ;; 已保存文件可按 source_url 复用 manifest 中的 doc id；
-              ;; 新建 scratch 文档必须生成新的 doc id。
-              (let-njson ((manifest (auto-backup-load-manifest)))
-                (let* ((source-url (auto-backup-source-url name))
-                       (existing-doc-id (and (not (url-scratch? name))
-                                          (auto-backup-find-doc-id-by-source-url manifest source-url)
-                                        ) ;and
-                       ) ;existing-doc-id
-                       (doc-id (or existing-doc-id (uuid4)))
-                      ) ;
-                  ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
-                  ;; 文档重新解析。
-                  (init-env "stem-doc-id" doc-id)
-                  doc-id
-                ) ;let*
-              ) ;let-njson
+              (let ((doc-id (uuid4)))
+                ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
+                ;; 文档重新解析。
+                (init-env "stem-doc-id" doc-id)
+                doc-id
+              ) ;let
             ) ;if
           ) ;let
         ) ;with-buffer
@@ -896,46 +835,6 @@
     ) ;lambda
     (lambda args #f)
   ) ;catch
-) ;tm-define
-
-(define (auto-backup-empty-collection? col)
-  (and (pair? col) (== (car col) 'collection) (null? (cdr col)))
-) ;define
-
-(define (auto-backup-tmfile-drop doc what)
-  (let ((sdoc (if (tree? doc) (tree->stree doc) doc)))
-    (if (and (pair? sdoc) (== (car sdoc) 'document))
-      (cons 'document
-        (list-filter (cdr sdoc) (lambda (x) (not (and (pair? x) (== (car x) what)))))
-      ) ;cons
-      sdoc
-    ) ;if
-  ) ;let
-) ;define
-
-(tm-define (auto-backup-doc-with-doc-id doc doc-id)
-  ;; Keep the live buffer environment in sync, and return an exportable tree
-  ;; whose initial collection contains the same stable id.
-  (init-env "stem-doc-id" doc-id)
-  (let* ((initial (or (tmfile-extract doc 'initial) '(collection)))
-         (initial* (collection-set initial "stem-doc-id" doc-id))
-         (doc* (and initial* (tmfile-assign doc 'initial initial*)))
-        ) ;
-    (or doc* doc)
-  ) ;let*
-) ;tm-define
-
-(tm-define (auto-backup-doc-without-doc-id doc)
-  (let* ((initial (tmfile-extract doc 'initial))
-         (initial* (and initial (collection-exclude initial '("stem-doc-id"))))
-        ) ;
-    (cond ((not initial) (if (tree? doc) (tree->stree doc) doc))
-          ((auto-backup-empty-collection? initial*)
-           (auto-backup-tmfile-drop doc 'initial)
-          ) ;
-          (else (tmfile-assign doc 'initial initial*))
-    ) ;cond
-  ) ;let*
 ) ;tm-define
 
 (tm-define (auto-backup-trig-payload name kind)
