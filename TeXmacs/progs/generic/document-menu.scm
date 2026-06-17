@@ -1190,11 +1190,6 @@
 
 (tm-menu (standard-focus-menu t)
   (:require (tree-is-buffer? t))
-  (dynamic (focus-style-menu t))
-  ---
-  (dynamic (focus-document-menu t))
-  (dynamic (focus-document-extra-menu t))
-  ---
   ("Help" (focus-help))
 ) ;tm-menu
 
