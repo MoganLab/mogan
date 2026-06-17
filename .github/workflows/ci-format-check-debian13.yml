@@ -51,9 +51,11 @@ jobs:
         with:
           fetch-depth: 1
 
-      - name: Download & install goldfish
+      - name: Download & install goldfish (latest)
         run: |
-          curl -fsSL -o /tmp/gf.deb https://github.com/MoganLab/goldfish/releases/download/v18.11.11/goldfish-scheme-x86_64-v18.11.11.deb
+          TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/MoganLab/goldfish/releases/latest | sed 's|.*/tag/||')
+          echo "Latest goldfish release: $TAG"
+          curl -fsSL -o /tmp/gf.deb "https://github.com/MoganLab/goldfish/releases/download/$TAG/goldfish-scheme-x86_64-$TAG.deb"
           dpkg -i /tmp/gf.deb
           gf version
 
