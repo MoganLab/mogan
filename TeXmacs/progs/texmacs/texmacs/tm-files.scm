@@ -1059,7 +1059,11 @@
 
 (tm-define (autosave-now)
   (when (autosave-enabled?)
-    (autosave-all)
+    (let ((name (current-buffer)))
+      (when (and (buffer-modified? name) (not (url-scratch? name)))
+        (save-buffer-save name (list) "auto")
+      ) ;when
+    ) ;let
     (autosave-delayed)
   ) ;when
 ) ;tm-define
