@@ -12,6 +12,7 @@
 
 #include "base.hpp"
 #include "converter.hpp"
+#include "convert.hpp"
 #include "file.hpp"
 
 class TestConverter : public QObject {
@@ -21,6 +22,7 @@ private slots:
   void init () { init_lolly (); };
   void test_utf8_to_cork ();
   void test_cork_to_utf8 ();
+  void test_verbatim_to_tree_auto ();
 };
 
 void
@@ -35,6 +37,12 @@ TestConverter::test_cork_to_utf8 () {
   qcompare (cork_to_utf8 ("<#4E2D>"), "中");
   qcompare (cork_to_utf8 ("\x10"), "“");
   qcompare (cork_to_utf8 ("\x11"), "”");
+}
+
+void
+TestConverter::test_verbatim_to_tree_auto () {
+  tree t = verbatim_to_tree ("中", false, "auto");
+  qcompare (as_string (t), "<#4E2D>");
 }
 
 QTEST_MAIN (TestConverter)

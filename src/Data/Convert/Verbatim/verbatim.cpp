@@ -295,8 +295,8 @@ un_special (string s) {
 
 static string
 encode (string s, string enc) {
-  if (enc == "auto") return western_to_cork (s);
-  else if (enc == "utf-8") return utf8_to_cork (s);
+  if (enc == "auto") enc= get_locale_charset ();
+  if (enc == "utf-8" || enc == "UTF-8") return utf8_to_cork (s);
   else if (enc == "iso-8859-1") return tm_encode (s);
   else if (enc == "SourceCode") return sourcecode_to_cork (s);
   else return tm_encode (s);
