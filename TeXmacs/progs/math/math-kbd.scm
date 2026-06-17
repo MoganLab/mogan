@@ -124,6 +124,7 @@
   ("' var var var var" (make-rprime "<dag>"))
   ("' var var var var var" (make-rprime "<ddag>"))
   ("' var var var var var var" (make-rprime "<kreuz>"))
+  ("' var var var var var var var" (make-rprime "<top>"))
   ("\" var" (make-rprime "`") (make-rprime "`"))
   ("\" var var" (make-rprime "<asterisk>") (make-rprime "<asterisk>"))
   ("\" var var var" (make-rprime "<star>") (make-rprime "<star>"))
