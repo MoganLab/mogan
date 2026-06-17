@@ -98,6 +98,9 @@
 (tm-menu (texmacs-popup-menu)
   (:require (full-screen?))
   (link presentation-popup-menu)
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  (=> "Copy to" (link clipboard-copy-export-menu))
 ) ;tm-menu
 
 (menu-bind focus-popup-menu ("Focus mode" (toggle-focus-mode)))
@@ -105,6 +108,9 @@
 (tm-menu (texmacs-popup-menu)
   (:require (and (focus-mode?) (not (simplest-mode?))))
   (link focus-popup-menu)
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  (=> "Copy to" (link clipboard-copy-export-menu))
 ) ;tm-menu
 
 (menu-bind simplest-popup-menu ("Simplest mode" (toggle-simplest-mode)))
@@ -112,6 +118,9 @@
 (tm-menu (texmacs-popup-menu)
   (:require (simplest-mode?))
   (link simplest-popup-menu)
+  ("Magic paste" (kbd-magic-paste))
+  ("Paste special" (interactive-paste-special))
+  (=> "Copy to" (link clipboard-copy-export-menu))
 ) ;tm-menu
 
 (tm-menu (texmacs-popup-menu)
