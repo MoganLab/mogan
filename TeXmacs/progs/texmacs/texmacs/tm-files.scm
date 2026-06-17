@@ -679,19 +679,11 @@
 
 (define autosave-fixed-interval-ms 120000)
 
-(define auto-backup-fixed-interval-ms 120000)
-
 (tm-define (autosave-enabled?) (!= (get-preference "autosave") "0"))
 
 (tm-define (auto-backup-enabled?) (!= (get-preference "autobackup") "off"))
 
 (tm-define (liiistem-version) (xmacs-version))
-
-(define auto-backup-scheduled? #f)
-
-(define (auto-backup-now-seconds)
-  (time-second (current-time TIME-UTC))
-) ;define
 
 ;; auto-backup-texmacs-path-buffer?
 ;; 判断 buffer 是否位于 get-texmacs-path 返回的目录或其子目录中。
@@ -724,58 +716,6 @@
 
 (define (auto-backup-path->url p)
   (system->url (path->string p))
-) ;define
-
-;; auto-backup-empty-manifest
-;; 创建新的自动备份 manifest。
-;;
-;; 语法
-;; ----
-;; (auto-backup-empty-manifest)
-;;
-;; 参数
-;; ----
-;; 无。
-;;
-;; 返回值
-;; ----
-;; njson
-;; 包含 meta 和 documents 的 manifest 对象，调用者负责释放。
-;;
-;; 逻辑
-;; ----
-;; 初始化版本号、固定调度间隔、单文档 rolling 数量和 manifest 记录最长
-;; 保留天数。
-;;
-;; 注意
-;; ----
-;; manifest 的 njson 句柄需要用 let-njson 包裹，避免泄漏。
-(tm-define (auto-backup-empty-manifest)
-  (let ((manifest (string->njson "{\"meta\":{\"version\":1,\"interval_seconds\":120,\"retention\":7,\"max_record_age_days\":30,\"updated_at\":0},\"documents\":{}}"
-                  ) ;string->njson
-        ) ;manifest
-       ) ;
-    (njson-set! manifest "meta" "updated_at" (auto-backup-now-seconds))
-    manifest
-  ) ;let
-) ;tm-define
-
-(define (auto-backup-manifest-valid? manifest)
-  (catch #t
-    (lambda ()
-      (and (njson-object? manifest)
-        (let-njson ((meta (njson-ref manifest "meta"))
-                    (documents (njson-ref manifest "documents"))
-                   ) ;
-          (and (njson-object? meta)
-            (njson-object? documents)
-            (== (njson-ref meta "version") 1)
-          ) ;and
-        ) ;let-njson
-      ) ;and
-    ) ;lambda
-    (lambda args #f)
-  ) ;catch
 ) ;define
 
 (define (auto-backup-format name)
@@ -1055,12 +995,9 @@
 ;;
 ;; kind : string
 ;; 备份类型，例如 "save"、"save-as"、"export-pdf"、"on-open"、"auto"、"manual-open"。
-;;
-;; 逻辑
-;; ----
-;; 仅打印触发参数，不执行实际备份逻辑；后续可在此扩展备份行为。
+
 (tm-define (auto-backup-trig u kind)
-  (when (auto-backup-buffer-eligible? u)
+  (when (and (auto-backup-enabled?) (auto-backup-buffer-eligible? u))
     (receive (s session-id)
       (auto-backup-trig-payload u kind)
       (silent-feed* "autosave"
@@ -1094,28 +1031,6 @@
   (auto-backup-ensure-buffer-doc-id! name)
   (delayed (:pause 100) (auto-backup-trig name "on-open"))
 ) ;define
-
-(tm-define (auto-backup-all)
-  (let ((buffers (buffer-list)))
-    (for-each (lambda (name) (auto-backup-trig name "auto")) buffers)
-  ) ;let
-) ;tm-define
-
-(tm-define (auto-backup-now)
-  (set! auto-backup-scheduled? #f)
-  (if (auto-backup-enabled?) (begin (auto-backup-all) (auto-backup-delayed)))
-) ;tm-define
-
-(tm-define (auto-backup-delayed)
-  (if (auto-backup-enabled?)
-    (if auto-backup-scheduled?
-      (begin
-        (set! auto-backup-scheduled? #t)
-        (delayed (:pause auto-backup-fixed-interval-ms) (auto-backup-now))
-      ) ;begin
-    ) ;if
-  ) ;if
-) ;tm-define
 
 (tm-define (auto-backup-official-url)
   (if (== (get-output-language) "chinese")
@@ -1200,12 +1115,14 @@
             ) ;else
       ) ;cond
     ) ;let*
+    (auto-backup-trig name "auto")
   ) ;when
 ) ;tm-define
 
 (tm-define (autosave-all) (for-each autosave-buffer (buffer-list)))
 
 (tm-define (autosave-now)
+  (display* "autosave-now\n")
   (when (autosave-enabled?)
     (autosave-all)
     (autosave-delayed)
