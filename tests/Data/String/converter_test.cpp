@@ -41,8 +41,15 @@ TestConverter::test_cork_to_utf8 () {
 
 void
 TestConverter::test_verbatim_to_tree_auto () {
-  tree t = verbatim_to_tree ("中", false, "auto");
-  qcompare (as_string (t), "<#4E2D>");
+  // 单个中文字符
+  tree t1 = verbatim_to_tree ("中", false, "auto");
+  qcompare (as_string (t1), "<#4E2D>");
+
+  // 多行中文字符以及特殊标点符号
+  tree t2 = verbatim_to_tree ("你好\n世界!", false, "auto");
+  qcompare (N (t2), 2);
+  qcompare (as_string (t2[0]), "<#4F60><#597D>");
+  qcompare (as_string (t2[1]), "<#4E16><#754C>!");
 }
 
 QTEST_MAIN (TestConverter)
