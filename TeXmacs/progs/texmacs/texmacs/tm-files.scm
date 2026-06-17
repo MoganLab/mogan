@@ -676,7 +676,7 @@
 ;; Autosave
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define autosave-fixed-interval-ms 30000)
+(define autosave-fixed-interval-ms 120000)
 
 (tm-define (autosave-enabled?) (!= (get-preference "autosave") "0"))
 
@@ -1081,7 +1081,7 @@
 
 (tm-define (autosave-delayed)
   (when (autosave-enabled?)
-    (delayed (:idle autosave-fixed-interval-ms) (autosave-now))
+    (delayed (:pause autosave-fixed-interval-ms) (autosave-now))
   ) ;when
 ) ;tm-define
 
