@@ -39,6 +39,7 @@
 ("Backslash \\ /" "反斜线 \\ /")
 ("BibTeX command" "BibTeX命令")
 ("Bitmap export resolution (dpi):" "Bitmap 导出分辨率（dpi）：")
+("Border color" "边框颜色")
 ("Braces { }" "大括号 { }")
 ("Brackets [ ]" "中括号 [ ]")
 ("Buy Now!" "现在购买！")
