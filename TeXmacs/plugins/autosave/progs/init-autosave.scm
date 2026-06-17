@@ -19,7 +19,7 @@
   (with u
     (pre-serialize lan t)
     (with s
-      (texmacs->code (stree->tree u) "SourceCode")
+      (texmacs->code (stree->tree u) "utf-8")
       (string-append s "\n<EOF>\n")
     ) ;with
   ) ;with

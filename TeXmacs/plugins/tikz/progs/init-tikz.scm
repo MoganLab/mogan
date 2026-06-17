@@ -20,7 +20,7 @@
 
     (define (tikz-serialize lan t)
       (let* ((u (pre-serialize lan t))
-             (s (texmacs->code (stree->tree u) "SourceCode")))
+             (s (texmacs->code (stree->tree u) "utf-8")))
         (string-append s "\n<EOF>\n")
       )
     )
