@@ -19,6 +19,7 @@
 
     (define scm-dirs
       '("TeXmacs/plugins/gnuplot"
+        "TeXmacs/progs/client"
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
         "TeXmacs/progs/source"

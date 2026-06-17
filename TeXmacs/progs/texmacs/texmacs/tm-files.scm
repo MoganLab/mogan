@@ -1013,14 +1013,30 @@
     ;; 构造 Authorization / User-Agent / X-Device-Id 头和 upload URL。
     ;; 账号模块或 glue 函数在未登录/未加载时会抛异常，逐个 catch 回退空串，
     ;; 避免 payload 构造失败导致整个 copy 流程中断。
-    (set! payload (json-push payload "site"
-                    (catch #t (lambda () (current-stem-site)) (lambda args ""))))
-    (set! payload (json-push payload "token"
-                    (catch #t (lambda () (account-load-token)) (lambda args ""))))
-    (set! payload (json-push payload "user-agent"
-                    (catch #t (lambda () (stem-user-agent)) (lambda args ""))))
-    (set! payload (json-push payload "device-id"
-                    (catch #t (lambda () (stem-device-id)) (lambda args ""))))
+    (set! payload
+      (json-push payload
+        "site"
+        (catch #t (lambda () (current-stem-site)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "token"
+        (catch #t (lambda () (account-load-token)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "user-agent"
+        (catch #t (lambda () (stem-user-agent)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
+    (set! payload
+      (json-push payload
+        "device-id"
+        (catch #t (lambda () (stem-device-id)) (lambda args ""))
+      ) ;json-push
+    ) ;set!
     (values (json->string payload) session-id)
   ) ;let*
 ) ;tm-define
