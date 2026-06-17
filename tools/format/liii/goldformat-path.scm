@@ -12,7 +12,13 @@
 
 (define-library (liii goldformat-path)
   (import (liii base) (liii path) (liii string))
-  (export cpp-roots scm-dirs collect-cpp-files collect-all-cpp-files)
+  (export cpp-roots
+    scm-dirs
+    collect-cpp-files
+    collect-all-cpp-files
+    collect-scm-files
+    collect-all-scm-files
+  ) ;export
   (begin
 
     (define cpp-roots '("tests" "src" "moebius" "3rdparty/lolly"))
@@ -70,6 +76,51 @@
           (if (path-dir? (path (car roots)))
             (loop (cdr roots) (append acc (collect-cpp-files (car roots))))
             (loop (cdr roots) acc)
+          ) ;if
+        ) ;if
+      ) ;let
+    ) ;define
+
+    (define scm-exts '(".scm"))
+
+    (define (scm-file? name)
+      (let loop
+        ((exts scm-exts))
+        (if (null? exts) #f (if (string-ends? name (car exts)) #t (loop (cdr exts))))
+      ) ;let
+    ) ;define
+
+    (define (collect-scm-files dir-path)
+      (let ((entries (path-list-path (path dir-path))))
+        (let loop
+          ((i 0) (acc '()))
+          (if (>= i (vector-length entries))
+            acc
+            (let ((entry (vector-ref entries i)))
+              (cond ((path-file? entry)
+                     (let ((s (path->string entry)))
+                       (if (scm-file? s) (loop (+ i 1) (cons s acc)) (loop (+ i 1) acc))
+                     ) ;let
+                    ) ;
+                    ((path-dir? entry)
+                     (loop (+ i 1) (append (collect-scm-files (path->string entry)) acc))
+                    ) ;
+                    (else (loop (+ i 1) acc))
+              ) ;cond
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (collect-all-scm-files)
+      (let loop
+        ((dirs scm-dirs) (acc '()))
+        (if (null? dirs)
+          acc
+          (if (path-dir? (path (car dirs)))
+            (loop (cdr dirs) (append acc (collect-scm-files (car dirs))))
+            (loop (cdr dirs) acc)
           ) ;if
         ) ;if
       ) ;let
