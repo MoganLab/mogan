@@ -11,8 +11,8 @@
 #include <QtTest/QtTest>
 
 #include "base.hpp"
-#include "converter.hpp"
 #include "convert.hpp"
+#include "converter.hpp"
 #include "file.hpp"
 
 class TestConverter : public QObject {
@@ -42,11 +42,11 @@ TestConverter::test_cork_to_utf8 () {
 void
 TestConverter::test_verbatim_to_tree_auto () {
   // 单个中文字符
-  tree t1 = verbatim_to_tree ("中", false, "auto");
+  tree t1= verbatim_to_tree ("中", false, "auto");
   qcompare (as_string (t1), "<#4E2D>");
 
   // 多行中文字符以及特殊标点符号
-  tree t2 = verbatim_to_tree ("你好\n世界!", false, "auto");
+  tree t2= verbatim_to_tree ("你好\n世界!", false, "auto");
   qcompare (N (t2), 2);
   qcompare (as_string (t2[0]), "<#4F60><#597D>");
   qcompare (as_string (t2[1]), "<#4E16><#754C>!");
