@@ -11,11 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text cyrillic yawerty-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (text cyrillic yawerty-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-cyrillic-yawerty?)
+(kbd-map (:mode in-cyrillic-yawerty?)
 
   ("q" "<#44F>")
   ("w" "<#432>")
@@ -103,4 +101,5 @@
   ("& var" "&")
 
   ("accent:umlaut e" "<#451>")
-  ("accent:umlaut E" "<#401>"))
+  ("accent:umlaut E" "<#401>")
+) ;kbd-map

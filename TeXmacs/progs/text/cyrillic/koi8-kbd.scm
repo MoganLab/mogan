@@ -11,11 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text cyrillic koi8-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (text cyrillic koi8-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-cyrillic-koi8?)
+(kbd-map (:mode in-cyrillic-koi8?)
 
   ("<#411>" "<#430>")
   ("<#412>" "<#431>")
@@ -85,4 +83,5 @@
   ("<#430>" "<#42E>")
   ("<#441>" "<#42F>")
   ("³" "<#401>")
-  ("accent:umlaut <#435>" "<#401>"))
+  ("accent:umlaut <#435>" "<#401>")
+) ;kbd-map

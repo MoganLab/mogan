@@ -11,12 +11,11 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text cyrillic cp1251-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (text cyrillic cp1251-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-cyrillic-cp1251?)
-  ("¸" "<#451>")
-  ("accent:umlaut <#435>" "<#451>")
-  ("¨" "<#401>")
-  ("accent:umlaut <#415>" "<#401>"))
+(kbd-map (:mode in-cyrillic-cp1251?)
+ ("¸" "<#451>")
+ ("accent:umlaut <#435>" "<#451>")
+ ("¨" "<#401>")
+ ("accent:umlaut <#415>" "<#401>")
+) ;kbd-map
