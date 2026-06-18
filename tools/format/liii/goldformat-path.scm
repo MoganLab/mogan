@@ -29,6 +29,7 @@
         "TeXmacs/progs/convert"
         "TeXmacs/progs/database"
         "TeXmacs/progs/debug"
+        "TeXmacs/progs/doc"
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
         "TeXmacs/progs/source"

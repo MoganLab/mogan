@@ -11,11 +11,10 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc tmdoc-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (doc tmdoc-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-manual?)
-  ("S-F7" (make 'scm))
-  ("C-F7" (make 'scm-arg))
-  ("M-F7" (make 'scm-code)))
+(kbd-map (:mode in-manual?)
+ ("S-F7" (make 'scm))
+ ("C-F7" (make 'scm-arg))
+ ("M-F7" (make 'scm-code))
+) ;kbd-map

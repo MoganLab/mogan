@@ -12,7 +12,7 @@
 ;;
 ;; Given a page from the documentation, we parse it and all its children and
 ;; store every "explain" tag into a cache in the users $TEXMACS_HOMEPATH
-;; directory. 
+;; directory.
 ;; We use this to provide documentation for scheme symbols and texmacs macros.
 ;; Multiple languages can be stored for each tag, allowing for localization
 ;; as well as a fallback language.
@@ -37,36 +37,45 @@
 ;; Internal variables and generic one-use routines.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define _scm_ #f)   ; for faster access than doc-scm-cache
-(define _macro_ #f) ; for faster access than doc-macro-cache
+(define _scm_ #f)
+
+(define _macro_ #f)
 
 (define (func-remove l what)
   "Purge all sub-strees of type @what in @l."
   (cond ((null? l) '())
         ((nlist? l) l)
         ((func? l what) '())
-        (else (cons (func-remove (car l) what) (func-remove (cdr l) what)))))
+        (else (cons (func-remove (car l) what) (func-remove (cdr l) what)))
+  ) ;cond
+) ;define
 
 (define (flatten-strings t)
   "Return a string with all the strings in the stree @t."
   (cond ((string? t) t)
         ((or (null? t) (nlist? t)) "")
-        (else (string-append (flatten-strings (car t))
-                             (flatten-strings (cdr t))))))
+        (else (string-append (flatten-strings (car t)) (flatten-strings (cdr t))))
+  ) ;cond
+) ;define
 
 (define (first-symbol s)
   "Return the first scheme symbol in a string of characters."
   (let* ((beg (string-skip s char-set:stopmark))
-         (end (string-skip s (char-set-complement char-set:stopmark) beg)))
-    (if (or (not (integer? beg)) (not (integer? end)))
-        s (substring s beg end))))
+         (end (string-skip s (char-set-complement char-set:stopmark) beg))
+        ) ;
+    (if (or (not (integer? beg)) (not (integer? end))) s (substring s beg end))
+  ) ;let*
+) ;define
 
 (define (doctree-lan t)
   "Returns the language of the TeXmacs document tree @t."
   (let* ((s (select t '(initial collection associate)))
          (flt (lambda (x) (== (tm-ref x 0) "language")))
-         (s2 (list-filter (map tree->stree s) flt)))
-    (or (and (nnull? s2) (tm-ref (car s2) 1)) "english")))
+         (s2 (list-filter (map tree->stree s) flt))
+        ) ;
+    (or (and (nnull? s2) (tm-ref (car s2) 1)) "english")
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parsing and processing of explain tags in texmacs trees.
@@ -74,92 +83,119 @@
 
 (tm-define (doc-scm-cache)
   (:synopsis "Url of the cache with the collected scheme documentation")
-  (with pref (get-preference "doc:doc-scm-cache")
+  (with pref
+    (get-preference "doc:doc-scm-cache")
     (if (and (!= pref "default") (url-exists? (system->url pref)))
-        (system->url pref)
-        (with new (persistent-file-name
-                   (get-tm-cache-path)
-                   "api")
-          (set-preference "doc:doc-scm-cache" (url->system new))
-          new))))
+      (system->url pref)
+      (with new
+        (persistent-file-name (get-tm-cache-path) "api")
+        (set-preference "doc:doc-scm-cache" (url->system new))
+        new
+      ) ;with
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (tm-define (doc-macro-cache)
   (:synopsis "Url of the cache with the collected macro documentation.")
-  (with pref (get-preference "doc:doc-macro-cache")
+  (with pref
+    (get-preference "doc:doc-macro-cache")
     (if (and (!= pref "default") (url-exists? (system->url pref)))
-        (system->url pref)
-        (with new (persistent-file-name 
-                   (get-tm-cache-path)
-                   "api")
-          (set-preference "doc:doc-macro-cache" (url->system new))
-          new))))
+      (system->url pref)
+      (with new
+        (persistent-file-name (get-tm-cache-path) "api")
+        (set-preference "doc:doc-macro-cache" (url->system new))
+        new
+      ) ;with
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (define (explain-scm? t)
   "Is the tree an explain macro for some scheme routine(s)?"
-  (nnull? (select t '(0 :* scm)))) ; always OK?
+  (nnull? (select t '(0 :* scm)))
+) ;define
 
 (define (explain-macro? t)
   "Is the tree an explain macro for some texmacs macro(s)?"
-  (nnull? (select t '(0 0 :* explain-macro)))) ; always OK?
+  (nnull? (select t '(0 0 :* explain-macro)))
+) ;define
 
 (define (explain-scm-keywords t)
   "Returns the list of scheme keywords described in an explain tag."
-  (with tags (select t '(0 :* scm))
-    (map (lambda (x) (first-symbol (tmstring->string (flatten-strings x))))
-         tags)))
+  (with tags
+    (select t '(0 :* scm))
+    (map (lambda (x) (first-symbol (tmstring->string (flatten-strings x)))) tags)
+  ) ;with
+) ;define
 
 (define (explain-macro-keywords t)
   "Returns the list of macro names described in an explain tag."
-  (with tags (select t '(0 :* explain-macro))
-    (map (lambda (x) (tmstring->string (tm-ref x 0))) tags)))
+  (with tags
+    (select t '(0 :* explain-macro))
+    (map (lambda (x) (tmstring->string (tm-ref x 0))) tags)
+  ) ;with
+) ;define
 
 (define (process-explain-sub key cache t lan url)
   "Actually store the tree @t from file @url as @key in @cache."
-  ;(display* "persist-set of: " key "\n")
-  (with prev (string->object (persistent-get cache key))
+  (with prev
+    (string->object (persistent-get cache key))
     (if (eof-object? prev) (set! prev '()))
-    (persistent-set cache key
-      (object->string (cons `(entry ,key ,lan ,(url->system url) ,t) prev)))))
+    (persistent-set cache
+      key
+      (object->string (cons `(entry ,key ,lan ,(url->system url) ,t) prev))
+    ) ;persistent-set
+  ) ;with
+) ;define
 
 (define (process-explain t lan url)
   "Store an explain macro from a given URL into the cache."
   (cond ((explain-scm? t)
-         (for-each (lambda (x) (process-explain-sub x _scm_ t lan url)) 
-                   (explain-scm-keywords t))
-         t)
+         (for-each (lambda (x) (process-explain-sub x _scm_ t lan url))
+           (explain-scm-keywords t)
+         ) ;for-each
+         t
+        ) ;
         ((explain-macro? t)
-         (for-each (lambda (x) (process-explain-sub x _macro_ t lan url)) 
-                   (explain-macro-keywords t))
-         t)
-        (else t)))
+         (for-each (lambda (x) (process-explain-sub x _macro_ t lan url))
+           (explain-macro-keywords t)
+         ) ;for-each
+         t
+        ) ;
+        (else t)
+  ) ;cond
+) ;define
 
 (define (parse-branch l basedir)
-  "Given an stree of type 'branch, open the file and parse it, traversing all
-   its children branches in turn. For each 'explain tag, create an entry in
-   the cache."
-  (if (or (null? l) (not (func? l 'branch))) '()
-      ;(begin
-      ;(display* "b= " basedir "\n")
-      ;(display* "f= " (tm-ref l 1) "\n")
-      (let* ((furl (string->url (string-append basedir "/" (tm-ref l 1))))
-             (t (tree-import furl "texmacs"))
-             (lan (doctree-lan t))
-             (ex (map tree->stree (select t '(:* explain))))
-             (br (map tree->stree (select t '(:* traverse :* branch)))))
-        (set! basedir (string-append basedir "/" (url->system (url-head (tm-ref l 1)))))
-        (for-each (lambda (t) (process-explain t lan furl)) ex)
-        (for-each (lambda (t) (parse-branch t basedir)) br))));)
+  "Given an stree of type 'branch, open the file and parse it, traversing all\n   its children branches in turn. For each 'explain tag, create an entry in\n   the cache."
+  (if (or (null? l) (not (func? l 'branch)))
+    '()
+    (let* ((furl (string->url (string-append basedir "/" (tm-ref l 1))))
+           (t (tree-import furl "texmacs"))
+           (lan (doctree-lan t))
+           (ex (map tree->stree (select t '(:* explain))))
+           (br (map tree->stree (select t '(:* traverse :* branch))))
+          ) ;
+      (set! basedir (string-append basedir "/" (url->system (url-head (tm-ref l 1)))))
+      (for-each (lambda (t) (process-explain t lan furl)) ex)
+      (for-each (lambda (t) (parse-branch t basedir)) br)
+    ) ;let*
+  ) ;if
+) ;define
 
 ;; Define preference defaults in order to have the correct data types
 
 (define (notify-doc-collect-preference pref val)
   (cond ((== pref "doc:collect-timestamp") (noop))
         ((== pref "doc:collect-languages") (noop))
-        (else (noop))))
+        (else (noop))
+  ) ;cond
+) ;define
 
-(define-preferences
-  ("doc:collect-timestamp" 0 notify-doc-collect-preference)
-  ("doc:collect-languages" '() notify-doc-collect-preference))
+(define-preferences ("doc:collect-timestamp" 0 notify-doc-collect-preference)
+ ("doc:collect-languages" '() notify-doc-collect-preference)
+) ;define-preferences
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface
@@ -169,71 +205,100 @@
   (:synopsis "Parse @fname in @basedir and its sub-branches, collecting docs")
   (set! _scm_ (doc-scm-cache))
   (set! _macro_ (doc-macro-cache))
-  (parse-branch `(branch (dummy) ,fname) basedir))
+  (parse-branch `(branch (dummy) ,fname) basedir)
+) ;tm-define
 
 (define (doc-collect-sub where what lan)
   (let ((path (string-append "$TEXMACS_PATH/doc/" where "/"))
         (file (string-append what "." lan ".tm"))
-        (msg  (string-append  "(" what ", " lan ")")))
+        (msg (string-append "(" what ", " lan ")"))
+       ) ;
     (system-wait "Building index" msg)
-    (doc-collect-explains path file)))
+    (doc-collect-explains path file)
+  ) ;let
+) ;define
 
 (tm-define (doc-collect-all lan)
   (:synopsis "Collect all explain tags available in the documentation")
-  (with loc (string-take (language-to-locale lan) 2)
-   (doc-collect-sub "devel/scheme" "scheme" loc)
-   (doc-collect-sub "devel/plugin" "plugin" loc)
-   (doc-collect-sub "devel/plugin" "plugins" loc)
-   (doc-collect-sub "devel/source" "source" loc)
-   (doc-collect-sub "devel/style" "style" loc)
-   (doc-collect-sub "main" "man-reference" loc)
-   (set-preference "doc:collect-timestamp" (current-time))
-   (append-preference "doc:collect-languages" lan)
-   (set-message "Finished collecting symbols documentation."
-                (string-append "(" lan ")"))))
+  (with loc
+    (string-take (language-to-locale lan) 2)
+    (doc-collect-sub "devel/scheme" "scheme" loc)
+    (doc-collect-sub "devel/plugin" "plugin" loc)
+    (doc-collect-sub "devel/plugin" "plugins" loc)
+    (doc-collect-sub "devel/source" "source" loc)
+    (doc-collect-sub "devel/style" "style" loc)
+    (doc-collect-sub "main" "man-reference" loc)
+    (set-preference "doc:collect-timestamp" (current-time))
+    (append-preference "doc:collect-languages" lan)
+    (set-message "Finished collecting symbols documentation."
+      (string-append "(" lan ")")
+    ) ;set-message
+  ) ;with
+) ;tm-define
 
 (tm-define (doc-check-cache)
   (:synopsis "Ensure that the documentation cache is built")
-  (let  ((t (get-preference "doc:collect-timestamp"))
-         (lan (get-output-language))
-         (langs (get-preference "doc:collect-languages")))
+  (let ((t (get-preference "doc:collect-timestamp"))
+        (lan (get-output-language))
+        (langs (get-preference "doc:collect-languages"))
+       ) ;
     (if (not (and (!= t "default") (list? langs) (member lan langs)))
-        (doc-collect-all lan))))
+      (doc-collect-all lan)
+    ) ;if
+  ) ;let
+) ;tm-define
 
 (define (doc-retrieve* cache key lan)
   (let ((docs (string->object (persistent-get cache key)))
-        (aux (lambda (i) (== (tm-ref i 1) lan))))
-    (if (eof-object? docs) '() ; (string->object "") => #<eof>
-        (with res (list-filter docs aux)
-          (if (and (null? res) (!= lan "english")) ; second check just in case 
-              (doc-retrieve* cache key "english") 
-              res)))))
-  
+        (aux (lambda (i) (== (tm-ref i 1) lan)))
+       ) ;
+    (if (eof-object? docs)
+      '()
+      (with res
+        (list-filter docs aux)
+        (if (and (null? res) (!= lan "english"))
+          (doc-retrieve* cache key "english")
+          res
+        ) ;if
+      ) ;with
+    ) ;if
+  ) ;let
+) ;define
+
 (tm-define (doc-retrieve cache key lan)
   (:synopsis "A list with all help items for @key in language @lan in @cache")
   (doc-check-cache)
-  (doc-retrieve* cache key lan))
+  (doc-retrieve* cache key lan)
+) ;tm-define
 
 (define (doc-delete-cache*)
-  (with s (url->system (doc-scm-cache))
+  (with s
+    (url->system (doc-scm-cache))
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-scm-cache")
-    (set-message `(replace "The cache at %1 was deleted" (verbatim ,s)) ""))
-  (with s (url->system (doc-macro-cache))
+    (set-message `(replace ,"The cache at %1 was deleted" (verbatim ,s)) "")
+  ) ;with
+  (with s
+    (url->system (doc-macro-cache))
     (display* "I WOULD HAVE deleted the cache at " s ".\n")
     (reset-preference "doc:doc-macro-cache")
-    (set-message `(replace "The cache at %1 was deleted" (verbatim ,s)) ""))
+    (set-message `(replace ,"The cache at %1 was deleted" (verbatim ,s)) "")
+  ) ;with
   (reset-preference "doc:collect-timestamp")
   (reset-preference "doc:collect-languages")
   (set! _scm_ (url-none))
-  (set! _macro_ (url-none)))
+  (set! _macro_ (url-none))
+) ;define
 
 (tm-define (doc-delete-cache)
   (:synopsis "Delete the documentation cache")
-  (with run 
-      (lambda (go?) (if go? (doc-delete-cache*) (set-message "Cancelled" "")))
-    (user-confirm 
-        `(replace "All the files at %1 and %2 will be deleted. Are you sure?"
-                  (verbatim ,(url->system (doc-scm-cache))) 
-                  (verbatim ,(url->system (doc-macro-cache))))
-      #t run)))
+  (with run
+    (lambda (go?) (if go? (doc-delete-cache*) (set-message "Cancelled" "")))
+    (user-confirm `(replace ,"All the files at %1 and %2 will be deleted. Are you sure?"
+                     (verbatim ,(url->system (doc-scm-cache)))
+                     (verbatim ,(url->system (doc-macro-cache))))
+      #t
+      run
+    ) ;user-confirm
+  ) ;with
+) ;tm-define

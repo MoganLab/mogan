@@ -18,22 +18,24 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc docgrep)
-  (:use (doc help-funcs)))
+(texmacs-module (doc docgrep) (:use (doc help-funcs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get scores for the different files
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (get-score-sub file keyword-list)
-  (with r (system-search-score (system->url file) keyword-list)
-    (cons file r)))
+  (with r (system-search-score (system->url file) keyword-list) (cons file r))
+) ;define
 
 (define (get-score-list keyword-list file-list)
   (let* ((l1 (map (cut get-score-sub <> keyword-list) file-list))
          (l2 (list-filter l1 (lambda (x) (!= (cdr x) 0))))
-         (l3 (list-sort l2 (lambda (x y) (>= (cdr x) (cdr y))))))
-    l3))
+         (l3 (list-sort l2 (lambda (x y) (>= (cdr x) (cdr y)))))
+        ) ;
+    l3
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; build-link-page sets a new buffer help with hyper-links on files which
@@ -42,59 +44,81 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build-doc-search-results keyword the-result)
-  ($tmdoc
-    ($tmdoc-title (replace "Search results for \x10%1\x11"
-                           `(verbatim ,keyword)))
+  ($tmdoc ($tmdoc-title (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword)))
     ($when (null? the-result)
-      (replace "No matches found for \x10%1\x11." keyword))
+      (replace "No matches found for \x10;%1\x11;." keyword)
+    ) ;$when
     ($when (nnull? the-result)
-      ($with highest-score (cdar the-result)
-        ($description-aligned
-          ($for (x the-result)
-            ($describe-item
-                ($inline (quotient (* (cdr x) 100) highest-score) "%")
-                (let* ((path (car x))
-                       (title (help-file-title path))
-                       (text (if (null? title) (car x) title)))
-                 ($link path text))
-              '(htab "")
-              ($ismall
-                ($verbatim
-                  (string-append " ("
-                                 (utf8->cork (cAr (string-tokenize-by-char (car x) #\/))))
-                                 ")" )))))))))
+      ($with highest-score
+        (cdar the-result)
+        ($description-aligned ($for (x the-result)
+                                ($describe-item ($inline (quotient (* (cdr x) 100) highest-score) "%")
+                                  (let* ((path (car x))
+                                         (title (help-file-title path))
+                                         (text (if (null? title) (car x) title))
+                                        ) ;
+                                    ($link path text)
+                                  ) ;let*
+                                  '(htab "")
+                                  ($ismall ($verbatim (string-append " (" (utf8->cork (cAr (string-tokenize-by-char (car x) #\/))))
+                                             ")"
+                                           ) ;$verbatim
+                                  ) ;$ismall
+                                ) ;$describe-item
+                              ) ;$for
+        ) ;$description-aligned
+      ) ;$with
+    ) ;$when
+  ) ;$tmdoc
+) ;define
 
 (define (build-doc-link-page keyword file-list)
   (let* ((keyword-list (string-tokenize-by-char keyword #\space))
-         (the-result (get-score-list keyword-list file-list)))
-    (tm->stree (build-doc-search-results keyword the-result))))
+         (the-result (get-score-list keyword-list file-list))
+        ) ;
+    (tm->stree (build-doc-search-results keyword the-result))
+  ) ;let*
+) ;define
 
-(define (src-file-short-name s) 
+(define (src-file-short-name s)
   (let ((p1 (url->system (unix->url "$TEXMACS_PATH/")))
-        (p2 (url->system (unix->url "$TEXMACS_SOURCE_PATH/"))))
-    (cond ((nstring? s) s)  ;; wtf?
+        (p2 (url->system (unix->url "$TEXMACS_SOURCE_PATH/")))
+       ) ;
+    (cond ((nstring? s) s)
+          ;; wtf?
           ((string-starts? s p1) (string-drop s (string-length p1)))
           ((string-starts? s p2) (string-drop s (string-length p2)))
-          (else s))))
+          (else s)
+    ) ;cond
+  ) ;let
+) ;define
 
 (define (build-src-search-results keyword the-result)
-  ($tmdoc
-    ($tmdoc-title (replace "Search results for \x10%1\x11"
-                           `(verbatim ,keyword)))
+  ($tmdoc ($tmdoc-title (replace "Search results for \x10;%1\x11;" `(verbatim ,keyword)))
     ($when (null? the-result)
-      (replace "No matches found for \x10%1\x11." keyword))
+      (replace "No matches found for \x10;%1\x11;." keyword)
+    ) ;$when
     ($when (nnull? the-result)
-      ($with highest-score (cdar the-result)
-        ($description-aligned
-          ($for (x the-result)
-            ($describe-item
-                ($inline (quotient (* (cdr x) 100) highest-score) "%")
-              ($link (car x) (src-file-short-name (car x))))))))))
+      ($with highest-score
+        (cdar the-result)
+        ($description-aligned ($for (x the-result)
+                                ($describe-item ($inline (quotient (* (cdr x) 100) highest-score) "%")
+                                  ($link (car x) (src-file-short-name (car x)))
+                                ) ;$describe-item
+                              ) ;$for
+        ) ;$description-aligned
+      ) ;$with
+    ) ;$when
+  ) ;$tmdoc
+) ;define
 
 (define (build-src-link-page keyword file-list)
   (let* ((keyword-list (string-tokenize-by-char keyword #\space))
-         (the-result (get-score-list keyword-list file-list)))
-    (tm->stree (build-src-search-results keyword the-result))))
+         (the-result (get-score-list keyword-list file-list))
+        ) ;
+    (tm->stree (build-src-search-results keyword the-result))
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Find documentation or source in a given path and matching a given pattern
@@ -106,31 +130,45 @@
 
 (define (url-collect path pattern)
   (or (ahash-ref url-collect-cache (string-append path pattern))
-      (ahash-set! url-collect-cache (string-append path pattern)
-                  (let* ((u (url-append (unix->url path) (url-any)))
-                         (v (url-expand (url-complete u "dr")))
-                         (w (url-append v (url-wildcard pattern)))
-                         (x (url-expand (url-complete w "fr"))))
-                    x))))
+    (ahash-set! url-collect-cache
+      (string-append path pattern)
+      (let* ((u (url-append (unix->url path) (url-any)))
+             (v (url-expand (url-complete u "dr")))
+             (w (url-append v (url-wildcard pattern)))
+             (x (url-expand (url-complete w "fr")))
+            ) ;
+        x
+      ) ;let*
+    ) ;ahash-set!
+  ) ;or
+) ;define
 
 (define (docgrep what path . patterns)
   (let* ((l1 (map (lambda (pat) (url-collect path pat)) patterns))
          (l2 (map url->system l1))
-         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2)))
-    (build-doc-link-page what l3)))
+         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2))
+        ) ;
+    (build-doc-link-page what l3)
+  ) ;let*
+) ;define
 
 (define (txtgrep what docs)
   (let* ((l1 (list-filter docs (cut url-rooted-protocol? <> "default")))
          (l2 (map url->system (list-filter l1 url-exists?)))
-         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2)))
-    (build-doc-link-page what l3)))
+         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2))
+        ) ;
+    (build-doc-link-page what l3)
+  ) ;let*
+) ;define
 
-; TODO: include results from the code indexer when available
 (define (srcgrep what path . patterns)
   (let* ((l1 (map (lambda (pat) (url-collect path pat)) patterns))
          (l2 (map url->system l1))
-         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2)))
-    (build-src-link-page what l3)))
+         (l3 (append-map (cut string-tokenize-by-char <> path-separator) l2))
+        ) ;
+    (build-src-link-page what l3)
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Integration in TeXmacs file system
@@ -139,52 +177,73 @@
 (tmfs-load-handler (grep query)
   (let* ((type (query-ref query "type"))
          (what (query-ref query "what"))
-         (lan  (string-take (language-to-locale (get-output-language)) 2)))
-    (cond ((== type "Scheme")
-           (srcgrep what "$TEXMACS_PATH/progs" "*.scm"))
+         (lan (string-take (language-to-locale (get-output-language)) 2))
+        ) ;
+    (cond ((== type "Scheme") (srcgrep what "$TEXMACS_PATH/progs" "*.scm"))
           ((== type "Styles")
-           (srcgrep what "$TEXMACS_PATH/styles:$TEXMACS_PATH/packages" "*.ts"))
-          ((== type "C++")
-           (srcgrep what "$TEXMACS_SOURCE_PATH/src" "*.hpp" "*.cpp"))
+           (srcgrep what "$TEXMACS_PATH/styles:$TEXMACS_PATH/packages" "*.ts")
+          ) ;
+          ((== type "C++") (srcgrep what "$TEXMACS_SOURCE_PATH/src" "*.hpp" "*.cpp"))
           ((== type "All code")
-           (srcgrep what "$TEXMACS_PATH:$TEXMACS_SOURCE_PATH/src"
-                    "*.scm" "*.hpp" "*.cpp" "*.ts"))
-          ((== type "texts")
-           (docgrep what "$TEXMACS_FILE_PATH" "*.tm"))
-          ((== type "recent")
-           (txtgrep what (recent-file-list 50)))
+           (srcgrep what
+             "$TEXMACS_PATH:$TEXMACS_SOURCE_PATH/src"
+             "*.scm"
+             "*.hpp"
+             "*.cpp"
+             "*.ts"
+           ) ;srcgrep
+          ) ;
+          ((== type "texts") (docgrep what "$TEXMACS_FILE_PATH" "*.tm"))
+          ((== type "recent") (txtgrep what (recent-file-list 50)))
           ((== type "doc")
-           (docgrep what "$TEXMACS_DOC_PATH"
-            (string-append "*." lan ".tm")))
-          (else
-           (docgrep what "$TEXMACS_DOC_PATH" "*.en.tm")))))
+           (docgrep what "$TEXMACS_DOC_PATH" (string-append "*." lan ".tm"))
+          ) ;
+          (else (docgrep what "$TEXMACS_DOC_PATH" "*.en.tm"))
+    ) ;cond
+  ) ;let*
+) ;tmfs-load-handler
 
 (tmfs-title-handler (grep query doc)
-  (with what (query-ref query "what")
-    (replace "Help - Search results for \x10%1\x11" what)))
+  (with what
+    (query-ref query "what")
+    (replace "Help - Search results for \x10;%1\x11;" what)
+  ) ;with
+) ;tmfs-title-handler
 
 (tm-define (docgrep-in-doc what)
   (:synopsis* "Search words in the documentation")
   (:argument what "Search")
-  (with query (list->query (list (cons "type" "doc") (cons "what" what)))
-    (load-document (string-append "tmfs://grep/" query))))
+  (with query
+    (list->query (list (cons "type" "doc") (cons "what" what)))
+    (load-document (string-append "tmfs://grep/" query))
+  ) ;with
+) ;tm-define
 
 (tm-define (docgrep-in-src what where)
   (:synopsis* "Search words")
   (:argument what "Search")
   (:argument where "In")
   (:proposals where '("Scheme" "Styles" "C++" "All code"))
-  (with query (list->query (list (cons "type" where) (cons "what" what)))
-    (load-document (string-append "tmfs://grep/" query))))
+  (with query
+    (list->query (list (cons "type" where) (cons "what" what)))
+    (load-document (string-append "tmfs://grep/" query))
+  ) ;with
+) ;tm-define
 
 (tm-define (docgrep-in-texts what)
   (:synopsis* "Search words in my documents")
   (:argument what "Search")
-  (with query (list->query (list (cons "type" "texts") (cons "what" what)))
-    (load-document (string-append "tmfs://grep/" query))))
+  (with query
+    (list->query (list (cons "type" "texts") (cons "what" what)))
+    (load-document (string-append "tmfs://grep/" query))
+  ) ;with
+) ;tm-define
 
 (tm-define (docgrep-in-recent what)
   (:synopsis* "Search words in recent documents")
   (:argument what "Search")
-  (with query (list->query (list (cons "type" "recent") (cons "what" what)))
-    (load-document (string-append "tmfs://grep/" query))))
+  (with query
+    (list->query (list (cons "type" "recent") (cons "what" what)))
+    (load-document (string-append "tmfs://grep/" query))
+  ) ;with
+) ;tm-define

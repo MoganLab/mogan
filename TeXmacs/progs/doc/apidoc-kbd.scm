@@ -13,15 +13,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc apidoc-kbd)
-  (:use (doc apidoc-widgets)))
+(texmacs-module (doc apidoc-kbd) (:use (doc apidoc-widgets)))
 
 (tm-define (macro-popup-help)
   (:synopsis "Pops up the help window for the innermost TeXmacs macro")
-  (with t (tree-up (cursor-tree))
-    (help-window "macros" (symbol->string (tree-label t)))))
+  (with t
+    (tree-up (cursor-tree))
+    (help-window "macros" (symbol->string (tree-label t)))
+  ) ;with
+) ;tm-define
 
-(kbd-map
- (:require (and developer-mode? (not (in-prog-scheme?))))
- ("A-F1" (macro-popup-help)))
-
+(kbd-map (:require (and developer-mode? (not (in-prog-scheme?))))
+ ("A-F1" (macro-popup-help))
+) ;kbd-map
