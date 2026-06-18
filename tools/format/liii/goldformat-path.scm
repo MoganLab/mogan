@@ -39,6 +39,7 @@
         "TeXmacs/progs/link"
         "TeXmacs/progs/lolly"
         "TeXmacs/progs/math"
+        "TeXmacs/progs/moebius"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"

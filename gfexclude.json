@@ -11,6 +11,10 @@
     {
       "path": "TeXmacs/progs/database/bib-db.scm",
       "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"
+    },
+    {
+      "path": "TeXmacs/progs/moebius/cork-test.scm",
+      "reason": "含 Unicode 码点的十六进制字面量（#x27E8/#x27E9 等），自动格式化会改写为十进制（10216/10217），降低可读性，保持与 main 一致不格式化"
     }
   ]
 }
