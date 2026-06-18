@@ -140,24 +140,23 @@
   (let* ((c (tree-ref t 0))
          (l0 (concat-decompose c))
          (l2 (list-scatter l0 binary-relation? #t))
-        )
+        ) ;
     (if (>= (length l2) 2)
-        (let* ((col1 (apply tmconcat (car l2)))
-               (col2 (apply tmconcat (cadr l2)))
-               (r `(tformat (table (row (cell ,col1) (cell ,col2))
-                                   (row (cell "") (cell "")))))
-              )
-          (tree-set! c r)
-          (tree-go-to t 0 0 1 0 0 :end)
-        )
-        (let* ((r `(tformat (table (row (cell ,c) (cell ""))
-                                   (row (cell "") (cell "")))))
-              )
-          (tree-set! c r)
-          (tree-go-to t 0 0 1 0 0 :end)
-        )
-    )
-  )
+      (let* ((col1 (apply tmconcat (car l2)))
+             (col2 (apply tmconcat (cadr l2)))
+             (r `(tformat (table (row (cell ,col1) (cell ,col2))
+                            (row (cell "") (cell "")))))
+            ) ;
+        (tree-set! c r)
+        (tree-go-to t 0 0 1 0 0 :end)
+      ) ;let*
+      (let* ((r `(tformat (table (row (cell ,c) (cell ""))
+                            (row (cell "") (cell ""))))))
+        (tree-set! c r)
+        (tree-go-to t 0 0 1 0 0 :end)
+      ) ;let*
+    ) ;if
+  ) ;let*
 ) ;tm-define
 
 (tm-define (label-insert t)

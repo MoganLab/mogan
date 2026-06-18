@@ -11,32 +11,43 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (math math-speech-en)
-  (:use (math math-speech)))
+(texmacs-module (math math-speech-en) (:use (math math-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sanitize input
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-table english-numbers
-  ("0" "zero") ("1" "one") ("2" "two") ("3" "three") ("4" "four")
-  ("5" "five") ("6" "six") ("7" "seven") ("8" "eight") ("9" "nine"))
+ ("0" "zero")
+ ("1" "one")
+ ("2" "two")
+ ("3" "three")
+ ("4" "four")
+ ("5" "five")
+ ("6" "six")
+ ("7" "seven")
+ ("8" "eight")
+ ("9" "nine")
+) ;define-table
 
-(define-table english-ambiguate
-  ("d" "d/b/p") ("m" "m/n") ("s" "s/f"))
+(define-table english-ambiguate ("d" "d/b/p") ("m" "m/n") ("s" "s/f"))
 
 (define (string-table-replace s t)
-  (with repl (lambda (x) (with y (ahash-ref t x) (if y (car y) x)))
-    (with l (string-decompose s " ")
-      (string-recompose (map repl l) " "))))
+  (with repl
+    (lambda (x) (with y (ahash-ref t x) (if y (car y) x)))
+    (with l (string-decompose s " ") (string-recompose (map repl l) " "))
+  ) ;with
+) ;define
 
 (define (rewrite-/ s)
-  (with l (string-decompose s "/")
-    (if (and (== (length l) 2)
-             (string-number? (car l))
-             (string-number? (cadr l)))
-        (string-replace s "/" " @over ")
-        s)))
+  (with l
+    (string-decompose s "/")
+    (if (and (== (length l) 2) (string-number? (car l)) (string-number? (cadr l)))
+      (string-replace s "/" " @over ")
+      s
+    ) ;if
+  ) ;with
+) ;define
 
 (tm-define (speech-sanitize lan mode s)
   (:require (and (== lan 'english) (== mode 'math)))
@@ -67,202 +78,289 @@
   (set! s (string-replace s "  " " "))
   (set! s (string-replace s "  " " "))
   (set! s (tm-string-trim-both s))
-  s)
+  s
+) ;tm-define
 
-(speech-collection dont-break english
-  "ad" "ag" "ah" "al" "an" "ar" "as" "eg" "el" "em" "en" "ex"
-  "if" "in" "is" "it" "of" "oh" "ok" "ol" "or" "up"
-  "be" "de" "he" "pe" "se" "ve" "we"
-  "ma" "va" "bi" "hi" "ji" "pi" "si" "xi" "yi"
-  "do" "fo" "ho" "jo" "ko" "lo" "no" "po" "so" "to" "vo" "wo"
-  "mu" "nu" "by" "hy" "ky" "my" "sy")
+(speech-collection dont-break
+  english
+  "ad"
+  "ag"
+  "ah"
+  "al"
+  "an"
+  "ar"
+  "as"
+  "eg"
+  "el"
+  "em"
+  "en"
+  "ex"
+  "if"
+  "in"
+  "is"
+  "it"
+  "of"
+  "oh"
+  "ok"
+  "ol"
+  "or"
+  "up"
+  "be"
+  "de"
+  "he"
+  "pe"
+  "se"
+  "ve"
+  "we"
+  "ma"
+  "va"
+  "bi"
+  "hi"
+  "ji"
+  "pi"
+  "si"
+  "xi"
+  "yi"
+  "do"
+  "fo"
+  "ho"
+  "jo"
+  "ko"
+  "lo"
+  "no"
+  "po"
+  "so"
+  "to"
+  "vo"
+  "wo"
+  "mu"
+  "nu"
+  "by"
+  "hy"
+  "ky"
+  "my"
+  "sy"
+) ;speech-collection
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tables for recognizing mathematics inside text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-collection prefix english
-  "big" "small" "capital" "uppercase" "lowercase"
-  "bold" "upright" "calligraphic" "fraktur" "gothic"
-  "blackboard bold" "sans serif" "typewriter")
+(speech-collection prefix
+  english
+  "big"
+  "small"
+  "capital"
+  "uppercase"
+  "lowercase"
+  "bold"
+  "upright"
+  "calligraphic"
+  "fraktur"
+  "gothic"
+  "blackboard bold"
+  "sans serif"
+  "typewriter"
+) ;speech-collection
 
-(speech-collection prefix english
-  "exponential" "logarithm" "sine" "cosine" "tangent"
-  "square root")
+(speech-collection prefix
+  english
+  "exponential"
+  "logarithm"
+  "sine"
+  "cosine"
+  "tangent"
+  "square root"
+) ;speech-collection
 
-(speech-collection postfix english
-  "prime" "dagger" "square" "squared" "cube" "cubed")
+(speech-collection postfix
+  english
+  "prime"
+  "dagger"
+  "square"
+  "squared"
+  "cube"
+  "cubed"
+) ;speech-collection
 
-(speech-collection infix english
-  "equal" "assign" "congruent"
-  "superior" "inferior" "smaller" "larger" "less" "greater")
+(speech-collection infix
+  english
+  "equal"
+  "assign"
+  "congruent"
+  "superior"
+  "inferior"
+  "smaller"
+  "larger"
+  "less"
+  "greater"
+) ;speech-collection
 
-(speech-collection math-mode english
-  "math" "maths" "mathematics")
+(speech-collection math-mode english "math" "maths" "mathematics")
 
-(speech-collection text-mode english
-  "text")
+(speech-collection text-mode english "text")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Entering mathematical symbols via English speech
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (speech-symbols english
-  ("zero" "0")
-  ("one" "1")
-  ("two" "2")
-  ("three" "3")
-  ("four" "4")
-  ("five" "5")
-  ("six" "6")
-  ("seven" "7")
-  ("eight" "8")
-  ("nine" "9")
-  ("ten" "10")
-  ("hundred" "100")
-  ("thousand" "1000")
-  ("million" "1000000")
-  ("billion" "1000000000")
+ ("zero" "0")
+ ("one" "1")
+ ("two" "2")
+ ("three" "3")
+ ("four" "4")
+ ("five" "5")
+ ("six" "6")
+ ("seven" "7")
+ ("eight" "8")
+ ("nine" "9")
+ ("ten" "10")
+ ("hundred" "100")
+ ("thousand" "1000")
+ ("million" "1000000")
+ ("billion" "1000000000")
 
-  ("a" "a")
-  ("b" "b")
-  ("c" "c")
-  ("d" "d")
-  ("e" "e")
-  ("f" "f")
-  ("g" "g")
-  ("h" "h")
-  ("i" "i")
-  ("j" "j")
-  ("k" "k")
-  ("l" "l")
-  ("m" "m")
-  ("n" "n")
-  ("o" "o")
-  ("p" "p")
-  ("q" "q")
-  ("r" "r")
-  ("s" "s")
-  ("t" "t")
-  ("u" "u")
-  ("v" "v")
-  ("w" "w")
-  ("x" "x")
-  ("y" "y")
-  ("z" "z")
+ ("a" "a")
+ ("b" "b")
+ ("c" "c")
+ ("d" "d")
+ ("e" "e")
+ ("f" "f")
+ ("g" "g")
+ ("h" "h")
+ ("i" "i")
+ ("j" "j")
+ ("k" "k")
+ ("l" "l")
+ ("m" "m")
+ ("n" "n")
+ ("o" "o")
+ ("p" "p")
+ ("q" "q")
+ ("r" "r")
+ ("s" "s")
+ ("t" "t")
+ ("u" "u")
+ ("v" "v")
+ ("w" "w")
+ ("x" "x")
+ ("y" "y")
+ ("z" "z")
 
-  ("alpha" "<alpha>")
-  ("beta" "<beta>")
-  ("gamma" "<gamma>")
-  ("delta" "<delta>")
-  ("epsilon" "<epsilon>")
-  ("zeta" "<zeta>")
-  ("eta" "<eta>")
-  ("theta" "<theta>")
-  ("iota" "<iota>")
-  ("kappa" "<kappa>")
-  ("lambda" "<lambda>")
-  ("mu" "<mu>")
-  ("nu" "<nu>")
-  ("xi" "<xi>")
-  ("omicron" "<omicron>")
-  ("pi" "<pi>")
-  ("rho" "<rho>")
-  ("sigma" "<sigma>")
-  ("tau" "<tau>")
-  ("upsilon" "<upsilon>")
-  ("phi" "<phi>")
-  ("psi" "<psi>")
-  ("chi" "<chi>")
-  ("omega" "<omega>")
+ ("alpha" "<alpha>")
+ ("beta" "<beta>")
+ ("gamma" "<gamma>")
+ ("delta" "<delta>")
+ ("epsilon" "<epsilon>")
+ ("zeta" "<zeta>")
+ ("eta" "<eta>")
+ ("theta" "<theta>")
+ ("iota" "<iota>")
+ ("kappa" "<kappa>")
+ ("lambda" "<lambda>")
+ ("mu" "<mu>")
+ ("nu" "<nu>")
+ ("xi" "<xi>")
+ ("omicron" "<omicron>")
+ ("pi" "<pi>")
+ ("rho" "<rho>")
+ ("sigma" "<sigma>")
+ ("tau" "<tau>")
+ ("upsilon" "<upsilon>")
+ ("phi" "<phi>")
+ ("psi" "<psi>")
+ ("chi" "<chi>")
+ ("omega" "<omega>")
 
-  ("constant e" "<mathe>")
-  ("constant i" "<mathi>")
-  ("constant pi" "<mathpi>")
-  ("constant gamma" "<mathgamma>")
-  ("euler constant" "<mathgamma>")
+ ("constant e" "<mathe>")
+ ("constant i" "<mathi>")
+ ("constant pi" "<mathpi>")
+ ("constant gamma" "<mathgamma>")
+ ("euler constant" "<mathgamma>")
 
-  ("infinity" "<infty>")
-  ("complex numbers" "<bbb-C>")
-  ("positive integers" "<bbb-N>")
-  ("rationals" "<bbb-Q>")
-  ("reals" "<bbb-R>")
-  ("integers" "<bbb-Z>")
+ ("infinity" "<infty>")
+ ("complex numbers" "<bbb-C>")
+ ("positive integers" "<bbb-N>")
+ ("rationals" "<bbb-Q>")
+ ("reals" "<bbb-R>")
+ ("integers" "<bbb-Z>")
 
-  ("plus" "+")
-  ("minus" "-")
-  ("times" "*")
-  ("cross" "<times>")
-  ("slash" "/")
-  ("apply" " ")
-  ("space" " ")
-  ("after" "<circ>")
-  ("tensor" "<otimes>")
-  ("factorial" "!")
+ ("plus" "+")
+ ("minus" "-")
+ ("times" "*")
+ ("cross" "<times>")
+ ("slash" "/")
+ ("apply" " ")
+ ("space" " ")
+ ("after" "<circ>")
+ ("tensor" "<otimes>")
+ ("factorial" "!")
 
-  ("equal" "=")
-  ("not equal" "<neq>")
-  ("assign" "<assign>")
-  ("defined as" "<assign>")
-  ("congruent" "<equiv>")
-  ("less" "<less>")
-  ("less equal" "<leqslant>")
-  ("greater" "<gtr>")
-  ("greater equal" "<geqslant>")
-  ("much less" "<ll>")
-  ("much greater" "<gg>")
+ ("equal" "=")
+ ("not equal" "<neq>")
+ ("assign" "<assign>")
+ ("defined as" "<assign>")
+ ("congruent" "<equiv>")
+ ("less" "<less>")
+ ("less equal" "<leqslant>")
+ ("greater" "<gtr>")
+ ("greater equal" "<geqslant>")
+ ("much less" "<ll>")
+ ("much greater" "<gg>")
 
-  ("element" "<in>")
-  ("is in" "<in>")
-  ("not in" "<nin>")
-  ("is not in" "<nin>")
-  ("contains" "<ni>")
-  ("subset" "<subset>")
-  ("superset" "<supset>")
-  ("intersection" "<cap>")
-  ("union" "<cup>")
+ ("element" "<in>")
+ ("is in" "<in>")
+ ("not in" "<nin>")
+ ("is not in" "<nin>")
+ ("contains" "<ni>")
+ ("subset" "<subset>")
+ ("superset" "<supset>")
+ ("intersection" "<cap>")
+ ("union" "<cup>")
 
-  ("similar" "<sim>")
-  ("asymptotic" "<asymp>")
-  ("approx" "<approx>")
-  ("isomorphic" "<cong>")
-  ("negligible" "<prec>")
-  ("dominated" "<preccurlyeq>")
-  ("dominates" "<succcurlyeq>")
-  ("strictly dominates" "<succ>")
+ ("similar" "<sim>")
+ ("asymptotic" "<asymp>")
+ ("approx" "<approx>")
+ ("isomorphic" "<cong>")
+ ("negligible" "<prec>")
+ ("dominated" "<preccurlyeq>")
+ ("dominates" "<succcurlyeq>")
+ ("strictly dominates" "<succ>")
 
-  ("for all" "<forall>")
-  ("exists" "<exists>")
-  ("or" "<vee>")
-  ("logical and" "<wedge>")
-  ("implies" "<Rightarrow>")
-  ("equivalent" "<Leftrightarrow>")
+ ("for all" "<forall>")
+ ("exists" "<exists>")
+ ("or" "<vee>")
+ ("logical and" "<wedge>")
+ ("implies" "<Rightarrow>")
+ ("equivalent" "<Leftrightarrow>")
 
-  ("right arrow" "<rightarrow>")
-  ("long right arrow" "<rightarrow>")
-  ("maps to" "<mapsto>")
-  ("long maps to" "<longmapsto>")
+ ("right arrow" "<rightarrow>")
+ ("long right arrow" "<rightarrow>")
+ ("maps to" "<mapsto>")
+ ("long maps to" "<longmapsto>")
 
-  ("period" ".")
-  ("comma" ",")
-  ("colon" ":")
-  ("semicolon" ";")
-  ("exclamation mark" "!")
-  ("question mark" "?")
-  ("." ".")
-  ("," ",")
-  (":" ":")
-  (";" ";")
-  ("!" "!")
-  ("?" "?")
-  ("such that" "<suchthat>")
-  )
+ ("period" ".")
+ ("comma" ",")
+ ("colon" ":")
+ ("semicolon" ";")
+ ("exclamation mark" "!")
+ ("question mark" "?")
+ ("." ".")
+ ("," ",")
+ (":" ":")
+ (";" ";")
+ ("!" "!")
+ ("?" "?")
+ ("such that" "<suchthat>")
+) ;speech-symbols
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; More complex mathematical speech commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map english math
+(speech-map english
+  math
   ("uppercase" (speech-alter-letter :big))
   ("lowercase" (speech-alter-letter :small))
   ("bold" (speech-alter-letter :bold))
@@ -278,7 +376,7 @@
   ("sans serif" (speech-alter-letter :ss))
   ("typewriter" (speech-alter-letter :tt))
   ("operator" (speech-operator))
- 
+
   ("factor" (speech-factor))
   ("inverse" (speech-insert-superscript "-1"))
   ("square" (speech-insert-superscript "2"))
@@ -329,7 +427,7 @@
   (")" (speech-close))
   ("]" (speech-close))
   ("}" (speech-close))
-  
+
   ("arc cos" (speech-insert-operator "arccos"))
   ("arc sin" (speech-insert-operator "arcsin"))
   ("arc tan" (speech-insert-operator "arctan"))
@@ -413,14 +511,15 @@
   ("diagonal dots" (insert "<ddots>"))
   ("upward dots" (insert "<udots>"))
 
-  ;;("more" "var")
-  )
+  ;; ("more" "var")
+) ;speech-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Commonly used unambiguous words for letters
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-reduce english math
+(speech-reduce english
+  math
   ("alfred" "a")
   ("benjamin" "b")
   ("benji" "b")
@@ -451,13 +550,15 @@
   ("william" "w")
   ("x-ray" "x")
   ("yellow" "y")
-  ("zebra" "z"))
+  ("zebra" "z")
+) ;speech-reduce
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Speech reductions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-reduce english math
+(speech-reduce english
+  math
   ("digit zero" "zero")
   ("digit one" "one")
   ("digit two" "two")
@@ -472,7 +573,7 @@
   ("digit eight" "eight")
   ("digit a/e/8" "eight")
   ("digit nine" "nine")
-  
+
   ("letter a" "a")
   ("letter b" "b")
   ("letter c" "c")
@@ -616,7 +717,7 @@
   ("superset of" "superset")
   ("is a superset of" "superset")
   ("into" "right arrow")
-  
+
   ("there exists a" "exists")
   ("there exists an" "exists")
   ("there exists" "exists")
@@ -706,7 +807,7 @@
   ("is approximately" "approximately")
   ("isomorphic to" "isomorphic")
   ("is isomorphic to" "isomorphic")
-  
+
   ("negligible with respect to" "negligible")
   ("is negligible with respect to" "negiglible")
   ("is strictly dominated by" "negligible")
@@ -724,4 +825,4 @@
   ("big product" "product")
   ("big tensor product" "tensor product")
   ("big integral" "integral")
-  )
+) ;speech-reduce

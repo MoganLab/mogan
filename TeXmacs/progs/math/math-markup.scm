@@ -15,17 +15,21 @@
 
 (tm-define (math-check t)
   (:secure #t)
-  (if (packrat-correct? "std-math" "Main" t) t
-      `(math-error ,t)))
+  (if (packrat-correct? "std-math" "Main" t) t `(math-error ,t))
+) ;tm-define
 
 (tm-define (math-check-table t)
   (:secure #t)
-  ;;(display* "t= " t "\n")
+  ;; (display* "t= " t "\n")
   (cond ((tree-is? t 'tformat)
-	 (with l (tree-children t)
-	   `(tformat ,@(cDr l) ,(math-check-table (cAr l)))))
-	((tree-in? t '(document table row cell))
-	 `(,(tree-label t) ,@(map math-check-table (tree-children t))))
-	((== t (tree "")) t)
+         (with l (tree-children t) `(tformat ,@(cDr l)
+                                      ,(math-check-table (cAr l))))
+        ) ;
+        ((tree-in? t '(document table row cell))
+         `(,(tree-label t) ,@(map math-check-table (tree-children t)))
+        ) ;
+        ((== t (tree "")) t)
         ((packrat-correct? "std-math" "Cell" t) t)
-        (else `(math-error ,t))))
+        (else `(math-error ,t))
+  ) ;cond
+) ;tm-define
