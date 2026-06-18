@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils automate auto-menu)
-  (:use (utils automate auto-tmfs)))
+(texmacs-module (utils automate auto-menu) (:use (utils automate auto-tmfs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main menu for automated document generation
@@ -20,29 +19,33 @@
 
 (menu-bind automate-menu
   (-> "Block"
-      ("if" (make-block-if))
-      ("if-else" (make-block-if-else))
-      ("for" (make-block-for))
-      ("while" (make-block-while))
-      ---
-      ("assign" (make-block-assign))
-      ---
-      ("intersperse" (make-block-intersperse))
-      ("tag" (make-block-tag)))
+   ("if" (make-block-if))
+   ("if-else" (make-block-if-else))
+   ("for" (make-block-for))
+   ("while" (make-block-while))
+   ---
+   ("assign" (make-block-assign))
+   ---
+   ("intersperse" (make-block-intersperse))
+   ("tag" (make-block-tag))
+  ) ;->
   (-> "Inline"
-      ("if" (make-inline-if))
-      ("if-else" (make-inline-if-else))
-      ("for" (make-inline-for))
-      ("while" (make-inline-while))
-      ---
-      ("assign" (make-inline-assign))
-      ---
-      ("intersperse" (make-inline-intersperse))
-      ("tag" (make-inline-tag)))
+   ("if" (make-inline-if))
+   ("if-else" (make-inline-if-else))
+   ("for" (make-inline-for))
+   ("while" (make-inline-while))
+   ---
+   ("assign" (make-inline-assign))
+   ---
+   ("intersperse" (make-inline-intersperse))
+   ("tag" (make-inline-tag))
+  ) ;->
   (-> "Output"
-      ("String" (make-output-string))
-      ("Inline content" (make-inline-output))
-      ("Block content" (make-block-output))))
+   ("String" (make-output-string))
+   ("Inline content" (make-inline-output))
+   ("Block content" (make-block-output))
+  ) ;->
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Insert menu as extra top level menu
@@ -50,6 +53,5 @@
 
 (menu-bind texmacs-extra-menu
   (former)
-  (if (style-has? "automate-dtd")
-      (=> "Automate"
-	  (link automate-menu))))
+  (if (style-has? "automate-dtd") (=> "Automate" (link automate-menu)))
+) ;menu-bind

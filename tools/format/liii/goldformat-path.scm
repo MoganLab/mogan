@@ -36,6 +36,7 @@
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"
         "TeXmacs/progs/texmacs/keyboard"
+        "TeXmacs/progs/utils/automate"
         "TeXmacs/progs/utils/plugins"
         "TeXmacs/progs/version"
         "TeXmacs/plugins/llm/progs")

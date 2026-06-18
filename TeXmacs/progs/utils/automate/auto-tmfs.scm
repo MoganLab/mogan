@@ -11,44 +11,58 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils automate auto-tmfs)
-  (:use (utils automate auto-build)))
+(texmacs-module (utils automate auto-tmfs) (:use (utils automate auto-build)))
 
 (tmfs-title-handler (automate name doc)
   (let* ((question (tmfs-car name))
          (file-name (tmfs-cdr name))
-         (u (tmfs-string->url file-name)))
-    (string-append (url->system (url-tail u)) " ? " question)))
+         (u (tmfs-string->url file-name))
+        ) ;
+    (string-append (url->system (url-tail u)) " ? " question)
+  ) ;let*
+) ;tmfs-title-handler
 
 (define (query-escape q)
   ;; FIXME: encodings
-  (string-replace q "&#42;" "*"))
+  (string-replace q "&#42;" "*")
+) ;define
 
 (define (query->assoc q)
   (let* ((l (string-decompose q ","))
          (ls (map (cut string-decompose <> "=") l))
-         (fls (list-filter ls (lambda (x) (== (length x) 2)))))
-    (map (lambda (x) (cons (string->symbol (car x)) (cadr x))) fls)))
+         (fls (list-filter ls (lambda (x) (== (length x) 2))))
+        ) ;
+    (map (lambda (x) (cons (string->symbol (car x)) (cadr x))) fls)
+  ) ;let*
+) ;define
 
 (tm-define (auto-load-tree u bindings safe?)
-  (with doc (if (buffer-exists? u) (buffer-get u) (tree-import u "generic"))
-    (with-global auto-safe-mode? safe?
-      (apply build-document (cons doc bindings)))))
+  (with doc
+    (if (buffer-exists? u) (buffer-get u) (tree-import u "generic"))
+    (with-global auto-safe-mode? safe? (apply build-document (cons doc bindings)))
+  ) ;with
+) ;tm-define
 
 (tmfs-load-handler (automate name)
   (let* ((q* (tmfs-car name))
-	 (q (query-escape q*))
+         (q (query-escape q*))
          (bs (query->assoc q))
          (file-name (tmfs-cdr name))
          (u (tmfs-string->url file-name))
-         (safe? (string-starts? (url->unix u) "tmfs://help/")))
-    (auto-load-tree u bs safe?)))
+         (safe? (string-starts? (url->unix u) "tmfs://help/"))
+        ) ;
+    (auto-load-tree u bs safe?)
+  ) ;let*
+) ;tmfs-load-handler
 
 (tm-define (auto-load-aux name u bindings)
-  (with doc (auto-load-tree u bindings #t)
+  (with doc
+    (auto-load-tree u bindings #t)
     (lazy-initialize-force)
     (cursor-history-add (cursor-path))
-    (open-auxiliary name doc)))
+    (open-auxiliary name doc)
+  ) ;with
+) ;tm-define
 
 (tm-define (auto-load-help name h)
   (let* ((base "tmfs://help/article/tm/doc/main/automated/")
@@ -56,5 +70,8 @@
          (test (string-append "$TEXMACS_PATH/doc/main/automated/" h ext))
          (loc (string-append base h ext))
          (eng (string-append base h ".en.tm"))
-         (u (if (url-exists? test) loc eng)))
-    (auto-load-aux "Contextual help" (string->url u) (list))))
+         (u (if (url-exists? test) loc eng))
+        ) ;
+    (auto-load-aux "Contextual help" (string->url u) (list))
+  ) ;let*
+) ;tm-define

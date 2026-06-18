@@ -18,24 +18,36 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-group implied-tag
-  implied-generic implied-verbatim implied-scm implied-cpp implied-mmx
-  implied-python implied-julia implied-scilab implied-shell)
+  implied-generic
+  implied-verbatim
+  implied-scm
+  implied-cpp
+  implied-mmx
+  implied-python
+  implied-julia
+  implied-scilab
+  implied-shell
+) ;define-group
 
-(define-group variant-tag
-  (implied-tag))
+(define-group variant-tag (implied-tag))
 
-(define-group similar-tag
-  (implied-tag))
+(define-group similar-tag (implied-tag))
 
 (define-group auto-block-tag
-  block-if block-for block-while
+  block-if
+  block-for
+  block-while
   block-assign
-  block-intersperse)
+  block-intersperse
+) ;define-group
 
 (define-group auto-inline-tag
-  inline-if inline-for inline-while
+  inline-if
+  inline-for
+  inline-while
   inline-assign
-  inline-intersperse)
+  inline-intersperse
+) ;define-group
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting automated tags
@@ -45,37 +57,50 @@
   (cond ((== kind :block) '(document ""))
         ((== kind :inline) "")
         ((== kind :code) '(implied-scm ""))
-        (else "")))
+        (else "")
+  ) ;cond
+) ;define
 
 (tm-define (make-block* lab . args)
-  (with l (map make-auto-arg args)
-    (with t `(document (,lab ,@l))
-      (insert-go-to t (cons* 0 0 (path-start (car l) '()))))))
+  (with l
+    (map make-auto-arg args)
+    (with t
+      `(document (,lab ,@l))
+      (insert-go-to t (cons* 0 0 (path-start (car l) '())))
+    ) ;with
+  ) ;with
+) ;tm-define
 
 (tm-define (make-inline* lab . args)
-  (with l (map make-auto-arg args)
-    (with t `(,lab ,@l)
-      (insert-go-to t (cons 0 (path-start (car l) '()))))))
+  (with l
+    (map make-auto-arg args)
+    (with t `(,lab ,@l) (insert-go-to t (cons 0 (path-start (car l) '()))))
+  ) ;with
+) ;tm-define
 
 (tm-define (make-block-if) (make-block* 'block-if :code :block))
 (tm-define (make-block-if-else)
-  (make-block* 'block-if-else :code :block :block))
+  (make-block* 'block-if-else :code :block :block)
+) ;tm-define
 (tm-define (make-block-for) (make-block* 'block-for :code :code :block))
 (tm-define (make-block-while) (make-block* 'block-while :code :block))
 (tm-define (make-block-tag) (make-block* 'block-texmacs-tag :inline :block))
 (tm-define (make-block-assign) (make-block* 'block-assign :code :code))
 (tm-define (make-block-intersperse)
-  (make-block* 'block-intersperse :inline :block))
+  (make-block* 'block-intersperse :inline :block)
+) ;tm-define
 
 (tm-define (make-inline-if) (make-inline* 'inline-if :code :inline))
 (tm-define (make-inline-if-else)
-  (make-inline* 'inline-if-else :code :inline :inline))
+  (make-inline* 'inline-if-else :code :inline :inline)
+) ;tm-define
 (tm-define (make-inline-for) (make-inline* 'inline-for :code :code :inline))
 (tm-define (make-inline-while) (make-inline* 'inline-while :code :inline))
 (tm-define (make-inline-tag) (make-inline* 'inline-texmacs-tag :inline :inline))
 (tm-define (make-inline-assign) (make-inline* 'inline-assign :code :code))
 (tm-define (make-inline-intersperse)
-  (make-inline* 'inline-intersperse :inline :inline))
+  (make-inline* 'inline-intersperse :inline :inline)
+) ;tm-define
 
 (tm-define (make-output-string) (make-inline* 'output-string :code))
 (tm-define (make-inline-output) (make-inline* 'inline-output :code))
