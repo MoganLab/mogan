@@ -36,6 +36,7 @@
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
         "TeXmacs/progs/language"
+        "TeXmacs/progs/link"
         "TeXmacs/progs/lolly"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
