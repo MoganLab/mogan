@@ -34,6 +34,7 @@
         "TeXmacs/progs/education"
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
+        "TeXmacs/progs/language"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"
