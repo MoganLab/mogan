@@ -27,7 +27,6 @@
       '("TeXmacs/plugins/gnuplot"
         "TeXmacs/progs/client"
         "TeXmacs/progs/convert"
-        "TeXmacs/progs/database"
         "TeXmacs/progs/debug"
         "TeXmacs/progs/doc"
         "TeXmacs/progs/generic"
