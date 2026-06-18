@@ -938,11 +938,14 @@
 ) ;tm-define
 
 (tm-define (auto-backup-button-label)
-  (if (community-stem?) "Open backup folder" "Cloud backup")
+  (if (community-stem?) "View help" "Cloud backup")
 ) ;tm-define
 
 (tm-define (open-auto-backup-location)
-  (open-url (auto-backup-official-url))
+  (if (community-stem?)
+    (open-url "https://liiistem.cn/docs/guide-auto-backup")
+    (open-url (auto-backup-official-url))
+  ) ;if
   (auto-backup-trig (current-buffer-url) "visit-cloud-backup")
 ) ;tm-define
 
