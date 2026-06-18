@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils relate live-menu)
-  (:use (utils relate live-view)))
+(texmacs-module (utils relate live-menu) (:use (utils relate live-view)))
 
 ;; TODO: better undo in case of several mirrors in one document
 ;; TODO: nested mirrors don't work appropriately (due to unique identifier
@@ -25,19 +24,22 @@
 (tm-define (make-live-io lid)
   (:argument lid "Channel")
   (when (not (live-exists? lid))
-    ;;(live-create lid "")
-    (live-create lid '(document "")))
+    ;; (live-create lid "")
+    (live-create lid '(document ""))
+  ) ;when
   (let* ((doc (tm->stree (live-current-document lid)))
          (p (path-start doc '()))
-         (vid (create-unique-id)))
-    (insert-go-to `(live-io ,vid ,lid ,doc) (cons 2 p))))
+         (vid (create-unique-id))
+        ) ;
+    (insert-go-to `(live-io ,vid ,lid ,doc) (cons 2 p))
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main live menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(menu-bind live-menu
-  ("Live input-output" (interactive make-live-io)))
+(menu-bind live-menu ("Live input-output" (interactive make-live-io)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Insert live as extra top level menu
@@ -45,6 +47,5 @@
 
 (menu-bind texmacs-extra-menu
   (former)
-  (if (style-has? "live-dtd")
-      (=> "Live"
-	  (link live-menu))))
+  (if (style-has? "live-dtd") (=> "Live" (link live-menu)))
+) ;menu-bind

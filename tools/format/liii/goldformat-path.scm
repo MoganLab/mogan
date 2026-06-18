@@ -52,6 +52,8 @@
         "TeXmacs/progs/utils/library"
         "TeXmacs/progs/utils/misc"
         "TeXmacs/progs/utils/plugins"
+        "TeXmacs/progs/utils/relate"
+        "TeXmacs/progs/utils/test"
         "TeXmacs/progs/various"
         "TeXmacs/progs/version"
         "TeXmacs/plugins/llm/progs")
