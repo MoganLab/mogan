@@ -180,8 +180,6 @@
                        (tex-rubber rubber-stmary stmary $s $d)
                        (tex-rubber rubber-wasy wasyb $s $d)
                        (tex-dummy-rubber (tex-rubber rubber-cmex $cmex $s $d)))
-                     ;; (ec times-bx $s $d)
-                     ;; (ec times-bx $s $d)))))
                      (adobe rptmb $s $d 0)
                      (adobe rptmb $s $d 0))))
 ) ;set-font-rules
