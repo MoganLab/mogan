@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils misc gui-keyboard)
-  (:use (utils misc gui-utils)))
+(texmacs-module (utils misc gui-keyboard) (:use (utils misc gui-utils)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generating the keyboard
@@ -20,40 +19,59 @@
 
 (define (generate-keys k)
   (cond ((func? k 'key 3)
-         (with (w x c) (cdr k)
-           (with cmd (if (string? c)
-                         (string-append "(emu-key " (string-quote c) ")")
-                         (object->string c))
-             ;;(display* "cmd= " cmd "\n")
-             `((extended-key ,x ,cmd ,(number->string w))))))
+         (with (w x c)
+           (cdr k)
+           (with cmd
+             (if (string? c)
+               (string-append "(emu-key " (string-quote c) ")")
+               (object->string c)
+             ) ;if
+             ;; (display* "cmd= " cmd "\n")
+             `((extended-key ,x ,cmd ,(number->string w)))
+           ) ;with
+         ) ;with
+        ) ;
         ((func? k 'modifier 3)
-         (with (w x c) (cdr k)
+         (with (w x c)
+           (cdr k)
            (let* ((c* (symbol->string (keyword->symbol c)))
                   (c** (string-quote c*))
                   (cmd (string-append "(emu-toggle-modifier " c** ")"))
-                  (on? (if (emu-active-modifier? c*) "true" "false")))
-             ;;(display* "cmd= " cmd "\n")
-             `((modifier-key ,x ,cmd ,(number->string w) ,on?)))))
+                  (on? (if (emu-active-modifier? c*) "true" "false"))
+                 ) ;
+             ;; (display* "cmd= " cmd "\n")
+             `((modifier-key ,x ,cmd ,(number->string w) ,on?))
+           ) ;let*
+         ) ;with
+        ) ;
         ((func? k 'keys)
          (map (lambda (x)
-                (with cmd (string-append "(emu-key " (string-quote x) ")")
-                  ;;(display* "cmd= " cmd "\n")
-                  `(std-key ,x ,cmd)))
-              (cdr k)))))
+                (with cmd
+                  (string-append "(emu-key " (string-quote x) ")")
+                  ;; (display* "cmd= " cmd "\n")
+                  `(std-key ,x ,cmd)
+                ) ;with
+              ) ;lambda
+           (cdr k)
+         ) ;map
+        ) ;
+  ) ;cond
+) ;define
 
 (define (generate-row l)
-  (with r (append-map generate-keys l)
-    `(row (cell (concat ,@r)))))
+  (with r (append-map generate-keys l) `(row (cell (concat ,@r))))
+) ;define
 
 (tm-define (generate-keyboard kbd)
-  `(keyboard (tformat (table ,@(map generate-row kbd)))))
+  `(keyboard (tformat (table ,@(map generate-row kbd))))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Various standard keyboard layouts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (narrow-us-lowercase-keyboard)
-  `(((modifier 1.25 "fn" :Fn)
+  '(((modifier 1.25 "fn" :Fn)
      (keys "1" "2" "3" "4" "5" "6" "7" "8" "9" "0" "-" "=")
      (key 1.25 "<mapsfrom>" "backspace"))
     ((key 1.5 "<mapsto>" "tab")
@@ -71,10 +89,11 @@
      (key 7.75 "" "space")
      (key 1 "<leftarrow>" "left")
      (key 1 "<downarrow>" "down")
-     (key 1 "<rightarrow>" "right"))))
+     (key 1 "<rightarrow>" "right")))
+) ;tm-define
 
 (tm-define (narrow-us-uppercase-keyboard)
-  `(((modifier 1.25 "fn" :Fn)
+  '(((modifier 1.25 "fn" :Fn)
      (keys "!" "@" "#" "$" "%" "^" "&" "*" "(" ")" "_" "+")
      (key 1.25 "<mapsfrom>" "S-backspace"))
     ((key 1.5 "<mapsto>" "S-tab")
@@ -92,14 +111,14 @@
      (key 7.75 "" "S-space")
      (key 1 "<leftarrow>" "S-left")
      (key 1 "<downarrow>" "S-down")
-     (key 1 "<rightarrow>" "S-right"))))
+     (key 1 "<rightarrow>" "S-right")))
+) ;tm-define
 
 (tm-define (narrow-us-lowercase-fn-keyboard)
-  `(((modifier 1.25 "fn" :Fn)
+  '(((modifier 1.25 "fn" :Fn)
      (keys "F1" "F2" "F3" "F4" "F5" "F6" "F7" "F8" "F9" "F10" "F11" "F12")
      (key 1.25 "del" "delete"))
-    ((key 1.5 "<mapsto>" "tab")
-     (keys "" "" "" "" "" "" "" "" "" "" "" "" ""))
+    ((key 1.5 "<mapsto>" "tab") (keys "" "" "" "" "" "" "" "" "" "" "" "" ""))
     ((modifier 2 "lock" :Lock)
      (keys "" "" "" "" "" "" "" "" "" "" "")
      (key 1.5 "<hookleftarrow>" "return"))
@@ -113,10 +132,11 @@
      (key 7.75 "" "space")
      (key 1 "<nwarrow>" "home")
      (key 1 "<Downarrow>" "pagedown")
-     (key 1 "<searrow>" "end"))))
+     (key 1 "<searrow>" "end")))
+) ;tm-define
 
 (tm-define (narrow-us-uppercase-fn-keyboard)
-  `(((modifier 1.25 "fn" :Fn)
+  '(((modifier 1.25 "fn" :Fn)
      (key 1 "F1" "S-F1")
      (key 1 "F2" "S-F2")
      (key 1 "F3" "S-F3")
@@ -130,8 +150,7 @@
      (key 1 "F11" "S-F11")
      (key 1 "F12" "S-F12")
      (key 1.25 "del" "S-delete"))
-    ((key 1.5 "<mapsto>" "S-tab")
-     (keys "" "" "" "" "" "" "" "" "" "" "" "" ""))
+    ((key 1.5 "<mapsto>" "S-tab") (keys "" "" "" "" "" "" "" "" "" "" "" "" ""))
     ((modifier 2 "lock" :Lock)
      (keys "" "" "" "" "" "" "" "" "" "" "")
      (key 1.5 "<hookleftarrow>" "S-return"))
@@ -145,25 +164,27 @@
      (key 7.75 "" "S-space")
      (key 1 "<nwarrow>" "S-home")
      (key 1 "<Downarrow>" "S-pagedown")
-     (key 1 "<searrow>" "S-end"))))
+     (key 1 "<searrow>" "S-end")))
+) ;tm-define
 
 (tm-define (narrow-us-keyboard)
-  (cond ((and (not (emu-active-modifier? "Shift"))
-              (not (emu-active-modifier? "Fn")))
-         (narrow-us-lowercase-keyboard))
-        ((and (emu-active-modifier? "Shift")
-              (not (emu-active-modifier? "Fn")))
-         (narrow-us-uppercase-keyboard))
-        ((and (not (emu-active-modifier? "Shift"))
-              (emu-active-modifier? "Fn"))
-         (narrow-us-lowercase-fn-keyboard))
-        ((and (emu-active-modifier? "Shift")
-              (emu-active-modifier? "Fn"))
-         (narrow-us-uppercase-fn-keyboard))))
+  (cond ((and (not (emu-active-modifier? "Shift")) (not (emu-active-modifier? "Fn")))
+         (narrow-us-lowercase-keyboard)
+        ) ;
+        ((and (emu-active-modifier? "Shift") (not (emu-active-modifier? "Fn")))
+         (narrow-us-uppercase-keyboard)
+        ) ;
+        ((and (not (emu-active-modifier? "Shift")) (emu-active-modifier? "Fn"))
+         (narrow-us-lowercase-fn-keyboard)
+        ) ;
+        ((and (emu-active-modifier? "Shift") (emu-active-modifier? "Fn"))
+         (narrow-us-uppercase-fn-keyboard)
+        ) ;
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; High level interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (get-keyboard)
-  (generate-keyboard (narrow-us-keyboard)))
+(tm-define (get-keyboard) (generate-keyboard (narrow-us-keyboard)))
