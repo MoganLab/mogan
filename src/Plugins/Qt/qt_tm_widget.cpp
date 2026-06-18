@@ -861,7 +861,8 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     public:
       ChatSidebarBtnPositioner (QPushButton* btn, QWidget* parent,
                                 qt_tm_widget_rep* widget)
-          : QObject (parent), button_ (btn), parent_ (parent), widget_ (widget) {}
+          : QObject (parent), button_ (btn), parent_ (parent),
+            widget_ (widget) {}
       bool eventFilter (QObject* obj, QEvent* event) override {
         if (obj == parent_ && event->type () == QEvent::Resize) {
           widget_->position_chat_sidebar_button ();
@@ -1672,7 +1673,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   } break;
   case SLOT_CHAT_SIDEBAR_VISIBILITY: {
     check_type<bool> (val, s);
-    bool show             = open_box<bool> (val);
+    bool show= open_box<bool> (val);
     if (is_community_stem ()) break; // community 版无 AI Chat，忽略该 slot
     chatSidebarMode       = show;
     chatSidebarModeMemory_= show;
