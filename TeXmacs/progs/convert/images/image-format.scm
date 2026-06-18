@@ -13,9 +13,10 @@
 
 (texmacs-module (convert images image-format))
 
-(define-preferences
-  ("texmacs->image:raster-resolution" "300" noop))
+(define-preferences ("texmacs->image:raster-resolution" "300" noop))
 
 (tm-define (get-raster-resolution opts)
   (or (assoc-ref opts "texmacs->image:raster-resolution")
-      (get-preference "texmacs->image:raster-resolution")))
+    (get-preference "texmacs->image:raster-resolution")
+  ) ;or
+) ;tm-define

@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert tmml tmmlout)
-  (:use (convert tools output)))
+(texmacs-module (convert tmml tmmlout) (:use (convert tools output)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Determining output layout
@@ -20,27 +19,33 @@
 
 (define (tmmlout-big? doc)
   (cond ((npair? doc) #f)
-	((func? doc '!document) #t)
-	((func? doc 'tformat) #t)
-	((func? doc 'table) #t)
-	((func? doc 'collection) #t)
-	((func? doc 'associate) #t)
-	((func? doc 'tm-par) #t)
-	(else (list-or (map tmmlout-big? (cdr doc)))))
-  ;#t
-  )
+        ((func? doc '!document) #t)
+        ((func? doc 'tformat) #t)
+        ((func? doc 'table) #t)
+        ((func? doc 'collection) #t)
+        ((func? doc 'associate) #t)
+        ((func? doc 'tm-par) #t)
+        (else (list-or (map tmmlout-big? (cdr doc))))
+  ) ;cond
+) ;define
 
 (define (tmmlout-preserve-one? x first? last?)
   (cond ((func? x '!concat) (tmmlout-preserve? (cdr x) first? last?))
-	((nstring? x) #f)
-	((and first? (string-starts? x " ")) #t)
-	((and last? (string-ends? x " ")) #t)
-	(else (>= (string-search-forwards "  " 0 x) 0))))
+        ((nstring? x) #f)
+        ((and first? (string-starts? x " ")) #t)
+        ((and last? (string-ends? x " ")) #t)
+        (else (>= (string-search-forwards "  " 0 x) 0))
+  ) ;cond
+) ;define
 
 (define (tmmlout-preserve? l first? last?)
-  (if (null? l) #f
-      (or (tmmlout-preserve-one? (car l) first? (and last? (null? (cdr l))))
-	  (tmmlout-preserve? (cdr l) #f last?))))
+  (if (null? l)
+    #f
+    (or (tmmlout-preserve-one? (car l) first? (and last? (null? (cdr l))))
+      (tmmlout-preserve? (cdr l) #f last?)
+    ) ;or
+  ) ;if
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Outputting main flow
@@ -48,61 +53,70 @@
 
 (define (tmmlout-indent plus big? preserve?)
   (cond (preserve? (noop))
-	(big? (output-indent plus) (output-lf))
-	(else (noop))))
+        (big? (output-indent plus) (output-lf))
+        (else (noop))
+  ) ;cond
+) ;define
 
 (define (tmmlout-attr x)
-  ;(display-err* "[tmmlout-attr] " x "\n")
   (output-text " " (symbol->string (car x)) "=")
-  (output-verbatim "\"" (string-replace (cadr x) "\"" "\\\"") "\""))
+  (output-verbatim "\"" (string-replace (cadr x) "\"" "\\\"") "\"")
+) ;define
 
 (define (tmmlout-stacked-args l)
   (if (nnull? l)
-      (begin
-	(tmmlout (car l))
-	(if (nnull? (cdr l))
-	    (begin
-	      (output-lf)
-	      (output-lf)))
-	(tmmlout-stacked-args (cdr l)))))
+    (begin
+      (tmmlout (car l))
+      (if (nnull? (cdr l)) (begin (output-lf) (output-lf)))
+      (tmmlout-stacked-args (cdr l))
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (tmmlout-args l big? preserve?)
-  ;(display-err* "[tmmlout-args] " l ", " big? ", " preserve? "\n")
   (cond ((null? l) (noop))
-	((string? (car l))
-	 (if preserve?
-	     (output-verbatim (car l))
-	     (output-text (car l)))
-	 (tmmlout-args (cdr l) big? preserve?))
-	((func? (car l) '!concat)
-	 (tmmlout-args (cdar l) #f preserve?)
-	 (tmmlout-args (cdr l) big? preserve?))
-	((func? (car l) '!document)
-	 (tmmlout-args (cdar l) big? preserve?)
-	 (tmmlout-args (cdr l) big? preserve?))
-	((func? (car l) '!stacked)
-	 (tmmlout-stacked-args (cdar l))
-	 (tmmlout-args (cdr l) big? preserve?))
-	(else
-	 (tmmlout (car l))
-	 (if (and big?
-		  (pair? (cdr l))
-		  (nstring? (car l))
-		  (nstring? (cadr l)))
-	     (begin
-	       (output-lf)
-	       (if (func? (cadr l) 'tm-par) (output-lf))))
-	 (tmmlout-args (cdr l) big? preserve?))))
+        ((string? (car l))
+         (if preserve? (output-verbatim (car l)) (output-text (car l)))
+         (tmmlout-args (cdr l) big? preserve?)
+        ) ;
+        ((func? (car l) '!concat)
+         (tmmlout-args (cdar l) #f preserve?)
+         (tmmlout-args (cdr l) big? preserve?)
+        ) ;
+        ((func? (car l) '!document)
+         (tmmlout-args (cdar l) big? preserve?)
+         (tmmlout-args (cdr l) big? preserve?)
+        ) ;
+        ((func? (car l) '!stacked)
+         (tmmlout-stacked-args (cdar l))
+         (tmmlout-args (cdr l) big? preserve?)
+        ) ;
+        (else (tmmlout (car l))
+          (if (and big? (pair? (cdr l)) (nstring? (car l)) (nstring? (cadr l)))
+            (begin
+              (output-lf)
+              (if (func? (cadr l) 'tm-par) (output-lf))
+            ) ;begin
+          ) ;if
+          (tmmlout-args (cdr l) big? preserve?)
+        ) ;else
+  ) ;cond
+) ;define
 
 (define (tmmlout-remove-duplicates l)
-  (if (null? l) l
-      (with r (tmmlout-remove-duplicates (cdr l))
-	(if (in? (caar l) (map car r)) r (cons (car l) r)))))
+  (if (null? l)
+    l
+    (with r
+      (tmmlout-remove-duplicates (cdr l))
+      (if (in? (caar l) (map car r)) r (cons (car l) r))
+    ) ;with
+  ) ;if
+) ;define
 
 (define (tmmlout-tag tag attrs args)
-  ;(display-err* "[tmmlout-tag] " tag ", " attrs ", " args "\n")
   (let* ((big? (tmmlout-big? (cons tag args)))
-	 (preserve? (tmmlout-preserve? args #t #t)))
+         (preserve? (tmmlout-preserve? args #t #t))
+        ) ;
     (if preserve? (set! attrs `((xml:space "preserve") ,@attrs)))
     (output-text "<")
     (output-text (symbol->string tag))
@@ -111,30 +125,35 @@
     (if (null? args) (output-text "/"))
     (output-text ">")
     (if (nnull? args)
-	(begin
-	  (tmmlout-indent 2 big? preserve?)
-	  (tmmlout-args args big? preserve?)
-	  (tmmlout-indent -2 big? preserve?)
-	  (output-text "</" (symbol->string tag) ">")))))
+      (begin
+        (tmmlout-indent 2 big? preserve?)
+        (tmmlout-args args big? preserve?)
+        (tmmlout-indent -2 big? preserve?)
+        (output-text "</" (symbol->string tag) ">")
+      ) ;begin
+    ) ;if
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main output routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (tmmlout x)
-  ;(display-err* "[tmmlout] " x "\n")
   (cond ((string? x) (output-text x))
-	((null? x) (noop))
-	((func? x '*PI*)
-	 (output-text "<?" (symbol->string (cadr x)) " " (caddr x) "?>"))
-	((and (pair? (cdr x)) (func? (cadr x) '@))
-	 (tmmlout-tag (car x) (cdadr x) (cddr x)))
-	((func? x '!concat) (tmmlout-args (cdr x) #f #t))
-	((func? x '!document) (tmmlout-args (cdr x) #t #f))
-	((func? x '!stacked) (tmmlout-stacked-args (cdr x)))
-	((func? x '*TOP*) (tmmlout-stacked-args (cdr x)))
-	(else (tmmlout-tag (car x) '() (cdr x)))))
+        ((null? x) (noop))
+        ((func? x '*PI*)
+         (output-text "<?" (symbol->string (cadr x)) " " (caddr x) "?>")
+        ) ;
+        ((and (pair? (cdr x)) (func? (cadr x) '@))
+         (tmmlout-tag (car x) (cdadr x) (cddr x))
+        ) ;
+        ((func? x '!concat) (tmmlout-args (cdr x) #f #t))
+        ((func? x '!document) (tmmlout-args (cdr x) #t #f))
+        ((func? x '!stacked) (tmmlout-stacked-args (cdr x)))
+        ((func? x '*TOP*) (tmmlout-stacked-args (cdr x)))
+        (else (tmmlout-tag (car x) '() (cdr x)))
+  ) ;cond
+) ;define
 
-(tm-define (serialize-tmml x)
-  (tmmlout x)
-  (output-produce))
+(tm-define (serialize-tmml x) (tmmlout x) (output-produce))
