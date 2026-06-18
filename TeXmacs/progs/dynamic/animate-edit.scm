@@ -13,10 +13,12 @@
 
 (texmacs-module (dynamic animate-edit)
   (:use (utils library tree)
-        (utils library cursor)
-        (dynamic dynamic-drd)
-        (generic generic-edit)
-        (generic format-geometry-edit)))
+    (utils library cursor)
+    (dynamic dynamic-drd)
+    (generic generic-edit)
+    (generic format-geometry-edit)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful subroutines
@@ -24,17 +26,19 @@
 
 (tm-define (reset-players t)
   (players-set-elapsed t 0.0)
-  (update-players (tree->path t) #t))
+  (update-players (tree->path t) #t)
+) ;tm-define
 
 (tm-define (anim-play t)
   (when (tree? t)
-    (if (tree-is? t :up 'anim-accelerate)
-        (set! t (tree-up t)))
-    (reset-players t)))
+    (if (tree-is? t :up 'anim-accelerate) (set! t (tree-up t)))
+    (reset-players t)
+  ) ;when
+) ;tm-define
 
 (tm-define (current-anim-play)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (anim-play t)))
+  (and-with t (tree-innermost user-anim-context? #t) (anim-play t))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Parameters for various animation tags
@@ -42,413 +46,534 @@
 
 (tm-define (parameter-choice-list var)
   (:require (and (!= var "")
-                 (with s (string-drop-right var 1)
-                   (or (string-ends? s "-start-")
-                       (string-ends? s "-end-")))))
-  (list "-2" "-1" "-0.5" "0" "0.5" "1" "2" :other))
+              (with s
+                (string-drop-right var 1)
+                (or (string-ends? s "-start-") (string-ends? s "-end-"))
+              ) ;with
+            ) ;and
+  ) ;:require
+  (list "-2" "-1" "-0.5" "0" "0.5" "1" "2" :other)
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'translate-in))
-  (list (list "translate-start-x" "Start x")
-        (list "translate-start-y" "Start y")))
+  (list (list "translate-start-x" "Start x") (list "translate-start-y" "Start y"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'translate-out))
-  (list (list "translate-end-x" "End x")
-        (list "translate-end-y" "End y")))
+  (list (list "translate-end-x" "End x") (list "translate-end-y" "End y"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'translate-smooth))
   (list (list "translate-start-x" "Start x")
-        (list "translate-start-y" "Start y")
-        (list "translate-end-x" "End x")
-        (list "translate-end-y" "End y")))
+    (list "translate-start-y" "Start y")
+    (list "translate-end-x" "End x")
+    (list "translate-end-y" "End y")
+  ) ;list
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'progressive-in))
   (list (list "progressive-start-l" "Start left")
-        (list "progressive-start-b" "Start bottom")
-        (list "progressive-start-r" "Start right")
-        (list "progressive-start-t" "Start top")))
+    (list "progressive-start-b" "Start bottom")
+    (list "progressive-start-r" "Start right")
+    (list "progressive-start-t" "Start top")
+  ) ;list
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'progressive-out))
   (list (list "progressive-end-l" "End left")
-        (list "progressive-end-b" "End bottom")
-        (list "progressive-end-r" "End right")
-        (list "progressive-end-t" "End top")))
+    (list "progressive-end-b" "End bottom")
+    (list "progressive-end-r" "End right")
+    (list "progressive-end-t" "End top")
+  ) ;list
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'progressive-smooth))
   (list (list "progressive-start-l" "Start left")
-        (list "progressive-start-b" "Start bottom")
-        (list "progressive-start-r" "Start right")
-        (list "progressive-start-t" "Start top")
-        (list "progressive-end-l" "End left")
-        (list "progressive-end-b" "End bottom")
-        (list "progressive-end-r" "End right")
-        (list "progressive-end-t" "End top")))
+    (list "progressive-start-b" "Start bottom")
+    (list "progressive-start-r" "Start right")
+    (list "progressive-start-t" "Start top")
+    (list "progressive-end-l" "End left")
+    (list "progressive-end-b" "End bottom")
+    (list "progressive-end-r" "End right")
+    (list "progressive-end-t" "End top")
+  ) ;list
+) ;tm-define
 
 (tm-define (parameter-choice-list var)
   (:require (in? var (list "fade-start" "fade-end" "zoom-start" "zoom-end")))
-  (list "0" "0.2" "0.5" "0.8" "1" :other))
+  (list "0" "0.2" "0.5" "0.8" "1" :other)
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'fade-in))
-  (list (list "fade-start" "Start intensity")))
+  (list (list "fade-start" "Start intensity"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'fade-out))
-  (list (list "fade-end" "End intensity")))
+  (list (list "fade-end" "End intensity"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'fade-smooth))
-  (list (list "fade-start" "Start intensity")
-        (list "fade-end" "End intensity")))
+  (list (list "fade-start" "Start intensity") (list "fade-end" "End intensity"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'zoom-in))
-  (list (list "zoom-start" "Start magnification")))
+  (list (list "zoom-start" "Start magnification"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'zoom-out))
-  (list (list "zoom-end" "End magnification")))
+  (list (list "zoom-end" "End magnification"))
+) ;tm-define
 
 (tm-define (customizable-parameters t)
   (:require (tree-is? t 'zoom-smooth))
   (list (list "zoom-start" "Start magnification")
-        (list "zoom-end" "End magnification")))
+    (list "zoom-end" "End magnification")
+  ) ;list
+) ;tm-define
 
 (tm-define (parameter-choice-list var)
-  (:require (or (string-starts? var "emboss-start-")
-                (string-starts? var "emboss-end-")))
-  (list "-5ln" "-4ln" "-3ln" "-2ln" "-1ln" "0ln"
-        "1ln" "2ln" "3ln" "4ln" "5ln" :other))
+  (:require (or (string-starts? var "emboss-start-") (string-starts? var "emboss-end-"))
+  ) ;:require
+  (list "-5ln"
+    "-4ln"
+    "-3ln"
+    "-2ln"
+    "-1ln"
+    "0ln"
+    "1ln"
+    "2ln"
+    "3ln"
+    "4ln"
+    "5ln"
+    :other
+  ) ;list
+) ;tm-define
 
 (tm-define (customizable-parameters t)
-  (:require (tree-in? t '(shadowed-smooth emboss-smooth
-                          outlined-emboss-smooth)))
+  (:require (tree-in? t '(shadowed-smooth emboss-smooth outlined-emboss-smooth)))
   (list (list "emboss-start-dx" "Start dx")
-        (list "emboss-start-dy" "Start dy")
-        (list "emboss-end-dx" "End dx")
-        (list "emboss-end-dy" "End dy")))
+    (list "emboss-start-dy" "Start dy")
+    (list "emboss-end-dx" "End dx")
+    (list "emboss-end-dy" "End dy")
+  ) ;list
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Animations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (anim-context? t)
-  (tree-in? t (append (anim-tag-list)
-                      '(anim-constant anim-translate anim-progressive))))
+  (tree-in? t
+    (append (anim-tag-list) '(anim-constant anim-translate anim-progressive))
+  ) ;tree-in?
+) ;tm-define
 
 (tm-define (make-anim-constant duration)
   (:synopsis "Insert fixed animation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (insert-go-to `(anim-constant "" ,duration) '(0 0)))
+  (insert-go-to `(anim-constant ,"" ,duration) '(0 0))
+) ;tm-define
 
 (define (make-anim-translate duration start)
-  (insert-go-to `(anim-translate "" ,duration ,start "") '(0 0)))
+  (insert-go-to `(anim-translate ,"" ,duration ,start ,"") '(0 0))
+) ;define
 
 (tm-define (make-anim-translate-right duration)
   (:synopsis "Insert rightward translation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-translate duration '(tuple "-1.0" "0.0")))
+  (make-anim-translate duration '(tuple "-1.0" "0.0"))
+) ;tm-define
 
 (tm-define (make-anim-translate-left duration)
   (:synopsis "Insert leftward translation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-translate duration '(tuple "1.0" "0.0")))
+  (make-anim-translate duration '(tuple "1.0" "0.0"))
+) ;tm-define
 
 (tm-define (make-anim-translate-up duration)
   (:synopsis "Insert upward translation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-translate duration '(tuple "0.0" "-1.0")))
+  (make-anim-translate duration '(tuple "0.0" "-1.0"))
+) ;tm-define
 
 (tm-define (make-anim-translate-down duration)
   (:synopsis "Insert downward translation")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-translate duration '(tuple "0.0" "1.0")))
+  (make-anim-translate duration '(tuple "0.0" "1.0"))
+) ;tm-define
 
 (define (make-anim-progressive duration start)
-  (insert-go-to `(anim-progressive "" ,duration ,start "") '(0 0)))
+  (insert-go-to `(anim-progressive ,"" ,duration ,start ,"") '(0 0))
+) ;define
 
 (tm-define (make-anim-progressive-right duration)
   (:synopsis "Progressive rightward appearance")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-progressive duration '(tuple "0.0" "0.0" "0.0" "1.0")))
+  (make-anim-progressive duration '(tuple "0.0" "0.0" "0.0" "1.0"))
+) ;tm-define
 
 (tm-define (make-anim-progressive-left duration)
   (:synopsis "Progressive leftward appearance")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-progressive duration '(tuple "1.0" "0.0" "1.0" "1.0")))
+  (make-anim-progressive duration '(tuple "1.0" "0.0" "1.0" "1.0"))
+) ;tm-define
 
 (tm-define (make-anim-progressive-up duration)
   (:synopsis "Progressive upward appearance")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-progressive duration '(tuple "0.0" "0.0" "1.0" "0.0")))
+  (make-anim-progressive duration '(tuple "0.0" "0.0" "1.0" "0.0"))
+) ;tm-define
 
 (tm-define (make-anim-progressive-down duration)
   (:synopsis "Progressive downward appearance")
   (:argument duration "Duration")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-progressive duration '(tuple "0.0" "1.0" "1.0" "1.0")))
+  (make-anim-progressive duration '(tuple "0.0" "1.0" "1.0" "1.0"))
+) ;tm-define
 
 (tm-define (make-anim-progressive-center duration)
   (:synopsis "Progressive outward appearance")
   (:proposals duration (list "1s" "2s" "5s" ""))
-  (make-anim-progressive duration '(tuple "0.5" "0.5" "0.5" "0.5")))
+  (make-anim-progressive duration '(tuple "0.5" "0.5" "0.5" "0.5"))
+) ;tm-define
 
 (tm-define (geometry-speed t inc?)
   (:require (anim-context? t))
-  (with inc (if inc? 1 -1)
-    (with-focus-after t
-      (length-increase-step (tree-ref t 1) inc))))
+  (with inc
+    (if inc? 1 -1)
+    (with-focus-after t (length-increase-step (tree-ref t 1) inc))
+  ) ;with
+) ;tm-define
 
 (tm-define (geometry-horizontal t forward?)
   (:require (anim-context? t))
-  (with inc (if forward? 1 -1)
+  (with inc
+    (if forward? 1 -1)
     (with-focus-after t
       (replace-empty t 1 "1s")
-      (length-increase (tree-ref t 1) inc))))
+      (length-increase (tree-ref t 1) inc)
+    ) ;with-focus-after
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Time bending
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (animation-tag-list*)
-  (append '(anim-static anim-dynamic)
-          (animation-tag-list)))
+  (append '(anim-static anim-dynamic) (animation-tag-list))
+) ;define
 
 (tm-define (anim-get-accelerate t)
   (cond ((not (tree? t)) #f)
         ((tree-is? t 'anim-accelerate) t)
         ((tree-is? t :up 'anim-accelerate) (tree-up t))
         ((and (tree-is? t :up 'with) (tree-is? t :up :up 'anim-accelerate))
-         (tree-up (tree-up t)))
-        ((and (tree-is? t :up 'with) (tree-in? t (animation-tag-list*)))
-         (tree-up t))
+         (tree-up (tree-up t))
+        ) ;
+        ((and (tree-is? t :up 'with) (tree-in? t (animation-tag-list*))) (tree-up t))
         ((tree-in? t (animation-tag-list*)) t)
-        (else #f)))
+        (else #f)
+  ) ;cond
+) ;tm-define
 
 (tm-define (accelerate-get-type t)
-  (with a (anim-get-accelerate t)
-    (or (and a
-             (tree-func? a 'anim-accelerate 2)
-             (tree->stree (tree-ref a 1)))
-        "normal")))
+  (with a
+    (anim-get-accelerate t)
+    (or (and a (tree-func? a 'anim-accelerate 2) (tree->stree (tree-ref a 1)))
+      "normal"
+    ) ;or
+  ) ;with
+) ;tm-define
 
 (tm-define (accelerate-test-type? dummy new-type)
-  (with t (tree-innermost 'anim-accelerate #t)
-    (tm-equal? (accelerate-get-type t) new-type)))
+  (with t
+    (tree-innermost 'anim-accelerate #t)
+    (tm-equal? (accelerate-get-type t) new-type)
+  ) ;with
+) ;tm-define
 
 (tm-define (accelerate-set-type t new-type)
   (:check-mark "*" accelerate-test-type?)
-  (and-with a (anim-get-accelerate t)
+  (and-with a
+    (anim-get-accelerate t)
     (if (tree-func? a 'anim-accelerate 2)
-        (if (== new-type "normal")
-            (tree-remove-node! a 0)
-            (tree-set (tree-ref a 1) new-type))
-        (if (!= new-type "normal")
-            (tree-set! a `(anim-accelerate ,a ,new-type))))
-    (reset-players a)))
+      (if (== new-type "normal")
+        (tree-remove-node! a 0)
+        (tree-set (tree-ref a 1) new-type)
+      ) ;if
+      (if (!= new-type "normal") (tree-set! a `(anim-accelerate ,a ,new-type)))
+    ) ;if
+    (reset-players a)
+  ) ;and-with
+) ;tm-define
 
 (tm-define (accelerate-get-reverse? t)
-  (and-with s (accelerate-get-type t)
-    (and (string? s) (string-starts? s "reverse"))))
+  (and-with s
+    (accelerate-get-type t)
+    (and (string? s) (string-starts? s "reverse"))
+  ) ;and-with
+) ;tm-define
 
 (tm-define (accelerate-test-reverse? dummy)
-  (with t (tree-innermost 'anim-accelerate #t)
-    (accelerate-get-reverse? t)))
+  (with t (tree-innermost 'anim-accelerate #t) (accelerate-get-reverse? t))
+) ;tm-define
 
 (tm-define (accelerate-toggle-reverse? t)
   (:check-mark "*" accelerate-test-reverse?)
-  (accelerate-set-type**
-   t (accelerate-get-type* t) (not (accelerate-get-reverse? t))))
+  (accelerate-set-type** t
+    (accelerate-get-type* t)
+    (not (accelerate-get-reverse? t))
+  ) ;accelerate-set-type**
+) ;tm-define
 
 (tm-define (accelerate-get-type* t)
-  (with s (accelerate-get-type t)
+  (with s
+    (accelerate-get-type t)
     (cond ((not (string? s)) s)
           ((== s "reverse") "normal")
           ((string-starts? s "reverse-") (string-drop s 8))
-          (else s))))
+          (else s)
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 (tm-define (accelerate-test-type*? dummy new-type)
-  (with t (tree-innermost 'anim-accelerate #t)
-    (tm-equal? (accelerate-get-type* t) new-type)))
+  (with t
+    (tree-innermost 'anim-accelerate #t)
+    (tm-equal? (accelerate-get-type* t) new-type)
+  ) ;with
+) ;tm-define
 
 (define (accelerate-set-type** t new-type reverse?)
   (if (and (string? new-type) reverse?)
-      (if (== new-type "normal")
-          (accelerate-set-type t "reverse")
-          (accelerate-set-type t (string-append "reverse-" new-type)))
-      (accelerate-set-type t new-type)))
+    (if (== new-type "normal")
+      (accelerate-set-type t "reverse")
+      (accelerate-set-type t (string-append "reverse-" new-type))
+    ) ;if
+    (accelerate-set-type t new-type)
+  ) ;if
+) ;define
 
 (tm-define (accelerate-set-type* t new-type)
   (:check-mark "*" accelerate-test-type*?)
-  (accelerate-set-type** t new-type (accelerate-get-reverse? t)))
+  (accelerate-set-type** t new-type (accelerate-get-reverse? t))
+) ;tm-define
 
 (tm-define (retime-selection type)
   (:argument len "Duration")
-  (with sel (selection-tree)
+  (with sel
+    (selection-tree)
     (clipboard-cut "primary")
-    (insert-go-to `(anim-accelerate ,sel ,type)
-                  (cons 0 (path-end sel (list))))))
+    (insert-go-to `(anim-accelerate ,sel ,type) (cons 0 (path-end sel (list))))
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start and end editing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (user-anim-context? t)
-  (tree-in? t '(anim-static anim-dynamic anim-edit)))
+  (tree-in? t '(anim-static anim-dynamic anim-edit))
+) ;tm-define
 
 (define (checkout-animation t len)
   (cond ((tm-func? t 'gr-screen 1)
-         (with (r p) (checkout-animation (tm-ref t 0) len)
-           (list `(gr-screen ,r) (cons 0 p))))
+         (with (r p)
+           (checkout-animation (tm-ref t 0) len)
+           (list `(gr-screen ,r) (cons 0 p))
+         ) ;with
+        ) ;
         ((not (tm-func? t 'morph))
-         (checkout-animation
-          `(morph (tuple "0" ,(tm->stree t))
-                  (tuple "1" ,(tm->stree t))) len))
-        (else
-          (with r (animate-checkout `(anim-static ,t ,len "0.1s" "0s"))
-            (list r (cons 1 (path-start (tm-ref r 1) '())))))))
+         (checkout-animation `(morph (tuple ,"0" ,(tm->stree t))
+                                (tuple ,"1" ,(tm->stree t)))
+           len
+         ) ;checkout-animation
+        ) ;
+        (else (with r
+                (animate-checkout `(anim-static ,t ,len ,"0.1s" ,"0s"))
+                (list r (cons 1 (path-start (tm-ref r 1) '())))
+              ) ;with
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (make-animate t len)
-  (with (r p) (checkout-animation t len)
-    (insert-go-to r p)))
+  (with (r p) (checkout-animation t len) (insert-go-to r p))
+) ;tm-define
 
 (tm-define (animate-selection len)
   (:argument len "Duration")
-  (with sel (selection-tree)
+  (with sel
+    (selection-tree)
     (clipboard-cut "primary")
     (make-animate sel len)
-    (set-bottom-bar "animate" #t)))
+    (set-bottom-bar "animate" #t)
+  ) ;with
+) ;tm-define
 
-(tm-define (commit-animation t)
-  (animate-commit t))
+(tm-define (commit-animation t) (animate-commit t))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Global duration and step length
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (anim-duration t)
-  (cond ((tree-in? t '(anim-static anim-dynamic))
-         (tree-ref t 1))
-        ((tree-in? t '(anim-edit))
-         (tree-ref t 2))
-        (else #f)))
+  (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-ref t 1))
+        ((tree-in? t '(anim-edit)) (tree-ref t 2))
+        (else #f)
+  ) ;cond
+) ;tm-define
 
 (tm-define (anim-set-duration t d)
-  (and-with x (anim-portion t)
-    (cond ((tree-in? t '(anim-static anim-dynamic))
-           (tree-set! t 1 d))
-          ((tree-in? t '(anim-edit))
-           (tree-set! t 2 d)))
+  (and-with x
+    (anim-portion t)
+    (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-set! t 1 d))
+          ((tree-in? t '(anim-edit)) (tree-set! t 2 d))
+    ) ;cond
     (anim-set-portion t x)
-    (anim-play t)))
+    (anim-play t)
+  ) ;and-with
+) ;tm-define
 
 (tm-define (current-anim-set-duration d)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (when d (anim-set-duration t d))))
+  (and-with t
+    (tree-innermost user-anim-context? #t)
+    (when d
+      (anim-set-duration t d)
+    ) ;when
+  ) ;and-with
+) ;tm-define
 
 (tm-define (anim-step t)
-  (cond ((tree-in? t '(anim-static anim-dynamic))
-         (tree-ref t 2))
-        ((tree-in? t '(anim-edit))
-         (tree-ref t 3))
-        (else #f)))
+  (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-ref t 2))
+        ((tree-in? t '(anim-edit)) (tree-ref t 3))
+        (else #f)
+  ) ;cond
+) ;tm-define
 
 (tm-define (anim-set-step t d)
-  (cond ((tree-in? t '(anim-static anim-dynamic))
-         (tree-set! t 2 d))
-        ((tree-in? t '(anim-edit))
-         (tree-set! t 3 d)))
-  (anim-play t))
+  (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-set! t 2 d))
+        ((tree-in? t '(anim-edit)) (tree-set! t 3 d))
+  ) ;cond
+  (anim-play t)
+) ;tm-define
 
 (tm-define (current-anim-set-step d)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (when d (anim-set-step t d))))
+  (and-with t (tree-innermost user-anim-context? #t) (when d (anim-set-step t d)))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Current animation frame
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (anim-now t)
-  (cond ((tree-in? t '(anim-static anim-dynamic))
-         (tree-ref t 3))
-        ((tree-in? t '(anim-edit))
-         (tree-ref t 4))
-        (else #f)))
+  (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-ref t 3))
+        ((tree-in? t '(anim-edit)) (tree-ref t 4))
+        (else #f)
+  ) ;cond
+) ;tm-define
 
 (define (cursor-path-in t)
-  (let* ((p (cursor-path))
-         (r (tree->path t)))
-    (and (list-starts? p r)
-         (sublist p (length r) (length p)))))
+  (let* ((p (cursor-path)) (r (tree->path t)))
+    (and (list-starts? p r) (sublist p (length r) (length p)))
+  ) ;let*
+) ;define
 
 (define (label-list t p)
   (cond ((or (not p) (not (tree? t)) (null? p)) #f)
         ((tree-atomic? t) (and (null? (cdr p)) (list (tree->string t))))
         ((null? (cdr p)) (list (tree-label t)))
-        (else (and-with l (label-list (tree-ref t (car p)) (cdr p))
-                (cons (tree-label t) l)))))
+        (else (and-with l (label-list (tree-ref t (car p)) (cdr p)) (cons (tree-label t) l))
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (anim-set-now t now)
-  (cond ((tree-in? t '(anim-static anim-dynamic))
-         (tree-set! t 3 now))
+  (cond ((tree-in? t '(anim-static anim-dynamic)) (tree-set! t 3 now))
         ((tree-in? t '(anim-edit))
-         (let* ((p (cursor-path-in (tree-ref t 1)))
-                (l (label-list (tree-ref t 1) p)))
-           (with r (commit-animation t)
-             (tree-set! t 0 (tree-ref r 0))
-             (tree-set! t 4 now))
-           (with r (animate-checkout `(anim-static ,(tree-ref t 0)
-                                                   ,@(cddr (tm-children t))))
+         (let* ((p (cursor-path-in (tree-ref t 1))) (l (label-list (tree-ref t 1) p)))
+           (with r (commit-animation t) (tree-set! t 0 (tree-ref r 0)) (tree-set! t 4 now))
+           (with r
+             (animate-checkout `(anim-static ,(tree-ref t 0)
+                                  ,@(cddr (tm-children t))))
              (tree-set! t 0 (tree-ref r 0))
              (tree-set! t 1 (tree-ref r 1))
-             (with l* (label-list (tree-ref t 1) p)
-               (if (and l (== l* l))
-                   (apply tree-go-to (cons* t 1 p))
-                   (tree-go-to t 1 :start))))))))
+             (with l*
+               (label-list (tree-ref t 1) p)
+               (if (and l (== l* l)) (apply tree-go-to (cons* t 1 p)) (tree-go-to t 1 :start))
+             ) ;with
+           ) ;with
+         ) ;let*
+        ) ;
+  ) ;cond
+) ;tm-define
 
 (tm-define (current-anim-set-now x)
-  (and-with t (tree-innermost user-anim-context? #t)
+  (and-with t
+    (tree-innermost user-anim-context? #t)
     (when x
       (anim-set-now t x)
-      (notify-change 256))))
+      (notify-change 256)
+    ) ;when
+  ) ;and-with
+) ;tm-define
 
 (define (get-ms t)
   (cond ((and (tree? t) (tree-atomic? t)) (get-ms (tree->string t)))
         ((not (string? t)) #f)
         ((string-ends? t "sec") (get-ms (string-drop-right t 2)))
         ((string-ends? t "ms") (string->number (string-drop-right t 2)))
-        (else (and-with d (string->number (string-drop-right t 1))
-                (* 1000 d)))))
+        (else (and-with d (string->number (string-drop-right t 1)) (* 1000 d)))
+  ) ;cond
+) ;define
 
 (tm-define (anim-portion t)
-  (let* ((n (get-ms (anim-now t)))
-         (d (get-ms (anim-duration t))))
-    (and n d (/ (* 1.0 n) (* 1.0 d)))))
+  (let* ((n (get-ms (anim-now t))) (d (get-ms (anim-duration t))))
+    (and n d (/ (* 1.0 n) (* 1.0 d)))
+  ) ;let*
+) ;tm-define
 
 (tm-define (anim-set-portion t x)
-  (and-with d (get-ms (anim-duration t))
+  (and-with d
+    (get-ms (anim-duration t))
     (when (number? x)
-      (with n (inexact->exact (floor (+ (* x d) 0.5)))
-        (anim-set-now t (string-append (number->string (* 0.001 n)) "s"))))))
+      (with n
+        (inexact->exact (floor (+ (* x d) 0.5)))
+        (anim-set-now t (string-append (number->string (* 0.001 n)) "s"))
+      ) ;with
+    ) ;when
+  ) ;and-with
+) ;tm-define
 
 (tm-define (current-anim-set-portion x)
-  (and-with t (tree-innermost user-anim-context? #t)
+  (and-with t
+    (tree-innermost user-anim-context? #t)
     (when x
       (anim-set-portion t x)
-      (notify-change 256))))
+      (notify-change 256)
+    ) ;when
+  ) ;and-with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Removal of entire animations and specific frames
@@ -457,59 +582,76 @@
 (define (remove-var l var)
   (cond ((or (null? l) (null? (cdr l))) (list))
         ((tm-equal? (car l) var) (remove-var (cddr l) var))
-        (else (cons* (car l) (cadr l) (remove-var (cddr l) var)))))
+        (else (cons* (car l) (cadr l) (remove-var (cddr l) var)))
+  ) ;cond
+) ;define
 
 (tm-define (anim-principal t)
-  (cond ((tm-in? t '(anim-static anim-dynamic))
-         (anim-principal (tm-ref t 0)))
-        ((and (tm-is? t 'morph)
-              (tm-func? (tm-ref t :last) 'tuple 2))
-         (anim-principal (tm-ref t :last 1)))
-        ((tm-is? t 'anim-edit)
-         (anim-principal (tm-ref t 1)))
+  (cond ((tm-in? t '(anim-static anim-dynamic)) (anim-principal (tm-ref t 0)))
+        ((and (tm-is? t 'morph) (tm-func? (tm-ref t :last) 'tuple 2))
+         (anim-principal (tm-ref t :last 1))
+        ) ;
+        ((tm-is? t 'anim-edit) (anim-principal (tm-ref t 1)))
         ((tm-is? t 'with)
-         (let* ((c (tm-children t))
-                (l (cDr c))
-                (r (anim-principal (cAr c))))
+         (let* ((c (tm-children t)) (l (cDr c)) (r (anim-principal (cAr c))))
            (set! l (remove-var l "line-portion"))
            (set! l (remove-var l "opacity"))
-           (if (null? l) r `(with ,@l ,r))))
-        (else t)))
+           (if (null? l) r `(with ,@l ,r))
+         ) ;let*
+        ) ;
+        (else t)
+  ) ;cond
+) ;tm-define
 
 (tm-define (current-anim-remove)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (tree-set! t (anim-principal t))))
+  (and-with t
+    (tree-innermost user-anim-context? #t)
+    (tree-set! t (anim-principal t))
+  ) ;and-with
+) ;tm-define
 
 (tm-define (anim-can-remove-frame? t)
   (and (tree-is? t 'anim-edit)
-       (in? (anim-portion t) (anim-control-times t))
-       (> (length (anim-control-times t)) 1)))
+    (in? (anim-portion t) (anim-control-times t))
+    (> (length (anim-control-times t)) 1)
+  ) ;and
+) ;tm-define
 
 (define (morph-remove l x)
   (cond ((null? l) l)
         ((and (tree-func? (car l) 'tuple 2)
-              (tree-atomic? (tree-ref (car l) 0))
-              (= (tree->number (tree-ref (car l) 0)) x))
-         (morph-remove (cdr l) x))
-        (else (cons (car l) (morph-remove (cdr l) x)))))
+           (tree-atomic? (tree-ref (car l) 0))
+           (= (tree->number (tree-ref (car l) 0)) x)
+         ) ;and
+         (morph-remove (cdr l) x)
+        ) ;
+        (else (cons (car l) (morph-remove (cdr l) x)))
+  ) ;cond
+) ;define
 
 (define (anim-remove-frame-sub t x)
   (cond ((tree-atomic? t) t)
         ((user-anim-context? t) t)
-        ((tree-is? t 'morph)
-         `(morph ,@(morph-remove (tree-children t) x)))
+        ((tree-is? t 'morph) `(morph ,@(morph-remove (tree-children t) x)))
         (else `(,(tree-label t)
-                ,@(map (cut anim-remove-frame-sub <> x)
-                       (tree-children t))))))
+                ,@(map (cut anim-remove-frame-sub <> x) (tree-children t)))
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (anim-current-remove-frame)
-  (and-with t (tree-innermost 'anim-edit #t)
+  (and-with t
+    (tree-innermost 'anim-edit #t)
     (let* ((n (anim-remove-frame-sub (tree-ref t 0) (anim-portion t)))
            (r (cddr (tree-children t)))
            (a `(anim-static ,n ,@r))
-           (b (animate-checkout a)))
+           (b (animate-checkout a))
+          ) ;
       (tree-set! t 0 (tree-ref b 0))
-      (tree-set! t 1 (tree-ref b 1)))))
+      (tree-set! t 1 (tree-ref b 1))
+    ) ;let*
+  ) ;and-with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Managing objects with respect to frames
@@ -528,32 +670,39 @@
 (tm-define (anim-test-new-mode? s) (== anim-new-mode s))
 (tm-define (anim-set-new-mode s)
   (:check-mark "*" anim-test-new-mode?)
-  (set! anim-new-mode s))
+  (set! anim-new-mode s)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Start and end editing
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (anim-checkout t)
-  (with r (animate-checkout t)
+  (with r
+    (animate-checkout t)
     (tree-assign-node! t (tree-label r))
     (tree-set! t 0 (tree-ref r 0))
     (tree-insert! t 1 (list (tree-ref r 1)))
     (tree-go-to t 1 :start)
-    (set-bottom-bar "animate" #t)))
+    (set-bottom-bar "animate" #t)
+  ) ;with
+) ;tm-define
 
 (tm-define (current-anim-checkout)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (anim-checkout t)))
+  (and-with t (tree-innermost user-anim-context? #t) (anim-checkout t))
+) ;tm-define
 
 (tm-define (anim-commit t)
-  (with r (commit-animation t)
+  (with r
+    (commit-animation t)
     (tree-set! t 0 (tree-ref r 0))
     (tree-remove! t 1 1)
     (tree-assign-node! t (tree-label r))
     (tree-go-to t :end)
-    (anim-play t)))
+    (anim-play t)
+  ) ;with
+) ;tm-define
 
 (tm-define (current-anim-commit)
-  (and-with t (tree-innermost user-anim-context? #t)
-    (anim-commit t)))
+  (and-with t (tree-innermost user-anim-context? #t) (anim-commit t))
+) ;tm-define

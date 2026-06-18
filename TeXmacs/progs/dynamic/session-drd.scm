@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic session-drd)
-  (:use (dynamic dynamic-drd)))
+(texmacs-module (dynamic session-drd) (:use (dynamic dynamic-drd)))
 
 ;; fold <-> unfold toggles
 

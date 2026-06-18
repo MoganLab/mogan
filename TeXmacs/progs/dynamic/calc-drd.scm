@@ -11,24 +11,35 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic calc-drd)
-  (:use (dynamic dynamic-drd)))
+(texmacs-module (dynamic calc-drd) (:use (dynamic dynamic-drd)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Groups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-group calc-table-tag
-  textual-table numeric-dot-table numeric-comma-table)
+  textual-table
+  numeric-dot-table
+  numeric-comma-table
+) ;define-group
 
 (define-group calc-labeled-tag
-  calc-inert calc-input calc-output cell-input cell-output
-  calc-generate calc-generate-command
-  calc-answer calc-answer-command
-  calc-check calc-check-predicate calc-check-command calc-suggest)
+  calc-inert
+  calc-input
+  calc-output
+  cell-input
+  cell-output
+  calc-generate
+  calc-generate-command
+  calc-answer
+  calc-answer-command
+  calc-check
+  calc-check-predicate
+  calc-check-command
+  calc-suggest
+) ;define-group
 
-(define-group calc-check-tag
-  calc-check calc-check-predicate calc-check-command)
+(define-group calc-check-tag calc-check calc-check-predicate calc-check-command)
 
 (define-group variant-tag (calc-table-tag))
 (define-group similar-tag (calc-table-tag))
@@ -48,43 +59,51 @@
 (tm-define (calc-table-search t)
   (:synopsis "Return calc-table ancestor for @t or #f")
   (or (and (tree-is? t 'calc-table) t)
-      (and (tree-ref t :up)
-	   (not (tree-is? t :up 'table))
-	   (calc-table-search (tree-up t)))))
+    (and (tree-ref t :up)
+      (not (tree-is? t :up 'table))
+      (calc-table-search (tree-up t))
+    ) ;and
+  ) ;or
+) ;tm-define
 
 (tm-define (calc-table-context? t)
   (:synopsis "Check whether @t is a table inside a calc-table")
-  (and (tree-is? t 'table)
-       (nnot (calc-table-search (tree-up t)))))
+  (and (tree-is? t 'table) (nnot (calc-table-search (tree-up t))))
+) ;tm-define
 
 (tm-define (calc-data-context? t)
-  (tree-in? t '(calc-inert calc-input calc-output
-                cell-inert cell-input cell-output)))
+  (tree-in? t
+    '(calc-inert calc-input calc-output cell-inert cell-input cell-output)
+  ) ;tree-in?
+) ;tm-define
 
-(tm-define (calc-inert-context? t)
-  (tree-in? t '(calc-inert cell-inert)))
+(tm-define (calc-inert-context? t) (tree-in? t '(calc-inert cell-inert)))
 
 (tm-define (calc-toggle-context? t)
-  (tree-in? t '(calc-input calc-output cell-input cell-output)))
+  (tree-in? t '(calc-input calc-output cell-input cell-output))
+) ;tm-define
 
 (tm-define (calc-generate-context? t)
-  (tree-in? t '(calc-generate-command calc-generate)))
+  (tree-in? t '(calc-generate-command calc-generate))
+) ;tm-define
 
 (tm-define (calc-answer-context? t)
-  (tree-in? t '(calc-answer-command calc-answer)))
+  (tree-in? t '(calc-answer-command calc-answer))
+) ;tm-define
 
 (tm-define (calc-check-context? t)
   (and (tree-in? t '(calc-check-command calc-check-predicate calc-check))
-       (== (tree-arity t) 5)
-       (tree-is? (tree-ref t 4) 'calc-suggest)))
+    (== (tree-arity t) 5)
+    (tree-is? (tree-ref t 4) 'calc-suggest)
+  ) ;and
+) ;tm-define
 
-(tm-define (calc-ref-context? t)
-  (tree-in? t '(calc-ref cell-ref)))
+(tm-define (calc-ref-context? t) (tree-in? t '(calc-ref cell-ref)))
 
 (tm-define (calc-range-context? t)
-  (and (tree-is? t 'cell-range)
-       (tree-is? t 0 'cell-ref)
-       (tree-is? t 1 'cell-ref)))
+  (and (tree-is? t 'cell-range) (tree-is? t 0 'cell-ref) (tree-is? t 1 'cell-ref))
+) ;tm-define
 
 (tm-define (calc-cell-context? t)
-  (tree-in? t '(cell-inert cell-input cell-output cell-ref cell-range)))
+  (tree-in? t '(cell-inert cell-input cell-output cell-ref cell-range))
+) ;tm-define
