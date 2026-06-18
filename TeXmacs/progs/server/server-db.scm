@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (server server-db)
-  (:use (server server-base)))
+(texmacs-module (server server-db) (:use (server server-base)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Change the time if needed
@@ -20,109 +19,133 @@
 
 (tm-define-macro (with-identifier-context id . body)
   `(if (npair? ,id)
-       (begin
-         ,@body)
-       (with-global db-time (cadr ,id)
-         (with-global ,id (car ,id)
-           ,@body))))
+     (begin ,@body)
+     (with-global db-time (cadr ,id) (with-global ,id (car ,id) ,@body)))
+) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface for basic database API
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-service (remote-get-field id attr)
-  ;;(display* "remote-get-field " id ", " attr "\n")
+  ;; (display* "remote-get-field " id ", " attr "\n")
   (with-identifier-context id
-    (with uid (or (server-get-user envelope) "all")
+    (with uid
+      (or (server-get-user envelope) "all")
       (cond ((not (db-allow? id uid "readable"))
-             (server-error envelope "Error: read access required for field"))
-            (else
-              (server-return envelope (db-get-field id attr)))))))
+             (server-error envelope "Error: read access required for field")
+            ) ;
+            (else (server-return envelope (db-get-field id attr)))
+      ) ;cond
+    ) ;with
+  ) ;with-identifier-context
+) ;tm-service
 
 (tm-service (remote-set-field id attr vals)
-  ;;(display* "remote-set-field " id ", " attr ", " vals "\n")
+  ;; (display* "remote-set-field " id ", " attr ", " vals "\n")
   (with-identifier-context id
-    (with uid (server-get-user envelope)
-      (cond ((not uid)
-             (server-error envelope "Error: not logged in"))
+    (with uid
+      (server-get-user envelope)
+      (cond ((not uid) (server-error envelope "Error: not logged in"))
             ((not (db-allow? id uid "writable"))
-             (server-error envelope "Error: write access required for field"))
-            ((!= db-time :now)
-             (server-error envelope "Error: cannot rewrite history"))
-            (else
-              (db-set-field id attr vals)
-              (server-return envelope #t))))))
+             (server-error envelope "Error: write access required for field")
+            ) ;
+            ((!= db-time :now) (server-error envelope "Error: cannot rewrite history"))
+            (else (db-set-field id attr vals) (server-return envelope #t))
+      ) ;cond
+    ) ;with
+  ) ;with-identifier-context
+) ;tm-service
 
 (tm-service (remote-get-attributes id)
-  ;;(display* "remote-get-attributes " id "\n")
+  ;; (display* "remote-get-attributes " id "\n")
   (with-identifier-context id
-    (with uid (or (server-get-user envelope) "all")
+    (with uid
+      (or (server-get-user envelope) "all")
       (cond ((not (db-allow? id uid "readable"))
-             (server-error envelope "Error: read access required for entry"))
-            (else
-              (server-return envelope (db-get-attributes id)))))))
+             (server-error envelope "Error: read access required for entry")
+            ) ;
+            (else (server-return envelope (db-get-attributes id)))
+      ) ;cond
+    ) ;with
+  ) ;with-identifier-context
+) ;tm-service
 
 (tm-service (remote-get-entry id)
-  ;;(display* "remote-get-entry " id "\n")
+  ;; (display* "remote-get-entry " id "\n")
   (with-identifier-context id
-    (with uid (or (server-get-user envelope) "all")
+    (with uid
+      (or (server-get-user envelope) "all")
       (cond ((not (db-allow? id uid "readable"))
-             (server-error envelope "Error: read access required for entry"))
-            (else
-              (server-return envelope (db-get-entry id)))))))
+             (server-error envelope "Error: read access required for entry")
+            ) ;
+            (else (server-return envelope (db-get-entry id)))
+      ) ;cond
+    ) ;with
+  ) ;with-identifier-context
+) ;tm-service
 
 (tm-service (remote-set-entry id l)
-  ;;(display* "remote-set-entry " id ", " l "\n")
+  ;; (display* "remote-set-entry " id ", " l "\n")
   (with-identifier-context id
-    (with uid (server-get-user envelope)
-      (cond ((not uid)
-             (server-error envelope "Error: not logged in"))
+    (with uid
+      (server-get-user envelope)
+      (cond ((not uid) (server-error envelope "Error: not logged in"))
             ((not (db-allow? id uid "writable"))
-             (server-error envelope "Error: write access required for entry"))
-            ((!= db-time :now)
-             (server-error envelope "Error: cannot rewrite history"))
-            (else
-              (db-set-entry id l)
-              (server-return envelope #t))))))
+             (server-error envelope "Error: write access required for entry")
+            ) ;
+            ((!= db-time :now) (server-error envelope "Error: cannot rewrite history"))
+            (else (db-set-entry id l) (server-return envelope #t))
+      ) ;cond
+    ) ;with
+  ) ;with-identifier-context
+) ;tm-service
 
 (tm-service (remote-create-entry l)
-  ;;(display* "remote-create-entry " l "\n")
-  (with uid (server-get-user envelope)
-    (cond ((not uid)
-           (server-error envelope "Error: not logged in"))
-          (else
-            (with-user uid
-              (server-return envelope (db-create-entry l)))))))
+  ;; (display* "remote-create-entry " l "\n")
+  (with uid
+    (server-get-user envelope)
+    (cond ((not uid) (server-error envelope "Error: not logged in"))
+          (else (with-user uid (server-return envelope (db-create-entry l))))
+    ) ;cond
+  ) ;with
+) ;tm-service
 
 (tm-service (remote-search q)
-  ;;(display* "remote-search " q "\n")
-  (with uid (or (server-get-user envelope) "all")
-    (with-user uid
-      (server-return envelope (db-search q)))))
+  ;; (display* "remote-search " q "\n")
+  (with uid
+    (or (server-get-user envelope) "all")
+    (with-user uid (server-return envelope (db-search q)))
+  ) ;with
+) ;tm-service
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Get limited information about other users
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-service (remote-search-user q)
-  ;;(display* "remote-search-user " q "\n")
+  ;; (display* "remote-search-user " q "\n")
   (with-user #t
     ;; TODO: in the future, we should only allow searches by name or by pseudo
-    (server-return envelope (db-search (rcons q (list "type" "user"))))))
+    (server-return envelope (db-search (rcons q (list "type" "user"))))
+  ) ;with-user
+) ;tm-service
 
 (define (get-user-field uid attr)
   (cond ((string? uid)
-         (with-user #t
-           (with r (db-get-field uid attr)
-             (and (pair? r) (car r)))))
-        ((list? uid)
-         (map (cut get-user-field <> attr) uid))
-        (else #f)))
+         (with-user #t (with r (db-get-field uid attr) (and (pair? r) (car r))))
+        ) ;
+        ((list? uid) (map (cut get-user-field <> attr) uid))
+        (else #f)
+  ) ;cond
+) ;define
 
 (tm-service (remote-get-user-pseudo uid)
-  ;;(display* "remote-search-user-pseudo " uid "\n")
-  (server-return envelope (get-user-field uid "pseudo")))
+  ;; (display* "remote-search-user-pseudo " uid "\n")
+  (server-return envelope (get-user-field uid "pseudo"))
+) ;tm-service
 
 (tm-service (remote-get-user-name uid)
-  ;;(display* "remote-search-user-name " uid "\n")
-  (server-return envelope (get-user-field uid "name")))
+  ;; (display* "remote-search-user-name " uid "\n")
+  (server-return envelope (get-user-field uid "name"))
+) ;tm-service

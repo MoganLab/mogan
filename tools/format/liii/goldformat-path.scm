@@ -43,6 +43,7 @@
         "TeXmacs/progs/network"
         "TeXmacs/progs/part"
         "TeXmacs/progs/prog"
+        "TeXmacs/progs/server"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"
