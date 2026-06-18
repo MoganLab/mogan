@@ -15,31 +15,39 @@
 
 (define (natbib-author s)
   (let* ((i (string-index s #\()))
-    (if i (substring s 0 i) s)))
+    (if i (substring s 0 i) s)
+  ) ;let*
+) ;define
 
 (define (natbib-year s)
-  (let* ((i (string-index s #\())
-	 (j (string-index s #\))))
-    (if (and i j (< i j)) (substring s (+ i 1) j) "?")))
+  (let* ((i (string-index s #\()) (j (string-index s #\))))
+    (if (and i j (< i j)) (substring s (+ i 1) j) "?")
+  ) ;let*
+) ;define
 
 (define (natbib-author* s)
-  (let* ((i (string-index s #\())
-	 (j (string-index s #\)))
-	 (n (string-length s)))
+  (let* ((i (string-index s #\()) (j (string-index s #\))) (n (string-length s)))
     (cond ((not (and i j (< i j))) s)
-	  ((< (+ j 1) n) (substring s (+ j 1) n))
-	  (else (substring s 0 i)))))
+          ((< (+ j 1) n) (substring s (+ j 1) n))
+          (else (substring s 0 i))
+    ) ;cond
+  ) ;let*
+) ;define
 
 (tm-define (natbib-get t type-t)
   (:secure #t)
   (if (tm-func? t 'natbib-triple 3)
-      (cond ((== type "author") (tm-ref t 1))
-            ((== type "year") (tm-ref t 2))
-            ((== type "author*") (tm-ref t 0))
-            (else "?"))
-      (let* ((s (tree-as-string t))
-             (type (tree-as-string type-t)))
-        (cond ((== type "author") (string-trim-spaces (natbib-author s)))
-              ((== type "year") (string-trim-spaces (natbib-year s)))
-              ((== type "author*") (string-trim-spaces (natbib-author* s)))
-              (else "?")))))
+    (cond ((== type "author") (tm-ref t 1))
+          ((== type "year") (tm-ref t 2))
+          ((== type "author*") (tm-ref t 0))
+          (else "?")
+    ) ;cond
+    (let* ((s (tree-as-string t)) (type (tree-as-string type-t)))
+      (cond ((== type "author") (string-trim-spaces (natbib-author s)))
+            ((== type "year") (string-trim-spaces (natbib-year s)))
+            ((== type "author*") (string-trim-spaces (natbib-author* s)))
+            (else "?")
+      ) ;cond
+    ) ;let*
+  ) ;if
+) ;tm-define

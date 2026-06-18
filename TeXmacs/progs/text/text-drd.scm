@@ -11,247 +11,368 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text text-drd)
-  (:use (utils edit variants)
-        (prog prog-drd)))
+(texmacs-module (text text-drd) (:use (utils edit variants) (prog prog-drd)))
 
 ;; General groups
 
 (define-group variant-tag
-  (section-tag) (list-tag) (figure-tag) (table-tag)
-  (enunciation-tag) (prominent-tag) (alignment-tag) (compression-tag)
-  (frame-tag) (frame-titled-tag)
-  (textual-tag) (code-tag)
-  (ornament-tag) (art-frame-tag) (shadow-tag)
-  (balloon-tag))
+  (section-tag)
+  (list-tag)
+  (figure-tag)
+  (table-tag)
+  (enunciation-tag)
+  (prominent-tag)
+  (alignment-tag)
+  (compression-tag)
+  (frame-tag)
+  (frame-titled-tag)
+  (textual-tag)
+  (code-tag)
+  (ornament-tag)
+  (art-frame-tag)
+  (shadow-tag)
+  (balloon-tag)
+) ;define-group
 
 (define-group similar-tag
-  (section-tag) (list-tag) (figure-tag) (table-tag)
-  (enunciation-tag) (prominent-tag) (alignment-tag) (compression-tag)
-  (frame-tag) (frame-titled-tag)
-  (textual-tag) (code-tag) (equation-tag)
-  (ornament-tag) (art-frame-tag) (shadow-tag)
-  (balloon-tag))
+  (section-tag)
+  (list-tag)
+  (figure-tag)
+  (table-tag)
+  (enunciation-tag)
+  (prominent-tag)
+  (alignment-tag)
+  (compression-tag)
+  (frame-tag)
+  (frame-titled-tag)
+  (textual-tag)
+  (code-tag)
+  (equation-tag)
+  (ornament-tag)
+  (art-frame-tag)
+  (shadow-tag)
+  (balloon-tag)
+) ;define-group
 
 (define-group numbered-tag
   (section-tag)
-  (theorem-tag) (definition-tag) (remark-tag) (exercise-tag) (solution-tag)
-  (figure-tag) (table-tag) (equation-tag))
+  (theorem-tag)
+  (definition-tag)
+  (remark-tag)
+  (exercise-tag)
+  (solution-tag)
+  (figure-tag)
+  (table-tag)
+  (equation-tag)
+) ;define-group
 
 (define-group mini-flow-tag
-  (frame-tag) (frame-titled-tag)
-  (ornament-tag) (art-frame-tag) (shadow-tag))
+  (frame-tag)
+  (frame-titled-tag)
+  (ornament-tag)
+  (art-frame-tag)
+  (shadow-tag)
+) ;define-group
 
 ;; Environments with titles
 
-(define-group titled-tag
-  (auto-titled-tag) (render-titled-tag))
+(define-group titled-tag (auto-titled-tag) (render-titled-tag))
 
-(define-group auto-titled-tag
-  (enunciation-tag) proof (figure-tag) (table-tag))
+(define-group auto-titled-tag (enunciation-tag) proof (figure-tag) (table-tag))
 
 (define-group render-titled-tag
-  (render-enunciation-tag) render-proof (render-figure-tag) (render-table-tag))
+  (render-enunciation-tag)
+  render-proof
+  (render-figure-tag)
+  (render-table-tag)
+) ;define-group
 
 ;; Sections
 
 (define-group section-tag
-  part chapter appendix
-  section subsection subsubsection
-  paragraph subparagraph)
+  part
+  chapter
+  appendix
+  section
+  subsection
+  subsubsection
+  paragraph
+  subparagraph
+) ;define-group
 
 (define-group section*-tag
-  part* chapter* appendix*
-  section* subsection* subsubsection*
-  paragraph* subparagraph*)
+  part*
+  chapter*
+  appendix*
+  section*
+  subsection*
+  subsubsection*
+  paragraph*
+  subparagraph*
+) ;define-group
 
-(define-group special-section-tag
-  prologue epilogue)
+(define-group special-section-tag prologue epilogue)
 
 (define-group automatic-section-tag
-  table-of-contents bibliography the-index the-glossary
-  list-of-figures list-of-tables)
+  table-of-contents
+  bibliography
+  the-index
+  the-glossary
+  list-of-figures
+  list-of-tables
+) ;define-group
 
 (define-group long-principal-section-tag
-  part part* chapter chapter* appendix appendix*
-  (special-section-tag) (automatic-section-tag))
+  part
+  part*
+  chapter
+  chapter*
+  appendix
+  appendix*
+  (special-section-tag)
+  (automatic-section-tag)
+) ;define-group
 
 (define-group short-principal-section-tag
-  section section* (long-principal-section-tag))
+  section
+  section*
+  (long-principal-section-tag)
+) ;define-group
 
 ;; Lists
 
-(define-group list-tag
-  (itemize-tag) (enumerate-tag) (description-tag))
+(define-group list-tag (itemize-tag) (enumerate-tag) (description-tag))
 
-(define-group itemize-tag
-  itemize itemize-minus itemize-dot itemize-arrow)
+(define-group itemize-tag itemize itemize-minus itemize-dot itemize-arrow)
 
 (define-group enumerate-tag
-  enumerate enumerate-numeric enumerate-numeric-bracket
-  enumerate-roman enumerate-roman-bracket enumerate-roman-paren
-  enumerate-Roman enumerate-alpha enumerate-alpha-bracket
-  enumerate-alpha-full-paren enumerate-Alpha
-  enumerate-circle enumerate-hanzi enumerate-numeric-paren)
+  enumerate
+  enumerate-numeric
+  enumerate-numeric-bracket
+  enumerate-roman
+  enumerate-roman-bracket
+  enumerate-roman-paren
+  enumerate-Roman
+  enumerate-alpha
+  enumerate-alpha-bracket
+  enumerate-alpha-full-paren
+  enumerate-Alpha
+  enumerate-circle
+  enumerate-hanzi
+  enumerate-numeric-paren
+) ;define-group
 
 (define-group description-tag
-  description description-compact description-aligned
-  description-dash description-long description-paragraphs)
+  description
+  description-compact
+  description-aligned
+  description-dash
+  description-long
+  description-paragraphs
+) ;define-group
 
 ;; Document titles
 
 (define-group doc-title-tag
-  (doc-title-active-tag) (doc-title-inactive-tag) doc-title-options)
+  (doc-title-active-tag)
+  (doc-title-inactive-tag)
+  doc-title-options
+) ;define-group
 
 (define-group doc-title-active-tag
-  doc-title doc-subtitle doc-author doc-date doc-misc doc-note)
+  doc-title
+  doc-subtitle
+  doc-author
+  doc-date
+  doc-misc
+  doc-note
+) ;define-group
 
-(define-group doc-title-inactive-tag
-  doc-running-title doc-running-author)
+(define-group doc-title-inactive-tag doc-running-title doc-running-author)
 
-(define-group doc-author-tag
-  author-data)
+(define-group doc-author-tag author-data)
 
 (define-group author-data-tag
-  author-name author-affiliation author-email author-homepage author-misc
-  author-note)
+  author-name
+  author-affiliation
+  author-email
+  author-homepage
+  author-misc
+  author-note
+) ;define-group
 
 (define-group abstract-data-tag
-  abstract abstract-acm abstract-arxiv abstract-pacs abstract-msc
-  abstract-keywords)
+  abstract
+  abstract-acm
+  abstract-arxiv
+  abstract-pacs
+  abstract-msc
+  abstract-keywords
+) ;define-group
 
 ;; Enunciations
 
 (define-group enunciation-tag
-  (theorem-tag) (definition-tag) (remark-tag) (exercise-tag) (solution-tag))
+  (theorem-tag)
+  (definition-tag)
+  (remark-tag)
+  (exercise-tag)
+  (solution-tag)
+) ;define-group
 
-(define-group theorem-tag
-  theorem proposition lemma corollary conjecture)
+(define-group theorem-tag theorem proposition lemma corollary conjecture)
 
-(define-group definition-tag
-  definition axiom notation assumption)
+(define-group definition-tag definition axiom notation assumption)
 
-(define-group remark-tag
-  remark note example convention warning acknowledgments)
+(define-group remark-tag remark note example convention warning acknowledgments)
 
-(define-group exercise-tag
-  exercise problem question)
+(define-group exercise-tag exercise problem question)
 
-(define-group solution-tag
-  solution answer)
+(define-group solution-tag solution answer)
 
 (define-group render-enunciation-tag
-  render-theorem render-remark render-exercise render-solution)
+  render-theorem
+  render-remark
+  render-exercise
+  render-solution
+) ;define-group
 
 ;; Other textual environments
 
-(define-group prominent-tag
-  quote-env quotation verse)
+(define-group prominent-tag quote-env quotation verse)
 
-(define-group compression-tag
-  ultra-compact compact compressed amplified)
+(define-group compression-tag ultra-compact compact compressed amplified)
 
 (define-group alignment-tag
-  padded-center padded-left-aligned padded-right-aligned)
+  padded-center
+  padded-left-aligned
+  padded-right-aligned
+) ;define-group
 
-(define-group frame-tag
-  padded overlined underlined bothlined framed ornamented)
+(define-group frame-tag padded overlined underlined bothlined framed ornamented)
 
 (define-group frame-titled-tag
-  padded-titled overlined-titled underlined-titled bothlined-titled
-  framed-titled ornamented-titled)
+  padded-titled
+  overlined-titled
+  underlined-titled
+  bothlined-titled
+  framed-titled
+  ornamented-titled
+) ;define-group
 
 ;; Textual markup tags
 
 (define-group textual-tag
-  (strong-tag) (name-tag) (monospaced-tag) (size-tag)
-  (opacity-tag) (decorated-tag))
+  (strong-tag)
+  (name-tag)
+  (monospaced-tag)
+  (size-tag)
+  (opacity-tag)
+  (decorated-tag)
+) ;define-group
 
-(define-group strong-tag
-  strong em dfn underline)
+(define-group strong-tag strong em dfn underline)
 
-(define-group name-tag
-  name person cite*)
+(define-group name-tag name person cite*)
 
-(define-group monospaced-tag
-  kbd code* var)
+(define-group monospaced-tag kbd code* var)
 
 (define-group size-tag
-  really-tiny tiny very-small small
-  normal-size large very-large huge really-huge)
+  really-tiny
+  tiny
+  very-small
+  small
+  normal-size
+  large
+  very-large
+  huge
+  really-huge
+) ;define-group
 
-(define-group opacity-tag
-  pastel greyed light)
+(define-group opacity-tag pastel greyed light)
 
-(define-group decorated-tag
-  deleted marked stressed fill-out fill-out*)
-
-;; Figures and tables
-
-(define-group figure-tag
-  (small-figure-tag) (big-figure-tag))
-
-(define-group table-tag
-  (small-table-tag) (big-table-tag))
-
-(define-group small-figure-tag
-  small-figure)
-
-(define-group big-figure-tag
-  big-figure)
-
-(define-group small-table-tag
-  small-table)
-
-(define-group big-table-tag
-  big-table)
-
-(define-group render-figure-tag
-  render-small-figure render-big-figure)
-
-(define-group render-table-tag
-  render-small-table render-big-table)
+(define-group decorated-tag deleted marked stressed fill-out fill-out*)
 
 ;; Figures and tables
 
-(define-group equation-tag
-  equation eqnarray align)
+(define-group figure-tag (small-figure-tag) (big-figure-tag))
+
+(define-group table-tag (small-table-tag) (big-table-tag))
+
+(define-group small-figure-tag small-figure)
+
+(define-group big-figure-tag big-figure)
+
+(define-group small-table-tag small-table)
+
+(define-group big-table-tag big-table)
+
+(define-group render-figure-tag render-small-figure render-big-figure)
+
+(define-group render-table-tag render-small-table render-big-table)
+
+;; Figures and tables
+
+(define-group equation-tag equation eqnarray align)
 
 ;; Algorithms
 
 (define-group algorithm-tag
-  algorithm algorithm* named-algorithm
-  specified-algorithm specified-algorithm* named-specified-algorithm)
+  algorithm
+  algorithm*
+  named-algorithm
+  specified-algorithm
+  specified-algorithm*
+  named-specified-algorithm
+) ;define-group
 
 ;; ornaments
 
 (define-group ornament-tag
-  manila-paper rough-paper ridged-paper pine granite metal)
+  manila-paper
+  rough-paper
+  ridged-paper
+  pine
+  granite
+  metal
+) ;define-group
 
 (define-group art-frame-tag
-  carved-wood-frame decorated-wood-frame
-  black-floral1-frame black-floral2-frame)
+  carved-wood-frame
+  decorated-wood-frame
+  black-floral1-frame
+  black-floral2-frame
+) ;define-group
 
 (define-group shadow-tag
-  drop-contour bend-in-contour bend-out-contour diagonal-bend-in-contour
-  drop-shadow bend-in-shadow bend-out-shadow
-  half-bend-in-shadow quarter-bend-in-shadow
-  drop-down half-bend-in-down)
+  drop-contour
+  bend-in-contour
+  bend-out-contour
+  diagonal-bend-in-contour
+  drop-shadow
+  bend-in-shadow
+  bend-out-shadow
+  half-bend-in-shadow
+  quarter-bend-in-shadow
+  drop-down
+  half-bend-in-down
+) ;define-group
 
 ;; balloons
 
 (define-group balloon-tag
-  hover-balloon hover-balloon*
-  popup-balloon popup-balloon*
-  focus-balloon help-balloon)
+  hover-balloon
+  hover-balloon*
+  popup-balloon
+  popup-balloon*
+  focus-balloon
+  help-balloon
+) ;define-group
 
 ;; detached notes
 
-(define-group detached-note-tag
-  (auto-note-tag) (custom-note-tag))
+(define-group detached-note-tag (auto-note-tag) (custom-note-tag))
 
-(define-group auto-note-tag
-  note-ref note-inline note-wide note-footnote)
+(define-group auto-note-tag note-ref note-inline note-wide note-footnote)
 
-(define-group custom-note-tag
-  note-ref* note-inline* note-wide* note-footnote*)
+(define-group custom-note-tag note-ref* note-inline* note-wide* note-footnote*)
