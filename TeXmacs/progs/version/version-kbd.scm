@@ -12,34 +12,35 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (version version-kbd)
-  (:use (generic generic-kbd)
-	(version version-compare)))
+  (:use (generic generic-kbd) (version version-compare))
+) ;texmacs-module
 
-(kbd-map
-  (:mode with-versioning-tool?)
-  ("version home" (version-first-difference))
-  ("version pageup" (version-previous-difference))
-  ("version pagedown" (version-next-difference))
-  ("version end" (version-last-difference))
-  ("version up" (version-previous-difference))
-  ("version down" (version-next-difference))
-  ("version |" (version-show 'version-both))
-  ("version left" (version-show 'version-old))
-  ("version right" (version-show 'version-new))
-  ("version return" (version-retain 'current))
-  ("version 1" (version-retain 0))
-  ("version 2" (version-retain 1)))
+(kbd-map (:mode with-versioning-tool?)
+ ("version home" (version-first-difference))
+ ("version pageup" (version-previous-difference))
+ ("version pagedown" (version-next-difference))
+ ("version end" (version-last-difference))
+ ("version up" (version-previous-difference))
+ ("version down" (version-next-difference))
+ ("version |" (version-show 'version-both))
+ ("version left" (version-show 'version-old))
+ ("version right" (version-show 'version-new))
+ ("version return" (version-retain 'current))
+ ("version 1" (version-retain 0))
+ ("version 2" (version-retain 1))
+) ;kbd-map
 
-(kbd-map
-  (:mode in-versioning?)
-  ("C-up" (version-previous-difference))
-  ("C-down" (version-next-difference))
-  ("C-|" (version-show 'version-both))
-  ("C-left" (version-show 'version-old))
-  ("C-right" (version-show 'version-new))
-  ("C-1" (version-retain 0))
-  ("C-2" (version-retain 1)))
+(kbd-map (:mode in-versioning?)
+ ("C-up" (version-previous-difference))
+ ("C-down" (version-next-difference))
+ ("C-|" (version-show 'version-both))
+ ("C-left" (version-show 'version-old))
+ ("C-right" (version-show 'version-new))
+ ("C-1" (version-retain 0))
+ ("C-2" (version-retain 1))
+) ;kbd-map
 
 (tm-define (kbd-control-enter t shift?)
   (:require (and (tree-is-buffer? t) (in-versioning?)))
-  (version-retain 'current))
+  (version-retain 'current)
+) ;tm-define

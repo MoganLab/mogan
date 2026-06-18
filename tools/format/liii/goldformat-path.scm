@@ -35,6 +35,7 @@
         "TeXmacs/progs/texmacs/menus"
         "TeXmacs/progs/texmacs/keyboard"
         "TeXmacs/progs/utils/plugins"
+        "TeXmacs/progs/version"
         "TeXmacs/plugins/llm/progs")
     ) ;define
 

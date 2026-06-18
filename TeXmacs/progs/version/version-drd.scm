@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (version version-drd)
-  (:use (utils edit variants)))
+(texmacs-module (version version-drd) (:use (utils edit variants)))
 
 (define-group version-tag version-old version-both version-new)
 
