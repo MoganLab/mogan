@@ -11,17 +11,18 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic calc-menu)
-  (:use (dynamic calc-table)))
+(texmacs-module (dynamic calc-menu) (:use (dynamic calc-table)))
 
 (menu-bind calc-table-menu
-  ("Textual spreadsheet" (make-calc-table 'textual-table))
-  ("Numeric spreadsheet" (make-calc-table 'numeric-dot-table)))
+ ("Textual spreadsheet" (make-calc-table 'textual-table))
+ ("Numeric spreadsheet" (make-calc-table 'numeric-dot-table))
+) ;menu-bind
 
 (menu-bind calc-insert-menu
-  ("Input field" (make-calc-inert))
-  ("Evaluable field" (make-calc-input))
-  ("Field reference" (make 'calc-ref)))
+ ("Input field" (make-calc-inert))
+ ("Evaluable field" (make-calc-input))
+ ("Field reference" (make 'calc-ref))
+) ;menu-bind
 
 (menu-bind calc-icourse-menu
   (when (calc-ready?)
@@ -31,19 +32,17 @@
     ("Answer field" (make-calc-answer))
     ("Checkable field" (make-calc-check))
     (when (selection-active-any?)
-      ("Conceal" (make 'concealed)))
+      ("Conceal" (make 'concealed))
+    ) ;when
     ---
     ("Regenerate" (calc-regenerate))
     ("Clean slate" (calc-solutions #f))
-    ("Solutions" (calc-solutions #t))))
+    ("Solutions" (calc-solutions #t))
+  ) ;when
+) ;menu-bind
 
-(tm-define (calc-labeled-context? t)
-  (tree-in? t (calc-labeled-tag-list)))
+(tm-define (calc-labeled-context? t) (tree-in? t (calc-labeled-tag-list)))
 
-(tm-define (pure-alternate-context? t)
-  (:require (calc-labeled-context? t))
-  #f)
+(tm-define (pure-alternate-context? t) (:require (calc-labeled-context? t)) #f)
 
-(tm-define (hidden-child? t i)
-  (:require (calc-labeled-context? t))
-  (== i 0))
+(tm-define (hidden-child? t i) (:require (calc-labeled-context? t)) (== i 0))

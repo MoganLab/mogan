@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (database bib-kbd)
-  (:use (database bib-menu)))
+(texmacs-module (database bib-kbd) (:use (database bib-menu)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Completing bibliographic references
@@ -20,19 +19,30 @@
 
 (tm-define (kbd-variant t forwards?)
   (:require (and (supports-db?) (bib-cite-context? t)))
-  (and-with u (if (tree-func? t 'cite-detail) (tree-ref t 0) (tree-down t))
-    (and-with key (and (tree-atomic? u) (tree->string u))
+  (and-with u
+    (if (tree-func? t 'cite-detail) (tree-ref t 0) (tree-down t))
+    (and-with key
+      (and (tree-atomic? u) (tree->string u))
       (with-database (bib-database)
-        (with completions (sort (index-get-name-completions key) string<=?)
+        (with completions
+          (sort (index-get-name-completions key) string<=?)
           (if (null? completions)
-              (set-message "No completions" "complete bibliographic reference")
-              (with cs (cons key (map (cut string-drop <> (string-length key))
-                                      completions))
-                (custom-complete (tm->tree `(tuple ,@cs))))))))))
+            (set-message "No completions" "complete bibliographic reference")
+            (with cs
+              (cons key (map (cut string-drop <> (string-length key)) completions))
+              (custom-complete (tm->tree `(tuple ,@cs)))
+            ) ;with
+          ) ;if
+        ) ;with
+      ) ;with-database
+    ) ;and-with
+  ) ;and-with
+) ;tm-define
 
 (tm-define (kbd-alternate-variant t forwards?)
   (:require (and (supports-db?) (bib-cite-context? t)))
-  (focus-open-search-tool t))
+  (focus-open-search-tool t)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transform author and editor names
@@ -40,64 +50,86 @@
 
 (define (unstructure-name t)
   (cond ((tm-in? t '(name person)) (tm-ref t 0))
-        (else t)))
+        (else t)
+  ) ;cond
+) ;define
 
 (define (unstructure-names t)
   (cond ((string? t) t)
         ((tm-func? t 'concat)
-         (let* ((l (tm-children t))
-                (r (map unstructure-name l)))
-           (apply tmconcat r)))
-        (else t)))
+         (let* ((l (tm-children t)) (r (map unstructure-name l)))
+           (apply tmconcat r)
+         ) ;let*
+        ) ;
+        (else t)
+  ) ;cond
+) ;define
 
 (define (transform-one-name s*)
-  (let* ((s (tm-string-trim-both s*))
-         (l (cpp-string-tokenize s " ")))
+  (let* ((s (tm-string-trim-both s*)) (l (cpp-string-tokenize s " ")))
     (cond ((== (length l) 0) "")
           ((== (length l) 1) s)
-          (else (with r (cpp-string-recompose (cDr l) " ")
-                  `(concat ,(string-append r " ") (name ,(cAr l))))))))
+          (else (with r
+                  (cpp-string-recompose (cDr l) " ")
+                  `(concat ,(string-append r " ") (name ,(cAr l)))
+                ) ;with
+          ) ;else
+    ) ;cond
+  ) ;let*
+) ;define
 
 (define (transform-name s)
-  (if (nstring? s) s
-      (let* ((l1 (cpp-string-tokenize s " and "))
-             (l2 (map transform-one-name l1)))
-        (cond ((== (length l2) 0) "")
-              ((== (length l2) 1) (car l2))
-              (else (with r (list-intersperse l2 '(name-sep))
-                      (apply tmconcat r)))))))
+  (if (nstring? s)
+    s
+    (let* ((l1 (cpp-string-tokenize s " and ")) (l2 (map transform-one-name l1)))
+      (cond ((== (length l2) 0) "")
+            ((== (length l2) 1) (car l2))
+            (else (with r (list-intersperse l2 '(name-sep)) (apply tmconcat r)))
+      ) ;cond
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (transform-names t)
   (cond ((string? t) (transform-name t))
         ((tm-func? t 'concat)
          (let* ((l (tm-children t))
                 (sc (list-scatter l (cut == <> '(name-sep)) #f))
-                (ls (map (lambda (l) (apply tmconcat l))  sc))
+                (ls (map (lambda (l) (apply tmconcat l)) sc))
                 (ns (map transform-name ls))
-                (n (list-intersperse ns '(name-sep))))
-           (apply tmconcat n)))
-        (else t)))
+                (n (list-intersperse ns '(name-sep)))
+               ) ;
+           (apply tmconcat n)
+         ) ;let*
+        ) ;
+        (else t)
+  ) ;cond
+) ;define
 
 (tm-define (kbd-enter t shift?)
-  (:require (and (db-field? t) (not shift?)
-                 (in? (db-field-attr t) (list "author" "editor"))))
+  (:require (and (db-field? t)
+              (not shift?)
+              (in? (db-field-attr t) (list "author" "editor"))
+            ) ;and
+  ) ;:require
   (let* ((old (tm->stree (tm-ref t :down)))
          (aux (unstructure-names old))
-         (new (transform-names aux)))
-    (if (== new old)
-        (former t shift?)
-        (tree-assign (tm-ref t :down) new))))
+         (new (transform-names aux))
+        ) ;
+    (if (== new old) (former t shift?) (tree-assign (tm-ref t :down) new))
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Entering names
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map
-  (:mode in-bib-names?)
-  ("space a" " a")
-  ("space a n" " an")
-  ("space a n d space" (make-name-sep))
-  ("," (make-name-sep))
-  (", var" ",")
-  ("S-F5" (make-name-von))
-  ("S-F7" (make-name-jr)))
+(kbd-map (:mode in-bib-names?)
+ ("space a" " a")
+ ("space a n" " an")
+ ("space a n d space" (make-name-sep))
+ ("," (make-name-sep))
+ (", var" ",")
+ ("S-F5" (make-name-von))
+ ("S-F7" (make-name-jr))
+) ;kbd-map

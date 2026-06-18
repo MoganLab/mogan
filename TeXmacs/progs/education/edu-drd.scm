@@ -11,36 +11,51 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (education edu-drd)
-  (:use (text text-drd)))
+(texmacs-module (education edu-drd) (:use (text text-drd)))
 
 ;; Enunciations from text-drd.scm
 
-;;(define-group exercise-tag
+;; (define-group exercise-tag
 ;;  exercise problem question)
 ;;
-;;(define-group solution-tag
+;; (define-group solution-tag
 ;;  solution answer)
 
-(define-group variant-tag
-  (short-question-tag) (short-answer-tag))
+(define-group variant-tag (short-question-tag) (short-answer-tag))
 
-(define-group similar-tag
-  (short-question-tag) (short-answer-tag))
+(define-group similar-tag (short-question-tag) (short-answer-tag))
 
 (define-group short-question-tag
-  question-arabic question-alpha question-Alpha
-  question-roman question-Roman question-item)
+  question-arabic
+  question-alpha
+  question-Alpha
+  question-roman
+  question-Roman
+  question-item
+) ;define-group
 
 (define-group short-answer-tag
-  answer-arabic answer-alpha answer-Alpha
-  answer-roman answer-Roman answer-item)
+  answer-arabic
+  answer-alpha
+  answer-Alpha
+  answer-roman
+  answer-Roman
+  answer-item
+) ;define-group
 
 ;; Buttons
 
 (define-group button-tag
-  button-box button-box* button-circle button-circle*
-  button-arabic button-alpha button-Alpha button-roman button-Roman)
+  button-box
+  button-box*
+  button-circle
+  button-circle*
+  button-arabic
+  button-alpha
+  button-Alpha
+  button-roman
+  button-Roman
+) ;define-group
 
 (define-group variant-tag (button-tag))
 (define-group similar-tag (button-tag))
@@ -48,9 +63,17 @@
 ;; Buttons themes
 
 (define-group with-button-tag
-  with-button-box with-button-box* with-button-circle with-button-circle*
-  with-button-arabic with-button-alpha with-button-Alpha
-  with-button-roman with-button-Roman with-button-ornament)
+  with-button-box
+  with-button-box*
+  with-button-circle
+  with-button-circle*
+  with-button-arabic
+  with-button-alpha
+  with-button-Alpha
+  with-button-roman
+  with-button-Roman
+  with-button-ornament
+) ;define-group
 
 (define-group variant-tag (with-button-tag))
 (define-group similar-tag (with-button-tag))
@@ -66,7 +89,8 @@
      (define-group mc-exclusive-tag ,mc)
      (define-group mc-exposed-tag ,mc)
      (define-group mc-plural-tag ,mcs)
-     (define-alternate ,mc ,mcs)))
+     (define-alternate ,mc ,mcs))
+) ;tm-define-macro
 
 (define-mc mc mcs)
 (define-mc mc-monospaced mcs-monospaced)
@@ -90,7 +114,8 @@
      (define-group gap-short-tag ,gt)
      (define-group gap-wide-tag ,gt-wide)
      (define-group gap-long-tag ,gt-long)
-     (define-alternate ,gt ,gt-wide)))
+     (define-alternate ,gt ,gt-wide))
+) ;tm-define-macro
 
 (define-gap gap gap-wide gap-long)
 (define-gap gap-dots gap-dots-wide gap-dots-long)

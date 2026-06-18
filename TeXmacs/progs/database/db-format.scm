@@ -12,8 +12,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (database db-format)
-  (:use (database db-base)))
+(texmacs-module (database db-format) (:use (database db-base)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The current encoding scheme
@@ -22,11 +21,10 @@
 (tm-define db-encoding :default)
 
 (tm-define-macro (with-encoding enc . body)
-  `(with-global db-encoding ,enc ,@body))
+  `(with-global db-encoding ,enc ,@body)
+) ;tm-define-macro
 
-(tm-define (db-reset)
-  (former)
-  (set! db-encoding :default))
+(tm-define (db-reset) (former) (set! db-encoding :default))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Important tables
@@ -35,24 +33,26 @@
 (smart-table db-kind-table
   ;; For various kinds of databases (bibliographies, address books, etc.),
   ;; specify the list of admissible entry types.
-  )
+) ;smart-table
 
 (smart-table db-format-table
   ;; For each entry type, specify the mandatory, alternative and
   ;; optional fields.
-  )
+) ;smart-table
 
 (tm-define (db-reserved-attributes)
-  (list "type" "location" "dir" "date" "pseudo" "id"))
+  (list "type" "location" "dir" "date" "pseudo" "id")
+) ;tm-define
 
 (tm-define (db-meta-attributes)
-  (list "date" "contributor" "modus" "origin" "newer"))
+  (list "date" "contributor" "modus" "origin" "newer")
+) ;tm-define
 
 (smart-table db-encoding-table
   ;; For each entry+field type, specify the encoding being used for
   ;; the field value.  This allows for instance to use TeXmacs snippets
   ;; instead of plain string values.
-  )
+) ;smart-table
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful subroutines
@@ -61,33 +61,40 @@
 (tm-define (format->attributes fm)
   (cond ((string? fm) (list fm))
         ((or (func? fm 'and) (func? fm 'or) (func? fm 'optional))
-         (append-map format->attributes (cdr fm)))
-        (else (list))))
+         (append-map format->attributes (cdr fm))
+        ) ;
+        (else (list))
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Encoding and decoding of TeXmacs snippets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (db-encode-texmacs-one val)
-  (serialize-texmacs-snippet (stree->tree val)))
+  (serialize-texmacs-snippet (stree->tree val))
+) ;define
 
 (define (db-encode-texmacs vals)
-  ;;(display* "Encode TeXmacs " vals "\n")
-  (map db-encode-texmacs-one vals))
+  ;; (display* "Encode TeXmacs " vals "\n")
+  (map db-encode-texmacs-one vals)
+) ;define
 
 (define (db-decode-texmacs-one val)
-  (with r (tree->stree (parse-texmacs-snippet val))
-    (if (tm-func? r 'document 1) (tm-ref r 0) r)))
+  (with r
+    (tree->stree (parse-texmacs-snippet val))
+    (if (tm-func? r 'document 1) (tm-ref r 0) r)
+  ) ;with
+) ;define
 
 (define (db-decode-texmacs vals)
-  ;;(display* "Decode TeXmacs " vals "\n")
-  (map db-decode-texmacs-one vals))
+  ;; (display* "Decode TeXmacs " vals "\n")
+  (map db-decode-texmacs-one vals)
+) ;define
 
-(smart-table db-encoder-table
-  (,:texmacs ,db-encode-texmacs))
+(smart-table db-encoder-table (,:texmacs ,db-encode-texmacs))
 
-(smart-table db-decoder-table
-  (,:texmacs ,db-decode-texmacs))
+(smart-table db-decoder-table (,:texmacs ,db-decode-texmacs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generic encoding and decoding of field values
@@ -95,40 +102,56 @@
 
 (define (db-get-encoding type attr)
   (or (smart-ref db-encoding-table (list attr type db-encoding))
-      (smart-ref db-encoding-table (list attr type '*))
-      (smart-ref db-encoding-table (list attr '* db-encoding))
-      (smart-ref db-encoding-table (list attr '* '*))
-      (smart-ref db-encoding-table (list '* type db-encoding))
-      (smart-ref db-encoding-table (list '* type '*))
-      (smart-ref db-encoding-table (list '* '* db-encoding))
-      (smart-ref db-encoding-table (list '* '* '*))
-      :texmacs))
+    (smart-ref db-encoding-table (list attr type '*))
+    (smart-ref db-encoding-table (list attr '* db-encoding))
+    (smart-ref db-encoding-table (list attr '* '*))
+    (smart-ref db-encoding-table (list '* type db-encoding))
+    (smart-ref db-encoding-table (list '* type '*))
+    (smart-ref db-encoding-table (list '* '* db-encoding))
+    (smart-ref db-encoding-table (list '* '* '*))
+    :texmacs
+  ) ;or
+) ;define
 
 (define (db-encode-values type attr vals)
   (let* ((enc (db-get-encoding type attr))
-         (cv (or (smart-ref db-encoder-table enc) identity)))
-    (cv vals)))
+         (cv (or (smart-ref db-encoder-table enc) identity))
+        ) ;
+    (cv vals)
+  ) ;let*
+) ;define
 
 (define (db-decode-values type attr vals)
   (let* ((enc (db-get-encoding type attr))
-         (cv (or (smart-ref db-decoder-table enc) identity)))
-    (cv vals)))
+         (cv (or (smart-ref db-decoder-table enc) identity))
+        ) ;
+    (cv vals)
+  ) ;let*
+) ;define
 
 (tm-define (db-encode-field type f)
-  (cons (car f) (db-encode-values type (car f) (cdr f))))
+  (cons (car f) (db-encode-values type (car f) (cdr f)))
+) ;tm-define
 
 (tm-define (db-decode-field type f)
-  (cons (car f) (db-decode-values type (car f) (cdr f))))
+  (cons (car f) (db-decode-values type (car f) (cdr f)))
+) ;tm-define
 
 (tm-define (db-encode-entry l)
-  (with type (assoc-ref l "type")
+  (with type
+    (assoc-ref l "type")
     (set! type (and (pair? type) (car type)))
-    (map (cut db-encode-field type <>) l)))
+    (map (cut db-encode-field type <>) l)
+  ) ;with
+) ;tm-define
 
 (tm-define (db-decode-entry l)
-  (with type (assoc-ref l "type")
+  (with type
+    (assoc-ref l "type")
     (set! type (and (pair? type) (car type)))
-    (map (cut db-decode-field type <>) l)))
+    (map (cut db-decode-field type <>) l)
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wrap basic interface to databases
@@ -136,53 +159,74 @@
 
 (tm-define (db-get-field id attr)
   (if (not db-encoding)
-      (former id attr)
-      (let* ((vals (with-encoding #f (former id attr)))
-             (type (with-encoding #f (db-get-field id "type"))))
-        (db-decode-values type attr vals))))
+    (former id attr)
+    (let* ((vals (with-encoding #f (former id attr)))
+           (type (with-encoding #f (db-get-field id "type")))
+          ) ;
+      (db-decode-values type attr vals)
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 (tm-define (db-set-field id attr vals)
   (if (not db-encoding)
-      (former id attr vals)
-      (let* ((type (with-encoding #f (db-get-field id "type")))
-             (vals (db-encode-values type attr vals)))
-        (with-encoding #f (former id attr vals)))))
+    (former id attr vals)
+    (let* ((type (with-encoding #f (db-get-field id "type")))
+           (vals (db-encode-values type attr vals))
+          ) ;
+      (with-encoding #f (former id attr vals))
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 (tm-define (db-get-entry id)
   (if (not db-encoding)
-      (former id)
-      (let* ((l (db-decode-entry (with-encoding #f (former id))))
-             (attrs (map car l))
-             (types (assoc-ref l "type"))
-             (type (and (pair? types) (car types)))
-             (fm (smart-ref db-format-table type))
-             (std-attrs (format->attributes fm))
-             (a1 (list-filter std-attrs (cut in? <> attrs)))
-             (a2 (list-filter attrs (cut nin? <> std-attrs)))
-             (get (lambda (a) (cons a (assoc-ref l a)))))
-        (append (map get a1) (map get a2)))))
+    (former id)
+    (let* ((l (db-decode-entry (with-encoding #f (former id))))
+           (attrs (map car l))
+           (types (assoc-ref l "type"))
+           (type (and (pair? types) (car types)))
+           (fm (smart-ref db-format-table type))
+           (std-attrs (format->attributes fm))
+           (a1 (list-filter std-attrs (cut in? <> attrs)))
+           (a2 (list-filter attrs (cut nin? <> std-attrs)))
+           (get (lambda (a) (cons a (assoc-ref l a))))
+          ) ;
+      (append (map get a1) (map get a2))
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 (tm-define (db-set-entry id l)
   (if (not db-encoding)
-      (former id l)
-      (with el (db-encode-entry l)
-        (with-encoding #f (former id el)))))
+    (former id l)
+    (with el (db-encode-entry l) (with-encoding #f (former id el)))
+  ) ;if
+) ;tm-define
 
 (tm-define (db-remove-entry id)
-  (if (not db-encoding)
-      (former id)
-      (with-encoding #f (former id))))
+  (if (not db-encoding) (former id) (with-encoding #f (former id)))
+) ;tm-define
 
 (define (db-encode-constraint type c)
-  (with (attr . vals) c
-    (with enc (lambda (val) (car (db-encode-values type attr (list val))))
-      (cons attr (map enc vals)))))
+  (with (attr . vals)
+    c
+    (with enc
+      (lambda (val) (car (db-encode-values type attr (list val))))
+      (cons attr (map enc vals))
+    ) ;with
+  ) ;with
+) ;define
 
 (tm-define (db-search l)
   (if (not db-encoding)
-      (former l)
-      (let* ((types (assoc-ref l "type"))
-             (type (and (pair? types) (car types)))
-             (enc (cut db-encode-constraint type <>))
-             (el (map enc l)))
-        (with-encoding #f (former el)))))
+    (former l)
+    (let* ((types (assoc-ref l "type"))
+           (type (and (pair? types) (car types)))
+           (enc (cut db-encode-constraint type <>))
+           (el (map enc l))
+          ) ;
+      (with-encoding #f (former el))
+    ) ;let*
+  ) ;if
+) ;tm-define

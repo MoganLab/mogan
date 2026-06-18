@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic program-drd)
-  (:use (dynamic dynamic-drd)))
+(texmacs-module (dynamic program-drd) (:use (dynamic dynamic-drd)))
 
 ;; fold <-> unfold toggles
 

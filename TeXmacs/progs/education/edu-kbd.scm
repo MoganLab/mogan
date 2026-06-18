@@ -11,23 +11,22 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (education edu-kbd)
-  (:use (education edu-edit)))
+(texmacs-module (education edu-kbd) (:use (education edu-edit)))
 
-(kbd-map
-  (:mode in-edu-text?)
-  ("text c" (make-mc 'mc))
+(kbd-map (:mode in-edu-text?)
+ ("text c" (make-mc 'mc))
 
-  (". . ." (make 'gap))
-  (". . . var" (make 'text-dots))
-  (". . . var var" "...")
-  (". . . ." (make 'gap-wide))
-  (". . . . var" "....")
-  (". . . . ." (make 'gap-long))
-  (". . . . . var" ".....")
-  (". . . . . ." "......"))
+ (". . ." (make 'gap))
+ (". . . var" (make 'text-dots))
+ (". . . var var" "...")
+ (". . . ." (make 'gap-wide))
+ (". . . . var" "....")
+ (". . . . ." (make 'gap-long))
+ (". . . . . var" ".....")
+ (". . . . . ." "......")
+) ;kbd-map
 
-(kbd-map
-  (:mode in-edu-math?)
-  (". . ." (make 'gap))
-  (". . . ." (make 'gap-wide)))
+(kbd-map (:mode in-edu-math?)
+ (". . ." (make 'gap))
+ (". . . ." (make 'gap-wide))
+) ;kbd-map

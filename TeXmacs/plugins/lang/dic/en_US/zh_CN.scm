@@ -1720,7 +1720,7 @@
 ("Open document" "打开文档")
 ("open a document" "打开文档")
 ("Open a Document" "打开")
-("Open backup folder" "打开备份文件夹")
+("View help" "查看帮助")
 ("open a new buffer" "")
 ("open bibliography" "打开参考文献")
 ("open identities" "打开身份信息")

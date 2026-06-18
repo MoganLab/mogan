@@ -11,35 +11,39 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic scripts-menu)
-  (:use (dynamic scripts-edit)))
+(texmacs-module (dynamic scripts-menu) (:use (dynamic scripts-edit)))
 
 (menu-bind scripts-eval-menu
   (when (script-evaluable?)
     ("Evaluate" (script-eval))
     (if (plugin-approx-command-ref (get-env "prog-scripts"))
-	("Approximate" (script-approx))))
+     ("Approximate" (script-approx))
+    ) ;if
+  ) ;when
   ("Evaluation tag" (make 'script-eval))
-  ("Evaluation switch" (make-script-input)))
+  ("Evaluation switch" (make-script-input))
+) ;menu-bind
 
 (menu-bind scripts-eval-toggle-menu
-  ("Keep evaluated expressions" (toggle-keep-input))
-  ("Quick evaluation of formulas" (toggle-eval-math)))
+ ("Keep evaluated expressions" (toggle-keep-input))
+ ("Quick evaluation of formulas" (toggle-eval-math))
+) ;menu-bind
 
 (menu-bind scripts-plot-menu
-  ("Curve" (make 'plot-curve))
-  ("Surface" (make 'plot-surface))
-  ("Parametric curve" (make 'plot-curve*))
-  ("Parametric surface" (make 'plot-surface*)))
+ ("Curve" (make 'plot-curve))
+ ("Surface" (make 'plot-surface))
+ ("Parametric curve" (make 'plot-curve*))
+ ("Parametric surface" (make 'plot-surface*))
+) ;menu-bind
 
 (tm-define (alternate-second-name t)
   (:require (evaluate-context? t))
-  "Evaluate")
+  "Evaluate"
+) ;tm-define
 
-(tm-define (alternate-second-name t)
-  (:require (plot-context? t))
-  "Plot")
+(tm-define (alternate-second-name t) (:require (plot-context? t)) "Plot")
 
 (tm-define (alternate-second-name t)
   (:require (converter-context? t))
-  "Convert")
+  "Convert"
+) ;tm-define
