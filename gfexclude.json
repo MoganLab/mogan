@@ -7,6 +7,10 @@
     {
       "path": "TeXmacs/progs/utils/edit/auto-close.scm",
       "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"
+    },
+    {
+      "path": "TeXmacs/progs/database/bib-db.scm",
+      "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"
     }
   ]
 }

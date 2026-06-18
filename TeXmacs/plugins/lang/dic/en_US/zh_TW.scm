@@ -1172,7 +1172,7 @@
 ("only inline tags" "行内標籤")
 ("opacity" "不透明度")
 ("open a document" "開啟檔案")
-("Open backup folder" "開啟備份資料夾")
+("View help" "查看說明")
 ("open a new buffer" "")
 ("open module browser" "開啟模組瀏覽器")
 ("open my-init-buffer.scm" "開啟 my-init-buffer.scm")

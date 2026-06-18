@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (dynamic scripts-drd)
-  (:use (dynamic dynamic-drd)))
+(texmacs-module (dynamic scripts-drd) (:use (dynamic dynamic-drd)))
 
 ;; input <-> output toggles
 
