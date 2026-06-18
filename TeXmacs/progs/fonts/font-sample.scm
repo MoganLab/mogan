@@ -21,20 +21,28 @@
 
 (define (build-character-cells r c1 c2 c)
   (cond ((== c -1)
-         (cons `(cell ,(integer->hexadecimal r))
-               (build-character-cells r c1 c2 0)))
+         (cons `(cell ,(integer->hexadecimal r)) (build-character-cells r c1 c2 0))
+        ) ;
         ((>= c 16) (list))
         ((or (< c c1) (> c c2))
-         (cons `(cell "") (build-character-cells r c1 c2 (+ c 1))))
-        (else
-          (let* ((i (+ (* 16 r) c))
-                 (hex (integer->hexadecimal i))
-                 (s (string-append "<#" hex ">")))
-            (when (< i 128) (set! s (utf8->cork (cork->utf8 s))))
-            (cons `(cell ,s) (build-character-cells r c1 c2 (+ c 1)))))))
+         (cons '(cell "") (build-character-cells r c1 c2 (+ c 1)))
+        ) ;
+        (else (let* ((i (+ (* 16 r) c))
+                     (hex (integer->hexadecimal i))
+                     (s (string-append "<#" hex ">"))
+                    ) ;
+                (when (< i 128)
+                  (set! s (utf8->cork (cork->utf8 s)))
+                ) ;when
+                (cons `(cell ,s) (build-character-cells r c1 c2 (+ c 1)))
+              ) ;let*
+        ) ;else
+  ) ;cond
+) ;define
 
 (define (build-character-row r c1 c2)
-  `(row ,@(build-character-cells r c1 c2 -1)))
+  `(row ,@(build-character-cells r c1 c2 -1))
+) ;define
 
 (tm-define (build-character-table i1 i2)
   (let* ((r1 (quotient i1 16))
@@ -42,15 +50,18 @@
          (c1 (remainder i1 16))
          (c2 (remainder i2 16))
          (hc (lambda (i) `(cell ,(integer->hexadecimal i))))
-         (fr `(row (cell "") ,@(map hc (.. 0 16)))))
+         (fr `(row (cell "") ,@(map hc (.. 0 16))))
+        ) ;
     (if (== r1 r2)
-        `(block (tformat (table ,fr
-                                ,(build-character-row r1 c1 c2))))
-        `(block (tformat (table ,fr
-                                ,(build-character-row r1 c1 15)
-                                ,@(map (cut build-character-row <> 0 15)
-                                       (.. (+ r1 1) r2))
-                                ,(build-character-row r2 0 c2)))))))
+      `(block (tformat (table ,fr ,(build-character-row r1 c1 c2))))
+      `(block (tformat (table ,fr
+                         ,(build-character-row r1 c1 15)
+                         ,@(map (cut build-character-row <> 0 15)
+                             (.. (+ r1 1) r2))
+                         ,(build-character-row r2 0 c2))))
+    ) ;if
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Subroutines for tables with various font samples or data
@@ -58,40 +69,48 @@
 
 (tm-define (new-local-fonts)
   (let* ((fams (font-database-delta-families))
-         (xp (lambda (f) (map (lambda (s) (list f s))
-                              (font-database-styles f)))))
-    (append-map xp fams)))
+         (xp (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f))))
+        ) ;
+    (append-map xp fams)
+  ) ;let*
+) ;tm-define
 
 (define (closest-font in)
-  (let* ((fn  (logical-font-public (car in) (cadr in)))
+  (let* ((fn (logical-font-public (car in) (cadr in)))
          (fam (logical-font-family fn))
          (var (logical-font-variant fn))
          (ser (logical-font-series fn))
-         (sh  (logical-font-shape fn))
-         (lf  (logical-font-private fam var ser sh))
-         (sfn (logical-font-search lf)))
-    sfn))
+         (sh (logical-font-shape fn))
+         (lf (logical-font-private fam var ser sh))
+         (sfn (logical-font-search lf))
+        ) ;
+    sfn
+  ) ;let*
+) ;define
 
 (define (check-feature? fn feature)
   (set! fn (closest-font fn))
-  (with lfn (logical-font-exact (car fn) (cadr fn))
-    (in? feature lfn)))
+  (with lfn (logical-font-exact (car fn) (cadr fn)) (in? feature lfn))
+) ;define
 
 (define (check-feature fn feature)
-  (if (check-feature? fn feature)
-      `(with "mode" "math" "<times>")
-      ""))
+  (if (check-feature? fn feature) '(with "mode" "math" "<times>") "")
+) ;define
 
 (define (search-characteristic prefix l)
   (cond ((null? l) "")
-        ((string-starts? (car l) prefix)
-         (string-drop (car l) (string-length prefix)))
-        (else (search-characteristic prefix (cdr l)))))
+        ((string-starts? (car l) prefix) (string-drop (car l) (string-length prefix)))
+        (else (search-characteristic prefix (cdr l)))
+  ) ;cond
+) ;define
 
 (define (get-characteristic fn which)
   (set! fn (closest-font fn))
-  (with fl (font-database-characteristics (car fn) (cadr fn))
-    (search-characteristic (string-append which "=") fl)))
+  (with fl
+    (font-database-characteristics (car fn) (cadr fn))
+    (search-characteristic (string-append which "=") fl)
+  ) ;with
+) ;define
 
 (define (numeric-distance fn1 kind attr lim)
   (let* ((fn2 (cadr kind))
@@ -100,8 +119,11 @@
          (x1 (if (== val1 "") 1000000.0 (* 1.0 (string->number val1))))
          (x2 (if (== val2 "") 2000000.0 (* 1.0 (string->number val2))))
          (dx (abs (- x1 x2)))
-         (r (min 1.0 (/ dx lim))))
-    (number->string (inexact->exact (round (* 100 r))))))
+         (r (min 1.0 (/ dx lim)))
+        ) ;
+    (number->string (inexact->exact (round (* 100 r))))
+  ) ;let*
+) ;define
 
 (define (relative-distance fn1 kind attr base)
   (let* ((fn2 (cadr kind))
@@ -110,47 +132,64 @@
          (x1 (if (== val1 "") 1000.0 (+ 1.0 (abs (string->number val1)))))
          (x2 (if (== val2 "") 10000.0 (+ 1.0 (abs (string->number val2)))))
          (dx (abs (- (log x1) (log x2))))
-         (r (/ dx (log base))))
-    (number->string (inexact->exact (round (* 100 r))))))
+         (r (/ dx (log base)))
+        ) ;
+    (number->string (inexact->exact (round (* 100 r))))
+  ) ;let*
+) ;define
 
 (define (vector-distance fn1 kind attr scale)
   (let* ((fn2 (cadr kind))
          (val1 (get-characteristic fn1 attr))
          (val2 (get-characteristic fn2 attr))
-         (r (trace-distance val1 val2 scale)))
-    (number->string (inexact->exact (round (* 100 r))))))
+         (r (trace-distance val1 val2 scale))
+        ) ;
+    (number->string (inexact->exact (round (* 100 r))))
+  ) ;let*
+) ;define
 
 (define (fn-distance fn1 kind)
-  (let* ((fn2 (cadr kind))
-         (r (font-distance fn1 fn2)))
-    (number->string (inexact->exact (round (* 100 r))))))
+  (let* ((fn2 (cadr kind)) (r (font-distance fn1 fn2)))
+    (number->string (inexact->exact (round (* 100 r))))
+  ) ;let*
+) ;define
 
 (define (fn-distance* fn1 kind)
-  (let* ((fn2 (cadr kind))
-         (r (font-distance* fn1 fn2)))
-    (number->string (inexact->exact (round (* 100 r))))))
+  (let* ((fn2 (cadr kind)) (r (font-distance* fn1 fn2)))
+    (number->string (inexact->exact (round (* 100 r))))
+  ) ;let*
+) ;define
 
 (define (scaled-string fn1 kind)
   (let* ((fn2 (cadr kind))
          (s (caddr kind))
          (val1 (get-characteristic fn1 "ex"))
-         (val2 (get-characteristic fn2 "ex")))
-    (if (or (== val1 "") (== val2 "")) s
-        (let* ((x1 (* 1.0 (string->number val1)))
-               (x2 (* 1.0 (string->number val2)))
-               (mag (/ x2 x1))
-               (txt `(with "magnification" ,(number->string mag) ,s)))
-          (build-with-font fn1 txt)))))
+         (val2 (get-characteristic fn2 "ex"))
+        ) ;
+    (if (or (== val1 "") (== val2 ""))
+      s
+      (let* ((x1 (* 1.0 (string->number val1)))
+             (x2 (* 1.0 (string->number val2)))
+             (mag (/ x2 x1))
+             (txt `(with ,"magnification" ,(number->string mag) ,s))
+            ) ;
+        (build-with-font fn1 txt)
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting tables with various font samples or data
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (unary? x fun)
-  (and (list-2? x) (== (car x) fun)))
+  (and (list-2? x) (== (car x) fun))
+) ;define
 
 (define (binary? x fun)
-  (and (list-3? x) (== (car x) fun)))
+  (and (list-3? x) (== (car x) fun))
+) ;define
 
 (define (build-font-header-cell kind)
   (cond ((string? kind) kind)
@@ -205,20 +244,30 @@
         ((unary? kind :loh) "loh")
         ((unary? kind :loc) "loc")
         ((binary? kind :scale) (caddr kind))
-        (else "")))
+        (else "")
+  ) ;cond
+) ;define
 
 (define (build-font-header-row kinds)
-  (with build-cell (lambda (kind) `(cell ,(build-font-header-cell kind)))
-    `(row ,@(map build-cell kinds))))
+  (with build-cell
+    (lambda (kind) `(cell ,(build-font-header-cell kind)))
+    `(row ,@(map build-cell kinds))
+  ) ;with
+) ;define
 
 (define (build-with-font fn body)
-  (let* ((cfn (closest-font fn))
-         (lfn (logical-font-public (car cfn) (cadr cfn))))
-    `(with "font" ,(logical-font-family lfn)
-           "font-family" ,(logical-font-variant lfn)
-           "font-series" ,(logical-font-series lfn)
-           "font-shape" ,(logical-font-shape lfn)
-       ,body)))
+  (let* ((cfn (closest-font fn)) (lfn (logical-font-public (car cfn) (cadr cfn))))
+    `(with ,"font"
+       ,(logical-font-family lfn)
+       ,"font-family"
+       ,(logical-font-variant lfn)
+       ,"font-series"
+       ,(logical-font-series lfn)
+       ,"font-shape"
+       ,(logical-font-shape lfn)
+       ,body)
+  ) ;let*
+) ;define
 
 (define (build-font-cell fn kind)
   (cond ((string? kind) (build-with-font fn kind))
@@ -273,25 +322,50 @@
         ((unary? kind :loh) (vector-distance fn kind "loh" 0.33))
         ((unary? kind :loc) (vector-distance fn kind "loc" 0.33))
         ((binary? kind :scale) (scaled-string fn kind))
-        (else "")))
+        (else "")
+  ) ;cond
+) ;define
 
 (define (build-font-row fn kinds)
-  (with build-cell (lambda (kind) `(cell ,(build-font-cell fn kind)))
-    `(row ,@(map build-cell kinds))))
+  (with build-cell
+    (lambda (kind) `(cell ,(build-font-cell fn kind)))
+    `(row ,@(map build-cell kinds))
+  ) ;with
+) ;define
 
 (tm-define (build-font-table fns kinds)
   `(block (tformat (table ,(build-font-header-row kinds)
-                          ,@(map (cut build-font-row <> kinds) fns)))))
+                     ,@(map (cut build-font-row <> kinds) fns))))
+) ;tm-define
 
 (tm-define (font-test)
-  (with fns (new-local-fonts) ;;'(("Arial" "Italic") ("Fava" "Regular"))
-    (with kinds (list :name :thin :light :bold :black
-                      :oblique :italic :condensed :wide
-                      :smallcaps :mono :sansserif :typewriter
-                      "abc" "ABC" "123")
-      (tm->tree (build-font-table fns kinds)))))
+  (with fns
+    (new-local-fonts)
+    ;; '(("Arial" "Italic") ("Fava" "Regular"))
+    (with kinds
+      (list :name
+        :thin
+        :light
+        :bold
+        :black
+        :oblique
+        :italic
+        :condensed
+        :wide
+        :smallcaps
+        :mono
+        :sansserif
+        :typewriter
+        "abc"
+        "ABC"
+        "123"
+      ) ;list
+      (tm->tree (build-font-table fns kinds))
+    ) ;with
+  ) ;with
+) ;tm-define
 
-;;(tm-define (font-test)
+;; (tm-define (font-test)
 ;;  (with fns (new-local-fonts)
 ;;    (with kinds (list :name :thin :light :bold :black
 ;;                      "abc" "ABC" "123"
@@ -311,49 +385,64 @@
 
 (define (get-all-fonts)
   (let* ((fams (font-database-families))
-         (xp (lambda (f) (map (lambda (s) (list f s))
-                              (font-database-styles f)))))
-    (append-map xp fams)))
+         (xp (lambda (f) (map (lambda (s) (list f s)) (font-database-styles f))))
+        ) ;
+    (append-map xp fams)
+  ) ;let*
+) ;define
 
 (define (font-distance fn1 fn2)
-  (font-guessed-distance (car fn1) (cadr fn1) (car fn2) (cadr fn2)))
+  (font-guessed-distance (car fn1) (cadr fn1) (car fn2) (cadr fn2))
+) ;define
 
 (define (font-distance* fn1 fn2)
   (let* ((c1 (font-database-characteristics (car fn1) (cadr fn1)))
-         (c2 (font-database-characteristics (car fn2) (cadr fn2))))
-    (characteristic-distance c1 c2)))
+         (c2 (font-database-characteristics (car fn2) (cadr fn2)))
+        ) ;
+    (characteristic-distance c1 c2)
+  ) ;let*
+) ;define
 
 (tm-define (closest-fonts fn)
   (let* ((dist (lambda (fn2) (font-distance fn fn2)))
          (make (lambda (fn2) (list (dist fn2) fn2)))
          (l (map make (get-all-fonts)))
-         (sl (sort l (lambda (x y) (<= (car x) (car y))))))
-    sl))
+         (sl (sort l (lambda (x y) (<= (car x) (car y)))))
+        ) ;
+    sl
+  ) ;let*
+) ;tm-define
 
 (tm-define (show-closest-fonts fn)
-  (with fns (sublist (map cadr (closest-fonts fn)) 0 25)
-    (with kinds (list :name
-                      (list :dist fn)
-                      (list :dist* fn)
-                      (list :slant fn)
-                      (list :ex fn)
-                      (list :em fn)
-                      (list :lvw fn)
-                      (list :lhw fn)
-                      (list :fillp fn)
-                      (list :vcnt fn)
-                      (list :lasprat fn)
-                      (list :pasprat fn)
-                      (list :loasc fn)
-                      (list :lodes fn)
-                      (list :dides fn)
-                      ;;(list :upw fn)
-                      ;;(list :uph fn)
-                      ;;(list :upc fn)
-                      ;;(list :low fn)
-                      ;;(list :loh fn)
-                      ;;(list :loc fn)
-                      (list :scale fn "abcdefghij")
-                      (list :scale fn "ABCDEFGHIJ")
-                      (list :scale fn "1234567890"))
-      (tm->tree (build-font-table fns kinds)))))
+  (with fns
+    (sublist (map cadr (closest-fonts fn)) 0 25)
+    (with kinds
+      (list :name
+        (list :dist fn)
+        (list :dist* fn)
+        (list :slant fn)
+        (list :ex fn)
+        (list :em fn)
+        (list :lvw fn)
+        (list :lhw fn)
+        (list :fillp fn)
+        (list :vcnt fn)
+        (list :lasprat fn)
+        (list :pasprat fn)
+        (list :loasc fn)
+        (list :lodes fn)
+        (list :dides fn)
+        ;; (list :upw fn)
+        ;; (list :uph fn)
+        ;; (list :upc fn)
+        ;; (list :low fn)
+        ;; (list :loh fn)
+        ;; (list :loc fn)
+        (list :scale fn "abcdefghij")
+        (list :scale fn "ABCDEFGHIJ")
+        (list :scale fn "1234567890")
+      ) ;list
+      (tm->tree (build-font-table fns kinds))
+    ) ;with
+  ) ;with
+) ;tm-define
