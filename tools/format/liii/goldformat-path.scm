@@ -47,6 +47,7 @@
         "TeXmacs/progs/source"
         "TeXmacs/progs/startup-tab"
         "TeXmacs/progs/table"
+        "TeXmacs/progs/telemetry"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"
         "TeXmacs/progs/texmacs/keyboard"

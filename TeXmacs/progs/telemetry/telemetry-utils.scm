@@ -25,8 +25,10 @@
 (import (only (srfi srfi-19) current-date date->string date-zone-offset))
 
 (define telemetry-buffer-size 300)
+
 (define telemetry-flush-interval-ms 300000)
 (define-public telemetry-max-queue-size 1000)
+
 (define telemetry-meta-max-entries 200)
 
 (define *telemetry-file-seq* 0)
@@ -103,8 +105,7 @@
 
 (define *telemetry-session-id* (uuid4))
 
-(define-public (telemetry-session-id)
-  *telemetry-session-id*)
+(define-public (telemetry-session-id) *telemetry-session-id*)
 
 (define-public (telemetry-app-version) (xmacs-version))
 
@@ -113,7 +114,7 @@
          (no-underscore (string-replace pretty "_" ""))
          (no-spaces (string-replace no-underscore " " ""))
          (normalized (string-downcase no-spaces))
-        )
+        ) ;
     normalized
   ) ;let*
 ) ;define-public
@@ -307,5 +308,5 @@
     (,"platform" unquote (telemetry-platform))
     (,"language" unquote (telemetry-language))
     (,"timezone" unquote (telemetry-timezone))
-    (,"properties" unquote (if (null? properties) (#_quote (())) properties)))
+    (,"properties" unquote (if (null? properties) '(()) properties)))
 ) ;define-public

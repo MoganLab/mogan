@@ -98,10 +98,7 @@
                 #t
               ) ;begin
               (begin
-                (display (string-append "[telemetry] error: meta update failed for "
-                           filename
-                           "\n"
-                         ) ;string-append
+                (display (string-append "[telemetry] error: meta update failed for " filename "\n")
                 ) ;display
                 #f
               ) ;begin
