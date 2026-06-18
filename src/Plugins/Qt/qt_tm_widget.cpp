@@ -828,58 +828,61 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
                               "border-left: %1px solid rgba(0,0,0,0.12); }")
                          .arg (borderWidth));
 
-  // AI 聊天侧边栏 Dock
-  chatSideDock= new QDockWidget ("AI Chat Sidebar", mw);
-  chatSideDock->setObjectName ("chatSideDock");
-  chatSideDock->setAllowedAreas (Qt::RightDockWidgetArea);
-  chatSideDock->setFeatures (QDockWidget::DockWidgetClosable);
-  chatSideDock->setFloating (false);
-  chatSideDock->setTitleBarWidget (new QWidget ()); // 禁用标题栏
-  chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
-  chatSideDock->setVisible (false);
-  mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
+  // AI 聊天侧边栏 Dock（community 版不创建，保持 nullptr，
+  // 下游所有 if (chatSideDock) 判空即自动跳过）
+  if (!is_community_stem ()) {
+    chatSideDock= new QDockWidget ("AI Chat Sidebar", mw);
+    chatSideDock->setObjectName ("chatSideDock");
+    chatSideDock->setAllowedAreas (Qt::RightDockWidgetArea);
+    chatSideDock->setFeatures (QDockWidget::DockWidgetClosable);
+    chatSideDock->setFloating (false);
+    chatSideDock->setTitleBarWidget (new QWidget ()); // 禁用标题栏
+    chatSideDock->setMinimumSize (DpiUtils::scaled (320), 0);
+    chatSideDock->setVisible (false);
+    mw->addDockWidget (Qt::RightDockWidgetArea, chatSideDock);
 
-  // 文档区域右上角浮动新建对话按钮
-  chatSidebarToggleBtn= new QPushButton (cw);
-  chatSidebarToggleBtn->setObjectName ("chat-tab-collapse-btn");
-  chatSidebarToggleBtn->setFocusPolicy (Qt::NoFocus);
-  chatSidebarToggleBtn->setCursor (Qt::PointingHandCursor);
-  chatSidebarToggleBtn->setIcon (QIcon (":llm-chat/addchat.svg"));
-  chatSidebarToggleBtn->setIconSize (
-      QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
-  chatSidebarToggleBtn->setFixedSize (DpiUtils::scaled (40),
-                                      DpiUtils::scaled (40));
-  chatSidebarToggleBtn->setStyleSheet (
-      QString ("QPushButton { border: none; border-radius: %1px; }")
-          .arg (DpiUtils::scaled (20)));
-  chatSidebarToggleBtn->hide ();
+    // 文档区域右上角浮动新建对话按钮
+    chatSidebarToggleBtn= new QPushButton (cw);
+    chatSidebarToggleBtn->setObjectName ("chat-tab-collapse-btn");
+    chatSidebarToggleBtn->setFocusPolicy (Qt::NoFocus);
+    chatSidebarToggleBtn->setCursor (Qt::PointingHandCursor);
+    chatSidebarToggleBtn->setIcon (QIcon (":llm-chat/addchat.svg"));
+    chatSidebarToggleBtn->setIconSize (
+        QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
+    chatSidebarToggleBtn->setFixedSize (DpiUtils::scaled (40),
+                                        DpiUtils::scaled (40));
+    chatSidebarToggleBtn->setStyleSheet (
+        QString ("QPushButton { border: none; border-radius: %1px; }")
+            .arg (DpiUtils::scaled (20)));
+    chatSidebarToggleBtn->hide ();
 
-  // 使用 QObject 辅助类处理 central widget 的 resize 事件以更新按钮位置
-  class ChatSidebarBtnPositioner : public QObject {
-  public:
-    ChatSidebarBtnPositioner (QPushButton* btn, QWidget* parent,
-                              qt_tm_widget_rep* widget)
-        : QObject (parent), button_ (btn), parent_ (parent), widget_ (widget) {}
-    bool eventFilter (QObject* obj, QEvent* event) override {
-      if (obj == parent_ && event->type () == QEvent::Resize) {
-        widget_->position_chat_sidebar_button ();
+    // 使用 QObject 辅助类处理 central widget 的 resize 事件以更新按钮位置
+    class ChatSidebarBtnPositioner : public QObject {
+    public:
+      ChatSidebarBtnPositioner (QPushButton* btn, QWidget* parent,
+                                qt_tm_widget_rep* widget)
+          : QObject (parent), button_ (btn), parent_ (parent), widget_ (widget) {}
+      bool eventFilter (QObject* obj, QEvent* event) override {
+        if (obj == parent_ && event->type () == QEvent::Resize) {
+          widget_->position_chat_sidebar_button ();
+        }
+        return QObject::eventFilter (obj, event);
       }
-      return QObject::eventFilter (obj, event);
-    }
 
-  private:
-    QPushButton*      button_;
-    QWidget*          parent_;
-    qt_tm_widget_rep* widget_;
-  };
-  cw->installEventFilter (
-      new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw, this));
+    private:
+      QPushButton*      button_;
+      QWidget*          parent_;
+      qt_tm_widget_rep* widget_;
+    };
+    cw->installEventFilter (
+        new ChatSidebarBtnPositioner (chatSidebarToggleBtn, cw, this));
 
-  QObject::connect (chatSidebarToggleBtn, &QPushButton::clicked, [this] () {
-    chatSidebarMode       = !chatSidebarMode;
-    chatSidebarModeMemory_= chatSidebarMode;
-    sync_chat_sidebar_mode ();
-  });
+    QObject::connect (chatSidebarToggleBtn, &QPushButton::clicked, [this] () {
+      chatSidebarMode       = !chatSidebarMode;
+      chatSidebarModeMemory_= chatSidebarMode;
+      sync_chat_sidebar_mode ();
+    });
+  }
 
   // FIXME? add DockWidgetClosable and connect the close signal
   // to the scheme code
@@ -1144,6 +1147,8 @@ qt_tm_widget_rep::sync_startup_tab_mode () {
  */
 void
 qt_tm_widget_rep::sync_chat_tab_mode () {
+  // community 版不含 Chat 标签页，直接返回
+  if (is_community_stem ()) return;
   QWidget* editorWidget= main_widget->qwid;
   QLayout* layout      = centralwidget ()->layout ();
   if (!layout) return;
@@ -1233,6 +1238,9 @@ qt_tm_widget_rep::position_chat_sidebar_button () {
  */
 void
 qt_tm_widget_rep::sync_chat_sidebar_mode () {
+  // community 版未创建 chatSideDock，直接返回，避免空指针解引用
+  // （scheme 侧的 "std j" 仍可能写入 SLOT_CHAT_SIDEBAR_VISIBILITY 触发本函数）
+  if (is_community_stem ()) return;
   QWidget* editorWidget= main_widget->qwid;
   QLayout* layout      = centralwidget ()->layout ();
   if (!layout) return;
@@ -1665,6 +1673,7 @@ qt_tm_widget_rep::send (slot s, blackbox val) {
   case SLOT_CHAT_SIDEBAR_VISIBILITY: {
     check_type<bool> (val, s);
     bool show             = open_box<bool> (val);
+    if (is_community_stem ()) break; // community 版无 AI Chat，忽略该 slot
     chatSidebarMode       = show;
     chatSidebarModeMemory_= show;
     sync_chat_sidebar_mode ();
