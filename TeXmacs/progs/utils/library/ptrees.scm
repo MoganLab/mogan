@@ -18,60 +18,71 @@
 (texmacs-module (utils library ptrees))
 
 (define (pt-marker . l)
-  (if (null? l) (acons "" '() '()) (acons "" '() (car l))))
+  (if (null? l) (acons "" '() '()) (acons "" '() (car l)))
+) ;define
 
 (define (pt-terminal? pt)
-  (== pt (pt-marker)))
+  (== pt (pt-marker))
+) ;define
 
 (define (pt-word-mark? pt)
-  (!= #f (assoc-ref pt "")))
+  (!= #f (assoc-ref pt ""))
+) ;define
 
-; Planning for the future...
-(tm-define (make-ptree)
-  '())
+(tm-define (make-ptree) '())
 
-; FIXME: fix this in the (future) c++ impl.
-(tm-define (ptree? pt)
-  (and (list? pt) (pair? (car pt))))
-  
+(tm-define (ptree? pt) (and (list? pt) (pair? (car pt))))
+
 (tm-define (pt-add pt str)
-  (if (== str "")  ; We are done with the input
-    (cond ((== pt #f) (pt-marker))  ; The last letter was a new node
-          ((pt-word-mark? pt) pt)   ; The word was already there
-          (else (pt-marker pt)))    ; This was a new word
+  (if (== str "")
+    (cond ((== pt #f) (pt-marker))
+          ((pt-word-mark? pt) pt)
+          (else (pt-marker pt))
+    ) ;cond
     (let ((char (string-take str 1))
           (rest (string-drop str 1))
-          (npt (if (== pt #f) '() pt)))
-      (assoc-set! npt char (pt-add (assoc-ref npt char) rest)) )))
+          (npt (if (== pt #f) '() pt))
+         ) ;
+      (assoc-set! npt char (pt-add (assoc-ref npt char) rest))
+    ) ;let
+  ) ;if
+) ;tm-define
 
 (tm-define (pt-find pt str)
-  (if (== str "") pt
+  (if (== str "")
+    pt
     (let* ((char (string-take str 1))
            (rest (string-drop str 1))
-           (val  (assoc-ref pt char)))
-      (if (== val #f) #f (pt-find val rest)))))
+           (val (assoc-ref pt char))
+          ) ;
+      (if (== val #f) #f (pt-find val rest))
+    ) ;let*
+  ) ;if
+) ;tm-define
 
 (tm-define (pt-add-list pt l)
-  (if (null? l) pt
-      (pt-add-list (pt-add pt (car l)) (cdr l))))
+  (if (null? l) pt (pt-add-list (pt-add pt (car l)) (cdr l)))
+) ;tm-define
 
-(tm-define (pt-has? pt str)
-  (!= #f (pt-find pt str)))
+(tm-define (pt-has? pt str) (!= #f (pt-find pt str)))
 
-(tm-define (pt-has-list? pt l) 
+(tm-define (pt-has-list? pt l)
   (:synopsis "Check whether a given ptree @pt contains all items in the list @l")
-  (list-fold (lambda (val prior) (and (pt-has? pt val) prior)) #t l))
+  (list-fold (lambda (val prior) (and (pt-has? pt val) prior)) #t l)
+) ;tm-define
 
 (define (pt-words-below-sub pt step)
   (cond ((or (null? pt) (== #f pt)) '())
         ((pt-terminal? pt) (list step))
-        ((== "" (caar pt))
-         (append (list step) (pt-words-below-sub (cdr pt) step)))
-        (else (append (pt-words-below-sub (cdar pt)
-                                          (string-append step (caar pt)))
-                      (pt-words-below-sub (cdr pt) step)))))
+        ((== "" (caar pt)) (append (list step) (pt-words-below-sub (cdr pt) step)))
+        (else (append (pt-words-below-sub (cdar pt) (string-append step (caar pt)))
+                (pt-words-below-sub (cdr pt) step)
+              ) ;append
+        ) ;else
+  ) ;cond
+) ;define
 
 (tm-define (pt-words-below pt)
   (:synopsis "Return the list of words below the given p-tree node @pt")
-  (pt-words-below-sub pt ""))
-
+  (pt-words-below-sub pt "")
+) ;tm-define

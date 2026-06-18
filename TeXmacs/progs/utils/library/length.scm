@@ -19,17 +19,16 @@
 
 (tm-define (length+ . ops)
   (define (length-add* ops res)
-    (if (null? ops)
-	res
-	(length-add* (cdr ops) (length-add res (car ops)))))
-  (if (null? ops)
-      "0tmpt"
-      (length-add* (cdr ops) (car ops))))
+    (if (null? ops) res (length-add* (cdr ops) (length-add res (car ops))))
+  ) ;define
+  (if (null? ops) "0tmpt" (length-add* (cdr ops) (car ops)))
+) ;tm-define
 
 (tm-define (length- . ops)
   (if (null? (cdr ops))
-      (string-append "-" (car ops))
-      (length+ (car ops) (length- (apply length+ (cdr ops))))))
+    (string-append "-" (car ops))
+    (length+ (car ops) (length- (apply length+ (cdr ops))))
+  ) ;if
+) ;tm-define
 
-(tm-define (length-zero? len)
-  (= 0 (length-decode len)))
+(tm-define (length-zero? len) (= 0 (length-decode len)))

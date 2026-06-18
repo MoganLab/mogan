@@ -45,6 +45,8 @@
         "TeXmacs/progs/utils/base"
         "TeXmacs/progs/utils/cas"
         "TeXmacs/progs/utils/edit"
+        "TeXmacs/progs/utils/handwriting"
+        "TeXmacs/progs/utils/library"
         "TeXmacs/progs/utils/plugins"
         "TeXmacs/progs/various"
         "TeXmacs/progs/version"
