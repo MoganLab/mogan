@@ -12,79 +12,100 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (database bib-local)
-  (:use (database bib-manage)
-	(utils library cursor)))
+  (:use (database bib-manage) (utils library cursor))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Identifying the bibliographies in documents
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (biblio-context? t)
-  (or (tree-func? t 'bibliography 4)
-      (tree-func? t 'bibliography* 5)))
+  (or (tree-func? t 'bibliography 4) (tree-func? t 'bibliography* 5))
+) ;define
 
 (define (biblio-tag)
-  (with l (bib-attachments #f)
-    (with t (tree-innermost biblio-context?)
-      (cond ((and t (tm-atomic? (tm-ref t 0)))
-	     (tm->stree (tm-ref t 0)))
-	    ((or (null? l) (in? "bib-bibliography" l)) "bib")
-	    (else (string-drop-right (car l) 13))))))
+  (with l
+    (bib-attachments #f)
+    (with t
+      (tree-innermost biblio-context?)
+      (cond ((and t (tm-atomic? (tm-ref t 0))) (tm->stree (tm-ref t 0)))
+            ((or (null? l) (in? "bib-bibliography" l)) "bib")
+            (else (string-drop-right (car l) 13))
+      ) ;cond
+    ) ;with
+  ) ;with
+) ;define
 
 (define (linked-biblios-inside t)
   (cond ((tree-atomic? t) (list))
-        ((tree-is? t 'document)
-         (append-map linked-files-inside (tree-children t)))
-        ((tree-in? t '(with with-bib))
-         (linked-files-inside (tm-ref t :last)))
-        ((or (tree-func? t 'bibliography 4)
-	     (tree-func? t 'bibliography* 5))
-         (with bib (tm->stree (tm-ref t 0))
-	   (if (or (== bib "") (nstring? bib)) (list) (list bib))))
-        (else (list))))
+        ((tree-is? t 'document) (append-map linked-files-inside (tree-children t)))
+        ((tree-in? t '(with with-bib)) (linked-files-inside (tm-ref t :last)))
+        ((or (tree-func? t 'bibliography 4) (tree-func? t 'bibliography* 5))
+         (with bib
+           (tm->stree (tm-ref t 0))
+           (if (or (== bib "") (nstring? bib)) (list) (list bib))
+         ) ;with
+        ) ;
+        (else (list))
+  ) ;cond
+) ;define
 
-(tm-define (biblio-tags)
-  (linked-biblios-inside (buffer-tree)))
+(tm-define (biblio-tags) (linked-biblios-inside (buffer-tree)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routines for lists of entries
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (biblio-as-table l)
-  (with t (make-ahash-table)
-    (for-each (lambda (e)
-		(and-with id (db-entry-ref e "name")
-		  (ahash-set! t id e)))
-	      l)
-    t))
+  (with t
+    (make-ahash-table)
+    (for-each (lambda (e) (and-with id (db-entry-ref e "name") (ahash-set! t id e)))
+      l
+    ) ;for-each
+    t
+  ) ;with
+) ;define
 
 (define (biblio-as-list t)
-  (map cdr (ahash-table->list t)))
+  (map cdr (ahash-table->list t))
+) ;define
 
 (define (biblio<=? e1 e2)
-  (let* ((id1 (db-entry-ref e1 "name"))
-	 (id2 (db-entry-ref e2 "name")))
-    (and (string? id1) (string? id2) (string-ci<=? id1 id2))))
+  (let* ((id1 (db-entry-ref e1 "name")) (id2 (db-entry-ref e2 "name")))
+    (and (string? id1) (string? id2) (string-ci<=? id1 id2))
+  ) ;let*
+) ;define
 
 (define (biblio-sort l)
-  (sort (list-filter l db-entry-any?) biblio<=?))
+  (sort (list-filter l db-entry-any?) biblio<=?)
+) ;define
 
 (define (biblio-append old new)
-  (biblio-as-list (biblio-as-table (append old new))))
+  (biblio-as-list (biblio-as-table (append old new)))
+) ;define
 
 (define (biblio-diffs old new)
-  (let* ((old-t (biblio-as-table old))
-	 (new-t (make-ahash-table)))
+  (let* ((old-t (biblio-as-table old)) (new-t (make-ahash-table)))
     (for-each (lambda (new-e)
-		(and-with id (db-entry-ref new-e "name")
-		  (with old-e (ahash-ref old-t id)
-		    (when (and old-e
-			       (db-entry-any? old-e)
-			       (db-entry-any? new-e)
-			       (!= (tm-ref new-e 4) (tm-ref old-e 4)))
-		      (ahash-set! new-t id new-e)))))
-	      new)
-    (biblio-as-list new-t)))
+                (and-with id
+                  (db-entry-ref new-e "name")
+                  (with old-e
+                    (ahash-ref old-t id)
+                    (when (and old-e
+                            (db-entry-any? old-e)
+                            (db-entry-any? new-e)
+                            (!= (tm-ref new-e 4) (tm-ref old-e 4))
+                          ) ;and
+                      (ahash-set! new-t id new-e)
+                    ) ;when
+                  ) ;with
+                ) ;and-with
+              ) ;lambda
+      new
+    ) ;for-each
+    (biblio-as-list new-t)
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Retrieving lists of entries
@@ -93,72 +114,92 @@
 (tm-define (biblio-automatic-entries base bib)
   (with-buffer base
     (let* ((key (string-append bib "-bibliography"))
-	   (att (tm->stree (get-attachment key)))
-	   (l (if (tm-atomic? att) (list) (tm-children att))))
-      l)))
+           (att (tm->stree (get-attachment key)))
+           (l (if (tm-atomic? att) (list) (tm-children att)))
+          ) ;
+      l
+    ) ;let*
+  ) ;with-buffer
+) ;tm-define
 
 (tm-define (biblio-local-entries base bib)
   (with-buffer base
     (let* ((key (string-append bib "-biblio"))
-	   (att (tm->stree (get-attachment key)))
-	   (l (if (tm-atomic? att) (list) (tm-children att))))
-      l)))
+           (att (tm->stree (get-attachment key)))
+           (l (if (tm-atomic? att) (list) (tm-children att)))
+          ) ;
+      l
+    ) ;let*
+  ) ;with-buffer
+) ;tm-define
 
 (tm-define (biblio-entries base bib)
   (biblio-sort (biblio-append (biblio-automatic-entries base bib)
-			      (biblio-local-entries base bib))))
+                 (biblio-local-entries base bib)
+               ) ;biblio-append
+  ) ;biblio-sort
+) ;tm-define
 
 (define (entries-inside t)
   (cond ((tm-atomic? t) (list))
         ((db-entry-any? t) (list t))
-	(else (append-map entries-inside (tm-children t)))))
+        (else (append-map entries-inside (tm-children t)))
+  ) ;cond
+) ;define
 
 (tm-define (biblio-confirm base bib doc)
   (let* ((old-l (biblio-automatic-entries base bib))
-	 (new-l (entries-inside doc))
-	 (l (biblio-diffs old-l new-l))
-	 (doc `(document ,@l)))
-    (with-buffer base
-      (set-attachment (string-append bib "-biblio") doc))))
+         (new-l (entries-inside doc))
+         (l (biblio-diffs old-l new-l))
+         (doc `(document ,@l))
+        ) ;
+    (with-buffer base (set-attachment (string-append bib "-biblio") doc))
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Handlers
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tmfs-title-handler (biblio name doc)
-  (let* ((b (tmfs-car name))
-         (f (tmfs-string->url (tmfs-cdr name))))
-    (string-append (url->system (url-tail f)) " - " b)))
+  (let* ((b (tmfs-car name)) (f (tmfs-string->url (tmfs-cdr name))))
+    (string-append (url->system (url-tail f)) " - " b)
+  ) ;let*
+) ;tmfs-title-handler
 
 (tmfs-load-handler (biblio name)
   (let* ((b (tmfs-car name))
          (f (tmfs-string->url (tmfs-cdr name)))
-	 (l (biblio-entries f b)))
+         (l (biblio-entries f b))
+        ) ;
     (if (null? l) (set! l (list "")))
-    `(document
-       (TeXmacs ,(texmacs-version))
+    `(document (TeXmacs ,(texmacs-version))
        (style (tuple "database-bib"))
-       (body (document ,@l)))))
+       (body (document ,@l)))
+  ) ;let*
+) ;tmfs-load-handler
 
-(tmfs-permission-handler (biblio name type)
-  (in? type (list "read" "write")))
+(tmfs-permission-handler (biblio name type) (in? type (list "read" "write")))
 
 (tmfs-save-handler (biblio name doc)
-  (let* ((b (tmfs-car name))
-         (f (tmfs-string->url (tmfs-cdr name))))
+  (let* ((b (tmfs-car name)) (f (tmfs-string->url (tmfs-cdr name))))
     (biblio-confirm f b doc)
     (buffer-pretend-modified f)
-    #t))
+    #t
+  ) ;let*
+) ;tmfs-save-handler
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Opening the bibliography
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (biblio-url base bib)
-  (string-append "tmfs://biblio/" bib "/" (url->tmfs-string base)))
+  (string-append "tmfs://biblio/" bib "/" (url->tmfs-string base))
+) ;tm-define
 
 (tm-define (open-biblio)
   (:interactive #t)
   (cursor-history-add (cursor-path))
   (revert-buffer-revert (biblio-url (current-buffer) (biblio-tag)))
-  (cursor-history-add (cursor-path)))
+  (cursor-history-add (cursor-path))
+) ;tm-define
