@@ -13,10 +13,9 @@
 
 (texmacs-module (startup-tab startup-tab)
   (:use (texmacs texmacs tm-files))
-  (:use (startup-tab startup-tab-file)))
+  (:use (startup-tab startup-tab-file))
+) ;texmacs-module
 
-(tm-define (startup-tab-enabled?)
-  #t)
+(tm-define (startup-tab-enabled?) #t)
 
-(tm-define (startup-tab-default-entry)
-  "file")
+(tm-define (startup-tab-default-entry) "file")
