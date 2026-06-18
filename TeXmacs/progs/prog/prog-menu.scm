@@ -12,16 +12,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (prog prog-menu)
-  (:use (generic format-edit)
-  (generic insert-menu)))
+  (:use (generic format-edit) (generic insert-menu))
+) ;texmacs-module
 
 (tm-menu (focus-code-icons t)
-  (mini #t
-    (inert ((eval (format-get-name (get-env "prog-language"))) (noop)))))
+  (mini #t (inert ((eval (format-get-name (get-env "prog-language"))) (noop))))
+) ;tm-menu
 
 (tm-menu (standard-focus-icons t)
   (:require (in-code?))
-  (dynamic (focus-code-icons t)))
+  (dynamic (focus-code-icons t))
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Format menu
@@ -30,66 +31,75 @@
 (menu-bind full-prog-format-menu
   (group "Font")
   (link prog-font-menu)
-  (if (simple-menus?)
-      (-> "Color" (link color-menu)))
-  (if (detailed-menus?)
-      ---
-      (group "Text")
-      (link textual-properties-menu))
+  (if (simple-menus?) (-> "Color" (link color-menu)))
+  (if (detailed-menus?) --- (group "Text") (link textual-properties-menu))
   ---
   (group "Paragraph")
   (link paragraph-menu)
   ---
   (when (in-main-flow?)
     (group "Page")
-    (link page-menu)))
+    (link page-menu)
+  ) ;when
+) ;menu-bind
 
 (menu-bind compressed-prog-format-menu
-  ("Font" (interactive open-font-selector))
-  ("Paragraph" (open-paragraph-format))
-  (when (in-main-flow?)
-    ("Page" (open-page-format)))
-  (when (inside? 'table)
-    ("Cell" (open-cell-properties))
-    ("Table" (open-table-properties)))
-  ---
-;;  (-> "Whitespace" (link space-menu))
-  (-> "Indentation" (link indentation-menu))
-  (-> "Break" (link break-menu))
-  ---
-  (-> "Color"
-      (if (== (get-preference "experimental alpha") "on")
-	  (-> "Opacity" (link opacity-menu))
-	  ---)
-      (link color-menu))
-  (-> "Adjust" (link adjust-menu))
-  (-> "Transform" (link linear-transform-menu))
-  (-> "Specific" (link specific-menu))
-  (-> "Special" (link format-special-menu))
-  (-> "Font effects" (link text-font-effects-menu))
-  (assuming (== (get-preference "bitmap effects") "on")
-    (-> "Graphical effects" (link text-effects-menu))))
+ ("Font" (interactive open-font-selector))
+ ("Paragraph" (open-paragraph-format))
+ (when (in-main-flow?)
+   ("Page" (open-page-format))
+ ) ;when
+ (when (inside? 'table)
+   ("Cell" (open-cell-properties))
+   ("Table" (open-table-properties))
+ ) ;when
+ ---
+ ;;  (-> "Whitespace" (link space-menu))
+ (-> "Indentation" (link indentation-menu))
+ (-> "Break" (link break-menu))
+ ---
+ (-> "Color"
+   (if (== (get-preference "experimental alpha") "on")
+     (-> "Opacity" (link opacity-menu))
+     ---
+   ) ;if
+   (link color-menu)
+ ) ;->
+ (-> "Adjust" (link adjust-menu))
+ (-> "Transform" (link linear-transform-menu))
+ (-> "Specific" (link specific-menu))
+ (-> "Special" (link format-special-menu))
+ (-> "Font effects" (link text-font-effects-menu))
+ (assuming (== (get-preference "bitmap effects") "on")
+   (-> "Graphical effects" (link text-effects-menu))
+ ) ;assuming
+) ;menu-bind
 
 (menu-bind prog-format-menu
-  (if (use-menus?)
-      (link full-prog-format-menu))
-  (if (use-popups?)
-      (link compressed-prog-format-menu)))
+  (if (use-menus?) (link full-prog-format-menu))
+  (if (use-popups?) (link compressed-prog-format-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Icons for modifying text properties
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind prog-format-icons
-  ((balloon (icon "tm_italic.xpm") "Write italic text")
-   (make-with "prog-font-shape" "italic"))
-  ((balloon (icon "tm_bold.xpm") "Write bold text")
-   (make-with "prog-font-series" "bold"))
-  ((balloon (icon "tm_sansserif.xpm") "Use a sans serif font")
-   (make-with "prog-font-family" "ss"))
-  (if (not (in-graphics?))
-      (=> (balloon (icon "tm_color.xpm") "Select a foreground color")
-    (link color-menu))))
+ ((balloon (icon "tm_italic.xpm") "Write italic text")
+  (make-with "prog-font-shape" "italic")
+ ) ;
+ ((balloon (icon "tm_bold.xpm") "Write bold text")
+  (make-with "prog-font-series" "bold")
+ ) ;
+ ((balloon (icon "tm_sansserif.xpm") "Use a sans serif font")
+  (make-with "prog-font-family" "ss")
+ ) ;
+ (if (not (in-graphics?))
+   (=> (balloon (icon "tm_color.xpm") "Select a foreground color")
+     (link color-menu)
+   ) ;=>
+ ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Icons in prog mode
@@ -98,60 +108,64 @@
 (menu-bind prog-icons
   (link prog-format-icons)
   (link texmacs-insert-icons)
-  (if (and (in-presentation?) (not (visible-icon-bar? 0)))
-    /
-    (link dynamic-icons)))
+  (if (and (in-presentation?) (not (visible-icon-bar? 0))) / (link dynamic-icons))
+) ;menu-bind
 
 (menu-bind code-menu
-  ("Algorithm" (make 'algorithm))
-  ("Pseudo code" (make 'render-code))
-  ---
-  ("Indent" (make 'indent))
-  (when (not (selection-active?))
-    ("Tabbed" (make 'wide-tabbed)))
-  ---
-  (-> "Inline code"
-      ("Verbatim" (make 'verbatim))
-      ("C++" (make 'cpp))
-      ("Scheme" (make 'scm))
-      ("Shell" (make 'shell))
-      ("Bash" (make* 'bash "bash"))
-      ("FISH" (make* 'fish "fish"))
-      ("Goldfish" (make* 'goldfish-lang "goldfish"))
-      ("Scala" (make* 'scala "scala"))
-      ("Python" (make* 'python "python"))
-      ("R" (make* 'r "r"))
-      ("JSON" (make* 'json "json"))
-      ("SQL" (make* 'sql "sql"))
-      ("Java" (make* 'java "java"))
-      ("JavaScript" (make* 'javascript "javascript"))
-      ("Julia" (make* 'julia "julia"))
-      ("Lua" (make* 'lua "lua"))
-      ("Matlab" (make* 'matlab "matlab"))
-      ("MoonBit" (make* 'moonbit "moonbit"))
-      ("Gnuplot" (make* 'gnuplot "gnuplot")))
-  (-> "Block of code"
-      ("Verbatim" (make 'verbatim-code))
-      ("C++" (make 'cpp-code))
-      ("Scheme" (make 'scm-code))
-      ("Shell" (make 'shell-code))
-      ("Bash" (make* 'bash-code "bash"))
-      ("FISH" (make* 'fish-code "fish"))
-      ("Goldfish" (make* 'goldfish-code "goldfish"))
-      ("Scala" (make* 'scala-code "scala"))
-      ("Python" (make* 'python-code "python"))
-      ("R" (make* 'r-code "r"))
-      ("JSON" (make* 'json-code "json"))
-      ("SQL" (make* 'sql-code "sql"))
-      ("Java" (make* 'java-code "java"))
-      ("JavaScript" (make* 'javascript-code "javascript"))
-      ("Julia" (make* 'julia-code "julia"))
-      ("Lua" (make* 'lua-code "lua"))
-      ("Matlab" (make* 'matlab-code "matlab"))
-      ("MoonBit" (make* 'moonbit-code "moonbit"))
-      ("Gnuplot" (make* 'gnuplot-code "gnuplot")))
-  (-> "Listing"
-      ("Verbatim" (make 'listing))
-      ("C++" (make 'cpp-listing))
-      ("Scheme" (make 'scm-listing))
-      ("Shell" (make 'shell-listing))))
+ ("Algorithm" (make 'algorithm))
+ ("Pseudo code" (make 'render-code))
+ ---
+ ("Indent" (make 'indent))
+ (when (not (selection-active?))
+   ("Tabbed" (make 'wide-tabbed))
+ ) ;when
+ ---
+ (-> "Inline code"
+  ("Verbatim" (make 'verbatim))
+  ("C++" (make 'cpp))
+  ("Scheme" (make 'scm))
+  ("Shell" (make 'shell))
+  ("Bash" (make* 'bash "bash"))
+  ("FISH" (make* 'fish "fish"))
+  ("Goldfish" (make* 'goldfish-lang "goldfish"))
+  ("Scala" (make* 'scala "scala"))
+  ("Python" (make* 'python "python"))
+  ("R" (make* 'r "r"))
+  ("JSON" (make* 'json "json"))
+  ("SQL" (make* 'sql "sql"))
+  ("Java" (make* 'java "java"))
+  ("JavaScript" (make* 'javascript "javascript"))
+  ("Julia" (make* 'julia "julia"))
+  ("Lua" (make* 'lua "lua"))
+  ("Matlab" (make* 'matlab "matlab"))
+  ("MoonBit" (make* 'moonbit "moonbit"))
+  ("Gnuplot" (make* 'gnuplot "gnuplot"))
+ ) ;->
+ (-> "Block of code"
+  ("Verbatim" (make 'verbatim-code))
+  ("C++" (make 'cpp-code))
+  ("Scheme" (make 'scm-code))
+  ("Shell" (make 'shell-code))
+  ("Bash" (make* 'bash-code "bash"))
+  ("FISH" (make* 'fish-code "fish"))
+  ("Goldfish" (make* 'goldfish-code "goldfish"))
+  ("Scala" (make* 'scala-code "scala"))
+  ("Python" (make* 'python-code "python"))
+  ("R" (make* 'r-code "r"))
+  ("JSON" (make* 'json-code "json"))
+  ("SQL" (make* 'sql-code "sql"))
+  ("Java" (make* 'java-code "java"))
+  ("JavaScript" (make* 'javascript-code "javascript"))
+  ("Julia" (make* 'julia-code "julia"))
+  ("Lua" (make* 'lua-code "lua"))
+  ("Matlab" (make* 'matlab-code "matlab"))
+  ("MoonBit" (make* 'moonbit-code "moonbit"))
+  ("Gnuplot" (make* 'gnuplot-code "gnuplot"))
+ ) ;->
+ (-> "Listing"
+  ("Verbatim" (make 'listing))
+  ("C++" (make 'cpp-listing))
+  ("Scheme" (make 'scm-listing))
+  ("Shell" (make 'shell-listing))
+ ) ;->
+) ;menu-bind

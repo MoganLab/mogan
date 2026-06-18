@@ -13,10 +13,9 @@
 
 (texmacs-module (prog default-lang))
 
-(tm-define (parser-feature lan key)
-  `(,(string->symbol key)))
+(tm-define (parser-feature lan key) `(,(string->symbol key)))
 
 (tm-define (parser-feature lan key)
   (:require (== key "comment"))
-  `(,(string->symbol key)
-    (inline "//")))
+  `(,(string->symbol key) (inline "//"))
+) ;tm-define
