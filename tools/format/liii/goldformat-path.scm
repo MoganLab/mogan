@@ -35,6 +35,7 @@
         "TeXmacs/progs/fonts"
         "TeXmacs/progs/generic"
         "TeXmacs/progs/kernel"
+        "TeXmacs/progs/link"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"

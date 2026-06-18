@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (link ref-menu)
-  (:use (link ref-edit)))
+(texmacs-module (link ref-menu) (:use (link ref-edit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Navigation
@@ -24,7 +23,9 @@
     ("First occurrence" (special-first))
     ("Previous occurrence" (special-previous))
     ("Next occurrence" (special-next))
-    ("Last occurrence" (special-last))))
+    ("Last occurrence" (special-last))
+  ) ;when
+) ;menu-bind
 
 (menu-bind duplicate-labels-menu
   (when (duplicate-labels)
@@ -32,7 +33,9 @@
     ("First error" (special-return))
     ("Previous error" (special-back))
     ("Next error" (special-forward))
-    ("Last error" (special-shift-return))))
+    ("Last error" (special-shift-return))
+  ) ;when
+) ;menu-bind
 
 (menu-bind broken-references-menu
   (when (broken-references)
@@ -40,7 +43,9 @@
     ("First error" (special-return))
     ("Previous error" (special-back))
     ("Next error" (special-forward))
-    ("Last error" (special-shift-return))))
+    ("Last error" (special-shift-return))
+  ) ;when
+) ;menu-bind
 
 (menu-bind broken-citations-menu
   (when (broken-citations)
@@ -48,35 +53,42 @@
     ("First error" (special-return))
     ("Previous error" (special-back))
     ("Next error" (special-forward))
-    ("Last error" (special-shift-return))))
+    ("Last error" (special-shift-return))
+  ) ;when
+) ;menu-bind
 
 (tm-define (focus-has-search-menu? t)
   (:require (and (tie-context? t) (not (cursor-inside? t))))
-  #t)
+  #t
+) ;tm-define
 
 (tm-menu (focus-search-menu t)
   (:require (label-context? t))
   (link same-tie-menu)
   ---
-  (link duplicate-labels-menu))
+  (link duplicate-labels-menu)
+) ;tm-menu
 
 (tm-menu (focus-search-menu t)
   (:require (reference-context? t))
   (link same-tie-menu)
   ---
-  (link broken-references-menu))
+  (link broken-references-menu)
+) ;tm-menu
 
 (tm-menu (focus-search-menu t)
   (:require (citation-context? t))
   (link same-tie-menu)
   ---
-  (link broken-citations-menu))
+  (link broken-citations-menu)
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main menus for reference management
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind ref-menu
-  ("Fix duplicate labels" (go-to-duplicate-label :first))
-  ("Fix broken references" (go-to-broken-reference :first))
-  ("Fix broken citations" (go-to-broken-citation :first)))
+ ("Fix duplicate labels" (go-to-duplicate-label :first))
+ ("Fix broken references" (go-to-broken-reference :first))
+ ("Fix broken citations" (go-to-broken-citation :first))
+) ;menu-bind
