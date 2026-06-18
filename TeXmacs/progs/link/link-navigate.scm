@@ -497,12 +497,27 @@
   ; TODO: jump to anchors in HTML
   (noop))
 
+(define (url-looks-like-bare-domain? u)
+  "Check if a default-rooted URL looks like a bare domain (e.g. liiistem.cn)"
+  (let* ((s (url->system u)))
+    (and (not (string-null? s))
+         (not (string-starts? s "/"))
+         (not (string-starts? s "."))
+         (not (string-starts? s "~"))
+         (not (string-index s #\space))
+         (not (string-index s #\/))
+         (string-index s #\.)
+         (not (url-exists? (url-expand u))))))
+
 (define (default-root-handler u)
   (cond ((and (url-rooted-protocol? u "default")
               (url-rooted-web? (current-buffer)))
          (default-root-handler (url-relative (current-buffer) u)))
         ((url-or? (url-expand u))
          (default-root-disambiguator (url-expand u)))
+        ((url-looks-like-bare-domain? u)
+         (with web-url (system->url (string-append "https://" (url->system u)))
+           (http-root-handler web-url)))
         (else
          (with (base qry) (process-url u)
            (if (!= "" (url->system base))
@@ -551,7 +566,7 @@
   (:argument opt-from "Optional path for the cursor history")
   (if (nnull? opt-from) (cursor-history-add (car opt-from)))
   (if (string? u) (set! u (system->url u)))
-  (with (action post) (url-handlers u) 
+  (with (action post) (url-handlers u)
     (action u) (post u))
   (if (nnull? opt-from) (cursor-history-add (cursor-path))))
 
