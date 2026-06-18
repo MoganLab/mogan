@@ -41,6 +41,7 @@
         "TeXmacs/progs/math"
         "TeXmacs/progs/moebius"
         "TeXmacs/progs/network"
+        "TeXmacs/progs/part"
         "TeXmacs/progs/source"
         "TeXmacs/progs/texmacs/texmacs"
         "TeXmacs/progs/texmacs/menus"

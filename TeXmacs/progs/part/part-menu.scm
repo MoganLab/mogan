@@ -12,15 +12,16 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (part part-menu)
-  (:use (generic document-part)
-	(part part-tmfs)))
+  (:use (generic document-part) (part part-tmfs))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful subroutines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (goto-include buf incl)
-  (load-document (part-url buf (url-relative buf incl))))
+  (load-document (part-url buf (url-relative buf incl)))
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The dynamic document part menu
@@ -30,7 +31,9 @@
   (link preamble-menu)
   ---
   (for (incl (buffer-get-includes))
-    ((eval incl) (goto-include (current-buffer) incl))))
+   ((eval incl) (goto-include (current-buffer) incl))
+  ) ;for
+) ;menu-bind
 
 (menu-bind document-part-menu
   (:require (url-rooted-tmfs-protocol? (current-buffer) "part"))
@@ -38,9 +41,11 @@
          (m (part-master name))
          (f (part-file name))
          (t (tree-import m "texmacs"))
-	 (b (tmfile-get t 'body))
-	 (l (tm-get-includes b)))
+         (b (tmfile-get t 'body))
+         (l (tm-get-includes b))
+        ) ;
     ((eval (url->string (url-tail m))) (load-document m))
     ---
-    (for (incl l)
-      ((eval incl) (goto-include m incl)))))
+    (for (incl l) ((eval incl) (goto-include m incl)))
+  ) ;let*
+) ;menu-bind
