@@ -16,185 +16,122 @@
 (define-language minimal-operators
   (:synopsis "operators for a minimal test language")
 
-  (define Spc
-    (:operator associative)
-    (* (or " " "\t" "\n")))
+  (define Spc (:operator associative) (* (or " " "\t" "\n")))
 
-  (define Space
-    (:operator)
-    (+ (or " " "\t" "\n")))
+  (define Space (:operator) (+ (or " " "\t" "\n")))
 
-  (define End
-    (:operator)
-    (Spc ";"))
+  (define End (:operator) (Spc ";"))
 
-  (define If-prefix
-    (:operator)
-    (:highlight keyword)
-    ("if" Space))
+  (define If-prefix (:operator) (:highlight keyword) ("if" Space))
 
-  (define Then-infix
-    (:operator)
-    (:highlight keyword)
-    (Space "then" Space))
+  (define Then-infix (:operator) (:highlight keyword) (Space "then" Space))
 
-  (define While-prefix
-    (:operator)
-    (:highlight keyword)
-    ("while" Space))
+  (define While-prefix (:operator) (:highlight keyword) ("while" Space))
 
-  (define Do-infix
-    (:operator)
-    (:highlight keyword)
-    (Space "do" Space))
+  (define Do-infix (:operator) (:highlight keyword) (Space "do" Space))
 
-  (define Declare-infix
-    (:operator)
-    (Spc "==" Spc))
+  (define Declare-infix (:operator) (Spc "==" Spc))
 
-  (define Comma-infix
-    (:operator)
-    (Spc "," Spc))
+  (define Comma-infix (:operator) (Spc "," Spc))
 
-  (define Assign-infix
-    (:operator)
-    (Spc ":=" Spc))
+  (define Assign-infix (:operator) (Spc ":=" Spc))
 
   (define Relation-infix
     (:operator)
-    (Spc (or "=" "!=" "<less>" "<less>=" "<gtr>" "<gtr>=") Spc))
+    (Spc (or "=" "!=" "<less>" "<less>=" "<gtr>" "<gtr>=") Spc)
+  ) ;define
 
-  (define Plus-infix
-    (:operator)
-    (Spc "+" Spc))
+  (define Plus-infix (:operator) (Spc "+" Spc))
 
-  (define Minus-infix
-    (:operator)
-    (Spc "-" Spc))
+  (define Minus-infix (:operator) (Spc "-" Spc))
 
-  (define Times-infix
-    (:operator)
-    (Spc "*" Spc))
+  (define Times-infix (:operator) (Spc "*" Spc))
 
-  (define Over-infix
-    (:operator)
-    (Spc "/" Spc))
+  (define Over-infix (:operator) (Spc "/" Spc))
 
-  (define Power-infix
-    (:operator)
-    (Spc "^" Spc))
+  (define Power-infix (:operator) (Spc "^" Spc))
 
-  (define Cardial-prefix
-    (:operator)
-    ("#" Spc))
+  (define Cardial-prefix (:operator) ("#" Spc))
 
-  (define Factorial-postfix
-    (:operator)
-    (Spc "!"))
+  (define Factorial-postfix (:operator) (Spc "!"))
 
-  (define Open
-    (:operator)
-    ("(" Spc))
+  (define Open (:operator) ("(" Spc))
 
-  (define Close
-    (:operator)
-    (Spc ")"))
+  (define Close (:operator) (Spc ")"))
 
-  (define Open-close
-    ("(" Spc ")"))
+  (define Open-close ("(" Spc ")"))
 
   (define Error-curly
     (:operator)
     (:highlight error)
-    (* (or ("{" Error-curly "}")
-	   (except :char (or "{" "}")))))
+    (* (or ("{" Error-curly "}") (except :char (or "{" "}"))))
+  ) ;define
 
   (define Error-semi
     (:operator)
     (:highlight error)
-    (* (or ("{" Error-curly "}")
-	   (except :char (or "{" "}" ";"))))))
+    (* (or ("{" Error-curly "}") (except :char (or "{" "}" ";"))))
+  ) ;define
+) ;define-language
 
 (define-language minimal-grammar
   (:synopsis "grammar for a minimal test language")
 
-  (define Main
-    (Spc Instructions Spc))
+  (define Main (Spc Instructions Spc))
 
-  (define Instructions
-    (Instructions Spc Instruction)
-    Instruction)
+  (define Instructions (Instructions Spc Instruction) Instruction)
 
   (define Instruction
-    ("{" Main "}")
-    ("{" Error-curly "}")
-    (Lhs Declare-infix Instruction)
-    (If-prefix Expression Then-infix Instruction)
-    (While-prefix Expression Do-infix Instruction)
-    ";"
-    (Expression End)
-    (Error-semi End))
-  
-  (define Lhs
-    (Lhs Spc Open Expression Close)
-    (Lhs Spc Open-Close)
-    Lhs-radical)
+   ("{" Main "}")
+   ("{" Error-curly "}")
+   (Lhs Declare-infix Instruction)
+   (If-prefix Expression Then-infix Instruction)
+   (While-prefix Expression Do-infix Instruction)
+   ";"
+   (Expression End)
+   (Error-semi End)
+  ) ;define
 
-  (define Lhs-radical
-    (:highlight declare)
-    Radical)
+  (define Lhs (Lhs Spc Open Expression Close) (Lhs Spc Open-Close) Lhs-radical)
 
-  (define Expression
-    (Assignment Comma-infix Expression)
-    Assignment)
+  (define Lhs-radical (:highlight declare) Radical)
 
-  (define Assignment
-    (Relation Assign-infix Assignment)
-    Relation)
+  (define Expression (Assignment Comma-infix Expression) Assignment)
 
-  (define Relation
-    (Relation Relation-infix Sum)
-    Sum)
+  (define Assignment (Relation Assign-infix Assignment) Relation)
 
-  (define Sum
-    (Sum Plus-infix Product)
-    (Sum Minus-infix Product)
-    Product)
+  (define Relation (Relation Relation-infix Sum) Sum)
 
-  (define Product
-    (Product Times-infix Power)
-    (Product Over-infix Power)
-    Power)
+  (define Sum (Sum Plus-infix Product) (Sum Minus-infix Product) Product)
 
-  (define Power
-    (Prefixed Power-infix Prefixed)
-    Prefixed)
+  (define Product (Product Times-infix Power) (Product Over-infix Power) Power)
 
-  (define Prefixed
-    (Cardial-prefix Prefixed)
-    Postfixed)
+  (define Power (Prefixed Power-infix Prefixed) Prefixed)
+
+  (define Prefixed (Cardial-prefix Prefixed) Postfixed)
 
   (define Postfixed
     (Postfixed Factorial-postfix)
     (Postfixed Spc Open Expression Close)
     (Postfixed Spc Open-close)
-    Radical)
+    Radical
+  ) ;define
 
   (define Identifier
     (:highlight variable_identifier)
-    (+ (or (- "a" "z") (- "A" "Z"))))
+    (+ (or (- "a" "z") (- "A" "Z")))
+  ) ;define
 
   (define Number
     (:highlight constant_number)
-    ((+ (- "0" "9")) (or "" ("." (+ (- "0" "9"))))))
+    ((+ (- "0" "9")) (or "" ("." (+ (- "0" "9")))))
+  ) ;define
 
-  (define Radical
-    (Open Expression Close)
-    Open-close
-    Identifier
-    Number))
+  (define Radical (Open Expression Close) Open-close Identifier Number)
+) ;define-language
 
 (define-language minimal
   (:synopsis "syntax for a minimal test language")
   (inherit minimal-operators)
-  (inherit minimal-grammar))
+  (inherit minimal-grammar)
+) ;define-language
