@@ -248,8 +248,6 @@
 
   <assign|render-button|<macro|state|off|on|<with|locus-color|preserve|<quasi|<action|<if|<arg|state>|<arg|on>|<arg|off>>|mouse-toggle-button|<arg|state>|<unquote|<value|attached-script>>>>>>>
 
-  \;
-
   <assign|button-box-off|<math|\<box\>>>
 
   <assign|button-box-on|<math|\<blacksquare\>>>

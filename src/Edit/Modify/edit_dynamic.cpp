@@ -90,7 +90,20 @@ contains_table_format (tree t, tree var) {
 void
 edit_dynamic_rep::make_compound (tree_label l, int n= -1) {
   // cout << "Make compound " << as_string (l) << ", " << n << "\n";
+  string tag_name= as_string (l);
+  cout << "[TODOTO DEBUG] make_compound called for tag: " << tag_name
+       << ", n=" << n << "\n";
+
   eval ("(use-modules (generic generic-edit))");
+
+  if (tag_name == "todoto") {
+    cout << "[TODOTO DEBUG] special handling for todoto: inserting (todoto "
+            "false\" \"\") with cursor in body\n";
+    tree t (l, tree ("false"), tree (""));
+    insert_tree (t, path (1, 0));
+    return;
+  }
+
   if (n == -1) {
     for (n= 0; true; n++) {
       if (drd->correct_arity (l, n) &&
@@ -566,6 +579,18 @@ edit_dynamic_rep::activate_hybrid (bool with_args_hint) {
 
   // activate macro argument
   string name= st[0]->label;
+
+  // Special handling for todoto: insert (todoto "false" "") with cursor in body
+  // This works across all styles (generic, exam, source, etc.)
+  if (name == "todoto") {
+    cout << "[TODOTO] Activating todoto command in style context\n";
+    assign (p, "");
+    correct (path_up (p));
+    tree t (make_tree_label ("todoto"), tree ("false"), tree (""));
+    insert_tree (t, path (1, 0));
+    return;
+  }
+
   path   mp  = search_upwards (MACRO);
   if (is_nil (mp)) mp= search_upwards ("edit-macro");
   if (!is_nil (mp)) {
