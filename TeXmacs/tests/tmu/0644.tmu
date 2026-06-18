@@ -1,0 +1,49 @@
+<TMU|<tuple|1.1.0|2026.2.6-rc3>>
+
+<style|<tuple|generic|number-europe|british>>
+
+<\body>
+  <\framed>
+    <\definition>
+      \;
+
+      <\equation*>
+        <decorated|G<rsub|B>=log<rsub|10><around*|(|<frac|P<rsub|1>|P<rsub|2>>|)>>
+      </equation*>
+
+      <\equation*>
+        <decorated|G<rsub|dB>=10*log<rsub|10><around*|(|<frac|P<rsub|1>|P<rsub|2>>|)>>
+      </equation*>
+    </definition>
+  </framed>
+
+  \;
+
+  <\framed>
+    <\equation*>
+      <decorated|\<alpha\>\<beta\>>
+    </equation*>
+  </framed>
+
+  <\decorated>
+    <\framed>
+      ddddd
+    </framed>
+  </decorated> <\framed>
+    <\decorated>
+      ccccc
+    </decorated>
+  </framed>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-even-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-even-header|>
+    <associate|page-medium|paper>
+    <associate|page-odd-footer|<tformat|<cwith|1|-1|1|-1|cell-halign|c>|<tformat|<twith|table-width|1par>|<twith|table-hmode|exact>|<cwith|1|1|1|1|cell-width|0.3par>|<cwith|1|1|1|1|cell-hmode|exact>|<cwith|1|1|3|3|cell-width|0.3par>|<cwith|1|1|3|3|cell-hmode|exact>|<cwith|1|1|2|2|cell-width|0.4par>|<cwith|1|1|2|2|cell-hmode|exact>|<cwith|1|1|1|1|cell-halign|l>|<cwith|1|1|3|3|cell-halign|r>|<table|<row|<cell|>|<cell|<page-the-page>>|<cell|>>>>>>
+    <associate|page-odd-header|>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|EC0BE75C-1D03-4D50-8C5B-357D4D1F6AB0>
+  </collection>
+</initial>
