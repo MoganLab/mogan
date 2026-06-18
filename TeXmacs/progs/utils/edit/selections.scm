@@ -19,35 +19,33 @@
 
 (tm-property (clipboard-copy to)
   (:argument to "Copy to")
-  (:default  to "primary"))
+  (:default to "primary")
+) ;tm-property
 
-(tm-property (clipboard-cut to)
-  (:argument to "Cut to")
-  (:default  to "primary"))
+(tm-property (clipboard-cut to) (:argument to "Cut to") (:default to "primary"))
 
 (tm-property (clipboard-paste from)
   (:argument from "Paste from")
-  (:default  to "primary"))
+  (:default to "primary")
+) ;tm-property
 
 (define (clipboard-test-import? s)
-  (string=? s (clipboard-get-import)))
+  (string=? s (clipboard-get-import))
+) ;define
 
-(tm-property (clipboard-set-import s)
-  (:check-mark "*" clipboard-test-import?))
+(tm-property (clipboard-set-import s) (:check-mark "*" clipboard-test-import?))
 
 (define (clipboard-test-export? s)
-  (string=? s (clipboard-get-export)))
+  (string=? s (clipboard-get-export))
+) ;define
 
-(tm-property (clipboard-set-export s)
-  (:check-mark "*" clipboard-test-export?))
+(tm-property (clipboard-set-export s) (:check-mark "*" clipboard-test-export?))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Further routines for selections
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (tree-cut t)
-  (and-with p (tree->path t)
-    (clipboard-cut-at p)))
+(tm-define (tree-cut t) (and-with p (tree->path t) (clipboard-cut-at p)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Exporting and importing selections
@@ -57,19 +55,25 @@
   (let ((temp (clipboard-get-export)))
     (clipboard-set-export format)
     (clipboard-copy which)
-    (clipboard-set-export temp)))
+    (clipboard-set-export temp)
+  ) ;let
+) ;tm-define
 
 (tm-define (clipboard-cut-export format which)
   (let ((temp (clipboard-get-export)))
     (clipboard-set-export format)
     (clipboard-cut which)
-    (clipboard-set-export temp)))
+    (clipboard-set-export temp)
+  ) ;let
+) ;tm-define
 
 (tm-define (clipboard-paste-import format which)
   (let ((temp (clipboard-get-import)))
     (clipboard-set-import format)
     (clipboard-paste which)
-    (clipboard-set-import temp)))
+    (clipboard-set-import temp)
+  ) ;let
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Structured selections
@@ -77,20 +81,26 @@
 
 (tm-define (kbd-select-enlarge)
   (if (selection-active-enlarging?)
-      (select-enlarge)
-      (begin
-	(selection-cancel)
-	(selection-set-start)
-	(select-from-keyboard #t))))
+    (select-enlarge)
+    (begin
+      (selection-cancel)
+      (selection-set-start)
+      (select-from-keyboard #t)
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (kbd-select-environment)
   (if (selection-active-enlarging?)
+    (select-enlarge-environmental)
+    (begin
+      (selection-cancel)
+      (selection-set-start)
+      (select-from-keyboard #t)
       (select-enlarge-environmental)
-      (begin
-	(selection-cancel)
-	(selection-set-start)
-	(select-from-keyboard #t)
-	(select-enlarge-environmental))))
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful macros for operating on selections
@@ -98,20 +108,12 @@
 
 (tm-define-macro (wrap-selection-any . actions)
   `(if (selection-active-any?)
-       (begin
-	 (clipboard-cut "wrapbuf")
-	 ,@actions
-	 (clipboard-paste "wrapbuf"))
-       (begin
-	 (selection-cancel)
-	 ,@actions)))
+     (begin (clipboard-cut "wrapbuf") ,@actions (clipboard-paste "wrapbuf"))
+     (begin (selection-cancel) ,@actions))
+) ;tm-define-macro
 
 (tm-define-macro (wrap-selection-small . actions)
   `(if (selection-active-small?)
-       (begin
-	 (clipboard-cut "wrapbuf")
-	 ,@actions
-	 (clipboard-paste "wrapbuf"))
-       (begin
-	 (selection-cancel)
-	 ,@actions)))
+     (begin (clipboard-cut "wrapbuf") ,@actions (clipboard-paste "wrapbuf"))
+     (begin (selection-cancel) ,@actions))
+) ;tm-define-macro

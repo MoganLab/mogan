@@ -12,8 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils edit variants)
-  (:use (utils library tree)
-        (kernel gui menu-widget)))
+  (:use (utils library tree) (kernel gui menu-widget))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Definition of tag groups (could be done using drds in the future)
@@ -23,36 +23,54 @@
 (tm-define group-resolve-table (make-ahash-table))
 
 (define (group-resolve-one x)
-  (if (pair? x) (group-resolve (car x)) (list x)))
+  (if (pair? x) (group-resolve (car x)) (list x))
+) ;define
 
 (tm-define (group-resolve which)
   (if (not (ahash-ref group-resolve-table which))
-      (with l (ahash-ref group-table which)
-	(ahash-set! group-resolve-table which
-		    (if l (append-map group-resolve-one l) '()))))
-  (ahash-ref group-resolve-table which))
+    (with l
+      (ahash-ref group-table which)
+      (ahash-set! group-resolve-table
+        which
+        (if l (append-map group-resolve-one l) '())
+      ) ;ahash-set!
+    ) ;with
+  ) ;if
+  (ahash-ref group-resolve-table which)
+) ;tm-define
 
 (tm-define-macro (define-group group . l)
   (set! group-resolve-table (make-ahash-table))
-  (with old (ahash-ref group-table group)
+  (with old
+    (ahash-ref group-table group)
     (if old
-	`(ahash-set! group-table ',group (append ',old ',l))
-	`(begin
-	   (ahash-set! group-table ',group ',l)
-	   (tm-define (,(symbol-append group '-list))
-	     (group-resolve ',group))
-	   (tm-define (,(symbol-append group '?) lab)
-	     (in? lab (group-resolve ',group)))
-	   (tm-define (,(symbol-append 'inside- group '?))
-	     (not (not (inside-which (group-resolve ',group)))))))))
+      `(ahash-set! group-table (quote ,group) (append (quote ,old) (quote ,l)))
+      `(begin
+         (ahash-set! group-table (quote ,group) (quote ,l))
+         (tm-define (,(symbol-append group '-list))
+           (group-resolve (quote ,group)))
+         (tm-define (,(symbol-append group '?) lab)
+           (in? lab (group-resolve (quote ,group))))
+         (tm-define (,(symbol-append 'inside- group '?))
+           (not (not (inside-which (group-resolve (quote ,group)))))))
+    ) ;if
+  ) ;with
+) ;tm-define-macro
 
 (tm-define (group-find which group)
   (:synopsis "Find subgroup of @group which contains @which")
-  (with l (ahash-ref group-table group)
+  (with l
+    (ahash-ref group-table group)
     (cond ((not l) #f)
-	  ((in? which l) group)
-	  (else (with f (map car (list-filter l (lambda (x) (pair? x))))
-		  (list-any (lambda (x) (group-find which x)) f))))))
+          ((in? which l) group)
+          (else (with f
+                  (map car (list-filter l (lambda (x) (pair? x))))
+                  (list-any (lambda (x) (group-find which x)) f)
+                ) ;with
+          ) ;else
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Numbers
@@ -60,71 +78,76 @@
 
 (define-group numbered-tag)
 
-(tm-define (symbol-numbered? s)
-  (in? s (numbered-tag-list)))
+(tm-define (symbol-numbered? s) (in? s (numbered-tag-list)))
 
 (tm-define (symbol-unnumbered? s)
-  (and (symbol-ends? s '*)
-       (in? (symbol-drop-right s 1) (numbered-tag-list))))
+  (and (symbol-ends? s '*) (in? (symbol-drop-right s 1) (numbered-tag-list)))
+) ;tm-define
 
 (tm-define (symbol-toggle-number s)
-  (if (symbol-ends? s '*)
-      (symbol-drop-right s 1)
-      (symbol-append s '*)))
+  (if (symbol-ends? s '*) (symbol-drop-right s 1) (symbol-append s '*))
+) ;tm-define
 
 (tm-define (numbered-tag-list*)
-  (map (lambda (x) (symbol-append x '*)) (numbered-tag-list)))
+  (map (lambda (x) (symbol-append x '*)) (numbered-tag-list))
+) ;tm-define
 
 (tm-define (numbered-unnumbered-append l)
-  (append l (map (lambda (x) (symbol-append x '*)) l)))
+  (append l (map (lambda (x) (symbol-append x '*)) l))
+) ;tm-define
 
 (tm-define (numbered-unnumbered-complete l)
-  (let* ((nl (numbered-tag-list))
-	 (bl (list-intersection l nl)))
-    (append l (map (lambda (x) (symbol-append x '*)) bl))))
+  (let* ((nl (numbered-tag-list)) (bl (list-intersection l nl)))
+    (append l (map (lambda (x) (symbol-append x '*)) bl))
+  ) ;let*
+) ;tm-define
 
 (tm-define (numbered-standard-context? t)
-  (or (tree-in? t (numbered-tag-list))
-      (tree-in? t (numbered-tag-list*))))
+  (or (tree-in? t (numbered-tag-list)) (tree-in? t (numbered-tag-list*)))
+) ;tm-define
 
-(tm-define (numbered-context? t)
-  #f)
+(tm-define (numbered-context? t) #f)
 
-(tm-define (numbered-context? t)
-  (:require (numbered-standard-context? t))
-  #t)
+(tm-define (numbered-context? t) (:require (numbered-standard-context? t)) #t)
 
-(tm-define (numbered-numbered? t)
-  #f)
+(tm-define (numbered-numbered? t) #f)
 
 (tm-define (numbered-numbered? t)
   (:require (numbered-standard-context? t))
-  (not (symbol-ends? (tree-label t) '*)))
+  (not (symbol-ends? (tree-label t) '*))
+) ;tm-define
 
 (tm-define (numbered-unnumbered? t)
-  (and (numbered-context? t) (not (numbered-numbered? t))))
+  (and (numbered-context? t) (not (numbered-numbered? t)))
+) ;tm-define
 
-(tm-define (numbered-toggle t)
-  (and-with p (tree-outer t)
-    (numbered-toggle p)))
+(tm-define (numbered-toggle t) (and-with p (tree-outer t) (numbered-toggle p)))
 
 (tm-define (numbered-toggle t)
   (:require (numbered-standard-context? t))
-  (with l (tree-label t)
+  (with l
+    (tree-label t)
     (with display-var
-        (cond ((in? l '(chapter chapter*)) "chapter-display-numbers")
-              ((in? l '(section section*)) "section-display-numbers")
-              ((in? l '(subsection subsection*)) "subsection-display-numbers")
-              ((in? l '(subsubsection subsubsection*)) "subsubsection-display-numbers")
-              ((in? l '(paragraph paragraph*)) "paragraph-display-numbers")
-              ((in? l '(subparagraph subparagraph*)) "subparagraph-display-numbers")
-              (else #f))
+      (cond ((in? l '(chapter chapter*)) "chapter-display-numbers")
+            ((in? l '(section section*)) "section-display-numbers")
+            ((in? l '(subsection subsection*)) "subsection-display-numbers")
+            ((in? l '(subsubsection subsubsection*)) "subsubsection-display-numbers")
+            ((in? l '(paragraph paragraph*)) "paragraph-display-numbers")
+            ((in? l '(subparagraph subparagraph*)) "subparagraph-display-numbers")
+            (else #f)
+      ) ;cond
       (if (and display-var (== (get-init-env display-var) "false"))
-          (dialogue-window (message-widget "Global numbering is hidden, toggle has no effect")
-                           noop "Notification")
-          (let* ((old (tree-label t))
-                 (new (symbol-toggle-number old)))
-            (variant-set t new))))))
+        (dialogue-window (message-widget "Global numbering is hidden, toggle has no effect")
+          noop
+          "Notification"
+        ) ;dialogue-window
+        (let* ((old (tree-label t)) (new (symbol-toggle-number old)))
+          (variant-set t new)
+        ) ;let*
+      ) ;if
+    ) ;with
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Alternate between two possibilities
@@ -134,30 +157,24 @@
 (define-group alternate-first-tag)
 (define-group alternate-second-tag)
 
-(tm-define (alternate-standard-context? t)
-  (tree-in? t (alternate-tag-list)))
+(tm-define (alternate-standard-context? t) (tree-in? t (alternate-tag-list)))
 (tm-define (alternate-standard-first? t)
-  (tree-in? t (alternate-first-tag-list)))
+  (tree-in? t (alternate-first-tag-list))
+) ;tm-define
 (tm-define (alternate-standard-second? t)
-  (tree-in? t (alternate-second-tag-list)))
+  (tree-in? t (alternate-second-tag-list))
+) ;tm-define
 
 (tm-define (alternate-context? t) #f)
-(tm-define (alternate-context? t)
-  (:require (alternate-standard-context? t))
-  #t)
+(tm-define (alternate-context? t) (:require (alternate-standard-context? t)) #t)
 
 (tm-define (alternate-first? t) #f)
-(tm-define (alternate-first? t)
-  (:require (alternate-standard-first? t))
-  #t)
+(tm-define (alternate-first? t) (:require (alternate-standard-first? t)) #t)
 
 (tm-define (alternate-second? t) #f)
-(tm-define (alternate-second? t)
-  (:require (alternate-standard-second? t))
-  #t)
+(tm-define (alternate-second? t) (:require (alternate-standard-second? t)) #t)
 
-(tm-define (pure-alternate-context? t)
-  (alternate-context? t))
+(tm-define (pure-alternate-context? t) (alternate-context? t))
 
 (tm-define alternate-table (make-ahash-table))
 
@@ -165,60 +182,58 @@
   `(begin
      (define-group alternate-first-tag ,first)
      (define-group alternate-second-tag ,second)
-     (ahash-set! alternate-table ',first ',second)
-     (ahash-set! alternate-table ',second ',first)))
+     (ahash-set! alternate-table (quote ,first) (quote ,second))
+     (ahash-set! alternate-table (quote ,second) (quote ,first)))
+) ;tm-define-macro
 
-(tm-define (alternate-reverse? t)
-  #f)
+(tm-define (alternate-reverse? t) #f)
 
-(tm-define (alternate-first-name t)
-  (alternate-second-name t))
+(tm-define (alternate-first-name t) (alternate-second-name t))
 
-(tm-define (alternate-first-icon t)
-  "tm_alternate_first.xpm")
+(tm-define (alternate-first-icon t) "tm_alternate_first.xpm")
 
-(tm-define (alternate-second-name t)
-  "Expand")
+(tm-define (alternate-second-name t) "Expand")
 
-(tm-define (alternate-second-icon t)
-  "tm_alternate_second.xpm")
+(tm-define (alternate-second-icon t) "tm_alternate_second.xpm")
 
 (tm-define (alternate-toggle t)
-  (and-with p (tree-outer t)
-    (alternate-toggle p)))
+  (and-with p (tree-outer t) (alternate-toggle p))
+) ;tm-define
 
-(tm-define (symbol-toggle-alternate l)
-  (ahash-ref alternate-table l))
+(tm-define (symbol-toggle-alternate l) (ahash-ref alternate-table l))
 
 (tm-define (alternate-toggle t)
   (:require (alternate-standard-context? t))
-  (variant-set t (symbol-toggle-alternate (tree-label t))))
+  (variant-set t (symbol-toggle-alternate (tree-label t)))
+) ;tm-define
 
-(tm-define (alternate-fold t)
-  (and-with p (tree-outer t)
-    (alternate-fold p)))
+(tm-define (alternate-fold t) (and-with p (tree-outer t) (alternate-fold p)))
 
 (tm-define (alternate-fold t)
   (:require (alternate-standard-second? t))
-  (alternate-toggle t))
+  (alternate-toggle t)
+) ;tm-define
 
 (tm-define (alternate-unfold t)
-  (and-with p (tree-outer t)
-    (alternate-unfold p)))
+  (and-with p (tree-outer t) (alternate-unfold p))
+) ;tm-define
 
 (tm-define (alternate-unfold t)
   (:require (alternate-standard-first? t))
-  (alternate-toggle t))
+  (alternate-toggle t)
+) ;tm-define
 
 (tm-define (fold)
   (:type (-> void))
   (:synopsis "Fold at the current focus position")
-  (alternate-fold (focus-tree)))
+  (alternate-fold (focus-tree))
+) ;tm-define
 
 (tm-define (unfold)
   (:type (-> void))
   (:synopsis "Unold at the current focus position")
-  (alternate-unfold (focus-tree)))
+  (alternate-unfold (focus-tree))
+) ;tm-define
 
 (tm-define (mouse-fold t)
   (:type (-> void))
@@ -227,7 +242,10 @@
   (when (tree->path t)
     (tree-go-to t :start)
     (when (tree-up t)
-      (alternate-fold (tree-up t)))))
+      (alternate-fold (tree-up t))
+    ) ;when
+  ) ;when
+) ;tm-define
 
 (tm-define (mouse-unfold t)
   (:type (-> void))
@@ -236,7 +254,10 @@
   (when (tree->path t)
     (tree-go-to t :start)
     (when (tree-up t)
-      (alternate-unfold (tree-up t)))))
+      (alternate-unfold (tree-up t))
+    ) ;when
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Variants
@@ -244,141 +265,153 @@
 
 (define-group variant-tag)
 
-(tm-define (focus-tree-modified t)
-  (noop))
+(tm-define (focus-tree-modified t) (noop))
 
 (tm-define (variant-set t by)
   (with-focus-after t
-    (with i (tree-down-index t)
+    (with i
+      (tree-down-index t)
       (tree-assign-node! t by)
       (focus-tree-modified t)
       (when (and i (not (tree-accessible-child? t i)))
-        (with ac (tree-accessible-children t)
+        (with ac
+          (tree-accessible-children t)
           (when (nnull? ac)
-            (tree-go-to (car ac) :start)))))))
+            (tree-go-to (car ac) :start)
+          ) ;when
+        ) ;with
+      ) ;when
+    ) ;with
+  ) ;with-focus-after
+) ;tm-define
 
 (tm-define (variant-set-keep-numbering t v)
   (if (and (symbol-numbered? v) (symbol-unnumbered? (tree-label t)))
-      (variant-set t (symbol-append v '*))
-      (variant-set t v)))
+    (variant-set t (symbol-append v '*))
+    (variant-set t v)
+  ) ;if
+) ;tm-define
 
 (define (variants-of-sub lab type nv?)
-  (with numbered? (or (in? lab (numbered-tag-list))
-		      (in? lab (numbered-tag-list*)))
+  (with numbered?
+    (or (in? lab (numbered-tag-list)) (in? lab (numbered-tag-list*)))
     (cond ((and numbered? (symbol-ends? lab '*))
-	   (with l (variants-of-sub (symbol-drop-right lab 1) type nv?)
-	     (if nv? l (map (lambda (x) (symbol-append x '*)) l))))
-	  ((and numbered? nv?)
-	   (numbered-unnumbered-append (variants-of-sub lab type #f)))
-	  (else (with vg (group-find lab type)
-		  (if (not vg) (list lab)
-		      (group-resolve vg)))))))
+           (with l
+             (variants-of-sub (symbol-drop-right lab 1) type nv?)
+             (if nv? l (map (lambda (x) (symbol-append x '*)) l))
+           ) ;with
+          ) ;
+          ((and numbered? nv?) (numbered-unnumbered-append (variants-of-sub lab type #f)))
+          (else (with vg (group-find lab type) (if (not vg) (list lab) (group-resolve vg)))
+          ) ;else
+    ) ;cond
+  ) ;with
+) ;define
 
 (tm-define (variants-of lab)
   (:synopsis "Retrieve list of variants of @lab")
-  (variants-of-sub lab 'variant-tag #f))
+  (variants-of-sub lab 'variant-tag #f)
+) ;tm-define
 
 (tm-define (similar-to lab)
   (:synopsis "Retrieve list of tags similar to @lab")
-  (variants-of-sub lab 'similar-tag #t))
+  (variants-of-sub lab 'similar-tag #t)
+) ;tm-define
 
 (tm-define (variant-standard-context? t)
-  (tree-in? t (numbered-unnumbered-complete (variant-tag-list))))
+  (tree-in? t (numbered-unnumbered-complete (variant-tag-list)))
+) ;tm-define
 
-(tm-define (variant-context? t)
-  #f)
+(tm-define (variant-context? t) #f)
 
-(tm-define (variant-context? t)
-  (:require (variant-standard-context? t))
-  #t)
+(tm-define (variant-context? t) (:require (variant-standard-context? t)) #t)
 
 (tm-define (variant-circulate t forward?)
-  (and-with p (tree-outer t)
-    (variant-circulate p forward?)))
+  (and-with p (tree-outer t) (variant-circulate p forward?))
+) ;tm-define
 
 (tm-define (list-search-rotate which search)
-  (receive (l r) (list-break which (lambda (x) (== x search)))
-    (append r l)))
+  (receive (l r) (list-break which (lambda (x) (== x search))) (append r l))
+) ;tm-define
 
 (tm-define (variant-circulate-in t l forward?)
   (let* ((old (tree-label t))
          (rot (list-search-rotate l old))
-         (new (if (and forward? (nnull? rot)) (cadr rot) (cAr rot))))
-    (variant-set t new)))
+         (new (if (and forward? (nnull? rot)) (cadr rot) (cAr rot)))
+        ) ;
+    (variant-set t new)
+  ) ;let*
+) ;tm-define
 
 (tm-define (variant-circulate t forward?)
   (:require (variant-standard-context? t))
-  (variant-circulate-in t (variants-of (tree-label t)) forward?))
+  (variant-circulate-in t (variants-of (tree-label t)) forward?)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Folding-unfolding variants of tags with hidden arguments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (hidden-context? t)
-  (tree-in? t (hidden-tag-list)))
+(tm-define (hidden-context? t) (tree-in? t (hidden-tag-list)))
 
-(tm-define (tree-show-hidden t)
-  (noop))
+(tm-define (tree-show-hidden t) (noop))
 
 (tm-define (tree-show-hidden t)
   (:require (hidden-context? t))
-  (tree-assign-node! t 'shown))
+  (tree-assign-node! t 'shown)
+) ;tm-define
 
 (tm-define (cursor-show-hidden)
-  (with t (buffer-tree)
+  (with t
+    (buffer-tree)
     (while (and t (!= t (cursor-tree)))
       (tree-show-hidden t)
-      (set! t (tree-ref t :down)))))
+      (set! t (tree-ref t :down))
+    ) ;while
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Standard groups
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-group variant-tag
-  (argument-tag) (value-tag) (quote-tag)
-  (binary-operation-tag) (binary-compare-tag)
-  (label-tag) (unary-reference-tag) (n-ary-citation-tag))
+  (argument-tag)
+  (value-tag)
+  (quote-tag)
+  (binary-operation-tag)
+  (binary-compare-tag)
+  (label-tag)
+  (unary-reference-tag)
+  (n-ary-citation-tag)
+) ;define-group
 
-(define-group similar-tag
-  (label-tag) (reference-tag) (citation-tag))
+(define-group similar-tag (label-tag) (reference-tag) (citation-tag))
 
-(define-group hidden-tag
-  hidden hidden*)
+(define-group hidden-tag hidden hidden*)
 
-(define-group argument-tag
-  arg quote-arg)
+(define-group argument-tag arg quote-arg)
 
-(define-group value-tag
-  value quote-value)
+(define-group value-tag value quote-value)
 
-(define-group quote-tag
-  quote quasi quasiquote)
+(define-group quote-tag quote quasi quasiquote)
 
-(define-group binary-operation-tag
-  plus minus times over minimum maximum or and)
+(define-group binary-operation-tag plus minus times over minimum maximum or and)
 
-(define-group binary-compare-tag
-  equal unequal less lesseq greater greatereq)
+(define-group binary-compare-tag equal unequal less lesseq greater greatereq)
 
-(define-group label-tag
-  label)
+(define-group label-tag label)
 
-(define-group unary-reference-tag
-  reference pageref eqref)
+(define-group unary-reference-tag reference pageref eqref)
 
-(define-group reference-tag
-  reference pageref eqref smart-ref)
+(define-group reference-tag reference pageref eqref smart-ref)
 
-(define-group n-ary-citation-tag
-  cite nocite)
+(define-group n-ary-citation-tag cite nocite)
 
-(define-group citation-tag
-  cite nocite cite-detail)
+(define-group citation-tag cite nocite cite-detail)
 
-(define-group mini-flow-tag
-  table graphics ornament ornamented tree)
+(define-group mini-flow-tag table graphics ornament ornamented tree)
 
 (define-group make-inline-tag)
 
-(define-group make-wrapped-tag
-  wide-tabular wide-block footnote)
+(define-group make-wrapped-tag wide-tabular wide-block footnote)
