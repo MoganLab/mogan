@@ -342,6 +342,15 @@ function main()
                 }
             },
             {
+                scm_name = "init-env-silent",
+                cpp_name = "init_env_silent",
+                ret_type = "void",
+                arg_list = {
+                    "string",
+                    "string"
+                }
+            },
+            {
                 scm_name = "init-env-tree",
                 cpp_name = "init_env",
                 ret_type = "void",

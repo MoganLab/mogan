@@ -808,12 +808,13 @@
 ;; 逻辑
 ;; ----
 ;; 先读取 buffer 当前 init-env 或 initial collection 中的 stem-doc-id；
-;; 若没有，则生成新的 uuid4 并写入 init-env。
+;; 若没有，则生成新的 uuid4 并通过 init-env-silent 写入。
 ;;
 ;; 注意
 ;; ----
-;; 这里只写入 init-env，避免触发文档重新解析；doc id 是否持久化到文件由
-;; 用户后续保存动作决定。
+;; 这里只写入 init-env（用 init-env-silent 静默写入，不触发 require_save，
+;; 避免打开/切换文件时标题栏误显 *），避免触发文档重新解析；doc id 是否
+;; 持久化到文件由用户后续保存动作决定。
 (tm-define (auto-backup-ensure-buffer-doc-id! name)
   (catch #t
     (lambda ()
@@ -823,9 +824,10 @@
             (if (auto-backup-valid-doc-id? old-doc-id)
               old-doc-id
               (let ((doc-id (uuid4)))
-                ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
-                ;; 文档重新解析。
-                (init-env "stem-doc-id" doc-id)
+                ;; 用 init-env-silent 写入，避免触发 require_save 而把 buffer
+                ;; 标脏（打开/切换文件时标题栏误显 *）。doc-id 仍随文档保存：保存时
+                ;; attach_data 无条件把整个 init 写入 initial collection。
+                (init-env-silent "stem-doc-id" doc-id)
                 doc-id
               ) ;let
             ) ;if

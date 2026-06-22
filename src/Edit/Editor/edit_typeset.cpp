@@ -996,6 +996,16 @@ edit_typeset_rep::init_env (string var, tree by) {
 }
 
 void
+edit_typeset_rep::init_env_silent (string var, tree by) {
+  // Same as init_env, but does not mark the buffer as modified.
+  // Used for metadata injections (e.g. stem-doc-id for cloud backup) that
+  // must persist on save yet are not user content edits.
+  if (init (var) == by) return;
+  init (var)= by;
+  notify_change (THE_ENVIRONMENT);
+}
+
+void
 edit_typeset_rep::init_default (string var) {
   if (!init->contains (var)) return;
   init->reset (var);

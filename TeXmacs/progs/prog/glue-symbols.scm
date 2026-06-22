@@ -872,6 +872,7 @@
     "init-default-one"
     "init-env"
     "init-env-tree"
+    "init-env-silent"
     "init-style"
     "get-style-tree"
     "set-style-tree"

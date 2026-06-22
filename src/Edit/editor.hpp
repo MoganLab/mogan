@@ -64,7 +64,7 @@ protected:
   path      rp;          // path to the root of the document in et
   path      tp;          // path of cursor in tree
   bool      user_active; // is the user active ?
-  string    detected_format= "verbatim";
+  string    detected_format  = "verbatim";
 
   /* exchanging information with the interface */
   virtual void    get_selection (path& start, path& end)= 0;
@@ -324,6 +324,7 @@ public:
   virtual void          change_style (tree style)                         = 0;
   virtual tree          get_init_all ()                                   = 0;
   virtual void          init_env (string var, tree by)                    = 0;
+  virtual void          init_env_silent (string var, tree by)             = 0;
   virtual void          init_default (string var)                         = 0;
   virtual tree          get_ref (string key)                              = 0;
   virtual tree          get_aux (string key)                              = 0;
