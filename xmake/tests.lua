@@ -148,12 +148,30 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             test_name = "(test_"..name..")"
             print("------------------------------------------------------")
             print("Executing: " .. test_name)
-            params = {
-                "-headless",
-                "-d",
-                "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
-            }
+            -- `MOGAN_TEST_GUI=1 xmake r <test>` runs the test in the real GUI
+            -- process (no -headless) so GUI-only code paths can be exercised
+            -- and debug logs go to the terminal. Default is still headless.
+            local gui_mode = os.getenv("MOGAN_TEST_GUI") == "1"
+            if gui_mode then
+                print("Mode: GUI (no -headless)")
+            else
+                print("Mode: headless")
+            end
+            local params = {}
+            if not gui_mode then table.insert(params, "-headless") end
+            table.insert(params, "-d")
+            table.insert(params, "-b")
+            table.insert(params, path.join("TeXmacs","tests",name..".scm"))
+            table.insert(params, "-x")
+            -- In GUI mode, do NOT auto-quit after the test body returns; the
+            -- test is expected to schedule delayed work and call
+            -- (quit-TeXmacs) itself when done. In headless mode we keep the
+            -- old synchronous auto-quit behaviour.
+            if gui_mode then
+                table.insert(params, "(catch #t (lambda () " .. test_name .. ") (lambda args (display \"Error: \") (display args) (newline) (exit 1)))")
+            else
+                table.insert(params, "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))")
+            end
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
             elseif is_plat("mingw", "windows") then
@@ -169,4 +187,4 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
             end
         end)
     end
-end 
+end

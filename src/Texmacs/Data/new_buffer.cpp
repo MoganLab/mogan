@@ -408,8 +408,18 @@ last_visited (url name) {
 bool
 buffer_modified (url name) {
   tm_buffer buf= concrete_buffer (name);
-  if (is_nil (buf)) return false;
-  return buf->needs_to_be_saved ();
+  if (is_nil (buf)) {
+#ifdef LIII_DEBUG
+    cout << "[1106] buffer_modified name=" << name << " -> false (nil buf)" << LF;
+#endif
+    return false;
+  }
+  bool ret= buf->needs_to_be_saved ();
+#ifdef LIII_DEBUG
+  cout << "[1106] buffer_modified name=" << name << " -> "
+       << (ret ? "true" : "false") << LF;
+#endif
+  return ret;
 }
 
 bool

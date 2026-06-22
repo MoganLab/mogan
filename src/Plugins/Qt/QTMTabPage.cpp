@@ -196,7 +196,8 @@ QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
   m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
   setText (cleanTitle);
 #ifdef LIII_DEBUG
-  cout << "[1106] applyDisplayTitle rawTitle=\"" << from_qstring (rawTitle)
+  cout << "[1106-qt] applyDisplayTitle view=" << m_viewUrl
+       << " rawTitle=\"" << from_qstring (rawTitle)
        << "\" cleanTitle=\"" << from_qstring (cleanTitle)
        << "\" m_isDirty=" << (m_isDirty ? "true" : "false") << LF;
 #endif
@@ -460,6 +461,10 @@ QTMTabPageContainer::~QTMTabPageContainer () { removeAllTabPages (); }
 
 void
 QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
+#ifdef LIII_DEBUG
+  cout << "[1106-qt] replaceTabPages count=" << (p_src ? p_src->size () : 0)
+       << LF;
+#endif
   removeAllTabPages ();    // remove  old tabs
   extractTabPages (p_src); // extract new tabs
 
