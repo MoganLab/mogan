@@ -815,25 +815,43 @@
 ;; 这里只写入 init-env，避免触发文档重新解析；doc id 是否持久化到文件由
 ;; 用户后续保存动作决定。
 (tm-define (auto-backup-ensure-buffer-doc-id! name)
+  (display "[1106-ab] enter name=")
+  (display name)
+  (newline)
   (catch #t
     (lambda ()
-      (and (auto-backup-buffer-eligible? name)
-        (with-buffer name
-          (let ((old-doc-id (auto-backup-buffer-doc-id name)))
-            (if (auto-backup-valid-doc-id? old-doc-id)
-              old-doc-id
-              (let ((doc-id (uuid4)))
-                ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
-                ;; 文档重新解析。
-                (init-env "stem-doc-id" doc-id)
-                doc-id
-              ) ;let
-            ) ;if
-          ) ;let
-        ) ;with-buffer
-      ) ;and
+      (let ((eligible (auto-backup-buffer-eligible? name)))
+        (display "[1106-ab] eligible=")
+        (display eligible)
+        (newline)
+        (and eligible
+          (with-buffer name
+            (let ((old-doc-id (auto-backup-buffer-doc-id name)))
+              (display "[1106-ab] old-doc-id=")
+              (display old-doc-id)
+              (newline)
+              (if (auto-backup-valid-doc-id? old-doc-id)
+                (begin
+                  (display "[1106-ab] branch=keep-old")
+                  (newline)
+                  old-doc-id
+                ) ;begin
+                (let ((doc-id (uuid4)))
+                  (display "[1106-ab] branch=inject-new doc-id=")
+                  (display doc-id)
+                  (newline)
+                  ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
+                  ;; 文档重新解析。
+                  (init-env "stem-doc-id" doc-id)
+                  doc-id
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;with-buffer
+        ) ;and
+      ) ;let
     ) ;lambda
-    (lambda args #f)
+    (lambda args (display "[1106-ab] exception=") (display args) (newline) #f)
   ) ;catch
 ) ;tm-define
 

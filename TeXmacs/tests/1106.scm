@@ -107,11 +107,11 @@
           ) ;set!
           (loop (+ i 1)
             (append acc
-              (list (cons (string-append "round " (number->string i) ": switch a")
-                      (lambda () (switch-to path-a))
+              (list (cons (string-append "round " (number->string i) ": switch a (std 2)")
+                      (lambda () (switch-to-view-index 1))
                     ) ;cons
-                (cons (string-append "round " (number->string i) ": switch b")
-                  (lambda () (switch-to path-b))
+                (cons (string-append "round " (number->string i) ": switch b (std 3)")
+                  (lambda () (switch-to-view-index 2))
                 ) ;cons
               ) ;list
             ) ;append
