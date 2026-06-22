@@ -630,13 +630,21 @@ archiver_rep::mark_cancel (double m) {
 
 int
 archiver_rep::corrected_depth () {
-  // NOTE : fix depth due to presence of marker
-  // FIXME: implement a more robust check for conformity with saved state
-  if (nr_undo (archive) == 0) return depth;
-  patch p= car (get_undo (archive));
-  if (get_type (p) == PATCH_AUTHOR) p= p[0];
-  if (get_type (p) == PATCH_BIRTH && get_birth (p) == false) return depth - 1;
-  return depth;
+  // Effective archive depth, ignoring trailing marker-only patches at the top
+  // of the undo history. mark_start/mark_end insert author and birth/death
+  // markers which bump the depth without modifying the document; those must be
+  // skipped so that conform_save reflects whether the user actually edited the
+  // buffer. Walk down the undo stack while the top patch carries no real
+  // modification (author/birth markers, cursor-only patches, ...).
+  int   correction= 0;
+  patch a         = archive;
+  while (nr_undo (a) > 0) {
+    patch top= car (get_undo (a));
+    if (does_modify (top)) break;
+    correction++;
+    a= cdr (get_undo (a));
+  }
+  return depth - correction;
 }
 
 void
