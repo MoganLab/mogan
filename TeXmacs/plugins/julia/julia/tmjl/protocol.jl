@@ -24,7 +24,7 @@ mogan_escape(data) = replace(replace(replace(data,
         DATA_END => DATA_ESCAPE * DATA_END)
   
 # Mogan expects all output to be bracketed in a DATA_BEGIN and DATA_END
-# so that it can determines when the plugin ended the interaction        
+# so that it can determine when the plugin ended the interaction        
 tm_begin() = write(orig_stdout[], DATA_BEGIN, VERBATIM)
 tm_end() = begin
     write(orig_stdout[], DATA_END)

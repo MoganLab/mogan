@@ -1,5 +1,5 @@
 # 
-#  MoganJulia.jl
+#  julia.jl
 #  A Mogan plugin for the Julia language
 #  (c) 2021  Massimiliano Gubinelli <mgubi@mac.com>
 #      2026  Tianyou Liu <tianyou@liii.pro>
