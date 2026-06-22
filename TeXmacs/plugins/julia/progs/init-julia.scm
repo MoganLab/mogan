@@ -20,9 +20,9 @@
 
 (define (julia-entry)
   (url->system (string->url
-    (if (url-exists? "$TEXMACS_HOME_PATH/plugins/julia/julia/MoganJulia.jl")
-        "$TEXMACS_HOME_PATH/plugins/julia/julia/MoganJulia.jl"
-        "$TEXMACS_PATH/plugins/julia/julia/MoganJulia.jl"))))
+    (if (url-exists? "$TEXMACS_HOME_PATH/plugins/julia/julia/julia.jl")
+        "$TEXMACS_HOME_PATH/plugins/julia/julia/julia.jl"
+        "$TEXMACS_PATH/plugins/julia/julia/julia.jl"))))
 
 (define (julia-launcher)
   (let* ((boot (string-quote (julia-entry))))
