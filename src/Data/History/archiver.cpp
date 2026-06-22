@@ -641,6 +641,9 @@ archiver_rep::corrected_depth () {
 
 void
 archiver_rep::require_save () {
+#ifdef LIII_DEBUG
+  cout << "[1106-arch] require_save called; depth=" << corrected_depth () << LF;
+#endif
   last_save= -1;
 }
 

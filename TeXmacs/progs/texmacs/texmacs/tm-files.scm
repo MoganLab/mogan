@@ -825,7 +825,12 @@
               (let ((doc-id (uuid4)))
                 ;; 写入 init-env 即可绑定到当前会话，避免 buffer-set 触发
                 ;; 文档重新解析。
-                (init-env "stem-doc-id" doc-id)
+                (init_env "stem-doc-id" doc-id)
+                ;; [1106] init_env 把 doc-id 写进 buffer 会推一次 modification
+                ;; 到 undo 栈，让刚加载的 buffer 立刻被判为已修改。这里立刻
+                ;; 重置 saved 标志，避免 tab 标题出现虚假的未保存 *。doc-id
+                ;; 本身已经写入，auto-backup 功能不受影响。
+                (buffer-pretend-saved name)
                 doc-id
               ) ;let
             ) ;if
