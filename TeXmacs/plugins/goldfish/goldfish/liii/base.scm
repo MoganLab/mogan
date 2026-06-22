@@ -1,8 +1,5 @@
 (define-library (liii base)
-  (import (scheme base)
-    (srfi srfi-2)
-    (srfi srfi-8)
-  ) ;import
+  (import (scheme base) (srfi srfi-2) (srfi srfi-8))
   (export and-let*
     receive
     define*
@@ -27,17 +24,11 @@
   (begin
 
     (define (loose-car pair-or-empty)
-      (if (eq? '() pair-or-empty)
-        '()
-        (car pair-or-empty)
-      ) ;if
+      (if (eq? '() pair-or-empty) '() (car pair-or-empty))
     ) ;define
 
     (define (loose-cdr pair-or-empty)
-      (if (eq? '() pair-or-empty)
-        '()
-        (cdr pair-or-empty)
-      ) ;if
+      (if (eq? '() pair-or-empty) '() (cdr pair-or-empty))
     ) ;define
 
     (define identity (lambda (x) x))
@@ -45,9 +36,7 @@
     (define (compose . fs)
       (if (null? fs)
         (lambda (x) x)
-        (lambda (x)
-         ((car fs) ((apply compose (cdr fs)) x))
-        ) ;lambda
+        (lambda (x) ((car fs) ((apply compose (cdr fs)) x)))
       ) ;if
     ) ;define
 
@@ -61,11 +50,19 @@
         (let ((new-args (copy args)))
           (do ((p new-args (cdr p)))
             ((not (pair? p)))
-            (if (pair? (car p))
-              (set-car! p (caar p))
-            ) ;if
+            (if (pair? (car p)) (set-car! p (caar p)))
           ) ;do
-          `(lambda ,new-args ,@(map (lambda (arg) (if (pair? arg) `(unless (,(cadr arg) ,(car arg)) (error (#_quote type-error) ,"~S is not ~S~%" (quote ,(car arg)) (quote ,(cadr arg)))) (values))) args) ,@body)
+          `(lambda ,new-args
+             ,@(map (lambda (arg)
+                      (if (pair? arg)
+                        `(unless (,(cadr arg) ,(car arg))
+                           (error 'type-error
+                             ,"~S is not ~S~%"
+                             (quote ,(car arg))
+                             (quote ,(cadr arg))))
+                        (values)))
+                 args)
+             ,@body)
         ) ;let
       ) ;if
     ) ;define-macro

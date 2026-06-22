@@ -50,40 +50,23 @@
 
     (define (%string-from-range str start_end)
       (cond ((null-list? start_end) str)
-            ((= (length start_end) 1)
-             (substring str (car start_end))
-            ) ;
-            ((= (length start_end) 2)
-             (substring str
-               (first start_end)
-               (second start_end)
-             ) ;substring
-            ) ;
-            (else (error 'wrong-number-of-args
-                    "%string-from-range"
-                  ) ;error
-            ) ;else
+            ((= (length start_end) 1) (substring str (car start_end)))
+            ((= (length start_end) 2) (substring str (first start_end) (second start_end)))
+            (else (error 'wrong-number-of-args "%string-from-range"))
       ) ;cond
     ) ;define
 
     (define (%make-criterion char/pred?)
-      (cond ((char? char/pred?)
-             (lambda (x) (char=? x char/pred?))
-            ) ;
+      (cond ((char? char/pred?) (lambda (x) (char=? x char/pred?)))
             ((procedure? char/pred?) char/pred?)
-            (else (error 'wrong-type-arg
-                    "%make-criterion"
-                  ) ;error
-            ) ;else
+            (else (error 'wrong-type-arg "%make-criterion"))
       ) ;cond
     ) ;define
 
     (define (string-join l . delim+grammer)
       (define (extract-params params-l)
         (cond ((null-list? params-l) (list "" 'infix))
-              ((and (= (length params-l) 1)
-                 (string? (car params-l))
-               ) ;and
+              ((and (= (length params-l) 1) (string? (car params-l)))
                (list (car params-l) 'infix)
               ) ;
               ((and (= (length params-l) 2)
@@ -93,24 +76,15 @@
                params-l
               ) ;
               ((> (length params-l) 2)
-               (error 'wrong-number-of-args
-                 "optional params in string-join"
-               ) ;error
+               (error 'wrong-number-of-args "optional params in string-join")
               ) ;
-              (else (error 'type-error
-                      "optional params in string-join"
-                    ) ;error
-              ) ;else
+              (else (error 'type-error "optional params in string-join"))
         ) ;cond
       ) ;define
       (define (string-join-sub l delim)
         (cond ((null-list? l) "")
               ((= (length l) 1) (car l))
-              (else (string-append (car l)
-                      delim
-                      (string-join-sub (cdr l) delim)
-                    ) ;string-append
-              ) ;else
+              (else (string-append (car l) delim (string-join-sub (cdr l) delim)))
         ) ;cond
       ) ;define
       (let* ((params (extract-params delim+grammer))
@@ -121,59 +95,30 @@
         (case grammer
          ('infix ret)
          ('strict-infix
-          (if (null-list? l)
-            (error 'value-error
-              "empty list not allowed"
-            ) ;error
-            ret
-          ) ;if
+          (if (null-list? l) (error 'value-error "empty list not allowed") ret)
          ) ;
-         ('suffix
-          (if (null-list? l)
-            ""
-            (string-append ret delim)
-          ) ;if
-         ) ;
-         ('prefix
-          (if (null-list? l)
-            ""
-            (string-append delim ret)
-          ) ;if
-         ) ;
-         (else (error 'value-error "invalid grammer")
-         ) ;else
+         ('suffix (if (null-list? l) "" (string-append ret delim)))
+         ('prefix (if (null-list? l) "" (string-append delim ret)))
+         (else (error 'value-error "invalid grammer"))
         ) ;case
       ) ;let*
     ) ;define
 
     (define (string-null? str)
       (if (not (string? str))
-        (error 'type-error
-          "string-null?: expected string~%~S"
-          str
-        ) ;error
+        (error 'type-error "string-null?: expected string~%~S" str)
         (zero? (string-length str))
       ) ;if
     ) ;define
 
-    (define (string-every
-              char/pred?
-              str
-              .
-              start+end
-            ) ;
+    (define (string-every char/pred? str . start+end)
       (define (string-every-sub pred? str)
         (let loop
           ((i 0) (len (string-length str)))
-          (or (= i len)
-            (and (pred? (string-ref str i))
-              (loop (+ i 1) len)
-            ) ;and
-          ) ;or
+          (or (= i len) (and (pred? (string-ref str i)) (loop (+ i 1) len)))
         ) ;let
       ) ;define
-      (let ((str-sub (%string-from-range str start+end)
-            ) ;str-sub
+      (let ((str-sub (%string-from-range str start+end))
             (criterion (%make-criterion char/pred?))
            ) ;
         (string-every-sub criterion str-sub)
@@ -184,16 +129,10 @@
       (define (string-any-sub pred? str)
         (let loop
           ((i 0) (len (string-length str)))
-          (if (= i len)
-            #f
-            (or (pred? (string-ref str i))
-              (loop (+ i 1) len)
-            ) ;or
-          ) ;if
+          (if (= i len) #f (or (pred? (string-ref str i)) (loop (+ i 1) len)))
         ) ;let
       ) ;define
-      (let ((str_sub (%string-from-range str start+end)
-            ) ;str_sub
+      (let ((str_sub (%string-from-range str start+end))
             (criterion (%make-criterion char/pred?))
            ) ;
         (string-any-sub criterion str_sub)
@@ -206,13 +145,7 @@
 
     (define (string-take-right str k)
       (let ((N (string-length str)))
-        (if (> k N)
-          (error 'out-of-range
-            "k must be <= N"
-            k
-            N
-          ) ;error
-        ) ;if
+        (if (> k N) (error 'out-of-range "k must be <= N" k N))
         (substring str (- N k) N)
       ) ;let
     ) ;define
@@ -220,32 +153,16 @@
     (define string-drop
       (lambda (str k)
         (unless (string? str)
-          (error 'wrong-type-arg
-            "str is not string?"
-            str
-          ) ;error
+          (error 'wrong-type-arg "str is not string?" str)
         ) ;unless
         (unless (integer? k)
-          (error 'wrong-type-arg
-            "k is not integer?"
-            k
-          ) ;error
+          (error 'wrong-type-arg "k is not integer?" k)
         ) ;unless
         (when (< k 0)
-          (error 'out-of-range
-            "k must be non-negative"
-            k
-          ) ;error
+          (error 'out-of-range "k must be non-negative" k)
         ) ;when
         (let ((N (string-length str)))
-          (if (> k N)
-            (error 'out-of-range
-              "k must be <= N"
-              k
-              N
-            ) ;error
-            (substring str k N)
-          ) ;if
+          (if (> k N) (error 'out-of-range "k must be <= N" k N) (substring str k N))
         ) ;let
       ) ;lambda
     ) ;define
@@ -253,30 +170,17 @@
     (define string-drop-right
       (lambda (str k)
         (unless (string? str)
-          (error 'wrong-type-arg
-            "str is not string?"
-            str
-          ) ;error
+          (error 'wrong-type-arg "str is not string?" str)
         ) ;unless
         (unless (integer? k)
-          (error 'wrong-type-arg
-            "k is not integer?"
-            k
-          ) ;error
+          (error 'wrong-type-arg "k is not integer?" k)
         ) ;unless
         (when (< k 0)
-          (error 'out-of-range
-            "k must be non-negative"
-            k
-          ) ;error
+          (error 'out-of-range "k must be non-negative" k)
         ) ;when
         (let ((N (string-length str)))
           (if (> k N)
-            (error 'out-of-range
-              "k must be <= N"
-              k
-              N
-            ) ;error
+            (error 'out-of-range "k must be <= N" k N)
             (substring str 0 (- N k))
           ) ;if
         ) ;let
@@ -288,65 +192,44 @@
         (let ((orig-len (string-length str)))
           (if (< len orig-len)
             (string-take-right str len)
-            (string-append (make-string (- len orig-len) ch)
-              str
-            ) ;string-append
+            (string-append (make-string (- len orig-len) ch) str)
           ) ;if
         ) ;let
       ) ;define
-      (cond ((null-list? char+start+end)
-             (string-pad-sub str len #\space)
-            ) ;
+      (cond ((null-list? char+start+end) (string-pad-sub str len #\space))
             ((list? char+start+end)
-             (string-pad-sub (%string-from-range str
-                               (cdr char+start+end)
-                             ) ;%string-from-range
+             (string-pad-sub (%string-from-range str (cdr char+start+end))
                len
                (car char+start+end)
              ) ;string-pad-sub
             ) ;
-            (else (error 'wrong-type-arg "string-pad")
-            ) ;else
+            (else (error 'wrong-type-arg "string-pad"))
       ) ;cond
     ) ;define
 
-    (define (string-pad-right
-              str
-              len
-              .
-              char+start+end
-            ) ;
+    (define (string-pad-right str len . char+start+end)
       (define (string-pad-right-sub str len ch)
         (let ((orig-len (string-length str)))
           (if (< len orig-len)
             (string-take str len)
-            (string-append str
-              (make-string (- len orig-len) ch)
-            ) ;string-append
+            (string-append str (make-string (- len orig-len) ch))
           ) ;if
         ) ;let
       ) ;define
-      (cond ((null-list? char+start+end)
-             (string-pad-right-sub str len #\space)
-            ) ;
+      (cond ((null-list? char+start+end) (string-pad-right-sub str len #\space))
             ((list? char+start+end)
-             (string-pad-right-sub (%string-from-range str
-                                     (cdr char+start+end)
-                                   ) ;%string-from-range
+             (string-pad-right-sub (%string-from-range str (cdr char+start+end))
                len
                (car char+start+end)
              ) ;string-pad-right-sub
             ) ;
-            (else (error 'wrong-type-arg "string-pad")
-            ) ;else
+            (else (error 'wrong-type-arg "string-pad"))
       ) ;cond
     ) ;define
 
     (define (string-trim str . opt)
       (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt))
-                              (lambda (c) (char=? c (car opt)))
-                             ) ;
+                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
                                      (car opt)
@@ -355,16 +238,8 @@
                        ) ;cond
             ) ;predicate
            ) ;
-        (let* ((start (if (and (> (length opt) 1)
-                            (number? (cadr opt))
-                          ) ;and
-                        (cadr opt)
-                        0
-                      ) ;if
-               ) ;start
-               (end (if (and (> (length opt) 2)
-                          (number? (caddr opt))
-                        ) ;and
+        (let* ((start (if (and (> (length opt) 1) (number? (cadr opt))) (cadr opt) 0))
+               (end (if (and (> (length opt) 2) (number? (caddr opt)))
                       (caddr opt)
                       (string-length str)
                     ) ;if
@@ -373,9 +248,7 @@
               ) ;
           (let loop
             ((i 0) (len (string-length str)))
-            (if (or (>= i len)
-                  (not (predicate (string-ref str i)))
-                ) ;or
+            (if (or (>= i len) (not (predicate (string-ref str i))))
               (substring str i len)
               (loop (+ i 1) len)
             ) ;if
@@ -386,9 +259,7 @@
 
     (define (string-trim-right str . opt)
       (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt))
-                              (lambda (c) (char=? c (car opt)))
-                             ) ;
+                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
                                      (car opt)
@@ -397,16 +268,8 @@
                        ) ;cond
             ) ;predicate
            ) ;
-        (let* ((start (if (and (> (length opt) 1)
-                            (number? (cadr opt))
-                          ) ;and
-                        (cadr opt)
-                        0
-                      ) ;if
-               ) ;start
-               (end (if (and (> (length opt) 2)
-                          (number? (caddr opt))
-                        ) ;and
+        (let* ((start (if (and (> (length opt) 1) (number? (cadr opt))) (cadr opt) 0))
+               (end (if (and (> (length opt) 2) (number? (caddr opt)))
                       (caddr opt)
                       (string-length str)
                     ) ;if
@@ -415,9 +278,7 @@
               ) ;
           (let loop
             ((j (- (string-length str) 1)))
-            (if (or (< j 0)
-                  (not (predicate (string-ref str j)))
-                ) ;or
+            (if (or (< j 0) (not (predicate (string-ref str j))))
               (substring str 0 (+ j 1))
               (loop (- j 1))
             ) ;if
@@ -428,9 +289,7 @@
 
     (define (string-trim-both str . opt)
       (let ((predicate (cond ((null? opt) char-whitespace?)
-                             ((char? (car opt))
-                              (lambda (c) (char=? c (car opt)))
-                             ) ;
+                             ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
                                      (car opt)
@@ -439,16 +298,8 @@
                        ) ;cond
             ) ;predicate
            ) ;
-        (let* ((start (if (and (> (length opt) 1)
-                            (number? (cadr opt))
-                          ) ;and
-                        (cadr opt)
-                        0
-                      ) ;if
-               ) ;start
-               (end (if (and (> (length opt) 2)
-                          (number? (caddr opt))
-                        ) ;and
+        (let* ((start (if (and (> (length opt) 1) (number? (cadr opt))) (cadr opt) 0))
+               (end (if (and (> (length opt) 2) (number? (caddr opt)))
                       (caddr opt)
                       (string-length str)
                     ) ;if
@@ -457,14 +308,10 @@
               ) ;
           (let loop-left
             ((i 0) (len (string-length str)))
-            (if (or (>= i len)
-                  (not (predicate (string-ref str i)))
-                ) ;or
+            (if (or (>= i len) (not (predicate (string-ref str i))))
               (let loop-right
                 ((j (- len 1)))
-                (if (or (< j i)
-                      (not (predicate (string-ref str j)))
-                    ) ;or
+                (if (or (< j i) (not (predicate (string-ref str j))))
                   (substring str i (+ j 1))
                   (loop-right (- j 1))
                 ) ;if
@@ -477,38 +324,20 @@
     ) ;define
 
     (define (string-prefix? prefix str)
-      (let* ((prefix-len (string-length prefix))
-             (str-len (string-length str))
-            ) ;
-        (and (<= prefix-len str-len)
-          (string=? prefix
-            (substring str 0 prefix-len)
-          ) ;string=?
-        ) ;and
+      (let* ((prefix-len (string-length prefix)) (str-len (string-length str)))
+        (and (<= prefix-len str-len) (string=? prefix (substring str 0 prefix-len)))
       ) ;let*
     ) ;define
 
     (define (string-suffix? suffix str)
-      (let* ((suffix-len (string-length suffix))
-             (str-len (string-length str))
-            ) ;
+      (let* ((suffix-len (string-length suffix)) (str-len (string-length str)))
         (and (<= suffix-len str-len)
-          (string=? suffix
-            (substring str
-              (- str-len suffix-len)
-              str-len
-            ) ;substring
-          ) ;string=?
+          (string=? suffix (substring str (- str-len suffix-len) str-len))
         ) ;and
       ) ;let*
     ) ;define
 
-    (define (string-index
-              str
-              char/pred?
-              .
-              start+end
-            ) ;
+    (define (string-index str char/pred? . start+end)
       (define (string-index-sub str pred?)
         (let loop
           ((i 0))
@@ -518,13 +347,8 @@
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end)
-                      0
-                      (car start+end)
-                    ) ;if
-             ) ;start
-             (str-sub (%string-from-range str start+end)
-             ) ;str-sub
+      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+             (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-index-sub str-sub pred?))
             ) ;
@@ -532,12 +356,7 @@
       ) ;let*
     ) ;define
 
-    (define (string-index-right
-              str
-              char/pred?
-              .
-              start+end
-            ) ;
+    (define (string-index-right str char/pred? . start+end)
       (define (string-index-right-sub str pred?)
         (let loop
           ((i (- (string-length str) 1)))
@@ -547,16 +366,10 @@
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end)
-                      0
-                      (car start+end)
-                    ) ;if
-             ) ;start
-             (str-sub (%string-from-range str start+end)
-             ) ;str-sub
+      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+             (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
-             (ret (string-index-right-sub str-sub pred?)
-             ) ;ret
+             (ret (string-index-right-sub str-sub pred?))
             ) ;
         (if ret (+ start ret) ret)
       ) ;let*
@@ -567,20 +380,13 @@
         (let loop
           ((i 0))
           (cond ((>= i (string-length str)) #f)
-                ((pred? (string-ref str i))
-                 (loop (+ i 1))
-                ) ;
+                ((pred? (string-ref str i)) (loop (+ i 1)))
                 (else i)
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end)
-                      0
-                      (car start+end)
-                    ) ;if
-             ) ;start
-             (str-sub (%string-from-range str start+end)
-             ) ;str-sub
+      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+             (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
              (ret (string-skip-sub str-sub pred?))
             ) ;
@@ -588,33 +394,20 @@
       ) ;let*
     ) ;define
 
-    (define (string-skip-right
-              str
-              char/pred?
-              .
-              start+end
-            ) ;
+    (define (string-skip-right str char/pred? . start+end)
       (define (string-skip-right-sub str pred?)
         (let loop
           ((i (- (string-length str) 1)))
           (cond ((< i 0) #f)
-                ((pred? (string-ref str i))
-                 (loop (- i 1))
-                ) ;
+                ((pred? (string-ref str i)) (loop (- i 1)))
                 (else i)
           ) ;cond
         ) ;let
       ) ;define
-      (let* ((start (if (null-list? start+end)
-                      0
-                      (car start+end)
-                    ) ;if
-             ) ;start
-             (str-sub (%string-from-range str start+end)
-             ) ;str-sub
+      (let* ((start (if (null-list? start+end) 0 (car start+end)))
+             (str-sub (%string-from-range str start+end))
              (pred? (%make-criterion char/pred?))
-             (ret (string-skip-right-sub str-sub pred?)
-             ) ;ret
+             (ret (string-skip-right-sub str-sub pred?))
             ) ;
         (if ret (+ start ret) ret)
       ) ;let*
@@ -623,34 +416,20 @@
     (define (string-contains str sub-str)
       (let loop
         ((i 0))
-        (let ((len (string-length str))
-              (sub-str-len (string-length sub-str))
-             ) ;
+        (let ((len (string-length str)) (sub-str-len (string-length sub-str)))
           (if (> i (- len sub-str-len))
             #f
-            (if (string=? (substring str i (+ i sub-str-len))
-                  sub-str
-                ) ;string=?
-              #t
-              (loop (+ i 1))
-            ) ;if
+            (if (string=? (substring str i (+ i sub-str-len)) sub-str) #t (loop (+ i 1)))
           ) ;if
         ) ;let
       ) ;let
     ) ;define
 
-    (define (string-count
-              str
-              char/pred?
-              .
-              start+end
-            ) ;
+    (define (string-count str char/pred? . start+end)
       (when (not (string? str))
-        (type-error "string-count: first parameter must be string"
-        ) ;type-error
+        (type-error "string-count: first parameter must be string")
       ) ;when
-      (let ((str-sub (%string-from-range str start+end)
-            ) ;str-sub
+      (let ((str-sub (%string-from-range str start+end))
             (criterion (%make-criterion char/pred?))
            ) ;
         (count criterion (string->list str-sub))
@@ -659,37 +438,23 @@
 
     (define s7-string-upcase string-upcase)
 
-    (define* (string-upcase str
-               (start 0)
-               (end (string-length str))
-             ) ;string-upcase
+    (define* (string-upcase str (start 0) (end (string-length str)))
       (let* ((left (substring str 0 start))
              (middle (substring str start end))
              (right (substring str end))
             ) ;
-        (string-append left
-          (s7-string-upcase middle)
-          right
-        ) ;string-append
+        (string-append left (s7-string-upcase middle) right)
       ) ;let*
     ) ;define*
 
-    (define s7-string-downcase
-      string-downcase
-    ) ;define
+    (define s7-string-downcase string-downcase)
 
-    (define* (string-downcase str
-               (start 0)
-               (end (string-length str))
-             ) ;string-downcase
+    (define* (string-downcase str (start 0) (end (string-length str)))
       (let* ((left (substring str 0 start))
              (middle (substring str start end))
              (right (substring str end))
             ) ;
-        (string-append left
-          (s7-string-downcase middle)
-          right
-        ) ;string-append
+        (string-append left (s7-string-downcase middle) right)
       ) ;let*
     ) ;define*
 
@@ -697,36 +462,27 @@
       (cond ((null-list? start+end) (reverse str))
             ((= (length start+end) 1)
              (let ((start (first start+end)))
-               (string-append (substring str 0 start)
-                 (reverse (substring str start))
-               ) ;string-append
+               (string-append (substring str 0 start) (reverse (substring str start)))
              ) ;let
             ) ;
             ((= (length start+end) 2)
-             (let ((start (first start+end))
-                   (end (second start+end))
-                  ) ;
+             (let ((start (first start+end)) (end (second start+end)))
                (string-append (substring str 0 start)
                  (reverse (substring str start end))
                  (substring str end)
                ) ;string-append
              ) ;let
             ) ;
-            (else (error 'wrong-number-of-args
-                    "string-reverse"
-                  ) ;error
-            ) ;else
+            (else (error 'wrong-number-of-args "string-reverse"))
       ) ;cond
     ) ;define
 
     (define (string-fold kons knil s . rest)
       (when (not (procedure? kons))
-        (type-error "string-fold: first argument must be a procedure"
-        ) ;type-error
+        (type-error "string-fold: first argument must be a procedure")
       ) ;when
       (when (not (string? s))
-        (type-error "string-fold: second argument must be a string"
-        ) ;type-error
+        (type-error "string-fold: second argument must be a string")
       ) ;when
 
       (let ((substr (%string-from-range s rest)))
@@ -734,9 +490,7 @@
           ((i 0) (result knil))
           (if (= i (string-length substr))
             result
-            (loop (+ i 1)
-              (kons (string-ref substr i) result)
-            ) ;loop
+            (loop (+ i 1) (kons (string-ref substr i) result))
           ) ;if
         ) ;let
       ) ;let
@@ -744,58 +498,32 @@
 
     (define (string-fold-right kons knil s . rest)
       (when (not (procedure? kons))
-        (type-error "string-fold-right: first argument must be a procedure"
-        ) ;type-error
+        (type-error "string-fold-right: first argument must be a procedure")
       ) ;when
       (when (not (string? s))
-        (type-error "string-fold-right: second argument must be a string"
-        ) ;type-error
+        (type-error "string-fold-right: second argument must be a string")
       ) ;when
 
       (let ((substr (%string-from-range s rest)))
         (let loop
-          ((i (- (string-length substr) 1))
-           (result knil)
-          ) ;
-          (if (< i 0)
-            result
-            (loop (- i 1)
-              (kons (string-ref substr i) result)
-            ) ;loop
-          ) ;if
+          ((i (- (string-length substr) 1)) (result knil))
+          (if (< i 0) result (loop (- i 1) (kons (string-ref substr i) result)))
         ) ;let
       ) ;let
     ) ;define
 
-    (define (string-for-each-index
-              proc
-              str
-              .
-              start+end
-            ) ;
+    (define (string-for-each-index proc str . start+end)
       (when (not (procedure? proc))
-        (error 'type-error
-          "string-for-each-index: first argument must be a procedure"
-        ) ;error
+        (error 'type-error "string-for-each-index: first argument must be a procedure")
       ) ;when
       (when (not (string? str))
-        (error 'type-error
-          "string-for-each-index: expected a string"
-        ) ;error
+        (error 'type-error "string-for-each-index: expected a string")
       ) ;when
-      (let ((substr (%string-from-range str start+end)
-            ) ;substr
-           ) ;
+      (let ((substr (%string-from-range str start+end)))
         (let loop
-          ((i 0)
-           (len (string-length substr))
-           (acc '())
-          ) ;
+          ((i 0) (len (string-length substr)) (acc '()))
           (if (< i len)
-            (loop (+ i 1)
-              len
-              (proc i (string-ref substr i) acc)
-            ) ;loop
+            (loop (+ i 1) len (proc i (string-ref substr i) acc))
             (reverse acc)
           ) ;if
         ) ;let
@@ -805,17 +533,12 @@
     (define (string-tokenize str . char+start+end)
       (define (string-tokenize-sub str char)
         (define (tokenize-helper tokens cursor)
-          (let ((sep-pos/false (string-index str char cursor)
-                ) ;sep-pos/false
-               ) ;
+          (let ((sep-pos/false (string-index str char cursor)))
             (if (not sep-pos/false)
-              (reverse (cons (substring str cursor) tokens)
-              ) ;reverse
+              (reverse (cons (substring str cursor) tokens))
               (let ((new-tokens (if (= cursor sep-pos/false)
                                   tokens
-                                  (cons (substring str cursor sep-pos/false)
-                                    tokens
-                                  ) ;cons
+                                  (cons (substring str cursor sep-pos/false) tokens)
                                 ) ;if
                     ) ;new-tokens
                     (next-cursor (+ sep-pos/false 1))
@@ -827,20 +550,13 @@
         ) ;define
         (tokenize-helper '() 0)
       ) ;define
-      (cond ((null-list? char+start+end)
-             (string-tokenize-sub str #\space)
-            ) ;
+      (cond ((null-list? char+start+end) (string-tokenize-sub str #\space))
             ((list? char+start+end)
-             (string-tokenize-sub (%string-from-range str
-                                    (cdr char+start+end)
-                                  ) ;%string-from-range
+             (string-tokenize-sub (%string-from-range str (cdr char+start+end))
                (car char+start+end)
              ) ;string-tokenize-sub
             ) ;
-            (else (error 'wrong-type-arg
-                    "string-tokenize"
-                  ) ;error
-            ) ;else
+            (else (error 'wrong-type-arg "string-tokenize"))
       ) ;cond
     ) ;define
   ) ;begin

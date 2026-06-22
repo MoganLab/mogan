@@ -20,9 +20,7 @@
     (define-record-type stack
       (%make-stack elements)
       stack?
-      (elements stack-elements
-        stack-elements-set!
-      ) ;elements
+      (elements stack-elements stack-elements-set!)
     ) ;define-record-type
 
     (define (make-stack . args)
@@ -65,8 +63,7 @@
         ) ;type-error
       ) ;unless
       (if (stack-empty? s)
-        (value-error "stack-top in (liii stack): stack is empty"
-        ) ;value-error
+        (value-error "stack-top in (liii stack): stack is empty")
         (car (stack-elements s))
       ) ;if
     ) ;define
@@ -90,9 +87,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (stack-elements-set! s
-        (cons elem (stack-elements s))
-      ) ;stack-elements-set!
+      (stack-elements-set! s (cons elem (stack-elements s)))
       s
     ) ;define
 
@@ -105,12 +100,9 @@
         ) ;type-error
       ) ;unless
       (if (stack-empty? s)
-        (value-error "stack-pop! in (liii stack): stack is empty"
-        ) ;value-error
+        (value-error "stack-pop! in (liii stack): stack is empty")
         (let ((top (car (stack-elements s))))
-          (stack-elements-set! s
-            (cdr (stack-elements s))
-          ) ;stack-elements-set!
+          (stack-elements-set! s (cdr (stack-elements s)))
           top
         ) ;let
       ) ;if
@@ -153,8 +145,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (%make-stack (map proc (stack-elements s))
-      ) ;%make-stack
+      (%make-stack (map proc (stack-elements s)))
     ) ;define
 
     (define (stack-map! proc s)
@@ -172,9 +163,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (stack-elements-set! s
-        (map proc (stack-elements s))
-      ) ;stack-elements-set!
+      (stack-elements-set! s (map proc (stack-elements s)))
       s
     ) ;define
 

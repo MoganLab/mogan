@@ -1,11 +1,5 @@
 (define-library (liii hashlib)
-  (export md5
-    sha1
-    sha256
-    md5-by-file
-    sha1-by-file
-    sha256-by-file
-  ) ;export
+  (export md5 sha1 sha256 md5-by-file sha1-by-file sha256-by-file)
   (begin
 
     (define (md5 str)

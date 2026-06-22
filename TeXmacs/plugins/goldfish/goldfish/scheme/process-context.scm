@@ -15,10 +15,7 @@
 ;;
 
 (define-library (scheme process-context)
-  (export get-environment-variable
-    get-environment-variables
-    command-line
-  ) ;export
+  (export get-environment-variable get-environment-variables command-line)
   (begin
 
     (define (get-environment-variable key)

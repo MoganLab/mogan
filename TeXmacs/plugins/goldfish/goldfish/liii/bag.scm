@@ -88,16 +88,11 @@
   (define comp (make-default-comparator))
 
   (define (bag . elements)
-    (apply make-bag-with-comparator
-      comp
-      elements
-    ) ;apply
+    (apply make-bag-with-comparator comp elements)
   ) ;define
 
   (define (list->bag elements)
-    (list->bag-with-comparator comp
-      elements
-    ) ;list->bag-with-comparator
+    (list->bag-with-comparator comp elements)
   ) ;define
 
 ) ;define-library

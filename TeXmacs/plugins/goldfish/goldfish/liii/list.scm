@@ -55,27 +55,19 @@
     list-take-right
     list-drop-right
   ) ;export
-  (import (scheme base)
-    (srfi srfi-1)
-    (srfi srfi-13)
-    (liii error)
-  ) ;import
+  (import (scheme base) (srfi srfi-1) (srfi srfi-13) (liii error))
   (begin
 
     (define (length=? x scheme-list)
       (when (not (integer? x))
-        (type-error "length=?: first parameter x must be an integer"
-        ) ;type-error
+        (type-error "length=?: first parameter x must be an integer")
       ) ;when
       (when (< x 0)
-        (value-error "length=?: expected non-negative integer x but received ~d"
-          x
-        ) ;value-error
+        (value-error "length=?: expected non-negative integer x but received ~d" x)
       ) ;when
       (cond ((and (= x 0) (null? scheme-list)) #t)
             ((or (= x 0) (null? scheme-list)) #f)
-            (else (length=? (- x 1) (cdr scheme-list))
-            ) ;else
+            (else (length=? (- x 1) (cdr scheme-list)))
       ) ;cond
     ) ;define
 
@@ -103,14 +95,10 @@
 
     (define (list-take lst n)
       (unless (list? lst)
-        (type-error "list-take: first argument must be a list"
-          lst
-        ) ;type-error
+        (type-error "list-take: first argument must be a list" lst)
       ) ;unless
       (unless (integer? n)
-        (type-error "list-take: second argument must be an integer"
-          n
-        ) ;type-error
+        (type-error "list-take: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) '())
             ((>= n (length lst)) lst)
@@ -120,14 +108,10 @@
 
     (define (list-drop lst n)
       (unless (list? lst)
-        (type-error "list-drop: first argument must be a list"
-          lst
-        ) ;type-error
+        (type-error "list-drop: first argument must be a list" lst)
       ) ;unless
       (unless (integer? n)
-        (type-error "list-drop: second argument must be an integer"
-          n
-        ) ;type-error
+        (type-error "list-drop: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) lst)
             ((>= n (length lst)) '())
@@ -137,14 +121,10 @@
 
     (define (list-take-right lst n)
       (unless (list? lst)
-        (type-error "list-take-right: first argument must be a list"
-          lst
-        ) ;type-error
+        (type-error "list-take-right: first argument must be a list" lst)
       ) ;unless
       (unless (integer? n)
-        (type-error "list-take-right: second argument must be an integer"
-          n
-        ) ;type-error
+        (type-error "list-take-right: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) '())
             ((>= n (length lst)) lst)
@@ -154,14 +134,10 @@
 
     (define (list-drop-right lst n)
       (unless (list? lst)
-        (type-error "list-drop-right: first argument must be a list"
-          lst
-        ) ;type-error
+        (type-error "list-drop-right: first argument must be a list" lst)
       ) ;unless
       (unless (integer? n)
-        (type-error "list-drop-right: second argument must be an integer"
-          n
-        ) ;type-error
+        (type-error "list-drop-right: second argument must be an integer" n)
       ) ;unless
       (cond ((< n 0) lst)
             ((>= n (length lst)) '())
@@ -170,12 +146,9 @@
     ) ;define
 
     (define (not-null-list? l)
-      (cond ((pair? l)
-             (or (null? (cdr l)) (pair? (cdr l)))
-            ) ;
+      (cond ((pair? l) (or (null? (cdr l)) (pair? (cdr l))))
             ((null? l) #f)
-            (else (error 'type-error "type mismatch")
-            ) ;else
+            (else (error 'type-error "type mismatch"))
       ) ;cond
     ) ;define
 
@@ -184,9 +157,7 @@
     ) ;define
 
     (define (list-not-null? l)
-      (and (pair? l)
-        (or (null? (cdr l)) (pair? (cdr l)))
-      ) ;and
+      (and (pair? l) (or (null? (cdr l)) (pair? (cdr l))))
     ) ;define
 
     (define* (flatten lst (depth 1))
@@ -194,23 +165,12 @@
         (if (null? rest)
           res-node
           (let ((first (car rest)) (tail (cdr rest)))
-            (cond ((and (null? first) (not (= 0 depth)))
-                   (flatten-depth-iter tail depth res-node)
-                  ) ;
+            (cond ((and (null? first) (not (= 0 depth))) (flatten-depth-iter tail depth res-node))
                   ((or (= depth 0) (not (pair? first)))
                    (set-cdr! res-node (cons first '()))
-                   (flatten-depth-iter tail
-                     depth
-                     (cdr res-node)
-                   ) ;flatten-depth-iter
+                   (flatten-depth-iter tail depth (cdr res-node))
                   ) ;
-                  (else (flatten-depth-iter tail
-                          depth
-                          (flatten-depth-iter first
-                            (- depth 1)
-                            res-node
-                          ) ;flatten-depth-iter
-                        ) ;flatten-depth-iter
+                  (else (flatten-depth-iter tail depth (flatten-depth-iter first (- depth 1) res-node))
                   ) ;else
             ) ;cond
           ) ;let
@@ -228,17 +188,11 @@
           res-node
           (let ((first (car rest)) (tail (cdr rest)))
             (cond ((pair? first)
-                   (flatten-deepest-iter tail
-                     (flatten-deepest-iter first res-node)
-                   ) ;flatten-deepest-iter
+                   (flatten-deepest-iter tail (flatten-deepest-iter first res-node))
                   ) ;
-                  ((null? first)
-                   (flatten-deepest-iter tail res-node)
-                  ) ;
+                  ((null? first) (flatten-deepest-iter tail res-node))
                   (else (set-cdr! res-node (cons first '()))
-                    (flatten-deepest-iter tail
-                      (cdr res-node)
-                    ) ;flatten-deepest-iter
+                    (flatten-deepest-iter tail (cdr res-node))
                   ) ;else
             ) ;cond
           ) ;let
@@ -251,12 +205,8 @@
         ) ;let
       ) ;define
 
-      (cond ((eq? depth 'deepest)
-             (flatten-deepest lst)
-            ) ;
-            ((integer? depth)
-             (flatten-depth lst depth)
-            ) ;
+      (cond ((eq? depth 'deepest) (flatten-deepest lst))
+            ((integer? depth) (flatten-depth lst depth))
             (else (type-error (string-append "flatten: the second argument depth should be symbol "
                                 "`deepest' or a integer, which will be uesd as depth,"
                                 " but got a ~A"

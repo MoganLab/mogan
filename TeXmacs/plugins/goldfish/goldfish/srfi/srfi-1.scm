@@ -13,28 +13,9 @@
 
 (define-library (srfi srfi-1)
   (import (liii error) (liii base))
-  (export circular-list
-    iota
-    list-copy
-    xcons
-    cons*
-  ) ;export
-  (export circular-list?
-    null-list?
-    proper-list?
-    dotted-list?
-  ) ;export
-  (export first
-    second
-    third
-    fourth
-    fifth
-    sixth
-    seventh
-    eighth
-    ninth
-    tenth
-  ) ;export
+  (export circular-list iota list-copy xcons cons*)
+  (export circular-list? null-list? proper-list? dotted-list?)
+  (export first second third fourth fifth sixth seventh eighth ninth tenth)
   (export take
     drop
     take-right
@@ -73,10 +54,7 @@
     ) ;define
 
     (define (cons* a . b)
-      (if (null? b)
-        a
-        (cons a (apply cons* b))
-      ) ;if
+      (if (null? b) a (cons a (apply cons* b)))
     ) ;define
 
     (define (proper-list? x)
@@ -116,11 +94,7 @@
     (define (null-list? l)
       (cond ((pair? l) #f)
             ((null? l) #t)
-            (else (error 'wrong-type-arg
-                    "null-list?: argument out of domain"
-                    l
-                  ) ;error
-            ) ;else
+            (else (error 'wrong-type-arg "null-list?: argument out of domain" l))
       ) ;cond
     ) ;define
 
@@ -161,10 +135,7 @@
     (define (take l k)
       (let loop
         ((l l) (k k))
-        (if (zero? k)
-          '()
-          (cons (car l) (loop (cdr l) (- k 1)))
-        ) ;if
+        (if (zero? k) '() (cons (car l) (loop (cdr l) (- k 1))))
       ) ;let
     ) ;define
 
@@ -173,36 +144,23 @@
     (define (take-right l k)
       (let loop
         ((lag l) (lead (drop l k)))
-        (if (pair? lead)
-          (loop (cdr lag) (cdr lead))
-          lag
-        ) ;if
+        (if (pair? lead) (loop (cdr lag) (cdr lead)) lag)
       ) ;let
     ) ;define
 
     (define (drop-right l k)
       (let loop
         ((lag l) (lead (drop l k)))
-        (if (pair? lead)
-          (cons (car lag)
-            (loop (cdr lag) (cdr lead))
-          ) ;cons
-          '()
-        ) ;if
+        (if (pair? lead) (cons (car lag) (loop (cdr lag) (cdr lead))) '())
       ) ;let
     ) ;define
 
     (define (split-at lst i)
       (when (< i 0)
-        (value-error "require a index greater than 0, but got ~A -- split-at"
-          i
-        ) ;value-error
+        (value-error "require a index greater than 0, but got ~A -- split-at" i)
       ) ;when
       (let ((result (cons #f '())))
-        (do ((j i (- j 1))
-             (rest lst (cdr rest))
-             (node result (cdr node))
-            ) ;
+        (do ((j i (- j 1)) (rest lst (cdr rest)) (node result (cdr node)))
           ((zero? j) (values (cdr result) rest))
           (when (not (pair? rest))
             (value-error "lst length cannot be greater than i, where lst is ~A, but i is ~A-- split-at"
@@ -216,10 +174,7 @@
     ) ;define
 
     (define (last-pair l)
-      (if (pair? (cdr l))
-        (last-pair (cdr l))
-        l
-      ) ;if
+      (if (pair? (cdr l)) (last-pair (cdr l)) l)
     ) ;define
 
     (define (last l)
@@ -229,12 +184,7 @@
     (define (count pred list1 . lists)
       (let lp
         ((lis list1) (i 0))
-        (if (null-list? lis)
-          i
-          (lp (cdr lis)
-            (if (pred (car lis)) (+ i 1) i)
-          ) ;lp
-        ) ;if
+        (if (null-list? lis) i (lp (cdr lis) (if (pred (car lis)) (+ i 1) i)))
       ) ;let
     ) ;define
 
@@ -244,34 +194,21 @@
 
     (define (fold f initial . lists)
       (unless (procedure? f)
-        (error 'type-error
-          "expected procedure, got ~S"
-          f
-        ) ;error
+        (error 'type-error "expected procedure, got ~S" f)
       ) ;unless
       (cond ((null? lists) initial)
-            ((and (pair? lists)
-               (null? (cdr lists))
-               (list? (car lists))
-             ) ;and
+            ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
              (let loop
                ((acc initial) (lst (car lists)))
-               (if (null? lst)
-                 acc
-                 (loop (f (car lst) acc) (cdr lst))
-               ) ;if
+               (if (null? lst) acc (loop (f (car lst) acc) (cdr lst)))
              ) ;let
             ) ;
             (else (let loop
                     ((acc initial) (lsts lists))
                     (if (any null? lsts)
                       acc
-                      (let* ((cars (map car lsts))
-                             (cdrs (map cdr lsts))
-                            ) ;
-                        (loop (apply f (append cars (list acc)))
-                          cdrs
-                        ) ;loop
+                      (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
+                        (loop (apply f (append cars (list acc))) cdrs)
                       ) ;let*
                     ) ;if
                   ) ;let
@@ -281,34 +218,21 @@
 
     (define (fold-right f initial . lists)
       (unless (procedure? f)
-        (error 'type-error
-          "expected procedure, got ~S"
-          f
-        ) ;error
+        (error 'type-error "expected procedure, got ~S" f)
       ) ;unless
       (cond ((null? lists) initial)
-            ((and (pair? lists)
-               (null? (cdr lists))
-               (list? (car lists))
-             ) ;and
+            ((and (pair? lists) (null? (cdr lists)) (list? (car lists)))
              (let loop
                ((lst (car lists)))
-               (if (null? lst)
-                 initial
-                 (f (car lst) (loop (cdr lst)))
-               ) ;if
+               (if (null? lst) initial (f (car lst) (loop (cdr lst))))
              ) ;let
             ) ;
             (else (let loop
                     ((lsts lists))
                     (if (any null? lsts)
                       initial
-                      (let* ((cars (map car lsts))
-                             (cdrs (map cdr lsts))
-                            ) ;
-                        (apply f
-                          (append cars (list (loop cdrs)))
-                        ) ;apply
+                      (let* ((cars (map car lsts)) (cdrs (map cdr lsts)))
+                        (apply f (append cars (list (loop cdrs))))
                       ) ;let*
                     ) ;if
                   ) ;let
@@ -317,10 +241,7 @@
     ) ;define
 
     (define (reduce f initial l)
-      (if (null-list? l)
-        initial
-        (fold f (car l) (cdr l))
-      ) ;if
+      (if (null-list? l) initial (fold f (car l) (cdr l)))
     ) ;define
 
     (define (reduce-right f initial l)
@@ -328,27 +249,18 @@
         initial
         (let recur
           ((head (car l)) (l (cdr l)))
-          (if (pair? l)
-            (f head (recur (car l) (cdr l)))
-            head
-          ) ;if
+          (if (pair? l) (f head (recur (car l) (cdr l))) head)
         ) ;let
       ) ;if
     ) ;define
 
     (define (append-map proc . lists)
       (unless (procedure? proc)
-        (error 'type-error
-          "expected procedure, got ~S"
-          proc
-        ) ;error
+        (error 'type-error "expected procedure, got ~S" proc)
       ) ;unless
       (for-each (lambda (lst)
                   (unless (list? lst)
-                    (error 'type-error
-                      "expected list, got ~S"
-                      lst
-                    ) ;error
+                    (error 'type-error "expected list, got ~S" lst)
                   ) ;unless
                 ) ;lambda
         lists
@@ -364,10 +276,7 @@
           (let ((head (car l)) (tail (cdr l)))
             (if (pred head)
               (let ((new-tail (recur tail)))
-                (if (eq? tail new-tail)
-                  l
-                  (cons head new-tail)
-                ) ;if
+                (if (eq? tail new-tail) l (cons head new-tail))
               ) ;let
               (recur tail)
             ) ;if
@@ -378,24 +287,10 @@
 
     (define (partition pred l)
       (let loop
-        ((lst l)
-         (satisfies '())
-         (dissatisfies '())
-        ) ;
-        (cond ((null? lst)
-               (cons satisfies dissatisfies)
-              ) ;
-              ((pred (car lst))
-               (loop (cdr lst)
-                 (cons (car lst) satisfies)
-                 dissatisfies
-               ) ;loop
-              ) ;
-              (else (loop (cdr lst)
-                      satisfies
-                      (cons (car lst) dissatisfies)
-                    ) ;loop
-              ) ;else
+        ((lst l) (satisfies '()) (dissatisfies '()))
+        (cond ((null? lst) (cons satisfies dissatisfies))
+              ((pred (car lst)) (loop (cdr lst) (cons (car lst) satisfies) dissatisfies))
+              (else (loop (cdr lst) satisfies (cons (car lst) dissatisfies)))
         ) ;cond
       ) ;let
     ) ;define
@@ -414,35 +309,18 @@
     (define (take-while pred lst)
       (if (null? lst)
         '()
-        (if (pred (car lst))
-          (cons (car lst)
-            (take-while pred (cdr lst))
-          ) ;cons
-          '()
-        ) ;if
+        (if (pred (car lst)) (cons (car lst) (take-while pred (cdr lst))) '())
       ) ;if
     ) ;define
 
     (define (drop-while pred l)
-      (if (null? l)
-        '()
-        (if (pred (car l))
-          (drop-while pred (cdr l))
-          l
-        ) ;if
-      ) ;if
+      (if (null? l) '() (if (pred (car l)) (drop-while pred (cdr l)) l))
     ) ;define
 
     (define (list-index pred l)
       (let loop
         ((index 0) (l l))
-        (if (null? l)
-          #f
-          (if (pred (car l))
-            index
-            (loop (+ index 1) (cdr l))
-          ) ;if
-        ) ;if
+        (if (null? l) #f (if (pred (car l)) index (loop (+ index 1) (cdr l))))
       ) ;let
     ) ;define
 
@@ -461,28 +339,17 @@
     ) ;define
 
     (define (%extract-maybe-equal maybe-equal)
-      (let ((my-equal (if (null-list? maybe-equal)
-                        equal?
-                        (car maybe-equal)
-                      ) ;if
-            ) ;my-equal
-           ) ;
+      (let ((my-equal (if (null-list? maybe-equal) equal? (car maybe-equal))))
         (if (procedure? my-equal)
           my-equal
-          (error 'wrong-type-arg
-            "maybe-equal must be procedure"
-          ) ;error
+          (error 'wrong-type-arg "maybe-equal must be procedure")
         ) ;if
       ) ;let
     ) ;define
 
     (define (delete x l . maybe-equal)
-      (let ((my-equal (%extract-maybe-equal maybe-equal)
-            ) ;my-equal
-           ) ;
-        (filter (lambda (y) (not (my-equal x y)))
-          l
-        ) ;filter
+      (let ((my-equal (%extract-maybe-equal maybe-equal)))
+        (filter (lambda (y) (not (my-equal x y))) l)
       ) ;let
     ) ;define
 
@@ -493,9 +360,7 @@
     ) ;define
 
     (define (%delete-duplicates-hash lis eq-func)
-      (let ((seen (make-hash-table 8 eq-func))
-            (result '())
-           ) ;
+      (let ((seen (make-hash-table 8 eq-func)) (result '()))
         (for-each (lambda (x)
                     (unless (hash-table-ref seen x)
                       (hash-table-set! seen x #t)
@@ -510,18 +375,10 @@
 
     (define (%delete-duplicates-scan lis my-equal)
       (let loop
-        ((remaining lis)
-         (seen '())
-         (result '())
-        ) ;
+        ((remaining lis) (seen '()) (result '()))
         (cond ((null? remaining) (reverse result))
-              ((member (car remaining) seen my-equal)
-               (loop (cdr remaining) seen result)
-              ) ;
-              (else (loop (cdr remaining)
-                      (cons (car remaining) seen)
-                      (cons (car remaining) result)
-                    ) ;loop
+              ((member (car remaining) seen my-equal) (loop (cdr remaining) seen result))
+              (else (loop (cdr remaining) (cons (car remaining) seen) (cons (car remaining) result))
               ) ;else
         ) ;cond
       ) ;let
@@ -537,15 +394,10 @@
     ;; ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
     (define (delete-duplicates lis . maybe-equal)
-      (let ((my-equal (%extract-maybe-equal maybe-equal)
-            ) ;my-equal
-           ) ;
+      (let ((my-equal (%extract-maybe-equal maybe-equal)))
         (cond ((null? lis) lis)
-              ((%can-use-hash-table? my-equal)
-               (%delete-duplicates-hash lis my-equal)
-              ) ;
-              (else (%delete-duplicates-scan lis my-equal)
-              ) ;else
+              ((%can-use-hash-table? my-equal) (%delete-duplicates-hash lis my-equal))
+              (else (%delete-duplicates-scan lis my-equal))
         ) ;cond
       ) ;let
     ) ;define

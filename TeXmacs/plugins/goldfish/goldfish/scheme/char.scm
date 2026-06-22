@@ -40,21 +40,14 @@
   ) ;export
   (begin
     (define (digit-value ch)
-      (if (char-numeric? ch)
-        (- (char->integer ch)
-          (char->integer #\0)
-        ) ;-
-        #f
-      ) ;if
+      (if (char-numeric? ch) (- (char->integer ch) (char->integer #\0)) #f)
     ) ;define
 
     (define s7-char-upcase char-upcase)
 
     (define (char-upcase char)
       (unless (char? char)
-        (error 'type-error
-          "char-upcase: parameter must be character"
-        ) ;error
+        (error 'type-error "char-upcase: parameter must be character")
       ) ;unless
       (s7-char-upcase char)
     ) ;define
@@ -63,18 +56,14 @@
 
     (define (char-downcase char)
       (unless (char? char)
-        (error 'type-error
-          "char-downcase: parameter must be character"
-        ) ;error
+        (error 'type-error "char-downcase: parameter must be character")
       ) ;unless
       (s7-char-downcase char)
     ) ;define
 
     (define (char-foldcase char)
       (unless (char? char)
-        (error 'type-error
-          "char-foldcase: parameter must be character"
-        ) ;error
+        (error 'type-error "char-foldcase: parameter must be character")
       ) ;unless
       (char-downcase char)
     ) ;define
@@ -83,61 +72,43 @@
 
     (define (char-numeric? char)
       (unless (char? char)
-        (error 'type-error
-          "char-numeric?: parameter must be character"
-        ) ;error
+        (error 'type-error "char-numeric?: parameter must be character")
       ) ;unless
       (s7-char-numeric? char)
     ) ;define
 
-    (define s7-char-alphabetic?
-      char-alphabetic?
-    ) ;define
+    (define s7-char-alphabetic? char-alphabetic?)
 
     (define (char-alphabetic? char)
       (unless (char? char)
-        (error 'type-error
-          "char-alphabetic?: parameter must be character"
-        ) ;error
+        (error 'type-error "char-alphabetic?: parameter must be character")
       ) ;unless
       (s7-char-alphabetic? char)
     ) ;define
 
-    (define s7-char-whitespace?
-      char-whitespace?
-    ) ;define
+    (define s7-char-whitespace? char-whitespace?)
 
     (define (char-whitespace? char)
       (unless (char? char)
-        (error 'type-error
-          "char-whitespace?: parameter must be character"
-        ) ;error
+        (error 'type-error "char-whitespace?: parameter must be character")
       ) ;unless
       (s7-char-whitespace? char)
     ) ;define
 
-    (define s7-char-upper-case?
-      char-upper-case?
-    ) ;define
+    (define s7-char-upper-case? char-upper-case?)
 
     (define (char-upper-case? char)
       (unless (char? char)
-        (error 'type-error
-          "char-upper-case?: parameter must be character"
-        ) ;error
+        (error 'type-error "char-upper-case?: parameter must be character")
       ) ;unless
       (s7-char-upper-case? char)
     ) ;define
 
-    (define s7-char-lower-case?
-      char-lower-case?
-    ) ;define
+    (define s7-char-lower-case? char-lower-case?)
 
     (define (char-lower-case? char)
       (unless (char? char)
-        (error 'type-error
-          "char-lower-case?: parameter must be character"
-        ) ;error
+        (error 'type-error "char-lower-case?: parameter must be character")
       ) ;unless
       (s7-char-lower-case? char)
     ) ;define
@@ -146,32 +117,20 @@
 
     (define (char-ci=? char1 char2 . rest)
       (unless (char? char1)
-        (error 'type-error
-          "char-ci=?: first parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci=?: first parameter must be character")
       ) ;unless
       (unless (char? char2)
-        (error 'type-error
-          "char-ci=?: second parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci=?: second parameter must be character")
       ) ;unless
       (let loop
-        ((current (s7-char-ci=? char1 char2))
-         (remaining rest)
-        ) ;
+        ((current (s7-char-ci=? char1 char2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-char (car remaining)))
             (unless (char? next-char)
-              (error 'type-error
-                "char-ci=?: parameter must be character"
-              ) ;error
+              (error 'type-error "char-ci=?: parameter must be character")
             ) ;unless
-            (and current
-              (loop (s7-char-ci=? char2 next-char)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-char-ci=? char2 next-char) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -181,32 +140,20 @@
 
     (define (char-ci<? char1 char2 . rest)
       (unless (char? char1)
-        (error 'type-error
-          "char-ci<?: first parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci<?: first parameter must be character")
       ) ;unless
       (unless (char? char2)
-        (error 'type-error
-          "char-ci<?: second parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci<?: second parameter must be character")
       ) ;unless
       (let loop
-        ((current (s7-char-ci<? char1 char2))
-         (remaining rest)
-        ) ;
+        ((current (s7-char-ci<? char1 char2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-char (car remaining)))
             (unless (char? next-char)
-              (error 'type-error
-                "char-ci<?: parameter must be character"
-              ) ;error
+              (error 'type-error "char-ci<?: parameter must be character")
             ) ;unless
-            (and current
-              (loop (s7-char-ci<? char2 next-char)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-char-ci<? char2 next-char) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -216,32 +163,20 @@
 
     (define (char-ci>? char1 char2 . rest)
       (unless (char? char1)
-        (error 'type-error
-          "char-ci>?: first parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci>?: first parameter must be character")
       ) ;unless
       (unless (char? char2)
-        (error 'type-error
-          "char-ci>?: second parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci>?: second parameter must be character")
       ) ;unless
       (let loop
-        ((current (s7-char-ci>? char1 char2))
-         (remaining rest)
-        ) ;
+        ((current (s7-char-ci>? char1 char2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-char (car remaining)))
             (unless (char? next-char)
-              (error 'type-error
-                "char-ci>?: parameter must be character"
-              ) ;error
+              (error 'type-error "char-ci>?: parameter must be character")
             ) ;unless
-            (and current
-              (loop (s7-char-ci>? char2 next-char)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-char-ci>? char2 next-char) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -251,32 +186,20 @@
 
     (define (char-ci>=? char1 char2 . rest)
       (unless (char? char1)
-        (error 'type-error
-          "char-ci>=?: first parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci>=?: first parameter must be character")
       ) ;unless
       (unless (char? char2)
-        (error 'type-error
-          "char-ci>=?: second parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci>=?: second parameter must be character")
       ) ;unless
       (let loop
-        ((current (s7-char-ci>=? char1 char2))
-         (remaining rest)
-        ) ;
+        ((current (s7-char-ci>=? char1 char2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-char (car remaining)))
             (unless (char? next-char)
-              (error 'type-error
-                "char-ci>=?: parameter must be character"
-              ) ;error
+              (error 'type-error "char-ci>=?: parameter must be character")
             ) ;unless
-            (and current
-              (loop (s7-char-ci>=? char2 next-char)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-char-ci>=? char2 next-char) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -286,32 +209,20 @@
 
     (define (char-ci<=? char1 char2 . rest)
       (unless (char? char1)
-        (error 'type-error
-          "char-ci<=?: first parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci<=?: first parameter must be character")
       ) ;unless
       (unless (char? char2)
-        (error 'type-error
-          "char-ci<=?: second parameter must be character"
-        ) ;error
+        (error 'type-error "char-ci<=?: second parameter must be character")
       ) ;unless
       (let loop
-        ((current (s7-char-ci<=? char1 char2))
-         (remaining rest)
-        ) ;
+        ((current (s7-char-ci<=? char1 char2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-char (car remaining)))
             (unless (char? next-char)
-              (error 'type-error
-                "char-ci<=?: parameter must be character"
-              ) ;error
+              (error 'type-error "char-ci<=?: parameter must be character")
             ) ;unless
-            (and current
-              (loop (s7-char-ci<=? char2 next-char)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-char-ci<=? char2 next-char) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -321,32 +232,20 @@
 
     (define (string-ci=? str1 str2 . rest)
       (unless (string? str1)
-        (error 'type-error
-          "string-ci=?: first parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci=?: first parameter must be string")
       ) ;unless
       (unless (string? str2)
-        (error 'type-error
-          "string-ci=?: second parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci=?: second parameter must be string")
       ) ;unless
       (let loop
-        ((current (s7-string-ci=? str1 str2))
-         (remaining rest)
-        ) ;
+        ((current (s7-string-ci=? str1 str2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-str (car remaining)))
             (unless (string? next-str)
-              (error 'type-error
-                "string-ci=?: parameter must be string"
-              ) ;error
+              (error 'type-error "string-ci=?: parameter must be string")
             ) ;unless
-            (and current
-              (loop (s7-string-ci=? str2 next-str)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-string-ci=? str2 next-str) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -356,32 +255,20 @@
 
     (define (string-ci<? str1 str2 . rest)
       (unless (string? str1)
-        (error 'type-error
-          "string-ci<?: first parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci<?: first parameter must be string")
       ) ;unless
       (unless (string? str2)
-        (error 'type-error
-          "string-ci<?: second parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci<?: second parameter must be string")
       ) ;unless
       (let loop
-        ((current (s7-string-ci<? str1 str2))
-         (remaining rest)
-        ) ;
+        ((current (s7-string-ci<? str1 str2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-str (car remaining)))
             (unless (string? next-str)
-              (error 'type-error
-                "string-ci<?: parameter must be string"
-              ) ;error
+              (error 'type-error "string-ci<?: parameter must be string")
             ) ;unless
-            (and current
-              (loop (s7-string-ci<? str2 next-str)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-string-ci<? str2 next-str) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -391,32 +278,20 @@
 
     (define (string-ci>? str1 str2 . rest)
       (unless (string? str1)
-        (error 'type-error
-          "string-ci>?: first parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci>?: first parameter must be string")
       ) ;unless
       (unless (string? str2)
-        (error 'type-error
-          "string-ci>?: second parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci>?: second parameter must be string")
       ) ;unless
       (let loop
-        ((current (s7-string-ci>? str1 str2))
-         (remaining rest)
-        ) ;
+        ((current (s7-string-ci>? str1 str2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-str (car remaining)))
             (unless (string? next-str)
-              (error 'type-error
-                "string-ci>?: parameter must be string"
-              ) ;error
+              (error 'type-error "string-ci>?: parameter must be string")
             ) ;unless
-            (and current
-              (loop (s7-string-ci>? str2 next-str)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-string-ci>? str2 next-str) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -426,32 +301,20 @@
 
     (define (string-ci<=? str1 str2 . rest)
       (unless (string? str1)
-        (error 'type-error
-          "string-ci<=?: first parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci<=?: first parameter must be string")
       ) ;unless
       (unless (string? str2)
-        (error 'type-error
-          "string-ci<=?: second parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci<=?: second parameter must be string")
       ) ;unless
       (let loop
-        ((current (s7-string-ci<=? str1 str2))
-         (remaining rest)
-        ) ;
+        ((current (s7-string-ci<=? str1 str2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-str (car remaining)))
             (unless (string? next-str)
-              (error 'type-error
-                "string-ci<=?: parameter must be string"
-              ) ;error
+              (error 'type-error "string-ci<=?: parameter must be string")
             ) ;unless
-            (and current
-              (loop (s7-string-ci<=? str2 next-str)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-string-ci<=? str2 next-str) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -461,32 +324,20 @@
 
     (define (string-ci>=? str1 str2 . rest)
       (unless (string? str1)
-        (error 'type-error
-          "string-ci>=?: first parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci>=?: first parameter must be string")
       ) ;unless
       (unless (string? str2)
-        (error 'type-error
-          "string-ci>=?: second parameter must be string"
-        ) ;error
+        (error 'type-error "string-ci>=?: second parameter must be string")
       ) ;unless
       (let loop
-        ((current (s7-string-ci>=? str1 str2))
-         (remaining rest)
-        ) ;
+        ((current (s7-string-ci>=? str1 str2)) (remaining rest))
         (if (null? remaining)
           current
           (let ((next-str (car remaining)))
             (unless (string? next-str)
-              (error 'type-error
-                "string-ci>=?: parameter must be string"
-              ) ;error
+              (error 'type-error "string-ci>=?: parameter must be string")
             ) ;unless
-            (and current
-              (loop (s7-string-ci>=? str2 next-str)
-                (cdr remaining)
-              ) ;loop
-            ) ;and
+            (and current (loop (s7-string-ci>=? str2 next-str) (cdr remaining)))
           ) ;let
         ) ;if
       ) ;let
@@ -496,31 +347,23 @@
 
     (define (string-upcase str)
       (unless (string? str)
-        (error 'type-error
-          "string-upcase: parameter must be string"
-        ) ;error
+        (error 'type-error "string-upcase: parameter must be string")
       ) ;unless
       (s7-string-upcase str)
     ) ;define
 
-    (define s7-string-downcase
-      string-downcase
-    ) ;define
+    (define s7-string-downcase string-downcase)
 
     (define (string-downcase str)
       (unless (string? str)
-        (error 'type-error
-          "string-downcase: parameter must be string"
-        ) ;error
+        (error 'type-error "string-downcase: parameter must be string")
       ) ;unless
       (s7-string-downcase str)
     ) ;define
 
     (define (string-foldcase str)
       (unless (string? str)
-        (error 'type-error
-          "string-foldcase: parameter must be string"
-        ) ;error
+        (error 'type-error "string-foldcase: parameter must be string")
       ) ;unless
       (string-downcase str)
     ) ;define

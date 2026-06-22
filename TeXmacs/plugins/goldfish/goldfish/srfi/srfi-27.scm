@@ -25,10 +25,7 @@
 ;; WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 (define-library (srfi srfi-27)
-  (import (scheme base)
-    (srfi srfi-19)
-    (liii error)
-  ) ;import
+  (import (scheme base) (srfi srfi-19) (liii error))
   (export random-integer
     random-real
     default-random-source
@@ -67,16 +64,11 @@
       random-source?
       (state random-source-internal-state)
       (state-ref random-source-state-ref-proc)
-      (state-set! random-source-state-set-proc
-      ) ;state-set!
-      (randomize! random-source-randomize-proc
-      ) ;randomize!
-      (pseudo-randomize! random-source-pseudo-randomize-proc
-      ) ;pseudo-randomize!
-      (make-integers random-source-make-integers-proc
-      ) ;make-integers
-      (make-reals random-source-make-reals-proc
-      ) ;make-reals
+      (state-set! random-source-state-set-proc)
+      (randomize! random-source-randomize-proc)
+      (pseudo-randomize! random-source-pseudo-randomize-proc)
+      (make-integers random-source-make-integers-proc)
+      (make-reals random-source-make-reals-proc)
     ) ;define-record-type
 
     ;; ====================
@@ -87,9 +79,7 @@
     ;; Used for randomization
     (define (current-time-nanoseconds)
       (let ((t (current-time TIME-UTC)))
-        (+ (* (time-second t) 1000000000)
-          (time-nanosecond t)
-        ) ;+
+        (+ (* (time-second t) 1000000000) (time-nanosecond t))
       ) ;let
     ) ;define
 
@@ -111,27 +101,16 @@
       (let ((state (random-state 0)))
         (%make-random-source state
           ;; state-ref: return external representation
-          (lambda ()
-            (cons 'random-source-state
-              (random-state->list state)
-            ) ;cons
-          ) ;lambda
+          (lambda () (cons 'random-source-state (random-state->list state)))
           ;; state-set!: set state from external representation
           (lambda (new-state)
             (unless (and (pair? new-state)
-                      (eq? (car new-state)
-                        'random-source-state
-                      ) ;eq?
+                      (eq? (car new-state) 'random-source-state)
                       (= (length new-state) 3)
                     ) ;and
-              (error 'wrong-type-arg
-                "invalid random source state"
-                new-state
-              ) ;error
+              (error 'wrong-type-arg "invalid random source state" new-state)
             ) ;unless
-            (let ((seed (cadr new-state))
-                  (carry (caddr new-state))
-                 ) ;
+            (let ((seed (cadr new-state)) (carry (caddr new-state)))
               (set! state (random-state seed carry))
             ) ;let
           ) ;lambda
@@ -140,10 +119,7 @@
             (let ((ns (current-time-nanoseconds)))
               ;; Use nanoseconds to create a pseudo-random seed
               (let ((seed (modulo ns 4294967296))
-                    (carry (modulo (quotient ns 4294967296)
-                             4294967296
-                           ) ;modulo
-                    ) ;carry
+                    (carry (modulo (quotient ns 4294967296) 4294967296))
                    ) ;
                 (set! state (random-state seed carry))
               ) ;let
@@ -165,10 +141,8 @@
             ) ;unless
             ;; Create a deterministic state based on i and j
             ;; Using a simple hash of i and j to create seed and carry
-            (let ((seed (modulo (+ (* i 12345) j) 4294967296)
-                  ) ;seed
-                  (carry (modulo (+ (* j 54321) i) 4294967296)
-                  ) ;carry
+            (let ((seed (modulo (+ (* i 12345) j) 4294967296))
+                  (carry (modulo (+ (* j 54321) i) 4294967296))
                  ) ;
               (set! state (random-state seed carry))
             ) ;let
@@ -176,14 +150,8 @@
           ;; make-integers: return a procedure that generates random integers
           (lambda ()
             (lambda (n)
-              (unless (and (integer? n)
-                        (exact? n)
-                        (positive? n)
-                      ) ;and
-                (error 'wrong-type-arg
-                  "random-integer: n must be a positive exact integer"
-                  n
-                ) ;error
+              (unless (and (integer? n) (exact? n) (positive? n))
+                (error 'wrong-type-arg "random-integer: n must be a positive exact integer" n)
               ) ;unless
               ;; s7's random returns [0, n), we need [0, n-1] which is the same
               (random n state)
@@ -221,21 +189,14 @@
     ;; Standard Interface
     ;; ====================
 
-    (define default-random-source
-      (make-random-source)
-    ) ;define
+    (define default-random-source (make-random-source))
 
     (define (random-integer n)
-     ((random-source-make-integers default-random-source
-      ) ;random-source-make-integers
-      n
-     ) ;
+     ((random-source-make-integers default-random-source) n)
     ) ;define
 
     (define (random-real)
-     ((random-source-make-reals default-random-source
-      ) ;random-source-make-reals
-     ) ;
+     ((random-source-make-reals default-random-source))
     ) ;define
 
     ;; ====================
@@ -244,32 +205,21 @@
 
     (define (random-source-state-ref s)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-state-ref: expected random-source"
-          s
-        ) ;error
+        (error 'wrong-type-arg "random-source-state-ref: expected random-source" s)
       ) ;unless
       ((random-source-state-ref-proc s))
     ) ;define
 
     (define (random-source-state-set! s new-state)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-state-set!: expected random-source"
-          s
-        ) ;error
+        (error 'wrong-type-arg "random-source-state-set!: expected random-source" s)
       ) ;unless
-      ((random-source-state-set-proc s)
-       new-state
-      ) ;
+      ((random-source-state-set-proc s) new-state)
     ) ;define
 
     (define (random-source-randomize! s)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-randomize!: expected random-source"
-          s
-        ) ;error
+        (error 'wrong-type-arg "random-source-randomize!: expected random-source" s)
       ) ;unless
       ((random-source-randomize-proc s))
     ) ;define
@@ -281,10 +231,7 @@
           s
         ) ;error
       ) ;unless
-      ((random-source-pseudo-randomize-proc s)
-       i
-       j
-      ) ;
+      ((random-source-pseudo-randomize-proc s) i j)
     ) ;define
 
     ;; ====================
@@ -293,24 +240,16 @@
 
     (define (random-source-make-integers s)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-make-integers: expected random-source"
-          s
-        ) ;error
+        (error 'wrong-type-arg "random-source-make-integers: expected random-source" s)
       ) ;unless
       ((random-source-make-integers-proc s))
     ) ;define
 
     (define (random-source-make-reals s . unit)
       (unless (random-source? s)
-        (error 'wrong-type-arg
-          "random-source-make-reals: expected random-source"
-          s
-        ) ;error
+        (error 'wrong-type-arg "random-source-make-reals: expected random-source" s)
       ) ;unless
-      (apply (random-source-make-reals-proc s)
-        unit
-      ) ;apply
+      (apply (random-source-make-reals-proc s) unit)
     ) ;define
 
   ) ;begin

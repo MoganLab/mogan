@@ -19,7 +19,8 @@
   (begin
 
     (define-macro (receive formals expression . body)
-      `(call-with-values (lambda ,() (values ,expression)) (lambda ,formals ,@body))
+      `(call-with-values (lambda ,() (values ,expression))
+         (lambda ,formals ,@body))
     ) ;define-macro
 
   ) ;begin

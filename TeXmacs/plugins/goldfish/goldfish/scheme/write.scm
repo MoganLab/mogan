@@ -15,13 +15,7 @@
 ;;
 
 (define-library (scheme write)
-  (export display
-    write
-    write-shared
-    write-simple
-    newline
-    write-char
-  ) ;export
+  (export display write write-shared write-simple newline write-char)
   (begin
 
     (define write-simple write)

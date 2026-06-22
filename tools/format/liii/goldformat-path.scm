@@ -25,6 +25,7 @@
 
     (define scm-dirs
       '("TeXmacs/plugins/gnuplot"
+        "TeXmacs/plugins/goldfish"
         "TeXmacs/progs/client"
         "TeXmacs/progs/convert"
         "TeXmacs/progs/database"

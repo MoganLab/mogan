@@ -50,10 +50,7 @@
 
     (define (base-offset-limit x base offset limit)
       (let ((cc (ensure-int x)))
-        (and (>= cc base)
-          (< cc (+ base limit))
-          (+ offset (- cc base))
-        ) ;and
+        (and (>= cc base) (< cc (+ base limit)) (+ offset (- cc base)))
       ) ;let
     ) ;define
 
@@ -70,20 +67,14 @@
     ) ;define
 
     (define (ascii-char? x)
-      (and (char? x)
-        (< (char->integer x) 128)
-      ) ;and
+      (and (char? x) (< (char->integer x) 128))
     ) ;define
 
     (define (ascii-bytevector? x)
       (and (bytevector? x)
         (let check
           ((i (- (bytevector-length x) 1)))
-          (or (< i 0)
-            (and (< (bytevector-u8-ref x i) 128)
-              (check (- i 1))
-            ) ;and
-          ) ;or
+          (or (< i 0) (and (< (bytevector-u8-ref x i) 128) (check (- i 1))))
         ) ;let
       ) ;and
     ) ;define
@@ -95,11 +86,7 @@
             (let check
               ()
               (let ((char (read-char in)))
-                (or (eof-object? char)
-                  (and (< (char->integer char) 128)
-                    (check)
-                  ) ;and
-                ) ;or
+                (or (eof-object? char) (and (< (char->integer char) 128) (check)))
               ) ;let
             ) ;let
           ) ;lambda
@@ -139,11 +126,7 @@
 
     (define (ascii-other-graphic? x)
       (let ((cc (ensure-int x)))
-        (or (<= 33 cc 47)
-          (<= 58 cc 64)
-          (<= 91 cc 96)
-          (<= 123 cc 126)
-        ) ;or
+        (or (<= 33 cc 47) (<= 58 cc 64) (<= 91 cc 96) (<= 123 cc 126))
       ) ;let
     ) ;define
 
@@ -167,10 +150,7 @@
 
     (define (ascii-alphanumeric? x)
       (let ((cc (ensure-int x)))
-        (or (<= 48 cc 57)
-          (<= 65 cc 90)
-          (<= 97 cc 122)
-        ) ;or
+        (or (<= 48 cc 57) (<= 65 cc 90) (<= 97 cc 122))
       ) ;let
     ) ;define
 
@@ -183,33 +163,19 @@
     ;;
 
     (define (ascii-digit-value x limit)
-      (base-offset-limit x
-        48
-        0
-        (min limit 10)
-      ) ;base-offset-limit
+      (base-offset-limit x 48 0 (min limit 10))
     ) ;define
 
     (define (ascii-upper-case-value x offset limit)
-      (base-offset-limit x
-        65
-        offset
-        (min limit 26)
-      ) ;base-offset-limit
+      (base-offset-limit x 65 offset (min limit 26))
     ) ;define
 
     (define (ascii-lower-case-value x offset limit)
-      (base-offset-limit x
-        97
-        offset
-        (min limit 26)
-      ) ;base-offset-limit
+      (base-offset-limit x 97 offset (min limit 26))
     ) ;define
 
     (define (ascii-nth-digit n)
-      (and (<= 0 n 9)
-        (integer->char (+ 48 n))
-      ) ;and
+      (and (<= 0 n 9) (integer->char (+ 48 n)))
     ) ;define
 
     (define (ascii-nth-upper-case n)
@@ -222,39 +188,29 @@
 
     (define (ascii-upcase x)
       (if (char? x)
-        (integer->char (ascii-upcase (char->integer x))
-        ) ;integer->char
+        (integer->char (ascii-upcase (char->integer x)))
         (or (ascii-lower-case-value x 65 26) x)
       ) ;if
     ) ;define
 
     (define (ascii-downcase x)
       (if (char? x)
-        (integer->char (ascii-downcase (char->integer x))
-        ) ;integer->char
+        (integer->char (ascii-downcase (char->integer x)))
         (or (ascii-upper-case-value x 97 26) x)
       ) ;if
     ) ;define
 
     (define (ascii-control->graphic x)
       (if (char? x)
-        (char->int->char ascii-control->graphic
-          x
-        ) ;char->int->char
-        (or (and (<= 0 x 31) (+ x 64))
-          (and (= x 127) 63)
-        ) ;or
+        (char->int->char ascii-control->graphic x)
+        (or (and (<= 0 x 31) (+ x 64)) (and (= x 127) 63))
       ) ;if
     ) ;define
 
     (define (ascii-graphic->control x)
       (if (char? x)
-        (char->int->char ascii-graphic->control
-          x
-        ) ;char->int->char
-        (or (and (<= 64 x 95) (- x 64))
-          (and (= x 63) 127)
-        ) ;or
+        (char->int->char ascii-graphic->control x)
+        (or (and (<= 64 x 95) (- x 64)) (and (= x 63) 127))
       ) ;if
     ) ;define
 
@@ -271,18 +227,14 @@
          ((#\>) #\<)
          (else #f)
         ) ;case
-        (let ((x (ascii-mirror-bracket (integer->char x))
-              ) ;x
-             ) ;
+        (let ((x (ascii-mirror-bracket (integer->char x))))
           (and x (char->integer x))
         ) ;let
       ) ;if
     ) ;define
 
     (define (ascii-ci-cmp char1 char2)
-      (let ((cc1 (ensure-int char1))
-            (cc2 (ensure-int char2))
-           ) ;
+      (let ((cc1 (ensure-int char1)) (cc2 (ensure-int char2)))
         (when (<= 65 cc1 90)
           (set! cc1 (+ cc1 32))
         ) ;when
@@ -323,16 +275,10 @@
             (lambda (in2)
               (let loop
                 ()
-                (let ((char1 (read-char in1))
-                      (char2 (read-char in2))
-                     ) ;
-                  (cond ((eof-object? char1)
-                         (if (eof-object? char2) 0 -1)
-                        ) ;
+                (let ((char1 (read-char in1)) (char2 (read-char in2)))
+                  (cond ((eof-object? char1) (if (eof-object? char2) 0 -1))
                         ((eof-object? char2) 1)
-                        (else (let ((cc1 (char->integer char1))
-                                    (cc2 (char->integer char2))
-                                   ) ;
+                        (else (let ((cc1 (char->integer char1)) (cc2 (char->integer char2)))
                                 (when (<= 65 cc1 90)
                                   (set! cc1 (+ cc1 32))
                                 ) ;when
@@ -355,33 +301,23 @@
     ) ;define
 
     (define (ascii-string-ci=? string1 string2)
-      (= (ascii-string-ci-cmp string1 string2)
-        0
-      ) ;=
+      (= (ascii-string-ci-cmp string1 string2) 0)
     ) ;define
 
     (define (ascii-string-ci<? string1 string2)
-      (< (ascii-string-ci-cmp string1 string2)
-        0
-      ) ;<
+      (< (ascii-string-ci-cmp string1 string2) 0)
     ) ;define
 
     (define (ascii-string-ci>? string1 string2)
-      (> (ascii-string-ci-cmp string1 string2)
-        0
-      ) ;>
+      (> (ascii-string-ci-cmp string1 string2) 0)
     ) ;define
 
     (define (ascii-string-ci<=? string1 string2)
-      (<= (ascii-string-ci-cmp string1 string2)
-        0
-      ) ;<=
+      (<= (ascii-string-ci-cmp string1 string2) 0)
     ) ;define
 
     (define (ascii-string-ci>=? string1 string2)
-      (>= (ascii-string-ci-cmp string1 string2)
-        0
-      ) ;>=
+      (>= (ascii-string-ci-cmp string1 string2) 0)
     ) ;define
   ) ;begin
 ) ;define-library

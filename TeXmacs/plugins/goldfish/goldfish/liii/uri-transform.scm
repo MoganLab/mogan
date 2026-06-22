@@ -44,9 +44,7 @@
     ) ;define
 
     (define (uri-with-host uri-obj new-host)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
-            ) ;netloc-parts
-           ) ;
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
         (make-uri-raw (uri-scheme-raw uri-obj)
           (build-netloc (list-ref netloc-parts 0)
             (list-ref netloc-parts 1)
@@ -61,9 +59,7 @@
     ) ;define
 
     (define (uri-with-port uri-obj new-port)
-      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))
-            ) ;netloc-parts
-           ) ;
+      (let ((netloc-parts (parse-netloc (uri-netloc-raw uri-obj))))
         (make-uri-raw (uri-scheme-raw uri-obj)
           (build-netloc (list-ref netloc-parts 0)
             (list-ref netloc-parts 1)
@@ -97,9 +93,7 @@
 
     ;; query 更新函数
     (define (uri-update-query uri-obj updater)
-      (let ((new-query (updater (uri-query-raw uri-obj))
-            ) ;new-query
-           ) ;
+      (let ((new-query (updater (uri-query-raw uri-obj))))
         (make-uri-raw (uri-scheme-raw uri-obj)
           (uri-netloc-raw uri-obj)
           (uri-path-raw uri-obj)
@@ -110,34 +104,23 @@
     ) ;define
 
     (define (uri-extend-query uri-obj alist)
-      (uri-update-query uri-obj
-        (lambda (q) (append q alist))
-      ) ;uri-update-query
+      (uri-update-query uri-obj (lambda (q) (append q alist)))
     ) ;define
 
     (define (uri-without-query uri-obj)
-      (uri-update-query uri-obj
-        (lambda (q) '())
-      ) ;uri-update-query
+      (uri-update-query uri-obj (lambda (q) '()))
     ) ;define
 
     (define (uri-without-query-param uri-obj key)
       (uri-update-query uri-obj
-        (lambda (q)
-          (filter (lambda (p)
-                    (not (string=? (car p) key))
-                  ) ;lambda
-            q
-          ) ;filter
-        ) ;lambda
+        (lambda (q) (filter (lambda (p) (not (string=? (car p) key))) q))
       ) ;uri-update-query
     ) ;define
 
     ;; 路径操作函数
     (define (uri-join-path uri-obj . segments)
       (let ((current-path (uri-path-raw uri-obj))
-            (new-segments (string-join segments "/")
-            ) ;new-segments
+            (new-segments (string-join segments "/"))
            ) ;
         (uri-with-path uri-obj
           (string-append (if (string-ends? current-path "/")
@@ -164,14 +147,10 @@
     (define (uri-with-suffix uri-obj new-suffix)
       (let ((name (uri-name uri-obj)))
         (if name
-          (let ((dot-pos (string-index-right name #\.))
-               ) ;
+          (let ((dot-pos (string-index-right name #\.)))
             (uri-with-name uri-obj
               (if dot-pos
-                (string-append (substring name 0 dot-pos)
-                  "."
-                  new-suffix
-                ) ;string-append
+                (string-append (substring name 0 dot-pos) "." new-suffix)
                 (string-append name "." new-suffix)
               ) ;if
             ) ;uri-with-name
@@ -184,23 +163,15 @@
     ;; URI 合并（RFC 3986）
     (define (uri-join base-uri ref-uri)
       ;; 简化实现：假设 ref-uri 是相对路径
-      (let ((base-path (uri-path-raw base-uri))
-            (ref-path (uri-path-raw ref-uri))
-           ) ;
-        (if (or (not ref-path)
-              (string=? ref-path "")
-            ) ;or
+      (let ((base-path (uri-path-raw base-uri)) (ref-path (uri-path-raw ref-uri)))
+        (if (or (not ref-path) (string=? ref-path ""))
           base-uri
           (if (char=? (string-ref ref-path 0) #\/)
             ;; 绝对路径
             (uri-with-path base-uri ref-path)
             ;; 相对路径
             (uri-with-path base-uri
-              (normalize-path (string-append (uri-parent base-uri)
-                                "/"
-                                ref-path
-                              ) ;string-append
-              ) ;normalize-path
+              (normalize-path (string-append (uri-parent base-uri) "/" ref-path))
             ) ;uri-with-path
           ) ;if
         ) ;if
@@ -210,40 +181,23 @@
     ;; 路径归一化
     (define (normalize-path path)
       (let ((segments (string-split path "/"))
-            (absolute? (and (> (string-length path) 0)
-                         (char=? (string-ref path 0) #\/)
-                       ) ;and
-            ) ;absolute?
+            (absolute? (and (> (string-length path) 0) (char=? (string-ref path 0) #\/)))
            ) ;
         (let loop
           ((segs segments) (result '()))
           (if (null? segs)
             (if (null? result)
               "/"
-              (let ((normalized (string-join (reverse result) "/")
-                    ) ;normalized
-                   ) ;
-                (if absolute?
-                  (string-append "/" normalized)
-                  normalized
-                ) ;if
+              (let ((normalized (string-join (reverse result) "/")))
+                (if absolute? (string-append "/" normalized) normalized)
               ) ;let
             ) ;if
-            (cond ((string=? (car segs) "")
-                   (loop (cdr segs) result)
-                  ) ;
-                  ((string=? (car segs) ".")
-                   (loop (cdr segs) result)
-                  ) ;
+            (cond ((string=? (car segs) "") (loop (cdr segs) result))
+                  ((string=? (car segs) ".") (loop (cdr segs) result))
                   ((string=? (car segs) "..")
-                   (loop (cdr segs)
-                     (if (null? result) result (cdr result))
-                   ) ;loop
+                   (loop (cdr segs) (if (null? result) result (cdr result)))
                   ) ;
-                  (else (loop (cdr segs)
-                          (cons (car segs) result)
-                        ) ;loop
-                  ) ;else
+                  (else (loop (cdr segs) (cons (car segs) result)))
             ) ;cond
           ) ;if
         ) ;let
