@@ -1925,6 +1925,8 @@
     "lim"
     "liminf"
     "limsup"
+    "varliminf"
+    "varlimsup"
     "max"
     "min"
     "statlim"

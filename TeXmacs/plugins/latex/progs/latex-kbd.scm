@@ -208,6 +208,8 @@
   ("lim" "Insert lim" (insert "lim"))
   ("liminf" "Insert liminf" (insert "liminf"))
   ("limsup" "Insert limsup" (insert "limsup"))
+  ("varliminf" "Insert varliminf" (insert (stree->tree '(wide* "lim" "<wide-bar>"))))
+  ("varlimsup" "Insert varlimsup" (insert (stree->tree '(wide "lim" "<wide-bar>"))))
   ("ln" "Insert ln" (insert "ln"))
   ("log" "Insert log" (insert "log"))
   ("max" "Insert max" (insert "max"))

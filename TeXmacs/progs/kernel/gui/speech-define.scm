@@ -235,6 +235,8 @@
     "limsup"
     "lim inf"
     "lim sup"
+    "varliminf"
+    "varlimsup"
     "ln"
     "log"
     "max"

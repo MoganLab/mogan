@@ -265,6 +265,9 @@
 
   <assign|to|<macro|\<rightarrow\>>>
   <assign|varOmega|<macro|\<varOmega\>>>
+
+  <assign|varlimsup|<macro|<wide|lim|\<wide-bar\>>>>
+  <assign|varliminf|<macro|<wide*|lim|\<wide-bar\>>>>
 </body>
 
 <\initial>
