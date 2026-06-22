@@ -1,5 +1,5 @@
 ;;
-;; Copyright (C) 2026 The Goldfish Scheme Authors
+;; Copyright (C) 2024-2026 The Goldfish Scheme Authors
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
 ;; you may not use this file except in compliance with the License.
@@ -16,11 +16,15 @@
 
 (define-library (scheme base)
   (export let-values
+    ;; R7RS 5: Program Structure
     define-values
     define-record-type
-    eq?
+    ;; R7RS 6.1: Equivalence predicates
     eqv?
+    eq?
     equal?
+    ;; R7RS 6.2: Numbers
+    ;; - 比较和算术
     =
     <
     >
@@ -31,6 +35,7 @@
     *
     /
     abs
+    ;; - 数值函数
     square
     exact
     inexact
@@ -38,19 +43,14 @@
     min
     floor
     floor/
-    s7-floor
     ceiling
-    s7-ceiling
     truncate
     truncate/
-    s7-truncate
     round
-    s7-round
     floor-quotient
     floor-remainder
     gcd
     lcm
-    s7-lcm
     modulo
     quotient
     remainder
@@ -60,6 +60,7 @@
     exact-integer-sqrt
     number->string
     string->number
+    ;; - 类型判断
     number?
     complex?
     real?
@@ -73,9 +74,11 @@
     zero?
     odd?
     even?
+    ;; R7RS 6.3: Booleans
     not
     boolean=?
     boolean?
+    ;; R7RS 6.4: list
     pair?
     cons
     car
@@ -104,10 +107,13 @@
     assoc
     list-copy
     map
+    for-each
+    ;; R7RS 6.5: Symbol
     symbol?
     symbol=?
     string->symbol
     symbol->string
+    ;; R7RS 6.6: Characters
     char?
     char=?
     char<?
@@ -116,6 +122,7 @@
     char>=?
     char->integer
     integer->char
+    ;; R7RS 6.7: String
     string?
     make-string
     string
@@ -133,6 +140,7 @@
     string>?
     string<=?
     string>=?
+    ;; R7RS 6.8: Vector
     vector?
     make-vector
     vector
@@ -146,7 +154,7 @@
     vector-copy
     vector-copy!
     vector-fill!
-    vector-append
+    ;; R7RS 6.9: Bytevectors
     bytevector?
     make-bytevector
     bytevector
@@ -159,20 +167,56 @@
     string->utf8
     utf8-string-length
     bytevector-advance-utf8
+    ;; Input and Output
     call-with-port
+    call-with-input-file
+    call-with-output-file
+    input-port?
+    output-port?
     port?
     binary-port?
     textual-port?
     input-port-open?
     output-port-open?
+    current-input-port
+    current-output-port
+    current-error-port
+    open-input-file
+    open-output-file
     open-binary-input-file
     open-binary-output-file
     close-port
+    close-input-port
+    close-output-port
+    open-input-string
+    open-output-string
+    get-output-string
+    read-char
+    peek-char
+    read-line
+    read-string
+    read
+    write-char
+    newline
+    flush-output-port
+    eof-object?
     eof-object
+    char-ready?
+    with-input-from-file
+    with-output-to-file
+    ;; Control flow
+    procedure?
+    apply
     string-map
     vector-map
     string-for-each
     vector-for-each
+    call-with-current-continuation
+    call/cc
+    values
+    call-with-values
+    dynamic-wind
+    ;; Exception
     raise
     guard
     read-error?
@@ -180,6 +224,9 @@
   ) ;export
   (begin
 
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define-macro (let-values vars . body)
       (if (and (pair? vars) (pair? (car vars)) (null? (cdar vars)))
         `((lambda ,(caar vars) ,@body) ,(cadar vars))
@@ -251,8 +298,6 @@
 
     (define inexact exact->inexact)
 
-    (define s7-max max)
-
     (define (max2 x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "max: parameter must be real number")
@@ -269,8 +314,6 @@
         ) ;if
       ) ;let
     ) ;define
-
-    (define s7-min min)
 
     (define (min2 x y)
       (when (or (not (real? x)) (not (real? y)))
@@ -289,25 +332,17 @@
       ) ;let
     ) ;define
 
-    (define s7-floor floor)
-
     (define (floor x)
       (if (inexact? x) (inexact (s7-floor x)) (s7-floor x))
     ) ;define
-
-    (define s7-ceiling ceiling)
 
     (define (ceiling x)
       (if (inexact? x) (inexact (s7-ceiling x)) (s7-ceiling x))
     ) ;define
 
-    (define s7-truncate truncate)
-
     (define (truncate x)
       (if (inexact? x) (inexact (s7-truncate x)) (s7-truncate x))
     ) ;define
-
-    (define s7-round round)
 
     (define (round x)
       (if (inexact? x) (inexact (s7-round x)) (s7-round x))
@@ -351,8 +386,6 @@
       ) ;let*
     ) ;define
 
-    (define s7-modulo modulo)
-
     (define (modulo x y)
       (when (or (not (real? x)) (not (real? y)))
         (error 'type-error "modulo: parameters must be reals")
@@ -362,8 +395,6 @@
       ) ;when
       (s7-modulo x y)
     ) ;define
-
-    (define s7-lcm lcm)
 
     (define (lcm2 x y)
       (when (or (not (real? x)) (not (real? y)))
@@ -544,6 +575,7 @@
     ) ;define*
 
     (define* (string->utf8 str (start 0) (end #t))
+      ;; start < end in this case
       (define (string->utf8-sub str start end)
         (let ((bv (string->byte-vector str)) (N (string-length str)))
           (let loop
@@ -712,12 +744,18 @@
       ) ;if
     ) ;define*
 
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define* (vector->string v (start 0) end)
       (let ((stop (or end (length v))))
         (copy v (make-string (- stop start)) start stop)
       ) ;let
     ) ;define*
 
+    ;; 0-clause BSD
+    ;; Bill Schottstaedt
+    ;; from S7 source repo: r7rs.scm
     (define* (string->vector s (start 0) end)
       (let ((stop (or end (length s))))
         (copy s (make-vector (- stop start)) start stop)

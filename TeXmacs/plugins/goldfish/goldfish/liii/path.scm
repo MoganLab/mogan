@@ -1,7 +1,6 @@
 (define-library (liii path)
   (export path
     path?
-    path-clone
     path-copy
     path-copy-into
     path-dir?
@@ -47,6 +46,8 @@
     (liii string)
     (liii vector)
     (scheme base)
+    (scheme char)
+    (liii ascii)
   ) ;import
   (begin
 
@@ -111,7 +112,7 @@
 
     ;; ; Extract drive letter from Windows path string
     (define (extract-drive s)
-      (string (char-upcase (string-ref s 0)))
+      (string (ascii-upcase (string-ref s 0)))
     ) ;define
 
     ;; ; Parse Windows path string into parts
@@ -149,21 +150,10 @@
                    ) ;let
                  ) ;if
                 ) ;
-                ((path? arg) (path-clone arg))
+                ((path? arg) (copy arg))
                 (else (type-error "path: argument must be string or path"))
           ) ;cond
         ) ;let
-      ) ;if
-    ) ;define
-
-    ;; ; Copy a path object
-    (define (path-clone p)
-      (if (path? p)
-        (make-path-record (vector-copy (path-record-parts p))
-          (path-record-type p)
-          (path-record-drive p)
-        ) ;make-path-record
-        (type-error "path-clone: argument must be path")
       ) ;if
     ) ;define
 
@@ -536,7 +526,7 @@
 
     (define (path-of-drive ch)
       (if (char? ch)
-        (make-path-record #() 'windows (string (char-upcase ch)))
+        (make-path-record #() 'windows (string (ascii-upcase ch)))
         (type-error "path-of-drive: argument must be char")
       ) ;if
     ) ;define

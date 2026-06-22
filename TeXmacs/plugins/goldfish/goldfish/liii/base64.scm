@@ -1,5 +1,5 @@
 (define-library (liii base64)
-  (import (liii base) (liii bitwise))
+  (import (scheme base) (liii base) (liii bitwise) (liii error))
   (export string-base64-encode
     bytevector-base64-encode
     base64-encode

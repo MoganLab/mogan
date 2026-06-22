@@ -185,10 +185,7 @@
       (unless (string? json-string)
         (type-error "string->njson: input must be string" json-string)
       ) ;unless
-      (catch #t
-        (lambda () (g_njson-string->json json-string))
-        (lambda args (apply error (cons "string->njson" args)))
-      ) ;catch
+      (g_njson-string->json json-string)
     ) ;define
 
     (define (file->njson path)
@@ -202,10 +199,7 @@
       (unless (njson-json-value? x)
         (type-error "njson->string: input must be njson-handle or strict json scalar" x)
       ) ;unless
-      (catch #t
-        (lambda () (g_njson-json->string x))
-        (lambda args (apply error (cons "njson->string" args)))
-      ) ;catch
+      (g_njson-json->string x)
     ) ;define
 
     (define (njson-format-string json-string . rest)
@@ -266,10 +260,7 @@
       (unless (njson-object? json)
         (type-error "njson-object->alist: json must be njson object-handle" json)
       ) ;unless
-      (catch #t
-        (lambda () (g_njson-object->alist json))
-        (lambda args (apply error (cons "njson-object->alist" args)))
-      ) ;catch
+      (g_njson-object->alist json)
     ) ;define
 
     (define (njson-object->hash-table json)
@@ -283,10 +274,7 @@
       (unless (njson-array? json)
         (type-error "njson-array->list: json must be njson array-handle" json)
       ) ;unless
-      (catch #t
-        (lambda () (g_njson-array->list json))
-        (lambda args (apply error (cons "njson-array->list" args)))
-      ) ;catch
+      (g_njson-array->list json)
     ) ;define
 
     (define (njson-array->vector json)
@@ -300,10 +288,7 @@
       (unless (njson? json)
         (type-error "njson-ref: json must be njson-handle" json)
       ) ;unless
-      (catch #t
-        (lambda () (apply g_njson-ref (cons json (cons key keys))))
-        (lambda args (apply error (cons "njson-ref" args)))
-      ) ;catch
+      (apply g_njson-ref (cons json (cons key keys)))
     ) ;define
 
     ;; Same calling style as (liii json):

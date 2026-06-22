@@ -17,6 +17,10 @@
 (define-library (srfi srfi-133)
   (import (liii base))
   (export vector-empty?
+    vector-unfold
+    vector-unfold-right
+    vector-unfold!
+    vector-unfold-right!
     vector-fold
     vector-fold-right
     vector-count
@@ -28,10 +32,17 @@
     vector-index-right
     vector-skip
     vector-skip-right
+    vector-binary-search
+    vector-concatenate
     vector-partition
+    vector-append-subvectors
     vector-swap!
     vector-reverse!
+    vector-reverse-copy
+    vector-reverse-copy!
+    vector-map!
     vector-cumulate
+    reverse-vector->list
     reverse-list->vector
     vector=
   ) ;export
@@ -42,6 +53,66 @@
         (error 'type-error "v is not a vector")
       ) ;when
       (zero? (vector-length v))
+    ) ;define
+
+    (define (vector-unfold f length . seeds)
+      (let ((vec (make-vector length)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k length)
+            vec
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec k elem)
+              (loop (+ k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold-right f length . seeds)
+      (let ((vec (make-vector length)))
+        (let loop
+          ((k (- length 1)) (seeds seeds))
+          (if (< k 0)
+            vec
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec k elem)
+              (loop (- k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold! f vec start end . seeds)
+      (let ((count (- end start)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k count)
+            (if #f #f)
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec (+ start k) elem)
+              (loop (+ k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define (vector-unfold-right! f vec start end . seeds)
+      (let ((count (- end start)))
+        (let loop
+          ((k 0) (seeds seeds))
+          (if (= k count)
+            (if #f #f)
+            (let-values (((elem . new-seeds) (apply f k seeds)))
+              (vector-set! vec (- end 1 k) elem)
+              (loop (+ k 1) new-seeds)
+            ) ;let-values
+          ) ;if
+        ) ;let
+      ) ;let
     ) ;define
 
     (define (vector= elt=? . rest)
@@ -176,6 +247,34 @@
       (vector-index-right (lambda (x) (not (pred x))) v)
     ) ;define
 
+    (define (vector-concatenate ls)
+      (unless (list? ls)
+        (error 'type-error "vector-concatenate: argument is not a list")
+      ) ;unless
+      (for-each (lambda (v)
+                  (unless (vector? v)
+                    (error 'type-error "vector-concatenate: list element is not a vector")
+                  ) ;unless
+                ) ;lambda
+        ls
+      ) ;for-each
+      (apply vector-append ls)
+    ) ;define
+
+    (define* (vector-binary-search vec value cmp (start 0) (end (vector-length vec)))
+      (let lp
+        ((lo start) (hi (- end 1)))
+        (and (<= lo hi)
+          (let* ((mid (quotient (+ lo hi) 2)) (x (vector-ref vec mid)) (y (cmp value x)))
+            (cond ((< y 0) (lp lo (- mid 1)))
+                  ((> y 0) (lp (+ mid 1) hi))
+                  (else mid)
+            ) ;cond
+          ) ;let*
+        ) ;and
+      ) ;let
+    ) ;define*
+
     (define (vector-partition pred v)
       (let* ((len (vector-length v)) (cnt (vector-count pred v)) (ret (make-vector len)))
         (let loop
@@ -197,6 +296,46 @@
           ) ;if
         ) ;let
       ) ;let*
+    ) ;define
+
+    (define (vector-append-subvectors . o)
+      (unless (zero? (modulo (length o) 3))
+        (error 'wrong-number-of-args
+          "vector-append-subvectors: arguments must be in (vec start end) triples"
+        ) ;error
+      ) ;unless
+      (let lp
+        ((ls o) (vecs '()))
+        (if (null? ls)
+          (apply vector-append (reverse vecs))
+          (let ((vec (car ls)) (start (cadr ls)) (end (car (cddr ls))))
+            (unless (vector? vec)
+              (error 'type-error "vector-append-subvectors: vec must be a vector" vec)
+            ) ;unless
+            (unless (integer? start)
+              (error 'type-error "vector-append-subvectors: start must be integer" start)
+            ) ;unless
+            (unless (integer? end)
+              (error 'type-error "vector-append-subvectors: end must be integer" end)
+            ) ;unless
+            (let ((len (vector-length vec)))
+              (when (< start 0)
+                (error 'value-error "vector-append-subvectors: start must be nonnegative" start)
+              ) ;when
+              (when (< end 0)
+                (error 'value-error "vector-append-subvectors: end must be nonnegative" end)
+              ) ;when
+              (when (> start end)
+                (error 'value-error "vector-append-subvectors: start > end" start end)
+              ) ;when
+              (when (> end len)
+                (error 'value-error "vector-append-subvectors: end out of range" end len)
+              ) ;when
+            ) ;let
+            (lp (cdr (cddr ls)) (cons (vector-copy vec start end) vecs))
+          ) ;let
+        ) ;if
+      ) ;let
     ) ;define
 
     (define (vector-swap! vec i j)
@@ -244,6 +383,55 @@
         ) ;let
       ) ;let*
     ) ;define
+
+    (define* (vector-reverse-copy vec (start 0) (end (vector-length vec)))
+      (let ((v (vector-copy vec start end)))
+        (vector-reverse! v)
+        v
+      ) ;let
+    ) ;define*
+
+    (define* (vector-reverse-copy! to at from (start 0) (end (vector-length from)))
+      (let* ((temp (vector-copy from start end)) (len (vector-length temp)))
+        (let loop
+          ((i 0))
+          (when (< i len)
+            (vector-set! to (+ at (- len i 1)) (vector-ref temp i))
+            (loop (+ i 1))
+          ) ;when
+        ) ;let
+      ) ;let*
+    ) ;define*
+
+    (define (vector-map! proc vec . rest)
+      (let ((len (if (null? rest)
+                   (vector-length vec)
+                   (apply min (vector-length vec) (map vector-length rest))
+                 ) ;if
+            ) ;len
+           ) ;
+        (let loop
+          ((i 0))
+          (if (= i len)
+            vec
+            (begin
+              (vector-set! vec
+                i
+                (apply proc (vector-ref vec i) (map (lambda (v) (vector-ref v i)) rest))
+              ) ;vector-set!
+              (loop (+ i 1))
+            ) ;begin
+          ) ;if
+        ) ;let
+      ) ;let
+    ) ;define
+
+    (define* (reverse-vector->list vec (start 0) (end (vector-length vec)))
+      (let loop
+        ((i start) (acc '()))
+        (if (= i end) acc (loop (+ i 1) (cons (vector-ref vec i) acc)))
+      ) ;let
+    ) ;define*
 
     (define reverse-list->vector
       (typed-lambda ((lst proper-list?))

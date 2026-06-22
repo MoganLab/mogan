@@ -59,6 +59,7 @@
       get-output-string
       floor/
     ) ;only
+    (scheme char)
     (liii error)
   ) ;import
   (export
@@ -204,14 +205,14 @@
     (define-record-type <time>
       (%make-time type nanosecond second)
       time?
-      (type time-type set-time-type!)
-      (nanosecond time-nanosecond set-time-nanosecond!)
-      (second time-second set-time-second!)
+      (type %time-type %set-time-type!)
+      (nanosecond %time-nanosecond %set-time-nanosecond!)
+      (second %time-second %set-time-second!)
     ) ;define-record-type
 
     (define (make-time type nanosecond second)
       (unless (and (integer? nanosecond) (integer? second))
-        (error 'wrong-type-arg "nanosecond and second should be integer")
+        (error 'type-error "nanosecond and second should be integer")
       ) ;unless
       (unless (member type (map car priv:TIME-DISPATCH))
         (value-error "unsupported time type" type)
@@ -220,7 +221,52 @@
     ) ;define
 
     (define (copy-time time)
-      (make-time (time-type time) (time-nanosecond time) (time-second time))
+      (unless (time? time)
+        (error 'type-error "copy-time: time must be a time object" time)
+      ) ;unless
+      (copy time)
+    ) ;define
+
+    (define (time-type time)
+      (unless (time? time)
+        (error 'type-error "time-type: time must be a time object" time)
+      ) ;unless
+      (%time-type time)
+    ) ;define
+
+    (define (time-nanosecond time)
+      (unless (time? time)
+        (error 'type-error "time-nanosecond: time must be a time object" time)
+      ) ;unless
+      (%time-nanosecond time)
+    ) ;define
+
+    (define (time-second time)
+      (unless (time? time)
+        (error 'type-error "time-second: time must be a time object" time)
+      ) ;unless
+      (%time-second time)
+    ) ;define
+
+    (define (set-time-type! time type)
+      (unless (time? time)
+        (error 'type-error "set-time-type!: time must be a time object" time)
+      ) ;unless
+      (%set-time-type! time type)
+    ) ;define
+
+    (define (set-time-nanosecond! time nanosecond)
+      (unless (time? time)
+        (error 'type-error "set-time-nanosecond!: time must be a time object" time)
+      ) ;unless
+      (%set-time-nanosecond! time nanosecond)
+    ) ;define
+
+    (define (set-time-second! time second)
+      (unless (time? time)
+        (error 'type-error "set-time-second!: time must be a time object" time)
+      ) ;unless
+      (%set-time-second! time second)
     ) ;define
 
     ;; ====================
@@ -229,13 +275,13 @@
 
     (define (priv:check-same-time-type time1 time2)
       (unless (and (time? time1) (time? time2))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time comparison: time1 and time2 must be time objects"
           (list time1 time2)
         ) ;error
       ) ;unless
       (unless (eq? (time-type time1) (time-type time2))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time comparison: time types must match"
           (list (time-type time1) (time-type time2))
         ) ;error
@@ -282,13 +328,13 @@
 
     (define (priv:time-difference time1 time2 time3)
       (unless (and (time? time1) (time? time2))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-difference: time1 and time2 must be time objects"
           (list time1 time2)
         ) ;error
       ) ;unless
       (unless (eq? (time-type time1) (time-type time2))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-difference: time types must match"
           (list (time-type time1) (time-type time2))
         ) ;error
@@ -309,13 +355,13 @@
 
     (define (priv:time-arithmetic time1 time-duration op)
       (unless (time? time1)
-        (error 'wrong-type-arg
+        (error 'type-error
           "time arithmetic: time1 must be a time object"
           (list time1 time-duration)
         ) ;error
       ) ;unless
       (unless (and (time? time-duration) (eq? (time-type time-duration) TIME-DURATION))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time arithmetic: time-duration must be a TIME-DURATION object"
           (list time1 time-duration)
         ) ;error
@@ -451,7 +497,7 @@
       (let ((entry (assq clock-type priv:TIME-DISPATCH)))
         (if entry
           (querier entry)
-          (error 'wrong-type-arg "unsupported time type" clock-type)
+          (error 'type-error "unsupported time type" clock-type)
         ) ;if
       ) ;let
     ) ;define
@@ -517,15 +563,71 @@
     (define-record-type <date>
       (%make-date nanosecond second minute hour day month year zone-offset)
       date?
-      (nanosecond date-nanosecond)
-      (second date-second)
-      (minute date-minute)
-      (hour date-hour)
-      (day date-day)
-      (month date-month)
-      (year date-year)
-      (zone-offset date-zone-offset)
+      (nanosecond %date-nanosecond)
+      (second %date-second)
+      (minute %date-minute)
+      (hour %date-hour)
+      (day %date-day)
+      (month %date-month)
+      (year %date-year)
+      (zone-offset %date-zone-offset)
     ) ;define-record-type
+
+    (define (date-nanosecond date)
+      (unless (date? date)
+        (error 'type-error "date-nanosecond: date must be a date object" date)
+      ) ;unless
+      (%date-nanosecond date)
+    ) ;define
+
+    (define (date-second date)
+      (unless (date? date)
+        (error 'type-error "date-second: date must be a date object" date)
+      ) ;unless
+      (%date-second date)
+    ) ;define
+
+    (define (date-minute date)
+      (unless (date? date)
+        (error 'type-error "date-minute: date must be a date object" date)
+      ) ;unless
+      (%date-minute date)
+    ) ;define
+
+    (define (date-hour date)
+      (unless (date? date)
+        (error 'type-error "date-hour: date must be a date object" date)
+      ) ;unless
+      (%date-hour date)
+    ) ;define
+
+    (define (date-day date)
+      (unless (date? date)
+        (error 'type-error "date-day: date must be a date object" date)
+      ) ;unless
+      (%date-day date)
+    ) ;define
+
+    (define (date-month date)
+      (unless (date? date)
+        (error 'type-error "date-month: date must be a date object" date)
+      ) ;unless
+      (%date-month date)
+    ) ;define
+
+    (define (date-year date)
+      (unless (date? date)
+        (error 'type-error "date-year: date must be a date object" date)
+      ) ;unless
+      (%date-year date)
+    ) ;define
+
+    (define (date-zone-offset date)
+      (unless (date? date)
+        (error 'type-error "date-zone-offset: date must be a date object" date)
+      ) ;unless
+      (%date-zone-offset date)
+    ) ;define
 
     (define (make-date nanosecond second minute hour day month year zone-offset)
       ;; TODO: more guards maybe
@@ -538,7 +640,7 @@
                 (integer? year)
                 (integer? zone-offset)
               ) ;and
-        (error 'wrong-type-arg "The date fields need to be integer")
+        (error 'type-error "The date fields need to be integer")
       ) ;unless
       (%make-date nanosecond second minute hour day month year zone-offset)
     ) ;define
@@ -644,7 +746,7 @@
 
     (define (time-utc->time-tai time-utc)
       (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-utc->time-tai: time-utc must be a TIME-UTC object"
           time-utc
         ) ;error
@@ -657,7 +759,7 @@
 
     (define (time-tai->time-utc time-tai)
       (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-tai->time-utc: time-tai must be a TIME-TAI object"
           time-tai
         ) ;error
@@ -670,7 +772,7 @@
 
     (define (time-utc->time-monotonic time-utc)
       (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-utc->time-monotonic: time-utc must be a TIME-UTC object"
           time-utc
         ) ;error
@@ -680,7 +782,7 @@
 
     (define (time-monotonic->time-utc time-monotonic)
       (unless (and (time? time-monotonic) (eq? (time-type time-monotonic) TIME-MONOTONIC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-monotonic->time-utc: time-monotonic must be a TIME-MONOTONIC object"
           time-monotonic
         ) ;error
@@ -693,7 +795,7 @@
 
     (define (time-tai->time-monotonic time-tai)
       (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-tai->time-monotonic: time-tai must be a TIME-TAI object"
           time-tai
         ) ;error
@@ -703,7 +805,7 @@
 
     (define (time-monotonic->time-tai time-monotonic)
       (unless (and (time? time-monotonic) (eq? (time-type time-monotonic) TIME-MONOTONIC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-monotonic->time-tai: time-monotonic must be a TIME-MONOTONIC object"
           time-monotonic
         ) ;error
@@ -753,13 +855,13 @@
     ;; Default tz-offset uses local time zone from OS.
     (define* (time-utc->date time-utc (tz-offset (local-tz-offset)))
       (unless (and (time? time-utc) (eq? (time-type time-utc) TIME-UTC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-utc->date: time-utc must be a TIME-UTC object"
           time-utc
         ) ;error
       ) ;unless
       (unless (integer? tz-offset)
-        (error 'wrong-type-arg "time-utc->date: tz-offset must be an integer" tz-offset)
+        (error 'type-error "time-utc->date: tz-offset must be an integer" tz-offset)
       ) ;unless
       (let* ((sec (+ (time-second time-utc) tz-offset)) (nsec (time-nanosecond time-utc)))
         (receive (days day-sec)
@@ -780,7 +882,7 @@
 
     (define (date->time-utc date)
       (unless (date? date)
-        (error 'wrong-type-arg "date->time-utc: date must be a date object" date)
+        (error 'type-error "date->time-utc: date must be a date object" date)
       ) ;unless
       (let* ((days (priv:days-since-epoch (date-year date) (date-month date) (date-day date))
              ) ;days
@@ -799,13 +901,13 @@
     ;; Default tz-offset uses local time zone from OS.
     (define* (time-tai->date time-tai (tz-offset (local-tz-offset)))
       (unless (and (time? time-tai) (eq? (time-type time-tai) TIME-TAI))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-tai->date: time-tai must be a TIME-TAI object"
           time-tai
         ) ;error
       ) ;unless
       (unless (integer? tz-offset)
-        (error 'wrong-type-arg "time-tai->date: tz-offset must be an integer" tz-offset)
+        (error 'type-error "time-tai->date: tz-offset must be an integer" tz-offset)
       ) ;unless
       (time-utc->date (time-tai->time-utc time-tai) tz-offset)
     ) ;define*
@@ -817,13 +919,13 @@
     ;; Default tz-offset uses local time zone from OS.
     (define* (time-monotonic->date time-monotonic (tz-offset (local-tz-offset)))
       (unless (and (time? time-monotonic) (eq? (time-type time-monotonic) TIME-MONOTONIC))
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-monotonic->date: time-monotonic must be a TIME-MONOTONIC object"
           time-monotonic
         ) ;error
       ) ;unless
       (unless (integer? tz-offset)
-        (error 'wrong-type-arg
+        (error 'type-error
           "time-monotonic->date: tz-offset must be an integer"
           tz-offset
         ) ;error
@@ -833,14 +935,14 @@
 
     (define (date->time-monotonic date)
       (unless (date? date)
-        (error 'wrong-type-arg "date->time-monotonic: date must be a date object" date)
+        (error 'type-error "date->time-monotonic: date must be a date object" date)
       ) ;unless
       (time-utc->time-monotonic (date->time-utc date))
     ) ;define
 
     (define (date->julian-day date)
       (unless (date? date)
-        (error 'wrong-type-arg "date->julian-day: date must be a date object" date)
+        (error 'type-error "date->julian-day: date must be a date object" date)
       ) ;unless
       (let* ((t (time-utc->time-monotonic (date->time-utc date)))
              (secs (time-second t))
@@ -1067,6 +1169,12 @@
     ) ;define
 
     (define* (date->string date (format-string "~c"))
+      (unless (date? date)
+        (type-error "date->string: date must be a date object" date)
+      ) ;unless
+      (unless (string? format-string)
+        (type-error "date->string: format-string must be a string" format-string)
+      ) ;unless
       (let ((str-port (open-output-string)))
         (priv:date-printer date
           format-string
@@ -1167,7 +1275,7 @@
 
     (define (string->date input-string template-string)
       (unless (and (string? input-string) (string? template-string))
-        (error 'wrong-type-arg
+        (error 'type-error
           "string->date: input-string and template-string must be strings"
           (list input-string template-string)
         ) ;error

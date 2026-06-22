@@ -107,7 +107,7 @@
           (let loop
             ((i 0))
             (when (< i matched-count)
-              (write-char (string-ref delimiter i) out)
+              (display (string (string-ref delimiter i)) out)
               (loop (+ i 1))
             ) ;when
           ) ;let
@@ -116,7 +116,7 @@
           (if (char=? ch (string-ref delimiter 0))
             (match-delimiter 1)
             (begin
-              (write-char ch out)
+              (display (string ch) out)
               (read-body)
             ) ;begin
           ) ;if
@@ -166,7 +166,7 @@
                   ((char=? ch #\")
                    (read-raw-body (string-append (get-output-string prefix-out) "\"") port)
                   ) ;
-                  (else (write-char ch prefix-out) (loop))
+                  (else (display (string ch) prefix-out) (loop))
             ) ;cond
           ) ;let
         ) ;let

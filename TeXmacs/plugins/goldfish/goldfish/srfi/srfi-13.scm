@@ -15,7 +15,7 @@
 ;;
 
 (define-library (srfi srfi-13)
-  (import (liii base) (srfi srfi-1))
+  (import (liii base) (srfi srfi-1) (scheme char) (srfi srfi-175))
   (export string-null?
     string-copy
     string-join
@@ -38,8 +38,6 @@
     string-skip-right
     string-contains
     string-count
-    string-upcase
-    string-downcase
     string-fold
     string-fold-right
     string-for-each-index
@@ -228,7 +226,7 @@
     ) ;define
 
     (define (string-trim str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
@@ -258,7 +256,7 @@
     ) ;define
 
     (define (string-trim-right str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
@@ -288,7 +286,7 @@
     ) ;define
 
     (define (string-trim-both str . opt)
-      (let ((predicate (cond ((null? opt) char-whitespace?)
+      (let ((predicate (cond ((null? opt) ascii-whitespace?)
                              ((char? (car opt)) (lambda (c) (char=? c (car opt))))
                              ((procedure? (car opt)) (car opt))
                              (else (type-error "Invalid second argument: expected character or predicate"
@@ -338,22 +336,46 @@
     ) ;define
 
     (define (string-index str char/pred? . start+end)
-      (define (string-index-sub str pred?)
-        (let loop
-          ((i 0))
-          (cond ((>= i (string-length str)) #f)
-                ((pred? (string-ref str i)) i)
-                (else (loop (+ i 1)))
-          ) ;cond
-        ) ;let
-      ) ;define
-      (let* ((start (if (null-list? start+end) 0 (car start+end)))
-             (str-sub (%string-from-range str start+end))
-             (pred? (%make-criterion char/pred?))
-             (ret (string-index-sub str-sub pred?))
-            ) ;
-        (if ret (+ start ret) ret)
-      ) ;let*
+      (if (char? char/pred?)
+        ;; fast path: use C-level char-position with strchr
+        (cond ((null? start+end) (char-position char/pred? str))
+              ((null? (cdr start+end))
+               ;; only start: use char-position directly on original string
+               (let ((start (car start+end)))
+                 (when (< start 0)
+                   (error 'out-of-range "string-index" start)
+                 ) ;when
+                 (when (> start (string-length str))
+                   (error 'out-of-range "string-index" start)
+                 ) ;when
+                 (char-position char/pred? str start)
+               ) ;let
+              ) ;
+              (else
+                ;; start + end: use substring for end boundary
+                (let ((start (car start+end)) (end-opt (cadr start+end)))
+                  (let ((s (substring str start end-opt)))
+                    (let ((pos (char-position char/pred? s)))
+                      (if pos (+ start pos) #f)
+                    ) ;let
+                  ) ;let
+                ) ;let
+              ) ;else
+        ) ;cond
+        ;; slow path: predicate-based search
+        (let* ((start (if (null-list? start+end) 0 (car start+end)))
+               (str-sub (%string-from-range str start+end))
+               (pred? (%make-criterion char/pred?))
+              ) ;
+          (let loop
+            ((i 0))
+            (cond ((>= i (string-length str-sub)) #f)
+                  ((pred? (string-ref str-sub i)) (+ start i))
+                  (else (loop (+ i 1)))
+            ) ;cond
+          ) ;let
+        ) ;let*
+      ) ;if
     ) ;define
 
     (define (string-index-right str char/pred? . start+end)
@@ -414,15 +436,7 @@
     ) ;define
 
     (define (string-contains str sub-str)
-      (let loop
-        ((i 0))
-        (let ((len (string-length str)) (sub-str-len (string-length sub-str)))
-          (if (> i (- len sub-str-len))
-            #f
-            (if (string=? (substring str i (+ i sub-str-len)) sub-str) #t (loop (+ i 1)))
-          ) ;if
-        ) ;let
-      ) ;let
+      (if (= (string-length sub-str) 0) #t (if (string-position sub-str str) #t #f))
     ) ;define
 
     (define (string-count str char/pred? . start+end)
@@ -435,28 +449,6 @@
         (count criterion (string->list str-sub))
       ) ;let
     ) ;define
-
-    (define s7-string-upcase string-upcase)
-
-    (define* (string-upcase str (start 0) (end (string-length str)))
-      (let* ((left (substring str 0 start))
-             (middle (substring str start end))
-             (right (substring str end))
-            ) ;
-        (string-append left (s7-string-upcase middle) right)
-      ) ;let*
-    ) ;define*
-
-    (define s7-string-downcase string-downcase)
-
-    (define* (string-downcase str (start 0) (end (string-length str)))
-      (let* ((left (substring str 0 start))
-             (middle (substring str start end))
-             (right (substring str end))
-            ) ;
-        (string-append left (s7-string-downcase middle) right)
-      ) ;let*
-    ) ;define*
 
     (define (string-reverse str . start+end)
       (cond ((null-list? start+end) (reverse str))

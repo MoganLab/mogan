@@ -1,6 +1,8 @@
 (define-library (liii unicode)
   (export
     ;; UTF-8 函数
+    utf8-string
+    utf8-make-string
     utf8->string
     string->utf8
     utf8-string-length
@@ -8,9 +10,11 @@
     bytevector-advance-utf8
     codepoint->utf8
     utf8->codepoint
+    utf8->codepoint-at
     utf8-string-trim-right
     utf8-string-trim-left
     utf8-string-trim-both
+    utf8-string-set!
 
     ;; UTF-16BE 函数
     codepoint->utf16be
@@ -35,9 +39,59 @@
     unicode-replacement-char
   ) ;export
 
-  (import (scheme base) (liii base) (liii bitwise) (liii error))
+  (import (scheme base) (liii base) (liii ascii) (liii bitwise) (liii error))
 
   (begin
+
+    (define (utf8-string . chars)
+      (let loop
+        ((rest chars) (chunks '()))
+        (cond ((null? rest)
+               (if (null? chunks) "" (utf8->string (apply bytevector-append (reverse chunks))))
+              ) ;
+              ((char? (car rest))
+               (loop (cdr rest) (cons (codepoint->utf8 (char->integer (car rest))) chunks))
+              ) ;
+              (else (error 'type-error "utf8-string: expected char" (car rest)))
+        ) ;cond
+      ) ;let
+    ) ;define
+
+    (define (utf8-make-string k . char-opt)
+      (unless (and (integer? k) (>= k 0))
+        (error 'out-of-range "utf8-make-string: length must be non-negative integer" k)
+      ) ;unless
+      (if (zero? k)
+        ""
+        (let ((c (if (null? char-opt) #\space (car char-opt))))
+          (unless (char? c)
+            (error 'type-error "utf8-make-string: expected char" c)
+          ) ;unless
+          (let* ((utf8-bv (codepoint->utf8 (char->integer c)))
+                 (unit-len (bytevector-length utf8-bv))
+                 (total-len (* k unit-len))
+                 (result (make-bytevector total-len))
+                ) ;
+            (let outer
+              ((i 0))
+              (if (= i k)
+                (utf8->string result)
+                (let inner
+                  ((j 0) (offset (* i unit-len)))
+                  (if (= j unit-len)
+                    (outer (+ i 1))
+                    (begin
+                      (bytevector-u8-set! result offset (bytevector-u8-ref utf8-bv j))
+                      (inner (+ j 1) (+ offset 1))
+                    ) ;begin
+                  ) ;if
+                ) ;let
+              ) ;if
+            ) ;let
+          ) ;let*
+        ) ;let
+      ) ;if
+    ) ;define
 
     (define* (utf8-substring str (start 0) (end #t))
       (utf8->string (string->utf8 str start end))
@@ -60,9 +114,9 @@
         (char=? c #\x2007)
         (char=? c #\x2008)
         (char=? c #\x2009)
-        (char=? c #\x200A)
-        (char=? c #\x202F)
-        (char=? c #\x205F)
+        (char=? c #\x200a)
+        (char=? c #\x202f)
+        (char=? c #\x205f)
         (char=? c #\x3000)
       ) ;or
     ) ;define
@@ -146,6 +200,87 @@
       ) ;unless
 
       (utf8-string-trim-right (utf8-string-trim-left str))
+    ) ;define
+
+    (define (utf8-string-set! str index char)
+      (unless (string? str)
+        (error 'type-error "utf8-string-set!: expected string" str)
+      ) ;unless
+      (unless (and (integer? index) (>= index 0))
+        (error 'out-of-range
+          "utf8-string-set!: index must be non-negative integer"
+          index
+        ) ;error
+      ) ;unless
+      (unless (char? char)
+        (error 'type-error "utf8-string-set!: expected char" char)
+      ) ;unless
+      (let* ((bv (string->byte-vector str))
+             (byte-len (bytevector-length bv))
+             (char-bv (codepoint->utf8 (char->integer char)))
+            ) ;
+        (let loop
+          ((byte-pos 0) (char-index 0))
+          (if (>= byte-pos byte-len)
+            (error 'out-of-range "utf8-string-set!: index out of range" index)
+            (let ((next-byte-pos (bytevector-advance-utf8 bv byte-pos byte-len)))
+              (if (= char-index index)
+                (let ((old-char-len (- next-byte-pos byte-pos))
+                      (char-bv-len (bytevector-length char-bv))
+                     ) ;
+                  (if (= old-char-len char-bv-len)
+                    ;; 等长替换：直接修改原 bytevector，无需复制
+                    (let replace-char
+                      ((j 0))
+                      (if (= j char-bv-len)
+                        (byte-vector->string bv)
+                        (begin
+                          (bytevector-u8-set! bv (+ byte-pos j) (bytevector-u8-ref char-bv j))
+                          (replace-char (+ j 1))
+                        ) ;begin
+                      ) ;if
+                    ) ;let
+                    ;; 不等长替换：make-bytevector + 手动循环填充，减少临时对象分配
+                    (let* ((new-len (+ (- byte-len old-char-len) char-bv-len))
+                           (result (make-bytevector new-len))
+                          ) ;
+                      (let copy-front
+                        ((i 0))
+                        (if (= i byte-pos)
+                          (let copy-char
+                            ((j 0))
+                            (if (= j char-bv-len)
+                              (let copy-back
+                                ((src next-byte-pos) (dst (+ byte-pos char-bv-len)))
+                                (if (= src byte-len)
+                                  (byte-vector->string result)
+                                  (begin
+                                    (bytevector-u8-set! result dst (bytevector-u8-ref bv src))
+                                    (copy-back (+ src 1) (+ dst 1))
+                                  ) ;begin
+                                ) ;if
+                              ) ;let
+                              (begin
+                                (bytevector-u8-set! result (+ byte-pos j) (bytevector-u8-ref char-bv j))
+                                (copy-char (+ j 1))
+                              ) ;begin
+                            ) ;if
+                          ) ;let
+                          (begin
+                            (bytevector-u8-set! result i (bytevector-u8-ref bv i))
+                            (copy-front (+ i 1))
+                          ) ;begin
+                        ) ;if
+                      ) ;let
+                    ) ;let*
+                  ) ;if
+                ) ;let
+                (loop next-byte-pos (+ char-index 1))
+              ) ;if
+            ) ;let
+          ) ;if
+        ) ;let
+      ) ;let*
     ) ;define
 
     (define (codepoint->utf8 codepoint)
@@ -273,6 +408,94 @@
       ) ;let
     ) ;define
 
+    (define (utf8->codepoint-at bv start)
+      (unless (bytevector? bv)
+        (error 'type-error "utf8->codepoint-at: expected bytevector")
+      ) ;unless
+
+      (let ((len (bytevector-length bv)))
+        (when (>= start len)
+          (error 'value-error "utf8->codepoint-at: start index past end of bytevector")
+        ) ;when
+
+        (let ((first-byte (bytevector-u8-ref bv start)))
+          (cond ((<= first-byte 127) first-byte)
+
+                ((<= 194 first-byte 223)
+                 (when (> (+ start 2) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 2-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1))))
+                   (unless (<= 128 byte2 191)
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (bitwise-ior (ash (bitwise-and first-byte 31) 6) (bitwise-and byte2 63))
+                 ) ;let
+                ) ;
+
+                ((<= 224 first-byte 239)
+                 (when (> (+ start 3) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 3-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1)))
+                       (byte3 (bytevector-u8-ref bv (+ start 2)))
+                      ) ;
+                   (unless (and (<= 128 byte2 191) (<= 128 byte3 191))
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (let ((codepoint (bitwise-ior (ash (bitwise-and first-byte 15) 12)
+                                      (ash (bitwise-and byte2 63) 6)
+                                      (bitwise-and byte3 63)
+                                    ) ;bitwise-ior
+                         ) ;codepoint
+                        ) ;
+                     (when (or (<= 55296 codepoint 57343)
+                             (and (= first-byte 224) (< codepoint 2048))
+                             (and (= first-byte 237) (>= codepoint 55296))
+                           ) ;or
+                       (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                     ) ;when
+                     codepoint
+                   ) ;let
+                 ) ;let
+                ) ;
+
+                ((<= 240 first-byte 244)
+                 (when (> (+ start 4) len)
+                   (error 'value-error "utf8->codepoint-at: incomplete 4-byte sequence")
+                 ) ;when
+                 (let ((byte2 (bytevector-u8-ref bv (+ start 1)))
+                       (byte3 (bytevector-u8-ref bv (+ start 2)))
+                       (byte4 (bytevector-u8-ref bv (+ start 3)))
+                      ) ;
+                   (unless (and (<= 128 byte2 191) (<= 128 byte3 191) (<= 128 byte4 191))
+                     (error 'value-error "utf8->codepoint-at: invalid continuation byte")
+                   ) ;unless
+                   (let ((codepoint (bitwise-ior (ash (bitwise-and first-byte 7) 18)
+                                      (ash (bitwise-and byte2 63) 12)
+                                      (ash (bitwise-and byte3 63) 6)
+                                      (bitwise-and byte4 63)
+                                    ) ;bitwise-ior
+                         ) ;codepoint
+                        ) ;
+                     (when (or (< codepoint 65536)
+                             (> codepoint 1114111)
+                             (and (= first-byte 240) (< codepoint 65536))
+                             (and (= first-byte 244) (> codepoint 1114111))
+                           ) ;or
+                       (error 'value-error "utf8->codepoint-at: invalid codepoint")
+                     ) ;when
+                     codepoint
+                   ) ;let
+                 ) ;let
+                ) ;
+
+                (else (error 'value-error "utf8->codepoint-at: invalid UTF-8 sequence"))
+          ) ;cond
+        ) ;let
+      ) ;let
+    ) ;define
+
     (define unicode-max-codepoint 1114111)
     (define unicode-replacement-char 65533)
 
@@ -290,7 +513,7 @@
         ((chars (string->list hex-string)))
         (unless (null? chars)
           (let ((c (car chars)))
-            (unless (or (char-numeric? c) (char<=? #\A c #\F) (char<=? #\a c #\f))
+            (unless (or (ascii-numeric? c) (char<=? #\A c #\F) (char<=? #\a c #\f))
               (error 'value-error "hexstr->codepoint: invalid hexadecimal string")
             ) ;unless
             (loop (cdr chars))
@@ -326,7 +549,7 @@
         ) ;error
       ) ;when
 
-      (let ((hex-str (string-upcase (number->string codepoint 16))))
+      (let ((hex-str (ascii-upcase (number->string codepoint 16))))
         (if (and (> codepoint 0) (< codepoint 16) (= (string-length hex-str) 1))
           (string-append "0" hex-str)
           hex-str

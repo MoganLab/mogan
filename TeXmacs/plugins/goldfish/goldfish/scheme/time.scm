@@ -42,7 +42,7 @@
     ) ;define
 
     (define (current-jiffy)
-      ;; NOTE: use the s7-round to ensure that a natural number is returned.
+      ;; NOTE: use s7-round to ensure that a natural number is returned.
       (s7-round (* (current-second) (jiffies-per-second)))
     ) ;define
 

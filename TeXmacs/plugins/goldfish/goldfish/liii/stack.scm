@@ -18,17 +18,18 @@
   (begin
 
     (define-record-type stack
-      (%make-stack elements)
+      (%make-stack elements size)
       stack?
       (elements stack-elements stack-elements-set!)
+      (size %stack-size stack-size-set!)
     ) ;define-record-type
 
     (define (make-stack . args)
       (if (null? args)
-        (%make-stack '())
+        (%make-stack '() 0)
         (let ((arg (car args)))
           (if (list? arg)
-            (%make-stack arg)
+            (%make-stack arg (length arg))
             (type-error (format #f
                           "make-stack in (liii stack): argument must be *list* type! **Got ~a**"
                           (object->string arg)
@@ -40,7 +41,7 @@
     ) ;define
 
     (define (stack . elements)
-      (%make-stack elements)
+      (%make-stack elements (length elements))
     ) ;define
 
     (define (stack-empty? s)
@@ -76,7 +77,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (length (stack-elements s))
+      (%stack-size s)
     ) ;define
 
     (define (stack-push! s elem)
@@ -88,6 +89,7 @@
         ) ;type-error
       ) ;unless
       (stack-elements-set! s (cons elem (stack-elements s)))
+      (stack-size-set! s (+ (%stack-size s) 1))
       s
     ) ;define
 
@@ -103,6 +105,7 @@
         (value-error "stack-pop! in (liii stack): stack is empty")
         (let ((top (car (stack-elements s))))
           (stack-elements-set! s (cdr (stack-elements s)))
+          (stack-size-set! s (- (%stack-size s) 1))
           top
         ) ;let
       ) ;if
@@ -127,7 +130,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (%make-stack lst)
+      (%make-stack lst (length lst))
     ) ;define
 
     (define (stack-map proc s)
@@ -145,7 +148,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (%make-stack (map proc (stack-elements s)))
+      (%make-stack (map proc (stack-elements s)) (%stack-size s))
     ) ;define
 
     (define (stack-map! proc s)
@@ -193,7 +196,7 @@
                     ) ;format
         ) ;type-error
       ) ;unless
-      (%make-stack (stack-elements s))
+      (%make-stack (stack-elements s) (%stack-size s))
     ) ;define
 
   ) ;begin

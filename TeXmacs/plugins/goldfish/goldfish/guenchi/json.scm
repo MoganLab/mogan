@@ -22,6 +22,7 @@
   (import (liii base)
     (liii chez)
     (liii alist)
+    (liii error)
     (liii list)
     (liii string)
     (liii unicode)
@@ -46,29 +47,42 @@
     (define (json-string-escape str)
       (let ((out (open-output-string)))
         (write-char #\" out)
-        (let loop
-          ((i 0))
-          (if (= i (string-length str))
-            (begin
-              (write-char #\" out)
-              (get-output-string out)
-            ) ;begin
-            (let ((c (string-ref str i)))
-              (case c
-               ((#\") (display "\\\"" out))
-               ((#\\) (display "\\\\" out))
-               ((#\/) (display "\\/" out))
-               ((#\backspace) (display "\\b" out))
-               ((#\xc) (display "\\f" out))
-               ((#\newline) (display "\\n" out))
-               ((#\return) (display "\\r" out))
-               ((#\tab) (display "\\t" out))
-               (else (write-char c out))
-              ) ;case
-              (loop (+ i 1))
-            ) ;let
-          ) ;if
-        ) ;let
+        (let* ((bv (string->utf8 str)) (len (bytevector-length bv)))
+          (let loop
+            ((i 0))
+            (if (>= i len)
+              (begin
+                (write-char #\" out)
+                (get-output-string out)
+              ) ;begin
+              (let ((next (bytevector-advance-utf8 bv i len)))
+                (cond ((= next i) (loop (+ i 1)))
+                      ((= next (+ i 1))
+                       (let ((c (integer->char (bytevector-u8-ref bv i))))
+                         (case c
+                          ((#\") (display "\\\"" out))
+                          ((#\\) (display "\\\\" out))
+                          ((#\/) (display "\\/" out))
+                          ((#\backspace) (display "\\b" out))
+                          ((#\xc) (display "\\f" out))
+                          ((#\newline) (display "\\n" out))
+                          ((#\return) (display "\\r" out))
+                          ((#\tab) (display "\\t" out))
+                          (else (write-char c out))
+                         ) ;case
+                         (loop next)
+                       ) ;let
+                      ) ;
+                      (else
+                        ;; 多字节 UTF-8 字符，直接输出原始字节
+                        (display (copy bv (make-string (- next i)) i next) out)
+                        (loop next)
+                      ) ;else
+                ) ;cond
+              ) ;let
+            ) ;if
+          ) ;let
+        ) ;let*
       ) ;let
     ) ;define
 
@@ -265,75 +279,74 @@
         ) ;read
       ) ;lambda
     ) ;define
-    (define json->string
-      (lambda (json-scm)
-        (define f
-          (lambda (x)
-            (cond ((string? x) (json-string-escape x))
-                  ((number? x) (number->string x))
-                  ((boolean? x) (if x "true" "false"))
-                  ((symbol? x) (symbol->string x))
-                  ((null? x) "{}")
-                  (else (type-error "Unexpected x: " x))
-            ) ;cond
-          ) ;lambda
+    (define (json->string json-scm)
+      (when (procedure? json-scm)
+        (type-error "json->string: input must not be a procedure")
+      ) ;when
+      (let ((out (open-output-string)))
+        (define (write-scalar x)
+          (cond ((string? x) (display (json-string-escape x) out))
+                ((number? x) (display (number->string x) out))
+                ((boolean? x) (display (if x "true" "false") out))
+                ((symbol? x) (display (symbol->string x) out))
+                ((null? x) (display "{}" out))
+                (else (type-error "Unexpected x: " x))
+          ) ;cond
         ) ;define
-        (define (delim x)
-          (if (zero? x) "" ",")
+        (define (write-json x)
+          (cond ((vector? x)
+                 (display "[" out)
+                 (let ((len (vector-length x)))
+                   (do ((i 0 (+ i 1)))
+                     ((= i len))
+                     (when (> i 0) (display "," out))
+                     (let ((k (vector-ref x i)))
+                       (cond ((vector? k) (write-json k))
+                             ((pair? k) (write-json k))
+                             (else (write-scalar k))
+                       ) ;cond
+                     ) ;let
+                   ) ;do
+                 ) ;let
+                 (display "]" out)
+                ) ;vector?
+                ((pair? x)
+                 (display "{" out)
+                 (let loop ((lst x) (i 0))
+                   (unless (null? lst)
+                     (let ((d (car lst)))
+                       (when (> i 0) (display "," out))
+                       (if (null? d)
+                         (display "{}" out)
+                         (begin
+                           (let ((len (length d)))
+                             (when (not (or (= len 0) (= len -1) (>= len 2)))
+                               (value-error d " must be null, pair, or list with at least 2 elements")
+                             ) ;when
+                           ) ;let
+                           (let ((k (loose-car d)) (v (loose-cdr d)))
+                             (write-scalar k)
+                             (display ":" out)
+                             (cond ((null? v) (display "{}" out))
+                                   ((list? v) (write-json v))
+                                   ((vector? v) (write-json v))
+                                   (else (write-scalar v))
+                             ) ;cond
+                           ) ;let
+                         ) ;begin
+                       ) ;if
+                       (loop (cdr lst) (+ i 1))
+                     ) ;let
+                   ) ;unless
+                 ) ;let
+                 (display "}" out)
+                ) ;pair?
+                (else (write-scalar x))
+          ) ;cond
         ) ;define
-        (when (procedure? json-scm)
-          (type-error "json->string: input must not be a procedure")
-        ) ;when
-        (let loop
-          ((lst json-scm) (x (if (vector? json-scm) "[" "{")))
-          (if (vector? lst)
-            (string-append x
-              (let loop-v
-                ((len (vector-length lst)) (n 0) (y ""))
-                (if (< n len)
-                  (let* ((k (vector-ref lst n))
-                         (result (cond ((vector? k) (loop k "[")) ((pair? k) (loop k "{")) (else (f k))))
-                        ) ;
-                    (loop-v len (+ n 1) (string-append y (delim n) result))
-                  ) ;let*
-                  (string-append y "]")
-                ) ;if
-              ) ;let
-            ) ;string-append
-            (let* ((d (car lst)) (k (loose-car d)) (v (loose-cdr d)))
-              (when (not (list? d))
-                (value-error d " must be a list")
-              ) ;when
-              (let ((len (length d)))
-                (when (not (or (= len 0) (= len -1) (>= len 2)))
-                  (value-error d " must be null, pair, or list with at least 2 elements")
-                ) ;when
-              ) ;let
-              (if (null? (cdr lst))
-                (if (null? d)
-                  "{}"
-                  (string-append x
-                    (f k)
-                    ":"
-                    (cond ((null? v) "{}")
-                          ((list? v) (loop v "{"))
-                          ((vector? v) (loop v "["))
-                          (else (f v))
-                    ) ;cond
-                    "}"
-                  ) ;string-append
-                ) ;if
-                (loop (cdr lst)
-                  (cond ((list? v) (string-append x (f k) ":" (loop v "{") ","))
-                        ((vector? v) (string-append x (f k) ":" (loop v "[") ","))
-                        (else (string-append x (f k) ":" (f v) ","))
-                  ) ;cond
-                ) ;loop
-              ) ;if
-            ) ;let*
-          ) ;if
-        ) ;let
-      ) ;lambda
+        (write-json json-scm)
+        (get-output-string out)
+      ) ;let
     ) ;define
     (define json-ref
       (lambda (x k)

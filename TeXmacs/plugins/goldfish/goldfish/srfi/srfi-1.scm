@@ -360,10 +360,10 @@
     ) ;define
 
     (define (%delete-duplicates-hash lis eq-func)
-      (let ((seen (make-hash-table 8 eq-func)) (result '()))
+      (let ((seen (s7-make-hash-table 8 eq-func)) (result '()))
         (for-each (lambda (x)
                     (unless (hash-table-ref seen x)
-                      (hash-table-set! seen x #t)
+                      (s7-hash-table-set! seen x #t)
                       (set! result (cons x result))
                     ) ;unless
                   ) ;lambda

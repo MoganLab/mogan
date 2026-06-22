@@ -1,6 +1,10 @@
 (define-library (liii vector)
   (import (scheme base) (srfi srfi-133) (srfi srfi-13))
   (export vector-empty?
+    vector-unfold
+    vector-unfold-right
+    vector-unfold!
+    vector-unfold-right!
     vector-fold
     vector-fold-right
     vector-count
@@ -10,10 +14,17 @@
     vector-index-right
     vector-skip
     vector-skip-right
+    vector-binary-search
+    vector-concatenate
     vector-partition
+    vector-append-subvectors
     vector-swap!
     vector-reverse!
+    vector-reverse-copy
+    vector-reverse-copy!
+    vector-map!
     vector-cumulate
+    reverse-vector->list
     reverse-list->vector
     vector=
     vector-contains?
@@ -42,22 +53,11 @@
   (begin
 
     (define (vector-filter pred vec)
-      (let* ((result-list (vector-fold (lambda (elem acc) (if (pred elem) (cons elem acc) acc)) '() vec)
-             ) ;result-list
-             (result-length (length result-list))
-             (result-vec (make-vector result-length))
-            ) ;
-        (let loop
-          ((i (- result-length 1)) (lst result-list))
-          (if (null? lst)
-            result-vec
-            (begin
-              (vector-set! result-vec i (car lst))
-              (loop (- i 1) (cdr lst))
-            ) ;begin
-          ) ;if
-        ) ;let
-      ) ;let*
+      (list->vector (vector-fold-right (lambda (elem acc) (if (pred elem) (cons elem acc) acc))
+                      '()
+                      vec
+                    ) ;vector-fold-right
+      ) ;list->vector
     ) ;define
 
     (define (vector-contains? vec elem . args)

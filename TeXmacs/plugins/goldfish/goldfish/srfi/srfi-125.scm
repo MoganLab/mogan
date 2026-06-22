@@ -54,10 +54,6 @@
       ) ;when
     ) ;define
 
-    (define s7-hash-table-set! hash-table-set!)
-    (define s7-make-hash-table make-hash-table)
-    (define s7-hash-table-entries hash-table-entries)
-
     (define (make-hash-table . args)
       (cond ((null? args) (s7-make-hash-table))
             ((comparator? (car args))
@@ -143,8 +139,6 @@
     (define (hash-table-clear! ht)
       (for-each (lambda (key) (hash-table-set! ht key #f)) (hash-table-keys ht))
     ) ;define
-
-    (define hash-table-size s7-hash-table-entries)
 
     (define (hash-table-keys ht)
       (map car ht)

@@ -3,6 +3,7 @@
   (export and-let*
     receive
     define*
+    lambda*
     procedure-source
     procedure-arglist
     arity
@@ -10,6 +11,7 @@
     object->string
     eval-string
     signature
+    copy
     keyword?
     string->keyword
     symbol->keyword
@@ -20,6 +22,14 @@
     identity
     any?
     typed-lambda
+    make-hook
+    hook-functions
+    with-output-to-string
+    with-input-from-string
+    call-with-input-string
+    call-with-output-string
+    reverse!
+    format
   ) ;export
   (begin
 

@@ -1,5 +1,5 @@
 (define-library (liii case)
-  (import (liii base))
+  (import (liii base) (liii hash-table))
   (export case*)
   (begin
 
