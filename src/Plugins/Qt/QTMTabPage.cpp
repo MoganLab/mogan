@@ -195,6 +195,11 @@ QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
   QString cleanTitle;
   m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
   setText (cleanTitle);
+#ifdef LIII_DEBUG
+  cout << "[1106] applyDisplayTitle rawTitle=\"" << from_qstring (rawTitle)
+       << "\" cleanTitle=\"" << from_qstring (cleanTitle)
+       << "\" m_isDirty=" << (m_isDirty ? "true" : "false") << LF;
+#endif
 }
 
 void
