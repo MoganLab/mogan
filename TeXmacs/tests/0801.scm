@@ -86,18 +86,18 @@
              (julia-script (get-system-path "/plugins/julia/julia/julia.jl"))
              (input-lines (list "1 + 2"
                                 "<EOF>"
-                                "? readdir"
+                                "?sin"
                                 "<EOF>"
-                                "[1.0 1.0; 1.0 1.0]"
+                                "sin(fill(1.0, (2,2)))"
                                 "<EOF>"
                                 "sqrt(-1.0)"
                                 "<EOF>"
-                                "nonexistent_variable_0801"
+                                "non_existent_variable"
                                 "<EOF>"
-                                ";echo \"hello from shell\""
+                                "readdir()"
                                 "<EOF>"
                                 "using Markdown"
-                                "Markdown.parse(\"hello **world**\")"
+                                "Markdown.parse(\"# Title\nthis is **bold** font.\n\nthis is a list:\n- A\n - B\")"
                                 "<EOF>")))
         
         ;; Clean up old files if they exist
@@ -117,12 +117,14 @@
           ;; Assertions based on "How to Test" in 0801.md
           (check (string-contains? output "verbatim:3") => #t)
           (check (string-contains? output "verbatim:HELP:") => #t)
-          (check (string-contains? output "readdir") => #t)
-          (check (string-contains? output "Matrix{Float64}") => #t)
+          (check (string-contains? output "2×2 Matrix{Float64}:") => #t)
           (check (string-contains? output "DomainError") => #t)
           (check (string-contains? output "UndefVarError") => #t)
-          (check (string-contains? output "hello from shell") => #t)
-          (check (string-contains? output "hello <strong>world</strong>") => #t)
+          (check (string-contains? output "Vector{String}:") => #t)
+          (check (string-contains? output "<h1>Title</h1>") => #t)
+          (check (string-contains? output "<p>this is <strong>bold</strong> font.</p>") => #t)
+          (check (string-contains? output "<p>this is a list:</p>") => #t)
+          (check (string-contains? output "<li><p>A</p>") => #t)
         ) ;let
 
         ;; Clean up
