@@ -58,35 +58,17 @@
       (os-call cmd)
       (os-call (string-append "/bin/sh -c '" cmd "'"))))
 
-(define (shell-echo-unescape line)
-  (let loop ((chars (string->list line)) (result '()))
-    (if (null? chars)
-        (list->string (reverse result))
-        (let ((c (car chars)))
-          (if (and (char=? c #\\) (not (null? (cdr chars))))
-              (let ((next (cadr chars)))
-                (if (or (char=? next #\\) (char=? next #\"))
-                    (loop (cddr chars) (cons next result))
-                    (loop (cdr chars) (cons c result))))
-              (loop (cdr chars) (cons c result)))))))
-
-(define (bash-echo-content line)
-  (shell-echo-unescape (shell-echo-unescape line)))
-
-;; Helper to write lines physically using cross-platform shell echo
+;; Helper to write lines physically using Scheme IO
 (define (write-physical-input filepath lines first?)
-  (if (os-windows?)
-      (let ((port (open-output-file filepath)))
-        (let loop ((lines lines))
-          (unless (null? lines)
-            (display (bash-echo-content (car lines)) port)
-            (display "\n" port)
-            (loop (cdr lines))))
-        (close-output-port port))
-      (unless (null? lines)
-        (let ((op (if first? " > " " >> ")))
-          (os-call (string-append "/bin/sh -c 'echo \"" (car lines) "\"" op filepath "'"))
-          (write-physical-input filepath (cdr lines) #f)))))
+  (if first?
+      (when (physical-file-exists? filepath) (physical-remove filepath)))
+  (let ((port (open-output-file filepath)))
+    (let loop ((rest lines))
+      (unless (null? rest)
+        (display (car rest) port)
+        (newline port)
+        (loop (cdr rest))))
+    (close-output-port port)))
 
 ;; 1. Scheme-side unit tests
 (define (test-julia-scheme-side)
@@ -112,17 +94,17 @@
                                 "<EOF>"
                                 "nonexistent_variable_0801"
                                 "<EOF>"
-                                ";echo \\\"hello from shell\\\""
+                                ";echo \"hello from shell\""
                                 "<EOF>"
                                 "using Markdown"
-                                "Markdown.parse(\\\"hello **world**\\\")"
+                                "Markdown.parse(\"hello **world**\")"
                                 "<EOF>")))
         
         ;; Clean up old files if they exist
         (when (physical-file-exists? input-path) (physical-remove input-path))
         (when (physical-file-exists? output-path) (physical-remove output-path))
 
-        ;; Write input commands physically using shell echo helper
+        ;; Write input commands physically
         (write-physical-input input-path input-lines #t)
 
         ;; Execute the julia session via cross-platform shell command
@@ -132,7 +114,6 @@
 
         ;; Read the output file physically
         (let ((output (read-physical-file output-path)))
-          ; (display "ACTUAL SESSION OUTPUT (0801): ") (display output) (newline)
           ;; Assertions based on "How to Test" in 0801.md
           (check (string-contains? output "verbatim:3") => #t)
           (check (string-contains? output "verbatim:HELP:") => #t)
