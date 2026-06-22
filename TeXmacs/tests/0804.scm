@@ -54,21 +54,42 @@
 ;; Helper to execute commands cross-platform using the correct system shell
 (define (run-shell-command cmd)
   (if (os-windows?)
-      (os-call (string-append "cmd.exe /c \"" cmd "\""))
+      (os-call cmd)
       (os-call (string-append "/bin/sh -c '" cmd "'"))))
+
+(define (shell-echo-unescape line)
+  (let loop ((chars (string->list line)) (result '()))
+    (if (null? chars)
+        (list->string (reverse result))
+        (let ((c (car chars)))
+          (if (and (char=? c #\\) (not (null? (cdr chars))))
+              (let ((next (cadr chars)))
+                (if (or (char=? next #\\) (char=? next #\"))
+                    (loop (cddr chars) (cons next result))
+                    (loop (cdr chars) (cons c result))))
+              (loop (cdr chars) (cons c result)))))))
+
+(define (bash-echo-content line)
+  (shell-echo-unescape (shell-echo-unescape line)))
 
 ;; Helper to write lines physically using cross-platform shell echo
 (define (write-physical-input filepath lines first?)
-  (unless (null? lines)
-    (let ((op (if first? " > " " >> ")))
-      (if (os-windows?)
-          (os-call (string-append "cmd.exe /c \"echo " (car lines) op filepath "\""))
-          (os-call (string-append "/bin/sh -c 'echo \"" (car lines) "\"" op filepath "'")))
-      (write-physical-input filepath (cdr lines) #f))))
+  (if (os-windows?)
+      (let ((port (open-output-file filepath)))
+        (let loop ((lines lines))
+          (unless (null? lines)
+            (display (bash-echo-content (car lines)) port)
+            (display "\n" port)
+            (loop (cdr lines))))
+        (close-output-port port))
+      (unless (null? lines)
+        (let ((op (if first? " > " " >> ")))
+          (os-call (string-append "/bin/sh -c 'echo \"" (car lines) "\"" op filepath "'"))
+          (write-physical-input filepath (cdr lines) #f)))))
 
 ;; Check if Symbolics Julia packages are available
 (define (julia-packages-available?)
-  (and (url-exists-in-path? "julia")
+  (and (supports-julia?)
        (== (run-shell-command (if (os-windows?)
                                   "julia --startup-file=no -e \"using Symbolics, Latexify, LaTeXStrings\""
                                   "env -u LD_LIBRARY_PATH julia --startup-file=no -e \"using Symbolics, Latexify, LaTeXStrings\"")) 0)))
@@ -154,7 +175,7 @@
         (physical-remove input-path)
         (physical-remove output-path)
       ) ;let
-      (display "Skipping physical Julia symbolic tests because Julia or required packages (Symbolics, Latexify, LaTeXStrings) are not installed.\n")
+      (display "Skipping physical Julia symbolic tests because Julia is not supported or required packages (Symbolics, Latexify, LaTeXStrings) are not installed.\n")
   ) ;if
 ) ;define
 

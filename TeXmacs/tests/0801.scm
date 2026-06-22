@@ -55,17 +55,38 @@
 ;; Helper to execute commands cross-platform using the correct system shell
 (define (run-shell-command cmd)
   (if (os-windows?)
-      (os-call (string-append "cmd.exe /c \"" cmd "\""))
+      (os-call cmd)
       (os-call (string-append "/bin/sh -c '" cmd "'"))))
+
+(define (shell-echo-unescape line)
+  (let loop ((chars (string->list line)) (result '()))
+    (if (null? chars)
+        (list->string (reverse result))
+        (let ((c (car chars)))
+          (if (and (char=? c #\\) (not (null? (cdr chars))))
+              (let ((next (cadr chars)))
+                (if (or (char=? next #\\) (char=? next #\"))
+                    (loop (cddr chars) (cons next result))
+                    (loop (cdr chars) (cons c result))))
+              (loop (cdr chars) (cons c result)))))))
+
+(define (bash-echo-content line)
+  (shell-echo-unescape (shell-echo-unescape line)))
 
 ;; Helper to write lines physically using cross-platform shell echo
 (define (write-physical-input filepath lines first?)
-  (unless (null? lines)
-    (let ((op (if first? " > " " >> ")))
-      (if (os-windows?)
-          (os-call (string-append "cmd.exe /c \"echo " (car lines) op filepath "\""))
-          (os-call (string-append "/bin/sh -c 'echo \"" (car lines) "\"" op filepath "'")))
-      (write-physical-input filepath (cdr lines) #f))))
+  (if (os-windows?)
+      (let ((port (open-output-file filepath)))
+        (let loop ((lines lines))
+          (unless (null? lines)
+            (display (bash-echo-content (car lines)) port)
+            (display "\n" port)
+            (loop (cdr lines))))
+        (close-output-port port))
+      (unless (null? lines)
+        (let ((op (if first? " > " " >> ")))
+          (os-call (string-append "/bin/sh -c 'echo \"" (car lines) "\"" op filepath "'"))
+          (write-physical-input filepath (cdr lines) #f)))))
 
 ;; 1. Scheme-side unit tests
 (define (test-julia-scheme-side)
@@ -76,7 +97,7 @@
 
 ;; 2. Session execution integration tests
 (define (test-julia-session)
-  (if (url-exists-in-path? "julia")
+  (if (supports-julia?)
       (let* ((temp-dir (os-temp-dir))
              (input-path (url->system (system->url (string-append temp-dir "/0801_input.txt"))))
              (output-path (url->system (system->url (string-append temp-dir "/0801_output.txt"))))
@@ -127,7 +148,7 @@
         (physical-remove input-path)
         (physical-remove output-path)
       ) ;let
-      (display "Skipping physical Julia session tests because Julia is not in the path.\n")
+      (display "Skipping physical Julia session tests because Julia is not supported.\n")
   ) ;if
 ) ;define
 
