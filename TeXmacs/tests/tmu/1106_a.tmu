@@ -1,4 +1,4 @@
-<TMU|<tuple|1.1.0|2026.2.4>>
+<TMU|<tuple|1.1.0|2026.2.6>>
 
 <style|<tuple|generic|chinese|table-captions-above|number-europe|preview-ref>>
 
@@ -10,5 +10,6 @@
   <\collection>
     <associate|page-medium|paper>
     <associate|page-screen-margin|false>
+    <associate|stem-doc-id|745D6745-9596-4000-8B80-3A32955ADF50>
   </collection>
 </initial>
