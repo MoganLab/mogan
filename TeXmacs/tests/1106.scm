@@ -17,6 +17,10 @@
 ;;   rebuild + paint. The [1106] buffer_modified and [1106-qt] applyDisplayTitle
 ;;   debug logs can then be watched live in the terminal.
 ;;
+;;   Fixtures live under $TEXMACS_PATH/tests/tmu and are copied to /tmp at the
+;;   start of every run so save-buffer / edits never mutate the checked-in
+;;   copies.
+;;
 ;;   Because exec-delayed-at runs asynchronously, test_1106 schedules the
 ;;   whole sequence as a chain of delayed tasks and lets the last task call
 ;;   (quit-TeXmacs) itself; test_1106 returns immediately so the event loop
@@ -30,8 +34,20 @@
 
 (texmacs-module (texmacs tests 1106))
 
-(define (tmu-path name)
+(define (fixture-name name)
   (string-append "$TEXMACS_PATH/tests/tmu/" name)
+) ;define
+
+(define (tmp-name name)
+  (string->url (string-append "/tmp/" name))
+) ;define
+
+(define (refresh-fixture name)
+  (let ((src (string->url (fixture-name name))) (dst (tmp-name name)))
+    (when (url-exists? src)
+      (system-copy src dst)
+    ) ;when
+  ) ;let
 ) ;define
 
 (define (view-for-buffer buf views)
@@ -73,9 +89,11 @@
 ) ;define
 
 (tm-define (test_1106)
-  (let* ((path-a (string->url (tmu-path "1106_a.tmu")))
-         (path-b (string->url (tmu-path "1106_b.tmu")))
-        ) ;
+  ;; Refresh /tmp copies from $TEXMACS_PATH fixtures so the checked-in files
+  ;; never get mutated by save-buffer during the run.
+  (refresh-fixture "1106_a.tmu")
+  (refresh-fixture "1106_b.tmu")
+  (let* ((path-a (tmp-name "1106_a.tmu")) (path-b (tmp-name "1106_b.tmu")))
     (let ((steps (list (cons "load a" (lambda () (load-buffer path-a)))
                    (cons "load b" (lambda () (load-buffer path-b)))
                  ) ;list
