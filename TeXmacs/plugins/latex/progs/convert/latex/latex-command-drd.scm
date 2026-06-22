@@ -815,6 +815,8 @@
   lim
   liminf
   limsup
+  varliminf
+  varlimsup
   ln
   log
   max
