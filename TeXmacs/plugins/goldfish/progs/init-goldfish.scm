@@ -16,19 +16,22 @@
 (lazy-format (data r7rs) r7rs)
 
 (define (goldfish-serialize lan t)
-  (let* ((u (pre-serialize lan t))
-         (s (texmacs->code (stree->tree u) "SourceCode")))
-    (string-append s "\n<EOF>\n")))
+  (let* ((u (pre-serialize lan t)) (s (texmacs->code (stree->tree u) "SourceCode")))
+    (string-append s "\n<EOF>\n")
+  ) ;let*
+) ;define
 
 (define (goldfish-launch mode)
-  (string-append
-    (string-quote (url->system (find-binary-goldfish)))
+  (string-append (string-quote (url->system (find-binary-goldfish)))
     " "
-    (string-quote
-      (string-append (url->system (get-texmacs-path))
-                     "/plugins/goldfish/goldfish/tm-goldfish.scm"))
+    (string-quote (string-append (url->system (get-texmacs-path))
+                    "/plugins/goldfish/goldfish/tm-goldfish.scm"
+                  ) ;string-append
+    ) ;string-quote
     " -m "
-    mode))
+    mode
+  ) ;string-append
+) ;define
 
 (plugin-configure goldfish
   (:require (has-binary-goldfish?))
@@ -36,4 +39,5 @@
   (:launch "sicp" ,(goldfish-launch "sicp"))
   (:launch "r7rs" ,(goldfish-launch "r7rs"))
   (:serializer ,goldfish-serialize)
-  (:session "Goldfish Scheme"))
+  (:session "Goldfish Scheme")
+) ;plugin-configure
