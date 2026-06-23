@@ -13,7 +13,9 @@
 #define TM_SERVER_H
 
 #include "../Mogan/app_type.hpp"
+#ifndef OS_WASM
 #include "QTMOAuth.hpp"
+#endif
 #include "tm_buffer.hpp"
 #include "tm_config.hpp"
 #include "tm_data.hpp"
@@ -53,10 +55,12 @@ public:
   void   login ();
   bool   is_logged_in ();
 
+#ifndef OS_WASM
   QTMOAuth* getAccount () const { return m_account; }
 
 private:
   QTMOAuth* m_account= nullptr;
+#endif // OS_WASM
 };
 
 #endif // defined TM_SERVER_H

@@ -39,7 +39,9 @@
 #endif
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
+#ifndef OS_WASM
 #include "Qt/QTMOAuth.hpp"
+#endif
 #include "Qt/qt_gui.hpp"
 #include "Qt/qt_guide_window.hpp"
 #include "Qt/qt_utilities.hpp"
@@ -987,6 +989,10 @@ TeXmacs_main (int argc, char** argv) {
 
 static void
 perform_startup_login_request () {
+#if defined(OS_WASM)
+  g_startup_login_requested= false;
+  return;
+#else
   if (!is_server_started ()) {
     g_startup_login_requested= true;
     return;
@@ -1001,10 +1007,14 @@ perform_startup_login_request () {
   }
 
   g_startup_login_requested= true;
+#endif
 }
 
 static void
 attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
+#if defined(OS_WASM)
+  (void) dialog;
+#else
   QPointer<QWK::StartupLoginDialog> guardedDialog (dialog);
   auto observer= std::make_shared<std::function<void ()>> ();
 
@@ -1022,6 +1032,7 @@ attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
       return;
     }
 
+#ifndef OS_WASM
     QTMOAuth* account= server->getAccount ();
     QObject::connect (account, &QTMOAuth::loginStateChanged, guardedDialog,
                       [guardedDialog] (bool loggedIn) {
@@ -1029,11 +1040,13 @@ attach_startup_login_success_observer (QWK::StartupLoginDialog* dialog) {
                           guardedDialog->notifyLoginSucceeded ();
                         }
                       });
+#endif
 
     if (account->isLoggedIn ()) guardedDialog->notifyLoginSucceeded ();
   };
 
   QTimer::singleShot (0, dialog, *observer);
+#endif
 }
 
 bool
@@ -1042,6 +1055,11 @@ show_startup_login_dialog () {
   if (headless_mode) {
     return true;
   }
+
+#if defined(OS_WASM)
+  // WASM builds do not use the startup login dialog.
+  return true;
+#endif
 
   if (!QWK::StartupLoginDialog::shouldShow ()) {
     // Normal startup, no need to show login dialog

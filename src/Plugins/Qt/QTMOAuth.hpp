@@ -12,11 +12,11 @@
 #ifndef QTMOAUTH_H
 #define QTMOAUTH_H
 
-#include <QtNetworkAuth/qoauth2authorizationcodeflow.h>
-
+#ifndef OS_WASM
 #include <QtNetwork/qnetworkrequestfactory.h>
+#include <QtNetworkAuth/qoauth2authorizationcodeflow.h>
 #include <QtNetworkAuth/qoauthhttpserverreplyhandler.h>
-
+#endif
 #include <QtCore/qabstractitemmodel.h>
 #include <QtCore/qjsonobject.h>
 #include <QtCore/qpointer.h>
@@ -52,15 +52,17 @@ private:
 public:
   void clearInvalidTokens ();
 
+#ifndef OS_WASM
   QRestAccessManager*           network= nullptr;
   QOAuth2AuthorizationCodeFlow  oauth2;
   QOAuthHttpServerReplyHandler* m_reply;
-  QTimer*                       m_tokenCheckTimer;
-  QString                       m_refreshToken;
-  qint64                        m_tokenExpiryTime= 0;
-  QString                       m_codeVerifier;
-  QString                       m_codeChallenge;
-  int                           m_port;
+#endif
+  QTimer* m_tokenCheckTimer;
+  QString m_refreshToken;
+  qint64  m_tokenExpiryTime= 0;
+  QString m_codeVerifier;
+  QString m_codeChallenge;
+  int     m_port;
 };
 
 #endif
