@@ -196,11 +196,7 @@
                                code
                              ) ;let-values
                             ) ;
-                            ((pair? cmd-spec)
-                             (let-values (((out err code) (run-values command)))
-                               code
-                             ) ;let-values
-                            ) ;
+                            ((pair? cmd-spec) (let-values (((out err code) (run-values command))) code))
                             (else (os-call cmd-spec))
                       ) ;cond
               ) ;result
@@ -246,11 +242,22 @@
     ) ;define
 
     (define (%valid-stdout? val)
-      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (string? val))
+      (or (not val)
+        (eq? val 'capture)
+        (eq? val 'discard)
+        (eq? val 'inherit)
+        (string? val)
+      ) ;or
     ) ;define
 
     (define (%valid-stderr? val)
-      (or (not val) (eq? val 'capture) (eq? val 'discard) (eq? val 'inherit) (eq? val 'stdout) (string? val))
+      (or (not val)
+        (eq? val 'capture)
+        (eq? val 'discard)
+        (eq? val 'inherit)
+        (eq? val 'stdout)
+        (string? val)
+      ) ;or
     ) ;define
 
     (define (run-values command . opts)
@@ -271,10 +278,18 @@
           (%check-string-command cmd-spec)
         ) ;when
         (unless (%valid-stdout? stdout)
-          (value-error (format #f "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, or string" stdout))
+          (value-error (format #f
+                         "Invalid :stdout value: ~a, expected 'capture, 'discard, 'inherit, or string"
+                         stdout
+                       ) ;format
+          ) ;value-error
         ) ;unless
         (unless (%valid-stderr? stderr)
-          (value-error (format #f "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'stdout, or string" stderr))
+          (value-error (format #f
+                         "Invalid :stderr value: ~a, expected 'capture, 'discard, 'inherit, 'stdout, or string"
+                         stderr
+                       ) ;format
+          ) ;value-error
         ) ;unless
         (when cwd
           (set! orig-dir (getcwd))
@@ -326,12 +341,13 @@
             (has-stderr? (%keyword-value :stderr opts #f))
            ) ;
         (let-values (((out err code)
-                      (apply run-values command
+                      (apply run-values
+                        command
                         (append (if has-stdout? '() (list :stdout 'capture))
-                                (if has-stderr? '() (list :stderr 'capture))
-                                opts
+                          (if has-stderr? '() (list :stderr 'capture))
+                          opts
                         ) ;append
-                      ) ;run-values
+                      ) ;apply
                      ) ;
                     ) ;
           (if (zero? code) (from-right out) (from-left (cons code err)))

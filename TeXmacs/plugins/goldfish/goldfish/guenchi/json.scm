@@ -299,7 +299,9 @@
                  (let ((len (vector-length x)))
                    (do ((i 0 (+ i 1)))
                      ((= i len))
-                     (when (> i 0) (display "," out))
+                     (when (> i 0)
+                       (display "," out)
+                     ) ;when
                      (let ((k (vector-ref x i)))
                        (cond ((vector? k) (write-json k))
                              ((pair? k) (write-json k))
@@ -309,13 +311,16 @@
                    ) ;do
                  ) ;let
                  (display "]" out)
-                ) ;vector?
+                ) ;
                 ((pair? x)
                  (display "{" out)
-                 (let loop ((lst x) (i 0))
+                 (let loop
+                   ((lst x) (i 0))
                    (unless (null? lst)
                      (let ((d (car lst)))
-                       (when (> i 0) (display "," out))
+                       (when (> i 0)
+                         (display "," out)
+                       ) ;when
                        (if (null? d)
                          (display "{}" out)
                          (begin
@@ -340,7 +345,7 @@
                    ) ;unless
                  ) ;let
                  (display "}" out)
-                ) ;pair?
+                ) ;
                 (else (write-scalar x))
           ) ;cond
         ) ;define
