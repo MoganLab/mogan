@@ -1054,6 +1054,9 @@ latex_symbol_to_tree (string s) {
 
     if (latex_type (s) == "ignore") return "";
 
+    if (s == "varlimsup") return compound ("varlimsup");
+    if (s == "varliminf") return compound ("varliminf");
+
     if (latex_type (s) == "operator" || latex_type (s) == "control") return s;
     if (s == "bignone") return tree (BIG, ".");
     if (s == "Return") return tree (APPLY, "algo-return");
