@@ -82,8 +82,8 @@
 (tm-define (bib-preprocessing t)
   (:mode bib-gbt7714-2015-author-year?)
   ;; 初始化哈希表
-  (set! gbt-year-suffix-table (make-hash-table 100))
-  (set! gbt-author-year-count-table (make-hash-table 100))
+  (set! gbt-year-suffix-table (s7-make-hash-table 100))
+  (set! gbt-author-year-count-table (s7-make-hash-table 100))
   ;; 第一遍：统计每个作者-年份组合的文献数量（所有条目）
   (for-each (lambda (entry)
               (when (func? entry 'bib-entry)

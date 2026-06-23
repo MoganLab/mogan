@@ -18,7 +18,7 @@
         (liii base)
         (liii list))
 
-(define code-table (make-hash-table))
+(define code-table (s7-make-hash-table))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Building the initial table (without substitutions)
@@ -39,7 +39,7 @@
 
 (define (build-table t)
   (let* ((l (get-all-chunks))
-         (ht (make-hash-table)))
+         (ht (s7-make-hash-table)))
     (for (c l)
       (let* ((name (tm->string (tm-ref c 0)))
              (body0 (tm-ref c 3))
@@ -178,7 +178,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (verbatim-table ht)
-  (with r (make-hash-table)
+  (with r (s7-make-hash-table)
     (for-each
       (lambda (key-val)
         (let* ((key (car key-val))

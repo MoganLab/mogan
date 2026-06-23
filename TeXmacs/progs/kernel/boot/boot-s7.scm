@@ -50,7 +50,7 @@
 (with-let (rootlet)
   (define *texmacs-module* (rootlet))
   (define *module-name* '(texmacs))
-  (define *modules* (make-hash-table))
+  (define *modules* (s7-make-hash-table))
 ) ;with-let
 
 (define *texmacs-user-module* (curlet))
@@ -187,7 +187,7 @@
     `(begin
        (define *module-name* (quote ,name))
        (define *exports* ())
-       (hash-table-set! *modules* (quote ,name) (current-module))
+       (s7-hash-table-set! *modules* (quote ,name) (current-module))
        ,@l)
   ) ;let
 ) ;define-macro
