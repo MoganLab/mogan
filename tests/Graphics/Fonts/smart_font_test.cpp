@@ -89,9 +89,9 @@ TestSmartFont::test_resolve_chinese_puncts () {
   // sys-chinese-rm-medium-right-10-600-smart
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
-  auto   puncts       = array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
-                                       "<#201C>", "<#201D>"  // Chinese: 双引号
-           );
+  auto puncts= array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
+                              "<#201C>", "<#201D>"  // Chinese: 双引号
+  );
 #ifdef OS_WIN
   string cjk_font_name= "SimSun";
 #else
@@ -108,11 +108,11 @@ void
 TestSmartFont::test_resolve_200B () {
   // sys-chinese-rm-medium-right-10-600-smart
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
-  smart_font_rep* fn_rep       = (smart_font_rep*) fn.rep;
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
 #ifdef OS_WIN
-  string          cjk_font_name= "SimSun";
+  string cjk_font_name= "SimSun";
 #else
-  string          cjk_font_name= "Noto CJK SC";
+  string cjk_font_name= "Noto CJK SC";
 #endif
 
   // U+200B 零宽空格应该被解析到 CJK 字体

@@ -144,10 +144,10 @@ private slots:
   // 测试 Documents 目录不存在时的自动创建：验证 mkpath 回退逻辑
   void test_generate_without_documents_dir () {
     // 被测函数实际检查的是 Documents/LiiiSTEM/library 子目录，删这个子目录即可
-    QString libraryDir=
-        QDir (tempDocsDir_).filePath ("LiiiSTEM/library");
+    QString libraryDir= QDir (tempDocsDir_).filePath ("LiiiSTEM/library");
 
-    // Windows 上刚写的文件句柄可能尚未释放，removeRecursively 会偶发失败，重试几次
+    // Windows 上刚写的文件句柄可能尚未释放，removeRecursively
+    // 会偶发失败，重试几次
     for (int attempt= 0; attempt < 5; ++attempt) {
       if (!QDir (libraryDir).exists ()) break;
       if (QDir (libraryDir).removeRecursively ()) break;

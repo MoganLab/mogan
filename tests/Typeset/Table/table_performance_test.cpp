@@ -165,8 +165,8 @@ TestTablePerformance::test_50x50_text_table () {
   edit_env env       = create_test_env ();
   tree     table_tree= create_matrix_tree (50, 50);
 
-  auto typeset_time= measure_table_creation_time (
-      env, table_tree, "50x50 text table creation");
+  auto typeset_time= measure_table_creation_time (env, table_tree,
+                                                  "50x50 text table creation");
 
   QVERIFY (typeset_time >= 0);
 }
