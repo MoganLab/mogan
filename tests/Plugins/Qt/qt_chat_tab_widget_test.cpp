@@ -33,6 +33,8 @@ private slots:
     QTChatTabWidget::setGlobalSidebarCollapsed (false);
   }
 
+  void cleanup () { cleanup_qt_top_level_widgets (); }
+
   void test_count_input_lines_empty_document () {
     tree empty_doc= tree (DOCUMENT, "");
     QCOMPARE (ChatConversationPanel::count_input_lines (empty_doc), 1);

@@ -11,6 +11,8 @@
 
 #include "base.hpp"
 #include "file.hpp"
+#include <QApplication>
+#include <QWidget>
 #include <QtTest/QtTest>
 
 #ifndef KERNEL_L1
@@ -29,4 +31,14 @@ init_lolly () {
   string s;
   load_string (url_system ("$TEXMACS_PATH/LICENSE"), s, true);
   QVERIFY (N (s) > 0);
+}
+
+void
+cleanup_qt_top_level_widgets () {
+  if (qApp == nullptr) return;
+  const QWidgetList tops= qApp->topLevelWidgets ();
+  for (QWidget* w : tops) {
+    if (w->isVisible ()) w->hide ();
+  }
+  qApp->processEvents ();
 }

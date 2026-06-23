@@ -61,6 +61,26 @@
 2. 构建方式：`xmake b xxx_test`
 3. 运行方式：`xmake r xxx_test`
 
+### Qt 窗口测试
+
+测试中 `show()` 了顶层 `QWidget` 的用例，必须在测试类的 `cleanup()` 槽里调用共享工具函数 `cleanup_qt_top_level_widgets()`（声明在 `tests/Base/base.hpp`）：
+
+```cpp
+class TestMyWidget : public QObject {
+  Q_OBJECT
+private slots:
+  void init () { init_lolly (); }
+  void cleanup () { cleanup_qt_top_level_widgets (); }
+  // ...
+};
+```
+
+**原因**：用例中途断言失败时，`new` 出来的 widget 不会被 `delete`，泄漏的窗口会持续显示，导致：
+- 批量跑 `xmake run --group=tests` 时整个套件卡住，需要手动关弹窗
+- 下一个测试进程启动时 Qt 的 `DllMain` 初始化失败（Windows 错误码 `0xC000013A`）
+
+`cleanup()` 会在每条用例结束后执行，即使断言失败也会兜底隐藏窗口。
+
 ## 构建命令
 
 主项目构建：`xmake b stem`

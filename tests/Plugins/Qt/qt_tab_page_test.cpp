@@ -14,6 +14,8 @@ class TestQTMTabPage : public QObject {
 private slots:
   void init () { init_lolly (); }
 
+  void cleanup () { cleanup_qt_top_level_widgets (); }
+
   void test_dirty_title_moves_star_to_close_slot () {
     QAction    titleAction (QString::fromUtf8 ("very-long-file-name.tm *"),
                             nullptr);

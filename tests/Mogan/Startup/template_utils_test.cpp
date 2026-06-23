@@ -143,18 +143,24 @@ private slots:
 
   // 测试 Documents 目录不存在时的自动创建：验证 mkpath 回退逻辑
   void test_generate_without_documents_dir () {
-    QString docsDir= tempDocsDir_;
-    if (QDir (docsDir).exists ()) {
-      QVERIFY (QDir (docsDir).removeRecursively ());
+    // 被测函数实际检查的是 Documents/LiiiSTEM/library 子目录，删这个子目录即可
+    QString libraryDir=
+        QDir (tempDocsDir_).filePath ("LiiiSTEM/library");
+
+    // Windows 上刚写的文件句柄可能尚未释放，removeRecursively 会偶发失败，重试几次
+    for (int attempt= 0; attempt < 5; ++attempt) {
+      if (!QDir (libraryDir).exists ()) break;
+      if (QDir (libraryDir).removeRecursively ()) break;
+      QTest::qSleep (50);
     }
+    QVERIFY2 (!QDir (libraryDir).exists (),
+              qPrintable ("Failed to remove " + libraryDir));
 
     QString path= qt_generate_document_save_path ("NoDocsTest");
     QVERIFY (!path.isEmpty ());
     QVERIFY (path.endsWith ("NoDocsTest.tmu"));
-    QVERIFY (path.startsWith (docsDir));
-    QVERIFY (QDir (docsDir).exists ());
-
-    QDir ().mkpath (docsDir);
+    QVERIFY (path.startsWith (libraryDir));
+    QVERIFY (QDir (libraryDir).exists ());
   }
 
   // 测试中文路径：验证非 ASCII 字符在路径中的处理

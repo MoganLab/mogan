@@ -1528,7 +1528,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (mouseEvent->button () == Qt::LeftButton) {
         browseDragging_    = true;
         browseDragActive_  = false;
-        browseDragStartPos_= mouseEvent->globalPosition ().toPoint ();
+        browseDragStartPos_= viewportPos;
         scroller_->handleInput (QScroller::InputPress, viewportPos,
                                 mouseEvent->timestamp ());
         scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
@@ -1539,9 +1539,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     else if (!rectSelectMode_ && browseDragging_ &&
              event->type () == QEvent::MouseMove) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      int          delta=
-          (mouseEvent->globalPosition ().toPoint () - browseDragStartPos_)
-              .manhattanLength ();
+      int          delta= (viewportPos - browseDragStartPos_).manhattanLength ();
       if (!browseDragActive_ && delta > QApplication::startDragDistance ()) {
         browseDragActive_= true;
       }

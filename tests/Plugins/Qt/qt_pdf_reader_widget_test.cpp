@@ -44,6 +44,8 @@ private slots:
 
   void init () { init_lolly (); }
 
+  void cleanup () { cleanup_qt_top_level_widgets (); }
+
   void test_creation () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QVERIFY (widget != nullptr);
