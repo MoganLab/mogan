@@ -12,6 +12,7 @@ on:
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
   pull_request:
     branches: [main]
     paths:
@@ -24,6 +25,7 @@ on:
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
 
 env:
   XMAKE_ROOT: y

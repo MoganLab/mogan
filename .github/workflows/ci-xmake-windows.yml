@@ -15,6 +15,7 @@ on:
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
       - '.github/workflows/ci-xmake-windows.yml'
+      - '3rdparty/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -29,6 +30,7 @@ on:
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
       - '.github/workflows/ci-xmake-windows.yml'
+      - '3rdparty/**'
   workflow_dispatch:
 
 jobs:
