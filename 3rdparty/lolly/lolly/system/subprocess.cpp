@@ -77,34 +77,38 @@ check_output (string s, string& result, bool stderr_only, int64_t timeout) {
   tb_process_ref_t process= tb_process_init_cmd (cmd_, &attr);
   if (process) {
     // read pipe data
-    tb_size_t read= 0;
-    // TODO: should be a config here
+    result = "";
     tb_byte_t data[8192]= {0};
-    tb_size_t size      = sizeof (data);
+    tb_size_t size      = sizeof (data) - 1; // Leave room for null terminator just in case
     tb_bool_t wait      = tb_false;
-    while (read < size) {
-      tb_long_t real= tb_pipe_file_read (file[0], data + read, size - read);
+    while (true) {
+      tb_long_t real= tb_pipe_file_read (file[0], data, size);
       if (real > 0) {
-        read+= real;
+        data[real] = '\0';
+        result += as_string ((tb_char_t*) data);
         wait= tb_false;
       }
       else if (!real && !wait) {
         tb_long_t ok   = 0;
         int       retry= 25;
-        if (read > 0) {
+        // if we just read something previously, wait shorter next time? (Wait, real is 0 here)
+        // Original logic checked if `read>0` which was the total read bytes, actually we can just use result size
+        if (N(result) > 0) {
           retry= 2;
         }
         while (retry > 0 && (ok == 0)) {
           ok   = tb_pipe_file_wait (file[0], TB_PIPE_EVENT_READ, timeout);
           retry= retry - 1;
         }
-        tb_check_break (ok > 0);
+        if (ok <= 0) {
+          // optionally log/debug message if timeout hit
+          // std::cerr << "check_output: timeout hit waiting for pipe read\n";
+          break; // return whatever output was captured
+        }
         wait= tb_true;
       }
       else break;
     }
-
-    result= as_string ((tb_char_t*) data);
 
     // wait process
     tb_process_wait (process, &status, timeout);
