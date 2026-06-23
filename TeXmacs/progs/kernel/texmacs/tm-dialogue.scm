@@ -363,7 +363,9 @@
 (define (recent-files-add recent-files path name)
   (let-njson ((item (json->njson `((,"path" unquote path)
                                    (,"name" unquote name)
-                                   (,"last_open" unquote (time-second (current-time)))
+                                   (,"last_open"
+                                    unquote
+                                    (time-second (current-time)))
                                    (,"open_count" unquote 1)
                                    (,"show" unquote #t))
                     ) ;json->njson
