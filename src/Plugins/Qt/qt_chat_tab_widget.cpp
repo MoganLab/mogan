@@ -848,7 +848,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
 
 ChatSidebar::~ChatSidebar () {
   // 标记析构进行中，阻止 titleEdit 的 editingFinished/returnPressed 信号
-  // 在 ~QWidget 派发 CloseEvent 时重入 endEditTitle（会访问正在销毁的 items_）。
+  // 在 ~QWidget 派发 CloseEvent 时重入 endEditTitle（会访问正在销毁的
+  // items_）。
   destroying_= true;
   for (auto it= items_.begin (); it != items_.end (); ++it) {
     if (it->titleEdit) it->titleEdit->disconnect (this);

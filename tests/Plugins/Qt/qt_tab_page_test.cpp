@@ -39,8 +39,9 @@ private slots:
     // macOS (Cocoa) 的 QTest::mouseMove 不会向未 grab 鼠标的 widget 派发
     // mouseMoveEvent，因此直接合成一个 MouseMove 事件投递给 tab，触发其
     // hover 检测逻辑（等价于 Windows 上鼠标移入关闭按钮区域）。
-    QMouseEvent moveEvent (QEvent::MouseMove, closeCenter, tab.mapToGlobal (closeCenter),
-                           Qt::NoButton, Qt::NoButton, Qt::NoModifier);
+    QMouseEvent moveEvent (QEvent::MouseMove, closeCenter,
+                           tab.mapToGlobal (closeCenter), Qt::NoButton,
+                           Qt::NoButton, Qt::NoModifier);
     QApplication::sendEvent (&tab, &moveEvent);
     QTRY_VERIFY (closeBtn->isVisible ());
   }

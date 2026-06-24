@@ -285,8 +285,8 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_; ///< sessionId → SidebarItem 映射
-  bool destroying_= false; ///< 析构进行中，禁止信号重入回调
+  QMap<string, SidebarItem> items_;            ///< sessionId → SidebarItem 映射
+  bool         destroying_            = false; ///< 析构进行中，禁止信号重入回调
   QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
   QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
   QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
