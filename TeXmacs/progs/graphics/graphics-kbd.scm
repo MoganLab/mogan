@@ -48,22 +48,29 @@
 (tm-define (graphics-zoom-out)
   (graphics-zoom 0.840896415))
 
+(tm-define (graphics-translate-origin dx dy)
+  (graphics-move-origin (string-append (number->string dx) "gw")
+                        (string-append (number->string dy) "gh")))
+
+(tm-define (graphics-move-origin-scaled dx dy factor)
+  (graphics-translate-origin (* dx factor) (* dy factor)))
+
 (tm-define (graphics-move-origin-left)
-  (graphics-move-origin "+0.01gw" "0gh"))
+  (graphics-translate-origin -0.01 0))
 (tm-define (graphics-move-origin-right)
-  (graphics-move-origin "-0.01gw" "0gh"))
+  (graphics-translate-origin 0.01 0))
 (tm-define (graphics-move-origin-down)
-  (graphics-move-origin "0gw" "+0.01gh"))
+  (graphics-translate-origin 0 -0.01))
 (tm-define (graphics-move-origin-up)
-  (graphics-move-origin "0gw" "-0.01gh"))
+  (graphics-translate-origin 0 0.01))
 (tm-define (graphics-move-origin-left-fast)
-  (graphics-move-origin "+0.1gw" "0gh"))
+  (graphics-move-origin-scaled -0.01 0 10))
 (tm-define (graphics-move-origin-right-fast)
-  (graphics-move-origin "-0.1gw" "0gh"))
+  (graphics-move-origin-scaled 0.01 0 10))
 (tm-define (graphics-move-origin-down-fast)
-  (graphics-move-origin "0gw" "+0.1gh"))
+  (graphics-move-origin-scaled 0 -0.01 10))
 (tm-define (graphics-move-origin-up-fast)
-  (graphics-move-origin "0gw" "-0.1gh"))
+  (graphics-move-origin-scaled 0 0.01 10))
 
 (tm-define (graphics-decrease-hsize)
   (graphics-change-extents "-0.1cm" "0cm"))
@@ -81,6 +88,17 @@
   (graphics-change-extents "0cm" "-1cm"))
 (tm-define (graphics-increase-vsize-fast)
   (graphics-change-extents "0cm" "+1cm"))
+
+(tm-define (graphics-toggle-arrow-with-text-mode)
+  (with mode (graphics-mode)
+    (and (func? mode 'edit 1)
+         (in? (cadr mode) '(arrow-with-text arrow-with-text*))
+         (begin
+           (graphics-set-mode
+            `(edit ,(if (== (cadr mode) 'arrow-with-text)
+                        'arrow-with-text*
+                        'arrow-with-text)))
+           #t))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Keyboard handling
@@ -136,6 +154,14 @@
   ("A-S-right" (graphics-increase-hsize-fast))
   ("A-S-down" (graphics-increase-vsize-fast))
   ("A-S-up" (graphics-decrease-vsize-fast))
+  ("F1" (graphics-set-mode '(edit point)))
+  ("F2" (graphics-set-mode '(edit line)))
+  ("F3" (graphics-set-mode '(edit cline)))
+  ("F4" (graphics-set-mode '(edit spline)))
+  ("F9" (graphics-set-mode '(edit text-at)))
+  ("F10" (graphics-set-mode '(edit math-at)))
+  ("F11" (graphics-set-mode '(edit document-at)))
+  ("F12" (graphics-set-mode '(hand-edit penscript)))
   ("backspace" (graphics-kbd-remove #f))
   ("delete" (graphics-kbd-remove #t))
   ("C-2" (graphics-set-grid-aspect 'detailed 2 #t))
@@ -217,7 +243,9 @@
 
 (tm-define (kbd-variant t forwards?)
   (:require (in-active-graphics?))
-  (graphics-choose-point (if forwards? 1 -1)))
+  (if (graphics-toggle-arrow-with-text-mode)
+      (noop)
+      (graphics-choose-point (if forwards? 1 -1))))
 
 (tm-define (graphics-kbd-remove forward?)
   (cond ((and (with-active-selection?)
