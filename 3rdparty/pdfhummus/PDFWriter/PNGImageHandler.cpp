@@ -74,7 +74,6 @@ static const std::string scDeviceRGB = "DeviceRGB";
 static const std::string scBitsPerComponent = "BitsPerComponent";
 static const std::string scSMask = "SMask";
 PDFImageXObject* CreateImageXObjectForData(png_structp png_ptr, png_infop info_ptr, png_bytep row, ObjectsContext* inObjectsContext) {
-	PDFImageXObjectList listOfImages;
 	PDFImageXObject* imageXObject = NULL;
 	PDFStream* imageStream = NULL;
 	EStatusCode status = eSuccess;
@@ -102,7 +101,12 @@ PDFImageXObject* CreateImageXObjectForData(png_structp png_ptr, png_infop info_p
 		ObjectIDType imageMaskObjectId = isAlpha ? inObjectsContext->GetInDirectObjectsRegistry().AllocateNewObjectID():0;
 		MyStringBuf alphaComponentsData;
 
-		inObjectsContext->StartNewIndirectObject(imageXObjectObjectId);
+		status = inObjectsContext->StartNewIndirectObject(imageXObjectObjectId);
+		if(status != eSuccess)
+		{
+			TRACE_LOG1("PNGImageHandler::CreateImageXObjectForData. Unexpected Error, could not start image object %ld", imageXObjectObjectId);
+			break;
+		}
 		DictionaryContext* imageContext = inObjectsContext->StartDictionary();
 
 		// type
@@ -168,11 +172,21 @@ PDFImageXObject* CreateImageXObjectForData(png_structp png_ptr, png_infop info_p
 			}
 		}
 
-		inObjectsContext->EndPDFStream(imageStream);
+		status = inObjectsContext->EndPDFStream(imageStream);
+		if(status != eSuccess)
+		{
+			TRACE_LOG("PNGImageHandler::CreateImageXObjectForData. Unexpected Error, could not finalize image stream");
+			break;
+		}
 
 		// if there's a soft mask, write it now
 		if (isAlpha) {
-			inObjectsContext->StartNewIndirectObject(imageMaskObjectId);
+			status = inObjectsContext->StartNewIndirectObject(imageMaskObjectId);
+			if(status != eSuccess)
+			{
+				TRACE_LOG1("PNGImageHandler::CreateImageXObjectForData. Unexpected Error, could not start image mask object %ld", imageMaskObjectId);
+				break;
+			}
 			DictionaryContext* imageMaskContext = inObjectsContext->StartDictionary();
 
 			// type
@@ -207,8 +221,13 @@ PDFImageXObject* CreateImageXObjectForData(png_structp png_ptr, png_infop info_p
 			OutputStreamTraits traits(writerMaskStream);
 			traits.CopyToOutputStream(&alphaWriteStream);
 
-			inObjectsContext->EndPDFStream(imageMaskStream);
+			status = inObjectsContext->EndPDFStream(imageMaskStream);
 			delete imageMaskStream;
+			if(status != eSuccess)
+			{
+				TRACE_LOG("PNGImageHandler::CreateImageXObjectForData. Unexpected Error, could not finalize image mask stream");
+				break;
+			}
 		}
 
 		imageXObject = new PDFImageXObject(imageXObjectObjectId, 1 == colorComponents ? KProcsetImageB : KProcsetImageC);
@@ -233,6 +252,10 @@ PDFFormXObject* CreateImageFormXObjectFromImageXObject(
 	{
 
 		formXObject = inDocumentContext->StartFormXObject(PDFRectangle(0, 0, transformed_width, transformed_height), inFormXObjectID);
+		if(!formXObject) {
+			TRACE_LOG("PNGImageHandler::CreateImageFormXObjectFromImageXObject. Unexpected Error, could not start form XObject for image");
+			break;
+		}
 		XObjectContentContext* xobjectContentContext = formXObject->GetContentContext();
 
 		// iterate the images in the list and place one on top of each other
@@ -283,6 +306,46 @@ void HandlePngWarning(png_structp png_ptr, png_const_charp warning_message) {
 		TRACE_LOG1("LibPNG Warning: %s",warning_message);
 }
 
+png_structp CreatePngReadStruct() {
+	return png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, HandlePngError, HandlePngWarning);
+}
+
+png_infop SetupReadAndCreateInfoStruct(png_structp png_ptr, IByteReaderWithPosition* inPNGStream) {
+	// pair png with custom IO (dont bother with writing)
+	png_set_read_fn(png_ptr, (png_voidp)inPNGStream, ReadDataFromStream);
+
+	// create info struct
+	png_infop info_ptr = png_create_info_struct(png_ptr);
+	if (info_ptr == NULL) {
+		png_error(png_ptr, "OOM allocating info structure");
+	}
+	return info_ptr;
+}
+
+void ReadInfoAndApplyStandardTransformations(png_structp png_ptr, png_infop info_ptr) {
+	// read info from png
+	png_read_info(png_ptr, info_ptr);
+
+	png_byte color_type = png_get_color_type(png_ptr, info_ptr);
+	png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
+
+	// all them set_expand option, to bring us to a common 8 bits per component as a minimum
+	if (color_type == PNG_COLOR_TYPE_PALETTE)
+		png_set_palette_to_rgb(png_ptr);
+	if (color_type == PNG_COLOR_TYPE_GRAY &&
+		bit_depth < 8) png_set_expand_gray_1_2_4_to_8(png_ptr);
+	if (png_get_valid(png_ptr, info_ptr,
+		PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
+
+	// now let's also avoid 16 bits for now, to stay always at 8 bits per component
+	if (bit_depth == 16)
+		png_set_strip_16(png_ptr);
+
+	// and let's deal with random < 8 packing, so we're surely in 8 bits now
+	if (bit_depth < 8)
+		png_set_packing(png_ptr);
+}
+
 
 PDFFormXObject* CreateFormXObjectForPNGStream(IByteReaderWithPosition* inPNGStream, DocumentContext* inDocumentContext, ObjectsContext* inObjectsContext, ObjectIDType inFormXObjectID) {
 	// Start reading image to get dimension. we'll then create the form, and then the image
@@ -295,8 +358,7 @@ PDFFormXObject* CreateFormXObjectForPNGStream(IByteReaderWithPosition* inPNGStre
 	png_bytep row = NULL;
 
 	do {
-		// init structs and prep 
-		png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, HandlePngError, HandlePngWarning);
+		png_ptr = CreatePngReadStruct();
 		if (png_ptr == NULL) {
 			break;
 		}
@@ -307,42 +369,8 @@ PDFFormXObject* CreateFormXObjectForPNGStream(IByteReaderWithPosition* inPNGStre
 			break;
 		}
 
-		// pair png with custom IO (dont bother with writing)
-		png_set_read_fn(png_ptr, (png_voidp)inPNGStream, ReadDataFromStream);
-
-		// create info struct
-		info_ptr = png_create_info_struct(png_ptr);
-		if (info_ptr == NULL) {
-			png_error(png_ptr, "OOM allocating info structure");
-		}
-
-		// Gal: is this important?
-		png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_ALWAYS, NULL, 0);
-
-		// read info from png
-		png_read_info(png_ptr, info_ptr);
-
-		png_byte color_type = png_get_color_type(png_ptr, info_ptr);
-		png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
-
-		// Let's setup some default transformations, and then reprint the png info that will
-		// now adapt to post-translation
-
-		// all them set_expand option, to bring us to a common 8 bits per component as a minimum
-		if (color_type == PNG_COLOR_TYPE_PALETTE)
-			png_set_palette_to_rgb(png_ptr);
-		if (color_type == PNG_COLOR_TYPE_GRAY &&
-			bit_depth < 8) png_set_expand_gray_1_2_4_to_8(png_ptr);
-		if (png_get_valid(png_ptr, info_ptr,
-			PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
-
-		// now let's also avoid 16 bits for now, to stay always at 8 bits per component
-		if (bit_depth == 16)
-			png_set_strip_16(png_ptr);
-
-		// and let's deal with random < 8 packing, so we're surely in 8 bits now
-		if (bit_depth < 8)
-			png_set_packing(png_ptr);
+		info_ptr = SetupReadAndCreateInfoStruct(png_ptr, inPNGStream);
+		ReadInfoAndApplyStandardTransformations(png_ptr, info_ptr);
 
 		// setup for potential interlace
 		int passes = png_set_interlace_handling(png_ptr);
@@ -448,8 +476,7 @@ PNGImageHandler::PNGImageInfo PNGImageHandler::ReadImageInfo(IByteReaderWithPosi
 	PNGImageHandler::PNGImageInfo data;
 
 	do {
-		// init structs and prep 
-		png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, NULL, HandlePngError, HandlePngWarning);
+		png_ptr = CreatePngReadStruct();
 		if (png_ptr == NULL) {
 			break;
 		}
@@ -460,42 +487,8 @@ PNGImageHandler::PNGImageInfo PNGImageHandler::ReadImageInfo(IByteReaderWithPosi
 			break;
 		}
 
-		// pair png with custom IO (dont bother with writing)
-		png_set_read_fn(png_ptr, (png_voidp)inPNGStream, ReadDataFromStream);
-
-		// create info struct
-		info_ptr = png_create_info_struct(png_ptr);
-		if (info_ptr == NULL) {
-			png_error(png_ptr, "OOM allocating info structure");
-		}
-
-		// Gal: is this important?
-		png_set_keep_unknown_chunks(png_ptr, PNG_HANDLE_CHUNK_ALWAYS, NULL, 0);
-
-		// read info from png
-		png_read_info(png_ptr, info_ptr);
-
-		png_byte color_type = png_get_color_type(png_ptr, info_ptr);
-		png_byte bit_depth = png_get_bit_depth(png_ptr, info_ptr);
-
-		// Let's setup some default transformations, and then reprint the png info that will
-		// now adapt to post-translation
-
-		// all them set_expand option, to bring us to a common 8 bits per component as a minimum
-		if (color_type == PNG_COLOR_TYPE_PALETTE)
-			png_set_palette_to_rgb(png_ptr);
-		if (color_type == PNG_COLOR_TYPE_GRAY &&
-			bit_depth < 8) png_set_expand_gray_1_2_4_to_8(png_ptr);
-		if (png_get_valid(png_ptr, info_ptr,
-			PNG_INFO_tRNS)) png_set_tRNS_to_alpha(png_ptr);
-
-		// now let's also avoid 16 bits for now, to stay always at 8 bits per component
-		if (bit_depth == 16)
-			png_set_strip_16(png_ptr);
-
-		// and let's deal with random < 8 packing, so we're surely in 8 bits now
-		if (bit_depth < 8)
-			png_set_packing(png_ptr);
+		info_ptr = SetupReadAndCreateInfoStruct(png_ptr, inPNGStream);
+		ReadInfoAndApplyStandardTransformations(png_ptr, info_ptr);
 
 		// let's update info so now it fits the post transform data
 		png_read_update_info(png_ptr, info_ptr);

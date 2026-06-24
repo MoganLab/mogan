@@ -29,6 +29,13 @@ InputPFBDecodeStream::InputPFBDecodeStream(void)
 	mStreamToDecode = NULL;
 	mDecodeMethod = NULL;
 	mInternalState = PDFHummus::eFailure;
+	mInSegmentReadIndex = 0;
+	mSegmentSize = 0;
+	mCurrentType = 0;
+	mHasTokenBuffer = false;
+	mTokenBuffer = 0;
+	mRandomizer = 0;
+	mFoundEOF = false;
 }
 
 InputPFBDecodeStream::~InputPFBDecodeStream(void)
@@ -183,7 +190,11 @@ EStatusCode InputPFBDecodeStream::StoreSegmentLength()
 	if(mStreamToDecode->Read(&byte4,1) != 1)
 		return PDFHummus::eFailure;
 
-	mSegmentSize = byte1 | (byte2<<8) | (byte3<<16) | (byte4<<24);
+	mSegmentSize =
+		(LongFilePositionType)byte1 |
+		((LongFilePositionType)byte2 << 8) |
+		((LongFilePositionType)byte3 << 16) |
+		((LongFilePositionType)byte4 << 24);
 	return PDFHummus::eSuccess;
 }
 
@@ -253,18 +264,6 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 		return result;
 	}
 
-	// At previous segment end, try a new one
-	if(!IsSegmentNotEnded())
-	{
-		mInternalState = InitializeStreamSegment();
-		// new segment brought to end...mark as no token
-		if(mInternalState != PDFHummus::eSuccess || !NotEnded())
-		{
-			result.first = false;
-			return result;
-		}
-	}
-
 	result.first = true;
 
 	do
@@ -272,8 +271,8 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 		// skip till token
 		SkipTillToken();
 
-		// if segment ended, mark as no token read
-		if(!IsSegmentNotEnded())
+		// end of data reached before any token byte: no token to return
+		if(!HasMoreInput())
 		{
 			result.first = false;
 			break;
@@ -294,11 +293,14 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 			case '%':
 			{
 				// for a comment, the token goes on till the end of line marker [not including]
-				while(IsSegmentNotEnded())
+				while(HasMoreInput())
 				{
 					if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
-					{	
-						result.first = false;
+					{
+						// a comment is self-delimiting: end of data ends it
+						// cleanly. only a decoder failure is a failed read.
+						if(mInternalState != PDFHummus::eSuccess)
+							result.first = false;
 						break;
 					}
 					if(0xD == buffer|| 0xA == buffer)
@@ -314,7 +316,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 				// for a string, the token goes on until the balanced-closing right paranthesis
 				int balanceLevel = 1;
 				bool backSlashEncountered = false;
-				while(balanceLevel > 0 && IsSegmentNotEnded())
+				while(balanceLevel > 0 && HasMoreInput())
 				{
 					if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 					{	
@@ -329,7 +331,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 						{
 							// ignore backslash and newline. might also need to read extra
 							// for cr-ln
-							if(0xD == buffer && IsSegmentNotEnded())
+							if(0xD == buffer && HasMoreInput())
 							{
 								if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 								{
@@ -367,7 +369,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 
 			case '<':
 			{
-				if(!IsSegmentNotEnded())
+				if(!HasMoreInput())
 				{
 					result.second = tokenBuffer.ToString();
 					break;
@@ -387,7 +389,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 				if('~' == buffer)
 				{
 					// ASCII 85 string, read all till '~>'
-					while(IsSegmentNotEnded())
+					while(HasMoreInput())
 					{
 						if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 						{	
@@ -398,7 +400,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 						tokenBuffer.Write(&buffer,1);
 						if('~' == buffer)
 						{
-							if(!IsSegmentNotEnded())
+							if(!HasMoreInput())
 								break;
 							if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 							{	
@@ -415,7 +417,7 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 				else
 				{
 					// regular ascii, read anything till '>' skipping white spaces
-					while(IsSegmentNotEnded())
+					while(HasMoreInput())
 					{
 						if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 						{	
@@ -441,11 +443,15 @@ BoolAndString InputPFBDecodeStream::GetNextToken()
 
 			default: // regular token. read till next breaker or whitespace
 			{
-				while(IsSegmentNotEnded())
+				while(HasMoreInput())
 				{
 					if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
-					{	
-						result.first = false;
+					{
+						// a regular token is self-delimiting: end of data is a
+						// valid terminator, the bytes read are a complete
+						// token. only a decoder failure is a failed read.
+						if(mInternalState != PDFHummus::eSuccess)
+							result.first = false;
 						break;
 					}
 					if(IsPostScriptWhiteSpace(buffer))
@@ -477,8 +483,20 @@ EStatusCode InputPFBDecodeStream::GetNextByteForToken(Byte& outByte)
 		mHasTokenBuffer = false;
 		return PDFHummus::eSuccess;
 	}
-	else
-		return mDecodeMethod(this,outByte);
+
+	// A PFB segment boundary is transport framing, not a token boundary:
+	// advance past an exhausted segment so a token or inter-token whitespace
+	// can span chunked segments. InitializeStreamSegment carries the
+	// per-segment decode-mode switch (plaintext / eexec / EOF), so crossing
+	// segments here keeps that intact. No byte is available only at a
+	// genuine end of input or a decoder failure.
+	while(mInSegmentReadIndex >= mSegmentSize && NotEnded() && mInternalState == PDFHummus::eSuccess)
+		mInternalState = InitializeStreamSegment();
+
+	if(mInSegmentReadIndex >= mSegmentSize || !NotEnded() || mInternalState != PDFHummus::eSuccess)
+		return PDFHummus::eFailure;
+
+	return mDecodeMethod(this,outByte);
 }
 
 
@@ -490,9 +508,14 @@ void InputPFBDecodeStream::SaveTokenBuffer(Byte inToSave)
 }
 
 
-bool InputPFBDecodeStream::IsSegmentNotEnded()
+bool InputPFBDecodeStream::HasMoreInput()
 {
-	return mHasTokenBuffer || (mInSegmentReadIndex < mSegmentSize && mStreamToDecode->NotEnded());
+	// Input-framing availability only: true while more bytes remain in the
+	// PFB stream (current or a later segment -- GetNextByteForToken crosses
+	// boundaries), false at the end of that stream. Decoder health is a
+	// separate concern, gated by callers via mInternalState (as NotEnded()
+	// is, e.g. in Read()).
+	return mHasTokenBuffer || NotEnded();
 }
 
 
@@ -504,7 +527,7 @@ void InputPFBDecodeStream::SkipTillToken()
 		return;
 
 	// skip till hitting first non space, or segment end
-	while(IsSegmentNotEnded())
+	while(HasMoreInput())
 	{
 		if(GetNextByteForToken(buffer) != PDFHummus::eSuccess)
 			break;
@@ -587,7 +610,8 @@ LongBufferSizeType InputPFBDecodeStream::Read(Byte* inBuffer,LongBufferSizeType 
 				PDFHummus::eSuccess == mInternalState)
 		{
 			mInternalState = mDecodeMethod(this,inBuffer[bufferIndex]);
-			++bufferIndex;
+			if(PDFHummus::eSuccess == mInternalState)
+				++bufferIndex;
 		}
 
 		// segment ended, initialize next segment

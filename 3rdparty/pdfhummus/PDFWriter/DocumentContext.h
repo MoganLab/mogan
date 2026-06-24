@@ -119,6 +119,7 @@ namespace PDFHummus
 		void SetObjectsContext(ObjectsContext* inObjectsContext);
 		void SetOutputFileInformation(OutputFile* inOutputFile);
 		void SetEmbedFonts(bool inEmbedFonts);
+		void SetWriteXrefAsXrefStream(bool inWriteXrefAsXrefStream);
 		PDFHummus::EStatusCode	WriteHeader(EPDFVersion inPDFVersion);
 		PDFHummus::EStatusCode	FinalizeNewPDF();
         PDFHummus::EStatusCode	FinalizeModifiedPDF(PDFParser* inModifiedFileParser,EPDFVersion inModifiedPDFVersion);
@@ -413,19 +414,20 @@ namespace PDFHummus
 	    StringAndULongPairToHummusImageInformationMap mImagesInformation;
 		EncryptionHelper mEncryptionHelper;
 		ExtGStateRegistry mExtGStateRegistry;
+		bool mWriteXrefAsXrefStream;
 
 		void WriteHeaderComment(EPDFVersion inPDFVersion);
 		void Write4BinaryBytes();
 		PDFHummus::EStatusCode WriteCatalogObjectOfNewPDF();
-    PDFHummus::EStatusCode WriteCatalogObject(const ObjectReference& inPageTreeRootObjectReference,IDocumentContextExtender* inModifiedFileCopyContext = NULL);
+    	PDFHummus::EStatusCode WriteCatalogObject(const ObjectReference& inPageTreeRootObjectReference,IDocumentContextExtender* inModifiedFileCopyContext = NULL);
 		PDFHummus::EStatusCode WriteTrailerDictionary();
         PDFHummus::EStatusCode WriteTrailerDictionaryValues(DictionaryContext* inDictionaryContext);
 		void WriteXrefReference(LongFilePositionType inXrefTablePosition);
 		void WriteFinalEOF();
-		void WriteInfoDictionary();
-		void WriteEncryptionDictionary();
-		void WritePagesTree();
-		int WritePageTree(PageTree* inPageTreeToWrite);
+		PDFHummus::EStatusCode WriteInfoDictionary();
+		PDFHummus::EStatusCode WriteEncryptionDictionary();
+		PDFHummus::EStatusCode  WritePagesTree();
+		PDFHummus::EStatusCode WritePageTree(PageTree* inPageTreeToWrite, int& outNodesCount);
 		std::string GenerateMD5IDForFile();
 		PDFHummus::EStatusCode WriteResourcesDictionary(ResourcesDictionary& inResourcesDictionary);
         PDFHummus::EStatusCode WriteResourceDictionary(ResourcesDictionary* inResourcesDictionary,
@@ -436,12 +438,12 @@ namespace PDFHummus
 		PDFHummus::EStatusCode WriteUsedFontsDefinitions();
 		EStatusCodeAndObjectIDType WriteAnnotationAndLinkForURL(const std::string& inURL,const PDFRectangle& inLinkClickArea);
 
-		void WriteTrailerState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
+		PDFHummus::EStatusCode WriteTrailerState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
         void WriteReferenceState(ObjectsContext* inStateWriter,
                                  const ObjectReference& inReference);
-		void WriteTrailerInfoState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
+		PDFHummus::EStatusCode WriteTrailerInfoState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
 		void WriteDateState(ObjectsContext* inStateWriter,const PDFDate& inDate);
-		void WriteCatalogInformationState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
+		PDFHummus::EStatusCode WriteCatalogInformationState(ObjectsContext* inStateWriter,ObjectIDType inObjectID);
 		void ReadTrailerState(PDFParser* inStateReader,PDFDictionary* inTrailerState);
         ObjectReference GetReferenceFromState(PDFDictionary* inDictionary);
 		void ReadTrailerInfoState(PDFParser* inStateReader,PDFDictionary* inTrailerInfoState);
@@ -449,7 +451,7 @@ namespace PDFHummus
 		void ReadCatalogInformationState(PDFParser* inStateReader,PDFDictionary* inCatalogInformationState);
 
 
-		void WritePageTreeState(ObjectsContext* inStateWriter,ObjectIDType inObjectID,PageTree* inPageTree);
+		PDFHummus::EStatusCode WritePageTreeState(ObjectsContext* inStateWriter,ObjectIDType inObjectID,PageTree* inPageTree);
 		void ReadPageTreeState(PDFParser* inStateReader,PDFDictionary* inPageTreeState,PageTree* inPageTree);
 
         ObjectReference GetOriginalDocumentPageTreeRoot(PDFParser* inModifiedFileParser);
@@ -461,5 +463,6 @@ namespace PDFHummus
 		bool RequiresXrefStream(PDFParser* inModifiedFileParser);
         PDFHummus::EStatusCode WriteXrefStream(LongFilePositionType& outXrefPosition);
 		HummusImageInformation& GetImageInformationStructFor(const std::string& inImageFile,unsigned long inImageIndex);
+		void SetupXrefMaxWritePositionValidation();
 	};
 }

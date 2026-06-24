@@ -27,6 +27,7 @@
 #include "OutputStreamTraits.h"
 #include "InputStringBufferStream.h"
 #include "OpenTypeFileInput.h"
+#include "TrueTypeGlyphDependencies.h"
 #include "FSType.h"
 
 #include <sstream>
@@ -53,6 +54,7 @@ EStatusCode TrueTypeEmbeddedFontWriter::WriteEmbeddedFont(
 	MyStringBuf rawFontProgram;
 	bool notEmbedded;
 	EStatusCode status;
+	PDFStream* pdfStream = NULL;
 
 	do
 	{
@@ -72,6 +74,12 @@ EStatusCode TrueTypeEmbeddedFontWriter::WriteEmbeddedFont(
 		}
 
 		outEmbeddedFontObjectID = inObjectsContext->StartNewIndirectObject();
+		if(outEmbeddedFontObjectID == 0)
+		{
+			TRACE_LOG("TrueTypeEmbeddedFontWriter::WriteEmbeddedFont, failed to start embedded font object");
+			status = PDFHummus::eFailure;
+			break;
+		}
 		
 		DictionaryContext* fontProgramDictionaryContext = inObjectsContext->StartDictionary();
 
@@ -80,7 +88,7 @@ EStatusCode TrueTypeEmbeddedFontWriter::WriteEmbeddedFont(
 		fontProgramDictionaryContext->WriteKey(scLength1);
 		fontProgramDictionaryContext->WriteIntegerValue(rawFontProgram.GetCurrentWritePosition());
 		rawFontProgram.pubseekoff(0,std::ios_base::beg);
-		PDFStream* pdfStream = inObjectsContext->StartPDFStream(fontProgramDictionaryContext);
+		pdfStream = inObjectsContext->StartPDFStream(fontProgramDictionaryContext);
 
 
 		// now copy the created font program to the output stream
@@ -94,10 +102,10 @@ EStatusCode TrueTypeEmbeddedFontWriter::WriteEmbeddedFont(
 		}
 
 
-		inObjectsContext->EndPDFStream(pdfStream);
-		delete pdfStream;
+		status = inObjectsContext->EndPDFStream(pdfStream);
 	}while(false);
 
+	delete pdfStream;
 	return status;
 }
 
@@ -154,7 +162,14 @@ EStatusCode TrueTypeEmbeddedFontWriter::CreateTrueTypeSubset(	FreeTypeFaceWrappe
 		// so - bottom line - the glyphs count will actually be 1 more than the maxium glyph index.
 		// and from here i'll just place the glyphs in their original indexes, and fill in the 
 		// vacant glyphs with empties.
-		mSubsetFontGlyphsCount = subsetGlyphIDs.back() + 1;
+		unsigned short maxGlyf = subsetGlyphIDs.back();
+		if(maxGlyf >= mTrueTypeInput.mMaxp.NumGlyphs)
+		{
+			TRACE_LOG2("TrueTypeEmbeddedFontWriter::CreateTrueTypeSubset, error, maximum requested glyph index %ld is larger than the maximum glyph index for this font which is %ld. ",maxGlyf,mTrueTypeInput.mMaxp.NumGlyphs-1);
+			status = eFailure;
+			break;
+		}
+		mSubsetFontGlyphsCount = maxGlyf + 1;
 		
 		mFontFileStream.Assign(&outFontProgram);
 		mPrimitivesWriter.SetOpenTypeStream(&mFontFileStream);
@@ -284,7 +299,8 @@ void TrueTypeEmbeddedFontWriter::AddDependentGlyphs(UIntVector& ioSubsetGlyphIDs
 	bool hasCompositeGlyphs = false;
 
 	for(;it != ioSubsetGlyphIDs.end(); ++it)
-		hasCompositeGlyphs |= AddComponentGlyphs(*it,glyphsSet);
+		hasCompositeGlyphs |= TrueTypeGlyphDependencies::CollectComponentGlyphs(
+			*it, mTrueTypeInput.mGlyf, mTrueTypeInput.mMaxp.NumGlyphs, glyphsSet);
 
 	if(hasCompositeGlyphs)
 	{
@@ -296,36 +312,9 @@ void TrueTypeEmbeddedFontWriter::AddDependentGlyphs(UIntVector& ioSubsetGlyphIDs
 		ioSubsetGlyphIDs.clear();
 		for(itNewGlyphs = glyphsSet.begin(); itNewGlyphs != glyphsSet.end(); ++itNewGlyphs)
 			ioSubsetGlyphIDs.push_back(*itNewGlyphs);
-		
+
 		sort(ioSubsetGlyphIDs.begin(),ioSubsetGlyphIDs.end());
 	}
-}
-
-bool TrueTypeEmbeddedFontWriter::AddComponentGlyphs(unsigned int inGlyphID,UIntSet& ioComponents)
-{
-	GlyphEntry* glyfTableEntry;
-	UIntList::iterator itComponentGlyphs;
-	bool isComposite = false;
-
-	if(inGlyphID >= mTrueTypeInput.mMaxp.NumGlyphs)
-	{
-		TRACE_LOG2("TrueTypeEmbeddedFontWriter::AddComponentGlyphs, error, requested glyph index %ld is larger than the maximum glyph index for this font which is %ld. ",inGlyphID,mTrueTypeInput.mMaxp.NumGlyphs-1);
-		return false;
-	}
-
-	glyfTableEntry = mTrueTypeInput.mGlyf[inGlyphID];
-	if(glyfTableEntry != NULL && glyfTableEntry->mComponentGlyphs.size() > 0)
-	{
-		isComposite = true;
-		for(itComponentGlyphs = glyfTableEntry->mComponentGlyphs.begin(); 
-				itComponentGlyphs != glyfTableEntry->mComponentGlyphs.end(); 
-				++itComponentGlyphs)
-		{
-				ioComponents.insert(*itComponentGlyphs);
-				AddComponentGlyphs(*itComponentGlyphs,ioComponents);
-		}
-	}
-	return isComposite;
 }
 
 unsigned short TrueTypeEmbeddedFontWriter::GetSmallerPower2(unsigned short inNumber)

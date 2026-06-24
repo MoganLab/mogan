@@ -23,8 +23,20 @@
 #include "CharStringType2Interpreter.h"
 #include "StandardEncoding.h"
 
+#include <algorithm>
+#include <climits>
+#include <stdint.h>
+
 
 using namespace PDFHummus;
+
+// Recursion depth cap for the Type 2 seac (4-arg endchar) dependency walk
+// in CollectComponentGlyphs. The Adobe Type 2 spec disallows nested seac
+// (bchar/achar must not be seac characters), so 16 is well beyond any
+// conforming font but matches the TrueType composite cap used elsewhere
+// in the codebase. Lenient on malformed-but-benign fonts; still bounds
+// the call stack against attacker input.
+static const unsigned int scMaxCompositeDepth = 16;
 
 #define N_STD_STRINGS 391
 static const char* scStandardStrings[N_STD_STRINGS] = {
@@ -120,11 +132,18 @@ static const unsigned short scDefaultCharsetsSizes[3] =
 
 CFFFileInput::CFFFileInput(void)
 {
+	mFontsCount = 0;
+	mStringsCount = 0;
 	mTopDictIndex = NULL;
 	mStrings = NULL;
 	mGlobalSubrs.mCharStringsIndex = NULL;
 	mCharStrings = NULL;
 	mPrivateDicts = NULL;
+	// Set only by PrepareForGlyphIntepretation; the dependency walkers and
+	// GetCharacterFromStandardEncoding rely on NULL meaning "no active
+	// interpretation flow".
+	mCurrentCharsetInfo = NULL;
+	mCurrentDependencies = NULL;
 }
 
 CFFFileInput::~CFFFileInput(void)
@@ -305,30 +324,72 @@ EStatusCode CFFFileInput::ReadHeader()
 EStatusCode CFFFileInput::ReadIndexHeader(unsigned long** outOffsets,unsigned short& outItemsCount)
 {
 	Byte offSizeForIndex;
+	EStatusCode status = PDFHummus::eFailure;
 
-	EStatusCode status = mPrimitivesReader.ReadCard16(outItemsCount);
-	if(status != PDFHummus::eSuccess)
-		return PDFHummus::eFailure;
+	*outOffsets = NULL;
 
-	if(0 == outItemsCount)
+	do
 	{
+		status = mPrimitivesReader.ReadCard16(outItemsCount);
+		if(status != PDFHummus::eSuccess)
+			break;
+
+		if(0 == outItemsCount)
+			break;
+
+		status = mPrimitivesReader.ReadOffSize(offSizeForIndex);
+		if(status != PDFHummus::eSuccess)
+			break;
+
+		// CFF spec requires offSize ∈ {1, 2, 3, 4}.
+		if(offSizeForIndex < 1 || offSizeForIndex > 4)
+		{
+			TRACE_LOG1("CFFFileInput::ReadIndexHeader, invalid INDEX offSize %d (must be 1..4)", offSizeForIndex);
+			status = PDFHummus::eFailure;
+			break;
+		}
+
+		mPrimitivesReader.SetOffSize(offSizeForIndex);
+		*outOffsets = new unsigned long[outItemsCount + 1];
+
+		for(unsigned long i = 0; i <= outItemsCount && status == eSuccess; ++ i)
+			status = mPrimitivesReader.ReadOffset((*outOffsets)[i]);
+		if(status != eSuccess)
+			break;
+
+		// offsets[0] must be >= 1: callers do Skip(offsets[0] - 1) to advance past
+		// pre-data padding, and offsets[0] == 0 would underflow that subtraction.
+		if((*outOffsets)[0] < 1)
+		{
+			TRACE_LOG1("CFFFileInput::ReadIndexHeader, INDEX offsets[0] = %lu (must be >= 1; would underflow Skip)", (*outOffsets)[0]);
+			status = PDFHummus::eFailure;
+			break;
+		}
+
+		// Offsets must be monotonically non-decreasing.
+		for(unsigned long i = 0; i < outItemsCount; ++i)
+		{
+			if((*outOffsets)[i+1] < (*outOffsets)[i])
+			{
+				TRACE_LOG3("CFFFileInput::ReadIndexHeader, non-monotonic INDEX offset at i=%lu: %lu -> %lu",
+					i, (*outOffsets)[i], (*outOffsets)[i+1]);
+				status = PDFHummus::eFailure;
+				break;
+			}
+		}
+		if(status != PDFHummus::eSuccess)
+			break;
+
+		status = mPrimitivesReader.GetInternalState();
+	} while(false);
+
+	if(status != PDFHummus::eSuccess)
+	{
+		delete[] *outOffsets;
 		*outOffsets = NULL;
-		return PDFHummus::eSuccess;
 	}
 
-	mPrimitivesReader.ReadOffSize(offSizeForIndex);
-	if(status != PDFHummus::eSuccess)
-		return PDFHummus::eFailure;
-
-	mPrimitivesReader.SetOffSize(offSizeForIndex);
-	*outOffsets = new unsigned long[outItemsCount + 1];
-
-	for(unsigned long i = 0; i <= outItemsCount && status == eSuccess; ++ i)
-		status = mPrimitivesReader.ReadOffset((*outOffsets)[i]);
-
-	if (status != eSuccess)
-		return status;
-	return mPrimitivesReader.GetInternalState();
+	return status;
 }
 
 EStatusCode CFFFileInput::ReadNameIndex()
@@ -455,32 +516,34 @@ EStatusCode CFFFileInput::ReadStringIndex()
 		if(status != PDFHummus::eSuccess)
 			break;
 
-		if(0 == mStringsCount)
+		unsigned long i;
+
+		if(mStringsCount > 0)
+		{
+			if(offsets[0] != 1)
+				mPrimitivesReader.Skip(offsets[0] - 1);
+
+			mStrings = new char*[mStringsCount];
+
+			for(i = 0; i < mStringsCount && (PDFHummus::eSuccess == status); ++i)
+			{
+				mStrings[i] = new char[offsets[i+1] - offsets[i]+1];
+				status = mPrimitivesReader.Read((Byte*)mStrings[i],offsets[i+1] - offsets[i]);
+				if(status != PDFHummus::eSuccess)
+					break;
+				mStrings[i][offsets[i+1] - offsets[i]] = 0;
+			}
+
+			// failure case, null all the rest of the strings for later delete to not perofrm errors
+			if(status != PDFHummus::eSuccess)
+			{	
+				for(;i<mStringsCount;++i)
+					mStrings[i] = NULL;
+			}
+		}
+		else
 		{
 			mStrings = NULL;
-			break;
-		}
-
-		if(offsets[0] != 1)
-			mPrimitivesReader.Skip(offsets[0] - 1);
-
-		mStrings = new char*[mStringsCount];
-
-		unsigned long i;
-		for(i = 0; i < mStringsCount && (PDFHummus::eSuccess == status); ++i)
-		{
-			mStrings[i] = new char[offsets[i+1] - offsets[i]+1];
-			status = mPrimitivesReader.Read((Byte*)mStrings[i],offsets[i+1] - offsets[i]);
-			if(status != PDFHummus::eSuccess)
-				break;
-			mStrings[i][offsets[i+1] - offsets[i]] = 0;
-		}
-
-		// failure case, null all the rest of the strings for later delete to not perofrm errors
-		if(status != PDFHummus::eSuccess)
-		{	
-			for(;i<mStringsCount;++i)
-				mStrings[i] = NULL;
 		}
 
 		// now create the string to SID map
@@ -601,11 +664,16 @@ long CFFFileInput::GetSingleIntegerValueFromDict(const UShortToDictOperandListMa
 {
 	UShortToDictOperandListMap::const_iterator it = inDict.find(inKey);
 
-	if(it != inDict.end())
-		return it->second.front().IntegerValue;
-	else
+	// Every caller treats the returned value as a non-negative quantity
+	// (file offset, intra-dict offset, or enum-like type id). Empty list,
+	// non-integer, or negative integer all fall back to the supplied
+	// default so garbage from front() / the union / a malicious negative
+	// doesn't flow into SetOffset / INDEX read amounts downstream.
+	if(it == inDict.end() || it->second.empty() || !it->second.front().IsInteger
+		|| it->second.front().IntegerValue < 0)
 		return inDefault;
 
+	return it->second.front().IntegerValue;
 }
 
 static const unsigned short scCharstringType = 0x0C06;
@@ -642,13 +710,41 @@ EStatusCode CFFFileInput::ReadPrivateDict(const UShortToDictOperandListMap& inRe
 	}
 	else
 	{
-		outPrivateDict->mPrivateDictStart = (LongFilePositionType)it->second.back().IntegerValue;
-		outPrivateDict->mPrivateDictEnd = (LongFilePositionType)(
-														it->second.back().IntegerValue + 
-														it->second.front().IntegerValue);
+		// /Private operand list is (size, offset) — two integers. Reject
+		// fewer operands or non-integer reals before they flow into
+		// SetOffset and ReadDict's read amount.
+		if(it->second.size() < 2)
+		{
+			TRACE_LOG1("CFFFileInput::ReadPrivateDict, /Private has %lu operands (need at least 2)",
+				(unsigned long)it->second.size());
+			return PDFHummus::eFailure;
+		}
+		const DictOperand& sizeOperand = it->second.front();
+		const DictOperand& offsetOperand = it->second.back();
+		if(!sizeOperand.IsInteger || !offsetOperand.IsInteger)
+		{
+			TRACE_LOG("CFFFileInput::ReadPrivateDict, /Private size and offset must be integers");
+			return PDFHummus::eFailure;
+		}
+		// Negative size would convert to a huge value when passed to
+		// ReadDict's unsigned read amount; negative offset would seek to
+		// junk. Both are malformed for what the spec defines as a byte
+		// position and a byte count.
+		if(sizeOperand.IntegerValue < 0 || offsetOperand.IntegerValue < 0)
+		{
+			TRACE_LOG2("CFFFileInput::ReadPrivateDict, /Private size=%ld and offset=%ld must be non-negative",
+				sizeOperand.IntegerValue, offsetOperand.IntegerValue);
+			return PDFHummus::eFailure;
+		}
 
-		mPrimitivesReader.SetOffset(it->second.back().IntegerValue);
-		status = ReadDict(it->second.front().IntegerValue,outPrivateDict->mPrivateDict);
+		outPrivateDict->mPrivateDictStart = (LongFilePositionType)offsetOperand.IntegerValue;
+		// Add in LongFilePositionType (signed 64-bit) so the sum can't
+		// overflow `long` on platforms where it's 32-bit.
+		outPrivateDict->mPrivateDictEnd = (LongFilePositionType)offsetOperand.IntegerValue +
+		                                  (LongFilePositionType)sizeOperand.IntegerValue;
+
+		mPrimitivesReader.SetOffset(offsetOperand.IntegerValue);
+		status = ReadDict(sizeOperand.IntegerValue,outPrivateDict->mPrivateDict);
 	}
 	return status;
 }
@@ -768,15 +864,20 @@ EStatusCode CFFFileInput::ReadEncodings()
 	LongFilePositionTypeToEncodingsInfoMap offsetToEncoding;
 	LongFilePositionTypeToEncodingsInfoMap::iterator it;
 
-	for(unsigned long i=0; i < mFontsCount && (PDFHummus::eSuccess == status); ++i)
+	for(unsigned long i=0; i < mFontsCount; ++i)
 	{
 		LongFilePositionType encodingPosition = GetEncodingPosition(i);
 		it = offsetToEncoding.find(encodingPosition);
 		if(it == offsetToEncoding.end())
 		{
 			EncodingsInfo* encoding = new EncodingsInfo();
-			ReadEncoding(encoding,encodingPosition);
+			status = ReadEncoding(encoding,encodingPosition);
 			mEncodings.push_back(encoding);
+			if(status != PDFHummus::eSuccess)
+			{
+				TRACE_LOG1("CFFFileInput::ReadEncodings, failed to read encoding for font index %lu", i);
+				break;
+			}
 			it = offsetToEncoding.insert(LongFilePositionTypeToEncodingsInfoMap::value_type(encodingPosition,encoding)).first;
 		}
 		mTopDictIndex[i].mEncoding = it->second;
@@ -789,86 +890,105 @@ EStatusCode CFFFileInput::ReadEncodings()
 
 }
 
-void CFFFileInput::ReadEncoding(EncodingsInfo* inEncoding,LongFilePositionType inEncodingPosition)
+EStatusCode CFFFileInput::ReadEncoding(EncodingsInfo* inEncoding,LongFilePositionType inEncodingPosition)
 {
 	if(inEncodingPosition <= 1)
 	{
 		inEncoding->mEncodingStart = inEncoding->mEncodingEnd = inEncodingPosition;
 		inEncoding->mType = (EEncodingType)inEncodingPosition;
+		return PDFHummus::eSuccess;
 	}
-	else
+
+	inEncoding->mType = eEncodingCustom;
+	Byte encodingFormat = 0;
+	inEncoding->mEncodingStart = inEncodingPosition;
+	mPrimitivesReader.SetOffset(inEncodingPosition);
+	mPrimitivesReader.ReadCard8(encodingFormat);
+
+	if(0 == (encodingFormat & 0x1))
 	{
-		inEncoding->mType = eEncodingCustom;
-		Byte encodingFormat = 0;
-		inEncoding->mEncodingStart = inEncodingPosition;
-		mPrimitivesReader.SetOffset(inEncodingPosition);
-		mPrimitivesReader.ReadCard8(encodingFormat);
-
-		if(0 == (encodingFormat & 0x1))
+		Byte rawCount = 0;
+		mPrimitivesReader.ReadCard8(rawCount);
+		inEncoding->mEncodingsCount = rawCount;
+		if(inEncoding->mEncodingsCount > 0)
 		{
-			mPrimitivesReader.ReadCard8(inEncoding->mEncodingsCount);
-			if(inEncoding->mEncodingsCount > 0)
-			{
-				inEncoding->mEncoding = new Byte[inEncoding->mEncodingsCount];
-				for(Byte i=0; i< inEncoding->mEncodingsCount;++i)
-					mPrimitivesReader.ReadCard8(inEncoding->mEncoding[i]);
-			}
+			inEncoding->mEncoding = new Byte[inEncoding->mEncodingsCount];
+			for(unsigned short i=0; i < inEncoding->mEncodingsCount; ++i)
+				mPrimitivesReader.ReadCard8(inEncoding->mEncoding[i]);
 		}
-		else // format = 1
-		{
-			Byte rangesCount = 0;
-			mPrimitivesReader.ReadCard8(rangesCount);
-			if(rangesCount > 0)
-			{
-				Byte firstCode;
-				Byte left;
-
-				inEncoding->mEncodingsCount = 0;
-				// get the encoding count (yap, reading twice here)				
-				for(Byte i=0; i < rangesCount; ++i)
-				{
-					mPrimitivesReader.ReadCard8(firstCode);
-					mPrimitivesReader.ReadCard8(left);
-					inEncoding->mEncodingsCount+= left;
-				}
-				inEncoding->mEncoding = new Byte[inEncoding->mEncodingsCount];
-				mPrimitivesReader.SetOffset(inEncodingPosition+2); // reset encoding to beginning of range reading
-
-				// now read the encoding array
-				Byte encodingIndex = 0;
-				for(Byte i=0; i < rangesCount; ++i)
-				{
-					mPrimitivesReader.ReadCard8(firstCode);
-					mPrimitivesReader.ReadCard8(left);
-					for(Byte j=0;j < left;++j)
-						inEncoding->mEncoding[encodingIndex+j] = firstCode+j;
-					encodingIndex+=left;
-				}
-			}
-		}
-		if((encodingFormat & 0x80) !=  0) // supplaments exist, need to add to encoding end
-		{
-			mPrimitivesReader.SetOffset(inEncoding->mEncodingEnd); // set position to end of encoding, and start of supplamental, so that can read their count
-			Byte supplamentalsCount = 0;
-			mPrimitivesReader.ReadCard8(supplamentalsCount);
-			if(supplamentalsCount > 0)
-			{
-				Byte encoding;
-				unsigned short SID;
-				for(Byte i=0; i < supplamentalsCount; ++i)
-				{
-					mPrimitivesReader.ReadCard8(encoding);
-					mPrimitivesReader.ReadCard16(SID);
-
-					UShortToByteList::iterator it = inEncoding->mSupplements.find(SID);
-					if(it == inEncoding->mSupplements.end())
-						it = inEncoding->mSupplements.insert(UShortToByteList::value_type(SID,ByteList())).first;
-					it->second.push_back(encoding);
-				}
-			}
-		}
-		inEncoding->mEncodingEnd =  mPrimitivesReader.GetCurrentPosition();
 	}
+	else // format = 1
+	{
+		Byte rangesCount = 0;
+		mPrimitivesReader.ReadCard8(rangesCount);
+		if(rangesCount > 0)
+		{
+			Byte firstCode;
+			Byte left;
+
+			// First pass: sum range lengths into a 16-bit accumulator so the
+			// total can't wrap before we cap it. Encoding covers codes 0..255,
+			// so the spec ceiling on the sum is 256.
+			unsigned short totalCount = 0;
+			for(Byte i=0; i < rangesCount; ++i)
+			{
+				mPrimitivesReader.ReadCard8(firstCode);
+				mPrimitivesReader.ReadCard8(left);
+				totalCount += left;
+			}
+			if(totalCount > 256)
+			{
+				TRACE_LOG1("CFFFileInput::ReadEncoding, format-1 range sum %u exceeds 256-code spec ceiling", totalCount);
+				return PDFHummus::eFailure;
+			}
+			inEncoding->mEncodingsCount = totalCount;
+			inEncoding->mEncoding = new Byte[inEncoding->mEncodingsCount];
+			mPrimitivesReader.SetOffset(inEncodingPosition+2); // reset encoding to beginning of range reading
+
+			// Second pass: encodingIndex must be 16-bit too — Byte += Byte wraps at 256
+			// and the writes would then alias the start of the (correctly-sized) buffer.
+			unsigned short encodingIndex = 0;
+			for(Byte i=0; i < rangesCount; ++i)
+			{
+				mPrimitivesReader.ReadCard8(firstCode);
+				mPrimitivesReader.ReadCard8(left);
+				for(Byte j=0;j < left;++j)
+					inEncoding->mEncoding[encodingIndex+j] = firstCode+j;
+				encodingIndex+=left;
+			}
+		}
+	}
+	// Record the post-base-encoding position before the supplements block.
+	// The supplements block reads from the current position, so anchoring
+	// mEncodingEnd here keeps the struct field meaningful for callers and
+	// also documents the position the previous code was trying to seek
+	// back to (the prior SetOffset(mEncodingEnd) read mEncodingEnd before
+	// it had ever been set on the custom-encoding path).
+	inEncoding->mEncodingEnd = mPrimitivesReader.GetCurrentPosition();
+
+	if((encodingFormat & 0x80) !=  0) // supplements exist, need to add to encoding end
+	{
+		Byte supplementsCount = 0;
+		mPrimitivesReader.ReadCard8(supplementsCount);
+		if(supplementsCount > 0)
+		{
+			Byte encoding;
+			unsigned short SID;
+			for(Byte i=0; i < supplementsCount; ++i)
+			{
+				mPrimitivesReader.ReadCard8(encoding);
+				mPrimitivesReader.ReadCard16(SID);
+
+				UShortToByteList::iterator it = inEncoding->mSupplements.find(SID);
+				if(it == inEncoding->mSupplements.end())
+					it = inEncoding->mSupplements.insert(UShortToByteList::value_type(SID,ByteList())).first;
+				it->second.push_back(encoding);
+			}
+		}
+		inEncoding->mEncodingEnd = mPrimitivesReader.GetCurrentPosition();
+	}
+
+	return mPrimitivesReader.GetInternalState();
 }
 
 void CFFFileInput::SetupSIDToGlyphMapWithStandard(	const unsigned short* inStandardCharSet,
@@ -878,10 +998,10 @@ void CFFFileInput::SetupSIDToGlyphMapWithStandard(	const unsigned short* inStand
 {
 	ioCharMap.insert(UShortToCharStringMap::value_type(0,inCharStrings.mCharStringsIndex));
 	unsigned short i;
-	for(i = 1; i < inCharStrings.mCharStringsCount && i < inStandardCharSetLength;++i)
+	for(i = 1; i < inCharStrings.mCharStringsCount && i - 1 < inStandardCharSetLength;++i)
 	{
 		ioCharMap.insert(UShortToCharStringMap::value_type(
-				inStandardCharSet[i],inCharStrings.mCharStringsIndex + i));
+				inStandardCharSet[i - 1],inCharStrings.mCharStringsIndex + i));
 	}
 }
 
@@ -894,7 +1014,10 @@ EStatusCode CFFFileInput::ReadFormat0Charset(bool inIsCID,
 	if(!inIsCID)
 		ioGlyphMap.insert(UShortToCharStringMap::value_type(0,inCharStrings.mCharStringsIndex));
 	*inSIDArray = new unsigned short[inCharStrings.mCharStringsCount];
-	(*inSIDArray)[0] = 0;
+	// element 0 is in range only when the CharStrings INDEX is non-empty;
+	// new unsigned short[0] is a zero-length buffer.
+	if(inCharStrings.mCharStringsCount > 0)
+		(*inSIDArray)[0] = 0;
 
 	if(inIsCID)
 	{
@@ -923,7 +1046,10 @@ EStatusCode CFFFileInput::ReadFormat1Charset(bool inIsCID,
 	if(!inIsCID)
 		ioGlyphMap.insert(UShortToCharStringMap::value_type(0,inCharStrings.mCharStringsIndex));
 	*inSIDArray = new unsigned short[inCharStrings.mCharStringsCount];
-	(*inSIDArray)[0] = 0;
+	// element 0 is in range only when the CharStrings INDEX is non-empty;
+	// new unsigned short[0] is a zero-length buffer.
+	if(inCharStrings.mCharStringsCount > 0)
+		(*inSIDArray)[0] = 0;
 	unsigned long glyphIndex = 1;
 	unsigned short sid;
 	Byte left;
@@ -963,7 +1089,10 @@ EStatusCode CFFFileInput::ReadFormat2Charset(bool inIsCID,
 	if(!inIsCID)
 		ioGlyphMap.insert(UShortToCharStringMap::value_type(0,inCharStrings.mCharStringsIndex));
 	*inSIDArray = new unsigned short[inCharStrings.mCharStringsCount];
-	(*inSIDArray)[0] = 0;
+	// element 0 is in range only when the CharStrings INDEX is non-empty;
+	// new unsigned short[0] is a zero-length buffer.
+	if(inCharStrings.mCharStringsCount > 0)
+		(*inSIDArray)[0] = 0;
 	unsigned short glyphIndex = 1;
 	unsigned short sid;
 	unsigned short left;
@@ -1030,6 +1159,72 @@ EStatusCode CFFFileInput::CalculateDependenciesForCharIndex(unsigned short inFon
 		return status;
 }
 
+EStatusCode CFFFileInput::AddDependentGlyphs(UIntVector& ioSubsetGlyphIDs)
+{
+	EStatusCode status = PDFHummus::eSuccess;
+	UIntSet glyphsSet;
+	UIntVector::iterator it = ioSubsetGlyphIDs.begin();
+	bool hasCompositeGlyphs = false;
+
+	for(; it != ioSubsetGlyphIDs.end() && PDFHummus::eSuccess == status; ++it)
+	{
+		bool localHasCompositeGlyphs;
+		status = CollectComponentGlyphs(*it, glyphsSet, localHasCompositeGlyphs);
+		hasCompositeGlyphs |= localHasCompositeGlyphs;
+	}
+
+	if(hasCompositeGlyphs)
+	{
+		for(it = ioSubsetGlyphIDs.begin(); it != ioSubsetGlyphIDs.end(); ++it)
+			glyphsSet.insert(*it);
+
+		ioSubsetGlyphIDs.clear();
+		for(UIntSet::iterator itNewGlyphs = glyphsSet.begin(); itNewGlyphs != glyphsSet.end(); ++itNewGlyphs)
+			ioSubsetGlyphIDs.push_back(*itNewGlyphs);
+
+		std::sort(ioSubsetGlyphIDs.begin(), ioSubsetGlyphIDs.end());
+	}
+	return status;
+}
+
+EStatusCode CFFFileInput::CollectComponentGlyphs(unsigned int inGlyphID,
+												 UIntSet& ioComponents,
+												 bool& outFoundComponents,
+												 unsigned int inDepth)
+{
+	outFoundComponents = false;
+
+	if(inDepth > scMaxCompositeDepth)
+	{
+		// Cycles are blocked by the visited-set guard below, but a malicious
+		// font can still build a deeply nested acyclic seac chain. Cap depth
+		// to keep the call stack bounded.
+		TRACE_LOG2("CFFFileInput::CollectComponentGlyphs, composite depth %u exceeds cap %u, refusing to recurse further.",
+			inDepth, scMaxCompositeDepth);
+		return PDFHummus::eSuccess;
+	}
+
+	CharString2Dependencies dependencies;
+	EStatusCode status = CalculateDependenciesForCharIndex(0, (unsigned short)inGlyphID, dependencies);
+
+	if(PDFHummus::eSuccess == status && dependencies.mCharCodes.size() != 0)
+	{
+		UShortSet::iterator it = dependencies.mCharCodes.begin();
+		for(; it != dependencies.mCharCodes.end() && PDFHummus::eSuccess == status; ++it)
+		{
+			bool dummyFound;
+			// Recurse only when the component is new to the set. A glyph
+			// referencing itself or two glyphs referencing each other would
+			// otherwise drive the call stack until it overflows. The set
+			// doubles as the visited marker for cycle detection.
+			if(ioComponents.insert(*it).second)
+				status = CollectComponentGlyphs(*it, ioComponents, dummyFound, inDepth + 1);
+		}
+		outFoundComponents = true;
+	}
+	return status;
+}
+
 EStatusCode CFFFileInput::PrepareForGlyphIntepretation(	unsigned short inFontIndex,
 			 											unsigned short inCharStringIndex)
 {
@@ -1094,8 +1289,17 @@ EStatusCode CFFFileInput::ReadCharString(	LongFilePositionType inCharStringStart
 											Byte** outCharString)
 {
 	EStatusCode status = PDFHummus::eSuccess;
-	mPrimitivesReader.SetOffset(inCharStringStart);
 	*outCharString = NULL;
+
+	// end must be >= start; otherwise the unsigned subtraction below underflows.
+	if(inCharStringEnd < inCharStringStart)
+	{
+		TRACE_LOG2("CFFFileInput::ReadCharString, end (%lld) < start (%lld)",
+			(long long)inCharStringEnd, (long long)inCharStringStart);
+		return PDFHummus::eFailure;
+	}
+
+	mPrimitivesReader.SetOffset(inCharStringStart);
 
 	do
 	{
@@ -1108,7 +1312,10 @@ EStatusCode CFFFileInput::ReadCharString(	LongFilePositionType inCharStringStart
 	}while(false);
 
 	if(status != PDFHummus::eSuccess && *outCharString)
+	{
 		delete[] *outCharString;
+		*outCharString = NULL;
+	}
 
 	return status;
 }
@@ -1117,38 +1324,50 @@ CharString* CFFFileInput::GetLocalSubr(long inSubrIndex)
 {
 	// locate local subr and return. also - push it to the dependendecy stack to start calculating dependencies for it
 	// also - record dependency on this subr.
-	unsigned short biasedIndex = GetBiasedIndex(mCurrentLocalSubrs->mCharStringsCount,inSubrIndex);	
+	long biasedIndex = GetBiasedIndex(mCurrentLocalSubrs->mCharStringsCount,inSubrIndex);
 
-	if(biasedIndex < mCurrentLocalSubrs->mCharStringsCount)
+	if(biasedIndex >= 0 && biasedIndex < (long)mCurrentLocalSubrs->mCharStringsCount)
 	{
 		CharString* returnValue = mCurrentLocalSubrs->mCharStringsIndex + biasedIndex;
 		if(mCurrentDependencies)
-			mCurrentDependencies->mLocalSubrs.insert(biasedIndex);
+			mCurrentDependencies->mLocalSubrs.insert((unsigned short)biasedIndex);
 		return returnValue;
 	}
 	else
 		return NULL;
 }
 
-unsigned short CFFFileInput::GetBiasedIndex(unsigned short inSubroutineCollectionSize, long inSubroutineIndex)
+long CFFFileInput::GetBiasedIndex(unsigned short inSubroutineCollectionSize, long inSubroutineIndex)
 {
+	// Compute the bias + index sum in 64-bit so that extreme attacker-
+	// controlled inSubroutineIndex values don't trigger signed-overflow UB
+	// during the addition on platforms where long is 32 bits (LLP64, e.g.
+	// Windows). Saturate to LONG_MIN / LONG_MAX on out-of-range — the
+	// caller's range check will reject either sentinel just like any
+	// other out-of-bounds index.
+	int64_t bias;
 	if(inSubroutineCollectionSize < 1240)
-		return (unsigned short)(107 + inSubroutineIndex);
+		bias = 107;
 	else if(inSubroutineCollectionSize < 33900)
-		return (unsigned short)(1131 + inSubroutineIndex);
+		bias = 1131;
 	else
-		return (unsigned short)(32768 + inSubroutineIndex);
+		bias = 32768;
+
+	int64_t result = bias + (int64_t)inSubroutineIndex;
+	if(result > (int64_t)LONG_MAX) return LONG_MAX;
+	if(result < (int64_t)LONG_MIN) return LONG_MIN;
+	return (long)result;
 }
 
 CharString* CFFFileInput::GetGlobalSubr(long inSubrIndex)
 {
-	unsigned short biasedIndex = GetBiasedIndex(mGlobalSubrs.mCharStringsCount,inSubrIndex);	
+	long biasedIndex = GetBiasedIndex(mGlobalSubrs.mCharStringsCount,inSubrIndex);
 
-	if(biasedIndex < mGlobalSubrs.mCharStringsCount)
+	if(biasedIndex >= 0 && biasedIndex < (long)mGlobalSubrs.mCharStringsCount)
 	{
 		CharString* returnValue = mGlobalSubrs.mCharStringsIndex + biasedIndex;
 		if(mCurrentDependencies)
-			mCurrentDependencies->mGlobalSubrs.insert(biasedIndex);
+			mCurrentDependencies->mGlobalSubrs.insert((unsigned short)biasedIndex);
 		return returnValue;
 	}
 	else
@@ -1165,14 +1384,25 @@ EStatusCode CFFFileInput::Type2Endchar(const CharStringOperandList& inOperandLis
 	if(inOperandList.size() >= 4) // meaning it's got the depracated seac usage. 2 topmost charachters on the stack are charachter codes of off StandardEncoding
 	{
 		CharStringOperandList::const_reverse_iterator it = inOperandList.rbegin();
-		Byte characterCode1,characterCode2;
-
-		characterCode1 = it->IsInteger ? (Byte)it->IntegerValue : (Byte)it->RealValue;
+		// seac character codes index StandardEncoding (0..255). Validate each
+		// operand as a finite double in [0, 255] *before* narrowing — casting
+		// NaN / ±inf / out-of-long-range reals to an integer type is UB in
+		// C++, so the bounds check has to be in the double domain. NaN fails
+		// every comparison, so the negated form rejects it implicitly along
+		// with values outside [0, 255].
+		double codeAsDouble1 = it->IsInteger ? (double)it->IntegerValue : it->RealValue;
 		++it;
-		characterCode2 = it->IsInteger ? (Byte)it->IntegerValue : (Byte)it->RealValue;
-	
-		CharString* character1 = GetCharacterFromStandardEncoding(characterCode1);
-		CharString* character2 = GetCharacterFromStandardEncoding(characterCode2);
+		double codeAsDouble2 = it->IsInteger ? (double)it->IntegerValue : it->RealValue;
+
+		if(!(codeAsDouble1 >= 0.0 && codeAsDouble1 <= 255.0) ||
+		   !(codeAsDouble2 >= 0.0 && codeAsDouble2 <= 255.0))
+		{
+			TRACE_LOG2("CFFFileInput::Type2Endchar, seac character code out of [0,255]: %f %f", codeAsDouble1, codeAsDouble2);
+			return PDFHummus::eFailure;
+		}
+
+		CharString* character1 = GetCharacterFromStandardEncoding((Byte)codeAsDouble1);
+		CharString* character2 = GetCharacterFromStandardEncoding((Byte)codeAsDouble2);
 
 		if(character1 && character2 && mCurrentDependencies)
 		{
@@ -1189,6 +1419,9 @@ EStatusCode CFFFileInput::Type2Endchar(const CharStringOperandList& inOperandLis
 
 CharString* CFFFileInput::GetCharacterFromStandardEncoding(Byte inCharacterCode)
 {
+	if(mCurrentCharsetInfo == NULL)
+		return NULL;
+
 	StandardEncoding standardEncoding;
 	const char* glyphName = standardEncoding.GetEncodedGlyphName(inCharacterCode);
 	CharPToUShortMap::iterator itStringToSID = 	mStringToSID.find(glyphName);
@@ -1258,6 +1491,7 @@ EStatusCode CFFFileInput::ReadFDArray(unsigned short inFontIndex)
 			mPrimitivesReader.Skip(offsets[0] - 1);
 
 		mTopDictIndex[inFontIndex].mFDArray = new FontDictInfo[dictionariesCount];
+		mTopDictIndex[inFontIndex].mFDArrayCount = dictionariesCount;
 
 		for(i = 0; i < dictionariesCount && (PDFHummus::eSuccess == status); ++i)
 		{
@@ -1300,6 +1534,7 @@ EStatusCode CFFFileInput::ReadFDSelect(unsigned short inFontIndex)
 {
 	LongFilePositionType fdSelectLocation = GetFDSelectPosition(inFontIndex);
 	unsigned short glyphCount = mCharStrings[inFontIndex].mCharStringsCount;
+	unsigned short fdArrayCount = mTopDictIndex[inFontIndex].mFDArrayCount;
 	EStatusCode status = PDFHummus::eSuccess;
 	Byte format;
 
@@ -1318,8 +1553,15 @@ EStatusCode CFFFileInput::ReadFDSelect(unsigned short inFontIndex)
 		for(unsigned long i=0; i < glyphCount && PDFHummus::eSuccess == status; ++i)
 		{
 			status = mPrimitivesReader.ReadCard8(fdIndex);
-			if(status != PDFHummus::eFailure)
-				mTopDictIndex[inFontIndex].mFDSelect[i] = mTopDictIndex[inFontIndex].mFDArray+ fdIndex;
+			if(status == PDFHummus::eSuccess)
+			{
+				if(fdIndex >= fdArrayCount)
+				{
+					TRACE_LOG2("CFFFileInput::ReadFDSelect, format 0 fdIndex %u out of range (fdArrayCount=%u)", fdIndex, fdArrayCount);
+					return PDFHummus::eFailure;
+				}
+				mTopDictIndex[inFontIndex].mFDSelect[i] = mTopDictIndex[inFontIndex].mFDArray + fdIndex;
+			}
 		}
 	}
 	else // format 3
@@ -1330,19 +1572,47 @@ EStatusCode CFFFileInput::ReadFDSelect(unsigned short inFontIndex)
 		Byte fdIndex;
 
 		status = mPrimitivesReader.ReadCard16(rangesCount);
-		if(status != PDFHummus::eFailure)
+		if(status == PDFHummus::eSuccess)
 		{
 			status = mPrimitivesReader.ReadCard16(firstGlyphIndex);
+			if(status == PDFHummus::eSuccess && firstGlyphIndex != 0)
+			{
+				// Format 3 must cover every glyph; a non-zero starting index
+				// would leave mFDSelect[0..firstGlyphIndex) uninitialized for
+				// later glyph-interpretation lookups to dereference.
+				TRACE_LOG1("CFFFileInput::ReadFDSelect, format 3 initial firstGlyphIndex %u != 0 leaves leading glyphs unassigned", firstGlyphIndex);
+				return PDFHummus::eFailure;
+			}
 			for(unsigned long i=0; i < rangesCount && PDFHummus::eSuccess == status;++i)
 			{
 				mPrimitivesReader.ReadCard8(fdIndex);
 				mPrimitivesReader.ReadCard16(nextRangeGlyphIndex);
 				status = mPrimitivesReader.GetInternalState();
-				if(status != PDFHummus::eFailure)
-					for(unsigned short j=firstGlyphIndex; j < nextRangeGlyphIndex;++j)
-						mTopDictIndex[inFontIndex].mFDSelect[j] = 
-							mTopDictIndex[inFontIndex].mFDArray + fdIndex;
+				if(status != PDFHummus::eSuccess)
+					break;
+				if(fdIndex >= fdArrayCount)
+				{
+					TRACE_LOG2("CFFFileInput::ReadFDSelect, format 3 fdIndex %u out of range (fdArrayCount=%u)", fdIndex, fdArrayCount);
+					return PDFHummus::eFailure;
+				}
+				if(nextRangeGlyphIndex > glyphCount || nextRangeGlyphIndex <= firstGlyphIndex)
+				{
+					TRACE_LOG2("CFFFileInput::ReadFDSelect, format 3 nextRangeGlyphIndex %u outside (firstGlyphIndex, glyphCount=%u]", nextRangeGlyphIndex, glyphCount);
+					return PDFHummus::eFailure;
+				}
+				for(unsigned short j=firstGlyphIndex; j < nextRangeGlyphIndex;++j)
+					mTopDictIndex[inFontIndex].mFDSelect[j] =
+						mTopDictIndex[inFontIndex].mFDArray + fdIndex;
 				firstGlyphIndex = nextRangeGlyphIndex;
+			}
+			if(status == PDFHummus::eSuccess && firstGlyphIndex != glyphCount)
+			{
+				// After the loop firstGlyphIndex holds the final sentinel
+				// (or the initial value if rangesCount was 0). It must equal
+				// glyphCount; otherwise mFDSelect[firstGlyphIndex..glyphCount)
+				// stays uninitialized.
+				TRACE_LOG2("CFFFileInput::ReadFDSelect, format 3 final sentinel %u != glyphCount %u leaves trailing glyphs unassigned", firstGlyphIndex, glyphCount);
+				return PDFHummus::eFailure;
 			}
 		}
 	}
@@ -1600,16 +1870,22 @@ EStatusCode CFFFileInput::ReadCharsets(unsigned short inFontIndex)
 
 EStatusCode CFFFileInput::ReadEncodings(unsigned short inFontIndex)
 {
-	// read all encodings positions
 	LongFilePositionType encodingPosition = GetEncodingPosition(inFontIndex);
 	EncodingsInfo* encoding = new EncodingsInfo();
 
-	ReadEncoding(encoding,encodingPosition);
+	// Push first so mEncodings owns the buffer regardless of outcome — the
+	// destructor walks it for cleanup. Only assign mTopDictIndex on success
+	// to avoid pinning a partially-initialised encoding as the font's.
+	EStatusCode status = ReadEncoding(encoding, encodingPosition);
 	mEncodings.push_back(encoding);
+	if(status != PDFHummus::eSuccess)
+	{
+		TRACE_LOG1("CFFFileInput::ReadEncodings, failed to read encoding for font index %u", inFontIndex);
+		return status;
+	}
 	mTopDictIndex[inFontIndex].mEncoding = encoding;
 
 	return mPrimitivesReader.GetInternalState();
-
 }
 
 EStatusCode CFFFileInput::ReadCIDInformation(unsigned short inFontIndex)

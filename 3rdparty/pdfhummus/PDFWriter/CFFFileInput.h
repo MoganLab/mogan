@@ -34,6 +34,9 @@
 #include <utility>
 #include <vector>
 
+typedef std::set<unsigned int> UIntSet;
+typedef std::vector<unsigned int> UIntVector;
+
 
 
 struct CFFHeader
@@ -98,16 +101,22 @@ typedef std::pair<Byte,unsigned short> ByteAndUShort;
 
 struct EncodingsInfo
 {
-	EncodingsInfo() {mEncoding = NULL;}
+	EncodingsInfo() {
+		mEncodingStart = 0;
+		mEncodingEnd = 0;
+		mType = eEncodingStandard;
+		mEncodingsCount = 0;
+		mEncoding = NULL;
+	}
 
 	LongFilePositionType mEncodingStart;
 	LongFilePositionType mEncodingEnd;
 
 	EEncodingType mType;
-	Byte mEncodingsCount;
+	unsigned short mEncodingsCount;
 	Byte* mEncoding;
 	UShortToByteList mSupplements;
-	
+
 };
 
 struct PrivateDictInfo
@@ -135,6 +144,7 @@ struct TopDictInfo
 {
 	TopDictInfo() {
 					mFDArray = NULL;
+					mFDArrayCount = 0;
 					mFDSelect = NULL;
 					mCharSet = NULL;
 					mEncoding = NULL;
@@ -144,6 +154,7 @@ struct TopDictInfo
 	CharSetInfo* mCharSet;
 	EncodingsInfo* mEncoding;
 	FontDictInfo* mFDArray;
+	unsigned short mFDArrayCount;
 	FontDictInfo** mFDSelect; // size is like glyphsize. each cell references the relevant FontDict
 };
 
@@ -196,6 +207,12 @@ public:
 	PDFHummus::EStatusCode CalculateDependenciesForCharIndex(unsigned short inFontIndex,
 												  unsigned short inCharStringIndex,
 												  CharString2Dependencies& ioDependenciesInfo);
+
+	// Expand `ioSubsetGlyphIDs` with the transitive set of glyphs reachable
+	// via Type 2 seac (4-arg endchar) dependencies. Safe against cyclic and
+	// deeply nested charstrings: a visited-set guard blocks cycles and a
+	// depth cap blocks long acyclic chains before they overflow the stack.
+	PDFHummus::EStatusCode AddDependentGlyphs(UIntVector& ioSubsetGlyphIDs);
 
 	unsigned short GetFontsCount(unsigned short inFontIndex);
 	unsigned short GetCharStringsCount(unsigned short inFontIndex);
@@ -259,7 +276,12 @@ private:
 	CharStringList mAdditionalGlyphs;
 	CharSetInfo* mCurrentCharsetInfo;
 
-	std::string GetStringForSID(unsigned short inSID);	
+	PDFHummus::EStatusCode CollectComponentGlyphs(unsigned int inGlyphID,
+										UIntSet& ioComponents,
+										bool& outFoundComponents,
+										unsigned int inDepth = 0);
+
+	std::string GetStringForSID(unsigned short inSID);
 	PDFHummus::EStatusCode ReadHeader();
 	PDFHummus::EStatusCode ReadNameIndex();
 	PDFHummus::EStatusCode ReadIndexHeader(unsigned long** outOffsets,unsigned short& outItemsCount);
@@ -282,7 +304,11 @@ private:
 												 long inDefault);
 	LongFilePositionType GetCharsetPosition(unsigned short inFontIndex);
 	LongFilePositionType GetEncodingPosition(unsigned short inFontIndex);
-	unsigned short GetBiasedIndex(unsigned short inSubroutineCollectionSize, long inSubroutineIndex);
+	// Returns the biased subroutine index as a signed long so callers can
+	// range-check before deref. Returning unsigned short would silently
+	// wrap attacker-controlled inSubroutineIndex values into a valid
+	// in-range subr slot (subset substitution).
+	long GetBiasedIndex(unsigned short inSubroutineCollectionSize, long inSubroutineIndex);
 	PDFHummus::EStatusCode ReadFormat0Charset(bool inIsCID, UShortToCharStringMap& ioCharMap,unsigned short** inSIDArray,const CharStrings& inCharStrings);
 	PDFHummus::EStatusCode ReadFormat1Charset(bool inIsCID,UShortToCharStringMap& ioCharMap,unsigned short** inSIDArray,const CharStrings& inCharStrings);
 	PDFHummus::EStatusCode ReadFormat2Charset(bool inIsCID,UShortToCharStringMap& ioCharMap,unsigned short** inSIDArray,const CharStrings& inCharStrings);
@@ -304,7 +330,7 @@ private:
 	PDFHummus::EStatusCode ReadPrivateDicts(unsigned short inFontIndex);
 	PDFHummus::EStatusCode ReadLocalSubrs(unsigned short inFontIndex);
 	PDFHummus::EStatusCode ReadCharsets(unsigned short inFontIndex);
-	void ReadEncoding(EncodingsInfo* inEncoding,LongFilePositionType inEncodingPosition);
+	PDFHummus::EStatusCode ReadEncoding(EncodingsInfo* inEncoding,LongFilePositionType inEncodingPosition);
 	PDFHummus::EStatusCode ReadEncodings(unsigned short inFontIndex);
 	PDFHummus::EStatusCode ReadCIDInformation(unsigned short inFontIndex);
 	PDFHummus::EStatusCode ReadCFFFileByIndexOrName(IByteReaderWithPosition* inCFFFile,const std::string& inFontName,unsigned short inFontIndex);

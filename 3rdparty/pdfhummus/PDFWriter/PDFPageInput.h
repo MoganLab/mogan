@@ -34,6 +34,7 @@
 #include "PDFObjectCast.h"
 #include "PDFDictionary.h"
 #include "EStatusCode.h"
+#include "ObjectsBasicTypes.h"
 
 #include <string>
 

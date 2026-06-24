@@ -20,6 +20,7 @@
 */
 #include "InputPredictorTIFFSubStream.h"
 #include "Trace.h"
+#include <stdint.h>
 
 using namespace IOBasicTypes;
 
@@ -52,8 +53,10 @@ InputPredictorTIFFSubStream::~InputPredictorTIFFSubStream(void)
 
 LongBufferSizeType InputPredictorTIFFSubStream::Read(Byte* inBuffer,LongBufferSizeType inBufferSize)
 {
+	if(!mSourceStream)
+		return 0;
+
 	LongBufferSizeType readBytes = 0;
-	
 
 	// exhaust what's in the buffer currently
 	while(mReadColorsCount > (LongBufferSizeType)(mReadColorsIndex - mReadColors) && readBytes < inBufferSize)
@@ -84,6 +87,8 @@ LongBufferSizeType InputPredictorTIFFSubStream::Read(Byte* inBuffer,LongBufferSi
 
 bool InputPredictorTIFFSubStream::NotEnded()
 {
+	if(!mSourceStream)
+		return false;
 	return mSourceStream->NotEnded() || (LongBufferSizeType)(mReadColorsIndex - mReadColors) < mReadColorsCount;
 }
 
@@ -92,16 +97,65 @@ void InputPredictorTIFFSubStream::Assign(IByteReader* inSourceStream,
 										Byte inBitsPerComponent,
 										LongBufferSizeType inColumns)
 {
+	// Always take ownership of the source stream first
+	delete mSourceStream;
 	mSourceStream = inSourceStream;
+
+	// Clean up previous buffers
+	delete[] mRowBuffer;
+	mRowBuffer = NULL;
+	delete[] mReadColors;
+	mReadColors = NULL;
+	mReadColorsCount = 0;
+
+	// Validate inputs
+	if(inColumns == 0 || inColors == 0 || inBitsPerComponent == 0)
+	{
+		if(inSourceStream != NULL)
+			TRACE_LOG("InputPredictorTIFFSubStream::Assign, invalid zero parameter");
+		return;
+	}
+
+	// Check multiplication overflow: inColumns * inColors
+	if(inColumns > SIZE_MAX / inColors)
+	{
+		TRACE_LOG("InputPredictorTIFFSubStream::Assign, overflow in columns * colors");
+		return;
+	}
+	LongBufferSizeType colorsTimesColumns = inColumns * inColors;
+
+	// Check next multiplication: colorsTimesColumns * inBitsPerComponent
+	if(colorsTimesColumns > SIZE_MAX / inBitsPerComponent)
+	{
+		TRACE_LOG("InputPredictorTIFFSubStream::Assign, overflow in buffer size calculation");
+		return;
+	}
+	LongBufferSizeType totalBits = colorsTimesColumns * inBitsPerComponent;
+
+	// Check that +7 won't overflow before ceiling division
+	if(totalBits > SIZE_MAX - 7)
+	{
+		TRACE_LOG("InputPredictorTIFFSubStream::Assign, overflow in buffer size rounding");
+		return;
+	}
+	LongBufferSizeType bufferSize = (totalBits + 7) / 8;
+
+	// All validation passed - update remaining member state
 	mColors = inColors;
 	mBitsPerComponent = inBitsPerComponent;
 	mColumns = inColumns;
-	
-	delete mRowBuffer;
-	mRowBuffer = new Byte[(inColumns*inColors*inBitsPerComponent)/8];
 
-	mReadColorsCount = inColumns * inColors;
-	mReadColors = new unsigned short[mReadColorsCount];
+	mRowBuffer = new Byte[bufferSize];
+
+	mReadColorsCount = colorsTimesColumns;
+	// only the sub-byte path in DecodeBufferToColors can leave cells unwritten when
+	// the defensive bounds check trips. value-initialize in that case so unwritten
+	// cells read as 0 instead of uninitialized heap memory. the 8 and >8 bpc paths
+	// fully overwrite the buffer and don't need the extra zero pass.
+	if(inBitsPerComponent < 8)
+		mReadColors = new unsigned short[mReadColorsCount]();
+	else
+		mReadColors = new unsigned short[mReadColorsCount];
 	mReadColorsIndex = mReadColors + mReadColorsCount; // assign to end of array so will know that should read new buffer
 	mIndexInColor = 0;
 
@@ -153,11 +207,25 @@ void InputPredictorTIFFSubStream::DecodeBufferToColors()
 	}
 	else if(8 > mBitsPerComponent)
 	{
-		for(; i < (mReadColorsCount*mBitsPerComponent/8);++i)
+		bool stop = false;
+		for(; !stop && i < (mReadColorsCount*mBitsPerComponent/8);++i)
 		{
 			for(LongBufferSizeType j=0; j < (LongBufferSizeType)(8/mBitsPerComponent); ++j)
 			{
-				mReadColors[(i+1)*8/mBitsPerComponent - j - 1] = mRowBuffer[i] & mBitMask;
+				LongBufferSizeType writeIndex = (i+1)*8/mBitsPerComponent - j - 1;
+				// defensive bounds check: with non-power-of-two BitsPerComponent or
+				// counts that don't divide evenly, the computed index could in principle
+				// land outside the mReadColors array. break out of both loops, since
+				// writeIndex grows monotonically with i and would keep tripping; unfilled
+				// cells were zero-initialized in Assign(), so downstream reads see 0.
+				if(writeIndex >= mReadColorsCount)
+				{
+					TRACE_LOG3("InputPredictorTIFFSubStream::DecodeBufferToColors, write index %zu out of bounds (count=%zu, bpc=%u), aborting decode",
+						(size_t)writeIndex, (size_t)mReadColorsCount, (unsigned)mBitsPerComponent);
+					stop = true;
+					break;
+				}
+				mReadColors[writeIndex] = mRowBuffer[i] & mBitMask;
 				mRowBuffer[i] = mRowBuffer[i]>>mBitsPerComponent;
 			}
 		}

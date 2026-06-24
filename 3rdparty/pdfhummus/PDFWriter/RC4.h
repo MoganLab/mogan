@@ -21,9 +21,7 @@ limitations under the License.
 #pragma once
 
 #include "IOBasicTypes.h"
-#include <list>
-
-typedef std::list<IOBasicTypes::Byte> ByteList;
+#include "ByteList.h"
 
 class RC4
 {

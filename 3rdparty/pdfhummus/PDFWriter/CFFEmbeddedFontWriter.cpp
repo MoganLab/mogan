@@ -72,6 +72,7 @@ EStatusCode CFFEmbeddedFontWriter::WriteEmbeddedFont(
 		// as oppose to true type, the reason for using a memory stream here is mainly peformance - i don't want to start
 		// setting file pointers and move in a file stream
 	EStatusCode status;
+	PDFStream* pdfStream = NULL;
 
 	do
 	{
@@ -84,13 +85,19 @@ EStatusCode CFFEmbeddedFontWriter::WriteEmbeddedFont(
 
 		if(notEmbedded)
 		{
-			// can't embed. mark succesful, and go back empty
+			// can't embed [forbidden...which a font has a all the right to be]. mark succesful, and go back empty
 			outEmbeddedFontObjectID = 0;
 			TRACE_LOG("CFFEmbeddedFontWriter::WriteEmbeddedFont, font may not be embedded. so not embedding");
 			return PDFHummus::eSuccess;
 		}
 
 		outEmbeddedFontObjectID = inObjectsContext->StartNewIndirectObject();
+		if(0 == outEmbeddedFontObjectID)
+		{
+			TRACE_LOG("CFFEmbeddedFontWriter::WriteEmbeddedFont, failed to start writing embedded font object");
+			status = PDFHummus::eFailure;
+			break;
+		}
 		
 		DictionaryContext* fontProgramDictionaryContext = inObjectsContext->StartDictionary();
 
@@ -98,7 +105,7 @@ EStatusCode CFFEmbeddedFontWriter::WriteEmbeddedFont(
 
 		fontProgramDictionaryContext->WriteKey(scSubtype);
 		fontProgramDictionaryContext->WriteNameValue(inFontFile3SubType);
-		PDFStream* pdfStream = inObjectsContext->StartPDFStream(fontProgramDictionaryContext);
+		pdfStream = inObjectsContext->StartPDFStream(fontProgramDictionaryContext);
 
 
 		// now copy the created font program to the output stream
@@ -111,11 +118,10 @@ EStatusCode CFFEmbeddedFontWriter::WriteEmbeddedFont(
 			break;
 		}
 
-
-		inObjectsContext->EndPDFStream(pdfStream);
-		delete pdfStream;
+		status = inObjectsContext->EndPDFStream(pdfStream);
 	}while(false);
 
+	delete pdfStream;
 	return status;	
 }
 
@@ -166,7 +172,7 @@ EStatusCode CFFEmbeddedFontWriter::CreateCFFSubset(
 		if(subsetGlyphIDs.front() != 0) // make sure 0 glyph is in
 			subsetGlyphIDs.insert(subsetGlyphIDs.begin(),0);
 
-		status = AddDependentGlyphs(subsetGlyphIDs);
+		status = mOpenTypeInput.mCFF.AddDependentGlyphs(subsetGlyphIDs);
 		if(status != PDFHummus::eSuccess)
 		{
 			TRACE_LOG("CFFEmbeddedFontWriter::CreateCFFSubset, failed to add dependent glyphs");
@@ -271,57 +277,6 @@ EStatusCode CFFEmbeddedFontWriter::CreateCFFSubset(
 	}while(false);
 
 	mOpenTypeFile.CloseFile();
-	return status;
-}
-
-EStatusCode CFFEmbeddedFontWriter::AddDependentGlyphs(UIntVector& ioSubsetGlyphIDs)
-{
-	EStatusCode status = PDFHummus::eSuccess;
-	UIntSet glyphsSet;
-	UIntVector::iterator it = ioSubsetGlyphIDs.begin();
-	bool hasCompositeGlyphs = false;
-
-	for(;it != ioSubsetGlyphIDs.end() && PDFHummus::eSuccess == status; ++it)
-	{
-		bool localHasCompositeGlyphs;
-		status = AddComponentGlyphs(*it,glyphsSet,localHasCompositeGlyphs);
-		hasCompositeGlyphs |= localHasCompositeGlyphs;
-	}
-
-	if(hasCompositeGlyphs)
-	{
-		UIntSet::iterator itNewGlyphs;
-
-		for(it = ioSubsetGlyphIDs.begin();it != ioSubsetGlyphIDs.end(); ++it)
-			glyphsSet.insert(*it);
-
-		ioSubsetGlyphIDs.clear();
-		for(itNewGlyphs = glyphsSet.begin(); itNewGlyphs != glyphsSet.end(); ++itNewGlyphs)
-			ioSubsetGlyphIDs.push_back(*itNewGlyphs);
-		
-		sort(ioSubsetGlyphIDs.begin(),ioSubsetGlyphIDs.end());
-	}	
-	return status;
-}
-
-EStatusCode CFFEmbeddedFontWriter::AddComponentGlyphs(unsigned int inGlyphID,UIntSet& ioComponents,bool &outFoundComponents)
-{
-	CharString2Dependencies dependencies;
-	EStatusCode status = mOpenTypeInput.mCFF.CalculateDependenciesForCharIndex(0,inGlyphID,dependencies);
-
-	if(PDFHummus::eSuccess == status && dependencies.mCharCodes.size() !=0)
-	{
-		UShortSet::iterator it = dependencies.mCharCodes.begin();
-		for(; it != dependencies.mCharCodes.end() && PDFHummus::eSuccess == status; ++it)
-		{
-			bool dummyFound;
-			ioComponents.insert(*it);
-			status = AddComponentGlyphs(*it,ioComponents,dummyFound);
-		}
-		outFoundComponents = true;
-	}
-	else
-		outFoundComponents = false;
 	return status;
 }
 
@@ -636,9 +591,11 @@ EStatusCode CFFEmbeddedFontWriter::WriteEncodings(const UIntVector& inSubsetGlyp
 		else
 			mPrimitivesWriter.WriteCard8(0);
 
-		// assuming that 0 is in the subset glyphs IDs, which does not require encoding
-		// get the encodings count
-		Byte encodingGlyphsCount = std::min((Byte)(inSubsetGlyphIDs.size()-1),encodingInfo->mEncodingsCount); 
+		// assuming that 0 is in the subset glyphs IDs, which does not require encoding.
+		// Output nCodes is Card8, so anything past 255 cannot be reproduced anyway.
+		unsigned short subsetEncodingCount = (unsigned short)(inSubsetGlyphIDs.size()-1);
+		unsigned short rawCount = std::min<unsigned short>(subsetEncodingCount, encodingInfo->mEncodingsCount);
+		Byte encodingGlyphsCount = (rawCount > 255) ? (Byte)255 : (Byte)rawCount;
 
 		mPrimitivesWriter.WriteCard8(encodingGlyphsCount);
 		for(Byte i=0; i < encodingGlyphsCount;++i)

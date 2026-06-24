@@ -94,10 +94,18 @@
 
 #include <stdlib.h> 
 #include <search.h>
+#include <stdint.h>
 
 using namespace PDFHummus;
 
 #define PS_UNIT_SIZE	72.0F
+
+/* Upper bound on declared decoded-size to declared compressed-size ratio.
+   Defends against malicious TIFFs that declare huge dimensions but ship a tiny
+   strip payload, which would otherwise inflate buffer allocations to gigabytes
+   on a kilobyte input. Generous headroom over worst-case real codecs
+   (G4 fax ~1000-2000:1) so no legitimate TIFF trips it. */
+#define TIFF_MAX_COMPRESSION_RATIO 10000
 
 /* This type is of PDF color spaces. */
 typedef enum {
@@ -132,8 +140,15 @@ typedef enum{
 	T2P_SAMPLE_RGBA_TO_RGB=0x0002, /* The unencoded samples are contiguous RGBA */
 	T2P_SAMPLE_RGBAA_TO_RGB=0x0004, /* The unencoded samples are RGBA with premultiplied alpha */
 	T2P_SAMPLE_YCBCR_TO_RGB=0x0008, 
-	T2P_SAMPLE_YCBCR_TO_LAB=0x0010, 
-	T2P_SAMPLE_REALIZE_PALETTE=0x0020, /* The unencoded samples are indexes into the color map */
+	T2P_SAMPLE_YCBCR_TO_LAB=0x0010,
+	/* 0x0020 reserved — upstream tiff2pdf's T2P_SAMPLE_REALIZE_PALETTE.
+	   Upstream sets this flag only when emitting JPEG-compressed PDF output
+	   (JPEG can't store an indexed colormap, so the palette has to be
+	   realized into raw RGB samples before encoding). This port doesn't
+	   support JPEG output — see t2p_compress_t above, only NONE/G4/ZIP —
+	   so the flag was never assigned and the palette-realize path was
+	   intentionally dropped. Leaving the bit reserved keeps the rest of
+	   the bit assignments aligned with upstream. */
 	T2P_SAMPLE_SIGNED_TO_UNSIGNED=0x0040, /* The unencoded samples are signed instead of unsignd */
 	T2P_SAMPLE_LAB_SIGNED_TO_UNSIGNED=0x0040, /* The L*a*b* samples have a* and b* signed */
 	T2P_SAMPLE_PLANAR_SEPARATE_TO_CONTIG=0x0100 /* The unencoded samples are separate instead of contiguous */
@@ -496,14 +511,29 @@ PDFFormXObject* TIFFImageHandler::ConvertTiff2PDF(ObjectIDType inFormXObjectID)
 		if(mT2p->tiff_transferfunctioncount != 0)
 		{
 			ObjectIDTypeList transferFunctionsObjectIDs;
-			for(int i=0; i < mT2p->tiff_transferfunctioncount; i++)
-				transferFunctionsObjectIDs.push_back(WriteTransferFunction(i));
+			for(int i=0; (i < mT2p->tiff_transferfunctioncount) && (eSuccess == status); i++) {
+				ObjectIDType transferFunctionID = WriteTransferFunction(i);
+				if(transferFunctionID == 0)
+				{
+					status = eFailure;
+					break;
+				}
+				transferFunctionsObjectIDs.push_back(transferFunctionID);
+			}
+			if(status != eSuccess)
+				break;
 			mT2p->pdf_transfer_functions_gstate = WriteTransferFunctionsExtGState(transferFunctionsObjectIDs);
 		}
 
 		// Write color space palette if one exists
-		if( (mT2p->pdf_colorspace & T2P_CS_PALETTE) != 0)
+		if( (mT2p->pdf_colorspace & T2P_CS_PALETTE) != 0) {
 			mT2p->pdf_palettecs = WritePaletteCS();
+			if(mT2p->pdf_palettecs == 0)
+			{
+				status = eFailure;
+				break;
+			}
+		}
 
 		// Write ICC profile for ICC CS based color spaces
 		if( (mT2p->pdf_colorspace & T2P_CS_ICCBASED) != 0)
@@ -688,8 +718,9 @@ EStatusCode TIFFImageHandler::ReadTopLevelTiffInformation()
 			if( (TIFFGetField(mT2p->input, TIFFTAG_PLANARCONFIG, &xuint16_t) != 0)
 				&& (xuint16_t == PLANARCONFIG_SEPARATE ) )
 			{
-					TIFFGetField(mT2p->input, TIFFTAG_SAMPLESPERPIXEL, &xuint16_t);
-					mT2p->tiff_tiles[i].tiles_tilecount/= xuint16_t;
+					TIFFGetFieldDefaulted(mT2p->input, TIFFTAG_SAMPLESPERPIXEL, &xuint16_t);
+					if(xuint16_t != 0)
+						mT2p->tiff_tiles[i].tiles_tilecount/= xuint16_t;
 			}
 			if( mT2p->tiff_tiles[i].tiles_tilecount > 0)
 			{
@@ -1100,20 +1131,6 @@ EStatusCode TIFFImageHandler::ReadTIFFPageInformation() //t2p_read_tiff_data
 		if(mT2p->pdf_transcode!=T2P_TRANSCODE_RAW)
 		{
 			mT2p->pdf_compression = mT2p->pdf_defaultcompression;
-		}
-
-		if(mT2p->pdf_sample & T2P_SAMPLE_REALIZE_PALETTE)
-		{
-			if(mT2p->pdf_colorspace & T2P_CS_CMYK)
-			{
-				mT2p->tiff_samplesperpixel=4;
-				mT2p->tiff_photometric=PHOTOMETRIC_SEPARATED;
-			} 
-			else 
-			{
-				mT2p->tiff_samplesperpixel=3;
-				mT2p->tiff_photometric=PHOTOMETRIC_RGB;
-			}
 		}
 
 		if (TIFFGetField(mT2p->input, TIFFTAG_TRANSFERFUNCTION,
@@ -1693,7 +1710,11 @@ ObjectIDType TIFFImageHandler::WriteTransferFunction(int i)
 	transferFunctionStream->GetWriteStream()->Write(
 				(const IOBasicTypes::Byte*)mT2p->tiff_transferfunction[i],
 				(1<<(mT2p->tiff_bitspersample+1)));
-	mObjectsContext->EndPDFStream(transferFunctionStream);
+	EStatusCode status = mObjectsContext->EndPDFStream(transferFunctionStream);
+	if(status != PDFHummus::eSuccess)
+	{
+		transferFunctionID = 0; // mark failure with 0 returned object
+	}
 	delete transferFunctionStream;
 	return transferFunctionID;
 }
@@ -1736,10 +1757,14 @@ ObjectIDType TIFFImageHandler::WriteTransferFunctionsExtGState(const ObjectIDTyp
 ObjectIDType TIFFImageHandler::WritePaletteCS()
 {
 	ObjectIDType palleteID = mObjectsContext->StartNewIndirectObject();
+	if(0 == palleteID)
+		return 0;
 	PDFStream* paletteStream =  mObjectsContext->StartPDFStream();
 	paletteStream->GetWriteStream()->Write(
 			(const IOBasicTypes::Byte*)mT2p->pdf_palette,mT2p->pdf_palettesize);
-	mObjectsContext->EndPDFStream(paletteStream);
+	EStatusCode status = mObjectsContext->EndPDFStream(paletteStream);
+	if(status != eSuccess)
+		palleteID = 0; // mark failure with 0 returned object
 	delete paletteStream;
 	return palleteID;
 }
@@ -1750,6 +1775,8 @@ static const std::string scAlternate = "Alternate";
 ObjectIDType TIFFImageHandler::WriteICCCS()
 {
 	ObjectIDType ICCID = mObjectsContext->StartNewIndirectObject();
+	if(0 == ICCID)
+		return 0;
 	DictionaryContext* ICCDictionary = mObjectsContext->StartDictionary();
 	
 	// N
@@ -1769,7 +1796,11 @@ ObjectIDType TIFFImageHandler::WriteICCCS()
 	ICCStream->GetWriteStream()->Write(
 				(const IOBasicTypes::Byte*)mT2p->tiff_iccprofile,
 				mT2p->tiff_iccprofilelength);
-	mObjectsContext->EndPDFStream(ICCStream);
+	EStatusCode status = mObjectsContext->EndPDFStream(ICCStream);
+	if(status != PDFHummus::eSuccess)
+	{
+		ICCID = 0; // mark failure with 0 returned object
+	}
 	delete ICCStream;
 	return ICCID;	
 }
@@ -2047,6 +2078,11 @@ PDFImageXObject* TIFFImageHandler::WriteTileImageXObject(int inTileIndex)
 	do
 	{
 		ObjectIDType imageXObjectID = mObjectsContext->StartNewIndirectObject();
+		if(imageXObjectID == 0)
+		{
+			TRACE_LOG("TIFFImageHandler::WriteTileImageXObject, unexpected failure. unable to create image xobject");
+			break;
+		}
 		DictionaryContext* imageContext = mObjectsContext->StartDictionary();
 	
 		WriteCommonImageDictionaryProperties(imageContext);
@@ -2084,7 +2120,8 @@ PDFImageXObject* TIFFImageHandler::WriteTileImageXObject(int inTileIndex)
 		if(WriteImageTileData(imageStream,inTileIndex) != PDFHummus::eSuccess)
 			break;
 
-		mObjectsContext->EndPDFStream(imageStream);
+		if(mObjectsContext->EndPDFStream(imageStream) != PDFHummus::eSuccess)
+			break;
 
 		// Creating Image XObject procset value is dummy, because resources  on the 
 		// container will be set externally.
@@ -2281,15 +2318,54 @@ void TIFFImageHandler::CalculateTiffTileSize(int inTileIndex)
 			// 	TIFFTAG_TILEBYTECOUNTS changed in tiff 4.0.0;
 
 			tsize_t_compat* tbc = NULL;
-			TIFFGetField(mT2p->input, TIFFTAG_TILEBYTECOUNTS, &tbc);
-			mT2p->tiff_datasize=static_cast<tsize_t>(tbc[inTileIndex]);
+			if(TIFFGetField(mT2p->input, TIFFTAG_TILEBYTECOUNTS, &tbc) != 0 && tbc != NULL)
+				mT2p->tiff_datasize=static_cast<tsize_t>(tbc[inTileIndex]);
+			else
+				mT2p->tiff_datasize=0;
 		}
 	}
 	else
 	{
-		mT2p->tiff_datasize=TIFFTileSize(mT2p->input);
-		if(mT2p->tiff_planar==PLANARCONFIG_SEPARATE)
-			mT2p->tiff_datasize*= mT2p->tiff_samplesperpixel;
+		tmsize_t tileSize = TIFFTileSize(mT2p->input);
+		uint64_t totalSize = (tileSize > 0) ? static_cast<uint64_t>(tileSize) : 0;
+		if(mT2p->tiff_planar==PLANARCONFIG_SEPARATE && mT2p->tiff_samplesperpixel != 0)
+		{
+			if(totalSize > static_cast<uint64_t>(TIFF_TMSIZE_T_MAX) / mT2p->tiff_samplesperpixel)
+				totalSize = 0;
+			else
+				totalSize *= mT2p->tiff_samplesperpixel;
+		}
+		// Cross-check declared decoded tile size against the on-disk bytecount.
+		// Reject sparse-payload tiles whose ratio exceeds any real codec.
+		if(totalSize > 0)
+		{
+			tsize_t_compat* tbc = NULL;
+			if(TIFFGetField(mT2p->input, TIFFTAG_TILEBYTECOUNTS, &tbc) != 0 && tbc != NULL)
+			{
+				uint64_t compressed = static_cast<uint64_t>(tbc[inTileIndex]);
+				if(compressed == 0 ||
+					totalSize / compressed > TIFF_MAX_COMPRESSION_RATIO)
+				{
+					TRACE_LOG4("TIFFImageHandler::CalculateTiffTileSize, "
+						"tile %d declared decoded size %llu vs bytecount %llu exceeds "
+						"the maximum allowed compression ratio %d; rejecting input",
+						inTileIndex,
+						(unsigned long long)totalSize,
+						(unsigned long long)compressed,
+						TIFF_MAX_COMPRESSION_RATIO);
+					totalSize = 0;
+				}
+			}
+			else
+			{
+				TRACE_LOG1("TIFFImageHandler::CalculateTiffTileSize, "
+					"tile %d missing TIFFTAG_TILEBYTECOUNTS; cannot sanity-check "
+					"declared decoded size, rejecting input",
+					inTileIndex);
+				totalSize = 0;
+			}
+		}
+		mT2p->tiff_datasize = static_cast<tsize_t>(totalSize);
 	}
 }
 
@@ -2381,6 +2457,13 @@ EStatusCode TIFFImageHandler::WriteImageTileData(PDFStream* inImageStream,int in
 
 	do
 	{
+		if(mT2p->tiff_datasize <= 0)
+		{
+			TRACE_LOG1("TIFFImageHandler::WriteImageTileData, invalid tiff_datasize for %s",
+						mT2p->inputFilePath.c_str());
+			status = PDFHummus::eFailure;
+			break;
+		}
 		// if recompression is not required, passthrough the image information and finish
 		if((mT2p->pdf_transcode == T2P_TRANSCODE_RAW) && (edge == 0) &&
 			(mT2p->pdf_compression == T2P_COMPRESS_G4 ||
@@ -2620,7 +2703,7 @@ tsize_t TIFFImageHandler::SampleRGBAAToRGB(tdata_t inData, uint32_t inSampleCoun
 	uint32_t i;
 	
 	for(i = 0; i < inSampleCount; i++)
-		memcpy((uint8_t*)inData + i * 3, (uint8_t*)inData + i * 4, 3);
+		memmove((uint8_t*)inData + i * 3, (uint8_t*)inData + i * 4, 3);
 
 	return(i * 3);	
 }
@@ -2677,6 +2760,11 @@ PDFImageXObject* TIFFImageHandler::WriteUntiledImageXObject()
 	do
 	{
 		ObjectIDType imageXObjectID = mObjectsContext->StartNewIndirectObject();
+		if(imageXObjectID == 0)
+		{
+			TRACE_LOG("TIFFImageHandler::WriteUntiledImageXObject, unexpected failure. unable to create image xobject");
+			break;
+		}		
 		DictionaryContext* imageContext = mObjectsContext->StartDictionary();
 	
 		WriteCommonImageDictionaryProperties(imageContext);
@@ -2709,7 +2797,8 @@ PDFImageXObject* TIFFImageHandler::WriteUntiledImageXObject()
 		if(WriteImageData(imageStream) != PDFHummus::eSuccess)
 			break;
 
-		mObjectsContext->EndPDFStream(imageStream);
+		if(mObjectsContext->EndPDFStream(imageStream) != PDFHummus::eSuccess)
+			break;
 
 		// Creating Image XObject procset value is dummy, because resources  on the 
 		// container will be set externally.
@@ -2777,14 +2866,60 @@ void TIFFImageHandler::CalculateTiffSizeNoTiles()
 	{
 		// TIFFTAG_STRIPBYTECOUNTS size changed in tiff 4.0.0
 		tsize_t_compat * sbc = NULL;
-		TIFFGetField(mT2p->input, TIFFTAG_STRIPBYTECOUNTS, &sbc);
-		mT2p->tiff_datasize = static_cast<tsize_t>(sbc[0]);
+		if(TIFFGetField(mT2p->input, TIFFTAG_STRIPBYTECOUNTS, &sbc) != 0 && sbc != NULL)
+			mT2p->tiff_datasize = static_cast<tsize_t>(sbc[0]);
+		else
+			mT2p->tiff_datasize = 0;
 	}
 	else
 	{
-		mT2p->tiff_datasize=TIFFScanlineSize(mT2p->input) * mT2p->tiff_length;
-		if(mT2p->tiff_planar==PLANARCONFIG_SEPARATE)
-			mT2p->tiff_datasize*= mT2p->tiff_samplesperpixel;
+		tmsize_t scanline = TIFFScanlineSize(mT2p->input);
+		uint64_t totalSize = 0;
+		if(scanline > 0 && mT2p->tiff_length > 0 &&
+			static_cast<uint64_t>(scanline) <=
+				static_cast<uint64_t>(TIFF_TMSIZE_T_MAX) / mT2p->tiff_length)
+		{
+			totalSize = static_cast<uint64_t>(scanline) * mT2p->tiff_length;
+		}
+		if(mT2p->tiff_planar==PLANARCONFIG_SEPARATE && mT2p->tiff_samplesperpixel != 0)
+		{
+			if(totalSize > static_cast<uint64_t>(TIFF_TMSIZE_T_MAX) / mT2p->tiff_samplesperpixel)
+				totalSize = 0;
+			else
+				totalSize *= mT2p->tiff_samplesperpixel;
+		}
+		// Cross-check declared decoded size against the sum of per-strip on-disk
+		// bytecounts. Reject sparse-payload TIFFs whose ratio exceeds any real codec.
+		if(totalSize > 0)
+		{
+			tsize_t_compat* sbc = NULL;
+			if(TIFFGetField(mT2p->input, TIFFTAG_STRIPBYTECOUNTS, &sbc) != 0 && sbc != NULL)
+			{
+				uint64_t stripcount = TIFFNumberOfStrips(mT2p->input);
+				uint64_t totalCompressed = 0;
+				for(uint64_t i = 0; i < stripcount; ++i)
+					totalCompressed += static_cast<uint64_t>(sbc[i]);
+				if(totalCompressed == 0 ||
+					totalSize / totalCompressed > TIFF_MAX_COMPRESSION_RATIO)
+				{
+					TRACE_LOG3("TIFFImageHandler::CalculateTiffSizeNoTiles, "
+						"declared decoded size %llu vs strip bytecount sum %llu exceeds "
+						"the maximum allowed compression ratio %d; rejecting input",
+						(unsigned long long)totalSize,
+						(unsigned long long)totalCompressed,
+						TIFF_MAX_COMPRESSION_RATIO);
+					totalSize = 0;
+				}
+			}
+			else
+			{
+				TRACE_LOG("TIFFImageHandler::CalculateTiffSizeNoTiles, "
+					"missing TIFFTAG_STRIPBYTECOUNTS; cannot sanity-check declared "
+					"decoded size, rejecting input");
+				totalSize = 0;
+			}
+		}
+		mT2p->tiff_datasize = static_cast<tsize_t>(totalSize);
 	}
 }
 
@@ -2809,6 +2944,13 @@ EStatusCode TIFFImageHandler::WriteImageData(PDFStream* inImageStream)
 
 	do
 	{
+		if(mT2p->tiff_datasize <= 0)
+		{
+			TRACE_LOG1("TIFFImageHandler::WriteImageData, invalid tiff_datasize for %s",
+						mT2p->inputFilePath.c_str());
+			status = PDFHummus::eFailure;
+			break;
+		}
 		if(mT2p->pdf_transcode == T2P_TRANSCODE_RAW)
 		{
 			if(mT2p->pdf_compression == T2P_COMPRESS_G4 ||
@@ -2867,7 +3009,10 @@ EStatusCode TIFFImageHandler::WriteImageData(PDFStream* inImageStream)
 					break;
 				}
 				bufferoffset+=read;
-				stripsize = (stripsize > mT2p->tiff_datasize - bufferoffset) ? (mT2p->tiff_datasize - bufferoffset) : stripsize;
+				if(bufferoffset >= mT2p->tiff_datasize)
+					break;
+				if(stripsize > mT2p->tiff_datasize - bufferoffset)
+					stripsize = mT2p->tiff_datasize - bufferoffset;
 			}
 			if(status != PDFHummus::eSuccess)
 				break;
@@ -2982,32 +3127,13 @@ EStatusCode TIFFImageHandler::WriteImageData(PDFStream* inImageStream)
 					break;
 				}
 				bufferoffset+=read;
-				stripsize = (stripsize > mT2p->tiff_datasize - bufferoffset) ? (mT2p->tiff_datasize - bufferoffset) : stripsize;
+				if(bufferoffset >= mT2p->tiff_datasize)
+					break;
+				if(stripsize > mT2p->tiff_datasize - bufferoffset)
+					stripsize = mT2p->tiff_datasize - bufferoffset;
 			}
 			if(status != PDFHummus::eSuccess)
 				break;
-
-			if(mT2p->pdf_sample & T2P_SAMPLE_REALIZE_PALETTE)
-			{
-				samplebuffer=(unsigned char*)_TIFFrealloc( 
-					(tdata_t) buffer, 
-					mT2p->tiff_datasize * mT2p->tiff_samplesperpixel);
-				if(samplebuffer==NULL)
-				{
-					TRACE_LOG2( 
-						"Can't allocate %u bytes of memory for t2p_readwrite_pdf_image, %s", 
-						mT2p->tiff_datasize, 
-						mT2p->inputFilePath.c_str());
-					status = PDFHummus::eFailure;
-				  _TIFFfree(buffer);
-				} 
-				else 
-				{
-					buffer=samplebuffer;
-					mT2p->tiff_datasize *= mT2p->tiff_samplesperpixel;
-				}
-				SampleRealizePalette(buffer);
-			}
 
 			if(mT2p->pdf_sample & T2P_SAMPLE_RGBA_TO_RGB)
 			{
@@ -3025,6 +3151,18 @@ EStatusCode TIFFImageHandler::WriteImageData(PDFStream* inImageStream)
 
 			if(mT2p->pdf_sample & T2P_SAMPLE_YCBCR_TO_RGB)
 			{
+				if(mT2p->tiff_width != 0 &&
+					mT2p->tiff_length > UINT32_MAX / 4 / mT2p->tiff_width)
+				{
+					TRACE_LOG3(
+						"Refusing oversized RGBA allocation %ux%ux4 for %s",
+						mT2p->tiff_width,
+						mT2p->tiff_length,
+						mT2p->inputFilePath.c_str());
+					status = PDFHummus::eFailure;
+					_TIFFfree(buffer);
+					break;
+				}
 				samplebuffer=(unsigned char*)_TIFFrealloc(
 					(tdata_t)buffer, 
 					mT2p->tiff_width*mT2p->tiff_length*4);
@@ -3082,26 +3220,6 @@ EStatusCode TIFFImageHandler::WriteImageData(PDFStream* inImageStream)
 		}
 	}while(false);
 	return status;
-}
-
-void TIFFImageHandler::SampleRealizePalette(unsigned char* inBuffer)
-{
-	uint32_t sample_count=0;
-	uint16_t component_count=0;
-	uint32_t palette_offset=0;
-	uint32_t sample_offset=0;
-	uint32_t i=0;
-	uint32_t j=0;
-	sample_count=mT2p->tiff_width*mT2p->tiff_length;
-	component_count=mT2p->tiff_samplesperpixel;
-	
-	for(i=sample_count;i>0;i--)
-	{
-		palette_offset=inBuffer[i-1] * component_count;
-		sample_offset= (i-1) * component_count;
-		for(j=0;j<component_count;j++)
-			inBuffer[sample_offset+j]=mT2p->pdf_palette[palette_offset+j];
-	}
 }
 
 tsize_t TIFFImageHandler::SampleABGRToRGB(tdata_t inData, uint32_t inSampleCount)
@@ -3208,6 +3326,10 @@ PDFFormXObject* TIFFImageHandler::WriteImagesFormXObject(const PDFImageXObjectLi
 																		inFormXObjectID);
 	do
 	{
+		if(!xobjectForm) {
+			status = PDFHummus::eFailure;
+			break;
+		}
 
 		XObjectContentContext* xobjectContentContext = xobjectForm->GetContentContext();
 

@@ -1,6 +1,23 @@
 set(PDFWRITER_LIB_VERSION ${PDFHummus_VERSION_MAJOR}.${PDFHummus_VERSION_MINOR}.0)
 set(PDFWRITER_SO_VERSION ${PDFHummus_VERSION_MAJOR})
 
+# Conditional AES sources
+if(USE_OPENSSL_AES)
+    set(AES_SOURCES
+        InputAESDecodeStreamSSL.cpp
+        OutputAESEncodeStreamSSL.cpp
+        InputAESDecodeStreamSSL.h
+        OutputAESEncodeStreamSSL.h
+    )
+else()
+    set(AES_SOURCES
+        InputAESDecodeStream.cpp
+        OutputAESEncodeStream.cpp
+        InputAESDecodeStream.h
+        OutputAESEncodeStream.h
+    )
+endif()
+
 add_library (PDFWriter
 #sources
 AbstractContentContext.cpp
@@ -8,6 +25,9 @@ AbstractWrittenFont.cpp
 ANSIFontWriter.cpp
 Ascii7Encoding.cpp
 ArrayOfInputStreamsStream.cpp
+ByteList.cpp
+ByteListSSOImpl.cpp
+ByteListVectorImpl.cpp
 CatalogInformation.cpp
 CFFANSIFontWriter.cpp
 CFFDescendentFontWriter.cpp
@@ -38,7 +58,7 @@ GraphicState.cpp
 GraphicStateStack.cpp
 IndirectObjectsReferenceRegistry.cpp
 InfoDictionary.cpp
-InputAESDecodeStream.cpp
+${AES_SOURCES}
 InputAscii85DecodeStream.cpp
 InputAsciiHexDecodeStream.cpp
 InputBufferedStream.cpp
@@ -69,7 +89,6 @@ RC4.cpp
 ObjectsContext.cpp
 OpenTypeFileInput.cpp
 OpenTypePrimitiveReader.cpp
-OutputAESEncodeStream.cpp
 OutputBufferedStream.cpp
 OutputFile.cpp
 OutputFileStream.cpp
@@ -113,6 +132,7 @@ PDFPageMergingHelper.cpp
 PDFParser.cpp
 PDFParserTokenizer.cpp
 PDFParsingOptions.cpp
+PDFParsingPath.cpp
 PDFReal.cpp
 PDFRectangle.cpp
 PDFStream.cpp
@@ -144,8 +164,10 @@ TrailerInformation.cpp
 TrueTypeANSIFontWriter.cpp
 TrueTypeDescendentFontWriter.cpp
 TrueTypeEmbeddedFontWriter.cpp
+TrueTypeGlyphDependencies.cpp
 TrueTypePrimitiveWriter.cpp
 Type1Input.cpp
+Type1PSTokens.cpp
 Type1ToCFFEmbeddedFontWriter.cpp
 Type1ToType2Converter.cpp
 Type2CharStringWriter.cpp
@@ -156,17 +178,23 @@ WinAnsiEncoding.cpp
 WrittenFontCFF.cpp
 WrittenFontTrueType.cpp
 XCryptionCommon.cpp
+XCryptionCommon2_0.cpp
+XCryptor.cpp
 XObjectContentContext.cpp
 
 #headers
 AbstractContentContext.h
 AbstractWrittenFont.h
+AESConstants.h
 AdapterIByteReaderWithPositionToIReadPositionProvider.h
 ANSIFontWriter.h
 Ascii7Encoding.h
 ArrayOfInputStreamsStream.h
 BetweenIncluding.h
 BoxingBase.h
+ByteList.h
+ByteListSSOImpl.h
+ByteListVectorImpl.h
 CatalogInformation.h
 CFFANSIFontWriter.h
 CFFDescendentFontWriter.h
@@ -222,7 +250,6 @@ ITiledPatternEndWritingTask.h
 IFreeTypeFaceExtender.h
 IndirectObjectsReferenceRegistry.h
 InfoDictionary.h
-InputAESDecodeStream.h
 InputAscii85DecodeStream.h
 InputAsciiHexDecodeStream.h
 InputBufferedStream.h
@@ -267,7 +294,6 @@ ObjectsContext.h
 ObjectsContextExtenderAdapter.h
 OpenTypeFileInput.h
 OpenTypePrimitiveReader.h
-OutputAESEncodeStream.h
 OutputBufferedStream.h
 OutputFile.h
 OutputFileStream.h
@@ -313,6 +339,7 @@ PDFPageMergingHelper.h
 PDFParser.h
 PDFParserTokenizer.h
 PDFParsingOptions.h
+PDFParsingPath.h
 PDFReal.h
 PDFRectangle.h
 PDFStream.h
@@ -331,6 +358,7 @@ RefCountObject.h
 RefCountPtr.h
 ResourcesDictionary.h
 SafeBufferMacrosDefs.h
+SafeParse.h
 SimpleGlyphsDrawingContext.h
 SimpleStringTokenizer.h
 Singleton.h
@@ -349,8 +377,10 @@ TrailerInformation.h
 TrueTypeANSIFontWriter.h
 TrueTypeDescendentFontWriter.h
 TrueTypeEmbeddedFontWriter.h
+TrueTypeGlyphDependencies.h
 TrueTypePrimitiveWriter.h
 Type1Input.h
+Type1PSTokens.h
 Type1ToCFFEmbeddedFontWriter.h
 Type1ToType2Converter.h
 Type2CharStringWriter.h
@@ -362,6 +392,8 @@ WrittenFontCFF.h
 WrittenFontRepresentation.h
 WrittenFontTrueType.h
 XCryptionCommon.h
+XCryptionCommon2_0.h
+XCryptor.h
 XObjectContentContext.h
 )
 
@@ -383,11 +415,13 @@ else(USING_UNBUNDLED_Freetype)
 endif(USING_UNBUNDLED_Freetype)
 
 # libaesgm
-if(USING_UNBUNDLED_aesgm)
-    target_link_libraries(PDFWriter Aesgm::Aesgm)
-else(USING_UNBUNDLED_aesgm)
-    target_link_libraries(PDFWriter PDFHummus::LibAesgm)
-endif(USING_UNBUNDLED_aesgm)
+if(NOT USE_OPENSSL_AES)
+    if(USING_UNBUNDLED_aesgm)
+        target_link_libraries(PDFWriter Aesgm::Aesgm)
+    else(USING_UNBUNDLED_aesgm)
+        target_link_libraries(PDFWriter PDFHummus::LibAesgm)
+    endif(USING_UNBUNDLED_aesgm)
+endif()
 
 # libjpeg
 if(PDFHUMMUS_NO_DCT)
@@ -422,6 +456,17 @@ else(PDFHUMMUS_NO_PNG)
         target_link_libraries(PDFWriter PDFHummus::LibPng)
     endif(USING_UNBUNDLED_PNG)
 endif(PDFHUMMUS_NO_PNG)
+
+
+# openssl
+if(PDFHUMMUS_NO_OPENSSL)
+    target_compile_definitions(PDFWriter PUBLIC PDFHUMMUS_NO_OPENSSL=1)
+else(PDFHUMMUS_NO_OPENSSL)
+    target_link_libraries(PDFWriter OpenSSL::Crypto)
+    if(USE_OPENSSL_AES)
+        target_compile_definitions(PDFWriter PRIVATE USE_OPENSSL_AES=1)
+    endif()
+endif(PDFHUMMUS_NO_OPENSSL)
 
 target_include_directories(PDFWriter
     INTERFACE
@@ -541,6 +586,7 @@ EPDFVersion.h
 EStatusCode.h
 MyStringBuf.h
 SafeBufferMacrosDefs.h
+SafeParse.h
 )
 
 source_group(Infrastructure\\Encoding FILES
@@ -585,8 +631,6 @@ IByteReader.h
 IByteReaderWithPosition.h
 IByteWriter.h
 IByteWriterWithPosition.h
-InputAESDecodeStream.cpp
-InputAESDecodeStream.h
 InputAscii85DecodeStream.cpp
 InputAscii85DecodeStream.h
 InputAsciiHexDecodeStream.cpp
@@ -620,8 +664,6 @@ InputStringStream.h
 InterpretedGradientStop.h
 IOBasicTypes.h
 IReadPositionProvider.h
-OutputAESEncodeStream.cpp
-OutputAESEncodeStream.h
 OutputBufferedStream.cpp
 OutputBufferedStream.h
 OutputFile.cpp
@@ -720,6 +762,8 @@ PDFNull.h
 PDFObject.cpp
 PDFObject.h
 PDFObjectCast.h
+PDFParsingPath.cpp
+PDFParsingPath.h
 PDFReal.cpp
 PDFReal.h
 PDFStreamInput.cpp
@@ -770,6 +814,10 @@ SimpleStringTokenizer.h
 )
 
 source_group("XCryption" FILES
+ByteList.cpp
+ByteList.h
+ByteListSSOImpl.cpp
+ByteListSSOImpl.h
 DecryptionHelper.cpp
 DecryptionHelper.h
 EncryptionHelper.cpp
@@ -778,6 +826,10 @@ EncryptionOptions.cpp
 EncryptionOptions.h
 XCryptionCommon.cpp
 XCryptionCommon.h
+XCryptionCommon2_0.cpp
+XCryptionCommon2_0.h
+XCryptor.cpp
+XCryptor.h
 )
 
 source_group("State Serialization" FILES
@@ -881,6 +933,8 @@ PSBool.cpp
 PSBool.h
 Type1Input.cpp
 Type1Input.h
+Type1PSTokens.cpp
+Type1PSTokens.h
 Type1ToCFFEmbeddedFontWriter.cpp
 Type1ToCFFEmbeddedFontWriter.h
 Type1ToType2Converter.cpp

@@ -24,11 +24,18 @@
 
 using namespace PDFHummus;
 
+// Bounds the mutual recursion between ReadOpenTypeSFNT (ttcf chains) and
+// ReadOpenTypeSFNTFromDfont (mac resource-fork wrappers). Legitimate nesting
+// is at most a dfont wrapping a ttcf wrapping a font (depth ~3); 8 is generous.
+static const unsigned short scMaxSFNTRecursionDepth = 8;
+
 OpenTypeFileInput::OpenTypeFileInput(void)
 {
     mHeaderOffset = 0;
     mTableOffset = 0;
+	mTablesCount = 0;
 	mHMtx = NULL;
+	mName.mNameEntriesCount = 0;
 	mName.mNameEntries = NULL;
 	mLoca = NULL;
 	mGlyf = NULL;
@@ -188,13 +195,13 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeFile(IByteReaderWithPosition* inTrueT
 EStatusCode OpenTypeFileInput::ReadOpenTypeHeader()
 {
 	EStatusCode status;
-	TableEntry tableEntry;
+	TableEntry tableEntry = {0};
 	unsigned long tableTag;
 
 	do
 	{
-		status = ReadOpenTypeSFNT();
-        
+		status = ReadOpenTypeSFNT(0);
+
 		if(status != PDFHummus::eSuccess)
 		{
 			TRACE_LOG("OpenTypeFileInput::ReaderTrueTypeHeader, SFNT header not open type");
@@ -225,9 +232,15 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeHeader()
 	return status;
 }
 
-EStatusCode OpenTypeFileInput::ReadOpenTypeSFNT()
+EStatusCode OpenTypeFileInput::ReadOpenTypeSFNT(unsigned short inRecursionDepth)
 {
 	unsigned long sfntVersion;
+
+	if(inRecursionDepth > scMaxSFNTRecursionDepth)
+	{
+		TRACE_LOG1("OpenTypeFileInput::ReadOpenTypeSFNT, SFNT nesting exceeded max depth %d", scMaxSFNTRecursionDepth);
+		return PDFHummus::eFailure;
+	}
 
     mPrimitivesReader.SetOffset(mHeaderOffset);
 	mPrimitivesReader.ReadULONG(sfntVersion);
@@ -258,10 +271,18 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeSFNT()
         for (int i= 0; i<= mFaceIndex; ++i) {
             mPrimitivesReader.ReadULONG(offsetTable);
         }
-        
+
+        if(0 == offsetTable)
+        {
+            // mHeaderOffset would not advance, so the recursion would re-read
+            // this same ttcf header forever.
+            TRACE_LOG("OpenTypeFileInput::ReadOpenTypeSFNT, ttcf offset table entry is zero");
+            return PDFHummus::eFailure;
+        }
+
         mHeaderOffset = mHeaderOffset + offsetTable;
-        
-        return ReadOpenTypeSFNT();
+
+        return ReadOpenTypeSFNT(inRecursionDepth + 1);
     } else if((0x10000 == sfntVersion) || (0x74727565 /* true */ == sfntVersion))
 	{
 		mFontType = EOpenTypeTrueType;
@@ -272,7 +293,7 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeSFNT()
 		mFontType = EOpenTypeCFF;
 		return PDFHummus::eSuccess;
 	}
-	else if ((ReadOpenTypeSFNTFromDfont() == PDFHummus::eSuccess))
+	else if ((ReadOpenTypeSFNTFromDfont(inRecursionDepth) == PDFHummus::eSuccess))
     {
 		return PDFHummus::eSuccess;
     }
@@ -280,7 +301,7 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeSFNT()
 		return PDFHummus::eFailure;
 }
 
-EStatusCode OpenTypeFileInput::ReadOpenTypeSFNTFromDfont()
+EStatusCode OpenTypeFileInput::ReadOpenTypeSFNTFromDfont(unsigned short inRecursionDepth)
 {
 	EStatusCode status = eSuccess;
     // mac resource fork header parsing
@@ -434,7 +455,7 @@ EStatusCode OpenTypeFileInput::ReadOpenTypeSFNTFromDfont()
     }
 
 	if (status == eSuccess && foundSfnt)
-		return ReadOpenTypeSFNT();
+		return ReadOpenTypeSFNT(inRecursionDepth + 1);
 	else
 	    return PDFHummus::eFailure;
 }
@@ -559,6 +580,20 @@ EStatusCode OpenTypeFileInput::ReadHMtx()
 
 	mPrimitivesReader.SetOffset(it->second.Offset);
 
+	if(mHHea.NumberOfHMetrics > mMaxp.NumGlyphs)
+	{
+		TRACE_LOG("OpenTypeFileInput::ReadHMtx, numberOfHMetrics exceeds numGlyphs");
+		return PDFHummus::eFailure;
+	}
+
+	// numberOfHMetrics must be >= 1 when there are glyphs: the second loop below
+	// reads mHMtx[NumberOfHMetrics-1], and (unsigned short)0 - 1 promotes to int -1.
+	if(mHHea.NumberOfHMetrics == 0 && mMaxp.NumGlyphs > 0)
+	{
+		TRACE_LOG("OpenTypeFileInput::ReadHMtx, numberOfHMetrics is zero with non-zero numGlyphs");
+		return PDFHummus::eFailure;
+	}
+
 	mHMtx = new HMtxTableEntry[mMaxp.NumGlyphs];
 
 	unsigned int i=0;
@@ -569,9 +604,10 @@ EStatusCode OpenTypeFileInput::ReadHMtx()
 		mPrimitivesReader.ReadSHORT(mHMtx[i].LeftSideBearing);
 	}
 
+	unsigned short lastAdvanceWidth = (mHHea.NumberOfHMetrics > 0) ? mHMtx[mHHea.NumberOfHMetrics - 1].AdvanceWidth : 0;
 	for(; i < mMaxp.NumGlyphs; ++i)
 	{
-		mHMtx[i].AdvanceWidth = mHMtx[mHHea.NumberOfHMetrics-1].AdvanceWidth;
+		mHMtx[i].AdvanceWidth = lastAdvanceWidth;
 		mPrimitivesReader.ReadSHORT(mHMtx[i].LeftSideBearing);
 	}
 
@@ -654,7 +690,7 @@ EStatusCode OpenTypeFileInput::ReadName()
 	mPrimitivesReader.SetOffset(it->second.Offset);	
 	mPrimitivesReader.Skip(2);
 	mPrimitivesReader.ReadUSHORT(mName.mNameEntriesCount);
-	mName.mNameEntries = new NameTableEntry[mName.mNameEntriesCount];
+	mName.mNameEntries = new NameTableEntry[mName.mNameEntriesCount]();
 	
 	unsigned short stringOffset;
 	
@@ -672,6 +708,19 @@ EStatusCode OpenTypeFileInput::ReadName()
 
 	for(unsigned short i=0;i<mName.mNameEntriesCount;++i)
 	{
+		// String storage lives within the name table. An entry whose
+		// stringOffset+Offset+Length exceeds the table length would otherwise
+		// have bytes from an adjacent table read in and copied into the
+		// produced PDF; clamp such an entry to empty instead.
+		unsigned long stringEnd = (unsigned long)stringOffset + mName.mNameEntries[i].Offset + mName.mNameEntries[i].Length;
+		if(stringEnd > it->second.Length)
+		{
+			TRACE_LOG2("OpenTypeFileInput::ReadName, name entry %d string range escapes name table; clamping to empty (entry length %d)",
+				i, mName.mNameEntries[i].Length);
+			mName.mNameEntries[i].Length = 0;
+			mName.mNameEntries[i].String = new char[0];
+			continue;
+		}
 		mName.mNameEntries[i].String = new char[mName.mNameEntries[i].Length];
 		mPrimitivesReader.SetOffset(it->second.Offset + stringOffset + mName.mNameEntries[i].Offset);
 		mPrimitivesReader.Read((Byte*)(mName.mNameEntries[i].String),mName.mNameEntries[i].Length);
@@ -715,6 +764,24 @@ EStatusCode OpenTypeFileInput::ReadGlyfForDependencies()
 	if(it == mTables.end())
 	{
 		TRACE_LOG("OpenTypeFileInput::ReadGlyfForDependencies, could not find glyf table");
+		return PDFHummus::eFailure;
+	}
+
+	// loca offsets are used below as seek positions into the glyf table.
+	// They must be monotonically non-decreasing and stay within the table,
+	// otherwise a crafted loca would point glyph reads at arbitrary file
+	// offsets (cross-table data interpreted as glyph contours/components).
+	for(unsigned short i=0; i < mMaxp.NumGlyphs; ++i)
+	{
+		if(mLoca[i+1] < mLoca[i])
+		{
+			TRACE_LOG1("OpenTypeFileInput::ReadGlyfForDependencies, loca offsets not monotonic at glyph %d", i);
+			return PDFHummus::eFailure;
+		}
+	}
+	if(mLoca[mMaxp.NumGlyphs] > it->second.Length)
+	{
+		TRACE_LOG("OpenTypeFileInput::ReadGlyfForDependencies, loca final offset exceeds glyf table length");
 		return PDFHummus::eFailure;
 	}
 
