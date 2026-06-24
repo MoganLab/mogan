@@ -27,7 +27,7 @@ on:
 
 jobs:
   windowsbuild:
-    runs-on: windows-2019
+    runs-on: windows-2025
     steps:
       - name: Set xmake global dir
         run: |
