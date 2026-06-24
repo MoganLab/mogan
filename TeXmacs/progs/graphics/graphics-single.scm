@@ -116,14 +116,36 @@
         (else #f)))
 
 ;; Basic operations (set & add point)
-(define (object_set-point no xcur ycur)
-  (define obj (stree-radical (car (sketch-get1))))
-  (set-point-sub obj no xcur ycur)
-  (object-set! (car (sketch-get))))
+(define (sgn x)
+  (cond ((> x 0)  1)
+        ((< x 0) -1)
+        (else     0)))
 
-(define (object_add-point no xcur ycur x y dirn)
+(define (special-key-process obj x-in y-in)
+  (if (and (== (car obj) 'rectangle)
+           (!= (logand (get-keyboard-modifiers) Mod2Mask) 0))
+      (let* ((p0 (cadr obj))
+             (x0 (string->number (cadr p0))) (y0 (string->number (caddr p0)))
+             (x1 (string->number x-in))      (y1 (string->number y-in))
+             (dx (- x1 x0))                  (dy (- y1 y0))
+             (sgnx (sgn dx))                 (sgny (sgn dy))
+             (minlen (min (abs dx) (abs dy)))
+             (x (+ (* sgnx minlen) x0))      (y (+ (* sgny minlen) y0))
+             (x-out (number->string x))      (y-out (number->string y)))
+        (values x-out y-out))
+      (values x-in y-in)))
+
+(define (object_set-point no xcur-in ycur-in)
   (define obj (stree-radical (car (sketch-get1))))
-  (if (not (graphics-complete? obj))
+  (let-values (((xcur ycur) (special-key-process obj xcur-in ycur-in)))
+    (set-point-sub obj no xcur ycur)
+    (object-set! (car (sketch-get)))))
+
+(define (object_add-point no xcur-in ycur-in x-in y-in dirn)
+  (define obj (stree-radical (car (sketch-get1))))
+  (let-values (((xcur ycur) (special-key-process obj xcur-in ycur-in))
+               ((x y) (special-key-process obj x-in y-in)))
+    (if (not (graphics-complete? obj))
       (with l (list-tail (cdr obj) no)
         (graphics-store-state #f)
         (if dirn
@@ -140,7 +162,7 @@
               (set! current-point-no no))
         )
         (object-set! (car (sketch-get)))
-        (set! current-edge-sel? #t))))
+        (set! current-edge-sel? #t)))))
 
 ;; Basic operations (remove)
 (define (object_remove-point no)
@@ -286,7 +308,7 @@
          current-point-no
          (cadr previous-leftclick) (caddr previous-leftclick)
          current-x current-y
-         (== (logand (get-keyboard-modifiers) ShiftMask) 0)))
+         #t))
       (begin
         (if leftclick-waiting
             (set-message "Left click: finish; Shift+Left click or Right click: undo"
