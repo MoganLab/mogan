@@ -3,41 +3,37 @@ set_xmakever("2.8.7")
 set_allowedmodes("releasedbg", "release", "debug")
 add_rules("mode.debug")
 
-set_project("moebius")
-MOEBIUS_VERSION= "0.1"
-
+local moe_root = os.scriptdir()
 local moe_files = {
-    "Data/History/**.cpp",
-    "Data/String/**.cpp",
-    "Data/Tree/**.cpp",
-    "Kernel/Types/**.cpp",
-    "Kernel/Abstractions/**.cpp",
-    "Scheme/**.cpp",
-    "moebius/**.cpp",
+    path.join(moe_root, "Data/History/**.cpp"),
+    path.join(moe_root, "Data/String/**.cpp"),
+    path.join(moe_root, "Data/Tree/**.cpp"),
+    path.join(moe_root, "Kernel/Types/**.cpp"),
+    path.join(moe_root, "Kernel/Abstractions/**.cpp"),
+    path.join(moe_root, "Scheme/**.cpp"),
+    path.join(moe_root, "moebius/**.cpp"),
 }
 local moe_includedirs = {
-    "Data/History",
-    "Data/String",
-    "Data/Tree",
-    "Kernel/Types",
-    "Kernel/Abstractions",
-    "Scheme",
-    "Scheme/L1",
-    "Scheme/L2",
-    "Scheme/L3",
-    "Scheme/S7",
-    "Scheme/Scheme",
-    "$(projectdir)",
+    path.join(moe_root, "Data/History"),
+    path.join(moe_root, "Data/String"),
+    path.join(moe_root, "Data/Tree"),
+    path.join(moe_root, "Kernel/Types"),
+    path.join(moe_root, "Kernel/Abstractions"),
+    path.join(moe_root, "Scheme"),
+    path.join(moe_root, "Scheme/L1"),
+    path.join(moe_root, "Scheme/L2"),
+    path.join(moe_root, "Scheme/L3"),
+    path.join(moe_root, "Scheme/S7"),
+    path.join(moe_root, "Scheme/Scheme"),
+    moe_root,
 }
 
 local DOCTEST_VERSION = "2.4.11"
 
-add_requires("lolly")
-local tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
-add_requireconfs("lolly.tbox", {configs=tbox_configs, system = false, override=true})
 add_requires("doctest " .. DOCTEST_VERSION, {system=false})
 add_requires("nanobench", {system=false})
-add_requires("s7")
+add_requires("lolly", {system=false})
+add_requires("s7", {system=false})
 
 
 target("libmoebius") do
@@ -46,7 +42,7 @@ target("libmoebius") do
     set_encodings("utf-8")
     set_basename("moebius")
 
-    add_includedirs(moe_includedirs)
+    add_includedirs(moe_includedirs, {public = true})
     add_files(moe_files)
 
     add_packages("lolly")
@@ -68,7 +64,7 @@ target("libmoebius") do
     add_headerfiles("moebius/(*.hpp)", {prefixdir="moebius"})
 end
 
-target("tests") do
+target("moebius_tests") do
     set_kind ("binary")
     set_languages("c++17")
     set_default (false)
@@ -85,12 +81,12 @@ target("tests") do
         add_tests(path.basename(testfile), {
             kind = "binary",
             files = testfile,
-            packages = "doctest",
+            packages = {"doctest", "lolly"},
             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"})
     end
 end
 
-target("bench_base")do
+target("moebius_bench_base")do
     set_kind("object")
     set_languages("c++17")
     set_default (false)
@@ -105,13 +101,13 @@ end
 
 function add_bench_target(filepath)
     local benchname = path.basename(filepath)
-    target(benchname) do 
+    target(benchname) do
         set_group("bench")
         set_languages("c++17")
         set_default(false)
         set_policy("check.auto_ignore_flags", false)
         set_rundir("$(projectdir)")
-        add_deps({"libmoebius", "bench_base"})
+        add_deps({"libmoebius", "moebius_bench_base"})
         add_packages({"nanobench", "lolly"})
 
         if is_plat("linux") then
@@ -124,7 +120,7 @@ function add_bench_target(filepath)
         end
 
         add_includedirs(moe_includedirs)
-        add_files(filepath) 
+        add_files(filepath)
     end
 end
 

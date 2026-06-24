@@ -1,4 +1,4 @@
-name: CI on macOS
+name: CI for moebius on Windows
 
 on:
   push:
@@ -8,10 +8,9 @@ on:
   workflow_dispatch:
 
 jobs:
-  macosbuild:
-    runs-on: macos-11
+  windowsbuild:
+    runs-on: windows-2019
     steps:
-      # Force xmake to a specific folder (for cache)
       - name: Set xmake global dir
         run: |
           echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/.xmake-global" >> "${{ github.env }}"
@@ -20,6 +19,8 @@ jobs:
           xmake-version: v2.8.7
       - name: update repo
         run: xmake repo -u
+      - name: git crlf
+        run: git config --global core.autocrlf false
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
@@ -34,7 +35,6 @@ jobs:
       - name: config
         run: xmake config --yes -vD
       - name: build
-        run: xmake build --yes -vD
+        run: xmake build libmoebius
       - name: test
-        run: xmake test
-
+        run: xmake test "moebius_tests/*"

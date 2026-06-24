@@ -139,28 +139,3 @@ libstem_srcs = {
     "$(projectdir)/src/Typeset/**.cpp",
 } 
 
-moe_files = {
-    "$(projectdir)/moebius/Data/History/**.cpp",
-    "$(projectdir)/moebius/Data/String/**.cpp",
-    "$(projectdir)/moebius/Data/Tree/**.cpp",
-    "$(projectdir)/moebius/Kernel/Types/**.cpp",
-    "$(projectdir)/moebius/Kernel/Abstractions/**.cpp",
-    "$(projectdir)/moebius/Scheme/**.cpp",
-    "$(projectdir)/moebius/moebius/**.cpp",
-}
-
-moe_includedirs = {
-    "$(projectdir)/moebius/Data/History",
-    "$(projectdir)/moebius/Data/String",
-    "$(projectdir)/moebius/Data/Tree",
-    "$(projectdir)/moebius/Kernel/Types",
-    "$(projectdir)/moebius/Kernel/Abstractions",
-    "$(projectdir)/moebius/Scheme",
-    "$(projectdir)/moebius/Scheme/L1",
-    "$(projectdir)/moebius/Scheme/L2",
-    "$(projectdir)/moebius/Scheme/L3",
-    "$(projectdir)/moebius/Scheme/S7",
-    "$(projectdir)/moebius/Scheme/Scheme",
-    "$(projectdir)/moebius/",
-}
-

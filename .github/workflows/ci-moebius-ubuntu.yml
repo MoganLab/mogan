@@ -1,4 +1,4 @@
-name: CI on Ubuntu 22.04
+name: CI for moebius on Ubuntu 22.04
 
 on:
   push:
@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Install dependencies
-        run: | 
+        run: |
           sudo apt-get update
           sudo apt-get install -y gcc cmake libcurl4-openssl-dev
       # Force xmake to a specific folder (for cache)
@@ -38,6 +38,6 @@ jobs:
       - name: config
         run: xmake config --yes -vD
       - name: build
-        run: xmake build --yes -vD
+        run: xmake build libmoebius
       - name: test
-        run: xmake test
+        run: xmake test "moebius_tests/*"

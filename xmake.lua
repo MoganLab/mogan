@@ -10,6 +10,7 @@
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
 includes("xmake/vars.lua")
+includes("moebius")
 includes("xmake/stem.lua")
 
 set_project(stem_project_name)
@@ -265,22 +266,6 @@ function build_glue_on_config()
             })
         end
         os.mkdir(path.join("$(buildir)/glue"))
-    end)
-end
-
-target("libmoebius") do
-    set_kind ("static")
-    set_languages("c++17")
-    set_encodings("utf-8")
-    set_basename("moebius")
-
-    add_includedirs(moe_includedirs)
-    add_files(moe_files)
-
-    add_packages("lolly")
-    add_packages("s7")
-
-    on_install(function (target)
     end)
 end
 
@@ -719,7 +704,6 @@ target("libmogan") do
     -- add source and header files
     ---------------------------------------------------------------------------
     add_includedirs("$(buildir)", {public = true})
-    add_includedirs(moe_includedirs)
     add_includedirs({
             "src/Data/Convert",
             "src/Data/Document",
@@ -969,6 +953,7 @@ target("stem") do
     add_packages("s7")
     add_packages("lolly")
     add_deps("libmogan")
+    add_deps("libmoebius")
     if not is_plat("windows") then
         add_syslinks("pthread", "dl", "m")
     end
@@ -976,7 +961,6 @@ target("stem") do
         add_syslinks("X11")
     end
 
-    add_includedirs(moe_includedirs)
     add_files("src/Mogan/Research/research.cpp")
 
     -- install tm files for testing purpose
