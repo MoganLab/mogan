@@ -15,6 +15,7 @@
 #include "preferences.hpp"
 #include "tree_helper.hpp"
 
+#include "tm_debug.hpp"
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 #include <moebius/drd/drd_std.hpp>
@@ -26,6 +27,14 @@ using lolly::data::to_Hex;
 using moebius::drd::STD_CODE;
 
 using namespace moebius;
+
+static inline int
+from_hex_char (char c) {
+  if (is_digit (c)) return c - '0';
+  if ((c >= 'A') && (c <= 'F')) return c + 10 - 'A';
+  if ((c >= 'a') && (c <= 'f')) return c + 10 - 'a';
+  return 0;
+}
 
 /******************************************************************************
  * Conversion of TeXmacs strings of the present format to TeXmacs trees
@@ -72,9 +81,13 @@ tmu_reader::skip_blank () {
 
 string
 tmu_reader::decode (string s) {
-  int    i, n= N (s);
-  string r;
+  int i, n= N (s);
   for (i= 0; i < n; i++)
+    if (((i + 1) < n) && (s[i] == '\\')) break;
+  if (i == n) return s;
+
+  string r (s (0, i));
+  for (; i < n; i++)
     if (((i + 1) < n) && (s[i] == '\\')) {
       i++;
       if (s[i] == ';')
@@ -120,18 +133,8 @@ tmu_reader::read_next () {
     if (c == "") return "";
     if (c == "#") return "<#";
     if ((c == "\\") || (c == "|") || (c == "/")) return "<" * c;
-    if (is_iso_alpha (c[0]) || (c == ">")) {
-      pos= old_pos;
-      return "<";
-    }
     pos= old_pos;
     return "<";
-    /*
-    string d= read_char ();
-    if ((d == "\\") || (d == "|") || (d == "/")) return "<" * c * d;
-    pos= old_pos;
-    return "<" * c;
-    */
   }
   case '|':
   case '>':
@@ -141,6 +144,23 @@ tmu_reader::read_next () {
   string r;
   pos= old_pos;
   while (true) {
+    while (pos < buf_N) {
+      char ch= buf[pos];
+      if (ch == '\t' || ch == '\r' || ch == '\n' || ch == ' ' || ch == '<' ||
+          ch == '|' || ch == '>' || ch == '\\')
+        break;
+      if ((ch & 0x80) == 0) {
+        r << ch;
+        pos++;
+      }
+      else {
+        int start_pos= pos;
+        decode_from_utf8 (buf, pos);
+        r << buf (start_pos, pos);
+      }
+    }
+    if (pos >= buf_N) return r;
+
     old_pos= pos;
     c      = read_char ();
     if (c == "") return r;
@@ -276,7 +296,8 @@ tmu_reader::read (bool skip_flag) {
       else if (tail_char_of_last == '#') {
         string r;
         while ((buf[pos] != '>') && (pos + 2 < buf_N)) {
-          r << ((char) from_hex (buf (pos, pos + 2)));
+          r << ((char) ((from_hex_char (buf[pos]) << 4) +
+                        from_hex_char (buf[pos + 1])));
           pos+= 2;
         }
         if (buf[pos] == '>') pos++;
@@ -334,14 +355,20 @@ tmu_reader::read (bool skip_flag) {
 
 tree
 tmu_to_tree (string s) {
+  bench_start ("tmu_to_tree");
   tmu_reader tmr (s);
-  return tmr.read (true);
+  tree       t= tmr.read (true);
+  bench_end ("tmu_to_tree");
+  return t;
 }
 
 tree
 tmu_to_tree (string s, string version) {
+  bench_start ("tmu_to_tree");
   tmu_reader tmr (s, version);
-  return tmr.read (true);
+  tree       t= tmr.read (true);
+  bench_end ("tmu_to_tree");
+  return t;
 }
 
 /******************************************************************************
