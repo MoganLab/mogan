@@ -72,9 +72,9 @@
 ;; Check if Symbolics Julia packages are available
 (define (julia-packages-available?)
   (and (supports-julia?)
-       (== (run-shell-command (if (os-windows?)
-                                  "julia --startup-file=no -e \"using Symbolics, Latexify, LaTeXStrings\""
-                                  "env -u LD_LIBRARY_PATH julia --startup-file=no -e \"using Symbolics, Latexify, LaTeXStrings\"")) 0)))
+       (let* ((julia-path (url->system (find-binary-julia)))
+              (julia-bin (if (os-windows?) julia-path (string-append "env -u LD_LIBRARY_PATH " julia-path))))
+         (== (run-shell-command (string-append julia-bin " --startup-file=no -e \"using Symbolics, Latexify, LaTeXStrings\"")) 0))))
 
 ;; Session execution symbolic math tests
 (define (test-julia-symbolics)
@@ -130,7 +130,8 @@
         (write-physical-input input-path input-lines #t)
 
         ;; Execute the julia session via cross-platform shell command
-        (let* ((julia-bin (if (os-windows?) "julia" "env -u LD_LIBRARY_PATH julia"))
+        (let* ((julia-path (url->system (find-binary-julia)))
+               (julia-bin (if (os-windows?) julia-path (string-append "env -u LD_LIBRARY_PATH " julia-path)))
                (cmd (string-append julia-bin " --startup-file=no " julia-script " < " input-path " > " output-path " 2>&1")))
           (run-shell-command cmd))
 
