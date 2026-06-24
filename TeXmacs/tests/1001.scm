@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : 1001_1.scm
+;; MODULE      : 1001.scm
 ;; DESCRIPTION : Tests for startup tab preservation when opening files
 ;; COPYRIGHT   : (C) 2026  Yuki
 ;;
@@ -63,7 +63,7 @@
   (check (length (tabpage-list #t)) => 3)
   (check (startup-tab-in-list?) => #t))
 
-(tm-define (test_1001_1)
+(tm-define (test_1001)
   (test-initial-state)
   (test-load-buffer-preserves-startup)
   (test-close-startup-tab-protected)

@@ -86,13 +86,13 @@ jobs:
         run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg --yes
       - name: build
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
-      #- name: C++ tests
-      #  run: xmake run --yes --verbose --diagnosis --group=tests
-      #  env:
-      #    QT_QPA_PLATFORM: offscreen
-      #- name: Scheme tests
-      #  run: xmake run --yes -vD --group=scheme_tests
-      #- name: integration test
-      #  run: xmake run --yes -vD --group=integration_tests
-      #  env:
-      #    QT_QPA_PLATFORM: offscreen
+      - name: C++ tests
+        run: xmake run --yes --verbose --diagnosis --group=tests
+        env:
+          QT_QPA_PLATFORM: offscreen
+      - name: Scheme tests
+        run: xmake run --yes -vD --group=scheme_tests
+      - name: integration test
+        run: xmake run --yes -vD --group=integration_tests
+        env:
+          QT_QPA_PLATFORM: offscreen

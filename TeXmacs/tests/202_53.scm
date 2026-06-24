@@ -10,20 +10,19 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules
-  (data tmu)
-  (texmacs texmacs tm-tools))
+(use-modules (data tmu) (texmacs texmacs tm-tools))
 
-(import (liii check)
-        (liii path))
+(import (liii check) (liii path))
 
 (tm-define (test_202_53)
-  (let* ((test-doc (tmu->texmacs ((path (url->system (get-texmacs-path))) :/ "tests" :/ "tmu" :/ "202_53.tmu" :read-text)))
+  (let* ((tmu-path "TeXmacs/tests/tmu/202_53.tmu")
+         (test-doc (tmu->texmacs (path-read-text tmu-path)))
          (non-chinese (count-words test-doc))
          (chars-no-space (count-chars-no-space test-doc))
          (chinese (count-chinese-and-words test-doc))
          (line-count (count-lines test-doc))
-         (char-count (count-characters test-doc)))
+         (char-count (count-characters test-doc))
+        ) ;
 
     ;; 测试页数 - 预期: 2
 
@@ -40,8 +39,9 @@
     (check line-count => 3)
 
     ;; 测试非中文单词数 - 预期: 6
-    (check non-chinese => 6)  ; 非中文单词
+    (check non-chinese => 6)
 
     ;; 测试中文单词数 - 预期: 10
-    (check (car chinese) => 10)  ; 中文字符
-    ))
+    (check (car chinese) => 10)
+  ) ;let*
+) ;tm-define

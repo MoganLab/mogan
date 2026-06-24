@@ -32,9 +32,6 @@
 
 
 (define (test_0606)
-  ;; 固定 encoding 为 cork，避免依赖用户本地 texmacs->latex:encoding 偏好
-  ;; （不同偏好会让导出的 preamble 多出/缺少 \usepackage[utf8]{inputenc}）。
-  (set-preference "texmacs->latex:encoding" "cork")
   (when (latex-present?)
     (check (export-as-latex-and-load "0606.tmu") => (load-latex "0606_to_export.tex")))
   (check-report))
