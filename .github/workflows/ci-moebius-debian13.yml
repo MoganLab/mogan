@@ -1,4 +1,4 @@
-name: CI for moebius on Ubuntu 22.04
+name: CI for moebius on Debian 13
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - 'moebius/tests/**'
       - 'moebius/bench/**'
       - 'moebius/xmake.lua'
-      - '.github/workflows/ci-moebius-ubuntu.yml'
+      - '.github/workflows/ci-moebius-debian13.yml'
   pull_request:
     branches: [ main ]
     paths:
@@ -22,24 +22,28 @@ on:
       - 'moebius/tests/**'
       - 'moebius/bench/**'
       - 'moebius/xmake.lua'
-      - '.github/workflows/ci-moebius-ubuntu.yml'
+      - '.github/workflows/ci-moebius-debian13.yml'
   workflow_dispatch:
 
+env:
+  XMAKE_ROOT: y
+
 jobs:
-  linuxbuild:
-    runs-on: ubuntu-22.04
+  build:
+    container: debian:13
+    runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
         run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc cmake libcurl4-openssl-dev
-      # Force xmake to a specific folder (for cache)
+          DEBIAN_FRONTEND=noninteractive apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y gcc git 7zip unzip curl build-essential \
+              fonts-noto-cjk libcurl4-openssl-dev libfreetype-dev libfontconfig-dev \
+              libmimalloc-dev libgit2-dev zlib1g-dev libssl-dev libjpeg62-turbo-dev cmake \
+              pandoc xmake python3.13 python3.13-venv python3-pip ninja-build \
+              libdbus-1-3 libglib2.0-0t64 libegl1 libgl-dev libxkbcommon0
       - name: Set xmake global dir
         run: |
           echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/.xmake-global" >> "${{ github.env }}"
-      - uses: xmake-io/github-action-setup-xmake@v1
-        with:
-          xmake-version: v2.8.7
       - name: update repo
         run: xmake repo -u
       - uses: actions/checkout@v3
@@ -52,7 +56,6 @@ jobs:
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
             ${{ github.workspace }}/build/.build_cache
           key: ${{ runner.os }}-xmake-${{ hashFiles('**/xmake.lua') }}
-      # Force xmake to a specific folder (for cache)
       - name: config
         run: xmake config --yes -vD
       - name: build
