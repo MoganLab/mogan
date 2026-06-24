@@ -27,6 +27,7 @@ on:
 
 env:
   XMAKE_ROOT: y
+  QT_QPA_PLATFORM: offscreen
 
 jobs:
   build:
@@ -41,23 +42,32 @@ jobs:
               libmimalloc-dev libgit2-dev zlib1g-dev libssl-dev libjpeg62-turbo-dev cmake \
               pandoc xmake python3.13 python3.13-venv python3-pip ninja-build \
               libdbus-1-3 libglib2.0-0t64 libegl1 libgl-dev libxkbcommon0
-      - name: set XMAKE_GLOBALDIR
-        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
-      - name: update repo
-        run: xmake repo -u
+          update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
+          python3 -m pip install --break-system-packages aqtinstall
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
-      - name: cache xmake
+      - name: git add safe directory
+        run: git config --global --add safe.directory '*'
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+      - name: xmake repo update
+        run: xmake repo --update
+      - name: cache packages from xrepo
         uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-            ${{ github.workspace }}/build/.build_cache
-          key: ${{ runner.os }}-xmake-${{ hashFiles('**/xmake.lua') }}
+          key: ${{ runner.os }}-xrepo-qt683-${{ hashFiles('**/packages.lua') }}
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            build/.build_cache
+          key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
       - name: config
-        run: xmake config --yes -vD
+        run: xmake config -vD --policies=build.ccache -m releasedbg --yes
       - name: build
-        run: xmake build libmoebius
+        run: xmake build --yes -vD libmoebius
       - name: test
         run: xmake test "moebius_tests/*"
