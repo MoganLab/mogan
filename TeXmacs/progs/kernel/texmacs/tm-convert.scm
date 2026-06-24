@@ -601,10 +601,26 @@
   (with end
     (+ pos (string-length what))
     (and (>= (string-length s) end)
-      (== (string-downcase (substring s pos end)) what)
-    ) ;and
-  ) ;with
+         ;; 逐字节比较（大小写不敏感），避免对 substring 结果调用 string-downcase：
+         ;; 当 pos/end 未落在 UTF-8 字符边界时 substring 会产出非法子串，
+         ;; string-downcase 对其抛 "Invalid UTF-8 sequence"。
+         (substring-ci=? s pos end what 0 (string-length what))))
 ) ;define-public
+
+;; 逐字节、大小写不敏感地比较 s[start1..end1) 与 what[start2..end2)。
+;; 仅对 ASCII 字母做大小写折叠，其余字节原样比较，因此 UTF-8 安全。
+(define (substring-ci=? s start1 end1 what start2 end2)
+  (let ((to-lower
+         (lambda (c)
+           (let ((n (char->integer c)))
+             (integer->char
+              (if (and (>= n 65) (<= n 90)) (+ n 32) n))))))
+    (and (== (- end1 start1) (- end2 start2))
+         (let loop ((i1 start1) (i2 start2))
+           (or (>= i1 end1)
+               (let ((c1 (string-ref s i1)) (c2 (string-ref what i2)))
+                 (and (== (to-lower c1) (to-lower c2))
+                      (loop (+ i1 1) (+ i2 1)))))))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Getting suffix information

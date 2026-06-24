@@ -42,7 +42,7 @@
                        (item)
                        (concat (item) " ddd"))))
          (continued-doc
-         (tm->tree '(document
+          (tm->tree '(document
                        (item)
                        (item)
                        (concat (item) "ddd")
@@ -161,7 +161,7 @@
          (only-list-doc
           (tm->tree '(document
                        (enumerate
-                         (document (concat (item) "a"))))))))
+                         (document (concat (item) "a")))))))
     (check (list-item-remove-range remove-up-doc 1 'enumerate #f)
            => '(0 1))
     (check (list-item-remove-range remove-down-doc 1 'enumerate #t)

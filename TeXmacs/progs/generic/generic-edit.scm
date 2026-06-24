@@ -938,8 +938,15 @@
 ) ;tm-define
 
 (tm-define (remove-list-item-range item-list range)
-  (and range (tree-remove item-list (car range) (- (cadr range) (car range))))
-) ;tm-define
+  (and range
+       (begin
+         (tree-remove item-list (car range) (- (cadr range) (car range)))
+         ;; 删除后若文档变空（document 无子节点），补一个空段落，
+         ;; 避免产出退化的 (document)；canonical 空文档应为 (document "")。
+         (when (and (tree-is? item-list 'document)
+                    (== (tree-arity item-list) 0))
+           (tree-insert item-list 0 (list "")))
+         item-list)))
 
 (tm-define (document-empty-for-list? doc)
   (let loop
