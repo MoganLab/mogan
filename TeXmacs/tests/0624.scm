@@ -60,11 +60,18 @@
       ) ;lambda
     ) ;set!
 
-    ;; Export a document containing images to latex
+    ;; Export a document containing images to latex.
+    ;; 注意：必须显式传 "texmacs->latex:progress" . "on"，否则 tmtex 不会触发
+    ;; progress 回调（见 tmtex.scm 中 tmtex-progress? 的判定条件）。
+    ;; GUI 的"导出 LaTeX"（file-menu.scm 的 export-latex-file）就是这么做的；
+    ;; buffer-export "latex" 这条路径不传 progress，故改用 texmacs->latex-document。
     (let* ((tmu-path "$TEXMACS_PATH/tests/tmu/0623_gnuplot_tuto.tmu")
            (tmp-tex (url-temp))
            (dummy (load-buffer tmu-path))
-           (dummy2 (buffer-export tmu-path tmp-tex "latex"))
+           (tex-content (texmacs->latex-document
+                          (buffer-get (current-buffer))
+                          '(("texmacs->latex:progress" . "on"))))
+           (dummy2 (string-save tex-content tmp-tex))
           ) ;
 
       (display* "DEBUG: tmp-tex exists? " (url-exists? tmp-tex) "\n")
@@ -120,12 +127,15 @@
       ) ;lambda
     ) ;set!
 
-    ;; Export the quantum document to latex
+    ;; Export the quantum document to latex.
+    ;; 同样显式传 progress=on 以触发 progress 回调（见上方说明）。
     (let* ((tmu-path "$TEXMACS_PATH/tests/tmu/0624_quantum.tmu")
            (tmp-tex (url-temp))
            (dummy (load-buffer tmu-path))
-           (dummy2 (buffer-export tmu-path tmp-tex "latex"))
-           (tex-content (string-load tmp-tex))
+           (tex-content (texmacs->latex-document
+                          (buffer-get (current-buffer))
+                          '(("texmacs->latex:progress" . "on"))))
+           (dummy2 (string-save tex-content tmp-tex))
           ) ;
 
       (display* "DEBUG: tmp-tex exists? " (url-exists? tmp-tex) "\n")

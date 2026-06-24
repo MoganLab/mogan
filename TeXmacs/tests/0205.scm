@@ -86,10 +86,22 @@
   ) ;let*
 ) ;define
 
-;; 辅助：创建测试 session（注册 + 写 buffer）
+;; 辅助：创建测试 session（写 message buffer）
+;; 注：旧版曾调用 chat-persist-register-session 注册运行时状态，但该函数在
+;; [0252] 重构中已移除（model/thinking 状态改由 C++ 管理）。message buffer
+;; 仅依赖 tmfs://chat/<sid>/message URL，无需注册即可写入。
+
+;; 兼容包装：[0252] 重构把旧的 chat-persist-save-one（导出 message + 更新 manifest）
+;; 拆成了 chat-persist-export-buffer 与 chat-persist-update-manifest 两个函数。
+;; 这里重新组合，保持测试调用点不变，额外的 rest 参数（createdAt/thinking/search/
+;; updateAt）透传给 chat-persist-update-manifest。
+
+(define (chat-persist-save-one sid title model archived . rest)
+  (chat-persist-export-buffer sid)
+  (apply chat-persist-update-manifest sid title model archived rest)
+) ;define
 
 (define (setup-test-session sid model body)
-  (chat-persist-register-session sid model)
   (let ((msg-buf (chat-tab-session->message-buffer sid)))
     (buffer-set-body msg-buf `(document ,body))
     (buffer-pretend-saved msg-buf)
@@ -207,12 +219,14 @@
 
 (define (test-chat-persist-make-entry-updateAt-explicit)
   ;; 显式传 updateAt
+  ;; 签名：(chat-persist-make-entry sid title model archived createdAt thinking search updateAt)
   (let ((entry (chat-persist-make-entry "sid-ua2"
                  "Title"
                  "Model"
                  #f
                  "1700000000"
-                 "enabled"
+                 "disabled"
+                 "disabled"
                  "1800000000"
                ) ;chat-persist-make-entry
         ) ;entry
@@ -228,23 +242,6 @@
     (check (njson-ref entry "updateAt") => "1000")
     (njson-free entry)
   ) ;let
-) ;define
-
-;;; ========== chat-persist-register-session ==========
-
-(define (test-chat-persist-register-session)
-  (let* ((sid (string-append "reg-" (number->string (current-time))))
-         (model "RegModel")
-        ) ;
-    ;; 注册前状态不存在
-    (check (chat-tab-get-state sid) => #f)
-    ;; 注册后状态存在
-    (chat-persist-register-session sid model)
-    (check (chat-tab-get-state sid) => (list model "disabled"))
-    ;; 重复注册不会覆盖
-    (chat-persist-register-session sid "OtherModel")
-    (check (chat-tab-get-state sid) => (list model "disabled"))
-  ) ;let*
 ) ;define
 
 ;;; ========== chat-persist-load-all ==========
@@ -524,11 +521,13 @@
                                     ) ;
                                 (setup-test-session sid model "Content")
                                 ;; update-manifest 带 updateAt 参数
+                                ;; 签名 rest: createdAt thinking search updateAt
                                 (chat-persist-update-manifest sid
                                   "Title"
                                   model
                                   #f
                                   "1700000000"
+                                  "disabled"
                                   "disabled"
                                   "1800000000"
                                 ) ;chat-persist-update-manifest
@@ -559,12 +558,13 @@
                                      (model "UpAtModel3")
                                     ) ;
                                 (setup-test-session sid model "Content")
-                                ;; save-one 带 updateAt
+                                ;; save-one 带 updateAt（rest: createdAt thinking search updateAt）
                                 (chat-persist-save-one sid
                                   "Title"
                                   model
                                   #f
                                   "1700000000"
+                                  "disabled"
                                   "disabled"
                                   "1900000000"
                                 ) ;chat-persist-save-one
@@ -604,11 +604,13 @@
                                     ) ;
                                 (setup-test-session sid model "Content")
                                 ;; 第一次保存，updateAt = 1700000000
+                                ;; 签名 rest: createdAt thinking search updateAt
                                 (chat-persist-update-manifest sid
                                   "Title"
                                   model
                                   #f
                                   "1700000000"
+                                  "disabled"
                                   "disabled"
                                   "1700000000"
                                 ) ;chat-persist-update-manifest
@@ -619,6 +621,7 @@
                                   model
                                   #f
                                   "1700000000"
+                                  "disabled"
                                   "disabled"
                                   "1800000000"
                                 ) ;chat-persist-update-manifest
@@ -643,7 +646,6 @@
   (test-chat-persist-make-entry-updateAt-default)
   (test-chat-persist-make-entry-updateAt-explicit)
   (test-chat-persist-make-entry-updateAt-no-createdAt)
-  (test-chat-persist-register-session)
   (test-chat-persist-load-empty)
   (test-chat-persist-load-all-with-data)
   (test-chat-persist-load-all-multi)

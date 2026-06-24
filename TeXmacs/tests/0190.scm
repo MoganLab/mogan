@@ -20,6 +20,11 @@
   (serialize-latex (texmacs->latex snippet opts)))
 
 (tm-define (test_0190)
+  ;; 固定 encoding 为 UTF-8：本测试验证非 ASCII 字符（ö）在导出中保留，
+  ;; 而 texmacs->generic "latex-snippet"（line 49）会读取全局
+  ;; texmacs->latex:encoding 偏好。显式设为 UTF-8，避免被其它测试残留的
+  ;; 偏好（如 cork）污染导致 ö 被替换。
+  (set-preference "texmacs->latex:encoding" "UTF-8")
   ;; texmacs->latex input must be Cork-encoded (internal representation)
   (with cork-text (utf8->cork "Erwin Schrödinger")
     ;; Test: explicit UTF-8 encoding

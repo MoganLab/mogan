@@ -14,7 +14,13 @@
 
 (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
+;; 未安装 latex（pdflatex 不在 PATH）时跳过：导出测试依赖本地 TeX 环境，
+;; CI 等无 latex 的环境无法运行。
+(define (latex-present?)
+  (!= (url-resolve-in-path "pdflatex") (url-none)))
+
 (tm-define (test_0640)
+  (when (latex-present?)
   (display "Testing whole file LaTeX export preamble preservation...\n")
   (with path
     (string-append "$TEXMACS_PATH/tests/tmu/0640.tmu")
@@ -71,5 +77,6 @@
     ) ;with
   ) ;with
 
+  ) ;when
   (check-report)
 ) ;tm-define

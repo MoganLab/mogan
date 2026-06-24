@@ -14,6 +14,11 @@
 
 (load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
+;; 未安装 latex（pdflatex 不在 PATH）时跳过：导出测试依赖本地 TeX 环境，
+;; CI 等无 latex 的环境无法运行。
+(define (latex-present?)
+  (!= (url-resolve-in-path "pdflatex") (url-none)))
+
 (define (export-as-latex-and-load path)
   (with path
     (string-append "$TEXMACS_PATH/tests/tmu/" path)
@@ -49,10 +54,15 @@
 ) ;define
 
 (tm-define (test_0628)
-  (check (export-as-latex-and-load "0628.tmu")
-    =>
-    (load-latex "0628_frame_export.tex")
-  ) ;check
-  (test-mdframed-import)
+  ;; 固定 encoding 为 cork，避免依赖用户本地 texmacs->latex:encoding 偏好
+  ;; （不同偏好会让导出的 preamble 多出/缺少 \usepackage[utf8]{inputenc}）。
+  (set-preference "texmacs->latex:encoding" "cork")
+  (when (latex-present?)
+    (check (export-as-latex-and-load "0628.tmu")
+      =>
+      (load-latex "0628_frame_export.tex")
+    ) ;check
+    (test-mdframed-import)
+  ) ;when
   (check-report)
 ) ;tm-define
