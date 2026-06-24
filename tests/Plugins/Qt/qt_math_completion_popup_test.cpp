@@ -24,8 +24,8 @@ private slots:
 
 void
 TestQTMMathCompletionPopup::test_hide_on_parent_window_deactivate () {
-  QWidget                    mainWindow;
-  QTMMathCompletionPopup     popup (&mainWindow, nullptr);
+  QWidget                mainWindow;
+  QTMMathCompletionPopup popup (&mainWindow, nullptr);
 
   mainWindow.show ();
   popup.show ();
