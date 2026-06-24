@@ -846,6 +846,15 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   updateCountLabels ();
 }
 
+ChatSidebar::~ChatSidebar () {
+  // 标记析构进行中，阻止 titleEdit 的 editingFinished/returnPressed 信号
+  // 在 ~QWidget 派发 CloseEvent 时重入 endEditTitle（会访问正在销毁的 items_）。
+  destroying_= true;
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (it->titleEdit) it->titleEdit->disconnect (this);
+  }
+}
+
 void
 ChatSidebar::addItem (const SessionDisplayInfo& info) {
   if (items_.contains (info.sessionId)) return;
@@ -906,6 +915,9 @@ ChatSidebar::beginEditTitle (const string& sessionId) {
 
 void
 ChatSidebar::endEditTitle (const string& sessionId, bool accept) {
+  // 析构期间 Qt 会派发 CloseEvent → 焦点离开 titleEdit → editingFinished，
+  // 进而重入到这里。此时 items_ 可能已进入销毁流程，访问会导致 use-after-free。
+  if (destroying_) return;
   auto it= items_.find (sessionId);
   if (it == items_.end ()) return;
   if (!it->sidebarButton || !it->titleEdit) return;

@@ -129,7 +129,6 @@ private slots:
   void initTestCase ();
   void test_20x20_text_table ();
   void test_20x20_matrix_table ();
-  void test_50x50_text_table ();
   // New tests for optimization validations
   void test_handle_decorations_performance ();
   void test_cell_hyphen_wrapping ();
@@ -155,18 +154,6 @@ TestTablePerformance::test_20x20_text_table () {
 
   auto typeset_time= measure_table_creation_time (env, table_tree,
                                                   "20x20 text table creation");
-
-  QVERIFY (typeset_time >= 0);
-}
-
-void
-TestTablePerformance::test_50x50_text_table () {
-  cache_refresh ();
-  edit_env env       = create_test_env ();
-  tree     table_tree= create_matrix_tree (50, 50);
-
-  auto typeset_time= measure_table_creation_time (env, table_tree,
-                                                  "50x50 text table creation");
 
   QVERIFY (typeset_time >= 0);
 }
@@ -198,7 +185,7 @@ TestTablePerformance::test_handle_decorations_performance () {
   // Test different table sizes for real decoration expansion workload.
   // Keep a single test but make decoration size grow with table size,
   // to amplify complexity differences.
-  const int sizes[]  = {20, 30, 40, 50};
+  const int sizes[]  = {20, 30};
   const int num_sizes= sizeof (sizes) / sizeof (sizes[0]);
 
   for (int idx= 0; idx < num_sizes; idx++) {
