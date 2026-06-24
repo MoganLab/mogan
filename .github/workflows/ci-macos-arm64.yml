@@ -93,6 +93,6 @@ jobs:
       - name: Scheme tests
         run: xmake run --yes -vD --group=scheme_tests
       - name: integration test
-      #  run: xmake run --yes -vD --group=integration_tests
+        run: xmake run --yes -vD --group=integration_tests
       #  env:
       #    QT_QPA_PLATFORM: offscreen
