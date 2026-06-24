@@ -1,8 +1,12 @@
 {
   "cpp": {
     "suffix": ["hpp", "cpp", "h", "c", "cc", "cxx"],
-    "path": ["tests", "src", "moebius", "3rdparty/lolly"],
-    "exclude": []
+    "path": ["tests", "src", "moebius", "lolly"],
+    "exclude": [
+      {"path": "build", "reason": "构建产物目录，无需格式化"},
+      {"path": "moebius/build", "reason": "构建产物目录，无需格式化"},
+      {"path": "lolly/build", "reason": "构建产物目录，无需格式化"}
+    ]
   },
   "scheme": {
     "suffix": ["scm"],
