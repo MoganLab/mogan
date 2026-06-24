@@ -1,0 +1,63 @@
+{
+  "cpp": {
+    "suffix": ["hpp", "cpp", "h", "c", "cc", "cxx"],
+    "path": ["tests", "src", "moebius", "3rdparty/lolly"],
+    "exclude": []
+  },
+  "scheme": {
+    "suffix": ["scm"],
+    "path": [
+      "TeXmacs/plugins/gnuplot",
+      "TeXmacs/plugins/goldfish",
+      "TeXmacs/plugins/llm/progs",
+      "TeXmacs/progs/client",
+      "TeXmacs/progs/convert",
+      "TeXmacs/progs/database",
+      "TeXmacs/progs/debug",
+      "TeXmacs/progs/doc",
+      "TeXmacs/progs/dynamic",
+      "TeXmacs/progs/education",
+      "TeXmacs/progs/fonts",
+      "TeXmacs/progs/generic",
+      "TeXmacs/progs/kernel",
+      "TeXmacs/progs/language",
+      "TeXmacs/progs/link",
+      "TeXmacs/progs/lolly",
+      "TeXmacs/progs/math",
+      "TeXmacs/progs/moebius",
+      "TeXmacs/progs/network",
+      "TeXmacs/progs/part",
+      "TeXmacs/progs/prog",
+      "TeXmacs/progs/server",
+      "TeXmacs/progs/source",
+      "TeXmacs/progs/startup-tab",
+      "TeXmacs/progs/table",
+      "TeXmacs/progs/telemetry",
+      "TeXmacs/progs/texmacs/texmacs",
+      "TeXmacs/progs/texmacs/menus",
+      "TeXmacs/progs/texmacs/keyboard",
+      "TeXmacs/progs/text",
+      "TeXmacs/progs/text/cyrillic",
+      "TeXmacs/progs/text/vietnamese",
+      "TeXmacs/progs/utils/automate",
+      "TeXmacs/progs/utils/base",
+      "TeXmacs/progs/utils/cas",
+      "TeXmacs/progs/utils/edit",
+      "TeXmacs/progs/utils/handwriting",
+      "TeXmacs/progs/utils/library",
+      "TeXmacs/progs/utils/misc",
+      "TeXmacs/progs/utils/plugins",
+      "TeXmacs/progs/utils/relate",
+      "TeXmacs/progs/utils/test",
+      "TeXmacs/progs/various",
+      "TeXmacs/progs/version"
+    ],
+    "exclude": [
+      {"path": "TeXmacs/progs/texmacs/keyboard/prefix-kbd.scm", "reason": "kbd-wildcards/kbd-map 平铺条目人工维护紧凑风格，自动格式化会重排为大段缩进+尾注释，diff 噪声大且与历史风格不符"},
+      {"path": "TeXmacs/progs/utils/edit/auto-close.scm", "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"},
+      {"path": "TeXmacs/progs/database/bib-db.scm", "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"},
+      {"path": "TeXmacs/progs/moebius/cork-test.scm", "reason": "含 Unicode 码点的十六进制字面量（#x27E8/#x27E9 等），自动格式化会改写为十进制（10216/10217），降低可读性，保持与 main 一致不格式化"},
+      {"path": "TeXmacs/progs/text/text-kbd.scm", "reason": "含 Cork 编码的引号字节（0x10-0x14），不格式化"}
+    ]
+  }
+}
