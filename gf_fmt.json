@@ -3,9 +3,7 @@
     "suffix": ["hpp", "cpp", "h", "c", "cc", "cxx"],
     "path": ["tests", "src", "moebius", "lolly"],
     "exclude": [
-      {"path": "build", "reason": "构建产物目录，无需格式化"},
-      {"path": "moebius/build", "reason": "构建产物目录，无需格式化"},
-      {"path": "lolly/build", "reason": "构建产物目录，无需格式化"}
+      {"path": "build", "reason": "构建产物目录（含各子模块下的 build），无需格式化"}
     ]
   },
   "scheme": {
