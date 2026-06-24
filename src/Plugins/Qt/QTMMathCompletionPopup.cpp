@@ -186,7 +186,7 @@ QTMMathCompletionPopup::scrollBy (int x, int y) {
 
 void
 QTMMathCompletionPopup::installTopLevelWindowFilter () {
-  // 监听所属顶层窗口的状态变化，当主窗口最小化/隐藏时自动隐藏 popup。
+  // 监听所属顶层窗口的状态变化，当主窗口最小化/隐藏/失活时自动隐藏 popup。
   // 由于 popup 是独立顶层窗口（Qt::ToolTip），不会跟随主窗口自动隐藏。
   QWidget* w= parentWidget ();
   while (w) {
@@ -209,6 +209,10 @@ QTMMathCompletionPopup::eventFilter (QObject* obj, QEvent* event) {
   }
   else if (event->type () == QEvent::Hide) {
     // 主窗口被隐藏时隐藏 popup
+    hide ();
+  }
+  else if (event->type () == QEvent::WindowDeactivate) {
+    // 主窗口失去焦点（如 Alt+Tab 切换窗口）时隐藏 popup
     hide ();
   }
   else if (event->type () == QEvent::MouseButtonPress) {
