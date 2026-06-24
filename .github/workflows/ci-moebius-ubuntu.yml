@@ -3,8 +3,26 @@ name: CI for moebius on Ubuntu 22.04
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/bench/**'
+      - 'moebius/xmake.lua'
+      - '.github/workflows/ci-moebius-ubuntu.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/bench/**'
+      - 'moebius/xmake.lua'
+      - '.github/workflows/ci-moebius-ubuntu.yml'
   workflow_dispatch:
 
 jobs:

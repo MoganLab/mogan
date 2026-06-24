@@ -3,8 +3,26 @@ name: CI for moebius on macOS
 on:
   push:
     branches: [ main ]
+    paths:
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/bench/**'
+      - 'moebius/xmake.lua'
+      - '.github/workflows/ci-moebius-macos.yml'
   pull_request:
     branches: [ main ]
+    paths:
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/bench/**'
+      - 'moebius/xmake.lua'
+      - '.github/workflows/ci-moebius-macos.yml'
   workflow_dispatch:
 
 jobs:
