@@ -61,13 +61,12 @@ option_end()
 
 
 --- Require packages
-local TBOX_VERSION = "1.7.5"
 local DOCTEST_VERSION = "2.4.11"
 local MIMALLOC_VERSION = "2.1.2"
 local JEMALLOC_VERSION = "5.3.0"
 
 tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
-add_requires("tbox " .. TBOX_VERSION, {system=false, configs=tbox_configs})
+add_requires("tbox", {system=false, configs=tbox_configs})
 if has_config("enable_tests") then
     add_requires("doctest " .. DOCTEST_VERSION, {system=false})
     add_requires("nanobench", {system=false})
