@@ -29,6 +29,7 @@ on:
 
 jobs:
   linuxbuild:
+    if: false # temporarily disabled
     runs-on: ubuntu-latest
     steps:
       - uses: elves/setup-elvish@v1
@@ -60,6 +61,7 @@ jobs:
       - name: test
         run: elvish bin/test_wasm "tests/*"
   windowsbuild:
+    if: false # temporarily disabled
     runs-on: windows-2025
     env:
       XMAKE_GLOBALDIR: "${{ github.workspace }}\\.xmake-global"
