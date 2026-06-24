@@ -10,7 +10,6 @@ on:
       - 'lolly/System/**'
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
-      - 'lolly/bench/**'
       - 'lolly/xmake.lua'
       - '.github/workflows/ci-lolly-windows.yml'
   pull_request:
@@ -22,7 +21,6 @@ on:
       - 'lolly/System/**'
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
-      - 'lolly/bench/**'
       - 'lolly/xmake.lua'
       - '.github/workflows/ci-lolly-windows.yml'
   workflow_dispatch:
@@ -62,5 +60,3 @@ jobs:
         run: xmake build --yes -vD liblolly
       - name: test
         run: xmake test "lolly_tests/*"
-      - name: benchmark
-        run: xmake run --yes --group=bench

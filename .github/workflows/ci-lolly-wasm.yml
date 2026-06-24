@@ -10,7 +10,6 @@ on:
       - 'lolly/System/**'
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
-      - 'lolly/bench/**'
       - 'lolly/xmake.lua'
       - '.github/workflows/ci-lolly-wasm.yml'
   pull_request:
@@ -22,7 +21,6 @@ on:
       - 'lolly/System/**'
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
-      - 'lolly/bench/**'
       - 'lolly/xmake.lua'
       - '.github/workflows/ci-lolly-wasm.yml'
   workflow_dispatch:

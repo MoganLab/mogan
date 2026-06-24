@@ -9,7 +9,6 @@ on:
       - 'moebius/Scheme/**'
       - 'moebius/moebius/**'
       - 'moebius/tests/**'
-      - 'moebius/bench/**'
       - 'moebius/xmake.lua'
       - '.github/workflows/ci-moebius-debian13.yml'
   pull_request:
@@ -20,7 +19,6 @@ on:
       - 'moebius/Scheme/**'
       - 'moebius/moebius/**'
       - 'moebius/tests/**'
-      - 'moebius/bench/**'
       - 'moebius/xmake.lua'
       - '.github/workflows/ci-moebius-debian13.yml'
   workflow_dispatch:
