@@ -32,7 +32,6 @@ local DOCTEST_VERSION = "2.4.11"
 
 add_requires("doctest " .. DOCTEST_VERSION, {system=false})
 add_requires("nanobench", {system=false})
-add_requires("lolly", {system=false})
 add_requires("s7", {system=false})
 
 
@@ -45,7 +44,7 @@ target("libmoebius") do
     add_includedirs(moe_includedirs, {public = true})
     add_files(moe_files)
 
-    add_packages("lolly")
+    add_deps("liblolly")
     add_packages("s7")
 
     add_headerfiles("Data/History/(*.hpp)")
@@ -74,14 +73,12 @@ target("moebius_tests") do
     add_includedirs(moe_includedirs)
     add_includedirs("tests")
 
-    add_packages("lolly")
-
     cpp_tests_on_all_plat = os.files("tests/**_test.cpp")
     for _, testfile in ipairs(cpp_tests_on_all_plat) do
         add_tests(path.basename(testfile), {
             kind = "binary",
             files = testfile,
-            packages = {"doctest", "lolly"},
+            packages = {"doctest"},
             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"})
     end
 end
@@ -108,7 +105,7 @@ function add_bench_target(filepath)
         set_policy("check.auto_ignore_flags", false)
         set_rundir("$(projectdir)")
         add_deps({"libmoebius", "moebius_bench_base"})
-        add_packages({"nanobench", "lolly"})
+        add_packages("nanobench")
 
         if is_plat("linux") then
             add_syslinks("stdc++", "m")

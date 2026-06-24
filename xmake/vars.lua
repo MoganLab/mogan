@@ -19,7 +19,7 @@ STABLE_RELEASE = 1
 
 -- LiiiLabs dependencies
 TBOX_VERSION = "1.7.5"
-LOLLY_VERSION = "1.4.27"
+LOLLY_VERSION = "1.4.26"
 
 -- Third-party dependencies
 CPPTRACE_VERSION = "v0.7.1"

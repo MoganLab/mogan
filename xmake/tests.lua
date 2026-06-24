@@ -28,7 +28,6 @@ function add_target_cpp_test(filepath, dep1, dep2)
         if not is_plat("windows") then
             add_syslinks("pthread")
         end
-        add_packages("lolly")
         add_packages("s7")
         add_packages("liii-pdfhummus")
 
@@ -76,7 +75,6 @@ function add_target_cpp_bench(filepath, dep)
         if not is_plat("windows") then
             add_syslinks("pthread")
         end
-        add_packages("lolly")
         add_packages("s7")
         add_packages("liii-pdfhummus")
 

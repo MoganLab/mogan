@@ -4,13 +4,17 @@ set_xmakever("2.8.5")
 set_allowedmodes("releasedbg", "release", "debug")
 add_rules("mode.debug")
 
-set_project("lolly")
+if os.scriptdir() == os.projectdir() then
+    set_project("lolly")
+    set_allowedplats("linux", "macosx", "mingw", "wasm", "windows")
+end
+
 LOLLY_VERSION= "1.4.26"
 
 set_languages("c++17")
 includes("@builtin/check")
 
-set_allowedplats("linux", "macosx", "mingw", "wasm", "windows")
+local lolly_root = os.scriptdir()
 
 if is_plat("mingw") and is_host("windows") then
     add_requires("mingw-w64 8.1.0")
@@ -98,25 +102,26 @@ function my_configvar_check()
 end
 
 local lolly_files = {
-    "Kernel/**/*.cpp",
-    "System/**/*.cpp|Memory/impl/*.cpp",
-    "Data/String/**.cpp",
-    "lolly/**/**.cpp",
+    path.join(lolly_root, "Kernel/**/*.cpp"),
+    path.join(lolly_root, "System/**/*.cpp|Memory/impl/*.cpp"),
+    path.join(lolly_root, "Data/String/**.cpp"),
+    path.join(lolly_root, "lolly/**/**.cpp"),
 }
 local lolly_includedirs = {
-    "Kernel/Abstractions",
-    "Kernel/Algorithms",
-    "Kernel/Containers",
-    "Kernel/Types",
-    "Data/String",
-    "System/Classes",
-    "System/Files",
-    "System/IO",
-    "System/Memory",
-    "System/Misc",
-    "Plugins/Unix",
-    "Plugins",
-    "$(projectdir)"
+    path.join(lolly_root, "Kernel/Abstractions"),
+    path.join(lolly_root, "Kernel/Algorithms"),
+    path.join(lolly_root, "Kernel/Containers"),
+    path.join(lolly_root, "Kernel/Types"),
+    path.join(lolly_root, "Data/String"),
+    path.join(lolly_root, "System/Classes"),
+    path.join(lolly_root, "System/Files"),
+    path.join(lolly_root, "System/IO"),
+    path.join(lolly_root, "System/Language"),
+    path.join(lolly_root, "System/Memory"),
+    path.join(lolly_root, "System/Misc"),
+    path.join(lolly_root, "Plugins/Unix"),
+    path.join(lolly_root, "Plugins"),
+    lolly_root,
 }
 
 target("liblolly") do
@@ -177,7 +182,7 @@ target("liblolly") do
     end
 
     before_build(function (target)
-        target:add("forceincludes", path.absolute("$(buildir)/L1/config.h"))
+        target:add("forceincludes", path.absolute("$(buildir)/L1/config.h", os.projectdir()))
     end)
 
     add_headerfiles("Kernel/Abstractions/(*.hpp)")
@@ -199,17 +204,17 @@ target("liblolly") do
     add_headerfiles("lolly/(hash/*.hpp)", {prefixdir = "lolly"})
     add_headerfiles("lolly/(io/*.hpp)", {prefixdir = "lolly"})
     add_headerfiles("lolly/(system/*.hpp)", {prefixdir = "lolly"})
-    add_includedirs(lolly_includedirs)
+    add_includedirs(lolly_includedirs, {public = true})
     add_files(lolly_files)
 end
 
-local mingw_copied = false 
+local mingw_copied = false
 
 function add_bench_target(filepath)
     local benchname = path.basename(filepath)
     target(benchname) do 
         set_group("bench")
-        add_deps({"liblolly", "bench_base"})
+        add_deps({"liblolly", "lolly_bench_base"})
         set_languages("c++17")
         set_policy("check.auto_ignore_flags", false)
         set_optimize("fastest")
@@ -235,7 +240,7 @@ function add_bench_target(filepath)
         add_includedirs("$(buildir)/L1")
         add_includedirs(lolly_includedirs)
         add_includedirs("tests")
-        add_forceincludes(path.absolute("$(buildir)/L1/config.h"))
+        add_forceincludes(path.absolute("$(buildir)/L1/config.h", os.projectdir()))
         add_files(filepath) 
 
         if is_plat("wasm") then
@@ -277,7 +282,7 @@ function add_bench_target(filepath)
 end
 
 if has_config("enable_tests") then
-    target("example_dynamic_library") do
+    target("lolly_example_dynamic_library") do
         set_kind ("shared")
         set_languages("c++17")
         set_default (false)
@@ -285,14 +290,14 @@ if has_config("enable_tests") then
         add_rules("utils.symbols.export_list", {
             symbols = {"square_div_2"}})
     end
-    target("test_dynamic_library") do
+    target("lolly_test_dynamic_library") do
         set_kind ("binary")
         set_languages("c++17")
         set_default (false)
         add_packages("tbox")
 
         add_deps("liblolly")
-        add_deps("example_dynamic_library", {inherit = false})
+        add_deps("lolly_example_dynamic_library", {inherit = false})
 
         if is_plat("windows") then
             set_encodings("utf-8")
@@ -302,21 +307,21 @@ if has_config("enable_tests") then
 
         add_includedirs(lolly_includedirs)
         add_includedirs("tests")
-        add_forceincludes(path.absolute("$(buildir)/L1/config.h"))
+        add_forceincludes(path.absolute("$(buildir)/L1/config.h", os.projectdir()))
         add_tests("shared_lib_test", {
             kind = "binary",
-            files = "$(projectdir)/tests/lolly/system/shared_lib_test.cpp",
+            files = path.join(lolly_root, "tests/lolly/system/shared_lib_test.cpp"),
             packages = "doctest",
             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"})
     end
-    target("tests")do
+    target("lolly_tests")do
         set_kind("binary")
         add_deps("liblolly")
         set_languages("c++17")
         set_policy("check.auto_ignore_flags", false)
         set_exceptions("cxx")
         if not is_plat("wasm") then
-            set_rundir("$(projectdir)")
+            set_rundir(lolly_root)
         end
 
         if is_plat("mingw") then
@@ -364,17 +369,23 @@ if has_config("enable_tests") then
         add_includedirs("$(buildir)/L1")
         add_includedirs(lolly_includedirs)
         add_includedirs("tests")
-        add_forceincludes(path.absolute("$(buildir)/L1/config.h"))
+        add_forceincludes(path.absolute("$(buildir)/L1/config.h", os.projectdir()))
         add_files("tests/a_tbox_main.cpp")
 
-        local cpp_tests_on_all_plat = os.files("tests/**_test.cpp|**/shared_lib_test.cpp")
+        local cpp_tests_on_all_plat = os.files(path.join(lolly_root, "tests/**_test.cpp"))
+        local excluded_tests = {
+            [path.join(lolly_root, "tests/lolly/system/shared_lib_test.cpp")] = true,
+            [path.join(lolly_root, "tests/lolly/io/http_test.cpp")] = true,
+        }
         for _, testfile in ipairs(cpp_tests_on_all_plat) do
-            add_tests(path.basename(testfile), {
-                kind = "binary",
-                files = testfile})
+            if not excluded_tests[testfile] then
+                add_tests(path.basename(testfile), {
+                    kind = "binary",
+                    files = testfile})
+            end
         end
     end
-    target("bench_base")do
+    target("lolly_bench_base")do
         set_kind("object")
         set_languages("c++17")
         set_policy("check.auto_ignore_flags", false)
@@ -393,7 +404,8 @@ if has_config("enable_tests") then
 end
 
 
--- xmake plugin
+-- xmake plugin (only generate doxyfile when lolly is built standalone)
+if os.scriptdir() == os.projectdir() then
 add_configfiles(
     "Doxyfile.in", {
         filename = "../doxyfile",
@@ -407,6 +419,7 @@ add_configfiles(
         }
     }
 )
+end
 
 ---
 --- coverage:

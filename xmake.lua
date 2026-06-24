@@ -11,6 +11,7 @@
 
 includes("xmake/vars.lua")
 includes("moebius")
+includes("lolly")
 includes("xmake/stem.lua")
 
 set_project(stem_project_name)
@@ -102,7 +103,6 @@ add_rules("mode.releasedbg", "mode.release", "mode.debug")
 add_repositories("liii-repo xmake")
 
 TBOX_VERSION= "1.7.5"
-LOLLY_VERSION= "1.4.26"
 S7_VERSION = "20240816"
 
 package("liii-libaesgm")
@@ -202,7 +202,6 @@ end
 
 local LIBICONV_VERSION = "1.17"
 
-add_requires("lolly", {system=false})
 -- QWK is built locally from 3rdparty/qwindowkitty, no external package needed
 if is_plat ("windows") then
     add_requires("libiconv "..LIBICONV_VERSION, {system=false})
@@ -587,10 +586,9 @@ target("libmogan") do
     set_encodings("utf-8")
 
     add_deps("libmoebius")
+    add_deps("liblolly")
     add_deps("QWKCore", "QWKWidgets")
 
-    add_includedirs("3rdparty", {public = true})
-    
     set_policy("check.auto_ignore_flags", false)
     add_rules("qt.static")
     on_install(function (target)
@@ -606,10 +604,11 @@ target("libmogan") do
     set_configvar("USE_QT_PRINTER", 1)
     add_defines("USE_QT_PRINTER")
 
-    add_packages("lolly")
     add_packages("liii-pdfhummus")
     add_packages("freetype")
     add_packages("s7")
+    add_packages("tbox")
+    add_packages("cpr")
     add_packages("argh")
     if not is_plat("macosx") then
         add_packages("libiconv")
@@ -951,7 +950,7 @@ target("stem") do
 
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
     add_packages("s7")
-    add_packages("lolly")
+    add_deps("liblolly")
     add_deps("libmogan")
     add_deps("libmoebius")
     if not is_plat("windows") then
