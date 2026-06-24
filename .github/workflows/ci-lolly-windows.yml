@@ -1,0 +1,66 @@
+name: CI for lolly on Windows
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-windows.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-windows.yml'
+  workflow_dispatch:
+
+env:
+  XMAKE_GLOBALDIR: "${{ github.workspace }}\\.xmake-global"
+
+jobs:
+  windowsbuild:
+    runs-on: windows-2025
+    steps:
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+      - name: update repo
+        run: xrepo update-repo
+      - name: git crlf
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: qt683-${{ runner.os }}-${{ runner.arch }}-xrepo-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/.build_cache
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+      - name: config
+        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows --enable_tests=true
+      - name: build
+        run: xmake build --yes -vD liblolly
+      - name: test
+        run: xmake test "lolly_tests/*"
+      - name: benchmark
+        run: xmake run --yes --group=bench

@@ -1,29 +1,35 @@
-name: Build on wasm
+name: CI for lolly on wasm
 
 on:
   push:
     branches: [ main ]
     paths:
-      - 'Kernel/**'
-      - 'System/**'
-      - 'lolly/**'
-      - 'tests/**'
-      - '.github/workflows/ci-xmake-wasm.yml'
-      - 'xmake.lua' 
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-wasm.yml'
   pull_request:
     branches: [ main ]
     paths:
-      - 'Kernel/**'
-      - 'System/**'
-      - 'lolly/**'
-      - 'tests/**'
-      - '.github/workflows/ci-xmake-wasm.yml'
-      - 'xmake.lua' 
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-wasm.yml'
   workflow_dispatch:
 
 jobs:
   linuxbuild:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: elves/setup-elvish@v1
         with:
@@ -33,15 +39,15 @@ jobs:
           echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/.xmake-global" >> "${{ github.env }}"
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: v2.8.7
+          xmake-version: v3.0.4
       - name: update repo
         run: |
           xmake repo -u
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
       - name: cache xmake
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
@@ -54,9 +60,8 @@ jobs:
       - name: test
         run: elvish bin/test_wasm "tests/*"
   windowsbuild:
-    runs-on: windows-2019
+    runs-on: windows-2025
     env:
-      # Force xmake to a specific folder (for cache)
       XMAKE_GLOBALDIR: "${{ github.workspace }}\\.xmake-global"
     steps:
       - uses: elves/setup-elvish@v1
@@ -64,17 +69,17 @@ jobs:
           elvish-version: 0.19.2
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: v2.8.7
+          xmake-version: v3.0.4
       - name: update repo
         run: |
           xrepo update-repo
       - name: git crlf
         run: git config --global core.autocrlf false
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 1
       - name: cache packages from xrepo
-        uses: actions/cache@v2
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
@@ -85,4 +90,3 @@ jobs:
         run: xmake build --yes -vD
       - name: test
         run: elvish bin/test_wasm "tests/*"
-

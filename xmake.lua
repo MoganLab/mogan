@@ -10,6 +10,24 @@
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
 includes("xmake/vars.lua")
+
+package("liii-doctest")
+    set_homepage("https://github.com/doctest/doctest")
+    set_description("The fastest feature-rich C++11/14/17/20/23 single-header testing framework")
+    set_license("MIT")
+    set_kind("library", {headeronly = true})
+
+    set_sourcedir(path.join(os.scriptdir(), "3rdparty/doctest"))
+
+    on_install(function (package)
+        os.cp("doctest/doctest.h", package:installdir("include/doctest"))
+    end)
+
+    on_test(function (package)
+        assert(package:has_cxxincludes("doctest/doctest.h"))
+    end)
+package_end()
+
 includes("moebius")
 includes("lolly")
 includes("xmake/stem.lua")

@@ -1,0 +1,69 @@
+name: CI for lolly on macOS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-macos.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/bench/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-macos.yml'
+  workflow_dispatch:
+
+jobs:
+  macosbuild:
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+          actions-cache-folder: '.xmake-cache'
+      - name: xmake repo update
+        run: xmake repo --update
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ github.workspace }}/build/.build_cache
+          key: xmake-build-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+      - name: config
+        run: xmake config --policies=build.ccache -m releasedbg --yes --enable_tests=true
+      - name: build
+        run: xmake build --yes -vD liblolly
+      - name: test
+        run: xmake test "lolly_tests/*"
+      - name: benchmark
+        run: xmake run --yes --group=bench

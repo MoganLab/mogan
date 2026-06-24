@@ -61,14 +61,13 @@ option_end()
 
 
 --- Require packages
-local DOCTEST_VERSION = "2.4.11"
 local MIMALLOC_VERSION = "2.1.2"
 local JEMALLOC_VERSION = "5.3.0"
 
 tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
 add_requires("tbox", {system=false, configs=tbox_configs})
 if has_config("enable_tests") then
-    add_requires("doctest " .. DOCTEST_VERSION, {system=false})
+    add_requires("liii-doctest", {system=false})
     add_requires("nanobench", {system=false})
 end
 
@@ -310,7 +309,7 @@ if has_config("enable_tests") then
         add_tests("shared_lib_test", {
             kind = "binary",
             files = path.join(lolly_root, "tests/lolly/system/shared_lib_test.cpp"),
-            packages = "doctest",
+            packages = "liii-doctest",
             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"})
     end
     target("lolly_tests")do
@@ -329,7 +328,7 @@ if has_config("enable_tests") then
             add_packages("emscripten")
         end
         add_packages("tbox")
-        add_packages("doctest")
+        add_packages("liii-doctest")
 
         if is_plat("linux") then
             add_syslinks("stdc++", "m")
@@ -440,7 +439,7 @@ function add_test_cov(filepath)
         set_policy("check.auto_ignore_flags", false)
 
         add_packages("tbox")
-        add_packages("doctest")
+        add_packages("liii-doctest")
         add_packages("libcurl")
         add_syslinks("stdc++", "m")
         add_includedirs("$(buildir)/L1")

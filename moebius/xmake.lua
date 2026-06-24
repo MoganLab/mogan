@@ -28,9 +28,7 @@ local moe_includedirs = {
     moe_root,
 }
 
-local DOCTEST_VERSION = "2.4.11"
-
-add_requires("doctest " .. DOCTEST_VERSION, {system=false})
+add_requires("liii-doctest", {system=false})
 add_requires("nanobench", {system=false})
 add_requires("s7", {system=false})
 
@@ -78,7 +76,7 @@ target("moebius_tests") do
         add_tests(path.basename(testfile), {
             kind = "binary",
             files = testfile,
-            packages = {"doctest"},
+            packages = {"liii-doctest"},
             defines = "DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN"})
     end
 end
