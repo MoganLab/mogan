@@ -11,7 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(use-modules (dynamic session-edit))
+(use-modules (dynamic session-edit) (binary julia))
 
 (define (julia-serialize lan t)
   (let* ((u (pre-serialize lan t))
@@ -25,13 +25,12 @@
         "$TEXMACS_PATH/plugins/julia/julia/julia.jl"))))
 
 (define (julia-launcher)
-  (let* ((boot (string-quote (julia-entry))))
-    (string-append "julia " boot)))
+  (let* ((boot (string-quote (julia-entry)))
+         (cmd  (url->system (find-binary-julia))))
+    (string-append cmd " " boot)))
 
 (plugin-configure julia
-  (:winpath "Julia*" "bin")
-  (:macpath "Julia*" "Contents/Resources/julia/bin")
-  (:require (url-exists-in-path? "julia"))
+  (:require (has-binary-julia?))
   (:serializer ,julia-serialize)
   (:launch ,(julia-launcher))
   (:tab-completion #t)

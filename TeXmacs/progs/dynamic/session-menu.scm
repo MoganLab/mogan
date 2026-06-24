@@ -140,6 +140,7 @@
     "hunspell"
     "identify"
     "inkscape"
+    "julia"
     "pandoc"
     "pdftocairo"
     "rsvg-convert"
