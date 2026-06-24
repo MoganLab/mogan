@@ -48,6 +48,16 @@ xmake build libmoebius
 xmake test "moebius_tests/*"
 ```
 
+### 构建 lolly 子模块
+本项目通过顶层 `xmake.lua` 中的 `includes("lolly")` 将 lolly 作为 xmake 子模块引入。它是 `libmoebius` 的依赖，构建 `libmoebius` 时会自动构建，通常无需手动操作。
+
+如果只需要在顶层目录下构建或测试 lolly：
+
+```bash
+xmake build liblolly
+xmake test "lolly_tests/*"
+```
+
 ### 第四步：启动墨干
 ``` bash
 xmake run stem
