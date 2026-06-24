@@ -1,12 +1,3 @@
 {
-  "tools": {
-    "format": {
-      "organization": "liii",
-      "module": "goldformat",
-      "description": {
-        "en_US": "Format C++ and Scheme files (replaces bin/format)",
-        "zh_CN": "格式化 C++ 和 Scheme 文件（替代 bin/format）"
-      }
-    }
-  }
+  "tools": {}
 }

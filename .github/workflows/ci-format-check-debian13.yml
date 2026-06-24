@@ -12,9 +12,8 @@ on:
       - "3rdparty/lolly/**"
       - "TeXmacs/progs/**"
       - "TeXmacs/plugins/**"
-      - "tools/format/liii/**"
       - ".clang-format"
-      - "gfexclude.json"
+      - "gf_fmt.json"
       - "gfproject.json"
       - ".github/workflows/ci-format-check-debian13.yml"
   pull_request:
@@ -28,9 +27,8 @@ on:
       - "3rdparty/lolly/**"
       - "TeXmacs/progs/**"
       - "TeXmacs/plugins/**"
-      - "tools/format/liii/**"
       - ".clang-format"
-      - "gfexclude.json"
+      - "gf_fmt.json"
       - "gfproject.json"
       - ".github/workflows/ci-format-check-debian13.yml"
   workflow_dispatch:
@@ -59,5 +57,5 @@ jobs:
           dpkg -i /tmp/gf.deb
           gf version
 
-      - name: Run gf format --check (C++ + Scheme)
-        run: gf format --check
+      - name: Run gf fmt --check (C++ + Scheme)
+        run: gf fmt --check
