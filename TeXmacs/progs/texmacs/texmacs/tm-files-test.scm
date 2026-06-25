@@ -15,44 +15,45 @@
   (:use (texmacs texmacs tm-files))
 ) ;texmacs-module
 
+(import (liii check))
 (import (only (liii path) path-join path->string))
 
-(define (regtest-auto-backup-official-url)
-  (regression-test-group "auto-backup"
-    "official url"
-    (lambda (case
-            ) ;case
-      (and (== case "utm")
-        (in? (auto-backup-official-url)
-          '("https://liiistem.cn/personal-center/backup.html?utm_source=auto_backup_button"
-            "https://liiistem.com/?utm_source=auto_backup_button")
-        ) ;in?
-      ) ;and
-    ) ;lambda
-    :none
-    (test "utm source" "utm" #t)
-  ) ;regression-test-group
+(check-set-mode! 'report-failed)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for auto-backup-official-url
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-auto-backup-official-url)
+  (check (in? (auto-backup-official-url)
+           '("https://liiistem.cn/personal-center/backup.html?utm_source=auto_backup_button"
+             "https://liiistem.com/?utm_source=auto_backup_button")
+         ) ;in?
+    =>
+    #t
+  ) ;check
 ) ;define
 
-(define (regtest-auto-backup-texmacs-path)
-  (regression-test-group "auto-backup"
-    "texmacs path is read-only"
-    (lambda (case
-            ) ;case
-      (and (== case "inside")
-        (auto-backup-texmacs-path-buffer? (system->url (path->string (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
-                                          ) ;system->url
-        ) ;auto-backup-texmacs-path-buffer?
-      ) ;and
-    ) ;lambda
-    :none
-    (test "skip texmacs path" "inside" #t)
-  ) ;regression-test-group
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for auto-backup-texmacs-path-buffer?
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-auto-backup-texmacs-path-buffer?)
+  ;; TeXmacs 安装路径下的文件被视为只读资源，应当被跳过
+  (check (auto-backup-texmacs-path-buffer? (system->url (path->string (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
+                                           ) ;system->url
+         ) ;auto-backup-texmacs-path-buffer?
+    =>
+    #t
+  ) ;check
 ) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (regtest-tm-files)
-  (let ((n (+ (regtest-auto-backup-official-url) (regtest-auto-backup-texmacs-path))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of tm-files: ok\n")
-  ) ;let
+  (test-auto-backup-official-url)
+  (test-auto-backup-texmacs-path-buffer?)
+  (check-report)
 ) ;tm-define
