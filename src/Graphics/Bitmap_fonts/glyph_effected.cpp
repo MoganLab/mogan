@@ -14,7 +14,7 @@
 #include "hashset.hpp"
 #include "raster_picture.hpp"
 #include "renderer.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 extern glyph  error_glyph;
 extern metric error_metric;

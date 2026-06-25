@@ -9,23 +9,27 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "colors.hpp"
-#include "analyze.hpp"
+#include <moebius/data/colors.hpp>
+
 #include <string.h>
 
-#include "dvips_colors.hpp"
-#include "svg_colors.hpp"
-#include "tm_colors.hpp"
-#include "tm_debug.hpp"
-#include "x11_colors.hpp"
-#include "xc_colors.hpp"
-
 #include <lolly/data/numeral.hpp>
+
+namespace moebius {
+namespace data {
 
 using lolly::data::as_hexadecimal;
 using lolly::data::from_hex;
 using lolly::data::to_Hex;
 #define from_hexadecimal from_hex
+
+// Private named-color tables. Included inside namespace data so that
+// tm_colors.hpp's use of the `pastel` variable resolves correctly.
+#include "dvips_colors.hpp"
+#include "svg_colors.hpp"
+#include "tm_colors.hpp"
+#include "x11_colors.hpp"
+#include "xc_colors.hpp"
 
 /******************************************************************************
  * Set up colormaps
@@ -76,22 +80,6 @@ get_color_attrs (int& cs, int& cf, int& gr, int& ct) {
  * Set up colors
  ******************************************************************************/
 
-#ifdef QTTEXMACS
-color black  = rgb_color (0, 0, 0);
-color white  = rgb_color (255, 255, 255);
-color red    = rgb_color (255, 0, 0);
-color blue   = rgb_color (0, 0, 255);
-color yellow = rgb_color (255, 255, 0);
-color green  = rgb_color (0, 255, 0);
-color magenta= rgb_color (255, 0, 255);
-color orange = rgb_color (255, 128, 0);
-color brown  = rgb_color (128, 32, 0);
-color pink   = rgb_color (255, 128, 128);
-
-color light_grey= rgb_color (208, 208, 208);
-color grey      = rgb_color (184, 184, 184);
-color dark_grey = rgb_color (112, 112, 112);
-#else
 color black, white, red, green, blue;
 color yellow, magenta, orange, brown, pink;
 color light_grey, grey, dark_grey;
@@ -114,7 +102,6 @@ initialize_colors () {
   dark_grey = rgb_color (112, 112, 112);
   pastel    = (true_colors || GREYS == 255) ? 223 : 191;
 }
-#endif
 
 color tm_background= rgb_color (160, 160, 160);
 
@@ -249,9 +236,6 @@ cmyk_color (int c, int m, int y, int k, int a) {
   b= round (255 - y_);
   return rgb_color (r, g, b, a);
 }
-// TODO
-// void
-// get_cmyk_color (color col, int& c, int& m, int& y, int &k, int& a) {
 
 /******************************************************************************
  * XPM interface
@@ -283,10 +267,6 @@ xpm_color (string s) {
   return black;
 }
 
-// TODO
-// void
-// get_xpm_color (color col, string s) {
-
 /******************************************************************************
  * Named colors
  ******************************************************************************/
@@ -296,11 +276,6 @@ populates_colorhash_from_rgb_record (rgb_record* rec, colorhash ch) {
   while (strcmp (rec->name, "") != 0) {
     string name (locase_all (rec->name));
     color  col= rgb_color (rec->r, rec->g, rec->b);
-
-    if (DEBUG_STD && ch->contains (name) && ch[name] != col) {
-      debug_std << "Redefined color " << name << LF << get_hex_color (ch[name])
-                << " replaced by " << get_hex_color (col) << LF;
-    }
     ch (name)= col;
     rec++;
   }
@@ -311,11 +286,6 @@ populates_colorhash_from_cmyk_record (cmyk_record* rec, colorhash ch) {
   while (strcmp (rec->name, "") != 0) {
     string name (locase_all (rec->name));
     color  col= cmyk_color (rec->c, rec->m, rec->y, rec->k);
-
-    if (DEBUG_STD && ch->contains (name) && ch[name] != col) {
-      debug_std << "Redefined color " << name << LF << get_hex_color (ch[name])
-                << " replaced by " << get_hex_color (col) << LF;
-    }
     ch (name)= col;
     rec++;
   }
@@ -444,3 +414,6 @@ string
 named_rgb_color (array<int> rgba) {
   return get_hex_color (rgb_color (rgba));
 }
+
+} // namespace data
+} // namespace moebius

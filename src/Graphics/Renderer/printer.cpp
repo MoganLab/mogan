@@ -13,7 +13,8 @@
 #include "Freetype/tt_file.hpp"
 #include "Metafont/tex_files.hpp"
 #include "analyze.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "converter.hpp"
 #include "file.hpp"
 #include "frame.hpp"

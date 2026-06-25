@@ -596,7 +596,7 @@ public:
   }
   inline color get_color (string var) {
     tree t= env[var];
-    return named_color (as_string (t), alpha);
+    return moebius::data::named_color (as_string (t), alpha);
   }
 
   friend class edit_env;

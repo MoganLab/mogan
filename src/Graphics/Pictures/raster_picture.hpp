@@ -13,7 +13,7 @@
 #define RASTER_PICTURE_H
 #include "picture.hpp"
 #include "raster.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 /******************************************************************************
  * Picture kind associated to color type

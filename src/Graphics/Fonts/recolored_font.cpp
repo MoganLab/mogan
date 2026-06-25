@@ -10,7 +10,8 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "font.hpp"
 #include "frame.hpp"
 

@@ -33,7 +33,8 @@
 #include <QImageReader>
 #include <QMimeData>
 
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 
 #include "converter.hpp"
 #include "cork.hpp"

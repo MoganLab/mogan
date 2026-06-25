@@ -13,7 +13,8 @@
 #include "Boxes/xkerning.hpp"
 #include "analyze.hpp"
 #include "boxes.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "cork.hpp"
 #include "font.hpp"
 #include "tm_debug.hpp"

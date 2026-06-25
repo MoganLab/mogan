@@ -14,7 +14,9 @@
 #include "Boxes/xkerning.hpp"
 #include "array.hpp"
 #include "boxes.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+
+using moebius::data::rgb_color;
 #include "command.hpp"
 #include "font.hpp"
 #include "player.hpp"
