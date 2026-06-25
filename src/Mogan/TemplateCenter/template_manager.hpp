@@ -49,6 +49,12 @@ public:
   void initialize ();
   bool isInitialized () const { return initialized_; }
 
+  // 网络模式：true=离线，所有远程请求在 API 层短路（不发请求、不启动
+  // QNetworkAccessManager 后台线程）。测试场景应在 initialize() 之前调用，
+  // 从源头避免真实网络请求及其在进程退出阶段的析构竞争。
+  void setOffline (bool offline);
+  bool isOffline () const;
+
   // 分类操作
   QList<TemplateCategory> categories () const;
   QString                 categoryName (const QString& categoryId) const;

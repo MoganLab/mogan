@@ -25,6 +25,9 @@ private slots:
     // 预初始化 TemplateManager singleton，抑制 Scheme 解释器未就绪的预期警告
     QtMessageHandler oldHandler= qInstallMessageHandler (
         [] (QtMsgType, const QMessageLogContext&, const QString&) {});
+    // 进入离线模式：initialize() 不会发起真实网络请求，避免
+    // QNetworkAccessManager 后台线程在进程退出阶段与全局对象析构竞争
+    TemplateManager::instance ()->setOffline (true);
     TemplateManager::instance ()->initialize ();
     qInstallMessageHandler (oldHandler);
   }
