@@ -114,7 +114,7 @@ libstem_headers = {
     "$(projectdir)/src/Typeset/Page",
     "$(projectdir)/src/Typeset/Stack",
     "$(projectdir)/src/Typeset/Table",
-    "$(buildir)/glue",
+    "$(builddir)/glue",
     "$(projectdir)/TeXmacs/include",
     "$(projectdir)/TeXmacs/plugins/goldfish/src",
 }

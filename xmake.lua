@@ -258,7 +258,7 @@ function build_glue_on_config()
                 local glue_dir = path.directory(filepath)
                 local glue_table = import(glue_name, {rootdir = glue_dir})()
                 io.writefile(
-                    path.join("$(buildir)/glue", glue_name .. ".cpp"),
+                    path.join("$(builddir)/glue", glue_name .. ".cpp"),
                     build_glue(glue_table, glue_name))
                 cprint("generating scheme glue %s ... %s", glue_name, "${color.success}${text.success}")
             end, {
@@ -267,7 +267,7 @@ function build_glue_on_config()
                 always_changed = false
             })
         end
-        os.mkdir(path.join("$(buildir)/glue"))
+        os.mkdir(path.join("$(builddir)/glue"))
     end)
 end
 
@@ -306,7 +306,7 @@ target("QWKCore")
 
     on_load(function (target)
         -- Get build directory root (compatible with xmake v3.0.4+)
-        -- $(buildir) is not resolved in on_load callbacks, so we derive it from targetdir
+        -- $(builddir) is not resolved in on_load callbacks, so we derive it from targetdir
         local targetdir = target:targetdir()
         local buildir = path.directory(path.directory(path.directory(targetdir)))
 
@@ -395,7 +395,7 @@ target("QWKCore")
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/core", "3rdparty/qwindowkitty/src/core/kernel", "3rdparty/qwindowkitty/src/core/shared", "3rdparty/qwindowkitty/src/core/contexts", "3rdparty/qwindowkitty/src")
 
     -- Defines
@@ -464,8 +464,8 @@ target("QWKCore")
     end
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
-    add_headerfiles("$(buildir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
+    add_headerfiles("$(builddir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
+    add_headerfiles("$(builddir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
 
     on_install(function (target)
     end)
@@ -502,7 +502,7 @@ target("QWKWidgets")
 
     on_load(function (target)
         -- Get build directory root (compatible with xmake v3.0.4+)
-        -- $(buildir) is not resolved in on_load callbacks, so we derive it from targetdir
+        -- $(builddir) is not resolved in on_load callbacks, so we derive it from targetdir
         local targetdir = target:targetdir()
         local buildir = path.directory(path.directory(path.directory(targetdir)))
 
@@ -553,7 +553,7 @@ target("QWKWidgets")
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/widgets", "3rdparty/qwindowkitty/src")
 
     -- Source files
@@ -575,7 +575,7 @@ target("QWKWidgets")
     add_files("3rdparty/qwindowkitty/src/styles/styles.qrc")
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
+    add_headerfiles("$(builddir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
 
     on_install(function (target)
     end)
@@ -638,7 +638,7 @@ target("libmogan") do
     --    * https://github.com/xmake-io/xmake/issues/320
     --    * https://github.com/xmake-io/xmake/issues/342
     ---------------------------------------------------------------------------
-    set_configdir("$(buildir)")
+    set_configdir("$(builddir)")
     -- check for dl library
     -- configvar_check_cxxfuncs("TM_DYNAMIC_LINKING","dlopen")
     configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
@@ -715,7 +715,7 @@ target("libmogan") do
     ---------------------------------------------------------------------------
     -- add source and header files
     ---------------------------------------------------------------------------
-    add_includedirs("$(buildir)", {public = true})
+    add_includedirs("$(builddir)", {public = true})
     add_includedirs({
             "src/Data/Convert",
             "src/Data/Document",
@@ -772,7 +772,7 @@ target("libmogan") do
             "src/Mogan/TemplateCenter",
             "src/Mogan/Telemetry",
             "TeXmacs/include",
-            "$(buildir)/glue",
+            "$(builddir)/glue",
             "$(projectdir)/TeXmacs/plugins/goldfish/src/",
             "$(projectdir)/3rdparty/nlohmann_json/include",
             "$(projectdir)/3rdparty/json-schema-validator/src"
@@ -844,8 +844,8 @@ target("libmogan") do
 
     add_mxflags("-fno-objc-arc")
     on_load(function (target)
-        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
-        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(builddir)/config.h"))
+        target:add("forceincludes", path.absolute("$(builddir)/tm_configure.hpp"))
     end)
 end 
 
@@ -879,7 +879,7 @@ if is_plat("windows") then
         add_configfiles("$(projectdir)/packages/windows/TeXmacs.ico", {
             onlycopy = true
         })
-        add_files("$(buildir)/resource.rc")
+        add_files("$(builddir)/resource.rc")
     end
 end
 
@@ -896,14 +896,14 @@ target("stem") do
         set_filename(stem_binary_windows)
     end
 
-    local install_dir = "$(buildir)"
+    local install_dir = "$(builddir)"
     if is_plat("windows") then
-        install_dir = path.join("$(buildir)", "packages/stem/data/")
+        install_dir = path.join("$(builddir)", "packages/stem/data/")
     elseif is_plat("macosx") then
-        install_dir = path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name .. ".app/Contents/Resources/")
+        install_dir = path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name .. ".app/Contents/Resources/")
     else
         if os.getenv("INSTALL_DIR") == nil then
-            install_dir = path.join("$(buildir)", "packages/stem/")
+            install_dir = path.join("$(builddir)", "packages/stem/")
         else
             install_dir = os.getenv("INSTALL_DIR")
         end
@@ -1077,8 +1077,8 @@ target("stem") do
     end)
 
     on_load(function (target)
-        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
-        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(builddir)/config.h"))
+        target:add("forceincludes", path.absolute("$(builddir)/tm_configure.hpp"))
     end)
 
     -- After install callback for Linux to rename MIME icon files
@@ -1179,7 +1179,7 @@ target("stem_packager") do
         pattern = "@(.-)@",
     })
 
-    set_installdir(path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app/Contents/Resources/"))
+    set_installdir(path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app/Contents/Resources/"))
 
     local dmg_name= stem_binary_name_local .. "-v" .. XMACS_VERSION .. ".dmg"
     if is_arch("arm64") then
@@ -1189,12 +1189,12 @@ target("stem_packager") do
     end
 	
 	-- print("DMG name will be: " .. dmg_name)
-	-- print("Build dir is: " .. path.absolute("$(buildir)"))
-	-- print("App dir is: " .. path.absolute(path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app")))
+	-- print("Build dir is: " .. path.absolute("$(builddir)"))
+	-- print("App dir is: " .. path.absolute(path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app")))
 
     after_install(function (target, opt)
         local app_dir = target:installdir() .. "/../../"
-        local build_dir = path.absolute("$(buildir)")
+        local build_dir = path.absolute("$(builddir)")
         local project_dir = os.projectdir()
         
         print("Packaging app at: " .. app_dir)
