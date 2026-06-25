@@ -15,7 +15,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (import (liii check)
-  (only (liii path) path-exists? path-with-suffix path->string))
+  (only (liii path) path-exists? path-with-suffix path->string)
+) ;import
 
 (load "./TeXmacs/progs/telemetry/telemetry-utils.scm")
 
@@ -23,9 +24,7 @@
 
 (define (string-ends-with? s suffix)
   (let ((slen (string-length s)) (suf (string-length suffix)))
-    (and (>= slen suf)
-      (string=? (substring s (- slen suf) slen) suffix)
-    ) ;and
+    (and (>= slen suf) (string=? (substring s (- slen suf) slen) suffix))
   ) ;let
 ) ;define
 
@@ -35,7 +34,12 @@
     ;; 必须以 /system/telemetry 结尾
     (check (string-ends-with? dir "/system/telemetry") => #t)
     ;; 必须是绝对路径（以 home-path 开头）
-    (check (string-ends-with? dir (string-append (telemetry-home-path) "/system/telemetry")) => #t)
+    (check (string-ends-with? dir
+             (string-append (telemetry-home-path) "/system/telemetry")
+           ) ;string-ends-with?
+      =>
+      #t
+    ) ;check
     ;; 目录必须真实存在（telemetry-dir 会 ensure-dir）
     (check (path-exists? dir) => #t)
   ) ;let
@@ -55,7 +59,10 @@
   (display "Testing telemetry-meta-path...\n")
   (let ((path (telemetry-meta-path)))
     ;; 文件名必须是 main-telemetry.json，位于 main 目录下
-    (check (string-ends-with? path "/system/telemetry/main/main-telemetry.json") => #t)
+    (check (string-ends-with? path "/system/telemetry/main/main-telemetry.json")
+      =>
+      #t
+    ) ;check
   ) ;let
   (display "telemetry-meta-path tests passed!\n")
 ) ;define
@@ -64,7 +71,10 @@
   (display "Testing telemetry-full-path...\n")
   (let ((p (telemetry-full-path "detail-telemetry-20260625-1.jsonl")))
     ;; full-path = main-dir + "/" + filename
-    (check (string-ends-with? p "/system/telemetry/main/detail-telemetry-20260625-1.jsonl") => #t)
+    (check (string-ends-with? p "/system/telemetry/main/detail-telemetry-20260625-1.jsonl")
+      =>
+      #t
+    ) ;check
   ) ;let
   (display "telemetry-full-path tests passed!\n")
 ) ;define
@@ -75,7 +85,8 @@
   ;; main-telemetry.json + ".json.tmp" suffix 替换 → main-telemetry.json.tmp
   ;; 这是 telemetry-write-meta 内部用的临时文件命名约定。
   (let* ((meta (telemetry-meta-path))
-         (tmp (path->string (path-with-suffix meta ".json.tmp"))))
+         (tmp (path->string (path-with-suffix meta ".json.tmp")))
+        ) ;
     (check (string-ends-with? tmp "main-telemetry.json.tmp") => #t)
     ;; tmp 必须以 meta 为前缀（meta + ".tmp"）
     (check (string=? tmp (string-append meta ".tmp")) => #t)

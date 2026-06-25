@@ -13,6 +13,7 @@ on:
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
       - '.github/workflows/ci-macos-arm64.yml'
+      - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
   pull_request:
     branches: [ main ]
@@ -26,6 +27,7 @@ on:
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
       - '.github/workflows/ci-macos-arm64.yml'
+      - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
 
 jobs:

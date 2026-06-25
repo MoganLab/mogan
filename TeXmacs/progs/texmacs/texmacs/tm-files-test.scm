@@ -15,7 +15,7 @@
   (:use (texmacs texmacs tm-files))
 ) ;texmacs-module
 
-(import (only (liii path) path-join))
+(import (only (liii path) path-join path->string))
 
 (define (regtest-auto-backup-official-url)
   (regression-test-group "auto-backup"
@@ -40,7 +40,8 @@
     (lambda (case
             ) ;case
       (and (== case "inside")
-        (auto-backup-texmacs-path-buffer? (system->url (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
+        (auto-backup-texmacs-path-buffer? (system->url (path->string (path-join (url->system (get-texmacs-path)) "progs" "test.tmu"))
+                                          ) ;system->url
         ) ;auto-backup-texmacs-path-buffer?
       ) ;and
     ) ;lambda
