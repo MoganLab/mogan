@@ -13,10 +13,11 @@
 #include "analyze.hpp"
 #include "env.hpp"
 #include "font.hpp"
-#include "page_type.hpp"
 #include "tm_debug.hpp"
 #include "typesetter.hpp"
+#include <moebius/data/page_type.hpp>
 
+using moebius::data::page_get_feature;
 using namespace moebius;
 
 /******************************************************************************

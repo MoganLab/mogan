@@ -18,7 +18,9 @@
 #include "image_files.hpp"
 #include "locale.hpp"
 #include "observers.hpp"
-#include "page_type.hpp"
+#include <moebius/data/page_type.hpp>
+
+using moebius::data::page_get_feature;
 #include "scheme.hpp"
 #include "tm_file.hpp"
 #include "typesetter.hpp"

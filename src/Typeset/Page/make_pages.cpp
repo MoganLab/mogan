@@ -12,7 +12,9 @@
 #include "Format/page_item.hpp"
 #include "Format/stack_border.hpp"
 #include "new_breaker.hpp"
-#include "page_type.hpp"
+#include <moebius/data/page_type.hpp>
+
+using moebius::data::page_get_feature;
 #include "pager.hpp"
 #include "tm_debug.hpp"
 

@@ -10,7 +10,11 @@
  ******************************************************************************/
 
 #include "hashmap.hpp"
+#include <moebius/data/page_type.hpp>
 #include <moebius/vars.hpp>
+
+namespace moebius {
+namespace data {
 
 using namespace moebius;
 
@@ -162,3 +166,6 @@ page_get_feature (string type, string feature, bool landscape) {
   if (type == "a4") return "3cm";
   return page_get_feature ("a4", feature, landscape);
 }
+
+} // namespace data
+} // namespace moebius

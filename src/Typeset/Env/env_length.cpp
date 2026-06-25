@@ -13,7 +13,9 @@
 #include "analyze.hpp"
 #include "convert.hpp"
 #include "env.hpp"
-#include "page_type.hpp"
+#include <moebius/data/page_type.hpp>
+
+using moebius::data::page_get_feature;
 #include "typesetter.hpp"
 
 using namespace moebius;
