@@ -14,7 +14,8 @@
 
 #include "string.hpp"
 
-string get_date (string lan, string fm);
+string get_date (string lan, string fm, int year= -1, int month= -1,
+                 int day= -1);
 string pretty_time (int t);
 
 #endif

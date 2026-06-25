@@ -30,6 +30,7 @@
 class QStringList;
 #endif
 class QKeySequence;
+class QDateTime;
 
 typedef quartet<SI, SI, SI, SI> coord4;
 typedef pair<SI, SI>            coord2;
@@ -115,6 +116,8 @@ void qt_image_to_pdf (url image, url pdf, int w_pt= 0, int h_pt= 0, int dpi= 0);
 
 string qt_application_directory ();
 string qt_get_date (string lan, string fm);
+string qt_get_date (string lan, string fm, int year, int month, int day);
+string qt_get_date (string lan, string fm, const QDateTime& dt);
 string qt_pretty_time (int t);
 
 bool qt_print (bool&, bool&, string&, url&, string&, string&, string&);

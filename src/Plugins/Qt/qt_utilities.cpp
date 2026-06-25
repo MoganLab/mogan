@@ -867,8 +867,7 @@ qt_application_directory () {
 }
 
 string
-qt_get_date (string lan, string fm) {
-  QDateTime localtime= QDateTime::currentDateTime ();
+qt_get_date (string lan, string fm, const QDateTime& localtime) {
   if (fm == "") {
     if ((lan == "british") || (lan == "english") || (lan == "american"))
       fm= "MMMM d, yyyy";
@@ -885,10 +884,14 @@ qt_get_date (string lan, string fm) {
     else fm= "d MMMM yyyy";
   }
   else if (fm[0] == '%') {
-    char   buf[64];
-    time_t ti;
-    time (&ti);
-    strftime (buf, sizeof (buf), as_charp (fm), ::localtime (&ti));
+    char      buf[64];
+    struct tm tm;
+    memset (&tm, 0, sizeof (tm));
+    tm.tm_year= localtime.date ().year () - 1900;
+    tm.tm_mon = localtime.date ().month () - 1;
+    tm.tm_mday= localtime.date ().day ();
+    tm.tm_isdst= -1;
+    strftime (buf, sizeof (buf), as_charp (fm), &tm);
     return buf;
   }
   QLocale loc= QLocale (to_qstring (language_to_locale (lan)));
@@ -898,6 +901,17 @@ qt_get_date (string lan, string fm) {
   QString date= localtime.toString (to_qstring (fm));
 #endif
   return from_qstring (date);
+}
+
+string
+qt_get_date (string lan, string fm) {
+  return qt_get_date (lan, fm, QDateTime::currentDateTime ());
+}
+
+string
+qt_get_date (string lan, string fm, int year, int month, int day) {
+  QDateTime dt= QDateTime (QDate (year, month, day), QTime (0, 0));
+  return qt_get_date (lan, fm, dt);
 }
 
 string

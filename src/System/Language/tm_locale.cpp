@@ -21,8 +21,11 @@
 
 #ifdef QTTEXMACS
 string
-get_date (string lan, string fm) {
-  return qt_get_date (lan, fm);
+get_date (string lan, string fm, int year, int month, int day) {
+  if (year == -1 && month == -1 && day == -1) {
+    return qt_get_date (lan, fm);
+  }
+  return qt_get_date (lan, fm, year, month, day);
 }
 
 string
