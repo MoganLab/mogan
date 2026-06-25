@@ -31,7 +31,6 @@
 #include "qt_chat_controller.hpp"
 #include "qt_floating_search_bar.hpp"
 #include "tm_debug.hpp"
-#include "tm_locale.hpp"
 #include "tree_observer.hpp"
 #include "universal.hpp"
 #include "widget.hpp"

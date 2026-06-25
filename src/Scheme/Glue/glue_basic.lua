@@ -151,14 +151,6 @@ function main()
                 ret_type = "int"
             },
             {
-                scm_name = "pretty-time",
-                cpp_name = "pretty_time",
-                ret_type = "string",
-                arg_list = {
-                    "int"
-                }
-            },
-            {
                 scm_name = "texmacs-memory",
                 cpp_name = "mem_used",
                 ret_type = "int"

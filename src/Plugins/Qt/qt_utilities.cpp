@@ -866,17 +866,6 @@ qt_application_directory () {
   // ());
 }
 
-string
-qt_pretty_time (int t) {
-#if QT_VERSION >= 0x060000
-  QDateTime dt= QDateTime::fromSecsSinceEpoch (t);
-#else
-  QDateTime dt= QDateTime::fromTime_t (t);
-#endif
-  QString s= dt.toString ();
-  return from_qstring (s);
-}
-
 #ifdef USE_QT_PRINTER
 #ifndef _MBD_EXPERIMENTAL_PRINTER_WIDGET // this is in qt_printer_widget
 

@@ -212,7 +212,7 @@
 (define remote-title-table (make-ahash-table))
 
 (define (append-time title t)
-  (if (in? t (list #f :now)) title (string-append title " - " (pretty-time t)))
+  (if (in? t (list #f :now)) title (string-append title " - " (number->string t)))
 ) ;define
 
 (tmfs-title-handler (remote-file name doc)
@@ -466,7 +466,7 @@
                                info
                                ($let* ((dest (string-append prefix "time=" date "/" vname))
                                        (ln ($link dest (number->string (+ i 1))))
-                                       (dt (pretty-time (string->number date)))
+                                       (dt date)
                                        (vs ($inline "Version " ln " by " by " on " dt))
                                       ) ;
                                  ($when (or (not msg) (== msg "")) ($begin `(compact-strong-dot-item* ,vs) $lf))

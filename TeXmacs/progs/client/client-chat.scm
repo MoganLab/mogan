@@ -55,9 +55,7 @@
 (define (message->document msg)
   (with (action pseudo full-name date doc)
     msg
-    (let* ((date* (pretty-time (string->number date)))
-           (full-name* (utf8->cork full-name))
-          ) ;
+    (let* ((date* date) (full-name* (utf8->cork full-name)))
       (cond ((== action "share")
              (with doc*
                `(document ,(message->share doc))

@@ -115,9 +115,8 @@ void qt_convert_image (url image, url dest, int w= 0, int h= 0);
 void qt_image_to_pdf (url image, url pdf, int w_pt= 0, int h_pt= 0, int dpi= 0);
 
 string qt_application_directory ();
-string qt_pretty_time (int t);
 
-bool qt_print (bool&, bool&, string&, url&, string&, string&, string&);
+bool qt_print (bool&, bool&, string&, url&, string&, string&, string&, string&);
 
 QPixmap as_pixmap (const QImage& im);
 
