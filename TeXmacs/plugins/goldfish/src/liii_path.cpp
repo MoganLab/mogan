@@ -264,9 +264,9 @@ f_path_write_bytes (s7_scheme* sc, s7_pointer args) {
     return s7_make_integer (sc, -1);
   }
 
-  tb_byte_t* data= s7_byte_vector_elements (bv);
-  tb_size_t content_size= s7_vector_length (bv);
-  tb_size_t written_size= tb_file_writ (file, data, content_size);
+  tb_byte_t* data        = s7_byte_vector_elements (bv);
+  tb_size_t  content_size= s7_vector_length (bv);
+  tb_size_t  written_size= tb_file_writ (file, data, content_size);
 
   bool release_success= tb_filelock_leave (lock);
   tb_filelock_exit (lock);

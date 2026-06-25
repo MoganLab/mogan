@@ -15,10 +15,10 @@
 //
 
 #include "s7.h"
-#include <string>
-#include <vector>
 #include <cstdlib>
 #include <filesystem>
+#include <string>
+#include <vector>
 
 #include <tbox/platform/file.h>
 #include <tbox/platform/path.h>
@@ -50,7 +50,7 @@ namespace goldfish {
 using std::string;
 using std::vector;
 
-namespace fs = std::filesystem;
+namespace fs= std::filesystem;
 
 inline void
 glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional) {
@@ -259,13 +259,12 @@ glue_remove_file (s7_scheme* sc) {
 
 static s7_pointer
 f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src = s7_string (s7_car (args));
-  const char* dst = s7_string (s7_cadr (args));
+  const char* src= s7_string (s7_car (args));
+  const char* dst= s7_string (s7_cadr (args));
   try {
     fs::rename (src, dst);
     return s7_make_boolean (sc, true);
-  }
-  catch (const fs::filesystem_error& e) {
+  } catch (const fs::filesystem_error& e) {
     return s7_make_boolean (sc, false);
   }
 }

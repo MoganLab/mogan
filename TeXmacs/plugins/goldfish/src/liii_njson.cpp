@@ -100,7 +100,8 @@ njson_map_exception_to_error (s7_scheme* sc, const char* api_name, const std::ex
   const char* type_name= "misc-error";
   if (dynamic_cast<const json::parse_error*> (&err) != nullptr) {
     type_name= "parse-error";
-  } else if (dynamic_cast<const json::exception*> (&err) != nullptr) {
+  }
+  else if (dynamic_cast<const json::exception*> (&err) != nullptr) {
     type_name= "value-error";
   }
   std::string msg= std::string (api_name) + ": " + err.what ();
@@ -116,11 +117,11 @@ njson_map_exception_to_error (s7_scheme* sc, const char* api_name, const std::ex
 //
 // 只包裹真正会触碰 nlohmann::json 的代码：参数校验和 handle 查找都放在 try 块
 // 外，避免一旦失败时 handle 缓存或 free-list 处于半更新状态。
-#define NJSON_TRY_CATCH(sc, api_name, culprit, body)                                              \
-  do {                                                                                            \
-    try body catch (const std::exception& njson_err_) {                                           \
-      return njson_map_exception_to_error (sc, api_name, njson_err_, culprit);                   \
-    }                                                                                             \
+#define NJSON_TRY_CATCH(sc, api_name, culprit, body)                                                                   \
+  do {                                                                                                                 \
+    try body catch (const std::exception& njson_err_) {                                                                \
+      return njson_map_exception_to_error (sc, api_name, njson_err_, culprit);                                         \
+    }                                                                                                                  \
   } while (0)
 
 static s7_pointer
@@ -624,9 +625,7 @@ njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_
     return njson_error (sc, "type-error", std::string (api_name) + ": json root must be array", handle);
   }
 
-  NJSON_TRY_CATCH (sc, api_name, handle, {
-    return njson_value_to_scheme_tree (sc, *root, mode);
-  });
+  NJSON_TRY_CATCH (sc, api_name, handle, { return njson_value_to_scheme_tree (sc, *root, mode); });
 }
 
 static s7_pointer
@@ -737,9 +736,7 @@ njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_
     return njson_error (sc, "type-error",
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", input);
   }
-  NJSON_TRY_CATCH (sc, api_name, input, {
-    return s7_make_boolean (sc, handle_pred (*value));
-  });
+  NJSON_TRY_CATCH (sc, api_name, input, { return s7_make_boolean (sc, handle_pred (*value)); });
 }
 
 static s7_pointer
@@ -836,9 +833,7 @@ f_njson_size (s7_scheme* sc, s7_pointer args) {
   }
 
   if (root->is_object () || root->is_array ()) {
-    NJSON_TRY_CATCH (sc, "g_njson-size", handle, {
-      return s7_make_integer (sc, static_cast<s7_int> (root->size ()));
-    });
+    NJSON_TRY_CATCH (sc, "g_njson-size", handle, { return s7_make_integer (sc, static_cast<s7_int> (root->size ())); });
   }
   return s7_make_integer (sc, 0);
 }
@@ -862,9 +857,7 @@ f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
   }
 
   if (root->is_object () || root->is_array ()) {
-    NJSON_TRY_CATCH (sc, "g_njson-empty?", handle, {
-      return s7_make_boolean (sc, root->empty ());
-    });
+    NJSON_TRY_CATCH (sc, "g_njson-empty?", handle, { return s7_make_boolean (sc, root->empty ()); });
   }
   return s7_t (sc);
 }
@@ -899,9 +892,7 @@ f_njson_ref (s7_scheme* sc, s7_pointer args) {
   if (!lookup_path_const (sc, *root, path, found_value, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
   }
-  NJSON_TRY_CATCH (sc, "g_njson-ref", handle, {
-    return njson_value_to_scheme_or_handle (sc, *found_value);
-  });
+  NJSON_TRY_CATCH (sc, "g_njson-ref", handle, { return njson_value_to_scheme_or_handle (sc, *found_value); });
 }
 
 enum class njson_update_op { set, append, drop };
@@ -1064,9 +1055,8 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
       return njson_error (sc, "type-error",
                           std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
     }
-    NJSON_TRY_CATCH (sc, api_name, handle, {
-      err= njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle);
-    });
+    NJSON_TRY_CATCH (sc, api_name, handle,
+                     { err= njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle); });
     if (err) {
       return err;
     }
@@ -1081,9 +1071,8 @@ njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_up
                         std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
   }
   json out= *root;
-  NJSON_TRY_CATCH (sc, api_name, handle, {
-    err= njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle);
-  });
+  NJSON_TRY_CATCH (sc, api_name, handle,
+                   { err= njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle); });
   if (err) {
     return err;
   }
@@ -1123,9 +1112,7 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
     if (!target->is_object ()) {
       return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
     }
-    NJSON_TRY_CATCH (sc, api_name, source_input, {
-      target->update (source_json, merge_objects);
-    });
+    NJSON_TRY_CATCH (sc, api_name, source_input, { target->update (source_json, merge_objects); });
     njson_invalidate_keys_cache_if_present (sc, id);
     return handle;
   }
@@ -1139,9 +1126,7 @@ njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_mer
     return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
   }
   json out= *target;
-  NJSON_TRY_CATCH (sc, api_name, source_input, {
-    out.update (source_json, merge_objects);
-  });
+  NJSON_TRY_CATCH (sc, api_name, source_input, { out.update (source_json, merge_objects); });
   return make_njson_handle (sc, store_njson_value (sc, std::move (out)));
 }
 
@@ -1222,9 +1207,7 @@ f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
   if (!scheme_json_key_to_string (sc, key, key_name, error_msg)) {
     return njson_error (sc, "key-error", "g_njson-contains-key?: " + error_msg, key);
   }
-  NJSON_TRY_CATCH (sc, "g_njson-contains-key?", handle, {
-    return s7_make_boolean (sc, root->contains (key_name));
-  });
+  NJSON_TRY_CATCH (sc, "g_njson-contains-key?", handle, { return s7_make_boolean (sc, root->contains (key_name)); });
 }
 
 static s7_pointer

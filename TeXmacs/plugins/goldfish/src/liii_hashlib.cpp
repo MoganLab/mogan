@@ -61,7 +61,7 @@ md5_file_to_hex (const char* path, tb_char_t* hex_output) {
       return false;
     }
     tb_md5_spak (&md5, buffer, real_size);
-    offset += real_size;
+    offset+= real_size;
   }
 
   tb_file_exit (file);
@@ -97,7 +97,7 @@ sha_file_to_hex (const char* path, tb_size_t mode, tb_size_t digest_size, tb_cha
       return false;
     }
     tb_sha_spak (&sha, buffer, real_size);
-    offset += real_size;
+    offset+= real_size;
   }
 
   tb_file_exit (file);
@@ -134,7 +134,7 @@ glue_md5 (s7_scheme* sc) {
 
 static s7_pointer
 f_md5_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  const char* path          = s7_string (s7_car (args));
   tb_char_t   hex_output[33]= {0};
   if (!md5_file_to_hex (path, hex_output)) {
     return s7_make_boolean (sc, false);
@@ -175,7 +175,7 @@ glue_sha1 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha1_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  const char* path          = s7_string (s7_car (args));
   tb_char_t   hex_output[41]= {0};
   if (!sha_file_to_hex (path, 160, 20, hex_output)) {
     return s7_make_boolean (sc, false);
@@ -216,7 +216,7 @@ glue_sha256 (s7_scheme* sc) {
 
 static s7_pointer
 f_sha256_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
+  const char* path          = s7_string (s7_car (args));
   tb_char_t   hex_output[65]= {0};
   if (!sha_file_to_hex (path, 256, 32, hex_output)) {
     return s7_make_boolean (sc, false);
