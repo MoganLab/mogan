@@ -1078,18 +1078,19 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
   double scaling32= us3 / us2; // 期望 ~2x
   double scaling31= us3 / us1; // 期望 ~4x
 
-  QVERIFY2 (scaling31 < 8.0,
-            QString ("scaling us(N=800)/us(N=200) = %1x (expected ~4x for "
-                     "O(n), ~16x for O(n^2)); N=%2: %3us, N=%4: %5us, N=%6: %7us")
-                .arg (scaling31, 0, 'f', 2)
-                .arg (N1)
-                .arg (us1, 0, 'f', 4)
-                .arg (N2)
-                .arg (us2, 0, 'f', 4)
-                .arg (N3)
-                .arg (us3, 0, 'f', 4)
-                .toUtf8 ()
-                .constData ());
+  QVERIFY2 (
+      scaling31 < 8.0,
+      QString ("scaling us(N=800)/us(N=200) = %1x (expected ~4x for "
+               "O(n), ~16x for O(n^2)); N=%2: %3us, N=%4: %5us, N=%6: %7us")
+          .arg (scaling31, 0, 'f', 2)
+          .arg (N1)
+          .arg (us1, 0, 'f', 4)
+          .arg (N2)
+          .arg (us2, 0, 'f', 4)
+          .arg (N3)
+          .arg (us3, 0, 'f', 4)
+          .toUtf8 ()
+          .constData ());
 
   qDebug () << "=== getAllSessionIds O(n) verification ===";
   qDebug () << "  N=" << N1 << ":" << per1 << "us/session (" << us1
