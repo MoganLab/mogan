@@ -13,7 +13,6 @@
 #include "base.hpp"
 #include "converter.hpp"
 #include "string.hpp"
-#include <QDate>
 #include <QtTest/QtTest>
 
 class TestTmLocale : public QObject {
@@ -26,10 +25,15 @@ private slots:
   void test_get_date_strftime_month ();
   void test_get_date_strftime_day ();
   void test_get_date_strftime_full ();
+  void test_get_date_strftime_month_name ();
+  void test_get_date_strftime_weekday ();
+  void test_get_date_strftime_time ();
 
   void test_get_date_qt_year ();
   void test_get_date_qt_month ();
   void test_get_date_qt_day ();
+  void test_get_date_qt_month_name ();
+  void test_get_date_qt_weekday ();
 
   void test_get_date_default_english ();
   void test_get_date_default_british ();
@@ -39,59 +43,12 @@ private slots:
   void test_get_date_default_japanese ();
   void test_get_date_default_korean ();
   void test_get_date_default_unknown_language ();
+
+  void test_get_date_current_date_fallback ();
 };
 
 QTEST_MAIN (TestTmLocale)
 #include "tm_locale_test.moc"
-
-/******************************************************************************
- * Helpers
- ******************************************************************************/
-
-static bool
-starts_with (string s, string prefix) {
-  int n= N(s), m= N(prefix);
-  if (m > n) return false;
-  for (int i= 0; i < m; i++)
-    if (s[i] != prefix[i]) return false;
-  return true;
-}
-
-static bool
-ends_with (string s, string suffix) {
-  int n= N(s), m= N(suffix);
-  if (m > n) return false;
-  for (int i= 0; i < m; i++)
-    if (s[n - m + i] != suffix[i]) return false;
-  return true;
-}
-
-static bool
-is_digit_string (string s) {
-  if (N(s) == 0) return false;
-  for (int i= 0; i < N(s); i++)
-    if (s[i] < '0' || s[i] > '9') return false;
-  return true;
-}
-
-static string
-zero_padded (int n, int width) {
-  string r= as_string (n);
-  while (N(r) < width)
-    r= "0" * r;
-  return r;
-}
-
-static void
-qcompare_range (string actual, int lo, int hi) {
-  QVERIFY (N(actual) > 0);
-  QVERIFY (is_digit_string (actual));
-  int value= 0;
-  for (int i= 0; i < N(actual); i++)
-    value= value * 10 + (actual[i] - '0');
-  QVERIFY (value >= lo);
-  QVERIFY (value <= hi);
-}
 
 /******************************************************************************
  * strftime format tests
@@ -99,59 +56,49 @@ qcompare_range (string actual, int lo, int hi) {
 
 void
 TestTmLocale::test_get_date_strftime_year () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "%Y");
-  QDate after = QDate::currentDate ();
-  if (before.year () == after.year ()) {
-    qcompare (r, as_string (before.year ()));
-  }
-  else {
-    QVERIFY (N(r) == 4);
-    QVERIFY (is_digit_string (r));
-  }
+  qcompare (get_date ("english", "%Y", 2024, 1, 15), "2024");
+  qcompare (get_date ("english", "%Y", 2023, 12, 31), "2023");
 }
 
 void
 TestTmLocale::test_get_date_strftime_month () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "%m");
-  QDate after = QDate::currentDate ();
-  if (before == after) {
-    qcompare (r, zero_padded (before.month (), 2));
-  }
-  else {
-    qcompare_range (r, 1, 12);
-  }
+  qcompare (get_date ("english", "%m", 2024, 1, 15), "01");
+  qcompare (get_date ("english", "%m", 2024, 6, 25), "06");
+  qcompare (get_date ("english", "%m", 2023, 12, 31), "12");
+  qcompare (get_date ("english", "%m", 2024, 11, 9), "11");
 }
 
 void
 TestTmLocale::test_get_date_strftime_day () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "%d");
-  QDate after = QDate::currentDate ();
-  if (before == after) {
-    qcompare (r, zero_padded (before.day (), 2));
-  }
-  else {
-    qcompare_range (r, 1, 31);
-  }
+  qcompare (get_date ("english", "%d", 2024, 1, 15), "15");
+  qcompare (get_date ("english", "%d", 2024, 6, 25), "25");
+  qcompare (get_date ("english", "%d", 2024, 11, 9), "09");
 }
 
 void
 TestTmLocale::test_get_date_strftime_full () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "%Y-%m-%d");
-  QDate after = QDate::currentDate ();
-  if (before == after) {
-    string expected= as_string (before.year ()) * "-" *
-                     zero_padded (before.month (), 2) * "-" *
-                     zero_padded (before.day (), 2);
-    qcompare (r, expected);
-  }
-  else {
-    QVERIFY (N(r) == 10);
-    QVERIFY (r[4] == '-' && r[7] == '-');
-  }
+  qcompare (get_date ("english", "%Y-%m-%d", 2024, 1, 15), "2024-01-15");
+  qcompare (get_date ("english", "%Y-%m-%d", 2023, 12, 31), "2023-12-31");
+}
+
+void
+TestTmLocale::test_get_date_strftime_month_name () {
+  // %B is locale-dependent via strftime; only verify it is supported.
+  string r= get_date ("english", "%B", 2024, 1, 15);
+  QVERIFY (N(r) > 0);
+}
+
+void
+TestTmLocale::test_get_date_strftime_weekday () {
+  // %A is locale-dependent via strftime; only verify it is supported.
+  string r= get_date ("english", "%A", 2024, 1, 15);
+  QVERIFY (N(r) > 0);
+}
+
+void
+TestTmLocale::test_get_date_strftime_time () {
+  qcompare (get_date ("english", "%H:%M", 2024, 1, 15), "00:00");
+  qcompare (get_date ("english", "%H:%M:%S", 2024, 6, 25), "00:00:00");
 }
 
 /******************************************************************************
@@ -160,42 +107,36 @@ TestTmLocale::test_get_date_strftime_full () {
 
 void
 TestTmLocale::test_get_date_qt_year () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "yyyy");
-  QDate after = QDate::currentDate ();
-  if (before.year () == after.year ()) {
-    qcompare (r, as_string (before.year ()));
-  }
-  else {
-    QVERIFY (N(r) == 4);
-    QVERIFY (is_digit_string (r));
-  }
+  qcompare (get_date ("english", "yyyy", 2024, 1, 15), "2024");
+  qcompare (get_date ("english", "yyyy", 2023, 12, 31), "2023");
 }
 
 void
 TestTmLocale::test_get_date_qt_month () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "M");
-  QDate after = QDate::currentDate ();
-  if (before == after) {
-    qcompare (r, as_string (before.month ()));
-  }
-  else {
-    qcompare_range (r, 1, 12);
-  }
+  qcompare (get_date ("english", "M", 2024, 1, 15), "1");
+  qcompare (get_date ("english", "M", 2024, 6, 25), "6");
+  qcompare (get_date ("english", "M", 2023, 12, 31), "12");
 }
 
 void
 TestTmLocale::test_get_date_qt_day () {
-  QDate before= QDate::currentDate ();
-  string r    = get_date ("english", "d");
-  QDate after = QDate::currentDate ();
-  if (before == after) {
-    qcompare (r, as_string (before.day ()));
-  }
-  else {
-    qcompare_range (r, 1, 31);
-  }
+  qcompare (get_date ("english", "d", 2024, 1, 15), "15");
+  qcompare (get_date ("english", "d", 2024, 11, 9), "9");
+  qcompare (get_date ("english", "d", 2023, 12, 31), "31");
+}
+
+void
+TestTmLocale::test_get_date_qt_month_name () {
+  qcompare (get_date ("english", "MMMM", 2024, 1, 15), "January");
+  qcompare (get_date ("english", "MMMM", 2024, 6, 25), "June");
+  qcompare (get_date ("english", "MMMM", 2023, 12, 31), "December");
+}
+
+void
+TestTmLocale::test_get_date_qt_weekday () {
+  qcompare (get_date ("english", "dddd", 2024, 1, 15), "Monday");
+  qcompare (get_date ("english", "dddd", 2024, 6, 25), "Tuesday");
+  qcompare (get_date ("english", "dddd", 2023, 12, 31), "Sunday");
 }
 
 /******************************************************************************
@@ -204,74 +145,56 @@ TestTmLocale::test_get_date_qt_day () {
 
 void
 TestTmLocale::test_get_date_default_english () {
-  string r= get_date ("english", "");
-  QVERIFY (N(r) > 0);
-  QDate today= QDate::currentDate ();
-  QVERIFY (contains (r, as_string (today.year ())));
-  QVERIFY (contains (r, as_string (today.day ())));
+  qcompare (get_date ("english", "", 2024, 1, 15), "January 15, 2024");
+  qcompare (get_date ("english", "", 2024, 6, 25), "June 25, 2024");
 }
 
 void
 TestTmLocale::test_get_date_default_british () {
-  string r= get_date ("british", "");
-  QVERIFY (N(r) > 0);
-  QDate today= QDate::currentDate ();
-  QVERIFY (contains (r, as_string (today.year ())));
+  qcompare (get_date ("british", "", 2024, 1, 15), "January 15, 2024");
+  qcompare (get_date ("british", "", 2024, 6, 25), "June 25, 2024");
 }
 
 void
 TestTmLocale::test_get_date_default_american () {
-  string r= get_date ("american", "");
-  QVERIFY (N(r) > 0);
-  QDate today= QDate::currentDate ();
-  QVERIFY (contains (r, as_string (today.year ())));
+  qcompare (get_date ("american", "", 2024, 1, 15), "January 15, 2024");
+  qcompare (get_date ("american", "", 2024, 6, 25), "June 25, 2024");
 }
 
 void
 TestTmLocale::test_get_date_default_german () {
-  string r= get_date ("german", "");
-  QVERIFY (N(r) > 0);
-  QDate today= QDate::currentDate ();
-  QVERIFY (contains (r, as_string (today.year ())));
+  qcompare (get_date ("german", "", 2024, 1, 15), "15. Januar 2024");
+  qcompare (get_date ("german", "", 2024, 6, 25), "25. Juni 2024");
 }
 
 void
 TestTmLocale::test_get_date_default_chinese () {
-  string r      = get_date ("chinese", "");
-  string utf8_r = herk_to_utf8 (r);
-  QDate  today  = QDate::currentDate ();
-  QVERIFY (starts_with (utf8_r, as_string (today.year ())));
-  QVERIFY (ends_with (utf8_r, "日"));
-  QVERIFY (contains (utf8_r, "年"));
-  QVERIFY (contains (utf8_r, "月"));
+  string r= herk_to_utf8 (get_date ("chinese", "", 2024, 1, 15));
+  qcompare (r, "2024年1月15日");
 }
 
 void
 TestTmLocale::test_get_date_default_japanese () {
-  string r      = get_date ("japanese", "");
-  string utf8_r = herk_to_utf8 (r);
-  QDate  today  = QDate::currentDate ();
-  QVERIFY (starts_with (utf8_r, as_string (today.year ())));
-  QVERIFY (ends_with (utf8_r, "日"));
-  QVERIFY (contains (utf8_r, "年"));
-  QVERIFY (contains (utf8_r, "月"));
+  string r= herk_to_utf8 (get_date ("japanese", "", 2024, 6, 25));
+  qcompare (r, "2024年6月25日");
 }
 
 void
 TestTmLocale::test_get_date_default_korean () {
-  string r      = get_date ("korean", "");
-  string utf8_r = herk_to_utf8 (r);
-  QDate  today  = QDate::currentDate ();
-  QVERIFY (starts_with (utf8_r, as_string (today.year ())));
-  QVERIFY (ends_with (utf8_r, "일"));
-  QVERIFY (contains (utf8_r, "년 "));
-  QVERIFY (contains (utf8_r, "월 "));
+  string r= herk_to_utf8 (get_date ("korean", "", 2024, 1, 15));
+  qcompare (r, "2024년 1월 15일");
 }
 
 void
 TestTmLocale::test_get_date_default_unknown_language () {
-  string r= get_date ("unknown_language", "");
-  QVERIFY (N(r) > 0);
-  QDate today= QDate::currentDate ();
-  QVERIFY (contains (r, as_string (today.year ())));
+  qcompare (get_date ("unknown_language", "", 2024, 1, 15), "15 January 2024");
+  qcompare (get_date ("unknown_language", "", 2024, 6, 25), "25 June 2024");
+}
+
+void
+TestTmLocale::test_get_date_current_date_fallback () {
+  string r= get_date ("english", "%Y");
+  QVERIFY (N(r) == 4);
+  for (int i= 0; i < N(r); i++)
+    QVERIFY (r[i] >= '0' && r[i] <= '9');
 }
