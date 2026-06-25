@@ -39,16 +39,6 @@ jobs:
     strategy:
       fail-fast: true
     steps:
-      - name: Install xmake from trixie-backports
-        run: |
-          echo "deb http://deb.debian.org/debian trixie-backports main" >> /etc/apt/sources.list
-          cat > /etc/apt/preferences.d/99backports <<'EOF'
-          Package: *
-          Pin: release n=trixie-backports
-          Pin-Priority: 100
-          EOF
-          DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y -t trixie-backports xmake
       - name: Install dependencies
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
@@ -64,6 +54,10 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.7
 
       - name: git add safe directory
         run: git config --global --add safe.directory '*'
