@@ -1058,39 +1058,6 @@ function main()
                 cpp_name = "server_started",
                 ret_type = "bool"
             },
-            {
-                scm_name = "client-start",
-                cpp_name = "client_start",
-                ret_type = "int",
-                arg_list = {
-                    "string"
-                }
-            },
-            {
-                scm_name = "client-stop",
-                cpp_name = "client_stop",
-                ret_type = "void",
-                arg_list = {
-                    "int"
-                }
-            },
-            {
-                scm_name = "client-read",
-                cpp_name = "client_read",
-                ret_type = "string",
-                arg_list = {
-                    "int"
-                }
-            },
-            {
-                scm_name = "client-write",
-                cpp_name = "client_write",
-                ret_type = "void",
-                arg_list = {
-                    "int",
-                    "string"
-                }
-            },
               -- connections to extern systems
             {
                 scm_name = "connection-start",
