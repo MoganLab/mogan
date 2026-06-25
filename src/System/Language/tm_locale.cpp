@@ -11,7 +11,6 @@
  ******************************************************************************/
 
 #include "tm_locale.hpp"
-#include "locale.hpp"
 
 #ifdef QTTEXMACS
 #include "Qt/qt_utilities.hpp"
@@ -20,11 +19,6 @@
 /******************************************************************************
  * Getting a formatted date
  ******************************************************************************/
-
-string
-get_date (string lan, string fm, int year, int month, int day) {
-  return lolly::locale::get_date (lan, fm, year, month, day);
-}
 
 #ifdef QTTEXMACS
 string

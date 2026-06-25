@@ -21,7 +21,6 @@
 #include "page_type.hpp"
 #include "scheme.hpp"
 #include "tm_file.hpp"
-#include "tm_locale.hpp"
 #include "typesetter.hpp"
 
 #include <lolly/data/numeral.hpp>
@@ -1591,7 +1590,7 @@ edit_env_rep::exec_date (tree t) {
     if (is_compound (u)) return tree (ERROR, "bad date");
     fm= u->label;
   }
-  return get_date (lan, fm);
+  return lolly::locale::get_date (lan, fm);
 }
 
 tree
