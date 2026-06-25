@@ -11,6 +11,8 @@
 
 includes("xmake/vars.lua")
 includes("3rdparty/doctest.lua")
+includes("3rdparty/libaesgm.lua")
+includes("3rdparty/pdfhummus.lua")
 
 includes("moebius")
 includes("lolly")
@@ -106,87 +108,6 @@ add_repositories("liii-repo xmake")
 
 TBOX_VERSION= "1.7.5"
 S7_VERSION = "20240816"
-
-package("liii-libaesgm")
-    set_homepage("https://github.com/xmake-mirror/libaesgm")
-    set_description("https://repology.org/project/libaesgm/packages")
-
-    set_sourcedir(path.join(os.scriptdir(), "3rdparty/libaesgm"))
-
-    on_install("linux", "macosx", "windows", "mingw", function (package)
-        if package:is_plat("windows", "mingw") and package:is_arch("arm", "arm64") then
-            -- Windows is always little endian
-            io.replace("brg_endian.h", [[
-#elif 0     /* **** EDIT HERE IF NECESSARY **** */
-#  define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN]], [[
-#elif 1     /* Edited: Windows ARM is little endian */
-#  define PLATFORM_BYTE_ORDER IS_LITTLE_ENDIAN]], { plain = true })
-        end
-        local configs = {}
-        if package:config("shared") then
-            configs.kind = "shared"
-        end
-        import("package.tools.xmake").install(package, configs)
-    end)
-
-    on_test(function (package)
-        assert(package:has_cfuncs("aes_init", {includes = "aes.h"}))
-    end)
-package_end()
-
-PDFHUMMUS_VERSION = "4.9.0"
-package("liii-pdfhummus")
-    set_homepage("https://www.pdfhummus.com/")
-    set_description("High performance library for creating, modiyfing and parsing PDF files in C++ ")
-    set_license("Apache-2.0")
-
-    -- Use the vendored source under 3rdparty/pdfhummus (updated to PDF-Writer v4.9.0).
-    set_sourcedir(path.join(os.scriptdir(), "3rdparty/pdfhummus"))
-
-    add_deps("zlib", "liii-libaesgm")
-    add_deps("freetype", {configs={png=true}})
-
-    add_configs("libtiff", {description = "Supporting tiff image", default = false, type = "boolean"})
-    add_configs("libjpeg", {description = "Support DCT encoding", default = false, type = "boolean"})
-    add_configs("libpng", {description = "Support png image", default = false, type = "boolean"})
-
-    if is_plat("linux") then
-        add_syslinks("m")
-    end
-
-    on_load(function (package)
-        for _, dep in ipairs({"libtiff", "libpng", "libjpeg"}) do
-            if package:config(dep) then
-                package:add("deps", dep)
-            end
-        end
-    end)
-    on_install("linux", "windows", "mingw", "macosx", function (package)
-        local configs = {}
-        if package:config("shared") then
-            configs.kind = "shared"
-        end
-        for _, dep in ipairs({"libtiff", "libpng", "libjpeg"}) do
-            if package:config(dep) then
-                configs[dep] = true
-            end
-        end
-        import("package.tools.xmake").install(package, configs)
-    end)
-
-    on_test(function (package)
-        assert(package:check_cxxsnippets({test = [[
-            #include "PDFWriter/PDFWriter.h"
-            #include <iostream>
-            using namespace std;
-            using namespace PDFHummus;
-            void test() {
-                PDFWriter pdfWriter;
-                pdfWriter.Reset();
-            }
-        ]]}, {configs = {languages = "c++11"}}))
-    end)
-package_end()
 
 includes("@builtin/check")
 configvar_check_cxxtypes("HAVE_INTPTR_T", "intptr_t", {includes = {"memory"}})
