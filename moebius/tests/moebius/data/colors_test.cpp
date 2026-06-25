@@ -76,7 +76,7 @@ TEST_CASE ("test named_color is case-insensitive") {
 
 TEST_CASE ("test named_color parses hex") {
   initialize_colors ();
-  int r, g, b;
+  int   r, g, b;
   color c= named_color ("#aabbcc");
   get_rgb (c, r, g, b);
   CHECK_EQ (r == 0xaa, true);
@@ -86,7 +86,7 @@ TEST_CASE ("test named_color parses hex") {
 
 TEST_CASE ("test named_color parses short hex") {
   initialize_colors ();
-  int r, g, b;
+  int   r, g, b;
   color c= named_color ("#abc");
   get_rgb (c, r, g, b);
   CHECK_EQ (r == 0xaa, true);
@@ -186,7 +186,7 @@ TEST_CASE ("test blend_colors semi-transparent") {
   color fg= rgb_color (0, 0, 0, 128);
   color bg= rgb_color (255, 255, 255, 255);
   color r = blend_colors (fg, bg);
-  int  rr, rg, rb, ra;
+  int   rr, rg, rb, ra;
   get_rgb_color (r, rr, rg, rb, ra);
   // (255*(255-128) + 0*128)/255 = 127
   CHECK_EQ (rr == 127, true);

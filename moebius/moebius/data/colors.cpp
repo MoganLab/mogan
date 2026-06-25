@@ -276,7 +276,7 @@ populates_colorhash_from_rgb_record (rgb_record* rec, colorhash ch) {
   while (strcmp (rec->name, "") != 0) {
     string name (locase_all (rec->name));
     color  col= rgb_color (rec->r, rec->g, rec->b);
-    ch (name)= col;
+    ch (name) = col;
     rec++;
   }
 }
@@ -286,7 +286,7 @@ populates_colorhash_from_cmyk_record (cmyk_record* rec, colorhash ch) {
   while (strcmp (rec->name, "") != 0) {
     string name (locase_all (rec->name));
     color  col= cmyk_color (rec->c, rec->m, rec->y, rec->k);
-    ch (name)= col;
+    ch (name) = col;
     rec++;
   }
 }
