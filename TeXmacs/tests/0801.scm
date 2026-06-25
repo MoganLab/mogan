@@ -83,7 +83,7 @@
       (let* ((temp-dir (os-temp-dir))
              (input-path (url->system (system->url (string-append temp-dir "/0801_input.txt"))))
              (output-path (url->system (system->url (string-append temp-dir "/0801_output.txt"))))
-             (julia-script (get-system-path "/plugins/julia/julia/julia.jl"))
+             (julia-script (get-system-path "/plugins/julia/bin/julia.jl"))
              (input-lines (list "1 + 2"
                                 "<EOF>"
                                 "?sin"
