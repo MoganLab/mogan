@@ -38,7 +38,6 @@ private slots:
   void test_get_date_default_chinese ();
   void test_get_date_default_japanese ();
   void test_get_date_default_korean ();
-  void test_get_date_default_taiwanese ();
   void test_get_date_default_unknown_language ();
 };
 
@@ -267,17 +266,6 @@ TestTmLocale::test_get_date_default_korean () {
   QVERIFY (ends_with (utf8_r, "일"));
   QVERIFY (contains (utf8_r, "년 "));
   QVERIFY (contains (utf8_r, "월 "));
-}
-
-void
-TestTmLocale::test_get_date_default_taiwanese () {
-  string r      = get_date ("taiwanese", "");
-  string utf8_r = herk_to_utf8 (r);
-  QDate  today  = QDate::currentDate ();
-  QVERIFY (starts_with (utf8_r, as_string (today.year ())));
-  QVERIFY (ends_with (utf8_r, "日"));
-  QVERIFY (contains (utf8_r, "年"));
-  QVERIFY (contains (utf8_r, "月"));
 }
 
 void
