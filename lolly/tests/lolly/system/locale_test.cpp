@@ -119,11 +119,13 @@ TEST_CASE ("get_date default german") {
 }
 
 TEST_CASE ("get_date default chinese") {
-  string_eq (get_date ("chinese", "", 2024, 1, 15), "2024<#5e74>1<#6708>15<#65e5>");
+  string_eq (get_date ("chinese", "", 2024, 1, 15),
+             "2024<#5e74>1<#6708>15<#65e5>");
 }
 
 TEST_CASE ("get_date default japanese") {
-  string_eq (get_date ("japanese", "", 2024, 6, 25), "2024<#5e74>6<#6708>25<#65e5>");
+  string_eq (get_date ("japanese", "", 2024, 6, 25),
+             "2024<#5e74>6<#6708>25<#65e5>");
 }
 
 TEST_CASE ("get_date default korean") {

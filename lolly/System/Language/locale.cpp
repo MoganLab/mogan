@@ -311,26 +311,26 @@ weekday (int year, int month, int day) {
 static const char* en_months_full[12]= {
     "January", "February", "March",     "April",   "May",      "June",
     "July",    "August",   "September", "October", "November", "December"};
-static const char* en_months_abbr[12]= {
-    "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-    "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
-static const char* en_weekdays_full[7]= {
-    "Sunday",   "Monday",   "Tuesday", "Wednesday", "Thursday",
-    "Friday",   "Saturday"};
-static const char* en_weekdays_abbr[7]= {
-    "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+static const char* en_months_abbr[12] = {"Jan", "Feb", "Mar", "Apr",
+                                         "May", "Jun", "Jul", "Aug",
+                                         "Sep", "Oct", "Nov", "Dec"};
+static const char* en_weekdays_full[7]= {"Sunday",    "Monday",   "Tuesday",
+                                         "Wednesday", "Thursday", "Friday",
+                                         "Saturday"};
+static const char* en_weekdays_abbr[7]= {"Sun", "Mon", "Tue", "Wed",
+                                         "Thu", "Fri", "Sat"};
 
 static const char* de_months_full[12]= {
-    "Januar",  "Februar", "M<#e4>rz", "April",    "Mai",       "Juni",
-    "Juli",    "August",  "September", "Oktober", "November", "Dezember"};
-static const char* de_months_abbr[12]= {
-    "Jan", "Feb", "M<#e4>r", "Apr", "Mai", "Jun",
-    "Jul", "Aug", "Sep",     "Okt", "Nov", "Dez"};
-static const char* de_weekdays_full[7]= {
-    "Sonntag",   "Montag",   "Dienstag", "Mittwoch",
-    "Donnerstag", "Freitag", "Samstag"};
-static const char* de_weekdays_abbr[7]= {
-    "So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"};
+    "Januar", "Februar", "M<#e4>rz",  "April",   "Mai",      "Juni",
+    "Juli",   "August",  "September", "Oktober", "November", "Dezember"};
+static const char* de_months_abbr[12] = {"Jan", "Feb", "M<#e4>r", "Apr",
+                                         "Mai", "Jun", "Jul",     "Aug",
+                                         "Sep", "Okt", "Nov",     "Dez"};
+static const char* de_weekdays_full[7]= {"Sonntag",  "Montag",     "Dienstag",
+                                         "Mittwoch", "Donnerstag", "Freitag",
+                                         "Samstag"};
+static const char* de_weekdays_abbr[7]= {"So", "Mo", "Di", "Mi",
+                                         "Do", "Fr", "Sa"};
 
 static string
 month_name (string lan, int month, bool abbrev) {
@@ -364,8 +364,7 @@ format_qt (string lan, string fm, int year, int month, int day) {
       while (j < n && fm[j] == 'y')
         j++;
       int len= j - i;
-      if (len >= 4)
-        r << as_string (year);
+      if (len >= 4) r << as_string (year);
       else if (len == 2) {
         int y= year % 100;
         if (y < 10) r << '0';
@@ -378,16 +377,13 @@ format_qt (string lan, string fm, int year, int month, int day) {
       while (j < n && fm[j] == 'M')
         j++;
       int len= j - i;
-      if (len >= 4)
-        r << month_name (lan, month, false);
-      else if (len == 3)
-        r << month_name (lan, month, true);
+      if (len >= 4) r << month_name (lan, month, false);
+      else if (len == 3) r << month_name (lan, month, true);
       else if (len == 2) {
         if (month < 10) r << '0';
         r << as_string (month);
       }
-      else
-        r << as_string (month);
+      else r << as_string (month);
       i= j;
     }
     else if (c == 'd') {
@@ -395,16 +391,14 @@ format_qt (string lan, string fm, int year, int month, int day) {
       while (j < n && fm[j] == 'd')
         j++;
       int len= j - i;
-      if (len >= 4)
-        r << weekday_name (lan, weekday (year, month, day), false);
+      if (len >= 4) r << weekday_name (lan, weekday (year, month, day), false);
       else if (len == 3)
         r << weekday_name (lan, weekday (year, month, day), true);
       else if (len == 2) {
         if (day < 10) r << '0';
         r << as_string (day);
       }
-      else
-        r << as_string (day);
+      else r << as_string (day);
       i= j;
     }
     else {
@@ -429,15 +423,15 @@ format_strftime (string lan, string fm, int year, int month, int day) {
   tm.tm_isdst= -1;
   mktime (&tm);
 
-  char old_locale_buf[64];
+  char        old_locale_buf[64];
   const char* old_locale= setlocale (LC_TIME, nullptr);
-  int         old_len    = strlen (old_locale);
+  int         old_len   = strlen (old_locale);
   for (int i= 0; i < old_len; i++)
     old_locale_buf[i]= old_locale[i];
   old_locale_buf[old_len]= '\0';
 
-  char locale_buf[64];
-  string locale_s= language_to_locale (lan);
+  char   locale_buf[64];
+  string locale_s  = language_to_locale (lan);
   int    locale_len= N (locale_s);
   for (int i= 0; i < locale_len; i++)
     locale_buf[i]= locale_s[i];
@@ -482,8 +476,7 @@ get_date (string lan, string fm, int year, int month, int day) {
     else if (lan == "korean")
       return as_string (year) * "<#b144> " * as_string (month) * "<#c6d4> " *
              as_string (day) * "<#c77c>";
-    else
-      return format_qt (lan, "d MMMM yyyy", year, month, day);
+    else return format_qt (lan, "d MMMM yyyy", year, month, day);
   }
 
   if (N (fm) > 0 && fm[0] == '%')
