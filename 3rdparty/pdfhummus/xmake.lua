@@ -39,6 +39,12 @@ target("pdfhummus")
     end
     if not has_package("openssl") then
         add_defines("PDFHUMMUS_NO_OPENSSL=1")
+        -- v4.9.0 引入了基于 OpenSSL 的 AES 流（InputAESDecodeStreamSSL /
+        -- OutputAESEncodeStreamSSL），其头文件顶部无条件 #include <openssl/evp.h>。
+        -- 与上游 PDFWriter/CMakeLists.txt 保持一致：未启用 OpenSSL 时直接跳过这两个
+        -- 文件，改用纯软件实现的 Input/OutputAESEncodeStream。
+        remove_files("PDFWriter/InputAESDecodeStreamSSL.cpp")
+        remove_files("PDFWriter/OutputAESEncodeStreamSSL.cpp")
     end
     -- port symbols for linker
     if is_plat("windows") and is_kind("shared") then
