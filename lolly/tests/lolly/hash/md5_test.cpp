@@ -19,7 +19,7 @@ TEST_CASE ("md5_hexdigest") {
   SUBCASE ("normal file") {
     // 使用固定内容的临时文件，使期望哈希在所有平台上一致且确定，
     // 避免依赖真实 LICENSE 文件的行尾（CRLF/LF 随平台/autocrlf 变化）。
-    url    file= url_temp ();
+    url file= url_temp ();
     string_save ("hello world", file);
     string expected_md5= "5eb63bbbe01eeed093cb22bb8f5acdc3";
     string_eq (md5_hexdigest (file), expected_md5);

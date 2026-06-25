@@ -20,7 +20,7 @@ TEST_CASE ("sha224_hexdigest") {
   SUBCASE ("normal file") {
     // 使用固定内容的临时文件，使期望哈希在所有平台上一致且确定，
     // 避免依赖真实 LICENSE 文件的行尾（CRLF/LF 随平台/autocrlf 变化）。
-    url    file= url_temp ();
+    url file= url_temp ();
     string_save ("hello world", file);
     string expected_sha224=
         "2f05477fc24bb4faefd86517156dafdecec45b8ad3cf2522a563582b";
@@ -43,7 +43,7 @@ TEST_CASE ("sha256_hexdigest") {
   SUBCASE ("normal file") {
     // 使用固定内容的临时文件，使期望哈希在所有平台上一致且确定，
     // 避免依赖真实 LICENSE 文件的行尾（CRLF/LF 随平台/autocrlf 变化）。
-    url    file= url_temp ();
+    url file= url_temp ();
     string_save ("hello world", file);
     string expected_sha256=
         "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
