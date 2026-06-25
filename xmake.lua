@@ -304,6 +304,9 @@ target("QWKCore")
     end
 
     on_load(function (target)
+        import("core.project.config")
+        local builddir = config.builddir({absolute = true})
+
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -329,8 +332,8 @@ target("QWKCore")
         target:add("includedirs", private_paths, {public = true})
 
         -- Create build directories
-        os.mkdir("$(buildir)/include/QWKCore")
-        os.mkdir("$(buildir)/include/QWKCore/private")
+        os.mkdir(path.join(builddir, "include/QWKCore"))
+        os.mkdir(path.join(builddir, "include/QWKCore/private"))
 
         -- Generate qwkconfig.h
         local config_content = [[
@@ -349,7 +352,7 @@ target("QWKCore")
 
 #endif // QWKCONFIG_H
 ]]
-        local config_path = "$(buildir)/include/QWKCore/qwkconfig.h"
+        local config_path = path.join(builddir, "include/QWKCore/qwkconfig.h")
         local existing_content = nil
         if os.isfile(config_path) then
             existing_content = io.readfile(config_path)
@@ -375,21 +378,21 @@ target("QWKCore")
                 safe_cp(filepath, dst)
             end
         end
-        safe_vcp("3rdparty/qwindowkitty/src/core/*.h", "$(buildir)/include/QWKCore/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/*.h", path.join(builddir, "include/QWKCore/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/*_p.h", path.join(builddir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", path.join(builddir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", path.join(builddir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", path.join(builddir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", path.join(builddir, "include/QWKCore/private/"))
 
         if has_config("style_agent") then
-            safe_vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", "$(buildir)/include/QWKCore/private/")
-            safe_vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", "$(buildir)/include/QWKCore/styleagent.h")
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", path.join(builddir, "include/QWKCore/private/"))
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", path.join(builddir, "include/QWKCore/styleagent.h"))
         end
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/core", "3rdparty/qwindowkitty/src/core/kernel", "3rdparty/qwindowkitty/src/core/shared", "3rdparty/qwindowkitty/src/core/contexts", "3rdparty/qwindowkitty/src")
 
     -- Defines
@@ -458,8 +461,8 @@ target("QWKCore")
     end
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
-    add_headerfiles("$(buildir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
+    add_headerfiles("$(builddir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
+    add_headerfiles("$(builddir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
 
     on_install(function (target)
     end)
@@ -495,6 +498,9 @@ target("QWKWidgets")
     add_rules("qt.qrc")
 
     on_load(function (target)
+        import("core.project.config")
+        local builddir = config.builddir({absolute = true})
+
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -519,8 +525,8 @@ target("QWKWidgets")
         end
         target:add("includedirs", private_paths, {public = true})
 
-        os.mkdir("$(buildir)/include/QWKWidgets")
-        os.mkdir("$(buildir)/include/QWKWidgets/ui/widgetframe")
+        os.mkdir(path.join(builddir, "include/QWKWidgets"))
+        os.mkdir(path.join(builddir, "include/QWKWidgets/ui/widgetframe"))
         local function safe_cp(src, dst)
             local src_content = io.readfile(src)
             local dst_content = nil
@@ -537,12 +543,12 @@ target("QWKWidgets")
                 safe_cp(filepath, dst)
             end
         end
-        safe_vcp("3rdparty/qwindowkitty/src/widgets/*.h", "$(buildir)/include/QWKWidgets/")
-        safe_vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", "$(buildir)/include/QWKWidgets/ui/widgetframe/")
+        safe_vcp("3rdparty/qwindowkitty/src/widgets/*.h", path.join(builddir, "include/QWKWidgets/"))
+        safe_vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", path.join(builddir, "include/QWKWidgets/ui/widgetframe/"))
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/widgets", "3rdparty/qwindowkitty/src")
 
     -- Source files
@@ -564,7 +570,7 @@ target("QWKWidgets")
     add_files("3rdparty/qwindowkitty/src/styles/styles.qrc")
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
+    add_headerfiles("$(builddir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
 
     on_install(function (target)
     end)
