@@ -272,7 +272,6 @@
       (toggle ("Database tool" "database tool"))
       (toggle ("Debugging tool" "debugging tool"))
       (toggle ("Linking tool" "linking tool"))
-      (toggle ("Remote tool" "remote tool"))
       (toggle ("Source macros tool" "source tool"))
       (toggle ("Versioning tool" "versioning tool")))
     ---

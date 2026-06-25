@@ -138,7 +138,6 @@
  ("developer tool" "off" notify-tool)
  ("linking tool" "off" notify-tool)
  ("presentation tool" "off" notify-tool)
- ("remote tool" "off" notify-tool)
  ("source tool" "off" notify-tool)
  ("versioning tool" "off" notify-tool)
  ("experimental alpha" "on" notify-tool)
