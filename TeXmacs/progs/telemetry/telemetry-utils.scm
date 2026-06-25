@@ -228,7 +228,9 @@
 ) ;define-public
 
 (define-public (telemetry-write-meta entries)
-  (let* ((path (telemetry-meta-path)) (tmp-path (path->string (path-with-suffix path ".json.tmp"))))
+  (let* ((path (telemetry-meta-path))
+         (tmp-path (path->string (path-with-suffix path ".json.tmp")))
+        ) ;
     (define (try-write)
       (njson->file tmp-path (json->njson (list->vector entries)))
       (when (path-exists? path)
