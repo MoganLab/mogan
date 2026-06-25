@@ -94,6 +94,8 @@ TestSmartFont::test_resolve_chinese_puncts () {
   );
 #ifdef OS_WIN
   string cjk_font_name= "SimSun";
+#elif defined(OS_MACOS)
+  string cjk_font_name= "Songti SC";
 #else
   string cjk_font_name= "Noto CJK SC";
 #endif
@@ -111,6 +113,8 @@ TestSmartFont::test_resolve_200B () {
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
 #ifdef OS_WIN
   string cjk_font_name= "SimSun";
+#elif defined(OS_MACOS)
+  string cjk_font_name= "Songti SC";
 #else
   string cjk_font_name= "Noto CJK SC";
 #endif
