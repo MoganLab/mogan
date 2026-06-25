@@ -93,8 +93,23 @@ TEST_CASE ("mkdir/rmdir") {
   CHECK (!is_directory (test_mkdir));
 }
 
+// On macOS, /tmp is a symlink to /private/tmp. url_temp_dir() returns the
+// logical path (/tmp/...) while url_pwd() (which calls getcwd()) reports the
+// resolved physical path (/private/tmp/...). Normalize lolly_tmp through the
+// same mechanism so subsequent comparisons against url_pwd() are consistent.
+static url
+resolved_temp_dir () {
+  url old= url_pwd ();
+  url tmp= url_temp_dir ();
+  if (!is_directory (tmp)) return tmp;
+  chdir (tmp);
+  url resolved= url_pwd ();
+  chdir (old);
+  return resolved;
+}
+
 TEST_CASE ("chdir") {
-  url lolly_tmp= url_temp_dir ();
+  url lolly_tmp= resolved_temp_dir ();
   url old      = url_pwd ();
 
   SUBCASE ("tmp directory") {
