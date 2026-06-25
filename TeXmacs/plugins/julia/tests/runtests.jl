@@ -22,7 +22,7 @@ const orig_stdout = Ref{IO}(stdout)
 const orig_stderr = Ref{IO}(stderr)
 
 # Resolve path relative to this test file
-const julia_plugin_dir = joinpath(@__DIR__, "..", "julia")
+const julia_plugin_dir = joinpath(@__DIR__, "..", "bin")
 
 # Include all the modularized Julia plugin source files under test
 include(joinpath(julia_plugin_dir, "tmjl", "protocol.jl"))
