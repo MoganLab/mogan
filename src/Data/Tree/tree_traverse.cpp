@@ -11,12 +11,12 @@
 
 #include "tree_traverse.hpp"
 #include "analyze.hpp"
-#include "converter.hpp"
 #include "cork.hpp"
 #include "hashset.hpp"
 #include "scheme.hpp"
 #include "tree_helper.hpp"
 
+#include <lolly/data/herk.hpp>
 #include <moebius/drd/drd_mode.hpp>
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/tree_label.hpp>
@@ -836,7 +836,7 @@ search_sections (tree t) {
 tree
 tree_utf8_to_herk (tree_u8 t) {
   if (is_atomic (t)) {
-    return tree (utf8_to_herk (t->label));
+    return tree (lolly::data::utf8_to_herk (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {
     int  t_N= N (t);
@@ -853,7 +853,7 @@ tree_utf8_to_herk (tree_u8 t) {
 tree_u8
 tree_herk_to_utf8 (tree t) {
   if (is_atomic (t)) {
-    return tree (herk_to_utf8 (t->label));
+    return tree (lolly::data::herk_to_utf8 (t->label));
   }
   else if (!is_func (t, RAW_DATA)) {
     int  t_N= N (t);

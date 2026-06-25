@@ -17,7 +17,6 @@
 #include "tree_helper.hpp"
 #include <errno.h>
 
-#include <lolly/data/herk.hpp>
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 #include <moebius/data/scheme.hpp>
@@ -352,11 +351,6 @@ utf8_to_cork (string input) {
 }
 
 string
-utf8_to_herk (string input) {
-  return lolly::data::utf8_to_herk (input);
-}
-
-string
 sourcecode_to_cork (string input) {
   converter conv= load_converter ("SourceCode", "Cork");
   int       start, i, n= N (input);
@@ -388,11 +382,6 @@ cork_to_utf8 (string input) {
     }
   r << apply (conv, input (start, n));
   return r;
-}
-
-string_u8
-herk_to_utf8 (string input) {
-  return lolly::data::herk_to_utf8 (input);
 }
 
 string_u8

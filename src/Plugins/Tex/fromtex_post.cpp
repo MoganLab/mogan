@@ -21,6 +21,7 @@
 #include "tree_modify.hpp"
 #include "url.hpp"
 
+#include <lolly/data/herk.hpp>
 #include <moebius/drd/drd_std.hpp>
 #include <moebius/vars.hpp>
 
@@ -908,7 +909,7 @@ finalize_layout (tree t) {
                 (((i + 1) == n) || (t[i + 1] != tree (END, "verbatim"))))
               r << tree (FORMAT, "new line");
             else if (is_atomic (t[i])) {
-              r << utf8_to_herk (t[i]->label);
+              r << lolly::data::utf8_to_herk (t[i]->label);
             }
             else {
               r << t[i];

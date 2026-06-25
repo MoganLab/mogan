@@ -24,6 +24,7 @@
 #include "translator.hpp"
 #include "unicode.hpp"
 
+#include <lolly/data/herk.hpp>
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 
@@ -861,7 +862,8 @@ smart_font_rep::advance (string s, int& pos, string& r, int& nr) {
     debug_fonts << "Advance for font of [" << s << "] " << this->res_name
                 << " math_kind: " << math_kind << LF;
     debug_fonts << "Physical font of [" << r << "]"
-                << "[" << herk_to_utf8 (r) << "][" << cork_to_utf8 (r) << "]"
+                << "[" << lolly::data::herk_to_utf8 (r) << "]["
+                << cork_to_utf8 (r) << "]"
                 << " is " << fn[nr]->res_name << LF;
   }
 }
