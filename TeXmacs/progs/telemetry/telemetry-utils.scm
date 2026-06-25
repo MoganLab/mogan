@@ -68,21 +68,21 @@
 ) ;define
 
 (define-public (telemetry-dir)
-  (let ((dir (string-append (telemetry-home-path) "/system/telemetry")))
+  (let ((dir (path->string (path-join (telemetry-home-path) "system" "telemetry"))))
     (telemetry-ensure-dir dir)
     dir
   ) ;let
 ) ;define-public
 
 (define-public (telemetry-main-dir)
-  (let ((dir (string-append (telemetry-dir) "/main")))
+  (let ((dir (path->string (path-join (telemetry-dir) "main"))))
     (telemetry-ensure-dir dir)
     dir
   ) ;let
 ) ;define-public
 
 (define-public (telemetry-meta-path)
-  (string-append (telemetry-main-dir) "/main-telemetry.json")
+  (path->string (path-join (telemetry-main-dir) "main-telemetry.json"))
 ) ;define-public
 
 (define-public (telemetry-generate-filename)
@@ -228,7 +228,7 @@
 ) ;define-public
 
 (define-public (telemetry-write-meta entries)
-  (let* ((path (telemetry-meta-path)) (tmp-path (string-append path ".tmp")))
+  (let* ((path (telemetry-meta-path)) (tmp-path (path->string (path-with-suffix path ".json.tmp"))))
     (define (try-write)
       (njson->file tmp-path (json->njson (list->vector entries)))
       (when (path-exists? path)
@@ -294,7 +294,7 @@
 ) ;define-public
 
 (define-public (telemetry-full-path filename)
-  (string-append (telemetry-main-dir) "/" filename)
+  (path->string (path-join (telemetry-main-dir) filename))
 ) ;define-public
 
 (define-public (telemetry-make-event event-type properties)
