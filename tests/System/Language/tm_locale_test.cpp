@@ -9,10 +9,10 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "tm_locale.hpp"
 #include "base.hpp"
 #include "converter.hpp"
 #include "string.hpp"
+#include "tm_locale.hpp"
 #include <QtTest/QtTest>
 
 class TestTmLocale : public QObject {
@@ -85,14 +85,14 @@ void
 TestTmLocale::test_get_date_strftime_month_name () {
   // %B is locale-dependent via strftime; only verify it is supported.
   string r= get_date ("english", "%B", 2024, 1, 15);
-  QVERIFY (N(r) > 0);
+  QVERIFY (N (r) > 0);
 }
 
 void
 TestTmLocale::test_get_date_strftime_weekday () {
   // %A is locale-dependent via strftime; only verify it is supported.
   string r= get_date ("english", "%A", 2024, 1, 15);
-  QVERIFY (N(r) > 0);
+  QVERIFY (N (r) > 0);
 }
 
 void
@@ -194,7 +194,7 @@ TestTmLocale::test_get_date_default_unknown_language () {
 void
 TestTmLocale::test_get_date_current_date_fallback () {
   string r= get_date ("english", "%Y");
-  QVERIFY (N(r) == 4);
-  for (int i= 0; i < N(r); i++)
+  QVERIFY (N (r) == 4);
+  for (int i= 0; i < N (r); i++)
     QVERIFY (r[i] >= '0' && r[i] <= '9');
 }

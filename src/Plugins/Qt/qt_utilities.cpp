@@ -887,9 +887,9 @@ qt_get_date (string lan, string fm, const QDateTime& localtime) {
     char      buf[64];
     struct tm tm;
     memset (&tm, 0, sizeof (tm));
-    tm.tm_year= localtime.date ().year () - 1900;
-    tm.tm_mon = localtime.date ().month () - 1;
-    tm.tm_mday= localtime.date ().day ();
+    tm.tm_year = localtime.date ().year () - 1900;
+    tm.tm_mon  = localtime.date ().month () - 1;
+    tm.tm_mday = localtime.date ().day ();
     tm.tm_isdst= -1;
     strftime (buf, sizeof (buf), as_charp (fm), &tm);
     return buf;
