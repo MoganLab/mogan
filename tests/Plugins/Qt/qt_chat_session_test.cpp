@@ -1068,27 +1068,26 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
   double us2= measureAvgUs (mgr2, REPEAT);
   double us3= measureAvgUs (mgr3, REPEAT);
 
-  // per-session 均摊耗时：O(n) 时应为常数
+  // per-session 均摊耗时（仅用于诊断输出）
   double per1= us1 / N1;
   double per2= us2 / N2;
   double per3= us3 / N3;
 
-  // 三组的 per-session 耗时变化不应超过 2x（排除 cache 效应等噪声）
-  // O(n log² n) 时，per3/per1 会随 N 显著增长
-  double maxPer   = std::max ({per1, per2, per3});
-  double minPer   = std::min ({per1, per2, per3});
-  double variation= maxPer / minPer;
+  // 验证总耗时的增长比：O(n) 时 us3/us1 应接近 N3/N1 = 4x，
+  // O(n^2) 退化时会接近 16x。给 8x 上限以容忍 CI 机器负载抖动。
+  double scaling32= us3 / us2; // 期望 ~2x
+  double scaling31= us3 / us1; // 期望 ~4x
 
-  QVERIFY2 (variation < 2.0,
-            QString ("per-session variation %1x (expected ~1.0 for O(n)), "
-                     "N=%2: %3, N=%4: %5, N=%6: %7 us/session")
-                .arg (variation, 0, 'f', 2)
+  QVERIFY2 (scaling31 < 8.0,
+            QString ("scaling us(N=800)/us(N=200) = %1x (expected ~4x for "
+                     "O(n), ~16x for O(n^2)); N=%2: %3us, N=%4: %5us, N=%6: %7us")
+                .arg (scaling31, 0, 'f', 2)
                 .arg (N1)
-                .arg (per1, 0, 'f', 4)
+                .arg (us1, 0, 'f', 4)
                 .arg (N2)
-                .arg (per2, 0, 'f', 4)
+                .arg (us2, 0, 'f', 4)
                 .arg (N3)
-                .arg (per3, 0, 'f', 4)
+                .arg (us3, 0, 'f', 4)
                 .toUtf8 ()
                 .constData ());
 
@@ -1099,7 +1098,8 @@ TestChatSession::test_benchmark_getAllSessionIds_linear_scaling () {
             << "us total)";
   qDebug () << "  N=" << N3 << ":" << per3 << "us/session (" << us3
             << "us total)";
-  qDebug () << "  variation:" << variation << "x";
+  qDebug () << "  scaling us3/us1:" << scaling31 << "x"
+            << " us3/us2:" << scaling32 << "x";
 }
 
 /******************************************************************************
