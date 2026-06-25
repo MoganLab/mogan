@@ -1,4 +1,5 @@
 
+
 /******************************************************************************
  * MODULE     : tm_locale.cpp
  * DESCRIPTION: Locale related routines
@@ -10,6 +11,7 @@
  ******************************************************************************/
 
 #include "tm_locale.hpp"
+#include "locale.hpp"
 
 #ifdef QTTEXMACS
 #include "Qt/qt_utilities.hpp"
@@ -19,15 +21,12 @@
  * Getting a formatted date
  ******************************************************************************/
 
-#ifdef QTTEXMACS
 string
 get_date (string lan, string fm, int year, int month, int day) {
-  if (year == -1 && month == -1 && day == -1) {
-    return qt_get_date (lan, fm);
-  }
-  return qt_get_date (lan, fm, year, month, day);
+  return lolly::locale::get_date (lan, fm, year, month, day);
 }
 
+#ifdef QTTEXMACS
 string
 pretty_time (int t) {
   return qt_pretty_time (t);

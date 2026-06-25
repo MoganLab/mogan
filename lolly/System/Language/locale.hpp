@@ -20,4 +20,13 @@ string language_to_local_ISO_charset (string s);
 string get_locale_language ();
 string get_locale_charset ();
 
+namespace lolly {
+namespace locale {
+
+string get_date (string lan, string fm, int year= -1, int month= -1,
+                 int day= -1);
+
+} // namespace locale
+} // namespace lolly
+
 #endif
