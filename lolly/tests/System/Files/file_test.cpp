@@ -70,7 +70,8 @@ TEST_CASE ("is_of_type") {
   CHECK (!is_of_type (url_pwd (), "f"));
   CHECK (is_of_type (xmake_lua, "fr"));
 #if defined(OS_MINGW) || defined(OS_WIN)
-  CHECK (is_of_type (url_pwd () * url ("bin/format.bat"), "x"));
+  // url_pwd() 在 lolly 测试中指向 lolly/ 子目录，使用其下确实存在的可执行脚本。
+  CHECK (is_of_type (url_pwd () * url ("bin/test_only.bat"), "x"));
 #endif
 }
 

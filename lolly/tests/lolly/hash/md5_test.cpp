@@ -12,24 +12,17 @@
 #include "a_lolly_test.hpp"
 #include "file.hpp"
 #include "lolly/hash/md5.hpp"
-#include "sys_utils.hpp"
 
 using lolly::hash::md5_hexdigest;
 
 TEST_CASE ("md5_hexdigest") {
   SUBCASE ("normal file") {
-    url    license_file= url_pwd () * "LICENSE";
-    string expected_md5;
-    // 根据平台使用对应的MD5值
-    if (os_win ()) {
-      expected_md5=
-          "3c34afdc3adf82d2448f12715a255122"; // Windows (CRLF) 版本的实际MD5值
-    }
-    else {
-      expected_md5= "d32239bcb673463ab874e80d47fae504"; // Linux (LF) 版本
-    }
-
-    string_eq (md5_hexdigest (license_file), expected_md5);
+    // 使用固定内容的临时文件，使期望哈希在所有平台上一致且确定，
+    // 避免依赖真实 LICENSE 文件的行尾（CRLF/LF 随平台/autocrlf 变化）。
+    url    file= url_temp ();
+    string_save ("hello world", file);
+    string expected_md5= "5eb63bbbe01eeed093cb22bb8f5acdc3";
+    string_eq (md5_hexdigest (file), expected_md5);
   }
   SUBCASE ("empty file") {
     url temp= url_temp ();
