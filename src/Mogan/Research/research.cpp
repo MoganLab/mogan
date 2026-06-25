@@ -15,10 +15,10 @@
 #ifndef OS_WIN
 #include <unistd.h>
 #endif
+#include "locale.hpp"
 #include <locale.h> // for setlocale
 #include <lolly/system/args.hpp>
 #include <lolly/system/timer.hpp>
-#include "locale.hpp"
 
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -142,7 +142,7 @@ immediate_options (int argc, char** argv) {
 
   url u= url_system (string ("$TEXMACS_HOME_PATH/system/") *
                      lolly::locale::get_date ("english", "%Y%m%d%H") *
-                         string (".log"));
+                     string (".log"));
   if (enale_logging) {
     cout << "Logging into >> " << u << LF;
     tm_ostream logf (c_string (concretize (u)));
