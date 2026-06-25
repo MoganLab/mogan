@@ -22,6 +22,7 @@
 #include "tree.hpp"
 
 #include <lolly/data/base64.hpp>
+#include <lolly/data/herk.hpp>
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 #include <lolly/io/http.hpp>

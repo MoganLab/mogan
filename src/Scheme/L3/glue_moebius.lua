@@ -55,22 +55,6 @@ function main()
                     "string"
                 }
             },
-            {
-                scm_name = "utf8->herk",
-                cpp_name = "utf8_to_herk",
-                ret_type = "string",
-                arg_list = {
-                    "string"
-                }
-            },
-            {
-                scm_name = "herk->utf8",
-                cpp_name = "herk_to_utf8",
-                ret_type = "string",
-                arg_list = {
-                    "string"
-                }
-            },
               -- routines for strings in the TeXmacs encoding
             {
                 scm_name = "string->tmstring",

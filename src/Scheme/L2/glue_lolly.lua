@@ -819,6 +819,22 @@ function main()
                     "int"
                 }
             },
+            {
+                scm_name = "utf8->herk",
+                cpp_name = "lolly::data::utf8_to_herk",
+                ret_type = "string",
+                arg_list = {
+                    "string"
+                }
+            },
+            {
+                scm_name = "herk->utf8",
+                cpp_name = "lolly::data::herk_to_utf8",
+                ret_type = "string",
+                arg_list = {
+                    "string"
+                }
+            },
             -- lolly/system
             {
                 scm_name = "system",
