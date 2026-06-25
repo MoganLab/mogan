@@ -42,6 +42,11 @@ jobs:
       - name: Install xmake from trixie-backports
         run: |
           echo "deb http://deb.debian.org/debian trixie-backports main" >> /etc/apt/sources.list
+          cat > /etc/apt/preferences.d/99backports <<'EOF'
+          Package: *
+          Pin: release n=trixie-backports
+          Pin-Priority: 100
+          EOF
           DEBIAN_FRONTEND=noninteractive apt-get update
           DEBIAN_FRONTEND=noninteractive apt-get install -y -t trixie-backports xmake
       - name: Install dependencies
