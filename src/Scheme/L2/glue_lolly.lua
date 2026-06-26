@@ -12,6 +12,27 @@ function main()
     return {
         binding_object = "",
         initializer_name = "initialize_glue_lolly",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "s7_tm.hpp",
+            "analyze.hpp",
+            "file.hpp",
+            "locale.hpp",
+            "sys_utils.hpp",
+            "tm_file.hpp",
+            "tree.hpp",
+            "url.hpp",
+            "scheme.hpp",
+            "glue_l2_extra.hpp",
+            "<lolly/data/base64.hpp>",
+            "<lolly/data/herk.hpp>",
+            "<lolly/data/numeral.hpp>",
+            "<lolly/data/unicode.hpp>",
+            "<lolly/io/http.hpp>",
+            "<lolly/system/subprocess.hpp>",
+        },
         glues = {
             {
                 scm_name = "lolly-version",

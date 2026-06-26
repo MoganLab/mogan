@@ -2,7 +2,7 @@
 /******************************************************************************
  * MODULE     : glue_l2.cpp
  * DESCRIPTION: L2 Glue for linking TeXmacs commands to scheme
- * COPYRIGHT  : (C) 1999-2011  Joris van der Hoeven and Massimiliano Gubinelli
+ * COPYRIGHT   : (C) 1999-2011  Joris van der Hoeven and Massimiliano Gubinelli
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -28,49 +28,8 @@
 #include <lolly/io/http.hpp>
 #include <lolly/system/subprocess.hpp>
 
+#include "glue_l2_extra.hpp"
 #include "scheme.hpp"
-
-using lolly::io::http_head;
-using lolly::io::http_label;
-
-tmscm
-blackboxP (tmscm t) {
-  bool b= tmscm_is_blackbox (t);
-  return bool_to_tmscm (b);
-}
-
-tmscm
-treeP (tmscm t) {
-  bool b= tmscm_is_blackbox (t) &&
-          (type_box (tmscm_to_blackbox (t)) == type_helper<tree>::id);
-  return bool_to_tmscm (b);
-}
-
-tmscm
-urlP (tmscm t) {
-  bool b= tmscm_is_url (t);
-  return bool_to_tmscm (b);
-}
-
-url
-url_ref (url u, int i) {
-  return u[i];
-}
-
-string
-lolly_version () {
-  return string (LOLLY_VERSION);
-}
-
-long
-http_status_code (url u) {
-  long status_code= open_box<long> (
-      http_response_ref (http_head (u), http_label::STATUS_CODE)->data);
-  return status_code;
-}
-
-#include "cork.hpp"
-#include "glue_lolly.cpp"
 
 void
 initialize_glue_l2 () {
