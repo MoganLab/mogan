@@ -523,12 +523,20 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
   }
 
   arrangeTabPages ();
+#ifdef LIII_DEBUG
+  cout << "[tabpage] rebuild tabs=" << m_tabPageList.size ()
+       << " added=" << debug_added_count << " removed=" << debug_removed_count
+       << LF;
+#endif
 }
 
 void
 QTMTabPageContainer::updateActiveTab (const url& currentView) {
 #ifdef LIII_DEBUG
   debug_active_count++;
+  cout << "[tabpage] active #" << debug_active_count
+       << " added=" << debug_added_count << " removed=" << debug_removed_count
+       << LF;
 #endif
   for (int i= 0; i < m_tabPageList.size (); ++i) {
     QTMTabPage* tab= m_tabPageList[i];
