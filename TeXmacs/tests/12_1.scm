@@ -10,9 +10,9 @@
 ) ;define
 
 (define (test-get-tag-name)
-  (check (utf8->cork (get-tag-name "$TEXMACS_PATH/tests/bib/12_1.bib"))
+  (check (get-tag-name "$TEXMACS_PATH/tests/bib/12_1.bib")
     =>
-    "数理逻辑2010汪芳庭"
+    (utf8->cork "数理逻辑2010汪芳庭")
   ) ;check
 ) ;define
 
