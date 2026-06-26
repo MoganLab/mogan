@@ -14,5 +14,6 @@
 
 void initialize_glue_l4 ();
 void initialize_glue_convert ();
+void initialize_glue_tree ();
 
 #endif
