@@ -91,6 +91,13 @@ private slots:
   void test_named_dots_dashes ();
   void test_named_special_letterforms ();
   void test_named_non_identity_roundtrip ();
+
+  // utf8_to_cork: codepoints with no Cork byte map to named entities.
+  void test_utf8_to_cork_greek ();
+  void test_utf8_to_cork_math_ops ();
+  void test_utf8_to_cork_math_syms ();
+  void test_utf8_to_cork_text_syms ();
+  void test_utf8_to_cork_named_remap ();
 };
 
 /******************************************************************************
@@ -1050,6 +1057,93 @@ TestConverter::test_named_non_identity_roundtrip () {
   qcompare (utf8_to_cork (cork_to_utf8 ("<partial>")), "<partial>");
   qcompare (utf8_to_cork (cork_to_utf8 ("<rightarrow>")), "<rightarrow>");
   qcompare (utf8_to_cork (cork_to_utf8 ("<emptyset>")), "<emptyset>");
+}
+
+// utf8_to_cork direction: codepoints without a direct Cork byte are encoded
+// as their canonical named entity. The entity name is not always the obvious
+// one (e.g. U+2209 -> <nin>, U+2211 -> <big-sum>, U+211C -> <frak-R>); these
+// remaps are sampled in test_utf8_to_cork_named_remap.
+
+void
+TestConverter::test_utf8_to_cork_greek () {
+  qcompare (utf8_to_cork ("α"), "<alpha>"); // U+03B1
+  qcompare (utf8_to_cork ("β"), "<beta>");  // U+03B2
+  qcompare (utf8_to_cork ("γ"), "<gamma>"); // U+03B3
+  qcompare (utf8_to_cork ("δ"), "<delta>"); // U+03B4
+  qcompare (utf8_to_cork ("π"), "<pi>");    // U+03C0
+  qcompare (utf8_to_cork ("σ"), "<sigma>"); // U+03C3
+  qcompare (utf8_to_cork ("ω"), "<omega>"); // U+03C9
+  qcompare (utf8_to_cork ("Α"), "<Alpha>"); // U+0391
+  qcompare (utf8_to_cork ("Β"), "<Beta>");  // U+0392
+  qcompare (utf8_to_cork ("Γ"), "<Gamma>"); // U+0393
+  qcompare (utf8_to_cork ("Δ"), "<Delta>"); // U+0394
+  qcompare (utf8_to_cork ("Π"), "<Pi>");    // U+03A0
+  qcompare (utf8_to_cork ("Σ"), "<Sigma>"); // U+03A3
+  qcompare (utf8_to_cork ("Ω"), "<Omega>"); // U+03A9
+}
+
+void
+TestConverter::test_utf8_to_cork_math_ops () {
+  qcompare (utf8_to_cork ("×"), "<times>");    // U+00D7
+  qcompare (utf8_to_cork ("÷"), "<div>");      // U+00F7
+  qcompare (utf8_to_cork ("⋅"), "<cdot>");     // U+22C5
+  qcompare (utf8_to_cork ("∗"), "<ast>");      // U+2217
+  qcompare (utf8_to_cork ("∩"), "<cap>");      // U+2229
+  qcompare (utf8_to_cork ("∪"), "<cup>");      // U+222A
+  qcompare (utf8_to_cork ("∧"), "<wedge>");    // U+2227
+  qcompare (utf8_to_cork ("∨"), "<vee>");      // U+2228
+  qcompare (utf8_to_cork ("∖"), "<setminus>"); // U+2216
+}
+
+void
+TestConverter::test_utf8_to_cork_math_syms () {
+  qcompare (utf8_to_cork ("∞"), "<infty>");          // U+221E
+  qcompare (utf8_to_cork ("∂"), "<partial>");        // U+2202
+  qcompare (utf8_to_cork ("∇"), "<nabla>");          // U+2207
+  qcompare (utf8_to_cork ("∀"), "<forall>");         // U+2200
+  qcompare (utf8_to_cork ("∃"), "<exists>");         // U+2203
+  qcompare (utf8_to_cork ("∠"), "<angle>");          // U+2220
+  qcompare (utf8_to_cork ("∅"), "<emptyset>");       // U+2205
+  qcompare (utf8_to_cork ("≠"), "<neq>");            // U+2260
+  qcompare (utf8_to_cork ("≤"), "<leq>");            // U+2264
+  qcompare (utf8_to_cork ("≥"), "<geq>");            // U+2265
+  qcompare (utf8_to_cork ("≡"), "<equiv>");          // U+2261
+  qcompare (utf8_to_cork ("≈"), "<approx>");         // U+2248
+  qcompare (utf8_to_cork ("∈"), "<in>");             // U+2208
+  qcompare (utf8_to_cork ("⊂"), "<subset>");         // U+2282
+  qcompare (utf8_to_cork ("⊃"), "<supset>");         // U+2283
+  qcompare (utf8_to_cork ("→"), "<rightarrow>");     // U+2192
+  qcompare (utf8_to_cork ("←"), "<leftarrow>");      // U+2190
+  qcompare (utf8_to_cork ("↔"), "<leftrightarrow>"); // U+2194
+  qcompare (utf8_to_cork ("⇒"), "<Rightarrow>");     // U+21D2
+  qcompare (utf8_to_cork ("⇐"), "<Leftarrow>");      // U+21D0
+  qcompare (utf8_to_cork ("↦"), "<mapsto>");         // U+21A6
+  qcompare (utf8_to_cork ("ℵ"), "<aleph>");          // U+2135
+  qcompare (utf8_to_cork ("ℓ"), "<ell>");            // U+2113
+}
+
+void
+TestConverter::test_utf8_to_cork_text_syms () {
+  qcompare (utf8_to_cork ("•"), "<bullet>");    // U+2022
+  qcompare (utf8_to_cork ("†"), "<dagger>");    // U+2020
+  qcompare (utf8_to_cork ("‡"), "<ddagger>");   // U+2021
+  qcompare (utf8_to_cork ("°"), "<degree>");    // U+00B0
+  qcompare (utf8_to_cork ("©"), "<copyright>"); // U+00A9
+  qcompare (utf8_to_cork ("®"), "<circledR>");  // U+00AE
+  qcompare (utf8_to_cork ("™"), "<trademark>"); // U+2122
+  qcompare (utf8_to_cork ("…"), "<ldots>");     // U+2026
+}
+
+void
+TestConverter::test_utf8_to_cork_named_remap () {
+  // Canonical reverse names that differ from the obvious/forward entity name.
+  qcompare (utf8_to_cork ("∉"), "<nin>");      // U+2209 (not <notin>)
+  qcompare (utf8_to_cork ("∑"), "<big-sum>");  // U+2211 (not <sum>)
+  qcompare (utf8_to_cork ("∫"), "<big-int>");  // U+222B (not <int>)
+  qcompare (utf8_to_cork ("∏"), "<big-prod>"); // U+220F (not <prod>)
+  qcompare (utf8_to_cork ("ℏ"), "<hslash>");   // U+210F (not <hbar>)
+  qcompare (utf8_to_cork ("ℜ"), "<frak-R>");   // U+211C (not <Re>)
+  qcompare (utf8_to_cork ("ℑ"), "<frak-I>");   // U+2111 (not <Im>)
 }
 
 QTEST_MAIN (TestConverter)
