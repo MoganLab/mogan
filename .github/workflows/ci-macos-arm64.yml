@@ -123,9 +123,8 @@ jobs:
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
 
-      - name: config lolly
-        if: steps.filter.outputs.lolly == 'true'
-        run: xmake config --policies=build.ccache -m releasedbg --yes --enable_tests=true
+      - name: config
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg --yes
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly
@@ -133,9 +132,6 @@ jobs:
         if: steps.filter.outputs.lolly == 'true'
         run: xmake test "lolly_tests/*"
 
-      - name: config
-        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
-        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg --yes
       - name: build
         if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
