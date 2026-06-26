@@ -49,8 +49,6 @@ xmacs_version () {
   return XMACS_VERSION;
 }
 
-#include "glue_misc.cpp"
-
 tmscm
 observerP (tmscm t) {
   bool b= tmscm_is_blackbox (t) &&
