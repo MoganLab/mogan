@@ -177,7 +177,14 @@ function build_glue_on_config()
         for _, filepath in ipairs(os.filedirs(path.join(scheme_path, "**/glue_*.lua"))) do
             -- 走 mogan.glue rule 的 glue 在这里跳过，避免重复生成
             local name = path.filename(filepath)
-            if name ~= "glue_lolly.lua" and name ~= "glue_drd.lua" and name ~= "glue_file.lua" then
+            if name ~= "glue_lolly.lua"
+                and name ~= "glue_drd.lua"
+                and name ~= "glue_file.lua"
+                and name ~= "glue_misc.lua"
+                and name ~= "glue_modification.lua"
+                and name ~= "glue_moebius.lua"
+                and name ~= "glue_patch.lua"
+                and name ~= "glue_url.lua" then
                 depend.on_changed(function ()
                     local glue_name = path.basename(filepath)
                     local glue_dir = path.directory(filepath)
@@ -541,6 +548,11 @@ target("libmogan") do
     add_files("src/Scheme/L2/glue_lolly.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L3/glue_drd.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L3/glue_file.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_misc.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_modification.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_moebius.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_patch.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_url.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)

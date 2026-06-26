@@ -15,6 +15,16 @@ function main()
         group_name = "glue_modification",
         binding_object = "",
         initializer_name = "initialize_glue_modification",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "modification.hpp",
+            "path.hpp",
+            "tree.hpp",
+            "glue_modification_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "make-modification",

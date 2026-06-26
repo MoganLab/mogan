@@ -15,6 +15,16 @@ function main()
         group_name = "glue_misc",
         binding_object = "",
         initializer_name = "initialize_glue_misc",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "persistent.hpp",
+            "tm_file.hpp",
+            "tm_sys_utils.hpp",
+            "url.hpp",
+        },
         glues = {
             {
                 scm_name = "persistent-set",

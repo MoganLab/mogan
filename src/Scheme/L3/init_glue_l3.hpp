@@ -15,5 +15,10 @@
 void initialize_glue_l3 ();
 void initialize_glue_drd ();
 void initialize_glue_file ();
+void initialize_glue_misc ();
+void initialize_glue_modification ();
+void initialize_glue_patch ();
+void initialize_glue_moebius ();
+void initialize_glue_url ();
 
 #endif

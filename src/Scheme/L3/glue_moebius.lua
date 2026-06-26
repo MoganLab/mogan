@@ -14,6 +14,17 @@ function main()
     return {
         binding_object = "",
         initializer_name = "initialize_glue_moebius",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "converter.hpp",
+            "cork.hpp",
+            "path.hpp",
+            "tree_cursor.hpp",
+            "glue_moebius_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "string-quote",
