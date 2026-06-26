@@ -12,8 +12,17 @@
 
 function main()
     return {
+        group_name = "glue_convert",
         binding_object = "",
         initializer_name = "initialize_glue_convert",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "convert.hpp",
+            "glue_convert_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "parse-texmacs",
