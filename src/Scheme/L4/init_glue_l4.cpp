@@ -187,7 +187,6 @@ tree_remove_node (tree r, int pos) {
   }
 }
 
-#include "glue_convert.cpp"
 #include "glue_tree.cpp"
 
 void

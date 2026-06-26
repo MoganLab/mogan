@@ -14,6 +14,22 @@ function main()
     return {
         binding_object = "",
         initializer_name = "initialize_glue_convert",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "s7_tm.hpp",
+            "convert.hpp",
+            "tree.hpp",
+            "<moebius/data/scheme.hpp>",
+        },
+        usings = {
+            "moebius::data::scheme_document_to_tree",
+            "moebius::data::scheme_to_tree",
+            "moebius::data::scheme_tree_to_tree",
+            "moebius::data::tree_to_scheme",
+            "moebius::data::tree_to_scheme_tree",
+        },
         glues = {
             {
                 scm_name = "parse-texmacs",

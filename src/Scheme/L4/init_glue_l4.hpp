@@ -13,5 +13,6 @@
 #define INIT_GLUE_L4_HPP
 
 void initialize_glue_l4 ();
+void initialize_glue_convert ();
 
 #endif
