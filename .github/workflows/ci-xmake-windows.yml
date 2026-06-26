@@ -111,7 +111,7 @@ jobs:
           key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
       - name: config lolly
         if: steps.filter.outputs.lolly == 'true'
-        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows --enable_tests=true
+        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly

@@ -108,7 +108,7 @@ jobs:
 
       - name: config lolly
         if: steps.filter.outputs.lolly == 'true'
-        run: xmake config -vD --policies=build.ccache -m releasedbg --yes --enable_tests=true
+        run: xmake config -vD --policies=build.ccache -m releasedbg --yes
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake build --yes -vD liblolly

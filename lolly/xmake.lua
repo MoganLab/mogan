@@ -52,11 +52,13 @@ option("posix_thread")
 option_end()
 
 option("enable_tests")
+    set_default(false)
     set_description([[
 Enable tests or not
     - false (default)
     - true
-]])
+    - releasedbg mode: enabled automatically
+    ]])
 option_end()
 
 
@@ -66,7 +68,7 @@ local JEMALLOC_VERSION = "5.3.0"
 
 tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
 add_requires("tbox", {system=false, configs=tbox_configs})
-if has_config("enable_tests") then
+if has_config("enable_tests") or is_mode("releasedbg") then
     add_requires("liii-doctest", {system=false})
     add_requires("nanobench", {system=false})
 end
@@ -279,7 +281,7 @@ function add_bench_target(filepath)
     end
 end
 
-if has_config("enable_tests") then
+if has_config("enable_tests") or is_mode("releasedbg") then
     target("lolly_example_dynamic_library") do
         set_kind ("shared")
         set_languages("c++17")
