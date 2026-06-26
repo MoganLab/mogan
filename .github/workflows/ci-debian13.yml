@@ -7,6 +7,13 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/Data/**"
+      - "lolly/Kernel/**"
+      - "lolly/Plugins/**"
+      - "lolly/System/**"
+      - "lolly/lolly/**"
+      - "lolly/tests/**"
+      - "lolly/xmake.lua"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
@@ -20,12 +27,20 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/Data/**"
+      - "lolly/Kernel/**"
+      - "lolly/Plugins/**"
+      - "lolly/System/**"
+      - "lolly/lolly/**"
+      - "lolly/tests/**"
+      - "lolly/xmake.lua"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
       - "3rdparty/**"
+  workflow_dispatch:
 
 env:
   XMAKE_ROOT: y
@@ -36,8 +51,6 @@ jobs:
   build:
     container: debian:13
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: Install dependencies
         run: |
@@ -51,9 +64,9 @@ jobs:
           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
           # Pre-install aqtinstall to avoid xmake pulling its own Python 3.14
           python3 -m pip install --break-system-packages aqtinstall
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
 
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
@@ -69,18 +82,26 @@ jobs:
         run: xmake repo --update
 
       - name: cache packages from xrepo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: ${{ runner.os }}-xrepo-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: cache xmake
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             tmp/build/.build_cache
           key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
+
+      - name: Detect lolly changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lolly:
+              - 'lolly/**'
 
       - name: config
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
@@ -90,3 +111,13 @@ jobs:
         run: xmake run --yes -vD --group=tests
       - name: Scheme tests
         run: xmake run --yes -vD --group=scheme_tests
+
+      - name: config lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake config -vD --policies=build.ccache -m releasedbg --yes --enable_tests=true
+      - name: build lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake build --yes -vD liblolly
+      - name: test lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake test "lolly_tests/*"
