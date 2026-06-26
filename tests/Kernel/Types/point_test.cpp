@@ -98,19 +98,19 @@ TestPoint::test_collinear () {
 
 void
 TestPoint::test_tree_roundtrip () {
-  point p   = mkp (1.5, 2.5);
-  tree  t   = as_tree (p);
+  point p= mkp (1.5, 2.5);
+  tree  t= as_tree (p);
   QVERIFY (is_point (t));
-  point q   = as_point (t);
+  point q= as_point (t);
   QVERIFY (q == p);
 }
 
 void
 TestPoint::test_axis_proj_dist () {
   axis a;
-  a.p0    = mkp (0, 0);
-  a.p1    = mkp (10, 0);
-  point p = mkp (3, 4);
+  a.p0   = mkp (0, 0);
+  a.p1   = mkp (10, 0);
+  point p= mkp (3, 4);
   QVERIFY (proj (a, p) == mkp (3, 0));
   QVERIFY (fabs (dist (a, p) - 4.0) < 1e-6);
   QVERIFY (fabs (seg_dist (a, p) - 4.0) < 1e-6);

@@ -102,14 +102,14 @@ TestRectanglesOps::test_lub_two () {
 void
 TestRectanglesOps::test_lub_list () {
   rectangles l= rectangles (rectangle (0, 0, 2, 2),
-                rectangles (rectangle (5, 5, 8, 8), rectangles ()));
+                            rectangles (rectangle (5, 5, 8, 8), rectangles ()));
   QVERIFY (least_upper_bound (l) == rectangle (0, 0, 8, 8));
 }
 
 void
 TestRectanglesOps::test_area_list () {
   rectangles l= rectangles (rectangle (0, 0, 2, 2),
-                rectangles (rectangle (0, 0, 3, 3), rectangles ()));
+                            rectangles (rectangle (0, 0, 3, 3), rectangles ()));
   QCOMPARE (area (l), 13.0);
 }
 
@@ -128,7 +128,7 @@ TestRectanglesOps::test_union_and_difference () {
 void
 TestRectanglesOps::test_correct_drops_degenerate () {
   rectangles l= rectangles (rectangle (5, 5, 5, 5),
-                rectangles (rectangle (0, 0, 2, 2), rectangles ()));
+                            rectangles (rectangle (0, 0, 2, 2), rectangles ()));
   rectangles c= correct (l);
   QCOMPARE (N (c), 1);
 }
