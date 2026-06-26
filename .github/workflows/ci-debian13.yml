@@ -91,15 +91,6 @@ jobs:
             lolly:
               - 'lolly/**'
 
-      - name: config
-        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
-      - name: build
-        run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
-      - name: test
-        run: xmake run --yes -vD --group=tests
-      - name: Scheme tests
-        run: xmake run --yes -vD --group=scheme_tests
-
       - name: config lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake config -vD --policies=build.ccache -m releasedbg --yes --enable_tests=true
@@ -109,3 +100,12 @@ jobs:
       - name: test lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake test "lolly_tests/*"
+
+      - name: config
+        run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build
+        run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
+      - name: test
+        run: xmake run --yes -vD --group=tests
+      - name: Scheme tests
+        run: xmake run --yes -vD --group=scheme_tests
