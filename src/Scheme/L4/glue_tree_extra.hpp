@@ -53,10 +53,10 @@ inline tree
 tree_child_insert (tree t, int pos, tree x) {
   int  i, n= N (t);
   tree r (t, n + 1);
-  for (i= 0; i< pos; i++)
+  for (i= 0; i < pos; i++)
     r[i]= t[i];
   r[pos]= x;
-  for (i= pos; i< n; i++)
+  for (i= pos; i < n; i++)
     r[i + 1]= t[i];
   return r;
 }
