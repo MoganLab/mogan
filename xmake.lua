@@ -185,7 +185,8 @@ function build_glue_on_config()
                 and name ~= "glue_moebius.lua"
                 and name ~= "glue_patch.lua"
                 and name ~= "glue_url.lua"
-                and name ~= "glue_convert.lua" then
+                and name ~= "glue_convert.lua"
+                and name ~= "glue_tree.lua" then
                 depend.on_changed(function ()
                     local glue_name = path.basename(filepath)
                     local glue_dir = path.directory(filepath)
@@ -555,6 +556,7 @@ target("libmogan") do
     add_files("src/Scheme/L3/glue_patch.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L3/glue_url.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L4/glue_convert.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L4/glue_tree.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)
