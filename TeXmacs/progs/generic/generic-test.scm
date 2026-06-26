@@ -14,28 +14,26 @@
   (:use (generic generic-menu) (table table-menu))
 ) ;texmacs-module
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; generic menu functions
+;; Tests for focus-tag-name
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-focus-tag-name)
-  (regression-test-group "focus-tag-name"
-    "string"
-    focus-tag-name
-    :none
-    (test "bmatrix" 'bmatrix "bmatrix")
-    (test "Bmatrix" 'Bmatrix "Bmatrix")
-    (test "tabular" 'tabular "tabular")
-    (test "tabular*" 'tabular* "centered tabular")
-    (test "block" 'block "block")
-    (test "block*" 'block* "centered block")
-    (test "big-table" 'big-table "big table")
-  ) ;regression-test-group
+(define (test-focus-tag-name)
+  (check (focus-tag-name 'bmatrix) => "bmatrix")
+  (check (focus-tag-name 'Bmatrix) => "Bmatrix")
+  (check (focus-tag-name 'tabular) => "tabular")
+  (check (focus-tag-name 'tabular*) => "centered tabular")
+  (check (focus-tag-name 'block) => "block")
+  (check (focus-tag-name 'block*) => "centered block")
+  (check (focus-tag-name 'big-table) => "big table")
 ) ;define
 
-(tm-define (regtest-generic)
-  (let ((n (+ (regtest-focus-tag-name))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of generic: ok\n")
-  ) ;let
-) ;tm-define
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (regtest-generic) (test-focus-tag-name) (check-report))

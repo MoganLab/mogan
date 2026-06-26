@@ -1,10 +1,9 @@
-(define (test-tree-atomic?)
-  (regression-test-group
-   "tree-atomic?" "bool"
-   tree-atomic? :none
-   (test "The result of string->tree is atomic" (string->tree "a string") #t)))
+(import (liii check))
 
-(tm-define (test_15_3_2)
-  (let ((n (+ (test-tree-atomic?))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of 15_3_2: ok\n")))
+(check-set-mode! 'report-failed)
+
+(define (test-tree-atomic?)
+  (check (tree-atomic? (string->tree "a string")) => #t)
+) ;define
+
+(tm-define (test_15_3_2) (test-tree-atomic?) (check-report))

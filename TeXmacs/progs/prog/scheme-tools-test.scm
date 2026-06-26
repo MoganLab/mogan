@@ -13,27 +13,29 @@
 
 (texmacs-module (prog scheme-tools-test) (:use (prog scheme-tools-test)))
 
-(define (regtest-word-at)
-  (define (test-word-at i)
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for word-at
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-word-at)
+  (define (f i)
     (word-at "(sys)" i)
   ) ;define
-  (regression-test-group "index"
-    "word"
-    test-word-at
-    :none
-    (test "index 0" 0 "")
-    (test "index 1" 1 "sys")
-    (test "index 2" 2 "sys")
-    (test "index 3" 3 "sys")
-    (test "index 4" 4 "sys")
-    (test "index 5" 5 "")
-    (test "invalid index" 6 "")
-  ) ;regression-test-group
+  (check (f 0) => "")
+  (check (f 1) => "sys")
+  (check (f 2) => "sys")
+  (check (f 3) => "sys")
+  (check (f 4) => "sys")
+  (check (f 5) => "")
+  (check (f 6) => "")
 ) ;define
 
-(tm-define (regtest-scheme-tools)
-  (let ((n (+ (regtest-word-at))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of scheme-tools: ok\n")
-  ) ;let
-) ;tm-define
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (regtest-scheme-tools) (test-word-at) (check-report))

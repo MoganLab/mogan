@@ -12,41 +12,32 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-(texmacs-module (fonts fonts-test)
-  (:use (kernel texmacs tm-define)))
+(texmacs-module (fonts fonts-test) (:use (kernel texmacs tm-define)))
 
-(define (regtest-default-chinese-font)
-  (cond ((os-macos?)
-         (regression-test-group
-          "fun" "result"
-          (default-chinese-font) :none
-          (test "macOS" :none "Singti SC")))
-        ((os-mingw?)
-         (regression-test-group
-          "fun" "result"
-          (default-chinese-font) :none
-          (test "Windows" :none "simsun")))
-        (else
-         (regression-test-group
-          "fun" "result"
-          (default-chinese-font) :none
-          (test "GNU Linux" :none "Noto CJK SC")))))
+(import (liii check))
 
-(define (regtest-family-and-master)
-  (+ (if (font-exists-in-tt? "NotoSerifCJK-Regular")
-      (regression-test-group
-       "font-family" "font-master"
-       font-family->master :none
-       (test "Noto CJK" "Noto Serif CJK SC" "Noto CJK SC"))
-      0)
-     (if (font-exists-in-tt? "Songti")
-      (regression-test-group
-       "font-family" "font-master"
-       font-family->master :none
-       (test "Songti" "Songti SC" "Songti SC"))
-      0)))
+(check-set-mode! 'report-failed)
+
+(define (test-default-chinese-font)
+  (cond ((os-macos?) (check (default-chinese-font) => "Singti SC"))
+        ((os-mingw?) (check (default-chinese-font) => "simsun"))
+        (else (check (default-chinese-font) => "Noto CJK SC"))
+  ) ;cond
+) ;define
+
+(define (test-family-and-master)
+  (if (font-exists-in-tt? "NotoSerifCJK-Regular")
+    (check (font-family->master "Noto Serif CJK SC") => "Noto CJK SC")
+    (check #t => #t)
+  ) ;if
+  (if (font-exists-in-tt? "Songti")
+    (check (font-family->master "Songti SC") => "Songti SC")
+    (check #t => #t)
+  ) ;if
+) ;define
 
 (define (test_11_4)
-  (let ((n (+ (regtest-family-and-master))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of fonts: ok\n")))
+  (test-default-chinese-font)
+  (test-family-and-master)
+  (check-report)
+) ;define

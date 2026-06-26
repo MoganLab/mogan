@@ -13,57 +13,53 @@
 
 (texmacs-module (network url-test) (:use (network url)))
 
-(define (regtest-zotero-url)
-  (regression-test-group "url"
-    "(url-or? u)"
-    url-or?
-    :none
-    (test "case 1" "zotero://a/b/c" #f)
-  ) ;regression-test-group
-  (regression-test-group "url"
-    "(url-complete u flags)"
-    (lambda (x)
-      (== (url-complete "zotero://a/b/c" x) (string->url "zotero://a/b/c"))
-    ) ;lambda
-    :none
-    (test "r" "r" #t)
-    (test "df" "df" #t)
-    (test "rf" "rf" #t)
-  ) ;regression-test-group
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for url-or?, url-complete, url-host
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-zotero-url)
+  (check (url-or? "zotero://a/b/c") => #f)
+  (check (== (url-complete "zotero://a/b/c" "r") (string->url "zotero://a/b/c"))
+    =>
+    #t
+  ) ;check
+  (check (== (url-complete "zotero://a/b/c" "df") (string->url "zotero://a/b/c"))
+    =>
+    #t
+  ) ;check
+  (check (== (url-complete "zotero://a/b/c" "rf") (string->url "zotero://a/b/c"))
+    =>
+    #t
+  ) ;check
 ) ;define
 
-(define (regtest-url-host)
-  (regression-test-group "url"
-    "host of the url"
-    url-host
-    :none
-    (test "http 1" "http://mogan.app" "mogan.app")
-    (test "http 2" "http://git.tmml.wiki/XmacsLabs/mogan" "git.tmml.wiki")
-    (test "local file 1" "/tmp" "")
-  ) ;regression-test-group
+(define (test-url-host)
+  (check (url-host "http://mogan.app") => "mogan.app")
+  (check (url-host "http://git.tmml.wiki/XmacsLabs/mogan") => "git.tmml.wiki")
+  (check (url-host "/tmp") => "")
 ) ;define
 
-(define (regtest-drive-letter)
-  (regression-test-group "url"
-    "drive letter of windows path"
-    url-drive-letter
-    :none
-    (test "windows absolute path 1" "C:\\Users\\test" (if (os-win32?) "C" ""))
-    (test "windows absolute path 2"
-      "D:\\program files\\app"
-      (if (os-win32?) "D" "")
-    ) ;test
-    (test "windows absolute path 3" "Z:\\" (if (os-win32?) "Z" ""))
-    (test "network path" "\\\\server\\share" "")
-    (test "linux path" "/home/user" "")
-    (test "relative path" "docs\\file.txt" "")
-    (test "single slash" "/" "")
-  ) ;regression-test-group
+(define (test-drive-letter)
+  (check (url-drive-letter "C:\\Users\\test") => (if (os-win32?) "C" ""))
+  (check (url-drive-letter "D:\\program files\\app") => (if (os-win32?) "D" ""))
+  (check (url-drive-letter "Z:\\") => (if (os-win32?) "Z" ""))
+  (check (url-drive-letter "\\\\server\\share") => "")
+  (check (url-drive-letter "/home/user") => "")
+  (check (url-drive-letter "docs\\file.txt") => "")
+  (check (url-drive-letter "/") => "")
 ) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (regtest-url)
-  (let ((n (+ (regtest-url-host) (regtest-zotero-url) (regtest-drive-letter))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of url: ok\n")
-  ) ;let
+  (test-zotero-url)
+  (test-url-host)
+  (test-drive-letter)
+  (check-report)
 ) ;tm-define

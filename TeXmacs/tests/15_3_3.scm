@@ -1,27 +1,28 @@
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 (define (test-string-alpha?)
-  (regression-test-group
-     "string-alpha?" "bool"
-     string-alpha? :none
-     (test "string-alpha? of a is true" "a" #t)
-     (test "string-alpha? of b is true" "b" #t)
-     (test "string-alpha? of Z is true" "Z" #t)
-     (test "string-alpha? of ? is false" "?" #f)
-     (test "string-alpha? of empty string is false" "" #f)))
+  (check (string-alpha? "a") => #t)
+  (check (string-alpha? "b") => #t)
+  (check (string-alpha? "Z") => #t)
+  (check (string-alpha? "?") => #f)
+  (check (string-alpha? "") => #f)
+) ;define
 
 (define (test-string-occurs?)
-  (define (test-string-1 x)
-    (string-occurs? x "This is a love letter to S7 scheme."))
-  (regression-test-group
-   "string_occurs case 1" "bool"
-   test-string-1 :none
-   (test "leading word" "This" #t)
-   (test "word in middle" "S7" #t)
-   (test "string contains space" "ve l" #t)
-   (test "should not contain" "notcontain" #f)
-   (test "empty string" "" #t)))
+  (define (f x)
+    (string-occurs? x "This is a love letter to S7 scheme.")
+  ) ;define
+  (check (f "This") => #t)
+  (check (f "S7") => #t)
+  (check (f "ve l") => #t)
+  (check (f "notcontain") => #f)
+  (check (f "") => #t)
+) ;define
 
 (tm-define (test_15_3_3)
-  (let ((n (+ (test-string-alpha?)
-              (test-string-occurs?))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of 15_3_3: ok\n")))
+  (test-string-alpha?)
+  (test-string-occurs?)
+  (check-report)
+) ;tm-define

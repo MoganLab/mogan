@@ -1,12 +1,11 @@
-(define (test-cpp-string-number?)
-  (regression-test-group
-   "cpp-string-number?" "bool"
-   cpp-string-number? :none
-   (test "normal floating number" "1.1" #t)
-   (test "integer" "1" #t)
-   (test "empty string" "" #f)))
+(import (liii check))
 
-(tm-define (test_15_3_1)
-  (let ((n (+ (test-cpp-string-number?))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of 15_3_1: ok\n")))
+(check-set-mode! 'report-failed)
+
+(define (test-cpp-string-number?)
+  (check (cpp-string-number? "1.1") => #t)
+  (check (cpp-string-number? "1") => #t)
+  (check (cpp-string-number? "") => #f)
+) ;define
+
+(tm-define (test_15_3_1) (test-cpp-string-number?) (check-report))
