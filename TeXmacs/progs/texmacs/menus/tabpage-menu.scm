@@ -57,3 +57,25 @@
     ) ;let*
   ) ;for
 ) ;tm-menu
+
+;; tab 栏内容的稳定签名：view-url + 显示标题（含修改标记）序列。
+;; 用于 get_menu_widget 的 which==4 缓存判等——menu-expand 后的 xmenu 含每次
+;; 新建的 lambda，无法用 equal 比较，故用此签名判定 tab 栏是否真的变化。
+;; 切 tab 时签名不变 => 跳过重建；增删/改名/保存(*) => 签名变 => 重建。
+
+(define (tabpage-entry-signature view)
+  (let* ((buf (view->buffer view))
+         (title (buffer-get-title buf))
+         (title* (if (== title "") (url->system (url-tail buf)) title))
+         (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
+         (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
+         (mod? (buffer-modified? buf))
+         (tab-title (string-append title* (if mod? " *" "")))
+        ) ;
+    (string-append (object->string view) "\n" tab-title)
+  ) ;let*
+) ;define
+
+(tm-define (tabpage-menu-signature)
+  (apply string-append (map tabpage-entry-signature (tabpage-list #t)))
+) ;tm-define

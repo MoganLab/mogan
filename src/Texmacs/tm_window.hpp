@@ -30,9 +30,10 @@ public:
 protected:
   hashmap<int, object>    menu_current;
   hashmap<object, widget> menu_cache;
-  string*                 text_ptr;  // where the interactive string is returned
-  command                 call_back; // called when typing finished
-  string                  cur_title; // current window title
+  string  tab_menu_signature; // 上次 tab 栏签名，绕开 xmenu 的 lambda
+  string* text_ptr;           // where the interactive string is returned
+  command call_back;          // called when typing finished
+  string  cur_title;          // current window title
 
 public:
   tm_window_rep (widget wid2, tree geom);

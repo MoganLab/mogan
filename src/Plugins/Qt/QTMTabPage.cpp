@@ -493,7 +493,7 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
 #endif
     }
     // carrier 由其父 widget（QTMTabPageBar）经 schedule_destruction 统一销毁，
-    // 与原 extractTabPages 的约定一致，这里不手动 delete。
+    // 这里不手动 delete。
   }
 
   // existing 中剩下的 url 不在新列表里 => 已被移除，deleteLater。
@@ -506,7 +506,7 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
   }
 
   m_tabPageList= next;
-  // startup/chat 标签固定置顶，与原 extractTabPages 的顺序约定保持一致。
+  // startup/chat 标签固定置顶。
   int startupIndex= startup_tab_index (m_tabPageList);
   if (startupIndex > 0) {
     QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
@@ -544,46 +544,6 @@ QTMTabPageContainer::removeAllTabPages () {
     m_tabPageList[i]->deleteLater ();
   }
   m_tabPageList.clear ();
-}
-
-void
-QTMTabPageContainer::extractTabPages (QList<QAction*>* p_src) {
-  if (!p_src) return;
-  for (int i= 0; i < p_src->size (); ++i) {
-    // see the definition of QTMTabPageAction why we're using it
-    QTMTabPageAction* carrier= qobject_cast<QTMTabPageAction*> ((*p_src)[i]);
-    ASSERT (carrier, "QTMTabPageAction expected")
-
-    QTMTabPage* tab= qobject_cast<QTMTabPage*> (carrier->m_widget);
-    if (tab) {
-      tab->setParent (this);
-      m_tabPageList.append (tab);
-    }
-    else {
-      delete carrier->m_widget; // we don't use it so we should delete it
-    }
-
-    // We don't need to manually delete carrier, because it(p_src) is a QAction,
-    // which will be deleted by the parent widget (QTMTabPageBar) when it
-    // is destroyed (by shedule_destruction).
-  }
-
-  int startupIndex= startup_tab_index (m_tabPageList);
-  if (startupIndex > 0) {
-    QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
-    m_tabPageList.prepend (startupTab);
-  }
-
-  int chatIndex= chat_tab_index (m_tabPageList);
-  if (chatIndex > 1) {
-    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
-    m_tabPageList.insert (1, chatTab);
-  }
-  else if (chatIndex == 0 && m_tabPageList.size () > 1) {
-    // Chat tab should be after startup tab, not before
-    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
-    m_tabPageList.insert (1, chatTab);
-  }
 }
 
 void

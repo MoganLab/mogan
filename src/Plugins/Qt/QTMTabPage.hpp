@@ -121,7 +121,6 @@ signals:
 
 private:
   void removeAllTabPages ();
-  void extractTabPages (QList<QAction*>* p_src);
   void adjustHeight (int p_rowCount);
   void onAddTabClicked ();
 
