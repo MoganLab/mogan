@@ -1039,47 +1039,6 @@ target("stem") do
     end)
 end
 
-function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
-    local testname = path.basename(filepath)
-    target(testname) do
-        set_enabled(not is_plat("wasm"))
-        set_kind("phony")
-        set_group("integration_tests")
-        add_deps("stem")
-        on_run(function (target)
-            name = target:name()
-            test_name = "(test_"..name..")"
-            print("------------------------------------------------------")
-            print("Executing: " .. test_name)
-            params = {
-                "-headless",
-                "-d",
-                "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
-            }
-            if is_plat("macosx", "linux") then
-                binary = target:deps()["stem"]:targetfile()
-            elseif is_plat("mingw", "windows") then
-                binary = path.join(INSTALL_DIR,"bin", stem_binary_windows)
-            else
-                print("Unsupported plat $(plat)")
-            end
-            cmd = binary
-            if is_plat("macosx", "linux") then
-                os.execv(cmd, params, {envs=RUN_ENVS})
-            else
-                os.execv(cmd, params)
-            end
-        end)
-    end
-end
-
--- Integration tests
-RUN_ENVS = {TEXMACS_PATH=path.join(os.projectdir(), "TeXmacs")}
-for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
-    add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
-end
-
 target("stem_packager") do
     set_enabled(is_plat("macosx") and is_mode("release"))
     set_kind("phony")

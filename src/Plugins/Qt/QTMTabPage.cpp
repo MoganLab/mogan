@@ -483,6 +483,10 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
       existing.erase (it);
       tab->setText (srcTab->text ());
       next.append (tab);
+      // srcTab 是本次 carrier 新建的 widget，未被接管。QTMTabPageAction 的
+      // dtor 不会删 m_widget（见 hpp 注释），此处须手动释放，否则每次重建都
+      // 把全套新 carrier widget 泄漏一遍。
+      delete srcTab;
     }
     else {
       // 新增：从 carrier 摄取 srcTab，接管其所有权。
