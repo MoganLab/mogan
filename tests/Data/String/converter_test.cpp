@@ -103,6 +103,17 @@ private slots:
   void test_cork_to_utf8_escape_edge_cases ();
   void test_cork_to_utf8_unknown_entities ();
   void test_utf8_to_cork_invalid_utf8 ();
+
+  // Extended named-entity coverage across remaining Unicode blocks.
+  void test_named_mathops_extras ();
+  void test_named_arrows_extras ();
+  void test_named_misc_symbols ();
+  void test_named_letterlike_extras ();
+  void test_named_geometric ();
+  void test_named_apl_technical ();
+  void test_named_big_operators ();
+  void test_named_brackets ();
+  void test_named_math_alphanumeric ();
 };
 
 /******************************************************************************
@@ -1186,6 +1197,181 @@ TestConverter::test_utf8_to_cork_invalid_utf8 () {
   qcompare (utf8_to_cork ("\x80"), cork_byte (0x80));
   // A lone lead byte (0xC3 with no continuation) likewise copies through.
   qcompare (utf8_to_cork ("\xC3"), cork_byte (0xC3));
+}
+
+void
+TestConverter::test_named_mathops_extras () {
+  qcompare (cork_to_utf8 ("<asymp>"), "≍");       // U+224D
+  qcompare (cork_to_utf8 ("<backsim>"), "∽");     // U+223D
+  qcompare (cork_to_utf8 ("<between>"), "≬");     // U+226C
+  qcompare (cork_to_utf8 ("<doteq>"), "≐");       // U+2250
+  qcompare (cork_to_utf8 ("<lessdot>"), "⋖");     // U+22D6
+  qcompare (cork_to_utf8 ("<gtrdot>"), "⋗");      // U+22D7
+  qcompare (cork_to_utf8 ("<lesssim>"), "≲");     // U+2272
+  qcompare (cork_to_utf8 ("<gtrsim>"), "≳");      // U+2273
+  qcompare (cork_to_utf8 ("<lessgtr>"), "≶");     // U+2276
+  qcompare (cork_to_utf8 ("<gtrless>"), "≷");     // U+2277
+  qcompare (cork_to_utf8 ("<curlyeqprec>"), "⋞"); // U+22DE
+  qcompare (cork_to_utf8 ("<curlyeqsucc>"), "⋟"); // U+22DF
+  qcompare (cork_to_utf8 ("<Bumpeq>"), "≎");      // U+224E
+  qcompare (cork_to_utf8 ("<Cap>"), "⋒");         // U+22D2
+  qcompare (cork_to_utf8 ("<Cup>"), "⋓");         // U+22D3
+  qcompare (cork_to_utf8 ("<Subset>"), "⋐");      // U+22D0
+  qcompare (cork_to_utf8 ("<Supset>"), "⋑");      // U+22D1
+}
+
+void
+TestConverter::test_named_arrows_extras () {
+  qcompare (cork_to_utf8 ("<Downarrow>"), "⇓");       // U+21D3
+  qcompare (cork_to_utf8 ("<Leftrightarrow>"), "⇔");  // U+21D4
+  qcompare (cork_to_utf8 ("<Updownarrow>"), "⇕");     // U+21D5
+  qcompare (cork_to_utf8 ("<Lleftarrow>"), "⇚");      // U+21DA
+  qcompare (cork_to_utf8 ("<Rrightarrow>"), "⇛");     // U+21DB
+  qcompare (cork_to_utf8 ("<hookleftarrow>"), "↩");   // U+21A9
+  qcompare (cork_to_utf8 ("<hookrightarrow>"), "↪");  // U+21AA
+  qcompare (cork_to_utf8 ("<nwarrow>"), "↖");         // U+2196
+  qcompare (cork_to_utf8 ("<nearrow>"), "↗");         // U+2197
+  qcompare (cork_to_utf8 ("<searrow>"), "↘");         // U+2198
+  qcompare (cork_to_utf8 ("<swarrow>"), "↙");         // U+2199
+  qcompare (cork_to_utf8 ("<mapsfrom>"), "↤");        // U+21A4
+  qcompare (cork_to_utf8 ("<nleftarrow>"), "↚");      // U+219A
+  qcompare (cork_to_utf8 ("<nrightarrow>"), "↛");     // U+219B
+  qcompare (cork_to_utf8 ("<nLeftarrow>"), "⇍");      // U+21CD
+  qcompare (cork_to_utf8 ("<nRightarrow>"), "⇏");     // U+21CF
+  qcompare (cork_to_utf8 ("<nleftrightarrow>"), "↮"); // U+21AE
+}
+
+void
+TestConverter::test_named_misc_symbols () {
+  // Zodiac
+  qcompare (cork_to_utf8 ("<aries>"), "♈");       // U+2648
+  qcompare (cork_to_utf8 ("<taurus>"), "♉");      // U+2649
+  qcompare (cork_to_utf8 ("<gemini>"), "♊");      // U+264A
+  qcompare (cork_to_utf8 ("<cancer>"), "♋");      // U+264B
+  qcompare (cork_to_utf8 ("<leo>"), "♌");         // U+264C
+  qcompare (cork_to_utf8 ("<virgo>"), "♍");       // U+264D
+  qcompare (cork_to_utf8 ("<libra>"), "♎");       // U+264E
+  qcompare (cork_to_utf8 ("<scorpio>"), "♏");     // U+264F
+  qcompare (cork_to_utf8 ("<sagittarius>"), "♐"); // U+2650
+  qcompare (cork_to_utf8 ("<capricornus>"), "♑"); // U+2651
+  qcompare (cork_to_utf8 ("<aquarius>"), "♒");    // U+2652
+  qcompare (cork_to_utf8 ("<pisces>"), "♓");      // U+2653
+  // Planets / astrological
+  qcompare (cork_to_utf8 ("<astrosun>"), "☉"); // U+2609
+  qcompare (cork_to_utf8 ("<mercury>"), "☿");  // U+263F
+  qcompare (cork_to_utf8 ("<female>"), "♀");   // U+2640
+  qcompare (cork_to_utf8 ("<male>"), "♂");     // U+2642
+  qcompare (cork_to_utf8 ("<earth>"), "♁");    // U+2641
+  // Music
+  qcompare (cork_to_utf8 ("<flat>"), "♭");       // U+266D
+  qcompare (cork_to_utf8 ("<natural>"), "♮");    // U+266E
+  qcompare (cork_to_utf8 ("<sharp>"), "♯");      // U+266F
+  qcompare (cork_to_utf8 ("<eighthnote>"), "♪"); // U+266A
+  // Card suits
+  qcompare (cork_to_utf8 ("<spadesuit>"), "♠");   // U+2660
+  qcompare (cork_to_utf8 ("<heartsuit>"), "♥");   // U+2665
+  qcompare (cork_to_utf8 ("<diamondsuit>"), "♦"); // U+2666
+  qcompare (cork_to_utf8 ("<clubsuit>"), "♣");    // U+2663
+  // Other
+  qcompare (cork_to_utf8 ("<checkmark>"), "✓"); // U+2713
+  qcompare (cork_to_utf8 ("<maltese>"), "✠");   // U+2720
+}
+
+void
+TestConverter::test_named_letterlike_extras () {
+  qcompare (cork_to_utf8 ("<Mho>"), "℧");         // U+2127
+  qcompare (cork_to_utf8 ("<complement>"), "∁");  // U+2201
+  qcompare (cork_to_utf8 ("<nexists>"), "∄");     // U+2204
+  qcompare (cork_to_utf8 ("<circledS>"), "Ⓢ");    // U+24C8
+  qcompare (cork_to_utf8 ("<backepsilon>"), "϶"); // U+03F6
+  qcompare (cork_to_utf8 ("<digamma>"), "ϝ");     // U+03DD
+  qcompare (cork_to_utf8 ("<varkappa>"), "ϰ");    // U+03F0
+  // Blackboard bold constants
+  qcompare (cork_to_utf8 ("<bbb-C>"), "ℂ"); // U+2102
+  qcompare (cork_to_utf8 ("<bbb-H>"), "ℍ"); // U+210D
+  qcompare (cork_to_utf8 ("<bbb-N>"), "ℕ"); // U+2115
+  qcompare (cork_to_utf8 ("<bbb-P>"), "ℙ"); // U+2119
+  qcompare (cork_to_utf8 ("<bbb-Q>"), "ℚ"); // U+211A
+  qcompare (cork_to_utf8 ("<bbb-R>"), "ℝ"); // U+211D
+  qcompare (cork_to_utf8 ("<bbb-Z>"), "ℤ"); // U+2124
+}
+
+void
+TestConverter::test_named_geometric () {
+  qcompare (cork_to_utf8 ("<Circle>"), "○");            // U+25CB
+  qcompare (cork_to_utf8 ("<CIRCLE>"), "●");            // U+25CF
+  qcompare (cork_to_utf8 ("<Square>"), "□");            // U+25A1
+  qcompare (cork_to_utf8 ("<blacksquare>"), "■");       // U+25A0
+  qcompare (cork_to_utf8 ("<star>"), "⋆");              // U+22C6
+  qcompare (cork_to_utf8 ("<bigstar>"), "★");           // U+2605
+  qcompare (cork_to_utf8 ("<vartriangle>"), "▵");       // U+25B5
+  qcompare (cork_to_utf8 ("<blacktriangle>"), "▴");     // U+25B4
+  qcompare (cork_to_utf8 ("<blacktriangledown>"), "▾"); // U+25BE
+  qcompare (cork_to_utf8 ("<diamond>"), "⋄");           // U+22C4
+  qcompare (cork_to_utf8 ("<lozenge>"), "◊");           // U+25CA
+  qcompare (cork_to_utf8 ("<blacklozenge>"), "⧫");      // U+29EB
+}
+
+void
+TestConverter::test_named_apl_technical () {
+  qcompare (cork_to_utf8 ("<APLbox>"), "⎕");           // U+2395
+  qcompare (cork_to_utf8 ("<APLinput>"), "⍞");         // U+235E
+  qcompare (cork_to_utf8 ("<APLleftarrowbox>"), "⍇");  // U+2347
+  qcompare (cork_to_utf8 ("<APLrightarrowbox>"), "⍈"); // U+2348
+  qcompare (cork_to_utf8 ("<APLuparrowbox>"), "⍐");    // U+2350
+  qcompare (cork_to_utf8 ("<APLdownarrowbox>"), "⍗");  // U+2357
+}
+
+void
+TestConverter::test_named_big_operators () {
+  qcompare (cork_to_utf8 ("<big-vee>"), "⋁");     // U+22C1
+  qcompare (cork_to_utf8 ("<big-wedge>"), "⋀");   // U+22C0
+  qcompare (cork_to_utf8 ("<big-cap>"), "⋂");     // U+22C2
+  qcompare (cork_to_utf8 ("<big-cup>"), "⋃");     // U+22C3
+  qcompare (cork_to_utf8 ("<big-oplus>"), "⨁");   // U+2A01
+  qcompare (cork_to_utf8 ("<big-otimes>"), "⨂");  // U+2A02
+  qcompare (cork_to_utf8 ("<big-odot>"), "⨀");    // U+2A00
+  qcompare (cork_to_utf8 ("<big-sqcup>"), "⨆");   // U+2A06
+  qcompare (cork_to_utf8 ("<big-pluscup>"), "⨄"); // U+2A04
+}
+
+void
+TestConverter::test_named_brackets () {
+  qcompare (cork_to_utf8 ("<langle>"), "⟨");    // U+27E8
+  qcompare (cork_to_utf8 ("<rangle>"), "⟩");    // U+27E9
+  qcompare (cork_to_utf8 ("<llangle>"), "⟪");   // U+27EA
+  qcompare (cork_to_utf8 ("<rrangle>"), "⟫");   // U+27EB
+  qcompare (cork_to_utf8 ("<llbracket>"), "⟦"); // U+27E6
+  qcompare (cork_to_utf8 ("<rrbracket>"), "⟧"); // U+27E7
+  qcompare (cork_to_utf8 ("<lceil>"), "⌈");     // U+2308
+  qcompare (cork_to_utf8 ("<rceil>"), "⌉");     // U+2309
+  qcompare (cork_to_utf8 ("<lfloor>"), "⌊");    // U+230A
+  qcompare (cork_to_utf8 ("<rfloor>"), "⌋");    // U+230B
+  qcompare (cork_to_utf8 ("<ulcorner>"), "⌜");  // U+231C
+  qcompare (cork_to_utf8 ("<urcorner>"), "⌝");  // U+231D
+  qcompare (cork_to_utf8 ("<llcorner>"), "⌞");  // U+231E
+  qcompare (cork_to_utf8 ("<lrcorner>"), "⌟");  // U+231F
+}
+
+void
+TestConverter::test_named_math_alphanumeric () {
+  // Math Alphanumeric Symbols block (U+1D400+). Only four prefixes are
+  // registered: <b-*> (bold/italic), <bbb-*> (blackboard bold),
+  // <cal-*> (script), <frak-*> (fraktur). Other variants like <i->, <sf->,
+  // <tt-> are not entities and pass through verbatim.
+  qcompare (cork_to_utf8 ("<b-0>"), "𝟎");    // U+1D7CE bold 0
+  qcompare (cork_to_utf8 ("<b-A>"), "𝑨");    // U+1D468 bold italic A
+  qcompare (cork_to_utf8 ("<b-z>"), "𝒛");    // U+1D49B bold italic z
+  qcompare (cork_to_utf8 ("<bbb-A>"), "𝔸");  // U+1D538
+  qcompare (cork_to_utf8 ("<bbb-z>"), "𝕫");  // U+1D56B
+  qcompare (cork_to_utf8 ("<cal-A>"), "𝒜");  // U+1D49C
+  qcompare (cork_to_utf8 ("<cal-z>"), "𝓏");  // U+1D4CF
+  qcompare (cork_to_utf8 ("<frak-A>"), "𝔄"); // U+1D504
+  qcompare (cork_to_utf8 ("<frak-z>"), "𝔷"); // U+1D577
+  // Unregistered prefixes pass through verbatim (not entities).
+  qcompare (cork_to_utf8 ("<i-A>"), "<i-A>");
+  qcompare (cork_to_utf8 ("<sf-A>"), "<sf-A>");
+  qcompare (cork_to_utf8 ("<tt-A>"), "<tt-A>");
 }
 
 QTEST_MAIN (TestConverter)
