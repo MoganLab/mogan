@@ -31,18 +31,31 @@
   ) ;let*
 ) ;tm-define
 
+;; tab 显示标题（含修改标记 *）。菜单与签名共用，避免逻辑重复。
+
+(define (tabpage-display-title buf)
+  (let* ((title (buffer-get-title buf))
+         (title* (if (== title "") (url->system (url-tail buf)) title))
+         (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
+         (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
+         (mod? (buffer-modified? buf))
+        ) ;
+    (string-append title* (if mod? " *" ""))
+  ) ;let*
+) ;define
+
+(define (tabpage-doc-path buf)
+  (let ((is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab")))
+    (if is-startup? "" (utf8->cork (url->system buf)))
+  ) ;let
+) ;define
+
 (tm-menu (texmacs-tab-pages)
   (for (view (tabpage-list #t))
     (let* ((buf (view->buffer view))
            (view-win (view->window-of-tabpage view))
-           (title (buffer-get-title buf))
-           (title* (if (== title "") (url->system (url-tail buf)) title))
-           (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
-           ;; 特殊处理启动标签页标题
-           (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
-           (mod? (buffer-modified? buf))
-           (tab-title (string-append title* (if mod? " *" "")))
-           (doc-path (if is-startup? "" (utf8->cork (url->system buf))))
+           (tab-title (tabpage-display-title buf))
+           (doc-path (tabpage-doc-path buf))
           ) ;
       (tab-page (eval view)
        ((balloon (eval `(verbatim ,tab-title)) (eval `(verbatim ,doc-path)))
@@ -58,22 +71,15 @@
   ) ;for
 ) ;tm-menu
 
-;; tab 栏内容的稳定签名：view-url + 显示标题（含修改标记）序列。
-;; 用于 get_menu_widget 的 which==4 缓存判等——menu-expand 后的 xmenu 含每次
-;; 新建的 lambda，无法用 equal 比较，故用此签名判定 tab 栏是否真的变化。
-;; 切 tab 时签名不变 => 跳过重建；增删/改名/保存(*) => 签名变 => 重建。
+;; tab 栏稳定签名：view-url + 显示标题序列（不含 lambda/command）。
+;; get_menu_widget 对 which==4 用它判等——menu-expand 后的 xmenu 含每次新建的
+;; lambda，equal 无法比较；切 tab 时签名不变 => 跳过重建。
 
 (define (tabpage-entry-signature view)
-  (let* ((buf (view->buffer view))
-         (title (buffer-get-title buf))
-         (title* (if (== title "") (url->system (url-tail buf)) title))
-         (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
-         (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
-         (mod? (buffer-modified? buf))
-         (tab-title (string-append title* (if mod? " *" "")))
-        ) ;
-    (string-append (object->string view) "\n" tab-title)
-  ) ;let*
+  (string-append (object->string view)
+    "\n"
+    (tabpage-display-title (view->buffer view))
+  ) ;string-append
 ) ;define
 
 (tm-define (tabpage-menu-signature)
