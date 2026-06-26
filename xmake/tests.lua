@@ -138,29 +138,29 @@ function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
         add_runenvs("TEXMACS_PATH", path.join(os.projectdir(), "TeXmacs"))
         INSTALL_DIR = INSTALL_DIR or os.projectdir()
         on_run(function (target)
-            name = target:name()
-            test_name = "(test_"..name..")"
+            local name = target:name()
+            local test_name = "(test_"..name..")"
             print("------------------------------------------------------")
-            print("Executing: " .. test_name)
-            params = {
-                "-headless",
-                "-d",
-                "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
-            }
+            -- MOGAN_TEST_GUI=1: 真实 GUI 进程跑（无 -headless），驱动 GUI 专属
+            -- 路径，调试日志进终端；不自动 quit，由测试脚本自己延迟退出。
+            local gui_mode = os.getenv("MOGAN_TEST_GUI") == "1"
+            print(("Executing: %s (mode: %s)"):format(test_name, gui_mode and "GUI" or "headless"))
+            local scm = path.join("TeXmacs","tests",name..".scm")
+            -- GUI 模式不追加 (quit-TeXmacs)，让测试可串异步链后自退。
+            local quit = gui_mode and "" or " (quit-TeXmacs)"
+            local expr = ("(catch #t (lambda () %s%s) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"):format(test_name, quit)
+            local params = gui_mode and {"-d", "-b", scm, "-x", expr}
+                                      or {"-headless", "-d", "-b", scm, "-x", expr}
+            local binary
             if is_plat("macosx", "linux") then
                 binary = target:deps()["stem"]:targetfile()
             elseif is_plat("mingw", "windows") then
                 binary = path.join(INSTALL_DIR, "build", "packages", "stem", "data", "bin", "MoganSTEM.exe")
             else
                 print("Unsupported plat $(plat)")
+                return
             end
-            cmd = binary
-            if is_plat("macosx", "linux") then
-                os.execv(cmd, params, {envs=RUN_ENVS})
-            else
-                os.execv(cmd, params)
-            end
+            os.execv(binary, params, is_plat("macosx", "linux") and {envs=RUN_ENVS} or nil)
         end)
     end
 end 

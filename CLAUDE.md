@@ -81,6 +81,26 @@ private slots:
 
 `cleanup()` 会在每条用例结束后执行，即使断言失败也会兜底隐藏窗口。
 
+### GUI 集成测试
+
+排查 GUI 专属代码路径（如 tab 切换、菜单重建）时，headless 模式无法复现。
+`TeXmacs/tests/*.scm`（`add_target_integration_test`）支持在真实 GUI 进程里跑：
+
+```bash
+xmake b stem
+MOGAN_TEST_GUI=1 xmake r <test名>
+```
+
+- `MOGAN_TEST_GUI=1`：去掉 `-headless`，在真实 GUI 跑，调试日志直接进终端；
+  且不自动 `(quit-TeXmacs)`，由测试脚本自己延迟退出。
+- 不带该环境变量则保持默认 headless + 自动 quit 行为，对其他测试无影响。
+
+测试脚本（`TeXmacs/tests/<name>.scm`，入口 `(test_<name>)`）用 `exec-delayed-at`
+串异步链驱动 GUI（不要用同步 sleep，会阻塞 Qt 事件循环），链尾自己
+`(quit-TeXmacs)`。夹具放 `TeXmacs/tests/tmu/`，运行时复制到 `/tmp` 避免
+save/编辑污染检入副本。配合 `#ifdef LIII_DEBUG` 的临时日志定位根因
+（参考 `TeXmacs/tests/2014.scm`）。
+
 ## 构建命令
 
 主项目构建：`xmake b stem`
