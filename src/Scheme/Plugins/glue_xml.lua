@@ -12,8 +12,16 @@
 
 function main()
     return {
+        group_name = "glue_xml",
         binding_object = "",
         initializer_name = "initialize_glue_xml",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "Xml/xml.hpp",
+        },
         glues = {
             {
                 scm_name = "tm->xml-name",

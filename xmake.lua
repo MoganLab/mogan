@@ -167,50 +167,6 @@ end
 
 set_configvar("USE_FREETYPE", 1)
 
-function build_glue_on_config()
-    on_config(function (target)
-        import("core.project.depend")
-        -- use relative path here to avoid import failure on windows
-        local scheme_path = path.join("src", "Scheme")
-        local build_glue_path = path.join("src", "Scheme", "Glue")
-        local build_glue = import("build_glue", {rootdir = build_glue_path})
-        for _, filepath in ipairs(os.filedirs(path.join(scheme_path, "**/glue_*.lua"))) do
-            -- 走 mogan.glue rule 的 glue 在这里跳过，避免重复生成
-            local name = path.filename(filepath)
-            if name ~= "glue_lolly.lua"
-                and name ~= "glue_drd.lua"
-                and name ~= "glue_file.lua"
-                and name ~= "glue_misc.lua"
-                and name ~= "glue_modification.lua"
-                and name ~= "glue_moebius.lua"
-                and name ~= "glue_patch.lua"
-                and name ~= "glue_url.lua"
-                and name ~= "glue_convert.lua"
-                and name ~= "glue_tree.lua"
-                and name ~= "glue_widget.lua"
-                and name ~= "glue_basic.lua"
-                and name ~= "glue_editor.lua"
-                and name ~= "glue_font.lua"
-                and name ~= "glue_server.lua" then
-                depend.on_changed(function ()
-                    local glue_name = path.basename(filepath)
-                    local glue_dir = path.directory(filepath)
-                    local glue_table = import(glue_name, {rootdir = glue_dir})()
-                    io.writefile(
-                        path.join("$(builddir)/glue", glue_name .. ".cpp"),
-                        build_glue(glue_table, glue_name))
-                    cprint("generating scheme glue %s ... %s", glue_name, "${color.success}${text.success}")
-                end, {
-                    values = {true},
-                    files = {filepath, path.join(build_glue_path, "build_glue.lua")},
-                    always_changed = false
-                })
-            end
-        end
-        os.mkdir(path.join("$(builddir)/glue"))
-    end)
-end
-
 -- Add options for different features
 option("style_agent")
     set_default(false)
@@ -550,7 +506,6 @@ target("libmogan") do
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
     add_frameworks("QtQml", "QtQuick", "QtBodymovin")
 
-    build_glue_on_config()
     add_rules("mogan.glue")
     add_files("src/Scheme/L2/glue_lolly.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L3/glue_drd.lua", {rule = "mogan.glue"})
@@ -567,6 +522,14 @@ target("libmogan") do
     add_files("src/Scheme/Glue/glue_editor.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/Glue/glue_font.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/Glue/glue_server.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_bibtex.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_ghostscript.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_html.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_pdf.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_plugin.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_tex.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_updater.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_xml.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)

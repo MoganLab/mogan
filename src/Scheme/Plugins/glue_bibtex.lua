@@ -12,8 +12,17 @@
 
 function main()
     return {
+        group_name = "glue_bibtex",
         binding_object = "",
         initializer_name = "initialize_glue_bibtex",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "Bibtex/bibtex.hpp",
+            "Bibtex/bibtex_functions.hpp",
+        },
         glues = {
             {
                 scm_name = "parse-bib",

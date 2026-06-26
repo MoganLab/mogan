@@ -12,8 +12,19 @@
 
 function main()
     return {
+        group_name = "glue_pdf",
         binding_object = "",
         initializer_name = "initialize_glue_pdf",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "Pdf/pdf_hummus_extract_attachment.hpp",
+            "Pdf/pdf_hummus_make_attachment.hpp",
+            "Pdf/pdf_image.hpp",
+            "glue_pdf_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "supports-native-pdf?",

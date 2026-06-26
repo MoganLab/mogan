@@ -12,8 +12,16 @@
 
 function main()
     return {
+        group_name = "glue_ghostscript",
         binding_object = "",
         initializer_name = "initialize_glue_ghostscript",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "glue_ghostscript_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "supports-ghostscript?",
