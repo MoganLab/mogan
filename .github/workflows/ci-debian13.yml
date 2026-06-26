@@ -83,13 +83,28 @@ jobs:
             tmp/build/.build_cache
           key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
 
-      - name: Detect lolly changes
+      - name: Detect changes
         id: filter
         uses: dorny/paths-filter@v3
         with:
           filters: |
             lolly:
               - 'lolly/**'
+            lolly_src:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/xmake.lua'
+            mogan:
+              - 'src/**'
+              - 'tests/**'
+              - 'xmake.lua'
+              - 'xmake/packages.lua'
+              - 'xmake/packages/**'
+              - 'TeXmacs/tests/*.scm'
+              - '3rdparty/**'
 
       - name: config lolly
         if: steps.filter.outputs.lolly == 'true'
@@ -102,10 +117,14 @@ jobs:
         run: xmake test "lolly_tests/*"
 
       - name: config
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
       - name: build
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=tests
       - name: Scheme tests
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=scheme_tests
