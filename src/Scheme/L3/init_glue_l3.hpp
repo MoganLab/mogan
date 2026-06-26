@@ -14,6 +14,7 @@
 
 void initialize_glue_l3 ();
 void initialize_glue_drd ();
+void initialize_glue_file ();
 void initialize_glue_misc ();
 
 #endif

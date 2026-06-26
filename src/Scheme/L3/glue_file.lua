@@ -15,6 +15,15 @@ function main()
         group_name = "glue_file",
         binding_object = "",
         initializer_name = "initialize_glue_file",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "s7_tm.hpp",
+            "tm_file.hpp",
+            "tm_url.hpp",
+            "url.hpp",
+        },
         glues = {
             {
                 scm_name = "string-append-to-file",
