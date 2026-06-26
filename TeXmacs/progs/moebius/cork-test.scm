@@ -33,8 +33,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (test-angle)
-  (check (uint32->utf8 (cork->utf8 "<langle>")) => #x27E8)
-  (check (uint32->utf8 (cork->utf8 "<rangle>")) => #x27E9)
+  (check (cork->utf8 "<langle>") => (uint32->utf8 #x27E8))
+  (check (cork->utf8 "<rangle>") => (uint32->utf8 #x27E9))
   (check (utf8->cork (uint32->utf8 #x27E8)) => "<langle>")
   (check (utf8->cork (uint32->utf8 #x27E9)) => "<rangle>")
 ) ;define
