@@ -109,8 +109,7 @@ jobs:
           path: |
             ${{ github.workspace }}/build/.build_cache
           key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
-      - name: config lolly
-        if: steps.filter.outputs.lolly == 'true'
+      - name: config
         run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows
       - name: build lolly
         if: steps.filter.outputs.lolly == 'true'
@@ -118,9 +117,7 @@ jobs:
       - name: test lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake test "lolly_tests/*"
-      - name: config
-        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
-        run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows
+
       - name: build stem
         if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem
