@@ -37,7 +37,6 @@
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
 
-#include "glue_file.cpp"
 #include "glue_url.cpp"
 
 string
