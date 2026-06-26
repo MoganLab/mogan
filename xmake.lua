@@ -175,8 +175,9 @@ function build_glue_on_config()
         local build_glue_path = path.join("src", "Scheme", "Glue")
         local build_glue = import("build_glue", {rootdir = build_glue_path})
         for _, filepath in ipairs(os.filedirs(path.join(scheme_path, "**/glue_*.lua"))) do
-            -- glue_lolly 走 mogan.glue rule，这里跳过避免重复生成
-            if path.filename(filepath) ~= "glue_lolly.lua" then
+            -- 走 mogan.glue rule 的 glue 在这里跳过，避免重复生成
+            local name = path.filename(filepath)
+            if name ~= "glue_lolly.lua" and name ~= "glue_drd.lua" then
                 depend.on_changed(function ()
                     local glue_name = path.basename(filepath)
                     local glue_dir = path.directory(filepath)
@@ -538,6 +539,7 @@ target("libmogan") do
     build_glue_on_config()
     add_rules("mogan.glue")
     add_files("src/Scheme/L2/glue_lolly.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_drd.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)

@@ -13,5 +13,6 @@
 #define INIT_GLUE_L3_HPP
 
 void initialize_glue_l3 ();
+void initialize_glue_drd ();
 
 #endif
