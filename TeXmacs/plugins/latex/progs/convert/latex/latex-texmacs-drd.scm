@@ -311,6 +311,7 @@
   dueto
   op
   todo
+  algostate
   tmdate
   tmoutput
   tmerrput
