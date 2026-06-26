@@ -106,6 +106,9 @@ public:
   int debug_added_count  = 0;
   int debug_removed_count= 0;
   int debug_active_count = 0;
+  // 测试用：按 view-url 取现有 tab 指针，用于断言增量 diff 复用了同一对象
+  // （而非全量重建换新指针）。找不到返回 nullptr。
+  QTMTabPage* debug_findTab (const url& viewUrl) const;
 #endif
 
   inline void setRowHeight (int p_height) { m_rowHeight= p_height; }

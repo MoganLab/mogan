@@ -544,6 +544,16 @@ QTMTabPageContainer::updateActiveTab (const url& currentView) {
   }
 }
 
+#ifdef LIII_DEBUG
+QTMTabPage*
+QTMTabPageContainer::debug_findTab (const url& viewUrl) const {
+  string key= as_string (viewUrl);
+  for (int i= 0; i < m_tabPageList.size (); ++i)
+    if (as_string (m_tabPageList[i]->m_viewUrl) == key) return m_tabPageList[i];
+  return nullptr;
+}
+#endif
+
 void
 QTMTabPageContainer::removeAllTabPages () {
   for (int i= 0; i < m_tabPageList.size (); ++i) {

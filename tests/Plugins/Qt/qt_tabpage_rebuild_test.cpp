@@ -141,6 +141,38 @@ private slots:
     QCOMPARE (container.debug_removed_count, removed0);
 #endif
   }
+
+  // 增删后未动 tab 的指针身份不变 => 证明是复用而非全量重建。
+  // 全量重建必然换新指针，故指针相等是最直接的"不全量重建"证据。
+  void test_reusedByPointerIdentity () {
+    QWidget             host;
+    QTMTabPageContainer container (&host);
+    container.setRowHeight (32);
+    host.resize (800, 40);
+    host.show ();
+    QVERIFY (QTest::qWaitForWindowExposed (&host));
+
+    container.replaceTabPages (
+        makeCarrierList ({"tmfs://view/1", "tmfs://view/2", "tmfs://view/3"}));
+#ifndef LIII_DEBUG
+    QSKIP ("计数器仅在 LIII_DEBUG 构建可用");
+#else
+    QTMTabPage* tab1= container.debug_findTab (url ("tmfs://view/1"));
+    QTMTabPage* tab2= container.debug_findTab (url ("tmfs://view/2"));
+    QVERIFY (tab1 != nullptr);
+    QVERIFY (tab2 != nullptr);
+
+    // 删掉 view/3，再加回 view/4；view/1、view/2 应保持同一对象。
+    container.replaceTabPages (
+        makeCarrierList ({"tmfs://view/1", "tmfs://view/2"}));
+    container.replaceTabPages (
+        makeCarrierList ({"tmfs://view/4", "tmfs://view/1", "tmfs://view/2"}));
+    QCOMPARE (container.debug_findTab (url ("tmfs://view/1")), tab1);
+    QCOMPARE (container.debug_findTab (url ("tmfs://view/2")), tab2);
+    QVERIFY (container.debug_findTab (url ("tmfs://view/3")) == nullptr);
+    QVERIFY (container.debug_findTab (url ("tmfs://view/4")) != nullptr);
+#endif
+  }
 };
 
 QTEST_MAIN (TestQTMTabPageRebuild)
