@@ -38,8 +38,6 @@
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
 
-#include "glue_url.cpp"
-
 string
 xmacs_version () {
   return XMACS_VERSION;
