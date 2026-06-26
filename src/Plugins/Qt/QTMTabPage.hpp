@@ -100,10 +100,21 @@ public:
   explicit QTMTabPageContainer (QWidget* p_parent);
   ~QTMTabPageContainer ();
 
+#ifdef LIII_DEBUG
+  // 测试用：每次 replaceTabPages 从 carrier 摄取 / deleteLater 移除的 tab 数，
+  // 以及 updateActiveTab 命中次数。release 下编译期剔除。
+  int debug_added_count  = 0;
+  int debug_removed_count= 0;
+  int debug_active_count = 0;
+#endif
+
   inline void setRowHeight (int p_height) { m_rowHeight= p_height; }
-  void        replaceTabPages (QList<QAction*>* p_src);
-  void        arrangeTabPages ();
-  void        setHitTestVisibleForTabPages (QWK::WidgetWindowAgent* agent);
+  // 按 view-url 做增量 diff：复用已有 tab、摄取新增、移除多余，不全量重建。
+  void replaceTabPages (QList<QAction*>* p_src);
+  // 按 currentView 切换 active 高亮，仅遍历 setChecked，不重建 widget。
+  void updateActiveTab (const url& currentView);
+  void arrangeTabPages ();
+  void setHitTestVisibleForTabPages (QWK::WidgetWindowAgent* agent);
 
 signals:
   void addTabRequested ();

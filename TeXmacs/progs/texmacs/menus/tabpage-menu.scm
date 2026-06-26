@@ -43,7 +43,6 @@
            (mod? (buffer-modified? buf))
            (tab-title (string-append title* (if mod? " *" "")))
            (doc-path (if is-startup? "" (utf8->cork (url->system buf))))
-           (active? (== (current-view) view))
           ) ;
       (tab-page (eval view)
        ((balloon (eval `(verbatim ,tab-title)) (eval `(verbatim ,doc-path)))
@@ -51,7 +50,9 @@
        ) ;
        ;; #t stansd for focus
        ((balloon "" "Close") (safely-kill-tabpage-by-url view-win view buf))
-       (eval active?)
+       ;; active 不进展开树（否则切 tab 让展开树变化、缓存失效、整条重建），
+       ;; 改由 Qt 端 updateActiveTab 维护。这里恒为 #f。
+       (eval #f)
       ) ;tab-page
     ) ;let*
   ) ;for
