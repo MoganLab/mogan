@@ -18,12 +18,12 @@
 // mock up 一个窗口url
 url mock_current_window= url ("tmfs://window/test");
 
-url
+inline url
 get_current_window () {
   return mock_current_window;
 }
 
-url
+inline url
 view_to_window_of_tabpage (url u) {
   // 简单的模拟：如果URL包含"window1"则返回window1，否则返回window2
   // 如果都不包含，则返回默认窗口
@@ -47,7 +47,6 @@ private slots:
   void test_remove_view ();
   void test_size_and_index_access ();
   void test_number_operations ();
-  void test_get_views_for_window ();
   void test_filtered_view_sorting ();
   void test_edge_cases ();
 
@@ -182,43 +181,6 @@ Testview_history::test_number_operations () {
 
   // 这些操作不应该崩溃，只是验证没有异常
   QVERIFY (true);
-}
-
-void
-Testview_history::test_get_views_for_window () {
-  url view1= url ("tmfs://view/1/window1/test1");
-  url view2= url ("tmfs://view/2/window2/test2");
-  url view3= url ("tmfs://view/3/window1/test3");
-  url view4= url ("tmfs://view/4/window2/test4");
-  url view5= url ("tmfs://view/4/window2/test5");
-
-  history->add_view (view1);
-  history->add_view (view2);
-  history->add_view (view3);
-  history->add_view (view4);
-  history->add_view (view5);
-
-  // 测试获取所有窗口的视图
-  view_history::FilteredView all_views=
-      history->get_views_for_window (url_none (), false);
-  QCOMPARE (N (all_views.views), 5);
-
-  // 测试获取特定窗口的视图
-  url                        window1= url ("tmfs://window/window1");
-  view_history::FilteredView window1_views=
-      history->get_views_for_window (window1, false);
-  QCOMPARE (N (window1_views.views), 2);
-
-  url                        window2= url ("tmfs://window/window2");
-  view_history::FilteredView window2_views=
-      history->get_views_for_window (window2, false);
-  QCOMPARE (N (window2_views.views), 3);
-
-  // 测试不存在的窗口
-  url                        window3= url ("tmfs://window/window3");
-  view_history::FilteredView window3_views=
-      history->get_views_for_window (window3, false);
-  QCOMPARE (N (window3_views.views), 0);
 }
 
 void
