@@ -202,15 +202,6 @@ tm_search_forwards (string s, int pos, string in) {
   return -1;
 }
 
-int
-tm_search_backwards (string s, int pos, string in) {
-  while (pos >= 0) {
-    if (test (in, pos, s)) return pos;
-    tm_char_backwards (in, pos);
-  }
-  return -1;
-}
-
 static array<string>
 tm_string_split_between_words (string s) {
   int           i= 0, j= -1, n= N (s);

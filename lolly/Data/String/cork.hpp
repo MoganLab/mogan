@@ -143,16 +143,6 @@ string tm_recompose (array<string> a);
 int tm_search_forwards (string s, int pos, string in);
 
 /**
- * @brief Searches for a substring backwards in a given TeXmacs string.
- *
- * @param s The substring to search for.
- * @param pos The position in the string to start searching from.
- * @param in The string in which to search.
- * @return The starting position of the substring, or -1 if not found.
- */
-int tm_search_backwards (string s, int pos, string in);
-
-/**
  * @brief Checks if the string contains unicode characters.
  *
  * @param s The string to check.
