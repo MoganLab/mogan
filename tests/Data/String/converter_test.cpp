@@ -114,6 +114,11 @@ private slots:
   void test_named_big_operators ();
   void test_named_brackets ();
   void test_named_math_alphanumeric ();
+
+  // strict_cork_to_utf8: same as cork_to_utf8 but without the
+  // symbol-unicode-fallback table, so long-arrow fallbacks are not decoded.
+  void test_strict_cork_to_utf8_same_as_cork ();
+  void test_strict_cork_to_utf8_fallback_excluded ();
 };
 
 /******************************************************************************
@@ -1372,6 +1377,57 @@ TestConverter::test_named_math_alphanumeric () {
   qcompare (cork_to_utf8 ("<i-A>"), "<i-A>");
   qcompare (cork_to_utf8 ("<sf-A>"), "<sf-A>");
   qcompare (cork_to_utf8 ("<tt-A>"), "<tt-A>");
+}
+
+// strict_cork_to_utf8 differs from cork_to_utf8 only in that it does not load
+// the symbol-unicode-fallback table (8 long-arrow fallbacks). Everything else
+// (Cork bytes, <#XXXX> escapes, other named entities, unknown entities) is
+// identical.
+
+void
+TestConverter::test_strict_cork_to_utf8_same_as_cork () {
+  // Cork bytes decode identically.
+  qcompare (strict_cork_to_utf8 (cork_byte (0x00)), "`");
+  qcompare (strict_cork_to_utf8 (cork_byte (0x10)), "“");
+  qcompare (strict_cork_to_utf8 (cork_byte (0xC0)), "À");
+  // <#XXXX> escapes work the same.
+  qcompare (strict_cork_to_utf8 ("<#4E2D>"), "中");
+  qcompare (strict_cork_to_utf8 ("<#201C>"), "“");
+  // Named entities (non-fallback) decode identically.
+  qcompare (strict_cork_to_utf8 ("<less>"), "<");
+  qcompare (strict_cork_to_utf8 ("<alpha>"), "α");
+  qcompare (strict_cork_to_utf8 ("<infty>"), "∞");
+  qcompare (strict_cork_to_utf8 ("<rightarrow>"), "→");
+  // Unknown entities pass through verbatim, same as cork_to_utf8.
+  qcompare (strict_cork_to_utf8 ("<foobar>"), "<foobar>");
+  // Empty input.
+  qcompare (strict_cork_to_utf8 (""), "");
+}
+
+void
+TestConverter::test_strict_cork_to_utf8_fallback_excluded () {
+  // These 8 long-arrow fallbacks are decoded by cork_to_utf8 (which loads
+  // symbol-unicode-fallback) but NOT by strict_cork_to_utf8, which passes
+  // them through verbatim.
+  qcompare (cork_to_utf8 ("<longuparrow>"), "↑");           // U+2191
+  qcompare (cork_to_utf8 ("<longdownarrow>"), "↓");         // U+2193
+  qcompare (cork_to_utf8 ("<longupdownarrow>"), "↕");       // U+2195
+  qcompare (cork_to_utf8 ("<Longuparrow>"), "⇑");           // U+21D1
+  qcompare (cork_to_utf8 ("<Longdownarrow>"), "⇓");         // U+21D3
+  qcompare (cork_to_utf8 ("<Longupdownarrow>"), "⇕");       // U+21D5
+  qcompare (cork_to_utf8 ("<longtwoheadleftarrow>"), "↞");  // U+219E
+  qcompare (cork_to_utf8 ("<longtwoheadrightarrow>"), "↠"); // U+21A0
+
+  qcompare (strict_cork_to_utf8 ("<longuparrow>"), "<longuparrow>");
+  qcompare (strict_cork_to_utf8 ("<longdownarrow>"), "<longdownarrow>");
+  qcompare (strict_cork_to_utf8 ("<longupdownarrow>"), "<longupdownarrow>");
+  qcompare (strict_cork_to_utf8 ("<Longuparrow>"), "<Longuparrow>");
+  qcompare (strict_cork_to_utf8 ("<Longdownarrow>"), "<Longdownarrow>");
+  qcompare (strict_cork_to_utf8 ("<Longupdownarrow>"), "<Longupdownarrow>");
+  qcompare (strict_cork_to_utf8 ("<longtwoheadleftarrow>"),
+            "<longtwoheadleftarrow>");
+  qcompare (strict_cork_to_utf8 ("<longtwoheadrightarrow>"),
+            "<longtwoheadrightarrow>");
 }
 
 QTEST_MAIN (TestConverter)
