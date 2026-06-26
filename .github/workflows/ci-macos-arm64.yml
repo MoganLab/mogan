@@ -12,6 +12,13 @@ on:
       - 'xmake/research.lua'
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
@@ -26,6 +33,13 @@ on:
       - 'xmake/research.lua'
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
@@ -43,13 +57,45 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lolly:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/tests/**'
+              - 'lolly/xmake.lua'
+            lolly_src:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/xmake.lua'
+            mogan:
+              - 'src/**'
+              - 'tests/**'
+              - 'xmake.lua'
+              - 'xmake/packages.lua'
+              - 'xmake/research.lua'
+              - 'xmake/packages/**'
+              - 'xmake-requires.lock'
+              - 'TeXmacs/tests/*.scm'
+              - '3rdparty/**'
+
       - name: cache xmake
         uses: actions/cache@v4
         with:
           path: |
             ${{github.workspace}}/build/.build_cache
             /Users/runner/.xmake
-          key: xmake-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua') }}
+          key: xmake-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
 
       - name: Set Qt Environment Variables
         run: |
@@ -71,28 +117,35 @@ jobs:
         run: xmake repo --update
 
       - name: cache packages from xrepo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua') }}
+          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
 
-      - name: cache xmake
-        uses: actions/cache@v3
-        with:
-          path: |
-            ${{ runner.workspace }}/build/.build_cache
-          key: xmake-build-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua') }}
+      - name: config lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake config --policies=build.ccache -m releasedbg --yes --enable_tests=true
+      - name: build lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake build --yes -vD liblolly
+      - name: test lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake test "lolly_tests/*"
 
       - name: config
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg --yes
       - name: build
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: C++ tests
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes --verbose --diagnosis --group=tests
         env:
           QT_QPA_PLATFORM: offscreen
       - name: Scheme tests
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=scheme_tests
       # - name: integration test
       #  run: xmake run --yes -vD --group=integration_tests
