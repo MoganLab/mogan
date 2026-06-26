@@ -57,7 +57,7 @@ TEST_CASE ("test slanting") {
 
 TEST_CASE ("test linear_2D") {
   matrix<double> m= matrix_2D (2.0, 0.0, 0.0, 3.0);
-  frame            f= linear_2D (m);
+  frame          f= linear_2D (m);
   CHECK (f (mkp (1.0, 1.0)) == mkp (2.0, 3.0));
   CHECK (f->linear);
 }
@@ -73,7 +73,7 @@ TEST_CASE ("test affine_2D") {
   m (2, 0)= 0.0;
   m (2, 1)= 0.0;
   m (2, 2)= 1.0;
-  frame f= affine_2D (m);
+  frame f = affine_2D (m);
   CHECK (f (mkp (1.0, 1.0)) == mkp (3.0, 4.0));
   CHECK (f->linear);
 }
@@ -100,7 +100,7 @@ TEST_CASE ("test frame equality") {
 }
 
 TEST_CASE ("test rectangle transform") {
-  frame f= scaling (2.0, mkp (0.0, 0.0));
+  frame     f= scaling (2.0, mkp (0.0, 0.0));
   rectangle r (0, 0, 10, 10);
   rectangle t= f (r);
   CHECK_EQ (t->x1, 0);
@@ -110,7 +110,7 @@ TEST_CASE ("test rectangle transform") {
 }
 
 TEST_CASE ("test jacobian") {
-  frame f= rotation_2D (mkp (0.0, 0.0), tm_PI / 2);
+  frame f    = rotation_2D (mkp (0.0, 0.0), tm_PI / 2);
   bool  error= true;
   point j    = f->jacobian (mkp (0.0, 0.0), mkp (1.0, 0.0), error);
   CHECK (!error);

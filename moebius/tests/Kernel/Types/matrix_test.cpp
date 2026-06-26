@@ -57,8 +57,8 @@ TEST_CASE ("test matrix multiplication") {
 TEST_CASE ("test matrix vector multiplication") {
   matrix<double> m= matrix_2D (1.0, 2.0, 3.0, 4.0);
   vector<double> v (0.0, 2);
-  v[0]= 1.0;
-  v[1]= 2.0;
+  v[0]            = 1.0;
+  v[1]            = 2.0;
   vector<double> r= m * v;
   CHECK_EQ (N (r), 2);
   CHECK_EQ (r[0], 5.0);
