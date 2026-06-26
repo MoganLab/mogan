@@ -14,6 +14,17 @@ function main()
     return {
         binding_object = "",
         initializer_name = "initialize_glue_drd",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "s7_tm.hpp",
+            "<moebius/drd/drd_mode.hpp>",
+        },
+        usings = {
+            "moebius::drd::set_access_mode",
+            "moebius::drd::get_access_mode",
+        },
         glues = {
             {
                 scm_name = "set-access-mode",

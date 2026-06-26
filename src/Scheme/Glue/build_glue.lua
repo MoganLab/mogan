@@ -105,6 +105,9 @@ tmscm
                 res = res .. "#include \"" .. inc .. "\"\n"
             end
         end
+        for _, usg in ipairs(glue.usings or {}) do
+            res = res .. "using " .. usg .. ";\n"
+        end
         res = res .. "\n"
     end
 

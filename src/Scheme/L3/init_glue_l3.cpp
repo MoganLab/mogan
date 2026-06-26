@@ -37,10 +37,7 @@
 
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
-using moebius::drd::get_access_mode;
-using moebius::drd::set_access_mode;
 
-#include "glue_drd.cpp"
 #include "glue_file.cpp"
 #include "glue_url.cpp"
 
