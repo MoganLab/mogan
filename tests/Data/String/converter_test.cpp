@@ -98,6 +98,11 @@ private slots:
   void test_utf8_to_cork_math_syms ();
   void test_utf8_to_cork_text_syms ();
   void test_utf8_to_cork_named_remap ();
+
+  // Edge cases: malformed <#XXXX>, unknown entities, invalid UTF-8.
+  void test_cork_to_utf8_escape_edge_cases ();
+  void test_cork_to_utf8_unknown_entities ();
+  void test_utf8_to_cork_invalid_utf8 ();
 };
 
 /******************************************************************************
@@ -1144,6 +1149,43 @@ TestConverter::test_utf8_to_cork_named_remap () {
   qcompare (utf8_to_cork ("ℏ"), "<hslash>");   // U+210F (not <hbar>)
   qcompare (utf8_to_cork ("ℜ"), "<frak-R>");   // U+211C (not <Re>)
   qcompare (utf8_to_cork ("ℑ"), "<frak-I>");   // U+2111 (not <Im>)
+}
+
+void
+TestConverter::test_cork_to_utf8_escape_edge_cases () {
+  // Hex digits are case-insensitive.
+  qcompare (cork_to_utf8 ("<#4e2d>"), "中");
+  // Multiple escapes in one string decode independently.
+  qcompare (cork_to_utf8 ("<#4E2D><#2019>"), "中’");
+  // Escapes interleave with literal bytes.
+  qcompare (cork_to_utf8 ("X<#4E2D>Y"), "X中Y");
+  qcompare (cork_to_utf8 ("<#4E2D><alpha>"), "中α");
+  // A dangling escape with no closing '>' consumes to end of string.
+  qcompare (cork_to_utf8 ("a<#4E2D"), "a中");
+  // Empty hex, lone "<#", and non-hex digits all decode to the empty string
+  // (from_hexadecimal("") == 0, encode_as_utf8(0) == "").
+  qcompare (cork_to_utf8 ("<#>"), "");
+  qcompare (cork_to_utf8 ("<#"), "");
+  qcompare (cork_to_utf8 ("<#GHIJ>"), "");
+}
+
+void
+TestConverter::test_cork_to_utf8_unknown_entities () {
+  // An unknown <name> is passed through verbatim.
+  qcompare (cork_to_utf8 ("<foobar>"), "<foobar>");
+  // An incomplete entity prefix (no closing '>') is passed through verbatim.
+  qcompare (cork_to_utf8 ("<les"), "<les");
+  // A single '<' not followed by '#' is passed through as a literal.
+  qcompare (cork_to_utf8 ("a<b"), "a<b");
+}
+
+void
+TestConverter::test_utf8_to_cork_invalid_utf8 () {
+  // A lone continuation byte (0x80) has no UTF-8 decode; it is copied through
+  // as the Cork byte 0x80 (copy_unmatched).
+  qcompare (utf8_to_cork ("\x80"), cork_byte (0x80));
+  // A lone lead byte (0xC3 with no continuation) likewise copies through.
+  qcompare (utf8_to_cork ("\xC3"), cork_byte (0xC3));
 }
 
 QTEST_MAIN (TestConverter)
