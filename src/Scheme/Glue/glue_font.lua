@@ -12,8 +12,18 @@
 
 function main()
     return {
+        group_name = "glue_font",
         binding_object = "",
         initializer_name = "initialize_glue_font",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "object_l3.hpp",
+            "object_l5.hpp",
+            "scheme.hpp",
+            "glue_l5_extra.hpp",
+        },
         glues = {
             -- src/Graphics/Font/font.hpp
             {

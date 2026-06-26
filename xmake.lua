@@ -186,7 +186,12 @@ function build_glue_on_config()
                 and name ~= "glue_patch.lua"
                 and name ~= "glue_url.lua"
                 and name ~= "glue_convert.lua"
-                and name ~= "glue_tree.lua" then
+                and name ~= "glue_tree.lua"
+                and name ~= "glue_widget.lua"
+                and name ~= "glue_basic.lua"
+                and name ~= "glue_editor.lua"
+                and name ~= "glue_font.lua"
+                and name ~= "glue_server.lua" then
                 depend.on_changed(function ()
                     local glue_name = path.basename(filepath)
                     local glue_dir = path.directory(filepath)
@@ -557,6 +562,11 @@ target("libmogan") do
     add_files("src/Scheme/L3/glue_url.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L4/glue_convert.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/L4/glue_tree.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L5/glue_widget.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_basic.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_editor.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_font.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_server.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)

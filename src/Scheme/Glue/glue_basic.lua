@@ -11,8 +11,18 @@
 
 function main()
     return {
+        group_name = "glue_basic",
         binding_object = "",
         initializer_name = "initialize_glue_basic",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "object_l3.hpp",
+            "object_l5.hpp",
+            "scheme.hpp",
+            "glue_l5_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "texmacs-version-release",
