@@ -17,6 +17,7 @@
 #include "tree_helper.hpp"
 #include <errno.h>
 
+#include <lolly/data/cork.hpp>
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 #include <moebius/data/scheme.hpp>
@@ -336,18 +337,7 @@ convert_utf8_to_LaTeX (string input) {
 
 string
 utf8_to_cork (string input) {
-  converter conv= load_converter ("UTF-8", "Cork");
-  int       start, i, n= N (input);
-  string    output;
-  for (i= 0; i < n;) {
-    start            = i;
-    unsigned int code= decode_from_utf8 (input, i);
-    string       s   = input (start, i);
-    string       r   = apply (conv, s);
-    if (r == s && code >= 256) r= "<#" * to_Hex (code) * ">";
-    output << r;
-  }
-  return output;
+  return lolly::data::utf8_to_cork (input);
 }
 
 string
@@ -368,38 +358,12 @@ sourcecode_to_cork (string input) {
 
 string_u8
 cork_to_utf8 (string input) {
-  converter conv = load_converter ("Cork", "UTF-8");
-  int       start= 0, i, n= N (input);
-  string    r;
-  for (i= 0; i < n; i++)
-    if (input[i] == '<' && i + 1 < n && input[i + 1] == '#') {
-      r << apply (conv, input (start, i));
-      start= i= i + 2;
-      while (i < n && input[i] != '>')
-        i++;
-      r << encode_as_utf8 (from_hexadecimal (input (start, i)));
-      start= i + 1;
-    }
-  r << apply (conv, input (start, n));
-  return r;
+  return lolly::data::cork_to_utf8 (input);
 }
 
 string_u8
 strict_cork_to_utf8 (string input) {
-  converter conv = load_converter ("Strict-Cork", "UTF-8");
-  int       start= 0, i, n= N (input);
-  string    r;
-  for (i= 0; i < n; i++)
-    if (input[i] == '<' && i + 1 < n && input[i + 1] == '#') {
-      r << apply (conv, input (start, i));
-      start= i= i + 2;
-      while (i < n && input[i] != '>')
-        i++;
-      r << encode_as_utf8 (from_hexadecimal (input (start, i)));
-      start= i + 1;
-    }
-  r << apply (conv, input (start, n));
-  return r;
+  return lolly::data::strict_cork_to_utf8 (input);
 }
 
 string
