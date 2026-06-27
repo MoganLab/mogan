@@ -22,14 +22,13 @@
 #include <moebius/vars.hpp>
 
 // moebius 编译单元看不到主工程的 tm_configure.hpp,这里给版本宏占位定义。
-// 主工程通过 glue 链接本文件时,真实版本号由主工程在调用处注入
-// (tmu_document_to_tree 的 doc 缺 TeXmacs 头时补的版本号是唯一用到
-// TEXMACS_VERSION 的地方,占位值仅影响极少数畸形输入)。
+// 版本号锁死到主工程当前值(TEXMACS_VERSION "2.1.4" / XMACS_VERSION
+// "2026.1.2"),主工程升级时需同步。后续可单独 PR 把版本号参数化。
 #ifndef XMACS_VERSION
-#define XMACS_VERSION "0.0.0"
+#define XMACS_VERSION "2026.1.2"
 #endif
 #ifndef TEXMACS_VERSION
-#define TEXMACS_VERSION "0.0.0"
+#define TEXMACS_VERSION "2.1.4"
 #endif
 
 using lolly::data::binary_to_hexadecimal;
