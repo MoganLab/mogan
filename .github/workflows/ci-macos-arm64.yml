@@ -19,6 +19,12 @@ on:
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
       - 'lolly/xmake.lua'
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
@@ -40,6 +46,12 @@ on:
       - 'lolly/lolly/**'
       - 'lolly/tests/**'
       - 'lolly/xmake.lua'
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/xmake.lua'
       - '.github/workflows/ci-macos-arm64.yml'
       - 'TeXmacs/tests/*.scm'
       - '3rdparty/**'
@@ -78,6 +90,19 @@ jobs:
               - 'lolly/System/**'
               - 'lolly/lolly/**'
               - 'lolly/xmake.lua'
+            moebius:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/tests/**'
+              - 'moebius/xmake.lua'
+            moebius_src:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/xmake.lua'
             mogan:
               - 'src/**'
               - 'tests/**'
@@ -95,7 +120,7 @@ jobs:
           path: |
             ${{github.workspace}}/build/.build_cache
             /Users/runner/.xmake
-          key: xmake-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+          key: xmake-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
       - name: Set Qt Environment Variables
         run: |
@@ -121,7 +146,7 @@ jobs:
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua') }}
+          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
 
       - name: config
         run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg --yes
@@ -131,17 +156,23 @@ jobs:
       - name: test lolly
         if: steps.filter.outputs.lolly == 'true'
         run: xmake test "lolly_tests/*"
+      - name: build moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake build --yes -vD libmoebius
+      - name: test moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake test "moebius_tests/*"
 
       - name: build
-        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: C++ tests
-        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes --verbose --diagnosis --group=tests
         env:
           QT_QPA_PLATFORM: offscreen
       - name: Scheme tests
-        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.mogan == 'true'
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=scheme_tests
       # - name: integration test
       #  run: xmake run --yes -vD --group=integration_tests
