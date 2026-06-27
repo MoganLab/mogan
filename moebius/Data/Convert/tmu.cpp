@@ -25,7 +25,7 @@
 // 版本号锁死到主工程当前值(TEXMACS_VERSION "2.1.4" / XMACS_VERSION
 // "2026.1.2"),主工程升级时需同步。后续可单独 PR 把版本号参数化。
 #ifndef XMACS_VERSION
-#define XMACS_VERSION "2026.1.2"
+#define XMACS_VERSION "2026.3.0"
 #endif
 #ifndef TEXMACS_VERSION
 #define TEXMACS_VERSION "2.1.4"
