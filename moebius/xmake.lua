@@ -5,6 +5,7 @@ add_rules("mode.debug")
 
 local moe_root = os.scriptdir()
 local moe_files = {
+    path.join(moe_root, "Data/Convert/**.cpp"),
     path.join(moe_root, "Data/History/**.cpp"),
     path.join(moe_root, "Data/Tree/**.cpp"),
     path.join(moe_root, "Kernel/Types/**.cpp"),
@@ -13,6 +14,7 @@ local moe_files = {
     path.join(moe_root, "moebius/**.cpp"),
 }
 local moe_includedirs = {
+    path.join(moe_root, "Data/Convert"),
     path.join(moe_root, "Data/History"),
     path.join(moe_root, "Data/Tree"),
     path.join(moe_root, "Kernel/Types"),
@@ -43,6 +45,7 @@ target("libmoebius") do
     add_deps("liblolly")
     add_packages("s7")
 
+    add_headerfiles("Data/Convert/(*.hpp)")
     add_headerfiles("Data/History/(*.hpp)")
     add_headerfiles("Data/Tree/(*.hpp)")
     add_headerfiles("Kernel/Types/(*.hpp)")

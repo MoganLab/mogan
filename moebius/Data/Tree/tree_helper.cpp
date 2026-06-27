@@ -85,6 +85,15 @@ is_document (tree t) {
 }
 
 bool
+is_snippet (tree doc) {
+  if (!is_document (doc)) return true;
+  int i, n= N (doc);
+  for (i= 0; i < n; i++)
+    if (is_compound (doc[i], "TeXmacs", 1)) return false;
+  return true;
+}
+
+bool
 is_concat (tree t) {
   return L (t) == CONCAT;
 }
