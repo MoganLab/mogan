@@ -1,7 +1,17 @@
-package("tbox")
+-------------------------------------------------------------------------------
+--
+-- MODULE      : tbox.lua
+-- DESCRIPTION : Xmake package definition for tbox
+--
+-- Derived from xmake-io/xmake-repo (packages/t/tbox/xmake.lua).
+-- Use the vendored source under 3rdparty/tbox.
+--
+
+package("liii-tbox")
     set_homepage("https://tboox.org")
     set_description("A glib-like multi-platform c library")
-    set_sourcedir(path.join(os.scriptdir(), "../../../../3rdparty/tbox"))
+
+    set_sourcedir(path.join(os.scriptdir(), "tbox"))
 
     add_configs("micro",      {description = "Compile micro core library for the embed system.", default = false, type = "boolean"})
     add_configs("float",      {description = "Enable or disable the float type.", default = true, type = "boolean"})
@@ -68,4 +78,3 @@ package("tbox")
         assert(package:has_cfuncs("tb_exit", {includes = "tbox/tbox.h", configs = {languages = "c99"}}))
     end)
 package_end()
-

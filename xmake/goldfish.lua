@@ -66,7 +66,7 @@ target ("goldfish") do
     if is_plat("linux") then
         add_syslinks("stdc++")
     end
-    add_packages("tbox")
+    add_packages("liii-tbox")
     add_packages("cpr")
     add_packages("argh")
     on_install(function (target)

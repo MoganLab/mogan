@@ -13,6 +13,7 @@ includes("xmake/vars.lua")
 includes("3rdparty/doctest.lua")
 includes("3rdparty/libaesgm.lua")
 includes("3rdparty/pdfhummus.lua")
+includes("3rdparty/tbox.lua")
 
 includes("moebius")
 includes("lolly")
@@ -25,7 +26,7 @@ set_languages("c++17")
 set_encodings("utf-8")
 
 add_requires("s7", {system=false})
-add_requires("tbox", {system=false})
+add_requires("liii-tbox", {system=false})
 add_requires("cpr", {system=false})
 includes("xmake/goldfish.lua")
 
@@ -540,7 +541,7 @@ target("libmogan") do
     add_packages("liii-pdfhummus")
     add_packages("freetype")
     add_packages("s7")
-    add_packages("tbox")
+    add_packages("liii-tbox")
     add_packages("cpr")
     add_packages("argh")
     if not is_plat("macosx") then

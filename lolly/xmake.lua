@@ -67,7 +67,7 @@ local MIMALLOC_VERSION = "2.1.2"
 local JEMALLOC_VERSION = "5.3.0"
 
 tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
-add_requires("tbox", {system=false, configs=tbox_configs})
+add_requires("liii-tbox", {system=false, configs=tbox_configs})
 if has_config("enable_tests") or is_mode("releasedbg") then
     add_requires("liii-doctest", {system=false})
     add_requires("nanobench", {system=false})
@@ -136,7 +136,7 @@ target("liblolly") do
     set_basename("lolly")
 
     --- dependent packages
-    add_packages("tbox")
+    add_packages("liii-tbox")
     if is_config("malloc", "mimalloc") then
         add_packages("mimalloc")
         add_files("System/Memory/impl/mi_malloc.cpp")
@@ -294,7 +294,7 @@ if has_config("enable_tests") or is_mode("releasedbg") then
         set_kind ("binary")
         set_languages("c++17")
         set_default (false)
-        add_packages("tbox")
+        add_packages("liii-tbox")
 
         add_deps("liblolly")
         add_deps("lolly_example_dynamic_library", {inherit = false})
@@ -329,7 +329,7 @@ if has_config("enable_tests") or is_mode("releasedbg") then
         elseif  is_plat("wasm") then
             add_packages("emscripten")
         end
-        add_packages("tbox")
+        add_packages("liii-tbox")
         add_packages("liii-doctest")
 
         if is_plat("linux") then
@@ -440,7 +440,7 @@ function add_test_cov(filepath)
         set_languages("c++17")
         set_policy("check.auto_ignore_flags", false)
 
-        add_packages("tbox")
+        add_packages("liii-tbox")
         add_packages("liii-doctest")
         add_packages("libcurl")
         add_syslinks("stdc++", "m")
