@@ -1,0 +1,16 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <\equation>
+    \<cal*-A\>\<cal*-B\>\<cal*-C\>
+  </equation>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|624A0935-A63E-4620-81BA-C2E15762C750>
+  </collection>
+</initial>
