@@ -345,22 +345,22 @@ TEST_CASE ("utf8_to_herk_0x") {
 }
 
 TEST_CASE ("utf8_to_herk_1x") {
-  string_eq (utf8_to_herk (""), "<#10>"); // U+0010
-  string_eq (utf8_to_herk (""), "<#11>"); // U+0011
-  string_eq (utf8_to_herk (""), "<#12>"); // U+0012
-  string_eq (utf8_to_herk (""), "<#13>"); // U+0013
-  string_eq (utf8_to_herk (""), "<#14>"); // U+0014
-  string_eq (utf8_to_herk (""), "<#15>"); // U+0015
-  string_eq (utf8_to_herk (""), "<#16>"); // U+0016
-  string_eq (utf8_to_herk (""), "<#17>"); // U+0017
-  string_eq (utf8_to_herk (""), "<#18>"); // U+0018
-  string_eq (utf8_to_herk (""), "<#19>"); // U+0019
+  string_eq (utf8_to_herk (""), "<#10>");    // U+0010
+  string_eq (utf8_to_herk (""), "<#11>");    // U+0011
+  string_eq (utf8_to_herk (""), "<#12>");    // U+0012
+  string_eq (utf8_to_herk (""), "<#13>");    // U+0013
+  string_eq (utf8_to_herk (""), "<#14>");    // U+0014
+  string_eq (utf8_to_herk (""), "<#15>");    // U+0015
+  string_eq (utf8_to_herk (""), "<#16>");    // U+0016
+  string_eq (utf8_to_herk (""), "<#17>");    // U+0017
+  string_eq (utf8_to_herk (""), "<#18>");    // U+0018
+  string_eq (utf8_to_herk (""), "<#19>");    // U+0019
   string_eq (utf8_to_herk ("\x1A"), "<#1A>"); // U+001A
-  string_eq (utf8_to_herk (""), "<#1B>"); // U+001B
-  string_eq (utf8_to_herk (""), "<#1C>"); // U+001C
-  string_eq (utf8_to_herk (""), "<#1D>"); // U+001D
-  string_eq (utf8_to_herk (""), "<#1E>"); // U+001E
-  string_eq (utf8_to_herk (""), "<#1F>"); // U+001F
+  string_eq (utf8_to_herk (""), "<#1B>");    // U+001B
+  string_eq (utf8_to_herk (""), "<#1C>");    // U+001C
+  string_eq (utf8_to_herk (""), "<#1D>");    // U+001D
+  string_eq (utf8_to_herk (""), "<#1E>");    // U+001E
+  string_eq (utf8_to_herk (""), "<#1F>");    // U+001F
 }
 
 TEST_CASE ("utf8_to_herk_2x") {

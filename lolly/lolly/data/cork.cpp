@@ -194,10 +194,10 @@ cork_to_utf8_impl (string input, bool strict) {
       while (j < n && input[j] != '>')
         j++;
       string hex_str= input (hex_start, j);
-      bool    valid = N (hex_str) > 0;
+      bool   valid  = N (hex_str) > 0;
       for (int k= 0; valid && k < N (hex_str); k++) {
         char h= hex_str[k];
-        valid= (h >= '0' && h <= '9') || (h >= 'A' && h <= 'F') ||
+        valid = (h >= '0' && h <= '9') || (h >= 'A' && h <= 'F') ||
                (h >= 'a' && h <= 'f');
       }
       if (valid) r << encode_as_utf8 ((uint32_t) from_hex (hex_str));
