@@ -25,7 +25,7 @@ set_policy("run.autobuild", false)
 set_languages("c++17")
 set_encodings("utf-8")
 
-add_requires("s7", {system=false})
+add_requires("goldfish", {system=false})
 add_requires("liii-tbox", {system=false})
 add_requires("cpr", {system=false})
 includes("xmake/goldfish.lua")
@@ -540,7 +540,7 @@ target("libmogan") do
 
     add_packages("liii-pdfhummus")
     add_packages("freetype")
-    add_packages("s7")
+    add_packages("goldfish")
     add_packages("liii-tbox")
     add_packages("cpr")
     add_packages("argh")
@@ -884,7 +884,7 @@ target("stem") do
 
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
     add_frameworks("QtQml", "QtQuick", "QtBodymovin")
-    add_packages("s7")
+    add_packages("goldfish")
     add_deps("liblolly")
     add_deps("libmogan")
     add_deps("libmoebius")
