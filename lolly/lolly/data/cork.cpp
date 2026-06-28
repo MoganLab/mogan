@@ -187,13 +187,20 @@ cork_to_utf8_impl (string input, bool strict) {
 
     // 1) <#XXXX> hexadecimal escape (highest precedence -- emits utf8 of
     //    the explicit codepoint, bypassing the entity / byte tables).
+    //    Empty or non-hex content decodes to nothing.
     if (c == '<' && i + 1 < n && input[i + 1] == '#') {
       int hex_start= i + 2;
       int j        = hex_start;
       while (j < n && input[j] != '>')
         j++;
       string hex_str= input (hex_start, j);
-      r << encode_as_utf8 ((uint32_t) from_hex (hex_str));
+      bool    valid = N (hex_str) > 0;
+      for (int k= 0; valid && k < N (hex_str); k++) {
+        char h= hex_str[k];
+        valid= (h >= '0' && h <= '9') || (h >= 'A' && h <= 'F') ||
+               (h >= 'a' && h <= 'f');
+      }
+      if (valid) r << encode_as_utf8 ((uint32_t) from_hex (hex_str));
       i= (j < n) ? j + 1 : n;
       continue;
     }

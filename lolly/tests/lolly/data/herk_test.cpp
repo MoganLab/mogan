@@ -355,7 +355,7 @@ TEST_CASE ("utf8_to_herk_1x") {
   string_eq (utf8_to_herk (""), "<#17>"); // U+0017
   string_eq (utf8_to_herk (""), "<#18>"); // U+0018
   string_eq (utf8_to_herk (""), "<#19>"); // U+0019
-  string_eq (utf8_to_herk (""), "<#1A>"); // U+001A
+  string_eq (utf8_to_herk ("\x1A"), "<#1A>"); // U+001A
   string_eq (utf8_to_herk (""), "<#1B>"); // U+001B
   string_eq (utf8_to_herk (""), "<#1C>"); // U+001C
   string_eq (utf8_to_herk (""), "<#1D>"); // U+001D
