@@ -243,9 +243,7 @@
             ("1.4" "1.4")
             ("1.5" "1.5")
             ("1.6" "1.6")
-            ("1.7" "1.7"))))
-      (-> "TeXmacs -> Mogan Scheme"
-        (toggle "Formatted Mogan Scheme" "texmacs->mgs:formatted")))
+            ("1.7" "1.7")))))
     (-> "Mathematics"
       (-> "Keyboard"
         (item ("Enforce brackets to match" (toggle-matching-brackets)))

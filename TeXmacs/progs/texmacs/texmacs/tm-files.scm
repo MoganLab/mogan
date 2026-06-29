@@ -740,7 +740,7 @@
 ;;
 ;; 逻辑
 ;; ----
-;; 只允许本地、非 tmfs、非 web 且格式为 texmacs/stm/mgs/tmu 的文档备份；
+;; 只允许本地、非 tmfs、非 web 且格式为 texmacs/stm/tmu 的文档备份；
 ;; 位于 get-texmacs-path 目录或子目录下的内置只读文件直接跳过。
 ;;
 ;; 注意
@@ -752,7 +752,7 @@
     (not (url-rooted-web? name))
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
-    (in? (auto-backup-format name) '("texmacs" "stm" "mgs" "tmu" "stem"))
+    (in? (auto-backup-format name) '("texmacs" "stm" "tmu" "stem"))
   ) ;and
 ) ;tm-define
 

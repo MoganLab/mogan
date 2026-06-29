@@ -525,7 +525,6 @@
 (lazy-format (data image) postscript pdf svg gif jpeg png ppm tif webp xpm)
 
 (lazy-format (convert rewrite init-rewrite) texmacs verbatim)
-(lazy-format (data mgs) mgs)
 (lazy-format (data stm) stm)
 (lazy-format (data stem) stem)
 (lazy-format (data tmu) tmu)

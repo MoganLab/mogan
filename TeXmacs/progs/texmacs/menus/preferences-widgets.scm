@@ -856,18 +856,6 @@
 
 ;; Mogan Scheme ----------
 
-(tm-widget (mogan-scheme-preferences-widget)
-  ======
-  (bold (text "TeXmacs -> Mogan Scheme"))
-  ===
-  (aligned (meti (hlist // (text "Use the Formatted Mogan Scheme"))
-             (toggle (set-boolean-preference "texmacs->mgs:formatted" answer)
-               (get-boolean-preference "texmacs->mgs:formatted")
-             ) ;toggle
-           ) ;meti
-  ) ;aligned
-) ;tm-widget
-
 ;; All converters ----------
 
 (tm-widget (conversion-preferences-widget)
@@ -880,9 +868,6 @@
               (tab (text "Pdf") (centered (dynamic (pdf-preferences-widget))))
             ) ;assuming
             (tab (text "Image") (centered (dynamic (image-preferences-widget))))
-            (tab (text "Mogan Scheme")
-              (centered (dynamic (mogan-scheme-preferences-widget)))
-            ) ;tab
           ) ;tabs
   ) ;padded
   ===
