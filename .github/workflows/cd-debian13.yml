@@ -43,7 +43,7 @@ jobs:
 
       - uses: xmake-io/github-action-setup-xmake@v1
         with:
-          xmake-version: v2.9.6
+          xmake-version: v3.0.7
 
       - name: Update Xrepo
         run: xrepo update-repo
