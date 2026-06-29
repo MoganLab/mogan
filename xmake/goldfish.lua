@@ -114,12 +114,14 @@ target ("goldfish") do
     set_targetdir("$(projectdir)/TeXmacs/plugins/goldfish/bin/")
     add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/goldfish.cpp")
     add_files({
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_hashlib.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_njson.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_subprocess.cpp",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/scheme_base.cpp",
     })
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/s7.c",

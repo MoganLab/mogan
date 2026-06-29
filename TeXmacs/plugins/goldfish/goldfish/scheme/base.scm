@@ -574,54 +574,7 @@
       ) ;if
     ) ;define*
 
-    (define* (string->utf8 str (start 0) (end #t))
-      ;; start < end in this case
-      (define (string->utf8-sub str start end)
-        (let ((bv (string->byte-vector str)) (N (string-length str)))
-          (let loop
-            ((pos 0) (cnt 0) (start-pos 0))
-            (let ((next-pos (bytevector-advance-utf8 bv pos N)))
-              (cond ((and (not (zero? start)) (zero? start-pos) (= cnt start))
-                     (loop next-pos (+ cnt 1) pos)
-                    ) ;
-                    ((and (integer? end) (= cnt end))
-                     (copy bv (make-byte-vector (- pos start-pos)) start-pos pos)
-                    ) ;
-                    ((and end (= next-pos N))
-                     (copy bv (make-byte-vector (- N start-pos)) start-pos N)
-                    ) ;
-                    ((= next-pos pos) (error 'value-error "Invalid UTF-8 sequence at index: " pos))
-                    (else (loop next-pos (+ cnt 1) start-pos))
-              ) ;cond
-            ) ;let
-          ) ;let
-        ) ;let
-      ) ;define
-
-      (when (not (string? str))
-        (error 'type-error "str must be string")
-      ) ;when
-      (let ((N (utf8-string-length str)))
-        (when (and (> N 0) (or (< start 0) (>= start N)))
-          (error 'out-of-range
-            (string-append "start must >= 0 and < " (number->string N))
-          ) ;error
-        ) ;when
-        (when (and (integer? end) (or (< end 0) (>= end (+ N 1))))
-          (error 'out-of-range
-            (string-append "end must >= 0 and < " (number->string (+ N 1)))
-          ) ;error
-        ) ;when
-        (when (and (integer? end) (> start end))
-          (error 'out-of-range "start <= end failed" start end)
-        ) ;when
-
-        (if (and (integer? end) (= start end))
-          (byte-vector)
-          (string->utf8-sub str start end)
-        ) ;if
-      ) ;let
-    ) ;define*
+    (define* (string->utf8 str (start 0) (end #t)) (g_string->utf8 str start end))
 
     (define (raise . args)
       (apply throw #t args)
