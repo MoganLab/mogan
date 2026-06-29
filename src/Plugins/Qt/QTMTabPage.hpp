@@ -45,6 +45,12 @@ public:
   explicit QTMTabPage ();
   virtual void paintEvent (QPaintEvent*) override;
   bool         isDirty () const { return m_isDirty; }
+  /*! 同步已解析好的显示状态（干净标题 + dirty 标志）。
+   * replaceTabPages 复用既有 tab 时调用：srcTab 构造时已 applyDisplayTitle
+   * 解析过尾部 `*`，其 text() 是干净标题、isDirty() 是最新脏状态。复用的
+   * tab 必须同步这两者，否则 m_isDirty 停留在首次构造的旧值，编辑标脏/
+   * 保存去脏都不会反映到关闭按钮位置的 `*` 上。 */
+  void syncDisplay (const QString& cleanTitle, bool dirty);
 
 public slots:
   void setChecked (bool checked);

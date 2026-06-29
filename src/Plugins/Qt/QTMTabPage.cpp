@@ -200,6 +200,18 @@ QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
 }
 
 void
+QTMTabPage::syncDisplay (const QString& cleanTitle, bool dirty) {
+  // dirty 变化或标题变化都需要重画：前者改关闭按钮位置的 `*`，后者改文本。
+  bool changed= (m_isDirty != dirty) || (text () != cleanTitle);
+  m_isDirty   = dirty;
+  setText (cleanTitle);
+  if (changed) {
+    updateCloseButtonVisibility ();
+    update ();
+  }
+}
+
+void
 QTMTabPage::initializeCloseButton (QAction* closeAction) {
   m_closeBtn= new QWK::WindowButton (this);
   m_closeBtn->setObjectName ("tabpage-close-button");
@@ -481,7 +493,10 @@ QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
       // 维护）。
       QTMTabPage* tab= it.value ();
       existing.erase (it);
-      tab->setText (srcTab->text ());
+      // srcTab 构造时已 applyDisplayTitle 解析过尾部 `*`：其 text() 为干净
+      // 标题、isDirty() 为最新脏状态。复用 tab 必须同步这两者，否则 m_isDirty
+      // 停留在首次构造的旧值，编辑标脏/保存去脏都不会反映到 `*` 显示。
+      tab->syncDisplay (srcTab->text (), srcTab->isDirty ());
       next.append (tab);
       // srcTab 是本次 carrier 新建的 widget，未被接管。QTMTabPageAction 的
       // dtor 不会删 m_widget（见 hpp 注释），此处须手动释放，否则每次重建都
