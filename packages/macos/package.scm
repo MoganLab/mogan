@@ -357,17 +357,22 @@
 
 (define (find-files-recursive dir predicate)
   (define result '())
+  (define (skip-dir? entry)
+    (or (string=? entry ".") (string=? entry "..") (string-starts? entry "."))
+  ) ;define
   (define (walk d)
     (when (path-dir? d)
       (let ((entries (listdir d)))
         (vector-for-each (lambda (entry)
-                           (let ((full-path (path->string (path-join d entry))))
-                             (cond ((and (path-file? full-path) (predicate full-path))
-                                    (set! result (cons full-path result))
-                                   ) ;
-                                   ((path-dir? full-path) (walk full-path))
-                             ) ;cond
-                           ) ;let
+                           (when (not (skip-dir? entry))
+                             (let ((full-path (path->string (path-join d entry))))
+                               (cond ((and (path-file? full-path) (predicate full-path))
+                                      (set! result (cons full-path result))
+                                     ) ;
+                                     ((path-dir? full-path) (walk full-path))
+                               ) ;cond
+                             ) ;let
+                           ) ;when
                          ) ;lambda
           entries
         ) ;vector-for-each
@@ -380,14 +385,16 @@
 
 (define (find-first-matching dir predicate)
   (define result #f)
+  (define (skip-dir? entry)
+    (or (string=? entry ".") (string=? entry "..") (string-starts? entry "."))
+  ) ;define
   (define (walk d)
-    (display (string-append "  [find] entering: " d "\n"))
     (when (and (not result) (path-dir? d))
+      (display (string-append "  [find] entering: " d "\n"))
       (let ((entries (listdir d)))
         (vector-for-each (lambda (entry)
-                           (when (not result)
+                           (when (and (not result) (not (skip-dir? entry)))
                              (let ((full-path (path->string (path-join d entry))))
-                               (display (string-append "  [find] checking: " full-path "\n"))
                                (cond ((predicate full-path)
                                       (display (string-append "  [find] matched: " full-path "\n"))
                                       (set! result full-path)
