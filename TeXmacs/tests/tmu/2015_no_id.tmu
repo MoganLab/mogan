@@ -1,0 +1,14 @@
+<TMU|<tuple|1.1.0|2026.2.6>>
+
+<style|<tuple|generic|chinese|number-europe|preview-ref>>
+
+<\body>
+  2015_no_id
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>
