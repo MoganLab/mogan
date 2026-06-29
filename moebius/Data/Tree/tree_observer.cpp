@@ -1,8 +1,8 @@
 #include "tree_observer.hpp"
 #include "analyze.hpp"
+#include "basic.hpp"
 #include "modification.hpp"
 #include "observers.hpp"
-#include "tm_debug.hpp"
 #include "tree_cursor.hpp"
 #include "tree_helper.hpp"
 
@@ -473,8 +473,8 @@ raw_apply (tree& t, modification mod) {
 void
 apply (tree& ref, modification mod) {
   if (!is_applicable (ref, mod)) {
-    failed_error << "mod= " << mod << "\n";
-    failed_error << "ref= " << ref << "\n";
+    cerr << "mod= " << mod << "\n";
+    cerr << "ref= " << ref << "\n";
     TM_FAILED ("invalid modification");
   }
   path ip= obtain_ip (ref);
