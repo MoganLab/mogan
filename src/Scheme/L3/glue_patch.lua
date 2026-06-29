@@ -22,7 +22,6 @@ function main()
             "scheme.hpp",
             "patch.hpp",
             "tree.hpp",
-            "tree_patch.hpp",
             "glue_patch_extra.hpp",
         },
         glues = {
@@ -174,24 +173,6 @@ function main()
                 arg_list = {
                     "patch",
                     "content"
-                }
-            },
-            {
-                scm_name = "patch-apply",
-                cpp_name = "var_clean_apply",
-                ret_type = "tree",
-                arg_list = {
-                    "content",
-                    "patch"
-                }
-            },
-            {
-                scm_name = "patch-inplace-apply",
-                cpp_name = "var_apply",
-                ret_type = "tree",
-                arg_list = {
-                    "tree",
-                    "patch"
                 }
             },
             {

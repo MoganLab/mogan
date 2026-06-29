@@ -11,22 +11,10 @@
 
 #include "patch.hpp"
 #include "tree.hpp"
-#include "tree_patch.hpp"
 
 inline patch
 branch_patch (array<patch> a) {
   return patch (true, a);
-}
-
-inline tree
-var_clean_apply (tree t, patch p) {
-  return clean_apply (copy (p), t);
-}
-
-inline tree
-var_apply (tree& t, patch p) {
-  apply (copy (p), t);
-  return t;
 }
 
 #endif
