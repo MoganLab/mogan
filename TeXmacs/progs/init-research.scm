@@ -527,6 +527,7 @@
 (lazy-format (convert rewrite init-rewrite) texmacs verbatim)
 (lazy-format (data mgs) mgs)
 (lazy-format (data stm) stm)
+(lazy-format (data stem) stem)
 (lazy-format (data tmu) tmu)
 (lazy-format (data docx) docx)
 (lazy-format (data html) html)

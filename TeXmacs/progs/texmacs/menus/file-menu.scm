@@ -175,7 +175,10 @@
     (filter (lambda (x)
               (and (not (in? x (image-formats)))
                 (or (with-developer-tool?)
-                  (and (not (string=? x "mgs")) (not (string=? x "stm")))
+                  (and (not (string=? x "mgs"))
+                    (not (string=? x "stm"))
+                    (not (string=? x "stem"))
+                  ) ;and
                 ) ;or
               ) ;and
             ) ;lambda
@@ -218,7 +221,10 @@
                   (not (string=? x "latex"))
                   (not (string=? x "latex-class"))
                   (or (with-developer-tool?)
-                    (and (not (string=? x "mgs")) (not (string=? x "stm")))
+                    (and (not (string=? x "mgs"))
+                      (not (string=? x "stm"))
+                      (not (string=? x "stem"))
+                    ) ;and
                   ) ;or
                 ) ;and
               ) ;lambda

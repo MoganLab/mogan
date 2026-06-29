@@ -327,7 +327,7 @@
 ) ;define
 
 (define (has-faithful-format? name)
-  (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu"))
+  (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu" "stem"))
 ) ;define
 
 (define (save-buffer-post name opts)
@@ -752,7 +752,7 @@
     (not (url-rooted-web? name))
     (not (url-rooted-tmfs? name))
     (not (auto-backup-texmacs-path-buffer? name))
-    (in? (auto-backup-format name) '("texmacs" "stm" "mgs" "tmu"))
+    (in? (auto-backup-format name) '("texmacs" "stm" "mgs" "tmu" "stem"))
   ) ;and
 ) ;tm-define
 
