@@ -866,9 +866,8 @@
                                 api-key-id
                                 " --issuer "
                                 api-issuer
-                                " --team-id "
-                                team-id
-                                " --wait --timeout 60m --output-format json > /tmp/notary_result.json'"
+                                " --wait --timeout 60m --output-format json > /tmp/notary_result.json 2>&1"
+                                " || { echo \"--- notarytool stderr ---\"; cat /tmp/notary_result.json 1>&2; exit 1; }'"
                               ) ;string-append
                             ) ;call-or-quit
                           ) ;let
