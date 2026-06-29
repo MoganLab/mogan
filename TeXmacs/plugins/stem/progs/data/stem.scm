@@ -18,30 +18,31 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (stem-recognizes? s)
-  (and (string? s) (string-starts? s "(document (TeXmacs")))
+  (and (string? s) (string-starts? s "(document (TeXmacs"))
+) ;define
 
 (define-format stem
   (:name "STEM")
   (:suffix "stem")
-  (:must-recognize stem-recognizes?))
+  (:must-recognize stem-recognizes?)
+) ;define-format
 
 (define (texmacs->stem t)
-  (texmacs->stm (herk-tree->utf8-tree t)))
+  (texmacs->stm (herk-tree->utf8-tree t))
+) ;define
 
 (define (stem->texmacs text)
-  (utf8-tree->herk-tree (stm->texmacs text)))
+  (utf8-tree->herk-tree (stm->texmacs text))
+) ;define
 
 (define (stem-snippet->texmacs text)
-  (utf8-tree->herk-tree (stm-snippet->texmacs text)))
+  (utf8-tree->herk-tree (stm-snippet->texmacs text))
+) ;define
 
-(converter texmacs-tree stem-document
-  (:function texmacs->stem))
+(converter texmacs-tree stem-document (:function texmacs->stem))
 
-(converter stem-document texmacs-tree
-  (:function stem->texmacs))
+(converter stem-document texmacs-tree (:function stem->texmacs))
 
-(converter texmacs-tree stem-snippet
-  (:function texmacs->stem))
+(converter texmacs-tree stem-snippet (:function texmacs->stem))
 
-(converter stem-snippet texmacs-tree
-  (:function stem-snippet->texmacs))
+(converter stem-snippet texmacs-tree (:function stem-snippet->texmacs))
