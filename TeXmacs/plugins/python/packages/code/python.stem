@@ -1,1 +1,62 @@
-(document (TeXmacs "2.1.4") (style "source") (body (document (active* (src-title (document (src-package "python" "1.0") (src-purpose (document "Markup for Python sessions.")) (src-copyright "2021" (document "Joris van der Hoeven" "    2024 by Darcy Shen")) (src-license (document (concat "This software falls under the " (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE") ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see " (hlink "http://www.gnu.org/licenses/gpl-3.0.html" "http://www.gnu.org/licenses/gpl-3.0.html") ".")))))) (use-module "(data python)") (use-module "(code python-edit)") (assign "python" (macro "body" (with "mode" "prog" "prog-language" "python" "font-family" "rm" (arg "body")))) (assign "python-code" (macro "body" (document (pseudo-code (document (python (arg "body"))))))) (active* (document (src-comment (document "Use verbatim output")))) (assign "python-output" (macro "body" (document (with "mode" "text" "language" "verbatim" "font-family" "tt" (document (generic-output (document (arg "body")))))))) (assign "python-errput" (macro "body" (document (with "mode" "text" "language" "verbatim" "font-family" "tt" (document (generic-errput (document (arg "body")))))))) "")) (initial (collection (associate "preamble" "true"))))
+(document (TeXmacs "2.1.4")
+  (style "source")
+  (body (document (active* (src-title (document (src-package "python" "1.0")
+                                        (src-purpose (document "Markup for Python sessions."))
+                                        (src-copyright "2021"
+                                          (document "Joris van der Hoeven" "    2024 by Darcy Shen")
+                                        ) ;src-copyright
+                                        (src-license (document (concat "This software falls under the "
+                                                                 (hlink "GNU general public license, version 3 or later" "$TEXMACS_PATH/LICENSE")
+                                                                 ". It comes WITHOUT ANY WARRANTY WHATSOEVER. You should have received a copy of the license which the software. If not, see "
+                                                                 (hlink "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                   "http://www.gnu.org/licenses/gpl-3.0.html"
+                                                                 ) ;hlink
+                                                                 "."
+                                                               ) ;concat
+                                                     ) ;document
+                                        ) ;src-license
+                                      ) ;document
+                           ) ;src-title
+                  ) ;active*
+          (use-module "(data python)")
+          (use-module "(code python-edit)")
+          (assign "python"
+            (macro "body"
+              (with "mode" "prog" "prog-language" "python" "font-family" "rm" (arg "body"))
+            ) ;macro
+          ) ;assign
+          (assign "python-code"
+            (macro "body" (document (pseudo-code (document (python (arg "body"))))))
+          ) ;assign
+          (active* (document (src-comment (document "Use verbatim output"))))
+          (assign "python-output"
+            (macro "body"
+              (document (with "mode"
+                          "text"
+                          "language"
+                          "verbatim"
+                          "font-family"
+                          "tt"
+                          (document (generic-output (document (arg "body"))))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          (assign "python-errput"
+            (macro "body"
+              (document (with "mode"
+                          "text"
+                          "language"
+                          "verbatim"
+                          "font-family"
+                          "tt"
+                          (document (generic-errput (document (arg "body"))))
+                        ) ;with
+              ) ;document
+            ) ;macro
+          ) ;assign
+          ""
+        ) ;document
+  ) ;body
+  (initial (collection (associate "preamble" "true")))
+) ;document

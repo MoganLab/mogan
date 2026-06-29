@@ -82,6 +82,17 @@ is_paren_or_spc (char c) {
   return (c == ' ') || (c == '\t') || (c == '\n') || (c == '(') || (c == ')');
 };
 
+static void
+skip_scheme_blanks (string& s, int& i, const int length) {
+  while (i < length && (is_spc (s[i]) || s[i] == ';')) {
+    if (s[i] == ';') {
+      while (i < length && s[i] != '\n')
+        i++;
+    }
+    else i++;
+  }
+}
+
 static scheme_tree
 string_to_scheme_tree (string& s, int& i, const int length) {
   for (; i < length; i++)
@@ -95,8 +106,7 @@ string_to_scheme_tree (string& s, int& i, const int length) {
       scheme_tree p (TUPLE);
       i++;
       while (true) {
-        while (is_spc (s[i]) && (i < length))
-          i++;
+        skip_scheme_blanks (s, i, length);
         if ((i == length) || (s[i] == ')')) break;
         p << string_to_scheme_tree (s, i, length);
       }
@@ -175,11 +185,13 @@ block_to_scheme_tree (string s) {
   scheme_tree p (TUPLE);
   int         i     = 0;
   const int   length= N (s);
-  while ((i < length) && (is_spc (s[i]) || s[i] == ')'))
+  skip_scheme_blanks (s, i, length);
+  while (i < length && s[i] == ')')
     i++;
   while (i < length) {
     p << string_to_scheme_tree (s, i, length);
-    while ((i < length) && (is_spc (s[i]) || s[i] == ')'))
+    skip_scheme_blanks (s, i, length);
+    while (i < length && s[i] == ')')
       i++;
   }
   return p;
