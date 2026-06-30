@@ -69,14 +69,15 @@
 
 (tm-menu (supported-executable-menu)
   (for (name (session-list))
-    (let* ((menu-name (session-name name))
-           (l (connection-variants name)))
-      (assuming (== l (list "default"))
-        ((eval menu-name) (make-script-input* name "default")))
-      (assuming (!= l (list "default"))
-        (-> (eval menu-name)
-            (for (variant l)
-              ((eval `(verbatim ,variant)) (make-script-input* name variant))))))))
+    (unless (and (== name "scheme") (not (with-developer-tool?)))
+      (let* ((menu-name (session-name name))
+             (l (connection-variants name)))
+        (assuming (== l (list "default"))
+          ((eval menu-name) (make-script-input* name "default")))
+        (assuming (!= l (list "default"))
+          (-> (eval menu-name)
+              (for (variant l)
+                ((eval `(verbatim ,variant)) (make-script-input* name variant))))))))))
 
 (menu-bind insert-fold-menu
   (-> "Folded"
