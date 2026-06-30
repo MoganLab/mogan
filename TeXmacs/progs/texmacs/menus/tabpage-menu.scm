@@ -39,8 +39,12 @@
          (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
          (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
          (mod? (buffer-modified? buf))
+         (result (string-append title* (if mod? " *" "")))
         ) ;
-    (string-append title* (if mod? " *" ""))
+    ;; [1132] 临时调试: 观察切 tab 时 buffer-modified? 的返回值
+    (display* "[1132] tabpage-display-title buf=" buf
+              " title=" title* " mod?=" mod? " result=" result "\n")
+    result
   ) ;let*
 ) ;define
 
