@@ -269,9 +269,12 @@
 (define (edit-macro-in-style-file l)
   (and-with name
     (search-style-package l)
-    (let* ((style-name (string-append name ".ts"))
-           (style-url (url-append "$TEXMACS_STYLE_PATH" style-name))
-           (file-name (url-resolve style-url "r"))
+    (let* ((stem-name (string-append name ".stem"))
+           (ts-name (string-append name ".ts"))
+           (stem-url (url-append "$TEXMACS_STYLE_PATH" stem-name))
+           (ts-url (url-append "$TEXMACS_STYLE_PATH" ts-name))
+           (stem-file (url-resolve stem-url "r"))
+           (file-name (if (url-none? stem-file) (url-resolve ts-url "r") stem-file))
           ) ;
       (cursor-history-add (cursor-path))
       (load-document file-name)

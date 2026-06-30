@@ -197,11 +197,20 @@
 ) ;tm-define
 
 (define (url-resolve-package name)
-  (let* ((style-name (string-append name ".ts"))
-         (style-url (url-append "$TEXMACS_STYLE_PATH" style-name))
-         (style-local (url-relative (current-buffer) style-name))
+  (let* ((stem-name (string-append name ".stem"))
+         (ts-name (string-append name ".ts"))
+         (stem-url (url-append "$TEXMACS_STYLE_PATH" stem-name))
+         (stem-local (url-relative (current-buffer) stem-name))
+         (ts-url (url-append "$TEXMACS_STYLE_PATH" ts-name))
+         (ts-local (url-relative (current-buffer) ts-name))
         ) ;
-    (url-resolve (url-or style-url style-local) "r")
+    (with stem-resolved
+      (url-resolve (url-or stem-url stem-local) "r")
+      (if (url-none? stem-resolved)
+        (url-resolve (url-or ts-url ts-local) "r")
+        stem-resolved
+      ) ;if
+    ) ;with
   ) ;let*
 ) ;define
 
