@@ -63,7 +63,16 @@
           ) ;
       (tab-page (eval view)
        ((balloon (eval `(verbatim ,tab-title)) (eval `(verbatim ,doc-path)))
+        ;; [1132] 临时调试: 记录点击切换前所有 buffer 的 mod? 状态
+        (display* "[1132] before window-set-view target=" buf "\n")
+        (for-each (lambda (b)
+                    (display* "[1132]   pre-switch  buf=" b " mod?=" (buffer-modified? b) "\n"))
+                  (buffer-list))
         (window-set-view view-win view #t)
+        (display* "[1132] after  window-set-view target=" buf "\n")
+        (for-each (lambda (b)
+                    (display* "[1132]   post-switch buf=" b " mod?=" (buffer-modified? b) "\n"))
+                  (buffer-list))
        ) ;
        ;; #t stansd for focus
        ((balloon "" "Close") (safely-kill-tabpage-by-url view-win view buf))
