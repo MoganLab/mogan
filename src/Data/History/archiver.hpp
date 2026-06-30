@@ -49,13 +49,16 @@ protected:
    * @name 内部子例程（历史树操作）
    */
   ///@{
-  void  apply (patch p);                              //!< 应用补丁到 the_et，期间置 versioning=true
-  void  split (patch p1, patch p2, patch& re1, patch& re2); //!< 按作者拆分 p2 分支：可交换者入 re2，余入 re1
-  patch make_future (patch p1, patch p2);             //!< 跨作者 redo 时构造 p1 之后的历史分支
-  patch expose (patch archive);                       //!< 把被他人遮蔽的本作者条目暴露到 undo 链顶（递归）
-  void  expose ();                                    //!< expose() 的封装，作用于本对象 #archive
-  void  normalize ();                                 //!< 规范化：把跨作者的 redo 分支重排进 undo 链
-  int   corrected_depth ();                           //!< 扣除分组 marker 偏移后的深度，用于判定保存一致性
+  void  apply (patch p); //!< 应用补丁到 the_et，期间置 versioning=true
+  void  split (patch p1, patch p2, patch& re1,
+               patch& re2); //!< 按作者拆分 p2 分支：可交换者入 re2，余入 re1
+  patch make_future (patch p1,
+                     patch p2); //!< 跨作者 redo 时构造 p1 之后的历史分支
+  patch
+  expose (patch archive);  //!< 把被他人遮蔽的本作者条目暴露到 undo 链顶（递归）
+  void expose ();          //!< expose() 的封装，作用于本对象 #archive
+  void normalize ();       //!< 规范化：把跨作者的 redo 分支重排进 undo 链
+  int  corrected_depth (); //!< 扣除分组 marker 偏移后的深度，用于判定保存一致性
   ///@}
 
 public:
@@ -63,10 +66,11 @@ public:
    * @name 构造、析构、清理与打印
    */
   ///@{
-  archiver_rep (double author, path rp); //!< 构造：绑定作者与文档根路径，挂载观察者
-  ~archiver_rep ();                      //!< 析构：注销作者、摘除观察者
-  void clear ();                         //!< 清空全部历史与当前修改（重置为空文档）
-  void show_all ();                      //!< 调试：打印完整历史树
+  archiver_rep (double author,
+                path   rp); //!< 构造：绑定作者与文档根路径，挂载观察者
+  ~archiver_rep ();       //!< 析构：注销作者、摘除观察者
+  void clear ();          //!< 清空全部历史与当前修改（重置为空文档）
+  void show_all ();       //!< 调试：打印完整历史树
   ///@}
 
   /**
