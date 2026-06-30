@@ -69,9 +69,10 @@
 
 (tm-menu (supported-executable-menu)
   (for (name (session-list))
-    (with menu-name (session-name name)
-      ((eval menu-name)
-       (make-script-input* name "default")))))
+    (unless (and (== name "scheme") (not (with-developer-tool?)))
+      (with menu-name (session-name name)
+        ((eval menu-name)
+         (make-script-input* name "default"))))))
 
 (menu-bind insert-fold-menu
   (-> "Folded"
