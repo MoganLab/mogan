@@ -72,7 +72,7 @@
 (tm-define (current-stem-site)
   (cond
     ((string=? (current-stem-profile) "production") "https://liiistem.cn")
-    ((string=? (current-stem-profile) "staging") "https://test-www.liiistem.cn")
+    ((string=? (current-stem-profile) "staging") "https://test.liiistem.cn")
     (else "local")))
 
 ;; OAuth2 配置
