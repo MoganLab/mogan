@@ -88,18 +88,20 @@
 
 (tm-menu (supported-executable-menu)
   (for (name (session-list))
-    (let* ((menu-name (session-name name)) (l (connection-variants name)))
-      (assuming (== l (list "default"))
-       ((eval menu-name) (make-script-input* name "default"))
-      ) ;assuming
-      (assuming (!= l (list "default"))
-        (-> (eval menu-name)
-          (for (variant l)
-           ((eval `(verbatim ,variant)) (make-script-input* name variant))
-          ) ;for
-        ) ;->
-      ) ;assuming
-    ) ;let*
+    (assuming (or (!= name "scheme") (with-developer-tool?))
+      (let* ((menu-name (session-name name)) (l (connection-variants name)))
+        (assuming (== l (list "default"))
+         ((eval menu-name) (make-script-input* name "default"))
+        ) ;assuming
+        (assuming (!= l (list "default"))
+          (-> (eval menu-name)
+            (for (variant l)
+             ((eval `(verbatim ,variant)) (make-script-input* name variant))
+            ) ;for
+          ) ;->
+        ) ;assuming
+      ) ;let*
+    ) ;assuming
   ) ;for
 ) ;tm-menu
 
