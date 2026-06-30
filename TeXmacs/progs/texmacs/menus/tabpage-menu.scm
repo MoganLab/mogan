@@ -39,12 +39,8 @@
          (is-startup? (== (utf8->cork (url->system buf)) "tmfs://startup-tab"))
          (title* (if is-startup? (if (community-stem?) "Mogan STEM" "Liii STEM") title*))
          (mod? (buffer-modified? buf))
-         (result (string-append title* (if mod? " *" "")))
         ) ;
-    ;; [1132] 临时调试: 观察切 tab 时 buffer-modified? 的返回值
-    (display* "[1132] tabpage-display-title buf=" buf
-              " title=" title* " mod?=" mod? " result=" result "\n")
-    result
+    (string-append title* (if mod? " *" ""))
   ) ;let*
 ) ;define
 
@@ -63,16 +59,7 @@
           ) ;
       (tab-page (eval view)
        ((balloon (eval `(verbatim ,tab-title)) (eval `(verbatim ,doc-path)))
-        ;; [1132] 临时调试: 记录点击切换前所有 buffer 的 mod? 状态
-        (display* "[1132] before window-set-view target=" buf "\n")
-        (for-each (lambda (b)
-                    (display* "[1132]   pre-switch  buf=" b " mod?=" (buffer-modified? b) "\n"))
-                  (buffer-list))
         (window-set-view view-win view #t)
-        (display* "[1132] after  window-set-view target=" buf "\n")
-        (for-each (lambda (b)
-                    (display* "[1132]   post-switch buf=" b " mod?=" (buffer-modified? b) "\n"))
-                  (buffer-list))
        ) ;
        ;; #t stansd for focus
        ((balloon "" "Close") (safely-kill-tabpage-by-url view-win view buf))
