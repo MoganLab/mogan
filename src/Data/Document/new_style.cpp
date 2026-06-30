@@ -62,9 +62,15 @@ static hashmap<string, bool> hidden_package_set (false);
 static bool                  hidden_package_set_initialized= false;
 
 static url
+resolve_style_file (string style_name, url base) {
+  url ret= resolve (base * (style_name * ".stem"));
+  if (!is_none (ret)) return ret;
+  return resolve (base * (style_name * ".ts"));
+}
+
+static url
 resolve_local_style (string style_name) {
-  string pack= style_name * ".ts";
-  url    ret = resolve (url ("$TEXMACS_STYLE_PATH") * pack);
+  url ret= resolve_style_file (style_name, url ("$TEXMACS_STYLE_PATH"));
   if (DEBUG_IO) {
     debug_io << "Resolved local style: " << style_name << " -> " << ret << LF;
   }
@@ -73,8 +79,8 @@ resolve_local_style (string style_name) {
 
 static url
 resolve_relative_style (string style_name, url master) {
-  string pack= style_name * ".ts";
-  url    ret = resolve (expand (head (master) * url_ancestor () * pack));
+  url ret=
+      resolve_style_file (style_name, expand (head (master) * url_ancestor ()));
   if (DEBUG_IO) {
     debug_io << "Resolved relative style: (" << style_name << ", " << master
              << ")" << LF << "-> " << ret << LF;
@@ -137,7 +143,7 @@ static string
 cache_file_name_sub (tree t) {
   if (is_atomic (t)) {
     string s= t->label;
-    if (ends (s, ".ts")) {
+    if (ends (s, ".ts") || ends (s, ".stem")) {
       url style= url_system (s);
       if (is_rooted_web (style)) {
         url local_style= get_from_web (s);
@@ -381,6 +387,7 @@ collect_hidden_packages (url u, bool hidden, hashmap<string, bool>& pkgs) {
   if (hidden && is_atomic (u)) {
     string l= as_string (u);
     if (ends (l, ".ts")) l= l (0, N (l) - 3);
+    else if (ends (l, ".stem")) l= l (0, N (l) - 5);
     else if (ends (l, ".hook")) l= l (0, N (l) - 5);
     else return;
     pkgs (l)= true;
@@ -432,6 +439,7 @@ compute_style_menu (url u, int kind) {
   if (is_atomic (u)) {
     string l= as_string (u);
     if (ends (l, ".ts")) l= l (0, N (l) - 3);
+    else if (ends (l, ".stem")) l= l (0, N (l) - 5);
     else if (ends (l, ".hook")) l= l (0, N (l) - 5);
     else return "";
     string cmd ("set-main-style");

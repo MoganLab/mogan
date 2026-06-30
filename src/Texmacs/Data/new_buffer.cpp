@@ -536,8 +536,12 @@ load_style_tree (string package) {
   if (style_tree_cache->contains (package)) return style_tree_cache[package];
   url name= url_none ();
   url styp= "$TEXMACS_STYLE_PATH";
-  if (ends (package, ".ts")) name= package;
-  else name= styp * (package * ".ts");
+  if (ends (package, ".ts") || ends (package, ".stem")) name= package;
+  else {
+    url stem_name= styp * (package * ".stem");
+    name         = resolve (stem_name);
+    if (is_none (name)) name= styp * (package * ".ts");
+  }
   name= resolve (name);
   string doc_s;
   if (!load_string (name, doc_s, false)) {
