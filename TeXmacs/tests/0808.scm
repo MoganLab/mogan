@@ -1,6 +1,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; MODULE      : 0806.scm
+;; MODULE      : 0808.scm
 ;; DESCRIPTION : Tests for Julia Plots integration and PDF rendering
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
@@ -168,6 +168,6 @@
 
 ;;; ========== 测试入口 ==========
 
-(tm-define (test_0806)
+(tm-define (test_0808)
   (test-julia-plots)
   (check-report))
