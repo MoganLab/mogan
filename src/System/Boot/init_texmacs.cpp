@@ -593,13 +593,6 @@ init_texmacs () {
   // cout << "Initialize -- font_database_load end\n";
 }
 
-void
-load_welcome_doc () {
-  if (DEBUG_STD) debug_boot << "Loading welcome message...\n";
-  string cmd= "(mogan-welcome)";
-  exec_delayed (scheme_cmd (cmd));
-}
-
 /******************************************************************************
  * Load settings and check version
  ******************************************************************************/
@@ -898,8 +891,6 @@ TeXmacs_main (int argc, char** argv) {
     server sv (app_type::RESEARCH);
     string where     = "";
     bool   first_file= true;
-
-    if (install_status == 1) load_welcome_doc ();
 
     ensure_window ();
 
