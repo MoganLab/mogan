@@ -505,7 +505,7 @@ target("libmogan") do
         print("No need to install libmogan")
     end)
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
-    add_frameworks("QtQml", "QtQuick", "QtBodymovin")
+    add_frameworks("QtQml", "QtQuick", "QtQuickWidgets", "QtBodymovin")
 
     add_rules("mogan.glue")
     add_files("src/Scheme/L2/glue_lolly.lua", {rule = "mogan.glue"})
@@ -736,6 +736,7 @@ target("libmogan") do
     -- Add Qt resource file
     add_rules("qt.qrc")
     add_files("TeXmacs/misc/images/images.qrc")
+    add_files("src/Plugins/Qt/moganqml.qrc")
 
     if is_plat("macosx") then
         plugin_macos_srcs = {
@@ -883,7 +884,7 @@ target("stem") do
     end
 
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
-    add_frameworks("QtQml", "QtQuick", "QtBodymovin")
+    add_frameworks("QtQml", "QtQuick", "QtQuickWidgets", "QtBodymovin")
     add_packages("goldfish")
     add_deps("liblolly")
     add_deps("libmogan")
