@@ -44,16 +44,6 @@ Item {
         radius: 16 * scaleFactor
         border.width: 1
         border.color: borderClr
-        
-        // 阴影效果
-        layer.enabled: true
-        layer.effect: MultiEffect {
-            shadowEnabled: true
-            shadowColor: shadowColor
-            shadowBlur: 0.4
-            shadowVerticalOffset: 4 * scaleFactor
-            shadowHorizontalOffset: 0
-        }
 
         // 拖动无边框窗口：在背景区域按住拖动即移动整个弹窗。
         DragHandler {
