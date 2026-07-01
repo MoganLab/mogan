@@ -87,6 +87,7 @@
       ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
       ((== key "user-info-url") (string-append base-url "/api/v1/oauth2/membershipInfo"))
       ((== key "pricing-url") (string-append base-url "/pricing.html"))
+      ((== key "growth-url") (string-append base-url "/personal-center/growth?from=oauth"))
       ((== key "click-return-liii-url") "https://liiistem.cn/?from=login_button")
       (else ""))))
 
@@ -101,6 +102,7 @@
 ;     ((== key "port-list") "6029,8087,9256,7438,5173,6391,8642,9901,44118,55055,1895")
 ;     ((== key "user-info-url") "http://127.0.0.1:8081/api/v1/oauth2/membershipInfo") ;init:api/oauthUser/membershipInfo -> api/v1/oauth2/membershipInfo
 ;     ((== key "pricing-url") "http://127.0.0.1:3000/pricing.html")
+;     ((== key "growth-url") "http://127.0.0.1:3000/personal-center/growth?from=oauth")
 ;     ((== key "click-return-liii-url") "http://127.0.0.1:3000/?from=login_button")
 ;     (else "")))
 
