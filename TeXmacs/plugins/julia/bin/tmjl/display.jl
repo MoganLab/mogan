@@ -124,8 +124,16 @@ is_symbolic_object(x::Dict) = any(is_symbolic_object, keys(x)) || any(is_symboli
 
 is_plots_type(t::Type) = begin
     t isa Union && return false
-    s = string(t)
-    (occursin("Plots.Plot", s) || s == "Plot") && return true
+    # Prefer a precise type check when Plots.jl is loaded in Main
+    if isdefined(Main, :Plots)
+        try
+            return t <: Main.Plots.Plot
+        catch
+        end
+    end
+    # Fallback to name-based heuristics
+    # s = string(t)
+    # (occursin("Plots.Plot", s) || s == "Plot") && return true
     try
         m = parentmodule(t)
         m_name = string(Symbol(m))
@@ -154,6 +162,7 @@ function display(d::InlineDisplay, x)
             end
         catch e
             tm_out("Error rendering Plots: $(e)\n")
+            return
         end
     end
 

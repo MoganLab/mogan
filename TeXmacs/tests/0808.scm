@@ -111,8 +111,8 @@
 (define (test-julia-plots)
   (if (julia-plots-available?)
       (let* ((temp-dir (os-temp-dir))
-             (input-path (url->system (system->url (string-append temp-dir "/0806_input.txt"))))
-             (output-path (url->system (system->url (string-append temp-dir "/0806_output.txt"))))
+             (input-path (url->system (system->url (string-append temp-dir "/0808_input.txt"))))
+             (output-path (url->system (system->url (string-append temp-dir "/0808_output.txt"))))
              (julia-script (get-system-path "/plugins/julia/bin/julia.jl"))
              (input-lines (list "using Plots"
                                 "<EOF>"
@@ -128,7 +128,7 @@
                                 "<EOF>"
                                 "plot(x, y, label=\"sin(x)\", xlabel=\"x_axis\", ylabel=\"y_axis\", color=:green)"
                                 "<EOF>")))
-        
+
         ;; Clean up old files if they exist
         (when (physical-file-exists? input-path) (physical-remove input-path))
         (when (physical-file-exists? output-path) (physical-remove output-path))
