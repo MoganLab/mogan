@@ -134,13 +134,13 @@ is_plots_type(t::Type) = begin
     # Fallback to name-based heuristics
     # s = string(t)
     # (occursin("Plots.Plot", s) || s == "Plot") && return true
-    try
-        m = parentmodule(t)
-        m_name = string(Symbol(m))
-        return occursin("Plots", m_name)
-    catch
-        return false
-    end
+    # try
+    #     m = parentmodule(t)
+    #     m_name = string(Symbol(m))
+    #     return occursin("Plots", m_name)
+    # catch
+    #     return false
+    # end
 end
 
 is_plots_object(x) = is_plots_type(typeof(x))
