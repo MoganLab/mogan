@@ -281,6 +281,7 @@
         ((in? s '("ass")) "assumption")
         ((in? s '("not")) "notation")
         ((in? s '("ax")) "axiom")
+        ((in? s '("fac")) "fact")
         ((in? s '("conv")) "convention")
         ((in? s '("conj")) "conjecture")
         ((in? s '("rem")) "remark")

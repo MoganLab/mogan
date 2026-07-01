@@ -38,6 +38,8 @@
 
   <new-theorem|axiom|Axiom>
 
+  <new-remark|fact|Fact>
+
   <new-theorem|notation|Notation>
 
   <new-theorem|conjecture|Conjecture>

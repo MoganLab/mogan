@@ -222,7 +222,7 @@
 
 (define-group theorem-tag theorem proposition lemma corollary conjecture)
 
-(define-group definition-tag definition axiom notation assumption)
+(define-group definition-tag definition axiom fact notation assumption)
 
 (define-group remark-tag remark note example convention warning acknowledgments)
 

@@ -172,6 +172,7 @@
    ("Proof" (make 'proof))
    ---
    ("Axiom" (make 'axiom))
+   ("Fact" (make 'fact))
    ("Assumption" (make 'assumption))
    ("Definition" (make 'definition))
    ("Notation" (make 'notation))
