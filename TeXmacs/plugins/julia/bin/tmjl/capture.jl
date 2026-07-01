@@ -57,7 +57,13 @@ Base.flush(io::TMJuliaStdio) = begin
     if get(io.io, :mogan_stream, "error") == "stdout"
         tm_out(buf * "\n")
     elseif get(io.io, :mogan_stream, "error") == "stderr"
-        tm_err(VERBATIM, buf)
+        # Filter out GKS font warnings to avoid plugin marking session in red
+        lines = split(buf, '\n')
+        filtered_lines = filter(line -> !occursin("GKS: glyph missing from current font", line), lines)
+        filtered_buf = join(filtered_lines, '\n')
+        if filtered_buf != ""
+            tm_err(VERBATIM, filtered_buf)
+        end
     end
 end
 
