@@ -1,0 +1,14 @@
+<TMU|<tuple|1.1.0|2026.2.4>>
+
+<style|<tuple|generic|chinese>>
+
+<\body>
+  2021 confirm-close GUI 测试夹具。
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

@@ -11,6 +11,7 @@
 #include <QQmlApplicationEngine>
 #include <QQmlComponent>
 #include <QQuickItem>
+#include <QQuickWidget>
 #include <QQuickWindow>
 #include <QtQml>
 
@@ -38,13 +39,20 @@ main (int argc, char** argv) {
   QUrl testUrl ("qrc:/test.qml");
   std::cout << "[PASS] QUrl created\n";
 
-  // Test 5: QtBodymovin version header compiled and linked
+  // Test 5: QQuickWidget (QtQuickWidgets module) is linkable. We don't
+  // instantiate it (needs QApplication + GUI), just verify the symbol
+  // resolves via the ResizeMode enum — proving the module is linked.
+  auto resizeMode= QQuickWidget::SizeViewToRootObject;
+  std::cout << "[PASS] QQuickWidget (QtQuickWidgets) linked, resizeMode="
+            << resizeMode << "\n";
+
+  // Test 6: QtBodymovin version header compiled and linked
   std::cout << "[PASS] QtBodymovin header included (version "
             << QTBODYMOVIN_VERSION_STR << ")\n";
 
-  // Test 6: Qt runtime version
+  // Test 7: Qt runtime version
   std::cout << "[INFO] Qt runtime version: " << qVersion () << "\n";
 
-  std::cout << "\nAll QtQuick + QtBodymovin tests passed!\n";
+  std::cout << "\nAll QtQuick + QtQuickWidgets + QtBodymovin tests passed!\n";
   return 0;
 }

@@ -22,6 +22,7 @@ function main()
             "object_l5.hpp",
             "scheme.hpp",
             "glue_l5_extra.hpp",
+            "QTMQmlDialog.hpp",
         },
         glues = {
             {
@@ -1777,6 +1778,15 @@ function main()
                 ret_type = "void",
                 arg_list = {
                     "url"
+                }
+            },
+            {
+                scm_name = "cpp-confirm-close",
+                cpp_name = "cpp_confirm_close",
+                ret_type = "string",
+                arg_list = {
+                    "string",
+                    "bool"
                 }
             },
             {
