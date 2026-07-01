@@ -94,15 +94,21 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   m_codeVerifier = generateCodeVerifier ();
   m_codeChallenge= generateCodeChallenge (m_codeVerifier);
 
-  // 设置自定义成功页面
+  // 登录回调返回极简跳转页：浏览器立即跳到官网成长激励计划页面
+  // （QOAuthHttpServerReplyHandler 仅支持设置 body，不支持 302 响应头，
+  // 故用 JS location.replace 触发跳转；URL 由 account.scm 的 growth-url 配置，
+  // 跟随 stem-profile 在 production/staging/local 之间切换）
+  c_string growthUrlC (as_string (call ("account-oauth2-config", "growth-url")));
+  QString redirectUrl= QString::fromUtf8 ((const char*) growthUrlC);
   QString customHtml=
       "<!doctype html><html><head>"
       "<meta charset='utf-8'>"
-      "<style>body{font-family:Arial;background:#f2f2f2;margin:0;padding:20px}"
-      "h2{color:#000;margin:0}</style>"
+      "<title>登录成功</title>"
       "</head><body>"
-      "<h2>亲爱的三鲤用户，恭喜登录成功！您可以关闭此页面并返回应用。</h2>"
-      "<script>window.setTimeout(function(){window.close()},3000);</script>"
+      "<script>window.location.replace(\"" +
+      redirectUrl + "\");</script>"
+      "<noscript><meta http-equiv='refresh' content='0;url=" +
+      redirectUrl + "'></noscript>"
       "</body></html>";
   m_reply->setCallbackText (customHtml);
 
