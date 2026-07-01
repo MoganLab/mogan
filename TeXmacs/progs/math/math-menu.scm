@@ -1555,9 +1555,75 @@
 ;; Wide accent focus menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (focus-tag-name l) (:require (in? l '(wide wide*))) "Wide")
+(tm-define (focus-tag-name l)
+  (:require (in? l
+              '(tilde hat
+                 bar
+                 vector
+                 check
+                 breve
+                 invbreve
+                 acute
+                 grave
+                 dot
+                 ddot
+                 dddot
+                 ddddot
+                 circle
+                 overbrace
+                 underbrace
+                 poverbrace
+                 punderbrace
+                 sqoverbrace
+                 squnderbrace
+                 rightarrow
+                 leftarrow
+                 leftrightarrow
+                 wide-bar)
+            ) ;in?
+  ) ;:require
+  (cond ((== l 'tilde) "Tilda ~")
+        ((== l 'hat) "Hat ^")
+        ((== l 'bar) "Bar ¯")
+        ((== l 'vector) "Vector →")
+        ((== l 'check) "Check ˇ")
+        ((== l 'breve) "Breve ˘")
+        ((== l 'invbreve) "Inverted breve ̑")
+        ((== l 'acute) "Acute ´")
+        ((== l 'grave) "Grave `")
+        ((== l 'dot) "Dot ˙")
+        ((== l 'ddot) "Two dots ¨")
+        ((== l 'dddot) "Three dots ˙˙˙")
+        ((== l 'ddddot) "Four dots ˙˙˙˙")
+        ((== l 'circle) "Circle ˚")
+        ((== l 'overbrace) "Overbrace ⏞")
+        ((== l 'underbrace) "Underbrace ⏟")
+        ((== l 'poverbrace) "Round overbrace")
+        ((== l 'punderbrace) "Round underbrace")
+        ((== l 'sqoverbrace) "Square overbrace")
+        ((== l 'squnderbrace) "Square underbrace")
+        ((== l 'rightarrow) "Right arrow →")
+        ((== l 'leftarrow) "Left arrow ←")
+        ((== l 'leftrightarrow) "Left-right arrow ↔")
+        ((== l 'wide-bar) "Wide bar ￣")
+  ) ;cond
+) ;tm-define
 
-(tm-define (focus-variants-of t) (:require (tree-in? t '(wide wide*))) '(wide))
+(tm-define (focus-tag-name l)
+  (:require (in? l '(wide wide*)))
+  (with t
+    (focus-tree)
+    (if (and t (tree-in? t '(wide wide*)))
+      (with v (get-accent-variant t) (if v (focus-tag-name v) "Wide"))
+      "Wide"
+    ) ;if
+  ) ;with
+) ;tm-define
+
+(tm-define (focus-variants-of t)
+  (:require (tree-in? t '(wide wide*)))
+  (get-accent-variants-list t)
+) ;tm-define
 
 (tm-menu (focus-toggle-menu t)
   (:require (tree-in? t '(wide wide*)))
