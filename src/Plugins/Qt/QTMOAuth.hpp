@@ -46,6 +46,8 @@ private:
   QString generateCodeChallenge (const QString& verifier);
   QUrl    getAuthorizationUrl ();
   QUrl    getAccessTokenUrl ();
+  QString getGrowthUrl ();
+  void    refreshCallbackHtml ();
 
   bool m_isLoggedIn= false;
 

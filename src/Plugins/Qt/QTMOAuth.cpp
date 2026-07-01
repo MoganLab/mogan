@@ -94,25 +94,10 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   m_codeVerifier = generateCodeVerifier ();
   m_codeChallenge= generateCodeChallenge (m_codeVerifier);
 
-  // 登录回调返回极简跳转页：浏览器立即跳到官网成长激励计划页面
-  // （QOAuthHttpServerReplyHandler 仅支持设置 body，不支持 302 响应头，
-  // 故用 JS location.replace 触发跳转；URL 由 account.scm 的 growth-url 配置，
-  // 跟随 stem-profile 在 production/staging/local 之间切换）
-  c_string growthUrlC (
-      as_string (call ("account-oauth2-config", "growth-url")));
-  QString redirectUrl= QString::fromUtf8 ((const char*) growthUrlC);
-  QString customHtml = "<!doctype html><html><head>"
-                       "<meta charset='utf-8'>"
-                       "<title>登录成功</title>"
-                       "</head><body>"
-                       "<script>window.location.replace(\"" +
-                      redirectUrl +
-                      "\");</script>"
-                      "<noscript><meta http-equiv='refresh' content='0;url=" +
-                      redirectUrl +
-                      "'></noscript>"
-                      "</body></html>";
-  m_reply->setCallbackText (customHtml);
+  // 登录回调的 HTML 内容由 refreshCallbackHtml() 生成，会在登录时按需读取
+  // account.scm 的 growth-url，跟随 stem-profile 在 production/staging/local
+  // 之间切换。这里首次生成一份作为启动默认值。
+  refreshCallbackHtml ();
 
   oauth2.setReplyHandler (m_reply);
   oauth2.setScope ((char*) scope);
@@ -150,6 +135,8 @@ QTMOAuth::QTMOAuth (QObject* parent) {
 void
 QTMOAuth::login () {
   if (m_reply->isListening ()) {
+    // 按当前 stem-profile 刷新回调页（让 profile 切换在下次登录立即生效）
+    refreshCallbackHtml ();
     // 手动构建授权URL
     QUrl      authUrl (getAuthorizationUrl ());
     QUrlQuery query;
@@ -450,4 +437,30 @@ QTMOAuth::getAccessTokenUrl () {
   c_string accessTokenUrl (
       as_string (call ("account-oauth2-config", "access-token-url")));
   return QUrl ((char*) accessTokenUrl);
+}
+
+QString
+QTMOAuth::getGrowthUrl () {
+  eval ("(use-modules (liii account))");
+  c_string growthUrl (as_string (call ("account-oauth2-config", "growth-url")));
+  return QString::fromUtf8 ((const char*) growthUrl);
+}
+
+void
+QTMOAuth::refreshCallbackHtml () {
+  // 每次调用都按当前 stem-profile 现场读取 growth-url，避免启动时固化导致
+  // profile 切换后回调仍跳到旧环境
+  QString redirectUrl= getGrowthUrl ();
+  QString customHtml = "<!doctype html><html><head>"
+                       "<meta charset='utf-8'>"
+                       "<title>登录成功</title>"
+                       "</head><body>"
+                       "<script>window.location.replace(\"" +
+                      redirectUrl +
+                      "\");</script>"
+                      "<noscript><meta http-equiv='refresh' content='0;url=" +
+                      redirectUrl +
+                      "'></noscript>"
+                      "</body></html>";
+  m_reply->setCallbackText (customHtml);
 }
