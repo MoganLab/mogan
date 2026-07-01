@@ -79,10 +79,10 @@
       ">>=" "<<=" "==" "!=" "≠" "<" "<=" "≤" ">" ">=" "≥" "√"
       "<|" "|>" "∘" "..." "::" "=>" "->"
       )
-   ; (operator_special ":")
+    (operator_special ":")
     (operator_decoration "@" "$")
-   ; (operator_field ".")
-   (operator_openclose "{" "[" "(" ")" "]" "}")))
+    (operator_field ".")
+    (operator_openclose "{" "[" "(" ")" "]" "}")))
 
 ;; https://docs.julialang.org/en/v1/manual/complex-and-rational-numbers/#Rational-Numbers
 (define (julia-number-suffix)
@@ -129,11 +129,11 @@
   ("syntax:julia:constant_string" "dark grey" notify-julia-syntax)
   ("syntax:julia:constant_char" "#333333" notify-julia-syntax)
   ("syntax:julia:declare_function" "#0000c0" notify-julia-syntax)
-  ("syntax:julia:declare_module" "0000c0" notify-julia-syntax)
-  ("syntax:julia:declare_type" "0000c0" notify-julia-syntax)
+  ("syntax:julia:declare_module" "#0000c0" notify-julia-syntax)
+  ("syntax:julia:declare_type" "#0000c0" notify-julia-syntax)
   ("syntax:julia:operator" "#8b008b" notify-julia-syntax)
   ("syntax:julia:operator_openclose" "#B02020" notify-julia-syntax)
-  ("syntax:julia:operator_field" "#88888" notify-julia-syntax)
+  ("syntax:julia:operator_field" "#888888" notify-julia-syntax)
   ("syntax:julia:operator_special" "orange" notify-julia-syntax)
   ("syntax:julia:keyword" "#309090" notify-julia-syntax)
   ("syntax:julia:keyword_conditional" "#309090" notify-julia-syntax)
