@@ -98,18 +98,20 @@ QTMOAuth::QTMOAuth (QObject* parent) {
   // （QOAuthHttpServerReplyHandler 仅支持设置 body，不支持 302 响应头，
   // 故用 JS location.replace 触发跳转；URL 由 account.scm 的 growth-url 配置，
   // 跟随 stem-profile 在 production/staging/local 之间切换）
-  c_string growthUrlC (as_string (call ("account-oauth2-config", "growth-url")));
+  c_string growthUrlC (
+      as_string (call ("account-oauth2-config", "growth-url")));
   QString redirectUrl= QString::fromUtf8 ((const char*) growthUrlC);
-  QString customHtml=
-      "<!doctype html><html><head>"
-      "<meta charset='utf-8'>"
-      "<title>登录成功</title>"
-      "</head><body>"
-      "<script>window.location.replace(\"" +
-      redirectUrl + "\");</script>"
-      "<noscript><meta http-equiv='refresh' content='0;url=" +
-      redirectUrl + "'></noscript>"
-      "</body></html>";
+  QString customHtml = "<!doctype html><html><head>"
+                       "<meta charset='utf-8'>"
+                       "<title>登录成功</title>"
+                       "</head><body>"
+                       "<script>window.location.replace(\"" +
+                      redirectUrl +
+                      "\");</script>"
+                      "<noscript><meta http-equiv='refresh' content='0;url=" +
+                      redirectUrl +
+                      "'></noscript>"
+                      "</body></html>";
   m_reply->setCallbackText (customHtml);
 
   oauth2.setReplyHandler (m_reply);
