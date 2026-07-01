@@ -133,7 +133,12 @@ ThumbnailLoader::processQueue () {
                   lmStr, "ddd, dd MMM yyyy hh:mm:ss 'GMT'");
             }
             if (lastModified.isValid ()) {
+#ifdef OS_WASM
+              // WASM version of Qt seems to have difference API on this
+              lastModified= lastModified.toUTC ();
+#else
               lastModified.setTimeZone (QTimeZone::utc ());
+#endif
             }
           }
 
