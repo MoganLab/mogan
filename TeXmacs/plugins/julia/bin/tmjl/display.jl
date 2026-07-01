@@ -122,7 +122,41 @@ is_symbolic_object(x::Tuple) = any(is_symbolic_object, x)
 is_symbolic_object(x::Set) = any(is_symbolic_object, x)
 is_symbolic_object(x::Dict) = any(is_symbolic_object, keys(x)) || any(is_symbolic_object, values(x))
 
+is_plots_type(t::Type) = begin
+    t isa Union && return false
+    s = string(t)
+    (occursin("Plots.Plot", s) || s == "Plot") && return true
+    try
+        m = parentmodule(t)
+        m_name = string(Symbol(m))
+        return occursin("Plots", m_name)
+    catch
+        return false
+    end
+end
+
+is_plots_object(x) = is_plots_type(typeof(x))
+
 function display(d::InlineDisplay, x)
+    if is_plots_object(x)
+        try
+            tmp_path = tempname() * ".pdf"
+            t = typeof(x)
+            m = parentmodule(t)
+            if isdefined(m, :savefig)
+                m.savefig(x, tmp_path)
+                tm_out("file:", tmp_path)
+                return
+            elseif isdefined(Main, :Plots) && isdefined(Main.Plots, :savefig)
+                Main.Plots.savefig(x, tmp_path)
+                tm_out("file:", tmp_path)
+                return
+            end
+        catch e
+            tm_out("Error rendering Plots: $(e)\n")
+        end
+    end
+
     if is_symbolic_object(x)
         if showable(MIME("text/latex"), x)
             display(d, MIME("text/latex"), x)

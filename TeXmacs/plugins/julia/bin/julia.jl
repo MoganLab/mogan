@@ -11,6 +11,9 @@
 
 module MoganJulia
 
+# Disable GUI popups for GR backend (Plots.jl)
+ENV["GKSwstype"] = "100"
+
 # Imports
 using REPL
 using Markdown

@@ -27,7 +27,9 @@
 (define (julia-launcher)
   (let* ((boot (string-quote (julia-entry)))
          (cmd  (url->system (find-binary-julia))))
-    (string-append cmd " " boot)))
+    (if (or (os-win32?) (os-mingw?))
+        (string-append cmd " " boot)
+        (string-append "env -u LD_LIBRARY_PATH -u QT_PLUGIN_PATH " cmd " " boot))))
 
 (plugin-configure julia
   (:require (has-binary-julia?))

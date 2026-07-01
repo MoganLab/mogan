@@ -11,10 +11,14 @@
 using Test
 using REPL
 
+# Disable GUI popups and sockets for GR backend (Plots.jl) during tests
+ENV["GKSwstype"] = "100"
+
 # Mock modules/types representing SymPy, Symbolics, SymbolicUtils for test detection
 module MockSymPy struct Sym end end
 module MockSymbolics struct Num end end
 module MockSymbolicUtils struct Basic end end
+module MockPlots struct Plot end end
 
 # Mock global variables and refs expected by included files
 const current_module = Ref{Module}(Main)
@@ -144,7 +148,13 @@ end
         @test is_symbolic_object(Dict("key" => MockSymbolics.Num()))       # Dict values
     end
 
-    @testset "5. Auto-completion Parsing (do_tab_complete)" begin
+    @testset "5. Plots Objects Recognition (is_plots_object)" begin
+        @test !is_plots_object(1)
+        @test !is_plots_object("plot")
+        @test is_plots_object(MockPlots.Plot())
+    end
+
+    @testset "6. Auto-completion Parsing (do_tab_complete)" begin
         buf_out = IOBuffer()
         orig_stdout[] = buf_out
 
@@ -164,7 +174,7 @@ end
         orig_stdout[] = stdout
     end
 
-    @testset "6. Stream Redirection (TMJuliaStdio)" begin
+    @testset "7. Stream Redirection (TMJuliaStdio)" begin
         old_stdout = stdout
         old_stderr = stderr
         buf_out = IOBuffer()
@@ -201,7 +211,7 @@ end
         orig_stderr[] = old_stderr
     end
 
-    @testset "7. TMJuliaStdio Properties" begin
+    @testset "8. TMJuliaStdio Properties" begin
         old_stdout = stdout
         rd, wr = redirect_stdout()
         try
@@ -213,7 +223,7 @@ end
         end
     end
 
-    @testset "8. Code Evaluation Core Logic" begin
+    @testset "9. Code Evaluation Core Logic" begin
         # These are the exact primitives used inside the main REPL loop
         @test include_string(Main, "1 + 2", "In[1]") == 3
         @test REPL.ends_with_semicolon("1 + 2;")
@@ -230,13 +240,13 @@ end
         @test replace("?sin", r"^\s*\?" => "") == "sin"
     end
 
-    @testset "9. Help Mode Integration" begin
+    @testset "10. Help Mode Integration" begin
         buf_help = IOBuffer()
         help_obj = Core.eval(Main, REPL.helpmode(buf_help, "sqrt"))
         @test help_obj isa Markdown.MD
     end
 
-    @testset "10. Additional MIME Displays" begin
+    @testset "11. Additional MIME Displays" begin
         buf_out = IOBuffer()
         orig_stdout[] = buf_out
 
@@ -263,7 +273,7 @@ end
         orig_stdout[] = stdout
     end
 
-    @testset "11. LaTeX Display Edge Cases" begin
+    @testset "12. LaTeX Display Edge Cases" begin
         buf_out = IOBuffer()
         orig_stdout[] = buf_out
 
@@ -282,7 +292,7 @@ end
         orig_stdout[] = stdout
     end
 
-    @testset "12. PDF Output Dispatch" begin
+    @testset "13. PDF Output Dispatch" begin
         buf_out = IOBuffer()
         orig_stdout[] = buf_out
         pdf_out(42)
@@ -290,7 +300,7 @@ end
         orig_stdout[] = stdout
     end
 
-    @testset "13. Completion Edge Cases" begin
+    @testset "14. Completion Edge Cases" begin
         buf_out = IOBuffer()
         orig_stdout[] = buf_out
 
@@ -313,7 +323,7 @@ end
         orig_stdout[] = stdout
     end
 
-    @testset "14. Symbolic Object Detection in Containers" begin
+    @testset "15. Symbolic Object Detection in Containers" begin
         @test is_symbolic_object([[MockSymbolics.Num()]])
         @test is_symbolic_object((a=MockSymPy.Sym(), b=1))
         @test is_symbolic_object(Dict(:x => [MockSymbolics.Num(), 1]))
@@ -324,7 +334,7 @@ end
         @test !is_symbolic_object(TestSymbolicLike.MyNum())
     end
 
-    @testset "15. Scientific Computing Workflows" begin
+    @testset "16. Scientific Computing Workflows" begin
         using LinearAlgebra
         A = [1.0 2.0; 3.0 4.0]
         @test det(A) ≈ -2.0
@@ -345,7 +355,7 @@ end
         @test !is_symbolic_object(π)
     end
 
-    @testset "16. Optional Symbolic Packages Integration" begin
+    @testset "17. Optional Symbolic Packages Integration" begin
         function pkg_available(pkg::String)
             try
                 @eval using $(Symbol(pkg))
@@ -402,16 +412,32 @@ end
         else
             @test_skip "Latexify.jl not installed"
         end
+
+        if pkg_available("Plots")
+            plt = @eval begin
+                using Plots
+                plot(1:10, rand(10))
+            end
+            @test is_plots_object(plt)
+            buf_out = IOBuffer()
+            orig_stdout[] = buf_out
+            display(InlineDisplay(), plt)
+            plt_out = String(take!(buf_out))
+            @test occursin("file:", plt_out)
+            orig_stdout[] = stdout
+        else
+            @test_skip "Plots.jl not installed"
+        end
     end
 
-    @testset "17. Protocol Escaping Edge Cases" begin
+    @testset "18. Protocol Escaping Edge Cases" begin
         @test mogan_escape("α + β = γ") == "α + β = γ"
         @test mogan_escape(string(DATA_ESCAPE, DATA_BEGIN, DATA_END)) ==
               string(DATA_ESCAPE, DATA_ESCAPE, DATA_ESCAPE, DATA_BEGIN, DATA_ESCAPE, DATA_END)
         @test mogan_escape("<EOF>") == "<EOF>"
     end
 
-    @testset "18. flush_all Utility" begin
+    @testset "19. flush_all Utility" begin
         @test_nowarn flush_all()
     end
 
