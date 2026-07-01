@@ -151,7 +151,9 @@ end
     @testset "5. Plots Objects Recognition (is_plots_object)" begin
         @test !is_plots_object(1)
         @test !is_plots_object("plot")
-        @test is_plots_object(MockPlots.Plot())
+        # MockPlots.Plot is not from a module named Plots, so it must not be recognized
+        @test !is_plots_object(MockPlots.Plot())
+        # Positive case (real Plots.jl object) is covered by testset 17 when Plots is installed
     end
 
     @testset "6. Auto-completion Parsing (do_tab_complete)" begin

@@ -131,16 +131,19 @@ is_plots_type(t::Type) = begin
         catch
         end
     end
-    # Fallback to name-based heuristics
-    # s = string(t)
-    # (occursin("Plots.Plot", s) || s == "Plot") && return true
-    # try
-    #     m = parentmodule(t)
-    #     m_name = string(Symbol(m))
-    #     return occursin("Plots", m_name)
-    # catch
-    #     return false
-    # end
+    # Fallback: accept Plot objects whose immediate parent module is literally
+    # named "Plots" and defines a Plot supertype. This covers packages that
+    # internally use Plots.jl (e.g. StatsPlots) or objects created in nested
+    # modules, while avoiding false positives from modules like MockPlots
+    # whose names merely contain "Plots".
+    try
+        m = parentmodule(t)
+        if nameof(m) === :Plots && isdefined(m, :Plot)
+            return t <: m.Plot
+        end
+    catch
+    end
+    return false
 end
 
 is_plots_object(x) = is_plots_type(typeof(x))
