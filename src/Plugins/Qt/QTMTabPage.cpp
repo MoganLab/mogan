@@ -110,6 +110,18 @@ url                  g_mostRecentlyDraggedTab= url_none ();
 QTMTabPageContainer* g_mostRecentlyDraggedBar= nullptr;
 QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
 
+/**
+ * @brief 真正关闭标签页前标记 g_mostRecentlyClosedTab。
+ *
+ * 该标记用于在 ACTIVE tab 第一次刷新时隐藏它，避免闪烁。不能提前到关闭按钮
+ * 点击时设置，否则确认对话框点「取消」后 tab 仍会保持隐藏。
+ */
+void
+cpp_kill_tabpage (url p_win, url p_view) {
+  g_mostRecentlyClosedTab= p_view;
+  kill_tabpage (p_win, p_view);
+}
+
 static url
 startup_tab_buffer_name () {
   return url ("tmfs://startup-tab");
@@ -228,8 +240,16 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
     QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
       if (!safeAction) return;
-      g_mostRecentlyClosedTab= m_viewUrl;
+      // 弹窗期间先隐藏关闭按钮高亮；取消后按鼠标位置恢复。
+      m_hoverOnCloseArea= false;
+      updateCloseButtonVisibility ();
+      QPointer<QTMTabPage> guard (this);
       safeAction->trigger ();
+      if (guard) {
+        QPoint pos               = guard->mapFromGlobal (QCursor::pos ());
+        guard->m_hoverOnCloseArea= guard->isPointerOnCloseArea (pos);
+        guard->updateCloseButtonVisibility ();
+      }
     });
   }
   updateCloseButtonVisibility ();

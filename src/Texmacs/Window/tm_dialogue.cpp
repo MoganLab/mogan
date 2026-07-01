@@ -134,7 +134,7 @@ gcd (int i, int j) {
 void
 tm_frame_rep::choose_file (object fun, string title, string type, string prompt,
                            url name) {
-  // 测试钩子：MOGAN_TEST_CHOOSE_FILE 设为非空路径时直接回调该路径，跳过文件对话框。
+  // 测试钩子：MOGAN_TEST_CHOOSE_FILE 非空时直接回调该路径。
   string preset= get_env ("MOGAN_TEST_CHOOSE_FILE");
   if (!is_empty (preset)) {
     array<object> args;

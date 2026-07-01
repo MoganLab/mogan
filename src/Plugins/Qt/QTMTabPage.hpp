@@ -174,4 +174,7 @@ extern url                  g_mostRecentlyDraggedTab;
 extern QTMTabPageContainer* g_mostRecentlyDraggedBar;
 extern QTMTabPageContainer* g_mostRecentlyEnteredBar;
 
+/// @brief Qt 侧关闭标签页入口：先标记最近关闭的 view，再执行 kill_tabpage。
+void cpp_kill_tabpage (url p_win, url p_view);
+
 #endif // QTMTABPAGE_HPP

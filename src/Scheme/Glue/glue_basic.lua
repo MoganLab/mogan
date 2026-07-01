@@ -22,7 +22,6 @@ function main()
             "object_l5.hpp",
             "scheme.hpp",
             "glue_l5_extra.hpp",
-            "QTMQmlDialog.hpp",
         },
         glues = {
             {
@@ -1566,6 +1565,15 @@ function main()
             {
                 scm_name = "kill-tabpage",
                 cpp_name = "kill_tabpage",
+                ret_type = "void",
+                arg_list = {
+                    "url",
+                    "url"
+                }
+            },
+            {
+                scm_name = "cpp-kill-tabpage",
+                cpp_name = "cpp_kill_tabpage",
                 ret_type = "void",
                 arg_list = {
                     "url",

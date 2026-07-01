@@ -252,12 +252,12 @@
           ) ;
           ((buffer-modified? tgt-buffer)
            (confirm-close-dialog "The document has not been saved. Really close it?"
-             (lambda () (kill-tabpage tgt-win tgt-view))
-             (lambda () (kill-tabpage tgt-win tgt-view))
+             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
              tgt-buffer
            ) ;confirm-close-dialog
           ) ;
-          (else (kill-tabpage tgt-win tgt-view))
+          (else (cpp-kill-tabpage tgt-win tgt-view))
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -271,12 +271,12 @@
         ) ;
         ((buffer-modified? tgt-buffer)
          (confirm-close-dialog "The document has not been saved. Really close it?"
-           (lambda () (kill-tabpage tgt-win tgt-view))
-           (lambda () (kill-tabpage tgt-win tgt-view))
+           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
            tgt-buffer
          ) ;confirm-close-dialog
         ) ;
-        (else (kill-tabpage tgt-win tgt-view))
+        (else (cpp-kill-tabpage tgt-win tgt-view))
   ) ;cond
 ) ;tm-define
 

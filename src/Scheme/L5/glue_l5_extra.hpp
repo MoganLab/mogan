@@ -19,6 +19,7 @@
 #include "object_l5.hpp"
 
 #include "Freetype/tt_tools.hpp"
+#include "QTMQmlDialog.hpp"
 #include "Qt/qt_tm_widget.hpp"
 #include "boxes.hpp"
 #include "editor.hpp"
