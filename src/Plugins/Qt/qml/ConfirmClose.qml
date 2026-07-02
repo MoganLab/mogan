@@ -8,8 +8,6 @@
 // QML 内部所有视觉值乘 dpScale 同步放大。按钮下标从 1 起（0 = Esc / mask 外 = 取消）。
 
 import QtQuick
-import QtQuick.Controls
-import QtQuick.Effects
 
 Item {
     // 填满 QQuickWidget 视口（C++ 用 SizeRootObjectToView + 固定 QDialog 尺寸）。
@@ -52,7 +50,6 @@ Item {
         }
 
         Column {
-            anchors.horizontalCenter: parent.horizontalCenter
             anchors.verticalCenter: parent.verticalCenter
             anchors.left: parent.left
             anchors.right: parent.right
@@ -69,7 +66,7 @@ Item {
                 font.weight: Font.Bold
                 font.letterSpacing: 0.2 * scaleFactor
                 lineHeight: 1.6
-                lineHeightMode: Text.Proportional
+                lineHeightMode: Text.ProportionalHeight
             }
 
             Row {
