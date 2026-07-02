@@ -1,7 +1,10 @@
 #include "modification.hpp"
 #include "moe_doctests.hpp"
+#include "moebius/tree_label.hpp"
 #include "patch.hpp"
 #include "tree.hpp"
+
+using namespace moebius;
 
 /******************************************************************************
  * Basic patch construction

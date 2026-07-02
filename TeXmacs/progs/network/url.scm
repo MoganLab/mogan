@@ -14,9 +14,11 @@
 (texmacs-module (network url))
 
 (tm-define (url-host u)
- (if (url-rooted-web? u)
-     (with u2 (url-unroot u)
-      (if (url-atomic? u2)
-          (url->system u2)
-          (url->system (url-ref u2 1))))
-     ""))
+  (if (url-rooted-web? u)
+    (with u2
+      (url-unroot u)
+      (if (url-atomic? u2) (url->system u2) (url->system (url-ref u2 1)))
+    ) ;with
+    ""
+  ) ;if
+) ;tm-define

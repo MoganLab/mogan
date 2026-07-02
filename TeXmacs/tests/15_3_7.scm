@@ -1,12 +1,9 @@
-(define (test-url-format)
-  (regression-test-group
-   "url-format" "format name"
-   url-format :none
-   (test "format of init-texmacs.scm"
-    "$TEXMACS_PATH/progs/init-texmacs.scm"
-    "scheme")))
+(import (liii check))
 
-(tm-define (test_15_3_7)
-  (let ((n (+ (test-url-format))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of 15_3_7: ok\n")))
+(check-set-mode! 'report-failed)
+
+(define (test-url-format)
+  (check (url-format "$TEXMACS_PATH/progs/init-texmacs.scm") => "scheme")
+) ;define
+
+(tm-define (test_15_3_7) (test-url-format) (check-report))

@@ -209,8 +209,6 @@ picture_renderer (picture p, double zoomf) {
  * Reverse video mode for icons
  ******************************************************************************/
 
-void reverse (int& r, int& g, int& b);
-
 int
 max (const QImage& im, bool sum) {
   int r, g, b, a;

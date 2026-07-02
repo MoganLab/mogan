@@ -14,7 +14,21 @@ on:
       - 'xmake/research.lua'
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/xmake.lua'
       - '.github/workflows/ci-xmake-windows.yml'
+      - '3rdparty/**'
   pull_request:
     branches: [ main ]
     paths:
@@ -28,7 +42,21 @@ on:
       - 'xmake/research.lua'
       - 'xmake/packages/**'
       - 'xmake-requires.lock'
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
+      - 'moebius/Data/**'
+      - 'moebius/Kernel/**'
+      - 'moebius/Scheme/**'
+      - 'moebius/moebius/**'
+      - 'moebius/tests/**'
+      - 'moebius/xmake.lua'
       - '.github/workflows/ci-xmake-windows.yml'
+      - '3rdparty/**'
   workflow_dispatch:
 
 jobs:
@@ -51,19 +79,76 @@ jobs:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lolly:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/tests/**'
+              - 'lolly/xmake.lua'
+            lolly_src:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/xmake.lua'
+            moebius:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/tests/**'
+              - 'moebius/xmake.lua'
+            moebius_src:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/xmake.lua'
+            mogan:
+              - 'src/**'
+              - 'tests/**'
+              - 'xmake.lua'
+              - 'xmake/packages.lua'
+              - 'xmake/research.lua'
+              - 'xmake/packages/**'
+              - 'xmake-requires.lock'
+              - 'TeXmacs/plugins/goldfish/src/*'
+              - '3rdparty/**'
       - name: cache packages from xrepo
         uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
-          key: qt683-${{ runner.os }}-${{ runner.arch }}-xrepo-${{ hashFiles('xmake/vars.lua') }}
+          key: qt683-${{ runner.os }}-${{ runner.arch }}-xrepo-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
       - name: cache xmake
         uses: actions/cache@v4
         with:
           path: |
             ${{ github.workspace }}/build/.build_cache
-          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
       - name: config
         run: xmake config --policies=build.ccache --yes -vD -m releasedbg --plat=windows
-      - name: build
+      - name: build lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake build --yes -vD liblolly
+      - name: test lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake test "lolly_tests/*"
+      - name: build moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake build --yes -vD libmoebius
+      - name: test moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake test "moebius_tests/*"
+
+      - name: build stem
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem

@@ -11,31 +11,39 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (version version-svn)
-  (:use (version version-tmfs)))
+(texmacs-module (version version-svn) (:use (version version-tmfs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Useful subroutines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define svn-sep "------------------------------------------------------------------------\n")
+(define svn-sep
+  "------------------------------------------------------------------------\n"
+) ;define
 
 (define (dos->unix s)
-  (string-replace s "\r\n" "\n"))
+  (string-replace s "\r\n" "\n")
+) ;define
 
 (define (remove-empty-strings l)
   (cond ((null? l) l)
         ((== (car l) "") (remove-empty-strings (cdr l)))
-        (else (cons (car l) (remove-empty-strings (cdr l))))))
+        (else (cons (car l) (remove-empty-strings (cdr l))))
+  ) ;cond
+) ;define
 
 (define (eval-svn cmd)
-  (with r (eval-system cmd)
+  (with r
+    (eval-system cmd)
     (while (string-starts? r "svnserve: warning: ")
-      (with pos (string-search-forwards "\n" 0 r)
-        (if (< pos 0)
-            (set! r "")
-            (set! r (substring r (+ pos 1) (string-length r))))))
-    r))
+      (with pos
+        (string-search-forwards "\n" 0 r)
+        (if (< pos 0) (set! r "") (set! r (substring r (+ pos 1) (string-length r))))
+      ) ;with
+    ) ;while
+    r
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; File status
@@ -45,12 +53,16 @@
   (:require (== (version-tool name) "svn"))
   (let* ((name-s (url->string name))
          (cmd (string-append "svn status " name-s))
-         (ret (eval-svn cmd)))
+         (ret (eval-svn cmd))
+        ) ;
     (cond ((== ret "") "unmodified")
           ((string-starts? ret "I") "unknown")
           ((string-starts? ret "?") "unknown")
           ;; FIXME: support further possibilities
-          (else "modified"))))
+          (else "modified")
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; File history
@@ -61,19 +73,26 @@
          (lines (remove-empty-strings (string-decompose decoded "\n")))
          (data (string-decompose (car lines) " | "))
          (date-info (string-decompose (caddr data) " "))
-         (msg (string-recompose (cdr lines) " ")))
-    (list (car data) (cadr data) (car date-info) msg)))
+         (msg (string-recompose (cdr lines) " "))
+        ) ;
+    (list (car data) (cadr data) (car date-info) msg)
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-history name)
   (:require (== (version-tool name) "svn"))
   (let* ((name-s (url->string name))
          (cmd (string-append "svn log " name-s))
          (s (dos->unix (eval-svn cmd)))
-         (l (string-decompose s svn-sep)))
+         (l (string-decompose s svn-sep))
+        ) ;
     (and (> (length l) 1)
-         (== (car l) "")
-         (== (cAr l) "")
-         (map svn-history-item (cdr (cDr l))))))
+      (== (car l) "")
+      (== (cAr l) "")
+      (map svn-history-item (cdr (cDr l)))
+    ) ;and
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; File revisions
@@ -81,16 +100,20 @@
 
 (tm-define (version-revision name rev)
   (:require (== (version-tool name) "svn"))
-  ;;(display* "Loading revision " rev " of " name "\n")
+  ;; (display* "Loading revision " rev " of " name "\n")
   (let* ((name-s (url->string name))
          (cmd (string-append "svn cat -r " rev " " name-s))
-         (ret (eval-svn cmd)))
-    ;;(display* "Got " ret "\n")
-    ret))
+         (ret (eval-svn cmd))
+        ) ;
+    ;; (display* "Got " ret "\n")
+    ret
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-beautify-revision name rev)
   (:require (== (version-tool name) "svn"))
-  rev)
+  rev
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Updating, registering committing a file
@@ -101,25 +124,34 @@
   (let* ((name-s (url->string name))
          (cmd (string-append "svn up --accept theirs-full " name-s))
          (ret (eval-svn cmd))
-         (l (remove-empty-strings (string-decompose ret "\n"))))
-    ;;(display* "ret= " ret "\n")
-    (if (null? l) "" (cAr l))))
+         (l (remove-empty-strings (string-decompose ret "\n")))
+        ) ;
+    ;; (display* "ret= " ret "\n")
+    (if (null? l) "" (cAr l))
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-register name)
   (:require (== (version-tool name) "svn"))
   (let* ((name-s (url->string name))
          (cmd (string-append "svn add " name-s))
          (ret (eval-svn cmd))
-         (l (remove-empty-strings (string-decompose ret "\n"))))
-    (if (null? l) "" (cAr l))))
+         (l (remove-empty-strings (string-decompose ret "\n")))
+        ) ;
+    (if (null? l) "" (cAr l))
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-unregister name)
   (:require (== (version-tool name) "svn"))
   (let* ((name-s (url->string name))
          (cmd (string-append "svn remove --force " name-s))
          (ret (eval-svn cmd))
-         (l (remove-empty-strings (string-decompose ret "\n"))))
-    (if (null? l) "" (cAr l))))
+         (l (remove-empty-strings (string-decompose ret "\n")))
+        ) ;
+    (if (null? l) "" (cAr l))
+  ) ;let*
+) ;tm-define
 
 (tm-define (version-commit name msg)
   (:require (== (version-tool name) "svn"))
@@ -128,5 +160,8 @@
          (encoded (cork->utf8 msg-s))
          (cmd (string-append "svn commit -m \"" encoded "\" " name-s))
          (ret (eval-svn cmd))
-         (l (remove-empty-strings (string-decompose ret "\n"))))
-    (if (null? l) "" (cAr l))))
+         (l (remove-empty-strings (string-decompose ret "\n")))
+        ) ;
+    (if (null? l) "" (cAr l))
+  ) ;let*
+) ;tm-define

@@ -11,23 +11,26 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; The contents of this file are preliminary and simple. Things TO-DO are:
-;;  - this list 
+;;  - this list
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (doc apidoc-menu)
-  (:use (prog scheme-tools)
-        (doc apidoc-widgets)))
+  (:use (prog scheme-tools) (doc apidoc-widgets))
+) ;texmacs-module
 
 (menu-bind apidoc-manual-menu
-  ("Insert symbol documentation" (interactive ask-insert-symbol-doc))
-  ("Open module browser" (open-module-browser)))
+ ("Insert symbol documentation" (interactive ask-insert-symbol-doc))
+ ("Open module browser" (open-module-browser))
+) ;menu-bind
 
 (menu-bind apidoc-menu
-  ("Delete documentation cache" (doc-delete-cache))
-  ("Browse modules documentation" (apidoc-all-modules))
-  ("Browse symbols documentation" (apidoc-all-symbols))
-  ("Open module browser" (open-module-browser))
-  ("Open symbol browser" (open-symbol-browser))
-  (if (in-tmdoc?)
-      ("Insert symbol documentation" (interactive ask-insert-symbol-doc))))
+ ("Delete documentation cache" (doc-delete-cache))
+ ("Browse modules documentation" (apidoc-all-modules))
+ ("Browse symbols documentation" (apidoc-all-symbols))
+ ("Open module browser" (open-module-browser))
+ ("Open symbol browser" (open-symbol-browser))
+ (if (in-tmdoc?)
+  ("Insert symbol documentation" (interactive ask-insert-symbol-doc))
+ ) ;if
+) ;menu-bind

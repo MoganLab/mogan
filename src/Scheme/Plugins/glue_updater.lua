@@ -12,8 +12,16 @@
 
 function main()
     return {
+        group_name = "glue_updater",
         binding_object = "",
         initializer_name = "initialize_glue_updater",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "Updater/tm_updater.hpp",
+        },
         glues = {
             {
                 scm_name = "updater-running?",

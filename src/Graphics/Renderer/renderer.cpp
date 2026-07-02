@@ -11,7 +11,8 @@
 
 #include "renderer.hpp"
 #include "Freetype/tt_face.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "frame.hpp"
 #include "image_files.hpp"
 #include "rectangles.hpp"

@@ -1,11 +1,10 @@
-(define (test-url-none?)
-  (regression-test-group
-   "url-none" "bool"
-   url-none? :none
-   (test "(url-none? (url-none)) is true" (url-none) #t)
-   (test "url-none? of /tmp is false" (system->url "/tmp") #f)))
+(import (liii check))
 
-(tm-define (test_15_3_5)
-  (let ((n (+ (test-url-none?))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of 15_3_5: ok\n")))
+(check-set-mode! 'report-failed)
+
+(define (test-url-none?)
+  (check (url-none? (url-none)) => #t)
+  (check (url-none? (system->url "/tmp")) => #f)
+) ;define
+
+(tm-define (test_15_3_5) (test-url-none?) (check-report))

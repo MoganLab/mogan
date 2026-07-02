@@ -12,7 +12,8 @@
 #include "Boxes/change.hpp"
 #include "Boxes/composite.hpp"
 #include "Boxes/construct.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 
 /******************************************************************************
  * A page box contains a main box and decorations

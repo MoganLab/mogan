@@ -9,13 +9,14 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "file.hpp"
 #include "image_files.hpp"
 #include "renderer.hpp"
 #include "tm_url.hpp"
 #include "tree_analyze.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 #if not defined(KERNEL_L3)
 url get_current_buffer_safe ();

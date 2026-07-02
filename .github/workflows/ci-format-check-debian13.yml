@@ -10,7 +10,11 @@ on:
       - "tests/**"
       - "moebius/**"
       - "3rdparty/lolly/**"
+      - "TeXmacs/progs/**"
+      - "TeXmacs/plugins/**"
       - ".clang-format"
+      - "gf_fmt.json"
+      - "gfproject.json"
       - ".github/workflows/ci-format-check-debian13.yml"
   pull_request:
     branches: [main]
@@ -21,7 +25,11 @@ on:
       - "tests/**"
       - "moebius/**"
       - "3rdparty/lolly/**"
+      - "TeXmacs/progs/**"
+      - "TeXmacs/plugins/**"
       - ".clang-format"
+      - "gf_fmt.json"
+      - "gfproject.json"
       - ".github/workflows/ci-format-check-debian13.yml"
   workflow_dispatch:
 
@@ -35,22 +43,19 @@ jobs:
       - name: Install dependencies
         run: |
           DEBIAN_FRONTEND=noninteractive apt-get update
-          DEBIAN_FRONTEND=noninteractive apt-get install -y clang-format-19
+          DEBIAN_FRONTEND=noninteractive apt-get install -y clang-format-19 curl ca-certificates
 
       - uses: actions/checkout@v3
         with:
           fetch-depth: 1
 
-      - name: Run clang-format check
-        shell: bash
+      - name: Download & install goldfish (latest)
         run: |
-          shopt -s nullglob globstar
-          clang-format-19 --version
-          clang-format-19 --dry-run --Werror tests/**/*.cpp
-          clang-format-19 --dry-run --Werror tests/**/*.hpp
-          clang-format-19 --dry-run --Werror src/**/*.cpp
-          clang-format-19 --dry-run --Werror src/**/*.hpp
-          clang-format-19 --dry-run --Werror moebius/**/*.hpp
-          clang-format-19 --dry-run --Werror moebius/**/*.cpp
-          clang-format-19 --dry-run --Werror 3rdparty/lolly/**/*.hpp
-          clang-format-19 --dry-run --Werror 3rdparty/lolly/**/*.cpp
+          TAG=$(curl -fsSLI -o /dev/null -w '%{url_effective}' https://github.com/MoganLab/goldfish/releases/latest | sed 's|.*/tag/||')
+          echo "Latest goldfish release: $TAG"
+          curl -fsSL -o /tmp/gf.deb "https://github.com/MoganLab/goldfish/releases/download/$TAG/goldfish-scheme-x86_64-$TAG.deb"
+          dpkg -i /tmp/gf.deb
+          gf version
+
+      - name: Run gf fmt --check (C++ + Scheme)
+        run: gf fmt --check

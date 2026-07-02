@@ -12,8 +12,16 @@
 
 function main()
     return {
+        group_name = "glue_tex",
         binding_object = "",
         initializer_name = "initialize_glue_tex",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "Tex/tex.hpp",
+        },
         glues = {
             {
                 scm_name = "parse-latex",

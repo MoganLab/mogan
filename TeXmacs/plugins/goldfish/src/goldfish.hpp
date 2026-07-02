@@ -14,10 +14,11 @@
 // under the License.
 //
 
+#include "s7.h"
 #include <algorithm>
 #include <argh.h>
-#include <chrono>
 #include <cctype>
+#include <chrono>
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
@@ -30,11 +31,10 @@
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
-#include "s7.h"
 #include <string>
+#include <thread>
 #include <unordered_map>
 #include <vector>
-#include <thread>
 
 #include <tbox/platform/file.h>
 #include <tbox/platform/path.h>
@@ -61,16 +61,14 @@
 #endif
 #endif
 
-#include <cpr/cpr.h>
 #include <nlohmann/json.hpp>
-#include <nlohmann/json-schema.hpp>
 
 #ifdef GOLDFISH_WITH_REPL
 #include <functional>
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "17.11.55"
+#define GOLDFISH_VERSION "18.11.15"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -78,7 +76,7 @@ static std::vector<std::string> command_args= std::vector<std::string> ();
 
 // Declare environ for non-Windows platforms (needed for f_getenvs)
 #if !defined(TB_CONFIG_OS_WINDOWS)
-extern char **environ;
+extern char** environ;
 #endif
 
 namespace goldfish {
@@ -88,2089 +86,34 @@ using std::endl;
 using std::string;
 using std::vector;
 
-namespace fs = std::filesystem;
+namespace fs= std::filesystem;
 
 using nlohmann::json;
 
-inline void
-glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required, s7_int optional);
+inline void glue_define (s7_scheme* sc, const char* name, const char* desc, s7_function f, s7_int required,
+                         s7_int optional);
 
-static s7_pointer
-f_function_libraries (s7_scheme* sc, s7_pointer args);
+static s7_pointer f_function_libraries (s7_scheme* sc, s7_pointer args);
 
-static s7_pointer
-f_gfproject_load_config (s7_scheme* sc, s7_pointer args);
+static s7_pointer f_gfproject_load_config (s7_scheme* sc, s7_pointer args);
 
-static bool
-split_library_query (const string& query, string& group, string& library);
+static s7_pointer f_project_root (s7_scheme* sc, s7_pointer args);
 
-static string
-find_goldfish_library ();
+static bool split_library_query (const string& query, string& group, string& library);
 
-static vector<string>
-find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
+static string find_goldfish_library ();
 
-static const char* NJSON_HANDLE_TAG = "njson-handle";
-struct NjsonState {
-  std::thread::id owner_thread_id;
-  std::vector<std::unique_ptr<json>> handle_store;
-  std::vector<s7_int> handle_generations;
-  std::vector<s7_int> handle_free_ids;
-  std::vector<std::vector<std::string>> keys_cache_values;
-  std::vector<bool> keys_cache_valid;
+static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
 
-  NjsonState ()
-    : owner_thread_id (std::this_thread::get_id ()),
-      handle_store (1),
-      handle_generations (1, 0),
-      keys_cache_values (1),
-      keys_cache_valid (1, false) {}
-};
-
-static std::mutex njson_state_registry_mutex;
-static std::unordered_map<s7_scheme*, std::unique_ptr<NjsonState>> njson_state_registry;
-
-static NjsonState&
-njson_get_or_create_state (s7_scheme* sc) {
-  std::lock_guard<std::mutex> lock (njson_state_registry_mutex);
-  auto it = njson_state_registry.find (sc);
-  if (it == njson_state_registry.end ()) {
-    auto inserted = njson_state_registry.emplace (sc, std::make_unique<NjsonState> ());
-    return *(inserted.first->second);
-  }
-  return *(it->second);
-}
-
-static void
-njson_register_state (s7_scheme* sc) {
-  (void) njson_get_or_create_state (sc);
-}
-
-static bool
-scheme_json_key_to_string (s7_scheme* sc, s7_pointer key, std::string& out, std::string& error_msg) {
-  (void) sc;
-  if (s7_is_string (key)) {
-    out = s7_string (key);
-    return true;
-  }
-  error_msg = "json object key must be string?";
-  return false;
-}
-
-static s7_pointer
-njson_error (s7_scheme* sc, const char* type_name, const std::string& msg, s7_pointer culprit) {
-  return s7_error (sc, s7_make_symbol (sc, type_name),
-                   s7_list (sc, 2, s7_make_string (sc, msg.c_str ()), culprit));
-}
-
-static s7_pointer
-njson_require_owner_thread (s7_scheme* sc, const char* api_name, s7_pointer culprit) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (state.owner_thread_id == std::this_thread::get_id ()) {
-    return nullptr;
-  }
-  return njson_error (sc, "thread-error",
-                      std::string (api_name) + ": must be called from the thread that created this VM", culprit);
-}
-
-static s7_pointer
-make_njson_handle (s7_scheme* sc, s7_int id) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  s7_int generation = 0;
-  if (id > 0) {
-    size_t index = static_cast<size_t> (id);
-    if (index < state.handle_generations.size ()) {
-      generation = state.handle_generations[index];
-    }
-  }
-  return s7_cons (
-    sc, s7_make_symbol (sc, NJSON_HANDLE_TAG), s7_cons (sc, s7_make_integer (sc, id), s7_make_integer (sc, generation)));
-}
-
-static bool
-is_njson_handle (s7_pointer x, s7_int* id_out = nullptr, s7_int* generation_out = nullptr) {
-  if (!s7_is_pair (x)) return false;
-  s7_pointer tag = s7_car (x);
-  s7_pointer payload = s7_cdr (x);
-  if (!s7_is_symbol (tag)) return false;
-  if (strcmp (s7_symbol_name (tag), NJSON_HANDLE_TAG) != 0) return false;
-  if (!s7_is_pair (payload)) return false;
-  s7_pointer id = s7_car (payload);
-  s7_pointer generation = s7_cdr (payload);
-  if (!s7_is_integer (id) || !s7_is_integer (generation)) return false;
-  if (id_out) *id_out = s7_integer (id);
-  if (generation_out) *generation_out = s7_integer (generation);
-  return true;
-}
-
-static bool
-extract_njson_handle_id (s7_scheme* sc, s7_pointer handle, s7_int& id, std::string& error_msg) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  s7_int generation = 0;
-  if (!is_njson_handle (handle, &id, &generation)) {
-    error_msg = "expected njson handle";
-    return false;
-  }
-  if (id <= 0) {
-    error_msg = "invalid njson handle id";
-    return false;
-  }
-  if (generation <= 0) {
-    error_msg = "invalid njson handle generation";
-    return false;
-  }
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.handle_generations.size ()) {
-    error_msg = "njson handle does not exist (may have been freed)";
-    return false;
-  }
-  if (state.handle_generations[index] != generation) {
-    error_msg = "njson handle generation mismatch (stale handle)";
-    return false;
-  }
-  if (static_cast<size_t> (id) >= state.handle_store.size () || !state.handle_store[static_cast<size_t> (id)]) {
-    error_msg = "njson handle does not exist (may have been freed)";
-    return false;
-  }
-  return true;
-}
-
-static json*
-njson_value_by_id (s7_scheme* sc, s7_int id) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return nullptr;
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.handle_store.size ()) return nullptr;
-  return state.handle_store[index].get ();
-}
-
-static const json*
-njson_value_by_id_const (s7_scheme* sc, s7_int id) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return nullptr;
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.handle_store.size ()) return nullptr;
-  return state.handle_store[index].get ();
-}
-
-static void
-njson_ensure_keys_cache_size (s7_scheme* sc, size_t n) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (state.keys_cache_values.size () < n) {
-    state.keys_cache_values.resize (n);
-    state.keys_cache_valid.resize (n, false);
-  }
-}
-
-static void
-njson_ensure_generations_size (s7_scheme* sc, size_t n) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (state.handle_generations.size () < n) {
-    state.handle_generations.resize (n, 0);
-  }
-}
-
-static void
-njson_clear_keys_cache_slot (s7_scheme* sc, s7_int id) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return;
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.keys_cache_valid.size ()) return;
-  state.keys_cache_values[index].clear ();
-  state.keys_cache_valid[index] = false;
-}
-
-static void
-njson_collect_keys (const json& root, std::vector<std::string>& out) {
-  out.clear ();
-  if (!root.is_object ()) {
-    return;
-  }
-  out.reserve (root.size ());
-  for (auto it = root.begin (); it != root.end (); ++it) {
-    out.push_back (it.key ());
-  }
-}
-
-static s7_pointer
-njson_build_keys_list (s7_scheme* sc, const std::vector<std::string>& keys) {
-  s7_pointer out = s7_nil (sc);
-  for (auto it = keys.rbegin (); it != keys.rend (); ++it) {
-    const std::string& key = *it;
-    out = s7_cons (sc, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())), out);
-  }
-  return out;
-}
-
-static void
-njson_store_keys_cache (s7_scheme* sc, s7_int id, std::vector<std::string>&& keys) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return;
-  size_t index = static_cast<size_t> (id);
-  njson_ensure_keys_cache_size (sc, index + 1);
-  njson_clear_keys_cache_slot (sc, id);
-  state.keys_cache_values[index] = std::move (keys);
-  state.keys_cache_valid[index] = true;
-}
-
-static bool
-njson_try_get_keys_cache (s7_scheme* sc, s7_int id, const std::vector<std::string>*& out) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return false;
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.keys_cache_valid.size ()) return false;
-  if (!state.keys_cache_valid[index]) return false;
-  out = &state.keys_cache_values[index];
-  return true;
-}
-
-static void
-njson_invalidate_keys_cache_if_present (s7_scheme* sc, s7_int id) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (id <= 0) return;
-  size_t index = static_cast<size_t> (id);
-  if (index >= state.keys_cache_valid.size () || !state.keys_cache_valid[index]) return;
-  njson_clear_keys_cache_slot (sc, id);
-}
-
-static s7_int
-store_njson_value (s7_scheme* sc, json&& value) {
-  NjsonState& state = njson_get_or_create_state (sc);
-  if (!state.handle_free_ids.empty ()) {
-    s7_int id = state.handle_free_ids.back ();
-    state.handle_free_ids.pop_back ();
-    size_t index = static_cast<size_t> (id);
-    njson_ensure_generations_size (sc, index + 1);
-    s7_int generation = state.handle_generations[index];
-    if (generation <= 0 || generation == (std::numeric_limits<s7_int>::max) ()) {
-      generation = 1;
-    }
-    else {
-      generation += 1;
-    }
-    state.handle_generations[index] = generation;
-    state.handle_store[index] = std::make_unique<json> (std::move (value));
-    njson_ensure_keys_cache_size (sc, state.handle_store.size ());
-    return id;
-  }
-
-  state.handle_store.push_back (std::make_unique<json> (std::move (value)));
-  state.handle_generations.push_back (1);
-  njson_ensure_keys_cache_size (sc, state.handle_store.size ());
-  s7_int id = static_cast<s7_int> (state.handle_store.size () - 1);
-  return id;
-}
-
-static s7_int
-store_njson_value (s7_scheme* sc, const json& value) {
-  json copied = value;
-  return store_njson_value (sc, std::move (copied));
-}
-
-static bool
-scheme_json_index (s7_pointer key, size_t& out, std::string& error_msg) {
-  if (!s7_is_integer (key)) {
-    error_msg = "array index must be integer?";
-    return false;
-  }
-  s7_int idx = s7_integer (key);
-  if (idx < 0) {
-    error_msg = "array index must be non-negative";
-    return false;
-  }
-  out = static_cast<size_t> (idx);
-  return true;
-}
-
-static bool
-collect_path_keys (s7_scheme* sc, s7_pointer list, std::vector<s7_pointer>& out, std::string& error_msg) {
-  s7_pointer iter = list;
-  while (s7_is_pair (iter)) {
-    out.push_back (s7_car (iter));
-    iter = s7_cdr (iter);
-  }
-  if (!s7_is_null (sc, iter)) {
-    error_msg = "path keys must be a proper list";
-    return false;
-  }
-  return true;
-}
-
-template <typename JsonPtr>
-static bool
-njson_lookup_core (s7_scheme* sc, JsonPtr root, const std::vector<s7_pointer>& path, size_t steps,
-                   JsonPtr& out, std::string& error_msg) {
-  JsonPtr cur = root;
-  for (size_t i = 0; i < steps; i++) {
-    s7_pointer key = path[i];
-    if (cur->is_object ()) {
-      std::string name;
-      if (!scheme_json_key_to_string (sc, key, name, error_msg)) {
-        return false;
-      }
-      auto it = cur->find (name);
-      if (it == cur->end ()) {
-        error_msg = "path not found: missing object key '" + name + "'";
-        return false;
-      }
-      cur = &(*it);
-    }
-    else if (cur->is_array ()) {
-      size_t idx = 0;
-      if (!scheme_json_index (key, idx, error_msg)) {
-        return false;
-      }
-      if (idx >= cur->size ()) {
-        error_msg = "path not found: array index out of range (index=" + std::to_string (idx)
-                  + ", size=" + std::to_string (cur->size ()) + ")";
-        return false;
-      }
-      cur = &(*cur)[idx];
-    }
-    else {
-      char* key_repr_c = s7_object_to_c_string (sc, key);
-      if (key_repr_c) {
-        std::string key_repr (key_repr_c);
-        free (key_repr_c);
-        if (key_repr.size () >= 2 && key_repr.front () == '"' && key_repr.back () == '"') {
-          key_repr = key_repr.substr (1, key_repr.size () - 2);
-        }
-        error_msg = "path not found: missing object key '" + key_repr + "'";
-      }
-      else {
-        error_msg = "path not found: missing object key '<unknown>'";
-      }
-      return false;
-    }
-  }
-  out = cur;
-  return true;
-}
-
-static bool
-lookup_path_const (s7_scheme* sc, const json& root, const std::vector<s7_pointer>& path, const json*& out,
-                   std::string& error_msg) {
-  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
-}
-
-static bool
-lookup_path_parent_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& parent,
-                            s7_pointer& last_key, std::string& error_msg) {
-  if (path.empty ()) {
-    error_msg = "path cannot be empty";
-    return false;
-  }
-
-  if (!njson_lookup_core (sc, &root, path, path.size () - 1, parent, error_msg)) {
-    return false;
-  }
-  last_key = path.back ();
-  return true;
-}
-
-static bool
-lookup_path_mutable (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, json*& out, std::string& error_msg) {
-  return njson_lookup_core (sc, &root, path, path.size (), out, error_msg);
-}
-
-static bool
-scheme_to_njson_scalar_or_handle (s7_scheme* sc, s7_pointer value, json& out, std::string& error_msg) {
-  if (is_njson_handle (value)) {
-    s7_int id = 0;
-    if (!extract_njson_handle_id (sc, value, id, error_msg)) {
-      return false;
-    }
-    const json* source = njson_value_by_id_const (sc, id);
-    if (!source) {
-      error_msg = "njson handle does not exist (may have been freed)";
-      return false;
-    }
-    out = *source;
-    return true;
-  }
-
-  if (s7_is_string (value)) {
-    out = s7_string (value);
-    return true;
-  }
-  if (s7_is_boolean (value)) {
-    out = s7_boolean (sc, value);
-    return true;
-  }
-  if (s7_is_integer (value)) {
-    out = static_cast<long long> (s7_integer (value));
-    return true;
-  }
-  if (s7_is_real (value)) {
-    double real_value = s7_number_to_real (sc, value);
-    if (!std::isfinite (real_value)) {
-      error_msg = "number must be finite (NaN/Inf are not valid JSON numbers)";
-      return false;
-    }
-    out = real_value;
-    return true;
-  }
-  if (s7_is_number (value)) {
-    error_msg = "number must be real and finite";
-    return false;
-  }
-  if (s7_is_symbol (value)) {
-    const char* symbol_name = s7_symbol_name (value);
-    if (strcmp (symbol_name, "null") == 0) {
-      out = nullptr;
-      return true;
-    }
-    error_msg = "symbol value must be null; use boolean? for true/false and string? for text";
-    return false;
-  }
-
-  error_msg = "value must be njson handle, string?, number?, boolean?, or null symbol";
-  return false;
-}
-
-static s7_pointer
-njson_scalar_value_to_scheme (s7_scheme* sc, const json& value) {
-  if (value.is_null ()) {
-    return s7_make_symbol (sc, "null");
-  }
-  if (value.is_boolean ()) {
-    return s7_make_boolean (sc, value.get<bool> ());
-  }
-  if (value.is_number_integer ()) {
-    return s7_make_integer (sc, static_cast<s7_int> (value.get<long long> ()));
-  }
-  if (value.is_number_unsigned ()) {
-    unsigned long long v = value.get<unsigned long long> ();
-    if (v > static_cast<unsigned long long> ((std::numeric_limits<s7_int>::max) ())) {
-      return s7_make_real (sc, static_cast<double> (v));
-    }
-    return s7_make_integer (sc, static_cast<s7_int> (v));
-  }
-  if (value.is_number_float ()) {
-    return s7_make_real (sc, value.get<double> ());
-  }
-  if (value.is_string ()) {
-    const auto& text = value.get_ref<const std::string&> ();
-    return s7_make_string (sc, text.c_str ());
-  }
-  return s7_nil (sc);
-}
-
-enum class njson_scheme_tree_mode {
-  alist_list,
-  hash_vector
-};
-
-static s7_pointer njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode);
-
-static s7_pointer
-njson_object_to_alist_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  // Match (liii json): empty object is '(()) so {} stays distinct from [].
-  if (value.empty ()) {
-    return s7_cons (sc, s7_nil (sc), s7_nil (sc));
-  }
-  s7_pointer out = s7_nil (sc);
-  for (auto it = value.begin (); it != value.end (); ++it) {
-    const std::string& key = it.key ();
-    s7_pointer key_s7 = s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ()));
-    s7_pointer val_s7 = njson_value_to_scheme_tree (sc, it.value (), mode);
-    out = s7_cons (sc, s7_cons (sc, key_s7, val_s7), out);
-  }
-  return s7_reverse (sc, out);
-}
-
-static s7_pointer
-njson_array_to_list_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out = s7_nil (sc);
-  for (auto it = value.begin (); it != value.end (); ++it) {
-    out = s7_cons (sc, njson_value_to_scheme_tree (sc, *it, mode), out);
-  }
-  return s7_reverse (sc, out);
-}
-
-static s7_pointer
-njson_object_to_hash_table_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out = s7_make_hash_table (sc, static_cast<s7_int> (value.size ()));
-  for (auto it = value.begin (); it != value.end (); ++it) {
-    const std::string& key = it.key ();
-    s7_hash_table_set (sc, out, s7_make_string_with_length (sc, key.data (), static_cast<s7_int> (key.size ())),
-                       njson_value_to_scheme_tree (sc, it.value (), mode));
-  }
-  return out;
-}
-
-static s7_pointer
-njson_array_to_vector_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  s7_pointer out = s7_make_vector (sc, static_cast<s7_int> (value.size ()));
-  for (size_t i = 0; i < value.size (); i++) {
-    s7_vector_set (sc, out, static_cast<s7_int> (i), njson_value_to_scheme_tree (sc, value[i], mode));
-  }
-  return out;
-}
-
-static s7_pointer
-njson_value_to_scheme_tree (s7_scheme* sc, const json& value, njson_scheme_tree_mode mode) {
-  if (value.is_object ()) {
-    return (mode == njson_scheme_tree_mode::alist_list) ? njson_object_to_alist_tree (sc, value, mode)
-                                                        : njson_object_to_hash_table_tree (sc, value, mode);
-  }
-  if (value.is_array ()) {
-    return (mode == njson_scheme_tree_mode::alist_list) ? njson_array_to_list_tree (sc, value, mode)
-                                                        : njson_array_to_vector_tree (sc, value, mode);
-  }
-  return njson_scalar_value_to_scheme (sc, value);
-}
-
-enum class njson_structure_root_kind {
-  object,
-  array
-};
-
-static s7_pointer
-njson_run_structure_conversion (s7_scheme* sc, s7_pointer args, const char* api_name, njson_structure_root_kind root_kind,
-                                njson_scheme_tree_mode mode) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error",
-                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-  }
-
-  if ((root_kind == njson_structure_root_kind::object) && !root->is_object ()) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be object", handle);
-  }
-  if ((root_kind == njson_structure_root_kind::array) && !root->is_array ()) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": json root must be array", handle);
-  }
-
-  try {
-    return njson_value_to_scheme_tree (sc, *root, mode);
-  }
-  catch (const json::exception& err) {
-    return njson_error (sc, "njson-error", std::string (api_name) + ": " + std::string (err.what ()), handle);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-njson_value_to_scheme_or_handle (s7_scheme* sc, const json& value) {
-  if (value.is_object () || value.is_array ()) {
-    s7_int id = store_njson_value (sc, value);
-    return make_njson_handle (sc, id);
-  }
-  return njson_scalar_value_to_scheme (sc, value);
-}
-
-static s7_pointer
-f_njson_string_to_json (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-string->json", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer input = s7_car (args);
-  if (!s7_is_string (input)) {
-    return njson_error (sc, "type-error", "g_njson-string->json: input must be string", input);
-  }
-
-  try {
-    json parsed = json::parse (s7_string (input));
-    return make_njson_handle (sc, store_njson_value (sc, std::move (parsed)));
-  }
-  catch (const json::parse_error& err) {
-    return njson_error (sc, "parse-error", err.what (), input);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", err.what (), input);
-  }
-}
-
-static s7_pointer
-f_njson_json_to_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-json->string", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  input = s7_car (args);
-  json        encoded;
-  std::string error_msg;
-  if (!scheme_to_njson_scalar_or_handle (sc, input, encoded, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-json->string: " + error_msg, input);
-  }
-  try {
-    std::string dumped = encoded.dump ();
-    return s7_make_string (sc, dumped.c_str ());
-  }
-  catch (const json::exception& err) {
-    return njson_error (sc, "njson-error", "g_njson-json->string: " + std::string (err.what ()), input);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-json->string: " + std::string (err.what ()), input);
-  }
-}
-
-static s7_pointer
-f_njson_format_string (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-format-string", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer input = s7_car (args);
-  if (!s7_is_string (input)) {
-    return njson_error (sc, "type-error", "g_njson-format-string: input must be string", input);
-  }
-
-  s7_int     indent = 2;
-  s7_pointer rest = s7_cdr (args);
-  if (!s7_is_null (sc, rest)) {
-    s7_pointer indent_arg = s7_car (rest);
-    if (!s7_is_integer (indent_arg)) {
-      return njson_error (sc, "type-error", "g_njson-format-string: indent must be integer?", indent_arg);
-    }
-    indent = s7_integer (indent_arg);
-    if (indent < 0) {
-      return njson_error (sc, "value-error", "g_njson-format-string: indent must be >= 0", indent_arg);
-    }
-  }
-
-  try {
-    json parsed = json::parse (s7_string (input));
-    std::string dumped = parsed.dump (static_cast<int> (indent));
-    return s7_make_string (sc, dumped.c_str ());
-  }
-  catch (const json::parse_error& err) {
-    return njson_error (sc, "parse-error", err.what (), input);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", err.what (), input);
-  }
-}
-
-static s7_pointer
-f_njson_handle_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-handle?", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer input = s7_car (args);
-  return s7_make_boolean (sc, is_njson_handle (input));
-}
-
-template <typename HandlePredicate, typename ScalarPredicate>
-static s7_pointer
-njson_run_value_type_predicate (s7_scheme* sc, s7_pointer args, const char* api_name, HandlePredicate handle_pred,
-                                ScalarPredicate scalar_pred) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer input = s7_car (args);
-  if (!is_njson_handle (input)) {
-    return s7_make_boolean (sc, scalar_pred (input));
-  }
-
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, input, id, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, input);
-  }
-  const json* value = njson_value_by_id_const (sc, id);
-  if (!value) {
-    return njson_error (sc, "type-error",
-                        std::string (api_name) + ": njson handle does not exist (may have been freed)", input);
-  }
-  try {
-    return s7_make_boolean (sc, handle_pred (*value));
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (err.what ()), input);
-  }
-}
-
-static s7_pointer
-f_njson_null_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (
-    sc, args, "g_njson-null?", [] (const json& value) { return value.is_null (); }, [] (s7_pointer value) {
-      return s7_is_symbol (value) && strcmp (s7_symbol_name (value), "null") == 0;
-    });
-}
-
-static s7_pointer
-f_njson_object_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (sc, args, "g_njson-object?", [] (const json& value) { return value.is_object (); },
-                                         [] (s7_pointer value) {
-                                           (void) value;
-                                           return false;
-                                         });
-}
-
-static s7_pointer
-f_njson_array_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (sc, args, "g_njson-array?", [] (const json& value) { return value.is_array (); },
-                                         [] (s7_pointer value) {
-                                           (void) value;
-                                           return false;
-                                         });
-}
-
-static s7_pointer
-f_njson_string_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (
-    sc, args, "g_njson-string?", [] (const json& value) { return value.is_string (); },
-    [] (s7_pointer value) { return s7_is_string (value); });
-}
-
-static s7_pointer
-f_njson_number_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (
-    sc, args, "g_njson-number?", [] (const json& value) { return value.is_number (); },
-    [] (s7_pointer value) { return s7_is_number (value); });
-}
-
-static s7_pointer
-f_njson_integer_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (
-    sc, args, "g_njson-integer?",
-    [] (const json& value) { return value.is_number_integer () || value.is_number_unsigned (); },
-    [] (s7_pointer value) { return s7_is_integer (value); });
-}
-
-static s7_pointer
-f_njson_boolean_p (s7_scheme* sc, s7_pointer args) {
-  return njson_run_value_type_predicate (
-    sc, args, "g_njson-boolean?", [] (const json& value) { return value.is_boolean (); },
-    [] (s7_pointer value) { return s7_is_boolean (value); });
-}
-
-static s7_pointer
-f_njson_free (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-free", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-free: " + error_msg, handle);
-  }
-  try {
-    NjsonState& state = njson_get_or_create_state (sc);
-    njson_clear_keys_cache_slot (sc, id);
-    state.handle_store[static_cast<size_t> (id)].reset ();
-    state.handle_free_ids.push_back (id);
-    return s7_t (sc);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-free: " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-f_njson_size (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-size", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-size: " + error_msg, handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error", "g_njson-size: njson handle does not exist (may have been freed)", handle);
-  }
-
-  try {
-    if (root->is_object () || root->is_array ()) {
-      return s7_make_integer (sc, static_cast<s7_int> (root->size ()));
-    }
-    return s7_make_integer (sc, 0);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-size: " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-f_njson_empty_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-empty?", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-empty?: " + error_msg, handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error",
-                        "g_njson-empty?: njson handle does not exist (may have been freed)", handle);
-  }
-
-  try {
-    if (root->is_object () || root->is_array ()) {
-      return s7_make_boolean (sc, root->empty ());
-    }
-    return s7_t (sc);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-empty?: " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-f_njson_ref (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-ref", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-ref: " + error_msg, handle);
-  }
-
-  std::vector<s7_pointer> path;
-  if (!collect_path_keys (sc, s7_cdr (args), path, error_msg)) {
-    return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
-  }
-  if (path.empty ()) {
-    return njson_error (sc, "key-error", "g_njson-ref: missing key arguments", handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error", "g_njson-ref: njson handle does not exist (may have been freed)", handle);
-  }
-
-  const json* found_value = nullptr;
-  if (!lookup_path_const (sc, *root, path, found_value, error_msg)) {
-    return njson_error (sc, "key-error", "g_njson-ref: " + error_msg, handle);
-  }
-  try {
-    return njson_value_to_scheme_or_handle (sc, *found_value);
-  }
-  catch (const json::exception& err) {
-    return njson_error (sc, "njson-error", "g_njson-ref: " + std::string (err.what ()), handle);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-ref: " + std::string (err.what ()), handle);
-  }
-}
-
-enum class njson_update_op {
-  set,
-  append,
-  drop
-};
-
-static bool
-njson_update_needs_value (njson_update_op op) {
-  return op != njson_update_op::drop;
-}
-
-static const char*
-njson_update_expected_argv (njson_update_op op) {
-  if (op == njson_update_op::drop) {
-    return "expected (json key ...)";
-  }
-  if (op == njson_update_op::append) {
-    return "expected (json [key ...] value)";
-  }
-  return "expected (json key ... value)";
-}
-
-static s7_pointer
-njson_parse_update_request (s7_scheme* sc, s7_pointer args, const char* api_name, njson_update_op op,
-                            s7_pointer& handle, s7_int& id, std::vector<s7_pointer>& path, json& value_json) {
-  handle = s7_car (args);
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-
-  std::vector<s7_pointer> tokens;
-  if (!collect_path_keys (sc, s7_cdr (args), tokens, error_msg)) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-
-  if (njson_update_needs_value (op)) {
-    size_t min_tokens = (op == njson_update_op::append) ? 1 : 2;
-    if (tokens.size () < min_tokens) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
-    }
-    path.assign (tokens.begin (), tokens.end () - 1);
-    s7_pointer value_token = tokens.back ();
-    if (!scheme_to_njson_scalar_or_handle (sc, value_token, value_json, error_msg)) {
-      return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, value_token);
-    }
-  }
-  else {
-    if (tokens.empty ()) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": " + njson_update_expected_argv (op), handle);
-    }
-    path = std::move (tokens);
-  }
-  return nullptr;
-}
-
-static s7_pointer
-njson_apply_update_on_root (s7_scheme* sc, json& root, const std::vector<s7_pointer>& path, const json& value_json,
-                            njson_update_op op, const char* api_name, s7_pointer handle) {
-  if (op == njson_update_op::append) {
-    std::string error_msg;
-    json* target = &root;
-    if (!path.empty ()) {
-      if (!lookup_path_mutable (sc, root, path, target, error_msg)) {
-        return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
-      }
-    }
-    if (!target->is_array ()) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": append target must be array", handle);
-    }
-    target->push_back (value_json);
-    return nullptr;
-  }
-
-  std::string error_msg;
-  json* parent = nullptr;
-  s7_pointer last_key = s7_nil (sc);
-  if (!lookup_path_parent_mutable (sc, root, path, parent, last_key, error_msg)) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-
-  if (parent->is_object ()) {
-    std::string key_name;
-    if (!scheme_json_key_to_string (sc, last_key, key_name, error_msg)) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, last_key);
-    }
-
-    if (op == njson_update_op::set) {
-      (*parent)[key_name] = value_json;
-    }
-    else {
-      auto it = parent->find (key_name);
-      if (it == parent->end ()) {
-        return njson_error (sc, "key-error",
-                            std::string (api_name) + ": path not found: missing object key '" + key_name + "'",
-                            last_key);
-      }
-      parent->erase (it);
-    }
-    return nullptr;
-  }
-
-  if (parent->is_array ()) {
-    size_t idx = 0;
-    if (!scheme_json_index (last_key, idx, error_msg)) {
-      return njson_error (sc, "key-error", std::string (api_name) + ": " + error_msg, last_key);
-    }
-
-    if (op == njson_update_op::set) {
-      if (idx < parent->size ()) {
-        (*parent)[idx] = value_json;
-      }
-      else {
-        return njson_error (
-          sc, "key-error",
-          std::string (api_name) + ": array index out of range (index=" + std::to_string (idx)
-            + ", size=" + std::to_string (parent->size ()) + ")",
-          last_key);
-      }
-    }
-    else {
-      if (idx < parent->size ()) {
-        parent->erase (parent->begin () + static_cast<json::difference_type> (idx));
-      }
-      else {
-        return njson_error (
-          sc, "key-error",
-          std::string (api_name) + ": path not found: array index out of range (index=" + std::to_string (idx)
-            + ", size=" + std::to_string (parent->size ()) + ")",
-          last_key);
-      }
-    }
-    return nullptr;
-  }
-
-  if (op == njson_update_op::drop) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": path not found: cannot drop from non-container value",
-                        last_key);
-  }
-  if (op == njson_update_op::set) {
-    return njson_error (sc, "key-error", std::string (api_name) + ": set target must be array or object", last_key);
-  }
-  return nullptr;
-}
-
-static s7_pointer
-njson_run_update (s7_scheme* sc, s7_pointer args, const char* api_name, njson_update_op op, bool in_place) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer handle = s7_nil (sc);
-  s7_int id = 0;
-  std::vector<s7_pointer> path;
-  json value_json;
-  s7_pointer err = njson_parse_update_request (sc, args, api_name, op, handle, id, path, value_json);
-  if (err) {
-    return err;
-  }
-
-  try {
-    if (in_place) {
-      json* root = njson_value_by_id (sc, id);
-      if (!root) {
-        return njson_error (sc, "type-error",
-                            std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-      }
-      err = njson_apply_update_on_root (sc, *root, path, value_json, op, api_name, handle);
-      if (err) {
-        return err;
-      }
-      // Keep write-path fast: only invalidate; keys will be rebuilt lazily on next njson-keys call.
-      njson_invalidate_keys_cache_if_present (sc, id);
-      return handle;
-    }
-
-    const json* root = njson_value_by_id_const (sc, id);
-    if (!root) {
-      return njson_error (sc, "type-error",
-                          std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-    }
-    json out = *root;
-    err = njson_apply_update_on_root (sc, out, path, value_json, op, api_name, handle);
-    if (err) {
-      return err;
-    }
-    return make_njson_handle (sc, store_njson_value (sc, std::move (out)));
-  }
-  catch (const json::exception& ex) {
-    return njson_error (sc, "njson-error", std::string (api_name) + ": " + std::string (ex.what ()), handle);
-  }
-  catch (const std::exception& ex) {
-    return njson_error (sc, "misc-error", std::string (api_name) + ": " + std::string (ex.what ()), handle);
-  }
-}
-
-enum class njson_merge_mode {
-  shallow,
-  deep
-};
-
-
-static s7_pointer
-njson_run_merge (s7_scheme* sc, s7_pointer args, const char* api_name, njson_merge_mode mode, bool in_place) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, api_name, s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_pointer  source_input = s7_cadr (args);
-  s7_int      id = 0;
-  json        source_json;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, handle);
-  }
-  if (!scheme_to_njson_scalar_or_handle (sc, source_input, source_json, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + error_msg, source_input);
-  }
-  if (!source_json.is_object ()) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": merge source must be object", source_input);
-  }
-  bool merge_objects = (mode == njson_merge_mode::deep);
-
-  if (in_place) {
-    json* target = njson_value_by_id (sc, id);
-    if (!target) {
-      return njson_error (sc, "type-error",
-                          std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-    }
-    if (!target->is_object ()) {
-      return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
-    }
-    try {
-      target->update (source_json, merge_objects);
-    }
-    catch (const std::exception& err) {
-      return njson_error (sc, "type-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
-    }
-    njson_invalidate_keys_cache_if_present (sc, id);
-    return handle;
-  }
-
-  const json* target = njson_value_by_id_const (sc, id);
-  if (!target) {
-    return njson_error (sc, "type-error",
-                        std::string (api_name) + ": njson handle does not exist (may have been freed)", handle);
-  }
-  if (!target->is_object ()) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": merge target must be object", handle);
-  }
-  json out = *target;
-  try {
-    out.update (source_json, merge_objects);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": " + std::string (err.what ()), source_input);
-  }
-  return make_njson_handle (sc, store_njson_value (sc, std::move (out)));
-}
-
-static s7_pointer
-f_njson_set (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-set", njson_update_op::set, false);
-}
-
-static s7_pointer
-f_njson_append (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-append", njson_update_op::append, false);
-}
-
-static s7_pointer
-f_njson_append_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-append!", njson_update_op::append, true);
-}
-
-static s7_pointer
-f_njson_drop (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-drop", njson_update_op::drop, false);
-}
-
-static s7_pointer
-f_njson_set_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-set!", njson_update_op::set, true);
-}
-
-static s7_pointer
-f_njson_drop_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_update (sc, args, "g_njson-drop!", njson_update_op::drop, true);
-}
-
-static s7_pointer
-f_njson_merge (s7_scheme* sc, s7_pointer args) {
-  return njson_run_merge (sc, args, "g_njson-merge", njson_merge_mode::shallow, false);
-}
-
-static s7_pointer
-f_njson_merge_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_merge (sc, args, "g_njson-merge!", njson_merge_mode::shallow, true);
-}
-
-static s7_pointer
-f_njson_deep_merge (s7_scheme* sc, s7_pointer args) {
-  return njson_run_merge (sc, args, "g_njson-deep-merge", njson_merge_mode::deep, false);
-}
-
-static s7_pointer
-f_njson_deep_merge_x (s7_scheme* sc, s7_pointer args) {
-  return njson_run_merge (sc, args, "g_njson-deep-merge!", njson_merge_mode::deep, true);
-}
-
-static s7_pointer
-f_njson_contains_key_p (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-contains-key?", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_pointer  key = s7_cadr (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-contains-key?: " + error_msg, handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error",
-                        "g_njson-contains-key?: njson handle does not exist (may have been freed)", handle);
-  }
-  if (!root->is_object ()) {
-    return s7_f (sc);
-  }
-
-  std::string key_name;
-  if (!scheme_json_key_to_string (sc, key, key_name, error_msg)) {
-    return njson_error (sc, "key-error", "g_njson-contains-key?: " + error_msg, key);
-  }
-  try {
-    return s7_make_boolean (sc, root->contains (key_name));
-  }
-  catch (const json::exception& err) {
-    return njson_error (sc, "njson-error", "g_njson-contains-key?: " + std::string (err.what ()), handle);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-contains-key?: " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-f_njson_keys (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-keys", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  s7_pointer  handle = s7_car (args);
-  s7_int      id = 0;
-  std::string error_msg;
-  if (!extract_njson_handle_id (sc, handle, id, error_msg)) {
-    return njson_error (sc, "type-error", "g_njson-keys: " + error_msg, handle);
-  }
-
-  const json* root = njson_value_by_id_const (sc, id);
-  if (!root) {
-    return njson_error (sc, "type-error", "g_njson-keys: njson handle does not exist (may have been freed)", handle);
-  }
-  if (!root->is_object ()) {
-    return s7_nil (sc);
-  }
-
-  const std::vector<std::string>* cached = nullptr;
-  if (njson_try_get_keys_cache (sc, id, cached)) {
-    return njson_build_keys_list (sc, *cached);
-  }
-
-  std::vector<std::string> keys;
-  try {
-    njson_collect_keys (*root, keys);
-    njson_store_keys_cache (sc, id, std::move (keys));
-    const std::vector<std::string>* stored = nullptr;
-    if (njson_try_get_keys_cache (sc, id, stored)) {
-      return njson_build_keys_list (sc, *stored);
-    }
-    return s7_nil (sc);
-  }
-  catch (const json::exception& err) {
-    return njson_error (sc, "njson-error", "g_njson-keys: " + std::string (err.what ()), handle);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "misc-error", "g_njson-keys: " + std::string (err.what ()), handle);
-  }
-}
-
-static s7_pointer
-f_njson_object_to_alist (s7_scheme* sc, s7_pointer args) {
-  return njson_run_structure_conversion (sc, args, "g_njson-object->alist", njson_structure_root_kind::object,
-                                         njson_scheme_tree_mode::alist_list);
-}
-
-static s7_pointer
-f_njson_object_to_hash_table (s7_scheme* sc, s7_pointer args) {
-  return njson_run_structure_conversion (sc, args, "g_njson-object->hash-table", njson_structure_root_kind::object,
-                                         njson_scheme_tree_mode::hash_vector);
-}
-
-static s7_pointer
-f_njson_array_to_list (s7_scheme* sc, s7_pointer args) {
-  return njson_run_structure_conversion (sc, args, "g_njson-array->list", njson_structure_root_kind::array,
-                                         njson_scheme_tree_mode::alist_list);
-}
-
-static s7_pointer
-f_njson_array_to_vector (s7_scheme* sc, s7_pointer args) {
-  return njson_run_structure_conversion (sc, args, "g_njson-array->vector", njson_structure_root_kind::array,
-                                         njson_scheme_tree_mode::hash_vector);
-}
-
-struct njson_schema_error_entry {
-  std::string instance_path;
-  std::string message;
-  std::string instance_dump;
-};
-
-class njson_collecting_error_handler : public nlohmann::json_schema::error_handler {
-public:
-  std::vector<njson_schema_error_entry> entries;
-
-  void
-  error (const json::json_pointer& ptr, const json& instance, const std::string& message) override {
-    std::string dumped;
-    try {
-      dumped = instance.dump ();
-    }
-    catch (...) {
-      dumped = "<failed-to-dump-instance>";
-    }
-    entries.push_back (njson_schema_error_entry{ptr.to_string (), message, dumped});
-  }
-};
-
-static s7_pointer
-njson_schema_errors_to_scheme (s7_scheme* sc, const std::vector<njson_schema_error_entry>& errors) {
-  s7_pointer out = s7_nil (sc);
-  for (auto it = errors.rbegin (); it != errors.rend (); ++it) {
-    s7_pointer row = s7_make_hash_table (sc, 3);
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance-path"), s7_make_string (sc, it->instance_path.c_str ()));
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "message"), s7_make_string (sc, it->message.c_str ()));
-    s7_hash_table_set (sc, row, s7_make_symbol (sc, "instance"), s7_make_string (sc, it->instance_dump.c_str ()));
-    out = s7_cons (sc, row, out);
-  }
-  return out;
-}
-
-static s7_pointer
-njson_run_schema_validation (s7_scheme* sc, const char* api_name, s7_pointer args,
-                             std::vector<njson_schema_error_entry>& errors_out) {
-  s7_pointer  schema_input = s7_car (args);
-  s7_pointer  instance_input = s7_cadr (args);
-  json        schema_json;
-  json        instance_json;
-  std::string error_msg;
-  if (!scheme_to_njson_scalar_or_handle (sc, schema_input, schema_json, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": schema " + error_msg, schema_input);
-  }
-  if (!scheme_to_njson_scalar_or_handle (sc, instance_input, instance_json, error_msg)) {
-    return njson_error (sc, "type-error", std::string (api_name) + ": instance " + error_msg, instance_input);
-  }
-
-  nlohmann::json_schema::json_validator validator;
-  try {
-    validator.set_root_schema (schema_json);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "schema-error", std::string (api_name) + ": " + std::string (err.what ()), schema_input);
-  }
-
-  njson_collecting_error_handler err_handler;
-  try {
-    validator.validate (instance_json, err_handler);
-  }
-  catch (const std::exception& err) {
-    return njson_error (sc, "validation-error", std::string (api_name) + ": " + std::string (err.what ()), instance_input);
-  }
-  errors_out = std::move (err_handler.entries);
-  return nullptr;
-}
-
-static s7_pointer
-f_njson_schema_report (s7_scheme* sc, s7_pointer args) {
-  s7_pointer thread_err = njson_require_owner_thread (sc, "g_njson-schema-report", s7_car (args));
-  if (thread_err) {
-    return thread_err;
-  }
-  std::vector<njson_schema_error_entry> errors;
-  s7_pointer err = njson_run_schema_validation (sc, "g_njson-schema-report", args, errors);
-  if (err) {
-    return err;
-  }
-
-  s7_pointer report = s7_make_hash_table (sc, 3);
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "valid?"), s7_make_boolean (sc, errors.empty ()));
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "error-count"), s7_make_integer (sc, static_cast<s7_int> (errors.size ())));
-  s7_hash_table_set (sc, report, s7_make_symbol (sc, "errors"), njson_schema_errors_to_scheme (sc, errors));
-  return report;
-}
-
-inline void
-glue_njson (s7_scheme* sc) {
-  njson_register_state (sc);
-  const char* parse_name = "g_njson-string->json";
-  const char* parse_desc = "(g_njson-string->json json-string) => njson-handle";
-  const char* dump_name  = "g_njson-json->string";
-  const char* dump_desc  = "(g_njson-json->string handle-or-scalar) => strict-json-string";
-  const char* format_name = "g_njson-format-string";
-  const char* format_desc = "(g_njson-format-string json-string :optional indent) => strict-json-string";
-  const char* handlep_name = "g_njson-handle?";
-  const char* handlep_desc = "(g_njson-handle? x) => boolean?";
-  const char* nullp_name = "g_njson-null?";
-  const char* nullp_desc = "(g_njson-null? x) => boolean?";
-  const char* objectp_name = "g_njson-object?";
-  const char* objectp_desc = "(g_njson-object? x) => boolean?";
-  const char* arrayp_name = "g_njson-array?";
-  const char* arrayp_desc = "(g_njson-array? x) => boolean?";
-  const char* stringp_name = "g_njson-string?";
-  const char* stringp_desc = "(g_njson-string? x) => boolean?";
-  const char* numberp_name = "g_njson-number?";
-  const char* numberp_desc = "(g_njson-number? x) => boolean?";
-  const char* integerp_name = "g_njson-integer?";
-  const char* integerp_desc = "(g_njson-integer? x) => boolean?";
-  const char* booleanp_name = "g_njson-boolean?";
-  const char* booleanp_desc = "(g_njson-boolean? x) => boolean?";
-  const char* size_name = "g_njson-size";
-  const char* size_desc = "(g_njson-size handle) => integer?";
-  const char* emptyp_name = "g_njson-empty?";
-  const char* emptyp_desc = "(g_njson-empty? handle) => boolean?";
-  const char* free_name = "g_njson-free";
-  const char* free_desc = "(g_njson-free handle) => boolean?";
-  const char* ref_name = "g_njson-ref";
-  const char* ref_desc = "(g_njson-ref handle key ...) => scalar-or-handle";
-  const char* set_name = "g_njson-set";
-  const char* set_desc = "(g_njson-set handle key ... value) => new-handle";
-  const char* append_name = "g_njson-append";
-  const char* append_desc = "(g_njson-append handle [key ...] value) => new-handle";
-  const char* set_x_name = "g_njson-set!";
-  const char* set_x_desc = "(g_njson-set! handle key ... value) => same-handle";
-  const char* append_x_name = "g_njson-append!";
-  const char* append_x_desc = "(g_njson-append! handle [key ...] value) => same-handle";
-  const char* drop_name = "g_njson-drop";
-  const char* drop_desc = "(g_njson-drop handle key ...) => new-handle";
-  const char* drop_x_name = "g_njson-drop!";
-  const char* drop_x_desc = "(g_njson-drop! handle key ...) => same-handle";
-  const char* merge_name = "g_njson-merge";
-  const char* merge_desc = "(g_njson-merge handle other-object) => new-handle";
-  const char* merge_x_name = "g_njson-merge!";
-  const char* merge_x_desc = "(g_njson-merge! handle other-object) => same-handle";
-  const char* deep_merge_name = "g_njson-deep-merge";
-  const char* deep_merge_desc = "(g_njson-deep-merge handle other-object) => new-handle";
-  const char* deep_merge_x_name = "g_njson-deep-merge!";
-  const char* deep_merge_x_desc = "(g_njson-deep-merge! handle other-object) => same-handle";
-  const char* has_key_name = "g_njson-contains-key?";
-  const char* has_key_desc = "(g_njson-contains-key? handle key) => boolean?";
-  const char* keys_name = "g_njson-keys";
-  const char* keys_desc = "(g_njson-keys handle) => (list-of string?)";
-  const char* object_alist_name = "g_njson-object->alist";
-  const char* object_alist_desc = "(g_njson-object->alist object-handle) => alist";
-  const char* object_hash_name = "g_njson-object->hash-table";
-  const char* object_hash_desc = "(g_njson-object->hash-table object-handle) => hash-table";
-  const char* array_list_name = "g_njson-array->list";
-  const char* array_list_desc = "(g_njson-array->list array-handle) => list";
-  const char* array_vector_name = "g_njson-array->vector";
-  const char* array_vector_desc = "(g_njson-array->vector array-handle) => vector";
-  const char* schema_report_name = "g_njson-schema-report";
-  const char* schema_report_desc = "(g_njson-schema-report schema-handle instance) => hash-table";
-  glue_define (sc, parse_name, parse_desc, f_njson_string_to_json, 1, 0);
-  glue_define (sc, dump_name, dump_desc, f_njson_json_to_string, 1, 0);
-  glue_define (sc, format_name, format_desc, f_njson_format_string, 1, 1);
-  glue_define (sc, handlep_name, handlep_desc, f_njson_handle_p, 1, 0);
-  glue_define (sc, nullp_name, nullp_desc, f_njson_null_p, 1, 0);
-  glue_define (sc, objectp_name, objectp_desc, f_njson_object_p, 1, 0);
-  glue_define (sc, arrayp_name, arrayp_desc, f_njson_array_p, 1, 0);
-  glue_define (sc, stringp_name, stringp_desc, f_njson_string_p, 1, 0);
-  glue_define (sc, numberp_name, numberp_desc, f_njson_number_p, 1, 0);
-  glue_define (sc, integerp_name, integerp_desc, f_njson_integer_p, 1, 0);
-  glue_define (sc, booleanp_name, booleanp_desc, f_njson_boolean_p, 1, 0);
-  glue_define (sc, size_name, size_desc, f_njson_size, 1, 0);
-  glue_define (sc, emptyp_name, emptyp_desc, f_njson_empty_p, 1, 0);
-  glue_define (sc, free_name, free_desc, f_njson_free, 1, 0);
-  glue_define (sc, ref_name, ref_desc, f_njson_ref, 2, 32);
-  glue_define (sc, set_name, set_desc, f_njson_set, 3, 32);
-  glue_define (sc, append_name, append_desc, f_njson_append, 2, 32);
-  glue_define (sc, set_x_name, set_x_desc, f_njson_set_x, 3, 32);
-  glue_define (sc, append_x_name, append_x_desc, f_njson_append_x, 2, 32);
-  glue_define (sc, drop_name, drop_desc, f_njson_drop, 2, 32);
-  glue_define (sc, drop_x_name, drop_x_desc, f_njson_drop_x, 2, 32);
-  glue_define (sc, merge_name, merge_desc, f_njson_merge, 2, 0);
-  glue_define (sc, merge_x_name, merge_x_desc, f_njson_merge_x, 2, 0);
-  glue_define (sc, deep_merge_name, deep_merge_desc, f_njson_deep_merge, 2, 0);
-  glue_define (sc, deep_merge_x_name, deep_merge_x_desc, f_njson_deep_merge_x, 2, 0);
-  glue_define (sc, has_key_name, has_key_desc, f_njson_contains_key_p, 2, 0);
-  glue_define (sc, keys_name, keys_desc, f_njson_keys, 1, 0);
-  glue_define (sc, object_alist_name, object_alist_desc, f_njson_object_to_alist, 1, 0);
-  glue_define (sc, object_hash_name, object_hash_desc, f_njson_object_to_hash_table, 1, 0);
-  glue_define (sc, array_list_name, array_list_desc, f_njson_array_to_list, 1, 0);
-  glue_define (sc, array_vector_name, array_vector_desc, f_njson_array_to_vector, 1, 0);
-  glue_define (sc, schema_report_name, schema_report_desc, f_njson_schema_report, 2, 0);
-}
-
-static s7_pointer
-error2hashtable (s7_scheme* sc, long status_code, const std::string& url, const std::string& reason) {
-  s7_pointer ht= s7_make_hash_table (sc, 4);
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, status_code));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, url.c_str()));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, ""));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, reason.c_str()));
-  return ht;
-}
-
-static s7_pointer
-response2hashtable (s7_scheme* sc, cpr::Response r) {
-  s7_pointer ht= s7_make_hash_table (sc, 8);
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "status-code"), s7_make_integer (sc, r.status_code));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "url"), s7_make_string (sc, r.url.c_str()));
-  s7_hash_table_set (sc, ht, s7_make_symbol(sc, "elapsed"), s7_make_real (sc, r.elapsed));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "text"), s7_make_string (sc, r.text.c_str ()));
-  s7_hash_table_set (sc, ht, s7_make_symbol (sc, "reason"), s7_make_string (sc, r.reason.c_str ()));
-  s7_pointer headers= s7_make_hash_table(sc, r.header.size());
-  for (const auto &header : r.header) {
-    const auto key= header.first.c_str ();
-    std::string key_lower = header.first;
-    std::transform(key_lower.begin(), key_lower.end(),
-                   key_lower.begin(), ::tolower);
-    const auto value= header.second.c_str ();
-    s7_hash_table_set(sc, headers,
-                      s7_make_string(sc, key_lower.c_str()),
-                      s7_make_string(sc, value));
-  }
-  s7_hash_table_set (sc, ht, s7_make_symbol(sc, "headers"), headers);
-
-  return ht;
-}
-
-inline cpr::Parameters
-to_cpr_parameters (s7_scheme* sc, s7_pointer args) {
-  cpr::Parameters params = cpr::Parameters{};
-  s7_pointer iter = args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair = s7_car (iter);
-    params.Add (cpr::Parameter (s7_string (s7_car (pair)),
-                                s7_string (s7_cdr (pair))));
-    iter = s7_cdr (iter);
-  }
-  return params;
-}
-
-inline cpr::Header
-to_cpr_headers (s7_scheme* sc, s7_pointer args) {
-  cpr::Header headers = cpr::Header{};
-  s7_pointer iter = args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair = s7_car (iter);
-    headers.insert ({s7_string (s7_car (pair)),
-                     s7_string (s7_cdr (pair))});
-    iter = s7_cdr (iter);
-  }
-  return headers;
-}
-
-inline cpr::Proxies
-to_cpr_proxies (s7_scheme* sc, s7_pointer args) {
-  std::map<std::string, std::string> proxy_map;
-  s7_pointer iter = args;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair = s7_car (iter);
-    proxy_map[s7_string (s7_car (pair))] = s7_string (s7_cdr (pair));
-    iter = s7_cdr (iter);
-  }
-  return cpr::Proxies (proxy_map);
-}
-
-static cpr::Part
-to_cpr_multipart_part (s7_scheme* sc, s7_pointer part_spec) {
-  std::string name;
-  std::string value;
-  std::string file_path;
-  std::string filename;
-  std::string content_type;
-  bool has_file = false;
-
-  s7_pointer iter = part_spec;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer entry = s7_car (iter);
-    s7_pointer raw_key = s7_car (entry);
-    const char* key = s7_is_symbol (raw_key)
-                      ? s7_symbol_name (raw_key)
-                      : s7_string (raw_key);
-    const char* raw_value = s7_string (s7_cdr (entry));
-
-    if (strcmp (key, "name") == 0) {
-      name = raw_value;
-    } else if (strcmp (key, "value") == 0) {
-      value = raw_value;
-    } else if (strcmp (key, "file") == 0) {
-      file_path = raw_value;
-      has_file = true;
-    } else if (strcmp (key, "filename") == 0) {
-      filename = raw_value;
-    } else if (strcmp (key, "content-type") == 0) {
-      content_type = raw_value;
-    }
-
-    iter = s7_cdr (iter);
-  }
-
-  if (has_file) {
-    cpr::Files files;
-    if (filename.empty ()) {
-      files.push_back (cpr::File (file_path));
-    } else {
-      files.push_back (cpr::File (file_path, filename));
-    }
-    return cpr::Part (name, files, content_type);
-  }
-
-  return cpr::Part (name, value, content_type);
-}
-
-static void
-append_cpr_multipart_file_parts (s7_scheme* sc, s7_pointer files, std::vector<cpr::Part>& parts) {
-  s7_pointer iter = files;
-  while (!s7_is_null (sc, iter)) {
-    parts.push_back (to_cpr_multipart_part (sc, s7_car (iter)));
-    iter = s7_cdr (iter);
-  }
-}
-
-static void
-append_cpr_multipart_form_parts (s7_scheme* sc, s7_pointer data, std::vector<cpr::Part>& parts) {
-  s7_pointer iter = data;
-  while (!s7_is_null (sc, iter)) {
-    s7_pointer pair = s7_car (iter);
-    parts.push_back (cpr::Part (s7_string (s7_car (pair)),
-                                s7_string (s7_cdr (pair))));
-    iter = s7_cdr (iter);
-  }
-}
-
-static cpr::Multipart
-to_cpr_post_multipart (s7_scheme* sc, s7_pointer data, s7_pointer files) {
-  std::vector<cpr::Part> parts;
-  append_cpr_multipart_form_parts (sc, data, parts);
-  append_cpr_multipart_file_parts (sc, files, parts);
-  return cpr::Multipart (parts);
-}
-
-static s7_pointer
-f_http_head (s7_scheme* sc, s7_pointer args) {
-  const char* url= s7_string (s7_car (args));
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  cpr::Response r= session.Head ();
-  return response2hashtable (sc, r);
-}
-
-inline void
-glue_http_head (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-  const char* s_http_head = "g_http-head";
-  const char* d_http_head = "(g_http-head url ...) => hash-table?";
-  auto func_http_head= s7_make_typed_function (sc, s_http_head, f_http_head, 1, 0, false, d_http_head, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_http_head), func_http_head);
-}
-
-static s7_pointer
-f_http_get (s7_scheme* sc, s7_pointer args) {
-  const char* url= s7_string (s7_car (args));
-  s7_pointer params= s7_cadr (args);
-  s7_pointer headers= s7_caddr (args);
-  s7_pointer proxy= s7_cadddr (args);
-  s7_pointer callback= s7_car (s7_cddddr (args));
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetHeader (cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session.SetProxies(cpr_proxies);
-  }
-
-  if (s7_is_procedure (callback)) {
-    session.SetWriteCallback (cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args = s7_cons (sc, data_str, s7_nil (sc));
-
-      s7_pointer ret = s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
-      }
-
-      return true;
-    }});
-
-    try {
-      cpr::Response response = session.Get ();
-      return response2hashtable (sc, response);
-    } catch (const std::exception& e) {
-      return error2hashtable (sc, 0, url, e.what());
-    }
-  }
-
-  cpr::Response r= session.Get ();
-  return response2hashtable (sc, r);
-}
-
-inline void
-glue_http_get (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-  const char* s_http_get= "g_http-get";
-  const char* d_http_get= "(g_http-get url params headers proxy callback) => hash-table? | undefined";
-  auto func_http_get= s7_make_typed_function (sc, s_http_get, f_http_get, 5, 0, false, d_http_get, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_http_get), func_http_get);
-}
-
-static s7_pointer
-f_http_post (s7_scheme* sc, s7_pointer args) {
-  const char* url= s7_string (s7_car (args));
-  s7_pointer params= s7_cadr (args);
-  s7_pointer body_or_data = s7_caddr (args);
-  s7_pointer headers= s7_cadddr (args);
-  s7_pointer proxy= s7_car (s7_cddddr (args));
-  s7_pointer files= s7_cadr (s7_cddddr (args));
-  s7_pointer callback= s7_list_ref (sc, args, 6);
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-
-  cpr::Session session;
-  session.SetUrl (cpr::Url (url));
-  session.SetParameters (cpr_params);
-  session.SetHeader (cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session.SetProxies(cpr_proxies);
-  }
-
-  if (s7_is_list(sc, files) && !s7_is_null(sc, files)) {
-    session.SetMultipart (to_cpr_post_multipart (sc, body_or_data, files));
-  }
-  else {
-    const char* body= s7_string (body_or_data);
-    cpr::Body cpr_body= cpr::Body (body);
-    session.SetBody (cpr_body);
-  }
-
-  if (s7_is_procedure (callback)) {
-    session.SetWriteCallback (cpr::WriteCallback{[sc, callback](const std::string_view& data, intptr_t) -> bool {
-      s7_pointer data_str = s7_make_string_with_length (sc, data.data (), data.length ());
-      s7_pointer call_args = s7_cons (sc, data_str, s7_nil (sc));
-
-      s7_pointer ret = s7_call (sc, callback, call_args);
-      if (s7_is_boolean (ret)) {
-        return s7_boolean (sc, ret);
-      }
-
-      return true;
-    }});
-
-    try {
-      cpr::Response response = session.Post ();
-      return response2hashtable (sc, response);
-    } catch (const std::exception& e) {
-      return error2hashtable (sc, 0, url, e.what());
-    }
-  }
-
-  cpr::Response r= session.Post ();
-  return response2hashtable (sc, r);
-}
-
-inline void
-glue_http_post (s7_scheme* sc) {
-  s7_pointer cur_env= s7_curlet (sc);
-  const char* name= "g_http-post";
-  const char* doc= "(g_http-post url params body-or-data headers proxy files callback) => hash-table? | undefined";
-  auto func_http_post= s7_make_typed_function (sc, name, f_http_post, 7, 0, false, doc, NULL);
-  s7_define (sc, cur_env, s7_make_symbol (sc, name), func_http_post);
-}
-
-inline void
-glue_http (s7_scheme* sc) {
-  glue_http_head (sc);
-  glue_http_get (sc);
-  glue_http_post (sc);
-}
-
-// -------------------------------- Async HTTP --------------------------------
-// Data structure to store async HTTP request state
-struct AsyncHttpRequest {
-  s7_scheme* sc;
-  s7_pointer callback;
-  int gc_loc;
-  std::shared_ptr<cpr::Session> session;  // Keep session alive
-  cpr::AsyncResponse async_response;
-  bool completed;
-  cpr::Response response;
-  std::mutex mutex;
-  
-  AsyncHttpRequest(s7_scheme* scheme, s7_pointer cb, int gc_protect_loc, 
-                   std::shared_ptr<cpr::Session> sess, cpr::AsyncResponse&& ar)
-    : sc(scheme), callback(cb), gc_loc(gc_protect_loc), 
-      session(std::move(sess)), async_response(std::move(ar)), completed(false) {}
-};
-
-// Global list of pending async requests
-static std::mutex g_async_requests_mutex;
-static std::vector<std::shared_ptr<AsyncHttpRequest>> g_async_requests;
-
-// Check if any async requests have completed and process their callbacks
-// This function should be called periodically from the main thread
-// Returns the number of callbacks executed
-static int
-process_async_http_callbacks () {
-  std::vector<std::shared_ptr<AsyncHttpRequest>> completed_requests;
-  
-  // Find completed requests
-  {
-    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
-    for (auto it = g_async_requests.begin(); it != g_async_requests.end(); ) {
-      bool is_ready = false;
-      {
-        std::lock_guard<std::mutex> req_lock((*it)->mutex);
-        if (!(*it)->completed) {
-          // Check if the future is ready (non-blocking)
-          if ((*it)->async_response.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
-            (*it)->response = (*it)->async_response.get();
-            (*it)->completed = true;
-            is_ready = true;
-          }
-        }
-      }
-      
-      if (is_ready) {
-        completed_requests.push_back(*it);
-        it = g_async_requests.erase(it);
-      } else {
-        ++it;
-      }
-    }
-  }
-  
-  // Execute callbacks for completed requests (outside the lock)
-  for (auto& req : completed_requests) {
-    s7_pointer ht = response2hashtable(req->sc, req->response);
-    s7_call(req->sc, req->callback, s7_cons(req->sc, ht, s7_nil(req->sc)));
-    s7_gc_unprotect_at(req->sc, req->gc_loc);
-  }
-  
-  return static_cast<int>(completed_requests.size());
-}
-
-// Start an async HTTP GET request
-static s7_pointer
-f_http_async_get (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string(s7_car(args));
-  s7_pointer params = s7_cadr(args);
-  s7_pointer headers = s7_caddr(args);
-  s7_pointer proxy = s7_cadddr(args);
-  s7_pointer callback = s7_car(s7_cddddr(args));
-  
-  if (!s7_is_procedure(callback)) {
-    return s7_error(sc, s7_make_symbol(sc, "type-error"),
-                    s7_list(sc, 2, s7_make_string(sc, "http-async-get: callback must be a procedure"), callback));
-  }
-  
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-  
-  // Protect callback from GC
-  int gc_loc = s7_gc_protect(sc, callback);
-  
-  // Create session on heap with shared_ptr to keep it alive
-  auto session = std::make_shared<cpr::Session>();
-  session->SetUrl(cpr::Url(url));
-  session->SetParameters(cpr_params);
-  session->SetHeader(cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session->SetProxies(cpr_proxies);
-  }
-  
-  // Start async request using libcpr's built-in thread pool
-  // Session is captured by shared_ptr, so it stays alive until async operation completes
-  auto async_resp = session->GetAsync();
-  
-  // Store the request (session is also stored to keep reference)
-  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
-  {
-    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
-    g_async_requests.push_back(req);
-  }
-  
-  return s7_make_boolean(sc, true);
-}
-
-inline void
-glue_http_async_get (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet(sc);
-  const char* name = "g_http-async-get";
-  const char* doc = "(g_http-async-get url params headers proxy callback) => boolean, start async http get. callback receives response hashtable. Use g_http-poll to check for completion.";
-  auto func = s7_make_typed_function(sc, name, f_http_async_get, 5, 0, false, doc, NULL);
-  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
-}
-
-// Start an async HTTP POST request
-static s7_pointer
-f_http_async_post (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string(s7_car(args));
-  s7_pointer params = s7_cadr(args);
-  const char* body = s7_string(s7_caddr(args));
-  s7_pointer headers = s7_cadddr(args);
-  s7_pointer proxy = s7_car(s7_cddddr(args));
-  s7_pointer callback = s7_cadr(s7_cddddr(args));
-  
-  if (!s7_is_procedure(callback)) {
-    return s7_error(sc, s7_make_symbol(sc, "type-error"),
-                    s7_list(sc, 2, s7_make_string(sc, "http-async-post: callback must be a procedure"), callback));
-  }
-  
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-  
-  // Protect callback from GC
-  int gc_loc = s7_gc_protect(sc, callback);
-  
-  // Create session on heap with shared_ptr to keep it alive
-  auto session = std::make_shared<cpr::Session>();
-  session->SetUrl(cpr::Url(url));
-  session->SetParameters(cpr_params);
-  session->SetBody(cpr::Body(body));
-  session->SetHeader(cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session->SetProxies(cpr_proxies);
-  }
-  
-  // Start async request using libcpr's built-in thread pool
-  auto async_resp = session->PostAsync();
-  
-  // Store the request (session is also stored to keep reference)
-  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
-  {
-    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
-    g_async_requests.push_back(req);
-  }
-  
-  return s7_make_boolean(sc, true);
-}
-
-inline void
-glue_http_async_post (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet(sc);
-  const char* name = "g_http-async-post";
-  const char* doc = "(g_http-async-post url params body headers proxy callback) => boolean, start async http post. callback receives response hashtable. Use g_http-poll to check for completion.";
-  auto func = s7_make_typed_function(sc, name, f_http_async_post, 6, 0, false, doc, NULL);
-  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
-}
-
-// Start an async HTTP HEAD request
-static s7_pointer
-f_http_async_head (s7_scheme* sc, s7_pointer args) {
-  const char* url = s7_string(s7_car(args));
-  s7_pointer params = s7_cadr(args);
-  s7_pointer headers = s7_caddr(args);
-  s7_pointer proxy = s7_cadddr(args);
-  s7_pointer callback = s7_car(s7_cddddr(args));
-  
-  if (!s7_is_procedure(callback)) {
-    return s7_error(sc, s7_make_symbol(sc, "type-error"),
-                    s7_list(sc, 2, s7_make_string(sc, "http-async-head: callback must be a procedure"), callback));
-  }
-  
-  cpr::Parameters cpr_params = to_cpr_parameters (sc, params);
-  cpr::Header cpr_headers = to_cpr_headers (sc, headers);
-  cpr::Proxies cpr_proxies = to_cpr_proxies (sc, proxy);
-  
-  // Protect callback from GC
-  int gc_loc = s7_gc_protect(sc, callback);
-  
-  // Create session on heap with shared_ptr to keep it alive
-  auto session = std::make_shared<cpr::Session>();
-  session->SetUrl(cpr::Url(url));
-  session->SetParameters(cpr_params);
-  session->SetHeader(cpr_headers);
-  if (s7_is_list(sc, proxy) && !s7_is_null(sc, proxy)) {
-    session->SetProxies(cpr_proxies);
-  }
-  
-  // Start async request using libcpr's built-in thread pool
-  auto async_resp = session->HeadAsync();
-  
-  // Store the request (session is also stored to keep reference)
-  auto req = std::make_shared<AsyncHttpRequest>(sc, callback, gc_loc, session, std::move(async_resp));
-  {
-    std::lock_guard<std::mutex> lock(g_async_requests_mutex);
-    g_async_requests.push_back(req);
-  }
-  
-  return s7_make_boolean(sc, true);
-}
-
-inline void
-glue_http_async_head (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet(sc);
-  const char* name = "g_http-async-head";
-  const char* doc = "(g_http-async-head url params headers proxy callback) => boolean, start async http head. callback receives response hashtable. Use g_http-poll to check for completion.";
-  auto func = s7_make_typed_function(sc, name, f_http_async_head, 5, 0, false, doc, NULL);
-  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
-}
-
-// Poll for completed async HTTP requests and execute their callbacks
-static s7_pointer
-f_http_poll (s7_scheme* sc, s7_pointer args) {
-  int executed = process_async_http_callbacks();
-  return s7_make_integer(sc, executed);
-}
-
-inline void
-glue_http_poll (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet(sc);
-  const char* name = "g_http-poll";
-  const char* doc = "(g_http-poll) => integer, check for completed async http requests and execute their callbacks. Returns number of callbacks executed.";
-  auto func = s7_make_typed_function(sc, name, f_http_poll, 0, 0, false, doc, NULL);
-  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
-}
-
-// Wait for all pending async HTTP requests to complete (blocking)
-static s7_pointer
-f_http_wait_all (s7_scheme* sc, s7_pointer args) {
-  s7_double timeout_sec = -1.0; // -1 means wait forever
-  if (s7_is_real(s7_car(args))) {
-    timeout_sec = s7_real(s7_car(args));
-  }
-  
-  auto start = std::chrono::steady_clock::now();
-  bool has_pending = true;
-  int total_executed = 0;
-  
-  while (has_pending) {
-    int executed = process_async_http_callbacks();
-    total_executed += executed;
-    
-    // Check if there are still pending requests
-    {
-      std::lock_guard<std::mutex> lock(g_async_requests_mutex);
-      has_pending = !g_async_requests.empty();
-    }
-    
-    if (has_pending) {
-      // Check timeout
-      if (timeout_sec >= 0) {
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
-          std::chrono::steady_clock::now() - start).count() / 1000.0;
-        if (elapsed >= timeout_sec) {
-          break; // Timeout
-        }
-      }
-      // Small sleep to avoid busy waiting
-      std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-  }
-  
-  return s7_make_integer(sc, total_executed);
-}
-
-inline void
-glue_http_wait_all (s7_scheme* sc) {
-  s7_pointer cur_env = s7_curlet(sc);
-  const char* name = "g_http-wait-all";
-  const char* doc = "(g_http-wait-all [timeout-seconds]) => integer, wait for all pending async http requests to complete. timeout < 0 means wait forever. Returns number of callbacks executed.";
-  auto func = s7_make_typed_function(sc, name, f_http_wait_all, 0, 1, false, doc, NULL);
-  s7_define(sc, cur_env, s7_make_symbol(sc, name), func);
-}
-
-inline void
-glue_http_async (s7_scheme* sc) {
-  glue_http_async_get(sc);
-  glue_http_async_post(sc);
-  glue_http_async_head(sc);
-  glue_http_poll(sc);
-  glue_http_wait_all(sc);
-}
-
+void glue_njson (s7_scheme* sc);
+void glue_http (s7_scheme* sc);
+void glue_http_async (s7_scheme* sc);
+void glue_liii_base64 (s7_scheme* sc);
+void glue_scheme_base (s7_scheme* sc);
+void glue_liii_hashlib (s7_scheme* sc);
+void glue_liii_os (s7_scheme* sc);
+void glue_liii_path (s7_scheme* sc);
+void glue_subprocess_run_values (s7_scheme* sc);
 
 inline s7_pointer
 string_vector_to_s7_vector (s7_scheme* sc, vector<string> v) {
@@ -2210,10 +153,14 @@ glue_goldfish (s7_scheme* sc) {
   const char* d_delete_file       = "(g_delete-file string) => boolean";
   const char* s_function_libraries= "g_function-libraries";
   const char* d_function_libraries=
-    "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
-    "export function-name in the current *load-path*";
-  const char* s_gfproject_load_config = "g_gfproject-load-config";
-  const char* d_gfproject_load_config = "(g_gfproject-load-config) => string, returns merged gfproject.json";
+      "(g_function-libraries function-name) => list, returns visible library names such as '((liii string)) that "
+      "export function-name in the current *load-path*";
+  const char* s_gfproject_load_config= "g_gfproject-load-config";
+  const char* d_gfproject_load_config= "(g_gfproject-load-config) => string, returns merged gfproject.json";
+  const char* s_project_root         = "g_project-root";
+  const char* d_project_root=
+      "(g_project-root) => string or #f, returns the directory containing the local gfproject.json, "
+      "or #f if none is found in the current working directory";
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_version),
              s7_make_typed_function (sc, s_version, f_version, 0, 0, false, d_version, NULL));
@@ -2221,12 +168,16 @@ glue_goldfish (s7_scheme* sc) {
   s7_define (sc, cur_env, s7_make_symbol (sc, s_delete_file),
              s7_make_typed_function (sc, s_delete_file, f_delete_file, 1, 0, false, d_delete_file, NULL));
 
-  s7_define (sc, cur_env, s7_make_symbol (sc, s_function_libraries),
-             s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
+  s7_define (
+      sc, cur_env, s7_make_symbol (sc, s_function_libraries),
+      s7_make_typed_function (sc, s_function_libraries, f_function_libraries, 1, 0, false, d_function_libraries, NULL));
 
   s7_define (sc, cur_env, s7_make_symbol (sc, s_gfproject_load_config),
              s7_make_typed_function (sc, s_gfproject_load_config, f_gfproject_load_config, 0, 0, false,
                                      d_gfproject_load_config, NULL));
+
+  s7_define (sc, cur_env, s7_make_symbol (sc, s_project_root),
+             s7_make_typed_function (sc, s_project_root, f_project_root, 0, 0, false, d_project_root, NULL));
 }
 
 // old `f_current_second` TODO: use std::chrono::tai_clock::now() when using C++ 20
@@ -2235,30 +186,30 @@ glue_goldfish (s7_scheme* sc) {
 static s7_pointer
 f_get_time_of_day (s7_scheme* sc, s7_pointer args) {
   using namespace std::chrono;
-  auto now = time_point_cast<microseconds>(system_clock::now());
-  auto since_epoch = now.time_since_epoch();
-  auto sec = duration_cast<seconds>(since_epoch);
+  auto now        = time_point_cast<microseconds> (system_clock::now ());
+  auto since_epoch= now.time_since_epoch ();
+  auto sec        = duration_cast<seconds> (since_epoch);
 
-  s7_pointer vs = s7_list(sc, 2,
-                          s7_make_integer(sc, sec.count()),
-                          s7_make_integer(sc, (since_epoch - sec).count()));
-  return s7_values(sc, vs);
+  s7_pointer vs=
+      s7_list (sc, 2, s7_make_integer (sc, sec.count ()), s7_make_integer (sc, (since_epoch - sec).count ()));
+  return s7_values (sc, vs);
 }
 
 static s7_pointer
 f_monotonic_nanosecond (s7_scheme* sc, s7_pointer args) {
   using namespace std::chrono;
-  auto now = steady_clock::now();
-  auto duration = now.time_since_epoch();
-  auto count = duration_cast<std::chrono::nanoseconds>(duration).count();
-  return s7_make_integer(sc, count);
+  auto now     = steady_clock::now ();
+  auto duration= now.time_since_epoch ();
+  auto count   = duration_cast<std::chrono::nanoseconds> (duration).count ();
+  return s7_make_integer (sc, count);
 }
 
-template<typename Clock>
-constexpr int64_t clock_resolution_ns() {
+template <typename Clock>
+constexpr int64_t
+clock_resolution_ns () {
   typedef std::chrono::duration<double, std::nano> NS;
-  NS ns = typename Clock::duration(1);
-  return ns.count();
+  NS                                               ns= typename Clock::duration (1);
+  return ns.count ();
 }
 
 inline void
@@ -2267,21 +218,22 @@ glue_scheme_time (s7_scheme* sc) {
 
   const char* s_get_time_of_day= "g_get-time-of-day";
   const char* d_get_time_of_day= "(g_get-time-of-day): () => (integer, integer), return the "
-                                "current second and microsecond in integer";
+                                 "current second and microsecond in integer";
   s7_define (sc, cur_env, s7_make_symbol (sc, s_get_time_of_day),
              s7_make_typed_function (sc, s_get_time_of_day, f_get_time_of_day, 0, 0, false, d_get_time_of_day, NULL));
 
   const char* s_monotonic_nanosecond= "g_monotonic-nanosecond";
-  const char* d_monotonic_nanosecond= "(g_monotonic-nanosecond): () => integer, returns the steady clock's monotonic nanoseconds since an unspecified epoch";
+  const char* d_monotonic_nanosecond= "(g_monotonic-nanosecond): () => integer, returns the steady clock's monotonic "
+                                      "nanoseconds since an unspecified epoch";
   s7_define (sc, cur_env, s7_make_symbol (sc, s_monotonic_nanosecond),
-             s7_make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false, d_monotonic_nanosecond, NULL));
+             s7_make_typed_function (sc, s_monotonic_nanosecond, f_monotonic_nanosecond, 0, 0, false,
+                                     d_monotonic_nanosecond, NULL));
 
   s7_define_constant_with_environment (sc, cur_env, "g_system-clock-resolution",
-                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::system_clock>()));
+                                       s7_make_integer (sc, clock_resolution_ns<std::chrono::system_clock> ()));
   s7_define_constant_with_environment (sc, cur_env, "g_steady-clock-resolution",
-                                       s7_make_integer(sc, clock_resolution_ns<std::chrono::steady_clock>()));
+                                       s7_make_integer (sc, clock_resolution_ns<std::chrono::steady_clock> ()));
 }
-
 
 static s7_pointer
 f_get_environment_variable (s7_scheme* sc, s7_pointer args) {
@@ -2320,39 +272,33 @@ f_command_line (s7_scheme* sc, s7_pointer args) {
 }
 
 static s7_pointer
-f_unset_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* env_name= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_environment_remove (env_name));
-}
-
-static s7_pointer
 f_getenvs (s7_scheme* sc, s7_pointer args) {
-  s7_pointer p = s7_nil(sc);
+  s7_pointer p= s7_nil (sc);
 
 #ifdef TB_CONFIG_OS_WINDOWS
   // Windows: use GetEnvironmentStrings
-  LPCH env_strings = GetEnvironmentStrings();
+  LPCH env_strings= GetEnvironmentStrings ();
   if (env_strings) {
-    LPCH env = env_strings;
+    LPCH env= env_strings;
     while (*env) {
-      const char* eq = strchr(env, '=');
+      const char* eq= strchr (env, '=');
       if (eq && eq != env) { // skip empty variable names
-        s7_pointer name = s7_make_string_with_length(sc, env, eq - env);
-        s7_pointer value = s7_make_string(sc, eq + 1);
-        p = s7_cons(sc, s7_cons(sc, name, value), p);
+        s7_pointer name = s7_make_string_with_length (sc, env, eq - env);
+        s7_pointer value= s7_make_string (sc, eq + 1);
+        p               = s7_cons (sc, s7_cons (sc, name, value), p);
       }
-      env += strlen(env) + 1;
+      env+= strlen (env) + 1;
     }
-    FreeEnvironmentStrings(env_strings);
+    FreeEnvironmentStrings (env_strings);
   }
 #else
   // Unix/Linux/macOS: use environ (declared at global scope)
-  for (int32_t i = 0; environ[i]; i++) {
-    const char* eq = strchr(environ[i], '=');
+  for (int32_t i= 0; environ[i]; i++) {
+    const char* eq= strchr (environ[i], '=');
     if (eq) {
-      s7_pointer name = s7_make_string_with_length(sc, environ[i], eq - environ[i]);
-      s7_pointer value = s7_make_string(sc, eq + 1);
-      p = s7_cons(sc, s7_cons(sc, name, value), p);
+      s7_pointer name = s7_make_string_with_length (sc, environ[i], eq - environ[i]);
+      s7_pointer value= s7_make_string (sc, eq + 1);
+      p               = s7_cons (sc, s7_cons (sc, name, value), p);
     }
   }
 #endif
@@ -2387,8 +333,8 @@ goldfish_exe () {
   GetModuleFileName (NULL, buffer, GOLDFISH_PATH_MAXN);
   return string (buffer);
 #elif TB_CONFIG_OS_MACOSX
-  char        buffer[PATH_MAX];
-  uint32_t    size= sizeof (buffer);
+  char     buffer[PATH_MAX];
+  uint32_t size= sizeof (buffer);
   if (_NSGetExecutablePath (buffer, &size) == 0) {
     char real_path[GOLDFISH_PATH_MAXN];
     if (realpath (buffer, real_path) != NULL) {
@@ -2412,6 +358,136 @@ f_executable (s7_scheme* sc, s7_pointer args) {
   return s7_make_string (sc, exe_path.c_str ());
 }
 
+static bool
+which_access_check (const char* path) {
+#ifdef TB_CONFIG_OS_WINDOWS
+  tb_file_info_t info;
+  return tb_file_info (path, &info) && info.type == TB_FILE_TYPE_FILE;
+#else
+  return tb_file_access (path, TB_FILE_MODE_EXEC);
+#endif
+}
+
+static s7_pointer
+f_which (s7_scheme* sc, s7_pointer args) {
+  const char* cmd_c        = s7_string (s7_car (args));
+  s7_pointer  path_arg     = s7_cdr (args);
+  const char* path_override= nullptr;
+
+  if (s7_is_pair (path_arg)) {
+    path_override= s7_string (s7_car (path_arg));
+  }
+
+  string         cmd_str (cmd_c);
+  vector<string> search_dirs;
+  string         cmd_name;
+
+  bool has_dir_sep= (cmd_str.find ('/') != string::npos) || (cmd_str.find ('\\') != string::npos);
+
+  if (has_dir_sep) {
+    size_t last_sep= cmd_str.find_last_of ("/\\");
+    string dir     = cmd_str.substr (0, last_sep);
+    cmd_name       = cmd_str.substr (last_sep + 1);
+    if (dir.empty ()) {
+      dir= ".";
+    }
+    search_dirs.push_back (dir);
+  }
+  else {
+    cmd_name= cmd_str;
+
+    string path_env;
+    if (path_override != nullptr) {
+      path_env= path_override;
+    }
+    else {
+      const char* env= getenv ("PATH");
+      if (env != nullptr) {
+        path_env= env;
+      }
+    }
+
+    if (path_env.empty ()) {
+      return s7_make_boolean (sc, false);
+    }
+
+    char path_sep= ':';
+#ifdef TB_CONFIG_OS_WINDOWS
+    path_sep= ';';
+#endif
+
+    size_t start= 0;
+    size_t end  = path_env.find (path_sep);
+    while (end != string::npos) {
+      string dir= path_env.substr (start, end - start);
+      if (!dir.empty ()) {
+        search_dirs.push_back (dir);
+      }
+      start= end + 1;
+      end  = path_env.find (path_sep, start);
+    }
+    string last_dir= path_env.substr (start);
+    if (!last_dir.empty ()) {
+      search_dirs.push_back (last_dir);
+    }
+  }
+
+  vector<string> files_to_check;
+
+#ifdef TB_CONFIG_OS_WINDOWS
+  vector<string> exts;
+  const char*    pathext= getenv ("PATHEXT");
+  if (pathext != nullptr) {
+    string ext_str (pathext);
+    size_t start= 0;
+    size_t end  = ext_str.find (';');
+    while (end != string::npos) {
+      string ext= ext_str.substr (start, end - start);
+      if (!ext.empty ()) {
+        if (ext[0] == '.') ext= ext.substr (1);
+        exts.push_back (ext);
+      }
+      start= end + 1;
+      end  = ext_str.find (';', start);
+    }
+    string last_ext= ext_str.substr (start);
+    if (!last_ext.empty ()) {
+      if (last_ext[0] == '.') last_ext= last_ext.substr (1);
+      exts.push_back (last_ext);
+    }
+  }
+
+  files_to_check.push_back (cmd_name);
+  for (const string& ext : exts) {
+    files_to_check.push_back (cmd_name + "." + ext);
+  }
+#else
+  files_to_check.push_back (cmd_name);
+#endif
+
+  for (const string& dir : search_dirs) {
+    for (const string& file : files_to_check) {
+#ifdef TB_CONFIG_OS_WINDOWS
+      string full_path= dir + "\\" + file;
+#else
+      string full_path= dir + "/" + file;
+#endif
+      if (which_access_check (full_path.c_str ())) {
+        return s7_make_string (sc, full_path.c_str ());
+      }
+    }
+  }
+
+  return s7_make_boolean (sc, false);
+}
+
+inline void
+glue_which (s7_scheme* sc) {
+  const char* name= "g_which";
+  const char* desc= "(g_which cmd [path]) => string or #f, locate a command in PATH or given search path";
+  glue_define (sc, name, desc, f_which, 1, 1);
+}
+
 inline void
 glue_executable (s7_scheme* sc) {
   const char* name= "g_executable";
@@ -2421,355 +497,25 @@ glue_executable (s7_scheme* sc) {
 
 inline void
 glue_liii_sys (s7_scheme* sc) {
+  glue_which (sc);
   glue_executable (sc);
 }
 
 static s7_pointer
-f_os_arch (s7_scheme* sc, s7_pointer args) {
-  return s7_make_string (sc, TB_ARCH_STRING);
-}
+f_sleep (s7_scheme* sc, s7_pointer args) {
+  s7_double seconds= s7_real (s7_car (args));
 
-inline void
-glue_os_arch (s7_scheme* sc) {
-  const char* name= "g_os-arch";
-  const char* desc= "(g_os-arch) => string";
-  glue_define (sc, name, desc, f_os_arch, 0, 0);
-}
-
-static s7_pointer
-f_os_type (s7_scheme* sc, s7_pointer args) {
-#ifdef TB_CONFIG_OS_LINUX
-  return s7_make_string (sc, "Linux");
-#endif
-#ifdef TB_CONFIG_OS_MACOSX
-  return s7_make_string (sc, "Darwin");
-#endif
-#ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_string (sc, "Windows");
-#endif
-  return s7_make_boolean (sc, false);
-}
-
-inline void
-glue_os_type (s7_scheme* sc) {
-  const char* name= "g_os-type";
-  const char* desc= "(g_os-type) => string";
-  glue_define (sc, name, desc, f_os_type, 0, 0);
-}
-
-static s7_pointer
-f_os_call (s7_scheme* sc, s7_pointer args) {
-  const char*       cmd_c= s7_string (s7_car (args));
-  tb_process_attr_t attr = {tb_null};
-  attr.flags             = TB_PROCESS_FLAG_NO_WINDOW;
-  int ret;
-
-#if (defined(_MSC_VER) || defined(__MINGW32__))
-  ret= (int) std::system (cmd_c);
-#elif defined(__EMSCRIPTEN__)
-  tb_char_t* argv[]= {(tb_char_t*) cmd_c, tb_null};
-  ret              = (int) tb_process_run (argv[0], (tb_char_t const**) argv, &attr);
-#else
-  wordexp_t p;
-  ret= wordexp (cmd_c, &p, 0);
-  if (ret != 0) {
-    // failed after calling wordexp
-  }
-  else if (p.we_wordc == 0) {
-    wordfree (&p);
-    ret= EINVAL;
-  }
-  else {
-    ret= (int) tb_process_run (p.we_wordv[0], (tb_char_t const**) p.we_wordv, &attr);
-    wordfree (&p);
-  }
-#endif
-  return s7_make_integer (sc, ret);
-}
-
-inline void
-glue_os_call (s7_scheme* sc) {
-  const char* name= "g_os-call";
-  const char* desc= "(g_os-call string) => int, execute a shell command and return the exit code";
-  glue_define (sc, name, desc, f_os_call, 1, 0);
-}
-
-static s7_pointer
-f_system (s7_scheme* sc, s7_pointer args) {
-  const char* cmd_c= s7_string (s7_car (args));
-  int         ret  = (int) std::system (cmd_c);
-  return s7_make_integer (sc, ret);
-}
-
-inline void
-glue_system (s7_scheme* sc) {
-  const char* name= "g_system";
-  const char* desc= "(g_system string) => int, execute a shell command and return the exit code";
-  glue_define (sc, name, desc, f_system, 1, 0);
-}
-
-static s7_pointer
-f_access (s7_scheme* sc, s7_pointer args) {
-  const char* path_c= s7_string (s7_car (args));
-  int         mode  = s7_integer ((s7_cadr (args)));
-  bool        ret   = false;
-  if (mode == 0) {
-    tb_file_info_t info;
-    ret= tb_file_info (path_c, &info);
-  }
-  else {
-    ret= tb_file_access (path_c, mode);
-  }
-
-  return s7_make_boolean (sc, ret);
-}
-
-inline void
-glue_access (s7_scheme* sc) {
-  const char* name= "g_access";
-  const char* desc= "(g_access string integer) => boolean, check file access permissions";
-  glue_define (sc, name, desc, f_access, 2, 0);
-}
-
-// 实现 putenv 功能
-static s7_pointer
-f_set_environment_variable (s7_scheme* sc, s7_pointer args) {
-  const char* key  = s7_string (s7_car (args));
-  const char* value= s7_string (s7_cadr (args));
-  return s7_make_boolean (sc, tb_environment_set (key, value));
-}
-
-inline void
-glue_setenv (s7_scheme* sc) {
-  const char* name= "g_setenv";
-  const char* desc= "(g_setenv key value) => boolean, set an environment variable";
-  glue_define (sc, name, desc, f_set_environment_variable, 2, 0);
-}
-
-inline void
-glue_unsetenv (s7_scheme* sc) {
-  const char* name= "g_unsetenv";
-  const char* desc= "(g_unsetenv string): string => boolean";
-  glue_define (sc, name, desc, f_unset_environment_variable, 1, 0);
-}
-
-static s7_pointer
-f_os_temp_dir (s7_scheme* sc, s7_pointer args) {
-  tb_char_t path[GOLDFISH_PATH_MAXN];
-  tb_directory_temporary (path, GOLDFISH_PATH_MAXN);
-  return s7_make_string (sc, path);
-}
-
-inline void
-glue_os_temp_dir (s7_scheme* sc) {
-  const char* name= "g_os-temp-dir";
-  const char* desc= "(g_os-temp-dir) => string, get the temporary directory path";
-  glue_define (sc, name, desc, f_os_temp_dir, 0, 0);
-}
-
-static s7_pointer
-f_mkdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_create (dir_c));
-}
-
-inline void
-glue_mkdir (s7_scheme* sc) {
-  const char* name= "g_mkdir";
-  const char* desc= "(g_mkdir string) => boolean, create a directory";
-  glue_define (sc, name, desc, f_mkdir, 1, 0);
-}
-
-static s7_pointer
-f_rmdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_remove (dir_c));
-}
-
-inline void
-glue_rmdir (s7_scheme* sc) {
-  const char* name= "g_rmdir";
-  const char* desc= "(g_rmdir string) => boolean, remove a directory";
-  glue_define (sc, name, desc, f_rmdir, 1, 0);
-}
-
-static s7_pointer
-f_remove_file (s7_scheme* sc, s7_pointer args) {
-  const char* path   = s7_string (s7_car (args));
-  bool        success= tb_file_remove (path); // 直接调用 TBOX 删除文件
-  return s7_make_boolean (sc, success);
-}
-
-inline void
-glue_remove_file (s7_scheme* sc) {
-  const char* name= "g_remove-file";
-  const char* desc= "(g_remove-file path) => boolean, delete a file";
-  glue_define (sc, name, desc, f_remove_file, 1, 0);
-}
-
-static s7_pointer
-f_rename (s7_scheme* sc, s7_pointer args) {
-  const char* src = s7_string (s7_car (args));
-  const char* dst = s7_string (s7_cadr (args));
-  try {
-    fs::rename (src, dst);
-    return s7_make_boolean (sc, true);
-  }
-  catch (const fs::filesystem_error& e) {
-    return s7_make_boolean (sc, false);
-  }
-}
-
-inline void
-glue_rename (s7_scheme* sc) {
-  const char* name= "g_rename";
-  const char* desc= "(g_rename src dst) => boolean, rename file or directory from src to dst";
-  glue_define (sc, name, desc, f_rename, 2, 0);
-}
-
-static s7_pointer
-f_chdir (s7_scheme* sc, s7_pointer args) {
-  const char* dir_c= s7_string (s7_car (args));
-  return s7_make_boolean (sc, tb_directory_current_set (dir_c));
-}
-
-inline void
-glue_chdir (s7_scheme* sc) {
-  const char* name= "g_chdir";
-  const char* desc= "(g_chdir string) => boolean, change the current working directory";
-  glue_define (sc, name, desc, f_chdir, 1, 0);
-}
-
-static tb_long_t
-tb_directory_walk_func (tb_char_t const* path, tb_file_info_t const* info, tb_cpointer_t priv) {
-  // check
-  tb_assert_and_check_return_val (path && info, TB_DIRECTORY_WALK_CODE_END);
-
-  vector<string>* p_v_result= (vector<string>*) priv;
-  p_v_result->push_back (string (path));
-  return TB_DIRECTORY_WALK_CODE_CONTINUE;
-}
-
-static s7_pointer
-f_listdir (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
-  vector<string> entries;
-  s7_pointer     ret= s7_make_vector (sc, 0);
-  tb_directory_walk (path_c, 0, tb_false, tb_directory_walk_func, &entries);
-
-  int    entries_N   = entries.size ();
-  string path_s      = string (path_c);
-  int    path_N      = path_s.size ();
-  int    path_slash_N= path_N;
-  char   last_ch     = path_s[path_N - 1];
-#if defined(TB_CONFIG_OS_WINDOWS)
-  if (last_ch != '/' && last_ch != '\\') {
-    path_slash_N= path_slash_N + 1;
-  }
-#else
-  if (last_ch != '/') {
-    path_slash_N= path_slash_N + 1;
-  }
-#endif
-  for (int i= 0; i < entries_N; i++) {
-    entries[i]= entries[i].substr (path_slash_N);
-  }
-  return string_vector_to_s7_vector (sc, entries);
-}
-
-inline void
-glue_listdir (s7_scheme* sc) {
-  const char* name= "g_listdir";
-  const char* desc= "(g_listdir string) => vector, list the contents of a directory";
-  glue_define (sc, name, desc, f_listdir, 1, 0);
-}
-
-static s7_pointer
-f_getcwd (s7_scheme* sc, s7_pointer args) {
-  tb_char_t path[GOLDFISH_PATH_MAXN];
-  tb_directory_current (path, GOLDFISH_PATH_MAXN);
-  return s7_make_string (sc, path);
-}
-
-inline void
-glue_getcwd (s7_scheme* sc) {
-  const char* name= "g_getcwd";
-  const char* desc= "(g_getcwd) => string, get the current working directory";
-  glue_define (sc, name, desc, f_getcwd, 0, 0);
-}
-
-static s7_pointer
-f_getlogin (s7_scheme* sc, s7_pointer args) {
-#ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_boolean (sc, false);
-#else
-  uid_t          uid= getuid ();
-  struct passwd* pwd= getpwuid (uid);
-  return s7_make_string (sc, pwd->pw_name);
-#endif
-}
-
-inline void
-glue_getlogin (s7_scheme* sc) {
-  const char* name= "g_getlogin";
-  const char* desc= "(g_getlogin) => string, get the current user's login name";
-  glue_define (sc, name, desc, f_getlogin, 0, 0);
-}
-
-static s7_pointer
-f_getpid (s7_scheme* sc, s7_pointer args) {
-#ifdef TB_CONFIG_OS_WINDOWS
-  return s7_make_integer (sc, (int) GetCurrentProcessId ());
-#else
-  return s7_make_integer (sc, getpid ());
-#endif
-}
-
-inline void
-glue_getpid (s7_scheme* sc) {
-  const char* name= "g_getpid";
-  const char* desc= "(g_getpid) => integer";
-  glue_define (sc, name, desc, f_getpid, 0, 0);
-}
-
-static s7_pointer
-f_sleep(s7_scheme* sc, s7_pointer args) {
-  s7_double seconds = s7_real(s7_car(args));
-  
   // 使用 tbox 的 tb_sleep 函数，参数是毫秒
-  tb_msleep((tb_long_t)(seconds * 1000));
+  tb_msleep ((tb_long_t) (seconds * 1000));
 
-  return s7_nil(sc);
+  return s7_nil (sc);
 }
 
 inline void
-glue_sleep(s7_scheme* sc) {
-  const char* name = "g_sleep";
-  const char* desc = "(g_sleep seconds) => nil, sleep for the specified number of seconds";
-  glue_define(sc, name, desc, f_sleep, 1, 0);
-}
-
-
-
-inline void
-glue_liii_os (s7_scheme* sc) {
-  glue_os_arch (sc);
-  glue_os_type (sc);
-  glue_os_call (sc);
-  glue_system (sc);
-  glue_access (sc);
-  glue_setenv (sc);
-  glue_unsetenv (sc);
-  glue_getcwd (sc);
-  glue_os_temp_dir (sc);
-  glue_mkdir (sc);
-  glue_rmdir (sc);
-  glue_remove_file (sc);
-  glue_rename (sc);
-  glue_chdir (sc);
-  glue_listdir (sc);
-  glue_getlogin (sc);
-  glue_getpid (sc);
+glue_sleep (s7_scheme* sc) {
+  const char* name= "g_sleep";
+  const char* desc= "(g_sleep seconds) => nil, sleep for the specified number of seconds";
+  glue_define (sc, name, desc, f_sleep, 1, 0);
 }
 
 static s7_pointer
@@ -2789,521 +535,6 @@ glue_uuid4 (s7_scheme* sc) {
 inline void
 glue_liii_uuid (s7_scheme* sc) {
   glue_uuid4 (sc);
-}
-
-inline void
-hash_bytes_to_hex (const tb_byte_t* bytes, tb_size_t length, tb_char_t* hex_output) {
-  static const tb_char_t hex_digits[]= "0123456789abcdef";
-  for (tb_size_t i= 0; i < length; ++i) {
-    hex_output[i * 2]    = hex_digits[bytes[i] >> 4];
-    hex_output[i * 2 + 1]= hex_digits[bytes[i] & 0x0f];
-  }
-  hex_output[length * 2]= '\0';
-}
-
-static bool
-md5_file_to_hex (const char* path, tb_char_t* hex_output) {
-  if (!path) {
-    return false;
-  }
-
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    return false;
-  }
-
-  tb_md5_t md5;
-  tb_md5_init (&md5, 0);
-
-  tb_size_t size  = tb_file_size (file);
-  tb_size_t offset= 0;
-  tb_byte_t buffer[4096];
-  while (offset < size) {
-    tb_size_t want     = ((size - offset) > sizeof (buffer)) ? sizeof (buffer) : (size - offset);
-    tb_size_t real_size= tb_file_read (file, buffer, want);
-    if (real_size == 0) {
-      tb_file_exit (file);
-      return false;
-    }
-    tb_md5_spak (&md5, buffer, real_size);
-    offset += real_size;
-  }
-
-  tb_file_exit (file);
-
-  tb_byte_t digest[16];
-  tb_md5_exit (&md5, digest, sizeof (digest));
-  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
-  return true;
-}
-
-static bool
-sha_file_to_hex (const char* path, tb_size_t mode, tb_size_t digest_size, tb_char_t* hex_output) {
-  if (!path) {
-    return false;
-  }
-
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    return false;
-  }
-
-  tb_sha_t sha;
-  tb_sha_init (&sha, mode);
-
-  tb_size_t size  = tb_file_size (file);
-  tb_size_t offset= 0;
-  tb_byte_t buffer[4096];
-  while (offset < size) {
-    tb_size_t want     = ((size - offset) > sizeof (buffer)) ? sizeof (buffer) : (size - offset);
-    tb_size_t real_size= tb_file_read (file, buffer, want);
-    if (real_size == 0) {
-      tb_file_exit (file);
-      return false;
-    }
-    tb_sha_spak (&sha, buffer, real_size);
-    offset += real_size;
-  }
-
-  tb_file_exit (file);
-
-  tb_byte_t digest[32];
-  tb_sha_exit (&sha, digest, digest_size);
-  hash_bytes_to_hex (digest, digest_size, hex_output);
-  return true;
-}
-
-static s7_pointer
-f_md5 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
-  tb_size_t   len          = tb_strlen (search_string);
-  tb_byte_t   digest[16];
-  tb_char_t   hex_output[33]= {0};
-  tb_md5_t    md5;
-
-  tb_md5_init (&md5, 0);
-  if (len > 0) {
-    tb_md5_spak (&md5, (tb_byte_t const*) search_string, len);
-  }
-  tb_md5_exit (&md5, digest, sizeof (digest));
-  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_md5 (s7_scheme* sc) {
-  const char* name= "g_md5";
-  const char* desc= "(g_md5 str) => string";
-  glue_define (sc, name, desc, f_md5, 1, 0);
-}
-
-static s7_pointer
-f_md5_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  tb_char_t   hex_output[33]= {0};
-  if (!md5_file_to_hex (path, hex_output)) {
-    return s7_make_boolean (sc, false);
-  }
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_md5_file (s7_scheme* sc) {
-  const char* name= "g_md5-by-file";
-  const char* desc= "(g_md5-by-file path) => string|#f";
-  glue_define (sc, name, desc, f_md5_file, 1, 0);
-}
-
-static s7_pointer
-f_sha1 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
-  tb_size_t   len          = tb_strlen (search_string);
-  tb_byte_t   digest[20];
-  tb_char_t   hex_output[41]= {0};
-  tb_sha_t    sha;
-
-  tb_sha_init (&sha, 160);
-  if (len > 0) {
-    tb_sha_spak (&sha, (tb_byte_t const*) search_string, len);
-  }
-  tb_sha_exit (&sha, digest, sizeof (digest));
-  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_sha1 (s7_scheme* sc) {
-  const char* name= "g_sha1";
-  const char* desc= "(g_sha1 str) => string";
-  glue_define (sc, name, desc, f_sha1, 1, 0);
-}
-
-static s7_pointer
-f_sha1_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  tb_char_t   hex_output[41]= {0};
-  if (!sha_file_to_hex (path, 160, 20, hex_output)) {
-    return s7_make_boolean (sc, false);
-  }
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_sha1_file (s7_scheme* sc) {
-  const char* name= "g_sha1-by-file";
-  const char* desc= "(g_sha1-by-file path) => string|#f";
-  glue_define (sc, name, desc, f_sha1_file, 1, 0);
-}
-
-static s7_pointer
-f_sha256 (s7_scheme* sc, s7_pointer args) {
-  const char* search_string= s7_string (s7_car (args));
-  tb_size_t   len          = tb_strlen (search_string);
-  tb_byte_t   digest[32];
-  tb_char_t   hex_output[65]= {0};
-  tb_sha_t    sha;
-
-  tb_sha_init (&sha, 256);
-  if (len > 0) {
-    tb_sha_spak (&sha, (tb_byte_t const*) search_string, len);
-  }
-  tb_sha_exit (&sha, digest, sizeof (digest));
-  hash_bytes_to_hex (digest, sizeof (digest), hex_output);
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_sha256 (s7_scheme* sc) {
-  const char* name= "g_sha256";
-  const char* desc= "(g_sha256 str) => string";
-  glue_define (sc, name, desc, f_sha256, 1, 0);
-}
-
-static s7_pointer
-f_sha256_file (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  tb_char_t   hex_output[65]= {0};
-  if (!sha_file_to_hex (path, 256, 32, hex_output)) {
-    return s7_make_boolean (sc, false);
-  }
-  return s7_make_string (sc, hex_output);
-}
-
-inline void
-glue_sha256_file (s7_scheme* sc) {
-  const char* name= "g_sha256-by-file";
-  const char* desc= "(g_sha256-by-file path) => string|#f";
-  glue_define (sc, name, desc, f_sha256_file, 1, 0);
-}
-
-inline void
-glue_liii_hashlib (s7_scheme* sc) {
-  glue_md5 (sc);
-  glue_md5_file (sc);
-  glue_sha1 (sc);
-  glue_sha1_file (sc);
-  glue_sha256 (sc);
-  glue_sha256_file (sc);
-}
-
-
-
-static s7_pointer
-f_isdir (s7_scheme* sc, s7_pointer args) {
-  const char*    dir_c= s7_string (s7_car (args));
-  tb_file_info_t info;
-  bool           ret= false;
-  if (tb_file_info (dir_c, &info)) {
-    switch (info.type) {
-    case TB_FILE_TYPE_DIRECTORY:
-    case TB_FILE_TYPE_DOT:
-    case TB_FILE_TYPE_DOT2:
-      ret= true;
-    }
-  }
-  return s7_make_boolean (sc, ret);
-}
-
-inline void
-glue_isdir (s7_scheme* sc) {
-  const char* name= "g_isdir";
-  const char* desc= "(g_isdir string) => boolean";
-  glue_define (sc, name, desc, f_isdir, 1, 0);
-}
-
-static s7_pointer
-f_isfile (s7_scheme* sc, s7_pointer args) {
-  const char*    dir_c= s7_string (s7_car (args));
-  tb_file_info_t info;
-  bool           ret= false;
-  if (tb_file_info (dir_c, &info)) {
-    switch (info.type) {
-    case TB_FILE_TYPE_FILE:
-      ret= true;
-    }
-  }
-  return s7_make_boolean (sc, ret);
-}
-
-inline void
-glue_isfile (s7_scheme* sc) {
-  const char* name= "g_isfile";
-  const char* desc= "(g_isfile string) => boolean";
-  glue_define (sc, name, desc, f_isfile, 1, 0);
-}
-
-static s7_pointer
-f_path_getsize (s7_scheme* sc, s7_pointer args) {
-  const char*    path_c= s7_string (s7_car (args));
-  tb_file_info_t info;
-  if (tb_file_info (path_c, &info)) {
-    return s7_make_integer (sc, (int) info.size);
-  }
-  else {
-    return s7_make_integer (sc, (int) -1);
-  }
-}
-
-inline void
-glue_path_getsize (s7_scheme* sc) {
-  const char* name= "g_path-getsize";
-  const char* desc= "(g_path_getsize string): string => integer";
-  glue_define (sc, name, desc, f_path_getsize, 1, 0);
-}
-
-static s7_pointer
-f_path_read_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    // TODO: warning on the tb_file_init failure
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_sync (file);
-
-  tb_size_t size= tb_file_size (file);
-  if (size == 0) {
-    tb_file_exit (file);
-    return s7_make_string (sc, "");
-  }
-
-  tb_byte_t* buffer   = new tb_byte_t[size + 1];
-  tb_size_t  real_size= tb_file_read (file, buffer, size);
-  buffer[real_size]   = '\0';
-
-  tb_file_exit (file);
-  std::string content (reinterpret_cast<char*> (buffer), real_size);
-  delete[] buffer;
-
-  // Normalize line endings: convert \r\n to \n (also handles standalone \r)
-  std::string normalized;
-  normalized.reserve (content.size ());
-  for (size_t i= 0; i < content.size (); ++i) {
-    if (content[i] == '\r') {
-      // Skip \r, but if next char is \n, we'll output just \n below
-      if (i + 1 < content.size () && content[i + 1] == '\n') {
-        // \r\n sequence: skip \r, output \n on next iteration
-        continue;
-      }
-      // Standalone \r: treat as \n
-      normalized.push_back ('\n');
-    }
-    else {
-      normalized.push_back (content[i]);
-    }
-  }
-
-  return s7_make_string (sc, normalized.c_str ());
-}
-
-inline void
-glue_path_read_text (s7_scheme* sc) {
-  const char* name= "g_path-read-text";
-  const char* desc= "(g_path-read-text path) => string, read the content of the file at the given path";
-  s7_define_function (sc, name, f_path_read_text, 1, 0, false, desc);
-}
-
-static s7_pointer
-f_path_read_bytes (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_RO);
-  if (file == tb_null) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_file_sync (file);
-  tb_size_t size= tb_file_size (file);
-
-  if (size == 0) {
-    tb_file_exit (file);
-    // Create an empty bytevector with correct parameters
-    return s7_make_byte_vector (sc, 0, 1, NULL); // 1 dimension, no dimension info
-  }
-
-  // Allocate buffer similar to f_path_read_text
-  tb_byte_t* buffer   = new tb_byte_t[size];
-  tb_size_t  real_size= tb_file_read (file, buffer, size);
-  tb_file_exit (file);
-
-  if (real_size != size) {
-    delete[] buffer;
-    return s7_make_boolean (sc, false); // Read failed
-  }
-
-  // Create a Scheme bytevector and copy data
-  s7_pointer bytevector     = s7_make_byte_vector (sc, real_size, 1, NULL); // 1 dimension, no dimension info
-  tb_byte_t* bytevector_data= s7_byte_vector_elements (bytevector);
-  memcpy (bytevector_data, buffer, real_size);
-
-  delete[] buffer;
-  return bytevector; // Return the bytevector
-}
-
-inline void
-glue_path_read_bytes (s7_scheme* sc) {
-  const char* name= "g_path-read-bytes";
-  const char* desc= "(g_path-read-bytes path) => bytevector, read the binary content of the file at the given path";
-  s7_define_function (sc, name, f_path_read_bytes, 1, 0, false, desc);
-}
-
-static s7_pointer
-f_path_write_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_integer (sc, -1);
-  }
-
-  const char* content= s7_string (s7_cadr (args));
-  if (!content) {
-    return s7_make_integer (sc, -1);
-  }
-
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_TRUNC);
-  if (file == tb_null) {
-    return s7_make_integer (sc, -1);
-  }
-
-  tb_filelock_ref_t lock= tb_filelock_init (file);
-  if (tb_filelock_enter (lock, TB_FILELOCK_MODE_EX) == tb_false) {
-    tb_filelock_exit (lock);
-    tb_file_exit (file);
-    return s7_make_integer (sc, -1);
-  }
-
-  tb_size_t content_size= strlen (content);
-  tb_size_t written_size= tb_file_writ (file, reinterpret_cast<const tb_byte_t*> (content), content_size);
-
-  bool release_success= tb_filelock_leave (lock);
-  tb_filelock_exit (lock);
-  bool exit_success= tb_file_exit (file);
-
-  if (written_size == content_size && release_success && exit_success) {
-    return s7_make_integer (sc, written_size);
-  }
-  else {
-    return s7_make_integer (sc, -1);
-  }
-}
-
-inline void
-glue_path_write_text (s7_scheme* sc) {
-  const char* name= "g_path-write-text";
-  const char* desc= "(g_path-write-text path content) => integer,\
-write content to the file at the given path and return the number of bytes written, or -1 on failure";
-  s7_define_function (sc, name, f_path_write_text, 2, 0, false, desc);
-}
-
-static s7_pointer
-f_path_append_text (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_integer (sc, -1);
-  }
-
-  const char* content= s7_string (s7_cadr (args));
-  if (!content) {
-    return s7_make_integer (sc, -1);
-  }
-
-  // 以追加模式打开文件
-  tb_file_ref_t file= tb_file_init (path, TB_FILE_MODE_WO | TB_FILE_MODE_CREAT | TB_FILE_MODE_APPEND);
-  if (file == tb_null) {
-    return s7_make_integer (sc, -1);
-  }
-
-  tb_filelock_ref_t lock= tb_filelock_init (file);
-  if (tb_filelock_enter (lock, TB_FILELOCK_MODE_EX) == tb_false) {
-    tb_filelock_exit (lock);
-    tb_file_exit (file);
-    return s7_make_integer (sc, -1);
-  }
-
-  tb_size_t content_size= strlen (content);
-  tb_size_t written_size= tb_file_writ (file, reinterpret_cast<const tb_byte_t*> (content), content_size);
-
-  bool release_success= tb_filelock_leave (lock);
-  tb_filelock_exit (lock);
-  bool exit_success= tb_file_exit (file);
-
-  if (written_size == content_size && release_success && exit_success) {
-    return s7_make_integer (sc, written_size);
-  }
-  else {
-    return s7_make_integer (sc, -1);
-  }
-}
-
-inline void
-glue_path_append_text (s7_scheme* sc) {
-  const char* name= "g_path-append-text";
-  const char* desc= "(g_path-append-text path content) => integer,\
-append content to the file at the given path and return the number of bytes written, or -1 on failure";
-  s7_define_function (sc, name, f_path_append_text, 2, 0, false, desc);
-}
-
-static s7_pointer
-f_path_touch (s7_scheme* sc, s7_pointer args) {
-  const char* path= s7_string (s7_car (args));
-  if (!path) {
-    return s7_make_boolean (sc, false);
-  }
-
-  tb_bool_t success= tb_file_touch (path, 0, 0);
-
-  if (success == tb_true) {
-    return s7_make_boolean (sc, true);
-  }
-  else {
-    return s7_make_boolean (sc, false);
-  }
-}
-
-inline void
-glue_path_touch (s7_scheme* sc) {
-  const char* name= "g_path-touch";
-  const char* desc= "(g_path-touch path) => boolean, create empty file or update modification time";
-  s7_define_function (sc, name, f_path_touch, 1, 0, false, desc);
-}
-
-inline void
-glue_liii_path (s7_scheme* sc) {
-  glue_isfile (sc);
-  glue_isdir (sc);
-  glue_path_getsize (sc);
-  glue_path_read_text (sc);
-  glue_path_read_bytes (sc);
-  glue_path_write_text (sc);
-  glue_path_append_text (sc);
-  glue_path_touch (sc);
 }
 
 static s7_pointer
@@ -3463,12 +694,15 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_scheme_process_context (sc);
   glue_liii_sys (sc);
   glue_liii_os (sc);
+  glue_subprocess_run_values (sc);
   glue_liii_path (sc);
   glue_liii_list (sc);
   glue_liii_time (sc);
   glue_liii_datetime (sc);
   glue_liii_uuid (sc);
   glue_liii_hashlib (sc);
+  glue_liii_base64 (sc);
+  glue_scheme_base (sc);
   glue_njson (sc);
   glue_http (sc);
   glue_http_async (sc);
@@ -3483,7 +717,9 @@ display_help () {
   cout << "  version            Display version" << endl;
   cout << "  eval CODE          Evaluate Scheme code" << endl;
   cout << "                     Example: gf eval '(+ 1 2)'" << endl;
-  cout << "                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping" << endl;
+  cout
+      << "                     Prefer single quotes so double quotes inside Scheme strings usually do not need escaping"
+      << endl;
   cout << "  load FILE          Load Scheme code from FILE, then enter REPL" << endl;
   cout << "  fix [options] PATH Format PATH (PATH can be a .scm file or directory)" << endl;
   cout << "                     Options:" << endl;
@@ -3497,13 +733,18 @@ display_help () {
   cout << "  doc ORG/LIB FUNC   Show the function doc/test file for FUNC under a specific library" << endl;
   cout << "                     Best when you already know the library, or the name is ambiguous" << endl;
   cout << "                     Example: gf doc liii/path \"path-read-text\"" << endl;
-  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or "
+          "\"bag<=?\""
+       << endl;
   cout << "                     This preserves symbols such as ! ? > < and keeps FUNC as one shell argument" << endl;
   cout << "  doc FUNC           Search visible libraries for exported FUNC, then show its doc/test file" << endl;
   cout << "                     If multiple libraries export it, candidates are listed" << endl;
   cout << "                     Example: gf doc \"string-split\"" << endl;
-  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or \"bag<=?\"" << endl;
-  cout << "                     This keeps shell-sensitive symbols intact and makes it clear FUNC is one argument" << endl;
+  cout << "                     Quote FUNC for names like \"bag-delete!\", \"path?\", \"alist->fxmapping\", or "
+          "\"bag<=?\""
+       << endl;
+  cout << "                     This keeps shell-sensitive symbols intact and makes it clear FUNC is one argument"
+       << endl;
   cout << "  doc --build-json   Rebuild tests/function-library-index.json for global gf doc FUNC lookup" << endl;
   cout << "                     Needed by function-name search and fuzzy suggestions" << endl;
   cout << "                     Run this after changing exports, or before packaging" << endl;
@@ -3528,6 +769,7 @@ display_help () {
   cout << "  --mode, -m MODE    Set mode: default, liii, sicp, r7rs, s7" << endl;
   cout << "  -I DIR             Prepend DIR to library search path" << endl;
   cout << "  -A DIR             Append DIR to library search path" << endl;
+  cout << "  -e CODE            Alias for eval CODE" << endl;
   cout << endl;
   cout << "If no command is specified, help is displayed by default." << endl;
 }
@@ -3582,7 +824,8 @@ goldfish_extract_scheme_path_from_error (const string& errmsg) {
     size_t start= marker;
     while (start > 0) {
       unsigned char ch= static_cast<unsigned char> (errmsg[start - 1]);
-      if (std::isspace (ch) || ch == '"' || ch == '\'' || ch == '`' || ch == '(' || ch == ')' || ch == ',' || ch == ';') {
+      if (std::isspace (ch) || ch == '"' || ch == '\'' || ch == '`' || ch == '(' || ch == ')' || ch == ',' ||
+          ch == ';') {
         break;
       }
       --start;
@@ -3607,7 +850,7 @@ goldfish_extract_error_expression (const string& errmsg, size_t search_start) {
     return "";
   }
 
-  start += infix.size ();
+  start+= infix.size ();
   size_t end= errmsg.find ('\n', start);
   if (end == string::npos) {
     end= errmsg.size ();
@@ -3643,14 +886,15 @@ goldfish_form_contains_called_symbol (s7_scheme* sc, s7_pointer form, const stri
 }
 
 static bool
-goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& expression, const string& function_name) {
+goldfish_error_expression_contains_function_call (s7_scheme* sc, const string& expression,
+                                                  const string& function_name) {
   if (expression.empty ()) {
     return false;
   }
 
-  s7_pointer port     = s7_open_input_string (sc, expression.c_str ());
+  s7_pointer port      = s7_open_input_string (sc, expression.c_str ());
   s7_pointer eof_object= s7_eof_object (sc);
-  s7_pointer form     = s7_read (sc, port);
+  s7_pointer form      = s7_read (sc, port);
   s7_close_input_port (sc, port);
 
   if ((form == eof_object) || (!form)) {
@@ -3668,7 +912,7 @@ goldfish_extract_unbound_function_name_from_error (s7_scheme* sc, const string& 
     return "";
   }
 
-  start += prefix.size ();
+  start+= prefix.size ();
   size_t end= start;
   while (end < errmsg.size ()) {
     unsigned char ch= static_cast<unsigned char> (errmsg[end]);
@@ -3715,9 +959,10 @@ goldfish_format_scheme_error_message (const char* errmsg) {
   }
 
   if ((!formatted.empty ()) && (formatted.back () != '\n')) {
-    formatted += '\n';
+    formatted+= '\n';
   }
-  formatted += "Hint: try `" + goldfish_cli_program_name () + " fix " + path + "` to repair common parenthesis issues.\n";
+  formatted+=
+      "Hint: try `" + goldfish_cli_program_name () + " fix " + path + "` to repair common parenthesis issues.\n";
   return formatted;
 }
 
@@ -3726,24 +971,24 @@ goldfish_shell_double_quote (const string& value) {
   string quoted= "\"";
   for (char ch : value) {
     switch (ch) {
-      case '\\':
-        quoted += "\\\\";
-        break;
-      case '"':
-        quoted += "\\\"";
-        break;
-      case '$':
-        quoted += "\\$";
-        break;
-      case '`':
-        quoted += "\\`";
-        break;
-      default:
-        quoted += ch;
-        break;
+    case '\\':
+      quoted+= "\\\\";
+      break;
+    case '"':
+      quoted+= "\\\"";
+      break;
+    case '$':
+      quoted+= "\\$";
+      break;
+    case '`':
+      quoted+= "\\`";
+      break;
+    default:
+      quoted+= ch;
+      break;
     }
   }
-  quoted += "\"";
+  quoted+= "\"";
   return quoted;
 }
 
@@ -3785,44 +1030,44 @@ goldfish_append_doc_hint_if_needed (s7_scheme* sc, const string& errmsg) {
 
   string formatted= errmsg;
   if ((!formatted.empty ()) && (formatted.back () != '\n')) {
-    formatted += '\n';
+    formatted+= '\n';
   }
 
   vector<string> library_queries;
   try {
     library_queries= find_function_libraries_in_load_path (sc, function_name);
-  }
-  catch (const std::exception&) {
+  } catch (const std::exception&) {
     library_queries.clear ();
   }
 
   if (library_queries.empty ()) {
-    formatted += "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) +
-                 "`\n";
-    formatted += "`" + goldfish_cli_program_name () + " doc` may show similarly named functions when there is no exact match.\n";
-    formatted += "If it finds nothing similar, try searching the codebase with `git grep "
-                 + goldfish_shell_double_quote (function_name)
-                 + "`, implement that function yourself, or stop using it.\n";
+    formatted+=
+        "Hint: try `" + goldfish_cli_program_name () + " doc " + goldfish_shell_double_quote (function_name) + "`\n";
+    formatted+=
+        "`" + goldfish_cli_program_name () + " doc` may show similarly named functions when there is no exact match.\n";
+    formatted+= "If it finds nothing similar, try searching the codebase with `git grep " +
+                goldfish_shell_double_quote (function_name) +
+                "`, implement that function yourself, or stop using it.\n";
     return formatted;
   }
 
   if (library_queries.size () == 1) {
     string import_form= goldfish_library_import_form (library_queries.front ());
-    formatted += "Hint: function `" + function_name + "` exists in library `" +
-                 goldfish_library_display_name (library_queries.front ()) + "`.\n";
+    formatted+= "Hint: function `" + function_name + "` exists in library `" +
+                goldfish_library_display_name (library_queries.front ()) + "`.\n";
     if (!import_form.empty ()) {
-      formatted += "Please import that library first: `" + import_form + "`.\n";
+      formatted+= "Please import that library first: `" + import_form + "`.\n";
     }
     return formatted;
   }
 
-  formatted += "Hint: function `" + function_name + "` exists in multiple visible libraries:\n";
+  formatted+= "Hint: function `" + function_name + "` exists in multiple visible libraries:\n";
   for (const auto& library_query : library_queries) {
-    formatted += "  " + goldfish_library_display_name (library_query) + "\n";
+    formatted+= "  " + goldfish_library_display_name (library_query) + "\n";
   }
-  formatted += "Try one of these commands to decide which library to use:\n";
+  formatted+= "Try one of these commands to decide which library to use:\n";
   for (const auto& library_query : library_queries) {
-    formatted += "  " + goldfish_library_doc_command (library_query, function_name) + "\n";
+    formatted+= "  " + goldfish_library_doc_command (library_query, function_name) + "\n";
   }
   return formatted;
 }
@@ -3831,7 +1076,7 @@ static void
 goldfish_render_scheme_error_message (s7_scheme* sc, const char* errmsg, string& rendered) {
   rendered= goldfish_append_doc_hint_if_needed (sc, goldfish_format_scheme_error_message (errmsg));
   if ((!rendered.empty ()) && (rendered.back () != '\n')) {
-    rendered += '\n';
+    rendered+= '\n';
   }
 }
 
@@ -3859,15 +1104,16 @@ goldfish_print_prefixed_scheme_error_message (s7_scheme* sc, const string& prefi
 
 static void
 goldfish_eval_code (s7_scheme* sc, string code) {
-  string wrapped_code = "(begin " + code + " )";
-  s7_pointer x= s7_eval_c_string (sc, wrapped_code.c_str ());
+  string     wrapped_code= "(begin " + code + " )";
+  s7_pointer x           = s7_eval_c_string (sc, wrapped_code.c_str ());
   cout << s7_object_to_c_string (sc, x) << endl;
 }
 
 static string
 find_golddoc_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "doc", fs::path (gf_lib).parent_path () / "tools" / "doc"};
+  std::error_code  ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "doc",
+                                fs::path (gf_lib).parent_path () / "tools" / "doc"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -3881,8 +1127,9 @@ find_golddoc_tool_root (const char* gf_lib) {
 
 static string
 find_goldsource_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "source", fs::path (gf_lib).parent_path () / "tools" / "source"};
+  std::error_code  ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "source",
+                                fs::path (gf_lib).parent_path () / "tools" / "source"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -3896,8 +1143,9 @@ find_goldsource_tool_root (const char* gf_lib) {
 
 static string
 find_goldhelp_tool_root (const char* gf_lib) {
-  std::error_code ec;
-  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "help", fs::path (gf_lib).parent_path () / "tools" / "help"};
+  std::error_code  ec;
+  vector<fs::path> candidates= {fs::path (gf_lib) / "tools" / "help",
+                                fs::path (gf_lib).parent_path () / "tools" / "help"};
 
   for (const auto& candidate : candidates) {
     if (fs::is_directory (candidate, ec)) {
@@ -3914,7 +1162,7 @@ find_goldhelp_tool_root (const char* gf_lib) {
 static fs::path
 find_local_gfproject_json () {
   std::error_code ec;
-  fs::path cwd= fs::current_path (ec);
+  fs::path        cwd= fs::current_path (ec);
   if (!ec) {
     fs::path local_path= cwd / "gfproject.json";
     if (fs::exists (local_path, ec) && fs::is_regular_file (local_path, ec)) {
@@ -3927,7 +1175,7 @@ find_local_gfproject_json () {
 static fs::path
 find_lib_gfproject_json (const char* gf_lib) {
   std::error_code ec;
-  fs::path lib_path= fs::path (gf_lib) / "gfproject.json";
+  fs::path        lib_path= fs::path (gf_lib) / "gfproject.json";
   if (fs::exists (lib_path, ec) && fs::is_regular_file (lib_path, ec)) {
     return lib_path;
   }
@@ -3971,12 +1219,13 @@ gfproject_extract_tools (const json& config) {
 static json
 gfproject_deep_merge_value (const json& base, const json& overlay) {
   if (base.is_object () && overlay.is_object ()) {
-    json merged = base;
+    json merged= base;
     for (const auto& [key, overlay_value] : overlay.items ()) {
       if (merged.contains (key)) {
-        merged[key] = gfproject_deep_merge_value (merged[key], overlay_value);
-      } else {
-        merged[key] = overlay_value;
+        merged[key]= gfproject_deep_merge_value (merged[key], overlay_value);
+      }
+      else {
+        merged[key]= overlay_value;
       }
     }
     return merged;
@@ -3993,23 +1242,24 @@ struct gfproject_config_bundle {
 static gfproject_config_bundle
 load_gfproject_config_bundle (const char* gf_lib) {
   gfproject_config_bundle bundle;
-  bundle.lib_config   = load_json_file_or_empty (find_lib_gfproject_json (gf_lib));
-  bundle.local_config = load_json_file_or_empty (find_local_gfproject_json ());
+  bundle.lib_config  = load_json_file_or_empty (find_lib_gfproject_json (gf_lib));
+  bundle.local_config= load_json_file_or_empty (find_local_gfproject_json ());
 
-  json merged = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
-  json merged_tools = gfproject_extract_tools (bundle.lib_config);
-  json local_tools  = gfproject_extract_tools (bundle.local_config);
+  json merged      = bundle.lib_config.is_object () ? bundle.lib_config : json::object ();
+  json merged_tools= gfproject_extract_tools (bundle.lib_config);
+  json local_tools = gfproject_extract_tools (bundle.local_config);
 
   for (const auto& [command, local_tool] : local_tools.items ()) {
     if (merged_tools.contains (command)) {
-      merged_tools[command] = gfproject_deep_merge_value (merged_tools[command], local_tool);
-    } else {
-      merged_tools[command] = local_tool;
+      merged_tools[command]= gfproject_deep_merge_value (merged_tools[command], local_tool);
+    }
+    else {
+      merged_tools[command]= local_tool;
     }
   }
 
-  merged["tools"] = merged_tools;
-  bundle.merged_config = merged;
+  merged["tools"]     = merged_tools;
+  bundle.merged_config= merged;
   return bundle;
 }
 
@@ -4019,30 +1269,30 @@ load_gfproject_config (const char* gf_lib) {
 }
 
 struct gfproject_tool_resolution {
-  bool has_local_override = false;
-  bool has_merged_tool    = false;
-  bool has_lib_tool       = false;
-  json merged_tool        = json::object ();
-  json lib_tool           = json::object ();
+  bool has_local_override= false;
+  bool has_merged_tool   = false;
+  bool has_lib_tool      = false;
+  json merged_tool       = json::object ();
+  json lib_tool          = json::object ();
 };
 
 static gfproject_tool_resolution
 resolve_gfproject_tool (const char* gf_lib, const string& command) {
-  gfproject_config_bundle bundle = load_gfproject_config_bundle (gf_lib);
-  json local_tools = gfproject_extract_tools (bundle.local_config);
-  json lib_tools   = gfproject_extract_tools (bundle.lib_config);
-  json merged_tools= gfproject_extract_tools (bundle.merged_config);
+  gfproject_config_bundle bundle      = load_gfproject_config_bundle (gf_lib);
+  json                    local_tools = gfproject_extract_tools (bundle.local_config);
+  json                    lib_tools   = gfproject_extract_tools (bundle.lib_config);
+  json                    merged_tools= gfproject_extract_tools (bundle.merged_config);
 
   gfproject_tool_resolution resolved;
-  resolved.has_local_override = local_tools.contains (command);
-  resolved.has_merged_tool    = merged_tools.contains (command);
-  resolved.has_lib_tool       = lib_tools.contains (command);
+  resolved.has_local_override= local_tools.contains (command);
+  resolved.has_merged_tool   = merged_tools.contains (command);
+  resolved.has_lib_tool      = lib_tools.contains (command);
 
   if (resolved.has_merged_tool) {
-    resolved.merged_tool = merged_tools[command];
+    resolved.merged_tool= merged_tools[command];
   }
   if (resolved.has_lib_tool) {
-    resolved.lib_tool = lib_tools[command];
+    resolved.lib_tool= lib_tools[command];
   }
   return resolved;
 }
@@ -4063,33 +1313,32 @@ enum class gfproject_tool_prepare_error {
 };
 
 struct gfproject_tool_prepare_result {
-  gfproject_tool_prepare_error error = gfproject_tool_prepare_error::none;
-  string message;
-  s7_pointer main_func = nullptr;
+  gfproject_tool_prepare_error error= gfproject_tool_prepare_error::none;
+  string                       message;
+  s7_pointer                   main_func= nullptr;
 };
 
-static string
-find_tool_root_by_command (const char* gf_lib, const string& command);
+static string find_tool_root_by_command (const char* gf_lib, const string& command);
 
 static gfproject_tool_prepare_result
 goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& command, const json& tool_config) {
   gfproject_tool_prepare_result result;
 
   if (!tool_config.is_object ()) {
-    result.error = gfproject_tool_prepare_error::invalid_config_value;
-    result.message = "Error: Tool '" + command + "' config must be a JSON object.";
+    result.error  = gfproject_tool_prepare_error::invalid_config_value;
+    result.message= "Error: Tool '" + command + "' config must be a JSON object.";
     return result;
   }
 
   if (!tool_config.contains ("organization") || !tool_config.contains ("module")) {
-    result.error = gfproject_tool_prepare_error::incomplete_config;
-    result.message = "Error: Tool '" + command + "' is not fully implemented (missing organization or module).";
+    result.error  = gfproject_tool_prepare_error::incomplete_config;
+    result.message= "Error: Tool '" + command + "' is not fully implemented (missing organization or module).";
     return result;
   }
 
   if (!tool_config["organization"].is_string () || !tool_config["module"].is_string ()) {
-    result.error = gfproject_tool_prepare_error::invalid_config_value;
-    result.message = "Error: Tool '" + command + "' organization/module must be strings.";
+    result.error  = gfproject_tool_prepare_error::invalid_config_value;
+    result.message= "Error: Tool '" + command + "' organization/module must be strings.";
     return result;
   }
 
@@ -4098,44 +1347,46 @@ goldfish_prepare_tool_main (s7_scheme* sc, const char* gf_lib, const string& com
   string tool_root= find_tool_root_by_command (gf_lib, command);
 
   if (tool_root.empty ()) {
-    result.error = gfproject_tool_prepare_error::missing_tool_root;
-    result.message = "Error: tools/" + command + "/" + org + " directory not found.";
+    result.error  = gfproject_tool_prepare_error::missing_tool_root;
+    result.message= "Error: tools/" + command + "/" + org + " directory not found.";
     return result;
   }
 
   s7_add_to_load_path (sc, tool_root.c_str ());
 
-  string import_expr= "(import (" + org + " " + module + "))";
-  s7_pointer import_result= s7_eval_c_string (sc, import_expr.c_str ());
-  const char* errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+  string      import_expr  = "(import (" + org + " " + module + "))";
+  s7_pointer  import_result= s7_eval_c_string (sc, import_expr.c_str ());
+  const char* errmsg       = s7_get_output_string (sc, s7_current_error_port (sc));
   if (!import_result || ((errmsg) && (*errmsg))) {
-    result.error = gfproject_tool_prepare_error::import_failed;
-    result.message = "Error importing (" + org + " " + module + "):";
+    result.error  = gfproject_tool_prepare_error::import_failed;
+    result.message= "Error importing (" + org + " " + module + "):";
     return result;
   }
 
   s7_pointer main_func= s7_name_to_value (sc, "main");
   if ((!main_func) || (!s7_is_procedure (main_func))) {
-    result.error = gfproject_tool_prepare_error::missing_main;
-    result.message = "Error: Failed to find main function in (" + org + " " + module + ").";
+    result.error  = gfproject_tool_prepare_error::missing_main;
+    result.message= "Error: Failed to find main function in (" + org + " " + module + ").";
     return result;
   }
 
-  result.main_func = main_func;
+  result.main_func= main_func;
   return result;
 }
 
 static int
-goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& errmsg,
-                            s7_pointer old_port, int gc_loc, bool include_scheme_error) {
-  errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& errmsg, s7_pointer old_port, int gc_loc,
+                            bool include_scheme_error) {
+  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
   if (!message.empty ()) {
     if (include_scheme_error && (errmsg) && (*errmsg)) {
       goldfish_print_prefixed_scheme_error_message (sc, message, errmsg);
-    } else {
+    }
+    else {
       cerr << message << endl;
     }
-  } else if ((errmsg) && (*errmsg)) {
+  }
+  else if ((errmsg) && (*errmsg)) {
     goldfish_print_scheme_error_message (sc, errmsg);
   }
   s7_close_output_port (sc, s7_current_error_port (sc));
@@ -4145,9 +1396,8 @@ goldfish_finish_tool_error (s7_scheme* sc, const string& message, const char*& e
 }
 
 static int
-goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& errmsg,
-                              s7_pointer old_port, int gc_loc) {
-  errmsg = s7_get_output_string (sc, s7_current_error_port (sc));
+goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& errmsg, s7_pointer old_port, int gc_loc) {
+  errmsg= s7_get_output_string (sc, s7_current_error_port (sc));
   goldfish_print_scheme_error_message (sc, errmsg);
   s7_close_output_port (sc, s7_current_error_port (sc));
   s7_set_current_error_port (sc, old_port);
@@ -4159,17 +1409,16 @@ goldfish_finish_tool_success (s7_scheme* sc, s7_pointer result, const char*& err
 }
 
 static int
-goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& command,
-                               const json& tool_config, const char*& errmsg,
-                               s7_pointer old_port, int gc_loc, bool allow_fallback) {
-  gfproject_tool_prepare_result prepared = goldfish_prepare_tool_main (sc, gf_lib, command, tool_config);
+goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& command, const json& tool_config,
+                               const char*& errmsg, s7_pointer old_port, int gc_loc, bool allow_fallback) {
+  gfproject_tool_prepare_result prepared= goldfish_prepare_tool_main (sc, gf_lib, command, tool_config);
   if (prepared.error != gfproject_tool_prepare_error::none) {
     if (allow_fallback) {
       goldfish_reset_captured_error_port (sc);
       return -1;
     }
 
-    bool include_scheme_error = prepared.error == gfproject_tool_prepare_error::import_failed;
+    bool include_scheme_error= prepared.error == gfproject_tool_prepare_error::import_failed;
     return goldfish_finish_tool_error (sc, prepared.message, errmsg, old_port, gc_loc, include_scheme_error);
   }
 
@@ -4180,41 +1429,55 @@ goldfish_run_tool_with_config (s7_scheme* sc, const char* gf_lib, const string& 
 static s7_pointer
 f_gfproject_load_config (s7_scheme* sc, s7_pointer args) {
   (void) args;
-  string gf_lib_dir = find_goldfish_library ();
-  json config = load_gfproject_config (gf_lib_dir.c_str ());
+  string gf_lib_dir= find_goldfish_library ();
+  json   config    = load_gfproject_config (gf_lib_dir.c_str ());
   return s7_make_string (sc, config.dump ().c_str ());
 }
 
+static s7_pointer
+f_project_root (s7_scheme* sc, s7_pointer args) {
+  (void) args;
+  fs::path local= find_local_gfproject_json ();
+  if (local.empty ()) {
+    return s7_f (sc);
+  }
+  // local points at gfproject.json; its parent is the project root.
+  std::string s= local.parent_path ().generic_string ();
+  if (s.empty ()) {
+    return s7_f (sc);
+  }
+  return s7_make_string (sc, s.c_str ());
+}
+
 static int
-goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command,
-                   const char*& errmsg, s7_pointer old_port, int gc_loc) {
-  gfproject_tool_resolution resolved = resolve_gfproject_tool (gf_lib, command);
+goldfish_run_tool (s7_scheme* sc, const char* gf_lib, const string& command, const char*& errmsg, s7_pointer old_port,
+                   int gc_loc) {
+  gfproject_tool_resolution resolved= resolve_gfproject_tool (gf_lib, command);
   if (!resolved.has_merged_tool) {
     return -1;
   }
 
-  bool allow_builtin_fallback=
-    command == "help" || command == "version" || command == "eval" || command == "load" || command == "repl" ||
-    command == "run";
+  bool allow_builtin_fallback= command == "help" || command == "version" || command == "eval" || command == "load" ||
+                               command == "repl" || command == "run";
 
   if (resolved.has_local_override && resolved.has_lib_tool) {
-    int merged_ret= goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg,
-                                                   old_port, gc_loc, true);
+    int merged_ret=
+        goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc, true);
     if (merged_ret != -1) {
       return merged_ret;
     }
-    return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.lib_tool, errmsg,
-                                          old_port, gc_loc, allow_builtin_fallback);
+    return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.lib_tool, errmsg, old_port, gc_loc,
+                                          allow_builtin_fallback);
   }
 
-  return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg,
-                                        old_port, gc_loc, allow_builtin_fallback);
+  return goldfish_run_tool_with_config (sc, gf_lib, command, resolved.merged_tool, errmsg, old_port, gc_loc,
+                                        allow_builtin_fallback);
 }
 
 static string
 find_tool_root_by_command (const char* gf_lib, const string& command) {
-  std::error_code ec;
-  fs::path        cwd= fs::current_path (ec);
+  std::error_code  ec;
+  fs::path         cwd= fs::current_path (ec);
   vector<fs::path> candidates;
   if (!ec) {
     candidates.push_back (cwd / "tools" / command);
@@ -4274,7 +1537,7 @@ customize_goldfish_by_mode (s7_scheme* sc, string mode, const char* boot_file_pa
   }
 
   if (mode == "default" || mode == "liii") {
-    s7_eval_c_string (sc, "(import (liii base) (liii error) (liii string))");
+    s7_eval_c_string (sc, "(import (scheme base) (liii base) (liii error) (liii string))");
   }
   else if (mode == "scheme") {
     s7_eval_c_string (sc, "(import (liii base) (liii error))");
@@ -4723,7 +1986,8 @@ goldfish_repl (s7_scheme* sc, const string& mode) {
              GOLDFISH_VERSION, S7_VERSION, S7_DATE);
   // Display mode info; liii mode shows extra imported libraries
   if (mode == "liii" || mode == "default") {
-    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (liii base) (liii error) (liii string) compared to r7rs)\n\n",
+    ic_printf ("[b]Mode:[/] [b]%s[/] (additionally imports: (scheme base) (liii base) (liii error) (liii string) "
+               "compared to r7rs)\n\n",
                mode.c_str ());
   }
   else {
@@ -4797,7 +2061,7 @@ parse_mode_option (int argc, char** argv, const std::string& default_mode= "defa
 
 static bool
 is_legacy_cli_command (const string& arg) {
-  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v";
+  return arg == "--help" || arg == "-h" || arg == "--version" || arg == "-v" || arg == "-e";
 }
 
 static string
@@ -4826,7 +2090,8 @@ append_unique_string (vector<string>& items, const string& raw_item) {
 static bool
 is_plugin_name_part (const string& value) {
   if (value.empty ()) return false;
-  return std::all_of (value.begin (), value.end (), [] (unsigned char ch) { return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'); });
+  return std::all_of (value.begin (), value.end (),
+                      [] (unsigned char ch) { return (ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9'); });
 }
 
 static bool
@@ -4872,7 +2137,8 @@ discover_auto_goldfish_library_dirs () {
     return dirs;
   }
 
-  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
     if (ec) {
       ec.clear ();
       continue;
@@ -4976,8 +2242,7 @@ make_library_name_part (s7_scheme* sc, const string& part) {
   if (string_is_decimal_integer (part)) {
     try {
       return s7_make_integer (sc, std::stoll (part));
-    }
-    catch (const std::exception&) {
+    } catch (const std::exception&) {
     }
   }
   return s7_make_symbol (sc, part.c_str ());
@@ -5031,7 +2296,8 @@ export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& f
     return function_name == s7_symbol_name (export_spec);
   }
 
-  if (s7_is_list (sc, export_spec) && (s7_list_length (sc, export_spec) == 3) && is_named_symbol (s7_car (export_spec), "rename")) {
+  if (s7_is_list (sc, export_spec) && (s7_list_length (sc, export_spec) == 3) &&
+      is_named_symbol (s7_car (export_spec), "rename")) {
     string renamed_export;
     if (library_name_part_to_string (s7_caddr (export_spec), renamed_export)) {
       return function_name == renamed_export;
@@ -5042,7 +2308,8 @@ export_spec_name_matches (s7_scheme* sc, s7_pointer export_spec, const string& f
 }
 
 static bool
-define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const string& function_name, string& group, string& library) {
+define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const string& function_name, string& group,
+                                      string& library) {
   if ((!s7_is_list (sc, form)) || s7_is_null (sc, form) || (!is_named_symbol (s7_car (form), "define-library"))) {
     return false;
   }
@@ -5055,11 +2322,13 @@ define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const stri
 
   for (s7_pointer declarations= s7_cddr (form); s7_is_pair (declarations); declarations= s7_cdr (declarations)) {
     s7_pointer declaration= s7_car (declarations);
-    if ((!s7_is_list (sc, declaration)) || s7_is_null (sc, declaration) || (!is_named_symbol (s7_car (declaration), "export"))) {
+    if ((!s7_is_list (sc, declaration)) || s7_is_null (sc, declaration) ||
+        (!is_named_symbol (s7_car (declaration), "export"))) {
       continue;
     }
 
-    for (s7_pointer export_specs= s7_cdr (declaration); s7_is_pair (export_specs); export_specs= s7_cdr (export_specs)) {
+    for (s7_pointer export_specs= s7_cdr (declaration); s7_is_pair (export_specs);
+         export_specs           = s7_cdr (export_specs)) {
       if (export_spec_name_matches (sc, s7_car (export_specs), function_name)) {
         group  = form_group;
         library= form_library;
@@ -5072,7 +2341,8 @@ define_library_form_exports_function (s7_scheme* sc, s7_pointer form, const stri
 }
 
 static bool
-source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const string& function_name, string& group, string& library) {
+source_file_exports_function (s7_scheme* sc, const fs::path& source_file, const string& function_name, string& group,
+                              string& library) {
   string     source_text= read_text_file_exact (source_file);
   s7_pointer port       = s7_open_input_string (sc, source_text.c_str ());
   s7_pointer eof_object = s7_eof_object (sc);
@@ -5100,7 +2370,8 @@ sorted_child_directories (const fs::path& root) {
   vector<fs::path> directories;
   std::error_code  ec;
 
-  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+  for (fs::directory_iterator it (root, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
     if (ec) {
       ec.clear ();
       continue;
@@ -5121,7 +2392,8 @@ sorted_scheme_source_files (const fs::path& dir) {
   vector<fs::path> files;
   std::error_code  ec;
 
-  for (fs::directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end; it.increment (ec)) {
+  for (fs::directory_iterator it (dir, fs::directory_options::skip_permission_denied, ec), end; it != end;
+       it.increment (ec)) {
     if (ec) {
       ec.clear ();
       continue;
@@ -5132,13 +2404,14 @@ sorted_scheme_source_files (const fs::path& dir) {
     ec.clear ();
   }
 
-  std::sort (files.begin (), files.end (), [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
+  std::sort (files.begin (), files.end (),
+             [] (const fs::path& lhs, const fs::path& rhs) { return lhs.string () < rhs.string (); });
   return files;
 }
 
 static vector<string>
 find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name) {
-  vector<string> library_queries;
+  vector<string>  library_queries;
   std::error_code ec;
 
   for (const auto& load_root_string : current_load_path_entries (sc)) {
@@ -5180,9 +2453,9 @@ static s7_pointer
 f_function_libraries (s7_scheme* sc, s7_pointer args) {
   s7_pointer function_name_arg= s7_car (args);
   if (!s7_is_string (function_name_arg)) {
-    return s7_error (sc, s7_make_symbol (sc, "type-error"),
-                     s7_list (sc, 2, s7_make_string (sc, "g_function-libraries: function-name must be string?"),
-                              function_name_arg));
+    return s7_error (
+        sc, s7_make_symbol (sc, "type-error"),
+        s7_list (sc, 2, s7_make_string (sc, "g_function-libraries: function-name must be string?"), function_name_arg));
   }
 
   string         function_name= s7_string (function_name_arg);
@@ -5190,12 +2463,13 @@ f_function_libraries (s7_scheme* sc, s7_pointer args) {
 
   try {
     visible_library_queries= find_function_libraries_in_load_path (sc, function_name);
-  }
-  catch (const std::exception& ex) {
-    return s7_error (sc, s7_make_symbol (sc, "read-error"),
-                     s7_list (sc, 2,
-                              s7_make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
-                              function_name_arg));
+  } catch (const std::exception& ex) {
+    return s7_error (
+        sc, s7_make_symbol (sc, "read-error"),
+        s7_list (
+            sc, 2,
+            s7_make_string (sc, (string ("g_function-libraries: failed to inspect libraries: ") + ex.what ()).c_str ()),
+            function_name_arg));
   }
 
   return make_library_name_list_list (sc, visible_library_queries);
@@ -5289,7 +2563,36 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
 
   // 如果没有找到命令或没有参数，使用 help 命令
   if (argc <= 1 || command.empty ()) {
-    command = "help";
+    command= "help";
+  }
+  if (command == "-e") {
+    command= "eval";
+    if (command_index >= 0 && command_index < static_cast<int> (command_args.size ())) {
+      command_args[command_index]= "eval";
+    }
+  }
+
+  // 自动路由：如果参数是目录且第一级文件夹是 tests，自动视为 test 命令
+  if (!command.empty () && command != "help" && command != "version" && command != "eval" && command != "load" &&
+      command != "repl" && command != "run" && command != "test" && command != "-e") {
+    std::error_code ec;
+    if (fs::is_directory (command, ec)) {
+      fs::path p (command);
+      auto     it= p.begin ();
+      if (it != p.end () && *it == "tests") {
+        if (command_index >= 0 && command_index <= static_cast<int> (command_args.size ())) {
+          command_args.insert (command_args.begin () + command_index, "test");
+        }
+        command= "test";
+        std::cerr << "[gf] Auto-routing: detected tests directory, routing to test command" << "\n";
+        std::cerr << "[gf] Executing: ";
+        for (size_t i= 0; i < command_args.size (); ++i) {
+          if (i > 0) std::cerr << " ";
+          std::cerr << command_args[i];
+        }
+        std::cerr << std::endl;
+      }
+    }
   }
 
   // 根据命令类型确定默认模式：
@@ -5321,9 +2624,9 @@ repl_for_community_edition (s7_scheme* sc, int argc, char** argv) {
   if (old_port != s7_nil (sc)) gc_loc= s7_gc_protect (sc, old_port);
 
   // 处理动态注册的工具（从 gfproject.json 加载）
-  json gfproject_config = load_gfproject_config (gf_lib);
+  json gfproject_config= load_gfproject_config (gf_lib);
   if (gfproject_config.contains ("tools") && gfproject_config["tools"].contains (command)) {
-    int tool_ret = goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
+    int tool_ret= goldfish_run_tool (sc, gf_lib, command, errmsg, old_port, gc_loc);
     if (tool_ret != -1) {
       // Tool was found and executed (or failed with an error)
       return tool_ret;

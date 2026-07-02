@@ -17,9 +17,10 @@ extern hashmap<string, int>  default_var_type;
 void                         initialize_default_var_type ();
 extern hashmap<string, tree> default_env;
 void                         initialize_default_env ();
-#include "page_type.hpp"
+#include <moebius/data/page_type.hpp>
 
 using namespace moebius;
+using moebius::data::page_get_feature;
 
 /******************************************************************************
  * Initialization

@@ -56,14 +56,26 @@ empty_table (int nr_rows, int nr_cols) {
   return T;
 }
 
+bool
+table_needs_document_wrap (string hyphen, string block, string mode) {
+  return (hyphen == "y" || block == "yes") && mode != "math";
+}
+
+bool
+table_default_hyphen_enabled (string mode) {
+  return mode != "math";
+}
+
 tree
-default_table_tree (int nr_rows, int nr_cols) {
+default_table_tree (int nr_rows, int nr_cols, bool enable_table_hyphen) {
   tree T= empty_table (nr_rows, nr_cols);
   tree format_T (TFORMAT);
   tree with (CWITH, "1", "-1", "1", "-1", "cell-hyphen", "t");
   format_T << with;
-  tree hyphen_with (TWITH, "table-hyphen", "y");
-  format_T << hyphen_with;
+  if (enable_table_hyphen) {
+    tree hyphen_with (TWITH, "table-hyphen", "y");
+    format_T << hyphen_with;
+  }
   format_T << T;
   return format_T;
 }
@@ -1059,8 +1071,10 @@ edit_table_rep::table_ver_decorate (path fp, int row, int rbef, int raft) {
 void
 edit_table_rep::make_table (int nr_rows, int nr_cols) {
   // cout << "make_table " << nr_rows << ", " << nr_cols << "\n";
-  tree format_T= default_table_tree (nr_rows, nr_cols);
-  path p (0, 0, 0, 0);
+  string mode               = get_env_string (MODE);
+  bool   enable_table_hyphen= table_default_hyphen_enabled (mode);
+  tree   format_T= default_table_tree (nr_rows, nr_cols, enable_table_hyphen);
+  path   p (0, 0, 0, 0);
   insert_tree (format_T, path (N (format_T) - 1, p));
 
   int  i1, j1, i2, j2;
@@ -1069,14 +1083,15 @@ edit_table_rep::make_table (int nr_rows, int nr_cols) {
   typeset_invalidate_env (); // FIXME: dirty hack for getting correct limits
   table_get_limits (fp, i1, j1, i2, j2);
   if ((nr_rows < i1) || (nr_cols < j1)) {
-    format_T= default_table_tree (max (nr_rows, i1), max (nr_cols, j1));
+    format_T= default_table_tree (max (nr_rows, i1), max (nr_cols, j1),
+                                  enable_table_hyphen);
     assign (fp, format_T);
     go_to (fp * path (N (format_T) - 1, p));
   }
 
   string hyphen= as_string (table_get_format (fp, TABLE_HYPHEN));
   string block = as_string (table_get_format (fp, TABLE_BLOCK));
-  if (hyphen == "y" || block == "yes") {
+  if (table_needs_document_wrap (hyphen, block, mode)) {
     path q= fp;
     if (is_extension (subtree (et, path_up (q)), 1)) q= path_up (q);
     tree st= subtree (et, path_up (q));
@@ -1107,7 +1122,8 @@ void
 edit_table_rep::make_subtable (int nr_rows, int nr_cols) {
   path cp= search_upwards (CELL);
   if (is_nil (cp)) return;
-  tree T= default_table_tree (nr_rows, nr_cols);
+  tree T= default_table_tree (
+      nr_rows, nr_cols, table_default_hyphen_enabled (get_env_string (MODE)));
   path p (0, 0, 0, 0);
   p= path (N (T) - 1, p);
   T= tree (SUBTABLE, T);

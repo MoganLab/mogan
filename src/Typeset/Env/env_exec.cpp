@@ -18,10 +18,11 @@
 #include "image_files.hpp"
 #include "locale.hpp"
 #include "observers.hpp"
-#include "page_type.hpp"
+#include <moebius/data/page_type.hpp>
+
+using moebius::data::page_get_feature;
 #include "scheme.hpp"
 #include "tm_file.hpp"
-#include "tm_locale.hpp"
 #include "typesetter.hpp"
 
 #include <lolly/data/numeral.hpp>
@@ -1210,13 +1211,18 @@ edit_env_rep::exec_use_package (tree t) {
   int i, n= N (t);
   for (i= 0; i < n; i++) {
     // cout << "Package " << as_string (t[i]) << "\n";
-    url name= url_none ();
-    url styp= "$TEXMACS_STYLE_PATH";
+    url    name= url_none ();
+    url    styp= "$TEXMACS_STYLE_PATH";
+    string pi  = as_string (t[i]);
     if (is_rooted (base_file_name, "default"))
       styp= styp | ::expand (head (base_file_name) * url_ancestor ());
     else styp= styp | head (base_file_name);
-    if (ends (as_string (t[i]), ".ts")) name= url_system (as_string (t[i]));
-    else name= styp * (as_string (t[i]) * string (".ts"));
+    if (ends (pi, ".ts") || ends (pi, ".stem")) name= url_system (pi);
+    else {
+      url stem_name= styp * (pi * string (".stem"));
+      name         = resolve (stem_name);
+      if (is_none (name)) name= styp * (pi * string (".ts"));
+    }
     name= resolve (name);
     // cout << as_string (t[i]) << " -> " << name << "\n";
     string doc_s;
@@ -1591,7 +1597,7 @@ edit_env_rep::exec_date (tree t) {
     if (is_compound (u)) return tree (ERROR, "bad date");
     fm= u->label;
   }
-  return get_date (lan, fm);
+  return lolly::locale::get_date (lan, fm);
 }
 
 tree

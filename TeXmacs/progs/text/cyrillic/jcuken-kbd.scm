@@ -10,11 +10,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text cyrillic jcuken-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (text cyrillic jcuken-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-cyrillic-jcuken?)
+(kbd-map (:mode in-cyrillic-jcuken?)
 
   ("q" "<#439>")
   ("w" "<#446>")
@@ -93,4 +91,5 @@
   ("*" ";")
 
   ("accent:umlaut t" "<#451>")
-  ("accent:umlaut T" "<#401>"))
+  ("accent:umlaut T" "<#401>")
+) ;kbd-map

@@ -67,7 +67,7 @@
 	   ,(number->string (length ts))
 	   (document ,@(format-entries 1 ts)))))))
 
-(tm-define bib-functions-table (make-hash-table 100))
+(tm-define bib-functions-table (s7-make-hash-table 100))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Public functions

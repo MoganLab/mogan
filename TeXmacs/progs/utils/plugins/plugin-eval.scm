@@ -209,7 +209,7 @@
               ((== status 0)
                (with author
                  0
-                 (when (!= lan "scheme")
+                 (when (and (!= lan "scheme") (!= lan "autosave"))
                    (set! author (new-author))
                    (start-slave author)
                  ) ;when
@@ -349,7 +349,10 @@
     (pending-ref lan ses)
     (with author
       0
-      (when (!= lan "scheme")
+      ;; "autosave" 是单向喂 payload（回调为 noop），不需要 author 归因；
+      ;; 跳过 start-slave 以免往当前编辑器推 PATCH_BIRTH marker，
+      ;; 把无关 buffer 误标为已修改（见 devel/1132.md）。
+      (when (and (!= lan "scheme") (!= lan "autosave"))
         (set! author (new-author))
         (start-slave author)
       ) ;when

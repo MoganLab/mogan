@@ -10,7 +10,8 @@
  ******************************************************************************/
 
 #include "raster_picture.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 
 /******************************************************************************
  * Constructor

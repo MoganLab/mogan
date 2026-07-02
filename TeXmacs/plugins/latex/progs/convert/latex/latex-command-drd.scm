@@ -255,6 +255,7 @@
   pod
   pmod
   label
+  tag
   ref
   pageref
   index
@@ -814,6 +815,8 @@
   lim
   liminf
   limsup
+  varliminf
+  varlimsup
   ln
   log
   max
@@ -1074,7 +1077,7 @@
 
 (logic-group latex-ignore-0*% displaybreak allowdisplaybreaks)
 
-(logic-group latex-ignore-1% tag hyphenation)
+(logic-group latex-ignore-1% hyphenation)
 
 (logic-group latex-ignore-2% newdir)
 

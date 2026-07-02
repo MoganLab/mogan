@@ -9,7 +9,7 @@
 -- It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
-XMACS_VERSION="2026.2.7-rc1"
+XMACS_VERSION="2026.2.7-rc3"
 TEXMACS_VERSION = "2.1.2"
 GOLDFISH_VERSION = "17.11.2"
 DEVEL_VERSION = TEXMACS_VERSION
@@ -19,7 +19,7 @@ STABLE_RELEASE = 1
 
 -- LiiiLabs dependencies
 TBOX_VERSION = "1.7.5"
-LOLLY_VERSION = "1.4.27"
+LOLLY_VERSION = "1.4.26"
 
 -- Third-party dependencies
 CPPTRACE_VERSION = "v0.7.1"
@@ -31,7 +31,7 @@ QT6_VERSION = "6.5.3"
 QTIFW_VERSION = "4.6.0"
 CPR_VERSION = "1.10.5"
 CURL_VERSION = "8.4.0"
-PDFHUMMUS_VERSION = "4.6.2"
+PDFHUMMUS_VERSION = "4.9.0"
 FREETYPE_VERSION = "2.13.3"
 LIBPNG_VERSION = "1.6.37"
 LIBJPEG_VERSION = "v9e"
@@ -114,7 +114,7 @@ libstem_headers = {
     "$(projectdir)/src/Typeset/Page",
     "$(projectdir)/src/Typeset/Stack",
     "$(projectdir)/src/Typeset/Table",
-    "$(buildir)/glue",
+    "$(builddir)/glue",
     "$(projectdir)/TeXmacs/include",
     "$(projectdir)/TeXmacs/plugins/goldfish/src",
 }
@@ -138,29 +138,4 @@ libstem_srcs = {
     "$(projectdir)/src/Texmacs/Window/**.cpp",
     "$(projectdir)/src/Typeset/**.cpp",
 } 
-
-moe_files = {
-    "$(projectdir)/moebius/Data/History/**.cpp",
-    "$(projectdir)/moebius/Data/String/**.cpp",
-    "$(projectdir)/moebius/Data/Tree/**.cpp",
-    "$(projectdir)/moebius/Kernel/Types/**.cpp",
-    "$(projectdir)/moebius/Kernel/Abstractions/**.cpp",
-    "$(projectdir)/moebius/Scheme/**.cpp",
-    "$(projectdir)/moebius/moebius/**.cpp",
-}
-
-moe_includedirs = {
-    "$(projectdir)/moebius/Data/History",
-    "$(projectdir)/moebius/Data/String",
-    "$(projectdir)/moebius/Data/Tree",
-    "$(projectdir)/moebius/Kernel/Types",
-    "$(projectdir)/moebius/Kernel/Abstractions",
-    "$(projectdir)/moebius/Scheme",
-    "$(projectdir)/moebius/Scheme/L1",
-    "$(projectdir)/moebius/Scheme/L2",
-    "$(projectdir)/moebius/Scheme/L3",
-    "$(projectdir)/moebius/Scheme/S7",
-    "$(projectdir)/moebius/Scheme/Scheme",
-    "$(projectdir)/moebius/",
-}
 

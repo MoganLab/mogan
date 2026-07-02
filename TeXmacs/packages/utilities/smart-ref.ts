@@ -92,6 +92,10 @@
 
   <assign|axiom-ref|<xmacro|args|<extern|ext-typed-ref|Axiom|<quote-arg|args>>>>
 
+  <assign|fac-ref|<xmacro|args|<extern|ext-typed-ref|Fact|<quote-arg|args>>>>
+
+  <assign|fact-ref|<xmacro|args|<extern|ext-typed-ref|Fact|<quote-arg|args>>>>
+
   <assign|ass-ref|<xmacro|args|<extern|ext-typed-ref|Assumption|<quote-arg|args>>>>
 
   <assign|assumption-ref|<xmacro|args|<extern|ext-typed-ref|Assumption|<quote-arg|args>>>>

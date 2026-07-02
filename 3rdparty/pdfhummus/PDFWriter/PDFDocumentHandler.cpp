@@ -50,6 +50,11 @@
 #include "IndirectObjectsReferenceRegistry.h"
 #include "SimpleStringTokenizer.h"
 
+// Mirrors PDFObjectParser's MAX_OBJECT_DEPTH so caller-supplied trees passed
+// through CopyDirectObjectAsIs / CopyDirectObjectWithDeepCopy cannot exceed
+// the same nesting depth that parser-produced trees are already bounded to.
+#define MAX_WRITE_OBJECT_DEPTH 100
+
 using namespace PDFHummus;
 
 PDFDocumentHandler::PDFDocumentHandler(void)
@@ -307,6 +312,10 @@ PDFFormXObject* PDFDocumentHandler::CreatePDFFormXObjectForPage(PDFDictionary* i
 
 		// Create a new form XObject
 		result = inPredefinedFormId == 0 ? mDocumentContext->StartFormXObject(inFormBox,inTransformationMatrix): mDocumentContext->StartFormXObject(inFormBox,inPredefinedFormId,inTransformationMatrix);
+		if(!result) {
+			TRACE_LOG("PDFDocumentHandler::CreatePDFFormXObjectForPage, failed to create form xobject");
+			break;
+		}
 
 		// copy the page content to the target XObject stream
 		if(WritePageContentToSingleStream(result->GetContentStream()->GetWriteStream(),inPageObject) != PDFHummus::eSuccess)
@@ -595,20 +604,32 @@ EStatusCode PDFDocumentHandler::CopyInDirectObject(ObjectIDType inSourceObjectID
 	RefCountPtr<PDFObject> sourceObject = mParser->ParseNewObject(inSourceObjectID);
 	if(!sourceObject)
 	{
+		// if the object did not parse, check if it does not have an xref entry or is marked for deletion. in either of those
+		// cases it means we have a reference to a non existant object, which is _valid_ in PDF and just means it's a null.
+		// in all those cases, create a deleted object reference, so we can keep the xref table sequential.
 		XrefEntryInput* xrefEntry = mParser->GetXrefEntry(inSourceObjectID);
-		if ((xrefEntry != NULL) && (xrefEntry->mType == eXrefEntryDelete)) {
-			// if the object is deleted, replace with a deleted object
-			mObjectsContext->GetInDirectObjectsRegistry().DeleteObject(inTargetObjectID);
-			return PDFHummus::eSuccess;
-		}
-		else {
-			// fail
-			TRACE_LOG1("PDFDocumentHandler::CopyInDirectObject, object not found. %ld", inSourceObjectID);
+		if (
+			(xrefEntry == NULL) || // index exceeds xref entry size
+			(xrefEntry != NULL) && (
+				xrefEntry->mType == eXrefEntryDelete // object is marked as deleted (free object)
+				|| xrefEntry->mType == eXrefEntryUndefined // object is internally marked as undefined which means we got holes in the source xref tables ranges
+			))  {
+			status = mObjectsContext->GetInDirectObjectsRegistry().DeleteObject(inTargetObjectID);
+			if (status != PDFHummus::eSuccess) {
+				TRACE_LOG2("PDFDocumentHandler::CopyInDirectObject, failed mark source object %ld object as deleted object with target ID %ld", inSourceObjectID, inTargetObjectID);
+				return status;
+			}
+			return status;
+		} else {
+			// fail, couldn't parse an object that has a valid xref entry
+			TRACE_LOG1("PDFDocumentHandler::CopyInDirectObject, cannot parse source object %ld", inSourceObjectID);
 			return PDFHummus::eFailure;
 		}
 	}
 
-	mObjectsContext->StartNewIndirectObject(inTargetObjectID);
+	status = mObjectsContext->StartNewIndirectObject(inTargetObjectID);
+	if(PDFHummus::eSuccess != status)
+		return status;
 	status = WriteObjectByType(sourceObject.GetPtr(),eTokenSeparatorEndLine, &writingPolicy);
 	if(PDFHummus::eSuccess == status)
 	{
@@ -942,9 +963,21 @@ EStatusCode PDFDocumentHandler::WritePDFStreamInputToContentContext(PageContentC
 	
 	do
 	{
-		inContentContext->StartAStreamIfRequired();
+		status = inContentContext->StartAStreamIfRequired();
+		if(status != PDFHummus::eSuccess)
+		{
+			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to start a stream in content context");
+			break;
+		}
 
-		status = WritePDFStreamInputToStream(inContentContext->GetCurrentPageContentStream()->GetWriteStream(),inContentSource);
+		PDFStream* contentStream = inContentContext->GetCurrentPageContentStream();
+		if(!contentStream)
+		{
+			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to get current page content stream");
+			status = PDFHummus::eFailure;
+			break;
+		}
+		status = WritePDFStreamInputToStream(contentStream->GetWriteStream(),inContentSource);
 		if(status != PDFHummus::eSuccess)
 		{
 			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to write content stream from page input to target page");
@@ -1556,7 +1589,9 @@ EStatusCode PDFDocumentHandler::CopyDirectObjectToIndirectObject(PDFObject* inOb
 	ObjectIDTypeList newObjectsToWrite;
 	OutWritingPolicy writingPolicy(this, newObjectsToWrite);
 
-	mObjectsContext->StartNewIndirectObject(inTargetObjectID);
+	status = mObjectsContext->StartNewIndirectObject(inTargetObjectID);
+	if(status != PDFHummus::eSuccess)
+		return status;
 	status = WriteObjectByType(inObject,eTokenSeparatorEndLine, &writingPolicy);
 	if(PDFHummus::eSuccess == status)
 	{
@@ -1626,9 +1661,22 @@ EStatusCode PDFDocumentHandler::WritePDFStreamInputToContentContext(PageContentC
 	
 	do
 	{
-		inContentContext->StartAStreamIfRequired();
+		status = inContentContext->StartAStreamIfRequired();
+		if(status != PDFHummus::eSuccess)
+		{
+			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to start a stream in content context");
+			break;
+		}
 
-		status = WritePDFStreamInputToStream(inContentContext->GetCurrentPageContentStream()->GetWriteStream(),inContentSource,inMappedResourcesNames);
+		PDFStream* contentStream = inContentContext->GetCurrentPageContentStream();
+		if(!contentStream)
+		{
+			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to get current page content stream");
+			status = PDFHummus::eFailure;
+			break;
+		}
+
+		status = WritePDFStreamInputToStream(contentStream->GetWriteStream(),inContentSource,inMappedResourcesNames);
 		if(status != PDFHummus::eSuccess)
 		{
 			TRACE_LOG("PDFDocumentHandler::WritePDFStreamInputToContentContext, failed to write content stream from page input to target page");
@@ -1899,10 +1947,10 @@ void OutWritingPolicy::WriteReference(PDFIndirectObjectReference* inReference, E
 }
 
 
-EStatusCode PDFDocumentHandler::WriteObjectByType(PDFObject* inObject,ETokenSeparator inSeparator, IObjectWritePolicy* inWritePolicy)
+EStatusCode PDFDocumentHandler::WriteObjectByType(PDFObject* inObject,ETokenSeparator inSeparator, IObjectWritePolicy* inWritePolicy, int inDepth)
 {
 	EStatusCode status = PDFHummus::eSuccess;
-    
+
 	switch(inObject->GetType())
 	{
 		case PDFObject::ePDFObjectBoolean:
@@ -1952,51 +2000,63 @@ EStatusCode PDFDocumentHandler::WriteObjectByType(PDFObject* inObject,ETokenSepa
 		}
 		case PDFObject::ePDFObjectArray:
 		{
-			status = WriteArrayObject((PDFArray*)inObject,inSeparator, inWritePolicy);
+			status = WriteArrayObject((PDFArray*)inObject,inSeparator, inWritePolicy, inDepth);
 			break;
 		}
 		case PDFObject::ePDFObjectDictionary:
 		{
-			status = WriteDictionaryObject((PDFDictionary*)inObject, inWritePolicy);
+			status = WriteDictionaryObject((PDFDictionary*)inObject, inWritePolicy, inDepth);
 			break;
 		}
 		case PDFObject::ePDFObjectStream:
 		{
-			status = WriteStreamObject((PDFStreamInput*)inObject, inWritePolicy);
+			status = WriteStreamObject((PDFStreamInput*)inObject, inWritePolicy, inDepth);
 			break;
 		}
 	}
 	return status;
 }
 
-EStatusCode PDFDocumentHandler::WriteArrayObject(PDFArray* inArray,ETokenSeparator inSeparator, IObjectWritePolicy* inWritePolicy)
+EStatusCode PDFDocumentHandler::WriteArrayObject(PDFArray* inArray,ETokenSeparator inSeparator, IObjectWritePolicy* inWritePolicy, int inDepth)
 {
+	if(++inDepth > MAX_WRITE_OBJECT_DEPTH)
+	{
+		TRACE_LOG1("PDFDocumentHandler::WriteArrayObject, reached maximum allowed depth of %d", MAX_WRITE_OBJECT_DEPTH);
+		return PDFHummus::eFailure;
+	}
+
 	SingleValueContainerIterator<PDFObjectVector> it(inArray->GetIterator());
-    
+
 	EStatusCode status = PDFHummus::eSuccess;
-	
+
 	mObjectsContext->StartArray();
-    
+
 	while(it.MoveNext() && PDFHummus::eSuccess == status)
-		status = WriteObjectByType(it.GetItem(),eTokenSeparatorSpace, inWritePolicy);
-    
+		status = WriteObjectByType(it.GetItem(),eTokenSeparatorSpace, inWritePolicy, inDepth);
+
 	if(PDFHummus::eSuccess == status)
 		mObjectsContext->EndArray(inSeparator);
-    
+
 	return status;
 }
 
-EStatusCode PDFDocumentHandler::WriteDictionaryObject(PDFDictionary* inDictionary, IObjectWritePolicy* inWritePolicy)
+EStatusCode PDFDocumentHandler::WriteDictionaryObject(PDFDictionary* inDictionary, IObjectWritePolicy* inWritePolicy, int inDepth)
 {
+	if(++inDepth > MAX_WRITE_OBJECT_DEPTH)
+	{
+		TRACE_LOG1("PDFDocumentHandler::WriteDictionaryObject, reached maximum allowed depth of %d", MAX_WRITE_OBJECT_DEPTH);
+		return PDFHummus::eFailure;
+	}
+
 	MapIterator<PDFNameToPDFObjectMap> it(inDictionary->GetIterator());
 	EStatusCode status = PDFHummus::eSuccess;
 	DictionaryContext* dictionary = mObjectsContext->StartDictionary();
-    
+
 	while(it.MoveNext() && PDFHummus::eSuccess == status)
 	{
 		status = dictionary->WriteKey(it.GetKey()->GetValue());
 		if(PDFHummus::eSuccess == status)
-			status = WriteObjectByType(it.GetValue(),eTokenSeparatorEndLine, inWritePolicy);
+			status = WriteObjectByType(it.GetValue(),eTokenSeparatorEndLine, inWritePolicy, inDepth);
 	}
 	
 	if(PDFHummus::eSuccess == status)
@@ -2004,11 +2064,17 @@ EStatusCode PDFDocumentHandler::WriteDictionaryObject(PDFDictionary* inDictionar
 		return mObjectsContext->EndDictionary(dictionary);
 	}
 	else
-		return PDFHummus::eSuccess;
+		return status;
 }
 
-EStatusCode PDFDocumentHandler::WriteStreamObject(PDFStreamInput* inStream, IObjectWritePolicy* inWritePolicy)
+EStatusCode PDFDocumentHandler::WriteStreamObject(PDFStreamInput* inStream, IObjectWritePolicy* inWritePolicy, int inDepth)
 {
+	if(++inDepth > MAX_WRITE_OBJECT_DEPTH)
+	{
+		TRACE_LOG1("PDFDocumentHandler::WriteStreamObject, reached maximum allowed depth of %d", MAX_WRITE_OBJECT_DEPTH);
+		return PDFHummus::eFailure;
+	}
+
 	/*
 	1. Create stream dictionary, copy all elements of input stream but Length (which may be the same...but due to internals may not)
 	2. Create PDFStream with this dictionary and use its output stream to write the result
@@ -2042,13 +2108,14 @@ EStatusCode PDFDocumentHandler::WriteStreamObject(PDFStreamInput* inStream, IObj
 		if (it.GetKey()->GetValue() != "Length" && (!readingDecrypted || it.GetKey()->GetValue() != "Filter")) {
 			status = newStreamDictionary->WriteKey(it.GetKey()->GetValue());
 			if (PDFHummus::eSuccess == status)
-				status = WriteObjectByType(it.GetValue(), eTokenSeparatorEndLine, inWritePolicy);
+				status = WriteObjectByType(it.GetValue(), eTokenSeparatorEndLine, inWritePolicy, inDepth);
 		}
 	}
 
 	if (status != PDFHummus::eSuccess)
 	{
 		TRACE_LOG("PDFDocumentHandler::WriteStreamObject, failed to write stream dictionary");
+		delete streamReader;
 		return PDFHummus::eFailure;
 	}
 
@@ -2066,7 +2133,7 @@ EStatusCode PDFDocumentHandler::WriteStreamObject(PDFStreamInput* inStream, IObj
 		return PDFHummus::eFailure;
 	}
 
-	mObjectsContext->EndPDFStream(newStream);
+	status = mObjectsContext->EndPDFStream(newStream);
 	delete newStream;
 	delete streamReader;
 	return status;
@@ -2463,20 +2530,5 @@ void PDFDocumentHandler::RegisterFormRelatedObjects(PDFFormXObject* inFormXObjec
 }
 
 PDFObject* PDFDocumentHandler::FindPageResources(PDFParser* inParser, PDFDictionary* inDictionary) {
-	if(inDictionary->Exists("Resources")) {
-		return inParser->QueryDictionaryObject(inDictionary, "Resources");
-	}
-	else {
-		PDFObjectCastPtr<PDFDictionary> parentDict(
-			inDictionary->Exists("Parent") ? 
-				inParser->QueryDictionaryObject(inDictionary, "Parent"): 
-				NULL);
-		if(!parentDict) {
-			return NULL;
-		}
-		else {
-			return FindPageResources(inParser,parentDict.GetPtr());
-		}
-		
-	}	
+	return inParser->QueryInheritedDictionaryEntry(inDictionary, "Resources");
 }

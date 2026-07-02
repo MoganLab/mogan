@@ -28,13 +28,9 @@
   ) ;export
   (begin
 
-    (define open-binary-input-file
-      open-input-file
-    ) ;define
+    (define open-binary-input-file open-input-file)
 
-    (define open-binary-output-file
-      open-output-file
-    ) ;define
+    (define open-binary-output-file open-output-file)
 
   ) ;begin
 ) ;define-library

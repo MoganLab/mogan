@@ -33,10 +33,7 @@
     list-queue-map!
     list-queue-for-each
   ) ;export
-  (import (liii base)
-    (liii error)
-    (liii list)
-  ) ;import
+  (import (liii base) (liii error) (liii list))
   (begin
 
     ;; ; The list-queue record
@@ -52,10 +49,7 @@
 
     ;; ; Helper function: return the last pair of a list
     (define (last-pair ls)
-      (if (null? (cdr ls))
-        ls
-        (last-pair (cdr ls))
-      ) ;if
+      (if (null? (cdr ls)) ls (last-pair (cdr ls)))
     ) ;define
 
     ;; ; Helper function: return the next to last pair of lis, or nil if there is none
@@ -74,12 +68,7 @@
     (define (map! f lis)
       (let lp
         ((lis lis))
-        (if (pair? lis)
-          (begin
-            (set-car! lis (f (car lis)))
-            (lp (cdr lis))
-          ) ;begin
-        ) ;if
+        (if (pair? lis) (begin (set-car! lis (f (car lis))) (lp (cdr lis))))
       ) ;let
     ) ;define
 
@@ -89,13 +78,9 @@
       (if (null? rest)
         (if (null? list-arg)
           (raw-make-list-queue '() '())
-          (raw-make-list-queue list-arg
-            (last-pair list-arg)
-          ) ;raw-make-list-queue
+          (raw-make-list-queue list-arg (last-pair list-arg))
         ) ;if
-        (raw-make-list-queue list-arg
-          (car rest)
-        ) ;raw-make-list-queue
+        (raw-make-list-queue list-arg (car rest))
       ) ;if
     ) ;define
 
@@ -104,8 +89,7 @@
     ) ;define
 
     (define (list-queue-copy list-queue)
-      (make-list-queue (list-copy (get-first list-queue))
-      ) ;make-list-queue
+      (make-list-queue (list-copy (get-first list-queue)))
     ) ;define
 
     ;; ; Predicates
@@ -118,18 +102,14 @@
 
     (define (list-queue-front list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg
-          "list-queue-front: empty list-queue"
-        ) ;error
+        (error 'wrong-type-arg "list-queue-front: empty list-queue")
         (car (get-first list-queue))
       ) ;if
     ) ;define
 
     (define (list-queue-back list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg
-          "list-queue-back: empty list-queue"
-        ) ;error
+        (error 'wrong-type-arg "list-queue-back: empty list-queue")
         (car (get-last list-queue))
       ) ;if
     ) ;define
@@ -139,20 +119,14 @@
     ) ;define
 
     (define (list-queue-first-last list-queue)
-      (values (get-first list-queue)
-        (get-last list-queue)
-      ) ;values
+      (values (get-first list-queue) (get-last list-queue))
     ) ;define
 
     ;; ; Mutators
 
     (define (list-queue-add-front! list-queue elem)
-      (let ((new-first (cons elem (get-first list-queue))
-            ) ;new-first
-           ) ;
-        (if (list-queue-empty? list-queue)
-          (set-last! list-queue new-first)
-        ) ;if
+      (let ((new-first (cons elem (get-first list-queue))))
+        (if (list-queue-empty? list-queue) (set-last! list-queue new-first))
         (set-first! list-queue new-first)
       ) ;let
     ) ;define
@@ -161,9 +135,7 @@
       (let ((new-last (list elem)))
         (if (list-queue-empty? list-queue)
           (set-first! list-queue new-last)
-          (set-cdr! (get-last list-queue)
-            new-last
-          ) ;set-cdr!
+          (set-cdr! (get-last list-queue) new-last)
         ) ;if
         (set-last! list-queue new-last)
       ) ;let
@@ -171,16 +143,12 @@
 
     (define (list-queue-remove-front! list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg
-          "list-queue-remove-front!: empty list-queue"
-        ) ;error
+        (error 'wrong-type-arg "list-queue-remove-front!: empty list-queue")
         (let* ((old-first (get-first list-queue))
                (elem (car old-first))
                (new-first (cdr old-first))
               ) ;
-          (if (null? new-first)
-            (set-last! list-queue '())
-          ) ;if
+          (if (null? new-first) (set-last! list-queue '()))
           (set-first! list-queue new-first)
           elem
         ) ;let*
@@ -189,18 +157,12 @@
 
     (define (list-queue-remove-back! list-queue)
       (if (list-queue-empty? list-queue)
-        (error 'wrong-type-arg
-          "list-queue-remove-back!: empty list-queue"
-        ) ;error
+        (error 'wrong-type-arg "list-queue-remove-back!: empty list-queue")
         (let* ((old-last (get-last list-queue))
                (elem (car old-last))
-               (new-last (penult-pair (get-first list-queue))
-               ) ;new-last
+               (new-last (penult-pair (get-first list-queue)))
               ) ;
-          (if (null? new-last)
-            (set-first! list-queue '())
-            (set-cdr! new-last '())
-          ) ;if
+          (if (null? new-last) (set-first! list-queue '()) (set-cdr! new-last '()))
           (set-last! list-queue new-last)
           elem
         ) ;let*
@@ -215,20 +177,13 @@
       ) ;let
     ) ;define
 
-    (define (list-queue-set-list!
-              list-queue
-              first-list
-              .
-              rest
-            ) ;
+    (define (list-queue-set-list! list-queue first-list . rest)
       (if (null? rest)
         (begin
           (set-first! list-queue first-list)
           (if (null? first-list)
             (set-last! list-queue '())
-            (set-last! list-queue
-              (last-pair first-list)
-            ) ;set-last!
+            (set-last! list-queue (last-pair first-list))
           ) ;if
         ) ;begin
         (begin
@@ -243,11 +198,7 @@
     (define (list-queue-concatenate list-queues)
       (let ((result (list-queue)))
         (for-each (lambda (q)
-                    (for-each (lambda (elem)
-                                (list-queue-add-back! result elem)
-                              ) ;lambda
-                      (get-first q)
-                    ) ;for-each
+                    (for-each (lambda (elem) (list-queue-add-back! result elem)) (get-first q))
                   ) ;lambda
           list-queues
         ) ;for-each
@@ -260,20 +211,14 @@
     ) ;define
 
     (define (list-queue-join! queue1 queue2)
-      (set-cdr! (get-last queue1)
-        (get-first queue2)
-      ) ;set-cdr!
+      (set-cdr! (get-last queue1) (get-first queue2))
       (set-last! queue1 (get-last queue2))
     ) ;define
 
     (define (list-queue-append! . queues)
       (cond ((null? queues) (list-queue))
             ((null? (cdr queues)) (car queues))
-            (else (for-each (lambda (q)
-                              (list-queue-join! (car queues) q)
-                            ) ;lambda
-                    (cdr queues)
-                  ) ;for-each
+            (else (for-each (lambda (q) (list-queue-join! (car queues) q)) (cdr queues))
               (car queues)
             ) ;else
       ) ;cond
@@ -282,8 +227,7 @@
     ;; ; Mapping
 
     (define (list-queue-map proc list-queue)
-      (make-list-queue (map proc (get-first list-queue))
-      ) ;make-list-queue
+      (make-list-queue (map proc (get-first list-queue)))
     ) ;define
 
     (define (list-queue-map! proc list-queue)
@@ -296,81 +240,33 @@
 
     ;; ; Unfold
 
-    (define (list-queue-unfold
-              stop?
-              mapper
-              successor
-              seed
-              .
-              rest
-            ) ;
-      (let ((queue (if (null? rest)
-                     (list-queue)
-                     (car rest)
-                   ) ;if
-            ) ;queue
-           ) ;
-        (list-queue-unfold* stop?
-          mapper
-          successor
-          seed
-          queue
-        ) ;list-queue-unfold*
+    (define (list-queue-unfold stop? mapper successor seed . rest)
+      (let ((queue (if (null? rest) (list-queue) (car rest))))
+        (list-queue-unfold* stop? mapper successor seed queue)
       ) ;let
     ) ;define
 
-    (define (list-queue-unfold* stop?
-              mapper
-              successor
-              seed
-              queue
-            ) ;list-queue-unfold*
+    (define (list-queue-unfold* stop? mapper successor seed queue)
       (let loop
         ((seed seed))
         (if (not (stop? seed))
-          (list-queue-add-front! (loop (successor seed))
-            (mapper seed)
-          ) ;list-queue-add-front!
+          (list-queue-add-front! (loop (successor seed)) (mapper seed))
         ) ;if
         queue
       ) ;let
     ) ;define
 
-    (define (list-queue-unfold-right
-              stop?
-              mapper
-              successor
-              seed
-              .
-              rest
-            ) ;
-      (let ((queue (if (null? rest)
-                     (list-queue)
-                     (car rest)
-                   ) ;if
-            ) ;queue
-           ) ;
-        (list-queue-unfold-right* stop?
-          mapper
-          successor
-          seed
-          queue
-        ) ;list-queue-unfold-right*
+    (define (list-queue-unfold-right stop? mapper successor seed . rest)
+      (let ((queue (if (null? rest) (list-queue) (car rest))))
+        (list-queue-unfold-right* stop? mapper successor seed queue)
       ) ;let
     ) ;define
 
-    (define (list-queue-unfold-right* stop?
-              mapper
-              successor
-              seed
-              queue
-            ) ;list-queue-unfold-right*
+    (define (list-queue-unfold-right* stop? mapper successor seed queue)
       (let loop
         ((seed seed))
         (if (not (stop? seed))
-          (list-queue-add-back! (loop (successor seed))
-            (mapper seed)
-          ) ;list-queue-add-back!
+          (list-queue-add-back! (loop (successor seed)) (mapper seed))
         ) ;if
         queue
       ) ;let

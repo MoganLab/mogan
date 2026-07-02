@@ -11,40 +11,58 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (various theme-edit)
-  (:use (generic document-edit)))
+(texmacs-module (various theme-edit) (:use (generic document-edit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Style package rules for themes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (basic-themes)
-  (list "dark" "blackboard" "bluish" "boring-white" "dark-vador"
-        "granite" "ice" "manila-paper" "metal" "pale-blue"
-        "pine" "reddish" "ridged-paper" "rough-paper" "xperiment"))
+  (list "dark"
+    "blackboard"
+    "bluish"
+    "boring-white"
+    "dark-vador"
+    "granite"
+    "ice"
+    "manila-paper"
+    "metal"
+    "pale-blue"
+    "pine"
+    "reddish"
+    "ridged-paper"
+    "rough-paper"
+    "xperiment"
+  ) ;list
+) ;tm-define
 
 (tm-define (current-basic-theme)
-  (with l (get-style-list)
-    (or (list-find l (cut in? <> (basic-themes))) "plain")))
+  (with l (get-style-list) (or (list-find l (cut in? <> (basic-themes))) "plain"))
+) ;tm-define
 
-(tm-define (default-basic-theme?)
-  (== (current-basic-theme) "plain"))
+(tm-define (default-basic-theme?) (== (current-basic-theme) "plain"))
 
 (tm-define (select-default-basic-theme)
   (:check-mark "v" default-basic-theme?)
-  (with theme (current-basic-theme)
+  (with theme
+    (current-basic-theme)
     (when (!= theme "plain")
-      (toggle-style-package theme))))
+      (toggle-style-package theme)
+    ) ;when
+  ) ;with
+) ;tm-define
 
 (tm-define (style-category p)
   (:require (and (not (or (in-beamer?) (in-poster?))) (in? p (basic-themes))))
-  :basic-theme)
+  :basic-theme
+) ;tm-define
 
 (tm-define (style-category-precedes? x y)
   (:require (and (== x "alt-colors") (== y :basic-theme)))
-  #t)
+  #t
+) ;tm-define
 
 (tm-define (style-category-precedes? x y)
-  (:require (and (== x :basic-theme)
-                 (in? y (list :theorem-decorations))))
-  #t)
+  (:require (and (== x :basic-theme) (in? y (list :theorem-decorations))))
+  #t
+) ;tm-define

@@ -1,0 +1,21 @@
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
+(define (test-parse-latex-varlim)
+  (check (tree->stree (latex->texmacs (parse-latex "\\varlimsup")))
+         => '(varlimsup))
+  (check (tree->stree (latex->texmacs (parse-latex "\\varliminf")))
+         => '(varliminf))
+  (check (tree->stree (latex->texmacs (parse-latex "\\( \\varlimsup \\)")))
+         => '(math (varlimsup)))
+  (check (tree->stree (latex->texmacs (parse-latex "\\( \\varliminf \\)")))
+         => '(math (varliminf)))
+  (check (tree->stree (latex->texmacs (parse-latex "\\varlimsup_{n \\to \\infty} a_n")))
+         => '(concat (varlimsup) (rsub "n <to><infty>") " a" (rsub "n")))
+  (check (tree->stree (latex->texmacs (parse-latex "\\varliminf_{n \\to \\infty} a_n")))
+         => '(concat (varliminf) (rsub "n <to><infty>") " a" (rsub "n"))))
+
+(tm-define (test_203_33)
+  (test-parse-latex-varlim)
+  (check-report))

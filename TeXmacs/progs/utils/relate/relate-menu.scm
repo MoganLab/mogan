@@ -11,15 +11,13 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils relate relate-menu)
-  (:use (part part-shared)))
+(texmacs-module (utils relate relate-menu) (:use (part part-shared)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main relate menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(menu-bind relate-menu
-  ("Mirror" (interactive make-mirror)))
+(menu-bind relate-menu ("Mirror" (interactive make-mirror)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Insert menu as extra top level menu
@@ -27,6 +25,5 @@
 
 (menu-bind texmacs-extra-menu
   (former)
-  (if (style-has? "relate-dtd")
-      (=> "Relate"
-	  (link relate-menu))))
+  (if (style-has? "relate-dtd") (=> "Relate" (link relate-menu)))
+) ;menu-bind

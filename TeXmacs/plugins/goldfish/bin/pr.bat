@@ -1,0 +1,1 @@
+elvish bin\pr %*

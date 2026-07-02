@@ -12,13 +12,16 @@
 
 (import (liii check))
 
-(load "./TeXmacs/progs/convert/latex/init-latex.scm")
+(load "./TeXmacs/plugins/latex/progs/init-latex.scm")
 
 (check-set-mode! 'report-failed)
 
 (define (load-latex path)
-  (with path (string-append "$TEXMACS_PATH/tests/tex/" path)
-    (string-replace (string-load path) "\r\n" "\n")))
+  (with path
+    (string-append "$TEXMACS_PATH/tests/tex/" path)
+    (string-replace (string-load path) "\r\n" "\n")
+  ) ;with
+) ;define
 
 (define (test-latex-snippet-preamble-filter)
   (display "Testing preamble filtering for selective LaTeX paste/snippet...\n")
@@ -26,13 +29,14 @@
          (parsed (parse-latex latex-content))
          (texmacs-tree (latex->texmacs parsed))
          (st (tree->stree texmacs-tree))
-         (st-str (object->string st)))
+         (st-str (object->string st))
+        ) ;
     (display* "LaTeX Snippet converted tree stree: " st-str "\n")
     ;; The resulting stree should NOT contain 'documentclass, 'usepackage, or 'begin with 'document
     (check (string-contains? st-str "documentclass") => #f)
     (check (string-contains? st-str "usepackage") => #f)
-    (check (string-contains? st-str "begin") => #f)))
+    (check (string-contains? st-str "begin") => #f)
+  ) ;let*
+) ;define
 
-(tm-define (test_0620)
-  (test-latex-snippet-preamble-filter)
-  (check-report))
+(tm-define (test_0620) (test-latex-snippet-preamble-filter) (check-report))

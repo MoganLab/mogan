@@ -12,14 +12,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (text text-speech-en)
-  (:use (text text-speech)
-        (math math-speech-en)))
+  (:use (text text-speech) (math math-speech-en))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General speech commands for all modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map english std-text
+(speech-map english
+  std-text
   ("math" (speech-inline 'math))
   ("maths" (speech-inline 'math))
   ("formula" (speech-inline 'math))
@@ -53,17 +54,13 @@
   ("previous match" (search-next-match #f))
   ("next match" (search-next-match #t))
   ("spell" (interactive-spell))
-  ("replace" (interactive-replace)))
+  ("replace" (interactive-replace))
+) ;speech-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Further adjustments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-adjust english text-hack
-  ("mb" "m be")
-  ("nb" "n be")
-  ("rb" "r be"))
+(speech-adjust english text-hack ("mb" "m be") ("nb" "n be") ("rb" "r be"))
 
-(speech-adjust english text
-  ("call ma" ",")
-  ("andrew" "undo"))
+(speech-adjust english text ("call ma" ",") ("andrew" "undo"))

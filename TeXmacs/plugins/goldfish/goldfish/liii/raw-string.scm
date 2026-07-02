@@ -10,11 +10,7 @@
 ;;    https://learn.microsoft.com/en-us/dotnet/csharp/language-reference/tokens/raw-string
 
 (define-library (liii raw-string)
-  (import (srfi srfi-267)
-    (srfi srfi-1)
-    (srfi srfi-13)
-    (liii error)
-  ) ;import
+  (import (srfi srfi-267) (srfi srfi-1) (srfi srfi-13) (liii error))
   (export raw-string-read-error?
     raw-string-write-error?
     read-raw-string
@@ -30,17 +26,10 @@
       (let ((len (string-length str)))
         (let loop
           ((start 0) (result '()))
-          (let ((nl-pos (string-index str #\newline start len)
-                ) ;nl-pos
-               ) ;
+          (let ((nl-pos (string-index str #\newline start len)))
             (if (not nl-pos)
-              (reverse (cons (substring str start len) result)
-              ) ;reverse
-              (loop (+ nl-pos 1)
-                (cons (substring str start nl-pos)
-                  result
-                ) ;cons
-              ) ;loop
+              (reverse (cons (substring str start len) result))
+              (loop (+ nl-pos 1) (cons (substring str start nl-pos) result))
             ) ;if
           ) ;let
         ) ;let
@@ -48,21 +37,14 @@
     ) ;define
 
     (define (f-deindent str)
-      (when (or (string-null? str)
-              (not (char=? #\newline (string-ref str 0))
-              ) ;not
-            ) ;or
-        (value-error "Raw string must start on a new line after the opening delimiter"
-        ) ;value-error
+      (when (or (string-null? str) (not (char=? #\newline (string-ref str 0))))
+        (value-error "Raw string must start on a new line after the opening delimiter")
       ) ;when
 
-      (let* ((lines (string-split-lines (substring str 1 (string-length str))
-                    ) ;string-split-lines
-             ) ;lines
+      (let* ((lines (string-split-lines (substring str 1 (string-length str))))
              (closing-line (last lines))
              (ref-indent (if (string-null? closing-line)
-                           (value-error "Raw string delimiter must be on its own line"
-                           ) ;value-error
+                           (value-error "Raw string delimiter must be on its own line")
                            (string-count closing-line #\space)
                          ) ;if
              ) ;ref-indent
@@ -72,9 +54,7 @@
         ;; check indentation
         (for-each (lambda (line idx)
                     (unless (string-null? line)
-                      (let ((indent (or (string-skip line #\space) 0)
-                            ) ;indent
-                           ) ;
+                      (let ((indent (or (string-skip line #\space) 0)))
                         (when (< indent ref-indent)
                           (value-error "Line ~a does not start with the same whitespace as the closing line of the raw string"
                             (+ idx 1)
@@ -87,12 +67,7 @@
           (iota (length content-lines))
         ) ;for-each
 
-        (string-join (map (lambda (line)
-                            (if (string-null? line)
-                              ""
-                              (substring line ref-indent)
-                            ) ;if
-                          ) ;lambda
+        (string-join (map (lambda (line) (if (string-null? line) "" (substring line ref-indent)))
                        content-lines
                      ) ;map
           "\n"
@@ -101,10 +76,7 @@
     ) ;define
 
     (define-macro (stx-deindent v)
-      (if (string? v)
-        `(quote ,(f-deindent v))
-        `(quote ,v)
-      ) ;if
+      (if (string? v) `(quote ,(f-deindent v)) `(quote ,v))
     ) ;define-macro
 
     (define deindent stx-deindent)

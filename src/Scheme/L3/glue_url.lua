@@ -15,6 +15,16 @@ function main()
         group_name = "glue_url",
         binding_object = "",
         initializer_name = "initialize_glue_url",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "scheme.hpp",
+            "tm_file.hpp",
+            "tm_url.hpp",
+            "tmfs_url.hpp",
+            "url.hpp",
+        },
         glues = {
             {
                 scm_name = "url-complete",

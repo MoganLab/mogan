@@ -13,6 +13,10 @@
 
 (texmacs-module (kernel old-gui old-gui-test))
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 (tm-define (open-test-widget)
   ;; NOTE: close with Done in order to test other widgets
   (widget-popup "Test" '(widget-4))
@@ -258,32 +262,22 @@
 ;; Regtest routines for old-gui widgets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-old-gui-widgets)
+(define (test-old-gui-widgets)
   ;; Basic test to ensure old-gui module loads without errors
-  (regression-test-group "old-gui"
-    "widgets"
-    values
-    values
-    (test "module loaded successfully" #t #t)
-    (test "tm-build-widget macro available" (defined? 'tm-build-widget) #t)
-    (test "widget-popup function available" (defined? 'widget-popup) #t)
-    (test "widget-ref function available" (defined? 'widget-ref) #t)
-    (test "widget-set! function available" (defined? 'widget-set!) #t)
-    (test "widget-delayed function available" (defined? 'widget-delayed) #t)
-    (test "widget->script function available" (defined? 'widget->script) #t)
-    (test "script->widget function available" (defined? 'script->widget) #t)
-    (test "display* function available" (defined? 'display*) #t)
-    (test "noop function available" (defined? 'noop) #t)
-    (test "tree->string function available" (defined? 'tree->string) #t)
-    (test "string-append function available" (defined? 'string-append) #t)
-    (test "list function available" (defined? 'list) #t)
-    (test "concat function available" (defined? 'concat) #t)
-  ) ;regression-test-group
+  (check #t => #t)
+  (check (defined? 'tm-build-widget) => #t)
+  (check (defined? 'widget-popup) => #t)
+  (check (defined? 'widget-ref) => #t)
+  (check (defined? 'widget-set!) => #t)
+  (check (defined? 'widget-delayed) => #t)
+  (check (defined? 'widget->script) => #t)
+  (check (defined? 'script->widget) => #t)
+  (check (defined? 'display*) => #t)
+  (check (defined? 'noop) => #t)
+  (check (defined? 'tree->string) => #t)
+  (check (defined? 'string-append) => #t)
+  (check (defined? 'list) => #t)
+  (check (defined? 'concat) => #t)
 ) ;define
 
-(tm-define (regtest-old-gui)
-  (let ((n (regtest-old-gui-widgets)))
-    (display* "Total: " (number->string n) " tests.\n")
-    (display "Test suite of regtest-old-gui: ok\n")
-  ) ;let
-) ;tm-define
+(tm-define (regtest-old-gui) (test-old-gui-widgets) (check-report))

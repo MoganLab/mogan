@@ -65,4 +65,7 @@ player faded_player (player base);
 player bump_player (player base);
 player fixed_player (player base, double position);
 
+void players_set_elapsed (tree t, double el);
+void players_set_speed (tree t, double sp);
+
 #endif // defined PLAYER_H

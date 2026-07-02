@@ -9,14 +9,15 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#include "Boxes/construct.hpp"
+#include "Env/box_parameters.hpp"
 #include "analyze.hpp"
 #include "env.hpp"
 #include "font.hpp"
-#include "page_type.hpp"
 #include "tm_debug.hpp"
 #include "typesetter.hpp"
+#include <moebius/data/page_type.hpp>
 
+using moebius::data::page_get_feature;
 using namespace moebius;
 
 /******************************************************************************

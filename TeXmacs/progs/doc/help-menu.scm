@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc help-menu)
-  (:use (doc help-funcs))); (doc apidoc)))
+(texmacs-module (doc help-menu) (:use (doc help-funcs)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Help menu
@@ -20,29 +19,29 @@
 
 (define (plugin-documented? name)
   (or (url-exists-in-help? (string-append name ".en.tmu"))
-      (url-exists-in-help? (string-append name ".en.tm"))))
+    (url-exists-in-help? (string-append name ".en.tm"))
+  ) ;or
+) ;define
 
 (tm-menu (help-plugins-menu)
-  (for (name (list-filter (map symbol->string (plugin-list))
-                          plugin-documented?))
-    (with menu-name `(verbatim ,(session-name name))
-      ((eval menu-name)
-       (load-local-plugin-doc name)))))
+  (for (name (list-filter (map symbol->string (plugin-list)) plugin-documented?))
+    (with menu-name
+      `(verbatim ,(session-name name))
+      ((eval menu-name) (load-local-plugin-doc name))
+    ) ;with
+  ) ;for
+) ;tm-menu
 
 (tm-menu (help-manual-menu)
-  ("Getting started"
-   (load-local-doc "manual/manu.gettingstarted"))
-  ("Typing simple texts"
-   (load-local-doc "manual/manu.typing"))
-  ("Mathematical formulas"
-   (load-local-doc "manual/manu.formulas"))
-  ("Editing tools"
-   (load-local-doc "manual/manu.editing")))
+ ("Getting started" (load-local-doc "manual/manu.gettingstarted"))
+ ("Typing simple texts" (load-local-doc "manual/manu.typing"))
+ ("Mathematical formulas" (load-local-doc "manual/manu.formulas"))
+ ("Editing tools" (load-local-doc "manual/manu.editing"))
+) ;tm-menu
 
 (menu-bind help-menu
-  ("Welcome" (mogan-welcome))
-  ("Version" (mogan-version))
-  (-> "Manual"
-    (link help-manual-menu))
-  (-> "Plugins"
-    (link help-plugins-menu)))
+ ("Welcome" (mogan-welcome))
+ ("Version" (mogan-version))
+ (-> "Manual" (link help-manual-menu))
+ (-> "Plugins" (link help-plugins-menu))
+) ;menu-bind

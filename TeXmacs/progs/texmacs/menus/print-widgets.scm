@@ -11,53 +11,82 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (texmacs menus print-widgets)
-  (:use (texmacs texmacs tm-print)))
+(texmacs-module (texmacs menus print-widgets) (:use (texmacs texmacs tm-print)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Page setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (printing-command-list)
-  (with l (cons (get-default-printing-command)
-                (list "lpr" "lp" "pdq" ""))
-    (list-remove-duplicates l)))
+  (with l
+    (cons (get-default-printing-command) (list "lpr" "lp" "pdq" ""))
+    (list-remove-duplicates l)
+  ) ;with
+) ;define
 
 (tm-widget (page-setup-widget)
-  (centered
-    (aligned
-      (item (text "Preview command:")
-        (enum (set-pretty-preference "preview command" answer)
-              '("default" "ggv" "ghostview" "gv" "kghostview" "open" "")
-              (get-pretty-preference "preview command")
-              "12em"))
-      (item (text "Printing command:")
-        (enum (set-pretty-preference "printing command" answer)
-              (printing-command-list)
-              (get-pretty-preference "printing command")
-              "12em"))
-      (item (text "Paper type:")
-        (enum (set-pretty-preference "paper type" answer)
-              '("default" "A3" "A4" "A5" "B4" "B5" "B6"
-                "Letter" "Legal" "Executive" "")
-              (get-pretty-preference "paper type")
-              "12em"))
-      (item (text "Printer dpi:")
-        (enum (set-pretty-preference "printer dpi" answer)
-              '("150" "200" "300" "400" "600" "800" "1200" "2400" "")
-              (get-pretty-preference "printer dpi")
-              "12em")))))
+  (centered (aligned (item (text "Preview command:")
+                       (enum (set-pretty-preference "preview command" answer)
+                         '("default"
+                           "ggv"
+                           "ghostview"
+                           "gv"
+                           "kghostview"
+                           "open"
+                           "")
+                         (get-pretty-preference "preview command")
+                         "12em"
+                       ) ;enum
+                     ) ;item
+              (item (text "Printing command:")
+                (enum (set-pretty-preference "printing command" answer)
+                  (printing-command-list)
+                  (get-pretty-preference "printing command")
+                  "12em"
+                ) ;enum
+              ) ;item
+              (item (text "Paper type:")
+                (enum (set-pretty-preference "paper type" answer)
+                  '("default"
+                    "A3"
+                    "A4"
+                    "A5"
+                    "B4"
+                    "B5"
+                    "B6"
+                    "Letter"
+                    "Legal"
+                    "Executive"
+                    "")
+                  (get-pretty-preference "paper type")
+                  "12em"
+                ) ;enum
+              ) ;item
+              (item (text "Printer dpi:")
+                (enum (set-pretty-preference "printer dpi" answer)
+                  '("150" "200" "300" "400" "600" "800" "1200" "2400" "")
+                  (get-pretty-preference "printer dpi")
+                  "12em"
+                ) ;enum
+              ) ;item
+            ) ;aligned
+  ) ;centered
+) ;tm-widget
 
 (tm-define (open-page-setup-window)
   (:interactive #t)
-  (top-window page-setup-widget "Page setup"))
+  (top-window page-setup-widget "Page setup")
+) ;tm-define
 
 (tm-tool* (page-setup-tool win)
   (:name "Page setup")
-  (dynamic (page-setup-widget)))
+  (dynamic (page-setup-widget))
+) ;tm-tool*
 
 (tm-define (open-page-setup)
   (:interactive #t)
   (if (side-tools?)
-      (tool-select :right 'page-setup-tool)
-      (open-page-setup-window)))
+    (tool-select :right 'page-setup-tool)
+    (open-page-setup-window)
+  ) ;if
+) ;tm-define

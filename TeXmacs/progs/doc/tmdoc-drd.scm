@@ -11,45 +11,65 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (doc tmdoc-drd)
-  (:use (utils edit variants)))
+(texmacs-module (doc tmdoc-drd) (:use (utils edit variants)))
 
 ;; General groups
 
 (define-group variant-tag
-  (tmdoc-traversal-tag) (tmdoc-menu-tag)
-  (tmdoc-annotation-tag) (tmdoc-style-annotation-tag)
-  (tmdoc-small-box-tag) (tmdoc-big-box-tag)
-  (tmdoc-if-ref-tag) (tmdoc-link-tag))
+  (tmdoc-traversal-tag)
+  (tmdoc-menu-tag)
+  (tmdoc-annotation-tag)
+  (tmdoc-style-annotation-tag)
+  (tmdoc-small-box-tag)
+  (tmdoc-big-box-tag)
+  (tmdoc-if-ref-tag)
+  (tmdoc-link-tag)
+) ;define-group
 
 (define-group similar-tag
-  (tmdoc-traversal-tag) (tmdoc-menu-tag)
-  (tmdoc-annotation-tag) (tmdoc-style-annotation-tag)
-  (tmdoc-small-box-tag) (tmdoc-big-box-tag)
-  (tmdoc-if-ref-tag) (tmdoc-link-tag))
+  (tmdoc-traversal-tag)
+  (tmdoc-menu-tag)
+  (tmdoc-annotation-tag)
+  (tmdoc-style-annotation-tag)
+  (tmdoc-small-box-tag)
+  (tmdoc-big-box-tag)
+  (tmdoc-if-ref-tag)
+  (tmdoc-link-tag)
+) ;define-group
 
 ;; TeXmacs documentation groups
 
-(define-group tmdoc-traversal-tag
-  branch extra-branch continue optional-branch)
+(define-group tmdoc-traversal-tag branch extra-branch continue optional-branch)
 
 (define-group tmdoc-menu-tag
-  menu submenu subsubmenu subsubsubmenu subsubsubsubmenu)
+  menu
+  submenu
+  subsubmenu
+  subsubsubmenu
+  subsubsubsubmenu
+) ;define-group
 
 (define-group tmdoc-annotation-tag
-  markup src-arg src-var src-length src-tt src-numeric src-textual)
+  markup
+  src-arg
+  src-var
+  src-length
+  src-tt
+  src-numeric
+  src-textual
+) ;define-group
 
-(define-group tmdoc-style-annotation-tag
-  tmstyle tmpackage tmdtd)
+(define-group tmdoc-style-annotation-tag tmstyle tmpackage tmdtd)
 
-(define-group tmdoc-small-box-tag
-  small-focus small-envbox)
+(define-group tmdoc-small-box-tag small-focus small-envbox)
 
-(define-group tmdoc-big-box-tag
-  big-focus big-envbox)
+(define-group tmdoc-big-box-tag big-focus big-envbox)
 
 (define-group tmdoc-if-ref-tag
-  tmdoc-if-ref tmdoc-if-ref* tmdoc-if-nref tmdoc-if-nref*)
+  tmdoc-if-ref
+  tmdoc-if-ref*
+  tmdoc-if-nref
+  tmdoc-if-nref*
+) ;define-group
 
-(define-group tmdoc-link-tag
-  tmdoc-link tmdoc-link*)
+(define-group tmdoc-link-tag tmdoc-link tmdoc-link*)

@@ -19,21 +19,26 @@
 
 (define (refresh-console . x)
   (refresh-now "console-widget-categories")
-  (refresh-now "console-widget-messages"))
+  (refresh-now "console-widget-messages")
+) ;define
 
-(define-preferences
-  ("console details" "normal" refresh-console)
-  ("console size" "100" refresh-console))
+(define-preferences ("console details" "normal" refresh-console)
+ ("console size" "100" refresh-console)
+) ;define-preferences
 
 (define (encode-size sz)
   (cond ((== sz "All") "1000000")
         ((string-starts? sz "Last ") (string-drop sz 5))
-        (else "100")))
+        (else "100")
+  ) ;cond
+) ;define
 
 (define (decode-size sz)
   (cond ((not (string->number sz)) "Last 100")
         ((> (string->number sz) 10000) "All")
-        (else (string-append "Last " sz))))
+        (else (string-append "Last " sz))
+  ) ;cond
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Message selection
@@ -44,21 +49,25 @@
         ((string-ends? m "-warning") (string-drop-right m 8))
         ((string-ends? m "-bench") (string-drop-right m 6))
         ((string-starts? m "debug-") (string-drop m 6))
-        (else m)))
+        (else m)
+  ) ;cond
+) ;define
 
 (define (list-message-types kind)
-  (let* ((l (tree-children (get-debug-messages kind 100)))
-         (t (make-ahash-table)))
-    (for (m l)
-      (ahash-set! t (message-type (tree->string (tree-ref m 0))) #t))
-    (sort (ahash-set->list t) string<=?)))
+  (let* ((l (tree-children (get-debug-messages kind 100))) (t (make-ahash-table)))
+    (for (m l) (ahash-set! t (message-type (tree->string (tree-ref m 0))) #t))
+    (sort (ahash-set->list t) string<=?)
+  ) ;let*
+) ;define
 
 (define (message-among? m selected)
-  (let* ((k (tm-ref m 0))
-         (s (tm-ref m 1)))
+  (let* ((k (tm-ref m 0)) (s (tm-ref m 1)))
     (and (tree-atomic? k)
-         (tree-atomic? s)
-         (in? (message-type (tree->string k)) selected))))
+      (tree-atomic? s)
+      (in? (message-type (tree->string k)) selected)
+    ) ;and
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Build a document with the list of all messages of a certain kind
@@ -67,47 +76,70 @@
 (define (build-message m)
   (let* ((k (tm->stree (tm-ref m 0)))
          (s (utf8->cork (tm->stree (tm-ref m 1))))
-         (t (tm->stree (tm-ref m 2))))
+         (t (tm->stree (tm-ref m 2)))
+        ) ;
     (cond ((and (!= t "") (== (get-preference "console details") "detailed"))
-           `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ""))
-                      (indent (small ,t))))
-          ((string-ends? k "-error")
-           `(with "color" "#e02020" (concat "Error: " ,s)))
+           `(document ,(build-message `(tuple ,(tm-ref m 0) ,(tm-ref m 1) ,""))
+              (indent (small ,t)))
+          ) ;
+          ((string-ends? k "-error") `(with ,"color"
+                                        ,"#e02020"
+                                        (concat ,"Error: " ,s)))
           ((string-ends? k "-warning")
-           `(with "color" "dark magenta" (concat "Warning: " ,s)))
-          ((string-ends? k "-bench")
-           `(with "color" "dark blue" ,s))
-          (else s))))
+           `(with ,"color" ,"dark magenta" (concat ,"Warning: " ,s))
+          ) ;
+          ((string-ends? k "-bench") `(with ,"color" ,"dark blue" ,s))
+          (else s)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (define (get-message-text m)
   (let* ((k (tm->stree (tm-ref m 0)))
          (s (utf8->cork (tm->stree (tm-ref m 1))))
-         (t (tm->stree (tm-ref m 2))))
+         (t (tm->stree (tm-ref m 2)))
+        ) ;
     (cond ((and (!= t "") (== (get-preference "console details") "detailed"))
-           (string-append (get-message-text `(tuple ,(tm-ref m 0) ,(tm-ref m 1) "")) "\n" t))
-          ((string-ends? k "-error")
-           (string-append "Error: " s))
-          ((string-ends? k "-warning")
-           (string-append "Warning: " s))
-          ((string-ends? k "-bench")
-           s)
-          (else s))))
+           (string-append (get-message-text `(tuple ,(tm-ref m 0)
+                                               ,(tm-ref m 1)
+                                               ,""))
+             "\n"
+             t
+           ) ;string-append
+          ) ;
+          ((string-ends? k "-error") (string-append "Error: " s))
+          ((string-ends? k "-warning") (string-append "Warning: " s))
+          ((string-ends? k "-bench") s)
+          (else s)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (define (messages->text kind selected)
   (let* ((n (or (string->number (get-preference "console size")) 100))
          (all-ms (tree-children (get-debug-messages kind n)))
-         (sel-ms (list-filter all-ms (cut message-among? <> selected))))
-    (string-join (map get-message-text sel-ms) "\n")))
+         (sel-ms (list-filter all-ms (cut message-among? <> selected)))
+        ) ;
+    (string-join (map get-message-text sel-ms) "\n")
+  ) ;let*
+) ;define
 
 (define (messages->document kind selected)
   (let* ((n (or (string->number (get-preference "console size")) 100))
          (all-ms (tree-children (get-debug-messages kind n)))
-         (sel-ms (list-filter all-ms (cut message-among? <> selected))))
-    `(document
-        (with "language" "verbatim" "font-family" "tt" "font-size" "2.0" "par-par-sep" "0fn"
-       ;(with "language" "verbatim" "font-family" "tt" "par-par-sep" "0fn"
-             (document
-               ,@(map build-message sel-ms))))))
+         (sel-ms (list-filter all-ms (cut message-among? <> selected)))
+        ) ;
+    `(document (with ,"language"
+                 ,"verbatim"
+                 ,"font-family"
+                 ,"tt"
+                 ,"font-size"
+                 ,"2.0"
+                 ,"par-par-sep"
+                 ,"0fn"
+                 (document ,@(map build-message sel-ms))))
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main console widget
@@ -118,48 +150,72 @@
 (tm-define console-selected (make-ahash-table))
 
 (tm-widget ((console-widget kind))
-  (padded
-    (horizontal
-      (vertical
-        (bold (text "Categories"))
-        === ===
-        (resize '("100px" "100px" "100px") '("300px" "600px" "1000px")
-          (refreshable "console-widget-categories"
-            (choices (begin
-                       (ahash-set! console-selected kind answer)
-                       (refresh-now "console-widget-messages"))
-                     (ahash-ref console-categories kind)
-                     (ahash-ref console-selected kind)))))
-      ///
-      (vertical
-        (bold (text "Messages"))
-        === ===
-        (resize '("500px" "800px" "1200px" "left")
+  (padded (horizontal (vertical (bold (text "Categories"))
+                        ===
+                        ===
+                        (resize '("100px" "100px" "100px")
+                          '("300px" "600px" "1000px")
+                          (refreshable "console-widget-categories"
+                            (choices (begin
+                                       (ahash-set! console-selected kind answer)
+                                       (refresh-now "console-widget-messages")
+                                     ) ;begin
+                              (ahash-ref console-categories kind)
+                              (ahash-ref console-selected kind)
+                            ) ;choices
+                          ) ;refreshable
+                        ) ;resize
+                      ) ;vertical
+            ///
+            (vertical (bold (text "Messages"))
+              ===
+              ===
+              (resize '("500px" "800px" "1200px" "left")
                 '("300px" "600px" "1000px" "bottom")
-          (refreshable "console-widget-messages"
-            (texmacs-output
-              (messages->document kind (ahash-ref console-selected kind))
-              '(style "generic"))))))
+                (refreshable "console-widget-messages"
+                  (texmacs-output (messages->document kind (ahash-ref console-selected kind))
+                    '(style "generic")
+                  ) ;texmacs-output
+                ) ;refreshable
+              ) ;resize
+            ) ;vertical
+          ) ;horizontal
     ======
-    (explicit-buttons
-      (hlist
-        (enum (set-preference "console details" (locase-all answer))
-              '("Normal" "Detailed")
-              (upcase-first (get-preference "console details")) "80px")
-        // //
-        (enum (set-preference "console size" (encode-size answer))
-              '("Last 25" "Last 100" "Last 250" "Last 1000" "All")
-              (decode-size (get-preference "console size")) "80px")
-        >>>
-        (=> "Preferences"
-            ("Automatically open this console on errors"
-             (toggle-preference "open console on errors"))
-            ("Automatically open this console on warnings"
-             (toggle-preference "open console on warnings")))
-        // //
-        ("Copy" (clipboard-set "primary" (messages->text kind (ahash-ref console-selected kind))))
-        // //
-        ("Clear" (clear-debug-messages) (refresh-console))))))
+    (explicit-buttons (hlist (enum (set-preference "console details" (locase-all answer))
+                               '("Normal" "Detailed")
+                               (upcase-first (get-preference "console details"))
+                               "80px"
+                             ) ;enum
+                        //
+                        //
+                        (enum (set-preference "console size" (encode-size answer))
+                          '("Last 25" "Last 100" "Last 250" "Last 1000" "All")
+                          (decode-size (get-preference "console size"))
+                          "80px"
+                        ) ;enum
+                        >>>
+                        (=> "Preferences"
+                         ("Automatically open this console on errors"
+                           (toggle-preference "open console on errors")
+                         ) ;
+                         ("Automatically open this console on warnings"
+                           (toggle-preference "open console on warnings")
+                         ) ;
+                        ) ;=>
+                        //
+                        //
+                        ("Copy"
+                          (clipboard-set "primary"
+                            (messages->text kind (ahash-ref console-selected kind))
+                          ) ;clipboard-set
+                        ) ;
+                        //
+                        //
+                        ("Clear" (clear-debug-messages) (refresh-console))
+                      ) ;hlist
+    ) ;explicit-buttons
+  ) ;padded
+) ;tm-widget
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Automatic updates of consoles
@@ -173,34 +229,42 @@
   (for (kind (ahash-set->list console-active?))
     (let* ((old (ahash-ref console-categories kind))
            (new (list-message-types kind))
-           (delta (list-difference new old)))
+           (delta (list-difference new old))
+          ) ;
       (ahash-set! console-categories kind new)
-      (ahash-set! console-selected kind
-                  (list-union (ahash-ref console-selected kind) delta))))
+      (ahash-set! console-selected
+        kind
+        (list-union (ahash-ref console-selected kind) delta)
+      ) ;ahash-set!
+    ) ;let*
+  ) ;for
   (when (nnull? (ahash-set->list console-active?))
-    (refresh-console))
-  (when (and (or (and console-errors?
-                      (get-boolean-preference "open console on errors"))
-                 (and console-warnings?
-                      (get-boolean-preference "open console on warnings")))
-             (not (ahash-ref console-active? "Error messages")))
-    (delayed
-      (:idle 1)
-      (open-error-messages)))
+    (refresh-console)
+  ) ;when
+  (when (and (or (and console-errors? (get-boolean-preference "open console on errors"))
+               (and console-warnings? (get-boolean-preference "open console on warnings"))
+             ) ;or
+          (not (ahash-ref console-active? "Error messages"))
+        ) ;and
+    (delayed (:idle 1) (open-error-messages))
+  ) ;when
   (set! console-updating? #f)
   (set! console-errors? #f)
-  (set! console-warnings? #f))
+  (set! console-warnings? #f)
+) ;tm-define
 
 (tm-define (notify-debug-message channel)
   (when (string-ends? channel "-error")
-    (set! console-errors? #t))
+    (set! console-errors? #t)
+  ) ;when
   (when (string-ends? channel "-warning")
-    (set! console-warnings? #t))
+    (set! console-warnings? #t)
+  ) ;when
   (when (not console-updating?)
     (set! console-updating? #t)
-    (delayed
-      (:idle 1)
-      (update-consoles))))
+    (delayed (:idle 1) (update-consoles))
+  ) ;when
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; User interface
@@ -211,11 +275,13 @@
     (ahash-set! console-active? kind #t)
     (ahash-set! console-categories kind (list-message-types kind))
     (ahash-set! console-selected kind (ahash-ref console-categories kind))
-    (top-window (console-widget kind) kind
-                (lambda x (ahash-remove! console-active? kind)))))
+    (top-window (console-widget kind)
+      kind
+      (lambda x (ahash-remove! console-active? kind))
+    ) ;top-window
+  ) ;when
+) ;define
 
-(tm-define (open-debug-console)
-  (open-console "Debugging console"))
+(tm-define (open-debug-console) (open-console "Debugging console"))
 
-(tm-define (open-error-messages)
-  (open-console "Error messages"))
+(tm-define (open-error-messages) (open-console "Error messages"))

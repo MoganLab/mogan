@@ -276,7 +276,7 @@
   <assign|decorated|<macro|body|<decorated-hook|<decorated-extra|<ornament|<decorated-body|<arg|body>>>>>>>
 
   <assign|decorated-block|<\macro|body>
-    <decorated-hook|<decorate-extra|<\ornament>
+    <decorated-hook|<decorated-extra|<\ornament>
       <\wide-normal>
         <\decorated-body>
           <arg|body>

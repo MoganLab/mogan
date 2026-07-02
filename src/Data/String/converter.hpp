@@ -82,7 +82,6 @@ string convert_to_cork (string input, string from);
 string convert_from_cork (string input, string to);
 
 string_u8 cork_to_utf8 (string input);
-string_u8 herk_to_utf8 (string input);
 string_u8 strict_cork_to_utf8 (string input);
 string_u8 convert_LaTeX_to_utf8 (string input);
 
@@ -91,7 +90,6 @@ string sourcecode_to_cork (string input);
 
 string    convert_utf8_to_LaTeX (string_u8 input);
 string    utf8_to_cork (string_u8 input);
-string    utf8_to_herk (string_u8 input);
 string    utf8_to_html (string_u8 input);
 string    utf8_to_t2a (string_u8 input);
 string_u8 t2a_to_utf8 (string input);

@@ -1,2 +1,35 @@
 # exclude tests from exported git archives
 PDFWriterTesting export-ignore
+
+# PDF test materials are binary; never apply line-ending translation,
+# otherwise Windows checkout corrupts the precise byte offsets baked
+# into xref tables.
+*.pdf binary
+
+# PFB (Type 1 font) fixtures are binary by structure — segment markers
+# and length fields would be mangled by autocrlf on Windows.
+*.pfb binary
+*.PFB binary
+
+# JPEG fuzz corpus + image fixtures contain compressed bytes; mark
+# binary so autocrlf doesn't corrupt them.
+*.jpg binary
+*.JPG binary
+*.jpeg binary
+*.JPEG binary
+
+# TIFF fuzz corpus + image fixtures contain compressed bytes; mark
+# binary so autocrlf doesn't corrupt them.
+*.tif binary
+*.TIF binary
+*.tiff binary
+*.TIFF binary
+
+# Font binaries (TTF/OTF/CFF) and the CFF fuzz corpus contain
+# structural byte offsets that autocrlf would corrupt.
+*.ttf binary
+*.TTF binary
+*.otf binary
+*.OTF binary
+*.cff binary
+*.CFF binary

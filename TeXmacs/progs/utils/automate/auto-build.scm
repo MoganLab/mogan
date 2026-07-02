@@ -11,8 +11,7 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (utils automate auto-build)
-  (:use (utils automate auto-edit)))
+(texmacs-module (utils automate auto-build) (:use (utils automate auto-edit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Consuming the answer in the right format
@@ -24,122 +23,160 @@
                ((func? t :inline) (apply tmconcat (cdr t)))
                ((func? t 'document) t)
                ((func? t 'concat) t)
-               (else t)))
+               (else t)
+         ) ;cond
+        ) ;
         ((== as :block)
          (cond ((func? t :block) t)
                ((func? t :inline) (cons :block (apply tmconcat (cdr t))))
                ((func? t 'document) (cons :block (cdr t)))
                ((func? t 'inline) (list :block t))
-               (else (list :block t))))
+               (else (list :block t))
+         ) ;cond
+        ) ;
         ((== as :inline)
          (cond ((func? t :block) (cons :inline `(document ,@(cdr t))))
                ((func? t :inline) t)
                ((func? t 'document) (cons :inline `(document ,@(cdr t))))
                ((func? t 'concat) (cons :inline (cdr t)))
-               (else (list :inline t))))
+               (else (list :inline t))
+         ) ;cond
+        ) ;
         ((== as 'document)
          (cond ((func? t :block) `(document ,@(cdr t)))
                ((func? t :inline) `(document ,(apply tmconcat (cdr t))))
                ((func? t 'document) t)
                ((func? t 'inline) `(document ,t))
-               (else `(document ,t))))
+               (else `(document ,t))
+         ) ;cond
+        ) ;
         ((== as 'concat)
          (cond ((func? t :block) `(document ,@(cdr t)))
                ((func? t :inline) (apply tmconcat (cdr t)))
                ((func? t 'document) t)
                ((func? t 'concat) t)
-               (else t)))
-        (else (texmacs-error "consume" "~S incorrect format" as))))
+               (else t)
+         ) ;cond
+        ) ;
+        (else (texmacs-error "consume" "~S incorrect format" as))
+  ) ;cond
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Scripting
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define auto-safe-mode? #f)
+
 (define current-variables (list))
 
 (define (build-variable t)
   (cond ((string? t) (string->symbol t))
         ((tm-func? t 'implied-scm 1) (build-variable (tm-ref t 0)))
-        (else #f)))
+        (else #f)
+  ) ;cond
+) ;define
 
 (define (build-scheme* t)
   (let* ((expr (string->object (texmacs->code t "iso-8859-1")))
-         (decls (map (lambda (p) (list (car p) (list 'quote (cdr p))))
-                     current-variables))
-         (expr* `(let ,decls ,expr)))
-    ;;(display* "Evaluating " auto-safe-mode? " " (secure? expr*) " " expr* "\n")
-    (and (or auto-safe-mode? (secure? expr*))
-         (eval expr*))))
+         (decls (map (lambda (p) (list (car p) (list 'quote (cdr p)))) current-variables)
+         ) ;decls
+         (expr* `(let ,decls ,expr))
+        ) ;
+    ;; (display* "Evaluating " auto-safe-mode? " " (secure? expr*) " " expr* "\n")
+    (and (or auto-safe-mode? (secure? expr*)) (eval expr*))
+  ) ;let*
+) ;define
 
 (define (build-scheme t)
-  (with r (build-scheme* t)
-    ;;(display* t " -> " r ", " (if r "yes" "no") "\n")
-    r))
+  (with r
+    (build-scheme* t)
+    ;; (display* t " -> " r ", " (if r "yes" "no") "\n")
+    r
+  ) ;with
+) ;define
 
 (define (build-extern t)
-  (or (and (tm-func? t 'implied-scm 1)
-           (build-scheme (tm-ref t 0)))))
+  (or (and (tm-func? t 'implied-scm 1) (build-scheme (tm-ref t 0))))
+) ;define
 
 (define (build-condition c)
-  (build-extern c))
+  (build-extern c)
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Individual builders
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build-compound tag . l)
-  (let* ((bl (map-in-order build l))
-         (r (map (cut consume :any <>) bl)))
-    `(,tag ,@r)))
+  (let* ((bl (map-in-order build l)) (r (map (cut consume :any <>) bl)))
+    `(,tag ,@r)
+  ) ;let*
+) ;define
 
 (define (build-document . l)
   (let* ((bl (map-in-order build l))
          (cl (map (cut consume 'document <>) bl))
-         (r (append-map cdr cl)))
-    `(document ,@r)))
+         (r (append-map cdr cl))
+        ) ;
+    `(document ,@r)
+  ) ;let*
+) ;define
 
 (define (build-concat . l)
   (let* ((bl (map-in-order build l))
          (cl (map (cut consume 'concat <>) bl))
          (cc (lambda (x) (if (tm-func? x 'concat) (cdr x) (list x))))
-         (r (append-map cc cl)))
-    (apply tmconcat r)))
+         (r (append-map cc cl))
+        ) ;
+    (apply tmconcat r)
+  ) ;let*
+) ;define
 
 (define (build-if as c body)
-  (if (build-condition c)
-      (build* as body)
-      (list as)))
+  (if (build-condition c) (build* as body) (list as))
+) ;define
 
 (define (build-if-else as c body1 body2)
-  (if (build-condition c)
-      (build* as body1)
-      (build* as body2)))
+  (if (build-condition c) (build* as body1) (build* as body2))
+) ;define
 
 (define (build-with* as var val body)
-  (with v (build-variable var)
-    (if (not v) (list as)
-        (with-global current-variables (acons v val current-variables)
-          (build* as body)))))
+  (with v
+    (build-variable var)
+    (if (not v)
+      (list as)
+      (with-global current-variables (acons v val current-variables) (build* as body))
+    ) ;if
+  ) ;with
+) ;define
 
 (define (build-for as var vals body)
   (let* ((l (build-extern vals))
          (bl (map (cut build-with* as var <> body) (or l (list))))
-         (r (append-map cdr bl)))
-    (cons as r)))
+         (r (append-map cdr bl))
+        ) ;
+    (cons as r)
+  ) ;let*
+) ;define
 
 (define (build-assign as var val)
-  (let* ((var* (build-variable var))
-         (val* (build-extern val)))
+  (let* ((var* (build-variable var)) (val* (build-extern val)))
     (when var*
-      (set! current-variables (assoc-set! current-variables var* val*)))
-    (list as)))
+      (set! current-variables (assoc-set! current-variables var* val*))
+    ) ;when
+    (list as)
+  ) ;let*
+) ;define
 
 (define (build-intersperse as sep body)
   (let* ((s (cdr (build* as sep)))
          (l (map list (cdr (build* as body))))
-         (r (apply append (list-intersperse l s))))
-    (cons as r)))
+         (r (apply append (list-intersperse l s)))
+        ) ;
+    (cons as r)
+  ) ;let*
+) ;define
 
 (define (build-tag as tag . args)
   (let* ((f (cadr (build* :inline tag)))
@@ -147,79 +184,77 @@
          (b (build* as (cAr args)))
          (l (cond ((== as :block) `(document ,@(cdr b)))
                   ((== as :inline) (apply tmconcat (cdr b)))
-                  (else b)))
-         (r (if (string? f) `(,(string->symbol f) ,@a ,l) `(compound ,f ,@a ,l))))
-    (cons as (list r))))
+                  (else b)
+            ) ;cond
+         ) ;l
+         (r (if (string? f) `(,(string->symbol f) ,@a ,l) `(compound ,f ,@a ,l)))
+        ) ;
+    (cons as (list r))
+  ) ;let*
+) ;define
 
 (define (build-output-string expr)
-  (let* ((val (build-extern expr))
-         (s (if (string? val) val (object->string val))))
-    s))
+  (let* ((val (build-extern expr)) (s (if (string? val) val (object->string val))))
+    s
+  ) ;let*
+) ;define
 
 (define (build-output-tm as expr)
-  (with val (build-extern expr)
-    (if (tm? val)
-	(consume as (tm->stree val))
-	(list as))))
+  (with val
+    (build-extern expr)
+    (if (tm? val) (consume as (tm->stree val)) (list as))
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Master routines
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build t)
-  ;;(display* "Building " t "\n")
+  ;; (display* "Building " t "\n")
   (cond ((tm-atomic? t) t)
-        ((tm-func? t 'document)
-         (apply build-document (tm-children t)))
-        ((tm-func? t 'concat)
-         (apply build-concat (tm-children t)))
-        ((tm-func? t 'block-if 2)
-         (apply build-if :block (tm-children t)))
-        ((tm-func? t 'block-if-else 3)
-         (apply build-if-else :block (tm-children t)))
-        ((tm-func? t 'block-for 3)
-         (apply build-for :block (tm-children t)))
-        ((tm-func? t 'block-assign 2)
-         (apply build-assign :block (tm-children t)))
+        ((tm-func? t 'document) (apply build-document (tm-children t)))
+        ((tm-func? t 'concat) (apply build-concat (tm-children t)))
+        ((tm-func? t 'block-if 2) (apply build-if :block (tm-children t)))
+        ((tm-func? t 'block-if-else 3) (apply build-if-else :block (tm-children t)))
+        ((tm-func? t 'block-for 3) (apply build-for :block (tm-children t)))
+        ((tm-func? t 'block-assign 2) (apply build-assign :block (tm-children t)))
         ((tm-func? t 'block-intersperse 2)
-         (apply build-intersperse :block (tm-children t)))
-        ((tm-func? t 'block-texmacs-tag)
-         (apply build-tag :block (tm-children t)))
-        ((tm-func? t 'inline-if 2)
-         (apply build-if :inline (tm-children t)))
-        ((tm-func? t 'inline-if-else 3)
-         (apply build-if-else :inline (tm-children t)))
-        ((tm-func? t 'inline-for 3)
-         (apply build-for :inline (tm-children t)))
+         (apply build-intersperse :block (tm-children t))
+        ) ;
+        ((tm-func? t 'block-texmacs-tag) (apply build-tag :block (tm-children t)))
+        ((tm-func? t 'inline-if 2) (apply build-if :inline (tm-children t)))
+        ((tm-func? t 'inline-if-else 3) (apply build-if-else :inline (tm-children t)))
+        ((tm-func? t 'inline-for 3) (apply build-for :inline (tm-children t)))
         ((tm-func? t 'inline-intersperse 2)
-         (apply build-intersperse :inline (tm-children t)))
-        ((tm-func? t 'inline-texmacs-tag)
-         (apply build-tag :inline (tm-children t)))
-        ((tm-func? t 'inline-assign 2)
-         (apply build-assign :inline (tm-children t)))
-        ((tm-func? t 'output-string 1)
-         (apply build-output-string (tm-children t)))
-        ((tm-func? t 'inline-output 1)
-         (apply build-output-tm :inline (tm-children t)))
-        ((tm-func? t 'block-output 1)
-         (apply build-output-tm :block (tm-children t)))
-        (else (apply build-compound (cons (tm-label t) (tm-children t))))))
+         (apply build-intersperse :inline (tm-children t))
+        ) ;
+        ((tm-func? t 'inline-texmacs-tag) (apply build-tag :inline (tm-children t)))
+        ((tm-func? t 'inline-assign 2) (apply build-assign :inline (tm-children t)))
+        ((tm-func? t 'output-string 1) (apply build-output-string (tm-children t)))
+        ((tm-func? t 'inline-output 1) (apply build-output-tm :inline (tm-children t)))
+        ((tm-func? t 'block-output 1) (apply build-output-tm :block (tm-children t)))
+        (else (apply build-compound (cons (tm-label t) (tm-children t))))
+  ) ;cond
+) ;define
 
 (define (build* as t)
-  (consume as (build t)))
+  (consume as (build t))
+) ;define
 
 (tm-define (build-body t . initial)
   (set! current-variables initial)
-  (build* 'document (tm->stree t)))
+  (build* 'document (tm->stree t))
+) ;tm-define
 
 (tm-define (build-body* t)
-  (if (tm-func? t 'body 1)
-      `(body ,(build* 'document (tm-ref t 0)))
-      t))
+  (if (tm-func? t 'body 1) `(body ,(build* 'document (tm-ref t 0))) t)
+) ;tm-define
 
 (tm-define (build-document t . initial)
   (set! current-variables initial)
-  (with doc (tm->stree t)
-    (if (not (pair? doc)) doc
-        (cons (car doc)
-              (map build-body* (cdr doc))))))
+  (with doc
+    (tm->stree t)
+    (if (not (pair? doc)) doc (cons (car doc) (map build-body* (cdr doc))))
+  ) ;with
+) ;tm-define

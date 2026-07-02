@@ -23,7 +23,7 @@
   (with l
     (filter (lambda (x)
               (or (with-developer-tool?)
-                (and (not (string=? x "mgs")) (not (string=? x "stm")))
+                (and (not (string=? x "stm")) (not (string=? x "stem")))
               ) ;or
             ) ;lambda
       (cvs "texmacs-snippet" "-snippet" #t)

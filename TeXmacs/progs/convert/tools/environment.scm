@@ -41,59 +41,64 @@
 
 ;; Environment primitives
 
-(tm-define (environment)
-  (make-ahash-table))
+(tm-define (environment) (make-ahash-table))
 
-(define-macro (environment-set!* env key val) ; must stay private
-  `(ahash-set! ,env ,key ,val))
+(define-macro (environment-set!* env key val) `(ahash-set! ,env ,key ,val))
 
-(define-macro (environment-remove! env key) ; must stay private
-  `(ahash-remove! ,env ,key))
+(define-macro (environment-remove! env key) `(ahash-remove! ,env ,key))
 
-(tm-define (environment-ref* env key)
-  (ahash-ref env key))
+(tm-define (environment-ref* env key) (ahash-ref env key))
 
 (tm-define-macro (environment-ref env key)
-  `(environment-ref* ,env (quote ,key)))
+  `(environment-ref* ,env (quote ,key))
+) ;tm-define-macro
 
 (define (environment-binding env key)
   ;; If @key is bound in @env returns (list @key value). Otherwise, return #f.
   ;; Unlike hash-get-handle, the return value is not mutable.
   (let ((h (ahash-get-handle env key)))
-    (list key (and (pair? h) (list (cdr h))))))
+    (list key (and (pair? h) (list (cdr h))))
+  ) ;let
+) ;define
 
 ;; Environment library (only use primitives)
 
-(define (environment-bind! env binding)	; must stay private
+(define (environment-bind! env binding)
   ;; Restore a binding previously saved with environment-binding.
-  (if (second binding)      
-      (environment-set!* env (first binding) (car (second binding)))
-      (environment-remove! env (first binding))))
+  (if (second binding)
+    (environment-set!* env (first binding) (car (second binding)))
+    (environment-remove! env (first binding))
+  ) ;if
+) ;define
 
 (tm-define (with-environment* env bindings proc)
   (let ((saves '()) (result #f))
     (for-each (lambda (b)
-		(set-cons! saves (environment-binding env (first b)))
-		(environment-set!* env (first b) (second b)))
-	      bindings)
+                (set-cons! saves (environment-binding env (first b)))
+                (environment-set!* env (first b) (second b))
+              ) ;lambda
+      bindings
+    ) ;for-each
     (set! result (proc env))
-    (for-each (lambda (b)
-		(environment-bind! env b))
-	      saves)
-    result))
+    (for-each (lambda (b) (environment-bind! env b)) saves)
+    result
+  ) ;let
+) ;tm-define
 
 (tm-define-macro (with-environment env bindings . body)
   (if (nlist? bindings)
-      (syntax-error "with-environment" "Bindings are not a list: ~A" bindings))
+    (syntax-error "with-environment" "Bindings are not a list: ~A" bindings)
+  ) ;if
   `(with-environment* ,env
-       (list ,@(map-in-order
-		(lambda (b)
-		  (if (not (list-length=2? b))
-		      (syntax-error "with-environment"
-				    "Ill-formed binding: ~A" b))
-		  `(list (quote ,(first b)) ,(second b)))
-		bindings))
-    (lambda (,env) ,@body)))
+     (list ,@(map-in-order (lambda (b)
+                             (if (not (list-length=2? b))
+                               (syntax-error "with-environment"
+                                 "Ill-formed binding: ~A"
+                                 b))
+                             `(list (quote ,(first b)) ,(second b)))
+               bindings))
+     (lambda (,env) ,@body))
+) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; XPath environment
@@ -103,19 +108,19 @@
 ;; Eventually, it should store an inverse list of ancestor nodes.
 
 (tm-define (initialize-xpath env root proc)
-  (with-environment* env `((xpath:root ,root)
-			   (xpath:parent #f)
-			   (xpath:current ,root))
-    proc))
+  (with-environment* env
+    `((xpath:root ,root) (xpath:parent #f) (xpath:current ,root))
+    proc
+  ) ;with-environment*
+) ;tm-define
 
 (tm-define (xpath-descend env child proc)
-  (with-environment* env `((xpath:parent ,(xpath-current env))
-			   (xpath:current ,child))
-    proc))
+  (with-environment* env
+    `((xpath:parent ,(xpath-current env)) (xpath:current ,child))
+    proc
+  ) ;with-environment*
+) ;tm-define
 
-(tm-define (xpath-root env)
-  (environment-ref env xpath:root))
-(tm-define (xpath-parent env)
-  (environment-ref env xpath:parent))
-(tm-define (xpath-current env)
-  (environment-ref env xpath:current))
+(tm-define (xpath-root env) (environment-ref env xpath:root))
+(tm-define (xpath-parent env) (environment-ref env xpath:parent))
+(tm-define (xpath-current env) (environment-ref env xpath:current))

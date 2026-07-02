@@ -19,7 +19,6 @@
 class object;
 
 /*** Miscellaneous ***/
-bool is_snippet (tree doc);
 void set_file_focus (url u);
 url  get_file_focus ();
 
@@ -54,9 +53,7 @@ tree                 eqnumber_to_nonumber (tree t);
 string               search_metadata (tree doc, string kind);
 
 /*** TMU ***/
-tree   tmu_to_tree (string s);
-tree   tmu_document_to_tree (string s);
-string tree_to_tmu (tree t);
+#include "tmu.hpp"
 
 /*** Verbatim ***/
 string tree_to_verbatim (tree t, bool wrap= false, string enc= "default");

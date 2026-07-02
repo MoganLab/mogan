@@ -34,6 +34,8 @@ archiver_rep::archiver_rep (double author, path rp2)
     : archive (make_branches (0)), current (make_compound (0)), depth (0),
       last_save (0), last_autosave (0), the_author (author), the_owner (0),
       rp (rp2), undo_obs (undo_observer (this)), versioning (false) {
+  // last_save/last_autosave 初始化为 0（与 depth 一致）：新空文档视为已保存；
+  // 而 clear() 重置后二者置 -1，表示状态未与任何保存点对齐。
   archs->insert ((pointer) this);
   attach_observer (subtree (the_et, rp), undo_obs);
   genuine_authors->insert (the_author);
@@ -51,10 +53,11 @@ archiver::archiver (double author, path rp)
 
 void
 archiver_rep::clear () {
-  archive      = make_branches (0);
-  current      = make_compound (0);
-  the_owner    = 0;
-  depth        = 0;
+  archive  = make_branches (0);
+  current  = make_compound (0);
+  the_owner= 0;
+  depth    = 0;
+  // 清空后无保存点对齐，故 last_* 置 -1，使 conform_*() 返回 false。
   last_save    = -1;
   last_autosave= -1;
 }
@@ -327,6 +330,8 @@ archiver_rep::confirm () {
       archive  = patch (current, archive);
       current  = make_compound (0);
       the_owner= 0;
+      // 新增一个历史条目，深度加 1。若新深度仍不大于已记录的保存点深度，
+      // 说明该保存点已无法与当前状态对齐，将 last_* 置 -1 视为未保存。
       depth++;
       if (depth <= last_save) last_save= -1;
       if (depth <= last_autosave) last_autosave= -1;
@@ -355,6 +360,8 @@ archiver_rep::retract () {
   }
   if (nr_branches (nx) != 0) nx= get_undo (nx);
   archive= make_history (nx, append_branches (re, get_redo (nx)));
+  // 重开最近一个历史条目（archive 移入 current），深度减 1。
+  // 此处不调整 last_*；保存点是否失效由具体编辑路径负责。
   depth--;
   // show_all ();
   return true;
@@ -397,6 +404,9 @@ archiver_rep::simplify () {
       archive = make_history (un, re);
       // show_all ();
       // cout << "\n";
+      // 合并使条目数与深度各减 1。若被吞掉的条目恰为自动保存点
+      // （depth == last_autosave + 1），则 last_autosave 失效。last_save 不动
+      // （合并的相邻条目同作者，通常不在保存边界）。
       if (depth == last_autosave + 1) last_autosave= -1;
       depth--;
       simplify ();
@@ -459,6 +469,7 @@ archiver_rep::redo_one (int i) {
     // cout << "other= " << other << "\n";
     patch nx= make_history (un, other);
     archive = make_history (patch (q, nx), cdr (branch (re, i)));
+    // redo 切到非第 0 分支时，原主分支上的保存点/自动保存点不可达，置 -1。
     if (depth <= last_save && i != 0) last_save= -1;
     if (depth <= last_autosave && i != 0) last_autosave= -1;
     depth++;
@@ -628,6 +639,15 @@ archiver_rep::mark_cancel (double m) {
  * Check changes since last save/autosave
  ******************************************************************************/
 
+/**
+ * @brief 修正后的 archive 深度，用于判定保存一致性。
+ *
+ * mark_start/mark_end 引入的 marker（PATCH_BIRTH、birth=false）并非真实修改，
+ * 仅用于分组，但会使 depth 偏高 1。本函数在最近一个 undo 条目是 end marker
+ * 时返回 depth-1，使 conform_save() 的比较贴合实际保存内容。
+ *
+ * @return 无 marker 时与 #depth 相同
+ */
 int
 archiver_rep::corrected_depth () {
   // NOTE : fix depth due to presence of marker
@@ -639,31 +659,43 @@ archiver_rep::corrected_depth () {
   return depth;
 }
 
+/** @brief 标记需保存：last_save = -1，使 conform_save() 返回 false。 */
 void
 archiver_rep::require_save () {
   last_save= -1;
 }
 
+/** @brief 已保存：用 corrected_depth() 更新 last_save。 */
 void
 archiver_rep::notify_save () {
   last_save= corrected_depth ();
 }
 
+/**
+ * @brief 是否与最近一次保存一致（无需再次保存）。
+ * @return 比对 #last_save 与 corrected_depth()；用修正深度以忽略 marker 偏移。
+ */
 bool
 archiver_rep::conform_save () {
   return last_save == corrected_depth ();
 }
 
+/** @brief 标记需自动保存：last_autosave = -1。 */
 void
 archiver_rep::require_autosave () {
   last_autosave= -1;
 }
 
+/**
+ * @brief 已自动保存：用裸 depth 更新 last_autosave。
+ * 与 notify_save() 不同，不经 marker 修正——自动保存粒度较粗。
+ */
 void
 archiver_rep::notify_autosave () {
   last_autosave= depth;
 }
 
+/** @brief 是否与最近一次自动保存一致（直接比对 #last_autosave 与 #depth）。 */
 bool
 archiver_rep::conform_autosave () {
   return last_autosave == depth;

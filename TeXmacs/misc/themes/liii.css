@@ -1376,6 +1376,19 @@ QToolButton#chat-tab-thinking-btn:checked {
   color: #ffffff;
 }
 
+/* 搜索按钮 */
+QToolButton#chat-tab-search-btn {
+  color: #215a6a;
+  border: 1px solid #215a6a;
+  background: transparent;
+  qproperty-iconNormal: url(":/llm-chat/search.svg");
+  qproperty-iconChecked: url(":/llm-chat/search-white.svg");
+}
+QToolButton#chat-tab-search-btn:checked {
+  background: #215a6a;
+  color: #ffffff;
+}
+
 /* 发送按钮 */
 QToolButton#chat-tab-send-btn {
   background-color: transparent;

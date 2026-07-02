@@ -39,7 +39,9 @@
         ((== locale "uk_UA") "Ukrainian")
         ((== locale "zh_CN") "Chinese")
         ((== locale "zh_TW") "Chinese (Taiwan)")
-        (else "Unknown")))
+        (else "Unknown")
+  ) ;cond
+) ;define
 
 (define (language-name-to-locale name)
   (cond ((== name "Bulgarian") "bg_BG")
@@ -69,10 +71,14 @@
         ((== name "Ukrainian") "uk_UA")
         ((== name "Chinese") "zh_CN")
         ((== name "Chinese (Taiwan)") "zh_TW")
-        (else "Unknown")))
+        (else "Unknown")
+  ) ;cond
+) ;define
 
 (tm-define (language-to-language-name lan)
-  (locale-to-language-name (language-to-locale lan)))
+  (locale-to-language-name (language-to-locale lan))
+) ;tm-define
 
 (tm-define (language-name-to-language name)
-  (locale-to-language (language-name-to-locale name)))
+  (locale-to-language (language-name-to-locale name))
+) ;tm-define

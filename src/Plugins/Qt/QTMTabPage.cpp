@@ -15,7 +15,11 @@
 #include "qt_utilities.hpp"
 #include "string.hpp"
 #include "tm_window.hpp"
+#include <QCursor>
+#include <QEvent>
+#include <QHash>
 #include <QIcon>
+#include <QList>
 #include <QSize>
 
 // Base tab widths
@@ -69,6 +73,20 @@ getScaledAddButtonHeight () {
 static int
 getScaledCloseButtonHeight () {
   return DpiUtils::scaled (CLOSE_BUTTON_SIZE);
+}
+
+static bool
+extract_dirty_suffix (const QString& rawTitle, QString& cleanTitle) {
+  if (rawTitle.endsWith (" *")) {
+    cleanTitle= rawTitle.left (rawTitle.size () - 2);
+    return true;
+  }
+  if (rawTitle.endsWith ('*')) {
+    cleanTitle= rawTitle.left (rawTitle.size () - 1).trimmed ();
+    return true;
+  }
+  cleanTitle= rawTitle;
+  return false;
 }
 
 /**
@@ -153,6 +171,7 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   p_title->setCheckable (true);
   p_title->setChecked (p_isActive);
   setDefaultAction (p_title);
+  applyDisplayTitle (p_title->text ());
   setFocusPolicy (Qt::NoFocus);
   initializeCloseButton (p_closeBtn);
   int pad   = DpiUtils::scaled (8);
@@ -160,6 +179,7 @@ QTMTabPage::QTMTabPage (url p_url, QAction* p_title, QAction* p_closeBtn,
   setStyleSheet (
       QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
+  setMouseTracking (true);
 }
 
 QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
@@ -169,6 +189,26 @@ QTMTabPage::QTMTabPage () : m_viewUrl (url_none ()) {
   setStyleSheet (
       QString ("padding: %1px; border-radius: %2px;").arg (pad).arg (radius));
   DpiUtils::applyScaledFont (this, 14);
+  setMouseTracking (true);
+}
+
+void
+QTMTabPage::applyDisplayTitle (const QString& rawTitle) {
+  QString cleanTitle;
+  m_isDirty= extract_dirty_suffix (rawTitle, cleanTitle);
+  setText (cleanTitle);
+}
+
+void
+QTMTabPage::syncDisplay (const QString& cleanTitle, bool dirty) {
+  // dirty 变化或标题变化都需要重画：前者改关闭按钮位置的 `*`，后者改文本。
+  bool changed= (m_isDirty != dirty) || (text () != cleanTitle);
+  m_isDirty   = dirty;
+  setText (cleanTitle);
+  if (changed) {
+    updateCloseButtonVisibility ();
+    update ();
+  }
 }
 
 void
@@ -183,6 +223,7 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
   int closeBtnRadius= DpiUtils::scaled (6);
   m_closeBtn->setStyleSheet (
       QString ("border-radius: %1px; padding: 0px;").arg (closeBtnRadius));
+  m_closeBtn->installEventFilter (this);
   if (closeAction) {
     QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
@@ -192,6 +233,30 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
     });
   }
   updateCloseButtonVisibility ();
+}
+
+bool
+QTMTabPage::isPointerOnCloseArea (const QPoint& pos) const {
+  if (!m_closeBtn) return false;
+  return m_closeBtn->geometry ().contains (pos);
+}
+
+bool
+QTMTabPage::eventFilter (QObject* watched, QEvent* event) {
+  if (watched == m_closeBtn) {
+    if (event->type () == QEvent::Enter) {
+      m_hoverOnCloseArea= true;
+      updateCloseButtonVisibility ();
+      return false;
+    }
+    if (event->type () == QEvent::Leave) {
+      QPoint pos        = mapFromGlobal (QCursor::pos ());
+      m_hoverOnCloseArea= isPointerOnCloseArea (pos);
+      updateCloseButtonVisibility ();
+      return false;
+    }
+  }
+  return QToolButton::eventFilter (watched, event);
 }
 
 /* We can't align the text to the left of the button by QSS or other methods,
@@ -233,7 +298,7 @@ QTMTabPage::paintEvent (QPaintEvent*) {
   else {
     int leftPadding= DpiUtils::scaled (NORMAL_TAB_LEFT_PADDING);
     int rightPadding=
-        (m_closeBtn && m_closeBtn->isVisible ())
+        m_closeBtn
             ? m_closeBtn->width () + DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING)
             : DpiUtils::scaled (NORMAL_TAB_RIGHT_PADDING);
     int availableWidth= width () - leftPadding - rightPadding;
@@ -244,6 +309,12 @@ QTMTabPage::paintEvent (QPaintEvent*) {
     QRect   textRect (leftPadding, 0, availableWidth, height ());
     p.drawItemText (textRect, Qt::AlignLeft | Qt::AlignVCenter, palette (),
                     isEnabled (), elidedText, QPalette::ButtonText);
+
+    if (m_isDirty && m_closeBtn && !m_closeBtn->isVisible ()) {
+      QRect dirtyRect= m_closeBtn->geometry ();
+      p.drawItemText (dirtyRect, Qt::AlignCenter, palette (), isEnabled (), "*",
+                      QPalette::ButtonText);
+    }
   }
 }
 
@@ -281,6 +352,8 @@ QTMTabPage::mousePressEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
+  m_hoverOnCloseArea= isPointerOnCloseArea (e->pos ());
+  updateCloseButtonVisibility ();
   if (is_startup_tab_view (m_viewUrl) || is_chat_tab_view (m_viewUrl)) {
     return QToolButton::mouseMoveEvent (e);
   }
@@ -289,7 +362,9 @@ QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
     // avoid treating small movement(more like a click) as dragging
     return QToolButton::mouseMoveEvent (e);
   }
-  e->accept ();
+  // TODO: Re-enable tab tear-off (drag out of window to create new window)
+  // after stabilizing the drag-and-drop across windows.
+  return QToolButton::mouseMoveEvent (e);
 
   // 创建一个保留 alpha 通道和设备像素比 (devicePixelRatio) 的控件快照。
   // 使用 QWidget::grab() 可以避免生成带有黑色背景的 pixmap，
@@ -319,12 +394,14 @@ QTMTabPage::mouseMoveEvent (QMouseEvent* e) {
 
 void
 QTMTabPage::enterEvent (QEnterEvent* e) {
+  m_hoverOnCloseArea= isPointerOnCloseArea (e->position ().toPoint ());
   updateCloseButtonVisibility ();
   QToolButton::enterEvent (e);
 }
 
 void
 QTMTabPage::leaveEvent (QEvent* e) {
+  m_hoverOnCloseArea= false;
   updateCloseButtonVisibility ();
   QToolButton::leaveEvent (e);
 }
@@ -335,7 +412,8 @@ QTMTabPage::updateCloseButtonVisibility () {
   // TODO: 聊天标签页当前不可关闭，后续需支持可删除
   bool shouldShow= !is_startup_tab_view (m_viewUrl) &&
                    !is_chat_tab_view (m_viewUrl) &&
-                   (underMouse () || isChecked ());
+                   ((!m_isDirty && (underMouse () || isChecked ())) ||
+                    (m_isDirty && m_hoverOnCloseArea));
   bool wasVisible= m_closeBtn->isVisible ();
   m_closeBtn->setVisible (shouldShow);
 
@@ -391,11 +469,109 @@ QTMTabPageContainer::~QTMTabPageContainer () { removeAllTabPages (); }
 
 void
 QTMTabPageContainer::replaceTabPages (QList<QAction*>* p_src) {
-  removeAllTabPages ();    // remove  old tabs
-  extractTabPages (p_src); // extract new tabs
+  // 增量 diff：按 view-url 复用已有 tab、摄取新增、移除多余，不全量重建。
+  if (!p_src) return;
+
+  // 现有 tab 按 url 索引，便于复用与移除判定。
+  QHash<QString, QTMTabPage*> existing;
+  for (QTMTabPage* tab : m_tabPageList)
+    existing.insert (to_qstring (as_string (tab->m_viewUrl)), tab);
+
+  QList<QTMTabPage*> next;
+  for (int i= 0; i < p_src->size (); ++i) {
+    QTMTabPageAction* carrier= qobject_cast<QTMTabPageAction*> ((*p_src)[i]);
+    ASSERT (carrier, "QTMTabPageAction expected")
+    QTMTabPage* srcTab= qobject_cast<QTMTabPage*> (carrier->m_widget);
+    if (!srcTab) {
+      delete carrier->m_widget;
+      continue;
+    }
+    QString key= to_qstring (as_string (srcTab->m_viewUrl));
+    auto    it = existing.find (key);
+    if (it != existing.end ()) {
+      // 复用：已有同 url 的 tab，同步标题即可（active 由 updateActiveTab
+      // 维护）。
+      QTMTabPage* tab= it.value ();
+      existing.erase (it);
+      // srcTab 构造时已 applyDisplayTitle 解析过尾部 `*`：其 text() 为干净
+      // 标题、isDirty() 为最新脏状态。复用 tab 必须同步这两者，否则 m_isDirty
+      // 停留在首次构造的旧值，编辑标脏/保存去脏都不会反映到 `*` 显示。
+      tab->syncDisplay (srcTab->text (), srcTab->isDirty ());
+      next.append (tab);
+      // srcTab 是本次 carrier 新建的 widget，未被接管。QTMTabPageAction 的
+      // dtor 不会删 m_widget（见 hpp 注释），此处须手动释放，否则每次重建都
+      // 把全套新 carrier widget 泄漏一遍。
+      delete srcTab;
+    }
+    else {
+      // 新增：从 carrier 摄取 srcTab，接管其所有权。
+      srcTab->setParent (this);
+      next.append (srcTab);
+#ifdef LIII_DEBUG
+      debug_added_count++;
+#endif
+    }
+    // carrier 由其父 widget（QTMTabPageBar）经 schedule_destruction 统一销毁，
+    // 这里不手动 delete。
+  }
+
+  // existing 中剩下的 url 不在新列表里 => 已被移除，deleteLater。
+  for (auto it= existing.begin (); it != existing.end (); ++it) {
+    it.value ()->setParent (nullptr);
+    it.value ()->deleteLater ();
+#ifdef LIII_DEBUG
+    debug_removed_count++;
+#endif
+  }
+
+  m_tabPageList= next;
+  // startup/chat 标签固定置顶。
+  int startupIndex= startup_tab_index (m_tabPageList);
+  if (startupIndex > 0) {
+    QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
+    m_tabPageList.prepend (startupTab);
+  }
+  int chatIndex= chat_tab_index (m_tabPageList);
+  if (chatIndex > 1) {
+    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
+    m_tabPageList.insert (1, chatTab);
+  }
+  else if (chatIndex == 0 && m_tabPageList.size () > 1) {
+    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
+    m_tabPageList.insert (1, chatTab);
+  }
 
   arrangeTabPages ();
+#ifdef LIII_DEBUG
+  cout << "[tabpage] rebuild tabs=" << m_tabPageList.size ()
+       << " added=" << debug_added_count << " removed=" << debug_removed_count
+       << LF;
+#endif
 }
+
+void
+QTMTabPageContainer::updateActiveTab (const url& currentView) {
+#ifdef LIII_DEBUG
+  debug_active_count++;
+  cout << "[tabpage] active #" << debug_active_count
+       << " added=" << debug_added_count << " removed=" << debug_removed_count
+       << LF;
+#endif
+  for (int i= 0; i < m_tabPageList.size (); ++i) {
+    QTMTabPage* tab= m_tabPageList[i];
+    tab->setChecked (as_string (tab->m_viewUrl) == as_string (currentView));
+  }
+}
+
+#ifdef LIII_DEBUG
+QTMTabPage*
+QTMTabPageContainer::debug_findTab (const url& viewUrl) const {
+  string key= as_string (viewUrl);
+  for (int i= 0; i < m_tabPageList.size (); ++i)
+    if (as_string (m_tabPageList[i]->m_viewUrl) == key) return m_tabPageList[i];
+  return nullptr;
+}
+#endif
 
 void
 QTMTabPageContainer::removeAllTabPages () {
@@ -405,46 +581,6 @@ QTMTabPageContainer::removeAllTabPages () {
     m_tabPageList[i]->deleteLater ();
   }
   m_tabPageList.clear ();
-}
-
-void
-QTMTabPageContainer::extractTabPages (QList<QAction*>* p_src) {
-  if (!p_src) return;
-  for (int i= 0; i < p_src->size (); ++i) {
-    // see the definition of QTMTabPageAction why we're using it
-    QTMTabPageAction* carrier= qobject_cast<QTMTabPageAction*> ((*p_src)[i]);
-    ASSERT (carrier, "QTMTabPageAction expected")
-
-    QTMTabPage* tab= qobject_cast<QTMTabPage*> (carrier->m_widget);
-    if (tab) {
-      tab->setParent (this);
-      m_tabPageList.append (tab);
-    }
-    else {
-      delete carrier->m_widget; // we don't use it so we should delete it
-    }
-
-    // We don't need to manually delete carrier, because it(p_src) is a QAction,
-    // which will be deleted by the parent widget (QTMTabPageBar) when it
-    // is destroyed (by shedule_destruction).
-  }
-
-  int startupIndex= startup_tab_index (m_tabPageList);
-  if (startupIndex > 0) {
-    QTMTabPage* startupTab= m_tabPageList.takeAt (startupIndex);
-    m_tabPageList.prepend (startupTab);
-  }
-
-  int chatIndex= chat_tab_index (m_tabPageList);
-  if (chatIndex > 1) {
-    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
-    m_tabPageList.insert (1, chatTab);
-  }
-  else if (chatIndex == 0 && m_tabPageList.size () > 1) {
-    // Chat tab should be after startup tab, not before
-    QTMTabPage* chatTab= m_tabPageList.takeAt (chatIndex);
-    m_tabPageList.insert (1, chatTab);
-  }
 }
 
 void

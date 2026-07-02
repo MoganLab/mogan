@@ -17,16 +17,13 @@
 ;; Special editing mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-modes
-  (in-extern-demo% (style-has? "extern-demo-dtd")))
+(texmacs-modes (in-extern-demo% (style-has? "extern-demo-dtd")))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Hello world
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (ext-hello t)
-  (:secure #t)
-  `(concat "Hello " ,t "!"))
+(tm-define (ext-hello t) (:secure #t) `(concat ,"Hello " ,t ,"!"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Highlighting
@@ -36,11 +33,12 @@
   (:secure #t)
   (cond ((tm-equal? t st) `(marked ,t))
         ((tree-atomic? t) t)
-        (else
-          (let* ((m (lambda (u) (ext-highlight u st)))
-                 (l (map m (tree-children t))))
-            (if (forall? tree? l) t
-                `(,(tree-label t) ,@l))))))
+        (else (let* ((m (lambda (u) (ext-highlight u st))) (l (map m (tree-children t))))
+                (if (forall? tree? l) t `(,(tree-label t) ,@l))
+              ) ;let*
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Circulant matrices
@@ -51,20 +49,21 @@
          (h (sublist l (- n i) n))
          (t (sublist l 0 (- n i)))
          (m (append h t))
-         (r (map (lambda (x) `(cell ,x)) m)))
-    `(row ,@r)))
+         (r (map (lambda (x) `(cell ,x)) m))
+        ) ;
+    `(row ,@r)
+  ) ;let*
+) ;tm-define
 
 (tm-define (ext-circulant t)
   (:secure #t)
-  (let* ((l (tree-children t))
-         (n (length l))
-         (m (map (circulant-row l) (.. 0 n))))
-    `(matrix (table ,@m))))
+  (let* ((l (tree-children t)) (n (length l)) (m (map (circulant-row l) (.. 0 n))))
+    `(matrix (table ,@m))
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Extra keyboard shortcuts
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(kbd-map
-  (:mode in-extern-demo?)
-  ("H i" (make 'hello)))
+(kbd-map (:mode in-extern-demo?) ("H i" (make 'hello)))

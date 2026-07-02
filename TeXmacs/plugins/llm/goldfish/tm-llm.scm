@@ -2,7 +2,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : tm-llm.scm
-;; DESCRIPTION : Fake LLM plugin (echo functionality with llm styling)
+;; DESCRIPTION : LLM plugin (eval-and-print with code environment support)
 ;; COPYRIGHT   : (C) 2025 Darcy Shen
 ;;
 ;; Licensed under the Apache License, Version 2.0 (the "License");
@@ -18,25 +18,35 @@
 ;; limitations under the License.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(import (texmacs protocol))
+(import (texmacs protocol) (liii path) (liii uuid))
 
 (define (welcome)
   (flush-prompt "llm> ")
-  (flush-verbatim "Fake LLM: demo plugin (echo mode)")
+  (flush-verbatim "LLM Plugin")
 ) ;define
 
-(define echo-count 0)
+(define *large-data-threshold* 1048576)
 
-(define (eval-and-print code)
-  (set! echo-count (+ echo-count 1))
-  (let* ((count-str (number->string echo-count)) (N (length code)))
-    (flush-verbatim (string-append count-str " " (number->string N)))
+(define (llm-write-temp-file data)
+  (let* ((tmp-dir (path-temp-dir))
+         (tmp-name (uuid4))
+         (tmp-path (path-join (path->string tmp-dir) tmp-name))
+        ) ;
+    (path-write-text tmp-path data)
+    tmp-path
   ) ;let*
 ) ;define
 
+(define (eval-and-print data)
+  (if (> (string-length data) *large-data-threshold*)
+    (flush-verbatim (llm-write-temp-file data))
+    (flush-scheme-u8 data)
+  ) ;if
+) ;define
+
 (define (read-eval-print)
-  (let ((code (read-paragraph-by-visible-eof)))
-    (if (string=? code "") #t (eval-and-print code))
+  (let ((data (read-paragraph-by-visible-eof)))
+    (if (string=? data "") #t (eval-and-print data))
   ) ;let
 ) ;define
 

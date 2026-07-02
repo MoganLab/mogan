@@ -459,7 +459,7 @@ prog_language_rep::get_color (tree t, int start, int end) {
       if (!inline_comment_requires_space || (pos == 0 || is_space (s[pos - 1])))
         return decode_color (lan_name, encode_color ("comment"));
     }
-    pos++;
+    tm_char_forwards (s, pos);
   }
 
   if (current_parser == "string_parser") {

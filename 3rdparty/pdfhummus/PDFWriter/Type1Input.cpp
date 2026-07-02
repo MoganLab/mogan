@@ -20,14 +20,39 @@
 */
 #include "Type1Input.h"
 #include "IByteReaderWithPosition.h"
-#include "BoxingBase.h"
-#include "PSBool.h"
+#include "SafeParse.h"
 #include "StandardEncoding.h"
 #include "Trace.h"
 #include "CharStringType1Interpreter.h"
-#include <sstream>
+#include "Type1PSTokens.h"
+
+#include <algorithm>
+
+// Recursion depth cap for the Type 1 seac dependency walk in
+// CollectComponentGlyphs. Adobe's Type 1 Font Format specification
+// disallows nested seac (bchar/achar must not be seac characters), so
+// 16 is well beyond any conforming font but matches the TrueType
+// composite cap used elsewhere in the codebase. Lenient on malformed-
+// but-benign fonts; still bounds the call stack against attacker input.
+static const unsigned int scMaxCompositeDepth = 16;
 
 using namespace PDFHummus;
+
+// Conservative caps on attacker-controlled Type 1 sizes.
+// Real fonts are far below these; a malformed font with values above
+// is rejected rather than driving allocations / array indexing OOB.
+#define MAX_TYPE1_SUBRS_COUNT 65535
+#define MAX_TYPE1_CODE_LENGTH 65535
+
+// Parse a token as a long and verify it falls within [inMinInclusive, inMaxInclusive].
+// Used to bound attacker-controlled counts/indices/lengths from PFB tokens before
+// they drive allocations or array indexing.
+static bool TryParseBoundedLong(const std::string& inToken,long inMinInclusive,long inMaxInclusive,long& outValue)
+{
+	if(!TryParse(inToken, outValue))
+		return false;
+	return outValue >= inMinInclusive && outValue <= inMaxInclusive;
+}
 
 Type1Input::Type1Input(void)
 {
@@ -41,19 +66,28 @@ Type1Input::~Type1Input(void)
 	FreeTables();
 }
 
-void Type1Input::FreeTables()
+void Type1Input::FreeSubrs()
 {
 	for(long i=0;i<mSubrsCount;++i)
 		delete[] mSubrs[i].Code;
 	delete[] mSubrs;
 	mSubrs = NULL;
 	mSubrsCount = 0;
+}
 
+void Type1Input::FreeCharStrings()
+{
 	StringToType1CharStringMap::iterator itCharStrings = mCharStrings.begin();
 
 	for(; itCharStrings != mCharStrings.end(); ++itCharStrings)
 		delete[] itCharStrings->second.Code;
 	mCharStrings.clear();
+}
+
+void Type1Input::FreeTables()
+{
+	FreeSubrs();
+	FreeCharStrings();
 }
 
 void Type1Input::Reset()
@@ -69,11 +103,16 @@ void Type1Input::Reset()
 		mEncoding.mCustomEncoding[i].clear();
 	mReverseEncoding.clear();
 	mFontDictionary.StrokeWidth = 1;
+	mFontDictionary.PaintType = 0;
+	mFontDictionary.FontType = 1;
+	mFontDictionary.FontBBox[0] = mFontDictionary.FontBBox[1] = mFontDictionary.FontBBox[2] = mFontDictionary.FontBBox[3] = 0;
 	mFontDictionary.FSTypeValid = false;
 	mFontDictionary.fsType = 0;
 
 	mFontInfoDictionary.isFixedPitch = false;
 	mFontInfoDictionary.ItalicAngle = 0;
+	mFontInfoDictionary.UnderlinePosition = 0;
+	mFontInfoDictionary.UnderlineThickness = 0;
 	mFontInfoDictionary.Notice.clear();
 	mFontInfoDictionary.version.clear();
 	mFontInfoDictionary.Weight.clear();
@@ -97,13 +136,11 @@ void Type1Input::Reset()
 	mPrivateDictionary.StemSnapH.clear();
 	mPrivateDictionary.StemSnapV.clear();
 	mPrivateDictionary.UniqueID = -1;
-
-	Type1PrivateDictionary mPrivateDictionary;
 }
 
 EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 {
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
 	BoolAndString token;
 
 
@@ -112,11 +149,11 @@ EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 	do
 	{
 		status = mPFBDecoder.Assign(inType1);
-		if(status != PDFHummus::eSuccess)
+		if(status != eSuccess)
 			break;
 
 		// the fun about pfb decoding is that it's pretty much token based...so let's do some tokening
-		while(mPFBDecoder.NotEnded() && PDFHummus::eSuccess == status)
+		while(mPFBDecoder.NotEnded() && eSuccess == status)
 		{
 			token = mPFBDecoder.GetNextToken();
 			status = mPFBDecoder.GetInternalState();
@@ -126,7 +163,7 @@ EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 				continue;
 
 			// skip comments
-			if(IsComment(token.second))
+			if(Type1PSTokens::IsComment(token.second))
 				continue;
 
 			// look for "begin". at this level that would be catching the "begin"
@@ -134,7 +171,7 @@ EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 			if(token.second.compare("begin") == 0)
 			{
 				status = ReadFontDictionary();
-				if(status != PDFHummus::eSuccess)
+				if(status != eSuccess)
 					break;
 			}
 
@@ -144,7 +181,7 @@ EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 			if(token.second.compare("/Private") == 0)
 			{
 				status = ReadPrivateDictionary();
-				if(status != PDFHummus::eSuccess)
+				if(status != eSuccess)
 					break;
 			}
 			
@@ -160,17 +197,21 @@ EStatusCode Type1Input::ReadType1File(IByteReaderWithPosition* inType1)
 	return status;
 }
 
-bool Type1Input::IsComment(const std::string& inToken)
+bool Type1Input::ReadNextTokenValue(std::string& outValue,EStatusCode& outStatus)
 {
-	return inToken.at(0) == '%';
+	BoolAndString token = mPFBDecoder.GetNextToken();
+	outValue = token.second;
+	outStatus = token.first ? eSuccess : eFailure;
+	return token.first;
 }
 
 EStatusCode Type1Input::ReadFontDictionary()
 {
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
 	BoolAndString token;
+	std::string value;
 
-	while(mPFBDecoder.NotEnded() && PDFHummus::eSuccess == status)
+	while(mPFBDecoder.NotEnded() && eSuccess == status)
 	{
 		token = mPFBDecoder.GetNextToken();
 		status = mPFBDecoder.GetInternalState();
@@ -178,7 +219,7 @@ EStatusCode Type1Input::ReadFontDictionary()
 			continue;
 
 		// skip comments
-		if(IsComment(token.second))
+		if(Type1PSTokens::IsComment(token.second))
 			continue;
 
 		// found end, done with dictionary
@@ -192,17 +233,33 @@ EStatusCode Type1Input::ReadFontDictionary()
 		}
 		if(token.second.compare("/FontName") == 0)
 		{
-			mFontDictionary.FontName = FromPSName(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontDictionary.FontName = Type1PSTokens::FromPSName(value);
 			continue;
 		}
 		if(token.second.compare("/PaintType") == 0)
 		{
-			mFontDictionary.PaintType = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontDictionary.PaintType))
+			{
+				TRACE_LOG1("Type1Input::ReadFontDictionary, /PaintType has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/FontType") == 0)
 		{
-			mFontDictionary.FontType = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontDictionary.FontType))
+			{
+				TRACE_LOG1("Type1Input::ReadFontDictionary, /FontType has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/FontMatrix") == 0)
@@ -219,27 +276,48 @@ EStatusCode Type1Input::ReadFontDictionary()
 
 		if(token.second.compare("/UniqueID") == 0)
 		{
-			mFontDictionary.UniqueID = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontDictionary.UniqueID))
+			{
+				TRACE_LOG1("Type1Input::ReadFontDictionary, /UniqueID has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 
 		if(token.second.compare("/StrokeWidth") == 0)
 		{
-			mFontDictionary.StrokeWidth = Double(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontDictionary.StrokeWidth))
+			{
+				TRACE_LOG1("Type1Input::ReadFontDictionary, /StrokeWidth has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 
 		if(token.second.compare("/Encoding") == 0)
 		{
 			status = ParseEncoding();
-			if(PDFHummus::eSuccess == status)
+			if(eSuccess == status)
 				CalculateReverseEncoding();
 			continue;
 		}
 
 		if(token.second.compare("/FSType") == 0)
 		{
-			mFontInfoDictionary.fsType = (unsigned short)Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.fsType))
+			{
+				TRACE_LOG1("Type1Input::ReadFontDictionary, /FSType has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			mFontInfoDictionary.FSTypeValid = true;
 		}
 	}
@@ -248,15 +326,16 @@ EStatusCode Type1Input::ReadFontDictionary()
 
 EStatusCode Type1Input::ReadFontInfoDictionary()
 {
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
 	BoolAndString token;
+	std::string value;
 
   // initialize some values to defaults
   mFontInfoDictionary.ItalicAngle = 0.0;
   mFontInfoDictionary.UnderlinePosition = 0.0;
   mFontInfoDictionary.UnderlineThickness = 0.0;
   
-	while(mPFBDecoder.NotEnded() && PDFHummus::eSuccess == status)
+	while(mPFBDecoder.NotEnded() && eSuccess == status)
 	{
 		token = mPFBDecoder.GetNextToken();
 		status = mPFBDecoder.GetInternalState();
@@ -264,7 +343,7 @@ EStatusCode Type1Input::ReadFontInfoDictionary()
 			continue;
 
 		// skip comments
-		if(IsComment(token.second))
+		if(Type1PSTokens::IsComment(token.second))
 			continue;
 
 		// "end" encountered, dictionary finished, return.
@@ -273,93 +352,140 @@ EStatusCode Type1Input::ReadFontInfoDictionary()
 
 		if(token.second.compare("/version") == 0)
 		{
-			mFontInfoDictionary.version = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.version = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/Notice") == 0)
 		{
-			mFontInfoDictionary.Notice = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.Notice = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/Copyright") == 0)
 		{
-			mFontInfoDictionary.Copyright = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.Copyright = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/FullName") == 0)
 		{
-			mFontInfoDictionary.FullName = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.FullName = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/FamilyName") == 0)
 		{
-			mFontInfoDictionary.FamilyName = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.FamilyName = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/Weight") == 0)
 		{
-			mFontInfoDictionary.Weight = FromPSString(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			mFontInfoDictionary.Weight = Type1PSTokens::FromPSString(value);
 			continue;
 		}
 		if(token.second.compare("/ItalicAngle") == 0)
 		{
-			mFontInfoDictionary.ItalicAngle = 
-				Double(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.ItalicAngle))
+			{
+				TRACE_LOG1("Type1Input::ReadFontInfoDictionary, /ItalicAngle has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/isFixedPitch") == 0)
 		{
-			mFontInfoDictionary.isFixedPitch = 
-				PSBool(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.isFixedPitch))
+			{
+				TRACE_LOG1("Type1Input::ReadFontInfoDictionary, /isFixedPitch has bad boolean value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/UnderlinePosition") == 0)
 		{
-			mFontInfoDictionary.UnderlinePosition = 
-				Double(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.UnderlinePosition))
+			{
+				TRACE_LOG1("Type1Input::ReadFontInfoDictionary, /UnderlinePosition has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/UnderlineThickness") == 0)
 		{
-			mFontInfoDictionary.UnderlineThickness = 
-				Double(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.UnderlineThickness))
+			{
+				TRACE_LOG1("Type1Input::ReadFontInfoDictionary, /UnderlineThickness has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 
 		if(token.second.compare("/FSType") == 0)
 		{
-			mFontInfoDictionary.fsType = (unsigned short)Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mFontInfoDictionary.fsType))
+			{
+				TRACE_LOG1("Type1Input::ReadFontInfoDictionary, /FSType has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			mFontInfoDictionary.FSTypeValid = true;
 		}
 	}
-	return status;	
-}
-
-std::string Type1Input::FromPSName(const std::string& inPostScriptName)
-{
-	return inPostScriptName.substr(1);
+	return status;
 }
 
 EStatusCode Type1Input::ParseDoubleArray(double* inArray,int inArraySize)
 {
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
 
 	// skip the [ or {
 	BoolAndString token = mPFBDecoder.GetNextToken();
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
-	for(int i=0; i < inArraySize && PDFHummus::eSuccess == status;++i)
+	for(int i=0; i < inArraySize && eSuccess == status;++i)
 	{
 		token = mPFBDecoder.GetNextToken();
-		status = token.first ? PDFHummus::eSuccess:PDFHummus::eFailure;
-		inArray[i] = Double(token.second);
+		if(!token.first)
+		{
+			status = eFailure;
+			break;
+		}
+		if(!TryParse(token.second, inArray[i]))
+		{
+			TRACE_LOG1("Type1Input::ParseDoubleArray, bad numeric value '%s'", token.second.c_str());
+			status = eFailure;
+			break;
+		}
 	}
 
 	// skip the last ] or }
 	token = mPFBDecoder.GetNextToken();
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
 	return status;
 
@@ -368,11 +494,11 @@ EStatusCode Type1Input::ParseDoubleArray(double* inArray,int inArraySize)
 EStatusCode Type1Input::ParseEncoding()
 {
 	BoolAndString token = mPFBDecoder.GetNextToken();
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
 	int encodingIndex = 0;
 
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
 	// checking for standard encoding
 	if(token.second.compare("StandardEncoding") == 0)
@@ -382,8 +508,8 @@ EStatusCode Type1Input::ParseEncoding()
 		// skip the def
 		BoolAndString token = mPFBDecoder.GetNextToken();
 		if(!token.first)
-			return PDFHummus::eFailure;
-		return PDFHummus::eSuccess;
+			return eFailure;
+		return eSuccess;
 	}
 
 	// not standard encoding, parse custom encoding
@@ -397,7 +523,7 @@ EStatusCode Type1Input::ParseEncoding()
 			break;
 	}
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
 	// k. now parse the repeats of "dup index charactername put"
 	// till the first occurence of "readonly" or "def".
@@ -410,10 +536,15 @@ EStatusCode Type1Input::ParseEncoding()
 		token = mPFBDecoder.GetNextToken();
 		if(!token.first)
 			break;
-		encodingIndex = Int(token.second);
+		if(!TryParse(token.second, encodingIndex))
+		{
+			TRACE_LOG1("Type1Input::ParseEncoding, encoding index has bad numeric value '%s'", token.second.c_str());
+			status = eFailure;
+			break;
+		}
 		if(encodingIndex < 0 || encodingIndex > 255)
 		{
-			status = PDFHummus::eFailure;
+			status = eFailure;
 			break;
 		}
 		
@@ -421,7 +552,7 @@ EStatusCode Type1Input::ParseEncoding()
 		token = mPFBDecoder.GetNextToken();
 		if(!token.first)
 			break;
-		mEncoding.mCustomEncoding[encodingIndex] = FromPSName(token.second);
+		mEncoding.mCustomEncoding[encodingIndex] = Type1PSTokens::FromPSName(token.second);
 
 		// skip the put
 		token = mPFBDecoder.GetNextToken();
@@ -431,8 +562,8 @@ EStatusCode Type1Input::ParseEncoding()
 		// get next row first token [dup or end]
 		token = mPFBDecoder.GetNextToken();
 	}
-	if(!token.first || status != PDFHummus::eSuccess)
-		return PDFHummus::eFailure;
+	if(!token.first || status != eSuccess)
+		return eFailure;
 
 	return status;
 }
@@ -475,11 +606,12 @@ void Type1Input::CalculateReverseEncoding()
 EStatusCode Type1Input::ReadPrivateDictionary()
 {
 
-	EStatusCode status = PDFHummus::eSuccess;
+	EStatusCode status = eSuccess;
     bool readCharString = false; // don't leave before you read CharStrings. so i'm having a little flag
 	BoolAndString token;
+	std::string value;
 
-	while(mPFBDecoder.NotEnded() && PDFHummus::eSuccess == status)
+	while(mPFBDecoder.NotEnded() && eSuccess == status)
 	{
 		token = mPFBDecoder.GetNextToken();
 		status = mPFBDecoder.GetInternalState();
@@ -487,7 +619,7 @@ EStatusCode Type1Input::ReadPrivateDictionary()
 			continue;
 
 		// skip comments
-		if(IsComment(token.second))
+		if(Type1PSTokens::IsComment(token.second))
 			continue;
 
 		// "end" encountered, dictionary finished, return.
@@ -496,7 +628,14 @@ EStatusCode Type1Input::ReadPrivateDictionary()
 
 		if(token.second.compare("/UniqueID") == 0)
 		{
-			mPrivateDictionary.UniqueID = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.UniqueID))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /UniqueID has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 
@@ -522,31 +661,70 @@ EStatusCode Type1Input::ReadPrivateDictionary()
 		}
 		if(token.second.compare("/BlueScale") == 0)
 		{
-			mPrivateDictionary.BlueScale = Double(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.BlueScale))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /BlueScale has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/BlueShift") == 0)
 		{
-			mPrivateDictionary.BlueShift = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.BlueShift))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /BlueShift has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/BlueFuzz") == 0)
 		{
-			mPrivateDictionary.BlueFuzz = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.BlueFuzz))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /BlueFuzz has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/StdHW") == 0)
 		{
-			mPFBDecoder.GetNextToken(); // skip [
-			mPrivateDictionary.StdHW = Double(mPFBDecoder.GetNextToken().second);
-			mPFBDecoder.GetNextToken(); // skip ]
+			if(!ReadNextTokenValue(value,status)) // skip [
+				break;
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.StdHW))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /StdHW has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
+			if(!ReadNextTokenValue(value,status)) // skip ]
+				break;
 			continue;
 		}
 		if(token.second.compare("/StdVW") == 0)
 		{
-			mPFBDecoder.GetNextToken(); // skip [
-			mPrivateDictionary.StdVW = Double(mPFBDecoder.GetNextToken().second);
-			mPFBDecoder.GetNextToken(); // skip ]
+			if(!ReadNextTokenValue(value,status)) // skip [
+				break;
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.StdVW))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /StdVW has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
+			if(!ReadNextTokenValue(value,status)) // skip ]
+				break;
 			continue;
 		}
 		if(token.second.compare("/StemSnapH") == 0)
@@ -561,22 +739,50 @@ EStatusCode Type1Input::ReadPrivateDictionary()
 		}
 		if(token.second.compare("/ForceBold") == 0)
 		{
-			mPrivateDictionary.ForceBold = PSBool(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.ForceBold))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /ForceBold has bad boolean value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/LanguageGroup") == 0)
 		{
-			mPrivateDictionary.LanguageGroup = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.LanguageGroup))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /LanguageGroup has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/lenIV") == 0)
 		{
-			mPrivateDictionary.lenIV = Int(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.lenIV))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /lenIV has bad numeric value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/RndStemUp") == 0)
 		{
-			mPrivateDictionary.RndStemUp = PSBool(mPFBDecoder.GetNextToken().second);
+			if(!ReadNextTokenValue(value,status))
+				break;
+			if(!TryParse(value, mPrivateDictionary.RndStemUp))
+			{
+				TRACE_LOG1("Type1Input::ReadPrivateDictionary, /RndStemUp has bad boolean value '%s'", value.c_str());
+				status = eFailure;
+				break;
+			}
 			continue;
 		}
 		if(token.second.compare("/Subrs") == 0)
@@ -601,7 +807,7 @@ EStatusCode Type1Input::ParseIntVector(std::vector<int>& inVector)
 	// skip the [ or {
 	BoolAndString token = mPFBDecoder.GetNextToken();
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
 
 	while(token.first)
@@ -610,9 +816,15 @@ EStatusCode Type1Input::ParseIntVector(std::vector<int>& inVector)
 		if(token.second.compare("]") == 0 || token.second.compare("}") == 0)
 			break;
 
-		inVector.push_back(Int(token.second));
+		int parsed;
+		if(!TryParse(token.second, parsed))
+		{
+			TRACE_LOG1("Type1Input::ParseIntVector, bad numeric value '%s'", token.second.c_str());
+			return eFailure;
+		}
+		inVector.push_back(parsed);
 	}
-	return token.first ? PDFHummus::eSuccess:PDFHummus::eFailure;
+	return token.first ? eSuccess:eFailure;
 }
 
 EStatusCode Type1Input::ParseDoubleVector(std::vector<double>& inVector)
@@ -620,7 +832,7 @@ EStatusCode Type1Input::ParseDoubleVector(std::vector<double>& inVector)
 	// skip the [ or {
 	BoolAndString token = mPFBDecoder.GetNextToken();
 	if(!token.first)
-		return PDFHummus::eFailure;
+		return eFailure;
 
 
 	while(token.first)
@@ -629,126 +841,228 @@ EStatusCode Type1Input::ParseDoubleVector(std::vector<double>& inVector)
 		if(token.second.compare("]") == 0 || token.second.compare("}") == 0)
 			break;
 
-		inVector.push_back(Double(token.second));
+		double parsed;
+		if(!TryParse(token.second, parsed))
+		{
+			TRACE_LOG1("Type1Input::ParseDoubleVector, bad numeric value '%s'", token.second.c_str());
+			return eFailure;
+		}
+		inVector.push_back(parsed);
 	}
-	return token.first ? PDFHummus::eSuccess:PDFHummus::eFailure;
+	return token.first ? eSuccess:eFailure;
 }
 
 EStatusCode Type1Input::ParseSubrs()
 {
-	int subrIndex;
+	EStatusCode status = eSuccess;
+	long newCount;
+	long subrIndex;
+	BoolAndString token;
 
-	// get the subrs count
-	BoolAndString token = mPFBDecoder.GetNextToken();
-	if(!token.first)
-		return PDFHummus::eFailure;
+	// Drop any previously parsed subrs first - handles a malformed font that
+	// declares /Subrs more than once and guarantees the failure path below
+	// finds a clean slate to leave behind via FreeSubrs().
+	FreeSubrs();
 
-	mSubrsCount = Long(token.second);
-    if(mSubrsCount == 0)
-    {
-        mSubrs = NULL;
-        return PDFHummus::eSuccess;
-    }
-    else
-        mSubrs = new Type1CharString[mSubrsCount];
-
-	// parse the subrs. they look like this: 	
-	// dup index nbytes RD ~n~binary~bytes~ NP
-
-	// skip till the first dup
-	while(token.first)
+	do
 	{
-		token = mPFBDecoder.GetNextToken();
-		if(token.second.compare("dup") == 0)
-			break;
-	}
-	if(!token.first)
-		return PDFHummus::eFailure;
-
-	for(long i=0;i<mSubrsCount && token.first;++i)
-	{
+		// get the subrs count
 		token = mPFBDecoder.GetNextToken();
 		if(!token.first)
+		{
+			status = eFailure;
 			break;
-				
-		subrIndex = Int(token.second);
-		token = mPFBDecoder.GetNextToken();
-		if(!token.first)
+		}
+
+		if(!TryParseBoundedLong(token.second,0,MAX_TYPE1_SUBRS_COUNT,newCount))
+		{
+			TRACE_LOG1("Type1Input::ParseSubrs, subrs count out of range: %ld",newCount);
+			status = eFailure;
 			break;
+		}
+		if(newCount == 0)
+			break; // status stays eSuccess; no allocation needed
 
-		mSubrs[subrIndex].CodeLength = Int(token.second);
-		mSubrs[subrIndex].Code = new Byte[mSubrs[subrIndex].CodeLength];
+		mSubrsCount = newCount;
+		mSubrs = new Type1CharString[mSubrsCount];
 
-		// skip the RD token (will also skip space)
-		mPFBDecoder.GetNextToken();
+		// parse the subrs. they look like this:
+		// dup index nbytes RD ~n~binary~bytes~ NP
 
-		mPFBDecoder.Read(mSubrs[subrIndex].Code,mSubrs[subrIndex].CodeLength);
-
-		// skip till next line or array end
-		while ( token.first )
+		// skip till the first dup
+		while(token.first)
 		{
 			token = mPFBDecoder.GetNextToken();
-
-			if ( 0 == token.second.compare("dup") )
-				break;
-			if ( 0 == token.second.compare("ND") )
-				break;
-			if ( 0 == token.second.compare("|-") ) // synonym for "ND"
-				break;
-			if ( 0 == token.second.compare("def") )
+			if(token.second.compare("dup") == 0)
 				break;
 		}
-	}
-	if(!token.first)
-		return PDFHummus::eFailure;
+		if(!token.first)
+		{
+			status = eFailure;
+			break;
+		}
 
-	return mPFBDecoder.GetInternalState();
+		for(long i=0;i<mSubrsCount && token.first && status == eSuccess;++i)
+		{
+			token = mPFBDecoder.GetNextToken();
+			if(!token.first)
+			{
+				status = eFailure;
+				break;
+			}
+
+			if(!TryParseBoundedLong(token.second,0,mSubrsCount - 1,subrIndex))
+			{
+				TRACE_LOG2("Type1Input::ParseSubrs, subr index %ld out of range [0,%ld)",subrIndex,mSubrsCount);
+				status = eFailure;
+				break;
+			}
+			token = mPFBDecoder.GetNextToken();
+			if(!token.first)
+			{
+				status = eFailure;
+				break;
+			}
+
+			long codeLength;
+			if(!TryParseBoundedLong(token.second,1,MAX_TYPE1_CODE_LENGTH,codeLength))
+			{
+				TRACE_LOG1("Type1Input::ParseSubrs, subr CodeLength out of range: %ld",codeLength);
+				status = eFailure;
+				break;
+			}
+			// Free any previous Code buffer at this index in case a malformed
+			// font defines the same subr twice. delete[] NULL is well-defined
+			// (default ctor zero-inits Code) so the first-time path is fine.
+			delete[] mSubrs[subrIndex].Code;
+			mSubrs[subrIndex].Code = NULL;
+			mSubrs[subrIndex].CodeLength = (int)codeLength;
+			mSubrs[subrIndex].Code = new Byte[mSubrs[subrIndex].CodeLength];
+
+			// skip the RD token (will also skip space)
+			mPFBDecoder.GetNextToken();
+
+			mPFBDecoder.Read(mSubrs[subrIndex].Code,mSubrs[subrIndex].CodeLength);
+
+			// skip till next line or array end
+			while ( token.first )
+			{
+				token = mPFBDecoder.GetNextToken();
+
+				if ( 0 == token.second.compare("dup") )
+					break;
+				if ( 0 == token.second.compare("ND") )
+					break;
+				if ( 0 == token.second.compare("|-") ) // synonym for "ND"
+					break;
+				if ( 0 == token.second.compare("def") )
+					break;
+			}
+		}
+		if(status != eSuccess)
+			break;
+
+		status = mPFBDecoder.GetInternalState();
+	} while(false);
+
+	if(status != eSuccess)
+		FreeSubrs(); // leave a clean state on any failure rather than partial subrs
+
+	return status;
 }
 
 EStatusCode Type1Input::ParseCharstrings()
 {
+	EStatusCode status = eSuccess;
 	BoolAndString token;
 	std::string characterName;
 	Type1CharString charString;
 
-	// skip till "begin"
-	while(mPFBDecoder.NotEnded())
+	// Drop any previously parsed charstrings first - handles a malformed font
+	// that declares /CharStrings more than once and guarantees the failure
+	// path below finds a clean slate to leave behind via FreeCharStrings().
+	FreeCharStrings();
+
+	do
 	{
-		token = mPFBDecoder.GetNextToken();
-		if(!token.first || token.second.compare("begin") == 0)
+		// skip till "begin"
+		while(mPFBDecoder.NotEnded())
+		{
+			token = mPFBDecoder.GetNextToken();
+			if(!token.first || token.second.compare("begin") == 0)
+				break;
+		}
+		if(!token.first)
+		{
+			status = eFailure;
 			break;
-	}
-	if(!token.first)
-		return PDFHummus::eFailure;
+		}
 
-	// Charstrings look like this:
-	// charactername nbytes RD ~n~binary~bytes~ ND
-	while(token.first && mPFBDecoder.GetInternalState() == PDFHummus::eSuccess)
-	{
-		token = mPFBDecoder.GetNextToken();
+		// Charstrings look like this:
+		// charactername nbytes RD ~n~binary~bytes~ ND
+		while(token.first && mPFBDecoder.GetInternalState() == eSuccess)
+		{
+			token = mPFBDecoder.GetNextToken();
 
-		if("end" == token.second)
+			if("end" == token.second)
+				break;
+
+			characterName = Type1PSTokens::FromPSName(token.second);
+
+			long codeLength;
+			if(!TryParseBoundedLong(mPFBDecoder.GetNextToken().second,1,MAX_TYPE1_CODE_LENGTH,codeLength))
+			{
+				TRACE_LOG1("Type1Input::ParseCharstrings, charstring CodeLength out of range: %ld",codeLength);
+				status = eFailure;
+				break;
+			}
+
+			charString.CodeLength = (int)codeLength;
+
+			charString.Code = new Byte[charString.CodeLength];
+
+			// skip the RD token (will also skip space)
+			mPFBDecoder.GetNextToken();
+
+			// Reject a short read: the unwritten tail of Code would
+			// otherwise reach the charstring interpreter as indeterminate data.
+			if(mPFBDecoder.Read(charString.Code,charString.CodeLength) != (LongBufferSizeType)charString.CodeLength)
+			{
+				TRACE_LOG1("Type1Input::ParseCharstrings, truncated charstring data for %s",characterName.c_str());
+				delete[] charString.Code;
+				charString.Code = NULL;
+				status = eFailure;
+				break;
+			}
+
+			// std::map::insert is no-op on duplicate keys; without checking we
+			// would leak charString.Code on a malformed font that names the
+			// same charstring twice. Reject the duplicate cleanly so the
+			// outer FreeCharStrings cleanup runs on the prior entries.
+			std::pair<StringToType1CharStringMap::iterator,bool> insertResult =
+				mCharStrings.insert(StringToType1CharStringMap::value_type(characterName,charString));
+			if(!insertResult.second)
+			{
+				TRACE_LOG1("Type1Input::ParseCharstrings, duplicate charstring name: %s",characterName.c_str());
+				delete[] charString.Code;
+				charString.Code = NULL;
+				status = eFailure;
+				break;
+			}
+
+			// skip ND token
+			mPFBDecoder.GetNextToken();
+		}
+		if(status != eSuccess)
 			break;
 
-		characterName = FromPSName(token.second);
+		status = mPFBDecoder.GetInternalState();
+	} while(false);
 
-		charString.CodeLength = Int(mPFBDecoder.GetNextToken().second);
+	if(status != eSuccess)
+		FreeCharStrings(); // leave a clean state on any failure rather than partial charstrings
 
-		charString.Code = new Byte[charString.CodeLength];
-
-		// skip the RD token (will also skip space)
-		mPFBDecoder.GetNextToken();
-
-
-		mPFBDecoder.Read(charString.Code,charString.CodeLength);
-
-		mCharStrings.insert(StringToType1CharStringMap::value_type(characterName,charString));
-
-		// skip ND token
-		mPFBDecoder.GetNextToken();
-	}
-
-	return mPFBDecoder.GetInternalState();
+	return status;
 }
 
 Type1CharString* Type1Input::GetGlyphCharString(Byte inCharStringIndex)
@@ -796,7 +1110,7 @@ EStatusCode Type1Input::CalculateDependenciesForCharIndex(	Byte inCharStringInde
 	if(!charString)
 	{
 		TRACE_LOG("Type1Input::CalculateDependenciesForCharIndex, Exception, cannot find glyph index");
-		return PDFHummus::eFailure;
+		return eFailure;
 	}
 
 	mCurrentDependencies = &ioDependenciesInfo;
@@ -814,7 +1128,7 @@ EStatusCode Type1Input::CalculateDependenciesForCharIndex(const std::string& inC
 	if(it == mCharStrings.end())
 	{
 		TRACE_LOG("Type1Input::CalculateDependenciesForCharIndex, Exception, cannot find glyph from name");
-		return PDFHummus::eFailure;
+		return eFailure;
 	}
 
 	mCurrentDependencies = &ioDependenciesInfo;
@@ -823,34 +1137,114 @@ EStatusCode Type1Input::CalculateDependenciesForCharIndex(const std::string& inC
 	return status;
 }
 
+EStatusCode Type1Input::AddDependentGlyphs(StringVector& ioSubsetGlyphIDs)
+{
+	EStatusCode status = PDFHummus::eSuccess;
+	StringSet glyphsSet;
+	StringVector::iterator it = ioSubsetGlyphIDs.begin();
+	bool hasCompositeGlyphs = false;
+
+	for(; it != ioSubsetGlyphIDs.end() && PDFHummus::eSuccess == status; ++it)
+	{
+		bool localHasCompositeGlyphs;
+		status = CollectComponentGlyphs(*it, glyphsSet, localHasCompositeGlyphs);
+		hasCompositeGlyphs |= localHasCompositeGlyphs;
+	}
+
+	if(hasCompositeGlyphs)
+	{
+		for(it = ioSubsetGlyphIDs.begin(); it != ioSubsetGlyphIDs.end(); ++it)
+			glyphsSet.insert(*it);
+
+		ioSubsetGlyphIDs.clear();
+		for(StringSet::iterator itNewGlyphs = glyphsSet.begin(); itNewGlyphs != glyphsSet.end(); ++itNewGlyphs)
+			ioSubsetGlyphIDs.push_back(*itNewGlyphs);
+
+		std::sort(ioSubsetGlyphIDs.begin(), ioSubsetGlyphIDs.end());
+	}
+	return status;
+}
+
+EStatusCode Type1Input::CollectComponentGlyphs(const std::string& inGlyphID,
+											   StringSet& ioComponents,
+											   bool& outFoundComponents,
+											   unsigned int inDepth)
+{
+	outFoundComponents = false;
+
+	if(inDepth > scMaxCompositeDepth)
+	{
+		// Cycles are blocked by the visited-set guard below, but a malicious
+		// font can still build a deeply nested acyclic seac chain. Cap depth
+		// to keep the call stack bounded.
+		TRACE_LOG2("Type1Input::CollectComponentGlyphs, composite depth %u exceeds cap %u, refusing to recurse further.",
+			inDepth, scMaxCompositeDepth);
+		return PDFHummus::eSuccess;
+	}
+
+	CharString1Dependencies dependencies;
+	StandardEncoding standardEncoding;
+	EStatusCode status = CalculateDependenciesForCharIndex(inGlyphID, dependencies);
+
+	if(PDFHummus::eSuccess == status && dependencies.mCharCodes.size() != 0)
+	{
+		ByteSet::iterator it = dependencies.mCharCodes.begin();
+		for(; it != dependencies.mCharCodes.end() && PDFHummus::eSuccess == status; ++it)
+		{
+			bool dummyFound;
+			// Using standard encoding instead of the font encoding, because
+			// SEAC (the only operator to create glyph dependency in Type 1)
+			// relies on standard encoding indexes by definition.
+			std::string glyphName = standardEncoding.GetEncodedGlyphName(*it);
+			// Recurse only when the component is new to the set. A glyph
+			// referencing itself or two glyphs referencing each other would
+			// otherwise drive the call stack until it overflows. The set
+			// doubles as the visited marker for cycle detection.
+			if(ioComponents.insert(glyphName).second)
+				status = CollectComponentGlyphs(glyphName, ioComponents, dummyFound, inDepth + 1);
+		}
+		outFoundComponents = true;
+	}
+	return status;
+}
+
 
 Type1CharString* Type1Input::GetSubr(long inSubrIndex)
 {
-	if(mCurrentDependencies)
-		mCurrentDependencies->mSubrs.insert((unsigned short)inSubrIndex);
-
-	if(inSubrIndex >= mSubrsCount)
+	if(inSubrIndex < 0 || inSubrIndex >= mSubrsCount || !mSubrs)
 	{
 		TRACE_LOG2("CharStringType1Tracer::GetLocalSubr exception, asked for %ld and there are only %ld count subrs",inSubrIndex,mSubrsCount);
 		return NULL;
 	}
-	else
-		return mSubrs+inSubrIndex;
+
+	if(mCurrentDependencies)
+		mCurrentDependencies->mSubrs.insert((unsigned short)inSubrIndex);
+
+	return mSubrs+inSubrIndex;
 }
 
 EStatusCode Type1Input::Type1Seac(const LongList& inOperandList)
 {
-	LongList::const_reverse_iterator it = inOperandList.rbegin();
+	if(inOperandList.size() < 2) {
+		TRACE_LOG1("Type1Input::Type1Seac exception, there should be 2 parameters provided for seac operation but only %d provided",inOperandList.size());
+		return eFailure;		
+	}
 
-	mCurrentDependencies->mCharCodes.insert((Byte)*it);
-	++it;
-	mCurrentDependencies->mCharCodes.insert((Byte)*it);
-	return PDFHummus::eSuccess;
+	if(mCurrentDependencies)
+	{
+		LongList::const_reverse_iterator it = inOperandList.rbegin();
+
+		mCurrentDependencies->mCharCodes.insert((Byte)*it);
+		++it;
+		mCurrentDependencies->mCharCodes.insert((Byte)*it);
+	}
+	return eSuccess;
 }
 
 bool Type1Input::IsOtherSubrSupported(long inOtherSubrsIndex)
 {
-	mCurrentDependencies->mOtherSubrs.insert((unsigned short)inOtherSubrsIndex);
+	if(mCurrentDependencies)
+		mCurrentDependencies->mOtherSubrs.insert((unsigned short)inOtherSubrsIndex);
 	return false;
 }
 
@@ -896,71 +1290,6 @@ std::string Type1Input::GetGlyphCharStringName(Byte inCharStringIndex)
 
 		return standardEncoding.GetEncodedGlyphName(inCharStringIndex);
 	}
-}
-
-std::string Type1Input::FromPSString(const std::string& inPSString)
-{
-	std::stringbuf stringBuffer;
-	Byte buffer;
-	std::string::const_iterator it = inPSString.begin();
-	size_t i=1;
-	++it; // skip first paranthesis
-	
-	for(; i < inPSString.size()-1;++it,++i)
-	{
-		if(*it == '\\')
-		{
-			++it;
-			if('0' <= *it && *it <= '7')
-			{
-				buffer = (*it - '0') * 64;
-				++it;
-				buffer += (*it - '0') * 8;
-				++it;
-				buffer += (*it - '0');
-			}
-			else
-			{
-				switch(*it)
-				{
-					case 'n':
-						buffer = '\n';
-						break;
-					case 'r':
-						buffer = '\r';
-						break;
-					case 't':
-						buffer = '\t';
-						break;
-					case 'b':
-						buffer = '\b';
-						break;
-					case 'f':
-						buffer = '\f';
-						break;
-					case '\\':
-						buffer = '\\';
-						break;
-					case '(':
-						buffer = '(';
-						break;
-					case ')':
-						buffer = ')';
-						break;
-					default:
-						// error!
-						buffer = 0;
-						break;
-				}
-			}
-		}
-		else
-		{
-			buffer = *it;
-		}
-		stringBuffer.sputn((const char*)&buffer,1);
-	}
-	return stringBuffer.str();
 }
 
 Byte Type1Input::GetEncoding(const std::string& inCharStringName)

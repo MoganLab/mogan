@@ -34,7 +34,7 @@
 
 using namespace PDFHummus;
 
-WrittenFontCFF::WrittenFontCFF(ObjectsContext* inObjectsContext,bool inIsCID, bool inFontWillBeEmbedded):AbstractWrittenFont(inObjectsContext)
+WrittenFontCFF::WrittenFontCFF(ObjectsContext* inObjectsContext, FreeTypeFaceWrapper* inFontInfo, bool inIsCID, bool inFontWillBeEmbedded):AbstractWrittenFont(inObjectsContext, inFontInfo)
 {
 	mAvailablePositionsCount = 255;
 	mFreeList.push_back(UCharAndUChar(1,255)); 
@@ -161,7 +161,7 @@ unsigned char WrittenFontCFF::AllocateFromFreeList(unsigned int inGlyph)
 	return result;
 }
 
-EStatusCode WrittenFontCFF::WriteFontDefinition(FreeTypeFaceWrapper& inFontInfo,bool inEmbedFont)
+EStatusCode WrittenFontCFF::WriteFontDefinition(bool inEmbedFont)
 {
 	EStatusCode status = PDFHummus::eSuccess;
 	do
@@ -170,7 +170,7 @@ EStatusCode WrittenFontCFF::WriteFontDefinition(FreeTypeFaceWrapper& inFontInfo,
 		{
 			CFFANSIFontWriter fontWriter;
 
-			status = fontWriter.WriteFont(inFontInfo, mANSIRepresentation, mObjectsContext, inEmbedFont);
+			status = fontWriter.WriteFont(*mFontInfo, mANSIRepresentation, mObjectsContext, inEmbedFont);
 			if(status != PDFHummus::eSuccess)
 			{
 				TRACE_LOG("WrittenFontCFF::WriteFontDefinition, Failed to write Ansi font definition");
@@ -184,7 +184,7 @@ EStatusCode WrittenFontCFF::WriteFontDefinition(FreeTypeFaceWrapper& inFontInfo,
 			CIDFontWriter fontWriter;
 			CFFDescendentFontWriter descendentFontWriter;
 
-			status = fontWriter.WriteFont(inFontInfo, mCIDRepresentation, mObjectsContext, &descendentFontWriter, inEmbedFont);
+			status = fontWriter.WriteFont(*mFontInfo, mCIDRepresentation, mObjectsContext, &descendentFontWriter, inEmbedFont);
 			if(status != PDFHummus::eSuccess)
 			{
 				TRACE_LOG("WrittenFontCFF::WriteFontDefinition, Failed to write CID font definition");
@@ -241,7 +241,10 @@ bool WrittenFontCFF::HasEnoughSpaceForGlyphs(const GlyphUnicodeMappingListList& 
 
 EStatusCode WrittenFontCFF::WriteState(ObjectsContext* inStateWriter,ObjectIDType inObjectID)
 {
-	inStateWriter->StartNewIndirectObject(inObjectID);
+	EStatusCode status = inStateWriter->StartNewIndirectObject(inObjectID);
+	
+	if(status != PDFHummus::eSuccess)
+		return status;
 
 	DictionaryContext* writtenFontDictionary = inStateWriter->StartDictionary();
 
@@ -278,7 +281,7 @@ EStatusCode WrittenFontCFF::WriteState(ObjectsContext* inStateWriter,ObjectIDTyp
 	writtenFontDictionary->WriteKey("mIsCID");
 	writtenFontDictionary->WriteBooleanValue(mIsCID);
 
-	EStatusCode status = AbstractWrittenFont::WriteStateInDictionary(inStateWriter,writtenFontDictionary);
+	status = AbstractWrittenFont::WriteStateInDictionary(inStateWriter,writtenFontDictionary);
 	if(PDFHummus::eSuccess == status)
 	{
 		inStateWriter->EndDictionary(writtenFontDictionary);

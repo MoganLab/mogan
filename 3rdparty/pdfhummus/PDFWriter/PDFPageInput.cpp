@@ -150,22 +150,9 @@ PDFRectangle PDFPageInput::GetArtBox()
 }
 
 
-static const std::string scParent = "Parent";
-PDFObject* PDFPageInput::QueryInheritedValue(PDFDictionary* inDictionary,const std::string& inName)
+PDFObject* PDFPageInput::QueryInheritedValue(PDFDictionary* inDictionary, const std::string& inName)
 {
-	if(inDictionary->Exists(inName))
-	{
-		return mParser->QueryDictionaryObject(inDictionary,inName);
-	}
-	else if(inDictionary->Exists(scParent))
-	{
-		PDFObjectCastPtr<PDFDictionary> parent(mParser->QueryDictionaryObject(inDictionary,scParent));
-		if(!parent)
-			return NULL;
-		return QueryInheritedValue(parent.GetPtr(),inName);
-	}
-	else
-		return NULL;
+	return mParser->QueryInheritedDictionaryEntry(inDictionary, inName);
 }
 
 EStatusCode PDFPageInput::SetPDFRectangleFromPDFArray(PDFArray* inPDFArray,PDFRectangle& outPDFRectangle)

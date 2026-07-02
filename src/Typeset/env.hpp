@@ -19,7 +19,6 @@
 #include "language.hpp"
 #include "link.hpp"
 #include "path.hpp"
-#include "player.hpp"
 #include "url.hpp"
 #include <moebius/drd/drd_info.hpp>
 #include <moebius/vars.hpp>
@@ -596,7 +595,7 @@ public:
   }
   inline color get_color (string var) {
     tree t= env[var];
-    return named_color (as_string (t), alpha);
+    return moebius::data::named_color (as_string (t), alpha);
   }
 
   friend class edit_env;
@@ -628,8 +627,5 @@ tree get_graphical_value (tree var);
 bool graphics_needs_update ();
 void graphics_require_update (tree var);
 void graphics_notify_update (tree var);
-
-void players_set_elapsed (tree t, double el);
-void players_set_speed (tree t, double sp);
 
 #endif // defined ENV_H

@@ -7,11 +7,14 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
   pull_request:
     branches: [main]
     paths:
@@ -19,11 +22,15 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
       - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  workflow_dispatch:
 
 env:
   XMAKE_ROOT: y
@@ -34,8 +41,6 @@ jobs:
   build:
     container: debian:13
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: true
     steps:
       - name: Install dependencies
         run: |
@@ -43,15 +48,19 @@ jobs:
           DEBIAN_FRONTEND=noninteractive apt-get install -y gcc git 7zip unzip curl build-essential \
               fonts-noto-cjk libcurl4-openssl-dev libfreetype-dev libfontconfig-dev \
               libmimalloc-dev libgit2-dev zlib1g-dev libssl-dev libjpeg62-turbo-dev cmake \
-              pandoc xmake python3.13 python3.13-venv python3-pip ninja-build \
+              pandoc python3.13 python3.13-venv python3-pip ninja-build \
               libdbus-1-3 libglib2.0-0t64 libegl1 libgl-dev libxkbcommon0
           # Make python3 point to python3.13 so xmake uses system Python instead of compiling its own
           update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
           # Pre-install aqtinstall to avoid xmake pulling its own Python 3.14
           python3 -m pip install --break-system-packages aqtinstall
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
-          fetch-depth: 1
+          fetch-depth: 0
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.7
 
       - name: git add safe directory
         run: git config --global --add safe.directory '*'
@@ -63,24 +72,76 @@ jobs:
         run: xmake repo --update
 
       - name: cache packages from xrepo
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
           key: ${{ runner.os }}-xrepo-qt683-${{ hashFiles('**/packages.lua') }}
 
       - name: cache xmake
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             tmp/build/.build_cache
           key: ${{ runner.os }}-build-qt683-${{ hashFiles('**/packages.lua') }}
 
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lolly:
+              - 'lolly/**'
+            lolly_src:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/xmake.lua'
+            moebius:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/tests/**'
+              - 'moebius/xmake.lua'
+            moebius_src:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/xmake.lua'
+            mogan:
+              - 'src/**'
+              - 'tests/**'
+              - 'xmake.lua'
+              - 'xmake/packages.lua'
+              - 'xmake/packages/**'
+              - 'TeXmacs/tests/*.scm'
+              - '3rdparty/**'
+
       - name: config
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake build --yes -vD liblolly
+      - name: test lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake test "lolly_tests/*"
+      - name: build moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake build --yes -vD libmoebius
+      - name: test moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake test "moebius_tests/*"
+
       - name: build
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=tests
       - name: Scheme tests
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=scheme_tests

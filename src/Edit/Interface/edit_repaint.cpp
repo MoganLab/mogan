@@ -14,10 +14,12 @@
 #include "message.hpp"
 #include "preferences.hpp"
 #include "sys_utils.hpp"
+#include <moebius/data/colors.hpp>
 
 #include <lolly/data/unicode.hpp>
 
 using namespace moebius;
+using namespace moebius::data;
 
 extern int  nr_painted;
 extern void clear_pattern_rectangles (renderer ren, rectangle m, rectangles l);

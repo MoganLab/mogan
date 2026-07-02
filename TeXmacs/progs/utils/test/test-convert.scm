@@ -12,219 +12,281 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (utils test test-convert)
-  (:use (texmacs texmacs tm-files)
-        (doc tmdoc)))
+  (:use (texmacs texmacs tm-files) (doc tmdoc))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Utilities
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (strip-spaces s)
-  (while (or (string-starts? s " ")
-             (string-starts? s "\n")
-             (string-starts? s "\t"))
-    (set! s (string-drop s 1)))
-  s)
+  (while (or (string-starts? s " ") (string-starts? s "\n") (string-starts? s "\t"))
+    (set! s (string-drop s 1))
+  ) ;while
+  s
+) ;define
 
 (define (strip-latex-spaces s)
   (set! s (strip-spaces s))
   (while (string-starts? s "%")
-    (with pos (string-search-forwards "\n" 0 s)
-      (if (< pos 0)
-	  (set! s "")
-	  (set! s (substring s (+ pos 1) (string-length s))))
-      (set! s (strip-spaces s))))
-  s)
+    (with pos
+      (string-search-forwards "\n" 0 s)
+      (if (< pos 0) (set! s "") (set! s (substring s (+ pos 1) (string-length s))))
+      (set! s (strip-spaces s))
+    ) ;with
+  ) ;while
+  s
+) ;define
 
 (define (latex-file? s)
   (set! s (strip-latex-spaces s))
   (or (string-starts? s "\\documentclass")
-      (string-starts? s "\\documentstyle")
-      (string-starts? s "%%%%%%%%%%%")))
+    (string-starts? s "\\documentstyle")
+    (string-starts? s "%%%%%%%%%%%")
+  ) ;or
+) ;define
 
 (define (tar-file? s)
   (and (>= (string-length s) 256)
-       (== (char->integer (string-ref s 99)) 0)
-       (== (char->integer (string-ref s 255)) 0)))
+    (== (char->integer (string-ref s 99)) 0)
+    (== (char->integer (string-ref s 255)) 0)
+  ) ;and
+) ;define
 
 (define (gzip-file? s)
   (and (>= (string-length s) 2)
-       (== (char->integer (string-ref s 0)) 31)
-       (== (char->integer (string-ref s 1)) 139)))
+    (== (char->integer (string-ref s 0)) 31)
+    (== (char->integer (string-ref s 1)) 139)
+  ) ;and
+) ;define
 
 (define (system-untar tar-file)
   (let* ((p (url-expand (url-append tar-file (url-parent))))
          (d (string-append "cd " (url->system p)))
          (u (string-append "tar -xvf " (url->system tar-file)))
-         (c (string-append d "&& " u)))         
-    ;;(display* "-- " c "\n")
-    (system c)))
+         (c (string-append d "&& " u))
+        ) ;
+    ;; (display* "-- " c "\n")
+    (system c)
+  ) ;let*
+) ;define
 
 (define (system-gunzip gz-file)
-  (with c (string-append "gunzip " (url->system gz-file))
-    (system c)))
+  (with c (string-append "gunzip " (url->system gz-file)) (system c))
+) ;define
 
 (define (should-update? src-file dest-file)
-  (or (not (url-exists? dest-file))
-      (url-newer? src-file dest-file)))
+  (or (not (url-exists? dest-file)) (url-newer? src-file dest-file))
+) ;define
 
 (define (strip-suffix u)
-  (with suffix (url-suffix u)
-    (if (== suffix "") u
-        (with r (url-unglue u (+ (string-length suffix) 1))
-          (if (string? u) (url->string r) r)))))
+  (with suffix
+    (url-suffix u)
+    (if (== suffix "")
+      u
+      (with r
+        (url-unglue u (+ (string-length suffix) 1))
+        (if (string? u) (url->string r) r)
+      ) ;with
+    ) ;if
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Unpacking test suite
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (unpack-any-file x y src-dir dest-dir)
-  ;;(display* "-- unpack-any-file " x ", " y ", " src-dir ", " dest-dir "\n")
+  ;; (display* "-- unpack-any-file " x ", " y ", " src-dir ", " dest-dir "\n")
   (let* ((src-file (url-expand (url-append src-dir x)))
-         (dest-file (url-expand (url-append dest-dir y))))
+         (dest-file (url-expand (url-append dest-dir y)))
+        ) ;
     (when (should-update? src-file dest-file)
       (display* "TeXmacs]   Copying " (url->system y) "\n")
-      (system-copy src-file dest-file))))
+      (system-copy src-file dest-file)
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (unpack-texmacs-file x src-dir dest-dir)
-  ;;(display* "-- unpack-texmacs-file " x ", " src-dir ", " dest-dir "\n")
-  (unpack-any-file x x src-dir dest-dir))
+  ;; (display* "-- unpack-texmacs-file " x ", " src-dir ", " dest-dir "\n")
+  (unpack-any-file x x src-dir dest-dir)
+) ;define
 
 (define (unpack-latex-file x src-dir dest-dir)
-  ;;(display* "-- unpack-latex-file " x ", " src-dir ", " dest-dir "\n")
-  (unpack-any-file x x src-dir dest-dir))
+  ;; (display* "-- unpack-latex-file " x ", " src-dir ", " dest-dir "\n")
+  (unpack-any-file x x src-dir dest-dir)
+) ;define
 
 (define (unpack-arxiv-file x src-dir dest-dir)
-  ;;(display* "-- unpack-arxiv-file " x ", " src-dir ", " dest-dir "\n")
+  ;; (display* "-- unpack-arxiv-file " x ", " src-dir ", " dest-dir "\n")
   (let* ((src-file (url-expand (url-append src-dir x)))
          (dest-sdir (url-expand (url-append dest-dir x)))
          (s (string-load src-file))
          (x-tex (string-append x ".tex"))
          (x-tar (string-append x ".tar"))
-	 (x-gz  (string-append x ".gz")))
+         (x-gz (string-append x ".gz"))
+        ) ;
     (when (not (url-exists? dest-sdir))
       (display* "TeXmacs] Creating directory " (url->system dest-sdir) "\n")
       (system-mkdir (url-expand dest-sdir))
       (system-1 "chmod a+x" dest-sdir)
-      (cond ((latex-file? s)
-             (unpack-any-file x x-tex src-dir dest-sdir))
+      (cond ((latex-file? s) (unpack-any-file x x-tex src-dir dest-sdir))
             ((tar-file? s)
              (unpack-any-file x x-tar src-dir dest-sdir)
              (display* "TeXmacs]   Unpacking " (url->system x-tar) "\n")
-             (system-untar (url-append dest-sdir x-tar)))
-	    ((gzip-file? s)
-	     (unpack-any-file x x-gz src-dir dest-sdir)
+             (system-untar (url-append dest-sdir x-tar))
+            ) ;
+            ((gzip-file? s)
+             (unpack-any-file x x-gz src-dir dest-sdir)
              (display* "TeXmacs]   Unzipping " (url->system x-gz) "\n")
-	     (system-gunzip (url-append dest-sdir x-gz))
-	     (let* ((u* (url-append dest-sdir x))
-		    (s* (string-load u*)))
-	       (cond ((latex-file? s*)
-		      (system-move u* (url-append dest-sdir x-tex)))
-		     ((tar-file? s*)
-		      (system-move u* (url-append dest-sdir x-tar))
-		      (display* "TeXmacs]   Unpacking "
-				(url->system x-tar) "\n")
-		      (system-untar (url-append dest-sdir x-tar))))))))))
+             (system-gunzip (url-append dest-sdir x-gz))
+             (let* ((u* (url-append dest-sdir x)) (s* (string-load u*)))
+               (cond ((latex-file? s*) (system-move u* (url-append dest-sdir x-tex)))
+                     ((tar-file? s*)
+                      (system-move u* (url-append dest-sdir x-tar))
+                      (display* "TeXmacs]   Unpacking " (url->system x-tar) "\n")
+                      (system-untar (url-append dest-sdir x-tar))
+                     ) ;
+               ) ;cond
+             ) ;let*
+            ) ;
+      ) ;cond
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (unpack-file x src-dir dest-dir type)
-  ;;(display* "-- unpack-file " x ", " src-dir ", " dest-dir ", " type "\n")
+  ;; (display* "-- unpack-file " x ", " src-dir ", " dest-dir ", " type "\n")
   (cond ((== type "texmacs") (unpack-texmacs-file x src-dir dest-dir))
         ((== type "latex") (unpack-latex-file x src-dir dest-dir))
-	((== type "arxiv") (unpack-arxiv-file x src-dir dest-dir))))
+        ((== type "arxiv") (unpack-arxiv-file x src-dir dest-dir))
+  ) ;cond
+) ;define
 
 (tm-define (unpack-dir src-dir dest-dir type)
-  ;;(display* "-- unpack-dir " src-dir ", " dest-dir ", " type "\n")
+  ;; (display* "-- unpack-dir " src-dir ", " dest-dir ", " type "\n")
   (let* ((last (url->string (url-tail src-dir)))
          (accept (list "texmacs" "latex" "arxiv"))
-         (ignore (list "CVS" ".svn" "prop-base" "text-base" ".DS_Store")))
+         (ignore (list "CVS" ".svn" "prop-base" "text-base" ".DS_Store"))
+        ) ;
     (set! type (or type (and (in? last accept) last)))
     (when (nin? last ignore)
       (when (url-exists? dest-dir)
-        (display* "TeXmacs] Entering directory " (url->system dest-dir) "\n"))
+        (display* "TeXmacs] Entering directory " (url->system dest-dir) "\n")
+      ) ;when
       (when (not (url-exists? dest-dir))
         (display* "TeXmacs] Creating directory " (url->system dest-dir) "\n")
         (system-mkdir (url-expand dest-dir))
-        (system-1 "chmod a+x" dest-dir))
+        (system-1 "chmod a+x" dest-dir)
+      ) ;when
       (let* ((u1 (url-append src-dir (url-wildcard "*")))
              (u2 (url->list (url-expand (url-complete u1 "dr"))))
              (u3 (map url->string (map url-tail u2)))
              (u4 (url->list (url-expand (url-complete u1 "fr"))))
-             (u5 (map url->string (map url-tail u4))))
-        (for-each (lambda (x) (unpack-dir (url-append src-dir x)
-                                          (url-append dest-dir x) type)) u3)
-        (for-each (lambda (x) (unpack-file x src-dir dest-dir type)) u5)))))
+             (u5 (map url->string (map url-tail u4)))
+            ) ;
+        (for-each (lambda (x) (unpack-dir (url-append src-dir x) (url-append dest-dir x) type))
+          u3
+        ) ;for-each
+        (for-each (lambda (x) (unpack-file x src-dir dest-dir type)) u5)
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Building manuals
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (build-manual* dir name lan next)
-  ;;(display* "-- build-manual " dir ", " name ", " lan "\n")
-  (let* ((root (cond ((== name "texmacs-user-manual")
-                      (string-append "main/man-manual." lan ".tm"))
+  ;; (display* "-- build-manual " dir ", " name ", " lan "\n")
+  (let* ((root (cond ((== name "texmacs-user-manual") (string-append "main/man-manual." lan ".tm"))
                      ((== name "texmacs-reference-manual")
-                      (string-append "main/man-reference." lan ".tm"))
+                      (string-append "main/man-reference." lan ".tm")
+                     ) ;
                      ((== name "texmacs-scheme-manual")
-                      (string-append "devel/scheme/scheme." lan ".tm"))
-                     (else "unknown.en.tm")))
-         (doc-dir "$TEXMACS_DOC_PATH"))
+                      (string-append "devel/scheme/scheme." lan ".tm")
+                     ) ;
+                     (else "unknown.en.tm")
+               ) ;cond
+         ) ;root
+         (doc-dir "$TEXMACS_DOC_PATH")
+        ) ;
     (if (url-exists? (url-unix doc-dir root))
-        (let* ((old-lan (get-output-language))
-               (new-lan (locale-to-language lan))
-               (u (url-resolve (url-unix doc-dir root) "r"))
-               (pdf (url-append dir (string-append name "." lan ".pdf")))
-               (cont (lambda ()
-                       (export-buffer-main (current-buffer) pdf "pdf" (list))
-                       (set-output-language old-lan)
-                       (user-delayed next))))
-          (cond ((url-exists? pdf) (user-delayed next))
-		((== new-lan old-lan) (tmdoc-expand-help-manual* u cont))
-                (else
-		  (set-output-language new-lan)
-		  (delayed
-		    (:idle 3000)
-		    (tmdoc-expand-help-manual* u cont)))))
-        (user-delayed next))))
+      (let* ((old-lan (get-output-language))
+             (new-lan (locale-to-language lan))
+             (u (url-resolve (url-unix doc-dir root) "r"))
+             (pdf (url-append dir (string-append name "." lan ".pdf")))
+             (cont (lambda ()
+                     (export-buffer-main (current-buffer) pdf "pdf" (list))
+                     (set-output-language old-lan)
+                     (user-delayed next)
+                   ) ;lambda
+             ) ;cont
+            ) ;
+        (cond ((url-exists? pdf) (user-delayed next))
+              ((== new-lan old-lan) (tmdoc-expand-help-manual* u cont))
+              (else (set-output-language new-lan)
+                (delayed (:idle 3000) (tmdoc-expand-help-manual* u cont))
+              ) ;else
+        ) ;cond
+      ) ;let*
+      (user-delayed next)
+    ) ;if
+  ) ;let*
+) ;define
 
 (define (build-manuals-sub* dir l next)
-  ;;(display* "-- build-manuals-sub " dir ", " l "\n")
-  (if (null? l) (user-delayed next)
-      (let* ((pdf (car l))
-             (man (if (== (url-suffix pdf) "pdf") (strip-suffix pdf) pdf))
-             (name (strip-suffix man))
-             (lan (url-suffix man))
-             (cont (lambda ()
-                     (build-manuals-sub* dir (cdr l) next))))
-        (build-manual* dir name lan cont))))
+  ;; (display* "-- build-manuals-sub " dir ", " l "\n")
+  (if (null? l)
+    (user-delayed next)
+    (let* ((pdf (car l))
+           (man (if (== (url-suffix pdf) "pdf") (strip-suffix pdf) pdf))
+           (name (strip-suffix man))
+           (lan (url-suffix man))
+           (cont (lambda () (build-manuals-sub* dir (cdr l) next)))
+          ) ;
+      (build-manual* dir name lan cont)
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (build-manuals* orig-dir dest-dir next)
-  ;;(display* "-- build-manuals " orig-dir ", " dest-dir "\n")
+  ;; (display* "-- build-manuals " orig-dir ", " dest-dir "\n")
   (let* ((u1 (url-append orig-dir "manual"))
          (u2 (url-append dest-dir "manual"))
          (u3 (url-append u1 (url-wildcard "*")))
          (u4 (url->list (url-expand (url-complete u3 "fr"))))
-         (u5 (map url->string (map url-tail u4))))
+         (u5 (map url->string (map url-tail u4)))
+        ) ;
     (if (url-exists? u1)
-        (begin
-          (when (not (url-exists? u2))
-            (display* "TeXmacs] Creating directory " u2 "\n")
-            (system-mkdir (url-expand u2))
-            (system-1 "chmod a+x" u2))
-          (build-manuals-sub* u2 u5 next))
-        (user-delayed next))))
+      (begin
+        (when (not (url-exists? u2))
+          (display* "TeXmacs] Creating directory " u2 "\n")
+          (system-mkdir (url-expand u2))
+          (system-1 "chmod a+x" u2)
+        ) ;when
+        (build-manuals-sub* u2 u5 next)
+      ) ;begin
+      (user-delayed next)
+    ) ;if
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Test file conversions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (test-texmacs-file x dir)
-  ;;(display* "-- test-texmacs-file " x ", " dir "\n")
+  ;; (display* "-- test-texmacs-file " x ", " dir "\n")
   (when (string-ends? x ".tm")
     (let* ((root (string-drop-right x 3))
            (tm-file (url-append dir x))
            (pdf-file (url-append dir (string-append root ".pdf")))
            (tex-file (url-append dir (string-append root ".tex")))
-           (opts (list :overwrite)))
+           (opts (list :overwrite))
+          ) ;
       (when (should-update? tm-file pdf-file)
         (with-aux tm-file
           (display* "TeXmacs]   Exporting " x " to Pdf\n")
@@ -232,15 +294,22 @@
           (export-buffer-main (current-buffer) pdf-file "pdf" opts)
           (display* "TeXmacs]   Exporting " x " to LaTeX\n")
           (set! current-save-target tex-file)
-          (export-buffer-main (current-buffer) tex-file "latex" opts))))))
+          (export-buffer-main (current-buffer) tex-file "latex" opts)
+        ) ;with-aux
+      ) ;when
+    ) ;let*
+  ) ;when
+) ;define
 
 (define (has-documentclass? u)
-  (with s (string-load u)
-    (or (string-occurs? "\\documentclass" s)
-        (string-occurs? "\\documentstyle" s))))
+  (with s
+    (string-load u)
+    (or (string-occurs? "\\documentclass" s) (string-occurs? "\\documentstyle" s))
+  ) ;with
+) ;define
 
 (define (test-latex-file x dir)
-  ;;(display* "-- test-latex-file " x ", " dir "\n")
+  ;; (display* "-- test-latex-file " x ", " dir "\n")
   (when (string-ends? x ".tex")
     (let* ((u1 (url-append dir (url-wildcard "*.tex")))
            (u2 (url->list (url-expand (url-complete u1 "fr"))))
@@ -248,14 +317,17 @@
            (tex-file (url-append dir x))
            (tm-file (url-append dir (string-append root ".tm")))
            (pdf-file (url-append dir (string-append root ".pdf")))
-           (opts (list :overwrite)))
+           (opts (list :overwrite))
+          ) ;
       (when (> (length u2) 1)
-        (with fu2 (list-filter u2 has-documentclass?)
-          (when (and (== (length fu2) 1)
-                     (== (url->string (url-tail (car fu2))) x))
-            (set! u2 fu2))))
-      (when (or (== (length u2) 1)
-                (in? x (list "main.tex" "paper.tex" "article.tex")))
+        (with fu2
+          (list-filter u2 has-documentclass?)
+          (when (and (== (length fu2) 1) (== (url->string (url-tail (car fu2))) x))
+            (set! u2 fu2)
+          ) ;when
+        ) ;with
+      ) ;when
+      (when (or (== (length u2) 1) (in? x (list "main.tex" "paper.tex" "article.tex")))
         (when (should-update? tex-file tm-file)
           (display* "TeXmacs]   Importing " x "\n")
           (convert-to-file tex-file "latex-file" "texmacs-file" tm-file)
@@ -265,22 +337,30 @@
             (update-forced)
             (display* "TeXmacs]   Exporting " x " to Pdf\n")
             (set! current-save-target pdf-file)
-            (export-buffer-main (current-buffer) pdf-file "pdf" opts)))))))
+            (export-buffer-main (current-buffer) pdf-file "pdf" opts)
+          ) ;with-aux
+        ) ;when
+      ) ;when
+    ) ;let*
+  ) ;when
+) ;define
 
 (define (test-arxiv-file x dir)
-  ;;(display* "-- test-arxiv-file " x ", " dir "\n")
-  (test-latex-file x dir))
+  ;; (display* "-- test-arxiv-file " x ", " dir "\n")
+  (test-latex-file x dir)
+) ;define
 
 (define (test-file x dir type)
-  ;;(display* "-- test-file " x ", " dir ", " type "\n")
+  ;; (display* "-- test-file " x ", " dir ", " type "\n")
   (cond ((== type "texmacs") (test-texmacs-file x dir))
         ((== type "latex") (test-latex-file x dir))
-        ((== type "arxiv") (test-arxiv-file x dir))))
+        ((== type "arxiv") (test-arxiv-file x dir))
+  ) ;cond
+) ;define
 
 (define (test-dir dir type)
-  ;;(display* "-- test-dir " dir ", " type "\n")
-  (let* ((last (url->string (url-tail dir)))
-         (accept (list "texmacs" "latex" "arxiv")))
+  ;; (display* "-- test-dir " dir ", " type "\n")
+  (let* ((last (url->string (url-tail dir))) (accept (list "texmacs" "latex" "arxiv")))
     (set! type (or type (and (in? last accept) last)))
     (when (url-exists? dir)
       (display* "TeXmacs] Entering directory " (url->system dir) "\n")
@@ -288,217 +368,270 @@
              (u2 (url->list (url-expand (url-complete u1 "dr"))))
              (u3 (map url->string (map url-tail u2)))
              (u4 (url->list (url-expand (url-complete u1 "fr"))))
-             (u5 (map url->string (map url-tail u4))))
+             (u5 (map url->string (map url-tail u4)))
+            ) ;
         (for-each (lambda (x) (test-dir (url-append dir x) type)) u3)
-        (for-each (lambda (x) (test-file x dir type)) u5)))))
+        (for-each (lambda (x) (test-file x dir type)) u5)
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (test-suite* orig-dir suffix next)
   (let* ((dir (url-expand (url-complete orig-dir "dr")))
          (head (url-head dir))
          (tail (url->string (url-tail dir)))
-         (dest-dir (url-append head (string-append tail suffix))))
+         (dest-dir (url-append head (string-append tail suffix)))
+        ) ;
     (unpack-dir dir dest-dir #f)
     (test-dir dest-dir #f)
-    (build-manuals* dir dest-dir next)))
+    (build-manuals* dir dest-dir next)
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Checking the test suite against a reference build
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define missing-dirs (list))
+
 (define missing-files (list))
+
 (define changed-files (list))
+
 (define changed-sizes (list))
+
 (define changed-properties (list))
 
 (define (compare-text-file x dir ref)
-  ;;(display* "-- compare-text-file " x ", " dir ", " ref "\n")
-  (let* ((new-file (url-append dir x))
-         (ref-file (url-append ref x)))
+  ;; (display* "-- compare-text-file " x ", " dir ", " ref "\n")
+  (let* ((new-file (url-append dir x)) (ref-file (url-append ref x)))
     (when (and (not (url-exists? new-file)) (url-exists? ref-file))
       (display* "TeXmacs] Missing file " (url->system x) "\n")
-      (set! missing-files (cons new-file missing-files)))
+      (set! missing-files (cons new-file missing-files))
+    ) ;when
     (when (and (url-exists? dir) (url-exists? ref))
       (display* "TeXmacs]   Comparing " (url->system x) "\n")
       (let* ((new-s (string-load new-file))
              (ref-s (string-load ref-file))
-             (dist (string-distance new-s ref-s)))
+             (dist (string-distance new-s ref-s))
+            ) ;
         (cond ((== dist 0) (noop))
               ((< dist 5) (noop))
-              (else
-                (display* "TeXmacs]     Changed " dist " bytes\n")
-                (with c (list new-file dist)
-                  (set! changed-files (cons c changed-files)))))))))
+              (else (display* "TeXmacs]     Changed " dist " bytes\n")
+                (with c (list new-file dist) (set! changed-files (cons c changed-files)))
+              ) ;else
+        ) ;cond
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (pdf-keep? s)
   (and (not (string-starts? s "CreationDate:"))
-       (not (string-starts? s "File size:"))))
+    (not (string-starts? s "File size:"))
+  ) ;and
+) ;define
 
 (define (pdf-info u)
-  (if (or (not (url-exists? u))
-          (not (url-exists-in-path? "pdfinfo")))
-      ""
-      (let* ((cmd (string-append "pdfinfo " (url->system u)))
-             (info (eval-system cmd))
-             (l (cpp-string-tokenize info "\n"))
-             (k (list-filter l pdf-keep?)))
-        (cpp-string-recompose k "\n"))))
+  (if (or (not (url-exists? u)) (not (url-exists-in-path? "pdfinfo")))
+    ""
+    (let* ((cmd (string-append "pdfinfo " (url->system u)))
+           (info (eval-system cmd))
+           (l (cpp-string-tokenize info "\n"))
+           (k (list-filter l pdf-keep?))
+          ) ;
+      (cpp-string-recompose k "\n")
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (compare-pdf-file x dir ref)
-  ;;(display* "-- compare-pdf-file " x ", " dir ", " ref "\n")
-  (let* ((new-file (url-append dir x))
-         (ref-file (url-append ref x)))
+  ;; (display* "-- compare-pdf-file " x ", " dir ", " ref "\n")
+  (let* ((new-file (url-append dir x)) (ref-file (url-append ref x)))
     (when (and (not (url-exists? new-file)) (url-exists? ref-file))
       (display* "TeXmacs] Missing file " (url->system x) "\n")
-      (set! missing-files (cons new-file missing-files)))
+      (set! missing-files (cons new-file missing-files))
+    ) ;when
     (when (and (url-exists? dir) (url-exists? ref))
       (display* "TeXmacs]   Comparing " (url->system x) "\n")
       (let* ((new-size (string-length (string-load new-file)))
              (ref-size (string-length (string-load ref-file)))
              (delta-size (- new-size ref-size))
              (new-s (pdf-info new-file))
-             (ref-s (pdf-info ref-file)))
+             (ref-s (pdf-info ref-file))
+            ) ;
         (when (> (abs delta-size) 150)
           (display* "TeXmacs]     Size change of " delta-size " bytes\n")
-          (with c (list new-file delta-size)
-            (set! changed-sizes (cons c changed-sizes))))
+          (with c (list new-file delta-size) (set! changed-sizes (cons c changed-sizes)))
+        ) ;when
         (when (!= new-s ref-s)
           (display* "TeXmacs]     Changed Pdf properties\n")
-          (with c (list new-file new-s)
-            (set! changed-properties (cons c changed-properties))))))))
+          (with c
+            (list new-file new-s)
+            (set! changed-properties (cons c changed-properties))
+          ) ;with
+        ) ;when
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (compare-texmacs-file x dir ref)
-  ;;(display* "-- compare-texmacs-file " x ", " dir ", " ref "\n")
-  (cond ((string-ends? x ".pdf")
-         (compare-pdf-file x dir ref))
-        ((string-ends? x ".tex")
-         (compare-text-file x dir ref))))
+  ;; (display* "-- compare-texmacs-file " x ", " dir ", " ref "\n")
+  (cond ((string-ends? x ".pdf") (compare-pdf-file x dir ref))
+        ((string-ends? x ".tex") (compare-text-file x dir ref))
+  ) ;cond
+) ;define
 
 (define (compare-latex-file x dir ref)
-  ;;(display* "-- compare-latex-file " x ", " dir ", " ref "\n")
-  (cond ((string-ends? x ".tm")
-         (compare-text-file x dir ref))
-        ((string-ends? x ".pdf")
-         (compare-pdf-file x dir ref))))
+  ;; (display* "-- compare-latex-file " x ", " dir ", " ref "\n")
+  (cond ((string-ends? x ".tm") (compare-text-file x dir ref))
+        ((string-ends? x ".pdf") (compare-pdf-file x dir ref))
+  ) ;cond
+) ;define
 
 (define (compare-arxiv-file x dir ref)
-  ;;(display* "-- compare-arxiv-file " x ", " dir ", " ref "\n")
-  (cond ((string-ends? x ".tm")
-         (compare-text-file x dir ref))
-        ((string-ends? x ".pdf")
-         (compare-pdf-file x dir ref))))
+  ;; (display* "-- compare-arxiv-file " x ", " dir ", " ref "\n")
+  (cond ((string-ends? x ".tm") (compare-text-file x dir ref))
+        ((string-ends? x ".pdf") (compare-pdf-file x dir ref))
+  ) ;cond
+) ;define
 
 (define (compare-manual-file x dir ref)
-  ;;(display* "-- compare-manual-file " x ", " dir ", " ref "\n")
-  (cond ((string-ends? x ".pdf")
-         (compare-pdf-file x dir ref))))
+  ;; (display* "-- compare-manual-file " x ", " dir ", " ref "\n")
+  (cond ((string-ends? x ".pdf") (compare-pdf-file x dir ref))
+  ) ;cond
+) ;define
 
 (define (compare-file x dir ref type)
-  ;;(display* "-- compare-file " x ", " dir ", " ref ", " type "\n")
+  ;; (display* "-- compare-file " x ", " dir ", " ref ", " type "\n")
   (cond ((== type "texmacs") (compare-texmacs-file x dir ref))
         ((== type "latex") (compare-latex-file x dir ref))
         ((== type "arxiv") (compare-arxiv-file x dir ref))
-        ((== type "manual") (compare-manual-file x dir ref))))
+        ((== type "manual") (compare-manual-file x dir ref))
+  ) ;cond
+) ;define
 
 (define (compare-dir dir ref type)
-  ;;(display* "-- compare-dir " dir ", " ref ", " type "\n")
+  ;; (display* "-- compare-dir " dir ", " ref ", " type "\n")
   (let* ((last (url->string (url-tail dir)))
-         (accept (list "texmacs" "latex" "arxiv" "manual")))
+         (accept (list "texmacs" "latex" "arxiv" "manual"))
+        ) ;
     (set! type (or type (and (in? last accept) last)))
     (when (and (not (url-exists? dir)) (url-exists? ref))
       (display* "TeXmacs] Missing directory " (url->system dir) "\n")
-      (set! missing-dirs (cons dir missing-dirs)))
+      (set! missing-dirs (cons dir missing-dirs))
+    ) ;when
     (when (and (url-exists? dir) (url-exists? ref))
       (display* "TeXmacs] Entering directory " (url->system dir) "\n")
       (let* ((u1 (url-append ref (url-wildcard "*")))
              (u2 (url->list (url-expand (url-complete u1 "dr"))))
              (u3 (map url->string (map url-tail u2)))
              (u4 (url->list (url-expand (url-complete u1 "fr"))))
-             (u5 (map url->string (map url-tail u4))))
-        (for-each (lambda (x) (compare-dir (url-append dir x)
-                                           (url-append ref x) type)) u3)
-        (for-each (lambda (x) (compare-file x dir ref type)) u5)))))
+             (u5 (map url->string (map url-tail u4)))
+            ) ;
+        (for-each (lambda (x) (compare-dir (url-append dir x) (url-append ref x) type))
+          u3
+        ) ;for-each
+        (for-each (lambda (x) (compare-file x dir ref type)) u5)
+      ) ;let*
+    ) ;when
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Generate status report
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (status-entry title dir x)
-  (let* ((u (if (list? x) (car x) x))
-         (d (url-delta (url-append dir "dummy") u)))
+  (let* ((u (if (list? x) (car x) x)) (d (url-delta (url-append dir "dummy") u)))
     (display* "  " (url->system d) "\n")
-    `(concat (item) (verbatim ,(url->system d)))))
+    `(concat (item) (verbatim ,(url->system d)))
+  ) ;let*
+) ;define
 
 (define (status-section title dir l)
-  (if (null? l) l
-      (begin
-        (display* "\n--------------------------------------------------\n")
-        (display* title)
-        (display* "\n--------------------------------------------------\n")
-        (list `(section* ,title)
-              `(itemize
-                (document
-                  ,@(map (cut status-entry title dir <>) (reverse l))))))))
+  (if (null? l)
+    l
+    (begin
+      (display* "\n--------------------------------------------------\n")
+      (display* title)
+      (display* "\n--------------------------------------------------\n")
+      (list `(section* ,title)
+        `(itemize (document ,@(map (cut status-entry title dir <>) (reverse l))))
+      ) ;list
+    ) ;begin
+  ) ;if
+) ;define
 
 (define (status-report dir)
   (let* ((u (url-append dir "status-report.tm"))
-         (l1 (status-section "Missing directories"
-                             dir missing-dirs))
-         (l2 (status-section "Missing files"
-                             dir missing-files))
-         (l3 (status-section "Files with important changes"
-                             dir changed-files))
-         (l4 (status-section "Files with changed sizes"
-                             dir changed-sizes))
-         (l5 (status-section "Pdf files with changed properties"
-                             dir changed-properties))
-         (l (append l1 l2 l3 l4 l5)))
+         (l1 (status-section "Missing directories" dir missing-dirs))
+         (l2 (status-section "Missing files" dir missing-files))
+         (l3 (status-section "Files with important changes" dir changed-files))
+         (l4 (status-section "Files with changed sizes" dir changed-sizes))
+         (l5 (status-section "Pdf files with changed properties" dir changed-properties))
+         (l (append l1 l2 l3 l4 l5))
+        ) ;
     (if (null? l)
-        (if (url-exists? u) (system-remove u))
-        (let* ((body `(document ,@l))
-               (doc `(document
-                       (TeXmacs ,(texmacs-version))
-                       (style "generic")
-                       (body ,body)))
-               (t (stree->tree doc))
-	       (d (convert t "texmacs-tree" "texmacs-document")))
-          (string-save d u)))))
+      (if (url-exists? u) (system-remove u))
+      (let* ((body `(document ,@l))
+             (doc `(document (TeXmacs ,(texmacs-version))
+                     (style "generic")
+                     (body ,body)))
+             (t (stree->tree doc))
+             (d (convert t "texmacs-tree" "texmacs-document"))
+            ) ;
+        (string-save d u)
+      ) ;let*
+    ) ;if
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Running the test suite
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (delayed-quit)
-  (user-delayed quit-TeXmacs))
+(tm-define (delayed-quit) (user-delayed quit-TeXmacs))
 
 (define (continue opts)
   (when (nnull? opts)
-    (for-each (lambda (opt) (opt)) opts)))
+    (for-each (lambda (opt) (opt)) opts)
+  ) ;when
+) ;define
 
 (tm-define (build-manual man-file . opts)
   (when (not (url-rooted? man-file))
-    (with pwd (getenv "PWD")
-      (set! man-file (url-append pwd man-file))))
+    (with pwd (getenv "PWD") (set! man-file (url-append pwd man-file)))
+  ) ;when
   (let* ((dir (url-head man-file))
          (pdf (url->system (url-tail man-file)))
          (man (if (== (url-suffix pdf) "pdf") (strip-suffix pdf) pdf))
          (name (strip-suffix man))
          (lan (url-suffix man))
          (cur (current-buffer))
-         (back (lambda () (switch-to-buffer cur) (continue opts))))
-    (build-manual* dir name lan back)))
+         (back (lambda () (switch-to-buffer cur) (continue opts)))
+        ) ;
+    (build-manual* dir name lan back)
+  ) ;let*
+) ;tm-define
 
 (tm-define (build-ref-suite orig-dir . opts)
   (let* ((cur (current-buffer))
-         (back (lambda () (switch-to-buffer cur) (continue opts))))
-    (test-suite* orig-dir "-ref" back)))
+         (back (lambda () (switch-to-buffer cur) (continue opts)))
+        ) ;
+    (test-suite* orig-dir "-ref" back)
+  ) ;let*
+) ;tm-define
 
 (define (run-test-suite-next orig-dir)
   (let* ((dir (url-expand (url-complete orig-dir "dr")))
          (head (url-head dir))
          (tail (url->string (url-tail dir)))
          (ref-dir (url-append head (string-append tail "-ref")))
-         (check-dir (url-append head (string-append tail "-check"))))
+         (check-dir (url-append head (string-append tail "-check")))
+        ) ;
     (when (url-exists? ref-dir)
       (set! missing-dirs (list))
       (set! missing-files (list))
@@ -506,10 +639,16 @@
       (set! changed-sizes (list))
       (set! changed-properties (list))
       (compare-dir check-dir ref-dir #f)
-      (status-report check-dir))))
+      (status-report check-dir)
+    ) ;when
+  ) ;let*
+) ;define
 
 (tm-define (run-test-suite orig-dir . opts)
   (let* ((cur (current-buffer))
          (next (lambda () (run-test-suite-next orig-dir) (continue opts)))
-         (cont (lambda () (switch-to-buffer cur) (user-delayed next))))
-    (test-suite* orig-dir "-check" cont)))
+         (cont (lambda () (switch-to-buffer cur) (user-delayed next)))
+        ) ;
+    (test-suite* orig-dir "-check" cont)
+  ) ;let*
+) ;tm-define

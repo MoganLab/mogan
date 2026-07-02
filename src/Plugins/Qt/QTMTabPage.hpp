@@ -33,6 +33,8 @@ class QTMTabPage : public QToolButton {
   Q_OBJECT
   QWK::WindowButton* m_closeBtn= nullptr;
   QPoint             m_dragStartPos;
+  bool               m_isDirty         = false;
+  bool               m_hoverOnCloseArea= false;
 
 public:
   const url m_viewUrl;
@@ -42,11 +44,19 @@ public:
                        bool p_isActive);
   explicit QTMTabPage ();
   virtual void paintEvent (QPaintEvent*) override;
+  bool         isDirty () const { return m_isDirty; }
+  /*! 同步已解析好的显示状态（干净标题 + dirty 标志）。
+   * replaceTabPages 复用既有 tab 时调用：srcTab 构造时已 applyDisplayTitle
+   * 解析过尾部 `*`，其 text() 是干净标题、isDirty() 是最新脏状态。复用的
+   * tab 必须同步这两者，否则 m_isDirty 停留在首次构造的旧值，编辑标脏/
+   * 保存去脏都不会反映到关闭按钮位置的 `*` 上。 */
+  void syncDisplay (const QString& cleanTitle, bool dirty);
 
 public slots:
   void setChecked (bool checked);
 
 protected:
+  virtual bool eventFilter (QObject* watched, QEvent* event) override;
   virtual void resizeEvent (QResizeEvent* e) override;
   virtual void mousePressEvent (QMouseEvent* e) override;
   virtual void mouseMoveEvent (QMouseEvent* e) override;
@@ -54,6 +64,8 @@ protected:
   virtual void leaveEvent (QEvent* e) override;
 
 private:
+  void applyDisplayTitle (const QString& rawTitle);
+  bool isPointerOnCloseArea (const QPoint& pos) const;
   void updateCloseButtonVisibility ();
   void initializeCloseButton (QAction* closeAction= nullptr);
 };
@@ -94,17 +106,30 @@ public:
   explicit QTMTabPageContainer (QWidget* p_parent);
   ~QTMTabPageContainer ();
 
+#ifdef LIII_DEBUG
+  // 测试用：每次 replaceTabPages 从 carrier 摄取 / deleteLater 移除的 tab 数，
+  // 以及 updateActiveTab 命中次数。release 下编译期剔除。
+  int debug_added_count  = 0;
+  int debug_removed_count= 0;
+  int debug_active_count = 0;
+  // 测试用：按 view-url 取现有 tab 指针，用于断言增量 diff 复用了同一对象
+  // （而非全量重建换新指针）。找不到返回 nullptr。
+  QTMTabPage* debug_findTab (const url& viewUrl) const;
+#endif
+
   inline void setRowHeight (int p_height) { m_rowHeight= p_height; }
-  void        replaceTabPages (QList<QAction*>* p_src);
-  void        arrangeTabPages ();
-  void        setHitTestVisibleForTabPages (QWK::WidgetWindowAgent* agent);
+  // 按 view-url 做增量 diff：复用已有 tab、摄取新增、移除多余，不全量重建。
+  void replaceTabPages (QList<QAction*>* p_src);
+  // 按 currentView 切换 active 高亮，仅遍历 setChecked，不重建 widget。
+  void updateActiveTab (const url& currentView);
+  void arrangeTabPages ();
+  void setHitTestVisibleForTabPages (QWK::WidgetWindowAgent* agent);
 
 signals:
   void addTabRequested ();
 
 private:
   void removeAllTabPages ();
-  void extractTabPages (QList<QAction*>* p_src);
   void adjustHeight (int p_rowCount);
   void onAddTabClicked ();
 

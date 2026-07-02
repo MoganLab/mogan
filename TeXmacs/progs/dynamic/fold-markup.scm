@@ -12,57 +12,75 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (dynamic fold-markup)
-  (:use (utils library tree)
-        (utils library cursor)
-        (dynamic fold-edit)))
+  (:use (utils library tree) (utils library cursor) (dynamic fold-edit))
+) ;texmacs-module
 
 (define (screens-parent? t)
-  (with p (tree-up t)
+  (with p
+    (tree-up t)
     (or (tree-is? p 'screens)
-	(and (tree-is? p 'document)
-	     (tree-is? (tree-up p) 'slideshow)))))
+      (and (tree-is? p 'document) (tree-is? (tree-up p) 'slideshow))
+    ) ;or
+  ) ;with
+) ;define
 
 (tm-define (screens-index body)
   (:secure #t)
-  (with t (tree-search-upwards body screens-parent?)
-    (if t (number->string (tree-index t)) "-1")))
+  (with t
+    (tree-search-upwards body screens-parent?)
+    (if t (number->string (tree-index t)) "-1")
+  ) ;with
+) ;tm-define
 
 (tm-define (screens-arity body)
   (:secure #t)
-  (with t (tree-search-upwards body screens-parent?)
-    (if t (number->string (tree-arity (tree-up t))) "-1")))
+  (with t
+    (tree-search-upwards body screens-parent?)
+    (if t (number->string (tree-arity (tree-up t))) "-1")
+  ) ;with
+) ;tm-define
 
 (define (screen-link i strong?)
   (if (== i "...")
-      "<cdots> "
-      (let* ((nr* (number->string (+ i 1)))
-             (nr (if strong? `(screens-emphasize ,nr*) nr*))
-             (s (number->string i))
-             (cmd (string-append "(screens-switch-to " s ")"))
-             (act `(action ,nr ,cmd)))
-        `(concat ,act " "))))
+    "<cdots> "
+    (let* ((nr* (number->string (+ i 1)))
+           (nr (if strong? `(screens-emphasize ,nr*) nr*))
+           (s (number->string i))
+           (cmd (string-append "(screens-switch-to " s ")"))
+           (act `(action ,nr ,cmd))
+          ) ;
+      `(concat ,act ," ")
+    ) ;let*
+  ) ;if
+) ;define
 
 (define (page-accept? p c n)
   (or (<= n 40)
-      (and (<= c 12) (<= p 24))
-      (and (>= c (- n 12)) (>= p (- n 24)))
-      (and (>= p (- c 12)) (<= p (+ c 12)))
-      (or (== p 0) (== p (- n 1)))
-      (== (remainder p 10) 9)))
+    (and (<= c 12) (<= p 24))
+    (and (>= c (- n 12)) (>= p (- n 24)))
+    (and (>= p (- c 12)) (<= p (+ c 12)))
+    (or (== p 0) (== p (- n 1)))
+    (== (remainder p 10) 9)
+  ) ;or
+) ;define
 
 (define (pages-list c b e)
   (cond ((>= b e) (list))
         ((page-accept? b c e) (cons b (pages-list c (+ b 1) e)))
         ((page-accept? (- b 1) c e) (cons "..." (pages-list c (+ b 1) e)))
-        (else (pages-list c (+ b 1) e))))
+        (else (pages-list c (+ b 1) e))
+  ) ;cond
+) ;define
 
 (tm-define (screens-bar body)
   (:secure #t)
-  (with t (tree-search-upwards body screens-parent?)
-    (if (not t) ""
-        (let* ((n (tree-arity (tree-up t)))
-               (c (tree-index t))
-               (l (pages-list c 0 n)))
-          `(concat 
-             ,@(map (lambda (x) (screen-link x (== x c))) l))))))
-
+  (with t
+    (tree-search-upwards body screens-parent?)
+    (if (not t)
+      ""
+      (let* ((n (tree-arity (tree-up t))) (c (tree-index t)) (l (pages-list c 0 n)))
+        `(concat ,@(map (lambda (x) (screen-link x (== x c))) l))
+      ) ;let*
+    ) ;if
+  ) ;with
+) ;tm-define

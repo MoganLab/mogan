@@ -11,37 +11,49 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (math math-speech-fr)
-  (:use (math math-speech)))
+(texmacs-module (math math-speech-fr) (:use (math math-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Sanitize input
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-table french-numbers
-  ("0" "zéro") ("1" "un") ("2" "deux") ("3" "trois") ("4" "quatre")
-  ("5" "cinq") ("6" "six") ("7" "sept") ("8" "huit") ("9" "neuf"))
+ ("0" "zéro")
+ ("1" "un")
+ ("2" "deux")
+ ("3" "trois")
+ ("4" "quatre")
+ ("5" "cinq")
+ ("6" "six")
+ ("7" "sept")
+ ("8" "huit")
+ ("9" "neuf")
+) ;define-table
 
-(define-table french-ambiguate
-  ("deux" "2/de"))
+(define-table french-ambiguate ("deux" "2/de"))
 
 (define (string-table-replace s t)
-  (with repl (lambda (x) (with y (ahash-ref t x) (if y (car y) x)))
-    (with l (string-decompose s " ")
-      (string-recompose (map repl l) " "))))
+  (with repl
+    (lambda (x) (with y (ahash-ref t x) (if y (car y) x)))
+    (with l (string-decompose s " ") (string-recompose (map repl l) " "))
+  ) ;with
+) ;define
 
 (tm-define (speech-pre-sanitize lan s)
   (:require (== lan 'french))
   (set! s (spaced-quotes s))
-  s)
+  s
+) ;tm-define
 
 (define (rewrite-/ s)
-  (with l (string-decompose s "/")
-    (if (and (== (length l) 2)
-             (string-number? (car l))
-             (string-number? (cadr l)))
-        (string-replace s "/" " @sur ")
-        s)))
+  (with l
+    (string-decompose s "/")
+    (if (and (== (length l) 2) (string-number? (car l)) (string-number? (cadr l)))
+      (string-replace s "/" " @sur ")
+      s
+    ) ;if
+  ) ;with
+) ;define
 
 (tm-define (speech-sanitize lan mode s)
   (:require (and (== lan 'french) (== mode 'math)))
@@ -74,22 +86,64 @@
   (set! s (string-replace s "  " " "))
   (set! s (tm-string-trim-both s))
   (set! s (french-normalize 'math s))
-  s)
+  s
+) ;tm-define
 
-(speech-collection dont-break french
-  "ah" "ai" "an" "ar" "as" "at" "au"
-  "el" "en" "es" "et" "eu" "ex" "ét"
-  "id" "il"
-  "oh" "ok" "on" "os" "ou"
+(speech-collection dont-break
+  french
+  "ah"
+  "ai"
+  "an"
+  "ar"
+  "as"
+  "at"
+  "au"
+  "el"
+  "en"
+  "es"
+  "et"
+  "eu"
+  "ex"
+  "ét"
+  "id"
+  "il"
+  "oh"
+  "ok"
+  "on"
+  "os"
+  "ou"
   "un"
-  "ye" "yo"
+  "ye"
+  "yo"
 
-  "la" "ma" "ta" "za"
-  "ce" "de" "he" "je" "le" "ne" "se" "te"
-  "bi" "hi" "ji" "pi" "si" "ti" "xi"
-  "ho" "no" "to"
-  "du" "mu" "nu" "tu"
-  "sy")
+  "la"
+  "ma"
+  "ta"
+  "za"
+  "ce"
+  "de"
+  "he"
+  "je"
+  "le"
+  "ne"
+  "se"
+  "te"
+  "bi"
+  "hi"
+  "ji"
+  "pi"
+  "si"
+  "ti"
+  "xi"
+  "ho"
+  "no"
+  "to"
+  "du"
+  "mu"
+  "nu"
+  "tu"
+  "sy"
+) ;speech-collection
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Normalization of French text (singular/plural, masculin/feminin, etc.)
@@ -97,247 +151,268 @@
 
 (define (french-resuffix* mode s suf1 suf2)
   (and (string-ends? s suf1)
-       (let* ((l1 (string-length s))
-              (l2 (string-length suf1))
-              (r  (string-append (substring s 0 (- l1 l2)) suf2)))
-         (and (>= l1 (+ l2 3))
-              (raw-speech-accepts? 'french mode r)
-              r))))
+    (let* ((l1 (string-length s))
+           (l2 (string-length suf1))
+           (r (string-append (substring s 0 (- l1 l2)) suf2))
+          ) ;
+      (and (>= l1 (+ l2 3)) (raw-speech-accepts? 'french mode r) r)
+    ) ;let*
+  ) ;and
+) ;define
 
 (define (french-resuffix mode s suf1 suf2)
-  (or (french-resuffix* mode s suf1 suf2)
-      (french-resuffix* mode s suf2 suf1)))
+  (or (french-resuffix* mode s suf1 suf2) (french-resuffix* mode s suf2 suf1))
+) ;define
 
 (define (french-normalize-one mode s)
   (or (and (raw-speech-accepts? 'french mode s) s)
-      (french-resuffix mode s "e" "")
-      (french-resuffix mode s "s" "")
-      (french-resuffix mode s "es" "")
-      (french-resuffix mode s "t" "")
-      (french-resuffix mode s "x" "")
-      (french-resuffix mode s "aux" "al")
-      (french-resuffix mode s "ère" "er")
-      (french-resuffix mode s "ères" "ers")
-      (french-resuffix mode s "ères" "er")
-      (french-resuffix mode s "ve" "f")
-      (french-resuffix mode s "ves" "f")
-      (french-resuffix mode s "ves" "fs")
-      (french-resuffix mode s "er" "")
-      (french-resuffix mode s "er" "e")
-      (french-resuffix mode s "er" "es")
-      (french-resuffix mode s "er" "ent")
-      (french-resuffix mode s "er" "é")
-      (french-resuffix mode s "er" "ée")
-      (french-resuffix mode s "er" "és")
-      (french-resuffix mode s "er" "ées")
-      (french-resuffix mode s "ir" "")
-      (french-resuffix mode s "ir" "e")
-      (french-resuffix mode s "ir" "es")
-      (french-resuffix mode s "ir" "ent")
-      (french-resuffix mode s "tir" "s")
-      (french-resuffix mode s "re" "")
-      (french-resuffix mode s "re" "s")
-      (french-resuffix mode s "re" "ent")
-      (french-resuffix mode s "qu'" "que")
-      s))
+    (french-resuffix mode s "e" "")
+    (french-resuffix mode s "s" "")
+    (french-resuffix mode s "es" "")
+    (french-resuffix mode s "t" "")
+    (french-resuffix mode s "x" "")
+    (french-resuffix mode s "aux" "al")
+    (french-resuffix mode s "ère" "er")
+    (french-resuffix mode s "ères" "ers")
+    (french-resuffix mode s "ères" "er")
+    (french-resuffix mode s "ve" "f")
+    (french-resuffix mode s "ves" "f")
+    (french-resuffix mode s "ves" "fs")
+    (french-resuffix mode s "er" "")
+    (french-resuffix mode s "er" "e")
+    (french-resuffix mode s "er" "es")
+    (french-resuffix mode s "er" "ent")
+    (french-resuffix mode s "er" "é")
+    (french-resuffix mode s "er" "ée")
+    (french-resuffix mode s "er" "és")
+    (french-resuffix mode s "er" "ées")
+    (french-resuffix mode s "ir" "")
+    (french-resuffix mode s "ir" "e")
+    (french-resuffix mode s "ir" "es")
+    (french-resuffix mode s "ir" "ent")
+    (french-resuffix mode s "tir" "s")
+    (french-resuffix mode s "re" "")
+    (french-resuffix mode s "re" "s")
+    (french-resuffix mode s "re" "ent")
+    (french-resuffix mode s "qu'" "que")
+    s
+  ) ;or
+) ;define
 
 (define (french-normalize-compute mode s)
-  (let* ((l (string-decompose s " "))
-         (r (map (cut french-normalize-one mode <>) l)))
-    (string-recompose r " ")))
+  (let* ((l (string-decompose s " ")) (r (map (cut french-normalize-one mode <>) l)))
+    (string-recompose r " ")
+  ) ;let*
+) ;define
 
 (define french-normal-table (make-ahash-table))
 
 (tm-define (french-normalize mode s)
-  (with key (list mode s)
+  (with key
+    (list mode s)
     (when (not (ahash-ref french-normal-table key))
-      (ahash-set! french-normal-table key (french-normalize-compute mode s)))
-    (ahash-ref french-normal-table key)))
+      (ahash-set! french-normal-table key (french-normalize-compute mode s))
+    ) ;when
+    (ahash-ref french-normal-table key)
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tables for recognizing mathematics inside text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-collection prefix french
-  "grand" "petit")
+(speech-collection prefix french "grand" "petit")
 
-(speech-collection postfix french
-  "majuscule" "minuscule"
-  "gras" "droit" "calligraphique" "fraktur" "gothique"
-  "tableau noir gras" "sans serif" "machine à écrire")
+(speech-collection postfix
+  french
+  "majuscule"
+  "minuscule"
+  "gras"
+  "droit"
+  "calligraphique"
+  "fraktur"
+  "gothique"
+  "tableau noir gras"
+  "sans serif"
+  "machine à écrire"
+) ;speech-collection
 
-(speech-collection prefix french
-  "exponentielle" "logarithme" "sinus" "cosinus" "tangente"
-  "racine carrée")
+(speech-collection prefix
+  french
+  "exponentielle"
+  "logarithme"
+  "sinus"
+  "cosinus"
+  "tangente"
+  "racine carrée"
+) ;speech-collection
 
-(speech-collection postfix french
-  "prime" "factoriel" "carré" "cube")
+(speech-collection postfix french "prime" "factoriel" "carré" "cube")
 
-(speech-collection math-mode french
-  "math" "maths" "matt" "mathématiques")
+(speech-collection math-mode french "math" "maths" "matt" "mathématiques")
 
-(speech-collection text-mode french
-  "text" "texte")
+(speech-collection text-mode french "text" "texte")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Entering mathematical symbols via French speech
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (speech-symbols french
-  ("zéro" "0")
-  ("un" "1")
-  ("deux" "2")
-  ("trois" "3")
-  ("quatre" "4")
-  ("cinq" "5")
-  ("six" "6")
-  ("sept" "7")
-  ("huit" "8")
-  ("neuf" "9")
-  ("dix" "10")
-  ("cent" "100")
-  ("mille" "1000")
-  ("million" "1000000")
-  ("milliard" "1000000000")
+ ("zéro" "0")
+ ("un" "1")
+ ("deux" "2")
+ ("trois" "3")
+ ("quatre" "4")
+ ("cinq" "5")
+ ("six" "6")
+ ("sept" "7")
+ ("huit" "8")
+ ("neuf" "9")
+ ("dix" "10")
+ ("cent" "100")
+ ("mille" "1000")
+ ("million" "1000000")
+ ("milliard" "1000000000")
 
-  ("a" "a")
-  ("à" "a")
-  ("b" "b")
-  ("c" "c")
-  ("d" "d")
-  ("e" "e")
-  ("f" "f")
-  ("g" "g")
-  ("h" "h")
-  ("i" "i")
-  ("j" "j")
-  ("k" "k")
-  ("l" "l")
-  ("m" "m")
-  ("n" "n")
-  ("o" "o")
-  ("p" "p")
-  ("q" "q")
-  ("r" "r")
-  ("s" "s")
-  ("t" "t")
-  ("u" "u")
-  ("v" "v")
-  ("w" "w")
-  ("x" "x")
-  ("y" "y")
-  ("z" "z")
+ ("a" "a")
+ ("à" "a")
+ ("b" "b")
+ ("c" "c")
+ ("d" "d")
+ ("e" "e")
+ ("f" "f")
+ ("g" "g")
+ ("h" "h")
+ ("i" "i")
+ ("j" "j")
+ ("k" "k")
+ ("l" "l")
+ ("m" "m")
+ ("n" "n")
+ ("o" "o")
+ ("p" "p")
+ ("q" "q")
+ ("r" "r")
+ ("s" "s")
+ ("t" "t")
+ ("u" "u")
+ ("v" "v")
+ ("w" "w")
+ ("x" "x")
+ ("y" "y")
+ ("z" "z")
 
-  ("alpha" "<alpha>")
-  ("beta" "<beta>")
-  ("gamma" "<gamma>")
-  ("delta" "<delta>")
-  ("epsilon" "<epsilon>")
-  ("zeta" "<zeta>")
-  ("eta" "<eta>")
-  ("theta" "<theta>")
-  ("iota" "<iota>")
-  ("kappa" "<kappa>")
-  ("lambda" "<lambda>")
-  ("mu" "<mu>")
-  ("nu" "<nu>")
-  ("xi" "<xi>")
-  ("omicron" "<omicron>")
-  ("pi" "<pi>")
-  ("rho" "<rho>")
-  ("sigma" "<sigma>")
-  ("tau" "<tau>")
-  ("upsilon" "<upsilon>")
-  ("phi" "<phi>")
-  ("psi" "<psi>")
-  ("chi" "<chi>")
-  ("omega" "<omega>")
+ ("alpha" "<alpha>")
+ ("beta" "<beta>")
+ ("gamma" "<gamma>")
+ ("delta" "<delta>")
+ ("epsilon" "<epsilon>")
+ ("zeta" "<zeta>")
+ ("eta" "<eta>")
+ ("theta" "<theta>")
+ ("iota" "<iota>")
+ ("kappa" "<kappa>")
+ ("lambda" "<lambda>")
+ ("mu" "<mu>")
+ ("nu" "<nu>")
+ ("xi" "<xi>")
+ ("omicron" "<omicron>")
+ ("pi" "<pi>")
+ ("rho" "<rho>")
+ ("sigma" "<sigma>")
+ ("tau" "<tau>")
+ ("upsilon" "<upsilon>")
+ ("phi" "<phi>")
+ ("psi" "<psi>")
+ ("chi" "<chi>")
+ ("omega" "<omega>")
 
-  ("constante e" "<mathe>")
-  ("constante i" "<mathi>")
-  ("constante pi" "<mathpi>")
-  ("constante gamma" "<mathgamma>")
-  ("constante d'euler" "<mathgamma>")
-  ("nombre e" "<mathe>")
-  ("nombre i" "<mathi>")
-  ("nombre pi" "<mathpi>")
-  ("nombre gamma" "<mathgamma>")
+ ("constante e" "<mathe>")
+ ("constante i" "<mathi>")
+ ("constante pi" "<mathpi>")
+ ("constante gamma" "<mathgamma>")
+ ("constante d'euler" "<mathgamma>")
+ ("nombre e" "<mathe>")
+ ("nombre i" "<mathi>")
+ ("nombre pi" "<mathpi>")
+ ("nombre gamma" "<mathgamma>")
 
-  ("infini" "<infty>")
-  ("complexes" "<bbb-C>")
-  ("entiers positifs" "<bbb-N>")
-  ("rationnels" "<bbb-Q>")
-  ("réels" "<bbb-R>")
-  ("entiers" "<bbb-Z>")
+ ("infini" "<infty>")
+ ("complexes" "<bbb-C>")
+ ("entiers positifs" "<bbb-N>")
+ ("rationnels" "<bbb-Q>")
+ ("réels" "<bbb-R>")
+ ("entiers" "<bbb-Z>")
 
-  ("plus" "+")
-  ("moins" "-")
-  ("fois" "*")
-  ("croix" "<times>")
-  ("appliquer" " ")
-  ("espace" " ")
-  ("rond" "<circ>")
-  ("tenseur" "<otimes>")
-  ("factoriel" "!")
+ ("plus" "+")
+ ("moins" "-")
+ ("fois" "*")
+ ("croix" "<times>")
+ ("appliquer" " ")
+ ("espace" " ")
+ ("rond" "<circ>")
+ ("tenseur" "<otimes>")
+ ("factoriel" "!")
 
-  ("égal" "=")
-  ("non égal" "<neq>")
-  ("défini par" "<assign>")
-  ("congru" "<equiv>")
-  ("inférieur" "<less>")
-  ("inférieur égal" "<leqslant>")
-  ("supérieur" "<gtr>")
-  ("supérieur égal" "<geqslant>")
-  ("dans" "<in>")
-  ("pas dans" "<nin>")
-  ("contient" "<ni>")
-  ("contient pas" "<nni>")
-  ("inclus dans" "<subset>")
-  ("strictement inclus dans" "<subset>")
-  ("inclus dans égal" "<subseteq>")
-  ("inclut" "<supset>")
-  ("inclut strictement" "<supset>")
-  ("inclut égal" "<supseteq>")
+ ("égal" "=")
+ ("non égal" "<neq>")
+ ("défini par" "<assign>")
+ ("congru" "<equiv>")
+ ("inférieur" "<less>")
+ ("inférieur égal" "<leqslant>")
+ ("supérieur" "<gtr>")
+ ("supérieur égal" "<geqslant>")
+ ("dans" "<in>")
+ ("pas dans" "<nin>")
+ ("contient" "<ni>")
+ ("contient pas" "<nni>")
+ ("inclus dans" "<subset>")
+ ("strictement inclus dans" "<subset>")
+ ("inclus dans égal" "<subseteq>")
+ ("inclut" "<supset>")
+ ("inclut strictement" "<supset>")
+ ("inclut égal" "<supseteq>")
 
-  ("similaire" "<sim>")
-  ("asymptotique" "<asymp>")
-  ;;("approx" "<approx>")
-  ("isomorphe" "<cong>")
-  ("négligeable" "<prec>")
-  ("dominé" "<preccurlyeq>")
-  ("domine" "<succcurlyeq>")
-  ("domine strictement" "<succ>")
+ ("similaire" "<sim>")
+ ("asymptotique" "<asymp>")
+ ;; ("approx" "<approx>")
+ ("isomorphe" "<cong>")
+ ("négligeable" "<prec>")
+ ("dominé" "<preccurlyeq>")
+ ("domine" "<succcurlyeq>")
+ ("domine strictement" "<succ>")
 
-  ("flèche" "<rightarrow>")
-  ("longue flèche" "<rightarrow>")
+ ("flèche" "<rightarrow>")
+ ("longue flèche" "<rightarrow>")
 
-  ("pour tout" "<forall>")
-  ("existe" "<exists>")
-  ("ou" "<vee>")
-  ("et" "<wedge>")
-  ("implique" "<Rightarrow>")
-  ("équivaut" "<Leftrightarrow>")
+ ("pour tout" "<forall>")
+ ("existe" "<exists>")
+ ("ou" "<vee>")
+ ("et" "<wedge>")
+ ("implique" "<Rightarrow>")
+ ("équivaut" "<Leftrightarrow>")
 
-  ("point" ".")
-  ("virgule" ",")
-  ("double point" ":")
-  ("point virgule" ";")
-  ("point d'exclamation" "!")
-  ("point d'interrogation" "?")
-  ("." ".")
-  ("," ",")
-  (":" ":")
-  (";" ";")
-  ("!" "!")
-  ("?" "?")
-  ("tel que" "<suchthat>")
-  )
+ ("point" ".")
+ ("virgule" ",")
+ ("double point" ":")
+ ("point virgule" ";")
+ ("point d'exclamation" "!")
+ ("point d'interrogation" "?")
+ ("." ".")
+ ("," ",")
+ (":" ":")
+ (";" ";")
+ ("!" "!")
+ ("?" "?")
+ ("tel que" "<suchthat>")
+) ;speech-symbols
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; More complex mathematical speech commands
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map french math
+(speech-map french
+  math
   ("grand" (speech-alter-letter :big))
   ("petit" (speech-alter-letter :small))
   ("majuscule" (speech-alter-letter* :big))
@@ -402,7 +477,7 @@
   (")" (speech-close))
   ("]" (speech-close))
   ("}" (speech-close))
-  
+
   ("arc cos" (speech-insert-operator "arccos"))
   ("arc sin" (speech-insert-operator "arcsin"))
   ("arc tan" (speech-insert-operator "arctan"))
@@ -449,9 +524,13 @@
   ("égal points égal" (speech-dots "=" "<cdots>"))
   ("similaire points similaire" (speech-dots "<sim>" "<cdots>"))
   ("inférieur points inférieur" (speech-dots "<less>" "<cdots>"))
-  ("inférieur égal points inférieur égal" (speech-dots "<leqslant>" "<cdots>"))
+  ("inférieur égal points inférieur égal"
+    (speech-dots "<leqslant>" "<cdots>")
+  ) ;
   ("supérieur points supérieur" (speech-dots "<gtr>" "<cdots>"))
-  ("supérieur égal points supérieur égal" (speech-dots "<geqslant>" "<cdots>"))
+  ("supérieur égal points supérieur égal"
+    (speech-dots "<geqslant>" "<cdots>")
+  ) ;
   ("rond points rond" (speech-dots "<circ>" "<cdots>"))
   ("tenseur points tenseur" (speech-dots "<otimes>" "<cdots>"))
 
@@ -487,14 +566,15 @@
   ("points diagonaux" (insert "<ddots>"))
   ("points montants" (insert "<udots>"))
 
-  ;;("more" "var")
-  )
+  ;; ("more" "var")
+) ;speech-map
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Commonly used unambiguous words for letters
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-reduce french math
+(speech-reduce french
+  math
   ("alice" "a")
   ("anatole" "a")
   ("anna" "a")
@@ -565,13 +645,15 @@
   ("xavier" "x")
   ("yvonne" "y")
   ("zoé" "z")
-  ("zurich" "z"))
+  ("zurich" "z")
+) ;speech-reduce
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Speech reductions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-reduce french math
+(speech-reduce french
+  math
   ("lettre a" "a")
   ("lettre b" "b")
   ("lettre c" "c")
@@ -697,7 +779,7 @@
 
   ("congru à" "congru")
   ("est congru à" "congru")
-  
+
   ("plus petit" "inférieur")
   ("plus petit que" "inférieur")
   ("est plus petit" "inférieur")
@@ -856,4 +938,4 @@
   ("grand tilde" "large tilde")
   ("grand barre" "large barre")
   ("en dessous" "dessous")
-  )
+) ;speech-reduce

@@ -19,9 +19,4 @@ string server_read (int fd);
 void   server_write (int fd, string s);
 bool   server_started ();
 
-int    client_start (string host);
-void   client_stop (int fd);
-string client_read (int fd);
-void   client_write (int fd, string s);
-
 #endif // defined CLIENT_SERVER_H

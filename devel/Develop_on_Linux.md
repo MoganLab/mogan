@@ -38,6 +38,26 @@ xmake build stem
 ### Step 3: Testing
 Refer to [How to Test](Test_EN.md)
 
+### Building the moebius submodule
+The project includes `moebius` as an xmake submodule via `includes("moebius")` in the top-level `xmake.lua`. It is built automatically as a dependency of `libmogan`, so you usually do not need to build it manually.
+
+If you want to build or test only moebius from the top-level directory:
+
+```bash
+xmake build libmoebius
+xmake test "moebius_tests/*"
+```
+
+### Building the lolly submodule
+The project includes `lolly` as an xmake submodule via `includes("lolly")` in the top-level `xmake.lua`. It is built automatically as a dependency of `libmoebius`, so you usually do not need to build it manually.
+
+If you want to build or test only lolly from the top-level directory:
+
+```bash
+xmake build liblolly
+xmake test "lolly_tests/*"
+```
+
 ### Step 4: Launch Mogan STEM
 ```bash
 xmake run stem

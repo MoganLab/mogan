@@ -33,7 +33,7 @@
 #include "PDFSymbol.h"
 #include "PDFStreamInput.h"
 #include "Trace.h"
-#include "BoxingBase.h"
+#include "SafeParse.h"
 #include "PDFStream.h"
 #include "IByteReader.h"
 #include "RefCountPtr.h"
@@ -41,9 +41,14 @@
 #include "IPDFParserExtender.h"
 #include "DecryptionHelper.h"
 
+#include <cerrno>
+#include <cstdlib>
 #include <sstream>
 
 using namespace PDFHummus;
+
+#define MAX_OBJECT_DEPTH 100 // While PDF does not explicitly define arrays and dicts depth...we do, due to call stack depth limit...and to avoid potential malarky.
+
 
 PDFObjectParser::PDFObjectParser(void)
 {
@@ -51,6 +56,7 @@ PDFObjectParser::PDFObjectParser(void)
 	mDecryptionHelper = NULL;
 	mOwnsStream = false;
 	mStream = NULL;
+	mDepth = 0;
 }
 
 PDFObjectParser::~PDFObjectParser(void)
@@ -78,6 +84,7 @@ void PDFObjectParser::ResetReadState()
 {
 	mTokenBuffer.clear();
 	mTokenizer.ResetReadState();
+	mDepth = 0;
 }
 
 void PDFObjectParser::ResetReadState(const PDFParserTokenizer& inExternalTokenizer)
@@ -552,15 +559,27 @@ bool PDFObjectParser::IsNumber(const std::string& inToken)
 	return isNumber;
 }
 
-typedef BoxingBaseWithRW<long long> LongLong;
-
 PDFObject* PDFObjectParser::ParseNumber(const std::string& inToken)
 {
 	// once we know this is a number, then parsing is easy. just determine if it's a real or integer, so as to separate classes for better accuracy
-	if(inToken.find(scDot) != inToken.npos)
-		return new PDFReal(Double(inToken));
-	else
-		return new PDFInteger(LongLong(inToken));
+	if(inToken.find(scDot) != inToken.npos) {
+		double realValue;
+		if(!PDFHummus::TryParse(inToken, realValue)) {
+			TRACE_LOG1("PDFObjectParser::ParseNumber, real-number token '%s' is not parseable", inToken.c_str());
+			return NULL;
+		}
+		return new PDFReal(realValue);
+	} else {
+		errno = 0;
+		// use strtoll to parse long long with overflow validation
+		long long integerValue = std::strtoll(inToken.c_str(), NULL, 10);
+		if(errno == ERANGE) {
+			TRACE_LOG1("PDFObjectParser::ParseNumber, integer overflow for token %s", inToken.c_str());
+			return NULL;
+		}
+
+		return new PDFInteger(integerValue);
+	}
 }
 
 static const std::string scLeftSquare = "[";
@@ -569,13 +588,39 @@ bool PDFObjectParser::IsArray(const std::string& inToken)
 	return scLeftSquare == inToken;
 }
 
+EStatusCode PDFObjectParser::IncreaseAndCheckDepth() {
+	++mDepth;
+	if(mDepth > MAX_OBJECT_DEPTH) {
+		TRACE_LOG1("PDFObjectParser::IncreaseAndCeckDepth, reached maximum allowed depth of %d", MAX_OBJECT_DEPTH);
+		return eFailure;
+	}
+
+	return eSuccess;
+}
+
+EStatusCode PDFObjectParser::DecreaseAndCheckDepth() {
+	--mDepth;
+	if(mDepth < 0) {
+		TRACE_LOG("PDFObjectParser::DecreaseAndCheckDepth, anomaly. managed to get to negative depth");
+		return eFailure;
+	}
+
+	return eSuccess;
+}
+
+
 static const std::string scRightSquare = "]";
 PDFObject* PDFObjectParser::ParseArray()
 {
-	PDFArray* anArray = new PDFArray();
+	PDFArray* anArray;
 	bool arrayEndEncountered = false;
 	std::string token;
 	EStatusCode status = PDFHummus::eSuccess;
+
+	if(IncreaseAndCheckDepth() != eSuccess)
+		return NULL;
+
+	anArray = new PDFArray();
 
 	// easy one. just loop till you get to a closing bracket token and recurse
 	while(GetNextToken(token) && PDFHummus::eSuccess == status)
@@ -596,6 +641,9 @@ PDFObject* PDFObjectParser::ParseArray()
 			anArray->AppendObject(anObject.GetPtr());
 		}
 	}
+
+	if(DecreaseAndCheckDepth() != eSuccess)
+		status = eFailure;
 
 	if(arrayEndEncountered && PDFHummus::eSuccess == status)
 	{
@@ -628,10 +676,15 @@ bool PDFObjectParser::IsDictionary(const std::string& inToken)
 static const std::string scDoubleRightAngle = ">>";
 PDFObject* PDFObjectParser::ParseDictionary()
 {
-	PDFDictionary* aDictionary = new PDFDictionary();
+	PDFDictionary* aDictionary;
 	bool dictionaryEndEncountered = false;
 	std::string token;
 	EStatusCode status = PDFHummus::eSuccess;
+
+	if(IncreaseAndCheckDepth() != eSuccess)
+		return NULL;
+
+	aDictionary = new PDFDictionary();
 
 	while(GetNextToken(token) && PDFHummus::eSuccess == status)
 	{
@@ -666,6 +719,9 @@ PDFObject* PDFObjectParser::ParseDictionary()
 			aDictionary->Insert(aKey.GetPtr(),aValue.GetPtr());
 	}
 
+	if(DecreaseAndCheckDepth() != eSuccess)
+		status = eFailure;
+		
 	if(dictionaryEndEncountered && PDFHummus::eSuccess == status)
 	{
 		return aDictionary;

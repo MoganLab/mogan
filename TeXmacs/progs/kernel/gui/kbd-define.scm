@@ -259,14 +259,14 @@
   ) ;let*
 ) ;tm-define
 
-(define kbd-find-prefix-tab-cache (make-hash-table))
+(define kbd-find-prefix-tab-cache (s7-make-hash-table))
 
 (tm-define (kbd-find-prefix-tab prefix)
   (let ((cached (hash-table-ref/default kbd-find-prefix-tab-cache prefix #f)))
     (if cached
       cached
       (let ((result (kbd-find-prefix-tab-inner prefix)))
-        (hash-table-set! kbd-find-prefix-tab-cache prefix result)
+        (s7-hash-table-set! kbd-find-prefix-tab-cache prefix result)
         result
       ) ;let
     ) ;if

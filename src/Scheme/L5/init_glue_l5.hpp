@@ -13,6 +13,10 @@
 #define INIT_GLUE_L5_HPP
 
 void initialize_glue_l5 ();
-void open_pricing_url ();
+void initialize_glue_basic ();
+void initialize_glue_editor ();
+void initialize_glue_font ();
+void initialize_glue_server ();
+void initialize_glue_widget ();
 
 #endif

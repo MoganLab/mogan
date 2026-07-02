@@ -14,7 +14,11 @@ using namespace moebius;
 
 // Declared in src/Edit/Modify/edit_table.cpp
 extern tree empty_table (int nr_rows, int nr_cols);
-extern tree default_table_tree (int nr_rows, int nr_cols);
+extern tree default_table_tree (int nr_rows, int nr_cols,
+                                bool enable_table_hyphen);
+extern bool table_default_hyphen_enabled (string mode);
+extern bool table_needs_document_wrap (string hyphen, string block,
+                                       string mode);
 
 class TestEditTable : public QObject {
   Q_OBJECT
@@ -26,6 +30,12 @@ private slots:
   void test_custom_border_colors_registered ();
   void test_adjacent_border_colors ();
   void test_adjacent_border_colors_on_cell_typeset ();
+  void test_default_table_tree_has_table_hyphen ();
+  void test_default_table_tree_twith_value ();
+  void test_default_hyphen_enabled_in_text_mode ();
+  void test_default_hyphen_disabled_in_math_mode ();
+  void test_default_table_tree_skips_table_hyphen_in_math_mode ();
+  void test_no_document_wrap_in_math_mode ();
 };
 
 void
@@ -40,7 +50,7 @@ TestEditTable::test_empty_table_structure () {
 
 void
 TestEditTable::test_default_table_tree_has_cell_hyphen () {
-  tree T= default_table_tree (2, 3);
+  tree T= default_table_tree (2, 3, true);
   QVERIFY (is_func (T, TFORMAT));
 
   // TFORMAT should contain: cwith, TABLE
@@ -61,7 +71,7 @@ TestEditTable::test_default_table_tree_has_cell_hyphen () {
 
 void
 TestEditTable::test_default_table_tree_cwith_range () {
-  tree T= default_table_tree (2, 3);
+  tree T= default_table_tree (2, 3, true);
   QVERIFY (is_func (T, TFORMAT));
 
   for (int i= 0; i < N (T); i++) {
@@ -127,6 +137,60 @@ TestEditTable::test_adjacent_border_colors_on_cell_typeset () {
   }
 
   QCOMPARE (cell1_finished_rborder, 0);
+}
+
+void
+TestEditTable::test_default_table_tree_has_table_hyphen () {
+  tree T= default_table_tree (2, 3, true);
+  QVERIFY (is_func (T, TFORMAT));
+
+  bool found= false;
+  for (int i= 0; i < N (T); i++) {
+    if (is_func (T[i], TWITH, 2) && T[i][0] == "table-hyphen") {
+      found= true;
+      break;
+    }
+  }
+  QVERIFY (found);
+}
+
+void
+TestEditTable::test_default_table_tree_twith_value () {
+  tree T= default_table_tree (2, 3, true);
+  QVERIFY (is_func (T, TFORMAT));
+
+  for (int i= 0; i < N (T); i++) {
+    if (is_func (T[i], TWITH, 2) && T[i][0] == "table-hyphen") {
+      QCOMPARE (T[i][1], "y");
+      return;
+    }
+  }
+  QFAIL ("table-hyphen twith not found");
+}
+
+void
+TestEditTable::test_default_hyphen_enabled_in_text_mode () {
+  QVERIFY (table_default_hyphen_enabled ("text"));
+}
+
+void
+TestEditTable::test_default_hyphen_disabled_in_math_mode () {
+  QVERIFY (!table_default_hyphen_enabled ("math"));
+}
+
+void
+TestEditTable::test_default_table_tree_skips_table_hyphen_in_math_mode () {
+  tree T= default_table_tree (2, 3, table_default_hyphen_enabled ("math"));
+  QVERIFY (is_func (T, TFORMAT));
+
+  for (int i= 0; i < N (T); i++) {
+    QVERIFY (!is_func (T[i], TWITH, 2) || T[i][0] != "table-hyphen");
+  }
+}
+
+void
+TestEditTable::test_no_document_wrap_in_math_mode () {
+  QVERIFY (!table_needs_document_wrap ("y", "no", "math"));
 }
 
 QTEST_MAIN (TestEditTable)

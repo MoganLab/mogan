@@ -58,9 +58,12 @@ public:
   /**
    * @brief 构造会话内容面板。
    * @param sessionId 所属会话 ID
+   * @param msgBufUrl 消息缓冲区 URL（外部注入）
+   * @param inBufUrl  输入缓冲区 URL（外部注入）
    * @param parent    父控件
    */
-  explicit ChatConversationPanel (const string& sessionId, QWidget* parent);
+  explicit ChatConversationPanel (const string& sessionId, const url& msgBufUrl,
+                                  const url& inBufUrl, QWidget* parent);
 
   /**
    * @brief 进入对话模式（隐藏欢迎页，显示消息区域）。
@@ -80,6 +83,7 @@ public:
 
   QToolButton*  sendButton () const { return sendButton_; }
   QToolButton*  thinkingButton () const { return thinkingButton_; }
+  QToolButton*  searchButton () const { return searchButton_; }
   QLabel*       sessionTitle () const { return sessionTitle_; }
   const string& sessionId () const { return sessionId_; }
   bool          conversationMode () const { return conversationMode_; }
@@ -119,7 +123,9 @@ public:
 signals:
   void sendRequested (const string& sessionId);
   void thinkingToggled (const string& sessionId, bool enabled);
+  void searchToggled (const string& sessionId, bool enabled);
   void inputHeightChanged ();
+  void closeSidebarInDockModeRequested ();
 
 protected:
   /// 事件过滤器：拦截 Enter 键触发发送
@@ -137,19 +143,22 @@ private:
   /// 根据内容动态调整输入区高度
   void adjust_input_height ();
 
-  string       sessionId_;                         ///< 所属会话 ID
-  bool         conversationMode_ = false;          ///< 是否已进入对话模式
-  QLabel*      welcomeTitle_     = nullptr;        ///< 欢迎页标题
-  QLabel*      sessionTitle_     = nullptr;        ///< 会话标题标签
-  QWidget*     messageFrame_     = nullptr;        ///< 消息区域容器
-  QWidget*     inputEditorWidget_= nullptr;        ///< 输入编辑器容器
-  QTMWidget*   inputQTMWidget_   = nullptr;        ///< 输入区 QTMWidget
-  QToolButton* sendButton_       = nullptr;        ///< 发送/停止按钮
-  QToolButton* thinkingButton_   = nullptr;        ///< 推理模式开关
-  QSpacerItem* topSpacer_        = nullptr;        ///< 欢迎页顶部弹性空间
-  widget       messageWidget_;                     ///< 消息区 TeXmacs widget
-  widget       inputWidget;                        ///< 输入区 TeXmacs widget
-  int          fixedFrameExtra_           = 0;     ///< 输入框额外高度（边框等）
+  string       sessionId_;                     ///< 所属会话 ID
+  url          msgBufferUrl_;                  ///< 消息缓冲区 URL（外部注入）
+  url          inputBufferUrl_;                ///< 输入缓冲区 URL（外部注入）
+  bool         conversationMode_ = false;      ///< 是否已进入对话模式
+  QLabel*      welcomeTitle_     = nullptr;    ///< 欢迎页标题
+  QLabel*      sessionTitle_     = nullptr;    ///< 会话标题标签
+  QWidget*     messageFrame_     = nullptr;    ///< 消息区域容器
+  QWidget*     inputEditorWidget_= nullptr;    ///< 输入编辑器容器
+  QTMWidget*   inputQTMWidget_   = nullptr;    ///< 输入区 QTMWidget
+  QToolButton* sendButton_       = nullptr;    ///< 发送/停止按钮
+  QToolButton* thinkingButton_   = nullptr;    ///< 推理模式开关
+  QToolButton* searchButton_     = nullptr;    ///< 网络搜索开关
+  QSpacerItem* topSpacer_        = nullptr;    ///< 欢迎页顶部弹性空间
+  widget       messageWidget_;                 ///< 消息区 TeXmacs widget
+  widget       inputWidget;                    ///< 输入区 TeXmacs widget
+  int          fixedFrameExtra_           = 0; ///< 输入框额外高度（边框等）
   bool         inputHeightAdjustScheduled_= false; ///< 是否已有待执行的高度更新
 };
 
@@ -183,14 +192,15 @@ public:
   ChatSidebar (const QList<SessionDisplayInfo>& sessions,
                const string& activeSessionId, QWidget* parent= nullptr);
 
+  ~ChatSidebar () override;
+
   // ---- 按场景调用的针对性方法（替代 refresh） ----
 
   /**
    * @brief 添加新的侧边栏项。
-   * @param sessionId   会话 ID
-   * @param displayTitle 显示标题
+   * @param info 会话显示数据
    */
-  void addItem (const string& sessionId, const string& displayTitle);
+  void addItem (const SessionDisplayInfo& info);
 
   /**
    * @brief 更新指定会话的显示标题。
@@ -231,6 +241,12 @@ public:
   // ---- 其他公共方法 ----
 
   /**
+   * @brief 将指定会话项移到活跃列表顶部。
+   * @param sessionId 目标会话 ID
+   */
+  void reorderItem (const string& sessionId);
+
+  /**
    * @brief 移除指定的侧边栏项。
    * @param sessionId 要移除的会话 ID
    */
@@ -269,8 +285,8 @@ signals:
   void multiArchiveRequested (const QList<string>& sessionIds);
 
 private:
-  QMap<string, SidebarItem> items_; ///< sessionId → SidebarItem 映射
-
+  QMap<string, SidebarItem> items_;            ///< sessionId → SidebarItem 映射
+  bool         destroying_            = false; ///< 析构进行中，禁止信号重入回调
   QLabel*      conversationCountLabel_= nullptr; ///< 活跃会话计数标签
   QWidget*     conversationListWidget_= nullptr; ///< 活跃会话列表容器
   QVBoxLayout* conversationListLayout_= nullptr; ///< 活跃会话列表布局
@@ -284,8 +300,7 @@ private:
   QLineEdit*   searchEdit_            = nullptr; ///< 搜索框
   bool         multiSelectMode_       = false;   ///< 是否处于多选模式
   bool         archiveSelectMode_     = false;   ///< 是否在归档区多选
-  QList<SessionDisplayInfo> sessionCache_;       ///< 会话显示数据缓存
-  string                    activeSessionId_;    ///< 当前激活的会话 ID
+  string       activeSessionId_;                 ///< 当前激活的会话 ID
 
   SidebarItem createItem (const string& sessionId); ///< 创建单个侧边栏项 widget
   void destroyItem (const string& sessionId);       ///< 销毁单个侧边栏项 widget

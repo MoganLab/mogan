@@ -14,6 +14,16 @@ function main()
     return {
         binding_object = "",
         initializer_name = "initialize_glue_patch",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "object_l3.hpp",
+            "scheme.hpp",
+            "patch.hpp",
+            "tree.hpp",
+            "glue_patch_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "patch-pair",
@@ -163,24 +173,6 @@ function main()
                 arg_list = {
                     "patch",
                     "content"
-                }
-            },
-            {
-                scm_name = "patch-apply",
-                cpp_name = "var_clean_apply",
-                ret_type = "tree",
-                arg_list = {
-                    "content",
-                    "patch"
-                }
-            },
-            {
-                scm_name = "patch-inplace-apply",
-                cpp_name = "var_apply",
-                ret_type = "tree",
-                arg_list = {
-                    "tree",
-                    "patch"
                 }
             },
             {

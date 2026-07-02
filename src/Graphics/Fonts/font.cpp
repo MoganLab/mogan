@@ -11,7 +11,8 @@
 
 #include "font.hpp"
 #include "Freetype/tt_file.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "convert.hpp"
 #include "cork.hpp"
 #include "dictionary.hpp"

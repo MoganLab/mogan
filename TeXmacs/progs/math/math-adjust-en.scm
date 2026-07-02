@@ -11,56 +11,72 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (math math-adjust-en)
-  (:use (math math-speech)))
+(texmacs-module (math math-adjust-en) (:use (math math-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Disambiguation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define differential-letters
-  (list "f" "g" "h" "s" "t" "u" "v" "w" "x" "y" "z"))
+(define differential-letters (list "f" "g" "h" "s" "t" "u" "v" "w" "x" "y" "z"))
 
 (define (english-5/phi)
   (if (stats-has-variant? "<phi>")
-      (speech-insert-symbol "<phi>")
-      (speech-insert-symbol "5")))
+    (speech-insert-symbol "<phi>")
+    (speech-insert-symbol "5")
+  ) ;if
+) ;define
 
 (define (english-d/b/p-* . l)
   (if (and (== (length l) 1) (in? (car l) differential-letters))
-      (speech-best-combination (list "<mathd>" "d" "b" "p") l)
-      (speech-best-combination (list "d" "b" "p") l)))
+    (speech-best-combination (list "<mathd>" "d" "b" "p") l)
+    (speech-best-combination (list "d" "b" "p") l)
+  ) ;if
+) ;define
 
 (define (english-*-d/b/p . l)
   ;; TODO: raise the priority of <mathd> in the presence of integrals
-  (speech-best-combination l (list "d" "b" "p" "<mathd>")))
+  (speech-best-combination l (list "d" "b" "p" "<mathd>"))
+) ;define
 
 (define (english-and)
   (if (stats-prefer? "<wedge>" "n" :normal)
-      (speech-insert-symbol "<wedge>")
-      (speech-insert-symbol "n")))
+    (speech-insert-symbol "<wedge>")
+    (speech-insert-symbol "n")
+  ) ;if
+) ;define
 
 (define (english-in)
   (if (stats-prefer? "n" "<in>" :strong)
-      (speech-insert-symbol "n")
-      (speech-insert-symbol "<in>")))
+    (speech-insert-symbol "n")
+    (speech-insert-symbol "<in>")
+  ) ;if
+) ;define
 
 (define (english-to)
   (if (inside? 'rsub)
-      (with-innermost t 'rsub
-        (with prev (tree-ref t :previous)
-          (if (and (tree? prev) (tree-is? prev 'big))
-              (speech-until)
-              (speech-insert-number "2"))))
-      (speech-insert-number "2")))
+    (with-innermost t
+      'rsub
+      (with prev
+        (tree-ref t :previous)
+        (if (and (tree? prev) (tree-is? prev 'big))
+          (speech-until)
+          (speech-insert-number "2")
+        ) ;if
+      ) ;with
+    ) ;with-innermost
+    (speech-insert-number "2")
+  ) ;if
+) ;define
 
 (define (english-for)
-  (with prev (expr-before-cursor)
-    (if (tm-is? prev 'big)
-        (speech-for)
-        (speech-insert-number "4"))))
+  (with prev
+    (expr-before-cursor)
+    (if (tm-is? prev 'big) (speech-for) (speech-insert-number "4"))
+  ) ;with
+) ;define
 
-(speech-map english math
+(speech-map english
+  math
   ;; a/e/8 ambiguity
   ("a/e/8" (speech-best-letter "a" "e" "8"))
   ("a/e/8 hat" (speech-best-accent "^" "a" "e"))
@@ -113,7 +129,7 @@
   ("d/v d/v" (speech-best-combination (list "d" "v") (list "d" "v")))
   ("d/v m/n" (speech-best-combination (list "d" "v") (list "m" "n")))
   ("d/v s/f" (speech-best-combination (list "d" "v") (list "s" "f")))
-  
+
   ;; m/n and related ambiguities
   ("m/n" (speech-insert-best "m" "n"))
   ("m/n b/p/d" (speech-best-combination (list "m" "n") (list "b" "p" "d")))
@@ -141,9 +157,10 @@
   ("and" (english-and))
   ("to" (english-to))
   ("for" (english-for))
-  )
+) ;speech-map
 
-(speech-map-wildcard english math
+(speech-map-wildcard english
+  math
   ("d/b/p *" (english-d/b/p-* "*"))
   ("* d/b/p" (english-*-d/b/p "*"))
   ("m/n *" (speech-best-combination (list "m" "n") (list "*")))
@@ -151,9 +168,10 @@
   ("s/f *" (speech-best-combination (list "s" "f") (list "*")))
   ("* s/f" (speech-best-combination (list "*") (list "s" "f")))
   ("* z/v" (speech-best-combination (list "*") (list "z" "v")))
-  )
+) ;speech-map-wildcard
 
-(speech-reduce english math
+(speech-reduce english
+  math
   ("plus eight" "plus a/e/8")
   ("minus eight" "minus a/e/8")
   ("times eight" "times a/e/8")
@@ -185,95 +203,264 @@
   ("five bar" "phi bar")
 
   ("the" "d/v")
-  )
+) ;speech-reduce
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tables to adjust recognition of mathematics inside text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-collection dangerous english
+(speech-collection dangerous
+  english
   ;; explicit commands
-  "to" "factor" "power" "set" "element"
+  "to"
+  "factor"
+  "power"
+  "set"
+  "element"
 
   ;; digits
   "too"
 
   ;; latin letters
-  "a" "be" "sea" "seat" "see" "de" "day" "the"
-  "he" "eat" "each" "if" "age" "edge"
-  "i" "eye" "eyes" "either" "iron" "ok" "cake" "care" "case" "all" "old"
-  "an" "and" "piece" "queue" "cute"
-  "are" "art" "our" "yes" "chease" "tea" "team"
-  "via" "you" "vegan" "ask" "eggs" "thanks" "why"
+  "a"
+  "be"
+  "sea"
+  "seat"
+  "see"
+  "de"
+  "day"
+  "the"
+  "he"
+  "eat"
+  "each"
+  "if"
+  "age"
+  "edge"
+  "i"
+  "eye"
+  "eyes"
+  "either"
+  "iron"
+  "ok"
+  "cake"
+  "care"
+  "case"
+  "all"
+  "old"
+  "an"
+  "and"
+  "piece"
+  "queue"
+  "cute"
+  "are"
+  "art"
+  "our"
+  "yes"
+  "chease"
+  "tea"
+  "team"
+  "via"
+  "you"
+  "vegan"
+  "ask"
+  "eggs"
+  "thanks"
+  "why"
 
   ;; greek letters
-  "grandma" "theater" "yoga" "copper" "laptop"
-  "mute" "mood" "no" "new" "gnu" "knew" "site" "bye" "pie" "pipe"
-  "road" "row" "role" "roll" "ciao" "towel" "tall" "toe" "toll" "town"
-  "fight" "find" "fine" "fly" "sigh" "side" "size" "kind" "sky"
+  "grandma"
+  "theater"
+  "yoga"
+  "copper"
+  "laptop"
+  "mute"
+  "mood"
+  "no"
+  "new"
+  "gnu"
+  "knew"
+  "site"
+  "bye"
+  "pie"
+  "pipe"
+  "road"
+  "row"
+  "role"
+  "roll"
+  "ciao"
+  "towel"
+  "tall"
+  "toe"
+  "toll"
+  "town"
+  "fight"
+  "find"
+  "fine"
+  "fly"
+  "sigh"
+  "side"
+  "size"
+  "kind"
+  "sky"
 
   ;; letter combinations
-  "ecu" "easy" "bi" "busy" "agency" "icy" "ma" "empty" "auntie" "envy"
-  "annex" "pity" "peezy" "cutie" "essay" "usually" "excess" "whitey"
+  "ecu"
+  "easy"
+  "bi"
+  "busy"
+  "agency"
+  "icy"
+  "ma"
+  "empty"
+  "auntie"
+  "envy"
+  "annex"
+  "pity"
+  "peezy"
+  "cutie"
+  "essay"
+  "usually"
+  "excess"
+  "whitey"
 
   ;; variants
-  "pick" "plastic"
-  "both" "bowl" "build" "bouquet"
+  "pick"
+  "plastic"
+  "both"
+  "bowl"
+  "build"
+  "bouquet"
   "tractor"
 
   ;; binary operators and relations
-  "class" "does" "play" "blessed" "please" "press" "minors"
-  "time" "dancer"
+  "class"
+  "does"
+  "play"
+  "blessed"
+  "please"
+  "press"
+  "minors"
+  "time"
+  "dancer"
 
   ;; textual operators
-  "cosign" "lock" "luck" "look" "unlock" "timeslot"
+  "cosign"
+  "lock"
+  "luck"
+  "look"
+  "unlock"
+  "timeslot"
 
   ;; brackets
-  "bill" "seal" "cool" "tower" "final" "offbeat" "fan" "offend"
-  "far" "office" "coffee" "affects" "effects" "fax" "fedex" "fix"
-  "facts" "opposite" "offsite"
+  "bill"
+  "seal"
+  "cool"
+  "tower"
+  "final"
+  "offbeat"
+  "fan"
+  "offend"
+  "far"
+  "office"
+  "coffee"
+  "affects"
+  "effects"
+  "fax"
+  "fedex"
+  "fix"
+  "facts"
+  "opposite"
+  "offsite"
 
   ;; punctuation, brackets, big operators
-  "dutch" "ducks" "of" "off" "some"
+  "dutch"
+  "ducks"
+  "of"
+  "off"
+  "some"
 
   ;; fractions, subscripts, superscripts
-  "offer" "oversee" "overall" "overview"
-  "saturday" "bishop" "sake" "subversion" "subway" "pizza" "visa"
+  "offer"
+  "oversee"
+  "overall"
+  "overview"
+  "saturday"
+  "bishop"
+  "sake"
+  "subversion"
+  "subway"
+  "pizza"
+  "visa"
 
   ;; wide accents
-  "white" "head" "had" "hit" "hunt" "hurt" "pet" "cuba"
+  "white"
+  "head"
+  "had"
+  "hit"
+  "hunt"
+  "hurt"
+  "pet"
+  "cuba"
 
   ;; miscellaneous
-  "it's" "write"
+  "it's"
+  "write"
 
   ;; dangerous adjustments
-  "by" "my" "sign" "end")
+  "by"
+  "my"
+  "sign"
+  "end"
+) ;speech-collection
 
-(speech-collection dangerous english
-  "is")
+(speech-collection dangerous english "is")
 
-(speech-collection skip-start english
-  "and" "in" "or"
-  "the" "integer" "integers" "rational" "rationals" "real" "reals"
-  "sum" "product" "integral"
-  "quotient" "remainder")
+(speech-collection skip-start
+  english
+  "and"
+  "in"
+  "or"
+  "the"
+  "integer"
+  "integers"
+  "rational"
+  "rationals"
+  "real"
+  "reals"
+  "sum"
+  "product"
+  "integral"
+  "quotient"
+  "remainder"
+) ;speech-collection
 
-(speech-collection skip-end english
-  "are" "as" "be" "he" "if" "in" "me" "or" "we"
-  "quotient" "remainder")
+(speech-collection skip-end
+  english
+  "are"
+  "as"
+  "be"
+  "he"
+  "if"
+  "in"
+  "me"
+  "or"
+  "we"
+  "quotient"
+  "remainder"
+) ;speech-collection
 
-(speech-collection skip english
-  "and" "such" "that")
+(speech-collection skip english "and" "such" "that")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adjust wrongly recognized words
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-adjust english math
+(speech-adjust english
+  math
   ;; Adjust digits
   ("too" "two")
   ("digit to" "digit two")
-  
+
   ;; Adjust latin letters
   ("hey" "a")
   ("be" "b")
@@ -350,7 +537,7 @@
   ("at work" "edward")
   ("hairy" "harry")
   ("isak" "isaac")
-  
+
   ;; Adjust greek letters
   ("l5" "alpha")
   ("b that" "beta")
@@ -734,7 +921,7 @@
   ("sans serif v r" "sans serif v")
   ("sans serif v data" "sans serif beta")
   ("sans serif side" "sans serif psi")
-  
+
   ;; Adjust 'letter plus' and 'plus letter'
   ("class" "plus")
   ("does" "plus")
@@ -751,7 +938,7 @@
   ("plus speed" "plus p")
   ("plus a row" "plus rho")
   ("plus find" "plus phi")
-  
+
   ;; Adjust 'letter minus' and 'minus letter'
   ("midas" "minus")
   ("minas" "minus")
@@ -899,7 +1086,7 @@
   ("comma v t" "comma v")
   ("kamasi" "comma z")
   ("comma doubt" "comma tau")
-  
+
   ;; Adjust brackets
   ("off" "of")
   ("of of" "of")
@@ -922,7 +1109,7 @@
   ("can you" "k of")
   ("lol" "l of")
   ("emma" "m of")
-  ("i am a" "m of") 
+  ("i am a" "m of")
   ("i'm of" "m of")
   ("eno" "n of")
   ("i know" "n of")
@@ -1190,13 +1377,14 @@
   ("leaf" "leave")
   ("leafs" "leave")
   ("leaves" "leave")
-  )
+) ;speech-adjust
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Further, more dangerous adjustments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-adjust english math
+(speech-adjust english
+  math
   ("08" "o a")
   ("28" "2 a")
   ("38" "3 a")
@@ -1230,4 +1418,4 @@
   ("104" "one over")
 
   ("exercise" "x i")
-  )
+) ;speech-adjust

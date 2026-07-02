@@ -15,6 +15,10 @@
 
 (texmacs-module (kernel regexp regexp-test) (:use (kernel regexp regexp-match)))
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Example of a grammar for regular expressions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -27,39 +31,27 @@
 ;; Regtest routines for regexp
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-regexp-match)
+(define (test-regexp-match)
   ;; Basic test to ensure regexp module loads without errors
-  (regression-test-group "regexp"
-    "match"
-    values
-    values
-    (test "module loaded successfully" #t #t)
-    (test "match? function available" (defined? 'match?) #t)
-    (test "define-regexp-grammar macro available"
-      (defined? 'define-regexp-grammar)
-      #t
-    ) ;test
-    (test "match function available" (defined? 'match) #t)
-    (test "match-term table available" (defined? 'match-term) #t)
-    (test "bindings-add function available" (defined? 'bindings-add) #t)
-    (test "define-regexp-grammar-decls function available"
-      (defined? 'define-regexp-grammar-decls)
-      #t
-    ) ;test
-    (test "display* function available" (defined? 'display*) #t)
-    (test "cons function available" (defined? 'cons) #t)
-    (test "list function available" (defined? 'list) #t)
-    (test "append function available" (defined? 'append) #t)
-    (test "for-each function available" (defined? 'for-each) #t)
-    (test "ahash-set! function available" (defined? 'ahash-set!) #t)
-    (test "ahash-ref function available" (defined? 'ahash-ref) #t)
-    (test "make-ahash-table function available" (defined? 'make-ahash-table) #t)
-  ) ;regression-test-group
+  (check #t => #t)
+  (check (defined? 'match?) => #t)
+  (check (defined? 'define-regexp-grammar) => #t)
+  (check (defined? 'match) => #t)
+  (check (defined? 'match-term) => #t)
+  (check (defined? 'bindings-add) => #t)
+  (check (defined? 'define-regexp-grammar-decls) => #t)
+  (check (defined? 'display*) => #t)
+  (check (defined? 'cons) => #t)
+  (check (defined? 'list) => #t)
+  (check (defined? 'append) => #t)
+  (check (defined? 'for-each) => #t)
+  (check (defined? 'ahash-set!) => #t)
+  (check (defined? 'ahash-ref) => #t)
+  (check (defined? 'make-ahash-table) => #t)
 ) ;define
 
-(tm-define (regtest-regexp)
-  (let ((n (regtest-regexp-match)))
-    (display* "Total: " (number->string n) " tests.\n")
-    (display "Test suite of regtest-regexp: ok\n")
-  ) ;let
-) ;tm-define
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (regtest-regexp) (test-regexp-match) (check-report))

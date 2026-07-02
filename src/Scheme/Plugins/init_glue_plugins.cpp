@@ -16,99 +16,25 @@
 #include "s7_tm.hpp"
 
 #include "Xml/xml.hpp"
-#include "glue_xml.cpp"
 
 #ifdef USE_PLUGIN_HTML
 #include "Html/html.hpp"
-#include "glue_html.cpp"
 #endif
-
-bool
-use_plugin_updater () {
-#ifdef USE_PLUGIN_SPARKLE
-  return true;
-#else
-  return false;
-#endif
-}
-
-#ifdef USE_PLUGIN_SPARKLE
-#include "Updater/tm_updater.hpp"
-#include "glue_updater.cpp"
-#endif
-
-bool
-use_plugin_tex () {
-#ifdef USE_PLUGIN_TEX
-  return true;
-#else
-  return false;
-#endif
-}
 
 #ifdef USE_PLUGIN_TEX
 #include "Tex/tex.hpp"
-#include "glue_tex.cpp"
 #endif
-
-bool
-use_plugin_bibtex () {
-#ifdef USE_PLUGIN_BIBTEX
-  return true;
-#else
-  return false;
-#endif
-}
 
 #ifdef USE_PLUGIN_BIBTEX
 #include "Bibtex/bibtex.hpp"
 #include "Bibtex/bibtex_functions.hpp"
-#include "glue_bibtex.cpp"
 #endif
-
-bool
-supports_native_pdf () {
-#ifdef USE_PLUGIN_PDF
-  return true;
-#else
-  return false;
-#endif
-}
-
-string
-pdfhummus_version () {
-  return string (PDFHUMMUS_VERSION);
-}
 
 #ifdef USE_PLUGIN_PDF
 #include "Pdf/pdf_hummus_extract_attachment.hpp"
 #include "Pdf/pdf_hummus_make_attachment.hpp"
 #include "Pdf/pdf_image.hpp"
-
-array<int>
-pdfhummus_image_size (url pdf_image) {
-  int w= 0, h= 0;
-  hummus_pdf_image_size (pdf_image, w, h);
-  return array (w, h);
-}
-
-#include "glue_pdf.cpp"
 #endif
-
-bool
-supports_ghostscript () {
-#ifdef USE_PLUGIN_GS
-  return true;
-#else
-  return false;
-#endif
-}
-
-#ifdef USE_PLUGIN_GS
-#include "glue_ghostscript.cpp"
-#endif
-
-#include "glue_plugin.cpp"
 
 void
 initialize_glue_plugins () {

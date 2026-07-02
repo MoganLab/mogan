@@ -44,6 +44,8 @@ private slots:
 
   void init () { init_lolly (); }
 
+  void cleanup () { cleanup_qt_top_level_widgets (); }
+
   void test_creation () {
     PDFReaderWidget* widget= new PDFReaderWidget ();
     QVERIFY (widget != nullptr);
@@ -448,8 +450,9 @@ private slots:
     QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, end);
     QApplication::processEvents ();
 
-    // QScroller 的滚动更新是异步的，给一点时间让动画生效
-    QTest::qWait (100);
+    // QScroller 的滚动更新是异步的，轮询等待拖拽动画把滚动条值推进到预期
+    QVERIFY (
+        QTest::qWaitFor ([&] () { return vbar->value () < initialPos; }, 1000));
 
     int newPos= vbar->value ();
     QVERIFY (newPos < initialPos);
@@ -661,8 +664,9 @@ private slots:
     QTest::mouseRelease (vp, Qt::LeftButton, Qt::NoModifier, QPoint (50, 100));
     int releasePos= vbar->value ();
 
-    // 释放后等待一小段时间，惯性滚动应使值继续变化
-    QTest::qWait (80);
+    // 释放后惯性滚动应使值继续变化，轮询等待动画推进
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->value () != releasePos; },
+                              1000));
     int afterInertia= vbar->value ();
     QVERIFY (afterInertia != releasePos);
 
@@ -1305,6 +1309,171 @@ private slots:
 
     // 不满足半屏贴靠条件，应保持默认 100% 缩放
     QCOMPARE (widget->zoomFactor (), 1.0);
+    delete widget;
+  }
+
+  // ============================================================
+  // Zoom position preservation tests (TDD for issue #0192)
+  // ============================================================
+
+  void test_setZoomFactor_preservesContentPosition () {
+    // When zooming via setZoomFactor, the scroll position should be
+    // adjusted so that the same content point stays at the viewport center.
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      QSKIP ("No test PDF");
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    // First zoom in to 1.5x so we have more scrollable area
+    widget->setZoomFactor (1.5);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+    QVERIFY (vbar->maximum () > 0);
+
+    // Scroll to a non-trivial position
+    vbar->setValue (vbar->maximum () / 2);
+    QApplication::processEvents ();
+
+    // Record the absolute content Y coordinate at viewport center
+    int    scrollY1      = vbar->value ();
+    int    viewportHeight= widget->viewport ()->height ();
+    double contentYBefore= static_cast<double> (scrollY1) +
+                           static_cast<double> (viewportHeight) / 2.0;
+
+    // Zoom in further — content size scales by 2.0/1.5 = 1.333x
+    double oldZoom= 1.5;
+    double newZoom= 2.0;
+    widget->setZoomFactor (newZoom);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    int    scrollY2     = vbar->value ();
+    double contentYAfter= static_cast<double> (scrollY2) +
+                          static_cast<double> (viewportHeight) / 2.0;
+
+    // After zoom, the content Y that was at viewport center should
+    // have scaled by the zoom ratio. So:
+    //   contentYAfter ≈ contentYBefore * (newZoom / oldZoom)
+    double expectedContentY= contentYBefore * (newZoom / oldZoom);
+    double tolerance       = expectedContentY * 0.05; // 5% tolerance
+    QVERIFY2 (qAbs (contentYAfter - expectedContentY) <= tolerance,
+              "Content position under viewport center shifted after zoom");
+    delete widget;
+  }
+
+  void test_wheelZoom_preservesContentPosition () {
+    // When zooming via Ctrl+wheel, the scroll position should be
+    // adjusted so that the content under the cursor stays under the cursor.
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      QSKIP ("No test PDF");
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    // First zoom in to 1.5x so we have more scrollable area
+    widget->setZoomFactor (1.5);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    vbar->setValue (vbar->maximum () / 2);
+    QApplication::processEvents ();
+
+    // Cursor is at viewport position (50, 50)
+    QPoint cursorPos (50, 50);
+    double oldZoom         = widget->zoomFactor ();
+    double contentYAtCursor= static_cast<double> (vbar->value ()) +
+                             static_cast<double> (cursorPos.y ());
+
+    // Ctrl+wheel zoom in
+    QWheelEvent wheelEvent (QPointF (cursorPos), QPointF (cursorPos),
+                            QPoint (0, 0), QPoint (0, 120), Qt::NoButton,
+                            Qt::ControlModifier, Qt::NoScrollPhase, false);
+    QApplication::sendEvent (widget->viewport (), &wheelEvent);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    double newZoom= widget->zoomFactor ();
+
+    double contentYAtCursorAfter= static_cast<double> (vbar->value ()) +
+                                  static_cast<double> (cursorPos.y ());
+
+    // After zoom, the content point that was under the cursor should
+    // have been scaled by the zoom ratio.
+    double expectedContentY= contentYAtCursor * (newZoom / oldZoom);
+    double tolerance       = qMax (expectedContentY * 0.05, 5.0); // 5% or 5px
+    QVERIFY2 (qAbs (contentYAtCursorAfter - expectedContentY) <= tolerance,
+              "Content under cursor shifted after wheel zoom");
+    delete widget;
+  }
+
+  void test_wheelZoom_roundTrip_preservesScrollRatio () {
+    // Use setZoomFactor for both zoom-in and zoom-out so that the same
+    // anchor (viewport center) is used in both directions. The scroll
+    // position should return to the original after a round-trip.
+    PDFReaderWidget* widget= new PDFReaderWidget ();
+    widget->resize (200, 100);
+    widget->show ();
+
+    url pdfUrl= url_system ("$TEXMACS_PATH/tests/PDF/pdf_1_4_sample.pdf");
+    if (!is_regular (pdfUrl)) {
+      delete widget;
+      QSKIP ("No test PDF");
+    }
+    widget->loadFromFile (to_qstring (as_string (pdfUrl)));
+    QApplication::processEvents ();
+
+    QScrollBar* vbar= widget->verticalScrollBar ();
+    QVERIFY (QTest::qWaitFor ([&] () { return vbar->maximum () > 0; }, 1000));
+
+    // First zoom in to 1.5x so we have more scrollable area
+    widget->setZoomFactor (1.5);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    // Scroll to a non-trivial position
+    vbar->setValue (vbar->maximum () / 2);
+    QApplication::processEvents ();
+
+    int    initialScrollY= vbar->value ();
+    double initialZoom   = widget->zoomFactor ();
+
+    // Zoom in via setZoomFactor (anchor at viewport center)
+    widget->setZoomFactor (3.0);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QVERIFY (widget->zoomFactor () > initialZoom);
+
+    // Return to the original zoom level via setZoomFactor (same anchor)
+    widget->setZoomFactor (initialZoom);
+    QTest::qWait (300);
+    QApplication::processEvents ();
+
+    QCOMPARE (widget->zoomFactor (), initialZoom);
+
+    // Scroll position should return to the original (within 5px)
+    QVERIFY2 (
+        qAbs (vbar->value () - initialScrollY) <= 5,
+        "Scroll position did not return to original after round-trip zoom");
     delete widget;
   }
 };

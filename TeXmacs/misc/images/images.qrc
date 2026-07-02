@@ -24,6 +24,8 @@
         <file>llm-chat/ellipsis.svg</file>
         <file>llm-chat/thinking.svg</file>
         <file>llm-chat/thinking-white.svg</file>
+        <file>llm-chat/search.svg</file>
+        <file>llm-chat/search-white.svg</file>
 
         <file>floating-search/down.svg</file>
         <file>floating-search/up.svg</file>
@@ -56,6 +58,7 @@
         <file>llm-chat/send-dark.svg</file>
         <file>llm-chat/cancel-dark.svg</file>
         <file>llm-chat/thinking-dark.svg</file>
+        <file>llm-chat/search-dark.svg</file>
 
         <!-- tutorial -->
         <file>tutorial/ocr-tutorial.gif</file>

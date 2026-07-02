@@ -1,0 +1,92 @@
+name: CI for lolly on wasm
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-wasm.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'lolly/Data/**'
+      - 'lolly/Kernel/**'
+      - 'lolly/Plugins/**'
+      - 'lolly/System/**'
+      - 'lolly/lolly/**'
+      - 'lolly/tests/**'
+      - 'lolly/xmake.lua'
+      - '.github/workflows/ci-lolly-wasm.yml'
+  workflow_dispatch:
+
+jobs:
+  linuxbuild:
+    if: false # temporarily disabled
+    runs-on: ubuntu-latest
+    steps:
+      - uses: elves/setup-elvish@v1
+        with:
+          elvish-version: 0.19.2
+      - name: Set xmake global dir
+        run: |
+          echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/.xmake-global" >> "${{ github.env }}"
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+      - name: update repo
+        run: |
+          xmake repo -u
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+            ${{ github.workspace }}/build/.build_cache
+          key: ${{ runner.os }}-wasm-${{ hashFiles('**/xmake.lua') }}
+      - name: config
+        run: xmake config --yes -p wasm -vD --enable_tests=true
+      - name: build
+        run: xmake build --yes -vD
+      - name: test
+        run: elvish bin/test_wasm "tests/*"
+  windowsbuild:
+    if: false # temporarily disabled
+    runs-on: windows-2025
+    env:
+      XMAKE_GLOBALDIR: "${{ github.workspace }}\\.xmake-global"
+    steps:
+      - uses: elves/setup-elvish@v1
+        with:
+          elvish-version: 0.19.2
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+      - name: update repo
+        run: |
+          xrepo update-repo
+      - name: git crlf
+        run: git config --global core.autocrlf false
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-wasm-${{ hashFiles('**/xmake.lua') }}
+      - name: config
+        run: xmake config --yes -p wasm -vD --enable_tests=true
+      - name: build
+        run: xmake build --yes -vD
+      - name: test
+        run: elvish bin/test_wasm "tests/*"

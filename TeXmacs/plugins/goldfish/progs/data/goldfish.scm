@@ -19,26 +19,25 @@
 
 (define-format goldfish
   (:name "Goldfish source code")
-  (:suffix "scm" ".sld" ".ss"))
+  (:suffix "scm" ".sld" ".ss")
+) ;define-format
 
 (define (texmacs->goldfish x . opts)
-  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '())))
+  (texmacs->verbatim x (acons "texmacs->verbatim:encoding" "SourceCode" '()))
+) ;define
 
 (define (goldfish->texmacs x . opts)
-  (code->texmacs x))
+  (code->texmacs x)
+) ;define
 
 (define (goldfish-snippet->texmacs x . opts)
-  (code-snippet->texmacs x))
+  (code-snippet->texmacs x)
+) ;define
 
-(converter texmacs-tree goldfish-document
-  (:function texmacs->goldfish))
+(converter texmacs-tree goldfish-document (:function texmacs->goldfish))
 
-(converter goldfish-document texmacs-tree
-  (:function goldfish->texmacs))
+(converter goldfish-document texmacs-tree (:function goldfish->texmacs))
 
-(converter texmacs-tree goldfish-snippet
-  (:function texmacs->goldfish))
+(converter texmacs-tree goldfish-snippet (:function texmacs->goldfish))
 
-(converter goldfish-snippet texmacs-tree
-  (:function goldfish-snippet->texmacs))
-
+(converter goldfish-snippet texmacs-tree (:function goldfish-snippet->texmacs))

@@ -11,35 +11,45 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (math math-adjust-fr)
-  (:use (math math-speech)))
+(texmacs-module (math math-adjust-fr) (:use (math math-speech)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Disambiguation
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (french-de s)
-  (with prev (expr-before-cursor)
+  (with prev
+    (expr-before-cursor)
     (cond ((not prev) (speech-insert-symbol s))
           ((or (and (string? prev) (== (math-symbol-type prev) "symbol"))
-               (tm-in? prev '(math-ss math-tt wide wide*))
-	       (tm-is? prev 'big)
-	       (editing-big-operator?))
-           (cond ((editing-big-operator?)
-                  (speech-of))
+             (tm-in? prev '(math-ss math-tt wide wide*))
+             (tm-is? prev 'big)
+             (editing-big-operator?)
+           ) ;or
+           (cond ((editing-big-operator?) (speech-of))
                  ((or (stats-role? `(concat ,prev (rsub ,s)))
-                      (stats-role? `(concat ,prev (rsup ,s)))
-                      (stats-role? `(concat ,prev (around "(" ,s ")")))
-                      (stats-role? `(concat ,prev (around* "(" ,s ")"))))
-                  (speech-insert-symbol s))
+                    (stats-role? `(concat ,prev (rsup ,s)))
+                    (stats-role? `(concat ,prev (around ,"(" ,s ,")")))
+                    (stats-role? `(concat ,prev (around* ,"(" ,s ,")")))
+                  ) ;or
+                  (speech-insert-symbol s)
+                 ) ;
                  ((or (== s "2")
-                      (stats-role? `(concat ,prev (around "(" "" ")")))
-                      (stats-role? `(concat ,prev (around* "(" "" ")"))))
-                  (speech-of))
-                 (else (speech-insert-symbol s))))
-          (else (speech-insert-symbol s)))))
+                    (stats-role? `(concat ,prev (around "(" "" ")")))
+                    (stats-role? `(concat ,prev (around* "(" "" ")")))
+                  ) ;or
+                  (speech-of)
+                 ) ;
+                 (else (speech-insert-symbol s))
+           ) ;cond
+          ) ;
+          (else (speech-insert-symbol s))
+    ) ;cond
+  ) ;with
+) ;define
 
-(speech-map french math
+(speech-map french
+  math
   ;; psi/xi/6 ambiguity
   ("psi/xi" (speech-insert-best "<psi>" "<xi>"))
   ("psi/xi/6" (speech-best-letter "<psi>" "<xi>" "6"))
@@ -68,7 +78,8 @@
   ("k/4" (speech-best-letter "k" "4"))
 
   ;; a/e/i and related ambiguities
-  ("a/a" (speech-insert-best "a")) ;; prevent problems with "a n", "a p", ...
+  ("a/a" (speech-insert-best "a"))
+  ;; prevent problems with "a n", "a p", ...
   ("a/e" (speech-insert-best "a" "e"))
   ("e/a" (speech-insert-best "e" "a"))
   ("e/i" (speech-insert-best "e" "i"))
@@ -103,9 +114,10 @@
   ("v/e" (speech-insert-best "v" "e"))
   ("w/v" (speech-insert-best "w" "v"))
   ("pi/p" (speech-insert-best "<pi>" "p"))
-  )
+) ;speech-map
 
-(speech-reduce french math
+(speech-reduce french
+  math
   ("psi/xi/6 de" "psi/xi de")
   ("nu/9 de" "nu de")
   ("psi/xi/6 prime" "psi/xi prime")
@@ -118,84 +130,263 @@
   ("une" "un")
   ("en" "un")
   ("si" "psi/xi")
-  )
+) ;speech-reduce
 
-(speech-adjust french math
-  ("qu'à" "k")
-  )
+(speech-adjust french math ("qu'à" "k"))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Tables to adjust recognition of mathematics inside text
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-collection dangerous french
+(speech-collection dangerous
+  french
   ;; latin letters
-  "sait" "des" "eux" "œuf" "gay" "âge" "hache" "il" "ils"
-  "j'y" "car" "cas" "casse" "aile" "ailes" "elle" "aime"
-  "au" "beau" "eau" "eaux" "haut" "os"
-  "paix" "paye" "pays" "air" "heure" "est-ce"
-  "t'es" "taille" "tes" "eu" "vais" "value" "vert"
+  "sait"
+  "des"
+  "eux"
+  "œuf"
+  "gay"
+  "âge"
+  "hache"
+  "il"
+  "ils"
+  "j'y"
+  "car"
+  "cas"
+  "casse"
+  "aile"
+  "ailes"
+  "elle"
+  "aime"
+  "au"
+  "beau"
+  "eau"
+  "eaux"
+  "haut"
+  "os"
+  "paix"
+  "paye"
+  "pays"
+  "air"
+  "heure"
+  "est-ce"
+  "t'es"
+  "taille"
+  "tes"
+  "eu"
+  "vais"
+  "value"
+  "vert"
 
   ;; greek letters
-  "bâtard" "gamin" "éteins" "est" "atteint" "état" "tata"
-  "mou" "mieux" "mur" "mûr" "mus" "nue" "nul" "pile" "pis"
-  "euro" "euros" "robe" "robot" "rock" "rome" "rose" "rouge"
-  "auto" "tôt" "taux" "options" "fille" "fit" "qui"
+  "bâtard"
+  "gamin"
+  "éteins"
+  "est"
+  "atteint"
+  "état"
+  "tata"
+  "mou"
+  "mieux"
+  "mur"
+  "mûr"
+  "mus"
+  "nue"
+  "nul"
+  "pile"
+  "pis"
+  "euro"
+  "euros"
+  "robe"
+  "robot"
+  "rock"
+  "rome"
+  "rose"
+  "rouge"
+  "auto"
+  "tôt"
+  "taux"
+  "options"
+  "fille"
+  "fit"
+  "qui"
 
   ;; letter combinations
-  "assez" "haï" "haïti" "agit" "agen" "arènes" "août"
-  "appeler" "appelle" "happer" "athée" "avez"
-  "béat" "bébé" "baisser" "bédé" "bide" "déesse" "gaité"
-  "dévérrouiller" "acheter" "achevé" "cassé" "canapé" "capter"
-  "hello" "hélix" "hausser" "noël" "ôter" "paysan" "paysannes"
-  "cruel" "couper" "occuper" "cousin" "respect" "rester"
-  "yuen" "butter" "lutter" "buvez" "veggie" "vécu" "véhicule"
-  "vérité" "fixer" "exiger" "pixels" "exo" "excuse" "issue"
-  "fixette" "zappé"
+  "assez"
+  "haï"
+  "haïti"
+  "agit"
+  "agen"
+  "arènes"
+  "août"
+  "appeler"
+  "appelle"
+  "happer"
+  "athée"
+  "avez"
+  "béat"
+  "bébé"
+  "baisser"
+  "bédé"
+  "bide"
+  "déesse"
+  "gaité"
+  "dévérrouiller"
+  "acheter"
+  "achevé"
+  "cassé"
+  "canapé"
+  "capter"
+  "hello"
+  "hélix"
+  "hausser"
+  "noël"
+  "ôter"
+  "paysan"
+  "paysannes"
+  "cruel"
+  "couper"
+  "occuper"
+  "cousin"
+  "respect"
+  "rester"
+  "yuen"
+  "butter"
+  "lutter"
+  "buvez"
+  "veggie"
+  "vécu"
+  "véhicule"
+  "vérité"
+  "fixer"
+  "exiger"
+  "pixels"
+  "exo"
+  "excuse"
+  "issue"
+  "fixette"
+  "zappé"
 
   ;; punctuation
-  "tel" "telle"
+  "tel"
+  "telle"
 
   ;; operators 'plus', 'moins', 'fois'
-  "opus" "pupuce" "moi" "monter" "noisette" "manteau"
-  "foie" "fort" "photo" "photos"
+  "opus"
+  "pupuce"
+  "moi"
+  "monter"
+  "noisette"
+  "manteau"
+  "foie"
+  "fort"
+  "photo"
+  "photos"
 
   ;; composition 'rond'
-  "rang" "rend" "irons" "giron" "caron" "aileron" "huron" "verrons"
-  "ranger" "ronger" "rompez" "remonter"
+  "rang"
+  "rend"
+  "irons"
+  "giron"
+  "caron"
+  "aileron"
+  "huron"
+  "verrons"
+  "ranger"
+  "ronger"
+  "rompez"
+  "remonter"
 
   ;; predicates 'égal'
-  "égalité" "également"
-  
+  "égalité"
+  "également"
+
   ;; operators and function application
-  "dette" "bédé" "idée" "rodé" "décès"
- 
+  "dette"
+  "bédé"
+  "idée"
+  "rodé"
+  "décès"
+
   ;; fractions
-  "sûr" "assure" "culture" "mesure" "chaussure" "chaussures"
-  "surgé" "surveille" "sureau" "surtout"
+  "sûr"
+  "assure"
+  "culture"
+  "mesure"
+  "chaussure"
+  "chaussures"
+  "surgé"
+  "surveille"
+  "sureau"
+  "surtout"
 
   ;; wide accents
-  "chapeaux" "utile" "utilité" "bars" "bar"
+  "chapeaux"
+  "utile"
+  "utilité"
+  "bars"
+  "bar"
 
   ;; particularly dangerous adjustments
-  "a" "à" "ai" "ce" "dans" "de" "deux" "en"
-  "le" "la" "ne" "on" "se" "si"
-  "ta" "te" "the" "un" "une")
+  "a"
+  "à"
+  "ai"
+  "ce"
+  "dans"
+  "de"
+  "deux"
+  "en"
+  "le"
+  "la"
+  "ne"
+  "on"
+  "se"
+  "si"
+  "ta"
+  "te"
+  "the"
+  "un"
+  "une"
+) ;speech-collection
 
-(speech-collection skip-start french
-  "ce" "dans" "est" "est-ce" "le" "la" "ne" "on" "se" "ta" "te")
+(speech-collection skip-start
+  french
+  "ce"
+  "dans"
+  "est"
+  "est-ce"
+  "le"
+  "la"
+  "ne"
+  "on"
+  "se"
+  "ta"
+  "te"
+) ;speech-collection
 
-(speech-collection skip-end french
-  "ce" "dans" "est" "est-ce" "le" "la" "ne" "on" "se" "ta" "te")
+(speech-collection skip-end
+  french
+  "ce"
+  "dans"
+  "est"
+  "est-ce"
+  "le"
+  "la"
+  "ne"
+  "on"
+  "se"
+  "ta"
+  "te"
+) ;speech-collection
 
-(speech-collection skip french
-  "et" "ma" "ou")
+(speech-collection skip french "et" "ma" "ou")
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Adjust wrongly recognized words
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-adjust french math
+(speech-adjust french
+  math
   ;; Adjust latin letters
   ("ah" "a")
   ("a-ha" "a")
@@ -346,7 +537,7 @@
   ("mus" "mu")
   ("nue" "nu")
   ("nul" "nu")
-  ;;("si" "xi")
+  ;; ("si" "xi")
   ("au micro" "omicron")
   ("au micro en" "omicron")
   ("aux migrants" "omicron")
@@ -390,7 +581,7 @@
   ("fille" "phi")
   ("fit" "phi")
   ("psy" "psi")
-  ;;("si" "psi")
+  ;; ("si" "psi")
   ("qui" "chi")
   ("oméga" "omega")
 
@@ -887,7 +1078,7 @@
   ("plus neuf" "plus nu/9")
   ("plus si" "plus psi/xi")
   ("plus six" "plus psi/xi/6")
-  
+
   ;; Adjust subtraction 'moins'
   ("moi" "moins")
   ("dis-moi" "d moins")
@@ -1080,7 +1271,7 @@
 
   ;; Adjust operators
   ("dette" "det")
-  
+
   ;; Adjustments for the polyvalent word 'de'
   ("d'un" "de un")
   ("d'un sur" "de un sur")
@@ -1382,17 +1573,14 @@
   ("bibard" "pi barre")
   ("tibar" "pi barre")
   ("tibard" "pi barre")
-  ("pivar" "pi barre") 
+  ("pivar" "pi barre")
   ("pivard" "pi barre")
   ("robar" "rho barre")
   ("robart" "rho barre")
-  )
+) ;speech-adjust
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Further, more dangerous adjustments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-adjust french math
-  ("six barre" "psi barre")
-  ("d' sur" "delta sur")
-  )
+(speech-adjust french math ("six barre" "psi barre") ("d' sur" "delta sur"))

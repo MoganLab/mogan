@@ -18,13 +18,7 @@
 ;; ; Complex number operations
 
 (define-library (scheme complex)
-  (export make-rectangular
-    make-polar
-    real-part
-    imag-part
-    magnitude
-    angle
-  ) ;export
+  (export make-rectangular make-polar real-part imag-part magnitude angle)
   (import (scheme base))
 ) ;define-library
 

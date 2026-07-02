@@ -33,7 +33,8 @@
 #include <QImageReader>
 #include <QMimeData>
 
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 
 #include "converter.hpp"
 #include "cork.hpp"
@@ -864,51 +865,6 @@ qt_application_directory () {
   // apparently because Guile uses standard narrow char api to load its modules
   // => patch Guile?. return from_qstring (QCoreApplication::applicationDirPath
   // ());
-}
-
-string
-qt_get_date (string lan, string fm) {
-  QDateTime localtime= QDateTime::currentDateTime ();
-  if (fm == "") {
-    if ((lan == "british") || (lan == "english") || (lan == "american"))
-      fm= "MMMM d, yyyy";
-    else if (lan == "german") fm= "d. MMMM yyyy";
-    else if (lan == "chinese" || lan == "japanese" || lan == "korean" ||
-             lan == "taiwanese") {
-      string y= as_string (localtime.date ().year ());
-      string m= as_string (localtime.date ().month ());
-      string d= as_string (localtime.date ().day ());
-      if (lan == "korean")
-        return y * "<#b144> " * m * "<#c6d4> " * d * "<#c77c>";
-      return y * "<#5e74>" * m * "<#6708>" * d * "<#65e5>";
-    }
-    else fm= "d MMMM yyyy";
-  }
-  else if (fm[0] == '%') {
-    char   buf[64];
-    time_t ti;
-    time (&ti);
-    strftime (buf, sizeof (buf), as_charp (fm), ::localtime (&ti));
-    return buf;
-  }
-  QLocale loc= QLocale (to_qstring (language_to_locale (lan)));
-#if (QT_VERSION >= 0x040400)
-  QString date= loc.toString (localtime, to_qstring (fm));
-#else
-  QString date= localtime.toString (to_qstring (fm));
-#endif
-  return from_qstring (date);
-}
-
-string
-qt_pretty_time (int t) {
-#if QT_VERSION >= 0x060000
-  QDateTime dt= QDateTime::fromSecsSinceEpoch (t);
-#else
-  QDateTime dt= QDateTime::fromTime_t (t);
-#endif
-  QString s= dt.toString ();
-  return from_qstring (s);
 }
 
 #ifdef USE_QT_PRINTER

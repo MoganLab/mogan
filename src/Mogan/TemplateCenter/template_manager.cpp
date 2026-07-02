@@ -83,6 +83,16 @@ TemplateManager::instance () {
 }
 
 void
+TemplateManager::setOffline (bool offline) {
+  api_->setOfflineMode (offline);
+}
+
+bool
+TemplateManager::isOffline () const {
+  return !api_->isOnline ();
+}
+
+void
 TemplateManager::initialize () {
   if (initialized_) {
     emit initialized (true);

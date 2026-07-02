@@ -95,7 +95,20 @@ tmscm
 *
 ******************************************************************************/
 
-]] .. func_list ..
+]]
+
+    if glue.standalone then
+        for _, inc in ipairs(glue.includes or {}) do
+            if inc:startswith("<") then
+                res = res .. "#include " .. inc .. "\n"
+            else
+                res = res .. "#include \"" .. inc .. "\"\n"
+            end
+        end
+        res = res .. "\n"
+    end
+
+    res = res .. func_list ..
 [[void
 ]] .. glue.initializer_name .. [[ () {
 ]] .. reg_list

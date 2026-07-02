@@ -10,9 +10,10 @@
  ******************************************************************************/
 
 #include "effect.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "matrix.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 using namespace moebius;
 

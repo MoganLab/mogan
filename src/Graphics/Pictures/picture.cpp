@@ -10,7 +10,8 @@
  ******************************************************************************/
 
 #include "analyze.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "effect.hpp"
 #include "file.hpp"
 #include "image_files.hpp"
@@ -19,7 +20,7 @@
 #include "tm_file.hpp"
 #include "tm_timer.hpp"
 #include "tree_helper.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 #include <lolly/data/numeral.hpp>
 

@@ -19,42 +19,45 @@
 
 (define (build-cond c)
   (cond ((== (car c) :mode) (list (cadr c)))
-	((== (car c) :require) (cadr c))
-	(else (texmacs-error "smart-table" "Bad option ~S" c))))
+        ((== (car c) :require) (cadr c))
+        (else (texmacs-error "smart-table" "Bad option ~S" c))
+  ) ;cond
+) ;define
 
 (define (smart-table-insert-one t conds x)
   (if (not (list-2? x))
-      (texmacs-error "smart-table" "Invalid table entry in: ~S" x))
-  (with (key im) x
-    (if (func? key 'unquote 1)
-	(set! key (cadr key))
-	(set! key `(quote ,key)))
-    (if (func? im 'unquote 1)
-	(set! im (cadr im))
-	(set! im `(quote ,im)))
+    (texmacs-error "smart-table" "Invalid table entry in: ~S" x)
+  ) ;if
+  (with (key im)
+    x
+    (if (func? key 'unquote 1) (set! key (cadr key)) (set! key `(quote ,key)))
+    (if (func? im 'unquote 1) (set! im (cadr im)) (set! im `(quote ,im)))
     `(let* ((smart-key ,key)
-	    (smart-im ,im)
-	    (smart-former (ahash-ref ,t smart-key)))
-       (if (not smart-former)
-	   (set! smart-former (lambda () #f)))
-       (ahash-set! ,t smart-key
-		   (lambda ()
-		     (if (and ,@(map build-cond conds))
-			 smart-im
-			 (smart-former)))))))
+            (smart-im ,im)
+            (smart-former (ahash-ref ,t smart-key)))
+       (if (not smart-former) (set! smart-former (lambda () #f)))
+       (ahash-set! ,t
+         smart-key
+         (lambda ,()
+           (if (and ,@(map build-cond conds)) smart-im (smart-former)))))
+  ) ;with
+) ;define
 
 (define (smart-table-insert t conds l)
   (cond ((null? l) '())
-	((and (list-2? (car l)) (keyword? (caar l)))
-	 (smart-table-insert t (rcons conds (car l)) (cdr l)))
-	(else (map (lambda (x) (smart-table-insert-one t conds x)) l))))
+        ((and (list-2? (car l)) (keyword? (caar l)))
+         (smart-table-insert t (rcons conds (car l)) (cdr l))
+        ) ;
+        (else (map (lambda (x) (smart-table-insert-one t conds x)) l))
+  ) ;cond
+) ;define
 
 (tm-define-macro (smart-table t . l)
   (:synopsis "Define a smart table @t with entries @l")
   `(begin
-     (when (not (defined? ',t))
-       (tm-define ,t (make-ahash-table)))
-     ,@(smart-table-insert t '() l)))
+     (when (not (defined? (quote ,t))) (tm-define ,t (make-ahash-table)))
+     ,@(smart-table-insert t '() l))
+) ;tm-define-macro
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Routines for smart tables
@@ -63,4 +66,6 @@
 (tm-define (smart-ref t key)
   (:synopsis "Get the entry @key in the table @t")
   (let ((fun (ahash-ref t key)))
-    (and fun (fun))))
+    (and fun (fun))
+  ) ;let
+) ;tm-define

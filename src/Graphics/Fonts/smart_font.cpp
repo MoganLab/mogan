@@ -24,6 +24,7 @@
 #include "translator.hpp"
 #include "unicode.hpp"
 
+#include <lolly/data/herk.hpp>
 #include <lolly/data/numeral.hpp>
 #include <lolly/data/unicode.hpp>
 
@@ -861,7 +862,8 @@ smart_font_rep::advance (string s, int& pos, string& r, int& nr) {
     debug_fonts << "Advance for font of [" << s << "] " << this->res_name
                 << " math_kind: " << math_kind << LF;
     debug_fonts << "Physical font of [" << r << "]"
-                << "[" << herk_to_utf8 (r) << "][" << cork_to_utf8 (r) << "]"
+                << "[" << lolly::data::herk_to_utf8 (r) << "]["
+                << cork_to_utf8 (r) << "]"
                 << " is " << fn[nr]->res_name << LF;
   }
 }
@@ -1179,6 +1181,33 @@ smart_font_rep::resolve (string c) {
           return sm->add_char (key, c);
         }
       }
+    }
+
+    // Fallback emoji (U+2600-U+27BF) to Noto Sans Symbols, Noto Sans Symbols2,
+    // then DejaVu Sans
+    font noto_fn=
+        closest_font ("Noto Sans Symbols", "rm", "medium", "right", sz, dpi, 1);
+    if (!is_nil (noto_fn) && noto_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "Noto Sans Symbols");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+    font noto2_fn= closest_font ("Noto Sans Symbols2", "rm", "medium", "right",
+                                 sz, dpi, 1);
+    if (!is_nil (noto2_fn) && noto2_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "Noto Sans Symbols2");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
+    }
+    font dejavu_fn=
+        closest_font ("DejaVu Sans", "rm", "medium", "right", sz, dpi, 1);
+    if (!is_nil (dejavu_fn) && dejavu_fn->supports (c)) {
+      tree key= tuple ("emoji-font", "DejaVu Sans");
+      int  nr = sm->add_font (key, REWRITE_NONE);
+      maybe_initialize_font (nr);
+      return sm->add_char (key, c);
     }
   }
 

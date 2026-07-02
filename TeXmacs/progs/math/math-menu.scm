@@ -11,38 +11,42 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (math math-menu)
-  (:use (table table-edit)
-        (math math-edit)))
+(texmacs-module (math math-menu) (:use (table table-edit) (math math-edit)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting mathematical markup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind insert-math-menu
-  ("Inline formula" (make 'math))
-  (if (style-has? "env-math-dtd")
-      ("Displayed formula" (make-equation*))
-      ("Several equations" (make-eqnarray*))
-      ("Alignment equations" (make-align))))
+ ("Inline formula" (make 'math))
+ (if (style-has? "env-math-dtd")
+  ("Displayed formula" (make-equation*))
+  ("Several equations" (make-eqnarray*))
+  ("Alignment equations" (make-align))
+ ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General purpose markup that is also relevant for mathematics
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind math-content-tag-menu
-  ("Deleted" (make 'deleted))
-  ("Fill out" (make 'fill-out))
-  ("Marked" (mark-text)))
+ ("Deleted" (make 'deleted))
+ ("Fill out" (make 'fill-out))
+ ("Marked" (mark-text))
+) ;menu-bind
 
 (menu-bind math-presentation-tag-menu
-  ("Decorated" (make 'decorated))
-  (if (and (style-has? "std-markup-dtd")
-           (== (get-preference "experimental alpha") "on"))
-      ---
-      ("Pastel" (make 'pastel))
-      ("Greyed" (make 'greyed))
-      ("Light" (make 'light))))
+ ("Decorated" (make 'decorated))
+ (if (and (style-has? "std-markup-dtd")
+       (== (get-preference "experimental alpha") "on")
+     ) ;and
+   ---
+   ("Pastel" (make 'pastel))
+   ("Greyed" (make 'greyed))
+   ("Light" (make 'light))
+ ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Special mathematical text properties
@@ -50,15 +54,19 @@
 
 (menu-bind math-special-format-menu
   (-> "Display style"
-      ("On" (make-with "math-display" "true"))
-      ("Off" (make-with "math-display" "false")))
+   ("On" (make-with "math-display" "true"))
+   ("Off" (make-with "math-display" "false"))
+  ) ;->
   (-> "Index level"
-      ("Normal" (make-with "math-level" "0"))
-      ("Script size" (make-with "math-level" "1"))
-      ("Script script size" (make-with "math-level" "2")))
+   ("Normal" (make-with "math-level" "0"))
+   ("Script size" (make-with "math-level" "1"))
+   ("Script script size" (make-with "math-level" "2"))
+  ) ;->
   (-> "Condensed"
-      ("On" (make-with "math-condensed" "true"))
-      ("Off" (make-with "math-condensed" "false"))))
+   ("On" (make-with "math-condensed" "true"))
+   ("Off" (make-with "math-condensed" "false"))
+  ) ;->
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The main Format menu
@@ -67,45 +75,46 @@
 (menu-bind full-math-format-menu
   (group "Font")
   (link math-font-menu)
-  (if (simple-menus?)
-      (-> "Color" (link color-menu)))
-  (if (detailed-menus?)
-      ---
-      (group "Text")
-      (link textual-properties-menu))
+  (if (simple-menus?) (-> "Color" (link color-menu)))
+  (if (detailed-menus?) --- (group "Text") (link textual-properties-menu))
   ---
   (group "Mathematics")
-  (link math-special-format-menu))
+  (link math-special-format-menu)
+) ;menu-bind
 
 (menu-bind compressed-math-format-menu
-  ("Font" (interactive open-font-selector))
-  (when (inside? 'table)
-      ("Cell" (open-cell-properties))
-      ("Table" (open-table-properties)))
-  ---
-  (link math-special-format-menu)
-  ---
-  (-> "Whitespace" (link horizontal-space-menu))
-  (-> "Line break" (link line-break-menu))
-  ---
-  (-> "Color"
-      (if (== (get-preference "experimental alpha") "on")
-	  (-> "Opacity" (link opacity-menu))
-	  ---)
-      (link color-menu))
-  (-> "Adjust" (link adjust-menu))
-  (-> "Transform" (link linear-transform-menu))
-  (-> "Specific" (link specific-menu))
-  (-> "Special" (link format-special-menu))
-  (-> "Font effects" (link text-font-effects-menu))
-  (assuming (== (get-preference "bitmap effects") "on")
-    (-> "Graphical effects" (link text-effects-menu))))
+ ("Font" (interactive open-font-selector))
+ (when (inside? 'table)
+   ("Cell" (open-cell-properties))
+   ("Table" (open-table-properties))
+ ) ;when
+ ---
+ (link math-special-format-menu)
+ ---
+ (-> "Whitespace" (link horizontal-space-menu))
+ (-> "Line break" (link line-break-menu))
+ ---
+ (-> "Color"
+   (if (== (get-preference "experimental alpha") "on")
+     (-> "Opacity" (link opacity-menu))
+     ---
+   ) ;if
+   (link color-menu)
+ ) ;->
+ (-> "Adjust" (link adjust-menu))
+ (-> "Transform" (link linear-transform-menu))
+ (-> "Specific" (link specific-menu))
+ (-> "Special" (link format-special-menu))
+ (-> "Font effects" (link text-font-effects-menu))
+ (assuming (== (get-preference "bitmap effects") "on")
+   (-> "Graphical effects" (link text-effects-menu))
+ ) ;assuming
+) ;menu-bind
 
 (menu-bind math-format-menu
-  (if (use-menus?)
-      (link full-math-format-menu))
-  (if (use-popups?)
-      (link compressed-math-format-menu)))
+  (if (use-menus?) (link full-math-format-menu))
+  (if (use-popups?) (link compressed-math-format-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The mathematical symbol menus
@@ -115,46 +124,51 @@
   (-> "Large opening bracket" (tile 8 (link left-delimiter-menu)))
   (-> "Large separator" (tile 8 (link middle-delimiter-menu)))
   (-> "Large closing bracket" (tile 8 (link right-delimiter-menu)))
-  (-> "Big operator"
-      (tile 6 (link big-operator-menu)))
+  (-> "Big operator" (tile 6 (link big-operator-menu)))
   ---
-  (-> "Binary operator"
-      (tile 8 (link binary-operation-menu)))
+  (-> "Binary operator" (tile 8 (link binary-operation-menu)))
   (-> "Binary relation"
-      (tile 8 (link binary-relation-menu-1))
-      ---
-      (tile 8 (link binary-relation-menu-2)))
+    (tile 8 (link binary-relation-menu-1))
+    ---
+    (tile 8 (link binary-relation-menu-2))
+  ) ;->
   (-> "Arrow"
-      (tile 9 (link horizontal-arrow-menu))
-      ---
-      (tile 8 (link vertical-arrow-menu))
-      ---
-      (tile 6 (link long-arrow-menu))
-      ---
-      (link extensible-arrow-menu))
+    (tile 9 (link horizontal-arrow-menu))
+    ---
+    (tile 8 (link vertical-arrow-menu))
+    ---
+    (tile 6 (link long-arrow-menu))
+    ---
+    (link extensible-arrow-menu)
+  ) ;->
   (-> "Negation"
-      ("General negation" (key-press "/"))
-      ---
-      (tile 9 (link negation-menu-1))
-      ---
-      (tile 9 (link negation-menu-2)))
+   ("General negation" (key-press "/"))
+   ---
+   (tile 9 (link negation-menu-1))
+   ---
+   (tile 9 (link negation-menu-2))
+  ) ;->
   ---
   (-> "Greek letter"
-      (tile 8 (link lower-greek-menu))
-      ---
-      (tile 8 (link upper-greek-menu)))
+    (tile 8 (link lower-greek-menu))
+    ---
+    (tile 8 (link upper-greek-menu))
+  ) ;->
   (-> "Miscellaneous"
-      (tile 8 (link miscellaneous-symbol-menu))
-      ---
-      (tile 6 (link dots-menu))))
+    (tile 8 (link miscellaneous-symbol-menu))
+    ---
+    (tile 6 (link dots-menu))
+  ) ;->
+) ;menu-bind
 
 (menu-bind textual-operator-menu
-  ("Normal" (make 'math-up))
-  ("Italic" (make 'math-it))
-  ("Bold" (make 'math-bf))
-  ("Typewriter" (make 'math-tt))
-  ("Sans serif" (make 'math-ss))
-  ("Slanted" (make 'math-sl)))
+ ("Normal" (make 'math-up))
+ ("Italic" (make 'math-it))
+ ("Bold" (make 'math-bf))
+ ("Typewriter" (make 'math-tt))
+ ("Sans serif" (make 'math-ss))
+ ("Slanted" (make 'math-sl))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Large delimiters
@@ -174,15 +188,17 @@
   (symbol "<left-lceil-2>" (math-bracket-open "<lceil>" "<rceil>" 'default))
   (symbol "<left-rceil-2>" (math-bracket-open "<rceil>" "<lceil>" 'default))
   (symbol "<left-llbracket-2>"
-          (math-bracket-open "<llbracket>" "<rrbracket>" 'default))
+    (math-bracket-open "<llbracket>" "<rrbracket>" 'default)
+  ) ;symbol
   (symbol "<left-rrbracket-2>"
-          (math-bracket-open "<rrbracket>" "<llbracket>" 'default))
+    (math-bracket-open "<rrbracket>" "<llbracket>" 'default)
+  ) ;symbol
   (symbol "<left-|-4>" (math-bracket-open "|" "|" 'default))
   (symbol "<left-||-4>" (math-bracket-open "<||>" "<||>" 'default))
   (symbol "<left-/-2>" (math-bracket-open "/" "\\" 'default))
   (symbol "<left-\\-2>" (math-bracket-open "\\" "/" 'default))
-  (symbol "<left-.-2>"
-          (math-bracket-open "<nobracket>" "<nobracket>" 'default)))
+  (symbol "<left-.-2>" (math-bracket-open "<nobracket>" "<nobracket>" 'default))
+) ;menu-bind
 
 (menu-bind left-delimiter-menu
   (symbol "<left-(-2>" (math-bracket-open "(" ")" #t))
@@ -197,15 +213,14 @@
   (symbol "<left-rfloor-2>" (math-bracket-open "<rfloor>" "<lfloor>" #t))
   (symbol "<left-lceil-2>" (math-bracket-open "<lceil>" "<rceil>" #t))
   (symbol "<left-rceil-2>" (math-bracket-open "<rceil>" "<lceil>" #t))
-  (symbol "<left-llbracket-2>"
-          (math-bracket-open "<llbracket>" "<rrbracket>" #t))
-  (symbol "<left-rrbracket-2>"
-          (math-bracket-open "<rrbracket>" "<llbracket>" #t))
+  (symbol "<left-llbracket-2>" (math-bracket-open "<llbracket>" "<rrbracket>" #t))
+  (symbol "<left-rrbracket-2>" (math-bracket-open "<rrbracket>" "<llbracket>" #t))
   (symbol "<left-|-4>" (math-bracket-open "|" "|" #t))
   (symbol "<left-||-4>" (math-bracket-open "<||>" "<||>" #t))
   (symbol "<left-/-2>" (math-bracket-open "/" "\\" #t))
   (symbol "<left-\\-2>" (math-bracket-open "\\" "/" #t))
-  (symbol "<left-.-2>" (math-bracket-open "<nobracket>" "<nobracket>" #t)))
+  (symbol "<left-.-2>" (math-bracket-open "<nobracket>" "<nobracket>" #t))
+) ;menu-bind
 
 (menu-bind middle-delimiter-menu
   (symbol "<mid-(-2>" (math-separator "(" #t))
@@ -225,7 +240,8 @@
   (symbol "<mid-|-4>" (math-separator "|" #t))
   (symbol "<mid-||-4>" (math-separator "<||>" #t))
   (symbol "<mid-/-2>" (math-separator "/" #t))
-  (symbol "<mid-\\-2>" (math-separator "\\" #t)))
+  (symbol "<mid-\\-2>" (math-separator "\\" #t))
+) ;menu-bind
 
 (menu-bind right-delimiter-menu
   (symbol "<right-(-2>" (math-bracket-close "(" ")" #t))
@@ -241,14 +257,17 @@
   (symbol "<right-lceil-2>" (math-bracket-close "<lceil>" "<rceil>" #t))
   (symbol "<right-rceil-2>" (math-bracket-close "<rceil>" "<lceil>" #t))
   (symbol "<right-llbracket-2>"
-          (math-bracket-close "<llbracket>" "<rrbracket>" #t))
+    (math-bracket-close "<llbracket>" "<rrbracket>" #t)
+  ) ;symbol
   (symbol "<right-rrbracket-2>"
-          (math-bracket-close "<rrbracket>" "<llbracket>" #t))
+    (math-bracket-close "<rrbracket>" "<llbracket>" #t)
+  ) ;symbol
   (symbol "<right-|-4>" (math-bracket-close "|" "|" #t))
   (symbol "<right-||-4>" (math-bracket-close "<||>" "<||>" #t))
   (symbol "<right-/-2>" (math-bracket-close "/" "\\" #t))
   (symbol "<right-\\-2>" (math-bracket-close "\\" "/" #t))
-  (symbol "<right-.-2>" (math-bracket-close "." "." #t)))
+  (symbol "<right-.-2>" (math-bracket-close "." "." #t))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Big operators
@@ -280,7 +299,8 @@
   (symbol "<big-triangleup-2>" (math-big-operator "triangleup"))
   (symbol "<big-triangledown-2>" (math-big-operator "triangledown"))
   (symbol "<big-parallel-2>" (math-big-operator "parallel"))
-  (symbol "<big-interleave-2>" (math-big-operator "interleave")))
+  (symbol "<big-interleave-2>" (math-big-operator "interleave"))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Binary operations
@@ -320,7 +340,7 @@
   (symbol "<sqcup>")
   (symbol "<vee>")
   (symbol "<wedge>")
-  
+
   (symbol "<ltimes>")
   (symbol "<rtimes>")
   (symbol "<leftthreetimes>")
@@ -328,7 +348,8 @@
   (symbol "<curlyvee>")
   (symbol "<curlywedge>")
   (symbol "<veebar>")
-  (symbol "<barwedge>"))
+  (symbol "<barwedge>")
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Binary relations
@@ -358,7 +379,8 @@
   (symbol "<perp>")
   (symbol "<smile>")
   (symbol "<frown>")
-  (symbol "<propto>"))
+  (symbol "<propto>")
+) ;menu-bind
 
 (menu-bind binary-relation-menu-2
   (symbol "<less>")
@@ -427,7 +449,8 @@
   (symbol "<gtrsim>")
   (symbol "<gtrapprox>")
   (symbol "<succsim>")
-  (symbol "<succapprox>"))
+  (symbol "<succapprox>")
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Arrows
@@ -472,7 +495,8 @@
   (symbol "<fourrightarrows>")
   (symbol "<Lleftarrow>")
   (symbol "<Rrightarrow>")
-  (symbol "<LRleftrightarrow>"))
+  (symbol "<LRleftrightarrow>")
+) ;menu-bind
 
 (menu-bind vertical-arrow-menu
   (symbol "<uparrow>")
@@ -491,7 +515,8 @@
   (symbol "<downharpoonright>")
   (symbol "<swarrow>")
   (symbol "<searrow>")
-  (symbol "<Updownarrow>"))
+  (symbol "<Updownarrow>")
+) ;menu-bind
 
 (menu-bind long-arrow-menu
   (symbol "<longleftarrow>")
@@ -502,11 +527,13 @@
   (symbol "<Longleftrightarrow>")
   (symbol "<longhookleftarrow>")
   (symbol "<longhookrightarrow>")
-  (symbol "<longmapsto>"))
+  (symbol "<longmapsto>")
+) ;menu-bind
 
 (menu-bind extensible-arrow-menu
-  ("extensible left arrow" (make-long-arrow "<leftarrow>"))
-  ("extensible right arrow" (make-long-arrow "<rightarrow>")))
+ ("extensible left arrow" (make-long-arrow "<leftarrow>"))
+ ("extensible right arrow" (make-long-arrow "<rightarrow>"))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Negations
@@ -521,7 +548,8 @@
   (symbol "<nsimeq>")
   (symbol "<ncong>")
   (symbol "<nin>")
-  (symbol "<nni>"))
+  (symbol "<nni>")
+) ;menu-bind
 
 (menu-bind negation-menu-2
   (symbol "<nless>")
@@ -568,7 +596,8 @@
   (symbol "<nsqsubseteq>")
   (symbol "<nsqsupset>")
   (symbol "<nsqsupseteq>")
-  (symbol "<nmid>"))
+  (symbol "<nmid>")
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Greek characters
@@ -604,7 +633,8 @@
   (symbol "<varphi>")
   (symbol "<chi>")
   (symbol "<psi>")
-  (symbol "<omega>"))
+  (symbol "<omega>")
+) ;menu-bind
 
 (menu-bind upper-greek-menu
   (symbol "<Gamma>")
@@ -617,7 +647,8 @@
   (symbol "<Upsilon>")
   (symbol "<Phi>")
   (symbol "<Psi>")
-  (symbol "<Omega>"))
+  (symbol "<Omega>")
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Miscellaneous symbols
@@ -691,7 +722,8 @@
   (symbol "<phone>")
   (symbol "<checked>")
   (symbol "<pointer>")
-  (symbol "<bell>"))
+  (symbol "<bell>")
+) ;menu-bind
 
 (menu-bind dots-menu
   (symbol "<ldots>")
@@ -699,7 +731,8 @@
   (symbol "<hdots>")
   (symbol "<vdots>")
   (symbol "<ddots>")
-  (symbol "<udots>"))
+  (symbol "<udots>")
+) ;menu-bind
 
 (menu-bind bold-num-menu
   (symbol "<b-0>")
@@ -711,7 +744,8 @@
   (symbol "<b-6>")
   (symbol "<b-7>")
   (symbol "<b-8>")
-  (symbol "<b-9>"))
+  (symbol "<b-9>")
+) ;menu-bind
 
 (menu-bind bold-alpha-menu
   (symbol "<b-a>")
@@ -765,7 +799,8 @@
   (symbol "<b-W>")
   (symbol "<b-X>")
   (symbol "<b-Y>")
-  (symbol "<b-Z>"))
+  (symbol "<b-Z>")
+) ;menu-bind
 
 (menu-bind bold-up-alpha-menu
   (symbol "<b-up-a>")
@@ -819,7 +854,8 @@
   (symbol "<b-up-W>")
   (symbol "<b-up-X>")
   (symbol "<b-up-Y>")
-  (symbol "<b-up-Z>"))
+  (symbol "<b-up-Z>")
+) ;menu-bind
 
 (menu-bind bold-greek-menu
   (symbol "<b-alpha>")
@@ -862,7 +898,8 @@
   (symbol "<b-Upsilon>")
   (symbol "<b-Phi>")
   (symbol "<b-Psi>")
-  (symbol "<b-Omega>"))
+  (symbol "<b-Omega>")
+) ;menu-bind
 
 (menu-bind cal-menu
   (symbol "<cal-A>")
@@ -890,7 +927,8 @@
   (symbol "<cal-W>")
   (symbol "<cal-X>")
   (symbol "<cal-Y>")
-  (symbol "<cal-Z>"))
+  (symbol "<cal-Z>")
+) ;menu-bind
 
 (menu-bind cal-star-menu
   (symbol "<cal*-A>")
@@ -918,7 +956,8 @@
   (symbol "<cal*-W>")
   (symbol "<cal*-X>")
   (symbol "<cal*-Y>")
-  (symbol "<cal*-Z>"))
+  (symbol "<cal*-Z>")
+) ;menu-bind
 
 (menu-bind frak-menu
   (symbol "<frak-a>")
@@ -972,7 +1011,8 @@
   (symbol "<frak-W>")
   (symbol "<frak-X>")
   (symbol "<frak-Y>")
-  (symbol "<frak-Z>"))
+  (symbol "<frak-Z>")
+) ;menu-bind
 
 (menu-bind bbb-menu
   (symbol "<bbb-a>")
@@ -1026,156 +1066,167 @@
   (symbol "<bbb-W>")
   (symbol "<bbb-X>")
   (symbol "<bbb-Y>")
-  (symbol "<bbb-Z>"))
+  (symbol "<bbb-Z>")
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Semantic math menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind math-correct-menu
-  ("Correct all" (math-correct-all))
-  (when (with-versioning-tool?)
-    ("Correct manually" (math-correct-manually)))
-  ---
-  (group "Options")
-  ("Remove superfluous invisible operators"
-   (toggle-preference "manual remove superfluous invisible"))
-  ("Insert missing invisible operators"
-   (toggle-preference "manual insert missing invisible"))
-  ("Homoglyph substitutions"
-   (toggle-preference "manual homoglyph correct")))
+ ("Correct all" (math-correct-all))
+ (when (with-versioning-tool?)
+   ("Correct manually" (math-correct-manually))
+ ) ;when
+ ---
+ (group "Options")
+ ("Remove superfluous invisible operators"
+   (toggle-preference "manual remove superfluous invisible")
+ ) ;
+ ("Insert missing invisible operators"
+   (toggle-preference "manual insert missing invisible")
+ ) ;
+ ("Homoglyph substitutions" (toggle-preference "manual homoglyph correct"))
+) ;menu-bind
 
 (menu-bind context-preferences-menu
-  ("Show full context" (toggle-preference "show full context"))
-  (when (inside? 'table)
-    ("Show table cells" (toggle-preference "show table cells")))
-  ("Show current focus" (toggle-preference "show focus"))
-  (when (!= (get-preference "semantic editing") "off")
-    ("Only show semantic focus"
-      (toggle-preference "show only semantic focus"))))
+ ("Show full context" (toggle-preference "show full context"))
+ (when (inside? 'table)
+   ("Show table cells" (toggle-preference "show table cells"))
+ ) ;when
+ ("Show current focus" (toggle-preference "show focus"))
+ (when (!= (get-preference "semantic editing") "off")
+   ("Only show semantic focus" (toggle-preference "show only semantic focus"))
+ ) ;when
+) ;menu-bind
 
 (menu-bind semantic-math-preferences-menu
-  ("Semantic editing" (toggle-preference "semantic editing"))
-  (when (== (get-preference "semantic editing") "on")
-    ("Semantic selections" (toggle-preference "semantic selections")))
-  (if #t ("Semantic correctness" (toggle-preference "semantic correctness"))))
+ ("Semantic editing" (toggle-preference "semantic editing"))
+ (when (== (get-preference "semantic editing") "on")
+   ("Semantic selections" (toggle-preference "semantic selections"))
+ ) ;when
+ (if #t ("Semantic correctness" (toggle-preference "semantic correctness")))
+) ;menu-bind
 
 (menu-bind semantic-annotation-menu
-  ("Ordinary symbol" (make 'math-ordinary))
-  ("Ignore" (make 'math-ignore))
-  ---
-  ("Separator" (make 'math-separator))
-  ("Quantifier" (make 'math-quantifier))
-  ("Logical implication" (make 'math-imply))
-  ("Logical or" (make 'math-or))
-  ("Logical and" (make 'math-and))
-  ("Logical not" (make 'math-not))
-  ("Relation" (make 'math-relation))
-  ("Set union" (make 'math-union))
-  ("Set intersection" (make 'math-intersection))
-  ("Set difference" (make 'math-exclude))
-  ("Addition" (make 'math-plus))
-  ("Subtraction" (make 'math-minus))
-  ("Multiplication" (make 'math-times))
-  ("Division" (make 'math-over))
-  ("Prefix" (make 'math-prefix))
-  ("Postfix" (make 'math-postfix))
-  ("Open" (make 'math-open))
-  ("Close" (make 'math-close))
-  ---
-  ("Other" (make 'syntax)))
+ ("Ordinary symbol" (make 'math-ordinary))
+ ("Ignore" (make 'math-ignore))
+ ---
+ ("Separator" (make 'math-separator))
+ ("Quantifier" (make 'math-quantifier))
+ ("Logical implication" (make 'math-imply))
+ ("Logical or" (make 'math-or))
+ ("Logical and" (make 'math-and))
+ ("Logical not" (make 'math-not))
+ ("Relation" (make 'math-relation))
+ ("Set union" (make 'math-union))
+ ("Set intersection" (make 'math-intersection))
+ ("Set difference" (make 'math-exclude))
+ ("Addition" (make 'math-plus))
+ ("Subtraction" (make 'math-minus))
+ ("Multiplication" (make 'math-times))
+ ("Division" (make 'math-over))
+ ("Prefix" (make 'math-prefix))
+ ("Postfix" (make 'math-postfix))
+ ("Open" (make 'math-open))
+ ("Close" (make 'math-close))
+ ---
+ ("Other" (make 'syntax))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menu for inserting mathematical markup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind math-insert-menu
-  ("Fraction" (make-fraction))
-  ("Square root" (make-sqrt))
-  ("N-th root" (make-var-sqrt))
-  ("Negation" (make-neg))
-  ("Tree" (make-tree))
+ ("Fraction" (make-fraction))
+ ("Square root" (make-sqrt))
+ ("N-th root" (make-var-sqrt))
+ ("Negation" (make-neg))
+ ("Tree" (make-tree))
+ ---
+ (-> "Script"
+  ("Left subscript" (make-script #f #f))
+  ("Left superscript" (make-script #t #f))
+  ("Right subscript" (make-script #f #t))
+  ("Right superscript" (make-script #t #t))
+  ("Script below" (make-below))
+  ("Script above" (make-above))
+ ) ;->
+ (-> "Accent above"
+  ("Tilda" (make-wide "~"))
+  ("Hat" (make-wide "^"))
+  ("Bar" (make-wide "<bar>"))
+  ("Vector" (make-wide "<vect>"))
+  ("Check" (make-wide "<check>"))
+  ("Breve" (make-wide "<breve>"))
+  ("Inverted breve" (make-wide "<invbreve>"))
   ---
-  (-> "Script"
-      ("Left subscript" (make-script #f #f))
-      ("Left superscript" (make-script #t #f))
-      ("Right subscript" (make-script #f #t))
-      ("Right superscript" (make-script #t #t))
-      ("Script below" (make-below))
-      ("Script above" (make-above)))
-  (-> "Accent above"
-      ("Tilda" (make-wide "~"))
-      ("Hat" (make-wide "^"))
-      ("Bar" (make-wide "<bar>"))
-      ("Vector" (make-wide "<vect>"))
-      ("Check" (make-wide "<check>"))
-      ("Breve" (make-wide "<breve>"))
-      ("Inverted breve" (make-wide "<invbreve>"))
-      ---
-      ("Acute" (make-wide "<acute>"))
-      ("Grave" (make-wide "<grave>"))
-      ("Dot" (make-wide "<dot>"))
-      ("Two dots" (make-wide "<ddot>"))
-      ("Three dots" (make-wide "<dddot>"))
-      ("Four dots" (make-wide "<ddddot>"))
-      ("Circle" (make-wide "<abovering>"))
-      ---
-      ("Overbrace" (make-wide "<wide-overbrace>"))
-      ("Underbrace" (make-wide "<wide-underbrace*>"))
-      ("Round overbrace" (make-wide "<wide-poverbrace>"))
-      ("Round underbrace" (make-wide "<wide-punderbrace*>"))
-      ("Square overbrace" (make-wide "<wide-sqoverbrace>"))
-      ("Square underbrace" (make-wide "<wide-squnderbrace*>"))
-      ---
-      ("Right arrow" (make-wide "<wide-varrightarrow>"))
-      ("Left arrow" (make-wide "<wide-varleftarrow>"))
-      ("Left-right arrow" (make-wide "<wide-varleftrightarrow>"))
-      ("Wide bar" (make-wide "<wide-bar>")))
-  (-> "Accent below"
-      ("Tilda" (make-wide-under "~"))
-      ("Hat" (make-wide-under "^"))
-      ("Bar" (make-wide-under "<bar>"))
-      ("Vector" (make-wide-under "<vect>"))
-      ("Check" (make-wide-under "<check>"))
-      ("Breve" (make-wide-under "<breve>"))
-      ("Inverted breve" (make-wide-under "<invbreve>"))
-      ---
-      ("Acute" (make-wide-under "<acute>"))
-      ("Grave" (make-wide-under "<grave>"))
-      ("Dot" (make-wide-under "<dot>"))
-      ("Two dots" (make-wide-under "<ddot>"))
-      ("Three dots" (make-wide-under "<dddot>"))
-      ("Four dots" (make-wide-under "<ddddot>"))
-      ("Circle" (make-wide-under "<abovering>"))
-      ---
-      ("Overbrace" (make-wide-under "<wide-overbrace*>"))
-      ("Underbrace" (make-wide-under "<wide-underbrace>"))
-      ("Round overbrace" (make-wide-under "<wide-poverbrace*>"))
-      ("Round underbrace" (make-wide-under "<wide-punderbrace>"))
-      ("Square overbrace" (make-wide-under "<wide-sqoverbrace*>"))
-      ("Square underbrace" (make-wide-under "<wide-squnderbrace>"))
-      ---
-      ("Right arrow" (make-wide-under "<wide-varrightarrow>"))
-      ("Left arrow" (make-wide-under "<wide-varleftarrow>"))
-      ("Left-right arrow" (make-wide-under "<wide-varleftrightarrow>"))
-      ("Wide bar" (make-wide-under "<wide-bar>")))
-  (-> "Symbol" (link symbol-menu))
-  (-> "Textual operator" (link textual-operator-menu))
-  (if (== (get-preference "semantic editing") "on")
-      (-> "Semantics" (link semantic-annotation-menu)))
+  ("Acute" (make-wide "<acute>"))
+  ("Grave" (make-wide "<grave>"))
+  ("Dot" (make-wide "<dot>"))
+  ("Two dots" (make-wide "<ddot>"))
+  ("Three dots" (make-wide "<dddot>"))
+  ("Four dots" (make-wide "<ddddot>"))
+  ("Circle" (make-wide "<abovering>"))
   ---
-  (-> "Content tag" (link math-content-tag-menu))
-  (-> "Size tag" (link size-tag-menu))
-  (-> "Presentation tag" (link math-presentation-tag-menu)))
+  ("Overbrace" (make-wide "<wide-overbrace>"))
+  ("Underbrace" (make-wide "<wide-underbrace*>"))
+  ("Round overbrace" (make-wide "<wide-poverbrace>"))
+  ("Round underbrace" (make-wide "<wide-punderbrace*>"))
+  ("Square overbrace" (make-wide "<wide-sqoverbrace>"))
+  ("Square underbrace" (make-wide "<wide-squnderbrace*>"))
+  ---
+  ("Right arrow" (make-wide "<wide-varrightarrow>"))
+  ("Left arrow" (make-wide "<wide-varleftarrow>"))
+  ("Left-right arrow" (make-wide "<wide-varleftrightarrow>"))
+  ("Wide bar" (make-wide "<wide-bar>"))
+ ) ;->
+ (-> "Accent below"
+  ("Tilda" (make-wide-under "~"))
+  ("Hat" (make-wide-under "^"))
+  ("Bar" (make-wide-under "<bar>"))
+  ("Vector" (make-wide-under "<vect>"))
+  ("Check" (make-wide-under "<check>"))
+  ("Breve" (make-wide-under "<breve>"))
+  ("Inverted breve" (make-wide-under "<invbreve>"))
+  ---
+  ("Acute" (make-wide-under "<acute>"))
+  ("Grave" (make-wide-under "<grave>"))
+  ("Dot" (make-wide-under "<dot>"))
+  ("Two dots" (make-wide-under "<ddot>"))
+  ("Three dots" (make-wide-under "<dddot>"))
+  ("Four dots" (make-wide-under "<ddddot>"))
+  ("Circle" (make-wide-under "<abovering>"))
+  ---
+  ("Overbrace" (make-wide-under "<wide-overbrace*>"))
+  ("Underbrace" (make-wide-under "<wide-underbrace>"))
+  ("Round overbrace" (make-wide-under "<wide-poverbrace*>"))
+  ("Round underbrace" (make-wide-under "<wide-punderbrace>"))
+  ("Square overbrace" (make-wide-under "<wide-sqoverbrace*>"))
+  ("Square underbrace" (make-wide-under "<wide-squnderbrace>"))
+  ---
+  ("Right arrow" (make-wide-under "<wide-varrightarrow>"))
+  ("Left arrow" (make-wide-under "<wide-varleftarrow>"))
+  ("Left-right arrow" (make-wide-under "<wide-varleftrightarrow>"))
+  ("Wide bar" (make-wide-under "<wide-bar>"))
+ ) ;->
+ (-> "Symbol" (link symbol-menu))
+ (-> "Textual operator" (link textual-operator-menu))
+ (if (== (get-preference "semantic editing") "on")
+   (-> "Semantics" (link semantic-annotation-menu))
+ ) ;if
+ ---
+ (-> "Content tag" (link math-content-tag-menu))
+ (-> "Size tag" (link size-tag-menu))
+ (-> "Presentation tag" (link math-presentation-tag-menu))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; The Mathematics menu
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(menu-bind math-menu
-  (link math-insert-menu)
-  ---
-  (link texmacs-insert-menu))
+(menu-bind math-menu (link math-insert-menu) --- (link texmacs-insert-menu))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Icons for modifying mathematical text properties
@@ -1184,36 +1235,41 @@
 (menu-bind math-format-icons
   /
   (if (or (== (get-preference "gui theme") "liii")
-              (== (get-preference "gui theme") "liii-night")
-              (== (get-preference "gui theme") "default"))
-          ((balloon (icon "tm_marked.svg") "Marked text")
-           (mark-text)))
+        (== (get-preference "gui theme") "liii-night")
+        (== (get-preference "gui theme") "default")
+      ) ;or
+   ((balloon (icon "tm_marked.svg") "Marked text") (mark-text))
+  ) ;if
   (=> (balloon (icon "tm_color.xpm") "Select a foreground color")
-      (link color-menu))
-  (=> (balloon (icon "tm_math_style.xpm")
-               "Change the style of mathematical formulas")
-      (group "Style")
-      ("Small inline" (make-with "math-display" "false"))
-      ("Large displayed" (make-with "math-display" "true"))
-      ---
-      (group "Size")
-      ("Normal" (make-with "math-level" "0"))
-      ("Script size" (make-with "math-level" "1"))
-      ("Script script size" (make-with "math-level" "2"))
-      ---
-      (group "Spacing")
-      ("Normal" (make-with "math-condensed" "false"))
-      ("Condensed" (make-with "math-condensed" "true")))
+    (link color-menu)
+  ) ;=>
+  (=> (balloon (icon "tm_math_style.xpm") "Change the style of mathematical formulas")
+    (group "Style")
+    ("Small inline" (make-with "math-display" "false"))
+    ("Large displayed" (make-with "math-display" "true"))
+    ---
+    (group "Size")
+    ("Normal" (make-with "math-level" "0"))
+    ("Script size" (make-with "math-level" "1"))
+    ("Script script size" (make-with "math-level" "2"))
+    ---
+    (group "Spacing")
+    ("Normal" (make-with "math-condensed" "false"))
+    ("Condensed" (make-with "math-condensed" "true"))
+  ) ;=>
   (=> (balloon (icon "tm_math_preferences.xpm")
-               "Preferences for editing mathematical formulas")
-      ("Enforce brackets to match" (toggle-matching-brackets))
-      ("Use extensible brackets" (toggle-preference "use large brackets"))
-      ---
-      (group "Context aids")
-      (link context-preferences-menu)
-      ---
-      (group "Semantics")
-      (link semantic-math-preferences-menu)))
+        "Preferences for editing mathematical formulas"
+      ) ;balloon
+   ("Enforce brackets to match" (toggle-matching-brackets))
+   ("Use extensible brackets" (toggle-preference "use large brackets"))
+   ---
+   (group "Context aids")
+   (link context-preferences-menu)
+   ---
+   (group "Semantics")
+   (link semantic-math-preferences-menu)
+  ) ;=>
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Icons for inserting mathematical markup
@@ -1221,101 +1277,124 @@
 
 (menu-bind math-insert-icons
   (=> (balloon (icon "tm_fraction.xpm") "Insert a fraction")
-      ("Standard fraction" (make-fraction))
-      ("Small inline fraction" (make 'tfrac))
-      ("Large displayed fraction" (make 'dfrac))
-      ("Slashed fraction" (make 'frac*))
-      ("Continued fraction" (make 'cfrac)))
+   ("Standard fraction" (make-fraction))
+   ("Small inline fraction" (make 'tfrac))
+   ("Large displayed fraction" (make 'dfrac))
+   ("Slashed fraction" (make 'frac*))
+   ("Continued fraction" (make 'cfrac))
+  ) ;=>
   (=> (balloon (icon "tm_root.xpm") "Insert a root")
-      ("Square root" (make-sqrt))
-      ("Multiple root" (make-var-sqrt)))
+   ("Square root" (make-sqrt))
+   ("Multiple root" (make-var-sqrt))
+  ) ;=>
   (=> (balloon (icon "tm_subsup.xpm") "Insert a script")
-      ("Subscript" (make-script #f #t))
-      ("Superscript" (make-script #t #t))
-      ("Left subscript" (make-script #f #f))
-      ("Left superscript" (make-script #t #f))
-      ("Subscript below" (make-below))
-      ("Superscript above" (make-above)))
+   ("Subscript" (make-script #f #t))
+   ("Superscript" (make-script #t #t))
+   ("Left subscript" (make-script #f #f))
+   ("Left superscript" (make-script #t #f))
+   ("Subscript below" (make-below))
+   ("Superscript above" (make-above))
+  ) ;=>
   /
   (=> (balloon (icon "tm_bigop.xpm") "Insert a big operator")
-      (tile 6 (link big-operator-menu)))
+    (tile 6 (link big-operator-menu))
+  ) ;=>
   (=> (balloon (icon "tm_bigaround.xpm") "Insert large delimiters")
-      (tile 8 (link large-delimiter-menu))
-      ---
-      (-> "Opening" (tile 8 (link left-delimiter-menu)))
-      (-> "Middle" (tile 8 (link middle-delimiter-menu)))
-      (-> "Closing" (tile 8 (link right-delimiter-menu))))
+    (tile 8 (link large-delimiter-menu))
+    ---
+    (-> "Opening" (tile 8 (link left-delimiter-menu)))
+    (-> "Middle" (tile 8 (link middle-delimiter-menu)))
+    (-> "Closing" (tile 8 (link right-delimiter-menu)))
+  ) ;=>
   (=> (balloon (icon "tm_wide.xpm") "Insert an accent")
-      (tile 6
-            ((balloon (icon "tm_tilda.xpm") "keyboard equivalent:") (make-wide "~"))
-            ((balloon (icon "tm_bar.xpm") "keyboard equivalent:") (make-wide "<bar>"))
-            ((balloon (icon "tm_vect.xpm") "keyboard equivalent:") (make-wide "<vect>"))
-            ((balloon (icon "tm_hat.xpm") "keyboard equivalent:") (make-wide "^"))
-            ((balloon (icon "tm_check.xpm") "keyboard equivalent:") (make-wide "<check>"))
-            ((balloon (icon "tm_invbreve.xpm") "keyboard equivalent:") (make-wide "<invbreve>"))
-            ((balloon (icon "tm_breve.xpm") "keyboard equivalent:") (make-wide "<breve>"))
-            ((balloon (icon "tm_dot.xpm") "keyboard equivalent:") (make-wide "<dot>"))
-            ((balloon (icon "tm_ddot.xpm") "keyboard equivalent:") (make-wide "<ddot>"))
-            ((balloon (icon "tm_acute.xpm") "keyboard equivalent:") (make-wide "<acute>"))
-            ((balloon (icon "tm_grave.xpm") "keyboard equivalent:") (make-wide "<grave>"))
-            ((balloon (icon "tm_overbrace.xpm") "keyboard equivalent:") (make-wide "<wide-overbrace>"))
-            ((balloon (icon "tm_underbrace.xpm") "keyboard equivalent:") (make-wide-under "<wide-underbrace>"))
-            ((balloon (icon "tm_underbar.xpm") "keyboard equivalent:") (make-wide-under "<wide-bar>"))))
+    (tile 6
+     ((balloon (icon "tm_tilda.xpm") "keyboard equivalent:") (make-wide "~"))
+     ((balloon (icon "tm_bar.xpm") "keyboard equivalent:") (make-wide "<bar>"))
+     ((balloon (icon "tm_vect.xpm") "keyboard equivalent:") (make-wide "<vect>"))
+     ((balloon (icon "tm_hat.xpm") "keyboard equivalent:") (make-wide "^"))
+     ((balloon (icon "tm_check.xpm") "keyboard equivalent:") (make-wide "<check>"))
+     ((balloon (icon "tm_invbreve.xpm") "keyboard equivalent:")
+      (make-wide "<invbreve>")
+     ) ;
+     ((balloon (icon "tm_breve.xpm") "keyboard equivalent:") (make-wide "<breve>"))
+     ((balloon (icon "tm_dot.xpm") "keyboard equivalent:") (make-wide "<dot>"))
+     ((balloon (icon "tm_ddot.xpm") "keyboard equivalent:") (make-wide "<ddot>"))
+     ((balloon (icon "tm_acute.xpm") "keyboard equivalent:") (make-wide "<acute>"))
+     ((balloon (icon "tm_grave.xpm") "keyboard equivalent:") (make-wide "<grave>"))
+     ((balloon (icon "tm_overbrace.xpm") "keyboard equivalent:")
+      (make-wide "<wide-overbrace>")
+     ) ;
+     ((balloon (icon "tm_underbrace.xpm") "keyboard equivalent:")
+      (make-wide-under "<wide-underbrace>")
+     ) ;
+     ((balloon (icon "tm_underbar.xpm") "keyboard equivalent:")
+      (make-wide-under "<wide-bar>")
+     ) ;
+    ) ;tile
+  ) ;=>
 
   /
   (=> (balloon (icon "tm_binop.xpm") "Insert a binary operation")
-      (tile 8 (link binary-operation-menu)))
+    (tile 8 (link binary-operation-menu))
+  ) ;=>
   (=> (balloon (icon "tm_binrel.xpm") "Insert a binary relation")
-      (tile 8 (link binary-relation-menu-1))
-      ---
-      (tile 8 (link binary-relation-menu-2)))
+    (tile 8 (link binary-relation-menu-1))
+    ---
+    (tile 8 (link binary-relation-menu-2))
+  ) ;=>
   (=> (balloon (icon "tm_arrow.xpm") "Insert an arrow")
-      (tile 9 (link horizontal-arrow-menu))
-      ---
-      (tile 8 (link vertical-arrow-menu))
-      ---
-      (tile 6 (link long-arrow-menu))
-      ---
-      (link extensible-arrow-menu))
+    (tile 9 (link horizontal-arrow-menu))
+    ---
+    (tile 8 (link vertical-arrow-menu))
+    ---
+    (tile 6 (link long-arrow-menu))
+    ---
+    (link extensible-arrow-menu)
+  ) ;=>
   (=> (balloon (icon "tm_unequal.xpm") "Insert a negation")
-      (tile 9 (link negation-menu-1))
-      ---
-      (tile 9 (link negation-menu-2)))
+    (tile 9 (link negation-menu-1))
+    ---
+    (tile 9 (link negation-menu-2))
+  ) ;=>
   (=> (balloon (icon "tm_miscsymb.xpm") "Insert a miscellaneous symbol")
-      (tile 8 (link miscellaneous-symbol-menu))
-      ---
-      (tile 6 (link dots-menu)))
+    (tile 8 (link miscellaneous-symbol-menu))
+    ---
+    (tile 6 (link dots-menu))
+  ) ;=>
   /
   (=> (balloon (icon "tm_greek_char.xpm") "Insert a greek character")
-      (tile 8 (link lower-greek-menu))
-      ---
-      (tile 8 (link upper-greek-menu)))
-  (=> (balloon (icon "tm_mathbold.xpm")
-               "Insert a bold character")
-      (tile 15 (link bold-num-menu))
-      ---
-      (tile 13 (link bold-alpha-menu))
-      ---
-      (tile 13 (link bold-up-alpha-menu))
-      ---
-      (tile 15 (link bold-greek-menu)))
-  (=> (balloon (icon "tm_cal.xpm")
-               "Insert a calligraphic character (\\mathcal)")
-      (tile 13 (link cal-menu)))
-  (=> (balloon (icon "tm_calstar.xpm")
-               "Insert a script character (\\mathscr)")
-      (tile 13 (link cal-star-menu)))
-  (=> (balloon (icon "tm_frak.xpm")
-               "Insert a fraktur character (\\mathfrak)")
-      (tile 13 (link frak-menu)))
-  (=> (balloon (icon "tm_bbb.xpm")
-               "Insert a blackboard bold character (\\mathbbm)")
-      (tile 13 (link bbb-menu)))
+    (tile 8 (link lower-greek-menu))
+    ---
+    (tile 8 (link upper-greek-menu))
+  ) ;=>
+  (=> (balloon (icon "tm_mathbold.xpm") "Insert a bold character")
+    (tile 15 (link bold-num-menu))
+    ---
+    (tile 13 (link bold-alpha-menu))
+    ---
+    (tile 13 (link bold-up-alpha-menu))
+    ---
+    (tile 15 (link bold-greek-menu))
+  ) ;=>
+  (=> (balloon (icon "tm_cal.xpm") "Insert a calligraphic character (\\mathcal)")
+    (tile 13 (link cal-menu))
+  ) ;=>
+  (=> (balloon (icon "tm_calstar.xpm") "Insert a script character (\\mathscr)")
+    (tile 13 (link cal-star-menu))
+  ) ;=>
+  (=> (balloon (icon "tm_frak.xpm") "Insert a fraktur character (\\mathfrak)")
+    (tile 13 (link frak-menu))
+  ) ;=>
+  (=> (balloon (icon "tm_bbb.xpm") "Insert a blackboard bold character (\\mathbbm)")
+    (tile 13 (link bbb-menu))
+  ) ;=>
   (link math-format-icons)
   (if (== (get-preference "semantic editing") "on")
-      (=> (balloon (icon "tm_math_syntax.xpm")
-                   "Specify semantics of a symbol or formula")
-          (link semantic-annotation-menu))))
+    (=> (balloon (icon "tm_math_syntax.xpm") "Specify semantics of a symbol or formula")
+      (link semantic-annotation-menu)
+    ) ;=>
+  ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Icons for math mode
@@ -1324,9 +1403,8 @@
 (menu-bind math-icons
   (link math-insert-icons)
   (link texmacs-insert-icons)
-  (if (and (in-presentation?) (not (visible-icon-bar? 0)))
-    /
-    (link dynamic-icons)))
+  (if (and (in-presentation?) (not (visible-icon-bar? 0))) / (link dynamic-icons))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Math focus menus
@@ -1334,139 +1412,235 @@
 
 (tm-define (standard-options l)
   (:require (in? l '(math equation equation* eqnarray eqnarray*)))
-  (list :recurse "number-long-article" "math-check"))
+  (list :recurse "number-long-article" "math-check")
+) ;tm-define
 
 (tm-define (standard-options l)
   (:require (== l 'math-colored))
-  (list "math-ss"))
+  (list "math-ss")
+) ;tm-define
 
-(tm-define (focus-tag-name l)
-  (:require (== l 'math))
-  "Inline formula")
+(tm-define (focus-tag-name l) (:require (== l 'math)) "Inline formula")
 
 (tm-define (focus-tag-name l)
   (:require (in? l '(equation equation*)))
-  "Displayed formula")
+  "Displayed formula"
+) ;tm-define
 
 (tm-define (focus-tag-name l)
   (:require (in? l '(eqnarray eqnarray*)))
-  "Equations")
+  "Equations"
+) ;tm-define
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(math equation equation*)))
-  '(formula equation))
+  '(formula equation)
+) ;tm-define
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(eqnarray eqnarray*)))
-  '(eqnarray*))
+  '(eqnarray*)
+) ;tm-define
 
 (tm-menu (focus-variant-menu t)
   (:require (tree-in? t '(math equation equation*)))
   ("Inline formula" (variant-formula t))
-  ("Displayed formula" (variant-equation t)))
+  ("Displayed formula" (variant-equation t))
+) ;tm-menu
 
 (tm-menu (focus-preferences-menu t)
   (:require (tree-in? t '(equation equation* align)))
-  (with l (tree-label t)
-      (group "Prefix separator")
-      ((check "." "v" (== (get-init-env "equation-prefix-sep") "."))
-       (init-env "equation-prefix-sep" "."))
-      ((check "-" "v" (== (get-init-env "equation-prefix-sep") "-"))
-       (init-env "equation-prefix-sep" "-"))
-      ---)
-  (former t))
+  (with l
+    (tree-label t)
+    (group "Prefix separator")
+    ((check "." "v" (== (get-init-env "equation-prefix-sep") "."))
+     (init-env "equation-prefix-sep" ".")
+    ) ;
+    ((check "-" "v" (== (get-init-env "equation-prefix-sep") "-"))
+     (init-env "equation-prefix-sep" "-")
+    ) ;
+    ---
+  ) ;with
+  (former t)
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Script focus menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (focus-can-insert-remove? t)
-  (:require (script-context? t))
-  #t)
+(tm-define (focus-can-insert-remove? t) (:require (script-context? t)) #t)
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(lsub lsup)))
-  '(lsub lsup))
+  '(lsub lsup)
+) ;tm-define
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(rsub rsup)))
-  '(rsub rsup))
+  '(rsub rsup)
+) ;tm-define
 
 (tm-menu (focus-variant-menu t)
   (:require (tree-in? t '(lsub lsup)))
   (when (script-only-script? t)
     ("Left subscript" (variant-set (focus-tree) 'lsub))
-    ("Left superscript" (variant-set (focus-tree) 'lsup))))
+    ("Left superscript" (variant-set (focus-tree) 'lsup))
+  ) ;when
+) ;tm-menu
 
 (tm-menu (focus-variant-menu t)
   (:require (tree-in? t '(rsub rsup)))
   (when (script-only-script? t)
     ("Subscript" (variant-set (focus-tree) 'rsub))
-    ("Superscript" (variant-set (focus-tree) 'rsup))))
+    ("Superscript" (variant-set (focus-tree) 'rsup))
+  ) ;when
+) ;tm-menu
 
 (tm-menu (focus-insert-menu t)
   (:require (script-context? t))
   (assuming (tree-in? t '(lsub rsub))
     (when (script-only-script? t)
-      ("Insert superscript" (structured-insert-up))))
+      ("Insert superscript" (structured-insert-up))
+    ) ;when
+  ) ;assuming
   (assuming (tree-in? t '(lsup rsup))
     (when (script-only-script? t)
-      ("Insert subscript" (structured-insert-down)))))
+      ("Insert subscript" (structured-insert-down))
+    ) ;when
+  ) ;assuming
+) ;tm-menu
 
 (tm-menu (focus-insert-icons t)
   (:require (script-context? t))
   (assuming (tree-in? t '(lsub rsub))
     (when (script-only-script? t)
       ((balloon (icon "tm_insert_up.xpm") "Insert superscript")
-       (structured-insert-up))))
+       (structured-insert-up)
+      ) ;
+    ) ;when
+  ) ;assuming
   (assuming (tree-in? t '(lsup rsup))
     (when (script-only-script? t)
       ((balloon (icon "tm_insert_down.xpm") "Insert subscript")
-       (structured-insert-down)))))
+       (structured-insert-down)
+      ) ;
+    ) ;when
+  ) ;assuming
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Root focus menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (focus-can-insert-remove? t)
-  (:require (tree-is? t 'sqrt))
-  #f)
+(tm-define (focus-can-insert-remove? t) (:require (tree-is? t 'sqrt)) #f)
 
 (tm-menu (focus-toggle-menu t)
   (:require (tree-is? t 'sqrt))
-  ((check "Multiple root" "v"
-          (== (tree-arity (focus-tree)) 2))
-   (sqrt-toggle (focus-tree))))
+  ((check "Multiple root" "v" (== (tree-arity (focus-tree)) 2))
+   (sqrt-toggle (focus-tree))
+  ) ;
+) ;tm-menu
 
 (tm-menu (focus-toggle-icons t)
   (:require (tree-is? t 'sqrt))
-  ((check (balloon (icon "tm_root_index.xpm") "Multiple root") "v"
-          (== (tree-arity (focus-tree)) 2))
-   (sqrt-toggle (focus-tree))))
+  ((check (balloon (icon "tm_root_index.xpm") "Multiple root")
+     "v"
+     (== (tree-arity (focus-tree)) 2)
+   ) ;check
+   (sqrt-toggle (focus-tree))
+  ) ;
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wide accent focus menus
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (focus-tag-name l)
+  (:require (in? l
+              '(tilde hat
+                 bar
+                 vector
+                 check
+                 breve
+                 invbreve
+                 acute
+                 grave
+                 dot
+                 ddot
+                 dddot
+                 ddddot
+                 circle
+                 overbrace
+                 underbrace
+                 poverbrace
+                 punderbrace
+                 sqoverbrace
+                 squnderbrace
+                 rightarrow
+                 leftarrow
+                 leftrightarrow
+                 wide-bar)
+            ) ;in?
+  ) ;:require
+  (cond ((== l 'tilde) "Tilda ~")
+        ((== l 'hat) "Hat ^")
+        ((== l 'bar) "Bar ¯")
+        ((== l 'vector) "Vector →")
+        ((== l 'check) "Check ˇ")
+        ((== l 'breve) "Breve ˘")
+        ((== l 'invbreve) "Inverted breve ̑")
+        ((== l 'acute) "Acute ´")
+        ((== l 'grave) "Grave `")
+        ((== l 'dot) "Dot ˙")
+        ((== l 'ddot) "Two dots ¨")
+        ((== l 'dddot) "Three dots ˙˙˙")
+        ((== l 'ddddot) "Four dots ˙˙˙˙")
+        ((== l 'circle) "Circle ˚")
+        ((== l 'overbrace) "Overbrace ⏞")
+        ((== l 'underbrace) "Underbrace ⏟")
+        ((== l 'poverbrace) "Round overbrace")
+        ((== l 'punderbrace) "Round underbrace")
+        ((== l 'sqoverbrace) "Square overbrace")
+        ((== l 'squnderbrace) "Square underbrace")
+        ((== l 'rightarrow) "Right arrow →")
+        ((== l 'leftarrow) "Left arrow ←")
+        ((== l 'leftrightarrow) "Left-right arrow ↔")
+        ((== l 'wide-bar) "Wide bar ￣")
+  ) ;cond
+) ;tm-define
+
+(tm-define (focus-tag-name l)
   (:require (in? l '(wide wide*)))
-  "Wide")
+  (with t
+    (focus-tree)
+    (if (and t (tree-in? t '(wide wide*)))
+      (with v (get-accent-variant t) (if v (focus-tag-name v) "Wide"))
+      "Wide"
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(wide wide*)))
-  '(wide))
+  (get-accent-variants-list t)
+) ;tm-define
 
 (tm-menu (focus-toggle-menu t)
   (:require (tree-in? t '(wide wide*)))
-  ((check "Accent below" "v"
-          (alternate-second? (focus-tree)))
-   (alternate-toggle (focus-tree))))
+  ((check "Accent below" "v" (alternate-second? (focus-tree)))
+   (alternate-toggle (focus-tree))
+  ) ;
+) ;tm-menu
 
 (tm-menu (focus-toggle-icons t)
   (:require (tree-in? t '(wide wide*)))
-  ((check (balloon (icon "tm_wide_under.xpm") "Accent below") "v"
-          (alternate-second? (focus-tree)))
-   (alternate-toggle (focus-tree))))
+  ((check (balloon (icon "tm_wide_under.xpm") "Accent below")
+     "v"
+     (alternate-second? (focus-tree))
+   ) ;check
+   (alternate-toggle (focus-tree))
+  ) ;
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Around focus menus
@@ -1474,26 +1648,44 @@
 
 (tm-define (focus-has-preferences? t)
   (:require (tree-in? t '(around around*)))
-  #t)
+  #t
+) ;tm-define
 
 (tm-define (standard-options l)
   (:require (in? l '(around around*)))
-  (list "math-brackets"))
+  (list "math-brackets")
+) ;tm-define
 
 (tm-define (focus-tag-name l)
   ;; 在 around 环境中时
   ;; get-bracket-variant 如果能获取到伪变体则走伪变体 focus-tag-name
   ;; 否则返回默认的 "Around"
   (:require (in? l '(around around*)))
-  (with t (focus-tree)
+  (with t
+    (focus-tree)
     (if (and t (tree-in? t '(around around*)))
-        (with v (get-bracket-variant t)
-          (if v (focus-tag-name v) "Around"))
-        "Around")))
+      (with v (get-bracket-variant t) (if v (focus-tag-name v) "Around"))
+      "Around"
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (tm-define (focus-tag-name l)
   ;; 具体括号类型伪变体表
-  (:require (in? l '(parentheses brackets braces angle double floor ceiling vertical double-vertical slash backslash empty)))
+  (:require (in? l
+              '(parentheses brackets
+                 braces
+                 angle
+                 double
+                 floor
+                 ceiling
+                 vertical
+                 double-vertical
+                 slash
+                 backslash
+                 empty)
+            ) ;in?
+  ) ;:require
   (cond ((== l 'parentheses) "Parentheses ( )")
         ((== l 'brackets) "Brackets [ ]")
         ((== l 'braces) "Braces { }")
@@ -1505,35 +1697,53 @@
         ((== l 'double-vertical) "Double vertical bars ‖ ‖")
         ((== l 'slash) "Slash / \\")
         ((== l 'backslash) "Backslash \\ /")
-        ((== l 'empty) "Empty brackets . .")))
+        ((== l 'empty) "Empty brackets . .")
+  ) ;cond
+) ;tm-define
 
 (tm-define (focus-variants-of t)
   (:require (tree-in? t '(around around*)))
-  '(parentheses brackets braces angle double floor ceiling vertical double-vertical slash backslash empty))
+  '(parentheses brackets
+     braces
+     angle
+     double
+     floor
+     ceiling
+     vertical
+     double-vertical
+     slash
+     backslash
+     empty)
+) ;tm-define
 
 (tm-menu (focus-toggle-menu t)
   (:require (tree-in? t '(around around*)))
-  ((check "Large brackets" "v"
-          (alternate-second? (focus-tree)))
-   (alternate-toggle (focus-tree))))
+  ((check "Large brackets" "v" (alternate-second? (focus-tree)))
+   (alternate-toggle (focus-tree))
+  ) ;
+) ;tm-menu
 
 (tm-menu (focus-extra-menu t)
   (:require (tree-in? t '(left mid right around around*)))
   ---
   ("Increase size" (geometry-up))
   ("Decrease size" (geometry-down))
-  ("Default size" (geometry-reset)))
+  ("Default size" (geometry-reset))
+) ;tm-menu
 
 (tm-menu (focus-toggle-icons t)
   (:require (tree-in? t '(around around*)))
-  ((check (balloon (icon "tm_large_around.xpm") "Large brackets") "v"
-          (alternate-second? (focus-tree)))
-   (alternate-toggle (focus-tree)))
+  ((check (balloon (icon "tm_large_around.xpm") "Large brackets")
+     "v"
+     (alternate-second? (focus-tree))
+   ) ;check
+   (alternate-toggle (focus-tree))
+  ) ;
   ;; TODO: create suitable icons
-  ;;((balloon (icon "tm_plus.xpm") "Increase bracket size")
+  ;; ((balloon (icon "tm_plus.xpm") "Increase bracket size")
   ;; (geometry-up))
-  ;;((balloon (icon "tm_minus.xpm") "Decrease bracket size")
+  ;; ((balloon (icon "tm_minus.xpm") "Decrease bracket size")
   ;; (geometry-down))
-  ;;((balloon (icon "tm_reset.xpm") "Reset to default bracket size")
+  ;; ((balloon (icon "tm_reset.xpm") "Reset to default bracket size")
   ;; (geometry-reset))
-  )
+) ;tm-menu

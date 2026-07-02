@@ -10,15 +10,23 @@
 -- in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
 
 includes("xmake/vars.lua")
+includes("3rdparty/doctest.lua")
+includes("3rdparty/libaesgm.lua")
+includes("3rdparty/pdfhummus.lua")
+includes("3rdparty/tbox.lua")
+
+includes("moebius")
+includes("lolly")
 includes("xmake/stem.lua")
+includes("xmake/rules/glue.lua")
 
 set_project(stem_project_name)
 set_policy("run.autobuild", false)
 set_languages("c++17")
 set_encodings("utf-8")
 
-add_requires("s7", {system=false})
-add_requires("tbox", {system=false})
+add_requires("goldfish", {system=false})
+add_requires("liii-tbox", {system=false})
 add_requires("cpr", {system=false})
 add_requires("zlib", {system=false})
 
@@ -112,9 +120,7 @@ add_rules("mode.releasedbg", "mode.release", "mode.debug")
 add_repositories("liii-repo xmake")
 
 TBOX_VERSION= "1.7.5"
-LOLLY_VERSION= "1.4.26"
 S7_VERSION = "20240816"
-PDFHUMMUS_VERSION = "4.6.2"
 
 includes("@builtin/check")
 configvar_check_cxxtypes("HAVE_INTPTR_T", "intptr_t", {includes = {"memory"}})
@@ -133,7 +139,6 @@ end
 
 local LIBICONV_VERSION = "1.17"
 
-add_requires("lolly", {system=false})
 -- QWK is built locally from 3rdparty/qwindowkitty, no external package needed
 if is_plat ("windows") then
     add_requires("libiconv "..LIBICONV_VERSION, {system=false})
@@ -178,48 +183,6 @@ end
 
 set_configvar("USE_FREETYPE", 1)
 
-function build_glue_on_config()
-    on_config(function (target)
-        import("core.project.depend")
-        -- use relative path here to avoid import failure on windows
-        local scheme_path = path.join("src", "Scheme")
-        local build_glue_path = path.join("src", "Scheme", "Glue")
-        local build_glue = import("build_glue", {rootdir = build_glue_path})
-        for _, filepath in ipairs(os.filedirs(path.join(scheme_path, "**/glue_*.lua"))) do
-            depend.on_changed(function ()
-                local glue_name = path.basename(filepath)
-                local glue_dir = path.directory(filepath)
-                local glue_table = import(glue_name, {rootdir = glue_dir})()
-                io.writefile(
-                    path.join("$(buildir)/glue", glue_name .. ".cpp"),
-                    build_glue(glue_table, glue_name))
-                cprint("generating scheme glue %s ... %s", glue_name, "${color.success}${text.success}")
-            end, {
-                values = {true},
-                files = {filepath, path.join(build_glue_path, "build_glue.lua")},
-                always_changed = false
-            })
-        end
-        os.mkdir(path.join("$(buildir)/glue"))
-    end)
-end
-
-target("libmoebius") do
-    set_kind ("static")
-    set_languages("c++17")
-    set_encodings("utf-8")
-    set_basename("moebius")
-
-    add_includedirs(moe_includedirs)
-    add_files(moe_files)
-
-    add_packages("lolly")
-    add_packages("s7")
-
-    on_install(function (target)
-    end)
-end
-
 -- Add options for different features
 option("style_agent")
     set_default(false)
@@ -254,6 +217,11 @@ target("QWKCore")
     end
 
     on_load(function (target)
+        -- Get build directory root (compatible with xmake v3.0.4+)
+        -- $(builddir) is not resolved in on_load callbacks, so we derive it from targetdir
+        local targetdir = target:targetdir()
+        local buildir = path.directory(path.directory(path.directory(targetdir)))
+
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -279,8 +247,8 @@ target("QWKCore")
         target:add("includedirs", private_paths, {public = true})
 
         -- Create build directories
-        os.mkdir("$(buildir)/include/QWKCore")
-        os.mkdir("$(buildir)/include/QWKCore/private")
+        os.mkdir(path.join(buildir, "include/QWKCore"))
+        os.mkdir(path.join(buildir, "include/QWKCore/private"))
 
         -- Generate qwkconfig.h
         local config_content = [[
@@ -299,7 +267,7 @@ target("QWKCore")
 
 #endif // QWKCONFIG_H
 ]]
-        local config_path = "$(buildir)/include/QWKCore/qwkconfig.h"
+        local config_path = path.join(buildir, "include/QWKCore/qwkconfig.h")
         local existing_content = nil
         if os.isfile(config_path) then
             existing_content = io.readfile(config_path)
@@ -325,21 +293,21 @@ target("QWKCore")
                 safe_cp(filepath, dst)
             end
         end
-        safe_vcp("3rdparty/qwindowkitty/src/core/*.h", "$(buildir)/include/QWKCore/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", "$(buildir)/include/QWKCore/private/")
-        safe_vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", "$(buildir)/include/QWKCore/private/")
+        safe_vcp("3rdparty/qwindowkitty/src/core/*.h", path.join(buildir, "include/QWKCore/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/*_p.h", path.join(buildir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*_p.h", path.join(buildir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/contexts/*.h", path.join(buildir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/kernel/*_p.h", path.join(buildir, "include/QWKCore/private/"))
+        safe_vcp("3rdparty/qwindowkitty/src/core/shared/*_p.h", path.join(buildir, "include/QWKCore/private/"))
 
         if has_config("style_agent") then
-            safe_vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", "$(buildir)/include/QWKCore/private/")
-            safe_vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", "$(buildir)/include/QWKCore/styleagent.h")
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/*_p.h", path.join(buildir, "include/QWKCore/private/"))
+            safe_vcp("3rdparty/qwindowkitty/src/core/style/styleagent.h", path.join(buildir, "include/QWKCore/styleagent.h"))
         end
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/core", "3rdparty/qwindowkitty/src/core/kernel", "3rdparty/qwindowkitty/src/core/shared", "3rdparty/qwindowkitty/src/core/contexts", "3rdparty/qwindowkitty/src")
 
     -- Defines
@@ -408,8 +376,8 @@ target("QWKCore")
     end
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
-    add_headerfiles("$(buildir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
+    add_headerfiles("$(builddir)/include/QWKCore/**.h", {prefixdir = "QWKCore"})
+    add_headerfiles("$(builddir)/include/QWKCore/private/**.h", {prefixdir = "QWKCore/private"})
 
     on_install(function (target)
     end)
@@ -445,6 +413,11 @@ target("QWKWidgets")
     add_rules("qt.qrc")
 
     on_load(function (target)
+        -- Get build directory root (compatible with xmake v3.0.4+)
+        -- $(builddir) is not resolved in on_load callbacks, so we derive it from targetdir
+        local targetdir = target:targetdir()
+        local buildir = path.directory(path.directory(path.directory(targetdir)))
+
         local private_paths = {}
         local qt_package = get_config("qt")
         local qt_version = get_config("qt_sdkver")
@@ -469,8 +442,8 @@ target("QWKWidgets")
         end
         target:add("includedirs", private_paths, {public = true})
 
-        os.mkdir("$(buildir)/include/QWKWidgets")
-        os.mkdir("$(buildir)/include/QWKWidgets/ui/widgetframe")
+        os.mkdir(path.join(buildir, "include/QWKWidgets"))
+        os.mkdir(path.join(buildir, "include/QWKWidgets/ui/widgetframe"))
         local function safe_cp(src, dst)
             local src_content = io.readfile(src)
             local dst_content = nil
@@ -487,12 +460,12 @@ target("QWKWidgets")
                 safe_cp(filepath, dst)
             end
         end
-        safe_vcp("3rdparty/qwindowkitty/src/widgets/*.h", "$(buildir)/include/QWKWidgets/")
-        safe_vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", "$(buildir)/include/QWKWidgets/ui/widgetframe/")
+        safe_vcp("3rdparty/qwindowkitty/src/widgets/*.h", path.join(buildir, "include/QWKWidgets/"))
+        safe_vcp("3rdparty/qwindowkitty/src/ui/widgetframe/*.h", path.join(buildir, "include/QWKWidgets/ui/widgetframe/"))
     end)
 
     -- Include directories
-    add_includedirs("$(buildir)/include", {public = true})
+    add_includedirs("$(builddir)/include", {public = true})
     add_includedirs("3rdparty/qwindowkitty/src/widgets", "3rdparty/qwindowkitty/src")
 
     -- Source files
@@ -514,7 +487,7 @@ target("QWKWidgets")
     add_files("3rdparty/qwindowkitty/src/styles/styles.qrc")
 
     -- Set install headers
-    add_headerfiles("$(buildir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
+    add_headerfiles("$(builddir)/include/QWKWidgets/**.h", {prefixdir = "QWKWidgets"})
 
     on_install(function (target)
     end)
@@ -538,10 +511,9 @@ target("libmogan") do
     set_encodings("utf-8")
 
     add_deps("libmoebius")
+    add_deps("liblolly")
     add_deps("QWKCore", "QWKWidgets")
 
-    add_includedirs("3rdparty", {public = true})
-    
     set_policy("check.auto_ignore_flags", false)
     on_install(function (target)
         print("No need to install libmogan")
@@ -555,9 +527,33 @@ target("libmogan") do
     else
         add_rules("qt.static")
         add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
+        add_frameworks("QtQml", "QtQuick", "QtBodymovin")
     end
 
-    build_glue_on_config()
+    add_rules("mogan.glue")
+    add_files("src/Scheme/L2/glue_lolly.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_drd.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_file.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_misc.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_modification.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_moebius.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_patch.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L3/glue_url.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L4/glue_convert.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L4/glue_tree.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L5/glue_widget.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_basic.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_editor.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_font.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Glue/glue_server.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_bibtex.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_ghostscript.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_html.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_pdf.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_plugin.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_tex.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_updater.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/Plugins/glue_xml.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)
@@ -567,10 +563,11 @@ target("libmogan") do
         add_defines("USE_QT_PRINTER")
     end
 
-    add_packages("lolly")
     add_packages("liii-pdfhummus")
     add_packages("freetype")
-    add_packages("s7")
+    add_packages("goldfish")
+    add_packages("liii-tbox")
+    add_packages("cpr")
     add_packages("argh")
     if is_plat("wasm") then
         add_packages("tbox")
@@ -592,7 +589,7 @@ target("libmogan") do
     --    * https://github.com/xmake-io/xmake/issues/320
     --    * https://github.com/xmake-io/xmake/issues/342
     ---------------------------------------------------------------------------
-    set_configdir("$(buildir)")
+    set_configdir("$(builddir)")
     -- check for dl library
     -- configvar_check_cxxfuncs("TM_DYNAMIC_LINKING","dlopen")
     configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
@@ -677,8 +674,7 @@ target("libmogan") do
     ---------------------------------------------------------------------------
     -- add source and header files
     ---------------------------------------------------------------------------
-    add_includedirs("$(buildir)", {public = true})
-    add_includedirs(moe_includedirs)
+    add_includedirs("$(builddir)", {public = true})
     add_includedirs({
             "src/Data/Convert",
             "src/Data/Document",
@@ -735,7 +731,7 @@ target("libmogan") do
             "src/Mogan/TemplateCenter",
             "src/Mogan/Telemetry",
             "TeXmacs/include",
-            "$(buildir)/glue",
+            "$(builddir)/glue",
             "$(projectdir)/TeXmacs/plugins/goldfish/src/",
             "$(projectdir)/3rdparty/nlohmann_json/include",
             "$(projectdir)/3rdparty/json-schema-validator/src"
@@ -822,8 +818,8 @@ target("libmogan") do
 
     add_mxflags("-fno-objc-arc")
     on_load(function (target)
-        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
-        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(builddir)/config.h"))
+        target:add("forceincludes", path.absolute("$(builddir)/tm_configure.hpp"))
     end)
 end 
 
@@ -857,7 +853,7 @@ if is_plat("windows") then
         add_configfiles("$(projectdir)/packages/windows/TeXmacs.ico", {
             onlycopy = true
         })
-        add_files("$(buildir)/resource.rc")
+        add_files("$(builddir)/resource.rc")
     end
 end
 
@@ -876,14 +872,14 @@ target("stem") do
         set_filename(stem_binary_windows)
     end
 
-    local install_dir = "$(buildir)"
+    local install_dir = "$(builddir)"
     if is_plat("windows") then
-        install_dir = path.join("$(buildir)", "packages/stem/data/")
+        install_dir = path.join("$(builddir)", "packages/stem/data/")
     elseif is_plat("macosx") then
-        install_dir = path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name .. ".app/Contents/Resources/")
+        install_dir = path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name .. ".app/Contents/Resources/")
     else
         if os.getenv("INSTALL_DIR") == nil then
-            install_dir = path.join("$(buildir)", "packages/stem/")
+            install_dir = path.join("$(builddir)", "packages/stem/")
         else
             install_dir = os.getenv("INSTALL_DIR")
         end
@@ -944,6 +940,7 @@ target("stem") do
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork")
     if not is_plat("wasm") then
         add_frameworks("QtNetworkAuth")
+        add_frameworks("QtQml", "QtQuick", "QtBodymovin")
     end
     if is_plat("wasm") then
         add_links("qwasm")
@@ -954,9 +951,10 @@ target("stem") do
         add_ldflags("-s EXPORT_NAME=\"createQtAppInstance\"", {force = true})
         add_ldflags("--preload-file=" .. path.absolute("TeXmacs") .. "@/TeXmacs")
     end
-    add_packages("s7")
-    add_packages("lolly")
+    add_packages("goldfish")
+    add_deps("liblolly")
     add_deps("libmogan")
+    add_deps("libmoebius")
     if not is_plat("windows") then
         add_syslinks("pthread", "dl", "m")
     end
@@ -964,7 +962,6 @@ target("stem") do
         add_syslinks("X11")
     end
 
-    add_includedirs(moe_includedirs)
     add_files("src/Mogan/Research/research.cpp")
 
     -- install tm files for testing purpose
@@ -1075,8 +1072,8 @@ target("stem") do
     end)
 
     on_load(function (target)
-        target:add("forceincludes", path.absolute("$(buildir)/config.h"))
-        target:add("forceincludes", path.absolute("$(buildir)/tm_configure.hpp"))
+        target:add("forceincludes", path.absolute("$(builddir)/config.h"))
+        target:add("forceincludes", path.absolute("$(builddir)/tm_configure.hpp"))
     end)
 
     -- After install callback for Linux to rename MIME icon files
@@ -1116,47 +1113,6 @@ target("stem") do
     end)
 end
 
-function add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
-    local testname = path.basename(filepath)
-    target(testname) do
-        set_enabled(not is_plat("wasm"))
-        set_kind("phony")
-        set_group("integration_tests")
-        add_deps("stem")
-        on_run(function (target)
-            name = target:name()
-            test_name = "(test_"..name..")"
-            print("------------------------------------------------------")
-            print("Executing: " .. test_name)
-            params = {
-                "-headless",
-                "-d",
-                "-b", path.join("TeXmacs","tests",name..".scm"),
-                "-x", "(catch #t (lambda () " .. test_name .. " (quit-TeXmacs)) (lambda args (display \"Error: \") (display args) (newline) (exit 1)))"
-            }
-            if is_plat("macosx", "linux") then
-                binary = target:deps()["stem"]:targetfile()
-            elseif is_plat("mingw", "windows") then
-                binary = path.join(INSTALL_DIR,"bin", stem_binary_windows)
-            else
-                print("Unsupported plat $(plat)")
-            end
-            cmd = binary
-            if is_plat("macosx", "linux") then
-                os.execv(cmd, params, {envs=RUN_ENVS})
-            else
-                os.execv(cmd, params)
-            end
-        end)
-    end
-end
-
--- Integration tests
-RUN_ENVS = {TEXMACS_PATH=path.join(os.projectdir(), "TeXmacs")}
-for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
-    add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
-end
-
 target("stem_packager") do
     set_enabled(is_plat("macosx") and is_mode("release"))
     set_kind("phony")
@@ -1177,7 +1133,7 @@ target("stem_packager") do
         pattern = "@(.-)@",
     })
 
-    set_installdir(path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app/Contents/Resources/"))
+    set_installdir(path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app/Contents/Resources/"))
 
     local dmg_name= stem_binary_name_local .. "-v" .. XMACS_VERSION .. ".dmg"
     if is_arch("arm64") then
@@ -1187,12 +1143,12 @@ target("stem_packager") do
     end
 	
 	-- print("DMG name will be: " .. dmg_name)
-	-- print("Build dir is: " .. path.absolute("$(buildir)"))
-	-- print("App dir is: " .. path.absolute(path.join("$(buildir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app")))
+	-- print("Build dir is: " .. path.absolute("$(builddir)"))
+	-- print("App dir is: " .. path.absolute(path.join("$(builddir)", "macosx/$(arch)/$(mode)/" .. stem_binary_name_local .. ".app")))
 
     after_install(function (target, opt)
         local app_dir = target:installdir() .. "/../../"
-        local build_dir = path.absolute("$(buildir)")
+        local build_dir = path.absolute("$(builddir)")
         local project_dir = os.projectdir()
         
         print("Packaging app at: " .. app_dir)

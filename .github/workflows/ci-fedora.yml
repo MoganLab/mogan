@@ -7,6 +7,8 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
@@ -19,6 +21,8 @@ on:
       - "!src/Plugins/Macos/**"
       - "!src/Plugins/Windows/**"
       - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
       - "xmake.lua"
       - "xmake/packages.lua"
       - "xmake/packages/**"
@@ -74,11 +78,62 @@ jobs:
             tmp/build/.build_cache
           key: ${{ runner.os }}-fedora-build-qt683-${{ hashFiles('**/packages.lua') }}
 
+      - name: Detect changes
+        id: filter
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            lolly:
+              - 'lolly/**'
+            lolly_src:
+              - 'lolly/Data/**'
+              - 'lolly/Kernel/**'
+              - 'lolly/Plugins/**'
+              - 'lolly/System/**'
+              - 'lolly/lolly/**'
+              - 'lolly/xmake.lua'
+            moebius:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/tests/**'
+              - 'moebius/xmake.lua'
+            moebius_src:
+              - 'moebius/Data/**'
+              - 'moebius/Kernel/**'
+              - 'moebius/Scheme/**'
+              - 'moebius/moebius/**'
+              - 'moebius/xmake.lua'
+            mogan:
+              - 'src/**'
+              - 'tests/**'
+              - 'xmake.lua'
+              - 'xmake/packages.lua'
+              - 'xmake/packages/**'
+              - 'TeXmacs/tests/*.scm'
+
       - name: config
         run: xmake config -vD --policies=build.ccache -o tmp/build -m releasedbg --yes
+      - name: build lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake build --yes -vD liblolly
+      - name: test lolly
+        if: steps.filter.outputs.lolly == 'true'
+        run: xmake test "lolly_tests/*"
+      - name: build moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake build --yes -vD libmoebius
+      - name: test moebius
+        if: steps.filter.outputs.moebius == 'true'
+        run: xmake test "moebius_tests/*"
+
       - name: build
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake build --yes -vD stem && xmake build --yes -vD --group=tests
       - name: test
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=tests
       - name: Scheme tests
+        if: steps.filter.outputs.lolly_src == 'true' || steps.filter.outputs.moebius_src == 'true' || steps.filter.outputs.mogan == 'true'
         run: xmake run --yes -vD --group=scheme_tests

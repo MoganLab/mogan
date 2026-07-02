@@ -57,8 +57,8 @@ public:
 
 public:
   basic_renderer_rep (bool screen_flag, int w2= 0, int h2= 0)
-      : renderer_rep (screen_flag), w (w2), h (h2), pen (black),
-        fg_brush (black), bg_brush (white) {}
+      : renderer_rep (screen_flag), w (w2), h (h2), pen (moebius::data::black),
+        fg_brush (moebius::data::black), bg_brush (moebius::data::white) {}
   virtual ~basic_renderer_rep () {}
 
   virtual void get_extents (int& w, int& h);

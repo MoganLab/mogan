@@ -33,23 +33,14 @@
 #include "url.hpp"
 
 #include <moebius/data/scheme.hpp>
-#include <moebius/drd/drd_mode.hpp>
 
 using moebius::data::scm_quote;
 using moebius::data::scm_unquote;
-using moebius::drd::get_access_mode;
-using moebius::drd::set_access_mode;
-
-#include "glue_drd.cpp"
-#include "glue_file.cpp"
-#include "glue_url.cpp"
 
 string
 xmacs_version () {
   return XMACS_VERSION;
 }
-
-#include "glue_misc.cpp"
 
 tmscm
 observerP (tmscm t) {
@@ -70,42 +61,11 @@ contentP (tmscm t) {
   return bool_to_tmscm (b);
 }
 
-tree
-var_apply (tree& t, modification m) {
-  apply (t, copy (m));
-  return t;
-}
-
-tree
-var_clean_apply (tree& t, modification m) {
-  return clean_apply (t, copy (m));
-}
-
-patch
-branch_patch (array<patch> a) {
-  return patch (true, a);
-}
-
-tree
-var_clean_apply (tree t, patch p) {
-  return clean_apply (copy (p), t);
-}
-
-tree
-var_apply (tree& t, patch p) {
-  apply (copy (p), t);
-  return t;
-}
-
 tmscm
 patchP (tmscm t) {
   bool b= tmscm_is_patch (t);
   return bool_to_tmscm (b);
 }
-
-#include "glue_modification.cpp"
-#include "glue_moebius.cpp"
-#include "glue_patch.cpp"
 
 void
 initialize_glue_l3 () {

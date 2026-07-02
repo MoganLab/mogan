@@ -303,6 +303,8 @@ package("qtbase")
             -- Seems Qt's official WASM build does not support this package
             table.insert(aqt_args, "qtnetworkauth")
         end
+        table.insert(aqt_args, "qtnetworkauth")
+        table.insert(aqt_args, "qtlottie")
 
         os.vrunv("aqt", aqt_args)
 

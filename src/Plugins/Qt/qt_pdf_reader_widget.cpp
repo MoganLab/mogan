@@ -9,14 +9,17 @@
 
 #include <QApplication>
 #include <QClipboard>
+#include <QContextMenuEvent>
 #include <QDebug>
 #include <QDesktopServices>
 #include <QDockWidget>
 #include <QFile>
+#include <QFileDialog>
 #include <QFrame>
 #include <QGestureEvent>
 #include <QKeyEvent>
 #include <QMainWindow>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QPinchGesture>
 #include <QPushButton>
@@ -71,7 +74,9 @@ PDFReaderWidget::PDFReaderWidget (QWidget* parent)
       pageBaseWidthPts_ (0.0), overLink_ (false), zoomDebounceTimer_ (nullptr),
       resizeDebounceTimer_ (nullptr), gestureSafetyTimer_ (nullptr),
       inPinchGesture_ (false), blockRender_ (false), autoFitApplied_ (false),
-      pinchStartZoom_ (1.0), renderCallCount_ (0) {
+      pinchStartZoom_ (1.0), zoomAnchorContentY_ (0.0),
+      zoomAnchorViewportY_ (0.0), zoomAnchorOldZoom_ (1.0),
+      hasZoomAnchor_ (false), renderCallCount_ (0) {
 
   mainLayout_= new QVBoxLayout (this);
   mainLayout_->setContentsMargins (0, 0, 0, 0);
@@ -323,6 +328,16 @@ PDFReaderWidget::simulatePinchGesture (Qt::GestureState state,
 
 void
 PDFReaderWidget::setZoomFactor (double factor) {
+  if (pdfData_.isEmpty () || pageCount_ <= 0) {
+    zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
+    updateZoomDisplay ();
+    return;
+  }
+  // Save anchor at viewport center before zoom
+  int    vpHeight= scrollArea_->viewport ()->height ();
+  QPoint vpCenter (scrollArea_->viewport ()->width () / 2, vpHeight / 2);
+  saveZoomAnchor (vpCenter);
+
   zoomFactor_= qBound (MIN_ZOOM, factor, MAX_ZOOM);
   updateZoomDisplay ();
   if (!pdfData_.isEmpty () && pageCount_ > 0) {
@@ -792,6 +807,12 @@ PDFReaderWidget::rebuildPages () {
     label->setFixedSize (width, height);
   }
 
+  // Force the layout to recalculate so that scroll bar ranges are correct
+  contentWidget_->adjustSize ();
+
+  // Restore scroll position anchored to the saved content point
+  restoreZoomAnchor ();
+
   // 计算当前视口范围（考虑预加载边距）
   int scrollY       = scrollArea_->verticalScrollBar ()->value ();
   int viewportHeight= scrollArea_->viewport ()->height ();
@@ -846,6 +867,7 @@ bool
 PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
   clear ();
   autoFitApplied_= false;
+  pdfFilePath_   = filePath;
 
   targetDpi_= dpi;
   hasError_ = false;
@@ -970,6 +992,7 @@ PDFReaderWidget::loadFromFile (const QString& filePath, int dpi) {
 void
 PDFReaderWidget::clear () {
   pdfData_.clear ();
+  pdfFilePath_.clear ();
   pageCount_= 0;
   hasError_ = false;
   errorString_.clear ();
@@ -1137,6 +1160,77 @@ PDFReaderWidget::updateLinkCursor (const QPoint& contentPos) {
     overLink_   = false;
     scrollArea_->viewport ()->setCursor (Qt::OpenHandCursor);
   }
+}
+
+void
+PDFReaderWidget::saveZoomAnchor (const QPoint& viewportPos) {
+  // Only save on the first zoom event of a sequence (before any zoom change).
+  // Subsequent wheel events reuse the same anchor so that restoreZoomAnchor
+  // correctly computes the full zoom ratio from the original state.
+  if (hasZoomAnchor_) return;
+  QPoint contentPos=
+      contentWidget_->mapFrom (scrollArea_->viewport (), viewportPos);
+  zoomAnchorContentY_ = static_cast<double> (contentPos.y ());
+  zoomAnchorViewportY_= static_cast<double> (viewportPos.y ());
+  zoomAnchorOldZoom_  = zoomFactor_;
+  hasZoomAnchor_      = true;
+}
+
+void
+PDFReaderWidget::restoreZoomAnchor () {
+  if (!hasZoomAnchor_) return;
+  hasZoomAnchor_= false;
+
+  // Read the actual new page height from the label that was just resized in
+  // rebuildPages.  This avoids qRound mismatches between the saved anchor
+  // and the real layout geometry.
+  int pageIdx= 0;
+  {
+    double remaining= zoomAnchorContentY_ - PAGE_MARGIN;
+    for (int i= 0; i < pageCount_ && i < pageLayout_->count (); ++i) {
+      QLayoutItem* item= pageLayout_->itemAt (i);
+      if (!item) continue;
+      int h= item->widget ()->height ();
+      if (remaining >= 0) pageIdx= i;
+      remaining-= (h + PAGE_MARGIN);
+    }
+  }
+
+  // Compute old page top/height from the anchor content Y by finding which
+  // page the anchor falls on. We use the same formula rebuildPages uses.
+  QScreen* screen= this->screen ();
+  if (!screen) screen= QApplication::primaryScreen ();
+  qreal dpi     = screen ? screen->logicalDotsPerInch () : 96.0;
+  int   baseW   = (pageBaseWidthPts_ > 0)
+                      ? qRound (pageBaseWidthPts_ * dpi / 72.0)
+                      : scrollArea_->viewport ()->width () - PAGE_MARGIN * 2;
+  int   oldPageW= qMax (1, qRound (baseW * zoomAnchorOldZoom_));
+  int   oldPageH= 0;
+  {
+    double aspect= (pageIdx < pageAspectRatios_.size ())
+                       ? pageAspectRatios_[pageIdx]
+                       : pageAspectRatio_;
+    if (aspect <= 0.0) aspect= 1.414;
+    oldPageH= qMax (1, qRound (oldPageW * aspect));
+  }
+  double oldPageTop= PAGE_MARGIN + pageIdx * (oldPageH + PAGE_MARGIN);
+  double offset    = zoomAnchorContentY_ - oldPageTop;
+
+  // Read the actual new page height from the layout (just set by rebuildPages)
+  int newPageH= 1;
+  if (pageIdx < pageLayout_->count ()) {
+    QLayoutItem* item= pageLayout_->itemAt (pageIdx);
+    if (item && item->widget ()) newPageH= item->widget ()->height ();
+  }
+  int newPageTop= PAGE_MARGIN + pageIdx * (newPageH + PAGE_MARGIN);
+
+  double zoomRatio=
+      (oldPageH > 0) ? static_cast<double> (newPageH) / oldPageH : 1.0;
+  double      contentY     = newPageTop + offset * zoomRatio;
+  int         targetScrollY= qRound (contentY - zoomAnchorViewportY_);
+  QScrollBar* vbar         = scrollArea_->verticalScrollBar ();
+  targetScrollY            = qBound (0, targetScrollY, vbar->maximum ());
+  vbar->setValue (targetScrollY);
 }
 
 void
@@ -1350,6 +1444,8 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (isZoomModifier (wheelEvent->modifiers ())) {
         int delta= wheelEvent->angleDelta ().y ();
         if (delta != 0) {
+          // Save anchor at cursor position before zoom
+          saveZoomAnchor (wheelEvent->position ().toPoint ());
           double factor= 1.0 + static_cast<double> (delta) / 500.0;
           zoomFactor_  = qBound (MIN_ZOOM, zoomFactor_ * factor, MAX_ZOOM);
           updateZoomDisplay ();
@@ -1407,6 +1503,15 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       }
     }
     // ============================================================
+    // Context menu (right-click)
+    // ============================================================
+    else if (event->type () == QEvent::ContextMenu) {
+      QContextMenuEvent* contextEvent= static_cast<QContextMenuEvent*> (event);
+      showContextMenu (contextEvent->pos ());
+      contextEvent->accept ();
+      return true;
+    }
+    // ============================================================
     // Link hover detection (no button pressed)
     // ============================================================
     else if (!rectSelectMode_ && !browseDragging_ &&
@@ -1423,7 +1528,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
       if (mouseEvent->button () == Qt::LeftButton) {
         browseDragging_    = true;
         browseDragActive_  = false;
-        browseDragStartPos_= mouseEvent->globalPosition ().toPoint ();
+        browseDragStartPos_= viewportPos;
         scroller_->handleInput (QScroller::InputPress, viewportPos,
                                 mouseEvent->timestamp ());
         scrollArea_->viewport ()->setCursor (Qt::ClosedHandCursor);
@@ -1434,9 +1539,7 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     else if (!rectSelectMode_ && browseDragging_ &&
              event->type () == QEvent::MouseMove) {
       QMouseEvent* mouseEvent= static_cast<QMouseEvent*> (event);
-      int          delta=
-          (mouseEvent->globalPosition ().toPoint () - browseDragStartPos_)
-              .manhattanLength ();
+      int delta= (viewportPos - browseDragStartPos_).manhattanLength ();
       if (!browseDragActive_ && delta > QApplication::startDragDistance ()) {
         browseDragActive_= true;
       }
@@ -1505,4 +1608,20 @@ PDFReaderWidget::eventFilter (QObject* watched, QEvent* event) {
     }
   }
   return QWidget::eventFilter (watched, event);
+}
+
+void
+PDFReaderWidget::showContextMenu (const QPoint& pos) {
+  if (pdfFilePath_.isEmpty ()) return;
+  QMenu    menu (this);
+  QAction* saveAction= menu.addAction (qt_translate ("Save as..."));
+  QAction* selected  = menu.exec (scrollArea_->viewport ()->mapToGlobal (pos));
+  if (selected == saveAction) {
+    QString dest= QFileDialog::getSaveFileName (
+        this, qt_translate ("Save PDF file"), pdfFilePath_,
+        qt_translate ("PDF files (*.pdf)"));
+    if (!dest.isEmpty ()) {
+      QFile::copy (pdfFilePath_, dest);
+    }
+  }
 }

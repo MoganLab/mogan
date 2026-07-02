@@ -11,11 +11,9 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (text cyrillic translit-kbd)
-  (:use (text text-kbd)))
+(texmacs-module (text cyrillic translit-kbd) (:use (text text-kbd)))
 
-(kbd-map
-  (:mode in-cyrillic-translit?)
+(kbd-map (:mode in-cyrillic-translit?)
 
   ("a" "<#430>")
   ("b" "<#431>")
@@ -116,4 +114,5 @@
   ("Y i" "<#407>")
   ("Y I" "<#407>")
   ("accent:umlaut E" "<#401>")
-  ("accent:umlaut I" "<#407>"))
+  ("accent:umlaut I" "<#407>")
+) ;kbd-map

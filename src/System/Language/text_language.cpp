@@ -17,6 +17,8 @@
 #include "sys_utils.hpp"
 #include "tm_configure.hpp"
 
+#include <lolly/data/herk.hpp>
+
 /******************************************************************************
  * Western text languages / 8 bit charset
  ******************************************************************************/
@@ -493,10 +495,10 @@ chinese_language_rep::chinese_language_rep (string lan_name)
                         << string ("“") << string ("‘");
 
   for (int i= 0; i < N (full_width_do_not_start); i++) {
-    do_not_start << utf8_to_herk (full_width_do_not_start[i]);
+    do_not_start << lolly::data::utf8_to_herk (full_width_do_not_start[i]);
   }
   for (int i= 0; i < N (full_width_do_not_end); i++) {
-    do_not_end << utf8_to_herk (full_width_do_not_end[i]);
+    do_not_end << lolly::data::utf8_to_herk (full_width_do_not_end[i]);
   }
 
   // special full width characters

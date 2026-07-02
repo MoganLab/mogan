@@ -304,16 +304,20 @@ concater_rep::handle_matching (int start, int end) {
   bool uninit= true;
   a[start]->penalty++;
   a[end]->penalty++;
-  for (i= start + 1; i < end; i++) {
-    if (a[i]->type == OBSOLETE_ITEM) continue;
+  for (i= start; i <= end; i++) {
+    int tp= a[i]->type;
+    if (tp == OBSOLETE_ITEM) continue;
+    if (i != start && i != end) a[i]->penalty++;
+    if (tp == LEFT_BRACKET_ITEM || tp == MIDDLE_BRACKET_ITEM ||
+        tp == RIGHT_BRACKET_ITEM)
+      continue;
     // cout << "  " << a[i] << ": " << (a[i]->b->y2- a[i]->b->y1) << "\n";
     // y1= min (y1, a[i]->b->sub_base());
     // y2= max (y2, a[i]->b->sup_base());
     SI lo, hi;
     a[i]->b->get_bracket_extents (lo, hi);
-    y1= min (y1, lo);
-    y2= max (y2, hi);
-    a[i]->penalty++;
+    y1    = min (y1, lo);
+    y2    = max (y2, hi);
     uninit= false;
   }
   if (uninit) {
@@ -425,8 +429,8 @@ concater_rep::handle_brackets () {
     i++;
   }
   if (N (a) > 0) {
-    handle_scripts (0, N (a) - 1);
     handle_matching (0, N (a) - 1);
+    handle_scripts (0, N (a) - 1);
   }
 }
 

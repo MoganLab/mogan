@@ -10,65 +10,71 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
-;; Most of the procedures in this file are wrappers to the procedures in 
-;; apidoc-funcs which will be used in <extern> and <action> tags in the scheme 
+;; Most of the procedures in this file are wrappers to the procedures in
+;; apidoc-funcs which will be used in <extern> and <action> tags in the scheme
 ;; documentation. Most of them are needed for example in the style file
 ;; packages/documentation/scheme-api.ts.
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (doc apidoc-markup)
-  (:use (doc apidoc-funcs)
-        (kernel gui gui-markup)))
+  (:use (doc apidoc-funcs) (kernel gui gui-markup))
+) ;texmacs-module
 
 (tm-define (doc-module-synopsis tname)
-  ;TODO
   (:secure #t)
-  `(concat ,(string-append "synopsis for " (tree->string tname))))
+  `(concat ,(string-append "synopsis for " (tree->string tname)))
+) ;tm-define
 
 (tm-define (doc-module-family tname)
   (:secure #t)
-  `(concat ,(module->string (cDr (string->module (tree->string tname))))))
+  `(concat ,(module->string (cDr (string->module (tree->string tname)))))
+) ;tm-define
 
 (tm-define (doc-module-dependencies tname)
   (:secure #t)
-  ($module-dependencies (string->module (tree->string tname))))
+  ($module-dependencies (string->module (tree->string tname)))
+) ;tm-define
 
 (tm-define (doc-module-source-link tname)
   (:secure #t)
-  ($module-source-link (string->module (tree->string tname))))
+  ($module-source-link (string->module (tree->string tname)))
+) ;tm-define
 
 (tm-define (doc-module-doc-link tname)
   (:secure #t)
-  ($module-doc-link (string->module (tree->string tname))))
+  ($module-doc-link (string->module (tree->string tname)))
+) ;tm-define
 
 (tm-define (doc-module-count-exported tname)
   (:secure #t)
-  (number->string 
-    (module-count-exported (string->module (tree->string tname)))))
+  (number->string (module-count-exported (string->module (tree->string tname))))
+) ;tm-define
 
 (tm-define (doc-module-count-undocumented tname)
   (:secure #t)
-  (number->string 
-    (module-count-undocumented (string->module (tree->string tname)))))
+  (number->string (module-count-undocumented (string->module (tree->string tname)))
+  ) ;number->string
+) ;tm-define
 
 (tm-define (doc-module-traverse troot)
   (:secure #t)
-  ($doc-module-traverse (string->module (tree->string troot))))
+  ($doc-module-traverse (string->module (tree->string troot)))
+) ;tm-define
 
-(tm-define (doc-symbol-symbol tsym)
-  (:secure #t)
-  (tree->string tsym))
+(tm-define (doc-symbol-symbol tsym) (:secure #t) (tree->string tsym))
 
 (tm-define (doc-symbol-synopsis tsym)
   (:secure #t)
-    (doc-symbol-synopsis* (tree->symbol tsym)))
+  (doc-symbol-synopsis* (tree->symbol tsym))
+) ;tm-define
 
 (tm-define (doc-symbol-code tsym)
   (:secure #t)
-  ($doc-symbol-code (tree->symbol tsym)))
+  ($doc-symbol-code (tree->symbol tsym))
+) ;tm-define
 
 (tm-define (doc-symbol-template tsym)
   (:secure #t)
-  ($doc-symbol-template (tree->symbol tsym) #t ""))
-
+  ($doc-symbol-template (tree->symbol tsym) #t "")
+) ;tm-define

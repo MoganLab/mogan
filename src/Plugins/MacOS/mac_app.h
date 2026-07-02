@@ -11,13 +11,10 @@
 #ifndef MAC_APP_H
 #define MAC_APP_H
 
-
 void init_mac_application ();
 
 void finalize_mac_application ();
 
 void process_mac_events ();
-
-
 
 #endif // MAC_APP_H

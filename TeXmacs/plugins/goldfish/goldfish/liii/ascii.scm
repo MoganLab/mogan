@@ -47,17 +47,11 @@
   (begin
 
     (define (ascii-left-paren? x)
-      (if (char? x)
-        (char=? x #\()
-        (and (integer? x) (= x 40))
-      ) ;if
+      (if (char? x) (char=? x #\() (and (integer? x) (= x 40)))
     ) ;define
 
     (define (ascii-right-paren? x)
-      (if (char? x)
-        (char=? x #\))
-        (and (integer? x) (= x 41))
-      ) ;if
+      (if (char? x) (char=? x #\)) (and (integer? x) (= x 41)))
     ) ;define
 
   ) ;begin

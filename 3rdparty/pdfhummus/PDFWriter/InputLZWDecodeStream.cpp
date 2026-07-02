@@ -23,12 +23,11 @@
 #include "Trace.h"
 #include "zlib.h"
 
-
-InputLZWDecodeStream::InputLZWDecodeStream(int early)
+InputLZWDecodeStream::InputLZWDecodeStream()
 {
 	mSourceStream = NULL;
 	mCurrentlyEncoding = false;
-	mEarly = early;
+	mEarly = 1;
 	inputBuf = 0;
 }
 
@@ -45,17 +44,19 @@ void InputLZWDecodeStream::FinalizeEncoding()
 	mCurrentlyEncoding = false;
 }
 
-InputLZWDecodeStream::InputLZWDecodeStream(IByteReader* inSourceReader)
-{	
+InputLZWDecodeStream::InputLZWDecodeStream(IByteReader* inSourceReader, int inEarly)
+{
 	mSourceStream = NULL;
 	mCurrentlyEncoding = false;
+	inputBuf = 0;
 
-	Assign(inSourceReader);
+	Assign(inSourceReader, inEarly);
 }
 
-void InputLZWDecodeStream::Assign(IByteReader* inSourceReader)
+void InputLZWDecodeStream::Assign(IByteReader* inSourceReader, int inEarly)
 {
 	mSourceStream = inSourceReader;
+	mEarly = inEarly;
 	if(mSourceStream)
 		StartEncoding();
 }
@@ -114,7 +115,7 @@ bool InputLZWDecodeStream::ProcessNextCode()
 		if(!mCurrentlyEncoding)
 			break;		
 
-		if (nextCode >= 4097) 
+		if (nextCode >= LZW_TABLE_SIZE) 
 		{
 			//error(getPos(), "Bad LZW stream - expected clear-table code");
 			ClearTable();
@@ -130,6 +131,12 @@ bool InputLZWDecodeStream::ProcessNextCode()
 		else if (code < nextCode) 
 		{
 			seqLength = table[code].length;
+			if (seqLength > LZW_TABLE_SIZE)
+			{
+				TRACE_LOG("InputLZWDecodeStream::ProcessNextCode, sequence length exceeds seqBuf bounds");
+				mCurrentlyEncoding = false;
+				break;
+			}
 			for (i = seqLength - 1, j = code; i > 0; --i) {
 				seqBuf[i] = table[j].tail;
 				j = table[j].head;
@@ -138,6 +145,12 @@ bool InputLZWDecodeStream::ProcessNextCode()
 		}
 		else if (code == nextCode) 
 		{
+			if (seqLength >= LZW_TABLE_SIZE)
+			{
+				TRACE_LOG("InputLZWDecodeStream::ProcessNextCode, sequence length exceeds seqBuf bounds");
+				mCurrentlyEncoding = false;
+				break;
+			}
 			seqBuf[seqLength] = newChar;
 			++seqLength;
 		}
@@ -189,10 +202,13 @@ int InputLZWDecodeStream::GetCode() {
 	IOBasicTypes::Byte buffer;
 	while (inputBits < nextBits) 
 	{
-		mSourceStream->Read(&buffer, 1);
+		if(mSourceStream->Read(&buffer, 1) != 1)
+		{
+			mCurrentlyEncoding = false;
+			TRACE_LOG("InputLZWDecodeStream::GetCode, unexpected EOF in LZW stream");
+			return -1;
+		}
 		c = buffer;
-
-		if (c == -1) return -1;
 		inputBuf = (inputBuf << 8) | (c & 0xff);
 		inputBits += 8;
 	}

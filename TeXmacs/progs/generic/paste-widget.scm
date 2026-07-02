@@ -199,23 +199,35 @@
 (tm-define (open-clipboard-paste-from-widget)
   (:interactive #t)
 
+  (define (magic-paste-excluded? fm)
+    (or (== fm "image") (== fm "verbatim") (== fm "internal"))
+  ) ;define
+
+  (define (do-paste fm)
+    (cond ((== fm "md") (paste-as-markdown))
+          ((== fm "ocr") (ocr-paste))
+          ((== fm "image_and_ocr") (image-and-ocr-paste))
+          ((== fm "image") (kbd-paste))
+          ((== fm "mathml") (clipboard-paste-import "html" "primary"))
+          ((== fm "html") (paste-as-html))
+          ((and (string=? fm "latex") (string=? (get-clipboard-format) "image"))
+           (ocr-paste)
+          ) ;
+          ((== fm "internal") (paste-as-texmacs))
+          (else (clipboard-paste-import fm "primary"))
+    ) ;cond
+  ) ;define
+
   (define callback
     (lambda (fm)
       (when fm
-        (cond ((== fm "md") (paste-as-markdown))
-              ((== fm "ocr") (ocr-paste))
-              ((== fm "image_and_ocr") (image-and-ocr-paste))
-              ((== fm "image") (kbd-paste))
-              ((== fm "mathml") (clipboard-paste-import "html" "primary"))
-              ((== fm "html") (paste-as-html))
-              ((and (string=? fm "latex") (string=? (get-clipboard-format) "image"))
-               (ocr-paste)
-              ) ;
-              ((== fm "internal") (paste-as-texmacs))
-              (else (clipboard-paste-import fm "primary"))
-        ) ;cond
-        (when (string-starts? (url->system (current-buffer-url)) "tmfs://chat-input-")
-          (qt-chat-notify-input-height))
+        (if (magic-paste-excluded? fm)
+          (do-paste fm)
+          (with-magic-paste-check (lambda () (do-paste fm)))
+        ) ;if
+        (when (chat-input-buffer? (current-buffer-url))
+          (qt-chat-notify-input-height)
+        ) ;when
       ) ;when
     ) ;lambda
   ) ;define

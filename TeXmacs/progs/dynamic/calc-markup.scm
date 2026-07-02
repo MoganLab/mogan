@@ -12,11 +12,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (dynamic calc-markup)
-  (:use (utils library tree)
-        (utils library cursor)
-        (dynamic calc-edit)))
+  (:use (utils library tree) (utils library cursor) (dynamic calc-edit))
+) ;texmacs-module
 
-(tm-define (calc-check-callback v)
-  (:secure #t)
-  (calc-lazy-recheck v)
-  "")
+(tm-define (calc-check-callback v) (:secure #t) (calc-lazy-recheck v) "")

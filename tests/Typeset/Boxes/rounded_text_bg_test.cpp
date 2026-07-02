@@ -171,6 +171,8 @@ private slots:
   void test_concat_box_post_display_restores ();
   void test_handle_matching_bracket_bg ();
   void test_matrix_with_brackets_bg ();
+  void test_middle_bracket_tracks_tall_item_height ();
+  void test_middle_bracket_with_rsub_tracks_tall_item_height ();
   void test_big_op_box_bg_bridge ();
 };
 
@@ -441,6 +443,97 @@ TestRoundedTextBg::test_matrix_with_brackets_bg () {
 
   // Post-display should restore bg colors
   outer->post_display (ren);
+}
+
+void
+TestRoundedTextBg::test_middle_bracket_tracks_tall_item_height () {
+  drd_info              drd ("none", moebius::drd::std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+
+  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
+  env->table_max= MAX_SI;
+
+  tree tab (moebius::TABLE);
+  tree row1 (moebius::ROW);
+  row1 << tree (moebius::CELL, "1");
+  row1 << tree (moebius::CELL, "2");
+  tab << row1;
+  tree row2 (moebius::ROW);
+  row2 << tree (moebius::CELL, "3");
+  row2 << tree (moebius::CELL, "4");
+  tab << row2;
+
+  tree t_mid (moebius::CONCAT);
+  t_mid << tab;
+  t_mid << tree (moebius::MID, "|");
+
+  array<line_item> items_mid= typeset_concat (env, t_mid, path ());
+
+  tree t_tail (moebius::CONCAT);
+  t_tail << copy (tab);
+  t_tail << tree (moebius::MID, "|");
+  t_tail << "p";
+
+  array<line_item> items_tail= typeset_concat (env, t_tail, path ());
+
+  QCOMPARE (N (items_mid), 2);
+  QCOMPARE (N (items_tail), 3);
+
+  box tall_ref= items_tail[0]->b;
+  box mid_ref = items_mid[1]->b;
+  box mid_tail= items_tail[1]->b;
+
+  QCOMPARE (mid_tail->y1, mid_ref->y1);
+  QCOMPARE (mid_tail->y2, mid_ref->y2);
+  QVERIFY (mid_tail->y1 <= tall_ref->y1);
+  QVERIFY (mid_tail->y2 >= tall_ref->y2);
+}
+
+void
+TestRoundedTextBg::test_middle_bracket_with_rsub_tracks_tall_item_height () {
+  drd_info              drd ("none", moebius::drd::std_drd);
+  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT);
+  hashmap<string, tree> h3 (UNINIT), h4 (UNINIT);
+  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
+
+  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
+  env->table_max= MAX_SI;
+
+  tree tab (moebius::TABLE);
+  tree row1 (moebius::ROW);
+  row1 << tree (moebius::CELL, "1");
+  row1 << tree (moebius::CELL, "2");
+  tab << row1;
+  tree row2 (moebius::ROW);
+  row2 << tree (moebius::CELL, "3");
+  row2 << tree (moebius::CELL, "4");
+  tab << row2;
+
+  tree t_mid (moebius::CONCAT);
+  t_mid << tab;
+  t_mid << tree (moebius::MID, "|");
+
+  array<line_item> items_mid= typeset_concat (env, t_mid, path ());
+
+  tree t_rsub (moebius::CONCAT);
+  t_rsub << copy (tab);
+  t_rsub << tree (moebius::MID, "|");
+  t_rsub << tree (moebius::RSUB, "p");
+
+  array<line_item> items_rsub= typeset_concat (env, t_rsub, path ());
+
+  QCOMPARE (N (items_mid), 2);
+  QCOMPARE (N (items_rsub), 2);
+
+  box mid_plain    = items_mid[1]->b;
+  box mid_with_rsub= items_rsub[1]->b;
+  QVERIFY (mid_with_rsub->subnr () >= 1);
+  box mid_script_ref= mid_with_rsub[0];
+
+  QCOMPARE (mid_script_ref->y1, mid_plain->y1);
+  QCOMPARE (mid_script_ref->y2, mid_plain->y2);
 }
 
 void

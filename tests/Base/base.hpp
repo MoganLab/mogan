@@ -18,4 +18,9 @@
 void qcompare (string actual, string expected);
 void init_lolly ();
 
+// 隐藏并清理所有可见的顶层 Qt 窗口。
+// 用在 QtTest 的 cleanup() 槽里，避免断言失败导致 widget 泄漏、窗口持续显示
+// 而卡住整个测试套件（Windows 上表现为 0xC000013A DLL 初始化失败）。
+void cleanup_qt_top_level_widgets ();
+
 #endif

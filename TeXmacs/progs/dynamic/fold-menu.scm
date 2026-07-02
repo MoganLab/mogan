@@ -13,39 +13,48 @@
 
 (texmacs-module (dynamic fold-menu)
   (:use (dynamic fold-edit)
-        (generic generic-menu)
-        (generic document-menu)
-        (generic format-widgets)
-        (fonts font-new-widgets)))
+    (generic generic-menu)
+    (generic document-menu)
+    (generic format-widgets)
+    (fonts font-new-widgets)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menus for direct folding and switching
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (menu-bind fold-menu
-  (when (with t (tree-innermost dynamic-context?)
-          (and t (toggle-second-context? t)))
-    ("Fold" (dynamic-previous)))
-  (when (with t (tree-innermost dynamic-context?)
-          (and t (toggle-first-context? t)))
-    ("Unfold" (dynamic-next))))
+  (when (with t (tree-innermost dynamic-context?) (and t (toggle-second-context? t)))
+    ("Fold" (dynamic-previous))
+  ) ;when
+  (when (with t (tree-innermost dynamic-context?) (and t (toggle-first-context? t)))
+    ("Unfold" (dynamic-next))
+  ) ;when
+) ;menu-bind
 
 (menu-bind switch-menu
-  (when (with t (tree-innermost dynamic-context?)
-          (and t (switch-context? t)))
+  (when (with t (tree-innermost dynamic-context?) (and t (switch-context? t)))
     ("Add branch before" (switch-insert-at (focus-tree) :current #f))
     ("Add branch after" (switch-insert-at (focus-tree) :var-next #f))
     ("Remove this branch" (switch-remove-at (focus-tree) :current))
     ---
     (when (switch-index (focus-tree))
       (when (< 0 (switch-index (focus-tree)))
-        ("Switch to first" (dynamic-first)))
+        ("Switch to first" (dynamic-first))
+      ) ;when
       (when (< 0 (switch-index (focus-tree)))
-        ("Switch to previous" (dynamic-previous)))
+        ("Switch to previous" (dynamic-previous))
+      ) ;when
       (when (< (switch-index (focus-tree)) (switch-index (focus-tree) :last))
-        ("Switch to next" (dynamic-next)))
+        ("Switch to next" (dynamic-next))
+      ) ;when
       (when (< (switch-index (focus-tree)) (switch-index (focus-tree) :last))
-        ("Switch to last" (dynamic-last))))))
+        ("Switch to last" (dynamic-last))
+      ) ;when
+    ) ;when
+  ) ;when
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Inserting foldable and switchable tags
@@ -53,172 +62,216 @@
 
 (define (get-extern-converters)
   (let* ((l1 (converters-from "texmacs-snippet"))
-         (l2 (filter
-               (lambda (x) (and (string? x)
-                                (string-ends? x "-snippet")
-                                (not (string-contains? x "texmacs")))) l1))
+         (l2 (filter (lambda (x)
+                       (and (string? x)
+                         (string-ends? x "-snippet")
+                         (not (string-contains? x "texmacs"))
+                       ) ;and
+                     ) ;lambda
+               l1
+             ) ;filter
+         ) ;l2
          (l3 (map (cut string-replace <> "-snippet" "") l2))
-         (l4 (sort l3 (lambda (x y) (string<? (format-get-name x)
-                                              (format-get-name y))))))
-    l4))
+         (l4 (sort l3 (lambda (x y) (string<? (format-get-name x) (format-get-name y)))))
+        ) ;
+    l4
+  ) ;let*
+) ;define
 
 (tm-menu (supported-convertible-menu)
   (for (name (get-extern-converters))
-       ((eval (format-get-name name))
-        (insert-go-to `(converter-input ,name "" "") '(1 0)))))
+   ((eval (format-get-name name))
+    (insert-go-to `(converter-input ,name ,"" ,"") '(1 0))
+   ) ;
+  ) ;for
+) ;tm-menu
 
 (tm-menu (supported-executable-menu)
   (for (name (session-list))
-    (let* ((menu-name (session-name name))
-           (l (connection-variants name)))
-      (assuming (== l (list "default"))
-        ((eval menu-name) (make-script-input* name "default")))
-      (assuming (!= l (list "default"))
-        (-> (eval menu-name)
+    (assuming (or (!= name "scheme") (with-developer-tool?))
+      (let* ((menu-name (session-name name)) (l (connection-variants name)))
+        (assuming (== l (list "default"))
+         ((eval menu-name) (make-script-input* name "default"))
+        ) ;assuming
+        (assuming (!= l (list "default"))
+          (-> (eval menu-name)
             (for (variant l)
-              ((eval `(verbatim ,variant)) (make-script-input* name variant))))))))
+             ((eval `(verbatim ,variant)) (make-script-input* name variant))
+            ) ;for
+          ) ;->
+        ) ;assuming
+      ) ;let*
+    ) ;assuming
+  ) ;for
+) ;tm-menu
 
 (menu-bind insert-fold-menu
   (-> "Folded"
-      ("Default" (make-toggle 'folded))
-      ---
-      ("Plain" (make-toggle 'folded-plain))
-      ("Standard" (make-toggle 'folded-std))
-      ("Environment" (make-toggle 'folded-env))
-      ("Documentation" (make-toggle 'folded-documentation))
-      ("Grouped" (make-toggle 'folded-grouped)))
+   ("Default" (make-toggle 'folded))
+   ---
+   ("Plain" (make-toggle 'folded-plain))
+   ("Standard" (make-toggle 'folded-std))
+   ("Environment" (make-toggle 'folded-env))
+   ("Documentation" (make-toggle 'folded-documentation))
+   ("Grouped" (make-toggle 'folded-grouped))
+  ) ;->
   (-> "Summarized"
-      ("Default" (make-toggle 'summarized))
-      ---
-      ("Plain" (make-toggle 'summarized-plain))
-      ("Standard" (make-toggle 'summarized-std))
-      ("Environment" (make-toggle 'summarized-env))
-      ("Documentation" (make-toggle 'summarized-documentation))
-      ("Grouped" (make-toggle 'summarized-grouped)))
+   ("Default" (make-toggle 'summarized))
+   ---
+   ("Plain" (make-toggle 'summarized-plain))
+   ("Standard" (make-toggle 'summarized-std))
+   ("Environment" (make-toggle 'summarized-env))
+   ("Documentation" (make-toggle 'summarized-documentation))
+   ("Grouped" (make-toggle 'summarized-grouped))
+  ) ;->
   (-> "Switch"
-      ("Standard" (make-switch 'switch))
-      (when (not (screens-buffer?))
-        ("Screens" (make-screens)))
-      ("Tiny" (make-switch 'tiny-switch)))
+   ("Standard" (make-switch 'switch))
+   (when (not (screens-buffer?))
+     ("Screens" (make-screens))
+   ) ;when
+   ("Tiny" (make-switch 'tiny-switch))
+  ) ;->
   (-> "Unroll"
-      ("Default" (make-unroll 'unroll))
-      ("Compressed" (make-unroll 'unroll-compressed))
-      ("Phantoms" (make-unroll 'unroll-phantoms))
-      ("Greyed" (make-unroll 'unroll-greyed))
-      ---
-      ("Itemize" (make-switch-list 'unroll 'itemize))
-      ("Enumerate" (make-switch-list 'unroll 'enumerate))
-      ("Description" (make-switch-list 'unroll 'description)))
+   ("Default" (make-unroll 'unroll))
+   ("Compressed" (make-unroll 'unroll-compressed))
+   ("Phantoms" (make-unroll 'unroll-phantoms))
+   ("Greyed" (make-unroll 'unroll-greyed))
+   ---
+   ("Itemize" (make-switch-list 'unroll 'itemize))
+   ("Enumerate" (make-switch-list 'unroll 'enumerate))
+   ("Description" (make-switch-list 'unroll 'description))
+  ) ;->
   (-> "Expanded"
-      ("Standard" (make-switch 'expanded))
-      ("Slides" (make-switch 'slides)))
+   ("Standard" (make-switch 'expanded))
+   ("Slides" (make-switch 'slides))
+  ) ;->
   (if (not (tree-innermost overlays-context?))
-      (-> "Overlays"
-          ("Standard" (make-overlays 'overlays))
-          ("Compressed" (make-overlays 'overlays-compressed))
-          ("Phantoms" (make-overlays 'overlays-phantoms))
-          ("Greyed" (make-overlays 'overlays-greyed))))
+    (-> "Overlays"
+     ("Standard" (make-overlays 'overlays))
+     ("Compressed" (make-overlays 'overlays-compressed))
+     ("Phantoms" (make-overlays 'overlays-phantoms))
+     ("Greyed" (make-overlays 'overlays-greyed))
+    ) ;->
+  ) ;if
   (if (tree-innermost overlays-context?)
-      (-> "Overlay"
-          ("Specify color alternation" (make-alter-colors))
-          ---
-          ("Visible from here on" (make-overlay 'overlay-from))
-          ("Visible until here" (make-overlay 'overlay-until))
-          ("Visible only here" (make-overlay 'overlay-this))
-          ("Visible except here" (make-overlay 'overlay-other))
-          ---
-          ("Alternate from here on" (make-overlay 'alternate-from))
-          ("Alternate until here" (make-overlay 'alternate-until))
-          ("Alternate only here" (make-overlay 'alternate-this))
-          ("Alternate except here" (make-overlay 'alternate-other))))
+    (-> "Overlay"
+     ("Specify color alternation" (make-alter-colors))
+     ---
+     ("Visible from here on" (make-overlay 'overlay-from))
+     ("Visible until here" (make-overlay 'overlay-until))
+     ("Visible only here" (make-overlay 'overlay-this))
+     ("Visible except here" (make-overlay 'overlay-other))
+     ---
+     ("Alternate from here on" (make-overlay 'alternate-from))
+     ("Alternate until here" (make-overlay 'alternate-until))
+     ("Alternate only here" (make-overlay 'alternate-this))
+     ("Alternate except here" (make-overlay 'alternate-other))
+    ) ;->
+  ) ;if
   (-> "Convertible" (link supported-convertible-menu))
-  (if (!= (session-list) '())
-      (-> "Executable"
-          (link supported-executable-menu)))
-  ;;(-> "Hidden content"
+  (if (!= (session-list) '()) (-> "Executable" (link supported-executable-menu)))
+  ;; (-> "Hidden content"
   ;;    ("Deleted" (make 'hidden-deleted))
   ;;    ("Invisible" (make 'hidden-invisible))
   ;;    ("Greyed" (make 'hidden-greyed)))
   (-> "Traversal"
-      ("Fold back" (make 'fold-back))
-      ("Keep unfolded" (make 'keep-unfolded))
-      (if #f
-          ("Animate folding" (noop))
-          ("Animate unfolding" (noop))))
+   ("Fold back" (make 'fold-back))
+   ("Keep unfolded" (make 'keep-unfolded))
+   (if #f ("Animate folding" (noop)) ("Animate unfolding" (noop)))
+  ) ;->
   (if (== (get-preference "experimental encryption") "on")
-      (-> "Encrypt" (link gpg-menu))))
+    (-> "Encrypt" (link gpg-menu))
+  ) ;if
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Operate on buffers with dynamic markup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define-menu (fold/unfold-menu-entry x which action)
-  (with sym (string->symbol x)
+  (with sym
+    (string->symbol x)
     (when (ahash-ref which sym)
-      ((eval (upcase-first x))
-       (dynamic-operate-on-buffer (list action sym))))))
+      ((eval (upcase-first x)) (dynamic-operate-on-buffer (list action sym)))
+    ) ;when
+  ) ;with
+) ;define-menu
 
 (tm-menu (fold-environments-menu)
-  (receive (l first second) (fold-get-environments-in-buffer)
+  (receive (l first second)
+    (fold-get-environments-in-buffer)
     (assuming (nnull? l) ---)
-    (for (x l) (dynamic (fold/unfold-menu-entry x second :fold)))))
+    (for (x l) (dynamic (fold/unfold-menu-entry x second :fold)))
+  ) ;receive
+) ;tm-menu
 
 (tm-menu (unfold-environments-menu)
-  (receive (l first second) (fold-get-environments-in-buffer)
+  (receive (l first second)
+    (fold-get-environments-in-buffer)
     (assuming (nnull? l) ---)
-    (for (x l) (dynamic (fold/unfold-menu-entry x second :unfold)))))
+    (for (x l) (dynamic (fold/unfold-menu-entry x second :unfold)))
+  ) ;receive
+) ;tm-menu
 
 (menu-bind dynamic-menu
-  ("First" (dynamic-operate-on-buffer :first))
-  (if (in-screens?)
-      ("Previous screen" (screens-switch-to :previous)))
-  ("Previous" (dynamic-traverse-buffer :previous))
-  ("Next" (dynamic-traverse-buffer :next))
-  (if (in-screens?)
-      ("Next screen" (screens-switch-to :next)))
-  ("Last" (dynamic-operate-on-buffer :last))
-  ---
-  (-> "Fold"
-      ("All" (dynamic-operate-on-buffer :fold))
-      (link fold-environments-menu))
-  (-> "Unfold"
-      ("All" (dynamic-operate-on-buffer :unfold))
-      (link unfold-environments-menu))
-  (-> "Compress"
-      ("Preserve tags" (dynamic-operate-on-buffer :compress))
-      ("Change tags" (dynamic-operate-on-buffer :var-compress)))
-  (-> "Expand"
-      ("Preserve tags" (dynamic-operate-on-buffer :expand))
-      ("Change tags" (dynamic-operate-on-buffer :var-expand)))
-  (-> "Filter"
-      ("Remove folded" (dynamic-filter-buffer :remove-folded))
-      ("Remove unfolded" (dynamic-filter-buffer :remove-unfolded))
-      ("Only keep folded" (dynamic-filter-buffer :keep-folded))
-      ("Only keep unfolded" (dynamic-filter-buffer :keep-unfolded))))
+ ("First" (dynamic-operate-on-buffer :first))
+ (if (in-screens?) ("Previous screen" (screens-switch-to :previous)))
+ ("Previous" (dynamic-traverse-buffer :previous))
+ ("Next" (dynamic-traverse-buffer :next))
+ (if (in-screens?) ("Next screen" (screens-switch-to :next)))
+ ("Last" (dynamic-operate-on-buffer :last))
+ ---
+ (-> "Fold"
+  ("All" (dynamic-operate-on-buffer :fold))
+  (link fold-environments-menu)
+ ) ;->
+ (-> "Unfold"
+  ("All" (dynamic-operate-on-buffer :unfold))
+  (link unfold-environments-menu)
+ ) ;->
+ (-> "Compress"
+  ("Preserve tags" (dynamic-operate-on-buffer :compress))
+  ("Change tags" (dynamic-operate-on-buffer :var-compress))
+ ) ;->
+ (-> "Expand"
+  ("Preserve tags" (dynamic-operate-on-buffer :expand))
+  ("Change tags" (dynamic-operate-on-buffer :var-expand))
+ ) ;->
+ (-> "Filter"
+  ("Remove folded" (dynamic-filter-buffer :remove-folded))
+  ("Remove unfolded" (dynamic-filter-buffer :remove-unfolded))
+  ("Only keep folded" (dynamic-filter-buffer :keep-folded))
+  ("Only keep unfolded" (dynamic-filter-buffer :keep-unfolded))
+ ) ;->
+) ;menu-bind
 
-(tm-define (alternate-second-name t)
-  (:require (fold-context? t))
-  "Unfold")
+(tm-define (alternate-second-name t) (:require (fold-context? t)) "Unfold")
 
 (tm-define (alternate-second-icon t)
   (:require (fold-context? t))
-  "tm_alternate_both.xpm")
+  "tm_alternate_both.xpm"
+) ;tm-define
 
 (menu-bind dynamic-icons
-  ((balloon (icon "tm_larrow_bar.xpm") "First")
-   (dynamic-operate-on-buffer :first))
-  (if (in-screens?)
-      ((balloon (icon "tm_larrow_double.xpm") "Previous screen")
-       (screens-switch-to :previous)))
-  ((balloon (icon "tm_larrow.xpm") "Previous")
-   (dynamic-traverse-buffer :previous))
-  ((balloon (icon "tm_rarrow.xpm") "Next")
-   (dynamic-traverse-buffer :next))
-  (if (in-screens?)
-      ((balloon (icon "tm_rarrow_double.xpm") "Next screen")
-       (screens-switch-to :next)))
-  ((balloon (icon "tm_rarrow_bar.xpm") "Last")
-   (dynamic-operate-on-buffer :last)))
+ ((balloon (icon "tm_larrow_bar.xpm") "First")
+  (dynamic-operate-on-buffer :first)
+ ) ;
+ (if (in-screens?)
+  ((balloon (icon "tm_larrow_double.xpm") "Previous screen")
+   (screens-switch-to :previous)
+  ) ;
+ ) ;if
+ ((balloon (icon "tm_larrow.xpm") "Previous")
+  (dynamic-traverse-buffer :previous)
+ ) ;
+ ((balloon (icon "tm_rarrow.xpm") "Next") (dynamic-traverse-buffer :next))
+ (if (in-screens?)
+  ((balloon (icon "tm_rarrow_double.xpm") "Next screen")
+   (screens-switch-to :next)
+  ) ;
+ ) ;if
+ ((balloon (icon "tm_rarrow_bar.xpm") "Last") (dynamic-operate-on-buffer :last))
+) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Beamer themes
@@ -227,96 +280,128 @@
 (menu-bind document-style-extra-menu
   (:require (style-has? "beamer-style"))
   (-> "Beamer theme"
-      (for (theme (beamer-themes))
-        ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
-         (add-style-package theme)))))
+    (for (theme (beamer-themes))
+     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+      (add-style-package theme)
+     ) ;
+    ) ;for
+  ) ;->
+) ;menu-bind
 
 (tm-menu (focus-style-extra-menu t)
   (:require (style-has? "beamer-style"))
   (-> "Beamer theme"
-      (for (theme (beamer-themes))
-        ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
-         (add-style-package theme))))
-  (-> "Background color"
-      (link document-background-color-menu)))
+    (for (theme (beamer-themes))
+     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+      (add-style-package theme)
+     ) ;
+    ) ;for
+  ) ;->
+  (-> "Background color" (link document-background-color-menu))
+) ;tm-menu
 
 (tm-menu (focus-style-extra-icons t)
   (:require (style-has? "beamer-style"))
-  (=> (balloon (eval `(verbatim ,(upcase-first (current-beamer-theme)))) "Beamer theme")
-      (for (theme (beamer-themes))
-        ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
-         (add-style-package theme))))
-  (link focus-background-color-icons))
+  (=> (balloon (eval `(verbatim ,(upcase-first (current-beamer-theme))))
+        "Beamer theme"
+      ) ;balloon
+    (for (theme (beamer-themes))
+     ((check (eval `(verbatim ,(upcase-first theme))) "v" (has-style-package? theme))
+      (add-style-package theme)
+     ) ;
+    ) ;for
+  ) ;=>
+  (link focus-background-color-icons)
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Propose insertion of 'screens' tag in beamer style
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (make-screens)
-  (let* ((t (buffer-tree))
-         (l (tree-children t))
-         (p (cursor-inside? t)))
-    (if (and (tree-is? t 'document)
-             (tree-in? t 0 '(hide-preamble show-preamble)))
-        (begin
-          (tree-assign! t `(document ,(tree-ref t 0)
-                                     (screens (shown (document ,@(cdr l))))))
-          (if (and p (!= (car p) 0))
-              (apply tree-go-to `(,t 1 0 0 ,(- (car p) 1) ,@(cdr p)))))
-        (begin
-          (tree-assign! t `(document (screens (shown (document ,@l)))))
-          (if p (apply tree-go-to `(,t 0 0 0 ,@p)))))))
+  (let* ((t (buffer-tree)) (l (tree-children t)) (p (cursor-inside? t)))
+    (if (and (tree-is? t 'document) (tree-in? t 0 '(hide-preamble show-preamble)))
+      (begin
+        (tree-assign! t
+          `(document ,(tree-ref t 0) (screens (shown (document ,@(cdr l)))))
+        ) ;tree-assign!
+        (if (and p (!= (car p) 0))
+          (apply tree-go-to `(,t ,1 ,0 ,0 ,(- (car p) 1) ,@(cdr p)))
+        ) ;if
+      ) ;begin
+      (begin
+        (tree-assign! t `(document (screens (shown (document ,@l)))))
+        (if p (apply tree-go-to `(,t ,0 ,0 ,0 ,@p)))
+      ) ;begin
+    ) ;if
+  ) ;let*
+) ;tm-define
 
 (tm-define (remove-single-screens)
-  (let* ((t (buffer-tree))
-         (l (tree-children t)))
+  (let* ((t (buffer-tree)) (l (tree-children t)))
     (when (tree-func? (cAr l) 'screens 1)
       (when (tree-func? (tree-ref (cAr l) 0) 'shown 1)
         (let* ((d (tree-ref (tree-ref (cAr l) 0) 0))
                (b (tree->path t))
-               (p (cursor-inside? d)))
+               (p (cursor-inside? d))
+              ) ;
           (when (tree-func? d 'document)
-            (with q (and (pair? p)
-                         (cons (+ (car p) (length (cDr l))) (cdr p)))
+            (with q
+              (and (pair? p) (cons (+ (car p) (length (cDr l))) (cdr p)))
               (tree-assign! t `(document ,@(cDr l) ,@(tree-children d)))
-              (if q (delayed (:idle 1) (go-to-path (append b q)))))))))))
+              (if q (delayed (:idle 1) (go-to-path (append b q))))
+            ) ;with
+          ) ;when
+        ) ;let*
+      ) ;when
+    ) ;when
+  ) ;let*
+) ;tm-define
 
 (tm-define (remove-single-slideshow)
-(let* ((t (buffer-tree))
-       (l (tree-children t)))
-  (when (tree-func? (cAr l) 'slideshow 1)
-    (when (tree-func? (tree-ref (cAr l) 0 0) 'slide 1)
-      (let* ((d (tree-ref (cAr l) 0 0 0))
-             (b (tree->path t))
-             (p (cursor-inside? d)))
-        (when (tree-func? d 'document)
-          (with q (and (pair? p)
-                         (cons (+ (car p) (length (cDr l))) (cdr p)))
+  (let* ((t (buffer-tree)) (l (tree-children t)))
+    (when (tree-func? (cAr l) 'slideshow 1)
+      (when (tree-func? (tree-ref (cAr l) 0 0) 'slide 1)
+        (let* ((d (tree-ref (cAr l) 0 0 0)) (b (tree->path t)) (p (cursor-inside? d)))
+          (when (tree-func? d 'document)
+            (with q
+              (and (pair? p) (cons (+ (car p) (length (cDr l))) (cdr p)))
               (tree-assign! t `(document ,@(cDr l) ,@(tree-children d)))
-              (if q (delayed (:idle 1) (go-to-path (append b q)))))))))))
+              (if q (delayed (:idle 1) (go-to-path (append b q))))
+            ) ;with
+          ) ;when
+        ) ;let*
+      ) ;when
+    ) ;when
+  ) ;let*
+) ;tm-define
 
 (tm-define (document-propose-screens?)
-  (and (style-has? "beamer-style")
-       (not (screens-buffer?))))
+  (and (style-has? "beamer-style") (not (screens-buffer?)))
+) ;tm-define
 
 (tm-menu (focus-document-extra-menu t)
   (:require (document-propose-screens?))
-  ("Screens" (make-screens)))
+  ("Screens" (make-screens))
+) ;tm-menu
 
 (tm-menu (focus-document-extra-icons t)
   (:require (document-propose-screens?))
-  (minibar
-    ((balloon "Screens" "Make a multi-slide presentation")
-     (make-screens))))
+  (minibar ((balloon "Screens" "Make a multi-slide presentation") (make-screens)))
+) ;tm-menu
 
 (tm-define (notify-new-style style)
   (former style)
   (cond ((style-has? "beamer-style")
          (when (not (screens-buffer?))
-           (set-init-env "page-medium" "beamer") 
-           (make-screens)))
+           (set-init-env "page-medium" "beamer")
+           (make-screens)
+         ) ;when
+        ) ;
         ((screens-buffer?) (remove-single-screens))
-        ((slideshow-buffer?) (remove-single-slideshow))))
+        ((slideshow-buffer?) (remove-single-slideshow))
+  ) ;cond
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Slide titles
@@ -325,65 +410,91 @@
 (tm-define (standard-options l)
   (:require (== l 'tit))
   (append (list "framed-title" "title-bar")
-          (if (style-has? "framed-title-package")
-              (list "shadowed-frames")
-              (list "shadowed-titles"))))
+    (if (style-has? "framed-title-package")
+      (list "shadowed-frames")
+      (list "shadowed-titles")
+    ) ;if
+  ) ;append
+) ;tm-define
 
-(tm-define (parameter-show-in-menu? l)
-  (:require (== l "title-theme"))
-  #f)
+(tm-define (parameter-show-in-menu? l) (:require (== l "title-theme")) #f)
 
 (tm-define (slide-propose-title? t)
-  (and-with u (slide-get-document t)
-    (not (tree-is? u 0 'tit))))
+  (and-with u (slide-get-document t) (not (tree-is? u 0 'tit)))
+) ;tm-define
 
 (tm-define (slide-insert-title t)
-  (and-with u (slide-get-document t)
+  (and-with u
+    (slide-get-document t)
     (tree-insert u 0 '((tit "")))
-    (tree-go-to u 0 0 0)))
+    (tree-go-to u 0 0 0)
+  ) ;and-with
+) ;tm-define
 
 (tm-define (search-slide-name t*)
-  (with t (slide-get-document t*)
-    (if (and (tree-is? t 'document)
-             (tree-is? t 0 'tit))
-        (texmacs->code (verbatim-expand (tm-ref t 0 0)) "cork")
-        "")))
+  (with t
+    (slide-get-document t*)
+    (if (and (tree-is? t 'document) (tree-is? t 0 'tit))
+      (texmacs->code (verbatim-expand (tm-ref t 0 0)) "cork")
+      ""
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (tm-define (get-slide-name t i)
-  (with s (search-slide-name t)
-    (string-append (translate "Slide") " " (number->string (+ i 1))
-                   (if (== s "") "" (string-append ": " s)))))
+  (with s
+    (search-slide-name t)
+    (string-append (translate "Slide")
+      " "
+      (number->string (+ i 1))
+      (if (== s "") "" (string-append ": " s))
+    ) ;string-append
+  ) ;with
+) ;tm-define
 
 (tm-menu (focus-slides-menu t*)
-  (with t (slide-get-switch t*)
+  (with t
+    (slide-get-switch t*)
     (for (i (.. 0 (tree-arity t)))
-      ((eval `(verbatim ,(get-slide-name (tree-ref t i) i)))
-       (screens-switch-to i)))))
+     ((eval `(verbatim ,(get-slide-name (tree-ref t i) i))) (screens-switch-to i))
+    ) ;for
+  ) ;with
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Graphical slides
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (slide-propose-graphics? t)
-  (and-with u (slide-get-document t)
+  (and-with u
+    (slide-get-document t)
     (or (tm-equal? u '(document ""))
-        (and (tree-func? u 'document 1)
-             (tree-is? u 0 'tit))
-        (and (tree-func? u 'document 2)
-             (tree-is? u 0 'tit)
-             (tm-equal? (tree-ref u 1) "")))))
+      (and (tree-func? u 'document 1) (tree-is? u 0 'tit))
+      (and (tree-func? u 'document 2)
+        (tree-is? u 0 'tit)
+        (tm-equal? (tree-ref u 1) "")
+      ) ;and
+    ) ;or
+  ) ;and-with
+) ;tm-define
 
 (tm-define (slide-insert-graphics t)
-  (and-with u (slide-get-document t)
-    (when (and (tree-func? u 'document 1)
-               (tree-is? u 0 'tit))
-      (tree-insert! u 1 (list "")))
-    (tree-set u :last `(gr-screen (document "")))
+  (and-with u
+    (slide-get-document t)
+    (when (and (tree-func? u 'document 1) (tree-is? u 0 'tit))
+      (tree-insert! u 1 (list ""))
+    ) ;when
+    (tree-set u :last '(gr-screen (document "")))
     (tree-go-to u :last 0 0 0)
-    (make-graphics
-     "gr-mode" "point"
-     "gr-frame" `(tuple "scale" "1cm" (tuple "0gw" "1gh"))
-     "gr-geometry" `(tuple "geometry" "1gpar" "1gpag" "axis"))))
+    (make-graphics "gr-mode"
+      "point"
+      "gr-frame"
+      '(tuple "scale" "1cm" (tuple "0gw" "1gh"))
+      "gr-geometry"
+      '(tuple "geometry" "1gpar" "1gpag" "axis")
+    ) ;make-graphics
+  ) ;and-with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Slide background color
@@ -394,58 +505,80 @@
          (setter (lambda (c)
                    (set! col c)
                    (slide-set-bg-color col)
-                   (refresh-now "slide-color-sample"))))
-    (padded
-      (bold (text "Background color"))
+                   (refresh-now "slide-color-sample")
+                 ) ;lambda
+         ) ;setter
+        ) ;
+    (padded (bold (text "Background color"))
       ===
-      (hlist
-        (refreshable "slide-color-sample"
-          (resize "150px" "100px"
-            (texmacs-output `(document
-                               (block
-                                (tformat
-                                 (cwith "1" "1" "1" "1" "cell-width" "140px")
-                                 (cwith "1" "1" "1" "1" "cell-height" "90px")
-                                 (cwith "1" "1" "1" "1" "cell-vmode" "exact")
-                                 (cwith "1" "1" "1" "1" "cell-background" ,col)
-                                 (table (row (cell ""))))))
-                            `(style (tuple "generic")))))
-        // // //
-        (explicit-buttons
-          (vlist
-            ("Color" (interactive-color setter (list)))
-            ("Pattern" (open-pattern-selector setter "1cm"))
-            ("Gradient" (open-gradient-selector setter))
-            ("Picture" (open-background-picture-selector setter))
-            (glue #f #t 0 0))))
+      (hlist (refreshable "slide-color-sample"
+               (resize "150px"
+                 "100px"
+                 (texmacs-output `(document (block (tformat (cwith "1"
+                                                              "1"
+                                                              "1"
+                                                              "1"
+                                                              "cell-width"
+                                                              "140px")
+                                                     (cwith "1"
+                                                       "1"
+                                                       "1"
+                                                       "1"
+                                                       "cell-height"
+                                                       "90px")
+                                                     (cwith "1"
+                                                       "1"
+                                                       "1"
+                                                       "1"
+                                                       "cell-vmode"
+                                                       "exact")
+                                                     (cwith ,"1"
+                                                       ,"1"
+                                                       ,"1"
+                                                       ,"1"
+                                                       ,"cell-background"
+                                                       ,col)
+                                                     (table (row (cell ""))))))
+                   '(style (tuple "generic"))
+                 ) ;texmacs-output
+               ) ;resize
+             ) ;refreshable
+        //
+        //
+        //
+        (explicit-buttons (vlist ("Color" (interactive-color setter (list)))
+                           ("Pattern" (open-pattern-selector setter "1cm"))
+                           ("Gradient" (open-gradient-selector setter))
+                           ("Picture" (open-background-picture-selector setter))
+                           (glue #f #t 0 0)
+                          ) ;vlist
+        ) ;explicit-buttons
+      ) ;hlist
       ======
-      (explicit-buttons
-        (hlist
-          >>>
-          ("Ok" (quit)))))))
+      (explicit-buttons (hlist >>> ("Ok" (quit))))
+    ) ;padded
+  ) ;let*
+) ;tm-widget
 
 (tm-define (open-page-format)
   (:require (or (inside? 'screens) (inside? 'slideshow)))
-  (dialogue-window slide-page-formatter noop "Page format"))
+  (dialogue-window slide-page-formatter noop "Page format")
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menus when focus is on 'screens' tag
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (focus-can-move? t)
-  (:require (screens-context? t))
-  #f)
+(tm-define (focus-can-move? t) (:require (screens-context? t)) #f)
 
 (tm-menu (focus-tag-menu t)
   (:require (screens-context? t))
   (inert ((eval (focus-tag-name (tree-label t))) (noop) (noop)))
-  (-> (eval (upcase-first (get-init "page-type")))
-      (link document-page-size-menu))
-  (-> (eval (upcase-first (get-init-page-rendering)))
-      (link page-rendering-menu))
-  (-> "Preferences"
-      (dynamic (focus-preferences-menu t)))
-  ("Describe" (focus-help)))
+  (-> (eval (upcase-first (get-init "page-type"))) (link document-page-size-menu))
+  (-> (eval (upcase-first (get-init-page-rendering))) (link page-rendering-menu))
+  (-> "Preferences" (dynamic (focus-preferences-menu t)))
+  ("Describe" (focus-help))
+) ;tm-menu
 
 (tm-menu (standard-focus-menu t)
   (:require (screens-context? t))
@@ -456,126 +589,135 @@
   (dynamic (focus-insert-menu t))
   ---
   (dynamic (focus-slides-menu t))
-  (assuming (slide-propose-title? t)
-    ---
-    ("Title" (slide-insert-title t)))
-  (assuming (slide-propose-graphics? t)
-    ---
-    ("Draw" (slide-insert-graphics t))))
+  (assuming (slide-propose-title? t) --- ("Title" (slide-insert-title t)))
+  (assuming (slide-propose-graphics? t) --- ("Draw" (slide-insert-graphics t)))
+) ;tm-menu
 
 (tm-menu (focus-tag-icons t)
   (:require (screens-context? t))
   (mini #t (inert ((eval (focus-tag-name (tree-label t))) (noop))))
-  (=> (balloon (eval (upcase-first (get-init "page-type")))
-               "Paper size")
-      (link document-page-size-menu))
-  (=> (balloon (eval (upcase-first (short-font-menu-name)))
-               "Main document font")
-      (link document-short-font-menu))
-  (=> (balloon (eval (font-base-size-menu-name))
-               "Font size")
-      (link document-font-base-size-menu))
+  (=> (balloon (eval (upcase-first (get-init "page-type"))) "Paper size")
+    (link document-page-size-menu)
+  ) ;=>
+  (=> (balloon (eval (upcase-first (short-font-menu-name))) "Main document font")
+    (link document-short-font-menu)
+  ) ;=>
+  (=> (balloon (eval (font-base-size-menu-name)) "Font size")
+    (link document-font-base-size-menu)
+  ) ;=>
   (=> (balloon (icon (eval (current-page-icon))) "Page layout")
-      (link page-rendering-menu))
-  ((balloon (icon "tm_focus_help.xpm") "Describe tag")
-   (focus-help)))
+    (link page-rendering-menu)
+  ) ;=>
+  ((balloon (icon "tm_focus_help.xpm") "Describe tag") (focus-help))
+) ;tm-menu
 
 (tm-menu (standard-focus-icons t)
   (:require (screens-context? t))
-  (dynamic (focus-style-icons t))  
+  (dynamic (focus-style-icons t))
   //
   (minibar (dynamic (focus-insert-icons t)))
   //
   (minibar (dynamic (focus-tag-icons t)))
   //
-  (with u (slide-get-switch t)
-    (with i (tree-index (tree-down u))
+  (with u
+    (slide-get-switch t)
+    (with i
+      (tree-index (tree-down u))
       (mini #t
         (=> (eval `(verbatim ,(get-slide-name (tree-ref u i) i)))
-            (dynamic (focus-slides-menu t))))))
+          (dynamic (focus-slides-menu t))
+        ) ;=>
+      ) ;mini
+    ) ;with
+  ) ;with
   (assuming (slide-propose-title? t)
     //
-    (minibar
-     ((balloon "Title" "Insert title") (slide-insert-title t))))
+    (minibar ((balloon "Title" "Insert title") (slide-insert-title t)))
+  ) ;assuming
   (assuming (slide-propose-graphics? t)
     //
-    (minibar
-     ((balloon "Draw" "Draw graphics") (slide-insert-graphics t))))
+    (minibar ((balloon "Draw" "Draw graphics") (slide-insert-graphics t)))
+  ) ;assuming
   (assuming (slideshow-context? t)
     //
-    (minibar
-      ((balloon (icon "tm_slide_move_up.xpm") "move slide up") (move-slide-up))
-      ((balloon (icon "tm_slide_move_down.xpm") "move slide down") (move-slide-down)))))
+    (minibar ((balloon (icon "tm_slide_move_up.xpm") "move slide up") (move-slide-up))
+     ((balloon (icon "tm_slide_move_down.xpm") "move slide down") (move-slide-down))
+    ) ;minibar
+  ) ;assuming
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menu customizations for overlays
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (focus-can-insert-remove? t)
-  (:require (overlays-context? t))
-  #t)
+(tm-define (focus-can-insert-remove? t) (:require (overlays-context? t)) #t)
 
-(tm-define (focus-can-insert? t)
-  (:require (overlays-context? t))
-  #t)
+(tm-define (focus-can-insert? t) (:require (overlays-context? t)) #t)
 
-(tm-define (focus-can-remove? t)
-  (:require (overlays-context? t))
-  #t)
+(tm-define (focus-can-remove? t) (:require (overlays-context? t)) #t)
 
-(tm-define (parameter-show-in-menu? l)
-  (:require (== l "overlay-nr"))
-  #f)
+(tm-define (parameter-show-in-menu? l) (:require (== l "overlay-nr")) #f)
 
 (define (get-overlays-menu-name prefix t)
-  (let* ((cur (overlays-current t))
-         (tot (overlays-arity t)))
+  (let* ((cur (overlays-current t)) (tot (overlays-arity t)))
     (set! cur (if cur (number->string cur) "?"))
     (set! tot (if tot (number->string tot) "?"))
-    (string-append prefix cur "/" tot)))
+    (string-append prefix cur "/" tot)
+  ) ;let*
+) ;define
 
 (tm-menu (focus-overlays-menu t)
   (for (i (.. 1 (or (+ (overlays-arity t) 1) 2)))
-    ((eval (string-append "Overlay " (number->string i)))
-     (overlays-switch-to t i))))
+   ((eval (string-append "Overlay " (number->string i))) (overlays-switch-to t i))
+  ) ;for
+) ;tm-menu
 
 (tm-menu (focus-hidden-menu t)
   (:require (overlays-context? t))
   ---
-  (dynamic (focus-overlays-menu t)))
+  (dynamic (focus-overlays-menu t))
+) ;tm-menu
 
 (tm-menu (focus-hidden-icons t)
   (:require (overlays-context? t))
   //
   (mini #t
     (=> (eval (get-overlays-menu-name "Overlay " t))
-        (dynamic (focus-overlays-menu t)))))
+      (dynamic (focus-overlays-menu t))
+    ) ;=>
+  ) ;mini
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Menu customizations for overlay filters
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-menu (focus-overlay-icon t i here?)
-  ((eval (if here?
-             (string-append "[" (number->string i) "]")
-             (number->string i)))
-   (tree-set t 0 (number->string i))))
+ ((eval (if here? (string-append "[" (number->string i) "]") (number->string i)))
+  (tree-set t 0 (number->string i))
+ ) ;
+) ;tm-menu
 
 (tm-menu (focus-overlay-icons t)
   (for (i (.. 1 (or (+ (overlay-arity t) 1) 2)))
     (if (overlay-visible? t i)
-        (bold (dynamic (focus-overlay-icon t i (== i (overlay-current t))))))
+      (bold (dynamic (focus-overlay-icon t i (== i (overlay-current t)))))
+    ) ;if
     (if (not (overlay-visible? t i))
-        (grey (dynamic (focus-overlay-icon t i (== i (overlay-current t))))))))
+      (grey (dynamic (focus-overlay-icon t i (== i (overlay-current t)))))
+    ) ;if
+  ) ;for
+) ;tm-menu
 
 (tm-menu (focus-hidden-icons t)
   (:require (overlay-context? t))
-  (with p (tree-search-upwards t overlays-context?)
-    (assuming p
-      (dynamic (focus-hidden-icons p))))
+  (with p
+    (tree-search-upwards t overlays-context?)
+    (assuming p (dynamic (focus-hidden-icons p)))
+  ) ;with
   //
-  (mini #t
-    (dynamic (focus-overlay-icons t))))
+  (mini #t (dynamic (focus-overlay-icons t)))
+) ;tm-menu
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Overlays in graphics mode
@@ -586,56 +728,81 @@
         ((tm-func? p 'show-this 1) "=")
         ((tm-func? p 'show-from 1) ">=")
         ((tm-func? p 'show-until 1) "<=")
-        (else "*")))
+        (else "*")
+  ) ;cond
+) ;define
 
 (tm-menu (graphics-overlays-mode-menu)
   (let* ((t (tree-innermost overlays-context?))
-         (cur (and t (number->string (overlays-current t)))))
+         (cur (and t (number->string (overlays-current t))))
+        ) ;
     ("This" (graphics-set-proviso `(show-this ,cur)))
     ("From" (graphics-set-proviso `(show-from ,cur)))
     ("Until" (graphics-set-proviso `(show-until ,cur)))
-    ("Always" (graphics-set-proviso "default"))))
+    ("Always" (graphics-set-proviso "default"))
+  ) ;let*
+) ;tm-menu
 
 (tm-menu (graphics-focus-overlays-menu)
-  (with t (tree-innermost overlays-context?)
+  (with t
+    (tree-innermost overlays-context?)
     (assuming (nnot t)
       ---
-      (-> "Overlay mode"
-          (link graphics-overlays-mode-menu))
+      (-> "Overlay mode" (link graphics-overlays-mode-menu))
       (-> (eval (get-overlays-menu-name "Overlay " t))
-          (dynamic (focus-overlays-menu t))))))
+        (dynamic (focus-overlays-menu t))
+      ) ;->
+    ) ;assuming
+  ) ;with
+) ;tm-menu
 
 (tm-menu (graphics-focus-overlays-icons)
-  (with t (tree-innermost overlays-context?)
+  (with t
+    (tree-innermost overlays-context?)
     (assuming (nnot t)
       /
       (mini #t
         (group "Overlay:")
         (=> (eval (proviso-name (graphics-get-proviso)))
-            (link graphics-overlays-mode-menu))
-        (=> (eval (get-overlays-menu-name "" t))
-            (dynamic (focus-overlays-menu t)))))))
+          (link graphics-overlays-mode-menu)
+        ) ;=>
+        (=> (eval (get-overlays-menu-name "" t)) (dynamic (focus-overlays-menu t)))
+      ) ;mini
+    ) ;assuming
+  ) ;with
+) ;tm-menu
 
 (tm-menu (graphics-screens-menu)
-  (with t (tree-innermost screens-context?)
+  (with t
+    (tree-innermost screens-context?)
     (assuming (nnot t)
-      ("Insert slide before" (structured-insert-horizontal t #f))
-      ("Insert slide after"  (structured-insert-horizontal t #t))
-      ("Remove slide before" (structured-remove-horizontal t #f))
-      ("Remove slide after"  (structured-remove-horizontal t #t)))))
+     ("Insert slide before" (structured-insert-horizontal t #f))
+     ("Insert slide after" (structured-insert-horizontal t #t))
+     ("Remove slide before" (structured-remove-horizontal t #f))
+     ("Remove slide after" (structured-remove-horizontal t #t))
+    ) ;assuming
+  ) ;with
+) ;tm-menu
 
 (tm-menu (graphics-overlays-manage-menu)
-  (with t (tree-innermost overlays-context?)
+  (with t
+    (tree-innermost overlays-context?)
     (assuming (nnot t)
-      ("Insert overlay before" (structured-insert-horizontal t #f))
-      ("Insert overlay after"  (structured-insert-horizontal t #t))
-      ("Remove overlay before" (structured-remove-horizontal t #f))
-      ("Remove overlay after"  (structured-remove-horizontal t #t)))))
+     ("Insert overlay before" (structured-insert-horizontal t #f))
+     ("Insert overlay after" (structured-insert-horizontal t #t))
+     ("Remove overlay before" (structured-remove-horizontal t #f))
+     ("Remove overlay after" (structured-remove-horizontal t #t))
+    ) ;assuming
+  ) ;with
+) ;tm-menu
 
 (tm-menu (graphics-overlays-menu)
-  (with t (tree-innermost overlays-context?)
+  (with t
+    (tree-innermost overlays-context?)
     (assuming (not t)
-      ("Insert overlay before" (make-gr-overlays #f))
-      ("Insert overlay after" (make-gr-overlays #t)))
-    (assuming t
-      (link graphics-overlays-manage-menu))))
+     ("Insert overlay before" (make-gr-overlays #f))
+     ("Insert overlay after" (make-gr-overlays #t))
+    ) ;assuming
+    (assuming t (link graphics-overlays-manage-menu))
+  ) ;with
+) ;tm-menu

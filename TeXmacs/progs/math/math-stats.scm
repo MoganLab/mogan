@@ -13,73 +13,80 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (math math-stats)
-  (:use (convert tools tmconcat)
-        (utils library cursor)))
+  (:use (convert tools tmconcat) (utils library cursor))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface to C++ statistics
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define stats-url #f)
+
 (define stats-lines -1)
+
 (define stats-cursor #f)
 
 (define (stats-update)
-  (let* ((buf (buffer-tree))
-         (n (tree-arity buf))
-         (down (tree-ref buf :down)))
-    (when (or (!= stats-url (current-buffer))
-              (!= stats-lines n))
-      ;;(display* "update  buffer stats\n")
+  (let* ((buf (buffer-tree)) (n (tree-arity buf)) (down (tree-ref buf :down)))
+    (when (or (!= stats-url (current-buffer)) (!= stats-lines n))
+      ;; (display* "update  buffer stats\n")
       (math-stats-compile "buffer" buf "text")
-      ;;(display* "updated buffer stats\n")
+      ;; (display* "updated buffer stats\n")
       (set! stats-url (current-buffer))
-      (set! stats-lines n))
+      (set! stats-lines n)
+    ) ;when
     (when (and down (!= (tm->stree down) stats-cursor))
-      ;;(display* "update  cursor stats\n")
+      ;; (display* "update  cursor stats\n")
       (math-stats-compile "cursor" (tree-ref buf :down) "text")
-      ;;(display* "updated cursor stats\n")
-      (set! stats-cursor (tm->stree down)))))
+      ;; (display* "updated cursor stats\n")
+      (set! stats-cursor (tm->stree down))
+    ) ;when
+  ) ;let*
+) ;define
 
 (define (stats-occurrences* s)
   (+ (* 10 (math-stats-occurrences "cursor" s))
-     (math-stats-occurrences "buffer" s)))
+    (math-stats-occurrences "buffer" s)
+  ) ;+
+) ;define
 
-(tm-define (stats-occurrences s)
-  (stats-update)
-  (stats-occurrences* s))
+(tm-define (stats-occurrences s) (stats-update) (stats-occurrences* s))
 
 (define (stats-in-role* s)
-  (if (not s) 0
-      (+ (* 10 (math-stats-number-in-role "cursor" s))
-         (math-stats-number-in-role "buffer" s))))
+  (if (not s)
+    0
+    (+ (* 10 (math-stats-number-in-role "cursor" s))
+      (math-stats-number-in-role "buffer" s)
+    ) ;+
+  ) ;if
+) ;define
 
-(tm-define (stats-in-role s)
-  (stats-update)
-  (stats-in-role* s))
+(tm-define (stats-in-role s) (stats-update) (stats-in-role* s))
 
-(tm-define (stats-has? s)
-  (> (stats-occurrences s) 0))
+(tm-define (stats-has? s) (> (stats-occurrences s) 0))
 
 (tm-define (stats-filter l)
   (stats-update)
-  (list-filter l (lambda (s) (> (stats-occurrences* s) 0))))
+  (list-filter l (lambda (s) (> (stats-occurrences* s) 0)))
+) ;tm-define
 
-(tm-define (stats-role? s)
-  (> (stats-in-role s) 0))
+(tm-define (stats-role? s) (> (stats-in-role s) 0))
 
 (tm-define (stats-better? alt best)
-  (> (stats-occurrences alt) (stats-occurrences best)))
+  (> (stats-occurrences alt) (stats-occurrences best))
+) ;tm-define
 
 (define (stats-best* l0 c0 l c)
   (cond ((null? l) l0)
         ((> (car c) c0) (stats-best* (car l) (car c) (cdr l) (cdr c)))
-        (else (stats-best* l0 c0 (cdr l) (cdr c)))))
+        (else (stats-best* l0 c0 (cdr l) (cdr c)))
+  ) ;cond
+) ;define
 
 (tm-define (stats-best . l)
   (stats-update)
-  (with c (map stats-occurrences l)
-    (stats-best* (car l) (car c) (cdr l) (cdr c))))
+  (with c (map stats-occurrences l) (stats-best* (car l) (car c) (cdr l) (cdr c)))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Symbol categories
@@ -90,150 +97,195 @@
 (tm-define (wide-context? t) (tree-in? t '(wide wide*)))
 
 (tm-define (math-symbol? s)
-  (and (string? s) (== (math-symbol-type s) "symbol")))
+  (and (string? s) (== (math-symbol-type s) "symbol"))
+) ;tm-define
 
 (tm-define (math-operator? s)
-  (and (string? s) (>= (string-length s) 2) (string-alpha? s)))
+  (and (string? s) (>= (string-length s) 2) (string-alpha? s))
+) ;tm-define
 
 (tm-define (math-relation? s)
-  (and (string? s) (== (math-symbol-group s) "Relation-nolim-symbol")))
+  (and (string? s) (== (math-symbol-group s) "Relation-nolim-symbol"))
+) ;tm-define
 
 (define weak-infix-types
   (list "Assign-symbol"
-        "Models-symbol" "Modeled-symbol"
-        "Imply-nolim-symbol" "Or-symbol" "And-symbol"
-        "Relation-nolim-symbol" "Arrow-nolim-symbol"))
+    "Models-symbol"
+    "Modeled-symbol"
+    "Imply-nolim-symbol"
+    "Or-symbol"
+    "And-symbol"
+    "Relation-nolim-symbol"
+    "Arrow-nolim-symbol"
+  ) ;list
+) ;define
 
 (tm-define (math-weak-infix? s)
-  (and (string? s) (in? (math-symbol-group s) weak-infix-types)))
+  (and (string? s) (in? (math-symbol-group s) weak-infix-types))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Analysis of content before cursor
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (string-previous* s k)
-  (with j (string-previous s k)
-    (if (== j 0) j
-        (with i (string-previous s j)
-          (cond ((and (string-alpha? (substring s j k))
-                      (or (string-alpha? (substring s i j))
-                          (== (substring s i j) "<mathd>")))
-                 (string-previous* s j))
-                ((and (string-number? (substring s j k))
-                      (string-number? (substring s i j)))
-                 (string-previous* s j))
-                (else j))))))
+  (with j
+    (string-previous s k)
+    (if (== j 0)
+      j
+      (with i
+        (string-previous s j)
+        (cond ((and (string-alpha? (substring s j k))
+                 (or (string-alpha? (substring s i j)) (== (substring s i j) "<mathd>"))
+               ) ;and
+               (string-previous* s j)
+              ) ;
+              ((and (string-number? (substring s j k)) (string-number? (substring s i j)))
+               (string-previous* s j)
+              ) ;
+              (else j)
+        ) ;cond
+      ) ;with
+    ) ;if
+  ) ;with
+) ;define
 
 (tm-define (expr-before-cursor)
-  (let* ((t (cursor-tree))
-	 (i (cAr (cursor-path))))
+  (let* ((t (cursor-tree)) (i (cAr (cursor-path))))
     (cond ((and (tree-atomic? t) (> i 0))
-	   (with s (tree->string t)
-	     (with j (string-previous* s i)
-	       (substring s j i))))
-	  ((tree-atomic? t) #f)
-	  ((> i 0) t)
-	  (else #f))))
+           (with s (tree->string t) (with j (string-previous* s i) (substring s j i)))
+          ) ;
+          ((tree-atomic? t) #f)
+          ((> i 0) t)
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (root-before-cursor)
-  (with t (expr-before-cursor)
+  (with t
+    (expr-before-cursor)
     (cond ((string? t) t)
           ((not (tree? t)) t)
-          (else
-            (while (and (tree? t) (tree-in? t '(rsub rsup)))
-              (set! t (tree-ref t :previous)))
-            (while (and (tree? t) (tree-in? t '(wide wide* neg)))
-              (set! t (tree-ref t 0)))
+          (else (while (and (tree? t) (tree-in? t '(rsub rsup)))
+                  (set! t (tree-ref t :previous))
+                ) ;while
+            (while (and (tree? t) (tree-in? t '(wide wide* neg))) (set! t (tree-ref t 0)))
             (cond ((not t) t)
                   ((tree-atomic? t)
                    (let* ((s (tree->string t))
                           (n (string-length s))
-                          (j (if (> n 0) (string-previous* s n) n)))
-                     (substring s j n)))
-                  (else t))))))
+                          (j (if (> n 0) (string-previous* s n) n))
+                         ) ;
+                     (substring s j n)
+                   ) ;let*
+                  ) ;
+                  (else t)
+            ) ;cond
+          ) ;else
+    ) ;cond
+  ) ;with
+) ;tm-define
 
 (define (before-cursor-path)
-  (let* ((t (cursor-tree))
-         (p (cDr (cursor-path)))
-	 (i (cAr (cursor-path))))
+  (let* ((t (cursor-tree)) (p (cDr (cursor-path))) (i (cAr (cursor-path))))
     (cond ((and (tree-atomic? t) (> i 0))
-	   (with s (tree->string t)
-	     (with j (string-previous* s i)
+           (with s
+             (tree->string t)
+             (with j
+               (string-previous* s i)
                (cond ((> j 0) (rcons p j))
                      ((tree-ref t :previous) (tree->path t :previous :end))
-                     (else (rcons p j))))))
-	  ((tree-atomic? t) #f)
-	  ((> i 0) (rcons p 0))
-	  (else #f))))
+                     (else (rcons p j))
+               ) ;cond
+             ) ;with
+           ) ;with
+          ) ;
+          ((tree-atomic? t) #f)
+          ((> i 0) (rcons p 0))
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (tm-define (expr-before-before-cursor)
-  (and-with p (before-cursor-path)
-    (with-cursor p
-      (expr-before-cursor))))
+  (and-with p (before-cursor-path) (with-cursor p (expr-before-cursor)))
+) ;tm-define
 
 (tm-define (root-before-before-cursor)
-  (and-with p (before-cursor-path)
-    (with-cursor p
-      (root-before-cursor))))
+  (and-with p (before-cursor-path) (with-cursor p (root-before-cursor)))
+) ;tm-define
 
 (tm-define (root-before-start)
-  (and-with p (rcons (cDr (cursor-path)) 0)
-    (with-cursor p
-      (root-before-cursor))))
+  (and-with p (rcons (cDr (cursor-path)) 0) (with-cursor p (root-before-cursor)))
+) ;tm-define
 
 (tm-define (select-before-cursor)
-  (let* ((t (cursor-tree))
-         (p (cursor-path))
-	 (i (cAr p)))
+  (let* ((t (cursor-tree)) (p (cursor-path)) (i (cAr p)))
     (cond ((and (tree-atomic? t) (> i 0))
-	   (with s (tree->string t)
-	     (with j (string-previous* s i)
-               (selection-set (rcons (cDr p) j) p))))
-	  ((or (tree-atomic? t) (<= i 0)) (selection-cancel))
+           (with s
+             (tree->string t)
+             (with j (string-previous* s i) (selection-set (rcons (cDr p) j) p))
+           ) ;with
+          ) ;
+          ((or (tree-atomic? t) (<= i 0)) (selection-cancel))
           ((tree-in? t '(rsub rsup around around*))
-           (let* ((j (cAr (cDr p)))
-                  (q (cDr (cDr p))))
-             (while (and (> j 0)
-                         (tree-in? (path->tree (rcons q j))
-                                   '(rsub rsup around around*)))
-               (set! j (- j 1)))
-             (with u (path->tree (rcons q j))
+           (let* ((j (cAr (cDr p))) (q (cDr (cDr p))))
+             (while (and (> j 0) (tree-in? (path->tree (rcons q j)) '(rsub rsup
+                                                                       around
+                                                                       around*)))
+               (set! j (- j 1))
+             ) ;while
+             (with u
+               (path->tree (rcons q j))
                (if (or (not (tree-atomic? u)) (tree-empty? u))
-                   (selection-set (append q (list j 0)) p)
-                   (let* ((s (tree->string u))
-                          (n (string-length s))
-                          (k (string-previous* s n)))
-                     (if (and (tree-in? (path->tree (rcons q (+ j 1)))
-                                        '(around around*))
-                              (not (math-symbol? (substring s k n)))
-                              (not (math-operator? (substring s k n))))
-                         (selection-set (append q (list (+ j 1) 0)) p)
-                         (selection-set (append q (list j k)) p)))))))
-	  (else (selection-set (rcons (cDr p) 0) p)))))
+                 (selection-set (append q (list j 0)) p)
+                 (let* ((s (tree->string u)) (n (string-length s)) (k (string-previous* s n)))
+                   (if (and (tree-in? (path->tree (rcons q (+ j 1))) '(around around*))
+                         (not (math-symbol? (substring s k n)))
+                         (not (math-operator? (substring s k n)))
+                       ) ;and
+                     (selection-set (append q (list (+ j 1) 0)) p)
+                     (selection-set (append q (list j k)) p)
+                   ) ;if
+                 ) ;let*
+               ) ;if
+             ) ;with
+           ) ;let*
+          ) ;
+          (else (selection-set (rcons (cDr p) 0) p))
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (cut-before-cursor)
   (select-before-cursor)
   (if (selection-active-any?)
-      (with t (selection-tree)
-        (cpp-clipboard-cut "dummy")
-        t)
-      ""))
+    (with t (selection-tree) (cpp-clipboard-cut "dummy") t)
+    ""
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Statistical determination of implicit content
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (stats-best-implicit* l r p)
-  (define (count ok? x) (if ok? (stats-in-role x) 0))
-  (let* ((mul (count (in? :multiply    p) (tmconcat l "*" r)))
-         (spc (count (in? :space       p) (tmconcat l " " r)))
-         (com (count (in? :comma       p) (tmconcat l "," r)))
-         (app (count (in? :apply       p) (tmconcat l `(around "(" ,r ")"))))
-         (bra (count (in? :brackets    p) (tmconcat l `(around "[" ,r "]"))))
-         (sub (count (in? :subscript   p) (tmconcat l `(rsub ,r))))
+  (define (count ok? x)
+    (if ok? (stats-in-role x) 0)
+  ) ;define
+  (let* ((mul (count (in? :multiply p) (tmconcat l "*" r)))
+         (spc (count (in? :space p) (tmconcat l " " r)))
+         (com (count (in? :comma p) (tmconcat l "," r)))
+         (app (count (in? :apply p) (tmconcat l `(around ,"(" ,r ,")"))))
+         (bra (count (in? :brackets p) (tmconcat l `(around ,"[" ,r ,"]"))))
+         (sub (count (in? :subscript p) (tmconcat l `(rsub ,r))))
          (sup (count (in? :superscript p) (tmconcat l `(rsup ,r))))
-         (m (max mul spc com app bra sub sup)))
-    (when (== r "") (set! sup 0))
+         (m (max mul spc com app bra sub sup))
+        ) ;
+    (when (== r "")
+      (set! sup 0)
+    ) ;when
     (cond ((== m 0) :none)
           ((== m mul) :multiply)
           ((== m spc) :space)
@@ -242,105 +294,215 @@
           ((== m bra) :brackets)
           ((== m sub) :subscript)
           ((== m sup) :superscript)
-          (else :none))))
+          (else :none)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (tm-define (stats-best-implicit l r p)
-  (let* ((impl1 (stats-best-implicit* l r p))
-         (impl2 (stats-best-implicit* l "" p)))
+  (let* ((impl1 (stats-best-implicit* l r p)) (impl2 (stats-best-implicit* l "" p)))
     (cond ((!= impl1 :none) impl1)
           ((!= impl2 :none) impl2)
-          (else :none))))
+          (else :none)
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Default fall back implicit behaviour
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define basic-letters (list "a" "b" "c" "d" "e" "o" "u" "v" "w" "x" "y" "z"
-                            "<alpha>" "<beta>" "<gamma>" "<delta>"
-                            "<varepsilon>" "<eta>" "<theta>"
-                            "<lambda>" "<mu>" "<xi>" "<omicron>" "<pi>" "<rho>"
-                            "<sigma>" "<tau>" "<upsilon>" "<chi>" "<omega>"
-                            "<mathe>" "<mathi>" "<mathpi>" "<mathgamma>"
-                            "A" "B" "C" "D" "E" "F" "G" "H" "I" "J"
-                            "K" "L" "M" "N" "O" "P" "Q" "R" "S" "T"
-                            "U" "V" "W" "X" "Y" "Z" "<Delta>" "<Theta>"
-                            "<Lambda>" "<Xi>" "<Pi>" "<Sigma>" "<Omega>"))
-(define function-letters (list "f" "g" "h" "<phi>" "<psi>" "<zeta>"
-                               "<Gamma>" "<Phi>" "<Psi>"))
-(define index-letters (list "1" "i" "j" "k" "l" "m" "n" "p" "q" "r" "s" "t"
-                            "<iota>" "<kappa>" "<nu>"))
+(define basic-letters
+  (list "a"
+    "b"
+    "c"
+    "d"
+    "e"
+    "o"
+    "u"
+    "v"
+    "w"
+    "x"
+    "y"
+    "z"
+    "<alpha>"
+    "<beta>"
+    "<gamma>"
+    "<delta>"
+    "<varepsilon>"
+    "<eta>"
+    "<theta>"
+    "<lambda>"
+    "<mu>"
+    "<xi>"
+    "<omicron>"
+    "<pi>"
+    "<rho>"
+    "<sigma>"
+    "<tau>"
+    "<upsilon>"
+    "<chi>"
+    "<omega>"
+    "<mathe>"
+    "<mathi>"
+    "<mathpi>"
+    "<mathgamma>"
+    "A"
+    "B"
+    "C"
+    "D"
+    "E"
+    "F"
+    "G"
+    "H"
+    "I"
+    "J"
+    "K"
+    "L"
+    "M"
+    "N"
+    "O"
+    "P"
+    "Q"
+    "R"
+    "S"
+    "T"
+    "U"
+    "V"
+    "W"
+    "X"
+    "Y"
+    "Z"
+    "<Delta>"
+    "<Theta>"
+    "<Lambda>"
+    "<Xi>"
+    "<Pi>"
+    "<Sigma>"
+    "<Omega>"
+  ) ;list
+) ;define
+
+(define function-letters
+  (list "f" "g" "h" "<phi>" "<psi>" "<zeta>" "<Gamma>" "<Phi>" "<Psi>")
+) ;define
+
+(define index-letters
+  (list "1" "i" "j" "k" "l" "m" "n" "p" "q" "r" "s" "t" "<iota>" "<kappa>" "<nu>")
+) ;define
 
 (define (best-implicit* l r p)
-  (with impl1 (stats-best-implicit l r p)
+  (with impl1
+    (stats-best-implicit l r p)
     (cond ((!= impl1 :none) impl1)
-          ((and (in? :multiply p)
-                (in? l (list "<pi>" "<mathpi>"))
-                (== r "i"))
-           :multiply)
-          ((and (in? :space p)
-                (in? l standard-operators))
-           :space)
+          ((and (in? :multiply p) (in? l (list "<pi>" "<mathpi>")) (== r "i")) :multiply)
+          ((and (in? :space p) (in? l standard-operators)) :space)
           ((and (in? :subscript p)
-                (math-symbol? l)
-                (not (string-number? l))
-                (in? r index-letters))
-           :subscript)
+             (math-symbol? l)
+             (not (string-number? l))
+             (in? r index-letters)
+           ) ;and
+           :subscript
+          ) ;
           ((and (in? :apply p)
-                (in? l function-letters)
-                (math-symbol? r)
-                (nin? r function-letters))
-           :apply)
+             (in? l function-letters)
+             (math-symbol? r)
+             (nin? r function-letters)
+           ) ;and
+           :apply
+          ) ;
           ((and (in? :multiply p)
-                (or (string-number? l)
-                    (math-symbol? l)
-                    (tm-in? l '(sqrt frac frac* around around*))))
-           :multiply)
-          (else :none))))
+             (or (string-number? l)
+               (math-symbol? l)
+               (tm-in? l '(sqrt frac frac* around around*))
+             ) ;or
+           ) ;and
+           :multiply
+          ) ;
+          (else :none)
+    ) ;cond
+  ) ;with
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Interface for determination and insertion of implicit content
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (permitted-implicit)
-  (let* ((l (list :multiply :space :comma :apply :brackets
-                  :subscript :superscript))
+  (let* ((l (list :multiply :space :comma :apply :brackets :subscript :superscript))
          (x (expr-before-cursor))
-         (a (tree-innermost around-context?)))
+         (a (tree-innermost around-context?))
+        ) ;
     (when (not a)
       ;; TODO: also disallow commas inside brackets that
       ;; enclose infix operators or relations
-      (set! l (list-remove l :comma)))
+      (set! l (list-remove l :comma))
+    ) ;when
     (when (== x " ")
-      (set! l (list)))
+      (set! l (list))
+    ) ;when
     (while (tm-in? x '(rsub rsup))
       (when (tree-is? x 'rsub)
-        (set! l (list-remove l :subscript)))
+        (set! l (list-remove l :subscript))
+      ) ;when
       (when (tree-is? x 'rsup)
-        (set! l (list-remove l :superscript)))
-      (set! x (tm-ref x :previous)))
+        (set! l (list-remove l :superscript))
+      ) ;when
+      (set! x (tm-ref x :previous))
+    ) ;while
     (when (and (tree? x) (tree-atomic? x))
-      (with-cursor (tree->path x :end)
-        (set! x (expr-before-cursor))))
+      (with-cursor (tree->path x :end) (set! x (expr-before-cursor)))
+    ) ;when
     (when (tm-atomic? x)
-      (set! x (tm->string x)))
+      (set! x (tm->string x))
+    ) ;when
     (when (if (string? x)
-              (not (or (string-number? x) (math-symbol? x) (math-operator? x)))
-              (not (tree-in? x '(math-ss math-tt rsub rsup wide wide*
-                                 frac frac* sqrt around around*))))
-      (set! l (list)))
-    l))
+            (not (or (string-number? x) (math-symbol? x) (math-operator? x)))
+            (not (tree-in? x
+                   '(math-ss math-tt
+                      rsub
+                      rsup
+                      wide
+                      wide*
+                      frac
+                      frac*
+                      sqrt
+                      around
+                      around*)
+                 ) ;tree-in?
+            ) ;not
+          ) ;if
+      (set! l (list))
+    ) ;when
+    l
+  ) ;let*
+) ;define
 
 (define (best-permitted-implicit l r p)
-  (when (tree? l) (set! l (tm->stree l)))
-  (when (tree? r) (set! r (tm->stree r)))
-  (when (string-number? r)  (set! r "1"))
-  (when (tm-func? r 'sqrt)  (set! r '(sqrt "1")))
-  (when (tm-func? r 'frac)  (set! r '(frac "1" "1")))
-  (when (tm-func? r 'frac*) (set! r '(frac "1" "1")))
-  (best-implicit* l r p))
+  (when (tree? l)
+    (set! l (tm->stree l))
+  ) ;when
+  (when (tree? r)
+    (set! r (tm->stree r))
+  ) ;when
+  (when (string-number? r)
+    (set! r "1")
+  ) ;when
+  (when (tm-func? r 'sqrt)
+    (set! r '(sqrt "1"))
+  ) ;when
+  (when (tm-func? r 'frac)
+    (set! r '(frac "1" "1"))
+  ) ;when
+  (when (tm-func? r 'frac*)
+    (set! r '(frac "1" "1"))
+  ) ;when
+  (best-implicit* l r p)
+) ;define
 
 (tm-define (best-implicit l r)
-  (if (not l) :none (best-permitted-implicit l r (permitted-implicit))))
+  (if (not l) :none (best-permitted-implicit l r (permitted-implicit)))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Fine-grained contextual preferences
@@ -348,99 +510,122 @@
 
 (define (infix-like? x)
   (and (string? x)
-       (in? (math-symbol-type x)
-            (list "infix" "prefix-infix" "separator"))))
+    (in? (math-symbol-type x) (list "infix" "prefix-infix" "separator"))
+  ) ;and
+) ;define
 
 (define (get-rich-contextual x)
-  (let* ((prev  (expr-before-cursor))
+  (let* ((prev (expr-before-cursor))
          (prev2 (root-before-before-cursor))
-         (up    (tm-ref (cursor-tree) :up))
-         (prev* (root-before-start)))
-    (when (== prev "-") (set! prev "+"))
-    (cond ((and prev*
-                (infix-like? prev))
-           (tmconcat prev2 prev x))
-          ((and prev* up
-                (tm-in? up '(rsub rsup))
-                (tree-empty? (tm-ref up 0)))
-           (tmconcat prev* `(,(tm-label up) ,x)))
-          ((and prev* up
-                (tm-in? up '(around around*))
-                (tree-empty? (tm-ref up 1)))
-           (tmconcat prev* `(,(tm-label up) ,(tm-ref up 0) ,x ,(tm-ref up 2))))
-          (else #f))))
+         (up (tm-ref (cursor-tree) :up))
+         (prev* (root-before-start))
+        ) ;
+    (when (== prev "-")
+      (set! prev "+")
+    ) ;when
+    (cond ((and prev* (infix-like? prev)) (tmconcat prev2 prev x))
+          ((and prev* up (tm-in? up '(rsub rsup)) (tree-empty? (tm-ref up 0)))
+           (tmconcat prev* `(,(tm-label up) ,x))
+          ) ;
+          ((and prev* up (tm-in? up '(around around*)) (tree-empty? (tm-ref up 1)))
+           (tmconcat prev* `(,(tm-label up) ,(tm-ref up 0) ,x ,(tm-ref up 2)))
+          ) ;
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (define (get-combine x impl)
-  (and-with prev (expr-before-cursor)
-    (cond ((== impl :multiply   ) (tmconcat prev "*" x))
-          ((== impl :space      ) (tmconcat prev " " x))
-          ((== impl :comma      ) (tmconcat prev "," x))
-          ((== impl :apply      ) (tmconcat prev `(around "(" ,x ")")))
-          ((== impl :brackets   ) (tmconcat prev `(around "[" ,x "]")))
-          ((== impl :subscript  ) (tmconcat prev `(rsub ,x)))
+  (and-with prev
+    (expr-before-cursor)
+    (cond ((== impl :multiply) (tmconcat prev "*" x))
+          ((== impl :space) (tmconcat prev " " x))
+          ((== impl :comma) (tmconcat prev "," x))
+          ((== impl :apply) (tmconcat prev `(around ,"(" ,x ,")")))
+          ((== impl :brackets) (tmconcat prev `(around ,"[" ,x ,"]")))
+          ((== impl :subscript) (tmconcat prev `(rsub ,x)))
           ((== impl :superscript) (tmconcat prev `(rsub ,x)))
-          (else #f))))
+          (else #f)
+    ) ;cond
+  ) ;and-with
+) ;define
 
 (tm-define (stats-rich-contextual x)
   (max (stats-in-role (get-rich-contextual x))
-       (stats-in-role (get-combine x :multiply))
-       (stats-in-role (get-combine x :space))
-       (stats-in-role (get-combine x :comma))
-       (stats-in-role (get-combine x :apply))
-       (stats-in-role (get-combine x :brackets))
-       (stats-in-role (get-combine x :subscript))
-       (stats-in-role (get-combine x :superscript))
-       0))
+    (stats-in-role (get-combine x :multiply))
+    (stats-in-role (get-combine x :space))
+    (stats-in-role (get-combine x :comma))
+    (stats-in-role (get-combine x :apply))
+    (stats-in-role (get-combine x :brackets))
+    (stats-in-role (get-combine x :subscript))
+    (stats-in-role (get-combine x :superscript))
+    0
+  ) ;max
+) ;tm-define
 
 (define (get-medium-contextual x)
-  (let* ((prev  (expr-before-cursor))
-         (up    (tm-ref (cursor-tree) :up))
-         (prev* (root-before-start)))
-    (when (== prev "-") (set! prev "+"))
-    (cond ((infix-like? prev)
-           (tmconcat prev x))
-          ((and (tm-in? up '(rsub rsup))
-                (tree-empty? (tm-ref up 0)))
-           `(,(tm-label up) ,x))
-          ((and (tm-in? up '(around around*))
-                (tree-empty? (tm-ref up 1)))
-           `(,(tm-label up) ,(tm-ref up 0) ,x ,(tm-ref up 2)))
-          (else #f))))
+  (let* ((prev (expr-before-cursor))
+         (up (tm-ref (cursor-tree) :up))
+         (prev* (root-before-start))
+        ) ;
+    (when (== prev "-")
+      (set! prev "+")
+    ) ;when
+    (cond ((infix-like? prev) (tmconcat prev x))
+          ((and (tm-in? up '(rsub rsup)) (tree-empty? (tm-ref up 0)))
+           `(,(tm-label up) ,x)
+          ) ;
+          ((and (tm-in? up '(around around*)) (tree-empty? (tm-ref up 1)))
+           `(,(tm-label up) ,(tm-ref up 0) ,x ,(tm-ref up 2))
+          ) ;
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;define
 
 (tm-define (stats-medium-contextual x)
-  (with c (get-medium-contextual x)
-    (if (not c) 0 (stats-in-role c))))
+  (with c (get-medium-contextual x) (if (not c) 0 (stats-in-role c)))
+) ;tm-define
 
 (define (stats-occurrences-nodup prev x)
-  (if (== prev x) 0 (stats-occurrences x)))
+  (if (== prev x) 0 (stats-occurrences x))
+) ;define
 
 (tm-define (stats-prefer-weak-contextual? what over prefer?)
-  (let* ((prev  (root-before-cursor))
+  (let* ((prev (root-before-cursor))
          (what3 (stats-occurrences-nodup prev what))
-         (over3 (stats-occurrences-nodup prev over)))
-    ;;(display* "  weak  : " what ", " what3
+         (over3 (stats-occurrences-nodup prev over))
+        ) ;
+    ;; (display* "  weak  : " what ", " what3
     ;;          "; " over ", " over3 "\n")
     (cond ((prefer? what3 over3) #t)
           ((> over3 0) #f)
-          (else #f))))
+          (else #f)
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (stats-prefer-medium-contextual? what over prefer?)
-  (let* ((what2 (stats-medium-contextual what))
-         (over2 (stats-medium-contextual over)))
-    ;;(display* "  medium: " what ", " what2
+  (let* ((what2 (stats-medium-contextual what)) (over2 (stats-medium-contextual over)))
+    ;; (display* "  medium: " what ", " what2
     ;;          "; " over ", " over2 "\n")
     (cond ((> what2 over2) #t)
           ((> over2 0) #f)
-          (else (stats-prefer-weak-contextual? what over prefer?)))))
+          (else (stats-prefer-weak-contextual? what over prefer?))
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (stats-prefer-contextual? what over prefer?)
-  (let* ((what1 (stats-rich-contextual what))
-         (over1 (stats-rich-contextual over)))
-    ;;(display* "  rich  : " what ", " what1
+  (let* ((what1 (stats-rich-contextual what)) (over1 (stats-rich-contextual over)))
+    ;; (display* "  rich  : " what ", " what1
     ;;          "; " over ", " over1 "\n")
     (cond ((> what1 over1) #t)
           ((> over1 0) #f)
-          (else (stats-prefer-medium-contextual? what over prefer?)))))
+          (else (stats-prefer-medium-contextual? what over prefer?))
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Contextual preferences for letter combinations
@@ -448,38 +633,55 @@
 
 (tm-define (stats-combination x y)
   (max (stats-in-role (tmconcat x "*" y))
-       (stats-in-role (tmconcat x " " y))
-       (stats-in-role (tmconcat x "," y))
-       (stats-in-role (tmconcat x `(around "(" ,y ")")))
-       (stats-in-role (tmconcat x `(around "[" ,y "]")))
-       (stats-in-role (tmconcat x `(rsub ,y)))
-       (stats-in-role (tmconcat x `(rsup ,y)))
-       0))
+    (stats-in-role (tmconcat x " " y))
+    (stats-in-role (tmconcat x "," y))
+    (stats-in-role (tmconcat x `(around ,"(" ,y ,")")))
+    (stats-in-role (tmconcat x `(around ,"[" ,y ,"]")))
+    (stats-in-role (tmconcat x `(rsub ,y)))
+    (stats-in-role (tmconcat x `(rsup ,y)))
+    0
+  ) ;max
+) ;tm-define
 
 (tm-define (stats-prefer-combination? p1 p2)
-  (with (x1 y1) p1
-    (with (x2 y2) p2
-      (let* ((occ1 (stats-combination x1 y1))
-             (occ2 (stats-combination x2 y2)))
-        ;;(display* "  compare: " p1 ", " occ1 "; " p2 ", " occ2 "\n")
+  (with (x1 y1)
+    p1
+    (with (x2 y2)
+      p2
+      (let* ((occ1 (stats-combination x1 y1)) (occ2 (stats-combination x2 y2)))
+        ;; (display* "  compare: " p1 ", " occ1 "; " p2 ", " occ2 "\n")
         (cond ((> occ1 occ2) #t)
               ((> occ2 0) #f)
-              (else #f))))))
+              (else #f)
+        ) ;cond
+      ) ;let*
+    ) ;with
+  ) ;with
+) ;tm-define
 
 (define (stats-preferred-combination* best l)
   (cond ((null? l) best)
         ((stats-prefer-combination? (car l) best)
-         (stats-preferred-combination* (car l) (cdr l)))
-        (else (stats-preferred-combination* best (cdr l)))))
+         (stats-preferred-combination* (car l) (cdr l))
+        ) ;
+        (else (stats-preferred-combination* best (cdr l)))
+  ) ;cond
+) ;define
 
 (define (list-pairs l1 l2)
-  (if (null? l1) l1
-      (append (map (cut list (car l1) <>) l2)
-              (list-pairs (cdr l1) l2))))
+  (if (null? l1)
+    l1
+    (append (map (cut list (car l1) <>) l2) (list-pairs (cdr l1) l2))
+  ) ;if
+) ;define
 
 (tm-define (stats-preferred-combination l1 l2)
-  (and (nnull? l1) (nnull? l2)
-       (let* ((prod (list-pairs l1 l2))
-              (comb (stats-preferred-combination* (car prod) (cdr prod))))
-         (with (x y) comb
-           (and (> (stats-combination x y) 0) comb)))))
+  (and (nnull? l1)
+    (nnull? l2)
+    (let* ((prod (list-pairs l1 l2))
+           (comb (stats-preferred-combination* (car prod) (cdr prod)))
+          ) ;
+      (with (x y) comb (and (> (stats-combination x y) 0) comb))
+    ) ;let*
+  ) ;and
+) ;tm-define

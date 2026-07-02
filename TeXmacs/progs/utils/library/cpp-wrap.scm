@@ -18,8 +18,7 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (path-in t l)
-  (let* ((f (and (nnull? l) (car l)))
-         (r (and (nnull? l) (cdr l))))
+  (let* ((f (and (nnull? l) (car l))) (r (and (nnull? l) (cdr l))))
     (cond ((null? l) l)
           ((== l '(:start)) (path-start t (list)))
           ((== l '(:end)) (path-end t (list)))
@@ -27,31 +26,30 @@
           ((== f :first) (path-in t (cons 0 (cdr l))))
           ((== f :last) (path-in t (cons (- (tm-arity t) 1) (cdr l))))
           ((and (integer? (car l)) (tm-ref t (car l)))
-           (cons (car l) (path-in (tm-ref t (car l)) (cdr l))))
-          (else (texmacs-error "path-in" "invalid path")))))
+           (cons (car l) (path-in (tm-ref t (car l)) (cdr l)))
+          ) ;
+          (else (texmacs-error "path-in" "invalid path"))
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 (tm-define (insert t . opt-l)
-  (if (null? opt-l)
-      (cpp-insert t)
-      (cpp-insert-go-to t (path-in t opt-l))))
+  (if (null? opt-l) (cpp-insert t) (cpp-insert-go-to t (path-in t opt-l)))
+) ;tm-define
 
 (tm-define (insert t . opt-l)
   (:mode complete-mode?)
-  (if (null? opt-l)
-      (cpp-insert t)
-      (cpp-insert-go-to t (path-in t opt-l)))
-  (kbd-variant (focus-tree) #t))
+  (if (null? opt-l) (cpp-insert t) (cpp-insert-go-to t (path-in t opt-l)))
+  (kbd-variant (focus-tree) #t)
+) ;tm-define
 
-(tm-define (u8-insert t)
-  (insert (utf8->herk t)))
+(tm-define (u8-insert t) (insert (utf8->herk t)))
 
 (define (var-make tag . opt-arity)
-  (if (null? opt-arity)
-      (cpp-make tag)
-      (cpp-make-arity tag (car opt-arity))))
+  (if (null? opt-arity) (cpp-make tag) (cpp-make-arity tag (car opt-arity)))
+) ;define
 
-(tm-define (make tag . opt-arity)
-  (apply var-make (cons tag opt-arity)))
+(tm-define (make tag . opt-arity) (apply var-make (cons tag opt-arity)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Wrappers
@@ -59,38 +57,49 @@
 
 (tm-define (make-with var val)
   (cond ((selection-active-table?) (cell-set-format var val))
-        ((nstring? val) (insert-go-to `(with ,var ,val "") '(2 0)))
-        (else (cpp-make-with var val))))
+        ((nstring? val) (insert-go-to `(with ,var ,val ,"") '(2 0)))
+        (else (cpp-make-with var val))
+  ) ;cond
+) ;tm-define
 
 (tm-define (make lab . opt-arity)
-  (:require (with-like? `(,lab "")))
+  (:require (with-like? `(,lab ,"")))
   (if (selection-active-any?)
-      (let* ((selection (selection-tree))
-             (ins `(,lab ,selection))
-             (end (path-end selection '())))
-        (clipboard-cut "nowhere")
-        (insert-go-to ins (cons (- (tm-arity ins) 1) end)))
-      (apply former (cons lab opt-arity))))
+    (let* ((selection (selection-tree))
+           (ins `(,lab ,selection))
+           (end (path-end selection '()))
+          ) ;
+      (clipboard-cut "nowhere")
+      (insert-go-to ins (cons (- (tm-arity ins) 1) end))
+    ) ;let*
+    (apply former (cons lab opt-arity))
+  ) ;if
+) ;tm-define
 
 (tm-define (make lab . opt-arity)
   (:require (in? lab (make-inline-tag-list)))
   (if (selection-active-large?)
-      (with sel `(par-block ,(selection-tree))
-	(clipboard-cut "wrapbuf")
-	(make-return-after)
-	(apply var-make (cons lab opt-arity))
-	(tree-set (cursor-tree) sel)
-	(with-innermost t lab
-	  (tree-go-to t :end)
-	  (make-return-before)))
-      (apply var-make (cons lab opt-arity))))
+    (with sel
+      `(par-block ,(selection-tree))
+      (clipboard-cut "wrapbuf")
+      (make-return-after)
+      (apply var-make (cons lab opt-arity))
+      (tree-set (cursor-tree) sel)
+      (with-innermost t lab (tree-go-to t :end) (make-return-before))
+    ) ;with
+    (apply var-make (cons lab opt-arity))
+  ) ;if
+) ;tm-define
 
 (tm-define (make lab . opt-arity)
   (:require (in? lab (make-wrapped-tag-list)))
-  (with sel? (selection-active-any?)
+  (with sel?
+    (selection-active-any?)
     (clipboard-cut "wrapbuf")
     (apply var-make (cons lab opt-arity))
-    (if sel? (clipboard-paste "wrapbuf"))))
+    (if sel? (clipboard-paste "wrapbuf"))
+  ) ;with
+) ;tm-define
 
 (tm-define (insert-go-to t p) (cpp-insert-go-to t p))
 (tm-define (make-hybrid) (cpp-make-hybrid))

@@ -116,9 +116,7 @@
   (import (scheme base)
     (scheme case-lambda)
     (srfi srfi-1)
-    (rename (liii bitwise)
-      (ash arithmetic-shift)
-    ) ;rename
+    (rename (liii bitwise) (ash arithmetic-shift))
   ) ;import
 
   (begin
@@ -133,13 +131,8 @@
       (let loop
         ((b nil) (ps ps))
         (cond ((null? ps) b)
-              ((null? (cdr ps))
-               (error "plist-fold: invalid plist")
-              ) ;
-              (else (loop (proc (car ps) (cadr ps) b)
-                      (cddr ps)
-                    ) ;loop
-              ) ;else
+              ((null? (cdr ps)) (error "plist-fold: invalid plist"))
+              (else (loop (proc (car ps) (cadr ps) b) (cddr ps)))
         ) ;cond
       ) ;let
     ) ;define
@@ -166,11 +159,7 @@
     ) ;define-record-type
 
     (define-record-type <branch>
-      (raw-branch prefix
-        branching-bit
-        left
-        right
-      ) ;raw-branch
+      (raw-branch prefix branching-bit left right)
       branch?
       (prefix branch-prefix)
       (branching-bit branch-branching-bit)
@@ -185,10 +174,7 @@
     (define fx-least -9223372036854775808)
 
     (define (mask k m)
-      (if (= m fx-least)
-        0
-        (logand k (logxor (lognot (- m 1)) m))
-      ) ;if
+      (if (= m fx-least) 0 (logand k (logxor (lognot (- m 1)) m)))
     ) ;define
 
     (define (match-prefix? k p m)
@@ -211,9 +197,7 @@
     (define (branching-bit p1 m1 p2 m2)
       (if (negative? (logxor p1 p2))
         fx-least
-        (highest-bit-mask (logxor p1 p2)
-          (max 1 (* 2 (max m1 m2)))
-        ) ;highest-bit-mask
+        (highest-bit-mask (logxor p1 p2) (max 1 (* 2 (max m1 m2))))
       ) ;if
     ) ;define
 
@@ -224,25 +208,12 @@
     (define (branch prefix mask trie1 trie2)
       (cond ((not trie1) trie2)
             ((not trie2) trie1)
-            (else (raw-branch prefix mask trie1 trie2)
-            ) ;else
+            (else (raw-branch prefix mask trie1 trie2))
       ) ;cond
     ) ;define
 
-    (define (trie-join prefix1
-              mask1
-              trie1
-              prefix2
-              mask2
-              trie2
-            ) ;trie-join
-      (let ((m (branching-bit prefix1
-                 mask1
-                 prefix2
-                 mask2
-               ) ;branching-bit
-            ) ;m
-           ) ;
+    (define (trie-join prefix1 mask1 trie1 prefix2 mask2 trie2)
+      (let ((m (branching-bit prefix1 mask1 prefix2 mask2)))
         (if (zero-bit? prefix1 m)
           (branch (mask prefix1 m) m trie1 trie2)
           (branch (mask prefix1 m) m trie2 trie1)
@@ -250,20 +221,13 @@
       ) ;let
     ) ;define
 
-    (define (trie-insert/combine trie
-              key
-              value
-              combine
-            ) ;trie-insert/combine
+    (define (trie-insert/combine trie key value combine)
       (letrec ((new-leaf (leaf key value))
                (insert (lambda (t)
                          (cond ((not t) new-leaf)
                                ((leaf? t)
                                 (let ((k (leaf-key t)) (v (leaf-value t)))
-                                  (if (= key k)
-                                    (leaf k (combine key value v))
-                                    (trie-join key 0 new-leaf k 0 t)
-                                  ) ;if
+                                  (if (= key k) (leaf k (combine key value v)) (trie-join key 0 new-leaf k 0 t))
                                 ) ;let
                                ) ;
                                (else (let ((p (branch-prefix t))
@@ -272,10 +236,7 @@
                                            (r (branch-right t))
                                           ) ;
                                        (if (match-prefix? key p m)
-                                         (if (zero-bit? key m)
-                                           (branch p m (insert l) r)
-                                           (branch p m l (insert r))
-                                         ) ;if
+                                         (if (zero-bit? key m) (branch p m (insert l) r) (branch p m l (insert r)))
                                          (trie-join key 0 new-leaf p m t)
                                        ) ;if
                                      ) ;let
@@ -284,27 +245,17 @@
                        ) ;lambda
                ) ;insert
               ) ;
-        (assume (valid-integer? key)
-          "invalid key"
-        ) ;assume
+        (assume (valid-integer? key) "invalid key")
         (insert trie)
       ) ;letrec
     ) ;define
 
     (define (trie-insert trie key value)
-      (trie-insert/combine trie
-        key
-        value
-        (lambda (_k new _old) new)
-      ) ;trie-insert/combine
+      (trie-insert/combine trie key value (lambda (_k new _old) new))
     ) ;define
 
     (define (trie-adjoin trie key value)
-      (trie-insert/combine trie
-        key
-        value
-        (lambda (_k _new old) old)
-      ) ;trie-insert/combine
+      (trie-insert/combine trie key value (lambda (_k _new old) old))
     ) ;define
 
     (define (trie-adjust trie key proc)
@@ -321,10 +272,7 @@
                                            (r (branch-right t))
                                           ) ;
                                        (if (match-prefix? key p m)
-                                         (if (zero-bit? key m)
-                                           (branch p m (update l) r)
-                                           (branch p m l (update r))
-                                         ) ;if
+                                         (if (zero-bit? key m) (branch p m (update l) r) (branch p m l (update r)))
                                          t
                                        ) ;if
                                      ) ;let
@@ -340,19 +288,14 @@
     (define (trie-delete trie key)
       (letrec ((update (lambda (t)
                          (cond ((not t) #f)
-                               ((leaf? t)
-                                (if (= key (leaf-key t)) #f t)
-                               ) ;
+                               ((leaf? t) (if (= key (leaf-key t)) #f t))
                                (else (let ((p (branch-prefix t))
                                            (m (branch-branching-bit t))
                                            (l (branch-left t))
                                            (r (branch-right t))
                                           ) ;
                                        (if (match-prefix? key p m)
-                                         (if (zero-bit? key m)
-                                           (branch p m (update l) r)
-                                           (branch p m l (update r))
-                                         ) ;if
+                                         (if (zero-bit? key m) (branch p m (update l) r) (branch p m l (update r)))
                                          t
                                        ) ;if
                                      ) ;let
@@ -379,10 +322,7 @@
                                            (r (branch-right t))
                                           ) ;
                                        (if (match-prefix? key p m)
-                                         (if (zero-bit? key m)
-                                           (search l)
-                                           (search r)
-                                         ) ;if
+                                         (if (zero-bit? key m) (search l) (search r))
                                          (failure)
                                        ) ;if
                                      ) ;let
@@ -396,28 +336,17 @@
     ) ;define
 
     (define (trie-assoc/default trie key default)
-      (trie-assoc trie
-        key
-        (lambda () default)
-        values
-      ) ;trie-assoc
+      (trie-assoc trie key (lambda () default) values)
     ) ;define
 
     (define (trie-contains? trie key)
-      (trie-assoc trie
-        key
-        (lambda () #f)
-        (lambda (_) #t)
-      ) ;trie-assoc
+      (trie-assoc trie key (lambda () #f) (lambda (_) #t))
     ) ;define
 
     (define (trie-min trie)
       (letrec ((search (lambda (t)
                          (and t
-                           (if (leaf? t)
-                             (values (leaf-key t) (leaf-value t))
-                             (search (branch-left t))
-                           ) ;if
+                           (if (leaf? t) (values (leaf-key t) (leaf-value t)) (search (branch-left t)))
                          ) ;and
                        ) ;lambda
                ) ;search
@@ -435,10 +364,7 @@
     (define (trie-max trie)
       (letrec ((search (lambda (t)
                          (and t
-                           (if (leaf? t)
-                             (values (leaf-key t) (leaf-value t))
-                             (search (branch-right t))
-                           ) ;if
+                           (if (leaf? t) (values (leaf-key t) (leaf-value t)) (search (branch-right t)))
                          ) ;and
                        ) ;lambda
                ) ;search
@@ -459,14 +385,8 @@
         (let lp
           ((t trie) (b nil) (kont values))
           (if (leaf? t)
-            (kont (proc (leaf-key t) (leaf-value t) b)
-            ) ;kont
-            (lp (branch-left t)
-              b
-              (lambda (c)
-                (lp (branch-right t) c kont)
-              ) ;lambda
-            ) ;lp
+            (kont (proc (leaf-key t) (leaf-value t) b))
+            (lp (branch-left t) b (lambda (c) (lp (branch-right t) c kont)))
           ) ;if
         ) ;let
       ) ;if
@@ -478,12 +398,8 @@
         (let lp
           ((t trie) (b nil) (kont values))
           (if (leaf? t)
-            (kont (proc (leaf-key t) (leaf-value t) b)
-            ) ;kont
-            (lp (branch-right t)
-              b
-              (lambda (c) (lp (branch-left t) c kont))
-            ) ;lp
+            (kont (proc (leaf-key t) (leaf-value t) b))
+            (lp (branch-right t) b (lambda (c) (lp (branch-left t) c kont)))
           ) ;if
         ) ;let
       ) ;if
@@ -492,11 +408,7 @@
     (define (trie-map proc trie)
       (letrec ((tmap (lambda (t)
                        (cond ((not t) #f)
-                             ((leaf? t)
-                              (leaf (leaf-key t)
-                                (proc (leaf-key t) (leaf-value t))
-                              ) ;leaf
-                             ) ;
+                             ((leaf? t) (leaf (leaf-key t) (proc (leaf-key t) (leaf-value t))))
                              (else (let ((p (branch-prefix t))
                                          (m (branch-branching-bit t))
                                          (l (branch-left t))
@@ -516,12 +428,7 @@
     (define (trie-filter pred trie)
       (letrec ((filter (lambda (t)
                          (cond ((not t) #f)
-                               ((leaf? t)
-                                (if (pred (leaf-key t) (leaf-value t))
-                                  t
-                                  #f
-                                ) ;if
-                               ) ;
+                               ((leaf? t) (if (pred (leaf-key t) (leaf-value t)) t #f))
                                (else (let ((p (branch-prefix t))
                                            (m (branch-branching-bit t))
                                            (l (branch-left t))
@@ -541,21 +448,14 @@
     (define (trie-partition pred trie)
       (letrec ((part (lambda (t)
                        (cond ((not t) (values #f #f))
-                             ((leaf? t)
-                              (if (pred (leaf-key t) (leaf-value t))
-                                (values t #f)
-                                (values #f t)
-                              ) ;if
-                             ) ;
+                             ((leaf? t) (if (pred (leaf-key t) (leaf-value t)) (values t #f) (values #f t)))
                              (else (let ((p (branch-prefix t))
                                          (m (branch-branching-bit t))
                                          (l (branch-left t))
                                          (r (branch-right t))
                                         ) ;
                                      (let-values (((il ol) (part l)) ((ir or) (part r)))
-                                       (values (branch p m il ir)
-                                         (branch p m ol or)
-                                       ) ;values
+                                       (values (branch p m il ir) (branch p m ol or))
                                      ) ;let-values
                                    ) ;let
                              ) ;else
@@ -573,13 +473,7 @@
         (let lp
           ((n 0) (t trie) (kont values))
           (cond ((leaf? t) (kont (+ n 1)))
-                (else (lp n
-                        (branch-left t)
-                        (lambda (m)
-                          (lp m (branch-right t) kont)
-                        ) ;lambda
-                      ) ;lp
-                ) ;else
+                (else (lp n (branch-left t) (lambda (m) (lp m (branch-right t) kont))))
           ) ;cond
         ) ;let
       ) ;if
@@ -594,12 +488,7 @@
                                   (kont)
                                 ) ;if
                                ) ;
-                               (else (search (branch-left t)
-                                       (lambda ()
-                                         (search (branch-right t) kont)
-                                       ) ;lambda
-                                     ) ;search
-                               ) ;else
+                               (else (search (branch-left t) (lambda () (search (branch-right t) kont))))
                          ) ;cond
                        ) ;lambda
                ) ;search
@@ -612,19 +501,9 @@
       (letrec ((disjoint? (lambda (s t)
                             (or (not s)
                               (not t)
-                              (cond ((and (leaf? s) (leaf? t))
-                                     (not (= (leaf-key s) (leaf-key t)))
-                                    ) ;
-                                    ((leaf? s)
-                                     (let ((k (leaf-key s)))
-                                       (not (trie-contains? t k))
-                                     ) ;let
-                                    ) ;
-                                    ((leaf? t)
-                                     (let ((k (leaf-key t)))
-                                       (not (trie-contains? s k))
-                                     ) ;let
-                                    ) ;
+                              (cond ((and (leaf? s) (leaf? t)) (not (= (leaf-key s) (leaf-key t))))
+                                    ((leaf? s) (let ((k (leaf-key s))) (not (trie-contains? t k))))
+                                    ((leaf? t) (let ((k (leaf-key t))) (not (trie-contains? s k))))
                                     (else (let ((p (branch-prefix s))
                                                 (m (branch-branching-bit s))
                                                 (sl (branch-left s))
@@ -634,22 +513,12 @@
                                                 (tl (branch-left t))
                                                 (tr (branch-right t))
                                                ) ;
-                                            (cond ((and (= m n) (= p q))
-                                                   (and (disjoint? sl tl)
-                                                     (disjoint? sr tr)
-                                                   ) ;and
-                                                  ) ;
+                                            (cond ((and (= m n) (= p q)) (and (disjoint? sl tl) (disjoint? sr tr)))
                                                   ((and (> m n) (match-prefix? q p m))
-                                                   (if (zero-bit? q m)
-                                                     (disjoint? sl t)
-                                                     (disjoint? sr t)
-                                                   ) ;if
+                                                   (if (zero-bit? q m) (disjoint? sl t) (disjoint? sr t))
                                                   ) ;
                                                   ((and (> n m) (match-prefix? p q n))
-                                                   (if (zero-bit? p n)
-                                                     (disjoint? s tl)
-                                                     (disjoint? s tr)
-                                                   ) ;if
+                                                   (if (zero-bit? p n) (disjoint? s tl) (disjoint? s tr))
                                                   ) ;
                                                   (else #t)
                                             ) ;cond
@@ -668,9 +537,7 @@
       (cond ((and (not trie1) (not trie2)) #t)
             ((and (leaf? trie1) (leaf? trie2))
              (and (= (leaf-key trie1) (leaf-key trie2))
-               (comp (leaf-value trie1)
-                 (leaf-value trie2)
-               ) ;comp
+               (comp (leaf-value trie1) (leaf-value trie2))
              ) ;and
             ) ;
             ((and (branch? trie1) (branch? trie2))
@@ -683,11 +550,7 @@
                    (l2 (branch-left trie2))
                    (r2 (branch-right trie2))
                   ) ;
-               (and (= m n)
-                 (= p q)
-                 (trie=? comp l1 l2)
-                 (trie=? comp r1 r2)
-               ) ;and
+               (and (= m n) (= p q) (trie=? comp l1 l2) (trie=? comp r1 r2))
              ) ;let
             ) ;
             (else #f)
@@ -695,9 +558,7 @@
     ) ;define
 
     (define (trie-proper-subset? comp trie1 trie2)
-      (eqv? (trie-subset-compare comp trie1 trie2)
-        'less
-      ) ;eqv?
+      (eqv? (trie-subset-compare comp trie1 trie2) 'less)
     ) ;define
 
     (define (trie-subset-compare comp trie1 trie2)
@@ -706,10 +567,7 @@
                                 ((not t) 'greater)
                                 ((and (leaf? s) (leaf? t))
                                  (if (= (leaf-key s) (leaf-key t))
-                                   (if (comp (leaf-value s) (leaf-value t))
-                                     'equal
-                                     'greater
-                                   ) ;if
+                                   (if (comp (leaf-value s) (leaf-value t)) 'equal 'greater)
                                    'greater
                                  ) ;if
                                 ) ;
@@ -732,29 +590,16 @@
                                      (cond ((> m n) 'greater)
                                            ((> n m)
                                             (if (match-prefix? p q n)
-                                              (let ((comp (if (zero-bit? p n)
-                                                            (compare s tl)
-                                                            (compare s tr)
-                                                          ) ;if
-                                                    ) ;comp
-                                                   ) ;
+                                              (let ((comp (if (zero-bit? p n) (compare s tl) (compare s tr))))
                                                 (if (eqv? comp 'greater) 'greater 'less)
                                               ) ;let
                                               'greater
                                             ) ;if
                                            ) ;
                                            ((= p q)
-                                            (let ((cl (compare sl tl))
-                                                  (cr (compare sr tr))
-                                                 ) ;
-                                              (cond ((or (eqv? cl 'greater)
-                                                       (eqv? cr 'greater)
-                                                     ) ;or
-                                                     'greater
-                                                    ) ;
-                                                    ((and (eqv? cl 'equal) (eqv? cr 'equal))
-                                                     'equal
-                                                    ) ;
+                                            (let ((cl (compare sl tl)) (cr (compare sr tr)))
+                                              (cond ((or (eqv? cl 'greater) (eqv? cr 'greater)) 'greater)
+                                                    ((and (eqv? cl 'equal) (eqv? cr 'equal)) 'equal)
                                                     (else 'less)
                                               ) ;cond
                                             ) ;let
@@ -780,16 +625,8 @@
                                  (lambda (k new old) (combine k old new))
                                ) ;trie-insert/combine
                               ) ;
-                              ((leaf? t)
-                               (trie-insert/combine s
-                                 (leaf-key t)
-                                 (leaf-value t)
-                                 combine
-                               ) ;trie-insert/combine
-                              ) ;
-                              ((and (branch? s) (branch? t))
-                               (merge-branches s t)
-                              ) ;
+                              ((leaf? t) (trie-insert/combine s (leaf-key t) (leaf-value t) combine))
+                              ((and (branch? s) (branch? t)) (merge-branches s t))
                         ) ;cond
                       ) ;lambda
                ) ;merge
@@ -803,20 +640,12 @@
                                        (tl (branch-left t))
                                        (tr (branch-right t))
                                       ) ;
-                                   (cond ((and (= m n) (= p q))
-                                          (branch p m (merge sl tl) (merge sr tr))
-                                         ) ;
+                                   (cond ((and (= m n) (= p q)) (branch p m (merge sl tl) (merge sr tr)))
                                          ((and (> m n) (match-prefix? q p m))
-                                          (if (zero-bit? q m)
-                                            (branch p m (merge sl t) sr)
-                                            (branch p m sl (merge sr t))
-                                          ) ;if
+                                          (if (zero-bit? q m) (branch p m (merge sl t) sr) (branch p m sl (merge sr t)))
                                          ) ;
                                          ((and (> n m) (match-prefix? p q n))
-                                          (if (zero-bit? p n)
-                                            (branch q n (merge s tl) tr)
-                                            (branch q n tl (merge s tr))
-                                          ) ;if
+                                          (if (zero-bit? p n) (branch q n (merge s tl) tr) (branch q n tl (merge s tr)))
                                          ) ;
                                          (else (trie-join p m s q n t))
                                    ) ;cond
@@ -829,10 +658,7 @@
     ) ;define
 
     (define (trie-union trie1 trie2)
-      (trie-merge (lambda (_k _x y) y)
-        trie1
-        trie2
-      ) ;trie-merge
+      (trie-merge (lambda (_k _x y) y) trie1 trie2)
     ) ;define
 
     (define (trie-intersection combine trie1 trie2)
@@ -840,20 +666,12 @@
                             (cond ((or (not s) (not t)) #f)
                                   ((leaf? s)
                                    (let ((k (leaf-key s)) (v (leaf-value s)))
-                                     (trie-assoc t
-                                       k
-                                       (lambda () #f)
-                                       (lambda (v2) (leaf k (combine k v v2)))
-                                     ) ;trie-assoc
+                                     (trie-assoc t k (lambda () #f) (lambda (v2) (leaf k (combine k v v2))))
                                    ) ;let
                                   ) ;
                                   ((leaf? t)
                                    (let ((k (leaf-key t)) (v (leaf-value t)))
-                                     (trie-assoc s
-                                       k
-                                       (lambda () #f)
-                                       (lambda (v2) (leaf k (combine k v2 v)))
-                                     ) ;trie-assoc
+                                     (trie-assoc s k (lambda () #f) (lambda (v2) (leaf k (combine k v2 v))))
                                    ) ;let
                                   ) ;
                                   (else (intersect-branches s t))
@@ -872,27 +690,15 @@
                                           ) ;
                                        (cond ((> m n)
                                               (and (match-prefix? q p m)
-                                                (if (zero-bit? q m)
-                                                  (intersect sl t)
-                                                  (intersect sr t)
-                                                ) ;if
+                                                (if (zero-bit? q m) (intersect sl t) (intersect sr t))
                                               ) ;and
                                              ) ;
                                              ((> n m)
                                               (and (match-prefix? p q n)
-                                                (if (zero-bit? p n)
-                                                  (intersect s tl)
-                                                  (intersect s tr)
-                                                ) ;if
+                                                (if (zero-bit? p n) (intersect s tl) (intersect s tr))
                                               ) ;and
                                              ) ;
-                                             ((= p q)
-                                              (branch p
-                                                m
-                                                (intersect sl tl)
-                                                (intersect sr tr)
-                                              ) ;branch
-                                             ) ;
+                                             ((= p q) (branch p m (intersect sl tl) (intersect sr tr)))
                                              (else #f)
                                        ) ;cond
                                      ) ;let
@@ -907,11 +713,7 @@
       (letrec ((difference (lambda (s t)
                              (cond ((not s) #f)
                                    ((not t) s)
-                                   ((leaf? s)
-                                    (let ((k (leaf-key s)))
-                                      (if (trie-contains? t k) #f s)
-                                    ) ;let
-                                   ) ;
+                                   ((leaf? s) (let ((k (leaf-key s))) (if (trie-contains? t k) #f s)))
                                    ((leaf? t) (trie-delete s (leaf-key t)))
                                    (else (branch-difference s t))
                              ) ;cond
@@ -927,13 +729,7 @@
                                           (tl (branch-left t))
                                           (tr (branch-right t))
                                          ) ;
-                                      (cond ((and (= m n) (= p q))
-                                             (branch p
-                                               m
-                                               (difference sl tl)
-                                               (difference sr tr)
-                                             ) ;branch
-                                            ) ;
+                                      (cond ((and (= m n) (= p q)) (branch p m (difference sl tl) (difference sr tr)))
                                             ((and (> m n) (match-prefix? q p m))
                                              (if (zero-bit? q m)
                                                (branch p m (difference sl t) sr)
@@ -941,10 +737,7 @@
                                              ) ;if
                                             ) ;
                                             ((and (> n m) (match-prefix? p q n))
-                                             (if (zero-bit? p n)
-                                               (difference s tl)
-                                               (difference s tr)
-                                             ) ;if
+                                             (if (zero-bit? p n) (difference s tl) (difference s tr))
                                             ) ;
                                             (else s)
                                       ) ;cond
@@ -962,26 +755,17 @@
                             ((not t) s)
                             ((and (leaf? s) (leaf? t))
                              (let ((ks (leaf-key s)) (kt (leaf-key t)))
-                               (if (= ks kt)
-                                 #f
-                                 (trie-join ks 0 s kt 0 t)
-                               ) ;if
+                               (if (= ks kt) #f (trie-join ks 0 s kt 0 t))
                              ) ;let
                             ) ;
                             ((leaf? s)
                              (let ((k (leaf-key s)) (v (leaf-value s)))
-                               (if (trie-contains? t k)
-                                 (trie-delete t k)
-                                 (trie-insert t k v)
-                               ) ;if
+                               (if (trie-contains? t k) (trie-delete t k) (trie-insert t k v))
                              ) ;let
                             ) ;
                             ((leaf? t)
                              (let ((k (leaf-key t)) (v (leaf-value t)))
-                               (if (trie-contains? s k)
-                                 (trie-delete s k)
-                                 (trie-insert s k v)
-                               ) ;if
+                               (if (trie-contains? s k) (trie-delete s k) (trie-insert s k v))
                              ) ;let
                             ) ;
                             (else (xor-branches s t))
@@ -998,20 +782,12 @@
                                      (tl (branch-left t))
                                      (tr (branch-right t))
                                     ) ;
-                                 (cond ((and (= m n) (= p q))
-                                        (branch p m (xor sl tl) (xor sr tr))
-                                       ) ;
+                                 (cond ((and (= m n) (= p q)) (branch p m (xor sl tl) (xor sr tr)))
                                        ((and (> m n) (match-prefix? q p m))
-                                        (if (zero-bit? q m)
-                                          (branch p m (xor sl t) sr)
-                                          (branch p m sl (xor sr t))
-                                        ) ;if
+                                        (if (zero-bit? q m) (branch p m (xor sl t) sr) (branch p m sl (xor sr t)))
                                        ) ;
                                        ((and (> n m) (match-prefix? p q n))
-                                        (if (zero-bit? p n)
-                                          (branch q n (xor s tl) tr)
-                                          (branch q n tl (xor s tr))
-                                        ) ;if
+                                        (if (zero-bit? p n) (branch q n (xor s tl) tr) (branch q n tl (xor s tr)))
                                        ) ;
                                        (else (trie-join p m s q n t))
                                  ) ;cond
@@ -1034,12 +810,7 @@
     ;; ;; Constructors
 
     (define (fxmapping . args)
-      (raw-fxmapping (plist-fold (lambda (k v trie)
-                                   (trie-adjoin trie k v)
-                                 ) ;lambda
-                       the-empty-trie
-                       args
-                     ) ;plist-fold
+      (raw-fxmapping (plist-fold (lambda (k v trie) (trie-adjoin trie k v)) the-empty-trie args)
       ) ;raw-fxmapping
     ) ;define
 
@@ -1051,14 +822,8 @@
       (assume (procedure? comb))
       (assume (pair-or-null? as))
       (raw-fxmapping (fold (lambda (p trie)
-                             (assume (pair? p)
-                               "alist->fxmapping/combinator: not a pair"
-                             ) ;assume
-                             (trie-insert/combine trie
-                               (car p)
-                               (cdr p)
-                               comb
-                             ) ;trie-insert/combine
+                             (assume (pair? p) "alist->fxmapping/combinator: not a pair")
+                             (trie-insert/combine trie (car p) (cdr p) comb)
                            ) ;lambda
                        the-empty-trie
                        as
@@ -1067,9 +832,7 @@
     ) ;define
 
     (define (alist->fxmapping as)
-      (alist->fxmapping/combinator second-arg
-        as
-      ) ;alist->fxmapping/combinator
+      (alist->fxmapping/combinator second-arg as)
     ) ;define
 
     (define fxmapping-unfold
@@ -1084,9 +847,7 @@
             (raw-fxmapping trie)
             (let-values (((k v) (mapper seed)))
               (assume (valid-integer? k))
-              (lp (trie-adjoin trie k v)
-                (successor seed)
-              ) ;lp
+              (lp (trie-adjoin trie k v) (successor seed))
             ) ;let-values
           ) ;if
         ) ;let
@@ -1100,9 +861,7 @@
           ((trie the-empty-trie) (seeds seeds))
           (if (apply stop? seeds)
             (raw-fxmapping trie)
-            (let-values (((k v) (apply mapper seeds))
-                         (seeds* (apply successor seeds))
-                        ) ;
+            (let-values (((k v) (apply mapper seeds)) (seeds* (apply successor seeds)))
               (assume (valid-integer? k))
               (lp (trie-adjoin trie k v) seeds*)
             ) ;let-values
@@ -1117,9 +876,7 @@
     (define (fxmapping-contains? fxmap n)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? n))
-      (trie-contains? (fxmapping-trie fxmap)
-        n
-      ) ;trie-contains?
+      (trie-contains? (fxmapping-trie fxmap) n)
     ) ;define
 
     (define (fxmapping-empty? fxmap)
@@ -1130,9 +887,7 @@
     (define (fxmapping-disjoint? fxmap1 fxmap2)
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
-      (trie-disjoint? (fxmapping-trie fxmap1)
-        (fxmapping-trie fxmap2)
-      ) ;trie-disjoint?
+      (trie-disjoint? (fxmapping-trie fxmap1) (fxmapping-trie fxmap2))
     ) ;define
 
     ;; ;; Accessors
@@ -1142,42 +897,25 @@
        ((fxmap key)
         (fxmapping-ref fxmap
           key
-          (lambda ()
-            (error "fxmapping-ref: key not found"
-              key
-              fxmap
-            ) ;error
-          ) ;lambda
+          (lambda () (error "fxmapping-ref: key not found" key fxmap))
           values
         ) ;fxmapping-ref
        ) ;
-       ((fxmap key failure)
-        (fxmapping-ref fxmap key failure values)
-       ) ;
+       ((fxmap key failure) (fxmapping-ref fxmap key failure values))
        ((fxmap key failure success)
         (assume (fxmapping? fxmap))
         (assume (valid-integer? key))
         (assume (procedure? failure))
         (assume (procedure? success))
-        (trie-assoc (fxmapping-trie fxmap)
-          key
-          failure
-          success
-        ) ;trie-assoc
+        (trie-assoc (fxmapping-trie fxmap) key failure success)
        ) ;
       ) ;case-lambda
     ) ;define
 
-    (define (fxmapping-ref/default fxmap
-              key
-              default
-            ) ;fxmapping-ref/default
+    (define (fxmapping-ref/default fxmap key default)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
-      (trie-assoc/default (fxmapping-trie fxmap)
-        key
-        default
-      ) ;trie-assoc/default
+      (trie-assoc/default (fxmapping-trie fxmap) key default)
     ) ;define
 
     (define (fxmapping-min fxmap)
@@ -1195,17 +933,10 @@
     (define fxmapping-adjoin/combinator
       (case-lambda
        ((fxmap combine key value)
-        (raw-fxmapping (trie-insert/combine (fxmapping-trie fxmap)
-                         key
-                         value
-                         combine
-                       ) ;trie-insert/combine
-        ) ;raw-fxmapping
+        (raw-fxmapping (trie-insert/combine (fxmapping-trie fxmap) key value combine))
        ) ;
        ((fxmap combine . ps)
-        (raw-fxmapping (plist-fold (lambda (k v t)
-                                     (trie-insert/combine t k v combine)
-                                   ) ;lambda
+        (raw-fxmapping (plist-fold (lambda (k v t) (trie-insert/combine t k v combine))
                          (fxmapping-trie fxmap)
                          ps
                        ) ;plist-fold
@@ -1217,17 +948,10 @@
     (define fxmapping-adjoin
       (case-lambda
        ((fxmap key value)
-        (raw-fxmapping (trie-adjoin (fxmapping-trie fxmap)
-                         key
-                         value
-                       ) ;trie-adjoin
-        ) ;raw-fxmapping
+        (raw-fxmapping (trie-adjoin (fxmapping-trie fxmap) key value))
        ) ;
        ((fxmap . ps)
-        (raw-fxmapping (plist-fold (lambda (k v t) (trie-adjoin t k v))
-                         (fxmapping-trie fxmap)
-                         ps
-                       ) ;plist-fold
+        (raw-fxmapping (plist-fold (lambda (k v t) (trie-adjoin t k v)) (fxmapping-trie fxmap) ps)
         ) ;raw-fxmapping
        ) ;
       ) ;case-lambda
@@ -1236,17 +960,10 @@
     (define fxmapping-set
       (case-lambda
        ((fxmap key value)
-        (raw-fxmapping (trie-insert (fxmapping-trie fxmap)
-                         key
-                         value
-                       ) ;trie-insert
-        ) ;raw-fxmapping
+        (raw-fxmapping (trie-insert (fxmapping-trie fxmap) key value))
        ) ;
        ((fxmap . ps)
-        (raw-fxmapping (plist-fold (lambda (k v t) (trie-insert t k v))
-                         (fxmapping-trie fxmap)
-                         ps
-                       ) ;plist-fold
+        (raw-fxmapping (plist-fold (lambda (k v t) (trie-insert t k v)) (fxmapping-trie fxmap) ps)
         ) ;raw-fxmapping
        ) ;
       ) ;case-lambda
@@ -1256,11 +973,7 @@
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
       (assume (procedure? proc))
-      (raw-fxmapping (trie-adjust (fxmapping-trie fxmap)
-                       key
-                       proc
-                     ) ;trie-adjust
-      ) ;raw-fxmapping
+      (raw-fxmapping (trie-adjust (fxmapping-trie fxmap) key proc))
     ) ;define
 
     (define fxmapping-delete
@@ -1268,30 +981,21 @@
        ((fxmap key)
         (assume (fxmapping? fxmap))
         (assume (valid-integer? key))
-        (raw-fxmapping (trie-delete (fxmapping-trie fxmap) key)
-        ) ;raw-fxmapping
+        (raw-fxmapping (trie-delete (fxmapping-trie fxmap) key))
        ) ;
-       ((fxmap . keys)
-        (fxmapping-delete-all fxmap keys)
-       ) ;
+       ((fxmap . keys) (fxmapping-delete-all fxmap keys))
       ) ;case-lambda
     ) ;define
 
     (define (fxmapping-delete-all fxmap keys)
       (assume (or (pair? keys) (null? keys)))
-      (fold (lambda (k im) (fxmapping-delete im k))
-        fxmap
-        keys
-      ) ;fold
+      (fold (lambda (k im) (fxmapping-delete im k)) fxmap keys)
     ) ;define
 
     (define (fxmapping-delete-min fxmap)
       (assume (fxmapping? fxmap))
       (assume (not (fxmapping-empty? fxmap)))
-      (let-values (((k v trie)
-                    (trie-pop-min (fxmapping-trie fxmap))
-                   ) ;
-                  ) ;
+      (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
         (raw-fxmapping trie)
       ) ;let-values
     ) ;define
@@ -1299,10 +1003,7 @@
     (define (fxmapping-pop-min fxmap)
       (assume (fxmapping? fxmap))
       (assume (not (fxmapping-empty? fxmap)))
-      (let-values (((k v trie)
-                    (trie-pop-min (fxmapping-trie fxmap))
-                   ) ;
-                  ) ;
+      (let-values (((k v trie) (trie-pop-min (fxmapping-trie fxmap))))
         (values k v (raw-fxmapping trie))
       ) ;let-values
     ) ;define
@@ -1310,10 +1011,7 @@
     (define (fxmapping-delete-max fxmap)
       (assume (fxmapping? fxmap))
       (assume (not (fxmapping-empty? fxmap)))
-      (let-values (((k v trie)
-                    (trie-pop-max (fxmapping-trie fxmap))
-                   ) ;
-                  ) ;
+      (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
         (raw-fxmapping trie)
       ) ;let-values
     ) ;define
@@ -1321,10 +1019,7 @@
     (define (fxmapping-pop-max fxmap)
       (assume (fxmapping? fxmap))
       (assume (not (fxmapping-empty? fxmap)))
-      (let-values (((k v trie)
-                    (trie-pop-max (fxmapping-trie fxmap))
-                   ) ;
-                  ) ;
+      (let-values (((k v trie) (trie-pop-max (fxmapping-trie fxmap))))
         (values k v (raw-fxmapping trie))
       ) ;let-values
     ) ;define
@@ -1350,46 +1045,26 @@
 
     (define fxmapping-find
       (case-lambda
-       ((pred fxmap failure)
-        (fxmapping-find pred
-          fxmap
-          failure
-          values
-        ) ;fxmapping-find
-       ) ;
+       ((pred fxmap failure) (fxmapping-find pred fxmap failure values))
        ((pred fxmap failure success)
         (assume (procedure? pred))
         (assume (fxmapping? fxmap))
         (assume (procedure? failure))
         (assume (procedure? success))
-        (trie-find pred
-          (fxmapping-trie fxmap)
-          failure
-          success
-        ) ;trie-find
+        (trie-find pred (fxmapping-trie fxmap) failure success)
        ) ;
       ) ;case-lambda
     ) ;define
 
     (define (fxmapping-count pred fxmap)
       (assume (procedure? pred))
-      (fxmapping-fold (lambda (k v acc)
-                        (if (pred k v) (+ 1 acc) acc)
-                      ) ;lambda
-        0
-        fxmap
-      ) ;fxmapping-fold
+      (fxmapping-fold (lambda (k v acc) (if (pred k v) (+ 1 acc) acc)) 0 fxmap)
     ) ;define
 
     (define (fxmapping-any? pred fxmap)
       (assume (procedure? pred))
       (call-with-current-continuation (lambda (return)
-                                        (fxmapping-fold (lambda (k v _)
-                                                          (and (pred k v) (return #t))
-                                                        ) ;lambda
-                                          #f
-                                          fxmap
-                                        ) ;fxmapping-fold
+                                        (fxmapping-fold (lambda (k v _) (and (pred k v) (return #t))) #f fxmap)
                                       ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
@@ -1397,12 +1072,7 @@
     (define (fxmapping-every? pred fxmap)
       (assume (procedure? pred))
       (call-with-current-continuation (lambda (return)
-                                        (fxmapping-fold (lambda (k v _)
-                                                          (or (pred k v) (return #f))
-                                                        ) ;lambda
-                                          #t
-                                          fxmap
-                                        ) ;fxmapping-fold
+                                        (fxmapping-fold (lambda (k v _) (or (pred k v) (return #f))) #t fxmap)
                                       ) ;lambda
       ) ;call-with-current-continuation
     ) ;define
@@ -1412,8 +1082,7 @@
     (define (fxmapping-map proc fxmap)
       (assume (procedure? proc))
       (assume (fxmapping? fxmap))
-      (raw-fxmapping (trie-map proc (fxmapping-trie fxmap))
-      ) ;raw-fxmapping
+      (raw-fxmapping (trie-map proc (fxmapping-trie fxmap)))
     ) ;define
 
     (define (unspecified)
@@ -1422,13 +1091,7 @@
 
     (define (fxmapping-for-each proc fxmap)
       (assume (procedure? proc))
-      (fxmapping-fold (lambda (k v _)
-                        (proc k v)
-                        (unspecified)
-                      ) ;lambda
-        (unspecified)
-        fxmap
-      ) ;fxmapping-fold
+      (fxmapping-fold (lambda (k v _) (proc k v) (unspecified)) (unspecified) fxmap)
     ) ;define
 
     (define (fxmapping-fold proc nil fxmap)
@@ -1438,17 +1101,11 @@
         (if (branch? trie)
           (if (negative? (branch-branching-bit trie))
             (trie-fold-left proc
-              (trie-fold-left proc
-                nil
-                (branch-right trie)
-              ) ;trie-fold-left
+              (trie-fold-left proc nil (branch-right trie))
               (branch-left trie)
             ) ;trie-fold-left
             (trie-fold-left proc
-              (trie-fold-left proc
-                nil
-                (branch-left trie)
-              ) ;trie-fold-left
+              (trie-fold-left proc nil (branch-left trie))
               (branch-right trie)
             ) ;trie-fold-left
           ) ;if
@@ -1464,17 +1121,11 @@
         (if (branch? trie)
           (if (negative? (branch-branching-bit trie))
             (trie-fold-right proc
-              (trie-fold-right proc
-                nil
-                (branch-left trie)
-              ) ;trie-fold-right
+              (trie-fold-right proc nil (branch-left trie))
               (branch-right trie)
             ) ;trie-fold-right
             (trie-fold-right proc
-              (trie-fold-right proc
-                nil
-                (branch-right trie)
-              ) ;trie-fold-right
+              (trie-fold-right proc nil (branch-right trie))
               (branch-left trie)
             ) ;trie-fold-right
           ) ;if
@@ -1485,70 +1136,43 @@
 
     (define (fxmapping-map->list proc fxmap)
       (assume (procedure? proc))
-      (fxmapping-fold-right (lambda (k v us) (cons (proc k v) us))
-        '()
-        fxmap
-      ) ;fxmapping-fold-right
+      (fxmapping-fold-right (lambda (k v us) (cons (proc k v) us)) '() fxmap)
     ) ;define
 
     (define (fxmapping-filter pred fxmap)
       (assume (procedure? pred))
       (assume (fxmapping? fxmap))
-      (raw-fxmapping (trie-filter pred
-                       (fxmapping-trie fxmap)
-                     ) ;trie-filter
-      ) ;raw-fxmapping
+      (raw-fxmapping (trie-filter pred (fxmapping-trie fxmap)))
     ) ;define
 
     (define (fxmapping-remove pred fxmap)
-      (fxmapping-filter (lambda (k v) (not (pred k v)))
-        fxmap
-      ) ;fxmapping-filter
+      (fxmapping-filter (lambda (k v) (not (pred k v))) fxmap)
     ) ;define
 
     (define (fxmapping-partition pred fxmap)
       (assume (procedure? pred))
       (assume (fxmapping? fxmap))
-      (let-values (((tin tout)
-                    (trie-partition pred
-                      (fxmapping-trie fxmap)
-                    ) ;trie-partition
-                   ) ;
-                  ) ;
-        (values (raw-fxmapping tin)
-          (raw-fxmapping tout)
-        ) ;values
+      (let-values (((tin tout) (trie-partition pred (fxmapping-trie fxmap))))
+        (values (raw-fxmapping tin) (raw-fxmapping tout))
       ) ;let-values
     ) ;define
 
     ;; ;; Conversion
 
     (define (fxmapping->alist fxmap)
-      (fxmapping-fold-right (lambda (k v as) (cons (cons k v) as))
-        '()
-        fxmap
-      ) ;fxmapping-fold-right
+      (fxmapping-fold-right (lambda (k v as) (cons (cons k v) as)) '() fxmap)
     ) ;define
 
     (define (fxmapping->decreasing-alist fxmap)
-      (fxmapping-fold (lambda (k v as) (cons (cons k v) as))
-        '()
-        fxmap
-      ) ;fxmapping-fold
+      (fxmapping-fold (lambda (k v as) (cons (cons k v) as)) '() fxmap)
     ) ;define
 
     (define (fxmapping-keys fxmap)
-      (fxmapping-fold-right (lambda (k _ ks) (cons k ks))
-        '()
-        fxmap
-      ) ;fxmapping-fold-right
+      (fxmapping-fold-right (lambda (k _ ks) (cons k ks)) '() fxmap)
     ) ;define
 
     (define (fxmapping-values fxmap)
-      (fxmapping-fold-right (lambda (_ v vs) (cons v vs))
-        '()
-        fxmap
-      ) ;fxmapping-fold-right
+      (fxmapping-fold-right (lambda (_ v vs) (cons v vs)) '() fxmap)
     ) ;define
 
     ;; ;; Comparison
@@ -1557,138 +1181,65 @@
       (procedure? x)
     ) ;define
 
-    (define (fxmapping=?
-              comp
-              fxmap1
-              fxmap2
-              .
-              fxmaps
-            ) ;
+    (define (fxmapping=? comp fxmap1 fxmap2 . fxmaps)
       (assume (comparator? comp))
       (assume (fxmapping? fxmap1))
       (let ((fxmap-eq1 (lambda (fxmap)
                          (assume (fxmapping? fxmap))
                          (or (eqv? fxmap1 fxmap)
-                           (trie=? comp
-                             (fxmapping-trie fxmap1)
-                             (fxmapping-trie fxmap)
-                           ) ;trie=?
+                           (trie=? comp (fxmapping-trie fxmap1) (fxmapping-trie fxmap))
                          ) ;or
                        ) ;lambda
             ) ;fxmap-eq1
            ) ;
-        (and (fxmap-eq1 fxmap2)
-          (or (null? fxmaps)
-            (every fxmap-eq1 fxmaps)
-          ) ;or
-        ) ;and
+        (and (fxmap-eq1 fxmap2) (or (null? fxmaps) (every fxmap-eq1 fxmaps)))
       ) ;let
     ) ;define
 
-    (define (fxmapping<?
-              comp
-              fxmap1
-              fxmap2
-              .
-              fxmaps
-            ) ;
+    (define (fxmapping<? comp fxmap1 fxmap2 . fxmaps)
       (assume (comparator? comp))
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
       (let lp
-        ((t1 (fxmapping-trie fxmap1))
-         (t2 (fxmapping-trie fxmap2))
-         (fxmaps fxmaps)
-        ) ;
+        ((t1 (fxmapping-trie fxmap1)) (t2 (fxmapping-trie fxmap2)) (fxmaps fxmaps))
         (and (trie-proper-subset? comp t1 t2)
-          (or (null? fxmaps)
-            (lp t2
-              (fxmapping-trie (car fxmaps))
-              (cdr fxmaps)
-            ) ;lp
-          ) ;or
+          (or (null? fxmaps) (lp t2 (fxmapping-trie (car fxmaps)) (cdr fxmaps)))
         ) ;and
       ) ;let
     ) ;define
 
-    (define (fxmapping>?
-              comp
-              fxmap1
-              fxmap2
-              .
-              fxmaps
-            ) ;
+    (define (fxmapping>? comp fxmap1 fxmap2 . fxmaps)
       (assume (comparator? comp))
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
       (let lp
-        ((t1 (fxmapping-trie fxmap1))
-         (t2 (fxmapping-trie fxmap2))
-         (fxmaps fxmaps)
-        ) ;
+        ((t1 (fxmapping-trie fxmap1)) (t2 (fxmapping-trie fxmap2)) (fxmaps fxmaps))
         (and (trie-proper-subset? comp t2 t1)
-          (or (null? fxmaps)
-            (lp t2
-              (fxmapping-trie (car fxmaps))
-              (cdr fxmaps)
-            ) ;lp
-          ) ;or
+          (or (null? fxmaps) (lp t2 (fxmapping-trie (car fxmaps)) (cdr fxmaps)))
         ) ;and
       ) ;let
     ) ;define
 
-    (define (fxmapping<=?
-              comp
-              fxmap1
-              fxmap2
-              .
-              fxmaps
-            ) ;
+    (define (fxmapping<=? comp fxmap1 fxmap2 . fxmaps)
       (assume (comparator? comp))
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
       (let lp
-        ((t1 (fxmapping-trie fxmap1))
-         (t2 (fxmapping-trie fxmap2))
-         (fxmaps fxmaps)
-        ) ;
-        (and (memv (trie-subset-compare comp t1 t2)
-               '(less equal)
-             ) ;memv
-          (or (null? fxmaps)
-            (lp t2
-              (fxmapping-trie (car fxmaps))
-              (cdr fxmaps)
-            ) ;lp
-          ) ;or
+        ((t1 (fxmapping-trie fxmap1)) (t2 (fxmapping-trie fxmap2)) (fxmaps fxmaps))
+        (and (memv (trie-subset-compare comp t1 t2) '(less equal))
+          (or (null? fxmaps) (lp t2 (fxmapping-trie (car fxmaps)) (cdr fxmaps)))
         ) ;and
       ) ;let
     ) ;define
 
-    (define (fxmapping>=?
-              comp
-              fxmap1
-              fxmap2
-              .
-              fxmaps
-            ) ;
+    (define (fxmapping>=? comp fxmap1 fxmap2 . fxmaps)
       (assume (comparator? comp))
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
       (let lp
-        ((t1 (fxmapping-trie fxmap1))
-         (t2 (fxmapping-trie fxmap2))
-         (fxmaps fxmaps)
-        ) ;
-        (and (memv (trie-subset-compare comp t2 t1)
-               '(less equal)
-             ) ;memv
-          (or (null? fxmaps)
-            (lp t2
-              (fxmapping-trie (car fxmaps))
-              (cdr fxmaps)
-            ) ;lp
-          ) ;or
+        ((t1 (fxmapping-trie fxmap1)) (t2 (fxmapping-trie fxmap2)) (fxmaps fxmaps))
+        (and (memv (trie-subset-compare comp t2 t1) '(less equal))
+          (or (null? fxmaps) (lp t2 (fxmapping-trie (car fxmaps)) (cdr fxmaps)))
         ) ;and
       ) ;let
     ) ;define
@@ -1696,17 +1247,11 @@
     ;; ;; Set theory operations
 
     (define (fxmapping-union . args)
-      (apply fxmapping-union/combinator
-        first-arg
-        args
-      ) ;apply
+      (apply fxmapping-union/combinator first-arg args)
     ) ;define
 
     (define (fxmapping-intersection . args)
-      (apply fxmapping-intersection/combinator
-        first-arg
-        args
-      ) ;apply
+      (apply fxmapping-intersection/combinator first-arg args)
     ) ;define
 
     (define fxmapping-difference
@@ -1714,17 +1259,14 @@
        ((fxmap1 fxmap2)
         (assume (fxmapping? fxmap1))
         (assume (fxmapping? fxmap2))
-        (raw-fxmapping (trie-difference (fxmapping-trie fxmap1)
-                         (fxmapping-trie fxmap2)
-                       ) ;trie-difference
+        (raw-fxmapping (trie-difference (fxmapping-trie fxmap1) (fxmapping-trie fxmap2))
         ) ;raw-fxmapping
        ) ;
        ((fxmap . rest)
         (assume (fxmapping? fxmap))
         (assume (pair? rest))
         (raw-fxmapping (trie-difference (fxmapping-trie fxmap)
-                         (fxmapping-trie (apply fxmapping-union rest)
-                         ) ;fxmapping-trie
+                         (fxmapping-trie (apply fxmapping-union rest))
                        ) ;trie-difference
         ) ;raw-fxmapping
        ) ;
@@ -1734,46 +1276,27 @@
     (define (fxmapping-xor fxmap1 fxmap2)
       (assume (fxmapping? fxmap1))
       (assume (fxmapping? fxmap2))
-      (raw-fxmapping (trie-xor (fxmapping-trie fxmap1)
-                       (fxmapping-trie fxmap2)
-                     ) ;trie-xor
-      ) ;raw-fxmapping
+      (raw-fxmapping (trie-xor (fxmapping-trie fxmap1) (fxmapping-trie fxmap2)))
     ) ;define
 
-    (define (fxmapping-union/combinator
-              proc
-              fxmap
-              .
-              rest
-            ) ;
+    (define (fxmapping-union/combinator proc fxmap . rest)
       (assume (procedure? proc))
       (assume (fxmapping? fxmap))
       (assume (pair? rest))
-      (raw-fxmapping (fold (lambda (im t)
-                             (assume (fxmapping? im))
-                             (trie-merge proc t (fxmapping-trie im))
-                           ) ;lambda
+      (raw-fxmapping (fold (lambda (im t) (assume (fxmapping? im)) (trie-merge proc t (fxmapping-trie im)))
                        (fxmapping-trie fxmap)
                        rest
                      ) ;fold
       ) ;raw-fxmapping
     ) ;define
 
-    (define (fxmapping-intersection/combinator
-              proc
-              fxmap
-              .
-              rest
-            ) ;
+    (define (fxmapping-intersection/combinator proc fxmap . rest)
       (assume (procedure? proc))
       (assume (fxmapping? fxmap))
       (assume (pair? rest))
       (raw-fxmapping (fold (lambda (im t)
                              (assume (fxmapping? im))
-                             (trie-intersection proc
-                               (fxmapping-trie im)
-                               t
-                             ) ;trie-intersection
+                             (trie-intersection proc (fxmapping-trie im) t)
                            ) ;lambda
                        (fxmapping-trie fxmap)
                        rest
@@ -1784,11 +1307,7 @@
     ;; ;; Subsets
 
     (define (fxsubmapping= fxmap key)
-      (fxmapping-ref fxmap
-        key
-        fxmapping
-        (lambda (v) (fxmapping key v))
-      ) ;fxmapping-ref
+      (fxmapping-ref fxmap key fxmapping (lambda (v) (fxmapping key v)))
     ) ;define
 
     (define (fxmapping-open-interval fxmap low high)
@@ -1796,92 +1315,55 @@
       (assume (valid-integer? low))
       (assume (valid-integer? high))
       (assume (>= high low))
-      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap)
-                       low
-                       high
-                       #f
-                       #f
-                     ) ;subtrie-interval
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap) low high #f #f))
     ) ;define
 
-    (define (fxmapping-closed-interval fxmap
-              low
-              high
-            ) ;fxmapping-closed-interval
+    (define (fxmapping-closed-interval fxmap low high)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? low))
       (assume (valid-integer? high))
       (assume (>= high low))
-      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap)
-                       low
-                       high
-                       #t
-                       #t
-                     ) ;subtrie-interval
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap) low high #t #t))
     ) ;define
 
-    (define (fxmapping-open-closed-interval fxmap
-              low
-              high
-            ) ;fxmapping-open-closed-interval
+    (define (fxmapping-open-closed-interval fxmap low high)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? low))
       (assume (valid-integer? high))
       (assume (>= high low))
-      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap)
-                       low
-                       high
-                       #f
-                       #t
-                     ) ;subtrie-interval
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap) low high #f #t))
     ) ;define
 
-    (define (fxmapping-closed-open-interval fxmap
-              low
-              high
-            ) ;fxmapping-closed-open-interval
+    (define (fxmapping-closed-open-interval fxmap low high)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? low))
       (assume (valid-integer? high))
       (assume (>= high low))
-      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap)
-                       low
-                       high
-                       #t
-                       #f
-                     ) ;subtrie-interval
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie-interval (fxmapping-trie fxmap) low high #t #f))
     ) ;define
 
     (define (fxsubmapping< fxmap key)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
-      (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #f)
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #f))
     ) ;define
 
     (define (fxsubmapping<= fxmap key)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
-      (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #t)
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie< (fxmapping-trie fxmap) key #t))
     ) ;define
 
     (define (fxsubmapping> fxmap key)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
-      (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #f)
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #f))
     ) ;define
 
     (define (fxsubmapping>= fxmap key)
       (assume (fxmapping? fxmap))
       (assume (valid-integer? key))
-      (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #t)
-      ) ;raw-fxmapping
+      (raw-fxmapping (subtrie> (fxmapping-trie fxmap) key #t))
     ) ;define
 
     (define (subtrie< trie k inclusive)
@@ -1889,10 +1371,7 @@
                         (cond ((not t) #f)
                               ((leaf? t)
                                (let ((key (leaf-key t)))
-                                 (if (or (and inclusive (= key k)) (< key k))
-                                   t
-                                   #f
-                                 ) ;if
+                                 (if (or (and inclusive (= key k)) (< key k)) t #f)
                                ) ;let
                               ) ;
                               (else (let ((p (branch-prefix t))
@@ -1901,10 +1380,7 @@
                                           (r (branch-right t))
                                          ) ;
                                       (if (match-prefix? k p m)
-                                        (if (zero-bit? k m)
-                                          (split l)
-                                          (trie-union l (split r))
-                                        ) ;if
+                                        (if (zero-bit? k m) (split l) (trie-union l (split r)))
                                         (and (< p k) t)
                                       ) ;if
                                     ) ;let
@@ -1913,14 +1389,10 @@
                       ) ;lambda
                ) ;split
               ) ;
-        (if (and (branch? trie)
-              (negative? (branch-branching-bit trie))
-            ) ;and
+        (if (and (branch? trie) (negative? (branch-branching-bit trie)))
           (if (negative? k)
             (split (branch-right trie))
-            (trie-union (split (branch-left trie))
-              (branch-right trie)
-            ) ;trie-union
+            (trie-union (split (branch-left trie)) (branch-right trie))
           ) ;if
           (split trie)
         ) ;if
@@ -1932,10 +1404,7 @@
                         (cond ((not t) #f)
                               ((leaf? t)
                                (let ((key (leaf-key t)))
-                                 (if (or (and inclusive (= key k)) (> key k))
-                                   t
-                                   #f
-                                 ) ;if
+                                 (if (or (and inclusive (= key k)) (> key k)) t #f)
                                ) ;let
                               ) ;
                               (else (let ((p (branch-prefix t))
@@ -1944,10 +1413,7 @@
                                           (r (branch-right t))
                                          ) ;
                                       (if (match-prefix? k p m)
-                                        (if (zero-bit? k m)
-                                          (trie-union (split l) r)
-                                          (split r)
-                                        ) ;if
+                                        (if (zero-bit? k m) (trie-union (split l) r) (split r))
                                         (and (> p k) t)
                                       ) ;if
                                     ) ;let
@@ -1956,13 +1422,9 @@
                       ) ;lambda
                ) ;split
               ) ;
-        (if (and (branch? trie)
-              (negative? (branch-branching-bit trie))
-            ) ;and
+        (if (and (branch? trie) (negative? (branch-branching-bit trie)))
           (if (negative? k)
-            (trie-union (split (branch-right trie))
-              (branch-left trie)
-            ) ;trie-union
+            (trie-union (split (branch-right trie)) (branch-left trie))
             (split (branch-left trie))
           ) ;if
           (split trie)
@@ -1970,22 +1432,12 @@
       ) ;letrec
     ) ;define
 
-    (define (subtrie-interval trie
-              a
-              b
-              low-inclusive
-              high-inclusive
-            ) ;subtrie-interval
+    (define (subtrie-interval trie a b low-inclusive high-inclusive)
       (letrec ((interval (lambda (t)
                            (cond ((not t) #f)
                                  ((leaf? t)
                                   (let ((key (leaf-key t)))
-                                    (if (and (or low-inclusive (> key a))
-                                          (or high-inclusive (< key b))
-                                        ) ;and
-                                      t
-                                      #f
-                                    ) ;if
+                                    (if (and (or low-inclusive (> key a)) (or high-inclusive (< key b))) t #f)
                                   ) ;let
                                  ) ;
                                  (else (branch-interval t))
@@ -2003,43 +1455,23 @@
                                         (if (match-prefix? b p m)
                                           (if (zero-bit? b m)
                                             (interval l)
-                                            (trie-union (subtrie> l a low-inclusive)
-                                              (subtrie< r b high-inclusive)
-                                            ) ;trie-union
+                                            (trie-union (subtrie> l a low-inclusive) (subtrie< r b high-inclusive))
                                           ) ;if
-                                          (and (< b p)
-                                            (trie-union (subtrie> l a low-inclusive)
-                                              r
-                                            ) ;trie-union
-                                          ) ;and
+                                          (and (< b p) (trie-union (subtrie> l a low-inclusive) r))
                                         ) ;if
                                         (interval r)
                                       ) ;if
-                                      (and (> p a)
-                                        (subtrie< t b high-inclusive)
-                                      ) ;and
+                                      (and (> p a) (subtrie< t b high-inclusive))
                                     ) ;if
                                   ) ;let
                                 ) ;lambda
                ) ;branch-interval
               ) ;
-        (if (and (branch? trie)
-              (negative? (branch-branching-bit trie))
-            ) ;and
-          (cond ((and (negative? a) (negative? b))
-                 (interval (branch-right trie))
-                ) ;
-                ((and (positive? a) (positive? b))
-                 (interval (branch-left trie))
-                ) ;
-                (else (trie-union (subtrie> (branch-right trie)
-                                    a
-                                    low-inclusive
-                                  ) ;subtrie>
-                        (subtrie< (branch-left trie)
-                          b
-                          high-inclusive
-                        ) ;subtrie<
+        (if (and (branch? trie) (negative? (branch-branching-bit trie)))
+          (cond ((and (negative? a) (negative? b)) (interval (branch-right trie)))
+                ((and (positive? a) (positive? b)) (interval (branch-left trie)))
+                (else (trie-union (subtrie> (branch-right trie) a low-inclusive)
+                        (subtrie< (branch-left trie) b high-inclusive)
                       ) ;trie-union
                 ) ;else
           ) ;cond
@@ -2051,20 +1483,13 @@
     (define (fxmapping-split fxmap k)
       (assume (fxmapping? fxmap))
       (assume (integer? k))
-      (let-values (((trie-low trie-high)
-                    (trie-split (fxmapping-trie fxmap) k)
-                   ) ;
-                  ) ;
-        (values (raw-fxmapping trie-low)
-          (raw-fxmapping trie-high)
-        ) ;values
+      (let-values (((trie-low trie-high) (trie-split (fxmapping-trie fxmap) k)))
+        (values (raw-fxmapping trie-low) (raw-fxmapping trie-high))
       ) ;let-values
     ) ;define
 
     (define (trie-split trie k)
-      (values (subtrie< trie k #f)
-        (subtrie> trie k #t)
-      ) ;values
+      (values (subtrie< trie k #f) (subtrie> trie k #t))
     ) ;define
 
   ) ;begin

@@ -13,7 +13,6 @@
 #define QT_CHAT_CONTROLLER_HPP
 
 #include "qt_chat_tab_widget.hpp"
-#include <QMap>
 #include <QObject>
 
 /**
@@ -116,6 +115,13 @@ public:
   void onThinkingToggled (const string& sessionId, bool enabled);
 
   /**
+   * @brief 网络搜索开关切换时触发。
+   * @param sessionId 目标会话 ID
+   * @param enabled   是否启用网络搜索
+   */
+  void onSearchToggled (const string& sessionId, bool enabled);
+
+  /**
    * @brief Scheme→C++ 回调：通知状态变更。
    */
   void notifyStateChanged (const string& sessionId, const string& stateStr);
@@ -123,10 +129,7 @@ public:
   /**
    * @brief Scheme→C++ 回调：恢复单个会话元数据。
    */
-  void restoreSessionMeta (const string& sessionId, const string& title,
-                           const string& model, bool archived,
-                           const string& createdAt, int defaultExpandCount,
-                           bool thinking);
+  void restoreSessionMeta (const ChatSession& session);
 
   /**
    * @brief 销毁 View 引用，防止悬垂指针。
@@ -146,6 +149,7 @@ private:
   QTChatTabWidget*   view_= nullptr;   ///< View 指针，由 createView 创建
   ChatSessionManager sessionManager_;  ///< 会话管理器
   bool               firstOpen_= true; ///< 是否首次打开（首次时切换到新会话）
+  string             currentModel_= "Kimi-VLM"; ///< 当前选择的模型（C++ 管理）
 
   /**
    * @brief 激活指定会话：按需创建面板，按需加载内容。
@@ -201,29 +205,33 @@ private:
   QList<SessionDisplayInfo> buildDisplayInfos ();
 
   /**
-   * @brief 确定初始激活会话（第一个非归档会话）。
-   * @return 会话 ID，无可用会话时返回空字符串
-   */
-  string determineInitialActiveSession ();
-
-  /**
-   * @brief 获取所有会话的显示标题映射。
-   * @return sessionId → displayTitle 映射
-   */
-  QMap<string, string> getDisplayTitles ();
-
-  /**
    * @brief 获取单个会话的显示标题。
    * @param sessionId 目标会话 ID
    * @return 显示标题，无标题时返回 "新会话"
    */
   string getSessionDisplayTitle (const string& sessionId);
 
+  /**
+   * @brief 注册未注册的 session 到持久化层并加入 sidebar。
+   *
+   * 首次发送消息时调用，完成延迟注册。
+   * @param sessionId 目标会话 ID
+   */
+  void registerSession (const string& sessionId);
+
+  /**
+   * @brief 连接 Panel 的所有 signal 到 Controller。
+   * @param panel 目标面板
+   */
+  void connectPanelSignals (ChatConversationPanel* panel);
+
   friend void qt_chat_tab_set_state (string sessionId, string stateStr);
   friend void qt_chat_tab_restore_session (string sessionId, string title,
                                            string model, string archived,
-                                           string createdAt,
-                                           int    defaultExpandCount);
+                                           string createdAtStr,
+                                           string updatedAtStr,
+                                           int    defaultExpandCount,
+                                           string thinking, string search);
   friend void qt_chat_notify_input_height ();
 };
 
@@ -241,8 +249,9 @@ void qt_chat_tab_set_state (string sessionId, string stateStr);
  * @brief Scheme→C++ 回调：恢复单个聊天会话。
  */
 void qt_chat_tab_restore_session (string sessionId, string title, string model,
-                                  string archived, string createdAt,
-                                  int defaultExpandCount, string thinking);
+                                  string archived, string createdAtStr,
+                                  string updatedAtStr, int defaultExpandCount,
+                                  string thinking, string search);
 
 string qt_chat_tab_active_message_buffer_url ();
 

@@ -13,7 +13,10 @@
 #include "merge_sort.hpp"
 #include "renderer.hpp"
 #include "spacial.hpp"
-#include "true_color.hpp"
+#include <moebius/data/colors.hpp>
+#include <moebius/data/true_color.hpp>
+
+using namespace moebius::data;
 
 using namespace moebius;
 

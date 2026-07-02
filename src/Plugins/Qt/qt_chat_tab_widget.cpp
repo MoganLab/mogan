@@ -125,13 +125,40 @@ constexpr char kChatEmbeddedStyle[]= "style";
  ******************************************************************************/
 
 ChatConversationPanel::ChatConversationPanel (const string& sessionId,
+                                              const url&    msgBufUrl,
+                                              const url&    inBufUrl,
                                               QWidget*      parent)
-    : QWidget (parent), sessionId_ (sessionId) {
+    : QWidget (parent), sessionId_ (sessionId), msgBufferUrl_ (msgBufUrl),
+      inputBufferUrl_ (inBufUrl) {
   setObjectName ("chat-tab-conversation-page");
   // 限制垂直方向不向上传播 TeXmacs widget 的屏幕尺寸 sizeHint，
   // 避免 dock 模式下窗口被向下拉伸。
   setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Ignored);
   setup_ui ();
+}
+
+QTMStateToolButton*
+make_toggle_btn (QWidget* parent, const char* objName, const QString& text) {
+  int   btnH= DpiUtils::scaled (kSendButtonSize);
+  auto* btn = new QTMStateToolButton (parent);
+  btn->setObjectName (objName);
+  btn->setCheckable (true);
+  btn->setChecked (false);
+  btn->setFocusPolicy (Qt::NoFocus);
+  btn->setCursor (Qt::PointingHandCursor);
+  btn->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
+                           DpiUtils::scaled (kSendIconSize)));
+  btn->setText (text);
+  btn->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
+  btn->setFixedHeight (btnH);
+  btn->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
+  int fontPx= DpiUtils::scaled (12);
+  btn->setStyleSheet (
+      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
+               "margin: 0px; font-size: %2px; }")
+          .arg (btnH / 2)
+          .arg (fontPx));
+  return btn;
 }
 
 void
@@ -165,12 +192,11 @@ ChatConversationPanel::setup_ui () {
   topLayout->addSpacing (DpiUtils::scaled (kTitleToMessageSpacing));
 
   // Message area
-  qreal chatZoom = DpiUtils::scaled (100) / 100.0;
-  url   msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId_);
-  messageWidget_ = texmacs_input_widget (
+  qreal chatZoom= DpiUtils::scaled (100) / 100.0;
+  messageWidget_= texmacs_input_widget (
       tree (WITH, "font", "sys-chinese", "zoom-factor", as_string (chatZoom),
-             tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufUrl);
+            tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), msgBufferUrl_);
   set_zoom_factor (messageWidget_, chatZoom);
 
   QWidget* messageQWidget= concrete (messageWidget_)->as_qwidget ();
@@ -213,11 +239,10 @@ ChatConversationPanel::setup_ui () {
   inputAreaLayout->setContentsMargins (0, 0, 0, 0);
   inputAreaLayout->setSpacing (DpiUtils::scaled (kContentSpacing));
 
-  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
-  inputWidget = texmacs_input_widget (
+  inputWidget= texmacs_input_widget (
       tree (WITH, "par-par-sep", "0.05fn", "font", "sys-chinese", "zoom-factor",
-             as_string (chatZoom), tree (DOCUMENT, "")),
-      compound (kChatEmbeddedStyle, tuple ("generic")), inBufUrl);
+            as_string (chatZoom), tree (DOCUMENT, "")),
+      compound (kChatEmbeddedStyle, tuple ("generic")), inputBufferUrl_);
   set_zoom_factor (inputWidget, chatZoom);
   QWidget* inputQWidget= concrete (inputWidget)->as_qwidget ();
   inputEditorWidget_   = inputQWidget;
@@ -258,27 +283,17 @@ ChatConversationPanel::setup_ui () {
   QHBoxLayout* btnLayout= new QHBoxLayout ();
   btnLayout->addStretch ();
 
+  // Search toggle button
+  searchButton_= make_toggle_btn (inputFrame, "chat-tab-search-btn",
+                                  qt_translate ("Internet Search"));
+  connect (searchButton_, &QToolButton::toggled, this,
+           [this] (bool checked) { emit searchToggled (sessionId_, checked); });
+  btnLayout->addWidget (searchButton_);
+  btnLayout->addSpacing (DpiUtils::scaled (kSidebarSpacing));
+
   // Thinking toggle button
-  int thinkingBtnH= DpiUtils::scaled (kSendButtonSize);
-  thinkingButton_ = new QTMStateToolButton (inputFrame);
-  thinkingButton_->setObjectName ("chat-tab-thinking-btn");
-  thinkingButton_->setCheckable (true);
-  thinkingButton_->setChecked (false);
-  thinkingButton_->setFocusPolicy (Qt::NoFocus);
-  thinkingButton_->setCursor (Qt::PointingHandCursor);
-  thinkingButton_->setToolTip (tr ("Deep Reasoning"));
-  thinkingButton_->setIconSize (QSize (DpiUtils::scaled (kSendIconSize),
-                                       DpiUtils::scaled (kSendIconSize)));
-  thinkingButton_->setText (qt_translate ("Deep Reasoning"));
-  thinkingButton_->setToolButtonStyle (Qt::ToolButtonTextBesideIcon);
-  thinkingButton_->setFixedHeight (thinkingBtnH);
-  thinkingButton_->setSizePolicy (QSizePolicy::Preferred, QSizePolicy::Fixed);
-  int thinkingFontPx= DpiUtils::scaled (12);
-  thinkingButton_->setStyleSheet (
-      QString ("QToolButton { border-radius: %1px; padding: 2px 2px 2px 6px; "
-               "margin: 0px; font-size: %2px; }")
-          .arg (thinkingBtnH / 2)
-          .arg (thinkingFontPx));
+  thinkingButton_= make_toggle_btn (inputFrame, "chat-tab-thinking-btn",
+                                    qt_translate ("Deep Reasoning"));
   connect (thinkingButton_, &QToolButton::toggled, this, [this] (bool checked) {
     emit thinkingToggled (sessionId_, checked);
   });
@@ -394,12 +409,6 @@ ChatConversationPanel::resizeEvent (QResizeEvent* event) {
 
 void
 ChatConversationPanel::focusInput () {
-  url inBufUrl= ChatSessionManager::inputBufferUrl (sessionId_);
-  url vw      = get_passive_view (inBufUrl);
-  if (!is_none (vw)) {
-    set_current_view (vw);
-    call ("update-menus");
-  }
   if (inputQTMWidget_) {
     inputQTMWidget_->clearFocus ();
     inputQTMWidget_->setFocus (Qt::OtherFocusReason);
@@ -408,7 +417,7 @@ ChatConversationPanel::focusInput () {
 
 tree
 ChatConversationPanel::readInputMessage () const {
-  return get_buffer_body (ChatSessionManager::inputBufferUrl (sessionId_));
+  return get_buffer_body (inputBufferUrl_);
 }
 
 bool
@@ -533,23 +542,11 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
     QKeyEvent* keyEvent= static_cast<QKeyEvent*> (event);
     cout << "[ChatConvPanel::eventFilter] key=" << keyEvent->key ()
          << " modifiers=" << keyEvent->modifiers () << "\n";
-    // Ctrl/Cmd+J：关闭 AI 聊天侧边栏（仅在 dock 模式下触发）
+    // Ctrl/Cmd+J：请求关闭侧边栏（由 Controller 判断是否在 dock 模式）
     if (keyEvent->key () == Qt::Key_J &&
         (keyEvent->modifiers () & (Qt::ControlModifier | Qt::MetaModifier))) {
-      QTChatTabWidget* chatWidget= nullptr;
-      QWidget*         p         = parentWidget ();
-      while (p) {
-        chatWidget= qobject_cast<QTChatTabWidget*> (p);
-        if (chatWidget) break;
-        p= p->parentWidget ();
-      }
-      if (chatWidget) {
-        QWidget* gp= chatWidget->parentWidget ();
-        if (gp && qobject_cast<QDockWidget*> (gp)) {
-          emit chatWidget->closeSidebarRequested ();
-          return true;
-        }
-      }
+      emit closeSidebarInDockModeRequested ();
+      return true;
     }
     bool hasActiveCompletionPopup= has_active_math_completion_popup (watched);
     if (should_send_on_keypress (keyEvent->key (), keyEvent->modifiers (),
@@ -558,6 +555,33 @@ ChatConversationPanel::eventFilter (QObject* watched, QEvent* event) {
       if (ptr == this) {
         emit sendRequested (sessionId_);
         return true;
+      }
+    }
+    // 回车键（Shift+Enter 排除，因发送已拦截）且当前是输入框：
+    // 在 TeXmacs 处理按键之前预先扩展 frame，使 viewport 提前变大，
+    // 这样 cursor_visible() 不会因 viewport 偏小而触发上滚。
+    // 同时抑制绘制，避免 viewport 变大但内容未排版时出现边白闪烁。
+    if (watched->property ("chat_panel").value<void*> () == this) {
+      bool isEnter= (keyEvent->key () == Qt::Key_Return ||
+                     keyEvent->key () == Qt::Key_Enter);
+      if (isEnter) {
+        QWidget* frame=
+            inputEditorWidget_ ? inputEditorWidget_->parentWidget () : nullptr;
+        if (frame) {
+          tree body    = readInputMessage ();
+          int  docLines= count_input_lines (body);
+          int  targetLines=
+              qMin (kInputMaxLines, qMax (kInputDefaultLines, docLines + 1));
+          int targetFrameH= DpiUtils::scaled (kInputLineHeight * targetLines) +
+                            fixedFrameExtra_;
+          if (frame->height () < targetFrameH) {
+            setUpdatesEnabled (false);
+            frame->setFixedHeight (targetFrameH);
+            // 等 TeXmacs 排版完成后再恢复绘制
+            QTimer::singleShot (0, this,
+                                [this] () { setUpdatesEnabled (true); });
+          }
+        }
       }
     }
   }
@@ -684,11 +708,8 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   connect (selectAllBtn, &QPushButton::clicked, this, [this] () {
     for (auto it= items_.begin (); it != items_.end (); ++it) {
       if (!it->selectCheckBox) continue;
-      for (const auto& info : sessionCache_) {
-        if (info.sessionId == it.key () &&
-            info.archived == archiveSelectMode_) {
-          it->selectCheckBox->setChecked (true);
-        }
+      if (it->isArchived == archiveSelectMode_) {
+        it->selectCheckBox->setChecked (true);
       }
     }
   });
@@ -802,7 +823,6 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   mainLayout->addWidget (archiveListWidget_);
 
   // 构造时直接创建 items，按 archived 分组
-  sessionCache_   = sessions;
   activeSessionId_= activeSessionId;
 
   for (const SessionDisplayInfo& info : sessions) {
@@ -826,23 +846,27 @@ ChatSidebar::ChatSidebar (const QList<SessionDisplayInfo>& sessions,
   updateCountLabels ();
 }
 
+ChatSidebar::~ChatSidebar () {
+  // 标记析构进行中，阻止 titleEdit 的 editingFinished/returnPressed 信号
+  // 在 ~QWidget 派发 CloseEvent 时重入 endEditTitle（会访问正在销毁的
+  // items_）。
+  destroying_= true;
+  for (auto it= items_.begin (); it != items_.end (); ++it) {
+    if (it->titleEdit) it->titleEdit->disconnect (this);
+  }
+}
+
 void
-ChatSidebar::addItem (const string& sessionId, const string& displayTitle) {
-  if (items_.contains (sessionId)) return;
+ChatSidebar::addItem (const SessionDisplayInfo& info) {
+  if (items_.contains (info.sessionId)) return;
 
-  SidebarItem item= createItem (sessionId);
-  item.sidebarButton->setText (to_qstring (displayTitle));
-  item.isArchived= false;
+  SidebarItem item= createItem (info.sessionId);
+  item.sidebarButton->setText (to_qstring (info.displayTitle));
+  item.isArchived= info.archived;
   conversationListLayout_->insertWidget (0, item.itemWidget);
-  items_.insert (sessionId, item);
+  items_.insert (info.sessionId, item);
 
-  SessionDisplayInfo info;
-  info.sessionId   = sessionId;
-  info.displayTitle= displayTitle;
-  info.archived    = false;
-  sessionCache_.prepend (info);
-
-  setActiveItem (sessionId);
+  setActiveItem (info.sessionId);
 
   updateCountLabels ();
 }
@@ -858,13 +882,6 @@ ChatSidebar::updateItemTitle (const string& sessionId,
   }
   if (it->titleEdit) {
     it->titleEdit->setText (qTitle);
-  }
-  // 更新 sessionCache_ 中的显示标题
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.displayTitle= displayTitle;
-      break;
-    }
   }
 }
 
@@ -899,6 +916,9 @@ ChatSidebar::beginEditTitle (const string& sessionId) {
 
 void
 ChatSidebar::endEditTitle (const string& sessionId, bool accept) {
+  // 析构期间 Qt 会派发 CloseEvent → 焦点离开 titleEdit → editingFinished，
+  // 进而重入到这里。此时 items_ 可能已进入销毁流程，访问会导致 use-after-free。
+  if (destroying_) return;
   auto it= items_.find (sessionId);
   if (it == items_.end ()) return;
   if (!it->sidebarButton || !it->titleEdit) return;
@@ -930,13 +950,6 @@ ChatSidebar::moveToArchive (const string& sessionId) {
     if (item.moreButton) item.moreButton->show ();
   }
 
-  // 更新 sessionCache_ 中的 archived 状态
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.archived= true;
-      break;
-    }
-  }
   if (activeSessionId_ == sessionId) activeSessionId_= "";
 
   updateCountLabels ();
@@ -955,15 +968,17 @@ ChatSidebar::moveFromArchive (const string& sessionId) {
       item.moreButton->setVisible (activeSessionId_ == sessionId);
   }
 
-  // 更新 sessionCache_ 中的 archived 状态
-  for (auto& info : sessionCache_) {
-    if (info.sessionId == sessionId) {
-      info.archived= false;
-      break;
-    }
-  }
-
   updateCountLabels ();
+}
+
+void
+ChatSidebar::reorderItem (const string& sessionId) {
+  auto it= items_.find (sessionId);
+  if (it == items_.end ()) return;
+  SidebarItem& item= it.value ();
+  if (item.isArchived) return;
+
+  conversationListLayout_->insertWidget (0, item.itemWidget);
 }
 
 void
@@ -1158,15 +1173,11 @@ ChatSidebar::createItem (const string& sessionId) {
   // "..." 按钮菜单：点击弹出操作菜单
   connect (
       item.moreButton, &QPushButton::clicked, this, [this, sid= sessionId] () {
-        bool archived= false;
-        for (const auto& info : sessionCache_) {
-          if (info.sessionId == sid) {
-            archived= info.archived;
-            break;
-          }
-        }
+        auto itemIt= items_.find (sid);
+        if (itemIt == items_.end ()) return;
+        bool archived= itemIt->isArchived;
 
-        QPushButton* btn= items_.value (sid).moreButton;
+        QPushButton* btn= itemIt->moreButton;
         if (!btn) return;
 
         QMenu         menu;
@@ -1245,13 +1256,6 @@ void
 ChatSidebar::removeItem (const string& sessionId) {
   destroyItem (sessionId);
   if (activeSessionId_ == sessionId) activeSessionId_= "";
-  // 从 sessionCache_ 中移除
-  for (int i= 0; i < sessionCache_.size (); ++i) {
-    if (sessionCache_[i].sessionId == sessionId) {
-      sessionCache_.removeAt (i);
-      break;
-    }
-  }
   updateCountLabels ();
 }
 
@@ -1390,8 +1394,10 @@ ChatConversationPanel*
 QTChatTabWidget::createPanel (const string& sessionId) {
   if (!conversationStack_) return nullptr;
 
-  ChatConversationPanel* panel=
-      new ChatConversationPanel (sessionId, conversationStack_);
+  url msgBufUrl= ChatSessionManager::messageBufferUrl (sessionId);
+  url inBufUrl = ChatSessionManager::inputBufferUrl (sessionId);
+  ChatConversationPanel* panel= new ChatConversationPanel (
+      sessionId, msgBufUrl, inBufUrl, conversationStack_);
   conversationStack_->addWidget (panel);
   conversations_.append (panel);
   return panel;

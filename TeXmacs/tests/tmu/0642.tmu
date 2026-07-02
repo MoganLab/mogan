@@ -1,0 +1,35 @@
+<TMU|<tuple|1.1.0|2026.2.6-rc3>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <math|<big|iint>>
+
+  <math|<big|iiint>>
+
+  <math|<big|oint>>
+
+  <math|<big|oiint>>
+
+  <\equation*>
+    <big|iint>
+  </equation*>
+
+  <\equation*>
+    <big|iiint>
+  </equation*>
+
+  <\equation*>
+    <big|oint>
+  </equation*>
+
+  <\equation*>
+    <big|oiint>
+  </equation*>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-screen-margin|false>
+  </collection>
+</initial>

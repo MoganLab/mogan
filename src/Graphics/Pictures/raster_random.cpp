@@ -20,7 +20,7 @@ as the 10,000th generated number if the original seed is 1.
 
 #include "raster.hpp"
 #include "resource.hpp"
-#include "true_color.hpp"
+#include <moebius/data/true_color.hpp>
 
 /******************************************************************************
  * The perlin ressource

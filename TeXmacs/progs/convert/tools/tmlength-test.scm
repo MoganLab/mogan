@@ -11,38 +11,47 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (convert tools tmlength-test)
-  (:use (convert tools tmlength)))
+(texmacs-module (convert tools tmlength-test) (:use (convert tools tmlength)))
+
+(import (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Regtest routines for tmlength
+;; Tests for string->tmlength
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-string->tmlength)
-  (define (list->tmlength l) (apply tmlength l))
-  (regression-test-group
-   "tmlength tools" "tmlength"
-    string->tmlength list->tmlength
-    (test "null length" "" '())
-    (test "zero length" "0cm" '(0 cm))
-    (test "implicit zero" "px" '(0 px))
-    (test "decimal length" "123.456mm" '(123.456 mm))
-    (test "negative length" "-1in" '(-1 in))
-    (test "negative^2 length" "--2fns" '(2 fns))))
+(define (test-string->tmlength)
+  (define (list->tmlength l)
+    (apply tmlength l)
+  ) ;define
+  (check (string->tmlength "") => (list->tmlength '()))
+  (check (string->tmlength "0cm") => (list->tmlength '(0 cm)))
+  (check (string->tmlength "px") => (list->tmlength '(0 px)))
+  (check (string->tmlength "123.456mm") => (list->tmlength '(123.456 mm)))
+  (check (string->tmlength "-1in") => (list->tmlength '(-1 in)))
+  (check (string->tmlength "--2fns") => (list->tmlength '(2 fns)))
+) ;define
 
-(define (regtest-length-decode)
-  (regression-test-group
-   "length in string" "tmpt in number"
-   length-decode :none
-   (test "inch" "1in" 153600)
-   (test "tmpt" "1tmpt" 1)
-   (test "cm" "1cm" 60472)
-   (test "mm" "1mm" 6047)
-   (test "pt: 1/72.27 of an inch" "1pt" 2125)
-   (test "bp: 1/72 of an inch" "1bp" 2133)))
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for length-decode
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-length-decode)
+  (check (length-decode "1in") => 153600)
+  (check (length-decode "1tmpt") => 1)
+  (check (length-decode "1cm") => 60472)
+  (check (length-decode "1mm") => 6047)
+  (check (length-decode "1pt") => 2125)
+  (check (length-decode "1bp") => 2133)
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (regtest-tmlength)
-  (let ((n (+ (regtest-string->tmlength)
-              (regtest-length-decode))))
-    (display* "Total: " (number->string n) " tests.\n")
-    (display "Test suite of tmlength: ok\n")))
+  (test-string->tmlength)
+  (test-length-decode)
+  (check-report)
+) ;tm-define

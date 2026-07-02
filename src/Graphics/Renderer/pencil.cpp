@@ -10,7 +10,8 @@
  ******************************************************************************/
 
 #include "pencil.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 #include "url.hpp"
 
 /******************************************************************************

@@ -11,17 +11,16 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (various poster-drd)
-  (:use (utils edit variants)))
+(texmacs-module (various poster-drd) (:use (utils edit variants)))
 
-(define-group variant-tag
-  (titled-block-tag) (untitled-block-tag))
+(define-group variant-tag (titled-block-tag) (untitled-block-tag))
 
 (define-group titled-block-tag
-  plain-titled-block framed-titled-block alternate-titled-block)
+  plain-titled-block
+  framed-titled-block
+  alternate-titled-block
+) ;define-group
 
-(define-group untitled-block-tag
-  plain-block framed-block alternate-block)
+(define-group untitled-block-tag plain-block framed-block alternate-block)
 
-(define-group poster-block-tag
-  (titled-block-tag) (untitled-block-tag))
+(define-group poster-block-tag (titled-block-tag) (untitled-block-tag))

@@ -11,8 +11,18 @@
 
 function main()
     return {
+        group_name = "glue_basic",
         binding_object = "",
         initializer_name = "initialize_glue_basic",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "object_l3.hpp",
+            "object_l5.hpp",
+            "scheme.hpp",
+            "glue_l5_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "texmacs-version-release",
@@ -149,14 +159,6 @@ function main()
                 scm_name = "texmacs-time",
                 cpp_name = "texmacs_time",
                 ret_type = "int"
-            },
-            {
-                scm_name = "pretty-time",
-                cpp_name = "pretty_time",
-                ret_type = "string",
-                arg_list = {
-                    "int"
-                }
             },
             {
                 scm_name = "texmacs-memory",
@@ -1065,39 +1067,6 @@ function main()
                 scm_name = "server-started?",
                 cpp_name = "server_started",
                 ret_type = "bool"
-            },
-            {
-                scm_name = "client-start",
-                cpp_name = "client_start",
-                ret_type = "int",
-                arg_list = {
-                    "string"
-                }
-            },
-            {
-                scm_name = "client-stop",
-                cpp_name = "client_stop",
-                ret_type = "void",
-                arg_list = {
-                    "int"
-                }
-            },
-            {
-                scm_name = "client-read",
-                cpp_name = "client_read",
-                ret_type = "string",
-                arg_list = {
-                    "int"
-                }
-            },
-            {
-                scm_name = "client-write",
-                cpp_name = "client_write",
-                ret_type = "void",
-                arg_list = {
-                    "int",
-                    "string"
-                }
             },
               -- connections to extern systems
             {

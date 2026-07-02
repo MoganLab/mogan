@@ -301,6 +301,7 @@ document (tree t1, tree t2, tree t3, tree t4, tree t5) {
 }
 
 bool is_document (tree t);
+bool is_snippet (tree doc);
 bool is_concat (tree t);
 bool is_format (tree t);
 bool is_formatting (tree t);

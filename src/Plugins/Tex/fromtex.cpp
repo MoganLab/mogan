@@ -1054,6 +1054,9 @@ latex_symbol_to_tree (string s) {
 
     if (latex_type (s) == "ignore") return "";
 
+    if (s == "varlimsup") return compound ("varlimsup");
+    if (s == "varliminf") return compound ("varliminf");
+
     if (latex_type (s) == "operator" || latex_type (s) == "control") return s;
     if (s == "bignone") return tree (BIG, ".");
     if (s == "Return") return tree (APPLY, "algo-return");
@@ -2301,6 +2304,10 @@ latex_command_to_tree (tree t) {
   if (is_tuple (t, "\\tmcodeinline*", 2))
     return compound (string_arg (t[1]), v2e (t[2]));
   if (is_tuple (t, "\\label", 1)) return tree (LABEL, v2e (t[1]));
+  if (is_tuple (t, "\\tag", 1)) {
+    tree label= l2e (t[1]);
+    return concat (compound ("no-number"), compound ("eq-lab", label));
+  }
   if (is_tuple (t, "\\ref", 1)) return tree (REFERENCE, v2e (t[1]));
   if (is_tuple (t, "\\cref", 1) || is_tuple (t, "\\Cref", 1))
     return latex_cref_to_tree (v2e (t[1]));

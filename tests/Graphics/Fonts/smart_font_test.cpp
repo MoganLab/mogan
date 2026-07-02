@@ -43,6 +43,12 @@ private slots:
   void test_in_unicode_range_cyrillic ();
   void test_roman_cyrillic_fallback ();
   void test_sys_chinese_cyrillic ();
+  void test_dingbats_font_support ();
+  void test_dingbats_emoji_fallback ();
+  void test_noto_sans_symbols_font_support ();
+  void test_noto_sans_symbols2_font_support ();
+  void test_misc_symbols_fallback ();
+  void test_misc_symbols_fallback_to_symbols2 ();
 };
 
 void
@@ -83,10 +89,16 @@ TestSmartFont::test_resolve_chinese_puncts () {
   // sys-chinese-rm-medium-right-10-600-smart
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
   smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
-  auto   puncts       = array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
-                                       "<#201C>", "<#201D>"  // Chinese: 双引号
-           );
+  auto puncts= array<string> ("<#2018>", "<#2019>", // Chinese: 单引号
+                              "<#201C>", "<#201D>"  // Chinese: 双引号
+  );
+#ifdef OS_WIN
+  string cjk_font_name= "SimSun";
+#elif defined(OS_MACOS)
+  string cjk_font_name= "Songti SC";
+#else
   string cjk_font_name= "Noto CJK SC";
+#endif
 
   for (int i= 0; i < N (puncts); i++) {
     int fn_index= fn_rep->resolve (puncts[i], "cjk=" * cjk_font_name, 1);
@@ -98,8 +110,14 @@ void
 TestSmartFont::test_resolve_200B () {
   // sys-chinese-rm-medium-right-10-600-smart
   font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
-  smart_font_rep* fn_rep       = (smart_font_rep*) fn.rep;
-  string          cjk_font_name= "Noto CJK SC";
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+#ifdef OS_WIN
+  string cjk_font_name= "SimSun";
+#elif defined(OS_MACOS)
+  string cjk_font_name= "Songti SC";
+#else
+  string cjk_font_name= "Noto CJK SC";
+#endif
 
   // U+200B 零宽空格应该被解析到 CJK 字体
   int fn_index= fn_rep->resolve ("<#200B>", "cjk=" * cjk_font_name, 1);
@@ -231,6 +249,81 @@ TestSmartFont::test_sys_chinese_cyrillic () {
     // 确认没有 fallback 到 roman 的 ecrm 字体
     QVERIFY (!occurs ("ecrm", fn_rep->fn[nr]->res_name));
   }
+}
+
+void
+TestSmartFont::test_dingbats_font_support () {
+  // U+2700-U+27BF (Dingbats) 被归类为 emoji range
+  QVERIFY (in_unicode_range ("<#2700>", "emoji"));
+  QVERIFY (in_unicode_range ("<#27BF>", "emoji"));
+
+  // closest_font("DejaVu Sans") 不应被替换成 DejaVu Serif
+  font dejavu_fn=
+      closest_font ("DejaVu Sans", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (dejavu_fn));
+  QVERIFY (!occurs ("Serif", dejavu_fn->res_name));
+  QVERIFY (dejavu_fn->supports ("<#2702>"));
+  QVERIFY (dejavu_fn->supports ("<#2717>"));
+}
+
+void
+TestSmartFont::test_dingbats_emoji_fallback () {
+  // U+2717 (✗) 在 Noto Color Emoji 中不存在，应 fallback 到 NotoSansSymbols2
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr    = fn_rep->resolve ("<#2717>");
+  QVERIFY (nr >= 0);
+  // 不应路由到 error 字体
+  QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
+  // 应路由到 NotoSansSymbols2
+  QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
+}
+
+void
+TestSmartFont::test_noto_sans_symbols_font_support () {
+  // NotoSansSymbols 应该可以正确加载
+  font noto_fn=
+      closest_font ("Noto Sans Symbols", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (noto_fn));
+  // U+269D (⚝) 由 NotoSansSymbols 支持
+  QVERIFY (noto_fn->supports ("<#269D>"));
+}
+
+void
+TestSmartFont::test_noto_sans_symbols2_font_support () {
+  // NotoSansSymbols2 应该可以正确加载
+  font noto2_fn=
+      closest_font ("Noto Sans Symbols2", "rm", "medium", "right", 10, 600, 1);
+  QVERIFY (!is_nil (noto2_fn));
+  // U+26BF (≛) 由 NotoSansSymbols2 支持
+  QVERIFY (noto2_fn->supports ("<#26BF>"));
+}
+
+void
+TestSmartFont::test_misc_symbols_fallback () {
+  // U+269D (⚝) 应 fallback 到 NotoSansSymbols（第一层）
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr    = fn_rep->resolve ("<#269D>");
+  QVERIFY (nr >= 0);
+  // 不应路由到 error 字体
+  QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
+  // 应路由到 NotoSansSymbols
+  QVERIFY (occurs ("NotoSansSymbols", fn_rep->fn[nr]->res_name));
+}
+
+void
+TestSmartFont::test_misc_symbols_fallback_to_symbols2 () {
+  // U+26BF (≛) 不在 NotoSansSymbols 中，应 fallback 到
+  // NotoSansSymbols2（第二层）
+  font fn= smart_font ("sys-chinese", "rm", "medium", "right", 10, 600);
+  smart_font_rep* fn_rep= (smart_font_rep*) fn.rep;
+  int             nr    = fn_rep->resolve ("<#26BF>");
+  QVERIFY (nr >= 0);
+  // 不应路由到 error 字体
+  QVERIFY (!occurs ("error", fn_rep->fn[nr]->res_name));
+  // 应路由到 NotoSansSymbols2
+  QVERIFY (occurs ("NotoSansSymbols2", fn_rep->fn[nr]->res_name));
 }
 
 QTEST_MAIN (TestSmartFont)

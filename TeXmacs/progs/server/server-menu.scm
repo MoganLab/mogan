@@ -13,16 +13,19 @@
 
 (texmacs-module (server server-menu)
   (:use (server server-base)
-        (server server-db)
-        (server server-tmfs)
-        (server server-sync)
-        (server server-chat)))
+    (server server-db)
+    (server server-tmfs)
+    (server server-sync)
+    (server server-chat)
+  ) ;:use
+) ;texmacs-module
 
-(menu-bind start-server-menu
-  ("Start server" (server-start)))
+(menu-bind start-server-menu ("Start server" (server-start)))
 
 (menu-bind server-menu
-  ("Stop server" (server-stop))
-  ("Open licence agreement"
-   (load-document "$TEXMACS_HOME_PATH/server/licence.tm"))
-  ("Set user information" (interactive server-set-user-information)))
+ ("Stop server" (server-stop))
+ ("Open licence agreement"
+   (load-document "$TEXMACS_HOME_PATH/server/licence.tm")
+ ) ;
+ ("Set user information" (interactive server-set-user-information))
+) ;menu-bind

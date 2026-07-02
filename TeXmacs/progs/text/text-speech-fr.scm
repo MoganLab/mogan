@@ -12,14 +12,15 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (text text-speech-fr)
-  (:use (text text-speech)
-        (math math-speech-fr)))
+  (:use (text text-speech) (math math-speech-fr))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; General speech commands for all modes
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(speech-map french std-text
+(speech-map french
+  std-text
   ("math" (speech-inline 'math))
   ("matt" (speech-inline 'math))
   ("maths" (speech-inline 'math))
@@ -59,4 +60,4 @@
   ("résultat suivant" (search-next-match #t))
   ("orthographe" (interactive-spell))
   ("remplacer" (interactive-replace))
-  )
+) ;speech-map

@@ -11,7 +11,8 @@
 
 #include "Boxes/composite.hpp"
 #include "Boxes/construct.hpp"
-#include "colors.hpp"
+#include <moebius/data/colors.hpp>
+using namespace moebius::data;
 
 /******************************************************************************
  * The concat_box representation

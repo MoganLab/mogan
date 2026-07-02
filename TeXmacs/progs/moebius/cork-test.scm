@@ -13,42 +13,38 @@
 
 (texmacs-module (lolly cork-test))
 
-(define (regtest-alphanum)
-  (begin
-    (regression-test-group
-      "cork" "utf8"
-      cork->utf8 :none
-      (test "locased alpha" "abcdefghijklmnopgrstuvwxyz" "abcdefghijklmnopgrstuvwxyz")
-      (test "number" "0123456789" "0123456789")
-    )
-    (regression-test-group
-      "utf8" "cork"
-      utf8->cork :none
-      (test "locased alpha" "abcdefghijklmnopgrstuvwxyz" "abcdefghijklmnopgrstuvwxyz")
-      (test "number" "0123456789" "0123456789")
-    )
-  )
-)
+(import (liii check))
 
-(define (regtest-angle)
-  (begin
-    (regression-test-group
-      "cork" "utf8"
-      cork->utf8 uint32->utf8
-      (test "langle" "<langle>" #x27E8)
-      (test "rangle" "<rangle>" #x27E9)
-    )
-    (regression-test-group
-      "utf8" "cork"
-      (lambda (x) (utf8->cork (uint32->utf8 x))) :none
-      (test "langle" #x27E8 "<langle>")
-      (test "rangle" #x27E9 "<rangle>")
-    )
-  )
-)
+(check-set-mode! 'report-failed)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for cork<->utf8 on alphanumeric
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-alphanum)
+  (check (cork->utf8 "abcdefghijklmnopgrstuvwxyz") => "abcdefghijklmnopgrstuvwxyz")
+  (check (cork->utf8 "0123456789") => "0123456789")
+  (check (utf8->cork "abcdefghijklmnopgrstuvwxyz") => "abcdefghijklmnopgrstuvwxyz")
+  (check (utf8->cork "0123456789") => "0123456789")
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Tests for cork<->utf8 on angle brackets
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define (test-angle)
+  (check (cork->utf8 "<langle>") => (uint32->utf8 #x27E8))
+  (check (cork->utf8 "<rangle>") => (uint32->utf8 #x27E9))
+  (check (utf8->cork (uint32->utf8 #x27E8)) => "<langle>")
+  (check (utf8->cork (uint32->utf8 #x27E9)) => "<rangle>")
+) ;define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Test entry point
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (regtest-cork)
-  (let ((n (+ (regtest-alphanum)
-              (regtest-angle))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of cork encoding ok\n")))
+  (test-alphanum)
+  (test-angle)
+  (check-report)
+) ;tm-define

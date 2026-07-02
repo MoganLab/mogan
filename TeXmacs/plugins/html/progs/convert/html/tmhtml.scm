@@ -1729,54 +1729,23 @@
 ) ;define
 
 (tm-define (tmhtml-read-binary-file file-url)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-input-file path)))
-    (if (not port)
+  (import (liii path))
+  (let* ((p (url->string (url-concretize file-url))))
+    (if (file-exists? p)
+      (path-read-bytes p)
       #u8()
-      (let* ((bytes (let loop
-                      ((c (read-char port)) (res '()))
-                      (if (eof-object? c)
-                        (reverse res)
-                        (loop (read-char port) (cons (char->integer c) res))
-                      ) ;if
-                    ) ;let
-             ) ;bytes
-             (dummy (close-input-port port))
-            ) ;
-        (apply byte-vector bytes)
-      ) ;let*
     ) ;if
   ) ;let*
 ) ;tm-define
 
 (tm-define (tmhtml-write-binary-file file-url data)
-  (let* ((path (url->string (url-concretize file-url))) (port (open-output-file path)))
-    (if port
-      (begin
-        (cond ((byte-vector? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (length data))
-                   (write-byte (vector-ref data i) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              ((string? data)
-               (let loop
-                 ((i 0))
-                 (when (< i (string-length data))
-                   (write-byte (char->integer (string-ref data i)) port)
-                   (loop (+ i 1))
-                 ) ;when
-               ) ;let
-              ) ;
-              (else (display data port))
-        ) ;cond
-        (close-output-port port)
-      ) ;begin
-      #f
-    ) ;if
-  ) ;let*
+  (import (liii path))
+  (let* ((p (cond ((string? file-url) file-url)
+                  (else (url->string (url-concretize file-url))))))
+    (cond ((byte-vector? data)
+           (path-write-bytes p data))
+          (else #f))
+    ) ;let*
 ) ;tm-define
 
 (define (tmhtml-png y)
@@ -2006,7 +1975,7 @@
   ) ;if
 ) ;tm-define
 
-(define (tmhtml-image l)
+(tm-define (tmhtml-image l)
   ;; FIXME: Should also test that width and height are not magnifications.
   ;; Currently, magnifications make tmlength->htmllength return #f.
   (cond ((and (string? (car l))
@@ -2017,20 +1986,60 @@
         ((tmhtml-extract-embedded (car l))
          (with embedded
            (tmhtml-extract-embedded (car l))
-           (let* ((data (car embedded)) (ext (cdr embedded)))
-             (receive (name-url name-string)
-               (tmhtml-image-names ext)
-               (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
-                 (tmhtml-write-binary-file abs-url data)
-                 (with res
-                   (tmhtml-image (cons abs-string (cdr l)))
-                   (when (and tmhtml-base64? (url-exists? abs-url))
-                     (url-remove abs-url)
-                   ) ;when
-                   res
-                 ) ;with
-               ) ;let*
-             ) ;receive
+           (let* ((data (car embedded))
+                  (ext (let ((raw (cdr embedded)))
+                         (if (string? raw)
+                           (let ((s (url-suffix raw)))
+                             (if (== s "")
+                               (if (or (string-contains? raw "/")
+                                       (string-contains? raw "\\"))
+                                 "png"
+                                 raw)
+                               s))
+                           "")))
+                  )
+              (if tmhtml-base64?
+                (if (in? ext (list "ps" "eps" "pdf" "tif"))
+                  ;; Convert to PNG first, then inline as Base64
+                  (receive (name-url name-string)
+                    (tmhtml-image-names ext)
+                    (let* ((abs-url (url-concretize name-url))
+                           (abs-string abs-url))
+                      (tmhtml-write-binary-file abs-url data)
+                      (let ((res (tmhtml-png (cons 'image (cons abs-string (cdr l))))))
+                        (when (url-exists? abs-url)
+                          (url-remove abs-url))
+                        res
+                      ) ;let
+                    ) ;let*
+                  ) ;receive
+                  ;; Direct Base64 inline for native image formats
+                  (let* ((b64-str (begin
+                                     (import (liii base64))
+                                     (utf8->string (bytevector-base64-encode data))
+                                   ) ;begin
+                           ) ;b64-str
+                           (src-uri (string-append "data:image/" ext ";base64," b64-str))
+                           (w (if (>= (length l) 2) (tmlength->htmllength (second l) #f) #f))
+                           (h (if (>= (length l) 3) (tmlength->htmllength (third l) #f) #f))
+                          ) ;let*
+                    `((h:img (@ (class "image")
+                               (src ,src-uri)
+                               ,@(if w `((width ,w)) '())
+                               ,@(if h `((height ,h)) '()))))
+                  ) ;if
+                ) ;if
+                (receive (name-url name-string)
+                  (tmhtml-image-names ext)
+                  (let* ((abs-url (url-concretize name-url)) (abs-string (url->unix abs-url)))
+                    (tmhtml-write-binary-file abs-url data)
+                    (with res
+                      (tmhtml-image (cons abs-string (cdr l)))
+                      res
+                    ) ;with
+                  ) ;let*
+                ) ;receive
+              ) ;if
            ) ;let*
          ) ;with
         ) ;
@@ -2046,7 +2055,7 @@
               ) ;let*
         ) ;else
   ) ;cond
-) ;define
+) ;tm-define
 
 (define-public (hash-map->list h)
   (map (lambda (x) (list (car x) (cdr x))) (map values h))
@@ -2065,8 +2074,8 @@
          ) ;l1
          (l2 (map car l1))
          (args (map cadr l1))
-         (funs (map cAr l2))
-         (stys (map (lambda (x) (cdr (cDr x))) l2))
+         (funs (map last l2))
+         (stys (map (lambda (x) (reverse (cdr (reverse (cdr x))))) l2))
         ) ;
     (apply string-append
       (list-intersperse (map (lambda (f arg sty)
@@ -2076,8 +2085,8 @@
                                    (list-intersperse (cond ((== (length args) (length sty))
                                                             (map (lambda (x y) (string-append x ":" (f y))) sty args)
                                                            ) ;
-                                                           ((>= 1 (length sty))
-                                                            (map (lambda (y) (string-append (car sty) ":" (f y))) args)
+                                                           ((>= 1 (length args))
+                                                            (map (lambda (x) (string-append x ":" (f (car args)))) sty)
                                                            ) ;
                                                            (else '())
                                                      ) ;cond
@@ -2633,7 +2642,10 @@
 
 (define (tmhtml-css-post body)
   (if (pair? body)
-    `(,(car body) ,@(tmhtml-breaks-post* (map tmhtml-css-post (cdr body))))
+    (if (symbol? (car body))
+      `(,(car body) ,@(tmhtml-breaks-post* (map tmhtml-css-post (cdr body))))
+      (map tmhtml-css-post body)
+    ) ;if
     body
   ) ;if
 ) ;define

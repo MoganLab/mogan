@@ -12,7 +12,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (texmacs keyboard config-kbd)
-  (:use (texmacs texmacs tm-server)))
+  (:use (texmacs texmacs tm-server))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Bypassing the pre-edit mechanism
@@ -26,13 +27,17 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (notify-cyrillic-input-method var val)
-  (cond
-   ((== val "translit")
-    (lazy-keyboard (text cyrillic translit-kbd) in-cyrillic-translit?))
-   ((== val "jcuken")
-    (lazy-keyboard (text cyrillic jcuken-kbd) in-cyrillic-jcuken?))
-   ((== val "yawerty")
-    (lazy-keyboard (text cyrillic yawerty-kbd) in-cyrillic-yawerty?))))
+  (cond ((== val "translit")
+         (lazy-keyboard (text cyrillic translit-kbd) in-cyrillic-translit?)
+        ) ;
+        ((== val "jcuken")
+         (lazy-keyboard (text cyrillic jcuken-kbd) in-cyrillic-jcuken?)
+        ) ;
+        ((== val "yawerty")
+         (lazy-keyboard (text cyrillic yawerty-kbd) in-cyrillic-yawerty?)
+        ) ;
+  ) ;cond
+) ;define
 
-(define-preferences
-  ("cyrillic input method" "none" notify-cyrillic-input-method))
+(define-preferences ("cyrillic input method" "none" notify-cyrillic-input-method)
+) ;define-preferences

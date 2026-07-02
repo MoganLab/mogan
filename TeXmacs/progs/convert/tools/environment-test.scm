@@ -12,58 +12,43 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (texmacs-module (convert tools environment-test)
-  (:use (convert tools environment)))
+  (:use (convert tools environment))
+) ;texmacs-module
+
+(import (liii check))
+
+(check-set-mode! 'report-failed)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Dynamic environments
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-environment-base)
-  (define (error-or-value thunk)
-    (catch 'texmacs-error thunk (lambda (key msg . args) key)))
-  (regression-test-group
-   "environment basic tools" "env-base"
-   :none :none
-   (test "simple"
-	 (let ((env (environment)))
-	   (with-environment
-	    env ((foo "bar")
-		 (spam (string-append "eg" "gs")))
-	    (list (environment-ref env foo) (environment-ref env spam))))
-	 '("bar" "eggs"))
-   (test "nested"
-	 (let ((env (environment)) (out '()))
-	   (with-environment
-	    env ((foo "bar"))
-	    (set-rcons! out (environment-ref env foo))
-	    (with-environment
-	     env ((foo "baz"))
-	     (set-rcons! out (environment-ref env foo)))
-	    (set-rcons! out (environment-ref env foo)))
-	   out)
-	 '("bar" "baz" "bar"))
-;   (test "never bound"
-;	 (error-or-value
-;	  (lambda ()
-;	    (let ((env (environment)))
-;	      (environment-ref env foo))))
-;	 "")
-;   (test "unbound"
-;	 (error-or-value
-;	  (lambda ()
-;	    (let ((env (environment)))
-;	      (with-environment
-;	       env ((foo "bar"))
-;	       (noop))
-;	      (environment-ref env foo))))
-;	 "")
-))
+(define (test-environment-base)
+  (check (let ((env (environment)))
+           (with-environment env
+            ((foo "bar") (spam (string-append "eg" "gs")))
+            (list (environment-ref env foo) (environment-ref env spam))
+           ) ;with-environment
+         ) ;let
+    =>
+    '("bar" "eggs")
+  ) ;check
+  (check (let ((env (environment)) (out '()))
+           (with-environment env
+            ((foo "bar"))
+            (set-rcons! out (environment-ref env foo))
+            (with-environment env ((foo "baz")) (set-rcons! out (environment-ref env foo)))
+            (set-rcons! out (environment-ref env foo))
+           ) ;with-environment
+           out
+         ) ;let
+    =>
+    '("bar" "baz" "bar")
+  ) ;check
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Test suite
+;; Test entry point
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-define (regtest-environment)
-  (let ((n (+ (regtest-environment-base))))
-    (display* "Total: " (object->string n) " tests.\n")
-    (display "Test suite of environment: ok\n")))
+(tm-define (regtest-environment) (test-environment-base) (check-report))

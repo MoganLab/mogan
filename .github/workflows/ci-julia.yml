@@ -1,0 +1,48 @@
+name: Julia Plugin CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "TeXmacs/plugins/julia/**"
+      - ".github/workflows/ci-julia.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "TeXmacs/plugins/julia/**"
+      - ".github/workflows/ci-julia.yml"
+  workflow_dispatch:
+
+jobs:
+  test-julia:
+    container: debian:13
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 1
+
+      - name: Install system dependencies
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y ca-certificates curl python3 python3-dev python3-sympy
+
+      - name: Set up Julia
+        uses: julia-actions/setup-julia@v2
+        with:
+          version: '1.12'
+
+      - name: Cache Julia packages
+        uses: julia-actions/cache@v2
+
+      - name: Install Julia packages
+        env:
+          PYTHON: /usr/bin/python3
+        run: |
+          python3 -c "import sympy; print('sympy', sympy.__version__)"
+          julia -e 'using Pkg; Pkg.add(["Symbolics", "Latexify", "LaTeXStrings", "SymPy", "Plots"])'
+
+      - name: Run Julia unit tests
+        run: |
+          julia TeXmacs/plugins/julia/tests/runtests.jl

@@ -26,11 +26,13 @@
 #include "sys_utils.hpp"
 #include "tm_buffer.hpp"
 #include "tm_timer.hpp"
+#include <moebius/data/colors.hpp>
 
 #include <moebius/data/scheme.hpp>
 #include <moebius/drd/drd_mode.hpp>
 
 using namespace moebius;
+using namespace moebius::data;
 using moebius::data::scm_quote;
 using moebius::drd::set_access_mode;
 

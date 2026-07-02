@@ -15,6 +15,10 @@
 
 (texmacs-module (kernel gui menu-test) (:use (kernel gui menu-widget)))
 
+(import (liii check))
+
+(check-set-mode! 'report-failed)
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Some test widgets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -298,33 +302,23 @@
 ;; Regtest routines for menu widgets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (regtest-menu-widgets)
+(define (test-menu-widgets)
   ;; Basic test to ensure menu module loads without errors
-  (regression-test-group "menu"
-    "widgets"
-    values
-    values
-    (test "module loaded successfully" #t #t)
-    (test "tm-widget macro available" (defined? 'tm-widget) #t)
-    (test "show function available" (defined? 'show) #t)
-    (test "show-form function available" (defined? 'show-form) #t)
-    (test "tm-define macro available" (defined? 'tm-define) #t)
-    (test "menu-bind macro available" (defined? 'menu-bind) #t)
-    (test "display* function available" (defined? 'display*) #t)
-    (test "noop function available" (defined? 'noop) #t)
-    (test "refresh-now function available" (defined? 'refresh-now) #t)
-    (test "stree->tree function available" (defined? 'stree->tree) #t)
-    (test "buffer-tree function available" (defined? 'buffer-tree) #t)
-    (test "widget-hmenu function available" (defined? 'widget-hmenu) #t)
-    (test "widget-text function available" (defined? 'widget-text) #t)
-    (test "widget-vlist function available" (defined? 'widget-vlist) #t)
-    (test "widget-hlist function available" (defined? 'widget-hlist) #t)
-  ) ;regression-test-group
+  (check #t => #t)
+  (check (defined? 'tm-widget) => #t)
+  (check (defined? 'show) => #t)
+  (check (defined? 'show-form) => #t)
+  (check (defined? 'tm-define) => #t)
+  (check (defined? 'menu-bind) => #t)
+  (check (defined? 'display*) => #t)
+  (check (defined? 'noop) => #t)
+  (check (defined? 'refresh-now) => #t)
+  (check (defined? 'stree->tree) => #t)
+  (check (defined? 'buffer-tree) => #t)
+  (check (defined? 'widget-hmenu) => #t)
+  (check (defined? 'widget-text) => #t)
+  (check (defined? 'widget-vlist) => #t)
+  (check (defined? 'widget-hlist) => #t)
 ) ;define
 
-(tm-define (regtest-menu)
-  (let ((n (regtest-menu-widgets)))
-    (display* "Total: " (number->string n) " tests.\n")
-    (display "Test suite of regtest-menu: ok\n")
-  ) ;let
-) ;tm-define
+(tm-define (regtest-menu) (test-menu-widgets) (check-report))

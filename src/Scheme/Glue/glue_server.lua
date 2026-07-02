@@ -11,8 +11,18 @@
 
 function main()
     return {
+        group_name = "glue_server",
         binding_object = "get_server()->",
         initializer_name = "initialize_glue_server",
+        standalone = true,
+        includes = {
+            "object_l1.hpp",
+            "object_l2.hpp",
+            "object_l3.hpp",
+            "object_l5.hpp",
+            "scheme.hpp",
+            "glue_l5_extra.hpp",
+        },
         glues = {
             {
                 scm_name = "insert-kbd-wildcard",

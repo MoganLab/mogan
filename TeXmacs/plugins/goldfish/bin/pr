@@ -1,0 +1,30 @@
+#!/usr/bin/env elvish
+
+var num = $args[0]
+
+var remote      = git@gitee.com:XmacsLabs/goldfish.git
+var remoteRef   = pull/$num/head
+var localBranch = pr_$num
+
+echo $remote
+echo $remoteRef
+echo $localBranch
+
+# 判断操作系统，选空设备
+var null = (if (has-env 'WINDIR') { echo 'NUL' } else { echo '/dev/null' })
+ 
+echo "git ls-remote --exit-code --heads "$remote" "$remoteRef" > "$null" 2>&1"
+
+# 本地分支存在则删除
+if ?(git show-ref --verify --quiet refs/heads/$localBranch) {
+    echo "Deleting existing local branch $localBranch"
+    git branch -D $localBranch
+}
+
+# 重新拉取并切换
+if ?(git fetch --force $remote $remoteRef":"$localBranch) {
+    git switch $localBranch
+    echo "Now on "$localBranch" (PR #"$num")"
+} else {
+    echo "PR #"$num" not found on remote"
+}

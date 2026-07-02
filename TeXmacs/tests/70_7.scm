@@ -1,9 +1,10 @@
-(use-modules
-  (data java)
+(use-modules (data java)
   (data julia)
   (data scala)
   (data python)
-  (data code))
+  (data code)
+  (data stem)
+) ;use-modules
 
 (import (liii check))
 
@@ -13,7 +14,6 @@
   (check (format-from-suffix "hh") => "cpp")
   (check (format-from-suffix "hpp") => "cpp")
   (check (format-from-suffix "cc") => "cpp")
-  ; (check (format-from-suffix "scm") => "scheme")
   (check (format-from-suffix "scala") => "scala")
   (check (format-from-suffix "java") => "java")
   (check (format-from-suffix "py") => "python")
@@ -21,6 +21,7 @@
   (check (format-from-suffix "tm") => "texmacs")
   (check (format-from-suffix "ts") => "texmacs")
   (check (format-from-suffix "stm") => "stm")
+  (check (format-from-suffix "stem") => "stem")
   (check (format-from-suffix "no-such-format") => "generic")
 
   ;; Test format? function
@@ -34,4 +35,5 @@
   (check (format-get-name "no-such-format") => #f)
 
   ;; Report results
-  (check-report))
+  (check-report)
+) ;tm-define
