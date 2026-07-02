@@ -28,19 +28,19 @@ Item {
     Keys.onEnterPressed: closeBridge.choose(1)
 
     // 主题配色
-    readonly property color bg: dark ? "#2b2b3a" : "#ffffff"
-    readonly property color fg: dark ? "#eaeef2" : "#1e1e1e"
-    readonly property color accent: dark ? "#4a9eff" : "#1e1e1e"
-    readonly property color btnBg: dark ? "#3d3d52" : "#f1f3f4"
-    readonly property color btnBgHover: dark ? "#4e4e66" : "#e5e7eb"
-    readonly property color borderClr: dark ? "#3e3e52" : "#d0d4da"
+    readonly property color bg: dark ? "#2b2b2b" : "#ffffff"
+    readonly property color fg: dark ? "#eaeaea" : "#1e1e1e"
+    readonly property color accent: dark ? "#7a7a7a" : "#1e1e1e"
+    readonly property color btnBg: dark ? "#3d3d3d" : "#f1f3f4"
+    readonly property color btnBgHover: dark ? "#4e4e4e" : "#e5e7eb"
+    readonly property color borderClr: dark ? "#3e3e3e" : "#d0d4da"
     readonly property color shadowColor: dark ? Qt.rgba(0, 0, 0, 0.35) : Qt.rgba(0, 0, 0, 0.10)
 
     Rectangle {
         anchors.fill: parent
         color: bg
         radius: 16 * scaleFactor
-        border.width: 1
+        border.width: 1 * scaleFactor
         border.color: borderClr
 
         // 拖动无边框窗口：在背景区域按住拖动即移动整个弹窗。
@@ -82,11 +82,11 @@ Item {
                         radius: 20 * scaleFactor  // 胶囊圆角
                         color: {
                             if (ma.containsMouse) {
-                                return primary ? (dark ? "#5faaff" : "#3a3a3a") : btnBgHover
+                                return primary ? (dark ? "#8a8a8a" : "#3a3a3a") : btnBgHover
                             }
                             return primary ? accent : btnBg
                         }
-                        border.width: primary ? 1 : 0
+                        border.width: primary ? 1 * scaleFactor : 0
                         border.color: primary ? accent : "transparent"
                         
                         property bool primary: index === 0
