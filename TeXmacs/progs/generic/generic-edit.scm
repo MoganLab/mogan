@@ -1228,7 +1228,9 @@
 (tm-define (kbd-paste-dispatch)
   (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
     (kbd-magic-paste)
-    (kbd-paste)))
+    (kbd-paste)
+  ) ;if
+) ;tm-define
 (tm-define (kbd-cancel) (clipboard-clear "primary"))
 
 ;; ocr-paste
@@ -1473,7 +1475,9 @@
 (tm-define (kbd-magic-paste-dispatch)
   (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
     (kbd-paste)
-    (kbd-magic-paste)))
+    (kbd-magic-paste)
+  ) ;if
+) ;tm-define
 
 (tm-define (any-image-context?)
   (tree-innermost (lambda (t) (tree-is? t 'image)) #t)

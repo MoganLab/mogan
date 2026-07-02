@@ -99,8 +99,8 @@
 (define-preference-names "gui theme" ("liii" "Liii") ("liii-night" "Liii Dark"))
 
 (define-preference-names "magic-paste-shortcut"
-  ("ctrl+shift+v" "Ctrl+Shift+V")
-  ("ctrl+v" "Ctrl+V")
+ ("ctrl+shift+v" "Ctrl+Shift+V")
+ ("ctrl+v" "Ctrl+V")
 ) ;define-preference-names
 
 (tm-widget (general-preferences-widget)
