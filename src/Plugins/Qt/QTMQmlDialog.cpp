@@ -81,9 +81,16 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   }
 
   vl->addWidget (qw);
-  // 固定基准尺寸 + DPI 缩放。QML root 用 anchors.fill 跟随 QQuickWidget，
-  // 后者由 layout 拉伸填满整个 QDialog，无方形空隙。
-  d.resize (QSize (DpiUtils::scaled (400), DpiUtils::scaled (200)));
+  // 固定弹窗尺寸（基准 400x200 × DPI 缩放）。QML root 用 anchors.fill: parent，
+  // 自身无固定 implicit 尺寸，QQuickWidget 的 sizeHint 会塌缩成子项最小包围盒；
+  // 若不锁定，QDialog::exec() 时 QVBoxLayout 会按该 sizeHint 把窗口（Linux 上
+  // 连同 quickwidget 视口）压到约 100x30，内容只渲染出左上角一小块。三重锁定
+  // 后视口恒为 400x200，root 经 anchors.fill 拉满。Win/macOS 同义无副作用。
+  const int w= DpiUtils::scaled (400);
+  const int h= DpiUtils::scaled (200);
+  qw->setFixedSize (w, h);
+  vl->setSizeConstraint (QLayout::SetFixedSize);
+  d.setFixedSize (w, h);
 
   int result= d.exec ();
   return result > 0 ? result : -1;
