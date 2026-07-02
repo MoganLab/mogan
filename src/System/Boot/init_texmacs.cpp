@@ -40,6 +40,7 @@
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
 #include "Qt/QTMOAuth.hpp"
+#include "Qt/QTMSingleInstance.hpp"
 #include "Qt/qt_gui.hpp"
 #include "Qt/qt_guide_window.hpp"
 #include "Qt/qt_utilities.hpp"
@@ -893,6 +894,13 @@ TeXmacs_main (int argc, char** argv) {
     bool   first_file= true;
 
     ensure_window ();
+
+#if defined(Q_OS_LINUX)
+    // 注册单实例服务端：scheme 已起、窗口已建，此时开始接收双击转发来的文件，
+    // 在当前窗口新开标签页。headless 进程（测试/CI）绝不能监听——否则它会抢走
+    // 桌面 GUI 实例的 socket（removeServer 会删掉对方的监听文件）。
+    if (!headless_mode) mogan_start_single_instance_server ();
+#endif
 
     for (i= 1; i < argc; i++) {
       if (argv[i] == NULL) break;

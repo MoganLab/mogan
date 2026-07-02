@@ -118,25 +118,14 @@
     ;;  - 结束退出。
     ;;
     ;; 取每步【执行后】的窗口/tab 数做断言；windows 预期全程为 1，直到最后一步。
-    (let ((steps (append
-                   (list (cons "snapshot initial"
-                           (lambda ()
-                             (check "initial windows" (nr-windows) 1)
-                           ) ;lambda
-                         ) ;cons
-                   ) ;list
+    (let ((steps (append (list (cons "snapshot initial" (lambda () (check "initial windows" (nr-windows) 1)))
+                         ) ;list
                    ;; 1) 默认路径载入 a —— 双击文件后修复会走的就是这条路径
-                   (list (cons "load a (default => current window)"
-                           (lambda () (load-buffer path-a)))
-                     (cons "check after a"
-                       (lambda ()
-                         (check "windows after a" (nr-windows) 1)
-                       ) ;lambda
-                     ) ;cons
+                   (list (cons "load a (default => current window)" (lambda () (load-buffer path-a)))
+                     (cons "check after a" (lambda () (check "windows after a" (nr-windows) 1)))
                    ) ;list
                    ;; 2) 默认路径载入 b —— 再双击第二个文件，仍应在新标签页打开
-                   (list (cons "load b (default => current window)"
-                           (lambda () (load-buffer path-b)))
+                   (list (cons "load b (default => current window)" (lambda () (load-buffer path-b)))
                      (cons "check after b"
                        (lambda ()
                          (check "windows after b" (nr-windows) 1)
@@ -147,11 +136,10 @@
                    ) ;list
                    ;; 3) 显式 :new-window —— 对照组，确认该路径确实会开新窗口
                    (list (cons "load b :new-window (control)"
-                           (lambda () (load-buffer path-b :new-window)))
+                           (lambda () (load-buffer path-b :new-window))
+                         ) ;cons
                      (cons "check after :new-window"
-                       (lambda ()
-                         (check "windows after :new-window" (nr-windows) 2)
-                       ) ;lambda
+                       (lambda () (check "windows after :new-window" (nr-windows) 2))
                      ) ;cons
                    ) ;list
                    ;; 结束

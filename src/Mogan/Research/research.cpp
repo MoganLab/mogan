@@ -46,6 +46,7 @@ void mac_fix_paths ();
 
 #ifdef QTTEXMACS
 #include "Qt/QTMApplication.hpp"
+#include "Qt/QTMSingleInstance.hpp"
 #include <QCoreApplication>
 #include <QGuiApplication>
 #include <QKeySequence>
@@ -158,6 +159,25 @@ immediate_options (int argc, char** argv) {
 
 #include <cstdio>
 
+#if defined(Q_OS_LINUX)
+// 判断 argv 是否含批处理/转换类选项：这类调用是显式 CLI 任务（转换文档、执行
+// scheme、退出、构建手册/测试套件），语义上不属于"双击打开文档"，单实例转发应放行。
+// 判定与 init_texmacs.cpp 的 argv 解析保持一致（"--foo" 折成 "-foo"）。
+static bool
+argv_has_batch_options (int argc, char** argv) {
+  for (int i= 1; i < argc; i++) {
+    if (argv[i] == nullptr || argv[i][0] == '\0') continue;
+    string s= argv[i];
+    if ((N (s) >= 2) && (s (0, 2) == "--")) s= s (1, N (s));
+    if (s == "-c" || s == "-convert" || s == "-q" || s == "-quit" ||
+        s == "-x" || s == "-execute" || s == "-build-manual" ||
+        s == "-reference-suite" || s == "-test-suite")
+      return true;
+  }
+  return false;
+}
+#endif
+
 int
 main (int argc, char** argv) {
 
@@ -233,6 +253,20 @@ main (int argc, char** argv) {
   // initialize the Qt application infrastructure
   if (headless_mode) qtmcoreapp= new QTMCoreApplication (argc, argv);
   else qtmapp= new QTMApplication (argc, argv);
+#if defined(Q_OS_LINUX)
+  // Linux 单实例：双击 .tmu 会启动全新进程。若已有桌面实例在运行，且本进程只是
+  // 打开若干文档（非 headless、非批处理），就把文件转发给已运行实例开新标签页，
+  // 本进程直接退出——既复用窗口，又避免命中 acquire_boot_lock 误删运行中实例的
+  // settings 与缓存而崩溃。headless 与批处理/转换不属于双击语义，必须放行。
+  if (!headless_mode && !argv_has_batch_options (argc, argv)) {
+    if (mogan_forward_to_running_instance (argc, argv)) {
+#ifdef QTTEXMACS
+      delete qtmapp;
+#endif
+      return 0;
+    }
+  }
+#endif
 
   // Set documents path for scratch files
   {
