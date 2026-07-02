@@ -85,7 +85,7 @@ package("libcurl")
         end
     end)
 
-    on_install("windows", "mingw", "linux", "macosx", "iphoneos", "cross", "android", function (package)
+    on_install("windows", "mingw", "linux", "macosx", "iphoneos", "cross", "android", "wasm", function (package)
         local version = package:version()
 
         local configs = {"-DBUILD_TESTING=OFF", "-DENABLE_MANUAL=OFF", "-DENABLE_CURL_MANUAL=OFF"}

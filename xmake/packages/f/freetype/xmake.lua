@@ -56,6 +56,12 @@ package("freetype")
         local configs = {"-DCMAKE_INSTALL_LIBDIR=lib"}
         table.insert(configs, "-DCMAKE_BUILD_TYPE=" .. (package:debug() and "Debug" or "Release"))
         table.insert(configs, "-DBUILD_SHARED_LIBS=" .. (package:config("shared") and "ON" or "OFF"))
+        if package:is_plat("wasm") then
+            table.insert(configs, "-DCMAKE_C_FLAGS=-matomics -mbulk-memory -pthread")
+            table.insert(configs, "-DCMAKE_CXX_FLAGS=-matomics -mbulk-memory -pthread")
+            table.insert(configs, "-DCMAKE_EXE_LINKER_FLAGS=-matomics -mbulk-memory -pthread -sUSE_PTHREADS=1 -sSHARED_MEMORY=1")
+            table.insert(configs, "-DCMAKE_SHARED_LINKER_FLAGS=-matomics -mbulk-memory -pthread -sUSE_PTHREADS=1 -sSHARED_MEMORY=1")
+        end
         local function add_dep(opt)
             if package:config(opt.conf) then
                 if package:version():ge("2.11.1") then

@@ -29,8 +29,11 @@ package("liii-pdfhummus")
                 package:add("deps", dep)
             end
         end
+        if package:is_plat("wasm") then
+            package:add("dep", "zlib")
+        end
     end)
-    on_install("linux", "windows", "mingw", "macosx", function (package)
+    on_install("linux", "windows", "mingw", "macosx", "wasm", function (package)
         local configs = {}
         if package:config("shared") then
             configs.kind = "shared"

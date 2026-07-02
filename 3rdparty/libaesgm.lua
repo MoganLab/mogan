@@ -10,7 +10,7 @@ package("liii-libaesgm")
 
     set_sourcedir(path.join(os.scriptdir(), "libaesgm"))
 
-    on_install("linux", "macosx", "windows", "mingw", function (package)
+    on_install("linux", "macosx", "windows", "mingw", "wasm", function (package)
         if package:is_plat("windows", "mingw") and package:is_arch("arm", "arm64") then
             -- Windows is always little endian
             io.replace("brg_endian.h", [[
