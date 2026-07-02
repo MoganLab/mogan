@@ -527,7 +527,7 @@ target("libmogan") do
     else
         add_rules("qt.static")
         add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork", "QtNetworkAuth")
-        add_frameworks("QtQml", "QtQuick", "QtBodymovin")
+        add_frameworks("QtQml", "QtQuick", "QtQuickWidgets", "QtBodymovin")
     end
 
     add_rules("mogan.glue")
@@ -940,7 +940,7 @@ target("stem") do
     add_frameworks("QtGui", "QtWidgets", "QtCore", "QtPrintSupport", "QtSvg", "QtNetwork")
     if not is_plat("wasm") then
         add_frameworks("QtNetworkAuth")
-        add_frameworks("QtQml", "QtQuick", "QtBodymovin")
+        add_frameworks("QtQml", "QtQuick", "QtQuickWidgets", "QtBodymovin")
     end
     if is_plat("wasm") then
         add_links("qwasm")
