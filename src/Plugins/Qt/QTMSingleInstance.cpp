@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : QTMSingleInstance.cpp
- * DESCRIPTION: Linux 单实例实现，详见 QTMSingleInstance.hpp。
+ * DESCRIPTION: 单实例实现，详见 QTMSingleInstance.hpp。
  * COPYRIGHT  : (C) 2026  Yuki Lu
  *******************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -10,13 +10,16 @@
 
 #include "QTMSingleInstance.hpp"
 
-// 注意：Q_OS_LINUX 由 Qt 的 qsystemdetection.h 定义，必须在包含任意 Qt 头文件
-// （此处先包含 qglobal.h）之后才能用于条件编译。下方 Linux 实现整段被它包住；
-// 非 Linux 平台提供空桩，保证链接器总能解析符号（MOC 生成的元对象代码会引用
-// QTMSingleInstanceServer 的成员，即便在非 Linux 上也需存在定义）。
+// 注意：Q_OS_* 由 Qt 的 qsystemdetection.h 定义，必须在包含任意 Qt 头文件
+// （此处先包含 qglobal.h）之后才能用于条件编译。下方实现整段被平台宏包住；
+// 不支持的平台提供空桩，保证链接器总能解析符号（MOC 生成的元对象代码会引用
+// QTMSingleInstanceServer 的成员，即便在空桩平台也需存在定义）。
 #include <QtGlobal>
 
-#if defined(Q_OS_LINUX)
+// 覆盖平台：Linux（Unix domain socket）+ Windows（命名管道）。两者
+// QLocalServer/QLocalSocket 均为 Qt 原生支持。macOS 走 QFileOpenEvent，
+// 不需要本模块。
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN)
 
 #include "qt_utilities.hpp"
 #include "scheme.hpp"
@@ -25,20 +28,26 @@
 #include <QByteArray>
 #include <QLocalServer>
 #include <QLocalSocket>
-#include <QTimer>
 
-// 协议：每条消息以一行 UTF-8 文本（待打开文件的绝对路径）表示，行尾 '\n'。
-// 客户端发送完毕后等服务端回一个字节（任意）作为 ACK，然后关闭连接。
-// 路径里出现 '\n' 的概率极低；此处不做转义，必要时可后续加固。
+// 协议详见 QTMSingleInstance.hpp 顶部注释。
 
-// 单实例 socket 路径：$TEXMACS_HOME_PATH/system/mogan_socket。
-// 该目录每个用户/配置独立，天然隔离多账号；在 immediate_options() 里
-// init_texmacs_home_path() 之后即建立，客户端/服务端两侧都能拿到。
+// 单实例 socket 路径（Linux）/ 命名管道名（Windows）。
+//   Linux：$TEXMACS_HOME_PATH/system/mogan_socket。该目录每个用户/配置独立，
+//          天然隔离多账号；在 immediate_options() 里 init_texmacs_home_path()
+//          之后即建立，客户端/服务端两侧都能拿到。
+//   Windows：QLocalServer 在 Windows 上忽略路径只取 name 当管道名
+//            （\\.\pipe\<name>）。name 不允许含 '\' '/'，故用一个固定短名。
+//            多账号隔离由 Windows 命名管道的会话命名空间自动提供
+//            （同一台机不同登录会话看不到彼此的 \\.\pipe\）。
 static QString
 single_instance_socket_path () {
+#if defined(Q_OS_WIN)
+  return QStringLiteral ("moganstem-single-instance");
+#else
   url home= url_system ("$TEXMACS_HOME_PATH/system");
   url sock= home * url ("mogan_socket");
   return to_qstring (concretize (sock));
+#endif
 }
 
 /******************************************************************************
@@ -47,6 +56,7 @@ single_instance_socket_path () {
 
 // 从 argv 中挑出位置参数文件（与 init_texmacs.cpp 同款判定），解析成绝对路径。
 // 复用 init_texmacs.cpp 的 url_pwd() 解析逻辑：未 rooted 的相对当前目录。
+// 含 '\n' 的路径会被跳过——发过去会破坏消息边界，宁可让本进程自己打开。
 static QList<QByteArray>
 collect_files_to_open (int argc, char** argv) {
   QList<QByteArray> files;
@@ -58,8 +68,9 @@ collect_files_to_open (int argc, char** argv) {
     if (s[0] == '-' || s[0] == '+') continue; // 选项，跳过
     url u= url_system (s);
     if (!is_rooted (u)) u= resolve (url_pwd (), "") * u;
-    // 项目自定义 string 无 c_str()；经 to_qstring 转 UTF-8 QByteArray。
-    files.append (to_qstring (as_string (u)).toUtf8 ());
+    QByteArray raw= to_qstring (as_string (u)).toUtf8 ();
+    if (raw.contains ('\n')) continue; // 路径含换行符会破坏协议，跳过
+    files.append (raw);
   }
   return files;
 }
@@ -79,9 +90,10 @@ mogan_forward_to_running_instance (int argc, char** argv) {
   for (const QByteArray& path : files) {
     socket.write (path + '\n');
   }
+  // 确保所有字节都进入内核缓冲（服务端可异步读），无需等服务端处理完——
+  // 服务端以"客户端关闭连接"作为一条完整消息的边界。
   socket.flush ();
-  // 等 ACK（任意一个字节即可），最多等 5s 防止服务端卡死拖死客户端。
-  socket.waitForReadyRead (5000);
+  socket.waitForBytesWritten (3000);
   socket.disconnectFromServer ();
   if (socket.state () != QLocalSocket::UnconnectedState)
     socket.waitForDisconnected (1000);
@@ -93,7 +105,8 @@ mogan_forward_to_running_instance (int argc, char** argv) {
  ******************************************************************************/
 
 QTMSingleInstanceServer::QTMSingleInstanceServer (QObject* parent)
-    : QObject (parent), server (nullptr) {}
+    : QObject (parent), server (nullptr), pending (nullptr), buffer (nullptr),
+      timer_id (0) {}
 
 bool
 QTMSingleInstanceServer::start () {
@@ -114,13 +127,37 @@ QTMSingleInstanceServer::start () {
 void
 QTMSingleInstanceServer::handle_connection () {
   if (server == nullptr) return;
+  // 单实例语义下转发场景是顺序的（用户一次双击一个文件），同时只处理一条连接
+  // 足够。若上条还没读完就来了新的，丢弃新的——客户端会超时走本地启动路径。
+  if (pending != nullptr) {
+    QLocalSocket* stale= server->nextPendingConnection ();
+    if (stale != nullptr) delete stale;
+    return;
+  }
   QLocalSocket* client= server->nextPendingConnection ();
   if (client == nullptr) return;
-  // 等数据到达；客户端一发完就会等 ACK，超时兜底以免悬挂连接。
-  client->waitForReadyRead (5000);
-  QByteArray        data = client->readAll ();
-  QList<QByteArray> lines= data.split ('\n');
-  for (const QByteArray& line : lines) {
+  pending  = client;
+  buffer   = new QByteArray ();
+  timer_id = startTimer (10000); // 兜底：客户端崩溃不 disconnect 时回收
+  // 异步驱动：readyRead 累加数据并切行处理；disconnected 收尾。全程不调用
+  // waitFor*——那会阻塞 GUI 主线程导致卡顿。
+  connect (client, &QLocalSocket::readyRead, this,
+           &QTMSingleInstanceServer::read_from_client);
+  connect (client, &QLocalSocket::disconnected, this,
+           &QTMSingleInstanceServer::discard_client);
+  // 可能 connect 之前已经 readyRead：手动触发一次读取。
+  if (client->bytesAvailable () > 0) read_from_client ();
+}
+
+void
+QTMSingleInstanceServer::read_from_client () {
+  if (pending == nullptr) return;
+  // 累加新到的数据，按 '\n' 切行；最后一个不完整行（无 '\n'）留在缓冲等下次。
+  buffer->append (pending->readAll ());
+  int idx;
+  while ((idx= buffer->indexOf ('\n')) >= 0) {
+    QByteArray line= buffer->mid (0, idx);
+    buffer->remove (0, idx + 1);
     if (line.isEmpty ()) continue;
     string path= from_qstring_utf8 (QString::fromUtf8 (line));
     if (is_empty (path)) continue;
@@ -130,13 +167,41 @@ QTMSingleInstanceServer::handle_connection () {
                                            object (url_system (path)),
                                            eval (":current-window"))));
   }
-  // ACK：回一个字节让客户端放心退出。
-  client->write ("1");
-  client->flush ();
-  client->disconnectFromServer ();
-  if (client->state () != QLocalSocket::UnconnectedState)
-    client->waitForDisconnected (1000);
-  client->deleteLater ();
+  // 客户端发完路径会立即关闭连接：缓冲里若已无未完整行（无残留 '\n'-less
+  // 尾巴），且 socket 不会再有新数据（state 表明对端已关），即可立即清理，
+  // 不必等 disconnected 信号回调。
+  if (buffer->isEmpty () &&
+      pending->state () == QLocalSocket::UnconnectedState) {
+    discard_client ();
+  }
+}
+
+void
+QTMSingleInstanceServer::discard_client () {
+  if (pending == nullptr) return;
+  // 兜底定时器可能还没触发，先取消掉。
+  if (timer_id != 0) {
+    killTimer (timer_id);
+    timer_id= 0;
+  }
+  // 收尾前再做一次读取，防止客户端发完立刻 disconnect、最后一帧还没被
+  // readyRead 触发处理。
+  if (pending->bytesAvailable () > 0) read_from_client ();
+  // 不发 ACK：协议以客户端关闭连接为完成边界，ACK 在此场景下冗余。
+  // disconnect 信号回调里绝对不能 waitForDisconnected——那会阻塞 GUI 主线程。
+  pending->deleteLater ();
+  pending= nullptr;
+  delete buffer;
+  buffer= nullptr;
+}
+
+void
+QTMSingleInstanceServer::timerEvent (QTimerEvent* e) {
+  if (e->timerId () == timer_id && pending != nullptr) {
+    // 兜底：客户端崩溃/异常不 disconnect，定时回收这条悬挂连接。
+    discard_client ();
+  }
+  QObject::timerEvent (e);
 }
 
 void
@@ -150,7 +215,7 @@ mogan_start_single_instance_server () {
   }
 }
 
-#else // 非 Linux：空桩，仅满足链接（MOC 元对象代码会引用这些符号）。
+#else // 不支持单实例的平台（macOS 等）：空桩，仅满足链接。
 
 bool
 mogan_forward_to_running_instance (int, char**) {
@@ -161,7 +226,8 @@ void
 mogan_start_single_instance_server () {}
 
 QTMSingleInstanceServer::QTMSingleInstanceServer (QObject* parent)
-    : QObject (parent), server (nullptr) {}
+    : QObject (parent), server (nullptr), pending (nullptr), buffer (nullptr),
+      timer_id (0) {}
 
 bool
 QTMSingleInstanceServer::start () {
@@ -171,4 +237,13 @@ QTMSingleInstanceServer::start () {
 void
 QTMSingleInstanceServer::handle_connection () {}
 
-#endif // Q_OS_LINUX
+void
+QTMSingleInstanceServer::read_from_client () {}
+
+void
+QTMSingleInstanceServer::discard_client () {}
+
+void
+QTMSingleInstanceServer::timerEvent (QTimerEvent*) {}
+
+#endif // Q_OS_LINUX || Q_OS_WIN

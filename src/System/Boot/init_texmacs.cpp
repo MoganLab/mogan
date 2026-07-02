@@ -895,10 +895,11 @@ TeXmacs_main (int argc, char** argv) {
 
     ensure_window ();
 
-#if defined(Q_OS_LINUX)
+#if defined(Q_OS_LINUX) || defined(Q_OS_WIN)
     // 注册单实例服务端：scheme 已起、窗口已建，此时开始接收双击转发来的文件，
     // 在当前窗口新开标签页。headless 进程（测试/CI）绝不能监听——否则它会抢走
     // 桌面 GUI 实例的 socket（removeServer 会删掉对方的监听文件）。
+    // macOS 走 QFileOpenEvent 路径，不需要本服务端。
     if (!headless_mode) mogan_start_single_instance_server ();
 #endif
 
