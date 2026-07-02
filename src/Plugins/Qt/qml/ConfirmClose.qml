@@ -14,7 +14,7 @@ Item {
     anchors.fill: parent
     // 仅作 QML 设计器预览的首选尺寸。
     implicitWidth: 400
-    implicitHeight: 200
+    implicitHeight: 150
 
     property string message: typeof dialogMessage !== "undefined" ? dialogMessage : ""
     property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : []
@@ -34,7 +34,6 @@ Item {
     readonly property color btnBg: dark ? "#3d3d3d" : "#f1f3f4"
     readonly property color btnBgHover: dark ? "#4e4e4e" : "#e5e7eb"
     readonly property color borderClr: dark ? "#3e3e3e" : "#d0d4da"
-    readonly property color shadowColor: dark ? Qt.rgba(0, 0, 0, 0.35) : Qt.rgba(0, 0, 0, 0.10)
 
     Rectangle {
         anchors.fill: parent
