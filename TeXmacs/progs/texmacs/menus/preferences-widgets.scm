@@ -98,6 +98,11 @@
 
 (define-preference-names "gui theme" ("liii" "Liii") ("liii-night" "Liii Dark"))
 
+(define-preference-names "magic-paste-shortcut"
+  ("ctrl+shift+v" "Ctrl+Shift+V")
+  ("ctrl+v" "Ctrl+V")
+) ;define-preference-names
+
 (tm-widget (general-preferences-widget)
   (aligned (item (text "Look and feel:")
              (enum (set-pretty-preference* "look and feel" answer)
@@ -155,6 +160,13 @@
       (enum (set-pretty-preference "completion style" answer)
         '("Popup" "Inline")
         (get-pretty-preference "completion style")
+        "18em"
+      ) ;enum
+    ) ;item
+    (item (text "Magic paste shortcut:")
+      (enum (set-pretty-preference "magic-paste-shortcut" answer)
+        '("Ctrl+Shift+V" "Ctrl+V")
+        (get-pretty-preference "magic-paste-shortcut")
         "18em"
       ) ;enum
     ) ;item
