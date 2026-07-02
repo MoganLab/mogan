@@ -9,8 +9,6 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
-#if (defined(QTTEXMACS) || defined(AQUATEXMACS))
-
 #ifdef HAVE_INTPTR_T
 #ifdef HAVE_INTTYPES_H
 #include <inttypes.h>
@@ -203,5 +201,3 @@ bool
 gui_interrupted (bool check) {
   return check_event (check ? INTERRUPT_EVENT : INTERRUPTED_EVENT);
 }
-
-#endif

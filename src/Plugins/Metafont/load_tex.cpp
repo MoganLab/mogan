@@ -418,7 +418,7 @@ load_tex (string family, double size, int dpi, int dsize, tex_font_metric& tfm,
   }
 #endif
   string name= family * as_string (size) * "@" * as_string (dpi);
-  failed_error << "Could not open " << name << "\n";
+  cout << "Could not open " << name << "\n";
   TM_FAILED ("Tex seems not to be installed properly");
   bench_cumul ("load tex font");
 }

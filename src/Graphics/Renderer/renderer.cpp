@@ -653,8 +653,9 @@ delete_renderer (renderer ren) {
   tm_delete (ren);
 }
 
-#ifndef QTTEXMACS
+#if !defined(QTTEXMACS)
 
+#if !defined(USE_MUPDF_RENDERER)
 picture
 native_picture (int w, int h, int ox, int oy) {
   (void) w;
@@ -674,6 +675,13 @@ picture_renderer (picture p, double zoomf) {
 }
 
 picture
+as_native_picture (picture pict) {
+  TM_FAILED ("not yet implemented");
+  return pict;
+}
+#endif
+
+picture
 load_picture (url u, int w, int h, tree eff, int pixel) {
   (void) u;
   (void) w;
@@ -682,12 +690,6 @@ load_picture (url u, int w, int h, tree eff, int pixel) {
   (void) pixel;
   TM_FAILED ("not yet implemented");
   return picture ();
-}
-
-picture
-as_native_picture (picture pict) {
-  TM_FAILED ("not yet implemented");
-  return pict;
 }
 
 void

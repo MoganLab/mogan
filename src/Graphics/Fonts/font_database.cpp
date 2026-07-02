@@ -296,29 +296,47 @@ font_database_load_substitutions (url u) {
 void
 font_database_load () {
   if (fonts_loaded) return;
+  cout << "CKPT1" << LF;
   font_database_load_database (fontdb_local_path (LOCAL_DATABASE));
+  cout << "CKPT2" << LF;
   if (N (font_table) == 0) {
+  cout << "CKPT3" << LF;
     font_database_load_database (GLOBAL_DATABASE);
+  cout << "CKPT4" << LF;
     font_database_filter ();
+  cout << "CKPT5" << LF;
     font_database_extend_local (
         search_sub_dirs (get_texmacs_home_path () * url ("fonts/truetype")));
+  cout << "CKPT6" << LF;
+    cout << LOCAL_DATABASE << LF;
+    cout << fontdb_local_path (LOCAL_DATABASE) << LF;
     font_database_save_database (fontdb_local_path (LOCAL_DATABASE));
+  cout << "CKPT7" << LF;
     font_database_load_suffixes_sub (fontdb_local_path (LOCAL_DATABASE));
+  cout << "CKPT8" << LF;
   }
   font_database_load_features (fontdb_local_path (LOCAL_FEATURES));
+  cout << "CKPT9" << LF;
   if (N (font_features) == 0) {
     font_database_load_features (GLOBAL_FEATURES);
+  cout << "CKPT10" << LF;
     font_database_filter_features ();
+  cout << "CKPT11" << LF;
     font_database_save_features (fontdb_local_path (LOCAL_FEATURES));
   }
+  cout << "CKPT12" << LF;
   font_database_load_characteristics (
       fontdb_local_path (LOCAL_CHARACTERISTICS));
+  cout << "CKPT13" << LF;
   if (N (font_characteristics) == 0) {
     font_database_load_characteristics (GLOBAL_CHARACTERISTICS);
+  cout << "CKPT13.1" << LF;
     font_database_filter_characteristics ();
+  cout << "CKPT13.2" << LF;
     font_database_save_characteristics (
         fontdb_local_path (LOCAL_CHARACTERISTICS));
   }
+  cout << "CKPT14" << LF;
   font_database_load_substitutions (GLOBAL_SUBSTITUTIONS);
   fonts_loaded= true;
 }

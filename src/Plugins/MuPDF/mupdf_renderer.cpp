@@ -53,6 +53,65 @@ mupdf_document () {
 bool           mupdf_renderer_rep::clip_active= false;
 pdf_processor* mupdf_renderer_rep::clip_proc;
 
+void
+mupdf_copy_pixmap_to_rgba (fz_pixmap* pix, unsigned char* dst, int dst_stride) {
+  if (pix == NULL || dst == NULL) return;
+
+  fz_context*    ctx   = mupdf_context ();
+  int            width = fz_pixmap_width (ctx, pix);
+  int            height= fz_pixmap_height (ctx, pix);
+  int            stride= fz_pixmap_stride (ctx, pix);
+  int            comps = pix->n;
+  unsigned char* src   = fz_pixmap_samples (ctx, pix);
+
+  for (int y= 0; y < height; ++y) {
+    unsigned char* src_row= src + y * stride;
+    unsigned char* dst_row= dst + y * dst_stride;
+    for (int x= 0; x < width; ++x) {
+      unsigned char* src_px= src_row + x * comps;
+      unsigned char* dst_px= dst_row + x * 4;
+      unsigned char  r= 0;
+      unsigned char  g= 0;
+      unsigned char  b= 0;
+      unsigned char  a= 255;
+
+      if (comps == 1) {
+        r= g= b= src_px[0];
+      }
+      else if (comps == 2) {
+        r= g= b= src_px[0];
+        a        = src_px[1];
+      }
+      else if (comps >= 3) {
+        r= src_px[0];
+        g= src_px[1];
+        b= src_px[2];
+        if (comps >= 4) a= src_px[3];
+      }
+
+      if (a != 255 && a != 0) {
+        r= (unsigned char) ((r * 255 + (a / 2)) / a);
+        g= (unsigned char) ((g * 255 + (a / 2)) / a);
+        b= (unsigned char) ((b * 255 + (a / 2)) / a);
+      }
+      else if (a == 0) {
+        r= g= b= 0;
+      }
+
+      dst_px[0]= r;
+      dst_px[1]= g;
+      dst_px[2]= b;
+      dst_px[3]= a;
+    }
+  }
+}
+
+void
+mupdf_copy_pixmap_to_rgba_view (fz_pixmap* pix, mupdf_rgba_view view) {
+  if (view.data == NULL) return;
+  mupdf_copy_pixmap_to_rgba (pix, view.data, view.stride);
+}
+
 /******************************************************************************
  * Fitz pixmaps
  ******************************************************************************/
@@ -1373,6 +1432,7 @@ mupdf_pixmap_cleanup_handler (void* info) {
   }
 }
 
+#ifdef QTTEXMACS
 QImage
 get_QImage_from_pixmap (fz_pixmap* pix) {
   uchar* samples= fz_pixmap_samples (mupdf_context (), pix);
@@ -1396,6 +1456,7 @@ get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix) {
     return QTMPixmapOrImage (QPixmap::fromImage (qim));
   }
 }
+#endif
 
 fz_buffer*
 mupdf_read_from_url (url u) {

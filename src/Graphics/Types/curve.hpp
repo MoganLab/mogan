@@ -13,7 +13,9 @@
 #define CURVE_H
 #include "frame.hpp"
 #include "point.hpp"
+#ifdef QTTEXMACS
 #include <QPainterPath>
+#endif
 
 class curve_rep : public abstract_struct {
 public:

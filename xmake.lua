@@ -857,6 +857,199 @@ if is_plat("windows") then
     end
 end
 
+target("stem_imgui") do
+    set_kind("binary")
+    set_filename("stem_imgui.html")
+    set_languages("c++17")
+    set_encodings("utf-8")
+    set_policy("check.auto_ignore_flags", false)
+
+    add_deps("libmoebius")
+    add_deps("liblolly")
+
+    add_packages("mupdf")
+    add_packages("freetype")
+    add_packages("goldfish")
+    add_packages("liii-tbox")
+    add_packages("libpng")
+    add_packages("libjpeg")
+    add_packages("zlib")
+
+    ---------------------------------------------------------------------------
+    -- generate config files (same pattern as libmogan)
+    ---------------------------------------------------------------------------
+    set_configdir("$(builddir)/stem_imgui")
+    set_configvar("VERSION", XMACS_VERSION)
+    configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
+    set_configvar("STDC_HEADERS", true)
+    set_configvar("GS_EXE", "/usr/bin/gs")
+    set_configvar("PDFHUMMUS_NO_TIFF", true)
+    if is_mode("debug") or is_mode("releasedbg") then
+        set_configvar("LIII_DEBUG", 1)
+    end
+
+    add_configfiles(
+        "src/System/config.h.xmake", {
+            filename = "config.h",
+            variables = {
+                GS_FONTS = "../share/ghostscript/fonts:/usr/share/fonts:",
+                GS_LIB = "../share/ghostscript/9.06/lib:",
+                OS_MACOS = false,
+                MACOSX_EXTENSIONS = false,
+                SIZEOF_VOID_P = 4,
+                USE_ICONV = true,
+                USE_PLUGIN_GS = false,
+                USE_PLUGIN_BIBTEX = false,
+                USE_PLUGIN_TEX = false,
+                USE_PLUGIN_ISPELL = false,
+                USE_PLUGIN_PDF = false,
+                USE_PLUGIN_SPARKLE = false,
+                USE_PLUGIN_HTML = false,
+                USE_MUPDF_RENDERER = true,
+                USE_STARTUP_TAB = false,
+                USE_TEXT_TOOLBAR = false,
+                USE_TUTORIAL = false,
+                IS_COMMUNITY = has_config("is_community"),
+                DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
+                }})
+
+    set_configvar("CONFIG_OS", "")
+    configvar_check_cxxsnippets(
+        "CONFIG_LARGE_POINTER", [[
+            #include <stdlib.h>
+            static_assert(sizeof(void*) == 4, "");]])
+
+    add_configfiles(
+        "src/System/tm_configure.hpp.xmake", {
+            filename = "tm_configure.hpp",
+            pattern = "@(.-)@",
+            variables = {
+                TEXMACS_VERSION = TEXMACS_VERSION,
+                XMACS_VERSION = XMACS_VERSION,
+                CACHE_NAME = stem_lab_big_name,
+                STEM_NAME = stem_binary_name,
+                STEM_INIT_FILE = stem_init_file or "init-research.scm",
+                CONFIG_USER = os.getenv("USER") or "unknown",
+                CONFIG_DATE = os.time(),
+                CONFIG_STD_SETENV = "#define STD_SETENV",
+                tm_devel = "Texmacs-" .. DEVEL_VERSION,
+                tm_devel_release = "Texmacs-" .. DEVEL_VERSION .. "-" .. DEVEL_RELEASE,
+                tm_stable = "Texmacs-" .. STABLE_VERSION,
+                tm_stable_release = "Texmacs-" .. STABLE_VERSION .. "-" .. STABLE_RELEASE,
+                tm_prefix_dir = stem_lab_name,
+                PDFHUMMUS_VERSION = PDFHUMMUS_VERSION,
+                LOLLY_VERSION = LOLLY_VERSION,
+                }})
+
+    on_load(function (target)
+        target:add("forceincludes", path.absolute("$(builddir)/stem_imgui/config.h"))
+        target:add("forceincludes", path.absolute("$(builddir)/stem_imgui/tm_configure.hpp"))
+    end)
+
+    add_includedirs("$(builddir)/stem_imgui", {public = true})
+    add_includedirs({
+        "imgui",
+        "imgui/backends",
+        "src/Data/Convert",
+        "src/Data/Document",
+        "src/Data/History",
+        "src/Data/Observers",
+        "src/Data/Parser",
+        "src/Data/String",
+        "src/Data/Tree",
+        "src/Graphics/Bitmap_fonts",
+        "src/Graphics/Colors",
+        "src/Graphics/Fonts",
+        "src/Graphics/Gui",
+        "src/Graphics/Mathematics",
+        "src/Graphics/Pictures",
+        "src/Graphics/Renderer",
+        "src/Graphics/Spacial",
+        "src/Graphics/Types",
+        "src/Kernel/Abstractions",
+        "src/Kernel/Types",
+        "src/Plugins",
+        "src/Plugins/Freetype",
+        "src/Plugins/Metafont",
+        "src/Plugins/MuPDF",
+        "src/Scheme",
+        "src/Scheme/L2",
+        "src/Scheme/L3",
+        "src/Scheme/L4",
+        "src/Scheme/L5",
+        "src/Scheme/Plugins",
+        "src/Scheme/S7",
+        "src/Scheme/Scheme",
+        "src/System",
+        "src/System/Boot",
+        "src/System/Classes",
+        "src/System/Config",
+        "src/System/Files",
+        "src/System/Language",
+        "src/System/Link",
+        "src/System/Misc",
+        "src/Texmacs",
+        "src/Texmacs/Data",
+        "src/Typeset",
+        "src/Typeset/Bridge",
+        "src/Typeset/Concat",
+        "src/Typeset/Page",
+        "src/Mogan/Wasm",
+        "TeXmacs/include",
+        "$(builddir)/glue",
+        "$(projectdir)/TeXmacs/plugins/goldfish/src/"
+    }, {public = true})
+
+    add_files({
+        "imgui/imgui.cpp",
+        "imgui/imgui_draw.cpp",
+        "imgui/imgui_tables.cpp",
+        "imgui/imgui_widgets.cpp",
+        "imgui/backends/imgui_impl_sdl2.cpp",
+        "imgui/backends/imgui_impl_opengl3.cpp",
+        "src/Data/**.cpp",
+        "src/Graphics/**.cpp",
+        "src/Kernel/**.cpp",
+        "src/Scheme/Scheme/**.cpp",
+        "src/Scheme/S7/**.cpp",
+        "src/System/**.cpp|Boot/init_texmacs.cpp|Link/pipe_link.cpp|Link/socket_server.cpp|Link/socket_link.cpp",
+        "src/Typeset/**.cpp",
+
+        "src/Plugins/Freetype/**.cpp",
+        "src/Plugins/Metafont/**.cpp",
+        "src/Plugins/Xml/**.cpp",
+        "src/Plugins/MuPDF/mupdf_renderer.cpp",
+        "src/Plugins/MuPDF/mupdf_picture_core.cpp",
+        "src/Plugins/MuPDF/mupdf_viewer_buffer.cpp",
+        "src/Mogan/Wasm/wasm_tmu_render.cpp",
+        "src/Mogan/Wasm/wasm_gui_stubs.cpp",
+        "src/Mogan/Wasm/mupdf_picture_stubs.cpp",
+        "src/Mogan/Wasm/imgui_viewer.cpp",
+        "src/Mogan/Wasm/imgui_wasm_main.cpp"
+    })
+
+    add_files("src/Texmacs/Server/tm_debug.cpp", {defines = "KERNEL_L3"})
+
+    add_defines("IMGUI_IMPL_OPENGL_ES3")
+    add_ldflags("-s USE_SDL=2")
+    add_ldflags("-s MIN_WEBGL_VERSION=2")
+    add_ldflags("-s MAX_WEBGL_VERSION=2")
+    add_ldflags("-s ALLOW_MEMORY_GROWTH=1")
+    add_ldflags("-s DISABLE_EXCEPTION_CATCHING=0")
+    add_ldflags("--shell-file=" .. path.absolute("imgui/examples/libs/emscripten/shell_minimal.html"))
+    add_ldflags("--preload-file=" .. path.absolute("TeXmacs") .. "@/TeXmacs")
+    add_ldflags("--preload-file=" .. path.absolute("imgui/misc/fonts") .. "@/fonts")
+
+    on_run(function (target)
+        local binary= target:targetfile ()
+        local build_dir= path.absolute (path.directory (binary))
+        os.execv ("python3", {
+            path.join (os.projectdir (), "bin/wasm_server.py"),
+            build_dir
+        })
+    end)
+end
+
 target("stem") do 
     add_deps("goldfish")
     if is_plat("windows") and is_mode("release") then

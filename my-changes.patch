@@ -1,0 +1,2093 @@
+diff --git a/src/Mogan/Wasm/imgui_viewer.cpp b/src/Mogan/Wasm/imgui_viewer.cpp
+new file mode 100644
+index 000000000..82bacd1d4
+--- /dev/null
++++ b/src/Mogan/Wasm/imgui_viewer.cpp
+@@ -0,0 +1,132 @@
++/******************************************************************************
++ * MODULE     : imgui_viewer.cpp
++ * DESCRIPTION: WASM-only ImGui host for RGBA document buffers
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++
++#include "imgui_viewer.hpp"
++
++#include <imgui.h>
++
++#if defined(__EMSCRIPTEN__)
++#include <GLES3/gl3.h>
++#endif
++
++static void
++imgui_viewer_sync_texture (imgui_viewer_render_target& target) {
++#if defined(__EMSCRIPTEN__)
++  if (target.texture_id == 0) glGenTextures (1, &target.texture_id);
++  glBindTexture (GL_TEXTURE_2D, target.texture_id);
++  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
++  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
++  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
++  glTexParameteri (GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
++  glPixelStorei (GL_UNPACK_ALIGNMENT, 1);
++  glTexImage2D (GL_TEXTURE_2D, 0, GL_RGBA, target.buffer.width (),
++                target.buffer.height (), 0, GL_RGBA, GL_UNSIGNED_BYTE,
++                target.buffer.data ());
++  target.texture_dirty= false;
++#else
++  target.texture_dirty= false;
++#endif
++}
++
++static void
++imgui_viewer_apply_zoom (imgui_viewer_render_target& target, float wheel_delta,
++                         ImVec2 canvas_min, ImVec2 mouse_pos) {
++  if (wheel_delta == 0.0f) return;
++  double old_zoom= target.zoom;
++  double new_zoom= old_zoom * (wheel_delta > 0.0f ? 1.1 : 0.9);
++  if (new_zoom < 0.1) new_zoom= 0.1;
++  if (new_zoom > 8.0) new_zoom= 8.0;
++
++  double canvas_x= mouse_pos.x - canvas_min.x;
++  double canvas_y= mouse_pos.y - canvas_min.y;
++  target.pan_x= (target.pan_x + canvas_x) * (new_zoom / old_zoom) - canvas_x;
++  target.pan_y= (target.pan_y + canvas_y) * (new_zoom / old_zoom) - canvas_y;
++  target.zoom  = new_zoom;
++}
++
++void
++imgui_viewer_init (imgui_viewer_render_target& target) {
++  target.texture_id  = 0;
++  target.texture_dirty= false;
++  target.zoom        = 1.0;
++  target.pan_x       = 0.0;
++  target.pan_y       = 0.0;
++  target.dragging    = false;
++  target.drag_origin_x = 0.0;
++  target.drag_origin_y = 0.0;
++  target.drag_pan_x   = 0.0;
++  target.drag_pan_y   = 0.0;
++}
++
++void
++imgui_viewer_render_frame (imgui_viewer_render_target& target,
++                           imgui_viewer_render_fn render_fn,
++                           void* user_data) {
++  if (render_fn != NULL) {
++    render_fn (target.buffer, target.zoom, target.pan_x, target.pan_y,
++               user_data);
++    target.texture_dirty= true;
++  }
++
++  if (target.texture_dirty && target.buffer.data () != NULL &&
++      target.buffer.width () > 0 && target.buffer.height () > 0)
++    imgui_viewer_sync_texture (target);
++
++  ImGui::Begin ("Document Viewer");
++  ImGui::TextUnformatted ("Mouse wheel to zoom, drag to pan");
++  ImGui::Separator ();
++
++  ImVec2 available= ImGui::GetContentRegionAvail ();
++  if (available.x < 1.0f) available.x= 1.0f;
++  if (available.y < 1.0f) available.y= 1.0f;
++
++  ImVec2 canvas_min= ImGui::GetCursorScreenPos ();
++  ImVec2 canvas_max= ImVec2 (canvas_min.x + available.x,
++                             canvas_min.y + available.y);
++  ImDrawList* draw_list= ImGui::GetWindowDrawList ();
++  draw_list->AddRectFilled (canvas_min, canvas_max, IM_COL32 (18, 18, 20, 255));
++  draw_list->AddRect (canvas_min, canvas_max, IM_COL32 (90, 90, 96, 255));
++
++  ImGui::InvisibleButton ("viewer_canvas", available,
++                          ImGuiButtonFlags_MouseButtonLeft);
++  bool   hovered= ImGui::IsItemHovered ();
++  bool   active = ImGui::IsItemActive ();
++  ImGuiIO& io   = ImGui::GetIO ();
++
++  if (hovered && io.MouseWheel != 0.0f)
++    imgui_viewer_apply_zoom (target, io.MouseWheel, canvas_min, io.MousePos);
++
++  if (active && ImGui::IsMouseClicked (ImGuiMouseButton_Left)) {
++    target.dragging      = true;
++    target.drag_origin_x = io.MousePos.x;
++    target.drag_origin_y = io.MousePos.y;
++    target.drag_pan_x    = target.pan_x;
++    target.drag_pan_y    = target.pan_y;
++  }
++  if (target.dragging && ImGui::IsMouseDown (ImGuiMouseButton_Left)) {
++    target.pan_x= target.drag_pan_x + (io.MousePos.x - target.drag_origin_x);
++    target.pan_y= target.drag_pan_y + (io.MousePos.y - target.drag_origin_y);
++  }
++  if (target.dragging && ImGui::IsMouseReleased (ImGuiMouseButton_Left))
++    target.dragging= false;
++
++  if (target.texture_id != 0 && target.buffer.data () != NULL) {
++    ImVec2 image_min= ImVec2 (canvas_min.x + (float) target.pan_x,
++                              canvas_min.y + (float) target.pan_y);
++    ImVec2 image_max= ImVec2 (
++        image_min.x + (float) target.buffer.width () * (float) target.zoom,
++        image_min.y + (float) target.buffer.height () * (float) target.zoom);
++    draw_list->AddImage ((ImTextureID) (uintptr_t) target.texture_id, image_min,
++                         image_max);
++  }
++
++  ImGui::End ();
++}
+diff --git a/src/Mogan/Wasm/imgui_viewer.hpp b/src/Mogan/Wasm/imgui_viewer.hpp
+new file mode 100644
+index 000000000..7c5c773ab
+--- /dev/null
++++ b/src/Mogan/Wasm/imgui_viewer.hpp
+@@ -0,0 +1,39 @@
++/******************************************************************************
++ * MODULE     : imgui_viewer.hpp
++ * DESCRIPTION: WASM-only ImGui host for RGBA document buffers
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#ifndef MOGAN_WASM_IMGUI_VIEWER_HPP
++#define MOGAN_WASM_IMGUI_VIEWER_HPP
++
++#include "mupdf_viewer_buffer.hpp"
++
++struct imgui_viewer_render_target {
++  mupdf_viewer_buffer_rep buffer;
++  unsigned int            texture_id;
++  bool                    texture_dirty;
++  double                  zoom;
++  double                  pan_x;
++  double                  pan_y;
++  bool                    dragging;
++  double                  drag_origin_x;
++  double                  drag_origin_y;
++  double                  drag_pan_x;
++  double                  drag_pan_y;
++};
++
++typedef void (*imgui_viewer_render_fn) (mupdf_viewer_buffer_rep& buffer,
++                                        double zoom, double pan_x,
++                                        double pan_y, void* user_data);
++
++void imgui_viewer_init (imgui_viewer_render_target& target);
++void imgui_viewer_render_frame (imgui_viewer_render_target& target,
++                                imgui_viewer_render_fn render_fn,
++                                void* user_data);
++
++#endif // defined MOGAN_WASM_IMGUI_VIEWER_HPP
+\ No newline at end of file
+diff --git a/src/Mogan/Wasm/imgui_wasm_main.cpp b/src/Mogan/Wasm/imgui_wasm_main.cpp
+new file mode 100644
+index 000000000..477533dee
+--- /dev/null
++++ b/src/Mogan/Wasm/imgui_wasm_main.cpp
+@@ -0,0 +1,196 @@
++/******************************************************************************
++ * MODULE     : imgui_wasm_main.cpp
++ * DESCRIPTION: WASM entrypoint for the Qt-free ImGui viewer
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "imgui_viewer.hpp"
++#include "wasm_tmu_render.hpp"
++#include "tm_configure.hpp"
++#include "url.hpp"
++#include <fcntl.h>
++#ifndef OS_WIN
++#include <unistd.h>
++#endif
++#include "locale.hpp"
++#include <locale.h> // for setlocale
++#include <lolly/system/args.hpp>
++#include <lolly/system/timer.hpp>
++
++#include <sys/stat.h>
++#include <sys/types.h>
++#ifdef STACK_SIZE
++#include <sys/resource.h>
++#endif
++
++#include "../app_type.hpp"
++#include "boot.hpp"
++#include "data_cache.hpp"
++#include "file.hpp"
++#include "observers.hpp"
++#include "preferences.hpp"
++//#include "server.hpp"
++#include "sys_utils.hpp"
++#include "tm_file.hpp"
++#include "tm_ostream.hpp"
++#include "tm_timer.hpp"
++#include "tm_url.hpp"
++#include <imgui.h>
++#include <imgui_impl_opengl3.h>
++#include <imgui_impl_sdl2.h>
++
++#include <SDL.h>
++
++#if defined(IMGUI_IMPL_OPENGL_ES3)
++#include <SDL_opengles2.h>
++#else
++#include <SDL_opengl.h>
++#endif
++
++#ifdef __EMSCRIPTEN__
++#include <emscripten.h>
++#include "../../../imgui/examples/libs/emscripten/emscripten_mainloop_stub.h"
++#endif
++
++struct tmu_render_state {
++  box   page;
++  bool  needs_render;
++};
++
++static void
++render_tmu_page (mupdf_viewer_buffer_rep& buffer, double zoom, double /*pan_x*/,
++                 double /*pan_y*/, void* user_data) {
++  tmu_render_state* state= (tmu_render_state*) user_data;
++  if (state == NULL || state->page == box ()) return;
++  wasm_render_page_to_buffer (state->page, zoom, buffer);
++}
++
++int
++main (int, char**) {
++  cout << "mainentry" << LF;
++  if (SDL_Init (SDL_INIT_VIDEO | SDL_INIT_TIMER) != 0)
++    return 1;
++
++  const char* glsl_version= "#version 300 es";
++  SDL_GL_SetAttribute (SDL_GL_CONTEXT_FLAGS, 0);
++  SDL_GL_SetAttribute (SDL_GL_CONTEXT_PROFILE_MASK,
++                       SDL_GL_CONTEXT_PROFILE_ES);
++  SDL_GL_SetAttribute (SDL_GL_CONTEXT_MAJOR_VERSION, 3);
++  SDL_GL_SetAttribute (SDL_GL_CONTEXT_MINOR_VERSION, 0);
++  SDL_GL_SetAttribute (SDL_GL_DOUBLEBUFFER, 1);
++  SDL_GL_SetAttribute (SDL_GL_DEPTH_SIZE, 24);
++  SDL_GL_SetAttribute (SDL_GL_STENCIL_SIZE, 8);
++
++    bool done= false;
++  SDL_WindowFlags flags= (SDL_WindowFlags) (
++      SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
++    SDL_Window* window= SDL_CreateWindow (
++      "Mogan ImGui Viewer", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
++      1280, 800, flags);
++  if (window == NULL) return 1;
++
++  SDL_GLContext gl_context= SDL_GL_CreateContext (window);
++  if (gl_context == NULL) return 1;
++  SDL_GL_MakeCurrent (window, gl_context);
++  SDL_GL_SetSwapInterval (1);
++
++  IMGUI_CHECKVERSION ();
++  ImGui::CreateContext ();
++  ImGuiIO& io= ImGui::GetIO ();
++  io.IniFilename= NULL;
++  io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
++  ImGui::StyleColorsDark ();
++
++  ImGui_ImplSDL2_InitForOpenGL (window, gl_context);
++  ImGui_ImplOpenGL3_Init (glsl_version);
++
++  cout << "00000000000" << LF;
++
++  // 1.系统初始化
++  lolly::init_tbox ();                // 初始化tbox库
++  //boot_hacks ();
++  //windows_delayed_refresh (1000000000);
++  wasm_tmu_render_init ();
++  bool enale_logging= true;
++  url u= url_system (string ("$TEXMACS_HOME_PATH/system/") *
++                     lolly::locale::get_date ("english", "%Y%m%d%H") *
++                     string (".log"));
++  if (enale_logging) {
++    //cout << "Logging into >> " << u << LF;
++    //tm_ostream logf (c_string (concretize (u)));
++    //if (!logf->is_writable ()) {
++    //  cerr << "TeXmacs] Error: could not open " << u << LF;
++   // }
++    ///else {
++    //  cout.redirect (logf);
++    //  cerr.redirect (logf);
++    //}
++  }
++  cout << "11111111111" << LF;
++  cout << url_system ("$TEXMACS_PATH/doc/about/mogan/stem.en.tmu") << LF;
++  tree doc  = wasm_load_tmu (url_system ("$TEXMACS_PATH/doc/about/mogan/stem.en.tmu"));
++  cout << "22222222222" << LF;
++  box  page = wasm_typeset_document (doc);
++
++  tmu_render_state state;
++  state.page        = page;
++  state.needs_render= true;
++
++  imgui_viewer_render_target target;
++  imgui_viewer_init (target);
++
++#ifdef __EMSCRIPTEN__
++  EMSCRIPTEN_MAINLOOP_BEGIN
++#else
++  while (!done)
++#endif
++  {
++    SDL_Event event;
++    while (SDL_PollEvent (&event)) {
++      ImGui_ImplSDL2_ProcessEvent (&event);
++      if (event.type == SDL_QUIT) done= true;
++      if (event.type == SDL_WINDOWEVENT &&
++          event.window.event == SDL_WINDOWEVENT_CLOSE &&
++          event.window.windowID == SDL_GetWindowID (window))
++        done= true;
++    }
++
++    #ifdef __EMSCRIPTEN__
++      if (done) emscripten_cancel_main_loop ();
++    #else
++      if (done) break;
++    #endif
++
++    ImGui_ImplOpenGL3_NewFrame ();
++    ImGui_ImplSDL2_NewFrame ();
++    ImGui::NewFrame ();
++
++    imgui_viewer_render_frame (target, render_tmu_page, &state);
++
++    ImGui::Render ();
++    int display_w= 0;
++    int display_h= 0;
++    SDL_GL_GetDrawableSize (window, &display_w, &display_h);
++    glViewport (0, 0, display_w, display_h);
++    glClearColor (0.08f, 0.09f, 0.10f, 1.0f);
++    glClear (GL_COLOR_BUFFER_BIT);
++    ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData ());
++    SDL_GL_SwapWindow (window);
++  }
++
++#ifdef __EMSCRIPTEN__
++  EMSCRIPTEN_MAINLOOP_END;
++#endif
++
++  ImGui_ImplOpenGL3_Shutdown ();
++  ImGui_ImplSDL2_Shutdown ();
++  ImGui::DestroyContext ();
++  SDL_GL_DeleteContext (gl_context);
++  SDL_DestroyWindow (window);
++  SDL_Quit ();
++  return 0;
++}
+\ No newline at end of file
+diff --git a/src/Mogan/Wasm/mupdf_picture_stubs.cpp b/src/Mogan/Wasm/mupdf_picture_stubs.cpp
+new file mode 100644
+index 000000000..59a72318b
+--- /dev/null
++++ b/src/Mogan/Wasm/mupdf_picture_stubs.cpp
+@@ -0,0 +1,68 @@
++
++/******************************************************************************
++ * MODULE     : mupdf_picture_stubs.cpp
++ * DESCRIPTION: Stubs for MuPDF picture loading in the Qt-free WASM ImGui viewer
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "mupdf_picture.hpp"
++
++bool
++mupdf_supports (string extension) {
++  (void) extension;
++  return false;
++}
++
++bool
++mupdf_normal_image_size (url image, int& w, int& h, string* out_wcm_pointer,
++                         string* out_hcm_pointer) {
++  (void) image;
++  w= 0;
++  h= 0;
++  if (out_wcm_pointer != NULL) *out_wcm_pointer= "";
++  if (out_hcm_pointer != NULL) *out_hcm_pointer= "";
++  return false;
++}
++
++bool
++mupdf_pdf_image_size (url image, int& w, int& h, string* out_wcm_pointer,
++                      string* out_hcm_pointer) {
++  (void) image;
++  w= 0;
++  h= 0;
++  if (out_wcm_pointer != NULL) *out_wcm_pointer= "";
++  if (out_hcm_pointer != NULL) *out_hcm_pointer= "";
++  return false;
++}
++
++string
++mupdf_load_and_parse_image (const char* path, int& w, int& h, string extension,
++                            string* out_wcm, string* out_hcm) {
++  (void) path;
++  (void) extension;
++  (void) out_wcm;
++  (void) out_hcm;
++  w= 0;
++  h= 0;
++  return "";
++}
++
++fz_pixmap*
++mupdf_load_pixmap (url u, int w, int h, tree eff, SI pixel) {
++  (void) u;
++  (void) w;
++  (void) h;
++  (void) eff;
++  (void) pixel;
++  return NULL;
++}
++
++fz_image*
++mupdf_load_image (url u) {
++  (void) u;
++  return NULL;
++}
+diff --git a/src/Mogan/Wasm/wasm_gui_stubs.cpp b/src/Mogan/Wasm/wasm_gui_stubs.cpp
+new file mode 100644
+index 000000000..53ed70ee8
+--- /dev/null
++++ b/src/Mogan/Wasm/wasm_gui_stubs.cpp
+@@ -0,0 +1,167 @@
++
++/******************************************************************************
++ * MODULE     : wasm_gui_stubs.cpp
++ * DESCRIPTION: No-op GUI stubs for the Qt-free WASM ImGui viewer
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "gui.hpp"
++#include "renderer.hpp"
++#include "font.hpp"
++#include "widget.hpp"
++#include "url.hpp"
++
++#include "path.hpp"
++#include "object.hpp"
++
++void
++gui_open (int& argc, char** argv) {
++  (void) argc;
++  (void) argv;
++}
++
++void
++gui_start_loop () {}
++
++void
++gui_close () {}
++
++void
++gui_root_extents (SI& width, SI& height) {
++  width = 1280 * PIXEL;
++  height= 800 * PIXEL;
++}
++
++void
++gui_maximal_extents (SI& width, SI& height) {
++  width = 2560 * PIXEL;
++  height= 1600 * PIXEL;
++}
++
++void
++set_default_font (string name) {
++  (void) name;
++}
++
++font
++get_default_font (bool tt, bool mini, bool bold) {
++  (void) tt;
++  (void) mini;
++  (void) bold;
++  return font ();
++}
++
++void
++load_system_font (string family, int size, int dpi, font_metric& fnm,
++                  font_glyphs& fng) {
++  (void) family;
++  (void) size;
++  (void) dpi;
++  (void) fnm;
++  (void) fng;
++}
++
++bool
++set_selection (string cb, tree t, string s, string sv, string sh,
++               string format) {
++  (void) cb;
++  (void) t;
++  (void) s;
++  (void) sv;
++  (void) sh;
++  (void) format;
++  return false;
++}
++
++bool
++get_selection (string cb, tree& t, string& s, string format) {
++  (void) cb;
++  (void) t;
++  (void) s;
++  (void) format;
++  return false;
++}
++
++void
++clear_selection (string cb) {
++  (void) cb;
++}
++
++void
++beep () {}
++
++void
++needs_update () {}
++
++bool
++check_event (int type) {
++  (void) type;
++  return false;
++}
++
++void
++image_gc (string name) {
++  (void) name;
++}
++
++void
++show_help_balloon (widget balloon, SI x, SI y) {
++  (void) balloon;
++  (void) x;
++  (void) y;
++}
++
++void
++show_wait_indicator (widget base, string message, string argument) {
++  (void) base;
++  (void) message;
++  (void) argument;
++}
++
++void
++external_event (string type, time_t t) {
++  (void) type;
++  (void) t;
++}
++
++url
++get_current_buffer_safe () {
++  return url ();
++}
++
++tree
++load_inclusion (url u) {
++  (void) u;
++  return tree (moebius::ERROR, "unsupported inclusion");
++}
++
++tree
++with_package_definitions (string package, tree body) {
++  (void) package;
++  return body;
++}
++
++tree
++get_subtree (path p) {
++  (void) p;
++  return tree ();
++}
++
++void
++exec_delayed (object cmd) {
++  (void) cmd;
++}
++
++void
++exec_delayed_pause (object cmd) {
++  (void) cmd;
++}
++
++bool
++in_presentation_mode () {
++  return false;
++}
+diff --git a/src/Mogan/Wasm/wasm_tmu_render.cpp b/src/Mogan/Wasm/wasm_tmu_render.cpp
+new file mode 100644
+index 000000000..78cdb5bd0
+--- /dev/null
++++ b/src/Mogan/Wasm/wasm_tmu_render.cpp
+@@ -0,0 +1,188 @@
++
++/******************************************************************************
++ * MODULE     : wasm_tmu_render.cpp
++ * DESCRIPTION: Headless .tmu load / typeset / render API for the WASM ImGui viewer
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "wasm_tmu_render.hpp"
++
++#include "convert.hpp"
++#include "env.hpp"
++#include "font.hpp"
++#include "formatter.hpp"
++#include "mupdf_picture.hpp"
++#include "mupdf_renderer.hpp"
++#include "new_style.hpp"
++#include "preferences.hpp"
++#include "sys_utils.hpp"
++#include "tm_file.hpp"
++#include "tree_helper.hpp"
++#include "typesetter.hpp"
++
++#include <moebius/drd/drd_info.hpp>
++#include <moebius/drd/drd_std.hpp>
++#include "tmu.hpp"
++
++using moebius::drd::init_std_drd;
++using moebius::drd::std_drd;
++using namespace moebius;
++
++static void
++wasm_init_env_paths () {
++  url style_root= url_unix ("$TEXMACS_HOME_PATH/styles:$TEXMACS_PATH/styles");
++  url package_root=
++      url_unix ("$TEXMACS_HOME_PATH/packages:$TEXMACS_PATH/packages");
++  url all_root= style_root | package_root;
++  url style_path= search_sub_dirs (all_root);
++  url text_root=
++      url_unix ("$TEXMACS_HOME_PATH/texts:$TEXMACS_PATH/texts");
++  url text_path= search_sub_dirs (text_root);
++
++  set_env ("TEXMACS_STYLE_PATH", as_string (style_path));
++  set_env ("TEXMACS_TEXT_PATH", as_string (text_path));
++  set_env ("TEXMACS_FILE_PATH", as_string (text_path | style_path));
++  set_env ("TEXMACS_DOC_PATH",
++           as_string (url_unix ("$TEXMACS_HOME_PATH/doc:$TEXMACS_PATH/doc")));
++  set_env ("TEXMACS_PATTERN_PATH",
++           "$TEXMACS_HOME_PATH/misc/patterns:"
++           "$TEXMACS_PATH/misc/patterns:"
++           "$TEXMACS_PATH/misc/pictures");
++  set_env ("TEXMACS_PIXMAP_PATH",
++           "$TEXMACS_PATH/misc/pixmaps/modern/32x32/settings:"
++           "$TEXMACS_PATH/misc/pixmaps/modern/24x24/main:"
++           "$TEXMACS_PATH/misc/pixmaps/modern/20x20/mode:"
++           "$TEXMACS_PATH/misc/pixmaps/modern/16x16/focus");
++  set_env ("TEXMACS_DIC_PATH",
++           "$TEXMACS_HOME_PATH/langs/natural/dic:"
++           "$TEXMACS_PATH/langs/natural/dic");
++}
++
++static void
++wasm_init_home_dirs () {
++  make_dir ("$TEXMACS_HOME_PATH");
++  make_dir ("$TEXMACS_HOME_PATH/fonts");
++  make_dir ("$TEXMACS_HOME_PATH/fonts/error");
++  make_dir ("$TEXMACS_HOME_PATH/system");
++  make_dir ("$TEXMACS_HOME_PATH/system/tmp");
++  make_dir ("$TEXMACS_HOME_PATH/styles");
++  make_dir ("$TEXMACS_HOME_PATH/packages");
++  make_dir ("$TEXMACS_HOME_PATH/texts");
++  make_dir ("$TEXMACS_HOME_PATH/doc");
++}
++
++void
++wasm_tmu_render_init () {
++  cout << "wasm_tmu_render_init" << LF;
++  set_env ("PWD", "/");
++  set_env ("HOME", "/");
++  set_env ("TEXMACS_PATH", "/TeXmacs");
++  set_env ("TEXMACS_HOME_PATH", string ("/.") * PREFIX_DIR);
++  cout << "after 4 set_env" << LF;
++
++  wasm_init_home_dirs ();
++    cout << "wasm_init_home_dirs" << LF;
++  wasm_init_env_paths ();
++    cout << "wasm_init_env_paths" << LF;
++  
++
++  init_std_drd ();
++    cout << "init_std_drd" << LF;
++  load_user_preferences ();
++    cout << "load_user_preferences" << LF;
++  font_database_load ();
++  //  cout << "font_database_load" << LF;
++}
++
++static void
++use_modules (tree t) {
++  (void) t;
++  // No-op for the Qt-free ImGui viewer.  Documents whose styles rely on
++  // Scheme module side effects may not render fully.
++}
++
++static void
++initialize_environment (edit_env& env, tree doc, drd_info& drd) {
++  env->write_default_env ();
++  bool                  ok;
++  tree                  t, style= extract (doc, "style");
++  hashmap<string, tree> H;
++  style_get_cache (style, H, t, ok);
++  if (ok) {
++    env->patch_env (H);
++    ok= drd->set_locals (t);
++    drd->set_environment (H);
++  }
++  if (!ok) {
++    if (!is_tuple (style)) TM_FAILED ("tuple expected as style");
++    H  = get_style_env (style);
++    drd= get_style_drd (style);
++    style_set_cache (style, H, drd->get_locals ());
++    env->patch_env (H);
++    drd->set_environment (H);
++  }
++  use_modules (env->read (THE_MODULES));
++  tree init= extract (doc, "initial");
++  for (int i= 0; i < N (init); i++)
++    if (is_func (init[i], ASSOCIATE, 2) && is_atomic (init[i][0]))
++      env->write (init[i][0]->label, init[i][1]);
++  if (retina_zoom == 2) {
++    double mag= 2.0 * env->get_double (MAGNIFICATION);
++    env->write (MAGNIFICATION, as_string (mag));
++  }
++  env->update ();
++}
++
++tree
++wasm_load_tmu (url u) {
++  string s= tm_string_load (u);
++  //cout << s << LF;
++  //cout << "tm_string_load" << LF;
++  tree   doc= tmu_document_to_tree (s);
++  cout << "tmu_document_to_tree" << LF;
++  return extract_document (doc);
++}
++
++box
++wasm_typeset_document (tree doc) {
++  drd_info              drd ("none", std_drd);
++  hashmap<string, tree> h1 (UNINIT), h2 (UNINIT), h3 (UNINIT), h4 (UNINIT);
++  hashmap<string, tree> h5 (UNINIT), h6 (UNINIT);
++  edit_env env (drd, "none", h1, h2, h3, h4, h5, h6);
++  initialize_environment (env, doc, drd);
++  tree body= extract (doc, "body");
++  return typeset_as_document (env, body, path ());
++}
++
++void
++wasm_render_page_to_buffer (box doc_box, double zoom,
++                            mupdf_viewer_buffer_rep& buffer) {
++  box page= doc_box;
++  if (N (page) > 0) page= page[0];
++  if (N (page) > 0) page= page[0];
++
++  SI pixel= std_shrinkf * PIXEL;
++  SI w    = page->x4 - page->x3;
++  SI h    = page->y4 - page->y3;
++  SI ww   = (SI) round (zoom * w);
++  SI hh   = (SI) round (zoom * h);
++  int pxw = (ww + pixel - 1) / pixel;
++  int pxh = (hh + pixel - 1) / pixel;
++  if (pxw < 1) pxw= 1;
++  if (pxh < 1) pxh= 1;
++
++  picture  pic= native_picture (pxw, pxh, 0, 0);
++  renderer ren= picture_renderer (pic, zoom);
++
++  rectangles rs;
++  page->redraw (ren, path (0), rs, -page->x3, -page->y4);
++
++  mupdf_picture_rep* rep= (mupdf_picture_rep*) pic->get_handle ();
++  buffer.copy_from_pixmap (rep->pix);
++
++  tm_delete (ren);
++}
+diff --git a/src/Mogan/Wasm/wasm_tmu_render.hpp b/src/Mogan/Wasm/wasm_tmu_render.hpp
+new file mode 100644
+index 000000000..39d76b542
+--- /dev/null
++++ b/src/Mogan/Wasm/wasm_tmu_render.hpp
+@@ -0,0 +1,26 @@
++
++/******************************************************************************
++ * MODULE     : wasm_tmu_render.hpp
++ * DESCRIPTION: Headless .tmu load / typeset / render API for the WASM ImGui viewer
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#ifndef WASM_TMU_RENDER_HPP
++#define WASM_TMU_RENDER_HPP
++
++#include "boxes.hpp"
++#include "mupdf_viewer_buffer.hpp"
++#include "tree.hpp"
++#include "url.hpp"
++
++void wasm_tmu_render_init ();
++tree wasm_load_tmu (url u);
++box  wasm_typeset_document (tree doc);
++void wasm_render_page_to_buffer (box doc_box, double zoom,
++                                 mupdf_viewer_buffer_rep& buffer);
++
++#endif // defined WASM_TMU_RENDER_HPP
+diff --git a/src/Plugins/MuPDF/mupdf_picture_core.cpp b/src/Plugins/MuPDF/mupdf_picture_core.cpp
+new file mode 100644
+index 000000000..1aabd7aec
+--- /dev/null
++++ b/src/Plugins/MuPDF/mupdf_picture_core.cpp
+@@ -0,0 +1,254 @@
++
++/******************************************************************************
++ * MODULE     : mupdf_picture_core.cpp
++ * DESCRIPTION: Core picture objects and image renderer for MuPDF (Qt-free)
++ * COPYRIGHT  : (C) 2022 Massimiliano Gubinelli, Joris van der Hoeven
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "mupdf_picture.hpp"
++#include "tm_debug.hpp"
++
++static const double MUPDF_PDF_SCALE= 4.0;
++
++/******************************************************************************
++ * Abstract mupdf pictures
++ ******************************************************************************/
++
++mupdf_picture_rep::mupdf_picture_rep (fz_pixmap* _pix, int ox2, int oy2)
++    : pix (_pix), im (NULL), w (fz_pixmap_width (mupdf_context (), pix)),
++      h (fz_pixmap_height (mupdf_context (), pix)), ox (ox2), oy (oy2) {
++  fz_keep_pixmap (mupdf_context (), pix);
++}
++
++mupdf_picture_rep::~mupdf_picture_rep () {
++  fz_drop_pixmap (mupdf_context (), pix);
++  fz_drop_image (mupdf_context (), im);
++}
++
++picture_kind
++mupdf_picture_rep::get_type () {
++  return picture_native;
++}
++void*
++mupdf_picture_rep::get_handle () {
++  return (void*) this;
++}
++
++int
++mupdf_picture_rep::get_width () {
++  return w;
++}
++int
++mupdf_picture_rep::get_height () {
++  return h;
++}
++int
++mupdf_picture_rep::get_origin_x () {
++  return ox;
++}
++int
++mupdf_picture_rep::get_origin_y () {
++  return oy;
++}
++void
++mupdf_picture_rep::set_origin (int ox2, int oy2) {
++  ox= ox2;
++  oy= oy2;
++}
++
++color
++mupdf_picture_rep::internal_get_pixel (int x, int y) {
++  if (pix == NULL) return 0;
++  if (x < 0 || y < 0 || x >= w || y >= h) return 0;
++
++  fz_context*    ctx    = mupdf_context ();
++  unsigned char* samples= fz_pixmap_samples (ctx, pix);
++  int            n      = pix->n;
++  bool           alpha  = pix->alpha;
++  int            stride = pix->stride;
++  if (samples == NULL || stride <= 0) return 0;
++  if (n <= 0) {
++    static bool warned_n_le0_get= false;
++    if (!warned_n_le0_get) {
++      std_error << "mupdf_picture_rep::internal_get_pixel: invalid channel "
++                << "count n=" << n << LF;
++      warned_n_le0_get= true;
++    }
++    return 0;
++  }
++  if (n > 4) {
++    static bool warned_n_gt4_get= false;
++    if (!warned_n_gt4_get) {
++      std_error << "mupdf_picture_rep::internal_get_pixel: unsupported "
++                << "channel count n=" << n << LF;
++      warned_n_gt4_get= true;
++    }
++    return 0;
++  }
++  int            row= h - 1 - y;
++  unsigned char* p  = samples + row * stride + x * n;
++
++  int r= 0, g= 0, b= 0, a= 255;
++  if (n == 1) {
++    r= g= b= p[0];
++  }
++  else if (n == 2) {
++    r= g= b= p[0];
++    a      = p[1];
++  }
++  else {
++    r= p[0];
++    g= p[1];
++    b= p[2];
++    if (alpha) a= p[n - 1];
++  }
++
++  if (a == 255 || !alpha) return rgb_color (r, g, b, 255);
++  return rgbap_to_argb ((a << 24) + (b << 16) + (g << 8) + r);
++}
++
++void
++mupdf_picture_rep::internal_set_pixel (int x, int y, color c) {
++  if (pix == NULL) return;
++  if (x < 0 || y < 0 || x >= w || y >= h) return;
++
++  fz_context*    ctx    = mupdf_context ();
++  unsigned char* samples= fz_pixmap_samples (ctx, pix);
++  int            n      = pix->n;
++  bool           alpha  = pix->alpha;
++  int            stride = pix->stride;
++  if (samples == NULL || stride <= 0) return;
++  if (n <= 0) {
++    static bool warned_n_le0_set= false;
++    if (!warned_n_le0_set) {
++      std_error << "mupdf_picture_rep::internal_set_pixel: invalid channel "
++                << "count n=" << n << LF;
++      warned_n_le0_set= true;
++    }
++    return;
++  }
++  if (n > 4) {
++    static bool warned_n_gt4_set= false;
++    if (!warned_n_gt4_set) {
++      std_error << "mupdf_picture_rep::internal_set_pixel: unsupported "
++                << "channel count n=" << n << LF;
++      warned_n_gt4_set= true;
++    }
++    return;
++  }
++  int            row= h - 1 - y;
++  unsigned char* p  = samples + row * stride + x * n;
++
++  int r, g, b, a;
++  get_rgb_color (c, r, g, b, a);
++
++  if (alpha) {
++    r= (r * a) / 255;
++    g= (g * a) / 255;
++    b= (b * a) / 255;
++  }
++
++  if (n == 1) {
++    p[0]= (unsigned char) ((77 * r + 150 * g + 29 * b) >> 8);
++    return;
++  }
++
++  if (n == 2) {
++    p[0]= (unsigned char) ((77 * r + 150 * g + 29 * b) >> 8);
++    p[1]= (unsigned char) a;
++    return;
++  }
++
++  p[0]= (unsigned char) r;
++  p[1]= (unsigned char) g;
++  p[2]= (unsigned char) b;
++  if (alpha) p[n - 1]= (unsigned char) a;
++}
++
++picture
++mupdf_picture (fz_pixmap* _pix, int ox, int oy) {
++  return (picture) tm_new<mupdf_picture_rep, fz_pixmap*, int, int> (_pix, ox,
++                                                                    oy);
++}
++
++picture
++as_mupdf_picture (picture pic) {
++  if (pic->get_type () == picture_native) return pic;
++  fz_pixmap* pix=
++      fz_new_pixmap (mupdf_context (), fz_device_rgb (mupdf_context ()),
++                     pic->get_width (), pic->get_height (), NULL, 1);
++  picture ret= mupdf_picture (pix, pic->get_origin_x (), pic->get_origin_y ());
++  fz_drop_pixmap (mupdf_context (), pix);
++  ret->copy_from (pic); // FIXME: is this inefficient???
++  return ret;
++}
++
++#ifdef USE_MUPDF_RENDERER
++picture
++as_native_picture (picture pict) {
++  return as_mupdf_picture (pict);
++}
++
++picture
++native_picture (int w, int h, int ox, int oy) {
++  fz_pixmap* pix= fz_new_pixmap (
++      mupdf_context (), fz_device_rgb (mupdf_context ()), w, h, NULL, 1);
++  fz_clear_pixmap_with_value (mupdf_context (), pix, 255); // white background
++  picture p= mupdf_picture (pix, ox, oy);
++  fz_drop_pixmap (mupdf_context (), pix);
++  return p;
++}
++#endif
++
++/******************************************************************************
++ * Rendering on images
++ ******************************************************************************/
++
++class mupdf_image_renderer_rep : public mupdf_renderer_rep {
++public:
++  picture pict;
++
++public:
++  mupdf_image_renderer_rep (picture pict, double zoom);
++  void* get_data_handle ();
++};
++
++mupdf_image_renderer_rep::mupdf_image_renderer_rep (picture p, double zoom)
++    : mupdf_renderer_rep (), pict (p) {
++  zoomf  = zoom;
++  shrinkf= (int) tm_round (std_shrinkf / zoomf);
++  pixel  = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
++  thicken= (shrinkf >> 1) * PIXEL;
++
++  int pw = p->get_width ();
++  int ph = p->get_height ();
++  int pox= p->get_origin_x ();
++  int poy= p->get_origin_y ();
++
++  ox= pox * pixel;
++  oy= poy * pixel;
++
++  cx1= 0;
++  cy1= -ph * pixel;
++  cx2= pw * pixel;
++  cy2= 0;
++
++  mupdf_picture_rep* handle= (mupdf_picture_rep*) pict->get_handle ();
++  begin (handle->pix);
++}
++
++void*
++mupdf_image_renderer_rep::get_data_handle () {
++  return (void*) this;
++}
++
++#ifdef USE_MUPDF_RENDERER
++renderer
++picture_renderer (picture p, double zoomf) {
++  return (renderer) tm_new<mupdf_image_renderer_rep> (p, zoomf);
++}
++#endif
+diff --git a/src/Plugins/MuPDF/mupdf_viewer_buffer.cpp b/src/Plugins/MuPDF/mupdf_viewer_buffer.cpp
+new file mode 100644
+index 000000000..b20459292
+--- /dev/null
++++ b/src/Plugins/MuPDF/mupdf_viewer_buffer.cpp
+@@ -0,0 +1,132 @@
++/******************************************************************************
++ * MODULE     : mupdf_viewer_buffer.cpp
++ * DESCRIPTION: RGBA viewer buffer for MuPDF-backed rendering
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#include "mupdf_viewer_buffer.hpp"
++
++#include <mupdf/fitz.h>
++
++mupdf_viewer_buffer_rep::mupdf_viewer_buffer_rep ()
++    : pixels_ (NULL), width_ (0), height_ (0), stride_ (0) {}
++
++mupdf_viewer_buffer_rep::~mupdf_viewer_buffer_rep () {
++  if (pixels_ != NULL) delete[] pixels_;
++}
++
++void
++mupdf_viewer_buffer_rep::resize (int width, int height) {
++  if (width < 0) width= 0;
++  if (height < 0) height= 0;
++  int new_stride= width * 4;
++  if (width == width_ && height == height_ && stride_ == new_stride &&
++      pixels_ != NULL)
++    return;
++
++  if (pixels_ != NULL) {
++    delete[] pixels_;
++    pixels_= NULL;
++  }
++
++  width_ = width;
++  height_= height;
++  stride_= new_stride;
++  if (width_ > 0 && height_ > 0) pixels_= new unsigned char[stride_ * height_];
++}
++
++void
++mupdf_viewer_buffer_rep::clear (unsigned char r, unsigned char g,
++                                unsigned char b, unsigned char a) {
++  if (pixels_ == NULL) return;
++  for (int y= 0; y < height_; ++y) {
++    unsigned char* row= pixels_ + y * stride_;
++    for (int x= 0; x < width_; ++x) {
++      unsigned char* px= row + x * 4;
++      px[0]= r;
++      px[1]= g;
++      px[2]= b;
++      px[3]= a;
++    }
++  }
++}
++
++void
++mupdf_viewer_buffer_rep::copy_from_pixmap (fz_pixmap* pix) {
++  if (pix == NULL) return;
++  resize (pix->w, pix->h);
++  if (pixels_ == NULL) return;
++
++  int comps= pix->n;
++  unsigned char* src= pix->samples;
++  int src_stride= pix->stride;
++  for (int y= 0; y < height_; ++y) {
++    unsigned char* src_row= src + y * src_stride;
++    unsigned char* dst_row= pixels_ + y * stride_;
++    for (int x= 0; x < width_; ++x) {
++      unsigned char* src_px= src_row + x * comps;
++      unsigned char* dst_px= dst_row + x * 4;
++      unsigned char  r= 0;
++      unsigned char  g= 0;
++      unsigned char  b= 0;
++      unsigned char  a= 255;
++
++      if (comps == 1) {
++        r= g= b= src_px[0];
++      }
++      else if (comps == 2) {
++        r= g= b= src_px[0];
++        a        = src_px[1];
++      }
++      else if (comps >= 3) {
++        r= src_px[0];
++        g= src_px[1];
++        b= src_px[2];
++        if (comps >= 4) a= src_px[3];
++      }
++
++      if (a != 255 && a != 0) {
++        r= (unsigned char) ((r * 255 + (a / 2)) / a);
++        g= (unsigned char) ((g * 255 + (a / 2)) / a);
++        b= (unsigned char) ((b * 255 + (a / 2)) / a);
++      }
++      else if (a == 0) {
++        r= g= b= 0;
++      }
++
++      dst_px[0]= r;
++      dst_px[1]= g;
++      dst_px[2]= b;
++      dst_px[3]= a;
++    }
++  }
++}
++
++unsigned char*
++mupdf_viewer_buffer_rep::data () {
++  return pixels_;
++}
++
++const unsigned char*
++mupdf_viewer_buffer_rep::data () const {
++  return pixels_;
++}
++
++int
++mupdf_viewer_buffer_rep::width () const {
++  return width_;
++}
++
++int
++mupdf_viewer_buffer_rep::height () const {
++  return height_;
++}
++
++int
++mupdf_viewer_buffer_rep::stride () const {
++  return stride_;
++}
+\ No newline at end of file
+diff --git a/src/Plugins/MuPDF/mupdf_viewer_buffer.hpp b/src/Plugins/MuPDF/mupdf_viewer_buffer.hpp
+new file mode 100644
+index 000000000..4b824fb97
+--- /dev/null
++++ b/src/Plugins/MuPDF/mupdf_viewer_buffer.hpp
+@@ -0,0 +1,42 @@
++/******************************************************************************
++ * MODULE     : mupdf_viewer_buffer.hpp
++ * DESCRIPTION: RGBA viewer buffer for MuPDF-backed rendering
++ * COPYRIGHT  : (C) 2026 Mogan project
++ *******************************************************************************
++ * This software falls under the GNU general public license version 3 or later.
++ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
++ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
++ ******************************************************************************/
++
++#ifndef MUPDF_VIEWER_BUFFER_HPP
++#define MUPDF_VIEWER_BUFFER_HPP
++
++#include "mupdf_renderer.hpp"
++
++struct fz_pixmap;
++
++class mupdf_viewer_buffer_rep {
++  unsigned char* pixels_;
++  int            width_;
++  int            height_;
++  int            stride_;
++
++public:
++  mupdf_viewer_buffer_rep ();
++  ~mupdf_viewer_buffer_rep ();
++
++  void resize (int width, int height);
++  void clear (unsigned char r, unsigned char g, unsigned char b,
++              unsigned char a= 255);
++  void copy_from_pixmap (fz_pixmap* pix);
++
++  unsigned char*       data ();
++  const unsigned char* data () const;
++  int                  width () const;
++  int                  height () const;
++  int                  stride () const;
++};
++
++typedef mupdf_viewer_buffer_rep* mupdf_viewer_buffer;
++
++#endif // defined MUPDF_VIEWER_BUFFER_HPP
+\ No newline at end of file
+diff --git a/src/Graphics/Fonts/font_database.cpp b/src/Graphics/Fonts/font_database.cpp
+index 6f312f111..40598abe4 100644
+--- a/src/Graphics/Fonts/font_database.cpp
++++ b/src/Graphics/Fonts/font_database.cpp
+@@ -296,29 +296,47 @@ font_database_load_substitutions (url u) {
+ void
+ font_database_load () {
+   if (fonts_loaded) return;
++  cout << "CKPT1" << LF;
+   font_database_load_database (fontdb_local_path (LOCAL_DATABASE));
++  cout << "CKPT2" << LF;
+   if (N (font_table) == 0) {
++  cout << "CKPT3" << LF;
+     font_database_load_database (GLOBAL_DATABASE);
++  cout << "CKPT4" << LF;
+     font_database_filter ();
++  cout << "CKPT5" << LF;
+     font_database_extend_local (
+         search_sub_dirs (get_texmacs_home_path () * url ("fonts/truetype")));
++  cout << "CKPT6" << LF;
++    cout << LOCAL_DATABASE << LF;
++    cout << fontdb_local_path (LOCAL_DATABASE) << LF;
+     font_database_save_database (fontdb_local_path (LOCAL_DATABASE));
++  cout << "CKPT7" << LF;
+     font_database_load_suffixes_sub (fontdb_local_path (LOCAL_DATABASE));
++  cout << "CKPT8" << LF;
+   }
+   font_database_load_features (fontdb_local_path (LOCAL_FEATURES));
++  cout << "CKPT9" << LF;
+   if (N (font_features) == 0) {
+     font_database_load_features (GLOBAL_FEATURES);
++  cout << "CKPT10" << LF;
+     font_database_filter_features ();
++  cout << "CKPT11" << LF;
+     font_database_save_features (fontdb_local_path (LOCAL_FEATURES));
+   }
++  cout << "CKPT12" << LF;
+   font_database_load_characteristics (
+       fontdb_local_path (LOCAL_CHARACTERISTICS));
++  cout << "CKPT13" << LF;
+   if (N (font_characteristics) == 0) {
+     font_database_load_characteristics (GLOBAL_CHARACTERISTICS);
++  cout << "CKPT13.1" << LF;
+     font_database_filter_characteristics ();
++  cout << "CKPT13.2" << LF;
+     font_database_save_characteristics (
+         fontdb_local_path (LOCAL_CHARACTERISTICS));
+   }
++  cout << "CKPT14" << LF;
+   font_database_load_substitutions (GLOBAL_SUBSTITUTIONS);
+   fonts_loaded= true;
+ }
+diff --git a/src/Graphics/Renderer/basic_renderer.cpp b/src/Graphics/Renderer/basic_renderer.cpp
+index 01051cb84..5dd70fa76 100644
+--- a/src/Graphics/Renderer/basic_renderer.cpp
++++ b/src/Graphics/Renderer/basic_renderer.cpp
+@@ -9,8 +9,6 @@
+  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+  ******************************************************************************/
+ 
+-#if (defined(QTTEXMACS) || defined(AQUATEXMACS))
+-
+ #ifdef HAVE_INTPTR_T
+ #ifdef HAVE_INTTYPES_H
+ #include <inttypes.h>
+@@ -203,5 +201,3 @@ bool
+ gui_interrupted (bool check) {
+   return check_event (check ? INTERRUPT_EVENT : INTERRUPTED_EVENT);
+ }
+-
+-#endif
+diff --git a/src/Graphics/Renderer/renderer.cpp b/src/Graphics/Renderer/renderer.cpp
+index 2abff230a..8c58463ff 100644
+--- a/src/Graphics/Renderer/renderer.cpp
++++ b/src/Graphics/Renderer/renderer.cpp
+@@ -653,8 +653,9 @@ delete_renderer (renderer ren) {
+   tm_delete (ren);
+ }
+ 
+-#ifndef QTTEXMACS
++#if !defined(QTTEXMACS)
+ 
++#if !defined(USE_MUPDF_RENDERER)
+ picture
+ native_picture (int w, int h, int ox, int oy) {
+   (void) w;
+@@ -673,6 +674,13 @@ picture_renderer (picture p, double zoomf) {
+   return NULL;
+ }
+ 
++picture
++as_native_picture (picture pict) {
++  TM_FAILED ("not yet implemented");
++  return pict;
++}
++#endif
++
+ picture
+ load_picture (url u, int w, int h, tree eff, int pixel) {
+   (void) u;
+@@ -684,12 +692,6 @@ load_picture (url u, int w, int h, tree eff, int pixel) {
+   return picture ();
+ }
+ 
+-picture
+-as_native_picture (picture pict) {
+-  TM_FAILED ("not yet implemented");
+-  return pict;
+-}
+-
+ void
+ save_picture (url dest, picture p) {
+   (void) dest;
+diff --git a/src/Graphics/Types/curve.hpp b/src/Graphics/Types/curve.hpp
+index adad0901e..7c71636d6 100644
+--- a/src/Graphics/Types/curve.hpp
++++ b/src/Graphics/Types/curve.hpp
+@@ -13,7 +13,9 @@
+ #define CURVE_H
+ #include "frame.hpp"
+ #include "point.hpp"
++#ifdef QTTEXMACS
+ #include <QPainterPath>
++#endif
+ 
+ class curve_rep : public abstract_struct {
+ public:
+diff --git a/src/Plugins/Metafont/load_tex.cpp b/src/Plugins/Metafont/load_tex.cpp
+index 2a709da97..e1390a4fc 100644
+--- a/src/Plugins/Metafont/load_tex.cpp
++++ b/src/Plugins/Metafont/load_tex.cpp
+@@ -418,7 +418,7 @@ load_tex (string family, double size, int dpi, int dsize, tex_font_metric& tfm,
+   }
+ #endif
+   string name= family * as_string (size) * "@" * as_string (dpi);
+-  failed_error << "Could not open " << name << "\n";
++  cout << "Could not open " << name << "\n";
+   TM_FAILED ("Tex seems not to be installed properly");
+   bench_cumul ("load tex font");
+ }
+diff --git a/src/Plugins/MuPDF/mupdf_picture.cpp b/src/Plugins/MuPDF/mupdf_picture.cpp
+index 31bc9bfb9..c65166427 100644
+--- a/src/Plugins/MuPDF/mupdf_picture.cpp
++++ b/src/Plugins/MuPDF/mupdf_picture.cpp
+@@ -23,263 +23,9 @@
+ 
+ static const double MUPDF_PDF_SCALE= 4.0;
+ 
+-/******************************************************************************
+- * Abstract mupdf pictures
+- ******************************************************************************/
+-
+-mupdf_picture_rep::mupdf_picture_rep (fz_pixmap* _pix, int ox2, int oy2)
+-    : pix (_pix), im (NULL), w (fz_pixmap_width (mupdf_context (), pix)),
+-      h (fz_pixmap_height (mupdf_context (), pix)), ox (ox2), oy (oy2) {
+-  fz_keep_pixmap (mupdf_context (), pix);
+-}
+-
+-mupdf_picture_rep::~mupdf_picture_rep () {
+-  fz_drop_pixmap (mupdf_context (), pix);
+-  fz_drop_image (mupdf_context (), im);
+-}
+-
+-picture_kind
+-mupdf_picture_rep::get_type () {
+-  return picture_native;
+-}
+-void*
+-mupdf_picture_rep::get_handle () {
+-  return (void*) this;
+-}
+-
+-int
+-mupdf_picture_rep::get_width () {
+-  return w;
+-}
+-int
+-mupdf_picture_rep::get_height () {
+-  return h;
+-}
+-int
+-mupdf_picture_rep::get_origin_x () {
+-  return ox;
+-}
+-int
+-mupdf_picture_rep::get_origin_y () {
+-  return oy;
+-}
+-void
+-mupdf_picture_rep::set_origin (int ox2, int oy2) {
+-  ox= ox2;
+-  oy= oy2;
+-}
+-
+-/**
+- * @brief 读取指定像素颜色（内部坐标系）。
+- * @param x 像素横坐标，范围为 [0, w)。
+- * @param y 像素纵坐标，范围为 [0, h)。
+- * @return ARGB 颜色值；若坐标越界或通道数非法，则返回 0。
+- */
+-color
+-mupdf_picture_rep::internal_get_pixel (int x, int y) {
+-  // 防御性检查：避免空指针或越界坐标导致非法访问。
+-  if (pix == NULL) return 0;
+-  if (x < 0 || y < 0 || x >= w || y >= h) return 0;
+-
+-  fz_context*    ctx    = mupdf_context ();
+-  unsigned char* samples= fz_pixmap_samples (ctx, pix);
+-  int            n      = pix->n;
+-  bool           alpha  = pix->alpha;
+-  int            stride = pix->stride;
+-  if (samples == NULL || stride <= 0) return 0;
+-  if (n <= 0) {
+-    static bool warned_n_le0_get= false;
+-    if (!warned_n_le0_get) {
+-      std_error << "mupdf_picture_rep::internal_get_pixel: invalid channel "
+-                << "count n=" << n << LF;
+-      warned_n_le0_get= true;
+-    }
+-    return 0;
+-  }
+-  if (n > 4) {
+-    static bool warned_n_gt4_get= false;
+-    if (!warned_n_gt4_get) {
+-      std_error << "mupdf_picture_rep::internal_get_pixel: unsupported "
+-                << "channel count n=" << n << LF;
+-      warned_n_gt4_get= true;
+-    }
+-    return 0;
+-  }
+-  int            row= h - 1 - y;
+-  unsigned char* p  = samples + row * stride + x * n;
+-
+-  int r= 0, g= 0, b= 0, a= 255;
+-  if (n == 1) {
+-    r= g= b= p[0];
+-  }
+-  else if (n == 2) {
+-    r= g= b= p[0];
+-    a      = p[1];
+-  }
+-  else {
+-    r= p[0];
+-    g= p[1];
+-    b= p[2];
+-    if (alpha) a= p[n - 1];
+-  }
+-
+-  if (a == 255 || !alpha) return rgb_color (r, g, b, 255);
+-  return rgbap_to_argb ((a << 24) + (b << 16) + (g << 8) + r);
+-}
+-
+-/**
+- * @brief 写入指定像素颜色（内部坐标系）。
+- * @param x 像素横坐标，范围为 [0, w)。
+- * @param y 像素纵坐标，范围为 [0, h)。
+- * @param c 待写入颜色（ARGB）。
+- */
+-void
+-mupdf_picture_rep::internal_set_pixel (int x, int y, color c) {
+-  // 防御性检查：避免空指针或越界坐标导致非法写入。
+-  if (pix == NULL) return;
+-  if (x < 0 || y < 0 || x >= w || y >= h) return;
+-
+-  fz_context*    ctx    = mupdf_context ();
+-  unsigned char* samples= fz_pixmap_samples (ctx, pix);
+-  int            n      = pix->n;
+-  bool           alpha  = pix->alpha;
+-  int            stride = pix->stride;
+-  if (samples == NULL || stride <= 0) return;
+-  if (n <= 0) {
+-    static bool warned_n_le0_set= false;
+-    if (!warned_n_le0_set) {
+-      std_error << "mupdf_picture_rep::internal_set_pixel: invalid channel "
+-                << "count n=" << n << LF;
+-      warned_n_le0_set= true;
+-    }
+-    return;
+-  }
+-  if (n > 4) {
+-    static bool warned_n_gt4_set= false;
+-    if (!warned_n_gt4_set) {
+-      std_error << "mupdf_picture_rep::internal_set_pixel: unsupported "
+-                << "channel count n=" << n << LF;
+-      warned_n_gt4_set= true;
+-    }
+-    return;
+-  }
+-  int            row= h - 1 - y;
+-  unsigned char* p  = samples + row * stride + x * n;
+-
+-  int r, g, b, a;
+-  get_rgb_color (c, r, g, b, a);
+-
+-  if (alpha) {
+-    r= (r * a) / 255;
+-    g= (g * a) / 255;
+-    b= (b * a) / 255;
+-  }
+-
+-  if (n == 1) {
+-    p[0]= (unsigned char) ((77 * r + 150 * g + 29 * b) >> 8);
+-    return;
+-  }
+-
+-  if (n == 2) {
+-    p[0]= (unsigned char) ((77 * r + 150 * g + 29 * b) >> 8);
+-    p[1]= (unsigned char) a;
+-    return;
+-  }
+-
+-  p[0]= (unsigned char) r;
+-  p[1]= (unsigned char) g;
+-  p[2]= (unsigned char) b;
+-  if (alpha) p[n - 1]= (unsigned char) a;
+-}
+-
+-picture
+-mupdf_picture (fz_pixmap* _pix, int ox, int oy) {
+-  return (picture) tm_new<mupdf_picture_rep, fz_pixmap*, int, int> (_pix, ox,
+-                                                                    oy);
+-}
+-
+-picture
+-as_mupdf_picture (picture pic) {
+-  if (pic->get_type () == picture_native) return pic;
+-  fz_pixmap* pix=
+-      fz_new_pixmap (mupdf_context (), fz_device_rgb (mupdf_context ()),
+-                     pic->get_width (), pic->get_height (), NULL, 1);
+-  picture ret= mupdf_picture (pix, pic->get_origin_x (), pic->get_origin_y ());
+-  fz_drop_pixmap (mupdf_context (), pix);
+-  ret->copy_from (pic); // FIXME: is this inefficient???
+-  return ret;
+-}
+-
+-#ifdef USE_MUPDF_RENDERER
+-picture
+-as_native_picture (picture pict) {
+-  return as_mupdf_picture (pict);
+-}
+-
+-picture
+-native_picture (int w, int h, int ox, int oy) {
+-  fz_pixmap* pix= fz_new_pixmap (
+-      mupdf_context (), fz_device_rgb (mupdf_context ()), w, h, NULL, 1);
+-  fz_clear_pixmap_with_value (mupdf_context (), pix, 255); // white background
+-  picture p= mupdf_picture (pix, ox, oy);
+-  fz_drop_pixmap (mupdf_context (), pix);
+-  return p;
+-}
+-#endif
+-
+-/******************************************************************************
+- * Rendering on images
+- ******************************************************************************/
+-
+-class mupdf_image_renderer_rep : public mupdf_renderer_rep {
+-public:
+-  picture pict;
+-
+-public:
+-  mupdf_image_renderer_rep (picture pict, double zoom);
+-  void* get_data_handle ();
+-};
+-
+-mupdf_image_renderer_rep::mupdf_image_renderer_rep (picture p, double zoom)
+-    : mupdf_renderer_rep (), pict (p) {
+-  zoomf  = zoom;
+-  shrinkf= (int) tm_round (std_shrinkf / zoomf);
+-  pixel  = (SI) tm_round ((std_shrinkf * PIXEL) / zoomf);
+-  thicken= (shrinkf >> 1) * PIXEL;
+-
+-  int pw = p->get_width ();
+-  int ph = p->get_height ();
+-  int pox= p->get_origin_x ();
+-  int poy= p->get_origin_y ();
+-
+-  ox= pox * pixel;
+-  oy= poy * pixel;
+-  /*
+-  cx1= 0;
+-  cy1= 0;
+-  cx2= pw * pixel;
+-  cy2= ph * pixel;
+-  */
+-  cx1= 0;
+-  cy1= -ph * pixel;
+-  cx2= pw * pixel;
+-  cy2= 0;
+-
+-  mupdf_picture_rep* handle= (mupdf_picture_rep*) pict->get_handle ();
+-  begin (handle->pix);
+-}
+-
+-void*
+-mupdf_image_renderer_rep::get_data_handle () {
+-  return (void*) this;
+-}
+-
+-#ifdef USE_MUPDF_RENDERER
+-renderer
+-picture_renderer (picture p, double zoomf) {
+-  return (renderer) tm_new<mupdf_image_renderer_rep> (p, zoomf);
+-}
+-#endif
++// Core picture representation, native_picture, picture_renderer and the
++// MuPDF-backed image renderer have been moved to mupdf_picture_core.cpp so
++// they can be reused by the Qt-free WASM ImGui viewer.
+ 
+ /******************************************************************************
+  * Loading pictures
+diff --git a/src/Plugins/MuPDF/mupdf_renderer.cpp b/src/Plugins/MuPDF/mupdf_renderer.cpp
+index f5f3fa01a..8af45548f 100644
+--- a/src/Plugins/MuPDF/mupdf_renderer.cpp
++++ b/src/Plugins/MuPDF/mupdf_renderer.cpp
+@@ -53,6 +53,65 @@ mupdf_document () {
+ bool           mupdf_renderer_rep::clip_active= false;
+ pdf_processor* mupdf_renderer_rep::clip_proc;
+ 
++void
++mupdf_copy_pixmap_to_rgba (fz_pixmap* pix, unsigned char* dst, int dst_stride) {
++  if (pix == NULL || dst == NULL) return;
++
++  fz_context*    ctx   = mupdf_context ();
++  int            width = fz_pixmap_width (ctx, pix);
++  int            height= fz_pixmap_height (ctx, pix);
++  int            stride= fz_pixmap_stride (ctx, pix);
++  int            comps = pix->n;
++  unsigned char* src   = fz_pixmap_samples (ctx, pix);
++
++  for (int y= 0; y < height; ++y) {
++    unsigned char* src_row= src + y * stride;
++    unsigned char* dst_row= dst + y * dst_stride;
++    for (int x= 0; x < width; ++x) {
++      unsigned char* src_px= src_row + x * comps;
++      unsigned char* dst_px= dst_row + x * 4;
++      unsigned char  r= 0;
++      unsigned char  g= 0;
++      unsigned char  b= 0;
++      unsigned char  a= 255;
++
++      if (comps == 1) {
++        r= g= b= src_px[0];
++      }
++      else if (comps == 2) {
++        r= g= b= src_px[0];
++        a        = src_px[1];
++      }
++      else if (comps >= 3) {
++        r= src_px[0];
++        g= src_px[1];
++        b= src_px[2];
++        if (comps >= 4) a= src_px[3];
++      }
++
++      if (a != 255 && a != 0) {
++        r= (unsigned char) ((r * 255 + (a / 2)) / a);
++        g= (unsigned char) ((g * 255 + (a / 2)) / a);
++        b= (unsigned char) ((b * 255 + (a / 2)) / a);
++      }
++      else if (a == 0) {
++        r= g= b= 0;
++      }
++
++      dst_px[0]= r;
++      dst_px[1]= g;
++      dst_px[2]= b;
++      dst_px[3]= a;
++    }
++  }
++}
++
++void
++mupdf_copy_pixmap_to_rgba_view (fz_pixmap* pix, mupdf_rgba_view view) {
++  if (view.data == NULL) return;
++  mupdf_copy_pixmap_to_rgba (pix, view.data, view.stride);
++}
++
+ /******************************************************************************
+  * Fitz pixmaps
+  ******************************************************************************/
+@@ -1373,6 +1432,7 @@ mupdf_pixmap_cleanup_handler (void* info) {
+   }
+ }
+ 
++#ifdef QTTEXMACS
+ QImage
+ get_QImage_from_pixmap (fz_pixmap* pix) {
+   uchar* samples= fz_pixmap_samples (mupdf_context (), pix);
+@@ -1396,6 +1456,7 @@ get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix) {
+     return QTMPixmapOrImage (QPixmap::fromImage (qim));
+   }
+ }
++#endif
+ 
+ fz_buffer*
+ mupdf_read_from_url (url u) {
+diff --git a/src/Plugins/MuPDF/mupdf_renderer.hpp b/src/Plugins/MuPDF/mupdf_renderer.hpp
+index c320a0b37..68fccc2b4 100644
+--- a/src/Plugins/MuPDF/mupdf_renderer.hpp
++++ b/src/Plugins/MuPDF/mupdf_renderer.hpp
+@@ -12,7 +12,9 @@
+ #ifndef MUPDF_RENDERER_HPP
+ #define MUPDF_RENDERER_HPP
+ 
++#ifdef QTTEXMACS
+ #include "QTMPixmapOrImage.hpp"
++#endif
+ #include "basic_renderer.hpp"
+ 
+ #include <mupdf/fitz.h>
+@@ -20,6 +22,17 @@
+ 
+ fz_context* mupdf_context ();
+ 
++struct mupdf_rgba_view {
++  unsigned char* data;
++  int            width;
++  int            height;
++  int            stride;
++};
++
++void mupdf_copy_pixmap_to_rgba (fz_pixmap* pix, unsigned char* dst,
++                                int dst_stride);
++void mupdf_copy_pixmap_to_rgba_view (fz_pixmap* pix, mupdf_rgba_view view);
++
+ /******************************************************************************
+  * Graphic renderer
+  ******************************************************************************/
+@@ -140,8 +153,10 @@ mupdf_renderer_rep* the_mupdf_renderer ();
+ // Read data from url
+ fz_buffer* mupdf_read_from_url (url u);
+ 
++#ifdef QTTEXMACS
+ // Convert fz_pixmap to QImage, QTMPixmapOrImage
+ QImage           get_QImage_from_pixmap (fz_pixmap* pix);
+ QTMPixmapOrImage get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix);
++#endif
+ 
+ #endif // defined MUPDF_RENDERER_HPP
+diff --git a/xmake.lua b/xmake.lua
+index 01bc66adc..11c645b2e 100644
+--- a/xmake.lua
++++ b/xmake.lua
+@@ -857,6 +857,199 @@ if is_plat("windows") then
+     end
+ end
+ 
++target("stem_imgui") do
++    set_kind("binary")
++    set_filename("stem_imgui.html")
++    set_languages("c++17")
++    set_encodings("utf-8")
++    set_policy("check.auto_ignore_flags", false)
++
++    add_deps("libmoebius")
++    add_deps("liblolly")
++
++    add_packages("mupdf")
++    add_packages("freetype")
++    add_packages("goldfish")
++    add_packages("liii-tbox")
++    add_packages("libpng")
++    add_packages("libjpeg")
++    add_packages("zlib")
++
++    ---------------------------------------------------------------------------
++    -- generate config files (same pattern as libmogan)
++    ---------------------------------------------------------------------------
++    set_configdir("$(builddir)/stem_imgui")
++    set_configvar("VERSION", XMACS_VERSION)
++    configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
++    set_configvar("STDC_HEADERS", true)
++    set_configvar("GS_EXE", "/usr/bin/gs")
++    set_configvar("PDFHUMMUS_NO_TIFF", true)
++    if is_mode("debug") or is_mode("releasedbg") then
++        set_configvar("LIII_DEBUG", 1)
++    end
++
++    add_configfiles(
++        "src/System/config.h.xmake", {
++            filename = "config.h",
++            variables = {
++                GS_FONTS = "../share/ghostscript/fonts:/usr/share/fonts:",
++                GS_LIB = "../share/ghostscript/9.06/lib:",
++                OS_MACOS = false,
++                MACOSX_EXTENSIONS = false,
++                SIZEOF_VOID_P = 4,
++                USE_ICONV = true,
++                USE_PLUGIN_GS = false,
++                USE_PLUGIN_BIBTEX = false,
++                USE_PLUGIN_TEX = false,
++                USE_PLUGIN_ISPELL = false,
++                USE_PLUGIN_PDF = false,
++                USE_PLUGIN_SPARKLE = false,
++                USE_PLUGIN_HTML = false,
++                USE_MUPDF_RENDERER = true,
++                USE_STARTUP_TAB = false,
++                USE_TEXT_TOOLBAR = false,
++                USE_TUTORIAL = false,
++                IS_COMMUNITY = has_config("is_community"),
++                DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
++                }})
++
++    set_configvar("CONFIG_OS", "")
++    configvar_check_cxxsnippets(
++        "CONFIG_LARGE_POINTER", [[
++            #include <stdlib.h>
++            static_assert(sizeof(void*) == 4, "");]])
++
++    add_configfiles(
++        "src/System/tm_configure.hpp.xmake", {
++            filename = "tm_configure.hpp",
++            pattern = "@(.-)@",
++            variables = {
++                TEXMACS_VERSION = TEXMACS_VERSION,
++                XMACS_VERSION = XMACS_VERSION,
++                CACHE_NAME = stem_lab_big_name,
++                STEM_NAME = stem_binary_name,
++                STEM_INIT_FILE = stem_init_file or "init-research.scm",
++                CONFIG_USER = os.getenv("USER") or "unknown",
++                CONFIG_DATE = os.time(),
++                CONFIG_STD_SETENV = "#define STD_SETENV",
++                tm_devel = "Texmacs-" .. DEVEL_VERSION,
++                tm_devel_release = "Texmacs-" .. DEVEL_VERSION .. "-" .. DEVEL_RELEASE,
++                tm_stable = "Texmacs-" .. STABLE_VERSION,
++                tm_stable_release = "Texmacs-" .. STABLE_VERSION .. "-" .. STABLE_RELEASE,
++                tm_prefix_dir = stem_lab_name,
++                PDFHUMMUS_VERSION = PDFHUMMUS_VERSION,
++                LOLLY_VERSION = LOLLY_VERSION,
++                }})
++
++    on_load(function (target)
++        target:add("forceincludes", path.absolute("$(builddir)/stem_imgui/config.h"))
++        target:add("forceincludes", path.absolute("$(builddir)/stem_imgui/tm_configure.hpp"))
++    end)
++
++    add_includedirs("$(builddir)/stem_imgui", {public = true})
++    add_includedirs({
++        "imgui",
++        "imgui/backends",
++        "src/Data/Convert",
++        "src/Data/Document",
++        "src/Data/History",
++        "src/Data/Observers",
++        "src/Data/Parser",
++        "src/Data/String",
++        "src/Data/Tree",
++        "src/Graphics/Bitmap_fonts",
++        "src/Graphics/Colors",
++        "src/Graphics/Fonts",
++        "src/Graphics/Gui",
++        "src/Graphics/Mathematics",
++        "src/Graphics/Pictures",
++        "src/Graphics/Renderer",
++        "src/Graphics/Spacial",
++        "src/Graphics/Types",
++        "src/Kernel/Abstractions",
++        "src/Kernel/Types",
++        "src/Plugins",
++        "src/Plugins/Freetype",
++        "src/Plugins/Metafont",
++        "src/Plugins/MuPDF",
++        "src/Scheme",
++        "src/Scheme/L2",
++        "src/Scheme/L3",
++        "src/Scheme/L4",
++        "src/Scheme/L5",
++        "src/Scheme/Plugins",
++        "src/Scheme/S7",
++        "src/Scheme/Scheme",
++        "src/System",
++        "src/System/Boot",
++        "src/System/Classes",
++        "src/System/Config",
++        "src/System/Files",
++        "src/System/Language",
++        "src/System/Link",
++        "src/System/Misc",
++        "src/Texmacs",
++        "src/Texmacs/Data",
++        "src/Typeset",
++        "src/Typeset/Bridge",
++        "src/Typeset/Concat",
++        "src/Typeset/Page",
++        "src/Mogan/Wasm",
++        "TeXmacs/include",
++        "$(builddir)/glue",
++        "$(projectdir)/TeXmacs/plugins/goldfish/src/"
++    }, {public = true})
++
++    add_files({
++        "imgui/imgui.cpp",
++        "imgui/imgui_draw.cpp",
++        "imgui/imgui_tables.cpp",
++        "imgui/imgui_widgets.cpp",
++        "imgui/backends/imgui_impl_sdl2.cpp",
++        "imgui/backends/imgui_impl_opengl3.cpp",
++        "src/Data/**.cpp",
++        "src/Graphics/**.cpp",
++        "src/Kernel/**.cpp",
++        "src/Scheme/Scheme/**.cpp",
++        "src/Scheme/S7/**.cpp",
++        "src/System/**.cpp|Boot/init_texmacs.cpp|Link/pipe_link.cpp|Link/socket_server.cpp|Link/socket_link.cpp",
++        "src/Typeset/**.cpp",
++
++        "src/Plugins/Freetype/**.cpp",
++        "src/Plugins/Metafont/**.cpp",
++        "src/Plugins/Xml/**.cpp",
++        "src/Plugins/MuPDF/mupdf_renderer.cpp",
++        "src/Plugins/MuPDF/mupdf_picture_core.cpp",
++        "src/Plugins/MuPDF/mupdf_viewer_buffer.cpp",
++        "src/Mogan/Wasm/wasm_tmu_render.cpp",
++        "src/Mogan/Wasm/wasm_gui_stubs.cpp",
++        "src/Mogan/Wasm/mupdf_picture_stubs.cpp",
++        "src/Mogan/Wasm/imgui_viewer.cpp",
++        "src/Mogan/Wasm/imgui_wasm_main.cpp"
++    })
++
++    add_files("src/Texmacs/Server/tm_debug.cpp", {defines = "KERNEL_L3"})
++
++    add_defines("IMGUI_IMPL_OPENGL_ES3")
++    add_ldflags("-s USE_SDL=2")
++    add_ldflags("-s MIN_WEBGL_VERSION=2")
++    add_ldflags("-s MAX_WEBGL_VERSION=2")
++    add_ldflags("-s ALLOW_MEMORY_GROWTH=1")
++    add_ldflags("-s DISABLE_EXCEPTION_CATCHING=0")
++    add_ldflags("--shell-file=" .. path.absolute("imgui/examples/libs/emscripten/shell_minimal.html"))
++    add_ldflags("--preload-file=" .. path.absolute("TeXmacs") .. "@/TeXmacs")
++    add_ldflags("--preload-file=" .. path.absolute("imgui/misc/fonts") .. "@/fonts")
++
++    on_run(function (target)
++        local binary= target:targetfile ()
++        local build_dir= path.absolute (path.directory (binary))
++        os.execv ("python3", {
++            path.join (os.projectdir (), "bin/wasm_server.py"),
++            build_dir
++        })
++    end)
++end
++
+ target("stem") do 
+     add_deps("goldfish")
+     if is_plat("windows") and is_mode("release") then
+diff --git a/xmake/toolchains/liii-emcc/xmake.lua b/xmake/toolchains/liii-emcc/xmake.lua
+index 5b084a1a2..c4514d516 100644
+--- a/xmake/toolchains/liii-emcc/xmake.lua
++++ b/xmake/toolchains/liii-emcc/xmake.lua
+@@ -81,10 +81,10 @@ toolchain("liii-emcc")
+                 end
+             end
+         end
+-        toolchain:add("cxflags", "-matomics", "-mbulk-memory", "-pthread")
+-        toolchain:add("cflags", "-matomics", "-mbulk-memory", "-pthread")
+-        toolchain:add("cxxflags", "-matomics", "-mbulk-memory", "-pthread")
+-        toolchain:add("mxflags", "-matomics", "-mbulk-memory", "-pthread")
++        toolchain:add("cxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
++        toolchain:add("cflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
++        toolchain:add("cxxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
++        toolchain:add("mxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
+         toolchain:add("ldflags",
+             "-matomics",
+             "-mbulk-memory",
+@@ -93,6 +93,7 @@ toolchain("liii-emcc")
+             "-s SHARED_MEMORY=1",
+             "-s ALLOW_MEMORY_GROWTH=1",
+             "-s ENVIRONMENT=web,node",
++            "-sUSE_SDL=2",
+             opt
+         )
+         toolchain:add("shflags",
+@@ -100,6 +101,11 @@ toolchain("liii-emcc")
+             "-mbulk-memory",
+             "-pthread",
+             "-s USE_PTHREADS=1",
+-            "-s SHARED_MEMORY=1"
++            "-s SHARED_MEMORY=1",
++            "-sUSE_SDL=2"
+         )
++        toolchain:add("cxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
++        toolchain:add("cxxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
++        toolchain:add("cflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
++        toolchain:add("ldxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
+     end)
+\ No newline at end of file

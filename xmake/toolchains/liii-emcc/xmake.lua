@@ -81,10 +81,10 @@ toolchain("liii-emcc")
                 end
             end
         end
-        toolchain:add("cxflags", "-matomics", "-mbulk-memory", "-pthread")
-        toolchain:add("cflags", "-matomics", "-mbulk-memory", "-pthread")
-        toolchain:add("cxxflags", "-matomics", "-mbulk-memory", "-pthread")
-        toolchain:add("mxflags", "-matomics", "-mbulk-memory", "-pthread")
+        toolchain:add("cxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
+        toolchain:add("cflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
+        toolchain:add("cxxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
+        toolchain:add("mxflags", "-matomics", "-mbulk-memory", "-pthread", "-sUSE_SDL=2")
         toolchain:add("ldflags",
             "-matomics",
             "-mbulk-memory",
@@ -93,6 +93,7 @@ toolchain("liii-emcc")
             "-s SHARED_MEMORY=1",
             "-s ALLOW_MEMORY_GROWTH=1",
             "-s ENVIRONMENT=web,node",
+            "-sUSE_SDL=2",
             opt
         )
         toolchain:add("shflags",
@@ -100,6 +101,11 @@ toolchain("liii-emcc")
             "-mbulk-memory",
             "-pthread",
             "-s USE_PTHREADS=1",
-            "-s SHARED_MEMORY=1"
+            "-s SHARED_MEMORY=1",
+            "-sUSE_SDL=2"
         )
+        toolchain:add("cxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
+        toolchain:add("cxxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
+        toolchain:add("cflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
+        toolchain:add("ldxflags", "-g4", "-gsource-map", "-sASSERTIONS=2", "-s DEMANGLE_SUPPORT=1", "-fexceptions", "-sEXCEPTION_STACK_TRACES=1")
     end)
