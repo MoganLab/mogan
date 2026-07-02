@@ -4,6 +4,7 @@
 ;; MODULE      : julia-lang.scm
 ;; DESCRIPTION : Julia Language
 ;; COPYRIGHT   : (C) 2021 Jeroen Wouters
+;; COPYRIGHT   : (C) 2026 AcceleratorX
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
 ;; It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
@@ -24,6 +25,10 @@
 ; Finally, where is parsed as an infix operator for writing parametric method and 
 ; type definitions. Also in and isa are parsed as infix operators. Creation of a 
 ; variable named where, in or isa is allowed though.
+; 
+; Since Julia 1.11, public is parsed as a keyword when beginning a toplevel statement;
+; outer is parsed as a keyword when used to modify the scope of a variable in a for loop;
+; and as is used as a keyword to rename an identifier brought into scope by import or using.
 
 
 (texmacs-module (code julia-lang)
@@ -64,25 +69,28 @@
 ;; https://docs.julialang.org/en/v1/manual/mathematical-operations/
 ;; arithm. operators: +, -, *, /, ÷, \, ^, %
 ;; boolean operators: !, &&, ||
-;; bitwise operators: ~, &, |, ⊻, >>>, >>, <<
-;; updating operators: +=  -=  *=  /=  \=  ÷=  %=  ^=  &=  |=  ⊻=  >>>=  >>=  <<=
+;; bitwise operators: ~, &, |, ⊻, ⊼, ⊽, >>>, >>, <<
+;; updating operators: +=  -=  *=  /=  //=  \=  ÷=  %=  ^=  &=  |=  ⊻=  >>>=  >>=  <<=
 ;; dot operators: . before operator
-;; numeric comparison: ==, !=, ≠, <, <=, ≤, >, >=, ≥
-;; square root: √
+;; numeric comparison: ==, !=, ≠, ===, !==, ≡, ≢, <, <=, ≤, >, >=, ≥
+;; approximate comparison: ≈, ≉
+;; membership: ∈, ∉, ∋, ∌
+;; roots: √, ∛, ∜
 ;; adjoint (suffix): '
 
 ;; https://docs.julialang.org/en/v1/base/punctuation/
 ;; string and expression interpolation (prefix): $
 ;; macro (prefix): @
-;; subtype operators: <|, |>
+;; pipe operators: <|, |>
+;; subtype / supertype operators: <:, >:
+;; rational division: //
 ;; function composition: ∘
 ;; splat operator: ...
-;; type: ::
+;; type annotation / assert: ::
 ;; dictionary pair: =>
 ;; anonymous function: ->
-
-;; TODO
-;; multiline comments (nestable): #=, =#
+;; ternary conditional: ?
+;; broadcasted in-place assignment: .=
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "julia") (== key "operator")))
@@ -123,6 +131,9 @@
        "hex_with_32_bits" "octal_upto_3_digits")
       (escape_sequences "\\" "\"" "'" "a" "b" "f" "n" "r" "t" "v" "newline")
       (pairs "\"" "\"\"\"")))
+
+;; Julia also supports nestable multiline comments (#= ... =#), but the current
+;; Mogan comment parser only handles single-line inline comments.
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "julia") (== key "comment")))
