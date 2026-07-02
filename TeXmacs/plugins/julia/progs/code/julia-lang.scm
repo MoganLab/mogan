@@ -33,13 +33,28 @@
   (:require (and (== lan "julia") (== key "keyword")))
   `(,(string->symbol key)
     (constant
-      "true" "false")
+      "true" "false" "nothing" "missing" "undef" "im" "NaN" "Inf" "pi" "ℯ")
+    (constant_type
+      "Any" "Nothing" "Missing" "Bool" "Char" "String" "Symbol"
+      "Int" "Int8" "Int16" "Int32" "Int64" "Int128"
+      "UInt" "UInt8" "UInt16" "UInt32" "UInt64" "UInt128"
+      "Float16" "Float32" "Float64" "Complex" "Rational"
+      "BigInt" "BigFloat" "Signed" "Unsigned" "AbstractIrrational"
+      "Array" "Vector" "Matrix" "Dict" "Set" "Tuple" "NamedTuple"
+      "Pair" "SubString" "Regex" "AbstractRange" "UnitRange" "StepRange"
+      "LinRange" "AbstractSet"
+      "Type" "Function" "Module" "Number" "Real" "Integer"
+      "AbstractFloat" "AbstractArray" "AbstractVector" "AbstractMatrix"
+      "AbstractDict" "AbstractString" "AbstractChar"
+      "Val" "Vararg" "Union" "UnionAll" "Some"
+      "Exception")
     (declare_function "function" "do")
-    (declare_module "import" "using" "module" "baremodule" "export")
+    (declare_module "import" "using" "module" "baremodule" "export" "public")
     (declare_type "struct" "abstract type" "mutable struct"
       "primitive type")
     (keyword
-      "let" "local" "global" "const" "end" "macro" "quote")
+      "let" "local" "global" "const" "end" "macro" "quote" "in" "isa" "where"
+      "outer" "as")
     (keyword_conditional
       "break" "continue" "elseif" "else" "for" "if" "while")
     (keyword_control
@@ -74,10 +89,11 @@
   `(,(string->symbol key)
     (operator
       "+" "-" "*" "/" "÷" "\\" "^" "%" "!" "&&" "||"
-      "~" "&" "|" "⊻" ">>>" ">>" "<<" "+=" "-=" "*="
+      "~" "&" "|" "⊻" "⊼" "⊽" ">>>" ">>" "<<" "+=" "-=" "*="
       "/=" "\\=" "÷=" "%=" "^=" "&=" "|=" "⊻=" ">>>="
-      ">>=" "<<=" "==" "!=" "≠" "<" "<=" "≤" ">" ">=" "≥" "√"
-      "<|" "|>" "∘" "..." "::" "=>" "->"
+      ">>=" "<<=" "==" "!=" "≠" "===" "!==" "≡" "≢" "<" "<=" "≤" ">" ">=" "≥" "√"
+      "∛" "∜" "≈" "≉" "∈" "∉" "∋" "∌" "<:" ">:" "<|" "|>" "∘"
+      "..." "::" "=>" "->" "?" ".=" "//" "//="
       )
     (operator_special ":")
     (operator_decoration "@" "$")
@@ -106,7 +122,7 @@
        "hex_with_8_bits" "hex_with_16_bits"
        "hex_with_32_bits" "octal_upto_3_digits")
       (escape_sequences "\\" "\"" "'" "a" "b" "f" "n" "r" "t" "v" "newline")
-      (pairs "\"")))
+      (pairs "\"" "\"\"\"")))
 
 (tm-define (parser-feature lan key)
   (:require (and (== lan "julia") (== key "comment")))
@@ -125,6 +141,7 @@
   ("syntax:julia:comment" "brown" notify-julia-syntax)
   ("syntax:julia:error" "dark red" notify-julia-syntax)
   ("syntax:julia:constant" "#4040c0" notify-julia-syntax)
+  ("syntax:julia:constant_type" "#4040c0" notify-julia-syntax)
   ("syntax:julia:constant_number" "#4040c0" notify-julia-syntax)
   ("syntax:julia:constant_string" "dark grey" notify-julia-syntax)
   ("syntax:julia:constant_char" "#333333" notify-julia-syntax)
