@@ -29,7 +29,12 @@
 int
 qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   // 显式激活 moganqml.qrc 资源（Qt 要求，否则 qrc:/ 加载不到）。
-  Q_INIT_RESOURCE (moganqml);
+  // Q_INIT_RESOURCE 多次调用无害但冗余，进程内只初始化一次。
+  static const bool resourceInitialized= [] () {
+    Q_INIT_RESOURCE (moganqml);
+    return true;
+  }();
+  (void) resourceInitialized;
   // 无边框 + 透明背景：圆角由 QML Rectangle 自绘（自带抗锯齿）。
   // 所有窗口属性在构造时传入，并在 show/exec 前 setAttribute，避免 macOS
   // 上透明窗口初始化时闪屏。
