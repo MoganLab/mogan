@@ -299,8 +299,11 @@ package("qtbase")
 
         table.insert(aqt_args, "-m")
         table.insert(aqt_args, "qtimageformats")
-        table.insert(aqt_args, "qtnetworkauth")
         table.insert(aqt_args, "qtlottie")
+        if not is_plat("wasm") then
+            -- Seems Qt's official WASM build does not support this package
+            table.insert(aqt_args, "qtnetworkauth")
+        end
 
         os.vrunv("aqt", aqt_args)
 

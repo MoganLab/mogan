@@ -1141,8 +1141,12 @@ static s7_int int_to_int(s7_int x, s7_int n)
   do {
     if (n & 1) value *= x;
     n >>= 1;
+#if HAVE_OVERFLOW_CHECKS
     if (multiply_overflow(x, x, &x))
       break;
+#else
+    x *= x;
+#endif
   } while (n);
   return(value);
 }

@@ -1,14 +1,8 @@
--------------------------------------------------------------------------------
---
--- MODULE      : libaesgm.lua
--- DESCRIPTION : Xmake package definition for libaesgm
---
-
 package("liii-libaesgm")
     set_homepage("https://github.com/xmake-mirror/libaesgm")
     set_description("https://repology.org/project/libaesgm/packages")
 
-    set_sourcedir(path.join(os.scriptdir(), "libaesgm"))
+    set_sourcedir(path.join(os.scriptdir(), "../../../../3rdparty/libaesgm"))
 
     on_install("linux", "macosx", "windows", "mingw", "wasm", function (package)
         if package:is_plat("windows", "mingw") and package:is_arch("arm", "arm64") then

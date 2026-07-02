@@ -1,16 +1,9 @@
--------------------------------------------------------------------------------
---
--- MODULE      : pdfhummus.lua
--- DESCRIPTION : Xmake package definition for PDFhummus
---
-
 package("liii-pdfhummus")
     set_homepage("https://www.pdfhummus.com/")
     set_description("High performance library for creating, modiyfing and parsing PDF files in C++ ")
     set_license("Apache-2.0")
 
-    -- Use the vendored source under 3rdparty/pdfhummus (updated to PDF-Writer v4.9.0).
-    set_sourcedir(path.join(os.scriptdir(), "pdfhummus"))
+    set_sourcedir(path.join(os.scriptdir(), "../../../../3rdparty/pdfhummus"))
 
     add_deps("zlib", "liii-libaesgm")
     add_deps("freetype", {configs={png=true}})

@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -e
+# Script for test building dependencies on wasm.
+# Separate xmake.lua stored in bin/xmake_build_deps/<package>
+#
+# Usage: test build all dependencies ./test_build_deps 
+#        or a specific  dependency   ./test_build_deps <package>
+#
+#
+# Thu Jun 4, 2026
+# JimZhouZZY
+
+ROOT="xmake_build_deps"
+
+ok_list=()
+fail_list=()
+
+for dir in "$ROOT"/*; do
+    if [ -d "$dir" ]; then
+        name="${dir##*/}"
+
+        # if an argument is provided and it doesn't match this dir, skip
+        if [ $# -gt 0 ] && [ "$name" != "$1" ]; then
+            continue
+        fi
+
+        echo "=============================="
+        echo "Entering: $dir"
+        echo "=============================="
+
+        pushd "$dir" > /dev/null
+
+        xmake require --uninstall "$name"
+        rm -rf build .xmake
+
+        if xmake f -P . -c -p wasm -vD --yes; then
+            echo "OK: $dir"
+            ok_list+=("$dir")
+        else
+            echo "FAILED: $dir"
+            fail_list+=("$dir")
+        fi
+
+        rm -rf build .xmake
+        echo "Leaving: $dir"
+        echo "------------------------------"
+
+        popd > /dev/null
+    fi
+done
+
+echo ""
+echo "=============================="
+echo " SUMMARY"
+echo "=============================="
+
+for d in "${ok_list[@]}"; do
+    echo " [  OK  ] - $d"
+done
+
+for d in "${fail_list[@]}"; do
+    echo " [FAILED] - $d"
+done
+
+echo ""
+echo "Total OK: ${#ok_list[@]}"
+echo "Total FAILED: ${#fail_list[@]}"
