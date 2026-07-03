@@ -299,13 +299,19 @@
                            ) ;enum
                          ) ;item
                 ) ;aligned
-                (when (== range "Custom range")
-                  (aligned (item (text "Applying from:")
-                             (input (set! rfrom answer) "string" (list rfrom) "6em")
-                           ) ;item
-                    (item (text "Applying to:") (input (set! rto answer) "string" (list rto) "6em"))
-                  ) ;aligned
-                ) ;when
+        (when (== range "Custom range")
+          (aligned (item (text "Range:")
+                     (hlist (input (set! rfrom answer) "string" (list rfrom) "3em")
+                            //
+                            //
+                            (text "~")
+                            //
+                            //
+                            (input (set! rto answer) "string" (list rto) "3em")
+                     ) ;hlist
+                   ) ;item
+          ) ;aligned
+        ) ;when
                 (aligned (item (text "Number style:")
                            (enum (set! nt
                                    (cond ((== answer "1, 2, 3") "arabic")
