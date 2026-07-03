@@ -14,6 +14,13 @@
 ;;     - MOGAN_TEST_FORM_DIALOG=ok    模拟点 OK（回传字段表当前值）
 ;;     - MOGAN_TEST_FORM_DIALOG=cancel 模拟 Cancel（返回空）
 ;;
+;;   覆盖范围说明：本测试覆盖 cpp↔scm 数据契约（OK 回传 / Cancel 空返回 /
+;;   tree->stree 解构）。QML 真实交互（下拉选某项改值、点 OK 触发 submit）
+;;   mogan 无现成控件自动化 API，靠手动 GUI 验证：MOGAN_TEST_GUI=1 启动后
+;;   打开「文件 → 页面设置」、改下拉、点 OK、确认 preference 写回。
+;;   纯逻辑（enum-field 防御性插入、form-tree 形状）见
+;;   TeXmacs/progs/texmacs/menus/print-widgets-test.scm。
+;;
 ;; USAGE
 ;;   xmake b stem
 ;;   MOGAN_TEST_GUI=1 xmake r 2023
