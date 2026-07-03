@@ -288,7 +288,7 @@
 (tm-widget ((page-number-style-editor u) quit)
   (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
     (centered (refreshable "page-number-range-editor"
-                (aligned (item (text "Applying range:")
+                (aligned (item (text "Applying to:")
                            (enum (begin
                                    (set! range answer)
                                    (refresh-now "page-number-range-editor")

@@ -28,7 +28,7 @@
 ("Allow multiple spaces" "允许多个空格")
 ("A leading % on the first line starts a chat command." "首行的第一个字符是 %，表示这是对话指令。")
 ("Angle brackets ⟨ ⟩" "尖括号 ⟨ ⟩")
-("Applying range" "应用范围")
+("Applying to" "应用到")
 ("Archive" "归档")
 ("Archived (%1)" "已归档 (%1)")
 ("Archive selected" "归档所选")
