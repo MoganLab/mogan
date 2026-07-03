@@ -322,9 +322,11 @@
 (tm-define current-save-source (url-none))
 (tm-define current-save-target (url-none))
 
-(define (buffer-notify-recent name)
+(tm-define (buffer-notify-recent name)
+  ;; 用 tm-define 导出：init_texmacs.cpp 用 eval_scheme 在 user_env 跨模块调用本过程，
+  ;; 若用 define（模块私有）会触发 unbound-variable 并在 s7 错误处理中崩溃。
   (learn-interactive 'recent-buffer (list (cons "0" (url->system name))))
-) ;define
+) ;tm-define
 
 (define (has-faithful-format? name)
   (in? (url-suffix name) '("tm" "ts" "tp" "stm" "scm" "tmu" "stem"))
