@@ -1,27 +1,87 @@
 /******************************************************************************
  * MODULE      : QTMQmlDialog.hpp
  * DESCRIPTION : 基于 QML 的模态对话框底座，经 QQuickWidget 嵌入 QWidget 体系。
- *               从旧的「Qt widget 导出 scheme」弹窗机制逐步迁移到 QML 的通用
- *               入口。每个具体弹窗（如 confirm-close）有自己的 glue 入口函数，
- *               复用这里的 qt_show_qml_dialog 拼装出 QQuickWidget + 模态
- *               QDialog + exec() 的生命周期。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
  * It comes WITHOUT ANY WARRANTY whatsoever. Details see LICENSE.
- *
- * 设计要点
- *   - qt_show_qml_dialog 是同步调用：内部跑一个无边框本地模态 QDialog，
- *     其中包一个加载了指定 QML 的 QQuickWidget，exec() 阻塞直到用户关闭，
- *     返回用户点选的按钮下标（或 -1 表示取消 / X / Esc）。exec() 的模态特性
- *     天然把连点请求串行化，从根上消除「连点重复弹窗」与「X 关闭后无法二次
- *     弹出」两类问题。
- *   - 正文与按钮文案均由调用方（通常 scheme 侧算好经 glue 传入）提供，
- *     i18n 继续走既有 translate() 机制。
- *   - 本头文件不含 Qt 头，可安全被生成的 glue 代码 include。
- *   - 各具体弹窗的 glue 入口（如 cpp_confirm_close）声明附在下方，实现见
- *     QTMQmlDialog.cpp；后续新增弹窗按同样模式追加。
  ******************************************************************************/
+
+/*! @file QTMQmlDialog.hpp
+ *  @brief QML 模态对话框底座的头文件，含确认型与表单型两类弹窗的 glue 入口。
+ *
+ * @par 弹窗分类
+ * 迁移到 QML 的弹窗按交互模型分两类：
+ * - 确认型（display）：纯展示 + 按钮，无状态、一次性。数据流为
+ *   scm 算好文案/按钮 → cpp 注入 QML → 返回按钮下标。
+ *   参考入口：qt_show_qml_dialog() + cpp_confirm_close() + ConfirmClose.qml。
+ * - 表单型（form）：含若干可编辑字段，需要双向数据绑定，走通用 form 引擎。
+ *
+ * @par 通用 form 引擎设计原则
+ * - @b 数据模型由 scm 构造：字段定义、可选项、当前值、label 翻译文案全部在 scm
+ *   算好打包传入；cpp / QML 不碰 i18n、不碰业务，只做框架与 UI。
+ * - @b value 统一为 string：scm 构造字段表时即序列化（number→十进制、
+ *   checkbox→"on"/"off"、color→"#rrggbb"），cpp / QML 全程只搬运 string。
+ * - @b 逐字段可选实时回写（live 标志）：
+ *   - live=true：用户改动走 QML → bridge → glue → scm setter，实时预览。
+ *     @b 红线：setter 禁止任何模态操作（不弹对话框、不嵌套 exec()），否则破坏
+ *     scheme continuation 栈；且 live=true 接受「Cancel 无法回滚」。
+ *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel 放弃。
+ * - @b 控件类型：enum / input / checkbox / color / number，按相同字段节点结构扩展。
+ *
+ * @par key 的维护位置（编译隔离的核心）
+ * - 所有 preference key 全部定义在 scm 侧常量 module（pref-keys.scm，
+ *   define-public 导出），字段表构造、preference 读写、live setter 全引用常量。
+ * - cpp 对 key 字符串零硬编码、纯透传：从 tree 读出，OK 返回时原样带回。
+ *   改 key / 加字段 / 调可选项只动 scm，永不重编译 cpp。
+ *
+ * @par 数据协议（scm → cpp）
+ * 传输格式为 scheme tree（glue 自动转 C++ tree，cpp 遍历 children 解析，
+ * 不引入 JSON）。字段节点结构（按 type 取不同形）：
+ * @code
+ *   (enum     <label> <key> (<option> ...) <value> <live?>)
+ *   (input    <label> <key> <value> <live?>)
+ *   (checkbox <label> <key> <value> <live?>)
+ *   (color    <label> <key> <value> <live?>)
+ *   (number   <label> <key> <value> <live?>)
+ * @endcode
+ * - @c label：已翻译的文案字符串
+ * - @c key：引用 scm 常量的 preference 键名
+ * - @c options：可选值列表（enum 专用；value 不在其中时 scm 侧防御性插入）
+ * - @c value：当前值（统一 string）
+ * - @c live：是否实时回写（可省，默认 false）
+ *
+ * @par 弹窗尺寸
+ * 确认型引擎固定尺寸；form 引擎字段数不固定，由 QML root 的
+ * implicitWidth/implicitHeight 自报尺寸，cpp 读取后 setFixedSize（动态字段
+ * 用 childrenRect 兜底，避免 Repeater 布局未完成时读到半成品尺寸）。
+ *
+ * @par OK 返回值（cpp → scm）
+ * 用户点 OK，cpp 返回 tree（(key value) 列表，value 均 string，与传输格式同构）：
+ * @code
+ *   (result (<key> <value>) ...)
+ * @endcode
+ * scm 收到后 for-each 调 set-pretty-preference 统一写回；
+ * Cancel / 关闭返回空，scm 不写回。
+ *
+ * @par glue 注册
+ * 新增弹窗按 cpp_confirm_close 的模式，两处改动：
+ * - src/Scheme/Glue/glue_basic.lua：加 {scm_name, cpp_name, ret_type, arg_list}
+ * - TeXmacs/progs/prog/glue-symbols.scm：在符号列表加 scm_name
+ * tree 类型在 glue 中已被广泛支持（ret_type / arg_list 均可；注意 tree、content、
+ * scheme_tree 三种别名的差异，混用会运行期 segfault）。
+ *
+ * @par 实现进度（TODO）
+ * - @b 进行中：scm key 常量 module（pref-keys.scm）、cpp form 引擎与
+ *   FormDialog.qml、enum 控件、OK 返回 tree、glue 注册 cpp-form-dialog。
+ * - @b TODO 控件类型：input / checkbox / color / number。
+ * - @b TODO live=true 实时回写链路（bridge 信号 → glue → scm setter；QML 侧
+ *   需 debounce throttle，避免 color picker / SpinBox 拖动时高频回调压垮主线程）。
+ * - @b TODO QML 视觉骨架复用（第三个 QML 弹窗时抽 DialogBase.qml）。
+ *
+ * @note 完整设计文档见 record/qml/plan.md。本头文件不含 Qt 头，可安全被
+ * 生成的 glue 代码 include；各 glue 入口声明附在下方，实现见 QTMQmlDialog.cpp。
+ */
 
 #ifndef QTM_QML_DIALOG_H
 #define QTM_QML_DIALOG_H
