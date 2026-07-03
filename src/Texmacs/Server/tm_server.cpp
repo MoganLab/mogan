@@ -161,7 +161,9 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
   set_wait_handler (texmacs_wait_handler);
 
   init_app (app);
+#ifdef QTTEXMACS
   m_account= new QTMOAuth ();
+#endif
 
 #ifdef OS_GNU_LINUX
   return; // in order to avoid segmentation faults
@@ -170,7 +172,11 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
 #endif
 }
 
-tm_server_rep::~tm_server_rep () { delete m_account; }
+tm_server_rep::~tm_server_rep () {
+#ifdef QTTEXMACS
+  delete m_account;
+#endif
+}
 server::server (app_type app) : rep (tm_new<tm_server_rep> (app)) {}
 server_rep*
 tm_server_rep::get_server () {
@@ -347,12 +353,18 @@ tm_server_rep::restart () {
 
 void
 tm_server_rep::login () {
+#ifdef QTTEXMACS
   m_account->login ();
+#endif
 }
 
 bool
 tm_server_rep::is_logged_in () {
+#ifdef QTTEXMACS
   return m_account->isLoggedIn ();
+#else
+  return false;
+#endif
 }
 
 /******************************************************************************

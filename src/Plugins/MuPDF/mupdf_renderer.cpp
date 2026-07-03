@@ -1373,6 +1373,7 @@ mupdf_pixmap_cleanup_handler (void* info) {
   }
 }
 
+#ifdef QTTEXMACS
 QImage
 get_QImage_from_pixmap (fz_pixmap* pix) {
   uchar* samples= fz_pixmap_samples (mupdf_context (), pix);
@@ -1396,6 +1397,7 @@ get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix) {
     return QTMPixmapOrImage (QPixmap::fromImage (qim));
   }
 }
+#endif
 
 fz_buffer*
 mupdf_read_from_url (url u) {

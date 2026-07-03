@@ -65,17 +65,23 @@ edit_interface_rep::source_complete_try () {
       }
       cursor cu= eb->find_check_cursor (tp1);
       if (completion_style == string ("popup")) {
+#ifdef QTTEXMACS
         show_completion_popup ("source", tp, completions, cu, magf,
                                get_scroll_x (), get_scroll_y (),
                                get_canvas_x (), get_canvas_y ());
+#endif
       }
     }
     else {
+#ifdef QTTEXMACS
       hide_completion_popup ();
+#endif
     }
   }
   else if (!(get_input_mode () == INPUT_COMPLETE)) {
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
   }
 }
 
@@ -83,15 +89,18 @@ bool
 edit_interface_rep::source_complete_keypress (string key) {
   int completions_N= N (completions);
   completion_style = get_preference ("completion style");
-  if (!completion_popup_visible ()) {
+#ifdef QTTEXMACS
+  if (!completion_popup_visible ())
+#endif
     return false;
-  }
 
   // 排除特例
   if (key == "tab" && completions_N == 1) {
     // 仅有一个补全项时，先补全后隐藏补全框，然后返回 false 正常处理按键
     source_complete_variant (completions[0]);
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
     return false;
   }
   if (!(key == "tab" || key == "S-tab" || key == "down" || key == "up" ||
@@ -103,7 +112,9 @@ edit_interface_rep::source_complete_keypress (string key) {
     sv->get_keycomb (key, status, _, __, __);
     if ((status & 1) == 1) {
       // 遇到绑定功能的按键时，隐藏补全框
+#ifdef QTTEXMACS
       hide_completion_popup ();
+#endif
     }
     return false; // 仅处理特定的键
   }
@@ -117,33 +128,49 @@ edit_interface_rep::source_complete_keypress (string key) {
       source_complete_variant (completions[completion_pos]);
     }
     else {
+#ifdef QTTEXMACS
       hide_completion_popup ();
+#endif
       return false; // 当前词已被补全，按回车键正常处理
     }
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
   }
   else if (key == "left" || key == "right" || key == "space") {
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
     return false;
   }
   else if (key == "down" || key == "tab") {
     completion_pos++;
+#ifdef QTTEXMACS
     completion_popup_next (true);
+#endif
   }
   else if (key == "up" || key == "S-tab") {
     completion_pos--;
+#ifdef QTTEXMACS
     completion_popup_next (false);
+#endif
   }
   else if (key == "escape") {
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
   }
   else if (key == "tab" || key == "down") {
     completion_pos++;
+#ifdef QTTEXMACS
     completion_popup_next (true);
+#endif
   }
   else if (key == "S-tab" || key == "up") {
     completion_pos--;
+#ifdef QTTEXMACS
     completion_popup_next (false);
+#endif
   }
   if (completion_pos < 0) completion_pos= completions_N - 1;
   if (completion_pos >= completions_N) completion_pos= 0;
@@ -161,7 +188,9 @@ edit_interface_rep::source_complete_variant (string new_completion) {
   insert (path_up (tp) * 0, new_completion);
   apply_changes ();
 
+#ifdef QTTEXMACS
   update_completion_popup_position (et, eb, tp, magf, get_scroll_x (),
                                     get_scroll_y (), get_canvas_x (),
                                     get_canvas_y (), completion_pos);
+#endif
 }

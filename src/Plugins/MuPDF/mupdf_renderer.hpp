@@ -12,7 +12,9 @@
 #ifndef MUPDF_RENDERER_HPP
 #define MUPDF_RENDERER_HPP
 
+#ifdef QTTEXMACS
 #include "QTMPixmapOrImage.hpp"
+#endif
 #include "basic_renderer.hpp"
 
 #include <mupdf/fitz.h>
@@ -140,8 +142,10 @@ mupdf_renderer_rep* the_mupdf_renderer ();
 // Read data from url
 fz_buffer* mupdf_read_from_url (url u);
 
+#ifdef QTTEXMACS
 // Convert fz_pixmap to QImage, QTMPixmapOrImage
 QImage           get_QImage_from_pixmap (fz_pixmap* pix);
 QTMPixmapOrImage get_QTMPixmapOrImage_from_pixmap (fz_pixmap* pix);
+#endif
 
 #endif // defined MUPDF_RENDERER_HPP

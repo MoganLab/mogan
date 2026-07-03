@@ -176,9 +176,11 @@ edit_interface_rep::complete_start (string prefix, array<string> compls) {
     }
     cursor cu= eb->find_check_cursor (tp1);
     if (completion_style == string ("popup")) {
+#ifdef QTTEXMACS
       show_completion_popup ("text", tp, full_completions, cu, magf,
                              get_scroll_x (), get_scroll_y (), get_canvas_x (),
                              get_canvas_y ());
+#endif
     }
 
     insert_tree (completions[0]);
@@ -237,11 +239,15 @@ edit_interface_rep::complete_popup (string key) {
 
   if (key == "tab" || key == "down") {
     completion_pos++;
+#ifdef QTTEXMACS
     completion_popup_next (true);
+#endif
   }
   else if (key == "S-tab" || key == "up") {
     completion_pos--;
+#ifdef QTTEXMACS
     completion_popup_next (false);
+#endif
   }
   if (completion_pos < 0) completion_pos= completions_N - 1;
   if (completion_pos >= completions_N) completion_pos= 0;
@@ -305,9 +311,11 @@ edit_interface_rep::complete_variant (string old_completion,
   insert (path_up (tp) * (end - old_completion_N), new_completion);
   apply_changes ();
 
+#ifdef QTTEXMACS
   update_completion_popup_position (et, eb, tp, magf, get_scroll_x (),
                                     get_scroll_y (), get_canvas_x (),
                                     get_canvas_y (), completion_pos);
+#endif
 }
 
 /******************************************************************************

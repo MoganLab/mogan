@@ -16,10 +16,12 @@
 #include "file.hpp"
 #include "image_files.hpp"
 #include "new_view.hpp"
-#include "qt_utilities.hpp"
 #include "tm_debug.hpp"
 #include "tm_url.hpp"
+#ifdef QTTEXMACS
+#include "qt_utilities.hpp"
 #include <QImage>
+#endif
 
 static const double MUPDF_PDF_SCALE= 4.0;
 
@@ -366,6 +368,7 @@ mupdf_load_image (url u) {
       fz_drop_pixmap (mupdf_context (), pix);
     }
   }
+#ifdef QTTEXMACS
   else if (suf == "webp") {
     // Use Qt to load WebP images since MuPDF doesn't support WebP
     QImage qimage (utf8_to_qstring (concretize (u)));
@@ -406,6 +409,7 @@ mupdf_load_image (url u) {
         debug_convert << "Failed to load WebP image via Qt" << LF;
     }
   }
+#endif
   else {
     // Othre format.
     fz_try (ctx) { im= fz_new_image_from_buffer (ctx, buffer); }
@@ -520,6 +524,7 @@ mupdf_normal_image_size (url image, int& w, int& h, string* out_wcm_pointer,
     fz_drop_buffer (ctx, buf);
   }
   if (im == NULL) {
+#ifdef QTTEXMACS
     // Check if it's a WebP file and use Qt to get the size
     string suf= suffix (image);
     if (suf == "webp") {
@@ -538,6 +543,7 @@ mupdf_normal_image_size (url image, int& w, int& h, string* out_wcm_pointer,
           debug_convert << "Failed to get WebP image size via Qt" << LF;
       }
     }
+#endif
 
     convert_error << "Cannot read image file '" << image << "'"
                   << " in mupdf_normal_image_size" << LF;
@@ -660,6 +666,7 @@ mupdf_load_and_parse_image (const char* path, int& w, int& h, string extension,
     w= 0;
     h= 0;
   }
+#ifdef QTTEXMACS
   else if (extension == "webp") {
     // For WebP files, use Qt to get the image size directly from the file
     QImage qimage (path);
@@ -680,6 +687,7 @@ mupdf_load_and_parse_image (const char* path, int& w, int& h, string extension,
                       << LF;
     }
   }
+#endif
   else {
     mupdf_normal_image_size (image, w, h, out_wcm_pointer, out_hcm_pointer);
   }

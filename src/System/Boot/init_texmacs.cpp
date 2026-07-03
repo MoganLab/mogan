@@ -66,9 +66,12 @@ extern int    geometry_x, geometry_y;
 extern url    tm_init_file;
 extern url    tm_init_buffer_file;
 extern string my_init_cmds;
-extern bool   char_clip;
-extern bool   texmacs_started;
-extern bool   headless_mode;
+#ifdef QTTEXMACS
+// char_clip defined in qt_gui.cpp
+extern bool char_clip;
+#endif
+extern bool texmacs_started;
+extern bool headless_mode;
 
 #ifdef QTTEXMACS
 bool        g_startup_login_requested= false;
@@ -178,10 +181,12 @@ init_texmacs_path (int& argc, char** argv) {
   // so just allow everything that is reachable.
 
   // plugins need to be installed in TeXmacs.app/Contents/Plugins
+#ifdef QTTEXMACS
   QCoreApplication::addLibraryPath (QDir::cleanPath (
       QCoreApplication::applicationDirPath ().append ("/../Plugins")));
   // cout << from_qstring ( QCoreApplication::libraryPaths () .join("\n") ) <<
   // LF;
+#endif
   {
     // ensure that private versions of the Qt frameworks have priority on
     // other instances.
@@ -575,9 +580,11 @@ init_texmacs_front () {
 
 void
 init_texmacs () {
+#ifdef QTTEXMACS
   if (g_startup_login_executed == true) {
     return;
   }
+#endif
 
   // cout << "Initialize -- Boot lock\n";
   acquire_boot_lock ();
@@ -787,8 +794,10 @@ TeXmacs_main (int argc, char** argv) {
       }
       else if (s == "-server") start_server_flag= true;
       else if (s == "-log-file") i++;
+#ifdef QTTEXMACS
       else if ((s == "-Oc") || (s == "-no-char-clipping")) char_clip= false;
       else if ((s == "+Oc") || (s == "-char-clipping")) char_clip= true;
+#endif
       else if ((s == "-S") || (s == "-setup") || (s == "-delete-cache") ||
                (s == "-delete-font-cache") || (s == "-delete-style-cache") ||
                (s == "-delete-file-cache") || (s == "-delete-doc-cache") ||

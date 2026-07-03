@@ -13,7 +13,9 @@
 #define TM_SERVER_H
 
 #include "../Mogan/app_type.hpp"
+#ifdef QTTEXMACS
 #include "QTMOAuth.hpp"
+#endif
 #include "tm_buffer.hpp"
 #include "tm_config.hpp"
 #include "tm_data.hpp"
@@ -52,11 +54,14 @@ public:
   void   shell (string s);
   void   login ();
   bool   is_logged_in ();
-
+#ifdef QTTEXMACS
   QTMOAuth* getAccount () const { return m_account; }
+#endif
 
+#ifdef QTTEXMACS
 private:
   QTMOAuth* m_account= nullptr;
+#endif
 };
 
 #endif // defined TM_SERVER_H

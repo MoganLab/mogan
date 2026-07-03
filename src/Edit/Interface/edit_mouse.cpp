@@ -19,9 +19,11 @@
 #include "observer.hpp"
 #include "observers.hpp"
 #include "path.hpp"
+#ifdef QTTEXMACS
 #include "qapplication.h"
 #include "qnamespace.h"
 #include "qt_simple_widget.hpp"
+#endif
 #include "scheme.hpp"
 #include "sys_utils.hpp"
 #include "tm_buffer.hpp"
@@ -258,8 +260,8 @@ edit_interface_rep::mouse_adjust (SI x, SI y, int mods) {
     get_scroll_position (this, sx, sy);
     ox-= sx;
     oy-= sy;
-#endif
     set_position (popup_win, wx + ox + x, wy + oy + y);
+#endif
     set_visibility (popup_win, true);
     send_keyboard_focus (this);
     send_mouse_grab (popup_wid, true);
@@ -344,6 +346,7 @@ edit_interface_rep::set_pointer (string curs_name, string mask_name) {
 // https://doc.qt.io/qt-5.15/qcursor.html
 void
 edit_interface_rep::set_cursor_style (string style_name) {
+#ifdef QTTEXMACS
   QWidget* mainwindow= QApplication::activeWindow ();
   if (mainwindow == nullptr) return;
   if (style_name == "openhand") mainwindow->setCursor (Qt::OpenHandCursor);
@@ -367,6 +370,7 @@ edit_interface_rep::set_cursor_style (string style_name) {
     mainwindow->setCursor (Qt::SizeFDiagCursor);
   else if (style_name == "size_all") mainwindow->setCursor (Qt::SizeAllCursor);
   else TM_FAILED ("invalid cursor style");
+#endif
 }
 
 /******************************************************************************
@@ -947,14 +951,18 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     path path_of_image_parent= path_up (current_path);
     tree tree_of_image_parent= subtree (et, path_of_image_parent);
     if (should_show_image_popup (tree_of_image_parent)) {
+#ifdef QTTEXMACS
       show_image_popup (tree_of_image_parent, selr, magf, get_scroll_x (),
                         get_scroll_y (), get_canvas_x (), get_canvas_y ());
+#endif
     }
     hide_text_popup ();
   }
   else {
     set_cursor_style ("normal");
+#ifdef QTTEXMACS
     hide_image_popup ();
+#endif
 
     // 检查是否应该显示文本工具栏
     update_text_popup ();
@@ -978,8 +986,10 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
   if (type == "rotate") eval ("(pinch-rotate " * as_string (-data[0]) * ")");
   if (starts (type, "press-")) {
     prev_math_comb= "";
+#ifdef QTTEXMACS
     hide_math_completion_popup ();
     hide_completion_popup ();
+#endif
   }
 
   // if (inside_graphics (false)) {
@@ -1282,28 +1292,34 @@ edit_interface_rep::get_text_selection_rect () {
 void
 edit_interface_rep::show_text_popup (rectangle selr, double magf, int scroll_x,
                                      int scroll_y, int canvas_x, int canvas_y) {
+#ifdef QTTEXMACS
   // 通过qt_simple_widget显示文本工具栏
   // 使用dynamic_cast进行安全的类型转换
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
     qsw->show_text_popup (selr, magf, scroll_x, scroll_y, canvas_x, canvas_y);
   }
   // 如果转换失败，静默返回（非Qt环境）
+#endif
 }
 
 void
 edit_interface_rep::hide_text_popup () {
+#ifdef QTTEXMACS
   // 通过qt_simple_widget隐藏文本工具栏
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
     qsw->hide_text_popup ();
   }
+#endif
 }
 
 bool
 edit_interface_rep::is_point_in_text_popup (SI x, SI y) {
+#ifdef QTTEXMACS
   // 通过qt_simple_widget检查点是否在文本工具栏内
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
     return qsw->is_point_in_text_popup (x, y);
   }
+#endif
   return false;
 }
 
