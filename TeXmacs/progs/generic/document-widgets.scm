@@ -299,15 +299,15 @@
                            ) ;enum
                          ) ;item
                 ) ;aligned
-                (when (== range "Custom range")
+                (when (== range "Custom")
                   (aligned (item (text "Range:")
-                             (hlist (input (set! rfrom answer) "string" (list rfrom) "3em")
+                             (hlist (input (set! rfrom answer) "string" (list rfrom) "2em")
                                //
                                //
                                (text "~")
                                //
                                //
-                               (input (set! rto answer) "string" (list rto) "3em")
+                               (input (set! rto answer) "string" (list rto) "2em")
                              ) ;hlist
                            ) ;item
                   ) ;aligned
