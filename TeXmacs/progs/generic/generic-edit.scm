@@ -1225,12 +1225,6 @@
   ) ;when
 ) ;tm-define
 (tm-define (kbd-paste-verbatim) (clipboard-paste-import "verbatim" "primary"))
-(tm-define (kbd-paste-dispatch)
-  (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
-    (kbd-magic-paste)
-    (kbd-paste)
-  ) ;if
-) ;tm-define
 (tm-define (kbd-cancel) (clipboard-clear "primary"))
 
 ;; ocr-paste
@@ -1470,13 +1464,6 @@
   (when (defined? 'tutorial-notify-action)
     (tutorial-notify-action "ocr-paste")
   ) ;when
-) ;tm-define
-
-(tm-define (kbd-magic-paste-dispatch)
-  (if (== (get-preference "magic-paste-shortcut") "ctrl+v")
-    (kbd-paste)
-    (kbd-magic-paste)
-  ) ;if
 ) ;tm-define
 
 (tm-define (any-image-context?)

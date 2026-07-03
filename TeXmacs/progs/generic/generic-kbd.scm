@@ -786,9 +786,7 @@
   ("std s" (save-buffer))
   ("std S" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
   ("std u" (toggle-underlined))
-  ("std v" (kbd-paste-dispatch))
   ("std A-v" (interactive-paste-special))
-  ("std V" (kbd-magic-paste-dispatch))
   ("std w" (close-document))
   ("std W" (close-document*))
   ("std x" (kbd-cut))
@@ -818,4 +816,10 @@
   ;; added for convenience
   ("search std F" (search-next-match #f))
 ) ;kbd-map
+
+;; std v / std V 按偏好绑死，避免 dispatch 中间层导致菜单快捷键反查失败（参见 devel/0394.md）
+(if (== (get-preference "magic-paste-shortcut") "ctrl+v")
+  (kbd-map ("std v" (kbd-magic-paste)) ("std V" (kbd-paste)))
+  (kbd-map ("std v" (kbd-paste)) ("std V" (kbd-magic-paste)))
+) ;if
 ;; added for convenience
