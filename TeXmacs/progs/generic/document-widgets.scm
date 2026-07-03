@@ -262,18 +262,25 @@
         ) ;
     (initial-set u "page-first" "1")
     (when (= next 1)
-      (initial-set-tree u "pn-g0" '(macro (value "page-nr"))) ; 底层 pn-g0 宏，直接显示 page-nr 宏
+      (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
+; 底层 pn-g0 宏，直接显示 page-nr 宏
     ) ;when
     (if (== nt "blank")
-        (initial-set-tree u l-name '(macro "")) ; 构建 pn-lx 宏，此时永远不显示页码
+        (initial-set-tree u l-name '(macro ""))
+; 构建 pn-lx 宏，此时永远不显示页码
         (begin
-          (initial-set-tree u m-name (make-pn-m-stree m-name ps)) ; 构建 pn-mx 宏，利用 ps 计算当前相对页码
-          (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt)) ; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
+          (initial-set-tree u m-name (make-pn-m-stree m-name ps))
+; 构建 pn-mx 宏，利用 ps 计算当前相对页码
+          (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt))
+; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
         ) ;begin
     ) ;if
-    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe)) ; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
-    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name)))) ; 重定向 page-the-page 宏到顶层 pn-gx 宏
-    (initial-set u "pn-next" (number->string (+ next 1))) ; 更新 pn-next 宏，索引更新
+    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe))
+; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
+    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name))))
+; 重定向 page-the-page 宏到顶层 pn-gx 宏
+    (initial-set u "pn-next" (number->string (+ next 1)))
+; 更新 pn-next 宏，索引更新
     (refresh-window)
   ) ;let*
 ) ;define
