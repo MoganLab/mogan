@@ -262,76 +262,70 @@
         ) ;
     (initial-set u "page-first" "1")
     (when (= next 1)
-      (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
-;; 底层 pn-g0 宏，直接显示 page-nr 宏
+      (initial-set-tree u "pn-g0" '(macro (value "page-nr"))) ;; 底层 pn-g0 宏，直接显示 page-nr 宏
     ) ;when
     (if (== nt "blank")
-        (initial-set-tree u l-name '(macro ""))
-;; 构建 pn-lx 宏，此时永远不显示页码
-        (begin
-          (initial-set-tree u m-name (make-pn-m-stree m-name ps))
-;; 构建 pn-mx 宏，利用 ps 计算当前相对页码
-          (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt))
-;; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
-        ) ;begin
+      (initial-set-tree u l-name '(macro "")) ;; 构建 pn-lx 宏，此时永远不显示页码
+      (begin
+        (initial-set-tree u m-name (make-pn-m-stree m-name ps)) ;; 构建 pn-mx 宏，利用 ps 计算当前相对页码
+        (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt)) ;; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
+      ) ;begin
     ) ;if
-    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe))
-;; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
-    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name))))
-;; 重定向 page-the-page 宏到顶层 pn-gx 宏
-    (initial-set u "pn-next" (number->string (+ next 1)))
-;; 更新 pn-next 宏，索引更新
+    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe)) ;; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
+    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name)))) ;; 重定向 page-the-page 宏到顶层 pn-gx 宏
+    (initial-set u "pn-next" (number->string (+ next 1))) ;; 更新 pn-next 宏，索引更新
     (refresh-window)
   ) ;let*
 ) ;define
 
 (tm-widget ((page-number-style-editor u) quit)
-  (let* ((range "Whole document")
-         (rfrom "")
-         (rto "")
-         (nt "arabic")
-        ) ;
-    (centered
-      (refreshable "page-number-range-editor"
-        (aligned (item (text "Applying range:")
-                   (enum (begin
-                           (set! range answer)
-                           (refresh-now "page-number-range-editor"))
-                     '("Whole document" "Custom range")
-                     range
-                     "10em"
-                   ) ;enum
-                 ) ;item
-               ) ;aligned
-        (when (== range "Custom range")
-          (aligned
-            (item (text "Applying from:") (input (set! rfrom answer) "string" (list rfrom) "6em"))
-            (item (text "Applying to:") (input (set! rto answer) "string" (list rto) "6em"))
-          ) ;aligned
-        ) ;when
-        (aligned
-          (item (text "Number style:")
-            (enum (set! nt
-                    (cond ((== answer "1, 2, 3") "arabic")
-                          ((== answer "i, ii, iii") "roman")
-                          ((== answer "I, II, III") "Roman")
-                          ((== answer "一, 二, 三") "hanzi")
-                          ((== answer "(blank page number)") "blank")
-                          (else answer)
-                    ) ;cond
-                  ) ;set!
-              '("1, 2, 3" "i, ii, iii" "I, II, III" "一, 二, 三" "(blank page number)")
-              (cond ((== nt "arabic") "1, 2, 3")
-                    ((== nt "roman") "i, ii, iii")
-                    ((== nt "Roman") "I, II, III")
-                    ((== nt "hanzi") "一, 二, 三")
-                    ((== nt "blank") "(blank page number)")
-                    (else nt))
-              "10em"
-            ) ;enum
-          ) ;item
-        ) ;aligned
-      ) ;refreshable
+  (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
+    (centered (refreshable "page-number-range-editor"
+                (aligned (item (text "Applying range:")
+                           (enum (begin
+                                   (set! range answer)
+                                   (refresh-now "page-number-range-editor")
+                                 ) ;begin
+                             '("Whole document" "Custom range")
+                             range
+                             "10em"
+                           ) ;enum
+                         ) ;item
+                ) ;aligned
+                (when (== range "Custom range")
+                  (aligned (item (text "Applying from:")
+                             (input (set! rfrom answer) "string" (list rfrom) "6em")
+                           ) ;item
+                    (item (text "Applying to:") (input (set! rto answer) "string" (list rto) "6em"))
+                  ) ;aligned
+                ) ;when
+                (aligned (item (text "Number style:")
+                           (enum (set! nt
+                                   (cond ((== answer "1, 2, 3") "arabic")
+                                         ((== answer "i, ii, iii") "roman")
+                                         ((== answer "I, II, III") "Roman")
+                                         ((== answer "一, 二, 三") "hanzi")
+                                         ((== answer "(blank page number)") "blank")
+                                         (else answer)
+                                   ) ;cond
+                                 ) ;set!
+                             '("1, 2, 3"
+                               "i, ii, iii"
+                               "I, II, III"
+                               "一, 二, 三"
+                               "(blank page number)")
+                             (cond ((== nt "arabic") "1, 2, 3")
+                                   ((== nt "roman") "i, ii, iii")
+                                   ((== nt "Roman") "I, II, III")
+                                   ((== nt "hanzi") "一, 二, 三")
+                                   ((== nt "blank") "(blank page number)")
+                                   (else nt)
+                             ) ;cond
+                             "10em"
+                           ) ;enum
+                         ) ;item
+                ) ;aligned
+              ) ;refreshable
     ) ;centered
     ======
     (explicit-buttons (hlist >>>
@@ -341,7 +335,8 @@
                        ("Ok"
                          (let* ((ps (if (== range "Whole document") "1" rfrom))
                                 (pe (if (== range "Whole document") '(page-the-total) rto))
-                                (filled? (lambda (s) (or (pair? s) (!= s "")))))
+                                (filled? (lambda (s) (or (pair? s) (!= s ""))))
+                               ) ;
                            (when (and (filled? ps) (filled? pe) (filled? nt))
                              (assign-page-number u ps pe nt)
                              (quit)
