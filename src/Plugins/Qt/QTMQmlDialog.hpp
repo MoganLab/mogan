@@ -26,8 +26,10 @@
  *   - live=true：用户改动走 QML → bridge → glue → scm setter，实时预览。
  *     @b 红线：setter 禁止任何模态操作（不弹对话框、不嵌套 exec()），否则破坏
  *     scheme continuation 栈；且 live=true 接受「Cancel 无法回滚」。
- *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel 放弃。
- * - @b 控件类型：enum / input / checkbox / color / number，按相同字段节点结构扩展。
+ *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel
+ * 放弃。
+ * - @b 控件类型：enum / input / checkbox / color /
+ * number，按相同字段节点结构扩展。
  *
  * @par key 的维护位置（编译隔离的核心）
  * - 所有 preference key 全部定义在 scm 侧常量 module（pref-keys.scm，
@@ -36,8 +38,10 @@
  *   改 key / 加字段 / 调可选项只动 scm，永不重编译 cpp。
  *
  * @par 数据协议（scm → cpp）
- * 传输格式为 scheme tree（glue 自动转 C++ tree，cpp 遍历 children 解析，
- * 不引入 JSON）。字段节点结构（按 type 取不同形）：
+ * scm 侧用 quasiquote 构造字段表（stree，scheme 列表），glue 入参需 mogan
+ * tree， 故调用方须 @c stree->tree 转换：(cpp-form-dialog (stree->tree
+ * fields))。 cpp 遍历 tree children 解析，不引入 JSON。字段节点结构（按 type
+ * 取不同形）：
  * @code
  *   (enum     <label> <key> (<option> ...) <value> <live?>)
  *   (input    <label> <key> <value> <live?>)
@@ -57,26 +61,28 @@
  * 用 childrenRect 兜底，避免 Repeater 布局未完成时读到半成品尺寸）。
  *
  * @par OK 返回值（cpp → scm）
- * 用户点 OK，cpp 返回 tree（(key value) 列表，value 均 string，与传输格式同构）：
+ * 用户点 OK，cpp 返回 mogan tree，tree->stree 后形如（value 均 string）：
  * @code
- *   (result (<key> <value>) ...)
+ *   (tuple (tuple <key> <value>) ...)
  * @endcode
- * scm 收到后 for-each 调 set-pretty-preference 统一写回；
- * Cancel / 关闭返回空，scm 不写回。
+ * scm 侧 tree->stree 转回 scheme 列表后，用 cadr/caddr 解构每个 kv
+ * （mogan tree 非 scheme pair，不可直接 car/cadr）。Cancel / 关闭返回空
+ * tree，cdr 得 ()，for-each 安全 no-op，scm 不写回。
  *
  * @par glue 注册
  * 新增弹窗按 cpp_confirm_close 的模式，两处改动：
  * - src/Scheme/Glue/glue_basic.lua：加 {scm_name, cpp_name, ret_type, arg_list}
  * - TeXmacs/progs/prog/glue-symbols.scm：在符号列表加 scm_name
- * tree 类型在 glue 中已被广泛支持（ret_type / arg_list 均可；注意 tree、content、
- * scheme_tree 三种别名的差异，混用会运行期 segfault）。
+ * tree 类型在 glue 中已被广泛支持（ret_type / arg_list 均可；注意
+ * tree、content、 scheme_tree 三种别名的差异，混用会运行期 segfault）。
  *
  * @par 实现进度（TODO）
  * - @b 进行中：scm key 常量 module（pref-keys.scm）、cpp form 引擎与
  *   FormDialog.qml、enum 控件、OK 返回 tree、glue 注册 cpp-form-dialog。
  * - @b TODO 控件类型：input / checkbox / color / number。
  * - @b TODO live=true 实时回写链路（bridge 信号 → glue → scm setter；QML 侧
- *   需 debounce throttle，避免 color picker / SpinBox 拖动时高频回调压垮主线程）。
+ *   需 debounce throttle，避免 color picker / SpinBox
+ * 拖动时高频回调压垮主线程）。
  * - @b TODO QML 视觉骨架复用（第三个 QML 弹窗时抽 DialogBase.qml）。
  *
  * @note 完整设计文档见 record/qml/plan.md。本头文件不含 Qt 头，可安全被
@@ -88,6 +94,7 @@
 
 #include "array.hpp"
 #include "string.hpp"
+#include "tree.hpp"
 
 // 通用 QML 模态对话框：加载 qml_url 指向的 QML 文档，把 message 作为正文、
 // buttons 作为按钮文案注入（context property 名见 QTMQmlDialog.cpp），
@@ -101,5 +108,13 @@ int qt_show_qml_dialog (string qml_url, string message, array<string> buttons);
 // 「确认关闭」弹窗。返回 "Save" / "Don't save" / "Cancel" 之一。
 // message 为已翻译好的正文；scratch 为真时肯定按钮显示「另存为」。
 string cpp_confirm_close (string message, bool scratch);
+
+// 通用 form 弹窗引擎。fields 为 scm 构造的字段表 tree（结构见顶部 @par
+// 数据协议）：
+//   (form (enum <label> <key> (<option>...) <value> <live?>) ...)
+// 解析后注入 FormDialog.qml 渲染，exec() 阻塞；用户点 OK 返回 tree
+//   ((<key> <value>) ...)   // value 均 string
+// Cancel / 关闭返回空 tree ()。cpp 对 key/value 纯透传，不做业务解释。
+tree cpp_form_dialog (tree fields);
 
 #endif // defined QTM_QML_DIALOG_H
