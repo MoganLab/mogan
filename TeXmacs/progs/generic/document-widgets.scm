@@ -293,7 +293,7 @@
                                    (set! range answer)
                                    (refresh-now "page-number-range-editor")
                                  ) ;begin
-                             '("Whole document" "Custom range")
+                             '("Whole document" "Custom")
                              range
                              "10em"
                            ) ;enum
