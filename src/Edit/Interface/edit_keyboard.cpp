@@ -59,10 +59,14 @@ edit_interface_rep::set_input_normal () {
   set_input_mode (INPUT_NORMAL);
 
   if (prev_input_mode == INPUT_COMPLETE) {
+#ifdef QTTEXMACS
     hide_completion_popup ();
+#endif
   }
   prev_math_comb= "";
+#ifdef QTTEXMACS
   hide_math_completion_popup ();
+#endif
 }
 
 bool
@@ -167,11 +171,15 @@ edit_interface_rep::try_shortcut (string comb) {
       return true;
     }
     prev_math_comb= "";
+#ifdef QTTEXMACS
     hide_math_completion_popup ();
+#endif
     return true;
   }
   prev_math_comb= "";
+#ifdef QTTEXMACS
   hide_math_completion_popup ();
+#endif
   return false;
 }
 
@@ -192,9 +200,11 @@ edit_interface_rep::math_complete_try (string comb) {
       cu         = eb->find_check_cursor (previous_valid (et, tp));
       last_cursor= cu;
     }
+#ifdef QTTEXMACS
     set_math_completion_popup (wid);
     show_math_completion_popup (cu, magf, get_scroll_x (), get_scroll_y (),
                                 get_canvas_x ());
+#endif
     prev_math_comb= comb;
   }
 }
