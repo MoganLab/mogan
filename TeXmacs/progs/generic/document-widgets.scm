@@ -252,7 +252,7 @@
   ) ;let
 ) ;define
 
-(define (assign-page-number u pf ps pe nt)
+(define (assign-page-number u ps pe nt)
   (let* ((seed (string->number (initial-get u "pn-next")))
          (next (if (and (integer? seed) (>= seed 1)) seed 1))
          (m-name (pn-name "pn-m" next))
@@ -262,13 +262,18 @@
         ) ;
     (initial-set u "page-first" "1")
     (when (= next 1)
-      (initial-set-tree u "pn-g0" '(macro (value "page-nr")))
+      (initial-set-tree u "pn-g0" '(macro (value "page-nr"))) ; 底层 pn-g0 宏，直接显示 page-nr 宏
     ) ;when
-    (initial-set-tree u m-name (make-pn-m-stree m-name pf))
-    (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt))
-    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe))
-    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name))))
-    (initial-set u "pn-next" (number->string (+ next 1)))
+    (if (== nt "blank")
+        (initial-set-tree u l-name '(macro "")) ; 构建 pn-lx 宏，此时永远不显示页码
+        (begin
+          (initial-set-tree u m-name (make-pn-m-stree m-name ps)) ; 构建 pn-mx 宏，利用 ps 计算当前相对页码
+          (initial-set-tree u l-name (make-pn-l-stree l-name m-name nt)) ; 构建 pn-lx 宏，利用 pn-mx 宏判断：当相对页码小于 1 时不显示，否则按照样式 nt 显示
+        ) ;begin
+    ) ;if
+    (initial-set-tree u g-name (make-pn-g-stree g-name prev-g-name l-name ps pe)) ; 构建 pn-gx 宏，若在当前 ps~pe 范围内，则显示 pn-lx 宏，否则 fallback 到下一层 pn-g(x-1) 宏
+    (initial-set-tree u "page-the-page" `(macro (,(string->symbol g-name)))) ; 重定向 page-the-page 宏到顶层 pn-gx 宏
+    (initial-set u "pn-next" (number->string (+ next 1))) ; 更新 pn-next 宏，索引更新
     (refresh-window)
   ) ;let*
 ) ;define
@@ -277,7 +282,7 @@
   (let* ((range "Whole document")
          (rfrom "")
          (rto "")
-         (rstyle "arabic")
+         (nt "arabic")
         ) ;
     (centered
       (refreshable "page-number-range-editor"
@@ -299,7 +304,7 @@
         ) ;when
         (aligned
           (item (text "Number style:")
-            (enum (set! rstyle
+            (enum (set! nt
                     (cond ((== answer "1, 2, 3") "arabic")
                           ((== answer "i, ii, iii") "roman")
                           ((== answer "I, II, III") "Roman")
@@ -309,12 +314,12 @@
                     ) ;cond
                   ) ;set!
               '("1, 2, 3" "i, ii, iii" "I, II, III" "一, 二, 三" "(blank page number)")
-              (cond ((== rstyle "arabic") "1, 2, 3")
-                    ((== rstyle "roman") "i, ii, iii")
-                    ((== rstyle "Roman") "I, II, III")
-                    ((== rstyle "hanzi") "一, 二, 三")
-                    ((== rstyle "blank") "(blank page number)")
-                    (else rstyle))
+              (cond ((== nt "arabic") "1, 2, 3")
+                    ((== nt "roman") "i, ii, iii")
+                    ((== nt "Roman") "I, II, III")
+                    ((== nt "hanzi") "一, 二, 三")
+                    ((== nt "blank") "(blank page number)")
+                    (else nt))
               "10em"
             ) ;enum
           ) ;item
@@ -328,12 +333,10 @@
                        //
                        ("Ok"
                          (let* ((ps (if (== range "Whole document") "1" rfrom))
-                                (pe (if (== range "Whole document") (number->string (get-page-count)) rto))
-                                (pf (if (== rstyle "blank") (number->string (+ (string->number pe) 1)) ps))
-                                (nt (if (== rstyle "blank") "arabic" rstyle))
-                                (filled? (lambda (s) (and (string? s) (!= s "")))))
-                           (when (and (filled? pf) (filled? ps) (filled? pe) (filled? nt))
-                             (assign-page-number u pf ps pe nt)
+                                (pe (if (== range "Whole document") '(page-the-total) rto))
+                                (filled? (lambda (s) (or (pair? s) (!= s "")))))
+                           (when (and (filled? ps) (filled? pe) (filled? nt))
+                             (assign-page-number u ps pe nt)
                              (quit)
                            ) ;when
                          ) ;let*
