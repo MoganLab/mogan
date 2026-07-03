@@ -38,8 +38,11 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   // 无边框 + 透明背景：圆角由 QML Rectangle 自绘（自带抗锯齿）。
   // 所有窗口属性在构造时传入，并在 show/exec 前 setAttribute，避免 macOS
   // 上透明窗口初始化时闪屏。
-  QDialog d (QApplication::activeWindow (),
-             Qt::FramelessWindowHint | Qt::Dialog);
+  //
+  // 用 Qt::Tool + nullptr 而非 Qt::Dialog + activeWindow 父：后者在 exec()
+  // 期间会让 qwindowkitty 把主窗口标签栏 hit-test 误判为 HTBORDER，弹窗关闭
+  // 后标签栏拖动失效。
+  QDialog d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
   d.setAttribute (Qt::WA_TranslucentBackground);
   d.setAttribute (Qt::WA_NativeWindow);
   // 反制 liii.css 里通用 QDialog 规则（background / border / min-size /
