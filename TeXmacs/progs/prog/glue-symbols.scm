@@ -727,6 +727,7 @@
     "clone-window"
     "cpp-buffer-close"
     "cpp-confirm-close"
+    "cpp-form-dialog"
     "kill-window"
     "kill-current-window-and-buffer"
     "project-attach"

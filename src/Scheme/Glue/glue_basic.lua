@@ -1798,6 +1798,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-form-dialog",
+                cpp_name = "cpp_form_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "tree"
+                }
+            },
+            {
                 scm_name = "kill-window",
                 cpp_name = "kill_window",
                 ret_type = "void",
