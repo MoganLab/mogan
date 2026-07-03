@@ -9,6 +9,7 @@
 
 #include "QTMQmlDialog.hpp"
 #include "QTMQmlDialogBridge.hpp"
+#include "QTMQmlDialogInternal.hpp"
 
 #include "analyze.hpp" // occurs
 #include "gui.hpp"     // tm_style_sheet
@@ -177,16 +178,16 @@ cpp_confirm_close (string message, bool scratch) {
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
 // (<type> <label> <key> (<options>...) <value> <live?>)
 // label/key/value 的位置在 form 引擎多处使用，集中在此避免魔法下标散落。
-static const int FIELD_LABEL  = 0;
-static const int FIELD_KEY    = 1;
-static const int FIELD_OPTIONS= 2;
-static const int FIELD_VALUE  = 3;
-static const int FIELD_LIVE   = 4;
+const int FIELD_LABEL  = 0;
+const int FIELD_KEY    = 1;
+const int FIELD_OPTIONS= 2;
+const int FIELD_VALUE  = 3;
+const int FIELD_LIVE   = 4;
 
 /**
  * @brief 字段节点是否形状合法（compound 且至少含到 value 的位置）。
  */
-static inline bool
+bool
 field_valid (tree f) {
   return is_compound (f) && N (f) > FIELD_VALUE;
 }
@@ -194,7 +195,7 @@ field_valid (tree f) {
 /**
  * @brief 取字段节点的 key 子树（透传，不拷贝字符串）。
  */
-static inline tree
+tree
 field_key (tree f) {
   return f[FIELD_KEY];
 }
@@ -202,7 +203,7 @@ field_key (tree f) {
 /**
  * @brief 取字段节点的 value 子树（透传）。
  */
-static inline tree
+tree
 field_value (tree f) {
   return f[FIELD_VALUE];
 }
@@ -214,20 +215,23 @@ field_value (tree f) {
  *
  * label/key/value 纯透传，不做翻译或类型转换（value 在 scm 侧已 string 化）。
  */
-static QVariantMap
+QVariantMap
 field_tree_to_qml (tree f) {
   QVariantMap m;
   if (!field_valid (f)) return m;
-  m["type"] = to_qstring (f->label);
-  m["label"]= to_qstring (f[FIELD_LABEL]->label);
-  m["key"]  = to_qstring (field_key (f)->label);
+  // compound 节点的字符串 label 须经 get_label 取（->label 对 compound 读的是
+  // union 里被 children array 占用的内存，是乱码）。atomic 子节点 get_label
+  // 等价于 ->label。
+  m["type"] = to_qstring (get_label (f));
+  m["label"]= to_qstring (get_label (f[FIELD_LABEL]));
+  m["key"]  = to_qstring (get_label (field_key (f)));
   if (is_compound (f[FIELD_OPTIONS])) {
     QVariantList opts;
     for (int i= 0; i < N (f[FIELD_OPTIONS]); i++)
-      opts << to_qstring (f[FIELD_OPTIONS][i]->label);
+      opts << to_qstring (get_label (f[FIELD_OPTIONS][i]));
     m["options"]= opts;
   }
-  m["value"]= to_qstring (field_value (f)->label);
+  m["value"]= to_qstring (get_label (field_value (f)));
   m["live"] = (N (f) > FIELD_LIVE && f[FIELD_LIVE]->label == "true");
   return m;
 }

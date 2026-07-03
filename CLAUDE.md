@@ -118,6 +118,29 @@ MOGAN_TEST_GUI=1 xmake r <test名>
 save/编辑污染检入副本。配合 `#ifdef LIII_DEBUG` 的临时日志定位根因
 （参考 `TeXmacs/tests/2014.scm`）。
 
+### Scheme 诊断
+
+1. **纯 scheme 逻辑用 `gf eval` 快速验证**：不依赖 mogan 内置（`translate` /
+   `get-pretty-preference` 等 tm 库）的纯函数，可用项目自带的 Goldfish Scheme
+   解释器直接跑，秒级反馈，无需构建 mogan：
+   ```bash
+   gf eval '(define (f x) `(a ,x)) (display (f 1)) (newline)'
+   ```
+   适合验证 quasiquote、列表处理等纯语言行为。
+
+2. **mogan scheme 列表字面量在求值位置会被求值**：裸写 `("a" "b")` 出现在
+   函数实参位置时，car `"a"` 被当函数应用而崩（`string ref: too many
+   indices`）。传常量列表必须 quote：`(f key '("a" "b"))`。quasiquote 内无
+   前置 `,` 的列表字面量原样保留，可裸写。
+
+3. **需 mogan 内置的脚本用真实二进制跑**：依赖 tm 库的诊断脚本，写临时
+   `.scm` 文件，用构建产物加载：
+   ```bash
+   TEXMACS_PATH=$(pwd)/TeXmacs \
+     build/macosx/arm64/release/MoganSTEM.app/Contents/MacOS/MoganSTEM \
+     -headless -d -x "(load \"/tmp/diag.scm\")"
+   ```
+
 ## 构建命令
 
 主项目构建：`xmake b stem`

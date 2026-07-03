@@ -52,7 +52,7 @@
  * @endcode
  * - @c label：已翻译的文案字符串
  * - @c key：引用 scm 常量的 preference 键名
- * - @c options：可选值列表（enum 专用；value 不在其中时 scm 侧防御性插入）
+ * - @c options：可选值列表（enum 专用；value 不在其中时 scm 侧会防御性插入）
  * - @c value：当前值（统一 string）
  * - @c live：是否实时回写（可省，默认 false）
  *
@@ -79,7 +79,6 @@
  *
  * @par TODO
  * - @b TODO 控件类型：input / checkbox / color / number。
- * - @b TODO enum value 合法性：value 不在 options 时 scm 侧防御性插入。
  * - @b TODO live=true 实时回写链路（bridge 信号 → glue → scm setter；QML 侧需
  *   debounce throttle，避免 color picker / SpinBox 拖动时高频回调压垮主线程）。
  * - @b TODO QML 视觉骨架复用（第三个 QML 弹窗时抽 DialogBase.qml）。

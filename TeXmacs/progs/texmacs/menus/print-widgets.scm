@@ -26,27 +26,48 @@
   ) ;with
 ) ;define
 
+;; 构造一个 enum 字段节点：(enum <label> <key> (<options>...) <value>)。
+;; value 取自当前 preference。若 value 不在 options（preference 被外部设成非标准
+;; 值），把 value 防御性插到 options 首位——保证下拉一定能选中当前值，否则 QML
+;; 侧会显示一个不在选项列表里的值、用户无从下手。
+
+(define (enum-field label key options value)
+  (let ((opts (if (member value options) options (cons value options))))
+    `(enum ,label ,key ,opts ,value)
+  ) ;let
+) ;define
+
 ;; 构造页面设置的字段表 tree（喂给 QML form 引擎）。label 已翻译、value 取自
 ;; 当前 preference、key 引用 pref-keys 函数（函数形式跨模块更可靠）。
 ;; 详见 record/qml/plan.md §6.2。
 
 (define (page-setup-form-tree)
-  `(form (enum ,(translate "Preview command:")
-           ,(pref-page-setup-preview-command)
-           ("default" "ggv" "ghostview" "gv" "kghostview" "open" "")
-           ,(get-pretty-preference (pref-page-setup-preview-command)))
-     (enum ,(translate "Printing command:")
-       ,(pref-page-setup-printing-command)
-       ,(printing-command-list)
-       ,(get-pretty-preference (pref-page-setup-printing-command)))
-     (enum ,(translate "Paper type:")
-       ,(pref-page-setup-paper-type)
-       ("default" "A3" "A4" "A5" "B4" "B5" "B6" "Letter" "Legal" "Executive" "")
-       ,(get-pretty-preference (pref-page-setup-paper-type)))
-     (enum ,(translate "Printer dpi:")
-       ,(pref-page-setup-printer-dpi)
-       ("150" "200" "300" "400" "600" "800" "1200" "2400" "")
-       ,(get-pretty-preference (pref-page-setup-printer-dpi))))
+  `(form ,(enum-field (translate "Preview command:")
+            (pref-page-setup-preview-command)
+            '("default" "ggv" "ghostview" "gv" "kghostview" "open" "")
+            (get-pretty-preference (pref-page-setup-preview-command)))
+     ,(enum-field (translate "Printing command:")
+        (pref-page-setup-printing-command)
+        (printing-command-list)
+        (get-pretty-preference (pref-page-setup-printing-command)))
+     ,(enum-field (translate "Paper type:")
+        (pref-page-setup-paper-type)
+        '("default"
+          "A3"
+          "A4"
+          "A5"
+          "B4"
+          "B5"
+          "B6"
+          "Letter"
+          "Legal"
+          "Executive"
+          "")
+        (get-pretty-preference (pref-page-setup-paper-type)))
+     ,(enum-field (translate "Printer dpi:")
+        (pref-page-setup-printer-dpi)
+        '("150" "200" "300" "400" "600" "800" "1200" "2400" "")
+        (get-pretty-preference (pref-page-setup-printer-dpi))))
 ) ;define
 
 ;; 弹出 QML form 弹窗；用户点 OK 时 cpp-form-dialog 返回 tree（含若干 (key
