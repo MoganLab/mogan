@@ -26,24 +26,33 @@
 #include <QVariantList>
 #include <QVariantMap>
 
-// QML context property：dialogMessage（正文）、dialogButtons（按钮文案数组）、
-// dpScale（DPI 缩放）、isDark（深浅色）。按钮下标从 1 起，0 = 取消（Esc）。
-
+/**
+ * @brief 确认型弹窗的通用 QML 模态对话框。
+ * @param qml_url QML 文档的 qrc 路径。
+ * @param message 已翻译的正文。
+ * @param buttons 按钮文案 key（英文，cpp 侧 qt_translate 翻译）。
+ * @return 用户点选的按钮下标（≥0）；取消 / X / Esc / 加载失败返回 -1。
+ *
+ * @details 实现要点：
+ * - Qt::Tool + nullptr 父（而非 Qt::Dialog + activeWindow）：后者在 exec() 期间
+ *   让 qwindowkitty 把主窗口标签栏 hit-test 误判为 HTBORDER，弹窗后拖动失效。
+ * - 透明背景属性须在 show/exec 前设置，避免 macOS 闪屏。
+ * - setClearColor（QQuickWidget 专属）而非 WA_TranslucentBackground（对它不完全
+ *   生效，默认白色 clear color 会盖住透明、露方角）。
+ * - objectName + 样式反制 liii.css 的通用 QDialog 规则，避免圆角外露方块。
+ * - 三重锁定尺寸：root 无固有 implicit 尺寸，不锁会被 QVBoxLayout 按 sizeHint
+ *   压到约 100x30，只渲染左上角。
+ */
 int
 qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
-  // 激活 qrc（进程内一次性）。
   static const bool resourceInitialized= [] () {
     Q_INIT_RESOURCE (moganqml);
     return true;
   }();
   (void) resourceInitialized;
-  // Qt::Tool + nullptr 父（而非 Qt::Dialog + activeWindow）：后者在 exec() 期间
-  // 让 qwindowkitty 把主窗口标签栏 hit-test 误判为 HTBORDER，弹窗后拖动失效。
-  // 透明背景属性须在 show/exec 前设置，避免 macOS 闪屏。
   QDialog d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
   d.setAttribute (Qt::WA_TranslucentBackground);
   d.setAttribute (Qt::WA_NativeWindow);
-  // objectName + 样式反制 liii.css 的通用 QDialog 规则，避免圆角外露方块。
   d.setObjectName ("QTMQmlDialog");
   d.setStyleSheet ("QDialog#QTMQmlDialog { background: transparent; "
                    "border: none; min-width: 0; min-height: 0; padding: 0; } "
@@ -53,8 +62,6 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
 
   QQuickWidget* qw= new QQuickWidget (&d);
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  // setClearColor（QQuickWidget 专属）而非 WA_TranslucentBackground（对它不完全
-  // 生效，默认白色 clear color 会盖住透明、露方角）。
   qw->setClearColor (Qt::transparent);
   qw->setStyleSheet ("background: transparent;");
 
@@ -78,8 +85,6 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   if (qw->status () != QQuickWidget::Ready) return -1;
 
   vl->addWidget (qw);
-  // 三重锁定尺寸：root 无固有 implicit 尺寸，不锁会被 QVBoxLayout 按 sizeHint
-  // 压到约 100x30，只渲染左上角。
   const int w= DpiUtils::scaled (400);
   const int h= DpiUtils::scaled (150);
   qw->setFixedSize (w, h);
@@ -90,13 +95,21 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   return result > 0 ? result : -1;
 }
 
+/**
+ * @brief 「确认关闭」弹窗的 glue 入口。
+ * @param message 已翻译的正文。
+ * @param scratch 为真时肯定按钮显示「另存为」。
+ * @return "Save" / "Don't save" / "Cancel" 之一。
+ *
+ * @details 按钮顺序为 肯定（Save / Save as）、Don't save、Cancel，对应
+ * qt_show_qml_dialog 返回下标 1/2/3。测试钩子 MOGAN_TEST_CONFIRM_CLOSE 命中时
+ * 直接返回不弹窗。
+ */
 string
 cpp_confirm_close (string message, bool scratch) {
-  // 测试钩子：MOGAN_TEST_CONFIRM_CLOSE 设为 Save/Don't save/Cancel 时直接返回。
   string preset= get_env ("MOGAN_TEST_CONFIRM_CLOSE");
   if (preset == "Save" || preset == "Don't save" || preset == "Cancel")
     return preset;
-  // 按钮：肯定（保存/另存为）、不保存、取消 → 下标 1/2/3。
   array<string> buttons;
   buttons << string (scratch ? "Save as" : "Save");
   buttons << string ("Don't save");
@@ -140,17 +153,18 @@ field_tree_to_qml (tree f) {
 
 /**
  * @brief 通用 form 弹窗引擎。
- * @param fields 字段表 tree：(form <field>...)。
- * @return 用户点 OK 返回 ((key value) ...)；Cancel / 关闭返回空 tree。
+ * @param fields 字段表 tree：(form <field>...)，调用方须 stree->tree 转换。
+ * @return 用户点 OK 返回 (tuple (tuple key value) ...)；Cancel / 关闭返回空 tree。
  *
- * QDialog 拼装与 qt_show_qml_dialog 同源（无边框 + 透明，避免 macOS 闪屏与
- * 标签栏 hit-test 误判）。尺寸由 QML root 自报（× DPI），动态字段场景需
- * childrenRect 兜底。
+ * @details 实现要点：
+ * - 测试钩子 MOGAN_TEST_FORM_DIALOG=ok/cancel 命中时不弹窗，供自动化测试。
+ * - QDialog 拼装与 qt_show_qml_dialog 同源（无边框 + 透明，避免 macOS 闪屏与
+ *   标签栏 hit-test 误判）。
+ * - 尺寸由 QML root 自报（× DPI），动态字段场景需 childrenRect 兜底（首案
+ *   字段静态，Ready 后已稳定）。QML 加载失败返回空 tree，开发期直接暴露。
  */
 tree
 cpp_form_dialog (tree fields) {
-  // 测试钩子：MOGAN_TEST_FORM_DIALOG=cancel 返回空 tree（模拟 Cancel）；
-  // =ok 返回字段表当前值（模拟 OK，不弹窗）。供 TeXmacs/tests/2023.scm 自动化。
   string preset= get_env ("MOGAN_TEST_FORM_DIALOG");
   if (preset == "cancel") return tree (TUPLE);
   if (preset == "ok") {
@@ -159,14 +173,13 @@ cpp_form_dialog (tree fields) {
       for (int i= 0; i < N (fields); i++) {
         if (is_compound (fields[i]) && N (fields[i]) >= 4) {
           tree kv (TUPLE);
-          kv << fields[i][1] << fields[i][3]; // key, value
+          kv << fields[i][1] << fields[i][3];
           r << kv;
         }
       }
     }
     return r;
   }
-  // fields 形如 (form <field>...)；遍历其子节点（字段）。
   QVariantList qmlFields;
   if (is_compound (fields)) {
     for (int i= 0; i < N (fields); i++) {
@@ -207,11 +220,9 @@ cpp_form_dialog (tree fields) {
   qw->rootContext ()->setContextProperty ("isDark", isDark);
 
   qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
-  // QML 加载失败：开发期直接暴露，返回空 tree（scm 不写回）。
   if (qw->status () != QQuickWidget::Ready) return tree (TUPLE);
 
   vl->addWidget (qw);
-  // 读 QML root 自报尺寸（× DPI）；首版字段静态，Ready 后已稳定。
   QQuickItem* root= qw->rootObject ();
   int         w= DpiUtils::scaled (int (root ? root->implicitWidth () : 360));
   int         h= DpiUtils::scaled (int (root ? root->implicitHeight () : 200));
@@ -223,7 +234,6 @@ cpp_form_dialog (tree fields) {
 
   d.exec ();
 
-  // 收集 submit 暂存的结果，构造 ((key value) ...)；Cancel / 关闭返回空 tree。
   tree               r (TUPLE);
   const QVariantMap& res= bridge->results ();
   for (auto it= res.begin (); it != res.end (); ++it) {
