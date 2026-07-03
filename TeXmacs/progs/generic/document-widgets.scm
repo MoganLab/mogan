@@ -274,30 +274,52 @@
 ) ;define
 
 (tm-widget ((page-number-style-editor u) quit)
-  (let* ((pf "")
-         (ps "")
-         (pe "")
-         (nt "arabic")
-         (filled? (lambda (s) (and (string? s) (!= s ""))))
+  (let* ((range "Whole document")
+         (rfrom "")
+         (rto "")
+         (rstyle "arabic")
         ) ;
-    (centered (aligned (item (text "Applying from:") (input (set! ps answer) "string" (list ps) "6em"))
-                (item (text "Applying to:") (input (set! pe answer) "string" (list pe) "6em"))
-                (item (text "First page:") (input (set! pf answer) "string" (list pf) "6em"))
-                (item (text "Number style:")
-                  (enum (set! nt
-                          (cond ((== answer "1, 2, 3") "arabic")
-                                ((== answer "i, ii, iii") "roman")
-                                ((== answer "I, II, III") "Roman")
-                                ((== answer "一, 二, 三") "hanzi")
-                                (else answer)
-                          ) ;cond
-                        ) ;set!
-                    '("1, 2, 3" "i, ii, iii" "I, II, III" "一, 二, 三")
-                    "1, 2, 3"
-                    "10em"
-                  ) ;enum
-                ) ;item
-              ) ;aligned
+    (centered
+      (refreshable "page-number-range-editor"
+        (aligned (item (text "Applying range:")
+                   (enum (begin
+                           (set! range answer)
+                           (refresh-now "page-number-range-editor"))
+                     '("Whole document" "Custom range")
+                     range
+                     "10em"
+                   ) ;enum
+                 ) ;item
+               ) ;aligned
+        (when (== range "Custom range")
+          (aligned
+            (item (text "Applying from:") (input (set! rfrom answer) "string" (list rfrom) "6em"))
+            (item (text "Applying to:") (input (set! rto answer) "string" (list rto) "6em"))
+          ) ;aligned
+        ) ;when
+        (aligned
+          (item (text "Number style:")
+            (enum (set! rstyle
+                    (cond ((== answer "1, 2, 3") "arabic")
+                          ((== answer "i, ii, iii") "roman")
+                          ((== answer "I, II, III") "Roman")
+                          ((== answer "一, 二, 三") "hanzi")
+                          ((== answer "(blank page number)") "blank")
+                          (else answer)
+                    ) ;cond
+                  ) ;set!
+              '("1, 2, 3" "i, ii, iii" "I, II, III" "一, 二, 三" "(blank page number)")
+              (cond ((== rstyle "arabic") "1, 2, 3")
+                    ((== rstyle "roman") "i, ii, iii")
+                    ((== rstyle "Roman") "I, II, III")
+                    ((== rstyle "hanzi") "一, 二, 三")
+                    ((== rstyle "blank") "(blank page number)")
+                    (else rstyle))
+              "10em"
+            ) ;enum
+          ) ;item
+        ) ;aligned
+      ) ;refreshable
     ) ;centered
     ======
     (explicit-buttons (hlist >>>
@@ -305,19 +327,21 @@
                        //
                        //
                        ("Ok"
-                         (when (and (filled? pf) (filled? ps) (filled? pe) (filled? nt))
-                           (assign-page-number u pf ps pe nt)
-                           (quit)
-                         ) ;when
+                         (let* ((ps (if (== range "Whole document") "1" rfrom))
+                                (pe (if (== range "Whole document") (number->string (get-page-count)) rto))
+                                (pf (if (== rstyle "blank") (number->string (+ (string->number pe) 1)) ps))
+                                (nt (if (== rstyle "blank") "arabic" rstyle))
+                                (filled? (lambda (s) (and (string? s) (!= s "")))))
+                           (when (and (filled? pf) (filled? ps) (filled? pe) (filled? nt))
+                             (assign-page-number u pf ps pe nt)
+                             (quit)
+                           ) ;when
+                         ) ;let*
                        ) ;
                       ) ;hlist
     ) ;explicit-buttons
   ) ;let*
 ) ;tm-widget
-
-(define (open-page-number-style-window u)
-  (dialogue-window (page-number-style-editor u) noop "Page number style layer")
-) ;define
 
 (tm-define (set-page-number-style-window-state opened?)
   (set-auxiliary-widget-state opened? 'page-number-style)
