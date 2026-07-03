@@ -27,15 +27,28 @@
 
 (define step-delay-ms 3000)
 
-(define (pref-get key) (get-pretty-preference key))
+(define (pref-get key)
+  (get-pretty-preference key)
+) ;define
 
-(define (pref-set! key val) (set-pretty-preference key val))
+(define (pref-set! key val)
+  (set-pretty-preference key val)
+) ;define
 
-(define (preset-ok!) (system-setenv "MOGAN_TEST_FORM_DIALOG" "ok"))
-(define (preset-cancel!) (system-setenv "MOGAN_TEST_FORM_DIALOG" "cancel"))
-(define (clear-hook!) (system-setenv "MOGAN_TEST_FORM_DIALOG" ""))
+(define (preset-ok!)
+  (system-setenv "MOGAN_TEST_FORM_DIALOG" "ok")
+) ;define
+
+(define (preset-cancel!)
+  (system-setenv "MOGAN_TEST_FORM_DIALOG" "cancel")
+) ;define
+
+(define (clear-hook!)
+  (system-setenv "MOGAN_TEST_FORM_DIALOG" "")
+) ;define
 
 ;; 串异步链：每步在 exec-delayed-at 触发，步间隔 step-delay-ms。
+
 (define (run-chain steps)
   (let loop
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
@@ -46,8 +59,14 @@
                            (display label)
                            (newline)
                            (act)
-                           (loop (cdr rest) (+ (texmacs-time) step-delay-ms)))
-          t)))))
+                           (loop (cdr rest) (+ (texmacs-time) step-delay-ms))
+                         ) ;lambda
+          t
+        ) ;exec-delayed-at
+      ) ;let
+    ) ;when
+  ) ;let
+) ;define
 
 (tm-define (test_2023)
   (run-chain (append
@@ -58,9 +77,14 @@
                (list (cons "diag stree structure (ok)"
                        (lambda ()
                          (preset-ok!)
-                         (let* ((r (cpp-form-dialog (stree->tree (page-setup-form-tree))))
-                                (s (tree->stree r)))
-                           (display "  raw tree->stree: ")(display s)(newline)))))
+                         (let* ((r (cpp-form-dialog (stree->tree (page-setup-form-tree)))) (s (tree->stree r)))
+                           (display "  raw tree->stree: ")
+                           (display s)
+                           (newline)
+                         ) ;let*
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
 
                ;; 1) Cancel：弹窗 Cancel 应不写回（值保持改动前）
                (list (cons "preset=cancel"
@@ -68,7 +92,11 @@
                          (preset-cancel!)
                          (let ((before (pref-get "paper type")))
                            (open-page-setup)
-                           (check-true (equal? (pref-get "paper type") before))))))
+                           (check-true (equal? (pref-get "paper type") before))
+                         ) ;let
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
 
                ;; 2) OK：改值后弹窗，OK 应写回字段表当前值
                (list (cons "preset=ok + change + open (expect writeback)"
@@ -78,11 +106,16 @@
                          (open-page-setup)
                          ;; page-setup-form-tree 在 open-page-setup 内构造，
                          ;; 取当前 preference（A3），OK 写回 A3。
-                         (check-true (equal? (pref-get "paper type") "A3")))))
+                         (check-true (equal? (pref-get "paper type") "A3"))
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
 
                ;; 收尾
                (list (cons "check-report + quit"
-                       (lambda ()
-                         (clear-hook!)
-                         (check-report)
-                         (quit-TeXmacs)))))))
+                       (lambda () (clear-hook!) (check-report) (quit-TeXmacs))
+                     ) ;cons
+               ) ;list
+             ) ;append
+  ) ;run-chain
+) ;tm-define

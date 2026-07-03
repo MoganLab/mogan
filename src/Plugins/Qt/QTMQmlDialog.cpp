@@ -27,30 +27,35 @@
 #include <QVariantMap>
 
 /**
- * @brief 确认型弹窗的通用 QML 模态对话框。
- * @param qml_url QML 文档的 qrc 路径。
- * @param message 已翻译的正文。
- * @param buttons 按钮文案 key（英文，cpp 侧 qt_translate 翻译）。
- * @return 用户点选的按钮下标（≥0）；取消 / X / Esc / 加载失败返回 -1。
+ * @brief QML 加载失败时输出诊断（status / warnings），避免线上 qrc 路径或 QML
+ *        语法回归被静默吞成「点了没反应」。仅在 DEBUG 构建写 debug 流。
+ */
+static void
+log_qml_load_failure (QQuickWidget* qw, const char* qml_path) {
+#ifdef LIII_DEBUG
+  debug_std << "QTMQmlDialog: QML load failed for " << qml_path
+            << ", status=" << (int) qw->status () << LF;
+  for (const QString& w : qw->warnings ())
+    debug_std << "  QML warning: " << from_qstring (w) << LF;
+#endif
+}
+
+/**
+ * @brief 统一拼装无边框透明模态 QDialog + 内嵌 QQuickWidget 的宿主。
  *
- * @details 实现要点：
+ * 两类弹窗（确认型 / form 型）共用同一套窗口外观约束：
  * - Qt::Tool + nullptr 父（而非 Qt::Dialog + activeWindow）：后者在 exec() 期间
  *   让 qwindowkitty 把主窗口标签栏 hit-test 误判为 HTBORDER，弹窗后拖动失效。
  * - 透明背景属性须在 show/exec 前设置，避免 macOS 闪屏。
  * - setClearColor（QQuickWidget 专属）而非 WA_TranslucentBackground（对它不完全
  *   生效，默认白色 clear color 会盖住透明、露方角）。
  * - objectName + 样式反制 liii.css 的通用 QDialog 规则，避免圆角外露方块。
- * - 三重锁定尺寸：root 无固有 implicit 尺寸，不锁会被 QVBoxLayout 按 sizeHint
- *   压到约 100x30，只渲染左上角。
+ *
+ * @param d 由调用方栈分配、生命期覆盖 exec() 的宿主 QDialog。
+ * @return 挂到 d 上、待 setSource / 注入 context property 的 QQuickWidget。
  */
-int
-qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
-  static const bool resourceInitialized= [] () {
-    Q_INIT_RESOURCE (moganqml);
-    return true;
-  }();
-  (void) resourceInitialized;
-  QDialog d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
+static QQuickWidget*
+setup_frameless_qml_host (QDialog& d) {
   d.setAttribute (Qt::WA_TranslucentBackground);
   d.setAttribute (Qt::WA_NativeWindow);
   d.setObjectName ("QTMQmlDialog");
@@ -64,25 +69,68 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
   qw->setClearColor (Qt::transparent);
   qw->setStyleSheet ("background: transparent;");
+  return qw;
+}
+
+/**
+ * @brief 注入两类弹窗共用的 context property 并返回 bridge。
+ *
+ * 共用项：closeBridge（按钮 / submit 回流）、dpScale（DPI 缩放）、isDark（跟随
+ * tm_style_sheet，liii-night / *-dark 视为深色）。各弹窗特有的 context property
+ * （确认型的 dialogMessage/dialogButtons、form 型的 formFields）由调用方在调用
+ * 本函数前后自行注入。
+ *
+ * @return 挂到 QML 的 bridge；调用方据此取 results()（form 型）。
+ */
+static QmlDialogBridge*
+inject_common_context (QQuickWidget* qw, QDialog& host) {
+  bool isDark=
+      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
+  QmlDialogBridge* bridge= new QmlDialogBridge (&host);
+  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
+  qw->rootContext ()->setContextProperty ("isDark", isDark);
+  return bridge;
+}
+
+/**
+ * @brief 确认型弹窗的通用 QML 模态对话框。
+ * @param qml_url QML 文档的 qrc 路径。
+ * @param message 已翻译的正文。
+ * @param buttons 按钮文案 key（英文，cpp 侧 qt_translate 翻译）。
+ * @return 用户点选的按钮下标（≥0）；取消 / X / Esc / 加载失败返回 -1。
+ *
+ * 窗口外观约束见 setup_frameless_qml_host；尺寸固定 400x150 × DPI（root 无固有
+ * implicit 尺寸，不锁会被 QVBoxLayout 按 sizeHint 压到约
+ * 100x30，只渲染左上角）。
+ */
+int
+qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
+  static const bool resourceInitialized= [] () {
+    Q_INIT_RESOURCE (moganqml);
+    return true;
+  }();
+  (void) resourceInitialized;
+  QDialog       d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
+  QQuickWidget* qw= setup_frameless_qml_host (d);
+  QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
 
   QStringList qmlButtons;
   for (int i= 0; i < N (buttons); i++) {
     qmlButtons << qt_translate (buttons[i]);
   }
 
-  // context property 须在 setSource 之前设置。isDark 跟随 tm_style_sheet。
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  QmlDialogBridge* bridge= new QmlDialogBridge (&d);
-  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  // context property 须在 setSource 之前设置。
+  QmlDialogBridge* bridge= inject_common_context (qw, d);
   qw->rootContext ()->setContextProperty ("dialogMessage",
                                           to_qstring (message));
   qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
-  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
-  qw->rootContext ()->setContextProperty ("isDark", isDark);
 
   qw->setSource (QUrl (to_qstring (qml_url)));
-  if (qw->status () != QQuickWidget::Ready) return -1;
+  if (qw->status () != QQuickWidget::Ready) {
+    log_qml_load_failure (qw, "confirm dialog");
+    return -1;
+  }
 
   vl->addWidget (qw);
   const int w= DpiUtils::scaled (400);
@@ -126,6 +174,39 @@ cpp_confirm_close (string message, bool scratch) {
 
 // ---- form 引擎 --------------------------------------------------------------
 
+// 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
+// (<type> <label> <key> (<options>...) <value> <live?>)
+// label/key/value 的位置在 form 引擎多处使用，集中在此避免魔法下标散落。
+static const int FIELD_LABEL  = 0;
+static const int FIELD_KEY    = 1;
+static const int FIELD_OPTIONS= 2;
+static const int FIELD_VALUE  = 3;
+static const int FIELD_LIVE   = 4;
+
+/**
+ * @brief 字段节点是否形状合法（compound 且至少含到 value 的位置）。
+ */
+static inline bool
+field_valid (tree f) {
+  return is_compound (f) && N (f) > FIELD_VALUE;
+}
+
+/**
+ * @brief 取字段节点的 key 子树（透传，不拷贝字符串）。
+ */
+static inline tree
+field_key (tree f) {
+  return f[FIELD_KEY];
+}
+
+/**
+ * @brief 取字段节点的 value 子树（透传）。
+ */
+static inline tree
+field_value (tree f) {
+  return f[FIELD_VALUE];
+}
+
 /**
  * @brief 单个字段节点 tree → QML 可消费的 QVariantMap。
  * @param f 字段节点，形如 (enum <label> <key> (<opt>...) <value> <live?>)。
@@ -136,32 +217,33 @@ cpp_confirm_close (string message, bool scratch) {
 static QVariantMap
 field_tree_to_qml (tree f) {
   QVariantMap m;
-  if (!is_compound (f) || N (f) < 4) return m;
+  if (!field_valid (f)) return m;
   m["type"] = to_qstring (f->label);
-  m["label"]= to_qstring (f[0]->label);
-  m["key"]  = to_qstring (f[1]->label);
-  if (is_compound (f[2])) {
+  m["label"]= to_qstring (f[FIELD_LABEL]->label);
+  m["key"]  = to_qstring (field_key (f)->label);
+  if (is_compound (f[FIELD_OPTIONS])) {
     QVariantList opts;
-    for (int i= 0; i < N (f[2]); i++)
-      opts << to_qstring (f[2][i]->label);
+    for (int i= 0; i < N (f[FIELD_OPTIONS]); i++)
+      opts << to_qstring (f[FIELD_OPTIONS][i]->label);
     m["options"]= opts;
   }
-  m["value"]= to_qstring (f[3]->label);
-  m["live"] = (N (f) >= 5 && f[4]->label == "true");
+  m["value"]= to_qstring (field_value (f)->label);
+  m["live"] = (N (f) > FIELD_LIVE && f[FIELD_LIVE]->label == "true");
   return m;
 }
 
 /**
  * @brief 通用 form 弹窗引擎。
  * @param fields 字段表 tree：(form <field>...)，调用方须 stree->tree 转换。
- * @return 用户点 OK 返回 (tuple (tuple key value) ...)；Cancel / 关闭返回空 tree。
+ * @return 用户点 OK 返回 (tuple (tuple key value) ...)；Cancel / 关闭返回空
+ * tree。
  *
  * @details 实现要点：
  * - 测试钩子 MOGAN_TEST_FORM_DIALOG=ok/cancel 命中时不弹窗，供自动化测试。
- * - QDialog 拼装与 qt_show_qml_dialog 同源（无边框 + 透明，避免 macOS 闪屏与
- *   标签栏 hit-test 误判）。
+ * - QDialog 拼装复用 setup_frameless_qml_host（无边框 + 透明）。
  * - 尺寸由 QML root 自报（× DPI），动态字段场景需 childrenRect 兜底（首案
- *   字段静态，Ready 后已稳定）。QML 加载失败返回空 tree，开发期直接暴露。
+ *   字段静态，Ready 后已稳定）。QML 加载失败返回空 tree（Cancel 同形），
+ *   但会写 debug 日志便于定位（见 log_qml_load_failure）。
  */
 tree
 cpp_form_dialog (tree fields) {
@@ -171,9 +253,9 @@ cpp_form_dialog (tree fields) {
     tree r (TUPLE);
     if (is_compound (fields)) {
       for (int i= 0; i < N (fields); i++) {
-        if (is_compound (fields[i]) && N (fields[i]) >= 4) {
+        if (field_valid (fields[i])) {
           tree kv (TUPLE);
-          kv << fields[i][1] << fields[i][3];
+          kv << field_key (fields[i]) << field_value (fields[i]);
           r << kv;
         }
       }
@@ -196,31 +278,19 @@ cpp_form_dialog (tree fields) {
   }();
   (void) resourceInitialized;
 
-  QDialog d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
-  d.setAttribute (Qt::WA_TranslucentBackground);
-  d.setAttribute (Qt::WA_NativeWindow);
-  d.setObjectName ("QTMQmlDialog");
-  d.setStyleSheet ("QDialog#QTMQmlDialog { background: transparent; "
-                   "border: none; min-width: 0; min-height: 0; padding: 0; } "
-                   "QDialog#QTMQmlDialog QWidget { background: transparent; }");
-  QVBoxLayout* vl= new QVBoxLayout (&d);
-  vl->setContentsMargins (0, 0, 0, 0);
+  QDialog       d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
+  QQuickWidget* qw= setup_frameless_qml_host (d);
+  QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
 
-  QQuickWidget* qw= new QQuickWidget (&d);
-  qw->setResizeMode (QQuickWidget::SizeRootObjectToView);
-  qw->setClearColor (Qt::transparent);
-  qw->setStyleSheet ("background: transparent;");
-
-  bool isDark=
-      occurs ("dark", tm_style_sheet) || occurs ("liii-night", tm_style_sheet);
-  QmlDialogBridge* bridge= new QmlDialogBridge (&d);
-  qw->rootContext ()->setContextProperty ("closeBridge", bridge);
+  // context property 须在 setSource 之前设置。
+  QmlDialogBridge* bridge= inject_common_context (qw, d);
   qw->rootContext ()->setContextProperty ("formFields", qmlFields);
-  qw->rootContext ()->setContextProperty ("dpScale", DpiUtils::scaleFactor ());
-  qw->rootContext ()->setContextProperty ("isDark", isDark);
 
   qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
-  if (qw->status () != QQuickWidget::Ready) return tree (TUPLE);
+  if (qw->status () != QQuickWidget::Ready) {
+    log_qml_load_failure (qw, "FormDialog.qml");
+    return tree (TUPLE);
+  }
 
   vl->addWidget (qw);
   QQuickItem* root= qw->rootObject ();

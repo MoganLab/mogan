@@ -26,8 +26,10 @@
  *   - live=true：用户改动走 QML → bridge → glue → scm setter，实时预览。
  *     @b 红线：setter 禁止任何模态操作（不弹对话框、不嵌套 exec()），否则破坏
  *     scheme continuation 栈；且 live=true 接受「Cancel 无法回滚」。
- *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel 放弃。
- * - @b 控件类型：enum / input / checkbox / color / number，按相同字段节点结构扩展。
+ *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel
+ * 放弃。
+ * - @b 控件类型：enum / input / checkbox / color /
+ * number，按相同字段节点结构扩展。
  *
  * @par key 的维护位置（编译隔离的核心）
  * - 所有 preference key 全部定义在 scm 侧常量 module（pref-keys.scm，
@@ -36,7 +38,8 @@
  *   改 key / 加字段 / 调可选项只动 scm，永不重编译 cpp。
  *
  * @par 数据协议（scm → cpp）
- * scm 侧用 quasiquote 构造字段表（stree，scheme 列表）。glue 入参需 mogan tree，
+ * scm 侧用 quasiquote 构造字段表（stree，scheme 列表）。glue 入参需 mogan
+ * tree，
  * @b 不会自动转换 scheme pair，故调用方须 @c stree->tree 转换：
  * (cpp-form-dialog (stree->tree fields))。cpp 遍历 tree children 解析，不引入
  * JSON。字段节点结构（按 type 取不同形）：
@@ -118,11 +121,14 @@ string cpp_confirm_close (string message, bool scratch);
 
 /**
  * @brief 通用 form 弹窗引擎的 glue 入口。
- * @param fields scm 构造的字段表，@b 须经 stree->tree 转换（glue 不自动转 pair）。
- *   结构见顶部 @par 数据协议：(form (enum <label> <key> (<opt>...) <value> <live?>) ...)。
- * @return 用户点 OK 返回 mogan tree，tree->stree 后形如 (tuple (tuple <key> <value>) ...)
- *   （value 均 string）；Cancel / 关闭返回空 tree。cpp 对 key/value 纯透传。
- * @note 测试钩子 MOGAN_TEST_FORM_DIALOG=ok/cancel 命中时不弹窗（供自动化测试）。
+ * @param fields scm 构造的字段表，@b 须经 stree->tree 转换（glue 不自动转
+ * pair）。 结构见顶部 @par 数据协议：(form (enum <label> <key> (<opt>...)
+ * <value> <live?>) ...)。
+ * @return 用户点 OK 返回 mogan tree，tree->stree 后形如 (tuple (tuple <key>
+ * <value>) ...) （value 均 string）；Cancel / 关闭返回空 tree。cpp 对 key/value
+ * 纯透传。
+ * @note 测试钩子 MOGAN_TEST_FORM_DIALOG=ok/cancel
+ * 命中时不弹窗（供自动化测试）。
  */
 tree cpp_form_dialog (tree fields);
 
