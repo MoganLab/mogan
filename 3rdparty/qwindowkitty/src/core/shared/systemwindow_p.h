@@ -141,7 +141,23 @@ namespace QWK {
         }
         std::ignore = new WindowMoveManipulator(window);
 #else
-        window->startSystemMove();
+        // macOS：优先系统级移动；失败则回退到古典 API（与 Linux / startSystemResize 同款）。
+        // startSystemMove 在 macOS 内部依赖 NSApp.currentEvent 必须是鼠标事件；
+        // 模态 QDialog::exec()（如确认关闭弹窗）结束后，Qt-Cocoa 的事件投递会残留
+        // 在「合成补救路径」上（模态期间为被阻塞窗口合成鼠标事件的机制未还原），
+        // 导致 NSApp.currentEvent 停在一个陈旧的 CursorUpdate 上不再更新，
+        // startSystemMove 随之持续返回 false，标签栏拖动永久失效。
+        // WindowMoveManipulator 用 QCursor::pos() + QWindow::setPosition() 手动移动，
+        // 纯 Qt API、不依赖 currentEvent，作为 fallback 确定性恢复拖动。
+        // TODO(qt-cocoa): startSystemMove() 是 Qt 稳定公共 API（返回 bool），签名不变。
+        // 等 Qt-Cocoa 内部修复「模态会话后 NSApp.currentEvent 不更新」后，它会自动
+        // 重新返回 true，本 fallback 自然不再触发、行为自动退回原生 system move——
+        // 无需改任何代码。此处仅在「确认上游已修且想恢复原生磁吸/分屏体验」时才清理。
+        // 详见 devel/2021.md §9。
+        if (window->startSystemMove()) {
+            return;
+        }
+        std::ignore = new WindowMoveManipulator(window);
 #endif
     }
 
