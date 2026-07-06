@@ -17,13 +17,11 @@
 #include "convert.hpp"
 #include "dictionary.hpp"
 #include "file.hpp" // added for copy_as_graphics
-#include "image_files.hpp"
 #include "iterator.hpp"
 #include "locale.hpp"
 #include "message.hpp"
 #include "new_window.hpp"
 #include "preferences.hpp"
-#include "qt_picture.hpp"
 #include "scheme.hpp"
 #include "server.hpp"
 #include "tm_file.hpp"
