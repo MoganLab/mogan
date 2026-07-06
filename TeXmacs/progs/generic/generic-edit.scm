@@ -576,7 +576,7 @@
 ) ;tm-define
 
 (tm-define (kbd-remove t forwards?)
-  (:require (at-image-start?))
+  (:require (if forwards? (just-before-image?) (just-after-image?)))
   (let ((image (any-image-context?)))
     (tree-cut image)
   ) ;let
@@ -1470,15 +1470,23 @@
   (tree-innermost (lambda (t) (tree-is? t 'image)) #t)
 ) ;tm-define
 
-(tm-define (at-image-start?)
-  (with image
-    (any-image-context?)
-    (and image
-      (let* ((p (cursor-path)) (ip (tree->path image)))
-        (or (== p ip) (and (== (cDr p) ip) (<= (cAr p) 1)))
-      ) ;let*
-    ) ;and
-  ) ;with
+;; 判断光标是否紧贴在 image 节点之后
+;; 光标在 image 这种原子节点上只有两个停留位：offset 0（图片前）与 offset 1（图片后）
+;; 故用 cDr==ip 且 cAr>=1 判定“图片后”，退格时据此整体删图，避免误删图片前的换行
+(tm-define (just-after-image?)
+  (let* ((p (cursor-path)) (img (any-image-context?)))
+    (and img
+         (== (cDr p) (tree->path img))
+         (>= (cAr p) 1)))
+) ;tm-define
+
+;; 判断光标是否紧贴在 image 节点之前（offset 0）
+;; Delete 键向右删，仅在光标位于图片前时才整体删图
+(tm-define (just-before-image?)
+  (let* ((p (cursor-path)) (img (any-image-context?)))
+    (and img
+         (== (cDr p) (tree->path img))
+         (== (cAr p) 0)))
 ) ;tm-define
 
 (tm-define (notify-activated t) (noop))
