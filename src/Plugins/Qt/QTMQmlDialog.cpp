@@ -43,6 +43,20 @@ log_qml_load_failure (QQuickWidget* qw, const char* qml_path) {
 }
 
 /**
+ * @brief 把按钮文案数组统一翻译成 QML 可消费的 QStringList。
+ *
+ * 两类弹窗（确认型 / form 型）的按钮文案都经此走 qt_translate，避免 QML 硬编码
+ * 漏译；缺翻译 key 时原样回退，后续在字典表（如 zh_CN.scm）补条目即可。
+ */
+static QStringList
+translate_buttons (array<string> buttons) {
+  QStringList out;
+  for (int i= 0; i < N (buttons); i++)
+    out << qt_translate (buttons[i]);
+  return out;
+}
+
+/**
  * @brief 统一拼装无边框透明模态 QDialog + 内嵌 QQuickWidget 的宿主。
  *
  * 两类弹窗（确认型 / form 型）共用同一套窗口外观约束：
@@ -117,10 +131,7 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   QQuickWidget* qw= setup_frameless_qml_host (d);
   QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
 
-  QStringList qmlButtons;
-  for (int i= 0; i < N (buttons); i++) {
-    qmlButtons << qt_translate (buttons[i]);
-  }
+  QStringList qmlButtons= translate_buttons (buttons);
 
   // context property 须在 setSource 之前设置。
   QmlDialogBridge* bridge= inject_common_context (qw, d);
@@ -160,10 +171,8 @@ cpp_confirm_close (string message, bool scratch) {
   string preset= get_env ("MOGAN_TEST_CONFIRM_CLOSE");
   if (preset == "Save" || preset == "Don't save" || preset == "Cancel")
     return preset;
-  array<string> buttons;
-  buttons << string (scratch ? "Save as" : "Save");
-  buttons << string ("Don't save");
-  buttons << string ("Cancel");
+  array<string> buttons= {string (scratch ? "Save as" : "Save"),
+                          string ("Don't save"), string ("Cancel")};
   switch (qt_show_qml_dialog ("qrc:/qml/ConfirmClose.qml", message, buttons)) {
   case 1:
     return "Save";
@@ -287,9 +296,13 @@ cpp_form_dialog (tree fields) {
   QQuickWidget* qw= setup_frameless_qml_host (d);
   QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
 
+  array<string> buttons= {string ("OK"), string ("Cancel")};
+
   // context property 须在 setSource 之前设置。
   QmlDialogBridge* bridge= inject_common_context (qw, d);
   qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+  qw->rootContext ()->setContextProperty ("dialogButtons",
+                                          translate_buttons (buttons));
 
   qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
   if (qw->status () != QQuickWidget::Ready) {
