@@ -7,9 +7,11 @@
  * It comes WITHOUT ANY WARRANTY whatsoever. Details see LICENSE.
  ******************************************************************************/
 
+#include "Qt/QTMQmlDialog.hpp" // cpp_confirm_close / cpp_form_dialog
 #include "Qt/QTMQmlDialogInternal.hpp"
 #include "base.hpp"
 
+#include "sys_utils.hpp"   // set_env
 #include "tree_helper.hpp" // compound()
 
 #include <QtTest/QtTest>
@@ -32,6 +34,14 @@ make_field (const char* type, const char* label, const char* key, tree opts,
                    tree (live));
 }
 
+// 测试钩子环境变量的 RAII 守卫：构造时设值，析构时还原为空（不命中弹窗路径），
+// 避免进程内多条用例互相串扰。
+struct EnvHook {
+  string key;
+  EnvHook (string k, string v) : key (k) { set_env (k, v); }
+  ~EnvHook () { set_env (key, ""); }
+};
+
 class TestQmlDialog : public QObject {
   Q_OBJECT
 
@@ -46,6 +56,9 @@ private slots:
   void test_field_tree_to_qml_live_flag ();
   void test_field_tree_to_qml_options_not_compound ();
   void test_field_tree_to_qml_malformed ();
+  void test_translate_buttons ();
+  void test_confirm_close_hook ();
+  void test_form_dialog_hook ();
 };
 
 // 字段下标协议常量与协议文档一致。
@@ -154,6 +167,65 @@ TestQmlDialog::test_field_tree_to_qml_malformed () {
   tree opts= compound ("tuple", tree ("a"));
   QVERIFY (field_tree_to_qml (compound ("enum", tree ("L"), tree ("k"), opts))
                .isEmpty ());
+}
+
+// translate_buttons：英文 key 数组 → 翻译后 QStringList，元素数一致、非空
+// （字典命中译为中文，未命中原样回退）。这里只验形状，不绑定具体界面语言。
+void
+TestQmlDialog::test_translate_buttons () {
+  array<string> keys;
+  keys << string ("OK") << string ("Cancel");
+  QStringList out= translate_buttons (keys);
+  QCOMPARE (out.size (), 2);
+  QVERIFY (!out[0].isEmpty ());
+  QVERIFY (!out[1].isEmpty ());
+}
+
+// MOGAN_TEST_CONFIRM_CLOSE 钩子命中时不弹窗，直接返回对应英文 key。
+void
+TestQmlDialog::test_confirm_close_hook () {
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_CLOSE", "Save");
+    QCOMPARE (cpp_confirm_close ("msg", false), string ("Save"));
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_CLOSE", "Don't save");
+    QCOMPARE (cpp_confirm_close ("msg", false), string ("Don't save"));
+  }
+  {
+    EnvHook hook ("MOGAN_TEST_CONFIRM_CLOSE", "Cancel");
+    QCOMPARE (cpp_confirm_close ("msg", false), string ("Cancel"));
+  }
+}
+
+// MOGAN_TEST_FORM_DIALOG 钩子：ok 时透传字段 key/value 成 (tuple (tuple k
+// v)...)； cancel 时返回空 tuple。
+void
+TestQmlDialog::test_form_dialog_hook () {
+  tree opts= compound ("tuple", tree ("a"), tree ("b"));
+  tree f1  = make_field ("enum", "L1", "k1", opts, "v1");
+  tree f2  = make_field ("enum", "L2", "k2", opts, "v2");
+  tree form= compound (string ("form"), f1, f2);
+
+  // ok：每个合法字段的 key/value 透传成 (tuple key value)，整体 (tuple ...)。
+  {
+    EnvHook hook ("MOGAN_TEST_FORM_DIALOG", "ok");
+    tree    r= cpp_form_dialog (form);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 2);
+    QVERIFY (is_compound (r[0]) && N (r[0]) == 2);
+    QCOMPARE (r[0][0]->label, string ("k1"));
+    QCOMPARE (r[0][1]->label, string ("v1"));
+    QCOMPARE (r[1][0]->label, string ("k2"));
+    QCOMPARE (r[1][1]->label, string ("v2"));
+  }
+  // cancel：空 tuple。
+  {
+    EnvHook hook ("MOGAN_TEST_FORM_DIALOG", "cancel");
+    tree    r= cpp_form_dialog (form);
+    QVERIFY (is_compound (r));
+    QCOMPARE (N (r), 0);
+  }
 }
 
 #ifdef QTTEXMACS

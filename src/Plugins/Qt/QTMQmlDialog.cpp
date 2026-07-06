@@ -16,17 +16,17 @@
 #include "qt_utilities.hpp"
 #include "sys_utils.hpp" // lolly: get_env
 
-#include <QApplication>
 #include <QDialog>
 #include <QQmlContext>
 #include <QQmlError>
-#include <QQuickItem>
 #include <QQuickWidget>
 #include <QString>
 #include <QStringList>
 #include <QVBoxLayout>
 #include <QVariantList>
 #include <QVariantMap>
+
+#include <functional>
 
 /**
  * @brief QML 加载失败时输出诊断（status / warnings），避免线上 qrc 路径或 QML
@@ -48,7 +48,7 @@ log_qml_load_failure (QQuickWidget* qw, const char* qml_path) {
  * 两类弹窗（确认型 / form 型）的按钮文案都经此走 qt_translate，避免 QML 硬编码
  * 漏译；缺翻译 key 时原样回退，后续在字典表（如 zh_CN.scm）补条目即可。
  */
-static QStringList
+QStringList
 translate_buttons (array<string> buttons) {
   QStringList out;
   for (int i= 0; i < N (buttons); i++)
@@ -93,10 +93,12 @@ setup_frameless_qml_host (QDialog& d) {
  *
  * 共用项：closeBridge（按钮 / submit 回流）、dpScale（DPI 缩放）、isDark（跟随
  * tm_style_sheet，liii-night / *-dark 视为深色）。各弹窗特有的 context property
- * （确认型的 dialogMessage/dialogButtons、form 型的 formFields）由调用方在调用
- * 本函数前后自行注入。
+ * （确认型的 dialogMessage/dialogButtons、form 型的 formFields）由调用方在
+ * run_qml_dialog 的注入回调里，调用本函数之后自行注入。
  *
- * @return 挂到 QML 的 bridge；调用方据此取 results()（form 型）。
+ * @return 挂到 QML 的 bridge；调用方持有所有权并负责 delete（bridge 不挂
+ * QObject parent，不会被宿主 QDialog 析构带走，以便 form 型 exec 后取
+ * results()）。
  */
 static QmlDialogBridge*
 inject_common_context (QQuickWidget* qw, QDialog& host) {
@@ -110,18 +112,44 @@ inject_common_context (QQuickWidget* qw, QDialog& host) {
 }
 
 /**
- * @brief 确认型弹窗的通用 QML 模态对话框。
- * @param qml_url QML 文档的 qrc 路径。
- * @param message 已翻译的正文。
- * @param buttons 按钮文案 key（英文，cpp 侧 qt_translate 翻译）。
- * @return 用户点选的按钮下标（≥0）；取消 / X / Esc / 加载失败返回 -1。
+ * @brief 把 QQuickWidget 及其宿主 QDialog 锁定为同一固定尺寸。
  *
- * 窗口外观约束见 setup_frameless_qml_host；尺寸固定 400x150 × DPI（root 无固有
- * implicit 尺寸，不锁会被 QVBoxLayout 按 sizeHint 压到约
- * 100x30，只渲染左上角）。
+ * @param logic_w / logic_h 96 DPI 下的逻辑尺寸，内部统一 DpiUtils::scaled ×
+ * DPI。 不锁会被 QVBoxLayout 按 sizeHint 压到约 100x30，只渲染 QML 左上角。
  */
-int
-qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
+static void
+lock_fixed_size (QQuickWidget* qw, QVBoxLayout* vl, QDialog& d, int logic_w,
+                 int logic_h) {
+  const int w= DpiUtils::scaled (logic_w);
+  const int h= DpiUtils::scaled (logic_h);
+  qw->setFixedSize (w, h);
+  vl->setSizeConstraint (QLayout::SetFixedSize);
+  d.setFixedSize (w, h);
+}
+
+/**
+ * @brief 通用 QML 模态弹窗引擎。
+ *
+ * 把两类弹窗（确认型 / form 型）共用的 QDialog 拼装 + setSource + 加载检查 +
+ * addWidget + 定尺寸 + exec 流程收敛于此，差异点（context property 注入、
+ * 尺寸算法、退出码语义）由调用方通过两个回调提供。新增弹窗只需写回调 + 解读
+ * exec 返回值，不再重抄宿主拼装。
+ *
+ * @param qml_url QML 文档的 qrc 路径。
+ * @param debug_tag 加载失败写 debug 日志时的标签（如 "confirm dialog"）。
+ * @param inject_context 在 setSource 之前调用，负责注入全部 context property：
+ *        调用方先调 inject_common_context(qw, host) 注入共用的 closeBridge /
+ *        dpScale / isDark（并按需捕获返回的 bridge），再注入弹窗特有项。
+ * @param logic_w / logic_h 96 DPI 下的逻辑尺寸（引擎内部统一 DpiUtils::scaled
+ *        × DPI 后锁定 QQuickWidget 与 QDialog，调用方不必自己乘 DPI）。
+ * @return QDialog::exec 的退出码（即 QML 侧 closeBridge 传给 done() 的值）；
+ *         QML 加载失败返回 -1。调用方据此映射结果（确认型 → 按钮下标；form 型
+ *         → Accepted/Rejected，表单值另行从 bridge->results() 取）。
+ */
+static int
+run_qml_dialog (const string& qml_url, const char* debug_tag,
+                std::function<void (QQuickWidget*, QDialog&)> inject_context,
+                int logic_w, int logic_h) {
   static const bool resourceInitialized= [] () {
     Q_INIT_RESOURCE (moganqml);
     return true;
@@ -131,29 +159,19 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
   QQuickWidget* qw= setup_frameless_qml_host (d);
   QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
 
-  QStringList qmlButtons= translate_buttons (buttons);
-
-  // context property 须在 setSource 之前设置。
-  QmlDialogBridge* bridge= inject_common_context (qw, d);
-  qw->rootContext ()->setContextProperty ("dialogMessage",
-                                          to_qstring (message));
-  qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
+  // context 注入须在 setSource 之前。
+  inject_context (qw, d);
 
   qw->setSource (QUrl (to_qstring (qml_url)));
   if (qw->status () != QQuickWidget::Ready) {
-    log_qml_load_failure (qw, "confirm dialog");
+    log_qml_load_failure (qw, debug_tag);
     return -1;
   }
 
   vl->addWidget (qw);
-  const int w= DpiUtils::scaled (400);
-  const int h= DpiUtils::scaled (150);
-  qw->setFixedSize (w, h);
-  vl->setSizeConstraint (QLayout::SetFixedSize);
-  d.setFixedSize (w, h);
+  lock_fixed_size (qw, vl, d, logic_w, logic_h);
 
-  int result= d.exec ();
-  return result > 0 ? result : -1;
+  return d.exec ();
 }
 
 /**
@@ -163,17 +181,29 @@ qt_show_qml_dialog (string qml_url, string message, array<string> buttons) {
  * @return "Save" / "Don't save" / "Cancel" 之一。
  *
  * @details 按钮顺序为 肯定（Save / Save as）、Don't save、Cancel，对应
- * qt_show_qml_dialog 返回下标 1/2/3。测试钩子 MOGAN_TEST_CONFIRM_CLOSE 命中时
- * 直接返回不弹窗。
+ * run_qml_dialog 返回的按钮下标 1/2/3（0 / -1 = Esc / X / 加载失败 = Cancel）。
+ * 测试钩子 MOGAN_TEST_CONFIRM_CLOSE 命中时直接返回不弹窗。
  */
 string
 cpp_confirm_close (string message, bool scratch) {
   string preset= get_env ("MOGAN_TEST_CONFIRM_CLOSE");
   if (preset == "Save" || preset == "Don't save" || preset == "Cancel")
     return preset;
-  array<string> buttons= {string (scratch ? "Save as" : "Save"),
-                          string ("Don't save"), string ("Cancel")};
-  switch (qt_show_qml_dialog ("qrc:/qml/ConfirmClose.qml", message, buttons)) {
+  array<string>    buttons   = {string (scratch ? "Save as" : "Save"),
+                                string ("Don't save"), string ("Cancel")};
+  QStringList      qmlButtons= translate_buttons (buttons);
+  QmlDialogBridge* bridge    = nullptr;
+  int              choice    = run_qml_dialog (
+      "qrc:/qml/ConfirmClose.qml", "confirm dialog",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("dialogMessage",
+                                                                 to_qstring (message));
+        qw->rootContext ()->setContextProperty ("dialogButtons", qmlButtons);
+      },
+      400, 150);
+  delete bridge;
+  switch (choice) {
   case 1:
     return "Save";
   case 2:
@@ -247,17 +277,14 @@ field_tree_to_qml (tree f) {
 }
 
 /**
- * @brief 通用 form 弹窗引擎。
+ * @brief 通用 form 弹窗。
  * @param fields 字段表 tree：(form <field>...)，调用方须 stree->tree 转换。
- * @return 用户点 OK 返回 (tuple (tuple key value) ...)；Cancel / 关闭返回空
- * tree。
+ * @return 用户点 OK 返回 (tuple (tuple key value) ...)；Cancel / 关闭 / 加载
+ * 失败返回空 tree。
  *
- * @details 实现要点：
- * - 测试钩子 MOGAN_TEST_FORM_DIALOG=ok/cancel 命中时不弹窗，供自动化测试。
- * - QDialog 拼装复用 setup_frameless_qml_host（无边框 + 透明）。
- * - 尺寸由 QML root 自报（× DPI），动态字段场景需 childrenRect 兜底（首案
- *   字段静态，Ready 后已稳定）。QML 加载失败返回空 tree（Cancel 同形），
- *   但会写 debug 日志便于定位（见 log_qml_load_failure）。
+ * @details 宿主拼装与定尺寸走 run_qml_dialog；尺寸按字段数动态算（与
+ * FormDialog.qml 的 implicitHeight 同源）。测试钩子 MOGAN_TEST_FORM_DIALOG=
+ * ok/cancel 命中时不弹窗，供自动化测试。
  */
 tree
 cpp_form_dialog (tree fields) {
@@ -285,45 +312,27 @@ cpp_form_dialog (tree fields) {
       }
     }
   }
-
-  static const bool resourceInitialized= [] () {
-    Q_INIT_RESOURCE (moganqml);
-    return true;
-  }();
-  (void) resourceInitialized;
-
-  QDialog       d (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
-  QQuickWidget* qw= setup_frameless_qml_host (d);
-  QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d.layout ());
-
   array<string> buttons= {string ("OK"), string ("Cancel")};
+  // 与 FormDialog.qml 的 implicitHeight 同源；引擎内部统一 × DPI。
+  const int fieldCount= qmlFields.size ();
+  const int logicH    = 24 * 2 + fieldCount * (44 + 12) + 64;
 
-  // context property 须在 setSource 之前设置。
-  QmlDialogBridge* bridge= inject_common_context (qw, d);
-  qw->rootContext ()->setContextProperty ("formFields", qmlFields);
-  qw->rootContext ()->setContextProperty ("dialogButtons",
-                                          translate_buttons (buttons));
+  // bridge 须在注入回调里创建并捕获，供事后 results() 取值。
+  QmlDialogBridge* bridge= nullptr;
+  run_qml_dialog (
+      "qrc:/qml/FormDialog.qml", "FormDialog.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        bridge= inject_common_context (qw, host);
+        qw->rootContext ()->setContextProperty ("formFields", qmlFields);
+        qw->rootContext ()->setContextProperty ("dialogButtons",
+                                                translate_buttons (buttons));
+      },
+      420, logicH);
 
-  qw->setSource (QUrl ("qrc:/qml/FormDialog.qml"));
-  if (qw->status () != QQuickWidget::Ready) {
-    log_qml_load_failure (qw, "FormDialog.qml");
-    return tree (TUPLE);
-  }
-
-  vl->addWidget (qw);
-  QQuickItem* root= qw->rootObject ();
-  int         w= DpiUtils::scaled (int (root ? root->implicitWidth () : 360));
-  int         h= DpiUtils::scaled (int (root ? root->implicitHeight () : 200));
-  if (w <= 0) w= DpiUtils::scaled (360);
-  if (h <= 0) h= DpiUtils::scaled (200);
-  qw->setFixedSize (w, h);
-  vl->setSizeConstraint (QLayout::SetFixedSize);
-  d.setFixedSize (w, h);
-
-  d.exec ();
-
+  // 退出码对 form 型无意义；Cancel / 加载失败均返回空 tree。
   tree               r (TUPLE);
-  const QVariantMap& res= bridge->results ();
+  const QVariantMap& res= bridge ? bridge->results () : QVariantMap ();
+  delete bridge;
   for (auto it= res.begin (); it != res.end (); ++it) {
     tree kv (TUPLE);
     kv << tree (from_qstring (it.key ()));

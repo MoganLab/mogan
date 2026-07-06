@@ -23,7 +23,14 @@ class QmlDialogBridge : public QObject {
   Q_OBJECT
 
 public:
-  explicit QmlDialogBridge (QDialog* host) : QObject (host), m_host (host) {
+  /**
+   * @brief 构造桥对象，绑定宿主 QDialog（用于 choose/submit 回流结束模态）。
+   * @param host 生命期覆盖 exec() 的宿主；本类不挂其为 QObject parent —— bridge
+   *        须跨越 host 存活（form 型 exec 返回后还要 results()），挂 parent 会
+   *        随 host 析构被 Qt 自动 delete，造成调用方 use-after-free。所有权交由
+   *        inject_common_context 的调用方（持有指针、用完 delete）。
+   */
+  explicit QmlDialogBridge (QDialog* host) : QObject (), m_host (host) {
     ASSERT (host != NULL, "QmlDialogBridge expects a valid QDialog host");
   }
 

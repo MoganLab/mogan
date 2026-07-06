@@ -12,6 +12,7 @@
 
 #include "tree.hpp"
 
+#include <QStringList>
 #include <QVariantMap>
 
 // 字段节点下标协议（见 QTMQmlDialog.hpp @par 数据协议）：
@@ -45,5 +46,15 @@ tree field_value (tree f);
  * label/key/value 纯透传，不做翻译或类型转换（value 在 scm 侧已 string 化）。
  */
 QVariantMap field_tree_to_qml (tree f);
+
+/**
+ * @brief 把按钮文案数组（英文 key）翻译成 QML 可消费的 QStringList。
+ * @param buttons 英文 key 数组（如 "OK" / "Cancel" / "Save"）。
+ * @return 经 qt_translate 翻译后的文案列表；字典未命中则原样回退。
+ *
+ * 供两类弹窗注入 dialogButtons，统一走 mogan translate 通道避免 QML
+ * 硬编码漏译。
+ */
+QStringList translate_buttons (array<string> buttons);
 
 #endif // defined QTM_QML_DIALOG_INTERNAL_H
