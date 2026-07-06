@@ -16,6 +16,11 @@
 #include "qt_utilities.hpp"
 #include "sys_utils.hpp" // lolly: get_env
 
+#include <moebius/data/scheme.hpp> // tree_to_scheme_tree / scm_unquote
+
+using moebius::data::scm_unquote;
+using moebius::data::tree_to_scheme_tree;
+
 #include <QDialog>
 #include <QQmlContext>
 #include <QQmlError>
@@ -259,16 +264,17 @@ QVariantMap
 field_tree_to_qml (tree f) {
   QVariantMap m;
   if (!field_valid (f)) return m;
-  // compound 节点的字符串 label 须经 get_label 取（->label 对 compound 读的是
-  // union 里被 children array 占用的内存，是乱码）。atomic 子节点 get_label
-  // 等价于 ->label。
+  // 用 get_label 而非 ->label：compound 的 ->label 是被 children 占用的乱码。
   m["type"] = to_qstring (get_label (f));
   m["label"]= to_qstring (get_label (f[FIELD_LABEL]));
   m["key"]  = to_qstring (get_label (field_key (f)));
   if (is_compound (f[FIELD_OPTIONS])) {
+    // tree_to_scheme_tree 把 compound label 拼回首位，避免 stree->tree 把列表
+    // 首项变 label 而丢项；leaf 经 scm_unquote 去引号。
+    tree         opts_tree= tree_to_scheme_tree (f[FIELD_OPTIONS]);
     QVariantList opts;
-    for (int i= 0; i < N (f[FIELD_OPTIONS]); i++)
-      opts << to_qstring (get_label (f[FIELD_OPTIONS][i]));
+    for (int i= 0; i < N (opts_tree); i++)
+      opts << to_qstring (scm_unquote (get_label (opts_tree[i])));
     m["options"]= opts;
   }
   m["value"]= to_qstring (get_label (field_value (f)));

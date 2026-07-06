@@ -18,15 +18,21 @@ Item {
     property var fields: typeof formFields !== "undefined" ? formFields : []
     property var buttonLabels: typeof dialogButtons !== "undefined" ? dialogButtons : ["OK", "Cancel"]
 
-    // 各字段运行时值：拷贝自注入的 fields，下拉改动写回这里，OK 时统一收集。
-    // 用数组 + index 改写（modelData 只读）。
+    // 各字段运行时值：modelData 只读，故拷贝到这里改写，OK 时统一提交。
     property var values: {
         var v = {}
         for (var i = 0; i < fields.length; i++) v[fields[i].key] = fields[i].value
         return v
     }
-    // 同一时刻最多一个下拉展开；记录其 index，-1 表示全收起。
-    property int openIndex: -1
+    property int openIndex: -1  // 当前展开的下拉 index，-1 全收起
+    // 浮层不作为 combo 子项而挂在 root 顶层：combo 在 Repeater delegate 内，
+    // 同 Column 后续 delegate（下方字段行）会盖住 combo 内部弹出的浮层，故
+    // 把定位（comboX/Y/W）和选项（openOptions）由展开中的 combo 写回 root，
+    // overlay 据此定位、叠在所有字段行之上。
+    property real comboX: 0
+    property real comboY: 0
+    property real comboW: 0
+    property var openOptions: []
 
     property int rowH: 44 * scaleFactor
     property int pad: 24 * scaleFactor
@@ -35,11 +41,8 @@ Item {
 
     focus: true
     Keys.onEscapePressed: closeBridge.choose(-1)
-    // 点击空白处收起所有下拉。
-    MouseArea { anchors.fill: parent; onPressed: function(mouse) {
-        openIndex = -1
-        // 不吞事件，让下层控件继续响应。
-    } }
+    // 点击空白收起下拉（不吞事件，下层控件继续响应）。
+    MouseArea { anchors.fill: parent; onPressed: function(mouse) { openIndex = -1 } }
 
     // 主题配色（与 ConfirmClose.qml 同源，首版复制，待第三个 QML 弹窗抽公共骨架）。
     readonly property color bg: dark ? "#2b2b2b" : "#ffffff"
@@ -93,6 +96,23 @@ Item {
                         border.width: 1 * root.scaleFactor
                         border.color: root.borderClr
 
+                        // 展开中的 combo 把自身坐标/尺寸写回 root 供 overlay 定位。
+                        onYChanged: updatePos()
+                        onXChanged: updatePos()
+                        onWidthChanged: updatePos()
+                        Component.onCompleted: updatePos()
+                        function updatePos() {
+                            if (root.openIndex !== fieldIndex) return
+                            var p = mapToItem(root, 0, 0)
+                            root.comboX = p.x
+                            root.comboY = p.y
+                            root.comboW = combo.width
+                        }
+                        Connections {
+                            target: root
+                            function onOpenIndexChanged() { combo.updatePos() }
+                        }
+
                         Text {
                             anchors.fill: parent
                             anchors.leftMargin: 14 * root.scaleFactor
@@ -117,48 +137,13 @@ Item {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: root.openIndex = (root.openIndex === fieldIndex ? -1 : fieldIndex)
-                        }
-
-                        // 展开浮层。
-                        Column {
-                            visible: root.openIndex === fieldIndex
-                            anchors.top: parent.bottom
-                            anchors.topMargin: 4 * root.scaleFactor
-                            width: combo.width
-                            z: 100
-
-                            Repeater {
-                                model: root.openIndex === fieldIndex ? modelData.options : []
-                                delegate: Rectangle {
-                                    width: combo.width
-                                    height: 36 * root.scaleFactor
-                                    color: optMa.containsMouse ? root.fieldBgHover : root.fieldBg
-                                    border.width: 1 * root.scaleFactor
-                                    border.color: root.borderClr
-                                    Text {
-                                        anchors.fill: parent
-                                        anchors.leftMargin: 14 * root.scaleFactor
-                                        verticalAlignment: Text.AlignVCenter
-                                        text: modelData
-                                        color: root.fg
-                                        font.pixelSize: 14 * root.scaleFactor
-                                    }
-                                    MouseArea {
-                                        id: optMa
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        // option 的 modelData 是字符串；字段 key 在
-                                        // 外层 delegate 的 fieldKey（option delegate
-                                        // 的 modelData 遮蔽了字段级 modelData）。
-                                        onClicked: {
-                                            var v = root.values
-                                            v[combo.parent.fieldKey] = modelData
-                                            root.values = v
-                                            root.openIndex = -1
-                                        }
-                                    }
+                            onClicked: {
+                                if (root.openIndex === fieldIndex) {
+                                    root.openIndex = -1
+                                } else {
+                                    root.openOptions = modelData.options
+                                    root.openIndex = fieldIndex
+                                    combo.updatePos()
                                 }
                             }
                         }
@@ -208,6 +193,76 @@ Item {
                         }
                         Behavior on scale { NumberAnimation { duration: 80; easing.type: Easing.OutQuad } }
                         Behavior on color { ColorAnimation { duration: 150 } }
+                    }
+                }
+            }
+        }
+    }
+
+    // 下拉浮层：root 直接子项（盖住所有字段行，不被下方行遮挡）。高度按可用
+    // 空间限高——优先向下展开，下方不够则向上，仍不够则限高 + ListView 滚动，
+    // 避免顶出 dialog 边界被裁。
+    Item {
+        id: overlay
+        visible: root.openIndex >= 0
+        x: root.comboX
+        width: root.comboW
+        z: 1000
+
+        // 选项总高与上下两侧可用空间（留 8px 边距），决定展开方向与限高。
+        readonly property real optH: root.openOptions.length * 36 * root.scaleFactor
+        readonly property real gap: 4 * root.scaleFactor
+        readonly property real margin: 8 * root.scaleFactor
+        readonly property real spaceBelow: root.height - root.comboY - root.rowH - margin
+        readonly property real spaceAbove: root.comboY - margin
+        readonly property bool fitBelow: optH <= spaceBelow - gap
+        readonly property bool fitAbove: optH <= spaceAbove - gap
+        readonly property bool openBelow: fitBelow || (!fitAbove && spaceBelow >= spaceAbove)
+        height: Math.min(optH, (openBelow ? spaceBelow : spaceAbove) - gap)
+        y: openBelow ? root.comboY + root.rowH + gap
+                     : root.comboY - height - gap
+
+        Rectangle {
+            anchors.fill: parent
+            color: root.fieldBg
+            radius: 8 * root.scaleFactor
+            border.width: 1 * root.scaleFactor
+            border.color: root.borderClr
+            clip: true
+
+            // 用 ListView：自带 contentY 管理与滚轮交互，比 Flickable+Column
+            // 更适合"model + delegate + 限高滚动"场景。
+            ListView {
+                id: optList
+                anchors.fill: parent
+                clip: true
+                interactive: true
+                boundsBehavior: Flickable.StopAtBounds
+                model: root.openOptions
+                delegate: Rectangle {
+                    width: overlay.width
+                    height: 36 * root.scaleFactor
+                    color: optMa.containsMouse ? root.fieldBgHover : root.fieldBg
+                    Text {
+                        anchors.fill: parent
+                        anchors.leftMargin: 14 * root.scaleFactor
+                        verticalAlignment: Text.AlignVCenter
+                        text: modelData
+                        color: root.fg
+                        font.pixelSize: 14 * root.scaleFactor
+                        elide: Text.ElideRight
+                    }
+                    MouseArea {
+                        id: optMa
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: {
+                            var v = root.values
+                            v[root.fields[root.openIndex].key] = modelData
+                            root.values = v
+                            root.openIndex = -1
+                        }
                     }
                 }
             }

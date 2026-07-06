@@ -19,11 +19,22 @@
 ;; Page setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; 各 enum 字段的选项列表。
+
+(define (preview-command-list)
+  '("default" "ggv" "ghostview" "gv" "kghostview" "open")
+) ;define
+
 (define (printing-command-list)
-  (with l
-    (cons (get-default-printing-command) (list "lpr" "lp" "pdq" ""))
-    (list-remove-duplicates l)
-  ) ;with
+  '("lpr" "lp" "pdq")
+) ;define
+
+(define (paper-type-list)
+  '("default" "a3" "a4" "a5" "b4" "b5" "b6" "letter" "legal" "executive")
+) ;define
+
+(define (printer-dpi-list)
+  '("150" "200" "300" "400" "600" "800" "1200" "2400")
 ) ;define
 
 ;; 构造一个 enum 字段节点：(enum <label> <key> (<options>...) <value>)。
@@ -44,7 +55,7 @@
 (define (page-setup-form-tree)
   `(form ,(enum-field (translate "Preview command:")
             (pref-page-setup-preview-command)
-            '("default" "ggv" "ghostview" "gv" "kghostview" "open" "")
+            (preview-command-list)
             (get-pretty-preference (pref-page-setup-preview-command)))
      ,(enum-field (translate "Printing command:")
         (pref-page-setup-printing-command)
@@ -52,21 +63,11 @@
         (get-pretty-preference (pref-page-setup-printing-command)))
      ,(enum-field (translate "Paper type:")
         (pref-page-setup-paper-type)
-        '("default"
-          "A3"
-          "A4"
-          "A5"
-          "B4"
-          "B5"
-          "B6"
-          "Letter"
-          "Legal"
-          "Executive"
-          "")
+        (paper-type-list)
         (get-pretty-preference (pref-page-setup-paper-type)))
      ,(enum-field (translate "Printer dpi:")
         (pref-page-setup-printer-dpi)
-        '("150" "200" "300" "400" "600" "800" "1200" "2400" "")
+        (printer-dpi-list)
         (get-pretty-preference (pref-page-setup-printer-dpi))))
 ) ;define
 

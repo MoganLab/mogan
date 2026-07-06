@@ -14,16 +14,29 @@
 #include "sys_utils.hpp"   // set_env
 #include "tree_helper.hpp" // compound()
 
+#include <moebius/data/scheme.hpp> // scheme_tree_to_tree
+
 #include <QtTest/QtTest>
 
+using moebius::data::scheme_tree_to_tree;
+
 // 构造字段节点 (type label key (opts...) value)。
-// opts 用 compound("tuple", ...) 造一个 compound；与运行期 stree->tree 的
-// options 形状一致（field_tree_to_qml 只检查 is_compound，不读 options 自身
-// label）。
 static tree
 make_field (const char* type, const char* label, const char* key, tree opts,
             const char* value) {
   return compound (string (type), tree (label), tree (key), opts, tree (value));
+}
+
+// 从 scheme 表示构造 options tree，走与运行期相同的 stree->tree 路径。
+// scheme '(a b c) 解析后首项 a 是 compound label、b/c 才是 children——这是
+// field_tree_to_qml 必须正确处理的真实数据形态（直接 compound("tuple",...)
+// 构造会绕过该形态，使"丢首项"类 bug 测不出来）。
+static tree
+make_opts (std::initializer_list<const char*> items) {
+  tree st (TUPLE);
+  for (auto s : items)
+    st << tree (s);
+  return scheme_tree_to_tree (st);
 }
 
 // 带 live 标志的重载：(type label key (opts...) value live)。
@@ -94,9 +107,12 @@ TestQmlDialog::test_field_key_value_passthrough () {
 }
 
 // enum：完整字段表，options 全部透传成 QVariantList。
+// options 经 make_opts 走真实 stree->tree 路径构造（scheme '(a b c) 解析后首项
+// 变 compound label），field_tree_to_qml 必须还原出全部选项——直接遍历 children
+// 会丢首项，此用例即抓该回归。
 void
 TestQmlDialog::test_field_tree_to_qml_enum () {
-  tree opts= compound ("tuple", tree ("default"), tree ("ggv"), tree ("gv"));
+  tree opts= make_opts ({"default", "ggv", "gv"});
   tree f   = make_field ("enum", "Preview command:", "preview command", opts,
                          "default");
   QVariantMap m= field_tree_to_qml (f);
@@ -108,6 +124,7 @@ TestQmlDialog::test_field_tree_to_qml_enum () {
   const auto optsList= m.value ("options").toList ();
   QCOMPARE (optsList.size (), 3);
   QCOMPARE (optsList[0].toString (), QStringLiteral ("default"));
+  QCOMPARE (optsList[1].toString (), QStringLiteral ("ggv"));
   QCOMPARE (optsList[2].toString (), QStringLiteral ("gv"));
 }
 
