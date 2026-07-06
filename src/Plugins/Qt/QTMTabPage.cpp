@@ -608,17 +608,22 @@ QTMTabPageContainer::arrangeTabPages () {
   if (!parentWidget ()) return;
   const int windowWidth=
       parentWidget () ? parentWidget ()->width () : this->width ();
-  // 动态计算右侧预留空间，防止标签页覆盖系统按钮
+  // 动态计算右侧预留空间，防止标签页覆盖系统按钮 / VIP 按钮 / 新增标签按钮
   double scale      = getDPIScaleFactor ();
-  int    buttonWidth= int (72 * scale); // 按钮宽度
-  int    buttonCount= 5;                // pin, min, max, close,login
+  int    buttonWidth= int (60 * scale); // 系统按钮宽度
+  int    buttonCount= 5;                // pin, min, max, close, login
 #ifdef Q_OS_MAC
   buttonCount= 1; // macOS 仅保留 login
 #endif
   int reservedRight= buttonCount * buttonWidth;
 #ifndef IS_COMMUNITY
-  reservedRight+= DpiUtils::scaled (90); // VIP 按钮及间距预留
+  if (m_vipButtonReserved) {
+    reservedRight+= DpiUtils::scaled (100); // VIP 按钮及间距预留
+  }
 #endif
+  // 末尾的新增标签按钮（紧跟在最后一个 tab 之后）也要占位
+  reservedRight+= getScaledAddButtonHeight ();
+  reservedRight+= DpiUtils::scaled (20); // 新增标签按钮与右侧控件之间留 20pt 间距
 
   int visibleTabCount= 0;
   // cout << "most recently closed tab:" << g_mostRecentlyClosedTab << LF;

@@ -3193,32 +3193,22 @@ qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
     return;
   }
 
-  // 社区版不显示VIP按钮
-  if (is_community_stem ()) {
-    vipButton->hide ();
-    return;
+  bool shouldShow= false;
+  if (!is_community_stem ()) {
+    if (!isLoggedIn) {
+      shouldShow= true;
+    }
+    else if (!memberType.isEmpty ()) {
+      // Regular User / Trial Member 显示；其他正式会员类型不显示
+      shouldShow= memberType == QStringLiteral ("Regular User") ||
+                  memberType == QStringLiteral ("Trial Member");
+    }
+    // memberType 为空（已登录但用户信息未到位）：保持当前状态
   }
 
-  // 未登录用户：显示VIP按钮
-  if (!isLoggedIn) {
-    vipButton->show ();
-    return;
-  }
-
-  // 已登录用户：根据memberType决定是否显示
-  // 如果memberType为空，说明还未获取用户信息，保持当前状态（不隐藏）
-  if (memberType.isEmpty ()) {
-    return;
-  }
-
-  // "Regular User"(普通用户)或"Trial Member"(体验会员)时显示
-  // 其他(Fruit User, Sprout User, Seed User, Member)时不显示
-  if (memberType == QStringLiteral ("Regular User") ||
-      memberType == QStringLiteral ("Trial Member")) {
-    vipButton->show ();
-  }
-  else {
-    vipButton->hide ();
+  vipButton->setVisible (shouldShow);
+  if (tabPageContainer) {
+    tabPageContainer->setVipButtonReserved (shouldShow);
   }
 }
 
