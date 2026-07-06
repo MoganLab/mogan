@@ -19,6 +19,7 @@
 #include <QApplication>
 #include <QDialog>
 #include <QQmlContext>
+#include <QQmlError>
 #include <QQuickItem>
 #include <QQuickWidget>
 #include <QString>
@@ -36,8 +37,8 @@ log_qml_load_failure (QQuickWidget* qw, const char* qml_path) {
 #ifdef LIII_DEBUG
   debug_std << "QTMQmlDialog: QML load failed for " << qml_path
             << ", status=" << (int) qw->status () << LF;
-  for (const QString& w : qw->warnings ())
-    debug_std << "  QML warning: " << from_qstring (w) << LF;
+  for (const QQmlError& e : qw->errors ())
+    debug_std << "  QML error: " << from_qstring (e.toString ()) << LF;
 #endif
 }
 
