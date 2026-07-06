@@ -278,7 +278,9 @@ field_tree_to_qml (tree f) {
     m["options"]= opts;
   }
   m["value"]= to_qstring (get_label (field_value (f)));
-  m["live"] = (N (f) > FIELD_LIVE && f[FIELD_LIVE]->label == "true");
+  // 守卫 is_atomic：compound 的 ->label 是乱码标签，会误判 live=true。
+  m["live"]= (N (f) > FIELD_LIVE && is_atomic (f[FIELD_LIVE]) &&
+              f[FIELD_LIVE]->label == "true");
   return m;
 }
 
@@ -297,14 +299,16 @@ cpp_form_dialog (tree fields) {
   string preset= get_env ("MOGAN_TEST_FORM_DIALOG");
   if (preset == "cancel") return tree (TUPLE);
   if (preset == "ok") {
+    // 与真实路径同源判定合法字段，避免 hook 与真实弹窗对畸形字段行为分叉。
     tree r (TUPLE);
     if (is_compound (fields)) {
       for (int i= 0; i < N (fields); i++) {
-        if (field_valid (fields[i])) {
-          tree kv (TUPLE);
-          kv << field_key (fields[i]) << field_value (fields[i]);
-          r << kv;
-        }
+        QVariantMap m= field_tree_to_qml (fields[i]);
+        if (m.isEmpty ()) continue;
+        tree kv (TUPLE);
+        kv << tree (from_qstring (m.value ("key").toString ()))
+           << tree (from_qstring (m.value ("value").toString ()));
+        r << kv;
       }
     }
     return r;
