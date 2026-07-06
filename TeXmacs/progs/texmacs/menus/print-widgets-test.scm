@@ -48,6 +48,26 @@
   ) ;let
 ) ;define
 
+;; 四个选项列表的内容。paper type 用小写对齐全栈规范（C++ paper_type 查表、
+;; supported-sizes 均小写）；列表不含尾部空串（原版可编辑 enum 的占位槽，QML
+;; 只读下拉无意义）。锁定这两点防止回归。
+
+(define (test-option-lists)
+  (check (paper-type-list)
+    =>
+    '("default" "a3" "a4" "a5" "b4" "b5" "b6" "letter" "legal" "executive")
+  ) ;check
+  (check (preview-command-list)
+    =>
+    '("default" "ggv" "ghostview" "gv" "kghostview" "open")
+  ) ;check
+  (check (printing-command-list) => '("lpr" "lp" "pdq"))
+  (check (printer-dpi-list)
+    =>
+    '("150" "200" "300" "400" "600" "800" "1200" "2400")
+  ) ;check
+) ;define
+
 ;; OK 返回值经 tree->stree 后用 cadr/caddr 解构 key/value。
 ;; 模拟 cpp_form_dialog 的 OK 返回：(tuple (tuple "k1" "v1") (tuple "k2" "v2"))。
 
@@ -82,6 +102,7 @@
   (test-enum-field-value-in-options)
   (test-enum-field-value-not-in-options)
   (test-page-setup-form-tree-shape)
+  (test-option-lists)
   (test-ok-result-destructuring)
   (test-cancel-empty-result-no-op)
   (check-report)
