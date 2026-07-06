@@ -3083,9 +3083,7 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
   // 让按钮从 ~120px 缩回 60px，给标签页腾空间
   QMainWindow* mw= mainwindow ();
   if (!isLoggedIn && mw) {
-    int screen_w= QApplication::primaryScreen ()
-                      ->availableGeometry ()
-                      .width ();
+    int screen_w= QApplication::primaryScreen ()->availableGeometry ().width ();
     if (mw->width () * 2 <= screen_w) {
       isLoggedIn= true;
     }
