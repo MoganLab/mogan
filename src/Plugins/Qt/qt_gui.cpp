@@ -18,12 +18,12 @@
 #include "dictionary.hpp"
 #include "file.hpp" // added for copy_as_graphics
 #include "image_files.hpp"
-#include "qt_picture.hpp"
 #include "iterator.hpp"
 #include "locale.hpp"
 #include "message.hpp"
 #include "new_window.hpp"
 #include "preferences.hpp"
+#include "qt_picture.hpp"
 #include "scheme.hpp"
 #include "server.hpp"
 #include "tm_file.hpp"
@@ -387,9 +387,12 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   return true;
 }
 
-// 解析单个图片在内存中的路径，只能处理嵌入式图片
+// 解析单个图片在内存中的路径，只处理嵌入式图片
 static url
 selection_image_url (tree t) {
+  // 支持外层套 with 环境（用于对齐等），剥壳后取内层 image 节点
+  while (is_func (t, WITH) && (N (t) & 1) == 1 && N (t) > 2)
+    t= t[N (t) - 1];
   if (!is_func (t, IMAGE, 5)) return url_none ();
   tree image_tree= t[0];
   if (is_atomic (image_tree)) {
@@ -409,35 +412,19 @@ static bool
 attach_selection_image (QMimeData* md, tree t) {
   url src= selection_image_url (t);
   if (is_none (src)) return false;
-  int iw= 0, ih= 0;
-  image_size (src, iw, ih);
-  if (iw <= 0 || ih <= 0) return false;
-  QImage* im= get_image (src, iw, ih, "", 1);
-  if (im == NULL || im->isNull ()) return false;
-#ifdef LIII_DEBUG
-  cout << "[clip-image] src=" << as_string (src) << " size=" << iw << "x" << ih
-       << " qimg=" << im->width () << "x" << im->height ()
-       << " fmt=" << (int) im->format () << "\n";
-#endif
-  QImage copy= im->copy ().convertToFormat (QImage::Format_ARGB32);
+  QImage img;
+  // 直接按原始像素加载：get_image 会按排版用的逻辑尺寸
+  // （HiDPI下为物理像素的一半）缩放，导致画质降低
+  bool loaded= qt_load_image_from_ramdisc (src, img);
+  if (!loaded || img.isNull ()) return false;
+  QImage copy= img.convertToFormat (QImage::Format_ARGB32);
   md->setImageData (copy);
-  // 外部应用（Word、飞书、网页AIchat等）不认QT私有的 application/x-qt-image，故额外写入标准 image/png
+  // 外部应用（Word、飞书、网页AIchat等）不认QT私有的
+  // application/x-qt-image，故额外写入标准 image/png
   QByteArray png;
   QBuffer    buf (&png);
   buf.open (QIODevice::WriteOnly);
   if (copy.save (&buf, "PNG")) md->setData ("image/png", png);
-#ifdef LIII_DEBUG
-  cout << "[clip-image] pngBytes=" << png.size () << "\n";
-  QStringList fmts= md->formats ();
-  string fmtlist;
-  for (int i= 0; i < fmts.size (); i++) {
-    if (i > 0) fmtlist << ", ";
-    fmtlist << from_qstring_utf8 (fmts[i]);
-  }
-  cout << "[clip-image] hasImage=" << md->hasImage ()
-       << " hasText=" << md->hasText ()
-       << " nFormats=" << fmts.size () << " formats=" << fmtlist << "\n";
-#endif
   return true;
 }
 
@@ -473,7 +460,8 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
 
       selection= c_string (sv);
 
-      // 单图片复制：写入 image/png 供外部粘贴，并跳过 text/plain（Word 会优先取 text/plain 导致粘贴失败）
+      // 单图片复制：写入 image/png 供外部粘贴，并跳过 text/plain
+      // （Word 会优先取text/plain 导致粘贴失败）
       if (is_tuple (t, "texmacs", 3) && attach_selection_image (md, t[1])) {
         cb->setMimeData (md, mode);
         return true;
