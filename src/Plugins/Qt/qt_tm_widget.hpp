@@ -147,8 +147,6 @@ private:
                                       const QString& periodLabelColor= QString (),
                                       const QString& productType= QString ());
   void triggerOAuth2 ();
-  void updateLoginButtonState (bool           isLoggedIn,
-                               const QString& displayName= QString ());
   void updateDialogContent (bool isLoggedIn, const QString& username,
                             const QString& email, const QString& avatarText,
                             const QString& memberType,
@@ -157,7 +155,7 @@ private:
                             const QString& productType);
   void showNotLoggedInDialog (const QString& errorMessage);
   void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
-  void updateHalfScreenUi_onResize ();
+  void updateVipButtonVisibility_onResize ();
   void logout ();
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();

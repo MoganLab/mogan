@@ -608,7 +608,7 @@ QTMTabPageContainer::arrangeTabPages () {
   if (!parentWidget ()) return;
   const int windowWidth=
       parentWidget () ? parentWidget ()->width () : this->width ();
-  // 动态计算右侧预留空间，防止标签页覆盖系统按钮 / VIP 按钮 / 新增标签按钮
+  // 动态计算右侧预留空间，防止标签页覆盖系统按钮 / 邀请按钮 / 新增标签按钮
   double scale      = getDPIScaleFactor ();
   int    buttonWidth= int (60 * scale); // 系统按钮宽度
   int    buttonCount= 5;                // pin, min, max, close, login
@@ -618,7 +618,7 @@ QTMTabPageContainer::arrangeTabPages () {
   int reservedRight= buttonCount * buttonWidth;
 #ifndef IS_COMMUNITY
   if (m_vipButtonReserved) {
-    reservedRight+= DpiUtils::scaled (110); // VIP 按钮及间距预留
+    reservedRight+= DpiUtils::scaled (90); // 邀请按钮
   }
 #endif
   // 末尾的新增标签按钮（紧跟在最后一个 tab 之后）也要占位

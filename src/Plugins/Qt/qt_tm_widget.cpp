@@ -17,7 +17,6 @@
 #include <QDialog>
 #include <QDockWidget>
 #include <QEvent>
-#include <QFontMetrics>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -417,11 +416,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     windowAgent->setHitTestVisible (loginButton, true);
   }
 
+  loginButton->setText (QString ());
+  loginButton->setToolTip (qt_translate ("User Center"));
+  loginButton->setAccessibleName (qt_translate ("User Center"));
+
   if (is_community_stem ()) {
-    // 社区版：点击直接跳转官网，无状态变化，不显示文字
-    loginButton->setText (QString ());
-    loginButton->setToolTip (qt_translate ("User Center"));
-    loginButton->setAccessibleName (qt_translate ("User Center"));
+    // 社区版：点击直接跳转官网，无登录态
     QObject::connect (loginButton, &QWK::LoginButton::clicked, [this] () {
       string pricingUrl=
           as_string (call ("account-oauth2-config", "click-return-liii-url"));
@@ -430,8 +430,6 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   }
   else {
     // 商业版：完整登录功能
-    updateLoginButtonState (false);
-
     m_loginDialog= new QWK::LoginDialog (mainwindow ());
     setupLoginDialog (m_loginDialog);
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
@@ -499,7 +497,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
           : QObject (parent), widget_ (w) {}
       bool eventFilter (QObject* obj, QEvent* event) override {
         if (event->type () == QEvent::Resize) {
-          widget_->updateHalfScreenUi_onResize ();
+          widget_->updateVipButtonVisibility_onResize ();
         }
         return QObject::eventFilter (obj, event);
       }
@@ -942,23 +940,17 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       QTMOAuth* account= server->getAccount ();
       // 商业版：连接登录状态变化信号
       if (!is_community_stem ()) {
-        QObject::connect (
-            account, &QTMOAuth::loginStateChanged, [this] (bool loggedIn) {
-              updateLoginButtonState (loggedIn,
-                                      loggedIn ? qt_translate ("User Center")
-                                               : QString ());
-              if (loggedIn) {
-                syncScmGuestNotification (false);
-                refreshMembershipInfoInBackground ();
-              }
-              else {
-                syncScmMembershipNotification (false);
-                checkNetworkAvailable ();
-              }
-            });
-        updateLoginButtonState (
-            account->isLoggedIn (),
-            account->isLoggedIn () ? qt_translate ("User Center") : QString ());
+        QObject::connect (account, &QTMOAuth::loginStateChanged,
+                          [this] (bool loggedIn) {
+                            if (loggedIn) {
+                              syncScmGuestNotification (false);
+                              refreshMembershipInfoInBackground ();
+                            }
+                            else {
+                              syncScmMembershipNotification (false);
+                              checkNetworkAvailable ();
+                            }
+                          });
         if (account->isLoggedIn ()) {
           refreshMembershipInfoInBackground ();
         }
@@ -3075,71 +3067,6 @@ qt_tm_widget_rep::triggerOAuth2 () {
 }
 
 void
-qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
-                                          const QString& displayName) {
-  if (!loginButton) return;
-
-  // 半屏（窗口宽度 ≤ 屏幕可用宽度的一半）下空间紧张，未登录也视为已登录，
-  // 让按钮从 ~120px 缩回 60px，给标签页腾空间
-  QMainWindow* mw= mainwindow ();
-  if (!isLoggedIn && mw) {
-    int screen_w= QApplication::primaryScreen ()->availableGeometry ().width ();
-    if (mw->width () * 2 <= screen_w) {
-      isLoggedIn= true;
-    }
-  }
-
-  // 设置登录状态属性，用于QSS样式区分
-  loginButton->setProperty ("login-state",
-                            isLoggedIn ? "logged-in" : "not-logged-in");
-
-  // 未登录时显示"未登录"，已登录时不显示文字（只显示图标）
-  QString label;
-  if (!isLoggedIn) {
-    label= qt_translate ("Not logged in");
-  }
-  // 已登录时不设置文字，只显示图标
-
-  QFontMetrics  metrics (loginButton->font ());
-  const int     maxTextWidth= DpiUtils::scaled (76);
-  const QString visibleText=
-      metrics.elidedText (label, Qt::ElideRight, maxTextWidth);
-
-  loginButton->setText (visibleText);
-  loginButton->setToolTip (isLoggedIn ? qt_translate ("User Center") : label);
-  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center")
-                                             : label);
-
-  const int horizontalPadding= DpiUtils::scaled (26);
-  const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
-  const int iconWidth      = loginButton->iconSize ().width ();
-  const int textWidth      = metrics.horizontalAdvance (visibleText);
-  const int minWidth       = DpiUtils::scaled (60);
-  const int maxWidth=
-      isLoggedIn ? DpiUtils::scaled (60) : DpiUtils::scaled (120);
-  const int rawDesiredWidth=
-      iconWidth + iconTextSpacing + textWidth + horizontalPadding;
-  const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
-
-  // 强制刷新样式以应用状态相关样式
-  loginButton->style ()->unpolish (loginButton);
-  loginButton->style ()->polish (loginButton);
-  auto applyWidth= [this, desiredWidth] () {
-    if (!loginButton) return;
-    loginButton->setMinimumWidth (desiredWidth);
-    loginButton->setMaximumWidth (desiredWidth);
-    loginButton->setFixedWidth (desiredWidth);
-    loginButton->resize (desiredWidth, loginButton->height ());
-    loginButton->updateGeometry ();
-    if (loginButton->parentWidget () && loginButton->parentWidget ()->layout ())
-      loginButton->parentWidget ()->layout ()->activate ();
-  };
-  applyWidth ();
-
-  QTimer::singleShot (0, loginButton, applyWidth);
-}
-
-void
 qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& email,
                                        const QString& avatarText,
@@ -3150,8 +3077,6 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
   // 保存会员类型
   m_memberType= memberType;
   m_isLoggedIn= isLoggedIn;
-
-  updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
 
   // 更新VIP按钮可见性（根据memberType判断）
   updateVipButtonVisibility (isLoggedIn, memberType);
@@ -3257,11 +3182,8 @@ qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
 }
 
 void
-qt_tm_widget_rep::updateHalfScreenUi_onResize () {
-  // 半屏下未登录视为已登录，按钮缩到 60px 腾出空间；具体逻辑由两个
-  // update 函数内部根据窗口宽度判定，这里只需重新触发即可
+qt_tm_widget_rep::updateVipButtonVisibility_onResize () {
   updateVipButtonVisibility (m_isLoggedIn, m_memberType);
-  updateLoginButtonState (m_isLoggedIn, QString ());
 }
 
 void
