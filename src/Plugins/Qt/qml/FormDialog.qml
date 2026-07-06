@@ -44,6 +44,21 @@ Item {
     // 点击空白收起下拉（不吞事件，下层控件继续响应）。
     MouseArea { anchors.fill: parent; onPressed: function(mouse) { openIndex = -1 } }
 
+    // 展开时铺一层隐形遮罩（z 介于浮层与内容之间）拦截浮层外点击以收起。
+    // 落在展开 combo 自身矩形内时放行，避免 combo toggle 看到"已收起"再展开。
+    MouseArea {
+        anchors.fill: parent
+        visible: root.openIndex >= 0
+        z: 500
+        onPressed: function(mouse) {
+            var inCombo = mouse.x >= root.comboX && mouse.x <= root.comboX + root.comboW
+                       && mouse.y >= root.comboY && mouse.y <= root.comboY + root.rowH
+            if (!inCombo) root.openIndex = -1
+            mouse.accepted = false
+        }
+        propagateComposedEvents: true
+    }
+
     // 主题配色（与 ConfirmClose.qml 同源，首版复制，待第三个 QML 弹窗抽公共骨架）。
     readonly property color bg: dark ? "#2b2b2b" : "#ffffff"
     readonly property color fg: dark ? "#eaeaea" : "#1e1e1e"
