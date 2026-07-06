@@ -124,6 +124,7 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   bool    titleBarVisibleCache;
   QString m_userId;
   QString m_memberType;
+  bool    m_isLoggedIn= false;
   QString m_currentScmNotificationItem;
 
 private:
@@ -156,6 +157,7 @@ private:
                             const QString& productType);
   void showNotLoggedInDialog (const QString& errorMessage);
   void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
+  void updateVipButtonVisibility_onResize ();
   void logout ();
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();

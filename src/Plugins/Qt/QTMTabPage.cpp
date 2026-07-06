@@ -618,12 +618,13 @@ QTMTabPageContainer::arrangeTabPages () {
   int reservedRight= buttonCount * buttonWidth;
 #ifndef IS_COMMUNITY
   if (m_vipButtonReserved) {
-    reservedRight+= DpiUtils::scaled (100); // VIP 按钮及间距预留
+    reservedRight+= DpiUtils::scaled (110); // VIP 按钮及间距预留
   }
 #endif
   // 末尾的新增标签按钮（紧跟在最后一个 tab 之后）也要占位
   reservedRight+= getScaledAddButtonHeight ();
-  reservedRight+= DpiUtils::scaled (20); // 新增标签按钮与右侧控件之间留 20pt 间距
+  reservedRight+=
+      DpiUtils::scaled (20); // 新增标签按钮与右侧控件之间留 20pt 间距
 
   int visibleTabCount= 0;
   // cout << "most recently closed tab:" << g_mostRecentlyClosedTab << LF;

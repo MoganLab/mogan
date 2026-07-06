@@ -16,6 +16,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDockWidget>
+#include <QEvent>
 #include <QFontMetrics>
 #include <QGuiApplication>
 #include <QHBoxLayout>
@@ -489,6 +490,25 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
 
   // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
   updateVipButtonVisibility (false, QString ());
+
+  // 窗口尺寸变化时重算 VIP 按钮显隐（半屏下未付费用户隐藏升级按钮）
+  if (mw) {
+    class VipBtnResizeWatcher : public QObject {
+    public:
+      VipBtnResizeWatcher (QWidget* parent, qt_tm_widget_rep* w)
+          : QObject (parent), widget_ (w) {}
+      bool eventFilter (QObject* obj, QEvent* event) override {
+        if (event->type () == QEvent::Resize) {
+          widget_->updateVipButtonVisibility_onResize ();
+        }
+        return QObject::eventFilter (obj, event);
+      }
+
+    private:
+      qt_tm_widget_rep* widget_;
+    };
+    mw->installEventFilter (new VipBtnResizeWatcher (mw, this));
+  }
 
   // 创建 SCM 通知条容器（放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
@@ -3119,6 +3139,7 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& productType) {
   // 保存会员类型
   m_memberType= memberType;
+  m_isLoggedIn= isLoggedIn;
 
   updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
 
@@ -3204,12 +3225,30 @@ qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
                   memberType == QStringLiteral ("Trial Member");
     }
     // memberType 为空（已登录但用户信息未到位）：保持当前状态
+
+    // 半屏（窗口宽度 < 屏幕可用宽度的一半）下空间紧张，未付费用户隐藏升级按钮，
+    // 优先保证标签页可用宽度
+    if (shouldShow) {
+      QMainWindow* mw= mainwindow ();
+      if (mw) {
+        int screen_w=
+            QApplication::primaryScreen ()->availableGeometry ().width ();
+        if (mw->width () * 2 <= screen_w) {
+          shouldShow= false;
+        }
+      }
+    }
   }
 
   vipButton->setVisible (shouldShow);
   if (tabPageContainer) {
     tabPageContainer->setVipButtonReserved (shouldShow);
   }
+}
+
+void
+qt_tm_widget_rep::updateVipButtonVisibility_onResize () {
+  updateVipButtonVisibility (m_isLoggedIn, m_memberType);
 }
 
 void
