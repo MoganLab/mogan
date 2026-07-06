@@ -157,7 +157,7 @@ private:
                             const QString& productType);
   void showNotLoggedInDialog (const QString& errorMessage);
   void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
-  void updateVipButtonVisibility_onResize ();
+  void updateHalfScreenUi_onResize ();
   void logout ();
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();

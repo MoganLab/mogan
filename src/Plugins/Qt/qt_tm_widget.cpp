@@ -499,7 +499,7 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
           : QObject (parent), widget_ (w) {}
       bool eventFilter (QObject* obj, QEvent* event) override {
         if (event->type () == QEvent::Resize) {
-          widget_->updateVipButtonVisibility_onResize ();
+          widget_->updateHalfScreenUi_onResize ();
         }
         return QObject::eventFilter (obj, event);
       }
@@ -3079,6 +3079,18 @@ qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
                                           const QString& displayName) {
   if (!loginButton) return;
 
+  // 半屏（窗口宽度 ≤ 屏幕可用宽度的一半）下空间紧张，未登录也视为已登录，
+  // 让按钮从 ~120px 缩回 60px，给标签页腾空间
+  QMainWindow* mw= mainwindow ();
+  if (!isLoggedIn && mw) {
+    int screen_w= QApplication::primaryScreen ()
+                      ->availableGeometry ()
+                      .width ();
+    if (mw->width () * 2 <= screen_w) {
+      isLoggedIn= true;
+    }
+  }
+
   // 设置登录状态属性，用于QSS样式区分
   loginButton->setProperty ("login-state",
                             isLoggedIn ? "logged-in" : "not-logged-in");
@@ -3247,8 +3259,11 @@ qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
 }
 
 void
-qt_tm_widget_rep::updateVipButtonVisibility_onResize () {
+qt_tm_widget_rep::updateHalfScreenUi_onResize () {
+  // 半屏下未登录视为已登录，按钮缩到 60px 腾出空间；具体逻辑由两个
+  // update 函数内部根据窗口宽度判定，这里只需重新触发即可
   updateVipButtonVisibility (m_isLoggedIn, m_memberType);
+  updateLoginButtonState (m_isLoggedIn, QString ());
 }
 
 void
