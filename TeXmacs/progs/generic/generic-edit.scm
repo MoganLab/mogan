@@ -1475,18 +1475,16 @@
 ;; 故用 cDr==ip 且 cAr>=1 判定“图片后”，退格时据此整体删图，避免误删图片前的换行
 (tm-define (just-after-image?)
   (let* ((p (cursor-path)) (img (any-image-context?)))
-    (and img
-         (== (cDr p) (tree->path img))
-         (>= (cAr p) 1)))
+    (and img (== (cDr p) (tree->path img)) (>= (cAr p) 1))
+  ) ;let*
 ) ;tm-define
 
 ;; 判断光标是否紧贴在 image 节点之前（offset 0）
 ;; Delete 键向右删，仅在光标位于图片前时才整体删图
 (tm-define (just-before-image?)
   (let* ((p (cursor-path)) (img (any-image-context?)))
-    (and img
-         (== (cDr p) (tree->path img))
-         (== (cAr p) 0)))
+    (and img (== (cDr p) (tree->path img)) (== (cAr p) 0))
+  ) ;let*
 ) ;tm-define
 
 (tm-define (notify-activated t) (noop))
