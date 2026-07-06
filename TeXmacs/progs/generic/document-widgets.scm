@@ -289,14 +289,25 @@
   (let ((total-pages (get-page-count)))
     (if (<= total-pages 0)
       '(document)
-      (let loop ((p 0) (res '()))
+      (let loop
+        ((p 0) (res '()))
         (if (>= p total-pages)
-          `(with "font-family" "tt" "font-base-size" "12"
+          `(with ,"font-family"
+             ,"tt"
+             ,"font-base-size"
+             ,"12"
              ,(cons 'document (reverse res)))
           (let* ((pn-text (get-page-number-text p))
                  (pn-show (if (== pn-text "") "o" pn-text))
-                 (line  (string-append (number->string (+ p 1)) " -> " pn-show)))
-            (loop (+ p 1) (cons line res))))))))
+                 (line (string-append (number->string (+ p 1)) " -> " pn-show))
+                ) ;
+            (loop (+ p 1) (cons line res))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let
+) ;define
 
 (tm-widget ((page-number-style-editor u) quit)
   (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
