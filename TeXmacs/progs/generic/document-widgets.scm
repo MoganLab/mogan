@@ -285,13 +285,26 @@
   ) ;let*
 ) ;define
 
+(define (get-pn-mapping u)
+  (let* ((total-pages (get-page-count)))
+    (if (<= total-pages 0)
+        '(document)
+        (let loop ((p 0) (res '()))
+          (if (>= p total-pages)
+              `(with "font-family" "tt"
+                 ,(cons 'document (reverse res)))
+              (let* ((pn-text (get-page-number-text p))
+                     (pn-show (if (or (not pn-text) (== pn-text "")) "o" pn-text))
+                     (line (string-append (number->string (+ p 1)) " -> " pn-show)))
+                (loop (+ p 1) (cons line res))))))))
+
 (tm-widget ((page-number-style-editor u) quit)
   (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
-    (centered (refreshable "page-number-range-editor"
+    (centered (refreshable "pn-editor"
                 (aligned (item (text "Applying to:")
                            (enum (begin
                                    (set! range answer)
-                                   (refresh-now "page-number-range-editor")
+                                   (refresh-now "pn-editor")
                                  ) ;begin
                              '("Whole document" "Custom")
                              range
@@ -337,11 +350,22 @@
                              "10em"
                            ) ;enum
                          ) ;item
+                         (item (text "Page mapping:")
+                           (resize "5em" "10em"
+                             (scrollable
+                               (texmacs-output (get-pn-mapping u)
+                                 '(style "generic"))
+                             ) ;scrollable
+                           ) ;resize
+                         ) ;item
                 ) ;aligned
               ) ;refreshable
     ) ;centered
     ======
     (explicit-buttons (hlist >>>
+                       ("Refresh" (refresh-now "pn-editor"))
+                       //
+                       //
                        ("Cancel" (quit))
                        //
                        //

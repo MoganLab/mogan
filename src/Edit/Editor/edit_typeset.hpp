@@ -80,6 +80,7 @@ public:
   color    get_init_color (string var_name);
   language get_env_language ();
   int      get_page_count ();
+  string   get_page_number_text (int page_index);
   int      get_current_page ();
   SI       get_page_width (bool deco);
   SI       get_pages_width (bool deco);
