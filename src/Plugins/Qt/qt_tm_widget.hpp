@@ -87,16 +87,16 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   QWK::WidgetWindowAgent* windowAgent;
   QWK::NotificationBar*   scmNotificationBar; // SCM 提示条
   QWK::LoginButton*       loginButton;
-  QPushButton*            vipButton;
-  QWK::LoginDialog*       m_loginDialog;
-  QLabel*                 avatarLabel;
-  QLabel*                 nameLabel;
-  QLabel*                 accountIdLabel;
-  QLabel*                 membershipPeriodLabel;
-  QLabel*                 membershipTitleLabel;
-  QPushButton*            loginActionButton;
-  QPushButton*            logoutButton;
-  QPushButton* chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
+  QPushButton*      inviteButton; ///< 标题栏「邀请好友」按钮，已登录时显示
+  QWK::LoginDialog* m_loginDialog;
+  QLabel*           avatarLabel;
+  QLabel*           nameLabel;
+  QLabel*           accountIdLabel;
+  QLabel*           membershipPeriodLabel;
+  QLabel*           membershipTitleLabel;
+  QPushButton*      loginActionButton;
+  QPushButton*      logoutButton;
+  QPushButton*      chatSidebarToggleBtn; ///< 文档区域右上角的新建对话浮动按钮
 
   // 更新提示区域控件
   QWidget*     m_updateSection     = nullptr;
@@ -123,7 +123,6 @@ class qt_tm_widget_rep : public qt_window_widget_rep {
   bool    menuToolBarVisibleCache;
   bool    titleBarVisibleCache;
   QString m_userId;
-  QString m_memberType;
   bool    m_isLoggedIn= false;
   QString m_currentScmNotificationItem;
 
@@ -154,8 +153,31 @@ private:
                             const QString& periodLabelColor,
                             const QString& productType);
   void showNotLoggedInDialog (const QString& errorMessage);
-  void updateVipButtonVisibility (bool isLoggedIn, const QString& memberType);
-  void updateVipButtonVisibility_onResize ();
+
+  /**
+   * @brief 构造带鉴权后缀的 URL。
+   *
+   * 拼接 `<baseUrl>?key=<sha256(token)>&user=<userId>`，token 从 account
+   * 模块加载、 计算 SHA256 哈希作为 key 参数。供 openRenewalPage /
+   * openInvitationPage 复用。
+   *
+   * @param baseUrl 不带 query string 的基础 URL。
+   * @return 完整的、可直接交给 QDesktopServices::openUrl 的 URL。
+   */
+  QString buildAuthUrl (const QString& baseUrl);
+
+  /**
+   * @brief 更新邀请按钮的可见性。
+   *
+   * 商业版 + 已登录即显示，不再按会员等级区分。半屏（窗口宽度 ≤ 屏幕可用宽度
+   * 一半）下隐藏，优先保证标签页可用宽度。社区版永远不显示。
+   *
+   * @param isLoggedIn 当前用户是否已登录。
+   */
+  void updateInviteButtonVisibility (bool isLoggedIn);
+
+  /// 窗口尺寸变化时重算邀请按钮显隐（半屏隐藏规则）。
+  void updateInviteButtonVisibility_onResize ();
   void logout ();
   void sync_chat_sidebar_mode ();
   void position_chat_sidebar_button ();
@@ -227,8 +249,17 @@ public:
   void        install_main_menu ();
   static void tweak_iconbar_size (QSize& sz);
   void        openRenewalPage ();
-  void        checkNetworkAvailable ();
-  void        sync_startup_tab_mode ();
+
+  /**
+   * @brief 打开邀请好友页面。
+   *
+   * 邀请页 base URL 通过 `account-oauth2-config` 的 `invitation-url`
+   * 配置项获取， 按 staging/prod profile 自动切换；URL 后缀由 buildAuthUrl 拼接
+   * （key/user 参数用于后台识别邀请人）。
+   */
+  void openInvitationPage ();
+  void checkNetworkAvailable ();
+  void sync_startup_tab_mode ();
   /**
    * @brief 同步聊天标签页控件的可见性。
    *

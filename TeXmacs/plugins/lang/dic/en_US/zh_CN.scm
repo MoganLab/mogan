@@ -1296,6 +1296,7 @@
 ("introduction" "介绍")
 ("invisible citation" "")
 ("invisible" "不可见")
+("Invite Friends" "邀请好友")
 ("irish" "")
 ("is running" "")
 ("is tuple" "")
