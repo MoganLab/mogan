@@ -288,15 +288,22 @@
 (define (get-pn-mapping u)
   (let* ((total-pages (get-page-count)))
     (if (<= total-pages 0)
-        '(document)
-        (let loop ((p 0) (res '()))
-          (if (>= p total-pages)
-              `(with "font-family" "tt"
-                 ,(cons 'document (reverse res)))
-              (let* ((pn-text (get-page-number-text p))
-                     (pn-show (if (or (not pn-text) (== pn-text "")) "o" pn-text))
-                     (line (string-append (number->string (+ p 1)) " -> " pn-show)))
-                (loop (+ p 1) (cons line res))))))))
+      '(document)
+      (let loop
+        ((p 0) (res '()))
+        (if (>= p total-pages)
+          `(with ,"font-family" ,"tt" ,(cons 'document (reverse res)))
+          (let* ((pn-text (get-page-number-text p))
+                 (pn-show (if (or (not pn-text) (== pn-text "")) "o" pn-text))
+                 (line (string-append (number->string (+ p 1)) " -> " pn-show))
+                ) ;
+            (loop (+ p 1) (cons line res))
+          ) ;let*
+        ) ;if
+      ) ;let
+    ) ;if
+  ) ;let*
+) ;define
 
 (tm-widget ((page-number-style-editor u) quit)
   (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
@@ -350,14 +357,12 @@
                              "10em"
                            ) ;enum
                          ) ;item
-                         (item (text "Page mapping:")
-                           (resize "5em" "10em"
-                             (scrollable
-                               (texmacs-output (get-pn-mapping u)
-                                 '(style "generic"))
-                             ) ;scrollable
-                           ) ;resize
-                         ) ;item
+                  (item (text "Page mapping:")
+                    (resize "5em"
+                      "10em"
+                      (scrollable (texmacs-output (get-pn-mapping u) '(style "generic")))
+                    ) ;resize
+                  ) ;item
                 ) ;aligned
               ) ;refreshable
     ) ;centered
