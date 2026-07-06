@@ -286,16 +286,18 @@
 ) ;define
 
 ;; pn-style-alist (显示文本 . 内部值)；"" 表示未选择，用于防误触
+
 (define pn-style-alist
-  '(("(Please pick one style)". "")
-    ("1, 2, 3"                . "arabic")
-    ("i, ii, iii"             . "roman")
-    ("I, II, III"             . "Roman")
-    ("一, 二, 三"              . "hanzi")
-    ("(blank page number)"    . "blank")))
+  '(("(Please pick one style)" . "")
+    ("1, 2, 3" . "arabic")
+    ("i, ii, iii" . "roman")
+    ("I, II, III" . "Roman")
+    ("一, 二, 三" . "hanzi")
+    ("(blank page number)" . "blank"))
+) ;define
 ;; pn-text-alist 为其反向映射 (内部值 . 显示文本)，供 enum 显示当前项
-(define pn-text-alist
-  (map (lambda (p) (cons (cdr p) (car p))) pn-style-alist))
+
+(define pn-text-alist (map (lambda (p) (cons (cdr p) (car p))) pn-style-alist))
 
 (define (get-pn-mapping u)
   (let ((total-pages (get-page-count)))
