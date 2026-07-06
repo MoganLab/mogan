@@ -285,6 +285,18 @@
   ) ;let*
 ) ;define
 
+;; pn-style-alist (显示文本 . 内部值)；"" 表示未选择，用于防误触
+(define pn-style-alist
+  '(("(Please pick one style)". "")
+    ("1, 2, 3"                . "arabic")
+    ("i, ii, iii"             . "roman")
+    ("I, II, III"             . "Roman")
+    ("一, 二, 三"              . "hanzi")
+    ("(blank page number)"    . "blank")))
+;; pn-text-alist 为其反向映射 (内部值 . 显示文本)，供 enum 显示当前项
+(define pn-text-alist
+  (map (lambda (p) (cons (cdr p) (car p))) pn-style-alist))
+
 (define (get-pn-mapping u)
   (let ((total-pages (get-page-count)))
     (if (<= total-pages 0)
@@ -310,7 +322,7 @@
 ) ;define
 
 (tm-widget ((page-number-style-editor u) quit)
-  (let* ((range "Whole document") (rfrom "") (rto "") (nt "arabic"))
+  (let* ((range "Whole document") (rfrom "") (rto "") (nt ""))
     (centered (refreshable "pn-editor"
                 (aligned (item (text "Applying to:")
                            (enum (begin
@@ -337,27 +349,9 @@
                   ) ;aligned
                 ) ;when
                 (aligned (item (text "Number style:")
-                           (enum (set! nt
-                                   (cond ((== answer "1, 2, 3") "arabic")
-                                         ((== answer "i, ii, iii") "roman")
-                                         ((== answer "I, II, III") "Roman")
-                                         ((== answer "一, 二, 三") "hanzi")
-                                         ((== answer "(blank page number)") "blank")
-                                         (else answer)
-                                   ) ;cond
-                                 ) ;set!
-                             '("1, 2, 3"
-                               "i, ii, iii"
-                               "I, II, III"
-                               "一, 二, 三"
-                               "(blank page number)")
-                             (cond ((== nt "arabic") "1, 2, 3")
-                                   ((== nt "roman") "i, ii, iii")
-                                   ((== nt "Roman") "I, II, III")
-                                   ((== nt "hanzi") "一, 二, 三")
-                                   ((== nt "blank") "(blank page number)")
-                                   (else nt)
-                             ) ;cond
+                           (enum (set! nt (assoc-ref pn-style-alist answer))
+                             (map car pn-style-alist)
+                             (or (assoc-ref pn-text-alist nt) "(Please pick one style)")
                              "10em"
                            ) ;enum
                          ) ;item
@@ -378,14 +372,14 @@
                        ("Cancel" (quit))
                        //
                        //
-                       ("Ok"
+                       ("Apply"
                          (let* ((ps (if (== range "Whole document") "1" rfrom))
                                 (pe (if (== range "Whole document") '(page-the-total) rto))
                                 (filled? (lambda (s) (or (pair? s) (!= s ""))))
                                ) ;
                            (when (and (filled? ps) (filled? pe) (filled? nt))
                              (assign-page-number u ps pe nt)
-                             (quit)
+                             (delayed (:pause 100) (refresh-now "pn-editor"))
                            ) ;when
                          ) ;let*
                        ) ;
