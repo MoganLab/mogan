@@ -17,6 +17,8 @@
 #include "convert.hpp"
 #include "dictionary.hpp"
 #include "file.hpp" // added for copy_as_graphics
+#include "image_files.hpp"
+#include "qt_picture.hpp"
 #include "iterator.hpp"
 #include "locale.hpp"
 #include "message.hpp"
@@ -385,6 +387,60 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   return true;
 }
 
+// 解析单个图片在内存中的路径，只能处理嵌入式图片
+static url
+selection_image_url (tree t) {
+  if (!is_func (t, IMAGE, 5)) return url_none ();
+  tree image_tree= t[0];
+  if (is_atomic (image_tree)) {
+    url im= url_system (image_tree->label);
+    if (is_rooted (im)) return im;
+  }
+  else if (is_func (image_tree, TUPLE, 2) &&
+           is_func (image_tree[0], RAW_DATA, 1) &&
+           is_atomic (image_tree[0][0]) && is_atomic (image_tree[1])) {
+    return url_ramdisc (image_tree[0][0]->label) *
+           url ("image." * image_tree[1]->label);
+  }
+  return url_none ();
+}
+
+static bool
+attach_selection_image (QMimeData* md, tree t) {
+  url src= selection_image_url (t);
+  if (is_none (src)) return false;
+  int iw= 0, ih= 0;
+  image_size (src, iw, ih);
+  if (iw <= 0 || ih <= 0) return false;
+  QImage* im= get_image (src, iw, ih, "", 1);
+  if (im == NULL || im->isNull ()) return false;
+#ifdef LIII_DEBUG
+  cout << "[clip-image] src=" << as_string (src) << " size=" << iw << "x" << ih
+       << " qimg=" << im->width () << "x" << im->height ()
+       << " fmt=" << (int) im->format () << "\n";
+#endif
+  QImage copy= im->copy ().convertToFormat (QImage::Format_ARGB32);
+  md->setImageData (copy);
+  // 外部应用（Word、飞书、网页AIchat等）不认QT私有的 application/x-qt-image，故额外写入标准 image/png
+  QByteArray png;
+  QBuffer    buf (&png);
+  buf.open (QIODevice::WriteOnly);
+  if (copy.save (&buf, "PNG")) md->setData ("image/png", png);
+#ifdef LIII_DEBUG
+  cout << "[clip-image] pngBytes=" << png.size () << "\n";
+  QStringList fmts= md->formats ();
+  string fmtlist;
+  for (int i= 0; i < fmts.size (); i++) {
+    if (i > 0) fmtlist << ", ";
+    fmtlist << from_qstring_utf8 (fmts[i]);
+  }
+  cout << "[clip-image] hasImage=" << md->hasImage ()
+       << " hasText=" << md->hasText ()
+       << " nFormats=" << fmts.size () << " formats=" << fmtlist << "\n";
+#endif
+  return true;
+}
+
 bool
 qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
                            string format) {
@@ -416,6 +472,12 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
       // tm_delete_array (selection);
 
       selection= c_string (sv);
+
+      // 单图片复制：写入 image/png 供外部粘贴，并跳过 text/plain（Word 会优先取 text/plain 导致粘贴失败）
+      if (is_tuple (t, "texmacs", 3) && attach_selection_image (md, t[1])) {
+        cb->setMimeData (md, mode);
+        return true;
+      }
     }
 
     string enc= get_preference ("texmacs->verbatim:encoding");
