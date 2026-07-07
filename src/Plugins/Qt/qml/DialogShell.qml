@@ -75,11 +75,24 @@ Item {
     }
 
     // 展开时铺隐形遮罩拦截浮层外点击以收起（z 介于正文与浮层之间）。
+    // 点在当前 combo 矩形内时不收起、只透传——让该 combo 的 onClicked 自己走
+    // toggle 收起分支（它看到 activeCombo===self）；点在别处则先收起当前 combo
+    // 再透传，让被点的另一个 combo 收到 onClicked 时看到 activeCombo===null 而
+    // 展开。透传靠 propagateComposedEvents（仅作用于 click 等合成事件）+ onPressed
+    // 里 accepted=false 放弃 grab，让 press 下沉到下层 MouseArea——否则 press 被
+    // 遮罩吞掉，combo 收不到点击，切换需点两次（回归）。
     MouseArea {
         anchors.fill: parent
         visible: root.activeCombo !== null
         z: 500
-        onClicked: root.activeCombo = null
+        onPressed: function(mouse) {
+            var c = root.activeCombo
+            var inCombo = mouse.x >= c.comboX && mouse.x <= c.comboX + c.comboW
+                       && mouse.y >= c.comboY && mouse.y <= c.comboY + c.comboH
+            if (!inCombo) root.activeCombo = null
+            mouse.accepted = false
+        }
+        propagateComposedEvents: true
     }
 
     Item {
