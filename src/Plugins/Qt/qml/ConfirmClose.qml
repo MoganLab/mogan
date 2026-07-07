@@ -38,8 +38,8 @@ DialogShell {
                 font.pixelSize: 17 * Theme.scaleFactor
                 font.weight: Font.Bold
                 font.letterSpacing: 0.2 * Theme.scaleFactor
-                // 单行；文件名过长由 scheme 侧 truncate-filename-middle 中间省略。
-                elide: Text.ElideRight
+                // 单行。文件名过长时 ElideMiddle 中间省略（保留「?」与文件名首尾）。
+                elide: Text.ElideMiddle
             }
 
             DialogButtons {
