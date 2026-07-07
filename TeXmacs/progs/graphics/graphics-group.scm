@@ -488,33 +488,38 @@
   ) ;cond
 ) ;tm-define
 
+(tm-define (start-multi-select x y)
+  (set! selecting-x0 x)
+  (set! selecting-y0 y)
+  (set! multiselecting #t)
+) ;tm-define
+
+(tm-define (end-multi-select x y)
+  (let* ((x1 (s2f selecting-x0))
+         (y1 (s2f selecting-y0))
+         (x2 (s2f x))
+         (y2 (s2f y))
+         (tmp 0)
+         (sel #f)
+        ) ;
+    (if (> x1 x2) (begin (set! tmp x1) (set! x1 x2) (set! x2 tmp)))
+    (if (> y1 y2) (begin (set! tmp y1) (set! y1 y2) (set! y2 tmp)))
+    (set! sel (graphics-select-area x1 y1 x2 y2))
+    (sketch-reset)
+    (for (p sel) (sketch-toggle (path->tree p)))
+    (graphics-decorations-update)
+    (set! multiselecting #f)
+    (set! selecting-x0 #f)
+    (set! selecting-y0 #f)
+  ) ;let*
+) ;tm-define
+
 (define (any_toggle-select x y p obj)
   (if (not sticky-point)
     (if multiselecting
-      (let* ((x1 (s2f selecting-x0))
-             (y1 (s2f selecting-y0))
-             (x2 (s2f x))
-             (y2 (s2f y))
-             (tmp 0)
-             (sel #f)
-            ) ;
-        (if (> x1 x2) (begin (set! tmp x1) (set! x1 x2) (set! x2 tmp)))
-        (if (> y1 y2) (begin (set! tmp y1) (set! y1 y2) (set! y2 tmp)))
-        (set! sel (graphics-select-area x1 y1 x2 y2))
-        (sketch-reset)
-        (for (p sel) (sketch-toggle (path->tree p)))
-        (graphics-decorations-update)
-        (set! multiselecting #f)
-        (set! selecting-x0 #f)
-        (set! selecting-y0 #f)
-      ) ;let*
+      (end-multi-select x y)
       (if p
         (with t (path->tree p) (sketch-toggle t) (graphics-decorations-update))
-        (begin
-          (set! selecting-x0 x)
-          (set! selecting-y0 y)
-          (set! multiselecting #t)
-        ) ;begin
       ) ;if
     ) ;if
   ) ;if
@@ -619,19 +624,18 @@
 (tm-define (edit_left-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (start-operation 'move current-path current-obj)
-) ;tm-define
-
-(tm-define (edit_left-button mode x y)
-  (:require (in? (graphics-mode) '((group-edit edit-props) (group-edit animate))))
-  (:state graphics-state)
-  (if (and (not current-path) (graphics-selection-active?))
-    (unselect-all current-path current-obj)
-    (begin
-      (unselect-all current-path current-obj)
-      (toggle-select x y current-path current-obj)
-    ) ;begin
-  ) ;if
+  (cond (sticky-point
+         ;; 已在拖动/修改态，单击提交
+         (start-operation 'move current-path current-obj))
+        (current-path
+         ;; 点中对象：仅选中该对象，不进入拖动状态
+         (sketch-reset)
+         (any_toggle-select x y current-path current-obj))
+        ((nnull? (sketch-get))
+         ;; 点中空白且有选中：取消全选
+         (unselect-all current-path current-obj))
+        (else (noop))
+  ) ;cond
 ) ;tm-define
 
 (tm-define (edit_right-button mode x y)
@@ -640,6 +644,30 @@
   (if (and (not current-path) (graphics-selection-active?))
     (unselect-all current-path current-obj)
     (toggle-select x y current-path current-obj)
+  ) ;if
+) ;tm-define
+
+(tm-define (edit_start-drag mode x y t p)
+  (:require (eq? mode 'group-edit))
+  (:state graphics-state)
+  (cond (sticky-point
+         ;; 已在拖动/修改态
+         (start-operation 'move current-path current-obj))
+        ((or current-path (nnull? (sketch-get)))
+         ;; 点中对象或已有选中：进入拖动/修改态
+         (start-operation 'move current-path current-obj))
+        (else
+         ;; 空白处拖拽：框选
+         (start-multi-select x y))
+  ) ;cond
+) ;tm-define
+
+(tm-define (edit_end-drag mode x y t p)
+  (:require (eq? mode 'group-edit))
+  (:state graphics-state)
+  (if multiselecting
+    (end-multi-select x y)
+    (start-operation 'move current-path current-obj)
   ) ;if
 ) ;tm-define
 

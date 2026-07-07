@@ -579,7 +579,7 @@
 ) ;tm-define
 
 (tm-define (set-sticky-point-false)
-  (set-cursor-style-if-in-hand-modes "openhand")
+  (set-cursor-style-if-in-hand-modes "normal")
   (set! sticky-point #f)
 ) ;tm-define
 
