@@ -37,6 +37,9 @@
 
 ;; Basic operations (setting the object)
 
+;; 是否正在新建图形（object_commit 后切到 move 模式）
+(define creating-object? #f)
+
 (define (object-set! o . opt)
   (set! layer-of-last-removed-object #f)
   (set! current-obj o)
@@ -122,6 +125,8 @@
 (tm-define (object_create tag x y)
   (:require (or (in? tag gr-tags-curves) (or (in? tag gr-tags-user) (in? tag new-gr-tags)))
   ) ;:require
+  ;; 图形新建时触发 creating-object?
+  (set! creating-object? #t)
   (with o
     (graphics-enrich `(,tag (point ,x ,y) (point ,x ,y)))
     (graphics-store-state 'start-create)
@@ -209,6 +214,8 @@
 ;; Basic operations (checkout & commit)
 
 (define (object_checkout)
+  ;; 已有图形修改时不触发 creating-object?
+  (set! creating-object? #f)
   (sketch-set! `(,(path->tree current-path)))
   (sketch-checkout)
   ;; (display* "Checked out " (sketch-get) "\n")
@@ -242,6 +249,24 @@
           (set! current-obj (stree-radical obj))
           (set! current-point-no #f)
           (graphics-forget-states)
+          (when creating-object?
+            (set! creating-object? #f)
+            (with saved-path current-path
+              (set! graphics-texmacs-pointer "none")
+              (graphics-set-mode '(group-edit move))
+              ;; 将当前对象切换到 move 模式后，重新选中该对象
+              (when saved-path
+                (with t
+                  (path->tree saved-path)
+                  (when t
+                    (sketch-toggle t)
+                    (graphics-decorations-update)
+                  ) ;when
+                ) ;with
+              ) ;when
+              (set! current-obj '(nothing))
+            ) ;with
+          ) ;when
         ) ;with
       ) ;with
     ) ;if
