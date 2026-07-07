@@ -1,0 +1,4 @@
+singleton Theme 1.0 Theme.qml
+DialogShell 1.0 DialogShell.qml
+DialogButtons 1.0 DialogButtons.qml
+EnumCombo 1.0 EnumCombo.qml

@@ -1,5 +1,10 @@
 <RCC>
     <qresource prefix="/">
+        <file>qml/qmldir</file>
+        <file>qml/Theme.qml</file>
+        <file>qml/DialogShell.qml</file>
+        <file>qml/DialogButtons.qml</file>
+        <file>qml/EnumCombo.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/FormDialog.qml</file>
     </qresource>
