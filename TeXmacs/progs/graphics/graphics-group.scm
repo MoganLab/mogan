@@ -518,9 +518,7 @@
   (if (not sticky-point)
     (if multiselecting
       (end-multi-select x y)
-      (if p
-        (with t (path->tree p) (sketch-toggle t) (graphics-decorations-update))
-      ) ;if
+      (if p (with t (path->tree p) (sketch-toggle t) (graphics-decorations-update)))
     ) ;if
   ) ;if
 ) ;define
@@ -625,15 +623,18 @@
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
   (cond (sticky-point
-         ;; 已在拖动/修改态，单击提交
-         (start-operation 'move current-path current-obj))
+          ;; 已在拖动/修改态，单击提交
+          (start-operation 'move current-path current-obj)
+        ) ;sticky-point
         (current-path
-         ;; 点中对象：仅选中该对象，不进入拖动状态
-         (sketch-reset)
-         (any_toggle-select x y current-path current-obj))
+          ;; 点中对象：仅选中该对象，不进入拖动状态
+          (sketch-reset)
+          (any_toggle-select x y current-path current-obj)
+        ) ;current-path
         ((nnull? (sketch-get))
          ;; 点中空白且有选中：取消全选
-         (unselect-all current-path current-obj))
+         (unselect-all current-path current-obj)
+        ) ;
         (else (noop))
   ) ;cond
 ) ;tm-define
@@ -651,14 +652,17 @@
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
   (cond (sticky-point
-         ;; 已在拖动/修改态
-         (start-operation 'move current-path current-obj))
+          ;; 已在拖动/修改态
+          (start-operation 'move current-path current-obj)
+        ) ;sticky-point
         ((or current-path (nnull? (sketch-get)))
          ;; 点中对象或已有选中：进入拖动/修改态
-         (start-operation 'move current-path current-obj))
+         (start-operation 'move current-path current-obj)
+        ) ;
         (else
-         ;; 空白处拖拽：框选
-         (start-multi-select x y))
+          ;; 空白处拖拽：框选
+          (start-multi-select x y)
+        ) ;else
   ) ;cond
 ) ;tm-define
 
