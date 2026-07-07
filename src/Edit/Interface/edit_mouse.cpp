@@ -959,7 +959,7 @@ edit_interface_rep::mouse_any (string type, SI x, SI y, int mods, time_t t,
     hide_text_popup ();
   }
   else {
-    set_cursor_style ("normal");
+    if (!over_graphics (x, y)) set_cursor_style ("normal");
 #ifdef QTTEXMACS
     hide_image_popup ();
 #endif

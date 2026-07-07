@@ -16,7 +16,7 @@
 #include <QDesktopServices>
 #include <QDialog>
 #include <QDockWidget>
-#include <QFontMetrics>
+#include <QEvent>
 #include <QGuiApplication>
 #include <QHBoxLayout>
 #include <QIcon>
@@ -207,11 +207,11 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     : qt_window_widget_rep (new QTMWindow (0), "popup", _quit), helper (this),
       prompt (NULL), full_screen (false), is_presentation (false),
       menuToolBarVisibleCache (false), titleBarVisibleCache (false),
-      scmNotificationBar (nullptr), loginButton (nullptr), vipButton (nullptr),
-      m_loginDialog (nullptr), avatarLabel (nullptr), nameLabel (nullptr),
-      accountIdLabel (nullptr), membershipPeriodLabel (nullptr),
-      membershipTitleLabel (nullptr), loginActionButton (nullptr),
-      logoutButton (nullptr), m_userId (""), m_memberType (""),
+      scmNotificationBar (nullptr), loginButton (nullptr),
+      inviteButton (nullptr), m_loginDialog (nullptr), avatarLabel (nullptr),
+      nameLabel (nullptr), accountIdLabel (nullptr),
+      membershipPeriodLabel (nullptr), membershipTitleLabel (nullptr),
+      loginActionButton (nullptr), logoutButton (nullptr), m_userId (""),
       m_currentScmNotificationItem (""), startupContentWidget (nullptr),
       startupTabMode (false), pdfViewerWidget (nullptr), pdfTabMode (false),
       currentPdfPath (""), lastLoadedPdfPath (""), chatContentWidget (nullptr),
@@ -416,11 +416,12 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     windowAgent->setHitTestVisible (loginButton, true);
   }
 
+  loginButton->setText (QString ());
+  loginButton->setToolTip (qt_translate ("User Center"));
+  loginButton->setAccessibleName (qt_translate ("User Center"));
+
   if (is_community_stem ()) {
-    // 社区版：点击直接跳转官网，无状态变化，不显示文字
-    loginButton->setText (QString ());
-    loginButton->setToolTip (qt_translate ("User Center"));
-    loginButton->setAccessibleName (qt_translate ("User Center"));
+    // 社区版：点击直接跳转官网，无登录态
     QObject::connect (loginButton, &QWK::LoginButton::clicked, [this] () {
       string pricingUrl=
           as_string (call ("account-oauth2-config", "click-return-liii-url"));
@@ -429,57 +430,45 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
   }
   else {
     // 商业版：完整登录功能
-    updateLoginButtonState (false);
-
     m_loginDialog= new QWK::LoginDialog (mainwindow ());
     setupLoginDialog (m_loginDialog);
     QObject::connect (loginButton, &QWK::LoginButton::clicked,
                       [this] () { checkLocalTokenAndLogin (); });
   }
 
-  // VIP升级会员按钮 - 放在登录按钮左侧（只在商业版显示）
-  vipButton= new QPushButton (windowBar);
-  vipButton->setObjectName ("vip-button");
-  vipButton->setText (qt_translate ("Upgrade VIP"));
-  vipButton->setProperty ("system-button", true);
-  vipButton->setFocusPolicy (Qt::NoFocus);
-  vipButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
-  vipButton->setFixedSize (vipbuttonWidth, vipbuttonHeight);
-  vipButton->setCursor (Qt::PointingHandCursor);
-  vipButton->setStyleSheet (
-      QString ("QPushButton#vip-button { border-radius: %1px; font-size: %2px; "
-               "margin-right: %3px; }")
+  // 邀请好友按钮 - 放在登录按钮左侧（商业版已登录时显示）
+  inviteButton= new QPushButton (windowBar);
+  inviteButton->setObjectName ("invite-button");
+  inviteButton->setText (qt_translate ("Invite Friends"));
+  inviteButton->setProperty ("system-button", true);
+  inviteButton->setFocusPolicy (Qt::NoFocus);
+  inviteButton->setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Fixed);
+  inviteButton->setFixedSize (vipbuttonWidth, vipbuttonHeight);
+  inviteButton->setCursor (Qt::PointingHandCursor);
+  inviteButton->setStyleSheet (
+      QString (
+          "QPushButton#invite-button { border-radius: %1px; font-size: %2px; "
+          "margin-right: %3px; }")
           .arg (DpiUtils::scaled (12))
           .arg (DpiUtils::scaled (12))
           .arg (DpiUtils::scaled (4)));
 
-  // 设置闪电图标
-  vipButton->setIcon (QIcon (":/window-bar/vip-lightning.svg"));
-  vipButton->setIconSize (QSize (DpiUtils::scaled (20), DpiUtils::scaled (20)));
-
-  windowBar->setVipButton (vipButton);
+  windowBar->setVipButton (inviteButton);
   if (windowAgent) {
-    windowAgent->setHitTestVisible (vipButton, true);
+    windowAgent->setHitTestVisible (inviteButton, true);
   }
 
-  // 点击事件：跳转到会员购买页面（未登录时先触发登录）
-  QObject::connect (vipButton, &QPushButton::clicked, [this] () {
-    if (is_community_stem ()) {
-      string pricingUrl=
-          as_string (call ("account-oauth2-config", "click-return-liii-url"));
-      QDesktopServices::openUrl (QUrl (to_qstring (pricingUrl)));
-      return;
-    }
-
+  // 点击事件：跳转邀请页面（未登录时先触发登录）
+  QObject::connect (inviteButton, &QPushButton::clicked, [this] () {
     if (is_server_started ()) {
       tm_server_rep* server=
           dynamic_cast<tm_server_rep*> (get_server ().operator->());
       if (server && server->getAccount () &&
           server->getAccount ()->isLoggedIn ()) {
 #if !IS_COMMUNITY
-        telemetry_track ("VIP_CLICK", "'((\"mode\" . \"upgrade\"))");
+        telemetry_track ("INVITE_CLICK", "'((\"mode\" . \"invite\"))");
 #endif
-        openRenewalPage ();
+        openInvitationPage ();
       }
       else {
         checkLocalTokenAndLogin ();
@@ -487,8 +476,27 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
     }
   });
 
-  // 初始设置VIP按钮可见性：商业版且（未登录或普通用户/体验会员）时显示
-  updateVipButtonVisibility (false, QString ());
+  // 初始设置邀请按钮可见性：商业版已登录即显示
+  updateInviteButtonVisibility (false);
+
+  // 窗口尺寸变化时重算邀请按钮显隐（半屏下隐藏）
+  if (mw) {
+    class InviteBtnResizeWatcher : public QObject {
+    public:
+      InviteBtnResizeWatcher (QWidget* parent, qt_tm_widget_rep* w)
+          : QObject (parent), widget_ (w) {}
+      bool eventFilter (QObject* obj, QEvent* event) override {
+        if (event->type () == QEvent::Resize) {
+          widget_->updateInviteButtonVisibility_onResize ();
+        }
+        return QObject::eventFilter (obj, event);
+      }
+
+    private:
+      qt_tm_widget_rep* widget_;
+    };
+    mw->installEventFilter (new InviteBtnResizeWatcher (mw, this));
+  }
 
   // 创建 SCM 通知条容器（放在标题栏下方）
   QWidget*     notificationContainer= new QWidget (mw);
@@ -922,23 +930,17 @@ qt_tm_widget_rep::qt_tm_widget_rep (int mask, command _quit)
       QTMOAuth* account= server->getAccount ();
       // 商业版：连接登录状态变化信号
       if (!is_community_stem ()) {
-        QObject::connect (
-            account, &QTMOAuth::loginStateChanged, [this] (bool loggedIn) {
-              updateLoginButtonState (loggedIn,
-                                      loggedIn ? qt_translate ("User Center")
-                                               : QString ());
-              if (loggedIn) {
-                syncScmGuestNotification (false);
-                refreshMembershipInfoInBackground ();
-              }
-              else {
-                syncScmMembershipNotification (false);
-                checkNetworkAvailable ();
-              }
-            });
-        updateLoginButtonState (
-            account->isLoggedIn (),
-            account->isLoggedIn () ? qt_translate ("User Center") : QString ());
+        QObject::connect (account, &QTMOAuth::loginStateChanged,
+                          [this] (bool loggedIn) {
+                            if (loggedIn) {
+                              syncScmGuestNotification (false);
+                              refreshMembershipInfoInBackground ();
+                            }
+                            else {
+                              syncScmMembershipNotification (false);
+                              checkNetworkAvailable ();
+                            }
+                          });
         if (account->isLoggedIn ()) {
           refreshMembershipInfoInBackground ();
         }
@@ -3055,61 +3057,6 @@ qt_tm_widget_rep::triggerOAuth2 () {
 }
 
 void
-qt_tm_widget_rep::updateLoginButtonState (bool           isLoggedIn,
-                                          const QString& displayName) {
-  if (!loginButton) return;
-
-  // 设置登录状态属性，用于QSS样式区分
-  loginButton->setProperty ("login-state",
-                            isLoggedIn ? "logged-in" : "not-logged-in");
-
-  // 未登录时显示"未登录"，已登录时不显示文字（只显示图标）
-  QString label;
-  if (!isLoggedIn) {
-    label= qt_translate ("Not logged in");
-  }
-  // 已登录时不设置文字，只显示图标
-
-  QFontMetrics  metrics (loginButton->font ());
-  const int     maxTextWidth= DpiUtils::scaled (76);
-  const QString visibleText=
-      metrics.elidedText (label, Qt::ElideRight, maxTextWidth);
-
-  loginButton->setText (visibleText);
-  loginButton->setToolTip (isLoggedIn ? qt_translate ("User Center") : label);
-  loginButton->setAccessibleName (isLoggedIn ? qt_translate ("User Center")
-                                             : label);
-
-  const int horizontalPadding= DpiUtils::scaled (26);
-  const int iconTextSpacing= visibleText.isEmpty () ? 0 : DpiUtils::scaled (6);
-  const int iconWidth      = loginButton->iconSize ().width ();
-  const int textWidth      = metrics.horizontalAdvance (visibleText);
-  const int minWidth       = DpiUtils::scaled (60);
-  const int maxWidth=
-      isLoggedIn ? DpiUtils::scaled (60) : DpiUtils::scaled (120);
-  const int rawDesiredWidth=
-      iconWidth + iconTextSpacing + textWidth + horizontalPadding;
-  const int desiredWidth= qBound (minWidth, rawDesiredWidth, maxWidth);
-
-  // 强制刷新样式以应用状态相关样式
-  loginButton->style ()->unpolish (loginButton);
-  loginButton->style ()->polish (loginButton);
-  auto applyWidth= [this, desiredWidth] () {
-    if (!loginButton) return;
-    loginButton->setMinimumWidth (desiredWidth);
-    loginButton->setMaximumWidth (desiredWidth);
-    loginButton->setFixedWidth (desiredWidth);
-    loginButton->resize (desiredWidth, loginButton->height ());
-    loginButton->updateGeometry ();
-    if (loginButton->parentWidget () && loginButton->parentWidget ()->layout ())
-      loginButton->parentWidget ()->layout ()->activate ();
-  };
-  applyWidth ();
-
-  QTimer::singleShot (0, loginButton, applyWidth);
-}
-
-void
 qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& email,
                                        const QString& avatarText,
@@ -3117,13 +3064,11 @@ qt_tm_widget_rep::updateDialogContent (bool isLoggedIn, const QString& username,
                                        const QString& periodLabel,
                                        const QString& periodLabelColor,
                                        const QString& productType) {
-  // 保存会员类型
-  m_memberType= memberType;
+  // 保存登录态，供 resize 回调读取
+  m_isLoggedIn= isLoggedIn;
 
-  updateLoginButtonState (isLoggedIn, isLoggedIn ? username : QString ());
-
-  // 更新VIP按钮可见性（根据memberType判断）
-  updateVipButtonVisibility (isLoggedIn, memberType);
+  // 更新邀请按钮可见性（已登录即显示）
+  updateInviteButtonVisibility (isLoggedIn);
 
   // 更新对话框中的UI组件内容
   if (nameLabel) {
@@ -3186,40 +3131,49 @@ qt_tm_widget_rep::showNotLoggedInDialog (const QString& errorMessage) {
                        "liii", qt_translate ("Non-member"), "", "", "");
 }
 
+/**
+ * @brief 更新邀请按钮可见性。
+ *
+ * - 商业版 + 已登录：显示
+ * - 半屏（窗口宽度 ≤ 屏幕可用宽度一半）：隐藏，给标签页腾空间
+ * - 社区版：永远不显示
+ *
+ * 不再按会员等级区分——邀请功能对所有已登录用户开放。
+ */
 void
-qt_tm_widget_rep::updateVipButtonVisibility (bool           isLoggedIn,
-                                             const QString& memberType) {
-  if (!vipButton) {
+qt_tm_widget_rep::updateInviteButtonVisibility (bool isLoggedIn) {
+  if (!inviteButton) {
     return;
   }
 
-  // 社区版不显示VIP按钮
-  if (is_community_stem ()) {
-    vipButton->hide ();
-    return;
+  bool shouldShow= false;
+  if (!is_community_stem ()) {
+    // 已登录即显示，不再按会员等级区分
+    shouldShow= isLoggedIn;
+
+    // 半屏（窗口宽度 < 屏幕可用宽度的一半）下空间紧张，隐藏邀请按钮，
+    // 优先保证标签页可用宽度
+    if (shouldShow) {
+      QMainWindow* mw= mainwindow ();
+      if (mw) {
+        int screen_w=
+            QApplication::primaryScreen ()->availableGeometry ().width ();
+        if (mw->width () * 2 <= screen_w) {
+          shouldShow= false;
+        }
+      }
+    }
   }
 
-  // 未登录用户：显示VIP按钮
-  if (!isLoggedIn) {
-    vipButton->show ();
-    return;
+  inviteButton->setVisible (shouldShow);
+  if (tabPageContainer) {
+    tabPageContainer->setVipButtonReserved (shouldShow);
   }
+}
 
-  // 已登录用户：根据memberType决定是否显示
-  // 如果memberType为空，说明还未获取用户信息，保持当前状态（不隐藏）
-  if (memberType.isEmpty ()) {
-    return;
-  }
-
-  // "Regular User"(普通用户)或"Trial Member"(体验会员)时显示
-  // 其他(Fruit User, Sprout User, Seed User, Member)时不显示
-  if (memberType == QStringLiteral ("Regular User") ||
-      memberType == QStringLiteral ("Trial Member")) {
-    vipButton->show ();
-  }
-  else {
-    vipButton->hide ();
-  }
+void
+qt_tm_widget_rep::updateInviteButtonVisibility_onResize () {
+  updateInviteButtonVisibility (m_isLoggedIn);
 }
 
 void
@@ -3243,27 +3197,51 @@ qt_tm_widget_rep::logout () {
   }
 }
 
-void
-qt_tm_widget_rep::openRenewalPage () {
-  // 获取当前token
+/**
+ * @brief 构造带鉴权后缀的 URL。
+ *
+ * 拼接 `<baseUrl>?key=<sha256(token)>&user=<userId>`，token 从 account
+ * 模块加载、 计算 SHA256 哈希作为 key 参数。供 openRenewalPage /
+ * openInvitationPage 复用。
+ */
+QString
+qt_tm_widget_rep::buildAuthUrl (const QString& baseUrl) {
   eval ("(use-modules (liii account))");
   string  token  = as_string (call ("account-load-token"));
   QString q_token= to_qstring (token);
 
-  // 获取定价页面URL
-  string  pricingUrl= as_string (call ("account-oauth2-config", "pricing-url"));
-  QString q_pricingUrl= to_qstring (pricingUrl);
-
-  // 计算token的SHA256哈希值作为key参数
   QByteArray tokenBytes= q_token.toUtf8 ();
   QByteArray hash=
       QCryptographicHash::hash (tokenBytes, QCryptographicHash::Sha256);
   QString keyParam= hash.toHex ();
 
-  // 构建完整URL
-  QString fullUrl= q_pricingUrl + "?key=" + keyParam + "&user=" + m_userId;
+  return baseUrl + "?key=" + keyParam + "&user=" + m_userId;
+}
+
+void
+qt_tm_widget_rep::openRenewalPage () {
+  // 获取定价页面 URL
+  string  pricingUrl= as_string (call ("account-oauth2-config", "pricing-url"));
+  QString fullUrl   = buildAuthUrl (to_qstring (pricingUrl));
 
   // 打开浏览器跳转到续费页面
+  QDesktopServices::openUrl (QUrl (fullUrl));
+}
+
+/**
+ * @brief 打开邀请好友页面。
+ *
+ * 邀请页 base URL 通过 `account-oauth2-config` 的 `invitation-url` 配置项获取，
+ * 按 staging/prod profile 自动切换；URL 后缀由 buildAuthUrl 拼接
+ * （key/user 参数用于后台识别邀请人）。
+ */
+void
+qt_tm_widget_rep::openInvitationPage () {
+  // 获取邀请页面 URL
+  string invitationUrl=
+      as_string (call ("account-oauth2-config", "invitation-url"));
+  QString fullUrl= buildAuthUrl (to_qstring (invitationUrl));
+
   QDesktopServices::openUrl (QUrl (fullUrl));
 }
 

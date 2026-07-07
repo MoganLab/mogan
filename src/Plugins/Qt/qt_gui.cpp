@@ -385,6 +385,47 @@ qt_gui_rep::get_selection (string key, tree& t, string& s, string format) {
   return true;
 }
 
+// 解析单个图片在内存中的路径，只处理嵌入式图片
+static url
+selection_image_url (tree t) {
+  // 支持外层套 with 环境（用于对齐等），剥壳后取内层 image 节点
+  while (is_func (t, WITH) && (N (t) & 1) == 1 && N (t) > 2)
+    t= t[N (t) - 1];
+  if (!is_func (t, IMAGE, 5)) return url_none ();
+  tree image_tree= t[0];
+  if (is_atomic (image_tree)) {
+    url im= url_system (image_tree->label);
+    if (is_rooted (im)) return im;
+  }
+  else if (is_func (image_tree, TUPLE, 2) &&
+           is_func (image_tree[0], RAW_DATA, 1) &&
+           is_atomic (image_tree[0][0]) && is_atomic (image_tree[1])) {
+    return url_ramdisc (image_tree[0][0]->label) *
+           url ("image." * image_tree[1]->label);
+  }
+  return url_none ();
+}
+
+static bool
+attach_selection_image (QMimeData* md, tree t) {
+  url src= selection_image_url (t);
+  if (is_none (src)) return false;
+  QImage img;
+  // 直接按原始像素加载：get_image 会按排版用的逻辑尺寸
+  // （HiDPI下为物理像素的一半）缩放，导致画质降低
+  bool loaded= qt_load_image_from_ramdisc (src, img);
+  if (!loaded || img.isNull ()) return false;
+  QImage copy= img.convertToFormat (QImage::Format_ARGB32);
+  md->setImageData (copy);
+  // 外部应用（Word、飞书、网页AIchat等）不认QT私有的
+  // application/x-qt-image，故额外写入标准 image/png
+  QByteArray png;
+  QBuffer    buf (&png);
+  buf.open (QIODevice::WriteOnly);
+  if (copy.save (&buf, "PNG")) md->setData ("image/png", png);
+  return true;
+}
+
 bool
 qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
                            string format) {
@@ -416,6 +457,13 @@ qt_gui_rep::set_selection (string key, tree t, string s, string sv, string sh,
       // tm_delete_array (selection);
 
       selection= c_string (sv);
+
+      // 单图片复制：写入 image/png 供外部粘贴，并跳过 text/plain
+      // （Word 会优先取text/plain 导致粘贴失败）
+      if (is_tuple (t, "texmacs", 3) && attach_selection_image (md, t[1])) {
+        cb->setMimeData (md, mode);
+        return true;
+      }
     }
 
     string enc= get_preference ("texmacs->verbatim:encoding");

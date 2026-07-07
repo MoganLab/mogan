@@ -98,6 +98,19 @@
 
 (define-preference-names "gui theme" ("liii" "Liii") ("liii-night" "Liii Dark"))
 
+(define-preference-names "magic-paste-shortcut"
+ ("ctrl+shift+v" "Ctrl+Shift+V")
+ ("ctrl+v" "Ctrl+V")
+) ;define-preference-names
+
+;; macOS 上 Ctrl 键实际由 Command 承担，展示串改用 Cmd 前缀。
+;; preference 内部存储保持 "ctrl+..." 不变（与 generic-kbd.scm 比对一致），
+;; 仅覆盖 encode 表影响首选项面板的显示。
+(when (os-macos?)
+  (set-preference-name "magic-paste-shortcut" "ctrl+shift+v" "Cmd+Shift+V")
+  (set-preference-name "magic-paste-shortcut" "ctrl+v" "Cmd+V")
+) ;when
+
 (tm-widget (general-preferences-widget)
   (aligned (item (text "Look and feel:")
              (enum (set-pretty-preference* "look and feel" answer)
@@ -155,6 +168,13 @@
       (enum (set-pretty-preference "completion style" answer)
         '("Popup" "Inline")
         (get-pretty-preference "completion style")
+        "18em"
+      ) ;enum
+    ) ;item
+    (item (text "Magic paste shortcut:")
+      (enum (set-pretty-preference* "magic-paste-shortcut" answer)
+        (if (os-macos?) '("Cmd+Shift+V" "Cmd+V") '("Ctrl+Shift+V" "Ctrl+V"))
+        (get-pretty-preference "magic-paste-shortcut")
         "18em"
       ) ;enum
     ) ;item

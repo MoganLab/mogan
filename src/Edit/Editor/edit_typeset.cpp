@@ -654,6 +654,21 @@ edit_typeset_rep::get_page_count () {
   return N (pages);
 }
 
+string
+edit_typeset_rep::get_page_number_text (int page_index) {
+  if (is_nil (eb) || N (eb) == 0) return ""; // eb: move_box，整体平移盒子
+  box pg= eb[0]; // eb[0]: scatter_box，页面容器，子盒子对应第 i 页边框层
+  if (is_nil (pg) || page_index < 0 || page_index >= N (pg)) return "";
+  box pb= pg[page_index]; // eb[0][i]: page_border_box，边框盒子，第 i 页边框层
+  if (is_nil (pb) || N (pb) == 0) return "";
+  tree page_box= pb[0]; // eb[0][i][0]: page_box，页面盒子，包含页面信息
+  if (!is_compound (page_box) || N (page_box) < 1 || !is_atomic (page_box[0]))
+    return "";
+  string label= page_box[0]->label; // label: 格式为 "page-<页码>"
+  if (!starts (label, "page-")) return "";
+  return label (5, N (label));
+}
+
 int
 edit_typeset_rep::get_current_page () {
   int total_pages= get_page_count ();

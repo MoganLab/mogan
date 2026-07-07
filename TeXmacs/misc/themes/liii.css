@@ -110,31 +110,22 @@ QWK--WindowBar>QAbstractButton#close-button:pressed {
 
 QWK--WindowBar>QAbstractButton#login-button {
   qproperty-iconNormal: url(":/window-bar/login.svg");
-}
-
-/* 未登录状态 - 使用蓝色强调 */
-QWK--WindowBar>QAbstractButton#login-button[login-state="not-logged-in"] {
-  color: #0078d4;
-}
-
-/* 已登录状态 - 使用常规颜色 */
-QWK--WindowBar>QAbstractButton#login-button[login-state="logged-in"] {
   color: #2c2c2c;
 }
 
-/* VIP升级按钮 */
-QWK--WindowBar>QPushButton#vip-button {
+/* 邀请好友按钮 */
+QWK--WindowBar>QPushButton#invite-button {
   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #215a6a, stop:1 #2791ad);
   border: none;
   color: #ffffff;
   font-weight: bold;
 }
 
-QWK--WindowBar>QPushButton#vip-button:hover {
+QWK--WindowBar>QPushButton#invite-button:hover {
   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #2a6f82, stop:1 #30a5c5);
 }
 
-QWK--WindowBar>QPushButton#vip-button:pressed {
+QWK--WindowBar>QPushButton#invite-button:pressed {
   background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #1a4652, stop:1 #1e7a94);
 }
 

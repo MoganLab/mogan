@@ -110,6 +110,18 @@ url                  g_mostRecentlyDraggedTab= url_none ();
 QTMTabPageContainer* g_mostRecentlyDraggedBar= nullptr;
 QTMTabPageContainer* g_mostRecentlyEnteredBar= nullptr;
 
+/**
+ * @brief 真正关闭标签页前标记 g_mostRecentlyClosedTab。
+ *
+ * 该标记用于在 ACTIVE tab 第一次刷新时隐藏它，避免闪烁。不能提前到关闭按钮
+ * 点击时设置，否则确认对话框点「取消」后 tab 仍会保持隐藏。
+ */
+void
+cpp_kill_tabpage (url p_win, url p_view) {
+  g_mostRecentlyClosedTab= p_view;
+  kill_tabpage (p_win, p_view);
+}
+
 static url
 startup_tab_buffer_name () {
   return url ("tmfs://startup-tab");
@@ -228,8 +240,16 @@ QTMTabPage::initializeCloseButton (QAction* closeAction) {
     QPointer<QAction> safeAction (closeAction);
     connect (m_closeBtn, &QPushButton::clicked, this, [=] () {
       if (!safeAction) return;
-      g_mostRecentlyClosedTab= m_viewUrl;
+      // 弹窗期间先隐藏关闭按钮高亮；取消后按鼠标位置恢复。
+      m_hoverOnCloseArea= false;
+      updateCloseButtonVisibility ();
+      QPointer<QTMTabPage> guard (this);
       safeAction->trigger ();
+      if (guard) {
+        QPoint pos               = guard->mapFromGlobal (QCursor::pos ());
+        guard->m_hoverOnCloseArea= guard->isPointerOnCloseArea (pos);
+        guard->updateCloseButtonVisibility ();
+      }
     });
   }
   updateCloseButtonVisibility ();
@@ -588,17 +608,23 @@ QTMTabPageContainer::arrangeTabPages () {
   if (!parentWidget ()) return;
   const int windowWidth=
       parentWidget () ? parentWidget ()->width () : this->width ();
-  // 动态计算右侧预留空间，防止标签页覆盖系统按钮
+  // 动态计算右侧预留空间，防止标签页覆盖系统按钮 / 邀请按钮 / 新增标签按钮
   double scale      = getDPIScaleFactor ();
-  int    buttonWidth= int (72 * scale); // 按钮宽度
-  int    buttonCount= 5;                // pin, min, max, close,login
+  int    buttonWidth= int (60 * scale); // 系统按钮宽度
+  int    buttonCount= 5;                // pin, min, max, close, login
 #ifdef Q_OS_MAC
   buttonCount= 1; // macOS 仅保留 login
 #endif
   int reservedRight= buttonCount * buttonWidth;
 #ifndef IS_COMMUNITY
-  reservedRight+= DpiUtils::scaled (90); // VIP 按钮及间距预留
+  if (m_vipButtonReserved) {
+    reservedRight+= DpiUtils::scaled (90); // 邀请按钮
+  }
 #endif
+  // 末尾的新增标签按钮（紧跟在最后一个 tab 之后）也要占位
+  reservedRight+= getScaledAddButtonHeight ();
+  reservedRight+=
+      DpiUtils::scaled (20); // 新增标签按钮与右侧控件之间留 20pt 间距
 
   int visibleTabCount= 0;
   // cout << "most recently closed tab:" << g_mostRecentlyClosedTab << LF;

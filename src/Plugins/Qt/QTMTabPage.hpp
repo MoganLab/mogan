@@ -27,7 +27,10 @@
 #include <basic.hpp>
 #include <scheme.hpp>
 
-/*! QTMTabPage is used to build a widget for tab page.
+/**
+ * @brief 单个标签页控件。
+ *
+ * 基于 QToolButton，承载标题、关闭按钮、脏标记与拖拽逻辑。
  */
 class QTMTabPage : public QToolButton {
   Q_OBJECT
@@ -45,11 +48,18 @@ public:
   explicit QTMTabPage ();
   virtual void paintEvent (QPaintEvent*) override;
   bool         isDirty () const { return m_isDirty; }
-  /*! 同步已解析好的显示状态（干净标题 + dirty 标志）。
+  /**
+   * @brief 同步已解析好的干净标题与 dirty 标志。
+   *
+   * @param cleanTitle 已去除尾部 `*` 后缀的干净标题。
+   * @param dirty      是否处于未保存的脏状态。
+   *
+   * @par 为什么需要它
    * replaceTabPages 复用既有 tab 时调用：srcTab 构造时已 applyDisplayTitle
    * 解析过尾部 `*`，其 text() 是干净标题、isDirty() 是最新脏状态。复用的
-   * tab 必须同步这两者，否则 m_isDirty 停留在首次构造的旧值，编辑标脏/
-   * 保存去脏都不会反映到关闭按钮位置的 `*` 上。 */
+   * tab 必须同步这两者，否则 m_isDirty 停留在首次构造的旧值，编辑标脏 /
+   * 保存去脏都不会反映到关闭按钮位置的 `*` 上。
+   */
   void syncDisplay (const QString& cleanTitle, bool dirty);
 
 public slots:
@@ -70,12 +80,14 @@ private:
   void initializeCloseButton (QAction* closeAction= nullptr);
 };
 
-/*! QTMTabPageAction is used as a carrier of QTMTabPage widget.
-Why:
-If we use the QWidgetAction, once we call setDefaultWidget,
-we can't take out the defaultWidget from QWidgetAction, because
-when we delete the QWidgetAction, the defaultWidget will also be
-deleted. You can see this behavior in the source code of QWidgetAction.
+/**
+ * @brief QTMTabPage widget 的 QAction 载体。
+ *
+ * @par 为什么不用 QWidgetAction
+ * QWidgetAction 一旦 setDefaultWidget，就无法再取出 defaultWidget——
+ * 删除 QWidgetAction 时其 defaultWidget 也会被一同销毁（见 QWidgetAction
+ * 源码）。本类仅作指针载体，不持有 widget 生命周期，便于后续从 action
+ * 中安全取回 QTMTabPage。
  */
 class QTMTabPageAction : public QAction {
   Q_OBJECT
@@ -85,10 +97,10 @@ public:
   QWidget* const m_widget;
 };
 
-/*! QTMTabPageContainer is used to build the container for QTMTabPage.
-In order to:
-1. Support multi-line display for numerous tab pages;
-2. Support drag-and-drop to sort tab page
+/**
+ * @brief 标签页容器，承载并排布多个 QTMTabPage。
+ *
+ * 支持自动多行排布（标签数量多时换行）与拖拽重排序。
  */
 class QTMTabPageContainer : public QWidget {
   Q_OBJECT
@@ -100,6 +112,7 @@ class QTMTabPageContainer : public QWidget {
   bool               dragging;
   QPoint             dragPosition;
   QWK::WindowButton* m_addTabButton;
+  bool               m_vipButtonReserved= false;
 
 public:
   QTMTabPage* dummyTabPage;
@@ -107,21 +120,35 @@ public:
   ~QTMTabPageContainer ();
 
 #ifdef LIII_DEBUG
-  // 测试用：每次 replaceTabPages 从 carrier 摄取 / deleteLater 移除的 tab 数，
-  // 以及 updateActiveTab 命中次数。release 下编译期剔除。
+  /// @brief replaceTabPages 增量计数器：从 carrier 摄取 / deleteLater 移除
+  ///        的 tab 数，以及 updateActiveTab 命中次数。仅 debug 模式可用。
   int debug_added_count  = 0;
   int debug_removed_count= 0;
   int debug_active_count = 0;
-  // 测试用：按 view-url 取现有 tab 指针，用于断言增量 diff 复用了同一对象
-  // （而非全量重建换新指针）。找不到返回 nullptr。
+  /// @brief 按 view-url 取现有 tab 指针，用于断言增量 diff 复用了同一对象
+  ///        而非全量重建换新指针。找不到返回 nullptr。
   QTMTabPage* debug_findTab (const url& viewUrl) const;
 #endif
 
   inline void setRowHeight (int p_height) { m_rowHeight= p_height; }
-  // 按 view-url 做增量 diff：复用已有 tab、摄取新增、移除多余，不全量重建。
+  /**
+   * @brief 切换右侧是否为 VIP 按钮预留宽度，状态变化时立即重排标签页。
+   *
+   * @param reserved true 时 arrangeTabPages 会在右侧预留 VIP 按钮宽度，
+   *                 false 时不预留，标签页可扩展利用该空间。
+   */
+  void setVipButtonReserved (bool reserved) {
+    if (m_vipButtonReserved != reserved) {
+      m_vipButtonReserved= reserved;
+      arrangeTabPages ();
+    }
+  }
+
+  /// @brief 按 view-url 做增量 diff，复用已有 tab、摄取新增、移除多余。
   void replaceTabPages (QList<QAction*>* p_src);
-  // 按 currentView 切换 active 高亮，仅遍历 setChecked，不重建 widget。
+  /// @brief 按 currentView 切换 active 高亮，仅遍历 setChecked，不重建 widget。
   void updateActiveTab (const url& currentView);
+  /// @brief 重新计算并排布所有标签页的位置与尺寸。
   void arrangeTabPages ();
   void setHitTestVisibleForTabPages (QWK::WidgetWindowAgent* agent);
 
@@ -133,7 +160,6 @@ private:
   void adjustHeight (int p_rowCount);
   void onAddTabClicked ();
 
-  // drag and drop events
   int          mapToPointing (QDropEvent* e, QPoint& m_indicator);
   virtual void dragEnterEvent (QDragEnterEvent* e) override;
   virtual void dragMoveEvent (QDragMoveEvent* e) override;
@@ -144,10 +170,10 @@ protected:
   bool eventFilter (QObject* obj, QEvent* event) override;
 };
 
-/*! QTMTabPageBar is used to wrap the QTMTabPageContainer.
-In order to:
-1. Add this to the QMainWindow as QToolBar, just like the main icon toolbar;
-2. Support dragging and docking like the main icon toolbar.
+/**
+ * @brief 把 QTMTabPageContainer 包装成 QToolBar。
+ *
+ * 用于挂到 QMainWindow 上作为可拖拽停靠的工具栏。
  */
 class QTMTabPageBar : public QToolBar {
   QTMTabPageContainer* m_container;
@@ -166,12 +192,23 @@ protected:
   virtual void resizeEvent (QResizeEvent* e) override;
 };
 
-// Global variables for tab page management
+/// @brief 标签页管理相关的全局状态。
+///@{
 extern int                  g_tabWidth;
 extern int                  g_pointingIndex;
 extern url                  g_mostRecentlyClosedTab;
 extern url                  g_mostRecentlyDraggedTab;
 extern QTMTabPageContainer* g_mostRecentlyDraggedBar;
 extern QTMTabPageContainer* g_mostRecentlyEnteredBar;
+///@}
+
+/**
+ * @brief Qt 侧关闭标签页入口：先标记最近关闭的 view，再执行 kill_tabpage。
+ *
+ * @par 为什么不能在关闭按钮点击时设置标记
+ * 关闭流程会弹出确认对话框，若用户点「取消」，提前设置的隐藏标记会让
+ * tab 持续隐藏。所以标记必须在真正执行 kill 的这一步设置。
+ */
+void cpp_kill_tabpage (url p_win, url p_view);
 
 #endif // QTMTABPAGE_HPP

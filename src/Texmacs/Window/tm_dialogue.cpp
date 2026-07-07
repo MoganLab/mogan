@@ -15,6 +15,7 @@
 #include "file.hpp"
 #include "message.hpp"
 #include "preferences.hpp"
+#include "sys_utils.hpp"
 #include "tm_file.hpp"
 #include "tm_frame.hpp"
 #include "tm_window.hpp"
@@ -133,6 +134,15 @@ gcd (int i, int j) {
 void
 tm_frame_rep::choose_file (object fun, string title, string type, string prompt,
                            url name) {
+  // 测试钩子：MOGAN_TEST_CHOOSE_FILE 非空时直接回调该路径。
+  string preset= get_env ("MOGAN_TEST_CHOOSE_FILE");
+  if (!is_empty (preset)) {
+    array<object> args;
+    args << object (url_system (preset));
+    call (fun, args);
+    return;
+  }
+
   command cb = dialogue_command (get_server (), fun, 1);
   widget  wid= file_chooser_widget (cb, type, prompt);
   if (!is_scratch (name)) {

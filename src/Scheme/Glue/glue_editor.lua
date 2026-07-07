@@ -452,6 +452,14 @@ function main()
                 ret_type = "int"
             },
             {
+                scm_name = "get-page-number-text",
+                cpp_name = "get_page_number_text",
+                ret_type = "string",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
                 scm_name = "get-page-width",
                 cpp_name = "get_page_width",
                 ret_type = "int",

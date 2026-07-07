@@ -11,82 +11,80 @@
 ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(texmacs-module (texmacs menus print-widgets) (:use (texmacs texmacs tm-print)))
+(texmacs-module (texmacs menus print-widgets)
+  (:use (kernel texmacs pref-keys) (texmacs texmacs tm-print))
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Page setup
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(define (printing-command-list)
-  (with l
-    (cons (get-default-printing-command) (list "lpr" "lp" "pdq" ""))
-    (list-remove-duplicates l)
-  ) ;with
+;; 各 enum 字段的选项列表。
+
+(define (preview-command-list)
+  '("default" "ggv" "ghostview" "gv" "kghostview" "open")
 ) ;define
 
-(tm-widget (page-setup-widget)
-  (centered (aligned (item (text "Preview command:")
-                       (enum (set-pretty-preference "preview command" answer)
-                         '("default"
-                           "ggv"
-                           "ghostview"
-                           "gv"
-                           "kghostview"
-                           "open"
-                           "")
-                         (get-pretty-preference "preview command")
-                         "12em"
-                       ) ;enum
-                     ) ;item
-              (item (text "Printing command:")
-                (enum (set-pretty-preference "printing command" answer)
-                  (printing-command-list)
-                  (get-pretty-preference "printing command")
-                  "12em"
-                ) ;enum
-              ) ;item
-              (item (text "Paper type:")
-                (enum (set-pretty-preference "paper type" answer)
-                  '("default"
-                    "A3"
-                    "A4"
-                    "A5"
-                    "B4"
-                    "B5"
-                    "B6"
-                    "Letter"
-                    "Legal"
-                    "Executive"
-                    "")
-                  (get-pretty-preference "paper type")
-                  "12em"
-                ) ;enum
-              ) ;item
-              (item (text "Printer dpi:")
-                (enum (set-pretty-preference "printer dpi" answer)
-                  '("150" "200" "300" "400" "600" "800" "1200" "2400" "")
-                  (get-pretty-preference "printer dpi")
-                  "12em"
-                ) ;enum
-              ) ;item
-            ) ;aligned
-  ) ;centered
-) ;tm-widget
+(define (printing-command-list)
+  '("lpr" "lp" "pdq")
+) ;define
 
+(define (paper-type-list)
+  '("default" "a3" "a4" "a5" "b4" "b5" "b6" "letter" "legal" "executive")
+) ;define
+
+(define (printer-dpi-list)
+  '("150" "200" "300" "400" "600" "800" "1200" "2400")
+) ;define
+
+;; 构造一个 enum 字段节点：(enum <label> <key> (<options>...) <value>)。
+;; value 取自当前 preference。若 value 不在 options（preference 被外部设成非标准
+;; 值），把 value 防御性插到 options 首位——保证下拉一定能选中当前值，否则 QML
+;; 侧会显示一个不在选项列表里的值、用户无从下手。
+
+(define (enum-field label key options value)
+  (let ((opts (if (member value options) options (cons value options))))
+    `(enum ,label ,key ,opts ,value)
+  ) ;let
+) ;define
+
+;; 构造页面设置的字段表 tree（喂给 QML form 引擎）。label 已翻译、value 取自
+;; 当前 preference、key 引用 pref-keys 函数（函数形式跨模块更可靠）。
+;; 详见 record/qml/plan.md §6.2。
+
+(define (page-setup-form-tree)
+  `(form ,(enum-field (translate "Preview command:")
+            (pref-page-setup-preview-command)
+            (preview-command-list)
+            (get-pretty-preference (pref-page-setup-preview-command)))
+     ,(enum-field (translate "Printing command:")
+        (pref-page-setup-printing-command)
+        (printing-command-list)
+        (get-pretty-preference (pref-page-setup-printing-command)))
+     ,(enum-field (translate "Paper type:")
+        (pref-page-setup-paper-type)
+        (paper-type-list)
+        (get-pretty-preference (pref-page-setup-paper-type)))
+     ,(enum-field (translate "Printer dpi:")
+        (pref-page-setup-printer-dpi)
+        (printer-dpi-list)
+        (get-pretty-preference (pref-page-setup-printer-dpi))))
+) ;define
+
+;; 弹出 QML form 弹窗；用户点 OK 时 cpp-form-dialog 返回 tree（含若干 (key
+;; value) 子节点）。page-setup-form-tree 用 quasiquote 生成的是 scheme 列表
+;; （stree），glue 入参需 mogan tree，故 stree->tree 转换。返回 tree 经
+;; tree->stree 转回 scheme 列表后用 cadr/caddr 解构（mogan tree 非 pair，
+;; 不可直接 car/cadr）。Cancel / 关闭返回空 tree，cdr 得 ()，for-each no-op。
 (tm-define (open-page-setup-window)
   (:interactive #t)
-  (top-window page-setup-widget "Page setup")
+  (with result
+    (cpp-form-dialog (stree->tree (page-setup-form-tree)))
+    (for-each (lambda (kv) (set-pretty-preference (cadr kv) (caddr kv)))
+      (cdr (tree->stree result))
+    ) ;for-each
+  ) ;with
 ) ;tm-define
 
-(tm-tool* (page-setup-tool win)
-  (:name "Page setup")
-  (dynamic (page-setup-widget))
-) ;tm-tool*
-
-(tm-define (open-page-setup)
-  (:interactive #t)
-  (if (side-tools?)
-    (tool-select :right 'page-setup-tool)
-    (open-page-setup-window)
-  ) ;if
-) ;tm-define
+;; 首案统一走 QML 弹窗（旧 side-tool 依赖的 tm-widget 已移除）。
+(tm-define (open-page-setup) (:interactive #t) (open-page-setup-window))

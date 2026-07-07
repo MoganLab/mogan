@@ -225,7 +225,8 @@ notify_assign (typesetter ttt, path p, tree u) {
 void
 notify_insert (typesetter ttt, path p, tree u) {
 #ifdef LIII_DEBUG
-  cout << "Insert " << p << ", " << u << "\n";
+  // cout << "Insert " << p << ", " << u << "\n";
+  cout << "Insert ...\n";
 #endif
   ttt->br->notify_insert (p, u);
 }

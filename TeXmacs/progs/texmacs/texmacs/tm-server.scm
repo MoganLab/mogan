@@ -184,62 +184,41 @@
 ;; Killing buffers, windows and TeXmacs
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-(tm-widget (confirm-close-widget cmd buffer-name)
-  (resize "500guipx"
-    "200guipx"
-    (centered (glue #t #f 150 6)
-      (text (if buffer-name
-              `(verbatim ,(string-append (cork->utf8 (translate "Save change to"))
-                            "「 "
-                            buffer-name
-                            " 」?"))
-              `(verbatim ,(string-append (cork->utf8 (translate "Save scratch buffer"))
-                            "?"))
-            ) ;if
-      ) ;text
-      (glue #t #f 150 6)
-    ) ;centered
-    (bottom-buttons >>
-      (assuming buffer-name ("Save" (cmd "Save")))
-      (assuming (not buffer-name) ("Save as" (cmd "Save")))
-      //
-      ("Don't save" (cmd "Don't save"))
-      //
-      ("Cancel" (cmd "Cancel"))
-      ///
-    ) ;bottom-buttons
-  ) ;resize
-) ;tm-widget
-
 (define (confirm-close-dialog prompt on-save on-dont-save . opt-buffer)
-  (let ((buffer (if (null? opt-buffer) (current-buffer) (car opt-buffer))))
-    (dialogue-window (lambda (cmd)
-                       (confirm-close-widget cmd
-                         (if (or (url-scratch? buffer) (url-rooted-tmfs? buffer))
-                           #f
-                           (buffer-get-title buffer)
-                         ) ;if
-                       ) ;confirm-close-widget
-                     ) ;lambda
-      (lambda (answer)
-        (cond ((== answer "Save")
-               (if (or (url-scratch? buffer) (url-rooted-tmfs? buffer))
-                 (choose-file (lambda (x) (save-buffer-as-simple x buffer (list :overwrite)) (on-save))
-                   "Save TeXmacs file"
-                   "tmu"
-                 ) ;choose-file
-                 (begin
-                   (if (not (buffer-save buffer)) (on-save))
-                 ) ;begin
-               ) ;if
-              ) ;
-              ((== answer "Don't save") (on-dont-save))
-              (else #f)
-        ) ;cond
-      ) ;lambda
-      "Save buffer?"
-    ) ;dialogue-window
-  ) ;let
+  (let* ((buffer (if (null? opt-buffer) (current-buffer) (car opt-buffer)))
+         ;; scratch / tmfs buffer 无文件标题，对话框退化为「保存草稿」并允许另存为。
+         (scratch? (or (url-scratch? buffer) (url-rooted-tmfs? buffer)))
+         (msg (if scratch?
+                (string-append (cork->utf8 (translate "Save scratch buffer")) "?")
+                (string-append (cork->utf8 (translate "Save change to"))
+                  "「 "
+                  (buffer-get-title buffer)
+                  " 」?"
+                ) ;string-append
+              ) ;if
+         ) ;msg
+         ;; C++ 侧 QML 模态对话框（cpp-confirm-close）；exec() 阻塞，天然串行化
+         ;; 连点关闭请求，根治重复弹窗与 X 关闭后无法二次弹的问题。
+         ;; 文案在 scheme 侧算好传入，i18n 走既有 translate 机制。
+         (ans (cpp-confirm-close msg scratch?))
+        ) ;
+    (cond ((== ans "Save")
+           (if scratch?
+             ;; scratch / tmfs：弹另存为对话框。
+             (choose-file (lambda (x) (save-buffer-as-simple x buffer (list :overwrite)) (on-save))
+               "Save TeXmacs file"
+               "tmu"
+             ) ;choose-file
+             ;; 普通文档：存盘；失败才执行 on-save（关闭）。
+             (unless (buffer-save buffer)
+               (on-save)
+             ) ;unless
+           ) ;if
+          ) ;
+          ((== ans "Don't save") (on-dont-save))
+          (else #f)
+    ) ;cond
+  ) ;let*
 ) ;define
 
 (tm-define (buffer-close name) (cpp-buffer-close name))
@@ -273,12 +252,12 @@
           ) ;
           ((buffer-modified? tgt-buffer)
            (confirm-close-dialog "The document has not been saved. Really close it?"
-             (lambda () (kill-tabpage tgt-win tgt-view))
-             (lambda () (kill-tabpage tgt-win tgt-view))
+             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+             (lambda () (cpp-kill-tabpage tgt-win tgt-view))
              tgt-buffer
            ) ;confirm-close-dialog
           ) ;
-          (else (kill-tabpage tgt-win tgt-view))
+          (else (cpp-kill-tabpage tgt-win tgt-view))
     ) ;cond
   ) ;let*
 ) ;tm-define
@@ -292,12 +271,12 @@
         ) ;
         ((buffer-modified? tgt-buffer)
          (confirm-close-dialog "The document has not been saved. Really close it?"
-           (lambda () (kill-tabpage tgt-win tgt-view))
-           (lambda () (kill-tabpage tgt-win tgt-view))
+           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
+           (lambda () (cpp-kill-tabpage tgt-win tgt-view))
            tgt-buffer
          ) ;confirm-close-dialog
         ) ;
-        (else (kill-tabpage tgt-win tgt-view))
+        (else (cpp-kill-tabpage tgt-win tgt-view))
   ) ;cond
 ) ;tm-define
 
