@@ -1019,6 +1019,7 @@
 ("gui" "界面")
 ("h modifier" "")
 ("hangul" "谚文")
+("hanzi style" "一, 二, 三")
 ("happy typing" "")
 ("has been aborted" "")
 ("has completed its task" "")
