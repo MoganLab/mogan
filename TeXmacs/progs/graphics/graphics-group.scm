@@ -15,119 +15,161 @@
 
 (texmacs-module (graphics graphics-group)
   (:use (graphics graphics-env)
-        (graphics graphics-single)
-        (graphics graphics-utils)
-        (kernel gui kbd-handlers)
-        (dynamic animate-edit)))
+    (graphics graphics-single)
+    (graphics graphics-utils)
+    (kernel gui kbd-handlers)
+    (dynamic animate-edit)
+  ) ;:use
+) ;texmacs-module
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Group edit mode
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; State
+
 (define group-old-x #f)
+
 (define group-old-y #f)
+
 (define group-first-x #f)
+
 (define group-first-y #f)
+
 (define group-bary-x #f)
+
 (define group-bary-y #f)
+
 (define group-first-go #f)
+
 (define paste-times 0)
 
 (define (store-important-points)
   (define so-points '())
   (define (store-points)
-    (lambda (o)
-       (if (match? o '(point :%2))
-           (set! so-points (cons o so-points)))
-       o))
+    (lambda (o) (if (match? o '(point :%2)) (set! so-points (cons o so-points))) o)
+  ) ;define
   (set! group-bary-x #f)
   (set! group-bary-y #f)
   (if (nnull? (sketch-get))
-      (with so (map tree->stree (sketch-get))
-        (traverse-transform so (store-points))
-        (if (nnull? so-points)
-            (with n 0
-              (set! group-bary-x 0)
-              (set! group-bary-y 0)
-              (for (p so-points)
-                (set! group-bary-x (+ group-bary-x (s2f (cadr p))))
-                (set! group-bary-y (+ group-bary-y (s2f (caddr p))))
-                (set! n (+ n 1)))
-              (set! group-bary-x (/ group-bary-x n))
-              (set! group-bary-y (/ group-bary-y n))))))
+    (with so
+      (map tree->stree (sketch-get))
+      (traverse-transform so (store-points))
+      (if (nnull? so-points)
+        (with n
+          0
+          (set! group-bary-x 0)
+          (set! group-bary-y 0)
+          (for (p so-points)
+            (set! group-bary-x (+ group-bary-x (s2f (cadr p))))
+            (set! group-bary-y (+ group-bary-y (s2f (caddr p))))
+            (set! n (+ n 1))
+          ) ;for
+          (set! group-bary-x (/ group-bary-x n))
+          (set! group-bary-y (/ group-bary-y n))
+        ) ;with
+      ) ;if
+    ) ;with
+  ) ;if
   (set! group-first-x (s2f current-x))
   (set! group-first-y (s2f current-y))
-  (> (point-norm (sub-point `(,group-first-x ,group-first-y)
-                            `(,group-bary-x ,group-bary-y))) 1e-3))
+  (> (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
+                                                               ,group-bary-y))
+     ) ;point-norm
+    0.001
+  ) ;>
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Transformations
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define (sub-point p1 p2)
-  `(,(- (car p1) (car p2))
-    ,(- (cadr p1) (cadr p2))))
+  `(,(- (car p1) (car p2)) ,(- (cadr p1) (cadr p2)))
+) ;define
 
 (define (point-norm p)
-  (sqrt (+ (* (car p) (car p))
-           (* (cadr p) (cadr p)))))
+  (sqrt (+ (* (car p) (car p)) (* (cadr p) (cadr p))))
+) ;define
 
 (define (traverse-transform o opn)
   (define (traverse o)
-    (opn (if (pair? o) (map traverse o) o)))
-  (traverse o))
+    (opn (if (pair? o) (map traverse o) o))
+  ) ;define
+  (traverse o)
+) ;define
 
 (define (translate-point x y)
   (lambda (o)
     (if (match? o '(point :%2))
-        `(point ,(f2s (+ x (s2f (cadr o)))) ,(f2s (+ y (s2f (caddr o)))))
-        o)))
+      `(point ,(f2s (+ x (s2f (cadr o)))) ,(f2s (+ y (s2f (caddr o)))))
+      o
+    ) ;if
+  ) ;lambda
+) ;define
 
 (define (group-translate x y)
-  (lambda (o)
-    (traverse-transform o (translate-point x y))))
+  (lambda (o) (traverse-transform o (translate-point x y)))
+) ;define
 
 (define (zoom-point x0 y0 h)
   (lambda (o)
     (if (match? o '(point :%2))
-        (let* ((x (s2f (cadr o)))
-               (y (s2f (caddr o))))
-          `(point ,(f2s (+ x0 (* (- x group-bary-x) h)))
-                  ,(f2s (+ y0 (* (- y group-bary-y) h)))))
-        o)))
+      (let* ((x (s2f (cadr o))) (y (s2f (caddr o))))
+        `(point ,(f2s (+ x0 (* (- x group-bary-x) h)))
+           ,(f2s (+ y0 (* (- y group-bary-y) h))))
+      ) ;let*
+      o
+    ) ;if
+  ) ;lambda
+) ;define
 
 (define (group-zoom x y)
-  (with h (/ (point-norm (sub-point `(,x ,y)
-                                    `(,group-bary-x ,group-bary-y)))
-             (point-norm (sub-point `(,group-first-x ,group-first-y)
-                                    `(,group-bary-x ,group-bary-y))))
+  (with h
+    (/ (point-norm (sub-point `(,x ,y) `(,group-bary-x ,group-bary-y)))
+      (point-norm (sub-point `(,group-first-x ,group-first-y) `(,group-bary-x
+                                                                ,group-bary-y))
+      ) ;point-norm
+    ) ;/
     (lambda (o)
-      (let* ((res (traverse-transform
-                   o (zoom-point group-bary-x group-bary-y h)))
-             (curmag #f))
+      (let* ((res (traverse-transform o (zoom-point group-bary-x group-bary-y h)))
+             (curmag #f)
+            ) ;
         (if (eq? (car res) 'with)
-            (with curmag (s2f (find-prop res "magnify" "1.0"))
-              (list-find&set-prop
-               res "magnify" (f2s (* curmag h))))
-            `(with "magnify" ,(f2s h) ,res))))))
+          (with curmag
+            (s2f (find-prop res "magnify" "1.0"))
+            (list-find&set-prop res "magnify" (f2s (* curmag h)))
+          ) ;with
+          `(with ,"magnify" ,(f2s h) ,res)
+        ) ;if
+      ) ;let*
+    ) ;lambda
+  ) ;with
+) ;define
 
 (define (rotate-point x0 y0 alpha)
   (lambda (o)
     (if (match? o '(point :%2))
-        (let* ((x (- (s2f (cadr o)) group-bary-x))
-               (y (- (s2f (caddr o)) group-bary-y)))
-          `(point ,(f2s (+ x0 (* x (cos alpha)) (* (- y) (sin alpha))))
-                  ,(f2s (+ y0 (* x (sin alpha)) (* y (cos alpha))))))
-        o)))
+      (let* ((x (- (s2f (cadr o)) group-bary-x)) (y (- (s2f (caddr o)) group-bary-y)))
+        `(point ,(f2s (+ x0 (* x (cos alpha)) (* (- y) (sin alpha))))
+           ,(f2s (+ y0 (* x (sin alpha)) (* y (cos alpha)))))
+      ) ;let*
+      o
+    ) ;if
+  ) ;lambda
+) ;define
 
 (define (group-rotate x y)
   (let* ((b (make-rectangular group-bary-x group-bary-y))
          (f (make-rectangular group-first-x group-first-y))
          (p (make-rectangular x y))
-         (alpha (- (angle (- p b)) (angle (- f b)))))
+         (alpha (- (angle (- p b)) (angle (- f b))))
+        ) ;
     (lambda (o)
-      (traverse-transform o (rotate-point group-bary-x group-bary-y alpha)))))
+      (traverse-transform o (rotate-point group-bary-x group-bary-y alpha))
+    ) ;lambda
+  ) ;let*
+) ;define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Group / ungroup
@@ -135,32 +177,37 @@
 
 (tm-define (group-selected-objects)
   (if (and (not sticky-point) (nnull? (sketch-get)))
-      (begin
-        (graphics-store-state 'group-selected-objects)
-        (sketch-checkout)
-        (with o (cons 'gr-group (sketch-get))
-          (sketch-reset)
-          (sketch-toggle o))
-        (sketch-commit)
-        (graphics-group-start)
-        (set! graphics-undo-enabled #t)
-        (graphics-forget-states))))
+    (begin
+      (graphics-store-state 'group-selected-objects)
+      (sketch-checkout)
+      (with o (cons 'gr-group (sketch-get)) (sketch-reset) (sketch-toggle o))
+      (sketch-commit)
+      (graphics-group-start)
+      (set! graphics-undo-enabled #t)
+      (graphics-forget-states)
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (ungroup-current-object)
   (if (and (not sticky-point)
-           (== (length (sketch-get)) 1)
-           (== (tree-label (car (sketch-get))) 'gr-group))
-      ;; TODO: Add support for ungrouping <with|...props...|<gr-group|...>>
-      (with obj (car (sketch-get))
-        (graphics-store-state 'ungroup-selected-objects)
-        (sketch-checkout)
-        (sketch-reset)
-        (foreach-number (i 0 < (tree-arity obj))
-                        (sketch-toggle (tree-ref obj i)))
-        (sketch-commit)
-        (graphics-group-start)
-        (set! graphics-undo-enabled #t)
-        (graphics-forget-states))))
+        (== (length (sketch-get)) 1)
+        (== (tree-label (car (sketch-get))) 'gr-group)
+      ) ;and
+    ;; TODO: Add support for ungrouping <with|...props...|<gr-group|...>>
+    (with obj
+      (car (sketch-get))
+      (graphics-store-state 'ungroup-selected-objects)
+      (sketch-checkout)
+      (sketch-reset)
+      (foreach-number (i 0 < (tree-arity obj)) (sketch-toggle (tree-ref obj i)))
+      (sketch-commit)
+      (graphics-group-start)
+      (set! graphics-undo-enabled #t)
+      (graphics-forget-states)
+    ) ;with
+  ) ;if
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Copy and paste attribute style
@@ -171,51 +218,70 @@
          (l2 (map gr-prefix l1))
          (l3 (map (graphics-get-property-at p) l2))
          (l4 (map cons l1 l3))
-         (tab (list->ahash-table l4)))
+         (tab (list->ahash-table l4))
+        ) ;
     (graphics-remove p 'memoize-layer)
-    (graphics-group-enrich-insert-table (stree-radical obj) tab #f)))
+    (graphics-group-enrich-insert-table (stree-radical obj) tab #f)
+  ) ;let*
+) ;tm-define
 
 (tm-define (graphics-get-props p)
-  (and-with t (path->tree p)
+  (and-with t
+    (path->tree p)
     (let* ((attrs (graphical-relevant-attributes t))
            (vars (list-difference attrs '("gid" "anim-id")))
            (get-prop (lambda (var) (graphics-path-property p var)))
            (gr-vars (map gr-prefix vars))
-           (vals (map get-prop vars)))
-      (for-each graphics-set-property gr-vars vals))))
+           (vals (map get-prop vars))
+          ) ;
+      (for-each graphics-set-property gr-vars vals)
+    ) ;let*
+  ) ;and-with
+) ;tm-define
 
 (tm-define (graphics-get-props-at-mouse)
-  (and-with p current-path
-    (graphics-get-props p)))
+  (and-with p current-path (graphics-get-props p))
+) ;tm-define
 
 (define (with-list vars vals)
   (cond ((or (null? vars) (null? vals)) (list))
         ((== (car vals) "default") (with-list (cdr vars) (cdr vals)))
-        (else (cons* (car vars) (car vals)
-                     (with-list (cdr vars) (cdr vals))))))
+        (else (cons* (car vars) (car vals) (with-list (cdr vars) (cdr vals))))
+  ) ;cond
+) ;define
 
 (define (graphics-tree-apply-props t vars vals)
-  (with l (with-list vars vals)
-    (and-with w (tree-up t)
+  (with l
+    (with-list vars vals)
+    (and-with w
+      (tree-up t)
       (if (tree-is? w 'with)
-          (if (null? l)
-              (tree-set! w (tm-ref w :last))
-              (tree-set! w `(with ,@l ,(tm-ref w :last))))
-          (if (null? l)
-              (noop)
-              (tree-set! t `(with ,@l ,t)))))))
+        (if (null? l)
+          (tree-set! w (tm-ref w :last))
+          (tree-set! w `(with ,@l ,(tm-ref w :last)))
+        ) ;if
+        (if (null? l) (noop) (tree-set! t `(with ,@l ,t)))
+      ) ;if
+    ) ;and-with
+  ) ;with
+) ;define
 
 (tm-define (graphics-apply-props p)
-  (and-with t (path->tree p)
+  (and-with t
+    (path->tree p)
     (let* ((attrs (graphical-relevant-attributes t))
            (vars (list-difference attrs '("gid" "anim-id")))
            (gr-vars (map gr-prefix vars))
-           (vals (map graphics-get-property gr-vars)))
-      (graphics-tree-apply-props t vars vals))))
+           (vals (map graphics-get-property gr-vars))
+          ) ;
+      (graphics-tree-apply-props t vars vals)
+    ) ;let*
+  ) ;and-with
+) ;tm-define
 
 (tm-define (graphics-apply-props-at-mouse)
-  (and-with p current-path
-    (graphics-apply-props p)))
+  (and-with p current-path (graphics-apply-props p))
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Edit properties
@@ -225,89 +291,110 @@
   (cond ((not (tree? t)) #f)
         ((tree-is? t 'anim-edit) (has-attribute? (tm-ref t 1) var))
         ((tree-in? t '(anim-static anim-dynamic))
-         (with c (or (graphics-anim-frames t) (list))
-           (list-or (map (cut has-attribute? <> var) c))))
+         (with c
+           (or (graphics-anim-frames t) (list))
+           (list-or (map (cut has-attribute? <> var) c))
+         ) ;with
+        ) ;
         ((tree-is? t 'with) (has-attribute? (tm-ref t :last) var))
         ((tree-atomic? t) #f)
-        (else (graphics-attribute? (tree-label t) var))))
+        (else (graphics-attribute? (tree-label t) var))
+  ) ;cond
+) ;define
 
 (tm-define (graphics-mode-attribute? mode var)
   (:require (== (graphics-mode) '(group-edit edit-props)))
-  (with v (if (string-starts? var "gr-") (string-drop var 3) var)
-    (with l (map (cut has-attribute? <> v) (sketch-get))
-      (list-or l))))
+  (with v
+    (if (string-starts? var "gr-") (string-drop var 3) var)
+    (with l (map (cut has-attribute? <> v) (sketch-get)) (list-or l))
+  ) ;with
+) ;tm-define
 
 (define (property-get t var i)
   (cond ((not (tree? t)) "default")
         ((tree-is? t 'anim-edit) (property-get (tm-ref t 1) var 0))
         ((tree-in? t '(anim-static anim-dynamic))
-         (with c (or (graphics-anim-frames t) (list))
-           (properties-and (map (cut property-get <> var 0) c))))
+         (with c
+           (or (graphics-anim-frames t) (list))
+           (properties-and (map (cut property-get <> var 0) c))
+         ) ;with
+        ) ;
         ((not (tree-is? t 'with)) "default")
         ((>= i (- (tree-arity t) 1)) "default")
         ((tm-equal? (tree-ref t i) var) (tree->stree (tree-ref t (+ i 1))))
-        (else (property-get t var (+ i 2)))))
+        (else (property-get t var (+ i 2)))
+  ) ;cond
+) ;define
 
 (define (property-and p1 p2)
-  (if (== p1 p2) p1 "mixed"))
+  (if (== p1 p2) p1 "mixed")
+) ;define
 
 (tm-define (properties-and l)
   (cond ((null? l) "default")
         ((null? (cdr l)) (car l))
-        (else (property-and (car l) (properties-and (cdr l))))))
+        (else (property-and (car l) (properties-and (cdr l))))
+  ) ;cond
+) ;tm-define
 
 (tm-define (graphics-get-property var)
-  (:require (and (== (graphics-mode) '(group-edit edit-props))
-                 (graphics-selection-active?)))
-  (with v (if (string-starts? var "gr-") (string-drop var 3) var)
+  (:require (and (== (graphics-mode) '(group-edit edit-props)) (graphics-selection-active?))
+  ) ;:require
+  (with v
+    (if (string-starts? var "gr-") (string-drop var 3) var)
     (if (graphics-mode-attribute? (graphics-mode) v)
-        (with l (map (cut property-get <> v 0) (sketch-get))
-          (properties-and l))
-        (former var))))
+      (with l (map (cut property-get <> v 0) (sketch-get)) (properties-and l))
+      (former var)
+    ) ;if
+  ) ;with
+) ;tm-define
 
 (define (property-remove t var i)
   (cond ((>= i (- (tree-arity t) 1)) t)
         ((tm-equal? (tree-ref t i) var)
-         (if (== (tree-arity t) 3)
-             (tree-remove-node! t 2)
-             (tree-remove! t i 2))
-         t)
-        (else (property-remove t var (+ i 2)))))
+         (if (== (tree-arity t) 3) (tree-remove-node! t 2) (tree-remove! t i 2))
+         t
+        ) ;
+        (else (property-remove t var (+ i 2)))
+  ) ;cond
+) ;define
 
 (define (property-set-sub t var val i)
-  (cond ((>= i (- (tree-arity t) 1))
-         (tree-insert! t i (list var val))
-         t)
-        ((tm-equal? (tree-ref t i) var)
-         (tree-set (tree-ref t (+ i 1)) val)
-         t)
-        (else (property-set-sub t var val (+ i 2)))))
+  (cond ((>= i (- (tree-arity t) 1)) (tree-insert! t i (list var val)) t)
+        ((tm-equal? (tree-ref t i) var) (tree-set (tree-ref t (+ i 1)) val) t)
+        (else (property-set-sub t var val (+ i 2)))
+  ) ;cond
+) ;define
 
 (define (property-set t var val)
   (cond ((not (tree? t)) t)
-        ((tree-is? t 'anim-edit)
-         (property-set (tree-ref t 1) var val))
+        ((tree-is? t 'anim-edit) (property-set (tree-ref t 1) var val))
         ((tree-in? t '(anim-static anim-dynamic))
-         (with c (or (graphics-anim-frames t) (list))
+         (with c
+           (or (graphics-anim-frames t) (list))
            (for-each (cut property-set <> var val) c)
-           t))
+           t
+         ) ;with
+        ) ;
         ((tree-is? t 'with)
-         (if (== val "default")
-             (property-remove t var 0)
-             (property-set-sub t var val 0)))
+         (if (== val "default") (property-remove t var 0) (property-set-sub t var val 0))
+        ) ;
         ((== val "default") t)
-        (else
-          (tree-set! t `(with ,var ,val ,t))
-          t)))
+        (else (tree-set! t `(with ,var ,val ,t)) t)
+  ) ;cond
+) ;define
 
 (tm-define (graphics-set-property var val)
-  (:require (and (== (graphics-mode) '(group-edit edit-props))
-                 (graphics-selection-active?)))
-  (with v (if (string-starts? var "gr-") (string-drop var 3) var)
+  (:require (and (== (graphics-mode) '(group-edit edit-props)) (graphics-selection-active?))
+  ) ;:require
+  (with v
+    (if (string-starts? var "gr-") (string-drop var 3) var)
     (if (graphics-mode-attribute? (graphics-mode) v)
-        (with r (map (cut property-set <> v val) (sketch-get))
-          (sketch-set! r))
-        (former var val))))
+      (with r (map (cut property-set <> v val) (sketch-get)) (sketch-set! r))
+      (former var val)
+    ) ;if
+  ) ;with
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Remove
@@ -317,63 +404,78 @@
   (sketch-checkout)
   (sketch-reset)
   (sketch-commit)
-  (graphics-group-start))
+  (graphics-group-start)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; State transitions
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (start-operation opn p obj)
-  (texmacs-error "start-operation" "invalid context"))
+  (texmacs-error "start-operation" "invalid context")
+) ;tm-define
 
 (tm-define (start-operation opn p obj)
   (:require (graphical-non-group-tag? (car obj)))
   (set! current-path #f)
-  (if (not sticky-point)
-      (set! preselected (nnull? (sketch-get))))
+  (if (not sticky-point) (set! preselected (nnull? (sketch-get))))
   (cond
-    ;;Perform operation
-    (sticky-point
-     (sketch-commit)
-     (graphics-decorations-update)
-     (if (== (state-ref graphics-first-state 'graphics-action)
-             'start-operation)
-         (remove-undo-mark))
-     (set! graphics-undo-enabled #t)
-     (graphics-forget-states)
-     (if (not preselected) (unselect-all p obj))
-     (set! preselected #f))
-    ;;Start operation
+    ;; Perform operation
+    (sticky-point (sketch-commit)
+      (graphics-decorations-update)
+      (if (== (state-ref graphics-first-state 'graphics-action) 'start-operation)
+        (remove-undo-mark)
+      ) ;if
+      (set! graphics-undo-enabled #t)
+      (graphics-forget-states)
+      (if (not preselected) (unselect-all p obj))
+      (set! preselected #f)
+    ) ;sticky-point
+    ;; Start operation
     ((and (not multiselecting) (eq? (cadr (graphics-mode)) 'group-ungroup))
-     (if (and p (not sticky-point) (null? (sketch-get))
-              (== (tree-label (path->tree p)) 'gr-group))
-         (sketch-set! `(,(path->tree p))))
+     (if (and p
+           (not sticky-point)
+           (null? (sketch-get))
+           (== (tree-label (path->tree p)) 'gr-group)
+         ) ;and
+       (sketch-set! `(,(path->tree p)))
+     ) ;if
      (if (and (not sticky-point)
-              (== (length (sketch-get)) 1)
-              (== (tree-label (car (sketch-get))) 'gr-group))
-         (ungroup-current-object)
-         (group-selected-objects)))
+           (== (length (sketch-get)) 1)
+           (== (tree-label (car (sketch-get))) 'gr-group)
+         ) ;and
+       (ungroup-current-object)
+       (group-selected-objects)
+     ) ;if
+    ) ;
     ((and (not multiselecting) (== (cadr (graphics-mode)) 'props))
      (if (null? (sketch-get))
-         (if p
-             (begin
-               (set! obj (stree-at p))
-               (set! current-path (graphics-assign-props p obj))
-               (set! current-obj obj)
-               (graphics-decorations-update)))
-         (with l '()
-           (for (o (sketch-get))
-             (with p (graphics-assign-props
-                      (tree->path o)
-                      (tree->stree o))
-               (set! l (cons (path->tree p) l))))
-           (sketch-set! (reverse l))
-           (graphics-decorations-update)))
-     (graphics-group-start))
+       (if p
+         (begin
+           (set! obj (stree-at p))
+           (set! current-path (graphics-assign-props p obj))
+           (set! current-obj obj)
+           (graphics-decorations-update)
+         ) ;begin
+       ) ;if
+       (with l
+         '()
+         (for (o (sketch-get))
+           (with p
+             (graphics-assign-props (tree->path o) (tree->stree o))
+             (set! l (cons (path->tree p) l))
+           ) ;with
+         ) ;for
+         (sketch-set! (reverse l))
+         (graphics-decorations-update)
+       ) ;with
+     ) ;if
+     (graphics-group-start)
+    ) ;
     ((and (not multiselecting) (or p (nnull? (sketch-get))))
-     (if (null? (sketch-get))
-         (any_toggle-select #f #f p obj))
-     (store-important-points) ;; ignore return value?
+     (if (null? (sketch-get)) (any_toggle-select #f #f p obj))
+     (store-important-points)
+     ;; ignore return value?
      (graphics-store-state 'start-operation)
      (sketch-checkout)
      (sketch-transform tree->stree)
@@ -381,70 +483,73 @@
      (set! graphics-undo-enabled #f)
      (graphics-store-state #f)
      (set! group-old-x (s2f current-x))
-     (set! group-old-y (s2f current-y)))))
+     (set! group-old-y (s2f current-y))
+    ) ;
+  ) ;cond
+) ;tm-define
 
 (define (any_toggle-select x y p obj)
   (if (not sticky-point)
-      (if multiselecting
-          (let* ((x1 (s2f selecting-x0))
-                 (y1 (s2f selecting-y0))
-                 (x2 (s2f x))
-                 (y2 (s2f y))
-                 (tmp 0)
-                 (sel #f))
-            (if (> x1 x2)
-                (begin
-                  (set! tmp x1)
-                  (set! x1 x2)
-                  (set! x2 tmp)))
-            (if (> y1 y2)
-                (begin
-                  (set! tmp y1)
-                  (set! y1 y2)
-                  (set! y2 tmp)))
-            (set! sel (graphics-select-area x1 y1 x2 y2))
-            (sketch-reset)
-            (for (p sel)
-              (sketch-toggle (path->tree p)))
-            (graphics-decorations-update)
-            (set! multiselecting #f)
-            (set! selecting-x0 #f)
-            (set! selecting-y0 #f))
-          (if p
-              (with t (path->tree p)
-                (sketch-toggle t)
-                (graphics-decorations-update))
-              (begin
-                (set! selecting-x0 x)
-                (set! selecting-y0 y)
-                (set! multiselecting #t))))))
+    (if multiselecting
+      (let* ((x1 (s2f selecting-x0))
+             (y1 (s2f selecting-y0))
+             (x2 (s2f x))
+             (y2 (s2f y))
+             (tmp 0)
+             (sel #f)
+            ) ;
+        (if (> x1 x2) (begin (set! tmp x1) (set! x1 x2) (set! x2 tmp)))
+        (if (> y1 y2) (begin (set! tmp y1) (set! y1 y2) (set! y2 tmp)))
+        (set! sel (graphics-select-area x1 y1 x2 y2))
+        (sketch-reset)
+        (for (p sel) (sketch-toggle (path->tree p)))
+        (graphics-decorations-update)
+        (set! multiselecting #f)
+        (set! selecting-x0 #f)
+        (set! selecting-y0 #f)
+      ) ;let*
+      (if p
+        (with t (path->tree p) (sketch-toggle t) (graphics-decorations-update))
+        (begin
+          (set! selecting-x0 x)
+          (set! selecting-y0 y)
+          (set! multiselecting #t)
+        ) ;begin
+      ) ;if
+    ) ;if
+  ) ;if
+) ;define
 
 (tm-define (toggle-select x y p obj)
-  (texmacs-error "toggle-select" "invalid context"))
+  (texmacs-error "toggle-select" "invalid context")
+) ;tm-define
 
 (tm-define (toggle-select x y p obj)
   (:require (graphical-non-group-tag? (car obj)))
   (when (list? p)
-    (and-with t (path->tree p)
-      (tree-go-to t :end)))
-  (any_toggle-select x y p obj))
+    (and-with t (path->tree p) (tree-go-to t :end))
+  ) ;when
+  (any_toggle-select x y p obj)
+) ;tm-define
 
 (define (any_unselect-all p obj)
-  (cond ((nnull? (sketch-get))
-         (sketch-reset)
-         (graphics-decorations-update))
+  (cond ((nnull? (sketch-get)) (sketch-reset) (graphics-decorations-update))
         ((and p (not multiselecting) (== (cadr (graphics-mode)) 'props))
-         (graphics-get-props p))))
+         (graphics-get-props p)
+        ) ;
+  ) ;cond
+) ;define
 
-(tm-define (unselect-everything)
-  (any_unselect-all #f #f))
+(tm-define (unselect-everything) (any_unselect-all #f #f))
 
 (tm-define (unselect-all p obj)
-  (texmacs-error "unselect-all" "invalid context"))
+  (texmacs-error "unselect-all" "invalid context")
+) ;tm-define
 
 (tm-define (unselect-all p obj)
   (:require (graphical-non-group-tag? (car obj)))
-  (any_unselect-all p obj))
+  (any_unselect-all p obj)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Global dispatching
@@ -453,88 +558,105 @@
 (tm-define (edit_move mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (cond (sticky-point
-         (set! x (s2f x))
-         (set! y (s2f y))
-         (with mode (graphics-mode)
-           (cond ((== (cadr mode) 'move)
-                  (sketch-transform
-                   (group-translate (- x group-old-x)
-                                    (- y group-old-y))))
-                 ((== (cadr mode) 'zoom)
-                  (sketch-set! group-first-go)
-                  (sketch-transform (group-zoom x y)))
-                 ((== (cadr mode) 'rotate)
-                  (sketch-set! group-first-go)
-                  (sketch-transform (group-rotate x y)))))
-         (set! group-old-x x)
-         (set! group-old-y y))
-        (multiselecting
-         (graphical-object!
-          (append
-           (create-graphical-props 'default #f)
-           `((with color red
-               (cline (point ,selecting-x0 ,selecting-y0)
-                      (point ,x ,selecting-y0)
-                      (point ,x ,y)
-                      (point ,selecting-x0 ,y)))))))
-        (else
-          (cond (current-path
-                 (set-message (string-append "Left click: operate; "
-                                             "Shift+Left click or Right click: select/unselect")
-                              "Group of objects"))
-                ((nnull? (sketch-get))
-                 (set-message "Left click: operate"
-                              "Group of objects"))
-                (else
-                  (set-message "Move over object on which to operate"
-                               "Edit groups of objects")))
-          (graphics-decorations-update))))
+  (cond (sticky-point (set! x (s2f x))
+          (set! y (s2f y))
+          (with mode
+            (graphics-mode)
+            (cond ((== (cadr mode) 'move)
+                   (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
+                  ) ;
+                  ((== (cadr mode) 'zoom)
+                   (sketch-set! group-first-go)
+                   (sketch-transform (group-zoom x y))
+                  ) ;
+                  ((== (cadr mode) 'rotate)
+                   (sketch-set! group-first-go)
+                   (sketch-transform (group-rotate x y))
+                  ) ;
+            ) ;cond
+          ) ;with
+          (set! group-old-x x)
+          (set! group-old-y y)
+        ) ;sticky-point
+        (multiselecting (graphical-object! (append (create-graphical-props 'default #f)
+                                             `((with color
+                                                 red
+                                                 (cline (point ,selecting-x0
+                                                          ,selecting-y0)
+                                                   (point ,x ,selecting-y0)
+                                                   (point ,x ,y)
+                                                   (point ,selecting-x0 ,y))))
+                                           ) ;append
+                        ) ;graphical-object!
+        ) ;multiselecting
+        (else (cond (current-path (set-message (string-append "Left click: operate; "
+                                                 "Shift+Left click or Right click: select/unselect"
+                                               ) ;string-append
+                                    "Group of objects"
+                                  ) ;set-message
+                    ) ;current-path
+                    ((nnull? (sketch-get)) (set-message "Left click: operate" "Group of objects"))
+                    (else (set-message "Move over object on which to operate" "Edit groups of objects")
+                    ) ;else
+              ) ;cond
+          (graphics-decorations-update)
+        ) ;else
+  ) ;cond
+) ;tm-define
 
 (tm-define (edit_move mode x y)
   (:require (and (== mode 'edit) (current-in? '(gr-group))))
   (:state graphics-state)
   (if sticky-point
-      (display* "Uncaptured graphical move " mode ", " x ", " y "\n")
-      (begin
-        (set! current-point-no #f)
-        (graphics-decorations-update))))
+    (display* "Uncaptured graphical move " mode ", " x ", " y "\n")
+    (begin
+      (set! current-point-no #f)
+      (graphics-decorations-update)
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (edit_left-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
-  (start-operation 'move current-path current-obj))
+  (start-operation 'move current-path current-obj)
+) ;tm-define
 
 (tm-define (edit_left-button mode x y)
-  (:require (in? (graphics-mode) '((group-edit edit-props)
-                                   (group-edit animate))))
+  (:require (in? (graphics-mode) '((group-edit edit-props) (group-edit animate))))
   (:state graphics-state)
   (if (and (not current-path) (graphics-selection-active?))
+    (unselect-all current-path current-obj)
+    (begin
       (unselect-all current-path current-obj)
-      (begin
-        (unselect-all current-path current-obj)
-        (toggle-select x y current-path current-obj))))
+      (toggle-select x y current-path current-obj)
+    ) ;begin
+  ) ;if
+) ;tm-define
 
 (tm-define (edit_right-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
   (if (and (not current-path) (graphics-selection-active?))
-      (unselect-all current-path current-obj)
-      (toggle-select x y current-path current-obj)))
+    (unselect-all current-path current-obj)
+    (toggle-select x y current-path current-obj)
+  ) ;if
+) ;tm-define
 
 (tm-define (edit_middle-button mode x y)
   (:require (eq? mode 'group-edit))
   (:state graphics-state)
   (if (!= (logand (get-keyboard-modifiers) ShiftMask) 0)
-      (if (null? (sketch-get))
-          (graphics-delete)
-          (remove-selected-objects))
-      (unselect-all current-path current-obj)))
+    (if (null? (sketch-get)) (graphics-delete) (remove-selected-objects))
+    (unselect-all current-path current-obj)
+  ) ;if
+) ;tm-define
 
 (tm-define (edit_tab-key mode inc)
   (:require (eq? mode 'group-edit))
-  ;;(display* "Graphics] Group-edit(Tab)\n")
-  (edit_tab-key 'edit inc))
+  ;; (display* "Graphics] Group-edit(Tab)\n")
+  (edit_tab-key 'edit inc)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Don't act on
@@ -542,29 +664,35 @@
 
 (define (group-edit-macro-arg? mode)
   (and (== mode 'group-edit)
-       current-path
-       (path->tree current-path)
-       (graphical-text-arg-context? (path->tree current-path))))
+    current-path
+    (path->tree current-path)
+    (graphical-text-arg-context? (path->tree current-path))
+  ) ;and
+) ;define
 
 (tm-define (edit_move mode x y)
   (:require (group-edit-macro-arg? mode))
   (:state graphics-state)
-  (noop))
+  (noop)
+) ;tm-define
 
 (tm-define (edit_left-button mode x y)
   (:require (group-edit-macro-arg? mode))
   (:state graphics-state)
-  (noop))
+  (noop)
+) ;tm-define
 
 (tm-define (edit_right-button mode x y)
   (:require (group-edit-macro-arg? mode))
   (:state graphics-state)
-  (noop))
+  (noop)
+) ;tm-define
 
 (tm-define (edit_middle-button mode x y)
   (:require (group-edit-macro-arg? mode))
   (:state graphics-state)
-  (noop))
+  (noop)
+) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Cut & paste actions
@@ -572,69 +700,94 @@
 
 (tm-define (graphics-selection-active?)
   (:state graphics-state)
-  (nnull? (sketch-get)))
+  (nnull? (sketch-get))
+) ;tm-define
 
 (tm-define (graphics-copy)
   (:state graphics-state)
   (set! paste-times 0)
   (if (== (car (graphics-mode)) 'group-edit)
-      (with copied-objects (list-copy (sketch-get))
-        (unselect-everything)
-        (update-current-buffer)
-        (if (null? copied-objects)
-            (stree->tree "")
-            (stree->tree (cons 'graphics copied-objects))))
-      (stree->tree "")))
+    (with copied-objects
+      (list-copy (sketch-get))
+      (unselect-everything)
+      (update-current-buffer)
+      (if (null? copied-objects)
+        (stree->tree "")
+        (stree->tree (cons 'graphics copied-objects))
+      ) ;if
+    ) ;with
+    (stree->tree "")
+  ) ;if
+) ;tm-define
 
 (tm-define (graphics-cut)
   (:state graphics-state)
   (set! paste-times 0)
   (if (== (car (graphics-mode)) 'group-edit)
-      (let* ((l (list-copy (sketch-get)))
-             (res (graphics-copy)))
-        (sketch-set! l)
-        (sketch-checkout)
-        (sketch-reset)
-        (sketch-commit)
-        res)
-      (stree->tree "")))
+    (let* ((l (list-copy (sketch-get))) (res (graphics-copy)))
+      (sketch-set! l)
+      (sketch-checkout)
+      (sketch-reset)
+      (sketch-commit)
+      res
+    ) ;let*
+    (stree->tree "")
+  ) ;if
+) ;tm-define
 
 
 (tm-define (get-paste-offset-by-pos obj)
   (let* ((spt (points-sum obj))
          (paste-offset-constant-property (get-preference "paste-offset-constant"))
-         (paste-offset-constant 
-           (if (== paste-offset-constant-property "default")
-             0.3
-             (string->float paste-offset-constant-property))))
-    (cond ((and (>= (point-get-x spt) 0)(>= (point-get-y spt) 0)) 
-            (list (- paste-offset-constant) (- paste-offset-constant)))
-          ((and (>= (point-get-x spt) 0)(< (point-get-y spt) 0)) 
-            (list (- paste-offset-constant) paste-offset-constant))
-          ((and (< (point-get-x spt) 0)(>= (point-get-y spt) 0)) 
-            (list paste-offset-constant (- paste-offset-constant)))
-          ((and (< (point-get-x spt) 0)(< (point-get-y spt) 0)) 
-            (list paste-offset-constant paste-offset-constant)))))
+         (paste-offset-constant (if (== paste-offset-constant-property "default")
+                                  0.3
+                                  (string->float paste-offset-constant-property)
+                                ) ;if
+         ) ;paste-offset-constant
+        ) ;
+    (cond ((and (>= (point-get-x spt) 0) (>= (point-get-y spt) 0))
+           (list (- paste-offset-constant) (- paste-offset-constant))
+          ) ;
+          ((and (>= (point-get-x spt) 0) (< (point-get-y spt) 0))
+           (list (- paste-offset-constant) paste-offset-constant)
+          ) ;
+          ((and (< (point-get-x spt) 0) (>= (point-get-y spt) 0))
+           (list paste-offset-constant (- paste-offset-constant))
+          ) ;
+          ((and (< (point-get-x spt) 0) (< (point-get-y spt) 0))
+           (list paste-offset-constant paste-offset-constant)
+          ) ;
+    ) ;cond
+  ) ;let*
+) ;tm-define
 
 
 (tm-define (graphics-paste sel)
   (:state graphics-state)
   (define new-sel
     (let ((tmp (tree->stree sel)))
-      (stree->tree
-        ((apply group-translate 
-          (map (lambda (x) (* (+ paste-times 1) x))
-               (get-paste-offset-by-pos tmp))) tmp))))
+      (stree->tree ((apply group-translate
+                      (map (lambda (x) (* (+ paste-times 1) x)) (get-paste-offset-by-pos tmp))
+                    ) ;apply
+                    tmp
+                   ) ;
+      ) ;stree->tree
+    ) ;let
+  ) ;define
   (if (and (== (car (graphics-mode)) 'group-edit)
-           (tree-compound? new-sel)
-           (== (tree-label new-sel) 'graphics)
-           (> (tree-arity new-sel) 0))
-      (begin
-        (sketch-reset)
-        (sketch-checkout)
-        (foreach-number (i 0 < (tree-arity new-sel))
-                        (sketch-toggle (tree-ref new-sel i)))
-        (sketch-commit)
-        (graphics-group-start)))
-  (set! paste-times (+ 1 paste-times)))
-
+        (tree-compound? new-sel)
+        (== (tree-label new-sel) 'graphics)
+        (> (tree-arity new-sel) 0)
+      ) ;and
+    (begin
+      (sketch-reset)
+      (sketch-checkout)
+      (foreach-number (i 0 < (tree-arity new-sel))
+        (sketch-toggle (tree-ref new-sel i))
+      ) ;foreach-number
+      (sketch-commit)
+      (graphics-group-start)
+    ) ;begin
+  ) ;if
+  (set! paste-times (+ 1 paste-times))
+) ;tm-define
