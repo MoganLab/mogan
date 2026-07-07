@@ -38,6 +38,7 @@
 ;; Basic operations (setting the object)
 
 ;; 是否正在新建图形（object_commit 后切到 move 模式）
+
 (define creating-object? #f)
 
 (define (object-set! o . opt)
@@ -251,7 +252,8 @@
           (graphics-forget-states)
           (when creating-object?
             (set! creating-object? #f)
-            (with saved-path current-path
+            (with saved-path
+              current-path
               (set! graphics-texmacs-pointer "none")
               (graphics-set-mode '(group-edit move))
               ;; 将当前对象切换到 move 模式后，重新选中该对象
