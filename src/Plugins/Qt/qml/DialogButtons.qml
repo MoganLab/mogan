@@ -7,6 +7,7 @@
 //   buttonLabels : list<string>   —— C++ 已翻译注入的按钮文案。
 //   primaryIndex : int            —— 主按钮下标（决定深色配色），默认 0。
 //   buttonWidth  : real           —— 单按钮宽度（逻辑像素 × scaleFactor），默认 100。
+//   letterSpacing: real           —— 按钮文字字距，默认 0。
 //   signal clicked(int index)     —— 点击信号，调用方在 onClicked 决定 submit/cancel。
 //
 // 用法：
@@ -24,6 +25,7 @@ Row {
     property var buttonLabels: []
     property int primaryIndex: 0
     property real buttonWidth: 100 * Theme.scaleFactor
+    property real letterSpacing: 0
     signal clicked(int index)
 
     Repeater {
@@ -46,6 +48,7 @@ Row {
                 color: primary ? "#ffffff" : Theme.fg
                 font.pixelSize: 15 * Theme.scaleFactor
                 font.weight: primary ? Font.Bold : Font.DemiBold
+                font.letterSpacing: root.letterSpacing * Theme.scaleFactor
             }
             MouseArea {
                 id: ma

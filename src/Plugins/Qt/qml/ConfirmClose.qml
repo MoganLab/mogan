@@ -46,6 +46,7 @@ DialogShell {
                 anchors.horizontalCenter: parent.horizontalCenter
                 buttonLabels: root.buttonLabels
                 buttonWidth: 108 * Theme.scaleFactor
+                letterSpacing: 0.3
                 onClicked: function(index) { closeBridge.choose(index + 1) }
             }
         }
