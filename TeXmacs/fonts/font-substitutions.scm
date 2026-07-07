@@ -32,6 +32,7 @@
 ((UnBatang typewriter) (UnGungseo))
 
 ((concrete cjk) (Noto\ CJK\ SC))
+((roman typewriter cjk) (Noto\ CJK\ SC))
 ((roman cjk) (Noto\ CJK\ SC))
 ((Stix cjk) (Noto\ CJK\ SC))
 
