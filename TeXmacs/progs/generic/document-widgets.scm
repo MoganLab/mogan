@@ -381,6 +381,7 @@
                                ) ;
                            (when (and (filled? ps) (filled? pe) (filled? nt))
                              (assign-page-number u ps pe nt)
+                             (set! nt "")
                              (delayed (:pause 100) (refresh-now "pn-editor"))
                            ) ;when
                          ) ;let*
