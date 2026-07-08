@@ -19,8 +19,10 @@
 #include "object_l5.hpp"
 
 #include "Freetype/tt_tools.hpp"
+#ifdef QTTEXMACS
 #include "QTMQmlDialog.hpp"
 #include "Qt/qt_tm_widget.hpp"
+#endif
 #include "boxes.hpp"
 #include "editor.hpp"
 #include "iterator.hpp"
@@ -28,8 +30,10 @@
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "promise.hpp"
+#ifdef QTTEXMACS
 #include "qt_chat_controller.hpp"
 #include "qt_floating_search_bar.hpp"
+#endif
 #include "tm_debug.hpp"
 #include "tree_observer.hpp"
 #include "universal.hpp"
@@ -260,6 +264,7 @@ freetype_version () {
 
 inline void
 open_pricing_url () {
+#ifdef QTTEXMACS
   if (!has_current_window ()) return;
   tm_window win= concrete_window ();
   if (win == NULL) return;
@@ -268,6 +273,7 @@ open_pricing_url () {
   if (tm_widget != NULL) {
     tm_widget->openRenewalPage ();
   }
+#endif
 }
 
 #endif

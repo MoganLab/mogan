@@ -531,6 +531,7 @@ target("libmogan") do
     add_files("src/Scheme/Plugins/glue_tex.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/Plugins/glue_updater.lua", {rule = "mogan.glue"})
     add_files("src/Scheme/Plugins/glue_xml.lua", {rule = "mogan.glue"})
+    add_files("src/Scheme/L5/glue_qt.lua", {rule = "mogan.glue"})
     set_configvar("QTTEXMACS", 1)
     add_defines("QTTEXMACS")
     set_configvar("QTPIPES", 1)

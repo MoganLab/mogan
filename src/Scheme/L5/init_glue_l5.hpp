@@ -18,5 +18,8 @@ void initialize_glue_editor ();
 void initialize_glue_font ();
 void initialize_glue_server ();
 void initialize_glue_widget ();
+#ifdef QTTEXMACS
+void initialize_glue_qt ();
+#endif
 
 #endif
