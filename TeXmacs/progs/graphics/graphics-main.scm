@@ -1079,7 +1079,9 @@
        ;; 并入 (group-edit edit-props)
        (if (or (equal? r '(group-edit move)) (equal? r '(group-edit props)))
          '(group-edit edit-props)
-         r))
+         r
+       ) ;if
+     ) ;lambda
      (cond ((string? m) `(edit ,(string->symbol m)))
            ((== m '(uninit)) '(edit none))
            ((and (pair? m) (== (car m) 'concat))
@@ -1091,7 +1093,7 @@
            ) ;
            ((pair? m) (map string->symbol (cdr m)))
      ) ;cond
-    ) ;lambda
+    ) ;
   ) ;with
 ) ;tm-define
 
