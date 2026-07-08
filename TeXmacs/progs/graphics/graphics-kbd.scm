@@ -79,6 +79,18 @@
 (tm-define (graphics-arrow-up)
   (or (graphics-should-nudge 0 0.1) (graphics-move-origin-up))
 ) ;tm-define
+(tm-define (graphics-arrow-left-fast)
+  (or (graphics-should-nudge -1.0 0) (graphics-move-origin-left-fast))
+) ;tm-define
+(tm-define (graphics-arrow-right-fast)
+  (or (graphics-should-nudge 1.0 0) (graphics-move-origin-right-fast))
+) ;tm-define
+(tm-define (graphics-arrow-down-fast)
+  (or (graphics-should-nudge 0 -1.0) (graphics-move-origin-down-fast))
+) ;tm-define
+(tm-define (graphics-arrow-up-fast)
+  (or (graphics-should-nudge 0 1.0) (graphics-move-origin-up-fast))
+) ;tm-define
 
 (tm-define (graphics-decrease-hsize) (graphics-change-extents "-0.1cm" "0cm"))
 (tm-define (graphics-increase-hsize) (graphics-change-extents "+0.1cm" "0cm"))
@@ -132,10 +144,10 @@
  ("right" (graphics-arrow-right))
  ("down" (graphics-arrow-down))
  ("up" (graphics-arrow-up))
- ("S-left" (graphics-move-origin-left-fast))
- ("S-right" (graphics-move-origin-right-fast))
- ("S-down" (graphics-move-origin-down-fast))
- ("S-up" (graphics-move-origin-up-fast))
+ ("S-left" (graphics-arrow-left-fast))
+ ("S-right" (graphics-arrow-right-fast))
+ ("S-down" (graphics-arrow-down-fast))
+ ("S-up" (graphics-arrow-up-fast))
  ("home" (graphics-zmove 'foreground))
  ("end" (graphics-zmove 'background))
  ("pageup" (graphics-zmove 'closer))
