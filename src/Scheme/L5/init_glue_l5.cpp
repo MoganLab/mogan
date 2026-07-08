@@ -19,6 +19,9 @@ void
 initialize_glue_l5 () {
   initialize_glue_font ();
   initialize_glue_widget ();
+#ifdef QTTEXMACS
+  initialize_glue_qt ();
+#endif
   initialize_glue_basic ();
   initialize_glue_editor ();
   initialize_glue_server ();
