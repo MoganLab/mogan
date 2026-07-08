@@ -206,7 +206,6 @@ target("libmogan") do
             "$(projectdir)/src/Kernel/Types",
             "$(projectdir)/src/Plugins",
             "$(projectdir)/src/Plugins/Pdf",
-            "$(projectdir)/src/Plugins/Qt",
             "$(projectdir)/src/Plugins/Html",
             "$(projectdir)/src/Scheme",
             "$(projectdir)/src/Scheme/L2",

@@ -102,6 +102,7 @@ if is_mode("release") then
     includes("xmake/targets/xpack.lua")
 end
 
+if has_config("qt_frontend") then
 includes("xmake/tests.lua")
 -- Tests in C++
 all_cpp_tests = os.files("tests/**_test.cpp")
@@ -132,3 +133,4 @@ end
 for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
     add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
 end
+end -- has_config("qt_frontend")
