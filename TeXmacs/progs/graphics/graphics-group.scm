@@ -697,6 +697,19 @@
   (nnull? (sketch-get))
 ) ;tm-define
 
+;; 方向键微移当前选中的对象集合
+;; 复用鼠标拖动的 checkout/transform/commit 路径；无选中时 #f 回退
+(tm-define (graphics-should-nudge dx dy)
+  (:state graphics-state)
+  (and (not sticky-point)
+       (graphics-selection-active?)
+       (begin
+         (sketch-checkout)
+         (sketch-transform tree->stree)
+         (sketch-transform (group-translate dx dy))
+         (sketch-commit)
+         #t)))
+
 (tm-define (graphics-copy)
   (:state graphics-state)
   (set! paste-times 0)

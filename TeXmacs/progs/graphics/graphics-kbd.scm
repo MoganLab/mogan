@@ -65,6 +65,21 @@
 ) ;tm-define
 (tm-define (graphics-move-origin-up-fast) (graphics-move-origin "0gw" "-0.1gh"))
 
+;; 方向键在 group-edit 且有选中对象时微移选中对象
+;; 否则回退到平移整个坐标系
+(tm-define (graphics-arrow-left)
+  (or (graphics-should-nudge -0.1 0)
+      (graphics-move-origin-left))) ;tm-define
+(tm-define (graphics-arrow-right)
+  (or (graphics-should-nudge 0.1 0)
+      (graphics-move-origin-right))) ;tm-define
+(tm-define (graphics-arrow-down)
+  (or (graphics-should-nudge 0 -0.1)
+      (graphics-move-origin-down))) ;tm-define
+(tm-define (graphics-arrow-up)
+  (or (graphics-should-nudge 0 0.1)
+      (graphics-move-origin-up))) ;tm-define
+
 (tm-define (graphics-decrease-hsize) (graphics-change-extents "-0.1cm" "0cm"))
 (tm-define (graphics-increase-hsize) (graphics-change-extents "+0.1cm" "0cm"))
 (tm-define (graphics-decrease-vsize) (graphics-change-extents "0cm" "-0.1cm"))
@@ -113,10 +128,10 @@
  ("b" (graphics-set-origin "0gw" "0gh"))
  ("#" (graphics-toggle-grid))
  ("!" (open-plots-editor "scheme" "default" ""))
- ("left" (graphics-move-origin-left))
- ("right" (graphics-move-origin-right))
- ("down" (graphics-move-origin-down))
- ("up" (graphics-move-origin-up))
+ ("left" (graphics-arrow-left))
+ ("right" (graphics-arrow-right))
+ ("down" (graphics-arrow-down))
+ ("up" (graphics-arrow-up))
  ("S-left" (graphics-move-origin-left-fast))
  ("S-right" (graphics-move-origin-right-fast))
  ("S-down" (graphics-move-origin-down-fast))
