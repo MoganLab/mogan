@@ -669,6 +669,7 @@ pdf_hummus_renderer_rep::register_pattern_image (brush br, SI pixel) {
   if (pattern_image_pool->contains (key)) image_pdf= pattern_image_pool[key];
   else {
     // debug_convert << "Insert pattern image\n";
+#ifdef QTTEXMACS
     QImage* pim= get_image (u, w, h, eff, pixel);
     if (pim == NULL) {
       convert_error << "Cannot read image file '" << u << "'"
@@ -688,6 +689,7 @@ pdf_hummus_renderer_rep::register_pattern_image (brush br, SI pixel) {
                                .AllocateNewObjectID ();
     image_pdf               = pdf_image (temp, image_id);
     pattern_image_pool (key)= image_pdf;
+#endif
   }
   // debug_convert << "  insert pattern\n";
   ObjectIDType id= pdfWriter.GetObjectsContext ()

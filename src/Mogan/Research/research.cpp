@@ -242,6 +242,7 @@ main (int argc, char** argv) {
       docsDir= QStandardPaths::writableLocation (QStandardPaths::HomeLocation);
     set_env ("TEXMACS_DOCUMENTS_PATH", from_qstring_utf8 (docsDir));
   }
+#endif
 
   // before startup login dialog
   init_texmacs_path (argc, argv);
@@ -249,15 +250,15 @@ main (int argc, char** argv) {
   load_settings_and_check_version ();
   init_plugins ();
 
+#ifdef QTTEXMACS
   // Show startup login dialog
   if (!show_startup_login_dialog ()) {
     return 0;
   }
+#endif
 
   // 如果show_startup_login_dialog没执行，继续初始化TeXmacs
   init_texmacs ();
-
-#endif
 
 // 4.GUI配置和Scheme启动
 #ifdef QTTEXMACS

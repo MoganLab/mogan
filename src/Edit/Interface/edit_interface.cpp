@@ -509,6 +509,8 @@ edit_interface_rep::selection_visible () {
   update_visible ();
   if ((vx2 - vx1 <= 80 * pixel) || (vy2 - vy1 <= 80 * pixel)) return;
 
+#ifdef QTTEXMACS
+  // ImGui 将独立实现 drag scrolling 逻辑
   SI extra= (cur_sb == 1 ? 20 * pixel : 0);
   /*
   bool scroll_x= (end_x < vx1 + extra) || (end_x >= vx2 - extra);
@@ -534,6 +536,7 @@ edit_interface_rep::selection_visible () {
     end_x+= vx1 - old_vx1;
     end_y+= vy1 - old_vy1;
   }
+#endif
 }
 
 /******************************************************************************
