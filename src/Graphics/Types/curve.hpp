@@ -13,7 +13,6 @@
 #define CURVE_H
 #include "frame.hpp"
 #include "point.hpp"
-#include <QPainterPath>
 
 class curve_rep : public abstract_struct {
 public:

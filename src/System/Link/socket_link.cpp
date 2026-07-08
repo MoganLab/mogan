@@ -16,6 +16,7 @@
 #include "iterator.hpp"
 #include "scheme.hpp"
 #include "sys_utils.hpp"
+#include "tm_debug.hpp"
 #include "tm_timer.hpp"
 #include <fcntl.h>
 #include <stdio.h>

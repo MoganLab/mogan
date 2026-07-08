@@ -25,6 +25,8 @@
 
 #ifdef QTTEXMACS
 #include "Qt/qt_simple_widget.hpp"
+#else
+#include "ImGui/im_simple_widget.hpp"
 #endif
 
 #define TEXMACS_COPYRIGHT                                                      \
