@@ -8,6 +8,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
+#ifdef QTTEXMACS
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_ui_element.hpp"
 
@@ -51,3 +52,4 @@ qt_glue_widget_rep::render () {
 
   return get_QTMPixmapOrImage_from_pixmap (pix);
 }
+#endif

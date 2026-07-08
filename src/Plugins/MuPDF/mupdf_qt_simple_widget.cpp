@@ -7,6 +7,8 @@
  * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
+
+#ifdef QTTEXMACS
 #include "MuPDF/mupdf_picture.hpp"
 #include "MuPDF/mupdf_renderer.hpp"
 #include "qt_simple_widget.hpp"
@@ -147,3 +149,4 @@ qt_simple_widget_rep::get_backing_store () {
   fz_pixmap* pix= ((mupdf_picture_rep*) backing_store->get_handle ())->pix;
   return get_QImage_from_pixmap (pix);
 }
+#endif
