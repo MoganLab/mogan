@@ -68,17 +68,17 @@
 ;; 方向键在 group-edit 且有选中对象时微移选中对象
 ;; 否则回退到平移整个坐标系
 (tm-define (graphics-arrow-left)
-  (or (graphics-should-nudge -0.1 0)
-      (graphics-move-origin-left))) ;tm-define
+  (or (graphics-should-nudge -0.1 0) (graphics-move-origin-left))
+) ;tm-define
 (tm-define (graphics-arrow-right)
-  (or (graphics-should-nudge 0.1 0)
-      (graphics-move-origin-right))) ;tm-define
+  (or (graphics-should-nudge 0.1 0) (graphics-move-origin-right))
+) ;tm-define
 (tm-define (graphics-arrow-down)
-  (or (graphics-should-nudge 0 -0.1)
-      (graphics-move-origin-down))) ;tm-define
+  (or (graphics-should-nudge 0 -0.1) (graphics-move-origin-down))
+) ;tm-define
 (tm-define (graphics-arrow-up)
-  (or (graphics-should-nudge 0 0.1)
-      (graphics-move-origin-up))) ;tm-define
+  (or (graphics-should-nudge 0 0.1) (graphics-move-origin-up))
+) ;tm-define
 
 (tm-define (graphics-decrease-hsize) (graphics-change-extents "-0.1cm" "0cm"))
 (tm-define (graphics-increase-hsize) (graphics-change-extents "+0.1cm" "0cm"))

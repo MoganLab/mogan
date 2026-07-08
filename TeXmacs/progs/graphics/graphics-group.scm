@@ -702,13 +702,16 @@
 (tm-define (graphics-should-nudge dx dy)
   (:state graphics-state)
   (and (not sticky-point)
-       (graphics-selection-active?)
-       (begin
-         (sketch-checkout)
-         (sketch-transform tree->stree)
-         (sketch-transform (group-translate dx dy))
-         (sketch-commit)
-         #t)))
+    (graphics-selection-active?)
+    (begin
+      (sketch-checkout)
+      (sketch-transform tree->stree)
+      (sketch-transform (group-translate dx dy))
+      (sketch-commit)
+      #t
+    ) ;begin
+  ) ;and
+) ;tm-define
 
 (tm-define (graphics-copy)
   (:state graphics-state)
