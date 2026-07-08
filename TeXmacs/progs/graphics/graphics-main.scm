@@ -307,6 +307,11 @@
       (graphics-decorations-reset)
       (graphics-set-property "gr-frame" newfr)
       (graphics-decorations-update)
+      (delayed (:idle 1)
+        (when (and current-x current-y)
+          (edit_move (car (graphics-mode)) current-x current-y)
+        ) ;when
+      ) ;delayed
     ) ;let*
   ) ;when
 ) ;tm-define
