@@ -270,7 +270,7 @@ target("libmogan") do
             "$(projectdir)/3rdparty/json-schema-validator/src/**.cpp"})
 
     if has_config("qt_frontend") then
-        add_includedirs("$(projectdir)/src/Plugins/Qt")
+        add_includedirs("$(projectdir)/src/Plugins/Qt", {public=true})
         add_files("$(projectdir)/src/Plugins/Qt/**.cpp", "$(projectdir)/src/Plugins/Qt/**.hpp")
         add_files("$(projectdir)/src/Mogan/Cache/**.cpp", "$(projectdir)/src/Mogan/Cache/**.hpp")
         add_files("$(projectdir)/src/Mogan/TemplateCenter/**.cpp", "$(projectdir)/src/Mogan/TemplateCenter/**.hpp")
