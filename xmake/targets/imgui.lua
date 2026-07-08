@@ -26,4 +26,17 @@ target("imgui") do
         "$(projectdir)/3rdparty/imgui/backends/imgui_impl_glfw.cpp",
         "$(projectdir)/3rdparty/imgui/backends/imgui_impl_opengl3.cpp",
     })
+    on_run(function (target)
+        assert(target:check_cxxsnippets([[
+            #include <imgui.h>
+
+            int main() {
+                IMGUI_CHECKVERSION();
+                ImGui::CreateContext();
+                ImGui::DestroyContext();
+                return 0;
+            }
+        ]]))
+        print("ImGui ready.")
+    end)
 end
