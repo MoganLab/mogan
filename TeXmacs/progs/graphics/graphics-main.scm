@@ -275,6 +275,7 @@
         (graphics-decorations-reset)
         (graphics-set-property "gr-frame" newfr)
         (graphics-set-property "magnify" magn)
+        (graphics-decorations-update)
       ) ;with
     ) ;if
   ) ;let*
@@ -305,6 +306,7 @@
           ) ;
       (graphics-decorations-reset)
       (graphics-set-property "gr-frame" newfr)
+      (graphics-decorations-update)
     ) ;let*
   ) ;when
 ) ;tm-define
@@ -321,6 +323,7 @@
       (if (> (length-decode h2) 0) (set! h h2))
       (graphics-decorations-reset)
       (graphics-set-extents w h)
+      (graphics-decorations-update)
     ) ;let*
   ) ;when
 ) ;tm-define
@@ -1114,6 +1117,7 @@
       (graphics-enter-mode (graphics-mode) val)
     ) ;begin
   ) ;if
+  (delayed (:idle 1) (update-menus))
 ) ;tm-define
 
 
