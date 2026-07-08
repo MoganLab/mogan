@@ -375,17 +375,6 @@
   (with val (graphics-get-raw-property var) (tm->stree val))
 ) ;tm-define
 
-(tm-define ((graphics-get-property-at p) var)
-  (with r
-    (if (and (pair? p) (in? var (list "gr-gid" "gr-anim-id")))
-      (graphics-path-property p (string-drop var 3))
-      (graphics-get-property var)
-    ) ;if
-    ;; (display* p ", " var " ~~> " r "\n")
-    r
-  ) ;with
-) ;tm-define
-
 (tm-define (graphics-set-property var val)
   (with p
     (graphics-graphics-path)
@@ -414,6 +403,7 @@
   (cond ((number? m) m)
         ((== m "default") 1)
         ((== m #f) 1)
+        ((== m "mixed") 1)
         (else (string->number m))
   ) ;cond
 ) ;tm-define
@@ -518,10 +508,6 @@
 
 (tm-define (graphics-group-enrich-insert t)
   (graphics-group-insert (graphics-enrich t))
-) ;tm-define
-
-(tm-define (graphics-group-enrich-insert-table t tab go-into)
-  (graphics-group-insert-bis (graphics-enrich-bis t "default" tab) go-into)
 ) ;tm-define
 
 (tm-define (graphics-group-start)

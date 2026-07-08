@@ -24,6 +24,8 @@
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Group edit mode
+;;
+;; NOTE: 原 (group-edit move) 模式已完全并入 (group-edit edit-props)
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; State
@@ -212,18 +214,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Copy and paste attribute style
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(tm-define (graphics-assign-props p obj)
-  (let* ((l1 (graphics-all-attributes))
-         (l2 (map gr-prefix l1))
-         (l3 (map (graphics-get-property-at p) l2))
-         (l4 (map cons l1 l3))
-         (tab (list->ahash-table l4))
-        ) ;
-    (graphics-remove p 'memoize-layer)
-    (graphics-group-enrich-insert-table (stree-radical obj) tab #f)
-  ) ;let*
-) ;tm-define
 
 (tm-define (graphics-get-props p)
   (and-with t
@@ -448,30 +438,6 @@
        (group-selected-objects)
      ) ;if
     ) ;
-    ((and (not multiselecting) (== (cadr (graphics-mode)) 'props))
-     (if (null? (sketch-get))
-       (if p
-         (begin
-           (set! obj (stree-at p))
-           (set! current-path (graphics-assign-props p obj))
-           (set! current-obj obj)
-           (graphics-decorations-update)
-         ) ;begin
-       ) ;if
-       (with l
-         '()
-         (for (o (sketch-get))
-           (with p
-             (graphics-assign-props (tree->path o) (tree->stree o))
-             (set! l (cons (path->tree p) l))
-           ) ;with
-         ) ;for
-         (sketch-set! (reverse l))
-         (graphics-decorations-update)
-       ) ;with
-     ) ;if
-     (graphics-group-start)
-    ) ;
     ((and (not multiselecting) (or p (nnull? (sketch-get))))
      (if (null? (sketch-get)) (any_toggle-select #f #f p obj))
      (store-important-points)
@@ -536,11 +502,7 @@
 ) ;tm-define
 
 (define (any_unselect-all p obj)
-  (cond ((nnull? (sketch-get)) (sketch-reset) (graphics-decorations-update))
-        ((and p (not multiselecting) (== (cadr (graphics-mode)) 'props))
-         (graphics-get-props p)
-        ) ;
-  ) ;cond
+  (if (nnull? (sketch-get)) (sketch-reset) (graphics-decorations-update))
 ) ;define
 
 (tm-define (unselect-everything) (any_unselect-all #f #f))
@@ -565,7 +527,7 @@
           (set! y (s2f y))
           (with mode
             (graphics-mode)
-            (cond ((== (cadr mode) 'move)
+            (cond ((== (cadr mode) 'edit-props)
                    (sketch-transform (group-translate (- x group-old-x) (- y group-old-y)))
                   ) ;
                   ((== (cadr mode) 'zoom)

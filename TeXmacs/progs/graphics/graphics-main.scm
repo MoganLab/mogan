@@ -1074,17 +1074,24 @@
 (tm-define (graphics-mode)
   (with m
     (tree->stree (get-env-tree "gr-mode"))
-    (cond ((string? m) `(edit ,(string->symbol m)))
-          ((== m '(uninit)) '(edit none))
-          ((and (pair? m) (== (car m) 'concat))
-           ;; Handle concat structure, find tuple element
-           (with tuple-elem
-             (list-find (cdr m) (lambda (x) (and (pair? x) (== (car x) 'tuple))))
-             (if tuple-elem (map string->symbol (cdr tuple-elem)) '(edit none))
-           ) ;with
-          ) ;
-          ((pair? m) (map string->symbol (cdr m)))
-    ) ;cond
+    ((lambda (r)
+       ;; 兼容旧文档：(group-edit move) 与 (group-edit props)
+       ;; 并入 (group-edit edit-props)
+       (if (or (equal? r '(group-edit move)) (equal? r '(group-edit props)))
+         '(group-edit edit-props)
+         r))
+     (cond ((string? m) `(edit ,(string->symbol m)))
+           ((== m '(uninit)) '(edit none))
+           ((and (pair? m) (== (car m) 'concat))
+            ;; Handle concat structure, find tuple element
+            (with tuple-elem
+              (list-find (cdr m) (lambda (x) (and (pair? x) (== (car x) 'tuple))))
+              (if tuple-elem (map string->symbol (cdr tuple-elem)) '(edit none))
+            ) ;with
+           ) ;
+           ((pair? m) (map string->symbol (cdr m)))
+     ) ;cond
+    ) ;lambda
   ) ;with
 ) ;tm-define
 

@@ -373,7 +373,6 @@
  ) ;assuming
  ---
  ("Set properties" (graphics-set-mode '(group-edit edit-props)))
- ("Move objects" (graphics-set-mode '(group-edit move)))
  ("Resize objects" (graphics-set-mode '(group-edit zoom)))
  ("Rotate objects" (graphics-set-mode '(group-edit rotate)))
  ("Group/ungroup" (graphics-set-mode '(group-edit group-ungroup)))
@@ -942,12 +941,6 @@
   ) ;check
   (graphics-set-mode '(group-edit edit-props))
  ) ;
- ((check (balloon (icon "tm_group_move.xpm") "Move objects")
-    "v"
-    (== (graphics-mode) '(group-edit move))
-  ) ;check
-  (graphics-set-mode '(group-edit move))
- ) ;
  ((check (balloon (icon "tm_group_zoom.xpm") "Zoom/unzoom objects")
     "v"
     (== (graphics-mode) '(group-edit zoom))
@@ -1236,10 +1229,8 @@
         ((== s '(edit text-at)) "text")
         ((== s '(edit math-at)) "mathematics")
         ((== s '(edit document-at)) "long text")
-        ((== s '(group-edit props)) "properties")
         ((== s '(group-edit edit-props)) "set properties")
         ((== s '(group-edit animate)) "animate")
-        ((== s '(group-edit move)) "move")
         ((== s '(group-edit zoom)) "resize")
         ((== s '(group-edit rotate)) "rotate")
         ((== s '(hand-edit penscript)) "penscript")

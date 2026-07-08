@@ -568,7 +568,7 @@
 ;; modes in which the cursor should become hand-style, see graphics-main.scm too.
 
 (define hand-modes
-  '((tuple "group-edit" "move")
+  '((tuple "group-edit" "edit-props")
     (tuple "group-edit" "rotate")
     (tuple "group-edit" "zoom"))
 ) ;define

@@ -255,8 +255,8 @@
             (with saved-path
               current-path
               (set! graphics-texmacs-pointer "none")
-              (graphics-set-mode '(group-edit move))
-              ;; 将当前对象切换到 move 模式后，重新选中该对象
+              (graphics-set-mode '(group-edit edit-props))
+              ;; 将当前对象切换到 edit-props 模式后，重新选中该对象
               (when saved-path
                 (with t
                   (path->tree saved-path)
