@@ -617,6 +617,10 @@ gui_open (int& argc, char** argv) {
   // new QApplication (argc,argv); now in texmacs.cpp
   the_gui= tm_new<qt_gui_rep> (argc, argv);
 
+  // 补初始化全局颜色常量（red 等），X11 移除后原调用路径已断
+  // 红十字光标等依赖 red 的绘制会失效，故在此初始化一下
+  initialize_colors ();
+
 #ifdef MACOSX_EXTENSIONS
   mac_begin_remote ();
 #endif
