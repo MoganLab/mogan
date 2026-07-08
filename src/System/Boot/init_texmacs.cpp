@@ -897,7 +897,14 @@ TeXmacs_main (int argc, char** argv) {
   set_default_font (the_default_font);
   if (DEBUG_STD) debug_boot << "Starting server...\n";
   { // opening scope for server sv
+#ifdef QTTEXMACS
     server sv (app_type::RESEARCH);
+#else
+    // TODO: need Sanitäter :(
+    // 目前非 QTTEXMACS sv 正常析构函数会重复释放
+    // 暂且延长生命周期到程序结束
+    (void) new server (app_type::RESEARCH);
+#endif
     string where     = "";
     bool   first_file= true;
 
@@ -970,6 +977,27 @@ TeXmacs_main (int argc, char** argv) {
 
     if (N (extra_init_cmd) > 0) exec_delayed (scheme_cmd (extra_init_cmd));
     ensure_hidden_package_set ();
+#ifndef QTTEXMACS
+    // Qt 后端会在构建主菜单时顺带强制加载已发现的插件
+    // （tm_window_rep::menu_main → "(lazy-initialize-force)"）。
+    //
+    // ImGui 后端不构建菜单，因此这一触发点不会执行，导致
+    // init-research.scm 中登记的插件始终保持 lazy 状态，未被加载。
+    //
+    // 因此这里暂时在启动之后手动加载插件
+    eval ("(plugin-initialize 'latex)");
+    eval ("(plugin-initialize 'data)");
+    eval ("(plugin-initialize 'goldfish)");
+    eval ("(plugin-initialize 'image)");
+    eval ("(plugin-initialize 'image_xmgrace)");
+    // eval ("(plugin-initialize 'json)");
+    // eval ("(plugin-initialize 'julia)");
+    // eval ("(plugin-initialize 'llm)");
+    // eval ("(plugin-initialize 'maxima)");
+    // eval ("(plugin-initialize 'quiver)");
+    // eval ("(plugin-initialize 'python)");
+    // eval ("(plugin-initialize 'tikz)");
+#endif
     gui_start_loop ();
 
     if (DEBUG_STD) debug_boot << "Stopping server...\n";

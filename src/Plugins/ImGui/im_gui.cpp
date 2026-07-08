@@ -1,0 +1,663 @@
+
+/******************************************************************************
+ * MODULE     : im_gui.cpp
+ * DESCRIPTION: ImGui implementations (stubs) of the top-level widget
+ *              factories
+ * AUTHOR     : JimZhouZZY
+ *******************************************************************************
+ * This software falls under the GNU general public license version 3 or later.
+ * It comes WITHOUT ANY WARRANTY WHATSOEVER. For details, see the file LICENSE
+ * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
+ ******************************************************************************/
+
+#include "font.hpp"
+#include "gui.hpp"              // gui_start_loop
+#include "im_simple_widget.hpp" // im_simple_widget_rep (glue placeholder)
+#include "im_tm_widget.hpp"     // im_primary_glfw_window (clipboard)
+#include "im_widget.hpp"
+#include "object.hpp"
+#include "promise.hpp"
+#include "renderer.hpp"
+#include "scheme.hpp"
+#include "widget.hpp"
+
+#include <GLFW/glfw3.h> // system clipboard (glfwSet/GetClipboardString)
+
+#ifndef GL_SILENCE_DEPRECATION
+#define GL_SILENCE_DEPRECATION
+#endif
+#include <GLFW/glfw3.h>
+#include <cstdio>
+
+/******************************************************************************
+ * Helpers
+ ******************************************************************************/
+
+static widget
+im_stub_widget () {
+  return widget ((widget_rep*) tm_new<im_widget_rep> ());
+}
+
+// Whether gui_open() has initialized the process-global GLFW backend. Guards
+// glfwInit() (called once) and the matching glfwTerminate() in gui_close().
+static bool s_glfw_initialized= false;
+
+static void
+im_glfw_error_callback (int err, const char* description) {
+  std::fprintf (stderr, "GLFW Error %d: %s\n", err, description);
+}
+
+/******************************************************************************
+ * Top-level window factories (real implementation)
+ ******************************************************************************/
+
+// The main TeXmacs widget, owned by im_tm_widget_rep.
+widget
+texmacs_widget (int mask, command quit) {
+  return tm_new<im_tm_widget_rep> (mask, quit);
+}
+
+// Promote a widget into a window. Only im_tm_widget_rep is a real window in
+// this port; its plain_window_widget() returns itself.
+widget
+plain_window_widget (widget w, string name, command q) {
+  return static_cast<im_widget_rep*> (w.rep)->plain_window_widget (name, q);
+}
+
+widget
+popup_window_widget (widget w, string s) {
+  return static_cast<im_widget_rep*> (w.rep)->popup_window_widget (s);
+}
+
+widget
+tooltip_window_widget (widget w, string s) {
+  return static_cast<im_widget_rep*> (w.rep)->tooltip_window_widget (s);
+}
+
+void
+destroy_window_widget (widget w) {
+  (void) w;
+  // Note the widget's destructor owns the GLFW/ImGui teardown
+}
+
+void
+gui_start_loop () {
+  // The first window created via ensure_window() -> ... -> texmacs_widget()
+  im_run_main_loop ();
+}
+
+/******************************************************************************
+ * Dialog / chooser factories (stubs)
+ ******************************************************************************/
+
+widget
+file_chooser_widget (command cmd, string type, string prompt) {
+  (void) cmd;
+  (void) type;
+  (void) prompt;
+  return im_stub_widget ();
+}
+
+widget
+printer_widget (command cmd, url ps_pdf_file) {
+  (void) cmd;
+  (void) ps_pdf_file;
+  return widget ();
+}
+
+widget
+color_picker_widget (command cmd, bool bg, array<tree> proposals) {
+  (void) cmd;
+  (void) bg;
+  (void) proposals;
+  return im_stub_widget ();
+}
+
+widget
+inputs_list_widget (command call_back, array<string> prompts) {
+  (void) call_back;
+  (void) prompts;
+  return im_stub_widget ();
+}
+
+widget
+popup_widget (widget w) {
+  (void) w;
+  return im_stub_widget ();
+}
+
+/******************************************************************************
+ * Menu factories (stubs)
+ ******************************************************************************/
+
+widget
+horizontal_menu (array<widget> a) {
+  (void) a;
+  return im_stub_widget ();
+}
+widget
+vertical_menu (array<widget> a) {
+  (void) a;
+  return im_stub_widget ();
+}
+widget
+tile_menu (array<widget> a, int cols) {
+  (void) a;
+  (void) cols;
+  return im_stub_widget ();
+}
+widget
+minibar_menu (array<widget> a) {
+  (void) a;
+  return im_stub_widget ();
+}
+widget
+menu_separator (bool vertical) {
+  (void) vertical;
+  return im_stub_widget ();
+}
+widget
+menu_group (string name, int style) {
+  (void) name;
+  (void) style;
+  return im_stub_widget ();
+}
+widget
+pulldown_button (widget w, promise<widget> pw) {
+  (void) w;
+  (void) pw;
+  return im_stub_widget ();
+}
+widget
+pullright_button (widget w, promise<widget> pw) {
+  (void) w;
+  (void) pw;
+  return im_stub_widget ();
+}
+widget
+menu_button (widget w, command cmd, string pre, string ks, int style) {
+  (void) w;
+  (void) cmd;
+  (void) pre;
+  (void) ks;
+  (void) style;
+  return im_stub_widget ();
+}
+widget
+balloon_widget (widget w, widget help) {
+  (void) w;
+  (void) help;
+  return im_stub_widget ();
+}
+
+/******************************************************************************
+ * Leaf widget factories (stubs)
+ ******************************************************************************/
+
+widget
+text_widget (string s, int style, color col, bool tsp) {
+  (void) s;
+  (void) style;
+  (void) col;
+  (void) tsp;
+  return im_stub_widget ();
+}
+widget
+xpm_widget (url file_name) {
+  (void) file_name;
+  return im_stub_widget ();
+}
+widget
+input_text_widget (command call_back, string type, array<string> def, int style,
+                   string width) {
+  (void) call_back;
+  (void) type;
+  (void) def;
+  (void) style;
+  (void) width;
+  return im_stub_widget ();
+}
+widget
+numeric_input_widget (command call_back, string width, string unit, int min_val,
+                      int max_val, int step, int def) {
+  (void) call_back;
+  (void) width;
+  (void) unit;
+  (void) min_val;
+  (void) max_val;
+  (void) step;
+  (void) def;
+  return im_stub_widget ();
+}
+widget
+enum_widget (command cb, array<string> vals, string val, int st, string w) {
+  (void) cb;
+  (void) vals;
+  (void) val;
+  (void) st;
+  (void) w;
+  return im_stub_widget ();
+}
+widget
+choice_widget (command cb, array<string> vals, string val) {
+  (void) cb;
+  (void) vals;
+  (void) val;
+  return im_stub_widget ();
+}
+widget
+choice_widget (command cb, array<string> vals, array<string> mc) {
+  (void) cb;
+  (void) vals;
+  (void) mc;
+  return im_stub_widget ();
+}
+widget
+choice_widget (command cb, array<string> vals, string val, string filt) {
+  (void) cb;
+  (void) vals;
+  (void) val;
+  (void) filt;
+  return im_stub_widget ();
+}
+widget
+tree_view_widget (command cmd, tree data, tree data_roles) {
+  (void) cmd;
+  (void) data;
+  (void) data_roles;
+  return im_stub_widget ();
+}
+widget
+tab_page_widget (url u, widget title, widget close_btn, bool is_active) {
+  (void) u;
+  (void) title;
+  (void) close_btn;
+  (void) is_active;
+  return im_stub_widget ();
+}
+
+/******************************************************************************
+ * Container / layout factories (stubs)
+ ******************************************************************************/
+
+widget
+empty_widget () {
+  return widget ();
+}
+widget
+glue_widget (bool hx, bool vx, SI w, SI h) {
+  (void) hx;
+  (void) vx;
+  (void) w;
+  (void) h;
+  return im_stub_widget ();
+}
+widget
+glue_widget (tree col, bool hx, bool vx, SI w, SI h) {
+  (void) col;
+  (void) hx;
+  (void) vx;
+  (void) w;
+  (void) h;
+  return im_stub_widget ();
+}
+widget
+horizontal_list (array<widget> a) {
+  (void) a;
+  return im_stub_widget ();
+}
+widget
+vertical_list (array<widget> a) {
+  (void) a;
+  return im_stub_widget ();
+}
+widget
+division_widget (string name, widget w) {
+  (void) name;
+  (void) w;
+  return im_stub_widget ();
+}
+widget
+aligned_widget (array<widget> lhs, array<widget> rhs, SI hsep, SI vsep, SI lpad,
+                SI rpad) {
+  (void) lhs;
+  (void) rhs;
+  (void) hsep;
+  (void) vsep;
+  (void) lpad;
+  (void) rpad;
+  return im_stub_widget ();
+}
+widget
+tabs_widget (array<widget> tabs, array<widget> bodies) {
+  (void) tabs;
+  (void) bodies;
+  return im_stub_widget ();
+}
+widget
+icon_tabs_widget (array<url> us, array<widget> ss, array<widget> bs) {
+  (void) us;
+  (void) ss;
+  (void) bs;
+  return im_stub_widget ();
+}
+widget
+wrapped_widget (widget w, command quit) {
+  (void) w;
+  (void) quit;
+  return im_stub_widget ();
+}
+widget
+user_canvas_widget (widget wid, int style) {
+  (void) wid;
+  (void) style;
+  return im_stub_widget ();
+}
+widget
+resize_widget (widget w, int style, string w1, string h1, string w2, string h2,
+               string w3, string h3, string hpos, string vpos) {
+  (void) w;
+  (void) style;
+  (void) w1;
+  (void) h1;
+  (void) w2;
+  (void) h2;
+  (void) w3;
+  (void) h3;
+  (void) hpos;
+  (void) vpos;
+  return im_stub_widget ();
+}
+widget
+hsplit_widget (widget l, widget r) {
+  (void) l;
+  (void) r;
+  return im_stub_widget ();
+}
+widget
+vsplit_widget (widget t, widget b) {
+  (void) t;
+  (void) b;
+  return im_stub_widget ();
+}
+widget
+extend_widget (widget w, array<widget> a) {
+  (void) a;
+  return w;
+}
+widget
+toggle_widget (command cmd, bool on, int style) {
+  (void) cmd;
+  (void) on;
+  (void) style;
+  return im_stub_widget ();
+}
+widget
+wait_widget (SI width, SI height, string message) {
+  (void) width;
+  (void) height;
+  (void) message;
+  return widget ();
+}
+widget
+ink_widget (command cb) {
+  (void) cb;
+  return widget ();
+}
+widget
+refresh_widget (string tmwid, string kind) {
+  (void) tmwid;
+  (void) kind;
+  return im_stub_widget ();
+}
+widget
+refreshable_widget (object prom, string kind) {
+  (void) prom;
+  (void) kind;
+  return im_stub_widget ();
+}
+
+void
+gui_open (int& argc, char** argv) {
+  (void) argc;
+  (void) argv;
+  // The guard makes repeated calls harmless
+  if (!s_glfw_initialized) {
+    glfwSetErrorCallback (&im_glfw_error_callback);
+    if (glfwInit ()) s_glfw_initialized= true;
+  }
+}
+
+// texmacs_interpose_handler() in tm_server.cpp 注册的 interpose 回调
+// 负责执行 perform_select、exec_pending_commands、各编辑器的
+// apply_changes()、animate() 以及 windows_refresh()。Qt 在其事件循环中
+// 驱动该回调; ImGui 后端则必须在自己的帧循环（im_interpose）中驱动它，
+// 否则 env_change 永远不会被清除，handle_repaint() 会因
+// "Invalid situation" 而提前返回。将其保存在这里，让 ImGui 驱动这一回调。
+static void (*g_interpose_fn) (void)= nullptr;
+
+void
+gui_interpose (void (*fn) (void)) {
+  g_interpose_fn= fn;
+}
+
+void
+im_interpose () {
+  if (g_interpose_fn != nullptr) g_interpose_fn ();
+}
+
+void
+gui_close () {
+  if (s_glfw_initialized) {
+    glfwTerminate ();
+    s_glfw_initialized= false;
+  }
+}
+
+void
+gui_root_extents (SI& width, SI& height) {
+  // get the screen size: the GLFW counterpart of Qt's
+  // QGuiApplication::primaryScreen()->size()
+  int w= 1920, h= 1080;
+  if (s_glfw_initialized) {
+    GLFWmonitor*       monitor= glfwGetPrimaryMonitor ();
+    const GLFWvidmode* mode   = monitor ? glfwGetVideoMode (monitor) : nullptr;
+    if (mode) {
+      w= mode->width;
+      h= mode->height;
+    }
+  }
+  width = w * PIXEL;
+  height= h * PIXEL;
+}
+
+void
+gui_maximal_extents (SI& width, SI& height) {
+  gui_root_extents (width, height);
+}
+
+void
+gui_refresh () {}
+
+string
+gui_version () {
+  return "headless";
+}
+
+void
+set_default_font (string name) {
+  (void) name;
+}
+
+font
+get_default_font (bool tt, bool mini, bool bold) {
+  (void) tt;
+  (void) mini;
+  (void) bold;
+  // stub
+  return tex_font ("modern", 10, 300, 0);
+}
+
+void
+load_system_font (string family, int size, int dpi, font_metric& fnm,
+                  font_glyphs& fng) {
+  (void) family;
+  (void) size;
+  (void) dpi;
+  (void) fnm;
+  (void) fng;
+  // System fonts are optional; the viewer relies on TeX/Freetype fonts.
+}
+
+// Clipboard (Cmd+C / Cmd-V): GLFW only exposes plain-text system clipboard, so
+// we keep an internal store of the texmacs tree+text and mirror the text to the
+// system clipboard. On get, if the system clipboard still holds the text we
+// last pushed we own it → return the structured tree (preserves math/formatting
+// on intra-app paste); otherwise return the foreign plain text. This mirrors
+// Qt's owns/selection_t logic at the granularity GLFW allows.
+static hashmap<string, tree>   im_sel_t= hashmap<string, tree> (tree (TUPLE));
+static hashmap<string, string> im_sel_s= hashmap<string, string> ("");
+static string                  im_last_clip_text= "";
+
+bool
+set_selection (string cb, tree t, string s, string sv, string sh,
+               string format) {
+  (void) sv;
+  (void) sh;
+  (void) format;
+  im_sel_t (cb)= copy (t);
+  im_sel_s (cb)= copy (s);
+  if (cb == "clipboard") {
+    GLFWwindow* w= im_primary_glfw_window ();
+    if (w != nullptr && N (s) > 0) {
+      c_string cs (s);
+      glfwSetClipboardString (w, cs);
+      im_last_clip_text= s;
+    }
+  }
+  return true;
+}
+
+bool
+get_selection (string cb, tree& t, string& s, string format) {
+  (void) format;
+  if (cb == "clipboard") {
+    GLFWwindow* w= im_primary_glfw_window ();
+    if (w != nullptr) {
+      const char* p  = glfwGetClipboardString (w);
+      string      cur= (p == nullptr) ? string ("") : string (p);
+      // We still own the clipboard (text unchanged since our last set) → return
+      // the structured tree so paste preserves formatting/math within the app.
+      if (!is_empty (im_last_clip_text) && cur == im_last_clip_text &&
+          im_sel_t->contains (cb)) {
+        t= copy (im_sel_t[cb]);
+        s= copy (im_sel_s[cb]);
+        return true;
+      }
+      // Foreign content → paste as plain text.
+      t= "none";
+      s= cur;
+      return !is_empty (cur);
+    }
+  }
+  // "primary"/"mouse": GLFW has no primary-selection API; serve internal only.
+  if (im_sel_t->contains (cb)) {
+    t= copy (im_sel_t[cb]);
+    s= copy (im_sel_s[cb]);
+    return true;
+  }
+  return false;
+}
+
+void
+clear_selection (string cb) {
+  im_sel_t->reset (cb);
+  im_sel_s->reset (cb);
+  if (cb == "clipboard") im_last_clip_text= "";
+}
+
+void
+beep () {}
+
+void
+needs_update () {}
+
+bool
+check_event (int type) {
+  (void) type;
+  return false;
+}
+
+void
+image_gc (string name) {
+  (void) name;
+}
+
+void
+show_help_balloon (widget balloon, SI x, SI y) {
+  (void) balloon;
+  (void) x;
+  (void) y;
+}
+
+void
+show_wait_indicator (widget base, string message, string argument) {
+  (void) base;
+  (void) message;
+  (void) argument;
+}
+
+void
+external_event (string type, time_t t) {
+  (void) type;
+  (void) t;
+}
+
+// Number of open windows (read by get_nr_windows in new_window.cpp).
+int nr_windows= 0;
+
+/******************************************************************************
+ * Window backend (window.hpp)
+ ******************************************************************************/
+
+int
+get_identifier (window w) {
+  (void) w;
+  return 1; // TODO: implement ImGUi identifier
+}
+
+window
+get_window (int id) {
+  (void) id;
+  return (window) nullptr;
+}
+
+/******************************************************************************
+ * Delayed commands
+ ******************************************************************************/
+
+static array<object> g_pending_cmds;
+
+void
+exec_delayed (object cmd) {
+  g_pending_cmds << cmd;
+}
+
+void
+exec_delayed_pause (object cmd) {
+  g_pending_cmds << cmd;
+}
+
+void
+clear_pending_commands () {
+  g_pending_cmds= array<object> (0);
+}
+
+void
+exec_pending_commands () {
+  array<object> cur= g_pending_cmds;
+  g_pending_cmds   = array<object> (0);
+  for (int i= 0; i < N (cur); i++) {
+    (void) call (cur[i]);
+  }
+}

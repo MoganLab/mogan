@@ -21,7 +21,7 @@
 #ifdef QTTEXMACS
 #include "Qt/qt_simple_widget.hpp"
 #else
-#include "Widkit/simple_wk_widget.hpp"
+#include "ImGui/im_simple_widget.hpp"
 #endif
 #endif
 
