@@ -13,6 +13,7 @@
 #include "hashset.hpp"
 #include "iterator.hpp"
 #include "sys_utils.hpp"
+#include "tm_debug.hpp"
 #include <stdlib.h>
 #include <string.h>
 #if !defined(OS_MINGW) && !defined(OS_WIN)
