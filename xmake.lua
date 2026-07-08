@@ -759,7 +759,8 @@ target("libmogan") do
             "src/Plugins/MuPDF"
         }, {public = true})
         add_files({
-            "src/Plugins/MuPDF/**.cpp"
+            "src/Plugins/MuPDF/*.cpp",
+            "src/Plugins/MuPDF/Qt/*.cpp"
         })
         add_packages("mupdf")
     end
