@@ -395,6 +395,8 @@ edit_graphics_rep::set_graphical_object (tree t) {
   // tree old_fr= env->local_begin (GR_FRAME, (tree) find_frame ());
   frame f_env= env->fr;
   env->fr    = find_frame ();
+  // 排版 go_box 借用了反映光标位置的环境，临时把 FILL_COLOR 置 none，避免裸对象继承光标所在对象的填充色。
+  tree old_fc= env->local_begin (FILL_COLOR, "none");
   if (!is_nil (env->fr)) {
     int i, n= 0;
     go_box= typeset_as_concat (env, t, path (0));
@@ -415,6 +417,7 @@ edit_graphics_rep::set_graphical_object (tree t) {
       go_box= composite_box (path (0), bx);
     }
   }
+  env->local_end (FILL_COLOR, old_fc);
   env->fr= f_env;
   // env->local_end (GR_FRAME, old_fr);
 }

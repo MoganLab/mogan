@@ -1,0 +1,15 @@
+<TMU|<tuple|1.1.0|2026.3.0>>
+
+<style|<tuple|generic|number-europe|preview-ref>>
+
+<\body>
+  <with|gr-mode|<tuple|group-edit|move>|gr-frame|<tuple|scale|1cm|<tuple|0.5gw|0.5gh>>|gr-geometry|<tuple|geometry|1par|0.6par>|gr-grid|<tuple|cartesian|<point|0|0>|1>|gr-edit-grid-aspect|<tuple|<tuple|axes|none>|<tuple|1|none>|<tuple|10|none>>|gr-edit-grid|<tuple|cartesian|<point|0|0>|1>|<graphics||<with|fill-color|pastel magenta|<cline|<point|-2.366666666666667|2.5000000000000004>|<point|-2.366666666666667|-1.5>|<point|-1.366666666666667|1.5>>>|<cline|<point|0.42000000000000004|2.2571428571428562>|<point|0.42000000000000004|0.2571428571428571>|<point|1.8200000000000007|1.2571428571428571>>>>
+</body>
+
+<\initial>
+  <\collection>
+    <associate|page-medium|paper>
+    <associate|page-screen-margin|false>
+    <associate|stem-doc-id|087C9680-2B17-4100-8BC7-C38A878B5970>
+  </collection>
+</initial>
