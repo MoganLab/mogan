@@ -300,6 +300,7 @@
          (clipboard-cut "primary")
         ) ;
         ((inside-graphical-text?) (if forward? (kbd-delete) (kbd-backspace)))
+        ((graphics-selection-active?) (remove-selected-objects))
         (else (edit_delete))
   ) ;cond
 ) ;tm-define
