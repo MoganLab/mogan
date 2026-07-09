@@ -50,8 +50,8 @@
 
     (define (goldfish-print obj)
       (if (eq? obj #<unspecified>)
-        (flush-scheme-u8 "")
-        (flush-scheme-u8 (build-goldfish-result obj))
+        (flush-scheme "")
+        (flush-scheme (build-goldfish-result obj))
       ) ;if
     ) ;define
 
@@ -60,7 +60,7 @@
         (lambda () (goldfish-print (eval-string code (rootlet))))
         (lambda args
           (begin
-            (flush-scheme-u8 (string-append "(errput (document "
+            (flush-scheme (string-append "(errput (document "
                                (goldfish-quote (symbol->string (car args)))
                                (if (and (>= (length args) 2) (not (null? (cadr args))))
                                  (goldfish-quote (object->string (cadr args)))
@@ -68,7 +68,7 @@
                                ) ;if
                                "))"
                              ) ;string-append
-            ) ;flush-scheme-u8
+            ) ;flush-scheme
           ) ;begin
         ) ;lambda
       ) ;catch

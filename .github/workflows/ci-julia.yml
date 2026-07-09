@@ -1,4 +1,4 @@
-name: Julia Plugin CI
+name: CI for Julia Plugin
 
 on:
   push:

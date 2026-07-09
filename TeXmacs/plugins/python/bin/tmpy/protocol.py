@@ -69,9 +69,6 @@ def flush_command(command):
 def flush_scheme(scheme):
     flush_any("scheme:" + scheme)
 
-def flush_scheme_u8(scheme):
-    flush_any("scheme_u8:" + scheme)
-
 def flush_latex(latex):
     flush_any("latex:$" + latex + "$")
 

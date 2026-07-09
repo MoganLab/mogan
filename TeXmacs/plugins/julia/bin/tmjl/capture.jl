@@ -62,7 +62,7 @@ Base.flush(io::TMJuliaStdio) = begin
         filtered_lines = filter(line -> !occursin("GKS: glyph missing from current font", line), lines)
         filtered_buf = join(filtered_lines, '\n')
         if filtered_buf != ""
-            tm_err(VERBATIM, filtered_buf)
+            tm_err(U8_TEXT, filtered_buf)
         end
     end
 end

@@ -28,7 +28,6 @@ from tmpy.protocol import (
     flush_prompt,
     flush_ps,
     flush_scheme,
-    flush_scheme_u8,
     flush_verbatim,
     flush_latex,
 )
@@ -100,7 +99,7 @@ def flush_output(data):
         flush_matplotlib_figure(fig)
     elif is_dataframe_object(data):
         dfstr = convert_dataframe_to_scheme_str(data)
-        flush_scheme_u8(dfstr)
+        flush_scheme(dfstr)
     elif is_sympy_object(data):
         flush_latex("\\rmfamily{" + latex(data) + "}")
     elif is_pil_object(data):

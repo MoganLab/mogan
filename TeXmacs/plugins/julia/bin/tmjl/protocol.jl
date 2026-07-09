@@ -13,7 +13,7 @@ const DATA_BEGIN = Char(2)
 const DATA_END = Char(5)
 const DATA_ESCAPE = Char(27)
 const DATA_COMMAND = Char(16)
-const VERBATIM = "verbatim:"
+const U8_TEXT = "utf8:"
 const SCHEME = "scheme:"
 const COMMAND = "command:"
 const PROMPT = "prompt#"
@@ -25,7 +25,7 @@ mogan_escape(data) = replace(replace(replace(data,
   
 # Mogan expects all output to be bracketed in a DATA_BEGIN and DATA_END
 # so that it can determine when the plugin ended the interaction        
-tm_begin() = write(orig_stdout[], DATA_BEGIN, VERBATIM)
+tm_begin() = write(orig_stdout[], DATA_BEGIN, U8_TEXT)
 tm_end() = begin
     write(orig_stdout[], DATA_END)
     flush(orig_stdout[]) 

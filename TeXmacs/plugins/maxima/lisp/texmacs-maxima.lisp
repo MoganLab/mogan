@@ -14,7 +14,7 @@
 (setf *prompt-prefix* "channel:promptlatex:\\red ")
 (setf *prompt-suffix* "\\black")
 ;(setf *general-display-prefix* "verbatim:")
-(setf *maxima-prolog* "verbatim:")
+(setf *maxima-prolog* "utf8:")
 (setf *maxima-epilog* "latex:\\red The end\\black")
 #-gcl(setf *debug-io* (make-two-way-stream *standard-input* *standard-output*))
 #+(or cmu sbcl scl)

@@ -46,8 +46,7 @@ using moebius::data::scheme_to_tree;
 #define MODE_COMMAND 8
 #define MODE_XFORMAT 9
 #define MODE_FILE 10
-#define MODE_SCHEME_UTF8 11
-#define MODE_MARKDOWN 12
+#define MODE_MARKDOWN 11
 
 /******************************************************************************
  * Universal data input
@@ -79,7 +78,6 @@ texmacs_input_rep::get_mode (string s) {
   if (s == "channel") return MODE_CHANNEL;
   if (s == "command") return MODE_COMMAND;
   if (s == "file") return MODE_FILE;
-  if (s == "scheme_u8") return MODE_SCHEME_UTF8;
   if (s == "markdown") return MODE_MARKDOWN;
   if (format_exists (s)) return MODE_XFORMAT;
   return MODE_VERBATIM;
@@ -253,9 +251,6 @@ texmacs_input_rep::flush (bool force) {
   case MODE_FILE:
     file_flush (force);
     break;
-  case MODE_SCHEME_UTF8:
-    scheme_u8_flush (force);
-    break;
   default:
     TM_FAILED ("invalid mode");
     break;
@@ -265,7 +260,7 @@ texmacs_input_rep::flush (bool force) {
 void
 texmacs_input_rep::verbatim_flush (bool force) {
   if (force || ends (buf, "\n")) {
-    if (!ignore_verb) write (verbatim_to_tree (buf, false, "auto"));
+    if (!ignore_verb) write (verbatim_to_tree (buf, false, "utf-8"));
     else if (DEBUG_IO) debug_io << "ignore verbatim (aborted input)" << LF;
     buf= "";
   }
@@ -284,14 +279,6 @@ texmacs_input_rep::utf8_flush (bool force) {
 
 void
 texmacs_input_rep::scheme_flush (bool force) {
-  if (force) {
-    write (simplify_correct (scheme_to_tree (buf)));
-    buf= "";
-  }
-}
-
-void
-texmacs_input_rep::scheme_u8_flush (bool force) {
   if (force) {
     write (simplify_correct (tree_utf8_to_herk (scheme_to_tree (buf))));
     buf= "";
@@ -455,15 +442,15 @@ texmacs_input_rep::file_flush (bool force) {
 
     if (!validate_h_unit (h_unit)) {
       string err_msg= h_unit * " is not allowed, please pt, px or pag!";
-      write (verbatim_to_tree (err_msg, false, "auto"));
+      write (verbatim_to_tree (err_msg, false, "utf-8"));
     }
     else if (!validate_w_unit (w_unit)) {
       string err_msg= w_unit * " is not allowed, please pt, px or par!";
-      write (verbatim_to_tree (err_msg, false, "auto"));
+      write (verbatim_to_tree (err_msg, false, "utf-8"));
     }
     else if (!exists (file)) {
       string err_msg= "[" * as_string (file) * "] does not exist";
-      write (verbatim_to_tree (err_msg, false, "auto"));
+      write (verbatim_to_tree (err_msg, false, "utf-8"));
     }
     else {
       string type= suffix (file);
@@ -496,7 +483,7 @@ texmacs_input_rep::file_flush (bool force) {
       }
       else {
         string err_msg= "Do not support file type with suffix: [" * type * "]";
-        write (verbatim_to_tree (err_msg, false, "auto"));
+        write (verbatim_to_tree (err_msg, false, "utf-8"));
       }
     }
     buf= "";

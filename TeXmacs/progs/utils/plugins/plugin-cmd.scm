@@ -29,7 +29,7 @@
 ) ;tm-define
 
 (define (hacked-texmacs->code x)
-  (with r (texmacs->code x) (string-replace r "`" "`"))
+  (with r (texmacs->code x "utf-8") (string-replace r "`" "`"))
 ) ;define
 
 (tm-define (verbatim-serialize lan t)
@@ -43,8 +43,8 @@
   (with u
     (pre-serialize lan t)
     (string-append (char->string #\x02)
-      "verbatim:"
-      (escape-generic (texmacs->code u))
+      "utf8:"
+      (escape-generic (texmacs->code u "utf-8"))
       (char->string #\x05)
     ) ;string-append
   ) ;with
