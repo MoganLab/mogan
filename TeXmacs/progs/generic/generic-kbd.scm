@@ -626,6 +626,10 @@
   ("C-k" (kill-paragraph))
   ("C-l" (refresh-window))
   ("C-y" (yank-paragraph))
+  ("C-n" (kbd-down))
+  ("C-p" (kbd-up))
+  ("C-h" (kbd-backspace))
+  ("C-d" (kbd-delete))
   ("A-q" (make 'symbol))
 
   ("C-O" (toggle-source-mode))
