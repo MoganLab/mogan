@@ -383,7 +383,9 @@
           ((== val (graphics-attribute-default var)) (graphics-remove-property var))
           (p (path-insert-with p var val))
     ) ;cond
-    (unless (or (tree? val) graphics-on-restore) (graphics-sync-type-config var val))
+    (unless (or (tree? val) graphics-on-restore)
+      (graphics-sync-type-config var val)
+    ) ;unless
   ) ;with
 ) ;tm-define
 
@@ -433,6 +435,7 @@
 ) ;tm-define
 
 ;; restore 期间不应再触发 sync 回写存储
+
 (define graphics-on-restore #f)
 
 ;; 单条 gr-* 写入时，实时并入当前 type 的配置
@@ -440,11 +443,16 @@
 (tm-define (graphics-sync-type-config var val)
   (let* ((m (graphics-mode))
          (tag (and (func? m 'edit 1) (cadr m)))
-         (attr (and (gr-prefixed? var) (gr-unprefix var))))
-    (when (and tag attr (!= var "gr-mode")
-               (not (string-starts? var "gr-props-"))
-               (graphics-mode-attribute? `(edit ,tag) attr))
-      (with tab (graphics-get-type-config tag)
+         (attr (and (gr-prefixed? var) (gr-unprefix var)))
+        ) ;
+    (when (and tag
+            attr
+            (!= var "gr-mode")
+            (not (string-starts? var "gr-props-"))
+            (graphics-mode-attribute? `(edit ,tag) attr)
+          ) ;and
+      (with tab
+        (graphics-get-type-config tag)
         (if (and val (!= val "default") (!= val (graphics-attribute-default attr)))
           (ahash-set! tab attr val)
           (ahash-remove! tab attr)
@@ -458,13 +466,12 @@
 ;; 读取当前 type 的配置（属性名 -> 值），未存则空表
 (tm-define (graphics-get-type-config tag)
   (let* ((tab (make-ahash-table))
-         (raw (graphics-get-property (graphics-props-var tag))))
+         (raw (graphics-get-property (graphics-props-var tag)))
+        ) ;
     (when (and (pair? raw) (== (car raw) 'tuple))
-      (with l (cdr raw)
-        (while (nnull? l)
-          (ahash-set! tab (car l) (cadr l))
-          (set! l (cddr l))
-        ) ;while
+      (with l
+        (cdr raw)
+        (while (nnull? l) (ahash-set! tab (car l) (cadr l)) (set! l (cddr l)))
       ) ;with
     ) ;when
     tab
@@ -473,9 +480,11 @@
 
 ;; 把配置写回 gr-props-<type>
 (tm-define (graphics-set-type-config tag tab)
-  (with p (graphics-graphics-path)
+  (with p
+    (graphics-graphics-path)
     (when p
-      (with pairs (append-map (lambda (x) (list (car x) (cdr x))) (ahash-table->list tab))
+      (with pairs
+        (append-map (lambda (x) (list (car x) (cdr x))) (ahash-table->list tab))
         (if (null? pairs)
           (path-remove-with p (graphics-props-var tag))
           (path-insert-with p (graphics-props-var tag) `(tuple ,@pairs))
@@ -487,9 +496,11 @@
 
 ;; 把该 type 的配置回填到全局 gr-*
 (tm-define (graphics-restore-type-config tag)
-  (with attrs (graphics-mode-attributes `(edit ,tag))
+  (with attrs
+    (graphics-mode-attributes `(edit ,tag))
     (when (nnull? attrs)
-      (with tab (graphics-get-type-config tag)
+      (with tab
+        (graphics-get-type-config tag)
         ;; 清除选中，避免误改选中对象
         (sketch-reset)
         (set! graphics-on-restore #t)
