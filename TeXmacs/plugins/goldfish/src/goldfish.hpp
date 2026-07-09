@@ -68,7 +68,7 @@
 #include <isocline.h>
 #endif
 
-#define GOLDFISH_VERSION "18.11.15"
+#define GOLDFISH_VERSION "18.11.16"
 
 #define GOLDFISH_PATH_MAXN TB_PATH_MAXN
 
@@ -106,8 +106,10 @@ static string find_goldfish_library ();
 static vector<string> find_function_libraries_in_load_path (s7_scheme* sc, const string& function_name);
 
 void glue_njson (s7_scheme* sc);
+#ifdef GOLDFISH_ENABLE_HTTP
 void glue_http (s7_scheme* sc);
 void glue_http_async (s7_scheme* sc);
+#endif
 void glue_liii_base64 (s7_scheme* sc);
 void glue_scheme_base (s7_scheme* sc);
 void glue_liii_hashlib (s7_scheme* sc);
@@ -704,8 +706,10 @@ glue_for_community_edition (s7_scheme* sc) {
   glue_liii_base64 (sc);
   glue_scheme_base (sc);
   glue_njson (sc);
+#ifdef GOLDFISH_ENABLE_HTTP
   glue_http (sc);
   glue_http_async (sc);
+#endif
 }
 
 static void

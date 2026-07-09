@@ -116,7 +116,6 @@ target ("goldfish") do
     add_files({
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_base64.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_hashlib.cpp",
-        "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_njson.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_os.cpp",
         "$(projectdir)/TeXmacs/plugins/goldfish/src/liii_path.cpp",
@@ -152,6 +151,10 @@ target ("goldfish") do
         "$(projectdir)/3rdparty/json-schema-validator/src/json-patch.cpp",
         "$(projectdir)/3rdparty/json-schema-validator/src/string-format-check.cpp",
     })
+    if not is_plat("wasm") then
+        add_files ("$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp")
+        add_defines("GOLDFISH_ENABLE_HTTP")
+    end
     add_includedirs({
         "$(projectdir)/TeXmacs/plugins/goldfish/src",
         "$(projectdir)/3rdparty/nlohmann_json/include",
@@ -159,7 +162,9 @@ target ("goldfish") do
     })
 
     add_defines("WITH_SYSTEM_EXTRAS=0")
-    add_defines("HAVE_OVERFLOW_CHECKS=0")
+    if not is_plat("wasm") then
+        add_defines("HAVE_OVERFLOW_CHECKS=0")
+    end
     add_defines("WITH_WARNINGS")
     add_defines("WITH_R7RS=1")
     if is_mode("debug") then
@@ -170,7 +175,9 @@ target ("goldfish") do
         add_syslinks("stdc++")
     end
     add_packages("liii-tbox")
-    add_packages("cpr")
+    if not is_plat("wasm") then
+        add_packages("cpr")
+    end
     add_packages("argh")
     on_install(function (target)
     end)

@@ -28,11 +28,7 @@
     #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
   #elif defined(__GNUC__) && (__GNUC__ >= 5)
     #define multiply_overflow(A, B, C) __builtin_mul_overflow(A, B, C)
-  #else
-    static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
   #endif
-#else
-  static bool multiply_overflow(s7_int A, s7_int B, s7_int *C) {*C = A * B; return(false);}
 #endif
 
 /* forward declarations for internal types used in bridge functions */
