@@ -1,0 +1,89 @@
+name: Build on macOS for WASM
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
+      - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-macos-wasm.yml"
+      - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  pull_request:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
+      - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-macos-wasm.yml"
+      - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  workflow_dispatch:
+
+env:
+  XMAKE_ROOT: y
+  INSTALL_DIR: tmp/build/packages/app.mogan/
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+  
+      - name: cache xmake
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{github.workspace}}/build/.build_cache
+            /Users/runner/.xmake
+          key: xmake-${{ runner.os }}-wasm-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.4
+          actions-cache-folder: '.xmake-cache'
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: xrepo-${{ runner.os }}-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      - name: config
+        run: xmake config --policies=build.ccache -o ${{ runner.workspace }}/build -m releasedbg -p wasm --qt_frontend=no --yes
+
+      - name: build
+        run: xmake build --yes -vD stem

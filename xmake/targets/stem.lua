@@ -34,6 +34,8 @@ target("stem") do
         set_filename(stem_binary_linux)
     elseif is_plat("macosx") then
         set_filename(stem_binary_macos)
+    elseif is_plat("wasm") then
+        set_filename(stem_binary_wasm)
     else
         set_filename(stem_binary_windows)
     end
@@ -96,6 +98,17 @@ target("stem") do
         set_runtimes("MT")
         add_ldflags("/STACK:16777216")
     end
+    
+    if is_plat("wasm") then
+        add_cxxflags("-O3")
+        add_cxxflags("-sUSE_GLFW=3")
+        add_ldflags("-O3")
+        add_ldflags("-sUSE_GLFW=3")
+        add_ldflags("-sINITIAL_MEMORY=512MB")
+        add_ldflags("-sALLOW_MEMORY_GROWTH=1")
+        add_ldflags("-sSTACK_SIZE=32MB", {force = true})
+        add_ldflags("--preload-file=" .. path.join(os.projectdir(), "TeXmacs") .. "@/TeXmacs")
+    end
 
     if has_config("qt_frontend") then
         -- Qt frontend: build stem as a Qt app.
@@ -110,7 +123,7 @@ target("stem") do
 
     add_packages("goldfish")
     add_packages("mupdf")
-    if not has_config("qt_frontend") then
+    if not has_config("qt_frontend") and not is_plat("wasm") then -- WASM GLFW is in EMCC
         add_packages("glfw") 
     end
     add_deps("liblolly")
@@ -221,6 +234,12 @@ target("stem") do
                 os.execv(binary, params, {envs={TEXMACS_PATH= path.join(os.projectdir(), "TeXmacs")}})
             elseif is_plat("windows") then
                 os.execv(binary, params)
+            elseif is_plat("wasm") then
+                local build_dir = path.absolute(path.directory(binary))
+                os.execv("python3", {
+                    path.join(os.projectdir(), "bin/wasm_server.py"),
+                    build_dir
+                })
             else
                 print("Unsupported platform: " .. tostring(os.host()))
             end

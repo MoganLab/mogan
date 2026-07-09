@@ -13,8 +13,8 @@
 #include "tm_debug.hpp"
 #include "tm_link.hpp"
 
-#if !(defined(QTTEXMACS) && (defined(OS_MINGW) || defined(QTPIPES) ||          \
-                             defined(OS_WIN) || defined(OS_WASM)))
+#if !(defined(QTTEXMACS) &&                                                    \
+      (defined(OS_MINGW) || defined(QTPIPES) || defined(OS_WIN)))
 
 #include "hashset.hpp"
 #include "iterator.hpp"
@@ -97,6 +97,7 @@ pipe_link_rep::~pipe_link_rep () {
   pipe_link_set->remove ((pointer) this);
 }
 
+#ifndef OS_WASM
 tm_link
 make_pipe_link (string cmd) {
   return tm_new<pipe_link_rep> (cmd);
@@ -127,6 +128,7 @@ process_all_pipes () {
     if (con->alive) con->apply_command ();
   }
 }
+#endif
 
 /******************************************************************************
  * Routines for pipe_links

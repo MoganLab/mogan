@@ -69,12 +69,16 @@ protected:
                        array<double> data= array<double> ());
   // Convert a position in GLFW screen coordinates to the renderer's SI space
   void screen_to_si (double xpos, double ypos, SI& sx, SI& sy);
+  // ImGui's main loop
+  void im_main_loop ();
   // The attached editor canvas. nullptr when no real editor is wired
   im_simple_widget_rep* canvas ();
 
 public:
   im_tm_widget_rep (int mask, command quit);
   ~im_tm_widget_rep ();
+
+  static void em_main_loop_wrapper (void* arg);
 
   // Provide the typeset document to display
   void set_box (box b, double zoom_factor);

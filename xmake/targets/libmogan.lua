@@ -75,7 +75,7 @@ target("libmogan") do
         add_defines("QTPIPES")
         set_configvar("USE_QT_PRINTER", 1)
         add_defines("USE_QT_PRINTER")
-    else
+    elseif not is_plat("wasm") then -- WASM GLFW is in EMCC
         add_packages("glfw")
     end
 
@@ -83,7 +83,9 @@ target("libmogan") do
     add_packages("freetype")
     add_packages("goldfish")
     add_packages("liii-tbox")
-    add_packages("cpr")
+    if not is_plat("wasm") then
+        add_packages("cpr")
+    end
     add_packages("argh")
     if not is_plat("macosx") then
         add_packages("libiconv")
@@ -148,10 +150,18 @@ target("libmogan") do
         set_configvar("CONFIG_OS", "")
     end
 
-    configvar_check_cxxsnippets(
-        "CONFIG_LARGE_POINTER", [[
-            #include <stdlib.h>
-            static_assert(sizeof(void*) == 8, "");]])
+    if not is_plat("wasm") then
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 8, "");]])
+    else
+        -- WASM use 32 bit pointers
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 4, "");]])
+    end
     add_configfiles(
         "$(projectdir)/src/System/tm_configure.hpp.xmake", {
             filename = "tm_configure.hpp",
@@ -280,6 +290,7 @@ target("libmogan") do
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
+        remove_files("$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp")
     end
 
     if is_plat("macosx") then
