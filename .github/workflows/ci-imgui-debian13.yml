@@ -1,0 +1,85 @@
+name: Build ImGUI on Debian 13
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
+      - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-imgui-debian13.yml"
+      - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - "src/**"
+      - "!src/Plugins/Macos/**"
+      - "!src/Plugins/Windows/**"
+      - "tests/**"
+      - "lolly/**"
+      - "moebius/**"
+      - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
+      - "xmake/packages.lua"
+      - "xmake/packages/**"
+      - ".github/workflows/ci-imgui-debian13.yml"
+      - "TeXmacs/tests/*.scm"
+      - "3rdparty/**"
+  workflow_dispatch:
+
+env:
+  XMAKE_ROOT: y
+  XMAKE_GLOBALDIR: /tmp/xmake-global
+
+jobs:
+  build:
+    container: debian:13
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Install dependencies
+        run: |
+          DEBIAN_FRONTEND=noninteractive apt-get update
+          DEBIAN_FRONTEND=noninteractive apt-get install -y gcc g++ git curl build-essential cmake \
+              libpng-dev libcurl4-openssl-dev libx11-dev libxcursor-dev libxi-dev \
+              libxinerama-dev libxrandr-dev libgl1-mesa-dev libxkbcommon-dev \
+              python3.13 python3.13-venv python3-pip ninja-build pkg-config unzip 7zip
+          update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.13 1
+      
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: git add safe directory
+        run: git config --global --add safe.directory '*'
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.7
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: /tmp/xmake-global/.xmake/packages
+          key: ${{ runner.os }}-xrepo-imgui-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua', 'xmake/requires.lua') }}
+
+      - name: config
+        run: xmake config -vD --qt_frontend=no --policies=build.ccache --yes
+
+      - name: build stem
+        run: xmake b -vD stem

@@ -1,0 +1,50 @@
+name: Build ImGUI on macOS
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'src/Plugins/ImGui/**'
+      - ".github/workflows/ci-imgui-macos.yml"
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'src/Plugins/ImGui/**'
+      - ".github/workflows/ci-imgui-macos.yml"
+  workflow_dispatch:
+
+jobs:
+  macosbuild:
+    strategy:
+      matrix:
+        os: [macos-14]
+        arch: [arm64]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: set XMAKE_GLOBALDIR
+        run: echo "XMAKE_GLOBALDIR=${{ runner.workspace }}/xmake-global" >> $GITHUB_ENV
+
+      - uses: xmake-io/github-action-setup-xmake@v1
+        with:
+          xmake-version: v3.0.7
+          actions-cache-folder: '.xmake-cache'
+
+      - name: xmake repo --update
+        run: xmake repo --update
+
+      - name: cache packages from xrepo
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.XMAKE_GLOBALDIR }}/.xmake/packages
+          key: ${{ runner.os }}-xrepo-imgui-${{ matrix.arch }}-${{ hashFiles('xmake/vars.lua', 'lolly/xmake.lua', 'moebius/xmake.lua') }}
+
+      - name: config
+        run: xmake config -vD --qt_frontend=no --policies=build.ccache --yes
+
+      - name: build stem
+        run: xmake b -vD stem
