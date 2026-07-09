@@ -383,7 +383,7 @@
           ((== val (graphics-attribute-default var)) (graphics-remove-property var))
           (p (path-insert-with p var val))
     ) ;cond
-    (unless (tree? val) (graphics-sync-type-config var val))
+    (unless (or (tree? val) graphics-on-restore) (graphics-sync-type-config var val))
   ) ;with
 ) ;tm-define
 
@@ -431,6 +431,9 @@
 (tm-define (graphics-props-var tag)
   (string-append "gr-props-" (symbol->string tag))
 ) ;tm-define
+
+;; restore 期间不应再触发 sync 回写存储
+(define graphics-on-restore #f)
 
 ;; 单条 gr-* 写入时，实时并入当前 type 的配置
 ;; 排除 gr-mode 与 gr-props-* 自身（避免递归）
@@ -484,21 +487,19 @@
 
 ;; 把该 type 的配置回填到全局 gr-*
 (tm-define (graphics-restore-type-config tag)
-  (let* ((attrs (graphics-mode-attributes `(edit ,tag)))
-         (tab (graphics-get-type-config tag))
-         (p (graphics-graphics-path)))
-    (when (and (nnull? attrs) p)
-      (for (attr attrs)
-        (let* ((var (gr-prefix attr))
-               (val (or (ahash-ref tab attr) "default")))
-          (if (or (== val "default") (== val (graphics-attribute-default attr)))
-            (path-remove-with p var)
-            (path-insert-with p var val)
-          ) ;if
-        ) ;let*
-      ) ;for
+  (with attrs (graphics-mode-attributes `(edit ,tag))
+    (when (nnull? attrs)
+      (with tab (graphics-get-type-config tag)
+        ;; 清除选中，避免误改选中对象
+        (sketch-reset)
+        (set! graphics-on-restore #t)
+        (for (attr attrs)
+          (graphics-set-property (gr-prefix attr) (or (ahash-ref tab attr) "default"))
+        ) ;for
+        (set! graphics-on-restore #f)
+      ) ;with
     ) ;when
-  ) ;let*
+  ) ;with
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
