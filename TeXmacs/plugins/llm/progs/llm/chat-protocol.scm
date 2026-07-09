@@ -25,7 +25,7 @@
   ) ;:use
 ) ;texmacs-module
 
-(import (liii njson))
+(import (liii njson) (liii base64))
 
 ;;; ---------- 全局常量 ----------
 
@@ -298,8 +298,29 @@
         ((or (== suffix "jpg") (== suffix "jpeg")) "image/jpeg")
         ((== suffix "gif") "image/gif")
         ((== suffix "webp") "image/webp")
+        ((== suffix "pdf") "application/pdf")
         (else #f)
   ) ;cond
+) ;define
+
+(define (chat-tab-read-binary-file file-url)
+  (let* ((path (url->string (url-concretize file-url))) (port (open-input-file path)))
+    (if (not port)
+      #u8()
+      (let* ((bytes (let loop
+                      ((c (read-char port)) (res '()))
+                      (if (eof-object? c)
+                        (reverse res)
+                        (loop (read-char port) (cons (char->integer c) res))
+                      ) ;if
+                    ) ;let
+             ) ;bytes
+             (dummy (close-input-port port))
+            ) ;
+        (apply byte-vector bytes)
+      ) ;let*
+    ) ;if
+  ) ;let*
 ) ;define
 
 (define (chat-tab-image-node->pair img-stree)
@@ -312,9 +333,10 @@
         ;; Embedded: (tuple (raw-data <base64>) <filename>)
         ((and (pair? name) (eq? (car name) 'tuple) (>= (length name) 3))
          (let ((data-node (cadr name)) (suffix-str (caddr name)))
-           (let ((suffix (url-suffix suffix-str))
-                 (mime (chat-tab-suffix->mime (url-suffix suffix-str)))
-                ) ;
+           (let* ((raw-suffix (url-suffix suffix-str))
+                  (suffix (if (== raw-suffix "") suffix-str raw-suffix))
+                  (mime (chat-tab-suffix->mime suffix))
+                 ) ;
              (if (not mime)
                #f
                (cond
@@ -328,13 +350,25 @@
                  (else #f)
                ) ;cond
              ) ;if
-           ) ;let
+           ) ;let*
          ) ;let
         ) ;
-        ;; Linked: string path — 需要读文件并 base64 编码
+        ;; Linked: string path — 读取文件并 base64 编码
         ((string? name)
-         ;; TODO: 需要加载 (liii base64) 后支持链接图片的 base64 编码
-         #f
+         (let* ((path-str (cork->utf8 name))
+                (suffix (url-suffix path-str))
+                (mime (chat-tab-suffix->mime suffix))
+               ) ;
+           (if (not mime)
+             #f
+             (let ((raw-bytes (chat-tab-read-binary-file (string->url path-str))))
+               (if (zero? (bytevector-length raw-bytes))
+                 #f
+                 (cons mime (utf8->string (bytevector-base64-encode raw-bytes)))
+               ) ;if
+             ) ;let
+           ) ;if
+         ) ;let*
         ) ;
         (else #f)
       ) ;cond
@@ -361,11 +395,12 @@
 (define (chat-tab-build-context-input input session-id model thinking search)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
-  (let* ((content (chat-tab-tree->plain-text input))
+  (let* ((stree-input (if (tree? input) (tree->stree input) input))
+         (images (chat-tab-collect-images stree-input '()))
+         (stripped (chat-tab-stree-strip-images stree-input))
+         (content (serialize-latex (texmacs->latex stripped '())))
          (obj (string->njson "{}"))
          (params (string->njson "{}"))
-         (stree-input (if (tree? input) (tree->stree input) input))
-         (images (chat-tab-collect-images stree-input '()))
         ) ;
     (njson-set! obj "sessionId" session-id)
     (njson-set! params "model" model)
