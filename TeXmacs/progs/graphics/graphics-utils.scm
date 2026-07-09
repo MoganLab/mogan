@@ -383,7 +383,7 @@
           ((== val (graphics-attribute-default var)) (graphics-remove-property var))
           (p (path-insert-with p var val))
     ) ;cond
-    (when (not (tree? val)) (graphics-sync-type-config var val))
+    (unless (tree? val) (graphics-sync-type-config var val))
   ) ;with
 ) ;tm-define
 
@@ -420,11 +420,11 @@
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-;; Per-type property configuration (gr-props-<type>)
+;; per type property configuration (gr-props-<type>)
 ;;
-;; 为每种图形类型各存一份独立的属性配置，随文档持久化于 <graphics> 外层
-;; with 变量 gr-props-<type>（成对 属性名 值 的 tuple，仅存相关且非默认项）。
-;; 改属性时实时写入当前类型存储；切换类型时把目标存储恢复到全局 gr-*。
+;; 为每种图形类型（type）各存一份独立的属性配置，随文档持久化于 <graphics> 外层
+;; with 变量 gr-props-<type>（成对 "属性名" "值" 的 tuple，仅存相关且非默认项）
+;; 改属性时实时写入当前 type 存储；切换 type 时把目标存储恢复到全局 gr-*
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; per-type 配置对应的 <graphics> with 变量名
@@ -432,7 +432,7 @@
   (string-append "gr-props-" (symbol->string tag))
 ) ;tm-define
 
-;; 单条 gr-* 写入时，实时并入当前绘制类型的配置
+;; 单条 gr-* 写入时，实时并入当前 type 的配置
 ;; 排除 gr-mode 与 gr-props-* 自身（避免递归）
 (tm-define (graphics-sync-type-config var val)
   (let* ((m (graphics-mode))
@@ -452,7 +452,7 @@
   ) ;let*
 ) ;tm-define
 
-;; 读取当前类型的配置（属性名 -> 值），未存则空表
+;; 读取当前 type 的配置（属性名 -> 值），未存则空表
 (tm-define (graphics-get-type-config tag)
   (let* ((tab (make-ahash-table))
          (raw (graphics-get-property (graphics-props-var tag))))
@@ -482,7 +482,7 @@
   ) ;with
 ) ;tm-define
 
-;; 把该类型的配置回填到全局 gr-*
+;; 把该 type 的配置回填到全局 gr-*
 (tm-define (graphics-restore-type-config tag)
   (let* ((attrs (graphics-mode-attributes `(edit ,tag)))
          (tab (graphics-get-type-config tag))
