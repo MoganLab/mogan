@@ -292,8 +292,10 @@
               (set-car! e2 #f)
             ) ;begin
           ) ;if
-          (if (and o (not (in? (tree-label o) gr-tags-all)))
-            ;; Custom markup
+          (if (and o (or (not (in? (tree-label o) gr-tags-all))
+                         (tree-in? o '(circle))))
+            ;; circle（源 2 点 vs 渲染展开 carc 3 点，索引错位）
+            ;; 也需要按源对象重算控制点序号，才能与椭圆操作逻辑对齐
             (set-car! e2
               (rcons p (if x (object-closest-point-pos (tree->stree o) (f2s x) (f2s y)) 0))
             ) ;set-car!
