@@ -1119,6 +1119,9 @@
     (begin
       (graphics-group-start)
       (graphics-set-property "gr-mode" `(tuple ,@(map symbol->string val)))
+      (when (func? val 'edit 1)
+        (graphics-restore-type-config (cadr val))
+      ) ;when
       (graphics-enter-mode (graphics-mode) val)
     ) ;begin
   ) ;if
