@@ -10,6 +10,9 @@ on:
       - "lolly/**"
       - "moebius/**"
       - "xmake.lua"
+      - 'xmake/options.lua'
+      - 'xmake/requires.lua'
+      - 'xmake/targets/**'
       - "xmake/packages.lua"
       - "xmake/packages/**"
       - ".github/workflows/ci-debian13.yml"
