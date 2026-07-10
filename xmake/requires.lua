@@ -29,9 +29,11 @@ else
     add_requires("libcurl", {system=false})
 end
 
-add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
-add_requires("freetype "..FREETYPE_VERSION, {system=false, configs={png=true}})
-add_requireconfs("liii-pdfhummus.freetype", {version = FREETYPE_VERSION, system = false, configs={png=true}, override=true})
+if has_config("pdfhummus") then
+    add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
+    add_requires("freetype "..FREETYPE_VERSION, {system=false, configs={png=true}})
+    add_requireconfs("liii-pdfhummus.freetype", {version = FREETYPE_VERSION, system = false, configs={png=true}, override=true})
+end
 
 add_requires("argh v1.3.2")
 
