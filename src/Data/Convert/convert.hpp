@@ -62,7 +62,7 @@ tree   verbatim_document_to_tree (string s, bool w= false, string e= "default");
 bool   is_verbatim (tree t);
 
 /*** UTF-8 raw (plugin I/O) ***/
-string tree_to_utf8raw (tree t, bool wrap= false);
-tree   utf8raw_to_tree (string s, bool wrap= false);
+string tree_to_utf8raw (tree t);
+tree   utf8raw_to_tree (string s);
 
 #endif // defined CONVERT_H

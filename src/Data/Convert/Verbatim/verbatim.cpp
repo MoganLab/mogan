@@ -272,8 +272,8 @@ tree_to_verbatim (tree t, bool wrap, string enc) {
 }
 
 string
-tree_to_utf8raw (tree t, bool wrap) {
-  string buf= as_verbatim (t, wrap);
+tree_to_utf8raw (tree t) {
+  string buf= as_verbatim (t, false);
 #ifdef OS_WIN
   return unix_to_dos (buf);
 #else
@@ -360,25 +360,8 @@ mac_to_unix (string s) {
 }
 
 tree
-utf8raw_to_tree (string s, bool wrap) {
+utf8raw_to_tree (string s) {
   s= mac_to_unix (dos_to_unix (s));
-  if (wrap) {
-    string r;
-    int    i, n= N (s);
-    for (i= 0; i < n;) {
-      if (s[i] == '\n' || s[i] == ' ' || s[i] == '\t') {
-        int lf= 0;
-        while (i < n && (s[i] == '\n' || s[i] == ' ' || s[i] == '\t')) {
-          if (s[i] == '\n') lf++;
-          i++;
-        }
-        if (lf <= 1) r << " ";
-        else r << "\n";
-      }
-      else r << s[i++];
-    }
-    s= r;
-  }
   return verbatim_raw_to_tree (s);
 }
 

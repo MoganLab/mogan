@@ -260,7 +260,7 @@ texmacs_input_rep::flush (bool force) {
 void
 texmacs_input_rep::verbatim_flush (bool force) {
   if (force || ends (buf, "\n")) {
-    if (!ignore_verb) write (tree_utf8_to_herk (utf8raw_to_tree (buf, false)));
+    if (!ignore_verb) write (tree_utf8_to_herk (utf8raw_to_tree (buf)));
     else if (DEBUG_IO) debug_io << "ignore verbatim (aborted input)" << LF;
     buf= "";
   }
@@ -270,7 +270,7 @@ void
 texmacs_input_rep::utf8_flush (bool force) {
   if (force || ends (buf, "\n")) {
     if (!ignore_verb) {
-      write (tree_utf8_to_herk (utf8raw_to_tree (buf, false)));
+      write (tree_utf8_to_herk (utf8raw_to_tree (buf)));
     }
     else if (DEBUG_IO) debug_io << "ignore verbatim (aborted input)" << LF;
     buf= "";

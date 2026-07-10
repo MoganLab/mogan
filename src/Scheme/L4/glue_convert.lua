@@ -135,8 +135,7 @@ function main()
                 cpp_name = "tree_to_utf8raw",
                 ret_type = "string",
                 arg_list = {
-                    "tree",
-                    "bool"
+                    "tree"
                 }
             },
             {
@@ -154,8 +153,7 @@ function main()
                 cpp_name = "utf8raw_to_tree",
                 ret_type = "tree",
                 arg_list = {
-                    "string",
-                    "bool"
+                    "string"
                 }
             },
             {
