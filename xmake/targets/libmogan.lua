@@ -84,7 +84,7 @@ target("libmogan") do
     add_packages("goldfish")
     add_packages("liii-tbox")
     add_packages("cpr")
-    add_packages("argh")
+    add_packages("argh", {public = true})
     if not is_plat("macosx") then
         add_packages("libiconv")
     end

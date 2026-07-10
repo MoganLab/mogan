@@ -23,7 +23,7 @@ package("goldfish")
 
     on_load(function (package)
         package:addenv("PATH", "bin")
-        package:add("deps", "argh")
+        package:add("deps", "argh v1.3.2")
     end)
 
     on_install("bsd", "cross", "cygwin", "linux", "macosx", "mingw", "msys", "wasm", "windows", function (package)

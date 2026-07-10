@@ -66,8 +66,7 @@ option_end()
 local MIMALLOC_VERSION = "2.1.2"
 local JEMALLOC_VERSION = "5.3.0"
 
-tbox_configs = {hash=true, ["force-utf8"]=true, charset=true}
-add_requires("liii-tbox", {system=false, configs=tbox_configs})
+add_requires("liii-tbox", {system=false})
 if has_config("enable_tests") or is_mode("releasedbg") then
     add_requires("liii-doctest", {system=false})
     add_requires("nanobench", {system=false})
