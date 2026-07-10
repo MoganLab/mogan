@@ -208,7 +208,7 @@ DialogShell {
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom
-                width: 600 * Theme.scaleFactor
+                width: 500 * Theme.scaleFactor
                 spacing: 8 * Theme.scaleFactor
 
                 EnumCombo {
@@ -221,8 +221,9 @@ DialogShell {
                 PreviewPane {
                     width: parent.width
                     imageSource: root.previewUrl
-                    // 高度由 PreviewPane 据图片宽高比自算（implicitHeight = width/aspect）。
-                    height: implicitHeight
+                    // 固定高度：previewCol 高 - 样本下拉高(44×sf) - spacing(8×sf)。
+                    // 预览内容超高时 PreviewPane 内部 Flickable 滚动，不撑破布局。
+                    height: parent.height - 44 * Theme.scaleFactor - 8 * Theme.scaleFactor
                 }
             }
 
