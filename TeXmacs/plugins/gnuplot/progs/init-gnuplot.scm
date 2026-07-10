@@ -20,7 +20,7 @@
     (lazy-format (data gnuplot) gnuplot)
 
     (define (gnuplot-serialize lan t)
-      (let* ((u (pre-serialize lan t)) (s (texmacs->code (stree->tree u) "utf-8")))
+      (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
         (string-append s "\n<EOF>\n")
       ) ;let*
     ) ;define

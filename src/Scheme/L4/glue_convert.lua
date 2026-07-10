@@ -131,6 +131,15 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-tree->utf8raw",
+                cpp_name = "tree_to_utf8raw",
+                ret_type = "string",
+                arg_list = {
+                    "tree",
+                    "bool"
+                }
+            },
+            {
                 scm_name = "cpp-verbatim-snippet->texmacs",
                 cpp_name = "verbatim_to_tree",
                 ret_type = "tree",
@@ -138,6 +147,15 @@ function main()
                     "string",
                     "bool",
                     "string"
+                }
+            },
+            {
+                scm_name = "cpp-utf8raw->tree",
+                cpp_name = "utf8raw_to_tree",
+                ret_type = "tree",
+                arg_list = {
+                    "string",
+                    "bool"
                 }
             },
             {

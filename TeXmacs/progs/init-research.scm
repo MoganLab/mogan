@@ -129,7 +129,7 @@
 (lazy-define (utils library cursor) notify-cursor-moved)
 (lazy-define (utils edit variants) make-inline-tag-list make-wrapped-tag-list)
 (lazy-define (utils cas cas-out) cas->stree)
-(lazy-define (utils plugins plugin-cmd) pre-serialize verbatim-serialize)
+(lazy-define (utils plugins plugin-cmd) pre-serialize utf8raw-serialize)
 (lazy-define (utils test test-convert)
   delayed-quit
   build-manual
@@ -534,7 +534,7 @@
   export-selection-as-graphics
   clipboard-copy-image
 ) ;lazy-define
-(lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim)
+(lazy-define (convert rewrite init-rewrite) texmacs->code texmacs->verbatim texmacs->utf8raw utf8raw->texmacs)
 (lazy-define (convert html tmhtml) ext-tmhtml-eqnarray*)
 (define-secure-symbols ext-tmhtml-eqnarray*)
 (lazy-define (convert html tmhtml-expand) tmhtml-env-patch)

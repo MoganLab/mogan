@@ -78,6 +78,21 @@
 (converter code-snippet texmacs-tree (:function code-snippet->texmacs))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; UTF-8 raw (plugin I/O)
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(tm-define (texmacs->utf8raw t)
+  (if (tree? t)
+    (cpp-tree->utf8raw t #f)
+    (texmacs->utf8raw (tm->tree t))
+  ) ;if
+) ;tm-define
+
+(tm-define (utf8raw->texmacs s)
+  (cpp-utf8raw->tree s #f)
+) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Verbatim
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 

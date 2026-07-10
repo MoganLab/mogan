@@ -19,6 +19,7 @@
 #include "observers.hpp"
 #include "preferences.hpp"
 #include "tree_observer.hpp"
+#include "tree_traverse.hpp"
 
 #include <moebius/data/scheme.hpp>
 
@@ -355,7 +356,8 @@ edit_interface_rep::session_complete_command (tree tt) {
   (void) eval ("(use-modules (utils plugins plugin-cmd))");
   string lan= get_env_string (PROG_LANGUAGE);
   string ses= get_env_string (PROG_SESSION);
-  string s  = as_string (call ("verbatim-serialize", lan, tree_to_stree (t)));
+  tree   u  = tree_herk_to_utf8 (t);
+  string s  = as_string (call ("utf8raw-serialize", lan, tree_to_stree (u)));
   s         = s (0, N (s) - 1);
 
   int pos= search_forwards (cursor_symbol, s);

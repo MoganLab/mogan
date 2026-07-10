@@ -271,6 +271,16 @@ tree_to_verbatim (tree t, bool wrap, string enc) {
 #endif
 }
 
+string
+tree_to_utf8raw (tree t, bool wrap) {
+  string buf= as_verbatim (t, wrap);
+#ifdef OS_WIN
+  return unix_to_dos (buf);
+#else
+  return buf;
+#endif
+}
+
 /******************************************************************************
  * Verbatim to TeXmacs
  ******************************************************************************/
@@ -302,9 +312,8 @@ encode (string s, string enc) {
   else return tm_encode (s);
 }
 
-tree
-verbatim_to_tree (string s, string enc) {
-  s= encode (s, enc);
+static tree
+verbatim_raw_to_tree (string s) {
   int i, j;
   int s_N= N (s);
   for (i= 0; i < s_N; i++)
@@ -319,6 +328,12 @@ verbatim_to_tree (string s, string enc) {
       return t;
     }
   return un_special (s);
+}
+
+tree
+verbatim_to_tree (string s, string enc) {
+  s= encode (s, enc);
+  return verbatim_raw_to_tree (s);
 }
 
 string
@@ -342,6 +357,29 @@ mac_to_unix (string s) {
     if (s[i] == '\r') r << "\n";
     else r << s[i];
   return r;
+}
+
+tree
+utf8raw_to_tree (string s, bool wrap) {
+  s= mac_to_unix (dos_to_unix (s));
+  if (wrap) {
+    string r;
+    int    i, n= N (s);
+    for (i= 0; i < n;) {
+      if (s[i] == '\n' || s[i] == ' ' || s[i] == '\t') {
+        int lf= 0;
+        while (i < n && (s[i] == '\n' || s[i] == ' ' || s[i] == '\t')) {
+          if (s[i] == '\n') lf++;
+          i++;
+        }
+        if (lf <= 1) r << " ";
+        else r << "\n";
+      }
+      else r << s[i++];
+    }
+    s= r;
+  }
+  return verbatim_raw_to_tree (s);
 }
 
 tree

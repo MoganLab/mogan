@@ -14,7 +14,7 @@
 (use-modules (binary maxima))
 
 (define (maxima-serialize lan t)
-  (with s (string-drop-right (verbatim-serialize lan t) 1)
+  (with s (string-drop-right (utf8raw-serialize lan t) 1)
     (cond ((== s "") "0;\n")
           ((in? (string-ref s (- (string-length s) 1)) '(#\; #\$))
            (string-append s "\n"))

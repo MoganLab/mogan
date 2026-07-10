@@ -16,7 +16,7 @@
 (lazy-format (data r7rs) r7rs)
 
 (define (goldfish-serialize lan t)
-  (let* ((u (pre-serialize lan t)) (s (texmacs->code (stree->tree u) "SourceCode")))
+  (let* ((u (pre-serialize lan t)) (s (texmacs->utf8raw (stree->tree u))))
     (string-append s "\n<EOF>\n")
   ) ;let*
 ) ;define

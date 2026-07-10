@@ -26,6 +26,7 @@
 #include "socket_notifier.hpp"
 #include "tm_debug.hpp"
 #include "tree_helper.hpp"
+#include "tree_traverse.hpp"
 
 using namespace moebius;
 
@@ -258,7 +259,8 @@ connection_write (string name, string session, string s) {
 void
 connection_write (string name, string session, tree t) {
   // cout << "Write " << name << ", " << session << ", " << t << "\n";
-  string s= as_string (call ("plugin-serialize", name, tree_to_stree (t)));
+  tree   u= tree_herk_to_utf8 (t);
+  string s= as_string (call ("plugin-serialize", name, tree_to_stree (u)));
   connection_write (name, session, s);
 }
 

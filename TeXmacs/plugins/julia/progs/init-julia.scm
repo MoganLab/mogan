@@ -15,7 +15,7 @@
 
 (define (julia-serialize lan t)
   (let* ((u (pre-serialize lan t))
-         (s (texmacs->code (stree->tree u) "SourceCode")))
+         (s (texmacs->utf8raw (stree->tree u))))
     (string-append s "\n<EOF>\n")))
 
 (define (julia-entry)
