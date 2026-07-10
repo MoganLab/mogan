@@ -412,6 +412,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-rasterize-widget",
+                cpp_name = "cpp_rasterize_widget",
+                ret_type = "string",
+                arg_list = {
+                    "widget"
+                }
+            },
+            {
                 scm_name = "widget-texmacs-input",
                 cpp_name = "texmacs_input_widget",
                 ret_type = "widget",

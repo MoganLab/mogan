@@ -1,15 +1,12 @@
 // PreviewPane.qml — 预览图区壳。显示 fontBridge 光栅化的样本 PNG（data URL）。
 //
-// 宽高比跟随图片：容器宽度由父给定，高度 = 宽度 / 图片宽高比，保证展示区与图片
-// 同比例、不 letterbox 不变形。图片加载后据 sourceSize 算宽高比；未加载时用
-// defaultAspect（默认 4:1，样本是多行长文本）占位。
+// 固定高度（外部给定），内部 Flickable 可滚动：样本类型切换（标准→中日韩）时
+// 内容变高，不撑破布局，而是纵向滚动浏览。Image 按逻辑尺寸（物理像素 /
+// Theme.scaleFactor，已含 retina factor）原样显示，不二次缩放 → 清晰。
 //
 // API：
-//   imageSource   : string —— "data:image/png;base64,..."。
-//   defaultAspect : real   —— 未加载时的宽/高比，默认 4.0（宽:高）。
-//   maxWidth      : real   —— 容器最大宽度（限图片很扁时不撑爆），默认绑父宽。
-//
-// 光栅化产物已含 retina factor，Image 按逻辑尺寸等比缩放。
+//   imageSource : string —— "data:image/png;base64,..."。
+//   容器宽高由父给定（高度固定，宽度铺满）。
 
 import QtQuick
 
@@ -17,16 +14,8 @@ Item {
     id: root
 
     property string imageSource: ""
-    property real defaultAspect: 4.0
-    property real maxWidth: 0  // 0 = 不限
-    // 当前宽高比（宽/高）。图片加载后据 sourceSize 更新。
-    property real aspect: defaultAspect
-
-    // 容器宽度 = 父宽（或受 maxWidth 限），高度据宽高比。
-    implicitHeight: width / aspect
 
     Rectangle {
-        id: bg
         anchors.fill: parent
         color: Theme.fieldBg
         radius: 8 * Theme.scaleFactor
@@ -34,18 +23,31 @@ Item {
         border.color: Theme.borderClr
         clip: true
 
-        Image {
-            id: img
+        Flickable {
+            id: flick
             anchors.fill: parent
             anchors.margins: 1 * Theme.scaleFactor
-            fillMode: Image.PreserveAspectFit
-            source: root.imageSource
-            asynchronous: false
-            cache: false
-            onStatusChanged: {
-                if (status === Image.Ready && sourceSize.width > 0) {
-                    root.aspect = sourceSize.width / sourceSize.height
-                }
+            contentWidth: img.width
+            contentHeight: img.height
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            // 仅纵向滚动（样本是宽接近容器、高度可变的长文本）。
+            contentX: 0
+
+            Image {
+                id: img
+                // 光栅化产物物理像素 = 逻辑 × retina_factor（qt_widget_rasterize 已乘）。
+                // 这里按逻辑尺寸显示（物理像素 / scaleFactor），与屏幕设备像素 1:1，
+                // 无有损缩放。宽度铺满容器，高度按图片原比例（可能超出容器 → 滚动）。
+                width: root.width - 2 * Theme.scaleFactor
+                sourceSize.width: width
+                fillMode: Image.Pad
+                horizontalAlignment: Image.AlignLeft
+                verticalAlignment: Image.AlignTop
+                source: root.imageSource
+                asynchronous: false
+                cache: false
+                smooth: true
             }
         }
     }

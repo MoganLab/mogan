@@ -1102,18 +1102,22 @@
   (selector-set (font-selector-lookup-specs key) var val)
 ) ;tm-define
 
-;; 联动 setter：set 后返回需刷新的列表依赖（styles/families），省 QML 二次往返。
-;; 预览是实时 texmacs widget（方案 C）：selector-set 经 selector-notify 写回后，
-;; 预览 widget 自动重绘，无需此处返回 data URL。返回 assoc list，bridge 转 QVariantMap。
+;; 联动 setter：set 后一并返回需刷新的依赖 + 预览（光栅化 data URL），省 QML 二次
+;; 往返。返回 assoc list，bridge 转 QVariantMap。family 改动刷新 style 列表。
 (tm-define (font-selector-set-family key family)
   (font-selector-set key :family family)
-  `((styles unquote (font-selector-styles key family)))
+  `((styles unquote (font-selector-styles key family))
+    (preview unquote (font-selector-preview key)))
 ) ;tm-define
 
 (tm-define (font-selector-set-style key style)
   (font-selector-set key :style style)
+  `((preview unquote (font-selector-preview key)))
 ) ;tm-define
-(tm-define (font-selector-set-size key size) (font-selector-set key :size size))
+(tm-define (font-selector-set-size key size)
+  (font-selector-set key :size size)
+  `((preview unquote (font-selector-preview key)))
+) ;tm-define
 
 ;; 9 项 Filter 的可选项（原 tm-widget 内联于 font-properties-selector，集中复用）。
 ;; var 用 string（无冒号），facade 内部 string->keyword 转；bridge/QML 全程普通
@@ -1201,7 +1205,26 @@
 ;; var 为 string（无冒号），内部转 keyword。返回 {families, preview}。
 (tm-define (font-selector-set-filter key var val)
   (selector-set (font-selector-lookup-specs key) (string->keyword var) val)
-  `((families unquote (font-selector-families key)))
+  `((families unquote (font-selector-families key))
+    (preview unquote (font-selector-preview key)))
+) ;tm-define
+
+;; 预览光栅化：selector-font-demo-text + widget-texmacs-output + cpp-rasterize-widget，
+;; 同步返回 data URL。bg-color/magnification 包裹照搬 font-sample-text tm-widget。
+(tm-define (font-selector-preview key)
+  (with specs
+    (font-selector-lookup-specs key)
+    (cpp-rasterize-widget (widget-texmacs-output `(with ,"bg-color"
+                                                    ,(font-sample-bg-color)
+                                                    ,"color"
+                                                    ,(font-sample-fg-color)
+                                                    ,"magnification"
+                                                    ,"1.6"
+                                                    ,(selector-font-demo-text specs))
+                            '(style "generic")
+                          ) ;widget-texmacs-output
+    ) ;cpp-rasterize-widget
+  ) ;with
 ) ;tm-define
 
 ;; 样本类型。
@@ -1228,8 +1251,11 @@
 
 (tm-define (font-selector-sample-kinds key) font-sample-kinds)
 (tm-define (font-selector-current-sample-kind key) sample-kind)
-;; 设样本类型（样本内容随类型变，预览 live widget 自动重绘）。
-(tm-define (font-selector-set-sample-kind key kind) (set-font-sample-kind kind))
+;; 设样本类型，返回 {preview}（样本内容随类型变）。
+(tm-define (font-selector-set-sample-kind key kind)
+  (set-font-sample-kind kind)
+  `((preview unquote (font-selector-preview key)))
+) ;tm-define
 
 ;; Advanced 定制（Effects / Variants / Mathematics）。每项返回
 ;; (group label which (options...) value)，QML 据此渲染 EnumCombo。

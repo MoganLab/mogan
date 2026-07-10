@@ -76,7 +76,8 @@ FontSelectorBridge::evalString (const string& proc) {
 
 QString
 FontSelectorBridge::evalString1 (const string& proc, const string& arg) {
-  // arg 是 cork mogan string（如 ":family" 字面），直接 scm_quote，不经 QString 往返。
+  // arg 是 cork mogan string（如 ":family" 字面），直接 scm_quote，不经 QString
+  // 往返。
   string expr= "(" * proc * " " * key_token (m_specsKey) * " " *
                moebius::data::scm_quote (arg) * ")";
   return tmscm_to_qstring (eval_scheme (expr));
@@ -114,8 +115,9 @@ FontSelectorBridge::currentSize () {
 
 /**
  * @brief 联动 setter 通用实现：调 `(proc key 'arg')` 得 assoc list
- *        ((k . v) ...)，转 QVariantMap。arg 是 cork mogan string，直接 scm_quote
- *        拼 scheme（确认式 utf8→cork 已在 from_qstring 完成，不再 to_qstring 启发式）。
+ *        ((k . v) ...)，转 QVariantMap。arg 是 cork mogan string，直接
+ * scm_quote 拼 scheme（确认式 utf8→cork 已在 from_qstring 完成，不再 to_qstring
+ * 启发式）。
  */
 static QVariantMap
 eval_assoc_result (const string& proc, int key, const string& arg) {

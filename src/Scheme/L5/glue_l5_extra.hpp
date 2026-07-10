@@ -33,6 +33,7 @@
 #ifdef QTTEXMACS
 #include "qt_chat_controller.hpp"
 #include "qt_floating_search_bar.hpp"
+#include "qt_widget_rasterize.hpp"
 #endif
 #include "tm_debug.hpp"
 #include "tree_observer.hpp"
