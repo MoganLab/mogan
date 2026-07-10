@@ -69,11 +69,7 @@ edit_interface_rep::draw_env (renderer ren) {
     if (!is_nil (foc_rects)) {
       color col= get_env_color (FOCUS_COLOR);
       ren->set_pencil (pencil (col, ren->pixel));
-#ifdef QTTEXMACS
       ren->draw_selection (foc_rects);
-#else
-      ren->draw_rectangles (foc_rects);
-#endif
     }
     if (!is_nil (sem_rects)) {
       if (sem_correct) {
@@ -170,21 +166,13 @@ edit_interface_rep::draw_selection (renderer ren, rectangle r) {
     }
     color col= get_env_color (MATCH_COLOR);
     ren->set_pencil (pencil (col, ren->pixel));
-#ifdef QTTEXMACS
     ren->draw_selection (alt_selection_rects[i] & visible);
-#else
-    ren->draw_rectangles (alt_selection_rects[i] & visible);
-#endif
   }
   if (!is_nil (selection_rects)) {
     color col= get_env_color (SELECTION_COLOR);
     if (table_selection) col= get_env_color (TABLE_SELECTION_COLOR);
     ren->set_pencil (pencil (col, ren->pixel));
-#ifdef QTTEXMACS
     ren->draw_selection (selection_rects & visible);
-#else
-    ren->draw_rectangles (selection_rects & visible);
-#endif
   }
 
   draw_image_resize_handles (ren);
