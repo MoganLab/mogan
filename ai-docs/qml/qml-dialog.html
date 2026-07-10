@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QML 组件 HTML 模拟 · 左侧切换</title>
+  <style>
+    :root {
+      --bg: #e8ebe9;
+      --panel: #f4f5f1;
+      --card: #ffffff;
+      --ink: #20272b;
+      --muted: #60727e;
+      --line: #cfd6d6;
+      --accent: #0b7a75;
+      --accent-ink: #e8fffc;
+      --shadow: 0 16px 40px rgba(36, 49, 54, 0.16);
+      --radius: 16px;
+      --mono: "JetBrains Mono", "Consolas", monospace;
+      --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 12%, rgba(11, 122, 117, 0.18), transparent 38%),
+        radial-gradient(circle at 86% 18%, rgba(212, 138, 88, 0.18), transparent 34%),
+        linear-gradient(160deg, #e5ebe8 0%, #d8e1df 100%);
+      padding: 20px;
+    }
+
+    .app {
+      max-width: 1280px;
+      min-height: calc(100vh - 40px);
+      margin: 0 auto;
+      background: rgba(244, 245, 241, 0.78);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      border-radius: 24px;
+      backdrop-filter: blur(8px);
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      overflow: hidden;
+    }
+
+    .sidebar {
+      background: linear-gradient(180deg, #143138 0%, #1f4b52 100%);
+      color: #ecfbfa;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border-right: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .brand {
+      padding: 8px 10px 18px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+      margin-bottom: 6px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.6px;
+    }
+
+    .brand p {
+      margin-top: 8px;
+      color: rgba(236, 251, 250, 0.74);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .nav-btn {
+      width: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 12px;
+      text-align: left;
+      background: rgba(255, 255, 255, 0.05);
+      color: #f1fffe;
+      padding: 13px 14px;
+      cursor: pointer;
+      transition: 0.18s ease;
+      font-family: inherit;
+      font-size: 14px;
+      letter-spacing: 0.15px;
+    }
+
+    .nav-btn:hover {
+      transform: translateX(2px);
+      background: rgba(255, 255, 255, 0.11);
+      border-color: rgba(255, 255, 255, 0.35);
+    }
+
+    .nav-btn.active {
+      background: #d1f8f5;
+      color: #163336;
+      border-color: #d1f8f5;
+      font-weight: 700;
+    }
+
+    .sidebar-foot {
+      margin-top: auto;
+      font-size: 12px;
+      color: rgba(236, 251, 250, 0.74);
+      padding: 0 10px;
+      line-height: 1.45;
+    }
+
+    .workspace {
+      padding: 24px;
+      overflow: auto;
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .meta h2 {
+      font-size: 22px;
+      letter-spacing: 0.2px;
+    }
+
+    .meta code {
+      font-family: var(--mono);
+      font-size: 12px;
+      color: #19474c;
+      background: #daf2f0;
+      border: 1px solid #b8ddda;
+      border-radius: 999px;
+      padding: 6px 12px;
+    }
+
+    .panel {
+      display: none;
+      animation: fadeUp 0.26s ease;
+    }
+
+    .panel.active {
+      display: block;
+    }
+
+    @keyframes fadeUp {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .cards {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+    }
+
+    .dialog {
+      flex: 1;
+      min-width: 320px;
+      max-width: 420px;
+      border-radius: var(--radius);
+      padding: 28px 24px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--line);
+      background: var(--card);
+    }
+
+    .dialog h3 {
+      text-align: center;
+      font-size: 18px;
+      margin-bottom: 24px;
+      letter-spacing: 0.2px;
+    }
+
+    .btn-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      min-width: 88px;
+      border: 1px solid transparent;
+      background: #e6ebec;
+      border-radius: 999px;
+      height: 38px;
+      padding: 0 22px;
+      font-family: inherit;
+      font-size: 14px;
+      cursor: pointer;
+      transition: 0.16s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(0.97);
+    }
+
+    .btn.primary {
+      background: #1d2629;
+      color: #ffffff;
+      font-weight: 700;
+    }
+
+    .dialog.dark {
+      background: #2d3540;
+      border-color: #495361;
+      color: #e7ebf0;
+      box-shadow: 0 16px 40px rgba(17, 22, 27, 0.35);
+    }
+
+    .dialog.dark .btn {
+      background: #444f5d;
+      color: #e7ebf0;
+    }
+
+    .dialog.dark .btn.primary {
+      background: #37b4ad;
+      color: #08302f;
+      border-color: #37b4ad;
+    }
+
+    .legend {
+      margin-top: 14px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+      background: #f8fbfb;
+      border: 1px solid #d7e3e3;
+      border-radius: 12px;
+      padding: 10px 12px;
+    }
+
+    .legend code {
+      font-family: var(--mono);
+      color: #22444a;
+      background: #e4f2f1;
+      border-radius: 999px;
+      padding: 2px 10px;
+      margin: 0 4px;
+    }
+
+    .form-shell {
+      width: min(540px, 100%);
+      background: #ffffff;
+      border: 1px solid #d6dfdf;
+      border-radius: var(--radius);
+      padding: 22px;
+      box-shadow: var(--shadow);
+    }
+
+    .field {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+
+    .field label {
+      color: #355059;
+      font-weight: 700;
+      font-size: 14px;
+    }
+
+    .field select {
+      border: 1px solid #cad7d7;
+      border-radius: 10px;
+      height: 38px;
+      padding: 0 10px;
+      background: #f9fcfc;
+      color: #25353a;
+      font-family: inherit;
+    }
+
+    .font-shell {
+      width: min(980px, 100%);
+      min-height: 580px;
+      background: #ffffff;
+      border: 1px solid #d3dcdd;
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow);
+      display: grid;
+      grid-template-columns: 620px 300px;
+      grid-template-rows: auto 1fr;
+      gap: 14px 16px;
+      justify-content: space-between;
+    }
+
+    .font-top {
+      min-height: 0;
+    }
+
+    .list-columns {
+      display: grid;
+      grid-template-columns: 1.6fr 1.2fr 0.8fr;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .list-box {
+      border: 1px solid #cfdbdb;
+      border-radius: 12px;
+      background: #fbfdfd;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .list-box h4 {
+      color: #2f4e54;
+      font-size: 13px;
+      margin-bottom: 8px;
+    }
+
+    .list-box ul {
+      list-style: none;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding-right: 2px;
+    }
+
+    .list-box li {
+      border-radius: 8px;
+      border: 1px solid transparent;
+      padding: 6px 8px;
+      font-size: 13px;
+      color: #2a3b3f;
+      cursor: pointer;
+    }
+
+    .list-box li.active {
+      border-color: #b3d9d6;
+      background: #dff3f1;
+      color: #194f53;
+      font-weight: 700;
+    }
+
+    .tabs-box {
+      border: 1px solid #ccd7d8;
+      border-radius: 12px;
+      background: #f9fcfc;
+      padding: 8px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 6px;
+      padding: 0;
+      background: transparent;
+      border: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .tab {
+      border: 1px solid #c7d3d4;
+      border-radius: 9px;
+      background: #ffffff;
+      color: #2e4a51;
+      font-size: 13px;
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .tab:hover {
+      color: #244d53;
+      border-color: #a9c8cb;
+      background: #f6fbfb;
+    }
+
+    .tab.active {
+      background: #0b7a75;
+      border-color: #0b7a75;
+      color: #ffffff;
+      font-weight: 700;
+      box-shadow: 0 1px 3px rgba(11, 122, 117, 0.28);
+    }
+
+    .tab-pane {
+      display: none;
+      overflow: auto;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+
+    .option-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .option-row {
+      display: grid;
+      grid-template-columns: 1fr 1.3fr;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sample-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      align-items: center;
+      gap: 8px;
+      max-width: 220px;
+      font-size: 12px;
+      color: #38565f;
+    }
+
+    .option-row span {
+      font-size: 12px;
+      color: #38565f;
+      white-space: nowrap;
+    }
+
+    .mini,
+    .option-row label,
+    .option-row .label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 12px;
+      color: #38565f;
+    }
+
+    .option-row select,
+    .mini select,
+    .sample-row select {
+      height: 32px;
+      border: 1px solid #c8d6d7;
+      border-radius: 8px;
+      background: #ffffff;
+      font-size: 12px;
+      color: #203137;
+      padding: 0 6px;
+      font-family: inherit;
+    }
+
+    .option-row select:focus,
+    .mini select:focus,
+    .sample-row select:focus {
+      outline: none;
+      border-color: #0b7a75;
+      box-shadow: 0 0 0 2px rgba(11, 122, 117, 0.16);
+    }
+
+    .font-bottom {
+      display: flex;
+      min-height: 0;
+    }
+
+    .preview-wrap {
+      flex: 1;
+      height: 100%;
+      border: 1px solid #cfdadb;
+      border-radius: 12px;
+      background: #fafdfd;
+      padding: 10px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 8px;
+      min-height: 0;
+    }
+
+    .preview-canvas {
+      border-radius: 10px;
+      border: 1px dashed #bfd0d2;
+      background: linear-gradient(135deg, #ffffff 0%, #f2f8f8 100%);
+      padding: 14px;
+      overflow: auto;
+      color: #21393e;
+      line-height: 1.5;
+    }
+
+    .right-actions {
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: space-between;
+    }
+
+    .right-actions .btn {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 0 8px;
+    }
+
+    .right-panel {
+      grid-column: 2;
+      grid-row: 1 / span 2;
+      min-height: 0;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      gap: 8px;
+    }
+
+    @media (max-width: 1080px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+
+      .sidebar {
+        border-right: 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+      }
+
+      .font-shell {
+        min-height: 0;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto;
+      }
+
+      .list-columns {
+        grid-template-columns: repeat(3, minmax(140px, 1fr));
+      }
+
+      .right-panel {
+        grid-column: 1;
+        grid-row: auto;
+      }
+
+      .right-actions {
+        justify-content: flex-end;
+        flex-wrap: wrap;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .workspace {
+        padding: 16px;
+      }
+
+      .list-columns {
+        grid-template-columns: 1fr;
+      }
+
+      .field {
+        grid-template-columns: 1fr;
+      }
+
+      .meta h2 {
+        font-size: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <h1>QML 组件模拟器</h1>
+        <p>左侧切换组件，右侧查看 HTML 还原效果。</p>
+      </div>
+      <button class="nav-btn active" data-target="confirm">ConfirmClose.qml</button>
+      <button class="nav-btn" data-target="form">FormDialog.qml</button>
+      <button class="nav-btn" data-target="font">FontSelector.qml</button>
+      <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
+    </aside>
+
+    <main class="workspace">
+      <div class="meta">
+        <h2 id="view-title">ConfirmClose.qml 模拟</h2>
+        <code id="view-code">dialogMessage + dialogButtons + closeBridge.choose()</code>
+      </div>
+
+      <section class="panel active" id="panel-confirm">
+        <div class="cards">
+          <article class="dialog">
+            <h3>是否保存当前更改？</h3>
+            <div class="btn-row">
+              <button class="btn primary" data-log="ConfirmClose Light: 选择 保存 (index=1)">保存</button>
+              <button class="btn" data-log="ConfirmClose Light: 选择 不保存 (index=2)">不保存</button>
+              <button class="btn" data-log="ConfirmClose Light: 选择 取消 (index=3)">取消</button>
+            </div>
+          </article>
+
+          <article class="dialog dark">
+            <h3>是否保存当前更改？</h3>
+            <div class="btn-row">
+              <button class="btn primary" data-log="ConfirmClose Dark: 选择 保存 (index=1)">保存</button>
+              <button class="btn" data-log="ConfirmClose Dark: 选择 不保存 (index=2)">不保存</button>
+              <button class="btn" data-log="ConfirmClose Dark: 选择 取消 (index=3)">取消</button>
+            </div>
+          </article>
+        </div>
+        <p class="legend">
+          对应 QML: <code>message: dialogMessage</code>
+          <code>buttonLabels: dialogButtons</code>
+          <code>onClicked -> closeBridge.choose(index + 1)</code>
+        </p>
+      </section>
+
+      <section class="panel" id="panel-form">
+        <article class="form-shell">
+          <div class="field">
+            <label for="field-language">语言</label>
+            <select id="field-language">
+              <option>中文</option>
+              <option>English</option>
+              <option>日本語</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="field-theme">主题</label>
+            <select id="field-theme">
+              <option>浅色</option>
+              <option>深色</option>
+              <option>跟随系统</option>
+            </select>
+          </div>
+
+          <div class="field">
+            <label for="field-autosave">自动保存</label>
+            <select id="field-autosave">
+              <option>关闭</option>
+              <option>5 秒</option>
+              <option>30 秒</option>
+            </select>
+          </div>
+
+          <div class="btn-row" style="justify-content: flex-end; margin-top: 8px;">
+            <button class="btn primary" id="form-submit">确定</button>
+            <button class="btn" data-log="FormDialog: choose(-1) 取消">取消</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>fields: formFields</code>
+          <code>values[key] = selectedValue</code>
+          <code>submit -> closeBridge.submit(values)</code>
+        </p>
+      </section>
+
+      <section class="panel" id="panel-font">
+        <article class="font-shell">
+          <div class="font-top">
+            <div class="list-columns">
+              <div class="list-box">
+                <h4>字体</h4>
+                <ul>
+                  <li class="active">Noto Sans CJK SC</li>
+                  <li>Source Han Serif SC</li>
+                  <li>LXGW WenKai</li>
+                  <li>Fira Sans</li>
+                  <li>Merriweather</li>
+                </ul>
+              </div>
+              <div class="list-box">
+                <h4>字重</h4>
+                <ul>
+                  <li>细体</li>
+                  <li class="active">常规</li>
+                  <li>中等</li>
+                  <li>粗体</li>
+                  <li>特粗</li>
+                </ul>
+              </div>
+              <div class="list-box">
+                <h4>字号</h4>
+                <ul>
+                  <li>10</li>
+                  <li>12</li>
+                  <li class="active">14</li>
+                  <li>16</li>
+                  <li>18</li>
+                </ul>
+              </div>
+            </div>
+
+          </div>
+
+          <div class="font-bottom">
+            <div class="preview-wrap">
+              <div class="sample-row">
+                <span>示例</span>
+                <select>
+                  <option>段落</option>
+                  <option>字母</option>
+                  <option>数字</option>
+                </select>
+              </div>
+              <div class="preview-canvas">
+                预览文本: 这是 FontSelector 组件的 PreviewPane 区域。<br>
+                这是一段用于观察字形细节与笔画密度的示例文本。<br>
+                0123456789 / !@#$%^&*() / 甲乙丙丁戊己庚辛壬癸<br><br>
+                你可以在左上区域切换字体/字重/字号，在右侧调节筛选项。
+              </div>
+            </div>
+          </div>
+
+          <div class="right-panel">
+              <div class="tabs-box">
+                <div class="tabs">
+                  <button class="tab active" data-tab="filter">筛选</button>
+                  <button class="tab" data-tab="advanced">高级</button>
+                </div>
+
+                <div class="tab-pane active" id="tab-filter">
+                  <div class="option-list">
+                    <div class="option-row"><span>粗细</span><select><option>任意</option><option>常规</option><option>粗体</option></select></div>
+                    <div class="option-row"><span>宽度</span><select><option>任意</option><option>紧凑</option><option>扩展</option></select></div>
+                    <div class="option-row"><span>倾斜</span><select><option>任意</option><option>直立</option><option>斜体</option></select></div>
+                    <div class="option-row"><span>间距</span><select><option>任意</option><option>等宽</option><option>比例</option></select></div>
+                    <div class="option-row"><span>厂商</span><select><option>任意</option><option>Adobe</option><option>Google</option></select></div>
+                    <div class="option-row"><span>字符集</span><select><option>任意</option><option>中日韩</option><option>拉丁</option></select></div>
+                    <div class="option-row"><span>设备</span><select><option>任意</option><option>屏幕</option><option>打印</option></select></div>
+                    <div class="option-row"><span>系列</span><select><option>任意</option><option>无衬线</option><option>衬线</option></select></div>
+                    <div class="option-row"><span>扩展</span><select><option>任意</option><option>界面</option><option>正文</option></select></div>
+                  </div>
+                </div>
+
+                <div class="tab-pane" id="tab-advanced">
+                  <div class="option-list">
+                    <div class="option-row"><span>字形提示</span><select><option>默认</option><option>关闭</option><option>完整</option></select></div>
+                    <div class="option-row"><span>抗锯齿</span><select><option>子像素</option><option>灰阶</option><option>关闭</option></select></div>
+                    <div class="option-row"><span>字距调整</span><select><option>自动</option><option>开启</option><option>关闭</option></select></div>
+                    <div class="option-row"><span>连字</span><select><option>自动</option><option>开启</option><option>关闭</option></select></div>
+                    <div class="option-row"><span>回退策略</span><select><option>自动</option><option>严格</option><option>积极</option></select></div>
+                    <div class="option-row"><span>渲染</span><select><option>默认</option><option>锐利</option><option>柔和</option></select></div>
+                  </div>
+                </div>
+              </div>
+              <div class="right-actions">
+                <button class="btn" data-log="FontSelector: importFont()">导入</button>
+                <button class="btn" data-log="FontSelector: reset() + refreshAll()">重置</button>
+                <button class="btn primary" data-log="FontSelector: submit()">确定</button>
+                <button class="btn" data-log="FontSelector: cancel()">取消</button>
+              </div>
+            </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>fontBridge.requestPreview()</code>
+          <code>activeTab: 过滤 / 高级</code>
+          <code>setFamily/setStyle/setFilter/setCustomize</code>
+        </p>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    (function() {
+      const navButtons = document.querySelectorAll('.nav-btn');
+      const panels = {
+        confirm: document.getElementById('panel-confirm'),
+        form: document.getElementById('panel-form'),
+        font: document.getElementById('panel-font')
+      };
+
+      const titleMap = {
+        confirm: 'ConfirmClose.qml 模拟',
+        form: 'FormDialog.qml 模拟',
+        font: 'FontSelector.qml 模拟'
+      };
+
+      const codeMap = {
+        confirm: 'dialogMessage + dialogButtons + closeBridge.choose()',
+        form: 'formFields + values 收集 + closeBridge.submit(values)',
+        font: 'fontBridge 联动: family/style/filter/customize/preview'
+      };
+
+      const viewTitle = document.getElementById('view-title');
+      const viewCode = document.getElementById('view-code');
+
+      function log(text) {
+        const now = new Date();
+        const hh = String(now.getHours()).padStart(2, '0');
+        const mm = String(now.getMinutes()).padStart(2, '0');
+        const ss = String(now.getSeconds()).padStart(2, '0');
+        console.log(`[${hh}:${mm}:${ss}] ${text}`);
+      }
+
+      navButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const target = btn.getAttribute('data-target');
+          navButtons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+
+          Object.values(panels).forEach((panel) => panel.classList.remove('active'));
+          panels[target].classList.add('active');
+
+          viewTitle.textContent = titleMap[target];
+          viewCode.textContent = codeMap[target];
+          log(`切换组件 -> ${titleMap[target]}`);
+        });
+      });
+
+      document.querySelectorAll('[data-log]').forEach((el) => {
+        el.addEventListener('click', () => {
+          log(el.getAttribute('data-log'));
+        });
+      });
+
+      document.getElementById('form-submit').addEventListener('click', () => {
+        const values = {
+          language: document.getElementById('field-language').value,
+          theme: document.getElementById('field-theme').value,
+          autosave: document.getElementById('field-autosave').value
+        };
+        log('FormDialog: submit(values) -> ' + JSON.stringify(values));
+      });
+
+      const tabButtons = document.querySelectorAll('.tab');
+      const tabFilter = document.getElementById('tab-filter');
+      const tabAdvanced = document.getElementById('tab-advanced');
+      tabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          tabButtons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.getAttribute('data-tab');
+          tabFilter.classList.toggle('active', tab === 'filter');
+          tabAdvanced.classList.toggle('active', tab === 'advanced');
+          log('FontSelector: 切换选项卡 -> ' + (tab === 'filter' ? '过滤' : '高级'));
+        });
+      });
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          log('键盘 ESC -> 当前对话框执行取消语义');
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
