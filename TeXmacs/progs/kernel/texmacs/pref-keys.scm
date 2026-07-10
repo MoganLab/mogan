@@ -29,3 +29,19 @@
 (define-public (pref-page-setup-printing-command) "printing command")
 (define-public (pref-page-setup-paper-type) "paper type")
 (define-public (pref-page-setup-printer-dpi) "printer dpi")
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; Font selector（格式 → 字体）
+;; 权威定义：font-new-widgets.scm 的 selector-restore / initial-font-data /
+;; selector-get-changes 用这些 key 读写 init/preference。
+;; :default（见 selector-restore）。
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(define-public (pref-font) "font")
+(define-public (pref-font-base-size) "font-base-size")
+(define-public (pref-math-font) "math-font")
+(define-public (pref-prog-font) "prog-font")
+(define-public (pref-font-family) "font-family")
+(define-public (pref-font-series) "font-series")
+(define-public (pref-font-shape) "font-shape")
+(define-public (pref-font-effects) "font-effects")
