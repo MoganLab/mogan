@@ -8,12 +8,14 @@
  ******************************************************************************/
 
 #include "QTMQmlDialog.hpp"
+#include "FontSelectorBridge.hpp"
 #include "QTMQmlDialogBridge.hpp"
 #include "QTMQmlDialogInternal.hpp"
 
 #include "analyze.hpp" // occurs
 #include "gui.hpp"     // tm_style_sheet
 #include "qt_utilities.hpp"
+#include "s7_tm.hpp"     // eval_scheme
 #include "sys_utils.hpp" // lolly: get_env
 
 #include <moebius/data/scheme.hpp> // tree_to_scheme_tree / scm_unquote
@@ -350,4 +352,43 @@ cpp_form_dialog (tree fields) {
     r << kv;
   }
   return r;
+}
+
+// ---- 字体选择器 ------------------------------------------------------------
+
+/**
+ * @brief 字体选择器 QML 对话框（见 QTMQmlDialog.hpp 的
+ * cpp_font_selector_dialog）。
+ *
+ * @details 宿主拼装走 run_qml_dialog；FontSelectorBridge 作为 fontBridge
+ * context property 注入，承载 QML↔scheme 交互。字体状态在 scheme（specsKey
+ * 句柄），bridge 透传。实际写回由 bridge 的 submit → font-selector-commit
+ * 完成（live 路径），故本 入口返回的 tree 主要供自动化测试断言（OK 非空 /
+ * Cancel 空）。测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。
+ */
+tree
+cpp_font_selector_dialog (int specs_key) {
+  string preset= get_env ("MOGAN_TEST_FONT_SELECTOR");
+  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "ok") {
+    // 测试钩子：仍走 font-selector-commit 验全链数据契约（live 写回），返回非空
+    // 标记 tuple 供调用方/测试区分 OK。
+    eval_scheme ("(font-selector-commit " * as_string (specs_key) * ")");
+    tree r (TUPLE);
+    r << tree ("ok");
+    return r;
+  }
+  FontSelectorBridge* fontBridge= nullptr;
+  int                 choice    = run_qml_dialog (
+      "qrc:/qml/FontSelector.qml", "FontSelector.qml",
+      [&] (QQuickWidget* qw, QDialog& host) {
+        QmlDialogBridge* closeBridge= inject_common_context (qw, host);
+        (void) closeBridge; // closeBridge（choose/startMove）已注入；字体交互走
+                            // fontBridge。
+        fontBridge= new FontSelectorBridge (&host, specs_key);
+        qw->rootContext ()->setContextProperty ("fontBridge", fontBridge);
+      },
+      980, 600);
+  delete fontBridge;
+  return choice == QDialog::Accepted ? tree (TUPLE, tree ("ok")) : tree (TUPLE);
 }

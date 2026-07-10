@@ -15,6 +15,7 @@
 
 (texmacs-module (fonts font-new-widgets)
   (:use (kernel gui menu-widget)
+    (kernel texmacs pref-keys)
     (fonts font-sample)
     (generic format-edit)
     (generic document-edit)
@@ -142,14 +143,14 @@
   (when global?
     ;; NOTE: non global => ':default' values not yet implemented
     (with vars
-      (list "font"
-        "font-base-size"
-        "math-font"
-        "prog-font"
-        "font-family"
-        "font-series"
-        "font-shape"
-        "font-effects"
+      (list (pref-font)
+        (pref-font-base-size)
+        (pref-math-font)
+        (pref-prog-font)
+        (pref-font-family)
+        (pref-font-series)
+        (pref-font-shape)
+        (pref-font-effects)
       ) ;list
       (with (getter setter . other)
         specs
@@ -285,11 +286,11 @@
 
 (define (initial-font-data specs)
   (let* ((getter (car specs))
-         (fam (font-family-main (getter "font")))
-         (var (getter "font-family"))
-         (ser (getter "font-series"))
-         (sh (getter "font-shape"))
-         (sz (getter "font-base-size"))
+         (fam (font-family-main (getter (pref-font))))
+         (var (getter (pref-font-family)))
+         (ser (getter (pref-font-series)))
+         (sh (getter (pref-font-shape)))
+         (sz (getter (pref-font-base-size)))
          (lf (logical-font-private fam var ser sh))
          (fn (logical-font-search-exact lf))
         ) ;
@@ -313,23 +314,23 @@
       (selector-get-font specs)
       (with l
         '()
-        (when (!= (selector-font-effects specs) (getter "font-effects"))
-          (set! l (cons* "font-effects" (selector-font-effects specs) l))
+        (when (!= (selector-font-effects specs) (getter (pref-font-effects)))
+          (set! l (cons* (pref-font-effects) (selector-font-effects specs) l))
         ) ;when
-        (when (!= (selector-get specs :size) (getter "font-base-size"))
-          (set! l (cons* "font-base-size" (selector-get specs :size) l))
+        (when (!= (selector-get specs :size) (getter (pref-font-base-size)))
+          (set! l (cons* (pref-font-base-size) (selector-get specs :size) l))
         ) ;when
-        (when (!= (logical-font-shape fn) (getter "font-shape"))
-          (set! l (cons* "font-shape" (logical-font-shape fn) l))
+        (when (!= (logical-font-shape fn) (getter (pref-font-shape)))
+          (set! l (cons* (pref-font-shape) (logical-font-shape fn) l))
         ) ;when
-        (when (!= (logical-font-series fn) (getter "font-series"))
-          (set! l (cons* "font-series" (logical-font-series fn) l))
+        (when (!= (logical-font-series fn) (getter (pref-font-series)))
+          (set! l (cons* (pref-font-series) (logical-font-series fn) l))
         ) ;when
-        (when (!= (logical-font-variant fn) (getter "font-family"))
-          (set! l (cons* "font-family" (logical-font-variant fn) l))
+        (when (!= (logical-font-variant fn) (getter (pref-font-family)))
+          (set! l (cons* (pref-font-family) (logical-font-variant fn) l))
         ) ;when
-        (when (!= (logical-font-family* specs fn) (getter "font"))
-          (set! l (cons* "font" (logical-font-family* specs fn) l))
+        (when (!= (logical-font-family* specs fn) (getter (pref-font)))
+          (set! l (cons* (pref-font) (logical-font-family* specs fn) l))
         ) ;when
         l
       ) ;with
@@ -356,16 +357,6 @@
     ;; (display* "fn2= " fn2 "\n")
     (list nm1 nm+ nm2)
   ) ;let*
-) ;define
-
-(define (selector-font-simulate-comment specs)
-  (with (fn1 fn1+ fn2)
-    (selector-font-simulate-data specs)
-    (if (and (== fn1 fn1+) (== fn1 fn2))
-      ""
-      (string-append "  (" fn1+ " -> " fn2 ")")
-    ) ;if
-  ) ;with
 ) ;define
 
 (tm-widget (selector-font-simulate-widget specs)
@@ -647,27 +638,6 @@
   ) ;resize
 ) ;tm-widget
 
-(tm-widget (font-family-selector specs)
-  (vertical (bold (text "Font family"))
-    ===
-    (dynamic (font-family-selector* specs))
-  ) ;vertical
-) ;tm-widget
-
-(tm-widget (font-style-selector specs)
-  (vertical (bold (text "Style"))
-    ===
-    (resize "200px"
-      "350px"
-      (scrollable (choice (selector-set specs :style answer)
-                    (selected-styles specs (selector-get specs :family))
-                    (selector-get specs :style)
-                  ) ;choice
-      ) ;scrollable
-    ) ;resize
-  ) ;vertical
-) ;tm-widget
-
 (tm-widget (font-style-selector* specs)
   (hlist (bold (text "Style"))
     //
@@ -678,20 +648,6 @@
       "10em"
     ) ;enum
   ) ;hlist
-) ;tm-widget
-
-(tm-widget (font-size-selector specs)
-  (vertical (bold (text "Size"))
-    ===
-    (resize "75px"
-      "350px"
-      (scrollable (choice (selector-set specs :size answer)
-                    (font-default-sizes)
-                    (selector-get specs :size)
-                  ) ;choice
-      ) ;scrollable
-    ) ;resize
-  ) ;vertical
 ) ;tm-widget
 
 (tm-widget (font-size-selector* specs)
@@ -713,18 +669,6 @@
 (define (font-sample-fg-color)
   (if (== (get-preference "gui theme") "liii-night") "#e0e0e0" "black")
 ) ;define
-
-(tm-widget (font-sample-text specs)
-  (texmacs-output `(with ,"bg-color"
-                     ,(font-sample-bg-color)
-                     ,"color"
-                     ,(font-sample-fg-color)
-                     ,"magnification"
-                     ,"1.6"
-                     ,(selector-font-demo-text specs))
-    '(style "generic")
-  ) ;texmacs-output
-) ;tm-widget
 
 (tm-widget (font-properties-selector* specs)
   (aligned
@@ -833,13 +777,6 @@
   ;;  (toggle (selector-customize! answer) (selector-customize?)) ///
   ;;  (text "Advanced customizations")
   ;;  >>>)
-) ;tm-widget
-
-(tm-widget (font-properties-selector specs)
-  (vertical (horizontal (glue #f #f 0 0) (bold (text "Filter")) (glue #f #f 0 0))
-    ===
-    (dynamic (font-properties-selector* specs))
-  ) ;vertical
 ) ;tm-widget
 
 (define (font-effect-defaults which)
@@ -957,54 +894,6 @@
   ) ;vertical
 ) ;tm-widget
 
-(tm-widget (font-customized-selector specs)
-  (assuming (selector-customize?)
-    ===
-    ===
-    ===
-    (hlist (bold (text "Font customization")) >>>)
-    ===
-    (horizontal (dynamic (font-effects-selector specs))
-      >>>
-      (dynamic (font-variant-selector specs))
-      >>>
-      (dynamic (font-math-selector specs))
-    ) ;horizontal
-    ===
-    ===
-    ===
-  ) ;assuming
-  (assuming (not (selector-customize?)) === === ===)
-) ;tm-widget
-
-(tm-widget ((font-customization-dialog specs) quit)
-  (padded ===
-    ===
-    ===
-    (hlist (bold (text "Font customization")) >>>)
-    ===
-    (horizontal (dynamic (font-effects-selector specs))
-      >>>
-      (dynamic (font-variant-selector specs))
-      >>>
-      (dynamic (font-math-selector specs))
-    ) ;horizontal
-    ===
-    ===
-    ===
-    (explicit-buttons (hlist >>> ("Done" (quit))))
-  ) ;padded
-) ;tm-widget
-
-(tm-widget (font-selector-demo specs)
-  (hlist (bold (text "Sample text"))
-    (text (selector-font-simulate-comment specs))
-    >>>
-  ) ;hlist
-  ===
-  (resize "880px" "225px" (scrollable (dynamic (font-sample-text specs))))
-) ;tm-widget
-
 (tm-define (font-import name)
   (font-database-extend-local name)
   (refresh-now "font-family-selector")
@@ -1016,70 +905,6 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Main widgets
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-
-(tm-widget ((font-selector specs global?) quit)
-  (padded (horizontal (refreshable "font-family-selector" (dynamic (font-family-selector specs)))
-            ///
-            (refreshable "font-style-selector" (dynamic (font-style-selector specs)))
-            ///
-            (refreshable "font-size-selector" (dynamic (font-size-selector specs)))
-            ///
-            (dynamic (font-properties-selector specs))
-          ) ;horizontal
-    (refreshable "font-customized-selector"
-      (dynamic (font-customized-selector specs))
-    ) ;refreshable
-    (refreshable "font-selector-demo"
-      (promise (menu-dynamic (dynamic (font-selector-demo specs))))
-    ) ;refreshable
-    ===
-    ===
-    (explicit-buttons (hlist (enum (set-font-sample-kind answer)
-                               '("Standard"
-                                 "Mathematics"
-                                 "Selection"
-                                 "ASCII"
-                                 "Latin"
-                                 "Greek"
-                                 "Cyrillic"
-                                 "CJK"
-                                 "Hangul"
-                                 "Math Symbols"
-                                 "Math Extra"
-                                 "Math Letters"
-                                 "Unicode 0000-0fff"
-                                 "Unicode 1000-1fff"
-                                 "Unicode 2000-2fff"
-                                 "Unicode 3000-3fff"
-                                 "Unicode 4000-4fff")
-                               (get-font-sample-kind)
-                               "20em"
-                             ) ;enum
-                        >>>
-                        (assuming (not (selector-customize?))
-                         ("Advanced"
-                           (dialogue-window (font-customization-dialog specs)
-                             noop
-                             "Advanced font selector"
-                           ) ;dialogue-window
-                         ) ;
-                         //
-                         //
-                        ) ;assuming
-                        ("Import" (choose-file font-import "Import font" ""))
-                        //
-                        //
-                        (if global?
-                         ("Reset" (selector-restore specs global?))
-                         //
-                         //
-                         ("Ok" (quit (selector-get-changes specs get-init)))
-                        ) ;if
-                        (if (not global?) ("Ok" (quit (selector-get-changes specs get-env))))
-                      ) ;hlist
-    ) ;explicit-buttons
-  ) ;padded
-) ;tm-widget
 
 (tm-tool* (font-tool win name getter setter global?)
   (:name name)
@@ -1135,12 +960,16 @@
 ;; High level window interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+;; 三个 window 入口切到 QML：register-specs 存 specs 拿 int 句柄，cpp-font-selector-dialog
+;; exec QML 对话框，fontBridge 调 font-selector-* facade 透传交互。live 路径下
+;; selector-set 已实时写回，OK 经 font-selector-commit 补齐差异；Cancel 不回滚
+;; （既有契约）。返回 tree 仅测试用，正常路径忽略。
 (tm-define (open-font-selector-window)
   (:interactive #t)
   (with specs
     (list get-env make-multi-with #f)
     (selector-clean specs)
-    (dialogue-window (font-selector specs #f) make-multi-with "Font selector")
+    (cpp-font-selector-dialog (font-selector-register-specs specs))
   ) ;with
 ) ;tm-define
 
@@ -1149,7 +978,7 @@
   (with specs
     (list get-init init-multi #t)
     (selector-clean specs)
-    (dialogue-window (font-selector specs #t) init-multi "Document font selector")
+    (cpp-font-selector-dialog (font-selector-register-specs specs))
   ) ;with
 ) ;tm-define
 
@@ -1173,7 +1002,7 @@
          (specs (list getter setter #t))
         ) ;
     (selector-clean specs)
-    (dialogue-window (font-selector specs #t) setter "Font selector")
+    (cpp-font-selector-dialog (font-selector-register-specs specs))
   ) ;let*
 ) ;tm-define
 
@@ -1213,7 +1042,7 @@
     (let* ((getter (prefixed-get-init prefix)) (setter (prefixed-init-multi prefix)))
       (open-font-tool "Font selector" getter setter #t)
     ) ;let*
-    (open-document-other-font-selector prefix-window)
+    (open-document-other-font-selector-window prefix)
   ) ;if
 ) ;tm-define
 
@@ -1222,4 +1051,322 @@
     (font-family-main (get-init "font"))
     (if (== name "sys-chinese") (translate "Font") (upcase-first (utf8->cork name)))
   ) ;with
+) ;tm-define
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; QML font selector facade（record/qml/font-selector.md Phase 4）
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; 把上面的 selector-* 状态机经一个内聚 facade 暴露给 C++ FontSelectorBridge。
+;; specs 含 getter/setter 过程，不能跨 glue 序列化，故维护 int 句柄注册表：开
+;; 对话框时存 specs 返回 key，key 注入 QML，bridge 每次调用带 key，facade 按 key
+;; 还原 specs。bridge 经 eval_scheme 调用本节 proc，无需逐个 glue。
+
+(define specs-registry (make-ahash-table))
+
+(define specs-registry-next 1)
+
+(tm-define (font-selector-register-specs specs)
+  (with key
+    specs-registry-next
+    (ahash-set! specs-registry key specs)
+    (set! specs-registry-next (+ specs-registry-next 1))
+    key
+  ) ;with
+) ;tm-define
+
+(tm-define (font-selector-lookup-specs key)
+  (or (ahash-ref specs-registry key)
+    (throw 'font-selector-qml "unknown specs key" key)
+  ) ;or
+) ;tm-define
+
+;; 三栏：family / style / size。返回 scheme list of string。
+(tm-define (font-selector-families key)
+  (selected-families (font-selector-lookup-specs key))
+) ;tm-define
+
+(tm-define (font-selector-styles key family)
+  (selected-styles (font-selector-lookup-specs key) family)
+) ;tm-define
+
+(tm-define (font-selector-sizes key) (font-default-sizes))
+
+(tm-define (font-selector-get key var)
+  (selector-get (font-selector-lookup-specs key) var)
+) ;tm-define
+
+;; live 写回：selector-set 经 selector-notify 实时写 buffer。refresh-now 对 QML
+;; 对话框里不存在的 tm-widget refreshable 标签是 no-op，Cancel 不回滚（既有契约）。
+(tm-define (font-selector-set key var val)
+  (selector-set (font-selector-lookup-specs key) var val)
+) ;tm-define
+
+;; 联动 setter：set 后返回需刷新的列表依赖（styles/families），省 QML 二次往返。
+;; 预览是实时 texmacs widget（方案 C）：selector-set 经 selector-notify 写回后，
+;; 预览 widget 自动重绘，无需此处返回 data URL。返回 assoc list，bridge 转 QVariantMap。
+(tm-define (font-selector-set-family key family)
+  (font-selector-set key :family family)
+  `((styles unquote (font-selector-styles key family)))
+) ;tm-define
+
+(tm-define (font-selector-set-style key style)
+  (font-selector-set key :style style)
+) ;tm-define
+(tm-define (font-selector-set-size key size) (font-selector-set key :size size))
+
+;; 9 项 Filter 的可选项（原 tm-widget 内联于 font-properties-selector，集中复用）。
+;; var 用 string（无冒号），facade 内部 string->keyword 转；bridge/QML 全程普通
+;; string，避免 keyword 跨界。
+
+(define font-filter-options
+  (list (cons "weight" '("Any" "Thin" "Light" "Medium" "Bold" "Black"))
+    (cons "slant" '("Any" "Normal" "Italic" "Oblique"))
+    (cons "stretch" '("Any" "Condensed" "Unextended" "Wide"))
+    (cons "serif" '("Any" "Serif" "Sans Serif"))
+    (cons "spacing" '("Any" "Proportional" "Monospaced"))
+    (cons "case" '("Any" "Mixed" "Small Capitals"))
+    (cons "device"
+      '("Any" "Print" "Typewriter" "Digital" "Pen" "Art Pen" "Chalk" "Marker")
+    ) ;cons
+    (cons "category"
+      '("Any"
+        "Ancient"
+        "Attached"
+        "Calligraphic"
+        "Comic"
+        "Decorative"
+        "Distorted"
+        "Gothic"
+        "Handwritten"
+        "Initials"
+        "Medieval"
+        "Miscellaneous"
+        "Outline"
+        "Retro"
+        "Scifi"
+        "Title")
+    ) ;cons
+    (cons "glyphs"
+      '("Any"
+        "ASCII"
+        "Latin"
+        "Greek"
+        "Cyrillic"
+        "CJK"
+        "Hangul"
+        "Math Symbols"
+        "Math Extra"
+        "Math Letters")
+    ) ;cons
+  ) ;list
+) ;define
+
+(define font-filter-labels
+  (list (cons "weight" "Weight")
+    (cons "slant" "Slant")
+    (cons "stretch" "Stretch")
+    (cons "serif" "Serif")
+    (cons "spacing" "Spacing")
+    (cons "case" "Case")
+    (cons "device" "Device")
+    (cons "category" "Category")
+    (cons "glyphs" "Glyphs")
+  ) ;list
+) ;define
+
+(define (font-filter-label var)
+  (or (assoc-ref font-filter-labels var) "Filter")
+) ;define
+
+;; 返回 (label var (options...) value) 四元组列表，供 QML 一次性拉取全部 filter。
+;; var 为 string（无冒号），label 经 translate 跟随界面语言。
+(tm-define (font-selector-filter-meta key)
+  (with specs
+    (font-selector-lookup-specs key)
+    (map (lambda (cell)
+           (list (translate (font-filter-label (car cell)))
+             (car cell)
+             (cdr cell)
+             (selector-get specs (string->keyword (car cell)))
+           ) ;list
+         ) ;lambda
+      font-filter-options
+    ) ;map
+  ) ;with
+) ;tm-define
+
+;; selector-set* 是 tm-define-macro 不能直接调用；filter 写回走 selector-set，
+;; QML 由 bridge 返回刷新后的 families 驱动，不依赖 tm-widget refresh。
+;; var 为 string（无冒号），内部转 keyword。返回 {families, preview}。
+(tm-define (font-selector-set-filter key var val)
+  (selector-set (font-selector-lookup-specs key) (string->keyword var) val)
+  `((families unquote (font-selector-families key)))
+) ;tm-define
+
+;; 样本类型。
+
+(define font-sample-kinds
+  '("Standard"
+    "Mathematics"
+    "Selection"
+    "ASCII"
+    "Latin"
+    "Greek"
+    "Cyrillic"
+    "CJK"
+    "Hangul"
+    "Math Symbols"
+    "Math Extra"
+    "Math Letters"
+    "Unicode 0000-0fff"
+    "Unicode 1000-1fff"
+    "Unicode 2000-2fff"
+    "Unicode 3000-3fff"
+    "Unicode 4000-4fff")
+) ;define
+
+(tm-define (font-selector-sample-kinds key) font-sample-kinds)
+(tm-define (font-selector-current-sample-kind key) sample-kind)
+;; 设样本类型（样本内容随类型变，预览 live widget 自动重绘）。
+(tm-define (font-selector-set-sample-kind key kind) (set-font-sample-kind kind))
+
+;; Advanced 定制（Effects / Variants / Mathematics）。每项返回
+;; (group label which (options...) value)，QML 据此渲染 EnumCombo。
+
+(define font-effect-meta
+  (list (list "Effects" "Slant" "slant")
+    (list "Effects" "Embold" "embold")
+    (list "Effects" "Double stroke" "embbb")
+    (list "Effects" "Extended" "hextended")
+    (list "Effects" "Magnify horizontally" "hmagnify")
+    (list "Effects" "Magnify vertically" "vmagnify")
+  ) ;list
+) ;define
+
+(define font-variant-meta
+  (list (list "Variants" "Bold" "bold")
+    (list "Variants" "Italic" "italic")
+    (list "Variants" "Small capitals" "smallcaps")
+    (list "Variants" "Sans serif" "sansserif")
+    (list "Variants" "Typewriter" "typewriter")
+  ) ;list
+) ;define
+
+(define font-math-meta
+  (list (list "Mathematics" "Mathematics" "math")
+    (list "Mathematics" "Greek" "greek")
+    (list "Mathematics" "Blackboard bold" "bbb")
+    (list "Mathematics" "Calligraphic" "cal")
+    (list "Mathematics" "Fraktur" "frak")
+  ) ;list
+) ;define
+
+;; which 是否为子字体类（Variants/Mathematics 组），决定 options/value 来源。
+
+(define (font-selector-subfont? which)
+  (in? which
+    '("bold"
+      "italic"
+      "smallcaps"
+      "sansserif"
+      "typewriter"
+      "math"
+      "greek"
+      "bbb"
+      "cal"
+      "frak")
+  ) ;in?
+) ;define
+
+(define (font-selector-customize-get-value specs which)
+  (if (font-selector-subfont? which)
+    (selector-customize-get* specs which "Default")
+    (selector-customize-get specs which (font-effect-default which))
+  ) ;if
+) ;define
+
+(define (font-selector--customize-item specs meta)
+  (with (group label which)
+    meta
+    (list group
+      (translate label)
+      which
+      (if (font-selector-subfont? which)
+        (default-subfonts (selector-customize-get* specs which "Default"))
+        (font-effect-defaults which)
+      ) ;if
+      (font-selector-customize-get-value specs which)
+    ) ;list
+  ) ;with
+) ;define
+
+(tm-define (font-selector-customize-meta key)
+  (with specs
+    (font-selector-lookup-specs key)
+    (map (lambda (m) (font-selector--customize-item specs m))
+      (append font-effect-meta font-variant-meta font-math-meta)
+    ) ;map
+  ) ;with
+) ;tm-define
+
+(tm-define (font-selector-customize-get key which)
+  (font-selector-customize-get-value (font-selector-lookup-specs key) which)
+) ;tm-define
+
+;; 设定制项（影响 demo text 渲染，预览 live widget 自动重绘）。
+(tm-define (font-selector-customize-set key which val)
+  (with specs
+    (font-selector-lookup-specs key)
+    (if (font-selector-subfont? which)
+      (selector-customize-set!* specs which val)
+      (selector-customize-set! specs which val)
+    ) ;if
+  ) ;with
+) ;tm-define
+
+;; OK：取 changes 并应用 setter。live 路径下大部分已实时写入，此处补齐差异。
+(tm-define (font-selector-commit key)
+  (with specs
+    (font-selector-lookup-specs key)
+    (with (getter setter . other)
+      specs
+      (with changes
+        (selector-get-changes specs getter)
+        (when (nnull? changes)
+          (setter changes)
+        ) ;when
+        changes
+      ) ;with
+    ) ;with
+  ) ;with
+) ;tm-define
+
+(tm-define (font-selector-restore key)
+  (with specs
+    (font-selector-lookup-specs key)
+    (selector-restore specs (caddr specs))
+  ) ;with
+) ;tm-define
+
+;; Import 走 choose-file 模态，由 Import 按钮显式触发，QML 对话框在其下保持打开。
+(tm-define (font-selector-import key)
+  (choose-file font-import "Import font" "")
+) ;tm-define
+
+;; 固定 UI 文案（标题/按钮）的翻译，供 QML 一次性拉取。key 是稳定标识符，
+;; value 经 translate 跟随界面语言。与 form 引擎「C++ 注入已翻译文案」同思路，
+;; 但字体选择器文案在 scheme 集中定义，便于随字典更新。
+(tm-define (font-selector-ui-labels key)
+  `((family unquote (translate "Font family"))
+    (style unquote (translate "Style"))
+    (size unquote (translate "Size"))
+    (sample unquote (translate "Sample"))
+    (filter unquote (translate "Filter"))
+    (advanced unquote (translate "Advanced"))
+    (import unquote (translate "Import"))
+    (reset unquote (translate "Reset"))
+    (ok unquote (translate "Ok"))
+    (cancel unquote (translate "Cancel"))
+    (done unquote (translate "Done")))
 ) ;tm-define
