@@ -46,6 +46,9 @@ docs/**/plugin_binary.md
 
 # Binary of the goldfish plugin
 TeXmacs/plugins/goldfish/bin/goldfish
+TeXmacs/plugins/goldfish/bin/*.wasm
+TeXmacs/plugins/goldfish/bin/*.js
+TeXmacs/plugins/goldfish/bin/*.html
 goldfish.dSYM/
 *.sym
 *goldfish.pdb

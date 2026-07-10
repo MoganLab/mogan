@@ -33,15 +33,15 @@
     <\unfolded-io>
       \<gtr\>\<gtr\>\<gtr\>\ 
     <|unfolded-io>
-      flush_any ("scheme_u8:(frac 1 2)")
+      flush_any ("scheme:(frac 1 2)")
     <|unfolded-io>
       <frac|1|2>
     </unfolded-io>
 
     <\unfolded-io>
-      \<gtr\>\<gtr\>\<gtr\>\ 
+      \<gtr\>\<gtr\>\<gtr\>\
     <|unfolded-io>
-      flush_any ("scheme_u8:(frac \<#5206\>\<#5B50\> \<#5206\>\<#6BCD\>)")
+      flush_any ("scheme:(frac \<#5206\>\<#5B50\> \<#5206\>\<#6BCD\>)")
     <|unfolded-io>
       <frac|\<#5206\>\<#5B50\>|\<#5206\>\<#6BCD\>>
     </unfolded-io>

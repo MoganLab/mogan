@@ -149,7 +149,7 @@
           (check (string-contains? output "2 ~ x ~ \\sin\\left( x \\right)") => #t)
           (check (string-contains? output "x + y") => #t)
           (check (string-contains? output "x^{2} + 2 ~ x ~ y + y^{2}") => #t)
-          (check (string-contains? output "verbatim:3") => #t)
+          (check (string-contains? output "utf8:3") => #t)
           (check (string-contains? output "3-element Vector{Int64}:") => #t)
         ) ;let
 

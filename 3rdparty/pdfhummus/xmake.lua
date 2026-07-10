@@ -1,5 +1,6 @@
 -- originally from https://github.com/xmake-io/xmake-repo/pull/1709
 
+includes("../libaesgm.lua")
 option("libtiff", {description = "Enable libtiff", default = false})
 option("libpng", {description = "Enable libpng", default = false})
 option("libjpeg", {description = "Enable libjpeg", default = false})
@@ -17,14 +18,14 @@ end
 if has_config("openssl") then
     add_requires("openssl")
 end
-add_requires("freetype", "zlib", "libaesgm")
+add_requires("freetype", "zlib", "liii-libaesgm")
 target("pdfhummus")
     set_kind("$(kind)")
     add_files("PDFWriter/*.cpp")
     add_headerfiles("(PDFWriter/*.h)")
     add_packages("freetype")
     add_packages("libtiff", "libpng", "libjpeg", "openssl")
-    add_packages("libaesgm", "zlib")
+    add_packages("liii-libaesgm", "zlib")
     if has_package("libtiff") then
         add_defines("_INCLUDE_TIFF_HEADER")
         add_cxflags("-Wno-deprecated-declarations")

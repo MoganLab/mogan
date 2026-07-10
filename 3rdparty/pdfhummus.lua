@@ -30,7 +30,7 @@ package("liii-pdfhummus")
             end
         end
     end)
-    on_install("linux", "windows", "mingw", "macosx", function (package)
+    on_install("linux", "windows", "mingw", "macosx", "wasm", function (package)
         local configs = {}
         if package:config("shared") then
             configs.kind = "shared"

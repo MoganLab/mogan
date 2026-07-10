@@ -40,7 +40,7 @@
 (define (eval-and-print data)
   (if (> (string-length data) *large-data-threshold*)
     (flush-verbatim (llm-write-temp-file data))
-    (flush-scheme-u8 data)
+    (flush-scheme data)
   ) ;if
 ) ;define
 

@@ -10,7 +10,9 @@
 
 add_requires("goldfish", {system=false})
 add_requires("liii-tbox", {system=false})
-add_requires("cpr", {system=false})
+if not is_plat("wasm") then
+    add_requires("cpr", {system=false})
+end
 -- QWK is built locally from 3rdparty/qwindowkitty, no external package needed
 if is_plat ("windows") then
     add_requires("libiconv "..LIBICONV_VERSION, {system=false})
@@ -26,19 +28,23 @@ elseif is_plat("linux") and (linuxos.name() == "fedora" or linuxos.name() == "rh
     add_requires("libcurl", {system=true})
 else
     add_requires("libpng", {system=false})
-    add_requires("libcurl", {system=false})
+    if not is_plat("wasm") then
+        add_requires("libcurl", {system=false})
+    end
 end
 
-add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
-add_requires("freetype "..FREETYPE_VERSION, {system=false, configs={png=true}})
-add_requireconfs("liii-pdfhummus.freetype", {version = FREETYPE_VERSION, system = false, configs={png=true}, override=true})
+if has_config("pdfhummus") then
+    add_requires("liii-pdfhummus", {system=false,configs={libpng=true,libjpeg=true}})
+    add_requires("freetype "..FREETYPE_VERSION, {system=false, configs={png=true}})
+    add_requireconfs("liii-pdfhummus.freetype", {version = FREETYPE_VERSION, system = false, configs={png=true}, override=true})
+end
 
 add_requires("argh v1.3.2")
 
 if has_config("qt_frontend") then
     QT6_VERSION="6.8.3"
     add_requires("qt6widgets "..QT6_VERSION)
-else
+elseif not is_plat("wasm") then -- WASM GLFW is in EMCC
     add_requires("glfw")
 end
 

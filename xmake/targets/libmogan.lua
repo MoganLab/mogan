@@ -62,11 +62,13 @@ target("libmogan") do
     add_files("$(projectdir)/src/Scheme/Plugins/glue_bibtex.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_ghostscript.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_html.lua", {rule = "mogan.glue"})
-    add_files("$(projectdir)/src/Scheme/Plugins/glue_pdf.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_plugin.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_tex.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_updater.lua", {rule = "mogan.glue"})
     add_files("$(projectdir)/src/Scheme/Plugins/glue_xml.lua", {rule = "mogan.glue"})
+    if has_config("pdfhummus") then
+        add_files("$(projectdir)/src/Scheme/Plugins/glue_pdf.lua", {rule = "mogan.glue"})
+    end
     if has_config("qt_frontend") then
         add_files("$(projectdir)/src/Scheme/L5/glue_qt.lua", {rule = "mogan.glue"})
         set_configvar("QTTEXMACS", 1)
@@ -75,15 +77,19 @@ target("libmogan") do
         add_defines("QTPIPES")
         set_configvar("USE_QT_PRINTER", 1)
         add_defines("USE_QT_PRINTER")
-    else
+    elseif not is_plat("wasm") then -- WASM GLFW is in EMCC
         add_packages("glfw")
     end
 
-    add_packages("liii-pdfhummus")
+    if has_config("pdfhummus") then
+        add_packages("liii-pdfhummus")
+    end
     add_packages("freetype")
     add_packages("goldfish")
     add_packages("liii-tbox")
-    add_packages("cpr")
+    if not is_plat("wasm") then
+        add_packages("cpr")
+    end
     add_packages("argh", {public = true})
     if not is_plat("macosx") then
         add_packages("libiconv")
@@ -129,7 +135,7 @@ target("libmogan") do
                 USE_PLUGIN_BIBTEX = true,
                 USE_PLUGIN_TEX = true,
                 USE_PLUGIN_ISPELL = true,
-                USE_PLUGIN_PDF = true,
+                USE_PLUGIN_PDF = has_config("pdfhummus"),
                 USE_PLUGIN_SPARKLE = false,
                 USE_PLUGIN_HTML = true,
                 USE_MUPDF_RENDERER = has_config("mupdf"),
@@ -148,10 +154,18 @@ target("libmogan") do
         set_configvar("CONFIG_OS", "")
     end
 
-    configvar_check_cxxsnippets(
-        "CONFIG_LARGE_POINTER", [[
-            #include <stdlib.h>
-            static_assert(sizeof(void*) == 8, "");]])
+    if not is_plat("wasm") then
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 8, "");]])
+    else
+        -- WASM use 32 bit pointers
+        configvar_check_cxxsnippets(
+            "CONFIG_LARGE_POINTER", [[
+                #include <stdlib.h>
+                static_assert(sizeof(void*) == 4, "");]])
+    end
     add_configfiles(
         "$(projectdir)/src/System/tm_configure.hpp.xmake", {
             filename = "tm_configure.hpp",
@@ -258,7 +272,6 @@ target("libmogan") do
             "$(projectdir)/src/Typeset/**.cpp",
             "$(projectdir)/src/Plugins/Bibtex/**.cpp",
             "$(projectdir)/src/Plugins/Freetype/**.cpp",
-            "$(projectdir)/src/Plugins/Pdf/**.cpp",
             "$(projectdir)/src/Plugins/Ghostscript/**.cpp",
             "$(projectdir)/src/Plugins/Ispell/**.cpp",
             "$(projectdir)/src/Plugins/Metafont/**.cpp",
@@ -268,6 +281,11 @@ target("libmogan") do
             "$(projectdir)/src/Plugins/Updater/**.cpp",
             "$(projectdir)/TeXmacs/plugins/goldfish/src/**.cpp",
             "$(projectdir)/3rdparty/json-schema-validator/src/**.cpp"})
+
+    if has_config("pdfhummus") then
+        add_includedirs("$(projectdir)/src/Plugins/Pdf/**.hpp", {public=true})
+        add_files("$(projectdir)/src/Plugins/Pdf/**.cpp")
+    end
 
     if has_config("qt_frontend") then
         add_includedirs("$(projectdir)/src/Plugins/Qt", {public=true})
@@ -280,6 +298,7 @@ target("libmogan") do
         add_files("$(projectdir)/src/Plugins/Qt/moganqml.qrc")
     else
         add_files("$(projectdir)/src/Plugins/ImGui/**.cpp")
+        remove_files("$(projectdir)/TeXmacs/plugins/goldfish/src/liii_http.cpp")
     end
 
     if is_plat("macosx") then

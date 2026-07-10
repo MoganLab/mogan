@@ -27,26 +27,31 @@ package("mupdf")
 
     if is_plat("linux", "macosx") then
         add_deps("pkg-config", "make", "libjpeg", "freetype", "libcurl", "zlib")
+    elseif is_plat("wasm") then
+        add_deps("freetype", {configs={png=true}}) -- 保持与 liii-pdfhummus 一致，避免多次安装
+        add_deps("pkg-config", "make", "libjpeg", "harfbuzz", "zlib")
     end
 
     on_load(function (package)
         if not is_plat("windows") then
             if is_plat("linux") then
                 package:add("links", "mupdf", "mupdf-third", "harfbuzz")
+            elseif is_plat("wasm") then
+                package:add("links", "mupdf", "mupdf-third", "harfbuzz", "libjpeg", "freetype", "zlib")
             else
                 package:add("links", "mupdf", "mupdf-third")
             end
         end
     end)
 
-    on_install("linux", "macosx", function (package)
+    on_install("linux", "macosx", "wasm", function (package)
         if is_plat("macosx") then
             io.writefile("user.make", "CFLAGS = -arch " .. package:targetarch())
             -- Use pkg-config to detect system library
             io.replace("Makerules", "else ifeq ($(LINUX_OR_OPENBSD),yes)", "", {plain = true})
         end
         -- Use system library from xmake to compat with other program
-        import("package.tools.make").build(package, {
+        local configs = {
             "install-libs",
             "USE_SYSTEM_LIBJPEG=yes",
             "USE_SYSTEM_FREETYPE=yes",
@@ -55,7 +60,56 @@ package("mupdf")
             "tofu=yes",
             "tofu_cjk=yes",
             "prefix=" .. package:installdir()
-        })
+        }
+        if not is_plat("wasm") then
+            import("package.tools.make").build(package, configs)
+        else
+            -- xmake seems not passing the right configs to mupdf's make
+            local cflags = {}
+            local ldflags = {}
+            local harfbuzz = package:dep("harfbuzz"):fetch()
+            local libjpeg  = package:dep("libjpeg"):fetch()
+            local freetype = package:dep("freetype"):fetch()
+            local zlib = package:dep("zlib"):fetch()
+            local cc = package:tool("cc")
+            local cxx = package:tool("cxx")
+            local ld = package:tool("ld")
+            local ar = package:tool("ar")
+            local ranlib = package:tool("ranlib")
+            table.insert(configs, "CC=" .. cc)
+            table.insert(configs, "CXX=" .. cxx)
+            table.insert(configs, "LD=" .. ld)
+            table.insert(configs, "AR=" .. ar)
+            table.insert(configs, "RANLIB=" .. ranlib)
+            table.insert(configs, "USE_SYSTEM_HARFBUZZ=yes")
+            table.insert(cflags, "-matomics")
+            table.insert(cflags, "-mbulk-memory")
+            table.insert(cflags, "-pthread")
+            table.insert(ldflags, "-matomics")
+            table.insert(ldflags, "-mbulk-memory")
+            table.insert(ldflags, "-pthread")
+            table.insert(ldflags, "-sUSE_PTHREADS=1")
+            table.insert(ldflags, "-sSHARED_MEMORY=1")
+            table.insert(ldflags, "-DZ_PREFIX=OFF")
+            for _, pkg in ipairs({harfbuzz, libjpeg, freetype, zlib}) do
+                for _, dir in ipairs(pkg.sysincludedirs or {}) do
+                    table.insert(cflags, "-I" .. dir)
+                end
+                for _, dir in ipairs(pkg.includedirs or {}) do
+                    table.insert(cflags, "-I" .. dir)
+                end
+                for _, dir in ipairs(pkg.linkdirs or {}) do
+                    table.insert(ldflags, "-L" .. dir)
+                end
+            end
+            os.execv("make verbose=yes", configs, {
+                envs = {
+                    CFLAGS  = table.concat(cflags, " "),
+                    LDFLAGS = table.concat(ldflags, " ")
+                }
+            })
+            os.execv("make", table.join({"install-libs"}, configs))
+        end
     end)
 
     on_install("windows", function (package)

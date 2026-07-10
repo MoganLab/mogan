@@ -24,6 +24,11 @@ option("qt_frontend")
     set_description("Build the Qt frontend (default: ImGui frontend)")
 option_end()
 
+option("pdfhummus")
+    set_default(true)
+    set_description("Enable PDFHummus plugin")
+option_end()
+
 option("mupdf")
     set_default(true)
     set_description("Enable MuPDF library")

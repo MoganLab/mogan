@@ -116,8 +116,8 @@
         ;; Read the output file physically
         (let ((output (read-physical-file output-path)))
           ;; Assertions based on "How to Test" in 0801.md
-          (check (string-contains? output "verbatim:3") => #t)
-          (check (string-contains? output "verbatim:HELP:") => #t)
+          (check (string-contains? output "utf8:3") => #t)
+          (check (string-contains? output "utf8:HELP:") => #t)
           (check (string-contains? output "2×2 Matrix{Float64}:") => #t)
           (check (string-contains? output "DomainError") => #t)
           (check (string-contains? output "UndefVarError") => #t)

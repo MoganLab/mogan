@@ -19,9 +19,7 @@
 #include "dictionary.hpp"
 #include "file.hpp"
 #include "glue.hpp"
-#ifndef OS_WASM
 #include "goldfish.hpp"
-#endif
 #include "lolly/system/subprocess.hpp"
 #include "new_style.hpp"
 #include "s7_blackbox.hpp"
@@ -154,9 +152,7 @@ tm_server_rep::tm_server_rep (app_type app) : def_zoomf (1.0) {
   eval_scheme_root (init_prg);
   initialize_smobs (initialize_scheme ());
   initialize_glue ();
-#ifndef OS_WASM
   goldfish::glue_for_community_edition (tm_s7);
-#endif
   gui_interpose (texmacs_interpose_handler);
   set_wait_handler (texmacs_wait_handler);
 
@@ -207,7 +203,6 @@ tm_server_rep::refresh () {
 
 void
 tm_server_rep::interpose_handler () {
-#ifndef OS_WASM
 #ifdef QTTEXMACS
   // TeXmacs/Qt handles delayed messages and socket notification
   // in its own runloop
@@ -219,7 +214,6 @@ tm_server_rep::interpose_handler () {
   perform_select ();
   exec_pending_commands ();
 #endif
-#endif // not OS_WASM
 
   if (!headless_mode) {
     int i, j;

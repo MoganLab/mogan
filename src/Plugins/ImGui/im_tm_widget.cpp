@@ -25,13 +25,19 @@
 
 #include "backends/imgui_impl_glfw.h"
 #include "backends/imgui_impl_opengl3.h"
+#ifndef __EMSCRIPTEN__
 #include "backends/imgui_impl_opengl3_loader.h"
+#endif
 #include "imgui.h"
 
 #if defined(IMGUI_IMPL_OPENGL_ES2)
 #include <GLES2/gl2.h>
 #endif
 #include <GLFW/glfw3.h> // defines GLFWwindow, drags in system OpenGL headers
+
+#ifdef __EMSCRIPTEN__
+#include <emscripten.h>
+#endif
 
 #include <cmath>
 #include <cstdint>
@@ -239,7 +245,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
     return;
   }
   glfwMakeContextCurrent (window);
-  glfwSwapInterval (1); // enable vsync
+#ifndef __EMSCRIPTEN__
+  glfwSwapInterval (1);
+#endif
 
   // Match retina factor
   float xscale= 1.0f, yscale= 1.0f;
@@ -272,6 +280,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
   style.FontScaleDpi= main_scale;
 
   ImGui_ImplGlfw_InitForOpenGL (window, true);
+#ifdef __EMSCRIPTEN__
+  ImGui_ImplGlfw_InstallEmscriptenCallbacks (window, "#canvas");
+#endif
   ImGui_ImplOpenGL3_Init (glsl_version);
 
   initialized= true;
@@ -287,9 +298,6 @@ void
 im_tm_widget_rep::shutdown_context () {
   if (!initialized) return;
   initialized= false;
-#ifdef __EMSCRIPTEN__
-  EMSCRIPTEN_MAINLOOP_END;
-#endif
   if (document_texture) {
     glDeleteTextures (1, &document_texture);
     document_texture= 0;
@@ -329,160 +337,175 @@ im_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
  ******************************************************************************/
 
 void
-im_tm_widget_rep::run () {
-  if (!initialized || window == nullptr) return;
-  while (!glfwWindowShouldClose (window)) {
-    glfwPollEvents ();
-    // 创建了一个 stub 窗口（例如 Cmd+F 的查找窗口等）时 server
-    // 将当前窗口从我们这里切换走， 编辑器被 suspend () 挂起（got_focus=false）
-    // 在这里重新恢复这两种焦点状态，以确保后续的键盘和鼠标事件能够继续正常传递。
-    // 此代码会在创建该占位窗口的 Scheme 处理函数返回之后执行
-    // （即 glfwPollEvents 已经分发了 Cmd+F 的按键事件）。
-    if (needs_refocus) {
-      needs_refocus= false;
-      if (window) glfwFocusWindow (window);
-      im_simple_widget_rep* ed= canvas ();
-      if (ed) ed->handle_keyboard_focus (true, texmacs_time ());
+im_tm_widget_rep::im_main_loop () {
+  glfwPollEvents ();
+  // 创建了一个 stub 窗口（例如 Cmd+F 的查找窗口等）时 server
+  // 将当前窗口从我们这里切换走， 编辑器被 suspend () 挂起（got_focus=false）
+  // 在这里重新恢复这两种焦点状态，以确保后续的键盘和鼠标事件能够继续正常传递。
+  // 此代码会在创建该占位窗口的 Scheme 处理函数返回之后执行
+  // （即 glfwPollEvents 已经分发了 Cmd+F 的按键事件）。
+  if (needs_refocus) {
+    needs_refocus= false;
+    if (window) glfwFocusWindow (window);
+    im_simple_widget_rep* ed= canvas ();
+    if (ed) ed->handle_keyboard_focus (true, texmacs_time ());
+  }
+  // Auto-scroll while dragging (left button held) near the top/bottom edge.
+  // ImGui 实现的拖动滚动逻辑
+  if (!is_nil (main_widget) && window != nullptr &&
+      glfwGetMouseButton (window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+    double xpos= 0, ypos= 0;
+    glfwGetCursorPos (window, &xpos, &ypos);
+    int ww= 0, wh= 0;
+    glfwGetWindowSize (window, &ww, &wh);
+    const double EDGE= 48.0;            // px proximity band
+    const SI MAXD= (SI) (80.0 * PIXEL); // cap per-frame scroll to avoid jitter
+    SI       sx= 0, sy= 0;
+    get_scroll_position (main_widget, sx, sy);
+    SI new_sy= sy;
+    if (wh > 0 && ypos < EDGE) {
+      SI d= (SI) ((EDGE - ypos) * PIXEL);
+      if (d > MAXD) d= MAXD;
+      new_sy= sy + d; // near/over top → up
     }
-    // Auto-scroll while dragging (left button held) near the top/bottom edge.
-    // ImGui 实现的拖动滚动逻辑
-    if (!is_nil (main_widget) && window != nullptr &&
-        glfwGetMouseButton (window, GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-      double xpos= 0, ypos= 0;
-      glfwGetCursorPos (window, &xpos, &ypos);
-      int ww= 0, wh= 0;
-      glfwGetWindowSize (window, &ww, &wh);
-      const double EDGE= 48.0; // px proximity band
-      const SI     MAXD=
-          (SI) (80.0 * PIXEL); // cap per-frame scroll to avoid jitter
-      SI sx= 0, sy= 0;
-      get_scroll_position (main_widget, sx, sy);
-      SI new_sy= sy;
-      if (wh > 0 && ypos < EDGE) {
-        SI d= (SI) ((EDGE - ypos) * PIXEL);
-        if (d > MAXD) d= MAXD;
-        new_sy= sy + d; // near/over top → up
-      }
-      else if (wh > 0 && ypos > (double) wh - EDGE) {
-        SI d= (SI) ((ypos - ((double) wh - EDGE)) * PIXEL);
-        if (d > MAXD) d= MAXD;
-        new_sy= sy - d; // near/over bottom → down
-      }
-      if (new_sy != sy) {
-        main_widget->send (SLOT_SCROLL_POSITION,
-                           close_box<coord2> (coord2 (sx, new_sy)));
-        // Re-dispatch a move so the editor's drag selection tracks the
-        // viewport. Clamp ypos to [0, wh].
-        double cy= ypos;
-        if (cy < 0.0) cy= 0.0;
-        if (wh > 0 && cy > (double) wh) cy= (double) wh;
-        double cx= xpos;
-        if (cx < 0.0) cx= 0.0;
-        if (ww > 0 && cx > (double) ww) cx= (double) ww;
-        SI msx= 0, msy= 0, nsx= 0, nsy= 0;
-        screen_to_si (cx, cy, msx, msy);
-        get_scroll_position (main_widget, nsx, nsy);
-        dispatch_mouse ("move", msx + nsx, msy + nsy, 1);
-      }
+    else if (wh > 0 && ypos > (double) wh - EDGE) {
+      SI d= (SI) ((ypos - ((double) wh - EDGE)) * PIXEL);
+      if (d > MAXD) d= MAXD;
+      new_sy= sy - d; // near/over bottom → down
     }
+    if (new_sy != sy) {
+      main_widget->send (SLOT_SCROLL_POSITION,
+                         close_box<coord2> (coord2 (sx, new_sy)));
+      // Re-dispatch a move so the editor's drag selection tracks the
+      // viewport. Clamp ypos to [0, wh].
+      double cy= ypos;
+      if (cy < 0.0) cy= 0.0;
+      if (wh > 0 && cy > (double) wh) cy= (double) wh;
+      double cx= xpos;
+      if (cx < 0.0) cx= 0.0;
+      if (ww > 0 && cx > (double) ww) cx= (double) ww;
+      SI msx= 0, msy= 0, nsx= 0, nsy= 0;
+      screen_to_si (cx, cy, msx, msy);
+      get_scroll_position (main_widget, nsx, nsy);
+      dispatch_mouse ("move", msx + nsx, msy + nsy, 1);
+    }
+  }
 
-    // Drive one TeXmacs tick. 驱动编辑器。
-    im_interpose ();
-    if (glfwGetWindowAttrib (window, GLFW_ICONIFIED) != 0) {
-      ImGui_ImplGlfw_Sleep (10);
-      continue;
-    }
+  // Drive one TeXmacs tick. 驱动编辑器。
+  im_interpose ();
+  if (glfwGetWindowAttrib (window, GLFW_ICONIFIED) != 0) {
+    ImGui_ImplGlfw_Sleep (10);
+    return;
+  }
 
-    ImGui_ImplOpenGL3_NewFrame ();
-    ImGui_ImplGlfw_NewFrame ();
-    ImGui::NewFrame ();
-    // Keep the editor canvas informed of the visible size (Qt does this via
-    // resize events); otherwise update_visible()/SLOT_VISIBLE_PART report a
-    // zero-sized region and the editor has nothing to render.
-    static int last_cw= 0, last_ch= 0;
-    if (!is_nil (main_widget)) {
-      int cw= 0, ch= 0;
-      glfwGetWindowSize (window, &cw, &ch);
-      if (cw > 0 && ch > 0 && (cw != last_cw || ch != last_ch)) {
-        last_cw= cw;
-        last_ch= ch;
-        main_widget->send (
-            SLOT_SIZE,
-            close_box<coord2> (coord2 ((SI) (cw * PIXEL), (SI) (ch * PIXEL))));
-        texture_dirty= true; // force a re-rasterization at the new canvas size
-      }
+  ImGui_ImplOpenGL3_NewFrame ();
+  ImGui_ImplGlfw_NewFrame ();
+  ImGui::NewFrame ();
+  // Keep the editor canvas informed of the visible size (Qt does this via
+  // resize events); otherwise update_visible()/SLOT_VISIBLE_PART report a
+  // zero-sized region and the editor has nothing to render.
+  static int last_cw= 0, last_ch= 0;
+  if (!is_nil (main_widget)) {
+    int cw= 0, ch= 0;
+    glfwGetWindowSize (window, &cw, &ch);
+    if (cw > 0 && ch > 0 && (cw != last_cw || ch != last_ch)) {
+      last_cw= cw;
+      last_ch= ch;
+      main_widget->send (SLOT_SIZE, close_box<coord2> (coord2 (
+                                        (SI) (cw * PIXEL), (SI) (ch * PIXEL))));
+      texture_dirty= true; // force a re-rasterization at the new canvas size
     }
+  }
 
-    static SI last_sx= 0, last_sy= 0;
-    if (!is_nil (main_widget)) {
-      SI sx= 0, sy= 0;
-      get_scroll_position (main_widget, sx, sy);
-      if (sx != last_sx || sy != last_sy) {
-        last_sx      = sx;
-        last_sy      = sy;
-        texture_dirty= true;
-      }
+  static SI last_sx= 0, last_sy= 0;
+  if (!is_nil (main_widget)) {
+    SI sx= 0, sy= 0;
+    get_scroll_position (main_widget, sx, sy);
+    if (sx != last_sx || sy != last_sy) {
+      last_sx      = sx;
+      last_sy      = sy;
+      texture_dirty= true;
     }
+  }
 
-    // Re-render only when something actually changed: either the window was
-    // invalidated (texture_dirty, set by windows_refresh / SLOT_INVALIDATE_*),
-    // or the editor canvas reports invalid regions.
-    if (!is_nil (main_widget)) {
-      if (texture_dirty || query_invalid (main_widget)) render_editor ();
-    }
+  // Re-render only when something actually changed: either the window was
+  // invalidated (texture_dirty, set by windows_refresh / SLOT_INVALIDATE_*),
+  // or the editor canvas reports invalid regions.
+  if (!is_nil (main_widget)) {
+    if (texture_dirty || query_invalid (main_widget)) render_editor ();
+  }
 
 #ifdef LIII_DEBUG
-    {
-      // show FPS
-      ImGui::Begin ("FPS");
-      ImGui::Text ("Application average %.3f ms/frame (%.1f FPS)",
-                   1000.0f / io->Framerate, io->Framerate);
-      ImGui::End ();
-    }
+  {
+    // show FPS
+    ImGui::Begin ("FPS");
+    ImGui::Text ("Application average %.3f ms/frame (%.1f FPS)",
+                 1000.0f / io->Framerate, io->Framerate);
+    ImGui::End ();
+  }
 #endif
 
-    // Display the canvas
-    int win_w= 0, win_h= 0;
-    glfwGetWindowSize (window, &win_w, &win_h);
-    int fb_w= 0, fb_h= 0;
-    glfwGetFramebufferSize (window, &fb_w, &fb_h);
-    ImGui::SetNextWindowPos (ImVec2 (0, 0));
-    ImGui::SetNextWindowSize (ImVec2 ((float) win_w, (float) win_h));
-    ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
-    ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (0, 0));
-    {
-      ImGui::Begin ("Mogan Canvas", nullptr,
-                    ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
-                        ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
-                        ImGuiWindowFlags_NoBringToFrontOnFocus |
-                        ImGuiWindowFlags_NoScrollbar |
-                        ImGuiWindowFlags_NoScrollWithMouse);
-      ImGui::PopStyleVar (3);
-      if (document_texture != 0) {
-        ImVec2 avail= ImGui::GetContentRegionAvail ();
-        float  img_w= (float) tex_w;
-        float  img_h= (float) tex_h;
-        if (img_w > avail.x) img_w= avail.x;
-        if (img_h > avail.y) img_h= avail.y;
-        // Note: ImGui 系永远从 (0, 0) 开始，所有位移用 scroll_x, scroll_y 完成
-        ImGui::Image ((ImTextureID) (intptr_t) document_texture,
-                      ImVec2 (img_w, img_h));
-      }
-      else {
-        ImGui::Text ("Editor canvas not yet wired.");
-        ImGui::Text ("Close this window to quit.");
-      }
-      ImGui::End ();
+  // Display the canvas
+  int win_w= 0, win_h= 0;
+  glfwGetWindowSize (window, &win_w, &win_h);
+  int fb_w= 0, fb_h= 0;
+  glfwGetFramebufferSize (window, &fb_w, &fb_h);
+  ImGui::SetNextWindowPos (ImVec2 (0, 0));
+  ImGui::SetNextWindowSize (ImVec2 ((float) win_w, (float) win_h));
+  ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
+  ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
+  ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (0, 0));
+  {
+    ImGui::Begin ("Mogan Canvas", nullptr,
+                  ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                      ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoCollapse |
+                      ImGuiWindowFlags_NoBringToFrontOnFocus |
+                      ImGuiWindowFlags_NoScrollbar |
+                      ImGuiWindowFlags_NoScrollWithMouse);
+    ImGui::PopStyleVar (3);
+    if (document_texture != 0) {
+      ImVec2 avail= ImGui::GetContentRegionAvail ();
+      float  img_w= (float) tex_w;
+      float  img_h= (float) tex_h;
+      if (img_w > avail.x) img_w= avail.x;
+      if (img_h > avail.y) img_h= avail.y;
+      // Note: ImGui 系永远从 (0, 0) 开始，所有位移用 scroll_x, scroll_y 完成
+      ImGui::Image ((ImTextureID) (intptr_t) document_texture,
+                    ImVec2 (img_w, img_h));
     }
-
-    ImGui::Render ();
-    glViewport (0, 0, fb_w, fb_h);
-    glClearColor (0.45f, 0.55f, 0.60f, 1.00f);
-    glClear (GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData ());
-    glfwSwapBuffers (window);
+    else {
+      ImGui::Text ("Editor canvas not yet wired.");
+      ImGui::Text ("Close this window to quit.");
+    }
+    ImGui::End ();
   }
+
+  ImGui::Render ();
+  glViewport (0, 0, fb_w, fb_h);
+  glClearColor (0.45f, 0.55f, 0.60f, 1.00f);
+  glClear (GL_COLOR_BUFFER_BIT);
+  ImGui_ImplOpenGL3_RenderDrawData (ImGui::GetDrawData ());
+  glfwSwapBuffers (window);
+}
+
+void
+im_tm_widget_rep::em_main_loop_wrapper (void* arg) {
+  auto* self= static_cast<im_tm_widget_rep*> (arg);
+  self->im_main_loop ();
+}
+
+void
+im_tm_widget_rep::run () {
+  if (!initialized || window == nullptr) return;
+#ifdef __EMSCRIPTEN__
+  emscripten_set_main_loop_arg (im_tm_widget_rep::em_main_loop_wrapper, this, 0,
+                                true);
+  emscripten_cancel_main_loop ();
+#else
+  while (!glfwWindowShouldClose (window)) {
+    im_main_loop ();
+  }
+#endif
   shutdown_context ();
 }
 

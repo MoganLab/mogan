@@ -71,7 +71,7 @@ end
 
         # Test tm_begin
         tm_begin()
-        @test String(take!(buf_out)) == string(DATA_BEGIN, VERBATIM)
+        @test String(take!(buf_out)) == string(DATA_BEGIN, U8_TEXT)
 
         # Test tm_end
         tm_end()
@@ -86,8 +86,8 @@ end
         @test String(take!(buf_out)) == string(DATA_BEGIN, "latex:", "x^2", DATA_END)
 
         # Test tm_err with header
-        tm_err("verbatim:", "load-error")
-        @test String(take!(buf_err)) == string(DATA_BEGIN, "verbatim:", "load-error", DATA_END)
+        tm_err("utf8:", "load-error")
+        @test String(take!(buf_err)) == string(DATA_BEGIN, "utf8:", "load-error", DATA_END)
 
         # Restore original IO streams
         orig_stdout[] = stdout
@@ -204,7 +204,7 @@ end
             flush(stdio_err)
             err_data = String(take!(buf_err))
             @test occursin("stderr-line", err_data)
-            @test occursin(VERBATIM, err_data)
+            @test occursin(U8_TEXT, err_data)
         finally
             redirect_stderr(old_stderr)
         end

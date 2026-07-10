@@ -36,7 +36,7 @@ add_repositories("liii-repo xmake")
 -- msvc, this project will not support windows env.
 -- because some package is not ported to cygwin env, this project will not
 -- support cygwin env.
-set_allowedplats("linux", "macosx", "windows")
+set_allowedplats("linux", "macosx", "windows", "wasm")
 
 -- add releasedbg, debug and release modes for different platforms.
 -- debug mode cannot run on mingw with qt precompiled binary
@@ -73,6 +73,14 @@ else
     set_configvar("OS_WIN", false)
 end
 
+if is_plat("wasm") then
+    set_configvar("OS_WASM", true)
+    add_requires("emscripten 3.1.56")
+    set_toolchains("emcc@emscripten")
+else
+    set_configvar("OS_WASM", false)
+end
+
 includes("@builtin/check")
 configvar_check_cxxtypes("HAVE_INTPTR_T", "intptr_t", {includes = {"memory"}})
 configvar_check_cxxincludes("HAVE_INTTYPES_H", "inttypes.h")
@@ -103,34 +111,34 @@ if is_mode("release") then
 end
 
 if has_config("qt_frontend") then
-includes("xmake/tests.lua")
--- Tests in C++
-all_cpp_tests = os.files("tests/**_test.cpp")
-cpp_benches = os.files("bench/**_bench.cpp")
+    includes("xmake/tests.lua")
+    -- Tests in C++
+    all_cpp_tests = os.files("tests/**_test.cpp")
+    cpp_benches = os.files("bench/**_bench.cpp")
 
-for _, filepath in ipairs(cpp_benches) do
-    add_target_cpp_bench(filepath, "libmogan")
-end
+    for _, filepath in ipairs(cpp_benches) do
+        add_target_cpp_bench(filepath, "libmogan")
+    end
 
-if not (is_plat("linux") and (linuxos.name () == "ubuntu" and linuxos.version():major() == 20)) then
-    for _, filepath in ipairs(all_cpp_tests) do
-        if not string.find(filepath, "tests/L3/") then
-            add_target_cpp_test(filepath, "libmogan", "libmoebius")
+    if not (is_plat("linux") and (linuxos.name () == "ubuntu" and linuxos.version():major() == 20)) then
+        for _, filepath in ipairs(all_cpp_tests) do
+            if not string.find(filepath, "tests/L3/") then
+                add_target_cpp_test(filepath, "libmogan", "libmoebius")
+            end
         end
     end
-end
 
--- Tests in Scheme
-for _, filepath in ipairs(os.files("TeXmacs/progs/**/*-test.scm")) do
-    add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
-end
+    -- Tests in Scheme
+    for _, filepath in ipairs(os.files("TeXmacs/progs/**/*-test.scm")) do
+        add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
+    end
 
-for _, filepath in ipairs(os.files("TeXmacs/progs/kernel/**/*-test.scm")) do
-    add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
-end
+    for _, filepath in ipairs(os.files("TeXmacs/progs/kernel/**/*-test.scm")) do
+        add_target_scheme_test(filepath, INSTALL_DIR, RUN_ENVS)
+    end
 
--- Integration tests
-for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
-    add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
-end
+    -- Integration tests
+    for _, filepath in ipairs(os.files("TeXmacs/tests/*.scm")) do
+        add_target_integration_test(filepath, INSTALL_DIR, RUN_ENVS)
+    end
 end -- has_config("qt_frontend")

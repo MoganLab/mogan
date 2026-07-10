@@ -10,7 +10,6 @@
     flush-verbatim
     flush-prompt
     flush-scheme
-    flush-scheme-u8
     flush-file
     flush-markdown
     flush-latex
@@ -44,20 +43,13 @@
     ) ;define
 
     (define (flush-verbatim msg)
-      (flush-any (string-append "verbatim:" msg))
+      (flush-any (string-append "utf8:" msg))
     ) ;define
 
     (define (flush-scheme msg)
       (if (string? msg)
         (flush-any (string-append "scheme:" msg))
         (flush-any (string-append "scheme:" (object->string msg)))
-      ) ;if
-    ) ;define
-
-    (define (flush-scheme-u8 msg)
-      (if (string? msg)
-        (flush-any (string-append "scheme_u8:" msg))
-        (flush-any (string-append "scheme_u8:" (object->string msg)))
       ) ;if
     ) ;define
 
