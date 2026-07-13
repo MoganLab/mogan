@@ -296,7 +296,10 @@
          (sh (getter (pref-font-shape)))
          (sz (getter (pref-font-base-size)))
          (lf (logical-font-private fam var ser sh))
-         (fn (logical-font-search-exact lf))
+         ;; 用非精确 logical-font-search（而非 -exact）：exact 在 DB 无距离 0 命中时
+         ;; 会合成编码 style 名（如 simsun），不在真实 style 列表里，导致选择器匹配
+         ;; 不上不高亮。非精确搜索返回真实 DB 名，与 selected-styles 同源。
+         (fn (logical-font-search lf))
         ) ;
     (list (or (car fn) "TeXmacs Computer Modern")
       (or (cadr fn) "Regular")

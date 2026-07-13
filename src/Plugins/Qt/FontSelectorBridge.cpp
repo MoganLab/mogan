@@ -150,16 +150,13 @@ FontSelectorBridge::setFamily (const QString& family) {
 }
 QVariantMap
 FontSelectorBridge::setStyle (const QString& style) {
-  // set-style 仅触发 live 写回（预览实时 widget 自动刷新），返回空 map。
-  eval_scheme ("(font-selector-set-style " * key_token (m_specsKey) * " " *
-               qt_scheme_quote (style) * ")");
-  return QVariantMap ();
+  // 返回 {preview}（QML 预览靠返回值驱动，必须捕获，否则 .preview 为
+  // undefined）。
+  return eval_assoc_result ("font-selector-set-style", m_specsKey, style);
 }
 QVariantMap
 FontSelectorBridge::setSize (const QString& size) {
-  eval_scheme ("(font-selector-set-size " * key_token (m_specsKey) * " " *
-               qt_scheme_quote (size) * ")");
-  return QVariantMap ();
+  return eval_assoc_result ("font-selector-set-size", m_specsKey, size);
 }
 
 QStringList
@@ -301,13 +298,14 @@ void
 FontSelectorBridge::submit () {
   string expr= "(font-selector-commit " * key_token (m_specsKey) * ")";
   eval_scheme (expr);
-  m_host->done (QDialog::Accepted);
+  // 非模态：close() 触发 WA_DeleteOnClose → host delete → destroyed 信号
+  // deleteLater 掉本 bridge。
+  m_host->close ();
 }
 
 void
 FontSelectorBridge::cancel () {
-  // font-selector-cancel 经 mark-cancel 回滚本次对话框左侧 live
-  // 写回，再结束模态。
+  // font-selector-cancel 经 mark-cancel 回滚本次对话框左侧 live 写回，再关闭。
   eval_scheme ("(font-selector-cancel " * key_token (m_specsKey) * ")");
-  m_host->done (QDialog::Rejected);
+  m_host->close ();
 }
