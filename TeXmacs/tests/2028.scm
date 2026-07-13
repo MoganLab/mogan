@@ -105,6 +105,21 @@
                              (check-true (>= (string-length url) 200))
                              (check-true (= (length (font-selector-filter-meta key)) 9))
                              (check-true (>= (length (font-selector-customize-meta key)) 1))
+                             ;; key/value 分离：filter-meta 每项 5 元组
+                             ;; (label var options optionsTr value)，optionsTr 与 options 等长。
+                             (check-true (null? (list-filter
+                                                  (font-selector-filter-meta key)
+                                                  (lambda (item)
+                                                    (not (and (= (length item) 5)
+                                                              (= (length (list-ref item 2))
+                                                                 (length (list-ref item 3)))))))))
+                             ;; customize-meta 每项 6 元组 (group label which options optionsTr value)。
+                             (check-true (null? (list-filter
+                                                  (font-selector-customize-meta key)
+                                                  (lambda (item)
+                                                    (not (and (= (length item) 6)
+                                                              (= (length (list-ref item 3))
+                                                                 (length (list-ref item 4)))))))))
                              (check-true (nnull? (font-selector-styles key (font-selector-get key :family))))
                              (check-true (string? (assoc-ref (font-selector-ui-labels key) 'family)))
                            ) ;let*

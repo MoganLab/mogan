@@ -183,13 +183,15 @@ eval_filter_meta (int key) {
     tmscm item= tmscm_car (cur);
     if (!tmscm_is_list (item) || tmscm_is_null (item)) continue;
     QVariantMap m;
-    m["label"]  = tmscm_to_qstring (tmscm_car (item));
-    item        = tmscm_cdr (item);
-    m["var"]    = tmscm_to_qstring (tmscm_car (item));
-    item        = tmscm_cdr (item);
-    m["options"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item        = tmscm_cdr (item);
-    m["value"]  = tmscm_to_qstring (tmscm_car (item));
+    m["label"]    = tmscm_to_qstring (tmscm_car (item));
+    item          = tmscm_cdr (item);
+    m["var"]      = tmscm_to_qstring (tmscm_car (item));
+    item          = tmscm_cdr (item);
+    m["options"]  = QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item          = tmscm_cdr (item);
+    m["optionsTr"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item          = tmscm_cdr (item);
+    m["value"]    = tmscm_to_qstring (tmscm_car (item));
     out << m;
   }
   return out;
@@ -246,11 +248,13 @@ FontSelectorBridge::customizeMeta () {
     item        = tmscm_cdr (item);
     m["label"]  = tmscm_to_qstring (tmscm_car (item));
     item        = tmscm_cdr (item);
-    m["which"]  = tmscm_to_qstring (tmscm_car (item));
-    item        = tmscm_cdr (item);
-    m["options"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item        = tmscm_cdr (item);
-    m["value"]  = tmscm_to_qstring (tmscm_car (item));
+    m["which"]    = tmscm_to_qstring (tmscm_car (item));
+    item          = tmscm_cdr (item);
+    m["options"]  = QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item          = tmscm_cdr (item);
+    m["optionsTr"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item          = tmscm_cdr (item);
+    m["value"]    = tmscm_to_qstring (tmscm_car (item));
     out << m;
   }
   return out;

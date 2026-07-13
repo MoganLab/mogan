@@ -1194,8 +1194,10 @@
   (or (assoc-ref font-filter-labels var) "Filter")
 ) ;define
 
-;; 返回 (label var (options...) value) 四元组列表，供 QML 一次性拉取全部 filter。
-;; var 为 string（无冒号），label 经 translate 跟随界面语言。
+;; 返回 (label var (options...) (optionsTr...) value) 五元组列表。label/optionsTr 经
+;; translate 跟随界面语言（显示）；options/value 保持英文原值（存储/过滤/回传用）。
+;; QML EnumCombo 显示 optionsTr、onChanged 回传 options[index]（英文 key），与老版
+;; tm-widget enum（menu-widget.scm make-enum 的 dec 反查）等价的 key/value 分离。
 (tm-define (font-selector-filter-meta key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1203,6 +1205,7 @@
            (list (translate (font-filter-label (car cell)))
              (car cell)
              (cdr cell)
+             (map translate (cdr cell))
              (selector-get specs (string->keyword (car cell)))
            ) ;list
          ) ;lambda
@@ -1326,15 +1329,21 @@
 (define (font-selector--customize-item specs meta)
   (with (group label which)
     meta
-    (list group
-      (translate label)
-      which
+    (with opts
       (if (font-selector-subfont? which)
         (default-subfonts (selector-customize-get* specs which "Default"))
         (font-effect-defaults which)
       ) ;if
-      (font-selector-customize-get-value specs which)
-    ) ;list
+      ;; optionsTr：对 options map translate。字体名/数值无字典项原样返回，"Default"
+      ;; 等界面词翻译。与 filter-meta 同构的 key/value 分离（显示 optionsTr，回传 opts）。
+      (list group
+        (translate label)
+        which
+        opts
+        (map translate opts)
+        (font-selector-customize-get-value specs which)
+      ) ;list
+    ) ;with
   ) ;with
 ) ;define
 

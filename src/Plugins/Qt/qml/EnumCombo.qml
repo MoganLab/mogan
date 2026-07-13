@@ -26,11 +26,13 @@ Row {
     spacing: 16 * Theme.scaleFactor
 
     property string label: ""
-    property var options: []
-    property string value: ""
+    property var options: []          // 英文 key 列表（存储/回传/过滤用）
+    property var optionsTr: []        // 可选：翻译显示列表，与 options 等长同序。空则
+                                      // 显示 options 原文（FormDialog 等不翻译场景）。
+    property string value: ""         // 当前英文 key。
     property real labelRatio: 0.42
     property real rowHeight: 44 * Theme.scaleFactor
-    signal changed(string value)
+    signal changed(string value)      // 回传英文 key（非翻译显示值）。
 
     // 沿 parent 链按 objectName 找 DialogShell（不用 hasOwnProperty，对 QML property
     // 不可靠）。
@@ -65,6 +67,15 @@ Row {
 
     function pick(v) { root.changed(v) }
 
+    // optionsTr 与 options 等长时用翻译显示，否则回退英文原文。displayValue 给 combo
+    // 行当前值用，displayOptions 给 DialogShell 浮层列表用。
+    readonly property bool hasTr: optionsTr && optionsTr.length === options.length
+    readonly property var displayOptions: hasTr ? optionsTr : options
+    readonly property string displayValue: {
+        var i = options.indexOf(value)
+        return (i >= 0 && hasTr) ? optionsTr[i] : value
+    }
+
     Text {
         width: root.labelWidth
         anchors.verticalCenter: parent.verticalCenter
@@ -89,7 +100,7 @@ Row {
             anchors.leftMargin: 14 * Theme.scaleFactor
             anchors.rightMargin: 30 * Theme.scaleFactor
             verticalAlignment: Text.AlignVCenter
-            text: root.value
+            text: root.displayValue
             color: Theme.fg
             font.pixelSize: 14 * Theme.scaleFactor
             elide: Text.ElideRight

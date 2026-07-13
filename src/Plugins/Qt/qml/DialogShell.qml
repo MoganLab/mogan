@@ -131,7 +131,9 @@ Item {
                 clip: true
                 interactive: true
                 boundsBehavior: Flickable.StopAtBounds
-                model: root.activeCombo ? root.activeCombo.options : []
+                // 显示用 displayOptions（EnumCombo 按是否传 optionsTr 决定翻译显示），
+                // 但 pick 回传 options[index]（英文 key），保证存储层收到原值。
+                model: root.activeCombo ? root.activeCombo.displayOptions : []
                 delegate: Rectangle {
                     width: optList.width
                     height: 36 * Theme.scaleFactor
@@ -151,7 +153,8 @@ Item {
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
                         onClicked: {
-                            if (root.activeCombo) root.activeCombo.pick(modelData)
+                            if (root.activeCombo)
+                                root.activeCombo.pick(root.activeCombo.options[index])
                             root.activeCombo = null
                         }
                     }

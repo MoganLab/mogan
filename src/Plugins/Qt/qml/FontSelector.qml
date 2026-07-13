@@ -193,15 +193,17 @@ DialogShell {
                         spacing: 6 * Theme.scaleFactor
 
                         Repeater {
-                            model: fontBridge.filterMeta()
+                            model: filterModel.value
                             delegate: EnumCombo {
                                 width: filterCol.width
                                 label: modelData.label
                                 options: modelData.options
+                                optionsTr: modelData.optionsTr
                                 value: modelData.value
                                 onChanged: function(v) {
                                     var d = fontBridge.setFilter(modelData.var, v)
                                     familyModel.value = d.families
+                                    filterModel.value = fontBridge.filterMeta()
                                     root.previewUrl = d.preview
                                 }
                             }
@@ -231,14 +233,16 @@ DialogShell {
                         spacing: 6 * Theme.scaleFactor
 
                         Repeater {
-                            model: fontBridge.customizeMeta()
+                            model: customizeModel.value
                             delegate: EnumCombo {
                                 width: customizeCol.width
                                 label: modelData.label
                                 options: modelData.options
+                                optionsTr: modelData.optionsTr
                                 value: modelData.value
                                 onChanged: function(v) {
                                     root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
+                                    customizeModel.value = fontBridge.customizeMeta()
                                 }
                             }
                         }
@@ -276,12 +280,24 @@ DialogShell {
         id: styleModel
         property var value: fontBridge.requestStyles(fontBridge.currentFamily())
     }
+    // filter/customize meta 用 QtObject 持可变 list：选项变化后重拉，触发右栏
+    // Repeater 刷新（否则 EnumCombo 的 value 仍是旧快照，显示不更新）。
+    QtObject {
+        id: filterModel
+        property var value: fontBridge.filterMeta()
+    }
+    QtObject {
+        id: customizeModel
+        property var value: fontBridge.customizeMeta()
+    }
 
-    // Reset 后整体重拉（family/style/preview 都可能变）。
+    // Reset 后整体重拉（family/style/filter/customize/preview 都可能变）。
     function refreshAll() {
         root.refreshTick++
         familyModel.value = fontBridge.requestFamilies()
         styleModel.value = fontBridge.requestStyles(fontBridge.currentFamily())
+        filterModel.value = fontBridge.filterMeta()
+        customizeModel.value = fontBridge.customizeMeta()
         previewUrl = fontBridge.requestPreview()
         // currentValue 重算后值可能未变（reset 回到打开时默认），changed 信号不发，
         // activeValue 不会更新；此处显式同步选中框。
