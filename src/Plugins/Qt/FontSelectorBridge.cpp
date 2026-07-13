@@ -297,14 +297,11 @@ void
 FontSelectorBridge::submit () {
   string expr= "(font-selector-commit " * key_token (m_specsKey) * ")";
   eval_scheme (expr);
-  // 非模态：close() 触发 WA_DeleteOnClose → host delete → destroyed 信号
-  // deleteLater 掉本 bridge。
-  m_host->close ();
+  m_host->done (QDialog::Accepted);
 }
 
 void
 FontSelectorBridge::cancel () {
-  // font-selector-cancel 经 mark-cancel 回滚本次对话框左侧 live 写回，再关闭。
   eval_scheme ("(font-selector-cancel " * key_token (m_specsKey) * ")");
-  m_host->close ();
+  m_host->done (QDialog::Rejected);
 }

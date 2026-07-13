@@ -182,48 +182,6 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
 }
 
 /**
- * @brief 非模态 QML 弹窗引擎（与 run_qml_dialog 同构，但不阻塞）。
- *
- * 字体选择器需要 live 写回文档并实时看到效果，模态 exec() 的嵌套事件循环不重绘
- * 被遮的文档窗口（main 的老 side-tool 用非模态 tool-select 故能 live）。故字体
- * 选择器走本函数：QDialog 堆分配 + show()，函数立即返回，对话框生命期由注入的
- * bridge 自治——bridge 持 host 指针，submit/cancel/close 时调 host->close()，
- * host 析构经 destroyed 信号 deleteLater 掉 bridge。
- *
- * @param qml_url / debug_tag / inject_context / logic_w/h 同 run_qml_dialog。
- * @return 恒 0（非模态无退出码；调用方不依赖返回值，仅测试钩子路径用）。
- */
-static int
-show_qml_dialog (const string& qml_url, const char* debug_tag,
-                 std::function<void (QQuickWidget*, QDialog*)> inject_context,
-                 int logic_w, int logic_h) {
-  static const bool resourceInitialized= [] () {
-    Q_INIT_RESOURCE (moganqml);
-    return true;
-  }();
-  (void) resourceInitialized;
-  QDialog* d=
-      new QDialog (nullptr, Qt::FramelessWindowHint | Qt::Dialog | Qt::Tool);
-  d->setAttribute (Qt::WA_DeleteOnClose);
-  QQuickWidget* qw= setup_frameless_qml_host (*d);
-  QVBoxLayout*  vl= static_cast<QVBoxLayout*> (d->layout ());
-
-  inject_context (qw, d);
-
-  qw->setSource (QUrl (to_qstring (qml_url)));
-  if (qw->status () != QQuickWidget::Ready) {
-    log_qml_load_failure (qw, debug_tag);
-    delete d;
-    return -1;
-  }
-
-  vl->addWidget (qw);
-  lock_fixed_size (qw, vl, *d, logic_w, logic_h);
-  d->show ();
-  return 0;
-}
-
-/**
  * @brief 「确认关闭」弹窗的 glue 入口。
  * @param message 已翻译的正文。
  * @param scratch 为真时肯定按钮显示「另存为」。
@@ -399,14 +357,12 @@ cpp_form_dialog (tree fields) {
 // ---- 字体选择器 ------------------------------------------------------------
 
 /**
- * @brief 字体选择器 QML 对话框（声明见 QTMQmlDialog.hpp）。非模态。
+ * @brief 字体选择器 QML 对话框（声明见 QTMQmlDialog.hpp）。模态。
  *
- * @details 走 show_qml_dialog（非模态 show），理由见该函数——字体选择器需 live
- * 写回并实时看到效果。FontSelectorBridge 注入为 fontBridge context property
- * 承载 QML↔scheme 交互；字体状态在 scheme（specsKey 句柄），bridge 透传。
- * live 写回归入 undo mark 事务（OK → mark-end 落定，Cancel → mark-cancel
- * 回滚）。 非模态下本入口立即返回；返回 tree 仅测试钩子路径用（ok/cancel
- * 区分）。测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。
+ * @details 走 run_qml_dialog（模态 exec）。FontSelectorBridge 注入为 fontBridge
+ * context property 承载 QML↔scheme 交互；字体状态在 scheme（specsKey 句柄），bridge
+ * 透传。live 写回归入 undo mark 事务（OK → mark-end 落定，Cancel → mark-cancel 回滚）。
+ * 测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗，返回 tree 供测试区分。
  */
 tree
 cpp_font_selector_dialog (int specs_key) {
@@ -422,20 +378,19 @@ cpp_font_selector_dialog (int specs_key) {
     r << tree ("ok");
     return r;
   }
-  // 非模态：QDialog 堆分配，show() 后立即返回。host 析构时（submit/cancel/close
-  // 调 host->close()）经 destroyed 信号 deleteLater 掉两个 bridge，无泄漏。
-  show_qml_dialog (
+  // 模态 exec：独占输入（防切窗口/动光标/重复打开），host 栈分配覆盖 exec()，
+  // bridge 用完 delete。
+  FontSelectorBridge* fontBridge= nullptr;
+  QmlDialogBridge*    closeBridge= nullptr;
+  int                 choice= run_qml_dialog (
       "qrc:/qml/FontSelector.qml", "FontSelector.qml",
-      [&] (QQuickWidget* qw, QDialog* host) {
-        QmlDialogBridge*    closeBridge= inject_common_context (qw, *host);
-        FontSelectorBridge* fontBridge=
-            new FontSelectorBridge (host, specs_key);
+      [&] (QQuickWidget* qw, QDialog& host) {
+        closeBridge= inject_common_context (qw, host);
+        fontBridge= new FontSelectorBridge (&host, specs_key);
         qw->rootContext ()->setContextProperty ("fontBridge", fontBridge);
-        QObject::connect (host, &QDialog::destroyed, closeBridge,
-                          &QObject::deleteLater);
-        QObject::connect (host, &QDialog::destroyed, fontBridge,
-                          &QObject::deleteLater);
       },
       980, 600);
-  return tree (TUPLE, tree ("ok"));
+  delete fontBridge;
+  delete closeBridge;
+  return choice == QDialog::Accepted ? tree (TUPLE, tree ("ok")) : tree (TUPLE);
 }
