@@ -206,6 +206,11 @@
         ((== (xdg-dekstop-session) "deepin") "kde")
         ((== (xdg-dekstop-session) "gnome") "gnome")
         ((== (xdg-dekstop-session) "ubuntu") "gnome")
+        ;; WASM 在浏览器中运行，os-macos?/os-win? 编译期均为 false，故由
+        ;; ImGui/Emscripten 胶水写入的 MOGAN_BROWSER_OS 判定宿主 OS，选用
+        ;; 匹配的键盘映射（Mac → Cmd 快捷键，Windows → Ctrl 快捷键）。
+        ((== (system-getenv "MOGAN_BROWSER_OS") "macos") "macos")
+        ((== (system-getenv "MOGAN_BROWSER_OS") "windows") "windows")
         (else "emacs")
   ) ;cond
 ) ;define

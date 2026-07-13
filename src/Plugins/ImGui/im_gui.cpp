@@ -27,10 +27,12 @@
 #define GL_SILENCE_DEPRECATION
 #endif
 #ifdef __EMSCRIPTEN__
+#include <emscripten.h>
 #include <emscripten/html5.h>
 #endif
 #include <GLFW/glfw3.h>
 #include <cstdio>
+#include <cstdlib> // setenv, free (browser-OS detection)
 
 /******************************************************************************
  * Helpers
@@ -49,6 +51,31 @@ static void
 im_glfw_error_callback (int err, const char* description) {
   std::fprintf (stderr, "GLFW Error %d: %s\n", err, description);
 }
+
+#ifdef __EMSCRIPTEN__
+// 探测浏览器宿主 OS，供 Scheme 层选择匹配的键盘 look-and-feel
+// （macos → Cmd 快捷键，windows → Ctrl 快捷键）。Emscripten 没有原生平台
+// API，这里通过 JS 读 navigator 判定，结果存入环境变量 MOGAN_BROWSER_OS，
+// 由 tm-preferences.scm 的 default-look-and-feel 读取。本函数在 gui_open()
+// 中调用，而 gui_open() 在 server/Scheme 初始化之前执行，故键盘模块加载
+// 时即可见到该环境变量。
+static void
+im_detect_browser_os () {
+  char* raw= (char*) emscripten_run_script_string (
+      "(function(){"
+      "var s= (navigator.platform||'') + ' ' + (navigator.userAgent||'');"
+      "if(/Mac/i.test(s)) return 'macos';"
+      "if(/Win/i.test(s)) return 'windows';"
+      "return '';"
+      "})()");
+  string r= (raw == nullptr) ? string ("") : string (raw);
+  free (raw);
+  if (N (r) > 0) {
+    c_string cs (r);
+    setenv ("MOGAN_BROWSER_OS", cs, 1);
+  }
+}
+#endif
 
 /******************************************************************************
  * Top-level window factories (real implementation)
@@ -429,6 +456,11 @@ gui_open (int& argc, char** argv) {
     glfwSetErrorCallback (&im_glfw_error_callback);
     if (glfwInit ()) s_glfw_initialized= true;
   }
+#ifdef __EMSCRIPTEN__
+  // 在 Scheme/键盘模块初始化之前完成宿主 OS 探测，使 default-look-and-feel
+  // 能据 MOGAN_BROWSER_OS 选出匹配的 look-and-feel。
+  im_detect_browser_os ();
+#endif
 }
 
 // texmacs_interpose_handler() in tm_server.cpp 注册的 interpose 回调

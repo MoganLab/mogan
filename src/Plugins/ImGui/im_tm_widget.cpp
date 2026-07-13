@@ -589,6 +589,16 @@ im_tm_widget_rep::glfw_char_callback (GLFWwindow* w, unsigned int codepoint) {
   // commit string). Skip control characters — they arrive via
   // glfw_key_callback.
   if (codepoint < 32) return;
+  // Ctrl/Cmd + 按键已由 glfw_key_callback 作为快捷键分发（"C-x"/"M-x"）。
+  // 浏览器/Emscripten 对同一次按键还会补发本 char 回调里的基础字母，
+  // 若不抑制会导致快捷键与字面字符同时生效（如 C-a 回到行首后又插入了 a）。
+  // 在修饰键按下时直接跳过分发，写法与 glfw_scroll_callback 一致，
+  // 且不依赖回调顺序，对无修饰键的 IME 预编辑等纯文本输入无影响。
+  if (glfwGetKey (w, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+      glfwGetKey (w, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS ||
+      glfwGetKey (w, GLFW_KEY_LEFT_SUPER) == GLFW_PRESS ||
+      glfwGetKey (w, GLFW_KEY_RIGHT_SUPER) == GLFW_PRESS)
+    return;
   self->dispatch_keypress (im_from_char (codepoint));
 }
 
