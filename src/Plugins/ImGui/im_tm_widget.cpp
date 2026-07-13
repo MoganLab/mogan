@@ -239,6 +239,9 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
   int          wa_x= 0, wa_y= 0, wa_w= win_w, wa_h= win_h;
   if (monitor != nullptr)
     glfwGetMonitorWorkarea (monitor, &wa_x, &wa_y, &wa_w, &wa_h);
+#ifdef __EMSCRIPTEN__
+  glfwWindowHint (GLFW_SCALE_TO_MONITOR, GLFW_TRUE); // Enable retina
+#endif
   window= glfwCreateWindow ((int) win_w * main_scale, (int) win_h * main_scale,
                             "Mogan (ImGui)", nullptr, nullptr);
   if (window == nullptr) {

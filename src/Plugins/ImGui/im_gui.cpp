@@ -26,6 +26,9 @@
 #ifndef GL_SILENCE_DEPRECATION
 #define GL_SILENCE_DEPRECATION
 #endif
+#ifdef __EMSCRIPTEN__
+#include <emscripten/html5.h>
+#endif
 #include <GLFW/glfw3.h>
 #include <cstdio>
 
@@ -460,12 +463,22 @@ gui_root_extents (SI& width, SI& height) {
   // QGuiApplication::primaryScreen()->size()
   int w= 1920, h= 1080;
   if (s_glfw_initialized) {
+#ifdef __EMSCRIPTEN__
+    // Browsers do not expose a meaningful primary monitor to GLFW.
+    // Use the current canvas CSS size as the root extent instead.
+    double css_w, css_h;
+    emscripten_get_element_css_size ("#canvas", &css_w, &css_h);
+    width = (SI) css_w * PIXEL;
+    height= (SI) css_h * PIXEL;
+    return;
+#else
     GLFWmonitor*       monitor= glfwGetPrimaryMonitor ();
     const GLFWvidmode* mode   = monitor ? glfwGetVideoMode (monitor) : nullptr;
     if (mode) {
       w= mode->width;
       h= mode->height;
     }
+#endif
   }
   width = w * PIXEL;
   height= h * PIXEL;
