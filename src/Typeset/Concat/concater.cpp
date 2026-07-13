@@ -834,6 +834,12 @@ concater_rep::typeset (tree t, path ip) {
   case ELLIPSE:
     typeset_ellipse (t, ip, true);
     break;
+  case HYPERBOLA:
+    typeset_hyperbola (t, ip, false);
+    break;
+  case PARABOLA:
+    typeset_parabola (t, ip, false);
+    break;
   case SPLINE:
     typeset_spline (t, ip, false);
     break;

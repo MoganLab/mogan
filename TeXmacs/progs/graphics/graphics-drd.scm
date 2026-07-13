@@ -31,6 +31,8 @@
   arc
   std-arc
   std-arc-counterclockwise
+  hyperbola
+  parabola
 ) ;define-group
 
 (define-group graphical-closed-curve-tag

@@ -547,6 +547,7 @@ static bool
 is_graphical (tree t) {
   return is_func (t, POINT) || is_func (t, LINE) || is_func (t, CLINE) ||
          is_func (t, ARC) || is_func (t, CARC) || is_func (t, ELLIPSE) ||
+         is_func (t, HYPERBOLA) || is_func (t, PARABOLA) ||
          is_func (t, SPLINE) || is_func (t, CSPLINE) || is_func (t, BEZIER) ||
          is_func (t, CBEZIER) || is_func (t, SMOOTH) || is_func (t, CSMOOTH) ||
          is_func (t, PENSCRIPT) || is_func (t, CALLIGRAPHY);

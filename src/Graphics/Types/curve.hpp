@@ -116,6 +116,47 @@ struct ellipse_rep : public curve_rep {
                              array<path>& cip) override;
 };
 
+struct hyperbola_rep : public curve_rep {
+  array<point> points;
+  array<path>  cip;
+  point        f1, f2;       // two foci of the hyperbola
+  point        center;       // the center of the hyperbola
+  double       focal_length; // the distance between f1 and f2
+  double diff_of_two_dis; // The difference of the distances of any point on the
+                          // hyperbola to f1 and f2
+  point  i, j;            // The two base vectors of the hyperbola's 2D plane
+  double r1, r2;          // The semi-axes a and b
+  double u_max;           // The maximum value of the parameter u
+  hyperbola_rep (array<point> a, array<path> cip, bool close);
+  point  evaluate (double t) override;
+  void   rectify_cumul (array<point>& cum, double eps) override;
+  double bound (double t, double eps) override;
+  point  grad (double t, bool& error) override;
+  double curvature (double t1, double t2) override;
+  int    get_control_points (array<double>& abs, array<point>& pts,
+                             array<path>& cip) override;
+};
+
+struct parabola_rep : public curve_rep {
+  array<point> points;
+  array<path>  cip;
+  point        d1, d2; // two points defining the directrix
+  point        f;      // the focus
+  point        vertex; // vertex of the parabola
+  point i, j; // The two base vectors (i perpendicular to directrix pointing to
+              // focus, j parallel to directrix)
+  double d;   // distance from focus to directrix
+  double u_max; // The maximum value of the parameter u
+  parabola_rep (array<point> a, array<path> cip, bool close);
+  point  evaluate (double t) override;
+  void   rectify_cumul (array<point>& cum, double eps) override;
+  double bound (double t, double eps) override;
+  point  grad (double t, bool& error) override;
+  double curvature (double t1, double t2) override;
+  int    get_control_points (array<double>& abs, array<point>& pts,
+                             array<path>& cip) override;
+};
+
 curve segment (point p1, point p2);
 curve poly_segment (array<point> a, array<path> cip);
 curve spline (array<point> a, array<path> cip, bool close= false,
@@ -124,6 +165,8 @@ curve bezier (array<point> a);
 curve poly_bezier (array<point> a, array<path> cip, bool simple, bool closed);
 curve arc (array<point> a, array<path> cip, bool close= false);
 curve ellipse (array<point> a, array<path> cip, bool close= true);
+curve hyperbola (array<point> a, array<path> cip, bool close= false);
+curve parabola (array<point> a, array<path> cip, bool close= false);
 curve compound (array<curve> cs);
 curve invert (curve c);
 curve part (curve c, double start, double end);

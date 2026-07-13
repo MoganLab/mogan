@@ -326,9 +326,11 @@
  ) ;->
  ("Arc" (graphics-set-mode '(edit std-arc-counterclockwise)))
  ("Sector" (graphics-set-mode '(edit sector-counterclockwise)))
- ("Circle" (graphics-set-mode '(edit circle)))
- ("Ellipse" (graphics-set-mode '(edit ellipse)))
- ("Rectangle" (graphics-set-mode '(edit rectangle)))
+  ("Circle" (graphics-set-mode '(edit circle)))
+  ("Ellipse" (graphics-set-mode '(edit ellipse)))
+  ("Hyperbola" (graphics-set-mode '(edit hyperbola)))
+  ("Parabola" (graphics-set-mode '(edit parabola)))
+  ("Rectangle" (graphics-set-mode '(edit rectangle)))
  ---
  ("Text" (graphics-set-mode '(edit text-at)))
  ("Mathematics" (graphics-set-mode '(edit math-at)))
@@ -901,6 +903,18 @@
    ) ;check
    (graphics-set-mode '(edit ellipse))
   ) ;
+  ((check (balloon (icon "tm_hyperbola.xpm") "Insert hyperbolas")
+     "v"
+     (== (graphics-mode) '(edit hyperbola))
+   ) ;check
+   (graphics-set-mode '(edit hyperbola))
+  ) ;
+  ((check (balloon (icon "tm_parabola.xpm") "Insert parabolas")
+     "v"
+     (== (graphics-mode) '(edit parabola))
+   ) ;check
+   (graphics-set-mode '(edit parabola))
+  ) ;
   ((check (balloon (icon "tm_rectangle_mode.xpm") "Insert rectangles")
      "v"
      (== (graphics-mode) '(edit rectangle))
@@ -1223,9 +1237,11 @@
         ((== s '(edit std-arc-counterclockwise)) "std-arc")
         ((== s '(edit sector)) "sector")
         ((== s '(edit sector-counterclockwise)) "sector")
-        ((== s '(edit circle)) "circle")
-        ((== s '(edit ellipse)) "ellipse")
-        ((== s '(edit rectangle)) "rectangle")
+         ((== s '(edit circle)) "circle")
+         ((== s '(edit ellipse)) "ellipse")
+         ((== s '(edit hyperbola)) "hyperbola")
+         ((== s '(edit parabola)) "parabola")
+         ((== s '(edit rectangle)) "rectangle")
         ((== s '(edit text-at)) "text")
         ((== s '(edit math-at)) "mathematics")
         ((== s '(edit document-at)) "long text")

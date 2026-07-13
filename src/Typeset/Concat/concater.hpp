@@ -165,6 +165,8 @@ class concater_rep {
   void typeset_line (tree t, path ip, bool close, bool isPendingEllipse= false);
   void typeset_arc (tree t, path ip, bool close);
   void typeset_ellipse (tree t, path ip, bool close);
+  void typeset_hyperbola (tree t, path ip, bool close);
+  void typeset_parabola (tree t, path ip, bool close);
   void typeset_spline (tree t, path ip, bool close);
   void typeset_var_spline (tree t, path ip);
   void typeset_cspline (tree t, path ip);

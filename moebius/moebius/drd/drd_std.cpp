@@ -739,6 +739,8 @@ init_std_drd () {
   init (ARC, "arc", fixed (3)->returns_graphical ()->point_type (0));
   init (CARC, "carc", fixed (3)->returns_graphical ()->point_type (0));
   init (ELLIPSE, "ellipse", fixed (3)->returns_graphical ()->point_type (0));
+  init (HYPERBOLA, "hyperbola", fixed (3)->returns_graphical ()->point_type (0));
+  init (PARABOLA, "parabola", fixed (3)->returns_graphical ()->point_type (0));
   init (SPLINE, "spline", repeat (2, 1)->returns_graphical ()->point_type (0));
   init (VAR_SPLINE, "spline*",
         repeat (2, 1)->returns_graphical ()->point_type (0));

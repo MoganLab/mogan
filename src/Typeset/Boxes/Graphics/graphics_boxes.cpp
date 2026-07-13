@@ -496,6 +496,14 @@ curve_box_rep::display (renderer ren) {
   int  i, n;
   bool use_native_drawing= ren->support_native_curve (c);
 
+  curve unwrapped= c;
+  while (unwrapped.get_rep () &&
+         dynamic_cast<transformed_curve_rep*> (unwrapped.get_rep ())) {
+    unwrapped= ((transformed_curve_rep*) (unwrapped.get_rep ()))->c;
+  }
+  bool is_hyperbola= unwrapped.get_rep () &&
+                     dynamic_cast<hyperbola_rep*> (unwrapped.get_rep ());
+
   ren->set_brush (fill_br);
   if (!is_pending_ellipse && fill_br->get_type () != brush_none) {
     if (use_native_drawing) {
@@ -503,12 +511,28 @@ curve_box_rep::display (renderer ren) {
     }
     else {
       n= N (a);
-      array<SI> x (n), y (n);
-      for (i= 0; i < n; i++) {
-        x[i]= (SI) a[i][0];
-        y[i]= (SI) a[i][1];
+      if (is_hyperbola) {
+        array<SI> x1 (n / 2), y1 (n / 2);
+        array<SI> x2 (n - n / 2), y2 (n - n / 2);
+        for (i= 0; i < n / 2; i++) {
+          x1[i]= (SI) a[i][0];
+          y1[i]= (SI) a[i][1];
+        }
+        for (i= n / 2; i < n; i++) {
+          x2[i - n / 2]= (SI) a[i][0];
+          y2[i - n / 2]= (SI) a[i][1];
+        }
+        ren->polygon (x1, y1, false);
+        ren->polygon (x2, y2, false);
       }
-      ren->polygon (x, y, false);
+      else {
+        array<SI> x (n), y (n);
+        for (i= 0; i < n; i++) {
+          x[i]= (SI) a[i][0];
+          y[i]= (SI) a[i][1];
+        }
+        ren->polygon (x, y, false);
+      }
     }
   }
   ren->set_pencil (pen->set_cap (cap_flat));
@@ -521,12 +545,28 @@ curve_box_rep::display (renderer ren) {
       }
       else {
         n= N (a);
-        array<SI> x (n), y (n);
-        for (i= 0; i < n; i++) {
-          x[i]= (SI) a[i][0];
-          y[i]= (SI) a[i][1];
+        if (is_hyperbola) {
+          array<SI> x1 (n / 2), y1 (n / 2);
+          array<SI> x2 (n - n / 2), y2 (n - n / 2);
+          for (i= 0; i < n / 2; i++) {
+            x1[i]= (SI) a[i][0];
+            y1[i]= (SI) a[i][1];
+          }
+          for (i= n / 2; i < n; i++) {
+            x2[i - n / 2]= (SI) a[i][0];
+            y2[i - n / 2]= (SI) a[i][1];
+          }
+          ren->lines (x1, y1);
+          ren->lines (x2, y2);
         }
-        ren->lines (x, y);
+        else {
+          array<SI> x (n), y (n);
+          for (i= 0; i < n; i++) {
+            x[i]= (SI) a[i][0];
+            y[i]= (SI) a[i][1];
+          }
+          ren->lines (x, y);
+        }
       }
     }
     else {

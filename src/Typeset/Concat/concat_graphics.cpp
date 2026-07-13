@@ -508,6 +508,60 @@ concater_rep::typeset_ellipse (tree t, path ip, bool close) {
 }
 
 void
+concater_rep::typeset_hyperbola (tree t, path ip, bool close) {
+  BEGIN_MAGNIFY
+  int          i, n= N (t);
+  array<point> a (n);
+  for (i= 0; i < n; i++)
+    a[i]= env->as_point (env->exec (t[i]));
+  array<path> cip (n);
+  for (i= 0; i < n; i++)
+    cip[i]= descend (ip, i);
+  if (N (a) == 0 || N (a[0]) == 0) typeset_error (t, ip);
+  else {
+    if (n != 3 || linearly_dependent (a[0], a[1], a[2])) {
+      // cout << "typeset_hyperbola: linearly dependent points "<< "\n";
+      typeset_line (t, ip, close, true);
+    }
+    else {
+      curve c= env->fr (hyperbola (a, cip, close));
+      adjust_extremities (c, env->white_zones);
+      print (curve_box (ip, c, env->line_portion, env->pen, env->dash_style,
+                        env->dash_motif, env->dash_style_unit, env->fill_brush,
+                        typeset_line_arrows (ip)));
+    }
+  }
+  END_MAGNIFY
+}
+
+void
+concater_rep::typeset_parabola (tree t, path ip, bool close) {
+  BEGIN_MAGNIFY
+  int          i, n= N (t);
+  array<point> a (n);
+  for (i= 0; i < n; i++)
+    a[i]= env->as_point (env->exec (t[i]));
+  array<path> cip (n);
+  for (i= 0; i < n; i++)
+    cip[i]= descend (ip, i);
+  if (N (a) == 0 || N (a[0]) == 0) typeset_error (t, ip);
+  else {
+    if (n != 3 || linearly_dependent (a[0], a[1], a[2])) {
+      // cout << "typeset_parabola: linearly dependent points "<< "\n";
+      typeset_line (t, ip, close, true);
+    }
+    else {
+      curve c= env->fr (parabola (a, cip, close));
+      adjust_extremities (c, env->white_zones);
+      print (curve_box (ip, c, env->line_portion, env->pen, env->dash_style,
+                        env->dash_motif, env->dash_style_unit, env->fill_brush,
+                        typeset_line_arrows (ip)));
+    }
+  }
+  END_MAGNIFY
+}
+
+void
 concater_rep::typeset_spline (tree t, path ip, bool close) {
   BEGIN_MAGNIFY
   int          i, n= N (t);

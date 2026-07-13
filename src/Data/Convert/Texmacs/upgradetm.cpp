@@ -3766,7 +3766,8 @@ replace_magnification (tree& t, string var, string repl) {
         is_func (body, LINE) || is_func (body, CLINE) ||
         is_func (body, SPLINE) || is_func (body, CSPLINE) ||
         is_func (body, ARC) || is_func (body, CARC) ||
-        is_func (body, ELLIPSE) || is_func (body, VAR_SPLINE)) {
+        is_func (body, ELLIPSE) || is_func (body, HYPERBOLA) ||
+        is_func (body, PARABOLA) || is_func (body, VAR_SPLINE)) {
       tree val= get_attr (t, var, "1");
       if (is_func (val, TIMES, 2) && is_func (val[1], VALUE, 1) &&
           val[1][0] == var)

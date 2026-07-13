@@ -83,6 +83,8 @@
 (define new-gr-tags
   (list 'circle
     'ellipse
+    'hyperbola
+    'parabola
     'std-arc
     'sector
     'std-arc-counterclockwise

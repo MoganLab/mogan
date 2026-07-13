@@ -841,6 +841,10 @@
 
 (tm-define-macro ($ellipse . l) `(cons 'ellipse ($list ,@l)))
 
+(tm-define-macro ($hyperbola . l) `(cons 'hyperbola ($list ,@l)))
+
+(tm-define-macro ($parabola . l) `(cons 'parabola ($list ,@l)))
+
 (tm-define-macro ($text-at p . l)
   ($quote `(text-at ($unquote ($inline ,@l)) ($unquote ($inline ,p))))
 ) ;tm-define-macro

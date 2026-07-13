@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" version="1.2">
+  <!-- 双曲线符号 -->
+  <path d="M 3,3 Q 14,10 3,17 M 17,3 Q 6,10 17,17" 
+        style="fill:#1278be;fill-opacity:0.5;stroke:#ffffff;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none"/>
+</svg>

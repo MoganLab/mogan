@@ -1019,7 +1019,18 @@ ellipse_rep::ellipse_rep (array<point> a2, array<path> cip2, bool close)
   focal_length  = norm (f2 - f1);
   sum_of_two_dis= norm (points[2] - f1) + norm (points[2] - f2);
   r1            = (sum_of_two_dis) / 2;
-  r2= sqrt (square (sum_of_two_dis / 2) - square (focal_length / 2));
+  double c= focal_length / 2;
+  if (r1 <= c) {
+    r1= c * 1.001;
+  }
+  if (r1 < 1e-4) {
+    r1= 1e-4;
+  }
+  r2= sqrt (square (r1) - square (c));
+  if (r2 < 1e-4) {
+    r2= 1e-4;
+  }
+
   if (orthogonalize (i, j, center, points[0], points[1]))
     ;
   else orthogonalize (i, j, center, points[0], points[2]);
@@ -1070,6 +1081,200 @@ ellipse_rep::get_control_points (array<double>& abs, array<point>& pts,
   // The "abs" array must have one entry per control point (matching the return
   // value) so that graphical_select can safely index abs[0..np-1].
   // We split the parameter range [0, 1] evenly across the control points.
+  int n= N (points);
+  abs  = array<double> (n);
+  for (int k= 0; k < n; k++)
+    abs[k]= ((double) k) / ((double) (n > 1 ? n - 1 : 1));
+  pts = points;
+  rcip= cip;
+  return N (points);
+}
+
+/******************************************************************************
+ * Hyperbola curves
+ ******************************************************************************/
+
+static double
+my_acosh (double x) {
+  if (x < 1.0) return 0.0;
+  return log (x + sqrt (square (x) - 1.0));
+}
+
+hyperbola_rep::hyperbola_rep (array<point> a2, array<path> cip2, bool close)
+    : points (a2), cip (cip2) {
+  int n= N (points);
+  ASSERT (n == 3, "WRONG PARAMETERS OF HYPERBOLA");
+
+  f1             = points[0];
+  f2             = points[1];
+  center         = (f1 + f2) / 2;
+  focal_length   = norm (f2 - f1);
+  diff_of_two_dis= abs (norm (points[2] - f1) - norm (points[2] - f2));
+  r1             = diff_of_two_dis / 2;
+  double c       = focal_length / 2;
+  if (r1 >= c) {
+    r1= c * 0.999;
+  }
+  if (r1 < 1e-4) {
+    r1= 1e-4;
+  }
+  r2= sqrt (square (c) - square (r1));
+  if (r2 < 1e-4) {
+    r2= 1e-4;
+  }
+
+  point f_close= (norm (points[2] - f2) < norm (points[2] - f1)) ? f2 : f1;
+  if (orthogonalize (i, j, center, f_close, points[2]))
+    ;
+  else orthogonalize (i, j, center, f_close, f_close + point (0, 1));
+
+  double ratio= norm (points[2] - center) / (r1 + 1e-6);
+  u_max       = max (6.0, my_acosh (ratio) * 1.5);
+}
+
+point
+hyperbola_rep::evaluate (double t) {
+  if (t < 0.5) {
+    double u= (4.0 * t - 1.0) * u_max;
+    return center + r1 * cosh (u) * i + r2 * sinh (u) * j;
+  }
+  else {
+    double u= (4.0 * t - 3.0) * u_max;
+    return center - r1 * cosh (u) * i + r2 * sinh (u) * j;
+  }
+}
+
+void
+hyperbola_rep::rectify_cumul (array<point>& cum, double eps) {
+  double t, step;
+  // 双曲线指数发散，固定步长可限制远端的点数；5.0 为经验系数
+  step= sqrt (2 * eps / max (r1, r2)) / 5.0;
+
+  // Branch 1 (t from step to 0.5)
+  for (t= step; t <= 0.5; t+= step)
+    cum << evaluate (t);
+  if (t - step != 0.5) cum << evaluate (0.5);
+
+  // Branch 2 (t from 0.5 + step to 1.0)
+  for (t= 0.5 + step; t <= 1.0; t+= step)
+    cum << evaluate (t);
+  if (t - step != 1.0) cum << evaluate (1.0);
+}
+
+double
+hyperbola_rep::bound (double t, double eps) {
+  return curve_rep::bound (t, eps);
+}
+
+point
+hyperbola_rep::grad (double t, bool& error) {
+  error= false;
+  if (t < 0.5) {
+    double u= (4.0 * t - 1.0) * u_max;
+    return 4.0 * u_max * (r1 * sinh (u) * i + r2 * cosh (u) * j);
+  }
+  else {
+    double u= (4.0 * t - 3.0) * u_max;
+    return 4.0 * u_max * (-r1 * sinh (u) * i + r2 * cosh (u) * j);
+  }
+}
+
+double
+hyperbola_rep::curvature (double t1, double t2) {
+  (void) t1;
+  (void) t2;
+  return square (r2) / (r1 + 1.0e-6);
+}
+
+curve
+hyperbola (array<point> a, array<path> cip, bool close) {
+  return tm_new<hyperbola_rep> (a, cip, close);
+}
+
+int
+hyperbola_rep::get_control_points (array<double>& abs, array<point>& pts,
+                                   array<path>& rcip) {
+  int n= N (points);
+  abs  = array<double> (n);
+  for (int k= 0; k < n; k++)
+    abs[k]= ((double) k) / ((double) (n > 1 ? n - 1 : 1));
+  pts = points;
+  rcip= cip;
+  return N (points);
+}
+
+/******************************************************************************
+ * Parabola curves
+ ******************************************************************************/
+
+parabola_rep::parabola_rep (array<point> a2, array<path> cip2, bool close)
+    : points (a2), cip (cip2) {
+  int n= N (points);
+  ASSERT (n == 3, "WRONG PARAMETERS OF PARABOLA");
+
+  d1= points[0];
+  d2= points[1];
+  f = points[2];
+
+  point center= d1;
+  if (orthogonalize (j, i, center, d2, f))
+    ;
+  else orthogonalize (j, i, center, d2, d2 + point (0, 1));
+
+  d= inner (f - d1, i);
+  if (d < 1e-4) {
+    d= 1e-4;
+  }
+
+  vertex= f - (d / 2) * i;
+
+  double scale= norm (d2 - d1);
+  if (scale < 1e-4) scale= 1.0;
+  u_max= max (30.0 * d, scale * 5.0);
+}
+
+point
+parabola_rep::evaluate (double t) {
+  double u= (2 * t - 1) * u_max;
+  return vertex + (square (u) / (2 * d)) * i + u * j;
+}
+
+void
+parabola_rep::rectify_cumul (array<point>& cum, double eps) {
+  double t, step;
+  step= sqrt (2 * eps * d) / (u_max + 1e-6);
+  for (t= step; t <= 1.0; t+= step)
+    cum << evaluate (t);
+  if (t - step != 1.0) cum << evaluate (1.0);
+}
+
+double
+parabola_rep::bound (double t, double eps) {
+  return curve_rep::bound (t, eps);
+}
+
+point
+parabola_rep::grad (double t, bool& error) {
+  error   = false;
+  double u= (2 * t - 1) * u_max;
+  return 2 * u_max * ((u / d) * i + j);
+}
+
+double
+parabola_rep::curvature (double t1, double t2) {
+  (void) t1;
+  (void) t2;
+  return d;
+}
+
+curve
+parabola (array<point> a, array<path> cip, bool close) {
+  return tm_new<parabola_rep> (a, cip, close);
+}
+
+int
+parabola_rep::get_control_points (array<double>& abs, array<point>& pts,
+                                  array<path>& rcip) {
   int n= N (points);
   abs  = array<double> (n);
   for (int k= 0; k < n; k++)
