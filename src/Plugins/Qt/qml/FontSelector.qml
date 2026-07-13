@@ -163,51 +163,63 @@ DialogShell {
                     border.color: Theme.borderClr
                     clip: true
 
-                    // Filter 选项卡：9 项下拉，2 列（右列窄于左上三列）。
-                    Grid {
-                        id: filterGrid
+                    // Filter 选项卡：9 项下拉，垂直单列排列，超高时纵向滚动。
+                    Flickable {
                         visible: root.activeTab === "filter"
                         anchors.fill: parent
                         anchors.margins: 8 * Theme.scaleFactor
-                        columns: 2
-                        columnSpacing: 12 * Theme.scaleFactor
-                        rowSpacing: 6 * Theme.scaleFactor
+                        contentWidth: width
+                        contentHeight: filterCol.height
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        Repeater {
-                            model: fontBridge.filterMeta()
-                            delegate: EnumCombo {
-                                width: (filterGrid.width - filterGrid.columnSpacing) / 2
-                                label: modelData.label
-                                options: modelData.options
-                                value: modelData.value
-                                onChanged: function(v) {
-                                    var d = fontBridge.setFilter(modelData.var, v)
-                                    familyModel.value = d.families
-                                    root.previewUrl = d.preview
+                        Column {
+                            id: filterCol
+                            width: parent.width
+                            spacing: 6 * Theme.scaleFactor
+
+                            Repeater {
+                                model: fontBridge.filterMeta()
+                                delegate: EnumCombo {
+                                    width: filterCol.width
+                                    label: modelData.label
+                                    options: modelData.options
+                                    value: modelData.value
+                                    onChanged: function(v) {
+                                        var d = fontBridge.setFilter(modelData.var, v)
+                                        familyModel.value = d.families
+                                        root.previewUrl = d.preview
+                                    }
                                 }
                             }
                         }
                     }
 
-                    // Advanced 选项卡：定制下拉，2 列。
-                    Grid {
-                        id: customizeGrid
+                    // Advanced 选项卡：定制下拉，垂直单列排列，超高时纵向滚动。
+                    Flickable {
                         visible: root.activeTab === "advanced"
                         anchors.fill: parent
                         anchors.margins: 8 * Theme.scaleFactor
-                        columns: 2
-                        columnSpacing: 12 * Theme.scaleFactor
-                        rowSpacing: 6 * Theme.scaleFactor
+                        contentWidth: width
+                        contentHeight: customizeCol.height
+                        clip: true
+                        boundsBehavior: Flickable.StopAtBounds
 
-                        Repeater {
-                            model: fontBridge.customizeMeta()
-                            delegate: EnumCombo {
-                                width: (customizeGrid.width - customizeGrid.columnSpacing) / 2
-                                label: modelData.label
-                                options: modelData.options
-                                value: modelData.value
-                                onChanged: function(v) {
-                                    root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
+                        Column {
+                            id: customizeCol
+                            width: parent.width
+                            spacing: 6 * Theme.scaleFactor
+
+                            Repeater {
+                                model: fontBridge.customizeMeta()
+                                delegate: EnumCombo {
+                                    width: customizeCol.width
+                                    label: modelData.label
+                                    options: modelData.options
+                                    value: modelData.value
+                                    onChanged: function(v) {
+                                        root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
+                                    }
                                 }
                             }
                         }
