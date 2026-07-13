@@ -487,17 +487,20 @@ concater_rep::typeset_ellipse (tree t, path ip, bool close) {
   for (i= 0; i < n; i++)
     cip[i]= descend (ip, i);
   if (N (a) == 0 || N (a[0]) == 0) typeset_error (t, ip);
+  else if (n != 3) {
+    typeset_line (t, ip, close, true);
+  }
   else {
-    if (n != 3 || linearly_dependent (a[0], a[1], a[2])) {
+    double focal_length  = norm (a[1] - a[0]);
+    double sum_of_two_dis= norm (a[2] - a[0]) + norm (a[2] - a[1]);
+    // 椭圆要求 a > c；共线且 c >= a（即第三点在焦点之间）时退化为线段
+    if (linearly_dependent (a[0], a[1], a[2]) &&
+        focal_length >= sum_of_two_dis) {
       // cout << "typeset_ellipse: linearly dependent points "<< "\n";
       typeset_line (t, ip, close, true);
     }
     else {
-      double focal_length, sum_of_two_dis;
-      point  f1= a[0], f2= a[1], o3= a[2];
-      focal_length  = norm (f2 - f1);
-      sum_of_two_dis= norm (o3 - f1) + norm (o3 - f2);
-      curve c       = env->fr (ellipse (a, cip, close));
+      curve c= env->fr (ellipse (a, cip, close));
       adjust_extremities (c, env->white_zones);
       print (curve_box (ip, c, env->line_portion, env->pen, env->dash_style,
                         env->dash_motif, env->dash_style_unit, env->fill_brush,
@@ -518,8 +521,15 @@ concater_rep::typeset_hyperbola (tree t, path ip, bool close) {
   for (i= 0; i < n; i++)
     cip[i]= descend (ip, i);
   if (N (a) == 0 || N (a[0]) == 0) typeset_error (t, ip);
+  else if (n != 3) {
+    typeset_line (t, ip, close, true);
+  }
   else {
-    if (n != 3 || linearly_dependent (a[0], a[1], a[2])) {
+    double focal_length   = norm (a[1] - a[0]);
+    double diff_of_two_dis= abs (norm (a[2] - a[0]) - norm (a[2] - a[1]));
+    // 双曲线要求 a < c；共线且 c <= a（即第三点在焦点连线延长线上）时退化
+    if (linearly_dependent (a[0], a[1], a[2]) &&
+        focal_length <= diff_of_two_dis) {
       // cout << "typeset_hyperbola: linearly dependent points "<< "\n";
       typeset_line (t, ip, close, true);
     }

@@ -1031,9 +1031,15 @@ ellipse_rep::ellipse_rep (array<point> a2, array<path> cip2, bool close)
     r2= 1e-4;
   }
 
-  if (orthogonalize (i, j, center, points[0], points[1]))
+  if (orthogonalize (i, j, center, points[0], points[2]))
     ;
-  else orthogonalize (i, j, center, points[0], points[2]);
+  else {
+    // 三点共线，手动构造正交基
+    point axis= points[0] - center;
+    if (norm (axis) > 1e-6) i= axis / norm (axis);
+    else i= point (1, 0);
+    j= point (-i[1], i[0]);
+  }
 }
 
 point
@@ -1126,7 +1132,13 @@ hyperbola_rep::hyperbola_rep (array<point> a2, array<path> cip2, bool close)
   point f_close= (norm (points[2] - f2) < norm (points[2] - f1)) ? f2 : f1;
   if (orthogonalize (i, j, center, f_close, points[2]))
     ;
-  else orthogonalize (i, j, center, f_close, f_close + point (0, 1));
+  else {
+    // 三点共线，手动构造正交基
+    point axis= f_close - center;
+    if (norm (axis) > 1e-6) i= axis / norm (axis);
+    else i= point (1, 0);
+    j= point (-i[1], i[0]);
+  }
 
   double ratio= norm (points[2] - center) / (r1 + 1e-6);
   u_max       = max (6.0, my_acosh (ratio) * 1.5);
