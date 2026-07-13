@@ -36,6 +36,7 @@
 #include <GLFW/glfw3.h> // defines GLFWwindow, drags in system OpenGL headers
 
 #ifdef __EMSCRIPTEN__
+#include <GLFW/emscripten_glfw3.h>
 #include <emscripten.h>
 #endif
 
@@ -233,14 +234,24 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
 
   float main_scale=
       ImGui_ImplGlfw_GetContentScaleForMonitor (glfwGetPrimaryMonitor ());
-  const int    win_w  = 800; // size for init
-  const int    win_h  = 600;
+  SI win_w, win_h;
+  gui_root_extents (win_w, win_h);
+  win_w               = win_w / PIXEL;
+  win_h               = win_h / PIXEL;
   GLFWmonitor* monitor= glfwGetPrimaryMonitor ();
   int          wa_x= 0, wa_y= 0, wa_w= win_w, wa_h= win_h;
   if (monitor != nullptr)
     glfwGetMonitorWorkarea (monitor, &wa_x, &wa_y, &wa_w, &wa_h);
+#ifdef __EMSCRIPTEN__
+  glfwWindowHint (GLFW_SCALE_FRAMEBUFFER, GLFW_TRUE); // Enable retina
+  emscripten_glfw_set_next_window_canvas_selector ("#main-canvas");
+#endif
   window= glfwCreateWindow ((int) win_w * main_scale, (int) win_h * main_scale,
                             "Mogan (ImGui)", nullptr, nullptr);
+#ifdef __EMSCRIPTEN__
+  emscripten_glfw_make_canvas_resizable (window, "window",
+                                         nullptr); // emscripten 3.1.56 specific
+#endif
   if (window == nullptr) {
     return;
   }

@@ -10,28 +10,35 @@ js = os.path.join(root, "stem.js")
 #if not os.path.exists(html) and os.path.exists(js):
 with open(html, "w", encoding="utf-8") as f:
     f.write("""<!doctype html>
+<!doctype html>
 <html>
 <head>
   <meta charset="utf-8">
   <title>stem</title>
   <style>
-    html, body, canvas {
+    html, body {
       margin: 0;
       width: 100%;
       height: 100%;
       overflow: hidden;
+      background-color: #9f9f9f;
+    }
+    #main-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      outline: none;
     }
   </style>
 </head>
 <body>
-  <canvas id="canvas"></canvas>
-
+  <canvas id="main-canvas" tabindex="1"></canvas>
+  <!-- tabindex="1" 允许 main-canvas 被获得 focus -->
   <script>
     var Module = {
-      canvas: document.getElementById('canvas')
+      canvas: document.getElementById("main-canvas")
     };
   </script>
-
   <script src="stem.js"></script>
 </body>
 </html>

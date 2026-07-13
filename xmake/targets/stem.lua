@@ -101,9 +101,9 @@ target("stem") do
     
     if is_plat("wasm") then
         add_cxxflags("-O3")
-        add_cxxflags("-sUSE_GLFW=3")
+        add_cxxflags("--use-port=contrib.glfw3")
         add_ldflags("-O3")
-        add_ldflags("-sUSE_GLFW=3")
+        add_ldflags("--use-port=contrib.glfw3")
         add_ldflags("-sINITIAL_MEMORY=512MB")
         add_ldflags("-sALLOW_MEMORY_GROWTH=1")
         add_ldflags("-sSTACK_SIZE=32MB", {force = true})
