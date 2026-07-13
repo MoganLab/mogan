@@ -111,38 +111,52 @@ DialogShell {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
 
-            // 选项卡面板（顶部，占据剩余高度）。
-            Item {
+            // 选项卡面板（顶部，占据剩余高度）。直角无框容器（listBg 底），选项卡
+            // 行与内容都在容器内；选中态为圆角胶囊（波浪包裹），色调与列表选中一致。
+            Rectangle {
                 id: tabPanel
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: bottomButtons.top
                 anchors.bottomMargin: 12 * Theme.scaleFactor
+                color: Theme.listBg
+                radius: 8 * Theme.scaleFactor
+                border.width: 1 * Theme.scaleFactor
+                border.color: Theme.borderClr
+                clip: true
 
-                // 选项卡行（自绘）。
+                // 选项卡行（容器内顶部）。
                 Row {
                     id: tabBar
-                    spacing: 4 * Theme.scaleFactor
+                    anchors.top: parent.top
+                    anchors.topMargin: 8 * Theme.scaleFactor
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8 * Theme.scaleFactor
+                    spacing: 8 * Theme.scaleFactor
                     Repeater {
                         model: [ { key: "filter", label: root.labels.filter }, { key: "advanced", label: root.labels.advanced } ]
                         delegate: Rectangle {
-                            width: tabText.width + 24 * Theme.scaleFactor
-                            height: 28 * Theme.scaleFactor
-                            radius: 6 * Theme.scaleFactor
-                            color: root.activeTab === modelData.key ? Theme.fieldBg : "transparent"
-                            border.width: 1 * Theme.scaleFactor
-                            border.color: root.activeTab === modelData.key ? Theme.borderClr : "transparent"
+                            readonly property bool isActive: root.activeTab === modelData.key
+                            width: tabText.width + 28 * Theme.scaleFactor
+                            height: 30 * Theme.scaleFactor
+                            radius: height / 2
+                            color: isActive ? Theme.selectBg
+                                            : (tabMa.containsMouse ? Theme.fieldBgHover : "transparent")
+                            border.width: isActive ? 1 * Theme.scaleFactor : 0
+                            border.color: Theme.selectBorder
                             Text {
                                 id: tabText
                                 anchors.centerIn: parent
                                 text: modelData.label
-                                color: root.activeTab === modelData.key ? Theme.fg : Theme.borderClr
+                                color: isActive ? Theme.selectFg : Theme.fg
                                 font.pixelSize: 13 * Theme.scaleFactor
-                                font.bold: root.activeTab === modelData.key
+                                font.bold: isActive
                             }
                             MouseArea {
+                                id: tabMa
                                 anchors.fill: parent
+                                hoverEnabled: true
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: root.activeTab = modelData.key
                             }
@@ -150,76 +164,74 @@ DialogShell {
                     }
                 }
 
-                // 选项卡内容。
-                Rectangle {
+                // Filter 选项卡：9 项下拉，垂直单列排列，超高时纵向滚动。四周留内缩进。
+                Flickable {
+                    visible: root.activeTab === "filter"
                     anchors.top: tabBar.bottom
-                    anchors.topMargin: 4 * Theme.scaleFactor
+                    anchors.topMargin: 8 * Theme.scaleFactor
                     anchors.left: parent.left
+                    anchors.leftMargin: 8 * Theme.scaleFactor
                     anchors.right: parent.right
+                    anchors.rightMargin: 8 * Theme.scaleFactor
                     anchors.bottom: parent.bottom
-                    color: Theme.fieldBg
-                    radius: 8 * Theme.scaleFactor
-                    border.width: 1 * Theme.scaleFactor
-                    border.color: Theme.borderClr
+                    anchors.bottomMargin: 8 * Theme.scaleFactor
+                    contentWidth: width
+                    contentHeight: filterCol.height
                     clip: true
+                    boundsBehavior: Flickable.StopAtBounds
 
-                    // Filter 选项卡：9 项下拉，垂直单列排列，超高时纵向滚动。
-                    Flickable {
-                        visible: root.activeTab === "filter"
-                        anchors.fill: parent
-                        anchors.margins: 8 * Theme.scaleFactor
-                        contentWidth: width
-                        contentHeight: filterCol.height
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
+                    Column {
+                        id: filterCol
+                        width: parent.width
+                        spacing: 6 * Theme.scaleFactor
 
-                        Column {
-                            id: filterCol
-                            width: parent.width
-                            spacing: 6 * Theme.scaleFactor
-
-                            Repeater {
-                                model: fontBridge.filterMeta()
-                                delegate: EnumCombo {
-                                    width: filterCol.width
-                                    label: modelData.label
-                                    options: modelData.options
-                                    value: modelData.value
-                                    onChanged: function(v) {
-                                        var d = fontBridge.setFilter(modelData.var, v)
-                                        familyModel.value = d.families
-                                        root.previewUrl = d.preview
-                                    }
+                        Repeater {
+                            model: fontBridge.filterMeta()
+                            delegate: EnumCombo {
+                                width: filterCol.width
+                                label: modelData.label
+                                options: modelData.options
+                                value: modelData.value
+                                onChanged: function(v) {
+                                    var d = fontBridge.setFilter(modelData.var, v)
+                                    familyModel.value = d.families
+                                    root.previewUrl = d.preview
                                 }
                             }
                         }
                     }
+                }
 
-                    // Advanced 选项卡：定制下拉，垂直单列排列，超高时纵向滚动。
-                    Flickable {
-                        visible: root.activeTab === "advanced"
-                        anchors.fill: parent
-                        anchors.margins: 8 * Theme.scaleFactor
-                        contentWidth: width
-                        contentHeight: customizeCol.height
-                        clip: true
-                        boundsBehavior: Flickable.StopAtBounds
+                // Advanced 选项卡：定制下拉，垂直单列排列，超高时纵向滚动。四周留内缩进。
+                Flickable {
+                    visible: root.activeTab === "advanced"
+                    anchors.top: tabBar.bottom
+                    anchors.topMargin: 8 * Theme.scaleFactor
+                    anchors.left: parent.left
+                    anchors.leftMargin: 8 * Theme.scaleFactor
+                    anchors.right: parent.right
+                    anchors.rightMargin: 8 * Theme.scaleFactor
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 8 * Theme.scaleFactor
+                    contentWidth: width
+                    contentHeight: customizeCol.height
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBounds
 
-                        Column {
-                            id: customizeCol
-                            width: parent.width
-                            spacing: 6 * Theme.scaleFactor
+                    Column {
+                        id: customizeCol
+                        width: parent.width
+                        spacing: 6 * Theme.scaleFactor
 
-                            Repeater {
-                                model: fontBridge.customizeMeta()
-                                delegate: EnumCombo {
-                                    width: customizeCol.width
-                                    label: modelData.label
-                                    options: modelData.options
-                                    value: modelData.value
-                                    onChanged: function(v) {
-                                        root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
-                                    }
+                        Repeater {
+                            model: fontBridge.customizeMeta()
+                            delegate: EnumCombo {
+                                width: customizeCol.width
+                                label: modelData.label
+                                options: modelData.options
+                                value: modelData.value
+                                onChanged: function(v) {
+                                    root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
                                 }
                             }
                         }

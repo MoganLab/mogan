@@ -50,7 +50,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.fieldBg
+        color: Theme.listBg
+        radius: 8 * Theme.scaleFactor
+        border.width: 1 * Theme.scaleFactor
+        border.color: Theme.borderClr
         clip: true
 
         // 标题行（容器内顶部）。

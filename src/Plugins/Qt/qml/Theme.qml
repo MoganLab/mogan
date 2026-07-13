@@ -19,8 +19,11 @@ QtObject {
     readonly property color fieldBgHover: dark ? "#4e4e4e" : "#e5e7eb"// 同上 hover
     readonly property color borderClr: dark ? "#3e3e3e" : "#d0d4da"   // 边框
 
-    // 列表项选中态（对齐 HTML .list-box li.active：浅青底 + 边框 + 深青字）。
+    // 列表项选中态
     readonly property color selectBg: dark ? "#1f4a48" : "#dff3f1"     // 选中项底色
     readonly property color selectBorder: dark ? "#2f6a67" : "#b3d9d6" // 选中项边框
     readonly property color selectFg: dark ? "#bfeeeb" : "#194f53"    // 选中项文字
+
+    // 列表/选项卡容器底色
+    readonly property color listBg: dark ? "#2a3a39" : "#fbfdfd"
 }
