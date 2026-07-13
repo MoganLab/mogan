@@ -76,10 +76,11 @@ FontSelectorBridge::evalString (const string& proc) {
 
 QString
 FontSelectorBridge::evalString1 (const string& proc, const string& arg) {
-  // arg 是 cork mogan string（如 ":family" 字面），直接 scm_quote，不经 QString
-  // 往返。
-  string expr= "(" * proc * " " * key_token (m_specsKey) * " " *
-               moebius::data::scm_quote (arg) * ")";
+  // arg 是 scheme keyword 字面（":family"/":style"/":size"，ASCII 故
+  // cork==ascii）。 直接拼入表达式——不能 scm_quote：那会变成 string，与 scheme
+  // 侧 keyword 比较
+  // (== var :family) 不等，selector-get 落入 else 返回 #f，转空 QString。
+  string expr= "(" * proc * " " * key_token (m_specsKey) * " " * arg * ")";
   return tmscm_to_qstring (eval_scheme (expr));
 }
 

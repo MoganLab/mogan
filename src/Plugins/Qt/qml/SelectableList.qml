@@ -3,7 +3,7 @@
 // choice+scrollable 即此形态。组件层纯 QtQuick，不依赖 Controls，与同目录其它
 // 原子板块同构（Theme 单例取主题）。
 //
-// 直角无框：容器无边框无圆角，仅靠 delegate 行底色与列表区底色区分；标题（title）
+// 直角无框：容器无边框无圆角，选中态是 delegate 内嵌的圆角高亮块；标题（title）
 // 渲染在容器内顶部第一行，下方为可滚动列表区。
 //
 // API：
@@ -20,8 +20,9 @@
 //       onSelected: function(v) { /* 联动 */ }
 //   }
 //
-// model 切换后 currentIndex 须据 currentValue 重算（scheme 是状态真相源，非 QML
-// index）—— 由 currentValue 绑定 + onItemsChanged 自动重算，调用方无需手动同步。
+// 选中态用内部 activeValue 维护：currentValue 绑定到无参 bridge 函数，QML 不会因
+// bridge 内部状态变化重算，故点击即时更新 activeValue 驱动高亮；currentValue 变化
+// 时（reset 后重拉）同步回内部态。调用方无需手动同步。
 
 import QtQuick
 
@@ -33,9 +34,7 @@ Item {
     property string title: ""
     signal selected(string value)
 
-    // 内部选中态：初始取 currentValue，点击后即时更新——避免依赖外部 currentValue
-    //（绑定到无参 bridge 函数，QML 不会因 bridge 内部状态变化重算，导致点击后选中框
-    // 不移动）。currentValue 变化时（如 reset/外部刷新）同步回内部态。
+    // 选中态（详见文件头）：点击即时更新，currentValue 变化时同步（reset 等）。
     property string activeValue: currentValue
     onCurrentValueChanged: activeValue = currentValue
 
