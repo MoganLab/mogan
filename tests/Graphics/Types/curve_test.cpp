@@ -168,11 +168,9 @@ TestCurveConic::test_ellipse_non_collinear () {
   QVERIFY (e.center == mkp (1, 0));
 
   // 椭圆上任意一点到两焦点距离之和应为常数
-  double sum= norm (e.evaluate (0.0) - e.f1) +
-              norm (e.evaluate (0.0) - e.f2);
+  double sum= norm (e.evaluate (0.0) - e.f1) + norm (e.evaluate (0.0) - e.f2);
   for (double t= 0.25; t <= 1.0; t+= 0.25) {
-    double s= norm (e.evaluate (t) - e.f1) +
-              norm (e.evaluate (t) - e.f2);
+    double s= norm (e.evaluate (t) - e.f1) + norm (e.evaluate (t) - e.f2);
     QVERIFY (fuzzy_eq (s, sum, 1e-6));
   }
 }
@@ -293,8 +291,8 @@ TestCurveConic::test_hyperbola_non_collinear () {
   QVERIFY (h.center == mkp (1, 0));
 
   // 双曲线上任意一点到两焦点距离之差的绝对值应为常数
-  double d1= norm (h.evaluate (0.0) - h.f1);
-  double d2= norm (h.evaluate (0.0) - h.f2);
+  double d1  = norm (h.evaluate (0.0) - h.f1);
+  double d2  = norm (h.evaluate (0.0) - h.f2);
   double diff= d1 > d2 ? d1 - d2 : d2 - d1;
   for (double t= 0.1; t < 1.0; t+= 0.1) {
     double dt1= norm (h.evaluate (t) - h.f1);
