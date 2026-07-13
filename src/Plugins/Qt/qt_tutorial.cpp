@@ -291,8 +291,10 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
                            .arg (step.id);
       return false;
     }
-    step.actionButtonLabel  = QString::fromStdString (labelIt->get<std::string> ());
-    step.actionButtonCommand= QString::fromStdString (cmdIt->get<std::string> ());
+    step.actionButtonLabel=
+        QString::fromStdString (labelIt->get<std::string> ());
+    step.actionButtonCommand=
+        QString::fromStdString (cmdIt->get<std::string> ());
   }
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
@@ -560,10 +562,9 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_bottomTextLabel->setTextFormat (Qt::RichText);
   m_bottomTextLabel->setOpenExternalLinks (false);
   m_bottomTextLabel->setTextInteractionFlags (Qt::LinksAccessibleByMouse);
-  QObject::connect (m_bottomTextLabel,
-                    &QLabel::linkActivated, [] (const QString& link) {
-                      QDesktopServices::openUrl (QUrl (link));
-                    });
+  QObject::connect (
+      m_bottomTextLabel, &QLabel::linkActivated,
+      [] (const QString& link) { QDesktopServices::openUrl (QUrl (link)); });
   m_mediaContainer->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
   m_mediaContainer->setVisible (false);
   m_mediaContainer->setFixedSize (0, 0);
@@ -765,7 +766,7 @@ TutorialBubble::setLastStep (bool last) {
 
 void
 TutorialBubble::setNextEnabled (bool enabled, const QString& toolTip) {
-  m_nextGateEnabled = enabled;
+  m_nextGateEnabled= enabled;
   m_nextButton->setToolTip (toolTip);
   if (enabled && m_nextMode == NextButtonMode::ActionTrigger)
     m_nextMode= NextButtonMode::NormalNext;
@@ -774,11 +775,11 @@ TutorialBubble::setNextEnabled (bool enabled, const QString& toolTip) {
 
 void
 TutorialBubble::setActionButton (const QString& label, const QString& command) {
-  m_actionLabel  = label;
-  m_actionCommand= command;
+  m_actionLabel       = label;
+  m_actionCommand     = command;
   const bool hasAction= !label.isEmpty () && !command.isEmpty ();
-  m_nextMode= hasAction ? NextButtonMode::ActionTrigger
-                        : NextButtonMode::NormalNext;
+  m_nextMode=
+      hasAction ? NextButtonMode::ActionTrigger : NextButtonMode::NormalNext;
   applyNextButtonAppearance ();
 }
 
@@ -1214,10 +1215,14 @@ TutorialEngine::pollRequiredAction () {
 
   m_completedActionSteps.insert (step.id);
   reset_user_preference (kTutorialLastActionPreference);
-  const bool isLastStep= (m_currentIndex == m_config.steps.size () - 1);
-  const QString notice= isLastStep
-      ? QStringLiteral ("<span style=\"color:#0f766e\">恭喜您！教程已完成！</span>")
-      : QStringLiteral ("<span style=\"color:#0f766e\">恭喜您！可以进入下一步教程了！</span>");
+  const bool    isLastStep= (m_currentIndex == m_config.steps.size () - 1);
+  const QString notice=
+      isLastStep
+          ? QStringLiteral (
+                "<span style=\"color:#0f766e\">恭喜您！教程已完成！</span>")
+          : QStringLiteral ("<span "
+                            "style=\"color:#0f766e\">"
+                            "恭喜您！可以进入下一步教程了！</span>");
   m_overlay->appendBottomNotice (notice);
   updateCurrentStepGate ();
 }
