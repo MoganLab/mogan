@@ -29,6 +29,7 @@
 
 (define selector-table (make-ahash-table))
 ;; key -> (family style size)：对话框打开瞬间的初始字体快照，供「重置」回放。
+
 (define initial-snapshot (make-ahash-table))
 
 (define (selkey specs var)
@@ -307,6 +308,7 @@
 ;; 块污染）替代 initial-font-data 里的 get-env（读光标处，会被 live 写回插的 with
 ;; 污染）。供对话框「重置」快照——多次开关对话框时，get-env 被历史 live 写回污染，
 ;; get-init 仍稳定返回文档/启动默认（中文环境经 CJK 映射，如 Noto Serif CJK SC）。
+
 (define (font-document-default-data)
   (let* ((fam (font-family-main (or (get-init (pref-font)) "roman")))
          (var (or (get-init (pref-font-family)) "rm"))
@@ -316,10 +318,7 @@
          (lf (logical-font-private fam var ser sh))
          (fn (logical-font-search-exact lf))
         ) ;
-    (list (or (car fn) "TeXmacs Computer Modern")
-      (or (cadr fn) "Regular")
-      sz
-    ) ;list
+    (list (or (car fn) "TeXmacs Computer Modern") (or (cadr fn) "Regular") sz)
   ) ;let*
 ) ;define
 
@@ -1404,10 +1403,12 @@
     ;; 此处把快照写入 selector-table（覆盖被污染的 fallback），不触发 setter、不写
     ;; buffer。filter/customize 经 selector-clean 清回 "Any"/默认。
     (selector-clean specs)
-    (with snap (ahash-ref initial-snapshot key)
+    (with snap
+      (ahash-ref initial-snapshot key)
       (ahash-set! selector-table (selkey specs :family) (car snap))
       (ahash-set! selector-table (selkey specs :style) (cadr snap))
-      (ahash-set! selector-table (selkey specs :size) (caddr snap)))
+      (ahash-set! selector-table (selkey specs :size) (caddr snap))
+    ) ;with
   ) ;with
 ) ;tm-define
 
