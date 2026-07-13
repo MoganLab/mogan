@@ -297,11 +297,11 @@ void
 FontSelectorBridge::submit () {
   string expr= "(font-selector-commit " * key_token (m_specsKey) * ")";
   eval_scheme (expr);
-  m_host->done (QDialog::Accepted);
+  m_host->close ();
 }
 
 void
 FontSelectorBridge::cancel () {
   eval_scheme ("(font-selector-cancel " * key_token (m_specsKey) * ")");
-  m_host->done (QDialog::Rejected);
+  m_host->close ();
 }
