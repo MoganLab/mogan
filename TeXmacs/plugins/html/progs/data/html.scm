@@ -13,9 +13,17 @@
 
 (texmacs-module (data html))
 
+(import (liii ascii))
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Html
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; ASCII-only 大小写折叠：仅折叠 A-Z，非 ASCII 原样保留。
+;; HTML 标签/属性名都是 ASCII，用此替代 string-downcase 可避免
+;; 对含损坏 UTF-8 字节的输入触发 string->utf8 整段校验而崩溃。
+(define (html-ascii-downcase s)
+  (string-map (lambda (c) (ascii-downcase c)) s))
 
 (define html-detected-limit 1000)
 
@@ -79,7 +87,7 @@
         (let* ((len (string-length s))
                (limit (if (>= len html-detected-limit) html-detected-limit len))
                (substr (substring s 0 limit))
-               (lc-substr (string-downcase substr)))
+               (lc-substr (html-ascii-downcase substr)))
           (let ((count (+ (html-string-count-substring lc-substr "<div")
                          (html-string-count-substring lc-substr "<span")
                          (html-string-count-substring lc-substr "<p")
@@ -131,7 +139,7 @@
 
 ;; 这一行文本是否包含html标签
 (define (html-line-contains-features? line)
-    (let ((lc-line (string-downcase line)))
+    (let ((lc-line (html-ascii-downcase line)))
       (or
        (> (html-string-count-substring lc-line "<div") 0)
        (> (html-string-count-substring lc-line "<span") 0)
@@ -176,7 +184,7 @@
 
 ;; 计算div标签的平衡性
 (define (html-structure-balanced? s)
-    (let* ((lc-s (string-downcase s))
+    (let* ((lc-s (html-ascii-downcase s))
            (open-tags (html-string-count-substring lc-s "<div"))
            (close-tags (html-string-count-substring lc-s "</div")))
       ;; div 的开标签与闭标签数量差小于2
@@ -190,11 +198,11 @@
           (and (> (character-from-string s #\<) 0)
                (> (character-from-string s #\>) 0)
                (> (html-string-count-substring s "</") 0))
-          (> (html-string-count-substring (string-downcase s) "class=") 0)
-          (> (html-string-count-substring (string-downcase s) "id=") 0)
-          (> (html-string-count-substring (string-downcase s) "style=") 0)
-          (> (html-string-count-substring (string-downcase s) "href=") 0)
-          (> (html-string-count-substring (string-downcase s) "src=") 0))
+          (> (html-string-count-substring (html-ascii-downcase s) "class=") 0)
+          (> (html-string-count-substring (html-ascii-downcase s) "id=") 0)
+          (> (html-string-count-substring (html-ascii-downcase s) "style=") 0)
+          (> (html-string-count-substring (html-ascii-downcase s) "href=") 0)
+          (> (html-string-count-substring (html-ascii-downcase s) "src=") 0))
          #t)
         ((>= (html-angle-bracket-density s) 0.03) #t)
         (else #f))))
