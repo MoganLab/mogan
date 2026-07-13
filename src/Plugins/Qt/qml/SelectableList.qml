@@ -3,14 +3,19 @@
 // choice+scrollable 即此形态。组件层纯 QtQuick，不依赖 Controls，与同目录其它
 // 原子板块同构（Theme 单例取主题）。
 //
+// 直角无框：容器无边框无圆角，仅靠 delegate 行底色与列表区底色区分；标题（title）
+// 渲染在容器内顶部第一行，下方为可滚动列表区。
+//
 // API：
 //   items         : list<string>  —— 可选项。
 //   currentValue  : string        —— 当前选中值（高亮 + 滚到可见）。
+//   title         : string        —— 容器内顶部标题（空串则不占标题行）。
 //   signal selected(string value) —— 点击新项时发出。
 //
 // 用法（宽度/高度由父布局给定）：
 //   SelectableList {
 //       width: 300; height: 350
+//       title: "字体"
 //       items: fontBridge.requestFamilies(); currentValue: fontBridge.currentFamily()
 //       onSelected: function(v) { /* 联动 */ }
 //   }
@@ -25,26 +30,52 @@ Item {
 
     property var items: []
     property string currentValue: ""
+    property string title: ""
     signal selected(string value)
 
-    // currentValue 在 items 中的下标，不在则 -1。
+    // 内部选中态：初始取 currentValue，点击后即时更新——避免依赖外部 currentValue
+    //（绑定到无参 bridge 函数，QML 不会因 bridge 内部状态变化重算，导致点击后选中框
+    // 不移动）。currentValue 变化时（如 reset/外部刷新）同步回内部态。
+    property string activeValue: currentValue
+    onCurrentValueChanged: activeValue = currentValue
+
+    // 标题行高（空 title 时为 0，不占空间）。
+    readonly property real headerH: root.title.length > 0 ? 24 * Theme.scaleFactor : 0
+
+    // activeValue 在 items 中的下标，不在则 -1。
     readonly property int currentIndex: {
         for (var i = 0; i < items.length; i++)
-            if (items[i] === currentValue) return i
+            if (items[i] === activeValue) return i
         return -1
     }
 
     Rectangle {
         anchors.fill: parent
         color: Theme.fieldBg
-        radius: 8 * Theme.scaleFactor
-        border.width: 1 * Theme.scaleFactor
-        border.color: Theme.borderClr
         clip: true
+
+        // 标题行（容器内顶部）。
+        Text {
+            id: header
+            visible: root.title.length > 0
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: root.headerH
+            verticalAlignment: Text.AlignVCenter
+            leftPadding: 8 * Theme.scaleFactor
+            text: root.title
+            color: Theme.fg
+            font.bold: true
+            font.pixelSize: 14 * Theme.scaleFactor
+        }
 
         ListView {
             id: list
-            anchors.fill: parent
+            anchors.top: header.bottom
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             clip: true
             interactive: true
             boundsBehavior: Flickable.StopAtBounds
@@ -54,21 +85,34 @@ Item {
             // currentValue 变化或 items 切换后，把当前项滚到可见。
             onCurrentIndexChanged: if (currentIndex >= 0) positionViewAtIndex(currentIndex, ListView.Contain)
 
-            delegate: Rectangle {
+            delegate: Item {
                 width: list.width
                 height: 36 * Theme.scaleFactor
-                // 当前值高亮（accent 底 + 白字），hover 浅高亮。
-                color: isCurrent ? Theme.accent
-                                 : (ma.containsMouse ? Theme.fieldBgHover : Theme.fieldBg)
-                readonly property bool isCurrent: root.currentValue === modelData
+                readonly property bool isCurrent: root.activeValue === modelData
+
+                // 选中/hover 的圆角内嵌高亮块（对齐 HTML .list-box li.active）：
+                // 选中 = 浅青底 + 边框；hover（非选中）= 浅底；否则透明。
+                Rectangle {
+                    id: hilite
+                    anchors.fill: parent
+                    anchors.leftMargin: 8 * Theme.scaleFactor
+                    anchors.rightMargin: 8 * Theme.scaleFactor
+                    anchors.topMargin: 4 * Theme.scaleFactor
+                    anchors.bottomMargin: 4 * Theme.scaleFactor
+                    radius: 8 * Theme.scaleFactor
+                    color: isCurrent ? Theme.selectBg
+                                     : (ma.containsMouse ? Theme.fieldBgHover : "transparent")
+                    border.width: isCurrent ? 1 * Theme.scaleFactor : 0
+                    border.color: Theme.selectBorder
+                }
 
                 Text {
                     anchors.fill: parent
-                    anchors.leftMargin: 14 * Theme.scaleFactor
-                    anchors.rightMargin: 10 * Theme.scaleFactor
+                    anchors.leftMargin: 20 * Theme.scaleFactor
+                    anchors.rightMargin: 18 * Theme.scaleFactor
                     verticalAlignment: Text.AlignVCenter
                     text: modelData
-                    color: isCurrent ? "#ffffff" : Theme.fg
+                    color: isCurrent ? Theme.selectFg : Theme.fg
                     font.pixelSize: 14 * Theme.scaleFactor
                     elide: Text.ElideRight
                 }
@@ -78,7 +122,10 @@ Item {
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
                     onClicked: {
-                        if (!isCurrent) root.selected(modelData)
+                        if (!isCurrent) {
+                            root.activeValue = modelData
+                            root.selected(modelData)
+                        }
                     }
                 }
             }

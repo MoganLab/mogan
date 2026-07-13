@@ -42,55 +42,40 @@ DialogShell {
             width: root.leftColumnWidth
             spacing: root.columnGap
 
-            // 上：三栏 family/style/size（缩窄）。
+            // 上：三栏 family/style/size（缩窄）。标题已并入 SelectableList 容器内顶部。
             Row {
                 id: columns3
                 width: parent.width
                 height: 300 * Theme.scaleFactor
                 spacing: 12 * Theme.scaleFactor
 
-                Column {
+                SelectableList {
                     width: 229 * Theme.scaleFactor
                     height: parent.height
-                    spacing: 6 * Theme.scaleFactor
-                    Text { text: root.labels.family; color: Theme.fg; font.bold: true
-                           font.pixelSize: 14 * Theme.scaleFactor }
-                    SelectableList {
-                        width: parent.width; height: parent.height - 20 * Theme.scaleFactor
-                        items: familyModel.value
-                        currentValue: fontBridge.currentFamily()
-                        onSelected: function(v) {
-                            var d = fontBridge.setFamily(v)
-                            styleModel.value = d.styles
-                            root.previewUrl = d.preview
-                        }
+                    title: root.labels.family
+                    items: familyModel.value
+                    currentValue: fontBridge.currentFamily()
+                    onSelected: function(v) {
+                        var d = fontBridge.setFamily(v)
+                        styleModel.value = d.styles
+                        root.previewUrl = d.preview
                     }
                 }
-                Column {
+                SelectableList {
                     width: 172 * Theme.scaleFactor
                     height: parent.height
-                    spacing: 6 * Theme.scaleFactor
-                    Text { text: root.labels.style; color: Theme.fg; font.bold: true
-                           font.pixelSize: 14 * Theme.scaleFactor }
-                    SelectableList {
-                        width: parent.width; height: parent.height - 20 * Theme.scaleFactor
-                        items: styleModel.value
-                        currentValue: fontBridge.currentStyle()
-                        onSelected: function(v) { root.previewUrl = fontBridge.setStyle(v).preview }
-                    }
+                    title: root.labels.style
+                    items: styleModel.value
+                    currentValue: fontBridge.currentStyle()
+                    onSelected: function(v) { root.previewUrl = fontBridge.setStyle(v).preview }
                 }
-                Column {
+                SelectableList {
                     width: 115 * Theme.scaleFactor
                     height: parent.height
-                    spacing: 6 * Theme.scaleFactor
-                    Text { text: root.labels.size; color: Theme.fg; font.bold: true
-                           font.pixelSize: 14 * Theme.scaleFactor }
-                    SelectableList {
-                        width: parent.width; height: parent.height - 20 * Theme.scaleFactor
-                        items: fontBridge.requestSizes()
-                        currentValue: fontBridge.currentSize()
-                        onSelected: function(v) { root.previewUrl = fontBridge.setSize(v).preview }
-                    }
+                    title: root.labels.size
+                    items: fontBridge.requestSizes()
+                    currentValue: fontBridge.currentSize()
+                    onSelected: function(v) { root.previewUrl = fontBridge.setSize(v).preview }
                 }
             }
 
