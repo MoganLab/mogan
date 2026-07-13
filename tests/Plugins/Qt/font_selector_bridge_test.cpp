@@ -3,9 +3,9 @@
  * DESCRIPTION: 单元测试字体选择器 glue 入口 cpp_font_selector_dialog 的测试钩子
  *              （MOGAN_TEST_FONT_SELECTOR=cancel 时不弹窗返回空 tree）。
  *              =ok 钩子经 font-selector-commit（需完整 scheme boot）走 GUI 集成
- *              测试（TeXmacs/tests/2027.scm）覆盖；真实弹窗路径（Qt
+ *              测试（TeXmacs/tests/2028.scm）覆盖；真实弹窗路径（Qt
  *exec）无法在 C++ 单测里跑。bridge 的 Q_INVOKABLE 方法（eval_scheme 转 facade）
- *              同样需 boot，见 2027.scm。
+ *              同样需 boot，见 2028.scm。
  *              详见 record/qml/font-selector.md Phase 2。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *******************************************************************************

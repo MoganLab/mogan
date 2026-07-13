@@ -135,12 +135,12 @@ tree cpp_form_dialog (tree fields);
  * @brief 字体选择器 QML 对话框的 glue 入口。
  * @param specs_key scheme specs-registry 的 int
  * 句柄（font-selector-register-specs 返回值）。
- * @return 用户点 OK 返回 `(tuple (tuple <key> <value>) ...)`（与
- * cpp-form-dialog 同形， 供 scheme 调用方 tree->stree 解构）；Cancel /
- * 关闭返回空 tree。
- * @note 实际写回由 bridge 调 font-selector-commit 完成（live
- * 路径），本入口返回值 主要供自动化测试断言；测试钩子
- * MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。 详见
+ * @return 用户点 OK 返回 `(tuple "ok")`（非空标记，供 scheme 调用方/测试区分
+ * OK）；Cancel / 关闭 / QML 加载失败返回空 tree。@b 注意：与 cpp-form-dialog
+ * 不同，本入口 @b 不 携带字段写回值——实际字体写回在用户点 OK 时由 bridge 调
+ * font-selector-commit 完成（live 路径，commit 已写
+ * buffer），返回值仅作状态标记。
+ * @note 测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。详见
  * record/qml/font-selector.md Phase 2。
  */
 tree cpp_font_selector_dialog (int specs_key);

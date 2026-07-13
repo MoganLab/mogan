@@ -6,7 +6,7 @@
 ;;               font-selector-* proc）的 specsKey 句柄往返、选项列表常量、
 ;;               filter/customize meta 形状、分类谓词。不弹 GUI、不依赖字体数据库，
 ;;               headless 可跑。GUI 真实交互（三栏联动/预览刷新/写回）见
-;;               TeXmacs/tests/2027.scm。
+;;               TeXmacs/tests/2028.scm。
 ;; COPYRIGHT   : (C) 2026 Mogan STEM
 ;;
 ;; USAGE

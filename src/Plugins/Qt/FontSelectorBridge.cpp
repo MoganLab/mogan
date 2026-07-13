@@ -14,8 +14,6 @@
 #include "qt_utilities.hpp"
 #include "s7_tm.hpp" // eval_scheme + tmscm helpers
 
-#include <moebius/data/scheme.hpp> // scm_quote
-
 #include <QVariantList>
 
 namespace {
@@ -77,9 +75,9 @@ FontSelectorBridge::evalString (const string& proc) {
 QString
 FontSelectorBridge::evalString1 (const string& proc, const string& arg) {
   // arg 是 scheme keyword 字面（":family"/":style"/":size"，ASCII 故
-  // cork==ascii）。 直接拼入表达式——不能 scm_quote：那会变成 string，与 scheme
-  // 侧 keyword 比较
-  // (== var :family) 不等，selector-get 落入 else 返回 #f，转空 QString。
+  // cork==ascii）。 直接拼入表达式——不能 qt_scheme_quote：那会变成 string，与
+  // scheme 侧 keyword 比较 (== var :family) 不等，selector-get 落入 else 返回
+  // #f，转空 QString。
   string expr= "(" * proc * " " * key_token (m_specsKey) * " " * arg * ")";
   return tmscm_to_qstring (eval_scheme (expr));
 }
@@ -115,16 +113,12 @@ FontSelectorBridge::currentSize () {
 }
 
 /**
- * @brief 联动 setter 通用实现：调 `(proc key 'arg')` 得 assoc list
- *        ((k . v) ...)，转 QVariantMap。arg 是 cork mogan string，直接
- * scm_quote 拼 scheme（确认式 utf8→cork 已在 from_qstring 完成，不再 to_qstring
- * 启发式）。
+ * @brief 把 scheme assoc list ((k . v) ...) 转 QVariantMap。
+ * @details v 是 string 或 list of string；其它类型跳过。被联动 setter
+ *（family/filter/customize）共用，避免解析循环重复。
  */
 static QVariantMap
-eval_assoc_result (const string& proc, int key, const string& arg) {
-  string expr= "(" * proc * " " * as_string (key) * " " *
-               moebius::data::scm_quote (arg) * ")";
-  tmscm       lst= eval_scheme (expr);
+assoc_to_variantmap (tmscm lst) {
   QVariantMap out;
   for (tmscm cur= lst; !tmscm_is_null (cur); cur= tmscm_cdr (cur)) {
     tmscm pair= tmscm_car (cur);
@@ -138,23 +132,33 @@ eval_assoc_result (const string& proc, int key, const string& arg) {
   return out;
 }
 
+/**
+ * @brief 联动 setter 通用实现：调 `(proc key 'arg')` 得 assoc list，转
+ *        QVariantMap。arg 经 qt_scheme_quote 转 cork 并 quote。
+ */
+static QVariantMap
+eval_assoc_result (const string& proc, int key, const QString& arg) {
+  string expr=
+      "(" * proc * " " * as_string (key) * " " * qt_scheme_quote (arg) * ")";
+  return assoc_to_variantmap (eval_scheme (expr));
+}
+
 QVariantMap
 FontSelectorBridge::setFamily (const QString& family) {
   // set-family 返回 {styles}（filter 改 family 后 style 列表刷新）。
-  return eval_assoc_result ("font-selector-set-family", m_specsKey,
-                            from_qstring (family));
+  return eval_assoc_result ("font-selector-set-family", m_specsKey, family);
 }
 QVariantMap
 FontSelectorBridge::setStyle (const QString& style) {
   // set-style 仅触发 live 写回（预览实时 widget 自动刷新），返回空 map。
   eval_scheme ("(font-selector-set-style " * key_token (m_specsKey) * " " *
-               moebius::data::scm_quote (from_qstring (style)) * ")");
+               qt_scheme_quote (style) * ")");
   return QVariantMap ();
 }
 QVariantMap
 FontSelectorBridge::setSize (const QString& size) {
   eval_scheme ("(font-selector-set-size " * key_token (m_specsKey) * " " *
-               moebius::data::scm_quote (from_qstring (size)) * ")");
+               qt_scheme_quote (size) * ")");
   return QVariantMap ();
 }
 
@@ -200,20 +204,11 @@ FontSelectorBridge::filterMeta () {
 }
 QVariantMap
 FontSelectorBridge::setFilter (const QString& var, const QString& val) {
+  // var/val 经 scheme-side string->keyword 转换，故 var 用普通 string（无冒号）
+  // 传入。两参都 quote；返回 {families, preview}。
   string expr= "(font-selector-set-filter " * key_token (m_specsKey) * " " *
                qt_scheme_quote (var) * " " * qt_scheme_quote (val) * ")";
-  tmscm       lst= eval_scheme (expr);
-  QVariantMap out;
-  for (tmscm cur= lst; !tmscm_is_null (cur); cur= tmscm_cdr (cur)) {
-    tmscm pair= tmscm_car (cur);
-    if (!tmscm_is_pair (pair)) continue;
-    QString k= tmscm_to_qstring (tmscm_car (pair));
-    tmscm   v= tmscm_cdr (pair);
-    if (tmscm_is_string (v)) out.insert (k, tmscm_to_qstring (v));
-    else if (tmscm_is_list (v))
-      out.insert (k, QVariant::fromValue (tmscm_to_stringlist (v)));
-  }
-  return out;
+  return assoc_to_variantmap (eval_scheme (expr));
 }
 
 //*****************************************************************************
@@ -234,8 +229,7 @@ FontSelectorBridge::currentSampleKind () {
 }
 QVariantMap
 FontSelectorBridge::setSampleKind (const QString& kind) {
-  return eval_assoc_result ("font-selector-set-sample-kind", m_specsKey,
-                            from_qstring (kind));
+  return eval_assoc_result ("font-selector-set-sample-kind", m_specsKey, kind);
 }
 
 //*****************************************************************************
@@ -268,16 +262,9 @@ QVariantMap
 FontSelectorBridge::setCustomize (const QString& which, const QString& val) {
   string expr= "(font-selector-customize-set " * key_token (m_specsKey) * " " *
                qt_scheme_quote (which) * " " * qt_scheme_quote (val) * ")";
-  tmscm       lst= eval_scheme (expr);
-  QVariantMap out;
-  for (tmscm cur= lst; !tmscm_is_null (cur); cur= tmscm_cdr (cur)) {
-    tmscm pair= tmscm_car (cur);
-    if (!tmscm_is_pair (pair)) continue;
-    QString k= tmscm_to_qstring (tmscm_car (pair));
-    tmscm   v= tmscm_cdr (pair);
-    if (tmscm_is_string (v)) out.insert (k, tmscm_to_qstring (v));
-  }
-  return out;
+  // customize 的 assoc 结果只含 string（preview），与 filter 的 list
+  // 分支无冲突， 共用 assoc_to_variantmap。
+  return assoc_to_variantmap (eval_scheme (expr));
 }
 
 //*****************************************************************************
