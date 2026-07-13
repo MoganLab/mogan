@@ -310,8 +310,9 @@
   ) ;let*
 ) ;define
 
-;; 文档级默认字体（family/style/size），用 get-init 读（不受 live 写回插的 with 块
-;; 污染），供「重置」填 selector-table。
+;; 文档级字体（family/style/size），用 get-init 读。供 register-specs 在打开瞬间快照
+;; （initial-snapshot）——事后 get-init 会被 live 写回污染（init-multi 改 init、
+;; make-multi-with 插 with 块），故必须在改动前快照。
 
 (define (font-document-default-data)
   (let* ((fam (font-family-main (or (get-init (pref-font)) "roman")))

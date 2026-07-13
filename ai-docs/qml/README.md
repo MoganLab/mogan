@@ -25,8 +25,18 @@
 WA_DeleteOnClose → delete，注意 `done()` 不走 closeEvent、不触发 delete）。样板见
 `cpp_font_selector_dialog`。
 
-## 板块
+## Cancel/重置撤销（live 写回对话框）
 
+live 写回的对话框（FontSelector）需要 Cancel/重置撤销已应用的改动。**不要用 mark-cancel**
+（mogan 的 undo mark 事务）——它有两个缺陷：
+
+- 对 init 块改动无效（文档字体走 init-multi 改 init，不进 undo 历史，mark-cancel 回滚不了）
+- 对 buffer 改动丢选区（mark-cancel 的 apply 触发 post_notify→selection_cancel）
+
+正解是**快照写回**：对话框打开瞬间（register-specs，live 改动前）快照文档字体
+（`initial-snapshot`）；Cancel/重置共用 `font-selector-revert-to-snapshot`——快照填
+selector-table，再 `selector-get-changes` + **一次** setter 写回。一次 setter 避免多次
+make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi-with）都适用。
 
 ## 板块
 
@@ -46,7 +56,7 @@ WA_DeleteOnClose → delete，注意 `done()` 不走 closeEvent、不触发 dele
 |--------|---------|------|
 | `ConfirmClose` | `run_qml_dialog`（exec） | 点按钮返回结果 |
 | `FormDialog` | `run_qml_dialog`（exec） | 本地暂存 `values`，OK 一次性 submit |
-| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel 回滚 |
+| `FontSelector` | `run_modal_qml_dialog`（setModal+show） | live 写回文档，OK 落定 / Cancel+重置快照撤销 |
 
 ## 模态引擎（QTMQmlDialog.cpp）
 
@@ -63,5 +73,5 @@ setModal+show（见上表）。新增模态对话框写 context 注入回调 + �
 
 - `src/Plugins/Qt/QTMQmlDialog.cpp` — 模态引擎 + 各对话框 glue 入口
 - `src/Plugins/Qt/QTMQmlDialogBridge.hpp` — `QmlDialogBridge`（choose/submit 回流）
-- `src/Plugins/Qt/FontSelectorBridge.*` — live + undo mark 事务 bridge 样板
+- `src/Plugins/Qt/FontSelectorBridge.*` — live + 快照撤销 bridge 样板
 - `ai-docs/qml/qml-dialog.html` — 设计稿
