@@ -18,8 +18,8 @@
  *
  * @par 清晰度
  * QImage 按 retina_factor 放大物理分辨率渲染（hidpi 自动 2× 像素），QML Image
- * 按 逻辑尺寸显示时降采样 → 清晰不糊。retina_factor 在 qt_utilities
- * 取自系统设备像素 比。勿再手动翻倍 QImage 尺寸。
+ * 按逻辑尺寸显示时降采样 → 清晰不糊。retina_factor 在 qt_utilities 取自系统
+ * 设备像素比。勿再手动翻倍 QImage 尺寸。
  *
  * @note 同步、亚帧级：样本 box 已被 texmacs_output_widget
  * 排版好，handle_repaint 仅绘制。

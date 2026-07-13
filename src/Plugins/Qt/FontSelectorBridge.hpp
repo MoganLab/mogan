@@ -2,9 +2,9 @@
  * MODULE      : FontSelectorBridge.hpp
  * DESCRIPTION : 字体选择器 QML 对话框的 C++↔QML 桥。透传、不持字体状态：
  *               scheme 侧 font-selector-* facade（font-new-widgets.scm）经
- *specsKey 句柄持有 specs，bridge 每次 Q_INVOKABLE 调用都带上 specsKey，拼
- *               scheme 串经 eval_scheme 调 facade，把结果转 QML 可消费的类型。
- *               详见 record/qml/font-selector.md Phase 2。
+ *               specsKey 句柄持有 specs，bridge 每次 Q_INVOKABLE 调用都带上
+ *               specsKey，拼 scheme 串经 eval_scheme 调 facade，把结果转 QML
+ *               可消费的类型。详见 record/qml/font-selector.md Phase 2。
  * COPYRIGHT   : (C) 2026 Mogan STEM
  *
  * This software falls under the GNU general public license version 3 or later.
@@ -58,7 +58,8 @@ class FontSelectorBridge : public QObject {
 public:
   /**
    * @brief 构造桥对象。
-   * @param host 宿主 QDialog（submit/cancel 结束模态），不挂 parent。
+   * @param host 宿主 QDialog（非模态 show 的窗口，submit/cancel 调其
+   * close()），不挂 parent。
    * @param specsKey scheme specs-registry 的 int 句柄。
    */
   FontSelectorBridge (QDialog* host, int specsKey)

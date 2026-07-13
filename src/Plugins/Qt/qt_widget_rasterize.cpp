@@ -23,8 +23,8 @@
  * @brief 照搬 impress()（qt_simple_widget.cpp），目标改为 QImage。
  *
  * @details QImage 按 retina_factor 放大物理分辨率（hidpi 2× 像素），QML Image
- * 按逻辑 尺寸降采样显示，清晰不糊。the_qt_renderer()->begin(void*) 接受任意
- * QPaintDevice*， QImage 即 QPaintDevice，无需额外 surface。wid 非
+ * 按逻辑尺寸降采样显示，清晰不糊。the_qt_renderer()->begin(void*) 接受任意
+ * QPaintDevice*，QImage 即 QPaintDevice，无需额外 surface。wid 非
  * simple_widget 时返回空。
  */
 string

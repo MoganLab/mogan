@@ -1,14 +1,17 @@
 // TabBar.qml — 胶囊选项卡行（FontSelector 右栏 Filter/Advanced 切换复用）。
-// 选中态为圆角胶囊（selectBg 底 + selectFg 字 + 边框），未选中 hover 浅底；色调与
-// SelectableList 选中一致。纯 QtQuick，不依赖 Controls。
+// 选中态为圆角胶囊（selectBg/selectFg/边框），色调与 SelectableList 选中一致。
+// 纯 QtQuick。
 //
 // API：
-//   model             : list<{key,label}>  —— 选项卡项。
-//   activeKey         : string             —— 当前选中项的 key（高亮它）。
-//   signal selected(string key)            —— 点击新项时发出。
+//   model    : list<{key,label}> —— 选项卡项。
+//   activeKey: string            —— 当前选中项的 key（高亮它）。
+//   selected(string key)         —— 点击新项时发出。
 //
-// 样式（高 30/scaleFactor、胶囊 radius=height/2、间距 8/scaleFactor）与原 FontSelector
-// 内联 tabBar 逐项一致。
+// 用法：
+//   TabBar {
+//       model: [{key:"a",label:"A"}, {key:"b",label:"B"}]; activeKey: root.tab
+//       onSelected: function(k) { root.tab = k }
+//   }
 
 import QtQuick
 import "."

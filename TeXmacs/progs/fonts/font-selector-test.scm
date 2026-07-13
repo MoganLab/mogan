@@ -48,7 +48,7 @@
   (check (length (font-selector-sizes 0)) => 26)
 ) ;define
 
-;; subfont? 分类：Variants/Mathematics 组的 which 为 #t，Effects 组为 #f。
+;; subfont? 分类：Variants/Mathematics 组的 which 为 #t，Effects 组为 #f，
 ;; 决定 options 来源（default-subfonts vs font-effect-defaults）。
 
 (define (test-subfont-classification)
@@ -73,8 +73,8 @@
   ) ;for-each
 ) ;define
 
-;; customize meta 形状：6 effects + 5 variants + 5 math = 16 项，每项 5 元素
-;; (group label which (options...) value)。
+;; customize meta 形状：6 effects + 5 variants + 5 math = 16 项，每项
+;; (group label which (options...) value) 五元组。
 
 (define (test-customize-meta-shape)
   (let ((meta (append font-effect-meta font-variant-meta font-math-meta)))

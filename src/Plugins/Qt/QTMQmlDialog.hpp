@@ -25,7 +25,9 @@
  * - @b 逐字段可选实时回写（live 标志）：
  *   - live=true：用户改动走 QML → bridge → glue → scm setter，实时预览。
  *     @b 红线：setter 禁止任何模态操作（不弹对话框、不嵌套 exec()），否则破坏
- *     scheme continuation 栈；且 live=true 接受「Cancel 无法回滚」。
+ *     scheme continuation 栈。Cancel 能否回滚取决于调用方是否用 undo mark
+ *     事务包裹（font-selector 走 mark-cancel 回滚，普通 form 不开 mark 故
+ *     不回滚）。
  *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel
  * 放弃。
  * - @b 控件类型：enum / input / checkbox / color /
@@ -133,13 +135,13 @@ tree cpp_form_dialog (tree fields);
 
 /**
  * @brief 字体选择器 QML 对话框的 glue 入口。
- * @param specs_key scheme specs-registry 的 int
- * 句柄（font-selector-register-specs 返回值）。
+ * @param specs_key scheme specs-registry 的 int 句柄
+ *（font-selector-register-specs 返回值）。
  * @return 用户点 OK 返回 `(tuple "ok")`（非空标记，供 scheme 调用方/测试区分
  * OK）；Cancel / 关闭 / QML 加载失败返回空 tree。@b 注意：与 cpp-form-dialog
  * 不同，本入口 @b 不 携带字段写回值——实际字体写回在用户点 OK 时由 bridge 调
  * font-selector-commit 完成（live 路径，commit 已写
- * buffer），返回值仅作状态标记。
+ *buffer），返回值仅作状态标记。
  * @note 测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。详见
  * record/qml/font-selector.md Phase 2。
  */

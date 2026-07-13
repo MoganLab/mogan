@@ -968,9 +968,9 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; 三个 window 入口切到 QML：register-specs 存 specs 拿 int 句柄并开 undo mark 事务，
-;; cpp-font-selector-dialog exec QML 对话框，fontBridge 调 font-selector-* facade 透传
-;; 交互。selector-set 实时写回（live），OK 经 font-selector-commit 补齐差异并 mark-end
-;; 落定，Cancel/重置经 mark-cancel 回滚 live 写回。返回 tree 仅测试用，正常路径忽略。
+;; cpp-font-selector-dialog 开 QML 对话框（非模态），fontBridge 调 font-selector-* facade
+;; 透传交互。selector-set 实时写回（live），OK 补齐差异并 mark-end 落定，Cancel/重置
+;; mark-cancel 回滚。返回 tree 仅测试用。
 (tm-define (open-font-selector-window)
   (:interactive #t)
   (with specs
@@ -1077,9 +1077,8 @@
   (with key
     specs-registry-next
     (ahash-set! specs-registry key specs)
-    ;; 开 undo mark 事务：左侧 live 写回归到此 mark 下，Cancel mark-cancel 回滚，
-    ;; 重置 mark-cancel+重开，OK mark-end 落定。new-marker 生成唯一 id，mark-start
-    ;; 用它开启事务（mark-start 返回 void，故 id 单独存）。
+    ;; 开 undo mark 事务：左侧 live 写回归入此 mark，Cancel/重置 mark-cancel 回滚，
+    ;; OK mark-end 落定。new-marker 生成唯一 id，mark-start 返回 void 故 id 单独存。
     (with m (new-marker) (ahash-set! selector-mark key m) (mark-start m))
     (set! specs-registry-next (+ specs-registry-next 1))
     key
@@ -1107,8 +1106,8 @@
   (selector-get (font-selector-lookup-specs key) var)
 ) ;tm-define
 
-;; live 写回：selector-set 经 selector-notify 实时写 buffer，归入 register-specs 开的
-;; undo mark 事务。refresh-now 对 QML 对话框里不存在的 tm-widget refreshable 标签是 no-op。
+;; live 写回：selector-set 经 selector-notify 实时写 buffer/init，归入 register-specs
+;; 开的 undo mark 事务。refresh-now 对 QML 对话框里不存在的 tm-widget 标签是 no-op。
 (tm-define (font-selector-set key var val)
   (selector-set (font-selector-lookup-specs key) var val)
 ) ;tm-define
@@ -1130,9 +1129,8 @@
   `((preview unquote (font-selector-preview key)))
 ) ;tm-define
 
-;; 9 项 Filter 的可选项（原 tm-widget 内联于 font-properties-selector，集中复用）。
-;; var 用 string（无冒号），facade 内部 string->keyword 转；bridge/QML 全程普通
-;; string，避免 keyword 跨界。
+;; 9 项 Filter 的可选项（集中自原 tm-widget 内联）。var 用 string（无冒号），facade
+;; 内部 string->keyword 转——bridge/QML 全程普通 string，避免 keyword 跨界。
 
 (define font-filter-options
   (list (cons "weight" '("Any" "Thin" "Light" "Medium" "Bold" "Black"))
@@ -1194,10 +1192,9 @@
   (or (assoc-ref font-filter-labels var) "Filter")
 ) ;define
 
-;; 返回 (label var (options...) (optionsTr...) value) 五元组列表。label/optionsTr 经
-;; translate 跟随界面语言（显示）；options/value 保持英文原值（存储/过滤/回传用）。
-;; QML EnumCombo 显示 optionsTr、onChanged 回传 options[index]（英文 key），与老版
-;; tm-widget enum（menu-widget.scm make-enum 的 dec 反查）等价的 key/value 分离。
+;; 返回 (label var (options...) (optionsTr...) value) 五元组列表。label/optionsTr 翻译
+;; 显示，options/value 保持英文原值（存储/过滤/回传）——与老版 tm-widget make-enum
+;; 的 dec 反查等价的 key/value 分离，QML EnumCombo 显示 optionsTr、回传 options[index]。
 (tm-define (font-selector-filter-meta key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1214,17 +1211,16 @@
   ) ;with
 ) ;tm-define
 
-;; selector-set* 是 tm-define-macro 不能直接调用；filter 写回走 selector-set，
-;; QML 由 bridge 返回刷新后的 families 驱动，不依赖 tm-widget refresh。
-;; var 为 string（无冒号），内部转 keyword。返回 {families, preview}。
+;; filter 写回走 selector-set（selector-set* 是 tm-define-macro 不能直接调用），
+;; 返回 {families, preview} 由 bridge 驱动 QML 刷新。var 为 string（无冒号），内部
+;; 转 keyword。
 (tm-define (font-selector-set-filter key var val)
   (selector-set (font-selector-lookup-specs key) (string->keyword var) val)
   `((families unquote (font-selector-families key))
     (preview unquote (font-selector-preview key)))
 ) ;tm-define
 
-;; 预览光栅化：selector-font-demo-text + widget-texmacs-output + cpp-rasterize-widget，
-;; 同步返回 data URL。bg-color/magnification 包裹照搬 font-sample-text tm-widget。
+;; 预览光栅化：同步返回 data URL。bg-color/magnification 包裹照搬 font-sample-text。
 (tm-define (font-selector-preview key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1334,8 +1330,8 @@
         (default-subfonts (selector-customize-get* specs which "Default"))
         (font-effect-defaults which)
       ) ;if
-      ;; optionsTr：对 options map translate。字体名/数值无字典项原样返回，"Default"
-      ;; 等界面词翻译。与 filter-meta 同构的 key/value 分离（显示 optionsTr，回传 opts）。
+      ;; optionsTr 对 options map translate：字体名/数值无字典项原样返回，"Default"
+      ;; 等界面词翻译。与 filter-meta 同构的 key/value 分离。
       (list group
         (translate label)
         which
@@ -1371,10 +1367,9 @@
   ) ;with
 ) ;tm-define
 
-;; Cancel：mark-cancel 整体回滚本次对话框左侧 live 写回（buffer/init 都还原），
-;; selector-clean 清掉 selector-table 里所有 var 写值（含左侧 family/style/size——
-;; live 路径 selector-set 会写它们），使 selector-get 回退到已回滚的 get-env/get-init。
-;; 收尾路径容错：未注册的 key（如单测传 0）不抛异常，仅做 mark-cancel。
+;; Cancel：mark-cancel 回滚本次 live 写回（buffer/init 还原），selector-clean 清
+;; selector-table 全部 var（含 family/style/size——live 路径 selector-set 会写它们），
+;; 使 selector-get 回退到已回滚的 get-env/get-init。未注册 key（如单测传 0）容错不抛。
 (tm-define (font-selector-cancel key)
   (with m
     (ahash-ref selector-mark key)
@@ -1388,8 +1383,8 @@
   (ahash-remove! specs-registry key)
 ) ;tm-define
 
-;; OK：取 changes 并应用 setter。live 路径下大部分已实时写入，此处补齐差异；
-;; 随后 mark-end 落定 undo mark 事务（左侧 live 改动正式归入可 undo 历史）。
+;; OK：取 changes 并应用 setter（live 路径下大部分已实时写入，此处补齐差异），
+;; 随后 mark-end 落定 undo mark 事务（live 改动归入可 undo 历史）。
 (tm-define (font-selector-commit key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1415,9 +1410,8 @@
   (ahash-remove! specs-registry key)
 ) ;tm-define
 
-;; 重置：mark-cancel 回滚本次左侧 live 写回（含多次重置累积），重开新 mark 供后续
-;; live 归属，selector-clean 清 selector-table 全部 var（filter/customize 回 Any/默认，
-;; 左侧 family/style/size 回退到已回滚的 get-env/get-init）。
+;; 重置：mark-cancel 回滚本次 live 写回（含多次重置累积），重开新 mark 供后续 live
+;; 归属，selector-clean 清 selector-table 全部 var（filter/customize 回 Any/默认）。
 (tm-define (font-selector-restore key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1427,14 +1421,13 @@
   ) ;with
 ) ;tm-define
 
-;; Import 走 choose-file 模态，由 Import 按钮显式触发，QML 对话框在其下保持打开。
+;; Import 由按钮显式触发，走 choose-file（QML 对话框在其下保持打开）。
 (tm-define (font-selector-import key)
   (choose-file font-import "Import font" "")
 ) ;tm-define
 
-;; 固定 UI 文案（标题/按钮）的翻译，供 QML 一次性拉取。key 是稳定标识符，
-;; value 经 translate 跟随界面语言。与 form 引擎「C++ 注入已翻译文案」同思路，
-;; 但字体选择器文案在 scheme 集中定义，便于随字典更新。
+;; 固定 UI 文案的翻译，供 QML 一次性拉取。key 为稳定标识符，value 经 translate
+;; 跟随界面语言。
 (tm-define (font-selector-ui-labels key)
   `((family unquote (translate "Font family"))
     (style unquote (translate "Style"))

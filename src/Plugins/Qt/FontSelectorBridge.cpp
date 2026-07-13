@@ -74,10 +74,8 @@ FontSelectorBridge::evalString (const string& proc) {
 
 QString
 FontSelectorBridge::evalString1 (const string& proc, const string& arg) {
-  // arg 是 scheme keyword 字面（":family"/":style"/":size"，ASCII 故
-  // cork==ascii）。 直接拼入表达式——不能 qt_scheme_quote：那会变成 string，与
-  // scheme 侧 keyword 比较 (== var :family) 不等，selector-get 落入 else 返回
-  // #f，转空 QString。
+  // arg 是 ASCII keyword 字面（:family/:style/:size），必须裸拼入表达式；若
+  // qt_scheme_quote 会变 string，scheme 侧 (== var :family) 不等而落入 else。
   string expr= "(" * proc * " " * key_token (m_specsKey) * " " * arg * ")";
   return tmscm_to_qstring (eval_scheme (expr));
 }
@@ -145,13 +143,10 @@ eval_assoc_result (const string& proc, int key, const QString& arg) {
 
 QVariantMap
 FontSelectorBridge::setFamily (const QString& family) {
-  // set-family 返回 {styles}（filter 改 family 后 style 列表刷新）。
   return eval_assoc_result ("font-selector-set-family", m_specsKey, family);
 }
 QVariantMap
 FontSelectorBridge::setStyle (const QString& style) {
-  // 返回 {preview}（QML 预览靠返回值驱动，必须捕获，否则 .preview 为
-  // undefined）。
   return eval_assoc_result ("font-selector-set-style", m_specsKey, style);
 }
 QVariantMap
@@ -183,15 +178,16 @@ eval_filter_meta (int key) {
     tmscm item= tmscm_car (cur);
     if (!tmscm_is_list (item) || tmscm_is_null (item)) continue;
     QVariantMap m;
-    m["label"]    = tmscm_to_qstring (tmscm_car (item));
-    item          = tmscm_cdr (item);
-    m["var"]      = tmscm_to_qstring (tmscm_car (item));
-    item          = tmscm_cdr (item);
-    m["options"]  = QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item          = tmscm_cdr (item);
-    m["optionsTr"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item          = tmscm_cdr (item);
-    m["value"]    = tmscm_to_qstring (tmscm_car (item));
+    m["label"]  = tmscm_to_qstring (tmscm_car (item));
+    item        = tmscm_cdr (item);
+    m["var"]    = tmscm_to_qstring (tmscm_car (item));
+    item        = tmscm_cdr (item);
+    m["options"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item        = tmscm_cdr (item);
+    m["optionsTr"]=
+        QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item      = tmscm_cdr (item);
+    m["value"]= tmscm_to_qstring (tmscm_car (item));
     out << m;
   }
   return out;
@@ -203,8 +199,8 @@ FontSelectorBridge::filterMeta () {
 }
 QVariantMap
 FontSelectorBridge::setFilter (const QString& var, const QString& val) {
-  // var/val 经 scheme-side string->keyword 转换，故 var 用普通 string（无冒号）
-  // 传入。两参都 quote；返回 {families, preview}。
+  // var 不带冒号传入：scheme 侧 string->keyword 转换，若 cpp 这边已加冒号会变成
+  // "::family"。
   string expr= "(font-selector-set-filter " * key_token (m_specsKey) * " " *
                qt_scheme_quote (var) * " " * qt_scheme_quote (val) * ")";
   return assoc_to_variantmap (eval_scheme (expr));
@@ -248,13 +244,14 @@ FontSelectorBridge::customizeMeta () {
     item        = tmscm_cdr (item);
     m["label"]  = tmscm_to_qstring (tmscm_car (item));
     item        = tmscm_cdr (item);
-    m["which"]    = tmscm_to_qstring (tmscm_car (item));
-    item          = tmscm_cdr (item);
-    m["options"]  = QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item          = tmscm_cdr (item);
-    m["optionsTr"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
-    item          = tmscm_cdr (item);
-    m["value"]    = tmscm_to_qstring (tmscm_car (item));
+    m["which"]  = tmscm_to_qstring (tmscm_car (item));
+    item        = tmscm_cdr (item);
+    m["options"]= QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item        = tmscm_cdr (item);
+    m["optionsTr"]=
+        QVariant::fromValue (tmscm_to_stringlist (tmscm_car (item)));
+    item      = tmscm_cdr (item);
+    m["value"]= tmscm_to_qstring (tmscm_car (item));
     out << m;
   }
   return out;
@@ -263,8 +260,6 @@ QVariantMap
 FontSelectorBridge::setCustomize (const QString& which, const QString& val) {
   string expr= "(font-selector-customize-set " * key_token (m_specsKey) * " " *
                qt_scheme_quote (which) * " " * qt_scheme_quote (val) * ")";
-  // customize 的 assoc 结果只含 string（preview），与 filter 的 list
-  // 分支无冲突， 共用 assoc_to_variantmap。
   return assoc_to_variantmap (eval_scheme (expr));
 }
 

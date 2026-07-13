@@ -185,11 +185,10 @@ run_qml_dialog (const string& qml_url, const char* debug_tag,
  * @brief 非模态 QML 弹窗引擎（与 run_qml_dialog 同构，但不阻塞）。
  *
  * 字体选择器需要 live 写回文档并实时看到效果，模态 exec() 的嵌套事件循环不重绘
- * 被遮的文档窗口（main 的老 side-tool 用非模态 tool-select 故能
- * live）。故字体选择器 走本函数：QDialog 堆分配 +
- * show()，函数立即返回，对话框生命期由注入的 bridge 自治——bridge 持 host
- * 指针，submit/cancel/close 时调 host->close()，host 析构经 destroyed 信号
- * deleteLater 掉 bridge。
+ * 被遮的文档窗口（main 的老 side-tool 用非模态 tool-select 故能 live）。故字体
+ * 选择器走本函数：QDialog 堆分配 + show()，函数立即返回，对话框生命期由注入的
+ * bridge 自治——bridge 持 host 指针，submit/cancel/close 时调 host->close()，
+ * host 析构经 destroyed 信号 deleteLater 掉 bridge。
  *
  * @param qml_url / debug_tag / inject_context / logic_w/h 同 run_qml_dialog。
  * @return 恒 0（非模态无退出码；调用方不依赖返回值，仅测试钩子路径用）。
@@ -400,17 +399,13 @@ cpp_form_dialog (tree fields) {
 // ---- 字体选择器 ------------------------------------------------------------
 
 /**
- * @brief 字体选择器 QML 对话框（见 QTMQmlDialog.hpp 的
- * cpp_font_selector_dialog）。非模态。
+ * @brief 字体选择器 QML 对话框（声明见 QTMQmlDialog.hpp）。非模态。
  *
- * @details 宿主拼装走 show_qml_dialog（非模态 show，区别于确认型/form 型的模态
- * exec）——字体选择器需 live 写回文档并实时看到效果，模态 exec 的嵌套事件循环不
- * 重绘被遮的文档窗口（main 的老 side-tool 用非模态 tool-select 故能 live）。
- * FontSelectorBridge 作为 fontBridge context property 注入，承载 QML↔scheme
- * 交互。 字体状态在 scheme（specsKey 句柄），bridge 透传。selector-set
- * 实时写回（live）归入 undo mark 事务，OK 经 submit → font-selector-commit
- * 补齐差异并 mark-end 落定， Cancel 经 mark-cancel
- * 回滚。非模态下本入口立即返回，不阻塞；返回 tree 仅测试钩子 路径用（ok/cancel
+ * @details 走 show_qml_dialog（非模态 show），理由见该函数——字体选择器需 live
+ * 写回并实时看到效果。FontSelectorBridge 注入为 fontBridge context property
+ * 承载 QML↔scheme 交互；字体状态在 scheme（specsKey 句柄），bridge 透传。
+ * live 写回归入 undo mark 事务（OK → mark-end 落定，Cancel → mark-cancel
+ * 回滚）。 非模态下本入口立即返回；返回 tree 仅测试钩子路径用（ok/cancel
  * 区分）。测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。
  */
 tree

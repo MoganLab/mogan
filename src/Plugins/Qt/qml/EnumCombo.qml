@@ -1,23 +1,20 @@
-// EnumCombo.qml — 下拉的 combo 行样式。
-// 只渲染一行（标签 + 当前值 + 箭头），不含浮层。点开后把自己注册为所在
-// DialogShell 的 activeCombo，浮层定位/限高翻转由 DialogShell 的共享 overlay 负责
-//（那套算法已验证可靠，所有弹窗复用）。原子化为复用样式，不强求黑盒——定位交
-// 调用方（DialogShell）。
+// EnumCombo.qml — 下拉 combo 行（标签 + 当前值 + 箭头），不含浮层。
+// 点开后把自己注册为所在 DialogShell 的 activeCombo，浮层定位/限高翻转由
+// DialogShell 的共享 overlay 负责。
+//
+// key/value 分离：options 为英文 key（存储/回传/过滤用），optionsTr 等长同序为
+// 翻译显示。空 optionsTr 时回退显示 options 原文（不翻译场景）。changed 回传英文 key。
 //
 // API：
 //   label        : string        —— 左侧标签文案。
-//   options      : list<string>  —— 可选项。
-//   value        : string        —— 当前值。
+//   options      : list<string>  —— 英文 key 列表（存储/回传/过滤用）。
+//   optionsTr    : list<string>  —— 翻译显示列表，与 options 等长同序；空则显示原文。
+//   value        : string        —— 当前英文 key。
 //   labelRatio   : real          —— 标签占行宽比例，默认 0.42。
 //   rowHeight    : real          —— 行高，默认 44×scaleFactor。
-//   changed(string)              —— 选中新值时发出（经 DialogShell 浮层 pick 触发）。
+//   changed(string)              —— 选中新值时发出（英文 key，经 DialogShell 浮层 pick 触发）。
 //
-// 用法（须在 DialogShell 内，宽度由父行给定）：
-//   EnumCombo {
-//       width: parent.width
-//       label: "Font:"; options: ["rm", "tt"]; value: "rm"
-//       onChanged: function(v) { /* 写回 */ }
-//   }
+// 须在 DialogShell 内，宽度由父行给定。
 
 import QtQuick
 
@@ -26,16 +23,14 @@ Row {
     spacing: 16 * Theme.scaleFactor
 
     property string label: ""
-    property var options: []          // 英文 key 列表（存储/回传/过滤用）
-    property var optionsTr: []        // 可选：翻译显示列表，与 options 等长同序。空则
-                                      // 显示 options 原文（FormDialog 等不翻译场景）。
-    property string value: ""         // 当前英文 key。
+    property var options: []
+    property var optionsTr: []
+    property string value: ""
     property real labelRatio: 0.42
     property real rowHeight: 44 * Theme.scaleFactor
-    signal changed(string value)      // 回传英文 key（非翻译显示值）。
+    signal changed(string value)
 
-    // 沿 parent 链按 objectName 找 DialogShell（不用 hasOwnProperty，对 QML property
-    // 不可靠）。
+    // 按 objectName 沿 parent 链找 DialogShell（QML property 不能用 hasOwnProperty）。
     property var dialogShell: {
         var p = parent
         while (p) {
@@ -50,9 +45,9 @@ Row {
     property real comboWidth: (parent ? parent.width : 0) - labelWidth - spacing
     height: rowHeight
 
-    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。点击展开时由
-    // updateGeometry() 算一次——不用 binding 实时算，避免布局未完成时 mapToItem
-    // 给出 stale 值导致浮层定位偏。
+    // 暴露给 DialogShell overlay 的几何（dialogShell 坐标系）。展开时由
+    // updateGeometry() 算一次，不用 binding 实时算——布局未完成时 mapToItem 给出
+    // stale 值会导致浮层定位偏。
     property real comboX: 0
     property real comboY: 0
     property real comboW: 0
@@ -67,8 +62,6 @@ Row {
 
     function pick(v) { root.changed(v) }
 
-    // optionsTr 与 options 等长时用翻译显示，否则回退英文原文。displayValue 给 combo
-    // 行当前值用，displayOptions 给 DialogShell 浮层列表用。
     readonly property bool hasTr: optionsTr && optionsTr.length === options.length
     readonly property var displayOptions: hasTr ? optionsTr : options
     readonly property string displayValue: {

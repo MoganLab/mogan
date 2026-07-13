@@ -1,13 +1,16 @@
 // EnumComboList.qml — 可滚动的 EnumCombo 竖列（Filter/Advanced 选项卡内容复用）。
-// Flickable + Column + Repeater<EnumCombo>，每项按 meta 渲染；超高时纵向滚动。
-// 调用方提供 meta 列表（每项含 label/options/optionsTr/value），onChanged 外发整条
-// item + 选中的英文 key，由调用方按各自字段（var/which）做副作用。
+// 调用方提供 meta 列表，每项含 {label, options, optionsTr, value}；超高时纵向滚动。
+// itemChanged 外发整条 item + 选中的英文 key，由调用方按各自字段（var/which）做副作用。
 //
 // API：
-//   model                : list<meta>  —— 每项 {label, options, optionsTr, value}。
-//   signal itemChanged(var item, string value) —— 某项选中新值时发出，value 为英文 key。
+//   model                      : list<meta>  —— 每项 {label, options, optionsTr, value}。
+//   itemChanged(var item, string value)      —— 某项选中新值时发出，value 为英文 key。
 //
-// 样式参数（边距/间距/滚动）与原 FontSelector 内联的 Flickable+Column 逐项一致。
+// 用法（宽度/高度由父布局给定）：
+//   EnumComboList {
+//       anchors.fill: parent; model: filterModel.value
+//       onItemChanged: function(item, v) { fontBridge.setFilter(item.var, v) }
+//   }
 
 import QtQuick
 import "."
