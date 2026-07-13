@@ -364,7 +364,6 @@ public:
   virtual void     end_editing ()                            = 0;
   virtual void     cancel_editing ()                         = 0;
   virtual void     start_slave (double a)                    = 0;
-  virtual double   new_marker_id ()                          = 0;
   virtual void     mark_start (double a)                     = 0;
   virtual bool     mark_cancel (double a)                    = 0;
   virtual void     mark_end (double a)                       = 0;

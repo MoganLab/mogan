@@ -1,6 +1,6 @@
 // FontSelector.qml — 字体选择器正文。
-// 非模态对话框：左侧 selector-set 实时写回文档（live），OK mark-end 落定，
-// Cancel/重置 mark-cancel 回滚。由 DialogShell + SelectableList + EnumCombo +
+// 非阻塞模态对话框：左侧 selector-set 实时写回文档（live），Cancel/重置经打开时
+// 快照写回撤销，OK 补齐差异落定。由 DialogShell + SelectableList + EnumCombo +
 // PreviewPane + DialogButtons 拼装，交互经 fontBridge 转发到 scheme facade
 //（specsKey 句柄）。fontBridge setter 返回 {preview, styles/families} 等联动
 // 结果，QML 在同一 handler 更新 model + 预览，省二次往返。

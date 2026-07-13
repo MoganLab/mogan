@@ -307,11 +307,6 @@ edit_modify_rep::start_slave (double a) {
   arch->start_slave (a);
 }
 
-double
-edit_modify_rep::new_marker_id () {
-  return new_marker ();
-}
-
 void
 edit_modify_rep::mark_start (double a) {
   // cout << "Mark start " << a << LF << INDENT;

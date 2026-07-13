@@ -26,16 +26,17 @@
  * preview）， QML 在同一 handler 更新 model，省二次往返。
  *
  * @par 不变量
- * - @c selector-table 按 buffer 为键，同 buffer 单对话框（模态契约，见 QTMQmlDialog.hpp）。
- *   bridge 不复刻此约束，依赖既有 scheme 契约。
- * - @c live=true：selector-set 实时写 buffer，归入 register-specs 开的 undo mark
- *   事务；Cancel 经 mark-cancel 回滚，OK 经 mark-end 落定。
- * - @b 非阻塞模态：run_modal_qml_dialog 用 setModal+show（非 exec），既独占输入又
- *   让主窗口 live 重绘。详见 QTMQmlDialog.cpp 的 run_modal_qml_dialog。
+ * - @c selector-table 按 buffer 为键，同 buffer 单对话框（模态契约，见
+ * QTMQmlDialog.hpp）。 bridge 不复刻此约束，依赖既有 scheme 契约。
+ * - @c live=true：selector-set 实时写 buffer；Cancel 经打开时快照写回撤销，OK
+ * 补齐差异落定。
+ * - @b 非阻塞模态：run_modal_qml_dialog 用 setModal+show（非
+ * exec），既独占输入又 让主窗口 live 重绘。详见 QTMQmlDialog.cpp 的
+ * run_modal_qml_dialog。
  *
- * @note 生命期：host 堆分配（run_modal_qml_dialog 内 new + WA_DeleteOnClose），bridge
- *       不挂 parent；submit/cancel 调 close() → WA_DeleteOnClose 触发 host 析构 →
- *       destroyed 信号 deleteLater 掉 bridge。
+ * @note 生命期：host 堆分配（run_modal_qml_dialog 内 new +
+ * WA_DeleteOnClose），bridge 不挂 parent；submit/cancel 调 close() →
+ * WA_DeleteOnClose 触发 host 析构 → destroyed 信号 deleteLater 掉 bridge。
  */
 
 #ifndef FONT_SELECTOR_BRIDGE_HPP
@@ -115,10 +116,10 @@ public:
   /// 固定 UI 文案的翻译（family/style/size 标题、按钮等），QML 一次性拉取。
   Q_INVOKABLE QVariantMap uiLabels ();
 
-  /// OK：font-selector-commit 写回（mark-end 落定），close() 关闭对话框
-  ///（WA_DeleteOnClose → host delete → 本 bridge deleteLater）。
+  /// OK：font-selector-commit 补齐差异落定，close() 关闭对话框
+  /// （WA_DeleteOnClose → host delete → 本 bridge deleteLater）。
   Q_INVOKABLE void submit ();
-  /// Cancel：font-selector-cancel 经 mark-cancel 回滚 live 写回，close() 关闭。
+  /// Cancel：font-selector-cancel 经快照写回撤销，close() 关闭。
   Q_INVOKABLE void cancel ();
 
   /**

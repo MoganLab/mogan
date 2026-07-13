@@ -1640,12 +1640,6 @@ function main()
                 }
             },
             {
-                scm_name = "new-marker",
-                cpp_name = "new_marker_id",
-                ret_type = "double",
-                arg_list = {}
-            },
-            {
                 scm_name = "mark-end",
                 cpp_name = "mark_end",
                 ret_type = "void",

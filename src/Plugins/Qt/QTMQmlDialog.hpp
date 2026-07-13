@@ -25,9 +25,8 @@
  * - @b 逐字段可选实时回写（live 标志）：
  *   - live=true：用户改动走 QML → bridge → glue → scm setter，实时预览。
  *     @b 红线：setter 禁止任何模态操作（不弹对话框、不嵌套 exec()），否则破坏
- *     scheme continuation 栈。Cancel 能否回滚取决于调用方是否用 undo mark
- *     事务包裹（font-selector 走 mark-cancel 回滚，普通 form 不开 mark 故
- *     不回滚）。
+ *     scheme continuation 栈。Cancel 回滚由调用方实现（font-selector
+ * 走快照写回撤销， 普通 form 不做回滚）。
  *   - live=false（默认）：值暂存 QML，点 OK 随整表单返回 scm 统一提交，Cancel
  * 放弃。
  * - @b 控件类型：enum / input / checkbox / color /
