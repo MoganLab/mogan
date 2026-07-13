@@ -82,15 +82,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (tm-define (texmacs->utf8raw t)
-  (if (tree? t)
-    (cpp-tree->utf8raw t)
-    (texmacs->utf8raw (tm->tree t))
-  ) ;if
+  (if (tree? t) (cpp-tree->utf8raw t) (texmacs->utf8raw (tm->tree t)))
 ) ;tm-define
 
-(tm-define (utf8raw->texmacs s)
-  (cpp-utf8raw->tree s)
-) ;tm-define
+(tm-define (utf8raw->texmacs s) (cpp-utf8raw->tree s))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Verbatim
