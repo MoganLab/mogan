@@ -66,6 +66,13 @@
       (cpp-set-preference which val)
       (notify-preference which)
       (save-preferences)
+      (when (string-starts? which "plugin:binary")
+        (let ((cache-file (url-append (get-tm-cache-path) "plugin_cache.scm")))
+          (when (url-exists? cache-file)
+            (url-remove cache-file)
+          ) ;when
+        ) ;let
+      ) ;when
     ) ;when
   ) ;with
 ) ;tm-define
@@ -77,6 +84,13 @@
     (cpp-reset-preference which)
     (notify-preference which)
     (save-preferences)
+    (when (string-starts? which "plugin:binary")
+      (let ((cache-file (url-append (get-tm-cache-path) "plugin_cache.scm")))
+        (when (url-exists? cache-file)
+          (url-remove cache-file)
+        ) ;when
+      ) ;let
+    ) ;when
   ) ;when
 ) ;tm-define
 
