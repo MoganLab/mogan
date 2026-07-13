@@ -1414,11 +1414,17 @@
   ) ;with
 ) ;define
 
+;; 注销 specs + 快照（reset 不调用：对话框仍打开）。
+
+(define (font-selector-cleanup key)
+  (ahash-remove! specs-registry key)
+  (ahash-remove! initial-snapshot key)
+) ;define
+
 ;; Cancel：撤销本次对话框的字体改动，写回打开对话框时（initial-snapshot）。
 (tm-define (font-selector-cancel key)
   (font-selector-revert-to-snapshot key)
-  ;; 注销 specs（对话框生命周期结束），避免 registry 无限增长泄漏闭包。
-  (ahash-remove! specs-registry key)
+  (font-selector-cleanup key)
 ) ;tm-define
 
 ;; OK：补齐 selector-table 与当前文档的差异（live 路径大部分已实时写入），写回落定。
@@ -1436,8 +1442,7 @@
       ) ;with
     ) ;with
   ) ;with
-  ;; 注销 specs（对话框生命周期结束），避免 registry 无限增长泄漏闭包。
-  (ahash-remove! specs-registry key)
+  (font-selector-cleanup key)
 ) ;tm-define
 
 ;; 重置：字体回到打开对话框时（initial-snapshot，首次打开=文档默认）。机制同 Cancel。

@@ -438,5 +438,7 @@ cpp_font_selector_dialog (int specs_key) {
                           &QObject::deleteLater);
       },
       980, 600);
-  return tree (TUPLE, tree ("ok"));
+  // 非阻塞 show 立即返回，用户尚未点 OK/Cancel，无结论——返回空 tree（与 Cancel
+  // 一致）。
+  return tree (TUPLE);
 }
