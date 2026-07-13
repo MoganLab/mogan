@@ -1215,14 +1215,18 @@ TutorialEngine::pollRequiredAction () {
 
   m_completedActionSteps.insert (step.id);
   reset_user_preference (kTutorialLastActionPreference);
-  const bool    isLastStep= (m_currentIndex == m_config.steps.size () - 1);
-  const QString notice=
-      isLastStep
-          ? QStringLiteral (
-                "<span style=\"color:#0f766e\">恭喜您！教程已完成！</span>")
-          : QStringLiteral ("<span "
-                            "style=\"color:#0f766e\">"
-                            "恭喜您！可以进入下一步教程了！</span>");
+  QString notice;
+  if (step.requiredAction == QStringLiteral ("ocr-paste")) {
+    notice= QStringLiteral (
+        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
+        "Ctrl+Shift+v/Command+Shift+v 或图片悬浮菜单触发 "
+        "OCR！所有教程已完成！</span>");
+  }
+  else {
+    notice= QStringLiteral (
+        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
+        "Ctrl+Shift+v/Command+Shift+v 触发！现在可以进行下一步了</span>");
+  }
   m_overlay->appendBottomNotice (notice);
   updateCurrentStepGate ();
 }
