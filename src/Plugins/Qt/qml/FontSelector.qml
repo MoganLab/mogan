@@ -118,133 +118,39 @@ DialogShell {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
 
-            // 选项卡面板（顶部，占据剩余高度）。直角无框容器（listBg 底），选项卡
-            // 行与内容都在容器内；选中态为圆角胶囊（波浪包裹），色调与列表选中一致。
-            Rectangle {
+            // 选项卡面板（顶部，占据剩余高度）：容器 + TabBar + 内容，样式与布局见
+            // TabPanel.qml（提取自原内联 tabPanel，逐项一致）。
+            TabPanel {
                 id: tabPanel
                 anchors.top: parent.top
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: bottomButtons.top
                 anchors.bottomMargin: 12 * Theme.scaleFactor
-                color: Theme.listBg
-                radius: 8 * Theme.scaleFactor
-                border.width: 1 * Theme.scaleFactor
-                border.color: Theme.borderClr
-                clip: true
-
-                // 选项卡行（容器内顶部）。
-                Row {
-                    id: tabBar
-                    anchors.top: parent.top
-                    anchors.topMargin: 8 * Theme.scaleFactor
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8 * Theme.scaleFactor
-                    spacing: 8 * Theme.scaleFactor
-                    Repeater {
-                        model: [ { key: "filter", label: root.labels.filter }, { key: "advanced", label: root.labels.advanced } ]
-                        delegate: Rectangle {
-                            readonly property bool isActive: root.activeTab === modelData.key
-                            width: tabText.width + 28 * Theme.scaleFactor
-                            height: 30 * Theme.scaleFactor
-                            radius: height / 2
-                            color: isActive ? Theme.selectBg
-                                            : (tabMa.containsMouse ? Theme.fieldBgHover : "transparent")
-                            border.width: isActive ? 1 * Theme.scaleFactor : 0
-                            border.color: Theme.selectBorder
-                            Text {
-                                id: tabText
-                                anchors.centerIn: parent
-                                text: modelData.label
-                                color: isActive ? Theme.selectFg : Theme.fg
-                                font.pixelSize: 13 * Theme.scaleFactor
-                                font.bold: isActive
-                            }
-                            MouseArea {
-                                id: tabMa
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: root.activeTab = modelData.key
-                            }
+                tabs: [ { key: "filter", label: root.labels.filter }, { key: "advanced", label: root.labels.advanced } ]
+                activeKey: root.activeTab
+                onActiveKeyChanged: root.activeTab = activeKey
+                content: Item {
+                    // 两个 EnumComboList 占满内容区，按 activeTab 切显隐（复用原 Flickable
+                    // + Column + Repeater 结构，见 EnumComboList.qml）。
+                    EnumComboList {
+                        anchors.fill: parent
+                        visible: root.activeTab === "filter"
+                        model: filterModel.value
+                        onItemChanged: function(item, v) {
+                            var d = fontBridge.setFilter(item.var, v)
+                            familyModel.value = d.families
+                            filterModel.value = fontBridge.filterMeta()
+                            root.previewUrl = d.preview
                         }
                     }
-                }
-
-                // Filter 选项卡：9 项下拉，垂直单列排列，超高时纵向滚动。四周留内缩进。
-                Flickable {
-                    visible: root.activeTab === "filter"
-                    anchors.top: tabBar.bottom
-                    anchors.topMargin: 8 * Theme.scaleFactor
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8 * Theme.scaleFactor
-                    anchors.right: parent.right
-                    anchors.rightMargin: 8 * Theme.scaleFactor
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 8 * Theme.scaleFactor
-                    contentWidth: width
-                    contentHeight: filterCol.height
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    Column {
-                        id: filterCol
-                        width: parent.width
-                        spacing: 6 * Theme.scaleFactor
-
-                        Repeater {
-                            model: filterModel.value
-                            delegate: EnumCombo {
-                                width: filterCol.width
-                                label: modelData.label
-                                options: modelData.options
-                                optionsTr: modelData.optionsTr
-                                value: modelData.value
-                                onChanged: function(v) {
-                                    var d = fontBridge.setFilter(modelData.var, v)
-                                    familyModel.value = d.families
-                                    filterModel.value = fontBridge.filterMeta()
-                                    root.previewUrl = d.preview
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // Advanced 选项卡：定制下拉，垂直单列排列，超高时纵向滚动。四周留内缩进。
-                Flickable {
-                    visible: root.activeTab === "advanced"
-                    anchors.top: tabBar.bottom
-                    anchors.topMargin: 8 * Theme.scaleFactor
-                    anchors.left: parent.left
-                    anchors.leftMargin: 8 * Theme.scaleFactor
-                    anchors.right: parent.right
-                    anchors.rightMargin: 8 * Theme.scaleFactor
-                    anchors.bottom: parent.bottom
-                    anchors.bottomMargin: 8 * Theme.scaleFactor
-                    contentWidth: width
-                    contentHeight: customizeCol.height
-                    clip: true
-                    boundsBehavior: Flickable.StopAtBounds
-
-                    Column {
-                        id: customizeCol
-                        width: parent.width
-                        spacing: 6 * Theme.scaleFactor
-
-                        Repeater {
-                            model: customizeModel.value
-                            delegate: EnumCombo {
-                                width: customizeCol.width
-                                label: modelData.label
-                                options: modelData.options
-                                optionsTr: modelData.optionsTr
-                                value: modelData.value
-                                onChanged: function(v) {
-                                    root.previewUrl = fontBridge.setCustomize(modelData.which, v).preview
-                                    customizeModel.value = fontBridge.customizeMeta()
-                                }
-                            }
+                    EnumComboList {
+                        anchors.fill: parent
+                        visible: root.activeTab === "advanced"
+                        model: customizeModel.value
+                        onItemChanged: function(item, v) {
+                            root.previewUrl = fontBridge.setCustomize(item.which, v).preview
+                            customizeModel.value = fontBridge.customizeMeta()
                         }
                     }
                 }
@@ -261,7 +167,9 @@ DialogShell {
                 primaryIndex: 2
                 buttonWidth: 82 * Theme.scaleFactor
                 onClicked: function(i) {
-                    if (i === 0) fontBridge.importFont()
+                    // Import 经 choose-file 模态阻塞，返回时导入已完成；重拉 family 列表
+                    // 让新字体出现（font-import 的 refresh-now 只对老 tm-widget 标签生效）。
+                    if (i === 0) { fontBridge.importFont(); familyModel.value = fontBridge.requestFamilies() }
                     else if (i === 1) { fontBridge.reset(); root.refreshAll() }
                     else if (i === 2) fontBridge.submit()
                     else fontBridge.cancel()

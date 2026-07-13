@@ -5,8 +5,11 @@
         <file>qml/DialogShell.qml</file>
         <file>qml/DialogButtons.qml</file>
         <file>qml/EnumCombo.qml</file>
+        <file>qml/EnumComboList.qml</file>
         <file>qml/SelectableList.qml</file>
         <file>qml/PreviewPane.qml</file>
+        <file>qml/TabBar.qml</file>
+        <file>qml/TabPanel.qml</file>
         <file>qml/FontSelector.qml</file>
         <file>qml/ConfirmClose.qml</file>
         <file>qml/FormDialog.qml</file>

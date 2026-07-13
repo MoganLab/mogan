@@ -1384,6 +1384,8 @@
     ) ;when
   ) ;with
   (with specs (ahash-ref specs-registry key) (when specs (selector-clean specs)))
+  ;; 注销 specs/mark（对话框生命周期结束），避免 registry 无限增长泄漏闭包。
+  (ahash-remove! specs-registry key)
 ) ;tm-define
 
 ;; OK：取 changes 并应用 setter。live 路径下大部分已实时写入，此处补齐差异；
@@ -1409,6 +1411,8 @@
       (ahash-remove! selector-mark key)
     ) ;when
   ) ;with
+  ;; 注销 specs/mark（对话框生命周期结束），避免 registry 无限增长泄漏闭包。
+  (ahash-remove! specs-registry key)
 ) ;tm-define
 
 ;; 重置：mark-cancel 回滚本次左侧 live 写回（含多次重置累积），重开新 mark 供后续
