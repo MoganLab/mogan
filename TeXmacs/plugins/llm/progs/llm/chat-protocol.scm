@@ -27,6 +27,18 @@
 
 (import (liii njson))
 
+;;; ---------- Record Type ----------
+
+(define-record-type <chat-input>
+  (make-chat-input input session-id model thinking search)
+  chat-input?
+  (input       chat-input-input)
+  (session-id  chat-input-session-id)
+  (model       chat-input-model)
+  (thinking    chat-input-thinking)
+  (search      chat-input-search)
+) ;define-record-type
+
 ;;; ---------- 全局常量 ----------
 
 (define chat-tab-session-name "llm")
@@ -358,10 +370,15 @@
   ) ;cond
 ) ;define
 
-(define (chat-tab-build-context-input input session-id model thinking search)
+(define (chat-tab-build-context-input ctx)
   ;; 单轮：只编码当前用户输入 + per-round 参数
   ;; 线格式：%chat <json>\n<EOF>\n
-  (let* ((content (chat-tab-tree->plain-text input))
+  (let* ((input (chat-input-input ctx))
+         (session-id (chat-input-session-id ctx))
+         (model (chat-input-model ctx))
+         (thinking (chat-input-thinking ctx))
+         (search (chat-input-search ctx))
+         (content (chat-tab-tree->plain-text input))
          (obj (string->njson "{}"))
          (params (string->njson "{}"))
          (stree-input (if (tree? input) (tree->stree input) input))
@@ -393,30 +410,28 @@
     (let ((json-str (njson->string obj)))
       (njson-free params)
       (njson-free obj)
-      (let ((cork-json (utf8->cork json-str)))
-        (stree->tree `(document ,(string-append "%chat " cork-json)))
-      ) ;let
+      (stree->tree `(document ,(string-append "%chat " json-str)))
     ) ;let
   ) ;let*
 ) ;define
 
 ;;; ---------- Feed ----------
 
-(define (chat-tab-session-feed lan ses input session-id out opts model thinking search)
+(define (chat-tab-session-feed lan ses ctx out opts)
   ;; 用单轮输入替换原始输入
-  (set! input
-    (chat-tab-build-context-input input session-id model thinking search)
-  ) ;set!
-  (set! input (plugin-preprocess lan ses input opts))
-  (with-buffer (chat-tab-session->message-buffer session-id)
-    (tree-assign! out '(document (script-busy)))
-  ) ;with-buffer
-  ;; 通知 C++ 进入 Generating 状态，切换按钮为 Stop
-  (chat-tab-notify-state session-id "generating")
-  (with x
-    (chat-tab-session-encode input session-id out opts)
-    (apply plugin-feed `(,lan ,ses ,@(car x) ,(cdr x)))
-  ) ;with
+  (let ((input (chat-tab-build-context-input ctx))
+        (session-id (chat-input-session-id ctx)))
+    (set! input (plugin-preprocess lan ses input opts))
+    (with-buffer (chat-tab-session->message-buffer session-id)
+      (tree-assign! out '(document (script-busy)))
+    ) ;with-buffer
+    ;; 通知 C++ 进入 Generating 状态，切换按钮为 Stop
+    (chat-tab-notify-state session-id "generating")
+    (with x
+      (chat-tab-session-encode input session-id out opts)
+      (apply plugin-feed `(,lan ,ses ,@(car x) ,(cdr x)))
+    ) ;with
+  ) ;let
 ) ;define
 
 ;;; ---------- 发送 ----------
@@ -460,16 +475,9 @@
                     #t
                   ) ;begin
                   (begin
-                    (chat-tab-session-feed chat-tab-session-name
-                      plugin-ses
-                      input
-                      session-id
-                      out
-                      '()
-                      model
-                      thinking
-                      search
-                    ) ;chat-tab-session-feed
+                    (let ((ctx (make-chat-input input session-id model thinking search)))
+                      (chat-tab-session-feed chat-tab-session-name plugin-ses ctx out '())
+                    ) ;let
                     #t
                   ) ;begin
                 ) ;if
