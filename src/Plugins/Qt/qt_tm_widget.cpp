@@ -3252,12 +3252,14 @@ qt_tm_widget_rep::checkNetworkAvailable () {
   QNetworkRequest        request (testUrl);
   QNetworkReply*         reply= manager->head (request);
 
-  QObject::connect (reply, &QNetworkReply::finished, [this, reply] () {
-    bool success= (reply->error () == QNetworkReply::NoError);
-    reply->deleteLater ();
-    bool isLoggedIn= as_bool (call ("logged-in?"));
-    syncScmGuestNotification (!is_community_stem () && !isLoggedIn && success);
-  });
+  QObject::connect (
+      reply, &QNetworkReply::finished, [this, reply, manager] () {
+        bool success= (reply->error () == QNetworkReply::NoError);
+        reply->deleteLater ();
+        manager->deleteLater ();
+        bool isLoggedIn= as_bool (call ("logged-in?"));
+        syncScmGuestNotification (!is_community_stem () && !isLoggedIn && success);
+      });
 }
 
 // 检查版本更新，根据条件显示提示条
