@@ -27,6 +27,10 @@ DialogShell {
     property var labels: fontBridge.uiLabels()
     // 选项卡：右侧面板 Filter / Advanced 切换（整合，不开第二个 exec）。
     property string activeTab: "filter"
+    // 刷新节拍：reset 后自增，驱动「绑定到无参 bridge 函数」的 currentValue 重算
+    //（这类 binding 不会因 scheme 状态变化自动重算）。重算后值可能未变，故
+    // refreshAll 还需显式 syncActiveValue 强制选中框同步。
+    property int refreshTick: 0
 
     // 左列固定宽度。左列尽量放大，右列压缩到刚够容纳底部并排四按钮。
     readonly property real leftColumnWidth: 540 * Theme.scaleFactor
@@ -50,11 +54,12 @@ DialogShell {
                 spacing: 12 * Theme.scaleFactor
 
                 SelectableList {
+                    id: familyList
                     width: 229 * Theme.scaleFactor
                     height: parent.height
                     title: root.labels.family
                     items: familyModel.value
-                    currentValue: fontBridge.currentFamily()
+                    currentValue: { var _ = root.refreshTick; return fontBridge.currentFamily() }
                     onSelected: function(v) {
                         var d = fontBridge.setFamily(v)
                         styleModel.value = d.styles
@@ -62,19 +67,21 @@ DialogShell {
                     }
                 }
                 SelectableList {
+                    id: styleList
                     width: 172 * Theme.scaleFactor
                     height: parent.height
                     title: root.labels.style
                     items: styleModel.value
-                    currentValue: fontBridge.currentStyle()
+                    currentValue: { var _ = root.refreshTick; return fontBridge.currentStyle() }
                     onSelected: function(v) { root.previewUrl = fontBridge.setStyle(v).preview }
                 }
                 SelectableList {
+                    id: sizeList
                     width: 115 * Theme.scaleFactor
                     height: parent.height
                     title: root.labels.size
-                    items: fontBridge.requestSizes()
-                    currentValue: fontBridge.currentSize()
+                    items: { var _ = root.refreshTick; return fontBridge.requestSizes() }
+                    currentValue: { var _ = root.refreshTick; return fontBridge.currentSize() }
                     onSelected: function(v) { root.previewUrl = fontBridge.setSize(v).preview }
                 }
             }
@@ -272,8 +279,14 @@ DialogShell {
 
     // Reset 后整体重拉（family/style/preview 都可能变）。
     function refreshAll() {
+        root.refreshTick++
         familyModel.value = fontBridge.requestFamilies()
         styleModel.value = fontBridge.requestStyles(fontBridge.currentFamily())
         previewUrl = fontBridge.requestPreview()
+        // currentValue 重算后值可能未变（reset 回到打开时默认），changed 信号不发，
+        // activeValue 不会更新；此处显式同步选中框。
+        familyList.syncActiveValue()
+        styleList.syncActiveValue()
+        sizeList.syncActiveValue()
     }
 }

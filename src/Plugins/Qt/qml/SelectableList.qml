@@ -38,6 +38,10 @@ Item {
     property string activeValue: currentValue
     onCurrentValueChanged: activeValue = currentValue
 
+    // 外部强制同步：reset 后 currentValue 可能「值未变」（回到打开时默认），QML 不
+    // 发 changed 信号、activeValue 不会更新；由调用方在 refreshAll 后显式调用。
+    function syncActiveValue() { activeValue = currentValue }
+
     // 标题行高（空 title 时为 0，不占空间）。
     readonly property real headerH: root.title.length > 0 ? 24 * Theme.scaleFactor : 0
 

@@ -28,6 +28,8 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define selector-table (make-ahash-table))
+;; key -> (family style size)：对话框打开瞬间的初始字体快照，供「重置」回放。
+(define initial-snapshot (make-ahash-table))
 
 (define (selkey specs var)
   (with win
@@ -297,6 +299,26 @@
     (list (or (car fn) "TeXmacs Computer Modern")
       (or (cadr fn) "Regular")
       (or sz "10")
+    ) ;list
+  ) ;let*
+) ;define
+
+;; 文档级默认字体（family/style/size）。用 get-init（文档 init 设置，不受局部 with
+;; 块污染）替代 initial-font-data 里的 get-env（读光标处，会被 live 写回插的 with
+;; 污染）。供对话框「重置」快照——多次开关对话框时，get-env 被历史 live 写回污染，
+;; get-init 仍稳定返回文档/启动默认（中文环境经 CJK 映射，如 Noto Serif CJK SC）。
+(define (font-document-default-data)
+  (let* ((fam (font-family-main (or (get-init (pref-font)) "roman")))
+         (var (or (get-init (pref-font-family)) "rm"))
+         (ser (or (get-init (pref-font-series)) "medium"))
+         (sh (or (get-init (pref-font-shape)) "right"))
+         (sz (or (get-init (pref-font-base-size)) "10"))
+         (lf (logical-font-private fam var ser sh))
+         (fn (logical-font-search-exact lf))
+        ) ;
+    (list (or (car fn) "TeXmacs Computer Modern")
+      (or (cadr fn) "Regular")
+      sz
     ) ;list
   ) ;let*
 ) ;define
@@ -1070,6 +1092,11 @@
   (with key
     specs-registry-next
     (ahash-set! specs-registry key specs)
+    ;; 快照文档级默认 family/style/size，供「重置」回放。用 get-init（不受局部 with
+    ;; 污染）而非 get-env：多次开关对话框时，历史 live 写回插的 with 块会污染
+    ;; get-env，使后续快照读到「上次对话框结果」而非启动默认；get-init 读文档 init
+    ;; 设置，稳定返回启动/文档默认（中文环境经 CJK 映射，如 Noto Serif CJK SC）。
+    (ahash-set! initial-snapshot key (font-document-default-data))
     (set! specs-registry-next (+ specs-registry-next 1))
     key
   ) ;with
@@ -1371,7 +1398,16 @@
 (tm-define (font-selector-restore key)
   (with specs
     (font-selector-lookup-specs key)
-    (selector-restore specs (caddr specs))
+    ;; 对话框「重置」：回到系统启动/文档默认字体。live 写回经 make-multi-with 在
+    ;; 光标处插 with 块污染了 get-env，无法再靠 selector-clean + initial-font-data
+    ;; fallback 读回；故 register-specs 时已用 get-init（不受 with 污染）快照默认值，
+    ;; 此处把快照写入 selector-table（覆盖被污染的 fallback），不触发 setter、不写
+    ;; buffer。filter/customize 经 selector-clean 清回 "Any"/默认。
+    (selector-clean specs)
+    (with snap (ahash-ref initial-snapshot key)
+      (ahash-set! selector-table (selkey specs :family) (car snap))
+      (ahash-set! selector-table (selkey specs :style) (cadr snap))
+      (ahash-set! selector-table (selkey specs :size) (caddr snap)))
   ) ;with
 ) ;tm-define
 
