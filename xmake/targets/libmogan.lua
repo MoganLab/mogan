@@ -135,7 +135,7 @@ target("libmogan") do
                 USE_MUPDF_RENDERER = has_config("mupdf"),
                 USE_STARTUP_TAB = has_config("startup_tab"),
                 USE_TEXT_TOOLBAR = has_config("text_toolbar"),
-                USE_TUTORIAL = enable_tutorial,
+                USE_TUTORIAL = not has_config("is_community"),
                 IS_COMMUNITY = has_config("is_community"),
                 DEBUG_WITH_TIMESTAMP = has_config("debug_with_timestamp"),
                 }})
