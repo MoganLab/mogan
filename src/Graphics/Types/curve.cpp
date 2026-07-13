@@ -1019,7 +1019,7 @@ ellipse_rep::ellipse_rep (array<point> a2, array<path> cip2, bool close)
   focal_length  = norm (f2 - f1);
   sum_of_two_dis= norm (points[2] - f1) + norm (points[2] - f2);
   r1            = (sum_of_two_dis) / 2;
-  double c= focal_length / 2;
+  double c      = focal_length / 2;
   if (r1 <= c) {
     r1= c * 1.001;
   }
