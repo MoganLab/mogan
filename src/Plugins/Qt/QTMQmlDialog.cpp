@@ -362,17 +362,20 @@ cpp_form_dialog (tree fields) {
  *
  * @details 宿主拼装走 run_qml_dialog；FontSelectorBridge 作为 fontBridge
  * context property 注入，承载 QML↔scheme 交互。字体状态在 scheme（specsKey
- * 句柄），bridge 透传。实际写回由 bridge 的 submit → font-selector-commit
- * 完成（live 路径），故本 入口返回的 tree 主要供自动化测试断言（OK 非空 /
- * Cancel 空）。测试钩子 MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。
+ * 句柄），bridge 透传。selector-set 实时写回（live）归入 undo mark 事务，OK 经
+ * submit → font-selector-commit 补齐差异并 mark-end 落定，Cancel 经 mark-cancel
+ * 回滚。本入口返回的 tree 主要供自动化测试断言（OK 非空 / Cancel 空）。测试钩子
+ * MOGAN_TEST_FONT_SELECTOR=ok|cancel 命中时不弹窗。
  */
 tree
 cpp_font_selector_dialog (int specs_key) {
   string preset= get_env ("MOGAN_TEST_FONT_SELECTOR");
-  if (preset == "cancel") return tree (TUPLE);
+  if (preset == "cancel") {
+    return tree (TUPLE);
+  }
   if (preset == "ok") {
-    // 测试钩子：仍走 font-selector-commit 验全链数据契约（live 写回），返回非空
-    // 标记 tuple 供调用方/测试区分 OK。
+    // 测试钩子：走 font-selector-commit（补齐差异 + mark-end 落定），返回非空
+    // tuple 供调用方/测试区分 OK。
     eval_scheme ("(font-selector-commit " * as_string (specs_key) * ")");
     tree r (TUPLE);
     r << tree ("ok");

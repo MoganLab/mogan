@@ -147,6 +147,17 @@ save/编辑污染检入副本。配合 `#ifdef LIII_DEBUG` 的临时日志定位
 
 如果构建失败（例如配置缓存陈旧、依赖路径错乱），执行 `xmake f -c --yes` 清理配置缓存后重新构建。
 
+### Scheme Glue（C++ ↔ scheme 绑定）
+
+- **glue 声明在 `.lua` 不在 `.scm`**：mogan 的 glue 由 xmake 规则 `xmake/rules/glue.lua`
+   在构建期生成 `build/.gens/.../glue/glue_*.cpp`。**声明源是 `src/Scheme/Glue/glue_*.lua`**
+   （如 `glue_editor.lua`），不是 texmacs 遗留的 `build-glue-editor.scm` /
+   `TeXmacs/progs/prog/glue-symbols.scm`——那两个 `.scm` 文件 mogan 不使用，改了不生效。
+   新增一个 scheme 可调的 C++ 函数（编辑器方法）：
+   - C++：在 `edit_modify_rep` 等加方法（glue 规则给所有调用加 `get_current_editor()->`
+     前缀，故只能绑编辑器方法，不能绑自由函数——自由函数要包一层方法转调）。
+   - `glue_*.lua`：加 `{ scm_name = "foo", cpp_name = "foo", ret_type = "...", arg_list = {...} }`。
+
 ## 工作流程
 
 1. 基于主分支创建新分支

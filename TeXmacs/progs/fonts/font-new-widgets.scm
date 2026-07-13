@@ -28,9 +28,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 (define selector-table (make-ahash-table))
-;; key -> (family style size)：对话框打开瞬间的初始字体快照，供「重置」回放。
+;; key -> undo mark id (double)：对话框开启的事务标记，Cancel/重置 mark-cancel 回滚
+;; 左侧 live 写回，OK mark-end 落定。
 
-(define initial-snapshot (make-ahash-table))
+(define selector-mark (make-ahash-table))
 
 (define (selkey specs var)
   (with win
@@ -301,24 +302,6 @@
       (or (cadr fn) "Regular")
       (or sz "10")
     ) ;list
-  ) ;let*
-) ;define
-
-;; 文档级默认字体（family/style/size）。用 get-init（文档 init 设置，不受局部 with
-;; 块污染）替代 initial-font-data 里的 get-env（读光标处，会被 live 写回插的 with
-;; 污染）。供对话框「重置」快照——多次开关对话框时，get-env 被历史 live 写回污染，
-;; get-init 仍稳定返回文档/启动默认（中文环境经 CJK 映射，如 Noto Serif CJK SC）。
-
-(define (font-document-default-data)
-  (let* ((fam (font-family-main (or (get-init (pref-font)) "roman")))
-         (var (or (get-init (pref-font-family)) "rm"))
-         (ser (or (get-init (pref-font-series)) "medium"))
-         (sh (or (get-init (pref-font-shape)) "right"))
-         (sz (or (get-init (pref-font-base-size)) "10"))
-         (lf (logical-font-private fam var ser sh))
-         (fn (logical-font-search-exact lf))
-        ) ;
-    (list (or (car fn) "TeXmacs Computer Modern") (or (cadr fn) "Regular") sz)
   ) ;let*
 ) ;define
 
@@ -981,10 +964,10 @@
 ;; High level window interface
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; 三个 window 入口切到 QML：register-specs 存 specs 拿 int 句柄，cpp-font-selector-dialog
-;; exec QML 对话框，fontBridge 调 font-selector-* facade 透传交互。live 路径下
-;; selector-set 已实时写回，OK 经 font-selector-commit 补齐差异；Cancel 不回滚
-;; （既有契约）。返回 tree 仅测试用，正常路径忽略。
+;; 三个 window 入口切到 QML：register-specs 存 specs 拿 int 句柄并开 undo mark 事务，
+;; cpp-font-selector-dialog exec QML 对话框，fontBridge 调 font-selector-* facade 透传
+;; 交互。selector-set 实时写回（live），OK 经 font-selector-commit 补齐差异并 mark-end
+;; 落定，Cancel/重置经 mark-cancel 回滚 live 写回。返回 tree 仅测试用，正常路径忽略。
 (tm-define (open-font-selector-window)
   (:interactive #t)
   (with specs
@@ -1091,11 +1074,10 @@
   (with key
     specs-registry-next
     (ahash-set! specs-registry key specs)
-    ;; 快照文档级默认 family/style/size，供「重置」回放。用 get-init（不受局部 with
-    ;; 污染）而非 get-env：多次开关对话框时，历史 live 写回插的 with 块会污染
-    ;; get-env，使后续快照读到「上次对话框结果」而非启动默认；get-init 读文档 init
-    ;; 设置，稳定返回启动/文档默认（中文环境经 CJK 映射，如 Noto Serif CJK SC）。
-    (ahash-set! initial-snapshot key (font-document-default-data))
+    ;; 开 undo mark 事务：左侧 live 写回归到此 mark 下，Cancel mark-cancel 回滚，
+    ;; 重置 mark-cancel+重开，OK mark-end 落定。new-marker 生成唯一 id，mark-start
+    ;; 用它开启事务（mark-start 返回 void，故 id 单独存）。
+    (with m (new-marker) (ahash-set! selector-mark key m) (mark-start m))
     (set! specs-registry-next (+ specs-registry-next 1))
     key
   ) ;with
@@ -1122,8 +1104,8 @@
   (selector-get (font-selector-lookup-specs key) var)
 ) ;tm-define
 
-;; live 写回：selector-set 经 selector-notify 实时写 buffer。refresh-now 对 QML
-;; 对话框里不存在的 tm-widget refreshable 标签是 no-op，Cancel 不回滚（既有契约）。
+;; live 写回：selector-set 经 selector-notify 实时写 buffer，归入 register-specs 开的
+;; undo mark 事务。refresh-now 对 QML 对话框里不存在的 tm-widget refreshable 标签是 no-op。
 (tm-define (font-selector-set key var val)
   (selector-set (font-selector-lookup-specs key) var val)
 ) ;tm-define
@@ -1377,7 +1359,23 @@
   ) ;with
 ) ;tm-define
 
-;; OK：取 changes 并应用 setter。live 路径下大部分已实时写入，此处补齐差异。
+;; Cancel：mark-cancel 整体回滚本次对话框左侧 live 写回（buffer/init 都还原），
+;; selector-clean 清掉 selector-table 里所有 var 写值（含左侧 family/style/size——
+;; live 路径 selector-set 会写它们），使 selector-get 回退到已回滚的 get-env/get-init。
+;; 收尾路径容错：未注册的 key（如单测传 0）不抛异常，仅做 mark-cancel。
+(tm-define (font-selector-cancel key)
+  (with m
+    (ahash-ref selector-mark key)
+    (when m
+      (mark-cancel m)
+      (ahash-remove! selector-mark key)
+    ) ;when
+  ) ;with
+  (with specs (ahash-ref specs-registry key) (when specs (selector-clean specs)))
+) ;tm-define
+
+;; OK：取 changes 并应用 setter。live 路径下大部分已实时写入，此处补齐差异；
+;; 随后 mark-end 落定 undo mark 事务（左侧 live 改动正式归入可 undo 历史）。
 (tm-define (font-selector-commit key)
   (with specs
     (font-selector-lookup-specs key)
@@ -1392,23 +1390,24 @@
       ) ;with
     ) ;with
   ) ;with
+  (with m
+    (ahash-ref selector-mark key)
+    (when m
+      (mark-end m)
+      (ahash-remove! selector-mark key)
+    ) ;when
+  ) ;with
 ) ;tm-define
 
+;; 重置：mark-cancel 回滚本次左侧 live 写回（含多次重置累积），重开新 mark 供后续
+;; live 归属，selector-clean 清 selector-table 全部 var（filter/customize 回 Any/默认，
+;; 左侧 family/style/size 回退到已回滚的 get-env/get-init）。
 (tm-define (font-selector-restore key)
   (with specs
     (font-selector-lookup-specs key)
-    ;; 对话框「重置」：回到系统启动/文档默认字体。live 写回经 make-multi-with 在
-    ;; 光标处插 with 块污染了 get-env，无法再靠 selector-clean + initial-font-data
-    ;; fallback 读回；故 register-specs 时已用 get-init（不受 with 污染）快照默认值，
-    ;; 此处把快照写入 selector-table（覆盖被污染的 fallback），不触发 setter、不写
-    ;; buffer。filter/customize 经 selector-clean 清回 "Any"/默认。
+    (with m (ahash-ref selector-mark key) (when m (mark-cancel m)))
+    (with m2 (new-marker) (ahash-set! selector-mark key m2) (mark-start m2))
     (selector-clean specs)
-    (with snap
-      (ahash-ref initial-snapshot key)
-      (ahash-set! selector-table (selkey specs :family) (car snap))
-      (ahash-set! selector-table (selkey specs :style) (cadr snap))
-      (ahash-set! selector-table (selkey specs :size) (caddr snap))
-    ) ;with
   ) ;with
 ) ;tm-define
 

@@ -28,8 +28,8 @@
  * @par 不变量
  * - @c selector-table 按 buffer 为键，同 buffer 单对话框（模态 exec 契约，见
  *   QTMQmlDialog.hpp）。bridge 不复刻此约束，依赖既有 scheme 契约。
- * - @c live=true：selector-set 实时写 buffer，Cancel
- * 不回滚（既有行为，非回归）。
+ * - @c live=true：selector-set 实时写 buffer，归入 register-specs 开的 undo
+ * mark 事务；Cancel 经 mark-cancel 回滚，OK 经 mark-end 落定。
  *
  * @note 生命周期仿 QmlDialogBridge：host 由调用方栈分配覆盖 exec()，bridge 不挂
  *       parent（须跨 host 存活以取最终值），调用方持指针用完 delete。
@@ -113,7 +113,8 @@ public:
 
   /// OK：scheme font-selector-commit 写回，host 以 Accepted 结束。
   Q_INVOKABLE void submit ();
-  /// Cancel：host 以 Rejected 结束（live 写回不回滚，既有契约）。
+  /// Cancel：font-selector-cancel 经 mark-cancel 回滚 live 写回，host 以
+  /// Rejected 结束。
   Q_INVOKABLE void cancel ();
 
   /**

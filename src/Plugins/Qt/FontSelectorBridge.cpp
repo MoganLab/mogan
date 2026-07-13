@@ -306,5 +306,8 @@ FontSelectorBridge::submit () {
 
 void
 FontSelectorBridge::cancel () {
+  // font-selector-cancel 经 mark-cancel 回滚本次对话框左侧 live
+  // 写回，再结束模态。
+  eval_scheme ("(font-selector-cancel " * key_token (m_specsKey) * ")");
   m_host->done (QDialog::Rejected);
 }

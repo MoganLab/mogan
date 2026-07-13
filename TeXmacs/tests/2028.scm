@@ -52,11 +52,13 @@
 ) ;define
 
 ;; 文档字体 specs（get-init / init-multi / global?=#t），与 open-document-font-selector 同源。
+
 (define (document-font-specs)
   (list get-init init-multi #t)
 ) ;define
 
 ;; 串异步链：每步在 exec-delayed-at 触发，步间隔 step-delay-ms。
+
 (define (run-chain steps)
   (let loop
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
@@ -85,13 +87,19 @@
                ;;    data URL、filter/customize meta 形状、ui-labels 翻译非空。
                (list (cons "facade full chain"
                        (lambda ()
-                         (with specs (document-font-specs)
+                         (with specs
+                           (document-font-specs)
                            (selector-clean specs)
                            (let* ((key (font-selector-register-specs specs))
                                   (families (font-selector-families key))
-                                  (url (font-selector-preview key)))
-                             (display "  key=")(display key)(display "\n")
-                             (display "  families count=")(display (length families))(display "\n")
+                                  (url (font-selector-preview key))
+                                 ) ;
+                             (display "  key=")
+                             (display key)
+                             (display "\n")
+                             (display "  families count=")
+                             (display (length families))
+                             (display "\n")
                              (check-true (>= (length families) 1))
                              (check-true (string-starts? url "data:image/png;base64,"))
                              (check-true (>= (string-length url) 200))
@@ -105,18 +113,23 @@
                      ) ;cons
                ) ;list
 
-               ;; 2) Cancel：cpp-font-selector-dialog 返回空 tree，不写回。
-               ;;    font-family 改动前后应不变（cancel 不 commit）。
-               (list (cons "cancel: empty tree, no writeback"
+               ;; 2) Cancel：cpp-font-selector-dialog 返回空 tree。真实 Cancel 的
+               ;;    mark-cancel 回滚经 bridge cancel → font-selector-cancel，此处测试钩子
+               ;;    直接返回不复刻副作用；回滚行为靠 MOGAN_TEST_GUI=1 手动验证。
+               (list (cons "cancel: empty tree"
                        (lambda ()
                          (preset-cancel!)
-                         (with specs (document-font-specs)
+                         (with specs
+                           (document-font-specs)
                            (selector-clean specs)
                            (let* ((key (font-selector-register-specs specs))
                                   (before (get-init (pref-font-family)))
                                   (r (cpp-font-selector-dialog key))
-                                  (s (tree->stree r)))
-                             (display "  cancel tree->stree: ")(display s)(display "\n")
+                                  (s (tree->stree r))
+                                 ) ;
+                             (display "  cancel tree->stree: ")
+                             (display s)
+                             (display "\n")
                              (check-true (func? s 'tuple 0))
                              (check-true (equal? (get-init (pref-font-family)) before))
                            ) ;let*
@@ -131,12 +144,16 @@
                (list (cons "ok: commit writes back"
                        (lambda ()
                          (preset-ok!)
-                         (with specs (document-font-specs)
+                         (with specs
+                           (document-font-specs)
                            (selector-clean specs)
                            (let* ((key (font-selector-register-specs specs))
                                   (r (cpp-font-selector-dialog key))
-                                  (s (tree->stree r)))
-                             (display "  ok tree->stree: ")(display s)(display "\n")
+                                  (s (tree->stree r))
+                                 ) ;
+                             (display "  ok tree->stree: ")
+                             (display s)
+                             (display "\n")
                              ;; ok 钩子返回 (tuple "ok")——func? 匹配 tuple 且首子为 "ok"。
                              (check-true (func? s 'tuple))
                              (check-true (>= (length (cdr s)) 1))
