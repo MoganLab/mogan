@@ -27,7 +27,7 @@ class QWheelEvent;
 namespace QWK {
 
 enum class TutorialPlacement { Auto, Top, Bottom, Left, Right };
-enum class TutorialBubbleSize { Small, Medium, Large };
+enum class TutorialBubbleSize { Small, Medium, Large, Huge };
 
 enum class TutorialFinishReason { Completed, Skipped, Cancelled, HostClosed };
 
@@ -43,6 +43,8 @@ struct TutorialStepConfig {
   QString            bottomText;
   QString            onEnterCommand;
   QString            requiredAction;
+  QString            actionButtonLabel;
+  QString            actionButtonCommand;
   TutorialBubbleSize bubbleSize= TutorialBubbleSize::Medium;
   int                offsetX   = 0;
   int                offsetY   = 0;
@@ -85,23 +87,41 @@ public:
   void setFirstStep (bool first);
   void setLastStep (bool last);
   void setNextEnabled (bool enabled, const QString& toolTip= QString ());
+  void setActionButton (const QString& label, const QString& command);
+  void appendBottomNotice (const QString& noticeHtml);
+  void clearBottomNotice ();
+
+private:
+  void refreshBottomText ();
+  void applyNextButtonAppearance ();
+  void emitNextButtonAction ();
+
+  enum class NextButtonMode { NormalNext, ActionTrigger };
 
 signals:
   void previousRequested ();
   void nextRequested ();
   void finishRequested ();
+  void actionRequested (const QString& command);
 
 private:
-  QLabel*      m_titleLabel;
-  QLabel*      m_topTextLabel;
-  QWidget*     m_mediaContainer;
-  QLabel*      m_mediaLabel;
-  QLabel*      m_bottomTextLabel;
-  QLabel*      m_progressLabel;
-  QPushButton* m_previousButton;
-  QPushButton* m_nextButton;
-  QMovie*      m_mediaMovie;
-  QString      m_currentMediaPath;
+  QLabel*         m_titleLabel;
+  QLabel*         m_topTextLabel;
+  QWidget*        m_mediaContainer;
+  QLabel*         m_mediaLabel;
+  QLabel*         m_bottomTextLabel;
+  QLabel*         m_progressLabel;
+  QPushButton*    m_previousButton;
+  QPushButton*    m_nextButton;
+  QMovie*         m_mediaMovie;
+  QString         m_currentMediaPath;
+  QString         m_actionCommand;
+  QString         m_originalBottomText;
+  QString         m_bottomNoticeHtml;
+  NextButtonMode  m_nextMode        = NextButtonMode::NormalNext;
+  bool            m_nextGateEnabled = false;
+  bool            m_isLastStep      = false;
+  QString         m_actionLabel;
 };
 
 class TutorialOverlay : public QWidget {
@@ -115,11 +135,14 @@ public:
   void clearHighlight ();
   void repositionBubble (TutorialPlacement placement);
   void setNextEnabled (bool enabled, const QString& toolTip= QString ());
+  void appendBottomNotice (const QString& noticeHtml);
+  void clearBottomNotice ();
 
 signals:
   void previousRequested ();
   void nextRequested ();
   void finishRequested ();
+  void actionRequested (const QString& command);
 
 protected:
   void paintEvent (QPaintEvent* event) override;
