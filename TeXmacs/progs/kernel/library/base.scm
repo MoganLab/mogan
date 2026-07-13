@@ -47,6 +47,19 @@
   (list->string (list c))
 ) ;define-public
 
+;; 仅折叠 ASCII A-Z，非 ASCII 字符（含损坏 UTF-8 字节）原样保留。
+;; 与 string-downcase 不同：不触发 string->utf8 整段校验，
+;; 因此可安全用于含损坏 UTF-8 的输入做大小写不敏感的 ASCII 标签/关键字匹配。
+(define-public (safe-ascii-string-downcase s)
+  (string-map (lambda (c)
+                (let ((n (char->integer c)))
+                  (if (and (>= n 65) (<= n 90)) (integer->char (+ n 32)) c)
+                ) ;let
+              ) ;lambda
+    s
+  ) ;string-map
+) ;define-public
+
 (define-public (tm-char-whitespace? c)
   "Is @c a whitespace character?"
   ;; NOTE: this routine is implemented in an incorrect way in certain

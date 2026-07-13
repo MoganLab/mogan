@@ -601,7 +601,9 @@
   (with end
     (+ pos (string-length what))
     (and (>= (string-length s) end)
-      (== (string-downcase (substring s pos end)) what)
+      ;; 用 ASCII-only 折叠：避免对含损坏 UTF-8 的输入触发 string-downcase
+      ;; 内部的 string->utf8 整段校验而崩溃（HTML/LaTeX 关键字都是 ASCII）。
+      (== (safe-ascii-string-downcase (substring s pos end)) what)
     ) ;and
   ) ;with
 ) ;define-public
