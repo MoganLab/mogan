@@ -58,6 +58,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-rasterize-widget",
+                cpp_name = "cpp_rasterize_widget",
+                ret_type = "string",
+                arg_list = {
+                    "widget"
+                }
+            },
+            {
                 scm_name = "qt-clipboard-format",
                 cpp_name = "qt_clipboard_format",
                 ret_type = "string"
