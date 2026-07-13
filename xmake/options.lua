@@ -53,13 +53,6 @@ option("is_community")
     set_description("Adjust community or commercial version")
 option_end()
 
-local enable_tutorial = not has_config("is_community")
-
-option("tutorial")
-    set_default(enable_tutorial)
-    set_description("Enable tutorial infrastructure and first-launch tutorial; derived from is_community")
-option_end()
-
 option("debug_with_timestamp")
     set_default(true)
     set_description("Enable timestamps in debug messages")

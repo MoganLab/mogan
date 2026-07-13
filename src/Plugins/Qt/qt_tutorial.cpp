@@ -19,6 +19,7 @@
 #include "tm_file.hpp"
 
 #include <QApplication>
+#include <QDesktopServices>
 #include <QDir>
 #include <QEvent>
 #include <QFileInfo>
@@ -53,11 +54,13 @@ constexpr int kBubbleButtonPadXPx       = 14;
 constexpr int kBubbleButtonMinWidthPx   = 72;
 constexpr int kBubbleTitleFontPx        = 20;
 constexpr int kBubbleBodyFontPx         = 16;
+constexpr int kBubbleHugeFontPx         = 22;
 constexpr int kBubbleProgressFontPx     = 13;
 constexpr int kBubbleButtonFontPx       = 12;
 constexpr int kBubbleWidthSmallPx       = 300;
 constexpr int kBubbleWidthMediumPx      = 360;
 constexpr int kBubbleWidthLargePx       = 440;
+constexpr int kBubbleWidthHugePx        = 1160;
 constexpr int kBubbleMediaSmallWidthPx  = 240;
 constexpr int kBubbleMediaSmallHeightPx = 144;
 constexpr int kBubbleMediaMediumWidthPx = 300;
@@ -142,6 +145,7 @@ parseBubbleSize (const QString& value, QWK::TutorialBubbleSize& bubbleSize) {
   if (normalized == "small") bubbleSize= QWK::TutorialBubbleSize::Small;
   else if (normalized == "medium") bubbleSize= QWK::TutorialBubbleSize::Medium;
   else if (normalized == "large") bubbleSize= QWK::TutorialBubbleSize::Large;
+  else if (normalized == "huge") bubbleSize= QWK::TutorialBubbleSize::Huge;
   else return false;
 
   return true;
@@ -260,6 +264,37 @@ parseStepEntry (const json& stepJson, QWK::TutorialStepConfig& step,
           QString ("Tutorial step %1 require-action must be a string")
               .arg (step.id);
     return false;
+  }
+
+  const auto actionBtnIt= stepJson.find ("action-button");
+  if (actionBtnIt != stepJson.end () && !actionBtnIt->is_null ()) {
+    if (!actionBtnIt->is_object ()) {
+      if (errorMessage != nullptr)
+        *errorMessage=
+            QString ("Tutorial step %1 action-button must be an object")
+                .arg (step.id);
+      return false;
+    }
+    const auto labelIt= actionBtnIt->find ("label");
+    const auto cmdIt  = actionBtnIt->find ("command");
+    if (labelIt == actionBtnIt->end () || cmdIt == actionBtnIt->end ()) {
+      if (errorMessage != nullptr)
+        *errorMessage= QString ("Tutorial step %1 action-button needs label "
+                                "and command")
+                           .arg (step.id);
+      return false;
+    }
+    if (!labelIt->is_string () || !cmdIt->is_string ()) {
+      if (errorMessage != nullptr)
+        *errorMessage= QString ("Tutorial step %1 action-button label/command "
+                                "must be strings")
+                           .arg (step.id);
+      return false;
+    }
+    step.actionButtonLabel=
+        QString::fromStdString (labelIt->get<std::string> ());
+    step.actionButtonCommand=
+        QString::fromStdString (cmdIt->get<std::string> ());
   }
 
   if (!hasTopTextField && step.mediaPath.isEmpty () &&
@@ -510,7 +545,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
       m_progressLabel (new QLabel (this)),
       m_previousButton (new QPushButton (this)),
       m_nextButton (new QPushButton (this)), m_mediaMovie (nullptr),
-      m_currentMediaPath () {
+      m_currentMediaPath (), m_actionCommand () {
   setObjectName ("tutorialBubble");
   setAttribute (Qt::WA_StyledBackground, true);
   setSizePolicy (QSizePolicy::Fixed, QSizePolicy::Preferred);
@@ -524,6 +559,12 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   m_titleLabel->setWordWrap (true);
   m_topTextLabel->setWordWrap (true);
   m_bottomTextLabel->setWordWrap (true);
+  m_bottomTextLabel->setTextFormat (Qt::RichText);
+  m_bottomTextLabel->setOpenExternalLinks (false);
+  m_bottomTextLabel->setTextInteractionFlags (Qt::LinksAccessibleByMouse);
+  QObject::connect (
+      m_bottomTextLabel, &QLabel::linkActivated,
+      [] (const QString& link) { QDesktopServices::openUrl (QUrl (link)); });
   m_mediaContainer->setSizePolicy (QSizePolicy::Expanding, QSizePolicy::Fixed);
   m_mediaContainer->setVisible (false);
   m_mediaContainer->setFixedSize (0, 0);
@@ -562,7 +603,7 @@ TutorialBubble::TutorialBubble (QWidget* parent)
   setFixedWidth (DpiUtils::scaled (kBubbleWidthMediumPx));
   DpiUtils::applyScaledFont (m_titleLabel, kBubbleTitleFontPx);
   DpiUtils::applyScaledFont (m_topTextLabel, kBubbleBodyFontPx);
-  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleHugeFontPx);
   DpiUtils::applyScaledFont (m_progressLabel, kBubbleProgressFontPx);
   DpiUtils::applyScaledFont (m_previousButton, kBubbleButtonFontPx);
   DpiUtils::applyScaledFont (m_nextButton, kBubbleButtonFontPx);
@@ -579,10 +620,8 @@ TutorialBubble::TutorialBubble (QWidget* parent)
 
   connect (m_previousButton, &QPushButton::clicked, this,
            &TutorialBubble::previousRequested);
-  connect (m_nextButton, &QPushButton::clicked, this, [this] () {
-    if (m_nextButton->text () == qt_translate ("完成")) emit finishRequested ();
-    else emit nextRequested ();
-  });
+  connect (m_nextButton, &QPushButton::clicked, this,
+           &TutorialBubble::emitNextButtonAction);
 }
 
 void
@@ -607,7 +646,7 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
 
   DpiUtils::applyScaledFont (m_titleLabel, kBubbleTitleFontPx);
   DpiUtils::applyScaledFont (m_topTextLabel, kBubbleBodyFontPx);
-  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleBodyFontPx);
+  DpiUtils::applyScaledFont (m_bottomTextLabel, kBubbleHugeFontPx);
   DpiUtils::applyScaledFont (m_progressLabel, kBubbleProgressFontPx);
   DpiUtils::applyScaledFont (m_previousButton, kBubbleButtonFontPx);
   DpiUtils::applyScaledFont (m_nextButton, kBubbleButtonFontPx);
@@ -629,13 +668,22 @@ TutorialBubble::setStep (const TutorialStepConfig& step, int index, int total) {
     mediaSize= QSize (DpiUtils::scaled (kBubbleMediaLargeWidthPx),
                       DpiUtils::scaled (kBubbleMediaLargeHeightPx));
     break;
+  case TutorialBubbleSize::Huge:
+    setFixedWidth (DpiUtils::scaled (kBubbleWidthHugePx));
+    mediaSize= QSize (DpiUtils::scaled (kBubbleMediaLargeWidthPx),
+                      DpiUtils::scaled (kBubbleMediaLargeHeightPx));
+    break;
   }
 
   m_titleLabel->setText (step.title);
   m_topTextLabel->setText (step.topText);
   m_topTextLabel->setVisible (!step.topText.isEmpty ());
-  m_bottomTextLabel->setText (step.bottomText);
+  m_originalBottomText= step.bottomText;
+  m_bottomNoticeHtml.clear ();
+  refreshBottomText ();
   m_bottomTextLabel->setVisible (!step.bottomText.isEmpty ());
+
+  setActionButton (step.actionButtonLabel, step.actionButtonCommand);
 
   if (mediaPath != m_currentMediaPath) {
     if (m_mediaMovie != nullptr) {
@@ -712,14 +760,73 @@ TutorialBubble::setFirstStep (bool first) {
 
 void
 TutorialBubble::setLastStep (bool last) {
-  m_nextButton->setText (last ? qt_translate ("完成")
-                              : qt_translate ("下一步"));
+  m_isLastStep= last;
+  applyNextButtonAppearance ();
 }
 
 void
 TutorialBubble::setNextEnabled (bool enabled, const QString& toolTip) {
-  m_nextButton->setEnabled (enabled);
+  m_nextGateEnabled= enabled;
   m_nextButton->setToolTip (toolTip);
+  if (enabled && m_nextMode == NextButtonMode::ActionTrigger)
+    m_nextMode= NextButtonMode::NormalNext;
+  applyNextButtonAppearance ();
+}
+
+void
+TutorialBubble::setActionButton (const QString& label, const QString& command) {
+  m_actionLabel       = label;
+  m_actionCommand     = command;
+  const bool hasAction= !label.isEmpty () && !command.isEmpty ();
+  m_nextMode=
+      hasAction ? NextButtonMode::ActionTrigger : NextButtonMode::NormalNext;
+  applyNextButtonAppearance ();
+}
+
+void
+TutorialBubble::applyNextButtonAppearance () {
+  if (m_nextMode == NextButtonMode::ActionTrigger) {
+    m_nextButton->setText (m_actionLabel);
+    m_nextButton->setEnabled (true);
+    return;
+  }
+  m_nextButton->setText (m_isLastStep ? qt_translate ("完成")
+                                      : qt_translate ("下一步"));
+  m_nextButton->setEnabled (m_nextGateEnabled);
+}
+
+void
+TutorialBubble::emitNextButtonAction () {
+  if (m_nextMode == NextButtonMode::ActionTrigger &&
+      !m_actionCommand.isEmpty ()) {
+    emit actionRequested (m_actionCommand);
+    return;
+  }
+  if (m_nextButton->text () == qt_translate ("完成")) emit finishRequested ();
+  else emit nextRequested ();
+}
+
+void
+TutorialBubble::refreshBottomText () {
+  QString html= m_originalBottomText;
+  if (!m_bottomNoticeHtml.isEmpty ()) {
+    html+= QStringLiteral ("<br><br>") + m_bottomNoticeHtml;
+  }
+  m_bottomTextLabel->setText (html);
+}
+
+void
+TutorialBubble::appendBottomNotice (const QString& noticeHtml) {
+  m_bottomNoticeHtml= noticeHtml;
+  refreshBottomText ();
+  adjustSize ();
+}
+
+void
+TutorialBubble::clearBottomNotice () {
+  m_bottomNoticeHtml.clear ();
+  refreshBottomText ();
+  adjustSize ();
 }
 
 TutorialOverlay::TutorialOverlay (QMainWindow* parentWindow)
@@ -737,6 +844,8 @@ TutorialOverlay::TutorialOverlay (QMainWindow* parentWindow)
            &TutorialOverlay::nextRequested);
   connect (m_bubble, &TutorialBubble::finishRequested, this,
            &TutorialOverlay::finishRequested);
+  connect (m_bubble, &TutorialBubble::actionRequested, this,
+           &TutorialOverlay::actionRequested);
 }
 
 void
@@ -894,6 +1003,18 @@ TutorialOverlay::setNextEnabled (bool enabled, const QString& toolTip) {
 }
 
 void
+TutorialOverlay::appendBottomNotice (const QString& noticeHtml) {
+  m_bubble->appendBottomNotice (noticeHtml);
+  repositionBubble (m_currentStep.placement);
+}
+
+void
+TutorialOverlay::clearBottomNotice () {
+  m_bubble->clearBottomNotice ();
+  repositionBubble (m_currentStep.placement);
+}
+
+void
 TutorialOverlay::paintEvent (QPaintEvent* event) {
   (void) event;
 
@@ -967,6 +1088,11 @@ TutorialEngine::start (QMainWindow*                  hostWindow,
            &TutorialEngine::next);
   connect (m_overlay, &TutorialOverlay::finishRequested, this,
            [this] () { stop (TutorialFinishReason::Completed); });
+  connect (m_overlay, &TutorialOverlay::actionRequested, this,
+           [this] (const QString& command) {
+             if (command.trimmed ().isEmpty ()) return;
+             exec_delayed (scheme_cmd (from_qstring (command)));
+           });
 
   m_hostWindow->installEventFilter (this);
   updateOverlayGeometry ();
@@ -1089,6 +1215,19 @@ TutorialEngine::pollRequiredAction () {
 
   m_completedActionSteps.insert (step.id);
   reset_user_preference (kTutorialLastActionPreference);
+  QString notice;
+  if (step.requiredAction == QStringLiteral ("ocr-paste")) {
+    notice= QStringLiteral (
+        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
+        "Ctrl+Shift+v/Command+Shift+v 或图片悬浮菜单触发 "
+        "OCR！所有教程已完成！</span>");
+  }
+  else {
+    notice= QStringLiteral (
+        "<span style=\"color:#0f766e\">恭喜您！您也可以使用快捷键 "
+        "Ctrl+Shift+v/Command+Shift+v 触发！现在可以进行下一步了</span>");
+  }
+  m_overlay->appendBottomNotice (notice);
   updateCurrentStepGate ();
 }
 
@@ -1242,8 +1381,8 @@ TutorialFlowConfig
 FirstLaunchTutorialController::loadFirstLaunchFlow () const {
   TutorialFlowConfig flow;
   QString            errorMessage;
-  if (TutorialConfigLoader::loadFlow (firstLaunchTutorialConfigPath (), flow,
-                                      &errorMessage)) {
+  const url          cfgPath= firstLaunchTutorialConfigPath ();
+  if (TutorialConfigLoader::loadFlow (cfgPath, flow, &errorMessage)) {
     return flow;
   }
 
