@@ -616,26 +616,13 @@
 ) ;tm-define
 
 (tm-define (wasm-save-for-download)
-  (:synopsis "WASM: 同步保存当前 buffer 到 /tmp/mogan_save.tmu（不改 buffer 名），返回下载文件名"
+  (:synopsis "WASM: 把当前 buffer 保存到它自己的文件并返回该文件路径，供浏览器下载"
   ) ;:synopsis
-  ;; WASM 的"另存为" = 保存 buffer 内容 + 浏览器下载。不弹文件名对话框、不重命名
-  ;; 持久 buffer。直接调用 save-buffer-as-save（同步、必写，跳过 save-buffer-as-main
-  ;; 的权限/未修改分支），把 buffer 内容写入固定临时文件并把 buffer 改名为该路径；
-  ;; 随后立即改回原名。
-  (let* ((orig (current-buffer))
-         (temp (system->url "/tmp/mogan_save.tmu"))
-         (dl (url->system (url-tail orig)))
-        ) ;
-    (when (or (not (string? dl)) (string-null? dl))
-      (set! dl "document.tmu")
-    ) ;when
-    (when (url-exists? temp)
-      (system-remove temp)
-    ) ;when
-    (save-buffer-as-save temp orig '())
-    (buffer-rename (current-buffer) orig)
-    dl
-  ) ;let*
+  ;; WASM 的"另存为" = 保存 buffer 到当前文件（普通 Save，不重命名）+ 下载该文件。
+  ;; 不弹文件名对话框、不改 buffer 名。save-buffer-save 同步执行（无
+  ;; with-default-view 的 exec-delayed），把 buffer 内容写入它自己的路径。
+  (save-buffer-save (current-buffer) '() "save")
+  (url->system (current-buffer))
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

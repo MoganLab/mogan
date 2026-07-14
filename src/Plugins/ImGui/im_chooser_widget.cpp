@@ -331,12 +331,19 @@ im_chooser_widget_rep::perform_dialog () {
   }
   g_active_chooser= this;
   if (save_mode) {
-    // WASM 另存为 = 同步保存当前 buffer 到固定临时文件（不改 buffer 名）+
-    // 浏览器 下载。不弹 JS 文件名对话框——下载文件名直接取自 buffer 名（见
-    // wasm-save-for-download）。
-    object dl_obj= call ("wasm-save-for-download");
-    string dl    = as_string (dl_obj);
-    im_wasm_download_file ("/tmp/mogan_save.tmu", dl);
+    // WASM 另存为 = 保存当前 buffer 到它自己的文件 + 浏览器下载该文件。
+    // 不弹 JS 文件名对话框、不重命名 buffer；下载文件名取该文件的 basename。
+    object path_obj= call ("wasm-save-for-download");
+    string path    = as_string (path_obj);
+    string dl      = "";
+    int    len     = N (path);
+    for (int i= len - 1; i >= 0; --i)
+      if (path[i] == '/') {
+        dl= path (i + 1, len);
+        break;
+      }
+    if (is_empty (dl)) dl= "document.tmu";
+    im_wasm_download_file (path, dl);
     if (!is_nil (quit)) quit ();
   }
   else im_wasm_start_open_dialog (extensions);
