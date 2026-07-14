@@ -220,10 +220,22 @@ im_tm_widget_rep::render_editor () {
   if (rf < 1) rf= 1;
   if (rf != get_retina_factor ()) set_retina_factor (rf);
 
-  if (is_nil (the_picture) || fb_w != pic_w || fb_h != pic_h || rf != pic_rf) {
-    the_picture= native_picture (fb_w, fb_h, 0, 0);
-    pic_w      = fb_w;
-    pic_h      = fb_h;
+  // 画布的可视区域（SI，来自 SLOT_SIZE）≠ 整个 framebuffer。必须按画布尺寸创建
+  // picture，否则会把整窗 framebuffer（含菜单条/状态栏区域）压缩进画布显示区，
+  // 导致垂直方向比例失真（鼠标越靠下偏差越大）。
+  SI canvas_w_si= fb_w * PIXEL;
+  SI canvas_h_si= fb_h * PIXEL;
+  if (!is_nil (main_widget)) get_size (main_widget, canvas_w_si, canvas_h_si);
+  int pic_w_px= (int) ((double) canvas_w_si / PIXEL * rf);
+  int pic_h_px= (int) ((double) canvas_h_si / PIXEL * rf);
+  if (pic_w_px <= 0) pic_w_px= fb_w;
+  if (pic_h_px <= 0) pic_h_px= fb_h;
+
+  if (is_nil (the_picture) || pic_w_px != pic_w || pic_h_px != pic_h ||
+      rf != pic_rf) {
+    the_picture= native_picture (pic_w_px, pic_h_px, 0, 0);
+    pic_w      = pic_w_px;
+    pic_h      = pic_h_px;
     pic_rf     = rf;
   }
   picture& pic= the_picture;
@@ -232,7 +244,7 @@ im_tm_widget_rep::render_editor () {
   SI sx= 0, sy= 0;
   if (!is_nil (main_widget)) get_scroll_position (main_widget, sx, sy);
   ren->set_origin (-sx, -sy);
-  SI x1= 0, y1= 0, x2= fb_w, y2= fb_h;
+  SI x1= 0, y1= 0, x2= pic_w_px, y2= pic_h_px;
   ren->encode (x1, y1);
   ren->encode (x2, y2);
   ren->set_clipping (x1, y2, x2, y1);
@@ -255,8 +267,8 @@ im_tm_widget_rep::render_editor () {
   // Note: tex_w/tex_h are the texture's device-pixel size; the host ImGui
   // window displays it at the (smaller) screen-coordinate size, so OpenGL
   // downsamples a retina-resolution texture -> crisp on screen.
-  tex_w        = fb_w;
-  tex_h        = fb_h;
+  tex_w        = pic_w_px;
+  tex_h        = pic_h_px;
   texture_dirty= false;
 }
 
@@ -593,6 +605,9 @@ im_tm_widget_rep::im_main_loop () {
     im_render_main_menu (menu_widget);
     menu_h= ImGui::GetFrameHeight ();
   }
+  // header_h = 菜单条 + 工具栏总高（当前无工具栏，=
+  // menu_h）。画布在此高度之下。
+  float header_h= menu_h;
   im_render_active_popup ();
   im_flush_menu_commands ();
 
@@ -637,9 +652,9 @@ im_tm_widget_rep::im_main_loop () {
     ImGui::End ();
   }
 
-  // 菜单条占用顶部 menu_h 像素：记为 SI 偏移，供 screen_to_si 把鼠标坐标
-  // 对齐到菜单条下方的画布原点（否则点击位置会整体下移 menu_h）。
-  menu_offset_y= (SI) (menu_h * PIXEL);
+  // 顶部 header（菜单条 + 工具栏）占用 header_h 像素：记为 SI 偏移，供
+  // screen_to_si 把鼠标坐标对齐到 header 下方的画布原点。
+  menu_offset_y= (SI) (header_h * PIXEL);
   footer_height= (SI) (footer_h * PIXEL);
   // Keep the editor canvas informed of the visible size (Qt does this via
   // resize events); otherwise update_visible()/SLOT_VISIBLE_PART report a
@@ -647,7 +662,8 @@ im_tm_widget_rep::im_main_loop () {
   static int last_cw= 0, last_ch= 0;
   if (!is_nil (main_widget)) {
     int cw= win_w, ch= win_h;
-    int eff_h= ch - (int) menu_h - (int) footer_h; // 菜单条与状态栏之间才是画布
+    int eff_h=
+        ch - (int) header_h - (int) footer_h; // header 与状态栏之间才是画布
     // 换画布（新 buffer）时即便窗口尺寸未变也要重发 SLOT_SIZE：新画布的
     // canvas_w/canvas_h 是构造默认值 0，否则 recenter 会因 canvas_w==0
     // 跳过居中。
@@ -695,9 +711,9 @@ im_tm_widget_rep::im_main_loop () {
   // Display the canvas
   int fb_w= 0, fb_h= 0;
   glfwGetFramebufferSize (window, &fb_w, &fb_h);
-  ImGui::SetNextWindowPos (ImVec2 (0, menu_h));
+  ImGui::SetNextWindowPos (ImVec2 (0, header_h));
   ImGui::SetNextWindowSize (
-      ImVec2 ((float) win_w, (float) win_h - menu_h - footer_h));
+      ImVec2 ((float) win_w, (float) win_h - header_h - footer_h));
   ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (0, 0));
