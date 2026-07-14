@@ -754,6 +754,16 @@ im_run_main_loop () {
   if (im_primary_window != nullptr) im_primary_window->run ();
 }
 
+// 重置主窗口画布的滚动位置：水平居中、垂直置顶。
+void
+im_reset_canvas_scroll () {
+  if (im_primary_window == nullptr) return;
+  im_simple_widget_rep* ed= im_primary_window->canvas ();
+  if (ed == nullptr) return;
+  // 发送 (0,0) 触发 canvas 的 recenter_x + clamp_scroll_y 逻辑。
+  ed->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (0, 0)));
+}
+
 // The primary window's GLFW handle
 // Clipboard need this
 GLFWwindow*

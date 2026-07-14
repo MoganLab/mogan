@@ -11,10 +11,11 @@
  ******************************************************************************/
 
 #include "font.hpp"
-#include "gui.hpp"              // gui_start_loop
-#include "im_menu.hpp"          // im_menu_rep / im_popup_rep (menus & popups)
-#include "im_simple_widget.hpp" // im_simple_widget_rep (glue placeholder)
-#include "im_tm_widget.hpp"     // im_primary_glfw_window (clipboard)
+#include "gui.hpp"               // gui_start_loop
+#include "im_chooser_widget.hpp" // im_chooser_widget_rep (file chooser)
+#include "im_menu.hpp"           // im_menu_rep / im_popup_rep (menus & popups)
+#include "im_simple_widget.hpp"  // im_simple_widget_rep (glue placeholder)
+#include "im_tm_widget.hpp"      // im_primary_glfw_window (clipboard)
 #include "im_widget.hpp"
 #include "object.hpp"
 #include "promise.hpp"
@@ -127,10 +128,8 @@ gui_start_loop () {
 
 widget
 file_chooser_widget (command cmd, string type, string prompt) {
-  (void) cmd;
-  (void) type;
-  (void) prompt;
-  return im_stub_widget ();
+  return widget (
+      (widget_rep*) tm_new<im_chooser_widget_rep> (cmd, type, prompt));
 }
 
 widget

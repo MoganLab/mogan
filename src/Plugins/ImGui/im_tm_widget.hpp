@@ -82,6 +82,8 @@ protected:
   void screen_to_si (double xpos, double ypos, SI& sx, SI& sy);
   // ImGui's main loop
   void im_main_loop ();
+
+public:
   // The attached editor canvas. nullptr when no real editor is wired
   im_simple_widget_rep* canvas ();
 
@@ -111,6 +113,9 @@ public:
 };
 
 void im_run_main_loop ();
+
+// 重置主窗口画布的滚动位置（水平居中、垂直置顶）。供文件对话框在打开新文件后调用。
+void im_reset_canvas_scroll ();
 
 // Primary window's GLFW handle. Used by the
 // clipboard backend (set_selection/get_selection) for
