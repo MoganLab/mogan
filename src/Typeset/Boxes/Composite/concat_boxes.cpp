@@ -184,6 +184,30 @@ concat_box_rep::pre_display (renderer& ren) {
   bg_boxes = array<box> ();
   bg_colors= array<color> ();
 
+  SI pixel= ren->pixel;
+  // 统一整行背景纵向高度：同一行内不同背景色组（如文本与行内数学之间
+  // 被无背景 marker 分隔）共用同一 y1/y2，避免高亮底部参差
+  SI line_y1= MAX_SI;
+  SI line_y2= -MAX_SI;
+  for (int k= 0; k < n; k++) {
+    if (bs[k]->get_type () == TEXT_BOX) {
+      font f= bs[k]->get_leaf_font ();
+      if (!is_nil (f)) {
+        metric ex_m, ex_c;
+        f->get_extents ("M", ex_m);
+        string s= bs[k]->get_leaf_string ();
+        if (N (s) > 0) f->get_extents (s, ex_c);
+        else f->get_extents ("M", ex_c);
+        line_y1= min (line_y1, sy (k) + min (ex_c->y1, ex_m->y1) - 10 * pixel);
+        line_y2= max (line_y2, sy (k) + max (ex_c->y2, ex_m->y2) + 10 * pixel);
+      }
+    }
+    else {
+      line_y1= min (line_y1, sy1 (k));
+      line_y2= max (line_y2, sy2 (k));
+    }
+  }
+
   int i= 0;
   while (i < n) {
     color c= get_deep_bg_color (bs[i]);
@@ -221,30 +245,8 @@ concat_box_rep::pre_display (renderer& ren) {
 
     SI bg_x1= sx1 (start);
     SI bg_x2= sx2 (end);
-    SI pixel= ren->pixel;
-    SI bg_y1= MAX_SI;
-    SI bg_y2= -MAX_SI;
-
-    for (int k= start; k <= end; k++) {
-      if (bs[k]->get_type () == TEXT_BOX) {
-        font f= bs[k]->get_leaf_font ();
-        if (!is_nil (f)) {
-          metric ex_m, ex_c;
-          f->get_extents ("M", ex_m);
-          string s= bs[k]->get_leaf_string ();
-          if (N (s) > 0) f->get_extents (s, ex_c);
-          else f->get_extents ("M", ex_c);
-          SI y1= min (ex_c->y1, ex_m->y1);
-          SI y2= max (ex_c->y2, ex_m->y2);
-          bg_y1= min (bg_y1, sy (k) + y1 - 10 * pixel);
-          bg_y2= max (bg_y2, sy (k) + y2 + 10 * pixel);
-        }
-      }
-      else {
-        bg_y1= min (bg_y1, sy1 (k));
-        bg_y2= max (bg_y2, sy2 (k));
-      }
-    }
+    SI bg_y1= line_y1;
+    SI bg_y2= line_y2;
 
     if (bg_y1 >= bg_y2) continue;
 
