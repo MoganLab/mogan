@@ -591,7 +591,7 @@
 ) ;define
 
 (tm-define (save-buffer-as-main new-name . args)
-  ;; (display* "save-buffer-as-main " new-name "\n")
+  (display* "save-buffer-as-main " new-name "\n")
   (if (or (null? args) (not (url? (car args))))
     (save-buffer-as-check-permissions new-name (current-buffer) args)
     (save-buffer-as-check-permissions new-name (car args) (cdr args))
@@ -601,6 +601,9 @@
 (tm-define (save-buffer-as new-name . args)
   (:argument new-name texmacs-file "Save as")
   (:default new-name (propose-name-buffer))
+  ;; tm-files.scm:601, FIRST line of save-buffer-as:
+  (display* "[save-buffer-as ENTRY] current-buffer=" (current-buffer) "\n")
+  (display* "buffer new name" new-name "\n")
   (with-default-view (when (string? new-name)
                        (set! new-name (string-replace new-name ":" "-"))
                        (set! new-name (string-replace new-name ";" "-"))
@@ -610,6 +613,29 @@
       (apply save-buffer-as-main (cons new-name opts))
     ) ;with
   ) ;with-default-view
+) ;tm-define
+
+(tm-define (wasm-save-for-download)
+  (:synopsis "WASM: 同步保存当前 buffer 到 /tmp/mogan_save.tmu（不改 buffer 名），返回下载文件名"
+  ) ;:synopsis
+  ;; WASM 的"另存为" = 保存 buffer 内容 + 浏览器下载。不弹文件名对话框、不重命名
+  ;; 持久 buffer。直接调用 save-buffer-as-save（同步、必写，跳过 save-buffer-as-main
+  ;; 的权限/未修改分支），把 buffer 内容写入固定临时文件并把 buffer 改名为该路径；
+  ;; 随后立即改回原名。
+  (let* ((orig (current-buffer))
+         (temp (system->url "/tmp/mogan_save.tmu"))
+         (dl (url->system (url-tail orig)))
+        ) ;
+    (when (or (not (string? dl)) (string-null? dl))
+      (set! dl "document.tmu")
+    ) ;when
+    (when (url-exists? temp)
+      (system-remove temp)
+    ) ;when
+    (save-buffer-as-save temp orig '())
+    (buffer-rename (current-buffer) orig)
+    dl
+  ) ;let*
 ) ;tm-define
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;

@@ -23,7 +23,8 @@
 #include "dictionary.hpp" // translate
 #include "file.hpp"       // url_system, as_system_string
 #include "moebius/data/scheme.hpp"
-#include "scheme.hpp" // call, exec_delayed
+#include "new_buffer.hpp" // get_current_buffer_safe (默认保存名回退)
+#include "scheme.hpp"     // call, exec_delayed
 #include "string.hpp"
 #include "sys_utils.hpp" // get_env
 
@@ -94,29 +95,6 @@ im_wasm_start_open_dialog (array<string>& exts) {
         input.click ();
       },
       (char*) accept_exts);
-}
-
-static void
-im_wasm_start_save_dialog (const string& filename) {
-  string   default_name= (N (filename) > 0) ? filename : "document.tmu";
-  c_string def_name (default_name);
-  EM_ASM (
-      {
-        var defaultName= UTF8ToString ($0);
-        var name       = window.prompt ("Save as:", defaultName);
-        if (!name) {
-          ccall ('mogan_wasm_file_cancelled', null, [], []);
-          return;
-        }
-        var path= '/tmp/mogan_save_' + name;
-        try {
-          FS.mkdir ('/tmp');
-        } catch (err) {
-        }
-        ccall ('mogan_wasm_file_selected', null, [ 'string', 'number' ],
-               [ path, 1 ]);
-      },
-      (char*) def_name);
 }
 
 static void
@@ -335,6 +313,14 @@ im_chooser_widget_rep::perform_dialog () {
     if (is_scratch (u)) filename= "";
     else filename= as_system_string (u);
   }
+  // 若上层未通过 set_file 给出建议名（file 仍是构造默认值 "#f"——例如当前 buffer
+  // 的 master 被判为 scratch 时 tm_frame_rep::choose_file 不会
+  // set_file），则用当前 buffer 的文件名作为默认保存名，避免对话框默认名是 "#f"
+  // 导致保存路径非法。
+  if (is_empty (filename) || filename == "#f") {
+    url cur= get_current_buffer_safe ();
+    if (!is_none (cur) && !is_scratch (cur)) filename= as_string (tail (cur));
+  }
 
 #ifdef __EMSCRIPTEN__
   if (g_active_chooser != nullptr) {
@@ -344,7 +330,15 @@ im_chooser_widget_rep::perform_dialog () {
     old->on_cancel ();
   }
   g_active_chooser= this;
-  if (save_mode) im_wasm_start_save_dialog (filename);
+  if (save_mode) {
+    // WASM 另存为 = 同步保存当前 buffer 到固定临时文件（不改 buffer 名）+
+    // 浏览器 下载。不弹 JS 文件名对话框——下载文件名直接取自 buffer 名（见
+    // wasm-save-for-download）。
+    object dl_obj= call ("wasm-save-for-download");
+    string dl    = as_string (dl_obj);
+    im_wasm_download_file ("/tmp/mogan_save.tmu", dl);
+    if (!is_nil (quit)) quit ();
+  }
   else im_wasm_start_open_dialog (extensions);
   return;
 #endif
@@ -386,24 +380,12 @@ im_chooser_widget_rep::on_cancel () {
 void
 im_chooser_widget_rep::on_select (string path, bool save_mode) {
 #ifdef __EMSCRIPTEN__
+  (void) save_mode; // 另存为由 perform_dialog
+                    // 直接处理（同步保存+下载），不经过此处
   g_active_chooser= nullptr;
   file            = "(system->url " * scm_quote (path) * ")";
-  cout << cmd << LF;
   if (!is_nil (cmd)) cmd ();
   if (!is_nil (quit)) quit ();
-  if (save_mode) {
-    // 保存/另存为：在回调保存完成后触发浏览器下载。
-    string name= "";
-    int    len = N (path);
-    for (int i= len - 1; i >= 0; --i) {
-      if (path[i] == '/') {
-        name= path (i + 1, len);
-        break;
-      }
-    }
-    if (is_empty (name)) name= "document.tmu";
-    im_wasm_download_file (path, name);
-  }
 #endif
 }
 
