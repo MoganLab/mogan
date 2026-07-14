@@ -567,12 +567,12 @@ im_tm_widget_rep::im_main_loop () {
   // 新 buffer 加载后，连续数帧把滚动重置到顶部居中。im_interpose 里会跑
   // make-cursor-visible（其 scroll_to 在 ImGui 坐标映射下不落在顶部），故在此
   // （interpose 之后）覆盖之，使加载后视图回到顶部 + 水平居中。
-  if (scroll_reset_frames > 0 && !is_nil (main_widget)) {
-    scroll_reset_frames--;
-    if (scroll_reset_frames == 0)
-      main_widget->send (SLOT_SCROLL_POSITION,
-                         close_box<coord2> (coord2 (0, 0)));
-  }
+  // if (scroll_reset_frames > 0 && !is_nil (main_widget)) {
+  //  scroll_reset_frames--;
+  //  if (scroll_reset_frames == 0)
+  //    main_widget->send (SLOT_SCROLL_POSITION,
+  //                       close_box<coord2> (coord2 (0, 0)));
+  //}
   if (glfwGetWindowAttrib (window, GLFW_ICONIFIED) != 0) {
     ImGui_ImplGlfw_Sleep (10);
     return;
