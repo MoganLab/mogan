@@ -17,12 +17,14 @@
 // =============================================================================
 // QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
 // =============================================================================
-QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* owner)
+QTMUserPromptPopup::QTMUserPromptPopup (QWidget*              parent,
+                                        qt_simple_widget_rep* owner)
     : QWidget (parent), owner (owner), layout (nullptr) {
   setObjectName ("user_prompt_popup");
-  
+
   // 必须在 native 句柄生成前直接一步到位地设置 ToolTip 以及透明通道
-  setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint | Qt::WindowStaysOnTopHint);
+  setWindowFlags (Qt::ToolTip | Qt::FramelessWindowHint |
+                  Qt::WindowStaysOnTopHint);
   setAttribute (Qt::WA_ShowWithoutActivating);
   setAttribute (Qt::WA_DeleteOnClose, false);
   setAttribute (Qt::WA_TranslucentBackground, true);
@@ -30,7 +32,8 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* o
   setFocusPolicy (Qt::NoFocus);
 
   // 确保顶层容器本身不填涂任何背景色和边框
-  setStyleSheet ("QWidget#user_prompt_popup { background: transparent; border: none; }");
+  setStyleSheet (
+      "QWidget#user_prompt_popup { background: transparent; border: none; }");
 
   installTopLevelWindowFilter ();
 
@@ -43,14 +46,13 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* o
 
   QFrame* container= new QFrame (this);
   container->setObjectName ("prompt_container");
-  
+
   // 气泡卡片白底圆角样式
-  container->setStyleSheet (
-      "QFrame#prompt_container { "
-      "background-color: #ffffff; "
-      "border: 2px solid #94a3b8; "
-      "border-radius: 14px; "
-      "}");
+  container->setStyleSheet ("QFrame#prompt_container { "
+                            "background-color: #ffffff; "
+                            "border: 2px solid #94a3b8; "
+                            "border-radius: 14px; "
+                            "}");
 
   // 卡片外部淡出的现代软投影
   QGraphicsDropShadowEffect* shadow= new QGraphicsDropShadowEffect (container);
@@ -70,86 +72,85 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* o
   // 1. 接受按钮 (现代祖母绿配色)
   acceptBtn= new QPushButton ("接受  →", container);
   acceptBtn->setObjectName ("accept_btn");
-  acceptBtn->setStyleSheet (
-      "QPushButton#accept_btn { "
-      "background-color: #10b981; "
-      "color: #ffffff; "
-      "border: none; "
-      "border-radius: 8px; "
-      "font-weight: bold; "
-      "font-size: 18px; "
-      "padding: 6px 16px; "
-      "} "
-      "QPushButton#accept_btn:hover { "
-      "background-color: #059669; "
-      "} "
-      "QPushButton#accept_btn:pressed { "
-      "background-color: #047857; "
-      "}");
-  connect (acceptBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleAccept);
+  acceptBtn->setStyleSheet ("QPushButton#accept_btn { "
+                            "background-color: #10b981; "
+                            "color: #ffffff; "
+                            "border: none; "
+                            "border-radius: 8px; "
+                            "font-weight: bold; "
+                            "font-size: 18px; "
+                            "padding: 6px 16px; "
+                            "} "
+                            "QPushButton#accept_btn:hover { "
+                            "background-color: #059669; "
+                            "} "
+                            "QPushButton#accept_btn:pressed { "
+                            "background-color: #047857; "
+                            "}");
+  connect (acceptBtn, &QPushButton::clicked, this,
+           &QTMUserPromptPopup::handleAccept);
   innerLayout->addWidget (acceptBtn);
 
   // 2. 拒绝按钮 (轻柔番茄红配色)
   rejectBtn= new QPushButton ("拒绝  Esc", container);
   rejectBtn->setObjectName ("reject_btn");
-  rejectBtn->setStyleSheet (
-      "QPushButton#reject_btn { "
-      "background-color: #ef4444; "
-      "color: #ffffff; "
-      "border: none; "
-      "border-radius: 8px; "
-      "font-weight: bold; "
-      "font-size: 18px; "
-      "padding: 6px 16px; "
-      "} "
-      "QPushButton#reject_btn:hover { "
-      "background-color: #dc2626; "
-      "} "
-      "QPushButton#reject_btn:pressed { "
-      "background-color: #b91c1c; "
-      "}");
-  connect (rejectBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleReject);
+  rejectBtn->setStyleSheet ("QPushButton#reject_btn { "
+                            "background-color: #ef4444; "
+                            "color: #ffffff; "
+                            "border: none; "
+                            "border-radius: 8px; "
+                            "font-weight: bold; "
+                            "font-size: 18px; "
+                            "padding: 6px 16px; "
+                            "} "
+                            "QPushButton#reject_btn:hover { "
+                            "background-color: #dc2626; "
+                            "} "
+                            "QPushButton#reject_btn:pressed { "
+                            "background-color: #b91c1c; "
+                            "}");
+  connect (rejectBtn, &QPushButton::clicked, this,
+           &QTMUserPromptPopup::handleReject);
   innerLayout->addWidget (rejectBtn);
 
   // 3. 点赞按钮
   goodBtn= new QPushButton ("👍", container);
   goodBtn->setObjectName ("good_btn");
-  goodBtn->setStyleSheet (
-      "QPushButton#good_btn { "
-      "background-color: transparent; "
-      "color: #4b5563; "
-      "border: none; "
-      "border-radius: 8px; "
-      "font-size: 18px; "
-      "padding: 6px; "
-      "} "
-      "QPushButton#good_btn:hover { "
-      "background-color: #f3f4f6; "
-      "} "
-      "QPushButton#good_btn:pressed { "
-      "background-color: #e5e7eb; "
-      "}");
-  connect (goodBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleGood);
+  goodBtn->setStyleSheet ("QPushButton#good_btn { "
+                          "background-color: transparent; "
+                          "color: #4b5563; "
+                          "border: none; "
+                          "border-radius: 8px; "
+                          "font-size: 18px; "
+                          "padding: 6px; "
+                          "} "
+                          "QPushButton#good_btn:hover { "
+                          "background-color: #f3f4f6; "
+                          "} "
+                          "QPushButton#good_btn:pressed { "
+                          "background-color: #e5e7eb; "
+                          "}");
+  connect (goodBtn, &QPushButton::clicked, this,
+           &QTMUserPromptPopup::handleGood);
   innerLayout->addWidget (goodBtn);
 
   // 4. 踩按钮
   badBtn= new QPushButton ("👎", container);
   badBtn->setObjectName ("bad_btn");
-  badBtn->setStyleSheet (
-      "QPushButton#bad_btn { "
-      "background-color: transparent; "
-      "color: #4b5563; "
-      "border: none; "
-      "border-radius: 8px; "
-      "font-size: 18px; "
-      "padding: 6px; "
-      "} "
-      "QPushButton#bad_btn:hover { "
-      "background-color: #f3f4f6; "
-      "} "
-      "QPushButton#bad_btn:pressed { "
-      "background-color: #e5e7eb; "
-      "}");
+  badBtn->setStyleSheet ("QPushButton#bad_btn { "
+                         "background-color: transparent; "
+                         "color: #4b5563; "
+                         "border: none; "
+                         "border-radius: 8px; "
+                         "font-size: 18px; "
+                         "padding: 6px; "
+                         "} "
+                         "QPushButton#bad_btn:hover { "
+                         "background-color: #f3f4f6; "
+                         "} "
+                         "QPushButton#bad_btn:pressed { "
+                         "background-color: #e5e7eb; "
+                         "}");
   connect (badBtn, &QPushButton::clicked, this, &QTMUserPromptPopup::handleBad);
   innerLayout->addWidget (badBtn);
 
@@ -176,7 +177,8 @@ QTMUserPromptPopup::updatePosition () {
 
 void
 QTMUserPromptPopup::scrollBy (int x, int y) {
-  (void) x; (void) y;
+  (void) x;
+  (void) y;
   updatePosition ();
 }
 
@@ -190,7 +192,7 @@ QTMUserPromptPopup::getCachedPosition (int& x, int& y) {
     QPoint local_pos (cursor_pos.x () - origin.x () + surface_top_left.x (),
                       cursor_pos.y () - origin.y () + surface_top_left.y ());
     QPoint global_pos= canvas->viewport ()->mapToGlobal (local_pos);
-    
+
     // 定位于宏起点的右下方 (右移并下移)
     x= global_pos.x () + DpiUtils::scaled (20);
     y= global_pos.y () + DpiUtils::scaled (0);
@@ -253,7 +255,8 @@ QTMUserPromptPopup::eventFilter (QObject* obj, QEvent* event) {
 // =============================================================================
 // QTMGhostTextPopup: Ghost Text 自动补全的悬浮操作框，父类是 QTMUserPromptPopup
 // =============================================================================
-QTMGhostTextPopup::QTMGhostTextPopup (QWidget* parent, qt_simple_widget_rep* owner)
+QTMGhostTextPopup::QTMGhostTextPopup (QWidget*              parent,
+                                      qt_simple_widget_rep* owner)
     : QTMUserPromptPopup (parent, owner) {
   setObjectName ("ghost_text_popup");
 }
