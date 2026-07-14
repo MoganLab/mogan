@@ -27,7 +27,8 @@
 class im_menu_rep : public im_widget_rep {
 public:
   enum kind_t {
-    k_container, // horizontal_menu / vertical_menu / vertical_list / tile_menu / minibar_menu
+    k_container, // horizontal_menu / vertical_menu / vertical_list / tile_menu
+                 // / minibar_menu
     k_submenu,   // pulldown_button / pullright_button（惰性 promise 子菜单）
     k_button,    // menu_button（命令按钮）
     k_separator, // menu_separator
@@ -35,13 +36,14 @@ public:
     k_text       // text_widget（仅作标签来源）
   };
 
-  kind_t          kind;
-  string          label; // cork 原文：k_text/k_group 自身，k_button/k_submenu 取自内嵌 text_widget
-  command         cmd;   // k_button 的命令
-  string          pre;   // k_button 前缀："o"(单选) / "*"(勾选) / "v"
-  string          ks;    // k_button 快捷键（仅显示，不注册全局快捷键）
-  int             style; // WIDGET_STYLE_* 标志（INERT 禁用、PRESSED 选中…）
-  promise<widget> sub;   // k_submenu 的惰性子菜单
+  kind_t kind;
+  string label; // cork 原文：k_text/k_group 自身，k_button/k_submenu 取自内嵌
+                // text_widget
+  command         cmd;      // k_button 的命令
+  string          pre;      // k_button 前缀："o"(单选) / "*"(勾选) / "v"
+  string          ks;       // k_button 快捷键（仅显示，不注册全局快捷键）
+  int             style;    // WIDGET_STYLE_* 标志（INERT 禁用、PRESSED 选中…）
+  promise<widget> sub;      // k_submenu 的惰性子菜单
   bool            vertical; // k_separator 方向
 
   im_menu_rep (kind_t k)
@@ -50,7 +52,8 @@ public:
   /// 经 i18n 翻译 + cork→utf8 后的可显示标签
   string display_label () const;
 
-  /// 子节点访问：基类 children 为 protected，渲染函数非成员无法直接访问，经此暴露。
+  /// 子节点访问：基类 children 为
+  /// protected，渲染函数非成员无法直接访问，经此暴露。
   array<widget>& menu_children () { return children; }
 };
 
@@ -61,7 +64,7 @@ public:
     在打开期间抑制编辑器的鼠标分发（见 im_tm_widget 的 GLFW 回调）。 */
 class im_popup_rep : public im_widget_rep {
 public:
-  widget menu;        // 待渲染的 vertical_menu 根
+  widget menu;         // 待渲染的 vertical_menu 根
   float  pos_x, pos_y; // 屏幕坐标（px），打开时取鼠标位置
   bool   just_opened;  // 下一帧需调用 OpenPopup
 

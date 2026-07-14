@@ -313,7 +313,8 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
       orig_name ("popup"), quit (_quit), zoomf (1.0), window (nullptr),
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
       initialized (false), needs_refocus (false), pic_w (0), pic_h (0),
-      pic_rf (0), menu_offset_y (0) {
+      pic_rf (0), menu_offset_y (0), footer_height (0),
+      footer_interactive (false) {
   visibility[0] = (mask & 1) == 1;       // header
   visibility[1] = (mask & 2) == 2;       // main icons
   visibility[2] = (mask & 4) == 4;       // mode icons
@@ -570,6 +571,11 @@ im_tm_widget_rep::im_main_loop () {
   ImGui_ImplOpenGL3_NewFrame ();
   ImGui_ImplGlfw_NewFrame ();
   ImGui::NewFrame ();
+
+  // 窗口逻辑尺寸，用于菜单条、状态栏和画布布局。后续不再重复读取。
+  int win_w= 0, win_h= 0;
+  if (window) glfwGetWindowSize (window, &win_w, &win_h);
+
   // 主菜单条 + 右键弹出菜单（即时模式，每帧渲染）。菜单项命令延迟到
   // im_flush_menu_commands 统一执行，避免在遍历菜单树时重入。
   float menu_h= 0.0f;
@@ -579,17 +585,62 @@ im_tm_widget_rep::im_main_loop () {
   }
   im_render_active_popup ();
   im_flush_menu_commands ();
+
+  // 底部状态栏（即时模式）。显示/隐藏由 SLOT_FOOTER_VISIBILITY 控制。
+  float footer_h= 0.0f;
+  if (visibility[5] && win_h > 0) {
+    footer_h= ImGui::GetFrameHeight ();
+    ImGui::SetNextWindowPos (ImVec2 (0.0f, (float) win_h - footer_h));
+    ImGui::SetNextWindowSize (ImVec2 ((float) win_w, footer_h));
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
+    ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (4.0f, 0.0f));
+    if (ImGui::Begin ("##mogan_statusbar", nullptr,
+                      ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize |
+                          ImGuiWindowFlags_NoMove |
+                          ImGuiWindowFlags_NoCollapse |
+                          ImGuiWindowFlags_NoScrollbar |
+                          ImGuiWindowFlags_NoScrollWithMouse)) {
+      ImGui::PopStyleVar (3);
+      if (!footer_interactive) {
+        // 三栏布局：左、中、右。使用绝对 X 定位避免表格单元格宽度歧义。
+        cout << footer_left << LF;
+        cout << footer_middle << LF;
+        cout << footer_right << LF;
+        float pad_x= 4.0f;
+        // 左侧
+        ImGui::TextUnformatted (c_string (footer_left));
+        // 中间
+        ImVec2 ts= ImGui::CalcTextSize (c_string (footer_middle));
+        ImGui::SameLine ();
+        ImGui::SetCursorPosX ((win_w - ts.x) * 0.5f);
+        ImGui::TextUnformatted (c_string (footer_middle));
+        // 右侧
+        ts= ImGui::CalcTextSize (c_string (footer_right));
+        ImGui::SameLine ();
+        ImGui::SetCursorPosX (win_w - ts.x - pad_x);
+        ImGui::TextUnformatted (c_string (footer_right));
+      }
+      // 交互式 minibuffer 模式：当前仅保存状态，不渲染普通三栏；后续可在此
+      // 替换为输入控件。
+    }
+    else {
+      ImGui::PopStyleVar (3);
+    }
+    ImGui::End ();
+  }
+
   // 菜单条占用顶部 menu_h 像素：记为 SI 偏移，供 screen_to_si 把鼠标坐标
   // 对齐到菜单条下方的画布原点（否则点击位置会整体下移 menu_h）。
   menu_offset_y= (SI) (menu_h * PIXEL);
+  footer_height= (SI) (footer_h * PIXEL);
   // Keep the editor canvas informed of the visible size (Qt does this via
   // resize events); otherwise update_visible()/SLOT_VISIBLE_PART report a
   // zero-sized region and the editor has nothing to render.
   static int last_cw= 0, last_ch= 0;
   if (!is_nil (main_widget)) {
-    int cw= 0, ch= 0;
-    glfwGetWindowSize (window, &cw, &ch);
-    int eff_h= ch - (int) menu_h; // 菜单条下方才是画布
+    int cw= win_w, ch= win_h;
+    int eff_h= ch - (int) menu_h - (int) footer_h; // 菜单条与状态栏之间才是画布
     if (cw > 0 && eff_h > 0 && (cw != last_cw || eff_h != last_ch)) {
       last_cw= cw;
       last_ch= eff_h;
@@ -629,12 +680,11 @@ im_tm_widget_rep::im_main_loop () {
 #endif
 
   // Display the canvas
-  int win_w= 0, win_h= 0;
-  glfwGetWindowSize (window, &win_w, &win_h);
   int fb_w= 0, fb_h= 0;
   glfwGetFramebufferSize (window, &fb_w, &fb_h);
   ImGui::SetNextWindowPos (ImVec2 (0, menu_h));
-  ImGui::SetNextWindowSize (ImVec2 ((float) win_w, (float) win_h - menu_h));
+  ImGui::SetNextWindowSize (
+      ImVec2 ((float) win_w, (float) win_h - menu_h - footer_h));
   ImGui::PushStyleVar (ImGuiStyleVar_WindowRounding, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowBorderSize, 0.0f);
   ImGui::PushStyleVar (ImGuiStyleVar_WindowPadding, ImVec2 (0, 0));
@@ -647,8 +697,8 @@ im_tm_widget_rep::im_main_loop () {
             ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse |
             // 画布只显示图像、自身不消费鼠标：这样悬停画布时
             // io.WantCaptureMouse 为
-            // false，仅当光标在菜单条/下拉/弹出菜单上时才为 true，供 GLFW
-            // 回调据此抑制向编辑器分发（避免点菜单时画布也响应）。
+            // false，仅当光标在菜单条/下拉/弹出菜单/状态栏上时才为 true，供
+            // GLFW 回调据此抑制向编辑器分发（避免点菜单时画布也响应）。
             ImGuiWindowFlags_NoMouseInputs);
     ImGui::PopStyleVar (3);
     if (document_texture != 0) {
@@ -938,6 +988,22 @@ im_tm_widget_rep::send (slot s, blackbox val) {
   case SLOT_SCROLL_POSITION:
     if (!is_nil (main_widget)) main_widget->send (s, val);
     break;
+  case SLOT_LEFT_FOOTER: {
+    cout << "SLOT_LEFT_FOOTER" << LF;
+    footer_left= open_box<string> (val);
+  } break;
+  case SLOT_MIDDLE_FOOTER: {
+    cout << "SLOT_MIDDLE_FOOTER" << LF;
+    footer_middle= open_box<string> (val);
+  } break;
+  case SLOT_RIGHT_FOOTER: {
+    cout << "SLOT_RIGHT_FOOTER" << LF;
+    footer_right= open_box<string> (val);
+  } break;
+  case SLOT_INTERACTIVE_MODE: {
+    cout << "SLOT_INTERACTIVE_MODE" << LF;
+    footer_interactive= open_box<bool> (val);
+  } break;
   default: {
     int vi;
     if (visibility_index (s, vi)) visibility[vi]= open_box<bool> (val);

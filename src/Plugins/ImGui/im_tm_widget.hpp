@@ -49,6 +49,13 @@ protected:
   widget menu_widget;
   SI     menu_offset_y;
 
+  // 底部状态栏（由 SLOT_*_FOOTER 写入）及其高度（SI），供画布尺寸计算。
+  string footer_left;
+  string footer_middle;
+  string footer_right;
+  SI     footer_height;
+  bool   footer_interactive;
+
   ImGuiIO* io;
 
   void render_editor ();

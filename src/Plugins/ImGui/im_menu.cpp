@@ -12,10 +12,10 @@
 
 #include "im_menu.hpp"
 
-#include "converter.hpp" // cork_to_utf8
-#include "cork.hpp"      // tm_var_encode
-#include "dictionary.hpp"// translate, get_input/output_language
-#include "message.hpp"   // slot, blackbox, SLOT_*, open_box
+#include "converter.hpp"  // cork_to_utf8
+#include "cork.hpp"       // tm_var_encode
+#include "dictionary.hpp" // translate, get_input/output_language
+#include "message.hpp"    // slot, blackbox, SLOT_*, open_box
 
 #include "imgui.h"
 
@@ -52,7 +52,7 @@ im_flush_menu_commands () {
   // 先清空：命令回调里可能再次触发菜单并入队，避免无限增长
   g_menu_cmd_q= array<command> (0);
   for (int i= 0; i < N (q); ++i)
-    if (!is_nil (q[i])) q[i] ();
+    if (!is_nil (q[i])) q[i]();
 }
 
 /******************************************************************************
@@ -81,11 +81,11 @@ render_node (widget w) {
     }
   } break;
   case im_menu_rep::k_button: {
-    c_string      lbl (m->display_label ());
-    c_string      ks (m->ks);
-    bool          selected= m->pre != "" || (m->style & WIDGET_STYLE_PRESSED);
-    bool          enabled = (m->style & WIDGET_STYLE_INERT) == 0;
-    const char*   shortcut= (N (m->ks) > 0) ? (const char*) ks : nullptr;
+    c_string    lbl (m->display_label ());
+    c_string    ks (m->ks);
+    bool        selected= m->pre != "" || (m->style & WIDGET_STYLE_PRESSED);
+    bool        enabled = (m->style & WIDGET_STYLE_INERT) == 0;
+    const char* shortcut= (N (m->ks) > 0) ? (const char*) ks : nullptr;
     if (ImGui::MenuItem ((const char*) lbl, shortcut, selected, enabled)) {
       if (!is_nil (m->cmd)) im_queue_menu_command (m->cmd);
     }
