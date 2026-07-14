@@ -388,52 +388,57 @@
 (menu-bind file-menu
  ("New" (new-document))
  ("Load" (open-document))
- ("Revert" (revert-buffer))
- (-> "Recent"
-   (link recent-file-menu)
-   (if (nnull? (recent-file-list 1)) ---)
-   (when (nnull? (recent-file-list 1))
-     ("Clear menu" (forget-interactive "recent-buffer"))
-   ) ;when
- ) ;->
- ---
+ (if (qt-gui?)
+   ;; ImGui 前端精简：仅保留 New / Load / Save，以下 Revert/Recent 等仅在 Qt 显示
+   ("Revert" (revert-buffer))
+   (-> "Recent"
+     (link recent-file-menu)
+     (if (nnull? (recent-file-list 1)) ---)
+     (when (nnull? (recent-file-list 1))
+       ("Clear menu" (forget-interactive "recent-buffer"))
+     ) ;when
+   ) ;->
+   ---
+ ) ;if
  ("Save" (save-buffer))
  ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
- ---
- (link print-menu)
- ---
- (-> "Import"
-   (link import-import-menu)
-   ---
-   ("Pdf with embedded document"
-     (choose-file wrapped-import-pdf-embeded-with-tmu "Import pdf file" "tmu.pdf")
-   ) ;
- ) ;->
- (-> "Export"
-   (link export-export-menu)
-   ---
-   (when (defined? 'texmacs->latex-document)
-     ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
-   ) ;when
-   ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
-   ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
-   ("Pdf with embedded document"
-     (choose-file wrapped-print-to-pdf-embeded-with-tmu
-       "Save tmu.pdf file"
-       "tmu.pdf"
-     ) ;choose-file
-   ) ;
-   ("Postscript"
-     (choose-file wrapped-print-to-file "Save postscript file" "postscript")
-   ) ;
-   (when (selection-active-any?)
-     (=> "Export selection as image" (link export-as-image-menu))
-   ) ;when
- ) ;->
- ---
- (if (window-per-buffer?) ("Close window" (close-document)))
- (if (not (window-per-buffer?)) ("Close document" (close-document)))
- ("Close TeXmacs" (safely-quit-TeXmacs))
+ (if (qt-gui?)
+  ---
+  (link print-menu)
+  ---
+  (-> "Import"
+    (link import-import-menu)
+    ---
+    ("Pdf with embedded document"
+      (choose-file wrapped-import-pdf-embeded-with-tmu "Import pdf file" "tmu.pdf")
+    ) ;
+  ) ;->
+  (-> "Export"
+    (link export-export-menu)
+    ---
+    (when (defined? 'texmacs->latex-document)
+      ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
+    ) ;when
+    ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
+    ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
+    ("Pdf with embedded document"
+      (choose-file wrapped-print-to-pdf-embeded-with-tmu
+        "Save tmu.pdf file"
+        "tmu.pdf"
+      ) ;choose-file
+    ) ;
+    ("Postscript"
+      (choose-file wrapped-print-to-file "Save postscript file" "postscript")
+    ) ;
+    (when (selection-active-any?)
+      (=> "Export selection as image" (link export-as-image-menu))
+    ) ;when
+  ) ;->
+  ---
+  (if (window-per-buffer?) ("Close window" (close-document)))
+  (if (not (window-per-buffer?)) ("Close document" (close-document)))
+  ("Close TeXmacs" (safely-quit-TeXmacs))
+ ) ;if
 ) ;menu-bind
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
