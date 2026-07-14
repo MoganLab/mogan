@@ -22,6 +22,7 @@
 (define ghost-active? #f)
 (define ghost-mark 0)
 (define ghost-content "")
+(define last-key-press "")
 
 ;; Local acceptance threshold (91%)
 (define ghost-acceptance-threshold 0.91)
@@ -52,7 +53,7 @@
   (set! ghost-serial (+ ghost-serial 1))
   (let ((current ghost-serial))
     (delayed (:idle 500)
-      (when (== ghost-serial current)
+      (when (and (== ghost-serial current) (not-in-tab-cycling?))
         (generate-ghost-text)))))
 
 (tm-define (generate-ghost-text)
@@ -93,9 +94,17 @@
 ;; =============================================================================
 ;; Intercept handlers (keyboard and mouse)
 ;; =============================================================================
+(define (not-in-tab-cycling?)
+  (not (== last-key-press "tab")))
+
 (tm-define (kbd-insert s)
   (former s)
-  (trigger-ghost-text))
+  (when (not-in-tab-cycling?)
+    (trigger-ghost-text)))
+
+(tm-define (keyboard-press key time)
+  (set! last-key-press key)
+  (former key time))
 
 (tm-define (keyboard-press key time)
   (:require (is-ghost-active?))
@@ -106,8 +115,7 @@
           (delayed (:idle 0) (keyboard-press key time)))))
 
 (tm-define (mouse-event key x y mods time data)
-  (if (and (is-ghost-active?) (not (== key "move")))
-      (begin
-        (ignore-ghost)
-        (delayed (:idle 0) (mouse-event key x y mods time data)))
-      (former key x y mods time data)))
+  (:require (is-ghost-active?))
+  (former key x y mods time data)
+  (when (not (== key "move"))
+    (ignore-ghost)))
