@@ -1,23 +1,20 @@
 // ParagraphFormat.qml — 段落格式对话框正文。
-// 非阻塞模态（run_modal_qml_dialog）：每次 setPara 经 selector 机制 live 写回文档
+// 非阻塞模态（run_modal_qml_dialog）：每次改动经 paraBridge.setPara live 写回文档
 // （make-multi-line-with），主窗口实时重排段落；OK 落定，Cancel/重置走打开时快照
-// 写回撤销。由 DialogShell + TabBar(基础/高级) + EnumCombo/EnumComboList(editable)
-// + MiniButton(行间距预设) + DialogButtons 拼装，交互经 paraBridge 转发到 scheme
-// facade（specsKey 句柄）。
+// 写回撤销。
 //
-// 布局以 ai-docs/qml/qml-dialog.html 的 #panel-paragraph 设计稿为准：基础/高级两 tab，
-// 19 个段落参数；行间距预设 1.0x/1.25x/1.5x/2.0x 四按钮等宽，与 combo 列对齐。
-//
-// id 用 dialog（非 root）：EnumCombo/MiniButton/DialogButtons 等原子内部都用 id: root，
-// 若本组件也用 root，delegate handler 里的 `root.xxx` 会被原子实例的同名 id 遮蔽，
-// 导致刷新调用打到错误对象（点击不生效）。dialog 全局唯一，无遮蔽。
+// 显示真相源是 QML 本地的 values（参考 FormDialog）：打开时从 meta 读一次初始化，
+// 之后改动直接改 values 并 setPara 写文档，不重读 get-env——后者相对编辑命令有延迟，
+// 重读会显示滞后。id 用 dialog（非 root），避免被 EnumCombo/MiniButton 等原子内部
+// id: root 遮蔽。
 //
 // paraBridge 契约（ParagraphFormatBridge，无状态透传 specsKey）：
 //   uiLabels()            -> {basic, advanced, reset, ok, cancel, sepPresetLabel, sepPresets}
-//   basicMeta()           -> [{label, options, var, value, editable}]（基础 tab）
-//   advancedMeta()        -> [{label, options, var, value, editable}]（高级 tab）
-//   setPara(var, val)     -> live 写回；返回新 value
-//   submit()/cancel()/reset()
+//   basicMeta()           -> [{label, options, var, value, editable}]（打开时读一次）
+//   advancedMeta()        -> 同上（高级 tab）
+//   setPara(var, val)     -> live 写回文档
+//   revert()              -> 快照撤销（Cancel/重置）
+//   submit()/cancel()
 
 import QtQuick
 import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButtons / TabBar / Theme
@@ -25,37 +22,44 @@ import "." // DialogShell / EnumCombo / EnumComboList / MiniButton / DialogButto
 DialogShell {
     id: dialog
     implicitWidth: 520
-    implicitHeight: 600
+    implicitHeight: 590
     onCancel: () => paraBridge.cancel()
 
     property var labels: paraBridge.uiLabels()
     property string activeTab: "basic"
 
+    // 字段定义（打开时读一次，只读）+ 运行时值（显示真相源，改动直改它）。
+    property var basicFields: paraBridge.basicMeta()
+    property var advancedFields: paraBridge.advancedMeta()
+    property var basicValues: initValues(basicFields)
+    property var advancedValues: initValues(advancedFields)
+
     // 预设按钮行与 EnumCombo 同布局：label 占 labelRatio，按钮组占 combo 区。
     readonly property real labelRatio: 0.42
     readonly property real rowSpacing: 16 * Theme.scaleFactor
     readonly property real presetGap: 8 * Theme.scaleFactor
-    // 4 个预设按钮 + 3 个间距 = combo 区宽，按钮等宽。
     function presetBtnWidth(rowWidth) {
         var comboArea = rowWidth - rowWidth * dialog.labelRatio - dialog.rowSpacing
         return (comboArea - 3 * dialog.presetGap) / 4
     }
 
-    // live 写回后重拉 meta（选项/值随文档变化）。basicModel/advancedModel 是本组件
-    // 内 id，不被原子遮蔽。用 Qt.callLater 延一帧：setPara 的 make-multi-line-with
-    // 触发 typeset，环境值（get-env）在 typeset 落地后才更新；同步立即重拉会读到
-    // 旧值，显示滞后一次。延一帧让 typeset 完成再重拉。
-    function refreshAll() {
-        Qt.callLater(function () {
-            basicModel.value = paraBridge.basicMeta()
-            advancedModel.value = paraBridge.advancedMeta()
-        })
+    // 从 meta 列表建 {var: value} 映射。
+    function initValues(fields) {
+        var v = {}
+        for (var i = 0; i < fields.length; i++) v[fields[i].var] = fields[i].value
+        return v
+    }
+    // 改某分组某字段：更新本地 values（触发显示刷新）+ live 写回文档。
+    function setField(group, varName, val) {
+        var cur = group === "basic" ? dialog.basicValues : dialog.advancedValues
+        cur[varName] = val
+        if (group === "basic") dialog.basicValues = cur; else dialog.advancedValues = cur
+        paraBridge.setPara(varName, val)
     }
 
     content: Item {
         id: shell
 
-        // 选项卡行（胶囊 TabBar），锚顶。
         TabBar {
             id: tabBar
             anchors.top: parent.top
@@ -66,7 +70,6 @@ DialogShell {
             onSelected: function(key) { dialog.activeTab = key }
         }
 
-        // 底部按钮：重置 / 确定 / 取消，锚底靠右。
         DialogButtons {
             id: bottomButtons
             anchors.bottom: parent.bottom
@@ -75,13 +78,12 @@ DialogShell {
             primaryIndex: 1
             buttonWidth: 90 * Theme.scaleFactor
             onClicked: function(i) {
-                if (i === 0) { paraBridge.reset(); dialog.refreshAll() }
+                if (i === 0) { paraBridge.revert(); dialog.resetValues() }
                 else if (i === 1) paraBridge.submit()
                 else paraBridge.cancel()
             }
         }
 
-        // 正文区：按 activeTab 切显隐，夹在 tabBar 与 bottomButtons 之间。
         Item {
             id: body
             anchors.top: tabBar.bottom
@@ -92,8 +94,7 @@ DialogShell {
             anchors.bottomMargin: 14 * Theme.scaleFactor
             clip: true
 
-            // 基础 tab：自定义 Column——需在 par-sep 后插入行间距预设按钮行，故不走
-            // EnumComboList。
+            // 基础 tab：par-sep 行后插行间距预设按钮行，故自定义 Column。
             Flickable {
                 anchors.fill: parent
                 visible: dialog.activeTab === "basic"
@@ -106,7 +107,7 @@ DialogShell {
                     width: parent.width
                     spacing: 6 * Theme.scaleFactor
                     Repeater {
-                        model: basicModel.value
+                        model: dialog.basicFields
                         delegate: Column {
                             width: basicCol.width
                             spacing: 6 * Theme.scaleFactor
@@ -114,15 +115,12 @@ DialogShell {
                                 width: parent.width
                                 label: modelData.label
                                 options: modelData.options
-                                value: modelData.value
+                                value: dialog.basicValues[modelData.var] !== undefined
+                                       ? dialog.basicValues[modelData.var] : ""
                                 editable: modelData.editable !== undefined ? modelData.editable : false
-                                onChanged: function(v) {
-                                    paraBridge.setPara(modelData.var, v)
-                                    dialog.refreshAll()
-                                }
+                                onChanged: function(v) { dialog.setField("basic", modelData.var, v) }
                             }
-                            // 仅 par-sep 行下面插预设按钮行。行高与 EnumCombo 行一致
-                            //（44px），MiniButton 居中、上下留间距，保证每行视觉高度统一。
+                            // 仅 par-sep 行下面插预设按钮行（行高 44，与 EnumCombo 行一致）。
                             Item {
                                 id: presetRow
                                 width: parent.width
@@ -148,10 +146,7 @@ DialogShell {
                                         delegate: MiniButton {
                                             width: dialog.presetBtnWidth(presetRow.width)
                                             text: modelData.label
-                                            onClicked: {
-                                                paraBridge.setPara("par-sep", modelData.val)
-                                                dialog.refreshAll()
-                                            }
+                                            onClicked: dialog.setField("basic", "par-sep", modelData.val)
                                         }
                                     }
                                 }
@@ -161,27 +156,20 @@ DialogShell {
                 }
             }
 
-            // 高级 tab：纯 EnumCombo 竖列，直接复用 EnumComboList 原子（自带滚动）。
+            // 高级 tab：纯 EnumCombo 竖列，用 EnumComboList 原子（valueSource 模式）。
             EnumComboList {
                 anchors.fill: parent
                 visible: dialog.activeTab === "advanced"
-                model: advancedModel.value
-                onItemChanged: function(item, v) {
-                    paraBridge.setPara(item.var, v)
-                    dialog.refreshAll()
-                }
+                model: dialog.advancedFields
+                valueSource: dialog.advancedValues
+                onItemChanged: function(item, v) { dialog.setField("advanced", item.var, v) }
             }
         }
     }
 
-    // 可变 meta 列表：值变化后由 refreshAll() 显式 refetch，否则 EnumCombo.value 是
-    // 旧快照不更新（参考 FontSelector 的 QtObject model 模式）。
-    QtObject {
-        id: basicModel
-        property var value: paraBridge.basicMeta()
-    }
-    QtObject {
-        id: advancedModel
-        property var value: paraBridge.advancedMeta()
+    // 重置：scheme 快照撤销文档后，本地 values 回到打开时的 meta 值。
+    function resetValues() {
+        dialog.basicValues = dialog.initValues(dialog.basicFields)
+        dialog.advancedValues = dialog.initValues(dialog.advancedFields)
     }
 }

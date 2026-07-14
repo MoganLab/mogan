@@ -97,8 +97,10 @@
 
 (define paragraph-specs-next 1)
 
-;; key -> (var . val) 关联表：对话框打开瞬间的段落参数快照，供 Cancel/重置回放。
+;; key -> ahash(var -> val)：对话框打开瞬间的段落参数快照，供 Cancel/重置回放。
 ;; 必须在 live 改动前快照——live 写回会改文档树，事后 get-env 读到的是改后值。
+;; 运行期当前值不在此维护——显示真相源在 QML 的 values（参考 FormDialog），
+;; 避开 make-multi-line-with 相对 get-env 的延迟导致的显示滞后。
 
 (define paragraph-snapshot (make-ahash-table))
 
@@ -128,8 +130,9 @@
   (ahash-remove! paragraph-snapshot key)
 ) ;tm-define
 
-;; 返回某分组字段的 meta 列表（供 QML EnumCombo 渲染）。每项：
-;;   ((label . "...") (options . (...)) (var . "...") (value . "...") (editable . #t/#f))
+;; 返回某分组字段的 meta 列表（供 QML 打开时读一次初始化 values）。value 用 get-env
+;; （仅打开时读，运行期不重读——显示真相源是 QML values）。label 走 translate（与
+;; FormDialog 一致，scheme 侧翻译好再传 QML）。
 (tm-define (paragraph-format-meta key which)
   (with fields
     (if (== which "basic") paragraph-basic-fields paragraph-advanced-fields)
@@ -157,18 +160,16 @@
   (paragraph-format-meta key "advanced")
 ) ;tm-define
 
-;; live 写回单参数：构造 (var val) 一次性 make-multi-line-with 写回。
-;; 返回写回后的新值（get-env 重读，确认生效）。
+;; live 写回单参数：make-multi-line-with 写文档。显示真相源在 QML values，故不重读
+;; get-env（后者相对编辑命令有延迟，重读会显示滞后）。
 (tm-define (paragraph-format-set key var val)
-  (when (!= val (get-env var))
-    (make-multi-line-with (list var val))
-  ) ;when
-  (get-env var)
+  (make-multi-line-with (list var val))
+  val
 ) ;tm-define
 
-;; 快照撤销：用打开时的快照填回。一次 make-multi-line-with 写所有差异，避免多次
-;; 嵌套 with 吞选区（参考 README 的快照写回说明）。
-(tm-define (paragraph-format-revert-to-snapshot key)
+;; 快照撤销（Cancel/重置共用）：一次 make-multi-line-with 写所有差异，避免多次嵌套
+;; with 吞选区。revert 不关窗（重置用）；cancel 在 bridge 层再关窗。
+(tm-define (paragraph-format-revert key)
   (with snap
     (ahash-ref paragraph-snapshot key)
     (when snap
@@ -193,18 +194,13 @@
   ) ;with
 ) ;tm-define
 
-;; 落定：段落改动已随每次 set live 写回，commit 只需注销 specs。
+;; 落定：改动已随每次 set live 写回，commit 只需注销 specs。
 (tm-define (paragraph-format-commit key) (paragraph-format-cleanup key))
 
 ;; 取消：快照撤销 + 注销。
 (tm-define (paragraph-format-cancel key)
-  (paragraph-format-revert-to-snapshot key)
+  (paragraph-format-revert key)
   (paragraph-format-cleanup key)
-) ;tm-define
-
-;; 重置：快照撤销（不关窗，留在对话框继续调）。specs 不注销。
-(tm-define (paragraph-format-restore key)
-  (paragraph-format-revert-to-snapshot key)
 ) ;tm-define
 
 ;; UI 标签（translate 走项目翻译）。

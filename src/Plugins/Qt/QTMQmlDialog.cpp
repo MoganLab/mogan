@@ -474,6 +474,6 @@ cpp_paragraph_format_dialog (int specs_key) {
         QObject::connect (host, &QDialog::destroyed, paraBridge,
                           &QObject::deleteLater);
       },
-      520, 600);
+      520, 590);
   return tree (TUPLE);
 }
