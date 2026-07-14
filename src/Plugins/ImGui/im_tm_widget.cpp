@@ -314,7 +314,8 @@ im_tm_widget_rep::im_tm_widget_rep (int mask, command _quit)
       document_texture (0), tex_w (0), tex_h (0), texture_dirty (true),
       initialized (false), needs_refocus (false), pic_w (0), pic_h (0),
       pic_rf (0), menu_offset_y (0), footer_height (0),
-      footer_interactive (false) {
+      footer_interactive (false), scroll_reset_frames (0),
+      last_size_canvas (nullptr) {
   visibility[0] = (mask & 1) == 1;       // header
   visibility[1] = (mask & 2) == 2;       // main icons
   visibility[2] = (mask & 4) == 4;       // mode icons
@@ -563,6 +564,15 @@ im_tm_widget_rep::im_main_loop () {
 
   // Drive one TeXmacs tick. 驱动编辑器。
   im_interpose ();
+  // 新 buffer 加载后，连续数帧把滚动重置到顶部居中。im_interpose 里会跑
+  // make-cursor-visible（其 scroll_to 在 ImGui 坐标映射下不落在顶部），故在此
+  // （interpose 之后）覆盖之，使加载后视图回到顶部 + 水平居中。
+  if (scroll_reset_frames > 0 && !is_nil (main_widget)) {
+    scroll_reset_frames--;
+    if (scroll_reset_frames == 0)
+      main_widget->send (SLOT_SCROLL_POSITION,
+                         close_box<coord2> (coord2 (0, 0)));
+  }
   if (glfwGetWindowAttrib (window, GLFW_ICONIFIED) != 0) {
     ImGui_ImplGlfw_Sleep (10);
     return;
@@ -604,9 +614,6 @@ im_tm_widget_rep::im_main_loop () {
       ImGui::PopStyleVar (3);
       if (!footer_interactive) {
         // 三栏布局：左、中、右。使用绝对 X 定位避免表格单元格宽度歧义。
-        cout << footer_left << LF;
-        cout << footer_middle << LF;
-        cout << footer_right << LF;
         float pad_x= 4.0f;
         // 左侧
         ImGui::TextUnformatted (c_string (footer_left));
@@ -641,9 +648,15 @@ im_tm_widget_rep::im_main_loop () {
   if (!is_nil (main_widget)) {
     int cw= win_w, ch= win_h;
     int eff_h= ch - (int) menu_h - (int) footer_h; // 菜单条与状态栏之间才是画布
-    if (cw > 0 && eff_h > 0 && (cw != last_cw || eff_h != last_ch)) {
-      last_cw= cw;
-      last_ch= eff_h;
+    // 换画布（新 buffer）时即便窗口尺寸未变也要重发 SLOT_SIZE：新画布的
+    // canvas_w/canvas_h 是构造默认值 0，否则 recenter 会因 canvas_w==0
+    // 跳过居中。
+    if (cw > 0 && eff_h > 0 &&
+        (main_widget.rep != last_size_canvas || cw != last_cw ||
+         eff_h != last_ch)) {
+      last_cw         = cw;
+      last_ch         = eff_h;
+      last_size_canvas= main_widget.rep;
       main_widget->send (
           SLOT_SIZE,
           close_box<coord2> (coord2 ((SI) (cw * PIXEL), (SI) (eff_h * PIXEL))));
@@ -752,16 +765,6 @@ im_tm_widget_rep::run () {
 void
 im_run_main_loop () {
   if (im_primary_window != nullptr) im_primary_window->run ();
-}
-
-// 重置主窗口画布的滚动位置：水平居中、垂直置顶。
-void
-im_reset_canvas_scroll () {
-  if (im_primary_window == nullptr) return;
-  im_simple_widget_rep* ed= im_primary_window->canvas ();
-  if (ed == nullptr) return;
-  // 发送 (0,0) 触发 canvas 的 recenter_x + clamp_scroll_y 逻辑。
-  ed->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (0, 0)));
 }
 
 // The primary window's GLFW handle
@@ -914,18 +917,10 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   widget mw= self->main_widget;
   SI     sx= 0, sy= 0;
   get_scroll_position (mw, sx, sy);
-  coord4 ce= open_box<coord4> (mw->query (SLOT_EXTENTS, 0));
-  int    ww= 0, wh= 0;
-  glfwGetWindowSize (w, &ww, &wh);
-  SI canvas_h= (SI) wh * PIXEL;
-  SI doc_h   = ce.x4 - ce.x2;
-  SI delta   = (SI) (yoffset * 10.0 * PIXEL);
-  SI new_sy  = sy + delta;
-  if (doc_h > canvas_h) {
-    if (new_sy > 0) new_sy= 0;
-    if (-new_sy > doc_h - canvas_h) new_sy= -(doc_h - canvas_h);
-  }
-  else new_sy= 0; // whole document fits in the canvas → no vertical scroll
+  // 只把增量交给画布；钳位 / 居中统一由 im_simple_widget::recenter 完成
+  // （内容小于视口时滚轮无效，自动回到居中位置）。
+  SI delta = (SI) (yoffset * 10.0 * PIXEL);
+  SI new_sy= sy + delta;
   mw->send (SLOT_SCROLL_POSITION, close_box<coord2> (coord2 (sx, new_sy)));
 }
 
@@ -1082,6 +1077,9 @@ im_tm_widget_rep::write (slot s, blackbox index, widget w) {
           static_cast<im_simple_widget_rep*> (main_widget.rep);
       ed->set_window (widget (this), win_id);
     }
+    // 新 buffer 挂载：随后数帧把滚动重置到顶部居中（见 im_main_loop），覆盖
+    // make-cursor-visible 写入的位置。
+    scroll_reset_frames= 3;
     break;
   case SLOT_MAIN_MENU:
     // 主菜单条由 Scheme 层经 menu_main → set_main_menu 写入。tm_data 会按需重发

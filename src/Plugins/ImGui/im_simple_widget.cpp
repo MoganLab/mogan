@@ -132,23 +132,22 @@ im_simple_widget_rep::is_invalid () {
 }
 
 void
-im_simple_widget_rep::recenter_x () {
-  // Center the page horizontally when it is narrower than the canvas
+im_simple_widget_rep::recenter () {
+  // 水平：文档窄于画布则水平居中（负偏移把文档右移），否则贴左（ImGui
+  // 无水平滚动）。
   SI page_w= ext_x2 - ext_x1;
   if (page_w > 0 && page_w < canvas_w) scroll_x= -((canvas_w - page_w) / 2);
   else scroll_x= 0;
-}
-
-void
-im_simple_widget_rep::clamp_scroll_y () {
-  // doc_h is the raw extents height (same scale as canvas_h / scroll_y).
+  // 垂直：始终上对齐——短文档也贴顶（不居中，否则文档会被推到下方、与编辑时的
+  // 位置不一致）；仅当文档高于画布时，把滚动钳位到可滚动范围
+  // [-(doc_h-canvas_h), 0]（0=顶部，负=向下滚动）。
   SI doc_h= ext_y2 - ext_y1;
-  if (doc_h > canvas_h) {
+  if (doc_h >= canvas_h) {
     SI min_sy= -(doc_h - canvas_h);
     if (scroll_y < min_sy) scroll_y= min_sy;
     if (scroll_y > 0) scroll_y= 0;
   }
-  else scroll_y= 0; // whole document fits → no vertical scroll
+  else scroll_y= 0;
 }
 
 /******************************************************************************
@@ -171,24 +170,21 @@ im_simple_widget_rep::send (slot s, blackbox val) {
     ext_y1  = p.x2;
     ext_x2  = p.x3;
     ext_y2  = p.x4;
-    recenter_x ();
-    clamp_scroll_y ();
+    recenter ();
   } break;
   case SLOT_SIZE: {
     coord2 p= open_box<coord2> (val);
     canvas_w= p.x1;
     canvas_h= p.x2;
-    recenter_x ();
-    clamp_scroll_y ();
+    recenter ();
   } break;
   case SLOT_SCROLL_POSITION: {
+    // editor（make-cursor-visible / scroll_to）与滚轮都经此下达垂直滚动；
+    // 无条件采纳 editor 给的 y（editor 是权威），再由 recenter 钳位/居中。
+    // 水平始终由 recenter 居中，p.x1 忽略。
     coord2 p= open_box<coord2> (val);
-    // Horizontal is forced centered (recenter_x); p.x1 ignored. Keep vertical
-    // (wheel scroll writes scroll_y here; only accept it while at/above top),
-    // then clamp to the document so a stale zoom position can't persist.
-    recenter_x ();
-    if (scroll_y <= 0) scroll_y= p.x2;
-    clamp_scroll_y ();
+    scroll_y= p.x2;
+    recenter ();
   } break;
   case SLOT_ZOOM_FACTOR: {
     double new_zoom= open_box<double> (val);

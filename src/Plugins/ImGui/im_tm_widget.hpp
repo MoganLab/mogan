@@ -55,6 +55,14 @@ protected:
   string footer_right;
   SI     footer_height;
   bool   footer_interactive;
+  // 缓冲区加载（SLOT_SCROLLABLE，即新画布挂载）后，连续若干帧把滚动重置到顶部
+  // 居中，以覆盖随后 make-cursor-visible 写入的、在 ImGui 坐标映射下不落在顶部
+  // 的滚动位置。
+  int scroll_reset_frames;
+  // 上一次发送 SLOT_SIZE 的画布。换画布（新 buffer）时即便窗口尺寸未变也要重发
+  // 一次尺寸，否则新画布的 canvas_w/canvas_h 停在构造默认值 0，recenter 会因
+  // canvas_w==0 而跳过居中。
+  widget_rep* last_size_canvas;
 
   ImGuiIO* io;
 
@@ -113,9 +121,6 @@ public:
 };
 
 void im_run_main_loop ();
-
-// 重置主窗口画布的滚动位置（水平居中、垂直置顶）。供文件对话框在打开新文件后调用。
-void im_reset_canvas_scroll ();
 
 // Primary window's GLFW handle. Used by the
 // clipboard backend (set_selection/get_selection) for
