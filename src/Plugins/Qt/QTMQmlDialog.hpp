@@ -148,4 +148,16 @@ tree cpp_form_dialog (tree fields);
  */
 tree cpp_font_selector_dialog (int specs_key);
 
+/**
+ * @brief 段落格式 QML 对话框的 glue 入口（live 写回 + 快照撤销）。
+ * @param specs_key scheme paragraph-specs-registry 的 int 句柄
+ *（paragraph-format-register-specs 返回值）。
+ * @return 非阻塞 show 路径立即返回空 tree；ok 测试钩子
+ *（MOGAN_TEST_PARAGRAPH_FORMAT=ok）返回 `(tuple "ok")` 供自动化区分。
+ * @details 每次 setPara 经 make-multi-line-with 实时写回文档，主窗口 live 重排
+ * 段落；OK 落定，Cancel/重置走打开时快照写回撤销。详见
+ * devel/2029.md 与 ai-docs/qml/README.md。
+ */
+tree cpp_paragraph_format_dialog (int specs_key);
+
 #endif // defined QTM_QML_DIALOG_H

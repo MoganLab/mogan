@@ -7,3 +7,4 @@ SelectableList 1.0 SelectableList.qml
 PreviewPane 1.0 PreviewPane.qml
 TabBar 1.0 TabBar.qml
 TabPanel 1.0 TabPanel.qml
+MiniButton 1.0 MiniButton.qml

@@ -1405,7 +1405,7 @@
 ("line wrapping inside cell" "单元格内换行")
 ("line wrapping" "自动换行")
 ("Interline space" "行距")
-("Line spacing presets:" "行距预设:")
+("Line spacing presets" "行距预设")
 ("line" "线")
 ("linear algebra" "线性代数")
 ("lines around block" "双划线块")

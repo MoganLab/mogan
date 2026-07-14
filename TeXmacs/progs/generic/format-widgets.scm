@@ -16,6 +16,7 @@
 (texmacs-module (generic format-widgets)
   (:use (generic format-menu)
     (generic document-edit)
+    (generic paragraph-format-widgets)
     (kernel gui menu-widget)
     (utils library cursor)
   ) ;:use
@@ -366,15 +367,14 @@
 
 (tm-define (open-paragraph-format-window)
   (:interactive #t)
-  (let* ((old (get-env-table paragraph-parameters))
-         (new (get-env-table paragraph-parameters))
-         (u (current-buffer))
-        ) ;
-    (dialogue-window (paragraph-formatter old new make-multi-line-with u #f)
-      noop
-      "Paragraph format"
-    ) ;dialogue-window
-  ) ;let*
+  ;; 走 QML 对话框（非阻塞模态）：register-specs 存 specs 拿 int 句柄并快照打开时
+  ;; 段落参数，cpp-paragraph-format-dialog 开 QML 对话框，paraBridge 调
+  ;; paragraph-format-* facade 透传交互。每次 setPara 经 make-multi-line-with
+  ;; live 写回；Cancel/重置经快照写回撤销，OK 落定。返回 tree 仅测试用。
+  (with specs
+    (list get-env make-multi-line-with)
+    (cpp-paragraph-format-dialog (paragraph-format-register-specs specs))
+  ) ;with
 ) ;tm-define
 
 (tm-define (open-paragraph-format)

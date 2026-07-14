@@ -43,6 +43,7 @@ make-multi-with 嵌套吞选区；两条 setter 路径（init-multi / make-multi
 **原子**（拼装用，勿自造外壳/配色）：
 - `DialogShell` — 外壳：圆角、无边框拖动、Esc、`content` 正文槽、共享下拉浮层
 - `DialogButtons` — 按钮行，只发 `clicked(index)`，语义由调用方映射
+- `MiniButton` — 紧凑小按钮（正文内辅助按钮组，如行间距预设），只发 `clicked()`
 - `EnumCombo` — 下拉 combo 行（浮层由 DialogShell 管），支持 optionsTr 翻译分离
 - `EnumComboList` — 可滚动的 EnumCombo 竖列（Filter/Advanced 选项卡内容）
 - `SelectableList` — 常驻单选列表（family/style/size 三栏用）

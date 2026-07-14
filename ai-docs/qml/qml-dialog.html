@@ -586,10 +586,10 @@
       background: #fffdf5;
     }
 
-    /* 行间距预设里的小按钮：三按钮等宽（按最宽的 1.25x 定宽） */
+    /* 行间距预设里的小按钮：四按钮等宽，4×btn + 3×gap = combo 列宽 184px */
     .mini-btn {
       height: 28px;
-      width: 48px;
+      width: 40px;
       padding: 0;
       font-size: 11px;
       border: 1px solid #c8d6d7;
@@ -927,6 +927,7 @@
                 <div class="option-row">
                   <span>行间距预设</span>
                   <div class="btn-row" style="gap: 8px;">
+                    <button class="mini-btn" data-preset='{"par":"par-sep","val":"0fn","label":"1.0x"}'>1.0x</button>
                     <button class="mini-btn" data-preset='{"par":"par-sep","val":"0.25fn","label":"1.25x"}'>1.25x</button>
                     <button class="mini-btn" data-preset='{"par":"par-sep","val":"0.5fn","label":"1.5x"}'>1.5x</button>
                     <button class="mini-btn" data-preset='{"par":"par-sep","val":"1fn","label":"2.0x"}'>2.0x</button>
@@ -1132,17 +1133,26 @@
         const fire = (v) => log('ParagraphFormat: selector-set(' + key + ', "' + v + '") live 写回');
 
         const open = () => { fillComboList(combo); closeAllCombos(combo); combo.classList.add('open'); };
+        const toggle = () => {
+          if (combo.classList.contains('open')) { combo.classList.remove('open'); return; }
+          open();
+        };
 
-        // 点一下：若当前是编辑态则不弹浮层（让光标定位）；否则弹浮层
+        // 单击/双击分离：单击延迟 220ms 执行，期间若双击到达则取消单击（避免浮层
+        // 先弹后被双击关闭的闪烁）。编辑态下不弹浮层（让光标定位）。
+        let clickTimer = null;
         input.addEventListener('click', () => {
           if (input.classList.contains('editing')) return;
-          open();
+          if (!editable) { toggle(); return; }   // 不可编辑：立即 toggle，无歧义
+          if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; return; }
+          clickTimer = setTimeout(() => { clickTimer = null; toggle(); }, 220);
         });
-        arrow.addEventListener('click', (e) => { e.stopPropagation(); open(); });
+        arrow.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
 
-        // 双击：进入可编辑（仅 editable=on）
+        // 双击：进入可编辑（仅 editable=on）。取消挂起的单击 toggle。
         if (editable) {
           input.addEventListener('dblclick', () => {
+            if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
             closeAllCombos();
             combo.classList.remove('open');
             input.removeAttribute('readonly');

@@ -58,6 +58,14 @@ function main()
                 }
             },
             {
+                scm_name = "cpp-paragraph-format-dialog",
+                cpp_name = "cpp_paragraph_format_dialog",
+                ret_type = "tree",
+                arg_list = {
+                    "int"
+                }
+            },
+            {
                 scm_name = "cpp-rasterize-widget",
                 cpp_name = "cpp_rasterize_widget",
                 ret_type = "string",
