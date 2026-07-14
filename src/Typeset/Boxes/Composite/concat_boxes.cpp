@@ -229,10 +229,15 @@ concat_box_rep::pre_display (renderer& ren) {
       if (bs[k]->get_type () == TEXT_BOX) {
         font f= bs[k]->get_leaf_font ();
         if (!is_nil (f)) {
-          metric ex_m;
+          metric ex_m, ex_c;
           f->get_extents ("M", ex_m);
-          bg_y1= min (bg_y1, sy (k) + ex_m->y1 - 10 * pixel);
-          bg_y2= max (bg_y2, sy (k) + ex_m->y2 + 10 * pixel);
+          string s= bs[k]->get_leaf_string ();
+          if (N (s) > 0) f->get_extents (s, ex_c);
+          else f->get_extents ("M", ex_c);
+          SI y1= min (ex_c->y1, ex_m->y1);
+          SI y2= max (ex_c->y2, ex_m->y2);
+          bg_y1= min (bg_y1, sy (k) + y1 - 10 * pixel);
+          bg_y2= max (bg_y2, sy (k) + y2 + 10 * pixel);
         }
       }
       else {
