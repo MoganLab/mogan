@@ -44,6 +44,10 @@ protected:
   int     pic_rf; // retina factor
 
   widget main_widget;
+  // 主菜单条（由 SLOT_MAIN_MENU 写入）与菜单条占用的顶部高度（SI），后者供
+  // screen_to_si 把鼠标坐标对齐到菜单条下方的画布原点。
+  widget menu_widget;
+  SI     menu_offset_y;
 
   ImGuiIO* io;
 
