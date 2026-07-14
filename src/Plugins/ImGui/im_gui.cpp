@@ -479,9 +479,9 @@ gui_root_extents (SI& width, SI& height) {
       h= mode->height;
     }
 #endif
-  }
-  width = w * PIXEL;
-  height= h * PIXEL;
+}
+width = w * PIXEL;
+height= h * PIXEL;
 #endif
 }
 
