@@ -11,6 +11,9 @@
 
 #include "im_tm_widget.hpp"
 
+#include "analyze.hpp"   // starts, as_string
+#include "converter.hpp" // utf8_to_cork
+#include "cork.hpp"      // tm_string_length
 #include "message.hpp"
 #include "mupdf_picture.hpp" // fz_pixmap_* (via <mupdf/fitz.h>) + mupdf_context
 #include "object.hpp"        // object (Scheme value, for zoom-in call)
@@ -47,6 +50,131 @@
 static int s_next_win_id= 0; // unique non-zero identifiers for SLOT_IDENTIFIER
 
 static im_tm_widget_rep* im_primary_window= nullptr;
+
+/******************************************************************************
+ * IME (Input Method Editor) support — Emscripten only.
+ *
+ * The community GLFW port (pongasoft/emscripten-glfw) has no IME handling: its
+ * char callback is driven by keydown, which during IME composition reports the
+ * raw letter (not "Process"), so GLFW inserts letters alongside the IME and
+ * committed text never reaches the editor via the IME. We bypass GLFW: a hidden
+ * real <textarea> is the IME editing host; its composition events feed the
+ * editor, mirroring Qt's QTMWidget::inputMethodEvent. A synthetic focus event
+ * on the canvas keeps GLFW's fFocused and the editor's got_focus true so the
+ * normal key/mouse paths keep working.
+ ******************************************************************************/
+#ifdef __EMSCRIPTEN__
+// Pending IME events enqueued by the JS composition listeners. Drained at the
+// top of im_main_loop (same safe point as GLFW key events) because the DOM
+// fires composition events asynchronously. Each entry is the final key string
+// (a plain UTF-8 commit, or "pre-edit:<utf8>" rebuilt by the drain into the
+// "pre-edit:<pos>:<cork>" form that key_press expects).
+static array<string> g_ime_pending;
+
+// Pull ccall() into scope for the EM_JS block below (no
+// EXPORTED_RUNTIME_METHODS change needed).
+EM_JS_DEPS (mogan_ime, "$ccall");
+
+// Install (once) a hidden <textarea> as the IME editing host plus the browser
+// composition listeners. Called from run() (after the GLFW window exists).
+EM_JS (void, im_install_ime_listeners, (), {
+  if (window.__moganImeInstalled) return;
+  window.__moganImeInstalled= true;
+  function preedit (s) {
+    ccall ('mogan_ime_preedit', null, ['string'], [s == null ? '' : s]);
+  }
+  function commit (s) {
+    ccall ('mogan_ime_commit', null, ['string'], [s == null ? '' : s]);
+  }
+  // canvas 不是 IME 编辑宿主（contentEditable 对 WebGL canvas 无效），浏览器
+  // 不会在它上面激活中文输入法。用一个隐藏的真实 textarea 接住 composition。
+  var imeInput= document.createElement ('textarea');
+  imeInput.id = 'mogan-ime-input';
+  imeInput.setAttribute ('autocomplete', 'off');
+  imeInput.setAttribute ('autocorrect', 'off');
+  imeInput.setAttribute ('autocapitalize', 'off');
+  imeInput.setAttribute ('spellcheck', 'false');
+  var st     = imeInput.style;
+  st.position= 'fixed';
+  st.top     = '0px';
+  st.left    = '0px';
+  st.width   = '1px';
+  st.height  = '1px';
+  st.opacity = '0';
+  st.border  = 'none';
+  st.padding = '0px';
+  st.resize  = 'none';
+  st.zIndex  = '-1';
+  document.body.appendChild (imeInput);
+  var canvas= document.getElementById ('main-canvas');
+  // 聚焦 textarea 接住 IME。但这会让 canvas 失焦：contrib GLFW 的 fFocused
+  // 跟踪 canvas 焦点，失焦后停止转发按键；编辑器 got_focus 也变 false
+  // （apply_changes 与鼠标处理依赖它）。在 canvas 上派发合成 focus 事件恢复
+  // 二者——GLFW 的 focus 监听挂在 canvas（bubble 阶段）且忽略事件数据，仅置
+  // fFocused=true 并触发
+  // glfw_window_focus_callback→handle_keyboard_focus(true)。
+  function engageIme () {
+    imeInput.focus ({preventScroll : true});
+    canvas.dispatchEvent (new FocusEvent ('focus'));
+  }
+  engageIme ();
+  // 点击 canvas 定位光标后，把焦点重新交给 textarea（setTimeout 等浏览器
+  // 处理完 mousedown 的默认聚焦动作）。
+  canvas.addEventListener (
+      'mousedown', function () { setTimeout (engageIme, 0); });
+  // textarea 的文本内容不使用（只用 composition），非 composition 时清空。
+  imeInput.addEventListener (
+      'input', function (e) {
+        if (e.isComposing) return;
+        imeInput.value= '';
+      });
+  var composing= false;
+  // composition 事件冒泡到 window（textarea 聚焦时事件源自 textarea）。
+  window.addEventListener (
+      'compositionstart', function (e) {
+        composing= true;
+        preedit (e.data);
+      });
+  window.addEventListener (
+      'compositionupdate', function (e) { preedit (e.data); });
+  window.addEventListener (
+      'compositionend', function (e) {
+        composing= false;
+        commit (e.data);
+        preedit ('');
+      });
+  // 阻止 GLFW 在 IME composition 期间收到 keydown：浏览器对 IME 处理的按键报
+  // keyCode=229（即便 key 仍是原始字母 'n'/'i'/' '）、且 isComposing=true。若
+  // 放行，GLFW 的 char 回调会把字母/空格直插进文档，与最终提交的中文重复。
+  // 在 textarea（事件 target）上 stopPropagation 即可拦住向 window 的冒泡；
+  // 不 preventDefault，以便 IME 仍能接收按键。
+  imeInput.addEventListener (
+      'keydown', function (e) {
+        if (composing || e.isComposing || e.keyCode === 229)
+          e.stopPropagation ();
+      });
+});
+
+// JS composition listener → here. Queue the UTF-8 commit text for dispatch.
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_ime_commit (const char* utf8) {
+  if (utf8 == nullptr) return;
+  g_ime_pending << string (utf8);
+}
+
+// JS composition listener → here. Queue a pre-edit marker + raw UTF-8 text.
+// The drain (im_main_loop) cork-converts and rebuilds the
+// "pre-edit:<pos>:<text>" form with pos = char count so the caret lands at the
+// end of the pre-edit (matching Qt). Disabled in math mode (avoids a
+// QQPinyin-class crash). The browser CompositionEvent exposes no caret, so we
+// always place it at the end (end-typing).
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_ime_preedit (const char* utf8) {
+  if (utf8 == nullptr) return;
+  if (as_bool (call ("in-math?"))) return;
+  g_ime_pending << ("pre-edit:" * string (utf8));
+}
+#endif // __EMSCRIPTEN__
 
 /******************************************************************************
  * Local helpers
@@ -350,6 +478,35 @@ im_tm_widget_rep::plain_window_widget (string name, command _quit, int b) {
 void
 im_tm_widget_rep::im_main_loop () {
   glfwPollEvents ();
+#ifdef __EMSCRIPTEN__
+  // Drain IME composition events queued by the JS listeners (see
+  // mogan_ime_commit/preedit). Swap out the snapshot first so any events the
+  // browser fires while we dispatch are processed next frame (single-threaded,
+  // so no race).
+  if (N (g_ime_pending) > 0) {
+    array<string> pending= g_ime_pending;
+    g_ime_pending        = array<string> (0);
+    for (int i= 0; i < N (pending); i++) {
+      // pre-edit 走立即路径：handle_keypress 会把它交给 delayed-keyboard-press
+      // 去抖，而 ImGui 帧结构里 idle_time 难以达到阈值、去抖永不完成 → preedit
+      // 不显示。这里直接调 keyboard-press（key-press→key_press）立即插入
+      // preedit（与 Qt 延迟 apply 走同一路径、同一 context）。提交文本仍走
+      // dispatch_keypress→handle_keypress（立即处理普通文本，含 cork 与 editing
+      // 事务）。
+      if (starts (pending[i], "pre-edit:")) {
+        // 取 "pre-edit:" 之后的原始 UTF-8 文本，转 cork，按字符数重建为
+        // "pre-edit:<n>:<cork>"，使 key_press 把光标放到 preedit 末尾（Qt
+        // 行为）。
+        string text= utf8_to_cork (pending[i](9, N (pending[i])));
+        string key=
+            "pre-edit:" * as_string (tm_string_length (text)) * ":" * text;
+        call ("keyboard-press", object (key),
+              object ((double) texmacs_time ()));
+      }
+      else dispatch_keypress (pending[i]);
+    }
+  }
+#endif
   // 创建了一个 stub 窗口（例如 Cmd+F 的查找窗口等）时 server
   // 将当前窗口从我们这里切换走， 编辑器被 suspend () 挂起（got_focus=false）
   // 在这里重新恢复这两种焦点状态，以确保后续的键盘和鼠标事件能够继续正常传递。
@@ -509,6 +666,8 @@ void
 im_tm_widget_rep::run () {
   if (!initialized || window == nullptr) return;
 #ifdef __EMSCRIPTEN__
+  // Set up IME: hidden textarea + composition listeners + focus bridging.
+  im_install_ime_listeners ();
   emscripten_set_main_loop_arg (im_tm_widget_rep::em_main_loop_wrapper, this, 0,
                                 true);
   emscripten_cancel_main_loop ();

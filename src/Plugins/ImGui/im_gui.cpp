@@ -19,6 +19,7 @@
 #include "promise.hpp"
 #include "renderer.hpp"
 #include "scheme.hpp"
+#include "tm_timer.hpp" // texmacs_time (delayed-command scheduling)
 #include "widget.hpp"
 
 #include <GLFW/glfw3.h> // system clipboard (glfwSet/GetClipboardString)
@@ -659,28 +660,52 @@ get_window (int id) {
  * Delayed commands
  ******************************************************************************/
 
-static array<object> g_pending_cmds;
+// Delayed commands — mirrors Qt's command_queue (qt_gui.cpp). A command may
+// return an integer pause (ms); it is then re-queued and re-run after that
+// delay. This drives the IME pre-edit debounce (delayed-keyboard-press in
+// kbd-handlers.scm): without re-queueing, the pre-edit lambda returns its
+// remaining wait time and is dropped, so pre-edit text never renders.
+static array<object> g_delayed_q;
+static array<time_t> g_delayed_starts;
 
 void
 exec_delayed (object cmd) {
-  g_pending_cmds << cmd;
+  g_delayed_q << cmd;
+  // far in the past → eligible to run on the next exec_pending_commands
+  g_delayed_starts << (texmacs_time () - 1000000000);
 }
 
 void
 exec_delayed_pause (object cmd) {
-  g_pending_cmds << cmd;
+  g_delayed_q << cmd;
+  g_delayed_starts << texmacs_time ();
 }
 
 void
 clear_pending_commands () {
-  g_pending_cmds= array<object> (0);
+  g_delayed_q     = array<object> (0);
+  g_delayed_starts= array<time_t> (0);
 }
 
 void
 exec_pending_commands () {
-  array<object> cur= g_pending_cmds;
-  g_pending_cmds   = array<object> (0);
-  for (int i= 0; i < N (cur); i++) {
-    (void) call (cur[i]);
+  array<object> q = g_delayed_q;
+  array<time_t> s = g_delayed_starts;
+  g_delayed_q     = array<object> (0);
+  g_delayed_starts= array<time_t> (0);
+  for (int i= 0; i < N (q); i++) {
+    time_t now= texmacs_time ();
+    if (now - s[i] >= 0) {
+      object obj= call (q[i]);
+      if (is_int (obj) && now - s[i] < 1000000000) {
+        time_t pause= as_int (obj);
+        g_delayed_q << q[i];
+        g_delayed_starts << (now + pause);
+      }
+    }
+    else {
+      g_delayed_q << q[i];
+      g_delayed_starts << s[i];
+    }
   }
 }
