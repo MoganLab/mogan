@@ -192,10 +192,8 @@ QTMUserPromptPopup::getCachedPosition (int& x, int& y) {
     QPoint local_pos (cursor_pos.x () - origin.x () + surface_top_left.x (),
                       cursor_pos.y () - origin.y () + surface_top_left.y ());
     QPoint global_pos= canvas->viewport ()->mapToGlobal (local_pos);
-
-    // 定位于宏起点的右下方 (右移并下移)
-    x= global_pos.x () + DpiUtils::scaled (20);
-    y= global_pos.y () + DpiUtils::scaled (0);
+    x                = global_pos.x () + DpiUtils::scaled (8);
+    y                = global_pos.y () + DpiUtils::scaled (0);
   }
   else {
     x= 0;
