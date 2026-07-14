@@ -1108,7 +1108,9 @@ edit_interface_rep::apply_changes () {
       ;
     else pp= path_up (pp);
     if (full_context || table_cells) compute_env_rects (pp, env_rects, true);
-    if (show_focus && (!semantic_flag || !semantic_only))
+    // 在绘图区中不计算 foc_rects，即不会产生淡蓝色背景高亮
+    if (show_focus && (!semantic_flag || !semantic_only) &&
+        !inside_graphics (false))
       compute_env_rects (pp, foc_rects, false);
     if (env_rects != old_env_rects) {
       invalidate (old_env_rects);
