@@ -19,6 +19,7 @@
     (utils library cursor)
     (generic document-edit)
     (generic generic-edit)
+    (generic ghost-text)
     (generic format-edit)
     (generic format-geometry-edit)
     (source source-edit)

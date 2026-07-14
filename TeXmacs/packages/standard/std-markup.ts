@@ -56,6 +56,10 @@
 
   <drd-props|pre-edit|arity|1|border|no>
 
+  <assign|ghost|<macro|body|<with|color|#808080|<arg|body>>>>
+
+  <drd-props|ghost|arity|1|accessible|none|border|no>
+
   <\active*>
     <\src-comment>
       Size tags (very-small: scriptsize, smaller: footnotesize, larger:
