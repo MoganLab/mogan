@@ -661,7 +661,12 @@ im_tm_widget_rep::glfw_scroll_callback (GLFWwindow* w, double xoffset,
   glfwGetWindowSize (w, &ww, &wh);
   SI canvas_h= (SI) wh * PIXEL;
   SI doc_h   = ce.x4 - ce.x2;
-  SI delta   = (SI) (yoffset * 10.0 * PIXEL);
+#ifdef OS_MACOS
+  SI scroll_speed = 10;
+#else
+  SI scroll_speed = 100;
+#endif
+  SI delta   = (SI) (yoffset * scroll_speed * PIXEL);
   SI new_sy  = sy + delta;
   if (doc_h > canvas_h) {
     if (new_sy > 0) new_sy= 0;
