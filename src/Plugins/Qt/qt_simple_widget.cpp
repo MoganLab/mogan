@@ -888,12 +888,9 @@ qt_simple_widget_rep::ensure_ghost_popup () {
 }
 
 void
-qt_simple_widget_rep::show_ghost_popup (rectangle selr, double magf,
-                                        int scroll_x, int scroll_y, int canvas_x,
-                                        int canvas_y) {
+qt_simple_widget_rep::show_ghost_popup () {
   ensure_ghost_popup ();
-  ghostTextPopup->showPopup (selr, magf, scroll_x, scroll_y, canvas_x,
-                             canvas_y);
+  ghostTextPopup->showPopup ();
 }
 
 void

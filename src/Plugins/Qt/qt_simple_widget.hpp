@@ -134,8 +134,7 @@ public:
 
   ////////////////////// Ghost text popup support
   void ensure_ghost_popup ();
-  void show_ghost_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
-                         int canvas_x, int canvas_y);
+  void show_ghost_popup ();
   void hide_ghost_popup ();
   void scroll_ghost_popup_by (SI x, SI y);
 

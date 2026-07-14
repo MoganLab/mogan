@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : QTMUserPromptPopup.hpp
- * DESCRIPTION: Base acceptance and rejection popup and subclasses (Ghost Text, etc.)
+ * DESCRIPTION: Base acceptance and rejection popup
  * COPYRIGHT  : (C) 2026 AcceleratorX
  * *****************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -17,7 +17,7 @@
 #include <QHBoxLayout>
 
 // =============================================================================
-// QTMUserPromptPopup: 包含接受、拒绝、点赞、踩等按钮的悬浮操作框基类 (继承自 QWidget)
+// QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
 // =============================================================================
 class QTMUserPromptPopup : public QWidget {
   Q_OBJECT
@@ -35,16 +35,14 @@ public:
   virtual ~QTMUserPromptPopup ();
 
   // 显示悬浮框并定位
-  void showPopup (rectangle selr, double magf,
-                  int scroll_x, int scroll_y, int canvas_x,
-                  int canvas_y);
+  void showPopup ();
 
   // 更新位置和滚动适配
   void updatePosition ();
   void scrollBy (int x, int y);
 
 protected:
-  // 计算显示位置（在光标右下方，参考 QTMMathCompletionPopup 绝对定位算法）
+  // 计算显示位置
   void getCachedPosition (int& x, int& y);
   void installTopLevelWindowFilter ();
 
@@ -63,7 +61,7 @@ protected slots:
 };
 
 // =============================================================================
-// QTMGhostTextPopup: 针对 Copilot/Cursor Ghost Text 自动补全的悬浮操作框具体实现
+// QTMGhostTextPopup: Ghost Text 自动补全的悬浮操作框，父类是 QTMUserPromptPopup
 // =============================================================================
 class QTMGhostTextPopup : public QTMUserPromptPopup {
   Q_OBJECT

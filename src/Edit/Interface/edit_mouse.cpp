@@ -1316,10 +1316,7 @@ void
 edit_interface_rep::show_ghost_popup () {
 #ifdef QTTEXMACS
   if (qt_simple_widget_rep* qsw= dynamic_cast<qt_simple_widget_rep*> (this)) {
-    cursor cu = get_cursor ();
-    rectangle selr = rectangle (cu->ox, cu->oy - 100, cu->ox + 100, cu->oy + 100);
-    qsw->show_ghost_popup (selr, magf, get_scroll_x (), get_scroll_y (),
-                           get_canvas_x (), get_canvas_y ());
+    qsw->show_ghost_popup ();
   }
 #endif
 }

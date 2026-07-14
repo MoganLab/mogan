@@ -1,6 +1,6 @@
 /******************************************************************************
  * MODULE     : QTMUserPromptPopup.cpp
- * DESCRIPTION: Base acceptance and rejection popup and subclasses implementation
+ * DESCRIPTION: Base acceptance and rejection popup
  * COPYRIGHT  : (C) 2026 AcceleratorX
  * *****************************************************************************
  * This software falls under the GNU general public license version 3 or later.
@@ -15,7 +15,7 @@
 #include <QGraphicsDropShadowEffect>
 
 // =============================================================================
-// QTMUserPromptPopup 父类，用于处理用户与 AI 生成方案的交互
+// QTMUserPromptPopup: 用于处理用户与 AI 生成方案的交互，父类是 QTMBasePopup
 // =============================================================================
 QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* owner)
     : QWidget (parent), owner (owner), layout (nullptr) {
@@ -159,10 +159,7 @@ QTMUserPromptPopup::QTMUserPromptPopup (QWidget* parent, qt_simple_widget_rep* o
 QTMUserPromptPopup::~QTMUserPromptPopup () {}
 
 void
-QTMUserPromptPopup::showPopup (rectangle selr, double magf,
-                               int scroll_x, int scroll_y, int canvas_x,
-                               int canvas_y) {
-  (void) selr; (void) magf; (void) scroll_x; (void) scroll_y; (void) canvas_x; (void) canvas_y;
+QTMUserPromptPopup::showPopup () {
   updatePosition ();
   if (!isVisible ()) {
     show ();
@@ -254,7 +251,7 @@ QTMUserPromptPopup::eventFilter (QObject* obj, QEvent* event) {
 }
 
 // =============================================================================
-// QTMGhostTextPopup 子类继承自 QTMUserPromptPopup
+// QTMGhostTextPopup: Ghost Text 自动补全的悬浮操作框，父类是 QTMUserPromptPopup
 // =============================================================================
 QTMGhostTextPopup::QTMGhostTextPopup (QWidget* parent, qt_simple_widget_rep* owner)
     : QTMUserPromptPopup (parent, owner) {
