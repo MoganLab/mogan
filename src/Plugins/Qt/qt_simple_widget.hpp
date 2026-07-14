@@ -25,6 +25,7 @@ class QTMCompletionPopup;
 class QTMMathCompletionPopup;
 class QTMImagePopup;
 class QTMTextPopup;
+class QTMGhostTextPopup;
 
 /*! A widget containing a TeXmacs canvas.
 
@@ -131,6 +132,13 @@ public:
   void scroll_text_popup_by (SI x, SI y);
   bool is_point_in_text_popup (SI x, SI y);
 
+  ////////////////////// Ghost text popup support
+  void ensure_ghost_popup ();
+  void show_ghost_popup (rectangle selr, double magf, int scroll_x, int scroll_y,
+                         int canvas_x, int canvas_y);
+  void hide_ghost_popup ();
+  void scroll_ghost_popup_by (SI x, SI y);
+
   ////////////////////// backing store management
 
   static void repaint_all (); // called by qt_gui_rep::update()
@@ -142,6 +150,7 @@ protected:
   QPointer<QTMMathCompletionPopup> mathCompletionPopUp;
   QPointer<QTMImagePopup>          imagePopUp;
   QPointer<QTMTextPopup>           textPopup;
+  QPointer<QTMGhostTextPopup>      ghostTextPopup;
 #ifdef USE_MUPDF_RENDERER
   double  bs_zoomf;
   picture backing_store;

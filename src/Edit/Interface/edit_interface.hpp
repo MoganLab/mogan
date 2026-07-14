@@ -273,6 +273,9 @@ public:
   void update_text_popup ();
   void invalidate_text_popup_cache (); // 重置工具栏缓存
 
+  void show_ghost_popup ();
+  void hide_ghost_popup ();
+
   /* the footer */
   tree get_shortcut_suffix (string cmd_s);
   tree get_display_shortcut_suffix (string cmd_s);

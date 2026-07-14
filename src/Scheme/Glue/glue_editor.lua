@@ -1105,6 +1105,16 @@ function main()
                 ret_type = "void"
             },
             {
+                scm_name = "show-ghost-popup",
+                cpp_name = "show_ghost_popup",
+                ret_type = "void"
+            },
+            {
+                scm_name = "hide-ghost-popup",
+                cpp_name = "hide_ghost_popup",
+                ret_type = "void"
+            },
+            {
                 scm_name = "get-input-mode",
                 cpp_name = "get_input_mode",
                 ret_type = "int"

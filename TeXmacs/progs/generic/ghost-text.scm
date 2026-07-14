@@ -26,13 +26,13 @@
 ;; Local acceptance threshold (91%)
 (define ghost-acceptance-threshold 0.91)
 
-(define-public (is-ghost-active?)
+(tm-define (is-ghost-active?)
   ghost-active?)
 
 ;; =============================================================================
 ;; Model evaluation & Feedback functions
 ;; =============================================================================
-(define-public (ghost-feedback action)
+(tm-define (ghost-feedback action)
   ;; Action can be 'accept, 'reject, or 'ignore
   (noop))
 
@@ -46,7 +46,7 @@
 ;; =============================================================================
 ;; Ghost Text core control flow
 ;; =============================================================================
-(define-public (trigger-ghost-text)
+(tm-define (trigger-ghost-text)
   (when ghost-active?
     (ignore-ghost))
   (set! ghost-serial (+ ghost-serial 1))
@@ -55,7 +55,7 @@
       (when (== ghost-serial current)
         (generate-ghost-text)))))
 
-(define-public (generate-ghost-text)
+(tm-define (generate-ghost-text)
   (let* ((api-res (mock-cloud-api))
          (text (car api-res))
          (confidence (cdr api-res)))
@@ -67,22 +67,26 @@
       (archive-state)
       ;; cursor-after ensures the cursor position remains before the ghost text
       (cursor-after (insert `(ghost ,text)))
-      (set! ghost-active? #t))))
+      (set! ghost-active? #t)
+      (show-ghost-popup))))
 
-(define-public (accept-ghost)
+(tm-define (accept-ghost)
   (let ((text ghost-content))
     (set! ghost-active? #f)
+    (hide-ghost-popup)
     (mark-cancel ghost-mark)
     (insert text)
     (ghost-feedback 'accept)))
 
-(define-public (reject-ghost)
+(tm-define (reject-ghost)
   (set! ghost-active? #f)
+  (hide-ghost-popup)
   (mark-cancel ghost-mark)
   (ghost-feedback 'reject))
 
-(define-public (ignore-ghost)
+(tm-define (ignore-ghost)
   (set! ghost-active? #f)
+  (hide-ghost-popup)
   (mark-cancel ghost-mark)
   (ghost-feedback 'ignore))
 

@@ -22,6 +22,7 @@
 #include "QTMMenuHelper.hpp"
 #include "QTMStyle.hpp"
 #include "QTMTextPopup.hpp"
+#include "QTMUserPromptPopup.hpp"
 #include "QTMWidget.hpp"
 #ifdef Q_OS_LINUX
 #include <QGuiApplication>
@@ -870,4 +871,44 @@ qt_simple_widget_rep::is_point_in_text_popup (SI x, SI y) {
 
   // 检查点是否在工具栏内
   return toolbarRect.contains (px, py);
+}
+
+void
+qt_simple_widget_rep::ensure_ghost_popup () {
+  if (ghostTextPopup) {
+    if (ghostTextPopup->parent () != canvas ()) {
+      ghostTextPopup->setParent (canvas ());
+    }
+    return;
+  }
+  ghostTextPopup= new QTMGhostTextPopup (canvas (), this);
+  if (is_empty (tm_style_sheet)) {
+    ghostTextPopup->setStyle (qtmstyle ());
+  }
+}
+
+void
+qt_simple_widget_rep::show_ghost_popup (rectangle selr, double magf,
+                                        int scroll_x, int scroll_y, int canvas_x,
+                                        int canvas_y) {
+  ensure_ghost_popup ();
+  ghostTextPopup->showPopup (selr, magf, scroll_x, scroll_y, canvas_x,
+                             canvas_y);
+}
+
+void
+qt_simple_widget_rep::hide_ghost_popup () {
+  if (ghostTextPopup) {
+    ghostTextPopup->hide ();
+  }
+}
+
+void
+qt_simple_widget_rep::scroll_ghost_popup_by (SI x, SI y) {
+  if (ghostTextPopup) {
+    QPoint qp (x, y);
+    coord2 p= from_qpoint (qp);
+    ghostTextPopup->scrollBy (p.x1, p.x2);
+    ghostTextPopup->updatePosition ();
+  }
 }
