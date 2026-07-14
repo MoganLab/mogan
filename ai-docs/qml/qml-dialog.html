@@ -472,6 +472,139 @@
       box-shadow: 0 0 0 2px rgba(11, 122, 117, 0.16);
     }
 
+    /* 自建下拉 combo：只读输入框 + 常驻箭头 + 浮层（不用原生 datalist，避免悬停双箭头）。
+       默认只读下拉，双击(data-editable=on)进入可编辑输入态 */
+    .option-row .combo {
+      position: relative;
+      display: flex;
+      align-items: center;
+      min-width: 0;
+    }
+
+    /* 段落面板：不动 option-row 布局（沿用全局 grid），右侧 combo 宽度对齐到能容下 3 个预设按钮 + 间距 */
+    #panel-paragraph .option-row .combo {
+      width: 184px;
+      min-width: 184px;
+      justify-self: end;
+    }
+
+    /* 行间距预设的按钮组：在右侧 combo 列宽度内居中 */
+    #panel-paragraph .option-row .btn-row {
+      width: 184px;
+      justify-content: center;
+    }
+
+    .combo .combo-field {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+
+    .combo .combo-input {
+      height: 32px;
+      width: 100%;
+      border: 1px solid #c8d6d7;
+      border-radius: 8px;
+      background: #ffffff;
+      font-size: 12px;
+      color: #203137;
+      padding: 0 24px 0 6px; /* 右侧 24px 给常驻箭头留位 */
+      font-family: inherit;
+      cursor: default;
+    }
+
+    .combo .combo-input:focus {
+      outline: none;
+      border-color: #0b7a75;
+      box-shadow: 0 0 0 2px rgba(11, 122, 117, 0.16);
+    }
+
+    /* 常驻下拉箭头按钮：永远显示，点击弹出浮层 */
+    .combo .combo-arrow {
+      position: absolute;
+      right: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+      background: transparent;
+      color: #60727e;
+      font-size: 11px;
+      line-height: 1;
+      cursor: pointer;
+      padding: 0;
+    }
+
+    .combo .combo-arrow:hover {
+      color: #0b7a75;
+    }
+
+    /* 自建下拉浮层 */
+    .combo .combo-list {
+      position: absolute;
+      top: calc(100% + 2px);
+      left: 0;
+      right: 0;
+      z-index: 50;
+      max-height: 200px;
+      overflow-y: auto;
+      background: #ffffff;
+      border: 1px solid #c8d6d7;
+      border-radius: 8px;
+      box-shadow: 0 8px 20px rgba(36, 49, 54, 0.16);
+      display: none;
+      padding: 4px;
+    }
+
+    .combo.open .combo-list {
+      display: block;
+    }
+
+    .combo .combo-list .combo-opt {
+      padding: 5px 8px;
+      border-radius: 6px;
+      font-size: 12px;
+      color: #203137;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .combo .combo-list .combo-opt:hover,
+    .combo .combo-list .combo-opt.active {
+      background: #e4f2f1;
+      color: #0b7a75;
+    }
+
+    /* 进入编辑态：可键入，光标变文本 */
+    .combo .combo-input.editing {
+      cursor: text;
+      background: #fffdf5;
+    }
+
+    /* 行间距预设里的小按钮：三按钮等宽（按最宽的 1.25x 定宽） */
+    .mini-btn {
+      height: 28px;
+      width: 48px;
+      padding: 0;
+      font-size: 11px;
+      border: 1px solid #c8d6d7;
+      border-radius: 7px;
+      background: #ffffff;
+      color: #203137;
+      cursor: pointer;
+      font-family: inherit;
+    }
+
+    .mini-btn:hover {
+      border-color: #0b7a75;
+      color: #0b7a75;
+    }
+
     .font-bottom {
       display: flex;
       min-height: 0;
@@ -582,6 +715,7 @@
       <button class="nav-btn active" data-target="confirm">ConfirmClose.qml</button>
       <button class="nav-btn" data-target="form">FormDialog.qml</button>
       <button class="nav-btn" data-target="font">FontSelector.qml</button>
+      <button class="nav-btn" data-target="paragraph">ParagraphFormat.qml</button>
       <div class="sidebar-foot">模拟目标: DialogShell / DialogButtons / EnumCombo / SelectableList / PreviewPane 组合逻辑。</div>
     </aside>
 
@@ -762,6 +896,108 @@
           <code>setFamily/setStyle/setFilter/setCustomize</code>
         </p>
       </section>
+
+      <section class="panel" id="panel-paragraph">
+        <article class="form-shell" style="max-width: 400px;">
+          <div class="tabs-box">
+            <div class="tabs">
+              <button class="tab active" data-ptab="basic">基础</button>
+              <button class="tab" data-ptab="advanced">高级</button>
+            </div>
+
+            <!-- 基础：对齐 / 缩进 / 间距 / 分栏
+                 combo=可输入下拉：editable="on" 可自由输入数值，"off" 只读纯下拉 -->
+            <div class="tab-pane active" id="ptab-basic">
+              <div class="option-list">
+                <div class="option-row"><span>对齐方式</span>
+                  <div class="combo" data-par="par-mode"><div class="combo-field"><input class="combo-input" data-par="par-mode" data-editable="off" data-options='["left", "center", "right", "justify"]' value="left" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>左边距</span>
+                  <div class="combo" data-par="par-left"><div class="combo-field"><input class="combo-input" data-par="par-left" data-editable="on" data-options='["0tab", "1tab", "2tab"]' value="0tab" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>右边距</span>
+                  <div class="combo" data-par="par-right"><div class="combo-field"><input class="combo-input" data-par="par-right" data-editable="on" data-options='["0tab", "1tab", "2tab"]' value="0tab" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>首行缩进</span>
+                  <div class="combo" data-par="par-first"><div class="combo-field"><input class="combo-input" data-par="par-first" data-editable="on" data-options='["0fn", "2fn"]' value="0fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>行间距</span>
+                  <div class="combo" data-par="par-sep"><div class="combo-field"><input class="combo-input" data-par="par-sep" data-editable="on" data-options='["0fn", "0.2fn", "0.25fn", "0.5fn", "1fn"]' value="0fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row">
+                  <span>行间距预设</span>
+                  <div class="btn-row" style="gap: 8px;">
+                    <button class="mini-btn" data-preset='{"par":"par-sep","val":"0.25fn","label":"1.25x"}'>1.25x</button>
+                    <button class="mini-btn" data-preset='{"par":"par-sep","val":"0.5fn","label":"1.5x"}'>1.5x</button>
+                    <button class="mini-btn" data-preset='{"par":"par-sep","val":"1fn","label":"2.0x"}'>2.0x</button>
+                  </div>
+                </div>
+                <div class="option-row"><span>段落间距</span>
+                  <div class="combo" data-par="par-par-sep"><div class="combo-field"><input class="combo-input" data-par="par-par-sep" data-editable="on" data-options='["0fn", "0.3333fn", "0.5fn", "0.6666fn", "1fn", "0.5fns"]' value="0fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>栏数</span>
+                  <div class="combo" data-par="par-columns"><div class="combo-field"><input class="combo-input" data-par="par-columns" data-editable="off" data-options='["1", "2", "3", "4", "5", "6"]' value="1" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>栏间距</span>
+                  <div class="combo" data-par="par-columns-sep"><div class="combo-field"><input class="combo-input" data-par="par-columns-sep" data-editable="on" data-options='["1fn", "2fn", "3fn"]' value="1fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 高级：断行 / 间距伸缩 / CJK / 字距 -->
+            <div class="tab-pane" id="ptab-advanced">
+              <div class="option-list">
+                <div class="option-row"><span>断行算法</span>
+                  <div class="combo" data-par="par-hyphen"><div class="combo-field"><input class="combo-input" data-par="par-hyphen" data-editable="off" data-options='["normal", "professional"]' value="normal" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>额外行间距</span>
+                  <div class="combo" data-par="par-line-sep"><div class="combo-field"><input class="combo-input" data-par="par-line-sep" data-editable="on" data-options='["0fn", "0.025fns", "0.05fns", "0.1fns", "0.2fns", "0.5fns", "1fns"]' value="0fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>最小行间距</span>
+                  <div class="combo" data-par="par-ver-sep"><div class="combo-field"><input class="combo-input" data-par="par-ver-sep" data-editable="on" data-options='["0fn", "0.1fn", "0.2fn", "0.5fn", "1fn"]' value="0fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>水平折叠距离</span>
+                  <div class="combo" data-par="par-hor-sep"><div class="combo-field"><input class="combo-input" data-par="par-hor-sep" data-editable="on" data-options='["0.1fn", "0.2fn", "0.5fn", "1fn", "2fn", "5fn", "10fn", "100fn"]' value="0.1fn" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>空间伸展性</span>
+                  <div class="combo" data-par="par-flexibility"><div class="combo-field"><input class="combo-input" data-par="par-flexibility" data-editable="on" data-options='["1", "2", "4", "1000"]' value="1" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>CJK 字间距</span>
+                  <div class="combo" data-par="par-spacing"><div class="combo-field"><input class="combo-input" data-par="par-spacing" data-editable="off" data-options='["plain", "quanjiao", "banjiao", "hangmobanjiao", "kaiming"]' value="plain" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>字符间拉伸</span>
+                  <div class="combo" data-par="par-kerning-stretch"><div class="combo-field"><input class="combo-input" data-par="par-kerning-stretch" data-editable="on" data-options='["auto", "tolerant", "0", "0.02", "0.05", "0.1", "0.2", "0.5", "1"]' value="auto" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>字符间压缩</span>
+                  <div class="combo" data-par="par-kerning-reduce"><div class="combo-field"><input class="combo-input" data-par="par-kerning-reduce" data-editable="on" data-options='["auto", "0", "0.01", "0.02", "0.03", "0.05", "0.1", "0.2"]' value="auto" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>字符扩展</span>
+                  <div class="combo" data-par="par-expansion"><div class="combo-field"><input class="combo-input" data-par="par-expansion" data-editable="on" data-options='["auto", "tolerant", "0", "0.01", "0.02", "0.05", "0.1", "0.2"]' value="auto" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row"><span>字符收缩</span>
+                  <div class="combo" data-par="par-contraction"><div class="combo-field"><input class="combo-input" data-par="par-contraction" data-editable="on" data-options='["auto", "tolerant", "0", "0.01", "0.02", "0.05", "0.1", "0.2"]' value="auto" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+                <div class="option-row">
+                  <span>使用边距字距调整</span>
+                  <div class="combo" data-par="par-kerning-margin"><div class="combo-field"><input class="combo-input" data-par="par-kerning-margin" data-editable="off" data-options='["false", "true"]' value="false" readonly><button type="button" class="combo-arrow" tabindex="-1">▾</button></div><div class="combo-list"></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="btn-row" style="justify-content: flex-end; margin-top: 12px;">
+            <button class="btn" data-log="ParagraphFormat: reset() init-default + revert-to-snapshot">重置</button>
+            <button class="btn primary" id="paragraph-submit">确定</button>
+            <button class="btn" data-log="ParagraphFormat: cancel() revert-to-snapshot + close">取消</button>
+          </div>
+        </article>
+        <p class="legend">
+          对应 QML: <code>EnumCombo x N</code>（par-mode/par-left/...）
+          <code>selector-set -> make-multi-line-with live 写回</code>
+          <code>tabs: 基础 / 高级</code>　live 重绘，用 run_modal_qml_dialog(setModal+show)；
+          Cancel/重置走快照撤销（initial-snapshot + revert-to-snapshot）
+        </p>
+      </section>
     </main>
   </div>
 
@@ -771,19 +1007,22 @@
       const panels = {
         confirm: document.getElementById('panel-confirm'),
         form: document.getElementById('panel-form'),
-        font: document.getElementById('panel-font')
+        font: document.getElementById('panel-font'),
+        paragraph: document.getElementById('panel-paragraph')
       };
 
       const titleMap = {
         confirm: 'ConfirmClose.qml 模拟',
         form: 'FormDialog.qml 模拟',
-        font: 'FontSelector.qml 模拟'
+        font: 'FontSelector.qml 模拟',
+        paragraph: 'ParagraphFormat.qml 模拟'
       };
 
       const codeMap = {
         confirm: 'dialogMessage + dialogButtons + closeBridge.choose()',
         form: 'formFields + values 收集 + closeBridge.submit(values)',
-        font: 'fontBridge 联动: family/style/filter/customize/preview'
+        font: 'fontBridge 联动: family/style/filter/customize/preview',
+        paragraph: 'EnumCombo x N + tabs(基础/高级) + make-multi-line-with 写回'
       };
 
       const viewTitle = document.getElementById('view-title');
@@ -827,7 +1066,7 @@
         log('FormDialog: submit(values) -> ' + JSON.stringify(values));
       });
 
-      const tabButtons = document.querySelectorAll('.tab');
+      const tabButtons = document.querySelectorAll('#panel-font .tab');
       const tabFilter = document.getElementById('tab-filter');
       const tabAdvanced = document.getElementById('tab-advanced');
       tabButtons.forEach((btn) => {
@@ -839,6 +1078,111 @@
           tabAdvanced.classList.toggle('active', tab === 'advanced');
           log('FontSelector: 切换选项卡 -> ' + (tab === 'filter' ? '过滤' : '高级'));
         });
+      });
+
+      // ParagraphFormat: 基础/高级 选项卡（独立作用域，data-ptab）
+      const pTabButtons = document.querySelectorAll('#panel-paragraph .tab');
+      const ptabBasic = document.getElementById('ptab-basic');
+      const ptabAdvanced = document.getElementById('ptab-advanced');
+      pTabButtons.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          pTabButtons.forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          const tab = btn.getAttribute('data-ptab');
+          ptabBasic.classList.toggle('active', tab === 'basic');
+          ptabAdvanced.classList.toggle('active', tab === 'advanced');
+          log('ParagraphFormat: 切换选项卡 -> ' + (tab === 'basic' ? '基础' : '高级'));
+        });
+      });
+
+      // ParagraphFormat: 自建下拉 combo
+      //   点一下输入框/箭头 = 弹下拉浮层选；双击(data-editable=on) = 进入可编辑输入态
+      function closeAllCombos(except) {
+        document.querySelectorAll('#panel-paragraph .combo.open').forEach((c) => {
+          if (c !== except) c.classList.remove('open');
+        });
+      }
+
+      function fillComboList(combo) {
+        const input = combo.querySelector('.combo-input');
+        const list = combo.querySelector('.combo-list');
+        let opts = [];
+        try { opts = JSON.parse(input.getAttribute('data-options') || '[]'); } catch (e) {}
+        const cur = input.value;
+        list.innerHTML = '';
+        opts.forEach((v) => {
+          const o = document.createElement('div');
+          o.className = 'combo-opt' + (v === cur ? ' active' : '');
+          o.textContent = v;
+          o.addEventListener('click', (e) => {
+            e.stopPropagation();
+            input.value = v;
+            combo.classList.remove('open');
+            log('ParagraphFormat: selector-set(' + input.getAttribute('data-par') + ', "' + v + '") live 写回');
+          });
+          list.appendChild(o);
+        });
+      }
+
+      document.querySelectorAll('#panel-paragraph .combo').forEach((combo) => {
+        const input = combo.querySelector('.combo-input');
+        const arrow = combo.querySelector('.combo-arrow');
+        const key = input.getAttribute('data-par');
+        const editable = input.getAttribute('data-editable') === 'on';
+        const fire = (v) => log('ParagraphFormat: selector-set(' + key + ', "' + v + '") live 写回');
+
+        const open = () => { fillComboList(combo); closeAllCombos(combo); combo.classList.add('open'); };
+
+        // 点一下：若当前是编辑态则不弹浮层（让光标定位）；否则弹浮层
+        input.addEventListener('click', () => {
+          if (input.classList.contains('editing')) return;
+          open();
+        });
+        arrow.addEventListener('click', (e) => { e.stopPropagation(); open(); });
+
+        // 双击：进入可编辑（仅 editable=on）
+        if (editable) {
+          input.addEventListener('dblclick', () => {
+            closeAllCombos();
+            combo.classList.remove('open');
+            input.removeAttribute('readonly');
+            input.classList.add('editing');
+            input.focus();
+            input.select();
+            log('ParagraphFormat: 双击 ' + key + ' 进入可编辑');
+          });
+          const lock = () => {
+            input.classList.remove('editing');
+            input.setAttribute('readonly', '');
+            if (input.value) fire(input.value);
+          };
+          input.addEventListener('blur', () => { if (input.classList.contains('editing')) lock(); });
+          input.addEventListener('keydown', (e) => {
+            if (!input.classList.contains('editing')) return;
+            if (e.key === 'Escape') { input.value = input.defaultValue; lock(); input.blur(); }
+            if (e.key === 'Enter') { e.preventDefault(); lock(); input.blur(); }
+          });
+        }
+      });
+
+      // 点浮层外部关闭所有 combo
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('#panel-paragraph .combo')) closeAllCombos();
+      });
+
+      // 行间距预设按钮：把固定 par-sep 值写回 combo 并 live 写回
+      document.querySelectorAll('#panel-paragraph .mini-btn[data-preset]').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const p = JSON.parse(btn.getAttribute('data-preset'));
+          const input = document.querySelector('#panel-paragraph input[data-par="' + p.par + '"]');
+          if (input) input.value = p.val;
+          log('ParagraphFormat: 预设 ' + p.label + ' -> selector-set(' + p.par + ', "' + p.val + '")');
+        });
+      });
+
+      // ParagraphFormat: live 模式下改动随 selector-set 实时写回，确定仅落定/关闭
+      document.getElementById('paragraph-submit').addEventListener('click', () => {
+        log('ParagraphFormat: submit() live 改动已写回，落定并关闭');
       });
 
       document.addEventListener('keydown', (e) => {
