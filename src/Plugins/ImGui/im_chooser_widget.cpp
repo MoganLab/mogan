@@ -81,10 +81,31 @@ im_wasm_start_open_dialog (array<string>& exts) {
           var reader   = new FileReader ();
           reader.onload= function (ev) {
             var data= new Uint8Array (ev.target.result);
-            var path= '/tmp/mogan_open_' + file.name;
             try {
               FS.mkdir ('/tmp');
             } catch (err) {
+            }
+            // 用原文件名上传到 /tmp；若重名则按 base-i.ext 加数字后缀，
+            // 使 FS 中的文件名与上传文件一致（便于 buffer 命名与后续保存）。
+            var name= file.name;
+            var path= '/tmp/' + name;
+            if (FS.analyzePath (path).exists) {
+              var dot= name.lastIndexOf ('.');
+              var base;
+              var ext;
+              if (dot > 0) {
+                base= name.substring (0, dot);
+                ext = name.substring (dot);
+              }
+              else {
+                base= name;
+                ext = '';
+              }
+              var i= 1;
+              do {
+                path= '/tmp/' + base + '-' + i + ext;
+                i++;
+              } while (FS.analyzePath (path).exists);
             }
             FS.writeFile (path, data);
             ccall ('mogan_wasm_file_selected', null, [ 'string', 'number' ],
@@ -324,15 +345,16 @@ im_chooser_widget_rep::perform_dialog () {
 
 #ifdef __EMSCRIPTEN__
   if (g_active_chooser != nullptr) {
-    // 已有未完成的 WASM 对话框，先取消旧的。
+    // 已有未完成的异步文件选择器（仅 open 是异步的），先取消旧的。
     im_chooser_widget_rep* old= g_active_chooser;
     g_active_chooser          = nullptr;
     old->on_cancel ();
   }
-  g_active_chooser= this;
   if (save_mode) {
     // WASM 另存为 = 保存当前 buffer 到它自己的文件 + 浏览器下载该文件。
-    // 不弹 JS 文件名对话框、不重命名 buffer；下载文件名取该文件的 basename。
+    // 同步完成，不注册为 g_active_chooser（那是给异步 open 文件选择器用的），
+    // 否则下次 open 会误对本（已 quit 的）选择器 on_cancel → 重跑
+    // cmd（重复下载） 并二次 quit 导致 use-after-free 崩溃。
     object path_obj= call ("wasm-save-for-download");
     string path    = as_string (path_obj);
     string dl      = "";
@@ -346,7 +368,10 @@ im_chooser_widget_rep::perform_dialog () {
     im_wasm_download_file (path, dl);
     if (!is_nil (quit)) quit ();
   }
-  else im_wasm_start_open_dialog (extensions);
+  else {
+    g_active_chooser= this; // open：异步文件选择器，注册为活动
+    im_wasm_start_open_dialog (extensions);
+  }
   return;
 #endif
 
