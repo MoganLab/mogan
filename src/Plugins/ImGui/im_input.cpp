@@ -156,11 +156,15 @@ im_from_key_event (int key, int scancode, int action, int mods) {
   string mods_text= im_from_modifiers (mods);
   im_init_keymap ();
 
-  // Ctrl/Super + letter -> shortcut string ("C-a", "M-s", ...)
+  // Ctrl/Super + letter -> shortcut string. Match Qt's from_key_press_event:
+  // with Shift held, drop "S-" and use the uppercase letter so Cmd+Shift+Z ->
+  // "M-Z" (bound to redo), Cmd+Shift+S -> "M-S" (save-as); without Shift, use
+  // the lowercase letter (Cmd+Z -> "M-z", undo).
   const bool shortcut= (mods & (GLFW_MOD_CONTROL | GLFW_MOD_SUPER)) != 0;
   if (shortcut && key >= GLFW_KEY_A && key <= GLFW_KEY_Z) {
     char c= (char) key;
-    // the letter combined with the modifier is always lowercase
+    if (mods & GLFW_MOD_SHIFT)
+      return im_from_modifiers (mods & ~GLFW_MOD_SHIFT) * string (c);
     return mods_text * string (locase (c));
   }
 
