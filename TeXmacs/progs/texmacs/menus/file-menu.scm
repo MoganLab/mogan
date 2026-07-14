@@ -403,41 +403,41 @@
  ("Save" (save-buffer))
  ("Save as" (choose-file save-buffer-as "Save TeXmacs file" "action_save_as"))
  (if (qt-gui?)
-  ---
-  (link print-menu)
-  ---
-  (-> "Import"
-    (link import-import-menu)
-    ---
-    ("Pdf with embedded document"
-      (choose-file wrapped-import-pdf-embeded-with-tmu "Import pdf file" "tmu.pdf")
-    ) ;
-  ) ;->
-  (-> "Export"
-    (link export-export-menu)
-    ---
-    (when (defined? 'texmacs->latex-document)
-      ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
-    ) ;when
-    ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
-    ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
-    ("Pdf with embedded document"
-      (choose-file wrapped-print-to-pdf-embeded-with-tmu
-        "Save tmu.pdf file"
-        "tmu.pdf"
-      ) ;choose-file
-    ) ;
-    ("Postscript"
-      (choose-file wrapped-print-to-file "Save postscript file" "postscript")
-    ) ;
-    (when (selection-active-any?)
-      (=> "Export selection as image" (link export-as-image-menu))
-    ) ;when
-  ) ;->
-  ---
-  (if (window-per-buffer?) ("Close window" (close-document)))
-  (if (not (window-per-buffer?)) ("Close document" (close-document)))
-  ("Close TeXmacs" (safely-quit-TeXmacs))
+   ---
+   (link print-menu)
+   ---
+   (-> "Import"
+     (link import-import-menu)
+     ---
+     ("Pdf with embedded document"
+       (choose-file wrapped-import-pdf-embeded-with-tmu "Import pdf file" "tmu.pdf")
+     ) ;
+   ) ;->
+   (-> "Export"
+     (link export-export-menu)
+     ---
+     (when (defined? 'texmacs->latex-document)
+       ("LaTeX" (choose-file export-latex-file "Save LaTeX file" "latex"))
+     ) ;when
+     ("TM document" (choose-file save-buffer-as "Save TeXmacs file" "texmacs"))
+     ("Pdf" (choose-file wrapped-print-to-file "Save pdf file" "pdf"))
+     ("Pdf with embedded document"
+       (choose-file wrapped-print-to-pdf-embeded-with-tmu
+         "Save tmu.pdf file"
+         "tmu.pdf"
+       ) ;choose-file
+     ) ;
+     ("Postscript"
+       (choose-file wrapped-print-to-file "Save postscript file" "postscript")
+     ) ;
+     (when (selection-active-any?)
+       (=> "Export selection as image" (link export-as-image-menu))
+     ) ;when
+   ) ;->
+   ---
+   (if (window-per-buffer?) ("Close window" (close-document)))
+   (if (not (window-per-buffer?)) ("Close document" (close-document)))
+   ("Close TeXmacs" (safely-quit-TeXmacs))
  ) ;if
 ) ;menu-bind
 
