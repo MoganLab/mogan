@@ -375,14 +375,17 @@ im_chooser_widget_rep::perform_dialog () {
 
 void
 im_chooser_widget_rep::on_cancel () {
+#ifdef __EMSCRIPTEN__
   g_active_chooser= nullptr;
   file            = "#f";
   if (!is_nil (cmd)) cmd ();
   if (!is_nil (quit)) quit ();
+#endif
 }
 
 void
 im_chooser_widget_rep::on_select (string path, bool save_mode) {
+#ifdef __EMSCRIPTEN__
   g_active_chooser= nullptr;
   file            = "(system->url " * scm_quote (path) * ")";
   cout << cmd << LF;
@@ -401,6 +404,7 @@ im_chooser_widget_rep::on_select (string path, bool save_mode) {
     if (is_empty (name)) name= "document.tmu";
     im_wasm_download_file (path, name);
   }
+#endif
 }
 
 /******************************************************************************
