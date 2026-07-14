@@ -69,7 +69,7 @@ public:
   Q_INVOKABLE void submit ();
   /// Cancel：paragraph-format-cancel 经快照写回撤销，close() 关闭。
   Q_INVOKABLE void cancel ();
-  /// 重置：paragraph-format-restore 快照撤销（不关窗，留在对话框继续调）。
+  /// 重置：paragraph-format-revert 快照撤销（不关窗，留在对话框继续调）。
   Q_INVOKABLE void reset ();
 
   /// 固定 UI 文案的翻译 + 行间距预设按钮表，QML 一次性拉取。

@@ -13,7 +13,7 @@
 //   basicMeta()           -> [{label, options, var, value, editable}]（打开时读一次）
 //   advancedMeta()        -> 同上（高级 tab）
 //   setPara(var, val)     -> live 写回文档
-//   revert()              -> 快照撤销（Cancel/重置）
+//   reset()               -> 快照撤销（重置按钮；Cancel 由 cancel() 另走关窗）
 //   submit()/cancel()
 
 import QtQuick
@@ -78,7 +78,7 @@ DialogShell {
             primaryIndex: 1
             buttonWidth: 90 * Theme.scaleFactor
             onClicked: function(i) {
-                if (i === 0) { paraBridge.revert(); dialog.resetValues() }
+                if (i === 0) { paraBridge.reset(); dialog.resetValues() }
                 else if (i === 1) paraBridge.submit()
                 else paraBridge.cancel()
             }

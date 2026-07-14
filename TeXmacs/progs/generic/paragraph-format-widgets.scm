@@ -1,10 +1,10 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;
 ;; MODULE      : paragraph-format-widgets.scm
-;; DESCRIPTION : QML 段落格式对话框的 scheme facade（specs 注册表 + live 写回 +
-;;               快照撤销）。参考 font-new-widgets.scm 的机制，但字段为段落属性
-;;               （par-*），写回用 make-multi-line-with，不复用字体的 selector-table
-;;               （后者硬编码字体字段）。
+;; DESCRIPTION : QML 段落格式对话框的 scheme facade。int 句柄注册表 + live 写回
+;;               （make-multi-line-with）+ 打开时快照（Cancel/重置撤销）。显示真相源
+;;               在 QML values（参考 FormDialog），scheme 不维护运行期当前值——避开
+;;               make-multi-line-with 相对 get-env 的延迟导致的显示滞后。
 ;; COPYRIGHT   : (C) 2026  Mogan STEM
 ;;
 ;; This software falls under the GNU general public license version 3 or later.
@@ -91,7 +91,8 @@
   ) ;list
 ) ;define
 
-;; specs 注册表：int key -> (getter setter)。getter=get-env，setter=make-multi-line-with。
+;; int 句柄注册表：C++ bridge 持 int key，scheme 侧用它找回 specs（仅为句柄映射，
+;; getter/setter 未使用——段落直接用 get-env/make-multi-line-with）。
 
 (define paragraph-specs-registry (make-ahash-table))
 
@@ -99,8 +100,7 @@
 
 ;; key -> ahash(var -> val)：对话框打开瞬间的段落参数快照，供 Cancel/重置回放。
 ;; 必须在 live 改动前快照——live 写回会改文档树，事后 get-env 读到的是改后值。
-;; 运行期当前值不在此维护——显示真相源在 QML 的 values（参考 FormDialog），
-;; 避开 make-multi-line-with 相对 get-env 的延迟导致的显示滞后。
+;; 运行期当前值不在此维护——显示真相源在 QML values（参考 FormDialog）。
 
 (define paragraph-snapshot (make-ahash-table))
 
@@ -152,16 +152,9 @@
   ) ;with
 ) ;tm-define
 
-(tm-define (paragraph-format-basic-meta key)
-  (paragraph-format-meta key "basic")
-) ;tm-define
-
-(tm-define (paragraph-format-advanced-meta key)
-  (paragraph-format-meta key "advanced")
-) ;tm-define
-
-;; live 写回单参数：make-multi-line-with 写文档。显示真相源在 QML values，故不重读
-;; get-env（后者相对编辑命令有延迟，重读会显示滞后）。
+;; live 写回单参数：make-multi-line-with 写文档。make-multi-with 期望扁平
+;; (var val var val ...)（与原 widget differences-list = assoc->list 一致）。显示真相源
+;; 在 QML values，不重读 get-env（延迟会显示滞后）。
 (tm-define (paragraph-format-set key var val)
   (make-multi-line-with (list var val))
   val
@@ -181,13 +174,21 @@
             (with old
               (ahash-ref snap var)
               (when (and old (!= old (get-env var)))
+                ;; make-multi-line-with 期望扁平 (var val var val ...)。
                 (set! changes (cons* var old changes))
               ) ;when
             ) ;with
           ) ;with
         ) ;for
         (when (nnull? changes)
+          (display* "[PF-SCM] revert changes=" changes "\n")
           (make-multi-line-with changes)
+          (display* "[PF-SCM] revert after: par-mode="
+            (get-env "par-mode")
+            " par-sep="
+            (get-env "par-sep")
+            "\n"
+          ) ;display*
         ) ;when
       ) ;with
     ) ;when

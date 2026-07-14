@@ -11,9 +11,9 @@
 ;;       /editable）、ui-labels（含 sepPresets 行间距预设表）
 ;;     - cpp-paragraph-format-dialog 的 OK 钩子经 paragraph-format-commit 注销 specs
 ;;     - Cancel 钩子返回空 tree
-;;     - specsKey 句柄 register -> lookup 往返
-;;     - live 写回：paragraph-format-set 经 make-multi-line-with 改 buffer，get-env
-;;       读到新值
+;;     - specsKey 句柄 register -> lookup 往返，cleanup 后清除（无句柄泄漏）
+;;     - live 写回：paragraph-format-set 经 make-multi-line-with 改 buffer，返回传入值
+;;     - 快照撤销：revert 把改动恢复到打开时快照；多参数改动一次写回（cancel 真回滚）
 ;;
 ;;   通过环境变量绕过模态 QML 弹窗：
 ;;     - MOGAN_TEST_PARAGRAPH_FORMAT=ok     模拟 OK（走 commit）
@@ -54,12 +54,6 @@
   (list get-env make-multi-line-with)
 ) ;define
 
-;; 从 meta 项的 assoc list 取字段值。
-
-(define (meta-field item key)
-  (assoc-ref item key)
-) ;define
-
 (define (run-chain steps)
   (let loop
     ((rest steps) (t (+ (texmacs-time) step-delay-ms)))
@@ -85,8 +79,9 @@
                (list (cons "new document" (lambda () (new-document))))
 
                ;; 1) facade 全链：register specs 后 basic/advanced meta 形状正确、
-               ;;    ui-labels 含 5 个文案 + sepPresets 3 项。
-               (list (cons "facade full chain"
+               ;;    ui-labels 含按钮文案 + sepPresetLabel + sepPresets 4 项。
+               ;;    cleanup 后 specs 句柄清除（无泄漏）。
+               (list (cons "facade full chain + cleanup"
                        (lambda ()
                          (with specs
                            (paragraph-specs)
@@ -116,25 +111,48 @@
                                                 ) ;list-filter
                                          ) ;null?
                              ) ;check-true
+                             ;; 高级 tab 同样字段齐全。
+                             (check-true (null? (list-filter adv
+                                                  (lambda (item)
+                                                    (not (and (assoc 'label item)
+                                                           (assoc 'options item)
+                                                           (assoc 'var item)
+                                                           (assoc 'value item)
+                                                           (assoc 'editable item)
+                                                         ) ;and
+                                                    ) ;not
+                                                  ) ;lambda
+                                                ) ;list-filter
+                                         ) ;null?
+                             ) ;check-true
                              ;; editable 为 boolean（#t 或 #f），par-mode 应为 #f（不可编辑）。
                              (check-true (boolean? (assoc-ref (car basic) 'editable)))
+                             (check-true (not (assoc-ref (car basic) 'editable)))
+                             ;; par-left（基础第 2 项）应可编辑（editable=#t）。
+                             (check-true (assoc-ref (list-ref basic 1) 'editable))
                              ;; par-sep 选项含 0.25fn（1.25x 预设对应值）。
                              (check-true (in? "0.25fn" (assoc-ref (list-ref basic 4) 'options)))
-                             ;; ui-labels：5 文案 + sepPresetLabel + sepPresets 4 项（1x→2.0x）。
+                             ;; meta 的 value 来自 get-env（打开时读一次）。
+                             (check-true (equal? (assoc-ref (car basic) 'value) (get-env "par-mode")))
+                             ;; ui-labels：按钮文案 + sepPresetLabel + sepPresets 4 项（1.0x→2.0x）。
                              (check-true (string? (assoc-ref labels 'basic)))
                              (check-true (string? (assoc-ref labels 'ok)))
+                             (check-true (string? (assoc-ref labels 'reset)))
                              (check-true (string? (assoc-ref labels 'sepPresetLabel)))
                              (check-true (= (length (assoc-ref labels 'sepPresets)) 4))
                              ;; specsKey 往返。
                              (check-true (== (paragraph-format-lookup-specs key) specs))
+                             ;; cleanup 后句柄清除（无泄漏）。
+                             (paragraph-format-cleanup key)
+                             (check-true (not (paragraph-format-lookup-specs key)))
                            ) ;let*
                          ) ;with
                        ) ;lambda
                      ) ;cons
                ) ;list
 
-               ;; 2) live 写回：paragraph-format-set 改 par-mode，get-env 读到新值。
-               (list (cons "set: live write-back"
+               ;; 2) live 写回：paragraph-format-set 改 par-mode，返回传入值 + get-env 读到新值。
+               (list (cons "set: live write-back returns val"
                        (lambda ()
                          (clear-hook!)
                          (with specs
@@ -145,9 +163,69 @@
                              (display "  par-mode after set: ")
                              (display after)
                              (display "\n")
+                             ;; set 直接返回传入值（不重读 get-env，避免滞后）。
                              (check-true (equal? after "center"))
                              (check-true (equal? (get-env "par-mode") "center"))
                              (paragraph-format-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2b) 快照撤销：改一个参数后 revert，get-env 回到打开时快照值。
+               (list (cons "revert: single param rollback"
+                       (lambda ()
+                         (clear-hook!)
+                         (with specs
+                           (paragraph-specs)
+                           (let* ((key (paragraph-format-register-specs specs)) (snap-mode (get-env "par-mode")))
+                             (paragraph-format-set key "par-mode" "right")
+                             (check-true (equal? (get-env "par-mode") "right"))
+                             (paragraph-format-revert key)
+                             (check-true (equal? (get-env "par-mode") snap-mode))
+                             (paragraph-format-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2c) 多参数撤销：改两个参数后 revert，两个都恢复（一次 make-multi-line-with
+               ;;     写所有差异，避免多次嵌套 with 吞选区）。
+               (list (cons "revert: multi param rollback"
+                       (lambda ()
+                         (clear-hook!)
+                         (with specs
+                           (paragraph-specs)
+                           (let* ((key (paragraph-format-register-specs specs))
+                                  (snap-mode (get-env "par-mode"))
+                                  (snap-sep (get-env "par-sep"))
+                                 ) ;
+                             (paragraph-format-set key "par-mode" "justify")
+                             (paragraph-format-set key "par-sep" "1fn")
+                             (check-true (equal? (get-env "par-mode") "justify"))
+                             (check-true (equal? (get-env "par-sep") "1fn"))
+                             (paragraph-format-revert key)
+                             (check-true (equal? (get-env "par-mode") snap-mode))
+                             (check-true (equal? (get-env "par-sep") snap-sep))
+                             (paragraph-format-cancel key)
+                           ) ;let*
+                         ) ;with
+                       ) ;lambda
+                     ) ;cons
+               ) ;list
+
+               ;; 2d) cancel 真回滚：改参数后调 cancel（revert + cleanup），get-env 恢复。
+               (list (cons "cancel: document rollback"
+                       (lambda ()
+                         (clear-hook!)
+                         (with specs
+                           (paragraph-specs)
+                           (let* ((key (paragraph-format-register-specs specs)) (snap-mode (get-env "par-mode")))
+                             (paragraph-format-set key "par-mode" "right")
+                             (paragraph-format-cancel key)
+                             (check-true (equal? (get-env "par-mode") snap-mode))
                            ) ;let*
                          ) ;with
                        ) ;lambda

@@ -154,7 +154,7 @@ Row {
             onActiveFocusChanged: if (!activeFocus) root.commitEdit()
             Keys.onReturnPressed: root.commitEdit()
             Keys.onEnterPressed: root.commitEdit()
-            Keys.onEscapePressed: { root.cancelEdit(); root.value = root.value }
+            Keys.onEscapePressed: root.cancelEdit()
         }
         Text {
             anchors.right: parent.right

@@ -127,7 +127,7 @@ ParagraphFormatBridge::cancel () {
 
 void
 ParagraphFormatBridge::reset () {
-  eval_scheme ("(paragraph-format-restore " * key_token (m_specsKey) * ")");
+  eval_scheme ("(paragraph-format-revert " * key_token (m_specsKey) * ")");
 }
 
 //*****************************************************************************
