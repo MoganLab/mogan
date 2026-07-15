@@ -764,6 +764,7 @@ void
 window_show (int win) {
   ASSERT (window_table->contains (win), "window does not exist");
   widget pww= window_table[win];
+  if (is_nil (pww)) return;
   set_visibility (pww, true);
 }
 
@@ -771,6 +772,7 @@ void
 window_hide (int win) {
   ASSERT (window_table->contains (win), "window does not exist");
   widget pww= window_table[win];
+  if (is_nil (pww)) return;
   set_visibility (pww, false);
 }
 
