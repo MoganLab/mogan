@@ -154,6 +154,31 @@ EM_JS (void, im_install_ime_listeners, (), {
         if (composing || e.isComposing || e.keyCode === 229)
           e.stopPropagation ();
       });
+  // --- System clipboard bridge (WASM) ---
+  // GLFW's emscripten port has no clipboard. Copy is handled in C++
+  // (set_selection → navigator.clipboard.writeText). For paste the browser
+  // "paste" event gives us the text synchronously, but get_selection runs
+  // during the keydown — before the paste event fires — so block GLFW's own
+  // paste gesture here (stop the key reaching GLFW) and let the main loop
+  // re-drive the paste with the text the paste event captured. Only
+  // stopPropagation (not preventDefault): the default action must still fire
+  // the paste event.
+  imeInput.addEventListener (
+      'keydown', function (e) {
+        var paste=
+            ((e.ctrlKey || e.metaKey) && (e.key === 'v' || e.key === 'V')) ||
+            (e.shiftKey && e.key === 'Insert');
+        if (paste) e.stopPropagation ();
+      });
+  window.addEventListener (
+      'paste', function (e) {
+        var t= (e.clipboardData && e.clipboardData.getData)
+                   ? e.clipboardData.getData ('text/plain')
+                   : '';
+        if (e.preventDefault) e.preventDefault ();
+        ccall ('mogan_clipboard_deliver_paste', null, ['string'],
+               [t == null ? '' : t]);
+      });
 });
 
 // JS composition listener → here. Queue the UTF-8 commit text for dispatch.
@@ -521,6 +546,14 @@ im_tm_widget_rep::im_main_loop () {
       }
       else dispatch_keypress (pending[i]);
     }
+  }
+  // Drain a deferred system-clipboard paste. The browser "paste" event
+  // captured foreign text and armed this (mogan_clipboard_deliver_paste);
+  // GLFW's Ctrl-V was blocked in im_install_ime_listeners, so the editor has
+  // not pasted yet — re-drive it now, where get_selection returns the freshly
+  // buffered text. Single paste (no double-paste with GLFW's path).
+  if (im_clipboard_consume_paste ()) {
+    call ("clipboard-paste", "primary");
   }
 #endif
   // 创建了一个 stub 窗口（例如 Cmd+F 的查找窗口等）时 server

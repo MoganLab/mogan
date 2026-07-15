@@ -126,4 +126,11 @@ void im_run_main_loop ();
 // glfwSet/GetClipboardString.
 GLFWwindow* im_primary_glfw_window ();
 
+#ifdef __EMSCRIPTEN__
+// im_main_loop: consume one paste event armed by the browser paste listener.
+// Returns true once after mogan_clipboard_deliver_paste ran, so the loop can
+// re-drive the paste with the freshly buffered system-clipboard text.
+bool im_clipboard_consume_paste ();
+#endif
+
 #endif // defined IM_TM_WIDGET_HPP

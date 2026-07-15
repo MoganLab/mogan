@@ -10,6 +10,7 @@
  * in the root directory or <http://www.gnu.org/licenses/gpl-3.0.html>.
  ******************************************************************************/
 
+#include "convert.hpp" // tree_to_generic (verbatim for system clipboard)
 #include "font.hpp"
 #include "gui.hpp"               // gui_start_loop
 #include "im_chooser_widget.hpp" // im_chooser_widget_rep (file chooser)
@@ -582,15 +583,80 @@ load_system_font (string family, int size, int dpi, font_metric& fnm,
   // System fonts are optional; the viewer relies on TeX/Freetype fonts.
 }
 
-// Clipboard (Cmd+C / Cmd-V): GLFW only exposes plain-text system clipboard, so
-// we keep an internal store of the texmacs tree+text and mirror the text to the
-// system clipboard. On get, if the system clipboard still holds the text we
-// last pushed we own it → return the structured tree (preserves math/formatting
-// on intra-app paste); otherwise return the foreign plain text. This mirrors
-// Qt's owns/selection_t logic at the granularity GLFW allows.
+// Clipboard (copy/cut/paste). The editor reaches the *system* clipboard via
+// the "primary" key (C-c/C-v/C-x → kbd-copy/cut/paste → clipboard-* "primary"),
+// so "primary" is bridged to the OS/browser clipboard while the structured
+// texmacs tree+text is kept internally. On paste we return the structured tree
+// while we still own the clipboard (preserves math/formatting on intra-app
+// paste), otherwise the foreign plain text.
+//
+// GLFW's emscripten port does NOT implement the clipboard —
+// glfwSet/GetClipboard are no-ops there — so on WASM we use the browser
+// clipboard directly:
+//   copy  → navigator.clipboard.writeText (called from set_selection);
+//   paste → the browser "paste" event hands us the text synchronously; we
+//           buffer it and re-drive the paste from the main loop
+//           (im_clipboard_consume_paste), because get_selection runs during
+//           the keydown, before the paste event fires. GLFW's own Ctrl-V is
+//           blocked in im_install_ime_listeners so it can't paste stale data
+//           first.
+// On desktop GLFW the real glfwSet/GetClipboardString are used instead.
 static hashmap<string, tree>   im_sel_t= hashmap<string, tree> (tree (TUPLE));
 static hashmap<string, string> im_sel_s= hashmap<string, string> ("");
 static string                  im_last_clip_text= "";
+#ifdef __EMSCRIPTEN__
+static string g_clipboard_foreign    = "";    // text captured by a paste event
+static bool g_clipboard_paste_pending= false; // a paste event armed a re-drive
+
+EM_JS (void, im_clipboard_write, (const char* utf8), {
+  var s= UTF8ToString (utf8);
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      var p= navigator.clipboard.writeText (s);
+      if (p && p.catch) p.catch (function (){});
+    }
+  } catch (e) {
+  }
+});
+
+// Browser paste event → here. Buffer the foreign text and arm a deferred paste
+// (drained by im_main_loop via im_clipboard_consume_paste).
+extern "C" EMSCRIPTEN_KEEPALIVE void
+mogan_clipboard_deliver_paste (const char* utf8) {
+  g_clipboard_foreign      = (utf8 == nullptr) ? string ("") : string (utf8);
+  g_clipboard_paste_pending= true;
+}
+
+// im_main_loop: consume one armed paste; true ⇒ re-drive the paste now.
+bool
+im_clipboard_consume_paste () {
+  if (!g_clipboard_paste_pending) return false;
+  g_clipboard_paste_pending= false;
+  return true;
+}
+#endif // __EMSCRIPTEN__
+
+// Verbatim (plain-text) rendering of a selection envelope
+// ("texmacs" content mode lan) — what we mirror to the system clipboard so
+// external applications receive readable text.
+static string
+im_selection_verbatim (tree t) {
+  tree content= (is_tuple (t, "texmacs") && N (t) >= 2) ? t[1] : t;
+  return tree_to_generic (content, "verbatim-snippet");
+}
+
+// Current text on the system clipboard (for ownership / foreign detection).
+static string
+im_system_clip_text () {
+#ifdef __EMSCRIPTEN__
+  return g_clipboard_foreign; // refreshed by paste events
+#else
+  GLFWwindow* w= im_primary_glfw_window ();
+  if (w == nullptr) return "";
+  const char* p= glfwGetClipboardString (w);
+  return (p == nullptr) ? string ("") : string (p);
+#endif
+}
 
 bool
 set_selection (string cb, tree t, string s, string sv, string sh,
@@ -600,13 +666,22 @@ set_selection (string cb, tree t, string s, string sv, string sh,
   (void) format;
   im_sel_t (cb)= copy (t);
   im_sel_s (cb)= copy (s);
-  if (cb == "clipboard") {
+  if (cb == "primary") {
+    // GLFW/browser expose only plain text; mirror the verbatim rendering so
+    // external apps receive readable text (intra-app paste still uses the
+    // structured tree stored above).
+    string plain     = im_selection_verbatim (t);
+    im_last_clip_text= plain;
+#ifdef __EMSCRIPTEN__
+    g_clipboard_foreign= ""; // we own the clipboard again
+    if (N (plain) > 0) im_clipboard_write (as_charp(plain));
+#else
     GLFWwindow* w= im_primary_glfw_window ();
-    if (w != nullptr && N (s) > 0) {
-      c_string cs (s);
+    if (w != nullptr && N (plain) > 0) {
+      c_string cs (plain);
       glfwSetClipboardString (w, cs);
-      im_last_clip_text= s;
     }
+#endif
   }
   return true;
 }
@@ -614,26 +689,29 @@ set_selection (string cb, tree t, string s, string sv, string sh,
 bool
 get_selection (string cb, tree& t, string& s, string format) {
   (void) format;
-  if (cb == "clipboard") {
-    GLFWwindow* w= im_primary_glfw_window ();
-    if (w != nullptr) {
-      const char* p  = glfwGetClipboardString (w);
-      string      cur= (p == nullptr) ? string ("") : string (p);
-      // We still own the clipboard (text unchanged since our last set) → return
-      // the structured tree so paste preserves formatting/math within the app.
-      if (!is_empty (im_last_clip_text) && cur == im_last_clip_text &&
-          im_sel_t->contains (cb)) {
-        t= copy (im_sel_t[cb]);
-        s= copy (im_sel_s[cb]);
-        return true;
-      }
-      // Foreign content → paste as plain text.
-      t= "none";
-      s= cur;
-      return !is_empty (cur);
+  if (cb == "primary") {
+    string cur= im_system_clip_text ();
+    // Do we still own the clipboard? On desktop we compare against the live
+    // system text; on WASM the text is only knowable from paste events, so an
+    // empty (not-yet-captured) buffer means "assume ours".
+    bool own;
+#ifdef __EMSCRIPTEN__
+    own= is_empty (cur) || cur == im_last_clip_text;
+#else
+    own= !is_empty (im_last_clip_text) && cur == im_last_clip_text;
+#endif
+    if (own && im_sel_t->contains (cb)) {
+      t= copy (im_sel_t[cb]);
+      s= copy (im_sel_s[cb]);
+      return true;
     }
+    // Foreign content → paste as plain text.
+    t= tuple ("extern", copy (cur));
+    s= copy (cur);
+    return !is_empty (cur);
   }
-  // "primary"/"mouse": GLFW has no primary-selection API; serve internal only.
+  // "mouse"/"clipboard"/...: no system API (WASM) or internal-only; serve the
+  // internal store.
   if (im_sel_t->contains (cb)) {
     t= copy (im_sel_t[cb]);
     s= copy (im_sel_s[cb]);
@@ -646,7 +724,12 @@ void
 clear_selection (string cb) {
   im_sel_t->reset (cb);
   im_sel_s->reset (cb);
-  if (cb == "clipboard") im_last_clip_text= "";
+  if (cb == "primary") {
+    im_last_clip_text= "";
+#ifdef __EMSCRIPTEN__
+    g_clipboard_foreign= "";
+#endif
+  }
 }
 
 void
